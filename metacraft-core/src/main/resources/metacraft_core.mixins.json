@@ -1,0 +1,21 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "se.datasektionen.mc.metacraft_core.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"AccessorServerChunkLoadingManager",
+		"AccessorServerChunkLoadingManager$EntityTracker",
+		"MixinContainerComponent",
+		"MixinEntity",
+		"MixinEntityTrackerEntry",
+		"MixinItemStack",
+		"MixinPlayerEntity",
+		"MixinServerPlayerEntity"
+	],
+	"client": [
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

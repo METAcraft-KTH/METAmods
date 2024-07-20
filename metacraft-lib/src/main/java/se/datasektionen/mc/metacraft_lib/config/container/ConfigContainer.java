@@ -1,0 +1,160 @@
+package se.datasektionen.mc.metacraft_lib.config.container;
+
+import com.mojang.serialization.Codec;
+import net.minecraft.server.MinecraftServer;
+import se.datasektionen.mc.metacraft_lib.config.ObjectStorage;
+import se.datasektionen.mc.metacraft_lib.config.container.impl.BasicConfigContainer;
+import se.datasektionen.mc.metacraft_lib.config.container.impl.BasicServerAwareConfigContainer;
+
+import java.nio.file.Path;
+import java.util.function.*;
+
+/**
+ * A config container contains the config instance and takes care of saving/loading the config file.
+ * @param <T> The type of the config instance.
+ */
+public interface ConfigContainer<T> {
+
+	/**
+	 * Returns the config.
+	 * If the config is not loaded, it will be loaded.
+	 * If the config could not be loaded (for example, because it had not been generated yet),
+	 * a config will be generated with default parameters.
+	 * Users are advice to NOT store this in variables for longer periods of time as doing so will break the reload functionality.
+	 * @return The config instance.
+	 */
+	T get();
+
+	/**
+	 * Reloads the config.
+	 * This means that the next time {@link ConfigContainer#get()} is called, the config will be loaded again.
+	 * Normally reloaded using {@link ReloadCause#DEFAULT}
+	 */
+	default void reload() {
+		reload(ReloadCause.DEFAULT);
+	}
+
+	/**
+	 * Reloads the config.
+  	 * This means that the next time {@link ConfigContainer#get()} is called, the config will be loaded again.
+	 * @param reloadCause The reason for the reload.
+	 */
+	void reload(ReloadCause reloadCause);
+
+	/**
+	 * Modifies the config
+	 * @param modifier A function that modifies the config. If it returns true, the change will be saved, otherwise it will not.
+	 * @throws IllegalStateException If config is not modifiable.
+	 */
+	void modify(Predicate<T> modifier);
+
+	/**
+	 * Manually saves the config.
+	 */
+	void save();
+
+
+	class Builder<T> {
+
+		protected final Codec<T> codec;
+		protected final Path configPath;
+		protected final Supplier<T> defaultConfigInitializer;
+		protected boolean reloadsBeforeServer = false;
+		protected boolean reloadsAfterServer = false;
+		protected ReloadFunction<T> reloader = ReloadFunction.getDefault();
+
+		public static <T> Builder<T> create(Codec<T> codec, Path configPath, Supplier<T> defaultConfigInitializer) {
+			return new Builder<>(codec, configPath, defaultConfigInitializer);
+		}
+
+		protected Builder(Codec<T> codec, Path configPath, Supplier<T> defaultConfigInitializer) {
+			this.codec = codec;
+			this.configPath = configPath;
+			this.defaultConfigInitializer = defaultConfigInitializer;
+		}
+
+		/**
+		 * Always attempt to reload the config whenever the server reload (whenever /reload is executed),
+		 * will reload the config even if the datapack reload fails.
+		 * @return The builder.
+		 */
+		public Builder<T> reloadBeforeServer() {
+			this.reloadsBeforeServer = true;
+			return this;
+		}
+
+		/**
+		 * Reload the config after the server reload is completed.
+		 * Will only reload if the server reload was successful.
+		 * @return The builder.
+		 */
+		public Builder<T> reloadAfterServer() {
+			this.reloadsAfterServer = true;
+			return this;
+		}
+
+		/**
+		 * Set a custom reloading function.
+		 * Allows you to reload the config in multiple steps.
+		 * For example, reloading commands before the server reload, then reloading items after.
+		 * @param reloader The new reloader function. Takes the old config, a function that might create a new config as well as the reload cause as arguments.
+		 * @return The builder.
+		 */
+		public Builder<T> setReloader(ReloadFunction<T> reloader) {
+			this.reloader = reloader;
+			return this;
+		}
+
+		/**
+		 * Builds a normal config container.
+		 * @return The config container.
+		 */
+		public ConfigContainer<T> build() {
+			return new BasicConfigContainer<>(codec, configPath, defaultConfigInitializer, reloadsBeforeServer, reloadsAfterServer, reloader);
+		}
+
+		/**
+		 * Builds a config container with an additional registry aware cache creator.
+		 * Sometimes you may want to use codecs that require a valid {@link net.minecraft.registry.RegistryWrapper.WrapperLookup}
+		 * which is obviously not available at load time with the rest of the config.
+		 * Therefore, you can use {@link ObjectStorage} or similar to hold
+		 * the raw objects in the config. Then, you can use {@link ServerAwareConfigContainer#get(MinecraftServer)}
+		 * to fetch the object you create with parser. The config container will cache it for you.
+		 * Note that this object will always be destroyed when the /reload command is executed
+		 * (even if reloadAfterServer is disabled!) since the objects stored in the cache might no
+		 * longer be registered after the reload.
+		 * @param parser A function that takes the config and the current Minecraft server and returns an object storing any parameters that could normally not be decoded.
+		 * @return The config container.
+		 * @param <S> The type of the object storing the cached values.
+		 */
+		public <S> ServerAwareConfigContainer<T, S> buildRegistryAware(
+				BiFunction<T, MinecraftServer, S> parser
+		) {
+			return buildRegistryAware(parser, ReloadFunction.getDefault());
+		}
+
+		/**
+		 * Builds a config container with an additional registry aware cache creator.
+		 * Sometimes you may want to use codecs that require a valid {@link net.minecraft.registry.RegistryWrapper.WrapperLookup}
+		 * which is obviously not available at load time with the rest of the config.
+		 * Therefore, you can use {@link ObjectStorage} or similar to hold
+		 * the raw objects in the config. Then, you can use {@link ServerAwareConfigContainer#get(MinecraftServer)}
+		 * to fetch the object you create with parser. The config container will cache it for you.
+		 * Note that this object will always be destroyed when the /reload command is executed
+		 * (even if reloadAfterServer is disabled!) since the objects stored in the cache might no
+		 * longer be registered after the reload.
+		 * @param parser A function that takes the config and the current Minecraft server and returns an object storing any parameters that could normally not be decoded.
+		 * @param cacheReloader Function used to reload the cache.
+		 * @return The config container.
+		 * @param <S> The type of the object storing the cached values.
+		 */
+		public <S> ServerAwareConfigContainer<T, S> buildRegistryAware(
+				BiFunction<T, MinecraftServer, S> parser,
+				ReloadFunction<S> cacheReloader
+		) {
+			return new BasicServerAwareConfigContainer<>(
+					codec, configPath, defaultConfigInitializer, reloadsBeforeServer, reloadsAfterServer, reloader, parser, cacheReloader
+			);
+		}
+	}
+}

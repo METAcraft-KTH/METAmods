@@ -1,0 +1,34 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft_core",
+	"version": "${version}",
+	"name": "METAcraft-Core",
+	"description": "Polymer-dependent parts of the METAcraft library.",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.datasektionen.mc.metacraft_core.METAcraftCore"
+		]
+	},
+	"mixins": [
+		"metacraft_core.mixins.json"
+	],
+	"accessWidener" : "metacraft_core.accesswidener",
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"fabric": "*",
+		"minecraft": "~${minecraft_version}",
+		"metacraft_lib": "*"
+	}
+}
