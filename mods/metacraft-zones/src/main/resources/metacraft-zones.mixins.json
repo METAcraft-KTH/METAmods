@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"package": "se.datasektionen.mc.zones.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"AccessorStringRange",
+		"AccessorSuggestion",
+		"MixinEntity",
+		"MixinFieldDecoder",
+		"MixinSpawnHelper"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -1,0 +1,9 @@
+version = project.core_version
+
+loom {
+	accessWidenerPath = file("src/main/resources/metacraft_lib.accesswidener")
+}
+
+dependencies {
+	include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
+}

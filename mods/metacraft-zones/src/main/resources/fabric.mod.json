@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-zones",
+	"version": "${version}",
+	"name": "METAcraft-Zones",
+	"description": "METAcraft zone library, used for handling zones.",
+	"authors": [
+	  	"Acuadragon100"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft_zones/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.datasektionen.mc.zones.METAcraftZones"
+		]
+	},
+	"mixins": [
+		"metacraft-zones.mixins.json",
+		"metacraft-zones.compat.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric": "*",
+		"metacraft-lib": "*"
+	},
+	"suggests": {
+		"leukocyte": "*"
+	}
+}

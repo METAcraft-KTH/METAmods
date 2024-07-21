@@ -8,5 +8,7 @@ pluginManagement {
     }
 }
 
-include "metacraft-lib"
-include "metacraft-core"
+include "mods:metacraft-core"
+include "mods:metacraft-lib"
+include "mods:metacraft-zones"
+

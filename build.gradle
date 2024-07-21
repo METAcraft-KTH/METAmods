@@ -3,10 +3,56 @@ plugins {
     id 'maven-publish'
 }
 
+version = project.combined_version
+
+evaluationDependsOnChildren()
+
+def metaProjects = [
+        "mods"
+]
+
+//If you can think of a smarter way to remove a project from the Fabric Loom cache, feel free to rewrite this function.
+ext.cleanRemappedSubprojectAt = {rDir, p ->
+    var v = minecraft_version + "_" + yarn_mappings + "_${yarn_mappings_version}"
+    v = v.replaceAll("\\.", "_").replaceAll("\\+", "_")
+    var g = p.maven_group.replaceAll("\\.", "/")
+    delete(project.file("${rDir}/.gradle/loom-cache/remapped_mods/net_fabricmc_yarn_${v}/${g}/${p.name}"))
+}
+
+ext.cleanRemappedSubproject = {p ->
+    cleanRemappedSubprojectAt(rootDir, p)
+}
+
 allprojects {
+    if (metaProjects.contains(it.name)) {
+        return
+    }
     apply plugin: "fabric-loom"
 
-    version = project.mod_version
+    ext.dependIfPossible = {Project dep ->
+        dependencies {
+            //modImplementation fails if the library has not been built.
+            //But we still need to use it for the runtime environment to work.
+            //When it's not present, we use implementation instead so we can at least compile.
+            if (dep.file("build/libs").exists()) {
+                modImplementation dep
+            } else {
+                implementation dep
+            }
+        }
+    }
+
+    ext.addProjectDependency = {dep ->
+        var p = project(dep)
+        dependIfPossible(p)
+
+        compileJava {
+            cleanRemappedSubprojectAt(
+                    project.layout.projectDirectory, p
+            )
+        }
+    }
+
     group = project.maven_group
 
     def targetJavaVersion = 21
@@ -57,7 +103,7 @@ allprojects {
     dependencies {
         // To change the versions see the gradle.properties file
         minecraft "com.mojang:minecraft:${project.minecraft_version}"
-        mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+        mappings "net.fabricmc:yarn:${project.yarn_mappings}:${project.yarn_mappings_version}"
         modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     }
 
@@ -67,13 +113,35 @@ allprojects {
 
         //Polymer
         maven { url 'https://maven.nucleoid.xyz' }
+
+        //Leukocyte
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = "Modrinth"
+                    url = "https://api.modrinth.com/maven"
+                }
+            }
+            filter {
+                includeGroup "maven.modrinth"
+            }
+        }
+        maven { url = 'https://maven.nucleoid.xyz/' }
     }
 }
 
 subprojects {
 
+    if (metaProjects.contains(it.name)) {
+        return
+    }
+
     base {
         archivesName = project.name
+    }
+
+    if (project.name != "metacraft-lib") {
+        addProjectDependency(":mods:metacraft-lib")
     }
 
     dependencies {
@@ -82,15 +150,16 @@ subprojects {
 
         modImplementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
 
-        if (project.name != "metacraft-lib") {
-            implementation project(":metacraft-lib")
-        }
-
         testImplementation('org.junit.jupiter:junit-jupiter:5.9.2')
     }
 
     test {
         useJUnitPlatform()
+    }
+
+    //Cleans Fabric Loom cache on compilation.
+    compileJava {
+        cleanRemappedSubproject(project)
     }
 }
 
@@ -98,21 +167,23 @@ base {
     archivesName = project.archives_base_name
 }
 
-dependencies {
-    //We want this so launching the root project loads all the submodule mods.
-    //However, gradle can't find the file on first launch and will fail to parse the project.
-    //So we check if the libs folder exists.
-    subprojects.each {
-        if (it.file("build/libs").exists()) {
-            modImplementation(it)
-        }
+//We want this so launching the root project loads all the submodule mods.
+//However, gradle can't find the file on first launch and will fail to parse the project.
+//So we check if the libs folder exists.
+subprojects.each {
+    if (metaProjects.contains(it.name)) {
+        return
     }
+    dependIfPossible(it)
 }
 
 //Make sure the mods are bundled in the main release.
 remapJar {
     afterEvaluate {
         subprojects.each {
+            if (metaProjects.contains(it.name)) {
+                return
+            }
             nestedJars.from project("${it.path}").tasks.getByName("remapJar")
         }
     }

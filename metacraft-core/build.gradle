@@ -1,8 +1,0 @@
-
-loom {
-	accessWidenerPath = file("src/main/resources/metacraft_core.accesswidener")
-}
-
-dependencies {
-	modImplementation include("eu.pb4:polymer-core:${project.polymer_version}")
-}
