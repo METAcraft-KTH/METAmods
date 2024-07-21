@@ -10,5 +10,6 @@ pluginManagement {
 
 include "mods:metacraft-core"
 include "mods:metacraft-lib"
+include "mods:metacraft-moderation"
 include "mods:metacraft-zones"
 

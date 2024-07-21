@@ -1,0 +1,36 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-moderation",
+	"version": "${version}",
+	"name": "METAcraft-Moderation",
+	"description": "Moderation utilities for the METAcraft Server.",
+	"authors": [
+	  	"Acuadragon100"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/metacraft-moderation/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.datasektionen.mc.metacraft_moderation.METAcraftModeration"
+		]
+	},
+	"mixins": [
+		"metacraft-moderation.mixins.json",
+		"metacraft-moderation.exile.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric": "*",
+		"metacraft-lib": "*"
+	},
+	"suggests": {
+		"metacraft-zones": "*",
+		"melius-vanish": "*"
+	}
+}
