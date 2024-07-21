@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "metacraft-info-commands",
+  "version": "${version}",
+
+  "name": "METAcraft info commands",
+  "description": "A mod that allows the creation of custom information commands from a config file.",
+  "authors": [
+    "Acuadragon100"
+  ],
+  "contributors": [
+    "Hampfh"
+  ],
+  "contact": {
+    "sources": "${git_repo}",
+    "homepage": "${website}",
+    "issues": "${issues}"
+  },
+
+  "license": "Apache-2.0",
+  "icon": "assets/metacraft/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "se.datasektionen.mc.info_commands.Info"
+    ]
+  },
+  "mixins": [
+    "metacraft-info-commands.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "fabric": "*",
+    "metacraft-lib": "*"
+  }
+}

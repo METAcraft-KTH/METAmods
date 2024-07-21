@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "se.datasektionen.mc.info_commands.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"MixinReloadCommand"
+	],
+	"client": [
+	],
+	"injectors": {
+		"defaultRequire": 1
+  }
+}

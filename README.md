@@ -9,7 +9,7 @@ Repository containing our dependent mods in one place, to make development easie
   - If you don't do this, the project won't run properly in your IDE.
 - The default run configurations will launch all mods at once.
 - If you wish to debug a specific mod without the others, copy the run configuration and change the "METAmods.main" module to the "main" module of the submodule you want to work with.
-- To make changes made in a module you're not running take effect, run `./gradlew build`.
+- To make changes made in a module you're not running take effect, run `./gradlew build` and refresh gradle.
 - To add additional modules:
   - Create a new directory under "mods" containing the "build.gradle" and "src" folder of your module.
   - Mention your module with an include statement in the root-level "settings.gradle".
