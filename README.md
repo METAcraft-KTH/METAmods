@@ -14,4 +14,7 @@ Repository containing our dependent mods in one place, to make development easie
   - Create a new directory under "mods" containing the "build.gradle" and "src" folder of your module.
   - Mention your module with an include statement in the root-level "settings.gradle".
   - Please see the other modules for examples.
-  - If you wish to put your module in a sub-directory, make sure to add the sub-directory to the "metaProjects" variable in the root-level "build.gradle".
+  - If you wish to put your module in a sub-directory, make sure to add the sub-directory to the "ignoredProjects" variable in the root-level "build.gradle".
+- Important, run `./gradlew clean` before bumping versions, otherwise gradle will fail to evaluate the project!
+- If you find yourself in a situation that gradle can't resolve dependencies inside of one of the build/libs folders of this project:
+  - Try running `./gradlew build -Pskip-subproject-remap`
