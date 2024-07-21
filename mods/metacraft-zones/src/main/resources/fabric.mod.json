@@ -5,11 +5,13 @@
 	"name": "METAcraft-Zones",
 	"description": "METAcraft zone library, used for handling zones.",
 	"authors": [
-	  	"Acuadragon100"
+		"Acuadragon100"
 	],
+	"contributors": [],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
 	},
 	"license": "Apache-2.0",
 	"icon": "assets/metacraft_zones/icon.png",
