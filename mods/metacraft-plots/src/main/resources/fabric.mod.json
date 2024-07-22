@@ -1,9 +1,9 @@
 {
 	"schemaVersion": 1,
-	"id": "portable-jukebox",
+	"id": "metacraft-plots",
 	"version": "${version}",
-	"name": "PortableJukebox",
-	"description": "Portable jukeboxes that can play music while in your inventory",
+	"name": "METAcraft-Plots",
+	"description": "Plots for METAcraft",
 	"authors": [
 		"Acuadragon100"
 	],
@@ -14,23 +14,23 @@
 		"issues": "${issues}"
 	},
 	"license": "Apache-2.0",
-	"icon": "assets/metacraft/icon.png",
-	"accessWidener" : "portable_jukebox.accesswidener",
+	"icon": "assets/metacraft_plots/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.datasektionen.mc.portable_jukebox.PortableJukebox"
+			"se.datasektionen.mc.metacraft_plots.METAcraftPlots"
 		]
 	},
 	"mixins": [
-		"portable_jukebox.mixins.json"
+		"metacraft-plots.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=${loader_version}",
 		"minecraft": "~${minecraft_version}",
 		"fabric": "*",
-		"metacraft-lib": "*",
-		"polymer-core": "*",
-		"sgui": "*"
+		"metacraft-core": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
 	}
 }

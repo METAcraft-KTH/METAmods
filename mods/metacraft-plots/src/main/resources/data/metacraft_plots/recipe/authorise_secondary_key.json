@@ -1,0 +1,16 @@
+{
+	"type": "crafting_shapeless",
+	"category": "misc",
+	"show_notification": true,
+	"ingredients": [
+		{
+			"item": "metacraft_plots:plot_key"
+		},
+		{
+			"item": "metacraft_plots:plot_master_key"
+		}
+	],
+	"result": {
+		"id": "metacraft_plots:plot_key"
+	}
+}

@@ -1,4 +1,4 @@
-version = project.core_version
+version = project.lib_version
 
 loom {
 	accessWidenerPath = file("src/main/resources/metacraft_lib.accesswidener")

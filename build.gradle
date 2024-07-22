@@ -56,6 +56,25 @@ allprojects {
         }
     }
 
+    ext.addLeukocyteDependency = { ->
+        dependencies {
+            //It is slow to update so we usually want it set to modCompileOnly.
+            modCompileOnly("maven.modrinth:leukocyte:${project.leukocyte_version}")
+        }
+    }
+
+    ext.addSGUIDependency = { ->
+        dependencies {
+            modImplementation("eu.pb4:sgui:${project.sgui_version}")
+        }
+    }
+
+    ext.addPolymerDependency = { ->
+        dependencies {
+            modImplementation("eu.pb4:polymer-core:${project.polymer_version}")
+        }
+    }
+
     group = project.maven_group
 
     def targetJavaVersion = 21
