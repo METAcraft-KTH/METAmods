@@ -15,4 +15,5 @@ include "mods:metacraft-moderation"
 include "mods:metacraft-zones"
 include "mods:portal-blocker"
 include "mods:faster-minecarts"
+include "mods:portable-jukebox"
 

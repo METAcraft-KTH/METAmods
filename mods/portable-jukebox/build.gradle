@@ -1,0 +1,10 @@
+version = project.portable_jukebox_version
+
+loom {
+	accessWidenerPath = file("src/main/resources/portable_jukebox.accesswidener")
+}
+
+dependencies {
+	modImplementation include("eu.pb4:sgui:${project.sgui_version}")
+	modImplementation("eu.pb4:polymer-core:${project.polymer_version}")
+}

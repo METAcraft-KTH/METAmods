@@ -1,0 +1,31 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "se.datasektionen.mc.portable_jukebox.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"AccessorBundleContentsComponentBuilder",
+		"AccessorDoubleInventory",
+		"AccessorEnderChestInventory",
+		"AccessorSimpleInventory",
+		"MixinArmorStandEntity",
+		"MixinBlockEntity",
+		"MixinBlockItem",
+		"MixinBundleContentsComponentBuilder",
+		"MixinBundleItem",
+		"MixinEntity",
+		"MixinEntityTrackerEntry",
+		"MixinHopperBlockEntity",
+		"MixinItemEntity",
+		"MixinItemFrameEntity",
+		"MixinMobEntity",
+		"MixinPlayerInventory",
+		"MixinScreenHandler",
+		"MixinSlot"
+	],
+	"client": [
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

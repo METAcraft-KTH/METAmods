@@ -19,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_lib.extensions.ServerPlayerEntityExtensions;
+import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
 @Mixin(ServerPlayerEntity.class)
 public abstract class MixinServerPlayerEntity extends PlayerEntity implements ServerPlayerEntityExtensions {
@@ -64,7 +65,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Override
 	public void METAcraft_Moderation$setCustomName(String customName) {
 		this.customName = customName;
-		var tracker = ((AccessorServerChunkLoadingManager) this.getServerWorld().getChunkManager().chunkLoadingManager).getEntityTrackers().get(this.getId());
+		var tracker = EntityTrackerHelper.getEntityTrackers(this.getServerWorld()).get(this.getId());
 		if (tracker == null) {
 			return;
 		}

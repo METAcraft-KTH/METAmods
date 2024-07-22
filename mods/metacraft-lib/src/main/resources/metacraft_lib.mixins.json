@@ -16,6 +16,7 @@
 		"AccessorLootTableReporter",
 		"AccessorMinecraftDedicatedServer",
 		"AccessorServerChunkLoadingManager",
+		"AccessorServerChunkLoadingManager$EntityTracker",
 		"AccessorServerPropertiesHandler",
 		"AccessorTntEntity",
 		"MixinAbstractCookingRecipe",

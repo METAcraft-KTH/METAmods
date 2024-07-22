@@ -22,6 +22,7 @@ import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
 import se.datasektionen.mc.metacraft_core.music.ServerBossBarWithMusic;
+import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
 import java.util.Optional;
 
@@ -78,10 +79,10 @@ public abstract class MixinEntity implements EntityExtensions {
 
 	@Unique
 	private void initialiseBossBar() {
-		if (bossBar == null) return;
-		var tracker = ((AccessorServerChunkLoadingManager) ((ServerWorld) this.getWorld()).getChunkManager().chunkLoadingManager).getEntityTrackers().get(this.getId());
+		if (bossBar == null || !(this.getWorld() instanceof ServerWorld sw)) return;
+		var tracker = EntityTrackerHelper.getEntityTrackers(sw).get(this.getId());
 		if (tracker != null) {
-			for (var player : ((AccessorServerChunkLoadingManager.EntityTracker) tracker).getListeners()) {
+			for (var player : EntityTrackerHelper.getListeners(tracker)) {
 				this.bossBar.addPlayer(player.getPlayer());
 			}
 		}

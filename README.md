@@ -19,3 +19,5 @@ Repository containing our dependent mods in one place, to make development easie
 - Important, run `./gradlew clean` before bumping versions, otherwise gradle will fail to evaluate the project!
 - If you find yourself in a situation that gradle can't resolve dependencies inside of one of the build/libs folders of this project:
   - Try running `./gradlew build -Pskip-subproject-remap`
+- Don't forget that you can always run a gradle task for a specific subproject if necessary.
+  - For example: `./gradlew mods:metacraft-lib:build` to rebuild metacraft-lib.
