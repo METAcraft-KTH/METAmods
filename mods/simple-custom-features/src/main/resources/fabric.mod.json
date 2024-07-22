@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "simple-custom-features",
+  "version": "${version}",
+
+  "name": "SimpleCustomFeatures",
+  "description": "A mod that allows the creation of simple custom features from a config file.",
+  "authors": [
+    "Acuadragon100"
+  ],
+  "contributors": [],
+  "contact": {
+    "sources": "${git_repo}",
+    "homepage": "${website}",
+    "issues": "${issues}"
+  },
+
+  "license": "Apache-2.0",
+  "icon": "assets/simple_custom_features/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "se.datasektionen.mc.simplecustomfeatures.Features"
+    ]
+  },
+  "mixins": [
+	  "simple-custom-features.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "fabric": "*",
+    "metacraft-lib": "*",
+    "polymer-core": "*"
+  }
+}

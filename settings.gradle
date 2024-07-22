@@ -8,12 +8,13 @@ pluginManagement {
     }
 }
 
+include "mods:faster-minecarts"
 include "mods:metacraft-core"
 include "mods:metacraft-info-commands"
 include "mods:metacraft-lib"
 include "mods:metacraft-moderation"
 include "mods:metacraft-zones"
-include "mods:portal-blocker"
-include "mods:faster-minecarts"
 include "mods:portable-jukebox"
+include "mods:portal-blocker"
+include "mods:simple-custom-features"
 

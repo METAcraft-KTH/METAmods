@@ -1,0 +1,6 @@
+version = project.portal_blocker_version
+
+dependencies {
+	modImplementation("eu.pb4:polymer-core:${project.polymer_version}")
+	implementation include("net.bytebuddy:byte-buddy:${project.byte_buddy_version}")
+}
