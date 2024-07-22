@@ -130,6 +130,11 @@ allprojects {
             }
         }
         maven { url = 'https://maven.nucleoid.xyz/' }
+
+        //Mod Menu
+        maven {
+            url "https://maven.terraformersmc.com/"
+        }
     }
 }
 
@@ -154,6 +159,10 @@ subprojects {
         modImplementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
 
         testImplementation('org.junit.jupiter:junit-jupiter:5.9.2')
+
+        modApi("com.terraformersmc:modmenu:${project.modmenu_version}"){
+            exclude group: "net.fabricmc.fabric-api"
+        }
     }
 
     test {
