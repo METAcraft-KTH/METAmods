@@ -22,6 +22,7 @@
 		"MixinAbstractMinecartEntity",
 		"MixinBoatEntity",
 		"MixinBundleContentsComponent",
+		"MixinBundleContentsComponent$Builder",
 		"MixinBundleItem",
 		"MixinChicken",
 		"MixinEntity",

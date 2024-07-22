@@ -1,0 +1,19 @@
+{
+	"required": true,
+	"package": "se.datasektionen.mc.portal_blocker.mixin",
+	"compatibilityLevel": "JAVA_17",
+	"mixins": [
+		"AccessorAbstractPropertiesHandler",
+		"AccessorMinecraftDedicatedServer",
+		"AccessorServerPropertiesHandler",
+		"MixinAbstractFireBlock",
+		"MixinEnderEyeItem",
+		"MixinEndPortalBlock",
+		"MixinNetherPortal",
+		"MixinPortalForcer",
+		"MixinPortalManager"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

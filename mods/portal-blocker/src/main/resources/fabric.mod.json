@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "portal-blocker",
+	"version": "${version}",
+	"name": "Portal-Blocker",
+	"description": "Disables portals, allowing the admins to decide when players should be allowed to enter the nether, end or potentially other dimensions if the mod has compatibility.",
+	"authors": [
+		"Acuadragon100",
+		"Leddy231"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/portal-blocker/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.datasektionen.mc.portal_blocker.PortalBlocker"
+		]
+	},
+	"mixins": [
+	  "portal-blocker.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric": "*",
+		"metacraft-zones": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}

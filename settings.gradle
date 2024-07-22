@@ -13,4 +13,5 @@ include "mods:metacraft-info-commands"
 include "mods:metacraft-lib"
 include "mods:metacraft-moderation"
 include "mods:metacraft-zones"
+include "mods:portal-blocker"
 

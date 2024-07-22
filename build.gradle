@@ -38,7 +38,6 @@ allprojects {
             //But we still need to use it for the runtime environment to work.
             //When it's not present, we use implementation instead so we can at least compile.
             if (dep.file("build/libs").exists() && !skipRemap) {
-                println("Still entering though")
                 modImplementation dep
             } else {
                 implementation dep
