@@ -10,10 +10,13 @@ pluginManagement {
 
 include "mods:faster-minecarts"
 include "mods:metacraft-core"
+include "mods:metacraft-dungeons"
 include "mods:metacraft-info-commands"
 include "mods:metacraft-lib"
+include "mods:metacraft-loot-containers"
 include "mods:metacraft-moderation"
 include "mods:metacraft-plots"
+include "mods:metacraft-saved-items"
 include "mods:metacraft-zones"
 include "mods:portable-jukebox"
 include "mods:portal-blocker"

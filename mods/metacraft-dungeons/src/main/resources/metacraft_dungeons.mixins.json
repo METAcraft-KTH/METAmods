@@ -1,0 +1,18 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "se.datasektionen.mc.metacraft_dungeons.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"AccessorMinecraftServer",
+		"AccessorServerChunkLoadingManager",
+		"MixinChunkGenerating",
+		"MixinServerWorld"
+	],
+	"client": [
+		"AccessorIntegratedPlayerManager"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

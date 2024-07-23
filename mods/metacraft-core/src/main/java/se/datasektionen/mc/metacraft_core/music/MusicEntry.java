@@ -71,12 +71,12 @@ public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitc
 		public Text getCredit() {
 			return basedOf.map(
 					other -> Text.translatableWithFallback(
-							"music.wildernessfeatures.recursive_credit", "%s by %s based of %s",
+							"music.metacraft.recursive_credit", "%s by %s based of %s",
 							name, author, other.getCredit()
 					).fillStyle(style)
 			).orElse(
 					Text.translatableWithFallback(
-							"music.wildernessfeatures.credit", "%s by %s",
+							"music.metacraft.credit", "%s by %s",
 							name, author
 					).fillStyle(style)
 			);

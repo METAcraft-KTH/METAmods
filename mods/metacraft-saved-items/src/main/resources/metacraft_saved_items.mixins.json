@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "se.datasektionen.mc.saved_items.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"MixinItemEntity",
+		"MixinPlayerEntity"
+	],
+	"client": [],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

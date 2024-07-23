@@ -1,0 +1,36 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-saved-items",
+	"version": "${version}",
+	"name": "METAcraft Saved Items",
+	"description": "Saves items lost on death, making it possible to recover them",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.datasektionen.mc.saved_items.SavedItems"
+		]
+	},
+	"mixins": [
+		"metacraft_saved_items.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric": "*",
+		"metacraft-lib": "*"
+	},
+	"suggests": {
+		"metacraft-loot-containers": "*"
+	}
+}

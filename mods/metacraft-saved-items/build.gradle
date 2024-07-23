@@ -1,0 +1,3 @@
+version = project.saved_items_version
+
+addProjectDependency(":mods:metacraft-loot-containers")

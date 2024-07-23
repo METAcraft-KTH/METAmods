@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-dungeons",
+	"version": "${version}",
+	"name": "METAcraft-Dungeons",
+	"description": "Adds randomly generated dungeons",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons"
+		]
+	},
+	"mixins": [
+		"metacraft_dungeons.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric": "*",
+		"metacraft-core": "*"
+	}
+}
