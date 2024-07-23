@@ -4,7 +4,7 @@ import net.fabricmc.api.ModInitializer;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import se.datasektionen.mc.metacraft_moderation.compat.CompatMods;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.metacraft_moderation.exile.ExileInit;
 
 public class METAcraftModeration implements ModInitializer {
@@ -12,7 +12,7 @@ public class METAcraftModeration implements ModInitializer {
 
 	public static final String MODID = "metacraft-moderation";
 
-	public static final boolean ENABLE_EXILE = CompatMods.METACRAFT_ZONES.isInstalled();
+	public static final boolean ENABLE_EXILE = IsLoaded.METACRAFT_ZONES.isLoaded();
 
 	@Override
 	public void onInitialize() {

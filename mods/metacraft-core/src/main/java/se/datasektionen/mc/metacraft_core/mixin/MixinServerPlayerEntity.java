@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_core.mixin;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket;
 import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -41,6 +42,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Shadow public abstract ServerWorld getServerWorld();
 
 	@Shadow public abstract void sendMessage(Text message, boolean overlay);
+
+	@Unique
+	private static final String ARE_BLOCKS_MOVABLE = "AreBlocksMovable";
+
+	@Unique
+	private boolean movable = false;
 
 	@Unique
 	private final Map<RegistryEntry<SoundEvent>, MutableInt> potentiallyPlayingMusic = new HashMap<>();
@@ -169,6 +176,16 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 	}
 
+	@Inject(method = "writeCustomDataToNbt", at = @At("HEAD"))
+	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
+		nbt.putBoolean(ARE_BLOCKS_MOVABLE, movable);
+	}
+
+	@Inject(method = "readCustomDataFromNbt", at = @At("HEAD"))
+	public void readNbt(NbtCompound nbt, CallbackInfo ci) {
+		movable = nbt.getBoolean(ARE_BLOCKS_MOVABLE);
+	}
+
 	@Unique
 	private void disableVanillaMusic() {
 		this.networkHandler.sendPacket(new StopSoundS2CPacket(
@@ -250,6 +267,16 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Override
 	public PlayerMusicPoint metacraft_lib$getMusicPoint() {
 		return musicPoint;
+	}
+
+	@Override
+	public void metacraft_core$setBlocksPistonMovable(boolean movable) {
+		this.movable = movable;
+	}
+
+	@Override
+	public boolean metacraft_core$areBlocksPistonMovable() {
+		return movable;
 	}
 
 }

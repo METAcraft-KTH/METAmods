@@ -1,10 +1,10 @@
 package se.datasektionen.mc.saved_items;
 
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.saved_items.loot_container.Containers;
 
 public class SavedItems implements ModInitializer {
@@ -19,7 +19,7 @@ public class SavedItems implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		if (FabricLoader.getInstance().isModLoaded("metacraft-loot-containers")) {
+		if (IsLoaded.METACRAFT_LOOT_CONTAINERS.isLoaded()) {
 			Containers.init();
 		}
 		Commands.init();

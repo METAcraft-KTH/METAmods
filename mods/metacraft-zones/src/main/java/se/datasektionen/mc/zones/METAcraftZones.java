@@ -5,7 +5,8 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import se.datasektionen.mc.zones.compat.CompatMods;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.zones.compat.leukocyte.LeukocyteZoneManager;
 import se.datasektionen.mc.zones.zone.RealZone;
 import se.datasektionen.mc.zones.zone.ZoneRegistry;
 import se.datasektionen.mc.zones.zone.data.ZoneDataRegistry;
@@ -24,7 +25,9 @@ public class METAcraftZones implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			ZoneManager.getInstance(server).getZones().getZones().forEach(RealZone::onWorldLoad);
 		});
-		CompatMods.init();
+		if (IsLoaded.LEUKOCYTE.isLoaded()) {
+			LeukocyteZoneManager.init();
+		}
 		LOGGER.info("Loaded METAcraft zones by Acuadragon100");
 	}
 

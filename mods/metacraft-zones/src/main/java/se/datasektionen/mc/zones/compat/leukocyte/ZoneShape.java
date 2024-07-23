@@ -16,7 +16,7 @@ import xyz.nucleoid.stimuli.filter.EventFilter;
 public class ZoneShape implements ProtectionShape {
 
 	protected String name;
-	public static MapCodec<ZoneShape> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+	public static final MapCodec<ZoneShape> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.STRING.fieldOf("name").forGetter(zone -> zone.name)
 	).apply(instance, ZoneShape::new));
 

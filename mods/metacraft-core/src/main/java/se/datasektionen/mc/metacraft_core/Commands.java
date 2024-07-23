@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_core;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.text.Text;
+import se.datasektionen.mc.metacraft_core.commands.SetPistonMovable;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
 
 import static net.minecraft.server.command.CommandManager.literal;
@@ -17,6 +18,7 @@ public class Commands {
 						return 1;
 					})
 			);
+			SetPistonMovable.register(dispatcher, registryAccess);
 		});
 	}
 

@@ -14,10 +14,10 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.dimension.DimensionType;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.metacraft_moderation.METAcraftModeration;
 import se.datasektionen.mc.metacraft_moderation.ModerationData;
 import se.datasektionen.mc.metacraft_moderation.ModerationPlayerData;
-import se.datasektionen.mc.metacraft_moderation.compat.CompatMods;
 import se.datasektionen.mc.metacraft_moderation.compat.Vanish;
 import se.datasektionen.mc.metacraft_moderation.mixin.AccessorPlayerManager;
 import se.datasektionen.mc.metacraft_moderation.mixin.AccessorServerPlayerEntity;
@@ -130,7 +130,7 @@ public class ModerationModeState {
 		boolean applyVanishBeforeData = def.vanish;
 
 		if (applyVanishBeforeData) {
-			if (CompatMods.VANISH.isInstalled()) {
+			if (IsLoaded.VANISH.isLoaded()) {
 				Vanish.setVanishState(player, def.vanish);
 			}
 		}
@@ -178,7 +178,7 @@ public class ModerationModeState {
 		}
 
 		if (!applyVanishBeforeData) {
-			if (CompatMods.VANISH.isInstalled()) {
+			if (IsLoaded.VANISH.isLoaded()) {
 				Vanish.setVanishState(player, def.vanish);
 			}
 		}
@@ -197,7 +197,7 @@ public class ModerationModeState {
 	}
 
 	public void updatePlayer(ServerPlayerEntity player) {
-		if (!CompatMods.VANISH.isInstalled()) {
+		if (!IsLoaded.VANISH.isLoaded()) {
 			player.setInvisible(def.vanish);
 		}
 		if (def.shouldHaveSeparatePlayerData()) {

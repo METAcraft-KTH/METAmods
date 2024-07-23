@@ -8,7 +8,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.World;
-import se.datasektionen.mc.zones.compat.CompatMods;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.zones.compat.leukocyte.LeukocyteZoneManager;
 import se.datasektionen.mc.zones.zone.RealZone;
 import se.datasektionen.mc.zones.zone.Zone;
@@ -66,13 +66,13 @@ public class ZoneManager extends PersistentState {
 	private final ZoneMap zones = new ZoneMap(this::markDirty, this::onZoneAdd, this::onZoneRemove);
 
 	protected void onZoneAdd(Zone zone) {
-		if (CompatMods.LEUKOCYTE.installed()) {
+		if (IsLoaded.LEUKOCYTE.isLoaded()) {
 			LeukocyteZoneManager.onZoneAdd(server, zone);
 		}
 	}
 
 	protected void onZoneRemove(Zone zone) {
-		if (CompatMods.LEUKOCYTE.installed()) {
+		if (IsLoaded.LEUKOCYTE.isLoaded()) {
 			LeukocyteZoneManager.onZoneRemove(server, zone);
 		}
 	}

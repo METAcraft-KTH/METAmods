@@ -4,10 +4,13 @@
 	"package": "se.datasektionen.mc.metacraft_core.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"MixinBlockEntity",
+		"MixinBlockItem",
 		"MixinContainerComponent",
 		"MixinEntity",
 		"MixinEntityTrackerEntry",
 		"MixinItemStack",
+		"MixinPistonBlock",
 		"MixinPlayerEntity",
 		"MixinServerPlayerEntity"
 	],

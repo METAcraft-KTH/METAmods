@@ -46,4 +46,8 @@ public interface ServerPlayerEntityExtensions {
 
 	PlayerMusicPoint metacraft_lib$getMusicPoint();
 
+	void metacraft_core$setBlocksPistonMovable(boolean movable);
+
+	boolean metacraft_core$areBlocksPistonMovable();
+
 }
