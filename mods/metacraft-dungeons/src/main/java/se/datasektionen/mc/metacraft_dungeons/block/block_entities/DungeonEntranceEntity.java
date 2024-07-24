@@ -53,7 +53,9 @@ public class DungeonEntranceEntity extends PortalEntity {
 
 	private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
 
-	private static final Codec<List<StructurePoolAliasBinding>> ALIAS_BINDING_LIST_CODEC = StructurePoolAliasBinding.CODEC.listOf();
+	private static final Codec<List<StructurePoolAliasBinding>> ALIAS_BINDING_LIST_CODEC = Codec.lazyInitialized(
+			() -> StructurePoolAliasBinding.CODEC.listOf() //DO NOT REPLACE THIS WITH A METHOD REFERENCE, IT WILL BREAK THE UNIT TESTS!!!!!!
+	);
 
 	private static final String JIGSAW = "Jigsaw";
 	private static final String MAX_SIZE = "MaxSize";
@@ -98,7 +100,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 				maxSize = jigsaw.getInt(MAX_SIZE);
 			}
 			if (jigsaw.contains(DEPTH_SPECIFIC_POOLS)) {
-				PoolEntry.CODEC.listOf().parse(NbtOps.INSTANCE, jigsaw.get(DEPTH_SPECIFIC_POOLS)).resultOrPartial(
+				PoolEntry.CODEC.listOf().parse(lookup.getOps(NbtOps.INSTANCE), jigsaw.get(DEPTH_SPECIFIC_POOLS)).resultOrPartial(
 						METAcraftDungeons.LOGGER::error
 				).ifPresent(entries -> {
 					this.depthSpecificPools = entries;
@@ -107,7 +109,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 				this.depthSpecificPools = new ArrayList<>();
 			}
 			if (jigsaw.contains(ALIASES)) {
-				ALIAS_BINDING_LIST_CODEC.parse(NbtOps.INSTANCE, jigsaw.get(ALIASES)).resultOrPartial(
+				ALIAS_BINDING_LIST_CODEC.parse(lookup.getOps(NbtOps.INSTANCE), jigsaw.get(ALIASES)).resultOrPartial(
 						METAcraftDungeons.LOGGER::error
 				).ifPresent(aliases -> {
 					this.aliases = aliases;
@@ -150,14 +152,14 @@ public class DungeonEntranceEntity extends PortalEntity {
 			jigsaw.putString(POOL, jigsawPool.getValue().toString());
 			jigsaw.putInt(MAX_SIZE, maxSize);
 			if (!this.depthSpecificPools.isEmpty()) {
-				PoolEntry.CODEC.listOf().encodeStart(NbtOps.INSTANCE, depthSpecificPools).resultOrPartial(
+				PoolEntry.CODEC.listOf().encodeStart(lookup.getOps(NbtOps.INSTANCE), depthSpecificPools).resultOrPartial(
 						METAcraftDungeons.LOGGER::error
 				).ifPresent(value -> {
 					jigsaw.put(DEPTH_SPECIFIC_POOLS, value);
 				});
 			}
 			if (!aliases.isEmpty()) {
-				ALIAS_BINDING_LIST_CODEC.encodeStart(NbtOps.INSTANCE, aliases).resultOrPartial(
+				ALIAS_BINDING_LIST_CODEC.encodeStart(lookup.getOps(NbtOps.INSTANCE), aliases).resultOrPartial(
 						METAcraftDungeons.LOGGER::error
 				).ifPresent(encodedAliases -> {
 					jigsaw.put(ALIASES, encodedAliases);
@@ -440,6 +442,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 			List<StructurePoolAliasBinding> aliases,
 			int depthOffset, int maxSize
 	) {
+
 		public static final Codec<PoolEntry> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
 				RegistryKey.createCodec(RegistryKeys.TEMPLATE_POOL).fieldOf("jigsaw_pool").forGetter(PoolEntry::jigsawPool),
