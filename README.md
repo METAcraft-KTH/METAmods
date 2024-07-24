@@ -10,7 +10,7 @@ Repository containing our dependent mods in one place, to make development easie
   - It is also highly recommended to run `./gradlew runDatagen` and then `./gradlew build` again (note that you must run the above command first, and make sure to run each command separately!).
 - The default run configurations will launch all mods at once.
 - If you wish to debug a specific mod without the others, copy the run configuration and change the "METAmods.main" module to the "main" module of the submodule you want to work with.
-- To make changes made in a module you're not running take effect, run `./gradlew build` and refresh gradle.
+- To make changes made in a module take effect, simply refresh gradle (if that does not work, run `./gradlew build` and then refresh).
 - To add additional modules:
   - Create a new directory under "mods" containing the "build.gradle" and "src" folder of your module.
   - Mention your module with an include statement in the root-level "settings.gradle".
