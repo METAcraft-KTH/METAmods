@@ -130,9 +130,6 @@ allprojects {
     }
 
     repositories {
-        //Fabric Permissions API
-        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
-
         //Polymer
         maven { url 'https://maven.nucleoid.xyz' }
 
