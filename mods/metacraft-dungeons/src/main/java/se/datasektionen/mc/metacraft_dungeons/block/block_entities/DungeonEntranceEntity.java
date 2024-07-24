@@ -22,6 +22,7 @@ import net.minecraft.structure.*;
 import net.minecraft.structure.pool.SinglePoolElement;
 import net.minecraft.structure.pool.StructurePool;
 import net.minecraft.structure.pool.StructurePoolBasedGenerator;
+import net.minecraft.structure.pool.alias.StructurePoolAliasBinding;
 import net.minecraft.structure.pool.alias.StructurePoolAliasLookup;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -46,11 +47,18 @@ import se.datasektionen.mc.metacraft_dungeons.util.ChunkHelper;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DungeonEntranceEntity extends PortalEntity {
+
+	private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
+
+	private static final Codec<List<StructurePoolAliasBinding>> ALIAS_BINDING_LIST_CODEC = StructurePoolAliasBinding.CODEC.listOf();
+
 	private static final String JIGSAW = "Jigsaw";
 	private static final String MAX_SIZE = "MaxSize";
 	private static final String POOL = "Pool";
+	private static final String ALIASES = "PoolAliases";
 	private static final String DEPTH_SPECIFIC_POOLS = "DepthSpecificPools";
 	private static final String DEPTH = "DungeonDepth";
 	private static final String DEPTH_OFFSET = "DepthOffset";
@@ -59,6 +67,9 @@ public class DungeonEntranceEntity extends PortalEntity {
 	protected int dungeonDepth = 0;
 	protected int depthOffset = 1;
 	protected List<PoolEntry> depthSpecificPools = new ArrayList<>();
+
+	protected List<StructurePoolAliasBinding> aliases = new ArrayList<>();
+
 	private Thread chunkGeneratorThread = null;
 	private static final ChunkTicketType<ChunkPos> TICKET = ChunkTicketType.create(
 			METAcraftDungeons.getID("dungeon_entrance").toString(),
@@ -92,6 +103,17 @@ public class DungeonEntranceEntity extends PortalEntity {
 				).ifPresent(entries -> {
 					this.depthSpecificPools = entries;
 				});
+			} else {
+				this.depthSpecificPools = new ArrayList<>();
+			}
+			if (jigsaw.contains(ALIASES)) {
+				ALIAS_BINDING_LIST_CODEC.parse(NbtOps.INSTANCE, jigsaw.get(ALIASES)).resultOrPartial(
+						METAcraftDungeons.LOGGER::error
+				).ifPresent(aliases -> {
+					this.aliases = aliases;
+				});
+			} else {
+				this.aliases = new ArrayList<>();
 			}
 		} else {
 			jigsawPool = null;
@@ -112,9 +134,11 @@ public class DungeonEntranceEntity extends PortalEntity {
 					new PoolEntry(
 							RegistryKey.of(RegistryKeys.TEMPLATE_POOL, METAcraftDungeons.getID("treasure_room")),
 							NumberRange.IntRange.atLeast(25),
-							1, maxSize
+							aliases, 1, maxSize
 					)
 			);
+			//We intentionally initialize this after adding depthSpecificPools since they won't be used in the treasure room.
+			this.aliases = TrialChamberData.ALIAS_BINDINGS;
 		}
 	}
 
@@ -132,6 +156,13 @@ public class DungeonEntranceEntity extends PortalEntity {
 					jigsaw.put(DEPTH_SPECIFIC_POOLS, value);
 				});
 			}
+			if (!aliases.isEmpty()) {
+				ALIAS_BINDING_LIST_CODEC.encodeStart(NbtOps.INSTANCE, aliases).resultOrPartial(
+						METAcraftDungeons.LOGGER::error
+				).ifPresent(encodedAliases -> {
+					jigsaw.put(ALIASES, encodedAliases);
+				});
+			}
 			nbt.put(JIGSAW, jigsaw);
 		}
 		nbt.putInt(DEPTH, dungeonDepth);
@@ -147,7 +178,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 		if (!choices.isEmpty()) {
 			chosenEntry = choices.get(world.getRandom().nextInt(choices.size()));
 		} else {
-			chosenEntry = new PoolEntry(jigsawPool, NumberRange.IntRange.ANY, depthOffset, maxSize);
+			chosenEntry = new PoolEntry(jigsawPool, NumberRange.IntRange.ANY, aliases, depthOffset, maxSize);
 		}
 		if (chosenEntry.jigsawPool != null) {
 			ServerWorld dungeons = world.getServer().getWorld(Optional.ofNullable(targetDim).orElse(Dimensions.DUNGEONS));
@@ -175,7 +206,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 				var result = StructurePoolBasedGenerator.generate(
 						context, structurePool, Optional.empty(), chosenEntry.maxSize, pos, false,
 						Optional.empty(), dungeonData.getDungeonWidth()/2,
-						StructurePoolAliasLookup.EMPTY, new DimensionPadding(0),
+						StructurePoolAliasLookup.create(chosenEntry.aliases, pos, dungeons.getRandom().nextLong()), new DimensionPadding(0),
 						StructureLiquidSettings.IGNORE_WATERLOGGING
 				);
 
@@ -195,6 +226,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 
 					var thisPos = new ChunkPos(this.getPos());
 
+					THREAD_COUNT.incrementAndGet();
 					chunkGeneratorThread = new Thread(() -> {
 						WorldCache cache = new WorldCache(dungeons);
 
@@ -235,7 +267,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 						});
 
 						while (!cache.isEmpty()) {
-							cache.flush(25);
+							cache.flush(Math.max(MathHelper.floor(25.0 / Math.max(THREAD_COUNT.get(), 1)), 1));
 							try {
 								Thread.sleep(50);
 							} catch (InterruptedException ignored) {}
@@ -268,6 +300,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 							((ServerWorld) world).getChunkManager().removeTicket(TICKET, thisPos, 0, thisPos);
 
 							chunkGeneratorThread = null;
+							THREAD_COUNT.decrementAndGet();
 
 							for (var player : playersToNotify) {
 								player.sendMessage(Text.literal("The room you wanted to enter is now ready!"), true);
@@ -357,6 +390,15 @@ public class DungeonEntranceEntity extends PortalEntity {
 		markDirty();
 	}
 
+	public List<StructurePoolAliasBinding> getAliases() {
+		return Collections.unmodifiableList(aliases);
+	}
+
+	public void setAliases(List<StructurePoolAliasBinding> aliases) {
+		this.aliases = aliases;
+		markDirty();
+	}
+
 	public void setDepth(int depth) {
 		dungeonDepth = depth;
 		markDirty();
@@ -393,11 +435,16 @@ public class DungeonEntranceEntity extends PortalEntity {
 
 	public record DataMultiBlockEntry<T extends DataBlock & MultiDataBlock>(BlockPos pos, PoolStructurePiece piece, T datablock) {}
 
-	public record PoolEntry(RegistryKey<StructurePool> jigsawPool, NumberRange.IntRange depthRange, int depthOffset, int maxSize) {
+	public record PoolEntry(
+			RegistryKey<StructurePool> jigsawPool, NumberRange.IntRange depthRange,
+			List<StructurePoolAliasBinding> aliases,
+			int depthOffset, int maxSize
+	) {
 		public static final Codec<PoolEntry> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
 				RegistryKey.createCodec(RegistryKeys.TEMPLATE_POOL).fieldOf("jigsaw_pool").forGetter(PoolEntry::jigsawPool),
 				NumberRange.IntRange.CODEC.fieldOf("depth_range").forGetter(PoolEntry::depthRange),
+				ALIAS_BINDING_LIST_CODEC.optionalFieldOf("pool_aliases", List.of()).forGetter(PoolEntry::aliases),
 				Codec.INT.fieldOf("depth_offset").forGetter(PoolEntry::depthOffset),
 				Codec.INT.fieldOf("max_size").forGetter(PoolEntry::maxSize)
 			).apply(instance, PoolEntry::new)

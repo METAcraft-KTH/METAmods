@@ -71,6 +71,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 				deeperEntrance.setMaxSize(maxSize.orElse(parameters.entry.maxSize()));
 				deeperEntrance.setJigsawPool(jigsawPool.orElse(parameters.entry.jigsawPool()));
 				deeperEntrance.setDepthSpecificPools(depthSpecificPools.orElse(this.entrance.getDepthSpecificPools()));
+				deeperEntrance.setAliases(parameters.entry.aliases());
 				deeperEntrance.setDepth(this.entrance.getDepth()+this.entrance.getDepthOffset());
 				deeperEntrance.setDepthOffset(parameters.entry.depthOffset());
 			}
