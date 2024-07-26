@@ -3,13 +3,17 @@ package se.datasektionen.mc.metacraft_lib.util;
 import com.google.common.collect.Multimap;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.BaseMapCodec;
+import net.minecraft.block.enums.Orientation;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Direction;
+import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
 import java.util.*;
 import java.util.function.Function;
@@ -19,6 +23,12 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class ExtraCodecs {
+
+	public static final Codec<Orientation> ORIENTATION_CODEC = Codec.withAlternative(
+			StringIdentifiable.createCodec(Orientation::values),
+			Direction.CODEC,
+			OrientationHelper::fromDirection
+	);
 
 	public static final Codec<ChunkPos> CHUNK_POS_CODEC = Codec.INT_STREAM.comapFlatMap(
 			stream -> Util.decodeFixedLengthArray(stream, 2).map(values -> new ChunkPos(values[0], values[1])),

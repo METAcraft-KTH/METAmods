@@ -2,14 +2,16 @@ package se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.block.enums.Orientation;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.structure.pool.StructurePool;
-import net.minecraft.util.math.Direction;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.PortalEntity;
 import se.datasektionen.mc.metacraft_dungeons.block.DungeonBlocks;
+import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
+import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
 import java.util.Collection;
 import java.util.List;
@@ -19,7 +21,7 @@ public class EntranceDataBlock extends PortalDeeper {
 
 	public static final Codec<EntranceDataBlock> CODEC = RecordCodecBuilder.create(
 		instance -> instance.group(
-			Direction.CODEC.optionalFieldOf("direction").forGetter(portal -> portal.direction),
+			ExtraCodecs.ORIENTATION_CODEC.optionalFieldOf("direction").forGetter(portal -> portal.direction),
 			RegistryKey.createCodec(RegistryKeys.TEMPLATE_POOL).optionalFieldOf("jigsaw_pool").forGetter(
 					portal -> portal.jigsawPool
 			),
@@ -31,7 +33,7 @@ public class EntranceDataBlock extends PortalDeeper {
 	);
 
 	public EntranceDataBlock(
-			Optional<Direction> direction,
+			Optional<Orientation> direction,
 			Optional<RegistryKey<StructurePool>> jigsawPool,
 			Optional<Integer> maxSize,
 			Optional<List<DungeonEntranceEntity.PoolEntry>> depthSpecificPools
@@ -55,7 +57,7 @@ public class EntranceDataBlock extends PortalDeeper {
 					portal.setTargetPos(this.entrance.getPos());
 					portal.setTargetDim(this.entrance.getWorld().getRegistryKey());
 					portal.setPortalFacing(direction.map(
-							direction -> entrance.piece().getRotation().rotate(direction)
+							direction -> OrientationHelper.rotate(direction, entrance.piece().getRotation())
 					).orElse(null));
 					this.entrance.setTargetPos(entrance.pos());
 					parameters.foundEntrance = true;

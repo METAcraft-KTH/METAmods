@@ -3,7 +3,7 @@
     {
       "element": {
         "element_type": "minecraft:single_pool_element",
-        "location": "metacraft_dungeons:dungeon_entrance",
+        "location": "metacraft:dungeon_entrance",
         "processors": "minecraft:trial_chambers_copper_bulb_degradation",
         "projection": "rigid"
       },
@@ -12,7 +12,7 @@
     {
       "element": {
         "element_type": "minecraft:single_pool_element",
-        "location": "metacraft_dungeons:dungeon_entrance_2",
+        "location": "metacraft:dungeon_entrance_2",
         "processors": "minecraft:trial_chambers_copper_bulb_degradation",
         "projection": "rigid"
       },

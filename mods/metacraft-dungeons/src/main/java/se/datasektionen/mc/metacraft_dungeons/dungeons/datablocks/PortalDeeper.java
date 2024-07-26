@@ -2,14 +2,16 @@ package se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.block.enums.Orientation;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.structure.StructurePiece;
 import net.minecraft.structure.pool.StructurePool;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 import se.datasektionen.mc.metacraft_dungeons.block.DungeonBlocks;
+import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
+import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
 import java.util.Collection;
 import java.util.List;
@@ -17,14 +19,14 @@ import java.util.Optional;
 
 public class PortalDeeper extends DataBlock implements MultiDataBlock {
 
-	protected Optional<Direction> direction;
+	protected Optional<Orientation> direction;
 	protected Optional<Integer> maxSize;
 	protected Optional<RegistryKey<StructurePool>> jigsawPool;
 	protected Optional<List<DungeonEntranceEntity.PoolEntry>> depthSpecificPools;
 
 	public static final Codec<PortalDeeper> CODEC = RecordCodecBuilder.create(
 		instance -> instance.group(
-			Direction.CODEC.optionalFieldOf("direction").forGetter(portal -> portal.direction),
+			ExtraCodecs.ORIENTATION_CODEC.optionalFieldOf("direction").forGetter(portal -> portal.direction),
 			RegistryKey.createCodec(RegistryKeys.TEMPLATE_POOL).optionalFieldOf("jigsaw_pool").forGetter(
 					portal -> portal.jigsawPool
 			),
@@ -36,7 +38,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 	);
 
 	public PortalDeeper(
-			Optional<Direction> direction,
+			Optional<Orientation> direction,
 			Optional<RegistryKey<StructurePool>> jigsawPool,
 			Optional<Integer> maxSize,
 			Optional<List<DungeonEntranceEntity.PoolEntry>> depthSpecificPools
@@ -66,7 +68,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 			var entranceEntity = parameters.dungeons.getBlockEntity(entrance.pos());
 			if (entranceEntity instanceof DungeonEntranceEntity deeperEntrance) {
 				deeperEntrance.setPortalFacing(direction.map(
-						direction -> entrance.piece().getRotation().rotate(direction)
+						direction -> OrientationHelper.rotate(direction, entrance.piece().getRotation())
 				).orElse(null));
 				deeperEntrance.setMaxSize(maxSize.orElse(parameters.entry.maxSize()));
 				deeperEntrance.setJigsawPool(jigsawPool.orElse(parameters.entry.jigsawPool()));
