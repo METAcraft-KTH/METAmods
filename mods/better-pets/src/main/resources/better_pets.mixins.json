@@ -1,0 +1,18 @@
+{
+	"required": true,
+	"package": "se.datasektionen.mc.better_pets.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"MixinAnimalEntity",
+		"MixinAttackWithOwnerGoal",
+		"MixinCatEntity",
+		"MixinFollowOwnerGoal",
+		"MixinParrotEntity",
+		"MixinTameableEntity",
+		"MixinTrackOwnerAttackerGoal",
+		"MixinWolfEntity"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

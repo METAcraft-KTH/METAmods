@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"id": "better-pets",
+	"version": "${version}",
+	"name": "Better-Pets",
+	"description": "Improves vanilla animals",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/better_pets/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.datasektionen.mc.better_pets.BetterPets"
+		]
+	},
+	"mixins": [
+		"better_pets.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric": "*",
+		"metacraft-core": "*"
+	}
+}
