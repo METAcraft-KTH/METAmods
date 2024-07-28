@@ -10,6 +10,7 @@
 		"MixinLivingEntity",
 		"MixinParrotEntity",
 		"MixinPassiveEntity",
+		"MixinServerPlayerEntity",
 		"MixinTameableEntity",
 		"MixinTrackOwnerAttackerGoal",
 		"MixinWolfEntity"

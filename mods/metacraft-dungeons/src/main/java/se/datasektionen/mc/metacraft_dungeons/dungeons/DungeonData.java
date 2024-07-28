@@ -29,9 +29,9 @@ import se.datasektionen.mc.metacraft_dungeons.block.block_entities.BlackHolePort
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 import se.datasektionen.mc.metacraft_lib.util.PositionFinder;
 import se.datasektionen.mc.metacraft_dungeons.block.DungeonBlocks;
-import se.datasektionen.mc.metacraft_dungeons.util.Teleporter;
 import se.datasektionen.mc.metacraft_dungeons.util.WorldDeleter;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
+import se.datasektionen.mc.metacraft_lib.util.helper.MobTeleportHelper;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -252,7 +252,7 @@ public class DungeonData extends PersistentState {
 				if (player == null) {
 					teleportOut(pet);
 				} else {
-					Teleporter.teleportEntityToPlayer(player, pet);
+					MobTeleportHelper.teleportEntityToPlayer(player, pet);
 				}
 			}
 		});

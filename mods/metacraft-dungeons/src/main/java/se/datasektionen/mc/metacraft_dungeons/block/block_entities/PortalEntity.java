@@ -23,7 +23,6 @@ import se.datasektionen.mc.metacraft_dungeons.block.DungeonBlocks;
 import se.datasektionen.mc.metacraft_dungeons.block.DungeonsBlockEntities;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.DungeonData;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.TeleportPredicate;
-import se.datasektionen.mc.metacraft_dungeons.util.Teleporter;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
@@ -44,7 +43,6 @@ public class PortalEntity extends BlockEntity {
 	protected RegistryKey<World> targetDim;
 	protected BlockPos targetPos;
 	protected Orientation portalFacing;
-	protected boolean teleportPets = true;
 	protected final List<TeleportPredicate> shouldTeleport = new ArrayList<>();
 
 	public PortalEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
@@ -98,9 +96,6 @@ public class PortalEntity extends BlockEntity {
 		} else {
 			portalFacing = null;
 		}
-		if (nbt.contains(TELEPORT_PETS)) {
-			teleportPets = nbt.getBoolean(TELEPORT_PETS);
-		}
 		if (nbt.contains(SHOULD_TELEPORT)) {
 			TeleportPredicate.LIST_CODEC.parse(wrapperLookup.getOps(NbtOps.INSTANCE), nbt.get(SHOULD_TELEPORT)).resultOrPartial(
 					METAcraftDungeons.LOGGER::error
@@ -128,7 +123,6 @@ public class PortalEntity extends BlockEntity {
 				nbt.put(PORTAL_FACING, facing);
 			});
 		}
-		nbt.putBoolean(TELEPORT_PETS, teleportPets);
 
 		TeleportPredicate.LIST_CODEC.encodeStart(wrapperLookup.getOps(NbtOps.INSTANCE), shouldTeleport).resultOrPartial(
 				METAcraftDungeons.LOGGER::error
@@ -285,7 +279,7 @@ public class PortalEntity extends BlockEntity {
 		return entity.teleportTo(
 				new TeleportTarget(
 						targetDim, Vec3d.ofBottomCenter(targetPos), entity.getVelocity(), entity.getYaw(), entity.getPitch(),
-						teleportPets ? Teleporter.getTeleportPets((ServerWorld) this.getWorld()) : TeleportTarget.NO_OP
+						TeleportTarget.NO_OP
 				)
 		);
 	}
@@ -500,7 +494,7 @@ public class PortalEntity extends BlockEntity {
 					newEntity = entity.teleportTo(
 							new TeleportTarget(
 									targetDim, targetPos, velocity, facing.yaw, facing.pitch,
-									teleportPets ? Teleporter.getTeleportPets((ServerWorld) this.getWorld()) : TeleportTarget.NO_OP
+									TeleportTarget.NO_OP
 							)
 					);
 
