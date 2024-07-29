@@ -4,11 +4,15 @@ import eu.pb4.sgui.api.elements.GuiElementBuilderInterface;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.layered.Layer;
 import it.unimi.dsi.fastutil.ints.Int2IntFunction;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
 import java.util.List;
 
 public class PagedLayer extends Layer {
+
+	public static final Text NEXT_PAGE = Text.translatableWithFallback("gui.metacraft.next_page", "Next Page");
+	public static final Text PREV_PAGE = Text.translatableWithFallback("gui.metacraft.prev_page", "Previous Page");
 
 	private int page = 0;
 

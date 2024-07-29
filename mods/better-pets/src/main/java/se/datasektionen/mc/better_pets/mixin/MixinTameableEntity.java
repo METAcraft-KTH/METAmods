@@ -59,6 +59,11 @@ public abstract class MixinTameableEntity extends AnimalEntity implements Tameab
 			Uuids.SET_CODEC.parse(NbtOps.INSTANCE, nbt.get(TRUSTED_PLAYERS)).resultOrPartial(
 					BetterPets.LOGGER::error
 			).ifPresent(players -> trustedPlayers = players);
+			if (!getEntityWorld().isClient()) {
+				trustedPlayers.removeIf(
+						id -> this.getServer().getUserCache().getByUuid(id).isEmpty()
+				);
+			}
 		}
 	}
 

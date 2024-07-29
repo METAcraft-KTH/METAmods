@@ -83,7 +83,9 @@ public class SearchButton implements GuiElementInterface {
 		return (index, type, action, gui) -> {
 			var searchMenu = new SearchMenu(
 					gui.getPlayer(), this::update,
-					GuiElementBuilder.from(new ItemStack(Items.GREEN_WOOL)), gui
+					GuiElementBuilder.from(new ItemStack(Items.SPYGLASS)).setName(Text.translatableWithFallback(
+							"gui.metacraft.search", "Search"
+					)), gui
 			);
 			searchMenu.open();
 		};

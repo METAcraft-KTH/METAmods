@@ -1,84 +1,112 @@
 package se.datasektionen.mc.metacraft_core.gui;
 
 import com.mojang.authlib.GameProfile;
+import eu.pb4.sgui.api.GuiHelpers;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
-import eu.pb4.sgui.api.elements.GuiElementBuilderInterface;
+import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
+import net.minecraft.component.ComponentChanges;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Unit;
 
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
 
-public class MultiplePlayerSelector extends LayeredGui {
+public abstract class MultiplePlayerSelector extends LayeredGui {
 
 	private final PagedLayer selectedSide;
 	private final PagedLayer nonSelectedSide;
 
-	private final SearchButton button;
+	private SearchButton button;
+
+	protected GuiElementInterface background = GuiElementBuilder.from(
+			new ItemStack(
+					Items.ORANGE_STAINED_GLASS_PANE.getRegistryEntry(), 1,
+					ComponentChanges.builder().add(
+							DataComponentTypes.HIDE_TOOLTIP, Unit.INSTANCE
+					).build()
+			)
+	).build();
+
+	protected int searchButtonIndex = -1;
+	private int prevSearchButtonIndex = -1;
 
 	private final Set<GameProfile> nonSelectedPlayersSorted = new TreeSet<>(Comparator.comparing(GameProfile::getName));
 	private final Set<GameProfile> selectedPlayersSorted = new TreeSet<>(Comparator.comparing(GameProfile::getName));
 
-	private final Consumer<GameProfile> onSelected;
-	private final Consumer<GameProfile> onDeselected;
-
 	public MultiplePlayerSelector(
-			ServerPlayerEntity player, Collection<GameProfile> selectedPlayers,
-			Predicate<ServerPlayerEntity> isValid,
-			Consumer<GameProfile> onSelected, Consumer<GameProfile> onDeselected,
-			boolean addSearch, boolean allowSelfSelect
+			ScreenHandlerType<?> type,
+			ServerPlayerEntity player, Collection<GameProfile> selectedPlayers
 	) {
-		super(ScreenHandlerType.GENERIC_9X4, player, true);
-
-		if (!allowSelfSelect) {
-			isValid = isValid.and(p -> p != player);
-		}
-
-		this.onSelected = onSelected;
-		this.onDeselected = onDeselected;
-
+		super(type, player, true);
 		setTitle(Text.translatableWithFallback("gui.metacraft.player_selector", "Player Selector"));
-
-		player.getServer().getPlayerManager().getPlayerList().stream().filter(isValid).map(
-				ServerPlayerEntity::getGameProfile
-		).filter(
-				p -> !selectedPlayers.contains(p)
-		).forEach(nonSelectedPlayersSorted::add);
 
 		selectedPlayersSorted.addAll(selectedPlayers);
 
 		setupBackground();
-		if (addSearch) {
-			setSlot(4, button = new SearchButton(Items.COMPASS, query -> updateLayers()));
-		} else {
-			button = null;
-		}
+
+		int width = GuiHelpers.getWidth(getType())/2;
 
 		selectedSide = new PagedLayer(
-				4, 4,
-				GuiElementBuilder.from(new ItemStack(Items.RED_WOOL)),
-				GuiElementBuilder.from(new ItemStack(Items.GREEN_WOOL)),
+				playerViewHeight(), width,
+				GuiElementBuilder.from(new ItemStack(Items.RED_STAINED_GLASS_PANE)).setName(PagedLayer.PREV_PAGE),
+				GuiElementBuilder.from(new ItemStack(Items.GREEN_STAINED_GLASS_PANE)).setName(PagedLayer.NEXT_PAGE),
 				GuiElementBuilder.from(new ItemStack(Items.AIR)).build()
 		);
 
 		nonSelectedSide = new PagedLayer(
-				4, 4,
-				GuiElementBuilder.from(new ItemStack(Items.RED_WOOL)),
-				GuiElementBuilder.from(new ItemStack(Items.GREEN_WOOL)),
+				playerViewHeight(), width,
+				GuiElementBuilder.from(new ItemStack(Items.RED_STAINED_GLASS_PANE)).setName(PagedLayer.PREV_PAGE),
+				GuiElementBuilder.from(new ItemStack(Items.GREEN_STAINED_GLASS_PANE)).setName(PagedLayer.NEXT_PAGE),
 				GuiElementBuilder.from(new ItemStack(Items.AIR)).build()
 		);
-		addLayer(selectedSide, 0, 0);
-		addLayer(nonSelectedSide, 5, 0);
+		addLayer(selectedSide, 0, playerViewHeightOffset());
+		addLayer(nonSelectedSide, width + 1, playerViewHeightOffset());
 		updateLayers();
 	}
 
-	private GuiElementBuilderInterface<?> makeButton(GameProfile profile) {
-		return GuiElementBuilder.from(new ItemStack(Items.PLAYER_HEAD)).setSkullOwner(profile, getPlayer().getServer());
+	private boolean isReallyValid(ServerPlayerEntity player) {
+		return (allowSelfSelect() || player != getPlayer()) && isValid(player);
+	}
+
+	protected abstract boolean isValid(ServerPlayerEntity player);
+
+	protected boolean allowSelfSelect() {
+		return false;
+	}
+
+	protected int playerViewHeight() {
+		return Math.max(GuiHelpers.getHeight(getType())-1, 1);
+	}
+
+	protected int playerViewHeightOffset() {
+		return 1;
+	}
+
+	protected abstract void onSelected(GameProfile player);
+
+	protected abstract void onDeselected(GameProfile player);
+
+	private GuiElementInterface makeButton(GameProfile profile, GuiElementInterface.ClickCallback callback) {
+		return new DeferredPlayerHead(
+				profile, ComponentChanges.builder().add(
+						DataComponentTypes.ITEM_NAME, Text.literal(profile.getName())
+				).build(), callback
+		);
+	}
+
+	protected void updateSearchButtonPosition() {
+		prevSearchButtonIndex = searchButtonIndex;
+		if (selectedPlayersSorted.size() + nonSelectedPlayersSorted.size() > size) {
+			int width = GuiHelpers.getWidth(getType());
+			searchButtonIndex = width/2;
+		} else {
+			searchButtonIndex = -1;
+		}
 	}
 
 	private boolean matchesSearchTerm(GameProfile profile) {
@@ -90,14 +118,30 @@ public class MultiplePlayerSelector extends LayeredGui {
 	}
 
 	private void updateLayers() {
+		getPlayer().getServer().getPlayerManager().getPlayerList().stream().filter(this::isReallyValid).map(
+				ServerPlayerEntity::getGameProfile
+		).filter(
+				p -> !selectedPlayersSorted.contains(p)
+		).forEach(nonSelectedPlayersSorted::add);
+		updateSearchButtonPosition();
+		if (searchButtonIndex != prevSearchButtonIndex) {
+			if (searchButtonIndex > 0) {
+				setSlot(searchButtonIndex, button = new SearchButton(Items.SPYGLASS, query -> updateLayers()));
+			} else {
+				button = null;
+			}
+			if (prevSearchButtonIndex > 0) {
+				setSlot(prevSearchButtonIndex, background);
+			}
+		}
 		selectedSide.setElements(
 				selectedPlayersSorted.stream().filter(this::matchesSearchTerm).map(
-						profile -> makeButton(profile).setCallback(() -> deselectPlayer(profile)).build()
+						profile -> makeButton(profile, (a, b, c, d) -> deselectPlayer(profile))
 				).toList()
 		);
 		nonSelectedSide.setElements(
 				nonSelectedPlayersSorted.stream().filter(this::matchesSearchTerm).map(
-						profile -> makeButton(profile).setCallback(() -> selectPlayer(profile)).build()
+						profile -> makeButton(profile, (a, b, c, d) -> selectPlayer(profile))
 				).toList()
 		);
 	}
@@ -106,19 +150,19 @@ public class MultiplePlayerSelector extends LayeredGui {
 		nonSelectedPlayersSorted.remove(profile);
 		selectedPlayersSorted.add(profile);
 		updateLayers();
-		onSelected.accept(profile);
+		onSelected(profile);
 	}
 
 	protected void deselectPlayer(GameProfile profile) {
 		selectedPlayersSorted.remove(profile);
 		nonSelectedPlayersSorted.add(profile);
 		updateLayers();
-		onDeselected.accept(profile);
+		onDeselected(profile);
 	}
 
 	private void setupBackground() {
 		for (int i = 0; i < getSize(); i++) {
-			setSlot(i, new ItemStack(Items.ORANGE_STAINED_GLASS_PANE));
+			setSlot(i, background);
 		}
 	}
 
