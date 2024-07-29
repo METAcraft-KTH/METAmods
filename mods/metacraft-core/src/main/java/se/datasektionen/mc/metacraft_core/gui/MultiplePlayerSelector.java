@@ -10,11 +10,14 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Unit;
+import se.datasektionen.mc.metacraft_lib.util.helper.GameProfileHelper;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 public abstract class MultiplePlayerSelector extends LayeredGui {
 
@@ -35,14 +38,24 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	protected int searchButtonIndex = -1;
 	private int prevSearchButtonIndex = -1;
 
-	private final Set<GameProfile> nonSelectedPlayersSorted = new TreeSet<>(Comparator.comparing(GameProfile::getName));
-	private final Set<GameProfile> selectedPlayersSorted = new TreeSet<>(Comparator.comparing(GameProfile::getName));
+	private final Set<GameProfile> nonSelectedPlayersSorted;
+	private final Set<GameProfile> selectedPlayersSorted;
+
+	public static Comparator<GameProfile> getDefaultComparator(MinecraftServer server) {
+		return Comparator.<GameProfile, String>comparing(
+				profile -> GameProfileHelper.getNameFromProfile(profile, server).toLowerCase(Locale.ROOT)
+		).thenComparing(
+				GameProfile::getId
+		);
+	}
 
 	public MultiplePlayerSelector(
 			ScreenHandlerType<?> type,
 			ServerPlayerEntity player, Collection<GameProfile> selectedPlayers
 	) {
 		super(type, player, true);
+		this.nonSelectedPlayersSorted = new TreeSet<>(getDefaultComparator(player.getServer()));
+		this.selectedPlayersSorted = new TreeSet<>(getDefaultComparator(player.getServer()));
 		setTitle(Text.translatableWithFallback("gui.metacraft.player_selector", "Player Selector"));
 
 		selectedPlayersSorted.addAll(selectedPlayers);
@@ -67,6 +80,14 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 		addLayer(selectedSide, width + 1, playerViewHeightOffset());
 		addLayer(nonSelectedSide, 0, playerViewHeightOffset());
 		updateLayers();
+	}
+
+	protected Comparator<GameProfile> customSelectedComparator() {
+		return null;
+	}
+
+	protected Comparator<GameProfile> customNonSelectedComparator() {
+		return null;
 	}
 
 	private boolean isReallyValid(ServerPlayerEntity player) {
@@ -94,7 +115,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	private GuiElementInterface makeButton(GameProfile profile, GuiElementInterface.ClickCallback callback) {
 		return new DeferredPlayerHead(
 				profile, ComponentChanges.builder().add(
-						DataComponentTypes.ITEM_NAME, Text.literal(profile.getName())
+						DataComponentTypes.ITEM_NAME, Text.literal(GameProfileHelper.getNameFromProfile(profile, getPlayer().getServer()))
 				).build(), callback
 		);
 	}
@@ -112,9 +133,22 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	private boolean matchesSearchTerm(GameProfile profile) {
 		if (button == null) return true;
 		if (button.getSearchQuery().isBlank()) return true;
-		return profile.getName().toLowerCase(Locale.ROOT).contains(
+		return GameProfileHelper.getNameFromProfile(profile, getPlayer().getServer()).toLowerCase(Locale.ROOT).contains(
 				button.getSearchQuery().toLowerCase(Locale.ROOT)
 		);
+	}
+
+	private List<GuiElementInterface> createButtons(
+			Set<GameProfile> profiles, Comparator<GameProfile> customComparator,
+			Consumer<GameProfile> onClick
+	) {
+		var stream = profiles.stream().filter(this::matchesSearchTerm);
+		if (customComparator != null) {
+			stream = stream.sorted(customComparator);
+		}
+		return stream.map(
+				profile -> makeButton(profile, (a, b, c, d) -> onClick.accept(profile))
+		).toList();
 	}
 
 	private void updateLayers() {
@@ -135,14 +169,10 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 			}
 		}
 		selectedSide.setElements(
-				selectedPlayersSorted.stream().filter(this::matchesSearchTerm).map(
-						profile -> makeButton(profile, (a, b, c, d) -> deselectPlayer(profile))
-				).toList()
+				createButtons(selectedPlayersSorted, customSelectedComparator(), this::deselectPlayer)
 		);
 		nonSelectedSide.setElements(
-				nonSelectedPlayersSorted.stream().filter(this::matchesSearchTerm).map(
-						profile -> makeButton(profile, (a, b, c, d) -> selectPlayer(profile))
-				).toList()
+				createButtons(nonSelectedPlayersSorted, customNonSelectedComparator(), this::selectPlayer)
 		);
 	}
 

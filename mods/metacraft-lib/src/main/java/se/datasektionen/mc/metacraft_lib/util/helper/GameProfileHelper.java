@@ -25,4 +25,8 @@ public class GameProfileHelper {
 		}
 	}
 
+	public static String getNameFromProfile(GameProfile profile, MinecraftServer server) {
+		return profile.getName(); //TODO Handle custom names here.
+	}
+
 }

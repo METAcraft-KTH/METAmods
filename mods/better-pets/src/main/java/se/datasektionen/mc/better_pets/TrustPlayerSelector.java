@@ -14,6 +14,7 @@ import net.minecraft.text.Text;
 import se.datasektionen.mc.metacraft_core.gui.MultiplePlayerSelector;
 import se.datasektionen.mc.metacraft_lib.util.helper.GameProfileHelper;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -121,6 +122,20 @@ public class TrustPlayerSelector extends MultiplePlayerSelector {
 		setSlot(6, createMovingLetter(text, TRUSTED, 1, interval));
 		setSlot(7, createMovingLetter(text, TRUSTED, 2, interval));
 		setSlot(8, createMovingLetter(text, TRUSTED, 3, interval));
+	}
+
+	@Override
+	protected Comparator<GameProfile> customNonSelectedComparator() {
+		return Comparator.<GameProfile>comparingInt(profile -> {
+			var foundPlayer = getPlayer().getServer().getPlayerManager().getPlayer(profile.getId());
+			if (foundPlayer == null) {
+				return Integer.MAX_VALUE;
+			}
+			if (foundPlayer.getWorld() != getPlayer().getWorld()) {
+				return Integer.MAX_VALUE-1;
+			}
+			return Math.round(foundPlayer.distanceTo(getPlayer()));
+		}).thenComparing(getDefaultComparator(getPlayer().getServer()));
 	}
 
 	@Override

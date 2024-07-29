@@ -11,6 +11,9 @@ import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 
+/**
+ * Creates a player head icon without causing lag spikes when loading the game profile.
+ */
 public class DeferredPlayerHead implements GuiElementInterface {
 
 	private final GameProfile profile;
@@ -18,6 +21,12 @@ public class DeferredPlayerHead implements GuiElementInterface {
 	private boolean initialized = false;
 	private final ClickCallback callback;
 
+	/**
+	 * Creates a player head icon without causing lag spikes when loading the game profile.
+	 * @param profile The game profile to attach when it is ready. Will overwrite whatever is in components when ready.
+	 * @param components The components of the item stack. May contain a profile component to use until profile is ready.
+	 * @param callback The click event.
+	 */
 	public DeferredPlayerHead(GameProfile profile, ComponentChanges components, ClickCallback callback) {
 		this.profile = profile;
 		this.head = new ItemStack(Items.PLAYER_HEAD.getRegistryEntry(), 1, components);
