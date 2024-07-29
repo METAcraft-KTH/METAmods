@@ -48,7 +48,7 @@ public class PagedLayer extends Layer {
 	) {
 		this(
 				height, width, prevPageIndex, nextPageIndex, prevPageButton, nextPageButton,
-				i -> i, height * width, background
+				i -> i, Math.max((height-1)*width, width), background
 		);
 	}
 
@@ -62,6 +62,10 @@ public class PagedLayer extends Layer {
 				height, width, (height-1) * width, height * width - 1,
 				prevPageButton, nextPageButton, background
 		);
+	}
+
+	public int getMaxElementsPerPage() {
+		return maxElementsPerPage;
 	}
 
 	private int getStartElementIndex(int page) {

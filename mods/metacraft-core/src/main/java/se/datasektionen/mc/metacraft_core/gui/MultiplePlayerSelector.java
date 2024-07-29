@@ -101,7 +101,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 
 	protected void updateSearchButtonPosition() {
 		prevSearchButtonIndex = searchButtonIndex;
-		if (selectedPlayersSorted.size() + nonSelectedPlayersSorted.size() > size) {
+		if (selectedPlayersSorted.size() + nonSelectedPlayersSorted.size() > selectedSide.getMaxElementsPerPage() + nonSelectedSide.getMaxElementsPerPage()) {
 			int width = GuiHelpers.getWidth(getType());
 			searchButtonIndex = width/2;
 		} else {
