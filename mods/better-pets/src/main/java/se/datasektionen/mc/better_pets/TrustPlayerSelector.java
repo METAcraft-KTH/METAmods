@@ -110,17 +110,17 @@ public class TrustPlayerSelector extends MultiplePlayerSelector {
 		setTitle(Text.translatableWithFallback("gui.metacraft.player_selector", "Player Selector"));
 
 		int interval = 30;
-		Text text = Text.literal("Trusted");
-		setSlot(0, createMovingLetter(text, TRUSTED, 0, interval));
-		setSlot(1, createMovingLetter(text, TRUSTED, 1, interval));
-		setSlot(2, createMovingLetter(text, TRUSTED, 2, interval));
-		setSlot(3, createMovingLetter(text, TRUSTED, 3, interval));
+		Text text = Text.literal("Nearby");
+		setSlot(0, createMovingLetter(text, NEARBY, 0, interval));
+		setSlot(1, createMovingLetter(text, NEARBY, 1, interval));
+		setSlot(2, createMovingLetter(text, NEARBY, 2, interval));
+		setSlot(3, createMovingLetter(text, NEARBY, 3, interval));
 
-		text = Text.literal("Nearby");
-		setSlot(5, createMovingLetter(text, NEARBY, 0, interval));
-		setSlot(6, createMovingLetter(text, NEARBY, 1, interval));
-		setSlot(7, createMovingLetter(text, NEARBY, 2, interval));
-		setSlot(8, createMovingLetter(text, NEARBY, 3, interval));
+		text = Text.literal("Trusted");
+		setSlot(5, createMovingLetter(text, TRUSTED, 0, interval));
+		setSlot(6, createMovingLetter(text, TRUSTED, 1, interval));
+		setSlot(7, createMovingLetter(text, TRUSTED, 2, interval));
+		setSlot(8, createMovingLetter(text, TRUSTED, 3, interval));
 	}
 
 	@Override

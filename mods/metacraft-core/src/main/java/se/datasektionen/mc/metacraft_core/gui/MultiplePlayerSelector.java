@@ -64,8 +64,8 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 				GuiElementBuilder.from(new ItemStack(Items.GREEN_STAINED_GLASS_PANE)).setName(PagedLayer.NEXT_PAGE),
 				GuiElementBuilder.from(new ItemStack(Items.AIR)).build()
 		);
-		addLayer(selectedSide, 0, playerViewHeightOffset());
-		addLayer(nonSelectedSide, width + 1, playerViewHeightOffset());
+		addLayer(selectedSide, width + 1, playerViewHeightOffset());
+		addLayer(nonSelectedSide, 0, playerViewHeightOffset());
 		updateLayers();
 	}
 
