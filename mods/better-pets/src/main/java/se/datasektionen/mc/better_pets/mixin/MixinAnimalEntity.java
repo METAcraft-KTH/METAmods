@@ -1,6 +1,7 @@
 package se.datasektionen.mc.better_pets.mixin;
 
 import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
@@ -17,8 +18,11 @@ public class MixinAnimalEntity {
 
 	@Inject(method = "interactMob", at = @At("HEAD"))
 	public void interactMob(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
-		if ((Object) this instanceof TameableExtension tameable && player instanceof ServerPlayerEntity p) {
-			tameable.metacraft$setCurrentFollowTarget(p);
+		if ((Object) this instanceof TameableEntity tameable && tameable.isTamed() && player instanceof ServerPlayerEntity p) {
+			TameableExtension extension = (TameableExtension) tameable;
+			if (tameable.isOwner(player) || extension.metaraft$isTrusted(player)) {
+				extension.metacraft$setCurrentFollowTarget(p);
+			}
 		}
 	}
 

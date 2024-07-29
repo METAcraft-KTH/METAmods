@@ -7,13 +7,13 @@ import net.minecraft.entity.ai.pathing.PathNodeType;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkTicketType;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.*;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_lib.METAcraftLibTags;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 public class MobTeleportHelper {
 
@@ -53,32 +53,40 @@ public class MobTeleportHelper {
 	}
 
 	public static void teleportEntityToPlayer(ServerPlayerEntity player, Entity entity) {
-		teleportEntityToPlayer(player, entity, e -> {});
+		teleportEntityToPlayer(player, entity, TeleportTarget.NO_OP);
 	}
 
-	public static void teleportEntityToPlayer(ServerPlayerEntity player, Entity entity, Consumer<Entity> afterTeleport) {
+	public static void teleportEntityToPlayer(ServerPlayerEntity player, Entity entity, TeleportTarget.PostDimensionTransition transition) {
+		teleportEntityToPos(
+				player.getServerWorld(), player.getBlockPos(), player.getRandom(),
+				player.getYaw(), player.getPitch(), player.getVelocity(), entity, transition
+		);
+	}
+
+	public static void teleportEntityToPos(
+			ServerWorld world, BlockPos targetPos, net.minecraft.util.math.random.Random random,
+			float yaw, float pitch, Vec3d velocity,
+			Entity entity, TeleportTarget.PostDimensionTransition transition
+	) {
 		List<BlockPos> list = new ArrayList<>();
-		for (var pos : BlockPos.iterate(player.getBlockPos().add(-3, -1, -3), player.getBlockPos().add(3, 1, 3))) {
+		for (var pos : BlockPos.iterate(targetPos.add(-3, -1, -3), targetPos.add(3, 1, 3))) {
 			list.add(pos.toImmutable());
 		}
 		Collections.shuffle(list, new Random() {
 			@Override
 			public int nextInt(int bound) {
-				return player.getRandom().nextInt(bound);
+				return random.nextInt(bound);
 			}
 		});
 		var originBox = entity.getBoundingBox().offset(entity.getPos().multiply(-1));
-		list.removeIf(pos -> isPosUnsafe(pos, player.getWorld(), entity, originBox));
+		list.removeIf(pos -> isPosUnsafe(pos, world, entity, originBox));
 		Vec3d target = list.isEmpty() ? null : Vec3d.ofBottomCenter(list.getFirst());
 		if (target != null) {
-			afterTeleport.accept(
-				entity.teleportTo(
-						new TeleportTarget(
-								player.getServerWorld(), target, player.getVelocity(),
-								player.getYaw(), player.getPitch(),
-								TeleportTarget.NO_OP
-						)
-				)
+			entity.teleportTo(
+					new TeleportTarget(
+							world, target, velocity,
+							yaw, pitch, transition
+					)
 			);
 		}
 	}

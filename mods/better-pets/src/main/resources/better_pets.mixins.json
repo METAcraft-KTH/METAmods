@@ -6,6 +6,7 @@
 		"MixinAnimalEntity",
 		"MixinAttackWithOwnerGoal",
 		"MixinCatEntity",
+		"MixinEndPortalBlock",
 		"MixinFollowOwnerGoal",
 		"MixinLivingEntity",
 		"MixinParrotEntity",
