@@ -30,6 +30,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.better_pets.TameableExtension;
 
+import java.util.Optional;
+
 @Mixin(ParrotEntity.class)
 public abstract class MixinParrotEntity extends TameableEntity {
 
@@ -101,40 +103,36 @@ public abstract class MixinParrotEntity extends TameableEntity {
 	}
 
 	@Unique
-	private boolean wasFed = false;
-
-	@Unique
-	private void markFed(Hand hand) {
-		if (hand == Hand.MAIN_HAND) {
-			wasFed = true;
-		}
-	}
-
-	@Inject(
-		method = "interactMob",
-		at = @At(
-			value = "INVOKE",
-			target = "Lnet/minecraft/entity/passive/ParrotEntity;setSitting(Z)V"
-		),
-		cancellable = true
-	)
-	public void interactWhenTamed(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
-		if (wasFed && hand == Hand.OFF_HAND) {
-			cir.setReturnValue(ActionResult.PASS);
+	private Optional<ActionResult> interactParrot(PlayerEntity player, Hand hand) {
+		if (hand == Hand.OFF_HAND) {
+			return Optional.of(ActionResult.FAIL);
 		}
 		if (player.getStackInHand(hand).isIn(ItemTags.PARROT_FOOD) && this.getHealth() < this.getMaxHealth()) {
 			var stack = player.getStackInHand(hand);
 			this.eat(player, hand, stack);
 			FoodComponent foodComponent = stack.get(DataComponentTypes.FOOD);
 			this.heal(foodComponent != null ? foodComponent.nutrition() : 1.0f);
-			markFed(hand);
-			cir.setReturnValue(ActionResult.SUCCESS);
+			return Optional.of(ActionResult.SUCCESS);
 		} else {
 			var result = super.interactMob(player, hand);
 			if (result.isAccepted()) {
-				cir.setReturnValue(result);
-				markFed(hand);
+				return Optional.of(result);
 			}
+		}
+		return Optional.empty();
+	}
+
+	@Inject(
+		method = "interactMob",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/entity/passive/ParrotEntity;isInAir()Z"
+		),
+		cancellable = true
+	)
+	public void interactWhenTamed(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
+		if (!player.getWorld().isClient() && isTamed() && (isOwner(player) || ((TameableExtension) this).metaraft$isTrusted(player))) {
+			interactParrot(player, hand).ifPresent(cir::setReturnValue);
 		}
 	}
 
