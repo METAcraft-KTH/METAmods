@@ -34,7 +34,6 @@ public class PortalEntity extends BlockEntity {
 	private static final String TARGET_DIM = "TargetDim";
 	private static final String TARGET_POS = "TargetPos";
 	private static final String PORTAL_FACING = "PortalFacing";
-	private static final String TELEPORT_PETS = "TeleportPets";
 	private static final String SHOULD_TELEPORT = "ShouldTeleport";
 
 	public static final int MAX_SEARCH_BLOCKS = 100;
@@ -331,28 +330,32 @@ public class PortalEntity extends BlockEntity {
 		double angle = Math.toRadians(getAngleBetweenDirections(sourceDirection.getFacing(), targetDirection.getFacing()));
 
 		if (OrientationHelper.isHorizontal(sourceDirection) && OrientationHelper.isHorizontal(targetDirection)) {
-			return new Quaterniond().rotateXYZ(0, angle, 0);
+			return new Quaterniond().rotateYXZ(angle, 0, 0);
 		} else if (OrientationHelper.isVertical(sourceDirection) && OrientationHelper.isHorizontal(targetDirection)) {
-			int offsetAngle = entityFacing != null ? -getAngleBetweenDirections(
-					entityFacing, sourceDirection.getRotation()
+			int offsetAngle = entityFacing != null ? getAngleBetweenDirections(
+					entityFacing, sourceDirection.getRotation().getOpposite()
 			) : 0;
-			var horizontalAngle = -getAngleBetweenDirections(sourceDirection.getRotation(), targetDirection.getFacing());
-			return new Quaterniond().rotateXYZ(angle, 0, Math.toRadians(horizontalAngle + offsetAngle));
+			var horizontalAngle = getAngleBetweenDirections(sourceDirection.getRotation().getOpposite(), targetDirection.getFacing());
+			return new Quaterniond().rotateYXZ(Math.toRadians(horizontalAngle + offsetAngle), angle, Math.PI);
 		} else if (OrientationHelper.isHorizontal(sourceDirection) && OrientationHelper.isVertical(targetDirection)) {
-			var horizontalAngle = Math.toRadians(-getAngleBetweenDirections(sourceDirection.getFacing(), targetDirection.getRotation()));
-			return new Quaterniond().rotateXYZ(angle, horizontalAngle, 0);
+			var horizontalAngle = Math.toRadians(getAngleBetweenDirections(sourceDirection.getFacing(), targetDirection.getRotation().getOpposite()));
+			return new Quaterniond().rotateYXZ(horizontalAngle, -angle, 0);
 		} else {
 			var horizontalAngle = Math.toRadians(getAngleBetweenDirections(sourceDirection.getRotation(), targetDirection.getRotation()));
-			return new Quaterniond().rotateXYZ(angle, horizontalAngle, 0);
+			return new Quaterniond().rotateYXZ(horizontalAngle, -angle, 0);
 		}
 	}
 
-	private Angles rotateYawPitch(float yaw, float pitch, Quaterniond quaternion, boolean fixPitch) {
-		var angles = quaternion.getEulerAnglesXYZ(new Vector3d()).mul(MathHelper.DEGREES_PER_RADIAN);
-		//TODO Handle angles.z
+	private Angles rotateYawPitch(float yaw, float pitch, Quaterniond quaternion) {
+		var angles = quaternion.getEulerAnglesYXZ(new Vector3d());
+
+		float yawOffset = MathHelper.sin((float) angles.z) * MathHelper.HALF_PI * MathHelper.DEGREES_PER_RADIAN;
+		float pitchOffset = (MathHelper.HALF_PI - MathHelper.cos((float) angles.z) * MathHelper.HALF_PI) * MathHelper.DEGREES_PER_RADIAN;
+		angles = angles.mul(MathHelper.DEGREES_PER_RADIAN);
+
 		return fix(new Angles(
-				(float) -angles.y + yaw, //Why fixPitch? Because sometimes the negative pitch is the correct one and sometimes the positive one... This code needs more refinement.
-				(float) (fixPitch ? -angles.x : angles.x) + pitch
+				(float) -angles.y + yaw + yawOffset,
+				(float) angles.x + pitch + pitchOffset
 		));
 	}
 
@@ -418,13 +421,6 @@ public class PortalEntity extends BlockEntity {
 		return new Vec3d(rotatable.x, rotatable.y, rotatable.z);
 	}
 
-	private boolean fixPitch(Orientation source, Orientation target) {
-		if (OrientationHelper.isVertical(source) && OrientationHelper.isHorizontal(target)) {
-			return true;
-		}
-		return false;
-	}
-
 	public Entity teleport(Entity entity) {
 		if (!shouldTeleport(entity)) {
 			onTeleportFail(entity);
@@ -487,8 +483,7 @@ public class PortalEntity extends BlockEntity {
 					Vec3d targetPos = targetBox.getCenter().add(dist).subtract(0, entity.getHeight()/2, 0);
 
 					var facing = rotateYawPitch(
-							entity.getYaw(), entity.getPitch(), getRotationToPortal(portal.portalFacing, entity),
-							fixPitch(portalFacing, portal.portalFacing)
+							entity.getYaw(), entity.getPitch(), getRotationToPortal(portal.portalFacing, entity)
 					);
 
 					newEntity = entity.teleportTo(
