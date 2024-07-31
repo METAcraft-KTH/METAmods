@@ -421,6 +421,19 @@ public class PortalEntity extends BlockEntity {
 		return new Vec3d(rotatable.x, rotatable.y, rotatable.z);
 	}
 
+	private Vec3d getNewDist(boolean invert, PortalEntity portal, Vec3d dist, double boxLength) {
+		int factor = invert ? 1 : -1;
+		return switch (portal.portalFacing.getFacing().getAxis()) {
+			case X -> dist.add(boxLength * factor * getUnit(dist.getX()), 0, 0);
+			case Y -> dist.add(0, boxLength * factor * getUnit(dist.getY()), 0);
+			case Z -> dist.add(0, 0, boxLength * factor * getUnit(dist.getZ()));
+		};
+	}
+
+	private Vec3d getTarget(Box targetBox, Vec3d dist, Entity entity) {
+		return targetBox.getCenter().add(dist).subtract(0, entity.getHeight()/2, 0);
+	}
+
 	public Entity teleport(Entity entity) {
 		if (!shouldTeleport(entity)) {
 			onTeleportFail(entity);
@@ -467,20 +480,18 @@ public class PortalEntity extends BlockEntity {
 						case Z -> entityBox.getLengthZ();
 					};
 
-					switch (portal.portalFacing.getFacing().getAxis()) {
-						case X -> {
-							dist = dist.add(boxLength * -getUnit(dist.getX()), 0, 0);
-						}
-						case Y -> {
-							dist = dist.add(0, boxLength * -getUnit(dist.getY()), 0);
-						}
-						case Z -> {
-							dist = dist.add(0, 0, boxLength * -getUnit(dist.getZ()));
+					Vec3d targetPos = getTarget(targetBox, getNewDist(false, portal, dist, boxLength), entity);
+
+					var centeredBox = entityBox.offset(entity.getPos().multiply(-1));
+					if (!targetDim.isSpaceEmpty(centeredBox.offset(targetPos))) {
+						targetPos = getTarget(targetBox, getNewDist(true, portal, dist, boxLength), entity);
+						if (!targetDim.isSpaceEmpty(centeredBox.offset(targetPos))) {
+							if (entity instanceof ServerPlayerEntity player) {
+								player.sendMessage(Text.literal("Could not deposit you safely on the other side"), true);
+							}
+							return entity;
 						}
 					}
-
-
-					Vec3d targetPos = targetBox.getCenter().add(dist).subtract(0, entity.getHeight()/2, 0);
 
 					var facing = rotateYawPitch(
 							entity.getYaw(), entity.getPitch(), getRotationToPortal(portal.portalFacing, entity)
@@ -492,7 +503,6 @@ public class PortalEntity extends BlockEntity {
 									TeleportTarget.NO_OP
 							)
 					);
-
 				} else {
 					newEntity = teleportNoFacing(entity);
 				}
