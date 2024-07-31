@@ -5,10 +5,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.MinecraftServer;
 import org.apache.commons.lang3.mutable.MutableInt;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -49,13 +46,16 @@ public class TaskSchedulerImpl {
 
 	public static class TaskContainer {
 		private final Lock lock = new ReentrantLock();
-		private final List<Task> tasks = new ArrayList<>();
+		private final Set<Task> tasks = new HashSet<>();
+		private final List<Task> newTasks = new ArrayList<>();
 
 		private TaskContainer() {}
 
 		public void tick() {
 			lock.lock();
 			try {
+				tasks.addAll(newTasks);
+				newTasks.clear();
 				tasks.removeIf(task -> {
 					if (task.time.decrementAndGet() == 0) {
 						task.action.run();
@@ -71,7 +71,7 @@ public class TaskSchedulerImpl {
 		public void add(Task task) {
 			lock.lock();
 			try {
-				tasks.add(task);
+				newTasks.add(task);
 			} finally {
 				lock.unlock();
 			}

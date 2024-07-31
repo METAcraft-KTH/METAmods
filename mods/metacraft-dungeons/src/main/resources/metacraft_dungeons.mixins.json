@@ -7,6 +7,8 @@
 		"AccessorMinecraftServer",
 		"AccessorServerChunkLoadingManager",
 		"MixinChunkGenerating",
+		"MixinServerChunkManager",
+		"MixinServerEntityManager",
 		"MixinServerWorld"
 	],
 	"client": [

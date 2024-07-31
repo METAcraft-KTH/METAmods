@@ -10,6 +10,8 @@ import net.minecraft.text.Text;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.biome.source.BiomeAccess;
 import net.minecraft.world.level.UnmodifiableLevelProperties;
+import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
+import se.datasektionen.mc.metacraft_dungeons.extensions.ServerWorldExtension;
 import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorMinecraftServer;
 import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorServerChunkLoadingManager;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
@@ -21,13 +23,18 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class WorldDeleter {
 
-	protected static void delete(ServerWorld world, Runnable onCompleted, Runnable handlePlayers) {
+	protected static void delete(ServerWorld world, Runnable onCompleted, Predicate<Path> filesToNotRemove, Runnable handlePlayers) {
 		if (world.getRegistryKey() == ServerWorld.OVERWORLD) return;
 		MinecraftServer server = world.getServer();
+		world.savingDisabled = true;
+		((ServerWorldExtension) world).metacraft$setBeingDeleted(true);
 		TaskScheduler.scheduleImmediately(world.getServer(), () -> {
 			boolean shouldRestore;
 			if (server.getWorld(world.getRegistryKey()) != null) {
@@ -42,9 +49,18 @@ public class WorldDeleter {
 				shouldRestore = false;
 			}
 			Thread deleterThread = new Thread(() -> {
+				METAcraftDungeons.LOGGER.info("Unloading world (this might take a while).");
+				try {
+					world.close();
+				} catch (IOException ignored) {}
+				METAcraftDungeons.LOGGER.info("World unloaded, deleting files.");
 				deleteFiles(
-						((AccessorMinecraftServer) server).getSession().getWorldDirectory(world.getRegistryKey())
+						((AccessorMinecraftServer) server).getSession().getWorldDirectory(world.getRegistryKey()),
+						filesToNotRemove
 				);
+				if (world.getServer().isStopping()) {
+					return;
+				}
 				if (shouldRestore) {
 					TaskScheduler.scheduleImmediately(world.getServer(), () -> {
 						var newWorld = new ServerWorld(
@@ -67,21 +83,28 @@ public class WorldDeleter {
 								newWorld
 						);
 						ServerWorldEvents.LOAD.invoker().onWorldLoad(server, newWorld);
+						onCompleted.run();
 					});
+				} else {
+					onCompleted.run();
 				}
-
-				onCompleted.run();
 			});
 			deleterThread.start();
 		});
 	}
 
-	private static void deleteFiles(Path toDelete) {
+	private static void deleteFiles(Path toDelete, Predicate<Path> toKeep) {
 		try {
+			final Set<Path> foldersToKeep = new HashSet<>();
 			Files.walkFileTree(toDelete, new SimpleFileVisitor<>() {
+
 				@Override
 				public FileVisitResult visitFile(Path pathx, BasicFileAttributes basicFileAttributes) throws IOException {
-					Files.delete(pathx);
+					if (toKeep.test(pathx)) {
+						foldersToKeep.add(pathx.getParent());
+					} else {
+						Files.delete(pathx);
+					}
 					return FileVisitResult.CONTINUE;
 				}
 
@@ -90,19 +113,25 @@ public class WorldDeleter {
 					if (iOException != null) {
 						throw iOException;
 					} else {
-						Files.delete(pathx);
+						if (toKeep.test(pathx) || foldersToKeep.contains(pathx)) {
+							foldersToKeep.add(pathx.getParent());
+						} else {
+							Files.delete(pathx);
+						}
 						return FileVisitResult.CONTINUE;
 					}
 				}
 			});
-			toDelete.toFile().delete();
+			if (foldersToKeep.isEmpty()) {
+				toDelete.toFile().delete();
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public static void deleteWorldKillingPlayers(ServerWorld world, Runnable onCompleted) {
-		delete(world, onCompleted, () -> {
+	public static void deleteWorldKillingPlayers(ServerWorld world, Runnable onCompleted, Predicate<Path> filesToNotRemove) {
+		delete(world, onCompleted, filesToNotRemove, () -> {
 			DisconnectedPlayerHelper.forAllDisconnectedPlayers(world, player -> {
 				player.kill();
 				return true;
@@ -111,17 +140,17 @@ public class WorldDeleter {
 	}
 
 	public static void deleteWorldTeleportingPlayers(
-			ServerWorld world, Runnable onCompleted,
+			ServerWorld world, Runnable onCompleted, Predicate<Path> filesToNotRemove,
 			TeleportTarget targetPos
 	) {
-		deleteWorldTeleportingPlayers(world, onCompleted, player -> targetPos);
+		deleteWorldTeleportingPlayers(world, onCompleted, filesToNotRemove, player -> targetPos);
 	}
 
 	public static void deleteWorldTeleportingPlayers(
-			ServerWorld world, Runnable onCompleted,
+			ServerWorld world, Runnable onCompleted, Predicate<Path> filesToNotRemove,
 			Function<ServerPlayerEntity, TeleportTarget> targetPos
 	) {
-		delete(world, onCompleted, () -> {
+		delete(world, onCompleted, filesToNotRemove, () -> {
 			DisconnectedPlayerHelper.forAllDisconnectedPlayers(world, player -> {
 				TeleportTarget target = targetPos.apply(player);
 				player.setServerWorld(target.world()); //We don't teleport players who are not online because we don't want to crash the game. We just set the values instead.

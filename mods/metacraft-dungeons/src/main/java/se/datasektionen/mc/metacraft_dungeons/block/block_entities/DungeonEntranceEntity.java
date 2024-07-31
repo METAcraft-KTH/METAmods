@@ -37,6 +37,7 @@ import net.minecraft.world.gen.structure.Structure;
 import se.datasektionen.mc.metacraft_dungeons.Dimensions;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.block.DungeonsBlockEntities;
+import se.datasektionen.mc.metacraft_dungeons.extensions.ServerWorldExtension;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.DungeonData;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.WorldCache;
@@ -47,6 +48,7 @@ import se.datasektionen.mc.metacraft_dungeons.util.ChunkHelper;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class DungeonEntranceEntity extends PortalEntity {
@@ -171,6 +173,21 @@ public class DungeonEntranceEntity extends PortalEntity {
 		nbt.putInt(DEPTH_OFFSET, depthOffset);
 	}
 
+	private boolean shouldThreadStop() {
+		if (this.removed) return true;
+		if (world instanceof ServerWorldExtension w && w.metacraft$isBeingDeleted()) return true;
+		return getWorld() == null || getWorld().getServer() == null || getWorld().getServer().isStopping();
+	}
+
+	private void onThreadStop() {
+		THREAD_COUNT.decrementAndGet();
+		chunkGeneratorThread = null;
+	}
+
+	private ServerWorld getDungeonDimension() {
+		return world.getServer().getWorld(Optional.ofNullable(targetDim).orElse(Dimensions.DUNGEONS));
+	}
+
 	public void startGenerating() {
 		if (world == null) return;
 		if (targetPos != null) return;
@@ -183,7 +200,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 			chosenEntry = new PoolEntry(jigsawPool, NumberRange.IntRange.ANY, aliases, depthOffset, maxSize);
 		}
 		if (chosenEntry.jigsawPool != null) {
-			ServerWorld dungeons = world.getServer().getWorld(Optional.ofNullable(targetDim).orElse(Dimensions.DUNGEONS));
+			ServerWorld dungeons = getDungeonDimension();
 			if (dungeons != null) {
 				var dungeonData = DungeonData.getInstance(dungeons);
 				if (dungeonData.isResetting()) {
@@ -255,24 +272,44 @@ public class DungeonEntranceEntity extends PortalEntity {
 							}
 						}
 
-						if (this.removed) return;
+						if (shouldThreadStop()) {
+							onThreadStop();
+							return;
+						}
 
-						ChunkPos.stream(minPos, maxPos).forEach(chunkPos -> {
+						for (var chunkPos : (Iterable<ChunkPos>) ChunkPos.stream(minPos, maxPos)::iterator) {
 							CountDownLatch done = new CountDownLatch(1);
 
+							AtomicBoolean shouldContinue = new AtomicBoolean(true);
 							ChunkHelper.whenChunkReady(dungeons, chunkPos, ChunkStatus.FULL, chunk -> {
+								if (chunk.isEmpty()) {
+									shouldContinue.set(false);
+								}
 								done.countDown();
 							});
 							try {
 								done.await();
+								if (!shouldContinue.get()) {
+									onThreadStop();
+									return;
+								}
 							} catch (InterruptedException ignored) {}
-						});
+						}
 
 						while (!cache.isEmpty()) {
+							if (shouldThreadStop()) {
+								onThreadStop();
+								return;
+							}
 							cache.flush(Math.max(MathHelper.floor(25.0 / Math.max(THREAD_COUNT.get(), 1)), 1));
 							try {
 								Thread.sleep(50);
 							} catch (InterruptedException ignored) {}
+						}
+
+						if (shouldThreadStop()) {
+							onThreadStop();
+							return;
 						}
 
 						world.getServer().execute(() -> {
@@ -301,8 +338,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 
 							((ServerWorld) world).getChunkManager().removeTicket(TICKET, thisPos, 0, thisPos);
 
-							chunkGeneratorThread = null;
-							THREAD_COUNT.decrementAndGet();
+							onThreadStop();
 
 							for (var player : playersToNotify) {
 								player.sendMessage(Text.literal("The room you wanted to enter is now ready!"), true);
@@ -335,9 +371,22 @@ public class DungeonEntranceEntity extends PortalEntity {
 		}
 	}
 
+	private boolean isDungeonResetting() {
+		var dim = getDungeonDimension();
+		if (dim == null) return true;
+		return DungeonData.getIfPresent(dim).map(DungeonData::isResetting).orElse(true);
+	}
+
 	@Override
 	public Entity teleport(Entity entity) {
 		if (world == null) return entity;
+
+		if (isDungeonResetting()) {
+			if (entity instanceof ServerPlayerEntity player) {
+				player.sendMessage(Text.literal("Dungeon dimension still resetting, please wait..."), true);
+			}
+			return entity;
+		}
 
 		if (targetPos == null || chunkGeneratorThread != null) {
 			List<ServerPlayerEntity> players = new ArrayList<>();

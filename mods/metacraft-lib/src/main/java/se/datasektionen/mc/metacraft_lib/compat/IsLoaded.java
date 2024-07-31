@@ -9,6 +9,7 @@ public record IsLoaded(String modID) {
 	public static final IsLoaded METACRAFT_ZONES = new IsLoaded("metacraft-zones");
 	public static final IsLoaded METACRAFT_LOOT_CONTAINERS = new IsLoaded("metacraft-loot-containers");
 	public static final IsLoaded VANISH = new IsLoaded("melius-vanish");
+	public static final IsLoaded SQUAREMAP = new IsLoaded("squaremap");
 
 	public boolean isLoaded() {
 		return FabricLoader.getInstance().isModLoaded(modID);

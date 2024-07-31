@@ -27,10 +27,11 @@ import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.Tags;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.BlackHolePortalEntity;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
+import se.datasektionen.mc.metacraft_dungeons.compat.SquaremapCompat;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.metacraft_lib.util.PositionFinder;
 import se.datasektionen.mc.metacraft_dungeons.block.DungeonBlocks;
 import se.datasektionen.mc.metacraft_dungeons.util.WorldDeleter;
-import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 import se.datasektionen.mc.metacraft_lib.util.helper.MobTeleportHelper;
 
 import java.util.*;
@@ -74,6 +75,7 @@ public class DungeonData extends PersistentState {
 	private long index = 0;
 	private boolean resetting = false;
 	private boolean clearing = false;
+	private boolean clearingRestarted = false;
 	private int timeSinceReset = 0;
 	private final List<EntranceEntry> externalEntrances = new ArrayList<>();
 
@@ -92,8 +94,9 @@ public class DungeonData extends PersistentState {
 
 	private DungeonData(ServerWorld world) {
 		this.world = world;
-		dungeonWidth = world.getHeight()*4;
+		dungeonWidth = world.getHeight();
 		exitPos = world.getServer().getOverworld().getSpawnPos();
+		fixSquaremap();
 	}
 
 	public int getDungeonWidth() {
@@ -128,8 +131,7 @@ public class DungeonData extends PersistentState {
 			timeSinceReset = 0;
 		}
 		if (clearing) {
-			clearing = false;
-			clear();
+			clearingRestarted = true;
 		}
 
 		externalEntrances.clear();
@@ -175,6 +177,11 @@ public class DungeonData extends PersistentState {
 	}
 
 	private void copyFromPrevious(DungeonData data) {
+		this.resetting = data.resetting;
+		this.clearing = data.clearing;
+		if (!clearing) {
+			clearingRestarted = false;
+		}
 		this.exitDim = data.exitDim;
 		this.exitPos = data.exitPos;
 		this.maxRangeFromExitPos = data.maxRangeFromExitPos;
@@ -244,7 +251,20 @@ public class DungeonData extends PersistentState {
 		}
 	}
 
+	private void fixSquaremap() {
+		IsLoaded.SQUAREMAP.ifLoaded(() -> { //Squaremap causes lag spikes so bad the server crashes, but not if we disable the renderer.
+			SquaremapCompat.disableRenderer(world.getRegistryKey());
+		});
+	}
+
 	public void tick() {
+		fixSquaremap();
+		if (clearingRestarted) {
+			clearingRestarted = false;
+			clearing = false;
+			clear();
+			return;
+		}
 		forAllPets(pet -> {
 			if (pet.getY() < world.getBottomY()) {
 				pet.fallDistance = 0;
@@ -341,16 +361,15 @@ public class DungeonData extends PersistentState {
 		for (var player : players) {
 			teleportOut(player);
 		}
+		markDirty();
+		world.getPersistentStateManager().save();
 		WorldDeleter.deleteWorldTeleportingPlayers(
 			world, () -> {
 				clearing = false;
 				resetting = false;
-				world.savingDisabled = false;
-				TaskScheduler.scheduleImmediately(world.getServer(), () -> {
-					DungeonData.getInstance(world.getServer().getWorld(world.getRegistryKey())).copyFromPrevious(this);
-				});
+				DungeonData.getInstance(world.getServer().getWorld(world.getRegistryKey())).copyFromPrevious(this);
 				METAcraftDungeons.LOGGER.info("Reset of " + world.getRegistryKey().getValue() + " completed.");
-			},
+			}, file -> file.endsWith(key + ".dat"),
 			player -> new TeleportTarget(
 					world.getServer().getWorld(exitDim),
 					getExitPos().toCenterPos(), player.getVelocity(), player.getYaw(), player.getPitch(),

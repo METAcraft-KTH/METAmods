@@ -4,6 +4,10 @@ addProjectDependency(":mods:metacraft-core")
 
 addPolymerDependency()
 
+dependencies {
+	modCompileOnly("maven.modrinth:squaremap:${project.squaremap_version}-fabric,${minecraft_version}")
+}
+
 test {
 	useJUnitPlatform()
 }
