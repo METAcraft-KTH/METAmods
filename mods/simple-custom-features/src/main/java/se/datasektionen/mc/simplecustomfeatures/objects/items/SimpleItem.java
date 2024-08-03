@@ -29,6 +29,7 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.sound.SoundEvent;
 import org.objectweb.asm.Type;
 import se.datasektionen.mc.simplecustomfeatures.RegistryExtensions;
+import se.datasektionen.mc.simplecustomfeatures.RegistryHelper;
 import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorItem;
 import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
@@ -153,7 +154,7 @@ public record SimpleItem(
 
 	@Override
 	public void onRegistrationFail(Item value) {
-		((RegistryExtensions<Item>) Registries.ITEM).simpleCustomFeatures$removeIntrusiveEntry(value);
+		RegistryHelper.removeIntrusiveEntry(Registries.ITEM, value);
 	}
 
 	@Override

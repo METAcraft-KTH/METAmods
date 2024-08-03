@@ -140,18 +140,6 @@ public class FeaturesConfig implements ReloadAware {
 		).map(object -> (ObjectContainer.Loaded<?>) object);
 	}
 
-	private static <T> Stream<ObjectContainer.Loaded<T>> getLoadedObjects(
-			RegistryKey<? extends Registry<T>> key, Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer> objects
-	) {
-		return objects.get(key).stream().filter(
-				object -> object instanceof ObjectContainer.Loaded<?>
-		).map(object -> (ObjectContainer.Loaded<T>) object);
-	}
-
-	private <T> Stream<ObjectContainer.Loaded<T>> getLoadedObjects(RegistryKey<? extends Registry<T>> key) {
-		return getLoadedObjects(key, objects);
-	}
-
 	public Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer.Loaded<?>> getObjectsInWorld(MinecraftServer server) {
 		return Multimaps.unmodifiableMultimap(config.get(server).loadedObjects);
 	}

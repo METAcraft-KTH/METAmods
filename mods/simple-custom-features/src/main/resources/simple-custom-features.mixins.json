@@ -4,7 +4,13 @@
 	"package": "se.datasektionen.mc.simplecustomfeatures.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"AccessorIdList",
 		"AccessorItem",
+		"AccessorNetherPortalBlock",
+		"AccessorPointOfInterestTypes",
+		"AccessorPortalForcer",
+		"MixinAbstractBlockState",
+		"MixinDispenserBlock",
 		"MixinSimpleRegistry"
 	],
 	"client": [

@@ -1,5 +1,7 @@
 package se.datasektionen.mc.simplecustomfeatures;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -11,10 +13,7 @@ import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -85,7 +84,7 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 
 		private DataResult<BaseObject<?>> tryParse(UnaryOperator<DynamicOps<Object>> opsApplier) {
 			return BaseObject.REGISTRY_CODEC.parse(
-					opsApplier.apply(JavaOps.INSTANCE), rawObject
+					opsApplier.apply(LenientJavaOps.INSTANCE), rawObject
 			);
 		}
 
@@ -109,39 +108,65 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 
 		private final BaseObject<T> object;
 		private T actualObject;
+		private final Multimap<Identifier, Child<?>> children = HashMultimap.create();
 
 		public Loaded(Identifier id, BaseObject<T> object) {
 			super(id);
 			this.object = object;
 		}
 
+		private static <T> void register(Identifier id, BaseObject<T> baseObject, Consumer<T> onSuccess) {
+			baseObject.createObject().resultOrPartial(
+					message -> {
+						Features.LOGGER.error("Unable to create {}", id);
+						Features.LOGGER.error(message);
+					}
+			).ifPresent(object -> {
+				if (!baseObject.getType().getRegistry().containsId(id)) {
+					var ref = Registry.registerReference(baseObject.getType().getRegistry(), id, object);
+					baseObject.onRegistrationSuccess(ref);
+					onSuccess.accept(object);
+				} else {
+					baseObject.onRegistrationFail(object);
+					Features.LOGGER.error(id + " is already registered, skipping it.");
+				}
+			});
+		}
+
+		private static <T> void unregister(BaseObject<T> baseObject, T object) {
+			baseObject.onUnregister(baseObject.getType().getRegistry().getEntry(object));
+			((RegistryExtensions) baseObject.getType().getRegistry()).simpleCustomFeatures$remove(
+					object
+			);
+		}
+
+		private <S> void registerChild(Identifier id, BaseObject<S> baseObject) {
+			register(id, baseObject, object -> {
+				children.put(id, new Child<>(baseObject, object));
+			});
+		}
+
+		private static  <S> void unregisterChild(Child<S> object) {
+			unregister(object.baseObject, object.object);
+		}
+
 		private void register() {
 			if (actualObject == null) {
-				object.createObject().resultOrPartial(
-						message -> {
-							Features.LOGGER.error("Unable to create {}", id);
-							Features.LOGGER.error(message);
-						}
-				).ifPresent(object -> {
-					if (!this.object.getType().getRegistry().containsId(id)) {
-						var ref = Registry.registerReference(this.object.getType().getRegistry(), id, object);
-						this.object.onRegistrationSuccess(ref);
-						actualObject = object;
-					} else {
-						this.object.onRegistrationFail(object);
-						Features.LOGGER.error(id + " is already registered, skipping it.");
-					}
+				register(id, object, object -> {
+					this.actualObject = object;
 				});
+				object.createChildren(this).forEach(this::registerChild);
 			}
 		}
 
 		private void unregister() {
 			if (actualObject != null) {
-				this.object.onUnregister(object.getType().getRegistry().getEntry(actualObject));
-				((RegistryExtensions) object.getType().getRegistry()).simpleCustomFeatures$remove(
-						actualObject
-				);
-				actualObject = null;
+				unregister(object, actualObject);
+				children.forEach((id, object) -> {
+					unregisterChild(object);
+				});
+				children.clear();
+				this.actualObject = null;
 			}
 		}
 
@@ -153,6 +178,16 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 		public BaseObject<T> getObject() {
 			return object;
 		}
+
+		public T getActualObject() {
+			return actualObject;
+		}
+
+		public Multimap<Identifier, Child<?>> getChildren() {
+			return children;
+		}
+
+		public record Child<T>(BaseObject<T> baseObject, T object) {}
 	}
 
 	protected static void applyRegistryChanges(Stream<Loaded<?>> loadedEntries, Consumer<Loaded<?>> applier) {
@@ -160,6 +195,11 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 		loadedEntries.forEach(entry -> {
 			if (RegistryHelper.unlockRegistry(entry.getObject().getType().getRegistry())) {
 				registriesToLock.add(entry.getObject().getType().getRegistry());
+			}
+			for (var registry : entry.getObject().getChildrenRegistries()) {
+				if (RegistryHelper.unlockRegistry(registry)) {
+					registriesToLock.add(registry);
+				}
 			}
 			applier.accept(entry);
 		});
