@@ -144,14 +144,14 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 			transition = TeleportTarget.SEND_TRAVEL_THROUGH_PORTAL_PACKET.then(e -> e.addPortalChunkTicketAt(targetPos));
 		} else {
 			var axis = entity.getWorld().getBlockState(srcPos).getOrEmpty(AXIS).orElse(Direction.Axis.X);
-			var normalPortal = portal.getNormalPortal().getStructure(targetWorld.getStructureTemplateManager());
-			var portalWithPlatform = portal.getPortalWithPlatform().getStructure(targetWorld.getStructureTemplateManager());
+			var normalPortal = portal.getPortalStructure().getStructure(targetWorld.getStructureTemplateManager());
+			var portalWithPlatform = portal.getPortalWithPlatformStructure().getStructure(targetWorld.getStructureTemplateManager());
 			if (normalPortal.isEmpty()) {
-				log(portal.getNormalPortal().id());
+				log(portal.getPortalStructure().id());
 				return null;
 			}
 			if (portalWithPlatform.isEmpty()) {
-				log(portal.getPortalWithPlatform().id());
+				log(portal.getPortalWithPlatformStructure().id());
 				return null;
 			}
 			var generator = new PortalGenerator(normalPortal.get(), portalWithPlatform.get(), axis);

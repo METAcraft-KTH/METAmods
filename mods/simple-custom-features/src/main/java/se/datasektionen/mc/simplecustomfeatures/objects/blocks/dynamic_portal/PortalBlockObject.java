@@ -51,8 +51,8 @@ public class PortalBlockObject implements BaseBlock {
 	private final BlockPredicate validFrameBlock;
 	private final Optional<BlockPredicate> blockActivator;
 	private final Optional<ItemPredicate> itemActivator;
-	private final StructureWithOffset normalPortal;
-	private final StructureWithOffset portalWithPlatform;
+	private final StructureWithOffset portalStructure;
+	private final StructureWithOffset portalWithPlatformStructure;
 	private final int minArea;
 	private final Map<RegistryKey<World>, EntitySpawnEntry> entitySpawns;
 
@@ -62,8 +62,8 @@ public class PortalBlockObject implements BaseBlock {
 					BlockPredicate.CODEC.fieldOf("valid_frame_block").forGetter(p -> p.validFrameBlock),
 					BlockPredicate.CODEC.optionalFieldOf("block_activator").forGetter(p -> p.blockActivator),
 					ItemPredicate.CODEC.optionalFieldOf("item_activator").forGetter(p -> p.itemActivator),
-					StructureWithOffset.CODEC.fieldOf("normal_portal").forGetter(p -> p.normalPortal),
-					StructureWithOffset.CODEC.fieldOf("portal_with_platform").forGetter(p -> p.portalWithPlatform),
+					StructureWithOffset.CODEC.fieldOf("portal_structure").forGetter(p -> p.portalStructure),
+					StructureWithOffset.CODEC.fieldOf("portal_with_platform_structure").forGetter(p -> p.portalWithPlatformStructure),
 					Codecs.POSITIVE_INT.optionalFieldOf("min_area", 1).forGetter(p -> p.minArea),
 					Codec.unboundedMap(
 							World.CODEC, EntitySpawnEntry.CODEC
@@ -74,7 +74,7 @@ public class PortalBlockObject implements BaseBlock {
 	public PortalBlockObject(
 			Map<RegistryKey<World>, RegistryKey<World>> dimensions, BlockPredicate validFrameBlock,
 			Optional<BlockPredicate> blockActivator, Optional<ItemPredicate> itemActivator,
-			StructureWithOffset normalPortal, StructureWithOffset portalWithPlatform,
+			StructureWithOffset portalStructure, StructureWithOffset portalWithPlatformStructure,
 			int minSize,
 			Map<RegistryKey<World>, EntitySpawnEntry> entitySpawns
 	) {
@@ -82,8 +82,8 @@ public class PortalBlockObject implements BaseBlock {
 		this.validFrameBlock = validFrameBlock;
 		this.blockActivator = blockActivator;
 		this.itemActivator = itemActivator;
-		this.normalPortal = normalPortal;
-		this.portalWithPlatform = portalWithPlatform;
+		this.portalStructure = portalStructure;
+		this.portalWithPlatformStructure = portalWithPlatformStructure;
 		this.minArea = minSize;
 		this.entitySpawns = entitySpawns;
 	}
@@ -127,12 +127,12 @@ public class PortalBlockObject implements BaseBlock {
 		return poiKey;
 	}
 
-	public StructureWithOffset getNormalPortal() {
-		return normalPortal;
+	public StructureWithOffset getPortalStructure() {
+		return portalStructure;
 	}
 
-	public StructureWithOffset getPortalWithPlatform() {
-		return portalWithPlatform;
+	public StructureWithOffset getPortalWithPlatformStructure() {
+		return portalWithPlatformStructure;
 	}
 
 	public Optional<ItemPredicate> getItemActivator() {

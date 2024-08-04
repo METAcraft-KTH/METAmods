@@ -23,16 +23,17 @@ public class PortalGenerator {
 	private final int width;
 	private final BlockRotation rotation;
 	private final Direction.Axis axis;
-	private final PortalBlockObject.ValidStructureWithOffset normalPortal;
-	private final PortalBlockObject.ValidStructureWithOffset portalWithPlatform;
+	private final PortalBlockObject.ValidStructureWithOffset portalStructure;
+	private final PortalBlockObject.ValidStructureWithOffset portalWithPlatformStructure;
 
 	public PortalGenerator(
-			PortalBlockObject.ValidStructureWithOffset normalPortal, PortalBlockObject.ValidStructureWithOffset portalWithPlatform,
+			PortalBlockObject.ValidStructureWithOffset portalStructure,
+			PortalBlockObject.ValidStructureWithOffset portalWithPlatformStructure,
 			Direction.Axis axis
 	) {
-		if (normalPortal.structure().getSize().getX() == normalPortal.structure().getSize().getZ()) {
+		if (portalStructure.structure().getSize().getX() == portalStructure.structure().getSize().getZ()) {
 			rotation = BlockRotation.NONE;
-		} else if (normalPortal.structure().getSize().getX() > normalPortal.structure().getSize().getZ()) {
+		} else if (portalStructure.structure().getSize().getX() > portalStructure.structure().getSize().getZ()) {
 			rotation = switch (axis) {
 				case X -> BlockRotation.NONE;
 				case Z -> BlockRotation.CLOCKWISE_90;
@@ -45,10 +46,10 @@ public class PortalGenerator {
 				case Y -> throw new IllegalStateException("Vertical portals are not supported");
 			};
 		}
-		this.normalPortal = normalPortal;
-		this.portalWithPlatform = portalWithPlatform;
-		this.width = Math.max(normalPortal.structure().getSize().getX(), normalPortal.structure().getSize().getZ());
-		this.height = normalPortal.structure().getSize().getY();
+		this.portalStructure = portalStructure;
+		this.portalWithPlatformStructure = portalWithPlatformStructure;
+		this.width = Math.max(portalStructure.structure().getSize().getX(), portalStructure.structure().getSize().getZ());
+		this.height = portalStructure.structure().getSize().getY();
 		this.axis = axis;
 	}
 
@@ -62,7 +63,7 @@ public class PortalGenerator {
 		boolean foundSafePos = false;
 		BlockPos foundPos = null;
 		double leastFoundDist = Double.POSITIVE_INFINITY;
-		var invOffset = getOffsetInverted(normalPortal);
+		var invOffset = getOffsetInverted(portalStructure);
 		for (var pos : BlockPos.iterateInSquare(targetPos, 16, Direction.EAST, Direction.SOUTH)) {
 			if (!border.contains(pos) || !border.contains(pos.move(positive))) continue;
 			pos.move(positive.getOpposite());
@@ -111,27 +112,27 @@ public class PortalGenerator {
 					MathHelper.clamp(targetPos.getY(), lowestPossiblePortalPos, highestPossiblePortalPos),
 					targetPos.getZ()
 			));
-			portalWithPlatform.structure().place(
-					targetWorld, foundPos.subtract(portalWithPlatform.offset()), portalWithPlatform.offset(),
-					new StructurePlacementData().setPosition(portalWithPlatform.offset()).setRotation(rotation).setUpdateNeighbors(true),
+			portalWithPlatformStructure.structure().place(
+					targetWorld, foundPos.subtract(portalWithPlatformStructure.offset()), portalWithPlatformStructure.offset(),
+					new StructurePlacementData().setPosition(portalWithPlatformStructure.offset()).setRotation(rotation).setUpdateNeighbors(true),
 					targetWorld.getRandom(), Block.FORCE_STATE | Block.NOTIFY_LISTENERS
 			);
 		} else {
-			normalPortal.structure().place(
-					targetWorld, foundPos.subtract(normalPortal.offset()), normalPortal.offset(),
-					new StructurePlacementData().setPosition(normalPortal.offset()).setRotation(rotation).setUpdateNeighbors(true),
+			portalStructure.structure().place(
+					targetWorld, foundPos.subtract(portalStructure.offset()), portalStructure.offset(),
+					new StructurePlacementData().setPosition(portalStructure.offset()).setRotation(rotation).setUpdateNeighbors(true),
 					targetWorld.getRandom(), Block.FORCE_STATE | Block.NOTIFY_LISTENERS
 			);
 		}
 
 		int portalWidth;
-		if (normalPortal.structure().getSize().getX() >= normalPortal.structure().getSize().getZ()) {
-			portalWidth = width - normalPortal.offset().getX()*2;
+		if (portalStructure.structure().getSize().getX() >= portalStructure.structure().getSize().getZ()) {
+			portalWidth = width - portalStructure.offset().getX()*2;
 		} else {
-			portalWidth = width - normalPortal.offset().getZ()*2;
+			portalWidth = width - portalStructure.offset().getZ()*2;
 		}
 
-		return Optional.of(new BlockLocating.Rectangle(foundPos, portalWidth, height - normalPortal.offset().getY()));
+		return Optional.of(new BlockLocating.Rectangle(foundPos, portalWidth, height - portalStructure.offset().getY()));
 	}
 
 	private boolean isValidPortalPos(ServerWorld world, BlockPos portalPos, BlockPos invertedOffset, int outDistance) {
