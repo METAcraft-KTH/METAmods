@@ -18,7 +18,7 @@ public class ObjectCache {
 
 	public static final Codec<ObjectCache> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					ObjectContainer.Loaded.LOADED_CODEC.listOf().fieldOf("objects").forGetter(
+					ObjectContainer.CODEC.listOf().fieldOf("objects").forGetter(
 						cache -> cache.objects.values().stream().toList()
 					)
 			).apply(instance, ObjectCache::new)
@@ -47,7 +47,8 @@ public class ObjectCache {
 	private final List<ObjectContainer.Loaded<?>> reRegistered = new ArrayList<>();
 	private boolean loaded = false;
 
-	private final Table<RegistryKey<?>, Identifier, ObjectContainer.Loaded<?>> objects = HashBasedTable.create();
+	//HashBasedTable uses linked hashmap in backend, which should preserve insertion order.
+	private final Table<RegistryKey<?>, Identifier, ObjectContainer> objects = HashBasedTable.create();
 
 	private void setServer(MinecraftServer server) {
 		this.server = server;
@@ -55,9 +56,13 @@ public class ObjectCache {
 
 	protected ObjectCache() {}
 
-	protected ObjectCache(List<ObjectContainer.Loaded<?>> objects) {
+	protected ObjectCache(List<ObjectContainer> objects) {
 		objects.forEach(object -> {
-			this.objects.put(object.getObject().getType().getRegistry().getKey(), object.getID(), object);
+			object.getType().resultOrPartial(
+					Features.LOGGER::error
+			).ifPresent(type -> {
+				this.objects.put(type.getRegistry().getKey(), object.getID(), object);
+			});
 		});
 	}
 
@@ -78,11 +83,17 @@ public class ObjectCache {
 			objects.put(o.getKey(), o.getValue().getID(), o.getValue());
 		}
 		for (var object : objects.values()) {
-			if (!object.getObject().getType().getRegistry().containsId(object.getID())) {
-				reRegistered.add(object);
+			var validObject = switch (object) {
+				case ObjectContainer.Deferred deferred -> deferred.load(server.getRegistryManager()).resultOrPartial(
+						Features.LOGGER::error
+				);
+				case ObjectContainer.Loaded<?> l -> Optional.of(l);
+			};
+			if (validObject.isPresent() && !validObject.get().getObject().getType().getRegistry().containsId(object.getID())) {
+				reRegistered.add(validObject.get());
 				Features.LOGGER.warn(
 						object.getID() + " of type " +
-						Optional.ofNullable(ObjectRegistry.REGISTRY.getId(object.getObject().getType())).map(
+						Optional.ofNullable(ObjectRegistry.REGISTRY.getId(validObject.get().getObject().getType())).map(
 								Identifier::toString
 						).orElse("error not registered") + " was removed from config. " +
 						"To avoid data loss, the latest version of the item will be re-registered."
