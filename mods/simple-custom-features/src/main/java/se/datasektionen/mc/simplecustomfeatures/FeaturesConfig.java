@@ -26,6 +26,7 @@ import se.datasektionen.mc.metacraft_lib.config.extensions.ReloadAware;
 import se.datasektionen.mc.metacraft_lib.config.extensions.ServerLoadAware;
 import se.datasektionen.mc.metacraft_lib.config.extensions.ServerUnloadAware;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
+import se.datasektionen.mc.simplecustomfeatures.objects.items.BaseItem;
 import se.datasektionen.mc.simplecustomfeatures.objects.items.simple.SimpleItem;
 
 import java.nio.file.Path;
@@ -87,18 +88,20 @@ public class FeaturesConfig implements ReloadAware {
 				var config = new FeaturesConfig();
 				config.addObjects(new ObjectContainer.Loaded<>(
 						Features.getID("test"), new SimpleItem(
-						Items.BRICK.getRegistryEntry(),
+						new BaseItem.ItemSettingsWithBaseItem(
+								Items.BRICK.getRegistryEntry(),
+								ComponentChanges.builder().add(
+										DataComponentTypes.MAX_STACK_SIZE, 32
+								).add(
+										DataComponentTypes.FIRE_RESISTANT, Unit.INSTANCE
+								).add(
+										DataComponentTypes.RARITY, Rarity.UNCOMMON
+								).add(
+										DataComponentTypes.FOOD, FoodComponents.ENCHANTED_GOLDEN_APPLE
+								).build(),
+								Optional.empty()
+						),
 						Optional.empty(),
-						Optional.empty(),
-						ComponentChanges.builder().add(
-								DataComponentTypes.MAX_STACK_SIZE, 32
-						).add(
-								DataComponentTypes.FIRE_RESISTANT, Unit.INSTANCE
-						).add(
-								DataComponentTypes.RARITY, Rarity.UNCOMMON
-						).add(
-								DataComponentTypes.FOOD, FoodComponents.ENCHANTED_GOLDEN_APPLE
-						).build(),
 						new SimpleItem.ExtendedSettings(
 								true,
 								ImmutableList.of(new RegistryPair<>(StatusEffects.WITHER)),

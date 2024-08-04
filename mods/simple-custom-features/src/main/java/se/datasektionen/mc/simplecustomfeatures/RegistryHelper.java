@@ -3,11 +3,9 @@ package se.datasektionen.mc.simplecustomfeatures;
 import net.minecraft.block.Block;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.SimpleRegistry;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.collection.IdList;
 import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorIdList;
 
-import java.util.HashSet;
 import java.util.Set;
 
 public class RegistryHelper {
@@ -23,16 +21,6 @@ public class RegistryHelper {
 		if (registry instanceof SimpleRegistry<?>) {
 			registry.freeze();
 		}
-	}
-
-	/**
-	 * Removes all block states for the given block from the block state id list.
-	 * Put this in {@link se.datasektionen.mc.simplecustomfeatures.objects.BaseObject#onUnregister(RegistryEntry)}
-	 * for all block objects.
-	 * @param block The block to remove the states for.
-	 */
-	public static void removeBlockStatesFor(Block block) {
-		removeFromIdList(Block.STATE_IDS, new HashSet<>(block.getStateManager().getStates()));
 	}
 
 	/**
@@ -55,19 +43,6 @@ public class RegistryHelper {
 			);
 			listAccessor.setNextId(listAccessor.getNextId()-1);
 		}
-	}
-
-	/**
-	 * Add this to {@link se.datasektionen.mc.simplecustomfeatures.objects.BaseObject#onRegistrationSuccess(RegistryEntry.Reference)}
-	 * to add the block to the block state id list, initialize the shape cache and loot table key.
-	 * @param block The block that was recently registered.
-	 */
-	public static void finishBlockRegistration(Block block) {
-		block.getStateManager().getStates().forEach(state -> {
-			Block.STATE_IDS.add(state);
-			state.initShapeCache();
-		});
-		block.getLootTableKey();
 	}
 
 	/**

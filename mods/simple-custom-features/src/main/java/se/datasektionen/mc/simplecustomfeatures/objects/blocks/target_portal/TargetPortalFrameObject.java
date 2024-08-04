@@ -19,6 +19,7 @@ import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
 import se.datasektionen.mc.simplecustomfeatures.objects.blocks.BaseBlock;
+import se.datasektionen.mc.simplecustomfeatures.objects.items.BaseItem;
 import se.datasektionen.mc.simplecustomfeatures.objects.items.BlockItemObject;
 
 import java.util.Collection;
@@ -56,8 +57,7 @@ public class TargetPortalFrameObject implements BaseBlock {
 		return Multimaps.forMap(Map.of(
 				container.getID(), new BlockItemObject(
 						Items.END_PORTAL_FRAME.getRegistryEntry(),
-						Items.END_PORTAL_FRAME.getComponents(),
-						Optional.empty(),
+						new BaseItem.ItemSettings(Items.END_PORTAL_FRAME.getComponents(), Optional.empty()),
 						container.getActualObject()
 				)
 		));

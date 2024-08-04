@@ -6,6 +6,8 @@ import net.minecraft.registry.entry.RegistryEntry;
 import se.datasektionen.mc.simplecustomfeatures.RegistryHelper;
 import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 
+import java.util.HashSet;
+
 public interface BaseBlock extends BaseObject<Block> {
 
 	@Override
@@ -15,11 +17,15 @@ public interface BaseBlock extends BaseObject<Block> {
 
 	@Override
 	default void onUnregister(RegistryEntry<Block> entry) {
-		RegistryHelper.removeBlockStatesFor(entry.value());
+		RegistryHelper.removeFromIdList(Block.STATE_IDS, new HashSet<>(entry.value().getStateManager().getStates()));
 	}
 
 	@Override
 	default void onRegistrationSuccess(RegistryEntry.Reference<Block> entry) {
-		RegistryHelper.finishBlockRegistration(entry.value());
+		entry.value().getStateManager().getStates().forEach(state -> {
+			Block.STATE_IDS.add(state);
+			state.initShapeCache();
+		});
+		entry.value().getLootTableKey();
 	}
 }

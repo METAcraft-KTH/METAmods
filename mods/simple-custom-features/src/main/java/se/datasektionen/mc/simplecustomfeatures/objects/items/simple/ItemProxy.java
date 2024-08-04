@@ -34,7 +34,7 @@ public class ItemProxy {
 
 	public static Item getPolymerItem(@This CustomisedItem item) {
 		var settings = item.simple_custom_features$getSettings();
-		return settings.disguise().map(ItemStack::getItem).orElse(settings.baseItem().value());
+		return settings.disguise().map(ItemStack::getItem).orElse(settings.itemSettings().baseItem().value());
 	}
 
 	public static ItemStack getPolymerItemStack(

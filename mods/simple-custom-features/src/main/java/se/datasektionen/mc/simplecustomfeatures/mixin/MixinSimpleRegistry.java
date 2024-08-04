@@ -1,6 +1,5 @@
 package se.datasektionen.mc.simplecustomfeatures.mixin;
 
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.mojang.serialization.Lifecycle;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -19,10 +18,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.simplecustomfeatures.RegistryExtensions;
 
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -48,9 +45,6 @@ public abstract class MixinSimpleRegistry<T> implements MutableRegistry<T>, Regi
 
 	@Shadow @Final private Reference2IntMap<T> entryToRawId;
 	@Shadow @Final private Map<RegistryKey<T>, RegistryEntryInfo> keyToEntryInfo;
-
-	@Unique
-	private final Map<T, RegistryKey<T>> oldValues = new HashMap<>();
 
 	@Shadow public abstract Optional<RegistryEntry.Reference<T>> getEntry(Identifier id);
 
@@ -104,44 +98,9 @@ public abstract class MixinSimpleRegistry<T> implements MutableRegistry<T>, Regi
 	}
 
 	@Override
-	public void simpleCustomFeatures$addLegacyRef(RegistryKey<T> key, T value) {
-		this.oldValues.put(value, key);
-	}
-
-	@Override
 	public void simpleCustomFeatures$removeIntrusiveEntry(T value) {
 		if (this.intrusiveValueToEntry != null) {
 			this.intrusiveValueToEntry.remove(value);
-		}
-	}
-
-	@ModifyReturnValue(method = "getId", at = @At("RETURN"))
-	public Identifier getId(Identifier original, T value) {
-		if (original == null) return Optional.ofNullable(oldValues.get(value)).map(RegistryKey::getValue).orElse(null);
-		return original;
-	}
-
-	@ModifyReturnValue(method = "getKey(Ljava/lang/Object;)Ljava/util/Optional;", at = @At("RETURN"))
-	public Optional<RegistryKey<T>> getId(Optional<RegistryKey<T>> original, T value) {
-		if (original.isEmpty()) return Optional.ofNullable(oldValues.get(value));
-		return original;
-	}
-
-	@ModifyReturnValue(method = "getRawId", at = @At("RETURN"))
-	public int getRawId(int original, T value) {
-		if (original == -1) {
-			return Optional.ofNullable(oldValues.get(value)).flatMap(this::getEntry).map(entryToRawId::getInt).orElse(-1);
-		}
-		return original;
-	}
-
-	@Inject(
-			method = "getEntry(Ljava/lang/Object;)Lnet/minecraft/registry/entry/RegistryEntry;",
-			at = @At("HEAD"), cancellable = true
-	)
-	public void getEntry(T value, CallbackInfoReturnable<RegistryEntry<T>> cir) {
-		if (!valueToEntry.containsKey(value) && oldValues.containsKey(value)) {
-			getEntry(oldValues.get(value)).ifPresent(cir::setReturnValue);
 		}
 	}
 
