@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.better_pets.TameableExtension;
-import se.datasektionen.mc.better_pets.TamedHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.TamedHelper;
 
 @Mixin(EndPortalBlock.class)
 public class MixinEndPortalBlock {

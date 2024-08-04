@@ -1,4 +1,4 @@
-package se.datasektionen.mc.simplecustomfeatures.objects.items;
+package se.datasektionen.mc.simplecustomfeatures.objects.items.simple;
 
 public interface CustomisedItem {
 

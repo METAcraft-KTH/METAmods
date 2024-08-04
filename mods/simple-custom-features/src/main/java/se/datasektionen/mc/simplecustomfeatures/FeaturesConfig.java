@@ -26,7 +26,7 @@ import se.datasektionen.mc.metacraft_lib.config.extensions.ReloadAware;
 import se.datasektionen.mc.metacraft_lib.config.extensions.ServerLoadAware;
 import se.datasektionen.mc.metacraft_lib.config.extensions.ServerUnloadAware;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
-import se.datasektionen.mc.simplecustomfeatures.objects.items.SimpleItem;
+import se.datasektionen.mc.simplecustomfeatures.objects.items.simple.SimpleItem;
 
 import java.nio.file.Path;
 import java.util.*;

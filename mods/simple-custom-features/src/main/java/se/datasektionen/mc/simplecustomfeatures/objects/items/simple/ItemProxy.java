@@ -1,4 +1,4 @@
-package se.datasektionen.mc.simplecustomfeatures.objects.items;
+package se.datasektionen.mc.simplecustomfeatures.objects.items.simple;
 
 import net.bytebuddy.implementation.bind.annotation.Argument;
 import net.bytebuddy.implementation.bind.annotation.SuperCall;

@@ -1,4 +1,4 @@
-package se.datasektionen.mc.simplecustomfeatures.objects.blocks.vertical_portal;
+package se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import net.minecraft.block.AbstractBlock;
@@ -31,11 +31,11 @@ import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorNetherPortalBlock;
 import java.util.Comparator;
 import java.util.Optional;
 
-public class VerticalPortalBlock extends NetherPortalBlock implements PolymerBlock {
+public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBlock {
 
 	private final PortalBlockObject portal;
 
-	public VerticalPortalBlock(AbstractBlock.Settings settings, PortalBlockObject portal) {
+	public DynamicPortalBlock(AbstractBlock.Settings settings, PortalBlockObject portal) {
 		super(settings);
 		this.portal = portal;
 	}

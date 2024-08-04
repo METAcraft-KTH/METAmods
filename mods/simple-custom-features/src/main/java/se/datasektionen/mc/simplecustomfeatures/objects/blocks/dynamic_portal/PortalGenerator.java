@@ -1,4 +1,4 @@
-package se.datasektionen.mc.simplecustomfeatures.objects.blocks.vertical_portal;
+package se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal;
 
 import net.minecraft.block.Block;
 import net.minecraft.server.world.ServerWorld;
@@ -36,13 +36,13 @@ public class PortalGenerator {
 			rotation = switch (axis) {
 				case X -> BlockRotation.NONE;
 				case Z -> BlockRotation.CLOCKWISE_90;
-				case Y -> throw new IllegalStateException("Horizontal portals are not supported");
+				case Y -> throw new IllegalStateException("Vertical portals are not supported");
 			};
 		} else {
 			rotation = switch (axis) {
 				case X -> BlockRotation.COUNTERCLOCKWISE_90;
 				case Z -> BlockRotation.NONE;
-				case Y -> throw new IllegalStateException("Horizontal portals are not supported");
+				case Y -> throw new IllegalStateException("Vertical portals are not supported");
 			};
 		}
 		this.normalPortal = normalPortal;

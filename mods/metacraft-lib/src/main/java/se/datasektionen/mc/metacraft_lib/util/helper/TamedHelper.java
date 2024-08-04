@@ -1,4 +1,4 @@
-package se.datasektionen.mc.better_pets;
+package se.datasektionen.mc.metacraft_lib.util.helper;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.Ownable;

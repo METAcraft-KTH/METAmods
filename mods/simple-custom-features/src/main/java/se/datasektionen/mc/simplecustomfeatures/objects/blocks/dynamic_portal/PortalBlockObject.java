@@ -1,4 +1,4 @@
-package se.datasektionen.mc.simplecustomfeatures.objects.blocks.vertical_portal;
+package se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal;
 
 import com.google.common.collect.*;
 import com.mojang.serialization.Codec;
@@ -28,16 +28,16 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.*;
 import net.minecraft.world.poi.PointOfInterestType;
 import se.datasektionen.mc.simplecustomfeatures.ObjectContainer;
-import se.datasektionen.mc.simplecustomfeatures.RegistryHelper;
 import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
 import se.datasektionen.mc.simplecustomfeatures.objects.POI;
+import se.datasektionen.mc.simplecustomfeatures.objects.blocks.BaseBlock;
 
 import java.util.*;
 import java.util.List;
 
-public class PortalBlockObject implements BaseObject<Block> {
+public class PortalBlockObject implements BaseBlock {
 
 	private static final Table<RegistryKey<World>, BlockState, PortalBlockObject> BLOCK_CACHE = HashBasedTable.create();
 	private static final Table<RegistryKey<World>, ItemEntry, PortalBlockObject> ITEM_CACHE = HashBasedTable.create();
@@ -45,7 +45,7 @@ public class PortalBlockObject implements BaseObject<Block> {
 	private static final Set<PortalBlockObject> BLOCKS = new LinkedHashSet<>();
 
 	private RegistryKey<PointOfInterestType> poiKey;
-	private VerticalPortalBlock block;
+	private DynamicPortalBlock block;
 
 	private final Map<RegistryKey<World>, RegistryKey<World>> dimensions;
 	private final BlockPredicate validFrameBlock;
@@ -97,7 +97,7 @@ public class PortalBlockObject implements BaseObject<Block> {
 	@Override
 	public DataResult<Block> createObject() {
 		return DataResult.success(
-				block = new VerticalPortalBlock(AbstractBlock.Settings.copy(Blocks.NETHER_PORTAL), this)
+				block = new DynamicPortalBlock(AbstractBlock.Settings.copy(Blocks.NETHER_PORTAL), this)
 		);
 	}
 
@@ -176,16 +176,11 @@ public class PortalBlockObject implements BaseObject<Block> {
 	}
 
 	@Override
-	public void onRegistrationFail(Block value) {
-		RegistryHelper.removeIntrusiveEntry(Registries.BLOCK, value);
-	}
-
-	@Override
 	public void onUnregister(RegistryEntry<Block> entry) {
 		BLOCKS.remove(this);
 		BLOCK_CACHE.values().remove(this);
 		ITEM_CACHE.values().remove(this);
-		RegistryHelper.removeBlockStatesFor(entry.value());
+		BaseBlock.super.onUnregister(entry);
 	}
 
 	@Override
@@ -193,7 +188,7 @@ public class PortalBlockObject implements BaseObject<Block> {
 		BLOCKS.add(this);
 		BLOCK_CACHE.clear();
 		ITEM_CACHE.clear();
-		RegistryHelper.finishBlockRegistration(entry.value());
+		BaseBlock.super.onRegistrationSuccess(entry);
 	}
 
 	public boolean isValidWorld(ServerWorld world) {

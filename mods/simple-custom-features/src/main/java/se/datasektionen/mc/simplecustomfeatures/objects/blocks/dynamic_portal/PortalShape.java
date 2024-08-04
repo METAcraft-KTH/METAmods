@@ -1,4 +1,4 @@
-package se.datasektionen.mc.simplecustomfeatures.objects.blocks.vertical_portal;
+package se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.NetherPortalBlock;
@@ -14,7 +14,7 @@ import java.util.*;
 public class PortalShape {
 
 	private final WorldAccess world;
-	private final VerticalPortalBlock portal;
+	private final DynamicPortalBlock portal;
 	private final Direction.Axis axis;
 	private final Set<Direction> directions;
 
@@ -25,13 +25,13 @@ public class PortalShape {
 	private final Set<BlockPos> insidePortal = new HashSet<>();
 
 	public static Optional<PortalShape> findPortalShape(
-			ServerWorld world, BlockPos pos, VerticalPortalBlock block
+			ServerWorld world, BlockPos pos, DynamicPortalBlock block
 	) {
 		return findPortalShape(world, pos, block, Direction.Axis.X);
 	}
 
 	public static Optional<PortalShape> findPortalShape(
-			WorldAccess world, BlockPos pos, VerticalPortalBlock block, Direction.Axis axis
+			WorldAccess world, BlockPos pos, DynamicPortalBlock block, Direction.Axis axis
 	) {
 		if (world.getBlockState(pos).isOf(block)) {
 			return Optional.empty();
@@ -43,8 +43,8 @@ public class PortalShape {
 		return Optional.empty();
 	}
 
-	public PortalShape(WorldAccess world, BlockPos pos, VerticalPortalBlock portal, Direction.Axis axis) {
-		if (axis.isVertical()) throw new IllegalArgumentException("Horizontal portals are not supported.");
+	public PortalShape(WorldAccess world, BlockPos pos, DynamicPortalBlock portal, Direction.Axis axis) {
+		if (axis.isVertical()) throw new IllegalArgumentException("Vertical portals are not supported.");
 		this.world = world;
 		this.portal = portal;
 		this.axis = axis;

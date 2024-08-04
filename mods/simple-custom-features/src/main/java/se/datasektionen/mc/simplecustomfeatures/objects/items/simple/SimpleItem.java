@@ -1,4 +1,4 @@
-package se.datasektionen.mc.simplecustomfeatures.objects.items;
+package se.datasektionen.mc.simplecustomfeatures.objects.items.simple;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;

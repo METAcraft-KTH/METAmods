@@ -9,8 +9,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import se.datasektionen.mc.simplecustomfeatures.objects.blocks.vertical_portal.PortalBlockObject;
-import se.datasektionen.mc.simplecustomfeatures.objects.blocks.vertical_portal.PortalShape;
+import se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal.PortalBlockObject;
+import se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal.PortalShape;
 
 @Mixin(AbstractBlock.AbstractBlockState.class)
 public class MixinAbstractBlockState {
