@@ -4,6 +4,8 @@
 	"package": "se.datasektionen.mc.metacraft_core.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"AccessorChunkHolder",
+		"AccessorServerChunkManager",
 		"MixinBlockEntity",
 		"MixinBlockItem",
 		"MixinContainerComponent",

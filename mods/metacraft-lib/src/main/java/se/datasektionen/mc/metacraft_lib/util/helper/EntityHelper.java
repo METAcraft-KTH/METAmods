@@ -100,9 +100,9 @@ public class EntityHelper {
 	) {
 		EntityType.fromNbt(data.entity()).ifPresent(type -> {
 			if (!canSpawnCheck1.test(type)) return;
-			double x = around.getX() + data.spawnRules().horizontalRange().get(random) + 0.5;
-			double preliminaryY = around.getY() + data.spawnRules().verticalRange().get(random) + 0.5;
-			double z = around.getZ() + data.spawnRules().horizontalRange().get(random) + 0.5;
+			double x = around.getX() + data.spawnRules().horizontalRange().get(random);
+			double preliminaryY = around.getY() + data.spawnRules().verticalRange().get(random);
+			double z = around.getZ() + data.spawnRules().horizontalRange().get(random);
 			int maxYRange = (int) Math.round(new Vec3d(x, preliminaryY, z).distanceTo(around));
 			double y = findY(world, random, type, data, x, preliminaryY, z, maxYRange);
 			if (canSpawn(world, random, type, data.spawnRules().condition(), data.spawnRules.spawnReason(), x, y, z)) {
