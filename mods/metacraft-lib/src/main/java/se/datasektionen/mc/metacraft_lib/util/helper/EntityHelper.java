@@ -19,6 +19,7 @@ import net.minecraft.nbt.NbtList;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.collection.DataPool;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.intprovider.ConstantIntProvider;
 import net.minecraft.util.math.intprovider.IntProvider;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
@@ -199,22 +200,28 @@ public class EntityHelper {
 		public static final Codec<SpawnEntry> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
 						NbtCompound.CODEC.fieldOf("entity").forGetter(SpawnEntry::entity),
-						Codec.BOOL.fieldOf("initialize").orElse(true).forGetter(SpawnEntry::initialize),
-						Codec.BOOL.fieldOf("preventDespawn").orElse(false).forGetter(SpawnEntry::preventDespawn),
-						SpawnRules.CODEC.fieldOf("spawnRules").forGetter(SpawnEntry::spawnRules),
+						Codec.BOOL.optionalFieldOf("initialize", true).forGetter(SpawnEntry::initialize),
+						Codec.BOOL.optionalFieldOf("prevent_despawn", false).forGetter(SpawnEntry::preventDespawn),
+						SpawnRules.CODEC.optionalFieldOf("spawn_rules", new SpawnRules()).forGetter(SpawnEntry::spawnRules),
 						EquipmentTable.CODEC.optionalFieldOf("equipment").forGetter(SpawnEntry::equipment)
 				).apply(instance, SpawnEntry::new)
 		);
 
-		public static final Codec<DataPool<SpawnEntry>> POOL_CODEC = DataPool.createEmptyAllowedCodec(CODEC);
+		public static final Codec<DataPool<SpawnEntry>> POOL_CODEC = Codec.withAlternative(
+				DataPool.createEmptyAllowedCodec(CODEC),
+				SpawnEntry.CODEC, DataPool::of
+		);
 
 		public record SpawnRules(Optional<LootCondition> condition, SpawnReason spawnReason, IntProvider horizontalRange, IntProvider verticalRange) {
+			public SpawnRules() {
+				this(Optional.empty(), SpawnReason.MOB_SUMMONED, ConstantIntProvider.create(0), ConstantIntProvider.create(0));
+			}
 			public static final Codec<SpawnRules> CODEC = RecordCodecBuilder.create(
 					instance -> instance.group(
 							LootCondition.CODEC.optionalFieldOf("condition").forGetter(SpawnRules::condition),
-							ExtraCodecs.SPAWN_REASON_CODEC.fieldOf("spawnReason").forGetter(SpawnRules::spawnReason),
-							IntProvider.VALUE_CODEC.fieldOf("horizontalRange").forGetter(SpawnRules::horizontalRange),
-							IntProvider.VALUE_CODEC.fieldOf("verticalRange").forGetter(SpawnRules::verticalRange)
+							ExtraCodecs.SPAWN_REASON_CODEC.optionalFieldOf("spawn_reason", SpawnReason.MOB_SUMMONED).forGetter(SpawnRules::spawnReason),
+							IntProvider.VALUE_CODEC.optionalFieldOf("horizontal_range", ConstantIntProvider.create(0)).forGetter(SpawnRules::horizontalRange),
+							IntProvider.VALUE_CODEC.optionalFieldOf("vertical_range", ConstantIntProvider.create(0)).forGetter(SpawnRules::verticalRange)
 					).apply(instance, SpawnRules::new)
 			);
 		}
