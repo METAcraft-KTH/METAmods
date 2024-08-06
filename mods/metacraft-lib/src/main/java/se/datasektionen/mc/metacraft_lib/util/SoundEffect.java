@@ -29,7 +29,10 @@ public record SoundEffect(
 			).apply(instance, SoundEffect::new)
 	);
 
-	public static final Codec<DataPool<SoundEffect>> POOL_CODEC = DataPool.createCodec(CODEC);
+	public static final Codec<DataPool<SoundEffect>> POOL_CODEC = Codec.withAlternative(
+			DataPool.createCodec(CODEC),
+			CODEC, DataPool::of
+	);
 
 	public void playSound(ServerPlayerEntity player, double x, double y, double z, long seed) {
 		player.networkHandler.sendPacket(new PlaySoundS2CPacket(
