@@ -2,47 +2,40 @@ package se.datasektionen.mc.metacraft_core.block.entities;
 
 import com.mojang.serialization.JavaOps;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
 import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.collection.DataPool;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.intprovider.ConstantIntProvider;
 import net.minecraft.util.math.random.Random;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlockEntities;
-import se.datasektionen.mc.metacraft_core.mixin.AccessorChunkHolder;
-import se.datasektionen.mc.metacraft_core.mixin.AccessorServerChunkManager;
 import se.datasektionen.mc.metacraft_lib.util.SoundEffect;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 
 import java.util.Map;
 import java.util.Optional;
 
-public class TrapSpawnerEntity extends BlockEntity {
+public class TrapSpawnerEntity extends DisguisedBlockEntity {
 
-	private static final String BLOCK_STATE = "BlockState";
 	private static final String ENTITIES = "Entities";
 	private static final String SPAWN_COUNT = "SpawnCount";
 	private static final String SOUND_EFFECT = "SoundEffect";
+	private static final String TRIGGER_ON_INTERACTION = "TriggerOnInteraction";
+	private static final String TRIGGER_ON_BREAK = "TriggerOnBreak";
+	private static final String TRIGGER_ON_STEP = "TriggerOnStep";
 
-	private BlockState state = Blocks.BARRIER.getDefaultState();
 	private DataPool<EntityHelper.SpawnEntry> entities = DataPool.of(
 			new EntityHelper.SpawnEntry(
 					(NbtCompound) JavaOps.INSTANCE.convertTo(
@@ -57,6 +50,9 @@ public class TrapSpawnerEntity extends BlockEntity {
 			)
 	);
 	private int spawnCount = 1;
+	private boolean triggerOnInteraction = true;
+	private boolean triggerOnBreak = true;
+	private boolean triggerOnStep = true;
 
 	private DataPool<SoundEffect> soundEffect = DataPool.of(new SoundEffect(
 			Registries.SOUND_EVENT.getEntry(SoundEvents.BLOCK_IRON_DOOR_OPEN),
@@ -71,10 +67,6 @@ public class TrapSpawnerEntity extends BlockEntity {
 
 	public TrapSpawnerEntity(BlockPos pos, BlockState state) {
 		super(METAcraftBlockEntities.TRAP_SPAWNER, pos, state);
-	}
-
-	public BlockState getBlockState() {
-		return state;
 	}
 
 	public void spawnEntity(ServerWorld world, Vec3d pos, Random random, Entity target) {
@@ -113,48 +105,24 @@ public class TrapSpawnerEntity extends BlockEntity {
 	}
 
 	public void triggerRemove() {
+		if (!triggerOnBreak) return;
 		trigger(Vec3d.ofBottomCenter(pos), null);
 	}
 
 	public void triggerStep(Entity entity) {
+		if (!triggerOnStep) return;
 		triggerThenRemoveBlock(entity.getPos(), entity);
 	}
 
-	public void triggerInteract(Direction side, Entity entity) {
+	public ActionResult triggerInteract(Direction side, Entity entity) {
+		if (!triggerOnInteraction) return ActionResult.PASS;
 		triggerThenRemoveBlock(Vec3d.ofBottomCenter(pos.offset(side)), entity);
-	}
-
-	public void setBlockState(BlockState state) {
-		if (this.state != state) {
-			this.state = state;
-			markDirty();
-			if (world instanceof ServerWorld sw) {
-				var cPos = new ChunkPos(pos);
-				var holder = ((AccessorServerChunkManager) sw.getChunkManager()).callGetChunkHolder(
-						cPos.toLong()
-				);
-				var players = ((AccessorChunkHolder) holder).getPlayersWatchingChunkProvider().getPlayersWatchingChunk(
-						cPos, false
-				);
-				for (var player : players) {
-					updateClient(player);
-				}
-			}
-		}
-	}
-
-	public void updateClient(ServerPlayerEntity player) {
-		player.networkHandler.sendPacket(new BlockUpdateS2CPacket(pos, state));
+		return ActionResult.SUCCESS;
 	}
 
 	@Override
 	protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
 		super.readNbt(nbt, registryLookup);
-		if (nbt.contains(BLOCK_STATE)) {
-			setBlockState(NbtHelper.toBlockState(
-					registryLookup.getWrapperOrThrow(RegistryKeys.BLOCK), nbt.getCompound(BLOCK_STATE)
-			));
-		}
 		if (nbt.contains(ENTITIES)) {
 			EntityHelper.SpawnEntry.POOL_CODEC.parse(registryLookup.getOps(NbtOps.INSTANCE), nbt.get(ENTITIES)).resultOrPartial(
 					METAcraftCore.LOGGER::error
@@ -172,12 +140,20 @@ public class TrapSpawnerEntity extends BlockEntity {
 		if (nbt.contains(SPAWN_COUNT)) {
 			spawnCount = nbt.getInt(SPAWN_COUNT);
 		}
+		if (nbt.contains(TRIGGER_ON_INTERACTION)) {
+			triggerOnInteraction = nbt.getBoolean(TRIGGER_ON_INTERACTION);
+		}
+		if (nbt.contains(TRIGGER_ON_BREAK)) {
+			triggerOnBreak = nbt.getBoolean(TRIGGER_ON_BREAK);
+		}
+		if (nbt.contains(TRIGGER_ON_STEP)) {
+			triggerOnStep = nbt.getBoolean(TRIGGER_ON_STEP);
+		}
 	}
 
 	@Override
 	protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
 		super.writeNbt(nbt, registryLookup);
-		nbt.put(BLOCK_STATE, NbtHelper.fromBlockState(state));
 		EntityHelper.SpawnEntry.POOL_CODEC.encodeStart(registryLookup.getOps(NbtOps.INSTANCE), entities).resultOrPartial(
 				METAcraftCore.LOGGER::error
 		).ifPresent(entities -> {
@@ -189,5 +165,8 @@ public class TrapSpawnerEntity extends BlockEntity {
 			nbt.put(SOUND_EFFECT, effect);
 		});
 		nbt.putInt(SPAWN_COUNT, spawnCount);
+		nbt.putBoolean(TRIGGER_ON_INTERACTION, triggerOnInteraction);
+		nbt.putBoolean(TRIGGER_ON_BREAK, triggerOnBreak);
+		nbt.putBoolean(TRIGGER_ON_STEP, triggerOnStep);
 	}
 }

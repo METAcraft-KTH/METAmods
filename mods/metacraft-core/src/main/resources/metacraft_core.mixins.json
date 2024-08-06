@@ -4,17 +4,22 @@
 	"package": "se.datasektionen.mc.metacraft_core.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"AccessorBlockUpdateS2CPacket",
 		"AccessorChunkHolder",
 		"AccessorServerChunkManager",
+		"MixinAbstractBlockState",
 		"MixinBlockEntity",
 		"MixinBlockItem",
 		"MixinContainerComponent",
 		"MixinEntity",
 		"MixinEntityTrackerEntry",
+		"MixinExplosionBehavior",
 		"MixinItemStack",
 		"MixinPistonBlock",
 		"MixinPlayerEntity",
-		"MixinServerPlayerEntity"
+		"MixinServerCommonNetworkHandler",
+		"MixinServerPlayerEntity",
+		"MixinServerPlayerInteractionManager"
 	],
 	"client": [
 	],
