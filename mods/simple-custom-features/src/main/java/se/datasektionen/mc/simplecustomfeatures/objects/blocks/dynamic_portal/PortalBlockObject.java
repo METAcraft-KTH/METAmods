@@ -28,6 +28,8 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.*;
 import net.minecraft.world.poi.PointOfInterestType;
 import se.datasektionen.mc.simplecustomfeatures.ObjectContainer;
+import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorCachedBlockPosition;
+import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorStructureTemplate;
 import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
@@ -36,6 +38,7 @@ import se.datasektionen.mc.simplecustomfeatures.objects.blocks.BaseBlock;
 
 import java.util.*;
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 public class PortalBlockObject implements BaseBlock {
 
@@ -51,10 +54,13 @@ public class PortalBlockObject implements BaseBlock {
 	private final BlockPredicate validFrameBlock;
 	private final Optional<BlockPredicate> blockActivator;
 	private final Optional<ItemPredicate> itemActivator;
-	private final StructureWithOffset portalStructure;
-	private final StructureWithOffset portalWithPlatformStructure;
+	private final Optional<StructureWithOffset> portalStructure;
+	private final Optional<StructureWithOffset> portalWithPlatformStructure;
 	private final int minArea;
 	private final Map<RegistryKey<World>, EntitySpawnEntry> entitySpawns;
+
+	private ValidStructureWithOffset defaultPortalStructureCache;
+	private ValidStructureWithOffset portalWithPlatformStructureCache;
 
 	public static final MapCodec<PortalBlockObject> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
@@ -62,8 +68,8 @@ public class PortalBlockObject implements BaseBlock {
 					BlockPredicate.CODEC.fieldOf("valid_frame_block").forGetter(p -> p.validFrameBlock),
 					BlockPredicate.CODEC.optionalFieldOf("block_activator").forGetter(p -> p.blockActivator),
 					ItemPredicate.CODEC.optionalFieldOf("item_activator").forGetter(p -> p.itemActivator),
-					StructureWithOffset.CODEC.fieldOf("portal_structure").forGetter(p -> p.portalStructure),
-					StructureWithOffset.CODEC.fieldOf("portal_with_platform_structure").forGetter(p -> p.portalWithPlatformStructure),
+					StructureWithOffset.CODEC.optionalFieldOf("portal_structure").forGetter(p -> p.portalStructure),
+					StructureWithOffset.CODEC.optionalFieldOf("portal_with_platform_structure").forGetter(p -> p.portalWithPlatformStructure),
 					Codecs.POSITIVE_INT.optionalFieldOf("min_area", 1).forGetter(p -> p.minArea),
 					Codec.unboundedMap(
 							World.CODEC, EntitySpawnEntry.CODEC
@@ -74,7 +80,7 @@ public class PortalBlockObject implements BaseBlock {
 	public PortalBlockObject(
 			Map<RegistryKey<World>, RegistryKey<World>> dimensions, BlockPredicate validFrameBlock,
 			Optional<BlockPredicate> blockActivator, Optional<ItemPredicate> itemActivator,
-			StructureWithOffset portalStructure, StructureWithOffset portalWithPlatformStructure,
+			Optional<StructureWithOffset> portalStructure, Optional<StructureWithOffset> portalWithPlatformStructure,
 			int minSize,
 			Map<RegistryKey<World>, EntitySpawnEntry> entitySpawns
 	) {
@@ -127,12 +133,40 @@ public class PortalBlockObject implements BaseBlock {
 		return poiKey;
 	}
 
-	public StructureWithOffset getPortalStructure() {
+	public Optional<StructureWithOffset> getPortalStructure() {
 		return portalStructure;
 	}
 
-	public StructureWithOffset getPortalWithPlatformStructure() {
+	public Optional<ValidStructureWithOffset> getPortalStructure(ServerWorld world) {
+		return portalStructure.map(structure -> structure.getStructure(world.getStructureTemplateManager())).orElseGet(
+				() -> {
+					if (defaultPortalStructureCache == null) {
+						defaultPortalStructureCache = ValidStructureWithOffset.createDefault(
+								world, this
+						);
+					}
+					return Optional.of(defaultPortalStructureCache);
+				}
+		);
+	}
+
+	public Optional<StructureWithOffset> getPortalWithPlatformStructure() {
 		return portalWithPlatformStructure;
+	}
+
+	public Optional<ValidStructureWithOffset> getPortalWithPlatformStructure(ServerWorld world) {
+		return portalWithPlatformStructure.map(structure -> structure.getStructure(world.getStructureTemplateManager())).orElseGet(
+				() -> {
+					if (portalWithPlatformStructureCache == null) {
+						portalWithPlatformStructureCache = getPortalStructure(world).map(
+								portal -> portal.addPlatformIfNecessary(
+										world, this
+								)
+						).orElse(null);
+					}
+					return Optional.ofNullable(portalWithPlatformStructureCache);
+				}
+		);
 	}
 
 	public Optional<ItemPredicate> getItemActivator() {
@@ -195,6 +229,23 @@ public class PortalBlockObject implements BaseBlock {
 		return dimensions.containsKey(world.getRegistryKey());
 	}
 
+	protected List<BlockState> findFrameBlocks(World world) {
+		return StreamSupport.stream(Block.STATE_IDS.spliterator(), false).map(
+				state -> {
+					var cached = new CachedBlockPosition(world, BlockPos.ORIGIN, false);
+					var accessor = (AccessorCachedBlockPosition) cached;
+					accessor.setState(state);
+					accessor.setCachedEntity(true);
+					if (state.hasBlockEntity()) {
+						accessor.setBlockEntity(((BlockEntityProvider) state.getBlock()).createBlockEntity(BlockPos.ORIGIN, state));
+					}
+					return cached;
+				}
+		).filter(
+				cachedState -> block.isFrameBlock(cachedState)
+		).map(CachedBlockPosition::getBlockState).toList();
+	}
+
 	public static Optional<PortalBlockObject> getForItem(ItemStack stack, ServerWorld world) {
 		var entry = new ItemEntry(stack);
 		return Optional.ofNullable(ITEM_CACHE.row(world.getRegistryKey()).computeIfAbsent(entry, e -> {
@@ -253,7 +304,111 @@ public class PortalBlockObject implements BaseBlock {
 	}
 
 	public record ValidStructureWithOffset(StructureTemplate structure, BlockPos offset) {
+		public static ValidStructureWithOffset createDefault(World world, PortalBlockObject portal) {
+			var defaultBlocks = portal.findFrameBlocks(world);
+			if (defaultBlocks.isEmpty()) {
+				defaultBlocks = List.of(Blocks.AIR.getDefaultState());
+			}
+			StructureTemplate structure = new StructureTemplate();
+			final int endX = 3;
+			final int endY = 4;
+			List<StructureTemplate.StructureBlockInfo> fullBlocks = new ArrayList<>();
+			List<StructureTemplate.StructureBlockInfo> blockWithNBT = new ArrayList<>();
+			List<StructureTemplate.StructureBlockInfo> otherBlocks = new ArrayList<>();
+			for (var pos : BlockPos.iterate(0, 0,0, endX, endY, 0)) {
+				BlockState state;
+				if (pos.getX() == 0 || pos.getX() == endX || pos.getY() == 0 || pos.getY() == endY) {
+					state = defaultBlocks.get(world.getRandom().nextInt(defaultBlocks.size()));
+				} else {
+					state = portal.block.getDefaultState().with(DynamicPortalBlock.AXIS, Direction.Axis.X);
+				}
+				StructureTemplate.StructureBlockInfo info = new StructureTemplate.StructureBlockInfo(
+						pos.toImmutable(), state, null
+				);
+				AccessorStructureTemplate.callCategorize(info, fullBlocks, blockWithNBT, otherBlocks);
+			}
+			AccessorStructureTemplate accessor = (AccessorStructureTemplate) structure;
+			accessor.setSize(new BlockPos(endX+1, endY+1, 1));
+			var blocks = AccessorStructureTemplate.callCombineSorted(fullBlocks, blockWithNBT, otherBlocks);
+			accessor.getBlockInfoLists().add(
+					AccessorStructureTemplate.AccessorPalettedBlockInfoList.init(blocks)
+			);
 
+			return new ValidStructureWithOffset(structure, new BlockPos(1, 1, 0));
+		}
+
+		public ValidStructureWithOffset addPlatformIfNecessary(World world, PortalBlockObject portal) {
+			var structure = new StructureTemplate();
+			structure.readNbt(
+					world.getRegistryManager().getWrapperOrThrow(RegistryKeys.BLOCK),
+					structure().writeNbt(new NbtCompound())
+			);
+			Direction.Axis axis = null;
+			if (structure.getSize().getZ() == 1) {
+				axis = Direction.Axis.Z;
+			}
+			if (structure.getSize().getX() == 1) {
+				axis = Direction.Axis.X;
+			}
+			if (axis != null) {
+				var forwardDirection = Direction.from(axis, Direction.AxisDirection.POSITIVE);
+				AccessorStructureTemplate accessor = (AccessorStructureTemplate) structure;
+				Set<BlockState> bottomStates = new HashSet<>();
+
+				List<StructureTemplate.StructureBlockInfo> fullBlocks = new ArrayList<>();
+				List<StructureTemplate.StructureBlockInfo> blockWithNBT = new ArrayList<>();
+				List<StructureTemplate.StructureBlockInfo> otherBlocks = new ArrayList<>();
+
+				int minY = Math.min(offset.getY()-1, 0);
+				for (var infos : accessor.getBlockInfoLists()) {
+					for (var info : infos.getAll()) {
+						var newInfo = new StructureTemplate.StructureBlockInfo(
+								info.pos().offset(forwardDirection),
+								info.state(), info.nbt()
+						);
+						AccessorStructureTemplate.callCategorize(newInfo, fullBlocks, blockWithNBT, otherBlocks);
+						if (info.pos().getY() == minY) {
+							bottomStates.add(info.state());
+						}
+					}
+				}
+				bottomStates.removeIf(
+						state -> state.isAir() || state.isOf(portal.block)
+				);
+				if (bottomStates.isEmpty()) {
+					bottomStates = Set.of(Blocks.AIR.getDefaultState());
+				}
+				List<BlockState> bottomStateList = new ArrayList<>(bottomStates);
+
+				int maxWidth = switch (axis) {
+					case X -> structure.getSize().getZ();
+					case Z -> structure.getSize().getX();
+					case Y -> throw new IllegalStateException("How is this y?");
+				};
+				for (int width = 1; width < maxWidth-1; width++) {
+					for (int forward = 0; forward < 3; forward+=2) {
+						var info = new StructureTemplate.StructureBlockInfo(
+								switch (axis) {
+									case X -> new BlockPos(forward, minY, width);
+									case Z -> new BlockPos(width, minY, forward);
+									case Y -> throw new IllegalStateException("How is this y?");
+								},
+								bottomStateList.get(world.getRandom().nextInt(bottomStateList.size())), null
+						);
+						AccessorStructureTemplate.callCategorize(info, fullBlocks, blockWithNBT, otherBlocks);
+					}
+				}
+				accessor.setSize(structure.getSize().offset(forwardDirection, 2));
+
+				var blocks = AccessorStructureTemplate.callCombineSorted(fullBlocks, blockWithNBT, otherBlocks);
+				accessor.getBlockInfoLists().clear();
+				accessor.getBlockInfoLists().add(
+						AccessorStructureTemplate.AccessorPalettedBlockInfoList.init(blocks)
+				);
+				return new ValidStructureWithOffset(structure, offset.offset(forwardDirection));
+			}
+			return this;
+		}
 	}
 
 	public record EntitySpawnEntry(double spawnChance, DataPool<NbtCompound> entities, boolean initialize) {
