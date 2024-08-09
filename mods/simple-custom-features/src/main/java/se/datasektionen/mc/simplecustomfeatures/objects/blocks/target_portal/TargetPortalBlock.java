@@ -4,7 +4,11 @@ import eu.pb4.polymer.core.api.block.PolymerBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.EndPortalBlock;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.EndPortalBlockEntity;
 import net.minecraft.entity.Entity;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.function.BooleanBiFunction;
 import net.minecraft.util.math.BlockPos;
@@ -21,6 +25,11 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 	public TargetPortalBlock(Settings settings, TargetPortalObject portal) {
 		super(settings);
 		this.portal = portal;
+	}
+
+	@Override
+	public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+		return null;
 	}
 
 	@Override
@@ -70,5 +79,12 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 				targetWorld, targetPos.toBottomCenterPos(), entity.getVelocity(),
 				targetAngle, entity.getPitch(), portalTransition
 		);
+	}
+
+	@Override
+	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, ServerPlayerEntity player) {
+		var blockEntity = new EndPortalBlockEntity(pos, Blocks.END_PORTAL.getDefaultState());
+		blockEntity.setWorld(player.getWorld());
+		player.networkHandler.sendPacket(BlockEntityUpdateS2CPacket.create(blockEntity));
 	}
 }

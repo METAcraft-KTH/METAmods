@@ -1,12 +1,10 @@
 package se.datasektionen.mc.metacraft_core.item;
 
-import com.google.common.collect.ImmutableMap;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.CustomModelDataComponent;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 
 import java.util.HashMap;
 import java.util.Map;

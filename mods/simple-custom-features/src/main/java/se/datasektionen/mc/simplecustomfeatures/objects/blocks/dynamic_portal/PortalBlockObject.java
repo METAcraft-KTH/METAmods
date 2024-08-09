@@ -37,7 +37,6 @@ import se.datasektionen.mc.simplecustomfeatures.objects.POI;
 import se.datasektionen.mc.simplecustomfeatures.objects.blocks.BaseBlock;
 
 import java.util.*;
-import java.util.List;
 import java.util.stream.StreamSupport;
 
 public class PortalBlockObject implements BaseBlock {
