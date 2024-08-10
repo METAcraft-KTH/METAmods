@@ -11,6 +11,7 @@ import net.minecraft.world.World;
 import se.datasektionen.mc.portal_blocker.portal_type.PortalType;
 import se.datasektionen.mc.portal_blocker.portal_type.PortalTypeRegistry;
 import se.datasektionen.mc.portal_blocker.zone.PortalZoneData;
+import se.datasektionen.mc.portal_blocker.zone.ZoneDataPortalBlocker;
 import se.datasektionen.mc.zones.ZoneManager;
 
 import java.util.HashMap;
@@ -55,7 +56,7 @@ public class PortalBlockerSettings extends PersistentState {
 
 	protected <T> Optional<T> get(RegistryKey<World> dim, BlockPos pos, Function<PortalZoneData, Optional<T>> mapper) {
 		return ZoneManager.getInstance(server).getValueForPrimaryZone(
-				dim, pos, zone -> mapper.apply(zone.getOrCreate(PortalBlocker.DATA))
+				dim, pos, zone -> mapper.apply(zone.getOrCreate(ZoneDataPortalBlocker.PORTAL_DATA))
 		);
 	}
 
@@ -79,7 +80,7 @@ public class PortalBlockerSettings extends PersistentState {
 					boolean shouldAllow = true;
 					for (BlockPos pos : positions) {
 						if (!zone.contains(pos)) return Optional.empty();
-						var state = zone.get(PortalBlocker.DATA).map(
+						var state = zone.get(ZoneDataPortalBlocker.PORTAL_DATA).map(
 								data -> data.getBlockedState(type, blockingType)
 						).orElse(PortalZoneData.BlockResult.DEFAULT);
 						if (state == PortalZoneData.BlockResult.BLOCKED) {

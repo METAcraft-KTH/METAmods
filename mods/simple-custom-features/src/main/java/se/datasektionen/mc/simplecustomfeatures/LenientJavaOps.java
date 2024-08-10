@@ -18,11 +18,11 @@ import java.util.stream.Stream;
  */
 public class LenientJavaOps implements DynamicOps<Object> {
 
-	public static final LenientJavaOps INSTANCE = new LenientJavaOps();
-
 	/**
 	 * {@link JavaOps#INSTANCE} but it is better at handling number lists.
 	 */
+	public static final LenientJavaOps INSTANCE = new LenientJavaOps();
+
 	private final JavaOps ops = JavaOps.INSTANCE;
 
 	private LenientJavaOps() {

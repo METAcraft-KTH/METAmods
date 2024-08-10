@@ -7,7 +7,6 @@ import net.minecraft.nbt.NbtByte;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import se.datasektionen.mc.portal_blocker.Commands;
-import se.datasektionen.mc.portal_blocker.PortalBlocker;
 import se.datasektionen.mc.portal_blocker.PortalState;
 import se.datasektionen.mc.portal_blocker.portal_type.PortalType;
 import se.datasektionen.mc.portal_blocker.portal_type.PortalTypeRegistry;
@@ -65,7 +64,7 @@ public class PortalZoneData extends ZoneData {
 
 	@Override
 	public ZoneDataType<PortalZoneData> getType() {
-		return PortalBlocker.DATA;
+		return ZoneDataPortalBlocker.PORTAL_DATA;
 	}
 
 	@Override

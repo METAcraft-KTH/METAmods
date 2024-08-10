@@ -17,6 +17,7 @@ import java.util.concurrent.Callable;
 /**
  * Note, be careful when adding more functions here. The names used at runtime will be obfuscated and therefore might not match!
  */
+@SuppressWarnings("unused")
 public class ItemProxy {
 
 	public static SimpleItem simple_custom_features$getSettings(@This Item item) {

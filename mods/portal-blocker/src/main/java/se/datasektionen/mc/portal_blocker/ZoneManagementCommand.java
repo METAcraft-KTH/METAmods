@@ -9,6 +9,7 @@ import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import se.datasektionen.mc.portal_blocker.portal_type.PortalType;
+import se.datasektionen.mc.portal_blocker.zone.ZoneDataPortalBlocker;
 import se.datasektionen.mc.zones.util.ZoneCommandUtils;
 import se.datasektionen.mc.zones.zone.RealZone;
 import se.datasektionen.mc.zones.zone.Zone;
@@ -31,7 +32,7 @@ public class ZoneManagementCommand {
 					addRemovePortal(literal("remove"), false)
 				).then(
 					ZoneCommandUtils.queryZoneMulti(literal("list"), zone -> {
-						return zone.get(PortalBlocker.DATA).map(data -> {
+						return zone.get(ZoneDataPortalBlocker.PORTAL_DATA).map(data -> {
 							return data.getAffectedPortals().stream().map(portal -> {
 								return Text.literal(Commands.getIDAsString(portal.getID()));
 							}).collect(Collectors.toList());
@@ -65,7 +66,7 @@ public class ZoneManagementCommand {
 	private static void setBlockingMode(CommandContext<ServerCommandSource> ctx, Zone zone, Commands.PortalBlockType type) throws CommandSyntaxException {
 		boolean state = Commands.getBoolAllowBlockArgument(ctx, "state");
 		for (PortalState.BlockingType bType : type.blockingTypes) {
-			zone.getOrCreate(PortalBlocker.DATA).setBlocking(bType, state);
+			zone.getOrCreate(ZoneDataPortalBlocker.PORTAL_DATA).setBlocking(bType, state);
 		}
 		ctx.getSource().sendFeedback(
 				() -> Text.literal("Set zone state for " + type + " in " + zone.getName() + " to " + Commands.getBlockStateText(state, "ing")),
@@ -83,7 +84,7 @@ public class ZoneManagementCommand {
 				PortalType.argument(Commands.PORTAL).executes(ctx -> {
 					PortalType type = PortalType.getArgument(ctx, Commands.PORTAL);
 					Zone zone =getZone(ctx);
-					var data = zone.getOrCreate(PortalBlocker.DATA);
+					var data = zone.getOrCreate(ZoneDataPortalBlocker.PORTAL_DATA);
 					if (data.getAffectedPortals().contains(type)) {
 						if (add) {
 							ctx.getSource().sendFeedback(

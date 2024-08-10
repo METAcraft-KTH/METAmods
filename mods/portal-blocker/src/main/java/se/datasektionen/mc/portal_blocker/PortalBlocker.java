@@ -1,36 +1,22 @@
 package se.datasektionen.mc.portal_blocker;
 
-import com.google.common.collect.ImmutableList;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.registry.Registry;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import se.datasektionen.mc.portal_blocker.portal_type.PortalTypeRegistry;
-import se.datasektionen.mc.portal_blocker.zone.PortalZoneData;
-import se.datasektionen.mc.zones.zone.data.ZoneDataRegistry;
-import se.datasektionen.mc.zones.zone.data.ZoneDataType;
+import se.datasektionen.mc.portal_blocker.zone.ZoneDataPortalBlocker;
 
 public class PortalBlocker implements ModInitializer {
 	public static final Logger LOGGER = LogManager.getLogger("Portal-Blocker");
 
 	public static final String MODID = "portal-blocker";
 
-	public static final ZoneDataType<PortalZoneData> DATA = Registry.register(
-			ZoneDataRegistry.REGISTRY, getID("portal-blocker"),
-			new ZoneDataType<>(
-					PortalZoneData.CODEC,
-					() -> new PortalZoneData(
-							ImmutableList.of(),
-							new PortalState()
-					)
-			)
-	);
-
 	@Override
 	public void onInitialize() {
+		ZoneDataPortalBlocker.init();
 		PortalTypeRegistry.init();
 		Commands.registerCommands();
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {

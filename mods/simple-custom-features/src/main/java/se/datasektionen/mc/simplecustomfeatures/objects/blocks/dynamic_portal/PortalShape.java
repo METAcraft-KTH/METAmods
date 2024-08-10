@@ -7,7 +7,11 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.collection.ArrayListDeque;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.simplecustomfeatures.Features;
+import se.datasektionen.mc.simplecustomfeatures.compat.PortalBlockerCompat;
 
 import java.util.*;
 
@@ -89,6 +93,19 @@ public class PortalShape {
 		}
 		if (insidePortal.size() < portal.getPortal().getMinArea()) {
 			return;
+		}
+		if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
+			if (world instanceof World w && !w.isClient()) {
+				if (PortalBlockerCompat.isCreationBlocked(
+						portal.getPortal().getBlock(), w.getServer(), w.getRegistryKey(), insidePortal
+				)) {
+					return;
+				}
+			} else {
+				Features.LOGGER.warn(
+						"Portal created in non-server world. Some mod you have installed might allow players to bypass portal-blocker!"
+				);
+			}
 		}
 		valid = true;
 	}

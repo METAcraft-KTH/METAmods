@@ -1,6 +1,7 @@
 package se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.Portal;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructurePlacementData;
 import net.minecraft.util.BlockRotation;
@@ -9,6 +10,8 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.BlockLocating;
 import net.minecraft.world.Heightmap;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.simplecustomfeatures.compat.PortalBlockerCompat;
 import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorPortalForcer;
 
 import java.util.Optional;
@@ -19,6 +22,7 @@ import java.util.Optional;
  */
 public class PortalGenerator {
 
+	private final Portal portal;
 	private final int height;
 	private final int width;
 	private final BlockRotation rotation;
@@ -27,10 +31,12 @@ public class PortalGenerator {
 	private final PortalBlockObject.ValidStructureWithOffset portalWithPlatformStructure;
 
 	public PortalGenerator(
+			Portal portal,
 			PortalBlockObject.ValidStructureWithOffset portalStructure,
 			PortalBlockObject.ValidStructureWithOffset portalWithPlatformStructure,
 			Direction.Axis axis
 	) {
+		this.portal = portal;
 		if (portalStructure.structure().getSize().getX() == portalStructure.structure().getSize().getZ()) {
 			rotation = BlockRotation.NONE;
 		} else if (portalStructure.structure().getSize().getX() > portalStructure.structure().getSize().getZ()) {
@@ -112,6 +118,15 @@ public class PortalGenerator {
 					MathHelper.clamp(targetPos.getY(), lowestPossiblePortalPos, highestPossiblePortalPos),
 					targetPos.getZ()
 			));
+			if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
+				var minPos = getMinFramePos(foundPos, invOffset);
+				if (PortalBlockerCompat.isCreationBlocked(
+						portal, targetWorld.getServer(), targetWorld.getRegistryKey(),
+						BlockPos.iterate(minPos, getMaxFramePos(minPos.mutableCopy()))
+				)) {
+					return Optional.empty();
+				}
+			}
 			portalWithPlatformStructure.structure().place(
 					targetWorld, foundPos.subtract(portalWithPlatformStructure.offset()), portalWithPlatformStructure.offset(),
 					new StructurePlacementData().setPosition(portalWithPlatformStructure.offset()).setRotation(rotation).setUpdateNeighbors(true),
@@ -138,6 +153,16 @@ public class PortalGenerator {
 	private boolean isValidPortalPos(ServerWorld world, BlockPos portalPos, BlockPos invertedOffset, int outDistance) {
 		var facing = Direction.get(Direction.AxisDirection.POSITIVE, axis).rotateYClockwise();
 		var minPos = getMinFramePos(portalPos, invertedOffset).move(facing, outDistance);
+
+		if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
+			if (PortalBlockerCompat.isCreationBlocked(
+					portal, world.getServer(), world.getRegistryKey(),
+					BlockPos.iterate(minPos, getMaxFramePos(minPos.mutableCopy()))
+			)) {
+				return false;
+			}
+		}
+
 		for (BlockPos pos : BlockPos.iterate(minPos, getBottomMaxFramePos(minPos.mutableCopy()))) {
 			if (!world.getBlockState(pos).isSolid()) {
 				return false;

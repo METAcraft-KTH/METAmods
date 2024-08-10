@@ -27,7 +27,10 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.*;
 import net.minecraft.world.poi.PointOfInterestType;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.simplecustomfeatures.ObjectContainer;
+import se.datasektionen.mc.simplecustomfeatures.compat.PortalBlockerCompat;
+import se.datasektionen.mc.simplecustomfeatures.compat.PortalTypeData;
 import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorCachedBlockPosition;
 import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorStructureTemplate;
 import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
@@ -57,6 +60,7 @@ public class PortalBlockObject implements BaseBlock {
 	private final Optional<StructureWithOffset> portalWithPlatformStructure;
 	private final int minArea;
 	private final Map<RegistryKey<World>, EntitySpawnEntry> entitySpawns;
+	private final PortalTypeData portalType;
 
 	private ValidStructureWithOffset defaultPortalStructureCache;
 	private ValidStructureWithOffset portalWithPlatformStructureCache;
@@ -72,7 +76,8 @@ public class PortalBlockObject implements BaseBlock {
 					Codecs.POSITIVE_INT.optionalFieldOf("min_area", 1).forGetter(p -> p.minArea),
 					Codec.unboundedMap(
 							World.CODEC, EntitySpawnEntry.CODEC
-					).optionalFieldOf("entity_spawns", Map.of()).forGetter(p -> p.entitySpawns)
+					).optionalFieldOf("entity_spawns", Map.of()).forGetter(p -> p.entitySpawns),
+					PortalTypeData.CODEC.forGetter(t -> t.portalType)
 			).apply(instance, PortalBlockObject::new)
 	);
 
@@ -81,7 +86,8 @@ public class PortalBlockObject implements BaseBlock {
 			Optional<BlockPredicate> blockActivator, Optional<ItemPredicate> itemActivator,
 			Optional<StructureWithOffset> portalStructure, Optional<StructureWithOffset> portalWithPlatformStructure,
 			int minSize,
-			Map<RegistryKey<World>, EntitySpawnEntry> entitySpawns
+			Map<RegistryKey<World>, EntitySpawnEntry> entitySpawns,
+			PortalTypeData portalType
 	) {
 		this.dimensions = dimensions;
 		this.validFrameBlock = validFrameBlock;
@@ -91,6 +97,7 @@ public class PortalBlockObject implements BaseBlock {
 		this.portalWithPlatformStructure = portalWithPlatformStructure;
 		this.minArea = minSize;
 		this.entitySpawns = entitySpawns;
+		this.portalType = portalType;
 	}
 
 
@@ -104,6 +111,10 @@ public class PortalBlockObject implements BaseBlock {
 		return DataResult.success(
 				block = new DynamicPortalBlock(AbstractBlock.Settings.copy(Blocks.NETHER_PORTAL), this)
 		);
+	}
+
+	public DynamicPortalBlock getBlock() {
+		return block;
 	}
 
 	public Map<RegistryKey<World>, EntitySpawnEntry> getEntitySpawns() {
@@ -196,16 +207,24 @@ public class PortalBlockObject implements BaseBlock {
 	@Override
 	public Multimap<Identifier, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
 		poiKey = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, container.getID());
-		return Multimaps.forMap(Map.of(
+		Multimap<Identifier, BaseObject<?>> map = Multimaps.forMap(Map.of(
 				container.getID(), new POI(new PointOfInterestType(
 						ImmutableSet.copyOf(container.getActualObject().getStateManager().getStates()), 0, 1
 				))
 		));
+		if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
+			map = PortalBlockerCompat.addPortalType(map, container.getID(), block, portalType);
+		}
+		return map;
 	}
 
 	@Override
 	public Collection<Registry<?>> getChildrenRegistries() {
-		return List.of(Registries.POINT_OF_INTEREST_TYPE);
+		var list = List.<Registry<?>>of(Registries.POINT_OF_INTEREST_TYPE);
+		if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
+			list = PortalBlockerCompat.addPortalTypeRegistry(list);
+		}
+		return list;
 	}
 
 	@Override

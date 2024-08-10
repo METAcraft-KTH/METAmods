@@ -7,6 +7,7 @@ import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.poi.PointOfInterestType;
 import se.datasektionen.mc.simplecustomfeatures.Features;
 import se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal.PortalBlockObject;
@@ -28,8 +29,8 @@ public class ObjectRegistry {
 	public static final ObjectType<TargetPortalFrameObject, Block> TARGET_PORTAL_FRAME = register("target_portal_frame", TargetPortalFrameObject.CODEC, Registries.BLOCK);
 	public static final ObjectType<BlockItemObject, Item> BLOCK_ITEM = register("block_item", BlockItemObject.CODEC, Registries.ITEM);
 
-	private static <T extends BaseObject<R>, R> ObjectType<T, R> register(String id, MapCodec<T> objectType, Registry<R> registry) {
-		return Registry.register(REGISTRY, Features.getID(id), new ObjectType<T, R>() {
+	public static <T extends BaseObject<R>, R> ObjectType<T, R> register(Identifier id, MapCodec<T> objectType, Registry<R> registry) {
+		return Registry.register(REGISTRY, id, new ObjectType<T, R>() {
 			@Override
 			public MapCodec<T> getCodec() {
 				return objectType;
@@ -40,6 +41,10 @@ public class ObjectRegistry {
 				return registry;
 			}
 		});
+	}
+
+	private static <T extends BaseObject<R>, R> ObjectType<T, R> register(String id, MapCodec<T> objectType, Registry<R> registry) {
+		return register(Features.getID(id), objectType, registry);
 	}
 
 	public static void init() {

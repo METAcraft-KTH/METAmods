@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_lib.compat;
 
 import net.fabricmc.loader.api.FabricLoader;
 
+@SuppressWarnings("unused")
 public record IsLoaded(String modID) {
 
 	public static final IsLoaded CARPET = new IsLoaded("carpet");
@@ -10,6 +11,7 @@ public record IsLoaded(String modID) {
 	public static final IsLoaded METACRAFT_LOOT_CONTAINERS = new IsLoaded("metacraft-loot-containers");
 	public static final IsLoaded VANISH = new IsLoaded("melius-vanish");
 	public static final IsLoaded SQUAREMAP = new IsLoaded("squaremap");
+	public static final IsLoaded PORTAL_BLOCKER = new IsLoaded("portal-blocker");
 
 	public boolean isLoaded() {
 		return FabricLoader.getInstance().isModLoaded(modID);

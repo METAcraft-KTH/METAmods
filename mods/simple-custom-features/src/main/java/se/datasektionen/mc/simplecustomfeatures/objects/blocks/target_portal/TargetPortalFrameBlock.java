@@ -20,6 +20,9 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldEvents;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.simplecustomfeatures.Features;
+import se.datasektionen.mc.simplecustomfeatures.compat.PortalBlockerCompat;
 
 public class TargetPortalFrameBlock extends EndPortalFrameBlock implements PolymerBlock {
 
@@ -70,6 +73,18 @@ public class TargetPortalFrameBlock extends EndPortalFrameBlock implements Polym
 			ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit
 	) {
 		if (!state.get(EYE) && frame.getActivator().test(stack)) {
+			if (IsLoaded.PORTAL_BLOCKER.isLoaded() && !world.isClient()) {
+				var reference = frame.getPortalReference();
+				if (reference.isPresent()) {
+					if (PortalBlockerCompat.isCreationBlocked(
+							reference.get(), world.getServer(), world.getRegistryKey(), pos
+					)) {
+						return ItemActionResult.FAIL;
+					}
+				} else {
+					Features.LOGGER.warn("Portal frame " + this + " does not have a valid portal reference, and therefore cannot be blocked by portal blocker!");
+				}
+			}
 			BlockState activated = state.with(EndPortalFrameBlock.EYE, true);
 			Block.pushEntitiesUpBeforeBlockChange(state, activated, world, pos);
 			world.setBlockState(pos, activated, Block.NOTIFY_LISTENERS);

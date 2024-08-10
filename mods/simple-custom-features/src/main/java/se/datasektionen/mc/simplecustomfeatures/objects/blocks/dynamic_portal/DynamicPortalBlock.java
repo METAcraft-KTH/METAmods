@@ -154,7 +154,7 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 				portal.getPortalWithPlatformStructure().ifPresent(s -> log(s.id()));
 				return null;
 			}
-			var generator = new PortalGenerator(normalPortal.get(), portalWithPlatform.get(), axis);
+			var generator = new PortalGenerator(portal.getBlock(), normalPortal.get(), portalWithPlatform.get(), axis);
 			targetWorld.getChunk(targetPos);
 			portalShape = generator.createPortal(targetWorld, targetPos).orElse(null);
 			if (portalShape == null) {

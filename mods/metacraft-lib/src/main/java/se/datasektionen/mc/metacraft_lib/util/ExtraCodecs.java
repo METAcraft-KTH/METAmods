@@ -3,8 +3,11 @@ package se.datasektionen.mc.metacraft_lib.util;
 import com.google.common.collect.Multimap;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.BaseMapCodec;
+import net.minecraft.block.Block;
+import net.minecraft.block.Portal;
 import net.minecraft.block.enums.Orientation;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.sound.SoundCategory;
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+@SuppressWarnings("unused")
 public class ExtraCodecs {
 
 	public static final Codec<Orientation> ORIENTATION_CODEC = Codec.withAlternative(
@@ -146,6 +150,13 @@ public class ExtraCodecs {
 			Function<RegistryKey<K>, Codec<? extends V>> elementCodecGetter
 	) {
 		return multiTypeMapCodec(RegistryKey.createCodec(registry.getKey()), elementCodecGetter, registry);
+	}
+
+	public static class RegistryDependent {
+		public static final Codec<Portal> PORTAL_CODEC = Registries.BLOCK.getCodec().flatXmap(
+				block -> block instanceof Portal p ? DataResult.success(p) : DataResult.error(() -> block + " is not a portal"),
+				portal -> portal instanceof Block b ? DataResult.success(b) : DataResult.error(() -> portal + " is not a block")
+		);
 	}
 
 	public static class MultiTypeMapCodec<K, V> extends MapCodec<Map<K, V>> implements BaseMapCodec<K, V> {

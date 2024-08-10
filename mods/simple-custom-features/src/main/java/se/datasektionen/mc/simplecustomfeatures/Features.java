@@ -4,6 +4,8 @@ import net.fabricmc.api.ModInitializer;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.simplecustomfeatures.compat.PortalBlockerCompat;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 
 public class Features implements ModInitializer {
@@ -16,6 +18,10 @@ public class Features implements ModInitializer {
 	public void onInitialize() {
 		ObjectRegistry.init();
 		Events.init();
+
+		if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
+			PortalBlockerCompat.init();
+		}
 	}
 
 	public static Identifier getID(String id) {

@@ -17,7 +17,9 @@ public class PortalTypeRegistry {
 
 	public static final PortalType NETHER = register("nether", new NetherPortalType());
 	public static final PortalType END = register("end", new PortalType(
-			(Portal) Blocks.END_PORTAL, Text.literal("A mysterious force rejects the Eye of Ender"), Text.literal("")
+			(Portal) Blocks.END_PORTAL,
+			Text.literal("A mysterious force rejects the Eye of Ender"),
+			Text.literal("A mysterious force prevents the portal from teleporting you")
 	));
 
 	public static void init() {

@@ -8,12 +8,14 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.Portal;
 import net.minecraft.item.Items;
 import net.minecraft.predicate.item.ItemPredicate;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.gen.stateprovider.BlockStateProvider;
+import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.simplecustomfeatures.ObjectContainer;
 import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
@@ -32,16 +34,23 @@ public class TargetPortalFrameObject implements BaseBlock {
 	public static final MapCodec<TargetPortalFrameObject> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					BlockStateProvider.TYPE_CODEC.fieldOf("portal_block").forGetter(p -> p.portalBlock),
-					ItemPredicate.CODEC.fieldOf("activator").forGetter(p -> p.activator)
+					ItemPredicate.CODEC.fieldOf("activator").forGetter(p -> p.activator),
+					ExtraCodecs.RegistryDependent.PORTAL_CODEC.optionalFieldOf("portal_reference").forGetter(p -> p.portalReference)
 			).apply(instance, TargetPortalFrameObject::new)
 	);
 
 	private final BlockStateProvider portalBlock;
 	private final ItemPredicate activator;
+	private final Optional<Portal> portalReference;
 
-	public TargetPortalFrameObject(BlockStateProvider portalBlock, ItemPredicate activator) {
+	public TargetPortalFrameObject(BlockStateProvider portalBlock, ItemPredicate activator, Optional<Portal> portalReference) {
 		this.portalBlock = portalBlock;
 		this.activator = activator;
+		this.portalReference = portalReference;
+	}
+
+	public Optional<Portal> getPortalReference() {
+		return portalReference;
 	}
 
 	public ItemPredicate getActivator() {
