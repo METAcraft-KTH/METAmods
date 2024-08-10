@@ -2,14 +2,11 @@ package se.datasektionen.mc.metacraft_lib.util;
 
 import com.google.common.collect.Multimap;
 import com.mojang.serialization.*;
-import com.mojang.serialization.codecs.BaseMapCodec;
 import net.minecraft.block.Block;
 import net.minecraft.block.Portal;
 import net.minecraft.block.enums.Orientation;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.Util;
@@ -19,11 +16,9 @@ import net.minecraft.util.math.Direction;
 import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 @SuppressWarnings("unused")
 public class ExtraCodecs {
@@ -137,110 +132,11 @@ public class ExtraCodecs {
 		);
 	}
 
-	public static <K, V> Codec<Map<K, V>> multiTypeMapCodec(
-			Codec<K> keyCodec,
-			Function<K, Codec<? extends V>> elementCodecGetter,
-			Keyable keys
-	) {
-		return new MultiTypeMapCodec<>(keyCodec, elementCodecGetter, keys).codec();
-	}
-
-	public static <K, V> Codec<Map<RegistryKey<K>, V>> multiTypeMapCodec(
-			Registry<K> registry,
-			Function<RegistryKey<K>, Codec<? extends V>> elementCodecGetter
-	) {
-		return multiTypeMapCodec(RegistryKey.createCodec(registry.getKey()), elementCodecGetter, registry);
-	}
-
 	public static class RegistryDependent {
 		public static final Codec<Portal> PORTAL_CODEC = Registries.BLOCK.getCodec().flatXmap(
 				block -> block instanceof Portal p ? DataResult.success(p) : DataResult.error(() -> block + " is not a portal"),
 				portal -> portal instanceof Block b ? DataResult.success(b) : DataResult.error(() -> portal + " is not a block")
 		);
-	}
-
-	public static class MultiTypeMapCodec<K, V> extends MapCodec<Map<K, V>> implements BaseMapCodec<K, V> {
-
-		private final Codec<K> keyCodec;
-		private final Function<K, Codec<? extends V>> elementCodecGetter;
-		private final Keyable keys;
-
-		private Codec<V> currentElementCodec;
-
-		private <U extends V> Codec<V> fixCodec(Codec<U> codec) {
-			return codec.flatXmap(
-					DataResult::success,
-					v -> {
-						try {
-							return DataResult.success((U) v);
-						} catch (ClassCastException ignored) {
-							return DataResult.error(() -> "Attempting to decode superclass with codec of subclass!");
-						}
-					}
-			);
-		}
-
-		public MultiTypeMapCodec(
-				Codec<K> keyCodec, Function<K, Codec<? extends V>> elementCodecGetter, Keyable keys
-		) {
-			this.keyCodec = keyCodec.xmap(key -> {
-				currentElementCodec = fixCodec(elementCodecGetter.apply(key));
-				return key;
-			}, key -> {
-				currentElementCodec = fixCodec(elementCodecGetter.apply(key));
-				return key;
-			});
-			this.elementCodecGetter = elementCodecGetter;
-			this.keys = keys;
-		}
-
-
-		@Override
-		public Codec<K> keyCodec() {
-			return keyCodec;
-		}
-
-		@Override
-		public Codec<V> elementCodec() {
-			return currentElementCodec;
-		}
-
-		@Override
-		public <T> Stream<T> keys(final DynamicOps<T> ops) {
-			return keys.keys(ops);
-		}
-
-		@Override
-		public <T> DataResult<Map<K, V>> decode(final DynamicOps<T> ops, final MapLike<T> input) {
-			return BaseMapCodec.super.decode(ops, input);
-		}
-
-		@Override
-		public <T> RecordBuilder<T> encode(final Map<K, V> input, final DynamicOps<T> ops, final RecordBuilder<T> prefix) {
-			return BaseMapCodec.super.encode(input, ops, prefix);
-		}
-
-		@Override
-		public boolean equals(final Object o) {
-			if (this == o) {
-				return true;
-			}
-			if (o == null || getClass() != o.getClass()) {
-				return false;
-			}
-			final MultiTypeMapCodec<?, ?> that = (MultiTypeMapCodec<?, ?>) o;
-			return Objects.equals(keyCodec, that.keyCodec) && Objects.equals(elementCodecGetter, that.elementCodecGetter);
-		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(keyCodec, elementCodecGetter);
-		}
-
-		@Override
-		public String toString() {
-			return "MultiTypeMapCodec[" + keyCodec + ']';
-		}
 	}
 
 }
