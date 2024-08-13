@@ -108,7 +108,7 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 		return portal.getValidFrameBlock().test(state);
 	}
 
-	public int getMaxSize() {
+	public int getMaxPortalSideLength() {
 		return 32;
 	}
 

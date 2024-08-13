@@ -44,7 +44,7 @@ public class ObjectRegistry {
 	}
 
 	private static <T extends BaseObject<R>, R> ObjectType<T, R> register(String id, MapCodec<T> objectType, Registry<R> registry) {
-		return register(Features.getID(id), objectType, registry);
+		return register(Identifier.ofVanilla(id), objectType, registry);
 	}
 
 	public static void init() {

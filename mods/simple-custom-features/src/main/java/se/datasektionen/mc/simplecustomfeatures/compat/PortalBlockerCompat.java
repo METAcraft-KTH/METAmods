@@ -10,11 +10,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import se.datasektionen.mc.portal_blocker.PortalBlocker;
 import se.datasektionen.mc.portal_blocker.PortalBlockerSettings;
 import se.datasektionen.mc.portal_blocker.PortalState;
 import se.datasektionen.mc.portal_blocker.portal_type.PortalType;
 import se.datasektionen.mc.portal_blocker.portal_type.PortalTypeRegistry;
-import se.datasektionen.mc.simplecustomfeatures.Features;
 import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
@@ -26,7 +26,7 @@ import java.util.Set;
 public class PortalBlockerCompat {
 
 	public static final ObjectType<BlockPortalType, PortalType> BLOCK_PORTAL_TYPE = ObjectRegistry.register(
-			Features.getID("block_portal_type"), BlockPortalType.CODEC, PortalTypeRegistry.REGISTRY
+			PortalBlocker.getID("block_portal_type"), BlockPortalType.CODEC, PortalTypeRegistry.REGISTRY
 	);
 
 	public static List<Registry<?>> addPortalTypeRegistry(List<Registry<?>> registries) {

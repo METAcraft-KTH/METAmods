@@ -32,7 +32,7 @@ public interface BaseObject<R> {
 	}
 
 	default void onUnregister(RegistryEntry<R> entry) {}
-	default void onRegistrationFail(R value) {}
+	default void onRegistrationFail(Identifier id, R value) {}
 	default void onRegistrationSuccess(RegistryEntry.Reference<R> entry) {}
 
 }

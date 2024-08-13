@@ -76,7 +76,7 @@ public class PortalShape {
 		positionsToSearchNext.add(startPos);
 		while (!positionsToSearchNext.isEmpty()) {
 			var pos = positionsToSearchNext.poll();
-			if (pos.getSquaredDistance(startPos) > Math.pow(portal.getMaxSize(), 2)) {
+			if (pos.getSquaredDistance(startPos) > Math.pow(portal.getMaxPortalSideLength(), 2)) {
 				return;
 			}
 			CachedBlockPosition state = new CachedBlockPosition(world, pos, true);
@@ -86,7 +86,7 @@ public class PortalShape {
 			if (portal.isFrameBlock(state)) {
 				continue;
 			}
-			if (insidePortal.size() > Math.pow(portal.getMaxSize(), 2)) {
+			if (insidePortal.size() > Math.pow(portal.getMaxPortalSideLength(), 2)) {
 				return;
 			}
 			searchNeighbours(pos);

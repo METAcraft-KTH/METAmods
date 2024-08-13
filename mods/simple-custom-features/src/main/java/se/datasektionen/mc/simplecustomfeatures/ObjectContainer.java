@@ -127,7 +127,7 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 					baseObject.onRegistrationSuccess(ref);
 					onSuccess.accept(object);
 				} else {
-					baseObject.onRegistrationFail(object);
+					baseObject.onRegistrationFail(id, object);
 					Features.LOGGER.error(id + " is already registered, skipping it.");
 				}
 			});

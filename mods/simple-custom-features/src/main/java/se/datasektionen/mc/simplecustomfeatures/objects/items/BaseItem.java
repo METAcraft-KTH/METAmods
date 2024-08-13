@@ -12,6 +12,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.util.Identifier;
 import se.datasektionen.mc.simplecustomfeatures.RegistryHelper;
 import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 
@@ -59,7 +60,7 @@ public interface BaseItem extends BaseObject<Item> {
 	}
 
 	@Override
-	default void onRegistrationFail(Item value) {
+	default void onRegistrationFail(Identifier id, Item value) {
 		RegistryHelper.removeIntrusiveEntry(Registries.ITEM, value);
 	}
 
