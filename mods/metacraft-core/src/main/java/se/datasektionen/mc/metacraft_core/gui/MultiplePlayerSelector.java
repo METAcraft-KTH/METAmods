@@ -15,6 +15,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Unit;
 import se.datasektionen.mc.metacraft_lib.util.helper.GameProfileHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.PlayerHelper;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -91,7 +92,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	}
 
 	private boolean isReallyValid(ServerPlayerEntity player) {
-		return (allowSelfSelect() || player != getPlayer()) && isValid(player);
+		return (allowSelfSelect() || player != getPlayer()) && isValid(player) && PlayerHelper.shouldShowInGUI(player);
 	}
 
 	protected abstract boolean isValid(ServerPlayerEntity player);

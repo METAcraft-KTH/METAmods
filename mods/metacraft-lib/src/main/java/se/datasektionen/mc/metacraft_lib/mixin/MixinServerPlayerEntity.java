@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import se.datasektionen.mc.metacraft_lib.METAcraftData;
 import se.datasektionen.mc.metacraft_lib.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
@@ -35,7 +36,14 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private String customName;
 
 	@Unique
+	private boolean showInGUI = true;
+
+	@Unique
 	private static final String CUSTOM_PLAYER_NAME = "CustomPlayerName";
+
+	@Unique
+	private static final String CUSTOM_PLAYER_NAME_SHOW_IN_GUI = "CustomPlayerNameShowInGUI";
+
 
 	public MixinServerPlayerEntity(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
 		super(world, pos, yaw, gameProfile);
@@ -50,21 +58,27 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
 		if (customName != null) {
 			nbt.putString(CUSTOM_PLAYER_NAME, customName);
+			nbt.putBoolean(CUSTOM_PLAYER_NAME_SHOW_IN_GUI, showInGUI);
 		}
 	}
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
 		if (nbt.contains(CUSTOM_PLAYER_NAME)) {
-			METAcraft_Moderation$setCustomName(nbt.getString(CUSTOM_PLAYER_NAME));
+			boolean show = nbt.contains(CUSTOM_PLAYER_NAME_SHOW_IN_GUI) ? nbt.getBoolean(CUSTOM_PLAYER_NAME_SHOW_IN_GUI) : showInGUI;
+			METAcraft_Moderation$setCustomName(nbt.getString(CUSTOM_PLAYER_NAME), show);
 		} else {
-			METAcraft_Moderation$setCustomName(null);
+			METAcraft_Moderation$setCustomName(null, true);
 		}
 	}
 
 	@Override
-	public void METAcraft_Moderation$setCustomName(String customName) {
+	public void METAcraft_Moderation$setCustomName(String customName, boolean showInGUI) {
 		this.customName = customName;
+		this.showInGUI = showInGUI;
+		if (showInGUI) {
+			METAcraftData.getInstance(getServer()).setName(getUuid(), customName);
+		}
 		var tracker = EntityTrackerHelper.getEntityTrackers(this.getServerWorld()).get(this.getId());
 		if (tracker == null) {
 			return;
@@ -81,6 +95,11 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 				tracker.updateTrackedStatus((ServerPlayerEntity) player);
 			}
 		}
+	}
+
+	@Override
+	public boolean METAcraft_Moderation$showInGUI() {
+		return showInGUI;
 	}
 
 	@Override

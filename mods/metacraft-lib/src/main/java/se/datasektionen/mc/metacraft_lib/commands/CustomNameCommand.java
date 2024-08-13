@@ -2,6 +2,8 @@ package se.datasektionen.mc.metacraft_lib.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.ServerCommandSource;
@@ -21,14 +23,13 @@ public class CustomNameCommand {
 				literal("customname").requires(Permissions.require("se.datasektionen.mc.customname", 3)).then(
 						literal("set").then(
 								argument("name", StringArgumentType.string()).executes(ctx -> {
-									String name = fixColourCodes(StringArgumentType.getString(ctx, "name"));
-									if (name.length() > 16) {
-										ctx.getSource().sendError(Text.literal("Name too long, 16 characters maximum"));
-										return 0;
-									}
-									CustomNameHelper.setCustomName(ctx.getSource().getPlayerOrThrow(), name);
-									ctx.getSource().sendFeedback(() -> Text.literal("Set player name to " + name), true);
-									return 1;
+									return changeName(ctx, StringArgumentType.getString(ctx, "name"), true);
+								})
+						)
+				).then(
+						literal("set-gui-hidden").then(
+								argument("name", StringArgumentType.string()).executes(ctx -> {
+									return changeName(ctx, StringArgumentType.getString(ctx, "name"), false);
 								})
 						)
 				).then(
@@ -39,6 +40,17 @@ public class CustomNameCommand {
 						})
 				)
 		);
+	}
+
+	private static int changeName(CommandContext<ServerCommandSource> ctx, String unparsedName, boolean showInGUI) throws CommandSyntaxException {
+		String name = fixColourCodes(unparsedName);
+		if (name.length() > 16) {
+			ctx.getSource().sendError(Text.literal("Name too long, 16 characters maximum"));
+			return 0;
+		}
+		CustomNameHelper.setCustomName(ctx.getSource().getPlayerOrThrow(), name, showInGUI);
+		ctx.getSource().sendFeedback(() -> Text.literal("Set player name to " + name), true);
+		return 1;
 	}
 
 	private static String fixColourCodes(String name) {

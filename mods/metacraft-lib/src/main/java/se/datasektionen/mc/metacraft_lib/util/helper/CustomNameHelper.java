@@ -30,13 +30,14 @@ public class CustomNameHelper {
 	 * Sets the players custom name.
 	 * @param player The player to set the name of.
 	 * @param name The name to set. Must be at most 16 characters!
+	 * @param showInGUI If true, the name cache will be updated, making sure the custom name is visible in guis. Set to true when you change your name because of personal preference, and false when you intend to role-play as another character.
 	 * @throws IllegalStateException if name is more than 16 characters.
 	 */
-	public static void setCustomName(ServerPlayerEntity player, @Nullable String name) {
+	public static void setCustomName(ServerPlayerEntity player, @Nullable String name, boolean showInGUI) {
 		if (name != null && name.length() > 16) {
 			throw new IllegalArgumentException("Name must be at most 16 characters!");
 		}
-		((ServerPlayerEntityExtensions) player).METAcraft_Moderation$setCustomName(name);
+		((ServerPlayerEntityExtensions) player).METAcraft_Moderation$setCustomName(name, showInGUI);
 	}
 
 	/**
@@ -44,7 +45,7 @@ public class CustomNameHelper {
 	 * @param player The player to remove the custom name of.
 	 */
 	public static void removeCustomName(ServerPlayerEntity player) {
-		setCustomName(player, null);
+		setCustomName(player, null, true);
 	}
 
 	private static String stripOutColourCodes(String name) {

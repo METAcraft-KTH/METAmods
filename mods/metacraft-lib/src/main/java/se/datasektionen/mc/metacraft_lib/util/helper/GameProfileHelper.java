@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_lib.util.helper;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.server.MinecraftServer;
+import se.datasektionen.mc.metacraft_lib.METAcraftData;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -25,8 +26,14 @@ public class GameProfileHelper {
 		}
 	}
 
+	/**
+	 * Returns the name for the given player, taking their custom name into account.
+	 * @param profile The game profile of the player.
+	 * @param server The server in question.
+	 * @return The name to display.
+	 */
 	public static String getNameFromProfile(GameProfile profile, MinecraftServer server) {
-		return profile.getName(); //TODO Handle custom names here.
+		return METAcraftData.getInstance(server).getName(profile);
 	}
 
 }

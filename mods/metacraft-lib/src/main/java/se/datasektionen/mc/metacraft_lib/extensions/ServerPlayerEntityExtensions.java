@@ -6,10 +6,12 @@ import se.datasektionen.mc.metacraft_lib.util.helper.CustomNameHelper;
 public interface ServerPlayerEntityExtensions {
 
 	/**
-	 * Please use {@link CustomNameHelper#setCustomName(ServerPlayerEntity, String)} instead.
+	 * Please use {@link CustomNameHelper#setCustomName(ServerPlayerEntity, String, boolean)} instead.
 	 * @param customName The custom name to set.
 	 */
-	void METAcraft_Moderation$setCustomName(String customName);
+	void METAcraft_Moderation$setCustomName(String customName, boolean showInGUI);
+
+	boolean METAcraft_Moderation$showInGUI();
 
 	/**
 	 * Please use {@link CustomNameHelper#getCustomName(ServerPlayerEntity)} instead.

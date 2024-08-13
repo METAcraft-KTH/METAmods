@@ -75,6 +75,14 @@ allprojects {
         }
     }
 
+    ext.addVanishDependency = { ->
+        dependencies {
+            modImplementation "maven.modrinth:vanish:${project.vanish_version}"
+            modImplementation "eu.pb4:player-data-api:${project.player_data_api_version}" //Dependency for Vanish.
+            modImplementation("eu.pb4:placeholder-api:${project.placeholder_api_version}") //Dependency for Vanish.
+        }
+    }
+
     group = project.maven_group
 
     def targetJavaVersion = 21
