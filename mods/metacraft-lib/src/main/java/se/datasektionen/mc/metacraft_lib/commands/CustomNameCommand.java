@@ -20,7 +20,7 @@ public class CustomNameCommand {
 			CommandRegistryAccess registryAccess
 	) {
 		dispatcher.register(
-				literal("customname").requires(Permissions.require("se.datasektionen.mc.customname", 3)).then(
+				literal("custom-name").requires(Permissions.require("metacraft.custom-name", 3)).then(
 						literal("set").then(
 								argument("name", StringArgumentType.string()).executes(ctx -> {
 									return changeName(ctx, StringArgumentType.getString(ctx, "name"), true);

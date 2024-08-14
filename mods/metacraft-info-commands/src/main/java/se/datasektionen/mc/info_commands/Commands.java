@@ -26,7 +26,7 @@ public class Commands {
 			});
 			if (Info.getConfig().enableResendCommandTreeCommand()) {
 				dispatcher.register(literal("meta-info-resend-command-tree")
-						.requires(Permissions.require("se.datasektionen.mc.infocommands.meta-info-resend-command-tree", 4))
+						.requires(Permissions.require("metacraft.meta-info-resend-command-tree", 4))
 						.executes(ctx -> {
 					Helper.resendCommandTreeToAllPlayers(ctx.getSource().getServer().getPlayerManager());
 					ctx.getSource().sendFeedback(() -> Text.literal("Resent command tree to client."), true);

@@ -20,7 +20,7 @@ public class HardcoreSwitcherCommand {
 			CommandRegistryAccess registryAccess
 	) {
 		dispatcher.register(
-				CommandManager.literal("hardcore").requires(Permissions.require("metacraft.command.hardcore", 2)).then(
+				CommandManager.literal("hardcore").requires(Permissions.require("metacraft.hardcore", 2)).then(
 						CommandManager.argument("state", BoolArgumentType.bool()).executes(context -> {
 							boolean hardcore = BoolArgumentType.getBool(context, "state");
 							if (context.getSource().getServer().isHardcore() == hardcore) {
@@ -41,7 +41,7 @@ public class HardcoreSwitcherCommand {
 				)
 		);
 		dispatcher.register(
-				CommandManager.literal("fakehardcore").requires(Permissions.require("metacraft.command.fakehardcore", 2)).then(
+				CommandManager.literal("fake-hardcore").requires(Permissions.require("metacraft.fake-hardcore", 2)).then(
 						CommandManager.argument("state", BoolArgumentType.bool()).then(
 								CommandManager.argument("player", EntityArgumentType.entities()).executes(context -> {
 									boolean hardcore = BoolArgumentType.getBool(context, "state");

@@ -2,14 +2,25 @@ package se.datasektionen.mc.metacraft_core.block;
 
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.piston.PistonBehavior;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
-import se.datasektionen.mc.metacraft_core.block.blocks.MusicBlock;
+import se.datasektionen.mc.metacraft_core.block.blocks.*;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
-import se.datasektionen.mc.metacraft_core.block.blocks.TrapSpawner;
 
 public class METAcraftBlocks {
+
+	public static final Block PORTAL_CORE = register("portal_core", new PortalCore(
+			AbstractBlock.Settings.copy(Blocks.END_GATEWAY).noBlockBreakParticles()
+	));
+	public static final Block BLACK_HOLE_CORE = register("black_hole_core", new BlackHolePortalCore(
+			AbstractBlock.Settings.copy(Blocks.END_GATEWAY).noBlockBreakParticles()
+	));
+
+	public static final Block PORTAL_PADDING = register("portal_padding", new PortalPadding(
+			AbstractBlock.Settings.copy(Blocks.END_GATEWAY).noBlockBreakParticles()
+	));
 
 	public static final Block MUSIC_PLAYER = register("music_player", new MusicBlock(
 			AbstractBlock.Settings.create().strength(

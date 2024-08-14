@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_dungeons.dungeons;
+package se.datasektionen.mc.metacraft_core.util;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;

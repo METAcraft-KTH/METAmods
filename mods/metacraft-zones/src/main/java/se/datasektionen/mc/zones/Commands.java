@@ -13,7 +13,7 @@ public class Commands {
 	public static void registerCommands() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			LiteralArgumentBuilder<ServerCommandSource> rootBuilder = literal("zone")
-					.requires(Permissions.require("se.datasektionen.mc.zones.admin", 2));
+					.requires(Permissions.require("metacraft.zone", 2));
 			ZoneManagementCommand.registerCommand(rootBuilder, registryAccess, dispatcher);
 			dispatcher.register(rootBuilder);
 		});

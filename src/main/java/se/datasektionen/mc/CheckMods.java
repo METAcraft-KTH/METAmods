@@ -2,12 +2,12 @@ package se.datasektionen.mc;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
+import se.datasektionen.mc.metacraft_lib.util.helper.TextHelper;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class CheckMods implements ModInitializer {
 
@@ -53,11 +53,7 @@ public class CheckMods implements ModInitializer {
 					);
 				} else {
 					throw new IllegalStateException(
-							unloadedMods.stream().limit(
-									unloadedMods.size()-1
-							).collect(
-									Collectors.joining(", ")
-							) + " and " + unloadedMods.getLast() + " were " + suffix
+							TextHelper.combine(unloadedMods) + " were " + suffix
 					);
 				}
 			}

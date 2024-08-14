@@ -68,8 +68,8 @@ public class ExileInit {
 		ZoneRuleRegistry.init();
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			dispatcher.register(
-				literal("exile").requires(Permissions.require("se.datasektionen.mc.exile", 3)).then(
-					literal("define").requires(Permissions.require("se.datasektionen.mc.exile.define", 3)).then(
+				literal("exile").requires(Permissions.require("metacraft.exile", 3)).then(
+					literal("define").requires(Permissions.require("metacraft.exile.define", 3)).then(
 						literal("new").then(
 							argument("name", StringArgumentType.string()).executes(ctx -> {
 								String name = StringArgumentType.getString(ctx,"name");

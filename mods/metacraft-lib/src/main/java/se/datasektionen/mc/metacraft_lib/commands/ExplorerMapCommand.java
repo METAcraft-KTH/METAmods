@@ -51,8 +51,8 @@ public class ExplorerMapCommand {
 			CommandRegistryAccess registryAccess
 	) {
 		dispatcher.register(
-				literal("explorer-map").requires(Permissions.require("metacraft.command.explorer_map", 2)).then(
-						literal("create").requires(Permissions.require("metacraft.command.explorer_map.create", 2)).then(
+				literal("explorer-map").requires(Permissions.require("metacraft.explorer-map", 2)).then(
+						literal("create").requires(Permissions.require("metacraft.explorer-map.create", 2)).then(
 								argument("target", ColumnPosArgumentType.columnPos()).then(
 										mapDecorationType("decoration").executes(ctx -> {
 											return createMap(

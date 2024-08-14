@@ -1,8 +1,5 @@
 {
 	"values": [
-		"metacraft:dungeon_entrance",
-		"metacraft:portal",
-		"metacraft:dummy_portal",
-		"metacraft:black_hole"
+		"metacraft:dungeon_entrance_core"
 	]
 }

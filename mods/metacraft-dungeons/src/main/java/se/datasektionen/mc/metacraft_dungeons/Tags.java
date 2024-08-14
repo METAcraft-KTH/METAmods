@@ -9,8 +9,5 @@ public class Tags {
 	public static final TagKey<Block> DUNGEON_RESET_UNBREAKABLE = TagKey.of(
 			RegistryKeys.BLOCK, METAcraftDungeons.getID("dungeon_reset_unbreakable")
 	);
-	public static final TagKey<Block> PORTAL = TagKey.of(
-			RegistryKeys.BLOCK, METAcraftDungeons.getID("portal")
-	);
 
 }

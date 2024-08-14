@@ -6,10 +6,10 @@ import net.minecraft.block.enums.Orientation;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.structure.pool.StructurePool;
+import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
+import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
-import se.datasektionen.mc.metacraft_dungeons.block.block_entities.PortalEntity;
-import se.datasektionen.mc.metacraft_dungeons.block.DungeonBlocks;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
@@ -52,7 +52,7 @@ public class EntranceDataBlock extends PortalDeeper {
 			List<DungeonEntranceEntity.DataMultiBlockEntry<?>> entrances = blocks.stream().toList();
 			if (!entrances.isEmpty()) {
 				var entrance = entrances.get(this.entrance.getWorld().getRandom().nextInt(entrances.size()));
-				parameters.dungeons.setBlockState(entrance.pos(), DungeonBlocks.PORTAL.getDefaultState());
+				parameters.dungeons.setBlockState(entrance.pos(), METAcraftBlocks.PORTAL_CORE.getDefaultState());
 				if (parameters.dungeons.getBlockEntity(entrance.pos()) instanceof PortalEntity portal) {
 					portal.setTargetPos(this.entrance.getPos());
 					portal.setTargetDim(this.entrance.getWorld().getRegistryKey());

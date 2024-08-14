@@ -22,15 +22,16 @@ import net.minecraft.world.Heightmap;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
+import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
+import se.datasektionen.mc.metacraft_core.block.entities.BlackHolePortalEntity;
 import se.datasektionen.mc.metacraft_core.block.entities.MusicBlockEntity;
+import se.datasektionen.mc.metacraft_core.util.TeleportPredicate;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.Tags;
-import se.datasektionen.mc.metacraft_dungeons.block.block_entities.BlackHolePortalEntity;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 import se.datasektionen.mc.metacraft_dungeons.compat.SquaremapCompat;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.metacraft_lib.util.PositionFinder;
-import se.datasektionen.mc.metacraft_dungeons.block.DungeonBlocks;
 import se.datasektionen.mc.metacraft_dungeons.util.WorldDeleter;
 import se.datasektionen.mc.metacraft_lib.util.helper.MobTeleportHelper;
 
@@ -443,14 +444,14 @@ public class DungeonData extends PersistentState {
 		for (var spherePos : BlockPos.iterateOutwards(pos, 15, 15, 15)) {
 			if (world.getBlockState(spherePos).isIn(Tags.DUNGEON_RESET_UNBREAKABLE)) continue;
 			if (spherePos.isWithinDistance(pos, 5)) {
-				world.setBlockState(spherePos, DungeonBlocks.DUMMY_PORTAL.getDefaultState());
+				world.setBlockState(spherePos, METAcraftBlocks.PORTAL_PADDING.getDefaultState());
 			} else if (spherePos.isWithinDistance(pos, 15)) {
 				if (!world.isAir(spherePos)) {
 					world.breakBlock(spherePos, false);
 				}
 			}
 		}
-		world.setBlockState(pos, DungeonBlocks.BLACK_HOLE.getDefaultState());
+		world.setBlockState(pos, METAcraftBlocks.BLACK_HOLE_CORE.getDefaultState());
 		var entity = ((BlackHolePortalEntity) world.getBlockEntity(pos));
 		entity.setAttractionRange(dungeonWidth/2.0);
 		entity.setTargetDim(exitDim);

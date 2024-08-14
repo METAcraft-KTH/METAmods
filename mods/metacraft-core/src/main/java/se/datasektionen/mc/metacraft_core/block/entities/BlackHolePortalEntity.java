@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_dungeons.block.block_entities;
+package se.datasektionen.mc.metacraft_core.block.entities;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntityType;
@@ -12,7 +12,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import se.datasektionen.mc.metacraft_dungeons.block.DungeonsBlockEntities;
+import se.datasektionen.mc.metacraft_core.block.METAcraftBlockEntities;
 
 public class BlackHolePortalEntity extends PortalEntity {
 
@@ -26,7 +26,7 @@ public class BlackHolePortalEntity extends PortalEntity {
 	}
 
 	public BlackHolePortalEntity(BlockPos pos, BlockState state) {
-		super(DungeonsBlockEntities.BLACK_HOLE, pos, state);
+		super(METAcraftBlockEntities.BLACK_HOLE, pos, state);
 	}
 
 	@Override

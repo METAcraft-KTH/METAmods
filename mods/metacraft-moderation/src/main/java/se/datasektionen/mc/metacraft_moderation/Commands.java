@@ -40,8 +40,8 @@ public class Commands {
 
 	public static void registerModerationModeCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
 		dispatcher.register(
-			literal("mod").requires(Permissions.require("se.datasektionen.mc.mod", 3)).then(
-				literal("define").requires(Permissions.require("se.datasektionen.mc.mod.define", 3)).then(
+			literal("mod").requires(Permissions.require("metacraft.mod", 3)).then(
+				literal("define").requires(Permissions.require("metacraft.mod.define", 3)).then(
 					literal("new").then(
 						argument("mod", StringArgumentType.string()).executes(ctx -> {
 							var name = StringArgumentType.getString(ctx, "mod");

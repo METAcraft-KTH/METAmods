@@ -8,6 +8,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.structure.StructurePiece;
 import net.minecraft.structure.pool.StructurePool;
 import net.minecraft.util.math.BlockPos;
+import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 import se.datasektionen.mc.metacraft_dungeons.block.DungeonBlocks;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
@@ -56,7 +57,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 
 	@Override
 	public void processDataBlock(BlockPos pos, StructurePiece piece) {
-		parameters.dungeons.setBlockState(pos, DungeonBlocks.DUMMY_PORTAL.getDefaultState());
+		parameters.dungeons.setBlockState(pos, METAcraftBlocks.PORTAL_PADDING.getDefaultState());
 	}
 
 	@Override

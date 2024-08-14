@@ -34,6 +34,7 @@ import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 import net.minecraft.world.gen.structure.DimensionPadding;
 import net.minecraft.world.gen.structure.Structure;
+import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
 import se.datasektionen.mc.metacraft_dungeons.Dimensions;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.block.DungeonsBlockEntities;

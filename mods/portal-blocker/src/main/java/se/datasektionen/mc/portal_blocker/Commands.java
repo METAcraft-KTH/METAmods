@@ -34,7 +34,7 @@ public class Commands {
 	public static void registerCommands() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			LiteralArgumentBuilder<ServerCommandSource> rootBuilder = literal("portal-blocker")
-					.requires(Permissions.require("se.datasektionen.mc.portal-blocker.admin", 2));
+					.requires(Permissions.require("metacraft.portal-blocker", 2));
 			registerSetGetGlobal(rootBuilder);
 			ZoneManagementCommand.registerCommand(rootBuilder, registryAccess);
 			dispatcher.register(rootBuilder);

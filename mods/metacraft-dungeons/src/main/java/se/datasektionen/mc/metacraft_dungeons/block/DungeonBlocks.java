@@ -6,24 +6,11 @@ import net.minecraft.block.Blocks;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
-import se.datasektionen.mc.metacraft_dungeons.block.blocks.BlackHolePortal;
-import se.datasektionen.mc.metacraft_dungeons.block.blocks.DummyPortal;
 import se.datasektionen.mc.metacraft_dungeons.block.blocks.DungeonEntrance;
-import se.datasektionen.mc.metacraft_dungeons.block.blocks.PortalWithTarget;
 
 public class DungeonBlocks {
 
-	public static final Block DUNGEON_ENTRANCE = register("dungeon_entrance", new DungeonEntrance(
-			AbstractBlock.Settings.copy(Blocks.END_GATEWAY).noBlockBreakParticles()
-	));
-	public static final Block PORTAL = register("portal", new PortalWithTarget(
-			AbstractBlock.Settings.copy(Blocks.END_GATEWAY).noBlockBreakParticles()
-	));
-	public static final Block BLACK_HOLE = register("black_hole", new BlackHolePortal(
-			AbstractBlock.Settings.copy(Blocks.END_GATEWAY).noBlockBreakParticles()
-	));
-
-	public static final Block DUMMY_PORTAL = register("dummy_portal", new DummyPortal(
+	public static final Block DUNGEON_ENTRANCE = register("dungeon_entrance_core", new DungeonEntrance(
 			AbstractBlock.Settings.copy(Blocks.END_GATEWAY).noBlockBreakParticles()
 	));
 

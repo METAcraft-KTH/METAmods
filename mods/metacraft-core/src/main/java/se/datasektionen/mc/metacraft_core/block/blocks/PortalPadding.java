@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_dungeons.block.blocks;
+package se.datasektionen.mc.metacraft_core.block.blocks;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import net.minecraft.block.Block;
@@ -10,11 +10,11 @@ import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import se.datasektionen.mc.metacraft_dungeons.block.block_entities.PortalEntity;
+import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
 
-public class DummyPortal extends Block implements PolymerBlock {
+public class PortalPadding extends Block implements PolymerBlock {
 
-	public DummyPortal(Settings settings) {
+	public PortalPadding(Settings settings) {
 		super(settings);
 	}
 

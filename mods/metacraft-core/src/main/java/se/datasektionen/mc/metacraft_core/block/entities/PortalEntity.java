@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_dungeons.block.block_entities;
+package se.datasektionen.mc.metacraft_core.block.entities;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
@@ -18,11 +18,11 @@ import net.minecraft.util.math.*;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import org.joml.*;
-import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
-import se.datasektionen.mc.metacraft_dungeons.block.DungeonBlocks;
-import se.datasektionen.mc.metacraft_dungeons.block.DungeonsBlockEntities;
-import se.datasektionen.mc.metacraft_dungeons.dungeons.DungeonData;
-import se.datasektionen.mc.metacraft_dungeons.dungeons.TeleportPredicate;
+import se.datasektionen.mc.metacraft_core.METAcraftCore;
+import se.datasektionen.mc.metacraft_core.METAcraftCoreTags;
+import se.datasektionen.mc.metacraft_core.block.METAcraftBlockEntities;
+import se.datasektionen.mc.metacraft_core.callbacks.PortalTargetValidEvent;
+import se.datasektionen.mc.metacraft_core.util.TeleportPredicate;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
@@ -49,7 +49,7 @@ public class PortalEntity extends BlockEntity {
 	}
 
 	public PortalEntity(BlockPos pos, BlockState state) {
-		super(DungeonsBlockEntities.PORTAL, pos, state);
+		super(METAcraftBlockEntities.PORTAL, pos, state);
 	}
 
 	public void setTargetPos(BlockPos pos) {
@@ -78,7 +78,7 @@ public class PortalEntity extends BlockEntity {
 		super.readNbt(nbt, wrapperLookup);
 		if (nbt.contains(TARGET_DIM)) {
 			targetDim = World.CODEC.parse(NbtOps.INSTANCE, nbt.get(TARGET_DIM)).resultOrPartial(
-					METAcraftDungeons.LOGGER::error
+					METAcraftCore.LOGGER::error
 			).orElse(null);
 		} else {
 			targetDim = null;
@@ -90,16 +90,20 @@ public class PortalEntity extends BlockEntity {
 		}
 		if (nbt.contains(PORTAL_FACING)) {
 			portalFacing = ExtraCodecs.ORIENTATION_CODEC.parse(NbtOps.INSTANCE, nbt.get(PORTAL_FACING)).resultOrPartial(
-					METAcraftDungeons.LOGGER::error
+					METAcraftCore.LOGGER::error
 			).orElse(null);
 		} else {
 			portalFacing = null;
 		}
 		if (nbt.contains(SHOULD_TELEPORT)) {
 			TeleportPredicate.LIST_CODEC.parse(wrapperLookup.getOps(NbtOps.INSTANCE), nbt.get(SHOULD_TELEPORT)).resultOrPartial(
-					METAcraftDungeons.LOGGER::error
+					METAcraftCore.LOGGER::error
 			).ifPresent(this.shouldTeleport::addAll);
 		}
+	}
+
+	public boolean isPartOfPortal() {
+		return true;
 	}
 
 	@Override
@@ -107,7 +111,7 @@ public class PortalEntity extends BlockEntity {
 		super.writeNbt(nbt, wrapperLookup);
 		if (targetDim != null) {
 			World.CODEC.encodeStart(NbtOps.INSTANCE, targetDim).resultOrPartial(
-					METAcraftDungeons.LOGGER::error
+					METAcraftCore.LOGGER::error
 			).ifPresent(dim -> {
 				nbt.put(TARGET_DIM, dim);
 			});
@@ -117,14 +121,14 @@ public class PortalEntity extends BlockEntity {
 		}
 		if (portalFacing != null) {
 			ExtraCodecs.ORIENTATION_CODEC.encodeStart(NbtOps.INSTANCE, portalFacing).resultOrPartial(
-					METAcraftDungeons.LOGGER::error
+					METAcraftCore.LOGGER::error
 			).ifPresent(facing -> {
 				nbt.put(PORTAL_FACING, facing);
 			});
 		}
 
 		TeleportPredicate.LIST_CODEC.encodeStart(wrapperLookup.getOps(NbtOps.INSTANCE), shouldTeleport).resultOrPartial(
-				METAcraftDungeons.LOGGER::error
+				METAcraftCore.LOGGER::error
 		).ifPresent(shouldTeleport -> {
 			nbt.put(SHOULD_TELEPORT, shouldTeleport);
 		});
@@ -156,14 +160,18 @@ public class PortalEntity extends BlockEntity {
 	}
 
 	public Iterable<BlockPos> forAllNearbyPortals() {
-		return forAllNearbyPortals(world, pos, MAX_SEARCH_BLOCKS);
+		return forAllNearbyPortals(world, pos, MAX_SEARCH_BLOCKS, false);
 	}
 
 	public static Iterable<BlockPos> forAllNearbyPortals(World world, BlockPos pos) {
-		return forAllNearbyPortals(world, pos, MAX_SEARCH_BLOCKS);
+		return forAllNearbyPortals(world, pos, false);
 	}
 
-	public static Iterable<BlockPos> forAllNearbyPortals(World world, BlockPos pos, int maxBlocks) {
+	public static Iterable<BlockPos> forAllNearbyPortals(World world, BlockPos pos, boolean alwaysIncludeCore) {
+		return forAllNearbyPortals(world, pos, MAX_SEARCH_BLOCKS, alwaysIncludeCore);
+	}
+
+	public static Iterable<BlockPos> forAllNearbyPortals(World world, BlockPos pos, int maxBlocks, boolean alwaysIncludeCore) {
 		Set<BlockPos> visited = new HashSet<>();
 		visited.add(pos);
 		BlockPos.Mutable currentPos = new BlockPos.Mutable();
@@ -181,8 +189,8 @@ public class PortalEntity extends BlockEntity {
 					checker.set(currentPos, direction);
 					if (
 							(
-								world.getBlockState(checker).isOf(DungeonBlocks.DUMMY_PORTAL) ||
-								world.getBlockEntity(checker) instanceof PortalEntity
+								world.getBlockState(checker).isIn(METAcraftCoreTags.PORTAL_PADDING) ||
+								world.getBlockEntity(checker) instanceof PortalEntity p && (p.isPartOfPortal() || alwaysIncludeCore)
 							) && !visited.contains(checker)
 					) {
 						stepsRemaining--;
@@ -446,10 +454,7 @@ public class PortalEntity extends BlockEntity {
 		if (targetPos != null) {
 			computeTargetFacing();
 			var targetDim = getTargetDim();
-			if (targetDim != world && DungeonData.getIfPresent(targetDim).map(DungeonData::isResetting).orElse(false)) {
-				if (entity instanceof ServerPlayerEntity player) {
-					player.sendMessage(Text.literal("Dungeon dimension resetting, please wait."));
-				}
+			if (!PortalTargetValidEvent.EVENT.invoker().isValid(targetDim, targetPos, this, entity, true)) {
 				return entity;
 			}
 			if (targetDim.getBlockEntity(targetPos) instanceof PortalEntity portal) {

@@ -7,9 +7,10 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.Nullable;
+import se.datasektionen.mc.metacraft_core.block.blocks.PortalCore;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 
-public class DungeonEntrance extends PortalWithTarget {
+public class DungeonEntrance extends PortalCore {
 
 	public static final MapCodec<DungeonEntrance> CODEC = createCodec(DungeonEntrance::new);
 

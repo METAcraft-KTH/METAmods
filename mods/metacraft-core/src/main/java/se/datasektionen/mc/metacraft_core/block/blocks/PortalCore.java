@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_dungeons.block.blocks;
+package se.datasektionen.mc.metacraft_core.block.blocks;
 
 import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
@@ -11,13 +11,13 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.metacraft_dungeons.block.block_entities.PortalEntity;
+import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
 
-public class PortalWithTarget extends BlockWithEntity implements PolymerBlock {
+public class PortalCore extends BlockWithEntity implements PolymerBlock {
 
-	public static final MapCodec<PortalWithTarget> CODEC = createCodec(PortalWithTarget::new);
+	public static final MapCodec<PortalCore> CODEC = createCodec(PortalCore::new);
 
-	public PortalWithTarget(Settings settings) {
+	public PortalCore(Settings settings) {
 		super(settings);
 	}
 
@@ -41,7 +41,7 @@ public class PortalWithTarget extends BlockWithEntity implements PolymerBlock {
 
 	@Override
 	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, ServerPlayerEntity player) {
-		DummyPortal.sendDummyEndGateway(pos, player);
+		PortalPadding.sendDummyEndGateway(pos, player);
 	}
 
 	@Override
