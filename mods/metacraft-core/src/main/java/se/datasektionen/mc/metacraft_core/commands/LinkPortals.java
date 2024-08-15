@@ -23,7 +23,7 @@ import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_core.METAcraftCoreTags;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
-import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
+import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.TextHelper;
 
 import java.util.*;
@@ -101,10 +101,7 @@ public class LinkPortals {
 		}
 	};
 
-	private static final Decoder<Orientation> DECODER = Codec.withAlternative(
-			StringIdentifiable.createCodec(Orientation::values),
-			Direction.CODEC, OrientationHelper::fromDirection
-	);
+	private static final Decoder<Orientation> DECODER = ExtraCodecs.ORIENTATION_CODEC;
 
 	private static Orientation getOrientation(CommandContext<ServerCommandSource> ctx, String name) throws CommandSyntaxException {
 		var orientationKey = StringArgumentType.getString(ctx, name);
