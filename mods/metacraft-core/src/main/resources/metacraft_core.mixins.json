@@ -19,7 +19,8 @@
 		"MixinPlayerEntity",
 		"MixinServerCommonNetworkHandler",
 		"MixinServerPlayerEntity",
-		"MixinServerPlayerInteractionManager"
+		"MixinServerPlayerInteractionManager",
+		"MixinServerPlayNetworkHandler"
 	],
 	"client": [
 	],

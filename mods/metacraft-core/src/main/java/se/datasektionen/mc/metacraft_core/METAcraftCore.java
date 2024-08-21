@@ -22,6 +22,7 @@ public class METAcraftCore implements ModInitializer {
 		METAcraftEntities.init();
 		METAcraftItems.init();
 		Commands.init();
+		Events.init();
 	}
 
 	public static Identifier getID(String id) {

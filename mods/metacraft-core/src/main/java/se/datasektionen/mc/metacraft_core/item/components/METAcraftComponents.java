@@ -4,10 +4,17 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.Keyable;
 import eu.pb4.polymer.core.api.other.PolymerComponent;
 import net.minecraft.component.ComponentType;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.server.command.CommandOutput;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Unit;
+import net.minecraft.util.math.Vec3d;
+import org.apache.commons.lang3.mutable.MutableObject;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 
 import java.util.function.UnaryOperator;
@@ -37,6 +44,85 @@ public class METAcraftComponents {
 	public static final ComponentType<Unit> DELETED = register(
 			"deleted", builder -> builder.packetCodec(PacketCodec.unit(Unit.INSTANCE))
 	);
+
+	/**
+	 * Command runs whenever player right-clicks the item.
+	 */
+	public static final ComponentType<String> INTERACT_COMMAND = register(
+			"interact_command", builder -> builder.codec(Codec.STRING)
+	);
+
+	/**
+	 * Command runs whenever player right-clicks the item on a block.
+	 */
+	public static final ComponentType<String> INTERACT_BLOCK_COMMAND = register(
+			"interact_block_command", builder -> builder.codec(Codec.STRING)
+	);
+
+	/**
+	 * Command runs whenever player right-clicks the item on an entity.
+	 */
+	public static final ComponentType<String> INTERACT_ENTITY_COMMAND = register(
+			"interact_entity_command", builder -> builder.codec(Codec.STRING)
+	);
+
+	/**
+	 * Command runs whenever player swings their main arm.
+	 * This will detect left-clicks that do not hit blocks or entities,
+	 * but will detect right-clicks they trigger the arm swing animation client-side.
+	 */
+	public static final ComponentType<String> MAIN_HAND_SWING_COMMAND = register(
+			"main_hand_swing_command", builder -> builder.codec(Codec.STRING)
+	);
+
+	/**
+	 * Command runs whenever player left-clicks a block.
+	 */
+	public static final ComponentType<String> ATTACK_BLOCK_COMMAND = register(
+			"attack_block_command", builder -> builder.codec(Codec.STRING)
+	);
+
+	/**
+	 * Command runs whenever player left-clicks an entity.
+	 */
+	public static final ComponentType<String> ATTACK_ENTITY_COMMAND = register(
+			"attack_entity_command", builder -> builder.codec(Codec.STRING)
+	);
+
+	/**
+	 * Runs a command for the given player.
+	 * Command feedback is only sent to creative operators.
+	 * @param player The player to run the command for.
+	 * @param pos The position to run the command at.
+	 * @param command The command to run.
+	 * @return {@link ActionResult#SUCCESS_NO_ITEM_USED} if the command succeeds and returns 1,
+	 *          {@link ActionResult#PASS} if the command succeeds and returns 0,
+	 *          {@link ActionResult#CONSUME_PARTIAL} if the command succeeds and returns something else,
+	 *          {@link ActionResult#FAIL} if the command fails.
+	 */
+	public static ActionResult runCommand(PlayerEntity player, Vec3d pos, String command) {
+		MutableObject<ActionResult> result = new MutableObject<>();
+		var source = new ServerCommandSource(
+				player.isCreativeLevelTwoOp() ? player : CommandOutput.DUMMY,
+				pos, player.getRotationClient(), (ServerWorld) player.getWorld(),
+				2, player.getName().getString(), player.getDisplayName(),
+				player.getServer(), player
+		).withReturnValueConsumer((successful, value) -> {
+			if (successful) {
+				result.setValue(
+						switch (value) {
+							case 0 -> ActionResult.PASS;
+							case 1 -> ActionResult.SUCCESS_NO_ITEM_USED;
+							default -> ActionResult.CONSUME_PARTIAL;
+						}
+				);
+			} else {
+				result.setValue(ActionResult.FAIL);
+			}
+		});
+		player.getServer().getCommandManager().executeWithPrefix(source, command);
+		return result.getValue();
+	}
 
 
 
