@@ -109,13 +109,13 @@ public class METAcraftComponents {
 				player.getServer(), player
 		).withReturnValueConsumer((successful, value) -> {
 			if (successful) {
-				result.setValue(
-						switch (value) {
-							case 0 -> ActionResult.PASS;
-							case 1 -> ActionResult.SUCCESS_NO_ITEM_USED;
-							default -> ActionResult.CONSUME_PARTIAL;
-						}
-				);
+				if (value == 0) {
+					result.setValue(ActionResult.PASS);
+				} else if (value > 0) {
+					result.setValue(ActionResult.SUCCESS_NO_ITEM_USED);
+				} else {
+					result.setValue(ActionResult.CONSUME_PARTIAL);
+				}
 			} else {
 				result.setValue(ActionResult.FAIL);
 			}
