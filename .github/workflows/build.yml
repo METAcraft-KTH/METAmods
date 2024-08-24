@@ -41,3 +41,24 @@ jobs:
         with:
           name: Artifacts
           path: build/libs/
+  deploy:
+    runs-on: ubuntu-22.04
+    needs: build
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Artifacts
+      - run: ls -la
+      - run: rm *-sources.jar
+      - name: Deploy to test server
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
+        with:
+          server: mc.datasektionen.se
+          port: 2022
+          username: github-actions.098974a0
+          password: ${{ secrets.AUTODEPLOY_PASSWORD }}
+          local_path: '*.jar'
+          remote_path: 'mods/update'
+          sftp_only: true
