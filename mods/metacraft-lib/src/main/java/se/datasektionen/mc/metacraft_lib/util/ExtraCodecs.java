@@ -6,6 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.Portal;
 import net.minecraft.block.enums.Orientation;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.player.PlayerModelPart;
 import net.minecraft.registry.Registries;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.StringIdentifiable;
@@ -22,6 +23,12 @@ import java.util.stream.IntStream;
 
 @SuppressWarnings("unused")
 public class ExtraCodecs {
+
+	public static final Codec<PlayerModelPart> MODEL_PART_CODEC = enumCodec(PlayerModelPart.class, true);
+
+	public static final Codec<Set<PlayerModelPart>> MODEL_PART_SET_CODEC = MODEL_PART_CODEC.listOf().xmap(
+			EnumSet::copyOf, ArrayList::new
+	);
 
 	public static final Codec<Orientation> ORIENTATION_CODEC = Codec.withAlternative(
 			StringIdentifiable.createCodec(Orientation::values),

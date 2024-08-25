@@ -9,8 +9,6 @@
 		"AccessorNetherPortalBlock",
 		"AccessorPointOfInterestTypes",
 		"AccessorPortalForcer",
-		"AccessorStructureTemplate",
-		"AccessorStructureTemplate$AccessorPalettedBlockInfoList",
 		"MixinAbstractBlockState",
 		"MixinDispenserBlock",
 		"MixinSimpleRegistry"

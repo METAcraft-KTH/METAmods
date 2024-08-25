@@ -1,4 +1,4 @@
-package se.datasektionen.mc.simplecustomfeatures.mixin;
+package se.datasektionen.mc.metacraft_lib.mixin;
 
 import net.minecraft.structure.StructureTemplate;
 import net.minecraft.util.math.Vec3i;
@@ -18,12 +18,19 @@ public interface AccessorStructureTemplate {
 	List<StructureTemplate.PalettedBlockInfoList> getBlockInfoLists();
 
 	@Invoker
-	static void callCategorize(StructureTemplate.StructureBlockInfo blockInfo, List<StructureTemplate.StructureBlockInfo> fullBlocks, List<StructureTemplate.StructureBlockInfo> blocksWithNbt, List<StructureTemplate.StructureBlockInfo> otherBlocks) {
-
-	}
+	static void callCategorize(
+			StructureTemplate.StructureBlockInfo blockInfo,
+			List<StructureTemplate.StructureBlockInfo> fullBlocks,
+			List<StructureTemplate.StructureBlockInfo> blocksWithNbt,
+			List<StructureTemplate.StructureBlockInfo> otherBlocks
+	) {}
 
 	@Invoker
-	static List<StructureTemplate.StructureBlockInfo> callCombineSorted(List<StructureTemplate.StructureBlockInfo> fullBlocks, List<StructureTemplate.StructureBlockInfo> blocksWithNbt, List<StructureTemplate.StructureBlockInfo> otherBlocks) {
+	static List<StructureTemplate.StructureBlockInfo> callCombineSorted(
+			List<StructureTemplate.StructureBlockInfo> fullBlocks,
+			List<StructureTemplate.StructureBlockInfo> blocksWithNbt,
+			List<StructureTemplate.StructureBlockInfo> otherBlocks
+	) {
 		return null;
 	}
 

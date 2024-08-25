@@ -1,0 +1,23 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "se.datasektionen.mc.cutscenes.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"AccessorBrain",
+		"AccessorChunkHolder",
+		"AccessorMinecraftServer",
+		"AccessorServerPlayerEntity",
+		"AccessorServerWorld",
+		"AccessorStatusEffectInstance",
+		"MixinEntity",
+		"MixinMobEntity",
+		"MixinPlayerManager",
+		"MixinServerChunkLoadingManager",
+		"MixinServerPlayerEntity"
+	],
+	"client": [],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

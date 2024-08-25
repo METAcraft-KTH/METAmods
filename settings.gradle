@@ -11,6 +11,7 @@ pluginManagement {
 include "mods:better-pets"
 include "mods:faster-minecarts"
 include "mods:metacraft-core"
+include "mods:metacraft-cutscenes"
 include "mods:metacraft-dungeons"
 include "mods:metacraft-info-commands"
 include "mods:metacraft-lib"

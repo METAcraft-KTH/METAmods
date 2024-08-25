@@ -6,6 +6,9 @@
 	"mixins": [
 		"AccessorBlockUpdateS2CPacket",
 		"AccessorChunkHolder",
+		"AccessorEntityNavigation",
+		"AccessorMobEntity",
+		"AccessorPlayerEntity",
 		"AccessorServerChunkManager",
 		"MixinAbstractBlockState",
 		"MixinBlockEntity",

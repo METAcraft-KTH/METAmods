@@ -1,0 +1,8 @@
+version = project.cutscenes_version
+
+loom {
+	accessWidenerPath = file("src/main/resources/metacraft_cutscenes.accesswidener")
+}
+
+addProjectDependency(":mods:metacraft-core")
+addPolymerDependency()

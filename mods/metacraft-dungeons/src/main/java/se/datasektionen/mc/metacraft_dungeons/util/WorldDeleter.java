@@ -13,8 +13,8 @@ import net.minecraft.world.level.UnmodifiableLevelProperties;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.extensions.ServerWorldExtension;
 import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorMinecraftServer;
-import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorServerChunkLoadingManager;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
+import se.datasektionen.mc.metacraft_lib.util.helper.WorldHelper;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -72,8 +72,7 @@ public class WorldDeleter {
 								world.getRegistryKey(),
 								server.getCombinedDynamicRegistries().getCombinedRegistryManager().get(RegistryKeys.DIMENSION)
 										.get(world.getRegistryKey().getValue()),
-								((AccessorServerChunkLoadingManager) world.getChunkManager().chunkLoadingManager)
-										.getWorldGenerationProgressListener(),
+								WorldHelper.getGenerationProgressListener(world),
 								server.getSaveProperties().isDebugWorld(),
 								BiomeAccess.hashSeed(server.getSaveProperties().getGeneratorOptions().getSeed()),
 								ImmutableList.of(), false, server.getOverworld().getRandomSequences()

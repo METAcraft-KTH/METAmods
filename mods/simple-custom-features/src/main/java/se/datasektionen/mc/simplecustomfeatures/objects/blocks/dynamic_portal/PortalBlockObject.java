@@ -28,11 +28,11 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.*;
 import net.minecraft.world.poi.PointOfInterestType;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.metacraft_lib.util.helper.StructureTemplateHelper;
 import se.datasektionen.mc.simplecustomfeatures.ObjectContainer;
 import se.datasektionen.mc.simplecustomfeatures.compat.PortalBlockerCompat;
 import se.datasektionen.mc.simplecustomfeatures.compat.PortalTypeData;
 import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorCachedBlockPosition;
-import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorStructureTemplate;
 import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
@@ -343,13 +343,12 @@ public class PortalBlockObject implements BaseBlock {
 				StructureTemplate.StructureBlockInfo info = new StructureTemplate.StructureBlockInfo(
 						pos.toImmutable(), state, null
 				);
-				AccessorStructureTemplate.callCategorize(info, fullBlocks, blockWithNBT, otherBlocks);
+				StructureTemplateHelper.categorize(info, fullBlocks, blockWithNBT, otherBlocks);
 			}
-			AccessorStructureTemplate accessor = (AccessorStructureTemplate) structure;
-			accessor.setSize(new BlockPos(endX+1, endY+1, 1));
-			var blocks = AccessorStructureTemplate.callCombineSorted(fullBlocks, blockWithNBT, otherBlocks);
-			accessor.getBlockInfoLists().add(
-					AccessorStructureTemplate.AccessorPalettedBlockInfoList.init(blocks)
+			StructureTemplateHelper.setSize(structure, new BlockPos(endX+1, endY+1, 1));
+			var blocks = StructureTemplateHelper.combineSorted(fullBlocks, blockWithNBT, otherBlocks);
+			StructureTemplateHelper.getBlockInfoLists(structure).add(
+					StructureTemplateHelper.createPalettedBlockInfoList(blocks)
 			);
 
 			return new ValidStructureWithOffset(structure, new BlockPos(1, 1, 0));
@@ -370,7 +369,6 @@ public class PortalBlockObject implements BaseBlock {
 			}
 			if (axis != null) {
 				var forwardDirection = Direction.from(axis, Direction.AxisDirection.POSITIVE);
-				AccessorStructureTemplate accessor = (AccessorStructureTemplate) structure;
 				Set<BlockState> bottomStates = new HashSet<>();
 
 				List<StructureTemplate.StructureBlockInfo> fullBlocks = new ArrayList<>();
@@ -378,13 +376,13 @@ public class PortalBlockObject implements BaseBlock {
 				List<StructureTemplate.StructureBlockInfo> otherBlocks = new ArrayList<>();
 
 				int minY = Math.min(offset.getY()-1, 0);
-				for (var infos : accessor.getBlockInfoLists()) {
+				for (var infos : StructureTemplateHelper.getBlockInfoLists(structure)) {
 					for (var info : infos.getAll()) {
 						var newInfo = new StructureTemplate.StructureBlockInfo(
 								info.pos().offset(forwardDirection),
 								info.state(), info.nbt()
 						);
-						AccessorStructureTemplate.callCategorize(newInfo, fullBlocks, blockWithNBT, otherBlocks);
+						StructureTemplateHelper.categorize(newInfo, fullBlocks, blockWithNBT, otherBlocks);
 						if (info.pos().getY() == minY) {
 							bottomStates.add(info.state());
 						}
@@ -413,15 +411,16 @@ public class PortalBlockObject implements BaseBlock {
 								},
 								bottomStateList.get(world.getRandom().nextInt(bottomStateList.size())), null
 						);
-						AccessorStructureTemplate.callCategorize(info, fullBlocks, blockWithNBT, otherBlocks);
+						StructureTemplateHelper.categorize(info, fullBlocks, blockWithNBT, otherBlocks);
 					}
 				}
-				accessor.setSize(structure.getSize().offset(forwardDirection, 2));
+				StructureTemplateHelper.setSize(structure, structure.getSize().offset(forwardDirection, 2));
 
-				var blocks = AccessorStructureTemplate.callCombineSorted(fullBlocks, blockWithNBT, otherBlocks);
-				accessor.getBlockInfoLists().clear();
-				accessor.getBlockInfoLists().add(
-						AccessorStructureTemplate.AccessorPalettedBlockInfoList.init(blocks)
+				var blocks = StructureTemplateHelper.combineSorted(fullBlocks, blockWithNBT, otherBlocks);
+				var list = StructureTemplateHelper.getBlockInfoLists(structure);
+				list.clear();
+				list.add(
+						StructureTemplateHelper.createPalettedBlockInfoList(blocks)
 				);
 				return new ValidStructureWithOffset(structure, offset.offset(forwardDirection));
 			}
