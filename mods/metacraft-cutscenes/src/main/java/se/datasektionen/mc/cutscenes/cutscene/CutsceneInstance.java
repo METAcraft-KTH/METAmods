@@ -49,6 +49,7 @@ public class CutsceneInstance {
 	public static final String CUTSCENE = "cutscene";
 
 	public static final String PLAYER_REFERENCE = "player";
+	public static final String PLAYER_ITEM = "player_item";
 
 	public static void init() {
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
@@ -150,6 +151,10 @@ public class CutsceneInstance {
 
 	public RegistryKey<World> getDim() {
 		return dim;
+	}
+
+	public Cutscene getCutscene() {
+		return cutscene;
 	}
 
 	/**

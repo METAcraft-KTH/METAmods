@@ -6,6 +6,8 @@ import se.datasektionen.mc.cutscenes.cutscene.Cutscene;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.cutscene.MultiplayerCutsceneManager;
 
+import java.util.Optional;
+
 public class CutsceneHelper {
 
 	public static boolean isInPlayerSpecificCutscene(ServerPlayerEntity player) {
@@ -18,6 +20,16 @@ public class CutsceneHelper {
 
 	public static boolean isInCutscene(ServerPlayerEntity player) {
 		return isInMultiplayerCutscene(player) || isInPlayerSpecificCutscene(player);
+	}
+
+	public static Optional<CutsceneInstance> getCutscene(ServerPlayerEntity player) {
+		if (isInMultiplayerCutscene(player)) {
+			return MultiplayerCutsceneManager.getInstance(player.getServer()).getCutsceneFromPlayer(player);
+		} else if (isInPlayerSpecificCutscene(player)) {
+			return ((ServerPlayerEntityExtensions) player).metacraft_cutscenes$getCutscene();
+		} else {
+			return Optional.empty();
+		}
 	}
 
 	public static void playPlayerSpecificCutscene(ServerPlayerEntity player, Cutscene cutscene) {

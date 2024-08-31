@@ -61,6 +61,10 @@ public class MultiplayerCutsceneManager extends PersistentState {
 		return Optional.ofNullable(activeCutscenes.get(cutscene));
 	}
 
+	public Optional<CutsceneInstance> getCutsceneFromPlayer(ServerPlayerEntity player) {
+		return Optional.ofNullable(cutsceneByPlayerActive.get(player.getUuid()));
+	}
+
 	public Collection<String> getCutsceneNames() {
 		return activeCutscenes.keySet();
 	}

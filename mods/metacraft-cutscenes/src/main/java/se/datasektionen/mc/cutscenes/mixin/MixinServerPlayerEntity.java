@@ -1,5 +1,7 @@
 package se.datasektionen.mc.cutscenes.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -23,6 +25,8 @@ import se.datasektionen.mc.cutscenes.extension.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.cutscene.MultiplayerCutsceneManager;
 import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
+
+import java.util.Optional;
 
 @Mixin(ServerPlayerEntity.class)
 public abstract class MixinServerPlayerEntity extends PlayerEntity implements ServerPlayerEntityExtensions {
@@ -53,8 +57,31 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Override
+	public Optional<CutsceneInstance> metacraft_cutscenes$getCutscene() {
+		return Optional.ofNullable(cutscene);
+	}
+
+	@Override
 	public boolean metacraft_cutscenes$hasCutscene() {
 		return cutscene != null;
+	}
+
+	@WrapOperation(
+		method = "dropItem",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/world/World;spawnEntity(Lnet/minecraft/entity/Entity;)Z"
+		)
+	)
+	public boolean dropItem(
+			World world, Entity entity, Operation<Boolean> original
+	) {
+		var scene = CutsceneHelper.getCutscene((ServerPlayerEntity) (Object) this);
+		if (scene.isPresent() && scene.get().getCutscene().resetPlayerData()) {
+			scene.get().addEntity(CutsceneInstance.PLAYER_ITEM, entity);
+			return true;
+		}
+		return original.call(world, entity);
 	}
 
 	@Inject(method = "tick", at = @At("HEAD"))
