@@ -54,16 +54,43 @@ public class METAcraftComponents {
 
 	/**
 	 * Command runs whenever player right-clicks the item on a block.
+	 * Runs at bottom center position of the block.
 	 */
 	public static final ComponentType<String> INTERACT_BLOCK_COMMAND = register(
 			"interact_block_command", builder -> builder.codec(Codec.STRING)
 	);
 
 	/**
+	 * Command runs whenever player right-clicks the item on a block.
+	 * Runs at the bottom center position of the block offset based on side clicked.
+	 * So clicking on top of block will trigger above block, clicking on east side will run centered on block on east side.
+	 */
+	public static final ComponentType<String> INTERACT_BLOCK_SIDE_COMMAND = register(
+			"interact_block_side_command", builder -> builder.codec(Codec.STRING)
+	);
+
+	/**
+	 * Command runs whenever player right-clicks the item on a block.
+	 * Runs at exactly where player clicks.
+	 */
+	public static final ComponentType<String> INTERACT_BLOCK_EXACT_COMMAND = register(
+			"interact_block_exact_command", builder -> builder.codec(Codec.STRING)
+	);
+
+	/**
 	 * Command runs whenever player right-clicks the item on an entity.
+	 * Runs at the entity's feet position, use @n to access entity.
 	 */
 	public static final ComponentType<String> INTERACT_ENTITY_COMMAND = register(
 			"interact_entity_command", builder -> builder.codec(Codec.STRING)
+	);
+
+	/**
+	 * Command runs whenever player right-clicks the item on an entity.
+	 * Runs at the exact position the player clicks.
+	 */
+	public static final ComponentType<String> INTERACT_ENTITY_EXACT_COMMAND = register(
+			"interact_entity_exact_command", builder -> builder.codec(Codec.STRING)
 	);
 
 	/**
@@ -77,13 +104,24 @@ public class METAcraftComponents {
 
 	/**
 	 * Command runs whenever player left-clicks a block.
+	 * Runs at bottom center position of the block.
 	 */
 	public static final ComponentType<String> ATTACK_BLOCK_COMMAND = register(
 			"attack_block_command", builder -> builder.codec(Codec.STRING)
 	);
 
 	/**
+	 * Command runs whenever player left-clicks a block.
+	 * Runs at bottom center position of the block offset based on side clicked.
+	 * So clicking on top of block will trigger above block, clicking on east side will run centered on block on east side.
+	 */
+	public static final ComponentType<String> ATTACK_BLOCK_SIDE_COMMAND = register(
+			"attack_block_side_command", builder -> builder.codec(Codec.STRING)
+	);
+
+	/**
 	 * Command runs whenever player left-clicks an entity.
+	 * Runs at entity's position, access with @n.
 	 */
 	public static final ComponentType<String> ATTACK_ENTITY_COMMAND = register(
 			"attack_entity_command", builder -> builder.codec(Codec.STRING)

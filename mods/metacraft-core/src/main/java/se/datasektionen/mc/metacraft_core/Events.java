@@ -25,8 +25,20 @@ public class Events {
 				var stack = player.getStackInHand(hand);
 				if (stack.contains(METAcraftComponents.INTERACT_BLOCK_COMMAND)) {
 					return METAcraftComponents.runCommand(
-							player, hitResult.getPos(),
+							player, Vec3d.ofBottomCenter(hitResult.getBlockPos()),
 							stack.get(METAcraftComponents.INTERACT_BLOCK_COMMAND)
+					);
+				}
+				if (stack.contains(METAcraftComponents.INTERACT_BLOCK_SIDE_COMMAND)) {
+					return METAcraftComponents.runCommand(
+							player, Vec3d.ofBottomCenter(hitResult.getBlockPos().offset(hitResult.getSide())),
+							stack.get(METAcraftComponents.INTERACT_BLOCK_SIDE_COMMAND)
+					);
+				}
+				if (stack.contains(METAcraftComponents.INTERACT_BLOCK_EXACT_COMMAND)) {
+					return METAcraftComponents.runCommand(
+							player, hitResult.getPos(),
+							stack.get(METAcraftComponents.INTERACT_BLOCK_EXACT_COMMAND)
 					);
 				}
 			}
@@ -37,8 +49,14 @@ public class Events {
 				var stack = player.getStackInHand(hand);
 				if (stack.contains(METAcraftComponents.INTERACT_ENTITY_COMMAND)) {
 					return METAcraftComponents.runCommand(
-							player, hitResult.getPos(),
+							player, entity.getPos(),
 							stack.get(METAcraftComponents.INTERACT_ENTITY_COMMAND)
+					);
+				}
+				if (stack.contains(METAcraftComponents.INTERACT_ENTITY_EXACT_COMMAND)) {
+					return METAcraftComponents.runCommand(
+							player, hitResult.getPos(),
+							stack.get(METAcraftComponents.INTERACT_ENTITY_EXACT_COMMAND)
 					);
 				}
 			}
@@ -49,7 +67,7 @@ public class Events {
 				var stack = player.getStackInHand(hand);
 				if (stack.contains(METAcraftComponents.ATTACK_ENTITY_COMMAND)) {
 					var result = METAcraftComponents.runCommand(
-							player, hitResult != null ? hitResult.getPos() : entity.getPos(),
+							player, entity.getPos(),
 							stack.get(METAcraftComponents.ATTACK_ENTITY_COMMAND)
 					);
 					if (result.isAccepted()) {
@@ -67,8 +85,19 @@ public class Events {
 				var stack = player.getStackInHand(hand);
 				if (stack.contains(METAcraftComponents.ATTACK_BLOCK_COMMAND)) {
 					var result = METAcraftComponents.runCommand(
-							player, Vec3d.ofCenter(pos).add(Vec3d.of(direction.getVector()).multiply(0.45)),
+							player, Vec3d.ofBottomCenter(pos),
 							stack.get(METAcraftComponents.ATTACK_BLOCK_COMMAND)
+					);
+					if (result.isAccepted()) {
+						return ActionResult.PASS;
+					} else {
+						return result;
+					}
+				}
+				if (stack.contains(METAcraftComponents.ATTACK_BLOCK_SIDE_COMMAND)) {
+					var result = METAcraftComponents.runCommand(
+							player, Vec3d.ofBottomCenter(pos.offset(direction)),
+							stack.get(METAcraftComponents.ATTACK_BLOCK_SIDE_COMMAND)
 					);
 					if (result.isAccepted()) {
 						return ActionResult.PASS;
