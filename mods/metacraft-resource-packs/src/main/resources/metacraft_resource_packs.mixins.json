@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "se.datasektionen.mc.resource_packs.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"AccessorNetworkUtils",
+		"MixinServerConfigurationNetworkHandler"
+	],
+	"client": [],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

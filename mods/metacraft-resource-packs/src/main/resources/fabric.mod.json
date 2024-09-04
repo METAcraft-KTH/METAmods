@@ -1,0 +1,34 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-resource-packs",
+	"version": "${version}",
+	"name": "METAcraft-Resource-Packs",
+	"description": "Handles resource packs server-side",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.datasektionen.mc.resource_packs.ResourcePacks"
+		]
+	},
+	"mixins": [
+		"metacraft_resource_packs.mixins.json"
+	],
+	"accessWidener": "metacraft_resource_packs.accesswidener",
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric": "*",
+		"metacraft-lib": "*"
+	}
+}
