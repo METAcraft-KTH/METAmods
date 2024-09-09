@@ -24,6 +24,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ResourcePackConfig implements Modifiable, LoadAware {
 
@@ -46,9 +47,15 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	private static final ConfigContainer<ResourcePackConfig> CONFIG = ConfigContainer.Builder.create(
 			CODEC, configDir.resolve("config.json"),
 			() -> new ResourcePackConfig()
-	).build();
+	).setReloader((old, reloaded, cause) -> reloaded.get().map(c -> {
+		old.getResourcePacks().forEach(pack -> {
+			c.prevPacks.put(pack.getKey(), pack.getValue());
+		});
+		return c;
+	}).orElse(old)).build();
 
 	private final Map<UUID, ResourcePack> resourcePacks;
+	private final Map<UUID, ResourcePack> prevPacks = new HashMap<>();
 	private final String serverAddress;
 	private final int port;
 	private final int maxConnections;
@@ -72,12 +79,39 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		CONFIG.reload();
 	}
 
+	public boolean resourcePackExists(UUID uuid) {
+		return resourcePacks.containsKey(uuid);
+	}
+
 	public ResourcePack getResourcePack(UUID uuid) {
 		return resourcePacks.get(uuid);
 	}
 
+	private boolean exists(UUID pack) {
+		return prevPacks.containsKey(pack) && resourcePacks.containsKey(pack);
+	}
+
+	public boolean hasChanged(UUID pack) {
+		if (!prevPacks.containsKey(pack) && resourcePacks.containsKey(pack)) return true;
+		return exists(pack) && !Objects.equals(prevPacks.get(pack).getHash(), resourcePacks.get(pack).getHash());
+	}
+
+	public boolean isNowGlobal(UUID pack) {
+		return exists(pack) && !prevPacks.get(pack).isGlobal() && resourcePacks.get(pack).isGlobal();
+	}
+
 	public Collection<Map.Entry<UUID, ResourcePack>> getResourcePacks() {
 		return Collections.unmodifiableSet(resourcePacks.entrySet());
+	}
+
+	public Iterable<UUID> getRemovedPacks() {
+		return prevPacks.keySet().stream().filter(resourcePack -> !resourcePacks.containsKey(resourcePack))::iterator;
+	}
+
+	public Iterable<UUID> getPrevGlobals() {
+		return prevPacks.entrySet().stream().filter(
+				pack -> resourcePacks.containsKey(pack.getKey()) && pack.getValue().isGlobal() && !resourcePacks.get(pack.getKey()).isGlobal()
+		).map(Map.Entry::getKey)::iterator;
 	}
 
 	public String getServerAddress() {
@@ -114,7 +148,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	}
 
 	@Override
-	public void afterLoad(Optional<ReloadCause> optional) {
+	public void afterLoad(Optional<ReloadCause> cause) {
 		try {
 			var resourcePackZips = RESOURCE_PACK_DIR.toFile().listFiles(file -> file.getName().endsWith(".zip"));
 			if (resourcePackZips != null) {
@@ -165,6 +199,16 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		} catch (IOException e) {
 			ResourcePacks.LOGGER.error(e);
 		}
+
+		if (cause.isPresent()) {
+			ResourcePackServerManager.getServers().forEach(ResourcePackHelper::resendResourcePacks);
+		}
+	}
+
+	private Set<UUID> getGlobalPacks() {
+		return resourcePacks.entrySet().stream().filter(
+				entry -> entry.getValue().isGlobal()
+		).map(Map.Entry::getKey).collect(Collectors.toSet());
 	}
 
 	public static class ResourcePack {

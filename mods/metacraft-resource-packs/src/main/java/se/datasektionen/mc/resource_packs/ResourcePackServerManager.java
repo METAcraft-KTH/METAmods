@@ -5,6 +5,7 @@ import net.minecraft.server.MinecraftServer;
 
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ResourcePackServerManager {
@@ -29,4 +30,7 @@ public class ResourcePackServerManager {
 		});
 	}
 
+	public static Set<MinecraftServer> getServers() {
+		return servers.keySet();
+	}
 }
