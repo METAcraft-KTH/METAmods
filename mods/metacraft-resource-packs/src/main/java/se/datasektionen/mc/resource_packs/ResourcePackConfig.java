@@ -21,7 +21,6 @@ import se.datasektionen.mc.metacraft_lib.config.extensions.Modifiable;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -155,32 +154,24 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 				for (var file : resourcePackZips) {
 					var path = file.toPath();
 					var hash = AccessorNetworkUtils.callHash(path, SHA1);
-					UUID uuid = UUID.nameUUIDFromBytes(("METAcraftResourcePack:" + file.toString()).getBytes(StandardCharsets.UTF_8));
+					UUID uuid = UUID.randomUUID();
 					CONFIG.modify(c -> {
 						if (c.resourcePacks.containsKey(uuid)) {
-							if (c.resourcePacks.get(uuid).file.equals(path)) {
-								//Resource pack update.
-								var pack = c.resourcePacks.get(uuid);
-								if (!hash.equals(pack.getHash())) {
-									pack.setHash(hash);
-								}
-								return false;
-							} else {
-								//Duplicate
-								ResourcePacks.LOGGER.warn(
-										"Resource pack {} tried to use UUID {} " +
-												"but it was already present! This resource pack " +
-												"must be added to config manually.", file, uuid
-								);
-							}
+							//Duplicate
+							ResourcePacks.LOGGER.warn(
+									"Resource pack {} tried to use UUID {} " +
+											"but it was already present! This resource pack " +
+											"must be added to config manually.", file, uuid
+							);
 						}
 
-						//Try to follow renaming.
 						for (var pack : c.resourcePacks.values()) {
+							//Resource pack update.
 							if (pack.getFile().equals(path)) {
 								pack.setHash(hash);
 								return false;
 							}
+							//Try to follow renamed file (might cause mismatches).
 							if ((pack.getHash() == null || pack.getHash().equals(hash)) && !pack.getFile().toFile().exists()) {
 								pack.setFile(path);
 								pack.setHash(hash);
