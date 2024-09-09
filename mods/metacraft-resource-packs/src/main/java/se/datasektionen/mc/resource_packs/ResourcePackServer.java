@@ -1,15 +1,25 @@
 package se.datasektionen.mc.resource_packs;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.mojang.util.UndashedUuid;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpsConfigurator;
+import com.sun.net.httpserver.HttpsServer;
 import net.minecraft.server.MinecraftServer;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -18,21 +28,56 @@ public class ResourcePackServer implements AutoCloseable {
 	private final MinecraftServer mc;
 	private final HttpServer server;
 
-	public ResourcePackServer(MinecraftServer mc, int port, String localAddress, int maxConnections) {
+	public ResourcePackServer(
+			MinecraftServer mc, int port, String localAddress,
+			int maxConnections, Optional<SSLSettings> sslSettings
+	) {
 		this.mc = mc;
 		try {
-			server = HttpServer.create(new InetSocketAddress(
-					InetAddress.getByName(localAddress), port
-			), maxConnections);
+			if (sslSettings.isPresent()) {
+				var server = HttpsServer.create(new InetSocketAddress(
+						InetAddress.getByName(localAddress), port
+				), maxConnections);
+				fixHTTPs(server, sslSettings.get());
+				this.server = server;
+			} else {
+				server = HttpServer.create(new InetSocketAddress(
+						InetAddress.getByName(localAddress), port
+				), maxConnections);
+			}
 			server.createContext("/", exchange -> {
 				sendResponse(
 						exchange.getRequestMethod().equals("GET") && verify(exchange.getRequestHeaders()),
 						exchange.getRequestURI().getPath().substring(1), exchange
 				);
 			});
-		} catch (IOException e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	//https://stackoverflow.com/questions/2308479/simple-java-https-server
+	private void fixHTTPs(HttpsServer server, SSLSettings settings) throws NoSuchAlgorithmException, KeyStoreException, IOException, CertificateException, UnrecoverableKeyException, KeyManagementException {
+		SSLContext sslContext = SSLContext.getInstance(settings.protocol);
+
+		// Initialise the keystore
+		char[] password = settings.keyStorePassword.toCharArray();
+		KeyStore ks = KeyStore.getInstance(settings.keyStoreType);
+		FileInputStream fis = new FileInputStream(settings.keyStorePath);
+		ks.load(fis, password);
+
+		// Set up the key manager factory
+		KeyManagerFactory kmf = KeyManagerFactory.getInstance(settings.keyManagerAlgorithm);
+		kmf.init(ks, password);
+
+		// Set up the trust manager factory
+		TrustManagerFactory tmf = TrustManagerFactory.getInstance(settings.trustManagerAlgorithm);
+		tmf.init(ks);
+
+		// Set up the HTTPS context and parameters
+		sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+
+		server.setHttpsConfigurator(new HttpsConfigurator(sslContext));
 	}
 
 	public void start() {
@@ -95,6 +140,24 @@ public class ResourcePackServer implements AutoCloseable {
 		} else {
 			exchange.sendResponseHeaders(403, -1);
 		}
+	}
+
+	public record SSLSettings(
+			String protocol, String keyStoreType, String keyStorePath, String keyStorePassword,
+			String keyManagerAlgorithm, String trustManagerAlgorithm
+	) {
+
+		public static final Codec<SSLSettings> CODEC = RecordCodecBuilder.create(
+				instance -> instance.group(
+						Codec.STRING.optionalFieldOf("protocol", "TLS").forGetter(SSLSettings::protocol),
+						Codec.STRING.optionalFieldOf("key_store_type", "JKS").forGetter(SSLSettings::keyStoreType),
+						Codec.STRING.fieldOf("key_store_path").forGetter(SSLSettings::keyStorePath),
+						Codec.STRING.fieldOf("key_store_password").forGetter(SSLSettings::keyStorePassword),
+						Codec.STRING.optionalFieldOf("key_manager_algorithm", "SunX509").forGetter(SSLSettings::keyManagerAlgorithm),
+						Codec.STRING.optionalFieldOf("key_trust_manager_algorithm", "SunX509").forGetter(SSLSettings::trustManagerAlgorithm)
+				).apply(instance, SSLSettings::new)
+		);
+
 	}
 
 }

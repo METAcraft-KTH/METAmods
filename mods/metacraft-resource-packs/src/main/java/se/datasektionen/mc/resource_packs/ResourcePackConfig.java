@@ -39,7 +39,8 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 					),
 					Codec.STRING.fieldOf("server_address").forGetter(c -> c.serverAddress),
 					Codec.intRange(0, 65535).fieldOf("port").forGetter(c -> c.port),
-					Codec.INT.fieldOf("max_connections").forGetter(c -> c.maxConnections)
+					Codec.INT.fieldOf("max_connections").forGetter(c -> c.maxConnections),
+					ResourcePackServer.SSLSettings.CODEC.optionalFieldOf("ssl").forGetter(c -> c.sslSettigs)
 			).apply(instance, ResourcePackConfig::new)
 	);
 
@@ -58,16 +59,21 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	private final String serverAddress;
 	private final int port;
 	private final int maxConnections;
+	private final Optional<ResourcePackServer.SSLSettings> sslSettigs;
 
-	public ResourcePackConfig(Map<UUID, ResourcePack> resourcePacks, String serverAddress, int port, int maxConnections) {
+	public ResourcePackConfig(
+			Map<UUID, ResourcePack> resourcePacks, String serverAddress, int port, int maxConnections,
+			Optional<ResourcePackServer.SSLSettings> sslSettigs
+	) {
 		this.resourcePacks = resourcePacks instanceof ImmutableMap<UUID, ResourcePack> ? new HashMap<>(resourcePacks) : resourcePacks;
 		this.serverAddress = serverAddress;
 		this.port = port;
 		this.maxConnections = maxConnections;
+		this.sslSettigs = sslSettigs;
 	}
 
 	public ResourcePackConfig() {
-		this(new HashMap<>(), "localhost", 25585, 50);
+		this(new HashMap<>(), "localhost", 25585, 50, Optional.empty());
 	}
 
 	public static ResourcePackConfig getConfig() {
@@ -122,7 +128,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	}
 
 	public ResourcePackServer createResourcePackServer(MinecraftServer server) throws UnknownHostException {
-		return new ResourcePackServer(server, port, serverAddress, maxConnections);
+		return new ResourcePackServer(server, port, serverAddress, maxConnections, sslSettigs);
 	}
 
 	private boolean modified = false;
@@ -140,8 +146,9 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	public ResourcePackSendS2CPacket createEnablePacket(UUID uuid) {
 		var entry = getResourcePack(uuid);
 		if (entry == null) return null;
+		String protocol = sslSettigs.isPresent() ? "https" : "http";
 		return new ResourcePackSendS2CPacket(
-				uuid, "http://" + getServerAddress() + ":" + getPort()+ "/" + uuid.toString(),
+				uuid,  protocol + "://" + getServerAddress() + ":" + getPort()+ "/" + uuid.toString(),
 				entry.getHash().toString(), entry.isRequired(), entry.getPrompt()
 		);
 	}
