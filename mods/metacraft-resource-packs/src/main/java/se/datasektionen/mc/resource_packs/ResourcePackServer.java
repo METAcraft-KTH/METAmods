@@ -29,21 +29,25 @@ public class ResourcePackServer implements AutoCloseable {
 	private final HttpServer server;
 
 	public ResourcePackServer(
-			MinecraftServer mc, int port, String localAddress,
+			MinecraftServer mc, int port, Optional<String> localAddress,
 			int maxConnections, Optional<SSLSettings> sslSettings
 	) {
 		this.mc = mc;
 		try {
+			InetSocketAddress socketAddress;
+			if (localAddress.isPresent()) {
+				socketAddress = new InetSocketAddress(
+						InetAddress.getByName(localAddress.get()), port
+				);
+			} else {
+				socketAddress = new InetSocketAddress(port);
+			}
 			if (sslSettings.isPresent()) {
-				var server = HttpsServer.create(new InetSocketAddress(
-						InetAddress.getByName(localAddress), port
-				), maxConnections);
+				var server = HttpsServer.create(socketAddress, maxConnections);
 				fixHTTPs(server, sslSettings.get());
 				this.server = server;
 			} else {
-				server = HttpServer.create(new InetSocketAddress(
-						InetAddress.getByName(localAddress), port
-				), maxConnections);
+				server = HttpServer.create(socketAddress, maxConnections);
 			}
 			server.createContext("/", exchange -> {
 				sendResponse(

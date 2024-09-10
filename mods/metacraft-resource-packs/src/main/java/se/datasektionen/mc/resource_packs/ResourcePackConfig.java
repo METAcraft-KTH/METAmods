@@ -38,9 +38,10 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 							c -> c.resourcePacks
 					),
 					Codec.STRING.fieldOf("server_address").forGetter(c -> c.serverAddress),
+					Codec.STRING.optionalFieldOf("network_address").forGetter(c -> c.networkAddress),
 					Codec.intRange(0, 65535).fieldOf("port").forGetter(c -> c.port),
 					Codec.INT.fieldOf("max_connections").forGetter(c -> c.maxConnections),
-					ResourcePackServer.SSLSettings.CODEC.optionalFieldOf("ssl").forGetter(c -> c.sslSettigs)
+					ResourcePackServer.SSLSettings.CODEC.optionalFieldOf("ssl").forGetter(c -> c.sslSettings)
 			).apply(instance, ResourcePackConfig::new)
 	);
 
@@ -57,23 +58,30 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	private final Map<UUID, ResourcePack> resourcePacks;
 	private final Map<UUID, ResourcePack> prevPacks = new HashMap<>();
 	private final String serverAddress;
+	private final Optional<String> networkAddress;
 	private final int port;
 	private final int maxConnections;
-	private final Optional<ResourcePackServer.SSLSettings> sslSettigs;
+	private final Optional<ResourcePackServer.SSLSettings> sslSettings;
 
 	public ResourcePackConfig(
-			Map<UUID, ResourcePack> resourcePacks, String serverAddress, int port, int maxConnections,
-			Optional<ResourcePackServer.SSLSettings> sslSettigs
+			Map<UUID, ResourcePack> resourcePacks, String serverAddress,
+			Optional<String> networkAddress, int port, int maxConnections,
+			Optional<ResourcePackServer.SSLSettings> sslSettings
 	) {
 		this.resourcePacks = resourcePacks instanceof ImmutableMap<UUID, ResourcePack> ? new HashMap<>(resourcePacks) : resourcePacks;
 		this.serverAddress = serverAddress;
+		this.networkAddress = networkAddress;
 		this.port = port;
 		this.maxConnections = maxConnections;
-		this.sslSettigs = sslSettigs;
+		this.sslSettings = sslSettings;
 	}
 
 	public ResourcePackConfig() {
-		this(new HashMap<>(), "localhost", 25585, 50, Optional.empty());
+		this(
+				new HashMap<>(), "localhost",
+				Optional.empty(), 25585,
+				50, Optional.empty()
+		);
 	}
 
 	public static ResourcePackConfig getConfig() {
@@ -128,7 +136,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	}
 
 	public ResourcePackServer createResourcePackServer(MinecraftServer server) throws UnknownHostException {
-		return new ResourcePackServer(server, port, serverAddress, maxConnections, sslSettigs);
+		return new ResourcePackServer(server, port, networkAddress, maxConnections, sslSettings);
 	}
 
 	private boolean modified = false;
@@ -146,7 +154,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	public ResourcePackSendS2CPacket createEnablePacket(UUID uuid) {
 		var entry = getResourcePack(uuid);
 		if (entry == null) return null;
-		String protocol = sslSettigs.isPresent() ? "https" : "http";
+		String protocol = sslSettings.isPresent() ? "https" : "http";
 		return new ResourcePackSendS2CPacket(
 				uuid,  protocol + "://" + getServerAddress() + ":" + getPort()+ "/" + uuid.toString(),
 				entry.getHash().toString(), entry.isRequired(), entry.getPrompt()
