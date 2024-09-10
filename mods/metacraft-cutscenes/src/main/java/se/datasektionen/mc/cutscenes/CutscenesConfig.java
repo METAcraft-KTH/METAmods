@@ -15,7 +15,7 @@ import java.util.Optional;
 
 public class CutscenesConfig extends JsonPersistentState {
 
-	private static final String KEY = "cutscenes";
+	private static final String KEY = "metacraft-cutscenes";
 
 	public static final Codec<CutscenesConfig> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(

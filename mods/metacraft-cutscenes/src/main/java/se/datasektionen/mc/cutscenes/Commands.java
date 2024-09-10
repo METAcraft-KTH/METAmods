@@ -232,6 +232,16 @@ public class Commands {
 							)
 						)
 					).then(
+						literal("stop").requires(
+								Permissions.require("metacraft.cutscenes.stop", 2)
+						).executes(
+								ctx -> endCutscene(ctx, List.of(ctx.getSource().getPlayerOrThrow()))
+						).then(
+								argument("players", EntityArgumentType.players()).executes(
+										ctx -> endCutscene(ctx, EntityArgumentType.getPlayers(ctx, "players"))
+								)
+						)
+					).then(
 						literal("reload").requires(Permissions.require("metacraft.cutscenes.reload", 4)).executes(ctx -> {
 							CutscenesConfig.getOrCreateConfig(ctx.getSource().getWorld()).reload();
 							ctx.getSource().sendFeedback(
