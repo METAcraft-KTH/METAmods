@@ -147,6 +147,7 @@ public class MultiplayerCutsceneManager extends PersistentState {
 		if (disconnectedPlayers.containsKey(player.getUuid())) {
 			var scene = disconnectedPlayers.get(player.getUuid());
 			scene.addPlayer(player);
+			scene.tick();
 			scene.resetPlayers(p -> {});
 			disconnectedPlayers.remove(player.getUuid());
 			markDirty();
