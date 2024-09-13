@@ -34,6 +34,15 @@ public class ResourcePackHelper {
 		player.networkHandler.sendPacket(new ResourcePackRemoveS2CPacket(Optional.of(uuid)));
 	}
 
+	public static boolean hasResourcePack(ServerPlayerEntity player, UUID uuid) {
+		var pack = ResourcePackConfig.getConfig().getResourcePack(uuid);
+		if (pack == null) return false;
+		if (pack.isGlobal()) {
+			return true;
+		}
+		return ((ServerPlayerEntityExtension) player).metacraft$getResourcePacks().contains(uuid);
+	}
+
 	public static void resendResourcePacks(MinecraftServer server) {
 		var config = ResourcePackConfig.getConfig();
 		{ //Remove all removed resource packs from all players.

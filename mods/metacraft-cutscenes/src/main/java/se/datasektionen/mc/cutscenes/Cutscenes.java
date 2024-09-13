@@ -4,6 +4,7 @@ import net.fabricmc.api.ModInitializer;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import se.datasektionen.mc.cutscenes.compat.CompatTransitions;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
@@ -22,6 +23,7 @@ public class Cutscenes implements ModInitializer {
 		CutsceneInstance.init();
 		Commands.init();
 		Events.init();
+		CompatTransitions.init();
 	}
 
 	public static Identifier getID(String id) {

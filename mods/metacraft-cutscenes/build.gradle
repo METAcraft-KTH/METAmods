@@ -5,4 +5,5 @@ loom {
 }
 
 addProjectDependency(":mods:metacraft-core")
+addProjectDependency(":mods:metacraft-resource-packs")
 addPolymerDependency()
