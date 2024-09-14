@@ -253,8 +253,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Override
-	public boolean metacraft_lib$hasMusicEntry(MusicEntry entry) {
-		return music == entry;
+	public boolean metacraft_lib$hasMusicEntry(MusicEntry entry, boolean allowEquivalent) {
+		if (allowEquivalent) {
+			return Objects.equals(entry, music);
+		} else {
+			return music == entry;
+		}
 	}
 
 	@Override

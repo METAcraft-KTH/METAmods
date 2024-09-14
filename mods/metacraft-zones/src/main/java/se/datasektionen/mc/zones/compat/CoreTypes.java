@@ -1,12 +1,10 @@
 package se.datasektionen.mc.zones.compat;
 
-import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.command.argument.NbtCompoundArgumentType;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.Registry;
 import net.minecraft.text.Text;
-import se.datasektionen.mc.metacraft_core.music.MusicEntry;
+import se.datasektionen.mc.metacraft_core.commands.PlayMusic;
 import se.datasektionen.mc.zones.METAcraftZones;
 import se.datasektionen.mc.zones.compat.music.MusicData;
 import se.datasektionen.mc.zones.util.ZoneCommandUtils;
@@ -25,8 +23,6 @@ public class CoreTypes {
 			new ZoneDataType<>(MusicData.CODEC, () -> new MusicData(Optional.empty()))
 	);
 
-	private static final DynamicCommandExceptionType INVALID = new DynamicCommandExceptionType(e -> e::toString);
-
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			dispatcher.register(
@@ -36,13 +32,14 @@ public class CoreTypes {
 							ZoneCommandUtils.zone("zone").then(
 								argument("music", NbtCompoundArgumentType.nbtCompound()).executes(ctx -> {
 									var zone = ZoneCommandUtils.getZone(ctx, "zone");
-									var music = MusicEntry.CODEC.parse(
-											ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE),
-											NbtCompoundArgumentType.getNbtCompound(ctx, "music")
-									).getOrThrow(INVALID::create);
+									var music = PlayMusic.parse(
+											NbtCompoundArgumentType.getNbtCompound(ctx, "music"),
+											ctx.getSource().getRegistryManager()
+									);
 									zone.getOrCreate(MUSIC).setMusic(Optional.of(music));
 									ctx.getSource().sendFeedback(
-											() -> Text.literal("Set music to " + music + " in " + zone.getName()), true
+											() -> Text.literal("Set music to " + music + " in " + zone.getName()),
+											true
 									);
 									return 1;
 								})

@@ -20,7 +20,7 @@ public interface ServerPlayerEntityExtensions {
 
 	default boolean metacraft_lib$replaceMusic(MusicEntry prev, MusicEntry newMusic) {
 		if (prev == newMusic) return true;
-		if (metacraft_lib$hasMusicEntry(prev)) {
+		if (metacraft_lib$hasMusicEntry(prev, false)) {
 			return metacraft_lib$setMusicEntry(newMusic, true);
 		} else {
 			return metacraft_lib$setMusicEntry(newMusic);
@@ -40,7 +40,7 @@ public interface ServerPlayerEntityExtensions {
 	 * {@link MusicHelper#isMusicPlaying(ServerPlayerEntity, MusicEntry)}
 	 * instead!
 	 */
-	boolean metacraft_lib$hasMusicEntry(MusicEntry entry);
+	boolean metacraft_lib$hasMusicEntry(MusicEntry entry, boolean allowEquivalent);
 
 	void metacraft_lib$resetMusicTimer();
 

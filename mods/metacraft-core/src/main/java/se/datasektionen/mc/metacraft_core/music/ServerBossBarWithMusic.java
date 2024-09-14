@@ -56,7 +56,7 @@ public class ServerBossBarWithMusic extends ServerBossBar {
 				}
 			} else {
 				for (var player : getPlayers()) {
-					if (((ServerPlayerEntityExtensions) player).metacraft_lib$hasMusicEntry(music)) {
+					if (((ServerPlayerEntityExtensions) player).metacraft_lib$hasMusicEntry(music, false)) {
 						((ServerPlayerEntityExtensions) player).metacraft_lib$setMusicEntry(null);
 					}
 				}

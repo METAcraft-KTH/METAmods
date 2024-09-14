@@ -9,7 +9,11 @@ import java.util.function.Predicate;
 public class MusicHelper {
 
 	public static boolean isMusicPlaying(ServerPlayerEntity player, MusicEntry music) {
-		return ((ServerPlayerEntityExtensions) player).metacraft_lib$hasMusicEntry(music);
+		return ((ServerPlayerEntityExtensions) player).metacraft_lib$hasMusicEntry(music, false);
+	}
+
+	public static boolean isMusicPlaying(ServerPlayerEntity player, MusicEntry music, boolean allowEquivalent) {
+		return ((ServerPlayerEntityExtensions) player).metacraft_lib$hasMusicEntry(music, allowEquivalent);
 	}
 
 	public static boolean playMusic(ServerPlayerEntity player, MusicEntry music) {
