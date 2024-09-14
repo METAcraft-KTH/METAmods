@@ -10,6 +10,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.nbt.*;
+import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerRemoveS2CPacket;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
@@ -35,6 +38,7 @@ import se.datasektionen.mc.cutscenes.transitions.TeleportTransition;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
 import se.datasektionen.mc.cutscenes.transitions.entity.SpawnEntity;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
+import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -295,6 +299,18 @@ public class CutsceneInstance {
 				interval.getObject().activate(player, this, interval);
 			}
 		});
+		if (cutscene.hidePlayer()) {
+			var playerPacket = new PlayerRemoveS2CPacket(List.of(player.getUuid()));
+			var entityPacket = new EntitiesDestroyS2CPacket(player.getId());
+			for (var p : getServer().getPlayerManager().getPlayerList()) {
+				if (!players.contains(p) && player != p) {
+					p.networkHandler.sendPacket(playerPacket);
+					if (p.getWorld() == player.getWorld()) {
+						p.networkHandler.sendPacket(entityPacket);
+					}
+				}
+			}
+		}
 	}
 
 	public Optional<Entity> createFromData(NbtCompound data) {
@@ -428,6 +444,17 @@ public class CutsceneInstance {
 			world.removePlayer(player);
 		}
 		entities.removePlayer(player);
+
+		if (cutscene.hidePlayer()) {
+			var packet = PlayerListS2CPacket.entryFromPlayer(List.of(player));
+			var tracker = EntityTrackerHelper.getEntityTrackers(player.getServerWorld()).get(player.getId());
+			for (var p : getServer().getPlayerManager().getPlayerList()) {
+				if (!players.contains(p)) {
+					p.networkHandler.sendPacket(packet);
+					tracker.updateTrackedStatus(p);
+				}
+			}
+		}
 	}
 
 	public void tick() {

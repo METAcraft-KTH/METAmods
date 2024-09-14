@@ -24,6 +24,7 @@ public class Cutscene {
 					Codec.BOOL.fieldOf("return_player_to_start").forGetter(a -> a.returnPlayerToStartPos),
 					Codec.BOOL.fieldOf("hide_mount").forGetter(a -> a.hideMount),
 					Codec.BOOL.optionalFieldOf("reset_player_data", true).forGetter(a -> a.resetPlayerData),
+					Codec.BOOL.optionalFieldOf("hide_player", true).forGetter(a -> a.hidePlayer),
 					TeleportTransition.SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec().optionalFieldOf("entry_point").forGetter(t -> t.entryPoint)
 			).apply(instance, Cutscene::new)
 	);
@@ -33,19 +34,20 @@ public class Cutscene {
 	private boolean returnPlayerToStartPos;
 	private boolean hideMount;
 	private boolean resetPlayerData;
+	private boolean hidePlayer;
 	private final Optional<TeleportTransition.SerializableTeleportTarget> entryPoint;
 
 	public Cutscene() {
 		this(
 				new IntervalMap<>(), false, true,
-				true, true, Optional.empty()
+				true, true, true, Optional.empty()
 		);
 	}
 
 	public Cutscene(
 			IntervalMap<TransitionConfig> transitions,
 			boolean createFakePlayer, boolean returnPlayerToStartPos, boolean hideMount,
-			boolean resetPlayerData,
+			boolean resetPlayerData, boolean hidePlayer,
 			Optional<TeleportTransition.SerializableTeleportTarget> entryPoint
 	) {
 		this.transitions = transitions;
@@ -53,6 +55,7 @@ public class Cutscene {
 		this.returnPlayerToStartPos = returnPlayerToStartPos;
 		this.hideMount = hideMount;
 		this.resetPlayerData = resetPlayerData;
+		this.hidePlayer = hidePlayer;
 		this.entryPoint = entryPoint;
 	}
 
@@ -74,6 +77,10 @@ public class Cutscene {
 
 	public boolean resetPlayerData() {
 		return resetPlayerData;
+	}
+
+	public boolean hidePlayer() {
+		return hidePlayer;
 	}
 
 	public Optional<TeleportTarget> getEntryPoint(MinecraftServer server, RegistryKey<World> cutsceneDim) {

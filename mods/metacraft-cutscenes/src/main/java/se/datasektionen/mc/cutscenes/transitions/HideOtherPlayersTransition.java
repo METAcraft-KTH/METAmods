@@ -53,18 +53,24 @@ public class HideOtherPlayersTransition implements Transition, TransitionConfig 
 		cutscene.forAllPlayers(p -> {
 			if (p != player) {
 				playerIDs.add(p.getUuid());
-				ids.add(p.getId());
+				if (p.getWorld() == player.getWorld()) {
+					ids.add(p.getId());
+				}
 			}
 		});
 		//Remove other players from client.
 		player.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(ids));
 		//Make sure other players are not re-added after teleports.
 		player.networkHandler.sendPacket(new PlayerRemoveS2CPacket(playerIDs));
+		var playerRemovePacket = new PlayerRemoveS2CPacket(List.of(player.getUuid()));
+		var entityRemovePacket = new EntitiesDestroyS2CPacket(player.getId());
 		if (interval.getStart() != cutscene.getCurrentTime()) {
 			cutscene.forAllPlayers(p -> {
 				if (p != player) {
-					p.networkHandler.sendPacket(new PlayerRemoveS2CPacket(List.of(player.getUuid())));
-					p.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(player.getId()));
+					p.networkHandler.sendPacket(playerRemovePacket);
+					if (p.getWorld() == player.getWorld()) {
+						p.networkHandler.sendPacket(entityRemovePacket);
+					}
 				}
 			});
 		}
