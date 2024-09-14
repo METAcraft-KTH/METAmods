@@ -82,8 +82,9 @@ public class TransitionConfigRegistry {
 			"rotate_head", RotateHead.RotateHeadConfig.CODEC
 	);
 
-
-
+	public static final TransitionConfigType<HideOtherPlayersTransition> HIDE_OTHER_PLAYERS = register(
+			"hide_other_players", HideOtherPlayersTransition.CODEC
+	);
 
 
 
