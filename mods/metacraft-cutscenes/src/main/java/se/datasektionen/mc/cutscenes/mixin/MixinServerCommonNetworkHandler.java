@@ -11,7 +11,7 @@ import se.datasektionen.mc.cutscenes.transitions.PlaySoundTransition;
 import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
 
 @Mixin(ServerCommonNetworkHandler.class)
-public class MixinServerPlayNetworkHandler {
+public class MixinServerCommonNetworkHandler {
 
 	@Inject(method = "onResourcePackStatus", at = @At("RETURN"))
 	public void onResourcePackStatus(ResourcePackStatusC2SPacket packet, CallbackInfo ci) {

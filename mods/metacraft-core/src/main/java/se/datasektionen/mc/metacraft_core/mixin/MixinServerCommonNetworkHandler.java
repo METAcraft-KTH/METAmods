@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_core.mixin;
 
 import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.c2s.common.ResourcePackStatusC2SPacket;
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
 import net.minecraft.server.network.ServerCommonNetworkHandler;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
@@ -9,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_core.block.blocks.BlockWithDisguise;
+import se.datasektionen.mc.metacraft_core.util.helper.MusicHelper;
 
 @Mixin(ServerCommonNetworkHandler.class)
 public class MixinServerCommonNetworkHandler {
@@ -21,6 +23,15 @@ public class MixinServerCommonNetworkHandler {
 				disguised.getBlockEntity(play.player.getWorld(), blockUpdate.getPos()).ifPresent(entity -> {
 					((AccessorBlockUpdateS2CPacket) blockUpdate).setState(entity.getBlockState());
 				});
+			}
+		}
+	}
+
+	@Inject(method = "onResourcePackStatus", at = @At("RETURN"))
+	public void onResourcePackStatus(ResourcePackStatusC2SPacket packet, CallbackInfo ci) {
+		if ((Object) this instanceof ServerPlayNetworkHandler h) {
+			if (packet.status() == ResourcePackStatusC2SPacket.Status.SUCCESSFULLY_LOADED) {
+				MusicHelper.resetMusicTimer(h.getPlayer());
 			}
 		}
 	}

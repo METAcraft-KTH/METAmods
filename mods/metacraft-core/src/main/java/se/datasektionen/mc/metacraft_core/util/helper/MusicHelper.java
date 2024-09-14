@@ -26,4 +26,8 @@ public class MusicHelper {
 		return playMusic(player, null);
 	}
 
+	public static void resetMusicTimer(ServerPlayerEntity player) {
+		((ServerPlayerEntityExtensions) player).metacraft_lib$resetMusicTimer();
+	}
+
 }
