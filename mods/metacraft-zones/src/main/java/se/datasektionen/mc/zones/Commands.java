@@ -1,19 +1,16 @@
 package se.datasektionen.mc.zones;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.Identifier;
-
-import static net.minecraft.server.command.CommandManager.literal;
+import se.datasektionen.mc.zones.util.ZoneCommandUtils;
 
 public class Commands {
 
 	public static void registerCommands() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-			LiteralArgumentBuilder<ServerCommandSource> rootBuilder = literal("zone")
-					.requires(Permissions.require("metacraft.zone", 2));
+			LiteralArgumentBuilder<ServerCommandSource> rootBuilder = ZoneCommandUtils.zoneCommandRoot();
 			ZoneManagementCommand.registerCommand(rootBuilder, registryAccess, dispatcher);
 			dispatcher.register(rootBuilder);
 		});

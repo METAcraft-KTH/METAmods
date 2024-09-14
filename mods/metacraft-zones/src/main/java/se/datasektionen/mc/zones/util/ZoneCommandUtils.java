@@ -10,6 +10,7 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.serialization.DataResult;
+import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.NbtCompoundArgumentType;
 import net.minecraft.nbt.NbtCompound;
@@ -28,6 +29,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import static net.minecraft.server.command.CommandManager.argument;
+import static net.minecraft.server.command.CommandManager.literal;
 
 public class ZoneCommandUtils {
 
@@ -94,6 +96,10 @@ public class ZoneCommandUtils {
 		} catch (IllegalArgumentException e) {
 			throw OTHER_ERROR.create(e.getMessage());
 		}
+	}
+
+	public static LiteralArgumentBuilder<ServerCommandSource> zoneCommandRoot() {
+		return literal("zone").requires(Permissions.require("metacraft.zone", 2));
 	}
 
 }

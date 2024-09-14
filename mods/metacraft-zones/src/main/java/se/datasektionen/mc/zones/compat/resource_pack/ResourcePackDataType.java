@@ -1,6 +1,5 @@
 package se.datasektionen.mc.zones.compat.resource_pack;
 
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.UuidArgumentType;
@@ -30,10 +29,10 @@ public class ResourcePackDataType {
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			dispatcher.register(
-				literal("zone").then(
+				ZoneCommandUtils.zoneCommandRoot().then(
 					literal("resource-pack").then(
 						literal("add").then(
-							ZoneCommandUtils.zone("zone").requires(Permissions.require("metacraft.zone", 2)).then(
+							ZoneCommandUtils.zone("zone").then(
 								argument("pack", UuidArgumentType.uuid()).suggests(ResourcePackCommand.PACKS).executes(ctx -> {
 									var zone = ZoneCommandUtils.getZone(ctx, "zone");
 									var pack = UuidArgumentType.getUuid(ctx, "pack");

@@ -9,6 +9,9 @@ public class CustomZoneDatas {
 		if (IsLoaded.RESOURCE_PACKS.isLoaded()) {
 			ResourcePackDataType.init();
 		}
+		if (IsLoaded.CORE.isLoaded()) {
+			CoreTypes.init();
+		}
 	}
 
 }

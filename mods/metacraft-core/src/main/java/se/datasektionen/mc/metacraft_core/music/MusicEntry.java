@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_core.music;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
@@ -54,6 +55,16 @@ public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitc
 		return entry.getKeyOrValue().map(RegistryKey::getValue, SoundEvent::getId);
 	}
 
+	@Override
+	public String toString() {
+		String firstPart = "MusicEntry[music=" + music.value().getId() + ", length=" +
+				length + ", pitch=" + pitch + ", priority=" + priority;
+		if (credit.isPresent()) {
+			firstPart += ", credit=" + credit.get();
+		}
+		return firstPart + "]";
+	}
+
 	public record Credit(Text name, Text author, Style style, Optional<Style> playingStyle, Optional<Credit> basedOf) {
 		private static Codec<Credit> getCodec() {
 			return Codec.lazyInitialized(() -> CODEC);
@@ -86,6 +97,11 @@ public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitc
 			return Text.translatable(
 					"record.nowPlaying", getCredit()
 			).fillStyle(playingStyle.orElse(style));
+		}
+
+		@Override
+		public String toString() {
+			return CODEC.encodeStart(JavaOps.INSTANCE, this).getOrThrow().toString();
 		}
 	}
 

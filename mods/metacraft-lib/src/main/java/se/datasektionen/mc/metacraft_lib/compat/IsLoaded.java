@@ -13,6 +13,7 @@ public record IsLoaded(String modID) {
 	public static final IsLoaded SQUAREMAP = new IsLoaded("squaremap");
 	public static final IsLoaded PORTAL_BLOCKER = new IsLoaded("portal-blocker");
 	public static final IsLoaded RESOURCE_PACKS = new IsLoaded("metacraft-resource-packs");
+	public static final IsLoaded CORE = new IsLoaded("metacraft-core");
 
 	public boolean isLoaded() {
 		return FabricLoader.getInstance().isModLoaded(modID);
