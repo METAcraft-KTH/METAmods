@@ -37,6 +37,7 @@ public class ResourcePackData extends ZoneDataEntityTracking {
 			}
 		});
 		resourcePacks.add(pack);
+		markDirty();
 		return true;
 	}
 
@@ -48,6 +49,7 @@ public class ResourcePackData extends ZoneDataEntityTracking {
 			}
 		});
 		resourcePacks.remove(pack);
+		markDirty();
 		return true;
 	}
 
