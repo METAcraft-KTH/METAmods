@@ -10,10 +10,7 @@ import se.datasektionen.mc.zones.zone.data.ZoneDataEntityTracking;
 import se.datasektionen.mc.zones.zone.data.ZoneDataType;
 import se.datasektionen.mc.zones.zone.types.ZoneType;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 public abstract class Zone implements Comparable<Zone> {
 
@@ -57,6 +54,10 @@ public abstract class Zone implements Comparable<Zone> {
 			}
 		});
 		entities.remove(entity);
+	}
+
+	public Set<Entity> getEntities() {
+		return Collections.unmodifiableSet(entities);
 	}
 
 

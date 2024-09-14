@@ -21,7 +21,7 @@ import static net.minecraft.server.command.CommandManager.literal;
 
 public class ResourcePackCommand {
 
-	private static final SuggestionProvider<ServerCommandSource> PACKS = (ctx, builder) -> {
+	public static final SuggestionProvider<ServerCommandSource> PACKS = (ctx, builder) -> {
 		return CommandSource.suggestMatching(
 				ResourcePackConfig.getConfig().getResourcePacks().stream().filter(
 						e -> !e.getValue().isGlobal()

@@ -6,6 +6,7 @@ import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.zones.compat.CustomZoneDatas;
 import se.datasektionen.mc.zones.compat.leukocyte.LeukocyteZoneManager;
 import se.datasektionen.mc.zones.zone.RealZone;
 import se.datasektionen.mc.zones.zone.ZoneRegistry;
@@ -28,6 +29,7 @@ public class METAcraftZones implements ModInitializer {
 		if (IsLoaded.LEUKOCYTE.isLoaded()) {
 			LeukocyteZoneManager.init();
 		}
+		CustomZoneDatas.init();
 		LOGGER.info("Loaded METAcraft zones by Acuadragon100");
 	}
 
