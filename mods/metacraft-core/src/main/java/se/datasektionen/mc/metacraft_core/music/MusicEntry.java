@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_core.music;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JavaOps;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
@@ -25,7 +26,7 @@ public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitc
 			MusicEntry::getFromID, MusicEntry::getID
 	);
 
-	public static final Codec<MusicEntry> CODEC = RecordCodecBuilder.create(
+	public static final MapCodec<MusicEntry> MAP_CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
 			MUSIC_CODEC_WITH_CACHE.fieldOf("music").forGetter(MusicEntry::music),
 			Codec.INT.fieldOf("length").forGetter(MusicEntry::length),
@@ -34,6 +35,8 @@ public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitc
 			Credit.CODEC.optionalFieldOf("credit").forGetter(MusicEntry::credit)
 		).apply(instance, MusicEntry::new)
 	);
+
+	public static final Codec<MusicEntry> CODEC = MAP_CODEC.codec();
 
 	public static RegistryEntry<SoundEvent> getFromID(Identifier id) {
 		return getFromID(RegistryKey.of(RegistryKeys.SOUND_EVENT, id));

@@ -86,6 +86,10 @@ public class TransitionConfigRegistry {
 			"hide_other_players", HideOtherPlayersTransition.CODEC
 	);
 
+	public static final TransitionConfigType<MusicTransition> MUSIC = register(
+			"music", MusicTransition.CODEC
+	);
+
 
 
 	public static void init() {
