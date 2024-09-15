@@ -7,6 +7,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -25,6 +26,7 @@ import se.datasektionen.mc.cutscenes.extension.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.cutscene.MultiplayerCutsceneManager;
 import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
+import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 
 import java.util.Optional;
 
@@ -37,12 +39,17 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Shadow public abstract ServerWorld getServerWorld();
 
+	@Shadow public ServerPlayNetworkHandler networkHandler;
 	@Unique
 	private CutsceneInstance cutscene;
 
 	@Override
 	public void metacraft_cutscenes$setCutscene(CutsceneInstance cutscene) {
 		if (CutsceneHelper.isInMultiplayerCutscene((ServerPlayerEntity) (Object) this)) {
+			return;
+		}
+		if (this.networkHandler == null) {
+			TaskScheduler.scheduleImmediately(getServer(), () -> metacraft_cutscenes$setCutscene(cutscene));
 			return;
 		}
 		if (this.cutscene != null && !this.cutscene.isEnded()) {
