@@ -14,8 +14,9 @@
 		"MixinMobEntity",
 		"MixinPlayerManager",
 		"MixinServerChunkLoadingManager",
-		"MixinServerPlayerEntity",
-		"MixinServerCommonNetworkHandler"
+		"MixinServerChunkLoadingManager$EntityTracker",
+		"MixinServerCommonNetworkHandler",
+		"MixinServerPlayerEntity"
 	],
 	"client": [],
 	"injectors": {

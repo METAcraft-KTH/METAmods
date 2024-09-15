@@ -10,9 +10,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.nbt.*;
-import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlayerRemoveS2CPacket;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
@@ -31,6 +28,7 @@ import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.entity.EntityLookup;
 import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.transitions.DeltaTickTransition;
+import se.datasektionen.mc.cutscenes.transitions.HideOtherPlayersTransition;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.mixin.AccessorServerPlayerEntity;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
@@ -244,6 +242,16 @@ public class CutsceneInstance implements AutoCloseable {
 		return world.isPlayerWorld(player) || getCurrentTarget().isPresent();
 	}
 
+	public boolean isPlayerHiddenFrom(ServerPlayerEntity player, ServerPlayerEntity target) {
+		if (cutscene.hidePlayer() && players.contains(player) && !ended) {
+			return true;
+		}
+		if (getTransitions().getValuesAt(getCurrentTime()).anyMatch(transition -> transition == HideOtherPlayersTransition.getInstance())) {
+			return players.contains(target) && players.contains(player);
+		}
+		return false;
+	}
+
 	private boolean isValidTarget(TeleportTarget target) {
 		return world.getActualWorld() == target.world();
 	}
@@ -301,14 +309,10 @@ public class CutsceneInstance implements AutoCloseable {
 			}
 		});
 		if (cutscene.hidePlayer()) {
-			var playerPacket = new PlayerRemoveS2CPacket(List.of(player.getUuid()));
-			var entityPacket = new EntitiesDestroyS2CPacket(player.getId());
+			var tracker = EntityTrackerHelper.getEntityTrackers(player.getServerWorld()).get(player.getId());
 			for (var p : getServer().getPlayerManager().getPlayerList()) {
-				if (!players.contains(p) && player != p) {
-					p.networkHandler.sendPacket(playerPacket);
-					if (p.getWorld() == player.getWorld()) {
-						p.networkHandler.sendPacket(entityPacket);
-					}
+				if (player != p) {
+					tracker.updateTrackedStatus(player);
 				}
 			}
 		}
@@ -447,11 +451,9 @@ public class CutsceneInstance implements AutoCloseable {
 		entities.removePlayer(player);
 
 		if (cutscene.hidePlayer()) {
-			var packet = PlayerListS2CPacket.entryFromPlayer(List.of(player));
 			var tracker = EntityTrackerHelper.getEntityTrackers(player.getServerWorld()).get(player.getId());
 			for (var p : getServer().getPlayerManager().getPlayerList()) {
-				if (!players.contains(p)) {
-					p.networkHandler.sendPacket(packet);
+				if (p != player) {
 					tracker.updateTrackedStatus(p);
 				}
 			}
