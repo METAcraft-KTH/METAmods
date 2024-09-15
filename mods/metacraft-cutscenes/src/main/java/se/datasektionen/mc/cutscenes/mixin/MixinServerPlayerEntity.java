@@ -123,6 +123,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Inject(method = "onDisconnect", at = @At("HEAD"))
 	public void onDisconnect(CallbackInfo ci) {
 		MultiplayerCutsceneManager.getInstance(getServer()).onPlayerLeave((ServerPlayerEntity) (Object) this);
+		if (cutscene != null) {
+			cutscene.close();
+		}
 	}
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))

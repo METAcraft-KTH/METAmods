@@ -1,5 +1,6 @@
 package se.datasektionen.mc.cutscenes.transitions;
 
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -14,12 +15,13 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.TimerTask;
 
-public class MovingTransition implements Transition, SmoothMovementTransition {
+		public class MovingTransition implements Transition, SmoothMovementTransition, DeltaTickTransition {
 
 	public static final MapCodec<MovingTransition> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					MovingTransitionConfig.CODEC.forGetter(t -> t.config),
-					Target.CODEC.optionalFieldOf("start_pos").forGetter(t -> Optional.ofNullable(t.startPos))
+					Target.CODEC.optionalFieldOf("start_pos").forGetter(t -> Optional.ofNullable(t.startPos)),
+					Codec.LONG.fieldOf("progress").forGetter(t -> t.progress)
 			).apply(instance, MovingTransition::new)
 	);
 
@@ -30,14 +32,16 @@ public class MovingTransition implements Transition, SmoothMovementTransition {
 	private Target nextEnd;
 
 	private TimerTask task;
+	private long progress;
 
 	public MovingTransition(MovingTransitionConfig config) {
 		this.config = config;
 	}
 
-	public MovingTransition(MovingTransitionConfig config, Optional<Target> startPos) {
+	public MovingTransition(MovingTransitionConfig config, Optional<Target> startPos, long progress) {
 		this(config);
 		this.startPos = startPos.orElse(null);
+		this.progress = progress;
 	}
 
 	@Override
@@ -108,48 +112,50 @@ public class MovingTransition implements Transition, SmoothMovementTransition {
 	}
 
 	@Override
-	public TimerTask getSuperTick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		if (task == null) {
-			task = new TimerTask() {
+	public void setProgress(long time) {
+		this.progress = time;
+	}
 
-				private final long start = System.currentTimeMillis();
+	@Override
+	public long getProgress() {
+		return progress;
+	}
 
-				@Override
-				public void run() {
-					if (prevStart == null) {
-						prevStart = cutscene.getTransitions().getValuesAt(interval.getStart()-1).filter(
-								movement -> movement instanceof SmoothMovementTransition
-						).map(movement -> (SmoothMovementTransition) movement).findAny().map(
-								SmoothMovementTransition::getStart
-						).orElse(startPos);
-					}
-					if (nextEnd == null) {
-						nextEnd = cutscene.getTransitions().getValuesAt(interval.getEnd()+1).filter(
-								movement -> movement instanceof SmoothMovementTransition
-						).map(movement -> (SmoothMovementTransition) movement).findAny().map(
-								SmoothMovementTransition::getEnd
-						).orElse(config.to());
-					}
-
-					var time = cutscene.getCurrentTime() - interval.getStart();
-					var serverStartTime = time * 50L + start;
-					var serverEndTime = (time + 1) * 50L + start;
-					var currentTime = System.currentTimeMillis();
-
-					float delta = (float) (currentTime - serverStartTime) / (serverEndTime - serverStartTime);
-
-					double currentPart = interval.getPosInRange(cutscene.getCurrentTime());
-					double progress = (currentPart * (1 - delta) + (currentPart + 1) * delta) / interval.getLength();
-					var target = interpolate(progress, new Target[]{prevStart, startPos, config.to(), nextEnd});
-
-					cutscene.forAllPlayers(player -> {
-						player.networkHandler.requestTeleport(
-								target.pos().x, target.pos().y, target.pos().z, target.yaw(), target.pitch()
-						);
-					});
-				}
-			};
+	@Override
+	public void tickDelta(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval, float delta) {
+		if (prevStart == null) {
+			prevStart = cutscene.getTransitions().getValuesAt(interval.getStart()-1).filter(
+					movement -> movement instanceof SmoothMovementTransition
+			).map(movement -> (SmoothMovementTransition) movement).findAny().map(
+					SmoothMovementTransition::getStart
+			).orElse(startPos);
 		}
+		if (nextEnd == null) {
+			nextEnd = cutscene.getTransitions().getValuesAt(interval.getEnd()+1).filter(
+					movement -> movement instanceof SmoothMovementTransition
+			).map(movement -> (SmoothMovementTransition) movement).findAny().map(
+					SmoothMovementTransition::getEnd
+			).orElse(config.to());
+		}
+
+		//double currentPart = interval.getPosInRange(cutscene.getCurrentTime());
+		//double progress = (currentPart * (1 - delta) + (currentPart + 1) * delta) / interval.getLength();
+		var target = interpolate(delta, new Target[]{prevStart, startPos, config.to(), nextEnd});
+
+		cutscene.forAllPlayers(player -> {
+			player.networkHandler.requestTeleport(
+					target.pos().x, target.pos().y, target.pos().z, target.yaw(), target.pitch()
+			);
+		});
+	}
+
+	@Override
+	public void setTask(TimerTask task) {
+		this.task = task;
+	}
+
+	@Override
+	public TimerTask getTask() {
 		return task;
 	}
 

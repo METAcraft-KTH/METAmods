@@ -30,10 +30,10 @@ import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.entity.EntityLookup;
 import se.datasektionen.mc.cutscenes.Cutscenes;
+import se.datasektionen.mc.cutscenes.transitions.DeltaTickTransition;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.mixin.AccessorServerPlayerEntity;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
-import se.datasektionen.mc.cutscenes.transitions.SmoothMovementTransition;
 import se.datasektionen.mc.cutscenes.transitions.TeleportTransition;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
 import se.datasektionen.mc.cutscenes.transitions.entity.SpawnEntity;
@@ -46,7 +46,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-public class CutsceneInstance {
+public class CutsceneInstance implements AutoCloseable {
 
 	private static Timer timer;
 
@@ -130,6 +130,7 @@ public class CutsceneInstance {
 		this.savedPlayerData = new HashMap<>(savedPlayerData);
 		this.ended = ended;
 		this.dim = dim;
+		getTransitions().getIntervalsAt(getCurrentTime()).forEach(this::setupSmooth);
 	}
 
 	public CutsceneWorld getCutsceneWorld() {
@@ -457,12 +458,48 @@ public class CutsceneInstance {
 		}
 	}
 
+	private void setupSmooth(IntervalMap.Interval<Transition> interval) {
+		if (interval.getObject() instanceof DeltaTickTransition deltaTick) {
+			if (deltaTick.getTask() != null) return;
+			TimerTask task = new TimerTask() {
+
+				private long prev = -1;
+
+				@Override
+				public void run() {
+					var currentTime = System.currentTimeMillis();
+					if (shouldTick()) {
+						deltaTick.setProgress(deltaTick.getProgress() + (prev == -1 ? 0 : currentTime - prev));
+					}
+					float delta = Math.min((float) deltaTick.getProgress() / (interval.getLength() * 50), 1);
+					deltaTick.tickDelta(CutsceneInstance.this, interval, delta);
+					prev = currentTime;
+				}
+			};
+			deltaTick.setTask(task);
+			timer.schedule(task, 0, deltaTick.getInterval());
+		}
+	}
+
+	private void deactivateSmooth(IntervalMap.Interval<Transition> interval) {
+		if (interval.getObject() instanceof DeltaTickTransition deltaTick) {
+			var ticker = deltaTick.getTask();
+			if (ticker != null) {
+				ticker.cancel();
+			}
+		}
+	}
+
+	public boolean shouldTick() {
+		return hasPlayers();
+	}
+
 	public void tick() {
 		handleQueue();
 		if (ended) {
 			return;
 		}
-		if (!hasPlayers()) return;
+		if (!shouldTick()) return;
 		if (world == null) {
 			Cutscenes.LOGGER.error("Cutscene did not have a world, ending it prematurely! If you get this error, some developer forgot to call CutsceneInstance#setTargetWorld or CutsceneInstance#setWorldFromDim");
 			end();
@@ -494,21 +531,11 @@ public class CutsceneInstance {
 					if (interval.getStart() == time) {
 						interval.getObject().activate(this, interval);
 						forAllPlayers(player -> interval.getObject().activate(player, this, interval));
-						if (interval.getObject() instanceof SmoothMovementTransition smooth) {
-							var ticker = smooth.getSuperTick(this, interval);
-							if (ticker != null) {
-								timer.schedule(ticker, 0, 33);
-							}
-						}
+						setupSmooth(interval);
 					}
 					interval.getObject().tick(this, interval);
 					if (interval.getEnd() == time) {
-						if (interval.getObject() instanceof SmoothMovementTransition smooth) {
-							var ticker = smooth.getSuperTick(this, interval);
-							if (ticker != null) {
-								ticker.cancel();
-							}
-						}
+						deactivateSmooth(interval);
 						interval.getObject().deactivate(this, interval);
 						forAllPlayers(player -> interval.getObject().deactivate(player, this, interval));
 					}
@@ -554,6 +581,11 @@ public class CutsceneInstance {
 		return new CutsceneWorldData(
 				entities.save().toList(), world.save()
 		);
+	}
+
+	@Override
+	public void close() {
+		getTransitions().getIntervalsAt(getCurrentTime()).forEach(this::deactivateSmooth);
 	}
 
 	public record QueueEntry(ServerPlayerEntity player, Operation operation) {

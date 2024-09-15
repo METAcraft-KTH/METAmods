@@ -163,6 +163,12 @@ public class MultiplayerCutsceneManager extends PersistentState {
 		}
 	}
 
+	public void onServerShutdown() {
+		for (var cutscene : activeCutscenes.values()) {
+			cutscene.close();
+		}
+	}
+
 	public void tick() {
 		activeCutscenes.entrySet().removeIf(scene -> {
 			scene.getValue().tick();
