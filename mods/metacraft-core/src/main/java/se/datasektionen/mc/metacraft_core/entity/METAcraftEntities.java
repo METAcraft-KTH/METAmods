@@ -12,6 +12,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.world.Heightmap;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.entity.entities.PlayerMusicPoint;
+import se.datasektionen.mc.metacraft_core.entity.entities.StructureDisplay;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftActivities;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftMemoryModules;
@@ -39,6 +40,12 @@ public class METAcraftEntities {
 			).eyeHeight(1.62f).vehicleAttachment(
 					PlayerEntity.VEHICLE_ATTACHMENT_POS
 			).maxTrackingRange(32).trackingTickInterval(2)
+	);
+
+	public static final EntityType<StructureDisplay> STRUCTURE_DISPLAY = register(
+			"structure_display", EntityType.Builder.create(
+					StructureDisplay::new, SpawnGroup.MISC
+			).dimensions(0, 0)
 	);
 
 

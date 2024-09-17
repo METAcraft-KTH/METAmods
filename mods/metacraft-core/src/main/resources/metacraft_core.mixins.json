@@ -17,6 +17,7 @@
 		"MixinBlockEntity",
 		"MixinBlockItem",
 		"MixinContainerComponent",
+		"MixinElementHolder",
 		"MixinEntity",
 		"MixinEntityTrackerEntry",
 		"MixinExplosionBehavior",

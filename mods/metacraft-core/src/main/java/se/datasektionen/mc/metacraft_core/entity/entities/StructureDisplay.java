@@ -1,0 +1,310 @@
+package se.datasektionen.mc.metacraft_core.entity.entities;
+
+import eu.pb4.polymer.core.api.entity.PolymerEntity;
+import eu.pb4.polymer.virtualentity.api.ElementHolder;
+import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
+import eu.pb4.polymer.virtualentity.api.elements.BlockDisplayElement;
+import net.minecraft.block.FluidBlock;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.decoration.Brightness;
+import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.structure.StructureTemplate;
+import net.minecraft.structure.StructureTemplateManager;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.AffineTransformation;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
+import org.joml.Matrix4f;
+import org.joml.Vector3d;
+import se.datasektionen.mc.metacraft_core.METAcraftCore;
+import se.datasektionen.mc.metacraft_lib.mixin.AccessorStructureTemplate;
+import xyz.nucleoid.packettweaker.PacketContext;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class StructureDisplay extends Entity implements PolymerEntity {
+
+	private static final String STRUCTURE = "Structure";
+
+	private ElementHolder holder = new ElementHolder();
+	private List<Display> displays = new ArrayList<>();
+
+	private int interpolationDuration = 1;
+	private int startInterpolation = -1;
+	private int teleportDuration = 1;
+	private AffineTransformation transformation = AffineTransformation.identity();
+
+	private DisplayEntity.BillboardMode billboardMode = DisplayEntity.BillboardMode.FIXED;
+	private Brightness brightness = null;
+	private float viewRange = 1;
+	private float shadowRadius = 0;
+	private float shadowStrength = 1;
+	private float width = 0;
+	private float height = 0;
+	private int glowColourOverride = -1;
+
+	private Identifier structureID;
+	private StructureTemplate structure = new StructureTemplate();
+
+	public StructureDisplay(EntityType<?> type, World world) {
+		super(type, world);
+	}
+
+	@Override
+	protected void initDataTracker(DataTracker.Builder builder) {
+
+	}
+
+	@Override
+	protected void readCustomDataFromNbt(NbtCompound nbt) {
+		boolean shouldFixDisplays = true;
+		if (nbt.contains(DisplayEntity.START_INTERPOLATION_KEY)) {
+			startInterpolation = nbt.getInt(DisplayEntity.START_INTERPOLATION_KEY);
+		}
+		if (nbt.contains(DisplayEntity.INTERPOLATION_DURATION_KEY)) {
+			interpolationDuration = nbt.getInt(DisplayEntity.INTERPOLATION_DURATION_KEY);
+		}
+		if (nbt.contains(DisplayEntity.TELEPORT_DURATION_KEY)) {
+			teleportDuration = nbt.getInt(DisplayEntity.TELEPORT_DURATION_KEY);
+		}
+		if (nbt.contains(DisplayEntity.TRANSFORMATION_NBT_KEY)) {
+			var res = AffineTransformation.ANY_CODEC.parse(NbtOps.INSTANCE, nbt.get(DisplayEntity.TRANSFORMATION_NBT_KEY)).resultOrPartial(
+					METAcraftCore.LOGGER::error
+			);
+			res.ifPresent(affineTransformation -> this.transformation = affineTransformation);
+		}
+		if (nbt.contains(DisplayEntity.BILLBOARD_NBT_KEY)) {
+			var b = DisplayEntity.BillboardMode.CODEC.parse(NbtOps.INSTANCE, nbt.get(DisplayEntity.BILLBOARD_NBT_KEY)).resultOrPartial(
+					METAcraftCore.LOGGER::error
+			);
+			b.ifPresent(mode -> billboardMode = mode);
+		}
+		if (nbt.contains(DisplayEntity.BRIGHTNESS_NBT_KEY)) {
+			var b = Brightness.CODEC.parse(NbtOps.INSTANCE, nbt.get(DisplayEntity.BRIGHTNESS_NBT_KEY)).resultOrPartial(
+					METAcraftCore.LOGGER::error
+			);
+			b.ifPresent(value -> brightness = value);
+		} else {
+			brightness = null;
+		}
+		if (nbt.contains(DisplayEntity.VIEW_RANGE_NBT_KEY)) {
+			viewRange = nbt.getFloat(DisplayEntity.VIEW_RANGE_NBT_KEY);
+		}
+		if (nbt.contains(DisplayEntity.SHADOW_RADIUS_NBT_KEY)) {
+			shadowRadius = nbt.getFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY);
+		}
+		if (nbt.contains(DisplayEntity.SHADOW_STRENGTH_NBT_KEY)) {
+			shadowStrength = nbt.getFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY);
+		}
+		if (nbt.contains(DisplayEntity.WIDTH_NBT_KEY)) {
+			width = nbt.getFloat(DisplayEntity.WIDTH_NBT_KEY);
+		}
+		if (nbt.contains(DisplayEntity.HEIGHT_NBT_KEY)) {
+			height = nbt.getFloat(DisplayEntity.HEIGHT_NBT_KEY);
+		}
+		if (nbt.contains(DisplayEntity.GLOW_COLOR_OVERRIDE_NBT_KEY)) {
+			glowColourOverride = nbt.getInt(DisplayEntity.GLOW_COLOR_OVERRIDE_NBT_KEY);
+		}
+
+
+		if (nbt.contains(STRUCTURE, NbtElement.STRING_TYPE)) {
+			var id = Identifier.tryParse(nbt.getString(STRUCTURE));
+			if (id != null && getWorld() instanceof ServerWorld sw) {
+				if (setFromStructure(sw.getStructureTemplateManager(), id)) {
+					shouldFixDisplays = false;
+				}
+			}
+		} else if (nbt.contains(STRUCTURE, NbtElement.COMPOUND_TYPE)) {
+			var s = new StructureTemplate();
+			s.readNbt(this.getRegistryManager().getOrThrow(RegistryKeys.BLOCK), nbt.getCompound(STRUCTURE));
+			if (setFromStructure(s)) {
+				shouldFixDisplays = false;
+			}
+		}
+		if (shouldFixDisplays) {
+			refreshDisplayValues();
+		}
+	}
+
+	@Override
+	protected void writeCustomDataToNbt(NbtCompound nbt) {
+		if (structureID != null) {
+			nbt.putString(STRUCTURE, structureID.toString());
+		} else {
+			nbt.put(STRUCTURE, structure.writeNbt(new NbtCompound()));
+		}
+		nbt.putInt(DisplayEntity.START_INTERPOLATION_KEY, startInterpolation);
+		nbt.putInt(DisplayEntity.INTERPOLATION_DURATION_KEY, interpolationDuration);
+		nbt.putInt(DisplayEntity.TELEPORT_DURATION_KEY, teleportDuration);
+		DisplayEntity.BillboardMode.CODEC.encodeStart(NbtOps.INSTANCE, billboardMode).resultOrPartial(
+				METAcraftCore.LOGGER::error
+		).ifPresent(b -> nbt.put(DisplayEntity.BILLBOARD_NBT_KEY, b));
+		if (brightness != null) {
+			Brightness.CODEC.encodeStart(NbtOps.INSTANCE, brightness).resultOrPartial(
+					METAcraftCore.LOGGER::error
+			).ifPresent(brightness -> nbt.put(DisplayEntity.BRIGHTNESS_NBT_KEY, brightness));
+		}
+		nbt.putFloat(DisplayEntity.VIEW_RANGE_NBT_KEY, viewRange);
+		nbt.putFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY, shadowRadius);
+		nbt.putFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY, shadowStrength);
+		nbt.putFloat(DisplayEntity.WIDTH_NBT_KEY, width);
+		nbt.putFloat(DisplayEntity.HEIGHT_NBT_KEY, height);
+		nbt.putInt(DisplayEntity.GLOW_COLOR_OVERRIDE_NBT_KEY, glowColourOverride);
+		AffineTransformation.ANY_CODEC.encodeStart(NbtOps.INSTANCE, transformation).resultOrPartial(
+				METAcraftCore.LOGGER::error
+		).ifPresent(t -> nbt.put(DisplayEntity.TRANSFORMATION_NBT_KEY, t));
+	}
+
+	public boolean setFromStructure(StructureTemplateManager manager, Identifier id) {
+		return manager.getTemplate(id).map(
+				structure -> {
+					var result = setFromStructure(structure);
+					structureID = id;
+					return result;
+				}
+		).orElse(false);
+	}
+
+	private boolean needsUpdate(StructureTemplate lhs, StructureTemplate rhs) {
+		if (!lhs.getSize().equals(rhs.getSize())) {
+			return true;
+		}
+		var lhsLists = ((AccessorStructureTemplate) lhs).getBlockInfoLists();
+		var rhsLists = ((AccessorStructureTemplate) rhs).getBlockInfoLists();
+		if (lhsLists.size() != rhsLists.size()) {
+			return true;
+		}
+		for (int i = 0; i < lhsLists.size(); i++) {
+			var lhsList = lhsLists.get(i).getAll();
+			var rhsList = rhsLists.get(i).getAll();
+			if (lhsList.size() != rhsList.size()) {
+				return true;
+			}
+			for (int j = 0; j < lhsList.size(); j++) {
+				if (!lhsList.get(j).equals(rhsList.get(j))) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public boolean setFromStructure(StructureTemplate structure) {
+		structureID = null;
+		var prev = this.structure;
+		this.structure = structure;
+		if (needsUpdate(prev, structure)) {
+			updateStructure();
+			return true;
+		}
+		return false;
+	}
+
+	private void updateStructure() {
+		holder.destroy();
+		holder = new ElementHolder();
+
+		for (var list : ((AccessorStructureTemplate) structure).getBlockInfoLists()) {
+			for (var l : list.getAll()) {
+				if (l.state().isAir() || l.state().getBlock() instanceof FluidBlock) continue;
+				var blockDisplay = new BlockDisplayElement();
+				blockDisplay.setBlockState(l.state());
+				var d = new Display(blockDisplay, Vec3d.of(l.pos()).subtract(Vec3d.ofCenter(structure.getSize()).multiply(0.5)));
+				displays.add(d);
+				holder.addElement(blockDisplay);
+			}
+		}
+		refreshDisplayValues();
+		initAttachment();
+	}
+
+	private void refreshDisplayValues() {
+		for (var display : displays) {
+			display.displayElement.setInterpolationDuration(interpolationDuration);
+			display.displayElement.setTeleportDuration(teleportDuration);
+			display.displayElement.setStartInterpolation(startInterpolation);
+			display.displayElement.setTransformation(transformation);
+			display.displayElement.setBillboardMode(billboardMode);
+			display.displayElement.setBrightness(brightness);
+			display.displayElement.setViewRange(viewRange);
+			display.displayElement.setShadowRadius(shadowRadius);
+			display.displayElement.setShadowStrength(shadowStrength);
+			display.displayElement.setDisplayWidth(width);
+			display.displayElement.setDisplayHeight(height);
+			display.displayElement.setGlowing(this.isGlowing());
+			display.displayElement.setGlowColorOverride(glowColourOverride);
+		}
+		updateOffsets();
+	}
+
+	private void updateOffsets() {
+		for (var d : displays) {
+			d.updateOffset(this);
+		}
+	}
+
+	@Override
+	public void setAngles(float yaw, float pitch) {
+		super.setAngles(yaw, pitch);
+		updateOffsets();
+	}
+
+	@Override
+	public void updatePrevAngles() {
+		if (prevYaw != getYaw() || prevPitch != getPitch()) {
+			updateOffsets();
+		}
+		super.updatePrevAngles();
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+		if (prevYaw != getYaw() || prevPitch != getPitch()) {
+			updateOffsets();
+		}
+	}
+
+	@Override
+	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+		return false;
+	}
+
+	private void initAttachment() {
+		EntityAttachment.ofTicking(holder, this);
+	}
+
+	@Override
+	public EntityType<?> getPolymerEntityType(PacketContext ctx) {
+		return EntityType.MARKER;
+	}
+
+	public record Display(BlockDisplayElement displayElement, Vec3d offset) {
+		public void updateOffset(StructureDisplay entity) {
+			var mat = new Matrix4f();
+			mat.rotateYXZ(
+					-entity.getYaw() * MathHelper.RADIANS_PER_DEGREE,
+					entity.getPitch() * MathHelper.RADIANS_PER_DEGREE,
+					0
+			);
+			Vector3d offset = new Vector3d(offset().x, offset().y, offset().z);
+			mat.mul(entity.transformation.getMatrix());
+			offset.mulPosition(mat);
+			displayElement.setOffset(
+					new Vec3d(offset.x, offset.y, offset.z)
+			);
+			displayElement.setYaw(entity.getYaw());
+			displayElement.setPitch(entity.getPitch());
+		}
+	}
+}
