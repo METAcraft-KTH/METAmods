@@ -1,31 +1,26 @@
 package se.datasektionen.mc.cutscenes;
 
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.world.ServerWorld;
 import se.datasektionen.mc.cutscenes.cutscene.Cutscene;
 import se.datasektionen.mc.cutscenes.util.DefaultCutscenes;
 import se.datasektionen.mc.metacraft_lib.config.JsonPersistentState;
+import se.datasektionen.mc.metacraft_lib.config.MultiPersistentState;
 
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class CutscenesConfig extends JsonPersistentState {
+public class CutscenesConfig extends MultiPersistentState<CutscenesConfig.CutsceneEntry> {
+
+	private static final CustomType<CutscenesConfig> TYPE = new CustomType<>(
+			CutscenesConfig::new, new MultiParser<>(
+					CutsceneEntry.ENTRY_TYPE, CutscenesConfig::new
+			)
+	);
 
 	private static final String KEY = "metacraft-cutscenes";
-
-	public static final Codec<CutscenesConfig> CODEC = RecordCodecBuilder.create(
-			instance -> instance.group(
-					Codec.unboundedMap(Codec.STRING, Cutscene.CODEC.codec()).fieldOf("cutscenes").forGetter(c -> c.cutscenes)
-			).apply(instance, CutscenesConfig::new)
-	);
-
-	private static final JsonType<CutscenesConfig> TYPE = new JsonType<>(
-			CutscenesConfig::new, CODEC
-	);
 
 	public static Optional<CutscenesConfig> getLoadedConfig(ServerWorld world) {
 		return getLoadedConfig(world, TYPE, KEY);
@@ -39,40 +34,49 @@ public class CutscenesConfig extends JsonPersistentState {
 		return getOrCreateConfig(world, TYPE, KEY);
 	}
 
-	private final Map<String, Cutscene> cutscenes;
-
-	private ServerWorld world;
-
 	public CutscenesConfig() {
 		this(new HashMap<>(Map.of(
-				"creeper_kill_piglin", DefaultCutscenes.CREEPER_KILL_PIGLIN
+				"creeper_kill_piglin", new CutsceneEntry(DefaultCutscenes.CREEPER_KILL_PIGLIN)
 		)));
 	}
 
-	public CutscenesConfig(Map<String, Cutscene> cutscenes) {
-		this.cutscenes = cutscenes;
-	}
-
-	@Override
-	public void prepare(ServerWorld world, Path path, String key, Codec<JsonPersistentState> codec) {
-		super.prepare(world, path, key, codec);
-		this.world = world;
+	public CutscenesConfig(Map<String, CutscenesConfig.CutsceneEntry> map) {
+		super(map);
 	}
 
 	public ServerWorld getWorld() {
 		return world;
 	}
 
-	public void reload() {
-		reload(world);
-	}
-
 	public Optional<Cutscene> getCutscene(String name) {
-		return cutscenes.containsKey(name) ? Optional.ofNullable(cutscenes.get(name)) : Optional.empty();
+		return states.containsKey(name) ? Optional.ofNullable(states.get(name).cutscene) : Optional.empty();
 	}
 
 	public Collection<String> getCutsceneNames() {
-		return cutscenes.keySet();
+		return states.keySet();
+	}
+
+	public static class CutsceneEntry extends JsonPersistentState {
+
+		public static final Codec<CutsceneEntry> CODEC = Cutscene.CODEC.codec().xmap(CutsceneEntry::new, CutsceneEntry::getCutscene);
+		public static final CustomType<CutsceneEntry> ENTRY_TYPE = new CustomType<>(
+				CutsceneEntry::new, new JsonParse<>(CODEC)
+		);
+
+		private final Cutscene cutscene;
+
+		public CutsceneEntry() {
+			this(new Cutscene());
+		}
+
+		public CutsceneEntry(Cutscene cutscene) {
+			this.cutscene = cutscene;
+		}
+
+		public Cutscene getCutscene() {
+			return cutscene;
+		}
+
 	}
 
 }
