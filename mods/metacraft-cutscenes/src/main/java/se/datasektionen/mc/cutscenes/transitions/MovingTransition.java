@@ -47,7 +47,15 @@ import java.util.TimerTask;
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (startPos == null) {
-			startPos = cutscene.copyPlayers().stream().findAny().map(Target::fromPlayer).orElse(new Target(Vec3d.ZERO, 0, 0));
+			startPos = cutscene.getTransitions().getValuesAt(interval.getStart()-1).filter(
+					movement -> movement instanceof SmoothMovementTransition
+			).map(movement -> (SmoothMovementTransition) movement).findAny().map(
+					SmoothMovementTransition::getEnd
+			).orElse(
+					cutscene.copyPlayers().stream().findAny().map(Target::fromPlayer).orElse(
+							new Target(Vec3d.ZERO, 0, 0)
+					)
+			);
 		}
 	}
 
@@ -138,8 +146,6 @@ import java.util.TimerTask;
 			).orElse(config.to());
 		}
 
-		//double currentPart = interval.getPosInRange(cutscene.getCurrentTime());
-		//double progress = (currentPart * (1 - delta) + (currentPart + 1) * delta) / interval.getLength();
 		var target = interpolate(delta, new Target[]{prevStart, startPos, config.to(), nextEnd});
 
 		cutscene.forAllPlayers(player -> {
