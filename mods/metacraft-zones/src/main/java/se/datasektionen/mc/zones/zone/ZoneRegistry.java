@@ -19,6 +19,7 @@ import se.datasektionen.mc.zones.METAcraftZones;
 import se.datasektionen.mc.zones.ZoneManagementCommand;
 import se.datasektionen.mc.zones.zone.types.*;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 public class ZoneRegistry {
@@ -80,6 +81,12 @@ public class ZoneRegistry {
 			"triangle", TriangleZone.CODEC, TriangleZone::createCommand,
 			() -> new TriangleZone(new ColumnPos(0, 0), new ColumnPos(0, 0), new ColumnPos(0, 0))
 	);
+
+	public static final ZoneTypeType<PolygonZone> polygon = register(
+			"polygon", PolygonZone.CODEC, PolygonZone::createCommand,
+			() -> new PolygonZone(List.of(new ColumnPos(0, 0), new ColumnPos(0, 0), new ColumnPos(0, 0)))
+	);
+
 
 
 	public static void init() {

@@ -20,7 +20,7 @@ public class TriangleZone extends ZoneType {
 	private final ColumnPos pos3;
 
 	private final double area;
-	private static final MapCodec<ColumnPos> COLUMN_POS_CODEC = RecordCodecBuilder.mapCodec(
+	public static final MapCodec<ColumnPos> COLUMN_POS_CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codec.INT.fieldOf("x").forGetter(ColumnPos::x),
 					Codec.INT.fieldOf("z").forGetter(ColumnPos::z)
@@ -80,9 +80,13 @@ public class TriangleZone extends ZoneType {
 		return (double) x1 * (z2 - z3) + (double) x2 * (z3 - z1) + (double) x3 * (z1 - z2);
 	}
 
+	public double getArea() {
+		return getArea(pos1, pos2, pos3);
+	}
+
 	@Override
 	public double getSize() {
-		return getArea(pos1, pos2, pos3) * getZoneRef().getWorld().getHeight();
+		return getArea() * getZoneRef().getWorld().getHeight();
 	}
 
 	@Override
