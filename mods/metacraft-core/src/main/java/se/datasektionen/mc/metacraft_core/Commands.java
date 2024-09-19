@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_core;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.text.Text;
+import se.datasektionen.mc.metacraft_core.commands.CampusLodestoneCommand;
 import se.datasektionen.mc.metacraft_core.commands.LinkPortals;
 import se.datasektionen.mc.metacraft_core.commands.PlayMusic;
 import se.datasektionen.mc.metacraft_core.commands.PlayerMobCommand;
@@ -25,6 +26,7 @@ public class Commands {
 			LinkPortals.register(dispatcher, registryAccess);
 			PlayerMobCommand.register(dispatcher, registryAccess);
 			PlayMusic.register(dispatcher, registryAccess);
+			CampusLodestoneCommand.register(dispatcher);
 		});
 	}
 

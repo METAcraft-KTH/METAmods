@@ -12,6 +12,7 @@ import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 public class METAcraftItems {
 
 	private static final Item PORTAL_PADDING = register("portal_padding", new PolymerBlockItem(METAcraftBlocks.PORTAL_PADDING, new Item.Settings(), Items.ENDER_PEARL));
+	private static final Item CAMPUS_LODESTONE = register("campus_lodestone", new TexturedPolymerBlockItem(METAcraftBlocks.CAMPUS_LODESTONE, new Item.Settings(), Items.FLINT, 10052));
 
 	public static void init() {
 
