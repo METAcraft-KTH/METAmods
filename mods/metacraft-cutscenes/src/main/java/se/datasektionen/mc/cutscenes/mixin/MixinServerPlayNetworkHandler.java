@@ -1,6 +1,6 @@
 package se.datasektionen.mc.cutscenes.mixin;
 
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
+import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,14 +17,14 @@ public class MixinServerPlayNetworkHandler {
 	@Shadow public ServerPlayerEntity player;
 
 	@Inject(
-		method = "onPlayerMove",
+		method = "onTeleportConfirm",
 		at = @At(
 			value = "INVOKE",
 			target = "Lnet/minecraft/server/network/ServerPlayNetworkHandler;disconnect(Lnet/minecraft/text/Text;)V"
 		),
 		cancellable = true
 	)
-	public void preventInvalidMoveDisconnectDuringCutscenes(PlayerMoveC2SPacket packet, CallbackInfo ci) {
+	public void preventInvalidMoveDisconnectDuringCutscenes(TeleportConfirmC2SPacket packet, CallbackInfo ci) {
 		var scene = CutsceneHelper.getCutscene(player);
 		if (scene.isPresent() && scene.get().getTransitions().getValuesAt(scene.get().getCurrentTime()).anyMatch(t -> t instanceof DeltaTickTransition)) {
 			ci.cancel();
