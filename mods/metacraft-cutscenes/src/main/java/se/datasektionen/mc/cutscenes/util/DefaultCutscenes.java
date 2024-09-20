@@ -107,7 +107,7 @@ public class DefaultCutscenes {
 				)
 		)),
 		true, true, true,
-		true, true, Optional.empty()
+		true, true, Optional.empty(), Optional.empty()
 	);
 
 }

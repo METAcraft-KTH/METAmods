@@ -370,14 +370,19 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 	}
 
-	public static void loadPlayerData(ServerPlayerEntity player, NbtCompound data, boolean changePosition) {
+	public static void loadPlayerData(
+			ServerPlayerEntity player, NbtCompound data, boolean usePlayerDataPosition,
+			Optional<TeleportTarget> exitPosOverride
+	) {
 		var prevPos = player.getPos();
 		var prevYaw = player.getYaw();
 		var prevPitch = player.getPitch();
 		Vec3d prevVelocity = player.getVelocity();
 		player.readNbt(data);
 		Optional<ServerWorld> world = getWorld(player.getServer(), data);
-		if (changePosition) {
+		if (exitPosOverride.isPresent()) {
+			player.teleportTo(exitPosOverride.get());
+		} else if (usePlayerDataPosition) {
 			world.ifPresentOrElse(w -> {
 				player.teleport(w, player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
 				player.velocityModified = true;
@@ -408,11 +413,14 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	protected void resetPlayer(ServerPlayerEntity player) {
-		if (!savedPlayerData.containsKey(player.getUuid())) return;
 		if (cutscene.resetPlayerData()) {
+			if (!savedPlayerData.containsKey(player.getUuid())) return;
 			var data = savedPlayerData.remove(player.getUuid());
-			loadPlayerData(player, data, cutscene.returnToStart());
+			loadPlayerData(player, data, cutscene.returnToStart(), cutscene.getExitPoint(world.getServer(), world.getRegistryKey()));
+		} else if (cutscene.hasExitPoint()) {
+			player.teleportTo(cutscene.getExitPoint(world.getServer(), world.getRegistryKey()).orElseThrow());
 		} else if (cutscene.returnToStart()) {
+			if (!savedPlayerData.containsKey(player.getUuid())) return;
 			var data = savedPlayerData.remove(player.getUuid());
 			NbtList pos = data.getList("Pos", NbtCompound.DOUBLE_TYPE);
 			NbtList velocity = data.getList("Motion", NbtCompound.DOUBLE_TYPE);
@@ -436,6 +444,7 @@ public class CutsceneInstance implements AutoCloseable {
 	public void resetPlayers(Consumer<ServerPlayerEntity> playerAction) {
 		forAllPlayers(p -> {
 			playerAction.accept(p);
+			removePlayer(p);
 			resetPlayer(p);
 		});
 	}
