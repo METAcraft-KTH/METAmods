@@ -43,6 +43,19 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Unique
 	private CutsceneInstance cutscene;
 
+	@Unique
+	private boolean allowWrongMovements = false;
+
+	@Override
+	public void metacraft$setAllowWrongMovements(boolean allowWrongMovements) {
+		this.allowWrongMovements = allowWrongMovements;
+	}
+
+	@Override
+	public boolean metacraft$getAllowWrongMovements() {
+		return allowWrongMovements;
+	}
+
 	@Override
 	public void metacraft_cutscenes$setCutscene(CutsceneInstance cutscene) {
 		if (CutsceneHelper.isInMultiplayerCutscene((ServerPlayerEntity) (Object) this)) {

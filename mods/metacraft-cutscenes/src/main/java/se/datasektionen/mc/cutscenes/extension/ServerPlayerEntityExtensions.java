@@ -10,4 +10,7 @@ public interface ServerPlayerEntityExtensions {
 	boolean metacraft_cutscenes$hasCutscene();
 	Optional<CutsceneInstance> metacraft_cutscenes$getCutscene();
 
+	void metacraft$setAllowWrongMovements(boolean showWronglyMovedWarning);
+	boolean metacraft$getAllowWrongMovements();
+
 }

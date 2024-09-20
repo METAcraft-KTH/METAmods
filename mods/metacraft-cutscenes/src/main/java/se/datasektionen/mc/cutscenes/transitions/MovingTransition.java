@@ -3,8 +3,10 @@ package se.datasektionen.mc.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.Vec3d;
+import se.datasektionen.mc.cutscenes.extension.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.util.Target;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
@@ -13,9 +15,10 @@ import se.datasektionen.mc.cutscenes.transitions.config.MovingTransitionConfig;
 
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TimerTask;
 
-		public class MovingTransition implements Transition, SmoothMovementTransition, DeltaTickTransition {
+public class MovingTransition implements Transition, SmoothMovementTransition, DeltaTickTransition {
 
 	public static final MapCodec<MovingTransition> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
@@ -81,6 +84,11 @@ import java.util.TimerTask;
 	}
 
 	@Override
+	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		((ServerPlayerEntityExtensions) player).metacraft$setAllowWrongMovements(true);
+	}
+
+	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		cutscene.forAllPlayers(player -> {
 			boolean send = false;
@@ -107,6 +115,11 @@ import java.util.TimerTask;
 	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		player.interactionManager.getGameMode().setAbilities(player.getAbilities());
 		player.sendAbilitiesUpdate();
+		if (cutscene.getTransitions().getValuesAt(interval.getEnd()+1).noneMatch(
+				movement -> movement instanceof MovingTransition
+		)) {
+			((ServerPlayerEntityExtensions) player).metacraft$setAllowWrongMovements(false);
+		}
 	}
 
 	@Override
@@ -129,6 +142,8 @@ import java.util.TimerTask;
 		return progress;
 	}
 
+	private int prevTick = 0;
+
 	@Override
 	public void tickDelta(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval, float delta) {
 		if (prevStart == null) {
@@ -148,11 +163,22 @@ import java.util.TimerTask;
 
 		var target = interpolate(delta, new Target[]{prevStart, startPos, config.to(), nextEnd});
 
+
 		cutscene.forAllPlayers(player -> {
-			player.networkHandler.requestTeleport(
-					target.pos().x, target.pos().y, target.pos().z, target.yaw(), target.pitch()
-			);
+			//We don't use requestTeleport because it's not thread safe.
+			player.networkHandler.sendPacket(new PlayerPositionLookS2CPacket(
+					target.pos().x, target.pos().y, target.pos().z, target.yaw(), target.pitch(),
+					Set.of(), -1 //Ignores the teleport confirm packet.
+			));
+			if (prevTick != cutscene.getCurrentTime()) {
+				player.getServer().execute(() -> {
+					player.updatePositionAndAngles(
+							target.pos().x, target.pos().y, target.pos().z, target.yaw(), target.pitch()
+					);
+				});
+			}
 		});
+		prevTick = cutscene.getCurrentTime();
 	}
 
 	@Override
