@@ -11,6 +11,7 @@ import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
 import se.datasektionen.mc.cutscenes.cutscene.MultiplayerCutsceneManager;
 import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
@@ -203,8 +204,20 @@ public class Commands {
 		var manager = MultiplayerCutsceneManager.getInstance(ctx.getSource().getServer());
 		var player = ctx.getSource().getPlayerOrThrow();
 		if (CutsceneHelper.isInMultiplayerCutscene(player)) {
+			var scene = CutsceneHelper.getCutscene(player).orElseThrow();
+			if (!scene.getCutscene().isSkippable() && !Permissions.check(ctx.getSource(), "metacraft.cutscenes.multiplayer.leave.non-skippable", 2)) {
+				ctx.getSource().sendError(Text.literal("You can't leave unskippable cutscenes!"));
+				return 0;
+			}
 			manager.leaveCutscene(player);
-			ctx.getSource().sendFeedback(() -> Text.literal("You left the cutscene"), false);
+			var message = Text.literal("You left the cutscene");
+			manager.getCutsceneName(scene).ifPresent(name -> {
+				String rejoin = "/cutscene multiplayer join " + name;
+				message.append(Text.literal(", you can rejoin it by typing ").append(Text.literal(rejoin).styled(
+						style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, rejoin))
+				)));
+			});
+			ctx.getSource().sendFeedback(() -> message, false);
 			return 1;
 		}
 		ctx.getSource().sendError(Text.literal("You are not in a multiplayer cutscene!"));
@@ -242,6 +255,31 @@ public class Commands {
 								)
 						)
 					).then(
+						literal("skip").requires(
+								Permissions.require("metacraft.cutscenes.skip", 0)
+						).executes(ctx -> {
+							var player = ctx.getSource().getPlayerOrThrow();
+							var scene = CutsceneHelper.getCutscene(player);
+							if (scene.isPresent()) {
+								if (scene.get().getCutscene().isSkippable()) {
+									if (CutsceneHelper.isInPlayerSpecificCutscene(player)) {
+										CutsceneHelper.stopPlayerSpecificCutscene(player);
+										ctx.getSource().sendFeedback(
+												() -> Text.literal("You skipped the cutscene"), false
+										);
+									} else  {
+										return leaveCutscene(ctx);
+									}
+									return 1;
+								} else {
+									ctx.getSource().sendError(Text.literal("This cutscene is not skippable!"));
+								}
+							} else {
+								ctx.getSource().sendError(Text.literal("You are not in a cutscene!"));
+							}
+							return 0;
+						})
+					).then(
 						literal("reload").requires(Permissions.require("metacraft.cutscenes.reload", 4)).executes(ctx -> {
 							CutscenesConfig.getOrCreateConfig(ctx.getSource().getWorld()).reload();
 							ctx.getSource().sendFeedback(
@@ -272,10 +310,10 @@ public class Commands {
 								)
 							)
 						).then(
-							literal("join").then(
-								argument("name", StringArgumentType.word()).suggests(SUGGEST_MULTIPLAYER_CUTSCENES).requires(
-										Permissions.require("metacraft.cutscenes.multiplayer.join", 0)
-								).executes(
+							literal("join").requires(
+									Permissions.require("metacraft.cutscenes.multiplayer.join", 0)
+							).then(
+								argument("name", StringArgumentType.word()).suggests(SUGGEST_MULTIPLAYER_CUTSCENES).executes(
 										ctx -> joinMultiplayerCutscene(
 												ctx, StringArgumentType.getString(ctx, "name"),
 												List.of(ctx.getSource().getPlayerOrThrow())

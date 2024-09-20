@@ -25,6 +25,7 @@ public class Cutscene {
 					Codec.BOOL.fieldOf("hide_mount").forGetter(a -> a.hideMount),
 					Codec.BOOL.optionalFieldOf("reset_player_data", true).forGetter(a -> a.resetPlayerData),
 					Codec.BOOL.optionalFieldOf("hide_player", true).forGetter(a -> a.hidePlayer),
+					Codec.BOOL.optionalFieldOf("skippable", true).forGetter(a -> a.skippable),
 					TeleportTransition.SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec().optionalFieldOf("entry_point").forGetter(t -> t.entryPoint),
 					TeleportTransition.SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec().optionalFieldOf("exit_point").forGetter(t -> t.exitPoint)
 			).apply(instance, Cutscene::new)
@@ -36,20 +37,22 @@ public class Cutscene {
 	private boolean hideMount;
 	private boolean resetPlayerData;
 	private boolean hidePlayer;
+	private boolean skippable;
 	private final Optional<TeleportTransition.SerializableTeleportTarget> entryPoint;
 	private final Optional<TeleportTransition.SerializableTeleportTarget> exitPoint;
 
 	public Cutscene() {
 		this(
 				new IntervalMap<>(), false, true,
-				true, true, true, Optional.empty(), Optional.empty()
+				true, true, true, true,
+				Optional.empty(), Optional.empty()
 		);
 	}
 
 	public Cutscene(
 			IntervalMap<TransitionConfig> transitions,
 			boolean createFakePlayer, boolean returnPlayerToStartPos, boolean hideMount,
-			boolean resetPlayerData, boolean hidePlayer,
+			boolean resetPlayerData, boolean hidePlayer, boolean skippable,
 			Optional<TeleportTransition.SerializableTeleportTarget> entryPoint,
 			Optional<TeleportTransition.SerializableTeleportTarget> exitPoint
 	) {
@@ -59,6 +62,7 @@ public class Cutscene {
 		this.hideMount = hideMount;
 		this.resetPlayerData = resetPlayerData;
 		this.hidePlayer = hidePlayer;
+		this.skippable = skippable;
 		this.entryPoint = entryPoint;
 		this.exitPoint = exitPoint;
 	}
@@ -85,6 +89,10 @@ public class Cutscene {
 
 	public boolean hidePlayer() {
 		return hidePlayer;
+	}
+
+	public boolean isSkippable() {
+		return skippable;
 	}
 
 	public Optional<TeleportTarget> getEntryPoint(MinecraftServer server, RegistryKey<World> cutsceneDim) {

@@ -69,6 +69,15 @@ public class MultiplayerCutsceneManager extends PersistentState {
 		return activeCutscenes.keySet();
 	}
 
+	public Optional<String> getCutsceneName(CutsceneInstance instance) {
+		for (var scene : activeCutscenes.entrySet()) {
+			if (scene.getValue() == instance) {
+				return Optional.of(scene.getKey());
+			}
+		}
+		return Optional.empty();
+	}
+
 	private void addPlayer(String cutscene, CutsceneInstance scene, UUID player) {
 		cutsceneByPlayer.put(player, cutscene);
 		cutsceneByPlayerActive.put(player, scene);
