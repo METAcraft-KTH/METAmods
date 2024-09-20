@@ -19,6 +19,7 @@ import se.datasektionen.mc.metacraft_lib.config.container.ReloadCause;
 import se.datasektionen.mc.metacraft_lib.config.extensions.LoadAware;
 import se.datasektionen.mc.metacraft_lib.config.extensions.Modifiable;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.nio.file.*;
@@ -31,6 +32,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 	private static final Path configDir = FabricLoader.getInstance().getConfigDir().resolve(ResourcePacks.MODID);
 	public static final Path RESOURCE_PACK_DIR = configDir.resolve("resource-packs");
+	public static final Path RP_UPDATE_DIR = RESOURCE_PACK_DIR.resolve("update");
 
 	public static final Codec<ResourcePackConfig> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
@@ -164,6 +166,13 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	@Override
 	public void afterLoad(Optional<ReloadCause> cause) {
 		try {
+			Files.createDirectories(RP_UPDATE_DIR);
+			var zipsToUpdate = RP_UPDATE_DIR.toFile().listFiles(file -> file.getName().endsWith(".zip"));
+			for (File file : zipsToUpdate) {
+				Path dest = RESOURCE_PACK_DIR.resolve(file.getName());
+				ResourcePacks.LOGGER.info("Moving {} to {}", file, dest);
+				Files.move(file.toPath(), dest);
+			}
 			var resourcePackZips = RESOURCE_PACK_DIR.toFile().listFiles(file -> file.getName().endsWith(".zip"));
 			if (resourcePackZips != null) {
 				for (var file : resourcePackZips) {
