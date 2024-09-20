@@ -42,7 +42,7 @@ public class CampusLodestoneState extends PersistentState {
 
 		private static final Codec<Location> CODEC = RecordCodecBuilder.create(i -> i.group(
 			World.CODEC.fieldOf("world").forGetter(Location::world),
-			BlockPos.CODEC.fieldOf("lodestonePos").forGetter(Location::lodestonePos)
+			BlockPos.CODEC.fieldOf("lodestone_pos").forGetter(Location::lodestonePos)
 		).apply(i, Location::new));
 	}
 
@@ -63,6 +63,7 @@ public class CampusLodestoneState extends PersistentState {
 
 	public void setCampusLocation(World world, BlockPos lodestonePos) {
 		this.campusLocation = new Location(world.getRegistryKey(), lodestonePos);
+		this.markDirty();
 	}
 
 	@Nullable
@@ -71,7 +72,12 @@ public class CampusLodestoneState extends PersistentState {
 	}
 
 	public void setBackLocation(PlayerEntity player, @Nullable Location location) {
-		this.backLocations.put(player.getUuid(), location);
+		if (location == null) {
+			this.backLocations.remove(player.getUuid());
+		} else {
+			this.backLocations.put(player.getUuid(), location);
+		}
+		this.markDirty();
 	}
 
 	@Override
