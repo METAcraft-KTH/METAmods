@@ -171,7 +171,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 			for (File file : zipsToUpdate) {
 				Path dest = RESOURCE_PACK_DIR.resolve(file.getName());
 				ResourcePacks.LOGGER.info("Moving {} to {}", file, dest);
-				Files.move(file.toPath(), dest);
+				Files.move(file.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
 			}
 			var resourcePackZips = RESOURCE_PACK_DIR.toFile().listFiles(file -> file.getName().endsWith(".zip"));
 			if (resourcePackZips != null) {
