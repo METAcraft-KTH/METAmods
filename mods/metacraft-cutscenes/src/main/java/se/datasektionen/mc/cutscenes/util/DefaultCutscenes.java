@@ -22,9 +22,7 @@ public class DefaultCutscenes {
 
 	public static final Cutscene CREEPER_KILL_PIGLIN = new Cutscene(new IntervalMap<>(List.of(
 				new IntervalMap.Interval<>(
-						0, 300, new SetGameModeTransition(
-								GameMode.SPECTATOR
-						)
+						0, 300, new SetGameModeTransition.Config(GameMode.SPECTATOR, true)
 				),
 				new IntervalMap.Interval<>(
 						0, 300, new SpawnEntity(

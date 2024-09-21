@@ -69,7 +69,7 @@ public class TransitionRegistry {
 	);
 
 	public static final TransitionType<SetGameModeTransition> SET_GAME_MODE = register(
-			"game_mode", SetGameModeTransition.CODEC
+			"gamemode", SetGameModeTransition.CODEC
 	);
 
 	public static final TransitionType<LookAt> LOOK_AT = register(

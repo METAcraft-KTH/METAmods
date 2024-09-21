@@ -70,8 +70,8 @@ public class TransitionConfigRegistry {
 			"entity_disable_ai", DisableAIConfig.CODEC
 	);
 
-	public static final TransitionConfigType<SetGameModeTransition> SET_GAME_MODE = register(
-			"game_mode", SetGameModeTransition.CODEC
+	public static final TransitionConfigType<SetGameModeTransition.Config> SET_GAME_MODE = register(
+			"gamemode", SetGameModeTransition.Config.CODEC
 	);
 
 	public static final TransitionConfigType<LookAt> LOOK_AT = register(
