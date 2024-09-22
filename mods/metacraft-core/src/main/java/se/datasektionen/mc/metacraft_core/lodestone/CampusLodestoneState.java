@@ -1,102 +1,73 @@
 package se.datasektionen.mc.metacraft_core.lodestone;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Uuids;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
-import se.datasektionen.mc.metacraft_lib.METAcraftLib;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 public class CampusLodestoneState extends PersistentState {
 	private static final String KEY = METAcraftCore.NAMESPACE + "-campus-lodestone";
 
-	private static final MapCodec<Map<UUID, Location>> BACK_LOCATIONS = Codec.unboundedMap(
-		Uuids.STRING_CODEC, Location.CODEC
-	).fieldOf("back_locations");
-
 	private static PersistentState.Type<CampusLodestoneState> getType(MinecraftServer server) {
-		return new Type<>(() -> new CampusLodestoneState(server), (nbt, lookup) -> fromNBT(server, nbt, lookup), null);
+		return new Type<>(() -> new CampusLodestoneState(server), (nbt, lookup) -> fromNBT(server, nbt), null);
 	}
 
-	private static CampusLodestoneState fromNBT(MinecraftServer server, NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
+	private static CampusLodestoneState fromNBT(MinecraftServer server, NbtCompound nbt) {
 		var data = new CampusLodestoneState(server);
-		data.readNBT(nbt, registryLookup);
+		data.readNBT(nbt);
 		return data;
 	}
 
-	public record Location(RegistryKey<World> world, BlockPos lodestonePos) {
-
-		private static final Codec<Location> CODEC = RecordCodecBuilder.create(i -> i.group(
-			World.CODEC.fieldOf("world").forGetter(Location::world),
-			BlockPos.CODEC.fieldOf("lodestone_pos").forGetter(Location::lodestonePos)
-		).apply(i, Location::new));
-	}
-
-	private Location campusLocation;
-	private final Map<UUID, Location> backLocations = new HashMap<>();
+	private RegistryKey<World> campusWorld;
+	private BlockPos campusLodestonePos;
 
 	public CampusLodestoneState(MinecraftServer server) {
-		this.campusLocation = new Location(server.getOverworld().getRegistryKey(), new BlockPos(BlockPos.ZERO));
+		this.campusWorld = server.getOverworld().getRegistryKey();
+		this.campusLodestonePos = new BlockPos(BlockPos.ZERO);
 	}
 
 	public static CampusLodestoneState getInstance(MinecraftServer server) {
 		return server.getOverworld().getPersistentStateManager().getOrCreate(getType(server), KEY);
 	}
 
-	public Location getCampusLocation() {
-		return this.campusLocation;
+	public RegistryKey<World> getCampusWorld() {
+		return this.campusWorld;
+	}
+
+	public BlockPos getCampusLodestonePos() {
+		return this.campusLodestonePos;
 	}
 
 	public void setCampusLocation(World world, BlockPos lodestonePos) {
-		this.campusLocation = new Location(world.getRegistryKey(), lodestonePos);
-		this.markDirty();
-	}
-
-	@Nullable
-	public Location getBackLocation(PlayerEntity player) {
-		return this.backLocations.get(player.getUuid());
-	}
-
-	public void setBackLocation(PlayerEntity player, @Nullable Location location) {
-		if (location == null) {
-			this.backLocations.remove(player.getUuid());
-		} else {
-			this.backLocations.put(player.getUuid(), location);
-		}
+		this.campusWorld = world.getRegistryKey();
+		this.campusLodestonePos = lodestonePos;
 		this.markDirty();
 	}
 
 	@Override
 	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		var ops = registryLookup.getOps(NbtOps.INSTANCE);
-		var mapBuilder = ops.mapBuilder();
-
-		BACK_LOCATIONS.encode(this.backLocations, ops, mapBuilder);
-
-		return (NbtCompound) mapBuilder.build(nbt).resultOrPartial(METAcraftLib.LOGGER::error).orElse(nbt);
+		nbt.putString("campusWorld", this.campusWorld.getValue().toString());
+		nbt.putInt("campusLodestoneX", this.campusLodestonePos.getX());
+		nbt.putInt("campusLodestoneY", this.campusLodestonePos.getY());
+		nbt.putInt("campusLodestoneZ", this.campusLodestonePos.getZ());
+		return nbt;
 	}
 
-	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		var ops = registryLookup.getOps(NbtOps.INSTANCE);
-		ops.getMap(nbt).flatMap(
-			m -> BACK_LOCATIONS.decode(ops, m)
-		).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(map -> {
-			this.backLocations.clear();
-			this.backLocations.putAll(map);
-		});
+	public void readNBT(NbtCompound nbt) {
+		Identifier campusWorldIdentifier = Identifier.tryParse(nbt.getString("campusWorld"));
+		if (campusWorldIdentifier != null) {
+			this.campusWorld = RegistryKey.of(RegistryKeys.WORLD, campusWorldIdentifier);
+		}
+		this.campusLodestonePos = new BlockPos(
+			nbt.getInt("campusLodestoneX"),
+			nbt.getInt("campusLodestoneY"),
+			nbt.getInt("campusLodestoneZ")
+		);
 	}
 }

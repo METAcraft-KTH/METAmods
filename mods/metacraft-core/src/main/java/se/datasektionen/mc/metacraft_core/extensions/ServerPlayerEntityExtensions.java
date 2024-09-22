@@ -1,6 +1,10 @@
 package se.datasektionen.mc.metacraft_core.extensions;
 
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.entity.entities.PlayerMusicPoint;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
 import se.datasektionen.mc.metacraft_core.util.helper.MusicHelper;
@@ -50,4 +54,14 @@ public interface ServerPlayerEntityExtensions {
 
 	boolean metacraft_core$areBlocksPistonMovable();
 
+
+	@Nullable
+	RegistryKey<World> metacraft_core$getCampusLodestoneBackWorld();
+
+	@Nullable
+	BlockPos metacraft_core$getCampusLodestoneBackPos();
+
+	void metacraft_core$setCampusLodestoneBackPos(RegistryKey<World> world, BlockPos pos);
+
+	void metacraft_core$unsetCampusLodestoneBackPos();
 }

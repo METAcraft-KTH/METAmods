@@ -13,7 +13,9 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -23,7 +25,9 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
+import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_core.lodestone.CampusLodestoneState;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 
@@ -44,42 +48,41 @@ public class CampusLodestoneBlock extends Block implements PolymerBlock {
 	}
 
 	@Override
-	protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
+	protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity abstractPlayer, BlockHitResult hit) {
 		MinecraftServer server = world.getServer();
-		if (server == null) {
-			return ActionResult.PASS;
+		if (server == null || !(abstractPlayer instanceof ServerPlayerEntity player)) {
+			return ActionResult.CONSUME;
 		}
 		var campusState = CampusLodestoneState.getInstance(server);
-		var campusLocation = campusState.getCampusLocation();
-		if (campusLocation.world().equals(world.getRegistryKey()) && campusLocation.lodestonePos().isWithinDistance(pos, 20.0)) {
+		RegistryKey<World> campusWorldKey = campusState.getCampusWorld();
+		BlockPos campusLodestonePos = campusState.getCampusLodestonePos();
+
+		if (campusWorldKey.equals(world.getRegistryKey()) && campusLodestonePos.isWithinDistance(pos, 20.0)) {
 			// The player clicked the lodestone at campus. They should return where they came from.
-			var backLocation = campusState.getBackLocation(player);
-			if (backLocation == null) {
+			RegistryKey<World> backWorldKey = getBackWorld(player);
+			BlockPos backLodestonePos = getBackLodestonePos(player);
+			if (backWorldKey == null || backLodestonePos == null) {
 				return this.rejected(player);
 			}
-			ServerWorld backWorld = server.getWorld(backLocation.world());
-			BlockState lodestoneState = backWorld.getBlockState(backLocation.lodestonePos());
+			ServerWorld backWorld = server.getWorld(backWorldKey);
+			if (backWorld == null) {
+				return this.rejected(player);
+			}
+			BlockState lodestoneState = backWorld.getBlockState(backLodestonePos);
 			if (lodestoneState.getBlock() != METAcraftBlocks.CAMPUS_LODESTONE) {
 				return this.rejected(player);
 			}
-			Optional<Vec3d> respawnPosition = RespawnAnchorBlock.findRespawnPosition(EntityType.PLAYER, backWorld, backLocation.lodestonePos());
-			if (respawnPosition.isEmpty()) {
-				return this.rejected(player);
-			}
-			Vec3d dest = respawnPosition.get();
-			campusState.setBackLocation(player, null);
-			this.teleportAfterDelay(server, player, backWorld, dest.x, dest.y, dest.z);
+			unsetBackPos(player);
+			return this.findSpotAndTeleportAfterDelay(server, player, backWorld, backLodestonePos);
 		} else {
 			// The player wants to teleport to campus.
 			// First save their current lodestone position.
-			campusState.setBackLocation(player, new CampusLodestoneState.Location(world.getRegistryKey(), pos));
+			setBackPos(player, world.getRegistryKey(), pos);
 
 			// Teleport to campus.
-			ServerWorld campusWorld = server.getWorld(campusLocation.world());
-			BlockPos dest = campusLocation.lodestonePos();
-			this.teleportAfterDelay(server, player, campusWorld, dest.getX(), dest.getY(), dest.getZ());
+			ServerWorld campusWorld = server.getWorld(campusWorldKey);
+			return this.findSpotAndTeleportAfterDelay(server, player, campusWorld, campusLodestonePos);
 		}
-		return ActionResult.CONSUME;
 	}
 
 	private ActionResult rejected(PlayerEntity player) {
@@ -88,10 +91,20 @@ public class CampusLodestoneBlock extends Block implements PolymerBlock {
 		return ActionResult.FAIL;
 	}
 
+	private ActionResult findSpotAndTeleportAfterDelay(MinecraftServer server, ServerPlayerEntity player, ServerWorld world, BlockPos lodestonePos) {
+		Optional<Vec3d> safePosition = RespawnAnchorBlock.findRespawnPosition(EntityType.PLAYER, world, lodestonePos);
+		if (safePosition.isEmpty()) {
+			return this.rejected(player);
+		}
+		Vec3d dest = safePosition.get();
+		this.teleportAfterDelay(server, player, world, dest.x, dest.y, dest.z);
+		return ActionResult.SUCCESS;
+	}
+
 	private void teleportAfterDelay(MinecraftServer server, PlayerEntity player, ServerWorld world, double x, double y, double z) {
-		// Play sound and give slowness for 5 seconds
+		// Play sound and give slowness for 4 seconds
 		player.playSoundToPlayer(SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.BLOCKS, 1, 1);
-		player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 5 * 20, 3, false, false));
+		player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 4 * 20, 3, false, false));
 
 		// After 1 seconds, show particles that last for 3 seconds
 		TaskScheduler.schedule(server, () -> {
@@ -102,5 +115,54 @@ public class CampusLodestoneBlock extends Block implements PolymerBlock {
 		TaskScheduler.schedule(server, () -> {
 			player.teleport(world, x, y, z, PositionFlag.ROT, 0, 0);
 		}, 4 * 20);
+	}
+
+	/**
+	 * Get the world that the player should return to when clicking the Campus
+	 * Lodestone at Campus. Returns null if the player has no back location.
+	 *
+	 * @param player The player in question.
+	 * @return The back world, or null.
+	 */
+	@Nullable
+	public static RegistryKey<World> getBackWorld(ServerPlayerEntity player) {
+		return ((ServerPlayerEntityExtensions) player).metacraft_core$getCampusLodestoneBackWorld();
+	}
+
+	/**
+	 * Get the block position of the lodestone that the player used to travel to
+	 * campus. This is the lodestone the player will be teleported back to when
+	 * clicking the lodestone at campus. Returns null if the player has no back
+	 * location.
+	 *
+	 * @param player The player in question.
+	 * @return The block position of the lodestone, or null.
+	 */
+	@Nullable
+	public static BlockPos getBackLodestonePos(ServerPlayerEntity player) {
+		return ((ServerPlayerEntityExtensions) player).metacraft_core$getCampusLodestoneBackPos();
+	}
+
+	/**
+	 * Set the block position of the lodestone that the player used to teleport to
+	 * campus. This is the lodestone that the player will return to when they click
+	 * the lodestone at campus.
+	 *
+	 * @param player The player.
+	 * @param world The world the lodestone is in.
+	 * @param pos The position of the lodestone.
+	 */
+	public static void setBackPos(ServerPlayerEntity player, RegistryKey<World> world, BlockPos pos) {
+		((ServerPlayerEntityExtensions) player).metacraft_core$setCampusLodestoneBackPos(world, pos);
+	}
+
+	/**
+	 * Unset the back position for the player. This signals that the player no longer
+	 * has a "back" location because it was consumed.
+	 *
+	 * @param player The player.
+	 */
+	public static void unsetBackPos(ServerPlayerEntity player) {
+		((ServerPlayerEntityExtensions) player).metacraft_core$unsetCampusLodestoneBackPos();
 	}
 }
