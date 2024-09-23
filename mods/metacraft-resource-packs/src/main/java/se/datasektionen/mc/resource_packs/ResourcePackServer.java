@@ -21,11 +21,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class ResourcePackServer implements AutoCloseable {
 
 	private final MinecraftServer mc;
+	private final ThreadPoolExecutor threadPool;
 	private final HttpServer server;
 
 	public ResourcePackServer(
@@ -33,6 +37,7 @@ public class ResourcePackServer implements AutoCloseable {
 			int maxConnections, Optional<SSLSettings> sslSettings
 	) {
 		this.mc = mc;
+		this.threadPool = new ThreadPoolExecutor(16, 24, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<>(16));
 		try {
 			InetSocketAddress socketAddress;
 			if (localAddress.isPresent()) {
@@ -49,6 +54,7 @@ public class ResourcePackServer implements AutoCloseable {
 			} else {
 				server = HttpServer.create(socketAddress, maxConnections);
 			}
+			server.setExecutor(this.threadPool);
 			server.createContext("/", exchange -> {
 				sendResponse(
 						exchange.getRequestMethod().equals("GET") && verify(exchange.getRequestHeaders()),
