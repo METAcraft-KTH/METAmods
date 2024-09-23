@@ -39,6 +39,8 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 					Codec.unboundedMap(Uuids.STRING_CODEC, ResourcePack.CODEC).fieldOf("resource_packs").forGetter(
 							c -> c.resourcePacks
 					),
+					Codec.BOOL.fieldOf("required").forGetter(c -> c.required),
+					TextCodecs.CODEC.optionalFieldOf("prompt").forGetter(c -> c.prompt),
 					Codec.STRING.fieldOf("server_address").forGetter(c -> c.serverAddress),
 					Codec.STRING.optionalFieldOf("network_address").forGetter(c -> c.networkAddress),
 					Codec.intRange(0, 65535).fieldOf("port").forGetter(c -> c.port),
@@ -59,6 +61,8 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 	private final Map<UUID, ResourcePack> resourcePacks;
 	private final Map<UUID, ResourcePack> prevPacks = new HashMap<>();
+	private final boolean required;
+	private final Optional<Text> prompt;
 	private final String serverAddress;
 	private final Optional<String> networkAddress;
 	private final int port;
@@ -66,11 +70,14 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	private final Optional<ResourcePackServer.SSLSettings> sslSettings;
 
 	public ResourcePackConfig(
-			Map<UUID, ResourcePack> resourcePacks, String serverAddress,
+			Map<UUID, ResourcePack> resourcePacks,
+			boolean required, Optional<Text> prompt, String serverAddress,
 			Optional<String> networkAddress, int port, int maxConnections,
 			Optional<ResourcePackServer.SSLSettings> sslSettings
 	) {
 		this.resourcePacks = resourcePacks instanceof ImmutableMap<UUID, ResourcePack> ? new HashMap<>(resourcePacks) : resourcePacks;
+		this.required = required;
+		this.prompt = prompt;
 		this.serverAddress = serverAddress;
 		this.networkAddress = networkAddress;
 		this.port = port;
@@ -80,7 +87,8 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 	public ResourcePackConfig() {
 		this(
-				new HashMap<>(), "localhost",
+				new HashMap<>(), true,
+				Optional.empty(), "localhost",
 				Optional.empty(), 25585,
 				50, Optional.empty()
 		);
@@ -159,7 +167,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		String protocol = sslSettings.isPresent() ? "https" : "http";
 		return new ResourcePackSendS2CPacket(
 				uuid,  protocol + "://" + getServerAddress() + ":" + getPort()+ "/" + uuid.toString(),
-				entry.getHash().toString(), entry.isRequired(), entry.getPrompt()
+				entry.getHash().toString(), required, prompt
 		);
 	}
 
@@ -204,7 +212,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 						}
 
 						c.resourcePacks.put(uuid, new ResourcePack(
-								path, false, true, Optional.empty(), hash
+								path, false, hash
 						));
 						return true;
 					});
@@ -230,8 +238,6 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 		private Path file;
 		private final boolean global;
-		private final boolean required;
-		private final Optional<Text> prompt;
 		private HashCode hash;
 
 		public static final Codec<ResourcePack> CODEC = RecordCodecBuilder.create(
@@ -243,21 +249,17 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 								return DataResult.error(e::getMessage);
 							}
 						}, Path::toString).fieldOf("file").forGetter(ResourcePack::getFile),
-						Codec.BOOL.fieldOf("global").forGetter(ResourcePack::isGlobal),
-						Codec.BOOL.fieldOf("required").forGetter(ResourcePack::isRequired),
-						TextCodecs.CODEC.optionalFieldOf("prompt").forGetter(ResourcePack::getPrompt)
+						Codec.BOOL.fieldOf("global").forGetter(ResourcePack::isGlobal)
 				).apply(instance, ResourcePack::new)
 		);
 
-		public ResourcePack(Path file, boolean global, boolean required, Optional<Text> prompt) {
+		public ResourcePack(Path file, boolean global) {
 			this.file = file;
 			this.global = global;
-			this.required = required;
-			this.prompt = prompt;
 		}
 
-		public ResourcePack(Path file, boolean global, boolean required, Optional<Text> prompt, HashCode hash) {
-			this(file, global, required, prompt);
+		public ResourcePack(Path file, boolean global, HashCode hash) {
+			this(file, global);
 			this.hash = hash;
 		}
 
@@ -267,10 +269,6 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 		public void setFile(Path path) {
 			this.file = path;
-		}
-
-		public Optional<Text> getPrompt() {
-			return prompt;
 		}
 
 		public void setHash(HashCode hash) {
@@ -283,10 +281,6 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 		public boolean isGlobal() {
 			return global;
-		}
-
-		public boolean isRequired() {
-			return required;
 		}
 	}
 }
