@@ -38,7 +38,7 @@ public class ProtectorateMenu extends SimpleGui {
 				getPlayer().server,
 				player.getServer().getPlayerManager().getPlayerList().stream().filter(
 						p -> !p.isSpectator() && !p.isCreative() && !p.hasPermissionLevel(1) &&
-								!Permissions.check(p, "metacraft.zones.protectorates.hide_from_gui")
+								!Permissions.check(p, "metacraft.zone.protectorates.hide_from_gui")
 				)
 			).setCallback((index, type, action) -> {
 				this.close();

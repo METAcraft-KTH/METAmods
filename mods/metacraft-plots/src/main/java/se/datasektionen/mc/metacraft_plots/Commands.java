@@ -47,7 +47,7 @@ public class Commands {
 	};
 
 	private static boolean canModifyOtherProtectorates(ServerCommandSource source) {
-		return Permissions.check(source, "metacraft.zones.protectorates.modify_members", 2);
+		return Permissions.check(source, "metacraft.zone.protectorates.modify_members", 2);
 	}
 
 	public static final SuggestionProvider<ServerCommandSource> PROTECTORATE_NAME_SUGGESTIONS_ANY = (ctx, suggestionsBuilder) ->
@@ -207,7 +207,7 @@ public class Commands {
 						)
 					).then(
 						literal("make-protectorate").requires(
-							Permissions.require("metacraft.zones.protectorates.create", 2)
+							Permissions.require("metacraft.zone.protectorates.create", 2)
 						).then(
 							ZoneCommandUtils.zone("zone").executes(ctx -> {
 								Zone zone = ZoneCommandUtils.getZone(ctx, "zone");
@@ -220,7 +220,7 @@ public class Commands {
 						)
 					).then(
 						literal("revoke-protectorate").requires(
-							Permissions.require("metacraft.zones.protectorates.remove", 2)
+							Permissions.require("metacraft.zone.protectorates.remove", 2)
 						).then(
 							literal("yes-im-sure").then(
 								literal("yes-im-really-sure").then(
@@ -521,7 +521,7 @@ public class Commands {
 			);
 			dispatcher.register(
 					literal("plots").requires(
-							Permissions.require("metacraft.zones.plots", 2)
+							Permissions.require("metacraft.zone.plots", 2)
 					).then(
 						literal("make-plot").then(
 							ZoneCommandUtils.zone("zone").executes(ctx -> {
