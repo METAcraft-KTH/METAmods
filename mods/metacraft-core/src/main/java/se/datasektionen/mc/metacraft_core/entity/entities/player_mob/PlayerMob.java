@@ -79,6 +79,8 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	private static final String CAN_WANDER = "can_wander";
 	private GameProfile profile;
 
+	private Set<ServerPlayerEntity> sendRemovePacketTo = new HashSet<>();
+
 	private FakePlayer fakePlayer;
 
 	private boolean canWander = true;
@@ -238,6 +240,8 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 					tracker.stopTracking();
 					listeners.clear(); //Necessary because stopTracking does not clear listeners.
 				}
+				removePlayerEntryFrom(sendRemovePacketTo);
+				sendRemovePacketTo.addAll(players);
 				resetFakePlayer();
 				if (getServer().getPlayerManager().getPlayer(profile.getId()) == null) {
 					getServer().getPlayerManager().sendToAll(createPlayerInitPacket());
@@ -247,6 +251,9 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 				}
 			}
 			shouldRespawnClient = false;
+		} else if (!sendRemovePacketTo.isEmpty()) {
+			removePlayerEntryFrom(sendRemovePacketTo);
+			sendRemovePacketTo.clear();
 		}
 	}
 
@@ -503,12 +510,18 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		return ProjectileUtil.createArrowProjectile(this, arrow, damageModifier, shotFrom);
 	}
 
-	@Override
-	public void onStoppedTrackingBy(ServerPlayerEntity player) {
-		super.onStoppedTrackingBy(player);
+	private void removePlayerEntryFrom(Collection<ServerPlayerEntity> players) {
 		if (getServer().getPlayerManager().getPlayer(profile.getId()) == null) {
-			player.networkHandler.sendPacket(new PlayerRemoveS2CPacket(List.of(profile.getId())));
+			for (ServerPlayerEntity player : players) {
+				player.networkHandler.sendPacket(new PlayerRemoveS2CPacket(List.of(profile.getId())));
+			}
 		}
+	}
+
+	@Override
+	public void onStartedTrackingBy(ServerPlayerEntity player) {
+		super.onStartedTrackingBy(player);
+		sendRemovePacketTo.add(player);
 	}
 
 	@Override
