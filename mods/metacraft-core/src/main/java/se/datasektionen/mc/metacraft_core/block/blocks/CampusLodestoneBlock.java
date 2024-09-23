@@ -92,6 +92,9 @@ public class CampusLodestoneBlock extends Block implements PolymerBlock {
 	}
 
 	private ActionResult findSpotAndTeleportAfterDelay(MinecraftServer server, ServerPlayerEntity player, ServerWorld world, BlockPos lodestonePos) {
+		if (world == null) {
+			return this.rejected(player);
+		}
 		Optional<Vec3d> safePosition = RespawnAnchorBlock.findRespawnPosition(EntityType.PLAYER, world, lodestonePos);
 		if (safePosition.isEmpty()) {
 			return this.rejected(player);
