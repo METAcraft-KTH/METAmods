@@ -18,9 +18,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -81,6 +83,7 @@ public class CampusLodestoneBlock extends Block implements PolymerBlock {
 
 			// Teleport to campus.
 			ServerWorld campusWorld = server.getWorld(campusWorldKey);
+			player.playSoundToPlayer(SoundEvent.of(Identifier.of("metacraft", "nasta_tekniska_hogskolan")), SoundCategory.BLOCKS, 1, 1);
 			return this.findSpotAndTeleportAfterDelay(server, player, campusWorld, campusLodestonePos);
 		}
 	}
