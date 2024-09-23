@@ -28,7 +28,7 @@ import se.datasektionen.mc.metacraft_lib.extensions.AbstractFurnaceEntityExtensi
 import se.datasektionen.mc.metacraft_lib.extensions.RecipeRemainderExtension;
 
 @Mixin(AbstractFurnaceBlockEntity.class)
-public abstract class MixinAbstractAbstractFurnaceBlockEntity extends LockableContainerBlockEntity implements AbstractFurnaceEntityExtensions {
+public abstract class MixinAbstractFurnaceBlockEntity extends LockableContainerBlockEntity implements AbstractFurnaceEntityExtensions {
 
 	@Unique
 	private static final String IS_INPUT_EXTRACTABLE = "IsInputExtractable";
@@ -41,7 +41,7 @@ public abstract class MixinAbstractAbstractFurnaceBlockEntity extends LockableCo
 	@Unique
 	private static final ThreadLocal<Boolean> shouldMakeExtractable = ThreadLocal.withInitial(() -> false);
 
-	protected MixinAbstractAbstractFurnaceBlockEntity(BlockEntityType<?> blockEntityType, BlockPos blockPos, BlockState blockState) {
+	protected MixinAbstractFurnaceBlockEntity(BlockEntityType<?> blockEntityType, BlockPos blockPos, BlockState blockState) {
 		super(blockEntityType, blockPos, blockState);
 	}
 
@@ -79,7 +79,7 @@ public abstract class MixinAbstractAbstractFurnaceBlockEntity extends LockableCo
 			World world, BlockPos pos, BlockState state, AbstractFurnaceBlockEntity blockEntity, CallbackInfo ci
 	) {
 		if (shouldMakeExtractable.get()) {
-			((MixinAbstractAbstractFurnaceBlockEntity) (Object) blockEntity).isInputExtractable = true;
+			((MixinAbstractFurnaceBlockEntity) (Object) blockEntity).isInputExtractable = true;
 			blockEntity.markDirty();
 		}
 	}

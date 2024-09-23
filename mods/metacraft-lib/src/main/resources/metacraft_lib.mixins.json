@@ -22,6 +22,7 @@
 		"AccessorStructureTemplate",
 		"AccessorStructureTemplate$AccessorPalettedBlockInfoList",
 		"AccessorTntEntity",
+		"MixinAbstractFurnaceBlockEntity",
 		"MixinAbstractCookingRecipe",
 		"MixinAbstractMinecartEntity",
 		"MixinBoatEntity",
