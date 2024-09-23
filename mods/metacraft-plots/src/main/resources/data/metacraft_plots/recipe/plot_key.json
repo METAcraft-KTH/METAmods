@@ -1,0 +1,27 @@
+{
+ 	"type": "minecraft:crafting_shaped",
+ 	"category": "equipment",
+ 	"key": {
+ 	 	"C": {
+ 	 	 	"item": "minecraft:copper_ingot"
+ 	 	},
+ 	 	"R": {
+ 	 	 	"item": "minecraft:redstone"
+ 	 	},
+		"E": {
+			"item": "minecraft:echo_shard"
+		},
+		"G": {
+			"item": "minecraft:gold_ingot"
+		}
+ 	},
+ 	"pattern": [
+ 	 	"CRC",
+ 	 	"CEC",
+		"GG "
+ 	],
+ 	"result": {
+ 	 	"count": 1,
+ 	 	"id": "metacraft_plots:plot_key"
+ 	}
+}

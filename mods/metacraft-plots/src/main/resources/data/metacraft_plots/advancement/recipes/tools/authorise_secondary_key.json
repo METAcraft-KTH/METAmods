@@ -1,0 +1,32 @@
+{
+ 	"parent": "minecraft:recipes/root",
+ 	"criteria": {
+ 	 	"has_key": {
+ 	 	 	"conditions": {
+ 	 	 	 	"items": [
+ 	 	 	 	 	{
+ 	 	 	 	 	 	"items": "metacraft_plots:plot_master_key"
+ 	 	 	 	 	}
+ 	 	 	 	]
+ 	 	 	},
+ 	 	 	"trigger": "minecraft:inventory_changed"
+ 	 	},
+ 	 	"has_the_recipe": {
+ 	 	 	"conditions": {
+ 	 	 	 	"recipe": "metacraft_plots:authorise_secondary_key"
+ 	 	 	},
+ 	 	 	"trigger": "minecraft:recipe_unlocked"
+ 	 	}
+ 	},
+ 	"requirements": [
+ 	 	[
+ 	 	 	"has_the_recipe",
+ 	 	 	"has_key"
+ 	 	]
+ 	],
+ 	"rewards": {
+ 	 	"recipes": [
+ 	 	 	"metacraft_plots:authorise_secondary_key"
+ 	 	]
+ 	}
+}
