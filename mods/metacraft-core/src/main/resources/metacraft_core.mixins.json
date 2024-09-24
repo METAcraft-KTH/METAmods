@@ -20,6 +20,7 @@
 		"MixinItemStack",
 		"MixinPistonBlock",
 		"MixinPlayerEntity",
+		"MixinPlayerInventory",
 		"MixinServerCommonNetworkHandler",
 		"MixinServerPlayerEntity",
 		"MixinServerPlayerInteractionManager",
