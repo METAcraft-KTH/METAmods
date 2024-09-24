@@ -4,6 +4,8 @@ import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Rarity;
+import net.minecraft.util.Unit;
+import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_plots.METAcraftPlots;
 
 import java.util.Optional;
@@ -20,7 +22,9 @@ public class PlotItems {
 			)
 	);
 	public static final Item PLOT_MASTER_KEY = register(
-			"plot_master_key", new PlotKey(new Item.Settings().rarity(Rarity.EPIC), (stack, server) -> 253)
+			"plot_master_key", new PlotKey(new Item.Settings().fireproof().component(
+					METAcraftComponents.SOULBOUND, Unit.INSTANCE
+			).rarity(Rarity.EPIC), (stack, server) -> 253)
 	);
 
 	public static void init() {

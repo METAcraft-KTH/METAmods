@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
+import se.datasektionen.mc.metacraft_core.item.components.CommandComponents;
 
 @Mixin(ServerPlayNetworkHandler.class)
 public class MixinServerPlayNetworkHandler {
@@ -20,8 +20,8 @@ public class MixinServerPlayNetworkHandler {
 	public void onHandSwing(HandSwingC2SPacket packet, CallbackInfo ci) {
 		if (packet.getHand() == Hand.MAIN_HAND) {
 			var stack = player.getStackInHand(packet.getHand());
-			if (stack.contains(METAcraftComponents.MAIN_HAND_SWING_COMMAND)) {
-				METAcraftComponents.runCommand(player, player.getPos(), stack.get(METAcraftComponents.MAIN_HAND_SWING_COMMAND));
+			if (stack.contains(CommandComponents.MAIN_HAND_SWING_COMMAND)) {
+				CommandComponents.runCommand(player, player.getPos(), stack.get(CommandComponents.MAIN_HAND_SWING_COMMAND));
 			}
 		}
 	}

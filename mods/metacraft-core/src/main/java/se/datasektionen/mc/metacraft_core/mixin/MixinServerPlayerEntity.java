@@ -9,6 +9,7 @@ import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -18,9 +19,11 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.GameRules;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -31,6 +34,7 @@ import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.entity.entities.PlayerMusicPoint;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
+import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
 
 import java.util.HashMap;
@@ -48,6 +52,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Shadow public abstract void sendMessage(Text message, boolean overlay);
 
+	@Shadow @Final public MinecraftServer server;
 	@Unique
 	private static final String ARE_BLOCKS_MOVABLE = "AreBlocksMovable";
 
@@ -194,6 +199,14 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 		this.campusLodestoneBackWorld = ((MixinServerPlayerEntity) (Object) oldPlayer).campusLodestoneBackWorld;
 		this.campusLodestoneBackPos = ((MixinServerPlayerEntity) (Object) oldPlayer).campusLodestoneBackPos;
+		if (!server.getGameRules().getBoolean(GameRules.KEEP_INVENTORY)) {
+			for (int i = 0; i < oldPlayer.getInventory().size(); i++) {
+				var stack = oldPlayer.getInventory().getStack(i);
+				if (stack.contains(METAcraftComponents.SOULBOUND)) {
+					this.getInventory().setStack(i, stack);
+				}
+			}
+		}
 	}
 
 	@Inject(method = "writeCustomDataToNbt", at = @At("HEAD"))
