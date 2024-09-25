@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"id": "portal-opening",
+	"version": "${version}",
+	"name": "Portal-Opening",
+	"description": "Portal opening event data",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.datasektionen.mc.portalopening.PortalOpening"
+		]
+	},
+	"mixins": [
+		"portalopening.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric": "*",
+		"metacraft-core": "*"
+	}
+}
