@@ -75,6 +75,7 @@ public class CampusLodestoneBlock extends Block implements PolymerBlock {
 				return this.rejected(player);
 			}
 			unsetBackPos(player);
+			player.playSoundToPlayer(SoundEvent.of(Identifier.of("metacraft", "tunnelbana_notis")), SoundCategory.BLOCKS, 1, 1);
 			return this.findSpotAndTeleportAfterDelay(server, player, backWorld, backLodestonePos);
 		} else {
 			// The player wants to teleport to campus.
