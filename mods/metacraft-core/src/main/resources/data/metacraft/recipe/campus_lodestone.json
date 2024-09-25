@@ -1,0 +1,29 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "#F#",
+        "ETE",
+        "#C#"
+    ],
+    "key": {
+        "#": {
+            "item": "minecraft:powered_rail"
+        },
+        "F": {
+            "item": "minecraft:furnace_minecart"
+        },
+        "E": {
+            "item": "minecraft:ender_pearl"
+        },
+        "T": {
+            "item": "minecraft:target"
+        },
+        "C": {
+            "item": "minecraft:crafter"
+        }
+    },
+    "result": {
+        "count": 1,
+        "id": "metacraft:campus_lodestone"
+    }
+}
