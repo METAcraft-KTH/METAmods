@@ -27,7 +27,7 @@ public class METAcraftItems {
 			Text.empty(),
 			Text.translatable("block.metacraft.campus_lodestone.lore3"),
 			Text.translatable("block.metacraft.campus_lodestone.lore4")
-		))).component(DataComponentTypes.RARITY, Rarity.EPIC),
+		))).component(DataComponentTypes.RARITY, Rarity.EPIC).maxCount(1),
 		Items.STRUCTURE_VOID,
 		10052
 	));
