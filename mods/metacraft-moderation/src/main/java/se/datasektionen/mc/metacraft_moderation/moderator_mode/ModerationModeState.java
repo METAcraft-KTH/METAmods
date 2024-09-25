@@ -28,7 +28,7 @@ import java.util.function.Consumer;
 public class ModerationModeState {
 
 	public static final ModerationModeState NULL = new ModerationModeState(
-		new ModeratorModeDefinition("null", false, false, false)
+		new ModeratorModeDefinition("null", false, true, false, false)
 	);
 
 	private static final String DEF = "Definition";
@@ -204,32 +204,30 @@ public class ModerationModeState {
 			player.getAdvancementTracker().save();
 			player.getStatHandler().save();
 			var playerManager = player.getServer().getPlayerManager();
-			if (!(player.getAdvancementTracker() instanceof DummyAdvancementTracker)) {
-				((AccessorServerPlayerEntity) player).setAdvancementTracker(
-						new DummyAdvancementTracker(
-								player.getServer().getDataFixer(), playerManager,
-								player.getServer().getAdvancementLoader(), player
-						)
-				);
-				((AccessorPlayerManager) playerManager).getAdvancementTrackers().put(
-						player.getUuid(), player.getAdvancementTracker()
-				);
-			}
-			if (!(player.getStatHandler() instanceof DummyStatHandler)) {
-				((AccessorServerPlayerEntity) player).setStatHandler(
-						new DummyStatHandler(player.server)
-				);
-				((AccessorPlayerManager) playerManager).getStatisticsMap().put(
-						player.getUuid(), player.getStatHandler()
-				);
-			}
+			((AccessorServerPlayerEntity) player).setAdvancementTracker(
+					new ModAdvancementTracker(
+							player.getServer().getDataFixer(), playerManager,
+							player.getServer().getAdvancementLoader(), player, def
+					)
+			);
+			((AccessorPlayerManager) playerManager).getAdvancementTrackers().put(
+					player.getUuid(), player.getAdvancementTracker()
+			);
+			((AccessorServerPlayerEntity) player).setStatHandler(
+					new ModStatHandler(player.server, player, def)
+			);
+			((AccessorPlayerManager) playerManager).getStatisticsMap().put(
+					player.getUuid(), player.getStatHandler()
+			);
 		} else {
 			var playerManager = player.getServer().getPlayerManager();
-			if (player.getAdvancementTracker() instanceof DummyAdvancementTracker) {
+			if (player.getAdvancementTracker() instanceof ModAdvancementTracker t) {
+				t.save();
 				((AccessorPlayerManager) playerManager).getAdvancementTrackers().remove(player.getUuid());
 				((AccessorServerPlayerEntity) player).setAdvancementTracker(playerManager.getAdvancementTracker(player));
 			}
-			if (player.getStatHandler() instanceof DummyStatHandler) {
+			if (player.getStatHandler() instanceof ModStatHandler t) {
+				t.save();
 				((AccessorPlayerManager) playerManager).getStatisticsMap().remove(player.getUuid());
 				((AccessorServerPlayerEntity) player).setStatHandler(playerManager.createStatHandler(player));
 			}

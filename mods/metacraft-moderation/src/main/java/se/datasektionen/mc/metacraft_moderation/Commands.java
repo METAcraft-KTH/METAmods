@@ -77,6 +77,18 @@ public class Commands {
 						)
 					)
 				).then(
+					literal("set-announce-advancements").then(
+						moderationDefinition("mod").then(
+							argument("announce-advancements", BoolArgumentType.bool()).executes(ctx -> {
+								var def = getModerationDefinition(ctx, "mod");
+								var state = BoolArgumentType.getBool(ctx, "announce-advancements");
+								def.setAnnounceAdvancements(state);
+								ctx.getSource().sendFeedback(() -> Text.literal("Set announce-advancements for " + def.getName() + " to " + state), true);
+								return 1;
+							})
+						)
+					)
+				).then(
 					literal("set-prevent-tamed-mob-follow").then(
 						moderationDefinition("mod").then(
 							argument("prevent-follow", BoolArgumentType.bool()).executes(ctx -> {

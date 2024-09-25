@@ -11,6 +11,7 @@ public class ModeratorModeDefinition {
 	private static final String ENTER_COMMAND = "EnterCommand";
 	private static final String EXIT_COMMAND = "ExitCommand";
 	private static final String SEPARATE_PLAYER_DATA = "SeparatePlayerData";
+	private static final String ANNOUNCE_ADVANCEMENTS = "AnnounceAdvancements";
 	private static final String VANISH = "Vanish";
 	private static final String PREVENT_TAMED_MOB_FOLLOW = "PreventTamedMobFollow";
 
@@ -18,16 +19,18 @@ public class ModeratorModeDefinition {
 	protected String enterCommand;
 	protected String exitCommand;
 	protected boolean separatePlayerData;
+	protected boolean announceAdvancements = true;
 	protected boolean vanish;
 	protected boolean preventTamedMobFollow;
 
 	private Runnable markSave = () -> {};
 
 	public ModeratorModeDefinition(
-			String name, boolean separatePlayerData, boolean vanish, boolean preventTamedMobFollow
+			String name, boolean separatePlayerData,  boolean announceAdvancements, boolean vanish, boolean preventTamedMobFollow
 	) {
 		this.name = name;
 		this.separatePlayerData = separatePlayerData;
+		this.announceAdvancements = announceAdvancements;
 		this.vanish = vanish;
 		this.preventTamedMobFollow = preventTamedMobFollow;
 	}
@@ -69,6 +72,11 @@ public class ModeratorModeDefinition {
 		markDirty();
 	}
 
+	public void setAnnounceAdvancements(boolean announceAdvancements) {
+		this.announceAdvancements = announceAdvancements;
+		markDirty();
+	}
+
 	public Optional<String> getEnterCommand() {
 		return Optional.ofNullable(enterCommand);
 	}
@@ -83,6 +91,10 @@ public class ModeratorModeDefinition {
 
 	public String getName() {
 		return name;
+	}
+
+	public boolean announceAdvancements() {
+		return announceAdvancements;
 	}
 
 	public NbtCompound toNBT() {
@@ -100,6 +112,7 @@ public class ModeratorModeDefinition {
 		nbt.putBoolean(SEPARATE_PLAYER_DATA, separatePlayerData);
 		nbt.putBoolean(VANISH, vanish);
 		nbt.putBoolean(PREVENT_TAMED_MOB_FOLLOW, preventTamedMobFollow);
+		nbt.putBoolean(ANNOUNCE_ADVANCEMENTS, announceAdvancements);
 
 		return nbt;
 	}
@@ -119,6 +132,10 @@ public class ModeratorModeDefinition {
 		vanish = nbt.getBoolean(VANISH);
 
 		preventTamedMobFollow = nbt.getBoolean(PREVENT_TAMED_MOB_FOLLOW);
+
+		if (nbt.contains(ANNOUNCE_ADVANCEMENTS)) {
+			announceAdvancements = nbt.getBoolean(ANNOUNCE_ADVANCEMENTS);
+		}
 	}
 
 	public Text toText() {
