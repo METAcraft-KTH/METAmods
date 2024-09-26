@@ -21,7 +21,7 @@ import java.util.Optional;
 public class PortalOpening implements ModInitializer {
 	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("portal-opening.json");
 
-	private static ConfigContainer<Config> config = ConfigContainer.Builder.create(
+	private static final ConfigContainer<Config> config = ConfigContainer.Builder.create(
 			Config.CODEC, configPath, () -> {
 				var config = new Config();
 				NbtCompound piglin = new NbtCompound();
@@ -72,6 +72,6 @@ public class PortalOpening implements ModInitializer {
 	}
 
 	public static void reloadConfig() {
-		config = null;
+		config.reload();
 	}
 }
