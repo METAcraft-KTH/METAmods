@@ -2,7 +2,9 @@ package se.datasektionen.mc.metacraft_core.mixin;
 
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -10,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
+import se.datasektionen.mc.metacraft_core.util.NoArmorDamageData;
 
 @Mixin(PlayerEntity.class)
 public abstract class MixinPlayerEntity extends LivingEntity {
@@ -28,4 +31,15 @@ public abstract class MixinPlayerEntity extends LivingEntity {
 		}
 	}
 
+	@Inject(method = "damageArmor", at = @At("HEAD"), cancellable = true)
+	public void noBreakArmor(DamageSource source, float amount, CallbackInfo ci) {
+		MinecraftServer server = getServer();
+		if (server == null) {
+			return;
+		}
+		NoArmorDamageData data = NoArmorDamageData.getInstance(server);
+		if (data.isDisableArmorDamage()) {
+			ci.cancel();
+		}
+	}
 }
