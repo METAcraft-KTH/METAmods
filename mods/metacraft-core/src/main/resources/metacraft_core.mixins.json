@@ -10,6 +10,7 @@
 		"AccessorMobEntity",
 		"AccessorPlayerEntity",
 		"AccessorServerChunkManager",
+		"AccessorWitherEntity",
 		"MixinAbstractBlockState",
 		"MixinBlockEntity",
 		"MixinBlockItem",

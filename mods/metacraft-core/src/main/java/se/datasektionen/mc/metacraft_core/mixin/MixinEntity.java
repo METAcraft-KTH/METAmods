@@ -74,6 +74,9 @@ public abstract class MixinEntity implements EntityExtensions {
 		if (this.bossBar != null) {
 			this.bossBar.clearPlayers();
 			this.bossBar = null;
+			if (this instanceof AccessorWitherEntity w) {
+				w.getBossBar().setVisible(true);
+			}
 		}
 	}
 
@@ -85,6 +88,9 @@ public abstract class MixinEntity implements EntityExtensions {
 			for (var player : EntityTrackerHelper.getListeners(tracker)) {
 				this.bossBar.addPlayer(player.getPlayer());
 			}
+		}
+		if (this instanceof AccessorWitherEntity w) {
+			w.getBossBar().setVisible(false);
 		}
 	}
 
