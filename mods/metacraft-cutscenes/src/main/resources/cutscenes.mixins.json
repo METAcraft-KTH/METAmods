@@ -7,7 +7,6 @@
 		"AccessorBrain",
 		"AccessorChunkHolder",
 		"AccessorMinecraftServer",
-		"AccessorServerChunkLoadingManager",
 		"AccessorServerPlayerEntity",
 		"AccessorServerWorld",
 		"AccessorStatusEffectInstance",
