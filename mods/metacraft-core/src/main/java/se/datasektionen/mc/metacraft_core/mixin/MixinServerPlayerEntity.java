@@ -177,7 +177,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			musicDelay--;
 		} else {
 			if (music != null) {
-				playMusic();
+				playMusic(music.stopOnRestart());
 			}
 		}
 
@@ -266,10 +266,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Unique
-	private void playMusic() {
+	private void playMusic(boolean stopOnRestart) {
 		if (this.music != null) {
 			refreshMusicPoint(false);
-			this.networkHandler.sendPacket(new StopSoundS2CPacket(null, SoundCategory.MUSIC));
+			if (stopOnRestart) {
+				this.networkHandler.sendPacket(new StopSoundS2CPacket(null, SoundCategory.MUSIC));
+			}
 			this.musicDelay = music.length();
 			this.networkHandler.sendPacket(
 				new PlaySoundFromEntityS2CPacket(
@@ -295,7 +297,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		this.music = entry;
 		if (!continuePrevious) {
 			displayTimer = 100;
-			playMusic();
+			playMusic(true);
 		}
 		return true;
 	}
@@ -317,7 +319,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Override
 	public void metacraft_lib$resetMusicTimer() {
 		if (this.music != null) {
-			playMusic();
+			playMusic(true);
 		}
 	}
 

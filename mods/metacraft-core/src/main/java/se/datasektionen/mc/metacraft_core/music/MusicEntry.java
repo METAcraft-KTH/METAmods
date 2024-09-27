@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitch, int priority, Optional<Credit> credit) {
+public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitch, int priority, boolean stopOnRestart, Optional<Credit> credit) {
 
 	private static final Map<RegistryKey<SoundEvent>, RegistryEntry<SoundEvent>> cache = new HashMap<>();
 	public static final Codec<RegistryEntry<SoundEvent>> MUSIC_CODEC_WITH_CACHE = Identifier.CODEC.xmap(
@@ -32,6 +32,7 @@ public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitc
 			Codec.INT.fieldOf("length").forGetter(MusicEntry::length),
 			Codec.FLOAT.fieldOf("pitch").orElse(1.0f).forGetter(MusicEntry::pitch),
 			Codec.INT.fieldOf("priority").orElse(0).forGetter(MusicEntry::priority),
+			Codec.BOOL.optionalFieldOf("stop_on_restart", false).forGetter(MusicEntry::stopOnRestart),
 			Credit.CODEC.optionalFieldOf("credit").forGetter(MusicEntry::credit)
 		).apply(instance, MusicEntry::new)
 	);
