@@ -18,7 +18,6 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.Heightmap;
 
 import java.util.ArrayList;
 import java.util.stream.IntStream;
@@ -154,7 +153,7 @@ public class Commands {
 									var players = new ArrayList<>(EntityArgumentType.getPlayers(ctx, "players"));
 									int numRifts = 0;
 									int range = IntegerArgumentType.getInteger(ctx, "range");
-									for (int i = 0; i < riftCount; i++) {
+									riftLoop: for (int i = 0; i < riftCount; i++) {
 										int size = (int) Math.round(Math.abs(random.nextGaussian() * 10));
 										var player = players.get(random.nextInt(players.size()));
 										BlockPos.Mutable pos = new BlockPos.Mutable().set(
@@ -162,9 +161,31 @@ public class Commands {
 														random.nextBetween(-range, range), 0, random.nextBetween(-range, range)
 												)
 										);
-										pos.setY(ctx.getSource().getWorld().getTopY(
-												Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, pos.getX(), pos.getZ()
-										) + Math.min(size, 5));
+										boolean blocked = !player.getWorld().getBlockState(pos).isAir();
+										for (int y = 0; y < range; y++) {
+											if (blocked) {
+												if (
+														player.getWorld().isInBuildLimit(pos.setY((int) player.getY() - y)) &&
+														player.getWorld().getBlockState(pos).isAir()
+												) {
+													blocked = false;
+												} else if (
+														player.getWorld().isInBuildLimit(pos.setY((int) player.getY() + y)) &&
+														player.getWorld().getBlockState(pos).isAir()
+												) {
+													break;
+												}
+											} else if (
+													player.getWorld().isInBuildLimit(pos.setY((int) player.getY() - y)) &&
+													player.getWorld().getBlockState(pos).isAir()
+											) {
+												break;
+											} else {
+												continue riftLoop;
+											}
+										}
+
+										pos.setY(pos.getY() + Math.min(size, 5));
 										if (data.createNetherPortalRift(pos, size, null)) {
 											numRifts++;
 										}
