@@ -6,7 +6,7 @@ import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
-import se.datasektionen.mc.metacraft_core.util.NoArmorDamageData;
+import se.datasektionen.mc.metacraft_core.util.METAcraftCoreData;
 
 public class NoArmorDamageCommand {
 
@@ -16,7 +16,7 @@ public class NoArmorDamageCommand {
 				.requires(Permissions.require("metacraft.no-armor-damage", 2))
 				.executes(ctx -> {
 					ServerCommandSource source = ctx.getSource();
-					NoArmorDamageData data = NoArmorDamageData.getInstance(source.getServer());
+					METAcraftCoreData data = METAcraftCoreData.getInstance(source.getServer());
 					source.sendMessage(Text.literal(data.isDisableArmorDamage()
 						? "Armor damage is currently disabled."
 						: "Armor damage is currently active, aka it takes damage. Aka like in vanilla. You understand what I mean."
@@ -30,7 +30,7 @@ public class NoArmorDamageCommand {
 								.executes(ctx -> {
 									boolean value = BoolArgumentType.getBool(ctx, "value");
 									ServerCommandSource source = ctx.getSource();
-									NoArmorDamageData data = NoArmorDamageData.getInstance(source.getServer());
+									METAcraftCoreData data = METAcraftCoreData.getInstance(source.getServer());
 									data.setDisableArmorDamage(value);
 									source.sendMessage(Text.literal("Value updated."));
 									return 1;

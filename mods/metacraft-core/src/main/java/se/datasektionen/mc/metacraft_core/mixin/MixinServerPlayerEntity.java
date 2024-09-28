@@ -30,12 +30,14 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.entity.entities.PlayerMusicPoint;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
+import se.datasektionen.mc.metacraft_core.util.METAcraftCoreData;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -236,6 +238,24 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 				backData.getInt("y"),
 				backData.getInt("z")
 			);
+		}
+	}
+
+	@Inject(method = "getSpawnPointPosition", at = @At("HEAD"), cancellable = true)
+	public void forcedRespawnPos(CallbackInfoReturnable<BlockPos> cir) {
+		METAcraftCoreData data = METAcraftCoreData.getInstance(this.server);
+		BlockPos pos = data.getForcedRespawnPos();
+		if (pos != null) {
+			cir.setReturnValue(pos);
+		}
+	}
+
+	@Inject(method = "getSpawnPointDimension", at = @At("HEAD"), cancellable = true)
+	public void forcedRespawnWorld(CallbackInfoReturnable<RegistryKey<World>> cir) {
+		METAcraftCoreData data = METAcraftCoreData.getInstance(this.server);
+		RegistryKey<World> world = data.getForcedRespawnWorld();
+		if (world != null) {
+			cir.setReturnValue(world);
 		}
 	}
 
