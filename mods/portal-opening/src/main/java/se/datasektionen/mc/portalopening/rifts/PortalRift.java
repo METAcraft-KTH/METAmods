@@ -6,6 +6,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtLongArray;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import se.datasektionen.mc.portalopening.EntityData;
@@ -19,11 +20,17 @@ public class PortalRift {
 
 	private static final String BLOCKS = "Blocks";
 	private static final String AXIS = "Axis";
+	private static final String LAUNCH_DIRECTION = "LaunchDirection";
+	private static final String LAUNCH_STRENGTH = "LaunchStrength";
+	private static final String OFFSET_FACTOR = "OffsetFactor";
 
 	protected final World world;
 	protected List<BlockPos> blocks = new ArrayList<>();
 	protected Set<BlockPos> blocksChecker = new HashSet<>();
 	protected Direction.Axis axis;
+	protected Direction launchDirection = null;
+	protected double launchStrength = 1;
+	protected double offsetFactor = 0.5;
 
 	protected Set<Entity> mobs = new HashSet<>();
 
@@ -32,8 +39,7 @@ public class PortalRift {
 	protected int delay = 0;
 
 	public PortalRift(
-			World world, BlockPos pos, int size, Direction.Axis axis,
-			Runnable shouldSave
+			World world, BlockPos pos, int size, Direction.Axis axis, Runnable shouldSave
 	) {
 		this.world = world;
 		this.shouldSave = shouldSave;
@@ -151,6 +157,11 @@ public class PortalRift {
 		if (axis != null) {
 			nbt.putInt(AXIS, axis.ordinal());
 		}
+		if (launchDirection != null) {
+			nbt.putInt(LAUNCH_DIRECTION, launchDirection.ordinal());
+		}
+		nbt.putDouble(LAUNCH_STRENGTH, launchStrength);
+		nbt.putDouble(OFFSET_FACTOR, offsetFactor);
 		return nbt;
 	}
 
@@ -161,6 +172,11 @@ public class PortalRift {
 		if (nbt.contains(AXIS)) {
 			axis = Direction.Axis.values()[nbt.getInt(AXIS)];
 		}
+		if (nbt.contains(LAUNCH_DIRECTION)) {
+			launchDirection = Direction.byId(nbt.getInt(LAUNCH_DIRECTION));
+		}
+		launchStrength = nbt.getDouble(LAUNCH_STRENGTH);
+		offsetFactor = nbt.getDouble(OFFSET_FACTOR);
 	}
 
 	public void addEntity(Entity entity) {
@@ -171,6 +187,30 @@ public class PortalRift {
 	public void removeEntity(Entity entity) {
 		mobs.remove(entity);
 		((EntityData) entity).portalOpening$setRift(null);
+	}
+
+	public void attemptLaunch(Entity entity) {
+		if (launchDirection != null) {
+			List<Direction.Axis> axes = new ArrayList<>(List.of(Direction.Axis.values()));
+			axes.remove(launchDirection.getAxis());
+			var facing = Vec3d.of(launchDirection.getVector()).add(
+					Vec3d.of(launchDirection.rotateClockwise(axes.getFirst()).getVector()).multiply(
+							entity.getRandom().nextGaussian() * offsetFactor
+					)
+			).add(
+					Vec3d.of(launchDirection.rotateClockwise(axes.getLast()).getVector()).multiply(
+							entity.getRandom().nextGaussian() * offsetFactor
+					)
+			).normalize().multiply(launchStrength);
+			entity.setVelocity(facing);
+		}
+	}
+
+	public void setLaunch(Direction direction, double strength, double offset) {
+		launchDirection = direction;
+		launchStrength = strength;
+		this.offsetFactor = offset;
+		markDirty();
 	}
 
 	public void nextWave(Wave wave) {
@@ -197,7 +237,7 @@ public class PortalRift {
 				}
 				toSpawn = Math.min(toSpawn, autoSpawns.maxMobs() - mobs.size());
 				for (int i = 0; i < toSpawn; i++) {
-					autoSpawns.spawnMobsFromNBT(world, getRandomPos(), this);
+					autoSpawns.spawnMobsFromNBT(world, getRandomPos(), this, this::attemptLaunch);
 				}
 				delay = autoSpawns.spawnDelay().get(world.getRandom());
 				markDirty();

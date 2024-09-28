@@ -1,6 +1,7 @@
 package se.datasektionen.mc.portalopening;
 
 import com.google.common.collect.ImmutableList;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
@@ -18,9 +19,12 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -46,6 +50,13 @@ public class Commands {
 	private static final SuggestionProvider<ServerCommandSource> X_OR_Z_AXIS = (ctx, builder) -> {
 		return CommandSource.suggestMatching(
 				ImmutableList.of(Direction.Axis.X.getName(), Direction.Axis.Z.getName()),
+				builder
+		);
+	};
+
+	private static final SuggestionProvider<ServerCommandSource> DIRECTION = (ctx, builder) -> {
+		return CommandSource.suggestMatching(
+				Stream.concat(Arrays.stream(Direction.values()).map(Direction::getName), Stream.of("null")),
 				builder
 		);
 	};
@@ -286,6 +297,40 @@ public class Commands {
 							ctx.getSource().sendFeedback(() -> Text.literal("Closed all rifts except main rift"), true);
 							return 1;
 						})
+					)
+				).then(
+					literal("set-launch").then(
+						argument("pos", BlockPosArgumentType.blockPos()).then(
+							argument("direction", StringArgumentType.string()).suggests(DIRECTION).then(
+								argument("strength", DoubleArgumentType.doubleArg(0)).then(
+									argument("offset", DoubleArgumentType.doubleArg(0)).executes(ctx -> {
+										var directionString = StringArgumentType.getString(ctx, "direction");
+										Direction direction;
+										if (directionString.equals("null")) {
+											direction = null;
+										} else {
+											direction = Direction.byName(directionString);
+										}
+										var pos = BlockPosArgumentType.getBlockPos(ctx, "pos");
+										var strength = DoubleArgumentType.getDouble(ctx, "strength");
+										var offset = DoubleArgumentType.getDouble(ctx, "offset");
+										var data = PortalOpeningDimensionData.getInstance(ctx.getSource().getWorld());
+										MutableInt num = new MutableInt(0);
+										data.getRiftAt(pos).ifPresentOrElse(rift -> {
+											rift.setLaunch(direction, strength, offset);
+											ctx.getSource().sendFeedback(
+													() -> Text.literal("Set launch to " + direction + " " + strength + " " + offset),
+													true
+											);
+											num.setValue(1);
+										}, () -> {
+											ctx.getSource().sendError(Text.literal("Not a rift"));
+										});
+										return num.getValue();
+									})
+								)
+							)
+						)
 					)
 				)
 			);

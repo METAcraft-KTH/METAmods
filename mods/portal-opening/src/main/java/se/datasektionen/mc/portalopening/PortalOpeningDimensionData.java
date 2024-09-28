@@ -265,14 +265,14 @@ public class PortalOpeningDimensionData extends PersistentState {
 			for (var mobEntry : wave.manualSpawns().get(name)) {
 				int toSpawn = mobEntry.amountPerSpawn().get(world.getRandom());
 				for (int i = 0; i < toSpawn; i++) {
-					mobEntry.spawnMobsFromNBT(world, mainRift.getRandomPos());
+					mobEntry.spawnMobsFromNBT(world, mainRift.getRandomPos(), mainRift::attemptLaunch);
 				}
 				mobEntry.amountPerSpawnOtherRifts().ifPresent(amount -> {
 					for (var rift : rifts) {
 						if (mobEntry.probabilityToSpawnOtherRift() <= world.getRandom().nextDouble()) {
 							int toSpawnOtherRift = amount.get(world.getRandom());
 							for (int i = 0; i < toSpawnOtherRift; i++) {
-								mobEntry.spawnMobsFromNBT(world, rift.getRandomPos());
+								mobEntry.spawnMobsFromNBT(world, rift.getRandomPos(), rift::attemptLaunch);
 							}
 						}
 					}
