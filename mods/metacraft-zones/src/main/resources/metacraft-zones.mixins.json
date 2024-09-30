@@ -6,8 +6,7 @@
 		"AccessorStringRange",
 		"AccessorSuggestion",
 		"MixinEntity",
-		"MixinFieldDecoder",
-		"MixinSpawnHelper"
+		"MixinFieldDecoder"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -538,6 +538,7 @@ public class ZoneManagementCommand {
 			Optional<T> creatorFromArgs,
 			FunctionForCommands<AdditionalSpawnsZoneData, AdditionalSpawnsZoneData.ListAccessor<T>> dataGetter
 	) throws CommandSyntaxException {
+		ctx.getSource().sendError(Text.literal("WARNING: Zone spawns have been disabled due to performance issues!"));
 		var zone = getZone(ctx);
 		var data = creatorFromArgs.orElse(null);
 		if (data != null) {
@@ -555,6 +556,7 @@ public class ZoneManagementCommand {
 			String nameOfObject, Function<T, String> printer,
 			FunctionForCommands<AdditionalSpawnsZoneData, AdditionalSpawnsZoneData.ListAccessor<T>> dataGetter
 	) throws CommandSyntaxException {
+		ctx.getSource().sendError(Text.literal("WARNING: Zone spawns have been disabled due to performance issues!"));
 		int index = IntegerArgumentType.getInteger(ctx, "index");
 		var zone = getZone(ctx);
 		var data = zone.get(ZoneDataRegistry.SPAWN).orElse(null);
@@ -578,6 +580,7 @@ public class ZoneManagementCommand {
 			String nameOfObject, Function<T, String> printer,
 			FunctionForCommands<AdditionalSpawnsZoneData, AdditionalSpawnsZoneData.ListAccessor<T>> dataGetter
 	) throws CommandSyntaxException {
+		ctx.getSource().sendError(Text.literal("WARNING: Zone spawns have been disabled due to performance issues!"));
 		var zone = getZone(ctx);
 		var data = zone.get(ZoneDataRegistry.SPAWN).orElse(null);
 		if (data != null) {
