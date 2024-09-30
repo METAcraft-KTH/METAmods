@@ -259,6 +259,16 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 	}
 
+	@Inject(method = "isSpawnForced", at = @At("HEAD"), cancellable = true)
+	public void forcedRespawnIsForced(CallbackInfoReturnable<Boolean> cir) {
+		METAcraftCoreData data = METAcraftCoreData.getInstance(this.server);
+		RegistryKey<World> world = data.getForcedRespawnWorld();
+		BlockPos pos = data.getForcedRespawnPos();
+		if (pos != null && world != null) {
+			cir.setReturnValue(true);
+		}
+	}
+
 	@Unique
 	private void disableVanillaMusic() {
 		this.networkHandler.sendPacket(new StopSoundS2CPacket(
