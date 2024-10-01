@@ -6,7 +6,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
@@ -19,12 +19,14 @@ public class METAcraftCoreData extends PersistentState {
 	public static final String FORCED_RESPAWN_X = "forcedRespawnX";
 	public static final String FORCED_RESPAWN_Y = "forcedRespawnY";
 	public static final String FORCED_RESPAWN_Z = "forcedRespawnZ";
+	public static final String FORCED_RESPAWN_ANGLE = "forcedRespawnAngle";
 
 	private boolean disableArmorDamage = false;
 	@Nullable
 	private RegistryKey<World> forcedRespawnWorld;
 	@Nullable
-	private BlockPos forcedRespawnPos;
+	private Vec3d forcedRespawnPos;
+	private float forcedRespawnAngle;
 
 	public METAcraftCoreData(MinecraftServer server) {
 	}
@@ -53,20 +55,26 @@ public class METAcraftCoreData extends PersistentState {
 			nbt.putDouble(FORCED_RESPAWN_Y, this.forcedRespawnPos.getY());
 			nbt.putDouble(FORCED_RESPAWN_Z, this.forcedRespawnPos.getZ());
 		}
+		nbt.putFloat(FORCED_RESPAWN_ANGLE, forcedRespawnAngle);
 		return nbt;
 	}
 
 	private void readNBT(NbtCompound nbt) {
 		this.disableArmorDamage = nbt.getBoolean(NO_ARMOR_DAMAGE);
-		Identifier worldIdentifier = Identifier.tryParse(nbt.getString(FORCED_RESPAWN_WORLD));
-		if (worldIdentifier != null) {
-			this.forcedRespawnWorld = RegistryKey.of(RegistryKeys.WORLD, worldIdentifier);
+		if (nbt.contains(FORCED_RESPAWN_WORLD)) {
+			Identifier worldIdentifier = Identifier.tryParse(nbt.getString(FORCED_RESPAWN_WORLD));
+			if (worldIdentifier != null) {
+				this.forcedRespawnWorld = RegistryKey.of(RegistryKeys.WORLD, worldIdentifier);
+			}
 		}
-		this.forcedRespawnPos = new BlockPos(
-			nbt.getInt(FORCED_RESPAWN_X),
-			nbt.getInt(FORCED_RESPAWN_Y),
-			nbt.getInt(FORCED_RESPAWN_Z)
-		);
+		if (nbt.contains(FORCED_RESPAWN_X) && nbt.contains(FORCED_RESPAWN_Y) && nbt.contains(FORCED_RESPAWN_Z)) {
+			this.forcedRespawnPos = new Vec3d(
+					nbt.getDouble(FORCED_RESPAWN_X),
+					nbt.getDouble(FORCED_RESPAWN_Y),
+					nbt.getDouble(FORCED_RESPAWN_Z)
+			);
+		}
+		this.forcedRespawnAngle = nbt.getFloat(FORCED_RESPAWN_ANGLE);
 	}
 
 	public boolean isDisableArmorDamage() {
@@ -84,19 +92,25 @@ public class METAcraftCoreData extends PersistentState {
 	}
 
 	@Nullable
-	public BlockPos getForcedRespawnPos() {
+	public Vec3d getForcedRespawnPos() {
 		return this.forcedRespawnPos;
 	}
 
-	public void setForcedRespawn(RegistryKey<World> world, BlockPos pos) {
+	public float getForcedRespawnAngle() {
+		return forcedRespawnAngle;
+	}
+
+	public void setForcedRespawn(RegistryKey<World> world, Vec3d pos, float angle) {
 		this.forcedRespawnWorld = world;
 		this.forcedRespawnPos = pos;
+		this.forcedRespawnAngle = angle;
 		this.markDirty();
 	}
 
 	public void unsetForcedRespawn() {
 		this.forcedRespawnWorld = null;
 		this.forcedRespawnPos = null;
+		this.forcedRespawnAngle = 0;
 		this.markDirty();
 	}
 }

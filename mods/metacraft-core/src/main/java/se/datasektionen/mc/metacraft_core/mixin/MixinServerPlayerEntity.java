@@ -1,5 +1,7 @@
 package se.datasektionen.mc.metacraft_core.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -19,7 +21,9 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameRules;
+import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.jetbrains.annotations.Nullable;
@@ -30,7 +34,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.entity.entities.PlayerMusicPoint;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
@@ -39,10 +42,7 @@ import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
 import se.datasektionen.mc.metacraft_core.util.METAcraftCoreData;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 
 @Mixin(ServerPlayerEntity.class)
@@ -241,32 +241,18 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 	}
 
-	@Inject(method = "getSpawnPointPosition", at = @At("HEAD"), cancellable = true)
-	public void forcedRespawnPos(CallbackInfoReturnable<BlockPos> cir) {
+	@ModifyReturnValue(method = "getRespawnTarget", at = @At("RETURN"))
+	public TeleportTarget forcedRespawnPos(
+			TeleportTarget original,
+			@Local(argsOnly = true) TeleportTarget.PostDimensionTransition postDimensionTransition
+	) {
 		METAcraftCoreData data = METAcraftCoreData.getInstance(this.server);
-		BlockPos pos = data.getForcedRespawnPos();
-		if (pos != null) {
-			cir.setReturnValue(pos);
-		}
-	}
-
-	@Inject(method = "getSpawnPointDimension", at = @At("HEAD"), cancellable = true)
-	public void forcedRespawnWorld(CallbackInfoReturnable<RegistryKey<World>> cir) {
-		METAcraftCoreData data = METAcraftCoreData.getInstance(this.server);
-		RegistryKey<World> world = data.getForcedRespawnWorld();
-		if (world != null) {
-			cir.setReturnValue(world);
-		}
-	}
-
-	@Inject(method = "isSpawnForced", at = @At("HEAD"), cancellable = true)
-	public void forcedRespawnIsForced(CallbackInfoReturnable<Boolean> cir) {
-		METAcraftCoreData data = METAcraftCoreData.getInstance(this.server);
-		RegistryKey<World> world = data.getForcedRespawnWorld();
-		BlockPos pos = data.getForcedRespawnPos();
+		Vec3d pos = data.getForcedRespawnPos();
+		ServerWorld world = Optional.ofNullable(data.getForcedRespawnWorld()).map(server::getWorld).orElse(null);
 		if (pos != null && world != null) {
-			cir.setReturnValue(true);
+			return new TeleportTarget(world, pos, Vec3d.ZERO, data.getForcedRespawnAngle(), 0, postDimensionTransition);
 		}
+		return original;
 	}
 
 	@Unique

@@ -1,17 +1,27 @@
 package se.datasektionen.mc.metacraft_core.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.context.CommandContext;
 import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.command.argument.BlockPosArgumentType;
+import net.minecraft.command.argument.AngleArgumentType;
+import net.minecraft.command.argument.Vec3ArgumentType;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_core.util.METAcraftCoreData;
 
 public class ForcedRespawnCommand {
+
+	private static int set(CommandContext<ServerCommandSource> ctx, Vec3d pos, float angle) {
+		ServerCommandSource source = ctx.getSource();
+		METAcraftCoreData data = METAcraftCoreData.getInstance(source.getServer());
+		data.setForcedRespawn(source.getWorld().getRegistryKey(), pos, angle);
+		source.sendFeedback(() -> Text.literal("Forced respawn position updated."), true);
+		return 1;
+	}
 
 	public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
 		dispatcher.register(
@@ -21,7 +31,7 @@ public class ForcedRespawnCommand {
 					ServerCommandSource source = ctx.getSource();
 					METAcraftCoreData data = METAcraftCoreData.getInstance(source.getServer());
 					RegistryKey<World> world = data.getForcedRespawnWorld();
-					BlockPos pos = data.getForcedRespawnPos();
+					Vec3d pos = data.getForcedRespawnPos();
 					boolean enabled = world != null && pos != null;
 					source.sendFeedback(() -> Text.literal(enabled
 						? "Forced respawn is activated and set to " + world + " at " + pos
@@ -32,16 +42,15 @@ public class ForcedRespawnCommand {
 				.then(
 					CommandManager.literal("set")
 						.then(
-							CommandManager.argument("pos", BlockPosArgumentType.blockPos())
-								.executes(ctx -> {
-									BlockPos pos = BlockPosArgumentType.getBlockPos(ctx, "pos");
-
-									ServerCommandSource source = ctx.getSource();
-									METAcraftCoreData data = METAcraftCoreData.getInstance(source.getServer());
-									data.setForcedRespawn(source.getWorld().getRegistryKey(), pos);
-									source.sendFeedback(() -> Text.literal("Forced respawn position updated."), true);
-									return 1;
-								})
+							CommandManager.argument("pos", Vec3ArgumentType.vec3(true))
+								.executes(ctx -> set(ctx, Vec3ArgumentType.getVec3(ctx, "pos"), 0)).then(
+											CommandManager.argument("angle", AngleArgumentType.angle()).executes(
+													ctx -> set(
+															ctx, Vec3ArgumentType.getVec3(ctx, "pos"),
+															AngleArgumentType.getAngle(ctx, "angle")
+													)
+											)
+								)
 						)
 				)
 				.then(
