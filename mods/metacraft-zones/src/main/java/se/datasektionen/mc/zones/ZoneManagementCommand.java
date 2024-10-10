@@ -9,6 +9,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
@@ -16,6 +17,7 @@ import com.mojang.brigadier.tree.CommandNode;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.CommandSource;
+import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.DimensionArgumentType;
 import net.minecraft.command.argument.NbtCompoundArgumentType;
 import net.minecraft.command.argument.RegistryPredicateArgumentType;
@@ -35,6 +37,7 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.StringIdentifiable;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.mutable.MutableInt;
 import se.datasektionen.mc.zones.mixin.AccessorStringRange;
@@ -78,6 +81,8 @@ public class ZoneManagementCommand {
 
 	private static final DynamicCommandExceptionType ENTITY_FAIL = new DynamicCommandExceptionType(id -> Text.literal(id + " is not a valid entity or entity tag!"));
 
+	private static final Dynamic2CommandExceptionType CONTAINS_FAIL = new Dynamic2CommandExceptionType((pos, zone) -> Text.literal(pos + " is not inside " + zone));
+
 	public static void init() {
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			zonesToRemove.values().removeIf(
@@ -87,6 +92,19 @@ public class ZoneManagementCommand {
 	}
 
 	private record ZoneEntry(String name, MutableInt timeLeft) {}
+
+	private static int contains(CommandContext<ServerCommandSource> ctx, BlockPos pos) throws CommandSyntaxException {
+		var zone = getZone(ctx);
+		if (zone.contains(pos)) {
+			ctx.getSource().sendFeedback(
+					() -> Text.literal(pos.toShortString() + " is indeed inside " + zone.getName()),
+					false
+			);
+			return 1;
+		} else {
+			throw CONTAINS_FAIL.create(pos.toShortString(), zone.getName());
+		}
+	}
 
 	static void registerCommand(
 			LiteralArgumentBuilder<ServerCommandSource> builder, CommandRegistryAccess registryAccess,
@@ -131,6 +149,14 @@ public class ZoneManagementCommand {
 					);
 					return 1;
 				})
+			)
+		).then(
+			literal("contains").then(
+				zone().executes(ctx -> contains(ctx, BlockPos.ofFloored(ctx.getSource().getPosition()))).then(
+					argument("pos", BlockPosArgumentType.blockPos()).executes(
+						ctx -> contains(ctx, BlockPosArgumentType.getBlockPos(ctx, "pos"))
+					)
+				)
 			)
 		).then(
 			literal("replace").then(
