@@ -1,6 +1,7 @@
 package se.datasektionen.mc.portal_blocker.mixin;
 
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
@@ -19,7 +20,9 @@ import se.datasektionen.mc.portal_blocker.PortalBlockerSettings;
 import se.datasektionen.mc.portal_blocker.PortalState;
 import se.datasektionen.mc.portal_blocker.portal_type.PortalTypeRegistry;
 
-@Mixin(NetherPortal.class)
+import java.util.List;
+
+@Mixin(value = NetherPortal.class, priority = 999)
 public class MixinNetherPortal {
 
 	@Shadow @Final private WorldAccess world;
@@ -35,11 +38,32 @@ public class MixinNetherPortal {
 	@Inject(method = "createPortal", at = @At("HEAD"), cancellable = true)
 	public void create(CallbackInfo ci) {
 		if (world.getServer() != null && world instanceof World w) {
+			Iterable<BlockPos> positions = List.of();
+			BlockPos.Mutable center = new BlockPos.Mutable();
+			boolean foundConfigurablePortals = false;
+			try {
+				var blocksField = this.getClass().getDeclaredField("blocks");
+				var blocks = blocksField.get(this);
+				if (blocks instanceof List<?> blockList && !blockList.isEmpty()) {
+					var pos = blockList.getFirst();
+					if (pos instanceof BlockPos) {
+						positions = (List<BlockPos>) blockList;
+						center.set(BlockBox.encompassPositions(positions).orElseThrow().getCenter());
+						foundConfigurablePortals = true;
+					}
+				}
+			} catch (NoSuchFieldException | IllegalAccessException ignored) {}
+			if (!foundConfigurablePortals) {
+				if (this.lowerCorner == null) {
+					PortalBlocker.LOGGER.error("Unable to block portal creation because some mod changes portal creation!");
+					return;
+				}
+				positions = BlockPos.iterate(this.lowerCorner, this.lowerCorner.offset(Direction.UP, this.height - 1).offset(this.negativeDir, this.width - 1));
+				center.set(this.lowerCorner.offset(Direction.UP, this.height/2).offset(this.negativeDir, this.width/2));
+			}
 			if (PortalBlockerSettings.getInstance(world.getServer()).isPortalBlocked(
-					PortalTypeRegistry.NETHER, w.getRegistryKey(), PortalState.BlockingType.CREATION,
-					BlockPos.iterate(this.lowerCorner, this.lowerCorner.offset(Direction.UP, this.height - 1).offset(this.negativeDir, this.width - 1))
+					PortalTypeRegistry.NETHER, w.getRegistryKey(), PortalState.BlockingType.CREATION, positions
 			)) {
-				BlockPos center = this.lowerCorner.offset(Direction.UP, this.height/2).offset(this.negativeDir, this.width/2);
 				PortalTypeRegistry.NETHER.getCreationMessage().ifPresent(msg -> {
 					world.getEntitiesByClass(PlayerEntity.class, Box.enclosing(
 							center.south(6).east(6).down(6),
