@@ -13,6 +13,7 @@ import se.datasektionen.mc.simplecustomfeatures.Features;
 import se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal.PortalBlockObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.blocks.target_portal.TargetPortalFrameObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.blocks.target_portal.TargetPortalObject;
+import se.datasektionen.mc.simplecustomfeatures.objects.items.BannerPatternItemObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.items.BlockItemObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.items.simple.SimpleItem;
 
@@ -28,6 +29,7 @@ public class ObjectRegistry {
 	public static final ObjectType<TargetPortalObject, Block> TARGET_PORTAL = register("target_portal", TargetPortalObject.CODEC, Registries.BLOCK);
 	public static final ObjectType<TargetPortalFrameObject, Block> TARGET_PORTAL_FRAME = register("target_portal_frame", TargetPortalFrameObject.CODEC, Registries.BLOCK);
 	public static final ObjectType<BlockItemObject, Item> BLOCK_ITEM = register("block_item", BlockItemObject.CODEC, Registries.ITEM);
+	public static final ObjectType<BannerPatternItemObject, Item> BANNER_PATTERN_ITEM = register("banner_pattern_item", BannerPatternItemObject.CODEC, Registries.ITEM);
 
 	public static <T extends BaseObject<R>, R> ObjectType<T, R> register(Identifier id, MapCodec<T> objectType, Registry<R> registry) {
 		return Registry.register(REGISTRY, id, new ObjectType<T, R>() {
