@@ -190,6 +190,15 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 	}
 
+	public boolean hasPlayer(ServerPlayerEntity player) {
+		lock.readLock().lock();
+		try {
+			return players.contains(player);
+		} finally {
+			lock.readLock().unlock();
+		}
+	}
+
 	public void end() {
 		ended = true;
 		entities.clear();

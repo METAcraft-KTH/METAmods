@@ -27,6 +27,7 @@ public class CutsceneEntityManager {
 	private final SectionedEntityCache<Entity> cache = new SectionedEntityCache<>(Entity.class, i -> EntityTrackingStatus.TICKING);
 	private final EntityIndex<Entity> index = new EntityIndex<>();
 	private final EntityLookup<Entity> lookup = new SimpleEntityLookup<>(index, cache);
+	private CutsceneWorld.CutsceneChunkLoadingManager chunkLoadingManager = null;
 	private boolean iteratingEntities = false;
 
 	public CutsceneEntityManager() {
@@ -39,8 +40,14 @@ public class CutsceneEntityManager {
 		}
 	}
 
-	public void setWorld(ServerWorld world) {
+	public void setWorld(CutsceneWorld world) {
 		this.world = world;
+		this.chunkLoadingManager = world.getChunkManager().cutsceneChunkLoadingManager;
+		if (chunkLoadingManager != null) {
+			for (var e : entities.values()) {
+				chunkLoadingManager.addEntity(e.entity, e.tracker);
+			}
+		}
 	}
 
 	public void addPlayer(ServerPlayerEntity player) {
@@ -63,6 +70,9 @@ public class CutsceneEntityManager {
 			return;
 		}
 		var tracker = new EntityTrackerEntry(world, entity, 1, false, packet -> players.forEach(p -> p.networkHandler.sendPacket(packet)));
+		if (chunkLoadingManager != null) {
+			chunkLoadingManager.addEntity(entity, tracker);
+		}
 		entities.put(id, new EntityEntry(entity, tracker));
 		var prev = idLookup.put(entity.getUuid(), id);
 		if (prev != null) {
@@ -132,6 +142,9 @@ public class CutsceneEntityManager {
 	private void onEntityRemove(EntityEntry entity) {
 		players.forEach(entity.tracker::stopTracking);
 		index.remove(entity.entity);
+		if (chunkLoadingManager != null) {
+			chunkLoadingManager.removeEntity(entity.entity);
+		}
 		if (!removalSkips.contains(entity.entity.getUuid())) {
 			idLookup.remove(entity.entity.getUuid());
 		}
