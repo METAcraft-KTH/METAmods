@@ -5,6 +5,7 @@ import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
+import se.datasektionen.mc.metacraft_core.compat.CompatInit;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.item.METAcraftItems;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
@@ -23,6 +24,7 @@ public class METAcraftCore implements ModInitializer {
 		METAcraftItems.init();
 		Commands.init();
 		Events.init();
+		CompatInit.init();
 	}
 
 	public static Identifier getID(String id) {
