@@ -45,6 +45,10 @@ public class METAcraftComponents {
 			"soulbound", builder -> builder.codec(Codec.unit(Unit.INSTANCE))
 	);
 
+	public static final ComponentType<Unit> ANTI_KEEP_INVENTORY = register(
+			"anti-keep-inventory", builder -> builder.codec(Codec.unit(Unit.INSTANCE))
+	);
+
 
 
 	public static void init() {
