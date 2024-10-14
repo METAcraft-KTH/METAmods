@@ -43,8 +43,7 @@ public class MultiPersistentState<T extends CustomPersistentType> extends Custom
 
 	protected void prepare(String subType, T type) {
 		var parser = ((MultiPersistentState.MultiParser<CustomPersistentType,?>) this.type.parser());
-		String key = this.key + "/" + subType;
-		type.prepare(world, parser.subType.parser().getPath(world, key), key, parser.subType);
+		type.prepare(world, parser.subType.parser().getPath(filePath, subType), subType, parser.subType);
 	}
 
 	@Override
@@ -90,10 +89,12 @@ public class MultiPersistentState<T extends CustomPersistentType> extends Custom
 
 		private final CustomType<T> subType;
 		private final Function<Map<String, T>, M> creator;
+		private final boolean inDataDirectory;
 
-		public MultiParser(CustomType<T> subType, Function<Map<String, T>, M> creator) {
+		public MultiParser(CustomType<T> subType, Function<Map<String, T>, M> creator, boolean inDataDirectory) {
 			this.subType = subType;
 			this.creator = creator;
+			this.inDataDirectory = inDataDirectory;
 		}
 
 		private String getSubExtension() {
@@ -106,8 +107,8 @@ public class MultiPersistentState<T extends CustomPersistentType> extends Custom
 		}
 
 		@Override
-		public Optional<M> parse(ServerWorld world, String key, CustomType<M> type) {
-			var file = getPath(world, key).toFile();
+		public Optional<M> parse(ServerWorld world, String key, CustomType<M> type, Path root) {
+			var file = getPath(root, key).toFile();
 			if (file.isDirectory()) {
 				var list = file.listFiles((f, name) -> name.endsWith(getSubExtension()));
 				if (list == null) return Optional.empty();
@@ -115,9 +116,8 @@ public class MultiPersistentState<T extends CustomPersistentType> extends Custom
 				for (var f : list) {
 					String subKey = f.getName().substring(0, f.getName().length()-5);
 					MultiPersistentState.parse(
-							world,
-							key + "/" + subKey,
-							subType
+							world, subKey, subType,
+							root.resolve(key)
 					).ifPresent(p -> states.put(subKey, p));
 				}
 				return Optional.of(creator.apply(states));
@@ -127,8 +127,17 @@ public class MultiPersistentState<T extends CustomPersistentType> extends Custom
 		}
 
 		@Override
-		public Path getPath(ServerWorld world, String key) {
-			return MultiPersistentState.getPath(world, key);
+		public Path getPath(Path root, String key) {
+			return MultiPersistentState.getPath(root, key);
+		}
+
+		@Override
+		public Path getRoot(ServerWorld world) {
+			var root = Parser.super.getRoot(world);
+			if (!inDataDirectory) {
+				root = root.getParent();
+			}
+			return root;
 		}
 
 		@Override

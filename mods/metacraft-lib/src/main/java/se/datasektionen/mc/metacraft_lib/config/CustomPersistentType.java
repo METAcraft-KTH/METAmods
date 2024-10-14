@@ -19,12 +19,16 @@ public abstract class CustomPersistentType extends PersistentState {
 	protected ServerWorld world;
 
 	static <T extends CustomPersistentType> Optional<T> parse(
-			ServerWorld world, String key, CustomType<T> type
+			ServerWorld world, String key, CustomType<T> type, Path root
 	) {
-		return type.parser.parse(world, key, type).map(t -> {
-			t.prepare(world, type.parser.getPath(world, key), key, downCast(type));
+		return type.parser.parse(world, key, type, root).map(t -> {
+			t.prepare(world, type.parser.getPath(root, key), key, downCast(type));
 			return t;
 		});
+	}
+
+	protected static Path getDefaultRoot(ServerWorld world) {
+		return ((AccessorPersistentStateManager) world.getPersistentStateManager()).getDirectory().toPath();
 	}
 
 	@Override
@@ -32,8 +36,8 @@ public abstract class CustomPersistentType extends PersistentState {
 		return null;
 	}
 
-	protected static Path getPath(ServerWorld world, String name) {
-		return ((AccessorPersistentStateManager) world.getPersistentStateManager()).getDirectory().toPath().resolve(name);
+	protected static Path getPath(Path root, String name) {
+		return root.resolve(name);
 	}
 
 	protected static <T extends CustomPersistentType> Optional<T> getLoadedConfig(
@@ -47,7 +51,7 @@ public abstract class CustomPersistentType extends PersistentState {
 	) {
 		var state = getLoadedConfig(world, type, key);
 		if (state.isPresent()) return state;
-		state = parse(world, key, type);
+		state = parse(world, key, type, type.parser().getRoot(world));
 		state.ifPresent(s -> world.getPersistentStateManager().set(key, s));
 		return state;
 	}
@@ -63,7 +67,7 @@ public abstract class CustomPersistentType extends PersistentState {
 				() -> {
 					var config = type.creator.get();
 					config.markDirty();
-					config.prepare(world, getPath(world, key), key, downCast(type), true);
+					config.prepare(world, getPath(type.parser().getRoot(world), key), key, downCast(type), true);
 					world.getPersistentStateManager().set(key, config);
 					return config;
 				}
@@ -82,7 +86,7 @@ public abstract class CustomPersistentType extends PersistentState {
 	}
 
 	public void reload() {
-		parse(world, key, type).ifPresent(result -> {
+		parse(world, key, type, filePath.getParent()).ifPresent(result -> {
 			world.getPersistentStateManager().set(key, result);
 		});
 	}
@@ -101,12 +105,12 @@ public abstract class CustomPersistentType extends PersistentState {
 			return new Type<>(
 					() -> {
 						var config = creator.get();
-						config.prepare(world, getPath(world, key), key, downCast(this));
+						config.prepare(world, getPath(parser.getRoot(world), key), key, downCast(this));
 						return config;
 					},
 					(nbt, lookup) -> {
 						var config = parser.fromNBT(nbt, lookup);
-						config.prepare(world, getPath(world, key), key, downCast(this));
+						config.prepare(world, getPath(parser.getRoot(world), key), key, downCast(this));
 						return config;
 					},
 					null
@@ -115,8 +119,11 @@ public abstract class CustomPersistentType extends PersistentState {
 	}
 
 	public interface Parser<T extends CustomPersistentType> {
-		Optional<T> parse(ServerWorld world, String key, CustomType<T> type);
-		Path getPath(ServerWorld world, String key);
+		Optional<T> parse(ServerWorld world, String key, CustomType<T> type, Path root);
+		Path getPath(Path root, String key);
+		default Path getRoot(ServerWorld world) {
+			return getDefaultRoot(world);
+		}
 		String getFileExtension();
 
 		default T fromNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {

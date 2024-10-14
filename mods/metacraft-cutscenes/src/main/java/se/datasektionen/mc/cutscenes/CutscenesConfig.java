@@ -16,7 +16,7 @@ public class CutscenesConfig extends MultiPersistentState<CutscenesConfig.Cutsce
 
 	private static final CustomType<CutscenesConfig> TYPE = new CustomType<>(
 			CutscenesConfig::new, new MultiParser<>(
-					CutsceneEntry.ENTRY_TYPE, CutscenesConfig::new
+					CutsceneEntry.ENTRY_TYPE, CutscenesConfig::new, false
 			)
 	);
 

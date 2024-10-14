@@ -38,13 +38,13 @@ public class JsonPersistentState extends CustomPersistentType {
 		}
 
 		@Override
-		public Optional<T> parse(ServerWorld world, String key, CustomType<T> type) {
-			return JsonHelper.load(getPath(world, key), codec, world.getRegistryManager());
+		public Optional<T> parse(ServerWorld world, String key, CustomType<T> type, Path root) {
+			return JsonHelper.load(getPath(root, key), codec, world.getRegistryManager());
 		}
 
 		@Override
-		public Path getPath(ServerWorld world, String key) {
-			return JsonPersistentState.getPath(world, key + "." + getFileExtension());
+		public Path getPath(Path root, String key) {
+			return JsonPersistentState.getPath(root, key + "." + getFileExtension());
 		}
 
 		@Override

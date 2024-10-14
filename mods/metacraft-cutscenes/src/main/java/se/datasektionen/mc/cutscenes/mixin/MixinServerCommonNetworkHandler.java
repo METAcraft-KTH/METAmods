@@ -24,7 +24,7 @@ public class MixinServerCommonNetworkHandler {
 					).forEach(t -> {
 						t.getObject().activate(h.getPlayer(), cutscene, t);
 					});
-				});
+				}); //FIXME This breaks if there are more than 1 resource packs!
 			}
 		}
 	}
