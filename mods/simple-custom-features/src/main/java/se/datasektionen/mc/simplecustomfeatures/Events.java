@@ -2,6 +2,7 @@ package se.datasektionen.mc.simplecustomfeatures;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.registry.DynamicRegistrySetupCallback;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.ActionResult;
@@ -12,6 +13,9 @@ import se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal.Po
 public class Events {
 
 	public static void init() {
+		DynamicRegistrySetupCallback.EVENT.register(view -> {
+			FeaturesConfig.getConfig(); //Init config, to allow datapacks to access all non-registry-dependent items.
+		});
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
 			ObjectCache.getInstance(server).onLoad();
 		});
