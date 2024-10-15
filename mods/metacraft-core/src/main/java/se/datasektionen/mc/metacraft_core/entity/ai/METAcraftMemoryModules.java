@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.util.Unit;
 import net.minecraft.util.math.GlobalPos;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 
@@ -13,6 +14,7 @@ public class METAcraftMemoryModules {
 
 	public static final MemoryModuleType<GlobalPos> NEAREST_OXYGEN = register("nearest_oxygen", GlobalPos.CODEC);
 	public static final MemoryModuleType<GlobalPos> MOVE_TARGET = register("move_target", GlobalPos.CODEC);
+	public static final MemoryModuleType<Unit> RECOVERING_BREATH = register("recovering_breath", Codec.unit(Unit.INSTANCE));
 
 	public static void init() {
 

@@ -7,10 +7,8 @@ import net.minecraft.entity.ai.brain.task.MultiTickTask;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.effect.StatusEffectUtil;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftActivities;
+import net.minecraft.util.Unit;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftMemoryModules;
 
 import java.util.Map;
@@ -20,7 +18,7 @@ public class NeedToBreathe extends MultiTickTask<MobEntity> {
 	private final float speed;
 
 	public NeedToBreathe(float speed) {
-		super(Map.of(METAcraftMemoryModules.NEAREST_OXYGEN, MemoryModuleState.VALUE_PRESENT, MemoryModuleType.WALK_TARGET, MemoryModuleState.REGISTERED));
+		super(Map.of(METAcraftMemoryModules.NEAREST_OXYGEN, MemoryModuleState.VALUE_PRESENT, MemoryModuleType.WALK_TARGET, MemoryModuleState.REGISTERED, METAcraftMemoryModules.RECOVERING_BREATH, MemoryModuleState.REGISTERED));
 		this.speed = speed;
 	}
 
@@ -55,8 +53,18 @@ public class NeedToBreathe extends MultiTickTask<MobEntity> {
 	}
 
 	private void updateTarget(ServerWorld world, MobEntity entity) {
+		if (!entity.isSubmergedInWater()) {
+			return;
+		}
 		var nearestOxygen = entity.getBrain().getOptionalRegisteredMemory(METAcraftMemoryModules.NEAREST_OXYGEN);
 		if (nearestOxygen.isPresent() && nearestOxygen.get().dimension() == world.getRegistryKey()) {
+			if (
+					entity.getNavigation().getCurrentPath() != null &&
+					nearestOxygen.get().pos().equals(entity.getNavigation().getCurrentPath().getTarget())
+			) {
+				return;
+			}
+			entity.getNavigation().stop();
 			entity.getBrain().remember(
 					MemoryModuleType.WALK_TARGET,
 					new WalkTarget(nearestOxygen.get().pos(), speed, 0)
@@ -67,16 +75,14 @@ public class NeedToBreathe extends MultiTickTask<MobEntity> {
 	@Override
 	protected void run(ServerWorld world, MobEntity entity, long time) {
 		super.run(world, entity, time);
-		entity.getBrain().doExclusively(METAcraftActivities.SWIM_TO_SURFACE);
 		updateTarget(world, entity);
+		entity.getBrain().remember(METAcraftMemoryModules.RECOVERING_BREATH, Unit.INSTANCE);
 	}
 
 	@Override
 	protected void keepRunning(ServerWorld world, MobEntity entity, long time) {
+		super.keepRunning(world, entity, time);
 		updateTarget(world, entity);
-		if (entity.isSubmergedInWater() && !world.getBlockState(BlockPos.ofFloored(entity.getEyePos()).up()).getFluidState().isIn(FluidTags.WATER)) {
-			entity.getMoveControl().moveTo(entity.getX(), entity.getY()+1, entity.getZ(), speed);
-		}
 	}
 
 	@Override
@@ -90,11 +96,9 @@ public class NeedToBreathe extends MultiTickTask<MobEntity> {
 	@Override
 	protected void finishRunning(ServerWorld world, MobEntity entity, long time) {
 		super.finishRunning(world, entity, time);
-		var target = entity.getBrain().getOptionalRegisteredMemory(MemoryModuleType.WALK_TARGET);
-		if (target.isPresent() && target.equals(entity.getBrain().getOptionalRegisteredMemory(METAcraftMemoryModules.NEAREST_OXYGEN))) {
-			entity.getBrain().forget(MemoryModuleType.WALK_TARGET);
-		}
-		entity.getBrain().resetPossibleActivities();
+		entity.getBrain().forget(MemoryModuleType.WALK_TARGET);
+		entity.getBrain().forget(METAcraftMemoryModules.RECOVERING_BREATH);
+		entity.getNavigation().stop();
 	}
 
 	@Override

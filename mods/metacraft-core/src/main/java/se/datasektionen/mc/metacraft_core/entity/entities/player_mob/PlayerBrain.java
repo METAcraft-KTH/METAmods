@@ -4,16 +4,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.brain.Activity;
-import net.minecraft.entity.ai.brain.Brain;
-import net.minecraft.entity.ai.brain.MemoryModuleType;
+import net.minecraft.entity.ai.brain.*;
 import net.minecraft.entity.ai.brain.sensor.Sensor;
 import net.minecraft.entity.ai.brain.sensor.SensorType;
 import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.*;
 import net.minecraft.server.world.ServerWorld;
-import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftActivities;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftMemoryModules;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftSensorTypes;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.GoToMoveTarget;
@@ -41,7 +38,7 @@ public class PlayerBrain {
 			MemoryModuleType.ATTACK_COOLING_DOWN, MemoryModuleType.INTERACTION_TARGET, MemoryModuleType.PATH,
 			MemoryModuleType.ANGRY_AT, MemoryModuleType.UNIVERSAL_ANGER, MemoryModuleType.AVOID_TARGET,
 			MemoryModuleType.NEAREST_VISIBLE_NEMESIS, MemoryModuleType.RIDE_TARGET, MemoryModuleType.ATE_RECENTLY,
-			METAcraftMemoryModules.NEAREST_OXYGEN, METAcraftMemoryModules.MOVE_TARGET
+			METAcraftMemoryModules.NEAREST_OXYGEN, METAcraftMemoryModules.MOVE_TARGET, METAcraftMemoryModules.RECOVERING_BREATH
 	);
 
 	protected static Brain.Profile<PlayerMob> createBrainProfile() {
@@ -68,7 +65,7 @@ public class PlayerBrain {
 
 	private static void addCoreActivities(Brain<PlayerMob> brain) {
 		brain.setTaskList(Activity.CORE, 0, ImmutableList.of(
-				new NeedToBreathe(1), new StayAboveWaterTask(0.8f) {
+				new NeedToBreathe(1), new StayAboveWaterTask(0.5f) {
 					@Override
 					protected boolean shouldRun(ServerWorld serverWorld, MobEntity mobEntity) {
 						return super.shouldRun(serverWorld, mobEntity) && !mobEntity.isSwimming();
@@ -87,12 +84,19 @@ public class PlayerBrain {
 		var target = player.getBrain().getOptionalRegisteredMemory(METAcraftMemoryModules.MOVE_TARGET);
 		return target.filter(pos -> player.getBlockPos().isWithinDistance(pos.pos(), 1)).isPresent();
 	}
+
+	private static boolean allowSetMovePos(PlayerMob player) {
+		return !player.getBrain().hasMemoryModule(METAcraftMemoryModules.RECOVERING_BREATH) || !player.isSubmergedInWater();
+	}
 	
 	private static void addFightActivities(PlayerMob player, Brain<PlayerMob> brain) {
 		brain.setTaskList(Activity.FIGHT, 10, ImmutableList.of(
 				ForgetAttackTargetTask.create(target -> !PlayerBrain.isPreferredAttackTarget(player, target)),
 				TaskTriggerer.runIf(PlayerBrain::isHoldingCrossbow, AttackTask.create(5, 0.75f)),
-				ImprovedRangedApproachTask.create(1.0f), TaskTriggerer.runIf(
+				TaskTriggerer.runIf(
+						PlayerBrain::allowSetMovePos,
+						(SingleTickTask<MobEntity>) ImprovedRangedApproachTask.create(1.0f)
+				), TaskTriggerer.runIf(
 						PlayerBrain::shouldAttackPhysical,
 						MeleeAttackTask.create(20)
 				), new CrossbowAttackTask<>(),
@@ -165,7 +169,7 @@ public class PlayerBrain {
 		Brain<PlayerMob> brain = player.getBrain();
 		brain.tick((ServerWorld) player.getWorld(), player);
 		var activity = brain.getFirstPossibleNonCoreActivity();
-		if (activity.isPresent() && activity.get() != METAcraftActivities.SWIM_TO_SURFACE) {
+		if (activity.isPresent()) {
 			brain.resetPossibleActivities(ImmutableList.of(Activity.FIGHT, Activity.IDLE));
 		}
 		var target = brain.getOptionalRegisteredMemory(MemoryModuleType.ATTACK_TARGET);

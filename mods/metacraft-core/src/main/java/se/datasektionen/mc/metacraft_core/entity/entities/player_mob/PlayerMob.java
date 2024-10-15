@@ -51,6 +51,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.entity.TridentUser;
+import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftMemoryModules;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorEntityNavigation;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorMobEntity;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorPlayerEntity;
@@ -105,6 +106,9 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	public PlayerMob(EntityType<? extends HostileEntity> entityType, World world) {
 		super(entityType, world);
 		this.moveControl = new PlayerMoveControl(this);
+		this.landNavigation.setCanSwim(true);
+		this.landNavigation.setCanEnterOpenDoors(true);
+		this.landNavigation.setCanPathThroughDoors(true);
 	}
 
 	public boolean canWander() {
@@ -133,6 +137,8 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 				EntityAttributes.GENERIC_ATTACK_DAMAGE, 1
 		).add(
 				EntityAttributes.GENERIC_MOVEMENT_SPEED, BASE_SPEED
+		).add(
+				EntityAttributes.GENERIC_WATER_MOVEMENT_EFFICIENCY, 0.3
 		);
 	}
 
@@ -217,7 +223,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	@Override
 	public void travel(Vec3d movementInput) {
 		if (this.isLogicalSideForUpdatingMovement() && this.isTouchingWater() && shouldSwim()) {
-			this.updateVelocity(0.01f, movementInput);
+			this.updateVelocity(0.02f, movementInput);
 			this.move(MovementType.SELF, this.getVelocity());
 			this.setVelocity(this.getVelocity().multiply(0.9));
 		} else {
@@ -285,13 +291,18 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	protected boolean shouldSwim() {
+		var eyePos = BlockPos.ofFloored(getEyePos()).up();
+		boolean isCurrentlyInWater = getWorld().getBlockState(eyePos).getFluidState().isIn(FluidTags.WATER);
+		if (getBrain().hasMemoryModule(METAcraftMemoryModules.RECOVERING_BREATH)) {
+			return isCurrentlyInWater;
+		}
 		var target = navigation.getTargetPos();
 		if (target != null) {
-			if (getWorld().getBlockState(target).getFluidState().isIn(FluidTags.WATER)) {
+			var f = getWorld().getBlockState(target).getFluidState();
+			if (f.isIn(FluidTags.WATER) && f.isStill()) {
 				return true;
 			} else {
-				var pos = BlockPos.ofFloored(getEyePos()).up();
-				return getWorld().getBlockState(pos).getFluidState().isIn(FluidTags.WATER);
+				return isCurrentlyInWater;
 			}
 		}
 		return true;
