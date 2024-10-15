@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_lib.mixin;
 
 import com.google.common.collect.ImmutableList;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -96,6 +97,16 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 		nbt.putBoolean(HAS_ANGER_PARTICLES, hasAngerParticles);
 	}
 
+	@Unique
+	private static final String FORGET_ATTACK_TARGET_TASK = FabricLoader.getInstance().getMappingResolver().mapClassName(
+			"named", ForgetAttackTargetTask.class.getName()
+	);
+
+	@Unique
+	private static final String UPDATE_ATTACK_TARGET_TASK = FabricLoader.getInstance().getMappingResolver().mapClassName(
+			"named", UpdateAttackTargetTask.class.getName()
+	);
+
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
 		isHostile = nbt.getBoolean(EntityParameters.IS_HOSTILE);
@@ -108,7 +119,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 			((AccessorBrain) this.brain).getTasks().forEach((id, tasks) -> {
 				tasks.forEach((activity, taskSet) -> {
 					taskSet.removeIf(task -> {
-						return task.getName().contains("ForgetAttackTargetTask") || task.getName().contains("UpdateAttackTargetTask");
+						return task.getName().contains(FORGET_ATTACK_TARGET_TASK) || task.getName().contains(UPDATE_ATTACK_TARGET_TASK);
 					});
 				});
 			});
