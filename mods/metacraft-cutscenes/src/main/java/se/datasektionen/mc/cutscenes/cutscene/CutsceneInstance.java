@@ -10,6 +10,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.nbt.*;
+import net.minecraft.network.packet.Packet;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
@@ -235,6 +236,12 @@ public class CutsceneInstance implements AutoCloseable {
 			}
 			modificationQueue.clear();
 		}
+	}
+
+	public NbtCompound getInitialSavePropertiesData(ServerWorld world) {
+		return data != null ? data.saveProperties : world.getServer().getSaveProperties().cloneWorldNbt(
+				world.getRegistryManager(), null
+		);
 	}
 
 	public Random getRandom() {
@@ -569,6 +576,10 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 	}
 
+	public void sendToPlayers(Packet<?> packet) {
+		forAllPlayers(p -> p.networkHandler.sendPacket(packet));
+	}
+
 	public void addEntity(String id, Entity entity) {
 		entities.addEntity(id, entity);
 	}
@@ -599,7 +610,7 @@ public class CutsceneInstance implements AutoCloseable {
 
 	public CutsceneWorldData save() {
 		return new CutsceneWorldData(
-				entities.save().toList(), world.save()
+				entities.save().toList(), world.save(), world.saveLevelProperties()
 		);
 	}
 
@@ -614,11 +625,15 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 	}
 
-	public record CutsceneWorldData(List<SerialisedEntity> entities, SerialisedStructure blocks) {
+	public record CutsceneWorldData(
+			List<SerialisedEntity> entities, SerialisedStructure blocks,
+			NbtCompound saveProperties
+	) {
 		public static final Codec<CutsceneWorldData> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
 						SerialisedEntity.CODEC.listOf().fieldOf("entities").forGetter(d -> d.entities),
-						SerialisedStructure.CODEC.fieldOf("blocks").forGetter(d -> d.blocks)
+						SerialisedStructure.CODEC.fieldOf("blocks").forGetter(d -> d.blocks),
+						NbtCompound.CODEC.optionalFieldOf("save_properties", new NbtCompound()).forGetter(d -> d.saveProperties)
 				).apply(instance, CutsceneWorldData::new)
 		);
 

@@ -3,6 +3,7 @@ package se.datasektionen.mc.cutscenes.cutscene;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.mojang.datafixers.DataFixer;
+import com.mojang.serialization.Dynamic;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
@@ -15,11 +16,13 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.map.MapState;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.s2c.play.BundleS2CPacket;
 import net.minecraft.network.packet.s2c.play.ChunkData;
 import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket;
 import net.minecraft.recipe.BrewingRecipeRegistry;
 import net.minecraft.recipe.RecipeManager;
 import net.minecraft.registry.RegistryKeys;
@@ -47,6 +50,8 @@ import net.minecraft.world.event.GameEvent;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 import net.minecraft.world.gen.chunk.FlatChunkGenerator;
 import net.minecraft.world.gen.chunk.FlatChunkGeneratorConfig;
+import net.minecraft.world.level.LevelProperties;
+import net.minecraft.world.level.ServerWorldProperties;
 import net.minecraft.world.level.storage.LevelStorage;
 import net.minecraft.world.poi.PointOfInterestStorage;
 import net.minecraft.world.storage.StorageKey;
@@ -116,17 +121,40 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		));
 	}
 
+	private static ServerWorldProperties readProperties(
+			NbtCompound nbt, ServerWorld parent
+	) {
+		var p = parent.getServer().getSaveProperties();
+		return LevelProperties.readProperties(
+				new Dynamic<>(
+						NbtOps.INSTANCE,
+						nbt
+				), p.getLevelInfo(),
+				p.isFlatWorld() ? LevelProperties.SpecialProperty.FLAT : p.isDebugWorld() ? LevelProperties.SpecialProperty.DEBUG : LevelProperties.SpecialProperty.NONE,
+				p.getGeneratorOptions(), p.getLifecycle()
+		);
+	}
+
+	private static ServerWorldProperties getProperties(
+			ServerWorld parent, CutsceneInstance cutscene
+	) {
+		return readProperties(
+				cutscene.getInitialSavePropertiesData(parent), parent
+		);
+	}
+
 	protected CutsceneWorld(ServerWorld world, CutsceneInstance cutscene) {
 		super(
 				world.getServer(), ((AccessorMinecraftServer) world.getServer()).getWorkerExecutor(),
 				((AccessorMinecraftServer) world.getServer()).getSession(),
-				world.getServer().getSaveProperties().getMainWorldProperties(), world.getRegistryKey(),
+				getProperties(world, cutscene),
+				world.getRegistryKey(),
 				new DimensionOptions(
 						world.getRegistryManager().get(RegistryKeys.DIMENSION_TYPE).getEntry(world.getDimension()),
 						createDummyChunkGenerator(world)
 				),
 				WorldHelper.getGenerationProgressListener(world),
-				world.isDebugWorld(), world.getSeed(), List.of(), false, world.getRandomSequences()
+				world.isDebugWorld(), world.getSeed(), List.of(), true, world.getRandomSequences()
 		);
 		this.savingDisabled = true;
 		this.cutscene = cutscene;
@@ -166,6 +194,23 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		}
 	}
 
+	public void syncTime() {
+		cutscene.sendToPlayers(
+				new WorldTimeUpdateS2CPacket(
+						getTime(), getTimeOfDay(),
+						world.getGameRules().getBoolean(GameRules.DO_DAYLIGHT_CYCLE)
+				)
+		);
+	}
+
+	@Override
+	public void tick(BooleanSupplier shouldKeepTicking) {
+		if (this.getTime() % 20 == 0) {
+			syncTime();
+		}
+		super.tick(shouldKeepTicking);
+	}
+
 	public void addPlayer(ServerPlayerEntity player) {
 		this.getPlayers().add(player);
 		sendBlocks(player, c -> c);
@@ -192,6 +237,10 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 
 	public Stream<BlockPos> streamChangedBlocks() {
 		return streamChangedChunks().flatMap(c -> c.changedBlocks.stream());
+	}
+
+	public NbtCompound saveLevelProperties() {
+		return ((SaveProperties) this.getLevelProperties()).cloneWorldNbt(getRegistryManager(), null);
 	}
 
 	public CutsceneInstance.CutsceneWorldData.SerialisedStructure save() {

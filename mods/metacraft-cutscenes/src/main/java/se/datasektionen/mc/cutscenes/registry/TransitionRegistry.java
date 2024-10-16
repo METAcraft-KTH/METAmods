@@ -88,6 +88,11 @@ public class TransitionRegistry {
 			"music", MusicTransition.CODEC
 	);
 
+	public static final TransitionType<SetTimeTransition> SET_TIME = register(
+			"set_time", SetTimeTransition.CODEC
+	);
+
+
 
 
 

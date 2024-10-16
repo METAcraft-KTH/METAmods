@@ -90,6 +90,11 @@ public class TransitionConfigRegistry {
 			"music", MusicTransition.CODEC
 	);
 
+	public static final TransitionConfigType<SetTimeTransition> SET_TIME = register(
+			"set_time", SetTimeTransition.CODEC
+	);
+
+
 
 
 	public static void init() {
