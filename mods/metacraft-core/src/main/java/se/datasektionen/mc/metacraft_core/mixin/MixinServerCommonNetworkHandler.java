@@ -6,6 +6,7 @@ import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
 import net.minecraft.server.network.ServerCommonNetworkHandler;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -27,10 +28,18 @@ public class MixinServerCommonNetworkHandler {
 		}
 	}
 
+	@Unique
+	private int lastResourcePackTime = -1;
+
 	@Inject(method = "onResourcePackStatus", at = @At("RETURN"))
 	public void onResourcePackStatus(ResourcePackStatusC2SPacket packet, CallbackInfo ci) {
 		if ((Object) this instanceof ServerPlayNetworkHandler h) {
 			if (packet.status() == ResourcePackStatusC2SPacket.Status.SUCCESSFULLY_LOADED) {
+				int time = h.getPlayer().age;
+				if (time <= lastResourcePackTime) {
+					return;
+				}
+				lastResourcePackTime = time;
 				MusicHelper.resetMusicTimer(h.getPlayer());
 			}
 		}
