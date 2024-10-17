@@ -19,10 +19,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.s2c.play.BundleS2CPacket;
-import net.minecraft.network.packet.s2c.play.ChunkData;
-import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket;
-import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.*;
 import net.minecraft.recipe.BrewingRecipeRegistry;
 import net.minecraft.recipe.RecipeManager;
 import net.minecraft.registry.RegistryKeys;
@@ -169,6 +166,16 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		return cutscene;
 	}
 
+	public void transferFrom(CutsceneWorld prev) {
+		if (getActualWorld().isRaining() == isRaining()) {
+			createWeatherFixPacket(prev.isRaining(), isRaining(), rainGradient, thunderGradient).ifPresent(packet -> {
+				cutscene.forAllPlayers(p -> {
+					p.networkHandler.sendPacket(packet);
+				});
+			});
+		}
+	}
+
 	private void sendBlocks(ServerPlayerEntity player, UnaryOperator<Chunk> chunkGetter) {
 		List<Packet<? super ClientPlayPacketListener>> list = new ArrayList<>();
 		streamChangedChunks().flatMap(c -> {
@@ -198,7 +205,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		cutscene.sendToPlayers(
 				new WorldTimeUpdateS2CPacket(
 						getTime(), getTimeOfDay(),
-						world.getGameRules().getBoolean(GameRules.DO_DAYLIGHT_CYCLE)
+						getGameRules().getBoolean(GameRules.DO_DAYLIGHT_CYCLE)
 				)
 		);
 	}
@@ -215,12 +222,38 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		this.getPlayers().add(player);
 		sendBlocks(player, c -> c);
 		getChunkManager().cutsceneChunkLoadingManager.addPlayer(player);
+		createWeatherFixPacket(player.getWorld().isRaining(), isRaining(), rainGradient, thunderGradient).ifPresent(player.networkHandler::sendPacket);
+	}
+
+	public Optional<Packet<?>> createWeatherFixPacket(
+			boolean wasRaining, boolean isRaining, float rainGradient, float thunderGradient
+	) {
+		List<Packet<? super ClientPlayPacketListener>> packets = new ArrayList<>();
+		if (wasRaining != isRaining) {
+			if (wasRaining) {
+				packets.add(new GameStateChangeS2CPacket(GameStateChangeS2CPacket.RAIN_STOPPED, 0));
+			} else {
+				packets.add(new GameStateChangeS2CPacket(GameStateChangeS2CPacket.RAIN_STARTED, 0));
+			}
+			packets.add(new GameStateChangeS2CPacket(GameStateChangeS2CPacket.RAIN_GRADIENT_CHANGED, rainGradient));
+			packets.add(new GameStateChangeS2CPacket(GameStateChangeS2CPacket.THUNDER_GRADIENT_CHANGED, thunderGradient));
+		}
+		if (packets.isEmpty()) {
+			return Optional.empty();
+		} else {
+			return Optional.of(new BundleS2CPacket(packets));
+		}
 	}
 
 	public void removePlayer(ServerPlayerEntity player) {
 		this.getPlayers().remove(player);
 		sendBlocks(player, c -> world.getChunk(c.getPos().x, c.getPos().z, ChunkStatus.FULL, false));
 		getChunkManager().cutsceneChunkLoadingManager.removePlayer(player);
+		createWeatherFixPacket(
+				isRaining(), player.getWorld().isRaining(),
+				player.getWorld().getRainGradient(1),
+				player.getWorld().getThunderGradient(1)
+		).ifPresent(player.networkHandler::sendPacket);
 	}
 
 	public boolean isPlayerWorld(PlayerEntity player) {

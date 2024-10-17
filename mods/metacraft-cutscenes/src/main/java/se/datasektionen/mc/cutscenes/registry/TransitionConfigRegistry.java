@@ -94,6 +94,15 @@ public class TransitionConfigRegistry {
 			"set_time", SetTimeTransition.CODEC
 	);
 
+	public static final TransitionConfigType<SetWeatherTransition> SET_WEATHER = register(
+			"set_weather", SetWeatherTransition.CODEC
+	);
+
+	public static final TransitionConfigType<SetGameRuleTransition.Config> SET_GAME_RULE = register(
+			"set_game_rule", SetGameRuleTransition.Config.CODEC
+	);
+
+
 
 
 

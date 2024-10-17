@@ -214,11 +214,15 @@ public class CutsceneInstance implements AutoCloseable {
 	 */
 	public void setTargetWorld(ServerWorld targetWorld) {
 		if (this.world != null && this.world.getActualWorld() == targetWorld) return;
+		var prev = this.world;
 		this.world = new CutsceneWorld(targetWorld, this);
 		this.dim = world.getRegistryKey();
 		entities.setWorld(world);
 		players.forEach(world::addPlayer);
 		entities.clear();
+		if (prev != null) {
+			world.transferFrom(prev);
+		}
 	}
 
 	private void handleQueue() {

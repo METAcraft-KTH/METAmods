@@ -6,6 +6,7 @@
 	"mixins": [
 		"AccessorBrain",
 		"AccessorChunkHolder",
+		"AccessorGameRulesRule",
 		"AccessorMinecraftServer",
 		"AccessorServerChunkLoadingManager",
 		"AccessorServerChunkLoadingManager$EntityTracker",
@@ -20,7 +21,8 @@
 		"MixinServerChunkLoadingManager$EntityTracker",
 		"MixinServerCommonNetworkHandler",
 		"MixinServerPlayerEntity",
-		"MixinServerPlayNetworkHandler"
+		"MixinServerPlayNetworkHandler",
+		"MixinServerWorld"
 	],
 	"client": [],
 	"injectors": {
