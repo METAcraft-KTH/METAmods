@@ -1,7 +1,9 @@
 package se.datasektionen.mc.metacraft_lib.config;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.internal.Streams;
 import com.google.gson.stream.JsonWriter;
 import com.mojang.serialization.Codec;
@@ -39,8 +41,10 @@ public class JsonHelper {
 		try (var reader = new BufferedReader(new FileReader(file))) { //The BufferedReader is to boost performance.
 			JsonElement element = JsonParser.parseReader(reader);
 			return codec.parse(opsFixer.apply(JsonOps.INSTANCE), element).resultOrPartial(METAcraftLib.LOGGER::error);
-		} catch (IOException error) {
-			error.printStackTrace();
+		} catch (JsonSyntaxException e) {
+			METAcraftLib.LOGGER.error("Syntax error when parsing \"" + configPath + "\": " + e.getMessage());
+		} catch (JsonIOException | IOException e) {
+			METAcraftLib.LOGGER.error(e);
 		}
 		return Optional.empty();
 	}
