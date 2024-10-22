@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_core.lodestone;
+package se.datasektionen.mc.metacraft_season_4.lodestone;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
@@ -14,7 +14,7 @@ import se.datasektionen.mc.metacraft_core.METAcraftCore;
 public class CampusLodestoneState extends PersistentState {
 	private static final String KEY = METAcraftCore.NAMESPACE + "-campus-lodestone";
 
-	private static PersistentState.Type<CampusLodestoneState> getType(MinecraftServer server) {
+	private static Type<CampusLodestoneState> getType(MinecraftServer server) {
 		return new Type<>(() -> new CampusLodestoneState(server), (nbt, lookup) -> fromNBT(server, nbt), null);
 	}
 

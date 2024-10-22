@@ -3,11 +3,9 @@ package se.datasektionen.mc.metacraft_core.block;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.MapColor;
 import net.minecraft.block.piston.PistonBehavior;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
-import net.minecraft.sound.BlockSoundGroup;
 import se.datasektionen.mc.metacraft_core.block.blocks.*;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 
@@ -38,11 +36,6 @@ public class METAcraftBlocks {
 			).dropsNothing().nonOpaque().allowsSpawning(
 					(state, world, pos, type) -> false
 			)
-	));
-
-	public static final Block CAMPUS_LODESTONE = register("campus_lodestone", new CampusLodestoneBlock(
-		AbstractBlock.Settings.create().strength(3.5F).mapColor(MapColor.IRON_GRAY)
-			.sounds(BlockSoundGroup.LODESTONE).pistonBehavior(PistonBehavior.BLOCK)
 	));
 
 	public static void init() {

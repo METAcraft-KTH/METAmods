@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_core.commands;
+package se.datasektionen.mc.metacraft_season_4.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.command.argument.BlockPosArgumentType;
@@ -7,7 +7,7 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
-import se.datasektionen.mc.metacraft_core.lodestone.CampusLodestoneState;
+import se.datasektionen.mc.metacraft_season_4.lodestone.CampusLodestoneState;
 
 public class CampusLodestoneCommand {
 

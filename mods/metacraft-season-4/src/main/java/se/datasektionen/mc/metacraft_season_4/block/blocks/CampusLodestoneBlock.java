@@ -1,11 +1,7 @@
-package se.datasektionen.mc.metacraft_core.block.blocks;
+package se.datasektionen.mc.metacraft_season_4.block.blocks;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.NoteBlock;
-import net.minecraft.block.RespawnAnchorBlock;
+import net.minecraft.block.*;
 import net.minecraft.block.enums.NoteBlockInstrument;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -28,10 +24,10 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
-import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
-import se.datasektionen.mc.metacraft_core.lodestone.CampusLodestoneState;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
+import se.datasektionen.mc.metacraft_season_4.block.Season4Blocks;
+import se.datasektionen.mc.metacraft_season_4.extensions.ServerPlayerEntityExtensions;
+import se.datasektionen.mc.metacraft_season_4.lodestone.CampusLodestoneState;
 
 import java.util.Optional;
 
@@ -71,7 +67,7 @@ public class CampusLodestoneBlock extends Block implements PolymerBlock {
 				return this.rejected(player);
 			}
 			BlockState lodestoneState = backWorld.getBlockState(backLodestonePos);
-			if (lodestoneState.getBlock() != METAcraftBlocks.CAMPUS_LODESTONE) {
+			if (lodestoneState.getBlock() != Season4Blocks.CAMPUS_LODESTONE) {
 				return this.rejected(player);
 			}
 			unsetBackPos(player);

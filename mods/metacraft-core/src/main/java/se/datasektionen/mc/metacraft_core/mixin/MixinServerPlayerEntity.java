@@ -5,11 +5,8 @@ import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket;
 import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
@@ -19,14 +16,12 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -59,9 +54,6 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private static final String ARE_BLOCKS_MOVABLE = "AreBlocksMovable";
 
 	@Unique
-	private static final String CAMPUS_LODESTONE_BACK = "CampusLodestoneBack";
-
-	@Unique
 	private boolean movable = false;
 
 	@Unique
@@ -87,14 +79,6 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Unique
 	private PlayerMusicPoint musicPoint;
-
-	@Unique
-	@Nullable
-	private RegistryKey<World> campusLodestoneBackWorld;
-
-	@Unique
-	@Nullable
-	private BlockPos campusLodestoneBackPos;
 
 	@Unique
 	private void refreshMusicPoint(boolean shouldReset) {
@@ -199,8 +183,6 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		if (musicPoint != null) {
 			musicPoint.setPlayer((ServerPlayerEntity) (Object) this);
 		}
-		this.campusLodestoneBackWorld = ((MixinServerPlayerEntity) (Object) oldPlayer).campusLodestoneBackWorld;
-		this.campusLodestoneBackPos = ((MixinServerPlayerEntity) (Object) oldPlayer).campusLodestoneBackPos;
 		if (!server.getGameRules().getBoolean(GameRules.KEEP_INVENTORY)) {
 			for (int i = 0; i < oldPlayer.getInventory().size(); i++) {
 				var stack = oldPlayer.getInventory().getStack(i);
@@ -214,31 +196,11 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Inject(method = "writeCustomDataToNbt", at = @At("HEAD"))
 	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
 		nbt.putBoolean(ARE_BLOCKS_MOVABLE, movable);
-		if (this.campusLodestoneBackWorld != null && this.campusLodestoneBackPos != null) {
-			NbtCompound backData = new NbtCompound();
-			backData.putString("world", this.campusLodestoneBackWorld.getValue().toString());
-			backData.putInt("x", this.campusLodestoneBackPos.getX());
-			backData.putInt("y", this.campusLodestoneBackPos.getY());
-			backData.putInt("z", this.campusLodestoneBackPos.getZ());
-			nbt.put(CAMPUS_LODESTONE_BACK, backData);
-		}
 	}
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("HEAD"))
 	public void readNbt(NbtCompound nbt, CallbackInfo ci) {
 		movable = nbt.getBoolean(ARE_BLOCKS_MOVABLE);
-		if (nbt.contains(CAMPUS_LODESTONE_BACK, NbtElement.COMPOUND_TYPE)) {
-			NbtCompound backData = nbt.getCompound(CAMPUS_LODESTONE_BACK);
-			Identifier worldKey = Identifier.tryParse(backData.getString("world"));
-			if (worldKey != null) {
-				this.campusLodestoneBackWorld = RegistryKey.of(RegistryKeys.WORLD, worldKey);
-			}
-			this.campusLodestoneBackPos = new BlockPos(
-				backData.getInt("x"),
-				backData.getInt("y"),
-				backData.getInt("z")
-			);
-		}
 	}
 
 	@ModifyReturnValue(method = "getRespawnTarget", at = @At("RETURN"))
@@ -352,29 +314,5 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Override
 	public boolean metacraft_core$areBlocksPistonMovable() {
 		return movable;
-	}
-
-	@Override
-	@Nullable
-	public RegistryKey<World> metacraft_core$getCampusLodestoneBackWorld() {
-		return this.campusLodestoneBackWorld;
-	}
-
-	@Override
-	@Nullable
-	public BlockPos metacraft_core$getCampusLodestoneBackPos() {
-		return this.campusLodestoneBackPos;
-	}
-
-	@Override
-	public void metacraft_core$setCampusLodestoneBackPos(RegistryKey<World> world, BlockPos pos) {
-		this.campusLodestoneBackWorld = world;
-		this.campusLodestoneBackPos = pos;
-	}
-
-	@Override
-	public void metacraft_core$unsetCampusLodestoneBackPos() {
-		this.campusLodestoneBackWorld = null;
-		this.campusLodestoneBackPos = null;
 	}
 }

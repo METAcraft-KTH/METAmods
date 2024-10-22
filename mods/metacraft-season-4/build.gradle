@@ -1,0 +1,9 @@
+version = project.season_4_version
+
+addProjectDependency(":mods:metacraft-core")
+addLeukocyteDependency()
+addPolymerDependency()
+
+dependencies {
+	modCompileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
+}

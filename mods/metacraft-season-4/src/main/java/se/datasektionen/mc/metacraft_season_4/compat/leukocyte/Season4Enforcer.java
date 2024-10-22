@@ -1,23 +1,23 @@
-package se.datasektionen.mc.metacraft_core.compat.leukocyte;
+package se.datasektionen.mc.metacraft_season_4.compat.leukocyte;
 
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.hit.HitResult;
-import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
+import se.datasektionen.mc.metacraft_season_4.block.Season4Blocks;
 import xyz.nucleoid.leukocyte.rule.ProtectionRuleMap;
 import xyz.nucleoid.leukocyte.rule.enforcer.ProtectionRuleEnforcer;
 import xyz.nucleoid.stimuli.event.EventRegistrar;
 import xyz.nucleoid.stimuli.event.block.BlockUseEvent;
 
-public class METAcraftEnforcer implements ProtectionRuleEnforcer {
+public class Season4Enforcer implements ProtectionRuleEnforcer {
 
-	private static final METAcraftEnforcer INSTANCE = new METAcraftEnforcer();
+	private static final Season4Enforcer INSTANCE = new Season4Enforcer();
 
-	public static METAcraftEnforcer getInstance() {
+	public static Season4Enforcer getInstance() {
 		return INSTANCE;
 	}
 
-	private METAcraftEnforcer() {}
+	private Season4Enforcer() {}
 
 	@Override
 	public void applyTo(ProtectionRuleMap rules, EventRegistrar events) {
@@ -25,7 +25,7 @@ public class METAcraftEnforcer implements ProtectionRuleEnforcer {
 			return (player, hand, hitResult) -> {
 				if (hitResult.getType() == HitResult.Type.BLOCK) {
 					var pos = hitResult.getBlockPos();
-					if (player.getWorld().getBlockState(pos).isOf(METAcraftBlocks.CAMPUS_LODESTONE)) {
+					if (player.getWorld().getBlockState(pos).isOf(Season4Blocks.CAMPUS_LODESTONE)) {
 						if (rule == ActionResult.FAIL) {
 							player.sendMessage(
 									Text.translatableWithFallback(
