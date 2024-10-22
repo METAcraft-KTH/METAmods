@@ -14,7 +14,6 @@ import se.datasektionen.mc.metacraft_core.METAcraftCore;
 
 public class METAcraftCoreData extends PersistentState {
 	private static final String KEY = METAcraftCore.NAMESPACE + "-core-data";
-	public static final String NO_ARMOR_DAMAGE = "disableArmorDamage";
 	public static final String FORCED_RESPAWN_WORLD = "forcedRespawnWorld";
 	public static final String FORCED_RESPAWN_X = "forcedRespawnX";
 	public static final String FORCED_RESPAWN_Y = "forcedRespawnY";
@@ -46,7 +45,6 @@ public class METAcraftCoreData extends PersistentState {
 	}
 	@Override
 	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		nbt.putBoolean(NO_ARMOR_DAMAGE, this.disableArmorDamage);
 		if (this.forcedRespawnWorld != null) {
 			nbt.putString(FORCED_RESPAWN_WORLD, this.forcedRespawnWorld.getValue().toString());
 		}
@@ -60,7 +58,6 @@ public class METAcraftCoreData extends PersistentState {
 	}
 
 	private void readNBT(NbtCompound nbt) {
-		this.disableArmorDamage = nbt.getBoolean(NO_ARMOR_DAMAGE);
 		if (nbt.contains(FORCED_RESPAWN_WORLD)) {
 			Identifier worldIdentifier = Identifier.tryParse(nbt.getString(FORCED_RESPAWN_WORLD));
 			if (worldIdentifier != null) {
@@ -75,15 +72,6 @@ public class METAcraftCoreData extends PersistentState {
 			);
 		}
 		this.forcedRespawnAngle = nbt.getFloat(FORCED_RESPAWN_ANGLE);
-	}
-
-	public boolean isDisableArmorDamage() {
-		return disableArmorDamage;
-	}
-
-	public void setDisableArmorDamage(boolean disableArmorDamage) {
-		this.disableArmorDamage = disableArmorDamage;
-		this.markDirty();
 	}
 
 	@Nullable

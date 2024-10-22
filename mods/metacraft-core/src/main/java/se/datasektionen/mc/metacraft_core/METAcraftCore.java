@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_core.compat.CompatInit;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
+import se.datasektionen.mc.metacraft_core.gamerules.METAcraftGameRules;
 import se.datasektionen.mc.metacraft_core.item.METAcraftItems;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
@@ -18,6 +19,7 @@ public class METAcraftCore implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		METAcraftGameRules.init();
 		METAcraftComponents.init();
 		METAcraftBlocks.init();
 		METAcraftEntities.init();

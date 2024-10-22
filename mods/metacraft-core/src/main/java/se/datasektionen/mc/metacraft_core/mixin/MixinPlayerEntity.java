@@ -17,8 +17,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
+import se.datasektionen.mc.metacraft_core.gamerules.METAcraftGameRules;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
-import se.datasektionen.mc.metacraft_core.util.METAcraftCoreData;
 
 @Mixin(PlayerEntity.class)
 public abstract class MixinPlayerEntity extends LivingEntity {
@@ -66,8 +66,7 @@ public abstract class MixinPlayerEntity extends LivingEntity {
 		if (server == null) {
 			return;
 		}
-		METAcraftCoreData data = METAcraftCoreData.getInstance(server);
-		if (data.isDisableArmorDamage()) {
+		if (!server.getGameRules().get(METAcraftGameRules.DO_ARMOR_DAMAGE).get()) {
 			ci.cancel();
 		}
 	}

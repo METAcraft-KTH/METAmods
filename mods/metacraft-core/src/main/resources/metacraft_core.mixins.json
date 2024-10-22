@@ -7,6 +7,8 @@
 		"AccessorBlockUpdateS2CPacket",
 		"AccessorChunkHolder",
 		"AccessorEntityNavigation",
+		"AccessorGameRules",
+		"AccessorGameRules$BooleanRule",
 		"AccessorMobEntity",
 		"AccessorPlayerEntity",
 		"AccessorServerChunkManager",
