@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "point-system",
+  "version": "${version}",
+
+  "name": "point-system",
+  "description": "",
+  "authors": [],
+  "contact": {},
+
+  "license": "MIT",
+  "icon": "assets/point-system/icon.png",
+
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "nu.metacraft.pointsystem.PointSystemMod"
+    ]
+  },
+
+
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+        "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
