@@ -57,7 +57,7 @@ public class PlayerBrain {
 
 	private static void addIdleActivities(Brain<PlayerMob> brain) {
 		brain.setTaskList(Activity.IDLE, 10, ImmutableList.of(
-				UpdateAttackTargetTask.create(e -> true, PlayerBrain::getPreferredTarget), makeRandomWanderTask(),
+				UpdateAttackTargetTask.create((world, e) -> true, PlayerBrain::getPreferredTarget), makeRandomWanderTask(),
 				GoToMoveTarget.create(METAcraftMemoryModules.MOVE_TARGET, 0.6f, 0),
 				ForgetTask.create(PlayerBrain::hasReachedMoveTarget, METAcraftMemoryModules.MOVE_TARGET)
 		));
@@ -65,13 +65,13 @@ public class PlayerBrain {
 
 	private static void addCoreActivities(Brain<PlayerMob> brain) {
 		brain.setTaskList(Activity.CORE, 0, ImmutableList.of(
-				new NeedToBreathe(1), new StayAboveWaterTask(0.5f) {
+				new NeedToBreathe(1), new StayAboveWaterTask<>(0.5f) {
 					@Override
 					protected boolean shouldRun(ServerWorld serverWorld, MobEntity mobEntity) {
 						return super.shouldRun(serverWorld, mobEntity) && !mobEntity.isSwimming();
 					}
 				},
-				new LookAroundTask(45, 90), new MoveToTargetTask(), OpenDoorsTask.create(),
+				new UpdateLookControlTask(45, 90), new MoveToTargetTask(), OpenDoorsTask.create(),
 				DefeatTargetTask.create(0, (player, target) -> false), ForgetAngryAtTargetTask.create()
 		));
 	}
@@ -91,7 +91,7 @@ public class PlayerBrain {
 	
 	private static void addFightActivities(PlayerMob player, Brain<PlayerMob> brain) {
 		brain.setTaskList(Activity.FIGHT, 10, ImmutableList.of(
-				ForgetAttackTargetTask.create(target -> !PlayerBrain.isPreferredAttackTarget(player, target)),
+				ForgetAttackTargetTask.create((world, target) -> !PlayerBrain.isPreferredAttackTarget(world, player, target)),
 				TaskTriggerer.runIf(PlayerBrain::isHoldingCrossbow, AttackTask.create(5, 0.75f)),
 				TaskTriggerer.runIf(
 						PlayerBrain::allowSetMovePos,
@@ -122,7 +122,7 @@ public class PlayerBrain {
 	private static RandomTask<PlayerMob> makeRandomWanderTask() {
 		return new RandomTask<>(ImmutableList.of(
 				Pair.of(TaskTriggerer.runIf(PlayerBrain::canWander, StrollTask.create(0.6f)), 1),
-				Pair.of(TaskTriggerer.runIf(PlayerBrain::canWander, GoTowardsLookTargetTask.create(0.6f, 3)), 1),
+				Pair.of(TaskTriggerer.runIf(PlayerBrain::canWander, GoToLookTargetTask.create(0.6f, 3)), 1),
 				Pair.of(new WaitTask(50, 100), 1)
 		));
 	}
@@ -131,43 +131,43 @@ public class PlayerBrain {
 		return player.canWander();
 	}
 
-	private static boolean isPreferredAttackTarget(PlayerMob player, LivingEntity target) {
-		return getPreferredTarget(player).filter(preferredTarget -> preferredTarget == target).isPresent();
+	private static boolean isPreferredAttackTarget(ServerWorld world, PlayerMob player, LivingEntity target) {
+		return getPreferredTarget(world, player).filter(preferredTarget -> preferredTarget == target).isPresent();
 	}
 
-	private static Optional<? extends LivingEntity> getPreferredTarget(PlayerMob player) {
-		var angerTarget = LookTargetUtil.getEntity(player, MemoryModuleType.ANGRY_AT);
-		if (angerTarget.isPresent() && Sensor.testAttackableTargetPredicateIgnoreVisibility(player, angerTarget.get())) {
+	private static Optional<? extends LivingEntity> getPreferredTarget(ServerWorld world, PlayerMob player) {
+		var angerTarget = TargetUtil.getEntity(player, MemoryModuleType.ANGRY_AT);
+		if (angerTarget.isPresent() && Sensor.testAttackableTargetPredicateIgnoreVisibility(world, player, angerTarget.get())) {
 			return angerTarget;
 		}
 		return Optional.empty();
 	}
 
-	protected static void onAttacked(PlayerMob player, LivingEntity attacker) {
-		tryRevenge(player, attacker);
+	protected static void onAttacked(ServerWorld world, PlayerMob player, LivingEntity attacker) {
+		tryRevenge(world, player, attacker);
 	}
 
-	protected static void tryRevenge(PlayerMob player, LivingEntity target) {
-		if (!Sensor.testAttackableTargetPredicateIgnoreVisibility(player, target)) {
+	protected static void tryRevenge(ServerWorld world, PlayerMob player, LivingEntity target) {
+		if (!Sensor.testAttackableTargetPredicateIgnoreVisibility(world, player, target)) {
 			return;
 		}
-		if (LookTargetUtil.isNewTargetTooFar(player, target, 4.0)) {
+		if (TargetUtil.isNewTargetTooFar(player, target, 4.0)) {
 			return;
 		}
-		becomeAngryWith(player, target);
+		becomeAngryWith(world, player, target);
 	}
 
 
-	protected static void becomeAngryWith(PlayerMob player, LivingEntity target) {
-		if (!Sensor.testAttackableTargetPredicateIgnoreVisibility(player, target)) {
+	protected static void becomeAngryWith(ServerWorld world, PlayerMob player, LivingEntity target) {
+		if (!Sensor.testAttackableTargetPredicateIgnoreVisibility(world, player, target)) {
 			return;
 		}
 		player.getBrain().remember(MemoryModuleType.ANGRY_AT, target.getUuid(), 600L);
 	}
 
-	protected static void tick(PlayerMob player) {
+	protected static void tick(ServerWorld world, PlayerMob player) {
 		Brain<PlayerMob> brain = player.getBrain();
-		brain.tick((ServerWorld) player.getWorld(), player);
+		brain.tick(world, player);
 		var activity = brain.getFirstPossibleNonCoreActivity();
 		if (activity.isPresent()) {
 			brain.resetPossibleActivities(ImmutableList.of(Activity.FIGHT, Activity.IDLE));

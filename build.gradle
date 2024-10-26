@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.6-SNAPSHOT' apply false
+    id 'fabric-loom' version '1.8-SNAPSHOT' apply false
     id 'maven-publish'
     id 'base'
 }
@@ -159,6 +159,8 @@ allprojects {
         maven {
             url "https://maven.terraformersmc.com/"
         }
+
+        maven { url 'https://jitpack.io' } // Fabric ASM
     }
 }
 
@@ -181,6 +183,8 @@ subprojects {
         modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
         modImplementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
+
+        modImplementation("com.github.Chocohead:Fabric-ASM:${project.fabric_asm_version}")
 
         testImplementation('org.junit.jupiter:junit-jupiter:5.9.2')
 

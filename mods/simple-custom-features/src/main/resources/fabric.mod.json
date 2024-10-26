@@ -22,12 +22,18 @@
   "entrypoints": {
     "main": [
       "se.datasektionen.mc.simplecustomfeatures.Features"
+    ],
+    "client": [
+      "se.datasektionen.mc.simplecustomfeatures.Features"
+    ],
+    "server": [
+      "se.datasektionen.mc.simplecustomfeatures.Features"
     ]
   },
   "mixins": [
 	  "simple-custom-features.mixins.json"
   ],
-
+  "accessWidener" : "simple-custom-features.accesswidener",
   "depends": {
     "fabricloader": ">=${loader_version}",
     "minecraft": "~${minecraft_version}",

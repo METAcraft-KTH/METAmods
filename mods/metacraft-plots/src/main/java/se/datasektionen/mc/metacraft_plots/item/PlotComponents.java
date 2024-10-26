@@ -12,7 +12,7 @@ public class PlotComponents {
 	public static final ComponentType<PlotKey.KeyComponent> KEY = register("key", builder -> builder.codec(PlotKey.KeyComponent.CODEC));
 	public static final ComponentType<PlotKey.FriendlyNameComponent> FRIENDLY_NAME = register("friendly_name", builder -> builder.codec(PlotKey.FriendlyNameComponent.CODEC));
 	public static final ComponentType<PlotKey.PlaceholderName> PLACEHOLDER_NAME = register("placeholder_name", builder -> builder.codec(PlotKey.PlaceholderName.CODEC));
-	public static final ComponentType<PlotKey.CreationSecret> CREATION_SECRET = register("placeholder_name", builder -> builder.codec(PlotKey.CreationSecret.CODEC));
+	public static final ComponentType<PlotKey.CreationSecret> CREATION_SECRET = register("creation_secret", builder -> builder.codec(PlotKey.CreationSecret.CODEC));
 	public static final ComponentType<PlotKey.KeysToRevoke> KEYS_TO_REVOKE = register("zones_to_remove", builder -> builder.codec(PlotKey.KeysToRevoke.CODEC));
 
 	public static void init() {

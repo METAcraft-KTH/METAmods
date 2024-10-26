@@ -9,6 +9,7 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.SpawnReason;
 import net.minecraft.nbt.*;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.registry.RegistryKey;
@@ -49,7 +50,7 @@ public class CutsceneInstance implements AutoCloseable {
 
 	private static Timer timer;
 
-	public static final String CUTSCENE = "cutscene";
+	public static final String CUTSCENE = "cutscene"; //Careful, this is used by the datafixer!
 
 	public static final String PLAYER_REFERENCE = "player";
 	public static final String PLAYER_ITEM = "player_item";
@@ -88,7 +89,7 @@ public class CutsceneInstance implements AutoCloseable {
 					),
 					Codec.INT.fieldOf("time").forGetter(a -> a.time),
 					CutsceneWorldData.CODEC.fieldOf("data").forGetter(CutsceneInstance::save),
-					SAVED_DATA_CODEC.fieldOf("saved_players").forGetter(cutscene -> cutscene.savedPlayerData),
+					SAVED_DATA_CODEC.fieldOf("saved_players").forGetter(cutscene -> cutscene.savedPlayerData), //Careful, this is used by the datafixer!
 					Codec.BOOL.fieldOf("ended").forGetter(CutsceneInstance::isEnded),
 					World.CODEC.fieldOf("dim").forGetter(CutsceneInstance::getDim)
 			).apply(instance, CutsceneInstance::new)
@@ -339,7 +340,7 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	public Optional<Entity> createFromData(NbtCompound data) {
-		var player = METAcraftEntities.PLAYER.create(world);
+		var player = METAcraftEntities.PLAYER.create(world, SpawnReason.EVENT);
 		var spawnWorld = getWorld(world.getServer(), data);
 		if (spawnWorld.isEmpty() || spawnWorld.get() != world.getActualWorld()) {
 			return Optional.empty();
@@ -364,7 +365,7 @@ public class CutsceneInstance implements AutoCloseable {
 	public static void loadRootVehicle(LivingEntity player, NbtCompound data, Consumer<Entity> spawner) {
 		if (data.contains("RootVehicle")) {
 			var vehicle = data.getCompound("RootVehicle");
-			var e = EntityType.loadEntityWithPassengers(vehicle.getCompound("Entity"), player.getWorld(), entity -> {
+			var e = EntityType.loadEntityWithPassengers(vehicle.getCompound("Entity"), player.getWorld(), SpawnReason.LOAD, entity -> {
 				spawner.accept(entity);
 				return entity;
 			});
@@ -404,7 +405,7 @@ public class CutsceneInstance implements AutoCloseable {
 			player.teleportTo(exitPosOverride.get());
 		} else if (usePlayerDataPosition) {
 			world.ifPresentOrElse(w -> {
-				player.teleport(w, player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+				player.teleport(w, player.getX(), player.getY(), player.getZ(), Set.of(), player.getYaw(), player.getPitch(), false);
 				player.velocityModified = true;
 			}, () -> {
 				player.teleportTo(player.getRespawnTarget(true, TeleportTarget.NO_OP));
@@ -448,8 +449,8 @@ public class CutsceneInstance implements AutoCloseable {
 			var dim = getWorld(player.getServer(), data);
 			dim.ifPresentOrElse(world -> {
 				player.teleport(
-						world, pos.getDouble(0), pos.getDouble(1), pos.getDouble(2),
-						rotation.getFloat(0), rotation.getFloat(1)
+						world, pos.getDouble(0), pos.getDouble(1), pos.getDouble(2), Set.of(),
+						rotation.getFloat(0), rotation.getFloat(1), false
 				);
 				player.setVelocity(new Vec3d(
 						velocity.getDouble(0), velocity.getDouble(1), velocity.getDouble(2)
@@ -697,7 +698,7 @@ public class CutsceneInstance implements AutoCloseable {
 						}
 					}
 				}
-				template.readNbt(lookup.getWrapperOrThrow(RegistryKeys.BLOCK), data);
+				template.readNbt(lookup.getOrThrow(RegistryKeys.BLOCK), data);
 				return template;
 			}
 		}

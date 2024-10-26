@@ -16,6 +16,7 @@ import net.minecraft.predicate.item.EnchantmentPredicate;
 import net.minecraft.predicate.item.EnchantmentsPredicate;
 import net.minecraft.predicate.item.ItemPredicate;
 import net.minecraft.predicate.item.ItemSubPredicateTypes;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.tag.TagKey;
@@ -65,6 +66,7 @@ public class SavedItemsConfig implements Modifiable {
 						ObjectStorage.fromValue(
 								ItemPredicate.CODEC,
 								ItemPredicate.Builder.create().items(
+										Registries.ITEM,
 										Items.SHULKER_BOX, Items.BUNDLE
 								).build()
 						),
@@ -76,6 +78,7 @@ public class SavedItemsConfig implements Modifiable {
 						ObjectStorage.fromValue(
 								ItemPredicate.CODEC,
 								ItemPredicate.Builder.create().items(
+										Registries.ITEM,
 										Items.DIAMOND, Items.NETHER_STAR, Items.NETHERITE_INGOT, Items.NETHERITE_SCRAP,
 										Items.NETHERITE_BLOCK, Items.DIAMOND_BLOCK, Items.ANCIENT_DEBRIS,
 										Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION

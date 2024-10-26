@@ -8,6 +8,7 @@ import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.FoodComponent;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.ai.goal.AnimalMateGoal;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.passive.ParrotEntity;
@@ -25,7 +26,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.better_pets.TameableExtension;
@@ -59,15 +59,18 @@ public abstract class MixinParrotEntity extends TameableEntity {
 		return false;
 	}
 
-	@ModifyArg(
-			method = "interactMob",
-			at = @At(
-					value = "INVOKE",
-					target = "Lnet/minecraft/util/ActionResult;success(Z)Lnet/minecraft/util/ActionResult;"
-			)
+	@ModifyExpressionValue(
+		method = "interactMob",
+		at = @At(
+			value = "FIELD",
+			target = "Lnet/minecraft/util/ActionResult;SUCCESS:Lnet/minecraft/util/ActionResult$Success;"
+		)
 	)
-	public boolean swingArm(boolean swingHand, @Share("notOwner") LocalBooleanRef notOwner) {
-		return swingHand || notOwner.get();
+	public ActionResult.Success swingArm(ActionResult.Success original, @Share("notOwner") LocalBooleanRef notOwner) {
+		if (notOwner.get()) {
+			return ActionResult.SUCCESS_SERVER;
+		}
+		return original;
 	}
 
 	@ModifyReturnValue(method = "isBaby", at = @At("RETURN"))
@@ -87,7 +90,7 @@ public abstract class MixinParrotEntity extends TameableEntity {
 
 	@Inject(method = "createChild", at = @At("HEAD"), cancellable = true)
 	public void createChild(ServerWorld world, PassiveEntity entity, CallbackInfoReturnable<PassiveEntity> cir) {
-		var baby = EntityType.PARROT.create(world);
+		var baby = EntityType.PARROT.create(world, SpawnReason.BREEDING);
 		if (baby != null && entity instanceof ParrotEntity otherParrot) {
 			if (this.getRandom().nextBoolean()) {
 				baby.setVariant(this.getVariant());
@@ -112,7 +115,7 @@ public abstract class MixinParrotEntity extends TameableEntity {
 			this.eat(player, hand, stack);
 			FoodComponent foodComponent = stack.get(DataComponentTypes.FOOD);
 			this.heal(foodComponent != null ? foodComponent.nutrition() : 1.0f);
-			return Optional.of(ActionResult.SUCCESS);
+			return Optional.of(ActionResult.SUCCESS_SERVER);
 		} else {
 			var result = super.interactMob(player, hand);
 			if (result.isAccepted()) {

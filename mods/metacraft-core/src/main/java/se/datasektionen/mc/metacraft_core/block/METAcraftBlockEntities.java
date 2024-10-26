@@ -1,7 +1,7 @@
 package se.datasektionen.mc.metacraft_core.block;
 
-import com.google.common.collect.ImmutableSet;
 import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
+import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.registry.Registries;
@@ -15,26 +15,26 @@ import se.datasektionen.mc.metacraft_core.block.entities.TrapSpawnerEntity;
 public class METAcraftBlockEntities {
 
 	public static final BlockEntityType<PortalEntity> PORTAL = register(
-			"portal", new BlockEntityType<>(
-					PortalEntity::new, ImmutableSet.of(METAcraftBlocks.PORTAL_CORE), null
-			)
+			"portal", FabricBlockEntityTypeBuilder.create(
+					PortalEntity::new, METAcraftBlocks.PORTAL_CORE
+			).build()
 	);
 	public static final BlockEntityType<BlackHolePortalEntity> BLACK_HOLE = register(
-			"black_hole", new BlockEntityType<>(
-					BlackHolePortalEntity::new, ImmutableSet.of(METAcraftBlocks.BLACK_HOLE_CORE), null
-			)
+			"black_hole", FabricBlockEntityTypeBuilder.create(
+					BlackHolePortalEntity::new, METAcraftBlocks.BLACK_HOLE_CORE
+			).build()
 	);
 
 	public static final BlockEntityType<MusicBlockEntity> MUSIC_PLAYER = register(
-			"music_player", new BlockEntityType<>(
-					MusicBlockEntity::new, ImmutableSet.of(METAcraftBlocks.MUSIC_PLAYER), null
-			)
+			"music_player", FabricBlockEntityTypeBuilder.create(
+					MusicBlockEntity::new, METAcraftBlocks.MUSIC_PLAYER
+			).build()
 	);
 
 	public static final BlockEntityType<TrapSpawnerEntity> TRAP_SPAWNER = register(
-			"trap_spawner", new BlockEntityType<>(
-					TrapSpawnerEntity::new, ImmutableSet.of(METAcraftBlocks.TRAP_SPAWNER), null
-			)
+			"trap_spawner", FabricBlockEntityTypeBuilder.create(
+					TrapSpawnerEntity::new, METAcraftBlocks.TRAP_SPAWNER
+			).build()
 	);
 
 	public static void init() {

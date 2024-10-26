@@ -1,6 +1,5 @@
 package se.datasektionen.mc.metacraft_lib.mixin;
 
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.component.type.BundleContentsComponent;
 import net.minecraft.entity.player.PlayerEntity;
@@ -20,15 +19,18 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.metacraft_lib.util.helper.BundleHelper;
 
+import java.util.Optional;
+
 @Mixin(BundleItem.class)
 public abstract class MixinBundleItem {
 
 	@Inject(
-			method = "dropAllBundledItems",
+			method = "popFirstBundledStack",
 			at = @At("RETURN")
 	)
 	private static void updateBundleSizeParameterOnClear(
-			ItemStack stack, PlayerEntity player, CallbackInfoReturnable<Boolean> cir
+			ItemStack stack, PlayerEntity player,
+			BundleContentsComponent contents, CallbackInfoReturnable<Optional<ItemStack>> cir
 	) {
 		BundleHelper.updateBundleSizeParameter(stack);
 	}
@@ -102,17 +104,6 @@ public abstract class MixinBundleItem {
 					0.8f + player.getWorld().getRandom().nextFloat() * 0.4f, player.getWorld().getRandom().nextLong()
 			));
 		}
-	}
-
-	@ModifyExpressionValue(
-			method = "appendTooltip",
-			at = @At(
-					value = "CONSTANT",
-					args = "intValue=64"
-			)
-	)
-	public int appendTooltip(int original, ItemStack stack) {
-		return BundleHelper.getMaxStorage(stack);
 	}
 
 }

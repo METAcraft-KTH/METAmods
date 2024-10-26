@@ -9,13 +9,14 @@ import net.minecraft.block.entity.LockableContainerBlockEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.recipe.RecipeEntry;
+import net.minecraft.recipe.input.SingleStackRecipeInput;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -54,7 +55,9 @@ public abstract class MixinAbstractFurnaceBlockEntity extends LockableContainerB
 	)
 	private static void craftRecipe(
 			ItemStack stack, int amount, Operation<Void> original,
-			DynamicRegistryManager registryManager, @Nullable RecipeEntry<?> recipe, DefaultedList<ItemStack> slots
+			DynamicRegistryManager registryManager, @Nullable RecipeEntry<?> recipe,
+			SingleStackRecipeInput input,
+			DefaultedList<ItemStack> slots
 	) {
 		if (recipe != null && recipe.value() instanceof RecipeRemainderExtension data && stack.getCount() - amount <= 0) {
 			ItemStack replacement = data.metacraft_lib$getRemainderFunction().apply(stack);
@@ -76,7 +79,7 @@ public abstract class MixinAbstractFurnaceBlockEntity extends LockableContainerB
 		)
 	)
 	private static void setInputExtractable(
-			World world, BlockPos pos, BlockState state, AbstractFurnaceBlockEntity blockEntity, CallbackInfo ci
+			ServerWorld world, BlockPos pos, BlockState state, AbstractFurnaceBlockEntity blockEntity, CallbackInfo ci
 	) {
 		if (shouldMakeExtractable.get()) {
 			((MixinAbstractFurnaceBlockEntity) (Object) blockEntity).isInputExtractable = true;
@@ -86,7 +89,7 @@ public abstract class MixinAbstractFurnaceBlockEntity extends LockableContainerB
 
 	@Inject(method = "tick", at = @At("RETURN"))
 	private static void tickEnd(
-			World world, BlockPos pos, BlockState state, AbstractFurnaceBlockEntity blockEntity, CallbackInfo ci
+			ServerWorld world, BlockPos pos, BlockState state, AbstractFurnaceBlockEntity blockEntity, CallbackInfo ci
 	) {
 		shouldMakeExtractable.remove();
 	}

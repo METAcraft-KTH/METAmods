@@ -43,7 +43,7 @@ public class TrapSpawner extends DisguisedBlock {
 	@Override
 	protected void onBlockBreakStart(BlockState state, World world, BlockPos pos, PlayerEntity player) {
 		super.onBlockBreakStart(state, world, pos, player);
-		var hit = player.raycast(player.getAttributeValue(EntityAttributes.PLAYER_BLOCK_INTERACTION_RANGE), 0, false);
+		var hit = player.raycast(player.getAttributeValue(EntityAttributes.BLOCK_INTERACTION_RANGE), 0, false);
 		if (hit != null && hit.getType() != HitResult.Type.MISS) {
 			getTrap(world, pos).ifPresent(trap -> trap.triggerInteract(((BlockHitResult) hit).getSide(), player));
 		}

@@ -6,8 +6,8 @@ import net.minecraft.loot.LootTableReporter;
 import net.minecraft.loot.condition.LootCondition;
 import net.minecraft.loot.condition.LootConditionType;
 import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.context.LootContextParameter;
 import net.minecraft.loot.context.LootContextParameters;
+import net.minecraft.util.context.ContextParameter;
 import net.minecraft.util.math.BlockPos;
 import se.datasektionen.mc.metacraft_lib.condition.METAcraftConditions;
 import se.datasektionen.mc.metacraft_lib.condition.METAcraftContextParameters;
@@ -50,7 +50,7 @@ public class ValidateSpawnRestriction implements LootCondition {
 	}
 
 	@Override
-	public Set<LootContextParameter<?>> getRequiredParameters() {
+	public Set<ContextParameter<?>> getAllowedParameters() {
 		return Set.of(LootContextParameters.ORIGIN);
 	}
 }

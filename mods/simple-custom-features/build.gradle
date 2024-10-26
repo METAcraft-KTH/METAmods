@@ -1,5 +1,9 @@
 version = project.simple_custom_features_version
 
+loom {
+	accessWidenerPath = file("src/main/resources/simple-custom-features.accesswidener")
+}
+
 addPolymerDependency()
 
 addProjectDependency(":mods:metacraft-zones")

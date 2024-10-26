@@ -69,7 +69,7 @@ public abstract class MixinBundleContentsComponent implements BundlesComponentEx
 		}
 
 		@ModifyExpressionValue(
-			method = {"getMaxAllowed", "add(Lnet/minecraft/item/ItemStack;)I", "removeFirst"},
+			method = {"getMaxAllowed", "add(Lnet/minecraft/item/ItemStack;)I", "removeSelected"},
 			at = @At(
 				value = "INVOKE",
 				target = "Lnet/minecraft/component/type/BundleContentsComponent;getOccupancy(Lnet/minecraft/item/ItemStack;)Lorg/apache/commons/lang3/math/Fraction;"

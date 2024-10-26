@@ -12,6 +12,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlockEntities;
 import se.datasektionen.mc.metacraft_core.block.entities.BlackHolePortalEntity;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 public class BlackHolePortalCore extends PortalCore {
 
@@ -33,7 +34,7 @@ public class BlackHolePortalCore extends PortalCore {
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state) {
+	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
 		return Blocks.END_GATEWAY.getDefaultState();
 	}
 

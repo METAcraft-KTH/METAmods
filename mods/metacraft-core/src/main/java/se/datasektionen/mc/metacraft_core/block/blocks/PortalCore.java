@@ -7,11 +7,11 @@ import net.minecraft.block.BlockWithEntity;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 public class PortalCore extends BlockWithEntity implements PolymerBlock {
 
@@ -40,12 +40,12 @@ public class PortalCore extends BlockWithEntity implements PolymerBlock {
 	}
 
 	@Override
-	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, ServerPlayerEntity player) {
-		PortalPadding.sendDummyEndGateway(pos, player);
+	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, PacketContext.NotNullWithPlayer ctx) {
+		PortalPadding.sendDummyEndGateway(pos, ctx);
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state) {
+	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
 		return Blocks.END_GATEWAY.getDefaultState();
 	}
 }

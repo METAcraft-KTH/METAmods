@@ -5,11 +5,10 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.item.ItemStack;
 import net.minecraft.predicate.item.ItemPredicate;
-import net.minecraft.recipe.Ingredient;
-import net.minecraft.recipe.Recipe;
-import net.minecraft.recipe.RecipeSerializer;
-import net.minecraft.recipe.RecipeType;
-import net.minecraft.recipe.input.RecipeInput;
+import net.minecraft.recipe.*;
+import net.minecraft.recipe.book.RecipeBookCategories;
+import net.minecraft.recipe.book.RecipeBookCategory;
+import net.minecraft.recipe.input.CraftingRecipeInput;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Identifier;
@@ -102,7 +101,7 @@ public class Recipes {
 	}
 
 	private static Optional<UnaryOperator<ItemStack>> parseMapping(JsonObject object) {
-		return Ingredient.DISALLOW_EMPTY_CODEC.parse(JsonOps.INSTANCE, object.get(FROM)).resultOrPartial(
+		return Ingredient.CODEC.parse(JsonOps.INSTANCE, object.get(FROM)).resultOrPartial(
 				METAcraftLib.LOGGER::error
 		).flatMap(from -> {
 			return ItemStack.CODEC.parse(JsonOps.INSTANCE, object.get(TO)).resultOrPartial(
@@ -113,35 +112,35 @@ public class Recipes {
 		});
 	}
 
-	public static final Recipe<?> DUMMY = new Recipe<>() {
+	public static final Recipe<?> DUMMY = new Recipe<CraftingRecipeInput>() {
 		@Override
-		public boolean matches(RecipeInput input, World world) {
+		public boolean matches(CraftingRecipeInput input, World world) {
 			return false;
 		}
 
 		@Override
-		public ItemStack craft(RecipeInput input, RegistryWrapper.WrapperLookup lookup) {
+		public ItemStack craft(CraftingRecipeInput input, RegistryWrapper.WrapperLookup lookup) {
 			return ItemStack.EMPTY;
 		}
 
 		@Override
-		public boolean fits(int width, int height) {
-			return false;
-		}
-
-		@Override
-		public ItemStack getResult(RegistryWrapper.WrapperLookup registriesLookup) {
-			return ItemStack.EMPTY;
-		}
-
-		@Override
-		public RecipeSerializer<?> getSerializer() {
+		public RecipeSerializer<? extends Recipe<CraftingRecipeInput>> getSerializer() {
 			return RecipeSerializer.SHAPELESS;
 		}
 
 		@Override
-		public RecipeType<?> getType() {
+		public RecipeType<? extends Recipe<CraftingRecipeInput>> getType() {
 			return RecipeType.CRAFTING;
+		}
+
+		@Override
+		public IngredientPlacement getIngredientPlacement() {
+			return IngredientPlacement.NONE;
+		}
+
+		@Override
+		public RecipeBookCategory getRecipeBookCategory() {
+			return RecipeBookCategories.CRAFTING_MISC;
 		}
 	};
 

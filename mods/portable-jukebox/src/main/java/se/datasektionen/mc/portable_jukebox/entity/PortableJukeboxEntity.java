@@ -6,6 +6,7 @@ import net.minecraft.block.jukebox.JukeboxSong;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
@@ -35,6 +36,7 @@ import se.datasektionen.mc.portable_jukebox.item.components.Components;
 import se.datasektionen.mc.portable_jukebox.item.components.PortableJukeboxConfiguration;
 import se.datasektionen.mc.portable_jukebox.item.components.PortableJukeboxEntityEntry;
 import se.datasektionen.mc.portable_jukebox.ItemWithInventoryHelper;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.*;
 
@@ -50,7 +52,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	}
 
 	@Override
-	public EntityType<?> getPolymerEntityType(ServerPlayerEntity player) {
+	public EntityType<?> getPolymerEntityType(PacketContext ctx) {
 		return EntityType.MARKER;
 	}
 
@@ -120,6 +122,11 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 					0, getRandom().nextInt(4) / 24.0f, 0, 1
 			);
 		}
+	}
+
+	@Override
+	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+		return false;
 	}
 
 	private static boolean isValidContainer(ItemStack stack) {

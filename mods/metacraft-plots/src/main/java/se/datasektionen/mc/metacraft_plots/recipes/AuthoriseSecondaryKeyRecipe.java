@@ -11,7 +11,11 @@ import se.datasektionen.mc.metacraft_plots.item.PlotKey;
 
 public class AuthoriseSecondaryKeyRecipe extends ShapelessRecipe {
 	public AuthoriseSecondaryKeyRecipe(CraftingRecipe recipe) {
-		super(recipe.getGroup(), recipe.getCategory(), recipe.getResult(null), recipe.getIngredients());
+		super(
+				recipe.getGroup(), recipe.getCategory(),
+				recipe.craft(null, null),
+				recipe.getIngredientPlacement().getIngredients()
+		);
 	}
 
 	@Override
@@ -38,9 +42,9 @@ public class AuthoriseSecondaryKeyRecipe extends ShapelessRecipe {
 	}
 
 	@Override
-	public DefaultedList<ItemStack> getRemainder(CraftingRecipeInput inventory) {
-		DefaultedList<ItemStack> remainders = DefaultedList.ofSize(inventory.getSize(), ItemStack.EMPTY);
-		for (int i = 0; i < inventory.getSize(); i++) {
+	public DefaultedList<ItemStack> getRecipeRemainders(CraftingRecipeInput inventory) {
+		DefaultedList<ItemStack> remainders = DefaultedList.ofSize(inventory.size(), ItemStack.EMPTY);
+		for (int i = 0; i < inventory.size(); i++) {
 			if (inventory.getStackInSlot(i).isOf(PlotItems.PLOT_MASTER_KEY)) {
 				remainders.set(i, inventory.getStackInSlot(i).copy());
 				break;

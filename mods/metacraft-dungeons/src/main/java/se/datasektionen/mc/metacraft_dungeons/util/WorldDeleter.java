@@ -70,7 +70,7 @@ public class WorldDeleter {
 										server.getSaveProperties(), server.getSaveProperties().getMainWorldProperties()
 								),
 								world.getRegistryKey(),
-								server.getCombinedDynamicRegistries().getCombinedRegistryManager().get(RegistryKeys.DIMENSION)
+								server.getCombinedDynamicRegistries().getCombinedRegistryManager().getOrThrow(RegistryKeys.DIMENSION)
 										.get(world.getRegistryKey().getValue()),
 								WorldHelper.getGenerationProgressListener(world),
 								server.getSaveProperties().isDebugWorld(),
@@ -132,7 +132,7 @@ public class WorldDeleter {
 	public static void deleteWorldKillingPlayers(ServerWorld world, Runnable onCompleted, Predicate<Path> filesToNotRemove) {
 		delete(world, onCompleted, filesToNotRemove, () -> {
 			DisconnectedPlayerHelper.forAllDisconnectedPlayers(world, player -> {
-				player.kill();
+				player.kill(world);
 				return true;
 			});
 		});
@@ -153,7 +153,7 @@ public class WorldDeleter {
 			DisconnectedPlayerHelper.forAllDisconnectedPlayers(world, player -> {
 				TeleportTarget target = targetPos.apply(player);
 				player.setServerWorld(target.world()); //We don't teleport players who are not online because we don't want to crash the game. We just set the values instead.
-				player.setPos(target.pos().x, target.pos().y, target.pos().z);
+				player.setPos(target.position().x, target.position().y, target.position().z);
 				player.setVelocity(target.velocity());
 				player.setYaw(target.yaw());
 				player.setPitch(target.pitch());

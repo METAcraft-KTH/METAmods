@@ -18,7 +18,7 @@ import se.datasektionen.mc.portable_jukebox.PortableJukebox;
 
 public class PortableJukeboxBlockEntity extends BlockEntity implements SingleStackInventory.SingleStackBlockEntityInventory {
 
-	private static final String JUKEBOX = "Jukebox";
+	private static final String JUKEBOX = "Jukebox"; //Careful, this is used by a datafixer!
 
 	private ItemStack jukebox = ItemStack.EMPTY;
 

@@ -110,7 +110,7 @@ public class PlaySoundTransition implements Transition, TransitionConfig {
 	@Override
 	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (stopAtEnd) {
-			player.networkHandler.sendPacket(new StopSoundS2CPacket(sound.value().getId(), category));
+			player.networkHandler.sendPacket(new StopSoundS2CPacket(sound.value().id(), category));
 		}
 	}
 

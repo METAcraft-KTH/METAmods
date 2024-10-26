@@ -1,7 +1,7 @@
 package se.datasektionen.mc.metacraft_dungeons.block;
 
-import com.google.common.collect.ImmutableSet;
 import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
+import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.registry.Registries;
@@ -17,9 +17,9 @@ import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.DataBlockRegis
 public class DungeonsBlockEntities {
 
 	public static final BlockEntityType<DungeonEntranceEntity> DUNGEON_ENTRANCE = register(
-			"dungeon_entrance", new BlockEntityType<>(
-					DungeonEntranceEntity::new, ImmutableSet.of(DungeonBlocks.DUNGEON_ENTRANCE), null
-			)
+			"dungeon_entrance", FabricBlockEntityTypeBuilder.create(
+					DungeonEntranceEntity::new, DungeonBlocks.DUNGEON_ENTRANCE
+			).build()
 	);
 
 

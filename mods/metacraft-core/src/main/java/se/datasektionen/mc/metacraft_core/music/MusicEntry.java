@@ -44,7 +44,7 @@ public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitc
 	}
 
 	public static RegistryEntry<SoundEvent> getFromID(RegistryKey<SoundEvent> key) {
-		return Registries.SOUND_EVENT.getEntry(key).map(
+		return Registries.SOUND_EVENT.getOptional(key).map(
 				e -> (RegistryEntry<SoundEvent>) e
 		).orElseGet(() -> {
 			if (!cache.containsKey(key)) {
@@ -56,12 +56,12 @@ public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitc
 	}
 
 	public static Identifier getID(RegistryEntry<SoundEvent> entry) {
-		return entry.getKeyOrValue().map(RegistryKey::getValue, SoundEvent::getId);
+		return entry.getKeyOrValue().map(RegistryKey::getValue, SoundEvent::id);
 	}
 
 	@Override
 	public String toString() {
-		String firstPart = "MusicEntry[music=" + music.value().getId() + ", length=" +
+		String firstPart = "MusicEntry[music=" + music.value().id() + ", length=" +
 				length + ", pitch=" + pitch + ", priority=" + priority;
 		if (credit.isPresent()) {
 			firstPart += ", credit=" + credit.get();

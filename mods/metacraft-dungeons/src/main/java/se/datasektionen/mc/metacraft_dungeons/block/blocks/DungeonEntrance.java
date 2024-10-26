@@ -9,6 +9,7 @@ import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.block.blocks.PortalCore;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 public class DungeonEntrance extends PortalCore {
 
@@ -30,7 +31,7 @@ public class DungeonEntrance extends PortalCore {
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state) {
+	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
 		return Blocks.END_GATEWAY.getDefaultState();
 	}
 }

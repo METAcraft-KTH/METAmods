@@ -61,8 +61,8 @@ public class BiomeZone extends ZoneType {
 		var biome = RegistryPredicateArgumentType.getPredicate(ctx, "biome", RegistryKeys.BIOME, BIOME_FAIL);
 		MutableBoolean error = new MutableBoolean(false);
 		Either<RegistryEntry<Biome>, TagKey<Biome>> mapped = biome.getKey().mapLeft(
-				key -> ctx.getSource().getServer().getRegistryManager().get(RegistryKeys.BIOME)
-						.getEntry(key).orElseGet(() -> {
+				key -> ctx.getSource().getServer().getRegistryManager().getOrThrow(RegistryKeys.BIOME)
+						.getOptional(key).orElseGet(() -> {
 							error.setTrue();
 							return null;
 						})
@@ -95,7 +95,7 @@ public class BiomeZone extends ZoneType {
 	@Override
 	public double getSize() {
 		double width = getZoneRef().getWorld().getWorldBorder().getSize();
-		int biomeCount = getZoneRef().getWorld().getRegistryManager().get(RegistryKeys.BIOME).size();
+		int biomeCount = getZoneRef().getWorld().getRegistryManager().getOrThrow(RegistryKeys.BIOME).size();
 		return width * width * getZoneRef().getWorld().getHeight() / (biomeCount * biomeCount * biomeCount);
 	}
 

@@ -5,8 +5,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.RangedAttackMob;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
-import net.minecraft.entity.ai.brain.task.LookTargetUtil;
 import net.minecraft.entity.ai.brain.task.MultiTickTask;
+import net.minecraft.entity.ai.brain.task.TargetUtil;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.BowItem;
 import net.minecraft.item.ItemStack;
@@ -48,7 +48,7 @@ public class SmartProjectileAttackTask<T extends MobEntity & RangedAttackMob> ex
 	@Override
 	protected boolean shouldRun(ServerWorld serverWorld, T mobEntity) {
 		LivingEntity livingEntity = getAttackTarget(mobEntity);
-		return mobEntity.isHolding(isValidWeapon) && LookTargetUtil.isVisibleInMemory(mobEntity, livingEntity) && ImprovedRangedApproachTask.isInAttackingDistance(mobEntity, livingEntity, 0);
+		return mobEntity.isHolding(isValidWeapon) && TargetUtil.isVisibleInMemory(mobEntity, livingEntity) && ImprovedRangedApproachTask.isInAttackingDistance(mobEntity, livingEntity, 0);
 	}
 
 	@Override

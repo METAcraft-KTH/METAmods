@@ -67,7 +67,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 			((ChickenExtensions) this).metacraft_lib$setReinforcementCount(
 					((ChickenExtensions) this).metacraft_lib$getReinforcementCount() * 2
 			);
-			this.getAttributeInstance(EntityAttributes.GENERIC_FOLLOW_RANGE).addTemporaryModifier(
+			this.getAttributeInstance(EntityAttributes.FOLLOW_RANGE).addTemporaryModifier(
 					new EntityAttributeModifier(METAcraftLib.getID("double_range"), 2, EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL)
 			);
 			if (this.getAttacker() != null) {
@@ -133,7 +133,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 					Activity.FIGHT, 0,
 					ImmutableList.of(
 							ForgetAttackTargetTask.create(
-									entity -> getTarget((LivingEntity) (Object) this).filter(
+									(world, entity) -> getTarget(world, (LivingEntity) (Object) this).filter(
 											target -> target == entity
 									).isEmpty()
 							)
@@ -144,7 +144,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 
 	@ModifyReturnValue(method = "createLivingAttributes", at = @At("RETURN"))
 	private static DefaultAttributeContainer.Builder createMobAttributes(DefaultAttributeContainer.Builder original) {
-		return original.add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 5);
+		return original.add(EntityAttributes.ATTACK_DAMAGE, 5);
 	}
 
 	@Unique
@@ -153,7 +153,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 	}
 
 	@Unique
-	private static Optional<? extends LivingEntity> getTarget(LivingEntity entity) {
+	private static Optional<? extends LivingEntity> getTarget(ServerWorld world, LivingEntity entity) {
 		Optional<LivingEntity> angryAt = getMemory(entity, MemoryModuleType.ANGRY_AT).map(
 			uuid -> {
 				var target = ((ServerWorld) entity.getWorld()).getEntity(uuid);
@@ -164,13 +164,13 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 				}
 			}
 		);
-		if (angryAt.isPresent() && Sensor.testAttackableTargetPredicateIgnoreVisibility(entity, angryAt.get())) {
+		if (angryAt.isPresent() && Sensor.testAttackableTargetPredicateIgnoreVisibility(world, entity, angryAt.get())) {
 			return angryAt;
 		}
 		Optional<? extends LivingEntity> foundTarget = getMemory(
 				entity, MemoryModuleType.NEAREST_VISIBLE_TARGETABLE_PLAYER
 		).filter(
-				target -> target.isInRange(entity, entity.getAttributeValue(EntityAttributes.GENERIC_FOLLOW_RANGE))
+				target -> target.isInRange(entity, entity.getAttributeValue(EntityAttributes.FOLLOW_RANGE))
 		);
 		if (foundTarget.isPresent()) {
 			return foundTarget;

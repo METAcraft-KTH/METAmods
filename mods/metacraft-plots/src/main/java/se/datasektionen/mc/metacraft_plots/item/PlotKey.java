@@ -14,12 +14,13 @@ import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_plots.zone.PlotDataTypes;
 import se.datasektionen.mc.metacraft_plots.zone.PlotData;
 import se.datasektionen.mc.zones.ZoneManager;
 import se.datasektionen.mc.zones.zone.Zone;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,9 +28,9 @@ import java.util.function.BiFunction;
 
 public class PlotKey extends Item implements PolymerItem {
 
-	private final BiFunction<ItemStack, MinecraftServer, Integer> modelIdGetter;
+	private final BiFunction<ItemStack, MinecraftServer, Identifier> modelIdGetter;
 
-	public PlotKey(Settings settings, BiFunction<ItemStack, MinecraftServer, Integer> modelIdGetter) {
+	public PlotKey(net.minecraft.item.Item.Settings settings, BiFunction<ItemStack, MinecraftServer, Identifier> modelIdGetter) {
 		super(settings);
 		this.modelIdGetter = modelIdGetter;
 	}
@@ -203,14 +204,14 @@ public class PlotKey extends Item implements PolymerItem {
 	}
 
 	@Override
-	public int getPolymerCustomModelData(ItemStack itemStack, @Nullable ServerPlayerEntity player) {
-		return modelIdGetter.apply(itemStack, Optional.ofNullable(player).map(ServerPlayerEntity::getServer).orElse(null));
+	public Identifier getPolymerItemModel(ItemStack itemStack, PacketContext ctx) {
+		return modelIdGetter.apply(itemStack, Optional.ofNullable(ctx.getPlayer()).map(ServerPlayerEntity::getServer).orElse(null));
 	}
 
 	public record ZoneContainer(Zone zone, PlotData plotData) {}
 
 	@Override
-	public Item getPolymerItem(ItemStack itemStack, @Nullable ServerPlayerEntity player) {
+	public Item getPolymerItem(ItemStack itemStack, PacketContext ctx) {
 		return Items.FLINT;
 	}
 

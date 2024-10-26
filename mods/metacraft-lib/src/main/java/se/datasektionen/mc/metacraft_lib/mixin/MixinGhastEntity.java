@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.GhastEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -61,7 +62,7 @@ public class MixinGhastEntity {
 			args = "floatValue=1000.0f"
 		)
 	)
-	public float modifyInstakillDamage(float instakillAmount, DamageSource source, float amount) {
+	public float modifyInstakillDamage(float instakillAmount, ServerWorld world, DamageSource source, float amount) {
 		if (preventReturnInstakill) {
 			return amount;
 		}

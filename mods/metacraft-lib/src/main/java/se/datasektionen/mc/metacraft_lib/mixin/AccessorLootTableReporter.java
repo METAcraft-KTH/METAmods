@@ -1,7 +1,7 @@
 package se.datasektionen.mc.metacraft_lib.mixin;
 
 import net.minecraft.loot.LootTableReporter;
-import net.minecraft.loot.context.LootContextType;
+import net.minecraft.util.context.ContextType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -9,6 +9,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface AccessorLootTableReporter {
 
 	@Accessor
-	LootContextType getContextType();
+	ContextType getContextType();
 
 }

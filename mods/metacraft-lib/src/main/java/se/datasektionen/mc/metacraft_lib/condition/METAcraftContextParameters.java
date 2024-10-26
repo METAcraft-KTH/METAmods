@@ -4,8 +4,8 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.loot.LootTableReporter;
 import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.context.LootContextParameter;
 import net.minecraft.loot.context.LootContextParameters;
+import net.minecraft.util.context.ContextParameter;
 import net.minecraft.util.math.Box;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorLootTableReporter;
@@ -15,9 +15,9 @@ import java.util.Optional;
 
 public class METAcraftContextParameters {
 
-	public static final LootContextParameter<EntityType<?>> ENTITY_TYPE = register("entity_type");
-	public static final LootContextParameter<Box> BOUNDING_BOX = register("bounding_box");
-	public static final LootContextParameter<SpawnReason> SPAWN_REASON = register("spawn_reason");
+	public static final ContextParameter<EntityType<?>> ENTITY_TYPE = register("entity_type");
+	public static final ContextParameter<Box> BOUNDING_BOX = register("bounding_box");
+	public static final ContextParameter<SpawnReason> SPAWN_REASON = register("spawn_reason");
 
 	public static void validateEntityType(LootTableReporter reporter) {
 		var allowed = ((AccessorLootTableReporter) reporter).getContextType().getAllowed();
@@ -30,7 +30,7 @@ public class METAcraftContextParameters {
 	}
 
 	public static void validateEntityOrBlockEntity(
-			LootTableReporter reporter, LootContextParameter<?> additional
+			LootTableReporter reporter, ContextParameter<?> additional
 	) {
 		var allowed = ((AccessorLootTableReporter) reporter).getContextType().getAllowed();
 		if (
@@ -67,8 +67,8 @@ public class METAcraftContextParameters {
 
 	}
 
-	private static <T> LootContextParameter<T> register(String id) {
-		return new LootContextParameter<>(METAcraftLib.getID(id));
+	private static <T> ContextParameter<T> register(String id) {
+		return new ContextParameter<>(METAcraftLib.getID(id));
 	}
 
 }

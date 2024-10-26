@@ -65,7 +65,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 			}
 			return id;
 		};
-		EntityType.loadEntityWithPassengers(nbt, cutscene.getCutsceneWorld(), entity -> {
+		EntityType.loadEntityWithPassengers(nbt, cutscene.getCutsceneWorld(), SpawnReason.EVENT, entity -> {
 			pos.ifPresent(entity::setPosition);
 			cutscene.addEntity(idGetter.get(), entity);
 			if (initialize.orElse(nbt.getSize() > 1) && entity instanceof MobEntity mob) {
@@ -102,7 +102,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		var refs = ids.stream().map(CutsceneRef::new).flatMap(e -> e.get(null, cutscene));
 		if (killAfter) {
-			refs.forEach(Entity::kill);
+			refs.forEach(e -> e.kill(cutscene.getCutsceneWorld()));
 		} else {
 			refs.forEach(Entity::discard);
 		}

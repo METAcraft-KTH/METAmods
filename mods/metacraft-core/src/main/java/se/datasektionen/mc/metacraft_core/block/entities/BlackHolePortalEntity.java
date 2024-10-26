@@ -13,6 +13,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlockEntities;
+import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 
 public class BlackHolePortalEntity extends PortalEntity {
 
@@ -31,13 +32,12 @@ public class BlackHolePortalEntity extends PortalEntity {
 
 	@Override
 	protected void onTeleportFail(Entity entity) {
-		entity.kill();
+		entity.kill((ServerWorld) entity.getWorld());
 	}
 
 	@Override
 	public void onCollision(BlockState state, World world, BlockPos pos, Entity entity) {
-		if (!entity.canUsePortals(false)) return;
-		world.getServer().execute(() -> {
+		TaskScheduler.scheduleImmediately(world.getServer(), () -> {
 			teleport(entity); //Black holes do not check portal cooldown since doing so could cause players to get stuck.
 		});
 	}

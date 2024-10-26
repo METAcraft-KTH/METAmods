@@ -107,9 +107,9 @@ public class PortalBlockObject implements BaseBlock {
 	}
 
 	@Override
-	public DataResult<Block> createObject() {
+	public DataResult<Block> createObject(RegistryKey<Block> id) {
 		return DataResult.success(
-				block = new DynamicPortalBlock(AbstractBlock.Settings.copy(Blocks.NETHER_PORTAL), this)
+				block = new DynamicPortalBlock(AbstractBlock.Settings.copy(Blocks.NETHER_PORTAL).registryKey(id), this)
 		);
 	}
 
@@ -192,7 +192,7 @@ public class PortalBlockObject implements BaseBlock {
 			Direction facing = pointer.state().get(DispenserBlock.FACING);
 			return findPortalShape(pointer.world(), pointer.pos().offset(facing)).map(
 				portal -> {
-					portal.activate();
+					portal.activate(pointer.world());
 					if (stack.isDamageable()) {
 						stack.damage(1, pointer.world(), null, item -> {});
 					} else {
@@ -357,7 +357,7 @@ public class PortalBlockObject implements BaseBlock {
 		public ValidStructureWithOffset addPlatformIfNecessary(World world, PortalBlockObject portal) {
 			var structure = new StructureTemplate();
 			structure.readNbt(
-					world.getRegistryManager().getWrapperOrThrow(RegistryKeys.BLOCK),
+					world.getRegistryManager().getOrThrow(RegistryKeys.BLOCK),
 					structure().writeNbt(new NbtCompound())
 			);
 			Direction.Axis axis = null;

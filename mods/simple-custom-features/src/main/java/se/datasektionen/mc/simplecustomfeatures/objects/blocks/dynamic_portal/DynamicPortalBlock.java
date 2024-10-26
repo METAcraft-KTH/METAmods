@@ -16,17 +16,16 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.world.BlockLocating;
-import net.minecraft.world.GameRules;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.WorldAccess;
+import net.minecraft.world.*;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.poi.PointOfInterest;
 import net.minecraft.world.poi.PointOfInterestStorage;
+import net.minecraft.world.tick.ScheduledTickView;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.datasektionen.mc.simplecustomfeatures.Features;
 import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorNetherPortalBlock;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.Comparator;
 import java.util.Optional;
@@ -59,7 +58,7 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 						spawnPos.set(blockBelowChecker.move(Direction.UP));
 					}
 					var center = Vec3d.ofBottomCenter(spawnPos);
-					var rootEntity = EntityHelper.loadEntityWithPassengers(entityData, world, (entity, data) -> {
+					var rootEntity = EntityHelper.loadEntityWithPassengers(entityData, world, SpawnReason.STRUCTURE, (entity, data) -> {
 						entity.resetPortalCooldown();
 						if (entity instanceof MobEntity mob && spawns.initialize()) {
 							mob.initialize(world, world.getLocalDifficulty(spawnPos), SpawnReason.STRUCTURE, null);
@@ -81,11 +80,14 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 	}
 
 	@Override
-	protected BlockState getStateForNeighborUpdate(BlockState state, Direction direction, BlockState neighborState, WorldAccess world, BlockPos pos, BlockPos neighborPos) {
+	protected BlockState getStateForNeighborUpdate(
+			BlockState state, WorldView world, ScheduledTickView tickView, BlockPos pos,
+			Direction direction, BlockPos neighborPos, BlockState neighborState, Random random
+	) {
 		var axis = state.get(AXIS);
 		var isIrrelevant = direction.getAxis().isHorizontal() && axis != direction.getAxis();
 		if (isIrrelevant || neighborState.isOf(this) || findPortalShape(world, pos, axis).isPresent()) {
-			return super.getStateForNeighborUpdate(state, direction, neighborState, world, pos, neighborPos);
+			return super.getStateForNeighborUpdate(state, world, tickView, pos, direction, neighborPos, neighborState, random);
 		}
 		return Blocks.AIR.getDefaultState();
 	}
@@ -96,7 +98,7 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 		return PortalShape.findPortalShape(world, pos, this);
 	}
 
-	public Optional<PortalShape> findPortalShape(WorldAccess world, BlockPos pos, Direction.Axis axis) {
+	public Optional<PortalShape> findPortalShape(WorldView world, BlockPos pos, Direction.Axis axis) {
 		return PortalShape.findPortalShape(world, pos, this, axis);
 	}
 
@@ -120,7 +122,7 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 		var targetWorld = world.getServer().getWorld(targetDim);
 		if (targetWorld == null) return null;
 		var factor = DimensionType.getCoordinateScaleFactor(world.getDimension(), targetWorld.getDimension());
-		BlockPos targetPos = targetWorld.getWorldBorder().clamp(pos.getX() * factor, pos.getY(), pos.getZ() * factor);
+		BlockPos targetPos = targetWorld.getWorldBorder().clampFloored(pos.getX() * factor, pos.getY(), pos.getZ() * factor);
 		return getPortalTarget(entity, targetWorld, targetPos, pos);
 	}
 
@@ -181,7 +183,7 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state) {
+	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
 		return Blocks.NETHER_PORTAL.getDefaultState().with(NetherPortalBlock.AXIS, state.get(NetherPortalBlock.AXIS));
 	}
 

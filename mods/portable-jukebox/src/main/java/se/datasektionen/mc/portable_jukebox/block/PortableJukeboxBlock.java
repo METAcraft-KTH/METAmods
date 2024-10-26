@@ -7,8 +7,8 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.loot.context.LootContextParameterSet;
 import net.minecraft.loot.context.LootContextParameters;
+import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.hit.BlockHitResult;
@@ -17,12 +17,14 @@ import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
+import net.minecraft.world.block.WireOrientation;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_lib.util.EntityRef;
 import se.datasektionen.mc.portable_jukebox.item.PortableJukeboxItem;
 import se.datasektionen.mc.portable_jukebox.entity.PortableJukeboxEntity;
 import se.datasektionen.mc.portable_jukebox.gui.PortableJukeboxGui;
 import se.datasektionen.mc.portable_jukebox.mixin.AccessorSkullBlock;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 
@@ -40,7 +42,7 @@ public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHead
 	}
 
 	@Override
-	public String getPolymerSkinValue(BlockState state, BlockPos pos, ServerPlayerEntity player) {
+	public String getPolymerSkinValue(BlockState state, BlockPos pos, PacketContext ctx) {
 		//From: https://minecraft-heads.com/player-heads/head/3645-jukebox
 		return "ewogICJ0aW1lc3RhbXAiIDogMTcxODc5MzE5MzU4NiwKICAicHJvZmlsZUlkIiA6ICIxZjA1NGRlNDgwZmI0NjA0OWE0N2NlMmNiYWE0MjJkMiIsCiAgInByb2ZpbGVOYW1lIiA6ICJQaW5nUG9uZ0RlbGF5IiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2JhZGU4ZjJiYjBhZDVjZDlmNWY5MGRjY2JjYTZlYmU3ZmEzZjk4YTU1OTgyMmNkMGIwNDQ1YzVjNzcyZGJiYTciCiAgICB9CiAgfQp9";
 	}
@@ -51,7 +53,7 @@ public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHead
 	}
 
 	@Override
-	protected VoxelShape getCullingShape(BlockState state, BlockView world, BlockPos pos) {
+	protected VoxelShape getCullingShape(BlockState state) {
 		return VoxelShapes.empty();
 	}
 
@@ -79,7 +81,7 @@ public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHead
 	}
 
 	@Override
-	protected List<ItemStack> getDroppedStacks(BlockState state, LootContextParameterSet.Builder builder) {
+	protected List<ItemStack> getDroppedStacks(BlockState state, LootWorldContext.Builder builder) {
 		BlockEntity blockEntity = builder.getOptional(LootContextParameters.BLOCK_ENTITY);
 		if (blockEntity instanceof PortableJukeboxBlockEntity jukebox) {
 			return List.of(jukebox.getJukebox());
@@ -120,7 +122,10 @@ public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHead
 	}
 
 	@Override
-	protected void neighborUpdate(BlockState state, World world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
+	protected void neighborUpdate(
+			BlockState state, World world, BlockPos pos, Block sourceBlock,
+			WireOrientation orientation, boolean notify
+	) {
 		var blockEntity = world.getBlockEntity(pos);
 		if (blockEntity instanceof PortableJukeboxBlockEntity portable) {
 			PortableJukeboxItem.updateRedstone(EntityRef.fromBlock(portable), portable.getJukebox());

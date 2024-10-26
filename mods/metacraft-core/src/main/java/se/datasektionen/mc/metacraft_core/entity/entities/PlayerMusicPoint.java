@@ -3,13 +3,16 @@ package se.datasektionen.mc.metacraft_core.entity.entities;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket;
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 public class PlayerMusicPoint extends Entity implements PolymerEntity {
 
@@ -20,7 +23,7 @@ public class PlayerMusicPoint extends Entity implements PolymerEntity {
 	}
 
 	@Override
-	public EntityType<?> getPolymerEntityType(ServerPlayerEntity player) {
+	public EntityType<?> getPolymerEntityType(PacketContext ctx) {
 		return EntityType.MARKER;
 	}
 
@@ -32,7 +35,7 @@ public class PlayerMusicPoint extends Entity implements PolymerEntity {
 		player.networkHandler.sendPacket(
 				new EntitySpawnS2CPacket(
 						this.getId(), this.getUuid(), getX(), getY(), getZ(), getPitch(), getYaw(),
-						getPolymerEntityType(player), 0, getVelocity(), getHeadYaw()
+						getPolymerEntityType(PacketContext.create(player)), 0, getVelocity(), getHeadYaw()
 				)
 		);
 	}
@@ -46,6 +49,11 @@ public class PlayerMusicPoint extends Entity implements PolymerEntity {
 		if (player == null || ((ServerPlayerEntityExtensions) player).metacraft_lib$getMusicPoint() != this) {
 			discard();
 		}
+	}
+
+	@Override
+	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+		return false;
 	}
 
 	@Override

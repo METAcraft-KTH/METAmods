@@ -9,8 +9,11 @@
 		"AccessorNetherPortalBlock",
 		"AccessorPointOfInterestTypes",
 		"AccessorPortalForcer",
+		"AccessorRegistryEntryListName",
 		"MixinAbstractBlockState",
 		"MixinDispenserBlock",
+		"MixinItem",
+		"MixinItem$Settings",
 		"MixinLoomScreenHandler",
 		"MixinSimpleRegistry"
 	],

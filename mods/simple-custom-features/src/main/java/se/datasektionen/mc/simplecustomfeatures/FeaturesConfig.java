@@ -1,6 +1,5 @@
 package se.datasektionen.mc.simplecustomfeatures;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
@@ -10,14 +9,14 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.ConsumableComponents;
+import net.minecraft.component.type.DamageResistantComponent;
 import net.minecraft.component.type.FoodComponents;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.Items;
 import net.minecraft.registry.*;
+import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Rarity;
-import net.minecraft.util.Unit;
 import se.datasektionen.mc.metacraft_lib.config.container.ConfigContainer;
 import se.datasektionen.mc.metacraft_lib.config.container.ReloadCause;
 import se.datasektionen.mc.metacraft_lib.config.container.ReloadFunction;
@@ -93,20 +92,17 @@ public class FeaturesConfig implements ReloadAware {
 								ComponentChanges.builder().add(
 										DataComponentTypes.MAX_STACK_SIZE, 32
 								).add(
-										DataComponentTypes.FIRE_RESISTANT, Unit.INSTANCE
+										DataComponentTypes.DAMAGE_RESISTANT, new DamageResistantComponent(DamageTypeTags.IS_FIRE)
 								).add(
 										DataComponentTypes.RARITY, Rarity.UNCOMMON
 								).add(
 										DataComponentTypes.FOOD, FoodComponents.ENCHANTED_GOLDEN_APPLE
+								).add(
+										DataComponentTypes.CONSUMABLE, ConsumableComponents.DRINK
 								).build(),
 								Optional.empty()
 						),
-						Optional.empty(),
-						new SimpleItem.ExtendedSettings(
-								true,
-								ImmutableList.of(new RegistryPair<>(StatusEffects.WITHER)),
-								Optional.of(Registries.SOUND_EVENT.getEntry(SoundEvents.ENTITY_GENERIC_DRINK))
-						)
+						Optional.empty()
 				)));
 				return config;
 			}

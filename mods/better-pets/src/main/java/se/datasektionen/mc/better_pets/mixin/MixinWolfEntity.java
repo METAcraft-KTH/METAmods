@@ -7,11 +7,11 @@ import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.passive.WolfEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.better_pets.TameableExtension;
 import se.datasektionen.mc.metacraft_lib.util.helper.TamedHelper;
@@ -50,15 +50,18 @@ public class MixinWolfEntity {
 		return false;
 	}
 
-	@ModifyArg(
-			method = "interactMob",
-			at = @At(
-					value = "INVOKE",
-					target = "Lnet/minecraft/util/ActionResult;success(Z)Lnet/minecraft/util/ActionResult;"
-			)
+	@ModifyExpressionValue(
+		method = "interactMob",
+		at = @At(
+			value = "FIELD",
+			target = "Lnet/minecraft/util/ActionResult;SUCCESS:Lnet/minecraft/util/ActionResult$Success;"
+		)
 	)
-	public boolean swingArm(boolean swingHand, @Share("notOwner") LocalBooleanRef notOwner) {
-		return swingHand || notOwner.get();
+	public ActionResult.Success swingArm(ActionResult.Success original, @Share("notOwner") LocalBooleanRef notOwner) {
+		if (notOwner.get()) {
+			return ActionResult.SUCCESS_SERVER;
+		}
+		return original;
 	}
 
 }

@@ -1,9 +1,9 @@
 package se.datasektionen.mc.metacraft_lib.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.component.ComponentMapImpl;
 import net.minecraft.component.ComponentType;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.MergedComponentMap;
 import net.minecraft.component.type.BundleContentsComponent;
 import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -18,13 +18,13 @@ import se.datasektionen.mc.metacraft_lib.util.helper.BundleHelper;
 public class MixinItemStack {
 
 	@Shadow @Final
-	ComponentMapImpl components;
+	MergedComponentMap components;
 
 	@ModifyArg(
 		method = "set",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/component/ComponentMapImpl;set(Lnet/minecraft/component/ComponentType;Ljava/lang/Object;)Ljava/lang/Object;"
+			target = "Lnet/minecraft/component/MergedComponentMap;set(Lnet/minecraft/component/ComponentType;Ljava/lang/Object;)Ljava/lang/Object;"
 		),
 		index = 1
 	)

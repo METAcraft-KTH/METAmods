@@ -28,7 +28,7 @@ public class RemoteZone extends Zone {
 	public boolean contains(BlockPos pos) {
 		double factor = DimensionType.getCoordinateScaleFactor(world.getDimension(), container.world.getDimension());
 		return zone.contains(
-				world.getWorldBorder().clamp(
+				world.getWorldBorder().clampFloored(
 						pos.getX() * factor, pos.getY(), pos.getZ() * factor
 				)
 		);

@@ -11,6 +11,7 @@ import java.util.function.UnaryOperator;
 
 public class Components {
 
+	//Careful, this is used by a datafixer!
 	public static final ComponentType<ItemStack> PORTABLE_JUKEBOX = register(
 			"portable_jukebox", component -> component.codec(ItemStack.UNCOUNTED_CODEC)
 	);

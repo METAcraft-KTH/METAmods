@@ -4,7 +4,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.EntityLookTarget;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.WalkTarget;
-import net.minecraft.entity.ai.brain.task.LookTargetUtil;
+import net.minecraft.entity.ai.brain.task.TargetUtil;
 import net.minecraft.entity.ai.brain.task.Task;
 import net.minecraft.entity.ai.brain.task.TaskTriggerer;
 import net.minecraft.entity.mob.MobEntity;
@@ -29,7 +29,7 @@ public class ImprovedRangedApproachTask {
 				return entity.isInRange(target, TridentHelper.getTridentRange());
 			}
 		}
-		return LookTargetUtil.isTargetWithinAttackRange(entity, target, reduction);
+		return TargetUtil.isTargetWithinAttackRange(entity, target, reduction);
 	}
 
 	public static Task<MobEntity> create(Function<LivingEntity, Float> speed) {

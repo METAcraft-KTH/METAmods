@@ -29,6 +29,7 @@ import net.minecraft.world.PersistentState;
 import org.apache.commons.lang3.mutable.MutableInt;
 import se.datasektionen.mc.saved_items.SavedItemsConfig;
 import se.datasektionen.mc.saved_items.SavedItems;
+import se.datasektionen.mc.saved_items.SavedItemsDataFixer;
 
 import java.util.*;
 import java.util.function.ToIntFunction;
@@ -38,10 +39,11 @@ import java.util.stream.Stream;
 public class SavedItemsData extends PersistentState {
 
 	private static final String key = SavedItems.MODID;
-	private static final String ITEMS = "Items";
+	private static final String ITEMS = "Items"; //Careful, this is used by a datafixer!
 	private static PersistentState.Type<SavedItemsData> getType(MinecraftServer server) {
 		return new Type<>(
-				() -> create(server), (nbt, wrapper) -> load(server, nbt, wrapper), null
+				() -> create(server), (nbt, wrapper) -> load(server, nbt, wrapper),
+				SavedItemsDataFixer.Types.SAVED_DATA_SAVED_ITEMS
 		);
 	}
 
@@ -75,7 +77,7 @@ public class SavedItemsData extends PersistentState {
 			return Stream.empty();
 		}
 		return Stream.concat(
-				registry.getEntry(RegistryKey.of(RegistryKeys.DAMAGE_TYPE, type.getValue())).stream().flatMap(
+				registry.getOptional(RegistryKey.of(RegistryKeys.DAMAGE_TYPE, type.getValue())).stream().flatMap(
 						entry -> entry.streamTags().map(SavedItemsConfig.SavingType::of)
 				),
 				Stream.of(ANY_DAMAGE)
@@ -87,7 +89,7 @@ public class SavedItemsData extends PersistentState {
 		if (typeGroup.equals(ANY_DAMAGE)) {
 			return registry.getIds().stream().map(SavedItemsConfig.SavingType::of);
 		} else if (typeGroup.key().right().isPresent()) {
-			return registry.getEntryList(typeGroup.key().right().get()).map(
+			return registry.getOptional(typeGroup.key().right().get()).map(
 					entryList -> entryList.stream().filter(
 							entry -> entry.getKey().isPresent()
 					).map(entry -> SavedItemsConfig.SavingType.of(entry.getKey().get().getValue()))
@@ -268,7 +270,7 @@ public class SavedItemsData extends PersistentState {
 	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
 		NbtCompound entryLists = new NbtCompound();
 		for (var item : items.keySet()) {
-			NbtList items = new NbtList();
+			NbtList items = new NbtList();//Careful, this is used by a datafixer!
 			for (var itemEntry : this.items.get(item)) {
 				SavedItemEntry.CODEC.encodeStart(registryLookup.getOps(NbtOps.INSTANCE), itemEntry).resultOrPartial(
 						SavedItems.LOGGER::error
@@ -309,7 +311,7 @@ public class SavedItemsData extends PersistentState {
 
 	public record SavedItemEntry(Optional<ComponentChanges> components, Map<SavedItemsConfig.SavingType, MutableInt> typeCounts) {
 		public static final Codec<SavedItemEntry> CODEC = RecordCodecBuilder.create(
-				instance -> instance.group(
+				instance -> instance.group(//Careful, this is used by a datafixer!
 						ComponentChanges.CODEC.optionalFieldOf("components").forGetter(SavedItemEntry::components),
 						Codec.unboundedMap(SavedItemsConfig.SavingType.CODEC, Codec.INT).xmap(
 								map -> map.entrySet().stream().map(

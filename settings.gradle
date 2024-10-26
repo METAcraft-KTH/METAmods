@@ -25,6 +25,5 @@ include "mods:metacraft-weather"
 include "mods:metacraft-zones"
 include "mods:portable-jukebox"
 include "mods:portal-blocker"
-include "mods:portal-opening"
 include "mods:simple-custom-features"
 

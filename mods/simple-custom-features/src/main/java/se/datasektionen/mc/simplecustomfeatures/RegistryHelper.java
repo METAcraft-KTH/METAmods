@@ -18,7 +18,8 @@ public class RegistryHelper {
 	}
 
 	public static void lockRegistry(Registry<?> registry) {
-		if (registry instanceof SimpleRegistry<?>) {
+		if (registry instanceof SimpleRegistry<?> simple) {
+			simple.resetTagEntries();
 			registry.freeze();
 		}
 	}

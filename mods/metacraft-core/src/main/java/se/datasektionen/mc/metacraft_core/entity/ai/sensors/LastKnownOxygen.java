@@ -23,7 +23,7 @@ public class LastKnownOxygen extends Sensor<MobEntity> {
 		} else {
 			BlockPos.Mutable pos = new BlockPos.Mutable().set(eyePos, Direction.UP);
 			BlockState state = world.getBlockState(pos);
-			while (state.getFluidState().isIn(FluidTags.WATER) && pos.getY() <= world.getTopY()) {
+			while (state.getFluidState().isIn(FluidTags.WATER) && pos.getY() <= world.getTopYInclusive()) {
 				pos.move(Direction.UP);
 				state = world.getBlockState(pos);
 				if (!state.getFluidState().isIn(FluidTags.WATER) && !state.isSolidSurface(world, pos, entity, Direction.DOWN)) {

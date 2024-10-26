@@ -25,7 +25,7 @@ public abstract class MixinPassiveEntity extends PathAwareEntity {
 	@Inject(method = "onGrowUp", at = @At("HEAD"))
 	public void onGrowUp(CallbackInfo ci) {
 		if ((Object) this instanceof ParrotEntity) {
-			var scale = this.getAttributeInstance(EntityAttributes.GENERIC_SCALE);
+			var scale = this.getAttributeInstance(EntityAttributes.SCALE);
 			if (breedingAge < 0) {
 				if (!scale.hasModifier(AttributeModifiers.BABY_PARROT.id())) {
 					scale.addPersistentModifier(AttributeModifiers.BABY_PARROT);

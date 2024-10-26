@@ -4,6 +4,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.Dynamic;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.nbt.NbtCompound;
@@ -54,7 +55,7 @@ public class ModerationModeState {
 		if (nbtCompound.contains("RootVehicle", NbtElement.COMPOUND_TYPE)) {
 			var rootVehicleData = nbtCompound.getCompound("RootVehicle");
 			var rootVehicleEntity = EntityType.loadEntityWithPassengers(
-					rootVehicleData.getCompound("Entity"), player.getServerWorld(), vehicle -> {
+					rootVehicleData.getCompound("Entity"), player.getServerWorld(), SpawnReason.LOAD, vehicle -> {
 						vehicleModifier.accept(vehicle);
 						if (!player.getServerWorld().tryLoadEntity(vehicle)) {
 							return null;
@@ -169,7 +170,7 @@ public class ModerationModeState {
 					}
 					return DataResult.success(dim);
 				}).resultOrPartial(METAcraftModeration.LOGGER::error).orElse(player.getServer().getOverworld());
-				player.teleport(world, player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+				player.teleport(world, player.getX(), player.getY(), player.getZ(), Set.of(), player.getYaw(), player.getPitch(), false);
 				player.changeGameMode(AccessorServerPlayerEntity.callGameModeFromNbt(prev.playerNBT, "playerGameType"));
 				loadPlayerVehicle(prev.playerNBT, player, entity -> {});
 			} else {

@@ -4,5 +4,5 @@ addProjectDependency(":mods:metacraft-core")
 addProjectDependency(":mods:metacraft-resource-packs")
 addLeukocyteDependency()
 dependencies {
-	modImplementation("xyz.nucleoid:stimuli:${project.stimuli_version}")
+	modCompileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
 }

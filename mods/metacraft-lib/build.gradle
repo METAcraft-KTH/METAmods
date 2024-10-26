@@ -6,6 +6,7 @@ loom {
 
 dependencies {
 	include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
+	include("com.github.Chocohead:Fabric-ASM:${project.fabric_asm_version}")
 }
 
 addVanishDependency()

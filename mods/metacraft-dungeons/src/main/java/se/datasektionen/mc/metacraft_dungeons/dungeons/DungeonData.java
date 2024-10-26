@@ -10,6 +10,8 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.predicate.entity.EntityPredicate;
+import net.minecraft.predicate.entity.EntityTypePredicate;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -66,7 +68,11 @@ public class DungeonData extends PersistentState {
 	private final List<TeleportPredicate> shouldTeleport = new ArrayList<>(
 			ImmutableList.of(
 					new TeleportPredicate(
-							EntityPredicate.Builder.create().type(EntityType.FALLING_BLOCK).build(),
+							EntityPredicate.Builder.create().type(
+									EntityTypePredicate.create(
+											Registries.ENTITY_TYPE, EntityType.FALLING_BLOCK
+									)
+							).build(),
 							false
 					)
 			)
@@ -230,7 +236,7 @@ public class DungeonData extends PersistentState {
 
 	public void teleportOut(Entity entity) {
 		if (!shouldTeleport(entity)) {
-			entity.kill();
+			entity.kill(world);
 		}
 		var exitPos = getExitPos().toCenterPos();
 		entity.teleportTo(

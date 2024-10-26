@@ -8,9 +8,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.loot.LootTable;
-import net.minecraft.loot.context.LootContextParameterSet;
 import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.loot.context.LootContextTypes;
+import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -78,7 +78,7 @@ public interface LootAccess {
 		if (player != null) {
 			Criteria.PLAYER_GENERATES_CONTAINER_LOOT.trigger(player, id);
 		}
-		LootContextParameterSet.Builder builder = new LootContextParameterSet.Builder(getWorld()).add(LootContextParameters.ORIGIN, getPos());
+		LootWorldContext.Builder builder = new LootWorldContext.Builder(getWorld()).add(LootContextParameters.ORIGIN, getPos());
 		if (player != null) {
 			builder.luck(player.getLuck()).add(LootContextParameters.THIS_ENTITY, player);
 		}

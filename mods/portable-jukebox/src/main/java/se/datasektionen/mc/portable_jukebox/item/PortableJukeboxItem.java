@@ -3,15 +3,16 @@ package se.datasektionen.mc.portable_jukebox.item;
 import eu.pb4.polymer.core.api.item.PolymerHeadBlockItem;
 import net.minecraft.block.jukebox.JukeboxSong;
 import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.*;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.ItemScatterer;
-import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_lib.util.EntityRef;
 import se.datasektionen.mc.portable_jukebox.block.Blocks;
@@ -24,13 +25,13 @@ import java.util.Optional;
 
 public class PortableJukeboxItem extends PolymerHeadBlockItem {
 
-	public PortableJukeboxItem(Settings settings) {
+	public PortableJukeboxItem(net.minecraft.item.Item.Settings settings) {
 		super(Blocks.PORTABLE_JUKEBOX, settings);
 	}
 
 	public static void play(ItemStack stack, EntityRef entity) {
 		stop(stack, (ServerWorld) entity.getWorld());
-		var jukeboxPlayer = Entities.PORTABLE_JUKEBOX.create(entity.getWorld());
+		var jukeboxPlayer = Entities.PORTABLE_JUKEBOX.create(entity.getWorld(), SpawnReason.TRIGGERED);
 		var pos = entity.getPos();
 		jukeboxPlayer.setPos(pos.getX(), pos.getY(), pos.getZ());
 		jukeboxPlayer.setEntity(entity);
@@ -49,14 +50,14 @@ public class PortableJukeboxItem extends PolymerHeadBlockItem {
 	}
 
 	@Override
-	public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
+	public ActionResult use(World world, PlayerEntity user, Hand hand) {
 		var stack = user.getStackInHand(hand);
 		if (!world.isClient()) {
 			var gui = PortableJukeboxGui.create((ServerPlayerEntity) user, stack, EntityRef.fromEntity(user));
 			gui.open();
-			return TypedActionResult.success(stack);
+			return ActionResult.SUCCESS;
 		}
-		return TypedActionResult.pass(stack);
+		return ActionResult.PASS;
 	}
 
 	@Override

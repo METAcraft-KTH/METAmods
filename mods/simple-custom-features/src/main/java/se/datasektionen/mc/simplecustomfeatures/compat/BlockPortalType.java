@@ -5,6 +5,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.Portal;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntry;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.portal_blocker.portal_type.PortalType;
@@ -47,7 +48,7 @@ public class BlockPortalType implements BaseObject<PortalType> {
 	}
 
 	@Override
-	public DataResult<PortalType> createObject() {
+	public DataResult<PortalType> createObject(RegistryKey<PortalType> id) {
 		return DataResult.success(new PortalType(
 				portals::contains,
 				data.blockedCreationMessage().orElse(null),

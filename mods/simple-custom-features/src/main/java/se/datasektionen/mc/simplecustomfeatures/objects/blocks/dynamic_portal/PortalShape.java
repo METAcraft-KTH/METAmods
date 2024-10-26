@@ -9,6 +9,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
+import net.minecraft.world.WorldView;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.simplecustomfeatures.Features;
 import se.datasektionen.mc.simplecustomfeatures.compat.PortalBlockerCompat;
@@ -17,7 +18,7 @@ import java.util.*;
 
 public class PortalShape {
 
-	private final WorldAccess world;
+	private final WorldView world;
 	private final DynamicPortalBlock portal;
 	private final Direction.Axis axis;
 	private final Set<Direction> directions;
@@ -35,7 +36,7 @@ public class PortalShape {
 	}
 
 	public static Optional<PortalShape> findPortalShape(
-			WorldAccess world, BlockPos pos, DynamicPortalBlock block, Direction.Axis axis
+			WorldView world, BlockPos pos, DynamicPortalBlock block, Direction.Axis axis
 	) {
 		if (world.getBlockState(pos).isOf(block)) {
 			return Optional.empty();
@@ -47,7 +48,7 @@ public class PortalShape {
 		return Optional.empty();
 	}
 
-	public PortalShape(WorldAccess world, BlockPos pos, DynamicPortalBlock portal, Direction.Axis axis) {
+	public PortalShape(WorldView world, BlockPos pos, DynamicPortalBlock portal, Direction.Axis axis) {
 		if (axis.isVertical()) throw new IllegalArgumentException("Vertical portals are not supported.");
 		this.world = world;
 		this.portal = portal;
@@ -64,7 +65,7 @@ public class PortalShape {
 		return valid;
 	}
 
-	public void activate() {
+	public void activate(WorldAccess world) {
 		var state = portal.getDefaultState().with(NetherPortalBlock.AXIS, axis);
 		insidePortal.forEach(pos -> {
 			world.setBlockState(pos, state, Block.NOTIFY_ALL);

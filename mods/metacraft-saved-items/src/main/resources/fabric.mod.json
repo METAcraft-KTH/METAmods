@@ -19,6 +19,9 @@
 	"entrypoints": {
 		"main": [
 			"se.datasektionen.mc.saved_items.SavedItems"
+		],
+		"mm:early_risers": [
+			"se.datasektionen.mc.saved_items.ItemSavingEnums"
 		]
 	},
 	"mixins": [

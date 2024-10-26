@@ -8,20 +8,20 @@ import net.minecraft.block.entity.BannerPattern;
 import net.minecraft.item.BannerPatternItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.TagKey;
-import net.minecraft.server.network.ServerPlayerEntity;
-import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 public class BannerPatternItemObject implements BaseItem {
 
 	public static final MapCodec<BannerPatternItemObject> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					ItemStack.ITEM_CODEC.fieldOf("display_item").forGetter(o -> o.displayItem),
+					Item.ENTRY_CODEC.fieldOf("display_item").forGetter(o -> o.displayItem),
 					ITEM_SETTINGS_CODEC.forGetter(o -> o.settings),
 					TagKey.unprefixedCodec(RegistryKeys.BANNER_PATTERN).fieldOf("pattern_tag").forGetter(o -> o.patternTag)
 			).apply(instance, BannerPatternItemObject::new)
@@ -45,8 +45,8 @@ public class BannerPatternItemObject implements BaseItem {
 	}
 
 	@Override
-	public DataResult<Item> createObject() {
-		return settings.makeSettings().map(
+	public DataResult<Item> createObject(RegistryKey<Item> id) {
+		return settings.makeSettings(id, BaseItem.getModel(displayItem)).map(
 				settings -> new CustomBannerPatternItem(patternTag, settings, this)
 		);
 	}
@@ -55,13 +55,13 @@ public class BannerPatternItemObject implements BaseItem {
 
 		private final BannerPatternItemObject object;
 
-		public CustomBannerPatternItem(TagKey<BannerPattern> patternItemTag, Settings settings, BannerPatternItemObject object) {
+		public CustomBannerPatternItem(TagKey<BannerPattern> patternItemTag, net.minecraft.item.Item.Settings settings, BannerPatternItemObject object) {
 			super(patternItemTag, settings);
 			this.object = object;
 		}
 
 		@Override
-		public Item getPolymerItem(ItemStack itemStack, @Nullable ServerPlayerEntity player) {
+		public Item getPolymerItem(ItemStack itemStack, PacketContext ctx) {
 			return object.displayItem.value();
 		}
 	}

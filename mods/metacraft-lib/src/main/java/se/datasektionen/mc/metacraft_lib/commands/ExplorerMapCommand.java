@@ -21,8 +21,6 @@ import net.minecraft.item.Items;
 import net.minecraft.item.map.MapDecorationType;
 import net.minecraft.item.map.MapState;
 import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
@@ -138,13 +136,9 @@ public class ExplorerMapCommand {
 
 	private static RegistryEntry<MapDecorationType> getMapDecorationType(CommandContext<ServerCommandSource> ctx, String name) throws CommandSyntaxException {
 		var id = IdentifierArgumentType.getIdentifier(ctx, name);
-		try {
-			return Registries.MAP_DECORATION_TYPE.entryOf(RegistryKey.of(
-					RegistryKeys.MAP_DECORATION_TYPE, id
-			));
-		} catch (IllegalStateException ignored) {
-			throw INVALID_MAP_DECORATION_TYPE.create(id);
-		}
+		return Registries.MAP_DECORATION_TYPE.getEntry(id).orElseThrow(
+				() -> INVALID_MAP_DECORATION_TYPE.create(id)
+		);
 	}
 	private static int addToMap(
 			CommandContext<ServerCommandSource> ctx, ItemStack stack,

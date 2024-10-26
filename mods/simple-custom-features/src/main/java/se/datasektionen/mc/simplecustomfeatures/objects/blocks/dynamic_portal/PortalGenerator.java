@@ -62,7 +62,7 @@ public class PortalGenerator {
 	public Optional<BlockLocating.Rectangle> createPortal(
 			ServerWorld targetWorld, BlockPos targetPos
 	) {
-		int maxY = Math.min(targetWorld.getTopY(), targetWorld.getBottomY() + targetWorld.getLogicalHeight()) - 1;
+		int maxY = Math.min(targetWorld.getTopYInclusive(), targetWorld.getBottomY() + targetWorld.getLogicalHeight()) - 1;
 		var forcer = (AccessorPortalForcer) targetWorld.getPortalForcer();
 		var border = targetWorld.getWorldBorder();
 		var positive = Direction.from(axis, Direction.AxisDirection.POSITIVE);
@@ -113,7 +113,7 @@ public class PortalGenerator {
 			if (lowestPossiblePortalPos > highestPossiblePortalPos) {
 				return Optional.empty();
 			}
-			foundPos = border.clamp(new BlockPos(
+			foundPos = border.clampFloored(new BlockPos(
 					targetPos.getX(),
 					MathHelper.clamp(targetPos.getY(), lowestPossiblePortalPos, highestPossiblePortalPos),
 					targetPos.getZ()

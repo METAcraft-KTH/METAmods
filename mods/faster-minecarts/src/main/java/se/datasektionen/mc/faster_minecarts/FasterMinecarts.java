@@ -8,11 +8,16 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.damage.DamageType;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.MinecartItem;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.recipe.ShapedRecipe;
+import net.minecraft.recipe.ShapelessRecipe;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
@@ -21,7 +26,6 @@ import org.apache.logging.log4j.Logger;
 import se.datasektionen.mc.metacraft_lib.event.RecipeLoad;
 import se.datasektionen.mc.metacraft_lib.util.helper.RecipeHelper;
 
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.BiPredicate;
@@ -125,12 +129,16 @@ public class FasterMinecarts implements ModInitializer {
 	public void onInitialize() {
 		FasterMinecartsConfig.init();
 		RecipeLoad.EVENT.register((id, json, recipe, registryLookup) -> {
-			Predicate<ItemStack> isMinecart = stack -> stack.getItem() instanceof MinecartItem;
-			if (
-					isMinecart.test(recipe.getResult(registryLookup)) &&
-					recipe.getIngredients().stream().anyMatch(i -> Arrays.stream(i.getMatchingStacks()).anyMatch(isMinecart))
-			) {
-				RecipeHelper.addComponentCarryover(recipe, isMinecart, true);
+			if (recipe.getClass().equals(ShapedRecipe.class) || recipe.getClass().equals(ShapelessRecipe.class)) {
+				Predicate<Item> isMinecart = item -> item instanceof MinecartItem;
+				if (
+						isMinecart.test(recipe.craft(null, registryLookup).getItem()) &&
+						recipe.getIngredientPlacement().getIngredients().stream().anyMatch(
+								i -> i.getMatchingItems().stream().map(RegistryEntry::value).anyMatch(isMinecart)
+						)
+				) {
+					RecipeHelper.addComponentCarryover(recipe, stack -> isMinecart.test(stack.getItem()), true);
+				}
 			}
 			return recipe;
 		});
@@ -144,11 +152,11 @@ public class FasterMinecarts implements ModInitializer {
 	};
 
 	public static void damageEntitiesFromCart(Entity minecart, double velocity, Box box) {
-		DamageSource source = new DamageSource(minecart.getWorld().getRegistryManager().get(RegistryKeys.DAMAGE_TYPE).entryOf(MINECART));
+		DamageSource source = new DamageSource(minecart.getWorld().getRegistryManager().getOrThrow(RegistryKeys.DAMAGE_TYPE).getOrThrow(MINECART));
 		if (velocity > FasterMinecartsConfig.getConfig().dangerousMinecartSpeed && FasterMinecartsConfig.getConfig().dangerousMinecartSpeed > 0) {
 			for (Entity entity : minecart.getWorld().getOtherEntities(minecart, box, entity -> shouldBeDamaged.test(entity, minecart))) {
 				float damage = (float) ((velocity - FasterMinecartsConfig.getConfig().dangerousMinecartSpeed) * FasterMinecartsConfig.getConfig().damageFactor);
-				entity.damage(source, damage);
+				entity.damage((ServerWorld) minecart.getWorld(), source, damage);
 			}
 		}
 	}

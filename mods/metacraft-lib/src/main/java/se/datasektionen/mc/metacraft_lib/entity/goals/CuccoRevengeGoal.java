@@ -36,7 +36,7 @@ public class CuccoRevengeGoal extends RevengeGoal {
 			int toSpawn = minAttackers - mobs.size();
 			((ChickenExtensions) mob).metacraft_lib$setReinforcementCount(minAttackers - toSpawn);
 			for (int i = 0; i < toSpawn; i++) {
-				var chicken = EntityType.CHICKEN.create(mob.getWorld());
+				var chicken = EntityType.CHICKEN.create(mob.getWorld(), SpawnReason.REINFORCEMENT);
 				chicken.initialize(
 						(ServerWorldAccess) mob.getWorld(),
 						mob.getWorld().getLocalDifficulty(mob.getBlockPos()),

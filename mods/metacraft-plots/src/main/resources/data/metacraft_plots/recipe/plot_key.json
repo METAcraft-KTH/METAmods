@@ -2,18 +2,10 @@
  	"type": "minecraft:crafting_shaped",
  	"category": "equipment",
  	"key": {
- 	 	"C": {
- 	 	 	"item": "minecraft:copper_ingot"
- 	 	},
- 	 	"R": {
- 	 	 	"item": "minecraft:redstone"
- 	 	},
-		"E": {
-			"item": "minecraft:echo_shard"
-		},
-		"G": {
-			"item": "minecraft:gold_ingot"
-		}
+ 	 	"C": "minecraft:copper_ingot",
+ 	 	"R": "minecraft:redstone",
+		"E": "minecraft:echo_shard",
+		"G": "minecraft:gold_ingot"
  	},
  	"pattern": [
  	 	"CRC",

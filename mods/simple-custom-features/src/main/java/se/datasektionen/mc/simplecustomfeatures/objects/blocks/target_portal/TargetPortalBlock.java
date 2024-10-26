@@ -8,7 +8,6 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.EndPortalBlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.function.BooleanBiFunction;
 import net.minecraft.util.math.BlockPos;
@@ -17,6 +16,7 @@ import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.feature.EndPlatformFeature;
 import se.datasektionen.mc.metacraft_lib.util.helper.TamedHelper;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 
@@ -33,7 +33,7 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state) {
+	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
 		return Blocks.END_PORTAL.getDefaultState();
 	}
 
@@ -82,9 +82,9 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 	}
 
 	@Override
-	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, ServerPlayerEntity player) {
+	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, PacketContext.NotNullWithPlayer ctx) {
 		var blockEntity = new EndPortalBlockEntity(pos, Blocks.END_PORTAL.getDefaultState());
-		blockEntity.setWorld(player.getWorld());
-		player.networkHandler.sendPacket(BlockEntityUpdateS2CPacket.create(blockEntity));
+		blockEntity.setWorld(ctx.getPlayer().getWorld());
+		ctx.getPlayer().networkHandler.sendPacket(BlockEntityUpdateS2CPacket.create(blockEntity));
 	}
 }

@@ -437,8 +437,17 @@ public class ZoneManagementCommand {
 										RegistryPredicateArgumentType.getPredicate(
 												ctx, "entity", RegistryKeys.ENTITY_TYPE, ENTITY_FAIL
 										).getKey().map(
-												entity -> Optional.ofNullable(Registries.ENTITY_TYPE.get(entity)).map(EntityTypePredicate::create),
-												entityTag -> Optional.of(EntityTypePredicate.create(entityTag))
+												entity -> Optional.ofNullable(Registries.ENTITY_TYPE.get(entity)).map(
+														e -> EntityTypePredicate.create(
+																registryAccess.getOrThrow(RegistryKeys.ENTITY_TYPE), e
+														)
+												),
+												entityTag -> Optional.of(
+														EntityTypePredicate.create(
+																registryAccess.getOrThrow(RegistryKeys.ENTITY_TYPE),
+																entityTag
+														)
+												)
 										).map(SpawnRemoverRegistry.TypesSpawnRemover::new),
 										AdditionalSpawnsZoneData::getSpawnRemovers
 								);
@@ -504,8 +513,17 @@ public class ZoneManagementCommand {
 								return addSpawnRule(
 									ctx, "spawn rule",
 									RegistryPredicateArgumentType.getPredicate(ctx, "entity", RegistryKeys.ENTITY_TYPE, ENTITY_FAIL).getKey().map(
-											entity -> Optional.ofNullable(Registries.ENTITY_TYPE.get(entity)).map(EntityTypePredicate::create),
-											entityTag -> Optional.of(EntityTypePredicate.create(entityTag))
+											entity -> Optional.ofNullable(Registries.ENTITY_TYPE.get(entity)).map(
+													e -> EntityTypePredicate.create(
+															registryAccess.getOrThrow(RegistryKeys.ENTITY_TYPE), e
+													)
+											),
+											entityTag -> Optional.of(
+													EntityTypePredicate.create(
+															registryAccess.getOrThrow(RegistryKeys.ENTITY_TYPE),
+															entityTag
+													)
+											)
 									).flatMap(entity -> {
 										return LootCondition.CODEC.parse(
 												ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE),

@@ -210,12 +210,12 @@ public class DungeonEntranceEntity extends PortalEntity {
 				}
 				BlockPos pos = dungeonData.getNextSpawnPos();
 
-				var poolRegistry = dungeons.getRegistryManager().get(RegistryKeys.TEMPLATE_POOL);
+				var poolRegistry = dungeons.getRegistryManager().getOrThrow(RegistryKeys.TEMPLATE_POOL);
 				if (!poolRegistry.contains(chosenEntry.jigsawPool)) {
 					METAcraftDungeons.LOGGER.warn("Entrance at " + this.pos + " tried to use an unregistered jigsaw pool.");
 					return;
 				}
-				RegistryEntry.Reference<StructurePool> structurePool = poolRegistry.entryOf(chosenEntry.jigsawPool);
+				RegistryEntry.Reference<StructurePool> structurePool = poolRegistry.getOrThrow(chosenEntry.jigsawPool);
 				ChunkGenerator chunkGenerator = dungeons.getChunkManager().getChunkGenerator();
 				StructureTemplateManager structureTemplateManager = dungeons.getStructureTemplateManager();
 				StructureAccessor structureAccessor = dungeons.getStructureAccessor();

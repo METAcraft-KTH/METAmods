@@ -10,7 +10,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal.PortalBlockObject;
-import se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal.PortalShape;
 
 @Mixin(AbstractBlock.AbstractBlockState.class)
 public class MixinAbstractBlockState {
@@ -20,7 +19,7 @@ public class MixinAbstractBlockState {
 		if (world instanceof ServerWorld sw && (Object) this instanceof BlockState state) {
 			PortalBlockObject.getForBlock(pos, sw, state).flatMap(
 					portal -> portal.findPortalShape(sw, pos)
-			).ifPresent(PortalShape::activate);
+			).ifPresent(portal -> portal.activate(world));
 		}
 	}
 

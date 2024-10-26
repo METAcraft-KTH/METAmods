@@ -11,8 +11,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.loot.condition.LootCondition;
 import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.context.LootContextParameterSet;
 import net.minecraft.loot.context.LootContextParameters;
+import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -38,12 +38,12 @@ import java.util.function.Predicate;
 
 public class EntityHelper {
 
-	public static Optional<Entity> loadEntityWithPassengers(NbtCompound nbt, World world, BiFunction<Entity, NbtCompound, Entity> entityProcessor) {
-		return getEntityFromNBTSafely(nbt, world).map(e -> entityProcessor.apply(e, nbt)).map(entity -> {
+	public static Optional<Entity> loadEntityWithPassengers(NbtCompound nbt, World world, SpawnReason reason, BiFunction<Entity, NbtCompound, Entity> entityProcessor) {
+		return getEntityFromNBTSafely(nbt, world, reason).map(e -> entityProcessor.apply(e, nbt)).map(entity -> {
 			if (nbt.contains("Passengers", NbtElement.LIST_TYPE)) {
 				NbtList passengers = nbt.getList("Passengers", NbtElement.COMPOUND_TYPE);
 				for (int i = 0; i < passengers.size(); ++i) {
-					loadEntityWithPassengers(passengers.getCompound(i), world, entityProcessor).ifPresent(
+					loadEntityWithPassengers(passengers.getCompound(i), world, reason, entityProcessor).ifPresent(
 							passenger -> passenger.startRiding(entity, true)
 					);
 				}
@@ -52,9 +52,9 @@ public class EntityHelper {
 		});
 	}
 
-	public static Optional<Entity> getEntityFromNBTSafely(NbtCompound nbt, World world) {
+	public static Optional<Entity> getEntityFromNBTSafely(NbtCompound nbt, World world, SpawnReason reason) {
 		try {
-			return EntityType.getEntityFromNbt(nbt, world);
+			return EntityType.getEntityFromNbt(nbt, world, reason);
 		} catch (RuntimeException runtimeException) {
 			METAcraftLib.LOGGER.warn("Exception loading entity: ", runtimeException);
 			return Optional.empty();
@@ -107,7 +107,7 @@ public class EntityHelper {
 			int maxYRange = (int) Math.round(new Vec3d(x, preliminaryY, z).distanceTo(around));
 			double y = findY(world, random, type, data, x, preliminaryY, z, maxYRange);
 			if (canSpawn(world, random, type, data.spawnRules().condition(), data.spawnRules.spawnReason(), x, y, z)) {
-				EntityHelper.loadEntityWithPassengers(data.entity(), world, (e, nbt) -> {
+				EntityHelper.loadEntityWithPassengers(data.entity(), world, data.spawnRules().spawnReason(), (e, nbt) -> {
 					if (owner != null) {
 						EntityHelper.setOwner(e, owner);
 					}
@@ -150,7 +150,7 @@ public class EntityHelper {
 			ServerWorld world, Random random, EntityType<?> type, SpawnEntry entry,
 			double x, double y, double z, int maxYOffset
 	) {
-		int maxY = Math.min(world.getTopY(), (int) Math.round(y) + maxYOffset);
+		int maxY = Math.min(world.getTopYInclusive(), (int) Math.round(y) + maxYOffset);
 		int minY = Math.max(world.getBottomY(), (int) Math.round(y) - maxYOffset);
 		int yDown = (int) Math.round(y);
 		int yUp = (int) Math.round(y);
@@ -181,7 +181,7 @@ public class EntityHelper {
 			ServerWorld world, Random random, EntityType<?> type, LootCondition condition,
 			SpawnReason spawnReason, double x, double y, double z
 	) {
-		LootContextParameterSet lootContextParameterSet = new LootContextParameterSet.Builder(world).add(
+		LootWorldContext lootContextParameterSet = new LootWorldContext.Builder(world).add(
 				LootContextParameters.ORIGIN, new Vec3d(x, y, z)
 		).add(
 				METAcraftContextParameters.ENTITY_TYPE, type

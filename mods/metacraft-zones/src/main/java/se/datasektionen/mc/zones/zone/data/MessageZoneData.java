@@ -4,8 +4,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.Optional;
 
@@ -26,13 +26,13 @@ public class MessageZoneData extends ZoneDataEntityTracking {
 		this.leaveCommand = leaveCommand;
 	}
 
-	private ServerCommandSource createFromPlayer(PlayerEntity player) {
+	private ServerCommandSource createFromPlayer(ServerPlayerEntity player) {
 		return player.getCommandSource().withLevel(2).withSilent();
 	}
 
 	@Override
 	public void onEnter(Entity entity) {
-		if (entity instanceof PlayerEntity player) {
+		if (entity instanceof ServerPlayerEntity player) {
 			enterCommand.ifPresent(cmd -> {
 				player.getServer().getCommandManager().executeWithPrefix(
 						createFromPlayer(player), cmd
@@ -43,7 +43,7 @@ public class MessageZoneData extends ZoneDataEntityTracking {
 
 	@Override
 	public void onLeave(Entity entity) {
-		if (entity instanceof PlayerEntity player) {
+		if (entity instanceof ServerPlayerEntity player) {
 			leaveCommand.ifPresent(cmd -> {
 				player.getServer().getCommandManager().executeWithPrefix(
 						createFromPlayer(player), cmd

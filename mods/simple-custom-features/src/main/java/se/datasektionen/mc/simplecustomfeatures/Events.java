@@ -2,7 +2,6 @@ package se.datasektionen.mc.simplecustomfeatures;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.fabricmc.fabric.api.event.registry.DynamicRegistrySetupCallback;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.ActionResult;
@@ -13,9 +12,6 @@ import se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal.Po
 public class Events {
 
 	public static void init() {
-		DynamicRegistrySetupCallback.EVENT.register(view -> {
-			FeaturesConfig.getConfig(); //Init config, to allow datapacks to access all non-registry-dependent items.
-		});
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
 			ObjectCache.getInstance(server).onLoad();
 		});
@@ -28,13 +24,13 @@ public class Events {
 					portal -> {
 						return portal.findPortalShape(sw, hitResult.getBlockPos().offset(hitResult.getSide())).map(
 								foundPortal -> {
-									foundPortal.activate();
+									foundPortal.activate(world);
 									if (stack.isDamageable()) {
 										stack.damage(1, player, hand == Hand.OFF_HAND ? EquipmentSlot.OFFHAND : EquipmentSlot.MAINHAND);
 									} else {
 										stack.decrementUnlessCreative(1, player);
 									}
-									return ActionResult.SUCCESS;
+									return (ActionResult) ActionResult.SUCCESS_SERVER;
 								}
 						).orElse(ActionResult.PASS);
 					}

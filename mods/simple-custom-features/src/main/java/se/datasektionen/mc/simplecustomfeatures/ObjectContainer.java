@@ -6,6 +6,7 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.dynamic.Codecs;
@@ -116,14 +117,15 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 		}
 
 		private static <T> void register(Identifier id, BaseObject<T> baseObject, Consumer<T> onSuccess) {
-			baseObject.createObject().resultOrPartial(
+			var key = RegistryKey.of(baseObject.getType().getRegistry().getKey(), id);
+			baseObject.createObject(key).resultOrPartial(
 					message -> {
 						Features.LOGGER.error("Unable to create {}", id);
 						Features.LOGGER.error(message);
 					}
 			).ifPresent(object -> {
-				if (!baseObject.getType().getRegistry().containsId(id)) {
-					var ref = Registry.registerReference(baseObject.getType().getRegistry(), id, object);
+				if (!baseObject.getType().getRegistry().contains(key)) {
+					var ref = Registry.registerReference(baseObject.getType().getRegistry(), key, object);
 					baseObject.onRegistrationSuccess(ref);
 					onSuccess.accept(object);
 				} else {

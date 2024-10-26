@@ -1,15 +1,16 @@
 {
-	"required": true,
-	"package": "se.datasektionen.mc.metacraft_moderation.mixin",
-	"compatibilityLevel": "JAVA_21",
-	"mixins": [
-		"AccessorPlayerManager",
-		"AccessorServerPlayerEntity",
-		"MixinPlayerAdvancementTracker",
-		"MixinServerPlayerEntity",
-		"MixinTameableEntity"
-	],
-	"injectors": {
-		"defaultRequire": 1
+  "required": true,
+  "package": "se.datasektionen.mc.metacraft_moderation.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AccessorPlayerManager",
+    "AccessorServerPlayerEntity",
+    "MixinPlayerAdvancementTracker",
+    "MixinSchema1460",
+    "MixinServerPlayerEntity",
+    "MixinTameableEntity"
+  ],
+  "injectors": {
+    "defaultRequire": 1
 	}
 }

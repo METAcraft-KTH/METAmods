@@ -5,21 +5,30 @@ import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.block.blocks.DungeonEntrance;
 
+import java.util.function.Function;
+
 public class DungeonBlocks {
 
-	public static final Block DUNGEON_ENTRANCE = register("dungeon_entrance_core", new DungeonEntrance(
+	public static final Block DUNGEON_ENTRANCE = register(
+			"dungeon_entrance_core", DungeonEntrance::new,
 			AbstractBlock.Settings.copy(Blocks.END_GATEWAY).noBlockBreakParticles()
-	));
+	);
 
 	public static void init() {
 
 	}
 
-	private static Block register(String id, Block block) {
-		return Registry.register(Registries.BLOCK, METAcraftDungeons.getID(id), block);
+	private static Block register(
+			String id, Function<Block.Settings, Block> block,
+			AbstractBlock.Settings settings
+	) {
+		var key = RegistryKey.of(RegistryKeys.BLOCK, METAcraftDungeons.getID(id));
+		return Registry.register(Registries.BLOCK, key, block.apply(settings.registryKey(key)));
 	}
 
 }

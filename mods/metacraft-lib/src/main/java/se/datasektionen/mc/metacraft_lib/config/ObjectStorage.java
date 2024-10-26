@@ -7,8 +7,8 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JavaOps;
 import net.minecraft.registry.RegistryOps;
 import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.registry.ServerDynamicRegistryType;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
+import se.datasektionen.mc.metacraft_lib.mixin.AccessorServerDynamicRegistryType;
 
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -33,7 +33,7 @@ public class ObjectStorage<T> {
 		@Override
 		public RegistryWrapper.WrapperLookup get() {
 			if (lookup == null) {
-				lookup = ServerDynamicRegistryType.createCombinedDynamicRegistries().getCombinedRegistryManager();
+				lookup = AccessorServerDynamicRegistryType.getStaticRegistryManager();
 			}
 			return lookup;
 		}

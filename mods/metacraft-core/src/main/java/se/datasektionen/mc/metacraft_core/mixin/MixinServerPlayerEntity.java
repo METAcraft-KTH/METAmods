@@ -3,6 +3,7 @@ package se.datasektionen.mc.metacraft_core.mixin;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.authlib.GameProfile;
+import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket;
@@ -83,7 +84,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Unique
 	private void refreshMusicPoint(boolean shouldReset) {
 		if (musicPoint == null || musicPoint.isRemoved()) {
-			musicPoint = METAcraftEntities.POINT.create(getWorld());
+			musicPoint = METAcraftEntities.POINT.create(getWorld(), SpawnReason.TRIGGERED);
 			musicPoint.updatePositionAndAngles(getX(), getY(), getZ(), 0, 0);
 			getWorld().spawnEntity(musicPoint);
 			musicPoint.setPlayer((ServerPlayerEntity) (Object) this);
@@ -113,7 +114,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			musicPoint.setPos(getX(), getY(), getZ());
 			if (musicPoint.getWorld() != getWorld()) {
 				musicPoint.teleport(
-						getServerWorld(), getX(), getY(), getZ(), Set.of(), 0, 0
+						getServerWorld(), getX(), getY(), getZ(), Set.of(), 0, 0, false
 				);
 			}
 		}
@@ -220,24 +221,24 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Unique
 	private void disableVanillaMusic() {
 		this.networkHandler.sendPacket(new StopSoundS2CPacket(
-				SoundEvents.MUSIC_GAME.value().getId(), SoundCategory.MUSIC
+				SoundEvents.MUSIC_GAME.value().id(), SoundCategory.MUSIC
 		));
 		this.networkHandler.sendPacket(new StopSoundS2CPacket(
-				SoundEvents.MUSIC_UNDER_WATER.value().getId(), SoundCategory.MUSIC
+				SoundEvents.MUSIC_UNDER_WATER.value().id(), SoundCategory.MUSIC
 		));
 		if (this.isCreative()) {
 			this.networkHandler.sendPacket(new StopSoundS2CPacket(
-					SoundEvents.MUSIC_CREATIVE.value().getId(), SoundCategory.MUSIC
+					SoundEvents.MUSIC_CREATIVE.value().id(), SoundCategory.MUSIC
 			));
 		}
 		if (this.getServerWorld().getRegistryKey() == World.END) {
 			this.networkHandler.sendPacket(new StopSoundS2CPacket(
-					SoundEvents.MUSIC_END.value().getId(), SoundCategory.MUSIC
+					SoundEvents.MUSIC_END.value().id(), SoundCategory.MUSIC
 			));
 		}
 		potentiallyPlayingMusic.keySet().forEach(music -> {
 			this.networkHandler.sendPacket(new StopSoundS2CPacket(
-					music.value().getId(), SoundCategory.MUSIC
+					music.value().id(), SoundCategory.MUSIC
 			));
 		});
 		potentiallyPlayingMusic.clear();
@@ -267,7 +268,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 		shouldContinuePlayingMusic = player -> true;
 		if (this.music != null && !continuePrevious) {
-			this.networkHandler.sendPacket(new StopSoundS2CPacket(this.music.music().value().getId(), SoundCategory.MUSIC));
+			this.networkHandler.sendPacket(new StopSoundS2CPacket(this.music.music().value().id(), SoundCategory.MUSIC));
 			if (musicPoint != null && entry == null) {
 				musicPoint.discard();
 			}

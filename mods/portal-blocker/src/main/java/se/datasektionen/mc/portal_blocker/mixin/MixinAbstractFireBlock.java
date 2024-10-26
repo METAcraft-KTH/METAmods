@@ -24,7 +24,7 @@ public class MixinAbstractFireBlock {
 			method = "onBlockAdded",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/world/dimension/NetherPortal;createPortal()V"
+					target = "Lnet/minecraft/world/dimension/NetherPortal;createPortal(Lnet/minecraft/world/WorldAccess;)V"
 			)
 	)
 	public void onBlockAdded(

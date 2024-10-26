@@ -23,7 +23,7 @@ public class NeedToBreathe extends MultiTickTask<MobEntity> {
 	}
 
 	private double getActualAir(MobEntity mob) {
-		var attribute = mob.getAttributeInstance(EntityAttributes.GENERIC_OXYGEN_BONUS);
+		var attribute = mob.getAttributeInstance(EntityAttributes.OXYGEN_BONUS);
 		double value = attribute != null ? attribute.getValue() : 0;
 		double airLossProbability = 1.0 / (value + 1.0);
 		if (airLossProbability == 0) {
@@ -43,7 +43,7 @@ public class NeedToBreathe extends MultiTickTask<MobEntity> {
 		if (entity.isSubmergedInWater() && isRelevant(entity)) {
 			var nearestOxygen = entity.getBrain().getOptionalRegisteredMemory(METAcraftMemoryModules.NEAREST_OXYGEN);
 			if (nearestOxygen.isPresent() && nearestOxygen.get().dimension() == world.getRegistryKey()) {
-				double entitySpeed = entity.getAttributeValue(EntityAttributes.GENERIC_MOVEMENT_SPEED);
+				double entitySpeed = entity.getAttributeValue(EntityAttributes.MOVEMENT_SPEED);
 				if (nearestOxygen.get().pos().getSquaredDistance(entity.getPos()) * speed * entitySpeed >= getActualAir(entity)) {
 					return true;
 				}

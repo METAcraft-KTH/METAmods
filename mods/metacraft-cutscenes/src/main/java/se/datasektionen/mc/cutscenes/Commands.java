@@ -38,7 +38,7 @@ public class Commands {
 	);
 
 	private static final SuggestionProvider<ServerCommandSource> SUGGEST_CUTSCENES = (ctx, builder) -> CommandSource.suggestMatching(
-			CutscenesConfig.getOrCreateConfig(ctx.getSource().getWorld()).getCutsceneNames(), builder
+			CutscenesConfig.getOrCreateConfig(ctx.getSource().getServer()).getCutsceneNames(), builder
 	);
 
 	private static final SuggestionProvider<ServerCommandSource> SUGGEST_MULTIPLAYER_CUTSCENES = (ctx, builder) -> CommandSource.suggestMatching(
@@ -46,7 +46,7 @@ public class Commands {
 	);
 
 	private static int playCutscene(CommandContext<ServerCommandSource> ctx, String cutscene, ServerPlayerEntity player) throws CommandSyntaxException {
-		return CutscenesConfig.getOrCreateConfig(ctx.getSource().getWorld()).getCutscene(cutscene).map(scene -> {
+		return CutscenesConfig.getOrCreateConfig(ctx.getSource().getServer()).getCutscene(cutscene).map(scene -> {
 			if (CutsceneHelper.isInMultiplayerCutscene(player)) {
 				ctx.getSource().sendError(Text.literal("Player is in a multiplayer cutscene"));
 				return 0;
@@ -138,7 +138,7 @@ public class Commands {
 		if (existing.isPresent()) {
 			throw MULTIPLAYER_OCCUPIED.create(name);
 		}
-		return map(CutscenesConfig.getOrCreateConfig(ctx.getSource().getWorld()).getCutscene(cutscene), scene -> {
+		return map(CutscenesConfig.getOrCreateConfig(ctx.getSource().getServer()).getCutscene(cutscene), scene -> {
 			var manager = MultiplayerCutsceneManager.getInstance(ctx.getSource().getServer());
 			manager.addCutscene(name, scene, ctx.getSource().getWorld());
 			return addPlayers(
@@ -281,7 +281,7 @@ public class Commands {
 						})
 					).then(
 						literal("reload").requires(Permissions.require("metacraft.cutscenes.reload", 4)).executes(ctx -> {
-							CutscenesConfig.getOrCreateConfig(ctx.getSource().getWorld()).reload();
+							CutscenesConfig.reload(ctx.getSource().getServer());
 							ctx.getSource().sendFeedback(
 									() -> Text.literal(
 											"Reloading cutscenes in " + ctx.getSource().getWorld().getRegistryKey().getValue()

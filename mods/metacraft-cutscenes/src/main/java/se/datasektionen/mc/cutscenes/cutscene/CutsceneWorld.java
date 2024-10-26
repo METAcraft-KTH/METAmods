@@ -21,7 +21,7 @@ import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.s2c.play.*;
 import net.minecraft.recipe.BrewingRecipeRegistry;
-import net.minecraft.recipe.RecipeManager;
+import net.minecraft.recipe.ServerRecipeManager;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.resource.featuretoggle.FeatureSet;
@@ -147,7 +147,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 				getProperties(world, cutscene),
 				world.getRegistryKey(),
 				new DimensionOptions(
-						world.getRegistryManager().get(RegistryKeys.DIMENSION_TYPE).getEntry(world.getDimension()),
+						world.getRegistryManager().getOrThrow(RegistryKeys.DIMENSION_TYPE).getEntry(world.getDimension()),
 						createDummyChunkGenerator(world)
 				),
 				WorldHelper.getGenerationProgressListener(world),
@@ -398,7 +398,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	@Override
-	public RecipeManager getRecipeManager() {
+	public ServerRecipeManager getRecipeManager() {
 		return world.getRecipeManager();
 	}
 

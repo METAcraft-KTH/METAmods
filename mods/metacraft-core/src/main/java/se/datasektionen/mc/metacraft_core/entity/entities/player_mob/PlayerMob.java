@@ -19,6 +19,7 @@ import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerModelPart;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.entity.projectile.ProjectileUtil;
@@ -59,6 +60,7 @@ import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_core.util.helper.ServerDefaultSkinHelper;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorServerChunkLoadingManager;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -134,11 +136,11 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	public static DefaultAttributeContainer.Builder createPlayerAttributes() {
 		return MobEntity.createMobAttributes().add(
-				EntityAttributes.GENERIC_ATTACK_DAMAGE, 1
+				EntityAttributes.ATTACK_DAMAGE, 1
 		).add(
-				EntityAttributes.GENERIC_MOVEMENT_SPEED, BASE_SPEED
+				EntityAttributes.MOVEMENT_SPEED, BASE_SPEED
 		).add(
-				EntityAttributes.GENERIC_WATER_MOVEMENT_EFFICIENCY, 0.3
+				EntityAttributes.WATER_MOVEMENT_EFFICIENCY, 0.3
 		);
 	}
 
@@ -176,7 +178,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	public void copyFromPlayerData(NbtCompound nbt) {
 		this.readNbt(removeUnsafeNBT(nbt));
-		getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED).setBaseValue(BASE_SPEED);
+		getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).setBaseValue(BASE_SPEED);
 		NbtList nbtList = nbt.getList("Inventory", NbtElement.COMPOUND_TYPE);
 		int selectedSlot = nbt.getInt("SelectedItemSlot");
 		for (var entry : nbtList) {
@@ -272,7 +274,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		if (!this.canChangeIntoPose(EntityPose.SWIMMING)) {
 			return;
 		}
-		EntityPose entityPose = this.isFallFlying() ? EntityPose.FALL_FLYING : (this.isSleeping() ? EntityPose.SLEEPING : (this.isSwimming() ? EntityPose.SWIMMING : (this.isUsingRiptide() ? EntityPose.SPIN_ATTACK : (this.isSneaking() ? EntityPose.CROUCHING : EntityPose.STANDING))));
+		EntityPose entityPose = this.isGliding() ? EntityPose.GLIDING : (this.isSleeping() ? EntityPose.SLEEPING : (this.isSwimming() ? EntityPose.SWIMMING : (this.isUsingRiptide() ? EntityPose.SPIN_ATTACK : (this.isSneaking() ? EntityPose.CROUCHING : EntityPose.STANDING))));
 		EntityPose entityPose2 = this.hasVehicle() || this.canChangeIntoPose(entityPose) ? entityPose : (this.canChangeIntoPose(EntityPose.CROUCHING) ? EntityPose.CROUCHING : EntityPose.SWIMMING);
 		this.setPose(entityPose2);
 	}
@@ -309,9 +311,9 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	@Override
-	protected void mobTick() {
-		PlayerBrain.tick(this);
-		super.mobTick();
+	protected void mobTick(ServerWorld world) {
+		PlayerBrain.tick(world, this);
+		super.mobTick(world);
 	}
 
 	@Override
@@ -320,7 +322,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	@Override
-	public boolean isAngryAt(net.minecraft.entity.player.PlayerEntity player) {
+	public boolean isAngryAt(ServerWorld world, PlayerEntity player) {
 		return this.getTarget() == player;
 	}
 
@@ -335,7 +337,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	@Override
-	public EntityType<?> getPolymerEntityType(ServerPlayerEntity player) {
+	public EntityType<?> getPolymerEntityType(PacketContext context) {
 		return EntityType.PLAYER;
 	}
 
@@ -419,7 +421,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 			if (damage > 0) {
 				Vec3d oldVelocity = target.getVelocity();
 				damage += itemStack.getItem().getBonusAttackDamage(target, this.riptideAttackDamage, damageSource);
-				if (target.damage(damageSource, damage)) {
+				if (target.damage((ServerWorld) this.getWorld(), damageSource, damage)) {
 					float k = this.getKnockbackAgainst(target, damageSource);
 					target.takeKnockback(k * 0.5f, MathHelper.sin(this.getYaw() * ((float)Math.PI / 180)), -MathHelper.cos(this.getYaw() * ((float)Math.PI / 180)));
 					this.setVelocity(this.getVelocity().multiply(0.6, 1.0, 0.6));
@@ -451,7 +453,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	private void dropShoulderEntity(NbtCompound entityNbt) {
 		if (!this.getWorld().isClient && !entityNbt.isEmpty()) {
-			EntityType.getEntityFromNbt(entityNbt, this.getWorld()).ifPresent(entity -> {
+			EntityType.getEntityFromNbt(entityNbt, this.getWorld(), SpawnReason.LOAD).ifPresent(entity -> {
 				entity.setPosition(this.getX(), this.getY() + (double)0.7f, this.getZ());
 				((ServerWorld)this.getWorld()).tryLoadEntity(entity);
 			});
@@ -538,13 +540,13 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	@Override
-	public boolean damage(DamageSource source, float amount) {
-		boolean bl = super.damage(source, amount);
+	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+		boolean bl = super.damage(world, source, amount);
 		if (this.getWorld().isClient) {
 			return false;
 		}
 		if (bl && source.getAttacker() instanceof LivingEntity) {
-			PlayerBrain.onAttacked(this, (LivingEntity) source.getAttacker());
+			PlayerBrain.onAttacked(world, this, (LivingEntity) source.getAttacker());
 		}
 		return bl;
 	}
@@ -759,7 +761,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 				float h = (float)(MathHelper.atan2(f, d) * 57.2957763671875) - 90.0f;
 				this.player.setYaw(this.wrapDegrees(this.player.getYaw(), h, 90.0f));
 				this.player.bodyYaw = this.player.getYaw();
-				float i = (float)(this.speed * this.player.getAttributeValue(EntityAttributes.GENERIC_MOVEMENT_SPEED));
+				float i = (float)(this.speed * this.player.getAttributeValue(EntityAttributes.MOVEMENT_SPEED));
 				float j = MathHelper.lerp(0.125f, this.player.getMovementSpeed(), i);
 				this.player.setMovementSpeed(j);
 				this.player.setVelocity(this.player.getVelocity().add((double)j * d * 0.005, (double)j * e * 0.1, (double)j * f * 0.005));

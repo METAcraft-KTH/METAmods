@@ -4,11 +4,11 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.context.LootContextParameterSet;
 import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.loot.context.LootContextType;
+import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.context.ContextType;
 import net.minecraft.util.math.random.Random;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorLootContextTypes;
@@ -18,7 +18,7 @@ import java.util.function.Consumer;
 
 public class METAcraftContexTypes {
 
-	public static final LootContextType SPAWN_ENTITY = register(
+	public static final ContextType SPAWN_ENTITY = register(
 			"spawn_entity", builder -> builder.require(
 					LootContextParameters.ORIGIN
 			).require(
@@ -30,7 +30,7 @@ public class METAcraftContexTypes {
 			)
 	);
 
-	public static final LootContextType TICK_ENTITY = register(
+	public static final ContextType TICK_ENTITY = register(
 			"tick_entity", builder -> builder.require(
 					LootContextParameters.ORIGIN
 			).require(
@@ -43,7 +43,7 @@ public class METAcraftContexTypes {
 	);
 
 	public static LootContext createTickContext(ServerWorld world, Entity entity, Random random) {
-		LootContextParameterSet.Builder parameters = new LootContextParameterSet.Builder(world).add(
+		LootWorldContext.Builder parameters = new LootWorldContext.Builder(world).add(
 				LootContextParameters.THIS_ENTITY, entity
 		).add(
 				LootContextParameters.ORIGIN, entity.getPos()
@@ -60,12 +60,12 @@ public class METAcraftContexTypes {
 
 	}
 
-	private static LootContextType register(String id, Consumer<LootContextType.Builder> type) {
-		LootContextType.Builder builder = new LootContextType.Builder();
+	private static ContextType register(String id, Consumer<ContextType.Builder> type) {
+		ContextType.Builder builder = new ContextType.Builder();
 		type.accept(builder);
-		LootContextType lootContextType = builder.build();
+		ContextType lootContextType = builder.build();
 		Identifier identifier = METAcraftLib.getID(id);
-		LootContextType lootContextType2 = AccessorLootContextTypes.getMap().put(identifier, lootContextType);
+		ContextType lootContextType2 = AccessorLootContextTypes.getMap().put(identifier, lootContextType);
 		if (lootContextType2 != null) {
 			throw new IllegalStateException("Loot table parameter set " + identifier + " is already registered");
 		}

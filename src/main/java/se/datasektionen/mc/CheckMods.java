@@ -2,6 +2,7 @@ package se.datasektionen.mc;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import se.datasektionen.mc.metacraft_lib.util.helper.TextHelper;
 
 import java.io.*;
@@ -25,8 +26,12 @@ public class CheckMods implements ModInitializer {
 		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			List<String> modsThatMustBePresent = new ArrayList<>();
 			try (var reader = new BufferedReader(new FileReader("../settings.gradle"))) {
+				MutableBoolean inComment = new MutableBoolean(false);
 				reader.lines().forEach(line -> {
-					if (line.startsWith("include")) {
+					if (line.contains("/*")) {
+						inComment.setTrue();
+					}
+					if (line.startsWith("include") && !inComment.booleanValue()) {
 						int start = line.indexOf("\"");
 						int end = line.lastIndexOf("\"");
 						if (start == end) {
@@ -35,6 +40,9 @@ public class CheckMods implements ModInitializer {
 						var path = line.substring(start+1, end);
 						var name = path.substring(path.lastIndexOf(":")+1);
 						modsThatMustBePresent.add(PROJECT_TO_MOD_ID.getOrDefault(name, name));
+					}
+					if (line.contains("*/")) {
+						inComment.setFalse();
 					}
 				});
 			} catch (IOException e) {

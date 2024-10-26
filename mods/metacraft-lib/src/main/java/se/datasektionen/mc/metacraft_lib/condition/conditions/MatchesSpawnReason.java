@@ -7,7 +7,7 @@ import net.minecraft.entity.SpawnReason;
 import net.minecraft.loot.condition.LootCondition;
 import net.minecraft.loot.condition.LootConditionType;
 import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.context.LootContextParameter;
+import net.minecraft.util.context.ContextParameter;
 import net.minecraft.util.dynamic.Codecs;
 import se.datasektionen.mc.metacraft_lib.condition.METAcraftConditions;
 import se.datasektionen.mc.metacraft_lib.condition.METAcraftContextParameters;
@@ -47,7 +47,7 @@ public class MatchesSpawnReason implements LootCondition {
 	}
 
 	@Override
-	public Set<LootContextParameter<?>> getRequiredParameters() {
+	public Set<ContextParameter<?>> getAllowedParameters() {
 		return Set.of(METAcraftContextParameters.SPAWN_REASON);
 	}
 }

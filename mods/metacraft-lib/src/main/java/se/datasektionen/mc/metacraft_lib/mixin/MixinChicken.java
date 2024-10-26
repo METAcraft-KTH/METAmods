@@ -42,7 +42,7 @@ public abstract class MixinChicken extends AnimalEntity implements ChickenExtens
 
 	@ModifyReturnValue(method = "createChickenAttributes", at = @At("RETURN"))
 	private static DefaultAttributeContainer.Builder initAttributes(DefaultAttributeContainer.Builder builder) {
-		return builder.add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 5);
+		return builder.add(EntityAttributes.ATTACK_DAMAGE, 5);
 	}
 
 	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))

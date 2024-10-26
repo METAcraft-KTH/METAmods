@@ -25,10 +25,10 @@ import java.util.List;
 @Mixin(value = NetherPortal.class, priority = 999)
 public class MixinNetherPortal {
 
-	@Shadow @Final private WorldAccess world;
-
+	@Final
 	@Shadow private @Nullable BlockPos lowerCorner;
 
+	@Final
 	@Shadow private int height;
 
 	@Shadow @Final private Direction negativeDir;
@@ -36,7 +36,7 @@ public class MixinNetherPortal {
 	@Shadow @Final private int width;
 
 	@Inject(method = "createPortal", at = @At("HEAD"), cancellable = true)
-	public void create(CallbackInfo ci) {
+	public void create(WorldAccess world, CallbackInfo ci) {
 		if (world.getServer() != null && world instanceof World w) {
 			Iterable<BlockPos> positions = List.of();
 			BlockPos.Mutable center = new BlockPos.Mutable();

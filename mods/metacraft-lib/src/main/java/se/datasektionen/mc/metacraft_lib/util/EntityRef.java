@@ -177,7 +177,7 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 	}
 
 	public Vec3d getPos() {
-		return getBoundingBox().getBottomCenter();
+		return getBoundingBox().getHorizontalCenter();
 	}
 
 	public abstract BlockPos getBlockPos();

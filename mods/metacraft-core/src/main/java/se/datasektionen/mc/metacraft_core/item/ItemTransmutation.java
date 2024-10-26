@@ -2,7 +2,6 @@ package se.datasektionen.mc.metacraft_core.item;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.CustomModelDataComponent;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
@@ -33,9 +32,9 @@ public class ItemTransmutation {
 
 	protected static void encodeCustomModelData(ItemStack oldStack, ItemStack newStack) {
 		if (oldStack.getItem() instanceof PolymerItem polymerItem) {
-			var modelData = polymerItem.getPolymerCustomModelData(oldStack, null);
-			if (modelData != -1 && !oldStack.contains(DataComponentTypes.CUSTOM_MODEL_DATA)) {
-				newStack.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(modelData));
+			var modelData = polymerItem.getPolymerItemModel(oldStack, null);
+			if (modelData != null && !oldStack.contains(DataComponentTypes.ITEM_MODEL)) {
+				newStack.set(DataComponentTypes.ITEM_MODEL, modelData);
 			}
 		}
 	}

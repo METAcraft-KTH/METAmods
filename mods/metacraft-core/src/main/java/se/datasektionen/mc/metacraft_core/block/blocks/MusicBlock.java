@@ -9,7 +9,6 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.util.BlockMirror;
@@ -19,6 +18,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlockEntities;
 import se.datasektionen.mc.metacraft_core.block.entities.MusicBlockEntity;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 public class MusicBlock extends BlockWithEntity implements PolymerBlock {
 
@@ -40,16 +40,11 @@ public class MusicBlock extends BlockWithEntity implements PolymerBlock {
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state) {
-		return Blocks.AIR.getDefaultState();
-	}
-
-	@Override
-	public BlockState getPolymerBlockState(BlockState state, ServerPlayerEntity player) {
-		if (player.isCreative()) {
+	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
+		if (ctx.getPlayer() != null && ctx.getPlayer().isCreative()) {
 			return Blocks.TRIAL_SPAWNER.getDefaultState();
 		} else {
-			return getPolymerBlockState(state);
+			return Blocks.AIR.getDefaultState();
 		}
 	}
 

@@ -8,6 +8,7 @@ import net.minecraft.screen.AnvilScreenHandler;
 import net.minecraft.screen.ForgingScreenHandler;
 import net.minecraft.screen.ScreenHandlerContext;
 import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.screen.slot.ForgingSlotsManager;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,8 +20,8 @@ import se.datasektionen.mc.metacraft_plots.item.PlotKey;
 @Mixin(AnvilScreenHandler.class)
 public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 
-	public MixinAnvilScreenHandler(@Nullable ScreenHandlerType<?> type, int syncId, PlayerInventory playerInventory, ScreenHandlerContext context) {
-		super(type, syncId, playerInventory, context);
+	public MixinAnvilScreenHandler(@Nullable ScreenHandlerType<?> type, int syncId, PlayerInventory playerInventory, ScreenHandlerContext context, ForgingSlotsManager forgingSlotsManager) {
+		super(type, syncId, playerInventory, context, forgingSlotsManager);
 	}
 
 	@Inject(

@@ -6,9 +6,9 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.loot.condition.LootCondition;
 import net.minecraft.loot.condition.LootConditionType;
 import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.context.LootContextParameter;
 import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.util.StringIdentifiable;
+import net.minecraft.util.context.ContextParameter;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.biome.Biome;
@@ -44,26 +44,26 @@ public class LocalWeather implements LootCondition {
 	}
 
 	@Override
-	public Set<LootContextParameter<?>> getRequiredParameters() {
+	public Set<ContextParameter<?>> getAllowedParameters() {
 		return Set.of(LootContextParameters.ORIGIN);
 	}
 
 	public enum WeatherType implements StringIdentifiable {
 		CLEAR("clear", (world, pos) ->
 				!world.getLevelProperties().isRaining() ||
-				world.getBiome(pos).value().getPrecipitation(pos) == Biome.Precipitation.NONE
+				world.getBiome(pos).value().getPrecipitation(pos, world.getSeaLevel()) == Biome.Precipitation.NONE
 		),
 		RAIN("rain", (world, pos) ->
 				world.getLevelProperties().isRaining() &&
-				world.getBiome(pos).value().getPrecipitation(pos) == Biome.Precipitation.RAIN
+				world.getBiome(pos).value().getPrecipitation(pos, world.getSeaLevel()) == Biome.Precipitation.RAIN
 		),
 		SNOW("snow", (world, pos) ->
 				world.getLevelProperties().isRaining() &&
-				world.getBiome(pos).value().getPrecipitation(pos) == Biome.Precipitation.SNOW
+				world.getBiome(pos).value().getPrecipitation(pos, world.getSeaLevel()) == Biome.Precipitation.SNOW
 		),
 		THUNDER("thunder", (world, pos) ->
 				world.getLevelProperties().isThundering() &&
-				world.getBiome(pos).value().getPrecipitation(pos) == Biome.Precipitation.RAIN
+				world.getBiome(pos).value().getPrecipitation(pos, world.getSeaLevel()) == Biome.Precipitation.RAIN
 		);
 
 		public static final Codec<WeatherType> CODEC = StringIdentifiable.createCodec(WeatherType::values);

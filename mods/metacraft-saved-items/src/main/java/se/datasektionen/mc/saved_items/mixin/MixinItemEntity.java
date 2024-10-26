@@ -1,6 +1,7 @@
 package se.datasektionen.mc.saved_items.mixin;
 
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
@@ -109,7 +110,7 @@ public abstract class MixinItemEntity extends Entity implements ItemEntityData {
 			target = "Lnet/minecraft/item/ItemStack;onItemEntityDestroyed(Lnet/minecraft/entity/ItemEntity;)V"
 		)
 	)
-	public boolean onDestroy(ItemStack stack, ItemEntity entity, DamageSource source) {
+	public boolean onDestroy(ItemStack stack, ItemEntity entity, @Local(argsOnly = true) DamageSource source) {
 		if (playerName != null) {
 			if (SavedItemsData.getInstance(getServer()).tryAddItem(SavedItemsData.getForDamageType(source), stack)) {
 				this.setStack(ItemStack.EMPTY);

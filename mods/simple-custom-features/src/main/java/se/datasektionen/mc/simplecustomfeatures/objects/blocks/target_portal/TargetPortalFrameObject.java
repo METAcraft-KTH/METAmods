@@ -13,6 +13,7 @@ import net.minecraft.item.Items;
 import net.minecraft.predicate.item.ItemPredicate;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.gen.stateprovider.BlockStateProvider;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
@@ -83,9 +84,9 @@ public class TargetPortalFrameObject implements BaseBlock {
 	}
 
 	@Override
-	public DataResult<Block> createObject() {
+	public DataResult<Block> createObject(RegistryKey<Block> id) {
 		return DataResult.success(
-				new TargetPortalFrameBlock(AbstractBlock.Settings.copy(Blocks.END_PORTAL_FRAME), this)
+				new TargetPortalFrameBlock(AbstractBlock.Settings.copy(Blocks.END_PORTAL_FRAME).registryKey(id), this)
 		);
 	}
 }

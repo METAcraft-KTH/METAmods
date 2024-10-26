@@ -1,6 +1,5 @@
 package se.datasektionen.mc.simplecustomfeatures.objects.items.simple;
 
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -11,15 +10,12 @@ import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.component.ComponentMapImpl;
-import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.MergedComponentMap;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryPair;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.sound.SoundEvent;
+import net.minecraft.registry.RegistryKey;
 import org.objectweb.asm.Type;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
@@ -31,8 +27,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 
 public record SimpleItem(
-		ItemSettingsWithBaseItem itemSettings, Optional<ItemStack> disguise,
-		ExtendedSettings settings
+		ItemSettingsWithBaseItem itemSettings, Optional<ItemStack> disguise
 ) implements BaseItem {
 
 	static final String SETTINGS_FIELD_NAME = "simple_custom_features$settings";
@@ -40,8 +35,7 @@ public record SimpleItem(
 	public static final MapCodec<SimpleItem> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					ITEM_SETTINGS_WITH_BASE_ITEM_CODEC.forGetter(item -> item.itemSettings),
-					ItemStack.UNCOUNTED_CODEC.optionalFieldOf("disguise").forGetter(item -> item.disguise),
-					ExtendedSettings.CODEC.fieldOf("settings").orElse(new ExtendedSettings()).forGetter(item -> item.settings)
+					ItemStack.UNCOUNTED_CODEC.optionalFieldOf("disguise").forGetter(item -> item.disguise)
 			).apply(instance, SimpleItem::new)
 	);
 
@@ -112,32 +106,14 @@ public record SimpleItem(
 	}
 
 	@Override
-	public DataResult<Item> createObject() {
-		var components = ComponentMapImpl.create(itemSettings.baseItem().value().getComponents(), this.itemSettings().components());
+	public DataResult<Item> createObject(RegistryKey<Item> id) {
+		var components = MergedComponentMap.create(itemSettings.baseItem().value().getComponents(), this.itemSettings().components());
 		var result = ItemStack.validateComponents(components);
 		if (result.isError()) {
 			return result.map(e -> Items.AIR);
 		}
-		return itemSettings.makeSettings().flatMap(this::createNewItem);
-	}
-
-	public record ExtendedSettings(
-			boolean isDrink, List<RegistryPair<StatusEffect>> effectsToRemove,
-			Optional<RegistryEntry<SoundEvent>> consumeSound
-	) {
-
-		public ExtendedSettings() {
-			this(
-					false, new ArrayList<>(),
-					Optional.empty()
-			);
-		}
-		public static final Codec<ExtendedSettings> CODEC = RecordCodecBuilder.create(
-				instance -> instance.group(
-						Codec.BOOL.fieldOf("isDrink").orElse(false).forGetter(item -> item.isDrink),
-						RegistryPair.createCodec(RegistryKeys.STATUS_EFFECT, StatusEffect.ENTRY_CODEC).listOf().fieldOf("effectsToRemove").orElse(new ArrayList<>()).forGetter(item -> item.effectsToRemove),
-						SoundEvent.ENTRY_CODEC.optionalFieldOf("consumeSound").forGetter(item -> item.consumeSound)
-				).apply(instance, ExtendedSettings::new)
-		);
+		return itemSettings.makeSettings(
+				id, disguise.map(stack -> stack.get(DataComponentTypes.ITEM_MODEL)).orElse(null)
+		).flatMap(this::createNewItem);
 	}
 }

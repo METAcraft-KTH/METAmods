@@ -17,8 +17,8 @@ public record TitleTransitionConfig(Text title, Optional<Text> subtitle, int fad
 			instance -> instance.group(
 					TextCodecs.CODEC.fieldOf("title").forGetter(TitleTransitionConfig::title),
 					TextCodecs.CODEC.optionalFieldOf("subtitle").forGetter(TitleTransitionConfig::subtitle),
-					Codecs.NONNEGATIVE_INT.optionalFieldOf("fade_in", 10).forGetter(TitleTransitionConfig::fadeIn),
-					Codecs.NONNEGATIVE_INT.optionalFieldOf("fade_out", 20).forGetter(TitleTransitionConfig::fadeOut)
+					Codecs.NON_NEGATIVE_INT.optionalFieldOf("fade_in", 10).forGetter(TitleTransitionConfig::fadeIn),
+					Codecs.NON_NEGATIVE_INT.optionalFieldOf("fade_out", 20).forGetter(TitleTransitionConfig::fadeOut)
 			).apply(instance, TitleTransitionConfig::new)
 	);
 

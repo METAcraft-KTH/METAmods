@@ -21,6 +21,8 @@
 		"MixinItemFrameEntity",
 		"MixinMobEntity",
 		"MixinPlayerInventory",
+		"MixinSchema3818",
+		"MixinSchema3818_3",
 		"MixinScreenHandler",
 		"MixinSlot"
 	],

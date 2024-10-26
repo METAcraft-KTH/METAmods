@@ -60,9 +60,9 @@ public class TargetPortalObject implements BaseBlock {
 	}
 
 	@Override
-	public DataResult<Block> createObject() {
+	public DataResult<Block> createObject(RegistryKey<Block> id) {
 		return DataResult.success(
-				block = new TargetPortalBlock(AbstractBlock.Settings.copy(Blocks.END_PORTAL), this)
+				block = new TargetPortalBlock(AbstractBlock.Settings.copy(Blocks.END_PORTAL).registryKey(id), this)
 		);
 	}
 

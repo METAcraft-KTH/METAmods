@@ -28,6 +28,7 @@ import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 import se.datasektionen.mc.metacraft_season_4.block.Season4Blocks;
 import se.datasektionen.mc.metacraft_season_4.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_season_4.lodestone.CampusLodestoneState;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.Optional;
 
@@ -37,7 +38,7 @@ public class CampusLodestoneBlock extends Block implements PolymerBlock {
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state) {
+	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
 		// See resource pack. powered harp with note 1 renders the correct model.
 		return Blocks.NOTE_BLOCK.getDefaultState()
 			.with(NoteBlock.INSTRUMENT, NoteBlockInstrument.HARP)
@@ -116,7 +117,7 @@ public class CampusLodestoneBlock extends Block implements PolymerBlock {
 
 		// After 4 seconds, teleport.
 		TaskScheduler.schedule(server, () -> {
-			player.teleport(world, x, y, z, PositionFlag.ROT, 0, 0);
+			player.teleport(world, x, y, z, PositionFlag.ROT, 0, 0, false);
 		}, 4 * 20);
 	}
 

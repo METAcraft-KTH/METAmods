@@ -13,8 +13,8 @@ import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.predicate.block.BlockStatePredicate;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.ItemActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -23,6 +23,7 @@ import net.minecraft.world.WorldEvents;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.simplecustomfeatures.Features;
 import se.datasektionen.mc.simplecustomfeatures.compat.PortalBlockerCompat;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 public class TargetPortalFrameBlock extends EndPortalFrameBlock implements PolymerBlock {
 
@@ -64,12 +65,12 @@ public class TargetPortalFrameBlock extends EndPortalFrameBlock implements Polym
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state) {
+	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
 		return Blocks.END_PORTAL_FRAME.getDefaultState().with(FACING, state.get(FACING)).with(EYE, state.get(EYE));
 	}
 
 	@Override
-	protected ItemActionResult onUseWithItem(
+	protected ActionResult onUseWithItem(
 			ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit
 	) {
 		if (!state.get(EYE) && frame.getActivator().test(stack)) {
@@ -79,7 +80,7 @@ public class TargetPortalFrameBlock extends EndPortalFrameBlock implements Polym
 					if (PortalBlockerCompat.isCreationBlocked(
 							reference.get(), world.getServer(), world.getRegistryKey(), pos
 					)) {
-						return ItemActionResult.FAIL;
+						return ActionResult.FAIL;
 					}
 				} else {
 					Features.LOGGER.warn("Portal frame " + this + " does not have a valid portal reference, and therefore cannot be blocked by portal blocker!");
@@ -104,8 +105,8 @@ public class TargetPortalFrameBlock extends EndPortalFrameBlock implements Polym
 				}
 				world.syncGlobalEvent(WorldEvents.END_PORTAL_OPENED, bottom.add(1, 0, 1), 0);
 			}
-			return ItemActionResult.SUCCESS;
+			return ActionResult.SUCCESS_SERVER;
 		}
-		return ItemActionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		return ActionResult.PASS_TO_DEFAULT_BLOCK_ACTION;
 	}
 }

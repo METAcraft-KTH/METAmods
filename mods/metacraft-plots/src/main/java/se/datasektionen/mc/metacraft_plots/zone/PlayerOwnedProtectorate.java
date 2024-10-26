@@ -65,12 +65,12 @@ public class PlayerOwnedProtectorate extends ZoneData {
 				new HashSet<>(), new HashSet<>(), new HashSet<>(), 1,
 				Lists.newArrayList(
 						new IncrementItem(
-								ItemPredicate.Builder.create().items(Items.DIAMOND_BLOCK).build(),
+								ItemPredicate.Builder.create().items(Registries.ITEM, Items.DIAMOND_BLOCK).build(),
 								1
 						)
 				),
 				Lists.newArrayList(new DecrementItem(
-						ItemPredicate.Builder.create().items(Items.PLAYER_HEAD).build(),
+						ItemPredicate.Builder.create().items(Registries.ITEM, Items.PLAYER_HEAD).build(),
 						DataComponentTypes.PROFILE, "", 1
 				))
 		);

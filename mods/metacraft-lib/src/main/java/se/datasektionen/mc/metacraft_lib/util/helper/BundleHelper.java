@@ -12,7 +12,6 @@ import net.minecraft.util.math.MathHelper;
 import org.apache.commons.lang3.math.Fraction;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.extensions.BundlesComponentExtensions;
-import se.datasektionen.mc.metacraft_lib.mixin.AccessorBundleItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,7 +97,7 @@ public class BundleHelper {
 				nbt -> nbt.get(Codec.INT.optionalFieldOf(MAX_STORAGE_KEY)).resultOrPartial(
 						METAcraftLib.LOGGER::error
 				).orElse(Optional.empty())
-		).orElse(AccessorBundleItem.getBundleMaxSize());
+		).orElse(64);
 	}
 
 	public static BundleContentsComponent.Builder setBundleSizeFactor(

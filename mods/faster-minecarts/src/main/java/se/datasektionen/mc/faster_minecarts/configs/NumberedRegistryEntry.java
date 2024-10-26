@@ -24,7 +24,7 @@ public class NumberedRegistryEntry<T> {
 					double factor = Double.parseDouble(entry[1]);
 					String match = entry[0];
 					if (match.startsWith("#")) {
-						registry.getEntryList(
+						registry.getOptional(
 								TagKey.of(registry.getKey(), Identifier.tryParse(match.substring(1)))
 						).ifPresent(list -> {
 							list.forEach(entity -> {

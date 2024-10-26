@@ -11,7 +11,7 @@ import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.math.Vec3d;
 
 /**
- * Copy of {@link net.minecraft.entity.ai.brain.task.GoToPointOfInterestTask}
+ * Copy of {@link net.minecraft.entity.ai.brain.task.GoToCloserPointOfInterestTask}
  * but targets a given memory module instead.
  */
 public class GoToMoveTarget {

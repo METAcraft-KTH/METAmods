@@ -2,10 +2,9 @@ package se.datasektionen.mc.metacraft_core.item.components;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.component.ComponentType;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.command.CommandOutput;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -102,16 +101,16 @@ public class CommandComponents {
 	 * @param player The player to run the command for.
 	 * @param pos The position to run the command at.
 	 * @param command The command to run.
-	 * @return {@link ActionResult#SUCCESS_NO_ITEM_USED} if the command succeeds and returns 1,
+	 * @return {@link ActionResult#SUCCESS_SERVER} if the command succeeds and returns 1,
 	 *          {@link ActionResult#PASS} if the command succeeds and returns 0,
-	 *          {@link ActionResult#CONSUME_PARTIAL} if the command succeeds and returns something else,
+	 *          {@link ActionResult#CONSUME} if the command succeeds and returns something else,
 	 *          {@link ActionResult#FAIL} if the command fails.
 	 */
-	public static ActionResult runCommand(PlayerEntity player, Vec3d pos, String command) {
+	public static ActionResult runCommand(ServerPlayerEntity player, Vec3d pos, String command) {
 		MutableObject<ActionResult> result = new MutableObject<>();
 		var source = new ServerCommandSource(
-				player.isCreativeLevelTwoOp() ? player : CommandOutput.DUMMY,
-				pos, player.getRotationClient(), (ServerWorld) player.getWorld(),
+				player.isCreativeLevelTwoOp() ? player.getCommandOutput() : CommandOutput.DUMMY,
+				pos, player.getRotationClient(), player.getServerWorld(),
 				2, player.getName().getString(), player.getDisplayName(),
 				player.getServer(), player
 		).withReturnValueConsumer((successful, value) -> {
@@ -119,9 +118,9 @@ public class CommandComponents {
 				if (value == 0) {
 					result.setValue(ActionResult.PASS);
 				} else if (value > 0) {
-					result.setValue(ActionResult.SUCCESS_NO_ITEM_USED);
+					result.setValue(ActionResult.SUCCESS_SERVER.noIncrementStat());
 				} else {
-					result.setValue(ActionResult.CONSUME_PARTIAL);
+					result.setValue(ActionResult.CONSUME.noIncrementStat());
 				}
 			} else {
 				result.setValue(ActionResult.FAIL);

@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.recipe.Recipe;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -51,6 +52,6 @@ public interface RecipeLoad {
 	);
 
 	@Nullable
-	Recipe<?> modify(Identifier id, JsonObject json, Recipe<?> recipe, RegistryWrapper.WrapperLookup registryLookup);
+	Recipe<?> modify(RegistryKey<Recipe<?>> key, JsonObject json, Recipe<?> recipe, RegistryWrapper.WrapperLookup registryLookup);
 
 }

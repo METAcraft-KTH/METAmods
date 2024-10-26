@@ -4,6 +4,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.BlockState;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.world.poi.PointOfInterestType;
@@ -20,8 +21,8 @@ public class POI implements BaseObject<PointOfInterestType> {
 					BlockState.CODEC.listOf().<Set<BlockState>>xmap(
 							HashSet::new, ArrayList::new
 					).fieldOf("block_states").forGetter(PointOfInterestType::blockStates),
-					Codecs.NONNEGATIVE_INT.fieldOf("ticket_count").forGetter(PointOfInterestType::ticketCount),
-					Codecs.NONNEGATIVE_INT.fieldOf("search_distance").forGetter(PointOfInterestType::searchDistance)
+					Codecs.NON_NEGATIVE_INT.fieldOf("ticket_count").forGetter(PointOfInterestType::ticketCount),
+					Codecs.NON_NEGATIVE_INT.fieldOf("search_distance").forGetter(PointOfInterestType::searchDistance)
 			).apply(instance, PointOfInterestType::new)
 	);
 
@@ -41,7 +42,7 @@ public class POI implements BaseObject<PointOfInterestType> {
 	}
 
 	@Override
-	public DataResult<PointOfInterestType> createObject() {
+	public DataResult<PointOfInterestType> createObject(RegistryKey<PointOfInterestType> id) {
 		for (var state : type.blockStates()) {
 			if (AccessorPointOfInterestTypes.getStatesToTypeMap().containsKey(state)) {
 				return DataResult.error(() -> state.toString() + " is already assigned to another POI");

@@ -1,5 +1,8 @@
 package se.datasektionen.mc.simplecustomfeatures.mixin;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import com.mojang.serialization.Lifecycle;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -9,6 +12,8 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.SimpleRegistry;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.entry.RegistryEntryInfo;
+import net.minecraft.registry.entry.RegistryEntryList;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
@@ -17,12 +22,11 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.simplecustomfeatures.RegistryExtensions;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Mixin(SimpleRegistry.class)
 public abstract class MixinSimpleRegistry<T> implements MutableRegistry<T>, RegistryExtensions<T> {
@@ -52,8 +56,21 @@ public abstract class MixinSimpleRegistry<T> implements MutableRegistry<T>, Regi
 
 	@Shadow public abstract Optional<RegistryEntry.Reference<T>> getEntry(int rawId);
 
+	@Shadow
+	SimpleRegistry.TagLookup<T> tagLookup;
+
+	@Shadow protected abstract RegistryEntryList.Named<T> createNamedEntryList(TagKey<T> tag);
+
+	@Shadow @Final private Map<TagKey<T>, RegistryEntryList.Named<T>> tags;
+
+	@Shadow public abstract Optional<RegistryEntryList.Named<T>> getOptional(TagKey<T> tag);
+
+	@Shadow @Final private RegistryKey<? extends Registry<T>> key;
 	@Unique
 	private boolean wasIntrusive = false;
+
+	@Unique
+	private final Multimap<TagKey<T>, RegistryKey<T>> prevTags = HashMultimap.create();
 
 	@Inject(
 		method = "<init>(Lnet/minecraft/registry/RegistryKey;Lcom/mojang/serialization/Lifecycle;Z)V",
@@ -72,9 +89,46 @@ public abstract class MixinSimpleRegistry<T> implements MutableRegistry<T>, Regi
 			if (wasIntrusive) {
 				this.intrusiveValueToEntry = new IdentityHashMap<>();
 			}
+			tagLookup.forEach((key, entries) -> {
+				for (var entry : entries) {
+					entry.getKey().ifPresent(k -> {
+						prevTags.put(key, k);
+					});
+				}
+			});
+			this.tagLookup = SimpleRegistry.TagLookup.ofUnbound();
 			return true;
 		}
 		return false;
+	}
+
+	@ModifyArg(
+		method = "freeze",
+		at = @At(
+				value = "INVOKE",
+				target = "Lnet/minecraft/registry/SimpleRegistry$TagLookup;fromMap(Ljava/util/Map;)Lnet/minecraft/registry/SimpleRegistry$TagLookup;"
+		)
+	)
+	public Map<TagKey<T>, RegistryEntryList.Named<T>> fixTagsOnReFreeze(Map<TagKey<T>, RegistryEntryList.Named<T>> map) {
+		if (!prevTags.isEmpty()) {
+			ImmutableMap.Builder<TagKey<T>, RegistryEntryList.Named<T>> newMap = ImmutableMap.builder();
+			for (var tagKey : prevTags.keySet()) {
+				var list = tags.get(tagKey);
+				if (list == null) {
+					list = this.createNamedEntryList(tagKey);
+				}
+
+				((AccessorRegistryEntryListName<T>) list).setEntries(
+						prevTags.get(tagKey).stream().map(
+								key -> (RegistryEntry<T>) getOptional(key).orElse(null)
+						).filter(Objects::nonNull).toList()
+				);
+				newMap.put(tagKey, list);
+			}
+			prevTags.clear();
+			return newMap.build();
+		}
+		return map;
 	}
 
 	@Override

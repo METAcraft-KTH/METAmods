@@ -17,8 +17,7 @@ public class MixinServerPlayNetworkHandler {
 		method = "onPlayerMove",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/network/ServerPlayerEntity;isInTeleportationState()Z",
-			ordinal = 1
+			target = "Lnet/minecraft/server/network/ServerPlayerEntity;isInTeleportationState()Z"
 		)
 	)
 	public boolean onPlayerMove(boolean inTPState) {

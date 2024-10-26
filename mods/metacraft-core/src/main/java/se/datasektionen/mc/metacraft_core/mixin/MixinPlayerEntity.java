@@ -49,7 +49,7 @@ public abstract class MixinPlayerEntity extends LivingEntity {
 		)
 	)
 	public void dropInventory(CallbackInfo ci) {
-		if (this.getWorld().getGameRules().getBoolean(GameRules.KEEP_INVENTORY)) {
+		if (this.getServer().getGameRules().getBoolean(GameRules.KEEP_INVENTORY)) {
 			for (int i = 0; i < getInventory().size(); ++i) {
 				ItemStack stack = getInventory().getStack(i);
 				if (stack.contains(METAcraftComponents.ANTI_KEEP_INVENTORY)) {

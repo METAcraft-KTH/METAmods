@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import se.datasektionen.mc.metacraft_lib.extensions.RecipeComponentCarryoverExtension;
 
+import java.util.List;
 import java.util.function.Predicate;
 
 @Mixin(ShapelessRecipe.class)
@@ -32,7 +33,7 @@ public abstract class MixinShapelessRecipe implements RecipeComponentCarryoverEx
 			at = @At("RETURN")
 	)
 	public ItemStack onCraft(ItemStack original, CraftingRecipeInput recipeInputInventory) {
-		metacraft_lib$onCraft(original, recipeInputInventory.getStacks());
+		metacraft_lib$onCraft(original, recipeInputInventory != null ? recipeInputInventory.getStacks() : List.of());
 		return original;
 	}
 }

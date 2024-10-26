@@ -1,82 +1,80 @@
 package se.datasektionen.mc.cutscenes;
 
-import com.mojang.serialization.Codec;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.PathUtil;
+import net.minecraft.util.WorldSavePath;
 import se.datasektionen.mc.cutscenes.cutscene.Cutscene;
+import se.datasektionen.mc.cutscenes.extension.MinecraftServerExtension;
 import se.datasektionen.mc.cutscenes.util.DefaultCutscenes;
-import se.datasektionen.mc.metacraft_lib.config.JsonPersistentState;
-import se.datasektionen.mc.metacraft_lib.config.MultiPersistentState;
+import se.datasektionen.mc.metacraft_lib.config.JsonHelper;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class CutscenesConfig extends MultiPersistentState<CutscenesConfig.CutsceneEntry> {
+public class CutscenesConfig {
 
-	private static final CustomType<CutscenesConfig> TYPE = new CustomType<>(
-			CutscenesConfig::new, new MultiParser<>(
-					CutsceneEntry.ENTRY_TYPE, CutscenesConfig::new, false
-			)
-	);
+	private final Map<String, Cutscene> cutscenes;
 
-	private static final String KEY = "metacraft-cutscenes";
-
-	public static Optional<CutscenesConfig> getLoadedConfig(ServerWorld world) {
-		return getLoadedConfig(world, TYPE, KEY);
-	}
-
-	public static Optional<CutscenesConfig> getConfig(ServerWorld world) {
-		return getConfig(world, TYPE, KEY);
-	}
-
-	public static CutscenesConfig getOrCreateConfig(ServerWorld world) {
-		return getOrCreateConfig(world, TYPE, KEY);
+	public static CutscenesConfig getOrCreateConfig(
+			MinecraftServer server
+	) {
+		var s = (MinecraftServerExtension) server;
+		var config = s.metacraft_cutscenes$getConfig();
+		if (config != null) return config;
+		var path = server.getSavePath(WorldSavePath.ROOT).resolve("metacraft-cutscenes");
+		var dir = path.toFile();
+		var codec = Cutscene.CODEC.codec();
+		if (!dir.exists()) {
+			dir.mkdirs();
+			config = new CutscenesConfig();
+			for (var name : config.getCutsceneNames()) {
+				String actualName = PathUtil.replaceInvalidChars(name);
+				config.getCutscene(actualName).ifPresent(scene -> {
+					JsonHelper.save(
+							path.resolve(actualName + ".json"), codec,
+							scene, server.getRegistryManager()
+					);
+				});
+			}
+			s.metacraft_cutscenes$setConfig(config);
+			return config;
+		}
+		Map<String, Cutscene> cutscenes = new HashMap<>();
+		var files = dir.listFiles((file, name) -> name.endsWith(".json"));
+		if (files != null) {
+			for (var f : files) {
+				JsonHelper.load(f.toPath(), codec, server.getRegistryManager()).ifPresent(
+						cutscene -> cutscenes.put(f.getName().substring(0, f.getName().length()-5), cutscene)
+				);
+			}
+		}
+		config = new CutscenesConfig(cutscenes);
+		s.metacraft_cutscenes$setConfig(config);
+		return config;
 	}
 
 	public CutscenesConfig() {
 		this(new HashMap<>(Map.of(
-				"creeper_kill_piglin", new CutsceneEntry(DefaultCutscenes.CREEPER_KILL_PIGLIN)
+				"creeper_kill_piglin", DefaultCutscenes.CREEPER_KILL_PIGLIN
 		)));
 	}
 
-	public CutscenesConfig(Map<String, CutscenesConfig.CutsceneEntry> map) {
-		super(map);
+	public CutscenesConfig(Map<String, Cutscene> map) {
+		this.cutscenes = map;
 	}
 
-	public ServerWorld getWorld() {
-		return world;
+	public static void reload(MinecraftServer server) {
+		((MinecraftServerExtension) server).metacraft_cutscenes$setConfig(null);
 	}
 
 	public Optional<Cutscene> getCutscene(String name) {
-		return states.containsKey(name) ? Optional.ofNullable(states.get(name).cutscene) : Optional.empty();
+		return cutscenes.containsKey(name) ? Optional.ofNullable(cutscenes.get(name)) : Optional.empty();
 	}
 
 	public Collection<String> getCutsceneNames() {
-		return states.keySet();
-	}
-
-	public static class CutsceneEntry extends JsonPersistentState {
-
-		public static final Codec<CutsceneEntry> CODEC = Cutscene.CODEC.codec().xmap(CutsceneEntry::new, CutsceneEntry::getCutscene);
-		public static final CustomType<CutsceneEntry> ENTRY_TYPE = new CustomType<>(
-				CutsceneEntry::new, new JsonParse<>(CODEC)
-		);
-
-		private final Cutscene cutscene;
-
-		public CutsceneEntry() {
-			this(new Cutscene());
-		}
-
-		public CutsceneEntry(Cutscene cutscene) {
-			this.cutscene = cutscene;
-		}
-
-		public Cutscene getCutscene() {
-			return cutscene;
-		}
-
+		return cutscenes.keySet();
 	}
 
 }

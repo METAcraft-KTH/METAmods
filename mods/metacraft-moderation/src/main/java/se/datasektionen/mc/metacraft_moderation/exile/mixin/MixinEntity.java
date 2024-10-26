@@ -25,7 +25,7 @@ public abstract class MixinEntity {
 	@Shadow private World world;
 
 	@Inject(
-		method = "isInvulnerableTo",
+		method = "isAlwaysInvulnerableTo",
 		at = @At("HEAD"),
 		cancellable = true
 	)

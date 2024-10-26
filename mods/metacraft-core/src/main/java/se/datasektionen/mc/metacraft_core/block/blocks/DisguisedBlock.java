@@ -7,13 +7,13 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.loot.context.LootContextParameterSet;
 import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import se.datasektionen.mc.metacraft_core.block.entities.BlockEntityWithDisguise;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,12 +39,12 @@ public abstract class DisguisedBlock extends BlockWithEntity implements PolymerB
 	}
 
 	@Override
-	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, ServerPlayerEntity player) {
-		getBlockEntity(player.getWorld(), pos).ifPresent(disguised -> disguised.updateClient(player));
+	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, PacketContext.NotNullWithPlayer context) {
+		getBlockEntity(context.getPlayer().getWorld(), pos).ifPresent(disguised -> disguised.updateClient(context.getPlayer()));
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state) {
+	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
 		return Blocks.BARRIER.getDefaultState();
 	}
 
@@ -63,7 +63,7 @@ public abstract class DisguisedBlock extends BlockWithEntity implements PolymerB
 	}
 
 	@Override
-	protected List<ItemStack> getDroppedStacks(BlockState state, LootContextParameterSet.Builder builder) {
+	protected List<ItemStack> getDroppedStacks(BlockState state, LootWorldContext.Builder builder) {
 		Object blockEntity = builder.getOptional(LootContextParameters.BLOCK_ENTITY);
 		if (blockEntity == null) {
 			var pos = builder.getOptional(LootContextParameters.ORIGIN);

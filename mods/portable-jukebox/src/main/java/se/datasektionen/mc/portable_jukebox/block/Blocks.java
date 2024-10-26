@@ -1,34 +1,41 @@
 package se.datasektionen.mc.portable_jukebox.block;
 
 import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
+import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import se.datasektionen.mc.portable_jukebox.PortableJukebox;
 
-import java.util.Set;
+import java.util.function.Function;
 
 public class Blocks {
 
-	public static final PortableJukeboxBlock PORTABLE_JUKEBOX = register("portable_jukebox", new PortableJukeboxBlock(
+	public static final PortableJukeboxBlock PORTABLE_JUKEBOX = register(
+			"portable_jukebox", PortableJukeboxBlock::new,
 			AbstractBlock.Settings.copy(net.minecraft.block.Blocks.PLAYER_HEAD)
-	));
+	);
 
 	public static void init() {
 		BlockEntities.init();
 	}
 
-	private static <T extends Block> T register(String id, T block) {
-		return Registry.register(Registries.BLOCK, PortableJukebox.getID(id), block);
+	private static <T extends Block> T register(String id, Function<AbstractBlock.Settings, T> block, AbstractBlock.Settings settings) {
+		var key = RegistryKey.of(RegistryKeys.BLOCK, PortableJukebox.getID(id));
+		return Registry.register(Registries.BLOCK, key, block.apply(settings.registryKey(key)));
 	}
 
 	public static class BlockEntities {
 
-		public static final BlockEntityType<PortableJukeboxBlockEntity> PORTABLE_JUKEBOX = register("portable_jukebox", new BlockEntityType<>(
-				PortableJukeboxBlockEntity::new, Set.of(Blocks.PORTABLE_JUKEBOX), null
-		));
+		public static final BlockEntityType<PortableJukeboxBlockEntity> PORTABLE_JUKEBOX = register(
+				"portable_jukebox", FabricBlockEntityTypeBuilder.create(
+						PortableJukeboxBlockEntity::new, Blocks.PORTABLE_JUKEBOX
+				).build()
+		);
 
 		public static void init() {
 

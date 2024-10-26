@@ -24,6 +24,7 @@ import se.datasektionen.mc.metacraft_core.block.METAcraftBlockEntities;
 import se.datasektionen.mc.metacraft_core.callbacks.PortalTargetValidEvent;
 import se.datasektionen.mc.metacraft_core.util.TeleportPredicate;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
+import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
 import java.lang.Math;
@@ -43,6 +44,8 @@ public class PortalEntity extends BlockEntity {
 	protected BlockPos targetPos;
 	protected Orientation portalFacing;
 	protected final List<TeleportPredicate> shouldTeleport = new ArrayList<>();
+
+	private List<Entity> toTeleport = new ArrayList<>();
 
 	public PortalEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -408,7 +411,7 @@ public class PortalEntity extends BlockEntity {
 			);
 		}
 		if (box.union(entityBox).equals(box)) {
-			world.getServer().execute(() -> {
+			TaskScheduler.scheduleImmediately(world.getServer(), () -> {
 				Entity toTP = entity;
 				if (toTP.getPortalCooldown() <= 0) {
 					toTP = teleport(toTP);

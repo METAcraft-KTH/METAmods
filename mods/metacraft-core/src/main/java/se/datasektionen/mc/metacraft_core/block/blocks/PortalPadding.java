@@ -7,10 +7,10 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.EndGatewayBlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 public class PortalPadding extends Block implements PolymerBlock {
 
@@ -27,22 +27,22 @@ public class PortalPadding extends Block implements PolymerBlock {
 		}
 	}
 
-	public static void sendDummyEndGateway(BlockPos pos, ServerPlayerEntity player) {
+	public static void sendDummyEndGateway(BlockPos pos, PacketContext.NotNullWithPlayer ctx) {
 		var tile = new EndGatewayBlockEntity(pos, Blocks.END_GATEWAY.getDefaultState());
-		var nbt = tile.toInitialChunkDataNbt(player.getRegistryManager());
+		var nbt = tile.toInitialChunkDataNbt(ctx.getPlayer().getRegistryManager());
 		nbt.putLong("Age", 300);
-		tile.read(nbt, player.getRegistryManager());
-		tile.setWorld(player.getWorld());
-		player.networkHandler.sendPacket(BlockEntityUpdateS2CPacket.create(tile));
+		tile.read(nbt, ctx.getPlayer().getRegistryManager());
+		tile.setWorld(ctx.getPlayer().getWorld());
+		ctx.getPlayer().networkHandler.sendPacket(BlockEntityUpdateS2CPacket.create(tile));
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state) {
+	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
 		return Blocks.END_GATEWAY.getDefaultState();
 	}
 
 	@Override
-	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, ServerPlayerEntity player) {
-		sendDummyEndGateway(pos, player);
+	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, PacketContext.NotNullWithPlayer ctx) {
+		sendDummyEndGateway(pos, ctx);
 	}
 }

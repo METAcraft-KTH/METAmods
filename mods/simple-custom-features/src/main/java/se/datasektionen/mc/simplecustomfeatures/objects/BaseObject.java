@@ -5,6 +5,7 @@ import com.google.common.collect.Multimaps;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 import se.datasektionen.mc.simplecustomfeatures.ObjectContainer;
@@ -21,7 +22,7 @@ public interface BaseObject<R> {
 
 	ObjectType<? extends BaseObject<R>, R> getType();
 
-	DataResult<R> createObject();
+	DataResult<R> createObject(RegistryKey<R> id);
 
 	default Multimap<Identifier, BaseObject<?>> createChildren(ObjectContainer.Loaded<R> container) {
 		return Multimaps.forMap(Map.of());

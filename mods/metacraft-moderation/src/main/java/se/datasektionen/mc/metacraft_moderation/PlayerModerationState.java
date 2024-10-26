@@ -25,7 +25,7 @@ public class PlayerModerationState {
 	}
 
 	public static boolean canEnterModerationMode(ServerPlayerEntity player, String mode) {
-		return Permissions.check(player, "metacraft.mod." + mode, 3);
+		return Permissions.check(player.getCommandSource(), "metacraft.mod." + mode, 3);
 	}
 
 	public static void removeModeratorMode(ServerPlayerEntity player) {

@@ -61,7 +61,7 @@ public abstract class MixinSpawnHelper {
 	) {
 		return applySpawnsAndRemovers(
 				original, world.toServerWorld(),
-				chunkPos.getStartPos().withY(world.getTopY() - 1), //This is what vanilla uses to fetch the biome, so this is no less accurate than vanilla.
+				chunkPos.getStartPos().withY(world.getTopYInclusive() - 1), //This is what vanilla uses to fetch the biome, so this is no less accurate than vanilla.
 				SpawnGroup.CREATURE
 		);
 	}

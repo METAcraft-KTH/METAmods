@@ -1,7 +1,6 @@
 package se.datasektionen.mc.loot_containers.mixin;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.TeleportTarget;
@@ -9,14 +8,12 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.loot_containers.containers.LootContainerData;
 
-import java.util.Set;
 import java.util.UUID;
 
 @Mixin(Entity.class)
@@ -31,29 +28,16 @@ public abstract class MixinEntity {
 	@Shadow private World world;
 
 	@Inject(
-		method = "teleportTo",
+		method = "teleportCrossDimension",
 		at = @At(
 			value = "INVOKE",
 			target = "Lnet/minecraft/entity/Entity;removeFromDimension()V"
 		)
 	)
-	public void teleporTo(TeleportTarget teleportTarget, CallbackInfoReturnable<Entity> cir) {
-		onTeleport(teleportTarget.world());
-	}
-
-	@Inject(
-		method = "teleport(Lnet/minecraft/server/world/ServerWorld;DDDLjava/util/Set;FF)Z",
-		at = @At(
-			value = "INVOKE",
-			target = "Lnet/minecraft/entity/Entity;setRemoved(Lnet/minecraft/entity/Entity$RemovalReason;)V"
-		)
-	)
-	public void teleport(ServerWorld world, double destX, double destY, double destZ, Set<PositionFlag> flags, float yaw, float pitch, CallbackInfoReturnable<Boolean> cir) {
-		onTeleport(world);
-	}
-
-	@Unique
-	private void onTeleport(ServerWorld target) {
+	public void teleportTo(
+			ServerWorld target, TeleportTarget teleportTarget,
+			CallbackInfoReturnable<Entity> cir
+	) {
 		if (target.isClient()) return;
 		var data = LootContainerData.getInstance(getServer());
 		data.getLootContainers(getWorld().getRegistryKey(), getUuid()).forEach(container -> {

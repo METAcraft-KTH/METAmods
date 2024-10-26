@@ -28,7 +28,7 @@ public class DamageConfig {
 
 
 			if (entry.startsWith("#")) {
-				Registries.ENTITY_TYPE.getEntryList(TagKey.of(RegistryKeys.ENTITY_TYPE, Identifier.tryParse(entry.substring(1)))).ifPresent(list -> {
+				Registries.ENTITY_TYPE.getOptional(TagKey.of(RegistryKeys.ENTITY_TYPE, Identifier.tryParse(entry.substring(1)))).ifPresent(list -> {
 					list.forEach(entity -> {
 						minecartValues.put(entity.value(), passengerCheck);
 					});

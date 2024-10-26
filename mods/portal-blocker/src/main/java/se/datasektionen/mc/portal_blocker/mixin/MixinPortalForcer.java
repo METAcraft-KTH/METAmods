@@ -29,7 +29,7 @@ public class MixinPortalForcer {
 		at = {
 			@At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/world/border/WorldBorder;clamp(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/util/math/BlockPos;"
+				target = "Lnet/minecraft/world/border/WorldBorder;clampFloored(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/util/math/BlockPos;"
 			)
 		},
 		cancellable = true

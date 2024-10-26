@@ -28,12 +28,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Mo
 	@Shadow @Final public MinecraftServer server;
 
 	@Unique
-	private static final String METACRAFT_MODERATION = "METAcraft-Moderation";
+	private static final String METACRAFT_MODERATION = "METAcraft-Moderation"; //Careful, this is used by the datafixer!
 	@Unique
 	private static final String MODERATION_STATE = "ModerationState";
 
 	@Unique
-	private static final String MODERATOR_MODE_NBT_MAP = "ModeratorModeNBTMap";
+	private static final String MODERATOR_MODE_NBT_MAP = "ModeratorModeNBTMap"; //Careful, this is used by the datafixer!
 
 
 	@Unique

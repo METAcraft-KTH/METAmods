@@ -11,6 +11,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Uuids;
 import net.minecraft.world.PersistentState;
+import se.datasektionen.mc.cutscenes.CutsceneDataFixer;
 import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
 
@@ -31,7 +32,8 @@ public class MultiplayerCutsceneManager extends PersistentState {
 	private static Type<MultiplayerCutsceneManager> getType(MinecraftServer server) {
 		return new Type<>(
 				() -> new MultiplayerCutsceneManager(server),
-				(nbt, lookup) -> MultiplayerCutsceneManager.fromNBT(server, nbt, lookup), null
+				(nbt, lookup) -> MultiplayerCutsceneManager.fromNBT(server, nbt, lookup),
+				CutsceneDataFixer.Types.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
 		);
 	}
 
