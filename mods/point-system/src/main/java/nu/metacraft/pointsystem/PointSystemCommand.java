@@ -16,8 +16,10 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.UserCache;
 
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Comparator;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -157,6 +159,16 @@ public class PointSystemCommand {
                     literal("topplayers")
                         .executes(this::topPlayers)
                 )
+                .then(
+                    literal("sql")
+                        .then(
+                            argument("sql", StringArgumentType.greedyString())
+                                .executes(ctx -> {
+                                    String sql = StringArgumentType.getString(ctx, "sql");
+                                    return this.sql(ctx, sql);
+                                })
+                        )
+                )
         );
     }
 
@@ -181,7 +193,7 @@ public class PointSystemCommand {
                 pointSystem.addPoints(playerUuid, points, minigameId);
                 source.sendMessage(Text.literal("Points added"));
             } catch (SQLException e) {
-                source.sendMessage(Text.literal(e.getMessage()));
+                source.sendError(Text.literal(e.getMessage()));
                 PointSystemMod.LOGGER.error("Failed to add points", e);
             }
         });
@@ -221,6 +233,42 @@ public class PointSystemCommand {
             ctx.getSource().sendMessage(Text.literal(name + ": " + entry.getValue()));
         }
         return 1;
+    }
+
+    private int sql(CommandContext<ServerCommandSource> ctx, String sql) throws CommandSyntaxException {
+        PointSystem pointSystem = getPointSystem(ctx);
+        ServerCommandSource source = ctx.getSource();
+        pointSystem.getExecutor().execute(() -> {
+            try (Statement statement = pointSystem.getDatabaseConnection().createStatement()) {
+                boolean hasResult = statement.execute(sql);
+                if (!hasResult) {
+                    int updateCount = statement.getUpdateCount();
+                    source.sendFeedback(() -> Text.literal(updateCount + " rows updated"), true);
+                } else {
+                    ResultSet resultSet = statement.getResultSet();
+                    ResultSetMetaData metaData = resultSet.getMetaData();
+                    int columnCount = metaData.getColumnCount();
+
+                    // Print column names
+                    StringBuilder header = new StringBuilder();
+                    for (int i = 1; i <= columnCount; i++) {
+                        header.append(metaData.getColumnName(i)).append("    ");
+                    }
+                    source.sendMessage(Text.literal(header.toString()).styled(style -> style.withUnderline(true)));
+                    while (resultSet.next()) {
+                        StringBuilder line = new StringBuilder();
+                        for (int i = 1; i <= columnCount; i++) {
+                            line.append(resultSet.getObject(i)).append("    ");
+                        }
+                        source.sendMessage(Text.literal(line.toString()));
+                    }
+                }
+            } catch (SQLException e) {
+                source.sendError(Text.literal(e.getMessage()));
+                PointSystemMod.LOGGER.error("Failed to execute SQL from player command.", e);
+            }
+        });
+        return 0;
     }
 
 }

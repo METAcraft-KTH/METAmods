@@ -27,11 +27,13 @@ public class PointSystem {
 
     public void shutdown() {
         this.executor.shutdown();
-        PointSystemMod.LOGGER.info("Closing database connection.");
-        try {
-            this.databaseConnection.close();
-        } catch (SQLException e) {
-            PointSystemMod.LOGGER.error("Failed to close database", e);
+        if (this.databaseConnection != null) {
+            PointSystemMod.LOGGER.info("Closing database connection.");
+            try {
+                this.databaseConnection.close();
+            } catch (SQLException e) {
+                PointSystemMod.LOGGER.error("Failed to close database", e);
+            }
         }
     }
 
