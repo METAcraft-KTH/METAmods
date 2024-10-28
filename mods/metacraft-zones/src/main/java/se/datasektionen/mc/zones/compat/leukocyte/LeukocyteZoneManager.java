@@ -70,6 +70,7 @@ public class LeukocyteZoneManager {
 		ZoneShape.REGISTRY.register(METAcraftZones.MODID, ZoneShape.CODEC);
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			var zones = ZoneManager.getInstance(server);
+			zones.fixLeukocyteLoading();
 			var leukocyte = Leukocyte.get(server);
 
 

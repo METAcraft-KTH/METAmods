@@ -152,4 +152,8 @@ public class ZoneManager extends PersistentState {
 		return tag;
 	}
 
+	public void fixLeukocyteLoading() {
+		zones.fixLeukocyteLoading();
+	}
+
 }

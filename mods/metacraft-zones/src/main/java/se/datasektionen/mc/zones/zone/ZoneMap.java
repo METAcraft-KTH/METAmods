@@ -10,13 +10,9 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
-import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 import se.datasektionen.mc.zones.util.LockHelper;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -34,6 +30,8 @@ public class ZoneMap {
 	protected final Runnable markNeedsSave;
 	protected final Consumer<Zone> onAdd;
 	protected final Consumer<Zone> onRemove;
+
+	private final List<Runnable> leukocyteFixes = new ArrayList<>();
 
 	public ZoneMap(Runnable markNeedsSave, Consumer<Zone> onAdd, Consumer<Zone> onRemove) {
 		this.markNeedsSave = markNeedsSave;
@@ -160,13 +158,21 @@ public class ZoneMap {
 			RealZone.fromNBT(server, lookup, ((NbtCompound) element), markNeedsSave, !IsLoaded.LEUKOCYTE.isLoaded()).ifPresentOrElse(
 					this::addZoneInternal, () -> {
 						if (IsLoaded.LEUKOCYTE.isLoaded()) {
-							TaskScheduler.scheduleImmediately(server, () -> {
-								RealZone.fromNBT(server, lookup, ((NbtCompound) element), markNeedsSave, true).ifPresent(this::addZoneInternal);
+							leukocyteFixes.add(() -> {
+								RealZone.fromNBT(server, lookup, ((NbtCompound) element), markNeedsSave, true).ifPresent(zone -> {
+									this.addZoneInternal(zone);
+									zone.fixDimensionLeukocyte();
+								});
 							});
 						}
 					}
 			);
 		}
+	}
+
+	public void fixLeukocyteLoading() {
+		leukocyteFixes.forEach(Runnable::run);
+		leukocyteFixes.clear();
 	}
 
 }

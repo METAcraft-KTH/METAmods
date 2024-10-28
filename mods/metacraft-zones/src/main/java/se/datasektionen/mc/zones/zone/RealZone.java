@@ -283,7 +283,7 @@ public class RealZone extends Zone {
 		}
 	}
 
-	private void fixDimensionLeukocyte() {
+	public void fixDimensionLeukocyte() {
 		if (IsLoaded.LEUKOCYTE.isLoaded()) {
 			LeukocyteZoneManager.updateZoneDimensions(world.getServer(), this);
 		}
