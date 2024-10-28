@@ -168,11 +168,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 
 	public void transferFrom(CutsceneWorld prev) {
 		if (getActualWorld().isRaining() == isRaining()) {
-			createWeatherFixPacket(prev.isRaining(), isRaining(), rainGradient, thunderGradient).ifPresent(packet -> {
-				cutscene.forAllPlayers(p -> {
-					p.networkHandler.sendPacket(packet);
-				});
-			});
+			createWeatherFixPacket(prev.isRaining(), isRaining(), rainGradient, thunderGradient).ifPresent(cutscene::sendToPlayers);
 		}
 	}
 

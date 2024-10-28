@@ -3,6 +3,8 @@ package se.datasektionen.mc.cutscenes.cutscene;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.mojang.datafixers.util.Pair;
+import eu.pb4.polymer.core.api.entity.PolymerEntity;
+import eu.pb4.polymer.core.impl.interfaces.EntityAttachedPacket;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.EntityTrackerEntry;
@@ -69,7 +71,15 @@ public class CutsceneEntityManager {
 			addQueue.add(Pair.of(id, entity));
 			return;
 		}
-		var tracker = new EntityTrackerEntry(world, entity, 1, false, packet -> players.forEach(p -> p.networkHandler.sendPacket(packet)));
+		var tracker = new EntityTrackerEntry(
+				world, entity, 1, false,
+				packet -> {
+					if (entity instanceof PolymerEntity) {
+						EntityAttachedPacket.setIfEmpty(packet, entity);
+					}
+					players.forEach(p -> p.networkHandler.sendPacket(packet));
+				}
+		);
 		if (chunkLoadingManager != null) {
 			chunkLoadingManager.addEntity(entity, tracker);
 		}
