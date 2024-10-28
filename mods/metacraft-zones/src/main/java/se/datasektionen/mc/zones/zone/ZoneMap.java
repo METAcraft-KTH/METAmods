@@ -9,6 +9,8 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
+import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 import se.datasektionen.mc.zones.util.LockHelper;
 
 import java.util.Collection;
@@ -155,7 +157,15 @@ public class ZoneMap {
 			throw new IllegalStateException("NBT type of list must be Compound!");
 		}
 		for (NbtElement element : nbt) {
-			RealZone.fromNBT(server, lookup, ((NbtCompound) element), markNeedsSave).ifPresent(this::addZoneInternal);
+			RealZone.fromNBT(server, lookup, ((NbtCompound) element), markNeedsSave, !IsLoaded.LEUKOCYTE.isLoaded()).ifPresentOrElse(
+					this::addZoneInternal, () -> {
+						if (IsLoaded.LEUKOCYTE.isLoaded()) {
+							TaskScheduler.scheduleImmediately(server, () -> {
+								RealZone.fromNBT(server, lookup, ((NbtCompound) element), markNeedsSave, true).ifPresent(this::addZoneInternal);
+							});
+						}
+					}
+			);
 		}
 	}
 

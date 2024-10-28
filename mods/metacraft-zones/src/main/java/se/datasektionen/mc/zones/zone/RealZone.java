@@ -165,7 +165,8 @@ public class RealZone extends Zone {
 	}
 
 	public static Optional<RealZone> fromNBT(
-			MinecraftServer server, RegistryWrapper.WrapperLookup lookup, NbtCompound nbt, Runnable markNeedsSave
+			MinecraftServer server, RegistryWrapper.WrapperLookup lookup, NbtCompound nbt, Runnable markNeedsSave,
+			boolean printDimensionErrors
 	) {
 		return World.CODEC.parse(NbtOps.INSTANCE, nbt.get(DIM)).resultOrPartial(
 				METAcraftZones.LOGGER::error
@@ -173,7 +174,9 @@ public class RealZone extends Zone {
 			var name = nbt.getString(NAME);
 			World world = server.getWorld(dim);
 			if (world == null) {
-				METAcraftZones.LOGGER.error("Root dimension invalid, deleting zone " + name);
+				if (printDimensionErrors) {
+					METAcraftZones.LOGGER.error("Root dimension invalid, deleting zone " + name);
+				}
 				return Optional.empty();
 			}
 			var zone = ZoneType.REGISTRY_CODEC.parse(lookup.getOps(NbtOps.INSTANCE), nbt.get(ZONE)).resultOrPartial(
