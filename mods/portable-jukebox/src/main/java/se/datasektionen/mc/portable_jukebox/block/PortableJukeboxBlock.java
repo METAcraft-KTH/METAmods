@@ -12,12 +12,16 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.ItemScatterer;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_lib.util.EntityRef;
 import se.datasektionen.mc.portable_jukebox.item.PortableJukeboxItem;
 import se.datasektionen.mc.portable_jukebox.entity.PortableJukeboxEntity;
 import se.datasektionen.mc.portable_jukebox.gui.PortableJukeboxGui;
+import se.datasektionen.mc.portable_jukebox.mixin.AccessorSkullBlock;
 
 public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHeadBlock {
 
@@ -36,6 +40,16 @@ public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHead
 	public String getPolymerSkinValue(BlockState state, BlockPos pos, ServerPlayerEntity player) {
 		//From: https://minecraft-heads.com/player-heads/head/3645-jukebox
 		return "ewogICJ0aW1lc3RhbXAiIDogMTcxODc5MzE5MzU4NiwKICAicHJvZmlsZUlkIiA6ICIxZjA1NGRlNDgwZmI0NjA0OWE0N2NlMmNiYWE0MjJkMiIsCiAgInByb2ZpbGVOYW1lIiA6ICJQaW5nUG9uZ0RlbGF5IiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2JhZGU4ZjJiYjBhZDVjZDlmNWY5MGRjY2JjYTZlYmU3ZmEzZjk4YTU1OTgyMmNkMGIwNDQ1YzVjNzcyZGJiYTciCiAgICB9CiAgfQp9";
+	}
+
+	@Override
+	protected VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+		return AccessorSkullBlock.getShape();
+	}
+
+	@Override
+	protected VoxelShape getCullingShape(BlockState state, BlockView world, BlockPos pos) {
+		return VoxelShapes.empty();
 	}
 
 	@Override

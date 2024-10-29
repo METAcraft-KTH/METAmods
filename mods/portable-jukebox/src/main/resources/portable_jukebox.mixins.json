@@ -8,6 +8,7 @@
 		"AccessorDoubleInventory",
 		"AccessorEnderChestInventory",
 		"AccessorSimpleInventory",
+		"AccessorSkullBlock",
 		"MixinArmorStandEntity",
 		"MixinBlockEntity",
 		"MixinBlockItem",
