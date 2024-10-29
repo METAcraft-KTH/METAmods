@@ -8,11 +8,14 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
-import net.minecraft.command.argument.EntityArgumentType;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import net.minecraft.command.argument.ScoreHolderArgumentType;
 import net.minecraft.command.argument.UuidArgumentType;
+import net.minecraft.entity.Entity;
+import net.minecraft.scoreboard.ScoreHolder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.UserCache;
 
@@ -24,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -87,50 +91,18 @@ public class PointSystemCommand {
                 .then(
                     literal("addpoints")
                         .then(
-                            literal("player")
+                            argument("player", ScoreHolderArgumentType.scoreHolder())
                                 .then(
-                                    argument("player", EntityArgumentType.player())
+                                    argument("points", IntegerArgumentType.integer())
                                         .then(
-                                            argument("points", IntegerArgumentType.integer())
-                                                .then(
-                                                    argument("minigame_id", IntegerArgumentType.integer())
-                                                        .executes(ctx -> {
-                                                            ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
-                                                            int points = IntegerArgumentType.getInteger(ctx, "points");
-                                                            int minigameId = IntegerArgumentType.getInteger(ctx, "minigame_id");
-                                                            return addPoints(ctx, player.getUuid(), points, minigameId);
-                                                        })
-                                                )
-                                        )
-
-                                )
-
-                        )
-                        .then(
-                            literal("name")
-                                .then(
-                                    argument("playername", StringArgumentType.word())
-                                        .then(
-                                            argument("points", IntegerArgumentType.integer())
-                                                .then(
-                                                    argument("minigame_id", IntegerArgumentType.integer())
-                                                        .executes(ctx -> {
-                                                            String playerName = StringArgumentType.getString(ctx, "playername");
-                                                            MinecraftServer server = ctx.getSource().getServer();
-                                                            UserCache userCache = server.getUserCache();
-                                                            if (userCache == null) {
-                                                                throw PLAYER_NOT_FOUND.create(playerName);
-                                                            }
-                                                            Optional<GameProfile> profile = userCache.findByName(playerName);
-                                                            if (profile.isEmpty()) {
-                                                                throw PLAYER_NOT_FOUND.create(playerName);
-                                                            }
-                                                            UUID uuid = profile.get().getId();
-                                                            int points = IntegerArgumentType.getInteger(ctx, "points");
-                                                            int minigameId = IntegerArgumentType.getInteger(ctx, "minigame_id");
-                                                            return addPoints(ctx, uuid, points, minigameId);
-                                                        })
-                                                )
+                                            argument("minigame_id", IntegerArgumentType.integer())
+                                                .executes(ctx -> {
+                                                    ScoreHolder player = ScoreHolderArgumentType.getScoreHolder(ctx, "player");
+                                                    UUID playerUuid = getUuid(ctx, player);
+                                                    int points = IntegerArgumentType.getInteger(ctx, "points");
+                                                    int minigameId = IntegerArgumentType.getInteger(ctx, "minigame_id");
+                                                    return addPoints(ctx, playerUuid, points, minigameId);
+                                                })
                                         )
                                 )
                         )
@@ -169,7 +141,85 @@ public class PointSystemCommand {
                                 })
                         )
                 )
+                .then(
+                    literal("renderTeamPoints")
+                        .executes(this::renderTeamPoints)
+                )
+                .then(
+                    literal("team")
+                        .then(
+                            literal("add")
+                                .then(
+                                    argument("type", StringArgumentType.word())
+                                        .suggests(this::suggestTeamType)
+                                        .then(
+                                            argument("code", StringArgumentType.word())
+                                                .then(
+                                                    argument("short_name", StringArgumentType.string())
+                                                        .executes(ctx -> {
+                                                            String type = StringArgumentType.getString(ctx, "type");
+                                                            String code = StringArgumentType.getString(ctx, "code");
+                                                            String shortName = StringArgumentType.getString(ctx, "short_name");
+                                                            return this.addTeam(ctx, type, code, shortName, null);
+                                                        })
+                                                        .then(
+                                                            argument("full_name", StringArgumentType.string())
+                                                                .executes(ctx -> {
+                                                                    String type = StringArgumentType.getString(ctx, "type");
+                                                                    String code = StringArgumentType.getString(ctx, "code");
+                                                                    String shortName = StringArgumentType.getString(ctx, "short_name");
+                                                                    String fullName = StringArgumentType.getString(ctx, "full_name");
+                                                                    return this.addTeam(ctx, type, code, shortName, fullName);
+                                                                })
+                                                        )
+                                                )
+                                        )
+                                )
+                        )
+                        .then(
+                            literal("join")
+                                .then(
+                                    literal("only")
+                                        .then(
+                                            argument("player", ScoreHolderArgumentType.scoreHolder())
+                                                .then(
+                                                    argument("teams", StringArgumentType.greedyString())
+                                                        .executes(ctx -> {
+                                                            ScoreHolder player = ScoreHolderArgumentType.getScoreHolder(ctx, "player");
+                                                            UUID playerUuid = getUuid(ctx, player);
+                                                            String input = StringArgumentType.getString(ctx, "teams");
+
+                                                            return this.joinOnlyTeams(ctx, playerUuid, input);
+                                                        })
+                                                )
+                                        )
+                                )
+                        )
+                )
         );
+    }
+
+    private UUID getUuid(CommandContext<ServerCommandSource> ctx, ScoreHolder player) throws CommandSyntaxException {
+        if (player instanceof Entity entity) {
+            return entity.getUuid();
+        }
+        String string = player.getNameForScoreboard();
+        if (string.length() > 16) {
+            try {
+                return UUID.fromString(string);
+            } catch (IllegalArgumentException e) {
+                // continue
+            }
+        }
+        UserCache userCache = ctx.getSource().getServer().getUserCache();
+        if (userCache == null) {
+            throw PLAYER_NOT_FOUND.create(string);
+        }
+        Optional<GameProfile> profile = userCache.findByName(string);
+        if (profile.isEmpty()) {
+            throw PLAYER_NOT_FOUND.create(string);
+        }
+        return profile.get().getId();
     }
 
     private PointSystem getPointSystem(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
@@ -178,6 +228,12 @@ public class PointSystemCommand {
             return pointSystem;
         }
         throw NO_POINT_SYSTEM.create();
+    }
+
+    private CompletableFuture<Suggestions> suggestTeamType(CommandContext<ServerCommandSource> ctx, SuggestionsBuilder builder) {
+        builder.suggest("uni");
+        builder.suggest("city");
+        return builder.buildFuture();
     }
 
     private int reload(CommandContext<ServerCommandSource> ctx) {
@@ -268,7 +324,54 @@ public class PointSystemCommand {
                 PointSystemMod.LOGGER.error("Failed to execute SQL from player command.", e);
             }
         });
-        return 0;
+        return 1;
     }
 
+    private int renderTeamPoints(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        PointSystem pointSystem = getPointSystem(ctx);
+        ServerCommandSource source = ctx.getSource();
+        source.sendMessage(Text.literal("Scheduling team render..."));
+        pointSystem.getExecutor().execute(() -> {
+            try {
+                pointSystem.renderTeamPoints();
+                source.sendMessage(Text.literal("Team points render complete"));
+            } catch (SQLException e) {
+                source.sendError(Text.literal(e.getMessage()));
+                PointSystemMod.LOGGER.error("Failed to render team points", e);
+            }
+        });
+        return 1;
+    }
+
+    private int addTeam(CommandContext<ServerCommandSource> ctx, String type, String code, String shortName, String fullName) throws CommandSyntaxException {
+        PointSystem pointSystem = getPointSystem(ctx);
+        ServerCommandSource source = ctx.getSource();
+        source.sendMessage(Text.literal("Sending to database..."));
+        pointSystem.getExecutor().execute(() -> {
+            try {
+                pointSystem.addTeam(type, code, shortName, fullName);
+            } catch (SQLException e) {
+                source.sendError(Text.literal(e.getMessage()));
+                PointSystemMod.LOGGER.error("Failed to add team", e);
+            }
+        });
+        return 1;
+    }
+
+    private int joinOnlyTeams(CommandContext<ServerCommandSource> ctx, UUID playerUuid, String input) throws CommandSyntaxException {
+        String[] codes = input.split(" ");
+
+        PointSystem pointSystem = getPointSystem(ctx);
+        ServerCommandSource source = ctx.getSource();
+        source.sendMessage(Text.literal("Sending to database..."));
+        pointSystem.getExecutor().execute(() -> {
+            try {
+                pointSystem.joinOnlyTeams(playerUuid, codes);
+            } catch (SQLException e) {
+                source.sendError(Text.literal(e.getMessage()));
+                PointSystemMod.LOGGER.error("Failed to add team", e);
+            }
+        });
+        return 1;
+    }
 }
