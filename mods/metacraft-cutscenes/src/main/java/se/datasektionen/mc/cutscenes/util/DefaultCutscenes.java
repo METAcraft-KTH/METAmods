@@ -49,7 +49,7 @@ public class DefaultCutscenes {
 				new IntervalMap.Interval<>(
 						100, 200, new LookAt(
 								new CutsceneRef("creeper"), new AtEntityRef(new CutsceneRef("zombie"), Vec3d.ZERO, Vec3d.ZERO, true),
-								Optional.empty(), Optional.empty()
+								Optional.empty(), Optional.empty(), true
 						)
 				),
 				new IntervalMap.Interval<>(

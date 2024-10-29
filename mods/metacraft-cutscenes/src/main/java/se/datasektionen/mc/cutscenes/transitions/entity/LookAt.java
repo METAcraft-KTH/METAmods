@@ -1,5 +1,6 @@
 package se.datasektionen.mc.cutscenes.transitions.entity;
 
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.command.argument.EntityAnchorArgumentType;
@@ -27,7 +28,8 @@ public class LookAt implements Transition, TransitionConfig {
 					EntityRefRegistry.CODEC.fieldOf("entity").forGetter(t -> t.entity),
 					PositionRefRegistry.CODEC.fieldOf("target").forGetter(t -> t.target),
 					Codecs.POSITIVE_FLOAT.optionalFieldOf("max_yaw_change").forGetter(t -> t.maxYawChange),
-					Codecs.POSITIVE_FLOAT.optionalFieldOf("max_pitch_change").forGetter(t -> t.maxPitchChange)
+					Codecs.POSITIVE_FLOAT.optionalFieldOf("max_pitch_change").forGetter(t -> t.maxPitchChange),
+					Codec.BOOL.optionalFieldOf("update_body_yaw", true).forGetter(t -> t.updateBodyYaw)
 			).apply(instance, LookAt::new)
 	);
 
@@ -35,12 +37,14 @@ public class LookAt implements Transition, TransitionConfig {
 	private final PositionRef target;
 	private final Optional<Float> maxYawChange;
 	private final Optional<Float> maxPitchChange;
+	private final boolean updateBodyYaw;
 
-	public LookAt(EntityRef entity, PositionRef target, Optional<Float> maxYawChange, Optional<Float> maxPitchChange) {
+	public LookAt(EntityRef entity, PositionRef target, Optional<Float> maxYawChange, Optional<Float> maxPitchChange, boolean updateBodyYaw) {
 		this.entity = entity;
 		this.target = target;
 		this.maxYawChange = maxYawChange;
 		this.maxPitchChange = maxPitchChange;
+		this.updateBodyYaw = updateBodyYaw;
 	}
 
 	@Override
@@ -55,9 +59,12 @@ public class LookAt implements Transition, TransitionConfig {
 				if (entity instanceof MobEntity mob) {
 					mob.getLookControl().lookAt(
 							target.getX(), target.getY(), target.getZ(),
-							maxYawChange.orElse((float) mob.getMaxLookYawChange()),
+							this.maxYawChange.orElse((float) mob.getMaxLookYawChange()),
 							maxPitchChange.orElse((float) mob.getMaxLookPitchChange())
 					);
+					if (updateBodyYaw) {
+						mob.setYaw(mob.getHeadYaw());
+					}
 				} else {
 					entity.lookAt(EntityAnchorArgumentType.EntityAnchor.EYES, target);
 				}
