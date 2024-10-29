@@ -2,8 +2,7 @@ package se.datasektionen.mc.cutscenes;
 
 import com.chocohead.mm.api.ClassTinkerers;
 import com.mojang.datafixers.DSL;
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.MappingResolver;
+import se.datasektionen.mc.metacraft_lib.util.EarlyClassNames;
 
 public class CutsceneEnums implements Runnable {
 
@@ -11,13 +10,8 @@ public class CutsceneEnums implements Runnable {
 
 	@Override
 	public void run() {
-		MappingResolver remapper = FabricLoader.getInstance().getMappingResolver();
-
 		ClassTinkerers.enumBuilder(
-				remapper.mapClassName(
-						"named",
-						"net.minecraft.datafixer.DataFixTypes"
-				),
+				EarlyClassNames.DATA_FIX_TYPES,
 				DSL.TypeReference.class
 		).addEnum(
 				SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER,
