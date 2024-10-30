@@ -277,7 +277,7 @@ public class PortalBlockObject implements BaseBlock {
 		var cache = new CachedBlockPosition(world, pos, false);
 		return Optional.ofNullable(BLOCK_CACHE.row(world.getRegistryKey()).computeIfAbsent(state, e -> {
 			return BLOCKS.stream().filter(block -> block.isValidWorld(world) && block.getBlockActivator().map(
-					activator -> activator.test(cache)
+					activator -> world.isChunkLoaded(pos) && activator.test(cache)
 			).orElse(false)).findFirst().orElse(null);
 		}));
 	}
