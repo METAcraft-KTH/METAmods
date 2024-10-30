@@ -24,6 +24,11 @@ public class TransitionRegistry {
 			"moving", MovingTransition.CODEC
 	);
 
+	public static final TransitionType<SmoothCameraPathTransition> CAMERAE_PATH = register(
+			"camera_path", SmoothCameraPathTransition.CODEC
+	);
+
+
 	public static final TransitionType<TeleportTransition> TELEPORT_TRANSITION = register(
 			"teleport", TeleportTransition.CODEC
 	);
