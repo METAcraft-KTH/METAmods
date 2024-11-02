@@ -1,0 +1,1 @@
+SELECT player_uuid, SUM(points) AS total_points FROM points GROUP BY player_uuid ORDER BY total_points LIMIT ?

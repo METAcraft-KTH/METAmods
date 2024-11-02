@@ -11,14 +11,17 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.command.argument.ScoreHolderArgumentType;
-import net.minecraft.command.argument.UuidArgumentType;
 import net.minecraft.entity.Entity;
+import net.minecraft.scoreboard.ReadableScoreboardScore;
 import net.minecraft.scoreboard.ScoreHolder;
+import net.minecraft.scoreboard.ScoreboardObjective;
+import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.UserCache;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -94,6 +97,13 @@ public class PointSystemCommand {
                             argument("player", ScoreHolderArgumentType.scoreHolder())
                                 .then(
                                     argument("points", IntegerArgumentType.integer())
+                                        .executes(ctx -> {
+                                            ScoreHolder player = ScoreHolderArgumentType.getScoreHolder(ctx, "player");
+                                            UUID playerUuid = getUuid(ctx, player);
+                                            int points = IntegerArgumentType.getInteger(ctx, "points");
+                                            int minigameId = getCurrentMinigameId(ctx);
+                                            return addPoints(ctx, playerUuid, points, minigameId);
+                                        })
                                         .then(
                                             argument("minigame_id", IntegerArgumentType.integer())
                                                 .executes(ctx -> {
@@ -105,26 +115,6 @@ public class PointSystemCommand {
                                                 })
                                         )
                                 )
-                        )
-                        .then(
-                            literal("uuid")
-                                .then(
-                                    argument("playeruuid", UuidArgumentType.uuid())
-                                        .then(
-                                            argument("points", IntegerArgumentType.integer())
-                                                .then(
-                                                    argument("minigame_id", IntegerArgumentType.integer())
-                                                        .executes(ctx -> {
-                                                            UUID uuid = UuidArgumentType.getUuid(ctx, "playeruuid");
-                                                            int points = IntegerArgumentType.getInteger(ctx, "points");
-                                                            int minigameId = IntegerArgumentType.getInteger(ctx, "minigame_id");
-                                                            return addPoints(ctx, uuid, points, minigameId);
-                                                        })
-                                                )
-                                        )
-
-                                )
-
                         )
                 )
                 .then(
@@ -142,8 +132,8 @@ public class PointSystemCommand {
                         )
                 )
                 .then(
-                    literal("renderTeamPoints")
-                        .executes(this::renderTeamPoints)
+                    literal("renderAll")
+                        .executes(this::renderAll)
                 )
                 .then(
                     literal("team")
@@ -230,13 +220,37 @@ public class PointSystemCommand {
         throw NO_POINT_SYSTEM.create();
     }
 
+    private int getCurrentMinigameId(CommandContext<ServerCommandSource> ctx) {
+        MinecraftServer server = ctx.getSource().getServer();
+        ServerScoreboard scoreboard = server.getScoreboard();
+        ScoreboardObjective objective = scoreboard.getNullableObjective("GLOBAL");
+        if (objective == null) {
+            return -1;
+        }
+        ScoreHolder scoreHolder = ScoreHolder.fromName("game.id");
+        ReadableScoreboardScore score = scoreboard.getScore(scoreHolder, objective);
+        if (score == null) {
+            return -1;
+        }
+        return score.getScore();
+    }
+
     private CompletableFuture<Suggestions> suggestTeamType(CommandContext<ServerCommandSource> ctx, SuggestionsBuilder builder) {
         builder.suggest("uni");
         builder.suggest("city");
         return builder.buildFuture();
     }
 
-    private int reload(CommandContext<ServerCommandSource> ctx) {
+    private int reload(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        PointSystem pointSystem = getPointSystem(ctx);
+        ServerCommandSource source = ctx.getSource();
+        try {
+            pointSystem.loadConfig();
+            source.sendFeedback(() -> Text.literal("Point system config and SQL queries reloaded."), true);
+        } catch (IOException e) {
+            source.sendError(Text.literal(e.getMessage()));
+            PointSystemMod.LOGGER.error("Failed to load config", e);
+        }
         return 1;
     }
 
@@ -327,17 +341,16 @@ public class PointSystemCommand {
         return 1;
     }
 
-    private int renderTeamPoints(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+    private int renderAll(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
         ServerCommandSource source = ctx.getSource();
-        source.sendMessage(Text.literal("Scheduling team render..."));
+        source.sendMessage(Text.literal("Scheduling render..."));
         pointSystem.getExecutor().execute(() -> {
             try {
-                pointSystem.renderTeamPoints();
-                source.sendMessage(Text.literal("Team points render complete"));
+                pointSystem.renderAll();
             } catch (SQLException e) {
                 source.sendError(Text.literal(e.getMessage()));
-                PointSystemMod.LOGGER.error("Failed to render team points", e);
+                PointSystemMod.LOGGER.error("Failed to render points", e);
             }
         });
         return 1;

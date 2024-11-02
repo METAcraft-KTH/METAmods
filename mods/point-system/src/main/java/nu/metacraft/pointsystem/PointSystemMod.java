@@ -7,6 +7,8 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 
+import java.io.IOException;
+
 public class PointSystemMod implements ModInitializer {
     public static final Logger LOGGER = LogUtils.getLogger();
     private PointSystem pointSystem;
@@ -18,6 +20,11 @@ public class PointSystemMod implements ModInitializer {
         }));
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             pointSystem = new PointSystem(server);
+            try {
+                pointSystem.loadConfig();
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to load config.", e);
+            }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             if (pointSystem != null) {

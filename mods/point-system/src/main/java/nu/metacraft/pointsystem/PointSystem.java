@@ -1,13 +1,24 @@
 package nu.metacraft.pointsystem;
 
+import com.mojang.authlib.GameProfile;
 import net.minecraft.scoreboard.ScoreAccess;
 import net.minecraft.scoreboard.ScoreHolder;
 import net.minecraft.scoreboard.ScoreboardCriterion;
 import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.ServerScoreboard;
+import net.minecraft.scoreboard.number.BlankNumberFormat;
+import net.minecraft.scoreboard.number.FixedNumberFormat;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.UserCache;
+import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -18,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -28,10 +40,17 @@ public class PointSystem {
     // We choose f=5 because they do the same.
     public static final double F = 5;
     public static final double F_INV = 1 / F;
+    public static final String TEAM_POINTS_OBJECTIVE = "pointsystem_team_points";
+    public static final String TEAM_POINTS_MINIGAME_OBJECTIVE_PREFIX = "pointsystem_team_points_minigame_";
+    public static final String PLAYER_POINTS_OBJECTIVE = "pointsystem_player_points";
+    public static final String PLAYER_POINTS_MINIGAME_OBJECTIVE_PREFIX = "pointsystem_player_points_minigame_";
+    public static final String COMBINED_POINTS_OBJECTIVE = "pointsystem_combined_points";
+    public static final String COMBINED_POINTS_MINIGAME_OBJECTIVE_PREFIX = "pointsystem_combined_points_minigame_";
 
     private final MinecraftServer server;
     private final ExecutorService executor;
     private Connection databaseConnection;
+    private Config config;
 
     public PointSystem(MinecraftServer server) {
         this.server = server;
@@ -56,6 +75,17 @@ public class PointSystem {
 
     public Executor getExecutor() {
         return this.executor;
+    }
+
+    public SqlQueries getSql() {
+        return this.config.getSqlQueries();
+    }
+
+    public void loadConfig() throws IOException {
+        Path sqlFolder = Path.of("config/point-system/sql");
+        Files.createDirectories(sqlFolder);
+        Path configFilePath = Path.of("config/point-system/config.json");
+        this.config = new Config(configFilePath, sqlFolder);
     }
 
     /**
@@ -111,12 +141,30 @@ public class PointSystem {
     }
 
     public Map<UUID, Integer> getPlayerPoints(int max) throws SQLException {
-        String sql = "SELECT player_uuid, SUM(points) AS total_points FROM points GROUP BY player_uuid ORDER BY total_points LIMIT ?";
+        return getPlayerPoints(max, null);
+    }
+
+    public Map<UUID, Integer> getPlayerPointsByMinigame(int max, int minigameId) throws SQLException {
+        return getPlayerPoints(max, minigameId);
+    }
+
+    private Map<UUID, Integer> getPlayerPoints(int max, @Nullable Integer minigameId) throws SQLException {
+        String sql;
+        if (minigameId != null) {
+            sql = getSql().getPlayerPointsByMinigame;
+        } else {
+            sql = getSql().getPlayerPoints;
+        }
         try (PreparedStatement statement = getDatabaseConnection().prepareStatement(sql)) {
             if (max <= 0) {
                 max = 10000;
             }
-            statement.setInt(1, max);
+            if (minigameId != null) {
+                statement.setInt(1, minigameId);
+                statement.setInt(2, max);
+            } else {
+                statement.setInt(1, max);
+            }
 
             ResultSet res = statement.executeQuery();
 
@@ -135,9 +183,7 @@ public class PointSystem {
     }
 
     public void addPoints(UUID playerUuid, int points, int minigameId) throws SQLException {
-        String sql = """
-            INSERT INTO points (player_uuid, points, minigame_id) VALUES (?, ?, ?)
-            """;
+        String sql = getSql().addPoints;
         try (PreparedStatement statement = getDatabaseConnection().prepareStatement(sql)) {
             statement.setString(1, playerUuid.toString());
             statement.setInt(2, points);
@@ -146,26 +192,26 @@ public class PointSystem {
         }
     }
 
-    /**
-     * Get team points.
-     *
-     * @return A map of (team id -> points).
-     * @throws SQLException If an SQL error occurs.
-     */
     public Map<Integer, Integer> getTeamPoints() throws SQLException {
-        String sql = """
-            SELECT
-                points.player_uuid, team_id, SUM(points) AS total_points
-            FROM points
-            JOIN player_teams
-                ON player_teams.player_uuid = points.player_uuid
-            GROUP BY
-                points.player_uuid, team_id
-            ORDER BY
-                team_id, total_points DESC
-            """;
-        try (Statement statement = getDatabaseConnection().createStatement()) {
-            ResultSet res = statement.executeQuery(sql);
+        return this.getTeamPoints(null);
+    }
+
+    public Map<Integer, Integer> getTeamPointsByMinigame(int minigameId) throws SQLException {
+        return this.getTeamPoints(minigameId);
+    }
+
+    private Map<Integer, Integer> getTeamPoints(@Nullable Integer minigameId) throws SQLException {
+        String sql;
+        if (minigameId == null) {
+            sql = getSql().getTeamPoints;
+        } else {
+            sql = getSql().getTeamPointsByMinigame;
+        }
+        try (PreparedStatement statement = getDatabaseConnection().prepareStatement(sql)) {
+            if (minigameId != null) {
+                statement.setInt(1, minigameId);
+            }
+            ResultSet res = statement.executeQuery();
 
             record PlayerPoints(UUID playerUuid, int points) {}
 
@@ -206,6 +252,18 @@ public class PointSystem {
         }
     }
 
+    public Points getTotalPoints(int max) throws SQLException {
+        Map<Integer, Integer> teamPoints = getTeamPoints();
+        Map<UUID, Integer> playerPoints = getPlayerPoints(max);
+        return new Points(teamPoints, playerPoints);
+    }
+
+    public Points getPointsByMinigame(int max, int minigameId) throws SQLException {
+        Map<Integer, Integer> teamPoints = getTeamPointsByMinigame(minigameId);
+        Map<UUID, Integer> playerPoints = getPlayerPointsByMinigame(max, minigameId);
+        return new Points(teamPoints, playerPoints);
+    }
+
     private ScoreboardObjective getOrCreateObjective(String name) {
         ServerScoreboard scoreboard = this.server.getScoreboard();
         ScoreboardObjective objective = scoreboard.getNullableObjective(name);
@@ -222,27 +280,36 @@ public class PointSystem {
         );
     }
 
-    public void renderTeamPoints() throws SQLException {
-        Map<Integer, Integer> teamPoints = getTeamPoints();
+    private List<Integer> getMinigameIds() throws SQLException {
+        String sql = getSql().getMinigameIds;
+        List<Integer> minigameIds = new ArrayList<>();
+        Connection connection = getDatabaseConnection();
+        try (Statement statement = connection.createStatement()) {
+            ResultSet res = statement.executeQuery(sql);
+            while (res.next()) {
+                minigameIds.add(res.getInt(1));
+            }
+        }
+        return minigameIds;
+    }
 
-        ServerScoreboard scoreboard = this.server.getScoreboard();
-        ScoreboardObjective objective = this.getOrCreateObjective("pointsystem_team_points");
+    private Map<Integer, PointTeam> getTeams() throws SQLException {
+        Map<Integer, PointTeam> teams = new HashMap<>();
 
-        String sql = "SELECT id, code, short_name FROM teams";
+        String sql = "SELECT id, code, short_name, full_name FROM teams";
         try (Statement statement = getDatabaseConnection().createStatement()) {
             ResultSet res = statement.executeQuery(sql);
             while (res.next()) {
                 int teamId = res.getInt("id");
                 String code = res.getString("code");
                 String shortName = res.getString("short_name");
-                int points = teamPoints.getOrDefault(teamId, 0);
+                String fullName = res.getString("full_name");
 
-                ScoreAccess score = scoreboard.getOrCreateScore(ScoreHolder.fromName(code), objective);
-                score.setScore(points);
-                score.setDisplayText(Text.literal(shortName));
-
+                PointTeam pointTeam = new PointTeam(teamId, code, shortName, fullName);
+                teams.put(teamId, pointTeam);
             }
         }
+        return teams;
     }
 
     public void addTeam(String type, String code, String shortName, String fullName) throws SQLException {
@@ -281,5 +348,140 @@ public class PointSystem {
                 statement.executeUpdate();
             }
         }
+    }
+
+    private void renderTeamPoints(Map<Integer, PointTeam> teams, Map<Integer, Integer> teamPoints, String objectiveName) {
+        ServerScoreboard scoreboard = this.server.getScoreboard();
+        ScoreboardObjective objective = this.getOrCreateObjective(objectiveName);
+
+        for (Map.Entry<Integer, PointTeam> entry : teams.entrySet()) {
+            PointTeam team = entry.getValue();
+            int points = teamPoints.getOrDefault(team.id(), 0);
+
+            ScoreAccess score = scoreboard.getOrCreateScore(ScoreHolder.fromName(team.code()), objective);
+            score.setScore(points);
+            score.setDisplayText(Text.literal(team.shortName()));
+        }
+    }
+
+    private ScoreHolder getPlayerScoreHolder(UUID uuid) {
+        UserCache userCache = this.server.getUserCache();
+        ServerPlayerEntity player = this.server.getPlayerManager().getPlayer(uuid);
+        if (player != null) {
+            return player;
+        }
+        if (userCache != null) {
+            Optional<GameProfile> opt = userCache.getByUuid(uuid);
+            if (opt.isPresent()) {
+                return ScoreHolder.fromProfile(opt.get());
+            }
+        }
+        return ScoreHolder.fromName(uuid.toString()); // worst case
+    }
+
+    private void renderPlayerPoints(Map<UUID, Integer> playerPoints, String objectiveName) {
+        ServerScoreboard scoreboard = this.server.getScoreboard();
+        ScoreboardObjective objective = this.getOrCreateObjective(objectiveName);
+
+        for (Map.Entry<UUID, Integer> entry : playerPoints.entrySet()) {
+            UUID playerUuid = entry.getKey();
+             int points = entry.getValue();
+
+            ScoreHolder scoreHolder = getPlayerScoreHolder(playerUuid);
+            ScoreAccess score = scoreboard.getOrCreateScore(scoreHolder, objective);
+            score.setScore(points);
+        }
+    }
+
+    private void setScoreLine(int line, Text name, int points, ServerScoreboard scoreboard, ScoreboardObjective objective) {
+        ScoreHolder scoreHolder = ScoreHolder.fromName("LINE_" + line);
+        ScoreAccess score = scoreboard.getOrCreateScore(scoreHolder, objective);
+        score.setScore(100 - line);
+        score.setDisplayText(name);
+        MutableText numberText = Text.literal(String.valueOf(points)).styled(style -> style.withColor(Formatting.RED));
+        score.setNumberFormat(new FixedNumberFormat(numberText));
+    }
+
+    private void setTextLine(int line, Text text, ServerScoreboard scoreboard, ScoreboardObjective objective) {
+        ScoreHolder scoreHolder = ScoreHolder.fromName("LINE_" + line);
+        ScoreAccess score = scoreboard.getOrCreateScore(scoreHolder, objective);
+        score.setScore(100 - line);
+        score.setDisplayText(text);
+        score.setNumberFormat(BlankNumberFormat.INSTANCE);
+    }
+
+    private void renderCombinedPoints(Map<Integer, PointTeam> teams, Points points, String objectiveName) {
+        ServerScoreboard scoreboard = this.server.getScoreboard();
+        ScoreboardObjective objective = this.getOrCreateObjective(objectiveName);
+
+        setTextLine(0, this.config.universityScoreText, scoreboard, objective);
+
+        List<Integer> topTeams = points.teamPoints().entrySet()
+            .stream()
+            .sorted((a, b) -> b.getValue().compareTo(a.getValue())) // Sort by points descending
+            .map(Map.Entry::getKey)
+            .toList();
+
+        for (int i = 0; i < 5; i++) {
+            int lineNr = i + 1;
+            if (topTeams.size() <= i) {
+                setTextLine(lineNr, Text.empty(), scoreboard, objective);
+                continue;
+            }
+            int teamId = topTeams.get(i);
+            PointTeam team = teams.get(teamId);
+            int teamPoints = points.teamPoints().get(teamId);
+            setScoreLine(lineNr, Text.literal(team.shortName()), teamPoints, scoreboard, objective);
+        }
+
+        setTextLine(6, Text.empty(), scoreboard, objective);
+        setTextLine(7, this.config.topPlayersText, scoreboard, objective);
+
+        List<UUID> topPlayers = points.playerPoints().entrySet()
+            .stream()
+            .sorted((a, b) -> b.getValue().compareTo(a.getValue())) // Sort by points descending
+            .map(Map.Entry::getKey)
+            .toList();
+
+        for (int i = 0; i < 5; i++) {
+            int lineNr = i + 8;
+            if (topPlayers.size() <= i) {
+                setTextLine(lineNr, Text.empty(), scoreboard, objective);
+                continue;
+            }
+            UUID playerUuid = topPlayers.get(i);
+            int playerPoints = points.playerPoints().get(playerUuid);
+            ScoreHolder scoreHolder = getPlayerScoreHolder(playerUuid);
+            setScoreLine(lineNr, scoreHolder.getStyledDisplayName(), playerPoints, scoreboard, objective);
+        }
+    }
+
+    public void renderAll() throws SQLException {
+        Map<Integer, PointTeam> teams = getTeams();
+        List<Integer> minigameIds = getMinigameIds();
+
+        Points totalPoints = getTotalPoints(20);
+        Map<Integer, Points> pointsByMinigame = new HashMap<>();
+
+        for (int minigameId : minigameIds) {
+            Map<Integer, Integer> teamPoints = getTeamPointsByMinigame(minigameId);
+            Map<UUID, Integer> playerPoints = getPlayerPointsByMinigame(20, minigameId);
+            pointsByMinigame.put(minigameId, new Points(teamPoints, playerPoints));
+        }
+
+        this.server.executeSync(() -> {
+            renderTeamPoints(teams, totalPoints.teamPoints(), TEAM_POINTS_OBJECTIVE);
+            renderPlayerPoints(totalPoints.playerPoints(), PLAYER_POINTS_OBJECTIVE);
+            renderCombinedPoints(teams, totalPoints, COMBINED_POINTS_OBJECTIVE);
+
+            for (Map.Entry<Integer, Points> entry : pointsByMinigame.entrySet()) {
+                int minigameId = entry.getKey();
+                Points points = entry.getValue();
+
+                renderTeamPoints(teams, points.teamPoints(), TEAM_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
+                renderPlayerPoints(points.playerPoints(), PLAYER_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
+                renderCombinedPoints(teams, points, COMBINED_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
+            }
+        });
     }
 }
