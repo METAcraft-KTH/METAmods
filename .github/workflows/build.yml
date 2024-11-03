@@ -44,7 +44,7 @@ jobs:
   deploy:
     runs-on: ubuntu-22.04
     needs: build
-    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/prod'
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/prod'  || github.ref == 'refs/heads/cclan'
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -69,6 +69,17 @@ jobs:
           server: mc.datasektionen.se
           port: 2022
           username: github-actions.604966da
+          password: ${{ secrets.AUTODEPLOY_PASSWORD }}
+          local_path: '*.jar'
+          remote_path: 'mods/update'
+          sftp_only: true
+      - name: Deploy to event server
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        if: github.ref == 'refs/heads/cclan'
+        with:
+          server: mc.datasektionen.se
+          port: 2022
+          username: github-actions.032bfc9c
           password: ${{ secrets.AUTODEPLOY_PASSWORD }}
           local_path: '*.jar'
           remote_path: 'mods/update'
