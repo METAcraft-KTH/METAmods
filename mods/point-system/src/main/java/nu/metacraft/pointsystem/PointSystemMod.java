@@ -22,14 +22,28 @@ public class PointSystemMod implements ModInitializer {
             pointSystem = new PointSystem(server);
             try {
                 pointSystem.loadConfig();
+                pointSystem.loadData();
             } catch (IOException e) {
                 throw new RuntimeException("Failed to load config.", e);
             }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             if (pointSystem != null) {
-                pointSystem.shutdown();
+                try {
+                    pointSystem.saveData();
+                } catch (Throwable e) {
+                    LOGGER.error("Failed to save data", e);
+                }
                 pointSystem = null;
+            }
+        });
+        ServerLifecycleEvents.AFTER_SAVE.register((minecraftServer, flush, force) -> {
+            if (pointSystem != null) {
+                try {
+                    pointSystem.saveData();
+                } catch (Throwable e) {
+                    LOGGER.error("Failed to save data", e);
+                }
             }
         });
     }

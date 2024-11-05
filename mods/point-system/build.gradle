@@ -1,6 +1,1 @@
 version = point_system_version
-
-dependencies {
-    // SQLite
-    include(implementation "org.xerial:sqlite-jdbc:3.47.0.0")
-}

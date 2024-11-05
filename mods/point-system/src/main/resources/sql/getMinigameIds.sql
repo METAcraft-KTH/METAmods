@@ -1,1 +1,0 @@
-SELECT DISTINCT minigame_id FROM points

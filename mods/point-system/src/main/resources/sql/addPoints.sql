@@ -1,1 +1,0 @@
-INSERT INTO points (player_uuid, points, minigame_id) VALUES (?, ?, ?)

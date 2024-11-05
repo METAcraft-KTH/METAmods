@@ -11,7 +11,7 @@
   "license": "MIT",
   "icon": "assets/point-system/icon.png",
 
-  "environment": "server",
+  "environment": "*",
   "entrypoints": {
     "main": [
       "nu.metacraft.pointsystem.PointSystemMod"

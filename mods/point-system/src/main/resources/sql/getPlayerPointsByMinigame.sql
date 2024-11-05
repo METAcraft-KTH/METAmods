@@ -1,1 +1,0 @@
-SELECT player_uuid, SUM(points) AS total_points FROM points WHERE minigame_id = ? GROUP BY player_uuid ORDER BY total_points LIMIT ?

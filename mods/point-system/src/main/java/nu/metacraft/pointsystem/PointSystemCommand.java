@@ -22,15 +22,11 @@ import net.minecraft.text.Text;
 import net.minecraft.util.UserCache;
 
 import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -53,42 +49,14 @@ public class PointSystemCommand {
                         .executes(this::reload)
                 )
                 .then(
-                    literal("db")
+                    literal("save")
+                        .executes(this::save)
+                )
+                .then(
+                    literal("load")
                         .then(
-                            literal("close")
-                                .executes(ctx -> {
-                                    PointSystem pointSystem = getPointSystem(ctx);
-                                    ServerCommandSource source = ctx.getSource();
-                                    source.sendMessage(Text.literal("Closing database connection"));
-                                    pointSystem.getExecutor().execute(() -> {
-                                        try {
-                                            pointSystem.getDatabaseConnection().close();
-                                            source.sendMessage(Text.literal("Requested close"));
-                                        } catch (SQLException e) {
-                                            source.sendMessage(Text.literal(e.getMessage()));
-                                            PointSystemMod.LOGGER.error("Failed to close database", e);
-                                        }
-                                    });
-                                    return 1;
-                                })
-                        )
-                        .then(
-                            literal("ping")
-                                .executes(ctx -> {
-                                    PointSystem pointSystem = getPointSystem(ctx);
-                                    ServerCommandSource source = ctx.getSource();
-                                    source.sendMessage(Text.literal("Checking database connection"));
-                                    pointSystem.getExecutor().execute(() -> {
-                                        try {
-                                            pointSystem.getDatabaseConnection();
-                                            source.sendMessage(Text.literal("Pinged"));
-                                        } catch (SQLException e) {
-                                            source.sendMessage(Text.literal(e.getMessage()));
-                                            PointSystemMod.LOGGER.error("Failed to get connection", e);
-                                        }
-                                    });
-                                    return 1;
-                                })
+                            literal("i-confirm-that-this-is-dangerous")
+                                .executes(this::load)
                         )
                 )
                 .then(
@@ -122,18 +90,49 @@ public class PointSystemCommand {
                         .executes(this::topPlayers)
                 )
                 .then(
-                    literal("sql")
-                        .then(
-                            argument("sql", StringArgumentType.greedyString())
-                                .executes(ctx -> {
-                                    String sql = StringArgumentType.getString(ctx, "sql");
-                                    return this.sql(ctx, sql);
-                                })
-                        )
-                )
-                .then(
                     literal("renderAll")
                         .executes(this::renderAll)
+                )
+                .then(
+                    literal("excludedMinigameIds")
+                        .then(
+                            literal("list")
+                                .executes(ctx -> {
+                                    PointSystem pointSystem = getPointSystem(ctx);
+                                    ctx.getSource().sendMessage(Text.literal("The following minigame ids are excluded: " + pointSystem.getExcludedMinigameIds()
+                                        .intStream()
+                                        .mapToObj(String::valueOf)
+                                        .collect(Collectors.joining())
+                                    ));
+                                    return 1;
+                                })
+                        )
+                        .then(
+                            literal("add")
+                                .then(
+                                    argument("id", IntegerArgumentType.integer())
+                                        .executes(ctx -> {
+                                            int id = IntegerArgumentType.getInteger(ctx, "id");
+                                            PointSystem pointSystem = getPointSystem(ctx);
+                                            pointSystem.getExcludedMinigameIds().add(id);
+                                            ctx.getSource().sendFeedback(() -> Text.literal("Minigame id " + id +  " will now be excluded."), true);
+                                            return 1;
+                                        })
+                                )
+                        )
+                        .then(
+                            literal("remove")
+                                .then(
+                                    argument("id", IntegerArgumentType.integer())
+                                        .executes(ctx -> {
+                                            int id = IntegerArgumentType.getInteger(ctx, "id");
+                                            PointSystem pointSystem = getPointSystem(ctx);
+                                            pointSystem.getExcludedMinigameIds().remove(id);
+                                            ctx.getSource().sendFeedback(() -> Text.literal("Minigame id " + id +  " will no longer be excluded."), true);
+                                            return 1;
+                                        })
+                                )
+                        )
                 )
                 .then(
                     literal("team")
@@ -246,7 +245,7 @@ public class PointSystemCommand {
         ServerCommandSource source = ctx.getSource();
         try {
             pointSystem.loadConfig();
-            source.sendFeedback(() -> Text.literal("Point system config and SQL queries reloaded."), true);
+            source.sendFeedback(() -> Text.literal("Point system config reloaded."), true);
         } catch (IOException e) {
             source.sendError(Text.literal(e.getMessage()));
             PointSystemMod.LOGGER.error("Failed to load config", e);
@@ -254,19 +253,37 @@ public class PointSystemCommand {
         return 1;
     }
 
+    private int save(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        PointSystem pointSystem = getPointSystem(ctx);
+        ServerCommandSource source = ctx.getSource();
+        try {
+            pointSystem.saveData();
+            source.sendFeedback(() -> Text.literal("Point system data saved."), true);
+        } catch (Throwable e) {
+            source.sendError(Text.literal(e.getMessage()));
+            PointSystemMod.LOGGER.error("Failed to save data", e);
+        }
+        return 1;
+    }
+
+    private int load(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        PointSystem pointSystem = getPointSystem(ctx);
+        ServerCommandSource source = ctx.getSource();
+        try {
+            pointSystem.loadData();
+            source.sendFeedback(() -> Text.literal("Point system data loaded from disk."), true);
+        } catch (Throwable e) {
+            source.sendError(Text.literal(e.getMessage()));
+            PointSystemMod.LOGGER.error("Failed to load data", e);
+        }
+        return 1;
+    }
+
     private int addPoints(CommandContext<ServerCommandSource> ctx, UUID playerUuid, int points, int minigameId) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
         ServerCommandSource source = ctx.getSource();
-        source.sendMessage(Text.literal("Sending to database..."));
-        pointSystem.getExecutor().execute(() -> {
-            try {
-                pointSystem.addPoints(playerUuid, points, minigameId);
-                source.sendMessage(Text.literal("Points added"));
-            } catch (SQLException e) {
-                source.sendError(Text.literal(e.getMessage()));
-                PointSystemMod.LOGGER.error("Failed to add points", e);
-            }
-        });
+        pointSystem.addPoints(playerUuid, points, minigameId);
+        source.sendFeedback(() -> Text.literal("Added points"), false);
         return points;
     }
 
@@ -284,19 +301,12 @@ public class PointSystemCommand {
     private int topPlayers(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
         ServerCommandSource source = ctx.getSource();
-        Map<UUID, Integer> players;
-        try {
-            players = pointSystem.getPlayerPoints(10);
-        } catch (SQLException e) {
-            source.sendMessage(Text.literal(e.getMessage()));
-            PointSystemMod.LOGGER.error("Failed to get points", e);
-            return 0;
-        }
+        var players = pointSystem.getPlayerPoints();
         source.sendMessage(Text.literal("Top 10:"));
         MinecraftServer server = source.getServer();
-        List<Map.Entry<UUID, Integer>> entries = players.entrySet()
+        var entries = players.getData().object2IntEntrySet()
             .stream()
-            .sorted((a, b) -> b.getValue() - a.getValue())
+            .sorted((a, b) -> b.getIntValue() - a.getIntValue())
             .toList();
         for (Map.Entry<UUID, Integer> entry : entries) {
             String name = displayUuid(entry.getKey(), server);
@@ -305,69 +315,19 @@ public class PointSystemCommand {
         return 1;
     }
 
-    private int sql(CommandContext<ServerCommandSource> ctx, String sql) throws CommandSyntaxException {
-        PointSystem pointSystem = getPointSystem(ctx);
-        ServerCommandSource source = ctx.getSource();
-        pointSystem.getExecutor().execute(() -> {
-            try (Statement statement = pointSystem.getDatabaseConnection().createStatement()) {
-                boolean hasResult = statement.execute(sql);
-                if (!hasResult) {
-                    int updateCount = statement.getUpdateCount();
-                    source.sendFeedback(() -> Text.literal(updateCount + " rows updated"), true);
-                } else {
-                    ResultSet resultSet = statement.getResultSet();
-                    ResultSetMetaData metaData = resultSet.getMetaData();
-                    int columnCount = metaData.getColumnCount();
-
-                    // Print column names
-                    StringBuilder header = new StringBuilder();
-                    for (int i = 1; i <= columnCount; i++) {
-                        header.append(metaData.getColumnName(i)).append("    ");
-                    }
-                    source.sendMessage(Text.literal(header.toString()).styled(style -> style.withUnderline(true)));
-                    while (resultSet.next()) {
-                        StringBuilder line = new StringBuilder();
-                        for (int i = 1; i <= columnCount; i++) {
-                            line.append(resultSet.getObject(i)).append("    ");
-                        }
-                        source.sendMessage(Text.literal(line.toString()));
-                    }
-                }
-            } catch (SQLException e) {
-                source.sendError(Text.literal(e.getMessage()));
-                PointSystemMod.LOGGER.error("Failed to execute SQL from player command.", e);
-            }
-        });
-        return 1;
-    }
-
     private int renderAll(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
         ServerCommandSource source = ctx.getSource();
-        source.sendMessage(Text.literal("Scheduling render..."));
-        pointSystem.getExecutor().execute(() -> {
-            try {
-                pointSystem.renderAll();
-            } catch (SQLException e) {
-                source.sendError(Text.literal(e.getMessage()));
-                PointSystemMod.LOGGER.error("Failed to render points", e);
-            }
-        });
+        pointSystem.renderAll();
+        source.sendFeedback(() -> Text.literal("Rendering"), false);
         return 1;
     }
 
     private int addTeam(CommandContext<ServerCommandSource> ctx, String type, String code, String shortName, String fullName) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
         ServerCommandSource source = ctx.getSource();
-        source.sendMessage(Text.literal("Sending to database..."));
-        pointSystem.getExecutor().execute(() -> {
-            try {
-                pointSystem.addTeam(type, code, shortName, fullName);
-            } catch (SQLException e) {
-                source.sendError(Text.literal(e.getMessage()));
-                PointSystemMod.LOGGER.error("Failed to add team", e);
-            }
-        });
+        pointSystem.addTeam(type, code, shortName, fullName);
+        source.sendFeedback(() -> Text.literal("Added team"), true);
         return 1;
     }
 
@@ -376,15 +336,7 @@ public class PointSystemCommand {
 
         PointSystem pointSystem = getPointSystem(ctx);
         ServerCommandSource source = ctx.getSource();
-        source.sendMessage(Text.literal("Sending to database..."));
-        pointSystem.getExecutor().execute(() -> {
-            try {
-                pointSystem.joinOnlyTeams(playerUuid, codes);
-            } catch (SQLException e) {
-                source.sendError(Text.literal(e.getMessage()));
-                PointSystemMod.LOGGER.error("Failed to add team", e);
-            }
-        });
+        pointSystem.joinOnlyTeams(playerUuid, codes, source);
         return 1;
     }
 }

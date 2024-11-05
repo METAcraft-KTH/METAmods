@@ -16,13 +16,12 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 public class Config {
-    private final SqlQueries sqlQueries;
     public final Text universityScoreText;
     public final Text topPlayersText;
 
-    public Config(Path configFile, Path sqlFolder) throws IOException {
+    public Config(Path configFile) throws IOException {
         if (Files.notExists(configFile)) {
-            try (InputStream stream = SqlQueries.class.getClassLoader().getResourceAsStream("config.json")) {
+            try (InputStream stream = Config.class.getClassLoader().getResourceAsStream("config.json")) {
                 if (stream == null) {
                     throw new RuntimeException("No default config found.");
                 }
@@ -33,7 +32,6 @@ public class Config {
         JsonObject json = jsonElement.getAsJsonObject();
         this.universityScoreText = parseText(json.get("universityScoreText"));
         this.topPlayersText = parseText(json.get("topPlayersText"));
-        this.sqlQueries = new SqlQueries(sqlFolder);
     }
 
     private static Text parseText(JsonElement json) {
@@ -47,9 +45,5 @@ public class Config {
         }
         Pair<Text, JsonElement> pair = opt.get();
         return pair.getFirst();
-    }
-
-    public SqlQueries getSqlQueries() {
-        return this.sqlQueries;
     }
 }
