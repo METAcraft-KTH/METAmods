@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
+import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.command.argument.NbtCompoundArgumentType;
@@ -36,7 +37,9 @@ public class PlayMusic {
 			CommandRegistryAccess registryAccess
 	) {
 		dispatcher.register(
-			literal("play-music").then(
+			literal("play-music").requires(
+					Permissions.require("metacraft.play-music", 2)
+			).then(
 				argument("music", NbtCompoundArgumentType.nbtCompound()).executes(
 						ctx -> playMusic(
 							ctx, parse(
@@ -59,7 +62,9 @@ public class PlayMusic {
 			)
 		);
 		dispatcher.register(
-			literal("stop-music").executes(
+			literal("stop-music").requires(
+					Permissions.require("metacraft.stop-music", 2)
+			).executes(
 					ctx -> stopMusic(
 							ctx, Optional.empty(),
 							List.of(ctx.getSource().getPlayerOrThrow())
