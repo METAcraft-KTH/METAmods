@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "nu.metacraft.minigame_util.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"MixinPlayerEntity"
+	],
+	"client": [],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
