@@ -7,9 +7,10 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.loot.context.LootContextParameterSet;
+import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
-import net.minecraft.util.ItemScatterer;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.shape.VoxelShape;
@@ -22,6 +23,8 @@ import se.datasektionen.mc.portable_jukebox.item.PortableJukeboxItem;
 import se.datasektionen.mc.portable_jukebox.entity.PortableJukeboxEntity;
 import se.datasektionen.mc.portable_jukebox.gui.PortableJukeboxGui;
 import se.datasektionen.mc.portable_jukebox.mixin.AccessorSkullBlock;
+
+import java.util.List;
 
 public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHeadBlock {
 
@@ -76,12 +79,24 @@ public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHead
 	}
 
 	@Override
-	protected void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
-		BlockEntity blockEntity = world.getBlockEntity(pos);
+	protected List<ItemStack> getDroppedStacks(BlockState state, LootContextParameterSet.Builder builder) {
+		BlockEntity blockEntity = builder.getOptional(LootContextParameters.BLOCK_ENTITY);
 		if (blockEntity instanceof PortableJukeboxBlockEntity jukebox) {
-			ItemScatterer.spawn(world, pos.getX(), pos.getY(), pos.getZ(), jukebox.getJukebox());
+			return List.of(jukebox.getJukebox());
 		}
+		return super.getDroppedStacks(state, builder);
+	}
+
+	@Override
+	protected void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
+		if (state.isOf(newState.getBlock())) {
+			return;
+		}
+		BlockEntity blockEntity = world.getBlockEntity(pos);
 		super.onStateReplaced(state, world, pos, newState, moved);
+		if (blockEntity instanceof PortableJukeboxBlockEntity jukebox) {
+			world.updateComparators(pos, state.getBlock());
+		}
 	}
 
 	@Nullable
