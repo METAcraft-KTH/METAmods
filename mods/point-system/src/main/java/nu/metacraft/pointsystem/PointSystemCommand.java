@@ -32,7 +32,7 @@ import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
 public class PointSystemCommand {
-    private static final SimpleCommandExceptionType NO_POINT_SYSTEM = new SimpleCommandExceptionType(Text.literal("No point system found."));
+    public static final SimpleCommandExceptionType NO_POINT_SYSTEM = new SimpleCommandExceptionType(Text.literal("No point system found."));
     private static final DynamicCommandExceptionType PLAYER_NOT_FOUND = new DynamicCommandExceptionType(playerName -> Text.literal("Player with name '" + playerName + "' not found."));
     private final PointSystemMod mod;
 
