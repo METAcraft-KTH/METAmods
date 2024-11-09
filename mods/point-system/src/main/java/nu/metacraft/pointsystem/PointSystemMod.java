@@ -17,6 +17,7 @@ public class PointSystemMod implements ModInitializer {
     public void onInitialize() {
         CommandRegistrationCallback.EVENT.register(((dispatcher, registryAccess, env) -> {
             new PointSystemCommand(this).register(dispatcher);
+            new ChangeUniversityCommand().register(dispatcher);
         }));
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             pointSystem = new PointSystem(server);
