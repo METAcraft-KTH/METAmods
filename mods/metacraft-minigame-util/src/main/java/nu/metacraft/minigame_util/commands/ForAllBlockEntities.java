@@ -52,6 +52,26 @@ public class ForAllBlockEntities {
 						})
 					)
 				).then(
+					literal("block_entity").then(
+							argument("id", IdentifierArgumentType.identifier()).fork(
+									dispatcher.getRoot(), getRedirect((ctx, e) -> {
+										var id = IdentifierArgumentType.getIdentifier(ctx, "id");
+										return e.getType().getRegistryEntry().matchesId(id);
+									})
+							)
+					)
+				).then(
+					literal("tag").then(
+							argument("tag", IdentifierArgumentType.identifier()).fork(
+									dispatcher.getRoot(), getRedirect((ctx, e) -> {
+										var id = IdentifierArgumentType.getIdentifier(ctx, "tag");
+										return e.getType().getRegistryEntry().isIn(TagKey.of(
+												RegistryKeys.BLOCK_ENTITY_TYPE, id
+										));
+									})
+							)
+					)
+				).then(
 					literal("*").fork(
 							dispatcher.getRoot(), getRedirect((ctx, e) -> true)
 					)
