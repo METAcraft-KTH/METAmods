@@ -123,6 +123,10 @@ public class PointSystem {
         Files.writeString(path, gson.toJson(json));
     }
 
+    public void resetPoints() {
+        this.minigamePoints.clear();
+    }
+
     public PlayerPointStorage getPlayerPoints() {
         PlayerPointStorage playerPoints = new PlayerPointStorage();
         for (Int2ObjectMap.Entry<PlayerPointStorage> entry : this.minigamePoints.int2ObjectEntrySet()) {

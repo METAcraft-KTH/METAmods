@@ -60,6 +60,13 @@ public class PointSystemCommand {
                         )
                 )
                 .then(
+                    literal("reset")
+                        .then(
+                            literal("i-confirm-that-this-is-dangerous-and-will-reset-all-points")
+                                .executes(this::reset)
+                        )
+                )
+                .then(
                     literal("addpoints")
                         .then(
                             argument("player", ScoreHolderArgumentType.scoreHolder())
@@ -271,6 +278,19 @@ public class PointSystemCommand {
         ServerCommandSource source = ctx.getSource();
         try {
             pointSystem.loadData();
+            source.sendFeedback(() -> Text.literal("Point system data loaded from disk."), true);
+        } catch (Throwable e) {
+            source.sendError(Text.literal(e.getMessage()));
+            PointSystemMod.LOGGER.error("Failed to load data", e);
+        }
+        return 1;
+    }
+
+    private int reset(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        PointSystem pointSystem = getPointSystem(ctx);
+        ServerCommandSource source = ctx.getSource();
+        try {
+            pointSystem.resetPoints();
             source.sendFeedback(() -> Text.literal("Point system data loaded from disk."), true);
         } catch (Throwable e) {
             source.sendError(Text.literal(e.getMessage()));
