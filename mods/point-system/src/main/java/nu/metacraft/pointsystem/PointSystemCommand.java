@@ -355,8 +355,7 @@ public class PointSystemCommand {
         String[] codes = input.split(" ");
 
         PointSystem pointSystem = getPointSystem(ctx);
-        ServerCommandSource source = ctx.getSource();
-        pointSystem.joinOnlyTeams(playerUuid, codes, source);
+        pointSystem.joinOnlyTeams(playerUuid, codes);
         return 1;
     }
 }

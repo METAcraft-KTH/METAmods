@@ -233,7 +233,7 @@ public class PointSystem {
         this.teams.put(teamId, new PointTeam(teamId, type, code, shortName, fullName));
     }
 
-    public void joinOnlyTeams(UUID playerUuid, String[] codes, ServerCommandSource source) {
+    public void joinOnlyTeams(UUID playerUuid, String[] codes) {
         List<String> teamNames = new ArrayList<>();
         IntSet teamIds = new IntOpenHashSet(codes.length);
         for (String code : codes) {
@@ -245,13 +245,13 @@ public class PointSystem {
             teamNames.add(team.fullName());
         }
         this.playerTeams.put(playerUuid, teamIds);
-        source.sendMessage(Text.empty()
+        ServerPlayerEntity player = this.server.getPlayerManager().getPlayer(playerUuid);
+        if (player != null) {
+            player.sendMessage(Text.empty()
                 .append(Text.literal("You selected ")
-                .append(Text.literal(String.join(", ", teamNames))).styled(style -> style.withFormatting(Formatting.YELLOW)))
-                .append(Text.literal(" [Change]").styled(style -> style.withColor(Formatting.GRAY).withClickEvent(
-                    new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/trigger uni_sel set -1")
-                )))
+                    .append(Text.literal(String.join(", ", teamNames)).styled(style -> style.withFormatting(Formatting.YELLOW))))
             );
+        }
     }
 
     private void renderTeamPoints(Map<Integer, PointTeam> teams, Map<Integer, Integer> teamPoints, String objectiveName) {
