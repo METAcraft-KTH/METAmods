@@ -7,6 +7,7 @@ import se.datasektionen.mc.metacraft_season_4.block.Season4Blocks;
 import xyz.nucleoid.leukocyte.rule.ProtectionRuleMap;
 import xyz.nucleoid.leukocyte.rule.enforcer.ProtectionRuleEnforcer;
 import xyz.nucleoid.stimuli.event.EventRegistrar;
+import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.block.BlockUseEvent;
 
 public class Season4Enforcer implements ProtectionRuleEnforcer {
@@ -26,7 +27,7 @@ public class Season4Enforcer implements ProtectionRuleEnforcer {
 				if (hitResult.getType() == HitResult.Type.BLOCK) {
 					var pos = hitResult.getBlockPos();
 					if (player.getWorld().getBlockState(pos).isOf(Season4Blocks.CAMPUS_LODESTONE)) {
-						if (rule == ActionResult.FAIL) {
+						if (rule == EventResult.DENY) {
 							player.sendMessage(
 									Text.translatableWithFallback(
 											"block.metacraft.campus_lodestone.blocked",
