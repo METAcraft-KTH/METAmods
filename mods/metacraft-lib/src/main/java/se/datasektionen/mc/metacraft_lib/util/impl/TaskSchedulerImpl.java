@@ -20,9 +20,7 @@ public class TaskSchedulerImpl {
 	}
 
 	public static void schedule(MinecraftServer server, Runnable toRun, int afterTicks) {
-		Optional.ofNullable(tasks.get(server)).ifPresent(
-				list -> list.add(new Task(toRun, new MutableInt(afterTicks)))
-		);
+		tasks.computeIfAbsent(server, s -> new TaskContainer()).add(new Task(toRun, new MutableInt(afterTicks)));
 	}
 
 	public static void scheduleImmediatelyForAll(Consumer<MinecraftServer> toRun) {
@@ -80,9 +78,6 @@ public class TaskSchedulerImpl {
 	}
 
 	public static void init() {
-		ServerLifecycleEvents.SERVER_STARTING.register(
-				server -> tasks.put(server, new TaskContainer())
-		);
 		ServerLifecycleEvents.SERVER_STOPPED.register(
 				tasks::remove
 		);

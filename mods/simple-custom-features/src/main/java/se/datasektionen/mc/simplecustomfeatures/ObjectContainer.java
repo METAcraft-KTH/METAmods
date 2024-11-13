@@ -57,10 +57,14 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 		);
 
 		private final Object rawObject;
+		private Optional<Loaded<?>> partial;
 
 		public Deferred(Identifier id, Object rawObject) {
 			super(id);
 			this.rawObject = rawObject;
+			this.partial = BaseObject.REGISTRY_CODEC.parse(
+					LenientJavaOps.INSTANCE, rawObject
+			).resultOrPartial().map(partial -> new Loaded<>(id, partial));
 		}
 
 		private String parseErrorStart() {
@@ -95,6 +99,20 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 
 		public DataResult<Loaded<?>> load(RegistryWrapper.WrapperLookup lookup) {
 			return tryParse(lookup::getOps).map(o -> new Loaded<>(id, o));
+		}
+
+		public Optional<Loaded<?>> getPartial() {
+			return partial;
+		}
+
+		private Loaded<?> removePartial() {
+			var partial = this.partial.orElseThrow();
+			this.partial = Optional.empty();
+			return partial;
+		}
+
+		public static void removePartials(Stream<Deferred> toRemove) {
+			Loaded.unregister(toRemove.filter(def -> def.getPartial().isPresent()).map(Deferred::removePartial));
 		}
 	}
 

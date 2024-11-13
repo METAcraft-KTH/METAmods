@@ -108,10 +108,7 @@ public class FeaturesConfig implements ReloadAware {
 			}
 	).buildRegistryAware(
 			(config, server) -> new WorldSpecificEntries(config.objects, server.getRegistryManager()),
-			(oldConfig, newConfig, cause) -> cause == ReloadCause.AFTER_SERVER_RELOAD ? oldConfig :
-				ReloadFunction.<WorldSpecificEntries>getDefault().reload(
-						oldConfig, newConfig, cause
-				)
+			(oldConfig, newConfig, cause) -> oldConfig
 	);
 
 	private final Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer> objects;
@@ -134,9 +131,24 @@ public class FeaturesConfig implements ReloadAware {
 	private static Stream<ObjectContainer.Loaded<?>> getLoadedObjects(
 			Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer> objects
 	) {
-		return objects.values().stream().filter(
-				object -> object instanceof ObjectContainer.Loaded<?>
-		).map(object -> (ObjectContainer.Loaded<?>) object);
+		return getLoadedObjects(objects.values().stream());
+	}
+
+	private static Stream<ObjectContainer.Loaded<?>> getLoadedObjects(Stream<ObjectContainer> containers) {
+		return containers.filter(
+				object -> (object instanceof ObjectContainer.Loaded<?>) ||
+						(object instanceof ObjectContainer.Deferred d && d.getPartial().isPresent())
+		).map(
+				object -> {
+					if (object instanceof ObjectContainer.Loaded<?> loaded) {
+						return loaded;
+					} else if (object instanceof ObjectContainer.Deferred deferred) {
+						return deferred.getPartial().orElseThrow();
+					} else {
+						throw new IllegalStateException("Something other than loaded or deferred was in the config!");
+					}
+				}
+		);
 	}
 
 	public Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer.Loaded<?>> getObjectsInWorld(MinecraftServer server) {
@@ -149,9 +161,7 @@ public class FeaturesConfig implements ReloadAware {
 					type -> objects.put(type.getRegistry().getKey(), container)
 			);
 		}
-		ObjectContainer.register(Arrays.stream(containers).filter(object -> object instanceof ObjectContainer.Loaded<?>).map(
-				object -> (ObjectContainer.Loaded<?>) object
-		));
+		ObjectContainer.register(getLoadedObjects(Arrays.stream(containers)));
 	}
 
 	/**
@@ -178,6 +188,7 @@ public class FeaturesConfig implements ReloadAware {
 				RegistryWrapper.WrapperLookup lookup
 		) {
 			this.objectsRegistered = new ArrayList<>();
+			List<ObjectContainer.Deferred> partialsToRemove = new ArrayList<>();
 			this.loadedObjects = objectMap.entries().stream().flatMap(
 					entry -> {
 						var res = switch (entry.getValue()) {
@@ -185,6 +196,9 @@ public class FeaturesConfig implements ReloadAware {
 							case ObjectContainer.Deferred deferred -> deferred.load(lookup).resultOrPartial(
 									Features.LOGGER::error
 							).map(e -> {
+								if (deferred.getPartial().isPresent()) {
+									partialsToRemove.add(deferred);
+								}
 								objectsRegistered.add(e);
 								return e;
 							}).stream();
@@ -192,13 +206,18 @@ public class FeaturesConfig implements ReloadAware {
 						return res.map(e -> Pair.of(entry.getKey(), e));
 					}
 			).collect(Multimaps.toMultimap(Pair::getFirst, Pair::getSecond, FeaturesConfig::createMultimap));
+			if (!partialsToRemove.isEmpty()) {
+				ObjectContainer.Deferred.removePartials(partialsToRemove.stream());
+			}
 			ObjectContainer.register(objectsRegistered.stream());
 		}
 
 		@Override
 		public void beforeUnload(MinecraftServer server, Optional<ReloadCause> cause) {
-			ObjectContainer.unregister(objectsRegistered.stream());
-			ObjectCache.getInstance(server).unload();
+			if (cause.isEmpty() || cause.get() != ReloadCause.AFTER_SERVER_RELOAD) {
+				ObjectContainer.unregister(objectsRegistered.stream());
+				ObjectCache.getInstance(server).unload();
+			}
 		}
 
 		@Override

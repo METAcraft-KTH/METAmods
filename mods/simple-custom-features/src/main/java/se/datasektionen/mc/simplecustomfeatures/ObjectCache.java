@@ -9,12 +9,15 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.WorldSavePath;
 import se.datasektionen.mc.metacraft_lib.config.JsonHelper;
+import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 
 import java.nio.file.Path;
 import java.util.*;
 
 public class ObjectCache {
+
+	private boolean hasSecondaryReloaded = false;
 
 	public static final Codec<ObjectCache> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
@@ -79,6 +82,7 @@ public class ObjectCache {
 		if (loaded) {
 			return;
 		}
+		loaded = true;
 		for (var o : FeaturesConfig.getConfig().getObjectsInWorld(server).entries()) {
 			objects.put(o.getKey(), o.getValue().getID(), o.getValue());
 		}
@@ -103,7 +107,12 @@ public class ObjectCache {
 		if (!reRegistered.isEmpty()) {
 			ObjectContainer.register(reRegistered.stream());
 		}
-		loaded = true;
+		if (!hasSecondaryReloaded) {
+			hasSecondaryReloaded = true;
+			TaskScheduler.scheduleImmediately(server, () -> {
+				server.reloadResources(server.getDataPackManager().getEnabledIds());
+			});
+		}
 		save();
 	}
 
