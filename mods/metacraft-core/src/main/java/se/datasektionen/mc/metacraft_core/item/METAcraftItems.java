@@ -17,7 +17,7 @@ public class METAcraftItems {
 
 	private static final Item PORTAL_PADDING = register(
 			"portal_padding", settings -> new PolymerBlockItem(METAcraftBlocks.PORTAL_PADDING, settings, Items.ENDER_PEARL),
-			new Item.Settings()
+			new Item.Settings().useBlockPrefixedTranslationKey()
 	);
 
 	public static void init() {

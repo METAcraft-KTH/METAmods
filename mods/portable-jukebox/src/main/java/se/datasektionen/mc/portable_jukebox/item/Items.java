@@ -14,7 +14,7 @@ public class Items {
 
 	public static final Item PORTABLE_JUKEBOX = register(
 			"portable_jukebox", PortableJukeboxItem::new,
-			new Item.Settings().maxCount(1)
+			new Item.Settings().maxCount(1).useBlockPrefixedTranslationKey()
 	);
 
 	public static void init() {

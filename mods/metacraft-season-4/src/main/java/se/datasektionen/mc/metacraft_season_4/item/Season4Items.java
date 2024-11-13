@@ -32,7 +32,7 @@ public class Season4Items {
 				Text.empty(),
 				Text.translatable("block.metacraft.campus_lodestone.lore3"),
 				Text.translatable("block.metacraft.campus_lodestone.lore4")
-			))).component(DataComponentTypes.RARITY, Rarity.EPIC).maxCount(1)
+			))).component(DataComponentTypes.RARITY, Rarity.EPIC).maxCount(1).useBlockPrefixedTranslationKey()
 	);
 
 	public static void init() {
