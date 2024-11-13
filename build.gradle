@@ -1,15 +1,14 @@
 plugins {
     id 'fabric-loom' version '1.9-SNAPSHOT' apply false
-    id 'maven-publish'
     id 'base'
 }
 
-version = project.combined_version
-
-evaluationDependsOnChildren()
-
-def ignoredProjects = [
+def nonMcSubprojects = [
         "mods"
+]
+def nonModSubprojects = [
+        "mods",
+        "dist"
 ]
 
 //If you can think of a smarter way to remove a project from the Fabric Loom cache, feel free to rewrite this function.
@@ -26,8 +25,9 @@ ext.cleanRemappedSubproject = {p ->
 
 boolean skipRemap = hasProperty("skip-subproject-remap")
 
-allprojects {
-    if (ignoredProjects.contains(it.name)) {
+// For all modules that are fabric mods (all mods and dist)
+subprojects {
+    if (nonMcSubprojects.contains(it.name)) {
         return
     }
     apply plugin: "fabric-loom"
@@ -164,9 +164,10 @@ allprojects {
     }
 }
 
+// For all mods (but not dist)
 subprojects {
 
-    if (ignoredProjects.contains(it.name)) {
+    if (nonModSubprojects.contains(it.name)) {
         return
     }
 
@@ -202,50 +203,5 @@ subprojects {
     //Cleans Fabric Loom cache on compilation.
     compileJava {
         cleanRemappedSubproject(project)
-    }
-}
-
-base {
-    archivesName = project.archives_base_name
-}
-
-//We want this so launching the root project loads all the submodule mods.
-//However, gradle can't find the file on first launch and will fail to parse the project.
-//So we check if the libs folder exists.
-subprojects.each {
-    if (ignoredProjects.contains(it.name)) {
-        return
-    }
-    dependIfPossible(it)
-}
-
-//Make sure the mods are bundled in the main release.
-remapJar {
-    afterEvaluate {
-        subprojects.each {
-            if (ignoredProjects.contains(it.name)) {
-                return
-            }
-            nestedJars.from project("${it.path}").tasks.getByName("remapJar")
-        }
-    }
-}
-
-
-// configure the maven publication
-publishing {
-    publications {
-        create("mavenJava", MavenPublication) {
-            artifactId = project.archives_base_name
-            from components.java
-        }
-    }
-
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        // Add repositories to publish to here.
-        // Notice: This block does NOT have the same function as the block in the top level.
-        // The repositories here will be used for publishing your artifact, not for
-        // retrieving dependencies.
     }
 }
