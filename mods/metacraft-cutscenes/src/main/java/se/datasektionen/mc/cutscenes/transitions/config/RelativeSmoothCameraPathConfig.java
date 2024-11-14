@@ -11,13 +11,14 @@ import se.datasektionen.mc.cutscenes.util.Target;
 
 import java.util.stream.DoubleStream;
 
-public record RelativeSmoothCameraPathConfig(InterpolationSet<Target> targets) implements TransitionConfig {
+public record RelativeSmoothCameraPathConfig(InterpolationSet<Target> targets, SmoothCameraPathTransition.CommonConfig commonConfig) implements TransitionConfig {
 
 	public static final Codec<InterpolationSet<Target>> INTERPOLATION_SET_CODEC = InterpolationSet.createCodec(Target.MAP_CODEC, s -> Target.fromList((DoubleStream) s));
 
 	public static final MapCodec<RelativeSmoothCameraPathConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					INTERPOLATION_SET_CODEC.fieldOf("targets").forGetter(c -> c.targets)
+					INTERPOLATION_SET_CODEC.fieldOf("targets").forGetter(c -> c.targets),
+					SmoothCameraPathTransition.CommonConfig.CODEC.forGetter(c -> c.commonConfig)
 			).apply(instance, RelativeSmoothCameraPathConfig::new)
 	);
 

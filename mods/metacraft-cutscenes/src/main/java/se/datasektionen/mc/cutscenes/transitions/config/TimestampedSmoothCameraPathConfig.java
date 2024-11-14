@@ -11,13 +11,14 @@ import se.datasektionen.mc.cutscenes.util.TimestampedInterpolationSet;
 
 import java.util.stream.DoubleStream;
 
-public record TimestampedSmoothCameraPathConfig(TimestampedInterpolationSet<Target> targets) implements TransitionConfig {
+public record TimestampedSmoothCameraPathConfig(TimestampedInterpolationSet<Target> targets, SmoothCameraPathTransition.CommonConfig commonConfig) implements TransitionConfig {
 
 	public static final Codec<TimestampedInterpolationSet<Target>> INTERPOLATION_SET_CODEC = TimestampedInterpolationSet.createCodec(Target.MAP_CODEC, s -> Target.fromList((DoubleStream) s));
 
 	public static final MapCodec<TimestampedSmoothCameraPathConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					INTERPOLATION_SET_CODEC.fieldOf("targets").forGetter(c -> c.targets)
+					INTERPOLATION_SET_CODEC.fieldOf("targets").forGetter(c -> c.targets),
+					SmoothCameraPathTransition.CommonConfig.CODEC.forGetter(c -> c.commonConfig)
 			).apply(instance, TimestampedSmoothCameraPathConfig::new)
 	);
 
