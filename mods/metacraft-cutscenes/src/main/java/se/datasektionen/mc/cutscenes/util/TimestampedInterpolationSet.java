@@ -6,10 +6,10 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.Function;
 import net.minecraft.util.math.MathHelper;
+import sigbla.app.pds.collection.TreeMap;
 
 import java.util.AbstractMap;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 
@@ -33,7 +33,7 @@ public class TimestampedInterpolationSet<T extends Interpolatable> {
 										Map.Entry::getKey,
 										Map.Entry::getValue,
 										(lhs, rhs) -> lhs,
-										TreeMap::new
+										java.util.TreeMap::new
 								)
 						), creator
 				),
@@ -54,12 +54,11 @@ public class TimestampedInterpolationSet<T extends Interpolatable> {
 				values.entrySet().stream().map(e -> Pair.of(
 						MathHelper.clamp(((double) e.getKey() - start) / (end - start), 0, 1),
 						e.getValue()
-				)).collect(Collectors.toMap(
-						Pair::getFirst,
-						Pair::getSecond,
-						(lhs, rhs) -> lhs,
-						TreeMap::new
-				)), creator
+				)).reduce(
+						new TreeMap<>(),
+						(map, entry) -> map.put(entry.getFirst(), entry.getSecond()),
+						(m, n) -> m
+				), creator
 		);
 	}
 }

@@ -25,12 +25,8 @@ public class TransitionConfigRegistry {
 			"moving", MovingTransitionConfig.CODEC
 	);
 
-	public static final TransitionConfigType<RelativeSmoothCameraPathConfig> CAMERA_PATH_RELATIVE = register(
-			"camera_path_relative", RelativeSmoothCameraPathConfig.CODEC
-	);
-
-	public static final TransitionConfigType<TimestampedSmoothCameraPathConfig> CAMERA_PATH_TIMESTAMPED = register(
-			"camera_path_timestamped", TimestampedSmoothCameraPathConfig.CODEC
+	public static final TransitionConfigType<SmoothCameraPathConfig> CAMERA_PATH = register(
+			"camera_path", SmoothCameraPathConfig.CODEC
 	);
 
 	public static final TransitionConfigType<TeleportTransition> TELEPORT_TRANSITION = register(

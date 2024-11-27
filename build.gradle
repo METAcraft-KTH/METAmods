@@ -161,6 +161,9 @@ allprojects {
         }
 
         maven { url 'https://jitpack.io' } // Fabric ASM
+
+
+        maven { url = uri("https://mvn.sigbla.app/repository") } //Persistent Data Structures
     }
 }
 
@@ -191,6 +194,8 @@ subprojects {
         modApi("com.terraformersmc:modmenu:${project.modmenu_version}"){
             exclude group: "net.fabricmc.fabric-api"
         }
+
+        implementation("sigbla.app:sigbla-pds:1.0")
     }
 
     test {
