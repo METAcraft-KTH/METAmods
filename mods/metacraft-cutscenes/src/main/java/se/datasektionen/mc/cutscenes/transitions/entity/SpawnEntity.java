@@ -1,6 +1,8 @@
 package se.datasektionen.mc.cutscenes.transitions.entity;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
@@ -8,6 +10,8 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.StringNbtReader;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.Vec3d;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -30,11 +34,22 @@ import java.util.function.Supplier;
 
 public class SpawnEntity implements Transition, TransitionConfig {
 
+	public static final Codec<NbtCompound> NBT_CODEC = Codec.withAlternative(
+			Codec.STRING.comapFlatMap(line -> {
+				try {
+					return DataResult.success(StringNbtReader.parse(line));
+				} catch (CommandSyntaxException e) {
+					return DataResult.error(e::getMessage);
+				}
+			}, NbtElement::asString),
+			NbtCompound.CODEC
+	);
+
 	public static final MapCodec<SpawnEntity> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codecs.nonEmptyList(Codec.STRING.listOf()).fieldOf("ids").forGetter(t -> t.ids),
 					PositionRefRegistry.CODEC.fieldOf("position").forGetter(t -> t.position),
-					NbtCompound.CODEC.fieldOf("nbt").forGetter(t -> t.nbt),
+					NBT_CODEC.fieldOf("nbt").forGetter(t -> t.nbt),
 					Codec.BOOL.optionalFieldOf("initialize").forGetter(t -> t.initialize),
 					Codec.BOOL.optionalFieldOf("kill_after", false).forGetter(t -> t.killAfter)
 			).apply(instance, SpawnEntity::new)

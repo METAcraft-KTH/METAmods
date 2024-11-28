@@ -4,7 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.stream.DoubleStream;
@@ -21,8 +21,10 @@ public record Target(Vec3d pos, float yaw, float pitch) implements Interpolatabl
 
 	public static final Codec<Target> CODEC = MAP_CODEC.codec();
 
-	public static Target fromPlayer(ServerPlayerEntity player) {
-		return new Target(player.getPos(), player.getYaw(), player.getPitch());
+	public static final Target DEFAULT = new Target(Vec3d.ZERO, 0, 0);
+
+	public static Target fromEntity(Entity entity) {
+		return new Target(entity.getPos(), entity.getYaw(), entity.getPitch());
 	}
 
 	public static Target fromList(DoubleStream stream) {

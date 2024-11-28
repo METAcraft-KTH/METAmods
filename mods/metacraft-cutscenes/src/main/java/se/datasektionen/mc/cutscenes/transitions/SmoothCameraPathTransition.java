@@ -8,7 +8,6 @@ import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.Vec3d;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.config.SmoothCameraPathConfig;
@@ -34,8 +33,8 @@ public class SmoothCameraPathTransition implements Transition {
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		interpolationSet = config.targets().getTargets(interval);
-		var target = cutscene.copyPlayers().stream().findAny().map(Target::fromPlayer).orElse(
-				new Target(Vec3d.ZERO, 0, 0)
+		var target = cutscene.copyPlayers().stream().findAny().map(Target::fromEntity).orElse(
+				Target.DEFAULT
 		);
 		interpolationSet = interpolationSet.setStartIfNotPresent(target);
 		interpolationSet = interpolationSet.setEndIfNotPresent(target);
@@ -97,7 +96,7 @@ public class SmoothCameraPathTransition implements Transition {
 
 	@Override
 	public TransitionType<?> getType() {
-		return TransitionRegistry.CAMERAE_PATH;
+		return TransitionRegistry.CAMERA_PATH;
 	}
 
 }

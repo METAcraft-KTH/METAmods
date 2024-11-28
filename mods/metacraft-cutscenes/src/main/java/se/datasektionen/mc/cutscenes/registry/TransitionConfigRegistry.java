@@ -29,6 +29,10 @@ public class TransitionConfigRegistry {
 			"camera_path", SmoothCameraPathConfig.CODEC
 	);
 
+	public static final TransitionConfigType<SmoothEntityPathConfig> SMOOTH_ENTITY_PATH = register(
+			"smooth_entity_path", SmoothEntityPathConfig.CODEC
+	);
+
 	public static final TransitionConfigType<TeleportTransition> TELEPORT_TRANSITION = register(
 			"teleport", TeleportTransition.CODEC
 	);
