@@ -90,6 +90,18 @@ public class TransitionConfigRegistry {
 			"rotate_head", RotateHead.RotateHeadConfig.CODEC
 	);
 
+	public static final TransitionConfigType<Sleep> SLEEP = register(
+			"sleep", Sleep.CODEC
+	);
+
+	public static final TransitionConfigType<Sneak> SNEAK = register(
+			"sneak", Sneak.CODEC
+	);
+
+	public static final TransitionConfigType<SwingHand> SWING_HAND = register(
+			"swing_hand", SwingHand.CODEC
+	);
+
 	public static final TransitionConfigType<HideOtherPlayersTransition> HIDE_OTHER_PLAYERS = register(
 			"hide_other_players", HideOtherPlayersTransition.CODEC
 	);

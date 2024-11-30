@@ -9,6 +9,7 @@ import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.player.PlayerModelPart;
 import net.minecraft.registry.Registries;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.util.Hand;
 import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.Box;
@@ -23,6 +24,8 @@ import java.util.stream.IntStream;
 
 @SuppressWarnings("unused")
 public class ExtraCodecs {
+
+	public static final Codec<Hand> HAND_CODEC = enumCodec(Hand.class, true);
 
 	public static final Codec<PlayerModelPart> MODEL_PART_CODEC = enumCodec(PlayerModelPart.class, true);
 
