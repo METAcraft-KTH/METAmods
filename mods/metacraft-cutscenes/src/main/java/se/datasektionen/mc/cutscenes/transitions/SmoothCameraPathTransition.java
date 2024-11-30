@@ -84,7 +84,7 @@ public class SmoothCameraPathTransition implements Transition {
 
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-
+		cutscene.getEntities(MARKER_ID).forEach(Entity::discard);
 	}
 
 	@Override
