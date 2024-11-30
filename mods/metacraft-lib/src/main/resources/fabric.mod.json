@@ -29,5 +29,11 @@
 		"fabricloader": ">=${loader_version}",
 		"fabric": "*",
 		"minecraft": "~${minecraft_version}"
+	},
+	"custom": {
+		"loom:injected_interfaces": {
+			"net/minecraft/class_3419": ["net/minecraft/class_3542"],
+			"net/minecraft/class_1664": ["net/minecraft/class_3542"]
+		}
 	}
 }

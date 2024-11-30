@@ -27,7 +27,7 @@ public class ExtraCodecs {
 
 	public static final Codec<Hand> HAND_CODEC = enumCodec(Hand.class, true);
 
-	public static final Codec<PlayerModelPart> MODEL_PART_CODEC = enumCodec(PlayerModelPart.class, true);
+	public static final Codec<PlayerModelPart> MODEL_PART_CODEC = StringIdentifiable.createCodec(PlayerModelPart::values);
 
 	public static final Codec<Set<PlayerModelPart>> MODEL_PART_SET_CODEC = MODEL_PART_CODEC.listOf().xmap(
 			list -> list.isEmpty() ? Set.of() : EnumSet.copyOf(list), ArrayList::new
@@ -47,7 +47,7 @@ public class ExtraCodecs {
 	public static final Codec<SpawnReason> SPAWN_REASON_CODEC = enumCodec(SpawnReason.class, true);
 
 
-	public static final Codec<SoundCategory> SOUND_CATEGORY_CODEC = enumCodec(SoundCategory.class, true);
+	public static final Codec<SoundCategory> SOUND_CATEGORY_CODEC = StringIdentifiable.createCodec(SoundCategory::values);
 
 	public static final Codec<Box> BOX_CODEC = Codec.DOUBLE.listOf().listOf().flatXmap(
 			positions -> {
