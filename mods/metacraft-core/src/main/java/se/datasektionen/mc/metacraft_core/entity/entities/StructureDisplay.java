@@ -4,13 +4,18 @@ import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.BlockDisplayElement;
+import eu.pb4.polymer.virtualentity.api.elements.DisplayElement;
+import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
 import net.minecraft.block.FluidBlock;
+import net.minecraft.block.SkullBlock;
+import net.minecraft.block.WallSkullBlock;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.decoration.Brightness;
 import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtOps;
@@ -19,9 +24,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructureTemplate;
 import net.minecraft.structure.StructureTemplateManager;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.AffineTransformation;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.*;
 import net.minecraft.world.World;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
@@ -37,7 +40,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 	private static final String STRUCTURE = "Structure";
 
 	private ElementHolder holder = new ElementHolder();
-	private List<Display> displays = new ArrayList<>();
+	private final List<Display> displays = new ArrayList<>();
 
 	private int interpolationDuration = 1;
 	private int startInterpolation = -1;
@@ -210,6 +213,16 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		return false;
 	}
 
+	private void addDisplay(DisplayElement element, Vec3d pos) {
+		addDisplay(element, pos, 0, 0);
+	}
+
+	private void addDisplay(DisplayElement element, Vec3d pos, float yawOffset, float pitchOffset) {
+		var d = new Display(element, pos.subtract(Vec3d.ofCenter(structure.getSize()).multiply(0.5)), yawOffset, pitchOffset);
+		displays.add(d);
+		holder.addElement(element);
+	}
+
 	private void updateStructure() {
 		holder.destroy();
 		holder = new ElementHolder();
@@ -217,11 +230,32 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		for (var list : ((AccessorStructureTemplate) structure).getBlockInfoLists()) {
 			for (var l : list.getAll()) {
 				if (l.state().isAir() || l.state().getBlock() instanceof FluidBlock) continue;
+				if (l.state().getBlock() instanceof SkullBlock skullBlock) {
+					var itemDisplay = new ItemDisplayElement();
+					itemDisplay.setItem(new ItemStack(skullBlock.asItem()));
+					float yaw = MathHelper.wrapDegrees(l.state().get(SkullBlock.ROTATION) * 360.0f/16);
+					addDisplay(itemDisplay, Vec3d.ofCenter(l.pos()), yaw, 0);
+					continue;
+				}
+				if (l.state().getBlock() instanceof WallSkullBlock skullBlock) {
+					var itemDisplay = new ItemDisplayElement();
+					itemDisplay.setItem(new ItemStack(skullBlock.asItem()));
+					var facing = l.state().get(WallSkullBlock.FACING);
+					addDisplay(
+							itemDisplay,
+							Vec3d.add(
+									l.pos(),
+									0.5 - facing.getOffsetX() * 0.25,
+									0.75,
+									0.5 - facing.getOffsetZ() * 0.25
+							),
+							Direction.getHorizontalDegrees(facing.getOpposite()), 0
+					);
+					continue;
+				}
 				var blockDisplay = new BlockDisplayElement();
 				blockDisplay.setBlockState(l.state());
-				var d = new Display(blockDisplay, Vec3d.of(l.pos()).subtract(Vec3d.ofCenter(structure.getSize()).multiply(0.5)));
-				displays.add(d);
-				holder.addElement(blockDisplay);
+				addDisplay(blockDisplay, Vec3d.of(l.pos()));
 			}
 		}
 		refreshDisplayValues();
@@ -289,7 +323,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		return EntityType.MARKER;
 	}
 
-	public record Display(BlockDisplayElement displayElement, Vec3d offset) {
+	public record Display(DisplayElement displayElement, Vec3d offset, float yawOffset, float pitchOffset) {
 		public void updateOffset(StructureDisplay entity) {
 			var mat = new Matrix4f();
 			mat.rotateYXZ(
@@ -303,8 +337,8 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 			displayElement.setOffset(
 					new Vec3d(offset.x, offset.y, offset.z)
 			);
-			displayElement.setYaw(entity.getYaw());
-			displayElement.setPitch(entity.getPitch());
+			displayElement.setYaw(entity.getYaw()+yawOffset);
+			displayElement.setPitch(entity.getPitch()+pitchOffset);
 		}
 	}
 }
