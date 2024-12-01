@@ -120,6 +120,10 @@ public class TransitionRegistry {
 			"set_game_rule", SetGameRuleTransition.CODEC
 	);
 
+	public static final TransitionType<PlaceStructure> PLACE_STRUCTURE = register(
+			"place_structure", PlaceStructure.CODEC
+	);
+
 
 
 

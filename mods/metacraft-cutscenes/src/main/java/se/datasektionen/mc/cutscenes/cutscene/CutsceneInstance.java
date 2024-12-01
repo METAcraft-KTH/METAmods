@@ -13,8 +13,6 @@ import net.minecraft.entity.SpawnReason;
 import net.minecraft.nbt.*;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -37,6 +35,7 @@ import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.TeleportTransition;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
 import se.datasektionen.mc.cutscenes.transitions.entity.SpawnEntity;
+import se.datasektionen.mc.cutscenes.util.SerialisedStructure;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
@@ -656,52 +655,6 @@ public class CutsceneInstance implements AutoCloseable {
 				SpawnEntity.spawnEntities(
 						ids, data, Optional.empty(), cutscene, Optional.of(false)
 				);
-			}
-		}
-
-		public record SerialisedStructure(NbtCompound data) {
-			public static final Codec<SerialisedStructure> CODEC = NbtCompound.CODEC.xmap(
-					SerialisedStructure::new, SerialisedStructure::data
-			);
-
-			public SerialisedStructure(StructureTemplate structure) {
-				this(structure.writeNbt(new NbtCompound()));
-			}
-
-			private static NbtList convert(int[] array) {
-				var list = new NbtList();
-				for (int i : array) {
-					list.add(NbtInt.of(i));
-				}
-				return list;
-			}
-
-			public StructureTemplate parse(RegistryWrapper.WrapperLookup lookup) {
-				StructureTemplate template = new StructureTemplate();
-				//StructureTemplate#readNbt only accepts an int list, but codecs sometimes like to replace it with an int array.
-				if (data.contains(StructureTemplate.SIZE_KEY, NbtElement.INT_ARRAY_TYPE)) {
-					data.put(StructureTemplate.SIZE_KEY, convert(data.getIntArray(StructureTemplate.SIZE_KEY)));
-				}
-				if (data.contains(StructureTemplate.BLOCKS_KEY, NbtElement.LIST_TYPE)) {
-					var blocks = data.getList(StructureTemplate.BLOCKS_KEY, NbtElement.COMPOUND_TYPE);
-					for (var b : blocks) {
-						var block = ((NbtCompound) b);
-						if (block.contains(StructureTemplate.BLOCKS_POS_KEY, NbtElement.INT_ARRAY_TYPE)) {
-							block.put(StructureTemplate.BLOCKS_POS_KEY, convert(block.getIntArray(StructureTemplate.BLOCKS_POS_KEY)));
-						}
-					}
-				}
-				if (data.contains(StructureTemplate.ENTITIES_KEY, NbtElement.LIST_TYPE)) {
-					var entities = data.getList(StructureTemplate.ENTITIES_KEY, NbtElement.COMPOUND_TYPE);
-					for (var e : entities) {
-						var entity = ((NbtCompound) e);
-						if (entity.contains(StructureTemplate.ENTITIES_BLOCK_POS_KEY, NbtElement.LIST_TYPE)) {
-							entity.put(StructureTemplate.ENTITIES_BLOCK_POS_KEY, convert(entity.getIntArray(StructureTemplate.ENTITIES_BLOCK_POS_KEY)));
-						}
-					}
-				}
-				template.readNbt(lookup.getOrThrow(RegistryKeys.BLOCK), data);
-				return template;
 			}
 		}
 	}

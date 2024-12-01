@@ -56,6 +56,7 @@ import net.minecraft.world.tick.TickManager;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.mixin.*;
+import se.datasektionen.mc.cutscenes.util.SerialisedStructure;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.StructureTemplateHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.WorldHelper;
@@ -272,7 +273,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		return ((SaveProperties) this.getLevelProperties()).cloneWorldNbt(getRegistryManager(), null);
 	}
 
-	public CutsceneInstance.CutsceneWorldData.SerialisedStructure save() {
+	public SerialisedStructure save() {
 		StructureTemplate template = new StructureTemplate();
 		List<StructureTemplate.StructureBlockInfo> fullBlocks = new ArrayList<>();
 		List<StructureTemplate.StructureBlockInfo> blockWithNBT = new ArrayList<>();
@@ -316,7 +317,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		StructureTemplateHelper.getBlockInfoLists(template).add(
 				StructureTemplateHelper.createPalettedBlockInfoList(blocks)
 		);
-		return new CutsceneInstance.CutsceneWorldData.SerialisedStructure(template);
+		return new SerialisedStructure(template);
 	}
 
 	public void clear() {

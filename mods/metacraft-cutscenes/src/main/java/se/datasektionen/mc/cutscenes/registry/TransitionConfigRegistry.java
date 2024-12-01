@@ -122,6 +122,11 @@ public class TransitionConfigRegistry {
 			"set_game_rule", SetGameRuleTransition.Config.CODEC
 	);
 
+	public static final TransitionConfigType<PlaceStructure> PLACE_STRUCTURE = register(
+			"place_structure", PlaceStructure.CODEC
+	);
+
+
 
 
 
