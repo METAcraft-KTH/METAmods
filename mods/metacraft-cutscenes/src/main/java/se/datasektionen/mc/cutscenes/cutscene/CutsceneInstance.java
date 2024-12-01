@@ -116,7 +116,9 @@ public class CutsceneInstance implements AutoCloseable {
 		this.cutscene = cutscene;
 		this.transitions = cutscene.createTransitions();
 		this.savedPlayerData = new HashMap<>();
-		setTargetWorld(world);
+		setTargetWorld(cutscene.getEntryPoint(world.getServer(), world.getRegistryKey()).map(
+				TeleportTarget::world
+		).orElse(world));
 	}
 
 	protected CutsceneInstance(

@@ -71,7 +71,6 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 		this.cutscene = cutscene;
 		if (this.cutscene != null) {
-			this.cutscene.setTargetWorld(this.getServerWorld());
 			this.cutscene.addPlayer((ServerPlayerEntity) (Object) this);
 		}
 	}
