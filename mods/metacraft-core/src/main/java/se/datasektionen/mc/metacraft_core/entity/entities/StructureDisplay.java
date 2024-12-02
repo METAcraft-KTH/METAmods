@@ -267,7 +267,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 			display.displayElement.setInterpolationDuration(interpolationDuration);
 			display.displayElement.setTeleportDuration(teleportDuration);
 			display.displayElement.setStartInterpolation(startInterpolation);
-			display.displayElement.setTransformation(transformation);
+			display.applyTransformation(transformation);
 			display.displayElement.setBillboardMode(billboardMode);
 			display.displayElement.setBrightness(brightness);
 			display.displayElement.setViewRange(viewRange);
@@ -337,8 +337,21 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 			displayElement.setOffset(
 					new Vec3d(offset.x, offset.y, offset.z)
 			);
-			displayElement.setYaw(entity.getYaw()+yawOffset);
-			displayElement.setPitch(entity.getPitch()+pitchOffset);
+			displayElement.setYaw(entity.getYaw());
+			displayElement.setPitch(entity.getPitch());
+		}
+
+		public void applyTransformation(AffineTransformation transformation) {
+			var rotated = transformation.getMatrix();
+			if (yawOffset != 0 || pitchOffset != 0) {
+				var rot = new Matrix4f().rotateXYZ(
+						-pitchOffset * MathHelper.RADIANS_PER_DEGREE,
+						-yawOffset * MathHelper.RADIANS_PER_DEGREE,
+						0
+				);
+				rotated = rotated.mul(rot, new Matrix4f());
+			}
+			displayElement.setTransformation(rotated);
 		}
 	}
 }
