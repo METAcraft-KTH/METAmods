@@ -21,21 +21,16 @@ import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfig;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfigType;
+import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 
-import java.util.Locale;
 import java.util.OptionalLong;
 
 public class PlaySoundTransition implements Transition, TransitionConfig {
 
-	public static final Codec<SoundCategory> SOUND_CATEGORY_CODEC = Codec.STRING.xmap(
-			name -> SoundCategory.valueOf(name.toUpperCase(Locale.ROOT)),
-			category -> category.name().toLowerCase(Locale.ROOT)
-	);
-
 	public static final MapCodec<PlaySoundTransition> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					SoundEvent.ENTRY_CODEC.fieldOf("sound").forGetter(t -> t.sound),
-					SOUND_CATEGORY_CODEC.optionalFieldOf("category", SoundCategory.MASTER).forGetter(t -> t.category),
+					ExtraCodecs.SOUND_CATEGORY_CODEC.optionalFieldOf("category", SoundCategory.MASTER).forGetter(t -> t.category),
 					Codec.either(PositionRefRegistry.CODEC, EntityRefRegistry.CODEC).fieldOf("source").forGetter(t -> t.source),
 					Codec.floatRange(0, Float.MAX_VALUE).optionalFieldOf("volume", 1.0f).forGetter(t -> t.volume),
 					Codec.floatRange(0.5f, 2).optionalFieldOf("pitch", 1.0f).forGetter(t -> t.pitch),
