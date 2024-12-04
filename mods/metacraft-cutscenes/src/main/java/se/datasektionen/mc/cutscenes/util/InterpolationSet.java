@@ -89,7 +89,7 @@ public class InterpolationSet<T extends Interpolatable> {
 			x.add(1, 0.5);
 			for (int i = 0; i < size; i++) {
 				var list = y.get(i);
-				list.add(1, (list.getFirst() + list.getLast() / 2));
+				list.add(1, (list.getFirst() + list.getLast()) / 2);
 			}
 		}
 

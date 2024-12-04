@@ -37,7 +37,7 @@ import java.util.List;
 
 public class StructureDisplay extends Entity implements PolymerEntity {
 
-	private static final String STRUCTURE = "Structure";
+	private static final String STRUCTURE = "structure";
 
 	private ElementHolder holder = new ElementHolder();
 	private final List<Display> displays = new ArrayList<>();
