@@ -145,7 +145,10 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		if (nbt.contains(CutsceneInstance.CUTSCENE)) {
 			CutsceneInstance.CODEC.parse(getRegistryManager().getOps(NbtOps.INSTANCE), nbt.get(CutsceneInstance.CUTSCENE)).resultOrPartial(
 					Cutscenes.LOGGER::error
-			).ifPresent(this::metacraft_cutscenes$setCutscene);
+			).ifPresent(scene -> {
+				scene.finalizeParse(getServer());
+				this.metacraft_cutscenes$setCutscene(scene);
+			});
 		}
 	}
 
