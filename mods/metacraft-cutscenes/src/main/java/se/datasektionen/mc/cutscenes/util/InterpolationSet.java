@@ -8,12 +8,13 @@ import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
-import sigbla.app.pds.collection.Map;
-import sigbla.app.pds.collection.TreeMap;
+import org.pcollections.PMap;
+import org.pcollections.TreePMap;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.DoubleStream;
 
 public class InterpolationSet<T extends Interpolatable> {
@@ -32,37 +33,35 @@ public class InterpolationSet<T extends Interpolatable> {
 	) {
 		return createEntryCodec(valueCodec).listOf().xmap(
 				list -> new InterpolationSet<>(
-						list.stream().reduce(
-								new TreeMap<>(),
-								(map, entry) -> map.put(entry.getKey(), entry.getValue()),
-								(m, m2) -> m
+						list.stream().collect(
+								TreePMap.toTreePMap(Map.Entry::getKey, Map.Entry::getValue)
 						), creator
 				),
-				set -> set.values.asMap().entrySet().stream().toList()
+				set -> set.values.entrySet().stream().toList()
 		);
 	}
 
 	private static final SplineInterpolator INTERPOLATOR = new SplineInterpolator();
 
-	private final Map<Double, T> values; //Warning, this is a persistent map, not a normal map! That means to update it you must do = just like when updating strings!
+	private final PMap<Double, T> values; //Warning, this is a persistent map, not a normal map! That means to update it you must do = just like when updating strings!
 	private List<PolynomialSplineFunction> splines;
 	private final Function<DoubleStream, T> creator;
 
-	public InterpolationSet(Map<Double, T> values, Function<DoubleStream, T> creator) {
+	public InterpolationSet(PMap<Double, T> values, Function<DoubleStream, T> creator) {
 		this.values = values;
 		this.creator = creator;
 	}
 
 	public InterpolationSet<T> setStartIfNotPresent(T start) {
 		if (!values.containsKey(0.0)) {
-			return new InterpolationSet<>(values.put(0.0, start), creator);
+			return new InterpolationSet<>(values.plus(0.0, start), creator);
 		}
 		return this;
 	}
 
 	public InterpolationSet<T> setEndIfNotPresent(T end) {
 		if (!values.containsKey(1.0)) {
-			return new InterpolationSet<>(values.put(1.0, end), creator);
+			return new InterpolationSet<>(values.plus(1.0, end), creator);
 		}
 		return this;
 	}
@@ -70,12 +69,12 @@ public class InterpolationSet<T extends Interpolatable> {
 	private void initSplines() {
 		if (splines != null) return;
 		DoubleList x = new DoubleArrayList();
-		int size = values.asMap().values().stream().map(e -> e.getValues().size()).findAny().orElse(0);
+		int size = values.values().stream().map(e -> e.getValues().size()).findAny().orElse(0);
 		List<DoubleList> y = new ArrayList<>();
 		for (int i = 0; i < size; i++) {
 			y.add(new DoubleArrayList());
 		}
-		values.asMap().forEach((key, value) -> {
+		values.forEach((key, value) -> {
 			x.add((double) key);
 
 			for (int i = 0; i < size; i++) {
@@ -101,7 +100,7 @@ public class InterpolationSet<T extends Interpolatable> {
 
 	public T interpolate(double delta) {
 		initSplines();
-		if (splines == null) return values.asMap().values().stream().findAny().orElse(null);
+		if (splines == null) return values.values().stream().findAny().orElse(null);
 		return creator.apply(splines.stream().mapToDouble(
 				spline -> spline.value(delta)
 		));

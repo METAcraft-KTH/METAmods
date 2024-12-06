@@ -1,12 +1,11 @@
 package se.datasektionen.mc.cutscenes.util;
 
-import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.Function;
 import net.minecraft.util.math.MathHelper;
-import sigbla.app.pds.collection.TreeMap;
+import org.pcollections.TreePMap;
 
 import java.util.AbstractMap;
 import java.util.Map;
@@ -51,13 +50,13 @@ public class TimestampedInterpolationSet<T extends Interpolatable> {
 
 	public InterpolationSet<T> createFromRange(int start, int end) {
 		return new InterpolationSet<>(
-				values.entrySet().stream().map(e -> Pair.of(
-						MathHelper.clamp(((double) e.getKey() - start) / (end - start), 0, 1),
-						e.getValue()
-				)).reduce(
-						new TreeMap<>(),
-						(map, entry) -> map.put(entry.getFirst(), entry.getSecond()),
-						(m, n) -> m
+				values.entrySet().stream().collect(
+						TreePMap.toTreePMap(
+								e -> MathHelper.clamp(
+										((double) e.getKey() - start) / (end - start), 0, 1
+								),
+								Map.Entry::getValue
+						)
 				), creator
 		);
 	}

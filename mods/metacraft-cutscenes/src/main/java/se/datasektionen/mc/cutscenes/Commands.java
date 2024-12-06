@@ -284,7 +284,7 @@ public class Commands {
 							CutscenesConfig.reload(ctx.getSource().getServer());
 							ctx.getSource().sendFeedback(
 									() -> Text.literal(
-											"Reloading cutscenes in " + ctx.getSource().getWorld().getRegistryKey().getValue()
+											"Reloading cutscenes"
 									), true
 							);
 							return 1;

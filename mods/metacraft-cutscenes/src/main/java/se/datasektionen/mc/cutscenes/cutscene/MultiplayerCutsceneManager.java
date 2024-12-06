@@ -11,11 +11,14 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Uuids;
 import net.minecraft.world.PersistentState;
+import org.pcollections.HashTreePMap;
+import org.pcollections.PMap;
 import se.datasektionen.mc.cutscenes.CutsceneDataFixer;
 import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 public class MultiplayerCutsceneManager extends PersistentState {
 
@@ -49,7 +52,7 @@ public class MultiplayerCutsceneManager extends PersistentState {
 
 	private final MinecraftServer server;
 
-	private final Map<String, CutsceneInstance> activeCutscenes = new HashMap<>();
+	private PMap<String, CutsceneInstance> activeCutscenes = HashTreePMap.empty();
 	private final Map<UUID, String> cutsceneByPlayer = new HashMap<>();
 	private final Map<UUID, CutsceneInstance> cutsceneByPlayerActive = new HashMap<>();
 	private final Multimap<String, UUID> playerByCutscene = HashMultimap.create();
@@ -109,30 +112,56 @@ public class MultiplayerCutsceneManager extends PersistentState {
 		});
 	}
 
-	private void onCutsceneRemove(String name, CutsceneInstance cutscene) {
-		cutscene.removeCutscene(p -> removePlayer(p.getUuid()));
-		playerByCutscene.get(name).forEach(player -> {
-			disconnectedPlayers.put(player, cutscene);
-		});
-		disconnectedPlayers.forEach((player, c) -> {
-			removePlayer(player);
-		});
-		markDirty();
+	private CutsceneInstance.RemoveHandler getRemoveHandler(String name) {
+		return new CutsceneInstance.RemoveHandler() {
+
+			Consumer<ServerPlayerEntity> playerAction = p -> removePlayer(p.getUuid());
+			List<ServerPlayerEntity> players = null;
+
+			@Override
+			public void beforePlayerReset(CutsceneInstance cutscene) {
+				cutscene.getNextCutscene().ifPresentOrElse(
+						newScene -> {
+							newScene.setRemoveHandler(getRemoveHandler(name));
+							activeCutscenes = activeCutscenes.plus(name, newScene);
+							players = new ArrayList<>();
+							playerAction = playerAction.andThen(p -> players.add(p));
+						},
+						() -> activeCutscenes = activeCutscenes.minus(name)
+				);
+				cutscene.forAllPlayers(playerAction);
+				playerByCutscene.get(name).forEach(player -> {
+					disconnectedPlayers.put(player, cutscene);
+				});
+				disconnectedPlayers.forEach((player, c) -> {
+					removePlayer(player);
+				});
+				markDirty();
+			}
+
+			@Override
+			public void afterPlayerReset(CutsceneInstance cutscene) {
+				if (players != null) {
+					for (var p : players) {
+						addToCutscene(name, p);
+					}
+				}
+			}
+		};
 	}
 
 	public void endCutscene(String cutscene) {
 		if (activeCutscenes.containsKey(cutscene)) {
 			activeCutscenes.get(cutscene).end();
-			onCutsceneRemove(cutscene, activeCutscenes.get(cutscene));
-			activeCutscenes.remove(cutscene);
+			activeCutscenes = activeCutscenes.minus(cutscene);
 			markDirty();
 		}
 	}
 
 	public void addCutscene(String name, Cutscene cutscene, ServerWorld world) {
 		var scene = new CutsceneInstance(cutscene, world);
-		scene.setTargetWorld(world);
-		activeCutscenes.put(name, scene);
+		scene.setRemoveHandler(getRemoveHandler(name));
+		activeCutscenes = activeCutscenes.plus(name, scene);
 		markDirty();
 	}
 
@@ -159,7 +188,7 @@ public class MultiplayerCutsceneManager extends PersistentState {
 			var scene = disconnectedPlayers.get(player.getUuid());
 			scene.addPlayer(player);
 			scene.tick();
-			scene.resetPlayers(p -> {});
+			scene.resetPlayers();
 			disconnectedPlayers.remove(player.getUuid());
 			markDirty();
 		}
@@ -181,14 +210,9 @@ public class MultiplayerCutsceneManager extends PersistentState {
 	}
 
 	public void tick() {
-		activeCutscenes.entrySet().removeIf(scene -> {
-			scene.getValue().tick();
+		activeCutscenes.forEach((name, scene) -> {
+			scene.tick();
 			markDirty();
-			if (scene.getValue().isEnded()) {
-				onCutsceneRemove(scene.getKey(), scene.getValue());
-				return true;
-			}
-			return false;
 		});
 	}
 
@@ -196,8 +220,13 @@ public class MultiplayerCutsceneManager extends PersistentState {
 		if (nbt.contains(CUTSCENES)) {
 			CUTSCENE_LIST.parse(lookup.getOps(NbtOps.INSTANCE), nbt.get(CUTSCENES)).resultOrPartial(
 					Cutscenes.LOGGER::error
-			).ifPresent(activeCutscenes::putAll);
-			activeCutscenes.values().forEach(scene -> scene.finalizeParse(server));
+			).ifPresent(scenes -> {
+				activeCutscenes = HashTreePMap.from(scenes);
+			});
+			activeCutscenes.forEach((name, scene) -> {
+				scene.finalizeParse(server);
+				scene.setRemoveHandler(getRemoveHandler(name));
+			});
 		}
 		if (nbt.contains(PLAYER_TO_CUTSCENE_KEY)) {
 			PLAYER_TO_CUTSCENE.parse(lookup.getOps(NbtOps.INSTANCE), nbt.get(PLAYER_TO_CUTSCENE_KEY)).resultOrPartial(

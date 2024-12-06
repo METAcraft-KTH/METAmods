@@ -104,6 +104,7 @@ public class CutsceneInstance implements AutoCloseable {
 	private StructureTemplate blocks;
 	private int chunkWaitTime = 10;
 	private RegistryKey<World> dim;
+	private RemoveHandler onRemove = null;
 
 	private final Map<UUID, NbtCompound> savedPlayerData;
 
@@ -206,6 +207,13 @@ public class CutsceneInstance implements AutoCloseable {
 		ended = true;
 		entities.clear();
 		world.clear();
+		removeCutscene();
+	}
+
+	public Optional<CutsceneInstance> getNextCutscene() {
+		return cutscene.getNextCutscene(getServer()).map(
+				scene -> new CutsceneInstance(scene, world.getActualWorld())
+		);
 	}
 
 	/**
@@ -225,6 +233,10 @@ public class CutsceneInstance implements AutoCloseable {
 		if (prev != null) {
 			world.transferFrom(prev);
 		}
+	}
+
+	public void setRemoveHandler(RemoveHandler onRemove) {
+		this.onRemove = onRemove;
 	}
 
 	private void handleQueue() {
@@ -424,8 +436,15 @@ public class CutsceneInstance implements AutoCloseable {
 		loadRootVehicle(player, data, player.getWorld()::spawnEntity);
 	}
 
-	public void removeCutscene(Consumer<ServerPlayerEntity> playerAction) {
-		resetPlayers(playerAction);
+	private void removeCutscene() {
+		if (onRemove != null) {
+			onRemove.beforePlayerReset(this);
+		}
+		resetPlayers();
+		if (onRemove != null) {
+			onRemove.afterPlayerReset(this);
+		}
+		onRemove = null;
 		lock.writeLock().lock();
 		try {
 			players.clear();
@@ -463,9 +482,8 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 	}
 
-	public void resetPlayers(Consumer<ServerPlayerEntity> playerAction) {
+	public void resetPlayers() {
 		forAllPlayers(p -> {
-			playerAction.accept(p);
 			removePlayer(p);
 			resetPlayer(p);
 		});
@@ -536,6 +554,7 @@ public class CutsceneInstance implements AutoCloseable {
 		if (world == null) {
 			Cutscenes.LOGGER.error("Cutscene did not have a world, ending it prematurely! If you get this error, some developer forgot to call CutsceneInstance#setTargetWorld or CutsceneInstance#setWorldFromDim");
 			end();
+			return;
 		}
 		if (data != null) {
 			if (blocks == null) {
@@ -657,6 +676,11 @@ public class CutsceneInstance implements AutoCloseable {
 				);
 			}
 		}
+	}
+
+	public interface RemoveHandler {
+		void beforePlayerReset(CutsceneInstance cutscene);
+		void afterPlayerReset(CutsceneInstance cutscene);
 	}
 
 }

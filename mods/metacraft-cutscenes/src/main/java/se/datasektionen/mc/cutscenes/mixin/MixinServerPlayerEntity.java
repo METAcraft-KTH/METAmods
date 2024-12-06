@@ -67,11 +67,24 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 		if (this.cutscene != null && !this.cutscene.isEnded()) {
 			this.cutscene.end();
-			this.cutscene.removeCutscene(p -> {});
 		}
 		this.cutscene = cutscene;
 		if (this.cutscene != null) {
 			this.cutscene.addPlayer((ServerPlayerEntity) (Object) this);
+			this.cutscene.setRemoveHandler(new CutsceneInstance.RemoveHandler() {
+
+				@Override
+				public void beforePlayerReset(CutsceneInstance cutscene) {
+
+				}
+
+				@Override
+				public void afterPlayerReset(CutsceneInstance cutscene) {
+					cutscene.getNextCutscene().ifPresent(next -> {
+						metacraft_cutscenes$setCutscene(next);
+					});
+				}
+			});
 		}
 	}
 
@@ -108,7 +121,6 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		if (cutscene != null) {
 			cutscene.tick();
 			if (cutscene.isEnded()) {
-				cutscene.removeCutscene(p -> {});
 				cutscene = null;
 			}
 		}

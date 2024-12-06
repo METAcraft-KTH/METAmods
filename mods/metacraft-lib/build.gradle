@@ -7,7 +7,7 @@ loom {
 dependencies {
 	include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
 	include("com.github.Chocohead:Fabric-ASM:${project.fabric_asm_version}")
-	include("sigbla.app:sigbla-pds:1.0")
+	include("org.pcollections:pcollections:${project.pcollections_version}")
 }
 
 addVanishDependency()
