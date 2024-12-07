@@ -175,7 +175,9 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 
 	private void sendBlocks(ServerPlayerEntity player, UnaryOperator<Chunk> chunkGetter) {
 		List<Packet<? super ClientPlayPacketListener>> list = new ArrayList<>();
-		streamChangedChunks().flatMap(c -> {
+		streamChangedChunks().filter(
+				c -> player.getChunkFilter().isWithinDistance(c.getPos())
+		).flatMap(c -> {
 			Int2ObjectMap<ShortSet> map = new Int2ObjectOpenHashMap<>();
 			var chunk = chunkGetter.apply(c);
 			c.changedBlocks.forEach(pos -> {
@@ -196,6 +198,18 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 				Cutscenes.LOGGER.info("Skipped sending blocks because no network handler :(");
 			}
 		}
+	}
+
+	public Optional<WorldChunk> getChunkFromCacheIfPresent(Chunk chunk) {
+		return getChunkFromCacheIfPresent(chunk.getPos());
+	}
+
+	public Optional<WorldChunk> getChunkFromCacheIfPresent(ChunkPos pos) {
+		return getChunkFromCacheIfPresent(pos.x, pos.z);
+	}
+
+	public Optional<WorldChunk> getChunkFromCacheIfPresent(int x, int z) {
+		return manager.isInCache(x, z) ? Optional.of(manager.getFromCache(x, z)) : Optional.empty();
 	}
 
 	public void syncTime() {
@@ -516,7 +530,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 			return cachedChunks.containsKey(x) && cachedChunks.get(x).containsKey(z);
 		}
 
-		private Chunk getFromCache(int x, int z) {
+		private WorldChunk getFromCache(int x, int z) {
 			return cachedChunks.get(x).get(z);
 		}
 
@@ -562,7 +576,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		@Override
 		public WorldChunk getWorldChunk(int chunkX, int chunkZ) {
 			if (isInCache(chunkX, chunkZ)) {
-				return (WorldChunk) getFromCache(chunkX, chunkZ);
+				return getFromCache(chunkX, chunkZ);
 			}
 			return (WorldChunk) getCutsceneChunk(chunkX, chunkZ, world.getChunkManager().getWorldChunk(chunkX, chunkZ));
 		}
