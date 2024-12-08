@@ -31,7 +31,7 @@ public record SmoothEntityPathConfig(
 ) implements TransitionConfig {
 
 	public static final MapCodec<InterpolationSetContainer<DisplayEntityTarget>> SMOOTH_PATH = InterpolationSetContainer.createCodec(
-			DisplayEntityTarget.CODEC, s -> DisplayEntityTarget.fromList((DoubleStream) s)
+			DisplayEntityTarget.CODEC, DisplayEntityTarget::fromList
 	);
 
 	public static final MapCodec<SmoothEntityPathConfig> CODEC = RecordCodecBuilder.mapCodec(

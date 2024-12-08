@@ -1,11 +1,10 @@
 package se.datasektionen.mc.cutscenes.util;
 
-import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.JavaOps;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.floatprovider.ConstantFloatProvider;
 import net.minecraft.world.GameMode;
+import org.pcollections.TreePMap;
 import se.datasektionen.mc.cutscenes.cutscene.Cutscene;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.entity_ref.CutsceneRef;
@@ -69,37 +68,36 @@ public class DefaultCutscenes {
 				new IntervalMap.Interval<>(
 						150, 250, new RotateHead.RotateHeadConfig(
 								new CutsceneRef(CutsceneInstance.PLAYER_REFERENCE),
-								ImmutableList.of(
-										new RotateHead.RotateHeadConfig.OffsetTarget(
-												ConstantFloatProvider.create(-10),
-												ConstantFloatProvider.create(10),
-												0.1f
-										),
-										new RotateHead.RotateHeadConfig.OffsetTarget(
-												ConstantFloatProvider.create(10),
-												ConstantFloatProvider.create(10),
-												0.3f
-										),
-										new RotateHead.RotateHeadConfig.OffsetTarget(
-												ConstantFloatProvider.create(-10),
-												ConstantFloatProvider.create(10),
-												0.5f
-										),
-										new RotateHead.RotateHeadConfig.OffsetTarget(
-												ConstantFloatProvider.create(10),
-												ConstantFloatProvider.create(10),
-												0.7f
-										),
-										new RotateHead.RotateHeadConfig.OffsetTarget(
-												ConstantFloatProvider.create(-10),
-												ConstantFloatProvider.create(10),
-												0.9f
-										),
-										new RotateHead.RotateHeadConfig.OffsetTarget(
-												ConstantFloatProvider.create(0),
-												ConstantFloatProvider.create(0),
-												1
-										)
+								new InterpolationSetContainer<>(
+										Optional.of(new InterpolationSet<>(
+												TreePMap.singleton(
+														0.1, new RotateHead.RotateHeadConfig.OffsetTarget(
+																-10, 10
+														)
+												).plus(
+														0.3,
+														new RotateHead.RotateHeadConfig.OffsetTarget(
+																10, 10
+														)
+												).plus(
+														0.5,
+														new RotateHead.RotateHeadConfig.OffsetTarget(
+																-10, 10
+														)
+												).plus(
+														0.7,
+														new RotateHead.RotateHeadConfig.OffsetTarget(
+																10, 10
+														)
+												).plus(
+														0.9,
+														new RotateHead.RotateHeadConfig.OffsetTarget(
+																-10, 10
+														)
+												),
+												RotateHead.RotateHeadConfig.OffsetTarget::fromList
+										)),
+										Optional.empty()
 								)
 						)
 				)

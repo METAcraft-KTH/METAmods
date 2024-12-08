@@ -2,17 +2,15 @@ package se.datasektionen.mc.cutscenes.util;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.*;
-import it.unimi.dsi.fastutil.Function;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
 
 import java.util.Optional;
-import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 public class InterpolationSetContainer<T extends Interpolatable> {
 
 	public static <I extends Interpolatable> MapCodec<InterpolationSetContainer<I>> createCodec(
-			MapCodec<I> elementCodec, Function<DoubleStream, I> creator
+			MapCodec<I> elementCodec, InterpolationSet.Creator<I> creator
 	) {
 		return new MapCodec<>() {
 

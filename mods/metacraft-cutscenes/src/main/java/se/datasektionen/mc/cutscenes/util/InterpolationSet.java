@@ -3,18 +3,17 @@ package se.datasektionen.mc.cutscenes.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import it.unimi.dsi.fastutil.Function;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
-import org.pcollections.PMap;
 import org.pcollections.TreePMap;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.DoubleStream;
 
 public class InterpolationSet<T extends Interpolatable> {
@@ -29,7 +28,7 @@ public class InterpolationSet<T extends Interpolatable> {
 	}
 
 	public static <T extends Interpolatable> Codec<InterpolationSet<T>> createCodec(
-			MapCodec<T> valueCodec, Function<DoubleStream, T> creator
+			MapCodec<T> valueCodec, Creator<T> creator
 	) {
 		return createEntryCodec(valueCodec).listOf().xmap(
 				list -> new InterpolationSet<>(
@@ -43,11 +42,11 @@ public class InterpolationSet<T extends Interpolatable> {
 
 	private static final SplineInterpolator INTERPOLATOR = new SplineInterpolator();
 
-	private final PMap<Double, T> values; //Warning, this is a persistent map, not a normal map! That means to update it you must do = just like when updating strings!
+	private final TreePMap<Double, T> values; //Warning, this is a persistent map, not a normal map! That means to update it you must do = just like when updating strings!
 	private List<PolynomialSplineFunction> splines;
-	private final Function<DoubleStream, T> creator;
+	private final Creator<T> creator;
 
-	public InterpolationSet(PMap<Double, T> values, Function<DoubleStream, T> creator) {
+	public InterpolationSet(TreePMap<Double, T> values, Creator<T> creator) {
 		this.values = values;
 		this.creator = creator;
 	}
@@ -64,6 +63,16 @@ public class InterpolationSet<T extends Interpolatable> {
 			return new InterpolationSet<>(values.plus(1.0, end), creator);
 		}
 		return this;
+	}
+
+	public <R extends Interpolatable> InterpolationSet<R> map(Function<T, R> mapper, Creator<R> creator) {
+		return new InterpolationSet<>(
+				values.entrySet().stream().reduce(
+						TreePMap.empty(),
+						(map, entry) -> map.plus(entry.getKey(), mapper.apply(entry.getValue())),
+						TreePMap::plusAll
+				), creator
+		);
 	}
 
 	private void initSplines() {
@@ -101,8 +110,13 @@ public class InterpolationSet<T extends Interpolatable> {
 	public T interpolate(double delta) {
 		initSplines();
 		if (splines == null) return values.values().stream().findAny().orElse(null);
-		return creator.apply(splines.stream().mapToDouble(
+		return creator.create(splines.stream().mapToDouble(
 				spline -> spline.value(delta)
 		));
+	}
+
+	@FunctionalInterface
+	public interface Creator<T extends Interpolatable> {
+		T create(DoubleStream stream);
 	}
 }

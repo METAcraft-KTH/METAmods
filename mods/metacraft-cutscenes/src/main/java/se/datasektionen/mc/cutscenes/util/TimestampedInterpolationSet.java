@@ -3,14 +3,12 @@ package se.datasektionen.mc.cutscenes.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import it.unimi.dsi.fastutil.Function;
 import net.minecraft.util.math.MathHelper;
 import org.pcollections.TreePMap;
 
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
 
 public class TimestampedInterpolationSet<T extends Interpolatable> {
 	private static <T extends Interpolatable> Codec<Map.Entry<Integer, T>> createEntryCodec(MapCodec<T> valueCodec) {
@@ -23,7 +21,7 @@ public class TimestampedInterpolationSet<T extends Interpolatable> {
 	}
 
 	public static <T extends Interpolatable> Codec<TimestampedInterpolationSet<T>> createCodec(
-			MapCodec<T> valueCodec, Function<DoubleStream, T> creator
+			MapCodec<T> valueCodec, InterpolationSet.Creator<T> creator
 	) {
 		return createEntryCodec(valueCodec).listOf().xmap(
 				list -> new TimestampedInterpolationSet<>(
@@ -41,9 +39,9 @@ public class TimestampedInterpolationSet<T extends Interpolatable> {
 	}
 
 	private final Map<Integer, T> values;
-	private final Function<DoubleStream, T> creator;
+	private final InterpolationSet.Creator<T> creator;
 
-	public TimestampedInterpolationSet(Map<Integer, T> values, Function<DoubleStream, T> creator) {
+	public TimestampedInterpolationSet(Map<Integer, T> values, InterpolationSet.Creator<T> creator) {
 		this.values = values;
 		this.creator = creator;
 	}

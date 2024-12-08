@@ -9,13 +9,13 @@ import se.datasektionen.mc.cutscenes.transitions.Transition;
 import se.datasektionen.mc.cutscenes.util.InterpolationSetContainer;
 import se.datasektionen.mc.cutscenes.util.Target;
 
-import java.util.stream.DoubleStream;
-
 public record SmoothCameraPathConfig(
 		InterpolationSetContainer<Target> targets, int interpolationDuration, int teleportInterval
 ) implements TransitionConfig {
 
-	public static final MapCodec<InterpolationSetContainer<Target>> SMOOTH_PATH = InterpolationSetContainer.createCodec(Target.MAP_CODEC, s -> Target.fromList((DoubleStream) s));
+	public static final MapCodec<InterpolationSetContainer<Target>> SMOOTH_PATH = InterpolationSetContainer.createCodec(
+			Target.MAP_CODEC, Target::fromList
+	);
 
 	public static final MapCodec<SmoothCameraPathConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
