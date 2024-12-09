@@ -249,7 +249,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 									0.75,
 									0.5 - facing.getOffsetZ() * 0.25
 							),
-							Direction.getHorizontalDegrees(facing.getOpposite()), 0
+							Direction.getHorizontalDegreesOrThrow(facing.getOpposite()), 0
 					);
 					continue;
 				}

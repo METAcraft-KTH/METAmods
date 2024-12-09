@@ -134,7 +134,7 @@ public class FasterMinecarts implements ModInitializer {
 				if (
 						isMinecart.test(recipe.craft(null, registryLookup).getItem()) &&
 						recipe.getIngredientPlacement().getIngredients().stream().anyMatch(
-								i -> i.getMatchingItems().stream().map(RegistryEntry::value).anyMatch(isMinecart)
+								i -> i.getMatchingItems().map(RegistryEntry::value).anyMatch(isMinecart)
 						)
 				) {
 					RecipeHelper.addComponentCarryover(recipe, stack -> isMinecart.test(stack.getItem()), true);

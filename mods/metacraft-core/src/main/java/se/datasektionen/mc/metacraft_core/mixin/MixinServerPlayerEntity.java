@@ -126,10 +126,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 
 		getServerWorld().getBiome(this.getBlockPos()).value().getMusic().ifPresent(music -> {
-			if (potentiallyPlayingMusic.containsKey(music.getSound())) {
-				potentiallyPlayingMusic.get(music.getSound()).setValue(music.getMinDelay());
-			} else {
-				potentiallyPlayingMusic.put(music.getSound(), new MutableInt(music.getMinDelay()));
+			for (var musicEntry : music.getEntries()) {
+				if (potentiallyPlayingMusic.containsKey(musicEntry.data().getSound())) {
+					potentiallyPlayingMusic.get(musicEntry.data().getSound()).setValue(musicEntry.data().getMinDelay());
+				} else {
+					potentiallyPlayingMusic.put(musicEntry.data().getSound(), new MutableInt(musicEntry.data().getMinDelay()));
+				}
 			}
 		});
 		potentiallyPlayingMusic.keySet().removeIf(music -> {

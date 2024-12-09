@@ -11,6 +11,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.resource.JsonDataLoader;
+import net.minecraft.resource.ResourceFinder;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,12 +32,12 @@ public class MixinJsonDataLoader {
 	private static final ThreadLocal<JsonElement> element = ThreadLocal.withInitial(() -> null);
 
 	@Inject(
-			method = "load",
+			method = "load(Lnet/minecraft/resource/ResourceManager;Lnet/minecraft/resource/ResourceFinder;Lcom/mojang/serialization/DynamicOps;Lcom/mojang/serialization/Codec;Ljava/util/Map;)V",
 			at = @At("HEAD")
 	)
 	private static <T> void load(
-			ResourceManager manager, String dataType, DynamicOps<JsonElement> ops,
-			Codec<T> codec, Map<Identifier, T> result, CallbackInfo ci
+			ResourceManager manager, ResourceFinder finder, DynamicOps<JsonElement> ops, Codec<T> codec,
+			Map<Identifier, T> results, CallbackInfo ci
 	) {
 		if (ops instanceof AccessorRegistryOps r) {
 			var getter = r.getRegistryInfoGetter();
@@ -47,7 +48,7 @@ public class MixinJsonDataLoader {
 	}
 
 	@ModifyExpressionValue(
-		method = "load",
+		method = "load(Lnet/minecraft/resource/ResourceManager;Lnet/minecraft/resource/ResourceFinder;Lcom/mojang/serialization/DynamicOps;Lcom/mojang/serialization/Codec;Ljava/util/Map;)V",
 		at = @At(
 			value = "INVOKE",
 			target = "Lcom/google/gson/JsonParser;parseReader(Ljava/io/Reader;)Lcom/google/gson/JsonElement;"
@@ -84,10 +85,13 @@ public class MixinJsonDataLoader {
 	}
 
 	@Inject(
-		method = "load",
+		method = "load(Lnet/minecraft/resource/ResourceManager;Lnet/minecraft/resource/ResourceFinder;Lcom/mojang/serialization/DynamicOps;Lcom/mojang/serialization/Codec;Ljava/util/Map;)V",
 		at = @At("RETURN")
 	)
-	private static <T> void cleanup(ResourceManager manager, String dataType, DynamicOps<JsonElement> ops, Codec<T> codec, Map<Identifier, T> result, CallbackInfo ci) {
+	private static <T> void cleanup(
+			ResourceManager manager, ResourceFinder finder, DynamicOps<JsonElement> ops,
+            Codec<T> codec, Map<Identifier, T> results, CallbackInfo ci
+	) {
 		lookup.remove();
 		element.remove();
 	}

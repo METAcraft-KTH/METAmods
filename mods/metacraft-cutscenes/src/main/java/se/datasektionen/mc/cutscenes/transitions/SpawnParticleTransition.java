@@ -40,7 +40,7 @@ public class SpawnParticleTransition implements Transition {
 			if (player.age % config.spawnInterval() == startTick) {
 				config.pos().get(player, cutscene).ifPresent(pos -> {
 					player.getServerWorld().spawnParticles(
-							player, config.particle(), config.force(), pos.x, pos.y, pos.z,
+							player, config.particle(), config.force(), config.important(), pos.x, pos.y, pos.z,
 							config.count(), config.delta().x, config.delta().y, config.delta().z, config.speed()
 					);
 				});

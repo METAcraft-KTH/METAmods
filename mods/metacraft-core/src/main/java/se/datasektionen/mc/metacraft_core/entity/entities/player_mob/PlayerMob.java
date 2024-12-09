@@ -109,7 +109,6 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		super(entityType, world);
 		this.moveControl = new PlayerMoveControl(this);
 		this.landNavigation.setCanSwim(true);
-		this.landNavigation.setCanEnterOpenDoors(true);
 		this.landNavigation.setCanPathThroughDoors(true);
 	}
 

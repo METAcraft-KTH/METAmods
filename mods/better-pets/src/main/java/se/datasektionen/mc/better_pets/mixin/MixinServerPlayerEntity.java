@@ -79,7 +79,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity {
 			@Share("pets") LocalRef<List<? extends TameableEntity>> pets
 	) {
 		leashed.get().forEach(l -> {
-			((Leashable) l).detachLeash(true, false);
+			((Leashable) l).detachLeashWithoutDrop();
 			MobTeleportHelper.teleportEntityToPlayer(
 					(ServerPlayerEntity) (Object) this, l,
 					e -> ((Leashable) e).attachLeash(this, true)

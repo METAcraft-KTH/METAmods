@@ -14,13 +14,14 @@ import se.datasektionen.mc.cutscenes.transitions.SpawnParticleTransition;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
 
 public record SpawnParticleTransitionConfig(
-		ParticleEffect particle, boolean force, PositionRef pos, int count, Vec3d delta, double speed, int spawnInterval
+		ParticleEffect particle, boolean force, boolean important, PositionRef pos, int count, Vec3d delta, double speed, int spawnInterval
 ) implements TransitionConfig {
 
 	public static final MapCodec<SpawnParticleTransitionConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					ParticleTypes.TYPE_CODEC.fieldOf("particle").forGetter(t -> t.particle),
 					Codec.BOOL.optionalFieldOf("force", false).forGetter(t -> t.force),
+					Codec.BOOL.optionalFieldOf("important", false).forGetter(t -> t.important),
 					PositionRefRegistry.CODEC.fieldOf("pos").forGetter(t -> t.pos),
 					Codecs.POSITIVE_INT.optionalFieldOf("count", 1).forGetter(t -> t.count),
 					Vec3d.CODEC.optionalFieldOf("delta", Vec3d.ZERO).forGetter(t -> t.delta),

@@ -6,6 +6,7 @@
 	"mixins": [
 		"AccessorCachedBlockPosition",
 		"AccessorIdList",
+		"AccessorItemSettings",
 		"AccessorNetherPortalBlock",
 		"AccessorPointOfInterestTypes",
 		"AccessorPortalForcer",
