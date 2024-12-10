@@ -1,5 +1,6 @@
 package se.datasektionen.mc.cutscenes.transitions.config;
 
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.text.Text;
@@ -11,14 +12,19 @@ import se.datasektionen.mc.cutscenes.transitions.Transition;
 
 import java.util.Optional;
 
-public record TitleTransitionConfig(Text title, Optional<Text> subtitle, int fadeIn, int fadeOut) implements TransitionConfig {
+public record TitleTransitionConfig(
+		Text title, Optional<Text> subtitle, int fadeIn, int fadeOut,
+		boolean stopAtEnd, Optional<Integer> stay
+) implements TransitionConfig {
 
 	public static MapCodec<TitleTransitionConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					TextCodecs.CODEC.fieldOf("title").forGetter(TitleTransitionConfig::title),
 					TextCodecs.CODEC.optionalFieldOf("subtitle").forGetter(TitleTransitionConfig::subtitle),
 					Codecs.NON_NEGATIVE_INT.optionalFieldOf("fade_in", 10).forGetter(TitleTransitionConfig::fadeIn),
-					Codecs.NON_NEGATIVE_INT.optionalFieldOf("fade_out", 20).forGetter(TitleTransitionConfig::fadeOut)
+					Codecs.NON_NEGATIVE_INT.optionalFieldOf("fade_out", 20).forGetter(TitleTransitionConfig::fadeOut),
+					Codec.BOOL.optionalFieldOf("stop_at_end", true).forGetter(TitleTransitionConfig::stopAtEnd),
+					Codecs.NON_NEGATIVE_INT.optionalFieldOf("stay").forGetter(TitleTransitionConfig::stay)
 			).apply(instance, TitleTransitionConfig::new)
 	);
 

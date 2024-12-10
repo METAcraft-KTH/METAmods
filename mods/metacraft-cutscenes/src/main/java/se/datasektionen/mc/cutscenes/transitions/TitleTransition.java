@@ -28,21 +28,14 @@ public class TitleTransition implements Transition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		cutscene.forAllPlayers(player -> {
-			int stayTicks = Math.max(interval.getLength() - config.fadeIn() - config.fadeOut(), 0);
-			player.networkHandler.sendPacket(new TitleFadeS2CPacket(config.fadeIn(), stayTicks, config.fadeOut()));
-			player.networkHandler.sendPacket(new TitleS2CPacket(config.title()));
-			config.subtitle().ifPresent(subtitle -> {
-				player.networkHandler.sendPacket(new SubtitleS2CPacket(subtitle));
-			});
-		});
+
 	}
 
 	@Override
 	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		int pos = interval.getPosInRange(cutscene.getCurrentTime());
 		int remaining = interval.getRemaining(cutscene.getCurrentTime());
-		int stayTicks = Math.max(remaining - config.fadeIn() - config.fadeOut(), 0);
+		int stayTicks = config.stay().orElse(Math.max(remaining - config.fadeIn() - config.fadeOut(), 0));
 		player.networkHandler.sendPacket(new TitleFadeS2CPacket(
 				Math.max(config.fadeIn() - pos, 0),
 				stayTicks, Math.min(config.fadeOut(), remaining)
@@ -65,7 +58,9 @@ public class TitleTransition implements Transition {
 
 	@Override
 	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		player.networkHandler.sendPacket(new ClearTitleS2CPacket(true));
+		if (config.stopAtEnd()) {
+			player.networkHandler.sendPacket(new ClearTitleS2CPacket(true));
+		}
 	}
 
 	@Override
