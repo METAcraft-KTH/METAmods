@@ -20,12 +20,15 @@
 	"entrypoints": {
 		"main": [
 			"se.datasektionen.mc.metacraft_season_4.Season4"
+		],
+		"fabric-datagen": [
+			"se.datasektionen.mc.metacraft_season_4.Season4Datagen"
 		]
 	},
 	"mixins": [
 		"metacraft_season_4.mixins.json"
 	],
-	"accessWideners" : "metacraft_core.accesswidener",
+	"accessWideners" : "metacraft_season_4.accesswidener",
 	"depends": {
 		"fabricloader": ">=${loader_version}",
 		"fabric": "*",

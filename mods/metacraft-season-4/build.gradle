@@ -4,6 +4,16 @@ addProjectDependency(":mods:metacraft-core")
 addLeukocyteDependency()
 addPolymerDependency()
 
+loom {
+	accessWidenerPath = file("src/main/resources/metacraft_season_4.accesswidener")
+}
+
+fabricApi {
+	configureDataGeneration{
+		client = true
+	}
+}
+
 dependencies {
 	modCompileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
 }
