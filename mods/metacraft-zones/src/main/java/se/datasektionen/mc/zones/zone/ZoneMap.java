@@ -1,7 +1,5 @@
 package se.datasektionen.mc.zones.zone;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -9,23 +7,20 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
+import org.pcollections.HashTreePMap;
+import org.pcollections.PMap;
+import org.pcollections.TreePSet;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
-import se.datasektionen.mc.zones.util.LockHelper;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class ZoneMap {
 
-	private final ReadWriteLock worldZoneLock = new ReentrantReadWriteLock();
-
-	protected final Multimap<RegistryKey<World>, Zone> worldZones = MultimapBuilder.hashKeys().treeSetValues().build();
-	protected final Map<String, RealZone> zones = new ConcurrentHashMap<>();
+	protected PMap<RegistryKey<World>, TreePSet<Zone>> worldZones = HashTreePMap.empty();
+	protected PMap<String, RealZone> zones = HashTreePMap.empty();
 
 	protected final Runnable markNeedsSave;
 	protected final Consumer<Zone> onAdd;
@@ -47,20 +42,29 @@ public class ZoneMap {
 		addZoneInternal(zone);
 	}
 
+	private TreePSet<Zone> getWorldZone(RegistryKey<World> dim) {
+		return worldZones.getOrDefault(dim, TreePSet.empty());
+	}
+
+	private void addWorldZone(Zone zone) {
+		var dim = zone.getDim();
+		var existing = getWorldZone(dim);
+		if (existing == null) {
+			worldZones = worldZones.plus(dim, TreePSet.singleton(zone));
+		} else {
+			worldZones = worldZones.plus(dim, existing.plus(zone));
+		}
+	}
+
 	private void addZoneInternal(Zone zone) {
-		worldZoneLock.writeLock().lock();
-		try {
-			if (zone.isRealZone()) {
-				zones.put(zone.getName(), zone.getRealZone());
+		if (zone.isRealZone()) {
+			zones = zones.plus(zone.getName(), zone.getRealZone());
+		}
+		addWorldZone(zone);
+		if (zone.isRealZone()) {
+			for (Zone remoteZone : zone.getRealZone().getRemoteZones()) {
+				addWorldZone(remoteZone);
 			}
-			worldZones.put(zone.getDim(), zone);
-			if (zone.isRealZone()) {
-				for (Zone remoteZone : zone.getRealZone().getRemoteZones()) {
-					worldZones.put(remoteZone.getDim(), remoteZone);
-				}
-			}
-		} finally {
-			worldZoneLock.writeLock().unlock();
 		}
 	}
 
@@ -70,22 +74,27 @@ public class ZoneMap {
 		return true;
 	}
 
+	private void removeWorldZone(Zone zone) {
+		var dim = zone.getDim();
+		var result = getWorldZone(dim).minus(zone);
+		if (result.isEmpty()) {
+			worldZones = worldZones.minus(dim);
+		} else {
+			worldZones = worldZones.plus(dim, result);
+		}
+	}
+
 	public void removeZone(Zone zone) {
-		worldZoneLock.writeLock().lock();
-		try {
-			if (zone.isRealZone()) {
-				zones.remove(zone.getName());
-				onRemove.accept(zone);
-				markNeedsSave.run();
+		if (zone.isRealZone()) {
+			zones = zones.minus(zone.getName());
+			onRemove.accept(zone);
+			markNeedsSave.run();
+		}
+		removeWorldZone(zone);
+		if (zone.isRealZone()) {
+			for (Zone remoteZone : zone.getRealZone().getRemoteZones()) {
+				removeWorldZone(remoteZone);
 			}
-			worldZones.remove(zone.getDim(), zone);
-			if (zone.isRealZone()) {
-				for (Zone remoteZone : zone.getRealZone().getRemoteZones()) {
-					worldZones.remove(remoteZone.getDim(), remoteZone);
-				}
-			}
-		} finally {
-			worldZoneLock.writeLock().unlock();
 		}
 	}
 
@@ -94,35 +103,21 @@ public class ZoneMap {
 	}
 
 	public void forZones(RegistryKey<World> dim, Consumer<Zone> run) {
-		worldZoneLock.readLock().lock();
-		try {
-			worldZones.get(dim).forEach(run);
-		} finally {
-			worldZoneLock.readLock().unlock();
-		}
+		getWorldZone(dim).forEach(run);
 	}
 
 	public List<Zone> getZones(RegistryKey<World> dim, Predicate<Zone> zonePredicate) {
-		return LockHelper.getThroughLock(
-				worldZoneLock.readLock(),
-				() -> worldZones.get(dim).stream().filter(zonePredicate).toList()
-		);
+		return getWorldZone(dim).stream().filter(zonePredicate).toList();
 	}
 
 	public Optional<Zone> getFirstZoneMatching(RegistryKey<World> dim, Predicate<Zone> zonePredicate) {
-		return LockHelper.getThroughLock(
-				worldZoneLock.readLock(),
-				() -> worldZones.get(dim).stream().filter(zonePredicate).findFirst()
-		);
+		return getWorldZone(dim).stream().filter(zonePredicate).findFirst();
 	}
 
 	public <T> Optional<T> getValueForPrimaryZone(RegistryKey<World> dim, Function<Zone, Optional<T>> valueGetter) {
-		return LockHelper.getThroughLock(
-				worldZoneLock.readLock(),
-				() -> worldZones.get(dim).stream().map(valueGetter).filter(
-						Optional::isPresent
-				).map(Optional::get).findFirst()
-		);
+		return getWorldZone(dim).stream().map(valueGetter).filter(
+				Optional::isPresent
+		).map(Optional::get).findFirst();
 	}
 
 	public Collection<String> getZoneNames() {
@@ -134,8 +129,8 @@ public class ZoneMap {
 	}
 
 	public void updatePriority(RealZone zone) {
-		worldZones.get(zone.getDim()).remove(zone);
-		worldZones.get(zone.getDim()).add(zone);
+		var result = getWorldZone(zone.getDim()).minus(zone).plus(zone);
+		worldZones = worldZones.plus(zone.getDim(), result);
 	}
 
 	public boolean containsZone(String name) {

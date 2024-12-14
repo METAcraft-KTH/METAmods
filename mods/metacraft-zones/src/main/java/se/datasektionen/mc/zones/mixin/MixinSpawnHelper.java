@@ -99,7 +99,7 @@ public abstract class MixinSpawnHelper {
 			for (var zone : zones) {
 				var spawnData = zone.get(ZoneDataRegistry.SPAWN).orElse(null);
 				if (spawnData != null) {
-					spawnData.getSpawns(spawnGroup).addAllTo(spawns);
+					spawns.addAll(spawnData.getSpawns(spawnGroup).get());
 				}
 			}
 			return Pool.of(spawns);

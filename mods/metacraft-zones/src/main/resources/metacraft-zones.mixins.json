@@ -7,7 +7,8 @@
 		"AccessorSuggestion",
 		"MixinEntity",
 		"MixinFieldDecoder",
-		"MixinLocationPredicate"
+		"MixinLocationPredicate",
+		"MixinSpawnHelper"
 	],
 	"injectors": {
 		"defaultRequire": 1
