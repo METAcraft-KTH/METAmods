@@ -23,7 +23,8 @@
 		]
 	},
 	"mixins": [
-		"portable_jukebox.mixins.json"
+		"portable_jukebox.mixins.json",
+		"portable_jukebox.compat.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=${loader_version}",

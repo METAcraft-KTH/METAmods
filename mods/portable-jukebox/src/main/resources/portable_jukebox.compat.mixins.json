@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "se.datasektionen.mc.portable_jukebox.compat.mixin",
+	"plugin": "se.datasektionen.mc.portable_jukebox.compat.CompatMixins",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"MixinHopperHelper"
+	],
+	"client": [
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -6,3 +6,7 @@ loom {
 
 addPolymerDependency()
 addSGUIDependency()
+
+dependencies {
+	modImplementation("maven.modrinth:lithium:$lithium_version-fabric")
+}
