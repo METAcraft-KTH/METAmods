@@ -18,6 +18,6 @@ Repository containing our dependent mods in one place, to make development easie
   - If you wish to put your module in a sub-directory, make sure to add the sub-directory to the "ignoredProjects" variable in the root-level "build.gradle".
 - Important, run `./gradlew clean` before bumping versions, otherwise gradle will fail to evaluate the project!
 - If you find yourself in a situation that gradle can't resolve dependencies inside of one of the build/libs folders of this project:
-  - Try running `./gradlew build -Pskip-subproject-remap`
+  - Try running `./gradlew build -Pskip-dist-resolve`
 - Don't forget that you can always run a gradle task for a specific subproject if necessary.
   - For example: `./gradlew mods:metacraft-lib:build` to rebuild metacraft-lib.

@@ -23,21 +23,35 @@ ext.cleanRemappedSubproject = {p ->
     cleanRemappedSubprojectAt(rootDir, p)
 }
 
-boolean skipRemap = hasProperty("skip-subproject-remap")
+project.runMode = hasProperty("run-mode")
 
 // For all modules that are fabric mods (all mods and dist)
 subprojects {
     if (nonMcSubprojects.contains(it.name)) {
         return
     }
+    clean.doFirst {
+        rootProject.runMode = false
+    }
     apply plugin: "fabric-loom"
+    runClient.doFirst {
+        rootProject.runMode = true
+    }
+    if (project.tasks.findByName('runDatagen') != null) {
+        runDatagen.doFirst {
+            rootProject.runMode = true
+        }
+    }
+    runServer.doFirst {
+        rootProject.runMode = true
+    }
 
     ext.dependIfPossible = {Project dep ->
         dependencies {
             //modImplementation fails if the library has not been built.
             //But we still need to use it for the runtime environment to work.
             //When it's not present, we use implementation instead so we can at least compile.
-            if (dep.file("build/libs").exists() && !skipRemap) {
+            if (dep.file("build/libs").exists() && rootProject.runMode) {
                 modImplementation dep
             } else {
                 implementation dep
@@ -171,6 +185,12 @@ subprojects {
         return
     }
 
+    for (var s : gradle.startParameter.taskNames) {
+        if (s.endsWith("test") || s.endsWith("build") || s.endsWith("runDatagen")) {
+            rootProject.runMode = true
+        }
+    }
+
     base {
         archivesName = project.name
     }
@@ -187,7 +207,7 @@ subprojects {
 
         modImplementation("com.github.Chocohead:Fabric-ASM:${project.fabric_asm_version}")
 
-        testImplementation('org.junit.jupiter:junit-jupiter:5.9.2')
+        testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 
         modApi("com.terraformersmc:modmenu:${project.modmenu_version}"){
             exclude group: "net.fabricmc.fabric-api"

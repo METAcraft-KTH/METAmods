@@ -6,6 +6,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import se.datasektionen.mc.metacraft_lib.util.helper.TextHelper;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +16,9 @@ public class CheckMods implements ModInitializer {
 	/**
 	 * If any mod-id does not match the project name, put a mapping in here.
 	 */
-	private static final Map<String, String> PROJECT_TO_MOD_ID = Map.of();
+	private static final Map<String, String> PROJECT_TO_MOD_ID = Map.of(
+			"dist", "metacraft"
+	);
 
 	@Override
 	public void onInitialize() {
@@ -25,7 +28,11 @@ public class CheckMods implements ModInitializer {
 		//This crashes the game instead when that happens, so you don't have to redo your testing setup.
 		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			List<String> modsThatMustBePresent = new ArrayList<>();
-			try (var reader = new BufferedReader(new FileReader("../settings.gradle"))) {
+			var settingsPath = Path.of("../settings.gradle");
+			if (!settingsPath.toFile().exists()) {
+				settingsPath = Path.of("../../settings.gradle");
+			}
+			try (var reader = new BufferedReader(new FileReader(settingsPath.toFile()))) {
 				MutableBoolean inComment = new MutableBoolean(false);
 				reader.lines().forEach(line -> {
 					if (line.contains("/*")) {

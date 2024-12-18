@@ -10,9 +10,16 @@ base {
     archivesName = project.archives_base_name
 }
 
+boolean skipDistResolve = hasProperty("skip-dist-resolve")
+
 dependencies {
     project(":mods").subprojects.each { mod ->
-        include(modImplementation mod)
+        if (mod.file("build/libs").exists() && !skipDistResolve) {
+            modImplementation mod
+        } else {
+            implementation mod
+        }
+        include(mod)
     }
 }
 
