@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_season_4.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
+import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.LivingEntity;
@@ -16,7 +17,9 @@ public class DoubleTeamCommand {
 
 	public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess access) {
 		dispatcher.register(
-			literal("double-team").then(
+			literal("double-team").requires(Permissions.require(
+					"metacraft.double-team", 2
+			)).then(
 				argument("target", EntityArgumentType.entity()).executes(ctx -> {
 					var entity = EntityArgumentType.getEntity(ctx, "target");
 					if (entity instanceof LivingEntity living) {
