@@ -16,18 +16,22 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.ServerWorldAccess;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.pcollections.PMap;
 import org.pcollections.PVector;
 import org.pcollections.TreePMap;
 import org.pcollections.TreePVector;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.ThreadHelper;
 import se.datasektionen.mc.zones.METAcraftZones;
 import se.datasektionen.mc.zones.spawns.BetterSpawnEntry;
 import se.datasektionen.mc.zones.spawns.SpawnRemoverRegistry;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public class AdditionalSpawnsZoneData extends ZoneData {
 
@@ -37,58 +41,61 @@ public class AdditionalSpawnsZoneData extends ZoneData {
 			Codec.unboundedMap(
 					SpawnGroup.CODEC,
 					BetterSpawnEntry.CODEC.listOf()
-			).fieldOf("spawns").forGetter(data -> (PMap<SpawnGroup, List<BetterSpawnEntry>>) (Object) data.spawns),
-			SpawnRemoverRegistry.SpawnRemover.REGISTRY_CODEC.listOf().fieldOf("spawnRemovers").forGetter(data -> data.spawnRemovers),
-			SpawnRuleEntry.CODEC.listOf().fieldOf("spawnRules").forGetter(data -> data.rules)
+			).fieldOf("spawns").forGetter(data -> (PMap<SpawnGroup, List<BetterSpawnEntry>>) (Object) data.spawns.get()),
+			SpawnRemoverRegistry.SpawnRemover.REGISTRY_CODEC.listOf().fieldOf("spawnRemovers").forGetter(data -> data.spawnRemovers.get()),
+			SpawnRuleEntry.CODEC.listOf().fieldOf("spawnRules").forGetter(data -> data.rules.get())
 	).apply(instance, AdditionalSpawnsZoneData::new));
 
 
-	private PMap<SpawnGroup, PVector<BetterSpawnEntry>> spawns;
-	private PVector<SpawnRemoverRegistry.SpawnRemover> spawnRemovers;
+	private final AtomicReference<PMap<SpawnGroup, PVector<BetterSpawnEntry>>> spawns;
+	private final AtomicReference<PVector<SpawnRemoverRegistry.SpawnRemover>> spawnRemovers;
 
-	private PVector<SpawnRuleEntry> rules;
+	private final AtomicReference<PVector<SpawnRuleEntry>> rules;
 
 
 	public AdditionalSpawnsZoneData(
 			Map<SpawnGroup, List<BetterSpawnEntry>> spawns, List<SpawnRemoverRegistry.SpawnRemover> spawnRemovers,
 			List<SpawnRuleEntry> rules
 	)  {
-		this.spawns = spawns.entrySet().stream().reduce(
+		this.spawns = new AtomicReference<>(spawns.entrySet().stream().reduce(
 				TreePMap.empty(),
 				(map, list) -> map.plus(
 						list.getKey(), TreePVector.from(list.getValue())
 				),
 				TreePMap::plusAll
-		);
-		this.spawnRemovers = TreePVector.from(spawnRemovers);
-		this.rules = TreePVector.from(rules);
+		));
+		this.spawnRemovers = new AtomicReference<>(TreePVector.from(spawnRemovers));
+		this.rules = new AtomicReference<>(TreePVector.from(rules));
 	}
 
 	public ListAccessor<BetterSpawnEntry> getSpawns(SpawnGroup spawnGroup) {
-		return new ListAccessor<>(spawns.getOrDefault(spawnGroup, TreePVector.empty()), list -> {
-			if (list.isEmpty()) {
-				spawns = spawns.minus(spawnGroup);
-			} else {
-				spawns = spawns.plus(spawnGroup, list);
-			}
+		return new ListAccessor<>(() -> spawns.get().getOrDefault(spawnGroup, TreePVector.empty()), l -> {
+			ThreadHelper.updateAtomic(spawns, () -> {
+				var list = l.get();
+				if (list.isEmpty()) {
+					return spawns.get().minus(spawnGroup);
+				} else {
+					return spawns.get().plus(spawnGroup, list);
+				}
+			});
 			this.markDirty();
 		});
 	}
 
 	public boolean hasSpawns() {
-		return !spawns.isEmpty();
+		return !spawns.get().isEmpty();
 	}
 
 	public ListAccessor<SpawnRemoverRegistry.SpawnRemover> getSpawnRemovers() {
-		return new ListAccessor<>(spawnRemovers, list -> {
-			spawnRemovers = list;
+		return new ListAccessor<>(spawnRemovers::get, list -> {
+			ThreadHelper.updateAtomic(spawnRemovers, list);
 			markDirty();
 		});
 	}
 
 	public ListAccessor<SpawnRuleEntry> getSpawnRules() {
-		return new ListAccessor<>(rules, list -> {
-			rules = list;
+		return new ListAccessor<>(rules::get, list -> {
+			ThreadHelper.updateAtomic(rules, list);
 			markDirty();
 		});
 	}
@@ -121,41 +128,43 @@ public class AdditionalSpawnsZoneData extends ZoneData {
 
 	public static class ListAccessor<T> {
 
-		private PVector<T> list;
+		private final Supplier<PVector<T>> list;
 
-		private final Consumer<PVector<T>> updater;
+		private final Consumer<Supplier<PVector<T>>> updater;
 
-		public ListAccessor(PVector<T> list, Consumer<PVector<T>> updater) {
+		public ListAccessor(Supplier<PVector<T>> list, Consumer<Supplier<PVector<T>>> updater) {
 			this.list = list;
-			this.updater = updater.andThen(result -> {
-				this.list = result;
-			});
+			this.updater = updater;
 		}
 
 		public void add(T element) {
-			updater.accept(list.plus(element));
+			updater.accept(() -> list.get().plus(element));
 		}
 
 		public T remove(int index) {
-			T removed = list.get(index);
-			updater.accept(list.minus(index));
-			return removed;
+			MutableObject<T> removed = new MutableObject<>();
+			updater.accept(() -> {
+				var list = this.list.get();
+				removed.setValue(list.get(index));
+				return list.minus(index);
+			});
+			return removed.getValue();
 		}
 
 		public int size() {
-			return list.size();
+			return list.get().size();
 		}
 
 		public boolean isEmpty() {
-			return list.isEmpty();
+			return list.get().isEmpty();
 		}
 
 		public void forEach(Consumer<T> action) {
-			list.forEach(action);
+			list.get().forEach(action);
 		}
 
 		public Optional<T> find(Predicate<T> action) {
-			for (var element : list) {
+			for (var element : list.get()) {
 				if (action.test(element)) {
 					return Optional.of(element);
 				}
@@ -164,7 +173,7 @@ public class AdditionalSpawnsZoneData extends ZoneData {
 		}
 
 		public PVector<T> get() {
-			return list;
+			return list.get();
 		}
 
 	}

@@ -11,16 +11,18 @@ import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 import org.pcollections.TreePSet;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.metacraft_lib.util.helper.ThreadHelper;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class ZoneMap {
 
-	protected PMap<RegistryKey<World>, TreePSet<Zone>> worldZones = HashTreePMap.empty();
-	protected PMap<String, RealZone> zones = HashTreePMap.empty();
+	protected final AtomicReference<PMap<RegistryKey<World>, TreePSet<Zone>>> worldZones = new AtomicReference<>(HashTreePMap.empty());
+	protected final AtomicReference<PMap<String, RealZone>> zones = new AtomicReference<>(HashTreePMap.empty());
 
 	protected final Runnable markNeedsSave;
 	protected final Consumer<Zone> onAdd;
@@ -43,22 +45,26 @@ public class ZoneMap {
 	}
 
 	private TreePSet<Zone> getWorldZone(RegistryKey<World> dim) {
-		return worldZones.getOrDefault(dim, TreePSet.empty());
+		return worldZones.get().getOrDefault(dim, TreePSet.empty());
 	}
 
 	private void addWorldZone(Zone zone) {
 		var dim = zone.getDim();
-		var existing = getWorldZone(dim);
-		if (existing == null) {
-			worldZones = worldZones.plus(dim, TreePSet.singleton(zone));
-		} else {
-			worldZones = worldZones.plus(dim, existing.plus(zone));
-		}
+		ThreadHelper.updateAtomic(worldZones, () -> {
+			var existing = getWorldZone(dim);
+			if (existing == null) {
+				return worldZones.get().plus(dim, TreePSet.singleton(zone));
+			} else {
+				return worldZones.get().plus(dim, existing.plus(zone));
+			}
+		});
 	}
 
 	private void addZoneInternal(Zone zone) {
 		if (zone.isRealZone()) {
-			zones = zones.plus(zone.getName(), zone.getRealZone());
+			ThreadHelper.updateAtomic(zones, () -> {
+				return zones.get().plus(zone.getName(), zone.getRealZone());
+			});
 		}
 		addWorldZone(zone);
 		if (zone.isRealZone()) {
@@ -69,24 +75,28 @@ public class ZoneMap {
 	}
 
 	public boolean removeZone(String name) {
-		if (!zones.containsKey(name)) return false;
-		removeZone(zones.get(name));
+		if (!zones.get().containsKey(name)) return false;
+		removeZone(zones.get().get(name));
 		return true;
 	}
 
 	private void removeWorldZone(Zone zone) {
 		var dim = zone.getDim();
-		var result = getWorldZone(dim).minus(zone);
-		if (result.isEmpty()) {
-			worldZones = worldZones.minus(dim);
-		} else {
-			worldZones = worldZones.plus(dim, result);
-		}
+		ThreadHelper.updateAtomic(worldZones, () -> {
+			var result = getWorldZone(dim).minus(zone);
+			if (result.isEmpty()) {
+				return worldZones.get().minus(dim);
+			} else {
+				return worldZones.get().plus(dim, result);
+			}
+		});
 	}
 
 	public void removeZone(Zone zone) {
 		if (zone.isRealZone()) {
-			zones = zones.minus(zone.getName());
+			ThreadHelper.updateAtomic(zones, () -> {
+				return zones.get().minus(zone.getName());
+			});
 			onRemove.accept(zone);
 			markNeedsSave.run();
 		}
@@ -99,7 +109,7 @@ public class ZoneMap {
 	}
 
 	public RealZone getZone(String name) {
-		return zones.get(name);
+		return zones.get().get(name);
 	}
 
 	public void forZones(RegistryKey<World> dim, Consumer<Zone> run) {
@@ -121,25 +131,27 @@ public class ZoneMap {
 	}
 
 	public Collection<String> getZoneNames() {
-		return zones.keySet();
+		return zones.get().keySet();
 	}
 
 	public Collection<RealZone> getZones() {
-		return zones.values();
+		return zones.get().values();
 	}
 
 	public void updatePriority(RealZone zone) {
-		var result = getWorldZone(zone.getDim()).minus(zone).plus(zone);
-		worldZones = worldZones.plus(zone.getDim(), result);
+		ThreadHelper.updateAtomic(worldZones, () -> {
+			var result = getWorldZone(zone.getDim()).minus(zone).plus(zone);
+			return worldZones.get().plus(zone.getDim(), result);
+		});
 	}
 
 	public boolean containsZone(String name) {
-		return zones.containsKey(name);
+		return zones.get().containsKey(name);
 	}
 
 	public NbtList writeNBT() {
 		NbtList list = new NbtList();
-		for (RealZone container : zones.values()) {
+		for (RealZone container : zones.get().values()) {
 			list.add(container.toNBT());
 		}
 		return list;
