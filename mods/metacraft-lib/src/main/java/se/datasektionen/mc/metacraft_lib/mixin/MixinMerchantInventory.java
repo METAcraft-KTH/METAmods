@@ -23,10 +23,18 @@ public class MixinMerchantInventory {
 			return true;
 		}
 		// Check if disabled for this player.
-		PlayerEntity player = this.merchant.getCustomer();
 		TradeOfferExtensions ext = (TradeOfferExtensions) tradeOffer;
-		int playerUses = ext.metacraft$getUsesPerPlayer().getOrDefault(player.getUuid(), 0);
 		int maxUsesPerPlayer = ext.metacraft$getMaxUsesPerPlayer();
+		if (maxUsesPerPlayer == -1) {
+			// No per player uses.
+			return false;
+		}
+		PlayerEntity player = this.merchant.getCustomer();
+		if (player == null) {
+			// No customer...?
+			return false;
+		}
+		int playerUses = ext.metacraft$getUsesPerPlayer().getOrDefault(player.getUuid(), 0);
 		return playerUses >= maxUsesPerPlayer;
 	}
 }
