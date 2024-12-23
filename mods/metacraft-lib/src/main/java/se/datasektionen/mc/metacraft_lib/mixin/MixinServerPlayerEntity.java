@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_lib.mixin;
 
 import com.google.common.collect.ImmutableList;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -11,15 +12,19 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.village.TradeOffer;
+import net.minecraft.village.TradeOfferList;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_lib.METAcraftData;
 import se.datasektionen.mc.metacraft_lib.extensions.ServerPlayerEntityExtensions;
+import se.datasektionen.mc.metacraft_lib.extensions.TradeOfferExtensions;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
 @Mixin(ServerPlayerEntity.class)
@@ -31,6 +36,10 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Shadow public abstract void sendMessage(Text message, boolean overlay);
 
+
+	@Shadow public abstract void playerTick();
+
+	@Shadow protected abstract void consumeItem();
 
 	@Unique
 	private String customName;
@@ -70,6 +79,37 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		} else {
 			METAcraft_Moderation$setCustomName(null, true);
 		}
+	}
+
+	@ModifyVariable(method = "sendTradeOffers", at = @At(value = "HEAD"), argsOnly = true)
+	public TradeOfferList modifyTradeOfferList(TradeOfferList tradeOfferList) {
+		PlayerEntity playerEntity = (PlayerEntity) this;
+		TradeOfferList newOffers = new TradeOfferList();
+		for (TradeOffer offer : tradeOfferList) {
+			var ext = ((TradeOfferExtensions) offer);
+			int maxUsesPerPlayer = ext.metacraft$getMaxUsesPerPlayer();
+			if (maxUsesPerPlayer == -1) {
+				newOffers.add(offer);
+				continue;
+			}
+			int playerUses = ext.metacraft$getUsesPerPlayer().getOrDefault(playerEntity.getUuid(), 0);
+			int globalUsesUntilDisabled = offer.getMaxUses() - offer.getUses();
+			int playerUsesUntilDisabled = maxUsesPerPlayer - playerUses;
+			if (globalUsesUntilDisabled <= playerUsesUntilDisabled) {
+				// The global max uses will be hit before the player one. So send the global one.
+				newOffers.add(offer);
+				continue;
+			}
+			// Otherwise modify the max uses and uses to be the per-player ones.
+			TradeOffer copy = offer.copy();
+			var copyExt = ((TradeOfferExtensions) copy);
+			copyExt.metacraft$setUses(playerUses);
+			copyExt.metacraft$setMaxUses(maxUsesPerPlayer);
+			copyExt.metacraft$setMaxUsesPerPlayer(maxUsesPerPlayer);
+			copyExt.metacraft$getUsesPerPlayer().putAll(ext.metacraft$getUsesPerPlayer());
+			newOffers.add(copy);
+		}
+		return newOffers;
 	}
 
 	@Override

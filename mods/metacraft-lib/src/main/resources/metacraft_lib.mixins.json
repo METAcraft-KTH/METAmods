@@ -41,6 +41,8 @@
 		"MixinJsonDataLoader",
 		"MixinLivingEntity",
 		"MixinLockableContainerBlockEntity",
+		"MixinMerchantEntity",
+		"MixinMerchantInventory",
 		"MixinMobEntity",
 		"MixinPlayerEntity",
 		"MixinPlayerListS2CPacketEntry",
@@ -50,7 +52,8 @@
 		"MixinServerPlayerEntity",
 		"MixinShapedRecipe",
 		"MixinShapelessRecipe",
-		"MixinSoundCategory"
+		"MixinSoundCategory",
+		"MixinTradeOffer"
 	],
 	"client": [
 	],
