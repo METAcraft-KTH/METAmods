@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_core.music.ServerBossBarWithMusic;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
@@ -95,6 +96,13 @@ public abstract class MixinEntity implements EntityExtensions {
 			}
 		} else {
 			removeBossBar();
+		}
+	}
+
+	@Inject(method = "setRemoved", at = @At("HEAD"))
+	public void setRemoved(Entity.RemovalReason reason, CallbackInfo ci) {
+		if ((Object) this instanceof PlayerMob p) {
+			p.removeAllPlayerEntries();
 		}
 	}
 

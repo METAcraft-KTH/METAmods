@@ -83,7 +83,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	private static final String CAN_WANDER = "can_wander";
 	private GameProfile profile;
 
-	private List<SendPacketEntry> removePackets = new ArrayList<>();
+	private final List<SendPacketEntry> removePackets = new ArrayList<>();
 
 	private FakePlayer fakePlayer;
 
@@ -251,7 +251,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 				removePlayerEntryFrom(removePackets.stream().map(SendPacketEntry::player));
 				removePackets.clear();
 				for (var p : players) {
-					removePackets.add(new SendPacketEntry(p, getWorld().getTime()+1));
+					removePackets.add(new SendPacketEntry(p, getWorld().getTime()+20));
 				}
 				resetFakePlayer();
 				if (tracker != null) {
@@ -771,6 +771,11 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 				super.tick();
 			}
 		}
+	}
+
+	public void removeAllPlayerEntries() {
+		removePlayerEntryFrom(removePackets.stream().map(SendPacketEntry::player));
+		removePackets.clear();
 	}
 
 	public record SendPacketEntry(ServerPlayerEntity player, long time) {
