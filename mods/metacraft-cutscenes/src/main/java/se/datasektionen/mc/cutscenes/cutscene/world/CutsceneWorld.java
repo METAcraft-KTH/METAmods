@@ -1,6 +1,5 @@
 package se.datasektionen.mc.cutscenes.cutscene.world;
 
-import com.google.common.collect.Maps;
 import com.mojang.serialization.Dynamic;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -8,7 +7,6 @@ import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
 import net.minecraft.block.Block;
 import net.minecraft.component.type.MapIdComponent;
-import net.minecraft.datafixer.DataFixTypes;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.map.MapState;
@@ -22,6 +20,8 @@ import net.minecraft.recipe.ServerRecipeManager;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.resource.featuretoggle.FeatureSet;
+import net.minecraft.scoreboard.ScoreboardDisplaySlot;
+import net.minecraft.scoreboard.ScoreboardState;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.*;
@@ -44,16 +44,16 @@ import net.minecraft.world.level.ServerWorldProperties;
 import net.minecraft.world.tick.TickManager;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.Cutscenes;
+import se.datasektionen.mc.cutscenes.cutscene.Cutscene;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
+import se.datasektionen.mc.cutscenes.extension.ServerScoreboardExtensions;
 import se.datasektionen.mc.cutscenes.mixin.*;
 import se.datasektionen.mc.cutscenes.util.SerialisedStructure;
 import se.datasektionen.mc.metacraft_lib.util.helper.StructureTemplateHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.WorldHelper;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
@@ -64,41 +64,12 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	private CutsceneChunkManager manager;
 	private final CutsceneEntityManager entities;
 
+	private ServerScoreboard scoreboard;
+
 	private final EntityLookup<Entity> lookup;
 
-	private PersistentStateManager persistentStateManager;
-
-	private static final Supplier<PersistentStateManager> PERSISTENT_STATE_MANAGER_FACTORY = () -> new PersistentStateManager(
-			null, null, null
-	) {
-
-		private final Map<String, PersistentState> loadedStates = Maps.newHashMap();
-
-		@Override
-		public <T extends PersistentState> T getOrCreate(PersistentState.Type<T> type, String id) {
-			return (T) loadedStates.computeIfAbsent(id, i -> type.constructor().get());
-		}
-
-		@Override
-		public <T extends PersistentState> T get(PersistentState.Type<T> type, String id) {
-			return (T) loadedStates.get(id);
-		}
-
-		@Override
-		public void set(String id, PersistentState state) {
-			this.loadedStates.put(id, state);
-		}
-
-		@Override
-		public NbtCompound readNbt(String id, DataFixTypes dataFixTypes, int currentSaveVersion) throws IOException {
-			return new NbtCompound();
-		}
-
-		@Override
-		public void save() {
-			//TODO Save this.
-		}
-	};
+	private CutscenePersistentStateManager persistentStateManager;
+	private NbtCompound persistentStorage = new NbtCompound();
 
 	public static ChunkGenerator createDummyChunkGenerator(World world) {
 		return new FlatChunkGenerator(new FlatChunkGeneratorConfig(
@@ -152,13 +123,68 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		this.savingDisabled = true;
 		this.cutscene = cutscene;
 		this.world = world;
-		this.manager = new CutsceneChunkManager(this, PERSISTENT_STATE_MANAGER_FACTORY);
+		this.manager = new CutsceneChunkManager(this, this::getPersistentStateManager);
 		this.entities = new CutsceneEntityManager(this);
 		this.lookup = new CombinedEntityLookup(
 				List.of(entities.getLookup(), ((AccessorServerWorld) world).callGetEntityLookup())
 		);
 		if (data != null) {
 			load(data);
+		}
+		initScoreboard(data == null);
+	}
+
+	private void initScoreboard(boolean hasDataToLoad) {
+		if (cutscene.getCutscene().getScoreboardMode() == Cutscene.ScoreboardMode.SYNC) {
+			scoreboard = world.getScoreboard();
+		} else {
+			scoreboard = new ServerScoreboard(getServer());
+			((ServerScoreboardExtensions) scoreboard).metacraft$setConnectedCutscene(cutscene);
+			if (cutscene.getCutscene().getScoreboardMode() == Cutscene.ScoreboardMode.COPY && !hasDataToLoad) {
+				var defaultScoreboard = world.getScoreboard();
+				for (var ob : defaultScoreboard.getObjectives()) {
+					scoreboard.addObjective(
+							ob.getName(), ob.getCriterion(),
+							ob.getDisplayName(), ob.getRenderType(),
+							ob.shouldDisplayAutoUpdate(), ob.getNumberFormat()
+					);
+				}
+				for (var team : defaultScoreboard.getTeams()) {
+					var newTeam = scoreboard.addTeam(team.getName());
+					newTeam.setCollisionRule(team.getCollisionRule());
+					newTeam.setColor(team.getColor());
+					newTeam.setPrefix(team.getPrefix());
+					newTeam.setDisplayName(team.getDisplayName());
+					newTeam.setSuffix(team.getSuffix());
+					newTeam.setDeathMessageVisibilityRule(team.getDeathMessageVisibilityRule());
+					newTeam.setFriendlyFireAllowed(team.isFriendlyFireAllowed());
+					newTeam.setShowFriendlyInvisibles(team.shouldShowFriendlyInvisibles());
+					newTeam.setNameTagVisibilityRule(team.getNameTagVisibilityRule());
+				}
+				for (var holder : defaultScoreboard.getKnownScoreHolders()) {
+					for (var ob : defaultScoreboard.getScoreHolderObjectives(holder).object2IntEntrySet()) {
+						scoreboard.getOrCreateScore(holder, ob.getKey(), true).setScore(
+								ob.getIntValue()
+						);
+					}
+
+					var name = holder.getNameForScoreboard();
+					var team = defaultScoreboard.getScoreHolderTeam(name);
+					if (team != null) {
+						scoreboard.addScoreHolderToTeam(name, scoreboard.getTeam(team.getName()));
+					}
+				}
+				for (var slot : ScoreboardDisplaySlot.values()) {
+					var ob = defaultScoreboard.getObjectiveForSlot(slot);
+					if (ob != null) {
+						scoreboard.setObjectiveSlot(slot, scoreboard.getNullableObjective(ob.getName()));
+					}
+				}
+			}
+
+			if (cutscene.getCutscene().getScoreboardMode() != Cutscene.ScoreboardMode.SYNC) {
+				persistentStateManager.getOrCreate(scoreboard.getPersistentStateType(), ScoreboardState.SCOREBOARD_KEY);
+			}
 		}
 	}
 
@@ -296,6 +322,11 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	private void load(CutsceneWorldData data) {
+		if (this.persistentStorage != null) {
+			persistentStateManager.saveAndReload();
+			this.persistentStorage.copyFrom(data.persistentStateStorage());
+		}
+
 		var blocks = data.blocks().parse(world.getRegistryManager());
 
 		blocks.place(
@@ -309,8 +340,9 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	public CutsceneWorldData save() {
+		persistentStateManager.save();
 		return new CutsceneWorldData(
-				entities.save().toList(), saveAsStructure(), saveLevelProperties()
+				entities.save().toList(), saveAsStructure(), saveLevelProperties(), persistentStorage
 		);
 	}
 
@@ -398,7 +430,12 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	public PersistentStateManager getPersistentStateManager() {
 		//ChunkManager is not initialized when this is run for the first time, so we must create it here.
 		if (persistentStateManager == null) {
-			persistentStateManager = PERSISTENT_STATE_MANAGER_FACTORY.get();
+			if (persistentStorage == null) {
+				persistentStorage = new NbtCompound();
+			}
+			persistentStateManager = new CutscenePersistentStateManager(
+					null, getServer().getDataFixer(), getRegistryManager(), () -> persistentStorage
+			);
 		}
 		return persistentStateManager;
 	}
@@ -442,7 +479,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 
 	@Override
 	public ServerScoreboard getScoreboard() {
-		return world.getScoreboard();
+		return scoreboard;
 	}
 
 	@Override

@@ -103,8 +103,9 @@ public class DefaultCutscenes {
 				)
 		)),
 		true, true, true,
-		true, true, true, Optional.empty(),
-			Optional.empty(), Optional.empty()
+		true, true, true,
+		Cutscene.ScoreboardMode.SYNC, Optional.empty(),
+		Optional.empty(), Optional.empty()
 	);
 
 }

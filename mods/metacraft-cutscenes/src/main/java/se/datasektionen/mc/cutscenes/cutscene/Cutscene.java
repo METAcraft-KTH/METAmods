@@ -5,6 +5,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.StringIdentifiable;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import se.datasektionen.mc.cutscenes.CutscenesConfig;
@@ -27,6 +28,7 @@ public class Cutscene {
 					Codec.BOOL.optionalFieldOf("reset_player_data", true).forGetter(a -> a.resetPlayerData),
 					Codec.BOOL.optionalFieldOf("hide_player", true).forGetter(a -> a.hidePlayer),
 					Codec.BOOL.optionalFieldOf("skippable", true).forGetter(a -> a.skippable),
+					ScoreboardMode.CODEC.optionalFieldOf("scoreboard", ScoreboardMode.SYNC).forGetter(a -> a.scoreboardMode),
 					TeleportTransition.SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec().optionalFieldOf("entry_point").forGetter(t -> t.entryPoint),
 					TeleportTransition.SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec().optionalFieldOf("exit_point").forGetter(t -> t.exitPoint),
 					Codec.STRING.optionalFieldOf("next_cutscene").forGetter(t -> t.nextCutscene)
@@ -40,6 +42,7 @@ public class Cutscene {
 	private boolean resetPlayerData;
 	private boolean hidePlayer;
 	private boolean skippable;
+	private ScoreboardMode scoreboardMode;
 	private final Optional<TeleportTransition.SerializableTeleportTarget> entryPoint;
 	private final Optional<TeleportTransition.SerializableTeleportTarget> exitPoint;
 	private final Optional<String> nextCutscene;
@@ -47,9 +50,8 @@ public class Cutscene {
 	public Cutscene() {
 		this(
 				new IntervalMap<>(), false, true,
-				true, true, true, true,
+				true, true, true, true, ScoreboardMode.SYNC,
 				Optional.empty(), Optional.empty(), Optional.empty()
-
 		);
 	}
 
@@ -57,6 +59,7 @@ public class Cutscene {
 			IntervalMap<TransitionConfig> transitions,
 			boolean createFakePlayer, boolean returnPlayerToStartPos, boolean hideMount,
 			boolean resetPlayerData, boolean hidePlayer, boolean skippable,
+			ScoreboardMode scoreboard,
 			Optional<TeleportTransition.SerializableTeleportTarget> entryPoint,
 			Optional<TeleportTransition.SerializableTeleportTarget> exitPoint,
 			Optional<String> nextCutscene
@@ -71,6 +74,7 @@ public class Cutscene {
 		this.entryPoint = entryPoint;
 		this.exitPoint = exitPoint;
 		this.nextCutscene = nextCutscene;
+		this.scoreboardMode = scoreboard;
 	}
 
 	public IntervalMap<Transition> createTransitions() {
@@ -101,6 +105,10 @@ public class Cutscene {
 		return skippable;
 	}
 
+	public ScoreboardMode getScoreboardMode() {
+		return scoreboardMode;
+	}
+
 	public Optional<Cutscene> getNextCutscene(MinecraftServer server) {
 		return nextCutscene.flatMap(CutscenesConfig.getOrCreateConfig(server)::getCutscene);
 	}
@@ -115,5 +123,24 @@ public class Cutscene {
 
 	public Optional<TeleportTarget> getExitPoint(MinecraftServer server, RegistryKey<World> cutsceneDim) {
 		return exitPoint.flatMap(target -> target.getTeleportTarget(server, cutsceneDim));
+	}
+
+	public enum ScoreboardMode implements StringIdentifiable {
+		SYNC("sync"),
+		COPY("copy"),
+		EMPTY("empty");
+
+		public static final Codec<ScoreboardMode> CODEC = StringIdentifiable.createCodec(ScoreboardMode::values);
+
+		private final String name;
+
+		ScoreboardMode(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public String asString() {
+			return name;
+		}
 	}
 }

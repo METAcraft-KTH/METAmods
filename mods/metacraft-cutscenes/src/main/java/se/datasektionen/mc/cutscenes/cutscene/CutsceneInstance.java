@@ -11,7 +11,10 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.nbt.*;
 import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.s2c.play.TeamS2CPacket;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.scoreboard.ScoreboardDisplaySlot;
+import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -23,6 +26,8 @@ import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.entity.EntityLookup;
 import se.datasektionen.mc.cutscenes.Cutscenes;
+import se.datasektionen.mc.cutscenes.extension.ServerScoreboardExtensions;
+import se.datasektionen.mc.cutscenes.mixin.AccessorPlayerManager;
 import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
 import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorldData;
 import se.datasektionen.mc.cutscenes.transitions.DeltaTickTransition;
@@ -340,6 +345,28 @@ public class CutsceneInstance implements AutoCloseable {
 				}
 			}
 		}
+
+
+		swapScoreboards(player, world.getActualWorld().getScoreboard(), world.getScoreboard());
+	}
+
+	private void swapScoreboards(
+			ServerPlayerEntity player, ServerScoreboard old,
+			ServerScoreboard newScoreboard
+	) {
+		if (old == newScoreboard) return;
+		for (var team : old.getTeams()) {
+			player.networkHandler.sendPacket(TeamS2CPacket.updateRemovedTeam(team));
+		}
+		for (var slot : ScoreboardDisplaySlot.values()) {
+			var ob = old.getObjectiveForSlot(slot);
+			if (ob != null) {
+				for (var p : old.createRemovePackets(ob)) {
+					player.networkHandler.sendPacket(p);
+				}
+			}
+		}
+		((AccessorPlayerManager) player.getServer().getPlayerManager()).callSendScoreboard(newScoreboard, player);
 	}
 
 	public Optional<Entity> createFromData(NbtCompound data) {
@@ -496,6 +523,7 @@ public class CutsceneInstance implements AutoCloseable {
 				}
 			}
 		}
+		swapScoreboards(player, world.getScoreboard(), world.getActualWorld().getScoreboard());
 	}
 
 	private void setupSmooth(IntervalMap.Interval<Transition> interval) {
