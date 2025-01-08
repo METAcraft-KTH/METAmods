@@ -9,7 +9,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneWorld;
+import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
 
 @Mixin(ServerWorld.class)
 public class MixinServerWorld {

@@ -685,8 +685,12 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	private void initProfile() {
 		if (profile == null) {
 			var list = getServer().getPlayerManager().getPlayerList();
-			var player = list.get(getWorld().getRandom().nextInt(list.size()));
-			profile = player.getGameProfile();
+			if (list.isEmpty()) {
+				profile = new GameProfile(UUID.randomUUID(), "Default");
+			} else {
+				var player = list.get(getWorld().getRandom().nextInt(list.size()));
+				profile = player.getGameProfile();
+			}
 		}
 		profile = adaptProfile(profile);
 		if (shouldRespawnClient || fakePlayer == null) {

@@ -1,15 +1,12 @@
-package se.datasektionen.mc.cutscenes.cutscene;
+package se.datasektionen.mc.cutscenes.cutscene.world;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.mojang.datafixers.DataFixer;
 import com.mojang.serialization.Dynamic;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.Block;
 import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.datafixer.DataFixTypes;
 import net.minecraft.entity.Entity;
@@ -26,18 +23,14 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.resource.featuretoggle.FeatureSet;
 import net.minecraft.scoreboard.ServerScoreboard;
-import net.minecraft.server.WorldGenerationProgressListener;
-import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.*;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
+import net.minecraft.structure.StructurePlacementData;
 import net.minecraft.structure.StructureTemplate;
-import net.minecraft.structure.StructureTemplateManager;
-import net.minecraft.util.TypeFilter;
-import net.minecraft.util.function.LazyIterationConsumer;
+import net.minecraft.util.Unit;
 import net.minecraft.util.math.*;
-import net.minecraft.util.thread.ThreadExecutor;
 import net.minecraft.world.*;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.*;
@@ -49,24 +42,18 @@ import net.minecraft.world.gen.chunk.FlatChunkGenerator;
 import net.minecraft.world.gen.chunk.FlatChunkGeneratorConfig;
 import net.minecraft.world.level.LevelProperties;
 import net.minecraft.world.level.ServerWorldProperties;
-import net.minecraft.world.level.storage.LevelStorage;
-import net.minecraft.world.poi.PointOfInterestStorage;
-import net.minecraft.world.storage.StorageKey;
 import net.minecraft.world.tick.TickManager;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.Cutscenes;
+import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.mixin.*;
 import se.datasektionen.mc.cutscenes.util.SerialisedStructure;
-import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.StructureTemplateHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.WorldHelper;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -76,6 +63,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	private final ServerWorld world;
 	private final CutsceneInstance cutscene;
 	private CutsceneChunkManager manager;
+	private final CutsceneEntityManager entities;
 
 	private final EntityLookup<Entity> lookup;
 
@@ -113,7 +101,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		}
 	};
 
-	private static ChunkGenerator createDummyChunkGenerator(World world) {
+	public static ChunkGenerator createDummyChunkGenerator(World world) {
 		return new FlatChunkGenerator(new FlatChunkGeneratorConfig(
 				Optional.empty(), world.getBiome(BlockPos.ORIGIN), List.of()
 		));
@@ -133,19 +121,27 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		);
 	}
 
-	private static ServerWorldProperties getProperties(
-			ServerWorld parent, CutsceneInstance cutscene
+	private static NbtCompound getInitialSavePropertiesData(
+			CutsceneWorldData data, ServerWorld world
 	) {
-		return readProperties(
-				cutscene.getInitialSavePropertiesData(parent), parent
+		return data != null ? data.saveProperties() : world.getServer().getSaveProperties().cloneWorldNbt(
+				world.getRegistryManager(), null
 		);
 	}
 
-	protected CutsceneWorld(ServerWorld world, CutsceneInstance cutscene) {
+	private static ServerWorldProperties getProperties(
+			CutsceneWorldData data, ServerWorld parent
+	) {
+		return readProperties(
+				getInitialSavePropertiesData(data, parent), parent
+		);
+	}
+
+	public CutsceneWorld(ServerWorld world, CutsceneInstance cutscene, CutsceneWorldData data) {
 		super(
 				world.getServer(), ((AccessorMinecraftServer) world.getServer()).getWorkerExecutor(),
 				((AccessorMinecraftServer) world.getServer()).getSession(),
-				getProperties(world, cutscene),
+				getProperties(data, world),
 				world.getRegistryKey(),
 				new DimensionOptions(
 						world.getRegistryManager().getOrThrow(RegistryKeys.DIMENSION_TYPE).getEntry(world.getDimension()),
@@ -157,10 +153,14 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		this.savingDisabled = true;
 		this.cutscene = cutscene;
 		this.world = world;
-		this.manager = new CutsceneChunkManager();
+		this.manager = new CutsceneChunkManager(this, PERSISTENT_STATE_MANAGER_FACTORY);
+		this.entities = new CutsceneEntityManager(this);
 		this.lookup = new CombinedEntityLookup(
-				List.of(cutscene.getEntityLookup(), ((AccessorServerWorld) world).callGetEntityLookup())
+				List.of(entities.getLookup(), ((AccessorServerWorld) world).callGetEntityLookup())
 		);
+		if (data != null) {
+			load(data);
+		}
 	}
 
 	public CutsceneInstance getCutscene() {
@@ -180,7 +180,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		).flatMap(c -> {
 			Int2ObjectMap<ShortSet> map = new Int2ObjectOpenHashMap<>();
 			var chunk = chunkGetter.apply(c);
-			c.changedBlocks.forEach(pos -> {
+			c.getChangedBlocks().forEach(pos -> {
 				map.computeIfAbsent(this.getSectionIndex(pos.getY()), i -> new ShortOpenHashSet()).add(
 						ChunkSectionPos.packLocal(pos)
 				);
@@ -209,7 +209,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	public Optional<WorldChunk> getChunkFromCacheIfPresent(int x, int z) {
-		return manager.isInCache(x, z) ? Optional.of(manager.getFromCache(x, z)) : Optional.empty();
+		return manager.getChunkFromCacheIfPresent(x, z);
 	}
 
 	public void syncTime() {
@@ -226,11 +226,18 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		if (this.getTime() % 20 == 0) {
 			syncTime();
 		}
+		entities.tick();
 		super.tick(shouldKeepTicking);
+		//System.out.println("Updates: " + getChunkManager().getLightingProvider().hasUpdates());
+		//System.out.println("Updates2: " + ((AccessorLightingProvider) getChunkManager().getLightingProvider()).getBlockLightProvider().hasUpdates());
+		//System.out.println("Updates3: " + ((AccessorLightingProvider) getChunkManager().getLightingProvider()).getSkyLightProvider().hasUpdates());
+
+		getChunkManager().getLightingProvider().tick();
 	}
 
 	public void addPlayer(ServerPlayerEntity player) {
 		this.getPlayers().add(player);
+		entities.onAddPlayer(player);
 		sendBlocks(player, c -> c);
 		getChunkManager().cutsceneChunkLoadingManager.addPlayer(player);
 		createWeatherFixPacket(player.getWorld().isRaining(), isRaining(), rainGradient, thunderGradient).ifPresent(player.networkHandler::sendPacket);
@@ -258,6 +265,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 
 	public void removePlayer(ServerPlayerEntity player) {
 		this.getPlayers().remove(player);
+		entities.onRemovePlayer(player);
 		sendBlocks(player, c -> world.getChunk(c.getPos().x, c.getPos().z, ChunkStatus.FULL, false));
 		getChunkManager().cutsceneChunkLoadingManager.removePlayer(player);
 		createWeatherFixPacket(
@@ -275,19 +283,65 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		return world;
 	}
 
+	public CutsceneEntityManager getEntityManager() {
+		return entities;
+	}
+
 	public Stream<CutsceneChunk> streamChangedChunks() {
-		return manager.cachedChunks.values().stream().flatMap(c -> c.values().stream());
+		return manager.streamChangedChunks();
 	}
 
 	public Stream<BlockPos> streamChangedBlocks() {
-		return streamChangedChunks().flatMap(c -> c.changedBlocks.stream());
+		return streamChangedChunks().flatMap(c -> c.getChangedBlocks().stream());
 	}
 
-	public NbtCompound saveLevelProperties() {
+	private void load(CutsceneWorldData data) {
+		var blocks = data.blocks().parse(world.getRegistryManager());
+
+		var size = ChunkSectionPos.from(new BlockPos(blocks.getSize()));
+
+		for (int x = -size.getX(); x <= size.getX(); x++) {
+			for (int z = -size.getZ(); z <= size.getZ(); z++) {
+				getChunk(x, z, ChunkStatus.FULL, false);
+			}
+		}
+
+		blocks.place(
+				this, BlockPos.ORIGIN, BlockPos.ORIGIN, new StructurePlacementData(),
+				this.getRandom(), Block.NOTIFY_ALL
+		);
+
+		waitForLightUpdate();
+
+		streamChangedChunks().forEach(c -> {
+			getLightingProvider().propagateLight(c.getPos());
+		});
+
+		data.entities().forEach(entity -> {
+			entity.load(this);
+		});
+	}
+
+	public void waitForLightUpdate() {
+		((AccessorServerLightingProvider) getLightingProvider()).getProcessor().executeAsync(
+				result -> {
+					((AccessorServerLightingProvider) getLightingProvider()).callRunTasks();
+					result.complete(Unit.INSTANCE);
+				}
+		).join();
+	}
+
+	public CutsceneWorldData save() {
+		return new CutsceneWorldData(
+				entities.save().toList(), saveAsStructure(), saveLevelProperties()
+		);
+	}
+
+	private NbtCompound saveLevelProperties() {
 		return ((SaveProperties) this.getLevelProperties()).cloneWorldNbt(getRegistryManager(), null);
 	}
 
-	public SerialisedStructure save() {
+	private SerialisedStructure saveAsStructure() {
 		StructureTemplate template = new StructureTemplate();
 		List<StructureTemplate.StructureBlockInfo> fullBlocks = new ArrayList<>();
 		List<StructureTemplate.StructureBlockInfo> blockWithNBT = new ArrayList<>();
@@ -297,7 +351,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		BlockPos.Mutable max = new BlockPos.Mutable(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 
 		streamChangedChunks().forEach(chunk -> {
-			chunk.changedBlocks.forEach(pos -> {
+			chunk.getChangedBlocks().forEach(pos -> {
 				var newState = chunk.getBlockState(pos);
 				var blockEntity = chunk.getBlockEntity(pos);
 				StructureTemplate.StructureBlockInfo info = new StructureTemplate.StructureBlockInfo(
@@ -323,6 +377,9 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 				if (pos.getZ() > max.getZ()) {
 					max.setZ(pos.getZ());
 				}
+
+				//System.out.println(pos.toShortString() + " " + getLightingProvider().getLight(pos, 0));
+				//System.out.println("Enabled: " + getLightingProvider().isLightingEnabled(ChunkSectionPos.withZeroY(ChunkSectionPos.fromBlockPos(pos.asLong()))));
 			});
 		});
 		BlockBox box = BlockBox.create(min, max);
@@ -331,6 +388,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		StructureTemplateHelper.getBlockInfoLists(template).add(
 				StructureTemplateHelper.createPalettedBlockInfoList(blocks)
 		);
+
 		return new SerialisedStructure(template);
 	}
 
@@ -340,13 +398,14 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 				world.getChunkManager().markForUpdate(pos);
 			});
 		}
+		entities.clear();
 	}
 
 	@Override
 	public void markDirty(BlockPos pos) {
 		if (this.isChunkLoaded(pos)) {
 			if (getWorldChunk(pos) instanceof CutsceneChunk chunk) {
-				chunk.changedBlocks.add(pos);
+				chunk.getChangedBlocks().add(pos);
 			}
 		}
 	}
@@ -434,7 +493,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 
 	@Override
 	public boolean spawnEntity(Entity entity) {
-		cutscene.addEntity("AddedByWorld" + entity.getId(), entity);
+		entities.addEntity("AddedByWorld" + entity.getId(), entity);
 		return true;
 	}
 
@@ -490,326 +549,5 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	@Override
 	public ServerWorld toServerWorld() {
 		return this;
-	}
-
-	public class CutsceneChunkManager extends ServerChunkManager {
-
-		private final Int2ObjectMap<Int2ObjectMap<ChunkHolder>> cachedChunkHolders = new Int2ObjectOpenHashMap<>();
-		private final Int2ObjectMap<Int2ObjectMap<CutsceneChunk>> cachedChunks = new Int2ObjectOpenHashMap<>();
-
-		public final CutsceneChunkLoadingManager cutsceneChunkLoadingManager;
-
-		public CutsceneChunkManager() {
-			super(
-					world, ((AccessorMinecraftServer) world.getServer()).getSession(), world.getServer().getDataFixer(),
-					world.getServer().getStructureTemplateManager(), ((AccessorMinecraftServer) world.getServer()).getWorkerExecutor(),
-					createDummyChunkGenerator(world), world.getServer().getPlayerManager().getViewDistance(),
-					world.getServer().getPlayerManager().getSimulationDistance(), world.getServer().syncChunkWrites(),
-					WorldHelper.getGenerationProgressListener(world),
-					(pos, status) -> {}, PERSISTENT_STATE_MANAGER_FACTORY
-			);
-			this.cutsceneChunkLoadingManager = new CutsceneChunkLoadingManager(
-					world, ((AccessorMinecraftServer) world.getServer()).getSession(), world.getServer().getDataFixer(),
-					world.getServer().getStructureTemplateManager(),
-					((AccessorMinecraftServer) world.getServer()).getWorkerExecutor(), ((AccessorServerChunkManager) this).getMainThreadExecutor(),
-					this, createDummyChunkGenerator(world), WorldHelper.getGenerationProgressListener(world),
-					(pos, status) -> {}, PERSISTENT_STATE_MANAGER_FACTORY,
-					world.getServer().getPlayerManager().getViewDistance(), world.getServer().syncChunkWrites()
-			);
-			((AccessorServerChunkManager) this).setChunkLoadingManager(
-					cutsceneChunkLoadingManager
-			);
-		}
-
-		@Override
-		public boolean isChunkLoaded(int x, int z) {
-			return isInCache(x, z) || world.isChunkLoaded(x, z);
-		}
-
-		private boolean isInCache(int x, int z) {
-			return cachedChunks.containsKey(x) && cachedChunks.get(x).containsKey(z);
-		}
-
-		private WorldChunk getFromCache(int x, int z) {
-			return cachedChunks.get(x).get(z);
-		}
-
-		private ChunkHolder getChunkHolder(int x, int z) {
-			if (cachedChunkHolders.containsKey(x) && cachedChunkHolders.get(x).containsKey(z)) {
-				return cachedChunkHolders.get(x).get(z);
-			}
-
-			var holderCol = cachedChunkHolders.computeIfAbsent(x, i -> new Int2ObjectOpenHashMap<>());
-			return holderCol.computeIfAbsent(z, i -> new ChunkHolder(
-					new ChunkPos(x, z), ChunkLevels.getLevelFromType(ChunkLevelType.ENTITY_TICKING),
-					CutsceneWorld.this, CutsceneWorld.this.getLightingProvider(),
-					(a, b, c, d) -> {}, (p, b) -> getPlayers()
-			));
-		}
-
-		@Override
-		public PersistentStateManager getPersistentStateManager() {
-			return CutsceneWorld.this.getPersistentStateManager();
-		}
-
-		private Chunk getCutsceneChunk(int x, int z, Chunk chunk) {
-			if (chunk instanceof WorldChunk wc) {
-				var col = cachedChunks.computeIfAbsent(x, i -> new Int2ObjectOpenHashMap<>());
-				var c = col.computeIfAbsent(z, i -> new CutsceneChunk(wc, world));
-				((AccessorChunkHolder) getChunkHolder(x, z)).setTickingFuture(
-						CompletableFuture.completedFuture(OptionalChunk.of(c))
-				);
-				return c;
-			}
-			return chunk;
-		}
-
-		@Nullable
-		@Override
-		public Chunk getChunk(int x, int z, ChunkStatus leastStatus, boolean create) {
-			if (isInCache(x, z)) {
-				return getFromCache(x, z);
-			}
-			return getCutsceneChunk(x, z, world.getChunk(x, z, leastStatus, create));
-		}
-
-		@Override
-		public WorldChunk getWorldChunk(int chunkX, int chunkZ) {
-			if (isInCache(chunkX, chunkZ)) {
-				return getFromCache(chunkX, chunkZ);
-			}
-			return (WorldChunk) getCutsceneChunk(chunkX, chunkZ, world.getChunkManager().getWorldChunk(chunkX, chunkZ));
-		}
-
-		@Override
-		public CompletableFuture<OptionalChunk<Chunk>> getChunkFutureSyncOnMainThread(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
-			if (isInCache(chunkX, chunkZ)) {
-				return CompletableFuture.completedFuture(OptionalChunk.of(getFromCache(chunkX, chunkZ)));
-			}
-			return super.getChunkFutureSyncOnMainThread(chunkX, chunkZ, leastStatus, create).thenApply(
-					c -> c.map(chunk -> getCutsceneChunk(chunkX, chunkZ, chunk))
-			);
-		}
-
-		@Override
-		public boolean isTickingFutureReady(long pos) {
-			int x = ChunkPos.getPackedX(pos);
-			int z = ChunkPos.getPackedZ(pos);
-			if (isInCache(x, z)) {
-				return true;
-			}
-			return super.isTickingFutureReady(pos);
-		}
-
-		@Override
-		public void markForUpdate(BlockPos pos) {
-			getChunkHolder(
-					ChunkSectionPos.getSectionCoord(pos.getX()), ChunkSectionPos.getSectionCoord(pos.getZ())
-			).markForBlockUpdate(pos);
-		}
-
-		@Override
-		public void onLightUpdate(LightType type, ChunkSectionPos pos) {
-			getChunkHolder(pos.getX(), pos.getZ()).markForLightUpdate(type, pos.getY());
-		}
-
-		@Override
-		public void tick(BooleanSupplier shouldKeepTicking, boolean tickChunks) {
-			if (tickChunks) {
-				cachedChunks.values().stream().flatMap(c -> c.values().stream()).forEach(chunk -> {
-					getChunkHolder(chunk.getPos().x, chunk.getPos().z).flushUpdates(chunk);
-				});
-			}
-		}
-
-		@Override
-		public void save(boolean flush) {
-
-		}
-
-		@Override
-		public String getDebugString() {
-			return world.getChunkManager().getDebugString();
-		}
-
-		@Override
-		public int getLoadedChunkCount() {
-			return world.getChunkManager().getLoadedChunkCount();
-		}
-
-		@Override
-		public World getWorld() {
-			return CutsceneWorld.this;
-		}
-
-		@Override
-		public void sendToNearbyPlayers(Entity entity, Packet<?> packet) {
-			getPlayers().forEach(p -> p.networkHandler.sendPacket(packet));
-		}
-
-		@Override
-		public void sendToOtherNearbyPlayers(Entity entity, Packet<?> packet) {
-			getPlayers().forEach(p -> {
-				if (p != entity) {
-					p.networkHandler.sendPacket(packet);
-				}
-			});
-		}
-	}
-
-	public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
-		public CutsceneChunkLoadingManager(
-				ServerWorld world, LevelStorage.Session session,
-				DataFixer dataFixer, StructureTemplateManager structureTemplateManager,
-				Executor executor, ThreadExecutor<Runnable> mainThreadExecutor,
-				ChunkProvider chunkProvider, ChunkGenerator chunkGenerator,
-				WorldGenerationProgressListener worldGenerationProgressListener,
-				ChunkStatusChangeListener chunkStatusChangeListener,
-				Supplier<PersistentStateManager> persistentStateManagerFactory,
-				int viewDistance, boolean dsync
-		) {
-			super(world, session, dataFixer, structureTemplateManager, executor, mainThreadExecutor, chunkProvider, chunkGenerator, worldGenerationProgressListener, chunkStatusChangeListener, persistentStateManagerFactory, viewDistance, dsync);
-			((AccessorServerChunkLoadingManager) this).setPointOfInterestStorage(
-					new PointOfInterestStorage(
-							new StorageKey(session.getDirectoryName(), world.getRegistryKey(), "poi"),
-							session.getWorldDirectory(world.getRegistryKey()).resolve("poi"), dataFixer, dsync,
-							world.getRegistryManager(), world.getServer(), world
-					) { //TODO Save this.
-
-						@Override
-						public void saveChunk(ChunkPos pos) {
-
-						}
-
-						@Override
-						public boolean hasUnsavedElements() {
-							return false;
-						}
-
-					}
-			);
-		}
-
-		public void addPlayer(ServerPlayerEntity player) {
-			EntityTrackerHelper.getEntityTrackers(this).values().forEach(t -> {
-				EntityTrackerHelper.getListeners(t).add(player.networkHandler);
-			});
-		}
-
-		public void removePlayer(ServerPlayerEntity player) {
-			EntityTrackerHelper.getEntityTrackers(this).values().forEach(t -> {
-				EntityTrackerHelper.getListeners(t).remove(player.networkHandler);
-			});
-		}
-
-		public void addEntity(Entity entity, EntityTrackerEntry entry) {
-			var e = new EntityTracker(entity, 0, 0, false) {
-
-				@Override
-				public void sendToNearbyPlayers(Packet<?> packet) {
-					sendToOtherNearbyPlayers(packet);
-				}
-
-				@Override
-				public void updateTrackedStatus(ServerPlayerEntity player) {
-					var listeners = EntityTrackerHelper.getListeners(this);
-					if (cutscene.hasPlayer(player)) {
-						if (listeners.add(player.networkHandler)) {
-							entry.startTracking(player);
-						}
-					} else if (listeners.remove(player.networkHandler)) {
-						entry.stopTracking(player);
-					}
-				}
-			};
-			((AccessorServerChunkLoadingManager.EntityTracker) (Object) e).setEntry(entry);
-			CutsceneWorld.this.getPlayers().forEach(p -> {
-				EntityTrackerHelper.getListeners(e).add(p.networkHandler);
-			});
-			EntityTrackerHelper.getEntityTrackers(this).put(
-				entity.getId(), e
-			);
-		}
-
-		public void removeEntity(Entity entity) {
-			EntityTrackerHelper.getEntityTrackers(this).remove(entity.getId());
-		}
-	}
-
-	public static class CutsceneChunk extends WorldChunk {
-
-		private final Set<BlockPos> changedBlocks = new HashSet<>();
-
-		public CutsceneChunk(WorldChunk chunk, World world) {
-			super(world, chunk.getPos());
-			var data = new ChunkData(chunk);
-			this.loadFromPacket(data.getSectionsDataBuf(), data.getHeightmap(), data.getBlockEntities(chunk.getPos().x, chunk.getPos().z));
-			this.setLevelTypeProvider(chunk::getLevelType);
-		}
-
-		@Override
-		public BlockState setBlockState(BlockPos pos, BlockState state, boolean moved) {
-			changedBlocks.add(pos);
-			return super.setBlockState(pos, state, moved);
-		}
-
-		@Override
-		public void setBlockEntity(BlockEntity blockEntity) {
-			changedBlocks.add(blockEntity.getPos());
-			super.setBlockEntity(blockEntity);
-		}
-
-		@Override
-		public void removeBlockEntity(BlockPos pos) {
-			changedBlocks.add(pos);
-			super.removeBlockEntity(pos);
-		}
-
-		@Override
-		public void clear() {
-			changedBlocks.clear();
-			super.clear();
-		}
-	}
-
-	public static class CombinedEntityLookup implements EntityLookup<Entity> {
-
-		private final List<EntityLookup<Entity>> lookups;
-
-		public CombinedEntityLookup(List<EntityLookup<Entity>> lookups) {
-			this.lookups = lookups;
-		}
-
-		@Nullable
-		@Override
-		public Entity get(int id) {
-			return lookups.stream().flatMap(lookup -> Optional.ofNullable(lookup.get(id)).stream()).findFirst().orElse(null);
-		}
-
-		@Nullable
-		@Override
-		public Entity get(UUID uuid) {
-			return lookups.stream().flatMap(lookup -> Optional.ofNullable(lookup.get(uuid)).stream()).findFirst().orElse(null);
-		}
-
-		@Override
-		public Iterable<Entity> iterate() {
-			return Iterables.concat((Iterable<Iterable<Entity>>) () -> lookups.stream().map(EntityLookup::iterate).iterator());
-		}
-
-		@Override
-		public <U extends Entity> void forEach(TypeFilter<Entity, U> filter, LazyIterationConsumer<U> consumer) {
-			lookups.forEach(lookup -> lookup.forEach(filter, consumer));
-		}
-
-		@Override
-		public void forEachIntersects(Box box, Consumer<Entity> action) {
-			lookups.forEach(lookup -> lookup.forEachIntersects(box, action));
-		}
-
-		@Override
-		public <U extends Entity> void forEachIntersects(TypeFilter<Entity, U> filter, Box box, LazyIterationConsumer<U> consumer) {
-			lookups.forEach(lookup -> lookup.forEachIntersects(filter, box, consumer));
-		}
 	}
 }

@@ -16,6 +16,7 @@ import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.Vec3d;
 import org.apache.commons.lang3.mutable.MutableInt;
 import se.datasektionen.mc.cutscenes.Cutscenes;
+import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.entity_ref.CutsceneRef;
@@ -70,7 +71,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 	}
 
 	public static void spawnEntities(
-			List<String> ids, NbtCompound nbt, Optional<Vec3d> pos, CutsceneInstance cutscene, Optional<Boolean> initialize
+			List<String> ids, NbtCompound nbt, Optional<Vec3d> pos, CutsceneWorld world, Optional<Boolean> initialize
 	) {
 		MutableInt idIndex = new MutableInt(0);
 		Supplier<String> idGetter = () -> {
@@ -80,12 +81,12 @@ public class SpawnEntity implements Transition, TransitionConfig {
 			}
 			return id;
 		};
-		EntityType.loadEntityWithPassengers(nbt, cutscene.getCutsceneWorld(), SpawnReason.EVENT, entity -> {
+		EntityType.loadEntityWithPassengers(nbt, world, SpawnReason.EVENT, entity -> {
 			pos.ifPresent(entity::setPosition);
-			cutscene.addEntity(idGetter.get(), entity);
+			world.getEntityManager().addEntity(idGetter.get(), entity);
 			if (initialize.orElse(nbt.getSize() > 1) && entity instanceof MobEntity mob) {
 				mob.initialize(
-						cutscene.getCutsceneWorld(), cutscene.getCutsceneWorld().getLocalDifficulty(entity.getBlockPos()),
+						world, world.getLocalDifficulty(entity.getBlockPos()),
 						SpawnReason.TRIGGERED, null
 				);
 				if (nbt.getSize() > 1) {
@@ -105,7 +106,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 				Cutscenes.LOGGER.warn("Warning, an entity with id " + id + " already exists. Your cutscene might behave unexpectedly!");
 			}
 		});
-		spawnEntities(ids, nbt, pos, cutscene, initialize);
+		spawnEntities(ids, nbt, pos, cutscene.getCutsceneWorld(), initialize);
 	}
 
 	@Override

@@ -61,6 +61,11 @@ public class RotateHead implements Transition {
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		if (offsets == null) {
+			offsets = config.targets.getTargets(interval);
+			offsets = offsets.setStartIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
+			offsets = offsets.setEndIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
+		}
 		config.entity.get(null, cutscene).forEach(entity -> {
 			float delta = interval.getDelta(cutscene.getCurrentTime());
 			entity.prevYaw = entity.getYaw();

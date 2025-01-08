@@ -5,7 +5,6 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -16,10 +15,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.structure.StructurePlacementData;
-import net.minecraft.structure.StructureTemplate;
 import net.minecraft.util.Uuids;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.TeleportTarget;
@@ -27,6 +23,8 @@ import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.entity.EntityLookup;
 import se.datasektionen.mc.cutscenes.Cutscenes;
+import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
+import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorldData;
 import se.datasektionen.mc.cutscenes.transitions.DeltaTickTransition;
 import se.datasektionen.mc.cutscenes.transitions.HideOtherPlayersTransition;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
@@ -34,8 +32,6 @@ import se.datasektionen.mc.cutscenes.mixin.AccessorServerPlayerEntity;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.TeleportTransition;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
-import se.datasektionen.mc.cutscenes.transitions.entity.SpawnEntity;
-import se.datasektionen.mc.cutscenes.util.SerialisedStructure;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
@@ -87,7 +83,7 @@ public class CutsceneInstance implements AutoCloseable {
 							a -> a.transitions
 					),
 					Codec.INT.fieldOf("time").forGetter(a -> a.time),
-					CutsceneWorldData.CODEC.fieldOf("data").forGetter(CutsceneInstance::save),
+					CutsceneWorldData.CODEC.fieldOf("data").forGetter(a -> a.world.save()),
 					SAVED_DATA_CODEC.fieldOf("saved_players").forGetter(cutscene -> cutscene.savedPlayerData), //Careful, this is used by the datafixer!
 					Codec.BOOL.fieldOf("ended").forGetter(CutsceneInstance::isEnded),
 					World.CODEC.fieldOf("dim").forGetter(CutsceneInstance::getDim)
@@ -99,10 +95,7 @@ public class CutsceneInstance implements AutoCloseable {
 	private int time = 0;
 	private boolean ended = false;
 	private CutsceneWorld world;
-	private final CutsceneEntityManager entities = new CutsceneEntityManager();
 	private CutsceneWorldData data;
-	private StructureTemplate blocks;
-	private int chunkWaitTime = 10;
 	private RegistryKey<World> dim;
 	private RemoveHandler onRemove = null;
 
@@ -144,7 +137,7 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	public EntityLookup<Entity> getEntityLookup() {
-		return entities.getLookup();
+		return world.getEntityManager().getLookup();
 	}
 
 	public boolean hasPlayers() {
@@ -205,7 +198,6 @@ public class CutsceneInstance implements AutoCloseable {
 
 	public void end() {
 		ended = true;
-		entities.clear();
 		world.clear();
 		removeCutscene();
 	}
@@ -225,11 +217,10 @@ public class CutsceneInstance implements AutoCloseable {
 	public void setTargetWorld(ServerWorld targetWorld) {
 		if (this.world != null && this.world.getActualWorld() == targetWorld) return;
 		var prev = this.world;
-		this.world = new CutsceneWorld(targetWorld, this);
+		this.world = new CutsceneWorld(targetWorld, this, data);
+		data = null;
 		this.dim = world.getRegistryKey();
-		entities.setWorld(world);
 		players.forEach(world::addPlayer);
-		entities.clear();
 		if (prev != null) {
 			world.transferFrom(prev);
 		}
@@ -254,12 +245,6 @@ public class CutsceneInstance implements AutoCloseable {
 			}
 			modificationQueue.clear();
 		}
-	}
-
-	public NbtCompound getInitialSavePropertiesData(ServerWorld world) {
-		return data != null ? data.saveProperties : world.getServer().getSaveProperties().cloneWorldNbt(
-				world.getRegistryManager(), null
-		);
 	}
 
 	public Random getRandom() {
@@ -302,7 +287,19 @@ public class CutsceneInstance implements AutoCloseable {
 		return transitionTarget;
 	}
 
+	public void addPlayerDummy(ServerPlayerEntity player) {
+		createFromData(savedPlayerData.get(player.getUuid())).ifPresent(p -> {
+			p.streamSelfAndPassengers().forEach(e -> {
+				world.getEntityManager().addEntity(PLAYER_REFERENCE, e);
+			});
+		});
+	}
+
 	public void addPlayer(ServerPlayerEntity player) {
+		if (world == null) {
+			Cutscenes.LOGGER.error("Attempted to add player to cutscene before world initialized!");
+			return;
+		}
 		boolean playerAddedFirstTime = false;
 		if (!savedPlayerData.containsKey(player.getUuid())) {
 			playerAddedFirstTime = true;
@@ -326,16 +323,9 @@ public class CutsceneInstance implements AutoCloseable {
 			getCurrentTarget().ifPresent(player::teleportTo);
 		}
 		modificationQueue.add(new QueueEntry(player, QueueEntry.Operation.ADD));
-		if (world != null) {
-			world.addPlayer(player);
-		}
-		entities.addPlayer(player);
+		world.addPlayer(player);
 		if (playerAddedFirstTime && cutscene.createFakePlayer()) {
-			createFromData(savedPlayerData.get(player.getUuid())).ifPresent(p -> {
-				p.streamSelfAndPassengers().forEach(e -> {
-					entities.addEntity(PLAYER_REFERENCE, e);
-				});
-			});
+			addPlayerDummy(player);
 		}
 		transitions.getIntervalsAt(getCurrentTime()).forEach(interval -> {
 			if (interval.getStart() != getCurrentTime()) {
@@ -497,7 +487,6 @@ public class CutsceneInstance implements AutoCloseable {
 		if (world != null) {
 			world.removePlayer(player);
 		}
-		entities.removePlayer(player);
 
 		if (cutscene.hidePlayer()) {
 			var tracker = EntityTrackerHelper.getEntityTrackers(player.getServerWorld()).get(player.getId());
@@ -556,28 +545,6 @@ public class CutsceneInstance implements AutoCloseable {
 			end();
 			return;
 		}
-		if (data != null) {
-			if (blocks == null) {
-				blocks = data.blocks.parse(world.getRegistryManager());
-			}
-
-			if (chunkWaitTime > 0) {
-				chunkWaitTime--;
-				return;
-			}
-
-			blocks.place(
-					world, BlockPos.ORIGIN, BlockPos.ORIGIN, new StructurePlacementData(),
-					world.getRandom(), Block.NOTIFY_ALL
-			);
-
-			data.entities().forEach(entity -> {
-				entity.load(this);
-			});
-			data = null;
-			blocks = null;
-			chunkWaitTime = 0;
-		}
 		transitions.getIntervalsAt(time).forEach(
 				interval -> {
 					if (interval.getStart() == time) {
@@ -594,7 +561,6 @@ public class CutsceneInstance implements AutoCloseable {
 				}
 		);
 		time++;
-		entities.tick();
 		world.tick(() -> true);
 		if (time > transitions.getEnd()) {
 			end();
@@ -606,19 +572,19 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	public void addEntity(String id, Entity entity) {
-		entities.addEntity(id, entity);
+		world.getEntityManager().addEntity(id, entity);
 	}
 
 	public Optional<Entity> getRootEntity(String id) {
-		return entities.getRootEntity(id);
+		return world.getEntityManager().getRootEntity(id);
 	}
 
 	public Stream<Entity> getEntities(String id) {
-		return entities.getEntities(id);
+		return world.getEntityManager().getEntities(id);
 	}
 
 	public Optional<String> getIDForEntity(Entity entity) {
-		return entities.getIDForEntity(entity);
+		return world.getEntityManager().getIDForEntity(entity);
 	}
 
 	public IntervalMap<Transition> getTransitions() {
@@ -633,12 +599,6 @@ public class CutsceneInstance implements AutoCloseable {
 		return ended;
 	}
 
-	public CutsceneWorldData save() {
-		return new CutsceneWorldData(
-				entities.save().toList(), world.save(), world.saveLevelProperties()
-		);
-	}
-
 	@Override
 	public void close() {
 		getTransitions().getIntervalsAt(getCurrentTime()).forEach(this::deactivateSmooth);
@@ -647,34 +607,6 @@ public class CutsceneInstance implements AutoCloseable {
 	public record QueueEntry(ServerPlayerEntity player, Operation operation) {
 		public enum Operation {
 			ADD, REMOVE
-		}
-	}
-
-	public record CutsceneWorldData(
-			List<SerialisedEntity> entities, SerialisedStructure blocks,
-			NbtCompound saveProperties
-	) {
-		public static final Codec<CutsceneWorldData> CODEC = RecordCodecBuilder.create(
-				instance -> instance.group(
-						SerialisedEntity.CODEC.listOf().fieldOf("entities").forGetter(d -> d.entities),
-						SerialisedStructure.CODEC.fieldOf("blocks").forGetter(d -> d.blocks),
-						NbtCompound.CODEC.optionalFieldOf("save_properties", new NbtCompound()).forGetter(d -> d.saveProperties)
-				).apply(instance, CutsceneWorldData::new)
-		);
-
-		public record SerialisedEntity(List<String> ids, NbtCompound data) {
-			public static final Codec<SerialisedEntity> CODEC = RecordCodecBuilder.create(
-					instance -> instance.group(
-							Codec.STRING.listOf().fieldOf("ids").forGetter(SerialisedEntity::ids),
-							NbtCompound.CODEC.fieldOf("data").forGetter(SerialisedEntity::data)
-					).apply(instance, SerialisedEntity::new)
-			);
-
-			public void load(CutsceneInstance cutscene) {
-				SpawnEntity.spawnEntities(
-						ids, data, Optional.empty(), cutscene, Optional.of(false)
-				);
-			}
 		}
 	}
 
