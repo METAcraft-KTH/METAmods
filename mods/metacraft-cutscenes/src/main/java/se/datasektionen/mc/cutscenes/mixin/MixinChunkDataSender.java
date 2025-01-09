@@ -1,5 +1,6 @@
 package se.datasektionen.mc.cutscenes.mixin;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.server.network.ChunkDataSender;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.world.ServerWorld;
@@ -26,9 +27,14 @@ public class MixinChunkDataSender {
 			method = "sendChunkData", at = @At("HEAD"),
 			argsOnly = true
 	)
-	private static ServerWorld sendChunkData(ServerWorld world, ServerPlayNetworkHandler handler) {
-		return CutsceneHelper.getCutscene(handler.player).map(
-				scene -> (ServerWorld) scene.getCutsceneWorld()
+	private static ServerWorld sendChunkData(
+			ServerWorld world, ServerPlayNetworkHandler handler,
+			@Local(argsOnly = true) WorldChunk chunk
+	) {
+		return CutsceneHelper.getCutscene(handler.player).flatMap(
+				scene -> scene.getCutsceneWorld().getChunkFromCacheIfPresent(chunk)
+		).map(
+				c -> (ServerWorld) c.getWorld()
 		).orElse(world);
 	}
 
