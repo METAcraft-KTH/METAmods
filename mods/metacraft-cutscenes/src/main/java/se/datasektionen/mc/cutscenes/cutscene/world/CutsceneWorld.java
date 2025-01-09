@@ -29,7 +29,6 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.structure.StructurePlacementData;
 import net.minecraft.structure.StructureTemplate;
-import net.minecraft.util.Unit;
 import net.minecraft.util.math.*;
 import net.minecraft.world.*;
 import net.minecraft.world.biome.Biome;
@@ -204,6 +203,10 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		return getChunkFromCacheIfPresent(chunk.getPos());
 	}
 
+	public boolean isLightingInCache(ChunkPos pos) {
+		return getChunkManager().isLightingCached(pos.x, pos.z);
+	}
+
 	public Optional<WorldChunk> getChunkFromCacheIfPresent(ChunkPos pos) {
 		return getChunkFromCacheIfPresent(pos.x, pos.z);
 	}
@@ -228,9 +231,6 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		}
 		entities.tick();
 		super.tick(shouldKeepTicking);
-		//System.out.println("Updates: " + getChunkManager().getLightingProvider().hasUpdates());
-		//System.out.println("Updates2: " + ((AccessorLightingProvider) getChunkManager().getLightingProvider()).getBlockLightProvider().hasUpdates());
-		//System.out.println("Updates3: " + ((AccessorLightingProvider) getChunkManager().getLightingProvider()).getSkyLightProvider().hasUpdates());
 
 		getChunkManager().getLightingProvider().tick();
 	}
@@ -298,37 +298,14 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	private void load(CutsceneWorldData data) {
 		var blocks = data.blocks().parse(world.getRegistryManager());
 
-		var size = ChunkSectionPos.from(new BlockPos(blocks.getSize()));
-
-		for (int x = -size.getX(); x <= size.getX(); x++) {
-			for (int z = -size.getZ(); z <= size.getZ(); z++) {
-				getChunk(x, z, ChunkStatus.FULL, false);
-			}
-		}
-
 		blocks.place(
 				this, BlockPos.ORIGIN, BlockPos.ORIGIN, new StructurePlacementData(),
 				this.getRandom(), Block.NOTIFY_ALL
 		);
 
-		waitForLightUpdate();
-
-		streamChangedChunks().forEach(c -> {
-			getLightingProvider().propagateLight(c.getPos());
-		});
-
 		data.entities().forEach(entity -> {
 			entity.load(this);
 		});
-	}
-
-	public void waitForLightUpdate() {
-		((AccessorServerLightingProvider) getLightingProvider()).getProcessor().executeAsync(
-				result -> {
-					((AccessorServerLightingProvider) getLightingProvider()).callRunTasks();
-					result.complete(Unit.INSTANCE);
-				}
-		).join();
 	}
 
 	public CutsceneWorldData save() {
@@ -377,9 +354,6 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 				if (pos.getZ() > max.getZ()) {
 					max.setZ(pos.getZ());
 				}
-
-				//System.out.println(pos.toShortString() + " " + getLightingProvider().getLight(pos, 0));
-				//System.out.println("Enabled: " + getLightingProvider().isLightingEnabled(ChunkSectionPos.withZeroY(ChunkSectionPos.fromBlockPos(pos.asLong()))));
 			});
 		});
 		BlockBox box = BlockBox.create(min, max);

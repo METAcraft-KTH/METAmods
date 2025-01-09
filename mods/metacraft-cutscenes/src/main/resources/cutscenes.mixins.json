@@ -10,7 +10,6 @@
     "AccessorChunkLightProvider",
     "AccessorGameRulesRule",
     "AccessorLightingProvider",
-    "AccessorLightStorage",
     "AccessorMinecraftServer",
     "AccessorServerChunkLoadingManager",
     "AccessorServerChunkLoadingManager$EntityTracker",

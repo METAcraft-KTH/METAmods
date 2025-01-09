@@ -1,13 +1,14 @@
 package se.datasektionen.mc.cutscenes.cutscene.world;
 
 import com.mojang.datafixers.DataFixer;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.server.WorldGenerationProgressListener;
 import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerChunkLoadingManager;
-import net.minecraft.server.world.ServerLightingProvider;
+import net.minecraft.server.world.*;
 import net.minecraft.structure.StructureTemplateManager;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.thread.ThreadExecutor;
@@ -18,6 +19,7 @@ import net.minecraft.world.gen.chunk.ChunkGenerator;
 import net.minecraft.world.level.storage.LevelStorage;
 import net.minecraft.world.poi.PointOfInterestStorage;
 import net.minecraft.world.storage.StorageKey;
+import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.mixin.AccessorServerChunkLoadingManager;
 import se.datasektionen.mc.cutscenes.mixin.AccessorServerLightingProvider;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
@@ -28,6 +30,8 @@ import java.util.function.Supplier;
 public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
 
 	private final CutsceneWorld cutsceneWorld;
+
+	private final Long2ObjectMap<ChunkHolder> cachedChunkHolders = new Long2ObjectOpenHashMap<>();
 
 	public CutsceneChunkLoadingManager(
 			CutsceneWorld cutsceneWorld, LevelStorage.Session session,
@@ -48,6 +52,15 @@ public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
 						((AccessorServerLightingProvider) getLightingProvider()).getProcessor(),
 						((AccessorServerChunkLoadingManager) this).getLightScheduler()
 				)
+		);
+		((AccessorServerChunkLoadingManager) this).setTicketManager(
+				new TicketManager(mainThreadExecutor, executor) {
+
+					@Override
+					protected ChunkHolder setLevel(long pos, int level, @Nullable ChunkHolder holder, int i) {
+						return holder;
+					}
+				}
 		);
 		((AccessorServerChunkLoadingManager) this).setPointOfInterestStorage(
 				new PointOfInterestStorage(
@@ -122,5 +135,39 @@ public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
 
 	public CutsceneWorld getCutsceneWorld() {
 		return cutsceneWorld;
+	}
+
+	@Override
+	protected ChunkHolder getCurrentChunkHolder(long pos) {
+		return getChunkHolder(pos);
+	}
+
+	@Override
+	public ChunkHolder getChunkHolder(long pos) {
+		if (cachedChunkHolders.containsKey(pos)) {
+			return cachedChunkHolders.get(pos);
+		}
+
+		return cachedChunkHolders.computeIfAbsent(pos, i -> new ChunkHolder(
+				new ChunkPos(pos), ChunkLevels.getLevelFromType(ChunkLevelType.ENTITY_TICKING),
+				cutsceneWorld, getLightingProvider(),
+				(a, b, c, d) -> {},
+				(p, b) -> cutsceneWorld.getPlayers()
+		) {
+			@Override
+			protected void updateStatus(ServerChunkLoadingManager chunkLoadingManager) {
+
+			}
+
+			@Override
+			protected void updateFutures(ServerChunkLoadingManager chunkLoadingManager, Executor executor) {
+
+			}
+		});
+	}
+
+	@Override
+	protected void save(boolean flush) {
+
 	}
 }

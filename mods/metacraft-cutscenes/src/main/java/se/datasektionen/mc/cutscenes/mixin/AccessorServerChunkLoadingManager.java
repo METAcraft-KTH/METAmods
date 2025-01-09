@@ -28,6 +28,10 @@ public interface AccessorServerChunkLoadingManager {
 	@Accessor
 	void setLightingProvider(ServerLightingProvider lightingProvider);
 
+	@Mutable
+	@Accessor
+	void setTicketManager(ServerChunkLoadingManager.TicketManager lightingProvider);
+
 	@Accessor
 	ChunkTaskScheduler getLightScheduler();
 

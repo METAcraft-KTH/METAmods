@@ -1,7 +1,7 @@
 package se.datasektionen.mc.cutscenes.cutscene.world;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.server.world.*;
@@ -15,10 +15,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.WorldChunk;
 import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.cutscenes.mixin.AccessorAbstractChunkHolder;
-import se.datasektionen.mc.cutscenes.mixin.AccessorChunkHolder;
-import se.datasektionen.mc.cutscenes.mixin.AccessorMinecraftServer;
-import se.datasektionen.mc.cutscenes.mixin.AccessorServerChunkManager;
+import se.datasektionen.mc.cutscenes.mixin.*;
 import se.datasektionen.mc.metacraft_lib.util.helper.WorldHelper;
 
 import java.util.Optional;
@@ -29,8 +26,7 @@ import java.util.stream.Stream;
 
 public class CutsceneChunkManager extends ServerChunkManager {
 
-	private final Int2ObjectMap<Int2ObjectMap<ChunkHolder>> cachedChunkHolders = new Int2ObjectOpenHashMap<>();
-	private final Int2ObjectMap<Int2ObjectMap<CutsceneChunk>> cachedChunks = new Int2ObjectOpenHashMap<>();
+	private final Long2ObjectMap<CutsceneChunk> cachedChunks = new Long2ObjectOpenHashMap<>();
 
 	public final CutsceneChunkLoadingManager cutsceneChunkLoadingManager;
 
@@ -85,25 +81,17 @@ public class CutsceneChunkManager extends ServerChunkManager {
 	}
 
 	private boolean isInCache(int x, int z) {
-		return cachedChunks.containsKey(x) && cachedChunks.get(x).containsKey(z);
+		return cachedChunks.containsKey(ChunkPos.toLong(x, z));
 	}
 
 	private WorldChunk getFromCache(int x, int z) {
-		return cachedChunks.get(x).get(z);
+		return cachedChunks.get(ChunkPos.toLong(x, z));
 	}
 
 	public ChunkHolder getChunkHolder(int x, int z) {
-		if (cachedChunkHolders.containsKey(x) && cachedChunkHolders.get(x).containsKey(z)) {
-			return cachedChunkHolders.get(x).get(z);
-		}
-
-		var holderCol = cachedChunkHolders.computeIfAbsent(x, i -> new Int2ObjectOpenHashMap<>());
-		return holderCol.computeIfAbsent(z, i -> new ChunkHolder(
-				new ChunkPos(x, z), ChunkLevels.getLevelFromType(ChunkLevelType.ENTITY_TICKING),
-				cutsceneWorld, getLightingProvider(),
-				(a, b, c, d) -> {},
-				(p, b) -> cutsceneWorld.getPlayers()
-		));
+		return ((CutsceneChunkLoadingManager) chunkLoadingManager).getChunkHolder(
+				ChunkPos.toLong(x, z)
+		);
 	}
 
 	@Override
@@ -116,8 +104,10 @@ public class CutsceneChunkManager extends ServerChunkManager {
 	private Chunk getCutsceneChunk(int x, int z, Chunk chunk) {
 		if (chunk instanceof WorldChunk wc && !fetching) {
 			fetching = true; //Mob spawners may cause this function to be called recursively.
-			var col = cachedChunks.computeIfAbsent(x, i -> new Int2ObjectOpenHashMap<>());
-			var c = col.computeIfAbsent(z, i -> new CutsceneChunk(wc, cutsceneWorld));
+			var c = cachedChunks.computeIfAbsent(ChunkPos.toLong(x, z), i -> new CutsceneChunk(wc, cutsceneWorld));
+			c.setLoadedToWorld(true);
+			c.setLightOn(true);
+			c.addChunkTickSchedulers(cutsceneWorld);
 			var holder = getChunkHolder(x, z);
 			((AccessorChunkHolder) holder).setTickingFuture(
 					CompletableFuture.completedFuture(OptionalChunk.of(c))
@@ -128,11 +118,23 @@ public class CutsceneChunkManager extends ServerChunkManager {
 			for (int i = 0; i < statuses.length(); i++) {
 				statuses.set(i, CompletableFuture.completedFuture(OptionalChunk.of(c)));
 			}
-			getLightingProvider().setColumnEnabled(c.getPos(), true);
+			getLightingProvider().initializeLight(c, true);
 			fetching = false;
 			return c;
 		}
 		return chunk;
+	}
+
+	public boolean isLightingCached(int x, int z) {
+		if (isInCache(x, z)) return true;
+		for (int xOff = -1; xOff <= 1; xOff++) {
+			for (int zOff = -1; zOff <= 1; zOff++) {
+				if (isInCache(x+xOff, z+zOff)) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	public Optional<WorldChunk> getChunkFromCacheIfPresent(int x, int z) {
@@ -140,7 +142,7 @@ public class CutsceneChunkManager extends ServerChunkManager {
 	}
 
 	public Stream<CutsceneChunk> streamChangedChunks() {
-		return cachedChunks.values().stream().flatMap(c -> c.values().stream());
+		return cachedChunks.values().stream();
 	}
 
 	@Nullable
@@ -198,7 +200,7 @@ public class CutsceneChunkManager extends ServerChunkManager {
 	@Override
 	public void tick(BooleanSupplier shouldKeepTicking, boolean tickChunks) {
 		if (tickChunks) {
-			cachedChunks.values().stream().flatMap(c -> c.values().stream()).forEach(chunk -> {
+			cachedChunks.values().forEach(chunk -> {
 				getChunkHolder(chunk.getPos().x, chunk.getPos().z).flushUpdates(chunk);
 			});
 		}
@@ -222,6 +224,10 @@ public class CutsceneChunkManager extends ServerChunkManager {
 	@Override
 	public World getWorld() {//This runs before cutsceneWorld has been initialized properly, so we need to provide a fallback.
 		return cutsceneWorld != null ? cutsceneWorld : super.getWorld();
+	}
+
+	public CutsceneWorld getCutsceneWorld() {
+		return cutsceneWorld;
 	}
 
 	@Override

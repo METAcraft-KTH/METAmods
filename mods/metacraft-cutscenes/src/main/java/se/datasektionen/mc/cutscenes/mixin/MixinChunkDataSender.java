@@ -8,6 +8,7 @@ import net.minecraft.world.chunk.WorldChunk;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
 
 @Mixin(ChunkDataSender.class)
@@ -31,10 +32,16 @@ public class MixinChunkDataSender {
 			ServerWorld world, ServerPlayNetworkHandler handler,
 			@Local(argsOnly = true) WorldChunk chunk
 	) {
-		return CutsceneHelper.getCutscene(handler.player).flatMap(
-				scene -> scene.getCutsceneWorld().getChunkFromCacheIfPresent(chunk)
+		return CutsceneHelper.getCutscene(handler.player).map(
+				CutsceneInstance::getCutsceneWorld
 		).map(
-				c -> (ServerWorld) c.getWorld()
+				c -> {
+					if (c.isLightingInCache(chunk.getPos())) {
+						return c;
+					} else {
+						return world;
+					}
+				}
 		).orElse(world);
 	}
 
