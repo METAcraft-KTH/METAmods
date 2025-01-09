@@ -23,8 +23,10 @@ public class CutsceneLightingProvider extends ServerLightingProvider {
 		((AccessorChunkLightProvider<?,BlockLightStorage>) blockProvider).setLightStorage(
 				new CutsceneBlockLightStorage(chunkProvider)
 		);
-		((AccessorChunkLightProvider<?,SkyLightStorage>) skyProvider).setLightStorage(
-				new CutsceneSkyLightStorage(chunkProvider)
-		);
+		if (skyProvider != null) {
+			((AccessorChunkLightProvider<?,SkyLightStorage>) skyProvider).setLightStorage(
+					new CutsceneSkyLightStorage(chunkProvider)
+			);
+		}
 	}
 }
