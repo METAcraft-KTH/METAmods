@@ -19,6 +19,7 @@ public class DummySession {
 			Constructor<LevelStorage.Session> constructor = LevelStorage.Session.class.getDeclaredConstructor(
 					LevelStorage.class, String.class, Path.class
 			); //The first LevelStorage argument is required because Session is a non-static inner class of LevelStorage.
+			constructor.setAccessible(true);
 			return constructor.newInstance(null, null, Path.of("."));
 		} catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
 			throw new RuntimeException(e);
