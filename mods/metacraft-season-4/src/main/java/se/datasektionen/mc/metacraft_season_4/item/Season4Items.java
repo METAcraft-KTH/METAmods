@@ -17,16 +17,21 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Rarity;
 import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.math.floatprovider.UniformFloatProvider;
+import net.minecraft.util.math.intprovider.ConstantIntProvider;
 import se.datasektionen.mc.metacraft_lib.condition.conditions.NotInWall;
 import se.datasektionen.mc.metacraft_lib.condition.conditions.SolidBlockBelow;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.block.Season4Blocks;
+import se.datasektionen.mc.metacraft_season_4.item.boss_wands.DoubleTeamWand;
 import se.datasektionen.mc.metacraft_season_4.item.boss_wands.EvokerFangsWand;
 import se.datasektionen.mc.metacraft_season_4.item.boss_wands.ReinforcementsWand;
 import se.datasektionen.mc.metacraft_season_4.item.components.Season4Components;
+import se.datasektionen.mc.metacraft_season_4.util.DoubleTeamHandler;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -85,6 +90,21 @@ public class Season4Items {
 									SpawnReason.REINFORCEMENT,20, 10
 							)
 					).build()
+			)
+	);
+
+	public static final Item DOUBLE_TEAM_WAND = register(
+			"double_team_wand",
+			DoubleTeamWand::new,
+			new Item.Settings().fireproof().maxCount(1).rarity(Rarity.EPIC).component(
+					Season4Components.DOUBLE_TEAM_SETTINGS, new DoubleTeamHandler.Settings(
+							ConstantIntProvider.create(5), 10,
+							UniformFloatProvider.create(5, 10), 0.25,
+							EntityHelper.SpawnEntry.createNBTFromMap(
+									Map.of("Hostile", true)
+							),
+							Optional.of(true)
+					)
 			)
 	);
 

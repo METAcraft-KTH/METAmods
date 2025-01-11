@@ -9,6 +9,7 @@ import net.minecraft.util.collection.DataPool;
 import net.minecraft.util.math.intprovider.IntProvider;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.datasektionen.mc.metacraft_season_4.Season4;
+import se.datasektionen.mc.metacraft_season_4.util.DoubleTeamHandler;
 
 import java.util.function.UnaryOperator;
 
@@ -25,6 +26,11 @@ public class Season4Components {
 	public static final ComponentType<IntProvider> TRY_COUNT = register(
 			"try_count", builder -> builder.codec(IntProvider.NON_NEGATIVE_CODEC)
 	);
+
+	public static final ComponentType<DoubleTeamHandler.Settings> DOUBLE_TEAM_SETTINGS = register(
+			"double_team_settings", builder -> builder.codec(DoubleTeamHandler.Settings.CODEC.codec())
+	);
+
 
 	public static void init() {
 

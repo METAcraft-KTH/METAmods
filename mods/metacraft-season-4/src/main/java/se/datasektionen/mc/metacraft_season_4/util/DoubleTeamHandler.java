@@ -5,6 +5,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.BlockPos;
@@ -13,9 +14,12 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.floatprovider.FloatProvider;
 import net.minecraft.util.math.intprovider.IntProvider;
+import net.minecraft.world.ServerWorldAccess;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_season_4.extensions.LivingEntityExtensions;
+
+import java.util.Optional;
 
 public record DoubleTeamHandler(
 		LivingEntity primary, Settings settings,
@@ -43,7 +47,7 @@ public record DoubleTeamHandler(
 	public DoubleTeamHandler(
 			LivingEntity primary, IntProvider delay, int maxSpawns, FloatProvider dist, double handoverChance
 	) {
-		this(primary, new Settings(primary.getPos(), delay, maxSpawns, dist, handoverChance), 0, 0);
+		this(primary, new Settings(delay, maxSpawns, dist, handoverChance, new NbtCompound(), Optional.empty()), 0, 0);
 	}
 
 	public static void applyToEntity(DoubleTeamHandler handler) {
@@ -53,10 +57,28 @@ public record DoubleTeamHandler(
 	private void setCloneData(LivingEntity clone) {
 		((LivingEntityExtensions) clone).metacraft$setPhantomEntity(true);
 		((LivingEntityExtensions) clone).metacraft$setDoubleTeamHandler(null);
+		if (primary.getScoreboardTeam() != null) {
+			clone.getWorld().getScoreboard().addScoreHolderToTeam(
+					clone.getNameForScoreboard(), primary.getScoreboardTeam()
+			);
+		}
 		((LivingEntityExtensions) clone).metacraft$setSoulboundEntity(
 				((LivingEntityExtensions) primary).metacraft$getNonSoulboundMaster()
 		);
 		((EntityExtensions) clone).metacraft_lib$setBossBar(null);
+		if (settings.initializeClone.orElse(settings.dataToApply.isEmpty())) {
+			if (clone instanceof MobEntity mob) {
+				mob.initialize(
+						(ServerWorldAccess) clone.getWorld(), clone.getWorld().getLocalDifficulty(clone.getBlockPos()),
+						SpawnReason.REINFORCEMENT, null
+				);
+			}
+		}
+		if (!settings.dataToApply.isEmpty()) {
+			var data = clone.writeNbt(new NbtCompound());
+			data.copyFrom(settings.dataToApply);
+			clone.readNbt(data);
+		}
 	}
 
 	private LivingEntity createClone() {
@@ -81,7 +103,7 @@ public record DoubleTeamHandler(
 		var angleUp = primary.getRandom().nextFloat() * 180;
 		angleUp -= angleUp/2;
 		var facing = Vec3d.fromPolar(angleUp, angle);
-		var target = settings.center.add(facing.multiply(
+		var target = primary.getPos().add(facing.multiply(
 				settings.distance.get(primary.getRandom())
 		));
 		var pos = new BlockPos.Mutable();
@@ -148,16 +170,18 @@ public record DoubleTeamHandler(
 	}
 
 	public record Settings(
-			Vec3d center, IntProvider delay, int maxSplits,
-			FloatProvider distance, double passToCloneChance
+			IntProvider delay, int maxSplits,
+			FloatProvider distance, double passToCloneChance,
+			NbtCompound dataToApply, Optional<Boolean> initializeClone
 	) {
 		public static final MapCodec<Settings> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-				Vec3d.CODEC.fieldOf("center").forGetter(Settings::center),
 				IntProvider.POSITIVE_CODEC.fieldOf("delay").forGetter(Settings::delay),
 				Codec.INT.fieldOf("max_splits").forGetter(Settings::maxSplits),
 				FloatProvider.VALUE_CODEC.fieldOf("distance").forGetter(Settings::distance),
-				Codec.DOUBLE.fieldOf("pass_to_clone_chance").forGetter(Settings::passToCloneChance)
+				Codec.DOUBLE.fieldOf("pass_to_clone_chance").forGetter(Settings::passToCloneChance),
+				NbtCompound.CODEC.optionalFieldOf("data_to_apply", new NbtCompound()).forGetter(Settings::dataToApply),
+				Codec.BOOL.optionalFieldOf("initialize_clone").forGetter(Settings::initializeClone)
 			).apply(instance, Settings::new)
 		);
 	}
