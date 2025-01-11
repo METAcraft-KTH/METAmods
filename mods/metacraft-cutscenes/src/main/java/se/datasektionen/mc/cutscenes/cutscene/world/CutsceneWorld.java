@@ -389,7 +389,10 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 			});
 		});
 		BlockBox box = BlockBox.create(min, max);
-		StructureTemplateHelper.setSize(template, box.getDimensions());
+		StructureTemplateHelper.setSize(
+				template,
+				new Vec3i(box.getBlockCountX(), box.getBlockCountY(), box.getBlockCountZ())
+		);
 		List<StructureTemplate.StructureBlockInfo> blocks = StructureTemplateHelper.combineSorted(fullBlocks, blockWithNBT, otherBlocks);
 		StructureTemplateHelper.getBlockInfoLists(template).add(
 				StructureTemplateHelper.createPalettedBlockInfoList(blocks)
