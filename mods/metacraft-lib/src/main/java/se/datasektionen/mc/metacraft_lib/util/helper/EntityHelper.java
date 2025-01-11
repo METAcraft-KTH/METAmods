@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_lib.util.helper;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.*;
 import net.minecraft.entity.mob.EvokerFangsEntity;
@@ -9,6 +10,7 @@ import net.minecraft.entity.mob.VexEntity;
 import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
+import net.minecraft.loot.condition.AllOfLootCondition;
 import net.minecraft.loot.condition.LootCondition;
 import net.minecraft.loot.context.LootContext;
 import net.minecraft.loot.context.LootContextParameters;
@@ -16,21 +18,29 @@ import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.DataPool;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.intprovider.ConstantIntProvider;
 import net.minecraft.util.math.intprovider.IntProvider;
+import net.minecraft.util.math.intprovider.UniformIntProvider;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.condition.METAcraftContextParameters;
 import se.datasektionen.mc.metacraft_lib.condition.METAcraftContexTypes;
+import se.datasektionen.mc.metacraft_lib.condition.conditions.NotInWall;
+import se.datasektionen.mc.metacraft_lib.condition.conditions.ValidateSpawnPredicate;
+import se.datasektionen.mc.metacraft_lib.condition.conditions.ValidateSpawnRestriction;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorTntEntity;
 import se.datasektionen.mc.metacraft_lib.util.EntityTarget;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -223,6 +233,68 @@ public class EntityHelper {
 							IntProvider.VALUE_CODEC.optionalFieldOf("horizontal_range", ConstantIntProvider.create(0)).forGetter(SpawnRules::horizontalRange),
 							IntProvider.VALUE_CODEC.optionalFieldOf("vertical_range", ConstantIntProvider.create(0)).forGetter(SpawnRules::verticalRange)
 					).apply(instance, SpawnRules::new)
+			);
+		}
+
+		public static NbtCompound createNBTFromMap(Map<String, Object> map) {
+			return NbtCompound.CODEC.parse(JavaOps.INSTANCE, map).resultOrPartial(METAcraftLib.LOGGER::error).orElse(new NbtCompound());
+		}
+
+		public static <T extends Entity> NbtCompound createEntityNBTFrom(EntityType<T> type) {
+			return createEntityNBTFrom(type, new NbtCompound());
+		}
+
+		public static <T extends Entity> NbtCompound createEntityNBTFrom(EntityType<T> type, NbtCompound data) {
+			Identifier id = Registries.ENTITY_TYPE.getId(type);
+			data.putString("id", id.toString());
+			return data;
+		}
+
+		public static EntityHelper.SpawnEntry createEntry(
+				NbtCompound entity, int horizontalRange, int verticalRange
+		) {
+			return createEntry(entity, true, false, horizontalRange, verticalRange);
+		}
+
+		public static EntityHelper.SpawnEntry createEntry(
+				NbtCompound entity, Optional<LootCondition> spawnCondition, SpawnReason spawnReason, int horizontalRange, int verticalRange
+		) {
+			return new EntityHelper.SpawnEntry(
+					entity, true, false,
+					new EntityHelper.SpawnEntry.SpawnRules(
+							spawnCondition, spawnReason,
+							UniformIntProvider.create(-horizontalRange, horizontalRange),
+							UniformIntProvider.create(verticalRange, verticalRange)
+					),
+					Optional.empty()
+			);
+		}
+
+		public static EntityHelper.SpawnEntry createEntry(
+				NbtCompound entity, boolean initialize, boolean preventDespawn, int horizontalRange, int verticalRange
+		) {
+			return createEntry(
+					entity, initialize, preventDespawn, Optional.of(AllOfLootCondition.create(
+							List.of(
+									NotInWall.getInstance(), ValidateSpawnRestriction.getInstance(),
+									new ValidateSpawnPredicate(Optional.empty())
+							)
+					)), SpawnReason.TRIAL_SPAWNER, horizontalRange, verticalRange
+			);
+		}
+
+		public static EntityHelper.SpawnEntry createEntry(
+				NbtCompound entity, boolean initialize, boolean preventDespawn,
+				Optional<LootCondition> spawnCondition, SpawnReason spawnReason, int horizontalRange, int verticalRange
+		) {
+			return new EntityHelper.SpawnEntry(
+					entity, initialize, preventDespawn,
+					new EntityHelper.SpawnEntry.SpawnRules(
+							spawnCondition, spawnReason,
+							UniformIntProvider.create(-horizontalRange, horizontalRange),
+							UniformIntProvider.create(verticalRange, verticalRange)
+					),
+					Optional.empty()
 			);
 		}
 	}
