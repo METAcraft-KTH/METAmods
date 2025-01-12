@@ -247,7 +247,14 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 	}
 
 	private void addDisplay(DisplayElement element, Vec3d pos, float yawOffset, float pitchOffset) {
-		var d = new Display(element, pos.subtract(Vec3d.ofCenter(structure.getSize()).multiply(0.5)), yawOffset, pitchOffset);
+		var d = new Display(
+				element, pos.subtract(
+						structure.getSize().getX()*0.5,
+						0,
+						structure.getSize().getZ()*0.5
+				),
+				yawOffset, pitchOffset
+		);
 		displays.add(d);
 		holder.addElement(element);
 	}
