@@ -1,7 +1,9 @@
 package se.datasektionen.mc.cutscenes.mixin;
 
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.entity.Entity;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.PlayerManager;
@@ -42,6 +44,17 @@ public class MixinServerWorld {
 		} else {
 			original.call(instance, packet);
 		}
+	}
+
+	@WrapWithCondition(
+			method = "method_31420",//Lambda inside tick.
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/entity/Entity;checkDespawn()V"
+			)
+	)
+	public boolean skipDespawnInCutscenes(Entity instance) {
+		return !((Object) this instanceof CutsceneWorld);
 	}
 
 }

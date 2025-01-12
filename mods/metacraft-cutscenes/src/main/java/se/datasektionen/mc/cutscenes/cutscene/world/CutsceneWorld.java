@@ -321,6 +321,11 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		return streamChangedChunks().flatMap(c -> c.getChangedBlocks().stream());
 	}
 
+	@Override
+	public boolean shouldTickBlocksInChunk(long chunkPos) {
+		return world.shouldTickBlocksInChunk(chunkPos);
+	}
+
 	private void load(CutsceneWorldData data) {
 		if (this.persistentStorage != null) {
 			persistentStateManager.saveAndReload();

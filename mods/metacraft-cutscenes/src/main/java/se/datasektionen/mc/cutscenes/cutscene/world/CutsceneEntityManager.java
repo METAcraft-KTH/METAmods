@@ -128,11 +128,15 @@ public class CutsceneEntityManager {
 		iteratingEntities = true;
 		entities.values().removeIf(e -> {
 			e.tracker.tick();
-			e.entity.tick();
 			if (e.entity.isRemoved()) {
 				onEntityRemove(e);
 				return true;
 			} else {
+				var vehicle = e.entity.getVehicle();
+				if (vehicle != null && (vehicle.isRemoved() || !vehicle.hasPassenger(e.entity))) {
+					e.entity.stopRiding();
+				}
+				world.tickEntity(world::tickEntity, e.entity);
 				return false;
 			}
 		});
