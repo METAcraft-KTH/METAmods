@@ -1,5 +1,6 @@
 package se.datasektionen.mc.cutscenes.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -46,15 +47,18 @@ public class MixinServerWorld {
 		}
 	}
 
-	@WrapWithCondition(
-			method = "method_31420",//Lambda inside tick.
+	@ModifyExpressionValue(
+			method = "tickPassenger",//Lambda inside tick.
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/entity/Entity;checkDespawn()V"
+					target = "Lnet/minecraft/world/EntityList;has(Lnet/minecraft/entity/Entity;)Z"
 			)
 	)
-	public boolean skipDespawnInCutscenes(Entity instance) {
-		return !((Object) this instanceof CutsceneWorld);
+	public boolean skipDespawnInCutscenes(boolean original) {
+		if ((Object) this instanceof CutsceneWorld) {
+			return true;
+		}
+		return original;
 	}
 
 }
