@@ -328,15 +328,19 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		updateOffsets();
 	}
 
-	private void updateOffsets() {
-		for (var d : displays) {
-			d.updateOffset(this);
-		}
+	private void updatePositions() {
 		if (getWorld() instanceof ServerWorld) {
 			for (var d : riderSlots) {
 				d.updatePos(this, (ServerWorld) getWorld());
 			}
 		}
+	}
+
+	private void updateOffsets() {
+		for (var d : displays) {
+			d.updateOffset(this);
+		}
+		updatePositions();
 	}
 
 	@Override
@@ -358,6 +362,9 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		super.tick();
 		if (prevYaw != getYaw() || prevPitch != getPitch()) {
 			updateOffsets();
+		}
+		if (prevX != getX() || prevY != getY() || prevZ != getZ()) {
+			updatePositions();
 		}
 	}
 
