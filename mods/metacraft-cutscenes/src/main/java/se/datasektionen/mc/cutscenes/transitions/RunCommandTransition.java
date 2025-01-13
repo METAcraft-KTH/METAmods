@@ -26,7 +26,7 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 					Codec.STRING.optionalFieldOf("tick_command").forGetter(t -> t.tickCommand),
 					Codec.STRING.optionalFieldOf("deactivation").forGetter(t -> t.deactivation),
 					Codec.BOOL.optionalFieldOf("run_in_real_world", false).forGetter(t -> t.runInRealWorld),
-					Codec.BOOL.optionalFieldOf("run_per_player", true).forGetter(t -> t.runPerPlayer)
+					Codec.BOOL.optionalFieldOf("run_per_player", false).forGetter(t -> t.runPerPlayer)
 			).apply(instance, RunCommandTransition::new)
 	);
 
