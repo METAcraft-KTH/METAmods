@@ -32,6 +32,7 @@ public class PlaceStructure extends InstantTransition {
 					ParsedStructure.CODEC.fieldOf("structure").forGetter(t -> t.structure),
 					PositionRefRegistry.CODEC.fieldOf("pos").forGetter(t -> t.pos),
 					PositionRefRegistry.CODEC.optionalFieldOf("pivot").forGetter(t -> t.pivot),
+					BlockPos.CODEC.optionalFieldOf("local_pivot", BlockPos.ORIGIN).forGetter(t -> t.localPivot),
 					BlockMirror.CODEC.optionalFieldOf("mirror", BlockMirror.NONE).forGetter(t -> t.mirror),
 					BlockRotation.CODEC.optionalFieldOf("rotation", BlockRotation.NONE).forGetter(t -> t.rotation),
 					Codec.BOOL.optionalFieldOf("ignore_entities", false).forGetter(t -> t.ignoreEntities),
@@ -51,6 +52,7 @@ public class PlaceStructure extends InstantTransition {
 	private final ParsedStructure structure;
 	private final PositionRef pos;
 	private final Optional<PositionRef> pivot;
+	private final BlockPos localPivot;
 	private final BlockMirror mirror;
 	private final BlockRotation rotation;
 	private final boolean ignoreEntities;
@@ -63,6 +65,7 @@ public class PlaceStructure extends InstantTransition {
 
 	private PlaceStructure(
 			ParsedStructure structure, PositionRef pos, Optional<PositionRef> pivot,
+			BlockPos localPivot,
 			BlockMirror mirror, BlockRotation rotation, boolean ignoreEntities,
 			StructureLiquidSettings structureLiquidSettings, boolean updateNeighbours,
 			boolean forceState, boolean skipDrops, RegistryEntry<StructureProcessorList> processors,
@@ -71,6 +74,7 @@ public class PlaceStructure extends InstantTransition {
 		this.structure = structure;
 		this.pos = pos;
 		this.pivot = pivot;
+		this.localPivot = localPivot;
 		this.mirror = mirror;
 		this.rotation = rotation;
 		this.ignoreEntities = ignoreEntities;
@@ -87,10 +91,9 @@ public class PlaceStructure extends InstantTransition {
 		structure.get(cutscene.getServer().getStructureTemplateManager(), cutscene.getServer().getRegistryManager()).ifPresent(structure -> {
 			this.pos.get(null, cutscene).ifPresent(exactPos -> {
 				var pos = BlockPos.ofFloored(exactPos);
-				var pivot = BlockPos.ofFloored(this.pivot.flatMap(p -> p.get(null, cutscene)).orElse(exactPos));
 				var random = seed.map(Random::create).orElse(cutscene.getRandom());
 				var placementData = new StructurePlacementData()
-						.setPosition(pivot)
+						.setPosition(localPivot)
 						.setMirror(mirror)
 						.setRotation(rotation)
 						.setIgnoreEntities(ignoreEntities)
@@ -106,6 +109,7 @@ public class PlaceStructure extends InstantTransition {
 								(forceState ? Block.FORCE_STATE : 0) |
 								(skipDrops ? Block.SKIP_DROPS : 0);
 
+				var pivot = BlockPos.ofFloored(this.pivot.flatMap(p -> p.get(null, cutscene)).orElse(exactPos));
 				structure.place(
 						cutscene.getCutsceneWorld(), pos, pivot,
 						placementData, random, flags
