@@ -474,6 +474,8 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 			var offset = StructureDisplay.applyOffset(entity, this.offset);
 			var display = getDisplay(world);
 			if (display == null) return;
+			var prevYaw = display.getYaw();
+			var prevPitch = display.getPitch();
 			display.updatePositionAndAngles(
 					entity.getX() + offset.getX(),
 					entity.getY() + offset.getY(),
@@ -481,6 +483,14 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 					entity.getYaw(),
 					entity.getPitch()
 			);
+			var yawDiff = entity.getYaw() - prevYaw;
+			var pitchDiff = entity.getPitch() - prevPitch;
+			display.getPassengersDeep().forEach(p -> {
+				p.setYaw(p.getYaw() + yawDiff);
+				p.setBodyYaw(p.getBodyYaw() + yawDiff);
+				p.setHeadYaw(p.getHeadYaw() + yawDiff);
+				p.setPitch(p.getPitch() + pitchDiff);
+			});
 		}
 
 		public void applyTransformation(
