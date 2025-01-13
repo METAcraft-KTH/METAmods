@@ -60,11 +60,12 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 					var center = Vec3d.ofBottomCenter(spawnPos);
 					var rootEntity = EntityHelper.loadEntityWithPassengers(entityData, world, SpawnReason.STRUCTURE, (entity, data) -> {
 						entity.resetPortalCooldown();
-						if (entity instanceof MobEntity mob && spawns.initialize()) {
-							mob.initialize(world, world.getLocalDifficulty(spawnPos), SpawnReason.STRUCTURE, null);
-							if (data.getSize() > 1) {
-								mob.readNbt(data);
-							}
+						if (spawns.initialize()) {
+							EntityHelper.initializeEntity(
+									entity, data.getSize() > 1 ? data : null,
+									world, world.getLocalDifficulty(spawnPos),
+									SpawnReason.STRUCTURE, null
+							);
 						}
 						entity.setPosition(center);
 						return entity;

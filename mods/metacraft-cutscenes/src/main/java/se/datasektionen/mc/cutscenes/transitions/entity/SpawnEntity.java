@@ -28,6 +28,7 @@ import se.datasektionen.mc.cutscenes.transitions.Transition;
 import se.datasektionen.mc.cutscenes.transitions.TransitionType;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfig;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfigType;
+import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 
 import java.util.List;
 import java.util.Optional;
@@ -81,17 +82,15 @@ public class SpawnEntity implements Transition, TransitionConfig {
 			}
 			return id;
 		};
-		EntityType.loadEntityWithPassengers(nbt, world, SpawnReason.EVENT, entity -> {
+		EntityHelper.loadEntityWithPassengers(nbt, world, SpawnReason.EVENT, (entity, data) -> {
 			pos.ifPresent(entity::setPosition);
 			world.getEntityManager().addEntity(idGetter.get(), entity);
-			if (initialize.orElse(nbt.getSize() > 1) && entity instanceof MobEntity mob) {
-				mob.initialize(
+			if (initialize.orElse(data.getSize() <= 1)) {
+				EntityHelper.initializeEntity(
+						entity, data.getSize() > 1 ? data : null,
 						world, world.getLocalDifficulty(entity.getBlockPos()),
 						SpawnReason.TRIGGERED, null
 				);
-				if (nbt.getSize() > 1) {
-					entity.readNbt(nbt);
-				}
 				pos.ifPresent(entity::setPosition);
 			}
 			return entity;

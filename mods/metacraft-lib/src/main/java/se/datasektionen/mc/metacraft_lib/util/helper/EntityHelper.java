@@ -27,6 +27,8 @@ import net.minecraft.util.math.intprovider.ConstantIntProvider;
 import net.minecraft.util.math.intprovider.IntProvider;
 import net.minecraft.util.math.intprovider.UniformIntProvider;
 import net.minecraft.util.math.random.Random;
+import net.minecraft.world.LocalDifficulty;
+import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
@@ -60,6 +62,21 @@ public class EntityHelper {
 			}
 			return entity;
 		});
+	}
+
+	public static void initializeEntity(
+			Entity entity, @Nullable NbtCompound nbt,
+			ServerWorldAccess world, LocalDifficulty difficulty,
+			SpawnReason spawnReason, @Nullable EntityData entityData
+	) {
+		if (entity instanceof MobEntity mob) {
+			mob.initialize(world, difficulty, spawnReason, entityData);
+			if (nbt != null) {
+				var data = mob.writeNbt(new NbtCompound());
+				data.copyFrom(nbt);
+				mob.readNbt(data);
+			}
+		}
 	}
 
 	public static Optional<Entity> getEntityFromNBTSafely(NbtCompound nbt, World world, SpawnReason reason) {
@@ -123,10 +140,11 @@ public class EntityHelper {
 					}
 					if (e instanceof MobEntity mob) {
 						if (data.initialize()) {
-							mob.initialize(world, world.getLocalDifficulty(mob.getBlockPos()), data.spawnRules().spawnReason(), null);
-							if (nbt.getSize() != 1) {
-								mob.readNbt(nbt); //If we supply custom nbt we must read again after initialize to prevent initialize from erasing data we set explicitly.
-							}
+							EntityHelper.initializeEntity(
+									mob, nbt.getSize() > 1 ? nbt : null,
+									world, world.getLocalDifficulty(mob.getBlockPos()),
+									data.spawnRules().spawnReason(), null
+							);
 						}
 						if (data.preventDespawn()) {
 							mob.setPersistent();
