@@ -57,6 +57,14 @@ public class MoveTo implements Transition, TransitionConfig {
 								ImmutableSet.of(BlockPos.ofFloored(target)), 16, true, 1
 						);
 						mob.getNavigation().startMovingAlong(path, speed);
+					} else {
+						if (
+								mob.getNavigation().getCurrentPath() == null ||
+								!mob.getNavigation().getCurrentPath().reachesTarget() ||
+								(mob.getNavigation().isIdle() && !mob.getBlockPos().equals(BlockPos.ofFloored(target)))
+						) {
+							mob.getNavigation().recalculatePath();
+						}
 					}
 				} else {
 					entity.setVelocity(target.subtract(entity.getPos()).normalize().multiply(speed));
