@@ -49,7 +49,7 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 		if (!runInRealWorld) {
 			source = source.withWorld(cutscene.getCutsceneWorld());
 		}
-		return source;
+		return source.withSilent();
 	}
 
 	private ServerCommandSource getSource(CutsceneInstance cutscene) {
@@ -57,7 +57,7 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 				CommandOutput.DUMMY, Vec3d.ZERO, Vec2f.ZERO,
 				runInRealWorld ? cutscene.getCutsceneWorld().getActualWorld() : cutscene.getCutsceneWorld(),
 				2, "Cutscene", Text.literal("Cutscene"), cutscene.getServer(), null
-		);
+		).withSilent();
 	}
 
 	private void execute(CutsceneInstance cutscene, String command) {
