@@ -4,6 +4,7 @@
   "package": "se.datasektionen.mc.cutscenes.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AccesorServerEntityManager",
     "AccessorAbstractChunkHolder",
     "AccessorBrain",
     "AccessorChunkHolder",

@@ -128,6 +128,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		this.lookup = new CombinedEntityLookup(
 				List.of(entities.getLookup(), ((AccessorServerWorld) world).callGetEntityLookup())
 		);
+		((AccessorServerWorld) this).setEntityManager(entities.createDummyEntityManager());
 		if (data != null) {
 			load(data);
 		}

@@ -9,10 +9,15 @@ import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerEntityManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.entity.*;
+import se.datasektionen.mc.cutscenes.mixin.AccesorServerEntityManager;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -201,6 +206,106 @@ public class CutsceneEntityManager {
 			entity.setChangeListener(EntityChangeListener.NONE);
 			entityLeftSection(sectionPos, section);
 		}
+	}
+
+	public Dummy createDummyEntityManager() {
+		return new Dummy();
+	}
+
+	public class Dummy extends ServerEntityManager<Entity> {
+
+		public Dummy() {
+			super(Entity.class, new EntityHandler<>() {
+				@Override
+				public void create(Entity entity) {
+
+				}
+
+				@Override
+				public void destroy(Entity entity) {
+
+				}
+
+				@Override
+				public void startTicking(Entity entity) {
+
+				}
+
+				@Override
+				public void stopTicking(Entity entity) {
+
+				}
+
+				@Override
+				public void startTracking(Entity entity) {
+
+				}
+
+				@Override
+				public void stopTracking(Entity entity) {
+
+				}
+
+				@Override
+				public void updateLoadStatus(Entity entity) {
+
+				}
+			}, null);
+
+			((AccesorServerEntityManager<Entity>) this).setCache(CutsceneEntityManager.this.cache);
+			((AccesorServerEntityManager<Entity>) this).setIndex(CutsceneEntityManager.this.index);
+		}
+
+		@Override
+		public void tick() {
+
+		}
+
+		@Override
+		public void updateTrackingStatus(ChunkPos chunkPos, EntityTrackingStatus trackingStatus) {
+
+		}
+
+		@Override
+		public void save() {
+
+		}
+
+		@Override
+		public void flush() {
+
+		}
+
+		@Override
+		public void close() throws IOException {
+
+		}
+
+		@Override
+		public EntityLookup<Entity> getLookup() {
+			return lookup;
+		}
+
+		@Override
+		public boolean has(UUID uuid) {
+			return idLookup.containsKey(uuid);
+		}
+
+		@Override
+		public boolean shouldTick(BlockPos pos) {
+			return true;
+		}
+
+		@Override
+		public boolean shouldTick(ChunkPos pos) {
+			return true;
+		}
+
+		@Override
+		public boolean isLoaded(long chunkPos) {
+			return true;
+		}
+
 	}
 
 }
