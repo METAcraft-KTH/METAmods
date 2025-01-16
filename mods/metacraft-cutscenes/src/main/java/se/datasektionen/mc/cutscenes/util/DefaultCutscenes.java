@@ -40,9 +40,13 @@ public class DefaultCutscenes {
 						)
 				),
 				new IntervalMap.Interval<>(
-						100, 200, new MoveTo(
-								new CutsceneRef("zombie"), new AtEntityRef(new CutsceneRef("creeper"), Vec3d.ZERO, Vec3d.ZERO, false),
-								1
+						100, 200, new MoveTo.Config(
+									new CutsceneRef("zombie"), List.of(
+										new MoveTo.Config.PathTarget(new AtEntityRef(
+												new CutsceneRef("creeper"), Vec3d.ZERO,
+												Vec3d.ZERO, false
+										))
+									), 1
 						)
 				),
 				new IntervalMap.Interval<>(

@@ -66,8 +66,8 @@ public class TransitionConfigRegistry {
 			"spawn_entity", SpawnEntity.CODEC
 	);
 
-	public static final TransitionConfigType<MoveTo> ENTITY_MOVE_TO = register(
-			"entity_move_to", MoveTo.CODEC
+	public static final TransitionConfigType<MoveTo.Config> ENTITY_MOVE_TO = register(
+			"entity_move_to", MoveTo.Config.CODEC
 	);
 
 	public static final TransitionConfigType<Attack> ENTITY_ATTACK = register(
