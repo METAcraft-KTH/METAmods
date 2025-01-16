@@ -1,5 +1,6 @@
 package se.datasektionen.mc.metacraft_core.entity.entities.player_mob;
 
+import com.google.common.collect.ImmutableList;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.serialization.Dynamic;
@@ -276,6 +277,16 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		EntityPose entityPose = this.isGliding() ? EntityPose.GLIDING : (this.isSleeping() ? EntityPose.SLEEPING : (this.isSwimming() ? EntityPose.SWIMMING : (this.isUsingRiptide() ? EntityPose.SPIN_ATTACK : (this.isSneaking() ? EntityPose.CROUCHING : EntityPose.STANDING))));
 		EntityPose entityPose2 = this.hasVehicle() || this.canChangeIntoPose(entityPose) ? entityPose : (this.canChangeIntoPose(EntityPose.CROUCHING) ? EntityPose.CROUCHING : EntityPose.SWIMMING);
 		this.setPose(entityPose2);
+	}
+
+	@Override
+	public EntityDimensions getBaseDimensions(EntityPose pose) {
+		return AccessorPlayerEntity.getPoseDimensions().getOrDefault(pose, PlayerEntity.STANDING_DIMENSIONS);
+	}
+
+	@Override
+	public ImmutableList<EntityPose> getPoses() {
+		return ImmutableList.of(EntityPose.STANDING, EntityPose.CROUCHING, EntityPose.SWIMMING);
 	}
 
 	@Override
