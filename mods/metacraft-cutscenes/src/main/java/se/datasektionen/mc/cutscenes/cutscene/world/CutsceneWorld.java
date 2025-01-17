@@ -511,6 +511,10 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		return manager;
 	}
 
+	public void addEntity(String id, Entity entity) {
+		entities.addEntity(id, entity);
+	}
+
 	@Override
 	public boolean spawnEntity(Entity entity) {
 		entities.addEntity("AddedByWorld" + entity.getId(), entity);

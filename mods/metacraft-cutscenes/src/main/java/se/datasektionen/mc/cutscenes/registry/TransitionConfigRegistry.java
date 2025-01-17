@@ -78,6 +78,14 @@ public class TransitionConfigRegistry {
 			"entity_disable_ai", DisableAIConfig.CODEC
 	);
 
+	public static final TransitionConfigType<DropItem.DropSpecificStack> ENTITY_DROP_STACK = register(
+			"entity_drop_stack", DropItem.DropSpecificStack.CODEC
+	);
+
+	public static final TransitionConfigType<DropItem.DropFromSlot> ENTITY_DROP_SLOT = register(
+			"entity_drop_slot", DropItem.DropFromSlot.CODEC
+	);
+
 	public static final TransitionConfigType<SetGameModeTransition.Config> SET_GAME_MODE = register(
 			"gamemode", SetGameModeTransition.Config.CODEC
 	);
