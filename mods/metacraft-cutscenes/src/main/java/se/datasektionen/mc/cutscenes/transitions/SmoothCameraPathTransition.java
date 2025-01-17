@@ -68,6 +68,10 @@ public class SmoothCameraPathTransition implements Transition {
 			}, () -> {
 				var display = EntityType.TEXT_DISPLAY.create(cutscene.getCutsceneWorld(), SpawnReason.TRIGGERED);
 				setLinearInterpolationDuration(display, config.interpolationDuration());
+				var target = interpolationSet.interpolate(0);
+				display.updatePositionAndAngles(
+						target.pos().x, target.pos().y + EntityType.PLAYER.getDimensions().eyeHeight(), target.pos().z, target.yaw(), target.pitch()
+				);
 				cutscene.addEntity(MARKER_ID, display);
 			});
 		});
