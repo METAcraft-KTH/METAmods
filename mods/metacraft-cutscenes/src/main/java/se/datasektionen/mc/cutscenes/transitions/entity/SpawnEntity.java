@@ -1,15 +1,11 @@
 package se.datasektionen.mc.cutscenes.transitions.entity;
 
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.StringNbtReader;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.Vec3d;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -26,6 +22,7 @@ import se.datasektionen.mc.cutscenes.transitions.Transition;
 import se.datasektionen.mc.cutscenes.transitions.TransitionType;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfig;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfigType;
+import se.datasektionen.mc.metacraft_lib.util.AccurateSerializableNBT;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 
 import java.util.List;
@@ -34,22 +31,12 @@ import java.util.function.Supplier;
 
 public class SpawnEntity implements Transition, TransitionConfig {
 
-	public static final Codec<NbtCompound> NBT_CODEC = Codec.withAlternative(
-			Codec.STRING.comapFlatMap(line -> {
-				try {
-					return DataResult.success(StringNbtReader.parse(line));
-				} catch (CommandSyntaxException e) {
-					return DataResult.error(e::getMessage);
-				}
-			}, NbtElement::asString),
-			NbtCompound.CODEC
-	);
 
 	public static final MapCodec<SpawnEntity> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codecs.nonEmptyList(Codec.STRING.listOf()).fieldOf("ids").forGetter(t -> t.ids),
 					PositionRefRegistry.CODEC.fieldOf("position").forGetter(t -> t.position),
-					NBT_CODEC.fieldOf("nbt").forGetter(t -> t.nbt),
+					AccurateSerializableNBT.CODEC.fieldOf("nbt").forGetter(t -> t.nbt),
 					Codec.BOOL.optionalFieldOf("initialize").forGetter(t -> t.initialize),
 					Codec.BOOL.optionalFieldOf("kill_after", false).forGetter(t -> t.killAfter)
 			).apply(instance, SpawnEntity::new)
@@ -57,11 +44,15 @@ public class SpawnEntity implements Transition, TransitionConfig {
 
 	private final List<String> ids;
 	private final PositionRef position;
-	private final NbtCompound nbt;
+	private final AccurateSerializableNBT nbt;
 	private final Optional<Boolean> initialize;
 	private final boolean killAfter;
 
 	public SpawnEntity(List<String> ids, PositionRef position, NbtCompound nbt, Optional<Boolean> initialize, boolean killAfter) {
+		this(ids, position, new AccurateSerializableNBT(new NbtCompound(), nbt), initialize, killAfter);
+	}
+
+	public SpawnEntity(List<String> ids, PositionRef position, AccurateSerializableNBT nbt, Optional<Boolean> initialize, boolean killAfter) {
 		this.ids = ids;
 		this.position = position;
 		this.nbt = nbt;
@@ -103,7 +94,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 				Cutscenes.LOGGER.warn("Warning, an entity with id " + id + " already exists. Your cutscene might behave unexpectedly!");
 			}
 		});
-		spawnEntities(ids, nbt, pos, cutscene.getCutsceneWorld(), initialize);
+		spawnEntities(ids, nbt.getMerged(), pos, cutscene.getCutsceneWorld(), initialize);
 	}
 
 	@Override
