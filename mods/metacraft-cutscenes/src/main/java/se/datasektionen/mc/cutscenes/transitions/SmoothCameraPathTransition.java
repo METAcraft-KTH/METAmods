@@ -48,6 +48,13 @@ public class SmoothCameraPathTransition implements Transition {
 		display.readNbt(data);
 	}
 
+	private int getAdjustedTime(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		if (cutscene.getCurrentTime() == interval.getStart()) {
+			return cutscene.getCurrentTime();
+		}
+		return cutscene.getCurrentTime() + config.interpolationDuration();
+	}
+
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (interpolationSet == null) {
@@ -64,7 +71,7 @@ public class SmoothCameraPathTransition implements Transition {
 				cutscene.addEntity(MARKER_ID, display);
 			});
 		});
-		int currentTimeAdjusted = cutscene.getCurrentTime() + config.interpolationDuration();
+		int currentTimeAdjusted = getAdjustedTime(cutscene, interval);
 		if (currentTimeAdjusted > interval.getEnd()) {
 			cutscene.getRootEntity(MARKER_ID).ifPresent(marker -> {
 				setLinearInterpolationDuration(marker, config.interpolationDuration() - (currentTimeAdjusted - interval.getEnd()));
