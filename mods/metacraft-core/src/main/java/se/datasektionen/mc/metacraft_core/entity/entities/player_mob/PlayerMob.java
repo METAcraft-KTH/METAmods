@@ -84,6 +84,8 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	private static final String CAN_WANDER = "can_wander";
 	private GameProfile profile;
 
+	private static final int REMOVE_PLAYER_LIST_ENTRY_DELAY = 20;
+
 	private final List<SendPacketEntry> removePackets = new ArrayList<>();
 
 	private FakePlayer fakePlayer;
@@ -252,7 +254,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 				removePlayerEntryFrom(removePackets.stream().map(SendPacketEntry::player));
 				removePackets.clear();
 				for (var p : players) {
-					removePackets.add(new SendPacketEntry(p, getWorld().getTime()+20));
+					schedulePlayerListEntryRemoval(p);
 				}
 				resetFakePlayer();
 				if (tracker != null) {
@@ -545,8 +547,11 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	@Override
 	public void onStartedTrackingBy(ServerPlayerEntity player) {
 		super.onStartedTrackingBy(player);
-		int time = firstUpdate ? 1 : 2;
-		removePackets.add(new SendPacketEntry(player, getWorld().getTime()+time));
+		schedulePlayerListEntryRemoval(player);
+	}
+
+	private void schedulePlayerListEntryRemoval(ServerPlayerEntity player) {
+		removePackets.add(new SendPacketEntry(player, getWorld().getTime()+REMOVE_PLAYER_LIST_ENTRY_DELAY));
 	}
 
 	@Override
