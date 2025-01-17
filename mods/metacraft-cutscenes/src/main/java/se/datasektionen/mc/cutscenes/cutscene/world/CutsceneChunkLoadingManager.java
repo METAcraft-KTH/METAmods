@@ -1,8 +1,6 @@
 package se.datasektionen.mc.cutscenes.cutscene.world;
 
 import com.mojang.datafixers.DataFixer;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.server.WorldGenerationProgressListener;
@@ -24,6 +22,8 @@ import se.datasektionen.mc.cutscenes.mixin.AccessorServerChunkLoadingManager;
 import se.datasektionen.mc.cutscenes.mixin.AccessorServerLightingProvider;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
@@ -31,7 +31,7 @@ public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
 
 	private final CutsceneWorld cutsceneWorld;
 
-	private final Long2ObjectMap<ChunkHolder> cachedChunkHolders = new Long2ObjectOpenHashMap<>();
+	private final Map<Long,ChunkHolder> cachedChunkHolders = new ConcurrentHashMap<>();
 
 	public CutsceneChunkLoadingManager(
 			CutsceneWorld cutsceneWorld, LevelStorage.Session session,
