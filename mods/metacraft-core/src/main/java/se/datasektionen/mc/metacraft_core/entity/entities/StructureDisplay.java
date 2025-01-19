@@ -392,7 +392,13 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 				0
 		);
 		Vector3d newOffset = new Vector3d(offset.x, offset.y, offset.z);
-		mat.mul(entity.transformation.getMatrix());
+		var transformation = new AffineTransformation(
+				null,
+				entity.transformation.getLeftRotation(),
+				entity.transformation.getScale(),
+				entity.transformation.getRightRotation()
+		);
+		mat.mul(transformation.getMatrix());
 		newOffset.mulPosition(mat);
 		return new Vec3d(newOffset.x, newOffset.y, newOffset.z);
 	}
