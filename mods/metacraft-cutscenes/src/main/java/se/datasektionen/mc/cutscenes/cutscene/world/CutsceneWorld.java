@@ -20,6 +20,7 @@ import net.minecraft.recipe.ServerRecipeManager;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.resource.featuretoggle.FeatureSet;
+import net.minecraft.scoreboard.AbstractTeam;
 import net.minecraft.scoreboard.ScoreboardDisplaySlot;
 import net.minecraft.scoreboard.ScoreboardState;
 import net.minecraft.scoreboard.ServerScoreboard;
@@ -182,6 +183,10 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 					}
 				}
 			}
+
+			var team = scoreboard.addTeam("metacraft_cutscenes_empty_player_holder");
+			team.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.NEVER);
+			scoreboard.addScoreHolderToTeam("", team);
 
 			if (cutscene.getCutscene().getScoreboardMode() != Cutscene.ScoreboardMode.SYNC) {
 				persistentStateManager.getOrCreate(scoreboard.getPersistentStateType(), ScoreboardState.SCOREBOARD_KEY);
