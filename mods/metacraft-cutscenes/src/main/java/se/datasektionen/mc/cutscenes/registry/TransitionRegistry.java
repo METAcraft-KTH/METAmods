@@ -84,6 +84,10 @@ public class TransitionRegistry {
 			"entity_drop_slot", DropItem.DropFromSlot.CODEC
 	);
 
+	public static final TransitionType<SetCurrentItem> ENTITY_SET_CURRENT_HAND = register(
+			"entity_set_current_hand", SetCurrentItem.CODEC
+	);
+
 	public static final TransitionType<SetGameModeTransition> SET_GAME_MODE = register(
 			"gamemode", SetGameModeTransition.CODEC
 	);
