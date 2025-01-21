@@ -8,6 +8,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
 import se.datasektionen.mc.metacraft_core.item.components.CommandComponents;
+import se.datasektionen.mc.metacraft_core.util.helper.BundleHelper;
 
 public class Events {
 
@@ -118,6 +119,8 @@ public class Events {
 					return clientStack;
 				}
 		);
+
+		BundleHelper.init();
 	}
 
 }

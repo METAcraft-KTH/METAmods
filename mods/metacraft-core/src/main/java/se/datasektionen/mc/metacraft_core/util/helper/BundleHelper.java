@@ -1,5 +1,6 @@
 package se.datasektionen.mc.metacraft_core.util.helper;
 
+import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.BundleContentsComponent;
 import net.minecraft.component.type.LoreComponent;
@@ -14,35 +15,20 @@ import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.extensions.BundlesComponentExtensions;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class BundleHelper {
 
 	private static final int MAX_PIXELS = 94;
 	private static final Identifier TEXTURES_FONT = METAcraftCore.getID("bundle_textures");
 
-	public static void updateBundleSizeParameter(ItemStack bundle, Fraction occupancy) {
-		var text = getOccupancyText(occupancy);
-		var lore = bundle.getOrDefault(DataComponentTypes.LORE, LoreComponent.DEFAULT);
-		for (int i = 0; i < lore.lines().size(); i++) {
-			var line = lore.lines().get(i);
-			if (
-					line.getStyle().getFont().equals(TEXTURES_FONT)
-			) {
-				if (text.equals(lore.lines().get(i))) return;
-				List<Text> lines = new ArrayList<>(lore.lines());
-				lines.set(i, text);
-				lore = new LoreComponent(lines);
-				bundle.set(DataComponentTypes.LORE, lore);
-				return;
-			}
-		}
-		bundle.set(DataComponentTypes.LORE, new LoreComponent(Util.withPrepended(text, lore.lines())));
+	public static Text getOccupancyText(ItemStack bundle) {
+		var contents = bundle.get(DataComponentTypes.BUNDLE_CONTENTS);
+		if (contents == null) return null;
+		return getOccupancyText(contents.getOccupancy());
 	}
 
 	public static Text getOccupancyText(Fraction occupancy) {
 		int pixelsToShow = MathHelper.multiplyFraction(occupancy, MAX_PIXELS);
+		if (pixelsToShow == 0) return null;
 		String text;
 		if (MAX_PIXELS <= pixelsToShow) {
 			text = "ef";
@@ -92,12 +78,6 @@ public class BundleHelper {
 		}
 	}
 
-	public static void updateBundleSizeParameter(ItemStack bundle) {
-		var contents = bundle.get(DataComponentTypes.BUNDLE_CONTENTS);
-		if (contents == null) return;
-		updateBundleSizeParameter(bundle, contents.getOccupancy());
-	}
-
 	public static BundleContentsComponent.Builder setBundleSizeFactor(
 			BundleContentsComponent.Builder builder, Fraction fraction
 	) {
@@ -111,6 +91,20 @@ public class BundleHelper {
 
 	public static Fraction getStoredBundleSizeFactor(BundleContentsComponent.Builder bundle) {
 		return ((BundlesComponentExtensions) bundle).METAcraft_Fixes$getBundleSizeFactor();
+	}
+
+	public static void init() {
+		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register((serverStack, clientStack, ctx)-> {
+			if (serverStack.contains(DataComponentTypes.BUNDLE_CONTENTS)) {
+				var text = getOccupancyText(serverStack);
+				if (text == null) return clientStack;
+				var lore = clientStack.getOrDefault(DataComponentTypes.LORE, LoreComponent.DEFAULT);
+				clientStack.set(DataComponentTypes.LORE, new LoreComponent(
+						Util.withPrepended(text, lore.lines())
+				));
+			}
+			return clientStack;
+		});
 	}
 
 }

@@ -25,47 +25,6 @@ import java.util.Optional;
 public abstract class MixinBundleItem {
 
 	@Inject(
-			method = "popFirstBundledStack",
-			at = @At("RETURN")
-	)
-	private static void updateBundleSizeParameterOnClear(
-			ItemStack stack, PlayerEntity player,
-			BundleContentsComponent contents, CallbackInfoReturnable<Optional<ItemStack>> cir
-	) {
-		BundleHelper.updateBundleSizeParameter(stack);
-	}
-
-
-	@Inject(
-			method = "onClicked",
-			at = @At(
-					value = "INVOKE",
-					target = "Lnet/minecraft/item/BundleItem;playRemoveOneSound(Lnet/minecraft/entity/Entity;)V"
-			)
-	)
-	public void onRemove(
-			ItemStack bundle, ItemStack otherStack, Slot slot, ClickType clickType, PlayerEntity player,
-			StackReference cursorStackReference, CallbackInfoReturnable<Boolean> cir,
-			@Local BundleContentsComponent.Builder builder
-	) {
-		BundleHelper.updateBundleSizeParameter(bundle, builder.getOccupancy());
-	}
-
-	@Inject(
-			method = "onStackClicked",
-			at = @At(
-					value = "INVOKE",
-					target = "Lnet/minecraft/item/BundleItem;playRemoveOneSound(Lnet/minecraft/entity/Entity;)V"
-			)
-	)
-	public void onRemove(
-			ItemStack bundle, Slot slot, ClickType clickType, PlayerEntity player, CallbackInfoReturnable<Boolean> cir,
-			@Local BundleContentsComponent.Builder builder
-	) {
-		BundleHelper.updateBundleSizeParameter(bundle, builder.getOccupancy());
-	}
-
-	@Inject(
 			method = "onClicked",
 			at = @At(
 					value = "INVOKE",
@@ -76,7 +35,6 @@ public abstract class MixinBundleItem {
 			ItemStack bundle, ItemStack otherStack, Slot slot, ClickType clickType, PlayerEntity player,
 			StackReference cursorStackReference, CallbackInfoReturnable<Boolean> cir, @Local BundleContentsComponent.Builder builder
 	) {
-		BundleHelper.updateBundleSizeParameter(bundle, builder.getOccupancy());
 		playSoundIfNecessary(player, builder);
 	}
 
@@ -91,7 +49,6 @@ public abstract class MixinBundleItem {
 			ItemStack bundle, Slot slot, ClickType clickType, PlayerEntity player, CallbackInfoReturnable<Boolean> cir,
 			@Local BundleContentsComponent.Builder builder
 	) {
-		BundleHelper.updateBundleSizeParameter(bundle, builder.getOccupancy());
 		playSoundIfNecessary(player, builder);
 	}
 

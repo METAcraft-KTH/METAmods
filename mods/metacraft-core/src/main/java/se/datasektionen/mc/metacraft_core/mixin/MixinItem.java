@@ -20,7 +20,6 @@ public class MixinItem {
 		}
 		if ((Object) this instanceof BundleItem && stack.contains(DataComponentTypes.BUNDLE_CONTENTS)) {
 			BundleHelper.fixBundle(stack);
-			BundleHelper.updateBundleSizeParameter(stack);
 		}
 	}
 
