@@ -9,7 +9,7 @@ import se.datasektionen.mc.faster_minecarts.configs.EntityFactorConfig;
 public class FasterMinecartsHelper {
 
 	public static boolean hasSuperSpeed(AbstractMinecartEntity minecart) {
-		return ((MinecartData) minecart).fasterMinecarts$isSuperFast() || FasterMinecartsConfig.getConfig().globalFasterMinecarts;
+		return ((MinecartExtensions) minecart).fasterMinecarts$isSuperFast() || FasterMinecartsConfig.getConfig().globalFasterMinecarts;
 	}
 
 	public static double getValue(AbstractMinecartEntity minecart, double defaultValue, EntityFactorConfig config) {
@@ -30,8 +30,10 @@ public class FasterMinecartsHelper {
 		if (hasSuperSpeed(minecart)) {
 			return applyMaxSpeedFromBlockBellow(
 					minecart.getWorld(), minecart.getBlockPos(),
-					((MinecartData) minecart).fasterMinecarts$getMaxSpeed().orElse(
-							minecart.isTouchingWater() ? FasterMinecartsConfig.getConfig().maxMinecartSpeedUnderwater : FasterMinecartsConfig.getConfig().maxMinecartSpeed
+					minecart.isTouchingWater() ? ((MinecartExtensions) minecart).fasterMinecarts$getMaxSpeedUnderwater().orElse(
+							FasterMinecartsConfig.getConfig().maxMinecartSpeedUnderwater
+					) : ((MinecartExtensions) minecart).fasterMinecarts$getMaxSpeed().orElse(
+							FasterMinecartsConfig.getConfig().maxMinecartSpeed
 					)
 			)/20;
 		}
@@ -47,4 +49,14 @@ public class FasterMinecartsHelper {
 		return maxSpeed;
 	}
 
+	public static boolean areMinecartExperimentsEnabledForCart(boolean worldSetting, AbstractMinecartEntity minecart) {
+		return areMinecartExperimentsEnabledForCart(worldSetting, hasSuperSpeed(minecart));
+	}
+
+	public static boolean areMinecartExperimentsEnabledForCart(boolean worldSetting, boolean superSpeed) {
+		if (FasterMinecartsConfig.getConfig().experimentalMinecartMode.isEnabled() && superSpeed) {
+			return true;
+		}
+		return worldSetting;
+	}
 }

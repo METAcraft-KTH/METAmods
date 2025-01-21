@@ -23,7 +23,11 @@ public class FasterMinecartsConfig {
 	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve(FasterMinecarts.NAMESPACE + ".json");
 	private static final JanksonValueSerializer jankson = new JanksonValueSerializer(false);
 
+	private static boolean initialized = false;
+
 	public static void init() {
+		if (initialized) return;
+		initialized = true;
 		config = new FasterMinecartsConfig();
 		configTree = ConfigTree.builder().applyFromPojo(config).build();
 		var file = configPath.toFile();
@@ -52,7 +56,7 @@ public class FasterMinecartsConfig {
 		topSpeedFactorWithPassengerAccess = new EntityFactorConfig(topSpeedFactorWithPassenger);
 		topSpeedFactorNoPassengerAccess = new EntityFactorConfig(topSpeedFactorNoPassenger);
 		poweredRailAccelerationFactorAccess = new EntityFactorConfig(poweredRailAccelerationFactor);
-		entityDamageBlacklistAccess = new DamageConfig(entityDamageBlacklist, entityDamageBlacklistIsWhitelist);
+		entityDamageListAccess = new DamageConfig(entityDamageList, entityDamageListMode);
 		blockBoostersAccess = new BlockBoostConfig(blockBoosters);
 	}
 
@@ -60,6 +64,7 @@ public class FasterMinecartsConfig {
 	private static ConfigTree configTree;
 
 	public static FasterMinecartsConfig getConfig() {
+		init();
 		return config;
 	}
 
@@ -81,6 +86,10 @@ public class FasterMinecartsConfig {
 	@Setting(comment = "The the factor that the speed will be multiplied by before dealing damage.")
 	@Setting.Constrain.Range(min=0)
 	public double damageFactor = 2.16 * 20;
+
+	@Setting(comment = "Controls if the new experimental Minecart functionality is used for superspeed carts. If LEGACY, it will use the original implementation from before. If EXPERIMENTAL, the server will use experimental minecart physics for these Minecarts. Note that the client will assume experimental Minecart movement is on for all minecarts, but normal Minecarts will still move as normal Minecarts on the server. If experimental Minecarts are enabled in the world this setting has no effect.")
+	public ExperimentalMinecartMode experimentalMinecartMode = ExperimentalMinecartMode.LEGACY;
+
 
 	@Setting(
 			comment = "Here you can change the top speed of various minecarts when they contain passengers. " +
@@ -124,7 +133,7 @@ public class FasterMinecartsConfig {
 					"As usual you can add # in front to check for tags. " +
 					"Add a \">\" at the end to signify that it shouldn't damage passengers either."
 	)
-	public List<String> entityDamageBlacklist = new ArrayList<>(ImmutableList.of(
+	public List<String> entityDamageList = new ArrayList<>(ImmutableList.of(
 			"minecraft:minecart>",
 			"minecraft:chest_minecart",
 			"minecraft:command_block_minecart",
@@ -136,14 +145,14 @@ public class FasterMinecartsConfig {
 			"minecraft:experience_orb"
 	));
 
-	private static DamageConfig entityDamageBlacklistAccess;
+	private static DamageConfig entityDamageListAccess;
 
 	public static DamageConfig getEntityDamageBlacklist() {
-		return entityDamageBlacklistAccess;
+		return entityDamageListAccess;
 	}
 
-	@Setting(comment = "If true, entityDamageBlacklist will be treated like a whitelist.")
-	public boolean entityDamageBlacklistIsWhitelist = false;
+	@Setting(comment = "If IGNORE, entityDamageList will prevent damage to specified entries, if ONLY, only the specified entries will be damaged.")
+	public DamageConfig.Mode entityDamageListMode = DamageConfig.Mode.IGNORE;
 
 
 	@Setting(
@@ -160,5 +169,20 @@ public class FasterMinecartsConfig {
 
 	public static BlockBoostConfig getBlockBoosters() {
 		return blockBoostersAccess;
+	}
+
+	public enum ExperimentalMinecartMode {
+		LEGACY(false),
+		EXPERIMENTAL(true);
+
+		private final boolean enabled;
+
+		ExperimentalMinecartMode(boolean enabled) {
+			this.enabled = enabled;
+		}
+
+		public boolean isEnabled() {
+			return enabled;
+		}
 	}
 }

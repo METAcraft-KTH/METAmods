@@ -1,50 +1,53 @@
 package se.datasektionen.mc.faster_minecarts.mixin;
 
-import net.minecraft.entity.Entity;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
+import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.vehicle.*;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.faster_minecarts.FasterMinecarts;
-import se.datasektionen.mc.faster_minecarts.MinecartData;
+import se.datasektionen.mc.faster_minecarts.FasterMinecartsHelper;
+import se.datasektionen.mc.faster_minecarts.MinecartComponents;
+import se.datasektionen.mc.faster_minecarts.MinecartExtensions;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.function.Supplier;
 
 @Mixin(AbstractMinecartEntity.class)
-public abstract class MixinAbstractMinecartEntity extends Entity implements MinecartData {
+public abstract class MixinAbstractMinecartEntity extends VehicleEntity implements MinecartExtensions {
 
 	@Shadow protected abstract Vec3d applySlowdown(Vec3d velocity);
 
-	@Unique
-	private OptionalDouble acceleration = OptionalDouble.empty();
+	@Shadow
+	public static boolean areMinecartImprovementsEnabled(World world) {
+		throw new IllegalStateException("Mixin Error");
+	}
 
 	@Unique
-	private OptionalDouble maxSpeed = OptionalDouble.empty();
+	private Direction.AxisDirection initialZ = Direction.AxisDirection.POSITIVE;
+	@Unique
+	private boolean yawFixed = false;
+
+	@Shadow @Final @Mutable
+	private MinecartController controller;
 
 	@Unique
-	private OptionalDouble maxSpeedUnderwater = OptionalDouble.empty();
-
-	@Unique
-	private Optional<String> craftingTag = Optional.empty();
-
-	@Unique
-	private Optional<Text> itemName = Optional.empty();
-
-	@Unique
-	private boolean hasSpeedUpgrade = false;
+	private Optional<ItemStack> minecartItem = Optional.empty();
 
 	@Unique
 	private BlockPos currentRailPosOverride;
@@ -53,50 +56,52 @@ public abstract class MixinAbstractMinecartEntity extends Entity implements Mine
 		super(entityType, world);
 	}
 
-	@Unique
-	private static final String ITEM_NAME = "FastItemName";
-
 	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
 	public void toNBT(NbtCompound nbt, CallbackInfo ci) {
-		nbt.putBoolean(FasterMinecarts.SPEED_UPGRADE_KEY, hasSpeedUpgrade);
-		acceleration.ifPresent(a -> nbt.putDouble(FasterMinecarts.ACCELERATION, a));
-		maxSpeed.ifPresent(m -> nbt.putDouble(FasterMinecarts.MAX_SPEED, m));
-		maxSpeedUnderwater.ifPresent(m -> nbt.putDouble(FasterMinecarts.MAX_SPEED_UNDERWATER, m));
-		craftingTag.ifPresent(t -> nbt.putString(FasterMinecarts.CRAFTING_TAG, t));
-		itemName.flatMap(t -> TextCodecs.CODEC.encodeStart(NbtOps.INSTANCE, t).resultOrPartial(
-				FasterMinecarts.logger::error
-		)).ifPresent(data -> nbt.put(ITEM_NAME, data));
+		minecartItem.flatMap(
+				m -> ItemStack.CODEC.encodeStart(
+						getRegistryManager().getOps(NbtOps.INSTANCE),
+						m
+				).resultOrPartial(FasterMinecarts.LOGGER::error)
+		).ifPresent(
+				m -> nbt.put(FasterMinecarts.MINECART_ITEM, m)
+		);
 	}
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
-		hasSpeedUpgrade = nbt.getBoolean(FasterMinecarts.SPEED_UPGRADE_KEY);
-		if (nbt.contains(FasterMinecarts.ACCELERATION)) {
-			acceleration = OptionalDouble.of(nbt.getDouble(FasterMinecarts.ACCELERATION));
+		if (nbt.contains(FasterMinecarts.MINECART_ITEM)) {
+			minecartItem = ItemStack.CODEC.parse(
+					getRegistryManager().getOps(NbtOps.INSTANCE),
+					nbt.get(FasterMinecarts.MINECART_ITEM)
+			).resultOrPartial(FasterMinecarts.LOGGER::error);
 		} else {
-			acceleration = OptionalDouble.empty();
+			minecartItem = Optional.empty();
 		}
-		if (nbt.contains(FasterMinecarts.MAX_SPEED)) {
-			maxSpeed = OptionalDouble.of(nbt.getDouble(FasterMinecarts.MAX_SPEED));
-		} else {
-			maxSpeed = OptionalDouble.empty();
+		updateController();
+	}
+
+	@Unique
+	private void trySetController(Class<? extends MinecartController> clazz, Supplier<MinecartController> controllerCreator) {
+		if (!clazz.isInstance(controller)) {
+			this.controller = controllerCreator.get();
 		}
-		if (nbt.contains(FasterMinecarts.MAX_SPEED_UNDERWATER)) {
-			maxSpeedUnderwater = OptionalDouble.of(nbt.getDouble(FasterMinecarts.MAX_SPEED_UNDERWATER));
-		} else {
-			maxSpeedUnderwater = OptionalDouble.empty();
-		}
-		if (nbt.contains(FasterMinecarts.CRAFTING_TAG)) {
-			craftingTag = Optional.of(nbt.getString(FasterMinecarts.CRAFTING_TAG));
-		} else {
-			craftingTag = Optional.empty();
-		}
-		if (nbt.contains(ITEM_NAME)) {
-			itemName = TextCodecs.CODEC.parse(NbtOps.INSTANCE, nbt.get(ITEM_NAME)).resultOrPartial(
-					FasterMinecarts.logger::error
+	}
+
+	@Unique
+	private void updateController() {
+		if (FasterMinecartsHelper.areMinecartExperimentsEnabledForCart(
+				areMinecartImprovementsEnabled(getWorld()),(AbstractMinecartEntity) (Object) this
+		)) {
+			trySetController(
+					ExperimentalMinecartController.class,
+					() -> new ExperimentalMinecartController((AbstractMinecartEntity) (Object) this)
 			);
 		} else {
-			itemName = Optional.empty();
+			trySetController(
+					DefaultMinecartController.class,
+					() -> new DefaultMinecartController((AbstractMinecartEntity) (Object) this)
+			);
 		}
 	}
 
@@ -111,60 +116,31 @@ public abstract class MixinAbstractMinecartEntity extends Entity implements Mine
 		}
 	}
 
-	@Override
-	public void fasterMinecarts$setSuperFast(boolean superFast) {
-		this.hasSpeedUpgrade = superFast;
-	}
-	@Override
-	public void fasterMinecarts$setAcceleration(OptionalDouble acceleration) {
-		this.acceleration = acceleration;
-	}
-	@Override
-	public void fasterMinecarts$setMaxSpeed(OptionalDouble maxSpeed) {
-		this.maxSpeed = maxSpeed;
-	}
-	@Override
-	public void fasterMinecarts$setMaxSpeedUnderwater(OptionalDouble maxSpeedUnderwater) {
-		this.maxSpeedUnderwater = maxSpeedUnderwater;
-	}
-	@Override
-	public void fasterMinecarts$setCraftingTag(Optional<String> craftingTag) {
-		this.craftingTag = craftingTag;
-	}
-	@Override
-	public void fasterMinecarts$setItemName(Optional<Text> itemName) {
-		this.itemName = itemName;
-	}
-
 
 	@Override
 	public boolean fasterMinecarts$isSuperFast() {
-		return hasSpeedUpgrade;
+		return minecartItem.map(item -> item.contains(MinecartComponents.SPEED_UPGRADE)).orElse(false);
 	}
 
 	@Override
 	public OptionalDouble fasterMinecarts$getAcceleration() {
-		return acceleration;
+		return minecartItem.stream().map(
+				item -> item.get(MinecartComponents.ACCELERATION)
+		).filter(Objects::nonNull).mapToDouble(d -> d).findAny();
 	}
 
 	@Override
 	public OptionalDouble fasterMinecarts$getMaxSpeed() {
-		return maxSpeed;
+		return minecartItem.stream().map(
+				item -> item.get(MinecartComponents.MAX_SPEED)
+		).filter(Objects::nonNull).mapToDouble(d -> d).findAny();
 	}
 
 	@Override
 	public OptionalDouble fasterMinecarts$getMaxSpeedUnderwater() {
-		return maxSpeedUnderwater;
-	}
-
-	@Override
-	public Optional<String> fasterMinecarts$getCraftingTag() {
-		return craftingTag;
-	}
-
-	@Override
-	public Optional<Text> fasterMinecarts$getItemName() {
-		return itemName;
+		return minecartItem.stream().map(
+				item -> item.get(MinecartComponents.MAX_SPEED_UNDERWATER)
+		).filter(Objects::nonNull).mapToDouble(d -> d).findAny();
 	}
 
 	@Override
@@ -175,5 +151,70 @@ public abstract class MixinAbstractMinecartEntity extends Entity implements Mine
 	@Override
 	public void fasterMinecarts$applySlowdown(Vec3d velocity) {
 		this.applySlowdown(velocity);
+	}
+
+
+	@ModifyExpressionValue(
+		method = {
+			"getRailOrMinecartPos", "move", "tickBlockCollision", "pushAwayFromMinecart"
+		},
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/entity/vehicle/AbstractMinecartEntity;areMinecartImprovementsEnabled(Lnet/minecraft/world/World;)Z"
+		)
+	)
+	public boolean checkIfCart(boolean original) {
+		return FasterMinecartsHelper.areMinecartExperimentsEnabledForCart(original, (AbstractMinecartEntity) (Object) this);
+	}
+
+	@Inject(
+		method = "create",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/entity/vehicle/AbstractMinecartEntity;getController()Lnet/minecraft/entity/vehicle/MinecartController;"
+		)
+	)
+	private static <T extends AbstractMinecartEntity> void create(
+			World world, double x, double y, double z, EntityType<T> type,
+			SpawnReason reason, ItemStack stack, PlayerEntity player, CallbackInfoReturnable<T> cir,
+			@Local AbstractMinecartEntity minecart
+	) {
+		if (!stack.isEmpty()) {
+			((MinecartExtensions) minecart).fasterMinecarts$setMinecartItem(Optional.of(stack.copyWithCount(1)));
+		}
+		if (Math.abs(player.getYaw()) > 90) {
+			((MinecartExtensions) minecart).fasterMinecarts$setInitialZ(Direction.AxisDirection.NEGATIVE);
+		}
+	}
+
+	@Override
+	public void fasterMinecarts$setInitialZ(Direction.AxisDirection direction) {
+		this.initialZ = direction;
+	}
+
+	@Override
+	public Direction.AxisDirection fasterMinecarts$getInitialZ() {
+		return initialZ;
+	}
+
+	@Override
+	public boolean fasterMinecarts$yawFixed() {
+		return yawFixed;
+	}
+
+	@Override
+	public void fasterMinecarts$setYawFixed() {
+		yawFixed = true;
+	}
+
+	@Override
+	public Optional<ItemStack> fasterMinecarts$getMinecartItem() {
+		return minecartItem;
+	}
+
+	@Override
+	public void fasterMinecarts$setMinecartItem(Optional<ItemStack> stack) {
+		this.minecartItem = stack;
+		updateController();
 	}
 }

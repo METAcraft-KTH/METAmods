@@ -38,10 +38,10 @@ public class NumberedRegistryEntry<T> {
 						}
 					}
 				} else {
-					FasterMinecarts.logger.error(value + " is not valid!");
+					FasterMinecarts.LOGGER.error(value + " is not valid!");
 				}
 			} catch (NumberFormatException ignored) {
-				FasterMinecarts.logger.error(value + " is not valid!");
+				FasterMinecarts.LOGGER.error(value + " is not valid!");
 			}
 		}
 	}

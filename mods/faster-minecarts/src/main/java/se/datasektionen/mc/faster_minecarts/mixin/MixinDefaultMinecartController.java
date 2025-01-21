@@ -15,15 +15,16 @@ import net.minecraft.entity.vehicle.DefaultMinecartController;
 import net.minecraft.entity.vehicle.MinecartController;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.faster_minecarts.FasterMinecarts;
 import se.datasektionen.mc.faster_minecarts.FasterMinecartsConfig;
 import se.datasektionen.mc.faster_minecarts.FasterMinecartsHelper;
-import se.datasektionen.mc.faster_minecarts.MinecartData;
+import se.datasektionen.mc.faster_minecarts.MinecartExtensions;
 
 @Mixin(DefaultMinecartController.class)
 public abstract class MixinDefaultMinecartController extends MinecartController {
@@ -44,8 +45,8 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 	}
 
 	@Unique
-	private MinecartData getData() {
-		return (MinecartData) minecart;
+	private MinecartExtensions getData() {
+		return (MinecartExtensions) minecart;
 	}
 
 	@ModifyExpressionValue(
@@ -59,6 +60,17 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 		return getData().fasterMinecarts$getAcceleration().orElse(
 				FasterMinecartsHelper.getValue(minecart, acceleration, FasterMinecartsConfig.getPoweredRailAccelerationFactor())
 		);
+	}
+
+	@Inject(
+		method = "tick",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/util/math/MathHelper;atan2(DD)D"
+		)
+	)
+	public void fixYaw(CallbackInfo ci) {
+		((MinecartExtensions) minecart).fasterMinecarts$setYawFixed();
 	}
 
 	@WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/vehicle/DefaultMinecartController;moveOnRail(Lnet/minecraft/server/world/ServerWorld;)V"))
@@ -97,17 +109,11 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 					}
 				}
 
-				Vec3d facing = currentVelocity.normalize();
-				Vec3d left = facing.rotateY((float) Math.PI / 2);
-				double halfWidth = minecart.getWidth()/2;
-				Vec3d boxStart = this.getPos().add(facing.multiply(halfWidth));
-				Box ahead = new Box(boxStart.add(left.multiply(-halfWidth)), boxStart.add(facing.multiply(currentVelocity.horizontalLength())).add(left.multiply(halfWidth)).add(0, minecart.getHeight(),0));
-				FasterMinecarts.damageEntitiesFromCart(minecart, prevVelocity, ahead);
+				FasterMinecarts.damageEntitiesFromCart(minecart, prevVelocity, currentVelocity);
 
-
-				((MinecartData) minecart).fasterMinecarts$setCurrentRailPosOverride(railPos);
+				((MinecartExtensions) minecart).fasterMinecarts$setCurrentRailPosOverride(railPos);
 				moveOnRail.call(instance, world);
-				((MinecartData) minecart).fasterMinecarts$setCurrentRailPosOverride(null);
+				((MinecartExtensions) minecart).fasterMinecarts$setCurrentRailPosOverride(null);
 
 				double newSpeed = this.getVelocity().horizontalLength();
 				if (newSpeed == 0) {
@@ -121,7 +127,7 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 				prevVelocity += acceleration * time;
 
 				Vec3d v = this.getVelocity();
-				((MinecartData) minecart).fasterMinecarts$applySlowdown(this.getVelocity());
+				((MinecartExtensions) minecart).fasterMinecarts$applySlowdown(this.getVelocity());
 				prevVelocity *= this.getVelocity().length() / v.length();
 				this.setVelocity(v);
 

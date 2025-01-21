@@ -1,8 +1,6 @@
 version = project.faster_minecarts_version
 
-fabricApi {
-	configureDataGeneration()
-}
+addPolymerDependency()
 
 dependencies {
 	implementation include("me.zeroeightsix:fiber:${project.fiber_version}")

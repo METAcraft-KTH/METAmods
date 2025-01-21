@@ -15,10 +15,15 @@ public class DamageConfig {
 
 	private final Map<EntityType<?>, Boolean> minecartValues = new HashMap<>();
 
-	private final boolean isWhitelist;
+	public enum Mode {
+		ONLY,
+		IGNORE
+	}
 
-	public DamageConfig(List<String> entityDamageBlacklist, boolean isWhitelist) {
-		this.isWhitelist = isWhitelist;
+	private final Mode listMode;
+
+	public DamageConfig(List<String> entityDamageBlacklist, Mode listMode) {
+		this.listMode = listMode;
 		for (String rawEntry : entityDamageBlacklist) {
 			String entry = rawEntry;
 			boolean passengerCheck = entry.endsWith(">");
@@ -48,13 +53,13 @@ public class DamageConfig {
 		if (target != root) {
 			var rootResult = minecartValues.get(root.getType());
 			if (rootResult != null && rootResult) {
-				return isWhitelist;
+				return listMode == Mode.ONLY;
 			}
 		}
 		if (result == null) {
-			return !isWhitelist;
+			return listMode == Mode.IGNORE;
 		} else {
-			return isWhitelist;
+			return listMode == Mode.ONLY;
 		}
 	}
 
