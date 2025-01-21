@@ -7,6 +7,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 import org.apache.commons.lang3.math.Fraction;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
@@ -37,7 +38,7 @@ public class BundleHelper {
 				return;
 			}
 		}
-		bundle.set(DataComponentTypes.LORE, lore.with(text));
+		bundle.set(DataComponentTypes.LORE, new LoreComponent(Util.withPrepended(text, lore.lines())));
 	}
 
 	public static Text getOccupancyText(Fraction occupancy) {
