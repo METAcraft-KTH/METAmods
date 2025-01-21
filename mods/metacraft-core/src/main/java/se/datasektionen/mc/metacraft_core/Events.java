@@ -1,6 +1,9 @@
 package se.datasektionen.mc.metacraft_core;
 
+import eu.pb4.polymer.core.api.item.PolymerItem;
+import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.fabricmc.fabric.api.event.player.*;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
@@ -106,6 +109,15 @@ public class Events {
 			}
 			return ActionResult.PASS;
 		});
+
+		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register(
+				(serverStack, clientStack, ctx) -> {
+					if (!(serverStack.getItem() instanceof PolymerItem) && !serverStack.contains(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP)) {
+						clientStack.remove(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP);
+					}
+					return clientStack;
+				}
+		);
 	}
 
 }
