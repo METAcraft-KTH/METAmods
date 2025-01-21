@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_lib.mixin;
+package se.datasektionen.mc.metacraft_core.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.component.type.BundleContentsComponent;
@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import se.datasektionen.mc.metacraft_lib.util.helper.BundleHelper;
+import se.datasektionen.mc.metacraft_core.util.helper.BundleHelper;
 
 import java.util.Optional;
 

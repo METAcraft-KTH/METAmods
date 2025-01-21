@@ -2,21 +2,35 @@ package se.datasektionen.mc.metacraft_core.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.serialization.Codec;
+import net.minecraft.component.ComponentType;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.MergedComponentMap;
+import net.minecraft.component.type.BundleContentsComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_core.item.ItemModifiers;
+import se.datasektionen.mc.metacraft_core.util.helper.BundleHelper;
 
 import java.util.Optional;
 
 @Mixin(ItemStack.class)
 public class MixinItemStack {
+
+	@Shadow
+	@Final
+	MergedComponentMap components;
 
 	@ModifyExpressionValue(
 		method = "<clinit>",
@@ -62,5 +76,25 @@ public class MixinItemStack {
 				}
 			});
 		}
+	}
+
+	@ModifyArg(
+			method = "set",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/component/MergedComponentMap;set(Lnet/minecraft/component/ComponentType;Ljava/lang/Object;)Ljava/lang/Object;"
+			),
+			index = 1
+	)
+	public <T> T set(
+			@Nullable T value, @Local(argsOnly = true) ComponentType<? super T> type
+	) {//When we "clear" the bundle, we need to copy the bundle size factor.
+		if (type == DataComponentTypes.BUNDLE_CONTENTS && value == BundleContentsComponent.DEFAULT) {
+			var existing = (BundleContentsComponent) components.get(type);
+			if (existing != null) {
+				return (T) BundleHelper.fixBundle((BundleContentsComponent) value, (ItemStack) (Object) this);
+			}
+		}
+		return value;
 	}
 }

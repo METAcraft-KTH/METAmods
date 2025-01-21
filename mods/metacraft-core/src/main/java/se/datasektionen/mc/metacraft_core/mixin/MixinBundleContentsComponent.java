@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_lib.mixin;
+package se.datasektionen.mc.metacraft_core.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
@@ -10,8 +10,9 @@ import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import se.datasektionen.mc.metacraft_lib.extensions.BundlesComponentExtensions;
-import se.datasektionen.mc.metacraft_lib.util.helper.BundleHelper;
+import se.datasektionen.mc.metacraft_core.extensions.BundlesComponentExtensions;
+import se.datasektionen.mc.metacraft_lib.mixin.AccessorBundleContentsComponent;
+import se.datasektionen.mc.metacraft_core.util.helper.BundleHelper;
 
 import java.util.List;
 

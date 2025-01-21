@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_lib.util;
 
 import com.google.common.collect.Multimap;
 import com.mojang.serialization.*;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.Block;
 import net.minecraft.block.Portal;
 import net.minecraft.block.enums.Orientation;
@@ -12,9 +13,11 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Hand;
 import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.Util;
+import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
+import org.apache.commons.lang3.math.Fraction;
 import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
 import java.util.*;
@@ -24,6 +27,29 @@ import java.util.stream.IntStream;
 
 @SuppressWarnings("unused")
 public class ExtraCodecs {
+
+	public static final Codec<Fraction> FRACTION_CODEC = Codec.withAlternative(
+			Codec.STRING.comapFlatMap(
+					str -> {
+						try {
+							return DataResult.success(Fraction.getFraction(str));
+						} catch (ArithmeticException | NumberFormatException e) {
+							return DataResult.error(e::getMessage);
+						}
+					},
+					Fraction::toProperString
+			),
+			Codec.DOUBLE.comapFlatMap(
+					decimal -> {
+						try {
+							return DataResult.success(Fraction.getFraction(decimal));
+						} catch (ArithmeticException e) {
+							return DataResult.error(e::getMessage);
+						}
+					},
+					Fraction::doubleValue
+			)
+	);
 
 	public static final Codec<Hand> HAND_CODEC = enumCodec(Hand.class, true);
 

@@ -1,59 +1,66 @@
-package se.datasektionen.mc.metacraft_lib.util.helper;
+package se.datasektionen.mc.metacraft_core.util.helper;
 
-import com.mojang.serialization.Codec;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.BundleContentsComponent;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableTextContent;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import org.apache.commons.lang3.math.Fraction;
-import se.datasektionen.mc.metacraft_lib.METAcraftLib;
-import se.datasektionen.mc.metacraft_lib.extensions.BundlesComponentExtensions;
+import se.datasektionen.mc.metacraft_core.METAcraftCore;
+import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
+import se.datasektionen.mc.metacraft_core.extensions.BundlesComponentExtensions;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class BundleHelper {
 
-	public static final String MAX_STORAGE_KEY = "MaxStorage";
-
-	public static final int VANILLA_DEFAULT = 64;
+	private static final int MAX_PIXELS = 94;
+	private static final Identifier TEXTURES_FONT = METAcraftCore.getID("bundle_textures");
 
 	public static void updateBundleSizeParameter(ItemStack bundle, Fraction occupancy) {
-		var maxStorage = getMaxStorage(bundle);
-		if (maxStorage != VANILLA_DEFAULT) {
-			Text text = Text.translatable(
-					"item.minecraft.bundle.fullness", MathHelper.multiplyFraction(occupancy, maxStorage), maxStorage
-			).formatted(Formatting.GRAY).styled(style -> style.withItalic(false));
-
-			if (bundle.contains(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP)) {
-				bundle.remove(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP);
+		var text = getOccupancyText(occupancy);
+		var lore = bundle.getOrDefault(DataComponentTypes.LORE, LoreComponent.DEFAULT);
+		for (int i = 0; i < lore.lines().size(); i++) {
+			var line = lore.lines().get(i);
+			if (
+					line.getStyle().getFont().equals(TEXTURES_FONT)
+			) {
+				if (text.equals(lore.lines().get(i))) return;
+				List<Text> lines = new ArrayList<>(lore.lines());
+				lines.set(i, text);
+				lore = new LoreComponent(lines);
+				bundle.set(DataComponentTypes.LORE, lore);
+				return;
 			}
-			var lore = bundle.getOrDefault(DataComponentTypes.LORE, LoreComponent.DEFAULT);
-			for (int i = 0; i < lore.lines().size(); i++) {
-				var line = lore.lines().get(i);
-				if (
-						line.getContent() instanceof TranslatableTextContent translatable &&
-								translatable.getKey().equals("item.minecraft.bundle.fullness")
-				) {
-					if (text.equals(lore.lines().get(i))) return;
-					List<Text> lines = new ArrayList<>(lore.lines());
-					lines.set(i, text);
-					lore = new LoreComponent(lines);
-					bundle.set(DataComponentTypes.LORE, lore);
-					return;
-				}
-			}
-			bundle.set(DataComponentTypes.LORE, lore.with(text));
 		}
+		bundle.set(DataComponentTypes.LORE, lore.with(text));
+	}
+
+	public static Text getOccupancyText(Fraction occupancy) {
+		int pixelsToShow = MathHelper.multiplyFraction(occupancy, MAX_PIXELS);
+		String text;
+		if (MAX_PIXELS <= pixelsToShow) {
+			text = "ef";
+		} else {
+			StringBuilder builder = new StringBuilder();
+			builder.append("e");
+			if (pixelsToShow > 0) {
+				builder.append("sr");
+			}
+			builder.append("lr".repeat(Math.max(0, pixelsToShow - 1)));
+			text = builder.toString();
+		}
+		return Text.literal(text).styled(
+				style -> style.withFont(TEXTURES_FONT).withItalic(false).withColor(Formatting.WHITE)
+		);
 	}
 
 	public static Fraction getBundleSizeFactor(ItemStack stack) {
-		return Fraction.getFraction(BundleHelper.getMaxStorage(stack), BundleHelper.VANILLA_DEFAULT);
+		return stack.getOrDefault(METAcraftComponents.BUNDLE_SIZE_FACTOR, Fraction.ONE);
 	}
 
 	private static BundleContentsComponent fixBundleInternal(BundleContentsComponent bundle, Fraction factor) {
@@ -88,16 +95,6 @@ public class BundleHelper {
 		var contents = bundle.get(DataComponentTypes.BUNDLE_CONTENTS);
 		if (contents == null) return;
 		updateBundleSizeParameter(bundle, contents.getOccupancy());
-	}
-
-	public static int getMaxStorage(ItemStack bundle) {
-		return Optional.ofNullable(bundle.get(DataComponentTypes.CUSTOM_DATA)).filter(
-				nbt -> nbt.contains(MAX_STORAGE_KEY)
-		).flatMap(
-				nbt -> nbt.get(Codec.INT.optionalFieldOf(MAX_STORAGE_KEY)).resultOrPartial(
-						METAcraftLib.LOGGER::error
-				).orElse(Optional.empty())
-		).orElse(64);
 	}
 
 	public static BundleContentsComponent.Builder setBundleSizeFactor(

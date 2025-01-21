@@ -1,0 +1,38 @@
+{
+    "providers": [
+        {
+            "type": "bitmap",
+            "file": "metacraft:gui/bundle/bundle_blue_progress_s.png",
+            "ascent": 23,
+            "height": 24,
+            "chars": [
+                "s"
+            ]
+        },
+        {
+            "type": "bitmap",
+            "file": "metacraft:gui/bundle/bundle_blue_progress_l.png",
+            "ascent": 23,
+            "height": 24,
+            "chars": [
+                "l"
+            ]
+        },
+        {
+            "type": "bitmap",
+            "file": "metacraft:gui/bundle/bundle_red_progress.png",
+            "ascent": 23,
+            "height": 24,
+            "chars": [
+                "f"
+            ]
+        },
+        {
+            "type": "space",
+            "advances": {
+                "e": 1,
+                "r": -1
+            }
+        }
+    ]
+}

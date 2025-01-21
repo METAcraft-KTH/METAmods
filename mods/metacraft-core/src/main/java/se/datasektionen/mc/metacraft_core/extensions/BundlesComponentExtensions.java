@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_lib.extensions;
+package se.datasektionen.mc.metacraft_core.extensions;
 
 import org.apache.commons.lang3.math.Fraction;
 

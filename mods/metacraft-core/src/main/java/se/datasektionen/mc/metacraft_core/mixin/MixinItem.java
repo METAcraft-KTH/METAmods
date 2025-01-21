@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_lib.mixin;
+package se.datasektionen.mc.metacraft_core.mixin;
 
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.BundleItem;
@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import se.datasektionen.mc.metacraft_lib.util.helper.BundleHelper;
+import se.datasektionen.mc.metacraft_core.util.helper.BundleHelper;
 
 @Mixin(Item.class)
 public class MixinItem {
