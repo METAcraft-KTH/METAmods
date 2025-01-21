@@ -49,6 +49,12 @@ public class ExtraCodecs {
 			)
 	);
 
+	public static final Codec<Fraction> POSITIVE_FRACTION_CODEC = FRACTION_CODEC.validate(
+			fraction -> fraction.doubleValue() > 0 ?
+					DataResult.success(fraction) :
+					DataResult.error(() -> "Fraction must be positive")
+	);
+
 	public static final Codec<Hand> HAND_CODEC = enumCodec(Hand.class, true);
 
 	public static final Codec<PlayerModelPart> MODEL_PART_CODEC = StringIdentifiable.createCodec(PlayerModelPart::values);

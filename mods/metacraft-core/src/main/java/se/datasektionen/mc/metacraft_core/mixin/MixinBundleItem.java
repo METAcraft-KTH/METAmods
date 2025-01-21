@@ -19,8 +19,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.metacraft_core.util.helper.BundleHelper;
 
-import java.util.Optional;
-
 @Mixin(BundleItem.class)
 public abstract class MixinBundleItem {
 

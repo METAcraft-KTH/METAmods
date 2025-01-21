@@ -52,7 +52,7 @@ public class METAcraftComponents {
 	);
 
 	public static final ComponentType<Fraction> BUNDLE_SIZE_FACTOR = register(
-			"bundle_size_factor", builder -> builder.codec(ExtraCodecs.FRACTION_CODEC)
+			"bundle_size_factor", builder -> builder.codec(ExtraCodecs.POSITIVE_FRACTION_CODEC)
 	);
 
 
