@@ -29,13 +29,12 @@ public class BundleHelper {
 
 	public static Text getOccupancyText(Fraction occupancy) {
 		int pixelsToShow = MathHelper.multiplyFraction(occupancy, MAX_PIXELS);
-		if (pixelsToShow == 0) return null;
 		String text;
 		if (MAX_PIXELS <= pixelsToShow) {
-			text = "ef";
+			text = "baf";
 		} else {
 			StringBuilder builder = new StringBuilder();
-			builder.append("e");
+			builder.append("ba");
 			if (pixelsToShow > 0) {
 				builder.append("sr");
 			}
@@ -43,7 +42,7 @@ public class BundleHelper {
 			text = builder.toString();
 		}
 		return Text.literal(text).styled(
-				style -> style.withFont(TEXTURES_FONT).withItalic(false).withColor(Formatting.WHITE)
+				style -> style.withFont(TEXTURES_FONT).withItalic(false).withShadowColor(0).withColor(Formatting.WHITE)
 		);
 	}
 
