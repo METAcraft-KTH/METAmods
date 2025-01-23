@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_core.util.helper;
 
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
+import net.minecraft.component.ComponentMap;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.BundleContentsComponent;
 import net.minecraft.component.type.LoreComponent;
@@ -46,8 +47,12 @@ public class BundleHelper {
 		);
 	}
 
+	public static Fraction getBundleSizeFactor(ComponentMap components) {
+		return components.getOrDefault(METAcraftComponents.BUNDLE_SIZE_FACTOR, Fraction.ONE);
+	}
+
 	public static Fraction getBundleSizeFactor(ItemStack stack) {
-		return stack.getOrDefault(METAcraftComponents.BUNDLE_SIZE_FACTOR, Fraction.ONE);
+		return getBundleSizeFactor(stack.getComponents());
 	}
 
 	private static BundleContentsComponent fixBundleInternal(BundleContentsComponent bundle, Fraction factor) {
@@ -65,6 +70,20 @@ public class BundleHelper {
 			return fixBundleInternal(bundle, factor);
 		}
 		return bundle;
+	}
+
+	public static ComponentMap fixBundle(ComponentMap components) {
+		var factor = getBundleSizeFactor(components);
+		var bundle = components.get(DataComponentTypes.BUNDLE_CONTENTS);
+		if (bundle != null && !BundleHelper.getStoredBundleSizeFactor(bundle).equals(factor)) {
+			return ComponentMap.of(
+					components, ComponentMap.builder().add(
+							DataComponentTypes.BUNDLE_CONTENTS,
+							fixBundleInternal(bundle, factor)
+					).build()
+			);
+		}
+		return components;
 	}
 
 	public static void fixBundle(ItemStack stack) {

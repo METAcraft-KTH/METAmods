@@ -25,6 +25,7 @@
 		"MixinEntityTrackerEntry",
 		"MixinExplosionBehavior",
 		"MixinItem",
+		"MixinItem$Settings",
 		"MixinItemStack",
 		"MixinPistonBlock",
 		"MixinPlayerEntity",
