@@ -11,6 +11,7 @@
 		"AccessorGameRules$BooleanRule",
 		"AccessorMobEntity",
 		"AccessorPlayerEntity",
+		"AccessorScreenHandler",
 		"AccessorServerChunkManager",
 		"AccessorWitherEntity",
 		"MixinAbstractBlockState",

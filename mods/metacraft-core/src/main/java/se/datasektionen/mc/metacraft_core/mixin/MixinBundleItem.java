@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.metacraft_core.util.helper.BundleHelper;
+import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 
 @Mixin(BundleItem.class)
 public abstract class MixinBundleItem {
@@ -58,6 +59,34 @@ public abstract class MixinBundleItem {
 					RegistryEntry.of(SoundEvents.ITEM_BUNDLE_INSERT), player.getSoundCategory(), player, 0.8f,
 					0.8f + player.getWorld().getRandom().nextFloat() * 0.4f, player.getWorld().getRandom().nextLong()
 			));
+		}
+	}
+
+	@Inject(
+			method = {
+					"onClicked",
+					"onStackClicked"
+			},
+			at = @At("RETURN")
+	)
+	public void updateIfClicked(
+			CallbackInfoReturnable<Boolean> cir, @Local(argsOnly = true) Slot slot,
+			@Local(argsOnly = true) PlayerEntity player
+	) {
+		if (!player.getWorld().isClient()) {
+			var handler = player.currentScreenHandler;
+			TaskScheduler.scheduleImmediately(
+				player.getServer(), () -> {
+					if (player.currentScreenHandler == handler) {
+						((AccessorScreenHandler) player.currentScreenHandler).getSyncHandler().updateSlot(
+								player.currentScreenHandler, slot.id, slot.getStack()
+						);
+						((AccessorScreenHandler) player.currentScreenHandler).getSyncHandler().updateCursorStack(
+								player.currentScreenHandler, player.currentScreenHandler.getCursorStack()
+						);
+					}
+				}
+			);
 		}
 	}
 
