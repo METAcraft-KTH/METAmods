@@ -50,14 +50,14 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	);
 
 	private static final ConfigContainer<ResourcePackConfig> CONFIG = ConfigContainer.Builder.create(
-			CODEC, configDir.resolve("config.json"),
+			CODEC,
 			() -> new ResourcePackConfig()
 	).setReloader((old, reloaded, cause) -> reloaded.get().map(c -> {
 		old.getResourcePacks().forEach(pack -> {
 			c.prevPacks.put(pack.getKey(), pack.getValue());
 		});
 		return c;
-	}).orElse(old)).build();
+	}).orElse(old)).build(configDir.resolve("config.json"));
 
 	private final Map<UUID, ResourcePack> resourcePacks;
 	private final Map<UUID, ResourcePack> prevPacks = new HashMap<>();

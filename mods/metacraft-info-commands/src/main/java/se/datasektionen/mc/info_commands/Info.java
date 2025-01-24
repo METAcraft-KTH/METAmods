@@ -15,7 +15,7 @@ public class Info implements ModInitializer {
 
 	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("metacraft-info-commands.json");
 	private static final ConfigContainer<InfoConfig> config = ConfigContainer.Builder.create(
-			InfoConfig.CODEC, configPath, () -> {
+			InfoConfig.CODEC, () -> {
 				var config = new InfoConfig();
 				var sub = new HashMap<String, InfoNode>();
 				config.getCommands().put("example1", new InfoNode(Text.literal("Test"), sub));
@@ -30,7 +30,7 @@ public class Info implements ModInitializer {
 				));
 				return config;
 			}
-	).reloadBeforeServer().build();
+	).reloadBeforeServer().build(configPath);
 
 	public static final Logger LOGGER = LogManager.getLogger("METAcraft-info-commands");
 	@Override

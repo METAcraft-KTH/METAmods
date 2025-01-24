@@ -8,14 +8,18 @@ import com.mojang.serialization.JavaOps;
 import net.minecraft.registry.RegistryOps;
 import net.minecraft.registry.RegistryWrapper;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
+import se.datasektionen.mc.metacraft_lib.config.container.ConfigContainerBase;
+import se.datasektionen.mc.metacraft_lib.config.container.ReloadFunction;
+import se.datasektionen.mc.metacraft_lib.config.container.ServerAware;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorServerDynamicRegistryType;
 
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 /**
  * Allows you to store objects in raw form and parse them at a later point.
- * This is meant to be used in conjunction with {@link ServerAware#parse(RegistryWrapper.WrapperLookup)}
+ * This is meant to be used in conjunction with {@link ServerAware#wrap(ConfigContainerBase, BiFunction, ReloadFunction)}
  * to allow deserialization of objects dependent on {@link RegistryWrapper.WrapperLookup}.
  *
  * You use {@link ObjectStorage#createCodec(Codec)} with the codec you want to use.

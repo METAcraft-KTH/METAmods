@@ -59,7 +59,7 @@ public class SavedItemsConfig implements Modifiable {
 	).apply(instance, SavedItemsConfig::new));
 
 	private static final ServerAwareConfigContainer<SavedItemsConfig, Loaded> config = ConfigContainer.Builder.create(
-			CODEC, configPath, () -> {
+			CODEC, () -> {
 				var config = new SavedItemsConfig();
 				config.addGroup(SavedItemsData.ANY, SavedItemsData.ANY_DAMAGE, SavedItemsData.DESPAWN_TYPE);
 				config.getSaveEntries().put(SavedItemsData.ANY, new SavingEntry(
@@ -107,6 +107,7 @@ public class SavedItemsConfig implements Modifiable {
 				return config;
 			}
 	).reloadAfterServer().buildRegistryAware(
+			configPath,
 			(config, server) -> Loaded.create(config.saveEntries, server.getRegistryManager())
 	);
 

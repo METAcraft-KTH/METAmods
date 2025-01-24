@@ -30,8 +30,8 @@ public class LootContainerConfig implements Modifiable {
 	).apply(instance, LootContainerConfig::new)));
 
 	private static final ConfigContainer<LootContainerConfig> config = ConfigContainer.Builder.create(
-			CODEC, configPath, LootContainerConfig::new
-	).reloadAfterServer().build();
+			CODEC, LootContainerConfig::new
+	).reloadAfterServer().build(configPath);
 
 	private final Map<LootContainerType<?>, LootContainer> defaultContainerData;
 	private final Map<LootContainerEventType<?>, LootContainerEvent> defaultEventData;

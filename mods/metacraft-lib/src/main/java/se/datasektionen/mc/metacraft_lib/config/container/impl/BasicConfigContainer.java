@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -156,6 +157,11 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 	public void save() {
 		if (config == null) return;
 		JsonHelper.save(configPath, codec, config);
+	}
+
+	@Override
+	public void addReloadHandler(Consumer<ReloadCause> handler) {
+		//TODO
 	}
 
 }

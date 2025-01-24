@@ -3,6 +3,7 @@ package se.datasektionen.mc.metacraft_lib.config.container;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 
+import java.nio.file.Path;
 import java.util.function.BiFunction;
 
 /**
@@ -11,7 +12,7 @@ import java.util.function.BiFunction;
  * This poses a problem since our config is loaded before the server starts.
  *
  * To fix this, we have a separate sub-config which is loaded later with the server as a context.
- * This is created from our config by using {@link ConfigContainer.Builder#buildRegistryAware(BiFunction)} where the
+ * This is created from our config by using {@link ConfigContainer.Builder#buildRegistryAware(Path, BiFunction)} where the
  * provided function takes the config file and the Minecraft Server to produce an object of type S.
  * You get to decide for yourself how this object should look like, but it would typically be a record
  * containing any properties that cannot exist without a valid {@link RegistryWrapper.WrapperLookup}.

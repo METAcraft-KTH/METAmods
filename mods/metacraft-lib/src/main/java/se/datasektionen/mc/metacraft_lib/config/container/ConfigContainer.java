@@ -13,33 +13,7 @@ import java.util.function.*;
  * A config container contains the config instance and takes care of saving/loading the config file.
  * @param <T> The type of the config instance.
  */
-public interface ConfigContainer<T> {
-
-	/**
-	 * Returns the config.
-	 * If the config is not loaded, it will be loaded.
-	 * If the config could not be loaded (for example, because it had not been generated yet),
-	 * a config will be generated with default parameters.
-	 * Users are advice to NOT store this in variables for longer periods of time as doing so will break the reload functionality.
-	 * @return The config instance.
-	 */
-	T get();
-
-	/**
-	 * Reloads the config.
-	 * This means that the next time {@link ConfigContainer#get()} is called, the config will be loaded again.
-	 * Normally reloaded using {@link ReloadCause#DEFAULT}
-	 */
-	default void reload() {
-		reload(ReloadCause.DEFAULT);
-	}
-
-	/**
-	 * Reloads the config.
-  	 * This means that the next time {@link ConfigContainer#get()} is called, the config will be loaded again.
-	 * @param reloadCause The reason for the reload.
-	 */
-	void reload(ReloadCause reloadCause);
+public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContainerWithSingleton<T> {
 
 	/**
 	 * Modifies the config
@@ -48,28 +22,20 @@ public interface ConfigContainer<T> {
 	 */
 	void modify(Predicate<T> modifier);
 
-	/**
-	 * Manually saves the config.
-	 */
-	void save();
-
-
 	class Builder<T> {
 
 		protected final Codec<T> codec;
-		protected final Path configPath;
 		protected final Supplier<T> defaultConfigInitializer;
 		protected boolean reloadsBeforeServer = false;
 		protected boolean reloadsAfterServer = false;
 		protected ReloadFunction<T> reloader = ReloadFunction.getDefault();
 
-		public static <T> Builder<T> create(Codec<T> codec, Path configPath, Supplier<T> defaultConfigInitializer) {
-			return new Builder<>(codec, configPath, defaultConfigInitializer);
+		public static <T> Builder<T> create(Codec<T> codec, Supplier<T> defaultConfigInitializer) {
+			return new Builder<>(codec, defaultConfigInitializer);
 		}
 
-		protected Builder(Codec<T> codec, Path configPath, Supplier<T> defaultConfigInitializer) {
+		protected Builder(Codec<T> codec, Supplier<T> defaultConfigInitializer) {
 			this.codec = codec;
-			this.configPath = configPath;
 			this.defaultConfigInitializer = defaultConfigInitializer;
 		}
 
@@ -109,7 +75,7 @@ public interface ConfigContainer<T> {
 		 * Builds a normal config container.
 		 * @return The config container.
 		 */
-		public ConfigContainer<T> build() {
+		public ConfigContainer<T> build(Path configPath) {
 			return new BasicConfigContainer<>(codec, configPath, defaultConfigInitializer, reloadsBeforeServer, reloadsAfterServer, reloader);
 		}
 
@@ -128,9 +94,10 @@ public interface ConfigContainer<T> {
 		 * @param <S> The type of the object storing the cached values.
 		 */
 		public <S> ServerAwareConfigContainer<T, S> buildRegistryAware(
+				Path configPath,
 				BiFunction<T, MinecraftServer, S> parser
 		) {
-			return buildRegistryAware(parser, ReloadFunction.getDefault());
+			return buildRegistryAware(configPath, parser, ReloadFunction.getDefault());
 		}
 
 		/**
@@ -149,6 +116,7 @@ public interface ConfigContainer<T> {
 		 * @param <S> The type of the object storing the cached values.
 		 */
 		public <S> ServerAwareConfigContainer<T, S> buildRegistryAware(
+				Path configPath,
 				BiFunction<T, MinecraftServer, S> parser,
 				ReloadFunction<S> cacheReloader
 		) {

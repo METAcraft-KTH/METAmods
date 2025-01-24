@@ -17,10 +17,7 @@ import net.minecraft.registry.*;
 import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Rarity;
-import se.datasektionen.mc.metacraft_lib.config.container.ConfigContainer;
-import se.datasektionen.mc.metacraft_lib.config.container.ReloadCause;
-import se.datasektionen.mc.metacraft_lib.config.container.ReloadFunction;
-import se.datasektionen.mc.metacraft_lib.config.container.ServerAwareConfigContainer;
+import se.datasektionen.mc.metacraft_lib.config.container.*;
 import se.datasektionen.mc.metacraft_lib.config.extensions.ReloadAware;
 import se.datasektionen.mc.metacraft_lib.config.extensions.ServerLoadAware;
 import se.datasektionen.mc.metacraft_lib.config.extensions.ServerUnloadAware;
@@ -36,7 +33,7 @@ import java.util.stream.Stream;
 
 public class FeaturesConfig implements ReloadAware {
 
-	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("simple-custom-features.json");
+	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("simple-custom-features");
 
 	private static <T> DataResult<Stream<T>> unwrapDataResults(Stream<DataResult<T>> stream) {
 		List<Supplier<String>> errors = new ArrayList<>();
@@ -82,33 +79,43 @@ public class FeaturesConfig implements ReloadAware {
 	).apply(instance, FeaturesConfig::new));
 
 	//This config should not be reloaded on the /reload command as doing so will modify the registries.
-	private static final ServerAwareConfigContainer<FeaturesConfig, WorldSpecificEntries> config = ConfigContainer.Builder.create(
-			CODEC, configPath, () -> {
-				var config = new FeaturesConfig();
-				config.addObjects(new ObjectContainer.Loaded<>(
-						Features.getID("test"), new SimpleItem(
-						new BaseItem.ItemSettingsWithBaseItem(
-								Items.BRICK.getRegistryEntry(),
-								ComponentChanges.builder().add(
-										DataComponentTypes.MAX_STACK_SIZE, 32
-								).add(
-										DataComponentTypes.DAMAGE_RESISTANT, new DamageResistantComponent(DamageTypeTags.IS_FIRE)
-								).add(
-										DataComponentTypes.RARITY, Rarity.UNCOMMON
-								).add(
-										DataComponentTypes.FOOD, FoodComponents.ENCHANTED_GOLDEN_APPLE
-								).add(
-										DataComponentTypes.CONSUMABLE, ConsumableComponents.DRINK
-								).build(),
-								Optional.empty()
-						),
-						Optional.empty()
-				)));
-				return config;
-			}
-	).buildRegistryAware(
-			(config, server) -> new WorldSpecificEntries(config.objects, server.getRegistryManager()),
-			(oldConfig, newConfig, cause) -> oldConfig
+	private static final ServerAware<MultiFileConfigContainer.Mergable<FeaturesConfig, FeaturesConfig>, WorldSpecificEntries> config = ServerAware.wrap(
+		MultiFileConfigContainer.Builder.create(CODEC).addDefaultSetting(
+				"default", () -> {
+					var config = new FeaturesConfig();
+					config.addObjects(new ObjectContainer.Loaded<>(
+							Features.getID("test"), new SimpleItem(
+							new BaseItem.ItemSettingsWithBaseItem(
+									Items.BRICK.getRegistryEntry(),
+									ComponentChanges.builder().add(
+											DataComponentTypes.MAX_STACK_SIZE, 32
+									).add(
+											DataComponentTypes.DAMAGE_RESISTANT, new DamageResistantComponent(DamageTypeTags.IS_FIRE)
+									).add(
+											DataComponentTypes.RARITY, Rarity.UNCOMMON
+									).add(
+											DataComponentTypes.FOOD, FoodComponents.ENCHANTED_GOLDEN_APPLE
+									).add(
+											DataComponentTypes.CONSUMABLE, ConsumableComponents.DRINK
+									).build(),
+									Optional.empty()
+							),
+							Optional.empty()
+					)));
+					return config;
+				}
+		).build(
+				configPath,
+				results -> results.reduce(
+						new FeaturesConfig(),
+						(main, toAdd) -> {
+							main.objects.putAll(toAdd.objects);
+							return main;
+						}
+				)
+		),
+		(config, server) -> new WorldSpecificEntries(config.get().objects, server.getRegistryManager()),
+		(oldConfig, newConfig, cause) -> oldConfig
 	);
 
 	private final Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer> objects;
@@ -170,7 +177,7 @@ public class FeaturesConfig implements ReloadAware {
 	 * @return The config.
 	 */
 	public static FeaturesConfig getConfig() {
-		return config.get();
+		return config.getContainer().get();
 	}
 
 	@Override
