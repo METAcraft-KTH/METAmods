@@ -36,8 +36,8 @@ generated/
 
 # fabric j-unit
 
-**config**
-!**/src/**config**
+config/
+!**/src/**/config/
 
 
 # java
