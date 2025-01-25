@@ -27,7 +27,7 @@ import net.minecraft.util.math.floatprovider.FloatProvider;
 import net.minecraft.util.math.floatprovider.UniformFloatProvider;
 import se.datasektionen.mc.metacraft_lib.config.ObjectStorage;
 import se.datasektionen.mc.metacraft_lib.config.container.ConfigContainer;
-import se.datasektionen.mc.metacraft_lib.config.container.ServerAwareConfigContainer;
+import se.datasektionen.mc.metacraft_lib.config.container.ServerAware;
 import se.datasektionen.mc.metacraft_lib.config.extensions.Modifiable;
 import se.datasektionen.mc.saved_items.item_saving.SavedItemsData;
 
@@ -57,8 +57,7 @@ public class SavedItemsConfig implements Modifiable {
 					)
 			)
 	).apply(instance, SavedItemsConfig::new));
-
-	private static final ServerAwareConfigContainer<SavedItemsConfig, Loaded> config = ConfigContainer.Builder.create(
+	private static final ServerAware<ConfigContainer<SavedItemsConfig>, Loaded> config = ConfigContainer.Builder.create(
 			CODEC, () -> {
 				var config = new SavedItemsConfig();
 				config.addGroup(SavedItemsData.ANY, SavedItemsData.ANY_DAMAGE, SavedItemsData.DESPAWN_TYPE);
@@ -151,7 +150,7 @@ public class SavedItemsConfig implements Modifiable {
 
 	/**
 	 * Note, to get the parts inside of {@link ObjectStorage},
-	 * please use {@link ServerAwareConfigContainer#get(MinecraftServer)} instead!
+	 * please use {@link ServerAware#get(MinecraftServer)} instead!
 	 * The main reason to use this is if you wish to modify the values.
 	 * @return The save entries multimap.
 	 */
@@ -246,7 +245,7 @@ public class SavedItemsConfig implements Modifiable {
 	 * @return The config.
 	 */
 	public static SavedItemsConfig getConfig() {
-		return SavedItemsConfig.config.get();
+		return SavedItemsConfig.config.getContainer().get();
 	}
 
 	public record SavingEntry(

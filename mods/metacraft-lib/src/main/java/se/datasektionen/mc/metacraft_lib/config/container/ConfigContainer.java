@@ -4,7 +4,6 @@ import com.mojang.serialization.Codec;
 import net.minecraft.server.MinecraftServer;
 import se.datasektionen.mc.metacraft_lib.config.ObjectStorage;
 import se.datasektionen.mc.metacraft_lib.config.container.impl.BasicConfigContainer;
-import se.datasektionen.mc.metacraft_lib.config.container.impl.BasicServerAwareConfigContainer;
 
 import java.nio.file.Path;
 import java.util.function.*;
@@ -84,7 +83,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		 * Sometimes you may want to use codecs that require a valid {@link net.minecraft.registry.RegistryWrapper.WrapperLookup}
 		 * which is obviously not available at load time with the rest of the config.
 		 * Therefore, you can use {@link ObjectStorage} or similar to hold
-		 * the raw objects in the config. Then, you can use {@link ServerAwareConfigContainer#get(MinecraftServer)}
+		 * the raw objects in the config. Then, you can use {@link ServerAware#get(MinecraftServer)}
 		 * to fetch the object you create with parser. The config container will cache it for you.
 		 * Note that this object will always be destroyed when the /reload command is executed
 		 * (even if reloadAfterServer is disabled!) since the objects stored in the cache might no
@@ -93,7 +92,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		 * @return The config container.
 		 * @param <S> The type of the object storing the cached values.
 		 */
-		public <S> ServerAwareConfigContainer<T, S> buildRegistryAware(
+		public <S> ServerAware<ConfigContainer<T>, S> buildRegistryAware(
 				Path configPath,
 				BiFunction<T, MinecraftServer, S> parser
 		) {
@@ -105,7 +104,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		 * Sometimes you may want to use codecs that require a valid {@link net.minecraft.registry.RegistryWrapper.WrapperLookup}
 		 * which is obviously not available at load time with the rest of the config.
 		 * Therefore, you can use {@link ObjectStorage} or similar to hold
-		 * the raw objects in the config. Then, you can use {@link ServerAwareConfigContainer#get(MinecraftServer)}
+		 * the raw objects in the config. Then, you can use {@link ServerAware#get(MinecraftServer)}
 		 * to fetch the object you create with parser. The config container will cache it for you.
 		 * Note that this object will always be destroyed when the /reload command is executed
 		 * (even if reloadAfterServer is disabled!) since the objects stored in the cache might no
@@ -115,13 +114,15 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		 * @return The config container.
 		 * @param <S> The type of the object storing the cached values.
 		 */
-		public <S> ServerAwareConfigContainer<T, S> buildRegistryAware(
+		public <S> ServerAware<ConfigContainer<T>, S> buildRegistryAware(
 				Path configPath,
 				BiFunction<T, MinecraftServer, S> parser,
 				ReloadFunction<S> cacheReloader
 		) {
-			return new BasicServerAwareConfigContainer<>(
-					codec, configPath, defaultConfigInitializer, reloadsBeforeServer, reloadsAfterServer, reloader, parser, cacheReloader
+			return ServerAware.<ConfigContainer<T>, S>wrap(
+					build(configPath),
+					(config, server) -> parser.apply(config.get(), server),
+					cacheReloader
 			);
 		}
 	}

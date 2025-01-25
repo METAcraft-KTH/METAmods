@@ -49,6 +49,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 	protected final boolean reloadsBeforeServer;
 	protected final boolean reloadsAfterServer;
 	protected final ReloadFunction<T> reloader;
+	protected Consumer<ReloadCause> onReload = cause -> {};
 
 	protected T config;
 
@@ -161,7 +162,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 
 	@Override
 	public void addReloadHandler(Consumer<ReloadCause> handler) {
-		//TODO
+		onReload = onReload.andThen(handler);
 	}
 
 }
