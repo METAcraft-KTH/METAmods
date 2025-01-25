@@ -10,6 +10,7 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
@@ -25,34 +26,45 @@ import java.util.Optional;
 
 public abstract class DropItem extends InstantTransition {
 
-	protected static <P extends DropItem> Products.P3<RecordCodecBuilder.Mu<P>, EntityRef, String, Optional<Double>> fillDropItemFields(
+	protected static <P extends DropItem> Products.P5<RecordCodecBuilder.Mu<P>, EntityRef, String, Optional<Vec3d>, Float, Float> fillDropItemFields(
 			RecordCodecBuilder.Instance<P> instance
 	) {
 		return instance.group(
 				EntityRefRegistry.CODEC.fieldOf("entity").forGetter(t -> t.entity),
 				Codec.STRING.fieldOf("new_id").forGetter(t -> t.newID),
-				Codec.DOUBLE.optionalFieldOf("y_offset").forGetter(t -> t.yOffset)
+				Vec3d.CODEC.optionalFieldOf("offset").forGetter(t -> t.offset),
+				Codec.FLOAT.optionalFieldOf("yaw_offset", 0.0f).forGetter(t -> t.yawOffset),
+				Codec.FLOAT.optionalFieldOf("pitch_offset", 0.0f).forGetter(t -> t.pitchOffset)
 		);
 	}
 
 	protected final EntityRef entity;
 	protected final String newID;
-	protected final Optional<Double> yOffset;
+	protected final Optional<Vec3d> offset;
+	protected final float yawOffset;
+	protected final float pitchOffset;
 
 	public DropItem(
 			EntityRef entity,
-			String newID, Optional<Double> yOffset
+			String newID,
+			Optional<Vec3d> offset,
+			float yawOffset,
+			float pitchOffset
 	) {
 		this.entity = entity;
 		this.newID = newID;
-		this.yOffset = yOffset;
+		this.offset = offset;
+		this.yawOffset = yawOffset;
+		this.pitchOffset = pitchOffset;
 	}
 
-	public static void setThrowVelocity(Entity thrower, ItemEntity itemEntity) {
-		float g = MathHelper.sin(thrower.getPitch() * ((float)Math.PI / 180F));
-		float h = MathHelper.cos(thrower.getPitch() * ((float)Math.PI / 180F));
-		float i = MathHelper.sin(thrower.getYaw() * ((float)Math.PI / 180F));
-		float j = MathHelper.cos(thrower.getYaw() * ((float)Math.PI / 180F));
+	public static void setThrowVelocity(Entity thrower, float yawOffset, float pitchOffset, ItemEntity itemEntity) {
+		float yaw = thrower.getYaw() + yawOffset;
+		float pitch = thrower.getPitch() + pitchOffset;
+		float g = MathHelper.sin(pitch * ((float)Math.PI / 180F));
+		float h = MathHelper.cos(pitch * ((float)Math.PI / 180F));
+		float i = MathHelper.sin(yaw * ((float)Math.PI / 180F));
+		float j = MathHelper.cos(yaw * ((float)Math.PI / 180F));
 		float k = thrower.getRandom().nextFloat() * ((float)Math.PI * 2F);
 		float l = 0.02F * thrower.getRandom().nextFloat();
 		itemEntity.setVelocity(
@@ -67,13 +79,15 @@ public abstract class DropItem extends InstantTransition {
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		entity.get(null, cutscene).forEach(entity -> {
-			double y = yOffset.map(offset -> entity.getY() + offset).orElse(entity.getEyeY() - 0.3);
+			Vec3d pos = this.offset.map(offset -> new Vec3d(
+					entity.getX() + offset.x, entity.getY() + offset.y, entity.getZ() + offset.z
+			)).orElse(new Vec3d(entity.getX(), entity.getEyeY() - 0.3, entity.getZ()));
 			var stack = getItemToDrop(cutscene, interval, entity);
 			if (!stack.isEmpty()) {
-				var item = new ItemEntity(entity.getWorld(), entity.getX(), y, entity.getZ(), stack);
+				var item = new ItemEntity(entity.getWorld(), pos.x, pos.y, pos.z, stack);
 				item.setThrower(entity);
 				item.setPickupDelay(40);
-				setThrowVelocity(entity, item);
+				setThrowVelocity(entity, yawOffset, pitchOffset, item);
 				cutscene.getCutsceneWorld().addEntity(newID, item);
 			}
 		});
@@ -90,9 +104,13 @@ public abstract class DropItem extends InstantTransition {
 		private final ItemStack item;
 
 		public DropSpecificStack(
-				EntityRef entity, String newID, Optional<Double> yOffset, ItemStack item
+				EntityRef entity, String newID,
+				Optional<Vec3d> offset,
+				float yawOffset,
+				float pitchOffset,
+				ItemStack item
 		) {
-			super(entity, newID, yOffset);
+			super(entity, newID, offset, yawOffset, pitchOffset);
 			this.item = item;
 		}
 
@@ -129,10 +147,13 @@ public abstract class DropItem extends InstantTransition {
 		private final boolean removeFromSlot;
 
 		public DropFromSlot(
-				EntityRef entity, String newID, Optional<Double> yOffset,
+				EntityRef entity, String newID,
+				Optional<Vec3d> offset,
+				float yawOffset,
+				float pitchOffset,
 				EquipmentSlot slot, int amountToDrop, boolean removeFromSlot
 		) {
-			super(entity, newID, yOffset);
+			super(entity, newID, offset, yawOffset, pitchOffset);
 			this.slot = slot;
 			this.amountToDrop = amountToDrop;
 			this.removeFromSlot = removeFromSlot;

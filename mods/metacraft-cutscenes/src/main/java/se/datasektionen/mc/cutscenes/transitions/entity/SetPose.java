@@ -49,15 +49,16 @@ public class SetPose implements Transition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		config.entity.get(null, cutscene).forEach(entity -> {
-			prevPose.put(entity.getUuid(), entity.getPose());
-		});
+
 	}
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		config.entity.get(null, cutscene).forEach(entity -> {
 			if (entity.getPose() != config.pose) {
+				if (!prevPose.containsKey(entity.getUuid())) {
+					prevPose.put(entity.getUuid(), entity.getPose());
+				}
 				if (entity instanceof PoseLockable lockable) {
 					lockable.setLockPose(true);
 				}
@@ -71,9 +72,9 @@ public class SetPose implements Transition {
 		config.entity.get(null, cutscene).forEach(entity -> {
 			if (prevPose.containsKey(entity.getUuid())) {
 				entity.setPose(prevPose.get(entity.getUuid()));
-				if (entity instanceof PoseLockable lockable) {
-					lockable.setLockPose(false);
-				}
+			}
+			if (entity instanceof PoseLockable lockable) {
+				lockable.setLockPose(false);
 			}
 		});
 	}

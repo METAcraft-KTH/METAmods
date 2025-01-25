@@ -74,8 +74,11 @@ public class RotateHead implements Transition {
 			var origin = entityFacings.computeIfAbsent(
 					entity.getUuid(), k -> new FixedTarget(entity.getYaw(), entity.getPitch())
 			);
-			entity.setYaw(origin.yaw() + offset.yawOffset());
-			entity.setHeadYaw(entity.getYaw());
+			float newYaw = origin.yaw() + offset.yawOffset();
+			if (!config.onlyHead) {
+				entity.setYaw(newYaw);
+			}
+			entity.setHeadYaw(newYaw);
 			entity.setPitch(origin.pitch() + offset.pitchOffset());
 		});
 	}
@@ -110,12 +113,13 @@ public class RotateHead implements Transition {
 		return TransitionRegistry.ROTATE_HEAD;
 	}
 
-	public record RotateHeadConfig(EntityRef entity, InterpolationSetContainer<OffsetTarget> targets) implements TransitionConfig {
+	public record RotateHeadConfig(EntityRef entity, InterpolationSetContainer<OffsetTarget> targets, boolean onlyHead) implements TransitionConfig {
 
 		public static final MapCodec<RotateHeadConfig> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						EntityRefRegistry.CODEC.fieldOf("entity").forGetter(RotateHeadConfig::entity),
-						InterpolationSetContainer.createCodec(OffsetTarget.CODEC, OffsetTarget::fromList).forGetter(t -> t.targets)
+						InterpolationSetContainer.createCodec(OffsetTarget.CODEC, OffsetTarget::fromList).forGetter(t -> t.targets),
+						Codec.BOOL.optionalFieldOf("only_head", false).forGetter(RotateHeadConfig::onlyHead)
 				).apply(instance, RotateHeadConfig::new)
 		);
 

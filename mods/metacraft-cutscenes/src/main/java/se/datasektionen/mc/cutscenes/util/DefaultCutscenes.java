@@ -102,7 +102,7 @@ public class DefaultCutscenes {
 												RotateHead.RotateHeadConfig.OffsetTarget::fromList
 										)),
 										Optional.empty()
-								)
+								), false
 						)
 				)
 		)),
