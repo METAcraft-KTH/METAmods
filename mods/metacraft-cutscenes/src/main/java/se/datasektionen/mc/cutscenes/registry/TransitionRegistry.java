@@ -88,6 +88,10 @@ public class TransitionRegistry {
 			"entity_set_current_hand", SetCurrentItem.CODEC
 	);
 
+	public static final TransitionType<SetPose> ENTITY_SET_POSE = register(
+			"entity_set_pose", SetPose.CODEC
+	);
+
 	public static final TransitionType<SetGameModeTransition> SET_GAME_MODE = register(
 			"gamemode", SetGameModeTransition.CODEC
 	);

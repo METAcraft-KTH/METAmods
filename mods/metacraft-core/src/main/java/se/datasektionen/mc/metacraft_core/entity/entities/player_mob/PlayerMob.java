@@ -52,6 +52,7 @@ import net.minecraft.world.WorldView;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
+import se.datasektionen.mc.metacraft_core.entity.PoseLockable;
 import se.datasektionen.mc.metacraft_core.entity.TridentUser;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftMemoryModules;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorEntityNavigation;
@@ -69,7 +70,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowUser, TridentUser {
+public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowUser, TridentUser, PoseLockable {
 
 	private static final double BASE_SPEED = 0.4;
 
@@ -93,6 +94,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	private boolean canWander = true;
 
 	private boolean shouldRespawnClient = false;
+	private boolean lockPose = false;
 
 	private final SwimNavigation waterNavigation = new SwimNavigation(this, getWorld()) {
 		@Override
@@ -273,6 +275,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	protected void updatePose() {
+		if (lockPose) return;
 		if (!this.canChangeIntoPose(EntityPose.SWIMMING)) {
 			return;
 		}
@@ -751,6 +754,11 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 			data.remove(current);
 			data.add(current, DataTracker.SerializedEntry.of(to, converter.apply((T) existing.value())));
 		}
+	}
+
+	@Override
+	public void setLockPose(boolean lockPose) {
+		this.lockPose = lockPose;
 	}
 
 	public static class PlayerMoveControl extends MoveControl {
