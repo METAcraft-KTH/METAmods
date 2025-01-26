@@ -48,6 +48,7 @@
 		"MixinShapedRecipe",
 		"MixinShapelessRecipe",
 		"MixinSoundCategory",
+		"MixinTestServer",
 		"MixinTradeOffer"
 	],
 	"client": [

@@ -8,6 +8,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.StringIdentifiable;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.VisibleForTesting;
 import se.datasektionen.mc.cutscenes.CutscenesConfig;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
@@ -47,9 +48,15 @@ public class Cutscene {
 	private final Optional<TeleportTransition.SerializableTeleportTarget> exitPoint;
 	private final Optional<String> nextCutscene;
 
+	private Optional<Cutscene> cachedNextCutscene = Optional.empty();
+
 	public Cutscene() {
+		this(new IntervalMap<>());
+	}
+
+	public Cutscene(IntervalMap<TransitionConfig> transitions) {
 		this(
-				new IntervalMap<>(), false, true,
+				transitions, false, true,
 				true, true, true, true, ScoreboardMode.SYNC,
 				Optional.empty(), Optional.empty(), Optional.empty()
 		);
@@ -110,7 +117,10 @@ public class Cutscene {
 	}
 
 	public Optional<Cutscene> getNextCutscene(MinecraftServer server) {
-		return nextCutscene.flatMap(CutscenesConfig.getOrCreateConfig(server)::getCutscene);
+		if (cachedNextCutscene.isEmpty() && nextCutscene.isPresent()) {
+			cachedNextCutscene = nextCutscene.flatMap(CutscenesConfig.getOrCreateConfig(server)::getCutscene);
+		}
+		return cachedNextCutscene;
 	}
 
 	public Optional<TeleportTarget> getEntryPoint(MinecraftServer server, RegistryKey<World> cutsceneDim) {
@@ -142,5 +152,23 @@ public class Cutscene {
 		public String asString() {
 			return name;
 		}
+	}
+
+	@VisibleForTesting
+	public Cutscene setCachedNextCutscene(Cutscene cachedNextCutscene) {
+		this.cachedNextCutscene = Optional.of(cachedNextCutscene);
+		return this;
+	}
+
+	@VisibleForTesting
+	public Cutscene setReturnPlayerToStartPos(boolean returnPlayerToStartPos) {
+		this.returnPlayerToStartPos = returnPlayerToStartPos;
+		return this;
+	}
+
+	@VisibleForTesting
+	public Cutscene resetPlayerData(boolean resetPlayerData) {
+		this.resetPlayerData = resetPlayerData;
+		return this;
 	}
 }

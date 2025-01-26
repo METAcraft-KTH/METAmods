@@ -66,7 +66,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			return;
 		}
 		if (this.cutscene != null && !this.cutscene.isEnded()) {
-			this.cutscene.end();
+			this.cutscene.end(false);
 		}
 		this.cutscene = cutscene;
 		if (this.cutscene != null) {
@@ -80,7 +80,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 				@Override
 				public void afterPlayerReset(CutsceneInstance cutscene) {
-					cutscene.getNextCutscene().ifPresent(next -> {
+					cutscene.createNextCutscene().ifPresent(next -> {
 						metacraft_cutscenes$setCutscene(next);
 					});
 				}

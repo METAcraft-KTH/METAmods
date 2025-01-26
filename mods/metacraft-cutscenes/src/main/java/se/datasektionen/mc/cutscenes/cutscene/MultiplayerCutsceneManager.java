@@ -120,7 +120,7 @@ public class MultiplayerCutsceneManager extends PersistentState {
 
 			@Override
 			public void beforePlayerReset(CutsceneInstance cutscene) {
-				cutscene.getNextCutscene().ifPresentOrElse(
+				cutscene.createNextCutscene().ifPresentOrElse(
 						newScene -> {
 							newScene.setRemoveHandler(getRemoveHandler(name));
 							activeCutscenes = activeCutscenes.plus(name, newScene);
@@ -152,7 +152,7 @@ public class MultiplayerCutsceneManager extends PersistentState {
 
 	public void endCutscene(String cutscene) {
 		if (activeCutscenes.containsKey(cutscene)) {
-			activeCutscenes.get(cutscene).end();
+			activeCutscenes.get(cutscene).end(false);
 			activeCutscenes = activeCutscenes.minus(cutscene);
 			markDirty();
 		}
@@ -174,7 +174,7 @@ public class MultiplayerCutsceneManager extends PersistentState {
 		var scene = cutsceneByPlayerActive.get(player.getUuid());
 		if (scene != null) {
 			scene.removePlayer(player);
-			scene.resetPlayer(player);
+			scene.resetPlayer(player, true);
 		}
 		removePlayer(player.getUuid());
 	}
@@ -186,9 +186,8 @@ public class MultiplayerCutsceneManager extends PersistentState {
 	public void onPlayerJoin(ServerPlayerEntity player) {
 		if (disconnectedPlayers.containsKey(player.getUuid())) {
 			var scene = disconnectedPlayers.get(player.getUuid());
-			scene.addPlayer(player);
-			scene.tick();
-			scene.resetPlayers();
+			scene.disableTransitions(player);
+			scene.resetPlayer(player, true);
 			disconnectedPlayers.remove(player.getUuid());
 			markDirty();
 		}

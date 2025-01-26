@@ -26,7 +26,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.entity.EntityLookup;
 import se.datasektionen.mc.cutscenes.Cutscenes;
-import se.datasektionen.mc.cutscenes.extension.ServerScoreboardExtensions;
 import se.datasektionen.mc.cutscenes.mixin.AccessorPlayerManager;
 import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
 import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorldData;
@@ -103,6 +102,7 @@ public class CutsceneInstance implements AutoCloseable {
 	private CutsceneWorldData data;
 	private RegistryKey<World> dim;
 	private RemoveHandler onRemove = null;
+	private boolean shouldPlayNextCutscene = true;
 
 	private final Map<UUID, NbtCompound> savedPlayerData;
 
@@ -201,15 +201,21 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 	}
 
-	public void end() {
+	public void end(boolean playNextScene) {
 		ended = true;
+		shouldPlayNextCutscene = playNextScene;
 		world.clear();
 		removeCutscene();
 	}
 
-	public Optional<CutsceneInstance> getNextCutscene() {
+	public Optional<CutsceneInstance> createNextCutscene() {
+		if (!shouldPlayNextCutscene) return Optional.empty();
 		return cutscene.getNextCutscene(getServer()).map(
-				scene -> new CutsceneInstance(scene, world.getActualWorld())
+				scene -> {
+					var newScene = new CutsceneInstance(scene, world.getActualWorld());
+					newScene.savedPlayerData.putAll(this.savedPlayerData);
+					return newScene;
+				}
 		);
 	}
 
@@ -317,7 +323,7 @@ public class CutsceneInstance implements AutoCloseable {
 			if (cutscene.hideMount() || cutscene.createFakePlayer()) {
 				var vehicle = player.getRootVehicle();
 				player.dismountVehicle();
-				if (vehicle != player) {
+				if (vehicle != player && cutscene.resetPlayerData()) {
 					vehicle.streamPassengersAndSelf().forEach(Entity::discard);
 				}
 			} else if (directVehicle != null) {
@@ -429,6 +435,12 @@ public class CutsceneInstance implements AutoCloseable {
 		var prevYaw = player.getYaw();
 		var prevPitch = player.getPitch();
 		Vec3d prevVelocity = player.getVelocity();
+
+		var prevVehiclePos = player.getRootVehicle().getPos();
+		var prevVehicleYaw = player.getRootVehicle().getYaw();
+		var prevVehiclePitch = player.getRootVehicle().getPitch();
+		var prevVehicleVelocity = player.getRootVehicle().getVelocity();
+
 		player.readNbt(data);
 		Optional<ServerWorld> world = getWorld(player.getServer(), data);
 		if (exitPosOverride.isPresent()) {
@@ -450,7 +462,15 @@ public class CutsceneInstance implements AutoCloseable {
 		if (gameMode != null) {
 			player.changeGameMode(gameMode);
 		}
-		loadRootVehicle(player, data, player.getWorld()::spawnEntity);
+		loadRootVehicle(player, data, e -> {
+			if (exitPosOverride.isEmpty() && !usePlayerDataPosition) {
+				e.setPos(prevVehiclePos.x, prevVehiclePos.y, prevVehiclePos.z);
+				e.setYaw(prevVehicleYaw);
+				e.setPitch(prevVehiclePitch);
+				e.setVelocity(prevVehicleVelocity);
+			}
+			player.getWorld().spawnEntity(e);
+		});
 	}
 
 	private void removeCutscene() {
@@ -470,16 +490,24 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 	}
 
-	protected void resetPlayer(ServerPlayerEntity player) {
+	private boolean goesToNextCutscene(boolean isLeavingCutscene) {
+		return cutscene.getNextCutscene(getServer()).isPresent() && shouldPlayNextCutscene && !isLeavingCutscene;
+	}
+
+	protected void resetPlayer(ServerPlayerEntity player, boolean isLeavingCutscene) {
 		if (cutscene.resetPlayerData()) {
-			if (!savedPlayerData.containsKey(player.getUuid())) return;
-			var data = savedPlayerData.remove(player.getUuid());
-			loadPlayerData(player, data, cutscene.returnToStart(), cutscene.getExitPoint(world.getServer(), world.getRegistryKey()));
+			var data = savedPlayerData.get(player.getUuid());
+			if (data == null) {
+				data = new NbtCompound();
+			}
+			if (!goesToNextCutscene(isLeavingCutscene)) {
+				loadPlayerData(player, data, cutscene.returnToStart(), cutscene.getExitPoint(world.getServer(), world.getRegistryKey()));
+			}
 		} else if (cutscene.hasExitPoint()) {
 			player.teleportTo(cutscene.getExitPoint(world.getServer(), world.getRegistryKey()).orElseThrow());
-		} else if (cutscene.returnToStart()) {
+		} else if (cutscene.returnToStart() && !goesToNextCutscene(isLeavingCutscene)) {
 			if (!savedPlayerData.containsKey(player.getUuid())) return;
-			var data = savedPlayerData.remove(player.getUuid());
+			var data = savedPlayerData.get(player.getUuid());
 			NbtList pos = data.getList("Pos", NbtCompound.DOUBLE_TYPE);
 			NbtList velocity = data.getList("Motion", NbtCompound.DOUBLE_TYPE);
 			NbtList rotation = data.getList("Rotation", NbtCompound.FLOAT_TYPE);
@@ -497,19 +525,26 @@ public class CutsceneInstance implements AutoCloseable {
 				player.teleportTo(player.getRespawnTarget(true, TeleportTarget.NO_OP));
 			});
 		}
+		if (!goesToNextCutscene(isLeavingCutscene)) {
+			savedPlayerData.remove(player.getUuid());
+		}
 	}
 
 	public void resetPlayers() {
 		forAllPlayers(p -> {
 			removePlayer(p);
-			resetPlayer(p);
+			resetPlayer(p, false);
+		});
+	}
+
+	protected void disableTransitions(ServerPlayerEntity player) {
+		transitions.getIntervalsAt(getCurrentTime()).forEach(interval -> {
+			interval.getObject().deactivate(player, this, interval);
 		});
 	}
 
 	public void removePlayer(ServerPlayerEntity player) {
-		transitions.getIntervalsAt(getCurrentTime()).forEach(interval -> {
-			interval.getObject().deactivate(player, this, interval);
-		});
+		disableTransitions(player);
 		modificationQueue.add(new QueueEntry(player, QueueEntry.Operation.REMOVE));
 		if (world != null) {
 			world.removePlayer(player);
@@ -570,7 +605,7 @@ public class CutsceneInstance implements AutoCloseable {
 		if (!shouldTick()) return;
 		if (world == null) {
 			Cutscenes.LOGGER.error("Cutscene did not have a world, ending it prematurely! If you get this error, some developer forgot to call CutsceneInstance#setTargetWorld or CutsceneInstance#setWorldFromDim");
-			end();
+			end(false);
 			return;
 		}
 		transitions.getIntervalsAt(time).forEach(
@@ -591,7 +626,7 @@ public class CutsceneInstance implements AutoCloseable {
 		time++;
 		world.tick(() -> true);
 		if (time > transitions.getEnd()) {
-			end();
+			end(true);
 		}
 	}
 

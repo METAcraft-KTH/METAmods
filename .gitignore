@@ -38,6 +38,7 @@ generated/
 
 config/
 !**/src/**/config/
+crash-reports/
 
 
 # java
