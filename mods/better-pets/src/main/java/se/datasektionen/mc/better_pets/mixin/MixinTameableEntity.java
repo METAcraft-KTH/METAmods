@@ -92,12 +92,15 @@ public abstract class MixinTameableEntity extends AnimalEntity implements Tameab
 	}
 
 	@Override
-	public ServerPlayerEntity metacraft$getCurrentFollowTarget() {
+	public LivingEntity metacraft$getCurrentFollowTarget() {
 		if (!isTamed()) return null;
 		if (followTargetOverride != null) {
+			if (followTargetOverride.getWorld() != getWorld()) {
+				return null;
+			}
 			return followTargetOverride;
 		} else {
-			return getServer().getPlayerManager().getPlayer(getOwnerUuid());
+			return getOwner();
 		}
 	}
 
@@ -122,13 +125,17 @@ public abstract class MixinTameableEntity extends AnimalEntity implements Tameab
 	}
 
 	@ModifyExpressionValue(
-			method = "cannotFollowOwner",
+			method = {
+					"cannotFollowOwner",
+					"shouldTryTeleportToOwner",
+					"tryTeleportToOwner"
+			},
 			at = @At(
 					value = "INVOKE",
 					target = "Lnet/minecraft/entity/passive/TameableEntity;getOwner()Lnet/minecraft/entity/LivingEntity;"
 			)
 	)
-	public LivingEntity cannotFollowOwner(LivingEntity original) {
+	public LivingEntity checkFollowTarget(LivingEntity original) {
 		return metacraft$getCurrentFollowTarget();
 	}
 }
