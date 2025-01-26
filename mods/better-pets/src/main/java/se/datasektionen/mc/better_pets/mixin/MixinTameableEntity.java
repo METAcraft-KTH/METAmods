@@ -1,5 +1,6 @@
 package se.datasektionen.mc.better_pets.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.Tameable;
@@ -118,5 +119,16 @@ public abstract class MixinTameableEntity extends AnimalEntity implements Tameab
 	@Override
 	public Collection<UUID> metacraft$getTrustedPlayers() {
 		return Collections.unmodifiableSet(trustedPlayers);
+	}
+
+	@ModifyExpressionValue(
+			method = "cannotFollowOwner",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/entity/passive/TameableEntity;getOwner()Lnet/minecraft/entity/LivingEntity;"
+			)
+	)
+	public LivingEntity cannotFollowOwner(LivingEntity original) {
+		return metacraft$getCurrentFollowTarget();
 	}
 }

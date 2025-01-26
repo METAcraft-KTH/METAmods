@@ -5,10 +5,9 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.*;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.nbt.*;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.s2c.play.TeamS2CPacket;
@@ -18,6 +17,7 @@ import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.TypeFilter;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
@@ -306,11 +306,30 @@ public class CutsceneInstance implements AutoCloseable {
 		});
 	}
 
+	private void removeLead(ServerPlayerEntity player) {
+		player.getServerWorld().getEntitiesByType(
+				TypeFilter.instanceOf(Entity.class),
+				entity -> entity instanceof Leashable leashable && leashable.isLeashed() && leashable.getLeashHolder() == player
+		).forEach(entity -> {
+			((Leashable) entity).detachLeashWithoutDrop();
+			if (!player.isCreative()) {
+				var lead = new ItemStack(Items.LEAD);
+				player.getInventory().insertStack(lead);
+				if (!lead.isEmpty()) {
+					var leadEntity = new ItemEntity(player.getWorld(), player.getX(), player.getY(), player.getZ(), lead);
+					leadEntity.setNeverDespawn();
+					player.getWorld().spawnEntity(leadEntity);
+				}
+			}
+		});
+	}
+
 	public void addPlayer(ServerPlayerEntity player) {
 		if (world == null) {
 			Cutscenes.LOGGER.error("Attempted to add player to cutscene before world initialized!");
 			return;
 		}
+		removeLead(player);
 		boolean playerAddedFirstTime = false;
 		if (!savedPlayerData.containsKey(player.getUuid())) {
 			playerAddedFirstTime = true;
