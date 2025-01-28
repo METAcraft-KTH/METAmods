@@ -16,6 +16,7 @@ import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfigType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class SetGameModeTransition implements Transition {
 
@@ -39,9 +40,26 @@ public class SetGameModeTransition implements Transition {
 		this.prevGamemodes = new HashMap<>(prevGamemodes);
 	}
 
+	private void copyPrevGamemodes(Stream<Transition> prevTransitions) {
+		prevTransitions.filter(
+				t -> t instanceof SetGameModeTransition
+		).findAny().ifPresent(
+				t -> prevGamemodes.putAll(((SetGameModeTransition) t).prevGamemodes)
+		);
+	}
+
+	@Override
+	public void copyFromPreviousCutscene(CutsceneInstance prev, CutsceneInstance current, IntervalMap.Interval<Transition> interval) {
+		if (interval.getStart() == 0) {
+			copyPrevGamemodes(prev.getTransitions().getValuesAt(prev.getTransitions().getEnd()));
+		}
+	}
+
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-
+		if (interval.getStart() > 0) {
+			copyPrevGamemodes(cutscene.getTransitions().getValuesAt(interval.getStart()-1));
+		}
 	}
 
 	@Override

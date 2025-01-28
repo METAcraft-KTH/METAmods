@@ -11,6 +11,7 @@ public interface Transition {
 	void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval);
 	void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval);
 	default void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {}
+	default void copyFromPreviousCutscene(CutsceneInstance prev, CutsceneInstance current, IntervalMap.Interval<Transition> interval) {}
 
 	TransitionType<?> getType();
 

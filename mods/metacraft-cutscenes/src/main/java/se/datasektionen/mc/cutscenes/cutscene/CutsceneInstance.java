@@ -214,6 +214,9 @@ public class CutsceneInstance implements AutoCloseable {
 				scene -> {
 					var newScene = new CutsceneInstance(scene, world.getActualWorld());
 					newScene.savedPlayerData.putAll(this.savedPlayerData);
+					newScene.getTransitions().getIntervals().forEach(interval ->
+						interval.getObject().copyFromPreviousCutscene(this, newScene, interval)
+					);
 					return newScene;
 				}
 		);
