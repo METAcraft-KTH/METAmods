@@ -295,10 +295,12 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		}
 	}
 
-	public void removePlayer(ServerPlayerEntity player) {
+	public void removePlayer(ServerPlayerEntity player, boolean isLeavingCutscene) {
 		this.getPlayers().remove(player);
 		entities.onRemovePlayer(player);
-		sendBlocks(player, c -> world.getChunk(c.getPos().x, c.getPos().z, ChunkStatus.FULL, false));
+		if (cutscene.getCutscene().shouldResendChunksBeforeNextCutscene() || getCutscene().skipNextCutscene(isLeavingCutscene)) {
+			sendBlocks(player, c -> world.getChunk(c.getPos().x, c.getPos().z, ChunkStatus.FULL, false));
+		}
 		getChunkManager().cutsceneChunkLoadingManager.removePlayer(player);
 		createWeatherFixPacket(
 				isRaining(), player.getWorld().isRaining(),
@@ -413,10 +415,12 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	public void clear() {
-		if (!this.getPlayers().isEmpty()) {
-			streamChangedBlocks().forEach(pos -> {
-				world.getChunkManager().markForUpdate(pos);
-			});
+		if (cutscene.getCutscene().shouldResendChunksBeforeNextCutscene() || getCutscene().skipNextCutscene(false)) {
+			if (!this.getPlayers().isEmpty()) {
+				streamChangedBlocks().forEach(pos -> {
+					world.getChunkManager().markForUpdate(pos);
+				});
+			}
 		}
 		entities.clear();
 	}

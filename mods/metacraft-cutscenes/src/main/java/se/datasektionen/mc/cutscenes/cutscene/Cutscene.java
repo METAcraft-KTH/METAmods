@@ -29,6 +29,7 @@ public class Cutscene {
 					Codec.BOOL.optionalFieldOf("reset_player_data", true).forGetter(a -> a.resetPlayerData),
 					Codec.BOOL.optionalFieldOf("hide_player", true).forGetter(a -> a.hidePlayer),
 					Codec.BOOL.optionalFieldOf("skippable", true).forGetter(a -> a.skippable),
+					Codec.BOOL.optionalFieldOf("resend_chunks_before_next_cutscene", false).forGetter(a -> a.resendChunksBeforeNextCutscene),
 					ScoreboardMode.CODEC.optionalFieldOf("scoreboard", ScoreboardMode.SYNC).forGetter(a -> a.scoreboardMode),
 					TeleportTransition.SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec().optionalFieldOf("entry_point").forGetter(t -> t.entryPoint),
 					TeleportTransition.SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec().optionalFieldOf("exit_point").forGetter(t -> t.exitPoint),
@@ -43,6 +44,7 @@ public class Cutscene {
 	private boolean resetPlayerData;
 	private boolean hidePlayer;
 	private boolean skippable;
+	private boolean resendChunksBeforeNextCutscene;
 	private ScoreboardMode scoreboardMode;
 	private final Optional<TeleportTransition.SerializableTeleportTarget> entryPoint;
 	private final Optional<TeleportTransition.SerializableTeleportTarget> exitPoint;
@@ -57,7 +59,8 @@ public class Cutscene {
 	public Cutscene(IntervalMap<TransitionConfig> transitions) {
 		this(
 				transitions, false, true,
-				true, true, true, true, ScoreboardMode.SYNC,
+				true, true, true, true,
+				false, ScoreboardMode.SYNC,
 				Optional.empty(), Optional.empty(), Optional.empty()
 		);
 	}
@@ -65,7 +68,7 @@ public class Cutscene {
 	public Cutscene(
 			IntervalMap<TransitionConfig> transitions,
 			boolean createFakePlayer, boolean returnPlayerToStartPos, boolean hideMount,
-			boolean resetPlayerData, boolean hidePlayer, boolean skippable,
+			boolean resetPlayerData, boolean hidePlayer, boolean skippable, boolean resendChunksBeforeNextCutscene,
 			ScoreboardMode scoreboard,
 			Optional<TeleportTransition.SerializableTeleportTarget> entryPoint,
 			Optional<TeleportTransition.SerializableTeleportTarget> exitPoint,
@@ -78,6 +81,7 @@ public class Cutscene {
 		this.resetPlayerData = resetPlayerData;
 		this.hidePlayer = hidePlayer;
 		this.skippable = skippable;
+		this.resendChunksBeforeNextCutscene = resendChunksBeforeNextCutscene;
 		this.entryPoint = entryPoint;
 		this.exitPoint = exitPoint;
 		this.nextCutscene = nextCutscene;
@@ -110,6 +114,10 @@ public class Cutscene {
 
 	public boolean isSkippable() {
 		return skippable;
+	}
+
+	public boolean shouldResendChunksBeforeNextCutscene() {
+		return resendChunksBeforeNextCutscene;
 	}
 
 	public ScoreboardMode getScoreboardMode() {

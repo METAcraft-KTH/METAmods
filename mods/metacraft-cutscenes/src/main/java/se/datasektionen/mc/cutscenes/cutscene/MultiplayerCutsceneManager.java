@@ -173,7 +173,7 @@ public class MultiplayerCutsceneManager extends PersistentState {
 	protected void removeFromCutscene(ServerPlayerEntity player) {
 		var scene = cutsceneByPlayerActive.get(player.getUuid());
 		if (scene != null) {
-			scene.removePlayer(player);
+			scene.removePlayer(player, true);
 			scene.resetPlayer(player, true);
 		}
 		removePlayer(player.getUuid());
@@ -198,7 +198,7 @@ public class MultiplayerCutsceneManager extends PersistentState {
 
 	public void onPlayerLeave(ServerPlayerEntity player) {
 		if (cutsceneByPlayer.containsKey(player.getUuid())) {
-			cutsceneByPlayerActive.get(player.getUuid()).removePlayer(player);
+			cutsceneByPlayerActive.get(player.getUuid()).removePlayer(player, false);
 		}
 	}
 

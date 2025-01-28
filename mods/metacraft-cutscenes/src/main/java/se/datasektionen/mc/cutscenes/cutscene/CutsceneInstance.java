@@ -512,8 +512,8 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 	}
 
-	private boolean goesToNextCutscene(boolean isLeavingCutscene) {
-		return cutscene.getNextCutscene(getServer()).isPresent() && shouldPlayNextCutscene && !isLeavingCutscene;
+	public boolean skipNextCutscene(boolean isLeavingCutscene) {
+		return cutscene.getNextCutscene(getServer()).isEmpty() || !shouldPlayNextCutscene || isLeavingCutscene;
 	}
 
 	protected void resetPlayer(ServerPlayerEntity player, boolean isLeavingCutscene) {
@@ -522,12 +522,12 @@ public class CutsceneInstance implements AutoCloseable {
 			if (data == null) {
 				data = new NbtCompound();
 			}
-			if (!goesToNextCutscene(isLeavingCutscene)) {
+			if (skipNextCutscene(isLeavingCutscene)) {
 				loadPlayerData(player, data, cutscene.returnToStart(), cutscene.getExitPoint(world.getServer(), world.getRegistryKey()));
 			}
 		} else if (cutscene.hasExitPoint()) {
 			player.teleportTo(cutscene.getExitPoint(world.getServer(), world.getRegistryKey()).orElseThrow());
-		} else if (cutscene.returnToStart() && !goesToNextCutscene(isLeavingCutscene)) {
+		} else if (cutscene.returnToStart() && skipNextCutscene(isLeavingCutscene)) {
 			if (!savedPlayerData.containsKey(player.getUuid())) return;
 			var data = savedPlayerData.get(player.getUuid());
 			NbtList pos = data.getList("Pos", NbtCompound.DOUBLE_TYPE);
@@ -547,14 +547,14 @@ public class CutsceneInstance implements AutoCloseable {
 				player.teleportTo(player.getRespawnTarget(true, TeleportTarget.NO_OP));
 			});
 		}
-		if (!goesToNextCutscene(isLeavingCutscene)) {
+		if (skipNextCutscene(isLeavingCutscene)) {
 			savedPlayerData.remove(player.getUuid());
 		}
 	}
 
 	public void resetPlayers() {
 		forAllPlayers(p -> {
-			removePlayer(p);
+			removePlayer(p, false);
 			resetPlayer(p, false);
 		});
 	}
@@ -565,11 +565,11 @@ public class CutsceneInstance implements AutoCloseable {
 		});
 	}
 
-	public void removePlayer(ServerPlayerEntity player) {
+	public void removePlayer(ServerPlayerEntity player, boolean isLeavingCutscene) {
 		disableTransitions(player);
 		modificationQueue.add(new QueueEntry(player, QueueEntry.Operation.REMOVE));
 		if (world != null) {
-			world.removePlayer(player);
+			world.removePlayer(player, isLeavingCutscene);
 		}
 
 		if (cutscene.hidePlayer()) {

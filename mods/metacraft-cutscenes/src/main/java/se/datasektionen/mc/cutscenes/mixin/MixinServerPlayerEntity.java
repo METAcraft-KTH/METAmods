@@ -179,7 +179,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	public void copyFrom(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo ci) {
 		this.cutscene = ((MixinServerPlayerEntity) (Object) oldPlayer).cutscene;
 		if (cutscene != null) {
-			cutscene.removePlayer(oldPlayer);
+			cutscene.removePlayer(oldPlayer, false);
 			cutscene.addPlayer((ServerPlayerEntity) (Object) this);
 		}
 	}
