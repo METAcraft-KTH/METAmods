@@ -1,6 +1,5 @@
 package se.datasektionen.mc.cutscenes.transitions.entity;
 
-import com.mojang.datafixers.Products;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -11,6 +10,7 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.random.Random;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
@@ -26,50 +26,24 @@ import java.util.Optional;
 
 public abstract class DropItem extends InstantTransition {
 
-	protected static <P extends DropItem> Products.P5<RecordCodecBuilder.Mu<P>, EntityRef, String, Optional<Vec3d>, Float, Float> fillDropItemFields(
-			RecordCodecBuilder.Instance<P> instance
-	) {
-		return instance.group(
-				EntityRefRegistry.CODEC.fieldOf("entity").forGetter(t -> t.entity),
-				Codec.STRING.fieldOf("new_id").forGetter(t -> t.newID),
-				Vec3d.CODEC.optionalFieldOf("offset").forGetter(t -> t.offset),
-				Codec.FLOAT.optionalFieldOf("yaw_offset", 0.0f).forGetter(t -> t.yawOffset),
-				Codec.FLOAT.optionalFieldOf("pitch_offset", 0.0f).forGetter(t -> t.pitchOffset)
-		);
+	protected final GeneralSettings settings;
+
+	public DropItem(GeneralSettings settings) {
+		this.settings = settings;
 	}
 
-	protected final EntityRef entity;
-	protected final String newID;
-	protected final Optional<Vec3d> offset;
-	protected final float yawOffset;
-	protected final float pitchOffset;
-
-	public DropItem(
-			EntityRef entity,
-			String newID,
-			Optional<Vec3d> offset,
-			float yawOffset,
-			float pitchOffset
-	) {
-		this.entity = entity;
-		this.newID = newID;
-		this.offset = offset;
-		this.yawOffset = yawOffset;
-		this.pitchOffset = pitchOffset;
-	}
-
-	public static void setThrowVelocity(Entity thrower, float yawOffset, float pitchOffset, ItemEntity itemEntity) {
+	public static void setThrowVelocity(Entity thrower, float yawOffset, float pitchOffset, ItemEntity itemEntity, Random random) {
 		float yaw = thrower.getYaw() + yawOffset;
 		float pitch = thrower.getPitch() + pitchOffset;
 		float g = MathHelper.sin(pitch * ((float)Math.PI / 180F));
 		float h = MathHelper.cos(pitch * ((float)Math.PI / 180F));
 		float i = MathHelper.sin(yaw * ((float)Math.PI / 180F));
 		float j = MathHelper.cos(yaw * ((float)Math.PI / 180F));
-		float k = thrower.getRandom().nextFloat() * ((float)Math.PI * 2F);
-		float l = 0.02F * thrower.getRandom().nextFloat();
+		float k = random.nextFloat() * ((float)Math.PI * 2F);
+		float l = 0.02F * random.nextFloat();
 		itemEntity.setVelocity(
 				(double)(-i * h * 0.3F) + Math.cos(k) * (double)l,
-				-g * 0.3F + 0.1F + (thrower.getRandom().nextFloat() - thrower.getRandom().nextFloat()) * 0.1F,
+				-g * 0.3F + 0.1F + (random.nextFloat() - random.nextFloat()) * 0.1F,
 				(double)(j * h * 0.3F) + Math.sin(k) * (double)l
 		);
 	}
@@ -78,8 +52,8 @@ public abstract class DropItem extends InstantTransition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		entity.get(null, cutscene).forEach(entity -> {
-			Vec3d pos = this.offset.map(offset -> new Vec3d(
+		settings.entity.get(null, cutscene).forEach(entity -> {
+			Vec3d pos = settings.offset.map(offset -> new Vec3d(
 					entity.getX() + offset.x, entity.getY() + offset.y, entity.getZ() + offset.z
 			)).orElse(new Vec3d(entity.getX(), entity.getEyeY() - 0.3, entity.getZ()));
 			var stack = getItemToDrop(cutscene, interval, entity);
@@ -87,16 +61,37 @@ public abstract class DropItem extends InstantTransition {
 				var item = new ItemEntity(entity.getWorld(), pos.x, pos.y, pos.z, stack);
 				item.setThrower(entity);
 				item.setPickupDelay(40);
-				setThrowVelocity(entity, yawOffset, pitchOffset, item);
-				cutscene.getCutsceneWorld().addEntity(newID, item);
+				setThrowVelocity(entity, settings.yawOffset, settings.pitchOffset, item, settings.randomSeed.map(Random::create).orElse(entity.getRandom()));
+				cutscene.getCutsceneWorld().addEntity(settings.newID, item);
 			}
 		});
+	}
+
+	public record GeneralSettings(
+			EntityRef entity,
+			String newID,
+			Optional<Vec3d> offset,
+			float yawOffset,
+			float pitchOffset,
+			Optional<Long> randomSeed
+	) {
+		public static final MapCodec<GeneralSettings> CODEC = RecordCodecBuilder.mapCodec(
+				instance -> instance.group(
+						EntityRefRegistry.CODEC.fieldOf("entity").forGetter(t -> t.entity),
+						Codec.STRING.fieldOf("new_id").forGetter(t -> t.newID),
+						Vec3d.CODEC.optionalFieldOf("offset").forGetter(t -> t.offset),
+						Codec.FLOAT.optionalFieldOf("yaw_offset", 0.0f).forGetter(t -> t.yawOffset),
+						Codec.FLOAT.optionalFieldOf("pitch_offset", 0.0f).forGetter(t -> t.pitchOffset),
+						Codec.LONG.optionalFieldOf("random_seed").forGetter(t -> t.randomSeed)
+				).apply(instance, GeneralSettings::new)
+		);
 	}
 
 	public static class DropSpecificStack extends DropItem {
 
 		public static final MapCodec<DropSpecificStack> CODEC = RecordCodecBuilder.mapCodec(
-				instance -> fillDropItemFields(instance).and(
+				instance -> instance.group(
+						GeneralSettings.CODEC.forGetter(t -> t.settings),
 						ItemStack.CODEC.fieldOf("item").forGetter(t -> t.item)
 				).apply(instance, DropSpecificStack::new)
 		);
@@ -104,13 +99,10 @@ public abstract class DropItem extends InstantTransition {
 		private final ItemStack item;
 
 		public DropSpecificStack(
-				EntityRef entity, String newID,
-				Optional<Vec3d> offset,
-				float yawOffset,
-				float pitchOffset,
+				GeneralSettings settings,
 				ItemStack item
 		) {
-			super(entity, newID, offset, yawOffset, pitchOffset);
+			super(settings);
 			this.item = item;
 		}
 
@@ -133,11 +125,10 @@ public abstract class DropItem extends InstantTransition {
 	public static class DropFromSlot extends DropItem {
 
 		public static final MapCodec<DropFromSlot> CODEC = RecordCodecBuilder.mapCodec(
-				instance -> fillDropItemFields(instance).and(
-						EquipmentSlot.CODEC.fieldOf("slot").forGetter(t -> t.slot)
-				).and(
-						Codec.INT.optionalFieldOf("amount", 1).forGetter(t -> t.amountToDrop)
-				).and(
+				instance -> instance.group(
+						GeneralSettings.CODEC.forGetter(t -> t.settings),
+						EquipmentSlot.CODEC.fieldOf("slot").forGetter(t -> t.slot),
+						Codec.INT.optionalFieldOf("amount", 1).forGetter(t -> t.amountToDrop),
 						Codec.BOOL.optionalFieldOf("remove_from_slot", true).forGetter(t -> t.removeFromSlot)
 				).apply(instance, DropFromSlot::new)
 		);
@@ -147,13 +138,10 @@ public abstract class DropItem extends InstantTransition {
 		private final boolean removeFromSlot;
 
 		public DropFromSlot(
-				EntityRef entity, String newID,
-				Optional<Vec3d> offset,
-				float yawOffset,
-				float pitchOffset,
+				GeneralSettings settings,
 				EquipmentSlot slot, int amountToDrop, boolean removeFromSlot
 		) {
-			super(entity, newID, offset, yawOffset, pitchOffset);
+			super(settings);
 			this.slot = slot;
 			this.amountToDrop = amountToDrop;
 			this.removeFromSlot = removeFromSlot;
