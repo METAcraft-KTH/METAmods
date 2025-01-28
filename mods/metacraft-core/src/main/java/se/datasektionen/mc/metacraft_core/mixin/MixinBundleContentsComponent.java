@@ -9,6 +9,7 @@ import org.apache.commons.lang3.math.Fraction;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_core.extensions.BundlesComponentExtensions;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorBundleContentsComponent;
@@ -58,9 +59,12 @@ public abstract class MixinBundleContentsComponent implements BundlesComponentEx
 	}
 
 	@Mixin(BundleContentsComponent.Builder.class)
-	public static class Builder implements Internal {
+	public static abstract class Builder implements Internal {
 		@Shadow private Fraction occupancy;
 		@Shadow @Final private List<ItemStack> stacks;
+
+		@Shadow public abstract int add(ItemStack stack);
+
 		@Unique
 		private Fraction bundleSizeFactor;
 
@@ -96,5 +100,38 @@ public abstract class MixinBundleContentsComponent implements BundlesComponentEx
 		public Fraction METAcraft_Fixes$getBundleSizeFactor() {
 			return bundleSizeFactor;
 		}
+
+		@ModifyExpressionValue(
+			method = "getInsertionIndex",
+			at = @At(
+				value = "INVOKE",
+				target = "Lnet/minecraft/item/ItemStack;areItemsAndComponentsEqual(Lnet/minecraft/item/ItemStack;Lnet/minecraft/item/ItemStack;)Z"
+			)
+		)
+		public boolean getInsertionIndex(boolean original, @Local int i) {
+			var s = this.stacks.get(i);
+			if (s.getCount() >= s.getMaxCount()) {
+				return false;
+			}
+			return original;
+		}
+
+		@ModifyArg(
+			method = "add(Lnet/minecraft/item/ItemStack;)I",
+			at = @At(
+				value = "INVOKE",
+				target = "Lnet/minecraft/item/ItemStack;copyWithCount(I)Lnet/minecraft/item/ItemStack;"
+			)
+		)
+		public int add(
+				int total, @Local(ordinal = 1) ItemStack itemStack
+		) {
+			if (total > itemStack.getMaxCount()) {
+				stacks.addFirst(itemStack.copyWithCount(itemStack.getMaxCount()));
+				return total - itemStack.getMaxCount();
+			}
+			return total;
+		}
+
 	}
 }
