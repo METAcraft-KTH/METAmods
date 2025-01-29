@@ -14,8 +14,10 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.world.chunk.light.LightStorage;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.mixin.*;
+import se.datasektionen.mc.cutscenes.util.helper.LightingHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.WorldHelper;
 
 import java.util.Optional;
@@ -127,14 +129,17 @@ public class CutsceneChunkManager extends ServerChunkManager {
 
 	public boolean isLightingCached(int x, int z) {
 		if (isInCache(x, z)) return true;
-		for (int xOff = -1; xOff <= 1; xOff++) {
-			for (int zOff = -1; zOff <= 1; zOff++) {
-				if (isInCache(x+xOff, z+zOff)) {
-					return true;
-				}
+		for (int i = 0; i < cutsceneWorld.countVerticalSections(); i++) {
+			int y = cutsceneWorld.sectionIndexToCoord(i);
+			long pos = ChunkSectionPos.asLong(x, y, z);
+			if (LightingHelper.getBlockLightProvider(getLightingProvider()).getStatus(pos) != LightStorage.Status.LIGHT_AND_DATA) {
+				return false;
+			}
+			if (LightingHelper.getSkyLightProvider(getLightingProvider()).getStatus(pos) != LightStorage.Status.LIGHT_AND_DATA) {
+				return false;
 			}
 		}
-		return false;
+		return true;
 	}
 
 	public Optional<WorldChunk> getChunkFromCacheIfPresent(int x, int z) {
