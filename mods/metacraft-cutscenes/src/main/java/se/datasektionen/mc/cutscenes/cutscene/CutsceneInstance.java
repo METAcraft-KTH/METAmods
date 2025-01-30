@@ -206,6 +206,10 @@ public class CutsceneInstance implements AutoCloseable {
 		shouldPlayNextCutscene = playNextScene;
 		world.clear();
 		removeCutscene();
+		getCutscene().getFinishCommand().ifPresent(command -> {
+			var source = getServer().getCommandFunctionManager().getScheduledCommandSource();
+			getServer().getCommandManager().executeWithPrefix(source, command);
+		});
 	}
 
 	public Optional<CutsceneInstance> createNextCutscene() {

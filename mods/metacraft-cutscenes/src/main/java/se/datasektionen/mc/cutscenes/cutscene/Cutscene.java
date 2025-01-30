@@ -31,6 +31,7 @@ public class Cutscene {
 					Codec.BOOL.optionalFieldOf("skippable", true).forGetter(a -> a.skippable),
 					Codec.BOOL.optionalFieldOf("resend_chunks_before_next_cutscene", false).forGetter(a -> a.resendChunksBeforeNextCutscene),
 					ScoreboardMode.CODEC.optionalFieldOf("scoreboard", ScoreboardMode.SYNC).forGetter(a -> a.scoreboardMode),
+					Codec.STRING.optionalFieldOf("finish_command").forGetter(t -> t.finishCommand),
 					TeleportTransition.SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec().optionalFieldOf("entry_point").forGetter(t -> t.entryPoint),
 					TeleportTransition.SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec().optionalFieldOf("exit_point").forGetter(t -> t.exitPoint),
 					Codec.STRING.optionalFieldOf("next_cutscene").forGetter(t -> t.nextCutscene)
@@ -46,6 +47,7 @@ public class Cutscene {
 	private boolean skippable;
 	private boolean resendChunksBeforeNextCutscene;
 	private ScoreboardMode scoreboardMode;
+	private final Optional<String> finishCommand;
 	private final Optional<TeleportTransition.SerializableTeleportTarget> entryPoint;
 	private final Optional<TeleportTransition.SerializableTeleportTarget> exitPoint;
 	private final Optional<String> nextCutscene;
@@ -60,7 +62,7 @@ public class Cutscene {
 		this(
 				transitions, false, true,
 				true, true, true, true,
-				false, ScoreboardMode.SYNC,
+				false, ScoreboardMode.SYNC, Optional.empty(),
 				Optional.empty(), Optional.empty(), Optional.empty()
 		);
 	}
@@ -70,6 +72,7 @@ public class Cutscene {
 			boolean createFakePlayer, boolean returnPlayerToStartPos, boolean hideMount,
 			boolean resetPlayerData, boolean hidePlayer, boolean skippable, boolean resendChunksBeforeNextCutscene,
 			ScoreboardMode scoreboard,
+			Optional<String> finishCommand,
 			Optional<TeleportTransition.SerializableTeleportTarget> entryPoint,
 			Optional<TeleportTransition.SerializableTeleportTarget> exitPoint,
 			Optional<String> nextCutscene
@@ -86,6 +89,7 @@ public class Cutscene {
 		this.exitPoint = exitPoint;
 		this.nextCutscene = nextCutscene;
 		this.scoreboardMode = scoreboard;
+		this.finishCommand = finishCommand;
 	}
 
 	public IntervalMap<Transition> createTransitions() {
@@ -129,6 +133,10 @@ public class Cutscene {
 			cachedNextCutscene = nextCutscene.flatMap(CutscenesConfig.getOrCreateConfig(server)::getCutscene);
 		}
 		return cachedNextCutscene;
+	}
+
+	public Optional<String> getFinishCommand() {
+		return finishCommand;
 	}
 
 	public Optional<TeleportTarget> getEntryPoint(MinecraftServer server, RegistryKey<World> cutsceneDim) {
