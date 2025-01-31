@@ -97,10 +97,17 @@ public class CutsceneTests {
 		CutsceneHelper.playPlayerSpecificCutscene(data.player, cutscene);
 		return data;
 	}
-
 	private static void checkData(
 			TestContext ctx, Data data, boolean shouldKeepStack,
 			boolean shouldPigStayMounted, boolean shouldMaintainPos
+	) {
+		checkData(ctx, data, shouldKeepStack, shouldPigStayMounted, shouldMaintainPos, true);
+	}
+
+	private static void checkData(
+			TestContext ctx, Data data, boolean shouldKeepStack,
+			boolean shouldPigStayMounted, boolean shouldMaintainPos,
+			boolean isDone
 	) {
 		boolean itemIsStillHere = ItemStack.areEqual(data.stack, data.player.getInventory().getStack(data.slot));
 		var pig = ctx.getWorld().getEntity(data.pig);
@@ -131,7 +138,9 @@ public class CutsceneTests {
 			ctx.throwGameTestException("Player was not returned to the right position when they should have!");
 		}
 
-		ctx.complete();
+		if (isDone) {
+			ctx.complete();
+		}
 	}
 
 	@Test
@@ -209,32 +218,42 @@ public class CutsceneTests {
 						}),
 						new TestFunction(
 								"cutscenes", "preserve_but_player_leaves",
-								"empty", 5, 5,
+								"empty", 6, 6,
 								true, context -> {
 							var data = prepare(context);
 							var manager = MultiplayerCutsceneManager.getInstance(context.getWorld().getServer());
-							manager.addCutscene("test", preservePlayer2, context.getWorld());
-							manager.addToCutscene("test", data.player);
+							String name = "test";
+							manager.addCutscene(name, preservePlayer2, context.getWorld());
+							manager.addToCutscene(name, data.player);
 							context.runAtTick(5, () -> {
 								manager.leaveCutscene(data.player);
-								checkData(context, data, true, true, true);
+								checkData(context, data, true, true, true, false);
+							});
+							context.runAtTick(6, () -> {
+								manager.endCutscene(name); //Cleanup
+								context.complete();
 							});
 						}),
 						new TestFunction(
 								"cutscenes", "preserve_but_player_leaves_2",
-								"empty", 15, 15,
+								"empty", 16, 16,
 								true, context -> {
 							var data = prepare(context);
 							var manager = MultiplayerCutsceneManager.getInstance(context.getWorld().getServer());
-							manager.addCutscene("test2", preservePlayer2, context.getWorld());
-							manager.addToCutscene("test2", data.player);
+							String name = "test2";
+							manager.addCutscene(name, preservePlayer2, context.getWorld());
+							manager.addToCutscene(name, data.player);
 							context.runAtTick(15, () -> {
 								manager.leaveCutscene(data.player);
-								checkData(context, data, true, true, true);
+								checkData(context, data, true, true, true, false);
+							});
+							context.runAtTick(16, () -> {
+								manager.endCutscene(name); //Cleanup
+								context.complete();
 							});
 						}),
 						new TestFunction(
-								"cutscenes", "preserve_but_player_disconnects_and_rejoins",
+								"cutscenes", "preserve_but_player_disconnects_and_rejoins_while_scene_ticks",
 								"empty", 23, 23,
 								true, context -> {
 							String name = "mock-rejoiner";
@@ -244,6 +263,12 @@ public class CutsceneTests {
 							var manager = MultiplayerCutsceneManager.getInstance(context.getWorld().getServer());
 							manager.addCutscene(sceneName, preservePlayer2, context.getWorld());
 							manager.addToCutscene(sceneName, data.getValue().player);
+
+							UUID uuid2 = UUID.randomUUID();
+							MutableObject<ServerPlayerEntity> extraPlayer = new MutableObject<>(TestHelper.addMockPlayer(context, name, uuid2));
+							manager.addToCutscene(sceneName, extraPlayer.getValue());
+
+
 							context.runAtTick(5, () -> {
 								data.getValue().player.networkHandler.disconnect(Text.empty());
 							});
@@ -255,9 +280,27 @@ public class CutsceneTests {
 									context.throwGameTestException("Player was restored too early!");
 								}
 							});
-							context.runAtTick(23, () -> {
-								checkData(context, data.getValue(), true, true, true);
+
+							context.runAtTick(8, () -> {
+								data.getValue().player.networkHandler.disconnect(Text.empty());
 							});
+
+							context.runAtTick(13, () -> {
+								data.setValue(data.getValue().withPlayer(TestHelper.addMockPlayer(context, name, uuid)));
+							});
+							context.runAtTick(14, () -> {
+								if (ItemStack.areEqual(data.getValue().stack, data.getValue().player.getInventory().getStack(data.getValue().slot))) {
+									context.throwGameTestException("Player was restored too early!");
+								}
+							});
+
+
+
+							context.runAtTick(22, () -> {
+								checkData(context, data.getValue(), true, true, true, false);
+							});
+
+							context.runAtTick(23, context::complete); //Cleanup
 						}),
 						new TestFunction(
 								"cutscenes", "preserve_but_player_disconnects_and_rejoins_after_end",
@@ -271,9 +314,11 @@ public class CutsceneTests {
 							var manager = MultiplayerCutsceneManager.getInstance(context.getWorld().getServer());
 							manager.addCutscene(sceneName, preservePlayer2, context.getWorld());
 							manager.addToCutscene(sceneName, data.getValue().player);
+
 							MutableObject<ServerPlayerEntity> extraPlayer = new MutableObject<>(TestHelper.addMockPlayer(context, name, uuid2));
 							extraPlayer.getValue().getInventory().insertStack(2, new ItemStack(Items.DIAMOND, 64));
-							manager.addToCutscene(sceneName, data.getValue().player);
+							manager.addToCutscene(sceneName, extraPlayer.getValue());
+
 							context.runAtTick(5, () -> {
 								data.getValue().player.networkHandler.disconnect(Text.empty());
 								extraPlayer.getValue().networkHandler.disconnect(Text.empty());
@@ -290,6 +335,37 @@ public class CutsceneTests {
 							});
 
 							context.runAtTick(8, () -> {
+								checkData(context, data.getValue(), true, true, true);
+							});
+						}),
+						new TestFunction(
+								"cutscenes", "preserve_but_player_disconnects_and_rejoins_while_paused",
+								"empty", 23, 23,
+								true, context -> {
+							String name = "mock-rejoiner";
+							UUID uuid = UUID.randomUUID();
+							String sceneName = "test5";
+							MutableObject<Data> data = new MutableObject<>(prepare(context, TestHelper.addMockPlayer(context, name, uuid)));
+							var manager = MultiplayerCutsceneManager.getInstance(context.getWorld().getServer());
+							manager.addCutscene(sceneName, preservePlayer2, context.getWorld());
+							manager.addToCutscene(sceneName, data.getValue().player);
+
+
+							context.runAtTick(5, () -> {
+								data.getValue().player.networkHandler.disconnect(Text.empty());
+							});
+							context.runAtTick(6, () -> {
+								data.setValue(data.getValue().withPlayer(TestHelper.addMockPlayer(context, name, uuid)));
+							});
+							context.runAtTick(7, () -> {
+								if (ItemStack.areEqual(data.getValue().stack, data.getValue().player.getInventory().getStack(data.getValue().slot))) {
+									context.throwGameTestException("Player was restored too early!");
+								}
+							});
+
+
+
+							context.runAtTick(23, () -> {
 								checkData(context, data.getValue(), true, true, true);
 							});
 						})
