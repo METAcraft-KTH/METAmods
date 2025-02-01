@@ -1,0 +1,25 @@
+{
+	"parent": "minecraft:recipes/root",
+	"criteria": {
+		"has_the_recipe": {
+			"conditions": {
+				"recipe": "metacraft:campus_lodestone"
+			},
+			"trigger": "minecraft:recipe_unlocked"
+		},
+		"trigger_always": {
+			"trigger": "minecraft:tick"
+		}
+	},
+	"requirements": [
+		[
+			"has_the_recipe",
+			"trigger_always"
+		]
+	],
+	"rewards": {
+		"recipes": [
+			"metacraft:campus_lodestone"
+		]
+	}
+}
