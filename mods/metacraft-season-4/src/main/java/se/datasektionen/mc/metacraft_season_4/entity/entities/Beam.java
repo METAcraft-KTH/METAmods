@@ -89,8 +89,11 @@ public class Beam extends Entity implements PolymerEntity {
 
 	@Override
 	public void setPosition(double x, double y, double z) {
+		boolean shouldUpdate = getX() != x || getY() != y || getZ() != z;
 		super.setPosition(x, y, z);
-		updateTransformation();
+		if (shouldUpdate) {
+			updateTransformation();
+		}
 	}
 
 	@Override
