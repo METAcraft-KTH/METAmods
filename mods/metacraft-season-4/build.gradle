@@ -16,4 +16,5 @@ fabricApi {
 
 dependencies {
 	modCompileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
+	modImplementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 }

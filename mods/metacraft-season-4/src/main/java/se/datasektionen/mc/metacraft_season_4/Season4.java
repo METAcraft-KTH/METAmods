@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_season_4.block.Season4Blocks;
 import se.datasektionen.mc.metacraft_season_4.compat.CompatInitS4;
+import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
 import se.datasektionen.mc.metacraft_season_4.item.Season4Items;
 
 public class Season4 implements ModInitializer {
@@ -18,6 +19,7 @@ public class Season4 implements ModInitializer {
 	public void onInitialize() {
 		Season4Blocks.init();
 		Season4Items.init();
+		Season4Entities.init();
 		Commands.init();
 		CompatInitS4.init();
 	}

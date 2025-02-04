@@ -15,7 +15,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.decoration.Brightness;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
@@ -33,6 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
+import se.datasektionen.mc.metacraft_core.util.DisplayEntityData;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorStructureTemplate;
 import xyz.nucleoid.packettweaker.PacketContext;
 
@@ -49,19 +49,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 	private final List<Display> displays = new ArrayList<>();
 	private List<DisplayRider> riderSlots = new ArrayList<>();
 
-	private int interpolationDuration = 1;
-	private int startInterpolation = -1;
-	private int teleportDuration = 1;
-	private AffineTransformation transformation = AffineTransformation.identity();
-
-	private DisplayEntity.BillboardMode billboardMode = DisplayEntity.BillboardMode.FIXED;
-	private Brightness brightness = null;
-	private float viewRange = 1;
-	private float shadowRadius = 0;
-	private float shadowStrength = 1;
-	private float width = 0;
-	private float height = 0;
-	private int glowColourOverride = -1;
+	private final DisplayEntityData data = new DisplayEntityData();
 
 	private Identifier structureID;
 	private StructureTemplate structure = new StructureTemplate();
@@ -78,53 +66,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 	@Override
 	protected void readCustomDataFromNbt(NbtCompound nbt) {
 		boolean shouldFixDisplays = true;
-		if (nbt.contains(DisplayEntity.START_INTERPOLATION_KEY)) {
-			startInterpolation = nbt.getInt(DisplayEntity.START_INTERPOLATION_KEY);
-		}
-		if (nbt.contains(DisplayEntity.INTERPOLATION_DURATION_KEY)) {
-			interpolationDuration = nbt.getInt(DisplayEntity.INTERPOLATION_DURATION_KEY);
-		}
-		if (nbt.contains(DisplayEntity.TELEPORT_DURATION_KEY)) {
-			teleportDuration = nbt.getInt(DisplayEntity.TELEPORT_DURATION_KEY);
-		}
-		if (nbt.contains(DisplayEntity.TRANSFORMATION_NBT_KEY)) {
-			var res = AffineTransformation.ANY_CODEC.parse(NbtOps.INSTANCE, nbt.get(DisplayEntity.TRANSFORMATION_NBT_KEY)).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			);
-			res.ifPresent(affineTransformation -> this.transformation = affineTransformation);
-		}
-		if (nbt.contains(DisplayEntity.BILLBOARD_NBT_KEY)) {
-			var b = DisplayEntity.BillboardMode.CODEC.parse(NbtOps.INSTANCE, nbt.get(DisplayEntity.BILLBOARD_NBT_KEY)).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			);
-			b.ifPresent(mode -> billboardMode = mode);
-		}
-		if (nbt.contains(DisplayEntity.BRIGHTNESS_NBT_KEY)) {
-			var b = Brightness.CODEC.parse(NbtOps.INSTANCE, nbt.get(DisplayEntity.BRIGHTNESS_NBT_KEY)).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			);
-			b.ifPresent(value -> brightness = value);
-		} else {
-			brightness = null;
-		}
-		if (nbt.contains(DisplayEntity.VIEW_RANGE_NBT_KEY)) {
-			viewRange = nbt.getFloat(DisplayEntity.VIEW_RANGE_NBT_KEY);
-		}
-		if (nbt.contains(DisplayEntity.SHADOW_RADIUS_NBT_KEY)) {
-			shadowRadius = nbt.getFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY);
-		}
-		if (nbt.contains(DisplayEntity.SHADOW_STRENGTH_NBT_KEY)) {
-			shadowStrength = nbt.getFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY);
-		}
-		if (nbt.contains(DisplayEntity.WIDTH_NBT_KEY)) {
-			width = nbt.getFloat(DisplayEntity.WIDTH_NBT_KEY);
-		}
-		if (nbt.contains(DisplayEntity.HEIGHT_NBT_KEY)) {
-			height = nbt.getFloat(DisplayEntity.HEIGHT_NBT_KEY);
-		}
-		if (nbt.contains(DisplayEntity.GLOW_COLOR_OVERRIDE_NBT_KEY)) {
-			glowColourOverride = nbt.getInt(DisplayEntity.GLOW_COLOR_OVERRIDE_NBT_KEY);
-		}
+		data.load(nbt, this);
 
 
 		if (nbt.contains(STRUCTURE, NbtElement.STRING_TYPE)) {
@@ -165,26 +107,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		} else {
 			nbt.put(STRUCTURE, structure.writeNbt(new NbtCompound()));
 		}
-		nbt.putInt(DisplayEntity.START_INTERPOLATION_KEY, startInterpolation);
-		nbt.putInt(DisplayEntity.INTERPOLATION_DURATION_KEY, interpolationDuration);
-		nbt.putInt(DisplayEntity.TELEPORT_DURATION_KEY, teleportDuration);
-		DisplayEntity.BillboardMode.CODEC.encodeStart(NbtOps.INSTANCE, billboardMode).resultOrPartial(
-				METAcraftCore.LOGGER::error
-		).ifPresent(b -> nbt.put(DisplayEntity.BILLBOARD_NBT_KEY, b));
-		if (brightness != null) {
-			Brightness.CODEC.encodeStart(NbtOps.INSTANCE, brightness).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(brightness -> nbt.put(DisplayEntity.BRIGHTNESS_NBT_KEY, brightness));
-		}
-		nbt.putFloat(DisplayEntity.VIEW_RANGE_NBT_KEY, viewRange);
-		nbt.putFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY, shadowRadius);
-		nbt.putFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY, shadowStrength);
-		nbt.putFloat(DisplayEntity.WIDTH_NBT_KEY, width);
-		nbt.putFloat(DisplayEntity.HEIGHT_NBT_KEY, height);
-		nbt.putInt(DisplayEntity.GLOW_COLOR_OVERRIDE_NBT_KEY, glowColourOverride);
-		AffineTransformation.ANY_CODEC.encodeStart(NbtOps.INSTANCE, transformation).resultOrPartial(
-				METAcraftCore.LOGGER::error
-		).ifPresent(t -> nbt.put(DisplayEntity.TRANSFORMATION_NBT_KEY, t));
+		data.save(nbt, this);
 		if (!riderSlots.isEmpty()) {
 			DisplayRider.LIST_CODEC.encodeStart(
 					getRegistryManager().getOps(NbtOps.INSTANCE),
@@ -300,29 +223,18 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 
 	private void refreshDisplayValues() {
 		for (var display : displays) {
-			display.displayElement.setInterpolationDuration(interpolationDuration);
-			display.displayElement.setTeleportDuration(teleportDuration);
-			display.displayElement.setStartInterpolation(startInterpolation);
-			display.applyTransformation(transformation);
-			display.displayElement.setBillboardMode(billboardMode);
-			display.displayElement.setBrightness(brightness);
-			display.displayElement.setViewRange(viewRange);
-			display.displayElement.setShadowRadius(shadowRadius);
-			display.displayElement.setShadowStrength(shadowStrength);
-			display.displayElement.setDisplayWidth(width);
-			display.displayElement.setDisplayHeight(height);
-			display.displayElement.setGlowing(this.isGlowing());
-			display.displayElement.setGlowColorOverride(glowColourOverride);
+			data.applySettings(display.displayElement);
+			display.applyTransformation(data.getTransformation());
 		}
 		if (getWorld() instanceof ServerWorld) {
 			for (var display : riderSlots) {
 				var world = (ServerWorld) getWorld();
 				var disp = display.getDisplay(world);
 				if (disp == null) continue;
-				disp.setInterpolationDuration(interpolationDuration);
-				disp.setTeleportDuration(teleportDuration);
-				disp.setStartInterpolation(startInterpolation);
-				display.applyTransformation(transformation, world);
+				disp.setInterpolationDuration(data.getInterpolationDuration());
+				disp.setTeleportDuration(data.getTeleportDuration());
+				disp.setStartInterpolation(data.getStartInterpolation());
+				display.applyTransformation(data.getTransformation(), world);
 			}
 		}
 		updateOffsets();
@@ -394,9 +306,9 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		Vector3d newOffset = new Vector3d(offset.x, offset.y, offset.z);
 		var transformation = new AffineTransformation(
 				null,
-				entity.transformation.getLeftRotation(),
-				entity.transformation.getScale(),
-				entity.transformation.getRightRotation()
+				entity.data.getTransformation().getLeftRotation(),
+				entity.data.getTransformation().getScale(),
+				entity.data.getTransformation().getRightRotation()
 		);
 		mat.mul(transformation.getMatrix());
 		newOffset.mulPosition(mat);
