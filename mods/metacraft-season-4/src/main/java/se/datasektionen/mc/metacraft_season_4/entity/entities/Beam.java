@@ -23,6 +23,7 @@ import se.datasektionen.mc.metacraft_core.util.DisplayEntityData;
 import se.datasektionen.mc.metacraft_season_4.Season4;
 import xyz.nucleoid.packettweaker.PacketContext;
 
+import java.util.Objects;
 import java.util.Set;
 
 public class Beam extends Entity implements PolymerEntity {
@@ -36,6 +37,7 @@ public class Beam extends Entity implements PolymerEntity {
 	private final ItemDisplayElement laserItemDisplay = new ItemDisplayElement();
 
 	private int interpolationTicks = -1;
+	private int offsetInterpolationTicks = -1;
 	private Vec3d currentOffset;
 
 	private final DisplayEntityData.Item data = new DisplayEntityData.Item();
@@ -67,23 +69,22 @@ public class Beam extends Entity implements PolymerEntity {
 	}
 
 	public void setTarget(Vec3d target) {
-		this.prevTarget = this.target;
+		if (Objects.equals(target, this.target)) return;
+		if (interpolationTicks != -1) {
+			prevTarget = getTarget();
+		} else {
+			this.prevTarget = this.target;
+		}
 		this.target = target;
-		if (target != prevTarget) {
-			if (currentOffset != null) {
-				currentOffset = getCurrentOffset();
-			}
+		if (data.getInterpolationDuration() > 0) {
 			interpolationTicks = 0;
 		}
-	}
-
-	private float getDelta() {
-		return (float) interpolationTicks / data.getInterpolationDuration();
+		updateTransformation();
 	}
 
 	private Vec3d getTarget() {
 		if (prevTarget == null) return target;
-		float delta = getDelta();
+		float delta = (float) interpolationTicks / data.getInterpolationDuration();
 		float invDelta = 1 - delta;
 		if (delta <= 0) {
 			return prevTarget;
@@ -101,7 +102,7 @@ public class Beam extends Entity implements PolymerEntity {
 
 	private Vec3d getCurrentOffset() {
 		if (currentOffset == null) return Vec3d.ZERO;
-		var invDelta = 1 - getDelta();
+		var invDelta = 1 - (float) offsetInterpolationTicks / data.getTeleportDuration();
 		if (invDelta >= 1) {
 			return currentOffset;
 		}
@@ -132,7 +133,7 @@ public class Beam extends Entity implements PolymerEntity {
 
 		laserItemDisplay.setTeleportDuration(data.getTeleportDuration());
 		laserItemDisplay.setStartInterpolation(0);
-		laserItemDisplay.setInterpolationDuration(1);
+		laserItemDisplay.setInterpolationDuration(data.getInterpolationDuration() > 0 ? 1 : 0);
 		data.applySettingsNoInterpolation(laserItemDisplay);
 		laserItemDisplay.setTransformation(new AffineTransformation(data.getTransformation().getMatrix().mul(matrix)));
 		prevTarget = target;
@@ -141,20 +142,33 @@ public class Beam extends Entity implements PolymerEntity {
 	@Override
 	public void tick() {
 		super.tick();
+		boolean check = false;
 		if (interpolationTicks != -1) {
-			updateTransformation();
 			interpolationTicks++;
-			if (interpolationTicks > data.getInterpolationDuration() || getTarget() == target) {
+			check = true;
+		}
+		if (offsetInterpolationTicks != -1) {
+			offsetInterpolationTicks++;
+			check = true;
+		}
+		if (check) {
+			updateTransformation();
+			if (interpolationTicks >= data.getInterpolationDuration() || getTarget() == target) {
 				interpolationTicks = -1;
+			}
+			if (offsetInterpolationTicks >= data.getTeleportDuration()) {
+				offsetInterpolationTicks = -1;
 				currentOffset = null;
 			}
 		}
 	}
 
 	private void onPositionUpdate(Vec3d prevPos) {
-		currentOffset = getPos().subtract(prevPos);
-		prevTarget = getTarget();
-		interpolationTicks = 0;
+		currentOffset = getEffectivePos().subtract(prevPos);
+		if (data.getTeleportDuration() > 0) {
+			offsetInterpolationTicks = 0;
+		}
+		updateTransformation();
 	}
 
 	@Override
