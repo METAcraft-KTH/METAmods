@@ -35,6 +35,9 @@ public class Beam extends Entity implements PolymerEntity {
 	private final ElementHolder holder = new ElementHolder();
 	private final ItemDisplayElement laserItemDisplay = new ItemDisplayElement();
 
+	private int interpolationTicks = -1;
+	private Vec3d currentOffset;
+
 	private final DisplayEntityData.Item data = new DisplayEntityData.Item();
 	private float thickness = 0.5f;
 
@@ -47,16 +50,16 @@ public class Beam extends Entity implements PolymerEntity {
 		holder.addElement(laserItemDisplay);
 	}
 
-	private float getDistance() {
-		if (target == null) return 0;
-		return (float) this.getPos().distanceTo(target);
+	private float getDistance(Vec3d target) {
+		return (float) this.getEffectivePos().distanceTo(target);
 	}
 
-	private Vec2f getRotationToTarget() {
+	private Vec2f getRotationToTarget(Vec3d target) {
 		if (target == null) return new Vec2f(0,0);
-		double d = target.x - getX();
-		double e = target.y - getY();
-		double f = target.z - getZ();
+		var effectivePos = getEffectivePos();
+		double d = target.x - effectivePos.x;
+		double e = target.y - effectivePos.y;
+		double f = target.z - effectivePos.z;
 		double g = Math.sqrt(d * d + f * f);
 		var pitch = -MathHelper.atan2(e, g) + Math.PI/2;
 		var yaw = -MathHelper.atan2(f, d) + Math.PI/2;
@@ -67,14 +70,59 @@ public class Beam extends Entity implements PolymerEntity {
 		this.prevTarget = this.target;
 		this.target = target;
 		if (target != prevTarget) {
-			updateTransformation();
+			if (currentOffset != null) {
+				currentOffset = getCurrentOffset();
+			}
+			interpolationTicks = 0;
 		}
+	}
+
+	private float getDelta() {
+		return (float) interpolationTicks / data.getInterpolationDuration();
+	}
+
+	private Vec3d getTarget() {
+		if (prevTarget == null) return target;
+		float delta = getDelta();
+		float invDelta = 1 - delta;
+		if (delta <= 0) {
+			return prevTarget;
+		}
+		if (delta >= 1) {
+			return target;
+		}
+
+		return new Vec3d(
+				prevTarget.x * invDelta + target.x * delta,
+				prevTarget.y * invDelta + target.y * delta,
+				prevTarget.z * invDelta + target.z * delta
+		);
+	}
+
+	private Vec3d getCurrentOffset() {
+		if (currentOffset == null) return Vec3d.ZERO;
+		var invDelta = 1 - getDelta();
+		if (invDelta >= 1) {
+			return currentOffset;
+		}
+		if (invDelta <= 0) {
+			return Vec3d.ZERO;
+		}
+		return currentOffset.multiply(invDelta);
+	}
+
+	private Vec3d getEffectivePos() {
+		if (currentOffset != null) {
+			return getPos().subtract(getCurrentOffset());
+		}
+		return getPos();
 	}
 
 	public void updateTransformation() {
 		if (target == null) return;
-		var distance = getDistance();
-		var rot = getRotationToTarget();
+		var target = getTarget();
+		var distance = getDistance(target);
+		var rot = getRotationToTarget(target);
 
 		var matrix = new Matrix4f();
 		matrix.rotateZYX(
@@ -82,30 +130,55 @@ public class Beam extends Entity implements PolymerEntity {
 		);
 		matrix.scale(thickness, distance, thickness);
 
-		data.applySettings(laserItemDisplay);
+		laserItemDisplay.setTeleportDuration(data.getTeleportDuration());
+		laserItemDisplay.setStartInterpolation(0);
+		laserItemDisplay.setInterpolationDuration(1);
+		data.applySettingsNoInterpolation(laserItemDisplay);
 		laserItemDisplay.setTransformation(new AffineTransformation(data.getTransformation().getMatrix().mul(matrix)));
 		prevTarget = target;
 	}
 
 	@Override
+	public void tick() {
+		super.tick();
+		if (interpolationTicks != -1) {
+			updateTransformation();
+			interpolationTicks++;
+			if (interpolationTicks > data.getInterpolationDuration() || getTarget() == target) {
+				interpolationTicks = -1;
+				currentOffset = null;
+			}
+		}
+	}
+
+	private void onPositionUpdate(Vec3d prevPos) {
+		currentOffset = getPos().subtract(prevPos);
+		prevTarget = getTarget();
+		interpolationTicks = 0;
+	}
+
+	@Override
 	public void setPosition(double x, double y, double z) {
+		var prevPos = getPos();
 		boolean shouldUpdate = getX() != x || getY() != y || getZ() != z;
 		super.setPosition(x, y, z);
 		if (shouldUpdate) {
-			updateTransformation();
+			onPositionUpdate(prevPos);
 		}
 	}
 
 	@Override
 	public void refreshPositionAndAngles(double x, double y, double z, float yaw, float pitch) {
+		var prevPos = getPos();
 		super.refreshPositionAndAngles(x, y, z, yaw, pitch);
-		updateTransformation();
+		onPositionUpdate(prevPos);
 	}
 
 	@Override
 	public void setPosition(PlayerPosition pos, Set<PositionFlag> flags) {
+		var prevPos = getPos();
 		super.setPosition(pos, flags);
-		updateTransformation();
+		onPositionUpdate(prevPos);
 	}
 
 	@Override

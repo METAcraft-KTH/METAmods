@@ -49,6 +49,10 @@ public class DisplayEntityData {
 		element.setInterpolationDuration(interpolationDuration);
 		element.setTeleportDuration(teleportDuration);
 		element.setStartInterpolation(startInterpolation);
+		applySettingsNoInterpolation(element);
+	}
+
+	public void applySettingsNoInterpolation(DisplayElement element) {
 		element.setBillboardMode(billboardMode);
 		element.setBrightness(brightness);
 		element.setViewRange(viewRange);
