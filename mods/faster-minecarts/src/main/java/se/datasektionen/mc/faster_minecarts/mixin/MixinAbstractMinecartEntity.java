@@ -153,6 +153,19 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 		this.applySlowdown(velocity);
 	}
 
+	@ModifyExpressionValue(
+		method = "applySlowdown",
+		at = @At(
+				value = "CONSTANT",
+				args = "doubleValue=0.949999988079071"
+		)
+	)
+	public double changeUnderwaterApplySlowdown(double original) {
+		return minecartItem.map(
+				item -> item.get(MinecartComponents.UNDERWATER_SLOWDOWN)
+		).orElse(original);
+	}
+
 
 	@ModifyExpressionValue(
 		method = {

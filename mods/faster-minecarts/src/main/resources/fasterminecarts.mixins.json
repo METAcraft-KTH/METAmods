@@ -8,10 +8,12 @@
 		"MixinDefaultMinecartController",
 		"MixinEntityTrackerEntry",
 		"MixinExperimentalMinecartController",
+		"MixinFurnaceMinecart",
 		"MixinGameRules",
 		"MixinSchema1460",
 		"MixinServerConfigurationNetworkHandler",
 		"MixinShapeContext",
+		"MixinStorageMinecartEntity",
 		"MixinVehicleEntity"
 	],
 	"client": [

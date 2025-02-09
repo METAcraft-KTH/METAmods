@@ -9,10 +9,7 @@ import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.*;
-import se.datasektionen.mc.faster_minecarts.FasterMinecarts;
-import se.datasektionen.mc.faster_minecarts.FasterMinecartsConfig;
-import se.datasektionen.mc.faster_minecarts.FasterMinecartsHelper;
-import se.datasektionen.mc.faster_minecarts.MinecartExtensions;
+import se.datasektionen.mc.faster_minecarts.*;
 
 @Mixin(ExperimentalMinecartController.class)
 public abstract class MixinExperimentalMinecartController extends MinecartController {
@@ -57,5 +54,31 @@ public abstract class MixinExperimentalMinecartController extends MinecartContro
 	) {
 		FasterMinecarts.damageEntitiesFromCart(minecart, this.getVelocity().length(), movement);
 		return movement;
+	}
+
+	@ModifyExpressionValue(
+			method = "getSpeedRetention",
+			at = @At(
+					value = "CONSTANT",
+					args = "doubleValue=0.975"
+			)
+	)
+	public double getSpeedRetention(double original) {
+		return FasterMinecartsHelper.getMinecartItem(minecart).map(
+				minecart -> minecart.get(MinecartComponents.SLOWDOWN)
+		).orElse(original);
+	}
+
+	@ModifyExpressionValue(
+			method = "getSpeedRetention",
+			at = @At(
+					value = "CONSTANT",
+					args = "doubleValue=0.997"
+			)
+	)
+	public double getSpeedRetentionPassenger(double original) {
+		return FasterMinecartsHelper.getMinecartItem(minecart).map(
+				minecart -> minecart.get(MinecartComponents.SLOWDOWN_WITH_PASSENGER)
+		).orElse(original);
 	}
 }

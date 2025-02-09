@@ -21,10 +21,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import se.datasektionen.mc.faster_minecarts.FasterMinecarts;
-import se.datasektionen.mc.faster_minecarts.FasterMinecartsConfig;
-import se.datasektionen.mc.faster_minecarts.FasterMinecartsHelper;
-import se.datasektionen.mc.faster_minecarts.MinecartExtensions;
+import se.datasektionen.mc.faster_minecarts.*;
 
 @Mixin(DefaultMinecartController.class)
 public abstract class MixinDefaultMinecartController extends MinecartController {
@@ -181,6 +178,33 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 	@ModifyReturnValue(method = "getMaxSpeed", at = @At("RETURN"))
 	protected double modifyMaxSpeed(double speed) {
 		return FasterMinecartsHelper.getActualMaxSpeed(minecart, speed);
+	}
+
+
+	@ModifyExpressionValue(
+			method = "getSpeedRetention",
+			at = @At(
+					value = "CONSTANT",
+					args = "doubleValue=0.96"
+			)
+	)
+	public double getSpeedRetention(double original) {
+		return FasterMinecartsHelper.getMinecartItem(minecart).map(
+				minecart -> minecart.get(MinecartComponents.SLOWDOWN)
+		).orElse(original);
+	}
+
+	@ModifyExpressionValue(
+		method = "getSpeedRetention",
+		at = @At(
+			value = "CONSTANT",
+				args = "doubleValue=0.997"
+		)
+	)
+	public double getSpeedRetentionPassenger(double original) {
+		return FasterMinecartsHelper.getMinecartItem(minecart).map(
+				minecart -> minecart.get(MinecartComponents.SLOWDOWN_WITH_PASSENGER)
+		).orElse(original);
 	}
 
 }

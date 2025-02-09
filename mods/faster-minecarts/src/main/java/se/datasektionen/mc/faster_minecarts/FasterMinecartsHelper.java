@@ -2,9 +2,12 @@ package se.datasektionen.mc.faster_minecarts;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import se.datasektionen.mc.faster_minecarts.configs.EntityFactorConfig;
+
+import java.util.Optional;
 
 public class FasterMinecartsHelper {
 
@@ -58,5 +61,9 @@ public class FasterMinecartsHelper {
 			return true;
 		}
 		return worldSetting;
+	}
+
+	public static Optional<ItemStack> getMinecartItem(AbstractMinecartEntity minecart) {
+		return ((MinecartExtensions) minecart).fasterMinecarts$getMinecartItem();
 	}
 }

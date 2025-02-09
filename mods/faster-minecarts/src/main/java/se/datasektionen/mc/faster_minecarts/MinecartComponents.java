@@ -27,6 +27,22 @@ public class MinecartComponents {
 			"acceleration", builder -> builder.codec(Codec.DOUBLE)
 	);
 
+	public static final ComponentType<Double> SLOWDOWN = register(
+			"slowdown", builder -> builder.codec(Codec.DOUBLE)
+	);
+
+	public static final ComponentType<Double> SLOWDOWN_WITH_PASSENGER = register(
+			"slowdown_with_passenger", builder -> builder.codec(Codec.DOUBLE)
+	);
+
+	public static final ComponentType<Float> ITEM_SLOWDOWN_MODIFIER = register(
+			"item_slowdown_modifier", builder -> builder.codec(Codec.FLOAT)
+	);
+
+	public static final ComponentType<Double> UNDERWATER_SLOWDOWN = register(
+			"underwater_slowdown", builder -> builder.codec(Codec.DOUBLE)
+	);
+
 
 	public static void init() {
 
