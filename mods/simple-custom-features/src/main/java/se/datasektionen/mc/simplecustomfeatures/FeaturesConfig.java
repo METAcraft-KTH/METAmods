@@ -35,20 +35,20 @@ public class FeaturesConfig implements ReloadAware {
 
 	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("simple-custom-features");
 
-	private static <T> DataResult<Stream<T>> unwrapDataResults(Stream<DataResult<T>> stream) {
+	public static <T> DataResult<List<T>> unwrapDataResults(Stream<DataResult<T>> stream) {
 		List<Supplier<String>> errors = new ArrayList<>();
-		var newStream = stream.flatMap(element -> {
+		var list = stream.flatMap(element -> {
 			if (element.error().isPresent()) {
 				errors.add(element.error().get().messageSupplier());
 			}
 			return element.resultOrPartial().stream();
-		});
+		}).toList();
 		if (errors.isEmpty()) {
-			return DataResult.success(newStream);
+			return DataResult.success(list);
 		} else {
 			return DataResult.error(
 					() -> errors.stream().map(Supplier::get).collect(Collectors.joining(DataResult.appendMessages("", ""))),
-					newStream
+					list
 			);
 		}
 	}
@@ -62,7 +62,7 @@ public class FeaturesConfig implements ReloadAware {
 					objects -> unwrapDataResults(objects.stream().map(
 							object -> object.getType().map(type -> Pair.of(type, object))
 					)).map(
-						result -> result.collect(
+						result -> result.stream().collect(
 								Multimaps.<
 										Pair<? extends ObjectType<?, ?>, ? extends ObjectContainer>,
 									RegistryKey<? extends Registry<?>>, ObjectContainer,
@@ -100,7 +100,7 @@ public class FeaturesConfig implements ReloadAware {
 									).build(),
 									Optional.empty()
 							),
-							Optional.empty()
+							Optional.empty(), List.of()
 					)));
 					return config;
 				}
