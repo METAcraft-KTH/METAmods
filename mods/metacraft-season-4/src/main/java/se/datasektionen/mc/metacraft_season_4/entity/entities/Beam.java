@@ -76,7 +76,7 @@ public class Beam extends Entity implements PolymerEntity {
 			this.prevTarget = this.target;
 		}
 		this.target = target;
-		if (data.getInterpolationDuration() > 0) {
+		if (data.getInterpolationDuration() > 0 && !firstUpdate) {
 			interpolationTicks = 0;
 		}
 		updateTransformation();
@@ -136,7 +136,6 @@ public class Beam extends Entity implements PolymerEntity {
 		laserItemDisplay.setInterpolationDuration(data.getInterpolationDuration() > 0 ? 1 : 0);
 		data.applySettingsNoInterpolation(laserItemDisplay);
 		laserItemDisplay.setTransformation(new AffineTransformation(data.getTransformation().getMatrix().mul(matrix)));
-		prevTarget = target;
 	}
 
 	@Override
