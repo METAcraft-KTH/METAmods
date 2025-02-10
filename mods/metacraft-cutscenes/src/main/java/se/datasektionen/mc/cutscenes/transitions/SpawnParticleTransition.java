@@ -3,6 +3,7 @@ package se.datasektionen.mc.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
@@ -39,10 +40,16 @@ public class SpawnParticleTransition implements Transition {
 		cutscene.forAllPlayers(player -> {
 			if (player.age % config.spawnInterval() == startTick) {
 				config.pos().get(player, cutscene).ifPresent(pos -> {
-					player.getServerWorld().spawnParticles(
-							player, config.particle(), config.force(), config.important(), pos.x, pos.y, pos.z,
-							config.count(), config.delta().x, config.delta().y, config.delta().z, config.speed()
+					var particle = config.particle().map(
+							p -> p,
+							p -> p.get(cutscene.getServer()).resultOrPartial(Cutscenes.LOGGER::error).orElse(null)
 					);
+					if (particle != null) {
+						player.getServerWorld().spawnParticles(
+								player, particle, config.force(), config.important(), pos.x, pos.y, pos.z,
+								config.count(), config.delta().x, config.delta().y, config.delta().z, config.speed()
+						);
+					}
 				});
 			}
 		});
