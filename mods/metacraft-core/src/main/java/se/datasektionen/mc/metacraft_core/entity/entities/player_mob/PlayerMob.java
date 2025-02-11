@@ -793,9 +793,6 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 				this.player.setMovementSpeed(j);
 				this.player.setVelocity(this.player.getVelocity().add((double)j * d * 0.005, (double)j * e * 0.1, (double)j * f * 0.005));
 			} else {
-				if (!this.player.isOnGround()) {
-					this.player.setVelocity(this.player.getVelocity().add(0.0, -0.008, 0.0));
-				}
 				super.tick();
 			}
 		}
