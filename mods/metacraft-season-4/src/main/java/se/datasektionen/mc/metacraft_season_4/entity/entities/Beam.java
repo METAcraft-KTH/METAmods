@@ -83,7 +83,7 @@ public class Beam extends Entity implements PolymerEntity {
 	}
 
 	private Vec3d getTarget() {
-		if (prevTarget == null) return target;
+		if (prevTarget == null || interpolationTicks == -1) return target;
 		float delta = (float) interpolationTicks / data.getInterpolationDuration();
 		float invDelta = 1 - delta;
 		if (delta <= 0) {
@@ -163,8 +163,8 @@ public class Beam extends Entity implements PolymerEntity {
 	}
 
 	private void onPositionUpdate(Vec3d prevPos) {
-		currentOffset = getEffectivePos().subtract(prevPos);
 		if (data.getTeleportDuration() > 0) {
+			currentOffset = getEffectivePos().subtract(prevPos);
 			offsetInterpolationTicks = 0;
 		}
 		updateTransformation();
