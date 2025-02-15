@@ -146,9 +146,8 @@ public class ServerBossBarWithMusic extends ServerBossBar {
 			this.setStyle(BossBar.Style.byName(nbt.getString(STYLE)));
 		}
 		if (nbt.contains(VALUE)) {
-			NbtCompound value = nbt.getCompound(VALUE);
-			this.value = value.getInt(VALUE);
-			this.max = value.getInt(MAX);
+			this.value = nbt.getInt(VALUE);
+			this.max = nbt.getInt(MAX);
 			this.setPercent((float) this.value / this.max);
 			trackingHealth = false;
 		} else {
