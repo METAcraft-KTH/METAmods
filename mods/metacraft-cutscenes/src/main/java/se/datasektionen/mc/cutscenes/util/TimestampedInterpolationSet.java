@@ -3,7 +3,6 @@ package se.datasektionen.mc.cutscenes.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.MathHelper;
 import org.pcollections.TreePMap;
 
 import java.util.AbstractMap;
@@ -48,11 +47,11 @@ public class TimestampedInterpolationSet<T extends Interpolatable> {
 
 	public InterpolationSet<T> createFromRange(int start, int end) {
 		return new InterpolationSet<>(
-				values.entrySet().stream().collect(
+				values.entrySet().stream().filter(
+						e -> e.getKey() >= start && e.getKey() <= end
+				).collect(
 						TreePMap.toTreePMap(
-								e -> MathHelper.clamp(
-										((double) e.getKey() - start) / (end - start), 0, 1
-								),
+								e -> ((double) e.getKey() - start) / (end - start),
 								Map.Entry::getValue
 						)
 				), creator
