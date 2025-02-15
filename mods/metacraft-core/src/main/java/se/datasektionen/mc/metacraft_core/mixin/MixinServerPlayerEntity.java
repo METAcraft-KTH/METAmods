@@ -64,6 +64,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private int musicDelay;
 
 	@Unique
+	private boolean inIntro;
+
+	@Unique
 	private MusicEntry music;
 	@Unique
 	private Predicate<ServerPlayerEntity> shouldContinuePlayingMusic = player -> true;
@@ -166,7 +169,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			musicDelay--;
 		} else {
 			if (music != null) {
-				playMusic(music.stopOnRestart());
+				var music = this.music.getMusic(inIntro);
+				playMusic(music.forceStop(), false);
 			}
 		}
 
@@ -247,13 +251,15 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Unique
-	private void playMusic(boolean stopOnRestart) {
+	private void playMusic(boolean stopOnRestart, boolean playIntro) {
 		if (this.music != null) {
+			var music = this.music.getMusic(playIntro);
 			refreshMusicPoint(false);
 			if (stopOnRestart) {
 				this.networkHandler.sendPacket(new StopSoundS2CPacket(null, SoundCategory.MUSIC));
 			}
 			this.musicDelay = music.length();
+			this.inIntro = playIntro && this.music.intro().isPresent();
 			this.networkHandler.sendPacket(
 				new PlaySoundFromEntityS2CPacket(
 					music.music(), SoundCategory.MUSIC, musicPoint, 1, music.pitch(), this.getRandom().nextLong()
@@ -270,7 +276,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 		shouldContinuePlayingMusic = player -> true;
 		if (this.music != null && !continuePrevious) {
-			this.networkHandler.sendPacket(new StopSoundS2CPacket(this.music.music().value().id(), SoundCategory.MUSIC));
+			var music = this.music.getMusic(inIntro);
+			this.networkHandler.sendPacket(new StopSoundS2CPacket(music.music().value().id(), SoundCategory.MUSIC));
 			if (musicPoint != null && entry == null) {
 				musicPoint.discard();
 			}
@@ -278,7 +285,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		this.music = entry;
 		if (!continuePrevious) {
 			displayTimer = 100;
-			playMusic(true);
+			playMusic(true, true);
 		}
 		return true;
 	}
@@ -300,7 +307,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Override
 	public void metacraft_lib$resetMusicTimer() {
 		if (this.music != null) {
-			playMusic(true);
+			playMusic(true, true);
 		}
 	}
 

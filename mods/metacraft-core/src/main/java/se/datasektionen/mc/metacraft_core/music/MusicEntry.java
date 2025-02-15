@@ -19,7 +19,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitch, int priority, boolean stopOnRestart, Optional<Credit> credit) {
+public record MusicEntry(
+		Music music, Optional<Music> intro, int priority, Optional<Credit> credit
+) {
 
 	private static final Map<RegistryKey<SoundEvent>, RegistryEntry<SoundEvent>> cache = new HashMap<>();
 	public static final Codec<RegistryEntry<SoundEvent>> MUSIC_CODEC_WITH_CACHE = Identifier.CODEC.xmap(
@@ -28,11 +30,9 @@ public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitc
 
 	public static final MapCodec<MusicEntry> MAP_CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
-			MUSIC_CODEC_WITH_CACHE.fieldOf("music").forGetter(MusicEntry::music),
-			Codec.INT.fieldOf("length").forGetter(MusicEntry::length),
-			Codec.FLOAT.fieldOf("pitch").orElse(1.0f).forGetter(MusicEntry::pitch),
+			Music.MAP_CODEC.forGetter(MusicEntry::music),
+			Music.CODEC.optionalFieldOf("intro").forGetter(MusicEntry::intro),
 			Codec.INT.fieldOf("priority").orElse(0).forGetter(MusicEntry::priority),
-			Codec.BOOL.optionalFieldOf("stop_on_restart", false).forGetter(MusicEntry::stopOnRestart),
 			Credit.CODEC.optionalFieldOf("credit").forGetter(MusicEntry::credit)
 		).apply(instance, MusicEntry::new)
 	);
@@ -59,10 +59,20 @@ public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitc
 		return entry.getKeyOrValue().map(RegistryKey::getValue, SoundEvent::id);
 	}
 
+	public Music getMusic(boolean intro) {
+		if (intro && this.intro.isPresent()) {
+			return this.intro.get();
+		} else {
+			return music;
+		}
+	}
+
 	@Override
 	public String toString() {
-		String firstPart = "MusicEntry[music=" + music.value().id() + ", length=" +
-				length + ", pitch=" + pitch + ", priority=" + priority;
+		String firstPart = "MusicEntry[music=" + music + ", priority=" + priority;
+		if (intro.isPresent()) {
+			firstPart += ", intro=" + intro.get();
+		}
 		if (credit.isPresent()) {
 			firstPart += ", credit=" + credit.get();
 		}
@@ -106,6 +116,27 @@ public record MusicEntry(RegistryEntry<SoundEvent> music, int length, float pitc
 		@Override
 		public String toString() {
 			return CODEC.encodeStart(JavaOps.INSTANCE, this).getOrThrow().toString();
+		}
+	}
+
+	public record Music(
+			RegistryEntry<SoundEvent> music, int length, float pitch, boolean forceStop
+			) {
+		public static final MapCodec<Music> MAP_CODEC = RecordCodecBuilder.mapCodec(
+				instance -> instance.group(
+						MUSIC_CODEC_WITH_CACHE.fieldOf("music").forGetter(Music::music),
+						Codec.INT.fieldOf("length").forGetter(Music::length),
+						Codec.FLOAT.fieldOf("pitch").orElse(1.0f).forGetter(Music::pitch),
+						Codec.BOOL.optionalFieldOf("force_stop", false).forGetter(Music::forceStop)
+				).apply(instance, Music::new)
+		);
+
+		public static final Codec<Music> CODEC = MAP_CODEC.codec();
+
+		@Override
+		public String toString() {
+			return  "Music[music=" + music.value().id() + ", length=" +
+					length + ", pitch=" + pitch + "]";
 		}
 	}
 
