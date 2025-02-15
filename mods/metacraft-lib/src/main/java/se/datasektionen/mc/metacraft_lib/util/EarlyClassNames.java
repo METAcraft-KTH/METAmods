@@ -10,7 +10,7 @@ public class EarlyClassNames {
 
 	public static final String DATA_FIX_TYPES = remapper.mapClassName(
 			"intermediary",
-			"net.minecraft.class_4284"
+			IntermediaryNames.DATA_FIX_TYPES
 	);
 
 }

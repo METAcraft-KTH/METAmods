@@ -20,6 +20,7 @@ import net.minecraft.util.ApiServices;
 import net.minecraft.world.level.storage.LevelStorage;
 import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
+import se.datasektionen.mc.metacraft_lib.util.IntermediaryNames;
 
 import java.lang.reflect.*;
 import java.util.List;
@@ -150,6 +151,9 @@ public class CutsceneServerRedirector {
 		) throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
 			if (server.metacraft_cutscenes$getRealServer() == null) { //Handle functions running inside the constructor itself.
 				return superMethod.invoke(server, args);
+			}
+			if (srcMethod.getName().equals(IntermediaryNames.SERVER_GET_SCOREBOARD)) {
+				return getScoreboard(server);
 			}
 			var method = server.metacraft_cutscenes$getRealServer().getClass().getMethod(srcMethod.getName());
 			return method.invoke(server.metacraft_cutscenes$getRealServer(), args);
