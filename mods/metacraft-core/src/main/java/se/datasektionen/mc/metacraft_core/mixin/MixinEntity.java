@@ -4,6 +4,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.PlayerAssociatedNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
@@ -21,6 +22,7 @@ import se.datasektionen.mc.metacraft_core.music.ServerBossBarWithMusic;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity implements EntityExtensions {
@@ -44,9 +46,14 @@ public abstract class MixinEntity implements EntityExtensions {
 		if (this.bossBar != null) {
 			this.bossBar.clearPlayers();
 			this.bossBar = null;
-			if (this instanceof AccessorWitherEntity w) {
-				w.getBossBar().setVisible(true);
-			}
+			onBossBarRemoved();
+		}
+	}
+
+	@Unique
+	private void onBossBarRemoved() {
+		if (this instanceof AccessorWitherEntity w) {
+			w.getBossBar().setVisible(true);
 		}
 	}
 
@@ -59,6 +66,11 @@ public abstract class MixinEntity implements EntityExtensions {
 				this.bossBar.addPlayer(player.getPlayer());
 			}
 		}
+		onBossBarAdded();
+	}
+
+	@Unique
+	private void onBossBarAdded() {
 		if (this instanceof AccessorWitherEntity w) {
 			w.getBossBar().setVisible(false);
 		}
@@ -139,6 +151,38 @@ public abstract class MixinEntity implements EntityExtensions {
 			this.bossBar = bossBar;
 			initialiseBossBar();
 		}
+	}
+
+	@Override
+	public void metacraft_lib$updateBossBarReplaced() {
+		if (!(this.getWorld() instanceof ServerWorld sw)) return;
+		if (bossBar != null) {
+			var tracker = EntityTrackerHelper.getEntityTrackers(sw).get(this.getId());
+			if (tracker != null) {
+				var players = EntityTrackerHelper.getListeners(tracker).stream().map(
+						PlayerAssociatedNetworkHandler::getPlayer
+				).collect(Collectors.toSet());
+				for (var prevPlayer : bossBar.getPlayers()) {
+					if (!players.contains(prevPlayer)) {
+						bossBar.removePlayer(prevPlayer);
+					}
+				}
+				for (var newPlayer : players) {
+					if (!bossBar.getPlayers().contains(newPlayer)) {
+						bossBar.addPlayer(newPlayer);
+					}
+				}
+			}
+			this.bossBar.updateFromEntity((Entity) (Object) this);
+			onBossBarAdded();
+		} else {
+			onBossBarRemoved();
+		}
+	}
+
+	@Override
+	public void metacraft_lib$setBossBarNoUpdate(ServerBossBarWithMusic bossBar) {
+		this.bossBar = bossBar;
 	}
 
 }

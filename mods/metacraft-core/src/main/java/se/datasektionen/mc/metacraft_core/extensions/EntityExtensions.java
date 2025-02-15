@@ -11,6 +11,10 @@ public interface EntityExtensions {
 
 	void metacraft_lib$setBossBar(ServerBossBarWithMusic bossBar);
 
+	void metacraft_lib$setBossBarNoUpdate(ServerBossBarWithMusic bossBar);
+
+	void metacraft_lib$updateBossBarReplaced();
+
 	void metacraft_lib$loadBossBar(NbtCompound nbt);
 
 	void metacraft_lib$saveBossBar(NbtCompound nbt);

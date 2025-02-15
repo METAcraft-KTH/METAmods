@@ -17,6 +17,21 @@ public class BossBarHelper {
 		((EntityExtensions) entity).metacraft_lib$setBossBar(bossBar);
 	}
 
+	public static boolean transferBossBar(Entity source, Entity target) {
+		var bossbar = getBossBar(source);
+		if (bossbar.isPresent()) {
+			if (source != target) {
+				((EntityExtensions) target).metacraft_lib$setBossBarNoUpdate(bossbar.get());
+				((EntityExtensions) source).metacraft_lib$setBossBarNoUpdate(null);
+				((EntityExtensions) target).metacraft_lib$updateBossBarReplaced();
+				((EntityExtensions) source).metacraft_lib$updateBossBarReplaced();
+			}
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	public static void removeBossBar(Entity entity) {
 		setBossBar(entity, null);
 	}

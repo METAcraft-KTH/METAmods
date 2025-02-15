@@ -7,7 +7,8 @@ import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.command.argument.NbtCompoundArgumentType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.command.ServerCommandSource;
-import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
+import net.minecraft.text.Text;
+import se.datasektionen.mc.metacraft_core.util.helper.BossBarHelper;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -29,16 +30,29 @@ public class BossbarCommand {
                             var existing = entityData.getCompound("BossBar");
                             existing.copyFrom(data);
                             entityData.put("BossBar", existing);
-                            ((EntityExtensions) entity).metacraft_lib$loadBossBar(entityData);
+                            BossBarHelper.loadBossBar(entity, entityData);
                             return 0;
                         }
                     )
                 ).then(
                     literal("remove").executes(ctx -> {
                         var entity = EntityArgumentType.getEntity(ctx, "entity");
-                        ((EntityExtensions) entity).metacraft_lib$loadBossBar(new NbtCompound());
+                        BossBarHelper.removeBossBar(entity);
                         return 0;
                     })
+                ).then(
+                    literal("transfer").then(
+                        argument("target", EntityArgumentType.entity()).executes(ctx -> {
+                            var source = EntityArgumentType.getEntity(ctx, "entity");
+                            var target = EntityArgumentType.getEntity(ctx, "target");
+                            if (BossBarHelper.transferBossBar(source, target)) {
+                                return 1;
+                            } else {
+                                ctx.getSource().sendError(Text.literal("The source entity had no bossbar!"));
+                                return 0;
+                            }
+                        })
+                    )
                 )
             )
         );
