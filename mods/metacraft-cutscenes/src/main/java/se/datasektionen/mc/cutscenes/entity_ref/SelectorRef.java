@@ -45,6 +45,6 @@ public class SelectorRef implements EntityRef {
 
 	@Override
 	public EntityRefType<?> getType() {
-		return EntityRefRegistry.TAG;
+		return EntityRefRegistry.SELECTOR;
 	}
 }
