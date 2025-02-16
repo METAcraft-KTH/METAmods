@@ -22,6 +22,7 @@ public class EntityRefRegistry {
 	public static final EntityRefType<SelfRef> SELF = register("self", SelfRef.CODEC);
 	public static final EntityRefType<UUIDRef> UUID = register("uuid", UUIDRef.CODEC);
 	public static final EntityRefType<CutsceneRef> CUTSCENE = register("cutscene", CutsceneRef.CODEC);
+	public static final EntityRefType<SelectorRef> TAG = register("tag", SelectorRef.CODEC);
 
 	public static void init() {
 
