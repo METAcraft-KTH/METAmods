@@ -25,6 +25,8 @@ import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.entity.EntityLookup;
+import org.pcollections.HashTreePSet;
+import org.pcollections.PSet;
 import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.mixin.AccessorPlayerManager;
 import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
@@ -41,8 +43,6 @@ import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
 import java.util.*;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -112,9 +112,7 @@ public class CutsceneInstance implements AutoCloseable {
 	private final Map<UUID, NbtCompound> savedPlayerData;
 	private final Set<UUID> allPlayers;
 
-	private final ReadWriteLock lock = new ReentrantReadWriteLock();
-	private final Set<ServerPlayerEntity> players = new HashSet<>();
-	private final List<QueueEntry> modificationQueue = new ArrayList<>();
+	private PSet<ServerPlayerEntity> players = HashTreePSet.empty();
 
 	public CutsceneInstance(Cutscene cutscene, ServerWorld world) {
 		this.cutscene = cutscene;
@@ -155,12 +153,7 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	public boolean hasPlayers() {
-		lock.readLock().lock();
-		try {
-			return !players.isEmpty();
-		} finally {
-			lock.readLock().unlock();
-		}
+		return !players.isEmpty();
 	}
 
 	public RegistryKey<World> getDim() {
@@ -181,33 +174,16 @@ public class CutsceneInstance implements AutoCloseable {
 		setTargetWorld(server.getWorld(dim));
 	}
 
-	//Avoid giving direct access to player set from outside since some transitions may access it from another thread.
 	public void forAllPlayers(Consumer<ServerPlayerEntity> playerAction) {
-		lock.readLock().lock();
-		try {
-			players.forEach(playerAction);
-		} finally {
-			lock.readLock().unlock();
-		}
+		players.forEach(playerAction);
 	}
 
-	//Avoid giving direct access to player set from outside since some transitions may access it from another thread.
-	public Set<ServerPlayerEntity> copyPlayers() {
-		lock.readLock().lock();
-		try {
-			return new HashSet<>(players);
-		} finally {
-			lock.readLock().unlock();
-		}
+	public Set<ServerPlayerEntity> getPlayers() {
+		return players;
 	}
 
 	public boolean hasPlayer(ServerPlayerEntity player) {
-		lock.readLock().lock();
-		try {
-			return players.contains(player);
-		} finally {
-			lock.readLock().unlock();
-		}
+		return players.contains(player);
 	}
 
 	public void end(boolean playNextScene) {
@@ -255,23 +231,6 @@ public class CutsceneInstance implements AutoCloseable {
 
 	public void setRemoveHandler(RemoveHandler onRemove) {
 		this.onRemove = onRemove;
-	}
-
-	private void handleQueue() {
-		if (!modificationQueue.isEmpty()) {
-			lock.writeLock().lock();
-			try {
-				modificationQueue.forEach(action -> {
-					switch (action.operation) {
-						case REMOVE -> players.remove(action.player);
-						case ADD -> players.add(action.player);
-					}
-				});
-			} finally {
-				lock.writeLock().unlock();
-			}
-			modificationQueue.clear();
-		}
 	}
 
 	public Random getRandom() {
@@ -367,7 +326,7 @@ public class CutsceneInstance implements AutoCloseable {
 		if (world != null && !world.isPlayerWorld(player)) {
 			getCurrentTarget().ifPresent(player::teleportTo);
 		}
-		modificationQueue.add(new QueueEntry(player, QueueEntry.Operation.ADD));
+		players = players.plus(player);
 		world.addPlayer(player);
 		if (cutscene.createFakePlayer() && !allPlayers.contains(player.getUuid())) {
 			addPlayerDummy(player);
@@ -518,12 +477,7 @@ public class CutsceneInstance implements AutoCloseable {
 			onRemove.afterPlayerReset(this);
 		}
 		onRemove = null;
-		lock.writeLock().lock();
-		try {
-			players.clear();
-		} finally {
-			lock.writeLock().unlock();
-		}
+		players = HashTreePSet.empty();
 	}
 
 	public boolean skipNextCutscene(boolean isLeavingCutscene) {
@@ -581,7 +535,7 @@ public class CutsceneInstance implements AutoCloseable {
 
 	public void removePlayer(ServerPlayerEntity player, boolean isLeavingCutscene) {
 		disableTransitions(player);
-		modificationQueue.add(new QueueEntry(player, QueueEntry.Operation.REMOVE));
+		players = players.minus(player);
 		if (world != null) {
 			world.removePlayer(player, isLeavingCutscene);
 		}
@@ -634,7 +588,6 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	public void tick() {
-		handleQueue();
 		if (ended) {
 			return;
 		}

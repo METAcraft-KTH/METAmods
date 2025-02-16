@@ -24,7 +24,7 @@ public final class SelfRef implements EntityRef {
 
 	@Override
 	public Stream<? extends Entity> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutsceneInstance) {
-		return Optional.ofNullable(player).map(Stream::of).orElse(cutsceneInstance.copyPlayers().stream());
+		return Optional.ofNullable(player).map(Stream::of).orElse(cutsceneInstance.getPlayers().stream());
 	}
 
 	@Override

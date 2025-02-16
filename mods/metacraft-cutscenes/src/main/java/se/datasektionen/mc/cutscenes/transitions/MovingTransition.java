@@ -56,7 +56,7 @@ public class MovingTransition implements Transition, SmoothMovementTransition, D
 			).map(movement -> (SmoothMovementTransition) movement).findAny().map(
 					SmoothMovementTransition::getEnd
 			).orElse(
-					cutscene.copyPlayers().stream().findAny().map(Target::fromEntity).orElse(
+					cutscene.getPlayers().stream().findAny().map(Target::fromEntity).orElse(
 							new Target(Vec3d.ZERO, 0, 0)
 					)
 			);

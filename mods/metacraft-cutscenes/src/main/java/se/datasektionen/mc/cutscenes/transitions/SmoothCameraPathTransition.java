@@ -33,7 +33,7 @@ public class SmoothCameraPathTransition implements Transition {
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		interpolationSet = config.targets().getTargets(interval);
-		var target = cutscene.copyPlayers().stream().findAny().map(Target::fromEntity).orElse(
+		var target = cutscene.getPlayers().stream().findAny().map(Target::fromEntity).orElse(
 				Target.DEFAULT
 		);
 		interpolationSet = interpolationSet.setStartIfNotPresent(target);
