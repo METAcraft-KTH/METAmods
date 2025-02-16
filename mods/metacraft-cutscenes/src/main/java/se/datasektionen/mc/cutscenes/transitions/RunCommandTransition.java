@@ -44,7 +44,7 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 		this.runPerPlayer = runPerPlayer;
 	}
 
-	private ServerCommandSource getSource(ServerPlayerEntity player, CutsceneInstance cutscene) {
+	public static ServerCommandSource getSource(ServerPlayerEntity player, CutsceneInstance cutscene, boolean runInRealWorld) {
 		var source = player.getCommandSource().withMaxLevel(2);
 		if (!runInRealWorld) {
 			source = source.withWorld(cutscene.getCutsceneWorld());
@@ -52,7 +52,7 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 		return source.withSilent();
 	}
 
-	private ServerCommandSource getSource(CutsceneInstance cutscene) {
+	public static ServerCommandSource getSource(CutsceneInstance cutscene, boolean runInRealWorld) {
 		return new ServerCommandSource(
 				CommandOutput.DUMMY, Vec3d.ZERO, Vec2f.ZERO,
 				runInRealWorld ? cutscene.getCutsceneWorld().getActualWorld() : cutscene.getCutsceneWorld(),
@@ -64,12 +64,12 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 		if (runPerPlayer) {
 			cutscene.forAllPlayers(player -> {
 				player.getServer().getCommandManager().executeWithPrefix(
-						getSource(player, cutscene), command
+						getSource(player, cutscene, runInRealWorld), command
 				);
 			});
 		} else {
 			cutscene.getServer().getCommandManager().executeWithPrefix(
-					getSource(cutscene), command
+					getSource(cutscene, runInRealWorld), command
 			);
 		}
 	}

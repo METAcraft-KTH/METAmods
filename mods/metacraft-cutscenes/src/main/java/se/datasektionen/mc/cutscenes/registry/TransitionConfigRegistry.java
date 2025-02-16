@@ -142,6 +142,10 @@ public class TransitionConfigRegistry {
 			"place_structure", PlaceStructure.CODEC
 	);
 
+	public static final TransitionConfigType<ConditionalTransition.Config> CONDITIONAL = register(
+			"conditional", ConditionalTransition.Config.CODEC
+	);
+
 
 
 
