@@ -23,6 +23,7 @@ import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -121,6 +122,31 @@ public class ExtraCodecs {
 				return DataResult.success(positions);
 			}
 	);
+
+	public static <T, C extends Collection<T>> Codec<C> createCollectionCodec(
+			Codec<T> codec, Supplier<C> collectionSupplier
+	) {
+		return createCollectionCodec(
+				codec, collectionSupplier,
+				(list, element) -> {
+					list.add(element);
+					return list;
+				},
+				(lhs, rhs) -> {
+					lhs.addAll(rhs);
+					return lhs;
+				}
+		);
+	}
+
+	public static <T, C extends Collection<T>> Codec<C> createCollectionCodec(
+			Codec<T> codec, Supplier<C> collectionSupplier, BiFunction<C, T, C> adder, BinaryOperator<C> combiner
+	) {
+		return codec.listOf().xmap(
+				list -> list.stream().reduce(collectionSupplier.get(), adder, combiner),
+				c -> c.stream().toList()
+		);
+	}
 
 	private static <L, R> Codec<Map.Entry<L, R>> makeSimpleEntryCodec(MapCodec<L> lhs, MapCodec<R> rhs) {
 		return RecordCodecBuilder.create(

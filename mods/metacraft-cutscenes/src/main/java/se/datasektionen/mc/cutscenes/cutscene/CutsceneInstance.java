@@ -37,6 +37,7 @@ import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.TeleportTransition;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
+import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
 import java.util.*;
@@ -53,6 +54,7 @@ public class CutsceneInstance implements AutoCloseable {
 
 	public static final String PLAYER_REFERENCE = "player";
 	public static final String PLAYER_ITEM = "player_item";
+	public static final String PLAYER_DUMMY_TAG = "metacraft_cutscenes.is_player_dummy";
 
 	public static void init() {
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
@@ -89,6 +91,9 @@ public class CutsceneInstance implements AutoCloseable {
 					Codec.INT.fieldOf("time").forGetter(a -> a.time),
 					CutsceneWorldData.CODEC.fieldOf("data").forGetter(a -> a.world.save()),
 					SAVED_DATA_CODEC.fieldOf("saved_players").forGetter(cutscene -> cutscene.savedPlayerData), //Careful, this is used by the datafixer!
+					ExtraCodecs.<UUID, Set<UUID>>createCollectionCodec(
+							Uuids.STRICT_CODEC, HashSet::new
+					).optionalFieldOf("all_players", new HashSet<>()).forGetter(a -> a.allPlayers),
 					Codec.BOOL.fieldOf("ended").forGetter(CutsceneInstance::isEnded),
 					World.CODEC.fieldOf("dim").forGetter(CutsceneInstance::getDim)
 			).apply(instance, CutsceneInstance::new)
@@ -105,6 +110,7 @@ public class CutsceneInstance implements AutoCloseable {
 	private boolean shouldPlayNextCutscene = true;
 
 	private final Map<UUID, NbtCompound> savedPlayerData;
+	private final Set<UUID> allPlayers;
 
 	private final ReadWriteLock lock = new ReentrantReadWriteLock();
 	private final Set<ServerPlayerEntity> players = new HashSet<>();
@@ -114,6 +120,7 @@ public class CutsceneInstance implements AutoCloseable {
 		this.cutscene = cutscene;
 		this.transitions = cutscene.createTransitions();
 		this.savedPlayerData = new HashMap<>();
+		this.allPlayers = new HashSet<>();
 		setTargetWorld(cutscene.getEntryPoint(world.getServer(), world.getRegistryKey()).map(
 				TeleportTarget::world
 		).orElse(world));
@@ -121,12 +128,14 @@ public class CutsceneInstance implements AutoCloseable {
 
 	protected CutsceneInstance(
 			Cutscene cutscene, IntervalMap<Transition> transitions, int time, CutsceneWorldData data,
-			Map<UUID, NbtCompound> savedPlayerData, boolean ended, RegistryKey<World> dim
+			Map<UUID, NbtCompound> savedPlayerData, Set<UUID> allPlayers,
+			boolean ended, RegistryKey<World> dim
 	) {
 		this.cutscene = cutscene;
 		this.transitions = transitions;
 		this.time = time;
 		this.data = data;
+		this.allPlayers = allPlayers;
 		this.savedPlayerData = new HashMap<>(savedPlayerData);
 		this.ended = ended;
 		this.dim = dim;
@@ -308,6 +317,7 @@ public class CutsceneInstance implements AutoCloseable {
 	public void addPlayerDummy(ServerPlayerEntity player) {
 		createFromData(savedPlayerData.get(player.getUuid())).ifPresent(p -> {
 			p.streamSelfAndPassengers().forEach(e -> {
+				e.getCommandTags().add(PLAYER_DUMMY_TAG);
 				world.getEntityManager().addEntity(PLAYER_REFERENCE, e);
 			});
 		});
@@ -337,9 +347,7 @@ public class CutsceneInstance implements AutoCloseable {
 			return;
 		}
 		removeLead(player);
-		boolean playerAddedFirstTime = false;
 		if (!savedPlayerData.containsKey(player.getUuid())) {
-			playerAddedFirstTime = true;
 			player.removeAllPassengers();
 			var directVehicle = player.getVehicle();
 			if (!cutscene.hideMount() && !cutscene.createFakePlayer()) {
@@ -361,7 +369,7 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 		modificationQueue.add(new QueueEntry(player, QueueEntry.Operation.ADD));
 		world.addPlayer(player);
-		if (playerAddedFirstTime && cutscene.createFakePlayer()) {
+		if (cutscene.createFakePlayer() && !allPlayers.contains(player.getUuid())) {
 			addPlayerDummy(player);
 		}
 		transitions.getIntervalsAt(getCurrentTime()).forEach(interval -> {
@@ -380,6 +388,8 @@ public class CutsceneInstance implements AutoCloseable {
 
 
 		swapScoreboards(player, world.getActualWorld().getScoreboard(), world.getScoreboard());
+
+		allPlayers.add(player.getUuid());
 	}
 
 	private void swapScoreboards(
