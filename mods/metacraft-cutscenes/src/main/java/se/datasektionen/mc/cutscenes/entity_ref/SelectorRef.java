@@ -30,11 +30,18 @@ public class SelectorRef implements EntityRef {
 
 	public SelectorRef(String selectorString) {
 		this.selectorString = selectorString;
-		this.selector = new EntitySelectorReader(new StringReader(selectorString), true).build();
+		EntitySelector s = null;
+		try {
+			s = new EntitySelectorReader(new StringReader(selectorString), true).read();
+		} catch (CommandSyntaxException e) {
+			Cutscenes.LOGGER.error(e.getMessage(), e);
+		}
+		this.selector = s;
 	}
 
 	@Override
 	public Stream<? extends Entity> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutsceneInstance) {
+		if (selector == null) return Stream.empty();
 		try {
 			return selector.getEntities(RunCommandTransition.getSource(cutsceneInstance, false)).stream();
 		} catch (CommandSyntaxException e) {
