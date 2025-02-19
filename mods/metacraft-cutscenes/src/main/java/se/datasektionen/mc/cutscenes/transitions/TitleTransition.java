@@ -40,9 +40,9 @@ public class TitleTransition implements Transition {
 				Math.max(config.fadeIn() - pos, 0),
 				stayTicks, Math.min(config.fadeOut(), remaining)
 		));
-		player.networkHandler.sendPacket(new TitleS2CPacket(config.title()));
+		player.networkHandler.sendPacket(new TitleS2CPacket(MessageTransition.parseText(player, cutscene, config.title())));
 		config.subtitle().ifPresent(subtitle -> {
-			player.networkHandler.sendPacket(new SubtitleS2CPacket(subtitle));
+			player.networkHandler.sendPacket(new SubtitleS2CPacket(MessageTransition.parseText(player, cutscene, subtitle)));
 		});
 	}
 

@@ -1,11 +1,14 @@
 package se.datasektionen.mc.cutscenes.transitions;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextCodecs;
+import net.minecraft.text.Texts;
+import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
@@ -36,7 +39,16 @@ public class MessageTransition extends InstantTransition {
 
 	@Override
 	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		player.sendMessage(message, overlay);
+		player.sendMessage(parseText(player, cutscene, message), overlay);
+	}
+
+	public static Text parseText(ServerPlayerEntity player, CutsceneInstance cutscene, Text text) {
+		try {
+			return Texts.parse(RunCommandTransition.getSource(player, cutscene, false), text, player, 0);
+		} catch (CommandSyntaxException e) {
+			Cutscenes.LOGGER.error(e.getMessage());
+			return text;
+		}
 	}
 
 	@Override
