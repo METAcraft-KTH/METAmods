@@ -8,4 +8,6 @@ public class EntityParameters {
 
 	public static final String PREVENT_ENTER_VEHICLE = "PreventEnterVehicle";
 
+	public static final String HIDE_UUID_TOOLTIP = "metacraft:hide_uuid_tooltip";
+
 }

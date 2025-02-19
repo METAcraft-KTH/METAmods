@@ -17,6 +17,7 @@ import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftActivities;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftMemoryModules;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftSensorTypes;
+import se.datasektionen.mc.metacraft_core.mixin.AccessorEntityType;
 
 public class METAcraftEntities {
 
@@ -53,6 +54,8 @@ public class METAcraftEntities {
 		METAcraftActivities.init();
 		METAcraftMemoryModules.init();
 		METAcraftSensorTypes.init();
+
+		((AccessorEntityType) PLAYER).setTranslationKey(EntityType.PLAYER.getTranslationKey());
 	}
 
 	private static <T extends Entity> EntityType<T> register(String id, EntityType.Builder<T> builder) {

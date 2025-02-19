@@ -1,9 +1,14 @@
 package se.datasektionen.mc.metacraft_lib.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.text.HoverEvent;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -23,12 +28,20 @@ public abstract class MixinEntity implements EntityExtensions {
 
 	@Shadow @Nullable public abstract Entity getVehicle();
 
+	@Shadow public abstract Text getName();
+
+	@Shadow public abstract EntityType<?> getType();
+
 	@Unique
 	private boolean preventEnterVehicle = false;
+
+	@Unique
+	private boolean hideUUIDInTooltip = false;
 
 	@Inject(method = "readNbt", at = @At("RETURN"))
 	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
 		preventEnterVehicle = nbt.getBoolean(EntityParameters.PREVENT_ENTER_VEHICLE);
+		hideUUIDInTooltip = nbt.getBoolean(EntityParameters.HIDE_UUID_TOOLTIP);
 	}
 
 	@Inject(method = "tick", at = @At("RETURN"))
@@ -40,8 +53,38 @@ public abstract class MixinEntity implements EntityExtensions {
 
 	@Inject(method = "writeNbt", at = @At("RETURN"))
 	public void writeNBT(NbtCompound nbt, CallbackInfoReturnable<NbtCompound> cir) {
-		if (nbt.contains(EntityParameters.PREVENT_ENTER_VEHICLE)) {
-			nbt.putBoolean(EntityParameters.PREVENT_ENTER_VEHICLE, preventEnterVehicle);
+		nbt.putBoolean(EntityParameters.PREVENT_ENTER_VEHICLE, preventEnterVehicle);
+		nbt.putBoolean(EntityParameters.HIDE_UUID_TOOLTIP, hideUUIDInTooltip);
+	}
+
+	@ModifyReturnValue(
+			method = "getDisplayName",
+			at = @At("RETURN")
+	)
+	public Text getDisplayName(Text text) {
+		if (hideUUIDInTooltip) {
+			return ((MutableText) text).styled(style -> style.withInsertion(null));
+		}
+		return text;
+	}
+
+	@Inject(
+			method = "getHoverEvent",
+			at = @At("HEAD"),
+			cancellable = true
+	)
+	public void getHoverEvent(CallbackInfoReturnable<HoverEvent> cir) {
+		if (hideUUIDInTooltip) {
+			cir.setReturnValue(new HoverEvent(
+					HoverEvent.Action.SHOW_TEXT,
+					Text.empty().append(
+							this.getName()
+					).append(
+							Text.literal("\n")
+					).append(
+							Text.translatable("gui.entity_tooltip.type", this.getType().getName())
+					)
+			));
 		}
 	}
 
