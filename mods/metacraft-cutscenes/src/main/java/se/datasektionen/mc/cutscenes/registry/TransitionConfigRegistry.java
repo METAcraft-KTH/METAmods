@@ -70,6 +70,10 @@ public class TransitionConfigRegistry {
 			"entity_move_to", MoveTo.Config.CODEC
 	);
 
+	public static final TransitionConfigType<PathFindTo> ENTITY_FUZZY_FIND_TO = register(
+			"entity_fuzzy_move_to", PathFindTo.CODEC
+	);
+
 	public static final TransitionConfigType<Attack> ENTITY_ATTACK = register(
 			"entity_attack", Attack.CODEC
 	);
