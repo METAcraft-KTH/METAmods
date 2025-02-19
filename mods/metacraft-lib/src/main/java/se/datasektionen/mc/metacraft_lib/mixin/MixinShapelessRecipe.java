@@ -8,15 +8,20 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import se.datasektionen.mc.metacraft_lib.extensions.RecipeComponentCarryoverExtension;
+import se.datasektionen.mc.metacraft_lib.extensions.RecipeRemainderExtension;
 
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 @Mixin(ShapelessRecipe.class)
-public abstract class MixinShapelessRecipe implements RecipeComponentCarryoverExtension {
+public abstract class MixinShapelessRecipe implements RecipeComponentCarryoverExtension, RecipeRemainderExtension {
 
 	@Unique
 	private Predicate<ItemStack> checker;
+
+	@Unique
+	private UnaryOperator<ItemStack> remainderFunction;
 
 	@Override
 	public void metacraft_lib$setComponentCarryOver(Predicate<ItemStack> checker) {
@@ -35,5 +40,16 @@ public abstract class MixinShapelessRecipe implements RecipeComponentCarryoverEx
 	public ItemStack onCraft(ItemStack original, CraftingRecipeInput recipeInputInventory) {
 		metacraft_lib$onCraft(original, recipeInputInventory != null ? recipeInputInventory.getStacks() : List.of());
 		return original;
+	}
+
+
+	@Override
+	public UnaryOperator<ItemStack> metacraft_lib$getRemainderFunction() {
+		return remainderFunction;
+	}
+
+	@Override
+	public void metacraft_lib$setRemainderFunction(UnaryOperator<ItemStack> remainderFunction) {
+		this.remainderFunction = remainderFunction;
 	}
 }

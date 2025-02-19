@@ -51,7 +51,7 @@ public class Recipes {
 						MutableObject<UnaryOperator<ItemStack>> operator = new MutableObject<>(stack -> ItemStack.EMPTY);
 						for (var element : array) {
 							if (element.isJsonObject()) {
-								parseMapping(element.getAsJsonObject()).ifPresent(mapping -> {
+								parseMapping(element.getAsJsonObject(), registryLookup).ifPresent(mapping -> {
 									var prevOp = operator.getValue();
 									operator.setValue(stack -> {
 										var newStack = mapping.apply(stack);
@@ -70,9 +70,9 @@ public class Recipes {
 					} else if (remainderMapper.isJsonObject()) {
 						var object = remainderMapper.getAsJsonObject();
 						if (object.has(TO) && object.has(FROM)) {
-							parseMapping(object).ifPresent(recipeData::metacraft_lib$setRemainderFunction);
+							parseMapping(object, registryLookup).ifPresent(recipeData::metacraft_lib$setRemainderFunction);
 						} else {
-							ItemStack.CODEC.parse(JsonOps.INSTANCE, remainderMapper).resultOrPartial(
+							ItemStack.CODEC.parse(registryLookup.getOps(JsonOps.INSTANCE), remainderMapper).resultOrPartial(
 									METAcraftLib.LOGGER::error
 							).ifPresent(stack -> {
 								recipeData.metacraft_lib$setRemainderFunction(orgStack -> stack.copy());
@@ -100,11 +100,11 @@ public class Recipes {
 		});
 	}
 
-	private static Optional<UnaryOperator<ItemStack>> parseMapping(JsonObject object) {
-		return Ingredient.CODEC.parse(JsonOps.INSTANCE, object.get(FROM)).resultOrPartial(
+	private static Optional<UnaryOperator<ItemStack>> parseMapping(JsonObject object, RegistryWrapper.WrapperLookup lookup) {
+		return Ingredient.CODEC.parse(lookup.getOps(JsonOps.INSTANCE), object.get(FROM)).resultOrPartial(
 				METAcraftLib.LOGGER::error
 		).flatMap(from -> {
-			return ItemStack.CODEC.parse(JsonOps.INSTANCE, object.get(TO)).resultOrPartial(
+			return ItemStack.CODEC.parse(lookup.getOps(JsonOps.INSTANCE), object.get(TO)).resultOrPartial(
 					METAcraftLib.LOGGER::error
 			).map(to -> {
 				return stack -> from.test(stack) ? to.copy() : ItemStack.EMPTY;

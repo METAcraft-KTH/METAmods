@@ -27,6 +27,7 @@
 		"MixinAbstractCookingRecipe",
 		"MixinAbstractFurnaceBlockEntity",
 		"MixinChicken",
+		"MixinCraftingRecipe",
 		"MixinDefaultMinecartController",
 		"MixinEntity",
 		"MixinExperimentalMinecartController",
