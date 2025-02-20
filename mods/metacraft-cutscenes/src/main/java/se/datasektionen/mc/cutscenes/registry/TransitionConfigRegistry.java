@@ -29,6 +29,10 @@ public class TransitionConfigRegistry {
 			"camera_path", SmoothCameraPathConfig.CODEC
 	);
 
+	public static final TransitionConfigType<PlayerSpecificCameraPathTransition.Config> PLAYER_CAMERA_PATH = register(
+			"player_camera_path", PlayerSpecificCameraPathTransition.Config.CODEC
+	);
+
 	public static final TransitionConfigType<SmoothEntityPathConfig> SMOOTH_ENTITY_PATH = register(
 			"smooth_entity_path", SmoothEntityPathConfig.CODEC
 	);

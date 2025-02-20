@@ -7,10 +7,7 @@ import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.Identifier;
 import se.datasektionen.mc.cutscenes.Cutscenes;
-import se.datasektionen.mc.cutscenes.position_ref.AtEntityRef;
-import se.datasektionen.mc.cutscenes.position_ref.Fixed;
-import se.datasektionen.mc.cutscenes.position_ref.PositionRef;
-import se.datasektionen.mc.cutscenes.position_ref.PositionRefType;
+import se.datasektionen.mc.cutscenes.position_ref.*;
 
 public class PositionRefRegistry {
 
@@ -24,6 +21,7 @@ public class PositionRefRegistry {
 
 	public static final PositionRefType<AtEntityRef> ENTITY = register("entity", AtEntityRef.CODEC);
 	public static final PositionRefType<Fixed> FIXED = register("fixed", Fixed.CODEC);
+	public static final PositionRefType<FirstValidPos> FIRST_VALID = register("first_valid", FirstValidPos.CODEC);
 
 	public static void init() {
 

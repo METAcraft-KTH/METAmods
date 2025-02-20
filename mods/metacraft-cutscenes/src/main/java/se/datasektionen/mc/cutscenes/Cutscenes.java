@@ -8,6 +8,7 @@ import se.datasektionen.mc.cutscenes.compat.CompatTransitions;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
+import se.datasektionen.mc.cutscenes.registry.RotationRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 
 public class Cutscenes implements ModInitializer {
@@ -19,6 +20,7 @@ public class Cutscenes implements ModInitializer {
 	public void onInitialize() {
 		EntityRefRegistry.init();
 		PositionRefRegistry.init();
+		RotationRefRegistry.init();
 		TransitionRegistry.init();
 		CutsceneInstance.init();
 		Commands.init();

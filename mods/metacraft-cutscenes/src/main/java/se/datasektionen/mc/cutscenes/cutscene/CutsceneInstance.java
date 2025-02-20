@@ -1,11 +1,14 @@
 package se.datasektionen.mc.cutscenes.cutscene;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.entity.*;
+import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.*;
@@ -39,6 +42,7 @@ import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.TeleportTransition;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
+import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
@@ -91,9 +95,9 @@ public class CutsceneInstance implements AutoCloseable {
 					Codec.INT.fieldOf("time").forGetter(a -> a.time),
 					CutsceneWorldData.CODEC.fieldOf("data").forGetter(a -> a.world.save()),
 					SAVED_DATA_CODEC.fieldOf("saved_players").forGetter(cutscene -> cutscene.savedPlayerData), //Careful, this is used by the datafixer!
-					ExtraCodecs.<UUID, Set<UUID>>createCollectionCodec(
-							Uuids.STRICT_CODEC, HashSet::new
-					).optionalFieldOf("all_players", new HashSet<>()).forGetter(a -> a.allPlayers),
+					ExtraCodecs.createListSerializedMap(
+							Uuids.STRICT_CODEC.fieldOf("player"), Uuids.STRICT_CODEC.fieldOf("dummy"), HashMap::new
+					).optionalFieldOf("player_dummies", new HashMap<>()).forGetter(a -> a.playerDummies),
 					Codec.BOOL.fieldOf("ended").forGetter(CutsceneInstance::isEnded),
 					World.CODEC.fieldOf("dim").forGetter(CutsceneInstance::getDim)
 			).apply(instance, CutsceneInstance::new)
@@ -107,10 +111,11 @@ public class CutsceneInstance implements AutoCloseable {
 	private CutsceneWorldData data;
 	private RegistryKey<World> dim;
 	private RemoveHandler onRemove = null;
+	private Map<UUID, Entity> playerDummiesAtTheEnd = null;
 	private boolean shouldPlayNextCutscene = true;
 
 	private final Map<UUID, NbtCompound> savedPlayerData;
-	private final Set<UUID> allPlayers;
+	private final BiMap<UUID, UUID> playerDummies;
 
 	private PSet<ServerPlayerEntity> players = HashTreePSet.empty();
 
@@ -118,22 +123,22 @@ public class CutsceneInstance implements AutoCloseable {
 		this.cutscene = cutscene;
 		this.transitions = cutscene.createTransitions();
 		this.savedPlayerData = new HashMap<>();
-		this.allPlayers = new HashSet<>();
-		setTargetWorld(cutscene.getEntryPoint(world.getServer(), world.getRegistryKey()).map(
-				TeleportTarget::world
+		this.playerDummies = HashBiMap.create();
+		setTargetWorld(cutscene.getEntryDim().map(
+				dim -> world.getServer().getWorld(dim)
 		).orElse(world));
 	}
 
 	protected CutsceneInstance(
 			Cutscene cutscene, IntervalMap<Transition> transitions, int time, CutsceneWorldData data,
-			Map<UUID, NbtCompound> savedPlayerData, Set<UUID> allPlayers,
+			Map<UUID, NbtCompound> savedPlayerData, Map<UUID, UUID> playerDummies,
 			boolean ended, RegistryKey<World> dim
 	) {
 		this.cutscene = cutscene;
 		this.transitions = transitions;
 		this.time = time;
 		this.data = data;
-		this.allPlayers = allPlayers;
+		this.playerDummies = HashBiMap.create(playerDummies);
 		this.savedPlayerData = new HashMap<>(savedPlayerData);
 		this.ended = ended;
 		this.dim = dim;
@@ -244,7 +249,7 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	public boolean canAddPlayer(ServerPlayerEntity player) {
-		return world.isPlayerWorld(player) || getCurrentTarget().isPresent();
+		return world.isPlayerWorld(player) || getCurrentTarget(player).isPresent();
 	}
 
 	public boolean isPlayerHiddenFrom(ServerPlayerEntity player, ServerPlayerEntity target) {
@@ -261,14 +266,14 @@ public class CutsceneInstance implements AutoCloseable {
 		return world.getActualWorld() == target.world();
 	}
 
-	private Optional<TeleportTarget> getCurrentTarget() {
+	private Optional<TeleportTarget> getCurrentTarget(ServerPlayerEntity player) {
 		var transitionTarget = getTransitions().getValuesAt(getCurrentTime()).map(
 				t -> t instanceof TeleportTransition tp ? tp.getTarget(this).filter(this::isValidTarget).orElse(null) : null
 		).filter(
 				Objects::nonNull
 		).findAny();
 		if (transitionTarget.isEmpty()) {
-			return cutscene.getEntryPoint(world.getServer(), world.getRegistryKey()).filter(this::isValidTarget);
+			return cutscene.getEntryPoint(player, this).filter(this::isValidTarget);
 		}
 		return transitionTarget;
 	}
@@ -277,9 +282,23 @@ public class CutsceneInstance implements AutoCloseable {
 		createFromData(savedPlayerData.get(player.getUuid())).ifPresent(p -> {
 			p.streamSelfAndPassengers().forEach(e -> {
 				e.getCommandTags().add(PLAYER_DUMMY_TAG);
+				if (e instanceof PlayerMob) {
+					playerDummies.put(player.getUuid(), e.getUuid());
+				}
 				world.getEntityManager().addEntity(PLAYER_REFERENCE, e);
 			});
 		});
+	}
+
+	public Optional<Entity> getPlayerDummyFor(ServerPlayerEntity player) {
+		if (playerDummiesAtTheEnd != null) {
+			return Optional.of(playerDummiesAtTheEnd.get(player.getUuid()));
+		}
+		var dummy = playerDummies.get(player.getUuid());
+		if (dummy == null) {
+			return Optional.empty();
+		}
+		return Optional.ofNullable(getEntityLookup().get(dummy));
 	}
 
 	private void removeLead(ServerPlayerEntity player) {
@@ -324,11 +343,11 @@ public class CutsceneInstance implements AutoCloseable {
 			}
 		}
 		if (world != null && !world.isPlayerWorld(player)) {
-			getCurrentTarget().ifPresent(player::teleportTo);
+			getCurrentTarget(player).ifPresent(player::teleportTo);
 		}
 		players = players.plus(player);
 		world.addPlayer(player);
-		if (cutscene.createFakePlayer() && !allPlayers.contains(player.getUuid())) {
+		if (cutscene.createFakePlayer() && !playerDummies.containsKey(player.getUuid())) {
 			addPlayerDummy(player);
 		}
 		transitions.getIntervalsAt(getCurrentTime()).forEach(interval -> {
@@ -347,8 +366,6 @@ public class CutsceneInstance implements AutoCloseable {
 
 
 		swapScoreboards(player, world.getActualWorld().getScoreboard(), world.getScoreboard());
-
-		allPlayers.add(player.getUuid());
 	}
 
 	private void swapScoreboards(
@@ -378,6 +395,11 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 		player.copyFromPlayerData(data);
 		loadRootVehicle(player, data, e -> {});
+		player.getRootVehicle().streamPassengersAndSelf().forEach(e -> {
+			if (e instanceof MobEntity mob) {
+				mob.setPersistent();
+			}
+		});
 		return Optional.of(player.getRootVehicle());
 	}
 
@@ -491,10 +513,10 @@ public class CutsceneInstance implements AutoCloseable {
 				data = new NbtCompound();
 			}
 			if (skipNextCutscene(isLeavingCutscene)) {
-				loadPlayerData(player, data, cutscene.returnToStart(), cutscene.getExitPoint(world.getServer(), world.getRegistryKey()));
+				loadPlayerData(player, data, cutscene.returnToStart(), cutscene.getExitPoint(player, this));
 			}
 		} else if (cutscene.hasExitPoint()) {
-			player.teleportTo(cutscene.getExitPoint(world.getServer(), world.getRegistryKey()).orElseThrow());
+			player.teleportTo(cutscene.getExitPoint(player, this).orElseThrow());
 		} else if (cutscene.returnToStart() && skipNextCutscene(isLeavingCutscene)) {
 			if (!savedPlayerData.containsKey(player.getUuid())) return;
 			var data = savedPlayerData.get(player.getUuid());
@@ -579,6 +601,26 @@ public class CutsceneInstance implements AutoCloseable {
 			var ticker = deltaTick.getTask();
 			if (ticker != null) {
 				ticker.cancel();
+			}
+		}
+	}
+
+	public void onEntityRemoved(Entity entity) {
+		var dummyToPlayer = playerDummies.inverse();
+		if (dummyToPlayer.containsKey(entity.getUuid())) {
+			var playerID = dummyToPlayer.get(entity.getUuid());
+			if (!ended) {
+				var player = getServer().getPlayerManager().getPlayer(playerID);
+				if (player == null || !players.contains(player)) {
+					dummyToPlayer.remove(entity.getUuid());
+				} else {
+					addPlayerDummy(player);
+				}
+			} else {
+				if (playerDummiesAtTheEnd == null) {
+					playerDummiesAtTheEnd = new HashMap<>();
+				}
+				playerDummiesAtTheEnd.put(playerID, entity);
 			}
 		}
 	}

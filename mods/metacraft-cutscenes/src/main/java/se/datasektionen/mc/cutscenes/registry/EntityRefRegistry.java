@@ -23,6 +23,8 @@ public class EntityRefRegistry {
 	public static final EntityRefType<UUIDRef> UUID = register("uuid", UUIDRef.CODEC);
 	public static final EntityRefType<CutsceneRef> CUTSCENE = register("cutscene", CutsceneRef.CODEC);
 	public static final EntityRefType<SelectorRef> SELECTOR = register("selector", SelectorRef.CODEC);
+	public static final EntityRefType<PlayerDummy> PLAYER_DUMMY = register("player_dummy", PlayerDummy.CODEC);
+	public static final EntityRefType<ConditionalEntityRef> CONDITIONAL = register("conditional", ConditionalEntityRef.CODEC);
 
 	public static void init() {
 

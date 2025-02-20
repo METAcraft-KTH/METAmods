@@ -5,9 +5,11 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.StringIdentifiable;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 import se.datasektionen.mc.cutscenes.CutscenesConfig;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
@@ -32,8 +34,8 @@ public class Cutscene {
 					Codec.BOOL.optionalFieldOf("resend_chunks_before_next_cutscene", false).forGetter(a -> a.resendChunksBeforeNextCutscene),
 					ScoreboardMode.CODEC.optionalFieldOf("scoreboard", ScoreboardMode.SYNC).forGetter(a -> a.scoreboardMode),
 					Codec.STRING.optionalFieldOf("finish_command").forGetter(t -> t.finishCommand),
-					TeleportTransition.SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec().optionalFieldOf("entry_point").forGetter(t -> t.entryPoint),
-					TeleportTransition.SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec().optionalFieldOf("exit_point").forGetter(t -> t.exitPoint),
+					TeleportTransition.SerializableTeleportTargetBoth.CODEC.optionalFieldOf("entry_point").forGetter(t -> t.entryPoint),
+					TeleportTransition.SerializableTeleportTargetBoth.CODEC.optionalFieldOf("exit_point").forGetter(t -> t.exitPoint),
 					Codec.STRING.optionalFieldOf("next_cutscene").forGetter(t -> t.nextCutscene)
 			).apply(instance, Cutscene::new)
 	);
@@ -48,8 +50,8 @@ public class Cutscene {
 	private boolean resendChunksBeforeNextCutscene;
 	private ScoreboardMode scoreboardMode;
 	private final Optional<String> finishCommand;
-	private final Optional<TeleportTransition.SerializableTeleportTarget> entryPoint;
-	private final Optional<TeleportTransition.SerializableTeleportTarget> exitPoint;
+	private final Optional<TeleportTransition.SerializableTeleportTargetBoth> entryPoint;
+	private final Optional<TeleportTransition.SerializableTeleportTargetBoth> exitPoint;
 	private final Optional<String> nextCutscene;
 
 	private Optional<Cutscene> cachedNextCutscene = Optional.empty();
@@ -73,8 +75,8 @@ public class Cutscene {
 			boolean resetPlayerData, boolean hidePlayer, boolean skippable, boolean resendChunksBeforeNextCutscene,
 			ScoreboardMode scoreboard,
 			Optional<String> finishCommand,
-			Optional<TeleportTransition.SerializableTeleportTarget> entryPoint,
-			Optional<TeleportTransition.SerializableTeleportTarget> exitPoint,
+			Optional<TeleportTransition.SerializableTeleportTargetBoth> entryPoint,
+			Optional<TeleportTransition.SerializableTeleportTargetBoth> exitPoint,
 			Optional<String> nextCutscene
 	) {
 		this.transitions = transitions;
@@ -139,16 +141,22 @@ public class Cutscene {
 		return finishCommand;
 	}
 
-	public Optional<TeleportTarget> getEntryPoint(MinecraftServer server, RegistryKey<World> cutsceneDim) {
-		return entryPoint.flatMap(target -> target.getTeleportTarget(server, cutsceneDim));
+	public Optional<RegistryKey<World>> getEntryDim() {
+		return entryPoint.flatMap(
+				TeleportTransition.SerializableTeleportTargetBoth::getDim
+		);
+	}
+
+	public Optional<TeleportTarget> getEntryPoint(@Nullable ServerPlayerEntity player, CutsceneInstance cutscene) {
+		return entryPoint.flatMap(target -> target.getTeleportTarget(player, cutscene));
 	}
 
 	public boolean hasExitPoint() {
 		return exitPoint.isPresent();
 	}
 
-	public Optional<TeleportTarget> getExitPoint(MinecraftServer server, RegistryKey<World> cutsceneDim) {
-		return exitPoint.flatMap(target -> target.getTeleportTarget(server, cutsceneDim));
+	public Optional<TeleportTarget> getExitPoint(@Nullable ServerPlayerEntity player, CutsceneInstance cutscene) {
+		return exitPoint.flatMap(target -> target.getTeleportTarget(player, cutscene));
 	}
 
 	public enum ScoreboardMode implements StringIdentifiable {

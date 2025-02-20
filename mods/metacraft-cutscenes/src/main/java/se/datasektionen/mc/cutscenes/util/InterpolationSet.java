@@ -5,14 +5,14 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
+import net.minecraft.server.network.ServerPlayerEntity;
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.TreePMap;
+import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.DoubleStream;
 
@@ -45,9 +45,11 @@ public class InterpolationSet<T extends Interpolatable> {
 	private final TreePMap<Double, T> values; //Warning, this is a persistent map, not a normal map! That means to update it you must do = just like when updating strings!
 	private List<PolynomialSplineFunction> splines;
 	private final Creator<T> creator;
+	private final boolean dynamic;
 
 	public InterpolationSet(TreePMap<Double, T> values, Creator<T> creator) {
 		this.values = values;
+		this.dynamic = values.values().stream().anyMatch(Interpolatable::isDynamic);
 		this.creator = creator;
 	}
 
@@ -75,10 +77,23 @@ public class InterpolationSet<T extends Interpolatable> {
 		);
 	}
 
-	private void initSplines() {
-		if (splines != null) return;
+	private boolean needsUpdate(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
+		if (dynamic && cutscene != null) {
+			for (var t : values.entrySet()) {
+				var actualValue = t.getValue().getValues(player, cutscene).toDoubleArray();
+				var currentValue = splines.stream().mapToDouble(
+						spline -> spline.value(t.getKey())
+				).toArray();
+				if (!Arrays.equals(actualValue, currentValue)) return true;
+			}
+		}
+		return false;
+	}
+
+	private void initSplines(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
+		if (splines != null && !needsUpdate(player, cutscene)) return;
 		DoubleList x = new DoubleArrayList();
-		int size = values.values().stream().map(e -> e.getValues().size()).findAny().orElse(0);
+		int size = values.values().stream().map(e -> e.getValues(player, cutscene).size()).findAny().orElse(0);
 		List<DoubleList> y = new ArrayList<>();
 		for (int i = 0; i < size; i++) {
 			y.add(new DoubleArrayList());
@@ -87,7 +102,7 @@ public class InterpolationSet<T extends Interpolatable> {
 			x.add((double) key);
 
 			for (int i = 0; i < size; i++) {
-				y.get(i).add(value.getValues().getDouble(i));
+				y.get(i).add(value.getValues(player, cutscene).getDouble(i));
 			}
 		});
 
@@ -108,7 +123,11 @@ public class InterpolationSet<T extends Interpolatable> {
 	}
 
 	public T interpolate(double delta) {
-		initSplines();
+		return interpolate(null, null, delta);
+	}
+
+	public T interpolate(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene, double delta) {
+		initSplines(player, cutscene);
 		if (splines == null) return values.values().stream().findAny().orElse(null);
 		return creator.create(splines.stream().mapToDouble(
 				spline -> spline.value(delta)

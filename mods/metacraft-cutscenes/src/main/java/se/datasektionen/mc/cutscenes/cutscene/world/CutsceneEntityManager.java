@@ -10,7 +10,6 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerEntityManager;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -29,7 +28,7 @@ public class CutsceneEntityManager {
 
 	private final List<Pair<String, Entity>> addQueue = new ArrayList<>();
 
-	private final ServerWorld world;
+	private final CutsceneWorld world;
 	private final SectionedEntityCache<Entity> cache = new SectionedEntityCache<>(Entity.class, i -> EntityTrackingStatus.TICKING);
 	private final EntityIndex<Entity> index = new EntityIndex<>();
 	private final EntityLookup<Entity> lookup = new SimpleEntityLookup<>(index, cache);
@@ -160,6 +159,7 @@ public class CutsceneEntityManager {
 		if (!removalSkips.contains(entity.entity.getUuid())) {
 			idLookup.remove(entity.entity.getUuid());
 		}
+		world.onEntityRemoved(entity.entity);
 	}
 
 	public void clear() {

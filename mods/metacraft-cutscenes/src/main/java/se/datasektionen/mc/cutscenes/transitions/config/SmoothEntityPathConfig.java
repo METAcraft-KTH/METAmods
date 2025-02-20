@@ -9,10 +9,13 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.AffineTransformation;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import se.datasektionen.mc.cutscenes.Cutscenes;
+import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
@@ -129,9 +132,9 @@ public record SmoothEntityPathConfig(
 		}
 
 		@Override
-		public DoubleList getValues() {
+		public DoubleList getValues(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
 			var list = new DoubleArrayList(SIZE);
-			list.addAll(target.getValues());
+			list.addAll(target.getValues(player, cutscene));
 
 			float[] array = new float[MATRIX_SIZE];
 			transformation.getMatrix().get(array);

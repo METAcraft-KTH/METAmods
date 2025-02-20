@@ -309,6 +309,10 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		).ifPresent(player.networkHandler::sendPacket);
 	}
 
+	protected void onEntityRemoved(Entity entity) {
+		cutscene.onEntityRemoved(entity);
+	}
+
 	public boolean isPlayerWorld(PlayerEntity player) {
 		return player.getWorld() == world;
 	}

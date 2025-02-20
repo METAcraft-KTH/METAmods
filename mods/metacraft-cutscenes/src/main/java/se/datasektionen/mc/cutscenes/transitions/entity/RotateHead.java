@@ -5,7 +5,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Uuids;
+import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.util.Interpolatable;
 import se.datasektionen.mc.cutscenes.util.InterpolationSet;
 import se.datasektionen.mc.cutscenes.util.InterpolationSetContainer;
@@ -93,7 +95,7 @@ public class RotateHead implements Transition {
 		);
 
 		@Override
-		public DoubleList getValues() {
+		public DoubleList getValues(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
 			return DoubleList.of(yaw, pitch);
 		}
 
@@ -143,7 +145,7 @@ public class RotateHead implements Transition {
 			);
 
 			@Override
-			public DoubleList getValues() {
+			public DoubleList getValues(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
 				return DoubleList.of(yawOffset, pitchOffset);
 			}
 
