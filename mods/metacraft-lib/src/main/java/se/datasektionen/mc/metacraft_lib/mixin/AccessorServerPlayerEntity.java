@@ -1,4 +1,4 @@
-package se.datasektionen.mc.cutscenes.mixin;
+package se.datasektionen.mc.metacraft_lib.mixin;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;

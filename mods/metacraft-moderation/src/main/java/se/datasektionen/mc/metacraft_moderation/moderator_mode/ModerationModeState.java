@@ -1,21 +1,12 @@
 package se.datasektionen.mc.metacraft_moderation.moderator_mode;
 
-import com.mojang.serialization.DataResult;
-import com.mojang.serialization.Dynamic;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.dimension.DimensionType;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.metacraft_lib.util.helper.PlayerHelper;
 import se.datasektionen.mc.metacraft_moderation.METAcraftModeration;
 import se.datasektionen.mc.metacraft_moderation.ModerationData;
 import se.datasektionen.mc.metacraft_moderation.ModerationPlayerData;
@@ -24,7 +15,6 @@ import se.datasektionen.mc.metacraft_moderation.mixin.AccessorPlayerManager;
 import se.datasektionen.mc.metacraft_moderation.mixin.AccessorServerPlayerEntity;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 public class ModerationModeState {
 
@@ -40,50 +30,6 @@ public class ModerationModeState {
 
 	public ModerationModeState(ModeratorModeDefinition def) {
 		this.def = def;
-	}
-
-	private static final NbtCompound CLEAR_PLAYER = new NbtCompound();
-
-	static {
-		CLEAR_PLAYER.putBoolean("seenCredits", true);
-		CLEAR_PLAYER.put("EnderItems", new NbtList());
-		CLEAR_PLAYER.put("ShoulderEntityLeft", new NbtCompound());
-		CLEAR_PLAYER.put("ShoulderEntityRight", new NbtCompound());
-	}
-
-	private void loadPlayerVehicle(NbtCompound nbtCompound, ServerPlayerEntity player, Consumer<Entity> vehicleModifier) {
-		if (nbtCompound.contains("RootVehicle", NbtElement.COMPOUND_TYPE)) {
-			var rootVehicleData = nbtCompound.getCompound("RootVehicle");
-			var rootVehicleEntity = EntityType.loadEntityWithPassengers(
-					rootVehicleData.getCompound("Entity"), player.getServerWorld(), SpawnReason.LOAD, vehicle -> {
-						vehicleModifier.accept(vehicle);
-						if (!player.getServerWorld().tryLoadEntity(vehicle)) {
-							return null;
-						}
-						return vehicle;
-					}
-			);
-			if (rootVehicleEntity != null) {
-				UUID directPlayerVehicle = rootVehicleData.containsUuid("Attach") ? rootVehicleData.getUuid("Attach") : null;
-				if (rootVehicleEntity.getUuid().equals(directPlayerVehicle)) {
-					player.startRiding(rootVehicleEntity, true);
-				} else {
-					for (var entity : rootVehicleEntity.getPassengersDeep()) {
-						if (entity.getUuid().equals(directPlayerVehicle)) {
-							player.startRiding(entity, true);
-							break;
-						}
-					}
-				}
-				if (!player.hasVehicle()) {
-					METAcraftModeration.LOGGER.warn("Couldn't reattach entity to player");
-					rootVehicleEntity.discard();
-					for (Entity entity : rootVehicleEntity.getPassengersDeep()) {
-						entity.discard();
-					}
-				}
-			}
-		}
 	}
 
 	private NbtCompound writePlayerToNBT(ServerPlayerEntity player) {
@@ -137,42 +83,18 @@ public class ModerationModeState {
 		}
 
 		if (def.shouldHaveSeparatePlayerData()) {
-			Vec3d pos = player.getPos();
 			if (!prev.def.shouldHaveSeparatePlayerData()) {
 				if (playerNBT != null) {
 					METAcraftModeration.LOGGER.fatal("Overwriting player data for " + player + "!" + "Their previous nbt was " + playerNBT.asString() + ". This should not happen!");
 				}
 				playerNBT = writePlayerToNBT(player);
 			}
-			NbtCompound newNbt = CLEAR_PLAYER.copy();
+			NbtCompound newNbt = PlayerHelper.getEmptyPlayerData();
 			Optional.ofNullable(((ModerationPlayerData) player).METAcraft_Moderation$getSavedNBT().get(def.getName())).ifPresent(newNbt::copyFrom);
-			player.readNbt(newNbt);
-			Optional.ofNullable(AccessorServerPlayerEntity.callGameModeFromNbt(newNbt, "playerGameType")).ifPresent(
-					player::changeGameMode
-			);
-			player.setPos(pos.getX(), pos.getY(), pos.getZ());
-			player.resetPosition();
-			loadPlayerVehicle(
-					newNbt, player,
-					entity -> entity.refreshPositionAndAngles(
-							player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch()
-					)
-			);
+			PlayerHelper.applyPlayerData(player, newNbt, false);
 		} else if (prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
 			if (prev.playerNBT != null) {
-				player.readNbt(prev.playerNBT);
-				ServerWorld world = DimensionType.worldFromDimensionNbt(
-						new Dynamic<>(NbtOps.INSTANCE, prev.playerNBT.get("Dimension"))
-				).flatMap(key -> {
-					var dim = player.getServer().getWorld(key);
-					if (dim == null) {
-						return DataResult.error(() -> "Dimension " + key + " did not exist.");
-					}
-					return DataResult.success(dim);
-				}).resultOrPartial(METAcraftModeration.LOGGER::error).orElse(player.getServer().getOverworld());
-				player.teleport(world, player.getX(), player.getY(), player.getZ(), Set.of(), player.getYaw(), player.getPitch(), false);
-				player.changeGameMode(AccessorServerPlayerEntity.callGameModeFromNbt(prev.playerNBT, "playerGameType"));
-				loadPlayerVehicle(prev.playerNBT, player, entity -> {});
+				PlayerHelper.applyPlayerData(player, prev.playerNBT, true);
 			} else {
 				METAcraftModeration.LOGGER.fatal("Player " + player.getName() + " lost their player data! This is a bug!");
 			}

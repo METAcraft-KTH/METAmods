@@ -18,7 +18,6 @@
 		"AccessorServerChunkLoadingManager$EntityTracker",
 		"AccessorServerChunkManager",
 		"AccessorServerLightingProvider",
-		"AccessorServerPlayerEntity",
 		"AccessorServerWorld",
 		"AccessorStatusEffectInstance",
 		"MixinChunkDataSender",

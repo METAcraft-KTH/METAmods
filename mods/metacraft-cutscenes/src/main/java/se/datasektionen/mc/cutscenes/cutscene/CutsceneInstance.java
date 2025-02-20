@@ -3,8 +3,6 @@ package se.datasektionen.mc.cutscenes.cutscene;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.DataResult;
-import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.entity.*;
@@ -26,7 +24,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.entity.EntityLookup;
 import org.pcollections.HashTreePSet;
 import org.pcollections.PSet;
@@ -37,7 +34,6 @@ import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorldData;
 import se.datasektionen.mc.cutscenes.transitions.DeltaTickTransition;
 import se.datasektionen.mc.cutscenes.transitions.HideOtherPlayersTransition;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
-import se.datasektionen.mc.cutscenes.mixin.AccessorServerPlayerEntity;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.TeleportTransition;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
@@ -45,6 +41,7 @@ import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.PlayerHelper;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -389,12 +386,12 @@ public class CutsceneInstance implements AutoCloseable {
 
 	public Optional<Entity> createFromData(NbtCompound data) {
 		var player = METAcraftEntities.PLAYER.create(world, SpawnReason.EVENT);
-		var spawnWorld = getWorld(world.getServer(), data);
+		var spawnWorld = PlayerHelper.getWorld(world.getServer(), data);
 		if (spawnWorld.isEmpty() || spawnWorld.get() != world.getActualWorld()) {
 			return Optional.empty();
 		}
 		player.copyFromPlayerData(data);
-		loadRootVehicle(player, data, e -> {});
+		PlayerHelper.loadRootVehicle(player, data, e -> {});
 		player.getRootVehicle().streamPassengersAndSelf().forEach(e -> {
 			if (e instanceof MobEntity mob) {
 				mob.setPersistent();
@@ -403,91 +400,12 @@ public class CutsceneInstance implements AutoCloseable {
 		return Optional.of(player.getRootVehicle());
 	}
 
-	public static Optional<ServerWorld> getWorld(MinecraftServer server, NbtCompound data) {
-		return DimensionType.worldFromDimensionNbt(
-				new Dynamic<>(NbtOps.INSTANCE, data.get("Dimension"))
-		).flatMap(key -> {
-			var dim = server.getWorld(key);
-			if (dim == null) {
-				return DataResult.error(() -> "Dimension " + key + " did not exist.");
-			}
-			return DataResult.success(dim);
-		}).resultOrPartial(Cutscenes.LOGGER::error);
-	}
-
-	public static void loadRootVehicle(LivingEntity player, NbtCompound data, Consumer<Entity> spawner) {
-		if (data.contains("RootVehicle")) {
-			var vehicle = data.getCompound("RootVehicle");
-			var e = EntityType.loadEntityWithPassengers(vehicle.getCompound("Entity"), player.getWorld(), SpawnReason.LOAD, entity -> {
-				spawner.accept(entity);
-				return entity;
-			});
-			if (e != null) {
-				Runnable clearEntity = () -> {
-					e.streamPassengersAndSelf().forEach(Entity::discard);
-					Cutscenes.LOGGER.error("Unable to reattach player to entity.");
-				};
-				if (vehicle.containsUuid("Attach")) {
-					var id = vehicle.getUuid("Attach");
-					for (var entity : (Iterable<Entity>) e.streamSelfAndPassengers()::iterator) {
-						if (entity.getUuid().equals(id)) {
-							player.startRiding(entity, true);
-						}
-					}
-					if (!player.hasVehicle()) {
-						clearEntity.run();
-					}
-				} else {
-					clearEntity.run();
-				}
-			}
-		}
-	}
-
 	public static void loadPlayerData(
 			ServerPlayerEntity player, NbtCompound data, boolean usePlayerDataPosition,
 			Optional<TeleportTarget> exitPosOverride
 	) {
-		var prevPos = player.getPos();
-		var prevYaw = player.getYaw();
-		var prevPitch = player.getPitch();
-		Vec3d prevVelocity = player.getVelocity();
-
-		var prevVehiclePos = player.getRootVehicle().getPos();
-		var prevVehicleYaw = player.getRootVehicle().getYaw();
-		var prevVehiclePitch = player.getRootVehicle().getPitch();
-		var prevVehicleVelocity = player.getRootVehicle().getVelocity();
-
-		player.readNbt(data);
-		Optional<ServerWorld> world = getWorld(player.getServer(), data);
-		if (exitPosOverride.isPresent()) {
-			player.teleportTo(exitPosOverride.get());
-		} else if (usePlayerDataPosition) {
-			world.ifPresentOrElse(w -> {
-				player.teleport(w, player.getX(), player.getY(), player.getZ(), Set.of(), player.getYaw(), player.getPitch(), false);
-				player.velocityModified = true;
-			}, () -> {
-				player.teleportTo(player.getRespawnTarget(true, TeleportTarget.NO_OP));
-			});
-		} else {
-			player.setPos(prevPos.getX(), prevPos.getY(), prevPos.getZ());
-			player.setYaw(prevYaw);
-			player.setPitch(prevPitch);
-			player.setVelocity(prevVelocity);
-		}
-		var gameMode = AccessorServerPlayerEntity.callGameModeFromNbt(data, "playerGameType");
-		if (gameMode != null) {
-			player.changeGameMode(gameMode);
-		}
-		loadRootVehicle(player, data, e -> {
-			if (exitPosOverride.isEmpty() && !usePlayerDataPosition) {
-				e.setPos(prevVehiclePos.x, prevVehiclePos.y, prevVehiclePos.z);
-				e.setYaw(prevVehicleYaw);
-				e.setPitch(prevVehiclePitch);
-				e.setVelocity(prevVehicleVelocity);
-			}
-			player.getWorld().spawnEntity(e);
-		});
+		PlayerHelper.applyPlayerData(player, data, usePlayerDataPosition && exitPosOverride.isEmpty());
+		exitPosOverride.ifPresent(teleportTarget -> player.getRootVehicle().teleportTo(teleportTarget));
 	}
 
 	private void removeCutscene() {
@@ -523,7 +441,7 @@ public class CutsceneInstance implements AutoCloseable {
 			NbtList pos = data.getList("Pos", NbtCompound.DOUBLE_TYPE);
 			NbtList velocity = data.getList("Motion", NbtCompound.DOUBLE_TYPE);
 			NbtList rotation = data.getList("Rotation", NbtCompound.FLOAT_TYPE);
-			var dim = getWorld(player.getServer(), data);
+			var dim = PlayerHelper.getWorld(player.getServer(), data);
 			dim.ifPresentOrElse(world -> {
 				player.teleport(
 						world, pos.getDouble(0), pos.getDouble(1), pos.getDouble(2), Set.of(),
