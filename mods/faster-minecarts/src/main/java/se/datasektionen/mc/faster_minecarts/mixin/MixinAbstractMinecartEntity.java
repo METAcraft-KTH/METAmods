@@ -39,6 +39,9 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 	}
 
 	@Unique
+	private static final String MINECART_TAG = "faster_minecarts.has_super_speed";
+
+	@Unique
 	private Direction.AxisDirection initialZ = Direction.AxisDirection.POSITIVE;
 	@Unique
 	private boolean yawFixed = false;
@@ -68,6 +71,15 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 		);
 	}
 
+	@Unique
+	private void updateTag() {
+		if (FasterMinecartsHelper.hasSuperSpeed((AbstractMinecartEntity) (Object) this)) {
+			getCommandTags().add(MINECART_TAG);
+		} else {
+			getCommandTags().remove(MINECART_TAG);
+		}
+	}
+
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
 		if (nbt.contains(FasterMinecarts.MINECART_ITEM)) {
@@ -78,6 +90,7 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 		} else {
 			minecartItem = Optional.empty();
 		}
+		updateTag();
 		updateController();
 	}
 
@@ -229,5 +242,6 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 	public void fasterMinecarts$setMinecartItem(Optional<ItemStack> stack) {
 		this.minecartItem = stack;
 		updateController();
+		updateTag();
 	}
 }
