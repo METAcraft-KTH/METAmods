@@ -237,13 +237,17 @@ public class ModerationModeState {
 
 	public NbtCompound toNBT() {
 		NbtCompound nbt = new NbtCompound();
-		nbt.put(PLAYER_NBT, this.playerNBT);
+		if (this.playerNBT != null) {
+			nbt.put(PLAYER_NBT, this.playerNBT);
+		}
 		nbt.putString(DEF, def.name);
 		return nbt;
 	}
 
 	public void fromNBT(ModerationData data, NbtCompound nbt) {
-		this.playerNBT = nbt.getCompound(PLAYER_NBT);
+		if (nbt.contains(PLAYER_NBT)) {
+			this.playerNBT = nbt.getCompound(PLAYER_NBT);
+		}
 		var defName = nbt.getString(DEF);
 		def = data.getDefinition(defName).orElseGet(() -> {
 			METAcraftModeration.LOGGER.error("Unable to load moderator definition named " + defName);
