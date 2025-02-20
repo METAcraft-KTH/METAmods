@@ -11,6 +11,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.command.CommandSource;
+import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import se.datasektionen.mc.metacraft_moderation.moderator_mode.ModeratorModeDefinition;
@@ -117,6 +118,7 @@ public class Commands {
 						moderationDefinition("mod").then(
 							CommandUtil.command("arg", 10, dispatcher, (ctx, command) -> {
 								var mod = getModerationDefinition(ctx, "mod");
+								CommandManager.throwException(ctx.getSource().getServer().getCommandManager().getDispatcher().parse(command, ctx.getSource()));
 								mod.setEnterCommand(command);
 								ctx.getSource().sendFeedback(() -> Text.literal("Set enter command to " + command + " for " + mod.getName()), true);
 								return 1;
@@ -128,6 +130,7 @@ public class Commands {
 						moderationDefinition("mod").then(
 							CommandUtil.command("arg", 10, dispatcher, (ctx, command) -> {
 								var mod = getModerationDefinition(ctx, "mod");
+								CommandManager.throwException(ctx.getSource().getServer().getCommandManager().getDispatcher().parse(command, ctx.getSource()));
 								mod.setExitCommand(command);
 								ctx.getSource().sendFeedback(() -> Text.literal("Set exit command to " + command + " for " + mod.getName()), true);
 								return 1;
@@ -163,7 +166,7 @@ public class Commands {
 				)
 			).then(
 				literal("as").then(
-					moderationDefinition("mod").requires(ServerCommandSource::isExecutedByPlayer).executes(ctx -> {
+					moderationDefinition("mod").executes(ctx -> {
 						var player = ctx.getSource().getPlayerOrThrow();
 						var def = getModerationDefinition(ctx, "mod");
 						PlayerModerationState.setModeratorMode(player, def.getName());
@@ -187,7 +190,7 @@ public class Commands {
 					return 1;
 				})
 			).then(
-				literal("exit").requires(ServerCommandSource::isExecutedByPlayer).executes(ctx -> {
+				literal("exit").executes(ctx -> {
 					var player = ctx.getSource().getPlayerOrThrow();
 					PlayerModerationState.removeModeratorMode(player);
 					ctx.getSource().sendFeedback(() -> Text.literal("You are no longer in moderator mode."), true);

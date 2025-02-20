@@ -184,12 +184,12 @@ public class ModerationModeState {
 			}
 		}
 
-		prev.def.getExitCommand().map(command -> command.replaceAll("@s", player.getGameProfile().getName())).ifPresent(exit -> {
+		prev.def.getExitCommand().map(command -> command.replaceAll("@s(?= )", player.getGameProfile().getName())).ifPresent(exit -> {
 			player.getServer().getCommandManager().executeWithPrefix(
 					player.getCommandSource().withLevel(4), exit
 			);
 		});
-		def.getEnterCommand().map(command -> command.replaceAll("@s", player.getGameProfile().getName())).ifPresent(enter -> {
+		def.getEnterCommand().map(command -> command.replaceAll("@s(?= )", player.getGameProfile().getName())).ifPresent(enter -> {
 			player.getServer().getCommandManager().executeWithPrefix(
 					player.getCommandSource().withLevel(4), enter
 			);
