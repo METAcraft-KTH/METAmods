@@ -6,7 +6,7 @@ import net.minecraft.inventory.Inventory;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
-import se.datasektionen.mc.metacraft_lib.util.helper.PlayerHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 import se.datasektionen.mc.metacraft_moderation.METAcraftModeration;
 import se.datasektionen.mc.metacraft_moderation.ModerationData;
 import se.datasektionen.mc.metacraft_moderation.ModerationPlayerData;
@@ -89,12 +89,12 @@ public class ModerationModeState {
 				}
 				playerNBT = writePlayerToNBT(player);
 			}
-			NbtCompound newNbt = PlayerHelper.getEmptyPlayerData();
+			NbtCompound newNbt = PlayerDataHelper.getEmptyPlayerData();
 			Optional.ofNullable(((ModerationPlayerData) player).METAcraft_Moderation$getSavedNBT().get(def.getName())).ifPresent(newNbt::copyFrom);
-			PlayerHelper.applyPlayerData(player, newNbt, false);
+			PlayerDataHelper.applyPlayerData(player, newNbt, false);
 		} else if (prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
 			if (prev.playerNBT != null) {
-				PlayerHelper.applyPlayerData(player, prev.playerNBT, true);
+				PlayerDataHelper.applyPlayerData(player, prev.playerNBT, true);
 			} else {
 				METAcraftModeration.LOGGER.fatal("Player " + player.getName() + " lost their player data! This is a bug!");
 			}

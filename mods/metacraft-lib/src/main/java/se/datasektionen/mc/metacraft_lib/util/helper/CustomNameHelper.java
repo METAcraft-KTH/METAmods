@@ -14,7 +14,7 @@ public class CustomNameHelper {
 	 * @return An optional containing the player's custom name, or empty if the player does not have a custom name.
 	 */
 	public static Optional<String> getCustomName(ServerPlayerEntity player) {
-		return Optional.ofNullable(((ServerPlayerEntityExtensions) player).METAcraft_Moderation$getCustomName());
+		return Optional.ofNullable(((ServerPlayerEntityExtensions) player).metacraft_lib$getCustomName());
 	}
 
 	/**
@@ -37,7 +37,7 @@ public class CustomNameHelper {
 		if (name != null && name.length() > 16) {
 			throw new IllegalArgumentException("Name must be at most 16 characters!");
 		}
-		((ServerPlayerEntityExtensions) player).METAcraft_Moderation$setCustomName(name, showInGUI);
+		((ServerPlayerEntityExtensions) player).metacraft_lib$setCustomName(name, showInGUI);
 	}
 
 	/**

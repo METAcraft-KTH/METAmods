@@ -1,20 +1,25 @@
 package se.datasektionen.mc.metacraft_lib.mixin;
 
 import com.google.common.collect.ImmutableList;
-import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.authlib.GameProfile;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerRemoveS2CPacket;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.village.TradeOffer;
 import net.minecraft.village.TradeOfferList;
 import net.minecraft.world.World;
+import org.pcollections.HashTreePMap;
+import org.pcollections.PMap;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -23,9 +28,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_lib.METAcraftData;
+import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_lib.extensions.TradeOfferExtensions;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
+
+import java.util.Optional;
 
 @Mixin(ServerPlayerEntity.class)
 public abstract class MixinServerPlayerEntity extends PlayerEntity implements ServerPlayerEntityExtensions {
@@ -37,8 +45,6 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Shadow public abstract void sendMessage(Text message, boolean overlay);
 
 
-	@Shadow public abstract void playerTick();
-
 	@Shadow protected abstract void consumeItem();
 
 	@Unique
@@ -48,10 +54,25 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private boolean showInGUI = true;
 
 	@Unique
+	private boolean readOrWriteDataMap = true;
+
+	@Unique
+	private PMap<Identifier, NbtCompound> dataMap = HashTreePMap.empty();
+
+	@Unique
 	private static final String CUSTOM_PLAYER_NAME = "CustomPlayerName";
 
 	@Unique
 	private static final String CUSTOM_PLAYER_NAME_SHOW_IN_GUI = "CustomPlayerNameShowInGUI";
+
+	@Unique
+	private static final MapCodec<PMap<Identifier, NbtCompound>> DATA_MAP_CODEC = Codec.unboundedMap(
+			Identifier.CODEC, NbtCompound.CODEC
+	).xmap(
+			map -> (PMap<Identifier, NbtCompound>) HashTreePMap.from(map),
+			e -> e
+	).optionalFieldOf("metacraft:data_map", HashTreePMap.empty());
+
 
 
 	public MixinServerPlayerEntity(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
@@ -60,7 +81,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Inject(method = "copyFrom", at = @At("RETURN"))
 	public void copyFrom(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo ci) {
-		customName = ((ServerPlayerEntityExtensions) oldPlayer).METAcraft_Moderation$getCustomName();
+		customName = ((ServerPlayerEntityExtensions) oldPlayer).metacraft_lib$getCustomName();
+		showInGUI = ((ServerPlayerEntityExtensions) oldPlayer).metacraft_lib$showInGUI();
+		dataMap = ((MixinServerPlayerEntity) (Object) oldPlayer).dataMap;
 	}
 
 	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
@@ -69,16 +92,31 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			nbt.putString(CUSTOM_PLAYER_NAME, customName);
 			nbt.putBoolean(CUSTOM_PLAYER_NAME_SHOW_IN_GUI, showInGUI);
 		}
+
+		var builder = NbtOps.INSTANCE.mapBuilder();
+		if (!dataMap.isEmpty() && readOrWriteDataMap) {
+			builder = DATA_MAP_CODEC.encode(dataMap, NbtOps.INSTANCE, builder);
+		}
+		builder.build(nbt).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(n -> {
+			nbt.copyFrom((NbtCompound) n);
+		});
 	}
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
 		if (nbt.contains(CUSTOM_PLAYER_NAME)) {
 			boolean show = nbt.contains(CUSTOM_PLAYER_NAME_SHOW_IN_GUI) ? nbt.getBoolean(CUSTOM_PLAYER_NAME_SHOW_IN_GUI) : showInGUI;
-			METAcraft_Moderation$setCustomName(nbt.getString(CUSTOM_PLAYER_NAME), show);
+			metacraft_lib$setCustomName(nbt.getString(CUSTOM_PLAYER_NAME), show);
 		} else {
-			METAcraft_Moderation$setCustomName(null, true);
+			metacraft_lib$setCustomName(null, true);
 		}
+		NbtOps.INSTANCE.getMap(nbt).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(map -> {
+			if (readOrWriteDataMap) {
+				DATA_MAP_CODEC.decode(NbtOps.INSTANCE, map).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(data -> {
+					this.dataMap = data;
+				});
+			}
+		});
 	}
 
 	@ModifyVariable(method = "sendTradeOffers", at = @At(value = "HEAD"), argsOnly = true)
@@ -113,7 +151,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Override
-	public void METAcraft_Moderation$setCustomName(String customName, boolean showInGUI) {
+	public void metacraft_lib$setCustomName(String customName, boolean showInGUI) {
 		this.customName = customName;
 		this.showInGUI = showInGUI;
 		if (showInGUI) {
@@ -138,13 +176,43 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Override
-	public boolean METAcraft_Moderation$showInGUI() {
+	public boolean metacraft_lib$showInGUI() {
 		return showInGUI;
 	}
 
 	@Override
-	public String METAcraft_Moderation$getCustomName() {
+	public String metacraft_lib$getCustomName() {
 		return customName;
+	}
+
+
+	@Override
+	public void metacraft_lib$setPlayerData(Identifier id, NbtCompound value) {
+		if (value != null) {
+			dataMap = dataMap.plus(id, value);
+		} else {
+			dataMap = dataMap.minus(id);
+		}
+	}
+
+	@Override
+	public Optional<NbtCompound> metacraft_lib$getPlayerData(Identifier id) {
+		return Optional.ofNullable(dataMap.get(id));
+	}
+
+	@Override
+	public NbtCompound metacraft_lib$savePlayerDataExceptDataMap() {
+		readOrWriteDataMap = false;
+		var data = writeNbt(new NbtCompound());
+		readOrWriteDataMap = true;
+		return data;
+	}
+
+	@Override
+	public void metacraft_lib$loadPlayerDataExceptDataMap(NbtCompound data) {
+		readOrWriteDataMap = false;
+		readNbt(data);
+		readOrWriteDataMap = true;
 	}
 
 }
