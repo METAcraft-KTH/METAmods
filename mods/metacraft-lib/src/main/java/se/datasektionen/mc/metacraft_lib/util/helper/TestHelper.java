@@ -28,6 +28,21 @@ import java.util.function.Supplier;
 
 public class TestHelper {
 
+	private static boolean junit = false;
+
+	static {
+		for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
+			if (element.getClassName().startsWith("org.junit.")) {
+				junit = true;
+				break;
+			}
+		}
+	}
+
+	public static boolean isJunit() {
+		return junit;
+	}
+
 	public static ServerPlayerEntity addMockPlayer(TestContext ctx) {
 		return addMockPlayer(ctx, "test-player", UUID.randomUUID());
 	}

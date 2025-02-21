@@ -40,6 +40,7 @@
 		"MixinLockableContainerBlockEntity",
 		"MixinMerchantEntity",
 		"MixinMerchantInventory",
+		"MixinMinecraftServer",
 		"MixinMobEntity",
 		"MixinPlayerEntity",
 		"MixinPlayerListS2CPacketEntry",
