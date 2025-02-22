@@ -19,6 +19,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.ColorHelper;
 import net.minecraft.util.math.Vec3d;
@@ -110,6 +111,10 @@ public class Wrench extends Item implements PolymerItem {
 		}
 	}
 
+	public static boolean canUse(World world, BlockPos pos) {
+		return world.getBlockEntity(pos) != null;
+	}
+
 	@Override
 	public ActionResult useOnBlock(ItemUsageContext context) {
 		if (context.getWorld() instanceof ServerWorld world) {
@@ -133,7 +138,7 @@ public class Wrench extends Item implements PolymerItem {
 							world, context.getPlayer(),
 							RED_DUST,
 							pos.getX(), pos.getY(), pos.getZ(), 50,
-							0.4f, 0.4f, 0.4f, 1
+							0.4f, 0.4f, 0.4f, 0.1f
 					);
 				}
 				world.playSound(
@@ -197,7 +202,7 @@ public class Wrench extends Item implements PolymerItem {
 								player.getServerWorld().spawnParticles(
 										player, RED_DUST, true, true,
 										pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 5,
-										0.4f, 0.4f, 0.4f, 1
+										0.4f, 0.4f, 0.4f, 0.1f
 								);
 							}
 						}

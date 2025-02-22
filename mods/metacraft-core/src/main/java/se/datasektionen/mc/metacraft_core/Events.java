@@ -7,9 +7,11 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import se.datasektionen.mc.metacraft_core.item.METAcraftItems;
 import se.datasektionen.mc.metacraft_core.item.components.CommandComponents;
+import se.datasektionen.mc.metacraft_core.item.items.Wrench;
 import se.datasektionen.mc.metacraft_core.util.helper.BundleHelper;
 
 public class Events {
@@ -46,7 +48,20 @@ public class Events {
 					);
 				}
 				if (stack.getItem() == METAcraftItems.WRENCH) {
-					return stack.useOnBlock(new ItemUsageContext(world, player, hand, player.getStackInHand(hand), hitResult));
+					if (hand == Hand.MAIN_HAND) {
+						return stack.useOnBlock(new ItemUsageContext(world, player, hand, player.getStackInHand(hand), hitResult));
+					} else {
+						return ActionResult.FAIL;
+					}
+				}
+				if (hand == Hand.MAIN_HAND) {
+					var offhand = player.getOffHandStack();
+					if (offhand.getItem() == METAcraftItems.WRENCH && Wrench.canUse(world, hitResult.getBlockPos())) {
+						if (offhand.useOnBlock(new ItemUsageContext(world, player, hand, offhand, hitResult)).isAccepted()) {
+							player.swingHand(Hand.OFF_HAND, true);
+						}
+						return ActionResult.FAIL;
+					}
 				}
 			}
 			return ActionResult.PASS;
