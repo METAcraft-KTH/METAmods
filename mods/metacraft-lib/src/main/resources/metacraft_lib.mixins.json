@@ -47,6 +47,7 @@
 		"MixinPlayerManager",
 		"MixinPlayerModelPart",
 		"MixinRecipeManager",
+		"MixinSchema1460",
 		"MixinServerPlayerEntity",
 		"MixinShapedRecipe",
 		"MixinShapelessRecipe",

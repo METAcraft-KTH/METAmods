@@ -40,6 +40,8 @@ public class PlayerDataHelper {
 		return (ServerPlayerEntityExtensions) player;
 	}
 
+	public static final String PLAYER_DATA_ELEMENT = "metacraft:data_map";
+
 	/**
 	 * Saves the current player data to the given id slot.
 	 * @param player The player to save data from.

@@ -1,9 +1,15 @@
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.serialization.Dynamic;
+import net.minecraft.SharedConstants;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.datafixer.TypeReferences;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.nbt.*;
 import net.minecraft.test.TestContext;
 import net.minecraft.test.TestFunction;
 import net.minecraft.text.Text;
@@ -139,6 +145,41 @@ public class TestPlayerData {
 							ctx.assertFalse(boat.isRemoved(), "Boat was removed despite another player riding it!");
 
 							ctx.complete();
+						}
+				),
+				new TestFunction(
+						"player-data-test", "save-and-load", "empty",
+						1, 1, true, ctx -> {
+							var player = TestHelper.addMockPlayer(ctx);
+							player.updatePosition(20,0,0);
+
+							try {
+								var oldPlayerDataWithItem = StringNbtReader.parse("{seenCredits: 0b, EnderItems: {}, ShoulderEntityLeft: {}, ShoulderEntityRight: {}, Inventory: [{count: 1, Slot: 0b, components: {\"minecraft:food\": {saturation: 1.0f, nutrition: 1}}, id: \"minecraft:diamond\"}], DataVersion: 3955}");
+								var oldPlayerData = StringNbtReader.parse("{seenCredits: 0b, EnderItems: {}, ShoulderEntityLeft: {}, ShoulderEntityRight: {}, DataVersion: 3955}");
+								var version = NbtHelper.getDataVersion(oldPlayerData, 1343);
+
+								var id = Identifier.of("test", "test");
+								NbtCompound dataMap = new NbtCompound();
+								dataMap.put(id.toString(), oldPlayerDataWithItem);
+								oldPlayerData.put(PlayerDataHelper.PLAYER_DATA_ELEMENT, dataMap);
+								var fixer = ctx.getWorld().getServer().getDataFixer();
+
+								oldPlayerData = (NbtCompound) fixer.update(
+										TypeReferences.PLAYER, new Dynamic<>(NbtOps.INSTANCE, oldPlayerData),
+										version, SharedConstants.getGameVersion().getSaveVersion().getId()
+								).getValue();
+
+								player.readNbt(oldPlayerData);
+
+								PlayerDataHelper.loadPlayerData(player, id, false, false, false);
+
+								ctx.assertEquals(player.getMainHandStack().getItem(), Items.DIAMOND, "Diamond went missing!");
+								ctx.assertTrue(player.getMainHandStack().contains(DataComponentTypes.CONSUMABLE), "Item was not upgraded properly!");
+
+								ctx.complete();
+							} catch (CommandSyntaxException e) {
+								throw new RuntimeException(e);
+							}
 						}
 				)
 		));
