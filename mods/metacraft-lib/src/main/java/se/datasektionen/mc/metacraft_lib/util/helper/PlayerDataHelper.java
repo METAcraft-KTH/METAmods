@@ -109,6 +109,7 @@ public class PlayerDataHelper {
 	 */
 	public static void unloadFarawayEntities(ServerPlayerEntity player) {
 		player.getEnderPearls().forEach(pearl -> pearl.remove(Entity.RemovalReason.UNLOADED_WITH_PLAYER));
+		player.getEnderPearls().clear();
 	}
 
 	/**
