@@ -18,7 +18,6 @@ public class Commands {
 						return 1;
 					})
 			);
-			SetPistonMovable.register(dispatcher, registryAccess);
 			LinkPortals.register(dispatcher, registryAccess);
 			PlayerMobCommand.register(dispatcher, registryAccess);
 			PlayMusic.register(dispatcher, registryAccess);
