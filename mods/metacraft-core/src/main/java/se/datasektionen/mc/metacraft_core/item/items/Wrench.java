@@ -90,7 +90,8 @@ public class Wrench extends Item implements PolymerItem {
 		}
 		return Text.translatableWithFallback(
 				"item.metacraft.wrench.tooltip",
-				"Default: " + state.getString()
+				"Default: " + state.getString(),
+				state
 		);
 	}
 

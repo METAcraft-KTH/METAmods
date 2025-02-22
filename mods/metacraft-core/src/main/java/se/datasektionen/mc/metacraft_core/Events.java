@@ -49,6 +49,10 @@ public class Events {
 				}
 				if (stack.getItem() == METAcraftItems.WRENCH) {
 					if (hand == Hand.MAIN_HAND) {
+						var offhand = player.getOffHandStack();
+						if (!offhand.isEmpty()) {
+							player.getItemCooldownManager().set(offhand, 1);
+						}
 						return stack.useOnBlock(new ItemUsageContext(world, player, hand, player.getStackInHand(hand), hitResult));
 					} else {
 						return ActionResult.FAIL;
