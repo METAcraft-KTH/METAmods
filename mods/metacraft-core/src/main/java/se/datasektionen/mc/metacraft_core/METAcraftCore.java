@@ -15,7 +15,8 @@ import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 public class METAcraftCore implements ModInitializer {
 
 	public static final String NAMESPACE = METAcraftLib.NAMESPACE;
-	public static final Logger LOGGER = LogManager.getLogger("metacraft-core");
+	public static final String MODID = "metacraft-core";
+	public static final Logger LOGGER = LogManager.getLogger(MODID);
 
 	@Override
 	public void onInitialize() {

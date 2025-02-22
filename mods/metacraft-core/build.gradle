@@ -6,6 +6,10 @@ loom {
 
 addLeukocyteDependency()
 
+fabricApi {
+	configureDataGeneration()
+}
+
 dependencies {
 	modCompileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
 }
