@@ -16,12 +16,12 @@ import java.util.function.Function;
 
 public class METAcraftItems {
 
-	private static final Item PORTAL_PADDING = register(
+	public static final Item PORTAL_PADDING = register(
 			"portal_padding", settings -> new PolymerBlockItem(METAcraftBlocks.PORTAL_PADDING, settings, Items.ENDER_PEARL),
 			new Item.Settings().useBlockPrefixedTranslationKey()
 	);
 
-	private static final Item WRENCH = register(
+	public static final Item WRENCH = register(
 			"wrench", Wrench::new,
 			new Item.Settings().maxCount(1)
 	);

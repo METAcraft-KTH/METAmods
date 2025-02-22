@@ -4,9 +4,11 @@ import eu.pb4.polymer.core.api.item.PolymerItem;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.fabricmc.fabric.api.event.player.*;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.item.ItemUsageContext;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
+import se.datasektionen.mc.metacraft_core.item.METAcraftItems;
 import se.datasektionen.mc.metacraft_core.item.components.CommandComponents;
 import se.datasektionen.mc.metacraft_core.util.helper.BundleHelper;
 
@@ -42,6 +44,9 @@ public class Events {
 							p, hitResult.getPos(),
 							stack.get(CommandComponents.INTERACT_BLOCK_EXACT_COMMAND)
 					);
+				}
+				if (stack.getItem() == METAcraftItems.WRENCH) {
+					return stack.useOnBlock(new ItemUsageContext(world, player, hand, player.getStackInHand(hand), hitResult));
 				}
 			}
 			return ActionResult.PASS;
