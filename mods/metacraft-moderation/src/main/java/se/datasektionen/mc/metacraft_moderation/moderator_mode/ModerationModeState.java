@@ -1,8 +1,5 @@
 package se.datasektionen.mc.metacraft_moderation.moderator_mode;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.Inventory;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
@@ -33,33 +30,9 @@ public class ModerationModeState {
 	}
 
 	private NbtCompound writePlayerToNBT(ServerPlayerEntity player) {
-		boolean hasOtherPlayerRider = false;
-		for (var entity : player.getRootVehicle().getPassengersDeep()) {
-			if (entity instanceof PlayerEntity && entity != player) {
-				hasOtherPlayerRider = true;
-				break;
-			}
-		}
-		if (hasOtherPlayerRider) {
-			player.dismountVehicle();
-		}
+		PlayerDataHelper.detachPassengersBeforeSaving(player);
 		NbtCompound nbt = player.writeNbt(new NbtCompound());
-
-		if (!hasOtherPlayerRider && player.hasVehicle()) {
-			List<Entity> toRemove = new ArrayList<>();
-			for (var entity : player.getRootVehicle().getPassengersDeep()) {
-				if (entity != player) {
-					toRemove.add(entity);
-				}
-			}
-			toRemove.add(player.getRootVehicle());
-			for (var entity : toRemove) {
-				if (entity instanceof Inventory inv) {
-					inv.clear();
-				}
-				entity.discard();
-			}
-		}
+		PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
 		return nbt;
 	}
 

@@ -64,9 +64,10 @@ public class TestPlayerData {
 
 							final Identifier temp = Identifier.of("test", "test");
 							PlayerDataHelper.saveCurrentPlayerData(player, temp);
-							PlayerDataHelper.unloadPlayerConnectedEntities(player);
+							PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
 							PlayerDataHelper.resetPlayerData(player);
 
+							ctx.assertFalse(player.isRemoved(), "Player was removed!");
 							ctx.assertTrue(pearlInWorld.isRemoved(), "Ender pearl remained!");
 							ctx.assertTrue(boat.isRemoved(), "Boat remained!");
 							ctx.assertTrue(pig.isRemoved(), "Pig remained!");
@@ -74,7 +75,7 @@ public class TestPlayerData {
 							ctx.assertTrue(player.getEnderChestInventory().getStack(2).isEmpty(), "EnderChest Diamond remained!");
 
 							ctx.runAtTick(1, () -> {
-								PlayerDataHelper.loadPlayerData(player, temp, false, true);
+								PlayerDataHelper.loadPlayerData(player, temp, false, true, true);
 
 								ctx.assertTrue(player.getEnderPearls().contains(getNewEntity(ctx, pearlInWorld)), "Ender pearl was not connected to player!");
 
@@ -103,14 +104,14 @@ public class TestPlayerData {
 
 							final Identifier temp = Identifier.of("test", "test");
 							PlayerDataHelper.saveCurrentPlayerData(player, temp);
-							PlayerDataHelper.unloadPlayerConnectedEntities(player);
+							PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
 							PlayerDataHelper.resetPlayerData(player);
 
 							player.networkHandler.disconnect(Text.empty());
 
 							ctx.runAtTick(1, () -> {
 								var playerRelogged = TestHelper.addMockPlayer(ctx, test, id);
-								PlayerDataHelper.loadPlayerData(playerRelogged, temp, false, true);
+								PlayerDataHelper.loadPlayerData(playerRelogged, temp, false, true, true);
 
 								ctx.assertTrue(playerRelogged.getInventory().getStack(5).getItem() == Items.DIAMOND, "Diamond is lost!");
 
@@ -134,7 +135,7 @@ public class TestPlayerData {
 							player.startRiding(boat);
 							player2.startRiding(boat);
 
-							PlayerDataHelper.unloadPlayerConnectedEntities(player);
+							PlayerDataHelper.unloadPassengersAndVehicles(player);
 							ctx.assertFalse(boat.isRemoved(), "Boat was removed despite another player riding it!");
 
 							ctx.complete();

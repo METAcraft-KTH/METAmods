@@ -1,5 +1,6 @@
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -64,9 +65,9 @@ public class CutsceneTests {
 			)
 	));
 
-	private record Data(ServerPlayerEntity player, ItemStack stack, int slot, UUID pig, Vec3d startPos) {
+	private record Data(ServerPlayerEntity player, ItemStack stack, int slot, UUID pig, UUID pearl, Vec3d startPos) {
 		public Data withPlayer(ServerPlayerEntity player) {
-			return new Data(player, stack, slot, pig, startPos);
+			return new Data(player, stack, slot, pig, pearl, startPos);
 		}
 	}
 
@@ -84,10 +85,12 @@ public class CutsceneTests {
 		player.getInventory().insertStack(slot, stack.copy());
 		var pig = EntityType.PIG.create(context.getWorld(), SpawnReason.TRIGGERED);
 		pig.saddle(null, null);
+		var pearl = new EnderPearlEntity(player.getWorld(), player, new ItemStack(Items.ENDER_PEARL));
+		context.getWorld().spawnEntity(pearl);
 		context.getWorld().spawnEntity(pig);
 		player.startRiding(pig);
 		var pos = player.getPos();
-		return new Data(player, stack, slot, pig.getUuid(), pos);
+		return new Data(player, stack, slot, pig.getUuid(), pearl.getUuid(), pos);
 	}
 
 	private static Data prepare(
@@ -95,6 +98,8 @@ public class CutsceneTests {
 	) {
 		var data = prepare(context);
 		CutsceneHelper.playPlayerSpecificCutscene(data.player, cutscene);
+		context.assertTrue(context.getWorld().getEntity(data.pearl) == null, "Ender Pearl was not removed!");
+		context.assertTrue(context.getWorld().getEntity(data.pig) == null, "Pig was not removed!");
 		return data;
 	}
 	private static void checkData(
@@ -115,6 +120,9 @@ public class CutsceneTests {
 			ctx.throwGameTestException("Pig went missing!");
 		}
 		boolean pigRemounted = pig.hasPassenger(data.player);
+		if (ctx.getWorld().getEntity(data.pearl) == null) {
+			ctx.throwGameTestException("Ender Pearl went missing!");
+		}
 		if (itemIsStillHere && !shouldKeepStack) {
 			ctx.throwGameTestException("Item was kept, but was supposed to disappear!");
 		}
@@ -175,7 +183,7 @@ public class CutsceneTests {
 								true, context -> {
 							var data = prepare(context, clearPlayer2);
 							context.runAtTick(22, () -> {
-								checkData(context, data, false, false, false);
+								checkData(context, data, false, true, false);
 							});
 						}),
 						new TestFunction(
@@ -184,7 +192,7 @@ public class CutsceneTests {
 								true, context -> {
 							var data = prepare(context, clearPlayerButReturnToStart2);
 							context.runAtTick(22, () -> {
-								checkData(context, data, false, false, true);
+								checkData(context, data, false, true, true);
 							});
 						}),
 						new TestFunction(

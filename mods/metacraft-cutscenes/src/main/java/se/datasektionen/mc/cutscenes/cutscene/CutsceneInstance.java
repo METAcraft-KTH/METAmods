@@ -323,21 +323,20 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 		removeLead(player);
 		if (!savedPlayerData.containsKey(player.getUuid())) {
-			player.removeAllPassengers();
+			boolean shouldRemount = false;
 			var directVehicle = player.getVehicle();
 			if (!cutscene.hideMount() && !cutscene.createFakePlayer()) {
 				player.dismountVehicle();
+				shouldRemount = true;
 			}
+			PlayerDataHelper.detachPassengersBeforeSaving(player);
 			savedPlayerData.put(player.getUuid(), writeSafeData(player));
 			if (cutscene.hideMount() || cutscene.createFakePlayer()) {
-				var vehicle = player.getRootVehicle();
-				player.dismountVehicle();
-				if (vehicle != player && cutscene.resetPlayerData()) {
-					vehicle.streamPassengersAndSelf().forEach(Entity::discard);
-				}
-			} else if (directVehicle != null) {
+				PlayerDataHelper.unloadPassengersAndVehicles(player);
+			} else if (shouldRemount && directVehicle != null) {
 				player.startRiding(directVehicle, true);
 			}
+			PlayerDataHelper.unloadFarawayEntities(player);
 		}
 		if (world != null && !world.isPlayerWorld(player)) {
 			getCurrentTarget(player).ifPresent(player::teleportTo);
@@ -434,27 +433,47 @@ public class CutsceneInstance implements AutoCloseable {
 			if (skipNextCutscene(isLeavingCutscene)) {
 				loadPlayerData(player, data, cutscene.returnToStart(), cutscene.getExitPoint(player, this));
 			}
-		} else if (cutscene.hasExitPoint()) {
-			player.teleportTo(cutscene.getExitPoint(player, this).orElseThrow());
-		} else if (cutscene.returnToStart() && skipNextCutscene(isLeavingCutscene)) {
-			if (!savedPlayerData.containsKey(player.getUuid())) return;
-			var data = savedPlayerData.get(player.getUuid());
-			NbtList pos = data.getList("Pos", NbtCompound.DOUBLE_TYPE);
-			NbtList velocity = data.getList("Motion", NbtCompound.DOUBLE_TYPE);
-			NbtList rotation = data.getList("Rotation", NbtCompound.FLOAT_TYPE);
-			var dim = PlayerDataHelper.getWorld(player.getServer(), data);
-			dim.ifPresentOrElse(world -> {
-				player.teleport(
-						world, pos.getDouble(0), pos.getDouble(1), pos.getDouble(2), Set.of(),
-						rotation.getFloat(0), rotation.getFloat(1), false
-				);
-				player.setVelocity(new Vec3d(
-						velocity.getDouble(0), velocity.getDouble(1), velocity.getDouble(2)
-				));
-				player.velocityModified = true;
-			}, () -> {
-				player.teleportTo(player.getRespawnTarget(true, TeleportTarget.NO_OP));
-			});
+		} else if (skipNextCutscene(isLeavingCutscene)) {
+			TeleportTarget target = null;
+			if (cutscene.hasExitPoint()) {
+				target = cutscene.getExitPoint(player, this).orElseThrow();
+			} else if (cutscene.returnToStart() && skipNextCutscene(isLeavingCutscene)) {
+				target = Optional.ofNullable(savedPlayerData.get(player.getUuid())).flatMap(data -> {
+					NbtList pos = data.getList("Pos", NbtCompound.DOUBLE_TYPE);
+					NbtList velocity = data.getList("Motion", NbtCompound.DOUBLE_TYPE);
+					NbtList rotation = data.getList("Rotation", NbtCompound.FLOAT_TYPE);
+					var dim = PlayerDataHelper.getWorld(player.getServer(), data);
+					return dim.map(world -> {
+						return new TeleportTarget(
+								world, new Vec3d(pos.getDouble(0), pos.getDouble(1), pos.getDouble(2)),
+								new Vec3d(velocity.getDouble(0), velocity.getDouble(1), velocity.getDouble(2)),
+								rotation.getFloat(0), rotation.getFloat(1), TeleportTarget.NO_OP
+						);
+					});
+				}).orElseGet(() -> player.getRespawnTarget(true, TeleportTarget.NO_OP));
+			}
+			if (target != null) {
+				player.teleportTo(target);
+			}
+
+			if (savedPlayerData.containsKey(player.getUuid())) {
+				var data = savedPlayerData.get(player.getUuid());
+				PlayerDataHelper.loadRootVehicleAndPassengers(player, data, e -> {
+					if (player.getWorld().spawnEntity(e)) {
+						e.updatePositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+						return e;
+					}
+					return null;
+				});
+				if (target != null) {
+					var vehicle = player.getRootVehicle();
+					vehicle.teleportTo(
+							target.withPosition(target.position().subtract(player.getPos().subtract(vehicle.getPos())))
+					);
+				}
+				player.readEnderPearls(Optional.of(data));
+			}
+
 		}
 		if (skipNextCutscene(isLeavingCutscene)) {
 			savedPlayerData.remove(player.getUuid());
