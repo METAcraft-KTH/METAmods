@@ -51,12 +51,12 @@ public class Wrench extends Item implements PolymerItem {
 		if (newState) {
 			return Text.translatableWithFallback(
 					"item.metacraft.wrench.block.on",
-					"The block is now movable by pistons!"
+					"The block is now movable by pistons"
 			).styled(style -> style.withFormatting(Formatting.GREEN));
 		} else {
 			return Text.translatableWithFallback(
 					"item.metacraft.wrench.block.off",
-					"The block is no longer movable by pistons!"
+					"The block is no longer movable by pistons"
 			).styled(style -> style.withFormatting(Formatting.RED));
 		}
 	}
@@ -65,12 +65,12 @@ public class Wrench extends Item implements PolymerItem {
 		if (newState) {
 			return Text.translatableWithFallback(
 					"item.metacraft.wrench.player.on",
-					"All block entities you place will now be movable by pistons!"
+					"All block entities you place will now be movable by pistons"
 			).styled(style -> style.withFormatting(Formatting.GREEN));
 		} else {
 			return Text.translatableWithFallback(
 					"item.metacraft.wrench.player.off",
-					"All block entities you place will no longer be movable by pistons!"
+					"All block entities you place will no longer be movable by pistons"
 			).styled(style -> style.withFormatting(Formatting.RED));
 		}
 	}
