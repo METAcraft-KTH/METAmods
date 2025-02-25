@@ -40,6 +40,7 @@ import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.gamerules.METAcraftGameRules;
 import se.datasektionen.mc.metacraft_core.music.ServerBossBarWithMusic;
 import se.datasektionen.mc.metacraft_core.util.helper.BossBarHelper;
+import se.datasektionen.mc.metacraft_core.util.helper.MusicHelper;
 import se.datasektionen.mc.metacraft_core.util.helper.PlayerInventoryHelper;
 import se.datasektionen.mc.metacraft_lib.config.container.ConfigContainer;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
@@ -560,6 +561,18 @@ public class EndBossPlayerState extends PersistentState {
 	}
 
 	private void tickBossAlive(ServerWorld world) {
+		var gameRules = world.getGameRules();
+		if (!gameRules.getBoolean(GameRules.KEEP_INVENTORY)) {
+			gameRules.get(GameRules.KEEP_INVENTORY).set(true, world.getServer());
+		}
+		if (gameRules.getBoolean(METAcraftGameRules.DO_ARMOR_DAMAGE)) {
+			gameRules.get(METAcraftGameRules.DO_ARMOR_DAMAGE).set(false, world.getServer());
+		}
+		if (world.getScoreboard().getTeam(BOSS_TEAM) == null) {
+			var team = world.getScoreboard().addTeam(BOSS_TEAM);
+			team.setColor(Formatting.DARK_PURPLE);
+		}
+
 		if (particleTime > 0) {
 			particleTime--;
 			currentBoss.getServerWorld().spawnParticles(
@@ -606,13 +619,12 @@ public class EndBossPlayerState extends PersistentState {
 		if (currentBoss.getY() < world.getBottomY()) {
 			currentBoss.teleportTo(getPlayerSpawnPoint(world, currentBoss));
 		}
-		if (world.getPlayers().size() == 1) {
-			for (var player : world.getServer().getPlayerManager().getPlayerList()) {
-				if (player != currentBoss) {
-					player.teleportTo(getNearBoss(currentBoss.getServerWorld(), player));
-				}
+
+		config.get().musicForBoss().ifPresent(music -> {
+			if (!MusicHelper.isMusicPlaying(currentBoss, music)) {
+				MusicHelper.playMusic(currentBoss, music, player -> player == currentBoss);
 			}
-		}
+		});
 	}
 
 	private void initConfig(ServerWorld world) {
@@ -628,17 +640,6 @@ public class EndBossPlayerState extends PersistentState {
 
 	public void tick(ServerWorld world) {
 		initConfig(world);
-		var gameRules = world.getGameRules();
-		if (!gameRules.getBoolean(GameRules.KEEP_INVENTORY)) {
-			gameRules.get(GameRules.KEEP_INVENTORY).set(true, world.getServer());
-		}
-		if (gameRules.getBoolean(METAcraftGameRules.DO_ARMOR_DAMAGE)) {
-			gameRules.get(METAcraftGameRules.DO_ARMOR_DAMAGE).set(false, world.getServer());
-		}
-		if (world.getScoreboard().getTeam(BOSS_TEAM) == null) {
-			var team = world.getScoreboard().addTeam(BOSS_TEAM);
-			team.setColor(Formatting.DARK_PURPLE);
-		}
 		trackBoss(world);
 		if (deathTime > 0) {
 			tickDeathTime(world);

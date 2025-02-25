@@ -29,6 +29,7 @@ import org.pcollections.PVector;
 import org.pcollections.TreePVector;
 import se.datasektionen.mc.metacraft_core.item.components.ExpiresComponent;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
+import se.datasektionen.mc.metacraft_core.music.MusicEntry;
 import se.datasektionen.mc.metacraft_lib.config.container.ConfigContainer;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.PCollectionsHelper;
@@ -50,7 +51,8 @@ public record EndBossPlayerConfig(
 		double maxSpawnDist,
 		Map<EquipmentSlot, ItemEntry> equipment,
 		PVector<ItemEntry> items,
-		ComponentMap componentsToApply
+		ComponentMap componentsToApply,
+		Optional<MusicEntry> musicForBoss
 ) {
 
 	private static boolean isValidSlot(EquipmentSlot slot) {
@@ -87,7 +89,7 @@ public record EndBossPlayerConfig(
 							Codec.INT.fieldOf("life"),
 							Codec.DOUBLE.fieldOf("percent"),
 							HashTreePMap.empty()
-					).optionalFieldOf("health_percent", HashTreePMap.empty()).forGetter(EndBossPlayerConfig::healthPercentOverrides),
+					).optionalFieldOf("health_percent_per_life", HashTreePMap.empty()).forGetter(EndBossPlayerConfig::healthPercentOverrides),
 					Codec.INT.fieldOf("boss_lives").forGetter(EndBossPlayerConfig::bossLives),
 					Codec.DOUBLE.fieldOf("max_distance_from_boss").forGetter(EndBossPlayerConfig::maxDistanceFromBoss),
 					Codec.DOUBLE.fieldOf("max_distance_from_spawn").forGetter(EndBossPlayerConfig::maxDistanceFromSpawn),
@@ -95,7 +97,8 @@ public record EndBossPlayerConfig(
 					Codec.DOUBLE.fieldOf("max_spawn_distance").forGetter(EndBossPlayerConfig::maxSpawnDist),
 					Codec.simpleMap(PLAYER_SLOT_CODEC, ItemEntry.CODEC, VALID_SLOTS).codec().optionalFieldOf("equipment", Map.of()).forGetter(EndBossPlayerConfig::equipment),
 					ExtraCodecs.createPCollectionCodec(ItemEntry.CODEC, (PVector<ItemEntry>) TreePVector.<ItemEntry>empty()).fieldOf("items").forGetter(EndBossPlayerConfig::items),
-					ComponentMap.CODEC.fieldOf("components_to_apply").forGetter(EndBossPlayerConfig::componentsToApply)
+					ComponentMap.CODEC.fieldOf("components_to_apply").forGetter(EndBossPlayerConfig::componentsToApply),
+					MusicEntry.CODEC.optionalFieldOf("music_for_boss").forGetter(EndBossPlayerConfig::musicForBoss)
 			).apply(instance, EndBossPlayerConfig::new)
 	);
 
@@ -440,7 +443,8 @@ public record EndBossPlayerConfig(
 							DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 									lookup, EndBossPlayerState.ENCHANTS_APPLIED_TO_ALL_ITEMS
 							)
-					).build()
+					).build(),
+					Optional.empty()
 			)
 	).reloadAfterServer();
 

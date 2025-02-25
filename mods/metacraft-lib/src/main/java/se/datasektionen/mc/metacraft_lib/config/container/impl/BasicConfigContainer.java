@@ -91,10 +91,11 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 					var file = configPath.toFile();
 					if (file.exists()) {
 						METAcraftLib.LOGGER.error("Unable to load existing config, backing up and creating new default config.");
-						Path target = configPath.getParent().resolve("simple-custom-features.bak.json");
+						var name = configPath.getFileName().toString().split("\\.")[0];
+						Path target = configPath.getParent().resolve(name +".bak.json");
 						int num = 1;
 						while (target.toFile().exists()) {
-							target = configPath.getParent().resolve("simple-custom-features.bak" + num++ + ".json");
+							target = configPath.getParent().resolve(name +".bak" + num++ + ".json");
 							if (num > 10) {
 								break;
 							}
