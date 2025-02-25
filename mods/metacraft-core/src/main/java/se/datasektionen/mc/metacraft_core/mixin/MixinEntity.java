@@ -21,6 +21,8 @@ import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_core.music.ServerBossBarWithMusic;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -34,9 +36,6 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Shadow @Nullable public abstract MinecraftServer getServer();
 
 	@Shadow public abstract DynamicRegistryManager getRegistryManager();
-
-	@Unique
-	private static final String BOSS_BAR = "BossBar";
 
 	@Unique
 	private ServerBossBarWithMusic bossBar;
@@ -95,8 +94,8 @@ public abstract class MixinEntity implements EntityExtensions {
 
 	@Override
 	public void metacraft_lib$loadBossBar(NbtCompound nbt) {
-		if (nbt.contains(BOSS_BAR)) {
-			NbtCompound bossBar = nbt.getCompound(BOSS_BAR);
+		if (nbt.contains(ServerBossBarWithMusic.BOSS_BAR)) {
+			NbtCompound bossBar = nbt.getCompound(ServerBossBarWithMusic.BOSS_BAR);
 			if (this.bossBar == null) {
 				this.bossBar = ServerBossBarWithMusic.create();
 				this.bossBar.readNBT(bossBar, getRegistryManager());
@@ -121,7 +120,7 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Override
 	public void metacraft_lib$saveBossBar(NbtCompound nbt) {
 		if (bossBar != null) {
-			nbt.put(BOSS_BAR, bossBar.writeNBT(new NbtCompound(), this.getRegistryManager()));
+			nbt.put(ServerBossBarWithMusic.BOSS_BAR, bossBar.writeNBT(new NbtCompound(), this.getRegistryManager()));
 		}
 	}
 
@@ -162,11 +161,13 @@ public abstract class MixinEntity implements EntityExtensions {
 				var players = EntityTrackerHelper.getListeners(tracker).stream().map(
 						PlayerAssociatedNetworkHandler::getPlayer
 				).collect(Collectors.toSet());
+				List<ServerPlayerEntity> removals = new ArrayList<>();
 				for (var prevPlayer : bossBar.getPlayers()) {
 					if (!players.contains(prevPlayer)) {
-						bossBar.removePlayer(prevPlayer);
+						removals.add(prevPlayer);
 					}
 				}
+				removals.forEach(bossBar::removePlayer);
 				for (var newPlayer : players) {
 					if (!bossBar.getPlayers().contains(newPlayer)) {
 						bossBar.addPlayer(newPlayer);

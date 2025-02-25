@@ -1,8 +1,11 @@
 package se.datasektionen.mc.metacraft_lib.util.helper;
 
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.WorldGenerationProgressListener;
 import net.minecraft.server.world.ServerChunkLoadingManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.world.level.storage.LevelStorage;
+import se.datasektionen.mc.metacraft_lib.mixin.AccessorMinecraftServer;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorServerChunkLoadingManager;
 
 @SuppressWarnings("unused")
@@ -14,6 +17,10 @@ public class WorldHelper {
 
 	public static WorldGenerationProgressListener getGenerationProgressListener(ServerChunkLoadingManager manager) {
 		return ((AccessorServerChunkLoadingManager) manager).getWorldGenerationProgressListener();
+	}
+
+	public static LevelStorage.Session getSession(MinecraftServer server) {
+		return ((AccessorMinecraftServer) server).getSession();
 	}
 
 }

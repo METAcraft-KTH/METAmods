@@ -12,6 +12,7 @@
 		"AccessorGameRules$BooleanRule",
 		"AccessorMobEntity",
 		"AccessorPlayerEntity",
+		"AccessorPolymerItemUtils",
 		"AccessorScreenHandler",
 		"AccessorServerChunkManager",
 		"AccessorWitherEntity",

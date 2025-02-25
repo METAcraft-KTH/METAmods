@@ -10,6 +10,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -50,6 +51,18 @@ public class PlayerDataHelper {
 	public static void saveCurrentPlayerData(ServerPlayerEntity player, Identifier id) {
 		var ext = ext(player);
 		ext.metacraft_lib$setPlayerData(id, ext.metacraft_lib$savePlayerDataExceptDataMap());
+	}
+
+	public static void removePlayerData(ServerPlayerEntity player, Identifier id) {
+		ext(player).metacraft_lib$setPlayerData(id, null);
+	}
+
+	public static Optional<NbtCompound> getPlayerData(ServerPlayerEntity player, Identifier id) {
+		return ext(player).metacraft_lib$getPlayerData(id);
+	}
+
+	public static void setPlayerData(ServerPlayerEntity player, Identifier id, NbtCompound data) {
+		ext(player).metacraft_lib$setPlayerData(id, data);
 	}
 
 	/**
@@ -256,6 +269,13 @@ public class PlayerDataHelper {
 			ServerPlayerEntity player, NbtCompound data, boolean moveToDataPosition,
 			boolean spawnVehicleAndPassengers, boolean spawnFarawayEntities
 	) {
+		player.clearStatusEffects();
+		Registries.ATTRIBUTE.streamEntries().forEach(attribute -> {
+			var inst = player.getAttributeInstance(attribute);
+			if (inst != null) {
+				inst.clearModifiers();
+			}
+		});
 		var prevPos = player.getPos();
 		var prevYaw = player.getYaw();
 		var prevPitch = player.getPitch();

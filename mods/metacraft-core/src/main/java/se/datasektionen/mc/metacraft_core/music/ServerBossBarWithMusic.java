@@ -17,6 +17,8 @@ import java.util.Optional;
 
 public class ServerBossBarWithMusic extends ServerBossBar {
 
+	public static final String BOSS_BAR = "BossBar";
+
 	private static final String NAME = "name";
 	private static final String COLOUR = "color";
 	private static final String STYLE = "style";

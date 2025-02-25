@@ -1,6 +1,8 @@
 package se.datasektionen.mc.metacraft_core;
 
 import net.fabricmc.api.ModInitializer;
+import net.minecraft.component.ComponentType;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -10,6 +12,7 @@ import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.gamerules.METAcraftGameRules;
 import se.datasektionen.mc.metacraft_core.item.METAcraftItems;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
+import se.datasektionen.mc.metacraft_core.mixin.AccessorPolymerItemUtils;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 
 public class METAcraftCore implements ModInitializer {
@@ -28,6 +31,13 @@ public class METAcraftCore implements ModInitializer {
 		Commands.init();
 		Events.init();
 		CompatInit.init();
+
+		//Fix for crossbows not working properly with polymer items.
+		var oldComponents = AccessorPolymerItemUtils.getComponentsToCopy();
+		var newComponents = new ComponentType<?>[oldComponents.length+1];
+		System.arraycopy(oldComponents, 0, newComponents, 0, oldComponents.length);
+		newComponents[oldComponents.length] = DataComponentTypes.CHARGED_PROJECTILES;
+		AccessorPolymerItemUtils.setComponentsToCopy(newComponents);
 	}
 
 	public static Identifier getID(String id) {

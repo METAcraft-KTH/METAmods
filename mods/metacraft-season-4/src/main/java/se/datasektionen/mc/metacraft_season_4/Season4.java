@@ -22,6 +22,7 @@ public class Season4 implements ModInitializer {
 		Season4Entities.init();
 		Commands.init();
 		CompatInitS4.init();
+		Events.init();
 	}
 
 	public static Identifier getID(String id) {

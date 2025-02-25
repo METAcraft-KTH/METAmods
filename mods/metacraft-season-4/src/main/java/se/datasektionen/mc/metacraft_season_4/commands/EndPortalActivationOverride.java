@@ -6,7 +6,7 @@ import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
-import se.datasektionen.mc.metacraft_season_4.lodestone.EndCommandActivation;
+import se.datasektionen.mc.metacraft_season_4.end.EndCommandActivation;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;

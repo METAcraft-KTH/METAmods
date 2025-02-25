@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_lib.config.container;
 
 import com.mojang.serialization.Codec;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import se.datasektionen.mc.metacraft_lib.config.ObjectStorage;
 import se.datasektionen.mc.metacraft_lib.config.container.impl.BasicConfigContainer;
@@ -25,6 +26,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 
 		protected final Codec<T> codec;
 		protected final Supplier<T> defaultConfigInitializer;
+		protected Function<RegistryWrapper.WrapperLookup, T> defaultConfigInitializerWithLookup;
 		protected boolean reloadsBeforeServer = false;
 		protected boolean reloadsAfterServer = false;
 		protected ReloadFunction<T> reloader = ReloadFunction.getDefault();
@@ -70,12 +72,37 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 			return this;
 		}
 
+		public Builder<T> registryAvailableConfigInitializer(Function<RegistryWrapper.WrapperLookup, T> defaultConfigInitializerWithLookup) {
+			this.defaultConfigInitializerWithLookup = defaultConfigInitializerWithLookup;
+			return this;
+		}
+
 		/**
 		 * Builds a normal config container.
 		 * @return The config container.
 		 */
 		public ConfigContainer<T> build(Path configPath) {
 			return new BasicConfigContainer<>(codec, configPath, defaultConfigInitializer, reloadsBeforeServer, reloadsAfterServer, reloader);
+		}
+
+		/**
+		 * Builds a normal config container with registry access.
+		 * @return The config container.
+		 */
+		public ConfigContainer<T> build(Path configPath, Supplier<RegistryWrapper.WrapperLookup> lookupSupplier) {
+			return new BasicConfigContainer.WithLookup<>(
+					codec, configPath,
+					defaultConfigInitializerWithLookup != null ? defaultConfigInitializerWithLookup : l -> defaultConfigInitializer.get(),
+					reloadsBeforeServer, reloadsAfterServer, reloader, lookupSupplier
+			);
+		}
+
+		/**
+		 * Builds a normal config container with registry access.
+		 * @return The config container.
+		 */
+		public ConfigContainer<T> build(Path configPath, RegistryWrapper.WrapperLookup lookup) {
+			return build(configPath, () -> lookup);
 		}
 
 		/**

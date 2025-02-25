@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Slice;
-import se.datasektionen.mc.metacraft_season_4.lodestone.EndCommandActivation;
+import se.datasektionen.mc.metacraft_season_4.end.EndCommandActivation;
 
 @Mixin(EnderEyeItem.class)
 public class MixinEnderEyeItem {

@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_lib.config.container.impl;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.Unit;
 import se.datasektionen.mc.metacraft_lib.config.container.*;
 import se.datasektionen.mc.metacraft_lib.config.extensions.ServerLoadAware;
 import se.datasektionen.mc.metacraft_lib.config.extensions.ServerUnloadAware;
@@ -13,7 +14,7 @@ public class ServerAwareWrapper<C extends ConfigContainerBase<?>, S> implements 
 
 	private final C container;
 
-	private static final Set<ServerAwareWrapper<?, ?>> wrappers = new HashSet<>();
+	private static final WeakHashMap<ServerAwareWrapper<?, ?>, Unit> wrappers = new WeakHashMap<>();
 
 	protected final Map<MinecraftServer, S> serverCache = new HashMap<>();
 	protected final ReloadFunction<S> cacheReloader;
@@ -21,7 +22,7 @@ public class ServerAwareWrapper<C extends ConfigContainerBase<?>, S> implements 
 	
 	static {
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-			wrappers.forEach(container -> container.unload(server));
+			wrappers.keySet().forEach(container -> container.unload(server));
 		});
 	}
 
@@ -32,7 +33,7 @@ public class ServerAwareWrapper<C extends ConfigContainerBase<?>, S> implements 
 		this.container = container;
 		this.serverParse = serverParse;
 		this.cacheReloader = cacheReloader;
-		wrappers.add(this);
+		wrappers.put(this, Unit.INSTANCE);
 		container.addReloadHandler(this::reloadServerCache);
 	}
 

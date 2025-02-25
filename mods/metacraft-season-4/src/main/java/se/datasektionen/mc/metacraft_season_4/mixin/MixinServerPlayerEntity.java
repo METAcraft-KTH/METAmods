@@ -1,5 +1,6 @@
 package se.datasektionen.mc.metacraft_season_4.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -7,9 +8,11 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,11 +22,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_season_4.extensions.ServerPlayerEntityExtensions;
+import se.datasektionen.mc.metacraft_season_4.end.EndBossPlayerState;
 
-@Mixin(ServerPlayerEntity.class)
+@Mixin(value = ServerPlayerEntity.class, priority = 2000)
 public abstract class MixinServerPlayerEntity extends PlayerEntity implements ServerPlayerEntityExtensions {
 
 	@Shadow public abstract void sendMessage(Text message, boolean overlay);
+
+	@Shadow public abstract ServerWorld getServerWorld();
+
 	@Unique
 	private static final String CAMPUS_LODESTONE_BACK = "CampusLodestoneBack";
 
@@ -71,6 +78,13 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 				backData.getInt("z")
 			);
 		}
+	}
+
+	@ModifyReturnValue(method = "getRespawnTarget", at = @At("RETURN"))
+	public TeleportTarget getRespawnTarget(TeleportTarget original) {
+		return EndBossPlayerState.getInstance(this.getServerWorld()).filter(EndBossPlayerState::hasBoss).map(
+				state -> state.getPlayerSpawnPoint(this.getServerWorld(), this)
+		).orElse(original);
 	}
 
 	@Override

@@ -31,7 +31,6 @@ public class Season4Components {
 			"double_team_settings", builder -> builder.codec(DoubleTeamHandler.Settings.CODEC.codec())
 	);
 
-
 	public static void init() {
 
 	}

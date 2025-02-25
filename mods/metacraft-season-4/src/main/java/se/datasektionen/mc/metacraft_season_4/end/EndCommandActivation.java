@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_season_4.lodestone;
+package se.datasektionen.mc.metacraft_season_4.end;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryWrapper;

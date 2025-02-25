@@ -26,7 +26,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_core.extensions.BlockEntityExtensions;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
-import se.datasektionen.mc.metacraft_core.util.helper.ItemHelper;
+import se.datasektionen.mc.metacraft_core.util.helper.PlayerInventoryHelper;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
@@ -171,7 +171,7 @@ public class Wrench extends Item implements PolymerItem {
 					newState ? SoundEvents.BLOCK_METAL_PRESSURE_PLATE_CLICK_ON : SoundEvents.BLOCK_METAL_PRESSURE_PLATE_CLICK_OFF,
 					SoundCategory.PLAYERS, 1, 1
 			);
-			ItemHelper.syncHandStack(user, hand); //Update tooltip.
+			PlayerInventoryHelper.syncHandStack(user, hand); //Update tooltip.
 			return ActionResult.SUCCESS_SERVER;
 		}
 		return super.use(world, user, hand);
@@ -182,7 +182,7 @@ public class Wrench extends Item implements PolymerItem {
 	@Override
 	public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected) {
 		super.inventoryTick(stack, world, entity, slot, selected); //selected is false in offhand.
-		if (entity instanceof ServerPlayerEntity player && entity.isSneaking() && ItemHelper.isSelected(player, slot)) {
+		if (entity instanceof ServerPlayerEntity player && entity.isSneaking() && PlayerInventoryHelper.isSelected(player, slot)) {
 			int minX = ChunkSectionPos.getSectionCoord(player.getBlockX() - SCAN_RADIUS);
 			int minZ = ChunkSectionPos.getSectionCoord(player.getBlockZ() - SCAN_RADIUS);
 			int maxX = ChunkSectionPos.getSectionCoord(player.getBlockX() + SCAN_RADIUS);

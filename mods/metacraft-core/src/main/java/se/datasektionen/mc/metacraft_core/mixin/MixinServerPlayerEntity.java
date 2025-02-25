@@ -32,7 +32,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.entity.entities.PlayerMusicPoint;
-import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
@@ -107,12 +106,6 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Inject(method = "tick", at = @At("RETURN"))
 	public void tick(CallbackInfo ci) {
-		((EntityExtensions) this).metacraft_lib$getBossBar().ifPresent(bar -> {
-			if (!bar.getPlayers().contains((ServerPlayerEntity) (Object) this)) {
-				bar.addPlayer((ServerPlayerEntity) (Object) this);
-			}
-		});
-
 		if (musicPoint != null) {
 			musicPoint.setPos(getX(), getY(), getZ());
 			if (musicPoint.getWorld() != getWorld()) {

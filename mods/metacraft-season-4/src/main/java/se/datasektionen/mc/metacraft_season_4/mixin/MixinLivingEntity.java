@@ -1,11 +1,13 @@
 package se.datasektionen.mc.metacraft_season_4.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,6 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.metacraft_lib.util.TrackedEntity;
 import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.extensions.LivingEntityExtensions;
+import se.datasektionen.mc.metacraft_season_4.end.EndBossPlayerState;
 import se.datasektionen.mc.metacraft_season_4.util.DoubleTeamHandler;
 
 @Mixin(LivingEntity.class)
@@ -157,5 +160,18 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 		} else {
 			soulboundEntity = null;
 		}
+	}
+
+	@ModifyReturnValue(
+		method = "computeFallDamage",
+		at = @At("RETURN")
+	)
+	public int computeFallDamage(int original) {
+		if ((Object) this instanceof ServerPlayerEntity player) {
+			return EndBossPlayerState.getInstance(player.getServerWorld()).filter(
+					state -> state.isBoss(player)
+			).map(s -> 0).orElse(original);
+		}
+		return original;
 	}
 }

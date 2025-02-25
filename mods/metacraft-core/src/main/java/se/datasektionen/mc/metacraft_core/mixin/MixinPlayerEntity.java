@@ -1,5 +1,7 @@
 package se.datasektionen.mc.metacraft_core.mixin;
 
+import net.minecraft.component.EnchantmentEffectComponentTypes;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
@@ -53,7 +55,9 @@ public abstract class MixinPlayerEntity extends LivingEntity {
 			for (int i = 0; i < getInventory().size(); ++i) {
 				ItemStack stack = getInventory().getStack(i);
 				if (stack.contains(METAcraftComponents.ANTI_KEEP_INVENTORY)) {
-					this.dropItem(stack, true, false);
+					if (!EnchantmentHelper.hasAnyEnchantmentsWith(stack, EnchantmentEffectComponentTypes.PREVENT_EQUIPMENT_DROP)) {
+						this.dropItem(stack, true, false);
+					}
 					getInventory().setStack(i, ItemStack.EMPTY);
 				}
 			}

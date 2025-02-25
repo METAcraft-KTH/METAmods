@@ -18,6 +18,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
 import org.apache.commons.lang3.math.Fraction;
+import org.pcollections.PCollection;
 import org.pcollections.PMap;
 import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
@@ -139,6 +140,21 @@ public class ExtraCodecs {
 		);
 	}
 
+	public static <T, C extends PCollection<T>> Codec<C> createPCollectionCodec(
+			Codec<T> codec, C emptyCollection
+	) {
+		if (!emptyCollection.isEmpty()) throw new IllegalArgumentException("Empty collection should be empty!");
+		return createCollectionCodec(
+				codec, () -> emptyCollection,
+				(list, element) -> {
+					return (C) list.plus(element);
+				},
+				(lhs, rhs) -> {
+					return (C) lhs.plusAll(rhs);
+				}
+		);
+	}
+
 	public static <T, C extends Collection<T>> Codec<C> createCollectionCodec(
 			Codec<T> codec, Supplier<C> collectionSupplier, BiFunction<C, T, C> adder, BinaryOperator<C> combiner
 	) {
@@ -167,17 +183,17 @@ public class ExtraCodecs {
 	 * This function is meant for persistent maps.
 	 * @param keyCodec The key codec.
 	 * @param valueCodec The value codec.
-	 * @param mapBase A generator which generates an empty map of the type you want.
+	 * @param mapBase An empty map of the type you want.
 	 * @return The codec.
 	 * @param <K> The key type.
 	 * @param <V> The value type.
 	 */
 	public static <K, V> Codec<PMap<K, V>> createListSerializedPMap(
 			MapCodec<K> keyCodec, MapCodec<V> valueCodec,
-			Supplier<PMap<K, V>> mapBase
+			PMap<K, V> mapBase
 	) {
 		return createListSerializedMap(
-				keyCodec, valueCodec, mapBase,
+				keyCodec, valueCodec, () -> mapBase,
 				(map, entry) -> {
 					return map.plus(entry.getKey(), entry.getValue());
 				},
@@ -229,7 +245,7 @@ public class ExtraCodecs {
 	 * When deserializing, warnings will be logged for any duplicate values, regardless of the map type used.
 	 *
 	 * Note, you probably don't want to use this function unless you're working with a specialized persistent map.
-	 * {@link ExtraCodecs#createListSerializedMap(MapCodec, MapCodec, Supplier)} and {@link ExtraCodecs#createListSerializedPMap(MapCodec, MapCodec, Supplier)}
+	 * {@link ExtraCodecs#createListSerializedMap(MapCodec, MapCodec, Supplier)} and {@link ExtraCodecs#createListSerializedPMap(MapCodec, MapCodec, PMap)}
 	 * should have you covered in most cases.
 	 * @param keyCodec The key codec.
 	 * @param valueCodec The value codec.

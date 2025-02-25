@@ -2,6 +2,8 @@ package se.datasektionen.mc.metacraft_lib.config.container.impl;
 
 import com.mojang.serialization.Codec;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.util.Unit;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.config.container.ConfigContainer;
 import se.datasektionen.mc.metacraft_lib.config.JsonHelper;
@@ -17,16 +19,17 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class BasicConfigContainer<T> implements ConfigContainer<T> {
 
-	private static final Set<BasicConfigContainer<?>> containers = new HashSet<>();
+	private static final WeakHashMap<BasicConfigContainer<?>, Unit> containers = new WeakHashMap<>();
 
 	static {
 		ServerLifecycleEvents.START_DATA_PACK_RELOAD.register((server, manager) -> {
-			containers.forEach(container -> {
+			containers.keySet().forEach(container -> {
 				if (container.reloadsBeforeServer) {
 					container.reload(ReloadCause.BEFORE_SERVER_RELOAD);
 				}
@@ -34,7 +37,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 		});
 		ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, manager, success) -> {
 			if (success) {
-				containers.forEach(container -> {
+				containers.keySet().forEach(container -> {
 					if (container.reloadsAfterServer) {
 						container.reload(ReloadCause.AFTER_SERVER_RELOAD);
 					}
@@ -66,10 +69,14 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 		this.reloadsBeforeServer = reloadsBeforeServer;
 		this.reloadsAfterServer = reloadsAfterServer;
 		this.reloader = reloader;
-		containers.add(this);
+		containers.put(this, Unit.INSTANCE);
 	}
 
-	private Optional<T> loadFromFile() {
+	protected T initDefaultConfig() {
+		return defaultConfigInitializer.get();
+	}
+
+	protected Optional<T> loadFromFile() {
 		return JsonHelper.load(configPath, codec);
 	}
 
@@ -100,7 +107,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 						}
 					}
 
-					config = defaultConfigInitializer.get();
+					config = initDefaultConfig();
 					save();
 				}
 			} catch (Throwable t) {
@@ -163,6 +170,39 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 	@Override
 	public void addReloadHandler(Consumer<ReloadCause> handler) {
 		onReload = onReload.andThen(handler);
+	}
+
+	public static class WithLookup<T> extends BasicConfigContainer<T> {
+
+		protected final Supplier<RegistryWrapper.WrapperLookup> lookupSupplier;
+		protected final Function<RegistryWrapper.WrapperLookup, T> defaultConfigInitializer;
+
+		public WithLookup(
+				Codec<T> codec, Path configPath, Function<RegistryWrapper.WrapperLookup, T> defaultConfigInitializer,
+				boolean reloadsBeforeServer, boolean reloadsAfterServer, ReloadFunction<T> reloader,
+				Supplier<RegistryWrapper.WrapperLookup> lookupSupplier
+		) {
+			super(codec, configPath, null, reloadsBeforeServer, reloadsAfterServer, reloader);
+			this.lookupSupplier = lookupSupplier;
+			this.defaultConfigInitializer = defaultConfigInitializer;
+		}
+
+		@Override
+		protected Optional<T> loadFromFile() {
+			return JsonHelper.load(configPath, codec, lookupSupplier.get());
+		}
+
+		@Override
+		public void save() {
+			if (config == null) return;
+			JsonHelper.save(configPath, codec, config, lookupSupplier.get());
+		}
+
+		@Override
+		protected T initDefaultConfig() {
+			return defaultConfigInitializer.apply(lookupSupplier.get());
+		}
+
 	}
 
 }
