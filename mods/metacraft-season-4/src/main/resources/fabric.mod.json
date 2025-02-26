@@ -33,6 +33,7 @@
 		"fabricloader": ">=${loader_version}",
 		"fabric": "*",
 		"minecraft": "~${minecraft_version}",
-		"metacraft-lib": "*"
+		"metacraft-lib": "*",
+		"metacraft-cutscenes": "*"
 	}
 }

@@ -32,6 +32,7 @@ import net.minecraft.world.GameRules;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.TeleportTarget;
 import org.pcollections.*;
+import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.gamerules.METAcraftGameRules;
 import se.datasektionen.mc.metacraft_core.music.ServerBossBarWithMusic;
@@ -174,6 +175,7 @@ public class EndBossPlayerState extends PersistentState {
 	}
 
 	public void setCurrentBoss(ServerPlayerEntity player) {
+		CutsceneHelper.forceOutOfCutscene(player);
 		if (currentBoss != null) {
 			BossBarHelper.transferBossBar(currentBoss, player);
 		} else {
@@ -624,7 +626,7 @@ public class EndBossPlayerState extends PersistentState {
 		}
 		for (var oldBoss : oldBossesToReset) {
 			var player = world.getServer().getPlayerManager().getPlayer(oldBoss);
-			if (player != null && player.isAlive()) {
+			if (player != null && player.isAlive() && !CutsceneHelper.isInCutscene(player)) {
 				unPrepareBoss(player);
 				oldBossesToReset = oldBossesToReset.minus(oldBoss);
 				markDirty();

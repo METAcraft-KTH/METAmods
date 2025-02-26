@@ -1,6 +1,7 @@
 version = project.season_4_version
 
 addProjectDependency(":mods:metacraft-core")
+addProjectDependency(":mods:metacraft-cutscenes")
 addLeukocyteDependency()
 addPolymerDependency()
 

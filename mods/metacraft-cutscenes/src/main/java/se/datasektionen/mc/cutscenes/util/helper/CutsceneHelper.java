@@ -40,4 +40,13 @@ public class CutsceneHelper {
 		((ServerPlayerEntityExtensions) player).metacraft_cutscenes$setCutscene(null);
 	}
 
+	public static void forceOutOfCutscene(ServerPlayerEntity player) {
+		if (isInPlayerSpecificCutscene(player)) {
+			stopPlayerSpecificCutscene(player);
+		}
+		if (isInMultiplayerCutscene(player)) {
+			MultiplayerCutsceneManager.getInstance(player.getServer()).leaveCutscene(player);
+		}
+	}
+
 }
