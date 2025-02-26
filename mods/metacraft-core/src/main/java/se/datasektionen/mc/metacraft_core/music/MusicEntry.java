@@ -120,12 +120,12 @@ public record MusicEntry(
 	}
 
 	public record Music(
-			RegistryEntry<SoundEvent> music, int length, float pitch, boolean forceStop
+			RegistryEntry<SoundEvent> music, double length, float pitch, boolean forceStop
 			) {
 		public static final MapCodec<Music> MAP_CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						MUSIC_CODEC_WITH_CACHE.fieldOf("music").forGetter(Music::music),
-						Codec.INT.fieldOf("length").forGetter(Music::length),
+						Codec.DOUBLE.fieldOf("length").forGetter(Music::length),
 						Codec.FLOAT.fieldOf("pitch").orElse(1.0f).forGetter(Music::pitch),
 						Codec.BOOL.optionalFieldOf("force_stop", false).forGetter(Music::forceStop)
 				).apply(instance, Music::new)

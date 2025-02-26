@@ -60,7 +60,10 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private final Map<RegistryEntry<SoundEvent>, MutableInt> potentiallyPlayingMusic = new HashMap<>();
 
 	@Unique
-	private int musicDelay;
+	private long musicStartTime;
+
+	@Unique
+	private int musicLengthMillis;
 
 	@Unique
 	private boolean inIntro;
@@ -158,13 +161,10 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			}
 		}
 
-		if (musicDelay > 0) {
-			musicDelay--;
-		} else {
-			if (music != null) {
-				var music = this.music.getMusic(inIntro);
-				playMusic(music.forceStop(), false);
-			}
+		long currentTime = System.currentTimeMillis() + networkHandler.getLatency();
+		if (music != null && currentTime >= musicStartTime + musicLengthMillis - 50) {
+			var music = this.music.getMusic(inIntro);
+			playMusic(music.forceStop(), false);
 		}
 
 		if (music != null) {
@@ -175,7 +175,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Inject(method = "copyFrom", at = @At("RETURN"))
 	public void copyFrom(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo ci) {
 		this.music = ((MixinServerPlayerEntity) (Object) oldPlayer).music;
-		this.musicDelay = ((MixinServerPlayerEntity) (Object) oldPlayer).musicDelay;
+		this.musicStartTime = ((MixinServerPlayerEntity) (Object) oldPlayer).musicStartTime;
+		this.musicLengthMillis = ((MixinServerPlayerEntity) (Object) oldPlayer).musicLengthMillis;
 		this.displayTimer = ((MixinServerPlayerEntity) (Object) oldPlayer).displayTimer;
 		this.shouldContinuePlayingMusic = ((MixinServerPlayerEntity) (Object) oldPlayer).shouldContinuePlayingMusic;
 		this.musicStopTimer = ((MixinServerPlayerEntity) (Object) oldPlayer).musicStopTimer;
@@ -251,7 +252,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			if (stopOnRestart) {
 				this.networkHandler.sendPacket(new StopSoundS2CPacket(null, SoundCategory.MUSIC));
 			}
-			this.musicDelay = music.length();
+			this.musicStartTime = System.currentTimeMillis() + networkHandler.getLatency();
+			this.musicLengthMillis = (int) Math.round(music.length() * 1000);
 			this.inIntro = playIntro && this.music.intro().isPresent();
 			this.networkHandler.sendPacket(
 				new PlaySoundFromEntityS2CPacket(
