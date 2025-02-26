@@ -40,6 +40,7 @@ import se.datasektionen.mc.cutscenes.transitions.Transition;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
+import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 
@@ -194,8 +195,12 @@ public class CutsceneInstance implements AutoCloseable {
 		world.clear();
 		removeCutscene();
 		getCutscene().getFinishCommand().ifPresent(command -> {
-			var source = getServer().getCommandFunctionManager().getScheduledCommandSource();
-			getServer().getCommandManager().executeWithPrefix(source, command);
+			TaskScheduler.scheduleImmediately(
+					getServer(), () -> {
+						var source = getServer().getCommandFunctionManager().getScheduledCommandSource();
+						getServer().getCommandManager().executeWithPrefix(source, command);
+					}
+			);
 		});
 	}
 
