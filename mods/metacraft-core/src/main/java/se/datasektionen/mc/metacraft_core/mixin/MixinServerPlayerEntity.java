@@ -6,6 +6,9 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.listener.ClientPlayPacketListener;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.s2c.play.BundleS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket;
 import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -35,6 +38,7 @@ import se.datasektionen.mc.metacraft_core.entity.entities.PlayerMusicPoint;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
+import se.datasektionen.mc.metacraft_core.music.MusicTimerTracker;
 import se.datasektionen.mc.metacraft_core.util.METAcraftCoreData;
 
 import java.util.*;
@@ -69,7 +73,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private boolean inIntro;
 
 	@Unique
-	private MusicEntry music;
+	private volatile MusicEntry music;
 	@Unique
 	private Predicate<ServerPlayerEntity> shouldContinuePlayingMusic = player -> true;
 
@@ -162,9 +166,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 
 		long currentTime = System.currentTimeMillis() + networkHandler.getLatency();
-		if (music != null && currentTime >= musicStartTime + musicLengthMillis - 50) {
+		if (music != null && currentTime >= musicStartTime + musicLengthMillis - 100) {
 			var music = this.music.getMusic(inIntro);
-			playMusic(music.forceStop(), false);
+			playMusic(music.forceStop(), false, musicStartTime + musicLengthMillis - networkHandler.getLatency());
 		}
 
 		if (music != null) {
@@ -245,21 +249,42 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Unique
-	private void playMusic(boolean stopOnRestart, boolean playIntro) {
+	private void playMusic(boolean stopOnRestart, boolean playIntro, long startTimeServerside) {
 		if (this.music != null) {
 			var music = this.music.getMusic(playIntro);
 			refreshMusicPoint(false);
-			if (stopOnRestart) {
-				this.networkHandler.sendPacket(new StopSoundS2CPacket(null, SoundCategory.MUSIC));
-			}
-			this.musicStartTime = System.currentTimeMillis() + networkHandler.getLatency();
+			var actualTime = Math.max(System.currentTimeMillis(), startTimeServerside);
+			this.musicStartTime = actualTime + networkHandler.getLatency();
 			this.musicLengthMillis = (int) Math.round(music.length() * 1000);
 			this.inIntro = playIntro && this.music.intro().isPresent();
-			this.networkHandler.sendPacket(
-				new PlaySoundFromEntityS2CPacket(
+			Packet<? super ClientPlayPacketListener> packet = new PlaySoundFromEntityS2CPacket(
 					music.music(), SoundCategory.MUSIC, musicPoint, 1, music.pitch(), this.getRandom().nextLong()
-				)
 			);
+			if (stopOnRestart) {
+				packet = new BundleS2CPacket(
+						List.of(
+								new StopSoundS2CPacket(null, SoundCategory.MUSIC),
+								packet
+						)
+				);
+			}
+			if (startTimeServerside <= 0) {
+				this.networkHandler.sendPacket(packet);
+			} else {
+				var p = packet;
+				var m = this.music;
+				MusicTimerTracker.getTimer(getServer()).schedule(
+						new TimerTask() {
+							@Override
+							public void run() {
+								if (m == MixinServerPlayerEntity.this.music) {
+									networkHandler.sendPacket(p);
+								}
+							}
+						},
+						new Date(actualTime)
+				);
+			}
 		}
 	}
 
@@ -280,7 +305,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		this.music = entry;
 		if (!continuePrevious) {
 			displayTimer = 100;
-			playMusic(true, true);
+			playMusic(true, true, 0);
 		}
 		return true;
 	}
@@ -302,7 +327,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Override
 	public void metacraft_lib$resetMusicTimer() {
 		if (this.music != null) {
-			playMusic(true, true);
+			playMusic(true, true, 0);
 		}
 	}
 

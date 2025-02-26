@@ -13,6 +13,7 @@ import se.datasektionen.mc.metacraft_core.gamerules.METAcraftGameRules;
 import se.datasektionen.mc.metacraft_core.item.METAcraftItems;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorPolymerItemUtils;
+import se.datasektionen.mc.metacraft_core.music.MusicTimerTracker;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 
 public class METAcraftCore implements ModInitializer {
@@ -31,6 +32,7 @@ public class METAcraftCore implements ModInitializer {
 		Commands.init();
 		Events.init();
 		CompatInit.init();
+		MusicTimerTracker.init();
 
 		//Fix for crossbows not working properly with polymer items.
 		var oldComponents = AccessorPolymerItemUtils.getComponentsToCopy();
