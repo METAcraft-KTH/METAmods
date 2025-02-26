@@ -50,7 +50,8 @@ public record EndBossPlayerConfig(
 		PVector<ItemEntry> items,
 		ComponentMap componentsToApply,
 		Optional<MusicEntry> musicForBoss,
-		PSet<String> tagsToRemove
+		PSet<String> tagsToRemove,
+		Optional<String> commandOnBossDeath
 ) {
 
 	private static boolean isValidSlot(EquipmentSlot slot) {
@@ -97,7 +98,8 @@ public record EndBossPlayerConfig(
 					ExtraCodecs.<ItemEntry, PVector<ItemEntry>>createPCollectionCodec(ItemEntry.CODEC, TreePVector.empty()).fieldOf("items").forGetter(EndBossPlayerConfig::items),
 					ComponentMap.CODEC.fieldOf("components_to_apply").forGetter(EndBossPlayerConfig::componentsToApply),
 					MusicEntry.CODEC.optionalFieldOf("music_for_boss").forGetter(EndBossPlayerConfig::musicForBoss),
-					ExtraCodecs.<String, PSet<String>>createPCollectionCodec(Codec.STRING, HashTreePSet.empty()).fieldOf("tags_to_remove").forGetter(EndBossPlayerConfig::tagsToRemove)
+					ExtraCodecs.<String, PSet<String>>createPCollectionCodec(Codec.STRING, HashTreePSet.empty()).fieldOf("tags_to_remove").forGetter(EndBossPlayerConfig::tagsToRemove),
+					Codec.STRING.optionalFieldOf("command_on_boss_death").forGetter(EndBossPlayerConfig::commandOnBossDeath)
 			).apply(instance, EndBossPlayerConfig::new)
 	);
 
@@ -444,7 +446,8 @@ public record EndBossPlayerConfig(
 							)
 					).build(),
 					Optional.empty(),
-					HashTreePSet.singleton("challengemod.m").plus("challengemod.e")
+					HashTreePSet.singleton("challengemod.m").plus("challengemod.e"),
+					Optional.empty()
 			)
 	).reloadAfterServer();
 

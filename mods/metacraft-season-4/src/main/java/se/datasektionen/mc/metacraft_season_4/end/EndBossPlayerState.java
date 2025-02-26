@@ -11,7 +11,6 @@ import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.ExperienceOrbEntity;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.boss.BossBar;
@@ -19,7 +18,6 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.*;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.particle.TrailParticleEffect;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -27,8 +25,6 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.*;
 import net.minecraft.util.math.*;
@@ -86,8 +82,6 @@ public class EndBossPlayerState extends PersistentState {
 
 	private Vec3d particlePos;
 	private int particleTime = -1;
-
-	private int deathTime = -1;
 
 	private static EndBossPlayerState fromNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
 		var data = new EndBossPlayerState();
@@ -169,13 +163,14 @@ public class EndBossPlayerState extends PersistentState {
 		beforeChangingBoss();
 		currentBoss = null;
 		currentBossID = null;
-		deathTime = 100;
 		markDirty();
-		world.playSound(
-				null, particlePos.getX(), particlePos.getY(), particlePos.getZ(),
-				SoundEvents.ENTITY_ENDER_DRAGON_DEATH, SoundCategory.PLAYERS,
-				1, 1.5f
-		);
+		config.get().commandOnBossDeath().ifPresent(command -> {
+			var source = world.getServer().getCommandFunctionManager()
+					.getScheduledCommandSource().withWorld(world).withPosition(
+							particlePos != null ? particlePos : playerSpawnPos
+					);
+			world.getServer().getCommandManager().executeWithPrefix(source, command);
+		});
 	}
 
 	public void setCurrentBoss(ServerPlayerEntity player) {
@@ -543,19 +538,6 @@ public class EndBossPlayerState extends PersistentState {
 		return getTargetAroundPos(world, entity, playerSpawnPos);
 	}
 
-	private void tickDeathTime(ServerWorld world) {
-		deathTime--;
-		if (particlePos == null) {
-			particlePos = playerSpawnPos;
-		}
-		world.spawnParticles(
-				ParticleTypes.REVERSE_PORTAL,
-				particlePos.getX(), particlePos.getY(), particlePos.getZ(),
-				100, 0, 0, 0, 0.1
-		);
-		ExperienceOrbEntity.spawn(world, particlePos, 50);
-	}
-
 	private void tickBossAlive(ServerWorld world) {
 		var gameRules = world.getGameRules();
 		if (!gameRules.getBoolean(GameRules.KEEP_INVENTORY)) {
@@ -637,9 +619,6 @@ public class EndBossPlayerState extends PersistentState {
 	public void tick(ServerWorld world) {
 		initConfig(world);
 		trackBoss(world);
-		if (deathTime > 0) {
-			tickDeathTime(world);
-		}
 		if (currentBoss != null) {
 			tickBossAlive(world);
 		}
