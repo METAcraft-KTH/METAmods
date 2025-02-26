@@ -23,10 +23,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Rarity;
 import net.minecraft.util.Unit;
 import net.minecraft.util.collection.DataPool;
-import org.pcollections.HashTreePMap;
-import org.pcollections.PMap;
-import org.pcollections.PVector;
-import org.pcollections.TreePVector;
+import org.pcollections.*;
 import se.datasektionen.mc.metacraft_core.item.components.ExpiresComponent;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
@@ -52,7 +49,8 @@ public record EndBossPlayerConfig(
 		Map<EquipmentSlot, ItemEntry> equipment,
 		PVector<ItemEntry> items,
 		ComponentMap componentsToApply,
-		Optional<MusicEntry> musicForBoss
+		Optional<MusicEntry> musicForBoss,
+		PSet<String> tagsToRemove
 ) {
 
 	private static boolean isValidSlot(EquipmentSlot slot) {
@@ -96,9 +94,10 @@ public record EndBossPlayerConfig(
 					Codec.DOUBLE.fieldOf("min_spawn_distance").forGetter(EndBossPlayerConfig::minSpawnDist),
 					Codec.DOUBLE.fieldOf("max_spawn_distance").forGetter(EndBossPlayerConfig::maxSpawnDist),
 					Codec.simpleMap(PLAYER_SLOT_CODEC, ItemEntry.CODEC, VALID_SLOTS).codec().optionalFieldOf("equipment", Map.of()).forGetter(EndBossPlayerConfig::equipment),
-					ExtraCodecs.createPCollectionCodec(ItemEntry.CODEC, (PVector<ItemEntry>) TreePVector.<ItemEntry>empty()).fieldOf("items").forGetter(EndBossPlayerConfig::items),
+					ExtraCodecs.<ItemEntry, PVector<ItemEntry>>createPCollectionCodec(ItemEntry.CODEC, TreePVector.empty()).fieldOf("items").forGetter(EndBossPlayerConfig::items),
 					ComponentMap.CODEC.fieldOf("components_to_apply").forGetter(EndBossPlayerConfig::componentsToApply),
-					MusicEntry.CODEC.optionalFieldOf("music_for_boss").forGetter(EndBossPlayerConfig::musicForBoss)
+					MusicEntry.CODEC.optionalFieldOf("music_for_boss").forGetter(EndBossPlayerConfig::musicForBoss),
+					ExtraCodecs.<String, PSet<String>>createPCollectionCodec(Codec.STRING, HashTreePSet.empty()).fieldOf("tags_to_remove").forGetter(EndBossPlayerConfig::tagsToRemove)
 			).apply(instance, EndBossPlayerConfig::new)
 	);
 
@@ -444,7 +443,8 @@ public record EndBossPlayerConfig(
 									lookup, EndBossPlayerState.ENCHANTS_APPLIED_TO_ALL_ITEMS
 							)
 					).build(),
-					Optional.empty()
+					Optional.empty(),
+					HashTreePSet.singleton("challengemod.m").plus("challengemod.e")
 			)
 	).reloadAfterServer();
 

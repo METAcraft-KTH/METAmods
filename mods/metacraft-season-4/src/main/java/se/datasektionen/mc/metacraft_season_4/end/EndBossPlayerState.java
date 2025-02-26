@@ -89,10 +89,6 @@ public class EndBossPlayerState extends PersistentState {
 
 	private int deathTime = -1;
 
-	private final Set<String> commandTagsToRemove = new HashSet<>(
-			Set.of("challengemod.m", "challengemod.e")
-	);
-
 	private static EndBossPlayerState fromNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
 		var data = new EndBossPlayerState();
 		data.readNBT(nbt, lookup);
@@ -418,7 +414,7 @@ public class EndBossPlayerState extends PersistentState {
 		});
 
 
-		player.getCommandTags().removeAll(commandTagsToRemove);
+		player.getCommandTags().removeAll(config.get().tagsToRemove());
 
 		player.getAttributeInstance(EntityAttributes.MAX_HEALTH).addPersistentModifier(
 				new EntityAttributeModifier(
