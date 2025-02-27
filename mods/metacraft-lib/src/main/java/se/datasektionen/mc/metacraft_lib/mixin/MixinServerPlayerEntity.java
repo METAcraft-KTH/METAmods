@@ -32,6 +32,7 @@ import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_lib.extensions.TradeOfferExtensions;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 
 import java.util.Optional;
 
@@ -57,6 +58,15 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private boolean readOrWriteDataMap = true;
 
 	@Unique
+	private boolean announceAdvancements = true;
+
+	@Unique
+	private Optional<String> statHandler = Optional.empty();
+
+	@Unique
+	private Optional<String> advancementTracker = Optional.empty();
+
+	@Unique
 	private PMap<Identifier, NbtCompound> dataMap = HashTreePMap.empty();
 
 	@Unique
@@ -72,6 +82,15 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			map -> (PMap<Identifier, NbtCompound>) HashTreePMap.from(map),
 			e -> e
 	).optionalFieldOf("metacraft:data_map", HashTreePMap.empty());
+
+	@Unique
+	private static final MapCodec<Optional<String>> STAT_HANDLER = Codec.STRING.optionalFieldOf("metacraft:stat_handler");
+
+	@Unique
+	private static final MapCodec<Optional<String>> ADVANCEMENT_TRACKER = Codec.STRING.optionalFieldOf("metacraft:advancment_tracker");
+
+	@Unique
+	private static final MapCodec<Boolean> ANNOUNCE_ADVANCEMENTS = Codec.BOOL.fieldOf("metacraft:announce_advancements");
 
 
 
@@ -97,6 +116,10 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		if (!dataMap.isEmpty() && readOrWriteDataMap) {
 			builder = DATA_MAP_CODEC.encode(dataMap, NbtOps.INSTANCE, builder);
 		}
+		builder = STAT_HANDLER.encode(statHandler, NbtOps.INSTANCE, builder);
+		builder = ADVANCEMENT_TRACKER.encode(advancementTracker, NbtOps.INSTANCE, builder);
+		builder = ANNOUNCE_ADVANCEMENTS.encode(announceAdvancements, NbtOps.INSTANCE, builder);
+
 		builder.build(nbt).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(n -> {
 			nbt.copyFrom((NbtCompound) n);
 		});
@@ -116,6 +139,23 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 					this.dataMap = data;
 				});
 			}
+			STAT_HANDLER.decode(NbtOps.INSTANCE, map).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(s -> {
+				statHandler = s;
+				statHandler.ifPresentOrElse(handler -> {
+					PlayerDataHelper.setStatHandler((ServerPlayerEntity) (Object) this, handler, false);
+				}, () -> {
+					PlayerDataHelper.restoreStatHandler((ServerPlayerEntity) (Object) this);
+				});
+			});
+			ADVANCEMENT_TRACKER.decode(NbtOps.INSTANCE, map).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(a -> {
+				advancementTracker = a;
+				advancementTracker.ifPresentOrElse(handler -> {
+					PlayerDataHelper.setAdvancementHandler((ServerPlayerEntity) (Object) this, handler, false);
+				}, () -> {
+					PlayerDataHelper.restoreAdvancementTracker((ServerPlayerEntity) (Object) this);
+				});
+			});
+			ANNOUNCE_ADVANCEMENTS.decode(NbtOps.INSTANCE, map).resultOrPartial().ifPresent(a -> announceAdvancements = a);
 		});
 	}
 
@@ -213,6 +253,26 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		readOrWriteDataMap = false;
 		readNbt(data);
 		readOrWriteDataMap = true;
+	}
+
+	@Override
+	public void metacraft_lib$setStatHandlerSuffix(Optional<String> suffix) {
+		this.statHandler = suffix;
+	}
+
+	@Override
+	public void metacraft_lib$setAdvancementTrackerSuffix(Optional<String> suffix) {
+		this.advancementTracker = suffix;
+	}
+
+	@Override
+	public void metacraft_lib$setAnnounceAdvancements(boolean announceAdvancements) {
+		this.announceAdvancements = announceAdvancements;
+	}
+
+	@Override
+	public boolean metacraft_lib$getAnnounceAdvancements() {
+		return announceAdvancements;
 	}
 
 }

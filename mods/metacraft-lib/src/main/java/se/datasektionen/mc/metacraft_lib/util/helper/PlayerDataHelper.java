@@ -20,7 +20,12 @@ import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.dimension.DimensionType;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.extensions.ServerPlayerEntityExtensions;
+import se.datasektionen.mc.metacraft_lib.mixin.AccessorPlayerAdvancementTracker;
+import se.datasektionen.mc.metacraft_lib.mixin.AccessorPlayerManager;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorServerPlayerEntity;
+import se.datasektionen.mc.metacraft_lib.mixin.AccessorStatHandler;
+import se.datasektionen.mc.metacraft_lib.util.SeparateAdvancementTracker;
+import se.datasektionen.mc.metacraft_lib.util.SeparateStatHandler;
 
 import java.util.Optional;
 import java.util.Set;
@@ -321,6 +326,81 @@ public class PlayerDataHelper {
 		}
 		if (spawnFarawayEntities) {
 			player.readEnderPearls(Optional.of(data));
+		}
+	}
+
+	public static void setAnnounceAdvancements(ServerPlayerEntity player, boolean announceAdvancements) {
+		((ServerPlayerEntityExtensions) player).metacraft_lib$setAnnounceAdvancements(announceAdvancements);
+	}
+
+	public static void setAdvancementHandler(ServerPlayerEntity player, String suffix, boolean copy) {
+		if (!(player.getAdvancementTracker() instanceof SeparateAdvancementTracker h) || !h.getSuffix().equals(suffix)) {
+			var prevTracker = player.getAdvancementTracker();
+			prevTracker.save();
+			prevTracker.clearCriteria();
+			var playerManager = player.getServer().getPlayerManager();
+			((AccessorServerPlayerEntity) player).setAdvancementTracker(
+					new SeparateAdvancementTracker(
+							player.getServer().getDataFixer(), playerManager,
+							player.getServer().getAdvancementLoader(), player, suffix
+					)
+			);
+			((AccessorPlayerManager) playerManager).getAdvancementTrackers().put(
+					player.getUuid(), player.getAdvancementTracker()
+			);
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerSuffix(Optional.of(suffix));
+
+			if (copy) {
+				var progress = ((AccessorPlayerAdvancementTracker) prevTracker).getProgress();
+				var tracker = (AccessorPlayerAdvancementTracker) player.getAdvancementTracker();
+				tracker.getProgress().putAll(progress);
+				progress.forEach((entry, p) -> {
+					tracker.callInitProgress(entry, p);
+					tracker.getProgressUpdates().add(entry);
+					tracker.callOnStatusUpdate(entry);
+				});
+			}
+		}
+	}
+
+	public static void restoreAdvancementTracker(ServerPlayerEntity player) {
+		var playerManager = player.getServer().getPlayerManager();
+		if (player.getAdvancementTracker() instanceof SeparateAdvancementTracker t) {
+			t.save();
+			t.clearCriteria();
+			((AccessorPlayerManager) playerManager).getAdvancementTrackers().remove(player.getUuid());
+			((AccessorServerPlayerEntity) player).setAdvancementTracker(playerManager.getAdvancementTracker(player));
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerSuffix(Optional.empty());
+		}
+	}
+
+	public static void setStatHandler(ServerPlayerEntity player, String suffix, boolean copy) {
+		if (!(player.getStatHandler() instanceof SeparateStatHandler h) || !h.getSuffix().equals(suffix)) {
+			var prevHandler = player.getStatHandler();
+			player.getStatHandler().save();
+			((AccessorServerPlayerEntity) player).setStatHandler(
+					new SeparateStatHandler(player.server, player, suffix)
+			);
+			((AccessorPlayerManager) player.getServer().getPlayerManager()).getStatisticsMap().put(
+					player.getUuid(), player.getStatHandler()
+			);
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerSuffix(Optional.of(suffix));
+
+			if (copy) {
+				for (var entry : ((AccessorStatHandler) prevHandler).getStatMap().object2IntEntrySet()) {
+					player.getStatHandler().setStat(player, entry.getKey(), entry.getIntValue());
+				}
+			}
+		}
+	}
+
+	public static void restoreStatHandler(ServerPlayerEntity player) {
+		var playerManager = player.getServer().getPlayerManager();
+		if (player.getStatHandler() instanceof SeparateStatHandler t) {
+			t.save();
+			((AccessorPlayerManager) playerManager).getStatisticsMap().remove(player.getUuid());
+			((AccessorServerPlayerEntity) player).setStatHandler(playerManager.createStatHandler(player));
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerSuffix(Optional.empty());
 		}
 	}
 

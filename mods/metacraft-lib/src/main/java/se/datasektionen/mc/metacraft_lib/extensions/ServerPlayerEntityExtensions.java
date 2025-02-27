@@ -32,4 +32,13 @@ public interface ServerPlayerEntityExtensions {
 
 	void metacraft_lib$loadPlayerDataExceptDataMap(NbtCompound data);
 
+
+	void metacraft_lib$setStatHandlerSuffix(Optional<String> suffix);
+
+	void metacraft_lib$setAdvancementTrackerSuffix(Optional<String> suffix);
+
+	void metacraft_lib$setAnnounceAdvancements(boolean announceAdvancements);
+
+	boolean metacraft_lib$getAnnounceAdvancements();
+
 }

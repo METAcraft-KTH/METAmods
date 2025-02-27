@@ -1,14 +1,26 @@
 package se.datasektionen.mc.metacraft_lib.mixin;
 
+import net.minecraft.advancement.PlayerAdvancementTracker;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.stat.ServerStatHandler;
 import net.minecraft.world.GameMode;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Mutable;
+import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(ServerPlayerEntity.class)
 public interface AccessorServerPlayerEntity {
+
+	@Accessor
+	@Mutable
+	void setAdvancementTracker(PlayerAdvancementTracker advancementTracker);
+
+	@Accessor
+	@Mutable
+	void setStatHandler(ServerStatHandler statHandler);
 
 	@Invoker
 	static GameMode callGameModeFromNbt(@Nullable NbtCompound nbt, String key) {

@@ -407,6 +407,10 @@ public class EndBossPlayerState extends PersistentState {
 			data.remove(ServerBossBarWithMusic.BOSS_BAR);
 		});
 
+		PlayerDataHelper.setAdvancementHandler(player, "end-boss", true);
+		PlayerDataHelper.setStatHandler(player, "end-boss", true);
+		PlayerDataHelper.setAnnounceAdvancements(player, false);
+
 
 		player.getCommandTags().removeAll(config.get().tagsToRemove());
 
