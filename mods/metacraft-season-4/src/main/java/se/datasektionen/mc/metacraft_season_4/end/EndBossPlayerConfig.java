@@ -51,7 +51,8 @@ public record EndBossPlayerConfig(
 		ComponentMap componentsToApply,
 		Optional<MusicEntry> musicForBoss,
 		PSet<String> tagsToRemove,
-		Optional<String> commandOnBossDeath
+		Optional<String> bossDefeatedCommand,
+		Optional<String> bossInitCommand
 ) {
 
 	private static boolean isValidSlot(EquipmentSlot slot) {
@@ -99,7 +100,8 @@ public record EndBossPlayerConfig(
 					ComponentMap.CODEC.fieldOf("components_to_apply").forGetter(EndBossPlayerConfig::componentsToApply),
 					MusicEntry.CODEC.optionalFieldOf("music_for_boss").forGetter(EndBossPlayerConfig::musicForBoss),
 					ExtraCodecs.<String, PSet<String>>createPCollectionCodec(Codec.STRING, HashTreePSet.empty()).fieldOf("tags_to_remove").forGetter(EndBossPlayerConfig::tagsToRemove),
-					Codec.STRING.optionalFieldOf("command_on_boss_death").forGetter(EndBossPlayerConfig::commandOnBossDeath)
+					Codec.STRING.optionalFieldOf("boss_defeated_command").forGetter(EndBossPlayerConfig::bossDefeatedCommand),
+					Codec.STRING.optionalFieldOf("boss_init_command").forGetter(EndBossPlayerConfig::bossInitCommand)
 			).apply(instance, EndBossPlayerConfig::new)
 	);
 
@@ -447,7 +449,7 @@ public record EndBossPlayerConfig(
 					).build(),
 					Optional.empty(),
 					HashTreePSet.singleton("challengemod.m").plus("challengemod.e"),
-					Optional.empty()
+					Optional.empty(), Optional.empty()
 			)
 	).reloadAfterServer();
 

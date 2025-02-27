@@ -165,7 +165,7 @@ public class EndBossPlayerState extends PersistentState {
 		currentBoss = null;
 		currentBossID = null;
 		markDirty();
-		config.get().commandOnBossDeath().ifPresent(command -> {
+		config.get().bossDefeatedCommand().ifPresent(command -> {
 			var source = world.getServer().getCommandFunctionManager()
 					.getScheduledCommandSource().withWorld(world).withPosition(
 							particlePos != null ? particlePos : playerSpawnPos
@@ -432,6 +432,12 @@ public class EndBossPlayerState extends PersistentState {
 				mutateItemForBoss(stack, player.getRegistryManager());
 			}
 		}
+
+		config.get().bossInitCommand().ifPresent(command -> {
+			player.getServer().getCommandManager().executeWithPrefix(
+					player.getCommandSource().withSilent().withLevel(2), command
+			);
+		});
 	}
 
 	public void switchToBoss(ServerPlayerEntity player) {
