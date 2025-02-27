@@ -11,8 +11,6 @@ import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.attribute.EntityAttributeModifier;
-import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.*;
@@ -67,7 +65,6 @@ public class EndBossPlayerState extends PersistentState {
 	private static final MapCodec<Optional<Vec3d>> PLAYER_SPAWN_POS = Vec3d.CODEC.optionalFieldOf("player_spawn_pos");
 
 	private static final Identifier BOSS_DATA_BACKUP = Season4.getID("player_data_backup_before_boss");
-	private static final Identifier BOSS_HEALTH = Season4.getID("boss_health");
 
 	private static final String BOSS_TEAM = "metacraft.end_player_boss.team";
 
@@ -413,12 +410,14 @@ public class EndBossPlayerState extends PersistentState {
 
 		player.getCommandTags().removeAll(config.get().tagsToRemove());
 
-		player.getAttributeInstance(EntityAttributes.MAX_HEALTH).addPersistentModifier(
-				new EntityAttributeModifier(
-						BOSS_HEALTH, 480,
-						EntityAttributeModifier.Operation.ADD_VALUE
-				)
-		);
+		config.get().attributeModifiers().forEach((attribute, modifiers) -> {
+			var instance = player.getAttributeInstance(attribute);
+			if (instance == null) {
+				Season4.LOGGER.error("Attempted to add modifiers for " + attribute + " but players do not support this attribute!");
+			} else {
+				instance.addPersistentModifiers(modifiers);
+			}
+		});
 		player.setHealth(player.getMaxHealth());
 		player.getHungerManager().setFoodLevel(20);
 		player.getHungerManager().setSaturationLevel(20);

@@ -10,6 +10,9 @@ import net.minecraft.component.type.PotionContentsComponent;
 import net.minecraft.component.type.UnbreakableComponent;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.attribute.EntityAttribute;
+import net.minecraft.entity.attribute.EntityAttributeModifier;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -17,6 +20,7 @@ import net.minecraft.potion.Potions;
 import net.minecraft.predicate.item.ItemPredicate;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -49,6 +53,7 @@ public record EndBossPlayerConfig(
 		Map<EquipmentSlot, ItemEntry> equipment,
 		PVector<ItemEntry> items,
 		ComponentMap componentsToApply,
+		Map<RegistryEntry<EntityAttribute>, List<EntityAttributeModifier>> attributeModifiers,
 		Optional<MusicEntry> musicForBoss,
 		PSet<String> tagsToRemove,
 		Optional<String> bossDefeatedCommand,
@@ -98,6 +103,7 @@ public record EndBossPlayerConfig(
 					Codec.simpleMap(PLAYER_SLOT_CODEC, ItemEntry.CODEC, VALID_SLOTS).codec().optionalFieldOf("equipment", Map.of()).forGetter(EndBossPlayerConfig::equipment),
 					ExtraCodecs.<ItemEntry, PVector<ItemEntry>>createPCollectionCodec(ItemEntry.CODEC, TreePVector.empty()).fieldOf("items").forGetter(EndBossPlayerConfig::items),
 					ComponentMap.CODEC.fieldOf("components_to_apply").forGetter(EndBossPlayerConfig::componentsToApply),
+					Codec.unboundedMap(EntityAttribute.CODEC, EntityAttributeModifier.CODEC.listOf()).fieldOf("attribute_modifiers").forGetter(EndBossPlayerConfig::attributeModifiers),
 					MusicEntry.CODEC.optionalFieldOf("music_for_boss").forGetter(EndBossPlayerConfig::musicForBoss),
 					ExtraCodecs.<String, PSet<String>>createPCollectionCodec(Codec.STRING, HashTreePSet.empty()).fieldOf("tags_to_remove").forGetter(EndBossPlayerConfig::tagsToRemove),
 					Codec.STRING.optionalFieldOf("boss_defeated_command").forGetter(EndBossPlayerConfig::bossDefeatedCommand),
@@ -447,6 +453,14 @@ public record EndBossPlayerConfig(
 									lookup, EndBossPlayerState.ENCHANTS_APPLIED_TO_ALL_ITEMS
 							)
 					).build(),
+					Map.of(
+							EntityAttributes.MAX_HEALTH, List.of(
+									new EntityAttributeModifier(
+											Season4.getID("boss_health"), 480,
+											EntityAttributeModifier.Operation.ADD_VALUE
+									)
+							)
+					),
 					Optional.empty(),
 					HashTreePSet.singleton("challengemod.m").plus("challengemod.e"),
 					Optional.empty(), Optional.empty()
