@@ -14,11 +14,13 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 import se.datasektionen.mc.metacraft_moderation.ModerationData;
 import se.datasektionen.mc.metacraft_moderation.ModerationPlayerData;
 import se.datasektionen.mc.metacraft_moderation.moderator_mode.ModerationModeState;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -99,9 +101,20 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Mo
 		if (moderationNBT.contains(MODERATION_STATE) && !skipSaveState) {
 			state = ModerationModeState.createFromNBT(ModerationData.getInstance(server), moderationNBT.getCompound(MODERATION_STATE));
 			state.updatePlayer((ServerPlayerEntity) (Object) this);
+
+			//TODO Remove these before season 5, they are purely for backwards compatibility.
+			if (!nbt.contains(PlayerDataHelper.STAT_HANDLER) && state.getDef().shouldHaveSeparatePlayerData()) {
+				PlayerDataHelper.setStatHandler((ServerPlayerEntity) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
+			}
+			if (!nbt.contains(PlayerDataHelper.ADVANCEMENT_TRACKER) && state.getDef().shouldHaveSeparatePlayerData()) {
+				PlayerDataHelper.setAdvancementTracker((ServerPlayerEntity) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
+			}
+			if (!nbt.contains(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS) && !state.getDef().announceAdvancements()) {
+				PlayerDataHelper.setAnnounceAdvancements((ServerPlayerEntity) (Object) this, false);
+			}
 		}
 		if (moderationNBT.contains(DEFAULT_MODERATOR_MODE)) {
-			defaultModeratorMode = moderationNBT.getString(DEFAULT_MODERATOR_MODE);
+			defaultModeratorMode = moderationNBT.getString(DEFAULT_MODERATOR_MODE).toLowerCase(Locale.ROOT);
 		} else {
 			defaultModeratorMode = null;
 		}
@@ -110,7 +123,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Mo
 			savedNBT.clear();
 			NbtCompound moderatorModeNBTMap = moderationNBT.getCompound(MODERATOR_MODE_NBT_MAP);
 			for (String key : moderatorModeNBTMap.getKeys()) {
-				savedNBT.put(key, moderatorModeNBTMap.getCompound(key));
+				savedNBT.put(key.toLowerCase(Locale.ROOT), moderatorModeNBTMap.getCompound(key));
 			}
 		}
 	}

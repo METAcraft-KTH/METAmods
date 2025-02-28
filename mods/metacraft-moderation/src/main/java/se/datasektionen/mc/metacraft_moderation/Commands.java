@@ -16,6 +16,8 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import se.datasektionen.mc.metacraft_moderation.moderator_mode.ModeratorModeDefinition;
 
+import java.util.Locale;
+
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
@@ -45,7 +47,7 @@ public class Commands {
 				literal("define").requires(Permissions.require("metacraft.mod.define", 3)).then(
 					literal("new").then(
 						argument("mod", StringArgumentType.string()).executes(ctx -> {
-							var name = StringArgumentType.getString(ctx, "mod");
+							var name = StringArgumentType.getString(ctx, "mod").toLowerCase(Locale.ROOT);
 							var data = ModerationData.getInstance(ctx.getSource().getServer());
 							if (data.getDefinition(name).isPresent()) {
 								ctx.getSource().sendError(Text.literal("That mode already exists."));

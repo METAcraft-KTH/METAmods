@@ -48,6 +48,12 @@ public class PlayerDataHelper {
 
 	public static final String PLAYER_DATA_ELEMENT = "metacraft:data_map";
 
+	public static final String STAT_HANDLER = "metacraft:stat_handler";
+
+	public static final String ADVANCEMENT_TRACKER = "metacraft:advancement_tracker";
+
+	public static final String ANNOUNCE_ADVANCEMENTS = "metacraft:announce_advancements";
+
 	/**
 	 * Saves the current player data to the given id slot.
 	 * @param player The player to save data from.
@@ -333,8 +339,12 @@ public class PlayerDataHelper {
 		((ServerPlayerEntityExtensions) player).metacraft_lib$setAnnounceAdvancements(announceAdvancements);
 	}
 
-	public static void setAdvancementHandler(ServerPlayerEntity player, String suffix, boolean copy) {
-		if (!(player.getAdvancementTracker() instanceof SeparateAdvancementTracker h) || !h.getSuffix().equals(suffix)) {
+	public static boolean getAnnounceAdvancements(ServerPlayerEntity player) {
+		return ((ServerPlayerEntityExtensions) player).metacraft_lib$getAnnounceAdvancements();
+	}
+
+	public static void setAdvancementTracker(ServerPlayerEntity player, Identifier type, boolean copy) {
+		if (!(player.getAdvancementTracker() instanceof SeparateAdvancementTracker h) || !h.getType().equals(type)) {
 			var prevTracker = player.getAdvancementTracker();
 			prevTracker.save();
 			prevTracker.clearCriteria();
@@ -342,13 +352,13 @@ public class PlayerDataHelper {
 			((AccessorServerPlayerEntity) player).setAdvancementTracker(
 					new SeparateAdvancementTracker(
 							player.getServer().getDataFixer(), playerManager,
-							player.getServer().getAdvancementLoader(), player, suffix
+							player.getServer().getAdvancementLoader(), player, type
 					)
 			);
 			((AccessorPlayerManager) playerManager).getAdvancementTrackers().put(
 					player.getUuid(), player.getAdvancementTracker()
 			);
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerSuffix(Optional.of(suffix));
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(Optional.of(type));
 
 			if (copy) {
 				var progress = ((AccessorPlayerAdvancementTracker) prevTracker).getProgress();
@@ -370,21 +380,19 @@ public class PlayerDataHelper {
 			t.clearCriteria();
 			((AccessorPlayerManager) playerManager).getAdvancementTrackers().remove(player.getUuid());
 			((AccessorServerPlayerEntity) player).setAdvancementTracker(playerManager.getAdvancementTracker(player));
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerSuffix(Optional.empty());
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(Optional.empty());
 		}
 	}
 
-	public static void setStatHandler(ServerPlayerEntity player, String suffix, boolean copy) {
-		if (!(player.getStatHandler() instanceof SeparateStatHandler h) || !h.getSuffix().equals(suffix)) {
+	public static void setStatHandler(ServerPlayerEntity player, Identifier type, boolean copy) {
+		if (!(player.getStatHandler() instanceof SeparateStatHandler h) || !h.getType().equals(type)) {
 			var prevHandler = player.getStatHandler();
 			player.getStatHandler().save();
-			((AccessorServerPlayerEntity) player).setStatHandler(
-					new SeparateStatHandler(player.server, player, suffix)
-			);
+			((AccessorServerPlayerEntity) player).setStatHandler(new SeparateStatHandler(player.server, player, type));
 			((AccessorPlayerManager) player.getServer().getPlayerManager()).getStatisticsMap().put(
 					player.getUuid(), player.getStatHandler()
 			);
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerSuffix(Optional.of(suffix));
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(Optional.of(type));
 
 			if (copy) {
 				for (var entry : ((AccessorStatHandler) prevHandler).getStatMap().object2IntEntrySet()) {
@@ -400,7 +408,7 @@ public class PlayerDataHelper {
 			t.save();
 			((AccessorPlayerManager) playerManager).getStatisticsMap().remove(player.getUuid());
 			((AccessorServerPlayerEntity) player).setStatHandler(playerManager.createStatHandler(player));
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerSuffix(Optional.empty());
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(Optional.empty());
 		}
 	}
 

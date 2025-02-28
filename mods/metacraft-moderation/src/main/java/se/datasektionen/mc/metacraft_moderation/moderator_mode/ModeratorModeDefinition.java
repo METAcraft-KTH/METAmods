@@ -3,6 +3,7 @@ package se.datasektionen.mc.metacraft_moderation.moderator_mode;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
 
+import java.util.Locale;
 import java.util.Optional;
 
 public class ModeratorModeDefinition {
@@ -118,7 +119,7 @@ public class ModeratorModeDefinition {
 	}
 
 	public void fromNBT(NbtCompound nbt) {
-		name = nbt.getString(NAME);
+		name = nbt.getString(NAME).toLowerCase(Locale.ROOT);
 
 		if (nbt.contains(ENTER_COMMAND)) {
 			enterCommand = nbt.getString(ENTER_COMMAND);

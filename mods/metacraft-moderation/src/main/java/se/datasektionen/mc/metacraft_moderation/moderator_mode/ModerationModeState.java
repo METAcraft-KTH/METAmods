@@ -2,14 +2,13 @@ package se.datasektionen.mc.metacraft_moderation.moderator_mode;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 import se.datasektionen.mc.metacraft_moderation.METAcraftModeration;
 import se.datasektionen.mc.metacraft_moderation.ModerationData;
 import se.datasektionen.mc.metacraft_moderation.ModerationPlayerData;
 import se.datasektionen.mc.metacraft_moderation.compat.Vanish;
-import se.datasektionen.mc.metacraft_moderation.mixin.AccessorPlayerManager;
-import se.datasektionen.mc.metacraft_moderation.mixin.AccessorServerPlayerEntity;
 
 import java.util.*;
 
@@ -34,6 +33,10 @@ public class ModerationModeState {
 		NbtCompound nbt = player.writeNbt(new NbtCompound());
 		PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
 		return nbt;
+	}
+
+	public static Identifier getFromDef(ModeratorModeDefinition def) {
+		return METAcraftModeration.getID(def.getName().toLowerCase(Locale.ROOT));
 	}
 
 	public void applyToPlayer(ModerationModeState prev, ServerPlayerEntity player) {
@@ -65,6 +68,8 @@ public class ModerationModeState {
 			NbtCompound newNbt = PlayerDataHelper.getEmptyPlayerData();
 			Optional.ofNullable(((ModerationPlayerData) player).METAcraft_Moderation$getSavedNBT().get(def.getName())).ifPresent(newNbt::copyFrom);
 			PlayerDataHelper.applyPlayerData(player, newNbt, false);
+			PlayerDataHelper.setAdvancementTracker(player, getFromDef(def), false);
+			PlayerDataHelper.setStatHandler(player, getFromDef(def), false);
 		} else if (prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
 			if (prev.playerNBT != null) {
 				PlayerDataHelper.applyPlayerData(player, prev.playerNBT, true);
@@ -73,18 +78,20 @@ public class ModerationModeState {
 			}
 		}
 
+		PlayerDataHelper.setAnnounceAdvancements(player, def.announceAdvancements);
+
 		if (!applyVanishBeforeData) {
 			if (IsLoaded.VANISH.isLoaded()) {
 				Vanish.setVanishState(player, def.vanish);
 			}
 		}
 
-		prev.def.getExitCommand().map(command -> command.replaceAll("@s(?= )", player.getGameProfile().getName())).ifPresent(exit -> {
+		prev.def.getExitCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().getName())).ifPresent(exit -> {
 			player.getServer().getCommandManager().executeWithPrefix(
 					player.getCommandSource().withLevel(4), exit
 			);
 		});
-		def.getEnterCommand().map(command -> command.replaceAll("@s(?= )", player.getGameProfile().getName())).ifPresent(enter -> {
+		def.getEnterCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().getName())).ifPresent(enter -> {
 			player.getServer().getCommandManager().executeWithPrefix(
 					player.getCommandSource().withLevel(4), enter
 			);
@@ -95,38 +102,6 @@ public class ModerationModeState {
 	public void updatePlayer(ServerPlayerEntity player) {
 		if (!IsLoaded.VANISH.isLoaded()) {
 			player.setInvisible(def.vanish);
-		}
-		if (def.shouldHaveSeparatePlayerData()) {
-			player.getAdvancementTracker().save();
-			player.getStatHandler().save();
-			var playerManager = player.getServer().getPlayerManager();
-			((AccessorServerPlayerEntity) player).setAdvancementTracker(
-					new ModAdvancementTracker(
-							player.getServer().getDataFixer(), playerManager,
-							player.getServer().getAdvancementLoader(), player, def
-					)
-			);
-			((AccessorPlayerManager) playerManager).getAdvancementTrackers().put(
-					player.getUuid(), player.getAdvancementTracker()
-			);
-			((AccessorServerPlayerEntity) player).setStatHandler(
-					new ModStatHandler(player.server, player, def)
-			);
-			((AccessorPlayerManager) playerManager).getStatisticsMap().put(
-					player.getUuid(), player.getStatHandler()
-			);
-		} else {
-			var playerManager = player.getServer().getPlayerManager();
-			if (player.getAdvancementTracker() instanceof ModAdvancementTracker t) {
-				t.save();
-				((AccessorPlayerManager) playerManager).getAdvancementTrackers().remove(player.getUuid());
-				((AccessorServerPlayerEntity) player).setAdvancementTracker(playerManager.getAdvancementTracker(player));
-			}
-			if (player.getStatHandler() instanceof ModStatHandler t) {
-				t.save();
-				((AccessorPlayerManager) playerManager).getStatisticsMap().remove(player.getUuid());
-				((AccessorServerPlayerEntity) player).setStatHandler(playerManager.createStatHandler(player));
-			}
 		}
 	}
 
@@ -143,7 +118,7 @@ public class ModerationModeState {
 		if (nbt.contains(PLAYER_NBT)) {
 			this.playerNBT = nbt.getCompound(PLAYER_NBT);
 		}
-		var defName = nbt.getString(DEF);
+		var defName = nbt.getString(DEF).toLowerCase(Locale.ROOT);
 		def = data.getDefinition(defName).orElseGet(() -> {
 			METAcraftModeration.LOGGER.error("Unable to load moderator definition named " + defName);
 			return NULL.def;

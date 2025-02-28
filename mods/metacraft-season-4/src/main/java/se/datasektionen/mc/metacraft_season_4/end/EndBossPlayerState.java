@@ -68,6 +68,8 @@ public class EndBossPlayerState extends PersistentState {
 
 	private static final String BOSS_TEAM = "metacraft.end_player_boss.team";
 
+	private static final Identifier ADVANCEMENT_STAT_STORAGE = Season4.getID("end-boss");
+
 	private ConfigContainer<EndBossPlayerConfig> config;
 
 	private UUID currentBossID;
@@ -407,8 +409,8 @@ public class EndBossPlayerState extends PersistentState {
 			data.remove(ServerBossBarWithMusic.BOSS_BAR);
 		});
 
-		PlayerDataHelper.setAdvancementHandler(player, "end-boss", true);
-		PlayerDataHelper.setStatHandler(player, "end-boss", true);
+		PlayerDataHelper.setAdvancementTracker(player, ADVANCEMENT_STAT_STORAGE, true);
+		PlayerDataHelper.setStatHandler(player, ADVANCEMENT_STAT_STORAGE, true);
 		PlayerDataHelper.setAnnounceAdvancements(player, false);
 
 

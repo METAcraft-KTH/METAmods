@@ -61,10 +61,10 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private boolean announceAdvancements = true;
 
 	@Unique
-	private Optional<String> statHandler = Optional.empty();
+	private Optional<Identifier> statHandler = Optional.empty();
 
 	@Unique
-	private Optional<String> advancementTracker = Optional.empty();
+	private Optional<Identifier> advancementTracker = Optional.empty();
 
 	@Unique
 	private PMap<Identifier, NbtCompound> dataMap = HashTreePMap.empty();
@@ -81,16 +81,16 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	).xmap(
 			map -> (PMap<Identifier, NbtCompound>) HashTreePMap.from(map),
 			e -> e
-	).optionalFieldOf("metacraft:data_map", HashTreePMap.empty());
+	).optionalFieldOf(PlayerDataHelper.PLAYER_DATA_ELEMENT, HashTreePMap.empty());
 
 	@Unique
-	private static final MapCodec<Optional<String>> STAT_HANDLER = Codec.STRING.optionalFieldOf("metacraft:stat_handler");
+	private static final MapCodec<Optional<Identifier>> STAT_HANDLER = Identifier.CODEC.optionalFieldOf(PlayerDataHelper.STAT_HANDLER);
 
 	@Unique
-	private static final MapCodec<Optional<String>> ADVANCEMENT_TRACKER = Codec.STRING.optionalFieldOf("metacraft:advancment_tracker");
+	private static final MapCodec<Optional<Identifier>> ADVANCEMENT_TRACKER = Identifier.CODEC.optionalFieldOf(PlayerDataHelper.ADVANCEMENT_TRACKER);
 
 	@Unique
-	private static final MapCodec<Boolean> ANNOUNCE_ADVANCEMENTS = Codec.BOOL.fieldOf("metacraft:announce_advancements");
+	private static final MapCodec<Boolean> ANNOUNCE_ADVANCEMENTS = Codec.BOOL.fieldOf(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS);
 
 
 
@@ -150,7 +150,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			ADVANCEMENT_TRACKER.decode(NbtOps.INSTANCE, map).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(a -> {
 				advancementTracker = a;
 				advancementTracker.ifPresentOrElse(handler -> {
-					PlayerDataHelper.setAdvancementHandler((ServerPlayerEntity) (Object) this, handler, false);
+					PlayerDataHelper.setAdvancementTracker((ServerPlayerEntity) (Object) this, handler, false);
 				}, () -> {
 					PlayerDataHelper.restoreAdvancementTracker((ServerPlayerEntity) (Object) this);
 				});
@@ -256,13 +256,13 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Override
-	public void metacraft_lib$setStatHandlerSuffix(Optional<String> suffix) {
-		this.statHandler = suffix;
+	public void metacraft_lib$setStatHandlerType(Optional<Identifier> type) {
+		this.statHandler = type;
 	}
 
 	@Override
-	public void metacraft_lib$setAdvancementTrackerSuffix(Optional<String> suffix) {
-		this.advancementTracker = suffix;
+	public void metacraft_lib$setAdvancementTrackerType(Optional<Identifier> type) {
+		this.advancementTracker = type;
 	}
 
 	@Override

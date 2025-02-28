@@ -5,12 +5,11 @@
   "mixins": [
     "AccessorPlayerManager",
     "AccessorServerPlayerEntity",
-    "MixinPlayerAdvancementTracker",
     "MixinSchema1460",
     "MixinServerPlayerEntity",
     "MixinTameableEntity"
   ],
   "injectors": {
     "defaultRequire": 1
-	}
+  }
 }
