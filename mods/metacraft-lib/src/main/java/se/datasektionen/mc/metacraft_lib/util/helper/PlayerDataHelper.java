@@ -343,6 +343,22 @@ public class PlayerDataHelper {
 		return ((ServerPlayerEntityExtensions) player).metacraft_lib$getAnnounceAdvancements();
 	}
 
+	public static void setAnnounceJoinLeave(ServerPlayerEntity player, boolean announceJoinLeave) {
+		((ServerPlayerEntityExtensions) player).metacraft_lib$setAnnounceJoinLeave(announceJoinLeave);
+	}
+
+	public static boolean getAnnounceJoinLeave(ServerPlayerEntity player) {
+		return ((ServerPlayerEntityExtensions) player).metacraft_lib$getAnnounceJoinLeave();
+	}
+
+	public static void setAnnounceDeath(ServerPlayerEntity player, boolean announceDeath) {
+		((ServerPlayerEntityExtensions) player).metacraft_lib$setAnnounceDeath(announceDeath);
+	}
+
+	public static boolean getAnnounceDeath(ServerPlayerEntity player) {
+		return ((ServerPlayerEntityExtensions) player).metacraft_lib$getAnnounceDeath();
+	}
+
 	public static void setAdvancementTracker(ServerPlayerEntity player, Identifier type, boolean copy) {
 		if (!(player.getAdvancementTracker() instanceof SeparateAdvancementTracker h) || !h.getType().equals(type)) {
 			var prevTracker = player.getAdvancementTracker();

@@ -23,4 +23,31 @@ public class MixinMinecraftEventListener {
 		}
 	}
 
+	@Inject(method = "lambda$init$5", at = @At("HEAD"), cancellable = true)
+	private static void checkDeathMessage(
+			ServerPlayerEntity player, CallbackInfo ci
+	) {
+		if (!PlayerDataHelper.getAnnounceDeath(player)) {
+			ci.cancel();
+		}
+	}
+
+	@Inject(method = "lambda$init$6", at = @At("HEAD"), cancellable = true)
+	private static void checkJoin(
+			ServerPlayerEntity player, CallbackInfo ci
+	) {
+		if (!PlayerDataHelper.getAnnounceJoinLeave(player)) {
+			ci.cancel();
+		}
+	}
+
+
+	@Inject(method = "lambda$init$7", at = @At("HEAD"), cancellable = true)
+	private static void checkLeave(
+			ServerPlayerEntity player, CallbackInfo ci
+	) {
+		if (!PlayerDataHelper.getAnnounceJoinLeave(player)) {
+			ci.cancel();
+		}
+	}
 }

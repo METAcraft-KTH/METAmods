@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_lib.mixin;
 
 import com.google.common.collect.ImmutableList;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.mojang.authlib.GameProfile;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -9,6 +10,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerRemoveS2CPacket;
+import net.minecraft.server.PlayerManager;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -61,6 +63,13 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private boolean announceAdvancements = true;
 
 	@Unique
+	private boolean announceJoinLeave = true;
+
+	@Unique
+	private boolean announceDeath = true;
+
+
+	@Unique
 	private Optional<Identifier> statHandler = Optional.empty();
 
 	@Unique
@@ -92,6 +101,13 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Unique
 	private static final MapCodec<Boolean> ANNOUNCE_ADVANCEMENTS = Codec.BOOL.fieldOf(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS);
 
+	@Unique
+	private static final MapCodec<Boolean> ANNOUNCE_JOIN_LEAVE = Codec.BOOL.fieldOf("metacraft:announce_join_leave");
+
+	@Unique
+	private static final MapCodec<Boolean> ANNOUNCE_DEATH = Codec.BOOL.fieldOf("metacraft:announce_death");
+
+
 
 
 	public MixinServerPlayerEntity(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
@@ -103,6 +119,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		customName = ((ServerPlayerEntityExtensions) oldPlayer).metacraft_lib$getCustomName();
 		showInGUI = ((ServerPlayerEntityExtensions) oldPlayer).metacraft_lib$showInGUI();
 		dataMap = ((MixinServerPlayerEntity) (Object) oldPlayer).dataMap;
+
+		statHandler = ((MixinServerPlayerEntity) (Object) oldPlayer).statHandler;
+		advancementTracker = ((MixinServerPlayerEntity) (Object) oldPlayer).advancementTracker;
+		announceAdvancements = ((MixinServerPlayerEntity) (Object) oldPlayer).announceAdvancements;
+		announceJoinLeave = ((MixinServerPlayerEntity) (Object) oldPlayer).announceJoinLeave;
+		announceDeath = ((MixinServerPlayerEntity) (Object) oldPlayer).announceDeath;
 	}
 
 	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
@@ -119,6 +141,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		builder = STAT_HANDLER.encode(statHandler, NbtOps.INSTANCE, builder);
 		builder = ADVANCEMENT_TRACKER.encode(advancementTracker, NbtOps.INSTANCE, builder);
 		builder = ANNOUNCE_ADVANCEMENTS.encode(announceAdvancements, NbtOps.INSTANCE, builder);
+		builder = ANNOUNCE_JOIN_LEAVE.encode(announceJoinLeave, NbtOps.INSTANCE, builder);
+		builder = ANNOUNCE_DEATH.encode(announceDeath, NbtOps.INSTANCE, builder);
 
 		builder.build(nbt).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(n -> {
 			nbt.copyFrom((NbtCompound) n);
@@ -156,7 +180,38 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 				});
 			});
 			ANNOUNCE_ADVANCEMENTS.decode(NbtOps.INSTANCE, map).resultOrPartial().ifPresent(a -> announceAdvancements = a);
+			ANNOUNCE_JOIN_LEAVE.decode(NbtOps.INSTANCE, map).resultOrPartial().ifPresent(a -> announceJoinLeave = a);
+			ANNOUNCE_DEATH.decode(NbtOps.INSTANCE, map).resultOrPartial().ifPresent(a -> announceDeath = a);
 		});
+	}
+
+	@WrapWithCondition(
+		method = "onDeath",
+		at = {
+				@At(
+						value = "INVOKE",
+						target = "Lnet/minecraft/server/PlayerManager;sendToTeam(Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/text/Text;)V"
+				),
+				@At(
+						value = "INVOKE",
+						target = "Lnet/minecraft/server/PlayerManager;sendToOtherTeams(Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/text/Text;)V"
+				)
+		},
+		require = 2
+	)
+	public boolean shouldSendDeathMessage(PlayerManager manager, PlayerEntity source, Text message) {
+		return PlayerDataHelper.getAnnounceDeath((ServerPlayerEntity) (Object) this);
+	}
+
+	@WrapWithCondition(
+			method = "onDeath",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/server/PlayerManager;broadcast(Lnet/minecraft/text/Text;Z)V"
+			)
+	)
+	public boolean shouldSendDeathMessage(PlayerManager manager, Text message, boolean overlay) {
+		return PlayerDataHelper.getAnnounceDeath((ServerPlayerEntity) (Object) this);
 	}
 
 	@ModifyVariable(method = "sendTradeOffers", at = @At(value = "HEAD"), argsOnly = true)
@@ -275,4 +330,23 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		return announceAdvancements;
 	}
 
+	@Override
+	public void metacraft_lib$setAnnounceJoinLeave(boolean announceJoinLeave) {
+		this.announceJoinLeave = announceJoinLeave;
+	}
+
+	@Override
+	public boolean metacraft_lib$getAnnounceJoinLeave() {
+		return announceJoinLeave;
+	}
+
+	@Override
+	public void metacraft_lib$setAnnounceDeath(boolean announceDeath) {
+		this.announceDeath = announceDeath;
+	}
+
+	@Override
+	public boolean metacraft_lib$getAnnounceDeath() {
+		return announceDeath;
+	}
 }

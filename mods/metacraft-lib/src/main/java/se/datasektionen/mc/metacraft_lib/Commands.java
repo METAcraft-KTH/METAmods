@@ -1,10 +1,7 @@
 package se.datasektionen.mc.metacraft_lib;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import se.datasektionen.mc.metacraft_lib.commands.CustomNameCommand;
-import se.datasektionen.mc.metacraft_lib.commands.ExplorerMapCommand;
-import se.datasektionen.mc.metacraft_lib.commands.HardcoreSwitcherCommand;
-import se.datasektionen.mc.metacraft_lib.commands.PlaySoundFromEntity;
+import se.datasektionen.mc.metacraft_lib.commands.*;
 
 public class Commands {
 
@@ -14,6 +11,7 @@ public class Commands {
 			HardcoreSwitcherCommand.register(dispatcher, registryAccess);
 			CustomNameCommand.register(dispatcher, registryAccess);
 			PlaySoundFromEntity.register(dispatcher, registryAccess);
+			PlayerDataCommand.register(dispatcher, registryAccess);
 		});
 	}
 

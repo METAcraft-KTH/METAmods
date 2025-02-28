@@ -41,4 +41,12 @@ public interface ServerPlayerEntityExtensions {
 
 	boolean metacraft_lib$getAnnounceAdvancements();
 
+	void metacraft_lib$setAnnounceJoinLeave(boolean announceJoinLeave);
+
+	boolean metacraft_lib$getAnnounceJoinLeave();
+
+	void metacraft_lib$setAnnounceDeath(boolean announceDeath);
+
+	boolean metacraft_lib$getAnnounceDeath();
+
 }
