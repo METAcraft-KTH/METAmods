@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "se.metacraft.discord_chat_fixer.mixin",
+	"plugin": "se.metacraft.discord_chat_fixer.DiscordMixinConfig",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"MixinMinecraftEventListener"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

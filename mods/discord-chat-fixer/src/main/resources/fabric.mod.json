@@ -1,0 +1,36 @@
+{
+	"schemaVersion": 1,
+	"id": "discord-chat-fixer",
+	"version": "${version}",
+	"name": "Discord-Chat-Fixer",
+	"description": "Fixes issues with Discord-MC-Chat",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.metacraft.discord_chat_fixer.DiscordChatFixer"
+		]
+	},
+	"mixins": [
+	  "discord-chat-fixer.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric": "*",
+		"metacraft-zones": "*"
+	},
+	"suggests": {
+		"discord-mc-chat": "*"
+	}
+}
