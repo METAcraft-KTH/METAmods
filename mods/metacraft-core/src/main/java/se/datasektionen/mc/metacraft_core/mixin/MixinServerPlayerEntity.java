@@ -42,6 +42,7 @@ import se.datasektionen.mc.metacraft_core.music.MusicTimerTracker;
 import se.datasektionen.mc.metacraft_core.util.METAcraftCoreData;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 @Mixin(ServerPlayerEntity.class)
@@ -166,7 +167,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 
 		long currentTime = System.currentTimeMillis() + networkHandler.getLatency();
-		if (music != null && currentTime >= musicStartTime + musicLengthMillis - 100) {
+		if (music != null && currentTime >= musicStartTime + musicLengthMillis - 50) {
 			var music = this.music.getMusic(inIntro);
 			playMusic(music.forceStop(), false, musicStartTime + musicLengthMillis - networkHandler.getLatency());
 		}
@@ -268,21 +269,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 						)
 				);
 			}
-			if (startTimeServerside <= 0) {
+			if (startTimeServerside <= 0 || System.currentTimeMillis() >= actualTime) {
 				this.networkHandler.sendPacket(packet);
 			} else {
-				var p = packet;
-				var m = this.music;
 				MusicTimerTracker.getTimer(getServer()).schedule(
-						new TimerTask() {
-							@Override
-							public void run() {
-								if (m == MixinServerPlayerEntity.this.music) {
-									networkHandler.sendPacket(p);
-								}
-							}
-						},
-						new Date(actualTime)
+						new MusicTimerTracker.SendPacketTask((ServerPlayerEntity) (Object) this, this.music, packet),
+						actualTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS
 				);
 			}
 		}
