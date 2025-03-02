@@ -1,92 +1,46 @@
 package se.datasektionen.mc.cutscenes.util.cutscene_redirector;
 
-import com.mojang.datafixers.DataFixer;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.description.modifier.Visibility;
 import net.bytebuddy.dynamic.DynamicType;
-import net.bytebuddy.implementation.MethodCall;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.implementation.bind.annotation.*;
 import net.bytebuddy.matcher.ElementMatchers;
-import net.minecraft.resource.LifecycledResourceManager;
-import net.minecraft.resource.LifecycledResourceManagerImpl;
-import net.minecraft.resource.ResourcePackManager;
-import net.minecraft.resource.ResourceType;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.SaveLoader;
-import net.minecraft.server.WorldGenerationProgressListenerFactory;
-import net.minecraft.util.ApiServices;
-import net.minecraft.world.level.storage.LevelStorage;
+import org.objenesis.Objenesis;
+import org.objenesis.ObjenesisStd;
+import org.objenesis.instantiator.ObjectInstantiator;
 import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
 import se.datasektionen.mc.metacraft_lib.util.IntermediaryNames;
 
 import java.lang.reflect.*;
-import java.util.List;
 
 public class CutsceneServerRedirector {
 
 	public static final String CUTSCENE_WORLD_FIELD_NAME = "metacraft_cutscenes$currentCutsceneWorld";
 	public static final String REAL_SERVER_FIELD_NAME = "metacraft_cutscenes$realServer";
 
-	private static final ApiServices API_SERVICES = new ApiServices(
-			null, null,
-			null, null
-	);
-
-	private static final LifecycledResourceManager PACK_MANAGER = new LifecycledResourceManagerImpl(ResourceType.SERVER_DATA, List.of());
-
 	private static final Class<? extends MinecraftServer> SERVER_TYPE = createBuilder().make().load(
 			MinecraftServer.class.getClassLoader()
 	).getLoaded();
 
-	public static SaveLoader createSaveLoader() { //Public so it can be invoked by the default constructor of the proxy server.
-		var registries = DummyDynamicRegistryContainers.createDynamicRegistries();
-		var packs = DummyDynamicRegistryContainers.createDataPackContents(registries);
-		return new SaveLoader(
-				PACK_MANAGER, //Used by Fabric API
-				packs, registries,
-				DummySaveProperties.getInstance()
-		);
-	}
+	private static final Objenesis OBJENESIS = new ObjenesisStd();
+	private static final ObjectInstantiator<? extends MinecraftServer> SERVER_INSTANTIATOR = OBJENESIS.getInstantiatorOf(SERVER_TYPE);
 
 	private static DynamicType.Builder<? extends MinecraftServer> createBuilder() {
-		try {
-			var superConstructor = MinecraftServer.class.getConstructor(
-					Thread.class, LevelStorage.Session.class, ResourcePackManager.class,
-					SaveLoader.class, java.net.Proxy.class, DataFixer.class, ApiServices.class,
-					WorldGenerationProgressListenerFactory.class
-			);
-			return new ByteBuddy()
-					.subclass(
-							MinecraftServer.class
-					).implement(ExtraServerData.class)
-					.defineField(CUTSCENE_WORLD_FIELD_NAME, CutsceneWorld.class, Visibility.PRIVATE)
-					.defineField(REAL_SERVER_FIELD_NAME, MinecraftServer.class, Visibility.PRIVATE)
-					.defineConstructor(Visibility.PUBLIC).intercept(
-						//We want to invoke the constructor with as much null as possible without causing a null pointer exception.
-						MethodCall.invoke(superConstructor).onSuper().with(
-							null,
-							DummySession.getInstance(),
-							null
-						).withMethodCall(//Must be a new one every time since Fabric mutates the dynamic registries.
-								MethodCall.invoke(CutsceneServerRedirector.class.getDeclaredMethod("createSaveLoader"))
-						).with(
-								null, null,
-								API_SERVICES,
-								null
-						)
-					)
-					.method(
-							ElementMatchers.any()
-					).intercept(
-							MethodDelegation.to(CutsceneServerRedirector.Proxy.class)
-					);
-		} catch (NoSuchMethodException e) {
-			Cutscenes.LOGGER.error(e.getMessage(), e);
-			return null;
-		}
+		return new ByteBuddy()
+				.subclass(
+						MinecraftServer.class
+				).implement(ExtraServerData.class)
+				.defineField(CUTSCENE_WORLD_FIELD_NAME, CutsceneWorld.class, Visibility.PRIVATE)
+				.defineField(REAL_SERVER_FIELD_NAME, MinecraftServer.class, Visibility.PRIVATE)
+				.method(
+						ElementMatchers.any()
+				).intercept(
+						MethodDelegation.to(CutsceneServerRedirector.Proxy.class)
+				);
 	}
 
 	private static void setPrivate(Object o, String fieldName, Object value) throws NoSuchFieldException, IllegalAccessException {
@@ -98,9 +52,7 @@ public class CutsceneServerRedirector {
 
 	public static MinecraftServer createProxyServer(MinecraftServer server, CutsceneWorld world) {
 		try {
-			Constructor<?> constructor = SERVER_TYPE.getDeclaredConstructor();
-
-			MinecraftServer newServer = (MinecraftServer) constructor.newInstance();
+			MinecraftServer newServer = SERVER_INSTANTIATOR.newInstance();
 
 			setPrivate(newServer, CUTSCENE_WORLD_FIELD_NAME, world);
 			setPrivate(newServer, REAL_SERVER_FIELD_NAME, server);
@@ -108,8 +60,7 @@ public class CutsceneServerRedirector {
 			return newServer;
 
 		} catch (
-				NoClassDefFoundError | InstantiationException | NoSuchFieldException |
-				IllegalAccessException | InvocationTargetException | NoSuchMethodException e
+				NoClassDefFoundError | NoSuchFieldException | IllegalAccessException e
 		) {
 			Cutscenes.LOGGER.error(e.getMessage(), e);
 			return server;
@@ -163,6 +114,10 @@ public class CutsceneServerRedirector {
 	public interface ExtraServerData {
 		CutsceneWorld metacraft_cutscenes$getCutsceneWorld();
 		MinecraftServer metacraft_cutscenes$getRealServer();
+	}
+
+	public static void init() {
+		//Classload this class to fix lag spike when cutscene played for the first time after startup.
 	}
 
 }

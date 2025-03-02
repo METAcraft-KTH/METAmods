@@ -10,6 +10,7 @@ import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.RotationRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
+import se.datasektionen.mc.cutscenes.util.cutscene_redirector.CutsceneServerRedirector;
 
 public class Cutscenes implements ModInitializer {
 	public static final String NAMESPACE = "metacraft";
@@ -26,6 +27,7 @@ public class Cutscenes implements ModInitializer {
 		Commands.init();
 		Events.init();
 		CompatTransitions.init();
+		CutsceneServerRedirector.init();
 	}
 
 	public static Identifier getID(String id) {

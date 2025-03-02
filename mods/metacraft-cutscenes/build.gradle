@@ -10,4 +10,5 @@ addPolymerDependency()
 
 dependencies {
 	implementation(include("org.apache.commons:commons-math3:3.6.1"))
+	implementation(include('org.objenesis:objenesis:3.4'))
 }
