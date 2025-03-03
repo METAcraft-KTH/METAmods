@@ -70,6 +70,9 @@ public class ModerationModeState {
 			PlayerDataHelper.applyPlayerData(player, newNbt, false);
 			PlayerDataHelper.setAdvancementTracker(player, getFromDef(def), false);
 			PlayerDataHelper.setStatHandler(player, getFromDef(def), false);
+			if (!def.announceAdvancements) {
+				PlayerDataHelper.setAnnounceAdvancements(player, false);
+			}
 		} else if (prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
 			if (prev.playerNBT != null) {
 				PlayerDataHelper.applyPlayerData(player, prev.playerNBT, true);
@@ -78,7 +81,9 @@ public class ModerationModeState {
 			}
 		}
 
-		PlayerDataHelper.setAnnounceAdvancements(player, def.announceAdvancements);
+		if (!prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
+			PlayerDataHelper.setAnnounceAdvancements(player, def.announceAdvancements);
+		}
 
 		if (!applyVanishBeforeData) {
 			if (IsLoaded.VANISH.isLoaded()) {
