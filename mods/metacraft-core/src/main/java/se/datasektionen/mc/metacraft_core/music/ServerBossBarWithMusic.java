@@ -11,7 +11,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextCodecs;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
-import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
+import se.datasektionen.mc.metacraft_core.util.helper.MusicHelper;
 
 import java.util.Optional;
 
@@ -52,7 +52,7 @@ public class ServerBossBarWithMusic extends ServerBossBar {
 		this.music = music;
 		if (music != prevMusic) {
 			for (var player : getPlayers()) {
-				((ServerPlayerEntityExtensions) player).metacraft_lib$replaceMusic(prevMusic, music);
+				MusicHelper.replaceMusic(player, prevMusic, music);
 			}
 		}
 	}
@@ -64,14 +64,14 @@ public class ServerBossBarWithMusic extends ServerBossBar {
 	public void addPlayer(ServerPlayerEntity player) {
 		super.addPlayer(player);
 		if (music != null && isVisible()) {
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setMusicEntry(music);
+			MusicHelper.playMusic(player, music);
 		}
 	}
 
 	public void removePlayer(ServerPlayerEntity player) {
 		super.removePlayer(player);
 		if (music != null && isVisible()) {
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setContinuePlayingMusicPredicate(LivingEntity::isDead);
+			MusicHelper.replacePredicate(player, music, LivingEntity::isDead);
 		}
 	}
 
@@ -81,13 +81,11 @@ public class ServerBossBarWithMusic extends ServerBossBar {
 		if (music != null) {
 			if (visible) {
 				for (var player : getPlayers()) {
-					((ServerPlayerEntityExtensions) player).metacraft_lib$setMusicEntry(music);
+					MusicHelper.playMusic(player, music);
 				}
 			} else {
 				for (var player : getPlayers()) {
-					if (((ServerPlayerEntityExtensions) player).metacraft_lib$hasMusicEntry(music, false)) {
-						((ServerPlayerEntityExtensions) player).metacraft_lib$setMusicEntry(null);
-					}
+					MusicHelper.stopMusic(player, music);
 				}
 			}
 		}

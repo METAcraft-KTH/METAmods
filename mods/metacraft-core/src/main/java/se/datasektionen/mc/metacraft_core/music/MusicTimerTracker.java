@@ -51,7 +51,7 @@ public class MusicTimerTracker {
 
 		@Override
 		public void run() {
-			if (((ServerPlayerEntityExtensions) player).metacraft_lib$hasMusicEntry(toPlay, false)) {
+			if (((ServerPlayerEntityExtensions) player).metacraft_core$hasMusicEntry(toPlay)) {
 				player.networkHandler.sendPacket(packet);
 			}
 		}

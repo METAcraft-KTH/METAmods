@@ -48,9 +48,7 @@ public class MusicTransition implements Transition, TransitionConfig {
 
 	@Override
 	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		if (MusicHelper.isMusicPlaying(player, music)) {
-			MusicHelper.stopMusic(player);
-		}
+		MusicHelper.stopMusic(player, music);
 	}
 
 	@Override

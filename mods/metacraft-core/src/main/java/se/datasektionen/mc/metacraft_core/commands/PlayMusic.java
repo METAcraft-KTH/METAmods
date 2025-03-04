@@ -46,7 +46,8 @@ public class PlayMusic {
 									NbtCompoundArgumentType.getNbtCompound(ctx, "music"),
 									ctx.getSource().getRegistryManager()
 							),
-							List.of(ctx.getSource().getPlayerOrThrow())
+							List.of(ctx.getSource().getPlayerOrThrow()),
+							false
 					)
 				).then(
 					argument("players", EntityArgumentType.players()).executes(
@@ -55,8 +56,33 @@ public class PlayMusic {
 										NbtCompoundArgumentType.getNbtCompound(ctx, "music"),
 										ctx.getSource().getRegistryManager()
 								),
-								EntityArgumentType.getPlayers(ctx, "players")
+								EntityArgumentType.getPlayers(ctx, "players"),
+								false
 						)
+					)
+				)
+			).then(
+				literal("forgettable").then(
+					argument("music", NbtCompoundArgumentType.nbtCompound()).executes(
+							ctx -> playMusic(
+									ctx, parse(
+											NbtCompoundArgumentType.getNbtCompound(ctx, "music"),
+											ctx.getSource().getRegistryManager()
+									),
+									List.of(ctx.getSource().getPlayerOrThrow()),
+									true
+							)
+					).then(
+							argument("players", EntityArgumentType.players()).executes(
+									ctx -> playMusic(
+											ctx, parse(
+													NbtCompoundArgumentType.getNbtCompound(ctx, "music"),
+													ctx.getSource().getRegistryManager()
+											),
+											EntityArgumentType.getPlayers(ctx, "players"),
+											true
+									)
+							)
 					)
 				)
 			)
@@ -67,13 +93,15 @@ public class PlayMusic {
 			).executes(
 					ctx -> stopMusic(
 							ctx, Optional.empty(),
-							List.of(ctx.getSource().getPlayerOrThrow())
+							List.of(ctx.getSource().getPlayerOrThrow()),
+							false
 					)
 			).then(
 				argument("players", EntityArgumentType.players()).executes(
 						ctx -> stopMusic(
 								ctx, Optional.empty(),
-								EntityArgumentType.getPlayers(ctx, "players")
+								EntityArgumentType.getPlayers(ctx, "players"),
+								false
 						)
 				).then(
 					argument("music", NbtCompoundArgumentType.nbtCompound()).executes(
@@ -82,7 +110,16 @@ public class PlayMusic {
 											NbtCompoundArgumentType.getNbtCompound(ctx, "music"),
 											ctx.getSource().getRegistryManager()
 									)),
-									EntityArgumentType.getPlayers(ctx, "players")
+									EntityArgumentType.getPlayers(ctx, "players"),
+									false
+							)
+					)
+				).then(
+					literal("all").executes(
+							ctx -> stopMusic(
+									ctx, Optional.empty(),
+									EntityArgumentType.getPlayers(ctx, "players"),
+									true
 							)
 					)
 				)
@@ -92,10 +129,10 @@ public class PlayMusic {
 
 	private static int playMusic(
 			CommandContext<ServerCommandSource> ctx,
-			MusicEntry music, Collection<ServerPlayerEntity> players
+			MusicEntry music, Collection<ServerPlayerEntity> players, boolean skipQueue
 	) {
 		for (var p : players) {
-			MusicHelper.playMusic(p, music);
+			MusicHelper.playMusic(p, music, skipQueue);
 		}
 		ctx.getSource().sendFeedback(() -> Text.literal("Started music " + music), true);
 		return players.size();
@@ -103,12 +140,15 @@ public class PlayMusic {
 
 	private static int stopMusic(
 			CommandContext<ServerCommandSource> ctx,
-			Optional<MusicEntry> music, Collection<ServerPlayerEntity> players
+			Optional<MusicEntry> music, Collection<ServerPlayerEntity> players, boolean all
 	) {
 		int count = 0;
 		for (var p : players) {
-			if (music.isPresent() && !MusicHelper.isMusicPlaying(p, music.get(), true)) continue;
-			MusicHelper.stopMusic(p);
+			if (all) {
+				MusicHelper.clearAllMusic(p);
+			} else {
+				music.ifPresentOrElse(m -> MusicHelper.stopMusic(p, m), () -> MusicHelper.stopMusic(p));
+			}
 			count++;
 		}
 		String msg = "Stopped music" + (music.map(musicEntry -> " " + musicEntry).orElse(""));

@@ -11,7 +11,6 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.world.Heightmap;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
-import se.datasektionen.mc.metacraft_core.entity.entities.PlayerMusicPoint;
 import se.datasektionen.mc.metacraft_core.entity.entities.StructureDisplay;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftActivities;
@@ -20,12 +19,6 @@ import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftSensorTypes;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorEntityType;
 
 public class METAcraftEntities {
-
-	public static final EntityType<PlayerMusicPoint> POINT = register(
-			"player_music_point", EntityType.Builder.create(
-					PlayerMusicPoint::new, SpawnGroup.MISC
-			).disableSaving().disableSummon().dimensions(0, 0)
-	);
 
 	public static final EntityType<PlayerMob> PLAYER = register(
 			"player",

@@ -25,7 +25,6 @@
 		"MixinContainerComponent",
 		"MixinElementHolder",
 		"MixinEntity",
-		"MixinEntityTrackerEntry",
 		"MixinExplosionBehavior",
 		"MixinItem",
 		"MixinItem$Settings",

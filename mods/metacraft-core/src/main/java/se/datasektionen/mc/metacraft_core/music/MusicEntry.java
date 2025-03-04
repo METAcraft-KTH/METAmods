@@ -14,6 +14,7 @@ import net.minecraft.text.Text;
 import net.minecraft.text.TextCodecs;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,7 +22,7 @@ import java.util.Optional;
 
 public record MusicEntry(
 		Music music, Optional<Music> intro, int priority, Optional<Credit> credit
-) {
+) implements Comparable<MusicEntry> {
 
 	private static final Map<RegistryKey<SoundEvent>, RegistryEntry<SoundEvent>> cache = new HashMap<>();
 	public static final Codec<RegistryEntry<SoundEvent>> MUSIC_CODEC_WITH_CACHE = Identifier.CODEC.xmap(
@@ -79,6 +80,11 @@ public record MusicEntry(
 		return firstPart + "]";
 	}
 
+	@Override
+	public int compareTo(@NotNull MusicEntry musicEntry) {
+		return -Integer.compare(this.priority, musicEntry.priority);
+	}
+
 	public record Credit(Text name, Text author, Style style, Optional<Style> playingStyle, Optional<Credit> basedOf) {
 		private static Codec<Credit> getCodec() {
 			return Codec.lazyInitialized(() -> CODEC);
@@ -121,7 +127,7 @@ public record MusicEntry(
 
 	public record Music(
 			RegistryEntry<SoundEvent> music, double length, float pitch, boolean forceStop
-			) {
+	) {
 		public static final MapCodec<Music> MAP_CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						MUSIC_CODEC_WITH_CACHE.fieldOf("music").forGetter(Music::music),
