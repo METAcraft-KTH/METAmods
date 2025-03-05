@@ -92,6 +92,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private Predicate<ServerPlayerEntity> shouldContinuePlayingMusic = player -> true;
 
 	@Unique
+	private boolean skipQueue;
+
+	@Unique
 	private int displayTimer = 0;
 
 	public MixinServerPlayerEntity(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
@@ -217,6 +220,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		this.musicStopTimer = ((MixinServerPlayerEntity) (Object) oldPlayer).musicStopTimer;
 		this.musicEntryQueue.addAll(((MixinServerPlayerEntity) (Object) oldPlayer).musicEntryQueue);
 		this.musicEntriesInQueue.putAll(((MixinServerPlayerEntity) (Object) oldPlayer).musicEntriesInQueue);
+		this.skipQueue = ((MixinServerPlayerEntity) (Object) oldPlayer).skipQueue;
 
 		if (oldPlayer.getWorld() == getWorld()) {
 			this.point = ((MixinServerPlayerEntity) (Object) oldPlayer).point;
@@ -342,7 +346,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Unique
-	private void stopCurrentMusic(boolean shouldPlaySomethingElse, boolean skipQueue) {
+	private void stopCurrentMusic(boolean shouldPlaySomethingElse) {
 		if (music != null) {
 			var music = this.music.getMusic(inIntro);
 			this.networkHandler.sendPacket(new StopSoundS2CPacket(music.music().value().id(), SoundCategory.MUSIC));
@@ -370,7 +374,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		if (entry == null) return;
 		if (entry.equals(music)) return;
 		if ((music == null || entry.priority() > music.priority())) {
-			stopCurrentMusic(true, skipQueue);
+			stopCurrentMusic(true);
+			this.skipQueue = skipQueue;
 			this.music = entry;
 			playMusic(true, true, 0);
 			this.shouldContinuePlayingMusic = predicate;
@@ -383,11 +388,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	public void metacraft_core$stopMusic(MusicEntry entry) {
 		if (music != null) {
 			if (Objects.equals(music, entry) || entry == null) {
-				stopCurrentMusic(false, true);
+				stopCurrentMusic(false);
 				this.music = null;
 				var existing = grabFromQueue();
 				if (existing != null) {
 					metacraft_core$playMusic(existing.getFirst(), false, existing.getSecond());
+					this.skipQueue = false;
 				}
 			} else if (musicEntriesInQueue.containsKey(entry)) {
 				musicEntriesInQueue.remove(entry);
