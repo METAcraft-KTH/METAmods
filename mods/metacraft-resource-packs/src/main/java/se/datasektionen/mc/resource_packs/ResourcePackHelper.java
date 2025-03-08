@@ -1,5 +1,6 @@
 package se.datasektionen.mc.resource_packs;
 
+import com.mojang.authlib.GameProfile;
 import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.s2c.common.ResourcePackRemoveS2CPacket;
@@ -7,40 +8,48 @@ import net.minecraft.network.packet.s2c.play.BundleS2CPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class ResourcePackHelper {
 
-	public static void enableResourcePack(ServerPlayerEntity player, UUID uuid) {
+	public static void enableResourcePack(ServerPlayerEntity player, UUID pack) {
 		var config = ResourcePackConfig.getConfig();
-		var entry = config.getResourcePack(uuid);
+		var entry = config.getResourcePack(pack);
 		if (entry == null) return;
 		if (!entry.isGlobal()) {
-			((ServerPlayerEntityExtension) player).metacraft$getResourcePacks().add(uuid);
+			PlayerPackDataManager.getInstance(player.getServer()).update(
+					player.getGameProfile(), data -> data.addPack(pack)
+			);
+			player.networkHandler.sendPacket(config.createEnablePacket(pack));
 		}
-		player.networkHandler.sendPacket(config.createEnablePacket(uuid));
 	}
 
-	public static void disableResourcePack(ServerPlayerEntity player, UUID uuid) {
+	public static void disableResourcePack(ServerPlayerEntity player, UUID pack) {
 		var config = ResourcePackConfig.getConfig();
-		var entry = config.getResourcePack(uuid);
+		var entry = config.getResourcePack(pack);
 		if (entry == null) return;
 		if (!entry.isGlobal()) {
-			((ServerPlayerEntityExtension) player).metacraft$getResourcePacks().remove(uuid);
+			PlayerPackDataManager.getInstance(player.getServer()).update(
+					player.getGameProfile(), data -> data.removePack(pack)
+			);
+			player.networkHandler.sendPacket(new ResourcePackRemoveS2CPacket(Optional.of(pack)));
 		}
-		player.networkHandler.sendPacket(new ResourcePackRemoveS2CPacket(Optional.of(uuid)));
 	}
 
-	public static boolean hasResourcePack(ServerPlayerEntity player, UUID uuid) {
-		var pack = ResourcePackConfig.getConfig().getResourcePack(uuid);
-		if (pack == null) return false;
-		if (pack.isGlobal()) {
-			return true;
-		}
-		return ((ServerPlayerEntityExtension) player).metacraft$getResourcePacks().contains(uuid);
+	public static boolean hasResourcePack(MinecraftServer server, GameProfile profile, UUID pack, ResourcePackConfig.ResourcePack packData) {
+		return packData.isGlobal() || playerHasPack(server, profile, pack);
+	}
+
+	public static boolean hasResourcePack(ServerPlayerEntity player, UUID pack) {
+		return hasResourcePack(player.getServer(), player.getGameProfile(), pack);
+	}
+
+	public static boolean hasResourcePack(MinecraftServer server, GameProfile profile, UUID pack) {
+		return hasResourcePack(server, profile, pack, ResourcePackConfig.getConfig().getResourcePack(pack));
+	}
+
+	private static boolean playerHasPack(MinecraftServer server, GameProfile profile, UUID pack) {
+		return PlayerPackDataManager.getInstance(server).getFromPlayer(profile).hasPack(pack);
 	}
 
 	public static void resendResourcePacks(MinecraftServer server) {
@@ -57,11 +66,14 @@ public class ResourcePackHelper {
 				}
 			}
 		}
+
+		var packManager = PlayerPackDataManager.getInstance(server);
+
 		//Remove all packs that were changed from global to non-global unless the player has it enabled.
 		for (var player : server.getPlayerManager().getPlayerList()) {
 			List<Packet<? super ClientPlayPacketListener>> packets = new ArrayList<>();
 			for (var pack : config.getPrevGlobals()) {
-				if (!((ServerPlayerEntityExtension) player).metacraft$getResourcePacks().contains(pack)) {
+				if (!packManager.getFromPlayer(player.getGameProfile()).hasPack(pack)) {
 					packets.add(new ResourcePackRemoveS2CPacket(Optional.of(pack)));
 				}
 			}
@@ -85,19 +97,18 @@ public class ResourcePackHelper {
 		//Send all updated player-specific resource packs to affected players.
 		for (var player : server.getPlayerManager().getPlayerList()) {
 			List<Packet<? super ClientPlayPacketListener>> packets = new ArrayList<>();
-			((ServerPlayerEntityExtension) player).metacraft$getResourcePacks().removeIf(pack -> {
+			packManager.getFromPlayer(player.getGameProfile()).resourcePacks().forEach(pack -> {
 				if (ResourcePackConfig.getConfig().resourcePackExists(pack)) {
 					if (config.hasChanged(pack)) {
 						packets.add(config.createEnablePacket(pack));
 					}
 					if (config.getResourcePack(pack).isGlobal()) {
-						return true;
+						packManager.update(player.getGameProfile(), data -> data.removePack(pack));
 					}
 				} else {
 					packets.add(new ResourcePackRemoveS2CPacket(Optional.of(pack)));
-					return true;
+					packManager.update(player.getGameProfile(), data -> data.removePack(pack));
 				}
-				return false;
 			});
 			if (!packets.isEmpty()) {
 				player.networkHandler.sendPacket(new BundleS2CPacket(packets));

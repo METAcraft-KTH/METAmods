@@ -81,10 +81,12 @@ public class ResourcePackCommand {
 			CommandContext<ServerCommandSource> ctx, UUID id, Collection<ServerPlayerEntity> players, boolean enable
 	) {
 		for (var player : players) {
-			if (enable) {
-				ResourcePackHelper.enableResourcePack(player, id);
-			} else {
-				ResourcePackHelper.disableResourcePack(player, id);
+			if (ResourcePackHelper.hasResourcePack(player, id) != enable) {
+				if (enable) {
+					ResourcePackHelper.enableResourcePack(player, id);
+				} else {
+					ResourcePackHelper.disableResourcePack(player, id);
+				}
 			}
 		}
 		ctx.getSource().sendFeedback(
