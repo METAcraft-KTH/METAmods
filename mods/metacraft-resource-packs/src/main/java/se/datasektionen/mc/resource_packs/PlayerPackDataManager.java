@@ -64,16 +64,6 @@ public class PlayerPackDataManager {
 		return locks.computeIfAbsent(uuid, k -> new ReentrantLock());
 	}
 
-	private PMap<UUID, PlayerPackEntry> unmarkSave(PMap<UUID, PlayerPackEntry> map) {
-		for (var k : map.keySet()) {
-			var v = map.get(k);
-			if (v.shouldSave()) {
-				map = map.plus(k, v.unmarkSaved());
-			}
-		}
-		return map;
-	}
-
 	private void saveEntry(UUID id, PlayerPackEntry data) {
 		if (data.shouldSave) {
 			var lock = getLock(id);
@@ -99,17 +89,15 @@ public class PlayerPackDataManager {
 	public void unloadPlayer(GameProfile profile) {
 		var uuid = profile.getId();
 		if (!packDataMap.get().containsKey(uuid)) return;
-		var data = packDataMap.getAndUpdate(map -> map.minus(uuid)).get(uuid);
-		saveEntry(uuid, data);
+		packDataMap.getAndUpdate(map -> map.minus(uuid)).get(uuid);
 		locks.remove(uuid);
 	}
 
-	public void save() {
-		var data = packDataMap.getAndUpdate(this::unmarkSave);
-		for (var k : data.keySet()) {
-			var v = data.get(k);
-			saveEntry(k, v);
-		}
+	public void save(GameProfile profile) {
+		var uuid = profile.getId();
+		if (!packDataMap.get().containsKey(uuid)) return;
+		var data = packDataMap.get().get(uuid);
+		saveEntry(uuid, data);
 	}
 
 	public void loadPlayer(GameProfile profile) {

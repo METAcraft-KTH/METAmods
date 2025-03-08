@@ -31,6 +31,6 @@ public class MixinPlayerManager implements PlayerManagerExtension {
 
 	@Inject(method = "savePlayerData", at = @At("HEAD"))
 	protected void savePlayerData(ServerPlayerEntity player, CallbackInfo ci) {
-		manager.save();
+		manager.save(player.getGameProfile());
 	}
 }
