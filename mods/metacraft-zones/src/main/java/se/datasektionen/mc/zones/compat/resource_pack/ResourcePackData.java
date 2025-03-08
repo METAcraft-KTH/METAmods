@@ -80,7 +80,7 @@ public class ResourcePackData extends ZoneDataEntityTracking {
 
 	@Override
 	public void onLeave(Entity entity) {
-		if (entity instanceof ServerPlayerEntity p) {
+		if (entity instanceof ServerPlayerEntity p && !p.isDisconnected()) {
 			resourcePacks.forEach(pack -> {
 				disablePack(p, pack);
 			});
