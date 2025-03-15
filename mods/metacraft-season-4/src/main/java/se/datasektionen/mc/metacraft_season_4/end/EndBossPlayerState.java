@@ -193,6 +193,14 @@ public class EndBossPlayerState extends PersistentState {
 		markDirty();
 	}
 
+	public Vec3d getPlayerSpawnPos() {
+		return playerSpawnPos;
+	}
+
+	public EndBossPlayerConfig getConfig() {
+		return config.get();
+	}
+
 	private void unPrepareBoss(ServerPlayerEntity player) {
 		var xpLevel = player.experienceLevel;
 		var xpProgress = player.experienceProgress;
@@ -460,6 +468,17 @@ public class EndBossPlayerState extends PersistentState {
 
 	public boolean isBoss(ServerPlayerEntity player) {
 		return player == currentBoss || player.getUuid().equals(currentBossID);
+	}
+
+	public Text getBossName() {
+		if (hasBoss()) {
+			if (currentBoss != null) {
+				return currentBoss.getName();
+			} else {
+				return Text.literal("Disconnected Player");
+			}
+		}
+		return Text.literal("missingno");
 	}
 
 	public void findNewBoss(ServerWorld world) {

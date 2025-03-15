@@ -447,7 +447,7 @@ public record EndBossPlayerConfig(
 							))
 					).add(
 							METAcraftComponents.EXPIRES_AT, //TODO Update this time stamp!
-							new ExpiresComponent(Instant.parse("2025-03-15T10:15:30.00Z"), DataPool.<ItemStack>empty())
+							new ExpiresComponent(Instant.parse("2025-03-24T23:00:00.00Z"), DataPool.<ItemStack>empty())
 					).add(
 							DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 									lookup, EndBossPlayerState.ENCHANTS_APPLIED_TO_ALL_ITEMS
