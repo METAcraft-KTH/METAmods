@@ -372,7 +372,10 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Override
 	public void metacraft_core$playMusic(MusicEntry entry, boolean skipQueue, Predicate<ServerPlayerEntity> predicate) {
 		if (entry == null) return;
-		if (entry.equals(music)) return;
+		if (entry.equals(music)) {
+			this.shouldContinuePlayingMusic = predicate;
+			return;
+		}
 		if ((music == null || entry.priority() > music.priority())) {
 			stopCurrentMusic(true);
 			this.skipQueue = skipQueue;
