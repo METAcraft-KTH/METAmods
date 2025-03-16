@@ -4,10 +4,12 @@
 	"package": "se.datasektionen.mc.metacraft_season_4.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"AccessorAreaEffectCloudEntity",
 		"AccessorPlayerEntity",
 		"MixinEnderDragonFight",
 		"MixinEnderEyeItem",
 		"MixinFoodToConsumableFix",
+		"MixinGlassBottleItem",
 		"MixinLivingEntity",
 		"MixinServerPlayerEntity"
 	],
