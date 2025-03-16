@@ -33,7 +33,7 @@ import org.pcollections.*;
 import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.gamerules.METAcraftGameRules;
-import se.datasektionen.mc.metacraft_core.music.ServerBossBarWithMusic;
+import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
 import se.datasektionen.mc.metacraft_core.util.helper.BossBarHelper;
 import se.datasektionen.mc.metacraft_core.util.helper.MusicHelper;
 import se.datasektionen.mc.metacraft_core.util.helper.PlayerInventoryHelper;
@@ -76,7 +76,7 @@ public class EndBossPlayerState extends PersistentState {
 	private PSet<UUID> oldBossesToReset = HashTreePSet.empty();
 	private ServerPlayerEntity currentBoss;
 	private String bossPrevTeam;
-	private ServerBossBarWithMusic bossbar;
+	private ManageableServerBossBar bossbar;
 	private int livesRemaining = 3;
 	private Vec3d playerSpawnPos;
 
@@ -142,7 +142,7 @@ public class EndBossPlayerState extends PersistentState {
 		ops.getMap(nbt).resultOrPartial(Season4.LOGGER::error).ifPresent(data -> {
 			CURRENT_BOSS_ID.decode(ops, data).resultOrPartial(Season4.LOGGER::error).ifPresent(currentBoss -> this.currentBossID = currentBoss.orElse(null));
 			BOSSBAR.decode(ops, data).resultOrPartial(Season4.LOGGER::error).ifPresent(bossbar -> {
-				this.bossbar = new ServerBossBarWithMusic(Text.literal(""), BossBar.Color.WHITE, BossBar.Style.PROGRESS);
+				this.bossbar = new ManageableServerBossBar(Text.literal(""), BossBar.Color.WHITE, BossBar.Style.PROGRESS);
 				this.bossbar.readNBT(bossbar, registries);
 			});
 			OLD_BOSSES_TO_RESET.decode(ops, data).resultOrPartial(Season4.LOGGER::error).ifPresent(oldBosses -> oldBossesToReset = oldBosses);
@@ -414,7 +414,7 @@ public class EndBossPlayerState extends PersistentState {
 		PlayerDataHelper.saveCurrentPlayerData(player, BOSS_DATA_BACKUP);
 		PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
 		PlayerDataHelper.getPlayerData(player, BOSS_DATA_BACKUP).ifPresent(data -> {
-			data.remove(ServerBossBarWithMusic.BOSS_BAR);
+			data.remove(ManageableServerBossBar.BOSS_BAR);
 		});
 
 		PlayerDataHelper.setAdvancementTracker(player, ADVANCEMENT_STAT_STORAGE, true);

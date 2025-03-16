@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
-import se.datasektionen.mc.metacraft_core.music.ServerBossBarWithMusic;
+import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Shadow public abstract DynamicRegistryManager getRegistryManager();
 
 	@Unique
-	private ServerBossBarWithMusic bossBar;
+	private ManageableServerBossBar bossBar;
 
 	@Unique
 	private void removeBossBar() {
@@ -94,10 +94,10 @@ public abstract class MixinEntity implements EntityExtensions {
 
 	@Override
 	public void metacraft_lib$loadBossBar(NbtCompound nbt) {
-		if (nbt.contains(ServerBossBarWithMusic.BOSS_BAR)) {
-			NbtCompound bossBar = nbt.getCompound(ServerBossBarWithMusic.BOSS_BAR);
+		if (nbt.contains(ManageableServerBossBar.BOSS_BAR)) {
+			NbtCompound bossBar = nbt.getCompound(ManageableServerBossBar.BOSS_BAR);
 			if (this.bossBar == null) {
-				this.bossBar = ServerBossBarWithMusic.create();
+				this.bossBar = ManageableServerBossBar.create();
 				this.bossBar.readNBT(bossBar, getRegistryManager());
 				this.bossBar.updateFromEntity((Entity) (Object) this);
 				initialiseBossBar();
@@ -120,7 +120,7 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Override
 	public void metacraft_lib$saveBossBar(NbtCompound nbt) {
 		if (bossBar != null) {
-			nbt.put(ServerBossBarWithMusic.BOSS_BAR, bossBar.writeNBT(new NbtCompound(), this.getRegistryManager()));
+			nbt.put(ManageableServerBossBar.BOSS_BAR, bossBar.writeNBT(new NbtCompound(), this.getRegistryManager()));
 		}
 	}
 
@@ -139,12 +139,12 @@ public abstract class MixinEntity implements EntityExtensions {
 	}
 
 	@Override
-	public Optional<ServerBossBarWithMusic> metacraft_lib$getBossBar() {
+	public Optional<ManageableServerBossBar> metacraft_lib$getBossBar() {
 		return Optional.ofNullable(bossBar);
 	}
 
 	@Override
-	public void metacraft_lib$setBossBar(ServerBossBarWithMusic bossBar) {
+	public void metacraft_lib$setBossBar(ManageableServerBossBar bossBar) {
 		if (this.bossBar != bossBar) {
 			removeBossBar();
 			this.bossBar = bossBar;
@@ -182,7 +182,7 @@ public abstract class MixinEntity implements EntityExtensions {
 	}
 
 	@Override
-	public void metacraft_lib$setBossBarNoUpdate(ServerBossBarWithMusic bossBar) {
+	public void metacraft_lib$setBossBarNoUpdate(ManageableServerBossBar bossBar) {
 		this.bossBar = bossBar;
 	}
 

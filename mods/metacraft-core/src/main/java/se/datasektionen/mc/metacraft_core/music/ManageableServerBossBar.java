@@ -11,11 +11,10 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextCodecs;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
-import se.datasektionen.mc.metacraft_core.util.helper.MusicHelper;
 
 import java.util.Optional;
 
-public class ServerBossBarWithMusic extends ServerBossBar {
+public class ManageableServerBossBar extends ServerBossBar {
 
 	public static final String BOSS_BAR = "BossBar";
 
@@ -34,8 +33,6 @@ public class ServerBossBarWithMusic extends ServerBossBar {
 	private static final String VALUE = "value";
 
 	private static final String MAX = "max";
-	
-	private MusicEntry music;
 
 	private boolean trackingHealth = true;
 	private boolean trackingName = true;
@@ -43,52 +40,34 @@ public class ServerBossBarWithMusic extends ServerBossBar {
 	private int value;
 	private int max;
 
-	public ServerBossBarWithMusic(Text displayName, Color color, Style style) {
+	private final BossBarMusicHandler handler = new BossBarMusicHandler(this);
+
+	public ManageableServerBossBar(Text displayName, Color color, Style style) {
 		super(displayName, color, style);
 	}
 
 	public void setMusic(MusicEntry music) {
-		var prevMusic = this.music;
-		this.music = music;
-		if (music != prevMusic) {
-			for (var player : getPlayers()) {
-				MusicHelper.replaceMusic(player, prevMusic, music);
-			}
-		}
+		this.handler.setMusic(music);
 	}
 
 	public Optional<MusicEntry> getMusic() {
-		return Optional.ofNullable(music);
+		return this.handler.getMusic();
 	}
 
 	public void addPlayer(ServerPlayerEntity player) {
 		super.addPlayer(player);
-		if (music != null && isVisible()) {
-			MusicHelper.playMusic(player, music);
-		}
+		handler.onPlayerAdded(player);
 	}
 
 	public void removePlayer(ServerPlayerEntity player) {
 		super.removePlayer(player);
-		if (music != null && isVisible()) {
-			MusicHelper.replacePredicate(player, music, LivingEntity::isDead);
-		}
+		handler.onPlayerRemoved(player);
 	}
 
 	@Override
 	public void setVisible(boolean visible) {
 		super.setVisible(visible);
-		if (music != null) {
-			if (visible) {
-				for (var player : getPlayers()) {
-					MusicHelper.playMusic(player, music);
-				}
-			} else {
-				for (var player : getPlayers()) {
-					MusicHelper.stopMusic(player, music);
-				}
-			}
-		}
+		handler.onToggleVisibility(visible);
 	}
 
 	public boolean isTrackingHealth() {
@@ -99,8 +78,8 @@ public class ServerBossBarWithMusic extends ServerBossBar {
 		return trackingName;
 	}
 
-	public ServerBossBarWithMusic copy() {
-		var bossBar = new ServerBossBarWithMusic(getName(), getColor(), getStyle());
+	public ManageableServerBossBar copy() {
+		var bossBar = new ManageableServerBossBar(getName(), getColor(), getStyle());
 		getMusic().ifPresent(bossBar::setMusic);
 		bossBar.setDarkenSky(darkenSky);
 		bossBar.setDragonMusic(dragonMusic);
@@ -114,8 +93,8 @@ public class ServerBossBarWithMusic extends ServerBossBar {
 		return bossBar;
 	}
 	
-	public static ServerBossBarWithMusic create() {
-		return new ServerBossBarWithMusic(Text.empty(), Color.WHITE, Style.PROGRESS);
+	public static ManageableServerBossBar create() {
+		return new ManageableServerBossBar(Text.empty(), Color.WHITE, Style.PROGRESS);
 	}
 
 	public void updateFromEntity(Entity entity) {

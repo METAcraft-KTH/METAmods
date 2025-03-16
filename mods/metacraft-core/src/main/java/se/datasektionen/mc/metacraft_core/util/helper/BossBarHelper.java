@@ -3,17 +3,17 @@ package se.datasektionen.mc.metacraft_core.util.helper;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
-import se.datasektionen.mc.metacraft_core.music.ServerBossBarWithMusic;
+import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
 
 import java.util.Optional;
 
 public class BossBarHelper {
 
-	public static Optional<ServerBossBarWithMusic> getBossBar(Entity entity) {
+	public static Optional<ManageableServerBossBar> getBossBar(Entity entity) {
 		return ((EntityExtensions) entity).metacraft_lib$getBossBar();
 	}
 
-	public static void setBossBar(Entity entity, ServerBossBarWithMusic bossBar) {
+	public static void setBossBar(Entity entity, ManageableServerBossBar bossBar) {
 		((EntityExtensions) entity).metacraft_lib$setBossBar(bossBar);
 	}
 

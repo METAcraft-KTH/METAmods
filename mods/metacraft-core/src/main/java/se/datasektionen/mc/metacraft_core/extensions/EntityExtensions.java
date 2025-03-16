@@ -1,17 +1,17 @@
 package se.datasektionen.mc.metacraft_core.extensions;
 
 import net.minecraft.nbt.NbtCompound;
-import se.datasektionen.mc.metacraft_core.music.ServerBossBarWithMusic;
+import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
 
 import java.util.Optional;
 
 public interface EntityExtensions {
 
-	Optional<ServerBossBarWithMusic> metacraft_lib$getBossBar();
+	Optional<ManageableServerBossBar> metacraft_lib$getBossBar();
 
-	void metacraft_lib$setBossBar(ServerBossBarWithMusic bossBar);
+	void metacraft_lib$setBossBar(ManageableServerBossBar bossBar);
 
-	void metacraft_lib$setBossBarNoUpdate(ServerBossBarWithMusic bossBar);
+	void metacraft_lib$setBossBarNoUpdate(ManageableServerBossBar bossBar);
 
 	void metacraft_lib$updateBossBarReplaced();
 
