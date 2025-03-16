@@ -8,6 +8,7 @@
 		"AccessorPlayerEntity",
 		"MixinEnderDragonFight",
 		"MixinEnderEyeItem",
+		"MixinEndGatewayBlockEntity",
 		"MixinFoodToConsumableFix",
 		"MixinGlassBottleItem",
 		"MixinLivingEntity",

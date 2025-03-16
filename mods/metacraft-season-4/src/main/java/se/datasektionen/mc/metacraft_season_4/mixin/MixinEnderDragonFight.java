@@ -7,12 +7,17 @@ import net.minecraft.entity.boss.dragon.EnderDragonEntity;
 import net.minecraft.entity.boss.dragon.EnderDragonFight;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.entity.decoration.EndCrystalEntity;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.scoreboard.ScoreHolder;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.structure.StructureLiquidSettings;
 import net.minecraft.text.Text;
+import net.minecraft.util.BlockRotation;
 import net.minecraft.util.TypeFilter;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -21,8 +26,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_season_4.end.EndBossPlayerState;
+import se.datasektionen.mc.metacraft_season_4.end.EndData;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 @Mixin(EnderDragonFight.class)
 public abstract class MixinEnderDragonFight {
@@ -85,6 +93,35 @@ public abstract class MixinEnderDragonFight {
 				mcmakisteinDragon = null;
 				generateNewEndGateway();
 			}
+		}
+	}
+
+	@WrapWithCondition(
+		method = "generateEndGateway",
+		at = @At(
+				value = "INVOKE",
+				target = "Ljava/util/Optional;ifPresent(Ljava/util/function/Consumer;)V"
+		)
+	)
+	private <T> boolean generateEndGateway(
+			Optional<T> instance, Consumer<? super @NotNull T> action, @Local(argsOnly = true) BlockPos pos
+	) {
+		var poolElements = world.getRegistryManager().getOrThrow(RegistryKeys.TEMPLATE_POOL);
+		var gateway = poolElements.get(EndData.END_GATEWAY_DRAGON);
+		if (gateway == null) {
+			return true;
+		} else {
+			var rot = BlockRotation.values()[world.getRandom().nextInt(BlockRotation.values().length)];
+			var element = gateway.getRandomElement(world.getRandom());
+			var calcBox = element.getBoundingBox(world.getStructureTemplateManager(), BlockPos.ORIGIN, rot);
+			var actualPos = pos.subtract(calcBox.getCenter());
+			element.generate(
+					world.getStructureTemplateManager(), world, world.getStructureAccessor(),
+					world.getChunkManager().getChunkGenerator(), actualPos, actualPos,
+					rot, BlockBox.infinite(), world.getRandom(),
+					StructureLiquidSettings.APPLY_WATERLOGGING, false
+			);
+			return false;
 		}
 	}
 	
