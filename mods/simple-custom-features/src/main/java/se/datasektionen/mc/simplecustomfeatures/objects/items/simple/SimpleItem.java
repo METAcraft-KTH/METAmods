@@ -12,8 +12,7 @@ import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.MergedComponentMap;
+import net.minecraft.component.*;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -26,6 +25,7 @@ import net.minecraft.util.dynamic.Codecs;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Type;
 import se.datasektionen.mc.simplecustomfeatures.FeaturesConfig;
+import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorItem;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
 import se.datasektionen.mc.simplecustomfeatures.objects.items.BaseItem;
@@ -146,6 +146,28 @@ public record SimpleItem(
 		return DataResult.error(() -> paramType + " is not a supported type.");
 	}
 
+	private static <T> void setComponentFromChanges(ComponentMap.Builder builder, ComponentType<T> c, ComponentChanges changes) {
+		builder.add(c, changes.get(c).orElse(null));
+	}
+
+	private Item fixItem(Item item) {
+		List<ComponentType<?>> componentsToFix = new ArrayList<>();
+		for (var c : itemSettings.components().entrySet()) {
+			if (!Objects.equals(item.getComponents().get(c.getKey()), c.getValue().orElse(null))) {
+				componentsToFix.add(c.getKey());
+			}
+		}
+		if (!componentsToFix.isEmpty()) {
+			var builder = ComponentMap.builder();
+			builder.addAll(item.getComponents());
+			for (var c : componentsToFix) {
+				setComponentFromChanges(builder, c, itemSettings.components());
+			}
+			((AccessorItem) item).setComponents(builder.build());
+		}
+		return item;
+	}
+
 	private DataResult<Item> createItem(
 			Class<? extends Item> clazz, Item.Settings settings, @Nullable RegistryWrapper.WrapperLookup lookup
 			) {
@@ -206,14 +228,7 @@ public record SimpleItem(
 				}
 				if (parsedResults.isSuccess()) {
 					try {
-						if (settingsIndex == -1) {
-							return DataResult.error(
-									() -> "The accepted constructor does not take settings as an argument, custom components have not been applied!",
-									(Item) c.newInstance(parsedResults.getOrThrow().toArray())
-							);
-						} else {
-							return DataResult.success((Item) c.newInstance(parsedResults.getOrThrow().toArray()));
-						}
+						return DataResult.success(fixItem((Item) c.newInstance(parsedResults.getOrThrow().toArray())));
 					} catch (
 							InstantiationException | IllegalAccessException | InvocationTargetException |
 							ClassCastException | ExceptionInInitializerError | IllegalArgumentException e
