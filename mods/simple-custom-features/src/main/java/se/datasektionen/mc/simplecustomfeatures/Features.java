@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.simplecustomfeatures.compat.PortalBlockerCompat;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
+import se.datasektionen.mc.simplecustomfeatures.objects.items.simple.ToolMaterialRegistry;
 
 public class Features implements ModInitializer, ClientModInitializer, DedicatedServerModInitializer {
 
@@ -18,6 +19,7 @@ public class Features implements ModInitializer, ClientModInitializer, Dedicated
 
 	@Override
 	public void onInitialize() {
+		ToolMaterialRegistry.init();
 		ObjectRegistry.init();
 		Events.init();
 

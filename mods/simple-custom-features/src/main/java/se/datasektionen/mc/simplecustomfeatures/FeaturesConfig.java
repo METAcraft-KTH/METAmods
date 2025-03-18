@@ -124,7 +124,7 @@ public class FeaturesConfig implements ReloadAware {
 			Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer> objects
 	) {
 		this.objects = objects;
-		ObjectContainer.register(getLoadedObjects(objects));
+		ObjectContainer.register(getLoadedObjects(objects), null);
 	}
 
 	public FeaturesConfig() {
@@ -168,7 +168,7 @@ public class FeaturesConfig implements ReloadAware {
 					type -> objects.put(type.getRegistry().getKey(), container)
 			);
 		}
-		ObjectContainer.register(getLoadedObjects(Arrays.stream(containers)));
+		ObjectContainer.register(getLoadedObjects(Arrays.stream(containers)), null);
 	}
 
 	/**
@@ -216,7 +216,7 @@ public class FeaturesConfig implements ReloadAware {
 			if (!partialsToRemove.isEmpty()) {
 				ObjectContainer.Deferred.removePartials(partialsToRemove.stream());
 			}
-			ObjectContainer.register(objectsRegistered.stream());
+			ObjectContainer.register(objectsRegistered.stream(), lookup);
 		}
 
 		@Override

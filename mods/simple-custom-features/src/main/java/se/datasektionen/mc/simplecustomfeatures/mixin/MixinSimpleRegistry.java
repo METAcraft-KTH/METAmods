@@ -158,4 +158,8 @@ public abstract class MixinSimpleRegistry<T> implements MutableRegistry<T>, Regi
 		}
 	}
 
+	@Override
+	public boolean simpleCustomFeatures$isFrozen() {
+		return frozen;
+	}
 }

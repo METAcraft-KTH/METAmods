@@ -16,6 +16,7 @@
 		"MixinItem",
 		"MixinItem$Settings",
 		"MixinLoomScreenHandler",
+		"MixinRegistries",
 		"MixinSimpleRegistry"
 	],
 	"client": [

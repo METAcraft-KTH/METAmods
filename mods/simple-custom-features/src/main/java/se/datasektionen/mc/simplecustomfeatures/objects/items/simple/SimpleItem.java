@@ -17,10 +17,13 @@ import net.minecraft.component.MergedComponentMap;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.item.ToolMaterial;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.dynamic.Codecs;
+import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Type;
 import se.datasektionen.mc.simplecustomfeatures.FeaturesConfig;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
@@ -32,14 +35,16 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 public record SimpleItem(
 		ItemSettingsWithBaseItem itemSettings, Optional<ItemStack> disguise, List<Object> args
 ) implements BaseItem {
 
-	private static final Map<Class<?>, Function<Object, DataResult<Object>>> SUPPORTED_TYPES = new HashMap<>();
+	private static final Map<Class<?>, BiFunction<Object, RegistryWrapper.WrapperLookup, DataResult<Object>>> SUPPORTED_TYPES = new HashMap<>();
+
+	private static final Set<Class<?>> REQUIRES_LOOKUP = new HashSet<>();
 
 	private static void addPrimitive(Class<?> clazz, Class<?> primitiveClass, Codec<?> codec) {
 		addSupportedArgumentType(primitiveClass, codec);
@@ -65,6 +70,7 @@ public record SimpleItem(
 		addSupportedArgumentType(Number.class, Codec.DOUBLE);
 		addSupportedArgumentType(String.class, Codec.STRING);
 		addSupportedArgumentType(Identifier.class, Identifier.CODEC);
+		addSupportedArgumentType(ToolMaterial.class, ToolMaterialRegistry.CODEC);
 		Registries.REGISTRIES.forEach(registry -> {
 			registry.streamEntries().forEach(entry -> {
 				if (!SUPPORTED_TYPES.containsKey(entry.value().getClass())) {
@@ -129,20 +135,20 @@ public record SimpleItem(
 		return Arrays.stream(paramTypes).anyMatch(c -> c == Item.Settings.class);
 	}
 
-	private static DataResult<Object> getObjectForParam(Object object, Class<?> paramType) {
+	private static DataResult<Object> getObjectForParam(Object object, Class<?> paramType, @Nullable RegistryWrapper.WrapperLookup lookup) {
 		if (paramType.isInstance(object) || object.getClass() == paramType) {
 			return DataResult.success(object);
 		}
 		if (SUPPORTED_TYPES.containsKey(paramType)) {
 			var converter = SUPPORTED_TYPES.get(paramType);
-			return converter.apply(object).map(t -> t);
+			return converter.apply(object, lookup).map(t -> t);
 		}
 		return DataResult.error(() -> paramType + " is not a supported type.");
 	}
 
 	private DataResult<Item> createItem(
-			Class<? extends Item> clazz, Item.Settings settings
-	) {
+			Class<? extends Item> clazz, Item.Settings settings, @Nullable RegistryWrapper.WrapperLookup lookup
+			) {
 		Constructor<?>[] constructors = clazz.getDeclaredConstructors();
 		Arrays.sort(constructors, (lhs, rhs) -> {
 			if (lhs.accessFlags().contains(AccessFlag.PUBLIC) && !rhs.accessFlags().contains(AccessFlag.PUBLIC)) {
@@ -177,6 +183,7 @@ public record SimpleItem(
 			return Integer.compare(lhsParams.length, rhsParams.length);
 		});
 		List<Supplier<String>> errors = new ArrayList<>();
+		boolean requiresLookup = false;
 		for (var c : constructors) {
 			int settingsIndex = Arrays.asList(c.getParameterTypes()).indexOf(Item.Settings.class);
 			List<Object> objects = new ArrayList<>(args);
@@ -187,7 +194,10 @@ public record SimpleItem(
 			if (objects.size() == paramTypes.length) {
 				List<DataResult<Object>> results = new ArrayList<>(objects.size());
 				for (int i = 0; i < objects.size(); i++) {
-					results.add(getObjectForParam(objects.get(i), paramTypes[i]));
+					if (REQUIRES_LOOKUP.contains(paramTypes[i])) {
+						requiresLookup = true;
+					}
+					results.add(getObjectForParam(objects.get(i), paramTypes[i], lookup));
 				}
 				var parsedResults = FeaturesConfig.unwrapDataResults(results.stream());
 				if (parsedResults.isError()) {
@@ -215,30 +225,20 @@ public record SimpleItem(
 				errors.add(() -> "Constructor " + c + " skipped.");
 			}
 		}
+		String prefix = requiresLookup ? NO_ERROR_PREFIX : "";
 		return DataResult.error(
-				() -> "Item could not be created: " +
+				() -> prefix + "Item could not be created: " +
 				errors.stream().map(Supplier::get).reduce(DataResult::appendMessages).orElse("Unknown reason")
 		);
 	}
 
-	private DataResult<Item> createNewItem(Item.Settings settings) {
+	private DataResult<Item> createNewItem(Item.Settings settings, @Nullable RegistryWrapper.WrapperLookup lookup) {
 		var baseClass = itemSettings.baseItem().value().getClass();
 		var newType = createItemBuilder(baseClass);
 		try {
 			var newClass = newType.make().load(baseClass.getClassLoader()).getLoaded();
 
-			/*Constructor<?> constructor;
-			Item item;
-			try {
-				constructor = newClass.getDeclaredConstructor(Item.Settings.class);
-			} catch (NoSuchMethodException e) {
-				return DataResult.error(
-						() -> "Item constructor of " + itemSettings.baseItem().getIdAsString() + " is too complex, this base item is not yet supported."
-				);
-			}
-
-			item = (Item) constructor.newInstance(settings);*/
-			DataResult<Item> itemR = createItem(newClass, settings);
+			DataResult<Item> itemR = createItem(newClass, settings, lookup);
 
 			if (itemR.hasResultOrPartial()) {
 				var item = itemR.getOrThrow();
@@ -260,7 +260,7 @@ public record SimpleItem(
 	}
 
 	@Override
-	public DataResult<Item> createObject(RegistryKey<Item> id) {
+	public DataResult<Item> createObject(RegistryKey<Item> id, @Nullable RegistryWrapper.WrapperLookup lookup) {
 		var components = MergedComponentMap.create(itemSettings.baseItem().value().getComponents(), this.itemSettings().components());
 		var result = ItemStack.validateComponents(components);
 		if (result.isError()) {
@@ -268,17 +268,26 @@ public record SimpleItem(
 		}
 		return itemSettings.makeSettings(
 				id, disguise.map(stack -> stack.get(DataComponentTypes.ITEM_MODEL)).orElse(null)
-		).flatMap(this::createNewItem);
+		).flatMap(settings -> this.createNewItem(settings, lookup));
 	}
 
 	public static void addSupportedArgumentType(Class<?> clazz, Codec<?> codec) {
 		SUPPORTED_TYPES.put(
 				clazz,
-				object -> (DataResult<Object>) codec.parse(JavaOps.INSTANCE, object)
+				(object, lookup) -> (DataResult<Object>) codec.parse(lookup != null ? lookup.getOps(JavaOps.INSTANCE) : JavaOps.INSTANCE, object)
 		);
 	}
 
-	public static void addSupportedArgumentType(Class<?> clazz, Function<Object, DataResult<Object>> converter) {
+	public static void addRegistryLookupType(Class<?> clazz, Codec<?> codec) {
+		addSupportedArgumentType(clazz, codec);
+		setClassRequiresRegistryLookup(clazz);
+	}
+
+	public static void setClassRequiresRegistryLookup(Class<?> clazz) {
+		REQUIRES_LOOKUP.add(clazz);
+	}
+
+	public static void addSupportedArgumentType(Class<?> clazz, BiFunction<Object, RegistryWrapper.WrapperLookup, DataResult<Object>> converter) {
 		SUPPORTED_TYPES.put(clazz, converter);
 	}
 }

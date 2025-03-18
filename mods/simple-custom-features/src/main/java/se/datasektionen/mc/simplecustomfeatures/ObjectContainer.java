@@ -5,11 +5,13 @@ import com.google.common.collect.Multimap;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.dynamic.Codecs;
+import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.simplecustomfeatures.objects.BaseObject;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectRegistry;
 import se.datasektionen.mc.simplecustomfeatures.objects.ObjectType;
@@ -134,12 +136,14 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 			this.object = object;
 		}
 
-		private static <T> void register(Identifier id, BaseObject<T> baseObject, Consumer<T> onSuccess) {
+		private static <T> void register(Identifier id, BaseObject<T> baseObject, Consumer<T> onSuccess, @Nullable RegistryWrapper.WrapperLookup lookup) {
 			var key = RegistryKey.of(baseObject.getType().getRegistry().getKey(), id);
-			baseObject.createObject(key).resultOrPartial(
+			baseObject.createObject(key, lookup).resultOrPartial(
 					message -> {
-						Features.LOGGER.error("Unable to create {}", id);
-						Features.LOGGER.error(message);
+						if (!message.startsWith(BaseObject.NO_ERROR_PREFIX) || FabricLoader.getInstance().isDevelopmentEnvironment()) {
+							Features.LOGGER.error("Unable to create {}", id);
+							Features.LOGGER.error(message);
+						}
 					}
 			).ifPresent(object -> {
 				if (!baseObject.getType().getRegistry().contains(key)) {
@@ -160,22 +164,22 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 			);
 		}
 
-		private <S> void registerChild(Identifier id, BaseObject<S> baseObject) {
+		private <S> void registerChild(Identifier id, BaseObject<S> baseObject, @Nullable RegistryWrapper.WrapperLookup lookup) {
 			register(id, baseObject, object -> {
 				children.put(id, new Child<>(baseObject, object));
-			});
+			}, lookup);
 		}
 
 		private static  <S> void unregisterChild(Child<S> object) {
 			unregister(object.baseObject, object.object);
 		}
 
-		private void register() {
+		private void register(@Nullable RegistryWrapper.WrapperLookup lookup) {
 			if (actualObject == null) {
 				register(id, object, object -> {
 					this.actualObject = object;
-				});
-				object.createChildren(this).forEach(this::registerChild);
+				}, lookup);
+				object.createChildren(this).forEach((id, object) -> this.registerChild(id, object, lookup));
 			}
 		}
 
@@ -228,8 +232,8 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 		}
 	}
 
-	public static void register(Stream<Loaded<?>> loadedEntries) {
-		applyRegistryChanges(loadedEntries, Loaded::register);
+	public static void register(Stream<Loaded<?>> loadedEntries, @Nullable RegistryWrapper.WrapperLookup lookup) {
+		applyRegistryChanges(loadedEntries, object -> object.register(lookup));
 	}
 
 	public static void unregister(Stream<Loaded<?>> loadedEntries) {

@@ -105,7 +105,7 @@ public class ObjectCache {
 			}
 		}
 		if (!reRegistered.isEmpty()) {
-			ObjectContainer.register(reRegistered.stream());
+			ObjectContainer.register(reRegistered.stream(), server.getRegistryManager());
 		}
 		if (!hasSecondaryReloaded) {
 			hasSecondaryReloaded = true;
