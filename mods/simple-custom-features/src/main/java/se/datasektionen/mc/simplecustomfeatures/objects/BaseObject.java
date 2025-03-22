@@ -30,7 +30,6 @@ public interface BaseObject<R> {
 		return createObject(id);
 	}
 
-	@Deprecated
 	default DataResult<R> createObject(RegistryKey<R> id) {
 		throw new IllegalStateException("createObject must be implemented, either with or without lookup!");
 	}
