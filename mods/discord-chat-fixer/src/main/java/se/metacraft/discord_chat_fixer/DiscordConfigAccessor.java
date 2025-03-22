@@ -15,19 +15,14 @@ public class DiscordConfigAccessor {
 	}
 
 	public static String getAvatarAPI() {
-		System.out.println("Fetching API");
 		if (MAIN != null) {
 			try {
-				System.out.println("Main exists");
 				var config = MAIN.getField("CONFIG").get(null);
 				if (config != null) {
-					System.out.println("Config exists");
 					var generic = config.getClass().getField("generic").get(config);
 					if (generic != null) {
-						System.out.println("Generic exists");
 						var avatarAPI = generic.getClass().getField("avatarApi").get(generic);
 						if (avatarAPI != null) {
-							System.out.println("Avatar API exists " + avatarAPI);
 							return (String) avatarAPI;
 						}
 					}
