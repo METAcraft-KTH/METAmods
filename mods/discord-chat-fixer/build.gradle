@@ -1,1 +1,4 @@
 version = project.discord_chat_fixer_version
+
+addProjectDependency(":mods:metacraft-core")
+addPolymerDependency()

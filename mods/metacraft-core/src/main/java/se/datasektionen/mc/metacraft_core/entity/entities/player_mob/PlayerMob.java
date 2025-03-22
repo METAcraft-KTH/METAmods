@@ -294,6 +294,10 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		return ImmutableList.of(EntityPose.STANDING, EntityPose.CROUCHING, EntityPose.SWIMMING);
 	}
 
+	public GameProfile getProfile() {
+		return profile;
+	}
+
 	@Override
 	public void updateSwimming() {
 		if (!this.getWorld().isClient) {
