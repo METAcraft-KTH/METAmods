@@ -12,10 +12,11 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.damage.DamageType;
 import net.minecraft.item.Items;
 import net.minecraft.predicate.NumberRange;
+import net.minecraft.predicate.component.ComponentPredicateTypes;
+import net.minecraft.predicate.component.ComponentsPredicate;
 import net.minecraft.predicate.item.EnchantmentPredicate;
 import net.minecraft.predicate.item.EnchantmentsPredicate;
 import net.minecraft.predicate.item.ItemPredicate;
-import net.minecraft.predicate.item.ItemSubPredicateTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
@@ -90,13 +91,15 @@ public class SavedItemsConfig implements Modifiable {
 				config.getSaveEntries().put(SavedItemsData.ANY, new SavingEntry(
 						ObjectStorage.fromValue(
 								ItemPredicate.CODEC,
-								ItemPredicate.Builder.create().subPredicate(
-										ItemSubPredicateTypes.ENCHANTMENTS,
-										EnchantmentsPredicate.enchantments(
-												List.of(new EnchantmentPredicate(
-														Optional.empty(), NumberRange.IntRange.ANY
-												))
-										)
+								ItemPredicate.Builder.create().components(
+										ComponentsPredicate.Builder.create().partial(
+												ComponentPredicateTypes.ENCHANTMENTS,
+												EnchantmentsPredicate.enchantments(
+														List.of(new EnchantmentPredicate(
+																Optional.empty(), NumberRange.IntRange.ANY
+														))
+												)
+										).build()
 								).build()
 						),
 						1,

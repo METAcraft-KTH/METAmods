@@ -7,7 +7,6 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.Registries;
@@ -15,6 +14,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Uuids;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.dimension.DimensionType;
@@ -209,16 +209,14 @@ public class PlayerDataHelper {
 	 * @param spawner A modifier to run for each entity loaded. If player is already in a world, this would likely include a spawnEntity call.
 	 */
 	public static void loadPassengers(LivingEntity entity, NbtCompound nbt, UnaryOperator<Entity> spawner) {
-		if (nbt.contains(Entity.PASSENGERS_KEY, NbtElement.LIST_TYPE)) {
-			NbtList nbtList = nbt.getList(Entity.PASSENGERS_KEY, NbtElement.COMPOUND_TYPE);
+		NbtList nbtList = nbt.getListOrEmpty(Entity.PASSENGERS_KEY);
 
-			for (int i = 0; i < nbtList.size(); i++) {
-				Entity entity2 = EntityType.loadEntityWithPassengers(
-						nbtList.getCompound(i), entity.getWorld(), SpawnReason.LOAD, spawner
-				);
-				if (entity2 != null) {
-					entity2.startRiding(entity, true);
-				}
+		for (int i = 0; i < nbtList.size(); i++) {
+			Entity entity2 = EntityType.loadEntityWithPassengers(
+					nbtList.getCompoundOrEmpty(i), entity.getWorld(), SpawnReason.LOAD, spawner
+			);
+			if (entity2 != null) {
+				entity2.startRiding(entity, true);
 			}
 		}
 	}
@@ -231,15 +229,14 @@ public class PlayerDataHelper {
 	 */
 	public static void loadRootVehicle(LivingEntity player, NbtCompound data, UnaryOperator<Entity> spawner) {
 		if (data.contains("RootVehicle")) {
-			var vehicle = data.getCompound("RootVehicle");
-			var e = EntityType.loadEntityWithPassengers(vehicle.getCompound("Entity"), player.getWorld(), SpawnReason.LOAD, spawner);
+			var vehicle = data.getCompoundOrEmpty("RootVehicle");
+			var e = EntityType.loadEntityWithPassengers(vehicle.getCompoundOrEmpty("Entity"), player.getWorld(), SpawnReason.LOAD, spawner);
 			if (e != null) {
 				Runnable clearEntity = () -> {
 					e.streamPassengersAndSelf().forEach(Entity::discard);
 					METAcraftLib.LOGGER.error("Unable to reattach player to entity.");
 				};
-				if (vehicle.containsUuid("Attach")) {
-					var id = vehicle.getUuid("Attach");
+				vehicle.get("Attach", Uuids.INT_STREAM_CODEC).ifPresentOrElse(id -> {
 					for (var entity : (Iterable<Entity>) e.streamSelfAndPassengers()::iterator) {
 						if (entity.getUuid().equals(id)) {
 							player.startRiding(entity, true);
@@ -248,9 +245,7 @@ public class PlayerDataHelper {
 					if (!player.hasVehicle()) {
 						clearEntity.run();
 					}
-				} else {
-					clearEntity.run();
-				}
+				}, clearEntity);
 			}
 		}
 	}
@@ -331,7 +326,7 @@ public class PlayerDataHelper {
 			});
 		}
 		if (spawnFarawayEntities) {
-			player.readEnderPearls(Optional.of(data));
+			player.readEnderPearls(data);
 		}
 	}
 

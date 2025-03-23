@@ -1,6 +1,5 @@
 package se.datasektionen.mc.simplecustomfeatures;
 
-import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.component.DataComponentTypes;
@@ -11,7 +10,6 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.HitResult;
 import se.datasektionen.mc.simplecustomfeatures.objects.blocks.dynamic_portal.PortalBlockObject;
-import se.datasektionen.mc.simplecustomfeatures.objects.items.simple.CustomisedItem;
 
 public class Events {
 
@@ -47,13 +45,6 @@ public class Events {
 						).orElse(ActionResult.PASS);
 					}
 			).orElse(ActionResult.PASS);
-		});
-		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register(
-				(serverItem, clientItem, ctx) -> {
-			if (serverItem.getItem() instanceof CustomisedItem && !serverItem.contains(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP)) {
-				clientItem.remove(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP);
-			}
-			return clientItem;
 		});
 	}
 

@@ -24,7 +24,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructureTemplate;
 import net.minecraft.structure.StructureTemplateManager;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.collection.Pool;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.BlockPointer;
 import net.minecraft.util.math.BlockPos;
@@ -461,13 +461,13 @@ public class PortalBlockObject implements BaseBlock {
 		}
 	}
 
-	public record EntitySpawnEntry(double spawnChance, DataPool<NbtCompound> entities, boolean initialize) {
+	public record EntitySpawnEntry(double spawnChance, Pool<NbtCompound> entities, boolean initialize) {
 		public static final Codec<EntitySpawnEntry> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
 						Codec.doubleRange(0, 1).fieldOf("spawn_chance").forGetter(EntitySpawnEntry::spawnChance),
 						Codec.withAlternative(
-								DataPool.createCodec(NbtCompound.CODEC),
-								NbtCompound.CODEC, DataPool::of
+								Pool.createCodec(NbtCompound.CODEC),
+								NbtCompound.CODEC, Pool::of
 						).fieldOf("entities").forGetter(EntitySpawnEntry::entities),
 						Codec.BOOL.fieldOf("initialize").forGetter(EntitySpawnEntry::initialize)
 				).apply(instance, EntitySpawnEntry::new)

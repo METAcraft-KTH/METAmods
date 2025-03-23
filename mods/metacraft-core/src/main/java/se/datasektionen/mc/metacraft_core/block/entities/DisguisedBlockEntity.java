@@ -60,7 +60,7 @@ public class DisguisedBlockEntity extends BlockEntity implements BlockEntityWith
 		super.readNbt(nbt, registryLookup);
 		if (nbt.contains(BLOCK_STATE)) {
 			setBlockState(NbtHelper.toBlockState(
-					registryLookup.getOrThrow(RegistryKeys.BLOCK), nbt.getCompound(BLOCK_STATE)
+					registryLookup.getOrThrow(RegistryKeys.BLOCK), nbt.getCompoundOrEmpty(BLOCK_STATE)
 			));
 		}
 	}

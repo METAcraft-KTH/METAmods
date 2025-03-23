@@ -9,6 +9,7 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.util.BlockMirror;
@@ -97,11 +98,11 @@ public class MusicBlock extends BlockWithEntity implements PolymerBlock {
 	}
 
 	@Override
-	public void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
-		if (!moved && !newState.isOf(this) && world.getBlockEntity(pos) instanceof MusicBlockEntity blockEntity) {
+	public void onStateReplaced(BlockState state, ServerWorld world, BlockPos pos, boolean moved) {
+		if (!moved && !world.getBlockState(pos).isOf(this) && world.getBlockEntity(pos) instanceof MusicBlockEntity blockEntity) {
 			blockEntity.resetMusic();
 		}
-		super.onStateReplaced(state, world, pos, newState, moved);
+		super.onStateReplaced(state, world, pos, moved);
 	}
 
 	@Override

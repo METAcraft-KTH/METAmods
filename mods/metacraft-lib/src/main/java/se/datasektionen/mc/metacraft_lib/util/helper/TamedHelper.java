@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_lib.util.helper;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.LazyEntityReference;
 import net.minecraft.entity.Ownable;
 import net.minecraft.entity.Tameable;
 import net.minecraft.entity.player.PlayerEntity;
@@ -15,7 +16,11 @@ public class TamedHelper {
 			return Optional.of(p.getUuid());
 		}
 		if (entity instanceof Tameable tameable) {
-			return Optional.ofNullable(tameable.getOwnerUuid());
+			var owner = tameable.getTopLevelOwner();
+			if (owner == null) {
+				return Optional.ofNullable(tameable.getOwnerReference()).map(LazyEntityReference::getUuid);
+			}
+			return getRelevantPlayer(owner);
 		}
 		if (entity instanceof Ownable ownable) {
 			var owner = ownable.getOwner();

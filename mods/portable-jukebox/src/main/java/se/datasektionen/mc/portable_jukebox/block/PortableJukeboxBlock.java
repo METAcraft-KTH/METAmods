@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
@@ -90,12 +91,9 @@ public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHead
 	}
 
 	@Override
-	protected void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
-		if (state.isOf(newState.getBlock())) {
-			return;
-		}
+	protected void onStateReplaced(BlockState state, ServerWorld world, BlockPos pos, boolean moved) {
 		BlockEntity blockEntity = world.getBlockEntity(pos);
-		super.onStateReplaced(state, world, pos, newState, moved);
+		super.onStateReplaced(state, world, pos, moved);
 		if (blockEntity instanceof PortableJukeboxBlockEntity jukebox) {
 			world.updateComparators(pos, state.getBlock());
 		}

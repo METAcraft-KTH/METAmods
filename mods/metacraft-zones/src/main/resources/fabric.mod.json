@@ -21,6 +21,7 @@
 			"se.datasektionen.mc.zones.METAcraftZones"
 		]
 	},
+	"accessWidener" : "metacraft_zones.accesswidener",
 	"mixins": [
 		"metacraft-zones.mixins.json",
 		"metacraft-zones.compat.mixins.json"

@@ -8,18 +8,13 @@ import net.minecraft.component.ComponentType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.MergedComponentMap;
 import net.minecraft.component.type.BundleContentsComponent;
-import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.metacraft_core.item.ItemModifiers;
 import se.datasektionen.mc.metacraft_core.util.helper.BundleHelper;
 
@@ -59,23 +54,6 @@ public class MixinItemStack {
 			Optional<ItemStack> original
 	) {
 		return original.map(ItemModifiers::setToEmptyOnLoad);
-	}
-
-	@Inject(method = "inventoryTick", at = @At("RETURN"))
-	public void inventoryTick(World world, Entity entity, int slot, boolean selected, CallbackInfo ci) {
-		if (entity instanceof ServerPlayerEntity player) {
-			ItemModifiers.modifyTick(
-					(ItemStack) (Object) this, player.getRandom()
-			).ifPresent(result -> {
-				if (player.getInventory().main.get(slot) == (Object) this) {
-					player.getInventory().main.set(slot, result);
-				} else if (player.getInventory().armor.get(slot) == (Object) this) {
-					player.getInventory().armor.set(slot, result);
-				} else if (player.getInventory().offHand.get(slot) == (Object) this) {
-					player.getInventory().offHand.set(slot, result);
-				}
-			});
-		}
 	}
 
 	@ModifyArg(

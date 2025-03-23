@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -66,18 +65,17 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("HEAD"))
 	public void readNbt(NbtCompound nbt, CallbackInfo ci) {
-		if (nbt.contains(CAMPUS_LODESTONE_BACK, NbtElement.COMPOUND_TYPE)) {
-			NbtCompound backData = nbt.getCompound(CAMPUS_LODESTONE_BACK);
-			Identifier worldKey = Identifier.tryParse(backData.getString("world"));
+		nbt.getCompound(CAMPUS_LODESTONE_BACK).ifPresent(backData -> {
+			Identifier worldKey = Identifier.tryParse(backData.getString("world", ""));
 			if (worldKey != null) {
 				this.campusLodestoneBackWorld = RegistryKey.of(RegistryKeys.WORLD, worldKey);
 			}
 			this.campusLodestoneBackPos = new BlockPos(
-				backData.getInt("x"),
-				backData.getInt("y"),
-				backData.getInt("z")
+					backData.getInt("x", 0),
+					backData.getInt("y", 0),
+					backData.getInt("z", 0)
 			);
-		}
+		});
 	}
 
 	@ModifyReturnValue(method = "getRespawnTarget", at = @At("RETURN"))

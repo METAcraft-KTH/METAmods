@@ -9,7 +9,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Unit;
-import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.collection.Pool;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.random.Random;
 
@@ -18,7 +18,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
-public record ExpiresComponent(Instant at, DataPool<ItemStack> replacement) {
+public record ExpiresComponent(Instant at, Pool<ItemStack> replacement) {
 
 	private static final Random RANDOM = Random.createThreadSafe();
 
@@ -27,11 +27,11 @@ public record ExpiresComponent(Instant at, DataPool<ItemStack> replacement) {
 					instance -> instance.group(
 							Codecs.INSTANT.fieldOf("at").forGetter(ExpiresComponent::at),
 							Codec.withAlternative(
-									DataPool.createEmptyAllowedCodec(ItemStack.CODEC),
+									Pool.createCodec(ItemStack.CODEC),
 									ItemStack.CODEC,
-									stack -> stack.isEmpty() ? DataPool.<ItemStack>empty() : DataPool.of(stack)
+									stack -> stack.isEmpty() ? Pool.empty() : Pool.of(stack)
 							).fieldOf("replacement").orElse(
-									DataPool.<ItemStack>empty()
+									Pool.empty()
 							).forGetter(ExpiresComponent::replacement)
 					).apply(instance, ExpiresComponent::new)
 			),
@@ -39,15 +39,15 @@ public record ExpiresComponent(Instant at, DataPool<ItemStack> replacement) {
 	);
 
 	public static ExpiresComponent createEmpty(Instant at) {
-		return new ExpiresComponent(at, DataPool.<ItemStack>empty());
+		return new ExpiresComponent(at, Pool.empty());
 	}
 
 	public static ExpiresComponent createWith(Instant at, ItemStack stack) {
-		return new ExpiresComponent(at, DataPool.of(stack));
+		return new ExpiresComponent(at, Pool.of(stack));
 	}
 
 	public ItemStack getReplacement(ItemStack src, Random random) {
-		return replacement.getDataOrEmpty(random).map(res -> {
+		return replacement.getOrEmpty(random).map(res -> {
 			if (res.isEmpty()) return ItemStack.EMPTY;
 			var stack = res.copy();
 			stack.setCount(src.getCount() * stack.getCount());

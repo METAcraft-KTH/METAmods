@@ -2,20 +2,23 @@ package se.datasektionen.mc.cutscenes.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.world.EntityView;
+import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
 import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
 
 @Mixin(TameableEntity.class)
-public abstract class MixinTameableEntity {
+public abstract class MixinTameableEntity extends AnimalEntity {
 
-	@Shadow public abstract EntityView getWorld();
+	protected MixinTameableEntity(EntityType<? extends AnimalEntity> entityType, World world) {
+		super(entityType, world);
+	}
 
 	@WrapOperation(
 		method = "cannotFollowOwner",

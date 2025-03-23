@@ -16,7 +16,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Rarity;
-import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.floatprovider.UniformFloatProvider;
 import net.minecraft.util.math.intprovider.ConstantIntProvider;
 import se.datasektionen.mc.metacraft_lib.condition.conditions.NotInWall;
@@ -65,7 +65,7 @@ public class Season4Items {
 			new Item.Settings().fireproof().maxCount(1).rarity(Rarity.EPIC).component(
 					Season4Components.TRY_COUNT, ReinforcementsWand.DEFAULT_TRY_COUNT
 			).component(
-					Season4Components.SPAWNS, DataPool.<EntityHelper.SpawnEntry>builder().add(
+					Season4Components.SPAWNS, Pool.<EntityHelper.SpawnEntry>builder().add(
 							EntityHelper.SpawnEntry.createEntry(
 									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityType.ZOMBIE),
 									Optional.of(AllOfLootCondition.create(List.of(NotInWall.getInstance(), SolidBlockBelow.getInstance()))),

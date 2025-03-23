@@ -13,6 +13,7 @@ import net.minecraft.predicate.entity.EntityTypePredicate;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.collection.Weighted;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.ServerWorldAccess;
@@ -40,21 +41,21 @@ public class AdditionalSpawnsZoneData extends ZoneData {
 	public static final MapCodec<AdditionalSpawnsZoneData> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.unboundedMap(
 					SpawnGroup.CODEC,
-					BetterSpawnEntry.CODEC.listOf()
-			).fieldOf("spawns").forGetter(data -> (PMap<SpawnGroup, List<BetterSpawnEntry>>) (Object) data.spawns.get()),
+					BetterSpawnEntry.WEIGHTED_CODEC.listOf()
+			).fieldOf("spawns").forGetter(data -> (PMap<SpawnGroup, List<Weighted<BetterSpawnEntry>>>) (Object) data.spawns.get()),
 			SpawnRemoverRegistry.SpawnRemover.REGISTRY_CODEC.listOf().fieldOf("spawnRemovers").forGetter(data -> data.spawnRemovers.get()),
 			SpawnRuleEntry.CODEC.listOf().fieldOf("spawnRules").forGetter(data -> data.rules.get())
 	).apply(instance, AdditionalSpawnsZoneData::new));
 
 
-	private final AtomicReference<PMap<SpawnGroup, PVector<BetterSpawnEntry>>> spawns;
+	private final AtomicReference<PMap<SpawnGroup, PVector<Weighted<BetterSpawnEntry>>>> spawns;
 	private final AtomicReference<PVector<SpawnRemoverRegistry.SpawnRemover>> spawnRemovers;
 
 	private final AtomicReference<PVector<SpawnRuleEntry>> rules;
 
 
 	public AdditionalSpawnsZoneData(
-			Map<SpawnGroup, List<BetterSpawnEntry>> spawns, List<SpawnRemoverRegistry.SpawnRemover> spawnRemovers,
+			Map<SpawnGroup, List<Weighted<BetterSpawnEntry>>> spawns, List<SpawnRemoverRegistry.SpawnRemover> spawnRemovers,
 			List<SpawnRuleEntry> rules
 	)  {
 		this.spawns = new AtomicReference<>(spawns.entrySet().stream().reduce(
@@ -68,7 +69,7 @@ public class AdditionalSpawnsZoneData extends ZoneData {
 		this.rules = new AtomicReference<>(TreePVector.from(rules));
 	}
 
-	public ListAccessor<BetterSpawnEntry> getSpawns(SpawnGroup spawnGroup) {
+	public ListAccessor<Weighted<BetterSpawnEntry>> getSpawns(SpawnGroup spawnGroup) {
 		return new ListAccessor<>(() -> spawns.get().getOrDefault(spawnGroup, TreePVector.empty()), l -> {
 			ThreadHelper.updateAtomic(spawns, () -> {
 				var list = l.get();

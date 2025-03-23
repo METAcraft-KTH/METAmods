@@ -6,16 +6,12 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.Block;
 import net.minecraft.entity.*;
 import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.predicate.entity.EntityPredicate;
 import net.minecraft.predicate.entity.EntityTypePredicate;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -27,10 +23,7 @@ import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.Heightmap;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
+import net.minecraft.world.*;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_core.block.entities.BlackHolePortalEntity;
 import se.datasektionen.mc.metacraft_core.block.entities.MusicBlockEntity;
@@ -55,24 +48,28 @@ import java.util.function.Consumer;
 public class DungeonData extends PersistentState {
 
 	private static final String key = METAcraftDungeons.MODID;
-	private static final String INDEX = "index";
-	private static final String WIDTH = "width";
-	private static final String EXIT_DIM = "exit_dim";
-	private static final String EXIT_POS = "exit_pos";
-	private static final String MAX_RANGE_FROM_EXIT_POS = "max_range_from_exit_pos";
 
-	private static final String TIME_SINCE_RESET = "time_since_reset";
-	private static final String CLEARING = "clearing";
-	private static final String RESETTING = "resetting";
-	private static final String EXTERNAL_ENTRANCES = "external_entrances";
-	private static final String SHOULD_TELEPORT = "should_teleport";
+	private static final PersistentStateType<DungeonData> TYPE = new PersistentStateType<>(
+			key, ctx -> create(ctx.getWorldOrThrow()),
+			ctx -> createCodec(ctx.getWorldOrThrow()), null
+	);
 
-	private static final String RESET_GETTER = "reset_getter";
-	private static final String NEXT_RESET = "next_reset";
-
-	private static PersistentState.Type<DungeonData> getType(ServerWorld world) {
-		return new Type<>(
-				() -> create(world), (nbt, wrapper) -> load(world, nbt, wrapper), null
+	private static Codec<DungeonData> createCodec(ServerWorld world) {
+		return RecordCodecBuilder.create(
+				instance -> instance.group(
+						Codec.LONG.fieldOf("index").forGetter(d -> d.index),
+						Codec.INT.fieldOf("width").forGetter(d -> d.dungeonWidth),
+						World.CODEC.optionalFieldOf("exit_dim", World.OVERWORLD).forGetter(d -> d.exitDim),
+						BlockPos.CODEC.fieldOf("exit_pos").orElse(world.getServer().getOverworld().getSpawnPos()).forGetter(d -> d.exitPos),
+						Codec.DOUBLE.fieldOf("max_range_from_exit_pos").forGetter(d -> d.maxRangeFromExitPos),
+						Codec.BOOL.fieldOf("clearing").forGetter(d -> d.clearing),
+						Codec.BOOL.fieldOf("resetting").forGetter(d -> d.resetting),
+						Codec.INT.fieldOf("time_since_reset").forGetter(d -> d.timeSinceReset),
+						EntranceEntry.LIST_CODEC.fieldOf("external_entrances").forGetter(d -> d.externalEntrances),
+						TeleportPredicate.LIST_CODEC.fieldOf("should_teleport").forGetter(d -> d.shouldTeleport),
+						RegularTimeGetter.REGISTRY_CODEC.optionalFieldOf("reset_getter").forGetter(d -> d.resetGetter),
+						Codecs.INSTANT.optionalFieldOf("next_reset").forGetter(d -> d.nextReset)
+				).apply(instance, DungeonData.create(world)::load)
 		);
 	}
 
@@ -109,11 +106,11 @@ public class DungeonData extends PersistentState {
 
 
 	public static DungeonData getInstance(ServerWorld world) {
-		return world.getPersistentStateManager().getOrCreate(getType(world), key);
+		return world.getPersistentStateManager().getOrCreate(TYPE);
 	}
 
 	public static Optional<DungeonData> getIfPresent(ServerWorld world) {
-		return Optional.ofNullable(world.getPersistentStateManager().get(getType(world), key));
+		return Optional.ofNullable(world.getPersistentStateManager().get(TYPE));
 	}
 
 	private final ServerWorld world;
@@ -133,107 +130,34 @@ public class DungeonData extends PersistentState {
 		return new DungeonData(world);
 	}
 
-	private static DungeonData load(ServerWorld world, NbtCompound nbt, RegistryWrapper.WrapperLookup wrapperLookup) {
-		var data = new DungeonData(world);
-		data.readNBT(nbt, wrapperLookup);
-		return data;
-	}
+	private DungeonData load(
+			long index, int width, RegistryKey<World> exitDim, BlockPos exitPos,
+			double maxRangeFromExitPos, boolean clearing, boolean resetting, int timeSinceReset,
+			Set<EntranceEntry> externalEntrances, List<TeleportPredicate> shouldTeleport,
+			Optional<RegularTimeGetter> resetGetter, Optional<Instant> nextReset
+	) {
+		this.index = index;
+		this.dungeonWidth = width;
+		this.exitDim = exitDim;
+		this.exitPos = exitPos;
+		this.maxRangeFromExitPos = maxRangeFromExitPos;
+		this.clearing = clearing;
+		this.resetting = resetting;
+		this.timeSinceReset = timeSinceReset;
+		this.externalEntrances.addAll(externalEntrances);
+		this.shouldTeleport.addAll(shouldTeleport);
+		this.resetGetter = resetGetter;
+		this.nextReset = nextReset;
 
-	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		index = nbt.getLong(INDEX);
-		dungeonWidth = nbt.getInt(WIDTH);
-		exitDim = Optional.ofNullable(nbt.get(EXIT_DIM)).flatMap(
-				exitDim -> World.CODEC.parse(NbtOps.INSTANCE, exitDim).resultOrPartial(
-						METAcraftDungeons.LOGGER::error
-				)
-		).orElse(World.OVERWORLD);
-		exitPos = NbtHelper.toBlockPos(nbt, EXIT_POS).orElse(world.getServer().getOverworld().getSpawnPos());
-		maxRangeFromExitPos = nbt.getDouble(MAX_RANGE_FROM_EXIT_POS);
-		clearing = nbt.getBoolean(CLEARING);
-		resetting = nbt.getBoolean(RESETTING);
-		timeSinceReset = nbt.getInt(TIME_SINCE_RESET);
-		if (!resetting) {
-			clearing = false;
-			timeSinceReset = 0;
+		if (!this.resetting) {
+			this.clearing = false;
+			this.timeSinceReset = 0;
 		}
-		if (clearing) {
+		if (this.clearing) {
 			clearingRestarted = true;
 		}
 
-		externalEntrances.clear();
-		if (nbt.contains(EXTERNAL_ENTRANCES)) {
-			EntranceEntry.LIST_CODEC.parse(NbtOps.INSTANCE, nbt.get(EXTERNAL_ENTRANCES)).resultOrPartial(
-					METAcraftDungeons.LOGGER::error
-			).ifPresent(externalEntrances::addAll);
-		}
-
-		shouldTeleport.clear();
-		if (nbt.contains(SHOULD_TELEPORT)) {
-			TeleportPredicate.LIST_CODEC.parse(lookup.getOps(NbtOps.INSTANCE), nbt.get(SHOULD_TELEPORT)).resultOrPartial(
-					METAcraftDungeons.LOGGER::error
-			).ifPresent(this.shouldTeleport::addAll);
-		}
-
-		if (nbt.contains(NEXT_RESET)) {
-			nextReset = Codecs.INSTANT.parse(
-					lookup.getOps(NbtOps.INSTANCE),
-					nbt.get(NEXT_RESET)
-			).resultOrPartial(METAcraftDungeons.LOGGER::error);
-		} else {
-			nextReset = Optional.empty();
-		}
-
-		if (nbt.contains(RESET_GETTER)) {
-			resetGetter = RegularTimeGetter.REGISTRY_CODEC.parse(
-					lookup.getOps(NbtOps.INSTANCE),
-					nbt.get(RESET_GETTER)
-			).resultOrPartial(METAcraftDungeons.LOGGER::error);
-		} else {
-			resetGetter = Optional.empty();
-		}
-	}
-
-	@Override
-	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		nbt.putLong(INDEX, index);
-		nbt.putInt(WIDTH, dungeonWidth);
-		World.CODEC.encodeStart(NbtOps.INSTANCE, exitDim).resultOrPartial(
-				METAcraftDungeons.LOGGER::error
-		).ifPresent(exitDim -> {
-			nbt.put(EXIT_DIM, exitDim);
-		});
-		nbt.put(EXIT_POS, NbtHelper.fromBlockPos(exitPos));
-		nbt.putDouble(MAX_RANGE_FROM_EXIT_POS, maxRangeFromExitPos);
-		nbt.putBoolean(RESETTING, resetting);
-		nbt.putBoolean(CLEARING, clearing);
-		nbt.putInt(TIME_SINCE_RESET, timeSinceReset);
-		EntranceEntry.LIST_CODEC.encodeStart(NbtOps.INSTANCE, externalEntrances).resultOrPartial(
-				METAcraftDungeons.LOGGER::error
-		).ifPresent(entrances -> {
-			nbt.put(EXTERNAL_ENTRANCES, entrances);
-		});
-		TeleportPredicate.LIST_CODEC.encodeStart(lookup.getOps(NbtOps.INSTANCE), shouldTeleport).resultOrPartial(
-				METAcraftDungeons.LOGGER::error
-		).ifPresent(shouldTeleport -> {
-			nbt.put(SHOULD_TELEPORT, shouldTeleport);
-		});
-		nextReset.ifPresent(instant -> nbt.put(
-				NEXT_RESET,
-				Codecs.INSTANT.encodeStart(
-						lookup.getOps(NbtOps.INSTANCE),
-						instant
-				).getOrThrow()
-		));
-		resetGetter.ifPresent(
-				resetGetter -> nbt.put(
-						RESET_GETTER,
-						RegularTimeGetter.REGISTRY_CODEC.encodeStart(
-								lookup.getOps(NbtOps.INSTANCE),
-								resetGetter
-						).getOrThrow()
-				)
-		);
-		return nbt;
+		return this;
 	}
 
 	private void copyFromPrevious(DungeonData data) {
@@ -296,10 +220,18 @@ public class DungeonData extends PersistentState {
 		);
 	}
 
+	private boolean hasOwnerPlayer(Tameable tameable) {
+		if (tameable.getTopLevelOwner() instanceof ServerPlayerEntity) return true;
+		if (tameable.getOwnerReference() != null && world.getServer().getUserCache().getByUuid(tameable.getOwnerReference().getUuid()).isPresent()) {
+			return true;
+		}
+		return false;
+	}
+
 	private <T extends LivingEntity & Tameable> void forAllPets(Consumer<T> action) {
 		for (var pet : world.getEntitiesByType(
 				TypeFilter.instanceOf(LivingEntity.class),
-				entity -> entity instanceof Tameable && ((Tameable) entity).getOwnerUuid() != null)
+				entity -> entity instanceof Tameable t && hasOwnerPlayer(t))
 		) {
 			action.accept((T) pet);
 		}
@@ -322,7 +254,7 @@ public class DungeonData extends PersistentState {
 		forAllPets(pet -> {
 			if (pet.getY() < world.getBottomY()) {
 				pet.fallDistance = 0;
-				var player = world.getServer().getPlayerManager().getPlayer(pet.getOwnerUuid());
+				var player = pet.getTopLevelOwner() instanceof ServerPlayerEntity p ? p : null;
 				if (player == null) {
 					teleportOut(pet);
 				} else {
@@ -466,8 +398,8 @@ public class DungeonData extends PersistentState {
 					pearlsToRemove.add(pearl);
 				}
 			}
-			if (player.getSpawnPointDimension() == world.getRegistryKey()) {
-				player.setSpawnPoint(ServerWorld.OVERWORLD, null, 0, false, false);
+			if (player.getRespawn() != null && player.getRespawn().dimension() == world.getRegistryKey()) {
+				player.setSpawnPoint(null, false);
 				player.sendMessage(Text.literal("Respawn point reset"));
 			}
 		}

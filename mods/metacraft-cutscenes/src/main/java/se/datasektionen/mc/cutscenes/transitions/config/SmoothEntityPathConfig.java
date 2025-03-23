@@ -87,21 +87,21 @@ public record SmoothEntityPathConfig(
 			}
 			float shadowRadius = 0;
 			if (data.contains(DisplayEntity.SHADOW_RADIUS_NBT_KEY)) {
-				shadowRadius = data.getFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY);
+				shadowRadius = data.getFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY, 0);
 			}
 			float shadowStrength = 1;
 			if (data.contains(DisplayEntity.SHADOW_STRENGTH_NBT_KEY)) {
-				shadowStrength = data.getFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY);
+				shadowStrength = data.getFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY, 1);
 			}
 
 			int background = DisplayEntity.TextDisplayEntity.INITIAL_BACKGROUND;
 			if (data.contains("background")) {
-				background = data.getInt("background");
+				background = data.getInt("background", 1073741824);
 			}
 
 			byte textOpacity = -1;
 			if (data.contains("text_opacity")) {
-				textOpacity = data.getByte("text_opacity");
+				textOpacity = data.getByte("text_opacity", (byte) -1);
 			}
 			return new DisplayEntityTarget(
 					target, transformation, shadowRadius, shadowStrength, background, textOpacity

@@ -1,7 +1,5 @@
 package se.datasektionen.mc.cutscenes.mixin;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -21,7 +19,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
 import se.datasektionen.mc.cutscenes.extension.EntityExtension;
 import se.datasektionen.mc.cutscenes.extension.ServerPlayerEntityExtensions;
@@ -100,24 +97,6 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		return cutscene != null;
 	}
 
-	@WrapOperation(
-		method = "dropItem",
-		at = @At(
-			value = "INVOKE",
-			target = "Lnet/minecraft/world/World;spawnEntity(Lnet/minecraft/entity/Entity;)Z"
-		)
-	)
-	public boolean dropItem(
-			World world, Entity entity, Operation<Boolean> original
-	) {
-		var scene = CutsceneHelper.getCutscene((ServerPlayerEntity) (Object) this);
-		if (scene.isPresent() && scene.get().getCutscene().resetPlayerData()) {
-			scene.get().addEntity(CutsceneInstance.PLAYER_ITEM, entity);
-			return true;
-		}
-		return original.call(world, entity);
-	}
-
 	@Inject(method = "tick", at = @At("HEAD"))
 	public void tick(CallbackInfo ci) {
 		if (cutscene != null) {
@@ -164,24 +143,16 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
-		if (nbt.contains(CutsceneInstance.CUTSCENE)) {
-			CutsceneInstance.CODEC.parse(getRegistryManager().getOps(NbtOps.INSTANCE), nbt.get(CutsceneInstance.CUTSCENE)).resultOrPartial(
-					Cutscenes.LOGGER::error
-			).ifPresent(scene -> {
-				scene.finalizeParse(getServer());
-				this.metacraft_cutscenes$setCutscene(scene);
-			});
-		}
+		nbt.get(CutsceneInstance.CUTSCENE, CutsceneInstance.CODEC, getRegistryManager().getOps(NbtOps.INSTANCE)).ifPresent(scene -> {
+			scene.finalizeParse(getServer());
+			this.metacraft_cutscenes$setCutscene(scene);
+		});
 	}
 
 	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
 	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
 		if (cutscene != null) {
-			CutsceneInstance.CODEC.encodeStart(getRegistryManager().getOps(NbtOps.INSTANCE), cutscene).resultOrPartial(
-					Cutscenes.LOGGER::error
-			).ifPresent(scene -> {
-				nbt.put(CutsceneInstance.CUTSCENE, scene);
-			});
+			nbt.put(CutsceneInstance.CUTSCENE, CutsceneInstance.CODEC, getRegistryManager().getOps(NbtOps.INSTANCE), cutscene);
 		}
 	}
 

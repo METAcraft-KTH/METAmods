@@ -1,0 +1,9 @@
+{
+	"type": "minecraft:function",
+	"environment": "minecraft:default",
+	"function": "metacraft:cutscene/erase",
+	"max_ticks": 22,
+	"required": true,
+	"setup_ticks": 1,
+	"structure": "minecraft:empty"
+}

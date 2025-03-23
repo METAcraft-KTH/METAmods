@@ -57,7 +57,7 @@ public abstract class LootContainerEvent {
 	public String toString() {
 		return REGISTRY_CODEC.encodeStart(NbtOps.INSTANCE, this).resultOrPartial(
 				METAcraftLootContainers.LOGGER::error
-		).map(NbtElement::asString).orElse("null");
+		).map(NbtElement::toString).orElse("null");
 	}
 
 	public Text toText() {

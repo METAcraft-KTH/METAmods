@@ -4,8 +4,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.stat.ServerStatHandler;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.PathUtil;
 import net.minecraft.util.WorldSavePath;
+import net.minecraft.util.path.PathUtil;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 
 import java.io.File;

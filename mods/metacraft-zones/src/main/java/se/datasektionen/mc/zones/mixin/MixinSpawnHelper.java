@@ -14,6 +14,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.collection.Pool;
+import net.minecraft.util.collection.Weighted;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.random.Random;
@@ -27,6 +28,7 @@ import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.jetbrains.annotations.Nullable;
+import org.pcollections.PVector;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -37,6 +39,7 @@ import se.datasektionen.mc.zones.spawns.BetterSpawnEntry;
 import se.datasektionen.mc.zones.zone.data.ZoneDataRegistry;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Mixin(SpawnHelper.class)
 public abstract class MixinSpawnHelper {
@@ -80,10 +83,10 @@ public abstract class MixinSpawnHelper {
 			}).orElse(false);
 		});
 		if (!zones.isEmpty()) {
-			var spawns = original.getEntries();
+			List<Weighted<SpawnSettings.SpawnEntry>> spawns = original.getEntries();
 			if (hasRemovers.isTrue()) {
-				Multimap<EntityType<?>, SpawnSettings.SpawnEntry> spawnsMap = spawns.stream().collect(
-						Multimaps.toMultimap(entry -> entry.type, entry -> entry, HashMultimap::create)
+				Multimap<EntityType<?>, Weighted<SpawnSettings.SpawnEntry>> spawnsMap = spawns.stream().collect(
+						Multimaps.toMultimap(entry -> entry.value().type(), entry -> entry, HashMultimap::create)
 				);
 				for (var zone : zones) {
 					zone.get(ZoneDataRegistry.SPAWN).ifPresent(spawnData -> {
@@ -99,7 +102,7 @@ public abstract class MixinSpawnHelper {
 			for (var zone : zones) {
 				var spawnData = zone.get(ZoneDataRegistry.SPAWN).orElse(null);
 				if (spawnData != null) {
-					spawns.addAll(spawnData.getSpawns(spawnGroup).get());
+					spawns.addAll((PVector<Weighted<SpawnSettings.SpawnEntry>>) (Object) spawnData.getSpawns(spawnGroup).get());
 				}
 			}
 			return Pool.of(spawns);

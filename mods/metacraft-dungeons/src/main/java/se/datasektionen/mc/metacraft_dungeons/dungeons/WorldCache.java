@@ -172,17 +172,17 @@ public class WorldCache implements StructureWorldAccess {
 	}
 
 	@Override
-	public void playSound(@Nullable PlayerEntity source, BlockPos pos, SoundEvent sound, SoundCategory category, float volume, float pitch) {
+	public void playSound(@Nullable Entity source, BlockPos pos, SoundEvent sound, SoundCategory category, float volume, float pitch) {
 		world.playSound(source, pos, sound, category, volume, pitch);
 	}
 
 	@Override
-	public void addParticle(ParticleEffect parameters, double x, double y, double z, double velocityX, double velocityY, double velocityZ) {
-		world.addParticle(parameters, x, y, z, velocityX, velocityY, velocityZ);
+	public void addParticleClient(ParticleEffect parameters, double x, double y, double z, double velocityX, double velocityY, double velocityZ) {
+		world.addParticleClient(parameters, x, y, z, velocityX, velocityY, velocityZ);
 	}
 
 	@Override
-	public void syncWorldEvent(@Nullable PlayerEntity player, int eventId, BlockPos pos, int data) {
+	public void syncWorldEvent(@Nullable Entity player, int eventId, BlockPos pos, int data) {
 		world.syncWorldEvent(player, eventId, pos, data);
 	}
 

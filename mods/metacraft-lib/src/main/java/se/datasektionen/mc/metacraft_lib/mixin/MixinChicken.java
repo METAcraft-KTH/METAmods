@@ -53,9 +53,9 @@ public abstract class MixinChicken extends AnimalEntity implements ChickenExtens
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
-		isCucco = nbt.getBoolean(CUCCO);
+		isCucco = nbt.getBoolean(CUCCO, false);
 		if (nbt.contains(REINFORCEMENT_COUNT)) {
-			reinforcementCount = nbt.getInt(REINFORCEMENT_COUNT);
+			reinforcementCount = nbt.getInt(REINFORCEMENT_COUNT, 0);
 		}
 	}
 

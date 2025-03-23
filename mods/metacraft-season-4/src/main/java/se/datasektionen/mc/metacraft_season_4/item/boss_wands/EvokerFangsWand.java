@@ -22,7 +22,7 @@ import xyz.nucleoid.packettweaker.PacketContext;
 
 public class EvokerFangsWand extends Item implements PolymerItem {
 
-	public EvokerFangsWand(Settings settings) {
+	public EvokerFangsWand(net.minecraft.item.Item.Settings settings) {
 		super(settings);
 	}
 

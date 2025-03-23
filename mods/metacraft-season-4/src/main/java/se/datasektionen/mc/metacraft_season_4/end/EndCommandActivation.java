@@ -1,24 +1,24 @@
 package se.datasektionen.mc.metacraft_season_4.end;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryWrapper;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 
 import java.util.Optional;
 
 public class EndCommandActivation extends PersistentState {
-	private static final String KEY = METAcraftCore.NAMESPACE + "-end-command-activation";
-	private static final String COMMAND = "command";
 
-	private static final Type<EndCommandActivation> TYPE = new Type<>(EndCommandActivation::new, EndCommandActivation::fromNBT, null);
-
-	private static EndCommandActivation fromNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		var data = new EndCommandActivation();
-		data.readNBT(nbt, lookup);
-		return data;
-	}
+	private static final PersistentStateType<EndCommandActivation> TYPE = new PersistentStateType<>(
+			METAcraftCore.NAMESPACE + "-end-command-activation",
+			EndCommandActivation::new, RecordCodecBuilder.create(
+					instance -> instance.group(
+							Codec.STRING.optionalFieldOf("command").forGetter(t -> t.command)
+					).apply(instance, EndCommandActivation::new)
+			), null
+	);
 
 	private Optional<String> command = Optional.empty();
 
@@ -27,8 +27,12 @@ public class EndCommandActivation extends PersistentState {
 
 	}
 
+	public EndCommandActivation(Optional<String> command) {
+		this.command = command;
+	}
+
 	public static EndCommandActivation getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE, KEY);
+		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
 	}
 
 	public void setCommand(String command) {
@@ -43,19 +47,5 @@ public class EndCommandActivation extends PersistentState {
 
 	public Optional<String> getCommand() {
 		return command;
-	}
-
-	@Override
-	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		command.ifPresent(c -> nbt.putString(COMMAND, c));
-		return nbt;
-	}
-
-	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		if (nbt.contains(COMMAND)) {
-			command = Optional.of(nbt.getString(COMMAND));
-		} else {
-			command = Optional.empty();
-		}
 	}
 }

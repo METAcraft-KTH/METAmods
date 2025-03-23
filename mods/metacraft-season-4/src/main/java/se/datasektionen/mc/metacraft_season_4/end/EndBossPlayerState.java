@@ -1,7 +1,7 @@
 package se.datasektionen.mc.metacraft_season_4.end;
 
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.block.Block;
 import net.minecraft.component.*;
@@ -14,8 +14,6 @@ import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.*;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.particle.TrailParticleEffect;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -28,6 +26,7 @@ import net.minecraft.util.*;
 import net.minecraft.util.math.*;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 import net.minecraft.world.TeleportTarget;
 import org.pcollections.*;
 import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
@@ -49,20 +48,26 @@ import java.util.stream.IntStream;
 
 public class EndBossPlayerState extends PersistentState {
 
-	private static final String KEY = METAcraftCore.NAMESPACE + "-end-boss-player";
-
-	private static final Type<EndBossPlayerState> TYPE = new Type<>(
-			EndBossPlayerState::new, EndBossPlayerState::fromNBT, null
-	);
-
 	private static final String CAN_BE_BOSS = "metacraft.end_player_boss.can_be_boss";
 
-	private static final MapCodec<Optional<UUID>> CURRENT_BOSS_ID = Uuids.STRICT_CODEC.optionalFieldOf("current_boss");
-	private static final MapCodec<NbtCompound> BOSSBAR = NbtCompound.CODEC.optionalFieldOf("boss_bar", new NbtCompound());
-	private static final MapCodec<PSet<UUID>> OLD_BOSSES_TO_RESET = ExtraCodecs.<UUID, PSet<UUID>>createPCollectionCodec(Uuids.STRICT_CODEC, HashTreePSet.empty()).optionalFieldOf("old_bosses_to_reset", HashTreePSet.empty());
-	private static final MapCodec<Integer> LIVES_REMAINING = Codec.INT.optionalFieldOf("lives_remaining", 3);
-	private static final MapCodec<Optional<String>> BOSS_PREV_TEAM = Codec.STRING.optionalFieldOf("boss_prev_team");
-	private static final MapCodec<Optional<Vec3d>> PLAYER_SPAWN_POS = Vec3d.CODEC.optionalFieldOf("player_spawn_pos");
+	private static final Codec<PSet<UUID>> UUID_SET = ExtraCodecs.createPCollectionCodec(
+			Uuids.STRICT_CODEC, HashTreePSet.empty()
+	);
+
+	private static final Codec<EndBossPlayerState> CODEC = RecordCodecBuilder.create(
+			instance -> instance.group(
+					Uuids.STRICT_CODEC.optionalFieldOf("current_boss").forGetter(d -> d.currentBossID),
+					ManageableServerBossBar.BossBarData.CODEC.optionalFieldOf("boss_bar").forGetter(d -> d.bossbar),
+					UUID_SET.optionalFieldOf("old_bosses_to_reset", HashTreePSet.empty()).forGetter(d -> d.oldBossesToReset),
+					Codec.INT.optionalFieldOf("lives_remaining", 3).forGetter(d -> d.livesRemaining),
+					Codec.STRING.optionalFieldOf("boss_prev_team").forGetter(d -> d.bossPrevTeam),
+					Vec3d.CODEC.optionalFieldOf("player_spawn_pos").forGetter(d -> d.playerSpawnPos)
+			).apply(instance, EndBossPlayerState::new)
+	);
+
+	private static final PersistentStateType<EndBossPlayerState> TYPE = new PersistentStateType<>(
+			METAcraftCore.NAMESPACE + "-end-boss-player", EndBossPlayerState::new, CODEC, null
+	);
 
 	private static final Identifier BOSS_DATA_BACKUP = Season4.getID("player_data_backup_before_boss");
 
@@ -72,29 +77,41 @@ public class EndBossPlayerState extends PersistentState {
 
 	private ConfigContainer<EndBossPlayerConfig> config;
 
-	private UUID currentBossID;
-	private PSet<UUID> oldBossesToReset = HashTreePSet.empty();
+	private Optional<UUID> currentBossID;
+	private PSet<UUID> oldBossesToReset;
 	private ServerPlayerEntity currentBoss;
-	private String bossPrevTeam;
-	private ManageableServerBossBar bossbar;
+	private Optional<String> bossPrevTeam;
+	private Optional<ManageableServerBossBar.BossBarData> bossbar;
+	private ManageableServerBossBar cachedBossBar = null;
 	private int livesRemaining = 3;
-	private Vec3d playerSpawnPos;
+	private Optional<Vec3d> playerSpawnPos;
 
 	private Vec3d particlePos;
 	private int particleTime = -1;
 
-	private static EndBossPlayerState fromNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		var data = new EndBossPlayerState();
-		data.readNBT(nbt, lookup);
-		return data;
+	public EndBossPlayerState() {
+		this(Optional.empty(), Optional.empty(), HashTreePSet.empty(), 3, Optional.empty(), Optional.empty());
+	}
+
+	public EndBossPlayerState(
+			Optional<UUID> currentBoss, Optional<ManageableServerBossBar.BossBarData> bossbar,
+			PSet<UUID> oldBossesToReset, int livesRemaining,
+			Optional<String> bossPrevTeam, Optional<Vec3d> playerSpawnPos
+	) {
+		this.currentBossID = currentBoss;
+		this.bossbar = bossbar;
+		this.oldBossesToReset = oldBossesToReset;
+		this.livesRemaining = livesRemaining;
+		this.bossPrevTeam = bossPrevTeam;
+		this.playerSpawnPos = playerSpawnPos;
 	}
 
 	public static Optional<EndBossPlayerState> getInstance(ServerWorld world) {
-		return Optional.ofNullable(world.getPersistentStateManager().get(TYPE, KEY));
+		return Optional.ofNullable(world.getPersistentStateManager().get(TYPE));
 	}
 
 	public static void initBossState(ServerWorld world, ServerPlayerEntity boss, Vec3d spawnPos) {
-		var instance = world.getPersistentStateManager().getOrCreate(TYPE, KEY);
+		var instance = world.getPersistentStateManager().getOrCreate(TYPE);
 		instance.setPlayerSpawnPos(spawnPos);
 		instance.reset(world);
 		instance.setCurrentBoss(boss);
@@ -107,54 +124,13 @@ public class EndBossPlayerState extends PersistentState {
 	}
 
 	public void setPlayerSpawnPos(Vec3d pos) {
-		this.playerSpawnPos = pos;
+		this.playerSpawnPos = Optional.of(pos);
 		markDirty();
 	}
 
-	@Override
-	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-		var ops = registries.getOps(NbtOps.INSTANCE);
-		var builder = ops.mapBuilder();
-
-		if (currentBossID != null) {
-			builder = CURRENT_BOSS_ID.encode(Optional.of(currentBossID), ops, builder);
-		}
-		if (bossbar != null) {
-			builder = BOSSBAR.encode(bossbar.writeNBT(new NbtCompound(), registries), ops, builder);
-		}
-		if (!oldBossesToReset.isEmpty()) {
-			builder = OLD_BOSSES_TO_RESET.encode(oldBossesToReset, ops, builder);
-		}
-		if (bossPrevTeam != null) {
-			builder = BOSS_PREV_TEAM.encode(Optional.of(bossPrevTeam), ops, builder);
-		}
-		if (playerSpawnPos != null) {
-			builder = PLAYER_SPAWN_POS.encode(Optional.of(playerSpawnPos), ops, builder);
-		}
-
-		builder = LIVES_REMAINING.encode(livesRemaining, ops, builder);
-
-		return (NbtCompound) builder.build(nbt).resultOrPartial(Season4.LOGGER::error).orElse(nbt);
-	}
-
-	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-		var ops = registries.getOps(NbtOps.INSTANCE);
-		ops.getMap(nbt).resultOrPartial(Season4.LOGGER::error).ifPresent(data -> {
-			CURRENT_BOSS_ID.decode(ops, data).resultOrPartial(Season4.LOGGER::error).ifPresent(currentBoss -> this.currentBossID = currentBoss.orElse(null));
-			BOSSBAR.decode(ops, data).resultOrPartial(Season4.LOGGER::error).ifPresent(bossbar -> {
-				this.bossbar = new ManageableServerBossBar(Text.literal(""), BossBar.Color.WHITE, BossBar.Style.PROGRESS);
-				this.bossbar.readNBT(bossbar, registries);
-			});
-			OLD_BOSSES_TO_RESET.decode(ops, data).resultOrPartial(Season4.LOGGER::error).ifPresent(oldBosses -> oldBossesToReset = oldBosses);
-			BOSS_PREV_TEAM.decode(ops, data).resultOrPartial(Season4.LOGGER::error).ifPresent(prevTeam -> bossPrevTeam = prevTeam.orElse(null));
-			LIVES_REMAINING.decode(ops, data).resultOrPartial(Season4.LOGGER::error).ifPresent(s -> livesRemaining = s);
-			PLAYER_SPAWN_POS.decode(ops, data).resultOrPartial(Season4.LOGGER::error).ifPresent(p -> playerSpawnPos = p.orElse(null));
-		});
-	}
-
 	private void beforeChangingBoss() {
-		if (currentBossID != null) {
-			oldBossesToReset = oldBossesToReset.plus(currentBossID);
+		if (currentBossID.isPresent()) {
+			oldBossesToReset = oldBossesToReset.plus(currentBossID.get());
 			markDirty();
 		}
 	}
@@ -162,15 +138,21 @@ public class EndBossPlayerState extends PersistentState {
 	private void triggerEnd(ServerWorld world) {
 		beforeChangingBoss();
 		currentBoss = null;
-		currentBossID = null;
+		currentBossID = Optional.empty();
 		markDirty();
 		config.get().bossDefeatedCommand().ifPresent(command -> {
 			var source = world.getServer().getCommandFunctionManager()
 					.getScheduledCommandSource().withWorld(world).withPosition(
-							particlePos != null ? particlePos : playerSpawnPos
+							particlePos != null ? particlePos : playerSpawnPos.orElse(Vec3d.ZERO)
 					);
 			world.getServer().getCommandManager().executeWithPrefix(source, command);
 		});
+	}
+
+	private ManageableServerBossBar createBossBar() {
+		var bossbar = new ManageableServerBossBar(Text.literal(""), BossBar.Color.WHITE, BossBar.Style.PROGRESS);
+		this.bossbar.ifPresent(bossbar::deserialize);
+		return bossbar;
 	}
 
 	public void setCurrentBoss(ServerPlayerEntity player) {
@@ -178,23 +160,23 @@ public class EndBossPlayerState extends PersistentState {
 		if (currentBoss != null) {
 			BossBarHelper.transferBossBar(currentBoss, player);
 		} else {
-			if (bossbar != null) {
-				BossBarHelper.setBossBar(player, bossbar);
+			if (bossbar.isPresent()) {
+				BossBarHelper.setBossBar(player, createBossBar());
 			} else {
-				bossbar = BossBarHelper.getBossBar(player).orElse(null);
+				bossbar = BossBarHelper.getBossBar(player).map(ManageableServerBossBar::serialize);
 				markDirty();
 			}
 		}
 		beforeChangingBoss();
 
 		currentBoss = player;
-		currentBossID = player.getUuid();
+		currentBossID = Optional.of(player.getUuid());
 		prepareBoss(player);
 		markDirty();
 	}
 
 	public Vec3d getPlayerSpawnPos() {
-		return playerSpawnPos;
+		return playerSpawnPos.orElse(Vec3d.ZERO);
 	}
 
 	public EndBossPlayerConfig getConfig() {
@@ -217,8 +199,8 @@ public class EndBossPlayerState extends PersistentState {
 
 		var scoreboard = player.getWorld().getScoreboard();
 		scoreboard.clearTeam(player.getNameForScoreboard());
-		if (bossPrevTeam != null) {
-			var team = scoreboard.getTeam(bossPrevTeam);
+		if (bossPrevTeam.isPresent()) {
+			var team = scoreboard.getTeam(bossPrevTeam.get());
 			if (team != null) {
 				scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), team);
 			}
@@ -281,7 +263,8 @@ public class EndBossPlayerState extends PersistentState {
 	public static EquippableComponent addOverlay(EquippableComponent equippable, Identifier overlay) {
 		return new EquippableComponent(
 				equippable.slot(), equippable.equipSound(), equippable.assetId(), Optional.ofNullable(overlay),
-				equippable.allowedEntities(), equippable.dispensable(), equippable.swappable(), equippable.damageOnHurt()
+				equippable.allowedEntities(), equippable.dispensable(), equippable.swappable(), equippable.damageOnHurt(),
+				equippable.equipOnInteract()
 		);
 	}
 
@@ -295,7 +278,7 @@ public class EndBossPlayerState extends PersistentState {
 		if (stack.contains(DataComponentTypes.CUSTOM_NAME) && pass < 1) return false;
 		if (stack.contains(DataComponentTypes.TOOL) && pass < 1) return false;
 		if (stack.contains(DataComponentTypes.BUCKET_ENTITY_DATA) && pass < 1) return false;
-		if (stack.getItem() instanceof SwordItem && pass < 1) return false;
+		if (stack.contains(DataComponentTypes.WEAPON) && pass < 1) return false;
 		if (stack.getItem() instanceof TridentItem && pass < 1) return false;
 		if (stack.getItem() instanceof BowItem && pass < 1) return false;
 		if (stack.getItem() instanceof CrossbowItem && pass < 1) return false;
@@ -456,18 +439,18 @@ public class EndBossPlayerState extends PersistentState {
 	public void switchToBoss(ServerPlayerEntity player) {
 		//TODO Cutscene?
 		if (particlePos == null) {
-			particlePos = playerSpawnPos;
+			particlePos = playerSpawnPos.orElse(Vec3d.ZERO);
 		}
 		particleTime = 80;
 		setCurrentBoss(player);
 	}
 
 	public boolean hasBoss() {
-		return currentBossID != null;
+		return currentBossID.isPresent();
 	}
 
 	public boolean isBoss(ServerPlayerEntity player) {
-		return player == currentBoss || player.getUuid().equals(currentBossID);
+		return player == currentBoss || player.getUuid().equals(currentBossID.orElse(null));
 	}
 
 	public Text getBossName() {
@@ -567,7 +550,7 @@ public class EndBossPlayerState extends PersistentState {
 	}
 
 	public TeleportTarget getPlayerSpawnPoint(ServerWorld world, Entity entity) {
-		return getTargetAroundPos(world, entity, playerSpawnPos);
+		return getTargetAroundPos(world, entity, playerSpawnPos.orElse(Vec3d.ZERO));
 	}
 
 	private void tickBossAlive(ServerWorld world) {
@@ -596,12 +579,13 @@ public class EndBossPlayerState extends PersistentState {
 		} else {
 			particlePos = currentBoss.getBoundingBox().getCenter();
 		}
-		if (this.playerSpawnPos == null) {
-			this.playerSpawnPos = currentBoss.getPos();
+		if (this.playerSpawnPos.isEmpty()) {
+			this.playerSpawnPos = Optional.of(currentBoss.getPos());
 		}
 		BossBarHelper.getBossBar(currentBoss).ifPresent(bar -> {
-			if (bar != this.bossbar) {
-				this.bossbar = bar;
+			if (bar != this.cachedBossBar) {
+				this.cachedBossBar = bar;
+				this.bossbar = Optional.of(bar.serialize());
 				markDirty();
 			}
 		});
@@ -613,7 +597,7 @@ public class EndBossPlayerState extends PersistentState {
 		if (currentTeam != bossTeam) {
 			scoreboard.addScoreHolderToTeam(bossName, bossTeam);
 			if (currentTeam != null) {
-				bossPrevTeam = currentTeam.getName();
+				bossPrevTeam = Optional.of(currentTeam.getName());
 				markDirty();
 			}
 		}
@@ -623,7 +607,7 @@ public class EndBossPlayerState extends PersistentState {
 				player.teleportTo(getNearBoss(currentBoss.getServerWorld(), player));
 			}
 		}
-		if (currentBoss.getPos().distanceTo(playerSpawnPos) > config.get().maxDistanceFromSpawn() || currentBoss.getWorld() != world) {
+		if (currentBoss.getPos().distanceTo(playerSpawnPos.orElse(null)) > config.get().maxDistanceFromSpawn() || currentBoss.getWorld() != world) {
 			currentBoss.teleportTo(getPlayerSpawnPoint(world, currentBoss));
 		}
 		if (currentBoss.getY() < world.getBottomY()) {
@@ -665,8 +649,8 @@ public class EndBossPlayerState extends PersistentState {
 	}
 
 	private void trackBoss(ServerWorld world) {
-		if (currentBoss == null && currentBossID != null) {
-			currentBoss = world.getServer().getPlayerManager().getPlayer(currentBossID);
+		if (currentBoss == null && currentBossID.isPresent()) {
+			currentBoss = world.getServer().getPlayerManager().getPlayer(currentBossID.get());
 		}
 		if (currentBoss != null) {
 			if (currentBoss.isDisconnected()) {

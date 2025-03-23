@@ -101,7 +101,7 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Override
 	public void metacraft_lib$loadBossBar(NbtCompound nbt) {
 		if (nbt.contains(ManageableServerBossBar.BOSS_BAR)) {
-			NbtCompound bossBar = nbt.getCompound(ManageableServerBossBar.BOSS_BAR);
+			NbtCompound bossBar = nbt.getCompoundOrEmpty(ManageableServerBossBar.BOSS_BAR);
 			if (this.bossBar == null) {
 				this.bossBar = ManageableServerBossBar.create();
 				this.bossBar.readNBT(bossBar, getRegistryManager());

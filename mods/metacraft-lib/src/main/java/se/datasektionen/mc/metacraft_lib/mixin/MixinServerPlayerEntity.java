@@ -154,12 +154,13 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
-		if (nbt.contains(CUSTOM_PLAYER_NAME)) {
-			boolean show = nbt.contains(CUSTOM_PLAYER_NAME_SHOW_IN_GUI) ? nbt.getBoolean(CUSTOM_PLAYER_NAME_SHOW_IN_GUI) : showInGUI;
-			metacraft_lib$setCustomName(nbt.getString(CUSTOM_PLAYER_NAME), show);
-		} else {
-			metacraft_lib$setCustomName(null, true);
-		}
+		nbt.getString(CUSTOM_PLAYER_NAME).ifPresentOrElse(
+			name -> {
+				boolean show = nbt.contains(CUSTOM_PLAYER_NAME_SHOW_IN_GUI) ? nbt.getBoolean(CUSTOM_PLAYER_NAME_SHOW_IN_GUI, false) : showInGUI;
+				metacraft_lib$setCustomName(name, show);
+			},
+			() -> metacraft_lib$setCustomName(null, true)
+		);
 		NbtOps.INSTANCE.getMap(nbt).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(map -> {
 			if (readOrWriteDataMap) {
 				DATA_MAP_CODEC.decode(NbtOps.INSTANCE, map).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(data -> {

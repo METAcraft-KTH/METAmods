@@ -70,8 +70,8 @@ public class RotateHead implements Transition {
 		}
 		config.entity.get(null, cutscene).forEach(entity -> {
 			float delta = interval.getDelta(cutscene.getCurrentTime());
-			entity.prevYaw = entity.getYaw();
-			entity.prevPitch = entity.getPitch();
+			entity.lastYaw = entity.getYaw();
+			entity.lastPitch = entity.getPitch();
 			var offset = offsets.interpolate(delta);
 			var origin = entityFacings.computeIfAbsent(
 					entity.getUuid(), k -> new FixedTarget(entity.getYaw(), entity.getPitch())

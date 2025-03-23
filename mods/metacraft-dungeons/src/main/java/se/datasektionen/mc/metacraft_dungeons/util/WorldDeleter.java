@@ -172,7 +172,7 @@ public class WorldDeleter {
 					modified.setTrue();
 				}
 				if (player.contains(ServerPlayerEntity.ENDER_PEARLS_KEY)) {
-					var list = player.getList(ServerPlayerEntity.ENDER_PEARLS_KEY, NbtElement.COMPOUND_TYPE);
+					var list = player.getListOrEmpty(ServerPlayerEntity.ENDER_PEARLS_KEY);
 					list.removeIf(nbt -> {
 						if (nbt instanceof NbtCompound pearl) {
 							if (DisconnectedPlayerHelper.getEnderPearlDim(pearl) == world.getRegistryKey()) {

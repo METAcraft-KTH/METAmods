@@ -53,7 +53,7 @@ public abstract class MixinMobEntity extends LivingEntity {
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
 		if ((Object) this instanceof HostileEntity) {
-			((HostileEntityExtensions) this).metacraft_lib$setSurvivesSunlight(nbt.getBoolean(EntityParameters.SURVIVES_SUNLIGHT));
+			((HostileEntityExtensions) this).metacraft_lib$setSurvivesSunlight(nbt.getBoolean(EntityParameters.SURVIVES_SUNLIGHT, false));
 		}
 	}
 

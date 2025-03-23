@@ -129,7 +129,7 @@ public abstract class MixinAbstractFurnaceBlockEntity extends LockableContainerB
 
 	@Inject(method = "readNbt", at = @At("RETURN"))
 	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup, CallbackInfo ci) {
-		isInputExtractable = nbt.getBoolean(IS_INPUT_EXTRACTABLE);
+		isInputExtractable = nbt.getBoolean(IS_INPUT_EXTRACTABLE, false);
 	}
 
 	@Inject(

@@ -2,15 +2,16 @@ package se.datasektionen.mc.portable_jukebox.gui;
 
 import eu.pb4.sgui.api.gui.layered.Layer;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
+import it.unimi.dsi.fastutil.objects.ReferenceSortedSets;
 import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.TooltipDisplayComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Unit;
 import se.datasektionen.mc.metacraft_lib.util.EntityRef;
 import se.datasektionen.mc.portable_jukebox.item.PortableJukeboxItem;
 
@@ -72,7 +73,7 @@ public class PortableJukeboxGui extends LayeredGui {
 				Items.ORANGE_STAINED_GLASS_PANE.getRegistryEntry(), 1, ComponentChanges.builder().add(
 						DataComponentTypes.ITEM_NAME, Text.literal("")
 				).add(
-						DataComponentTypes.HIDE_TOOLTIP, Unit.INSTANCE
+						DataComponentTypes.TOOLTIP_DISPLAY, new TooltipDisplayComponent(true, ReferenceSortedSets.emptySet())
 				).build()
 		));
 

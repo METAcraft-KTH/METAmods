@@ -87,7 +87,7 @@ public interface LootAccess {
 
 		var freeSlots = ((AccessorLootTable) lootTable).callGetFreeSlots(getInventory(), random);
 		var loot = lootTable.generateLoot(params);
-		((AccessorLootTable) lootTable).callShuffle(loot, freeSlots.size(), random);
+		((AccessorLootTable) lootTable).callSpreadStacks(loot, freeSlots.size(), random);
 
 		for (var stack : loot) {
 			insertStack(stack, random);

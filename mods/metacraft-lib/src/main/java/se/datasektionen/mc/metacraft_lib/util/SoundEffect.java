@@ -9,7 +9,7 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.collection.Pool;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -29,9 +29,9 @@ public record SoundEffect(
 			).apply(instance, SoundEffect::new)
 	);
 
-	public static final Codec<DataPool<SoundEffect>> POOL_CODEC = Codec.withAlternative(
-			DataPool.createCodec(CODEC),
-			CODEC, DataPool::of
+	public static final Codec<Pool<SoundEffect>> POOL_CODEC = Codec.withAlternative(
+			Pool.createCodec(CODEC),
+			CODEC, Pool::of
 	);
 
 	public void playSound(ServerPlayerEntity player, double x, double y, double z, long seed) {

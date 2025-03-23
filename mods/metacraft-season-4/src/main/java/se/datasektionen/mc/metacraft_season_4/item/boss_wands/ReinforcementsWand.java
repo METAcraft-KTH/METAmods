@@ -20,7 +20,7 @@ public class ReinforcementsWand extends Item implements PolymerItem {
 
 	public static IntProvider DEFAULT_TRY_COUNT = UniformIntProvider.create(10, 20);
 
-	public ReinforcementsWand(Settings settings) {
+	public ReinforcementsWand(net.minecraft.item.Item.Settings settings) {
 		super(settings);
 	}
 
@@ -32,7 +32,7 @@ public class ReinforcementsWand extends Item implements PolymerItem {
 			var pool = stack.get(Season4Components.SPAWNS);
 			int tryCount = stack.getOrDefault(Season4Components.TRY_COUNT, DEFAULT_TRY_COUNT).get(user.getRandom());
 			for (int i = 0; i < tryCount; i++) {
-				pool.getDataOrEmpty(user.getRandom()).ifPresent(data -> {
+				pool.getOrEmpty(user.getRandom()).ifPresent(data -> {
 					EntityHelper.spawnEntity(
 							data, e -> true, e -> true, user.getPos(),
 							(ServerWorld) user.getWorld(), user.getRandom(), user

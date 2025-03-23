@@ -16,12 +16,10 @@ import net.minecraft.loot.context.LootContext;
 import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.intprovider.ConstantIntProvider;
 import net.minecraft.util.math.intprovider.IntProvider;
@@ -52,13 +50,11 @@ public class EntityHelper {
 
 	public static Optional<Entity> loadEntityWithPassengers(NbtCompound nbt, World world, SpawnReason reason, BiFunction<Entity, NbtCompound, Entity> entityProcessor) {
 		return getEntityFromNBTSafely(nbt, world, reason).map(e -> entityProcessor.apply(e, nbt)).map(entity -> {
-			if (nbt.contains("Passengers", NbtElement.LIST_TYPE)) {
-				NbtList passengers = nbt.getList("Passengers", NbtElement.COMPOUND_TYPE);
-				for (int i = 0; i < passengers.size(); ++i) {
-					loadEntityWithPassengers(passengers.getCompound(i), world, reason, entityProcessor).ifPresent(
-							passenger -> passenger.startRiding(entity, true)
-					);
-				}
+			var passengers = nbt.getListOrEmpty(Entity.PASSENGERS_KEY);
+			for (int i = 0; i < passengers.size(); ++i) {
+				loadEntityWithPassengers(passengers.getCompoundOrEmpty(i), world, reason, entityProcessor).ifPresent(
+						passenger -> passenger.startRiding(entity, true)
+				);
 			}
 			return entity;
 		});
@@ -93,7 +89,7 @@ public class EntityHelper {
 			projectile.setOwner(owner);
 		}
 		if (entity instanceof TameableEntity tameable && owner instanceof PlayerEntity p) {
-			tameable.setOwner(p);
+			tameable.setTamedBy(p);
 		}
 		if (entity instanceof VexEntity vex && owner instanceof MobEntity mob) {
 			vex.setOwner(mob);
@@ -235,9 +231,8 @@ public class EntityHelper {
 				).apply(instance, SpawnEntry::new)
 		);
 
-		public static final Codec<DataPool<SpawnEntry>> POOL_CODEC = Codec.withAlternative(
-				DataPool.createEmptyAllowedCodec(CODEC),
-				SpawnEntry.CODEC, DataPool::of
+		public static final Codec<Pool<SpawnEntry>> POOL_CODEC = Codec.withAlternative(
+				Pool.createCodec(CODEC), SpawnEntry.CODEC, Pool::of
 		);
 
 		public record SpawnRules(Optional<LootCondition> condition, SpawnReason spawnReason, IntProvider horizontalRange, IntProvider verticalRange) {

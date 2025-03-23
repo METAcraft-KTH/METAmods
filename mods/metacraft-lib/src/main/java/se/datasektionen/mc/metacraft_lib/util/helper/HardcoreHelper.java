@@ -14,7 +14,6 @@ import net.minecraft.world.GameRules;
 import net.minecraft.world.level.LevelInfo;
 import net.minecraft.world.level.LevelProperties;
 import se.datasektionen.mc.metacraft_lib.mixin.*;
-import se.datasektionen.mc.metacraft_lib.mixin.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +51,7 @@ public class HardcoreHelper {
 						new DifficultyS2CPacket(world.getDifficulty(), world.getLevelProperties().isDifficultyLocked()),
 						new ExperienceBarUpdateS2CPacket(player.experienceProgress, player.totalExperience, player.experienceLevel),
 						new PlayerAbilitiesS2CPacket(player.getAbilities()),
-						new UpdateSelectedSlotS2CPacket(player.getInventory().selectedSlot)
+						new UpdateSelectedSlotS2CPacket(player.getInventory().getSelectedSlot())
 				)
 		));
 

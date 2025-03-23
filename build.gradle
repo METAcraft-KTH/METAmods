@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.9-SNAPSHOT' apply false
+    id 'fabric-loom' version '1.10-SNAPSHOT' apply false
     id 'base'
 }
 
@@ -14,7 +14,7 @@ def nonModSubprojects = [
 //If you can think of a smarter way to remove a project from the Fabric Loom cache, feel free to rewrite this function.
 ext.cleanRemappedSubprojectAt = {rDir, p ->
     var v = minecraft_version + "_" + yarn_mappings + "_${yarn_mappings_version}"
-    v = v.replaceAll("\\.", "_").replaceAll("\\+", "_")
+    v = v.replaceAll("\\.", "_").replaceAll("\\+", "_").replaceAll("-", "_")
     var g = p.maven_group.replaceAll("\\.", "/")
     delete(project.file("${rDir}/.gradle/loom-cache/remapped_mods/net_fabricmc_yarn_${v}/${g}/${p.name}"))
 }
@@ -91,9 +91,9 @@ subprojects {
 
     ext.addVanishDependency = { ->
         dependencies {
-            modImplementation "maven.modrinth:vanish:${project.vanish_version}"
-            modImplementation "eu.pb4:player-data-api:${project.player_data_api_version}" //Dependency for Vanish.
-            modImplementation("eu.pb4:placeholder-api:${project.placeholder_api_version}") //Dependency for Vanish.
+            modCompileOnly "maven.modrinth:vanish:${project.vanish_version}"
+            modCompileOnly "eu.pb4:player-data-api:${project.player_data_api_version}" //Dependency for Vanish.
+            modCompileOnly("eu.pb4:placeholder-api:${project.placeholder_api_version}") //Dependency for Vanish.
         }
     }
 
@@ -134,9 +134,10 @@ subprojects {
         inputs.property "loader_version", project.loader_version
         filteringCharset "UTF-8"
 
+        var mcversion = project.fabric_json_mc_version.isEmpty() ? project.minecraft_version : project.fabric_json_mc_version
         filesMatching("fabric.mod.json") {
             expand "version": project.version,
-                    "minecraft_version": project.minecraft_version,
+                    "minecraft_version": mcversion,
                     "loader_version": project.loader_version,
                     "git_repo": project.git_repo,
                     "website": project.website,

@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.EndPortalBlock;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityCollisionHandler;
 import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -51,7 +52,7 @@ public class MixinEndPortalBlock {
 		)
 	)
 	public void teleportPetsFirstTime(
-			BlockState state, World world, BlockPos pos, Entity entity, CallbackInfo ci, @Local ServerPlayerEntity player
+			BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler, CallbackInfo ci, @Local ServerPlayerEntity player
 	) {
 		var target = player.getRespawnTarget(true, TeleportTarget.ADD_PORTAL_CHUNK_TICKET);
 		player.getServerWorld().getEntitiesByType(

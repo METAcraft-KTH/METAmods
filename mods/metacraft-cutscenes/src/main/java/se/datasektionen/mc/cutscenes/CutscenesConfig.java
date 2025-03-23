@@ -1,8 +1,8 @@
 package se.datasektionen.mc.cutscenes;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.PathUtil;
 import net.minecraft.util.WorldSavePath;
+import net.minecraft.util.path.PathUtil;
 import se.datasektionen.mc.cutscenes.cutscene.Cutscene;
 import se.datasektionen.mc.cutscenes.extension.MinecraftServerExtension;
 import se.datasektionen.mc.cutscenes.util.DefaultCutscenes;

@@ -56,12 +56,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity {
 		));
 		pets.get().forEach(pet -> {
 			this.getServerWorld().getChunkManager().addTicket(
-					TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2, pet.getChunkPos()
+					TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2
 			);
 		});
 		leashed.get().forEach(pet -> {
 			this.getServerWorld().getChunkManager().addTicket(
-					TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2, pet.getChunkPos()
+					TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2
 			);
 		});
 	}

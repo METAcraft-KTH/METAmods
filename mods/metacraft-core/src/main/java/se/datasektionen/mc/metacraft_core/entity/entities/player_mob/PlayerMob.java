@@ -27,7 +27,6 @@ import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.item.*;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.packet.Packet;
@@ -45,6 +44,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Arm;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Uuids;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -161,12 +161,8 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void readShoulderEntities(NbtCompound nbt) {
-		if (nbt.contains(SHOULDER_ENTITY_LEFT, NbtElement.COMPOUND_TYPE)) {
-			this.setShoulderEntityLeft(nbt.getCompound(SHOULDER_ENTITY_LEFT));
-		}
-		if (nbt.contains(SHOULDER_ENTITY_RIGHT, NbtElement.COMPOUND_TYPE)) {
-			this.setShoulderEntityRight(nbt.getCompound(SHOULDER_ENTITY_RIGHT));
-		}
+		setShoulderEntityLeft(nbt.getCompoundOrEmpty(SHOULDER_ENTITY_LEFT));
+		setShoulderEntityRight(nbt.getCompoundOrEmpty(SHOULDER_ENTITY_RIGHT));
 	}
 
 	private NbtCompound removeUnsafeNBT(NbtCompound nbt) {
@@ -184,19 +180,19 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	public void copyFromPlayerData(NbtCompound nbt) {
 		this.readNbt(removeUnsafeNBT(nbt));
 		getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).setBaseValue(BASE_SPEED);
-		NbtList nbtList = nbt.getList("Inventory", NbtElement.COMPOUND_TYPE);
-		int selectedSlot = nbt.getInt("SelectedItemSlot");
+		NbtList nbtList = nbt.getListOrEmpty("Inventory");
+		int selectedSlot = nbt.getInt("SelectedItemSlot", 0);
 		for (var entry : nbtList) {
 			handleItemEntry((NbtCompound) entry, selectedSlot);
 		}
 		readShoulderEntities(nbt);
-		var id = nbt.getUuid(UUID_KEY);
-		var player = getServer().getPlayerManager().getPlayer(id);
+		var id = nbt.get(UUID_KEY, Uuids.CODEC);
+		var player = id.map(value -> getServer().getPlayerManager().getPlayer(value)).orElse(null);
 		if (player != null) {
 			copySkinFromPlayer(player);
 			setCustomName(player.getName());
 		} else {
-			new ProfileComponent(Optional.empty(), Optional.of(id), new PropertyMap()).getFuture().thenAcceptAsync(
+			new ProfileComponent(Optional.empty(), id, new PropertyMap()).getFuture().thenAcceptAsync(
 					profile -> setSkin(profile.gameProfile()), SkullBlockEntity.EXECUTOR
 			);
 		}
@@ -219,7 +215,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void handleItemEntry(NbtCompound stackNBT, int selectedSlot) {
-		int slot = stackNBT.getByte("Slot") & 0xFF;
+		int slot = stackNBT.getByte("Slot", (byte) 0) & 0xFF;
 		ItemStack.fromNbt(this.getRegistryManager(), stackNBT).ifPresent(stack -> {
 			getFromSlot(slot, selectedSlot).ifPresent(equipmentSlot -> {
 				this.equipStack(equipmentSlot, stack);
@@ -302,7 +298,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	@Override
 	public void updateSwimming() {
 		if (!this.getWorld().isClient) {
-			if (this.canMoveVoluntarily() && this.isTouchingWater() && shouldSwim()) {
+			if (this.canActVoluntarily() && this.isTouchingWater() && shouldSwim()) {
 				replaceNavigation(waterNavigation);
 				this.setSwimming(true);
 			} else {
@@ -442,7 +438,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 				Vec3d oldVelocity = target.getVelocity();
 				damage += itemStack.getItem().getBonusAttackDamage(target, this.riptideAttackDamage, damageSource);
 				if (target.damage((ServerWorld) this.getWorld(), damageSource, damage)) {
-					float k = this.getKnockbackAgainst(target, damageSource);
+					float k = this.getAttackKnockbackAgainst(target, damageSource);
 					target.takeKnockback(k * 0.5f, MathHelper.sin(this.getYaw() * ((float)Math.PI / 180)), -MathHelper.cos(this.getYaw() * ((float)Math.PI / 180)));
 					this.setVelocity(this.getVelocity().multiply(0.6, 1.0, 0.6));
 
@@ -692,9 +688,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		} else {
 			setVisibleSkinParts(EnumSet.allOf(PlayerModelPart.class));
 		}
-		if (nbt.contains(CAN_WANDER)) {
-			canWander = nbt.getBoolean(CAN_WANDER);
-		}
+		canWander = nbt.getBoolean(CAN_WANDER, true);
 		readShoulderEntities(nbt);
 	}
 

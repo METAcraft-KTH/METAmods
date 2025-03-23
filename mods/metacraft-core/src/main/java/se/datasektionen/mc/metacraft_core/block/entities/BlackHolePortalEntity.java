@@ -76,7 +76,7 @@ public class BlackHolePortalEntity extends PortalEntity {
 	public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
 		center = null;
 		super.readNbt(nbt, lookup);
-		attractionRange = nbt.getDouble(ATTRACTION_RANGE);
+		attractionRange = nbt.getDouble(ATTRACTION_RANGE, 0);
 	}
 
 	@Override

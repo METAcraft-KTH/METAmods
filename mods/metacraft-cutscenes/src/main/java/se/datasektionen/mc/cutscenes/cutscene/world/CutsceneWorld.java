@@ -22,7 +22,6 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.resource.featuretoggle.FeatureSet;
 import net.minecraft.scoreboard.AbstractTeam;
 import net.minecraft.scoreboard.ScoreboardDisplaySlot;
-import net.minecraft.scoreboard.ScoreboardState;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.*;
@@ -191,7 +190,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 			scoreboard.addScoreHolderToTeam("", team);
 
 			if (cutscene.getCutscene().getScoreboardMode() != Cutscene.ScoreboardMode.SYNC) {
-				persistentStateManager.getOrCreate(scoreboard.getPersistentStateType(), ScoreboardState.SCOREBOARD_KEY);
+				persistentStateManager.getOrCreate(ServerScoreboard.STATE_TYPE);
 			}
 		}
 	}
@@ -447,12 +446,12 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	@Override
-	public void playSound(@Nullable PlayerEntity source, double x, double y, double z, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {
+	public void playSound(@Nullable Entity source, double x, double y, double z, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {
 		world.playSound(source, x, y, z, sound, category, volume, pitch, seed);
 	}
 
 	@Override
-	public void playSoundFromEntity(@Nullable PlayerEntity source, Entity entity, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {
+	public void playSoundFromEntity(@Nullable Entity source, Entity entity, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {
 		world.playSoundFromEntity(source, entity, sound, category, volume, pitch, seed);
 	}
 
@@ -464,7 +463,8 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 				persistentStorage = new NbtCompound();
 			}
 			persistentStateManager = new CutscenePersistentStateManager(
-					null, getServer().getDataFixer(), getRegistryManager(), () -> persistentStorage
+					new PersistentState.Context(this), null,
+					getServer().getDataFixer(), getRegistryManager(), () -> persistentStorage
 			);
 		}
 		return persistentStateManager;
@@ -567,7 +567,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	@Override
-	public void syncWorldEvent(@Nullable PlayerEntity player, int eventId, BlockPos pos, int data) {
+	public void syncWorldEvent(@Nullable Entity player, int eventId, BlockPos pos, int data) {
 		world.syncWorldEvent(player, eventId, pos, data);
 	}
 

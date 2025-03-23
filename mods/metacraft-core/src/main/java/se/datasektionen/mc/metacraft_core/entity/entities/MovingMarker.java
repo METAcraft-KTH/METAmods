@@ -70,8 +70,8 @@ public class MovingMarker extends MarkerEntity implements PolymerEntity {
 			path = null;
 		}
 
-		pathTime = nbt.getInt(PATH_TIME);
-		pathProgress = nbt.getInt(PATH_PROGRESS);
+		pathTime = nbt.getInt(PATH_TIME, 100);
+		pathProgress = nbt.getInt(PATH_PROGRESS, 0);
 	}
 
 	@Override

@@ -19,7 +19,7 @@
 		"MixinHopperBlockEntity",
 		"MixinItemEntity",
 		"MixinItemFrameEntity",
-		"MixinMobEntity",
+		"MixinLivingEntity",
 		"MixinPlayerInventory",
 		"MixinSchema3818",
 		"MixinSchema3818_3",

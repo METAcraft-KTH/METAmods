@@ -24,7 +24,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.dynamic.Codecs;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Type;
-import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.simplecustomfeatures.Features;
 import se.datasektionen.mc.simplecustomfeatures.FeaturesConfig;
 import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorItem;
@@ -139,10 +138,6 @@ public record SimpleItem(
 		addSupportedArgumentType(Identifier.class, Identifier.ofVanilla("identifier"), Identifier.CODEC);
 		addSupportedArgumentType(EquipmentType.class, Identifier.ofVanilla("equipment_type"), EquipmentType.CODEC);
 		addSupportedArgumentType(Text.class, Identifier.ofVanilla("text"), TextCodecs.CODEC);
-		addSupportedArgumentType(
-				AnimalArmorItem.Type.class, Identifier.ofVanilla("animal_armor_item_type"),
-				ExtraCodecs.enumCodec(AnimalArmorItem.Type.class, true)
-		);
 		Registries.REGISTRIES.forEach(registry -> {
 			registry.streamEntries().forEach(entry -> {
 				if (!SUPPORTED_TYPES.containsKey(entry.value().getClass())) {

@@ -41,9 +41,10 @@ public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
 			WorldGenerationProgressListener worldGenerationProgressListener,
 			ChunkStatusChangeListener chunkStatusChangeListener,
 			Supplier<PersistentStateManager> persistentStateManagerFactory,
+			ChunkTicketManager ticketManager,
 			int viewDistance, boolean dsync
 	) {
-		super(cutsceneWorld.getActualWorld(), session, dataFixer, structureTemplateManager, executor, mainThreadExecutor, chunkProvider, chunkGenerator, worldGenerationProgressListener, chunkStatusChangeListener, persistentStateManagerFactory, viewDistance, dsync);
+		super(cutsceneWorld.getActualWorld(), session, dataFixer, structureTemplateManager, executor, mainThreadExecutor, chunkProvider, chunkGenerator, worldGenerationProgressListener, chunkStatusChangeListener, persistentStateManagerFactory, ticketManager, viewDistance, dsync);
 		this.cutsceneWorld = cutsceneWorld;
 		((AccessorServerChunkLoadingManager) this).setLightingProvider(
 				new CutsceneLightingProvider(
@@ -53,8 +54,8 @@ public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
 						((AccessorServerChunkLoadingManager) this).getLightScheduler()
 				)
 		);
-		((AccessorServerChunkLoadingManager) this).setTicketManager(
-				new TicketManager(mainThreadExecutor, executor) {
+		((AccessorServerChunkLoadingManager) this).setLevelManager(
+				new LevelManager(ticketManager, mainThreadExecutor, executor) {
 
 					@Override
 					protected ChunkHolder setLevel(long pos, int level, @Nullable ChunkHolder holder, int i) {

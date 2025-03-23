@@ -30,8 +30,6 @@ import java.util.function.Consumer;
 @Mixin(EntityTrackerEntry.class)
 public abstract class MixinEntityTrackerEntry {
 
-	@Shadow @Final private Consumer<Packet<?>> receiver;
-
 	@Shadow @Final private Entity entity;
 
 	@Shadow private int trackingTick;
@@ -39,6 +37,8 @@ public abstract class MixinEntityTrackerEntry {
 	@Shadow @Final private int tickInterval;
 
 	@Shadow protected abstract void syncEntityData();
+
+	@Shadow @Final private Consumer<Packet<?>> watchingSender;
 
 	@ModifyExpressionValue(
 		method = "tick",
@@ -72,8 +72,8 @@ public abstract class MixinEntityTrackerEntry {
 			float yaw = this.entity.getYaw();
 			float pitch = this.entity.getPitch();
 			var data = (MinecartExtensions) minecart;
-			double xDist = minecart.prevX - minecart.getX();
-			double zDist = minecart.prevZ - minecart.getZ();
+			double xDist = minecart.lastX - minecart.getX();
+			double zDist = minecart.lastZ - minecart.getZ();
 			boolean yawUpdate = xDist * xDist + zDist * zDist > 0.001;
 			if (railState.getBlock() instanceof AbstractRailBlock railBlock) {
 				var railShape = railState.get(railBlock.getShapeProperty());
@@ -115,7 +115,7 @@ public abstract class MixinEntityTrackerEntry {
 				}
 			}
 			if (this.entity.getVelocity().horizontalLengthSquared() > 1.0E-7 || yawUpdate || this.trackingTick % this.tickInterval == 0) {
-				this.receiver.accept(
+				this.watchingSender.accept(
 						new MoveMinecartAlongTrackS2CPacket(
 								this.entity.getId(),
 								List.of(

@@ -1,104 +1,77 @@
 package se.datasektionen.mc.metacraft_core.util;
 
-import net.minecraft.nbt.NbtCompound;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 
+import java.util.Optional;
+
 public class METAcraftCoreData extends PersistentState {
-	private static final String KEY = METAcraftCore.NAMESPACE + "-core-data";
-	public static final String FORCED_RESPAWN_WORLD = "forcedRespawnWorld";
-	public static final String FORCED_RESPAWN_X = "forcedRespawnX";
-	public static final String FORCED_RESPAWN_Y = "forcedRespawnY";
-	public static final String FORCED_RESPAWN_Z = "forcedRespawnZ";
-	public static final String FORCED_RESPAWN_ANGLE = "forcedRespawnAngle";
 
-	private boolean disableArmorDamage = false;
-	@Nullable
-	private RegistryKey<World> forcedRespawnWorld;
-	@Nullable
-	private Vec3d forcedRespawnPos;
-	private float forcedRespawnAngle;
+	public static final Codec<METAcraftCoreData> CODEC = RecordCodecBuilder.create(
+			instance -> instance.group(
+					SpawnPos.CODEC.optionalFieldOf("forced_respawn").forGetter(t -> t.forcedRespawn)
+			).apply(instance, METAcraftCoreData::new)
+	);
 
-	public METAcraftCoreData(MinecraftServer server) {
+	private Optional<SpawnPos> forcedRespawn;
+
+	public METAcraftCoreData(
+			Optional<SpawnPos> forcedRespawn
+	) {
+		this.forcedRespawn = forcedRespawn;
 	}
 
-	private static PersistentState.Type<METAcraftCoreData> getType(MinecraftServer server) {
-		return new Type<>(() -> new METAcraftCoreData(server), (nbt, lookup) -> fromNBT(server, nbt), null);
+	public METAcraftCoreData() {
+		this(Optional.empty());
 	}
 
-	private static METAcraftCoreData fromNBT(MinecraftServer server, NbtCompound nbt) {
-		var data = new METAcraftCoreData(server);
-		data.readNBT(nbt);
-		return data;
-	}
+	private static final PersistentStateType<METAcraftCoreData> TYPE = new PersistentStateType<>(
+			METAcraftCore.NAMESPACE + "-core-data", METAcraftCoreData::new, CODEC, null
+	);
 
 	public static METAcraftCoreData getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(getType(server), KEY);
-	}
-	@Override
-	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		if (this.forcedRespawnWorld != null) {
-			nbt.putString(FORCED_RESPAWN_WORLD, this.forcedRespawnWorld.getValue().toString());
-		}
-		if (this.forcedRespawnPos != null) {
-			nbt.putDouble(FORCED_RESPAWN_X, this.forcedRespawnPos.getX());
-			nbt.putDouble(FORCED_RESPAWN_Y, this.forcedRespawnPos.getY());
-			nbt.putDouble(FORCED_RESPAWN_Z, this.forcedRespawnPos.getZ());
-		}
-		nbt.putFloat(FORCED_RESPAWN_ANGLE, forcedRespawnAngle);
-		return nbt;
-	}
-
-	private void readNBT(NbtCompound nbt) {
-		if (nbt.contains(FORCED_RESPAWN_WORLD)) {
-			Identifier worldIdentifier = Identifier.tryParse(nbt.getString(FORCED_RESPAWN_WORLD));
-			if (worldIdentifier != null) {
-				this.forcedRespawnWorld = RegistryKey.of(RegistryKeys.WORLD, worldIdentifier);
-			}
-		}
-		if (nbt.contains(FORCED_RESPAWN_X) && nbt.contains(FORCED_RESPAWN_Y) && nbt.contains(FORCED_RESPAWN_Z)) {
-			this.forcedRespawnPos = new Vec3d(
-					nbt.getDouble(FORCED_RESPAWN_X),
-					nbt.getDouble(FORCED_RESPAWN_Y),
-					nbt.getDouble(FORCED_RESPAWN_Z)
-			);
-		}
-		this.forcedRespawnAngle = nbt.getFloat(FORCED_RESPAWN_ANGLE);
+		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
 	}
 
 	@Nullable
 	public RegistryKey<World> getForcedRespawnWorld() {
-		return this.forcedRespawnWorld;
+		return this.forcedRespawn.map(SpawnPos::world).orElse(null);
 	}
 
 	@Nullable
 	public Vec3d getForcedRespawnPos() {
-		return this.forcedRespawnPos;
+		return this.forcedRespawn.map(SpawnPos::pos).orElse(null);
 	}
 
 	public float getForcedRespawnAngle() {
-		return forcedRespawnAngle;
+		return this.forcedRespawn.map(SpawnPos::angle).orElse(0.0f);
 	}
 
 	public void setForcedRespawn(RegistryKey<World> world, Vec3d pos, float angle) {
-		this.forcedRespawnWorld = world;
-		this.forcedRespawnPos = pos;
-		this.forcedRespawnAngle = angle;
+		this.forcedRespawn = Optional.of(new SpawnPos(pos, world, angle));
 		this.markDirty();
 	}
 
 	public void unsetForcedRespawn() {
-		this.forcedRespawnWorld = null;
-		this.forcedRespawnPos = null;
-		this.forcedRespawnAngle = 0;
+		this.forcedRespawn = Optional.empty();
 		this.markDirty();
+	}
+
+	public record SpawnPos(Vec3d pos, RegistryKey<World> world, float angle) {
+		public static final Codec<SpawnPos> CODEC = RecordCodecBuilder.create(
+				instance -> instance.group(
+						Vec3d.CODEC.fieldOf("pos").forGetter(SpawnPos::pos),
+						World.CODEC.fieldOf("dimension").forGetter(SpawnPos::world),
+						Codec.FLOAT.fieldOf("angle").forGetter(SpawnPos::angle)
+				).apply(instance, SpawnPos::new)
+		);
 	}
 }

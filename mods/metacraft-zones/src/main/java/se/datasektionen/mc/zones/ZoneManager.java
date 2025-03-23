@@ -1,12 +1,12 @@
 package se.datasektionen.mc.zones;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.zones.compat.leukocyte.LeukocyteZoneManager;
@@ -24,11 +24,8 @@ public class ZoneManager extends PersistentState {
 
 	private static boolean loading = false;
 
-	private static final String stateKey = "metacraft-zones";
-	private static final String zonesKey = "zones";
-
 	public static ZoneManager getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(getType(server), stateKey);
+		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
 	}
 
 	public static Optional<ZoneManager> getInstanceNoStackOverflow(MinecraftServer server) {
@@ -38,9 +35,16 @@ public class ZoneManager extends PersistentState {
 		return Optional.of(getInstance(server));
 	}
 
-	private static PersistentState.Type<ZoneManager> getType(MinecraftServer server) {
-		return new Type<>(
-				() -> createNew(server), (nbt, lookup) -> fromNbt(server, nbt, lookup), null
+	private static final PersistentStateType<ZoneManager> TYPE = new PersistentStateType<>(
+			"metacraft-zones", ctx -> createNew(ctx.getWorldOrThrow().getServer()),
+			ctx -> createCodec(ctx.getWorldOrThrow().getServer()), null
+	);
+
+	private static Codec<ZoneManager> createCodec(MinecraftServer server) {
+		return RecordCodecBuilder.create(
+				instance -> instance.group(
+						RealZone.SerializedZone.CODEC.listOf().fieldOf("zones").forGetter(t -> t.zones.serialize())
+				).apply(instance, (zones) -> ZoneManager.fromData(server, zones))
 		);
 	}
 
@@ -49,11 +53,11 @@ public class ZoneManager extends PersistentState {
 		return new ZoneManager(server);
 	}
 
-	private static ZoneManager fromNbt(MinecraftServer server, NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
+	private static ZoneManager fromData(MinecraftServer server, List<RealZone.SerializedZone> zones) {
 		loading = true;
 		METAcraftZones.LOGGER.info("Previous state found, loading values");
 		ZoneManager settings = new ZoneManager(server);
-		settings.readNbt(tag, lookup);
+		settings.zones.deserialize(server, zones);
 		loading = false;
 		return settings;
 	}
@@ -142,15 +146,6 @@ public class ZoneManager extends PersistentState {
 		return zones.containsZone(name);
 	}
 
-	public void readNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
-		zones.readNBT(server, lookup, tag.getList(zonesKey, NbtElement.COMPOUND_TYPE));
-	}
-
-	@Override
-	public NbtCompound writeNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
-		tag.put(zonesKey, zones.writeNBT());
-		return tag;
-	}
 
 	public void fixLeukocyteLoading() {
 		zones.fixLeukocyteLoading();

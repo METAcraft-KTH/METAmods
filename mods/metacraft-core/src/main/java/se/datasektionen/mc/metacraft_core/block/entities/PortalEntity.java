@@ -12,7 +12,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.ContainerLock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryWrapper;
@@ -158,22 +157,14 @@ public class PortalEntity extends BlockEntity {
 	@Override
 	public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapperLookup) {
 		super.readNbt(nbt, wrapperLookup);
-		if (nbt.contains(TARGET)) {
-			target = PortalTargetRegistry.CODEC.parse(
-					wrapperLookup.getOps(NbtOps.INSTANCE), nbt.get(TARGET)
-			).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).orElse(EmptyPortalTarget.getInstance());
-		} else {
-			target = EmptyPortalTarget.getInstance();
-		}
+		target = nbt.get(
+				TARGET, PortalTargetRegistry.CODEC, wrapperLookup.getOps(NbtOps.INSTANCE)
+		).orElse(EmptyPortalTarget.getInstance());
 		if (nbt.contains(TARGET_POS)) {
 			RegistryKey<World> targetDim = null;
-			var targetPos = NbtHelper.toBlockPos(nbt, TARGET_POS).orElse(null);
+			var targetPos = nbt.get(TARGET_POS, BlockPos.CODEC).orElse(null);
 			if (nbt.contains(TARGET_DIM)) {
-				targetDim = World.CODEC.parse(NbtOps.INSTANCE, nbt.get(TARGET_DIM)).resultOrPartial(
-						METAcraftCore.LOGGER::error
-				).orElse(null);
+				targetDim = nbt.get(TARGET_DIM, World.CODEC).orElse(null);
 			}
 			try {
 				target = FixedPortalTarget.create(targetDim, targetPos);
@@ -184,15 +175,14 @@ public class PortalEntity extends BlockEntity {
 			}
 		}
 		if (nbt.contains(PORTAL_FACING)) {
-			portalFacing = ExtraCodecs.ORIENTATION_CODEC.parse(NbtOps.INSTANCE, nbt.get(PORTAL_FACING)).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).orElse(null);
+			portalFacing = nbt.get(PORTAL_FACING, ExtraCodecs.ORIENTATION_CODEC).orElse(null);
 		} else {
 			portalFacing = null;
 		}
+		shouldTeleport.clear();
 		if (nbt.contains(SHOULD_TELEPORT)) {
-			TeleportPredicate.LIST_CODEC.parse(wrapperLookup.getOps(NbtOps.INSTANCE), nbt.get(SHOULD_TELEPORT)).resultOrPartial(
-					METAcraftCore.LOGGER::error
+			nbt.get(
+					SHOULD_TELEPORT, TeleportPredicate.LIST_CODEC, wrapperLookup.getOps(NbtOps.INSTANCE)
 			).ifPresent(this.shouldTeleport::addAll);
 		}
 		lock = ContainerLock.fromNbt(nbt, wrapperLookup);
@@ -211,27 +201,12 @@ public class PortalEntity extends BlockEntity {
 	public void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapperLookup) {
 		super.writeNbt(nbt, wrapperLookup);
 		if (target != EmptyPortalTarget.getInstance()) {
-			PortalTargetRegistry.CODEC.encodeStart(
-					wrapperLookup.getOps(NbtOps.INSTANCE), target
-			).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(target -> {
-				nbt.put(TARGET, target);
-			});
+			nbt.put(TARGET, PortalTargetRegistry.CODEC, wrapperLookup.getOps(NbtOps.INSTANCE), target);
 		}
 		if (portalFacing != null) {
-			ExtraCodecs.ORIENTATION_CODEC.encodeStart(NbtOps.INSTANCE, portalFacing).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(facing -> {
-				nbt.put(PORTAL_FACING, facing);
-			});
+			nbt.put(PORTAL_FACING, ExtraCodecs.ORIENTATION_CODEC, portalFacing);
 		}
-
-		TeleportPredicate.LIST_CODEC.encodeStart(wrapperLookup.getOps(NbtOps.INSTANCE), shouldTeleport).resultOrPartial(
-				METAcraftCore.LOGGER::error
-		).ifPresent(shouldTeleport -> {
-			nbt.put(SHOULD_TELEPORT, shouldTeleport);
-		});
+		nbt.put(SHOULD_TELEPORT, TeleportPredicate.LIST_CODEC, wrapperLookup.getOps(NbtOps.INSTANCE), shouldTeleport);
 
 		lock.writeNbt(nbt, wrapperLookup);
 	}
@@ -547,9 +522,9 @@ public class PortalEntity extends BlockEntity {
 			return;
 		}
 		if (portalFacing != null) {
-			var x = Math.max(entityBox.getLengthX() - box.getLengthX(), 0) + Math.abs(entity.getX() - entity.prevX);
-			var y = Math.max(entityBox.getLengthY() - box.getLengthY(), 0) + Math.abs(entity.getY() - entity.prevY);
-			var z = Math.max(entityBox.getLengthZ() - box.getLengthZ(), 0) + Math.abs(entity.getZ() - entity.prevZ);
+			var x = Math.max(entityBox.getLengthX() - box.getLengthX(), 0) + Math.abs(entity.getX() - entity.lastX);
+			var y = Math.max(entityBox.getLengthY() - box.getLengthY(), 0) + Math.abs(entity.getY() - entity.lastY);
+			var z = Math.max(entityBox.getLengthZ() - box.getLengthZ(), 0) + Math.abs(entity.getZ() - entity.lastZ);
 			box = box.stretch(
 					x * portalFacing.getFacing().getOffsetX(),
 					y * portalFacing.getFacing().getOffsetY(),
@@ -615,7 +590,7 @@ public class PortalEntity extends BlockEntity {
 					//Find position to place the player on other portal.
 					var sourceBox = getBoundingBox();
 					var targetBox = portal.getBoundingBox();
-					Vec3d entityMovement = entity.getPos().subtract(entity.prevX, entity.prevY, entity.prevZ);
+					Vec3d entityMovement = entity.getPos().subtract(entity.lastX, entity.lastY, entity.lastZ);
 					if (entity.getVelocity().length() > entityMovement.length()) {
 						entityMovement = entity.getVelocity();
 					}

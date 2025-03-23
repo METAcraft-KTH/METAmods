@@ -1,33 +1,37 @@
 package se.datasektionen.mc.metacraft_weather.rainseason;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryWrapper;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 
 public class RainSeasonState extends PersistentState {
-    private static final String KEY = "rain-season";
 
     private boolean isRainSeason;
     private double rainPercentage = 0.5;
 
-    private static PersistentState.Type<RainSeasonState> getType() {
-        return new Type<>(
-            RainSeasonState::new, RainSeasonState::fromNbt, null
-        );
-    }
+    public static final Codec<RainSeasonState> CODEC = RecordCodecBuilder.create(
+            instance -> instance.group(
+                    Codec.BOOL.fieldOf("isRainSeason").forGetter(RainSeasonState::isRainSeason),
+                    Codec.DOUBLE.fieldOf("rainPercentage").forGetter(RainSeasonState::getRainPercentage)
+            ).apply(instance, RainSeasonState::new)
+    );
 
-    private static RainSeasonState fromNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-        RainSeasonState state = new RainSeasonState();
-        state.readNbt(nbt);
-        return state;
-    }
+    private static final PersistentStateType<RainSeasonState> TYPE = new PersistentStateType<>(
+            "rain-season", RainSeasonState::new, CODEC, null
+    );
 
     public static RainSeasonState get(ServerWorld world) {
-        return world.getPersistentStateManager().getOrCreate(getType(), KEY);
+        return world.getPersistentStateManager().getOrCreate(TYPE);
     }
 
     public RainSeasonState() {
+    }
+
+    public RainSeasonState(boolean isRainSeason, double rainPercentage) {
+        this.isRainSeason = isRainSeason;
+        this.rainPercentage = rainPercentage;
     }
 
     public boolean isRainSeason() {
@@ -46,17 +50,5 @@ public class RainSeasonState extends PersistentState {
     public void setRainPercentage(double rainPercentage) {
         this.rainPercentage = rainPercentage;
         this.markDirty();
-    }
-
-    public void readNbt(NbtCompound nbt) {
-        this.isRainSeason = nbt.getBoolean("isRainSeason");
-        this.rainPercentage = nbt.getDouble("rainPercentage");
-    }
-
-    @Override
-    public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-        nbt.putBoolean("isRainSeason", this.isRainSeason);
-        nbt.putDouble("rainPercentage", this.rainPercentage);
-        return nbt;
     }
 }

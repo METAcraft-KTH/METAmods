@@ -97,33 +97,37 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Mo
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
-		NbtCompound moderationNBT = nbt.getCompound(METACRAFT_MODERATION);
+		NbtCompound moderationNBT = nbt.getCompoundOrEmpty(METACRAFT_MODERATION);
 		if (moderationNBT.contains(MODERATION_STATE) && !skipSaveState) {
-			state = ModerationModeState.createFromNBT(ModerationData.getInstance(server), moderationNBT.getCompound(MODERATION_STATE));
-			state.updatePlayer((ServerPlayerEntity) (Object) this);
+			moderationNBT.getCompound(MODERATION_STATE).ifPresent(
+					data -> {
+						state = ModerationModeState.createFromNBT(ModerationData.getInstance(server), data);
+						state.updatePlayer((ServerPlayerEntity) (Object) this);
 
-			//TODO Remove these before season 5, they are purely for backwards compatibility.
-			if (!nbt.contains(PlayerDataHelper.STAT_HANDLER) && state.getDef().shouldHaveSeparatePlayerData()) {
-				PlayerDataHelper.setStatHandler((ServerPlayerEntity) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
-			}
-			if (!nbt.contains(PlayerDataHelper.ADVANCEMENT_TRACKER) && state.getDef().shouldHaveSeparatePlayerData()) {
-				PlayerDataHelper.setAdvancementTracker((ServerPlayerEntity) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
-			}
-			if (!nbt.contains(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS) && !state.getDef().announceAdvancements()) {
-				PlayerDataHelper.setAnnounceAdvancements((ServerPlayerEntity) (Object) this, false);
-			}
+						//TODO Remove these before season 5, they are purely for backwards compatibility.
+						if (!nbt.contains(PlayerDataHelper.STAT_HANDLER) && state.getDef().shouldHaveSeparatePlayerData()) {
+							PlayerDataHelper.setStatHandler((ServerPlayerEntity) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
+						}
+						if (!nbt.contains(PlayerDataHelper.ADVANCEMENT_TRACKER) && state.getDef().shouldHaveSeparatePlayerData()) {
+							PlayerDataHelper.setAdvancementTracker((ServerPlayerEntity) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
+						}
+						if (!nbt.contains(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS) && !state.getDef().announceAdvancements()) {
+							PlayerDataHelper.setAnnounceAdvancements((ServerPlayerEntity) (Object) this, false);
+						}
+					}
+			);
 		}
-		if (moderationNBT.contains(DEFAULT_MODERATOR_MODE)) {
-			defaultModeratorMode = moderationNBT.getString(DEFAULT_MODERATOR_MODE).toLowerCase(Locale.ROOT);
-		} else {
-			defaultModeratorMode = null;
-		}
+		defaultModeratorMode = moderationNBT.getString(DEFAULT_MODERATOR_MODE).map(
+				mode -> mode.toLowerCase(Locale.ROOT)
+		).orElse(null);
 
 		if (moderationNBT.contains(MODERATOR_MODE_NBT_MAP) && !skipSaveState) {
 			savedNBT.clear();
-			NbtCompound moderatorModeNBTMap = moderationNBT.getCompound(MODERATOR_MODE_NBT_MAP);
+			NbtCompound moderatorModeNBTMap = moderationNBT.getCompoundOrEmpty(MODERATOR_MODE_NBT_MAP);
 			for (String key : moderatorModeNBTMap.getKeys()) {
-				savedNBT.put(key.toLowerCase(Locale.ROOT), moderatorModeNBTMap.getCompound(key));
+				moderatorModeNBTMap.getCompound(key).ifPresent(
+						data -> savedNBT.put(key.toLowerCase(Locale.ROOT), data)
+				);
 			}
 		}
 	}

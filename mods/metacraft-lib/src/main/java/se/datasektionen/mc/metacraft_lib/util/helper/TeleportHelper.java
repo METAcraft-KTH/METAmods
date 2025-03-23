@@ -11,6 +11,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.*;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
+import se.datasektionen.mc.metacraft_lib.METAcraftTickets;
 import se.datasektionen.mc.metacraft_lib.METAcraftLibTags;
 import se.datasektionen.mc.metacraft_lib.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
@@ -19,9 +20,7 @@ import java.util.*;
 
 public class TeleportHelper {
 
-	public static final ChunkTicketType<ChunkPos> TELEPORT_MOB_SOON = ChunkTicketType.create(
-			"teleport_mob_soon", Comparator.comparingLong(ChunkPos::toLong), 1
-	);
+	public static final ChunkTicketType TELEPORT_MOB_SOON = METAcraftTickets.TELEPORT_MOB_SOON;
 
 	//Fix for players not being rotated properly and console spam when riding on vehicle while teleporting.
 	public static Entity teleportEntity(Entity entity, TeleportTarget target) {

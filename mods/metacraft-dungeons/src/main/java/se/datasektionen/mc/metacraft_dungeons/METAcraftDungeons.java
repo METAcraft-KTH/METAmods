@@ -20,6 +20,7 @@ public class METAcraftDungeons implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		DungeonTickets.init();
 		DungeonBlocks.init();
 		DungeonsBlockEntities.init();
 		Commands.init();

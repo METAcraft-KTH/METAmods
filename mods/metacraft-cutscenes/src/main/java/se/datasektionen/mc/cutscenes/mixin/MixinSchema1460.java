@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.cutscenes.CutsceneDataFixer;
+import se.datasektionen.mc.cutscenes.cutscene.MultiplayerCutsceneManager;
 
 import java.util.Map;
 import java.util.function.Supplier;
@@ -78,10 +79,10 @@ public class MixinSchema1460 {
 				false, CutsceneDataFixer.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER,
 				() -> DSL.optionalFields(
 						"data", DSL.optionalFields(
-								"cutscenes", DSL.compoundList(
+								MultiplayerCutsceneManager.CUTSCENES, DSL.compoundList(
 										CutsceneDataFixer.CUTSCENE.in(schema)
 								),
-								"offline-players", DSL.compoundList(
+								MultiplayerCutsceneManager.OFFLINE_PLAYERS_KEY, DSL.compoundList(
 										CutsceneDataFixer.CUTSCENE.in(schema)
 								)
 						)

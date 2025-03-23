@@ -43,7 +43,7 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 		if (world.getGameRules().getBoolean(GameRules.DO_MOB_SPAWNING)) {
 			var spawns = portal.getEntitySpawns().get(world.getRegistryKey());
 			if (spawns != null && random.nextDouble() <= spawns.spawnChance()) {
-				spawns.entities().getDataOrEmpty(random).ifPresent(entityData -> {
+				spawns.entities().getOrEmpty(random).ifPresent(entityData -> {
 					var spawnPos = new BlockPos.Mutable().set(pos);
 					var type = EntityType.fromNbt(entityData).orElse(null);
 					if (SpawnRestriction.getLocation(type) != SpawnLocationTypes.UNRESTRICTED) {

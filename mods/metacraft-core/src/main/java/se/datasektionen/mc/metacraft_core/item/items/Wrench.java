@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_core.item.items;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -24,6 +25,7 @@ import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.ColorHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.extensions.BlockEntityExtensions;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_core.util.helper.PlayerInventoryHelper;
@@ -37,7 +39,7 @@ public class Wrench extends Item implements PolymerItem {
 			ColorHelper.fromFloats(1, 1, 0, 0), 1
 	);
 
-	public Wrench(Settings settings) {
+	public Wrench(net.minecraft.item.Item.Settings settings) {
 		super(settings);
 	}
 
@@ -180,9 +182,9 @@ public class Wrench extends Item implements PolymerItem {
 	private static final int SCAN_RADIUS = 10;
 
 	@Override
-	public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected) {
-		super.inventoryTick(stack, world, entity, slot, selected); //selected is false in offhand.
-		if (entity instanceof ServerPlayerEntity player && entity.isSneaking() && PlayerInventoryHelper.isSelected(player, slot)) {
+	public void inventoryTick(ItemStack stack, ServerWorld world, Entity entity, @Nullable EquipmentSlot slot) {
+		super.inventoryTick(stack, world, entity, slot); //selected is false in offhand.
+		if (entity instanceof ServerPlayerEntity player && entity.isSneaking() && slot != null && slot.getType() == EquipmentSlot.Type.HAND) {
 			int minX = ChunkSectionPos.getSectionCoord(player.getBlockX() - SCAN_RADIUS);
 			int minZ = ChunkSectionPos.getSectionCoord(player.getBlockZ() - SCAN_RADIUS);
 			int maxX = ChunkSectionPos.getSectionCoord(player.getBlockX() + SCAN_RADIUS);

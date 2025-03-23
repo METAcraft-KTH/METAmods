@@ -1,9 +1,9 @@
 package se.datasektionen.mc.portable_jukebox.mixin;
 
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -12,11 +12,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.portable_jukebox.entity.PortableJukeboxEntity;
 
-@Mixin(MobEntity.class)
-public abstract class MixinMobEntity extends LivingEntity {
-	protected MixinMobEntity(EntityType<? extends LivingEntity> entityType, World world) {
-		super(entityType, world);
+@Mixin(LivingEntity.class)
+public abstract class MixinLivingEntity extends Entity {
+
+
+	public MixinLivingEntity(EntityType<?> type, World world) {
+		super(type, world);
 	}
+
 	@Inject(
 			method = "equipStack",
 			at = @At("HEAD")

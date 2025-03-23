@@ -6,7 +6,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.structure.StructurePiece;
 import net.minecraft.util.StringIdentifiable;
-import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
@@ -20,7 +20,7 @@ import java.util.Map;
 public class MusicPlayer extends DataBlock {
 
 	protected String selectedMusicTrack;
-	protected Map<String, DataPool<MusicEntry>> musicTracks;
+	protected Map<String, Pool<MusicEntry>> musicTracks;
 	protected Either<Either<Double, Box>, CalculatedArea> area;
 
 	public static final MapCodec<MusicPlayer> CODEC = RecordCodecBuilder.mapCodec(
@@ -37,7 +37,7 @@ public class MusicPlayer extends DataBlock {
 
 	public MusicPlayer(
 			String selectedMusicTrack,
-			Map<String, DataPool<MusicEntry>> musicTracks,
+			Map<String, Pool<MusicEntry>> musicTracks,
 			Either<Either<Double, Box>, CalculatedArea> area
 	) {
 		this.selectedMusicTrack = selectedMusicTrack;

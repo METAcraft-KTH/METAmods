@@ -3,7 +3,6 @@ package se.datasektionen.mc.metacraft_core.mixin;
 import net.minecraft.component.EnchantmentEffectComponentTypes;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
@@ -24,8 +23,6 @@ import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 public abstract class MixinPlayerEntity extends LivingEntity {
 
 	@Shadow public abstract PlayerInventory getInventory();
-
-	@Shadow public abstract ItemEntity dropItem(ItemStack stack, boolean throwRandomly, boolean retainOwnership);
 
 	protected MixinPlayerEntity(EntityType<? extends LivingEntity> entityType, World world) {
 		super(entityType, world);

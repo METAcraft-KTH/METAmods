@@ -3,45 +3,54 @@ package se.datasektionen.mc.loot_containers.containers;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.inventory.Inventory;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 import net.minecraft.world.World;
+import org.apache.logging.log4j.util.TriConsumer;
 import se.datasektionen.mc.loot_containers.METAcraftLootContainers;
 import se.datasektionen.mc.loot_containers.containers.events.LootContainerEvent;
 import se.datasektionen.mc.loot_containers.util.EntityOrBlockEntity;
 import se.datasektionen.mc.loot_containers.util.PosOrUUID;
+import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class LootContainerData extends PersistentState {
 
-	private static final String key = METAcraftLootContainers.MODID;
+	private static final PersistentStateType<LootContainerData> TYPE = new PersistentStateType<>(
+			METAcraftLootContainers.MODID, ctx -> create(ctx.getWorldOrThrow().getServer()),
+			ctx -> createCodec(ctx.getWorldOrThrow().getServer()), null
+	);
 
-	private static final String CONTAINERS = "Containers";
-	private static final String EVENTS = "Events";
-
-
-	private static Type<LootContainerData> getType(MinecraftServer server) {
-		return new Type<>(
-				() -> create(server), (nbt, lookup) -> load(server, nbt, lookup), null
+	private static Codec<LootContainerData> createCodec(MinecraftServer server) {
+		return RecordCodecBuilder.create(
+				instance -> instance.group(
+						Codec.unboundedMap(Codec.STRING, SerializedLootContainers.CODEC).fieldOf("Containers").forGetter(
+								d -> d.containerGroups.entrySet().stream().map(
+										e -> Pair.of(e.getKey(), e.getValue().serialize())
+								).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond))
+						),
+						ExtraCodecs.unboundedMultimap(
+								Codec.STRING, LootContainerEvent.REGISTRY_CODEC,
+								MultimapBuilder.hashKeys().arrayListValues()::build
+						).fieldOf("Events").forGetter(d -> d.containerEvents)
+				).apply(instance, create(server)::load)
 		);
 	}
 
-
 	public static LootContainerData getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(getType(server), key);
+		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
 	}
 
 	private final Map<String, LootContainers> containerGroups = new HashMap<>();
@@ -57,14 +66,21 @@ public class LootContainerData extends PersistentState {
 		return new LootContainerData(server);
 	}
 
-	private static LootContainerData load(MinecraftServer server, NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		var data = new LootContainerData(server);
-		data.readNBT(nbt, lookup);
-		return data;
+	private LootContainerData load(
+			Map<String, SerializedLootContainers> containerGroups,
+			Multimap<String, LootContainerEvent> containerEvents
+	) {
+		containerGroups.forEach(
+				(group, containers) -> {
+					this.containerGroups.put(group, new LootContainers(server, this::markDirty).deserialize(containers));
+				}
+		);
+		containerEvents.forEach(this::addEventInternal);
+		return this;
 	}
 
 	private LootContainers get(String group) {
-		return containerGroups.computeIfAbsent(group, key -> new LootContainers());
+		return containerGroups.computeIfAbsent(group, key -> new LootContainers(server, this::markDirty));
 	}
 
 	private void addEventInternal(String group, LootContainerEvent event) {
@@ -179,47 +195,6 @@ public class LootContainerData extends PersistentState {
 		return get(group).getAllLootContainers();
 	}
 
-	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		this.containerGroups.clear();
-		this.containerEvents.clear();
-		NbtCompound containers = nbt.getCompound(CONTAINERS);
-		for (var key : containers.getKeys()) {
-			get(key).readNBT(containers.getCompound(key));
-		}
-		NbtCompound events = nbt.getCompound(EVENTS);
-		for (var group : events.getKeys()) {
-			NbtList eventsForGroup = events.getList(group, NbtElement.COMPOUND_TYPE);
-			for (var event : eventsForGroup) {
-				LootContainerEvent.REGISTRY_CODEC.parse(NbtOps.INSTANCE, event).resultOrPartial(
-						METAcraftLootContainers.LOGGER::error
-				).ifPresent(e -> addEventInternal(group, e));
-			}
-		}
-	}
-
-	@Override
-	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		NbtCompound containers = new NbtCompound();
-		for (var container : containerGroups.entrySet()) {
-			containers.put(container.getKey(), container.getValue().writeNbt(new NbtCompound()));
-		}
-		nbt.put(CONTAINERS, containers);
-
-		NbtCompound events = new NbtCompound();
-		for (var group : containerEvents.keySet()) {
-			NbtList list = new NbtList();
-			containerEvents.get(group).forEach(event -> {
-				LootContainerEvent.REGISTRY_CODEC.encodeStart(NbtOps.INSTANCE, event).resultOrPartial(
-						METAcraftLootContainers.LOGGER::error
-				).ifPresent(list::add);
-			});
-			events.put(group, list);
-		}
-		nbt.put(EVENTS, events);
-
-		return nbt;
-	}
-
 	public void tick() {
 		containerGroups.values().removeIf(group -> {
 			group.runAllTickers();
@@ -231,41 +206,62 @@ public class LootContainerData extends PersistentState {
 		});
 	}
 
-	public class LootContainers {
+	public static class LootContainers {
 
-		private static final String BLOCKS = "Blocks";
-		private static final String ENTITIES = "Entities";
+		public static final Codec<BlockPos> POS_CODEC = BlockPos.CODEC;
+		public static final Codec<UUID> UUID_CODEC = Uuids.STRICT_CODEC;
 
 		private final LootContainerMap<BlockPos> blocks;
 		private final LootContainerMap<UUID> entities;
 
-		public LootContainers() {
-			this.blocks = new LootContainerMap<>(
-				BlockPos.CODEC, (dim, pos, container) -> {
-					var world = server.getWorld(dim);
-					container.initialise(world, () -> {
-						var blockEntity = world.getBlockEntity(pos);
-						if (blockEntity instanceof Inventory) {
-							return Optional.of(LootAccess.block((BlockEntity & Inventory) blockEntity));
-						} else {
-							return Optional.empty();
-						}
-					}, new PosOrUUID(pos), LootContainerData.this::markDirty);
-				}
+		private static TriConsumer<RegistryKey<World>, BlockPos, LootContainer> getBlockPosContainerInitializer(
+				MinecraftServer server, Runnable markDirty
+		) {
+			return (dim, pos, container) -> {
+				var world = server.getWorld(dim);
+				container.initialise(world, () -> {
+					var blockEntity = world.getBlockEntity(pos);
+					if (blockEntity instanceof Inventory) {
+						return Optional.of(LootAccess.block((BlockEntity & Inventory) blockEntity));
+					} else {
+						return Optional.empty();
+					}
+				}, new PosOrUUID(pos), markDirty);
+			};
+		}
+
+		private static TriConsumer<RegistryKey<World>, UUID, LootContainer> getEntityContainerInitializer(
+				MinecraftServer server, Runnable markDirty
+		) {
+			return (dim, uuid, container) -> {
+				var world = server.getWorld(dim);
+				container.initialise(world, () -> {
+					var entity = world.getEntity(uuid);
+					if (entity instanceof Inventory) {
+						return Optional.of(LootAccess.entity((Entity & Inventory) entity));
+					} else {
+						return Optional.empty();
+					}
+				}, new PosOrUUID(uuid), markDirty);
+			};
+		}
+
+		public LootContainers(MinecraftServer server, Runnable markDirty) {
+			this.blocks = new LootContainerMap<>(POS_CODEC, getBlockPosContainerInitializer(server, markDirty));
+			this.entities = new LootContainerMap<>(UUID_CODEC, getEntityContainerInitializer(server, markDirty));
+		}
+
+		public SerializedLootContainers serialize() {
+			return new SerializedLootContainers(
+					blocks.serialize(),
+					entities.serialize()
 			);
-			this.entities = new LootContainerMap<>(
-				Uuids.STRICT_CODEC, (dim, uuid, container) -> {
-					var world = server.getWorld(dim);
-					container.initialise(world, () -> {
-						var entity = world.getEntity(uuid);
-						if (entity instanceof Inventory) {
-							return Optional.of(LootAccess.entity((Entity & Inventory) entity));
-						} else {
-							return Optional.empty();
-						}
-					}, new PosOrUUID(uuid), LootContainerData.this::markDirty);
-				}
-			);
+		}
+
+		public LootContainers deserialize(SerializedLootContainers containers) {
+			blocks.deserializeMap(containers.blocks);
+			entities.deserializeMap(containers.entities);
+			return this;
 		}
 
 		public boolean isEmpty() {
@@ -277,22 +273,23 @@ public class LootContainerData extends PersistentState {
 			entities.runAllTickers();
 		}
 
-		public void readNBT(NbtCompound nbt) {
-			this.blocks.readNBT(nbt.getCompound(BLOCKS));
-			this.entities.readNBT(nbt.getCompound(ENTITIES));
-		}
-
-		public NbtCompound writeNbt(NbtCompound nbt) {
-			nbt.put(BLOCKS, blocks.writeNbt(new NbtCompound()));
-			nbt.put(ENTITIES, entities.writeNbt(new NbtCompound()));
-			return nbt;
-		}
-
 		public Stream<LootContainer> getAllLootContainers() {
 			return Stream.concat(
 					blocks.getLootContainers().stream(),
 					entities.getLootContainers().stream()
 			);
 		}
+	}
+
+	public record SerializedLootContainers(
+			LootContainerMap.SerializedMap<BlockPos> blocks,
+			LootContainerMap.SerializedMap<UUID> entities
+	) {
+		public static final Codec<SerializedLootContainers> CODEC = RecordCodecBuilder.create(
+				instance -> instance.group(
+					LootContainerMap.SerializedMap.createCodec(LootContainers.POS_CODEC).fieldOf("Blocks").forGetter(SerializedLootContainers::blocks),
+					LootContainerMap.SerializedMap.createCodec(LootContainers.UUID_CODEC).fieldOf("Entities").forGetter(SerializedLootContainers::entities)
+				).apply(instance, SerializedLootContainers::new)
+		);
 	}
 }

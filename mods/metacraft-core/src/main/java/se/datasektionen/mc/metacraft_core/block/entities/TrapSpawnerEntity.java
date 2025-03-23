@@ -13,13 +13,12 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.ActionResult;
-import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.intprovider.ConstantIntProvider;
 import net.minecraft.util.math.random.Random;
-import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlockEntities;
 import se.datasektionen.mc.metacraft_lib.util.SoundEffect;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
@@ -36,7 +35,7 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 	private static final String TRIGGER_ON_BREAK = "TriggerOnBreak";
 	private static final String TRIGGER_ON_STEP = "TriggerOnStep";
 
-	private DataPool<EntityHelper.SpawnEntry> entities = DataPool.of(
+	private Pool<EntityHelper.SpawnEntry> entities = Pool.of(
 			new EntityHelper.SpawnEntry(
 					(NbtCompound) JavaOps.INSTANCE.convertTo(
 							NbtOps.INSTANCE, Map.of(
@@ -54,7 +53,7 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 	private boolean triggerOnBreak = true;
 	private boolean triggerOnStep = true;
 
-	private DataPool<SoundEffect> soundEffect = DataPool.of(new SoundEffect(
+	private Pool<SoundEffect> soundEffect = Pool.of(new SoundEffect(
 			Registries.SOUND_EVENT.getEntry(SoundEvents.BLOCK_IRON_DOOR_OPEN),
 			SoundCategory.HOSTILE, 1, 1
 	));
@@ -71,7 +70,7 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 
 	public void spawnEntity(ServerWorld world, Vec3d pos, Random random, Entity target) {
 		for (int i = 0; i < spawnCount; i++) {
-			entities.getDataOrEmpty(random).ifPresent(entity -> {
+			entities.getOrEmpty(random).ifPresent(entity -> {
 				EntityHelper.spawnEntity(
 						entity, e -> true, e -> true, pos,
 						world, random, null, e -> Optional.ofNullable(target)
@@ -83,7 +82,7 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 
 	public void playSound(Random random) {
 		if (world != null) {
-			soundEffect.getDataOrEmpty(random).ifPresent(sound -> {
+			soundEffect.getOrEmpty(random).ifPresent(sound -> {
 				sound.playSound(world, pos);
 			});
 		}
@@ -124,46 +123,30 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 	protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
 		super.readNbt(nbt, registryLookup);
 		if (nbt.contains(ENTITIES)) {
-			EntityHelper.SpawnEntry.POOL_CODEC.parse(registryLookup.getOps(NbtOps.INSTANCE), nbt.get(ENTITIES)).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(entities -> {
-				this.entities = entities;
-			});
+			nbt.get(ENTITIES, EntityHelper.SpawnEntry.POOL_CODEC, registryLookup.getOps(NbtOps.INSTANCE)).ifPresent(
+					pool -> this.entities = pool
+			);
+		} else {
+			this.entities = Pool.empty();
 		}
 		if (nbt.contains(SOUND_EFFECT)) {
-			SoundEffect.POOL_CODEC.parse(registryLookup.getOps(NbtOps.INSTANCE), nbt.get(SOUND_EFFECT)).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(soundEffect -> {
-				this.soundEffect = soundEffect;
-			});
+			nbt.get(SOUND_EFFECT, SoundEffect.POOL_CODEC, registryLookup.getOps(NbtOps.INSTANCE)).ifPresent(
+					pool -> this.soundEffect = pool
+			);
+		} else {
+			this.soundEffect = Pool.empty();
 		}
-		if (nbt.contains(SPAWN_COUNT)) {
-			spawnCount = nbt.getInt(SPAWN_COUNT);
-		}
-		if (nbt.contains(TRIGGER_ON_INTERACTION)) {
-			triggerOnInteraction = nbt.getBoolean(TRIGGER_ON_INTERACTION);
-		}
-		if (nbt.contains(TRIGGER_ON_BREAK)) {
-			triggerOnBreak = nbt.getBoolean(TRIGGER_ON_BREAK);
-		}
-		if (nbt.contains(TRIGGER_ON_STEP)) {
-			triggerOnStep = nbt.getBoolean(TRIGGER_ON_STEP);
-		}
+		spawnCount = nbt.getInt(SPAWN_COUNT, 1);
+		triggerOnInteraction = nbt.getBoolean(TRIGGER_ON_INTERACTION, true);
+		triggerOnBreak = nbt.getBoolean(TRIGGER_ON_BREAK, true);
+		triggerOnStep = nbt.getBoolean(TRIGGER_ON_STEP, true);
 	}
 
 	@Override
 	protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
 		super.writeNbt(nbt, registryLookup);
-		EntityHelper.SpawnEntry.POOL_CODEC.encodeStart(registryLookup.getOps(NbtOps.INSTANCE), entities).resultOrPartial(
-				METAcraftCore.LOGGER::error
-		).ifPresent(entities -> {
-			nbt.put(ENTITIES, entities);
-		});
-		SoundEffect.POOL_CODEC.encodeStart(registryLookup.getOps(NbtOps.INSTANCE), soundEffect).resultOrPartial(
-				METAcraftCore.LOGGER::error
-		).ifPresent(effect -> {
-			nbt.put(SOUND_EFFECT, effect);
-		});
+		nbt.put(ENTITIES, EntityHelper.SpawnEntry.POOL_CODEC, registryLookup.getOps(NbtOps.INSTANCE), entities);
+		nbt.put(SOUND_EFFECT, SoundEffect.POOL_CODEC, registryLookup.getOps(NbtOps.INSTANCE), soundEffect);
 		nbt.putInt(SPAWN_COUNT, spawnCount);
 		nbt.putBoolean(TRIGGER_ON_INTERACTION, triggerOnInteraction);
 		nbt.putBoolean(TRIGGER_ON_BREAK, triggerOnBreak);

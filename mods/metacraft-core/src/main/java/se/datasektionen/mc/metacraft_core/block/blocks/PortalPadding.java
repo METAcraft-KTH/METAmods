@@ -6,6 +6,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.EndGatewayBlockEntity;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityCollisionHandler;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
@@ -24,7 +25,7 @@ public class PortalPadding extends Block implements PolymerBlock {
 	}
 
 	@Override
-	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity) {
+	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler) {
 		for (BlockPos portalPos : PortalEntity.forAllNearbyPortals(world, pos)) {
 			if (world.getBlockEntity(portalPos) instanceof PortalEntity portal) {
 				portal.onCollision(state, world, pos, entity);

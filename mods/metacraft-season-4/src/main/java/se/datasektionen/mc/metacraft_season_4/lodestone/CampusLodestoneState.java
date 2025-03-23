@@ -1,39 +1,53 @@
 package se.datasektionen.mc.metacraft_season_4.lodestone;
 
-import net.minecraft.nbt.NbtCompound;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 
 public class CampusLodestoneState extends PersistentState {
-	private static final String KEY = METAcraftCore.NAMESPACE + "-campus-lodestone";
 
-	private static Type<CampusLodestoneState> getType(MinecraftServer server) {
-		return new Type<>(() -> new CampusLodestoneState(server), (nbt, lookup) -> fromNBT(server, nbt), null);
-	}
+	private static final MapCodec<BlockPos> CAMPUS_LODESTONE_POS = RecordCodecBuilder.mapCodec(
+			i -> i.group(
+					Codec.INT.fieldOf("campusLodestoneX").forGetter(BlockPos::getX),
+					Codec.INT.fieldOf("campusLodestoneY").forGetter(BlockPos::getY),
+					Codec.INT.fieldOf("campusLodestoneZ").forGetter(BlockPos::getZ)
+			).apply(i, BlockPos::new)
+	);
 
-	private static CampusLodestoneState fromNBT(MinecraftServer server, NbtCompound nbt) {
-		var data = new CampusLodestoneState(server);
-		data.readNBT(nbt);
-		return data;
-	}
+	private static final Codec<CampusLodestoneState> CODEC = RecordCodecBuilder.create(
+			instance -> instance.group(
+					World.CODEC.fieldOf("campusWorld").forGetter(t -> t.campusWorld),
+					CAMPUS_LODESTONE_POS.forGetter(t -> t.campusLodestonePos)
+			).apply(instance, CampusLodestoneState::new)
+	);
+
+	private static final PersistentStateType<CampusLodestoneState> TYPE = new PersistentStateType<>(
+			METAcraftCore.NAMESPACE + "-campus-lodestone", CampusLodestoneState::new,
+			CampusLodestoneState.CODEC, null
+	);
 
 	private RegistryKey<World> campusWorld;
 	private BlockPos campusLodestonePos;
 
-	public CampusLodestoneState(MinecraftServer server) {
-		this.campusWorld = server.getOverworld().getRegistryKey();
+	public CampusLodestoneState() {
+		this.campusWorld = World.OVERWORLD;
 		this.campusLodestonePos = new BlockPos(BlockPos.ZERO);
 	}
 
+	public CampusLodestoneState(RegistryKey<World> campusWorld, BlockPos campusLodestonePos) {
+		this.campusWorld = campusWorld;
+		this.campusLodestonePos = campusLodestonePos;
+	}
+
 	public static CampusLodestoneState getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(getType(server), KEY);
+		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
 	}
 
 	public RegistryKey<World> getCampusWorld() {
@@ -48,26 +62,5 @@ public class CampusLodestoneState extends PersistentState {
 		this.campusWorld = world.getRegistryKey();
 		this.campusLodestonePos = lodestonePos;
 		this.markDirty();
-	}
-
-	@Override
-	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		nbt.putString("campusWorld", this.campusWorld.getValue().toString());
-		nbt.putInt("campusLodestoneX", this.campusLodestonePos.getX());
-		nbt.putInt("campusLodestoneY", this.campusLodestonePos.getY());
-		nbt.putInt("campusLodestoneZ", this.campusLodestonePos.getZ());
-		return nbt;
-	}
-
-	public void readNBT(NbtCompound nbt) {
-		Identifier campusWorldIdentifier = Identifier.tryParse(nbt.getString("campusWorld"));
-		if (campusWorldIdentifier != null) {
-			this.campusWorld = RegistryKey.of(RegistryKeys.WORLD, campusWorldIdentifier);
-		}
-		this.campusLodestonePos = new BlockPos(
-			nbt.getInt("campusLodestoneX"),
-			nbt.getInt("campusLodestoneY"),
-			nbt.getInt("campusLodestoneZ")
-		);
 	}
 }

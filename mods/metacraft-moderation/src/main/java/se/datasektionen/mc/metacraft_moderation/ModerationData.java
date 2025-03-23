@@ -1,12 +1,11 @@
 package se.datasektionen.mc.metacraft_moderation;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.registry.RegistryWrapper;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 import se.datasektionen.mc.metacraft_moderation.moderator_mode.ModeratorModeDefinition;
 
 import java.util.HashMap;
@@ -16,20 +15,23 @@ import java.util.stream.Stream;
 
 public class ModerationData extends PersistentState {
 
-	private static final String stateKey = "metacraft-moderation";
-	private static final String DEFINITIONS = "Definitions";
-
 	protected Map<String, ModeratorModeDefinition> definitions = new HashMap<>();
 
 	public static ModerationData getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(getType(server), stateKey);
+		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
 	}
 
-	private static PersistentState.Type<ModerationData> getType(MinecraftServer server) {
-		return new Type<>(
-				() -> createNew(server), (nbt, lookup) -> fromNbt(server, nbt, lookup), null
-		);
-	}
+	private static final Codec<ModerationData> CODEC = RecordCodecBuilder.create(
+			instance -> instance.group(
+					Codec.unboundedMap(
+							Codec.STRING, ModeratorModeDefinition.CODEC
+					).fieldOf("Definitions").forGetter(d -> d.definitions)
+			).apply(instance, ModerationData::fromData)
+	);
+
+	private static final PersistentStateType<ModerationData> TYPE = new PersistentStateType<>(
+			"metacraft-moderation", ModerationData::createNew, CODEC, null
+	);
 
 	public Optional<ModeratorModeDefinition> getDefinition(String name) {
 		return Optional.ofNullable(definitions.get(name));
@@ -52,42 +54,21 @@ public class ModerationData extends PersistentState {
 		markDirty();
 	}
 
-	private static ModerationData createNew(MinecraftServer server) {
+	private static ModerationData createNew() {
 		METAcraftModeration.LOGGER.info("No previous state found, setting default values");
-		return new ModerationData(server);
+		return new ModerationData(Map.of());
 	}
 
-	private static ModerationData fromNbt(MinecraftServer server, NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
+	private static ModerationData fromData(Map<String, ModeratorModeDefinition> definitions) {
 		METAcraftModeration.LOGGER.info("Previous state found, loading values");
-		ModerationData settings = new ModerationData(server);
-		settings.readNbt(tag, lookup);
-		return settings;
+		return new ModerationData(definitions);
 	}
 
-	protected final MinecraftServer server;
-
-	protected ModerationData(MinecraftServer server) {
-		this.server = server;
-	}
-
-	public void readNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
-		this.definitions.clear();
-		NbtList definitions = tag.getList(DEFINITIONS, NbtElement.COMPOUND_TYPE);
-		for (var defNBT : definitions) {
-			var def = new ModeratorModeDefinition("");
-			def.setSave(this::markDirty);
-			def.fromNBT((NbtCompound) defNBT);
-			this.definitions.put(def.getName(), def);
-		}
-	}
-
-	@Override
-	public NbtCompound writeNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
-		NbtList definitions = new NbtList();
-		this.definitions.values().forEach(def -> definitions.add(def.toNBT()));
-		tag.put(DEFINITIONS, definitions);
-
-		return tag;
+	protected ModerationData(Map<String, ModeratorModeDefinition> definitions) {
+		this.definitions.putAll(definitions);
+		this.definitions.values().forEach(
+				def -> def.setSave(this::markDirty)
+		);
 	}
 
 }

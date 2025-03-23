@@ -10,6 +10,7 @@ import net.minecraft.entity.SpawnGroup;
 import net.minecraft.predicate.entity.EntityTypePredicate;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.util.collection.Weighted;
 import net.minecraft.world.biome.SpawnSettings;
 import se.datasektionen.mc.zones.METAcraftZones;
 
@@ -29,7 +30,7 @@ public class SpawnRemoverRegistry {
 		Codec<SpawnRemover> REGISTRY_CODEC = REGISTRY.getCodec().dispatch(
 				SpawnRemover::getCodec, codec -> codec
 		);
-		void removeEntities(SpawnGroup spawnGroup, Multimap<EntityType<?>, SpawnSettings.SpawnEntry> spawnsMap);
+		void removeEntities(SpawnGroup spawnGroup, Multimap<EntityType<?>, Weighted<SpawnSettings.SpawnEntry>> spawnsMap);
 
 		MapCodec<? extends SpawnRemover> getCodec();
 	}
@@ -42,7 +43,7 @@ public class SpawnRemoverRegistry {
 		private AllSpawnRemover() {}
 
 		@Override
-		public void removeEntities(SpawnGroup spawnGroup, Multimap<EntityType<?>, SpawnSettings.SpawnEntry> spawnsMap) {
+		public void removeEntities(SpawnGroup spawnGroup, Multimap<EntityType<?>, Weighted<SpawnSettings.SpawnEntry>> spawnsMap) {
 			spawnsMap.clear();
 		}
 
@@ -61,7 +62,7 @@ public class SpawnRemoverRegistry {
 		);
 
 		@Override
-		public void removeEntities(SpawnGroup spawnGroup, Multimap<EntityType<?>, SpawnSettings.SpawnEntry> spawnsMap) {
+		public void removeEntities(SpawnGroup spawnGroup, Multimap<EntityType<?>, Weighted<SpawnSettings.SpawnEntry>> spawnsMap) {
 			for (var type : entityType.types()) {
 				spawnsMap.removeAll(type.value());
 			}
@@ -82,7 +83,7 @@ public class SpawnRemoverRegistry {
 		);
 
 		@Override
-		public void removeEntities(SpawnGroup spawnGroup, Multimap<EntityType<?>, SpawnSettings.SpawnEntry> spawnsMap) {
+		public void removeEntities(SpawnGroup spawnGroup, Multimap<EntityType<?>, Weighted<SpawnSettings.SpawnEntry>> spawnsMap) {
 			if (spawnGroup == this.spawnGroup) {
 				spawnsMap.clear();
 			}

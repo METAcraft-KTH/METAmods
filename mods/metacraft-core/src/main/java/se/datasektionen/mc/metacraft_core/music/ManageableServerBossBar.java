@@ -1,8 +1,9 @@
 package se.datasektionen.mc.metacraft_core.music;
 
+import com.mojang.serialization.*;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
@@ -10,29 +11,14 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextCodecs;
-import se.datasektionen.mc.metacraft_core.METAcraftCore;
+import net.minecraft.util.dynamic.Codecs;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
 public class ManageableServerBossBar extends ServerBossBar {
 
 	public static final String BOSS_BAR = "BossBar";
-
-	private static final String NAME = "name";
-	private static final String COLOUR = "color";
-	private static final String STYLE = "style";
-
-	private static final String VISIBLE = "visible";
-
-	private static final String DARKEN_SKY = "darken_sky";
-
-	private static final String THICKEN_FOG = "thicken_fog";
-
-	private static final String MUSIC = "music";
-
-	private static final String VALUE = "value";
-
-	private static final String MAX = "max";
 
 	private boolean trackingHealth = true;
 	private boolean trackingName = true;
@@ -106,74 +92,108 @@ public class ManageableServerBossBar extends ServerBossBar {
 		}
 	}
 
+	public BossBarData serialize() {
+		return new BossBarData(
+				color, style, darkenSky, thickenFog, isVisible(), getMusic(),
+				trackingHealth ? Optional.empty() : Optional.of(new BossBarData.Health(value, max)),
+				trackingName ? Optional.empty() : Optional.of(getName())
+		);
+	}
+
+	public void deserialize(BossBarData data) {
+		setColor(data.color);
+		setStyle(data.style);
+		setDarkenSky(data.darkenSky);
+		setThickenFog(data.thickenFog);
+		setVisible(data.visible);
+		data.music.ifPresentOrElse(
+				this::setMusic,
+				() -> this.setMusic(null)
+		);
+		trackingHealth = data.health.isEmpty();
+		data.health.ifPresent(
+				health -> {
+					value = health.value;
+					max = health.max;
+					if (max > 0) {
+						this.setPercent((float) this.value / this.max);
+					}
+				}
+		);
+		trackingName = data.name.isEmpty();
+		data.name.ifPresent(this::setName);
+	}
+
 	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
 		final var ops = lookup.getOps(NbtOps.INSTANCE);
-		if (nbt.contains(NAME)) {
-			TextCodecs.CODEC.parse(
-					ops, nbt.get(NAME)
-			).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(this::setName);
-			trackingName = false;
-		} else {
-			trackingName = true;
-		}
-		if (nbt.contains(COLOUR)) {
-			this.setColor(BossBar.Color.byName(nbt.getString(COLOUR)));
-		}
-		if (nbt.contains(STYLE)) {
-			this.setStyle(BossBar.Style.byName(nbt.getString(STYLE)));
-		}
-		if (nbt.contains(VALUE)) {
-			this.value = nbt.getInt(VALUE);
-			this.max = nbt.getInt(MAX);
-			this.setPercent((float) this.value / this.max);
-			trackingHealth = false;
-		} else {
-			trackingHealth = true;
-		}
-		if (nbt.contains(DARKEN_SKY)) {
-			this.setDarkenSky(nbt.getBoolean(DARKEN_SKY));
-		}
-		if (nbt.contains(THICKEN_FOG)) {
-			this.setThickenFog(nbt.getBoolean(THICKEN_FOG));
-		}
-		if (nbt.contains(VISIBLE)) {
-			this.setVisible(nbt.getBoolean(VISIBLE));
-		}
-		if (nbt.contains(MUSIC)) {
-			MusicEntry.CODEC.parse(ops, nbt.get(MUSIC)).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(this::setMusic);
-		} else {
-			this.setMusic(null);
-		}
+		nbt.decode(BossBarData.MAP_CODEC, ops).ifPresent(this::deserialize);
 	}
 
 	public NbtCompound writeNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
 		final var ops = lookup.getOps(NbtOps.INSTANCE);
-		nbt.putString(COLOUR, this.getColor().getName());
-		nbt.putString(STYLE, this.getStyle().getName());
-		nbt.putBoolean(DARKEN_SKY, this.shouldDarkenSky());
-		nbt.putBoolean(THICKEN_FOG, this.shouldThickenFog());
-		nbt.putBoolean(VISIBLE, this.isVisible());
-		this.getMusic().flatMap(music -> MusicEntry.CODEC.encodeStart(ops, music).resultOrPartial(
-				METAcraftCore.LOGGER::error
-		)).ifPresent(music -> {
-			nbt.put(MUSIC, music);
-		});
-		if (!this.isTrackingHealth()) {
-			nbt.putInt(VALUE, this.value);
-			nbt.putInt(MAX, this.max);
-		}
-		if (!trackingName) {
-			TextCodecs.CODEC.encodeStart(ops, getName()).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(
-					name -> nbt.put(NAME, name)
-			);
-		}
+		nbt.copyFromCodec(BossBarData.MAP_CODEC, ops, this.serialize());
 		return nbt;
+	}
+
+	public record BossBarData(
+			Color color,
+			Style style,
+			boolean darkenSky,
+			boolean thickenFog,
+			boolean visible,
+			Optional<MusicEntry> music,
+			Optional<Health> health,
+			Optional<Text> name
+	) {
+		public static final BossBarData DEFAULT = new BossBarData(
+				Color.WHITE, Style.PROGRESS, false, false, true, Optional.empty(),
+				Optional.empty(), Optional.empty()
+		);
+
+		public static final MapCodec<BossBarData> MAP_CODEC = RecordCodecBuilder.mapCodec(
+				instance -> instance.group(
+						Color.CODEC.fieldOf("color").orElse(Color.WHITE).forGetter(BossBarData::color),
+						Style.CODEC.fieldOf("style").orElse(Style.PROGRESS).forGetter(BossBarData::style),
+						Codec.BOOL.optionalFieldOf("darken_sky", false).forGetter(BossBarData::darkenSky),
+						Codec.BOOL.optionalFieldOf("thicken_fog", false).forGetter(BossBarData::thickenFog),
+						Codec.BOOL.optionalFieldOf("visible", true).forGetter(BossBarData::visible),
+						MusicEntry.CODEC.optionalFieldOf("music").forGetter(BossBarData::music),
+						Health.OPT_CODEC.forGetter(BossBarData::health),
+						TextCodecs.CODEC.optionalFieldOf("name").forGetter(BossBarData::name)
+				).apply(instance, BossBarData::new)
+		);
+
+		public static final Codec<BossBarData> CODEC = MAP_CODEC.codec();
+
+		public record Health(int value, int max) {
+			public static final MapCodec<Health> CODEC = RecordCodecBuilder.mapCodec(
+					instance -> instance.group(
+							Codecs.NON_NEGATIVE_INT.fieldOf("value").forGetter(Health::value),
+							Codecs.POSITIVE_INT.fieldOf("max").forGetter(Health::max)
+					).apply(instance, Health::new)
+			);
+
+			public static final MapCodec<Optional<Health>> OPT_CODEC = new MapCodec<>() {
+				@Override
+				public <T> Stream<T> keys(DynamicOps<T> ops) {
+					return CODEC.keys(ops);
+				}
+
+				@Override
+				public <T> DataResult<Optional<Health>> decode(DynamicOps<T> ops, MapLike<T> input) {
+					return DataResult.success(CODEC.decode(ops, input).resultOrPartial());
+				}
+
+				@Override
+				public <T> RecordBuilder<T> encode(Optional<Health> input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+					if (input.isPresent()) {
+						return CODEC.encode(input.get(), ops, prefix);
+					} else {
+						return prefix;
+					}
+				}
+			};
+		}
 	}
 
 }

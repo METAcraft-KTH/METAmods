@@ -267,7 +267,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		blockData.applySettings(block);
 		blockData.applyBlockSettings(block);
 		if (nbt.contains(SLIPPERINESS)) {
-			slipperiness = Optional.of(nbt.getFloat(SLIPPERINESS));
+			slipperiness = nbt.getFloat(SLIPPERINESS);
 		} else {
 			slipperiness = Optional.empty();
 		}

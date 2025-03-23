@@ -2,16 +2,16 @@ package se.datasektionen.mc.metacraft_moderation.exile;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
+import com.google.common.collect.Multimaps;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_moderation.METAcraftModeration;
 import se.datasektionen.mc.metacraft_moderation.exile.rules.ZoneRule;
@@ -25,11 +25,10 @@ import java.util.stream.Collectors;
 public class ExileDefinition {
 
 	public static final String NAME = "name";
-	public static final String ZONE_RULES = "zone_rules";
 
 	protected final Multimap<RealZone, ZoneRule> zoneRules = HashMultimap.create();
-	protected String commandOnExile = "tellraw @s {\"text\":\"Exiled\"}";
-	protected String commandOnPardon = "tellraw @s {\"text\":\"Pardoned\"}";
+	protected String commandOnExile = "tellraw @s {\"text\":\"Exiled\"}"; //TODO Save this!
+	protected String commandOnPardon = "tellraw @s {\"text\":\"Pardoned\"}"; //TODO Save this!
 	protected String name;
 	private final MinecraftServer server;
 	private Runnable markNeedsSaving;
@@ -111,40 +110,24 @@ public class ExileDefinition {
 		});
 	}
 
-	public NbtCompound toNBT() {
-		NbtCompound nbt = new NbtCompound();
-		NbtCompound rules = new NbtCompound();
-		zoneRules.keySet().forEach(zone -> {
-			NbtList list = new NbtList();
-			zoneRules.get(zone).forEach(rule -> {
-				list.add(NbtString.of(rule.getID().toString()));
-			});
-			rules.put(zone.getName(), list);
-		});
-		nbt.put(ZONE_RULES, rules);
-		nbt.putString(NAME, name);
-		return nbt;
+	public Serialized serialize() {
+		return new Serialized(
+				zoneRules.entries().stream().map(
+						e -> Pair.of(
+								e.getKey().getName(), e.getValue()
+						)
+				).collect(Multimaps.toMultimap(
+						Pair::getFirst, Pair::getSecond, HashMultimap::create
+				)), name
+		);
 	}
 
-	public void fromNBT(NbtCompound nbt) {
-		name = nbt.getString(NAME);
-		NbtCompound ruleMap = nbt.getCompound(ZONE_RULES);
-		zoneRules.clear();
-		for (String name : ruleMap.getKeys()) {
+	public void deserialize(Serialized serialized) {
+		this.name = serialized.name;
+		for (var name : serialized.zoneRules.keySet()) {
 			var zone = ZoneManager.getInstance(server).getZone(name);
 			if (zone != null) {
-				var rules = ruleMap.getList(name, NbtElement.STRING_TYPE);
-				for (NbtElement rule : rules) {
-					var actualRule = ZoneRuleRegistry.REGISTRY.get(Identifier.tryParse(rule.asString()));
-					if (actualRule != null) {
-						zoneRules.put(zone, actualRule);
-					} else {
-						METAcraftModeration.LOGGER.fatal(
-								"Removed rule " + rule.asString() + " from zone " + name +
-								" in ExileDefinition " + this.name + " because it did not exist!"
-						);
-					}
-				}
+				zoneRules.putAll(zone, serialized.zoneRules.get(name));
 			} else {
 				METAcraftModeration.LOGGER.fatal(
 						"Removed zone " + name + " from ExileDefinition " + this.name + " because it did not exist!"
@@ -179,6 +162,21 @@ public class ExileDefinition {
 
 	public String getName() {
 		return name;
+	}
+
+	public record Serialized(
+			Multimap<String, ZoneRule> zoneRules,
+			String name
+	) {
+		public static final Codec<Serialized> CODEC = RecordCodecBuilder.create(
+				instance -> instance.group(
+						ExtraCodecs.unboundedMultimap(
+								Codec.STRING, ZoneRuleRegistry.REGISTRY.getCodec(),
+								HashMultimap::create
+						).optionalFieldOf("zone_rules", HashMultimap.create()).forGetter(Serialized::zoneRules),
+						Codec.STRING.fieldOf(NAME).forGetter(Serialized::name)
+				).apply(instance, Serialized::new)
+		);
 	}
 
 }

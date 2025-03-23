@@ -27,7 +27,7 @@ public class BossbarCommand {
                             var entity = EntityArgumentType.getEntity(ctx, "entity");
                             var data = NbtCompoundArgumentType.getNbtCompound(ctx, "data");
                             var entityData = entity.writeNbt(new NbtCompound());
-                            var existing = entityData.getCompound("BossBar");
+                            var existing = entityData.getCompoundOrEmpty("BossBar");
                             existing.copyFrom(data);
                             entityData.put("BossBar", existing);
                             BossBarHelper.loadBossBar(entity, entityData);

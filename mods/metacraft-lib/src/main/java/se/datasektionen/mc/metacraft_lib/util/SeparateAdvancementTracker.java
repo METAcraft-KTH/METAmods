@@ -6,9 +6,8 @@ import net.minecraft.server.PlayerManager;
 import net.minecraft.server.ServerAdvancementLoader;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.PathUtil;
 import net.minecraft.util.WorldSavePath;
-
+import net.minecraft.util.path.PathUtil;
 import java.nio.file.Path;
 
 public class SeparateAdvancementTracker extends PlayerAdvancementTracker {

@@ -7,7 +7,6 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.component.*;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.component.type.PotionContentsComponent;
-import net.minecraft.component.type.UnbreakableComponent;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.attribute.EntityAttribute;
@@ -26,7 +25,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Rarity;
 import net.minecraft.util.Unit;
-import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.collection.Pool;
 import org.pcollections.*;
 import se.datasektionen.mc.metacraft_core.item.components.ExpiresComponent;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
@@ -87,6 +86,10 @@ public record EndBossPlayerConfig(
 			}
 	);
 
+	private static final Codec<PVector<ItemEntry>> ITEM_CODEC = ExtraCodecs.createPCollectionCodec(ItemEntry.CODEC, TreePVector.empty());
+
+	private static final Codec<PSet<String>> TAGS_CODEC = ExtraCodecs.createPCollectionCodec(Codec.STRING, HashTreePSet.empty());
+
 	public static final Codec<EndBossPlayerConfig> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
 					Codec.DOUBLE.fieldOf("health_percent").forGetter(EndBossPlayerConfig::healthPercent),
@@ -101,11 +104,11 @@ public record EndBossPlayerConfig(
 					Codec.DOUBLE.fieldOf("min_spawn_distance").forGetter(EndBossPlayerConfig::minSpawnDist),
 					Codec.DOUBLE.fieldOf("max_spawn_distance").forGetter(EndBossPlayerConfig::maxSpawnDist),
 					Codec.simpleMap(PLAYER_SLOT_CODEC, ItemEntry.CODEC, VALID_SLOTS).codec().optionalFieldOf("equipment", Map.of()).forGetter(EndBossPlayerConfig::equipment),
-					ExtraCodecs.<ItemEntry, PVector<ItemEntry>>createPCollectionCodec(ItemEntry.CODEC, TreePVector.empty()).fieldOf("items").forGetter(EndBossPlayerConfig::items),
+					ITEM_CODEC.fieldOf("items").forGetter(EndBossPlayerConfig::items),
 					ComponentMap.CODEC.fieldOf("components_to_apply").forGetter(EndBossPlayerConfig::componentsToApply),
 					Codec.unboundedMap(EntityAttribute.CODEC, EntityAttributeModifier.CODEC.listOf()).fieldOf("attribute_modifiers").forGetter(EndBossPlayerConfig::attributeModifiers),
 					MusicEntry.CODEC.optionalFieldOf("music_for_boss").forGetter(EndBossPlayerConfig::musicForBoss),
-					ExtraCodecs.<String, PSet<String>>createPCollectionCodec(Codec.STRING, HashTreePSet.empty()).fieldOf("tags_to_remove").forGetter(EndBossPlayerConfig::tagsToRemove),
+					TAGS_CODEC.fieldOf("tags_to_remove").forGetter(EndBossPlayerConfig::tagsToRemove),
 					Codec.STRING.optionalFieldOf("boss_defeated_command").forGetter(EndBossPlayerConfig::bossDefeatedCommand),
 					Codec.STRING.optionalFieldOf("boss_init_command").forGetter(EndBossPlayerConfig::bossInitCommand)
 			).apply(instance, EndBossPlayerConfig::new)
@@ -122,7 +125,7 @@ public record EndBossPlayerConfig(
 									new ItemStack(
 											Items.NETHERITE_HELMET.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
-													DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)
+													DataComponentTypes.UNBREAKABLE, Unit.INSTANCE
 											).add(
 													DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 															lookup, EndBossPlayerState.BOSS_ARMOUR_ENCHANTS
@@ -147,7 +150,7 @@ public record EndBossPlayerConfig(
 									new ItemStack(
 											Items.NETHERITE_CHESTPLATE.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
-													DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)
+													DataComponentTypes.UNBREAKABLE, Unit.INSTANCE
 											).add(
 													DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 															lookup, EndBossPlayerState.BOSS_ARMOUR_ENCHANTS.plus(
@@ -170,7 +173,7 @@ public record EndBossPlayerConfig(
 									new ItemStack(
 											Items.NETHERITE_LEGGINGS.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
-													DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)
+													DataComponentTypes.UNBREAKABLE, Unit.INSTANCE
 											).add(
 													DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 															lookup, EndBossPlayerState.BOSS_ARMOUR_ENCHANTS.plus(
@@ -191,7 +194,7 @@ public record EndBossPlayerConfig(
 									new ItemStack(
 											Items.NETHERITE_BOOTS.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
-													DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)
+													DataComponentTypes.UNBREAKABLE, Unit.INSTANCE
 											).add(
 													DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 															lookup, EndBossPlayerState.BOSS_ARMOUR_ENCHANTS
@@ -210,7 +213,7 @@ public record EndBossPlayerConfig(
 									new ItemStack(
 											Items.SHIELD.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
-													DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)
+													DataComponentTypes.UNBREAKABLE, Unit.INSTANCE
 											).add(
 													DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 															lookup, EndBossPlayerState.CUSTOM_BOSS_ITEM_ENCHANTS
@@ -231,7 +234,7 @@ public record EndBossPlayerConfig(
 									new ItemStack(
 											Items.NETHERITE_SWORD.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
-													DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)
+													DataComponentTypes.UNBREAKABLE, Unit.INSTANCE
 											).add(
 													DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 															lookup, EndBossPlayerState.CUSTOM_BOSS_ITEM_ENCHANTS.plus(
@@ -257,7 +260,7 @@ public record EndBossPlayerConfig(
 									new ItemStack(
 											Items.NETHERITE_AXE.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
-													DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)
+													DataComponentTypes.UNBREAKABLE, Unit.INSTANCE
 											).add(
 													DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 															lookup, EndBossPlayerState.CUSTOM_BOSS_ITEM_ENCHANTS.plus(
@@ -279,7 +282,7 @@ public record EndBossPlayerConfig(
 									new ItemStack(
 											Items.BOW.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
-													DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)
+													DataComponentTypes.UNBREAKABLE, Unit.INSTANCE
 											).add(
 													DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 															lookup, EndBossPlayerState.CUSTOM_BOSS_ITEM_ENCHANTS.plus(
@@ -307,7 +310,7 @@ public record EndBossPlayerConfig(
 									new ItemStack(
 											Items.CROSSBOW.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
-													DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)
+													DataComponentTypes.UNBREAKABLE, Unit.INSTANCE
 											).add(
 													DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 															lookup, EndBossPlayerState.CUSTOM_BOSS_ITEM_ENCHANTS.plus(
@@ -333,7 +336,7 @@ public record EndBossPlayerConfig(
 									new ItemStack(
 											Items.MACE.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
-													DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)
+													DataComponentTypes.UNBREAKABLE, Unit.INSTANCE
 											).add(
 													DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 															lookup, EndBossPlayerState.CUSTOM_BOSS_ITEM_ENCHANTS.plus(
@@ -446,8 +449,8 @@ public record EndBossPlayerConfig(
 									Text.literal("Your inventory will be restored later").styled(style -> style.withFormatting(Formatting.DARK_PURPLE).withItalic(false))
 							))
 					).add(
-							METAcraftComponents.EXPIRES_AT, //TODO Update this time stamp!
-							new ExpiresComponent(Instant.parse("2025-03-24T23:00:00.00Z"), DataPool.<ItemStack>empty())
+							METAcraftComponents.EXPIRES_AT,
+							new ExpiresComponent(Instant.parse("2035-03-24T23:00:00.00Z"), Pool.<ItemStack>empty())
 					).add(
 							DataComponentTypes.ENCHANTMENTS, EndBossPlayerState.prepareEnchantments(
 									lookup, EndBossPlayerState.ENCHANTS_APPLIED_TO_ALL_ITEMS

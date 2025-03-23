@@ -11,13 +11,12 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructureTemplate;
-import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
-import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlockEntities;
 import se.datasektionen.mc.metacraft_core.block.blocks.MusicBlock;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
@@ -27,16 +26,18 @@ import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import java.util.*;
 
 public class MusicBlockEntity extends BlockEntity {
-	public static final Codec<DataPool<MusicEntry>> MUSIC_POOL_CODEC = DataPool.createEmptyAllowedCodec(MusicEntry.CODEC);
+	public static final Codec<Pool<MusicEntry>> MUSIC_POOL_CODEC = Pool.createCodec(MusicEntry.CODEC);
 	public static final String RANGE = "Range";
 	public static final String BOX = "Box";
 	public static final String MUSIC_CHOICES = "MusicChoices";
 	public static final String CURRENT_MUSIC = "CurrentMusic";
 
+	private static final String DEFAULT_MUSIC = "default";
+
 	private MusicEntry currentEntry = null;
 	private boolean firstTick = true;
-	private String currentMusic = "default";
-	private final Map<String, DataPool<MusicEntry>> musicChoices = new HashMap<>();
+	private String currentMusic = DEFAULT_MUSIC;
+	private final Map<String, Pool<MusicEntry>> musicChoices = new HashMap<>();
 	private double range = 128;
 	private Box boundingBox;
 	private Box cachedBox;
@@ -99,7 +100,7 @@ public class MusicBlockEntity extends BlockEntity {
 
 	public Optional<MusicEntry> getCurrentMusic(Random random) {
 		if (currentMusic == null) return Optional.empty();
-		return Optional.ofNullable(musicChoices.get(currentMusic)).flatMap(pool -> pool.getDataOrEmpty(random));
+		return Optional.ofNullable(musicChoices.get(currentMusic)).flatMap(pool -> pool.getOrEmpty(random));
 	}
 
 	public void resetMusic() {
@@ -111,7 +112,7 @@ public class MusicBlockEntity extends BlockEntity {
 	}
 
 	private void setMusicInternal(String name) {
-		if (!musicChoices.containsKey(name)) return;
+		if (name != null && !musicChoices.containsKey(name)) return;
 		if (!Objects.equals(currentMusic, name)) {
 			currentMusic = name;
 			resetMusic();
@@ -135,7 +136,7 @@ public class MusicBlockEntity extends BlockEntity {
 		markDirty();
 	}
 
-	public void setMusicTracks(Map<String, DataPool<MusicEntry>> musicTracks) {
+	public void setMusicTracks(Map<String, Pool<MusicEntry>> musicTracks) {
 		this.musicChoices.clear();
 		this.musicChoices.putAll(musicTracks);
 		markDirty();
@@ -146,32 +147,34 @@ public class MusicBlockEntity extends BlockEntity {
 		super.readNbt(nbt, wrapper);
 
 		this.musicChoices.clear();
-		NbtCompound musicChoices = nbt.getCompound(MUSIC_CHOICES);
+		NbtCompound musicChoices = nbt.getCompoundOrEmpty(MUSIC_CHOICES);
 		for (var key : musicChoices.getKeys()) {
-			MUSIC_POOL_CODEC.parse(NbtOps.INSTANCE, musicChoices.get(key)).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(musicPool -> {
-				this.musicChoices.put(key, musicPool);
-			});
+			musicChoices.get(key, MUSIC_POOL_CODEC, wrapper.getOps(NbtOps.INSTANCE)).ifPresent(
+					musicPool -> this.musicChoices.put(key, musicPool)
+			);
 		}
 
 		if (nbt.contains(CURRENT_MUSIC)) {
-			setMusicInternal(nbt.getString(CURRENT_MUSIC));
+			setMusicInternal(nbt.getString(CURRENT_MUSIC, DEFAULT_MUSIC));
+		} else {
+			setMusicInternal(null);
 		}
+		
 		if (nbt.contains("Reset")) {
 			resetMusic();
 		}
 
-		if (nbt.contains(RANGE)) {
-			range = nbt.getDouble(RANGE);
-		}
+		range = nbt.getDouble(RANGE, 128);
 		if (nbt.contains(BOX)) {
-			ExtraCodecs.BOX_CODEC.parse(NbtOps.INSTANCE, nbt.get(BOX)).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(box -> {
-				boundingBox = box;
-				cachedBox = null;
-			});
+			nbt.get(BOX, ExtraCodecs.BOX_CODEC).ifPresent(
+					box -> {
+						boundingBox = box;
+						cachedBox = null;
+					}
+			);
+		} else {
+			boundingBox = null;
+			cachedBox = null;
 		}
 	}
 
@@ -180,11 +183,7 @@ public class MusicBlockEntity extends BlockEntity {
 		super.writeNbt(nbt, wrapper);
 		NbtCompound musicChoices = new NbtCompound();
 		for (var entry : this.musicChoices.entrySet()) {
-			MUSIC_POOL_CODEC.encodeStart(NbtOps.INSTANCE, entry.getValue()).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(musicPool -> {
-				musicChoices.put(entry.getKey(), musicPool);
-			});
+			musicChoices.put(entry.getKey(), MUSIC_POOL_CODEC, wrapper.getOps(NbtOps.INSTANCE), entry.getValue());
 		}
 		nbt.put(MUSIC_CHOICES, musicChoices);
 		if (currentMusic != null) {
@@ -192,11 +191,7 @@ public class MusicBlockEntity extends BlockEntity {
 		}
 		nbt.putDouble(RANGE, range);
 		if (boundingBox != null) {
-			ExtraCodecs.BOX_CODEC.encodeStart(NbtOps.INSTANCE, boundingBox).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(box -> {
-				nbt.put(BOX, box);
-			});
+			nbt.put(BOX, ExtraCodecs.BOX_CODEC, boundingBox);
 		}
 	}
 

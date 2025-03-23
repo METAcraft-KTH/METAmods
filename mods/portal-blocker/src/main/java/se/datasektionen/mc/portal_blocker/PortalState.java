@@ -1,5 +1,6 @@
 package se.datasektionen.mc.portal_blocker;
 
+import com.mojang.serialization.Codec;
 import net.minecraft.nbt.AbstractNbtNumber;
 import net.minecraft.nbt.NbtByte;
 import net.minecraft.nbt.NbtElement;
@@ -12,6 +13,14 @@ public class PortalState {
 
 	private static final byte CREATION = 0;
 	private static final byte TRAVEL = 1;
+
+	public static final Codec<PortalState> CODEC = Codec.BYTE.xmap(
+			PortalState::new, s -> s.state
+	);
+
+	private PortalState(byte v) {
+		this.state = v;
+	}
 
 	public PortalState(BlockingType... values) {
 		for (BlockingType type : values) {

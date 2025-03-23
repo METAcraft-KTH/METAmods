@@ -1,0 +1,9 @@
+{
+	"type": "minecraft:function",
+	"environment": "minecraft:default",
+	"function": "metacraft:cutscene/preserve_but_player_disconnects_and_rejoins_while_scene_ticks",
+	"max_ticks": 23,
+	"required": true,
+	"setup_ticks": 1,
+	"structure": "minecraft:empty"
+}

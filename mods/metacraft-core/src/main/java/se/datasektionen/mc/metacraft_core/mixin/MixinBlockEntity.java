@@ -44,7 +44,7 @@ public abstract class MixinBlockEntity implements BlockEntityExtensions {
 
 	@Inject(method = {"read", "readComponentlessNbt"}, at = @At("RETURN"))
 	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup, CallbackInfo ci) {
-		isMovable = nbt.getBoolean(IS_MOVABLE);
+		isMovable = nbt.getBoolean(IS_MOVABLE, false);
 		validate();
 	}
 

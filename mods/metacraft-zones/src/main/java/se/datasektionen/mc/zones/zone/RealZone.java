@@ -1,12 +1,8 @@
 package se.datasektionen.mc.zones.zone;
 
-import com.mojang.datafixers.util.Either;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtOps;
+import com.mojang.serialization.*;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -140,100 +136,74 @@ public class RealZone extends Zone {
 		return priority;
 	}
 
-	public NbtCompound toNBT() {
-		NbtCompound nbt = new NbtCompound();
-		nbt.putString(NAME, name);
-		World.CODEC.encodeStart(NbtOps.INSTANCE, getDim()).resultOrPartial(
-				METAcraftZones.LOGGER::error
-		).ifPresent(dim -> {
-			nbt.put(DIM, dim);
-		});
-		ZoneType.REGISTRY_CODEC.encodeStart(world.getRegistryManager().getOps(NbtOps.INSTANCE), zone).resultOrPartial(
-				METAcraftZones.LOGGER::error
-		).ifPresent(zone -> {
-			nbt.put(ZONE, zone);
-		});
-
-		NbtList remoteDims = new NbtList();
-		for (var dim : remoteDimensions.keySet()) {
-			World.CODEC.encodeStart(NbtOps.INSTANCE, dim).resultOrPartial(
-					METAcraftZones.LOGGER::error
-			).ifPresent(remoteDims::add);
-		}
-		nbt.put(REMOTE_DIMS, remoteDims);
-
-		NbtList data = new NbtList();
-		zoneData.values().forEach(dataValue -> {
-			ZoneData.REGISTRY_CODEC.encodeStart(
-					world.getRegistryManager().getOps(NbtOps.INSTANCE), dataValue
-			).resultOrPartial(METAcraftZones.LOGGER::error).ifPresent(data::add);
-		});
-		nbt.put(DATA, data);
-
-		nbt.putInt(PRIORITY, priority);
-		return nbt;
+	public SerializedZone serialize() {
+		return new SerializedZone(
+				name, getDim(), remoteDimensions.keySet().stream().toList(), zone,
+				zoneData.values().stream().toList(), priority
+		);
 	}
 
-	public static Optional<RealZone> fromNBT(
-			MinecraftServer server, RegistryWrapper.WrapperLookup lookup, NbtCompound nbt, Runnable markNeedsSave,
-			boolean printDimensionErrors
+	public static Optional<RealZone> deserialize(
+			MinecraftServer server, SerializedZone zone, Runnable markNeedsSave, boolean printDimensionErrors
 	) {
-		return World.CODEC.parse(NbtOps.INSTANCE, nbt.get(DIM)).resultOrPartial(
-				METAcraftZones.LOGGER::error
-		).flatMap(dim -> {
-			var name = nbt.getString(NAME);
-			World world = server.getWorld(dim);
-			if (world == null) {
-				if (printDimensionErrors) {
-					METAcraftZones.LOGGER.error("Root dimension invalid, deleting zone " + name);
-				}
-				return Optional.empty();
+		var name = zone.name;
+		World world = server.getWorld(zone.dim);
+		if (world == null) {
+			if (printDimensionErrors) {
+				METAcraftZones.LOGGER.error("Root dimension invalid, deleting zone " + name);
 			}
-			var zone = ZoneType.REGISTRY_CODEC.parse(lookup.getOps(NbtOps.INSTANCE), nbt.get(ZONE)).resultOrPartial(
-					METAcraftZones.LOGGER::error
-			).orElseGet(() -> {
-				METAcraftZones.LOGGER.error(
-						"Unable to parse zone type for " + name + ", setting zone type to empty. " +
-						"To make this zone work again, use /zone replace " + name + " <zone_type>"
-				);
-				return EmptyZone.INSTANCE;
-			});
-			Map<ZoneDataType<?>, ZoneData> dataTypes = new HashMap<>();
-			NbtList data = nbt.getList(DATA, NbtElement.COMPOUND_TYPE);
-			for (NbtElement element : data) {
-				ZoneData.REGISTRY_CODEC.parse(
-						lookup.getOps(NbtOps.INSTANCE), element
-				).resultOrPartial(METAcraftZones.LOGGER::error).ifPresent(dataValue -> {
-					dataTypes.put(dataValue.getType(), dataValue);
-				});
+			return Optional.empty();
+		}
+		Map<ZoneDataType<?>, ZoneData> dataTypes = new HashMap<>();
+		for (var data : zone.data) {
+			dataTypes.put(data.getType(), data);
+		}
+
+		RealZone container = new RealZone(
+				name, world, zone.zone, dataTypes, zone.priority, markNeedsSave
+		);
+
+		for (var remoteDim : zone.remoteDims) {
+			var remoteWorld = server.getWorld(remoteDim);
+			if (remoteWorld != null) {
+				container.remoteDimensions.put(remoteWorld.getRegistryKey(), new RemoteZone(remoteWorld, container));
+			} else {
+				container.remoteWorldsToCheck.add(remoteDim);
 			}
+		}
+		return Optional.of(container);
+	}
 
-			RealZone container = new RealZone(
-					name, world, zone, dataTypes, nbt.getInt(PRIORITY), markNeedsSave
-			);
+	public record SerializedZone(
+			String name, RegistryKey<World> dim, List<RegistryKey<World>> remoteDims,
+			ZoneType zone, List<ZoneData> data, int priority
+	) {
 
-			NbtList remoteDims = nbt.getList(REMOTE_DIMS, NbtElement.STRING_TYPE);
-			for (NbtElement element : remoteDims) {
-				World.CODEC.parse(NbtOps.INSTANCE, element).resultOrPartial(
-						METAcraftZones.LOGGER::error
-				).map(
-						otherDim -> {
-							var remoteWorld = server.getWorld(otherDim);
-							if (remoteWorld != null) {
-								return Either.<World, RegistryKey<World>>left(remoteWorld);
-							} else {
-								return Either.<World, RegistryKey<World>>right(otherDim);
+		public static final Codec<SerializedZone> CODEC = RecordCodecBuilder.create(
+				instance -> instance.group(
+						Codec.STRING.fieldOf("name").forGetter(SerializedZone::name),
+						World.CODEC.fieldOf("dim").forGetter(SerializedZone::dim),
+						World.CODEC.listOf().fieldOf("remote_dims").forGetter(SerializedZone::remoteDims),
+						ZoneType.REGISTRY_CODEC.fieldOf("zone").mapResult(new MapCodec.ResultFunction<>() {
+							@Override
+							public <T> DataResult<ZoneType> apply(DynamicOps<T> ops, MapLike<T> input, DataResult<ZoneType> a) {
+								if (!a.hasResultOrPartial()) {
+									return a.mapError(
+											e -> DataResult.appendMessages("Unable to parse zone type, setting zone type to empty", e)
+									).setPartial(EmptyZone.INSTANCE);
+								}
+								return a;
 							}
-						}
-				).ifPresent(otherDim -> {
-					otherDim.ifLeft(otherWorld -> {
-						container.remoteDimensions.put(otherWorld.getRegistryKey(), new RemoteZone(otherWorld, container));
-					});
-					otherDim.ifRight(container.remoteWorldsToCheck::add);
-				});
-			}
-			return Optional.of(container);
-		});
+
+							@Override
+							public <T> RecordBuilder<T> coApply(DynamicOps<T> ops, ZoneType input, RecordBuilder<T> t) {
+								return t;
+							}
+						}).forGetter(SerializedZone::zone),
+						ZoneData.REGISTRY_CODEC.listOf().fieldOf("data").forGetter(SerializedZone::data),
+						Codec.INT.fieldOf("priority").forGetter(SerializedZone::priority)
+				).apply(instance, SerializedZone::new)
+		);
 	}
 
 	public void onWorldLoad() {

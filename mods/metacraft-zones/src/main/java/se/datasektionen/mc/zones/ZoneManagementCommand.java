@@ -76,7 +76,7 @@ public class ZoneManagementCommand {
 	);
 
 	public static final SuggestionProvider<ServerCommandSource> SUGGEST_SPAWN_GROUP = (ctx, builder) -> {
-		return CommandSource.suggestMatching(StringIdentifiable.toKeyable(SpawnGroup.values()).keys(NbtOps.INSTANCE).map(NbtElement::asString), builder);
+		return CommandSource.suggestMatching(StringIdentifiable.toKeyable(SpawnGroup.values()).keys(NbtOps.INSTANCE).map(NbtElement::toString), builder);
 	};
 
 	private static final DynamicCommandExceptionType ENTITY_FAIL = new DynamicCommandExceptionType(id -> Text.literal(id + " is not a valid entity or entity tag!"));
@@ -297,8 +297,7 @@ public class ZoneManagementCommand {
 						ctx.getSource().sendFeedback(
 								() -> Text.literal("If yes, please type ").append(
 										Text.literal("/zone confirm-remove " + name).fillStyle(
-												Style.EMPTY.withColor(Formatting.RED).withClickEvent(new ClickEvent(
-														ClickEvent.Action.SUGGEST_COMMAND,
+												Style.EMPTY.withColor(Formatting.RED).withClickEvent(new ClickEvent.SuggestCommand(
 														"/zone confirm-remove " + name
 												))
 										)
@@ -325,8 +324,7 @@ public class ZoneManagementCommand {
 							Text.literal("Please type ").append(
 								Text.literal("/zone remove " + name).fillStyle(
 									Style.EMPTY.withColor(Formatting.YELLOW)
-											.withClickEvent(new ClickEvent(
-												ClickEvent.Action.SUGGEST_COMMAND,
+											.withClickEvent(new ClickEvent.SuggestCommand(
 												"/zone remove " + name
 											))
 								)
@@ -377,7 +375,7 @@ public class ZoneManagementCommand {
 					zone().then(
 						spawnGroup("spawnGroup").then(
 							argument("data", NbtCompoundArgumentType.nbtCompound()).executes(ctx -> {
-								var spawnEntry = BetterSpawnEntry.CODEC.parse(
+								var spawnEntry = BetterSpawnEntry.WEIGHTED_CODEC.parse(
 										ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE),
 										NbtCompoundArgumentType.getNbtCompound(ctx, "data")
 								).resultOrPartial(
@@ -483,7 +481,7 @@ public class ZoneManagementCommand {
 											ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE), blocker
 									).resultOrPartial(
 											METAcraftZones.LOGGER::error
-									).map(NbtElement::asString).orElse("Error"),
+									).map(NbtElement::toString).orElse("Error"),
 									AdditionalSpawnsZoneData::getSpawnRemovers
 							);
 						})
@@ -498,7 +496,7 @@ public class ZoneManagementCommand {
 										ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE), blocker
 								).resultOrPartial(
 										METAcraftZones.LOGGER::error
-								).map(NbtElement::asString).orElse("Error"),
+								).map(NbtElement::toString).orElse("Error"),
 								AdditionalSpawnsZoneData::getSpawnRemovers
 						);
 					})
@@ -547,7 +545,7 @@ public class ZoneManagementCommand {
 											ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE), rule
 									).resultOrPartial(
 											METAcraftZones.LOGGER::error
-									).map(NbtElement::asString).orElse("Error"),
+									).map(NbtElement::toString).orElse("Error"),
 									AdditionalSpawnsZoneData::getSpawnRules
 							);
 						})
@@ -562,7 +560,7 @@ public class ZoneManagementCommand {
 										ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE), rule
 								).resultOrPartial(
 										METAcraftZones.LOGGER::error
-								).map(NbtElement::asString).orElse("Error"),
+								).map(NbtElement::toString).orElse("Error"),
 								AdditionalSpawnsZoneData::getSpawnRules
 						);
 					})

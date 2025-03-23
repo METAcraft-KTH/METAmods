@@ -88,6 +88,16 @@ public class CutsceneEntityManager {
 						EntityAttachedPacket.setIfEmpty(packet, entity);
 					}
 					world.getPlayers().forEach(p -> p.networkHandler.sendPacket(packet));
+				},
+				(packet, skip) -> {
+					if (entity instanceof PolymerEntity) {
+						EntityAttachedPacket.setIfEmpty(packet, entity);
+					}
+					world.getPlayers().forEach(p -> {
+						if (!skip.contains(p.getUuid())) {
+							p.networkHandler.sendPacket(packet);
+						}
+					});
 				}
 		);
 		if (chunkLoadingManager != null) {

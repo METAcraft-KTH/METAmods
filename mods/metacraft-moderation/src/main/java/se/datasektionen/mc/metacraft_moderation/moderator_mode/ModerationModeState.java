@@ -120,12 +120,14 @@ public class ModerationModeState {
 	}
 
 	public void fromNBT(ModerationData data, NbtCompound nbt) {
-		if (nbt.contains(PLAYER_NBT)) {
-			this.playerNBT = nbt.getCompound(PLAYER_NBT);
-		}
-		var defName = nbt.getString(DEF).toLowerCase(Locale.ROOT);
-		def = data.getDefinition(defName).orElseGet(() -> {
-			METAcraftModeration.LOGGER.error("Unable to load moderator definition named " + defName);
+		this.playerNBT = nbt.getCompound(PLAYER_NBT).orElse(null);
+		var defName = nbt.getString(DEF).map(
+				name -> name.toLowerCase(Locale.ROOT)
+		);
+		def = defName.flatMap(
+				data::getDefinition
+		).orElseGet(() -> {
+			METAcraftModeration.LOGGER.error("Unable to load moderator definition named " + defName.orElse(null));
 			return NULL.def;
 		});
 	}

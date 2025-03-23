@@ -50,6 +50,7 @@ public class CutsceneChunkManager extends ServerChunkManager {
 				WorldHelper.getGenerationProgressListener(cutsceneWorld.getActualWorld()),
 				(pos, status) -> {}, persistentStateManagerFactory
 		);
+		var tickerManager = new ChunkTicketManager();
 		this.cutsceneWorld = cutsceneWorld;
 		this.cutsceneChunkLoadingManager = new CutsceneChunkLoadingManager(
 				cutsceneWorld,
@@ -61,6 +62,7 @@ public class CutsceneChunkManager extends ServerChunkManager {
 				this, CutsceneWorld.createDummyChunkGenerator(cutsceneWorld.getActualWorld()),
 				WorldHelper.getGenerationProgressListener(cutsceneWorld.getActualWorld()),
 				(pos, status) -> {}, persistentStateManagerFactory,
+				tickerManager,
 				cutsceneWorld.getServer().getPlayerManager().getViewDistance(),
 				cutsceneWorld.getServer().syncChunkWrites()
 		);
@@ -68,12 +70,15 @@ public class CutsceneChunkManager extends ServerChunkManager {
 				cutsceneChunkLoadingManager
 		);
 		((AccessorServerChunkManager) this).setTicketManager(
-				cutsceneChunkLoadingManager.getTicketManager()
+				tickerManager
+		);
+		((AccessorServerChunkManager) this).setLevelManager(
+				cutsceneChunkLoadingManager.getLevelManager()
 		);
 		((AccessorServerChunkManager) this).setLightingProvider(
 				cutsceneChunkLoadingManager.getLightingProvider()
 		);
-		this.cutsceneChunkLoadingManager.getTicketManager().setSimulationDistance(cutsceneWorld.getServer().getPlayerManager().getSimulationDistance());
+		this.cutsceneChunkLoadingManager.getLevelManager().setSimulationDistance(cutsceneWorld.getServer().getPlayerManager().getSimulationDistance());
 
 	}
 

@@ -93,12 +93,12 @@ public abstract class MixinParrotEntity extends TameableEntity {
 		var baby = EntityType.PARROT.create(world, SpawnReason.BREEDING);
 		if (baby != null && entity instanceof ParrotEntity otherParrot) {
 			if (this.getRandom().nextBoolean()) {
-				baby.setVariant(this.getVariant());
+				baby.setComponent(DataComponentTypes.PARROT_VARIANT, this.getVariant());
 			} else {
-				baby.setVariant(otherParrot.getVariant());
+				baby.setComponent(DataComponentTypes.PARROT_VARIANT, otherParrot.getVariant());
 			}
 			if (this.isTamed()) {
-				baby.setOwnerUuid(this.getOwnerUuid());
+				baby.setOwner(this.getOwnerReference());
 				baby.setTamed(true, true);
 			}
 		}

@@ -5,8 +5,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.Ownable;
 import net.minecraft.entity.Targeter;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Uuids;
 import net.minecraft.world.World;
 
 import java.util.Optional;
@@ -117,19 +117,13 @@ public class EntityTarget {
 			);
 		} else {
 			getID().ifPresent(
-					id -> nbt.putUuid(name, id)
+					id -> nbt.put(name, Uuids.INT_STREAM_CODEC, id)
 			);
 		}
 	}
 
 	public void readNBT(NbtCompound nbt, String name) {
-		if (nbt.containsUuid(name)) {
-			set(nbt.getUuid(name));
-		} else if (nbt.contains(name, NbtElement.STRING_TYPE)) {
-			try {
-				set(UUID.fromString(nbt.getString(name)));
-			} catch (IllegalArgumentException ignored) {}
-		}
+		nbt.get(name, Uuids.CODEC).ifPresent(this::set);
 	}
 
 	public record Context(

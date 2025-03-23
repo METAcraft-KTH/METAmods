@@ -29,9 +29,9 @@ public class CutsceneChunk extends WorldChunk {
 	}
 
 	@Override
-	public BlockState setBlockState(BlockPos pos, BlockState state, boolean moved) {
+	public BlockState setBlockState(BlockPos pos, BlockState state, int flags) {
 		changedBlocks.add(pos);
-		return super.setBlockState(pos, state, moved);
+		return super.setBlockState(pos, state, flags);
 	}
 
 	@Override

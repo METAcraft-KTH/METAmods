@@ -7,6 +7,7 @@ import net.minecraft.block.BlockWithEntity;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityCollisionHandler;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ActionResult;
@@ -38,7 +39,7 @@ public class PortalCore extends BlockWithEntity implements PolymerBlock {
 	}
 
 	@Override
-	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity) {
+	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler) {
 		if (world.getBlockEntity(pos) instanceof PortalEntity portal) {
 			portal.onCollision(state, world, pos, entity);
 		}

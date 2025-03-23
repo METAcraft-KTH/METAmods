@@ -1,39 +1,51 @@
 package se.datasektionen.mc.metacraft_moderation.moderator_mode;
 
-import net.minecraft.nbt.NbtCompound;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.text.Text;
 
-import java.util.Locale;
 import java.util.Optional;
 
 public class ModeratorModeDefinition {
 
-	private static final String NAME = "Name";
-	private static final String ENTER_COMMAND = "EnterCommand";
-	private static final String EXIT_COMMAND = "ExitCommand";
-	private static final String SEPARATE_PLAYER_DATA = "SeparatePlayerData";
-	private static final String ANNOUNCE_ADVANCEMENTS = "AnnounceAdvancements";
-	private static final String VANISH = "Vanish";
-	private static final String PREVENT_TAMED_MOB_FOLLOW = "PreventTamedMobFollow";
+	public static final Codec<ModeratorModeDefinition> CODEC = RecordCodecBuilder.create(
+			instance -> instance.group(
+					Codec.STRING.fieldOf("Name").forGetter(ModeratorModeDefinition::getName),
+					Codec.BOOL.fieldOf("SeparatePlayerData").forGetter(ModeratorModeDefinition::shouldHaveSeparatePlayerData),
+					Codec.STRING.optionalFieldOf("EnterCommand").forGetter(ModeratorModeDefinition::getEnterCommand),
+					Codec.STRING.optionalFieldOf("ExitCommand").forGetter(ModeratorModeDefinition::getExitCommand),
+					Codec.BOOL.optionalFieldOf("AnnounceAdvancements", true).forGetter(ModeratorModeDefinition::announceAdvancements),
+					Codec.BOOL.fieldOf("Vanish").forGetter(d -> d.vanish),
+					Codec.BOOL.optionalFieldOf("PreventTamedMobFollow", false).forGetter(d -> d.preventTamedMobFollow)
+			).apply(instance, ModeratorModeDefinition::new)
+	);
 
 	protected String name;
-	protected String enterCommand;
-	protected String exitCommand;
+	protected Optional<String> enterCommand;
+	protected Optional<String> exitCommand;
 	protected boolean separatePlayerData;
-	protected boolean announceAdvancements = true;
+	protected boolean announceAdvancements;
 	protected boolean vanish;
 	protected boolean preventTamedMobFollow;
 
 	private Runnable markSave = () -> {};
 
 	public ModeratorModeDefinition(
-			String name, boolean separatePlayerData,  boolean announceAdvancements, boolean vanish, boolean preventTamedMobFollow
+			String name, boolean separatePlayerData, Optional<String> enterCommand, Optional<String> exitCommand, boolean announceAdvancements, boolean vanish, boolean preventTamedMobFollow
 	) {
 		this.name = name;
 		this.separatePlayerData = separatePlayerData;
+		this.enterCommand = enterCommand;
+		this.exitCommand = exitCommand;
 		this.announceAdvancements = announceAdvancements;
 		this.vanish = vanish;
 		this.preventTamedMobFollow = preventTamedMobFollow;
+	}
+
+	public ModeratorModeDefinition(
+			String name, boolean separatePlayerData, boolean announceAdvancements, boolean vanish, boolean preventTamedMobFollow
+	) {
+		this(name, separatePlayerData, Optional.empty(), Optional.empty(), announceAdvancements, vanish, preventTamedMobFollow);
 	}
 
 	public void setSave(Runnable markSave) {
@@ -41,7 +53,7 @@ public class ModeratorModeDefinition {
 	}
 
 	public ModeratorModeDefinition(String name) {
-		this.name = name;
+		this(name, false, Optional.empty(), Optional.empty(), true, false, false);
 	}
 
 	public void setVanish(boolean vanish) {
@@ -64,12 +76,12 @@ public class ModeratorModeDefinition {
 	}
 
 	public void setEnterCommand(String enterCommand) {
-		this.enterCommand = enterCommand;
+		this.enterCommand = Optional.ofNullable(enterCommand);
 		markDirty();
 	}
 
 	public void setExitCommand(String exitCommand) {
-		this.exitCommand = exitCommand;
+		this.exitCommand = Optional.ofNullable(exitCommand);
 		markDirty();
 	}
 
@@ -79,11 +91,11 @@ public class ModeratorModeDefinition {
 	}
 
 	public Optional<String> getEnterCommand() {
-		return Optional.ofNullable(enterCommand);
+		return enterCommand;
 	}
 
 	public Optional<String> getExitCommand() {
-		return Optional.ofNullable(exitCommand);
+		return exitCommand;
 	}
 
 	public boolean shouldHaveSeparatePlayerData() {
@@ -96,47 +108,6 @@ public class ModeratorModeDefinition {
 
 	public boolean announceAdvancements() {
 		return announceAdvancements;
-	}
-
-	public NbtCompound toNBT() {
-		NbtCompound nbt = new NbtCompound();
-
-		nbt.putString(NAME, name);
-
-		if (enterCommand != null) {
-			nbt.putString(ENTER_COMMAND, enterCommand);
-		}
-		if (exitCommand != null) {
-			nbt.putString(EXIT_COMMAND, exitCommand);
-		}
-
-		nbt.putBoolean(SEPARATE_PLAYER_DATA, separatePlayerData);
-		nbt.putBoolean(VANISH, vanish);
-		nbt.putBoolean(PREVENT_TAMED_MOB_FOLLOW, preventTamedMobFollow);
-		nbt.putBoolean(ANNOUNCE_ADVANCEMENTS, announceAdvancements);
-
-		return nbt;
-	}
-
-	public void fromNBT(NbtCompound nbt) {
-		name = nbt.getString(NAME).toLowerCase(Locale.ROOT);
-
-		if (nbt.contains(ENTER_COMMAND)) {
-			enterCommand = nbt.getString(ENTER_COMMAND);
-		}
-		if (nbt.contains(EXIT_COMMAND)) {
-			exitCommand = nbt.getString(EXIT_COMMAND);
-		}
-
-		separatePlayerData = nbt.getBoolean(SEPARATE_PLAYER_DATA);
-
-		vanish = nbt.getBoolean(VANISH);
-
-		preventTamedMobFollow = nbt.getBoolean(PREVENT_TAMED_MOB_FOLLOW);
-
-		if (nbt.contains(ANNOUNCE_ADVANCEMENTS)) {
-			announceAdvancements = nbt.getBoolean(ANNOUNCE_ADVANCEMENTS);
-		}
 	}
 
 	public Text toText() {

@@ -5,15 +5,16 @@ import eu.pb4.sgui.api.GuiHelpers;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
+import it.unimi.dsi.fastutil.objects.ReferenceSortedSets;
 import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.TooltipDisplayComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Unit;
 import se.datasektionen.mc.metacraft_lib.util.helper.GameProfileHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.PlayerHelper;
 
@@ -31,7 +32,9 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 			new ItemStack(
 					Items.ORANGE_STAINED_GLASS_PANE.getRegistryEntry(), 1,
 					ComponentChanges.builder().add(
-							DataComponentTypes.HIDE_TOOLTIP, Unit.INSTANCE
+							DataComponentTypes.TOOLTIP_DISPLAY, new TooltipDisplayComponent(
+									true, ReferenceSortedSets.emptySet()
+							)
 					).build()
 			)
 	).build();

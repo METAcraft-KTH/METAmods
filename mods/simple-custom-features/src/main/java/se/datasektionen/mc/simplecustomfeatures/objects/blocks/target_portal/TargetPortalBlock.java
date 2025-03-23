@@ -7,6 +7,7 @@ import net.minecraft.block.EndPortalBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.EndPortalBlockEntity;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityCollisionHandler;
 import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.function.BooleanBiFunction;
@@ -38,7 +39,7 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 	}
 
 	@Override
-	protected void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity) {
+	protected void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler) {
 		if (!entity.canUsePortals(false)) return;
 		if (!VoxelShapes.matchesAnywhere(VoxelShapes.cuboid(entity.getBoundingBox().offset(-pos.getX(), -pos.getY(), -pos.getZ())), state.getOutlineShape(world, pos), BooleanBiFunction.AND)) return;
 		entity.tryUsePortal(this, pos);

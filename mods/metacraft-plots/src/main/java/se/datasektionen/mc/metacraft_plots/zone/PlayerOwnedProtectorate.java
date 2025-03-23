@@ -338,44 +338,6 @@ public class PlayerOwnedProtectorate extends ZoneData {
 				}
 			};
 		}
-
-		private static UUID getFromNBT(String uuidPath, NbtCompound nbt) {
-			String[] path = uuidPath.split("\\.");
-			NbtCompound current = nbt;
-			for (int i = 0; i < path.length-1; i++) {
-				if (current.contains(path[i], NbtElement.COMPOUND_TYPE)) {
-					current = current.getCompound(path[i]);
-				}
-			}
-			String lastKey = path[path.length-1];
-			if (current.containsUuid(lastKey)) {
-				return current.getUuid(lastKey);
-			} else if (current.contains(lastKey, NbtElement.STRING_TYPE)) {
-				var string = current.getString(lastKey);
-				try {
-					return UUID.fromString(string);
-				} catch (IllegalArgumentException ignored) {}
-				if (string.length() < 32) {
-					try {
-						var lhs = string.substring(0, 16);
-						var rhs = string.substring(16);
-						var most = Long.parseLong(lhs, 16);
-						var least = Long.parseLong(rhs, 16);
-						return new UUID(most, least);
-					} catch (StringIndexOutOfBoundsException | NumberFormatException ignored) {}
-				}
-				return null;
-			} else if (
-					current.contains(lastKey + "Least", NbtElement.LONG_TYPE) &&
-					current.contains(lastKey + "Most", NbtElement.LONG_TYPE)
-			) {
-				long least = current.getLong(lastKey + "Least");
-				long most = current.getLong(lastKey + "Most");
-				return new UUID(most, least);
-			} else {
-				return null;
-			}
-		}
 	}
 
 	@Override
@@ -402,13 +364,13 @@ public class PlayerOwnedProtectorate extends ZoneData {
 						acceptedPaymentItems.stream().map(
 								element -> IncrementItem.CODEC.encodeStart(lookup.getOps(NbtOps.INSTANCE), element).resultOrPartial(
 										METAcraftPlots.LOGGER::error
-								).map(NbtElement::asString).orElse(null)
+								).map(NbtElement::toString).orElse(null)
 						).collect(Collectors.joining(", ")) +
 						", acceptedDecrementItems=[" +
 						acceptedDecrementItems.stream().map(
 								element -> DecrementItem.CODEC.encodeStart(lookup.getOps(NbtOps.INSTANCE), element).resultOrPartial(
 										METAcraftPlots.LOGGER::error
-								).map(NbtElement::asString).orElse(null)
+								).map(NbtElement::toString).orElse(null)
 						).collect(Collectors.joining(", ")) +
 						"]"
 		);

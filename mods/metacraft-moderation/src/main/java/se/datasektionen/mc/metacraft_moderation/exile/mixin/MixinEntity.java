@@ -40,9 +40,13 @@ public abstract class MixinEntity {
 				if (tamed.getOwner() instanceof ServerPlayerEntity p) {
 					player = p;
 				} else {
-					if (PreventInteraction.shouldCancelInteractionAt(
-						this.getServer(), tamed.getOwnerUuid(), getWorld().getRegistryKey(), this.getBlockPos()
-					)) {
+					if (
+						tamed.getOwnerReference() != null &&
+						world.getServer().getUserCache().getByUuid(tamed.getOwnerReference().getUuid()).isPresent() &&
+						PreventInteraction.shouldCancelInteractionAt(
+								this.getServer(), tamed.getOwnerReference().getUuid(), getWorld().getRegistryKey(), this.getBlockPos()
+						)
+					) {
 						cir.setReturnValue(true);
 						return;
 					}

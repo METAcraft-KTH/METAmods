@@ -140,7 +140,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void load(NbtCompound nbt, CallbackInfo ci) {
-		phantomEntity = nbt.getBoolean(PHANTOM_ENTITY);
+		phantomEntity = nbt.getBoolean(PHANTOM_ENTITY, false);
 		final var ops = getRegistryManager().getOps(NbtOps.INSTANCE);
 		if (nbt.contains(DOUBLE_TEAM_DATA)) {
 			DoubleTeamHandler.getCodec(((LivingEntity) (Object) this)).parse(

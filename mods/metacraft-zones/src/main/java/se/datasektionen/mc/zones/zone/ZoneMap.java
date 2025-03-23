@@ -1,10 +1,6 @@
 package se.datasektionen.mc.zones.zone;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import org.pcollections.HashTreePMap;
@@ -149,26 +145,19 @@ public class ZoneMap {
 		return zones.get().containsKey(name);
 	}
 
-	public NbtList writeNBT() {
-		NbtList list = new NbtList();
-		for (RealZone container : zones.get().values()) {
-			list.add(container.toNBT());
-		}
-		return list;
+	public List<RealZone.SerializedZone> serialize() {
+		return zones.get().values().stream().map(RealZone::serialize).toList();
 	}
 
-	public void readNBT(MinecraftServer server, RegistryWrapper.WrapperLookup lookup, NbtList nbt) {
-		if (!nbt.isEmpty() && nbt.getHeldType() != NbtElement.COMPOUND_TYPE) {
-			throw new IllegalStateException("NBT type of list must be Compound!");
-		}
-		for (NbtElement element : nbt) {
-			RealZone.fromNBT(server, lookup, ((NbtCompound) element), markNeedsSave, !IsLoaded.LEUKOCYTE.isLoaded()).ifPresentOrElse(
+	public void deserialize(MinecraftServer server, List<RealZone.SerializedZone> zones) {
+		for (var zone : zones) {
+			RealZone.deserialize(server, zone, markNeedsSave, !IsLoaded.LEUKOCYTE.isLoaded()).ifPresentOrElse(
 					this::addZoneInternal, () -> {
 						if (IsLoaded.LEUKOCYTE.isLoaded()) {
 							leukocyteFixes.add(() -> {
-								RealZone.fromNBT(server, lookup, ((NbtCompound) element), markNeedsSave, true).ifPresent(zone -> {
-									this.addZoneInternal(zone);
-									zone.fixDimensionLeukocyte();
+								RealZone.deserialize(server, zone, markNeedsSave, true).ifPresent(z -> {
+									this.addZoneInternal(z);
+									z.fixDimensionLeukocyte();
 								});
 							});
 						}

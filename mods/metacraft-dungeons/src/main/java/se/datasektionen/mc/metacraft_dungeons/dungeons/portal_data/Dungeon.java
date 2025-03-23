@@ -16,7 +16,6 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -42,6 +41,7 @@ import org.pcollections.PSet;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
 import se.datasektionen.mc.metacraft_core.portal.PortalTarget;
 import se.datasektionen.mc.metacraft_core.portal.PortalTargetRegistry;
+import se.datasektionen.mc.metacraft_dungeons.DungeonTickets;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.DungeonData;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.WorldCache;
@@ -129,11 +129,6 @@ public record Dungeon(
 				pools, dungeonDepth, depthOffset, false, EMPTY_PLAYERS, List.of(), 0
 		);
 	}
-	
-	private static final ChunkTicketType<ChunkPos> TICKET = ChunkTicketType.create(
-			METAcraftDungeons.getID("dungeon_entrance").toString(),
-			Comparator.comparingLong(ChunkPos::toLong)
-	);
 
 
 	public Dungeon withPlayer(ServerPlayerEntity player) {
@@ -373,7 +368,7 @@ public record Dungeon(
 			StructureAccessor structureAccessor
 	) {
 		var thisPos = new ChunkPos(portal.getPos());
-		((ServerWorld) portal.getWorld()).getChunkManager().addTicket(TICKET, thisPos, 0, thisPos);
+		((ServerWorld) portal.getWorld()).getChunkManager().addTicket(DungeonTickets.DUNGEON_ENTRANCE, thisPos, 0);
 		return CompletableFuture.supplyAsync(
 				() -> {
 					THREAD_COUNT.incrementAndGet();
@@ -398,13 +393,13 @@ public record Dungeon(
 
 
 					portal.getWorld().getServer().execute(() -> {
-						dungeons.getChunkManager().addTicket(TICKET, averagePos, radius, averagePos);
+						dungeons.getChunkManager().addTicket(DungeonTickets.DUNGEON_ENTRANCE, averagePos, radius);
 					});
 					
 					Runnable onExit = () -> {
 						portal.getWorld().getServer().execute(() -> {
-							dungeons.getChunkManager().removeTicket(TICKET, averagePos, radius, averagePos);
-							((ServerWorld) portal.getWorld()).getChunkManager().removeTicket(TICKET, thisPos, 0, thisPos);
+							dungeons.getChunkManager().removeTicket(DungeonTickets.DUNGEON_ENTRANCE, averagePos, radius);
+							((ServerWorld) portal.getWorld()).getChunkManager().removeTicket(DungeonTickets.DUNGEON_ENTRANCE, thisPos, 0);
 						});
 					};
 

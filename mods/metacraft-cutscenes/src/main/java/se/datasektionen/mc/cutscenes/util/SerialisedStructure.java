@@ -1,10 +1,7 @@
 package se.datasektionen.mc.cutscenes.util;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtInt;
-import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.*;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.structure.StructureTemplate;
@@ -29,27 +26,30 @@ public record SerialisedStructure(NbtCompound data) {
 	public StructureTemplate parse(RegistryWrapper.WrapperLookup lookup) {
 		StructureTemplate template = new StructureTemplate();
 		//StructureTemplate#readNbt only accepts an int list, but codecs sometimes like to replace it with an int array.
-		if (data.contains(StructureTemplate.SIZE_KEY, NbtElement.INT_ARRAY_TYPE)) {
-			data.put(StructureTemplate.SIZE_KEY, convert(data.getIntArray(StructureTemplate.SIZE_KEY)));
+		var size = data.get(StructureTemplate.SIZE_KEY);
+		if (size instanceof NbtIntArray array) {
+			data.put(StructureTemplate.SIZE_KEY, convert(array.getIntArray()));
 		}
-		if (data.contains(StructureTemplate.BLOCKS_KEY, NbtElement.LIST_TYPE)) {
-			var blocks = data.getList(StructureTemplate.BLOCKS_KEY, NbtElement.COMPOUND_TYPE);
+		data.getList(StructureTemplate.BLOCKS_KEY).ifPresent(blocks -> {
 			for (var b : blocks) {
-				var block = ((NbtCompound) b);
-				if (block.contains(StructureTemplate.BLOCKS_POS_KEY, NbtElement.INT_ARRAY_TYPE)) {
-					block.put(StructureTemplate.BLOCKS_POS_KEY, convert(block.getIntArray(StructureTemplate.BLOCKS_POS_KEY)));
+				if (b instanceof NbtCompound block) {
+					var blockPos = block.get(StructureTemplate.BLOCKS_POS_KEY);
+					if (blockPos instanceof NbtIntArray array) {
+						block.put(StructureTemplate.BLOCKS_POS_KEY, convert(array.getIntArray()));
+					}
 				}
 			}
-		}
-		if (data.contains(StructureTemplate.ENTITIES_KEY, NbtElement.LIST_TYPE)) {
-			var entities = data.getList(StructureTemplate.ENTITIES_KEY, NbtElement.COMPOUND_TYPE);
+		});
+		data.getList(StructureTemplate.ENTITIES_KEY).ifPresent(entities -> {
 			for (var e : entities) {
-				var entity = ((NbtCompound) e);
-				if (entity.contains(StructureTemplate.ENTITIES_BLOCK_POS_KEY, NbtElement.LIST_TYPE)) {
-					entity.put(StructureTemplate.ENTITIES_BLOCK_POS_KEY, convert(entity.getIntArray(StructureTemplate.ENTITIES_BLOCK_POS_KEY)));
+				if (e instanceof NbtCompound entity) {
+					var blockPos = entity.get(StructureTemplate.ENTITIES_BLOCK_POS_KEY);
+					if (blockPos instanceof NbtIntArray array) {
+						entity.put(StructureTemplate.ENTITIES_BLOCK_POS_KEY, convert(array.getIntArray()));
+					}
 				}
 			}
-		}
+		});
 		template.readNbt(lookup.getOrThrow(RegistryKeys.BLOCK), data);
 		return template;
 	}

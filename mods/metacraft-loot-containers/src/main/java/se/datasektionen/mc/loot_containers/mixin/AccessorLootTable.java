@@ -14,7 +14,7 @@ import java.util.List;
 public interface AccessorLootTable {
 
 	@Invoker
-	void callShuffle(ObjectArrayList<ItemStack> drops, int freeSlots, Random random);
+	void callSpreadStacks(ObjectArrayList<ItemStack> drops, int freeSlots, Random random);
 
 	@Invoker
 	List<Integer> callGetFreeSlots(Inventory inventory, Random random);

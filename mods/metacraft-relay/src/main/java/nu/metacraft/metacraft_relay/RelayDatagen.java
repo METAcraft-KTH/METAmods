@@ -20,6 +20,7 @@ import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LodestoneTrackerComponent;
 import net.minecraft.component.type.LoreComponent;
+import net.minecraft.component.type.TooltipDisplayComponent;
 import net.minecraft.data.recipe.RecipeExporter;
 import net.minecraft.data.recipe.RecipeGenerator;
 import net.minecraft.item.Item;
@@ -44,7 +45,6 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Unit;
 import nu.metacraft.metacraft_relay.blocks.RelayBlocks;
 import nu.metacraft.metacraft_relay.blocks.block.RelayBlock;
 import nu.metacraft.metacraft_relay.items.RelayItems;
@@ -185,7 +185,9 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 									new ItemStack(
 											RelayItems.RELAY.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
-													DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE
+													DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT.with(
+															DataComponentTypes.LODESTONE_TRACKER, true
+													)
 											).add(
 													DataComponentTypes.LORE, new LoreComponent(
 															List.of(RelayBlock.getTargetText("?, ?, ?", "?").styled(style -> style.withItalic(false)))

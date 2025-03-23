@@ -49,7 +49,7 @@ public class ZoneCommandUtils {
 			ZoneRegistry.REGISTRY.stream().map(type -> {
 				return ZoneType.REGISTRY_CODEC.encodeStart(
 						RegistryOps.of(NbtOps.INSTANCE, ctx.getSource().getRegistryManager()), type.defaultValue().get()
-				).resultOrPartial(METAcraftZones.LOGGER::error).map(NbtElement::asString).orElse(null);
+				).resultOrPartial(METAcraftZones.LOGGER::error).map(NbtElement::toString).orElse(null);
 			}).filter(Objects::nonNull),
 			suggestionsBuilder
 		);

@@ -7,11 +7,9 @@ import net.minecraft.entity.Tameable;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Uuids;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -19,7 +17,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import se.datasektionen.mc.better_pets.BetterPets;
 import se.datasektionen.mc.better_pets.TameableExtension;
 import se.datasektionen.mc.metacraft_lib.util.helper.TamedHelper;
 
@@ -27,8 +24,6 @@ import java.util.*;
 
 @Mixin(TameableEntity.class)
 public abstract class MixinTameableEntity extends AnimalEntity implements TameableExtension, Tameable {
-
-	@Shadow public abstract @Nullable UUID getOwnerUuid();
 
 	@Shadow public abstract boolean isTamed();
 
@@ -47,24 +42,18 @@ public abstract class MixinTameableEntity extends AnimalEntity implements Tameab
 
 	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
 	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
-		Uuids.SET_CODEC.encodeStart(NbtOps.INSTANCE, trustedPlayers).resultOrPartial(
-				BetterPets.LOGGER::error
-		).ifPresent(players -> {
-			nbt.put(TRUSTED_PLAYERS, players);
-		});
+		nbt.put(TRUSTED_PLAYERS, Uuids.SET_CODEC, trustedPlayers);
 	}
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("HEAD"))
 	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
-		if (nbt.contains(TRUSTED_PLAYERS)) {
-			Uuids.SET_CODEC.parse(NbtOps.INSTANCE, nbt.get(TRUSTED_PLAYERS)).resultOrPartial(
-					BetterPets.LOGGER::error
-			).ifPresent(players -> trustedPlayers = players);
-			if (!getEntityWorld().isClient()) {
-				trustedPlayers.removeIf(
-						id -> this.getServer().getUserCache().getByUuid(id).isEmpty()
-				);
-			}
+		nbt.get(TRUSTED_PLAYERS, Uuids.SET_CODEC).ifPresent(
+				players -> trustedPlayers = players
+		);
+		if (!getEntityWorld().isClient()) {
+			trustedPlayers.removeIf(
+					id -> this.getServer().getUserCache().getByUuid(id).isEmpty()
+			);
 		}
 	}
 

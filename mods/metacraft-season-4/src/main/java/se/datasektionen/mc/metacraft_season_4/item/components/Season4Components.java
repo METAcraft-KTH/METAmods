@@ -5,7 +5,7 @@ import eu.pb4.polymer.core.api.other.PolymerComponent;
 import net.minecraft.component.ComponentType;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
-import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.intprovider.IntProvider;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.datasektionen.mc.metacraft_season_4.Season4;
@@ -15,7 +15,7 @@ import java.util.function.UnaryOperator;
 
 public class Season4Components {
 
-	public static final ComponentType<DataPool<EntityHelper.SpawnEntry>> SPAWNS = register(
+	public static final ComponentType<Pool<EntityHelper.SpawnEntry>> SPAWNS = register(
 			"spawn_pool", builder -> builder.codec(EntityHelper.SpawnEntry.POOL_CODEC)
 	);
 

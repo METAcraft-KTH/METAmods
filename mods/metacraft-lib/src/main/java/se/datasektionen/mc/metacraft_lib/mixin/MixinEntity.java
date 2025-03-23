@@ -40,8 +40,8 @@ public abstract class MixinEntity implements EntityExtensions {
 
 	@Inject(method = "readNbt", at = @At("RETURN"))
 	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
-		preventEnterVehicle = nbt.getBoolean(EntityParameters.PREVENT_ENTER_VEHICLE);
-		hideUUIDInTooltip = nbt.getBoolean(EntityParameters.HIDE_UUID_TOOLTIP);
+		preventEnterVehicle = nbt.getBoolean(EntityParameters.PREVENT_ENTER_VEHICLE, false);
+		hideUUIDInTooltip = nbt.getBoolean(EntityParameters.HIDE_UUID_TOOLTIP, false);
 	}
 
 	@Inject(method = "tick", at = @At("RETURN"))
@@ -75,8 +75,7 @@ public abstract class MixinEntity implements EntityExtensions {
 	)
 	public void getHoverEvent(CallbackInfoReturnable<HoverEvent> cir) {
 		if (hideUUIDInTooltip) {
-			cir.setReturnValue(new HoverEvent(
-					HoverEvent.Action.SHOW_TEXT,
+			cir.setReturnValue(new HoverEvent.ShowText(
 					Text.empty().append(
 							this.getName()
 					).append(

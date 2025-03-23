@@ -83,6 +83,11 @@ public class PortableJukeboxBlockEntity extends BlockEntity implements SingleSta
 	}
 
 	@Override
+	public void onBlockReplaced(BlockPos pos, BlockState oldState) {
+		//Prevent the disc from being ejected when broken (the default behaviour of this function is to drop all items in the inventory).
+	}
+
+	@Override
 	public void setStack(ItemStack stack) {
 		var prev = stack.isEmpty() ? this.jukebox.remove(Components.PORTABLE_JUKEBOX) : this.jukebox.set(Components.PORTABLE_JUKEBOX, stack);
 		PortableJukeboxItem.updateStackChange(EntityRef.fromBlock(this), prev, jukebox);

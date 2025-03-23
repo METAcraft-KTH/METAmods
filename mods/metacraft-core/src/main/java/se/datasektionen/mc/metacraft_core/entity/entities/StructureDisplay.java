@@ -18,7 +18,6 @@ import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
@@ -31,7 +30,6 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
-import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.util.DisplayEntityData;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorStructureTemplate;
 import xyz.nucleoid.packettweaker.PacketContext;
@@ -68,30 +66,25 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		boolean shouldFixDisplays = true;
 		data.load(nbt, this);
 
-
-		if (nbt.contains(STRUCTURE, NbtElement.STRING_TYPE)) {
-			var id = Identifier.tryParse(nbt.getString(STRUCTURE));
+		var idString = nbt.getString(STRUCTURE);
+		if (idString.isPresent()) {
+			var id = Identifier.tryParse(idString.get());
 			if (id != null && getWorld() instanceof ServerWorld sw) {
 				if (setFromStructure(sw.getStructureTemplateManager(), id)) {
 					shouldFixDisplays = false;
 				}
 			}
-		} else if (nbt.contains(STRUCTURE, NbtElement.COMPOUND_TYPE)) {
+		} else {
 			var s = new StructureTemplate();
-			s.readNbt(this.getRegistryManager().getOrThrow(RegistryKeys.BLOCK), nbt.getCompound(STRUCTURE));
+			s.readNbt(this.getRegistryManager().getOrThrow(RegistryKeys.BLOCK), nbt.getCompoundOrEmpty(STRUCTURE));
 			if (setFromStructure(s)) {
 				shouldFixDisplays = false;
 			}
 		}
 		if (nbt.contains(PASSENGER_SLOTS)) {
-			DisplayRider.LIST_CODEC.parse(
-					getRegistryManager().getOps(NbtOps.INSTANCE),
-					nbt.get(PASSENGER_SLOTS)
-			).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(data -> {
-				riderSlots = data;
-			});
+			nbt.get(PASSENGER_SLOTS, DisplayRider.LIST_CODEC, getRegistryManager().getOps(NbtOps.INSTANCE)).ifPresent(
+					data -> riderSlots = data
+			);
 		} else {
 			riderSlots = new ArrayList<>();
 		}
@@ -109,14 +102,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		}
 		data.save(nbt, this);
 		if (!riderSlots.isEmpty()) {
-			DisplayRider.LIST_CODEC.encodeStart(
-					getRegistryManager().getOps(NbtOps.INSTANCE),
-					riderSlots
-			).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(data -> {
-				nbt.put(PASSENGER_SLOTS, data);
-			});
+			nbt.put(PASSENGER_SLOTS, DisplayRider.LIST_CODEC, getRegistryManager().getOps(NbtOps.INSTANCE), riderSlots);
 		}
 	}
 
@@ -262,20 +248,20 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 	}
 
 	@Override
-	public void updatePrevAngles() {
-		if (prevYaw != getYaw() || prevPitch != getPitch()) {
+	public void updateLastAngles() {
+		if (lastYaw != getYaw() || lastPitch != getPitch()) {
 			updateOffsets();
 		}
-		super.updatePrevAngles();
+		super.updateLastAngles();
 	}
 
 	@Override
 	public void tick() {
 		super.tick();
-		if (prevYaw != getYaw() || prevPitch != getPitch()) {
+		if (lastYaw != getYaw() || lastPitch != getPitch()) {
 			updateOffsets();
 		}
-		if (prevX != getX() || prevY != getY() || prevZ != getZ()) {
+		if (lastX != getX() || lastY != getY() || lastZ != getZ()) {
 			updatePositions();
 		}
 	}
@@ -319,14 +305,14 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 			float yawOffset, float pitchOffset,
 			AffineTransformation transformation
 	) {
-		var rotated = transformation.getMatrix();
+		var rotated = transformation.copyMatrix();
 		if (yawOffset != 0 || pitchOffset != 0) {
 			var rot = new Matrix4f().rotateXYZ(
 					-pitchOffset * MathHelper.RADIANS_PER_DEGREE,
 					-yawOffset * MathHelper.RADIANS_PER_DEGREE,
 					0
 			);
-			rotated = rotated.mul(rot, new Matrix4f());
+			rotated = rotated.mul(rot);
 		}
 		return rotated;
 	}

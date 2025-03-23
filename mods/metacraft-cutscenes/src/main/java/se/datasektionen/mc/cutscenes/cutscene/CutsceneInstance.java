@@ -20,6 +20,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.Uuids;
+import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.TeleportTarget;
@@ -437,15 +438,14 @@ public class CutsceneInstance implements AutoCloseable {
 				target = cutscene.getExitPoint(player, this).orElseThrow();
 			} else if (cutscene.returnToStart() && skipNextCutscene(isLeavingCutscene)) {
 				target = Optional.ofNullable(savedPlayerData.get(player.getUuid())).flatMap(data -> {
-					NbtList pos = data.getList("Pos", NbtCompound.DOUBLE_TYPE);
-					NbtList velocity = data.getList("Motion", NbtCompound.DOUBLE_TYPE);
-					NbtList rotation = data.getList("Rotation", NbtCompound.FLOAT_TYPE);
+					Vec3d pos = data.get("Pos", Vec3d.CODEC).orElse(Vec3d.ZERO);
+					Vec3d velocity = data.get("Motion", Vec3d.CODEC).orElse(Vec3d.ZERO);
+					Vec2f rotation = data.get("Rotation", Vec2f.CODEC).orElse(Vec2f.ZERO);
 					var dim = PlayerDataHelper.getWorld(player.getServer(), data);
 					return dim.map(world -> {
 						return new TeleportTarget(
-								world, new Vec3d(pos.getDouble(0), pos.getDouble(1), pos.getDouble(2)),
-								new Vec3d(velocity.getDouble(0), velocity.getDouble(1), velocity.getDouble(2)),
-								rotation.getFloat(0), rotation.getFloat(1), TeleportTarget.NO_OP
+								world, pos, velocity,
+								rotation.x, rotation.y, TeleportTarget.NO_OP
 						);
 					});
 				}).orElseGet(() -> player.getRespawnTarget(true, TeleportTarget.NO_OP));
@@ -469,7 +469,7 @@ public class CutsceneInstance implements AutoCloseable {
 							target.withPosition(target.position().subtract(player.getPos().subtract(vehicle.getPos())))
 					);
 				}
-				player.readEnderPearls(Optional.of(data));
+				player.readEnderPearls(data);
 			}
 
 		}

@@ -1,49 +1,92 @@
 package se.datasektionen.mc.metacraft_moderation.exile;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.registry.RegistryWrapper;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Uuids;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
+import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_moderation.METAcraftModeration;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ExileData extends PersistentState {
-
-	private static final String stateKey = "metacraft-moderation-exile";
-
-	private static final String EXILE_DEFINITIONS = "ExileDefinitions";
-	private static final String EXILED_PLAYERS = "ExiledPlayers";
-	private static final String PLAYER = "Player";
-	private static final String EXILE = "Exile";
 
 	private final Map<String, ExileDefinition> exileDefinitions = new HashMap<>();
 	private final Map<UUID, ExileDefinition> exiledPlayers = new HashMap<>();
 
 	public static ExileData getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(getType(server), stateKey);
+		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
 	}
 
-	private static Type<ExileData> getType(MinecraftServer server) {
-		return new Type<>(
-				() -> createNew(server), (nbt, lookup) -> fromNbt(server, nbt, lookup), null
+	private static Codec<ExileData> createCodec(MinecraftServer server) {
+		return RecordCodecBuilder.create(
+				instance -> instance.group(
+						ExileDefinition.Serialized.CODEC.listOf().fieldOf("ExileDefinitions").forGetter(
+								d -> d.exileDefinitions.values().stream().map(ExileDefinition::serialize).toList()
+						),
+						ExtraCodecs.createListSerializedMap(
+								Uuids.CODEC.fieldOf("Player"),
+								Codec.STRING.fieldOf("Exile"),
+								HashMap::new
+						).fieldOf("ExiledPlayers").forGetter(
+								d -> d.exiledPlayers.entrySet().stream().map(
+										e -> Pair.of(e.getKey(), e.getValue().getName())
+								).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond))
+						)
+				).apply(
+						instance, new ExileData(server)::fromData
+				)
 		);
 	}
+
+	private static final PersistentStateType<ExileData> TYPE = new PersistentStateType<>(
+			"metacraft-moderation-exile", ctx -> createNew(ctx.getWorldOrThrow().getServer()),
+			ctx -> createCodec(ctx.getWorldOrThrow().getServer()), null
+	);
 
 	private static ExileData createNew(MinecraftServer server) {
 		METAcraftModeration.LOGGER.info("No previous state found, setting default values");
 		return new ExileData(server);
 	}
 
-	private static ExileData fromNbt(MinecraftServer server, NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
+	private ExileData fromData(
+			List<ExileDefinition.Serialized> definitions,
+			Map<UUID, String> players
+	) {
 		METAcraftModeration.LOGGER.info("Previous state found, loading values");
-		ExileData settings = new ExileData(server);
-		settings.readNbt(tag, lookup);
-		return settings;
+
+		for (var e : definitions) {
+			var def = new ExileDefinition(server);
+			def.setSaveFunction(this::markDirty);
+			def.deserialize(e);
+			exileDefinitions.put(def.getName(), def);
+		}
+
+		for (var e : players.entrySet()) {
+			UUID player = e.getKey();
+			var name = e.getValue();
+			var def = exileDefinitions.get(name);
+			if (def != null) {
+				this.exiledPlayers.put(player, def);
+			} else {
+				Optional.ofNullable(server.getUserCache()).flatMap(cache -> cache.getByUuid(player)).map(GameProfile::getName).ifPresentOrElse(playerName -> {
+					METAcraftModeration.LOGGER.fatal(
+							"Exile definition " + name + " did not exist. Player " + playerName + " is free from exile!"
+					);
+				}, () -> {
+					METAcraftModeration.LOGGER.error(
+							"Exile definition " + name + " did not exist, and a player exiled there had apparently never joined the server?"
+					);
+				});
+			}
+		}
+		return this;
 	}
 
 	protected final MinecraftServer server;
@@ -115,57 +158,6 @@ public class ExileData extends PersistentState {
 
 	public Collection<ExileDefinition> getAll() {
 		return exileDefinitions.values();
-	}
-
-	public void readNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
-		exileDefinitions.clear();
-		NbtList exileDefs = tag.getList(EXILE_DEFINITIONS, NbtElement.COMPOUND_TYPE);
-		for (NbtElement e : exileDefs) {
-			var def = new ExileDefinition(server);
-			def.setSaveFunction(this::markDirty);
-			def.fromNBT((NbtCompound) e);
-			exileDefinitions.put(def.getName(), def);
-		}
-
-		exiledPlayers.clear();
-		NbtList exiledPlayers = tag.getList(EXILED_PLAYERS, NbtElement.COMPOUND_TYPE);
-		for (NbtElement e : exiledPlayers) {
-			NbtCompound entry = (NbtCompound) e;
-			UUID player = entry.getUuid(PLAYER);
-			var name = entry.getString(EXILE);
-			var def = exileDefinitions.get(name);
-			if (def != null) {
-				this.exiledPlayers.put(player, def);
-			} else {
-				Optional.ofNullable(server.getUserCache()).flatMap(cache -> cache.getByUuid(player)).map(GameProfile::getName).ifPresentOrElse(playerName -> {
-					METAcraftModeration.LOGGER.fatal(
-							"Exile definition " + name + " did not exist. Player " + playerName + " is free from exile!"
-					);
-				}, () -> {
-					METAcraftModeration.LOGGER.error(
-							"Exile definition " + name + " did not exist, and a player exiled there had apparently never joined the server?"
-					);
-				});
-			}
-		}
-	}
-
-	@Override
-	public NbtCompound writeNbt(NbtCompound tag, RegistryWrapper.WrapperLookup lookup) {
-		NbtList exileDefs = new NbtList();
-		exileDefinitions.values().forEach(def -> exileDefs.add(def.toNBT()));
-		tag.put(EXILE_DEFINITIONS, exileDefs);
-
-		NbtList exiledPlayers = new NbtList();
-		this.exiledPlayers.forEach((player, def) -> {
-			NbtCompound entry = new NbtCompound();
-			entry.putUuid(PLAYER, player);
-			entry.putString(EXILE, def.getName());
-			exiledPlayers.add(entry);
-		});
-		tag.put(EXILED_PLAYERS, exiledPlayers);
-
-		return tag;
 	}
 
 }

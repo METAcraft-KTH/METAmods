@@ -15,6 +15,7 @@ public class METAcraftLib implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		METAcraftTickets.init();
 		RegularTimeGetterRegistry.init();
 		METAcraftConditions.init();
 		Commands.init();

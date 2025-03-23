@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.saved_items.SavedItemsDataFixer;
+import se.datasektionen.mc.saved_items.item_saving.SavedItemsData;
 
 import java.util.Map;
 import java.util.function.Supplier;
@@ -30,7 +31,7 @@ public class MixinSchema1460 {
 			SavedItemsDataFixer.SAVED_DATA_SAVED_ITEMS,
 			() -> DSL.optionalFields(
 				"data", DSL.optionalFields(
-					"Items", DSL.compoundList(
+						SavedItemsData.ITEMS, DSL.compoundList(
 						TypeReferences.ITEM_NAME.in(schema), DSL.list(
 							TypeReferences.ITEM_STACK.in(schema) //Yes, I know. This is far from ideal. But, it's not my fault that Mojang codes their datafixes to look for item stacks instead of the component list...
 						)

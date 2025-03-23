@@ -20,7 +20,7 @@ public abstract class MixinPlayerEntity extends LivingEntity {
 	}
 
 	@ModifyReturnValue(
-		method = "dropPlayerItem",
+		method = "dropItem",
 		at = @At("RETURN")
 	)
 	public ItemEntity dropItem(ItemEntity original, ItemStack stack, boolean throwRandomly, boolean retainOwnership) {

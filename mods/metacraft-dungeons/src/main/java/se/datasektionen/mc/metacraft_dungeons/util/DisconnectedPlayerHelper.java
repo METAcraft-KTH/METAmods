@@ -5,6 +5,8 @@ import com.mojang.serialization.Dynamic;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.datafixer.DataFixTypes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.*;
@@ -17,6 +19,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.DateTimeFormatters;
 import net.minecraft.util.Util;
 import net.minecraft.util.WorldSavePath;
+import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.PlayerSaveHandler;
 import net.minecraft.world.World;
@@ -179,7 +182,7 @@ public class DisconnectedPlayerHelper {
 	}
 
 	public static RegistryKey<World> getEnderPearlDim(NbtCompound nbt) {
-		return World.CODEC.parse(NbtOps.INSTANCE, nbt.get(ServerPlayerEntity.ENDER_PEARLS_DIMENSION_KEY)).resultOrPartial().orElse(World.OVERWORLD);
+		return nbt.get(ServerPlayerEntity.ENDER_PEARLS_DIMENSION_KEY, World.CODEC).orElse(World.OVERWORLD);
 	}
 
 	public static void setDim(NbtCompound nbt, RegistryKey<World> dim) {
@@ -189,11 +192,11 @@ public class DisconnectedPlayerHelper {
 	public static void modifyPassengersAndRootVehicle(NbtCompound player, Consumer<NbtCompound> nbtModifier) {
 		nbtModifier.accept(player);
 		if (player.contains("RootVehicle")) {
-			var entity = player.getCompound("RootVehicle").getCompound("Entity");
+			var entity = player.getCompoundOrEmpty("RootVehicle").getCompoundOrEmpty("Entity");
 			modifyPassengersAndRootVehicle(entity, nbtModifier);
 		}
 		if (player.contains(PlayerEntity.PASSENGERS_KEY)) {
-			var list = player.getList(PlayerEntity.PASSENGERS_KEY, NbtElement.COMPOUND_TYPE);
+			var list = player.getListOrEmpty(PlayerEntity.PASSENGERS_KEY);
 			for (var e : list) {
 				if (e instanceof NbtCompound passenger) {
 					modifyPassengersAndRootVehicle(passenger, nbtModifier);
@@ -202,64 +205,36 @@ public class DisconnectedPlayerHelper {
 		}
 	}
 
-	private static NbtList toNbtList(double... values) {
-		NbtList nbtList = new NbtList();
-
-		for(double d : values) {
-			nbtList.add(NbtDouble.of(d));
-		}
-
-		return nbtList;
-	}
-
-	private static NbtList toNbtList(float... values) {
-		NbtList nbtList = new NbtList();
-
-		for(float f : values) {
-			nbtList.add(NbtFloat.of(f));
-		}
-
-		return nbtList;
-	}
-
 	public static void setPos(NbtCompound nbt, Vec3d pos) {
-		nbt.put("Pos", toNbtList(pos.getX(), pos.getY(), pos.getZ()));
+		nbt.put("Pos", Vec3d.CODEC, pos);
 	}
 
 	public static void setVelocity(NbtCompound nbt, Vec3d velocity) {
-		nbt.put("Motion", toNbtList(velocity.getX(), velocity.getY(), velocity.getZ()));
+		nbt.put("Motion", Vec3d.CODEC, velocity);
 	}
 
 	public static Vec3d getVelocity(NbtCompound nbt) {
-		var velocity = nbt.getList("Motion", NbtElement.DOUBLE_TYPE);
-		return new Vec3d(velocity.getDouble(0), velocity.getDouble(1), velocity.getDouble(2));
+		return nbt.get("Motion", Vec3d.CODEC).orElse(Vec3d.ZERO);
 	}
 
 	public static float getYaw(NbtCompound nbt) {
-		var rot = nbt.getList("Rotation", NbtElement.FLOAT_TYPE);
-		return rot.getFloat(0);
+		return nbt.get("Rotation", Vec2f.CODEC).map(f -> f.x).orElse(0.0f);
 	}
 
 	public static float getPitch(NbtCompound nbt) {
-		var rot = nbt.getList("Rotation", NbtElement.FLOAT_TYPE);
-		return rot.getFloat(1);
+		return nbt.get("Rotation", Vec2f.CODEC).map(f -> f.y).orElse(0.0f);
 	}
 
 	public static void setRotation(NbtCompound nbt, float yaw, float pitch) {
-		nbt.put("Rotation", toNbtList(yaw, pitch));
+		nbt.put("Rotation", Vec2f.CODEC, new Vec2f(yaw, pitch));
 	}
 
 	public static RegistryKey<World> getSpawnPointDimension(NbtCompound nbt) {
-		return World.CODEC.parse(NbtOps.INSTANCE, nbt.get("SpawnDimension")).resultOrPartial().orElse(World.OVERWORLD);
+		return nbt.get("respawn", ServerPlayerEntity.Respawn.CODEC).map(ServerPlayerEntity.Respawn::dimension).orElse(World.OVERWORLD);
 	}
 
 	public static void removeSpawnPoint(NbtCompound nbt) {
-		nbt.remove("SpawnX");
-		nbt.remove("SpawnY");
-		nbt.remove("SpawnZ");
-		nbt.remove("SpawnForced");
-		nbt.remove("SpawnAngle");
-		nbt.remove("SpawnDimension");
+		nbt.remove("respawn");
 	}
 
 	/**

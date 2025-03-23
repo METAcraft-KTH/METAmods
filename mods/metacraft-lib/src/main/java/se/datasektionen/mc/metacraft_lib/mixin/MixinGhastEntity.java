@@ -37,8 +37,8 @@ public class MixinGhastEntity {
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
-		ignoreYCheck = nbt.getBoolean(IGNORE_Y_CHECK);
-		preventReturnInstakill = nbt.getBoolean(PREVENT_RETURN_INSTAKILL);
+		ignoreYCheck = nbt.getBoolean(IGNORE_Y_CHECK, false);
+		preventReturnInstakill = nbt.getBoolean(PREVENT_RETURN_INSTAKILL, false);
 	}
 
 	@ModifyExpressionValue(

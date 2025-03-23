@@ -11,22 +11,19 @@ import net.minecraft.component.type.LoreComponent;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.predicate.item.ItemPredicate;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableTextContent;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.intprovider.IntProvider;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 import org.apache.commons.lang3.mutable.MutableInt;
+import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.saved_items.SavedItemsConfig;
 import se.datasektionen.mc.saved_items.SavedItems;
 import se.datasektionen.mc.saved_items.SavedItemsDataFixer;
@@ -38,17 +35,28 @@ import java.util.stream.Stream;
 
 public class SavedItemsData extends PersistentState {
 
-	private static final String key = SavedItems.MODID;
-	private static final String ITEMS = "Items"; //Careful, this is used by a datafixer!
-	private static PersistentState.Type<SavedItemsData> getType(MinecraftServer server) {
-		return new Type<>(
-				() -> create(server), (nbt, wrapper) -> load(server, nbt, wrapper),
-				SavedItemsDataFixer.Types.SAVED_DATA_SAVED_ITEMS
+	public static final String ITEMS = "Items"; //Careful, this is used by a datafixer!
+	private static final PersistentStateType<SavedItemsData> TYPE = new PersistentStateType<>(
+			SavedItems.MODID, ctx -> create(ctx.getWorldOrThrow().getServer()),
+			ctx -> createCodec(ctx.getWorldOrThrow().getServer()),
+			SavedItemsDataFixer.Types.SAVED_DATA_SAVED_ITEMS
+	);
+
+	private static final Codec<Multimap<Item, SavedItemEntry>> CODEC = ExtraCodecs.unboundedMultimap(
+			Registries.ITEM.getCodec(), SavedItemEntry.CODEC,
+			MultimapBuilder.hashKeys().arrayListValues()::build
+	);
+
+	private static Codec<SavedItemsData> createCodec(MinecraftServer server) {
+		return RecordCodecBuilder.create(
+				instance -> instance.group(
+						CODEC.fieldOf(ITEMS).forGetter(d -> d.items)
+				).apply(instance, create(server)::load)
 		);
 	}
 
 	public static SavedItemsData getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(getType(server), key);
+		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
 	}
 
 	private final Multimap<Item, SavedItemEntry> items = MultimapBuilder.hashKeys().arrayListValues().build();
@@ -266,47 +274,13 @@ public class SavedItemsData extends PersistentState {
 		}
 	}
 
-	@Override
-	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		NbtCompound entryLists = new NbtCompound();
-		for (var item : items.keySet()) {
-			NbtList items = new NbtList();//Careful, this is used by a datafixer!
-			for (var itemEntry : this.items.get(item)) {
-				SavedItemEntry.CODEC.encodeStart(registryLookup.getOps(NbtOps.INSTANCE), itemEntry).resultOrPartial(
-						SavedItems.LOGGER::error
-				).ifPresent(items::add);
-			}
-			entryLists.put(Registries.ITEM.getId(item).toString(), items);
-		}
-		nbt.put(ITEMS, entryLists);
-		return nbt;
-	}
-
-	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapper) {
-		var items = nbt.getCompound(ITEMS);
-		for (var itemID : items.getKeys()) {
-			Optional.ofNullable(Identifier.tryParse(itemID)).map(Registries.ITEM::get).ifPresentOrElse(item -> {
-				for (var itemEntry : items.getList(itemID, NbtElement.COMPOUND_TYPE)) {
-					SavedItemEntry.CODEC.parse(wrapper.getOps(NbtOps.INSTANCE), itemEntry).resultOrPartial(
-							SavedItems.LOGGER::error
-					).ifPresent(entry -> {
-						this.items.put(item, entry);
-					});
-				}
-			}, () -> {
-				SavedItems.LOGGER.error("Unable to parse item: " + itemID);
-			});
-		}
-	}
-
 	private static SavedItemsData create(MinecraftServer server) {
 		return new SavedItemsData(server);
 	}
 
-	private static SavedItemsData load(MinecraftServer server, NbtCompound nbt, RegistryWrapper.WrapperLookup wrapper) {
-		var data = new SavedItemsData(server);
-		data.readNBT(nbt, wrapper);
-		return data;
+	private SavedItemsData load(Multimap<Item, SavedItemEntry> items) {
+		this.items.putAll(items);
+		return this;
 	}
 
 	public record SavedItemEntry(Optional<ComponentChanges> components, Map<SavedItemsConfig.SavingType, MutableInt> typeCounts) {

@@ -174,10 +174,10 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 		getServerWorld().getBiome(this.getBlockPos()).value().getMusic().ifPresent(music -> {
 			for (var musicEntry : music.getEntries()) {
-				if (potentiallyPlayingMusic.containsKey(musicEntry.data().getSound())) {
-					potentiallyPlayingMusic.get(musicEntry.data().getSound()).setValue(musicEntry.data().getMinDelay());
+				if (potentiallyPlayingMusic.containsKey(musicEntry.value().getSound())) {
+					potentiallyPlayingMusic.get(musicEntry.value().getSound()).setValue(musicEntry.value().getMinDelay());
 				} else {
-					potentiallyPlayingMusic.put(musicEntry.data().getSound(), new MutableInt(musicEntry.data().getMinDelay()));
+					potentiallyPlayingMusic.put(musicEntry.value().getSound(), new MutableInt(musicEntry.value().getMinDelay()));
 				}
 			}
 		});
@@ -255,21 +255,15 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Inject(method = "writeCustomDataToNbt", at = @At("HEAD"))
 	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
 		nbt.putBoolean(ARE_BLOCKS_MOVABLE, movable);
-		PreferenceData.CODEC.encodeStart(
-				getRegistryManager().getOps(NbtOps.INSTANCE),
-				preferenceData
-		).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(result -> nbt.put(PREFERENCES, result));
+		nbt.put(PREFERENCES, PreferenceData.CODEC, getRegistryManager().getOps(NbtOps.INSTANCE), preferenceData);
 	}
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("HEAD"))
 	public void readNbt(NbtCompound nbt, CallbackInfo ci) {
-		movable = nbt.getBoolean(ARE_BLOCKS_MOVABLE);
-		if (nbt.contains(PREFERENCES)) {
-			PreferenceData.CODEC.parse(
-					getRegistryManager().getOps(NbtOps.INSTANCE),
-					nbt.get(PREFERENCES)
-			).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(preferenceData::applyFrom);
-		}
+		movable = nbt.getBoolean(ARE_BLOCKS_MOVABLE, false);
+		nbt.get(
+				PREFERENCES, PreferenceData.CODEC, getRegistryManager().getOps(NbtOps.INSTANCE)
+		).ifPresent(preferenceData::applyFrom);
 	}
 
 	@ModifyReturnValue(method = "getRespawnTarget", at = @At("RETURN"))

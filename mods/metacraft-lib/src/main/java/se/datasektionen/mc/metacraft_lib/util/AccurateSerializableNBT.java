@@ -27,11 +27,11 @@ public class AccurateSerializableNBT {
 
 	protected static final Codec<NbtCompound> SNBT_CODEC = Codec.STRING.comapFlatMap(line -> {
 		try {
-			return DataResult.success(StringNbtReader.parse(line));
+			return DataResult.success(StringNbtReader.readCompound(line));
 		} catch (CommandSyntaxException e) {
 			return DataResult.error(e::getMessage);
 		}
-	}, NbtElement::asString);
+	}, NbtElement::toString);
 
 	protected static final Codec<AccurateSerializableNBT> SPECIFIC_CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(

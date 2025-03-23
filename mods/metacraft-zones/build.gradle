@@ -3,6 +3,11 @@ version = project.zones_version
 addProjectDependency(":mods:metacraft-core")
 addProjectDependency(":mods:metacraft-resource-packs")
 addLeukocyteDependency()
+
+loom {
+	accessWidenerPath = file("src/main/resources/metacraft_zones.accesswidener")
+}
+
 dependencies {
 	modCompileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
 }

@@ -1,5 +1,6 @@
 package se.datasektionen.mc.metacraft_season_4;
 
+import com.mojang.datafixers.util.Pair;
 import net.fabricmc.fabric.api.client.datagen.v1.provider.FabricModelProvider;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
@@ -13,6 +14,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.item.equipment.EquipmentAsset;
 import net.minecraft.item.equipment.EquipmentAssetKeys;
+import net.minecraft.item.equipment.trim.ArmorTrimAssets;
 import net.minecraft.item.equipment.trim.ArmorTrimMaterial;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -21,6 +23,7 @@ import org.pcollections.OrderedPSet;
 import org.pcollections.PSet;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Season4Datagen implements DataGeneratorEntrypoint {
 	@Override
@@ -48,9 +51,13 @@ public class Season4Datagen implements DataGeneratorEntrypoint {
 				String key, Map<RegistryKey<EquipmentAsset>, String> armourSpecificOverrides
 		) {
 			return new ItemModelGenerator.TrimMaterial(
-					key,
-					RegistryKey.of(RegistryKeys.TRIM_MATERIAL, Season4.getID(key)),
-					armourSpecificOverrides
+					new ArmorTrimAssets(
+							new ArmorTrimAssets.AssetId(key),
+							armourSpecificOverrides.entrySet().stream().map(
+									e -> Pair.of(e.getKey(), new ArmorTrimAssets.AssetId(e.getValue()))
+							).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond))
+					),
+					RegistryKey.of(RegistryKeys.TRIM_MATERIAL, Season4.getID(key))
 			);
 		}
 
@@ -77,10 +84,10 @@ public class Season4Datagen implements DataGeneratorEntrypoint {
 			for(ItemModelGenerator.TrimMaterial trimMaterial : allMaterials) {
 				Identifier identifier4 = Identifier.of(
 						trimMaterial.materialKey().getValue().getNamespace(),
-						identifier.getPath() + "_" + trimMaterial.name() + "_trim"
+						identifier.getPath() + "_" + trimMaterial.assets().base().suffix() + "_trim"
 				);
 				Identifier identifier5 = Identifier.ofVanilla(
-						"trims/items/" + type + "_trim_" + trimMaterial.texture(equipmentKey)
+						"trims/items/" + type + "_trim_" + trimMaterial.assets().getAssetId(equipmentKey).suffix()
 				);
 				ItemModel.Unbaked unbaked;
 				if (dyeable) {

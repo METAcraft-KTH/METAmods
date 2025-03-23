@@ -2,25 +2,20 @@ package se.datasektionen.mc.loot_containers.containers;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtOps;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import org.apache.logging.log4j.util.TriConsumer;
-import se.datasektionen.mc.loot_containers.METAcraftLootContainers;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class LootContainerMap<T> {
-
-	private static final String POS = "Pos";
-	private static final String DATA = "Data";
 
 	private final Table<RegistryKey<World>, T, LootContainer> containers = HashBasedTable.create();
 	private final Table<RegistryKey<World>, T, Runnable> tickers = HashBasedTable.create();
@@ -87,51 +82,25 @@ public class LootContainerMap<T> {
 		}
 	}
 
-	public void readNBT(NbtCompound nbt) {
-		this.containers.clear();
-		for (var dim : nbt.getKeys()) {
-			Identifier dimensionID = Identifier.tryParse(dim);
-			if (dimensionID == null) {
-				METAcraftLootContainers.LOGGER.error("Dimension " + dim + " could not be parsed!");
-				continue;
-			}
-			var key = RegistryKey.of(RegistryKeys.WORLD, dimensionID);
-			NbtList containers = nbt.getList(dim, NbtElement.COMPOUND_TYPE);
-			for (var c : containers) {
-				NbtCompound container = (NbtCompound) c;
-				codec.parse(NbtOps.INSTANCE, container.get(POS)).resultOrPartial(
-						METAcraftLootContainers.LOGGER::error
-				).ifPresent(pos -> {
-					LootContainer.REGISTRY_CODEC.parse(NbtOps.INSTANCE, container.getCompound(DATA)).resultOrPartial(
-							METAcraftLootContainers.LOGGER::error
-					).ifPresent(lootContainer -> {
-						putLootContainer(key, pos, lootContainer);
-					});
-				});
-			}
-		}
+	public SerializedMap<T> serialize() {
+		return new SerializedMap<>(
+				containers.rowMap().entrySet().stream().map(
+						entry -> Pair.of(
+								entry.getKey(),
+								entry.getValue().entrySet().stream().map(
+										e -> new SerializedMap.Container<>(e.getKey(), e.getValue())
+								).toList()
+						)
+				).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond))
+		);
 	}
 
-	public NbtCompound writeNbt(NbtCompound nbt) {
-		for (var dim : containers.rowMap().entrySet()) {
-			NbtList containers = new NbtList();
-			for (var container : dim.getValue().entrySet()) {
-				LootContainer.REGISTRY_CODEC.encodeStart(NbtOps.INSTANCE, container.getValue()).resultOrPartial(
-						METAcraftLootContainers.LOGGER::error
-				).ifPresent(lootContainer -> {
-					codec.encodeStart(NbtOps.INSTANCE, container.getKey()).resultOrPartial(
-							METAcraftLootContainers.LOGGER::error
-					).ifPresent(pos -> {
-						NbtCompound data = new NbtCompound();
-						data.put(DATA, lootContainer);
-						data.put(POS, pos);
-						containers.add(data);
-					});
-				});
+	public void deserializeMap(SerializedMap<T> map) {
+		map.map.forEach((dim, containers) -> {
+			for (var container : containers) {
+				putLootContainer(dim, container.pos, container.container);
 			}
-			nbt.put(dim.getKey().getValue().toString(), containers);
-		}
-		return nbt;
+		});
 	}
 
 	public Collection<LootContainer> getLootContainers() {
@@ -140,6 +109,26 @@ public class LootContainerMap<T> {
 
 	public boolean isEmpty() {
 		return containers.isEmpty();
+	}
+
+	public record SerializedMap<T>(Map<RegistryKey<World>, List<Container<T>>> map) {
+
+		public static <T> Codec<SerializedMap<T>> createCodec(Codec<T> posCodec) {
+			return Codec.unboundedMap(
+					World.CODEC, Container.createCodec(posCodec).listOf()
+			).xmap(SerializedMap::new, SerializedMap::map);
+		}
+
+		public record Container<T>(T pos, LootContainer container) {
+			public static <T> Codec<Container<T>> createCodec(Codec<T> posCodec) {
+				return RecordCodecBuilder.create(
+						instance -> instance.group(
+								posCodec.fieldOf("Pos").forGetter(d -> d.pos),
+								LootContainer.REGISTRY_CODEC.fieldOf("Data").forGetter(d -> d.container)
+						).apply(instance, Container<T>::new)
+				);
+			}
+		}
 	}
 
 }

@@ -1,20 +1,16 @@
 package se.datasektionen.mc.cutscenes.cutscene;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.mojang.serialization.Codec;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryWrapper;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Uuids;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 import se.datasektionen.mc.cutscenes.CutsceneDataFixer;
-import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.util.PGeneralMultimap;
 import se.datasektionen.mc.cutscenes.util.PMultimap;
 import se.datasektionen.mc.cutscenes.util.helper.CutsceneHelper;
@@ -24,32 +20,52 @@ import java.util.function.Consumer;
 
 public class MultiplayerCutsceneManager extends PersistentState {
 
-	private static final String key = "multiplayer-cutscene-manager";
-
-	private static final String CUTSCENES = "cutscenes";
-	private static final String PLAYER_TO_CUTSCENE_KEY = "player-to-cutscene";
-	private static final String OFFLINE_PLAYERS_KEY = "offline-players";
+	public static final String CUTSCENES = "cutscenes";
+	public static final String OFFLINE_PLAYERS_KEY = "offline-players";
 
 	private static final Codec<Map<String, CutsceneInstance>> CUTSCENE_LIST = Codec.unboundedMap(Codec.STRING, CutsceneInstance.CODEC);
 	private static final Codec<Map<UUID, String>> PLAYER_TO_CUTSCENE = Codec.unboundedMap(Uuids.STRING_CODEC, Codec.STRING);
 	private static final Codec<Map<UUID, CutsceneInstance>> OFFLINE_PLAYERS = Codec.unboundedMap(Uuids.STRING_CODEC, CutsceneInstance.CODEC);
 
-	private static Type<MultiplayerCutsceneManager> getType(MinecraftServer server) {
-		return new Type<>(
-				() -> new MultiplayerCutsceneManager(server),
-				(nbt, lookup) -> MultiplayerCutsceneManager.fromNBT(server, nbt, lookup),
-				CutsceneDataFixer.Types.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
+	private static final PersistentStateType<MultiplayerCutsceneManager> TYPE = new PersistentStateType<>(
+			"multiplayer-cutscene-manager",
+			ctx -> new MultiplayerCutsceneManager(ctx.getWorldOrThrow().getServer()),
+			ctx -> createCodec(ctx.getWorldOrThrow().getServer()),
+			CutsceneDataFixer.Types.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
+	);
+
+	private static Codec<MultiplayerCutsceneManager> createCodec(MinecraftServer server) {
+		return RecordCodecBuilder.create(
+				instance -> instance.group(
+						CUTSCENE_LIST.optionalFieldOf(CUTSCENES, Map.of()).forGetter(t -> t.activeCutscenes),
+						PLAYER_TO_CUTSCENE.optionalFieldOf("player-to-cutscene", Map.of()).forGetter(t -> t.cutsceneByPlayer),
+						OFFLINE_PLAYERS.optionalFieldOf(OFFLINE_PLAYERS_KEY, Map.of()).forGetter(t -> t.disconnectedPlayers)
+				).apply(instance, new MultiplayerCutsceneManager(server)::load)
 		);
 	}
 
-	private static MultiplayerCutsceneManager fromNBT(MinecraftServer server, NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		var manager = new MultiplayerCutsceneManager(server);
-		manager.readNBT(nbt, lookup);
-		return manager;
+	private MultiplayerCutsceneManager load(
+			Map<String, CutsceneInstance> cutscenes, Map<UUID, String> playerMap, Map<UUID, CutsceneInstance> players
+	) {
+		activeCutscenes = HashTreePMap.from(cutscenes);
+		activeCutscenes.forEach((name, scene) -> {
+			scene.finalizeParse(server);
+			scene.setRemoveHandler(getRemoveHandler(name));
+		});
+		playerMap.forEach((player, name) -> {
+			if (activeCutscenes.containsKey(name)) {
+				addPlayer(name, activeCutscenes.get(name), player);
+			}
+		});
+		players.values().forEach(scene -> {
+			scene.finalizeParse(server);
+		});
+		disconnectedPlayers.putAll(players);
+		return this;
 	}
 
 	public static MultiplayerCutsceneManager getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(getType(server), key);
+		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
 	}
 
 	private final MinecraftServer server;
@@ -217,60 +233,5 @@ public class MultiplayerCutsceneManager extends PersistentState {
 			scene.tick();
 			markDirty();
 		});
-	}
-
-	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		if (nbt.contains(CUTSCENES)) {
-			CUTSCENE_LIST.parse(lookup.getOps(NbtOps.INSTANCE), nbt.get(CUTSCENES)).resultOrPartial(
-					Cutscenes.LOGGER::error
-			).ifPresent(scenes -> {
-				activeCutscenes = HashTreePMap.from(scenes);
-			});
-			activeCutscenes.forEach((name, scene) -> {
-				scene.finalizeParse(server);
-				scene.setRemoveHandler(getRemoveHandler(name));
-			});
-		}
-		if (nbt.contains(PLAYER_TO_CUTSCENE_KEY)) {
-			PLAYER_TO_CUTSCENE.parse(lookup.getOps(NbtOps.INSTANCE), nbt.get(PLAYER_TO_CUTSCENE_KEY)).resultOrPartial(
-					Cutscenes.LOGGER::error
-			).ifPresent(playerMap -> {
-				playerMap.forEach((player, name) -> {
-					if (activeCutscenes.containsKey(name)) {
-						addPlayer(name, activeCutscenes.get(name), player);
-					}
-				});
-			});
-		}
-		if (nbt.contains(OFFLINE_PLAYERS_KEY)) {
-			OFFLINE_PLAYERS.parse(lookup.getOps(NbtOps.INSTANCE), nbt.get(OFFLINE_PLAYERS_KEY)).resultOrPartial(
-					Cutscenes.LOGGER::error
-			).ifPresent(players -> {
-				players.values().forEach(scene -> {
-					scene.finalizeParse(server);
-				});
-				disconnectedPlayers.putAll(players);
-			});
-		}
-	}
-
-	@Override
-	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		CUTSCENE_LIST.encodeStart(registryLookup.getOps(NbtOps.INSTANCE), activeCutscenes).resultOrPartial(
-				Cutscenes.LOGGER::error
-		).ifPresent(cutscenes -> {
-			nbt.put(CUTSCENES, cutscenes);
-		});
-		PLAYER_TO_CUTSCENE.encodeStart(registryLookup.getOps(NbtOps.INSTANCE), cutsceneByPlayer).resultOrPartial(
-				Cutscenes.LOGGER::error
-		).ifPresent(playerMap -> {
-			nbt.put(PLAYER_TO_CUTSCENE_KEY, playerMap);
-		});
-		OFFLINE_PLAYERS.encodeStart(registryLookup.getOps(NbtOps.INSTANCE), disconnectedPlayers).resultOrPartial(
-				Cutscenes.LOGGER::error
-		).ifPresent(playerMap -> {
-			nbt.put(OFFLINE_PLAYERS_KEY, playerMap);
-		});
-		return nbt;
 	}
 }

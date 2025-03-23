@@ -135,7 +135,7 @@ public class Beam extends Entity implements PolymerEntity {
 		laserItemDisplay.setStartInterpolation(0);
 		laserItemDisplay.setInterpolationDuration(data.getInterpolationDuration() > 0 ? 1 : 0);
 		data.applySettingsNoInterpolation(laserItemDisplay);
-		laserItemDisplay.setTransformation(new AffineTransformation(data.getTransformation().getMatrix().mul(matrix)));
+		laserItemDisplay.setTransformation(new AffineTransformation(data.getTransformation().getMatrix().mul(matrix, new Matrix4f())));
 	}
 
 	@Override
@@ -216,9 +216,7 @@ public class Beam extends Entity implements PolymerEntity {
 		} else {
 			setTarget(null);
 		}
-		if (nbt.contains(THICKNESS)) {
-			thickness = nbt.getFloat(THICKNESS);
-		}
+		thickness = nbt.getFloat(THICKNESS, 0.5f);
 	}
 
 	@Override

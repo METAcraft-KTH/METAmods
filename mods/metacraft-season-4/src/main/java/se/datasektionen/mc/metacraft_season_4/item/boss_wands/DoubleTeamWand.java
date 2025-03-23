@@ -13,7 +13,7 @@ import se.datasektionen.mc.metacraft_season_4.util.DoubleTeamHandler;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 public class DoubleTeamWand extends Item implements PolymerItem {
-	public DoubleTeamWand(Settings settings) {
+	public DoubleTeamWand(net.minecraft.item.Item.Settings settings) {
 		super(settings);
 	}
 

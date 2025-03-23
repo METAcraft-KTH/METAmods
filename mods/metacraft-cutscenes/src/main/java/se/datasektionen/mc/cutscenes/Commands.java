@@ -214,7 +214,7 @@ public class Commands {
 			manager.getCutsceneName(scene).ifPresent(name -> {
 				String rejoin = "/cutscene multiplayer join " + name;
 				message.append(Text.literal(", you can rejoin it by typing ").append(Text.literal(rejoin).styled(
-						style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, rejoin))
+						style -> style.withClickEvent(new ClickEvent.RunCommand(rejoin))
 				)));
 			});
 			ctx.getSource().sendFeedback(() -> message, false);

@@ -1,11 +1,8 @@
 package se.datasektionen.mc.metacraft_core;
 
 import com.google.common.collect.Sets;
-import eu.pb4.polymer.core.api.item.PolymerItem;
-import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.*;
-import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -139,15 +136,6 @@ public class Events {
 			}
 			return ActionResult.PASS;
 		});
-
-		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register(
-				(serverStack, clientStack, ctx) -> {
-					if (!(serverStack.getItem() instanceof PolymerItem) && !serverStack.contains(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP)) {
-						clientStack.remove(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP);
-					}
-					return clientStack;
-				}
-		);
 
 		ServerTickEvents.END_WORLD_TICK.register(world -> { //Needs to run outside the general entity tick loop to avoid desync.
 			for (var e : world.getEntitiesByType(TypeFilter.instanceOf(MovingBlock.class), e -> e.getRootAnchor().isPresent())) {

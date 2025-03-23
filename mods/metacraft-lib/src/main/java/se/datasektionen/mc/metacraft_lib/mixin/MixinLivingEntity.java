@@ -109,11 +109,11 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
 	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
-		isHostile = nbt.getBoolean(EntityParameters.IS_HOSTILE);
-		hasAngerParticles = nbt.getBoolean(HAS_ANGER_PARTICLES);
+		isHostile = nbt.getBoolean(EntityParameters.IS_HOSTILE, false);
+		hasAngerParticles = nbt.getBoolean(HAS_ANGER_PARTICLES, false);
 		if (nbt.contains(ANGRY)) {
-			isHostile = nbt.getBoolean(ANGRY);
-			hasAngerParticles = nbt.getBoolean(ANGRY);
+			isHostile = nbt.getBoolean(ANGRY, false);
+			hasAngerParticles = nbt.getBoolean(ANGRY, false);
 		}
 		if (isHostile && (Object) this instanceof MobEntity) {
 			((AccessorBrain) this.brain).getTasks().forEach((id, tasks) -> {
