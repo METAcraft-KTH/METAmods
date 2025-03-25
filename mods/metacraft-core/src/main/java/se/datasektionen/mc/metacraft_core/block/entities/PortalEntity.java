@@ -418,7 +418,7 @@ public class PortalEntity extends BlockEntity {
 				if (toTP.getPortalCooldown() <= 0) {
 					toTP = teleport(toTP);
 				}
-				toTP.setPortalCooldown(2);
+				toTP.setPortalCooldown(20);
 			});
 		}
 	}
@@ -490,11 +490,20 @@ public class PortalEntity extends BlockEntity {
 						case Z -> entityBox.getLengthZ();
 					};
 
-					Vec3d targetPos = getTarget(targetBox, getNewDist(false, portal, dist, boxLength), entity);
+					var currentPos = entity.getBoundingBox().getCenter();
+					var prevPos = currentPos.subtract(entityMovement);
+					var centerPos = sourceBox.getCenter();
+					boolean invert = switch (portalFacing.getFacing().getAxis()) {
+						case X -> currentPos.getX() > centerPos.getX() == prevPos.getX() > centerPos.getX();
+						case Y -> currentPos.getY() > centerPos.getY() == prevPos.getY() > centerPos.getY();
+						case Z -> currentPos.getZ() > centerPos.getZ() == prevPos.getZ() > centerPos.getZ();
+					};
+
+					Vec3d targetPos = getTarget(targetBox, dist, entity);
 
 					var centeredBox = entityBox.offset(entity.getPos().multiply(-1));
 					if (!targetDim.isSpaceEmpty(centeredBox.offset(targetPos))) {
-						targetPos = getTarget(targetBox, getNewDist(true, portal, dist, boxLength), entity);
+						targetPos = getTarget(targetBox, dist, entity);
 						if (!targetDim.isSpaceEmpty(centeredBox.offset(targetPos))) {
 							if (entity instanceof ServerPlayerEntity player) {
 								player.sendMessage(Text.literal("Could not deposit you safely on the other side"), true);
