@@ -35,7 +35,7 @@ import se.datasektionen.mc.metacraft_dungeons.compat.SquaremapCompat;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.metacraft_lib.util.PositionFinder;
 import se.datasektionen.mc.metacraft_dungeons.util.WorldDeleter;
-import se.datasektionen.mc.metacraft_lib.util.helper.MobTeleportHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.TeleportHelper;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -279,7 +279,7 @@ public class DungeonData extends PersistentState {
 				if (player == null) {
 					teleportOut(pet);
 				} else {
-					MobTeleportHelper.teleportEntityToPlayer(player, pet);
+					TeleportHelper.teleportEntityToPlayer(player, pet);
 				}
 			}
 		});

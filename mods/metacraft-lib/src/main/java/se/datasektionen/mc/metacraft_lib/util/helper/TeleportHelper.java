@@ -5,6 +5,8 @@ import net.minecraft.entity.ai.pathing.LandPathNodeMaker;
 import net.minecraft.entity.ai.pathing.PathContext;
 import net.minecraft.entity.ai.pathing.PathNodeType;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.packet.s2c.play.VehicleMoveS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerWorld;
@@ -12,14 +14,39 @@ import net.minecraft.util.math.*;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_lib.METAcraftLibTags;
+import se.datasektionen.mc.metacraft_lib.extensions.ServerPlayerEntityExtensions;
+import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 
 import java.util.*;
 
-public class MobTeleportHelper {
+public class TeleportHelper {
 
 	public static final ChunkTicketType<ChunkPos> TELEPORT_MOB_SOON = ChunkTicketType.create(
 			"teleport_mob_soon", Comparator.comparingLong(ChunkPos::toLong), 1
 	);
+
+	//Fix for players not being rotated properly and console spam when riding on vehicle while teleporting.
+	public static Entity teleportEntity(Entity entity, TeleportTarget target) {
+		Set<ServerPlayerEntityExtensions> players = new HashSet<>();
+		for (var p : entity.getPassengersDeep()) {
+			if (p instanceof ServerPlayerEntity player) {
+				var ext = (ServerPlayerEntityExtensions) player;
+				ext.metacraft_lib$setTeleportingOnVehicle(true);
+				players.add(ext);
+				player.rotate(target.yaw(), target.pitch());
+			}
+		}
+		var result = entity.teleportTo(target);
+		TaskScheduler.scheduleImmediately(
+				entity.getServer(),
+				() -> {
+					for (var player : players) {
+						player.metacraft_lib$setTeleportingOnVehicle(false);
+					}
+				}
+		);
+		return result;
+	}
 
 	private static boolean collidesWithUnsafeBlock(World world, Box box) {
 		BlockPos min = BlockPos.ofFloored(box.minX, box.minY, box.minZ);

@@ -51,6 +51,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Shadow protected abstract void consumeItem();
 
 	@Unique
+	private boolean teleportingOnVehicle = false;
+
+	@Unique
 	private String customName;
 
 	@Unique
@@ -268,6 +271,16 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 				tracker.updateTrackedStatus((ServerPlayerEntity) player);
 			}
 		}
+	}
+
+	@Override
+	public boolean metacraft_lib$isTeleportingOnVehicle() {
+		return teleportingOnVehicle;
+	}
+
+	@Override
+	public void metacraft_lib$setTeleportingOnVehicle(boolean teleportingOnVehicle) {
+		this.teleportingOnVehicle = teleportingOnVehicle;
 	}
 
 	@Override

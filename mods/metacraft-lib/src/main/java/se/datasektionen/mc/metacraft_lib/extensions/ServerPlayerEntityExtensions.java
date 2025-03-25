@@ -9,6 +9,11 @@ import java.util.Optional;
 
 public interface ServerPlayerEntityExtensions {
 
+
+	boolean metacraft_lib$isTeleportingOnVehicle();
+
+	void metacraft_lib$setTeleportingOnVehicle(boolean teleportingOnVehicle);
+
 	/**
 	 * Please use {@link CustomNameHelper#setCustomName(ServerPlayerEntity, String, boolean)} instead.
 	 * @param customName The custom name to set.

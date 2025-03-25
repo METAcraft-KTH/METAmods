@@ -1,5 +1,6 @@
 package se.datasektionen.mc.metacraft_lib.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
@@ -8,6 +9,7 @@ import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import se.datasektionen.mc.metacraft_lib.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 
 @Mixin(ServerPlayNetworkHandler.class)
@@ -24,6 +26,17 @@ public class MixinServerPlayNetworkHandler {
 	)
 	private boolean shouldAnnounceLeave(PlayerManager instance, Text message, boolean overlay) {
 		return PlayerDataHelper.getAnnounceJoinLeave(this.player);
+	}
+
+	@ModifyExpressionValue(
+		method = "onVehicleMove",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerPlayerEntity;isLoaded()Z")
+	)
+	public boolean onVehicleMove(boolean original) {
+		if (((ServerPlayerEntityExtensions) player).metacraft_lib$isTeleportingOnVehicle()) {
+			return false;
+		}
+		return original;
 	}
 
 }

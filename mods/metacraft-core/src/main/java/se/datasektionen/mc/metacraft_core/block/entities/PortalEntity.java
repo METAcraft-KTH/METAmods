@@ -26,6 +26,7 @@ import se.datasektionen.mc.metacraft_core.util.TeleportPredicate;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.TeleportHelper;
 
 import java.lang.Math;
 import java.util.*;
@@ -286,7 +287,8 @@ public class PortalEntity extends BlockEntity {
 
 	private Entity teleportNoFacing(Entity entity) {
 		var targetDim = getTargetDim();
-		return entity.teleportTo(
+		return TeleportHelper.teleportEntity(
+				entity,
 				new TeleportTarget(
 						targetDim, Vec3d.ofBottomCenter(targetPos), entity.getVelocity(), entity.getYaw(), entity.getPitch(),
 						TeleportTarget.NO_OP
@@ -505,7 +507,8 @@ public class PortalEntity extends BlockEntity {
 							entity.getYaw(), entity.getPitch(), getRotationToPortal(portal.portalFacing, entity)
 					);
 
-					newEntity = entity.teleportTo(
+					newEntity = TeleportHelper.teleportEntity(
+							entity,
 							new TeleportTarget(
 									targetDim, targetPos, velocity, facing.yaw, facing.pitch,
 									TeleportTarget.NO_OP

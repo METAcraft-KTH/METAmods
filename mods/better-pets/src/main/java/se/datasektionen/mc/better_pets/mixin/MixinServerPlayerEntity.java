@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.better_pets.TameableExtension;
-import se.datasektionen.mc.metacraft_lib.util.helper.MobTeleportHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.TeleportHelper;
 
 import java.util.List;
 
@@ -56,12 +56,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity {
 		));
 		pets.get().forEach(pet -> {
 			this.getServerWorld().getChunkManager().addTicket(
-					MobTeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2, pet.getChunkPos()
+					TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2, pet.getChunkPos()
 			);
 		});
 		leashed.get().forEach(pet -> {
 			this.getServerWorld().getChunkManager().addTicket(
-					MobTeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2, pet.getChunkPos()
+					TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2, pet.getChunkPos()
 			);
 		});
 	}
@@ -80,13 +80,13 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity {
 	) {
 		leashed.get().forEach(l -> {
 			((Leashable) l).detachLeashWithoutDrop();
-			MobTeleportHelper.teleportEntityToPlayer(
+			TeleportHelper.teleportEntityToPlayer(
 					(ServerPlayerEntity) (Object) this, l,
 					e -> ((Leashable) e).attachLeash(this, true)
 			);
 		});
 		pets.get().forEach(pet -> {
-			MobTeleportHelper.teleportEntityToPlayer((ServerPlayerEntity) (Object) this, pet);
+			TeleportHelper.teleportEntityToPlayer((ServerPlayerEntity) (Object) this, pet);
 		});
 	}
 }
