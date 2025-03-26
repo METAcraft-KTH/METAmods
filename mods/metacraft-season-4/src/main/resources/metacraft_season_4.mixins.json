@@ -11,6 +11,7 @@
 		"MixinEndGatewayBlockEntity",
 		"MixinFoodToConsumableFix",
 		"MixinGlassBottleItem",
+		"MixinItems",
 		"MixinLivingEntity",
 		"MixinServerPlayerEntity"
 	],
