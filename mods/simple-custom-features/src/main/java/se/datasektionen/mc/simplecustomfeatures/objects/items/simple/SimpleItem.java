@@ -10,6 +10,7 @@ import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.block.DispenserBlock;
 import net.minecraft.component.*;
 import net.minecraft.item.*;
 import net.minecraft.item.equipment.ArmorMaterial;
@@ -364,6 +365,20 @@ public record SimpleItem(
 		return itemSettings.makeSettings(
 				id, disguise.map(stack -> stack.get(DataComponentTypes.ITEM_MODEL)).orElse(null)
 		).flatMap(settings -> this.createNewItem(settings, lookup));
+	}
+
+	@Override
+	public void onRegistrationSuccess(RegistryEntry.Reference<Item> entry) {
+		BaseItem.super.onRegistrationSuccess(entry);
+		if (DispenserBlock.BEHAVIORS.containsKey(itemSettings.baseItem().value())) {
+			DispenserBlock.BEHAVIORS.put(entry.value(), DispenserBlock.BEHAVIORS.get(itemSettings.baseItem().value()));
+		}
+	}
+
+	@Override
+	public void onUnregister(RegistryEntry<Item> entry) {
+		BaseItem.super.onUnregister(entry);
+		DispenserBlock.BEHAVIORS.remove(entry.value());
 	}
 
 	private static void addPrimitive(Class<?> clazz, Class<?> primitiveClass, String name, Codec<?> codec) {
