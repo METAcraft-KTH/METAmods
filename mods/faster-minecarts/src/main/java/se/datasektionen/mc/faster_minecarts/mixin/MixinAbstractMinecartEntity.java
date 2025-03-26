@@ -208,7 +208,7 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 		if (!stack.isEmpty()) {
 			((MinecartExtensions) minecart).fasterMinecarts$setMinecartItem(Optional.of(stack.copyWithCount(1)));
 		}
-		if (Math.abs(player.getYaw()) > 90) {
+		if (player != null && Math.abs(player.getYaw()) > 90) {
 			((MinecartExtensions) minecart).fasterMinecarts$setInitialZ(Direction.AxisDirection.NEGATIVE);
 		}
 	}
