@@ -26,8 +26,10 @@ import net.minecraft.structure.StructureTemplateManager;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.DataPool;
 import net.minecraft.util.dynamic.Codecs;
+import net.minecraft.util.math.BlockPointer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Position;
 import net.minecraft.world.*;
 import net.minecraft.world.poi.PointOfInterestType;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
@@ -205,7 +207,11 @@ public class PortalBlockObject implements BaseBlock {
 		return replaceableByPortal;
 	}
 
-	private static final DispenserBehavior SPIT_OUT = new ItemDispenserBehavior();
+	public static void spitOut(BlockPointer pointer, ItemStack item) {
+		Direction direction = pointer.state().get(DispenserBlock.FACING);
+		Position position = DispenserBlock.getOutputLocation(pointer);
+		ItemDispenserBehavior.spawnItem(pointer.world(), item, 6, direction, position);
+	}
 
 	public DispenserBehavior getDispenserBehaviour(DispenserBehavior otherwise) {
 		return (pointer, stack) -> {
@@ -221,7 +227,7 @@ public class PortalBlockObject implements BaseBlock {
 						var useRemainder = this.getUseRemainderOverride().orElse(stack.get(DataComponentTypes.USE_REMAINDER));
 						if (useRemainder != null) {
 							return useRemainder.convert(
-									stack, c, false, extra -> SPIT_OUT.dispense(pointer, extra)
+									stack, c, false, extra -> spitOut(pointer, extra)
 							);
 						}
 					}
