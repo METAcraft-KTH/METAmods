@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_core.extensions;
 
 import net.minecraft.server.network.ServerPlayerEntity;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
+import se.datasektionen.mc.metacraft_core.preferences.PreferenceData;
 import se.datasektionen.mc.metacraft_core.util.helper.MusicHelper;
 
 import java.util.function.Predicate;
@@ -28,4 +29,6 @@ public interface ServerPlayerEntityExtensions {
 	void metacraft_core$setBlocksPistonMovable(boolean movable);
 
 	boolean metacraft_core$areBlocksPistonMovable();
+
+	PreferenceData metacraft_core$getPreferences();
 }

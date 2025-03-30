@@ -14,6 +14,7 @@ import se.datasektionen.mc.metacraft_core.item.METAcraftItems;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorPolymerItemUtils;
 import se.datasektionen.mc.metacraft_core.music.MusicTimerTracker;
+import se.datasektionen.mc.metacraft_core.preferences.Preference;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 
 public class METAcraftCore implements ModInitializer {
@@ -24,6 +25,7 @@ public class METAcraftCore implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		Preference.init();
 		METAcraftGameRules.init();
 		METAcraftComponents.init();
 		METAcraftBlocks.init();

@@ -23,6 +23,7 @@ public class Commands {
 			PlayMusic.register(dispatcher, registryAccess);
 			ForcedRespawnCommand.register(dispatcher);
 			BossbarCommand.register(dispatcher, registryAccess);
+			PrefCommand.register(dispatcher, registryAccess);
 		});
 	}
 

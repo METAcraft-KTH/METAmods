@@ -12,6 +12,7 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.MarkerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.s2c.play.BundleS2CPacket;
@@ -39,10 +40,12 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
 import se.datasektionen.mc.metacraft_core.music.MusicTimerTracker;
+import se.datasektionen.mc.metacraft_core.preferences.PreferenceData;
 import se.datasektionen.mc.metacraft_core.util.METAcraftCoreData;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
 
@@ -62,6 +65,13 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Shadow @Final public MinecraftServer server;
 	@Unique
 	private static final String ARE_BLOCKS_MOVABLE = "AreBlocksMovable";
+
+	@Unique
+	private static final String PREFERENCES = "metacraft:preferences";
+
+
+	@Unique
+	private final PreferenceData preferenceData = new PreferenceData();
 
 	@Unique
 	private boolean movable = false;
@@ -245,11 +255,21 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Inject(method = "writeCustomDataToNbt", at = @At("HEAD"))
 	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
 		nbt.putBoolean(ARE_BLOCKS_MOVABLE, movable);
+		PreferenceData.CODEC.encodeStart(
+				getRegistryManager().getOps(NbtOps.INSTANCE),
+				preferenceData
+		).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(result -> nbt.put(PREFERENCES, result));
 	}
 
 	@Inject(method = "readCustomDataFromNbt", at = @At("HEAD"))
 	public void readNbt(NbtCompound nbt, CallbackInfo ci) {
 		movable = nbt.getBoolean(ARE_BLOCKS_MOVABLE);
+		if (nbt.contains(PREFERENCES)) {
+			PreferenceData.CODEC.parse(
+					getRegistryManager().getOps(NbtOps.INSTANCE),
+					nbt.get(PREFERENCES)
+			).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(preferenceData::applyFrom);
+		}
 	}
 
 	@ModifyReturnValue(method = "getRespawnTarget", at = @At("RETURN"))
@@ -432,5 +452,10 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Override
 	public boolean metacraft_core$areBlocksPistonMovable() {
 		return movable;
+	}
+
+	@Override
+	public PreferenceData metacraft_core$getPreferences() {
+		return preferenceData;
 	}
 }

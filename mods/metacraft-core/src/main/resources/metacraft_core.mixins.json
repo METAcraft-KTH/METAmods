@@ -34,6 +34,7 @@
 		"MixinPistonBlock",
 		"MixinPlayerEntity",
 		"MixinPlayerInventory",
+		"MixinPlayerManager",
 		"MixinPolymerItemUtilsToFixBundle",
 		"MixinServerBossBar",
 		"MixinServerCommonNetworkHandler",
