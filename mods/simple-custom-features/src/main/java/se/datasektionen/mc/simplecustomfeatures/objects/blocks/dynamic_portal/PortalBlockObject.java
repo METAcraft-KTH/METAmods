@@ -7,7 +7,10 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.*;
 import net.minecraft.block.dispenser.DispenserBehavior;
+import net.minecraft.block.dispenser.ItemDispenserBehavior;
 import net.minecraft.block.pattern.CachedBlockPosition;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.UseRemainderComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.predicate.BlockPredicate;
@@ -55,7 +58,9 @@ public class PortalBlockObject implements BaseBlock {
 	private final Map<RegistryKey<World>, RegistryKey<World>> dimensions;
 	private final BlockPredicate validFrameBlock;
 	private final Optional<BlockPredicate> blockActivator;
+	private final Optional<BlockPredicate> replaceableByPortal;
 	private final Optional<ItemPredicate> itemActivator;
+	private final Optional<UseRemainderComponent> useRemainderOverride;
 	private final Optional<StructureWithOffset> portalStructure;
 	private final Optional<StructureWithOffset> portalWithPlatformStructure;
 	private final int minArea;
@@ -70,7 +75,9 @@ public class PortalBlockObject implements BaseBlock {
 					Codec.unboundedMap(World.CODEC, World.CODEC).fieldOf("dimensions").forGetter(p -> p.dimensions),
 					BlockPredicate.CODEC.fieldOf("valid_frame_block").forGetter(p -> p.validFrameBlock),
 					BlockPredicate.CODEC.optionalFieldOf("block_activator").forGetter(p -> p.blockActivator),
+					BlockPredicate.CODEC.optionalFieldOf("replaceable_by_portal").forGetter(p -> p.replaceableByPortal),
 					ItemPredicate.CODEC.optionalFieldOf("item_activator").forGetter(p -> p.itemActivator),
+					UseRemainderComponent.CODEC.optionalFieldOf("use_remainder_override").forGetter(p -> p.useRemainderOverride),
 					StructureWithOffset.CODEC.optionalFieldOf("portal_structure").forGetter(p -> p.portalStructure),
 					StructureWithOffset.CODEC.optionalFieldOf("portal_with_platform_structure").forGetter(p -> p.portalWithPlatformStructure),
 					Codecs.POSITIVE_INT.optionalFieldOf("min_area", 1).forGetter(p -> p.minArea),
@@ -83,7 +90,8 @@ public class PortalBlockObject implements BaseBlock {
 
 	public PortalBlockObject(
 			Map<RegistryKey<World>, RegistryKey<World>> dimensions, BlockPredicate validFrameBlock,
-			Optional<BlockPredicate> blockActivator, Optional<ItemPredicate> itemActivator,
+			Optional<BlockPredicate> blockActivator, Optional<BlockPredicate> replaceableByPortal,
+			Optional<ItemPredicate> itemActivator, Optional<UseRemainderComponent> useRemainderOverride,
 			Optional<StructureWithOffset> portalStructure, Optional<StructureWithOffset> portalWithPlatformStructure,
 			int minSize,
 			Map<RegistryKey<World>, EntitySpawnEntry> entitySpawns,
@@ -92,7 +100,9 @@ public class PortalBlockObject implements BaseBlock {
 		this.dimensions = dimensions;
 		this.validFrameBlock = validFrameBlock;
 		this.blockActivator = blockActivator;
+		this.replaceableByPortal = replaceableByPortal;
 		this.itemActivator = itemActivator;
+		this.useRemainderOverride = useRemainderOverride;
 		this.portalStructure = portalStructure;
 		this.portalWithPlatformStructure = portalWithPlatformStructure;
 		this.minArea = minSize;
@@ -183,9 +193,19 @@ public class PortalBlockObject implements BaseBlock {
 		return itemActivator;
 	}
 
+	public Optional<UseRemainderComponent> getUseRemainderOverride() {
+		return useRemainderOverride;
+	}
+
 	public Optional<BlockPredicate> getBlockActivator() {
 		return blockActivator;
 	}
+
+	public Optional<BlockPredicate> getReplaceableByPortal() {
+		return replaceableByPortal;
+	}
+
+	private static final DispenserBehavior SPIT_OUT = new ItemDispenserBehavior();
 
 	public DispenserBehavior getDispenserBehaviour(DispenserBehavior otherwise) {
 		return (pointer, stack) -> {
@@ -196,11 +216,18 @@ public class PortalBlockObject implements BaseBlock {
 					if (stack.isDamageable()) {
 						stack.damage(1, pointer.world(), null, item -> {});
 					} else {
+						int c = stack.getCount();
 						stack.decrement(1);
+						var useRemainder = this.getUseRemainderOverride().orElse(stack.get(DataComponentTypes.USE_REMAINDER));
+						if (useRemainder != null) {
+							return useRemainder.convert(
+									stack, c, false, extra -> SPIT_OUT.dispense(pointer, extra)
+							);
+						}
 					}
 					return stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
 				}
-			).orElse(otherwise.dispense(pointer, stack));
+			).orElseGet(() -> otherwise.dispense(pointer, stack));
 		};
 	}
 

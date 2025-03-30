@@ -103,7 +103,9 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 	}
 
 	public boolean isValidStateInsidePortal(CachedBlockPosition state) {
-		return state.getBlockState().isAir() || state.getBlockState().isOf(this) || portal.getBlockActivator().map(activator -> activator.test(state)).orElse(false);
+		return state.getBlockState().isAir() || state.getBlockState().isOf(this) ||
+				portal.getBlockActivator().map(activator -> activator.test(state)).orElse(false) ||
+				portal.getReplaceableByPortal().map(activator -> activator.test(state)).orElse(false);
 	}
 
 	public boolean isFrameBlock(CachedBlockPosition state) {
