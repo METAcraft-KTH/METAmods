@@ -41,7 +41,7 @@ import java.util.ArrayList;
 @Mixin(SpawnHelper.class)
 public abstract class MixinSpawnHelper {
 
-	@ModifyReturnValue(method = "getSpawnEntries", at = @At("RETURN"))
+	/*@ModifyReturnValue(method = "getSpawnEntries", at = @At("RETURN"))
 	private static Pool<SpawnSettings.SpawnEntry> getSpawnEntryFromZone(
 			Pool<SpawnSettings.SpawnEntry> original, ServerWorld world, StructureAccessor structureAccessor,
 			ChunkGenerator chunkGenerator, SpawnGroup spawnGroup, BlockPos pos, @Nullable RegistryEntry<Biome> biomeEntry
@@ -204,5 +204,5 @@ public abstract class MixinSpawnHelper {
 		}
 		return original.call(type, world, spawnReason, pos, random);
 	}
-
+*/
 }
