@@ -1,5 +1,6 @@
 package se.datasektionen.mc.metacraft_core.block.entities;
 
+import com.google.common.collect.Iterables;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
@@ -380,7 +381,10 @@ public class PortalEntity extends BlockEntity {
 	}
 
 	public Box getBoundingBox() {
-		return Box.from(BlockBox.encompassPositions(forAllNearbyPortals()).orElse(BlockBox.create(pos, pos)));
+		return Box.from(BlockBox.encompassPositions(Iterables.concat(
+				List.of(pos),
+				forAllNearbyPortals()
+		)).orElse(BlockBox.create(pos, pos)));
 	}
 
 	private Box getBoundingBoxIncludingPassengers(Entity entity) {
