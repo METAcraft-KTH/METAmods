@@ -418,7 +418,9 @@ public class PortalEntity extends BlockEntity {
 				if (toTP.getPortalCooldown() <= 0) {
 					toTP = teleport(toTP);
 				}
-				toTP.setPortalCooldown(20);
+				if (toTP != null) {
+					toTP.setPortalCooldown(20);
+				}
 			});
 		}
 	}
