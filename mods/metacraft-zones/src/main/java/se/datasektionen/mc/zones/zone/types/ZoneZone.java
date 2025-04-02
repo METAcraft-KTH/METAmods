@@ -70,7 +70,7 @@ public class ZoneZone extends ZoneType {
 		return getter -> {
 			checkingZone.set(true);
 			var opt = Optional.ofNullable(zoneCache).map(getter);
-			checkingZone.remove();
+			checkingZone.set(false);
 			return opt;
 		};
 	}

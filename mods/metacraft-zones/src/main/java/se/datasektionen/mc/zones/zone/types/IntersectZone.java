@@ -27,13 +27,13 @@ public class IntersectZone extends CombinedZone {
 	protected double updateSize(ZoneType newZone, UpdateDirection direction) {
 		return switch (direction) {
 			case ADD -> Math.min(size, newZone.getSize());
-			case REMOVE -> getSize(zones);
+			case REMOVE -> getSize(zones.get());
 		};
 	}
 
 	@Override
 	public boolean combinedZoneContains(BlockPos pos) {
-		for (var zone : zones) {
+		for (var zone : zones.get()) {
 			if (!zone.contains(pos)) {
 				return false;
 			}
