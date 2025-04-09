@@ -52,8 +52,18 @@ public class RealZone extends Zone {
 	}
 
 	@Override
-	public boolean contains(BlockPos pos) {
+	public boolean isPosWithinZoneBoundsNoDimCheck(BlockPos pos) {
 		return zone.contains(pos);
+	}
+
+	public boolean contains(RegistryKey<World> dim, BlockPos pos) {
+		if (this.world.getRegistryKey() == dim) {
+			return isPosWithinZoneBoundsNoDimCheck(pos);
+		} else if (remoteDimensions.containsKey(dim)) {
+			return remoteDimensions.get(dim).isPosWithinZoneBoundsNoDimCheck(pos);
+		} else {
+			return false;
+		}
 	}
 
 	public <T extends ZoneData> Optional<T> get(ZoneDataType<T> data) {

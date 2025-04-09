@@ -46,10 +46,10 @@ public class ZoneShape implements ProtectionShape {
 					RealZone zone = manager.getZone(name);
 					if (zone.getDim().equals(source.getDimension())) {
 						if (source.getPos() == null) return true;
-						return zone.contains(source.getPos());
+						return zone.isPosWithinZoneBoundsNoDimCheck(source.getPos());
 					} else if (zone.hasRemoteZone(source.getDimension())) {
 						if (source.getPos() == null) return true;
-						return zone.getRemoteDimension(source.getDimension()).contains(source.getPos());
+						return zone.getRemoteDimension(source.getDimension()).isPosWithinZoneBoundsNoDimCheck(source.getPos());
 					}
 				}
 				return false;

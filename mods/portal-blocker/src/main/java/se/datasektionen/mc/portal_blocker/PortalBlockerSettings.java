@@ -79,7 +79,7 @@ public class PortalBlockerSettings extends PersistentState {
 				dim, zone -> {
 					boolean shouldAllow = true;
 					for (BlockPos pos : positions) {
-						if (!zone.contains(pos)) return Optional.empty();
+						if (!zone.isPosWithinZoneBoundsNoDimCheck(pos)) return Optional.empty();
 						var state = zone.get(ZoneDataPortalBlocker.PORTAL_DATA).map(
 								data -> data.getBlockedState(type, blockingType)
 						).orElse(PortalZoneData.BlockResult.DEFAULT);

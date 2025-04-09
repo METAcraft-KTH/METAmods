@@ -86,20 +86,20 @@ public class ZoneManager extends PersistentState {
 	}
 
 	public Optional<Zone> getZoneAt(RegistryKey<World> dim, BlockPos pos, Predicate<Zone> zonePredicate) {
-		return getFirstZoneMatching(dim, zone -> zone.contains(pos) && zonePredicate.test(zone));
+		return getFirstZoneMatching(dim, zone -> zone.isPosWithinZoneBoundsNoDimCheck(pos) && zonePredicate.test(zone));
 	}
 
 	public Optional<Zone> getZoneAt(RegistryKey<World> dim, BlockPos pos) {
-		return getFirstZoneMatching(dim, zone -> zone.contains(pos));
+		return getFirstZoneMatching(dim, zone -> zone.isPosWithinZoneBoundsNoDimCheck(pos));
 	}
 
 	public List<Zone> getZonesAt(RegistryKey<World> dim, BlockPos pos, Predicate<Zone> additionaLPredicate) {
-		return getZonesMatching(dim, zone -> zone.contains(pos) && additionaLPredicate.test(zone));
+		return getZonesMatching(dim, zone -> zone.isPosWithinZoneBoundsNoDimCheck(pos) && additionaLPredicate.test(zone));
 	}
 
 	public <T> Optional<T> getValueForPrimaryZone(RegistryKey<World> dim, BlockPos pos, Function<Zone, Optional<T>> valueGetter) {
 		return getValueForPrimaryZone(dim, zone -> {
-			if (!zone.contains(pos)) {
+			if (!zone.isPosWithinZoneBoundsNoDimCheck(pos)) {
 				return Optional.empty();
 			}
 			return valueGetter.apply(zone);

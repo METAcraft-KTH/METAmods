@@ -24,6 +24,8 @@ public abstract class MixinEntity {
 
 	@Shadow private World world;
 
+	@Shadow public abstract World getWorld();
+
 	@Inject(
 		method = "isAlwaysInvulnerableTo",
 		at = @At("HEAD"),
@@ -39,7 +41,7 @@ public abstract class MixinEntity {
 					player = p;
 				} else {
 					if (PreventInteraction.shouldCancelInteractionAt(
-						this.getServer(), tamed.getOwnerUuid(), this.getBlockPos()
+						this.getServer(), tamed.getOwnerUuid(), getWorld().getRegistryKey(), this.getBlockPos()
 					)) {
 						cir.setReturnValue(true);
 						return;

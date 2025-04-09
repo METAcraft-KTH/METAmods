@@ -16,7 +16,7 @@ public abstract class Zone implements Comparable<Zone> {
 
 	protected final Set<Entity> entities = new HashSet<>();
 
-	public abstract boolean contains(BlockPos pos);
+	public abstract boolean isPosWithinZoneBoundsNoDimCheck(BlockPos pos);
 
 	public abstract <T extends ZoneData> Optional<T> get(ZoneDataType<T> data);
 

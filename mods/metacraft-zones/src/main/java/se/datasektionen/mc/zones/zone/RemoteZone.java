@@ -25,7 +25,7 @@ public class RemoteZone extends Zone {
 	}
 
 	@Override
-	public boolean contains(BlockPos pos) {
+	public boolean isPosWithinZoneBoundsNoDimCheck(BlockPos pos) {
 		double factor = DimensionType.getCoordinateScaleFactor(world.getDimension(), container.world.getDimension());
 		return zone.contains(
 				world.getWorldBorder().clampFloored(

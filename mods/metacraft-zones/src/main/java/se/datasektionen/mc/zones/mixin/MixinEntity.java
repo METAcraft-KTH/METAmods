@@ -36,13 +36,13 @@ public abstract class MixinEntity {
 		if (!world.isClient() && this.age % 100 == 0) {
 			Set<Zone> removeZones = new HashSet<>();
 			for (Zone currentZone : currentZones) {
-				if (!currentZone.contains(this.getBlockPos())) {
+				if (!currentZone.isPosWithinZoneBoundsNoDimCheck(this.getBlockPos())) {
 					currentZone.removeFromZone((Entity) (Object) this);
 					removeZones.add(currentZone);
 				}
 			}
 			ZoneManager.getInstance(getServer()).getZones().forZones(this.world.getRegistryKey(), zone -> {
-				if (!currentZones.contains(zone) && zone.contains(this.getBlockPos())) {
+				if (!currentZones.contains(zone) && zone.isPosWithinZoneBoundsNoDimCheck(this.getBlockPos())) {
 					currentZones.add(zone);
 					zone.addToZone((Entity) (Object) this);
 				}

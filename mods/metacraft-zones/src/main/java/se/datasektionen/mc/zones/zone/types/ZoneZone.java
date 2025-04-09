@@ -10,7 +10,7 @@ import se.datasektionen.mc.zones.METAcraftZones;
 import se.datasektionen.mc.zones.util.ZoneCommandUtils;
 import se.datasektionen.mc.zones.ZoneManagementCommand;
 import se.datasektionen.mc.zones.ZoneManager;
-import se.datasektionen.mc.zones.zone.Zone;
+import se.datasektionen.mc.zones.zone.RealZone;
 import se.datasektionen.mc.zones.zone.ZoneRegistry;
 
 import java.util.Optional;
@@ -20,7 +20,7 @@ public class ZoneZone extends ZoneType {
 
 	private final String zone;
 	private double size;
-	private Zone zoneCache = null;
+	private RealZone zoneCache = null;
 
 	public static final MapCodec<ZoneZone> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.STRING.fieldOf("zone").forGetter(zone -> zone.zone),
@@ -50,7 +50,7 @@ public class ZoneZone extends ZoneType {
 	private final ThreadLocal<Boolean> checkingZone = ThreadLocal.withInitial(() -> false);
 
 	//This is weird to help guard against stack overflows.
-	protected <T> Function<Function<Zone, T>, Optional<T>> getZone() {
+	protected <T> Function<Function<RealZone, T>, Optional<T>> getZone() {
 		if (checkingZone.get()) {
 			METAcraftZones.LOGGER.error("Warning, zone stack overflow detected in zone " + getZoneRef().getName() + "!");
 			return getter -> Optional.empty();
@@ -77,7 +77,7 @@ public class ZoneZone extends ZoneType {
 
 	@Override
 	public boolean contains(BlockPos pos) {
-		return this.<Boolean>getZone().apply(zone -> zone.contains(pos)).orElse(false);
+		return this.<Boolean>getZone().apply(zone -> zone.contains(getZoneRef().getDim(), pos)).orElse(false);
 	}
 
 	@Override

@@ -95,7 +95,7 @@ public class ZoneManagementCommand {
 
 	private static int contains(CommandContext<ServerCommandSource> ctx, BlockPos pos) throws CommandSyntaxException {
 		var zone = getZone(ctx);
-		if (zone.contains(pos)) {
+		if (zone.contains(ctx.getSource().getWorld().getRegistryKey(), pos)) {
 			ctx.getSource().sendFeedback(
 					() -> Text.literal(pos.toShortString() + " is indeed inside " + zone.getName()),
 					false

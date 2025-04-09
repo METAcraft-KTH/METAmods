@@ -40,7 +40,7 @@ public class MixinLocationPredicate implements LocationPredicateAccess {
 			var zone = this.zone.get();
 			var manager = ZoneManager.getInstance(world.getServer());
 			if (manager.containsZone(zone)) {
-				if (!manager.getZone(zone).contains(BlockPos.ofFloored(x, y, z))) {
+				if (!manager.getZone(zone).contains(world.getRegistryKey(), BlockPos.ofFloored(x, y, z))) {
 					cir.setReturnValue(false);
 				}
 			}

@@ -1,8 +1,10 @@
 package se.datasektionen.mc.metacraft_moderation.exile.rules;
 
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_moderation.exile.ExileData;
 import se.datasektionen.mc.metacraft_moderation.exile.ExilePlayerData;
 
@@ -34,13 +36,13 @@ public class PreventInteraction implements ZoneRule {
 		if (shouldCancelInteraction(player)) {
 			return true;
 		} else {
-			return shouldCancelInteractionAt(player.getServer(), player.getUuid(), pos);
+			return shouldCancelInteractionAt(player.getServer(), player.getUuid(), player.getWorld().getRegistryKey(), pos);
 		}
 	}
 
-	public static boolean shouldCancelInteractionAt(MinecraftServer server, UUID playerID, BlockPos pos) {
+	public static boolean shouldCancelInteractionAt(MinecraftServer server, UUID playerID, RegistryKey<World> dim, BlockPos pos) {
 		return ExileData.getInstance(server).getExile(playerID).map(
-			exile -> !exile.ruleAppliesAt(pos, ZoneRuleRegistry.preventInteraction)
+			exile -> !exile.ruleAppliesAt(dim, pos, ZoneRuleRegistry.preventInteraction)
 		).orElse(false);
 	}
 }

@@ -6,16 +6,18 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_moderation.METAcraftModeration;
 import se.datasektionen.mc.metacraft_moderation.exile.rules.ZoneRule;
 import se.datasektionen.mc.metacraft_moderation.exile.rules.ZoneRuleRegistry;
 import se.datasektionen.mc.zones.ZoneManager;
-import se.datasektionen.mc.zones.zone.Zone;
+import se.datasektionen.mc.zones.zone.RealZone;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,7 +27,7 @@ public class ExileDefinition {
 	public static final String NAME = "name";
 	public static final String ZONE_RULES = "zone_rules";
 
-	protected final Multimap<Zone, ZoneRule> zoneRules = HashMultimap.create();
+	protected final Multimap<RealZone, ZoneRule> zoneRules = HashMultimap.create();
 	protected String commandOnExile = "tellraw @s {\"text\":\"Exiled\"}";
 	protected String commandOnPardon = "tellraw @s {\"text\":\"Pardoned\"}";
 	protected String name;
@@ -45,17 +47,17 @@ public class ExileDefinition {
 		this.name = name;
 	}
 
-	public void addRule(Zone zone, ZoneRule rule) {
+	public void addRule(RealZone zone, ZoneRule rule) {
 		zoneRules.put(zone, rule);
 		markDirty();
 	}
 
-	public void removeRule(Zone zone, ZoneRule rule) {
+	public void removeRule(RealZone zone, ZoneRule rule) {
 		zoneRules.remove(zone, rule);
 		markDirty();
 	}
 
-	public void removeZone(Zone zone) {
+	public void removeZone(RealZone zone) {
 		zoneRules.removeAll(zone);
 		markDirty();
 	}
@@ -78,9 +80,9 @@ public class ExileDefinition {
 		return commandOnPardon;
 	}
 
-	public boolean ruleAppliesAt(BlockPos pos, ZoneRule rule) {
+	public boolean ruleAppliesAt(RegistryKey<World> dim, BlockPos pos, ZoneRule rule) {
 		return zoneRules.entries().stream().filter(
-				entry -> entry.getKey().contains(pos)
+				entry -> entry.getKey().contains(dim, pos)
 		).map(Map.Entry::getValue).collect(Collectors.toSet()).contains(rule);
 	}
 
@@ -96,10 +98,10 @@ public class ExileDefinition {
 
 	public <T extends ServerPlayerEntity & ExilePlayerData> void tick(T player) {
 		zoneRules.keySet().forEach(zone -> {
-			if (!player.METAcraft_Moderation$getCurrentZones().contains(zone) && zone.contains(player.getBlockPos())) {
+			if (!player.METAcraft_Moderation$getCurrentZones().contains(zone) && zone.contains(player.getWorld().getRegistryKey(), player.getBlockPos())) {
 				zoneRules.get(zone).forEach(rule -> rule.enterAllowedArea(player));
 				player.METAcraft_Moderation$getCurrentZones().add(zone);
-			} else if (player.METAcraft_Moderation$getCurrentZones().contains(zone) && !zone.contains(player.getBlockPos())) {
+			} else if (player.METAcraft_Moderation$getCurrentZones().contains(zone) && !zone.contains(player.getWorld().getRegistryKey(), player.getBlockPos())) {
 				zoneRules.get(zone).forEach(rule -> rule.enterProhibitedArea(player));
 				player.METAcraft_Moderation$getCurrentZones().remove(zone);
 			}
