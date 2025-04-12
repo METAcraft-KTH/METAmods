@@ -1,0 +1,14 @@
+version = project.end_relay_version
+
+addProjectDependency(":mods:metacraft-core")
+addPolymerDependency()
+
+fabricApi {
+	configureDataGeneration{
+		modId = "metacraft-relay"
+	}
+}
+
+dependencies {
+	modImplementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+}

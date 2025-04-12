@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "nu.metacraft.metacraft_relay.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"AccessorServerPlayerEntityRespawnPos",
+		"MixinDispenserBlock"
+	],
+	"client": [
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

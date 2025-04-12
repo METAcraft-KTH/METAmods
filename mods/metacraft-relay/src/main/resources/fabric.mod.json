@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-relay",
+	"version": "${version}",
+	"name": "METAcraft-Relay",
+	"description": "METAcraft-Relay, serverside implementation of Kendian's End Relay idea.",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"nu.metacraft.metacraft_relay.Relay"
+		],
+		"fabric-datagen": [
+			"nu.metacraft.metacraft_relay.RelayDatagen"
+		]
+	},
+	"mixins": [
+		"metacraft_relay.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"fabric": "*",
+		"minecraft": "~${minecraft_version}",
+		"metacraft-lib": "*",
+		"metacraft-core": "*"
+	}
+}
