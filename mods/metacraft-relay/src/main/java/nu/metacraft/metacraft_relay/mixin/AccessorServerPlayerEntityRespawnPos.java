@@ -1,11 +1,12 @@
 package nu.metacraft.metacraft_relay.mixin;
 
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(targets = "net.minecraft.server.network.ServerPlayerEntity$RespawnPos")
+@Mixin(ServerPlayerEntity.RespawnPos.class)
 public interface AccessorServerPlayerEntityRespawnPos {
 
 	@Invoker

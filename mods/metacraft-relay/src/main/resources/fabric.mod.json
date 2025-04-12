@@ -24,6 +24,7 @@
 			"nu.metacraft.metacraft_relay.RelayDatagen"
 		]
 	},
+	"accessWidener" : "metacraft_relay.accesswidener",
 	"mixins": [
 		"metacraft_relay.mixins.json"
 	],
