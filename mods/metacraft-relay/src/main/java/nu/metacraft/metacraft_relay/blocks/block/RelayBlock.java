@@ -21,10 +21,7 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPointer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.*;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import net.minecraft.world.event.GameEvent;
@@ -66,6 +63,10 @@ public class RelayBlock extends Block implements PolymerBlock, BlockEntityProvid
 	@Override
 	public @Nullable BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
 		return new RelayBlockEntity(pos, state);
+	}
+
+	public static int getLightLevel(BlockState state, int maxLevel) {
+		return state.get(CHARGED) ? maxLevel : 0;
 	}
 
 	@Override

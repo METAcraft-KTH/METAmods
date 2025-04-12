@@ -1,8 +1,7 @@
 package nu.metacraft.metacraft_relay.blocks;
 
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
+import net.minecraft.block.*;
+import net.minecraft.block.enums.NoteBlockInstrument;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
@@ -16,7 +15,11 @@ public class RelayBlocks {
 
 	public static final Block RELAY = register(
 			"relay", RelayBlock::new,
-			AbstractBlock.Settings.copy(Blocks.LODESTONE)
+			AbstractBlock.Settings.create().mapColor(MapColor.BLACK).instrument(
+					NoteBlockInstrument.BASEDRUM
+			).requiresTool().strength(50.0F, 1200.0F).luminance(
+					(state) -> RelayBlock.getLightLevel(state, 15)
+			)
 	);
 
 	public static void init() {
