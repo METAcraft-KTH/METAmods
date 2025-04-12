@@ -3,7 +3,6 @@ package nu.metacraft.metacraft_relay.items;
 import eu.pb4.polymer.core.api.item.PolymerBlockItem;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
-import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
@@ -24,9 +23,10 @@ public class RelayItems {
 	);
 
 	public static final Item RELAY = register(
-			"relay", settings -> new PolymerBlockItem(RelayBlocks.RELAY, settings, Items.RESPAWN_ANCHOR),
+			"relay", settings -> new PolymerBlockItem(RelayBlocks.RELAY, settings),
 			new Item.Settings().component(RelayComponents.VALID_DIMENSIONS, HashTreePMap.singleton(World.END, HashTreePSet.singleton(World.END)))
 					.component(RelayComponents.VALID_CHARGE_ITEM, RELAY_RECHARGE_ITEMS)
+					.component(RelayComponents.BLOCK_MODEL, Relay.getID("relay"))
 	);
 
 	public static void init() {
