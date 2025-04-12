@@ -1,11 +1,15 @@
 package se.datasektionen.mc.metacraft_lib.util.helper;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.recipe.Ingredient;
 import net.minecraft.recipe.Recipe;
+import net.minecraft.recipe.ShapelessRecipe;
 import net.minecraft.registry.Registries;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.extensions.RecipeComponentCarryoverExtension;
+import se.datasektionen.mc.metacraft_lib.mixin.AccessorShapelessRecipe;
 
+import java.util.List;
 import java.util.function.Predicate;
 
 public class RecipeHelper {
@@ -27,6 +31,10 @@ public class RecipeHelper {
 					Registries.RECIPE_TYPE.getId(recipe.getType())
 			);
 		}
+	}
+
+	public static List<Ingredient> getIngredients(ShapelessRecipe recipe) {
+		return ((AccessorShapelessRecipe) recipe).getIngredients();
 	}
 
 }
