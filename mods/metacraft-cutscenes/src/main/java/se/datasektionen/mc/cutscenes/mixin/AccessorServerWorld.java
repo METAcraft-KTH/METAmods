@@ -1,6 +1,7 @@
 package se.datasektionen.mc.cutscenes.mixin;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerEntityManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.entity.EntityLookup;
@@ -17,5 +18,9 @@ public interface AccessorServerWorld {
 	@Accessor
 	@Mutable
 	void setEntityManager(ServerEntityManager<Entity> manager);
+
+	@Accessor
+	@Mutable
+	void setChunkManager(ServerChunkManager chunkManager);
 
 }

@@ -125,6 +125,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		this.cutscene = cutscene;
 		this.world = world;
 		this.manager = new CutsceneChunkManager(this, this::getPersistentStateManager);
+		((AccessorServerWorld) this).setChunkManager(manager);
 		this.entities = new CutsceneEntityManager(this);
 		this.lookup = new CombinedEntityLookup(
 				List.of(entities.getLookup(), ((AccessorServerWorld) world).callGetEntityLookup())
