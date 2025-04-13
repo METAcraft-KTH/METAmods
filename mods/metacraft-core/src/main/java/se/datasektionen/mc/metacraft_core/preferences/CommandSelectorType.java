@@ -9,6 +9,7 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextCodecs;
+import se.datasektionen.mc.metacraft_lib.util.DisplayItemData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,12 +50,12 @@ public class CommandSelectorType implements PreferenceType<CommandSelectorType.C
 						var command = def.commands.get(i);
 						if (i == value) {
 							buttons.add(
-									command.selectedIcon.orElse(command.icon).createBuilder(player).build()
+									Icon.createBuilder(command.selectedIcon.orElse(command.icon), player).build()
 							);
 						} else {
 							int v = i;
 							buttons.add(
-									command.icon.createBuilder(player).setCallback(
+									Icon.createBuilder(command.icon, player).setCallback(
 											() -> {
 												runCommand(player, command);
 												data.set(definition, v);
@@ -95,12 +96,12 @@ public class CommandSelectorType implements PreferenceType<CommandSelectorType.C
 				).apply(instance, CommandData::new)
 		);
 
-		public record CommandEntry(String command, IconData icon, Optional<IconData> selectedIcon) {
+		public record CommandEntry(String command, DisplayItemData icon, Optional<DisplayItemData> selectedIcon) {
 			public static final Codec<CommandEntry> CODEC = RecordCodecBuilder.create(
 					instance -> instance.group(
 							Codec.STRING.fieldOf("command").forGetter(CommandEntry::command),
-							IconData.CODEC.fieldOf("icon").forGetter(CommandEntry::icon),
-							IconData.CODEC.optionalFieldOf("selected_icon").forGetter(CommandEntry::selectedIcon)
+							DisplayItemData.CODEC.fieldOf("icon").forGetter(CommandEntry::icon),
+							DisplayItemData.CODEC.optionalFieldOf("selected_icon").forGetter(CommandEntry::selectedIcon)
 					).apply(instance, CommandEntry::new)
 			);
 		}

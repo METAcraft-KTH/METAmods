@@ -3,6 +3,7 @@ package se.datasektionen.mc.metacraft_lib;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
+import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.predicate.item.ItemPredicate;
 import net.minecraft.recipe.*;
@@ -17,6 +18,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import se.datasektionen.mc.metacraft_lib.event.RecipeLoad;
 import se.datasektionen.mc.metacraft_lib.extensions.RecipeComponentCarryoverExtension;
 import se.datasektionen.mc.metacraft_lib.extensions.RecipeRemainderExtension;
+import se.datasektionen.mc.metacraft_lib.recipe.CustomDisplayIngredient;
 
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -34,6 +36,7 @@ public class Recipes {
 	private static final String FROM = "from";
 
 	public static void init() {
+		CustomIngredientSerializer.register(CustomDisplayIngredient.SERIALIZER);
 		RecipeLoad.EVENT.register((id, json, recipe, registryLookup) -> {
 			if (recipe instanceof RecipeRemainderExtension recipeData) {
 				if (json.has(REMAINDER)) {

@@ -4,6 +4,7 @@ import eu.pb4.sgui.api.elements.GuiElementInterface;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import se.datasektionen.mc.metacraft_lib.util.DisplayItemData;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -31,8 +32,8 @@ public class PreferenceMenu extends SelectorMenu {
 				i -> i.shouldShowIcon(
 						PreferenceData.getForPlayer(player).get(PreferenceData.downcast(entry))
 				)
-		).findFirst().map(PreferenceType.Icon::items).orElse(PreferenceType.IconData.EMPTY);
-		return icon.createBuilder(player).setCallback(
+		).findFirst().map(PreferenceType.Icon::items).orElse(DisplayItemData.EMPTY);
+		return PreferenceType.Icon.createBuilder(icon, player).setCallback(
 				() -> {
 					PreferenceData.downcast(entry).value().type().onClicked(player, PreferenceData.downcast(entry), this);
 				}
