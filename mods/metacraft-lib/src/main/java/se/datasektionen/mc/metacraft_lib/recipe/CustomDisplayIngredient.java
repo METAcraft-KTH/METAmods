@@ -29,6 +29,9 @@ public record CustomDisplayIngredient(Ingredient base, List<ItemStack> display) 
 
 	@Override
 	public Stream<RegistryEntry<Item>> getMatchingItems() {
+		if (base.requiresTesting() && base.getMatchingItems().findAny().isEmpty()) {
+			return display.stream().map(s -> (RegistryEntry<Item>) s.getItem().getRegistryEntry()).distinct();
+		}
 		return base.getMatchingItems();
 	}
 

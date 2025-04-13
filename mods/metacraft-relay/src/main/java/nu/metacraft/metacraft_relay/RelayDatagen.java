@@ -16,7 +16,9 @@ import net.minecraft.advancement.criterion.Criteria;
 import net.minecraft.advancement.criterion.InventoryChangedCriterion;
 import net.minecraft.advancement.criterion.RecipeUnlockedCriterion;
 import net.minecraft.block.Block;
+import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.LodestoneTrackerComponent;
 import net.minecraft.data.recipe.RecipeExporter;
 import net.minecraft.data.recipe.RecipeGenerator;
 import net.minecraft.item.Item;
@@ -44,6 +46,7 @@ import net.minecraft.util.Identifier;
 import nu.metacraft.metacraft_relay.blocks.RelayBlocks;
 import nu.metacraft.metacraft_relay.items.RelayItems;
 import se.datasektionen.mc.metacraft_lib.event.RecipeDataGen;
+import se.datasektionen.mc.metacraft_lib.recipe.CustomDisplayIngredient;
 
 import java.util.List;
 import java.util.Optional;
@@ -178,13 +181,26 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 									CraftingRecipeCategory.MISC,
 									new ItemStack(RelayItems.RELAY),
 									List.of(
-										DefaultCustomIngredients.difference(
-											Ingredient.ofItem(Items.COMPASS),
-											DefaultCustomIngredients.components(
-												Ingredient.ofItem(Items.COMPASS),
-												components -> components.remove(DataComponentTypes.LODESTONE_TRACKER)
-											)
-										),
+										new CustomDisplayIngredient(
+												DefaultCustomIngredients.difference(
+														Ingredient.ofItem(Items.COMPASS),
+														DefaultCustomIngredients.components(
+																Ingredient.ofItem(Items.COMPASS),
+																components -> components.remove(DataComponentTypes.LODESTONE_TRACKER)
+														)
+												),
+												List.of(
+														new ItemStack(
+																Items.COMPASS.getRegistryEntry(),
+																1,
+																ComponentChanges.builder().add(
+																		DataComponentTypes.LODESTONE_TRACKER, new LodestoneTrackerComponent(
+																				Optional.empty(), true
+																		)
+																).build()
+														)
+												)
+										).toVanilla(),
 										Ingredient.ofItem(RelayItems.RELAY)
 									)
 							),
