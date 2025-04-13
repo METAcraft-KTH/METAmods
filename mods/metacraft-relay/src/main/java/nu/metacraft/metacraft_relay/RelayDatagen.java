@@ -19,6 +19,7 @@ import net.minecraft.block.Block;
 import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LodestoneTrackerComponent;
+import net.minecraft.component.type.LoreComponent;
 import net.minecraft.data.recipe.RecipeExporter;
 import net.minecraft.data.recipe.RecipeGenerator;
 import net.minecraft.item.Item;
@@ -43,7 +44,9 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Unit;
 import nu.metacraft.metacraft_relay.blocks.RelayBlocks;
+import nu.metacraft.metacraft_relay.blocks.block.RelayBlock;
 import nu.metacraft.metacraft_relay.items.RelayItems;
 import se.datasektionen.mc.metacraft_lib.event.RecipeDataGen;
 import se.datasektionen.mc.metacraft_lib.recipe.CustomDisplayIngredient;
@@ -179,7 +182,16 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 							new ShapelessRecipe(
 									"relay",
 									CraftingRecipeCategory.MISC,
-									new ItemStack(RelayItems.RELAY),
+									new ItemStack(
+											RelayItems.RELAY.getRegistryEntry(), 1,
+											ComponentChanges.builder().add(
+													DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE
+											).add(
+													DataComponentTypes.LORE, new LoreComponent(
+															List.of(RelayBlock.getTargetText("?, ?, ?", "?").styled(style -> style.withItalic(false)))
+													)
+											).build()
+									),
 									List.of(
 										new CustomDisplayIngredient(
 												DefaultCustomIngredients.difference(

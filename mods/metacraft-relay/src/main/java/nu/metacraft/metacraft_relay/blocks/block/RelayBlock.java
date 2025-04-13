@@ -6,16 +6,20 @@ import net.minecraft.block.*;
 import net.minecraft.block.dispenser.DispenserBehavior;
 import net.minecraft.block.dispenser.FallibleItemDispenserBehavior;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.FluidState;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
@@ -32,6 +36,7 @@ import nu.metacraft.metacraft_relay.items.RelayComponents;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.packettweaker.PacketContext;
 
+import java.util.List;
 import java.util.Optional;
 
 public class RelayBlock extends Block implements PolymerBlock, BlockEntityProvider {
@@ -53,6 +58,28 @@ public class RelayBlock extends Block implements PolymerBlock, BlockEntityProvid
 	protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
 		super.appendProperties(builder);
 		builder.add(CHARGED);
+	}
+
+	public static MutableText getTargetText(String targetPos, String targetDim) {
+		return Text.translatableWithFallback(
+				"item.metacraft.relay.target", "Target: " + targetPos + " in " + targetDim,
+				targetPos, targetDim
+		).styled(style -> style.withFormatting(Formatting.GREEN));
+	}
+
+	@Override
+	public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType options) {
+		super.appendTooltip(stack, context, tooltip, options);
+		var tracker = stack.get(DataComponentTypes.LODESTONE_TRACKER);
+		if (tracker != null && tracker.target().isPresent()) {
+			var targetPos = tracker.target().get().pos().toShortString();
+			var targetDim = tracker.target().get().dimension().getValue().toString();
+			tooltip.add(getTargetText(targetPos, targetDim));
+		} else {
+			tooltip.add(Text.translatableWithFallback("item.metacraft.relay.no_target", "No Target").styled(style -> style.withFormatting(Formatting.RED)));
+			tooltip.add(Text.translatableWithFallback("item.metacraft.relay.no_target.1", "Please combine me with a lodestone").styled(style -> style.withFormatting(Formatting.YELLOW)));
+			tooltip.add(Text.translatableWithFallback("item.metacraft.relay.no_target.2", "compass in a crafting grid").styled(style -> style.withFormatting(Formatting.YELLOW)));
+		}
 	}
 
 	@Override
