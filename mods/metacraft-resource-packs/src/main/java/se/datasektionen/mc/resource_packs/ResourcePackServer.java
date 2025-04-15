@@ -142,6 +142,10 @@ public class ResourcePackServer implements AutoCloseable {
 			} catch (InterruptedException | ExecutionException e) {
 				throw new RuntimeException(e);
 			}
+			//https://stackoverflow.com/questions/3413036/http-response-caching
+			exchange.getResponseHeaders().add("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
+			exchange.getResponseHeaders().add("Pragma", "no-cache"); // HTTP 1.0.
+			exchange.getResponseHeaders().add("Expires", String.valueOf(0)); // Proxies.
 			exchange.sendResponseHeaders(200, data.length);
 			exchange.getResponseBody().write(data);
 			exchange.getResponseBody().flush();
