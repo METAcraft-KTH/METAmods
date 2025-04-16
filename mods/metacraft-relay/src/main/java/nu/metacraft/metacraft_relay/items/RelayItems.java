@@ -25,7 +25,8 @@ public class RelayItems {
 
 	public static final Item RELAY = register(
 			"relay", settings -> new PolymerBlockItem(RelayBlocks.RELAY, settings, Items.STONE, true),
-			new Item.Settings().component(RelayComponents.VALID_DIMENSIONS, HashTreePMap.singleton(World.END, HashTreePSet.singleton(World.END)))
+			new Item.Settings().useBlockPrefixedTranslationKey()
+					.component(RelayComponents.VALID_DIMENSIONS, HashTreePMap.singleton(World.END, HashTreePSet.singleton(World.END)))
 					.component(RelayComponents.VALID_CHARGE_ITEM, RELAY_RECHARGE_ITEMS)
 					.component(RelayComponents.BLOCK_MODEL, Relay.getID("relay"))
 	);

@@ -107,7 +107,7 @@ public class RelayBlock extends Block implements PolymerBlock, BlockEntityProvid
 
 	public static MutableText getTargetText(String targetPos, String targetDim) {
 		return Text.translatableWithFallback(
-				"item.metacraft.relay.target", "Target: " + targetPos + " in " + targetDim,
+				"block.metacraft.relay.target", "Target: " + targetPos + " in " + targetDim,
 				targetPos, targetDim
 		).styled(style -> style.withFormatting(Formatting.GREEN));
 	}
@@ -121,9 +121,9 @@ public class RelayBlock extends Block implements PolymerBlock, BlockEntityProvid
 			var targetDim = tracker.target().get().dimension().getValue().toString();
 			tooltip.add(getTargetText(targetPos, targetDim));
 		} else {
-			tooltip.add(Text.translatableWithFallback("item.metacraft.relay.no_target", "No Target").styled(style -> style.withFormatting(Formatting.RED)));
-			tooltip.add(Text.translatableWithFallback("item.metacraft.relay.no_target.1", "Please combine me with a lodestone").styled(style -> style.withFormatting(Formatting.YELLOW)));
-			tooltip.add(Text.translatableWithFallback("item.metacraft.relay.no_target.2", "compass in a crafting grid").styled(style -> style.withFormatting(Formatting.YELLOW)));
+			tooltip.add(Text.translatableWithFallback("block.metacraft.relay.no_target", "No Target").styled(style -> style.withFormatting(Formatting.RED)));
+			tooltip.add(Text.translatableWithFallback("block.metacraft.relay.no_target.1", "Please combine me with a lodestone").styled(style -> style.withFormatting(Formatting.YELLOW)));
+			tooltip.add(Text.translatableWithFallback("block.metacraft.relay.no_target.2", "compass in a crafting grid").styled(style -> style.withFormatting(Formatting.YELLOW)));
 		}
 	}
 
