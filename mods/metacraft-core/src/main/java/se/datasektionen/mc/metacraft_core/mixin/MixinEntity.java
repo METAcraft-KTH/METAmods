@@ -1,5 +1,6 @@
 package se.datasektionen.mc.metacraft_core.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.DynamicRegistryManager;
@@ -7,6 +8,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.PlayerAssociatedNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.Box;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import se.datasektionen.mc.metacraft_core.entity.entities.MovingBlock;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
@@ -37,6 +40,9 @@ public abstract class MixinEntity implements EntityExtensions {
 
 	@Shadow public abstract DynamicRegistryManager getRegistryManager();
 
+	@Shadow public abstract Box getBoundingBox();
+
+	@Shadow private World world;
 	@Unique
 	private ManageableServerBossBar bossBar;
 
@@ -184,6 +190,44 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Override
 	public void metacraft_lib$setBossBarNoUpdate(ManageableServerBossBar bossBar) {
 		this.bossBar = bossBar;
+	}
+
+
+
+
+
+	@Unique
+	private boolean movedAlready = false;
+
+	@Override
+	public void metacraft$setMovedAlready(boolean movedAlready) {
+		this.movedAlready = movedAlready;
+	}
+
+	@Override
+	public boolean metacraft$hasMovedAlready() {
+		return movedAlready;
+	}
+
+	@ModifyExpressionValue(
+			method = "getJumpVelocityMultiplier",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/block/Block;getJumpVelocityMultiplier()F",
+					ordinal = 1
+			)
+	)
+	protected float getJumpVelocityMultiplier(float g) {
+		var selector = new Box(
+				this.getBoundingBox().minX, this.getBoundingBox().minY, this.getBoundingBox().minZ,
+				this.getBoundingBox().maxX, this.getBoundingBox().minY - 0.1, this.getBoundingBox().maxZ
+		);
+		for (var e : world.getOtherEntities((Entity) (Object) this, selector)) {
+			if (e instanceof MovingBlock box) {
+				return 1;
+			}
+		}
+		return g;
 	}
 
 }

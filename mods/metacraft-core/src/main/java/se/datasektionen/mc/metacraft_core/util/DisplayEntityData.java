@@ -1,14 +1,19 @@
 package se.datasektionen.mc.metacraft_core.util;
 
+import eu.pb4.polymer.virtualentity.api.elements.BlockDisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.DisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.Brightness;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ModelTransformationMode;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.math.AffineTransformation;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 
@@ -185,6 +190,38 @@ public class DisplayEntityData {
 			ModelTransformationMode.CODEC.encodeStart(NbtOps.INSTANCE, itemModel).resultOrPartial(
 					METAcraftCore.LOGGER::error
 			).ifPresent(m -> nbt.put(ITEM_DISPLAY, m));
+		}
+	}
+
+	public static class Block extends DisplayEntityData {
+
+		private BlockState state = Blocks.AIR.getDefaultState();
+
+		public BlockState getBlockState() {
+			return state;
+		}
+
+		public void setBlockState(BlockState state) {
+			this.state = state;
+		}
+
+		public void applyBlockSettings(BlockDisplayElement element) {
+			element.setBlockState(state);
+		}
+
+		@Override
+		public void load(NbtCompound nbt, Entity entity) {
+			super.load(nbt, entity);
+			state = NbtHelper.toBlockState(
+					entity.getWorld().createCommandRegistryWrapper(RegistryKeys.BLOCK),
+					nbt.getCompound(DisplayEntity.BlockDisplayEntity.BLOCK_STATE_NBT_KEY)
+			);
+		}
+
+		@Override
+		public void save(NbtCompound nbt, Entity entity) {
+			super.save(nbt, entity);
+			nbt.put(DisplayEntity.BlockDisplayEntity.BLOCK_STATE_NBT_KEY, NbtHelper.fromBlockState(state));
 		}
 	}
 

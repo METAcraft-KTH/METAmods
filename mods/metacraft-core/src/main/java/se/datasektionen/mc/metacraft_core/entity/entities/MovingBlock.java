@@ -1,0 +1,281 @@
+package se.datasektionen.mc.metacraft_core.entity.entities;
+
+import eu.pb4.polymer.core.api.entity.PolymerEntity;
+import eu.pb4.polymer.virtualentity.api.ElementHolder;
+import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
+import eu.pb4.polymer.virtualentity.api.elements.BlockDisplayElement;
+import eu.pb4.polymer.virtualentity.api.elements.EntityElement;
+import eu.pb4.polymer.virtualentity.api.tracker.DisplayTrackedData;
+import net.minecraft.block.Blocks;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.Flutterer;
+import net.minecraft.entity.MovementType;
+import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.mob.ShulkerEntity;
+import net.minecraft.entity.player.PlayerPosition;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket;
+import net.minecraft.network.packet.s2c.play.PositionFlag;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Uuids;
+import net.minecraft.util.math.AffineTransformation;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+import se.datasektionen.mc.metacraft_core.METAcraftCore;
+import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
+import se.datasektionen.mc.metacraft_core.mixin.AccessorEntity;
+import se.datasektionen.mc.metacraft_core.mixin.AccessorLivingEntity;
+import se.datasektionen.mc.metacraft_core.util.DisplayEntityData;
+import xyz.nucleoid.packettweaker.PacketContext;
+
+import java.util.*;
+
+public class MovingBlock extends Entity implements PolymerEntity {
+
+	public static final String SLIPPERINESS = "slipperiness";
+	public static final String NO_COLLIDES = "no_collides";
+
+	private final ElementHolder holder = new ElementHolder();
+	private final BlockDisplayElement block;
+	private final DisplayEntityData.Block blockData = new DisplayEntityData.Block();
+	private Optional<Float> slipperiness = Optional.empty();
+	private final EntityElement<ShulkerEntity> shulker;
+
+	private final Set<UUID> noCollides = new HashSet<>();
+
+	private boolean initializedShulker = false;
+
+	public MovingBlock(EntityType<?> type, World world) {
+		super(type, world);
+		block = new BlockDisplayElement(Blocks.STONE.getDefaultState());
+		block.setTransformation(new AffineTransformation(
+				new Vector3f(-0.5f, 0, -0.5f),
+				new Quaternionf(),
+				new Vector3f(1, 1, 1),
+				new Quaternionf()
+		));
+		block.setTeleportDuration(1);
+		holder.addElement(block);
+		if (world instanceof ServerWorld sw) {
+			shulker = new EntityElement<>(EntityType.SHULKER, sw);
+			shulker.entity().setInvisible(true);
+			shulker.setInitialPosition(this.getPos());
+			holder.addPassengerElement(shulker);
+		} else {
+			shulker = null;
+		}
+		EntityAttachment.ofTicking(holder, this);
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+		this.move(MovementType.SELF, this.getVelocity());
+		if (!initializedShulker) { //Shulker is usually not present when it first spawns, shows up after first movement.
+			shulker.entity().updatePosition(this.getX(), this.getY(), this.getZ());
+			initializedShulker = true;
+		}
+	}
+
+	private static float getMovement(boolean positive, boolean negative) {
+		if (positive == negative) {
+			return 0;
+		} else {
+			return positive ? 1 : -1;
+		}
+	}
+
+	private void movePlayer(ServerPlayerEntity player, Vec3d movement) {
+		var root = player.getRootVehicle();
+		float forwardMovement = getMovement(player.getPlayerInput().forward(), player.getPlayerInput().backward());
+		float sidewaysMovement = getMovement(player.getPlayerInput().left(), player.getPlayerInput().right());
+
+		if (player.isUsingItem() && !player.hasVehicle()) {
+			forwardMovement *= 0.2F;
+			sidewaysMovement *= 0.2F;
+		}
+
+		if (player.isInSneakingPose() || player.isCrawling()) {
+			float f = (float) player.getAttributeValue(EntityAttributes.SNEAKING_SPEED);
+			forwardMovement *= f;
+			sidewaysMovement *= f;
+		}
+
+		var slipperiness = this.slipperiness.orElse(blockData.getBlockState().getBlock().getSlipperiness());
+
+		float g = slipperiness * 0.91F;
+		float h = root instanceof Flutterer ? g : 0.98F;
+		root.setVelocity(root.getVelocity().x * (double)g, root.getVelocity().y * (double)h, root.getVelocity().z * (double)g);
+
+		var velocity = movementInputToVelocity(
+				new Vec3d(sidewaysMovement, 0, forwardMovement),
+				player.getMovementSpeed() * (0.21600002F / (slipperiness * slipperiness * slipperiness)),
+				player.getYaw()
+		);
+		root.setVelocity(root.getVelocity().add(velocity));
+
+		if (player.getPlayerInput().jump()) {
+			float jumpStrength = ((AccessorLivingEntity) root).callGetJumpVelocity();
+			if (jumpStrength > 1.0E-5F) {
+				Vec3d currentVelocity = root.getVelocity();
+				root.setVelocity(currentVelocity.x, Math.max(jumpStrength, currentVelocity.y) + 0.1, currentVelocity.z);
+				if (player.getPlayerInput().sprint()) {
+					float rot = root.getYaw() * ((float)Math.PI / 180F);
+					root.addVelocityInternal(new Vec3d((-MathHelper.sin(rot)) * 0.2, 0, MathHelper.cos(rot) * 0.2));
+				}
+			}
+		}
+
+
+		Vec3d motionVec = movement.add(root.getVelocity());
+		motionVec = ((AccessorEntity) root).callAdjustMovementForSneaking(motionVec, MovementType.SELF);
+		motionVec = ((AccessorEntity) root).callAdjustMovementForCollisions(motionVec);
+
+		boolean removeY = false;
+		if (movement.getY() > 0 && root.getVelocity().y <= 0) {
+			motionVec = new Vec3d(
+					motionVec.getX(),
+					this.getBoundingBox().maxY,
+					motionVec.getZ()
+			);
+			removeY = true;
+		}
+
+		var targetPos = new PlayerPosition(motionVec, root.getVelocity(), 0, 0);
+		var set = EnumSet.allOf(PositionFlag.class);
+		set.removeAll(PositionFlag.DELTA);
+		if (removeY) {
+			set.remove(PositionFlag.Y);
+		}
+		root.setOnGround(false);
+		root.setPosition(targetPos, set);
+		player.networkHandler.sendPacket(
+				EntityPositionS2CPacket.create(
+						root.getId(), targetPos, set, false
+				)
+		);
+	}
+
+	public boolean shouldMove(Entity entity) {
+		return !this.isConnectedThroughVehicle(entity) && !(entity instanceof MovingBlock) && !((EntityExtensions) entity).metacraft$hasMovedAlready();
+	}
+
+	private ServerPlayerEntity getRelevantPlayer(Entity entity) {
+		if (entity instanceof ServerPlayerEntity p) {
+			return p;
+		}
+		if (entity.getControllingPassenger() instanceof ServerPlayerEntity p) {
+			return p;
+		}
+		return null;
+	}
+
+	private void moveEntity(Entity entity, Vec3d movement) {
+		if (entity.hasVehicle()) return;
+		var player = getRelevantPlayer(entity);
+		if (player != null) {
+			movePlayer(player, movement);
+		} else {
+			entity.move(MovementType.SHULKER, movement);
+		}
+		((EntityExtensions) entity).metacraft$setMovedAlready(true);
+	}
+
+	private static Box selectionBox(Box entityBox, Vec3d movement) {
+		var box = entityBox.stretch(movement).expand(0.05);
+		if (movement.getY() > 0) {
+			entityBox.expand(0, 0.1, 0);
+		}
+		return box;
+	}
+
+	private static boolean isMovementValid(Vec3d movement) {
+		return movement.length() < 2;
+	}
+
+	@Override
+	public void move(MovementType type, Vec3d movement) {
+		var entityBox = this.getBoundingBox();
+		super.move(type, movement);
+		if (isMovementValid(movement)) {
+			var box = selectionBox(entityBox, movement);
+			for (var entity : getEntityWorld().getOtherEntities(this, box, this::shouldMove)) {
+				moveEntity(entity, movement);
+			}
+		}
+	}
+
+	@Override
+	public void modifyRawTrackedData(List<DataTracker.SerializedEntry<?>> data, ServerPlayerEntity player, boolean initial) {
+		data.add(
+				DataTracker.SerializedEntry.of(
+						DisplayTrackedData.TELEPORTATION_DURATION, 1
+				)
+		);
+	}
+
+	@Override
+	protected void initDataTracker(DataTracker.Builder builder) {
+
+	}
+
+	@Override
+	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+		return false;
+	}
+
+	@Override
+	protected void readCustomDataFromNbt(NbtCompound nbt) {
+		noCollides.clear();
+		if (nbt.contains(NO_COLLIDES)) {
+			Uuids.SET_CODEC.parse(NbtOps.INSTANCE, nbt.get(NO_COLLIDES)).resultOrPartial(
+					METAcraftCore.LOGGER::error
+			).ifPresent(noCollides::addAll);
+		}
+		blockData.load(nbt, this);
+		blockData.applySettings(block);
+		blockData.applyBlockSettings(block);
+		if (nbt.contains(SLIPPERINESS)) {
+			slipperiness = Optional.of(nbt.getFloat(SLIPPERINESS));
+		} else {
+			slipperiness = Optional.empty();
+		}
+	}
+
+	@Override
+	protected void writeCustomDataToNbt(NbtCompound nbt) {
+		nbt.put(NO_COLLIDES, Uuids.SET_CODEC.encodeStart(NbtOps.INSTANCE, noCollides).getOrThrow());
+		blockData.save(nbt, this);
+		slipperiness.ifPresent(
+				s -> nbt.putFloat(SLIPPERINESS, s)
+		);
+	}
+
+	@Override
+	public boolean isCollidable() {
+		return true;
+	}
+
+	@Override
+	public boolean collidesWith(Entity other) {
+		if (noCollides.contains(other.getUuid())) {
+			return false;
+		} else {
+			return super.collidesWith(other);
+		}
+	}
+
+	@Override
+	public EntityType<?> getPolymerEntityType(PacketContext packetContext) {
+		return EntityType.ITEM_DISPLAY;
+	}
+}

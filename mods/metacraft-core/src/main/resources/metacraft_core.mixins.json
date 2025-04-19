@@ -6,10 +6,12 @@
 	"mixins": [
 		"AccessorBlockUpdateS2CPacket",
 		"AccessorChunkHolder",
+		"AccessorEntity",
 		"AccessorEntityNavigation",
 		"AccessorEntityType",
 		"AccessorGameRules",
 		"AccessorGameRules$BooleanRule",
+		"AccessorLivingEntity",
 		"AccessorMobEntity",
 		"AccessorPlayerEntity",
 		"AccessorPolymerItemUtils",

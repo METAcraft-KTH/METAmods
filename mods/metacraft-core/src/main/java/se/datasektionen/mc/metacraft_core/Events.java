@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_core;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.*;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemUsageContext;
@@ -9,6 +10,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
+import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_core.item.METAcraftItems;
 import se.datasektionen.mc.metacraft_core.item.components.CommandComponents;
 import se.datasektionen.mc.metacraft_core.item.items.Wrench;
@@ -143,6 +145,12 @@ public class Events {
 					return clientStack;
 				}
 		);
+
+		ServerTickEvents.END_WORLD_TICK.register(world -> {
+			for (var entity : world.iterateEntities()) {
+				((EntityExtensions) entity).metacraft$setMovedAlready(false);
+			}
+		});
 
 		BundleHelper.init();
 	}
