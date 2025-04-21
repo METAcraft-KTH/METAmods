@@ -5,11 +5,11 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Uuids;
 import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.cutscenes.util.Interpolatable;
-import se.datasektionen.mc.cutscenes.util.InterpolationSet;
+import se.datasektionen.mc.cutscenes.util.CutsceneContext;
+import se.datasektionen.mc.metacraft_core.util.Interpolatable;
+import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 import se.datasektionen.mc.cutscenes.util.InterpolationSetContainer;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
@@ -37,7 +37,7 @@ public class RotateHead implements Transition {
 	);
 
 	private final RotateHeadConfig config;
-	private InterpolationSet<RotateHeadConfig.OffsetTarget> offsets;
+	private InterpolationSet<CutsceneContext, RotateHeadConfig.OffsetTarget> offsets;
 	private final Map<UUID, FixedTarget> entityFacings;
 
 	public RotateHead(RotateHeadConfig config) {
@@ -85,7 +85,7 @@ public class RotateHead implements Transition {
 		});
 	}
 
-	public record FixedTarget(float yaw, float pitch) implements Interpolatable {
+	public record FixedTarget(float yaw, float pitch) implements Interpolatable<CutsceneContext> {
 
 		public static final MapCodec<FixedTarget> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
@@ -95,7 +95,7 @@ public class RotateHead implements Transition {
 		);
 
 		@Override
-		public DoubleList getValues(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
+		public DoubleList getValues(@Nullable CutsceneContext ctx) {
 			return DoubleList.of(yaw, pitch);
 		}
 
@@ -135,7 +135,7 @@ public class RotateHead implements Transition {
 			return TransitionConfigRegistry.ROTATE_HEAD;
 		}
 
-		public record OffsetTarget(float yawOffset, float pitchOffset) implements Interpolatable {
+		public record OffsetTarget(float yawOffset, float pitchOffset) implements Interpolatable<CutsceneContext> {
 
 			public static final MapCodec<OffsetTarget> CODEC = RecordCodecBuilder.mapCodec(
 					instance -> instance.group(
@@ -145,7 +145,7 @@ public class RotateHead implements Transition {
 			);
 
 			@Override
-			public DoubleList getValues(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
+			public DoubleList getValues(@Nullable CutsceneContext ctx) {
 				return DoubleList.of(yawOffset, pitchOffset);
 			}
 

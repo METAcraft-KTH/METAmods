@@ -11,7 +11,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.config.SmoothCameraPathConfig;
-import se.datasektionen.mc.cutscenes.util.InterpolationSet;
+import se.datasektionen.mc.cutscenes.util.CutsceneContext;
+import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.util.Target;
 
@@ -24,7 +25,7 @@ public class SmoothCameraPathTransition implements Transition {
 	);
 
 	private final SmoothCameraPathConfig config;
-	private InterpolationSet<Target> interpolationSet;
+	private InterpolationSet<CutsceneContext, Target> interpolationSet;
 
 	public SmoothCameraPathTransition(SmoothCameraPathConfig config) {
 		this.config = config;

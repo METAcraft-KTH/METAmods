@@ -12,6 +12,7 @@ import se.datasektionen.mc.cutscenes.entity_ref.SelfRef;
 import se.datasektionen.mc.cutscenes.position_ref.AtEntityRef;
 import se.datasektionen.mc.cutscenes.transitions.SetGameModeTransition;
 import se.datasektionen.mc.cutscenes.transitions.entity.*;
+import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 
 import java.util.List;
 import java.util.Map;

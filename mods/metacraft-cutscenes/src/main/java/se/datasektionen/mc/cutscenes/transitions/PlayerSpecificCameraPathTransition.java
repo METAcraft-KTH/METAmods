@@ -27,6 +27,8 @@ import se.datasektionen.mc.cutscenes.rotation_ref.RotationRef;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfig;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfigType;
 import se.datasektionen.mc.cutscenes.util.*;
+import se.datasektionen.mc.metacraft_core.util.Interpolatable;
+import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +44,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 	);
 
 	private final Config config;
-	private final Map<UUID, InterpolationSet<DynamicTarget>> interpolationSets = new HashMap<>();
+	private final Map<UUID, InterpolationSet<CutsceneContext, DynamicTarget>> interpolationSets = new HashMap<>();
 
 	public PlayerSpecificCameraPathTransition(Config config) {
 		this.config = config;
@@ -94,6 +96,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		cutscene.forAllPlayers(player -> {
+			var ctx = new CutsceneContext(player, cutscene);
 			cutscene.getRootEntity(getMarkerID(player)).ifPresentOrElse(marker -> {
 				if (player.isSpectator()) {
 					player.setCameraEntity(marker);
@@ -101,7 +104,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 			}, () -> {
 				var display = EntityType.TEXT_DISPLAY.create(cutscene.getCutsceneWorld(), SpawnReason.TRIGGERED);
 				setLinearInterpolationDuration(display, config.interpolationDuration());
-				var target = interpolationSets.get(player.getUuid()).interpolate(player, cutscene,0);
+				var target = interpolationSets.get(player.getUuid()).interpolate(ctx, 0);
 				moveEntityToTarget(target, display, player, cutscene);
 				cutscene.addEntity(getMarkerID(player), display);
 			});
@@ -114,7 +117,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 				return;
 			}
 			double delta = ((double) currentTimeAdjusted - interval.getStart()) / interval.getLength();
-			var target = interpolationSets.get(player.getUuid()).interpolate(player, cutscene, delta);
+			var target = interpolationSets.get(player.getUuid()).interpolate(ctx, delta);
 			cutscene.getRootEntity(getMarkerID(player)).ifPresent(entity -> {
 				if ((cutscene.getCurrentTime() - interval.getStart()) % config.teleportInterval() == 0) {
 					moveEntityToTarget(target, entity, player, cutscene);
@@ -141,7 +144,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 		return TransitionRegistry.PLAYER_CAMERA_PATH;
 	}
 
-	public record DynamicTarget(PositionRef pos, RotationRef rot) implements Interpolatable {
+	public record DynamicTarget(PositionRef pos, RotationRef rot) implements Interpolatable<CutsceneContext> {
 
 		public static final MapCodec<DynamicTarget> MAP_CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
@@ -181,12 +184,16 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 		}
 
 		@Override
-		public DoubleList getValues(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
-			if (cutscene != null) {
-				var emergencyTarget = Suppliers.memoize(() -> getEmergencyPoint(cutscene));
-				var pos = pos().get(player, cutscene).orElse(player != null ? player.getPos() : emergencyTarget.get().pos());
-				var rot = rot().get(player, cutscene).orElse(player != null ? player.getRotationClient() : new Vec2f(emergencyTarget.get().pitch(), emergencyTarget.get().yaw()));
-				return DoubleList.of(pos.getX(), pos.getY(), pos.getZ(), rot.y, rot.x);
+		public DoubleList getValues(@Nullable CutsceneContext ctx) {
+			if (ctx != null) {
+				var player = ctx.player();
+				var cutscene = ctx.cutscene();
+				if (cutscene != null) {
+					var emergencyTarget = Suppliers.memoize(() -> getEmergencyPoint(cutscene));
+					var pos = pos().get(player, cutscene).orElse(player != null ? player.getPos() : emergencyTarget.get().pos());
+					var rot = rot().get(player, cutscene).orElse(player != null ? player.getRotationClient() : new Vec2f(emergencyTarget.get().pitch(), emergencyTarget.get().yaw()));
+					return DoubleList.of(pos.getX(), pos.getY(), pos.getZ(), rot.y, rot.x);
+				}
 			}
 			return DoubleList.of(0,0,0,0,0);
 		}

@@ -9,19 +9,18 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.AffineTransformation;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import se.datasektionen.mc.cutscenes.Cutscenes;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.transitions.SmoothEntityPathTranstion;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
-import se.datasektionen.mc.cutscenes.util.Interpolatable;
+import se.datasektionen.mc.cutscenes.util.CutsceneContext;
+import se.datasektionen.mc.metacraft_core.util.Interpolatable;
 import se.datasektionen.mc.cutscenes.util.InterpolationSetContainer;
 import se.datasektionen.mc.cutscenes.util.Target;
 
@@ -50,7 +49,7 @@ public record SmoothEntityPathConfig(
 			Target target, AffineTransformation transformation,
 			float shadowRadius, float shadowStrength,
 			int background, byte textOpacity //Only used on text displays.
-	) implements Interpolatable {
+	) implements Interpolatable<CutsceneContext> {
 		public static final MapCodec<DisplayEntityTarget> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						Target.MAP_CODEC.forGetter(DisplayEntityTarget::target),
@@ -132,9 +131,9 @@ public record SmoothEntityPathConfig(
 		}
 
 		@Override
-		public DoubleList getValues(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
+		public DoubleList getValues(@Nullable CutsceneContext ctx) {
 			var list = new DoubleArrayList(SIZE);
-			list.addAll(target.getValues(player, cutscene));
+			list.addAll(target.getValues(ctx));
 
 			float[] array = new float[MATRIX_SIZE];
 			transformation.getMatrix().get(array);

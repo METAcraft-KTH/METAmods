@@ -12,6 +12,7 @@ fabricApi {
 
 dependencies {
 	modCompileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
+	implementation(include("org.apache.commons:commons-math3:3.6.1"))
 }
 
 dependencies {

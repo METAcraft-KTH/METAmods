@@ -12,7 +12,8 @@ import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.config.SmoothEntityPathConfig;
-import se.datasektionen.mc.cutscenes.util.InterpolationSet;
+import se.datasektionen.mc.cutscenes.util.CutsceneContext;
+import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 
 public class SmoothEntityPathTranstion implements Transition {
@@ -24,7 +25,7 @@ public class SmoothEntityPathTranstion implements Transition {
 	);
 
 	private final SmoothEntityPathConfig config;
-	private InterpolationSet<SmoothEntityPathConfig.DisplayEntityTarget> interpolationSet;
+	private InterpolationSet<CutsceneContext, SmoothEntityPathConfig.DisplayEntityTarget> interpolationSet;
 
 	public SmoothEntityPathTranstion(SmoothEntityPathConfig config) {
 		this.config = config;

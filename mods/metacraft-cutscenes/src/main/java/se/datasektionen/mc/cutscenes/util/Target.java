@@ -5,14 +5,13 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
+import se.datasektionen.mc.metacraft_core.util.Interpolatable;
 
 import java.util.stream.DoubleStream;
 
-public record Target(Vec3d pos, float yaw, float pitch) implements Interpolatable {
+public record Target(Vec3d pos, float yaw, float pitch) implements Interpolatable<CutsceneContext> {
 
 	public static final MapCodec<Target> MAP_CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
@@ -41,7 +40,7 @@ public record Target(Vec3d pos, float yaw, float pitch) implements Interpolatabl
 	}
 
 	@Override
-	public DoubleList getValues(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
+	public DoubleList getValues(@Nullable CutsceneContext ctx) {
 		return DoubleList.of(pos.x, pos.y, pos.z, yaw, pitch);
 	}
 }

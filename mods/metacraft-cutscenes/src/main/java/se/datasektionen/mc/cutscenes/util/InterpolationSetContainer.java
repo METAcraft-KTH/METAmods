@@ -3,14 +3,16 @@ package se.datasektionen.mc.cutscenes.util;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.*;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
+import se.datasektionen.mc.metacraft_core.util.Interpolatable;
+import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public class InterpolationSetContainer<T extends Interpolatable> {
+public class InterpolationSetContainer<T extends Interpolatable<CutsceneContext>> {
 
-	public static <I extends Interpolatable> MapCodec<InterpolationSetContainer<I>> createCodec(
-			MapCodec<I> elementCodec, InterpolationSet.Creator<I> creator
+	public static <I extends Interpolatable<CutsceneContext>> MapCodec<InterpolationSetContainer<I>> createCodec(
+			MapCodec<I> elementCodec, InterpolationSet.Creator<CutsceneContext, I> creator
 	) {
 		return new MapCodec<>() {
 
@@ -18,10 +20,10 @@ public class InterpolationSetContainer<T extends Interpolatable> {
 			private static final String EXACT = "exact_targets";
 			private static final String EITHER = "targets";
 
-			private final Codec<InterpolationSet<I>> relativeCodec = InterpolationSet.createCodec(elementCodec, creator);
+			private final Codec<InterpolationSet<CutsceneContext, I>> relativeCodec = InterpolationSet.createCodec(elementCodec, creator);
 			private final Codec<TimestampedInterpolationSet<I>> exactCodec = TimestampedInterpolationSet.createCodec(elementCodec, creator);
 
-			private final Codec<Either<InterpolationSet<I>, TimestampedInterpolationSet<I>>> eitherCodec = Codec.either(relativeCodec, exactCodec);
+			private final Codec<Either<InterpolationSet<CutsceneContext, I>, TimestampedInterpolationSet<I>>> eitherCodec = Codec.either(relativeCodec, exactCodec);
 
 			@Override
 			public <T> RecordBuilder<T> encode(InterpolationSetContainer<I> input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
@@ -71,15 +73,15 @@ public class InterpolationSetContainer<T extends Interpolatable> {
 		};
 	}
 
-	private Optional<InterpolationSet<T>> relativeTargets;
+	private Optional<InterpolationSet<CutsceneContext, T>> relativeTargets;
 	private Optional<TimestampedInterpolationSet<T>> exactTargets;
 
-	public InterpolationSetContainer(Optional<InterpolationSet<T>> relativeTargets, Optional<TimestampedInterpolationSet<T>> exactTargets) {
+	public InterpolationSetContainer(Optional<InterpolationSet<CutsceneContext, T>> relativeTargets, Optional<TimestampedInterpolationSet<T>> exactTargets) {
 		this.relativeTargets = relativeTargets;
 		this.exactTargets = exactTargets;
 	}
 
-	public InterpolationSet<T> getTargets(IntervalMap.Interval<Transition> interval) {
+	public InterpolationSet<CutsceneContext, T> getTargets(IntervalMap.Interval<Transition> interval) {
 		return relativeTargets.orElseGet(
 				() -> exactTargets.map(t -> {
 					return t.createFromRange(interval.getStart(), interval.getEnd());

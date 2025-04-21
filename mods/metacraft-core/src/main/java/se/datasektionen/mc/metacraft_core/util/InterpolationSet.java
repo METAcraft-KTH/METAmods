@@ -1,24 +1,22 @@
-package se.datasektionen.mc.cutscenes.util;
+package se.datasektionen.mc.metacraft_core.util;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
-import net.minecraft.server.network.ServerPlayerEntity;
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.TreePMap;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.DoubleStream;
 
-public class InterpolationSet<T extends Interpolatable> {
+public class InterpolationSet<C, T extends Interpolatable<C>> {
 
-	private static <T extends Interpolatable> Codec<java.util.Map.Entry<Double, T>> createEntryCodec(MapCodec<T> valueCodec) {
+	private static <C, T extends Interpolatable<C>> Codec<java.util.Map.Entry<Double, T>> createEntryCodec(MapCodec<T> valueCodec) {
 		return RecordCodecBuilder.create(
 				instance -> instance.group(
 						Codec.doubleRange(0, 1).fieldOf("index").forGetter(java.util.Map.Entry::getKey),
@@ -27,8 +25,8 @@ public class InterpolationSet<T extends Interpolatable> {
 		);
 	}
 
-	public static <T extends Interpolatable> Codec<InterpolationSet<T>> createCodec(
-			MapCodec<T> valueCodec, Creator<T> creator
+	public static <C, T extends Interpolatable<C>> Codec<InterpolationSet<C, T>> createCodec(
+			MapCodec<T> valueCodec, Creator<C, T> creator
 	) {
 		return createEntryCodec(valueCodec).listOf().xmap(
 				list -> new InterpolationSet<>(
@@ -44,30 +42,30 @@ public class InterpolationSet<T extends Interpolatable> {
 
 	private final TreePMap<Double, T> values; //Warning, this is a persistent map, not a normal map! That means to update it you must do = just like when updating strings!
 	private List<PolynomialSplineFunction> splines;
-	private final Creator<T> creator;
+	private final Creator<C, T> creator;
 	private final boolean dynamic;
 
-	public InterpolationSet(TreePMap<Double, T> values, Creator<T> creator) {
+	public InterpolationSet(TreePMap<Double, T> values, Creator<C, T> creator) {
 		this.values = values;
 		this.dynamic = values.values().stream().anyMatch(Interpolatable::isDynamic);
 		this.creator = creator;
 	}
 
-	public InterpolationSet<T> setStartIfNotPresent(T start) {
+	public InterpolationSet<C, T> setStartIfNotPresent(T start) {
 		if (!values.containsKey(0.0)) {
 			return new InterpolationSet<>(values.plus(0.0, start), creator);
 		}
 		return this;
 	}
 
-	public InterpolationSet<T> setEndIfNotPresent(T end) {
+	public InterpolationSet<C, T> setEndIfNotPresent(T end) {
 		if (!values.containsKey(1.0)) {
 			return new InterpolationSet<>(values.plus(1.0, end), creator);
 		}
 		return this;
 	}
 
-	public <R extends Interpolatable> InterpolationSet<R> map(Function<T, R> mapper, Creator<R> creator) {
+	public <R extends Interpolatable<C>> InterpolationSet<C, R> map(Function<T, R> mapper, Creator<C, R> creator) {
 		return new InterpolationSet<>(
 				values.entrySet().stream().reduce(
 						TreePMap.empty(),
@@ -77,10 +75,10 @@ public class InterpolationSet<T extends Interpolatable> {
 		);
 	}
 
-	private boolean needsUpdate(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
-		if (dynamic && cutscene != null) {
+	private boolean needsUpdate(@Nullable C context) {
+		if (dynamic && context != null) {
 			for (var t : values.entrySet()) {
-				var actualValue = t.getValue().getValues(player, cutscene).toDoubleArray();
+				var actualValue = t.getValue().getValues(context).toDoubleArray();
 				var currentValue = splines.stream().mapToDouble(
 						spline -> spline.value(t.getKey())
 				).toArray();
@@ -90,10 +88,10 @@ public class InterpolationSet<T extends Interpolatable> {
 		return false;
 	}
 
-	private void initSplines(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene) {
-		if (splines != null && !needsUpdate(player, cutscene)) return;
+	private void initSplines(@Nullable C context) {
+		if (splines != null && !needsUpdate(context)) return;
 		DoubleList x = new DoubleArrayList();
-		int size = values.values().stream().map(e -> e.getValues(player, cutscene).size()).findAny().orElse(0);
+		int size = values.values().stream().map(e -> e.getValues(context).size()).findAny().orElse(0);
 		List<DoubleList> y = new ArrayList<>();
 		for (int i = 0; i < size; i++) {
 			y.add(new DoubleArrayList());
@@ -102,7 +100,7 @@ public class InterpolationSet<T extends Interpolatable> {
 			x.add((double) key);
 
 			for (int i = 0; i < size; i++) {
-				y.get(i).add(value.getValues(player, cutscene).getDouble(i));
+				y.get(i).add(value.getValues(context).getDouble(i));
 			}
 		});
 
@@ -123,11 +121,11 @@ public class InterpolationSet<T extends Interpolatable> {
 	}
 
 	public T interpolate(double delta) {
-		return interpolate(null, null, delta);
+		return interpolate(null, delta);
 	}
 
-	public T interpolate(@Nullable ServerPlayerEntity player, @Nullable CutsceneInstance cutscene, double delta) {
-		initSplines(player, cutscene);
+	public T interpolate(@Nullable C context, double delta) {
+		initSplines(context);
 		if (splines == null) return values.values().stream().findAny().orElse(null);
 		return creator.create(splines.stream().mapToDouble(
 				spline -> spline.value(delta)
@@ -135,7 +133,7 @@ public class InterpolationSet<T extends Interpolatable> {
 	}
 
 	@FunctionalInterface
-	public interface Creator<T extends Interpolatable> {
+	public interface Creator<C, T extends Interpolatable<C>> {
 		T create(DoubleStream stream);
 	}
 }

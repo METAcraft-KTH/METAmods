@@ -4,13 +4,15 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import org.pcollections.TreePMap;
+import se.datasektionen.mc.metacraft_core.util.Interpolatable;
+import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class TimestampedInterpolationSet<T extends Interpolatable> {
-	private static <T extends Interpolatable> Codec<Map.Entry<Integer, T>> createEntryCodec(MapCodec<T> valueCodec) {
+public class TimestampedInterpolationSet<T extends Interpolatable<CutsceneContext>> {
+	private static <T extends Interpolatable<CutsceneContext>> Codec<Map.Entry<Integer, T>> createEntryCodec(MapCodec<T> valueCodec) {
 		return RecordCodecBuilder.create(
 				instance -> instance.group(
 						Codec.INT.fieldOf("time").forGetter(Map.Entry::getKey),
@@ -19,8 +21,8 @@ public class TimestampedInterpolationSet<T extends Interpolatable> {
 		);
 	}
 
-	public static <T extends Interpolatable> Codec<TimestampedInterpolationSet<T>> createCodec(
-			MapCodec<T> valueCodec, InterpolationSet.Creator<T> creator
+	public static <T extends Interpolatable<CutsceneContext>> Codec<TimestampedInterpolationSet<T>> createCodec(
+			MapCodec<T> valueCodec, InterpolationSet.Creator<CutsceneContext, T> creator
 	) {
 		return createEntryCodec(valueCodec).listOf().xmap(
 				list -> new TimestampedInterpolationSet<>(
@@ -38,14 +40,14 @@ public class TimestampedInterpolationSet<T extends Interpolatable> {
 	}
 
 	private final Map<Integer, T> values;
-	private final InterpolationSet.Creator<T> creator;
+	private final InterpolationSet.Creator<CutsceneContext, T> creator;
 
-	public TimestampedInterpolationSet(Map<Integer, T> values, InterpolationSet.Creator<T> creator) {
+	public TimestampedInterpolationSet(Map<Integer, T> values, InterpolationSet.Creator<CutsceneContext, T> creator) {
 		this.values = values;
 		this.creator = creator;
 	}
 
-	public InterpolationSet<T> createFromRange(int start, int end) {
+	public InterpolationSet<CutsceneContext, T> createFromRange(int start, int end) {
 		return new InterpolationSet<>(
 				values.entrySet().stream().filter(
 						e -> e.getKey() >= start && e.getKey() <= end
