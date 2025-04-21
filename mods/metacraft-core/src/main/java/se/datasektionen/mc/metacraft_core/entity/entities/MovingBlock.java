@@ -1,5 +1,7 @@
 package se.datasektionen.mc.metacraft_core.entity.entities;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
@@ -27,6 +29,7 @@ import net.minecraft.util.math.AffineTransformation;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -42,7 +45,10 @@ import java.util.*;
 public class MovingBlock extends Entity implements PolymerEntity {
 
 	public static final String SLIPPERINESS = "slipperiness";
-	public static final String NO_COLLIDES = "no_collides";
+	public static final String ANCHOR = "anchor";
+
+	public static final double MAX_MOVE_DIST = 2;
+	public static final double SQ_MAX_MOVE_DIST = MAX_MOVE_DIST * MAX_MOVE_DIST;
 
 	private final ElementHolder holder = new ElementHolder();
 	private final BlockDisplayElement block;
@@ -50,7 +56,8 @@ public class MovingBlock extends Entity implements PolymerEntity {
 	private Optional<Float> slipperiness = Optional.empty();
 	private final EntityElement<ShulkerEntity> shulker;
 
-	private final Set<UUID> noCollides = new HashSet<>();
+	private Anchor anchor = null;
+	private AnchorEntity anchorEntity = null;
 
 	private boolean initializedShulker = false;
 
@@ -77,13 +84,31 @@ public class MovingBlock extends Entity implements PolymerEntity {
 	}
 
 	@Override
+	public Entity teleportTo(TeleportTarget teleportTarget) {
+		var teleported = super.teleportTo(teleportTarget);
+		if (teleported != null) {
+			var box = selectionBox(this.getBoundingBox(), Vec3d.ZERO);
+			for (var entity : getEntityWorld().getOtherEntities(this, box, this::shouldMove)) {
+				entity.teleportTo(teleportTarget.withPosition(
+						entity.getPos().subtract(this.getPos()).add(teleported.getPos())
+				));
+			}
+		}
+		return teleported;
+	}
+
+	@Override
 	public void tick() {
 		super.tick();
-		this.move(MovementType.SELF, this.getVelocity());
-		if (!initializedShulker) { //Shulker is usually not present when it first spawns, shows up after first movement.
-			shulker.entity().updatePosition(this.getX(), this.getY(), this.getZ());
-			initializedShulker = true;
+
+		if (getWorld() instanceof ServerWorld) {
+			this.move(MovementType.SELF, this.getVelocity());
+			if (!initializedShulker) { //Shulker is usually not present when it first spawns, shows up after first movement.
+				shulker.entity().updatePosition(this.getX(), this.getY(), this.getZ());
+				initializedShulker = true;
+			}
 		}
+
 	}
 
 	private static float getMovement(boolean positive, boolean negative) {
@@ -166,7 +191,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 	}
 
 	public boolean shouldMove(Entity entity) {
-		return !this.isConnectedThroughVehicle(entity) && !(entity instanceof MovingBlock) && !((EntityExtensions) entity).metacraft$hasMovedAlready();
+		return !this.isConnectedThroughVehicle(entity) && !entity.noClip && !(entity instanceof MovingBlock) && ((EntityExtensions) entity).metacraft$getLastMovedByMovingBlockTick() != getEntityWorld().getTime();
 	}
 
 	private ServerPlayerEntity getRelevantPlayer(Entity entity) {
@@ -187,19 +212,15 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		} else {
 			entity.move(MovementType.SHULKER, movement);
 		}
-		((EntityExtensions) entity).metacraft$setMovedAlready(true);
+		((EntityExtensions) entity).metacraft$setLastMovedByMovingBlockTick(getEntityWorld().getTime());
 	}
 
 	private static Box selectionBox(Box entityBox, Vec3d movement) {
-		var box = entityBox.stretch(movement).expand(0.05);
-		if (movement.getY() > 0) {
-			entityBox.expand(0, 0.1, 0);
-		}
-		return box;
+		return entityBox.stretch(movement).expand(0.05);
 	}
 
 	private static boolean isMovementValid(Vec3d movement) {
-		return movement.length() < 2;
+		return movement.length() < MAX_MOVE_DIST;
 	}
 
 	@Override
@@ -235,11 +256,12 @@ public class MovingBlock extends Entity implements PolymerEntity {
 
 	@Override
 	protected void readCustomDataFromNbt(NbtCompound nbt) {
-		noCollides.clear();
-		if (nbt.contains(NO_COLLIDES)) {
-			Uuids.SET_CODEC.parse(NbtOps.INSTANCE, nbt.get(NO_COLLIDES)).resultOrPartial(
+		if (nbt.contains(ANCHOR)) {
+			Anchor.CODEC.parse(NbtOps.INSTANCE, nbt.get(ANCHOR)).resultOrPartial(
 					METAcraftCore.LOGGER::error
-			).ifPresent(noCollides::addAll);
+			).ifPresent(this::setRootAnchor);
+		} else {
+			setRootAnchor(null);
 		}
 		blockData.load(nbt, this);
 		blockData.applySettings(block);
@@ -253,11 +275,34 @@ public class MovingBlock extends Entity implements PolymerEntity {
 
 	@Override
 	protected void writeCustomDataToNbt(NbtCompound nbt) {
-		nbt.put(NO_COLLIDES, Uuids.SET_CODEC.encodeStart(NbtOps.INSTANCE, noCollides).getOrThrow());
+		if (anchor != null) {
+			nbt.put(ANCHOR, Anchor.CODEC.encodeStart(NbtOps.INSTANCE, anchor).getOrThrow());
+		}
 		blockData.save(nbt, this);
 		slipperiness.ifPresent(
 				s -> nbt.putFloat(SLIPPERINESS, s)
 		);
+	}
+
+	public void setRootAnchor(Anchor anchor) {
+		this.anchor = anchor;
+		anchorEntity = null;
+	}
+
+	public Optional<AnchorEntity> getRootAnchor() {
+		if (anchorEntity != null) return Optional.of(anchorEntity);
+		if (getWorld() instanceof ServerWorld world) {
+			var offset = anchor.offset;
+			var e = world.getEntity(this.anchor.id);
+			while (e instanceof MovingBlock b && b.anchor != null) {
+				e = world.getEntity(b.anchor.id);
+				offset = offset.add(b.anchor.offset);
+				if (e == this) return Optional.empty();
+			}
+			anchorEntity = e != null ? new AnchorEntity(e, offset) : null;
+			return Optional.ofNullable(anchorEntity);
+		}
+		return Optional.empty();
 	}
 
 	@Override
@@ -267,7 +312,8 @@ public class MovingBlock extends Entity implements PolymerEntity {
 
 	@Override
 	public boolean collidesWith(Entity other) {
-		if (noCollides.contains(other.getUuid())) {
+		var rootAnchor = this.getRootAnchor();
+		if (rootAnchor.isEmpty() || (other instanceof MovingBlock b && AnchorEntity.matches(rootAnchor, b.getRootAnchor()))) {
 			return false;
 		} else {
 			return super.collidesWith(other);
@@ -277,5 +323,35 @@ public class MovingBlock extends Entity implements PolymerEntity {
 	@Override
 	public EntityType<?> getPolymerEntityType(PacketContext packetContext) {
 		return EntityType.ITEM_DISPLAY;
+	}
+
+	public record Anchor(UUID id, Vec3d offset) {
+		public static final Codec<Anchor> CODEC = Codec.withAlternative(
+				RecordCodecBuilder.create(
+						instance -> instance.group(
+								Uuids.STRICT_CODEC.fieldOf("id").forGetter(Anchor::id),
+								Vec3d.CODEC.optionalFieldOf("offset", Vec3d.ZERO).forGetter(Anchor::offset)
+						).apply(instance, Anchor::new)
+				),
+				Uuids.STRICT_CODEC,
+				id -> new Anchor(id, Vec3d.ZERO)
+		);
+	}
+
+	public record AnchorEntity(Entity entity, Vec3d offset) {
+		public boolean matches(AnchorEntity other) {
+			return entity.equals(other.entity);
+		}
+
+		public static boolean matches(Optional<AnchorEntity> lhs, Optional<AnchorEntity> rhs) {
+			if (lhs.isPresent() && rhs.isPresent()) {
+				return lhs.get().matches(rhs.get());
+			}
+			return false;
+		}
+
+		public Vec3d getTargetPos() {
+			return entity.getPos().subtract(offset);
+		}
 	}
 }

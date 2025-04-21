@@ -197,16 +197,16 @@ public abstract class MixinEntity implements EntityExtensions {
 
 
 	@Unique
-	private boolean movedAlready = false;
+	private long lastMovedByMovingBlock = -1;
 
 	@Override
-	public void metacraft$setMovedAlready(boolean movedAlready) {
-		this.movedAlready = movedAlready;
+	public void metacraft$setLastMovedByMovingBlockTick(long lastMovedByMovingBlock) {
+		this.lastMovedByMovingBlock = lastMovedByMovingBlock;
 	}
 
 	@Override
-	public boolean metacraft$hasMovedAlready() {
-		return movedAlready;
+	public long metacraft$getLastMovedByMovingBlockTick() {
+		return lastMovedByMovingBlock;
 	}
 
 	@ModifyExpressionValue(

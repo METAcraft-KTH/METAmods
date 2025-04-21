@@ -12,6 +12,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.world.Heightmap;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.entity.entities.MovingBlock;
+import se.datasektionen.mc.metacraft_core.entity.entities.MovingMarker;
 import se.datasektionen.mc.metacraft_core.entity.entities.StructureDisplay;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftActivities;
@@ -40,13 +41,19 @@ public class METAcraftEntities {
 	public static final EntityType<StructureDisplay> STRUCTURE_DISPLAY = register(
 			"structure_display", EntityType.Builder.create(
 					StructureDisplay::new, SpawnGroup.MISC
-			).dimensions(0, 0)
+			).dropsNothing().dimensions(0, 0)
 	);
 
 	public static final EntityType<MovingBlock> MOVING_BLOCK = register(
 			"moving_block", EntityType.Builder.create(
 					MovingBlock::new, SpawnGroup.MISC
-			).dimensions(1, 1).trackingTickInterval(1)
+			).dropsNothing().dimensions(1, 1).trackingTickInterval(1)
+	);
+
+	public static final EntityType<MovingMarker> MOVING_MARKER = register(
+			"moving_marker", EntityType.Builder.create(
+					MovingMarker::new, SpawnGroup.MISC
+			).dropsNothing().dimensions(0,0).maxTrackingRange(0)
 	);
 
 

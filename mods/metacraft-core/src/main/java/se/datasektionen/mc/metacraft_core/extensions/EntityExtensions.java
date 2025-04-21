@@ -20,8 +20,8 @@ public interface EntityExtensions {
 	void metacraft_lib$saveBossBar(NbtCompound nbt);
 
 
-	void metacraft$setMovedAlready(boolean movedAlready);
+	void metacraft$setLastMovedByMovingBlockTick(long tick);
 
-	boolean metacraft$hasMovedAlready();
+	long metacraft$getLastMovedByMovingBlockTick();
 
 }

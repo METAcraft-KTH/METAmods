@@ -1,16 +1,19 @@
 package se.datasektionen.mc.metacraft_core;
 
+import com.google.common.collect.Sets;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.*;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemUsageContext;
+import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.TypeFilter;
 import net.minecraft.util.math.Vec3d;
-import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
+import se.datasektionen.mc.metacraft_core.entity.entities.MovingBlock;
 import se.datasektionen.mc.metacraft_core.item.METAcraftItems;
 import se.datasektionen.mc.metacraft_core.item.components.CommandComponents;
 import se.datasektionen.mc.metacraft_core.item.items.Wrench;
@@ -146,9 +149,26 @@ public class Events {
 				}
 		);
 
-		ServerTickEvents.END_WORLD_TICK.register(world -> {
-			for (var entity : world.iterateEntities()) {
-				((EntityExtensions) entity).metacraft$setMovedAlready(false);
+		ServerTickEvents.END_WORLD_TICK.register(world -> { //Needs to run outside the general entity tick loop to avoid desync.
+			for (var e : world.getEntitiesByType(TypeFilter.instanceOf(MovingBlock.class), e -> e.getRootAnchor().isPresent())) {
+				e.getRootAnchor().ifPresent(anchor -> {
+					var targetPos = anchor.getTargetPos();
+					if (!targetPos.equals(e.getPos()) || anchor.entity().getWorld() != e.getWorld()) {
+						var dist = e.squaredDistanceTo(anchor.entity());
+						if (dist > MovingBlock.SQ_MAX_MOVE_DIST || anchor.entity().getWorld() != e.getWorld()) {
+							e.setVelocity(Vec3d.ZERO);
+							e.teleport(
+									world, targetPos.getX(), targetPos.getY(), targetPos.getZ(),
+									Sets.union(PositionFlag.ROT, PositionFlag.DELTA),
+									0, 0, false
+							);
+						} else {
+							var movement = targetPos.subtract(e.getPos());
+							e.setVelocity(movement);
+						}
+						e.velocityDirty = true;
+					}
+				});
 			}
 		});
 
