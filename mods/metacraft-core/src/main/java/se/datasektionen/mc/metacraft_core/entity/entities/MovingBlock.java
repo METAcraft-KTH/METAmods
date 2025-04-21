@@ -291,6 +291,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 
 	public Optional<AnchorEntity> getRootAnchor() {
 		if (anchorEntity != null) return Optional.of(anchorEntity);
+		if (anchor == null) return Optional.empty();
 		if (getWorld() instanceof ServerWorld world) {
 			var offset = anchor.offset;
 			var e = world.getEntity(this.anchor.id);
