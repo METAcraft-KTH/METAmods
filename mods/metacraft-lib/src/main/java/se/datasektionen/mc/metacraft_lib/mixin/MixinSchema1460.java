@@ -1,17 +1,15 @@
 package se.datasektionen.mc.metacraft_lib.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import com.mojang.datafixers.DSL;
 import com.mojang.datafixers.schemas.Schema;
 import com.mojang.datafixers.types.templates.TypeTemplate;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.datafixer.TypeReferences;
 import net.minecraft.datafixer.schema.Schema1460;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Slice;
-import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
+import se.datasektionen.mc.metacraft_lib.event.datafixer.AddToPlayer;
 
 @Mixin(Schema1460.class)
 public class MixinSchema1460 {
@@ -47,14 +45,6 @@ public class MixinSchema1460 {
 	private static Pair<String, TypeTemplate>[] addToPlayer(
 			Pair<String, TypeTemplate>[] fields, @Local(argsOnly = true) Schema schema
 	) {
-
-		Pair<String, TypeTemplate>[] newArray = new Pair[fields.length+1];
-		System.arraycopy(fields, 0, newArray, 0, fields.length);
-		newArray[fields.length] = Pair.of(
-				PlayerDataHelper.PLAYER_DATA_ELEMENT, DSL.compoundList(
-						TypeReferences.PLAYER.in(schema)
-				)
-		);
-		return newArray;
+		return AddToPlayer.append(fields, schema);
 	}
 }

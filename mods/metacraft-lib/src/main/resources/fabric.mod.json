@@ -19,6 +19,9 @@
 	"entrypoints": {
 		"main": [
 			"se.datasektionen.mc.metacraft_lib.METAcraftLib"
+		],
+		"metacraft:player_datafixer": [
+			"se.datasektionen.mc.metacraft_lib.PlayerDataFix"
 		]
 	},
 	"mixins": [

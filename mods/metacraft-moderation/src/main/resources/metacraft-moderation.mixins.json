@@ -5,7 +5,6 @@
   "mixins": [
     "AccessorPlayerManager",
     "AccessorServerPlayerEntity",
-    "MixinSchema1460",
     "MixinServerPlayerEntity",
     "MixinTameableEntity"
   ],
