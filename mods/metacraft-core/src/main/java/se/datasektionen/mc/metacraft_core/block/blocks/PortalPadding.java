@@ -6,7 +6,12 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.EndGatewayBlockEntity;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
@@ -25,6 +30,16 @@ public class PortalPadding extends Block implements PolymerBlock {
 				portal.onCollision(state, world, pos, entity);
 			}
 		}
+	}
+
+	@Override
+	protected ActionResult onUseWithItem(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
+		for (BlockPos portalPos : PortalEntity.forAllNearbyPortals(world, pos)) {
+			if (world.getBlockEntity(portalPos) instanceof PortalEntity portal) {
+				return portal.interactWithItem(stack, state, world, pos, player, hand, hit);
+			}
+		}
+		return super.onUseWithItem(stack, state, world, pos, player, hand, hit);
 	}
 
 	public static void sendDummyEndGateway(BlockPos pos, PacketContext.NotNullWithPlayer ctx) {

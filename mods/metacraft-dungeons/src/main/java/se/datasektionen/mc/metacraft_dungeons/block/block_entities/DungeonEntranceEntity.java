@@ -6,6 +6,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.predicate.NumberRange;
@@ -25,6 +27,7 @@ import net.minecraft.structure.pool.StructurePoolBasedGenerator;
 import net.minecraft.structure.pool.alias.StructurePoolAliasBinding;
 import net.minecraft.structure.pool.alias.StructurePoolAliasLookup;
 import net.minecraft.text.Text;
+import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.*;
 import net.minecraft.util.math.random.Random;
@@ -130,6 +133,12 @@ public class DungeonEntranceEntity extends PortalEntity {
 	}
 
 	@Override
+	protected void onUnlocked(PlayerEntity player, Hand hand, ItemStack stack) {
+		super.onUnlocked(player, hand, stack);
+		startGenerating();
+	}
+
+	@Override
 	public void setWorld(World world) {
 		super.setWorld(world);
 		startGenerating();
@@ -192,6 +201,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 	public void startGenerating() {
 		if (world == null) return;
 		if (targetPos != null) return;
+		if (isLocked()) return;
 
 		PoolEntry chosenEntry;
 		var choices = depthSpecificPools.stream().filter(entry -> entry.depthRange.test(dungeonDepth)).toList();

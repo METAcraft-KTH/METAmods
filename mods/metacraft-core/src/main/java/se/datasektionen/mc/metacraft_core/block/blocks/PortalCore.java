@@ -7,6 +7,11 @@ import net.minecraft.block.BlockWithEntity;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
@@ -37,6 +42,14 @@ public class PortalCore extends BlockWithEntity implements PolymerBlock {
 		if (world.getBlockEntity(pos) instanceof PortalEntity portal) {
 			portal.onCollision(state, world, pos, entity);
 		}
+	}
+
+	@Override
+	protected ActionResult onUseWithItem(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
+		if (world.getBlockEntity(pos) instanceof PortalEntity portal) {
+			return portal.interactWithItem(stack, state, world, pos, player, hand, hit);
+		}
+		return super.onUseWithItem(stack, state, world, pos, player, hand, hit);
 	}
 
 	@Override

@@ -5,7 +5,11 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.enums.Orientation;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.ContainerLock;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtOps;
@@ -13,8 +17,13 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
 import net.minecraft.util.collection.ArrayListDeque;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.*;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
@@ -31,6 +40,7 @@ import se.datasektionen.mc.metacraft_lib.util.helper.TeleportHelper;
 
 import java.lang.Math;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class PortalEntity extends BlockEntity {
 
@@ -46,8 +56,9 @@ public class PortalEntity extends BlockEntity {
 	protected BlockPos targetPos;
 	protected Orientation portalFacing;
 	protected final List<TeleportPredicate> shouldTeleport = new ArrayList<>();
+	protected ContainerLock lock = ContainerLock.EMPTY;
 
-	private List<Entity> toTeleport = new ArrayList<>();
+	private final Set<Entity> pushedAway = new HashSet<>();
 
 	public PortalEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -78,6 +89,39 @@ public class PortalEntity extends BlockEntity {
 		markDirty();
 	}
 
+	private void notifyLocked(Stream<PlayerEntity> players) {
+		players.forEach(p -> p.sendMessage(Text.literal("The portal is locked"), true));
+		world.playSound(null, pos, SoundEvents.BLOCK_CHEST_LOCKED, SoundCategory.BLOCKS);
+	}
+
+	protected void onUnlocked(PlayerEntity player, Hand hand, ItemStack stack) {
+		lock = ContainerLock.EMPTY;
+		markDirty();
+		var useRemainder = stack.get(DataComponentTypes.USE_REMAINDER);
+		int c = stack.getCount();
+		stack.decrementUnlessCreative(1, player);
+		if (useRemainder != null) {
+			player.setStackInHand(hand, useRemainder.convert(stack, c, player.isCreative(), player::giveOrDropStack));
+		}
+		world.playSound(null, pos, SoundEvents.BLOCK_VAULT_INSERT_ITEM, SoundCategory.BLOCKS);
+		player.sendMessage(Text.literal("The portal is now unlocked!"), true);
+	}
+
+	public ActionResult interactWithItem(
+			ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player,
+			Hand hand, BlockHitResult hit
+	) {
+		if (isLocked()) {
+			if (lock.canOpen(stack)) {
+				onUnlocked(player, hand, stack);
+			} else {
+				notifyLocked(Stream.of(player));
+			}
+			return ActionResult.SUCCESS_SERVER;
+		}
+		return ActionResult.PASS_TO_DEFAULT_BLOCK_ACTION;
+	}
+
 	@Override
 	public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapperLookup) {
 		super.readNbt(nbt, wrapperLookup);
@@ -105,6 +149,7 @@ public class PortalEntity extends BlockEntity {
 					METAcraftCore.LOGGER::error
 			).ifPresent(this.shouldTeleport::addAll);
 		}
+		lock = ContainerLock.fromNbt(nbt, wrapperLookup);
 	}
 
 	public boolean isPartOfPortal() {
@@ -137,6 +182,8 @@ public class PortalEntity extends BlockEntity {
 		).ifPresent(shouldTeleport -> {
 			nbt.put(SHOULD_TELEPORT, shouldTeleport);
 		});
+
+		lock.writeNbt(nbt, wrapperLookup);
 	}
 
 	public ServerWorld getTargetDim() {
@@ -397,10 +444,46 @@ public class PortalEntity extends BlockEntity {
 		return entityBox;
 	}
 
+	private static double getVectorPartForAxis(Vec3d pos, Direction.Axis axis) {
+		return switch (axis) {
+			case X -> pos.getX();
+			case Y -> pos.getY();
+			case Z -> pos.getZ();
+		};
+	}
+
 	public void onCollision(BlockState state, World world, BlockPos pos, Entity entity) {
 		if (entity.hasVehicle()) return;
 		Box box = getBoundingBox();
 		Box entityBox = getBoundingBoxIncludingPassengers(entity);
+		if (isLocked() && !pushedAway.contains(entity)) {
+			var axis = portalFacing.getFacing().getAxis();
+			var entityPos = getVectorPartForAxis(entityBox.getCenter(), axis);
+			var thisPos = getVectorPartForAxis(box.getCenter(), axis);
+			Direction.AxisDirection pushDirection;
+			if (thisPos > entityPos) {
+				pushDirection = Direction.AxisDirection.NEGATIVE;
+			} else {
+				pushDirection = Direction.AxisDirection.POSITIVE;
+			}
+
+			var vector = Direction.from(axis, pushDirection).getDoubleVector().add(
+					new Vec3d(
+							0.25 * entity.getRandom().nextGaussian(),
+							0.25 * entity.getRandom().nextGaussian(),
+							0.25 * entity.getRandom().nextGaussian()
+					)
+			).normalize();
+			entity.setVelocity(vector);
+			entity.velocityDirty = true;
+			entity.velocityModified = true;
+			notifyLocked(entity.streamSelfAndPassengers().filter(e -> e instanceof PlayerEntity).map(p -> (PlayerEntity) p));
+			if (pushedAway.isEmpty()) {
+				TaskScheduler.schedule(world.getServer(), pushedAway::clear, 5);
+			}
+			pushedAway.add(entity);
+			return;
+		}
 		if (portalFacing != null) {
 			var x = Math.max(entityBox.getLengthX() - box.getLengthX(), 0) + Math.abs(entity.getX() - entity.prevX);
 			var y = Math.max(entityBox.getLengthY() - box.getLengthY(), 0) + Math.abs(entity.getY() - entity.prevY);
@@ -429,31 +512,22 @@ public class PortalEntity extends BlockEntity {
 		}
 	}
 
-	private static int getUnit(double num) {
-		if (num == 0) return 0;
-		return num < 0 ? -1 : 1;
-	}
-
 	private static Vec3d rotate(Vec3d vec, Quaterniond quaternion) {
 		Vector3d rotatable = new Vector3d(vec.getX(), vec.getY(), vec.getZ());
 		rotatable.rotate(quaternion);
 		return new Vec3d(rotatable.x, rotatable.y, rotatable.z);
 	}
 
-	private Vec3d getNewDist(boolean invert, PortalEntity portal, Vec3d dist, double boxLength) {
-		int factor = invert ? 1 : -1;
-		return switch (portal.portalFacing.getFacing().getAxis()) {
-			case X -> dist.add(boxLength * factor * getUnit(dist.getX()), 0, 0);
-			case Y -> dist.add(0, boxLength * factor * getUnit(dist.getY()), 0);
-			case Z -> dist.add(0, 0, boxLength * factor * getUnit(dist.getZ()));
-		};
-	}
-
 	private Vec3d getTarget(Box targetBox, Vec3d dist, Entity entity) {
 		return targetBox.getCenter().add(dist).subtract(0, entity.getHeight()/2, 0);
 	}
 
+	public boolean isLocked() {
+		return lock != ContainerLock.EMPTY;
+	}
+
 	public Entity teleport(Entity entity) {
+		if (isLocked()) return entity;
 		if (!shouldTeleport(entity)) {
 			onTeleportFail(entity);
 			return entity;
@@ -489,21 +563,6 @@ public class PortalEntity extends BlockEntity {
 					dist = dist.multiply(targetBox.getLengthX()/2, targetBox.getLengthY()/2, targetBox.getLengthZ()/2);
 
 					Box entityBox = getBoundingBoxIncludingPassengers(entity);
-
-					double boxLength = switch (portalFacing.getFacing().getAxis()) {
-						case X -> entityBox.getLengthX();
-						case Y -> entityBox.getLengthY();
-						case Z -> entityBox.getLengthZ();
-					};
-
-					var currentPos = entity.getBoundingBox().getCenter();
-					var prevPos = currentPos.subtract(entityMovement);
-					var centerPos = sourceBox.getCenter();
-					boolean invert = switch (portalFacing.getFacing().getAxis()) {
-						case X -> currentPos.getX() > centerPos.getX() == prevPos.getX() > centerPos.getX();
-						case Y -> currentPos.getY() > centerPos.getY() == prevPos.getY() > centerPos.getY();
-						case Z -> currentPos.getZ() > centerPos.getZ() == prevPos.getZ() > centerPos.getZ();
-					};
 
 					Vec3d targetPos = getTarget(targetBox, dist, entity);
 
