@@ -7,7 +7,15 @@
 			"features": false,
 			"layers": [
 				{
-					"block": "minecraft:air",
+					"block": "minecraft:bedrock",
+					"height": 1
+				},
+				{
+					"block": "minecraft:deepslate",
+					"height": 254
+				},
+				{
+					"block": "minecraft:bedrock",
 					"height": 1
 				}
 			],
