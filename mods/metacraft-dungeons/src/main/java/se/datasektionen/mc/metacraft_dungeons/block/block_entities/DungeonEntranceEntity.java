@@ -241,24 +241,30 @@ public class DungeonEntranceEntity extends PortalEntity {
 				);
 
 				if (result.isPresent()) {
-					Parameters parameters = new Parameters(dungeons, pos, chosenEntry);
-					List<DataBlockEntry<?>> lonelyDataBlocks = new ArrayList<>();
-					List<DataMultiBlockEntry<?>> multiBlockDataBlocks = new ArrayList<>();
-					StructurePiecesCollector structurePiecesCollector = result.get().generate();
-
-					var box = structurePiecesCollector.getBoundingBox();
-					var minPos = new ChunkPos(ChunkSectionPos.getSectionCoord(box.getMinX()), ChunkSectionPos.getSectionCoord(box.getMinZ()));
-					var maxPos = new ChunkPos(ChunkSectionPos.getSectionCoord(box.getMaxX()), ChunkSectionPos.getSectionCoord(box.getMaxZ()));
-					var averagePos = new ChunkPos((minPos.x + maxPos.x) / 2, (minPos.z + maxPos.z) / 2);
-					int radius = MathHelper.ceil(Math.max(maxPos.x - minPos.x, maxPos.z - minPos.z)/2.0)+1;
-
-					var randomSeed = context.random().nextLong();
-
-					var thisPos = new ChunkPos(this.getPos());
 
 					THREAD_COUNT.incrementAndGet();
 					chunkGeneratorThread = new Thread(() -> {
+						Parameters parameters = new Parameters(dungeons, pos, chosenEntry);
+						List<DataBlockEntry<?>> lonelyDataBlocks = new ArrayList<>();
+						List<DataMultiBlockEntry<?>> multiBlockDataBlocks = new ArrayList<>();
+						StructurePiecesCollector structurePiecesCollector = result.get().generate();
+
+						var box = structurePiecesCollector.getBoundingBox();
+						var minPos = new ChunkPos(ChunkSectionPos.getSectionCoord(box.getMinX()), ChunkSectionPos.getSectionCoord(box.getMinZ()));
+						var maxPos = new ChunkPos(ChunkSectionPos.getSectionCoord(box.getMaxX()), ChunkSectionPos.getSectionCoord(box.getMaxZ()));
+						var averagePos = new ChunkPos((minPos.x + maxPos.x) / 2, (minPos.z + maxPos.z) / 2);
+						int radius = MathHelper.ceil(Math.max(maxPos.x - minPos.x, maxPos.z - minPos.z)/2.0)+1;
+
+						var randomSeed = context.random().nextLong();
+
+						var thisPos = new ChunkPos(this.getPos());
+
 						WorldCache cache = new WorldCache(dungeons);
+
+						world.getServer().execute(() -> {
+							((ServerWorld) world).getChunkManager().addTicket(TICKET, thisPos, 0, thisPos);
+							dungeons.getChunkManager().addTicket(TICKET, averagePos, radius, averagePos);
+						});
 
 						var random = Random.create(randomSeed);
 						for (StructurePiece structurePiece : structurePiecesCollector.toList().pieces()) {
@@ -365,12 +371,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 						});
 					});
 
-
-					world.getServer().execute(() -> {
-						((ServerWorld) world).getChunkManager().addTicket(TICKET, thisPos, 0, thisPos);
-						dungeons.getChunkManager().addTicket(TICKET, averagePos, radius, averagePos);
-						chunkGeneratorThread.start();
-					});
+					chunkGeneratorThread.start();
 
 				} else {
 					METAcraftDungeons.LOGGER.error("Entrance at " + this.pos + " could not generate dungeon.");
@@ -391,6 +392,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 	@Override
 	public Entity teleport(Entity entity) {
 		if (world == null) return entity;
+		if (isLocked()) return entity;
 
 		if (isDungeonResetting()) {
 			if (entity instanceof ServerPlayerEntity player) {
