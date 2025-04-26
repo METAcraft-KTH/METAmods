@@ -1,8 +1,10 @@
 package se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.enums.Orientation;
+import net.minecraft.inventory.ContainerLock;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.structure.StructurePiece;
@@ -24,8 +26,9 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 	protected Optional<Integer> maxSize;
 	protected Optional<RegistryKey<StructurePool>> jigsawPool;
 	protected Optional<List<DungeonEntranceEntity.PoolEntry>> depthSpecificPools;
+	protected Optional<ContainerLock> lock;
 
-	public static final Codec<PortalDeeper> CODEC = RecordCodecBuilder.create(
+	public static final MapCodec<PortalDeeper> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
 			ExtraCodecs.ORIENTATION_CODEC.optionalFieldOf("direction").forGetter(portal -> portal.direction),
 			RegistryKey.createCodec(RegistryKeys.TEMPLATE_POOL).optionalFieldOf("jigsaw_pool").forGetter(
@@ -34,7 +37,8 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 			Codec.INT.optionalFieldOf("max_size").forGetter(portal -> portal.maxSize),
 			DungeonEntranceEntity.PoolEntry.CODEC.listOf().optionalFieldOf("depth_specific_pools").forGetter(
 					portal -> portal.depthSpecificPools
-			)
+			),
+			ContainerLock.CODEC.optionalFieldOf("lock").forGetter(portal -> portal.lock)
 		).apply(instance, PortalDeeper::new)
 	);
 
@@ -42,12 +46,14 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 			Optional<Orientation> direction,
 			Optional<RegistryKey<StructurePool>> jigsawPool,
 			Optional<Integer> maxSize,
-			Optional<List<DungeonEntranceEntity.PoolEntry>> depthSpecificPools
+			Optional<List<DungeonEntranceEntity.PoolEntry>> depthSpecificPools,
+			Optional<ContainerLock> lock
 	) {
 		this.direction = direction;
 		this.jigsawPool = jigsawPool;
 		this.maxSize = maxSize;
 		this.depthSpecificPools = depthSpecificPools;
+		this.lock = lock;
 	}
 
 	@Override
@@ -77,6 +83,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 				deeperEntrance.setAliases(parameters.entry.aliases());
 				deeperEntrance.setDepth(this.entrance.getDepth()+this.entrance.getDepthOffset());
 				deeperEntrance.setDepthOffset(parameters.entry.depthOffset());
+				lock.ifPresent(deeperEntrance::setLock);
 			}
 		}
 	}

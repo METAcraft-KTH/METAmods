@@ -3,10 +3,7 @@ package se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks;
 import com.google.gson.JsonParser;
 import com.google.gson.internal.Streams;
 import com.google.gson.stream.JsonWriter;
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.DataResult;
-import com.mojang.serialization.JavaOps;
-import com.mojang.serialization.JsonOps;
+import com.mojang.serialization.*;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
@@ -31,9 +28,19 @@ public class DataBlockRegistry {
 			"portal_deeper", new DataBlockType<>(PortalDeeper.CODEC)
 	);
 
+	public static final DataBlockType<PortalWithDestination> PORTAL = register(
+			"portal", new DataBlockType<>(PortalWithDestination.CODEC)
+	);
+
+	public static final DataBlockType<BlockDataBlock> BLOCK = register(
+			"block", new DataBlockType<>(BlockDataBlock.CODEC)
+	);
+
 	public static final DataBlockType<MusicPlayer> MUSIC_PLAYER = register(
 			"music_player", new DataBlockType<>(MusicPlayer.CODEC)
 	);
+
+	public static final Codec<DataBlock> CODEC = REGISTRY.getCodec().dispatch(DataBlock::getType, DataBlockType::codec);
 
 	public static final Codec<? extends DataBlock> PARSER_CODEC = Codec.STRING.flatXmap(
 			line -> {
@@ -43,7 +50,7 @@ public class DataBlockRegistry {
 							type -> {
 								int close = line.lastIndexOf('}');
 								if (close != -1) {
-									return type.codec.parse(
+									return type.getCodec().parse(
 											JsonOps.INSTANCE, JsonParser.parseString(line.substring(open, close+1))
 									);
 								} else {
@@ -53,7 +60,7 @@ public class DataBlockRegistry {
 					);
 				}
 				return REGISTRY.getCodec().parse(JavaOps.INSTANCE, line).flatMap(
-						type -> type.codec.parse(NbtOps.INSTANCE, new NbtCompound())
+						type -> type.getCodec().parse(NbtOps.INSTANCE, new NbtCompound())
 				);
 			},
 			data -> REGISTRY.getCodec().encodeStart(JavaOps.INSTANCE, data.getType()).flatMap(
@@ -81,9 +88,9 @@ public class DataBlockRegistry {
 		return Registry.register(REGISTRY, Identifier.ofVanilla(id), object);
 	}
 
-	public record DataBlockType<T extends DataBlock>(Codec<T> codec) {
+	public record DataBlockType<T extends DataBlock>(MapCodec<T> codec) {
 		public Codec<DataBlock> getCodec() {
-			return (Codec<DataBlock>) codec;
+			return (Codec<DataBlock>) codec.codec();
 		}
 	}
 

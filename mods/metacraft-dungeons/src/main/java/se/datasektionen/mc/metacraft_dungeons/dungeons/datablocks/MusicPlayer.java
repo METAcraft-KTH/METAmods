@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.structure.StructurePiece;
 import net.minecraft.util.StringIdentifiable;
@@ -23,7 +24,7 @@ public class MusicPlayer extends DataBlock {
 	protected Map<String, DataPool<MusicEntry>> musicTracks;
 	protected Either<Either<Double, Box>, CalculatedArea> area;
 
-	public static final Codec<MusicPlayer> CODEC = RecordCodecBuilder.create(
+	public static final MapCodec<MusicPlayer> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
 			Codec.STRING.fieldOf("selected_track").orElse("default").forGetter(player -> player.selectedMusicTrack),
 			Codec.unboundedMap(

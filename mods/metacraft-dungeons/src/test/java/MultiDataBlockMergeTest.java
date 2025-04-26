@@ -1,12 +1,26 @@
 import net.minecraft.util.math.BlockPos;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import se.datasektionen.mc.metacraft_core.METAcraftCore;
+import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.MultiDataBlock;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.PortalDeeper;
+import se.datasektionen.mc.metacraft_lib.METAcraftLib;
+import se.datasektionen.mc.metacraft_lib.util.helper.TestHelper;
 
 import java.util.*;
 
 public class MultiDataBlockMergeTest {
+
+	@BeforeAll
+	static void init() {
+		TestHelper.init(
+				METAcraftLib::new,
+				METAcraftCore::new,
+				METAcraftDungeons::new
+		);
+	}
 
 	@Test
 	void test() {
@@ -16,7 +30,8 @@ public class MultiDataBlockMergeTest {
 				new DungeonEntranceEntity.DataMultiBlockEntry<>(
 					pos.toImmutable(), null, new PortalDeeper(
 							Optional.empty(), Optional.empty(),
-						Optional.empty(), Optional.empty()
+						Optional.empty(), Optional.empty(),
+						Optional.empty()
 					)
 				)
 			);
@@ -26,7 +41,8 @@ public class MultiDataBlockMergeTest {
 				new DungeonEntranceEntity.DataMultiBlockEntry<>(
 					pos.toImmutable(), null, new PortalDeeper(
 							Optional.empty(), Optional.empty(),
-						Optional.empty(), Optional.empty()
+						Optional.empty(), Optional.empty(),
+						Optional.empty()
 					)
 				)
 			);

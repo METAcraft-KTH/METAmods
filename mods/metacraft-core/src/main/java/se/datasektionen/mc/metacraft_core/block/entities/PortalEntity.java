@@ -156,6 +156,11 @@ public class PortalEntity extends BlockEntity {
 		return true;
 	}
 
+	public void setLock(ContainerLock lock) {
+		this.lock = lock;
+		markDirty();
+	}
+
 	@Override
 	public void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapperLookup) {
 		super.writeNbt(nbt, wrapperLookup);

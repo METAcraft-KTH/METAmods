@@ -1,11 +1,12 @@
 package se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.enums.Orientation;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.structure.pool.StructurePool;
+import net.minecraft.structure.StructurePiece;
+import net.minecraft.util.math.BlockPos;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
@@ -17,33 +18,34 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public class EntranceDataBlock extends PortalDeeper {
+public class EntranceDataBlock extends DataBlock implements MultiDataBlock {
 
-	public static final Codec<EntranceDataBlock> CODEC = RecordCodecBuilder.create(
+	public static final MapCodec<EntranceDataBlock> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
-			ExtraCodecs.ORIENTATION_CODEC.optionalFieldOf("direction").forGetter(portal -> portal.direction),
-			RegistryKey.createCodec(RegistryKeys.TEMPLATE_POOL).optionalFieldOf("jigsaw_pool").forGetter(
-					portal -> portal.jigsawPool
-			),
-			Codec.INT.optionalFieldOf("max_size").forGetter(portal -> portal.maxSize),
-			DungeonEntranceEntity.PoolEntry.CODEC.listOf().optionalFieldOf("depth_specific_pools").forGetter(
-					portal -> portal.depthSpecificPools
-			)
+			Codec.lazyInitialized(() -> DataBlockRegistry.CODEC).optionalFieldOf("fallback").forGetter(d -> d.fallback),
+			ExtraCodecs.ORIENTATION_CODEC.optionalFieldOf("direction").forGetter(portal -> portal.direction)
 		).apply(instance, EntranceDataBlock::new)
 	);
 
+	protected final Optional<DataBlock> fallback;
+	protected final Optional<Orientation> direction;
+
 	public EntranceDataBlock(
-			Optional<Orientation> direction,
-			Optional<RegistryKey<StructurePool>> jigsawPool,
-			Optional<Integer> maxSize,
-			Optional<List<DungeonEntranceEntity.PoolEntry>> depthSpecificPools
+			Optional<DataBlock> fallback,
+			Optional<Orientation> direction
 	) {
-		super(direction, jigsawPool, maxSize, depthSpecificPools);
+		this.fallback = fallback;
+		this.direction = direction;
 	}
 
 	@Override
 	public DataBlockRegistry.DataBlockType<?> getType() {
 		return DataBlockRegistry.ENTRANCE;
+	}
+
+	@Override
+	public void processDataBlock(BlockPos pos, StructurePiece piece) {
+		parameters.dungeons.setBlockState(pos, METAcraftBlocks.PORTAL_PADDING.getDefaultState());
 	}
 
 	@Override
@@ -70,7 +72,24 @@ public class EntranceDataBlock extends PortalDeeper {
 				METAcraftDungeons.LOGGER.fatal("Failed to find entrance!");
 			}
 		} else {
-			super.processDataBlocks(blocks);
+			fallback.ifPresentOrElse(f -> {
+				f.initialise(entrance, parameters);
+				for (var b : blocks) {
+					f.processDataBlock(b.pos(), b.piece());
+				}
+				if (f instanceof MultiDataBlock d) {
+					d.processDataBlocks(blocks);
+				}
+			}, () -> {
+				for (var b : blocks) {
+					parameters.dungeons.setBlockState(b.pos(), Blocks.AIR.getDefaultState());
+				}
+			});
 		}
+	}
+
+	@Override
+	public int getPriority() {
+		return fallback.map(f -> f instanceof MultiDataBlock b ? b.getPriority() : 1).orElse(0);
 	}
 }

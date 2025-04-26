@@ -60,7 +60,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 	private static final AtomicInteger THREAD_COUNT = new AtomicInteger(0);
 
 	private static final Codec<List<StructurePoolAliasBinding>> ALIAS_BINDING_LIST_CODEC = Codec.lazyInitialized(
-			() -> StructurePoolAliasBinding.CODEC.listOf() //DO NOT REPLACE THIS WITH A METHOD REFERENCE, IT WILL BREAK THE UNIT TESTS!!!!!!
+			StructurePoolAliasBinding.CODEC::listOf
 	);
 
 	private static final String JIGSAW = "Jigsaw";
