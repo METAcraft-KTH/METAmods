@@ -78,7 +78,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 
 	protected List<StructurePoolAliasBinding> aliases = new ArrayList<>();
 
-	private Thread chunkGeneratorThread = null;
+	private volatile Thread chunkGeneratorThread = null;
 	private static final ChunkTicketType<ChunkPos> TICKET = ChunkTicketType.create(
 			METAcraftDungeons.getID("dungeon_entrance").toString(),
 			Comparator.comparingLong(ChunkPos::toLong)

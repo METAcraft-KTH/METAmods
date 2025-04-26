@@ -20,7 +20,7 @@ public class MixinServerWorld implements ServerWorldExtension {
 
 	@Shadow @Final private ServerEntityManager<Entity> entityManager;
 	@Unique
-	private boolean isBeingDeleted = false;
+	private volatile boolean isBeingDeleted = false;
 
 	@Inject(method = "addPlayer", at = @At("HEAD"), cancellable = true)
 	private void addPlayer(ServerPlayerEntity player, CallbackInfo ci) {
