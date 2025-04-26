@@ -64,7 +64,7 @@ public class DungeonData extends PersistentState {
 	private int dungeonWidth;
 	private RegistryKey<World> exitDim = World.OVERWORLD;
 	private BlockPos exitPos;
-	private double maxRangeFromExitPos = 10000;
+	private double maxRangeFromExitPos = 100;
 	private final List<TeleportPredicate> shouldTeleport = new ArrayList<>(
 			ImmutableList.of(
 					new TeleportPredicate(
