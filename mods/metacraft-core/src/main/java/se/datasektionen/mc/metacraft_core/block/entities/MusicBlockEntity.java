@@ -80,7 +80,6 @@ public class MusicBlockEntity extends BlockEntity {
 		}
 		if (musicPlayer.currentEntry == null) return;
 		for (var player : sw.getPlayers()) {
-			if (MusicHelper.isMusicPlaying(player, musicPlayer.currentEntry)) continue;
 			if (musicPlayer.shouldHearMusic(player)) {
 				musicPlayer.trackedPlayers.add(player);
 				MusicHelper.playMusic(player, musicPlayer.currentEntry, p -> {
