@@ -16,7 +16,12 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.TypeFilter;
+import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
@@ -33,10 +38,13 @@ import se.datasektionen.mc.metacraft_dungeons.Tags;
 import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 import se.datasektionen.mc.metacraft_dungeons.compat.SquaremapCompat;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.metacraft_lib.time_getter.RegularTimeGetter;
 import se.datasektionen.mc.metacraft_lib.util.PositionFinder;
 import se.datasektionen.mc.metacraft_dungeons.util.WorldDeleter;
 import se.datasektionen.mc.metacraft_lib.util.helper.TeleportHelper;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -54,6 +62,9 @@ public class DungeonData extends PersistentState {
 	private static final String RESETTING = "resetting";
 	private static final String EXTERNAL_ENTRANCES = "external_entrances";
 	private static final String SHOULD_TELEPORT = "should_teleport";
+
+	private static final String RESET_GETTER = "reset_getter";
+	private static final String NEXT_RESET = "next_reset";
 
 	private static PersistentState.Type<DungeonData> getType(ServerWorld world) {
 		return new Type<>(
@@ -85,6 +96,10 @@ public class DungeonData extends PersistentState {
 	private boolean clearingRestarted = false;
 	private int timeSinceReset = 0;
 	private final List<EntranceEntry> externalEntrances = new ArrayList<>();
+	private Optional<RegularTimeGetter> resetGetter = Optional.empty();
+	private Optional<Instant> nextReset = Optional.empty();
+
+	private boolean hasWarned = false;
 
 	private final Set<MusicBlockEntity> knownMusicBlocks = new HashSet<>();
 
@@ -154,6 +169,24 @@ public class DungeonData extends PersistentState {
 					METAcraftDungeons.LOGGER::error
 			).ifPresent(this.shouldTeleport::addAll);
 		}
+
+		if (nbt.contains(NEXT_RESET)) {
+			nextReset = Codecs.INSTANT.parse(
+					lookup.getOps(NbtOps.INSTANCE),
+					nbt.get(NEXT_RESET)
+			).resultOrPartial(METAcraftDungeons.LOGGER::error);
+		} else {
+			nextReset = Optional.empty();
+		}
+
+		if (nbt.contains(RESET_GETTER)) {
+			resetGetter = RegularTimeGetter.REGISTRY_CODEC.parse(
+					lookup.getOps(NbtOps.INSTANCE),
+					nbt.get(RESET_GETTER)
+			).resultOrPartial(METAcraftDungeons.LOGGER::error);
+		} else {
+			resetGetter = Optional.empty();
+		}
 	}
 
 	@Override
@@ -180,6 +213,22 @@ public class DungeonData extends PersistentState {
 		).ifPresent(shouldTeleport -> {
 			nbt.put(SHOULD_TELEPORT, shouldTeleport);
 		});
+		nextReset.ifPresent(instant -> nbt.put(
+				NEXT_RESET,
+				Codecs.INSTANT.encodeStart(
+						lookup.getOps(NbtOps.INSTANCE),
+						instant
+				).getOrThrow()
+		));
+		resetGetter.ifPresent(
+				resetGetter -> nbt.put(
+						RESET_GETTER,
+						RegularTimeGetter.REGISTRY_CODEC.encodeStart(
+								lookup.getOps(NbtOps.INSTANCE),
+								resetGetter
+						).getOrThrow()
+				)
+		);
 		return nbt;
 	}
 
@@ -193,12 +242,13 @@ public class DungeonData extends PersistentState {
 		this.exitPos = data.exitPos;
 		this.maxRangeFromExitPos = data.maxRangeFromExitPos;
 		this.dungeonWidth = data.dungeonWidth;
+		this.resetGetter = data.resetGetter;
 		this.shouldTeleport.clear();
 		this.shouldTeleport.addAll(data.shouldTeleport);
 		markDirty();
 	}
 
-	public void resetAllDungeons() {
+	public void resetIndexCounter() {
 		index = 0;
 		markDirty();
 	}
@@ -210,7 +260,7 @@ public class DungeonData extends PersistentState {
 		return clearing;
 	}
 
-	public void clearDimension() {
+	public void resetDimension() {
 		if (world.getRegistryKey() == World.OVERWORLD) {
 			METAcraftDungeons.LOGGER.error("No, I refuse to delete the overworld!");
 			return;
@@ -227,7 +277,9 @@ public class DungeonData extends PersistentState {
 			}
 		}
 		externalEntrances.clear();
-		resetAllDungeons();
+		nextReset = Optional.empty();
+		resetIndexCounter();
+		hasWarned = false;
 	}
 
 	private boolean shouldTeleport(Entity entity) {
@@ -287,6 +339,50 @@ public class DungeonData extends PersistentState {
 			if (player.getY() < world.getBottomY()) {
 				player.fallDistance = 0;
 				teleportOut(player);
+			}
+		}
+		if (!resetting) {
+			if (nextReset.isPresent()) {
+				var now = Instant.now();
+				if (now.isAfter(nextReset.get().minus(15, ChronoUnit.MINUTES)) && !hasWarned) {
+					world.getPlayers().forEach(
+							player -> {
+								player.sendMessage(Text.literal("You hear an ominous sound in the distance").styled(style -> style.withColor(Formatting.DARK_PURPLE)));
+								player.sendMessage(Text.literal("The sound fills you with dread").styled(style -> style.withColor(Formatting.RED)));
+								player.sendMessage(Text.literal("Perhaps I should get out of here?").styled(style -> style.withColor(Formatting.RED)));
+								player.getServerWorld().playSound(
+										null, player.getX(), player.getY(), player.getZ(),
+										SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.MASTER, 0.15f, 0.5f
+								);
+								player.getServerWorld().playSound(
+										null, player.getX(), player.getY(), player.getZ(),
+										SoundEvents.BLOCK_END_PORTAL_SPAWN, SoundCategory.MASTER, 0.15f, 0.5f
+								);
+							}
+					);
+					hasWarned = true;
+				}
+				if (now.isAfter(nextReset.get())) {
+					world.getPlayers().forEach(
+							player -> {
+								player.sendMessage(Text.literal("The dimension is collapsing in on itself").styled(style -> style.withColor(Formatting.DARK_RED)));
+								player.sendMessage(Text.literal("Get out, get out, GET OUT!").styled(style -> style.withColor(Formatting.RED)));
+								player.getServerWorld().playSound(
+										null, player.getX(), player.getY(), player.getZ(),
+										SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.MASTER,1, 0.5f
+								);
+								player.getServerWorld().playSound(
+										null, player.getX(), player.getY(), player.getZ(),
+										SoundEvents.BLOCK_END_PORTAL_SPAWN, SoundCategory.MASTER, 1, 0.5f
+								);
+							}
+					);
+					resetDimension();
+				}
+			}
+			if (resetGetter.isPresent() && nextReset.isEmpty()) {
+				nextReset = Optional.of(resetGetter.get().getNextTime(Instant.now()));
+				markDirty();
 			}
 		}
 		if (resetting) {
@@ -375,6 +471,9 @@ public class DungeonData extends PersistentState {
 				clearing = false;
 				resetting = false;
 				DungeonData.getInstance(world.getServer().getWorld(world.getRegistryKey())).copyFromPrevious(this);
+				for (var player : world.getServer().getPlayerManager().getPlayerList()) {
+					player.sendMessage(Text.literal("The dungeon portal opens again").styled(style -> style.withColor(Formatting.DARK_AQUA)));
+				}
 				METAcraftDungeons.LOGGER.info("Reset of " + world.getRegistryKey().getValue() + " completed.");
 			}, file -> file.endsWith(key + ".dat"),
 			player -> new TeleportTarget(
@@ -469,7 +568,7 @@ public class DungeonData extends PersistentState {
 		var pos = PositionFinder.findPosAroundOrigin(index++, dungeonWidth+1);
 		markDirty();
 		if (!world.getWorldBorder().contains(pos.x(), pos.z())) {
-			resetAllDungeons();
+			resetIndexCounter();
 			METAcraftDungeons.LOGGER.error("Dungeon Dimension reached the maximum number of allowed dungeons, flushing dimension.");
 			return getNextSpawnPos();
 		}

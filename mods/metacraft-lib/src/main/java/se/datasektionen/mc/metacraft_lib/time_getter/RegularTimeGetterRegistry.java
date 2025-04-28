@@ -15,6 +15,15 @@ public class RegularTimeGetterRegistry {
 			Daily.CODEC
 	));
 
+	public static final RegularTimeGetterType<Weekly> WEEKLY = register("weekly", new RegularTimeGetterType<>(
+			Weekly.CODEC
+	));
+
+	public static final RegularTimeGetterType<Or> OR = register("or", new RegularTimeGetterType<>(
+			Or.CODEC
+	));
+
+
 	public static void init() {
 
 	}

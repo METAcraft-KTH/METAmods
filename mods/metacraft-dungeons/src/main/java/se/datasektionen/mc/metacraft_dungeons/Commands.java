@@ -19,7 +19,7 @@ public class Commands {
 						literal("just-do-it-already").executes(ctx -> {
 							DungeonData.getIfPresent(ctx.getSource().getWorld()).ifPresentOrElse(data -> {
 								ctx.getSource().sendFeedback(() -> Text.literal("Performing RESET!"), true);
-								data.clearDimension();
+								data.resetDimension();
 							}, () -> {
 								ctx.getSource().sendFeedback(() -> Text.literal("No data found for this dimension"), false);
 							});
