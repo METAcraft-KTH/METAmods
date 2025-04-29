@@ -274,7 +274,7 @@ public class DungeonEntranceEntity extends PortalEntity {
 								for (var data : simplePool.getDataStructureBlocks(structureTemplateManager, poolStructurePiece.getPos(), poolStructurePiece.getRotation(), true)) {
 									if (data.nbt() != null && data.nbt().contains("metadata")) {
 										var value = data.nbt().getString("metadata");
-										DataBlockRegistry.PARSER_CODEC.parse(JavaOps.INSTANCE, value).resultOrPartial(
+										DataBlockRegistry.PARSER_CODEC.parse(world.getRegistryManager().getOps(JavaOps.INSTANCE), value).resultOrPartial(
 												METAcraftDungeons.LOGGER::error
 										).ifPresent(dataBlock -> {
 											dataBlock.initialise(this, parameters);
