@@ -497,6 +497,7 @@ public class DungeonData extends PersistentState {
 	public BlockPos getExitPos() {
 		ServerWorld targetWorld = getExitWorld();
 		BlockPos.Mutable target = new BlockPos.Mutable();
+		int tries = 0;
 		while (true) {
 			int first = targetWorld.getRandom().nextInt(
 					MathHelper.floor(maxRangeFromExitPos*2)
@@ -512,8 +513,8 @@ public class DungeonData extends PersistentState {
 				target.setX(second + exitPos.getX());
 				target.setZ(first + exitPos.getZ());
 			}
-			var nbt = targetWorld.getChunkManager().chunkLoadingManager.getNbt(new ChunkPos(exitPos)).join();
-			if (nbt.isPresent()) {
+			var nbt = targetWorld.getChunkManager().chunkLoadingManager.getNbt(new ChunkPos(target)).join();
+			if (nbt.isPresent() && tries++ < 1000) {
 				BlockPos.Mutable below = new BlockPos.Mutable();
 				below.set(target.getX(), target.getY()-1, target.getZ());
 				if (targetWorld.getBlockState(target).isAir() && targetWorld.getBlockState(target.up()).isAir()) {
