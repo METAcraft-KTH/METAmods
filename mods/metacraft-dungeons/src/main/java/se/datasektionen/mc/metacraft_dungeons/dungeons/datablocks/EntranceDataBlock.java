@@ -23,19 +23,23 @@ public class EntranceDataBlock extends DataBlock implements MultiDataBlock {
 	public static final MapCodec<EntranceDataBlock> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
 			Codec.lazyInitialized(() -> DataBlockRegistry.CODEC).optionalFieldOf("fallback").forGetter(d -> d.fallback),
-			ExtraCodecs.ORIENTATION_CODEC.optionalFieldOf("direction").forGetter(portal -> portal.direction)
+			ExtraCodecs.ORIENTATION_CODEC.optionalFieldOf("direction").forGetter(portal -> portal.direction),
+			Codec.DOUBLE.optionalFieldOf("min_dist_from_center", 0.0).forGetter(portal -> portal.minDistFromCenter)
 		).apply(instance, EntranceDataBlock::new)
 	);
 
 	protected final Optional<DataBlock> fallback;
 	protected final Optional<Orientation> direction;
+	protected final double minDistFromCenter;
 
 	public EntranceDataBlock(
 			Optional<DataBlock> fallback,
-			Optional<Orientation> direction
+			Optional<Orientation> direction,
+			double minDistFromCenter
 	) {
 		this.fallback = fallback;
 		this.direction = direction;
+		this.minDistFromCenter = minDistFromCenter;
 	}
 
 	@Override
@@ -48,12 +52,32 @@ public class EntranceDataBlock extends DataBlock implements MultiDataBlock {
 		parameters.dungeons.setBlockState(pos, METAcraftBlocks.PORTAL_PADDING.getDefaultState());
 	}
 
+	private void applyFallback(Collection<DungeonEntranceEntity.DataMultiBlockEntry<?>> blocks) {
+		fallback.ifPresentOrElse(f -> {
+			f.initialise(entrance, parameters);
+			for (var b : blocks) {
+				f.processDataBlock(b.pos(), b.piece());
+			}
+			if (f instanceof MultiDataBlock d) {
+				d.processDataBlocks(blocks);
+			}
+		}, () -> {
+			for (var b : blocks) {
+				parameters.dungeons.setBlockState(b.pos(), Blocks.AIR.getDefaultState());
+			}
+		});
+	}
+
 	@Override
 	public void processDataBlocks(Collection<DungeonEntranceEntity.DataMultiBlockEntry<?>> blocks) {
 		if (!parameters.foundEntrance) {
 			List<DungeonEntranceEntity.DataMultiBlockEntry<?>> entrances = blocks.stream().toList();
 			if (!entrances.isEmpty()) {
 				var entrance = entrances.get(this.entrance.getWorld().getRandom().nextInt(entrances.size()));
+				if (entrance.pos().isWithinDistance(parameters.spawnPos, minDistFromCenter)) {
+					applyFallback(blocks);
+					return;
+				}
 				parameters.dungeons.setBlockState(entrance.pos(), METAcraftBlocks.PORTAL_CORE.getDefaultState());
 				if (parameters.dungeons.getBlockEntity(entrance.pos()) instanceof PortalEntity portal) {
 					portal.setTargetPos(this.entrance.getPos());
@@ -66,25 +90,15 @@ public class EntranceDataBlock extends DataBlock implements MultiDataBlock {
 				} else {
 					this.entrance.setTargetPos(parameters.spawnPos);
 					METAcraftDungeons.LOGGER.fatal("Entrance invalid!");
+					applyFallback(blocks);
 				}
 			} else {
 				this.entrance.setTargetPos(parameters.spawnPos);
 				METAcraftDungeons.LOGGER.fatal("Failed to find entrance!");
+				applyFallback(blocks);
 			}
 		} else {
-			fallback.ifPresentOrElse(f -> {
-				f.initialise(entrance, parameters);
-				for (var b : blocks) {
-					f.processDataBlock(b.pos(), b.piece());
-				}
-				if (f instanceof MultiDataBlock d) {
-					d.processDataBlocks(blocks);
-				}
-			}, () -> {
-				for (var b : blocks) {
-					parameters.dungeons.setBlockState(b.pos(), Blocks.AIR.getDefaultState());
-				}
-			});
+			applyFallback(blocks);
 		}
 	}
 
