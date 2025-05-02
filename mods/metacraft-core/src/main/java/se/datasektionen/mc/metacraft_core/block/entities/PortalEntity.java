@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_core.block.entities;
 
 import com.google.common.collect.Iterables;
+import com.mojang.serialization.DataResult;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
@@ -27,11 +28,16 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.*;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.NotNull;
 import org.joml.*;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.METAcraftCoreTags;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlockEntities;
 import se.datasektionen.mc.metacraft_core.callbacks.PortalTargetValidEvent;
+import se.datasektionen.mc.metacraft_core.portal.EmptyPortalTarget;
+import se.datasektionen.mc.metacraft_core.portal.PortalTarget;
+import se.datasektionen.mc.metacraft_core.portal.PortalTargetRegistry;
+import se.datasektionen.mc.metacraft_core.portal.FixedPortalTarget;
 import se.datasektionen.mc.metacraft_core.util.TeleportPredicate;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
@@ -46,14 +52,15 @@ public class PortalEntity extends BlockEntity {
 
 	private static final String TARGET_DIM = "TargetDim";
 	private static final String TARGET_POS = "TargetPos";
+	private static final String TARGET = "target";
 	private static final String PORTAL_FACING = "PortalFacing";
 	private static final String SHOULD_TELEPORT = "ShouldTeleport";
 
 	public static final int MAX_SEARCH_BLOCKS = 100;
 	private static final int RANGE_CHECK = 10;
 
-	protected RegistryKey<World> targetDim;
-	protected BlockPos targetPos;
+	@NotNull
+	protected volatile PortalTarget target = EmptyPortalTarget.getInstance();
 	protected Orientation portalFacing;
 	protected final List<TeleportPredicate> shouldTeleport = new ArrayList<>();
 	protected ContainerLock lock = ContainerLock.EMPTY;
@@ -68,14 +75,19 @@ public class PortalEntity extends BlockEntity {
 		super(METAcraftBlockEntities.PORTAL, pos, state);
 	}
 
-	public void setTargetPos(BlockPos pos) {
-		targetPos = pos;
-		markDirty();
+	public void setTarget(PortalTarget target) {
+		setTarget(target, true);
 	}
 
-	public void setTargetDim(RegistryKey<World> dim) {
-		this.targetDim = dim;
-		markDirty();
+	public void setTarget(PortalTarget target, boolean needsSaving) {
+		this.target = target;
+		if (needsSaving) {
+			markDirty();
+		}
+	}
+
+	public @NotNull PortalTarget getTarget() {
+		return target;
 	}
 
 	public void setPortalFacing(Orientation facing) {
@@ -123,19 +135,50 @@ public class PortalEntity extends BlockEntity {
 	}
 
 	@Override
+	public void setWorld(World world) {
+		super.setWorld(world);
+		if (!world.isClient() && target instanceof FixedPortalTarget(GlobalPos t)) {
+			if (t.pos() == null) {
+				target = EmptyPortalTarget.getInstance();
+				return;
+			}
+			if (t.dimension() == null) {
+				target = new FixedPortalTarget(
+						GlobalPos.create(world.getRegistryKey(), t.pos())
+				);
+			}
+		}
+	}
+
+	@Override
 	public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapperLookup) {
 		super.readNbt(nbt, wrapperLookup);
-		if (nbt.contains(TARGET_DIM)) {
-			targetDim = World.CODEC.parse(NbtOps.INSTANCE, nbt.get(TARGET_DIM)).resultOrPartial(
+		if (nbt.contains(TARGET)) {
+			target = PortalTargetRegistry.CODEC.parse(
+					wrapperLookup.getOps(NbtOps.INSTANCE), nbt.get(TARGET)
+			).resultOrPartial(
 					METAcraftCore.LOGGER::error
-			).orElse(null);
+			).orElse(EmptyPortalTarget.getInstance());
 		} else {
-			targetDim = null;
+			target = EmptyPortalTarget.getInstance();
 		}
 		if (nbt.contains(TARGET_POS)) {
-			targetPos = NbtHelper.toBlockPos(nbt, TARGET_POS).orElse(null);
-		} else {
-			targetPos = null;
+			RegistryKey<World> targetDim = null;
+			var targetPos = NbtHelper.toBlockPos(nbt, TARGET_POS).orElse(null);
+			if (nbt.contains(TARGET_DIM)) {
+				targetDim = World.CODEC.parse(NbtOps.INSTANCE, nbt.get(TARGET_DIM)).resultOrPartial(
+						METAcraftCore.LOGGER::error
+				).orElse(null);
+			}
+			try {
+				target = new FixedPortalTarget(
+						GlobalPos.create(targetDim, targetPos)
+				);
+			} catch (NullPointerException e) {
+				METAcraftCore.LOGGER.error(
+						"Failed to update previous portal destination because some other mod added a weird mixin", e
+				);
+			}
 		}
 		if (nbt.contains(PORTAL_FACING)) {
 			portalFacing = ExtraCodecs.ORIENTATION_CODEC.parse(NbtOps.INSTANCE, nbt.get(PORTAL_FACING)).resultOrPartial(
@@ -164,15 +207,14 @@ public class PortalEntity extends BlockEntity {
 	@Override
 	public void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapperLookup) {
 		super.writeNbt(nbt, wrapperLookup);
-		if (targetDim != null) {
-			World.CODEC.encodeStart(NbtOps.INSTANCE, targetDim).resultOrPartial(
+		if (target != EmptyPortalTarget.getInstance()) {
+			PortalTargetRegistry.CODEC.encodeStart(
+					wrapperLookup.getOps(NbtOps.INSTANCE), target
+			).resultOrPartial(
 					METAcraftCore.LOGGER::error
-			).ifPresent(dim -> {
-				nbt.put(TARGET_DIM, dim);
+			).ifPresent(target -> {
+				nbt.put(TARGET, target);
 			});
-		}
-		if (targetPos != null) {
-			nbt.put(TARGET_POS, NbtHelper.fromBlockPos(targetPos));
 		}
 		if (portalFacing != null) {
 			ExtraCodecs.ORIENTATION_CODEC.encodeStart(NbtOps.INSTANCE, portalFacing).resultOrPartial(
@@ -191,10 +233,10 @@ public class PortalEntity extends BlockEntity {
 		lock.writeNbt(nbt, wrapperLookup);
 	}
 
-	public ServerWorld getTargetDim() {
+	public ServerWorld getTargetDim(GlobalPos target) {
 		if (world == null || world.isClient()) return null;
-		if (targetDim != null) {
-			var dim = world.getServer().getWorld(targetDim);
+		if (target != null) {
+			var dim = world.getServer().getWorld(target.dimension());
 			if (dim != null) {
 				return dim;
 			}
@@ -328,22 +370,22 @@ public class PortalEntity extends BlockEntity {
 		chooseDirection(validAxes);
 	}
 
-	public void computeTargetFacing() {
-		if (targetPos != null) {
-			var targetDim = getTargetDim();
-			if (targetDim.getBlockEntity(targetPos) instanceof PortalEntity portal) {
+	public void computeTargetFacing(GlobalPos target) {
+		if (target != null) {
+			var targetDim = getTargetDim(target);
+			if (targetDim.getBlockEntity(target.pos()) instanceof PortalEntity portal) {
 				if (portal.portalFacing != null) return;
 				portal.computeFacing();
 			}
 		}
 	}
 
-	private Entity teleportNoFacing(Entity entity) {
-		var targetDim = getTargetDim();
+	private Entity teleportNoFacing(Entity entity, GlobalPos target) {
+		var targetDim = getTargetDim(target);
 		return TeleportHelper.teleportEntity(
 				entity,
 				new TeleportTarget(
-						targetDim, Vec3d.ofBottomCenter(targetPos), entity.getVelocity(), entity.getYaw(), entity.getPitch(),
+						targetDim, Vec3d.ofBottomCenter(target.pos()), entity.getVelocity(), entity.getYaw(), entity.getPitch(),
 						TeleportTarget.NO_OP
 				)
 		);
@@ -541,13 +583,15 @@ public class PortalEntity extends BlockEntity {
 			computeFacing();
 		}
 		Entity newEntity = entity;
-		if (targetPos != null) {
-			computeTargetFacing();
-			var targetDim = getTargetDim();
-			if (!PortalTargetValidEvent.EVENT.invoker().isValid(targetDim, targetPos, this, entity, true)) {
+		var targetRes = this.target.getTarget(this, entity);
+		if (targetRes.result().isPresent()) {
+			var target = targetRes.result().get();
+			computeTargetFacing(target);
+			var targetDim = getTargetDim(target);
+			if (!PortalTargetValidEvent.EVENT.invoker().isValid(targetDim, target.pos(), this, entity, true)) {
 				return entity;
 			}
-			if (targetDim.getBlockEntity(targetPos) instanceof PortalEntity portal) {
+			if (targetDim.getBlockEntity(target.pos()) instanceof PortalEntity portal) {
 				if (portal.portalFacing != null) {
 					var rotation = getRotationToPortal(portal.portalFacing, null);
 
@@ -594,13 +638,13 @@ public class PortalEntity extends BlockEntity {
 							)
 					);
 				} else {
-					newEntity = teleportNoFacing(entity);
+					newEntity = teleportNoFacing(entity, target);
 				}
 			} else {
-				newEntity = teleportNoFacing(entity);
+				newEntity = teleportNoFacing(entity, target);
 			}
 		} else if (entity instanceof ServerPlayerEntity player) {
-			player.sendMessage(Text.literal("Portal had no target"), true);
+			player.sendMessage(Text.literal(targetRes.error().map(DataResult.Error::message).orElse("missingno")), true);
 		}
 		return newEntity;
 	}

@@ -2,22 +2,15 @@ package se.datasektionen.mc.metacraft_dungeons.block;
 
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
-import se.datasektionen.mc.metacraft_dungeons.block.blocks.DungeonEntrance;
 
 import java.util.function.Function;
 
 public class DungeonBlocks {
-
-	public static final Block DUNGEON_ENTRANCE = register(
-			"dungeon_entrance_core", DungeonEntrance::new,
-			AbstractBlock.Settings.copy(Blocks.END_GATEWAY).noBlockBreakParticles()
-	);
 
 	public static void init() {
 

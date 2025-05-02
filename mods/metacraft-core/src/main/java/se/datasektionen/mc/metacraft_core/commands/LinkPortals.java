@@ -23,6 +23,7 @@ import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_core.METAcraftCoreTags;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
+import se.datasektionen.mc.metacraft_core.portal.FixedPortalTarget;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.TextHelper;
 
@@ -236,10 +237,8 @@ public class LinkPortals {
 			targetPortal = insertPortal(targetWorld, targetPortalPositions);
 		}
 
-		sourcePortal.setTargetDim(targetWorld.getRegistryKey());
-		sourcePortal.setTargetPos(targetPortal.getPos());
-		targetPortal.setTargetDim(sourceWorld.getRegistryKey());
-		targetPortal.setTargetPos(sourcePortal.getPos());
+		sourcePortal.setTarget(FixedPortalTarget.create(targetWorld.getRegistryKey(), targetPortal.getPos()));
+		targetPortal.setTarget(FixedPortalTarget.create(sourceWorld.getRegistryKey(), sourcePortal.getPos()));
 
 		ctx.getSource().sendFeedback(() -> Text.literal("Successfully linked portals"), false);
 

@@ -1,7 +1,6 @@
 package se.datasektionen.mc.metacraft_dungeons.block;
 
 import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
-import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.registry.Registries;
@@ -10,21 +9,16 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import se.datasektionen.mc.metacraft_core.callbacks.PortalTargetValidEvent;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
-import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.DungeonData;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.DataBlockRegistry;
+import se.datasektionen.mc.metacraft_dungeons.dungeons.portal_data.DungeonPortalTargets;
 
 public class DungeonsBlockEntities {
-
-	public static final BlockEntityType<DungeonEntranceEntity> DUNGEON_ENTRANCE = register(
-			"dungeon_entrance", FabricBlockEntityTypeBuilder.create(
-					DungeonEntranceEntity::new, DungeonBlocks.DUNGEON_ENTRANCE
-			).build()
-	);
 
 
 	public static void init() {
 		DataBlockRegistry.init();
+		DungeonPortalTargets.init();
 		PortalTargetValidEvent.EVENT.register((targetDim, targetPos, portal, teleporting, isCurrentlyValid) -> {
 			if (!isCurrentlyValid) return false;
 			if (targetDim != portal.getWorld() && DungeonData.getIfPresent(targetDim).map(DungeonData::isResetting).orElse(false)) {

@@ -3,7 +3,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
-import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
+import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.DataBlock;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.MultiDataBlock;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.PortalDeeper;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
@@ -24,10 +24,10 @@ public class MultiDataBlockMergeTest {
 
 	@Test
 	void test() {
-		List<DungeonEntranceEntity.DataMultiBlockEntry<?>> blocks = new ArrayList<>();
+		List<DataBlock.DataMultiBlockEntry<?>> blocks = new ArrayList<>();
 		for (var pos : BlockPos.iterateOutwards(new BlockPos(0, 0, 0), 32, 32, 32)) {
 			blocks.add(
-				new DungeonEntranceEntity.DataMultiBlockEntry<>(
+				new DataBlock.DataMultiBlockEntry<>(
 					pos.toImmutable(), null, new PortalDeeper(
 							Optional.empty(), Optional.empty(),
 						Optional.empty(), Optional.empty(),
@@ -38,7 +38,7 @@ public class MultiDataBlockMergeTest {
 		}
 		for (var pos : BlockPos.iterateOutwards(new BlockPos(1000, 0, 0), 32, 32, 32)) {
 			blocks.add(
-				new DungeonEntranceEntity.DataMultiBlockEntry<>(
+				new DataBlock.DataMultiBlockEntry<>(
 					pos.toImmutable(), null, new PortalDeeper(
 							Optional.empty(), Optional.empty(),
 						Optional.empty(), Optional.empty(),

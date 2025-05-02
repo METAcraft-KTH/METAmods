@@ -11,8 +11,8 @@ import net.minecraft.structure.StructurePiece;
 import net.minecraft.structure.pool.StructurePool;
 import net.minecraft.util.math.BlockPos;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
-import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
-import se.datasektionen.mc.metacraft_dungeons.block.DungeonBlocks;
+import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
+import se.datasektionen.mc.metacraft_dungeons.dungeons.portal_data.Dungeon;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
@@ -25,7 +25,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 	protected Optional<Orientation> direction;
 	protected Optional<Integer> maxSize;
 	protected Optional<RegistryKey<StructurePool>> jigsawPool;
-	protected Optional<List<DungeonEntranceEntity.PoolEntry>> depthSpecificPools;
+	protected Optional<List<Dungeon.DepthSpecificPoolEntry>> depthSpecificPools;
 	protected Optional<ContainerLock> lock;
 
 	public static final MapCodec<PortalDeeper> CODEC = RecordCodecBuilder.mapCodec(
@@ -35,7 +35,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 					portal -> portal.jigsawPool
 			),
 			Codec.INT.optionalFieldOf("max_size").forGetter(portal -> portal.maxSize),
-			DungeonEntranceEntity.PoolEntry.CODEC.listOf().optionalFieldOf("depth_specific_pools").forGetter(
+			Dungeon.DepthSpecificPoolEntry.CODEC.listOf().optionalFieldOf("depth_specific_pools").forGetter(
 					portal -> portal.depthSpecificPools
 			),
 			ContainerLock.CODEC.optionalFieldOf("lock").forGetter(portal -> portal.lock)
@@ -46,7 +46,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 			Optional<Orientation> direction,
 			Optional<RegistryKey<StructurePool>> jigsawPool,
 			Optional<Integer> maxSize,
-			Optional<List<DungeonEntranceEntity.PoolEntry>> depthSpecificPools,
+			Optional<List<Dungeon.DepthSpecificPoolEntry>> depthSpecificPools,
 			Optional<ContainerLock> lock
 	) {
 		this.direction = direction;
@@ -67,23 +67,39 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 	}
 
 	@Override
-	public void processDataBlocks(Collection<DungeonEntranceEntity.DataMultiBlockEntry<?>> blocks) {
-		List<DungeonEntranceEntity.DataMultiBlockEntry<?>> doorBlocks = blocks.stream().toList();
+	public void processDataBlocks(Collection<DataMultiBlockEntry<?>> blocks) {
+		List<DataMultiBlockEntry<?>> doorBlocks = blocks.stream().toList();
 		if (!doorBlocks.isEmpty()) {
 			var entrance = doorBlocks.get(this.entrance.getWorld().getRandom().nextInt(doorBlocks.size()));
-			parameters.dungeons.setBlockState(entrance.pos(), DungeonBlocks.DUNGEON_ENTRANCE.getDefaultState());
-			var entranceEntity = parameters.dungeons.getBlockEntity(entrance.pos());
-			if (entranceEntity instanceof DungeonEntranceEntity deeperEntrance) {
-				deeperEntrance.setPortalFacing(direction.map(
+			parameters.dungeons.setBlockState(entrance.pos(), METAcraftBlocks.PORTAL_CORE.getDefaultState());
+			var portalEntity = parameters.dungeons.getBlockEntity(entrance.pos());
+			if (portalEntity instanceof PortalEntity portal) {
+				portal.setPortalFacing(direction.map(
 						direction -> OrientationHelper.rotate(direction, entrance.piece().getRotation())
 				).orElse(null));
-				deeperEntrance.setMaxSize(maxSize.orElse(parameters.entry.maxSize()));
-				deeperEntrance.setJigsawPool(jigsawPool.orElse(parameters.entry.jigsawPool()));
-				deeperEntrance.setDepthSpecificPools(depthSpecificPools.orElse(this.entrance.getDepthSpecificPools()));
-				deeperEntrance.setAliases(parameters.entry.aliases());
-				deeperEntrance.setDepth(this.entrance.getDepth()+this.entrance.getDepthOffset());
-				deeperEntrance.setDepthOffset(parameters.entry.depthOffset());
-				lock.ifPresent(deeperEntrance::setLock);
+				lock.ifPresent(portal::setLock);
+				List<Dungeon.DepthSpecificPoolEntry> pools = List.of();
+				int newDepth = 1;
+				int offset = 1;
+
+				if (this.entrance.getTarget() instanceof Dungeon d) {
+					pools = d.pools();
+					newDepth = d.depthOffset() + d.dungeonDepth();
+					offset = d.depthOffset();
+				}
+
+				portal.setTarget(
+						new Dungeon(
+								parameters.dungeons.getRegistryKey(),
+								jigsawPool.orElse(parameters.entry.jigsawPool()),
+								maxSize.orElse(parameters.entry.maxSize()),
+								parameters.entry.aliases(),
+								Optional.empty(),
+								depthSpecificPools.orElse(pools),
+								newDepth,
+								offset
+						)
+				);
 			}
 		}
 	}

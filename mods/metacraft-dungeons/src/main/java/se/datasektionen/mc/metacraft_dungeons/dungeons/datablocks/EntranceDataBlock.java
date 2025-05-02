@@ -9,8 +9,8 @@ import net.minecraft.structure.StructurePiece;
 import net.minecraft.util.math.BlockPos;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
+import se.datasektionen.mc.metacraft_core.portal.FixedPortalTarget;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
-import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
 
@@ -52,7 +52,7 @@ public class EntranceDataBlock extends DataBlock implements MultiDataBlock {
 		parameters.dungeons.setBlockState(pos, METAcraftBlocks.PORTAL_PADDING.getDefaultState());
 	}
 
-	private void applyFallback(Collection<DungeonEntranceEntity.DataMultiBlockEntry<?>> blocks) {
+	private void applyFallback(Collection<DataMultiBlockEntry<?>> blocks) {
 		fallback.ifPresentOrElse(f -> {
 			f.initialise(entrance, parameters);
 			for (var b : blocks) {
@@ -69,9 +69,9 @@ public class EntranceDataBlock extends DataBlock implements MultiDataBlock {
 	}
 
 	@Override
-	public void processDataBlocks(Collection<DungeonEntranceEntity.DataMultiBlockEntry<?>> blocks) {
+	public void processDataBlocks(Collection<DataMultiBlockEntry<?>> blocks) {
 		if (!parameters.foundEntrance) {
-			List<DungeonEntranceEntity.DataMultiBlockEntry<?>> entrances = blocks.stream().toList();
+			List<DataMultiBlockEntry<?>> entrances = blocks.stream().toList();
 			if (!entrances.isEmpty()) {
 				var entrance = entrances.get(this.entrance.getWorld().getRandom().nextInt(entrances.size()));
 				if (entrance.pos().isWithinDistance(parameters.spawnPos, minDistFromCenter)) {
@@ -80,20 +80,19 @@ public class EntranceDataBlock extends DataBlock implements MultiDataBlock {
 				}
 				parameters.dungeons.setBlockState(entrance.pos(), METAcraftBlocks.PORTAL_CORE.getDefaultState());
 				if (parameters.dungeons.getBlockEntity(entrance.pos()) instanceof PortalEntity portal) {
-					portal.setTargetPos(this.entrance.getPos());
-					portal.setTargetDim(this.entrance.getWorld().getRegistryKey());
+					portal.setTarget(FixedPortalTarget.create(this.entrance.getWorld().getRegistryKey(), this.entrance.getPos()));
 					portal.setPortalFacing(direction.map(
 							direction -> OrientationHelper.rotate(direction, entrance.piece().getRotation())
 					).orElse(null));
-					this.entrance.setTargetPos(entrance.pos());
+					this.entrance.setTarget(this.entrance.getTarget().getWithPos(entrance.pos()));
 					parameters.foundEntrance = true;
 				} else {
-					this.entrance.setTargetPos(parameters.spawnPos);
+					this.entrance.setTarget(this.entrance.getTarget().getWithPos(parameters.spawnPos));
 					METAcraftDungeons.LOGGER.fatal("Entrance invalid!");
 					applyFallback(blocks);
 				}
 			} else {
-				this.entrance.setTargetPos(parameters.spawnPos);
+				this.entrance.setTarget(this.entrance.getTarget().getWithPos(parameters.spawnPos));
 				METAcraftDungeons.LOGGER.fatal("Failed to find entrance!");
 				applyFallback(blocks);
 			}

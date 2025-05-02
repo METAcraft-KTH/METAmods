@@ -12,8 +12,8 @@ import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_core.METAcraftCoreTags;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
+import se.datasektionen.mc.metacraft_core.portal.FixedPortalTarget;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
-import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.DungeonData;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.OrientationHelper;
@@ -65,7 +65,7 @@ public class PortalWithDestination extends DataBlock implements MultiDataBlock {
 	}
 
 	@Override
-	public void processDataBlocks(Collection<DungeonEntranceEntity.DataMultiBlockEntry<?>> blocks) {
+	public void processDataBlocks(Collection<DataMultiBlockEntry<?>> blocks) {
 		if (targetPos.isEmpty() || targetDim.isEmpty()) {
 			METAcraftDungeons.LOGGER.error(
 					"Portal at " + blocks.stream().findAny().map(
@@ -74,7 +74,7 @@ public class PortalWithDestination extends DataBlock implements MultiDataBlock {
 			);
 			return;
 		}
-		List<DungeonEntranceEntity.DataMultiBlockEntry<?>> doorBlocks = blocks.stream().toList();
+		List<DataMultiBlockEntry<?>> doorBlocks = blocks.stream().toList();
 		if (!doorBlocks.isEmpty()) {
 			var chosenBlock = doorBlocks.get(this.entrance.getWorld().getRandom().nextInt(doorBlocks.size()));
 			parameters.dungeons.setBlockState(chosenBlock.pos(), METAcraftBlocks.PORTAL_CORE.getDefaultState());
@@ -104,8 +104,9 @@ public class PortalWithDestination extends DataBlock implements MultiDataBlock {
 						if (targetWorld.getBlockEntity(p) instanceof PortalEntity targetPortal) {
 							pos = p;
 							if (allowReturn) {
-								targetPortal.setTargetDim(parameters.dungeons.getRegistryKey());
-								targetPortal.setTargetPos(chosenBlock.pos());
+								portal.setTarget(FixedPortalTarget.create(
+										parameters.dungeons.getRegistryKey(), chosenBlock.pos()
+								));
 								DungeonData.getInstance(parameters.dungeons).addExternalEntrance(
 										targetPortal.getWorld().getRegistryKey(), targetPortal.getPos()
 								);
@@ -115,8 +116,7 @@ public class PortalWithDestination extends DataBlock implements MultiDataBlock {
 					}
 				}
 
-				portal.setTargetDim(dim);
-				portal.setTargetPos(pos);
+				portal.setTarget(FixedPortalTarget.create(dim, pos));
 			}
 		}
 	}

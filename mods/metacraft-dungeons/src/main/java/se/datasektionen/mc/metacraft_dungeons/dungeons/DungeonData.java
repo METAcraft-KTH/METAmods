@@ -32,10 +32,12 @@ import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_core.block.entities.BlackHolePortalEntity;
 import se.datasektionen.mc.metacraft_core.block.entities.MusicBlockEntity;
+import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
+import se.datasektionen.mc.metacraft_core.portal.EmptyPortalTarget;
+import se.datasektionen.mc.metacraft_core.portal.FixedPortalTarget;
 import se.datasektionen.mc.metacraft_core.util.TeleportPredicate;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.Tags;
-import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 import se.datasektionen.mc.metacraft_dungeons.compat.SquaremapCompat;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.metacraft_lib.time_getter.RegularTimeGetter;
@@ -271,9 +273,9 @@ public class DungeonData extends PersistentState {
 			var entranceWorld = world.getServer().getWorld(entrancePos.dim);
 			if (
 				entranceWorld != null &&
-				entranceWorld.getBlockEntity(entrancePos.pos) instanceof DungeonEntranceEntity entrance
+				entranceWorld.getBlockEntity(entrancePos.pos) instanceof PortalEntity entrance
 			) {
-				entrance.setTargetPos(null);
+				entrance.setTarget(entrance.getTarget().getAsEmpty());
 			}
 		}
 		externalEntrances.clear();
@@ -560,8 +562,7 @@ public class DungeonData extends PersistentState {
 		world.setBlockState(pos, METAcraftBlocks.BLACK_HOLE_CORE.getDefaultState());
 		var entity = ((BlackHolePortalEntity) world.getBlockEntity(pos));
 		entity.setAttractionRange(dungeonWidth/2.0);
-		entity.setTargetDim(exitDim);
-		entity.setTargetPos(getExitPos());
+		entity.setTarget(FixedPortalTarget.create(exitDim, getExitPos()));
 		entity.setShouldTeleport(shouldTeleport);
 	}
 

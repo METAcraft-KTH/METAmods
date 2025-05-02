@@ -5,7 +5,6 @@ import com.google.common.collect.MultimapBuilder;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.util.math.Direction;
-import se.datasektionen.mc.metacraft_dungeons.block.block_entities.DungeonEntranceEntity;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -14,7 +13,7 @@ import java.util.Map;
 
 public interface MultiDataBlock {
 
-	void processDataBlocks(Collection<DungeonEntranceEntity.DataMultiBlockEntry<?>> blocks);
+	void processDataBlocks(Collection<DataBlock.DataMultiBlockEntry<?>> blocks);
 
 	int getPriority();
 
@@ -28,18 +27,18 @@ public interface MultiDataBlock {
 	 * @param multiBlockDataBlocks The list of data entries to merge.
 	 * @return A multimap containing all the same values. Note that the key indexes are not guaranteed to follow any pattern.
 	 */
-	static Multimap<Integer, DungeonEntranceEntity.DataMultiBlockEntry<?>> merge(
-			List<DungeonEntranceEntity.DataMultiBlockEntry<?>> multiBlockDataBlocks
+	static Multimap<Integer, DataBlock.DataMultiBlockEntry<?>> merge(
+			List<DataBlock.DataMultiBlockEntry<?>> multiBlockDataBlocks
 	) {
 		//Used for fast adjacency checks.
-		Long2ObjectMap<DungeonEntranceEntity.DataMultiBlockEntry<?>> positions = new Long2ObjectOpenHashMap<>(multiBlockDataBlocks.size());
+		Long2ObjectMap<DataBlock.DataMultiBlockEntry<?>> positions = new Long2ObjectOpenHashMap<>(multiBlockDataBlocks.size());
 		for (var data : multiBlockDataBlocks) {
 			positions.put(data.pos().asLong(), data);
 		}
 
 		int topIndex = 0;
-		Multimap<Integer, DungeonEntranceEntity.DataMultiBlockEntry<?>> dataBlockSets = MultimapBuilder.hashKeys().hashSetValues().build();
-		Map<DungeonEntranceEntity.DataMultiBlockEntry<?>, Integer> dataBlockLookup = new HashMap<>();
+		Multimap<Integer, DataBlock.DataMultiBlockEntry<?>> dataBlockSets = MultimapBuilder.hashKeys().hashSetValues().build();
+		Map<DataBlock.DataMultiBlockEntry<?>, Integer> dataBlockLookup = new HashMap<>();
 
 		for (var entry : multiBlockDataBlocks) {
 			for (Direction dir : Direction.values()) {
