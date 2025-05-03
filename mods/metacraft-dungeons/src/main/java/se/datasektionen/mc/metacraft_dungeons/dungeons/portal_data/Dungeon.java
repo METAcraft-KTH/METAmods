@@ -52,6 +52,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.UnaryOperator;
 
 public record Dungeon(
 		RegistryKey<World> dungeonDimension,
@@ -245,7 +246,7 @@ public record Dungeon(
 		return Optional.ofNullable(portal.getTarget() instanceof Dungeon d ? d : null);
 	}
 	
-	private static CompletableFuture<Optional<Dungeon>> generateDungeon(
+	private static CompletableFuture<UnaryOperator<Dungeon>> generateDungeon(
 			PortalEntity portal, Parameters parameters,
 			Optional<Structure.StructurePosition> result,
 			Structure.Context context, ChunkGenerator chunkGenerator,
@@ -309,7 +310,7 @@ public record Dungeon(
 					}
 					
 					if (shouldThreadStop(portal)) {
-						return getCurrent(portal).map(d -> d.onThreadStop(onExit));
+						return d -> d.onThreadStop(onExit);
 					}
 
 					for (var chunkPos : (Iterable<ChunkPos>) ChunkPos.stream(minPos, maxPos)::iterator) {
@@ -325,14 +326,14 @@ public record Dungeon(
 						try {
 							done.await();
 							if (!shouldContinue.get()) {
-								return getCurrent(portal).map(d -> d.onThreadStop(onExit));
+								return d -> d.onThreadStop(onExit);
 							}
 						} catch (InterruptedException ignored) {}
 					}
 
 					while (!cache.isEmpty()) {
 						if (shouldThreadStop(portal)) {
-							return getCurrent(portal).map(d -> d.onThreadStop(onExit));
+							return d -> d.onThreadStop(onExit);
 						}
 						cache.flush(Math.max(MathHelper.floor(25.0 / Math.max(THREAD_COUNT.get(), 1)), 1));
 						try {
@@ -341,7 +342,7 @@ public record Dungeon(
 					}
 
 					if (shouldThreadStop(portal)) {
-						return getCurrent(portal).map(d -> d.onThreadStop(onExit));
+						return d -> d.onThreadStop(onExit);
 					}
 
 					return portal.getWorld().getServer().submit(() -> {
@@ -366,21 +367,20 @@ public record Dungeon(
 							data.addExternalEntrance(portal.getWorld().getRegistryKey(), portal.getPos());
 						}
 
-						var finalState = getCurrent(portal).map(d -> d.onThreadStop(onExit));
-
-						var playersToNotify = finalState.map(s -> s.playersToNotify).orElse(EMPTY_PLAYERS);
-						for (var player : playersToNotify) {
-							player.sendMessage(Text.literal("The room you wanted to enter is now ready!"), true);
-							player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 10, 0.5f);
-							TaskScheduler.schedule(portal.getWorld().getServer(), () -> {
-								player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 10, 0.75f);
-							}, 10);
-							TaskScheduler.schedule(portal.getWorld().getServer(), () -> {
-								player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 10, 1);
-							}, 20);
-						}
-						
-						return finalState.map(Dungeon::clearPlayers);
+						return (UnaryOperator<Dungeon>) d -> {
+							var playersToNotify = d.playersToNotify;
+							for (var player : playersToNotify) {
+								player.sendMessage(Text.literal("The room you wanted to enter is now ready!"), true);
+								player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 10, 0.5f);
+								TaskScheduler.schedule(portal.getWorld().getServer(), () -> {
+									player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 10, 0.75f);
+								}, 10);
+								TaskScheduler.schedule(portal.getWorld().getServer(), () -> {
+									player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 10, 1);
+								}, 20);
+							}
+							return d.onThreadStop(onExit).clearPlayers();
+						};
 					}).join();	
 				},
 				DUNGEONS
@@ -430,7 +430,10 @@ public record Dungeon(
 				).thenAccept(
 						dungeon -> {
 							portal.getWorld().getServer().execute(() -> {
-								dungeon.ifPresent(portal::setTarget);
+								var target = portal.getTarget();
+								if (target instanceof Dungeon d) {
+									setNewState(portal, dungeon.apply(d), true);
+								}
 							});
 						}
 				);
