@@ -6,9 +6,13 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
 
+import java.util.Optional;
+
 public interface PortalTarget {
 
-	DataResult<GlobalPos> getTarget(PortalEntity portal, Entity entity);
+	DataResult<GlobalPos> getOrInitializeTargetForEntity(PortalEntity portal, Entity entity);
+
+	Optional<GlobalPos> getFixedTarget(PortalEntity portal);
 
 	PortalTarget getWithPos(BlockPos pos);
 

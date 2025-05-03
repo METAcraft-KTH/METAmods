@@ -22,8 +22,13 @@ public final class EmptyPortalTarget implements PortalTarget {
 	private EmptyPortalTarget() {}
 
 	@Override
-	public DataResult<GlobalPos> getTarget(PortalEntity portal, Entity entity) {
+	public DataResult<GlobalPos> getOrInitializeTargetForEntity(PortalEntity portal, Entity entity) {
 		return DataResult.error(() -> "Portal had no target");
+	}
+
+	@Override
+	public Optional<GlobalPos> getFixedTarget(PortalEntity portal) {
+		return Optional.empty();
 	}
 
 	@Override

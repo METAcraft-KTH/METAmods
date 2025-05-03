@@ -201,20 +201,40 @@ public record Dungeon(
 		}
 		if (chosenEntry != null && chosenEntry != this) {
 			portal.setTarget(chosenEntry, true);
+			chosenEntry.getFixedTarget(portal).ifPresent(
+					t -> {
+						if (t.dimension() != dungeonDimension && portal.getWorld().getRegistryKey() == dungeonDimension) {
+							var world = portal.getWorld().getServer().getWorld(t.dimension());
+							PortalEntity.findPortal(world, t.pos()).ifPresent(
+									p -> {
+										p.getTarget().getFixedTarget(p).ifPresent(
+											backTarget -> {
+												if (backTarget.dimension() == dungeonDimension) {
+													DungeonData.getInstance((ServerWorld) portal.getWorld()).addExternalEntrance(
+															t.dimension(), p.getPos()
+													);
+												}
+											}
+										);
+									}
+							);
+						}
+					}
+			);
 			return Optional.of(chosenEntry);
 		}
 		return Optional.empty();
 	}
 
 	@Override
-	public DataResult<GlobalPos> getTarget(PortalEntity portal, Entity entity) {
+	public DataResult<GlobalPos> getOrInitializeTargetForEntity(PortalEntity portal, Entity entity) {
 		if (isDungeonResetting(portal.getWorld().getServer())) {
 			return DataResult.error(() -> "Dungeon dimension still resetting, please wait...");
 		}
 
 		var override = getOverride(portal);
 		if (override.isPresent()) {
-			return override.get().getTarget(portal, entity);
+			return override.get().getOrInitializeTargetForEntity(portal, entity);
 		}
 
 		String msg = "Dungeon still generating, please wait...";
@@ -239,6 +259,11 @@ public record Dungeon(
 			getCurrent(portal).ifPresent(d -> d.generate(portal));
 		}
 		return currentDungeon.map(pos -> DataResult.success(GlobalPos.create(dungeonDimension, pos))).orElse(DataResult.error(() -> msg));
+	}
+
+	@Override
+	public Optional<GlobalPos> getFixedTarget(PortalEntity portal) {
+		return currentDungeon.map(pos -> GlobalPos.create(dungeonDimension, pos));
 	}
 
 	private Dungeon onThreadStop(Runnable extra) {

@@ -27,8 +27,13 @@ public record FixedPortalTarget(GlobalPos target) implements PortalTarget {
 	}
 
 	@Override
-	public DataResult<GlobalPos> getTarget(PortalEntity portal, Entity entity) {
+	public DataResult<GlobalPos> getOrInitializeTargetForEntity(PortalEntity portal, Entity entity) {
 		return DataResult.success(target);
+	}
+
+	@Override
+	public Optional<GlobalPos> getFixedTarget(PortalEntity portal) {
+		return Optional.of(target);
 	}
 
 	@Override

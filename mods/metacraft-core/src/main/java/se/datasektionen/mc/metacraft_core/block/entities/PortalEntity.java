@@ -267,6 +267,18 @@ public class PortalEntity extends BlockEntity {
 		return forAllNearbyPortals(world, pos, false);
 	}
 
+	public static Optional<PortalEntity> findPortal(World world, BlockPos pos) {
+		if (world.getBlockEntity(pos) instanceof PortalEntity p) {
+			return Optional.of(p);
+		}
+		for (var portalPos : forAllNearbyPortals(world, pos)) {
+			if (world.getBlockEntity(portalPos) instanceof PortalEntity p) {
+				return Optional.of(p);
+			}
+		}
+		return Optional.empty();
+	}
+
 	public static Iterable<BlockPos> forAllNearbyPortals(World world, BlockPos pos, boolean alwaysIncludeCore) {
 		return forAllNearbyPortals(world, pos, MAX_SEARCH_BLOCKS, alwaysIncludeCore);
 	}
@@ -584,7 +596,7 @@ public class PortalEntity extends BlockEntity {
 			computeFacing();
 		}
 		Entity newEntity = entity;
-		var targetRes = this.target.getTarget(this, entity);
+		var targetRes = this.target.getOrInitializeTargetForEntity(this, entity);
 		if (targetRes.result().isPresent()) {
 			var target = targetRes.result().get();
 			computeTargetFacing(target);

@@ -97,7 +97,7 @@ public class DungeonData extends PersistentState {
 	private boolean clearing = false;
 	private boolean clearingRestarted = false;
 	private int timeSinceReset = 0;
-	private final List<EntranceEntry> externalEntrances = new ArrayList<>();
+	private final Set<EntranceEntry> externalEntrances = new HashSet<>();
 	private Optional<RegularTimeGetter> resetGetter = Optional.empty();
 	private Optional<Instant> nextReset = Optional.empty();
 
@@ -606,6 +606,8 @@ public class DungeonData extends PersistentState {
 				BlockPos.CODEC.fieldOf("pos").forGetter(EntranceEntry::pos)
 			).apply(instance, EntranceEntry::new)
 		);
-		public static final Codec<List<EntranceEntry>> LIST_CODEC = CODEC.listOf();
+		public static final Codec<Set<EntranceEntry>> LIST_CODEC = CODEC.listOf().xmap(
+				HashSet::new, ArrayList::new
+		);
 	}
 }
