@@ -138,14 +138,14 @@ public class PortalEntity extends BlockEntity {
 	@Override
 	public void setWorld(World world) {
 		super.setWorld(world);
-		if (!world.isClient() && target instanceof FixedPortalTarget(GlobalPos t)) {
+		if (!world.isClient() && target instanceof FixedPortalTarget(GlobalPos t, boolean autolink)) {
 			if (t.pos() == null) {
 				target = EmptyPortalTarget.getInstance();
 				return;
 			}
 			if (t.dimension() == null) {
-				target = new FixedPortalTarget(
-						GlobalPos.create(world.getRegistryKey(), t.pos())
+				target = FixedPortalTarget.create(
+						world.getRegistryKey(), t.pos()
 				);
 			}
 		}
@@ -172,9 +172,7 @@ public class PortalEntity extends BlockEntity {
 				).orElse(null);
 			}
 			try {
-				target = new FixedPortalTarget(
-						GlobalPos.create(targetDim, targetPos)
-				);
+				target = FixedPortalTarget.create(targetDim, targetPos);
 			} catch (NullPointerException e) {
 				METAcraftCore.LOGGER.error(
 						"Failed to update previous portal destination because some other mod added a weird mixin", e
