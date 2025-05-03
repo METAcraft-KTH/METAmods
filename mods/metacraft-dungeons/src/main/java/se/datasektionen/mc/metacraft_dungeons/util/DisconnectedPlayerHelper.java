@@ -5,7 +5,12 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.impl.event.interaction.FakePlayerNetworkHandler;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.packet.c2s.common.SyncedClientOptions;
 import net.minecraft.server.MinecraftServer;
@@ -19,6 +24,7 @@ import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorIntegratedPlayerManager;
 import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorMinecraftServer;
+import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -32,11 +38,39 @@ public class DisconnectedPlayerHelper {
 	) {
 		player.networkHandler = new FakePlayerNetworkHandler(player);
 		var nbt = handler.loadPlayerData(player).orElse(null);
-		player.setServerWorld(server.getWorld(
-			nbt != null && nbt.contains("Dimension") ? World.CODEC.parse(
-				NbtOps.INSTANCE, nbt.get("Dimension")
-			).resultOrPartial(METAcraftDungeons.LOGGER::error).orElse(World.OVERWORLD) : World.OVERWORLD
-		));
+		var world = server.getWorld(
+				nbt != null && nbt.contains("Dimension") ? World.CODEC.parse(
+						NbtOps.INSTANCE, nbt.get("Dimension")
+				).resultOrPartial(METAcraftDungeons.LOGGER::error).orElse(World.OVERWORLD) : World.OVERWORLD
+		);
+		player.setServerWorld(world != null ? world : server.getOverworld());
+		player.readGameModeNbt(nbt);
+		if (nbt != null) {
+			PlayerDataHelper.loadRootVehicle(player, nbt, e -> e);
+			if (nbt.contains(ServerPlayerEntity.ENDER_PEARLS_KEY, NbtElement.LIST_TYPE)) {
+				if (nbt.get(ServerPlayerEntity.ENDER_PEARLS_KEY) instanceof NbtList l) {
+					for (var d : l) {
+						if (d instanceof NbtCompound pearl) {
+							if (pearl.contains(ServerPlayerEntity.ENDER_PEARLS_DIMENSION_KEY)) {
+								World.CODEC.parse(
+										NbtOps.INSTANCE, pearl.get(ServerPlayerEntity.ENDER_PEARLS_DIMENSION_KEY)
+								).resultOrPartial(METAcraftDungeons.LOGGER::error).map(
+										server::getWorld
+								).ifPresent(dim -> {
+									var pearlEntity = EntityType.loadEntityWithPassengers(
+											pearl, dim, SpawnReason.LOAD, e -> e
+									);
+									if (pearlEntity instanceof EnderPearlEntity e) {
+										player.getEnderPearls().add(e);
+									}
+								});
+
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 

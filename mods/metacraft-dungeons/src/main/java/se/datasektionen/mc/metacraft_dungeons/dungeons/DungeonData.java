@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.*;
+import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtOps;
@@ -33,7 +34,6 @@ import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_core.block.entities.BlackHolePortalEntity;
 import se.datasektionen.mc.metacraft_core.block.entities.MusicBlockEntity;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
-import se.datasektionen.mc.metacraft_core.portal.EmptyPortalTarget;
 import se.datasektionen.mc.metacraft_core.portal.FixedPortalTarget;
 import se.datasektionen.mc.metacraft_core.util.TeleportPredicate;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
@@ -289,6 +289,7 @@ public class DungeonData extends PersistentState {
 	}
 
 	public void teleportOut(Entity entity) {
+		entity = entity.getRootVehicle();
 		if (!shouldTeleport(entity)) {
 			entity.kill(world);
 		}
@@ -466,6 +467,15 @@ public class DungeonData extends PersistentState {
 		for (var player : players) {
 			teleportOut(player);
 		}
+		List<EnderPearlEntity> pearlsToRemove = new ArrayList<>();
+		for (var player : world.getServer().getPlayerManager().getPlayerList()) {
+			for (var pearl : player.getEnderPearls()) {
+				if (pearl.getWorld().getRegistryKey() == world.getRegistryKey()) {
+					pearlsToRemove.add(pearl);
+				}
+			}
+		}
+		pearlsToRemove.forEach(EnderPearlEntity::discard);
 		markDirty();
 		world.getPersistentStateManager().save();
 		WorldDeleter.deleteWorldTeleportingPlayers(

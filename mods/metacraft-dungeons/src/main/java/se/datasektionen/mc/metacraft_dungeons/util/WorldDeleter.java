@@ -2,6 +2,7 @@ package se.datasektionen.mc.metacraft_dungeons.util;
 
 import com.google.common.collect.ImmutableList;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
+import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -24,6 +25,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -150,14 +152,30 @@ public class WorldDeleter {
 			Function<ServerPlayerEntity, TeleportTarget> targetPos
 	) {
 		delete(world, onCompleted, filesToNotRemove, () -> {
-			DisconnectedPlayerHelper.forAllDisconnectedPlayers(world, player -> {
-				TeleportTarget target = targetPos.apply(player);
-				player.setServerWorld(target.world()); //We don't teleport players who are not online because we don't want to crash the game. We just set the values instead.
-				player.setPos(target.position().x, target.position().y, target.position().z);
-				player.setVelocity(target.velocity());
-				player.setYaw(target.yaw());
-				player.setPitch(target.pitch());
-				return true;
+			DisconnectedPlayerHelper.forAllDisconnectedPlayers(world.getServer(), player -> {
+				boolean modified = false;
+				if (player.getWorld() == world) {
+					TeleportTarget target = targetPos.apply(player);
+					player.setServerWorld(target.world()); //We don't teleport players who are not online because we don't want to crash the game. We just set the values instead.
+					player.getRootVehicle().streamSelfAndPassengers().forEach(entity -> {
+						entity.setPos(target.position().x, target.position().y, target.position().z);
+						entity.setVelocity(target.velocity());
+						entity.setYaw(target.yaw());
+						entity.setPitch(target.pitch());
+					});
+					modified = true;
+				}
+				List<EnderPearlEntity> toRemove = new ArrayList<>();
+				for (var pearl : player.getEnderPearls()) {
+					if (pearl.getWorld() == world) {
+						toRemove.add(pearl);
+					}
+				}
+				if (!toRemove.isEmpty()) {
+					toRemove.forEach(player.getEnderPearls()::remove);
+					modified = true;
+				}
+				return modified;
 			});
 		});
 	}
