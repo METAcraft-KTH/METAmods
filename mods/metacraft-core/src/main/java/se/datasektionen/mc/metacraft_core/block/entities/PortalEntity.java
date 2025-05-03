@@ -117,6 +117,7 @@ public class PortalEntity extends BlockEntity {
 		}
 		world.playSound(null, pos, SoundEvents.BLOCK_VAULT_INSERT_ITEM, SoundCategory.BLOCKS);
 		player.sendMessage(Text.literal("The portal is now unlocked!"), true);
+		getTarget().initialize(this);
 	}
 
 	public ActionResult interactWithItem(

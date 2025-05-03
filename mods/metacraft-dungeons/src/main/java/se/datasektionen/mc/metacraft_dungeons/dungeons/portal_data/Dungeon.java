@@ -115,7 +115,10 @@ public record Dungeon(
 			int dungeonDepth,
 			int depthOffset
 	) {
-		this(dungeonDimension, jigsawPool, maxSize, aliases, currentDungeon, pools, dungeonDepth, depthOffset, false, EMPTY_PLAYERS);
+		this(
+				dungeonDimension, jigsawPool, maxSize, aliases, currentDungeon,
+				pools, dungeonDepth, depthOffset, false, EMPTY_PLAYERS
+		);
 	}
 	
 	private static final ChunkTicketType<ChunkPos> TICKET = ChunkTicketType.create(
@@ -190,11 +193,30 @@ public record Dungeon(
 		setNewState(portal, this.withPlayer(player), false);
 	}
 
+	private Optional<PortalTarget> getOverride(PortalEntity portal) {
+		PortalTarget chosenEntry = null;
+		var choices = pools.stream().filter(entry -> entry.depthRange().test(dungeonDepth)).toList();
+		if (!choices.isEmpty()) {
+			chosenEntry = choices.get(portal.getWorld().getRandom().nextInt(choices.size())).portal;
+		}
+		if (chosenEntry != null && chosenEntry != this) {
+			portal.setTarget(chosenEntry, true);
+			return Optional.of(chosenEntry);
+		}
+		return Optional.empty();
+	}
+
 	@Override
 	public DataResult<GlobalPos> getTarget(PortalEntity portal, Entity entity) {
 		if (isDungeonResetting(portal.getWorld().getServer())) {
 			return DataResult.error(() -> "Dungeon dimension still resetting, please wait...");
 		}
+
+		var override = getOverride(portal);
+		if (override.isPresent()) {
+			return override.get().getTarget(portal, entity);
+		}
+
 		String msg = "Dungeon still generating, please wait...";
 		if (currentDungeon.isEmpty()) {
 			List<ServerPlayerEntity> players = new ArrayList<>();
@@ -214,16 +236,7 @@ public record Dungeon(
 			if (generating) {
 				return DataResult.error(() -> msg);
 			}
-
-			PortalTarget chosenEntry = null;
-			var choices = pools.stream().filter(entry -> entry.depthRange().test(dungeonDepth)).toList();
-			if (!choices.isEmpty()) {
-				chosenEntry = choices.get(portal.getWorld().getRandom().nextInt(choices.size())).portal;
-			}
-			if (chosenEntry != null && chosenEntry != this) {
-				return chosenEntry.getTarget(portal, entity);
-			}
-			generate(portal);
+			getCurrent(portal).ifPresent(d -> d.generate(portal));
 		}
 		return currentDungeon.map(pos -> DataResult.success(GlobalPos.create(dungeonDimension, pos))).orElse(DataResult.error(() -> msg));
 	}
@@ -387,6 +400,18 @@ public record Dungeon(
 		);
 	}
 
+	@Override
+	public void initialize(PortalEntity portal) {
+		var override = getOverride(portal);
+		if (override.isPresent()) {
+			override.get().initialize(portal);
+			return;
+		}
+		if (!isDungeonResetting(portal.getWorld().getServer()) && currentDungeon.isEmpty() && !generating) {
+			generate(portal);
+		}
+	}
+
 	private void generate(
 			PortalEntity portal
 	) {
@@ -425,7 +450,7 @@ public record Dungeon(
 				generateDungeon(
 						portal, new Parameters(
 								dungeons, pos, new PoolEntry(jigsawPool, aliases, 1, maxSize)
-						), result, context, 
+						), result, context,
 						chunkGenerator, structureTemplateManager, structureAccessor
 				).thenAccept(
 						dungeon -> {
@@ -437,7 +462,7 @@ public record Dungeon(
 							});
 						}
 				);
-				
+
 
 			} else {
 				METAcraftDungeons.LOGGER.error("Entrance at " + portal.getPos() + " could not generate dungeon.");

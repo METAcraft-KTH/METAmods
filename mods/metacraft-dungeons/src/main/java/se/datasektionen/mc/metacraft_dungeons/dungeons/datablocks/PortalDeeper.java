@@ -25,7 +25,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 	protected Optional<Orientation> direction;
 	protected Optional<Integer> maxSize;
 	protected Optional<RegistryKey<StructurePool>> jigsawPool;
-	protected Optional<List<Dungeon.DepthSpecificPoolEntry>> depthSpecificPools;
+	protected Optional<List<Dungeon.DepthSpecificPoolEntry>> pools;
 	protected Optional<ContainerLock> lock;
 
 	public static final MapCodec<PortalDeeper> CODEC = RecordCodecBuilder.mapCodec(
@@ -35,8 +35,8 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 					portal -> portal.jigsawPool
 			),
 			Codec.INT.optionalFieldOf("max_size").forGetter(portal -> portal.maxSize),
-			Dungeon.DepthSpecificPoolEntry.CODEC.listOf().optionalFieldOf("depth_specific_pools").forGetter(
-					portal -> portal.depthSpecificPools
+			Dungeon.DepthSpecificPoolEntry.CODEC.listOf().optionalFieldOf("pools").forGetter(
+					portal -> portal.pools
 			),
 			ContainerLock.CODEC.optionalFieldOf("lock").forGetter(portal -> portal.lock)
 		).apply(instance, PortalDeeper::new)
@@ -46,13 +46,13 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 			Optional<Orientation> direction,
 			Optional<RegistryKey<StructurePool>> jigsawPool,
 			Optional<Integer> maxSize,
-			Optional<List<Dungeon.DepthSpecificPoolEntry>> depthSpecificPools,
+			Optional<List<Dungeon.DepthSpecificPoolEntry>> pools,
 			Optional<ContainerLock> lock
 	) {
 		this.direction = direction;
 		this.jigsawPool = jigsawPool;
 		this.maxSize = maxSize;
-		this.depthSpecificPools = depthSpecificPools;
+		this.pools = pools;
 		this.lock = lock;
 	}
 
@@ -95,7 +95,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 								maxSize.orElse(parameters.entry.maxSize()),
 								parameters.entry.aliases(),
 								Optional.empty(),
-								depthSpecificPools.orElse(pools),
+								this.pools.orElse(pools),
 								newDepth,
 								offset
 						)
@@ -109,6 +109,6 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 		return (direction.isPresent() ? 1 : 0) +
 				(maxSize.isPresent() ? 1 : 0) +
 				(jigsawPool.isPresent() ? 1 : 0) +
-				(depthSpecificPools.isPresent() ? 1 : 0);
+				(pools.isPresent() ? 1 : 0);
 	}
 }

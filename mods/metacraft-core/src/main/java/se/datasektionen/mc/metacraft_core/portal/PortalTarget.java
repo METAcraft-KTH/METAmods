@@ -12,6 +12,8 @@ public interface PortalTarget {
 
 	PortalTarget getWithPos(BlockPos pos);
 
+	default void initialize(PortalEntity portal) {}
+
 	default PortalTarget getAsEmpty() {
 		return EmptyPortalTarget.getInstance();
 	}
