@@ -1,5 +1,6 @@
 package se.datasektionen.mc.metacraft_dungeons.dungeons.portal_data;
 
+import com.google.common.collect.ImmutableList;
 import com.mojang.jtracy.TracyClient;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -44,6 +45,7 @@ import se.datasektionen.mc.metacraft_dungeons.dungeons.WorldCache;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.DataBlock;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.DataBlockRegistry;
 import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.MultiDataBlock;
+import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.PortalDeeper;
 import se.datasektionen.mc.metacraft_dungeons.extensions.ServerWorldExtension;
 import se.datasektionen.mc.metacraft_dungeons.util.ChunkHelper;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
@@ -64,7 +66,8 @@ public record Dungeon(
 		int dungeonDepth,
 		int depthOffset,
 		boolean generating,
-		PSet<ServerPlayerEntity> playersToNotify
+		PSet<ServerPlayerEntity> playersToNotify,
+		List<BlockPos> portalsToInitialize
 ) implements PortalTarget {
 
 	private static final Codec<List<StructurePoolAliasBinding>> ALIAS_BINDING_LIST_CODEC = StructurePoolAliasBinding.CODEC.listOf();
@@ -117,7 +120,7 @@ public record Dungeon(
 	) {
 		this(
 				dungeonDimension, jigsawPool, maxSize, aliases, currentDungeon,
-				pools, dungeonDepth, depthOffset, false, EMPTY_PLAYERS
+				pools, dungeonDepth, depthOffset, false, EMPTY_PLAYERS, List.of()
 		);
 	}
 	
@@ -132,7 +135,8 @@ public record Dungeon(
 		return new Dungeon(
 				dungeonDimension, jigsawPool, maxSize, aliases,
 				currentDungeon, pools, dungeonDepth, depthOffset,
-				generating, playersToNotify.plus(player)
+				generating, playersToNotify.plus(player),
+				portalsToInitialize
 		);
 	}
 	
@@ -141,7 +145,7 @@ public record Dungeon(
 		return new Dungeon(
 				dungeonDimension, jigsawPool, maxSize, aliases,
 				currentDungeon, pools, dungeonDepth, depthOffset,
-				generating, EMPTY_PLAYERS
+				generating, EMPTY_PLAYERS, portalsToInitialize
 		);
 	}
 	
@@ -150,7 +154,7 @@ public record Dungeon(
 		return new Dungeon(
 				dungeonDimension, jigsawPool, maxSize, aliases,
 				Optional.ofNullable(dungeon), pools, dungeonDepth, depthOffset,
-				generating, playersToNotify
+				generating, playersToNotify, portalsToInitialize
 		);
 	}
 	
@@ -159,7 +163,16 @@ public record Dungeon(
 		return new Dungeon(
 				dungeonDimension, jigsawPool, maxSize, aliases,
 				currentDungeon, pools, dungeonDepth, depthOffset,
-				generating, playersToNotify
+				generating, playersToNotify, portalsToInitialize
+		);
+	}
+
+	public Dungeon withPortalsToInitialize(List<BlockPos> portalsToInitialize) {
+		if (this.portalsToInitialize == portalsToInitialize || (this.portalsToInitialize.isEmpty() && portalsToInitialize.isEmpty())) return this;
+		return new Dungeon(
+				dungeonDimension, jigsawPool, maxSize, aliases,
+				currentDungeon, pools, dungeonDepth, depthOffset,
+				generating, playersToNotify, portalsToInitialize
 		);
 	}
 	
@@ -258,7 +271,24 @@ public record Dungeon(
 			}
 			getCurrent(portal).ifPresent(d -> d.generate(portal));
 		}
-		return currentDungeon.map(pos -> DataResult.success(GlobalPos.create(dungeonDimension, pos))).orElse(DataResult.error(() -> msg));
+		return currentDungeon.map(
+				pos -> {
+					var current = getCurrent(portal);
+					if (current.isPresent()) {
+						var world = getDungeonDimension(portal.getWorld().getServer());
+						for (var p : current.get().portalsToInitialize) {
+							var be = world.getBlockEntity(p);
+							if (be instanceof PortalEntity pe) {
+								pe.getTarget().initialize(pe);
+							}
+						}
+						if (!current.get().portalsToInitialize.isEmpty()) {
+							setNewState(portal, current.get().withPortalsToInitialize(List.of()), false);
+						}
+					}
+					return DataResult.success(GlobalPos.create(dungeonDimension, pos));
+				}
+		).orElse(DataResult.error(() -> msg));
 	}
 
 	@Override
@@ -291,6 +321,8 @@ public record Dungeon(
 			StructureTemplateManager structureTemplateManager,
 			StructureAccessor structureAccessor
 	) {
+		var thisPos = new ChunkPos(portal.getPos());
+		((ServerWorld) portal.getWorld()).getChunkManager().addTicket(TICKET, thisPos, 0, thisPos);
 		return CompletableFuture.supplyAsync(
 				() -> {
 					THREAD_COUNT.incrementAndGet();
@@ -308,12 +340,9 @@ public record Dungeon(
 
 					var randomSeed = context.random().nextLong();
 
-					var thisPos = new ChunkPos(portal.getPos());
-
 					WorldCache cache = new WorldCache(dungeons);
 
 					portal.getWorld().getServer().execute(() -> {
-						((ServerWorld) portal.getWorld()).getChunkManager().addTicket(TICKET, thisPos, 0, thisPos);
 						dungeons.getChunkManager().addTicket(TICKET, averagePos, radius, averagePos);
 					});
 					
@@ -384,6 +413,7 @@ public record Dungeon(
 					}
 
 					return portal.getWorld().getServer().submit(() -> {
+						ImmutableList.Builder<BlockPos> portalsToInitialize = new ImmutableList.Builder<>();
 						var data = DungeonData.getInstance(dungeons);
 						var dataBlockSets = MultiDataBlock.merge(multiBlockDataBlocks);
 
@@ -398,6 +428,11 @@ public record Dungeon(
 									Comparator.comparing(entry -> entry.datablock().getPriority())
 							).ifPresent(best -> {
 								best.datablock().processDataBlocks(dataBlockSets.get(key));
+								if (best.datablock() instanceof PortalDeeper) {
+									PortalEntity.findPortal(dungeons, best.pos()).ifPresent(
+											p -> portalsToInitialize.add(p.getPos())
+									);
+								}
 							});
 						}
 
@@ -417,7 +452,7 @@ public record Dungeon(
 									player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 10, 1);
 								}, 20);
 							}
-							return d.onThreadStop(onExit).clearPlayers();
+							return d.onThreadStop(onExit).clearPlayers().withPortalsToInitialize(portalsToInitialize.build());
 						};
 					}).join();	
 				},
