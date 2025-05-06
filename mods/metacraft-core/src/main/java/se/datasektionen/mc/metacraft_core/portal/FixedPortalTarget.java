@@ -46,7 +46,7 @@ public record FixedPortalTarget(GlobalPos target, boolean autolink) implements P
 
 	@Override
 	public DataResult<GlobalPos> getOrInitializeTargetForEntity(PortalEntity portal, Entity entity) {
-		initialize(portal);
+		portal.initializeTarget();
 		return DataResult.success(target);
 	}
 

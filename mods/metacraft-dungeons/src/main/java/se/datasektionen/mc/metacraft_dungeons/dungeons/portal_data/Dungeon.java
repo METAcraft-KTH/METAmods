@@ -279,7 +279,7 @@ public record Dungeon(
 						for (var p : current.get().portalsToInitialize) {
 							var be = world.getBlockEntity(p);
 							if (be instanceof PortalEntity pe) {
-								pe.getTarget().initialize(pe);
+								pe.initializeTarget();
 							}
 						}
 						if (!current.get().portalsToInitialize.isEmpty()) {

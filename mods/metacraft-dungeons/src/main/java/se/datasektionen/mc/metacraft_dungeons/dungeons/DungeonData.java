@@ -269,16 +269,6 @@ public class DungeonData extends PersistentState {
 		}
 		world.savingDisabled = true;
 		resetting = true;
-		for (var entrancePos : externalEntrances) {
-			var entranceWorld = world.getServer().getWorld(entrancePos.dim);
-			if (
-				entranceWorld != null &&
-				entranceWorld.getBlockEntity(entrancePos.pos) instanceof PortalEntity entrance
-			) {
-				entrance.setTarget(entrance.getTarget().getAsEmpty());
-			}
-		}
-		externalEntrances.clear();
 		nextReset = Optional.empty();
 		resetIndexCounter();
 		hasWarned = false;
@@ -477,7 +467,20 @@ public class DungeonData extends PersistentState {
 		}
 		pearlsToRemove.forEach(EnderPearlEntity::discard);
 		markDirty();
+		List<EntranceEntry> entrancesToReinitialize = new ArrayList<>();
+		for (var entrancePos : externalEntrances) {
+			var entranceWorld = world.getServer().getWorld(entrancePos.dim);
+			if (
+					entranceWorld != null &&
+					entranceWorld.getBlockEntity(entrancePos.pos) instanceof PortalEntity entrance
+			) {
+				entrancesToReinitialize.add(entrancePos);
+				entrance.setTarget(entrance.getTarget().getAsEmpty());
+			}
+		}
+		externalEntrances.clear();
 		world.getPersistentStateManager().save();
+
 		WorldDeleter.deleteWorldTeleportingPlayers(
 			world, () -> {
 				clearing = false;
@@ -487,6 +490,12 @@ public class DungeonData extends PersistentState {
 					player.sendMessage(Text.literal("The dungeon portal opens again").styled(style -> style.withColor(Formatting.DARK_AQUA)));
 				}
 				METAcraftDungeons.LOGGER.info("Reset of " + world.getRegistryKey().getValue() + " completed.");
+				for (var entrance : entrancesToReinitialize) {
+					var e = world.getServer().getWorld(entrance.dim).getBlockEntity(entrance.pos);
+					if (e instanceof PortalEntity p) {
+						p.initializeTarget();
+					}
+				}
 			}, file -> file.endsWith(key + ".dat"),
 			player -> new TeleportTarget(
 					world.getServer().getWorld(exitDim),
