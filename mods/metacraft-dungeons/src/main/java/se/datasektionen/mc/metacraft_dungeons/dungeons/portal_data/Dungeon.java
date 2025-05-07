@@ -7,6 +7,8 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.predicate.NumberRange;
 import net.minecraft.registry.RegistryKey;
@@ -55,6 +57,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
 public record Dungeon(
 		RegistryKey<World> dungeonDimension,
@@ -313,9 +316,46 @@ public record Dungeon(
 	private static Optional<Dungeon> getCurrent(PortalEntity portal) {
 		return Optional.ofNullable(portal.getTarget() instanceof Dungeon d ? d : null);
 	}
+
+	private static Stream<BlockPos> streamSides(BlockBox box) {
+		return Stream.concat(
+				Stream.concat(
+						Stream.concat(
+								BlockPos.stream(
+										new BlockPos(box.getMinX(), box.getMinY(), box.getMinZ()),
+										new BlockPos(box.getMaxX(), box.getMaxY(), box.getMinZ())
+								),
+								BlockPos.stream(
+										new BlockPos(box.getMinX(), box.getMinY(), box.getMaxZ()),
+										new BlockPos(box.getMaxX(), box.getMaxY(), box.getMaxZ())
+								)
+						),
+						Stream.concat(
+								BlockPos.stream(
+										new BlockPos(box.getMinX(), box.getMinY(), box.getMinZ()),
+										new BlockPos(box.getMinX(), box.getMaxY(), box.getMaxZ())
+								),
+								BlockPos.stream(
+										new BlockPos(box.getMaxX(), box.getMinY(), box.getMinZ()),
+										new BlockPos(box.getMaxX(), box.getMaxY(), box.getMaxZ())
+								)
+						)
+				),
+				Stream.concat(
+						BlockPos.stream(
+								new BlockPos(box.getMinX(), box.getMinY(), box.getMinZ()),
+								new BlockPos(box.getMaxX(), box.getMinY(), box.getMaxZ())
+						),
+						BlockPos.stream(
+								new BlockPos(box.getMinX(), box.getMaxY(), box.getMinZ()),
+								new BlockPos(box.getMaxX(), box.getMaxY(), box.getMaxZ())
+						)
+				)
+		);
+	}
 	
 	private static CompletableFuture<UnaryOperator<Dungeon>> generateDungeon(
-			PortalEntity portal, Parameters parameters,
+			PortalEntity portal, ServerWorld dungeons, BlockPos pos, PoolEntry poolEntry,
 			Optional<Structure.StructurePosition> result,
 			Structure.Context context, ChunkGenerator chunkGenerator,
 			StructureTemplateManager structureTemplateManager,
@@ -326,8 +366,6 @@ public record Dungeon(
 		return CompletableFuture.supplyAsync(
 				() -> {
 					THREAD_COUNT.incrementAndGet();
-					var dungeons = parameters.dungeons;
-					var pos = parameters.spawnPos;
 					List<DataBlock.DataBlockEntry<?>> lonelyDataBlocks = new ArrayList<>();
 					List<DataBlock.DataMultiBlockEntry<?>> multiBlockDataBlocks = new ArrayList<>();
 					StructurePiecesCollector structurePiecesCollector = result.get().generate();
@@ -342,6 +380,12 @@ public record Dungeon(
 
 					WorldCache cache = new WorldCache(dungeons);
 
+
+					streamSides(box.expand(1, 1, 1)).forEach(bedrockPos -> {
+						cache.setBlockState(bedrockPos, Blocks.BEDROCK.getDefaultState(), Block.NOTIFY_LISTENERS);
+					});
+
+
 					portal.getWorld().getServer().execute(() -> {
 						dungeons.getChunkManager().addTicket(TICKET, averagePos, radius, averagePos);
 					});
@@ -352,6 +396,10 @@ public record Dungeon(
 							((ServerWorld) portal.getWorld()).getChunkManager().removeTicket(TICKET, thisPos, 0, thisPos);
 						});
 					};
+
+					var parameters = new Parameters(
+							dungeons, pos, poolEntry, box
+					);
 
 					var random = Random.create(randomSeed);
 					for (StructurePiece structurePiece : structurePiecesCollector.toList().pieces()) {
@@ -508,10 +556,9 @@ public record Dungeon(
 				THREAD_COUNT.incrementAndGet();
 				setNewState(portal, asGenerating(true), false);
 				generateDungeon(
-						portal, new Parameters(
-								dungeons, pos, new PoolEntry(jigsawPool, aliases, 1, maxSize)
-						), result, context,
-						chunkGenerator, structureTemplateManager, structureAccessor
+						portal, dungeons, pos,
+						new PoolEntry(jigsawPool, aliases, 1, maxSize),
+						result, context, chunkGenerator, structureTemplateManager, structureAccessor
 				).thenAccept(
 						dungeon -> {
 							portal.getWorld().getServer().execute(() -> {
@@ -560,12 +607,14 @@ public record Dungeon(
 		public final ServerWorld dungeons;
 		public final BlockPos spawnPos;
 		public final PoolEntry entry;
+		public final BlockBox structureBounds;
 		public boolean foundEntrance = false;
 
-		public Parameters(ServerWorld dungeons, BlockPos spawnPos, PoolEntry entry) {
+		public Parameters(ServerWorld dungeons, BlockPos spawnPos, PoolEntry entry, BlockBox structureBounds) {
 			this.dungeons = dungeons;
 			this.spawnPos = spawnPos;
 			this.entry = entry;
+			this.structureBounds = structureBounds;
 		}
 	}
 }

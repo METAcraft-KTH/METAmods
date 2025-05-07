@@ -13,7 +13,6 @@ import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_core.block.blocks.MusicBlock;
 import se.datasektionen.mc.metacraft_core.block.entities.MusicBlockEntity;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
-import se.datasektionen.mc.metacraft_dungeons.dungeons.DungeonData;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 
 import java.util.Map;
@@ -72,14 +71,8 @@ public class MusicPlayer extends DataBlock {
 						);
 					}
 					case DUNGEON -> {
-						var width = DungeonData.getInstance(parameters.dungeons).getDungeonWidth();
 						musicPlayer.setBoundingBox(
-								new Box(
-										-width/2.0, -width/2.0, -width/2.0,
-										width/2.0, width/2.0, width/2.0
-								).offset(parameters.spawnPos.toCenterPos()).offset(
-										pos.toCenterPos().negate()
-								)
+								Box.from(parameters.structureBounds).offset(pos.toCenterPos().negate())
 						);
 					}
 				}
