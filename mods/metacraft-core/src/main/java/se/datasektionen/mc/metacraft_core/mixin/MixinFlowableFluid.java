@@ -5,6 +5,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.fluid.FlowableFluid;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import se.datasektionen.mc.metacraft_core.block.METAcraftBlocks;
 import se.datasektionen.mc.metacraft_core.block.blocks.PortalCore;
 import se.datasektionen.mc.metacraft_core.block.blocks.PortalPadding;
 
@@ -16,7 +17,7 @@ public class MixinFlowableFluid {
 		at = @At("RETURN")
 	)
 	private static boolean canFill(boolean original, BlockState state) {
-		if (state.getBlock() instanceof PortalCore || state.getBlock() instanceof PortalPadding) {
+		if (state.getBlock() instanceof PortalCore || state.getBlock() instanceof PortalPadding || state.isOf(METAcraftBlocks.MUSIC_PLAYER)) {
 			return false;
 		}
 		return original;
