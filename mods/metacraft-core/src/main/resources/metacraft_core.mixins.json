@@ -30,6 +30,7 @@
 		"MixinElementHolder",
 		"MixinEntity",
 		"MixinExplosionBehavior",
+		"MixinFlowableFluid",
 		"MixinItem",
 		"MixinItem$Settings",
 		"MixinItemStack",
