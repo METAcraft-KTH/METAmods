@@ -6,6 +6,7 @@ import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.serialization.Dynamic;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import net.fabricmc.fabric.api.entity.FakePlayer;
+import net.minecraft.block.entity.SkullBlockEntity;
 import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.*;
@@ -196,7 +197,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 			setCustomName(player.getName());
 		} else {
 			new ProfileComponent(Optional.empty(), Optional.of(id), new PropertyMap()).getFuture().thenAcceptAsync(
-					profile -> setSkin(profile.gameProfile()), this.getServer()
+					profile -> setSkin(profile.gameProfile()), SkullBlockEntity.EXECUTOR
 			);
 		}
 	}
@@ -678,7 +679,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 					getRegistryManager().getOps(NbtOps.INSTANCE), nbt.get(PROFILE)
 			).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(
 				profileComponent -> profileComponent.getFuture().thenAcceptAsync(
-						profile -> setSkin(profile.gameProfile()), this.getServer()
+						profile -> setSkin(profile.gameProfile()), SkullBlockEntity.EXECUTOR
 				)
 			);
 		}
