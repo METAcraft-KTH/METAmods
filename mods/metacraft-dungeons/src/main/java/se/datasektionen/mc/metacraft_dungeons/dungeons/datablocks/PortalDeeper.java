@@ -24,6 +24,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 
 	protected Optional<Orientation> direction;
 	protected Optional<Integer> maxSize;
+	protected Optional<Integer> maxDistanceFromCenter;
 	protected Optional<RegistryKey<StructurePool>> jigsawPool;
 	protected Optional<List<Dungeon.DepthSpecificPoolEntry>> pools;
 	protected Optional<ContainerLock> lock;
@@ -35,6 +36,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 					portal -> portal.jigsawPool
 			),
 			Codec.INT.optionalFieldOf("max_size").forGetter(portal -> portal.maxSize),
+			Codec.INT.optionalFieldOf("max_distance_from_center").forGetter(portal -> portal.maxDistanceFromCenter),
 			Dungeon.DepthSpecificPoolEntry.CODEC.listOf().optionalFieldOf("pools").forGetter(
 					portal -> portal.pools
 			),
@@ -46,12 +48,14 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 			Optional<Orientation> direction,
 			Optional<RegistryKey<StructurePool>> jigsawPool,
 			Optional<Integer> maxSize,
+			Optional<Integer> maxDistanceFromCenter,
 			Optional<List<Dungeon.DepthSpecificPoolEntry>> pools,
 			Optional<ContainerLock> lock
 	) {
 		this.direction = direction;
 		this.jigsawPool = jigsawPool;
 		this.maxSize = maxSize;
+		this.maxDistanceFromCenter = maxDistanceFromCenter;
 		this.pools = pools;
 		this.lock = lock;
 	}
@@ -93,6 +97,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 								parameters.dungeons.getRegistryKey(),
 								jigsawPool.orElse(parameters.entry.jigsawPool()),
 								maxSize.orElse(parameters.entry.maxSize()),
+								maxDistanceFromCenter.or(() -> parameters.entry.maxDistanceFromCenter()),
 								parameters.entry.aliases(),
 								Optional.empty(),
 								this.pools.orElse(pools),

@@ -31,7 +31,7 @@ public class MultiDataBlockMergeTest {
 					pos.toImmutable(), null, new PortalDeeper(
 							Optional.empty(), Optional.empty(),
 						Optional.empty(), Optional.empty(),
-						Optional.empty()
+						Optional.empty(), Optional.empty()
 					)
 				)
 			);
@@ -42,7 +42,7 @@ public class MultiDataBlockMergeTest {
 					pos.toImmutable(), null, new PortalDeeper(
 							Optional.empty(), Optional.empty(),
 						Optional.empty(), Optional.empty(),
-						Optional.empty()
+						Optional.empty(), Optional.empty()
 					)
 				)
 			);

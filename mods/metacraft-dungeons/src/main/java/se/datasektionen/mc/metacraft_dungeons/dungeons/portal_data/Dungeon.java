@@ -62,7 +62,7 @@ import java.util.stream.Stream;
 public record Dungeon(
 		RegistryKey<World> dungeonDimension,
 		RegistryKey<StructurePool> jigsawPool,
-		int maxSize,
+		int maxSize, Optional<Integer> maxDistanceFromCenter,
 		List<StructurePoolAliasBinding> aliases,
 		Optional<BlockPos> currentDungeon,
 		List<DepthSpecificPoolEntry> pools,
@@ -103,6 +103,7 @@ public record Dungeon(
 					World.CODEC.fieldOf("dungeon_dimension").forGetter(Dungeon::dungeonDimension),
 					RegistryKey.createCodec(RegistryKeys.TEMPLATE_POOL).fieldOf("jigsaw_pool").forGetter(Dungeon::jigsawPool),
 					Codec.INT.fieldOf("max_size").forGetter(Dungeon::maxSize),
+					Codec.INT.optionalFieldOf("max_distance_from_center").forGetter(Dungeon::maxDistanceFromCenter),
 					ALIAS_BINDING_LIST_CODEC.optionalFieldOf("pool_aliases", List.of()).forGetter(Dungeon::aliases),
 					BlockPos.CODEC.optionalFieldOf("current_dungeon").forGetter(Dungeon::currentDungeon),
 					DepthSpecificPoolEntry.CODEC.listOf().optionalFieldOf("pools", List.of()).forGetter(Dungeon::pools),
@@ -114,7 +115,7 @@ public record Dungeon(
 	public Dungeon(
 			RegistryKey<World> dungeonDimension,
 			RegistryKey<StructurePool> jigsawPool,
-			int maxSize,
+			int maxSize, Optional<Integer> maxDistanceFromCenter,
 			List<StructurePoolAliasBinding> aliases,
 			Optional<BlockPos> currentDungeon,
 			List<DepthSpecificPoolEntry> pools,
@@ -122,7 +123,7 @@ public record Dungeon(
 			int depthOffset
 	) {
 		this(
-				dungeonDimension, jigsawPool, maxSize, aliases, currentDungeon,
+				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases, currentDungeon,
 				pools, dungeonDepth, depthOffset, false, EMPTY_PLAYERS, List.of()
 		);
 	}
@@ -136,7 +137,7 @@ public record Dungeon(
 	public Dungeon withPlayer(ServerPlayerEntity player) {
 		if (playersToNotify.contains(player)) return this;
 		return new Dungeon(
-				dungeonDimension, jigsawPool, maxSize, aliases,
+				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases,
 				currentDungeon, pools, dungeonDepth, depthOffset,
 				generating, playersToNotify.plus(player),
 				portalsToInitialize
@@ -146,7 +147,7 @@ public record Dungeon(
 	public Dungeon clearPlayers() {
 		if (playersToNotify.isEmpty()) return this;
 		return new Dungeon(
-				dungeonDimension, jigsawPool, maxSize, aliases,
+				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases,
 				currentDungeon, pools, dungeonDepth, depthOffset,
 				generating, EMPTY_PLAYERS, portalsToInitialize
 		);
@@ -155,7 +156,7 @@ public record Dungeon(
 	public Dungeon withDungeon(BlockPos dungeon) {
 		if (Objects.equals(currentDungeon.orElse(null), dungeon)) return this;
 		return new Dungeon(
-				dungeonDimension, jigsawPool, maxSize, aliases,
+				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases,
 				Optional.ofNullable(dungeon), pools, dungeonDepth, depthOffset,
 				generating, playersToNotify, portalsToInitialize
 		);
@@ -164,7 +165,7 @@ public record Dungeon(
 	public Dungeon asGenerating(boolean generating) {
 		if (generating == this.generating) return this;
 		return new Dungeon(
-				dungeonDimension, jigsawPool, maxSize, aliases,
+				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases,
 				currentDungeon, pools, dungeonDepth, depthOffset,
 				generating, playersToNotify, portalsToInitialize
 		);
@@ -173,7 +174,7 @@ public record Dungeon(
 	public Dungeon withPortalsToInitialize(List<BlockPos> portalsToInitialize) {
 		if (this.portalsToInitialize == portalsToInitialize || (this.portalsToInitialize.isEmpty() && portalsToInitialize.isEmpty())) return this;
 		return new Dungeon(
-				dungeonDimension, jigsawPool, maxSize, aliases,
+				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases,
 				currentDungeon, pools, dungeonDepth, depthOffset,
 				generating, playersToNotify, portalsToInitialize
 		);
@@ -547,7 +548,7 @@ public record Dungeon(
 			);
 			var result = StructurePoolBasedGenerator.generate(
 					context, structurePool, Optional.empty(), maxSize, pos, false,
-					Optional.empty(), dungeonData.getDungeonWidth()/2,
+					Optional.empty(), maxDistanceFromCenter.orElse(dungeonData.getDungeonWidth()/2),
 					StructurePoolAliasLookup.create(aliases, pos, dungeons.getRandom().nextLong()), new DimensionPadding(0),
 					StructureLiquidSettings.IGNORE_WATERLOGGING
 			);
@@ -557,7 +558,7 @@ public record Dungeon(
 				setNewState(portal, asGenerating(true), false);
 				generateDungeon(
 						portal, dungeons, pos,
-						new PoolEntry(jigsawPool, aliases, 1, maxSize),
+						new PoolEntry(jigsawPool, aliases, 1, maxSize, maxDistanceFromCenter),
 						result, context, chunkGenerator, structureTemplateManager, structureAccessor
 				).thenAccept(
 						dungeon -> {
@@ -597,7 +598,7 @@ public record Dungeon(
 	public record PoolEntry(
 			RegistryKey<StructurePool> jigsawPool,
 			List<StructurePoolAliasBinding> aliases,
-			int depthOffset, int maxSize
+			int depthOffset, int maxSize, Optional<Integer> maxDistanceFromCenter
 	) {
 
 	}
