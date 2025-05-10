@@ -3,6 +3,7 @@ package se.datasektionen.mc.metacraft_dungeons.dungeons;
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.block.Block;
 import net.minecraft.entity.*;
 import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -402,17 +403,17 @@ public class DungeonData extends PersistentState {
 						var centerPos = pos.toCenterPos();
 						world.spawnParticles(
 								new BlockStateParticleEffect(ParticleTypes.FALLING_DUST, world.getBlockState(pos)),
-								centerPos.x, centerPos.y-3, centerPos.z, 10,
+								centerPos.x, centerPos.y-3, centerPos.z, 5,
 								player.getRandom().nextDouble(),
 								player.getRandom().nextDouble() * 3,
 								player.getRandom().nextDouble(),
 								1
 						);
-						if (world.getBlockState(pos.down()).isAir() && world.getBlockEntity(pos) == null) {
+						if (world.getBlockState(pos.down()).isAir() && world.getBlockEntity(pos) == null && player.getRandom().nextDouble() > 0.5) {
 							var falling = FallingBlockEntity.spawnFromBlock(world, pos, world.getBlockState(pos));
 							falling.dropItem = false;
 						} else {
-							world.breakBlock(pos, false);
+							world.setBlockState(pos, world.getBlockState(pos).getFluidState().getBlockState(), Block.NOTIFY_LISTENERS | Block.SKIP_DROPS);
 						}
 					}
 				}
