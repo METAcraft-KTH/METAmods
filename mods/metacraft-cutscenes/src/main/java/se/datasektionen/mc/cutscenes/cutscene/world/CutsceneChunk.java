@@ -19,6 +19,8 @@ public class CutsceneChunk extends WorldChunk {
 		var data = new ChunkData(chunk);
 		this.loadFromPacket(data.getSectionsDataBuf(), data.getHeightmap(), data.getBlockEntities(chunk.getPos().x, chunk.getPos().z));
 		this.setLevelTypeProvider(chunk::getLevelType);
+		setLoadedToWorld(true);
+		updateAllBlockEntities();
 	}
 
 	@Override
