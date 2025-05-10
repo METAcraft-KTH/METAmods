@@ -165,6 +165,10 @@ public class WorldDeleter {
 					});
 					modified = true;
 				}
+				if (player.getSpawnPointDimension() == world.getRegistryKey()) {
+					player.setSpawnPoint(ServerWorld.OVERWORLD, null, 0, false, false);
+					modified = true;
+				}
 				List<EnderPearlEntity> toRemove = new ArrayList<>();
 				for (var pearl : player.getEnderPearls()) {
 					if (pearl.getWorld() == world) {

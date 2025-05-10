@@ -465,6 +465,10 @@ public class DungeonData extends PersistentState {
 					pearlsToRemove.add(pearl);
 				}
 			}
+			if (player.getSpawnPointDimension() == world.getRegistryKey()) {
+				player.setSpawnPoint(ServerWorld.OVERWORLD, null, 0, false, false);
+				player.sendMessage(Text.literal("Respawn point reset"));
+			}
 		}
 		pearlsToRemove.forEach(EnderPearlEntity::discard);
 		markDirty();
