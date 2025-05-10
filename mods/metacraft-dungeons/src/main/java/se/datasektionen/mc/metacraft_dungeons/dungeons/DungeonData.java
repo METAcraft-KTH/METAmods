@@ -575,7 +575,7 @@ public class DungeonData extends PersistentState {
 				world.setBlockState(spherePos, METAcraftBlocks.PORTAL_PADDING.getDefaultState());
 			} else if (spherePos.isWithinDistance(pos, 15)) {
 				if (!world.isAir(spherePos)) {
-					world.breakBlock(spherePos, false);
+					world.setBlockState(spherePos, world.getBlockState(spherePos).getFluidState().getBlockState());
 				}
 			}
 		}
