@@ -227,6 +227,7 @@ public record Dungeon(
 		}
 		if (chosenEntry != null && chosenEntry != this) {
 			portal.setTarget(chosenEntry, true);
+			portal.initializeTarget();
 			chosenEntry.getFixedTarget(portal).ifPresent(
 					t -> {
 						if (t.dimension() != dungeonDimension && portal.getWorld().getRegistryKey() == dungeonDimension) {
