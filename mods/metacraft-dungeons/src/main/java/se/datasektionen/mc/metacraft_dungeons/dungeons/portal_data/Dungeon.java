@@ -36,6 +36,7 @@ import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 import net.minecraft.world.gen.structure.DimensionPadding;
 import net.minecraft.world.gen.structure.Structure;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.HashTreePSet;
 import org.pcollections.PSet;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
@@ -70,7 +71,8 @@ public record Dungeon(
 		int depthOffset,
 		boolean generating,
 		PSet<ServerPlayerEntity> playersToNotify,
-		List<BlockPos> portalsToInitialize
+		List<BlockPos> portalsToInitialize,
+		int tries
 ) implements PortalTarget {
 
 	private static final Codec<List<StructurePoolAliasBinding>> ALIAS_BINDING_LIST_CODEC = StructurePoolAliasBinding.CODEC.listOf();
@@ -108,7 +110,8 @@ public record Dungeon(
 					BlockPos.CODEC.optionalFieldOf("current_dungeon").forGetter(Dungeon::currentDungeon),
 					DepthSpecificPoolEntry.CODEC.listOf().optionalFieldOf("pools", List.of()).forGetter(Dungeon::pools),
 					Codec.INT.optionalFieldOf("dungeon_depth", 0).forGetter(Dungeon::dungeonDepth),
-					Codec.INT.optionalFieldOf("depth_offset", 1).forGetter(Dungeon::depthOffset)
+					Codec.INT.optionalFieldOf("depth_offset", 1).forGetter(Dungeon::depthOffset),
+					Codec.INT.optionalFieldOf("tries", 0).forGetter(Dungeon::tries)
 			).apply(instance, Dungeon::new)
 	);
 	
@@ -120,11 +123,12 @@ public record Dungeon(
 			Optional<BlockPos> currentDungeon,
 			List<DepthSpecificPoolEntry> pools,
 			int dungeonDepth,
-			int depthOffset
+			int depthOffset,
+			int tries
 	) {
 		this(
 				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases, currentDungeon,
-				pools, dungeonDepth, depthOffset, false, EMPTY_PLAYERS, List.of()
+				pools, dungeonDepth, depthOffset, false, EMPTY_PLAYERS, List.of(), tries
 		);
 	}
 	
@@ -140,7 +144,7 @@ public record Dungeon(
 				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases,
 				currentDungeon, pools, dungeonDepth, depthOffset,
 				generating, playersToNotify.plus(player),
-				portalsToInitialize
+				portalsToInitialize, tries
 		);
 	}
 	
@@ -149,7 +153,7 @@ public record Dungeon(
 		return new Dungeon(
 				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases,
 				currentDungeon, pools, dungeonDepth, depthOffset,
-				generating, EMPTY_PLAYERS, portalsToInitialize
+				generating, EMPTY_PLAYERS, portalsToInitialize, tries
 		);
 	}
 	
@@ -158,7 +162,7 @@ public record Dungeon(
 		return new Dungeon(
 				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases,
 				Optional.ofNullable(dungeon), pools, dungeonDepth, depthOffset,
-				generating, playersToNotify, portalsToInitialize
+				generating, playersToNotify, portalsToInitialize, tries
 		);
 	}
 	
@@ -167,7 +171,7 @@ public record Dungeon(
 		return new Dungeon(
 				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases,
 				currentDungeon, pools, dungeonDepth, depthOffset,
-				generating, playersToNotify, portalsToInitialize
+				generating, playersToNotify, portalsToInitialize, tries
 		);
 	}
 
@@ -176,10 +180,17 @@ public record Dungeon(
 		return new Dungeon(
 				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases,
 				currentDungeon, pools, dungeonDepth, depthOffset,
-				generating, playersToNotify, portalsToInitialize
+				generating, playersToNotify, portalsToInitialize, tries
 		);
 	}
-	
+
+	public Dungeon withTries(int tries) {
+		return new Dungeon(
+				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases,
+				currentDungeon, pools, dungeonDepth, depthOffset,
+				generating, playersToNotify, portalsToInitialize, tries
+		);
+	}
 	
 
 	private ServerWorld getDungeonDimension(MinecraftServer server) {
@@ -520,9 +531,12 @@ public record Dungeon(
 			generate(portal);
 		}
 	}
+	private void generate(PortalEntity portal) {
+		generate(portal, null);
+	}
 
 	private void generate(
-			PortalEntity portal
+			PortalEntity portal, @Nullable BlockPos predefinedPos
 	) {
 		ServerWorld dungeons = getDungeonDimension(portal.getWorld().getServer());
 		if (dungeons != null) {
@@ -531,7 +545,7 @@ public record Dungeon(
 				METAcraftDungeons.LOGGER.warn("Entrance at " + portal.getPos() + " tried to generate dungeon while resetting.");
 				return;
 			}
-			BlockPos pos = dungeonData.getNextSpawnPos();
+			BlockPos pos = predefinedPos != null ? predefinedPos : dungeonData.getNextSpawnPos();
 
 			var poolRegistry = dungeons.getRegistryManager().getOrThrow(RegistryKeys.TEMPLATE_POOL);
 			if (!poolRegistry.contains(jigsawPool)) {
@@ -565,7 +579,20 @@ public record Dungeon(
 							portal.getWorld().getServer().execute(() -> {
 								var target = portal.getTarget();
 								if (target instanceof Dungeon d) {
-									setNewState(portal, dungeon.apply(d), true);
+									var resultDungeon = dungeon.apply(d);
+									if (resultDungeon.currentDungeon.isPresent()) {
+										resultDungeon = resultDungeon.withTries(0);
+									} else {
+										resultDungeon = resultDungeon.withTries(resultDungeon.tries+1);
+										if (resultDungeon.tries < 3) {
+											METAcraftDungeons.LOGGER.warn("Failed to find entrance for dungeon with entrance at {}, trying again", portal.getPos().toShortString());
+											resultDungeon.generate(portal, pos);
+											return;
+										} else {
+											METAcraftDungeons.LOGGER.error("Gave up trying to find entrance for dungeon with entrance at {}", portal.getPos().toShortString());
+										}
+									}
+									setNewState(portal, resultDungeon, true);
 								}
 							});
 						}
