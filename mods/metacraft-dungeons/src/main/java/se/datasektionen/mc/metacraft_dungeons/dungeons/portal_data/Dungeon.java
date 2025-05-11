@@ -110,8 +110,7 @@ public record Dungeon(
 					BlockPos.CODEC.optionalFieldOf("current_dungeon").forGetter(Dungeon::currentDungeon),
 					DepthSpecificPoolEntry.CODEC.listOf().optionalFieldOf("pools", List.of()).forGetter(Dungeon::pools),
 					Codec.INT.optionalFieldOf("dungeon_depth", 0).forGetter(Dungeon::dungeonDepth),
-					Codec.INT.optionalFieldOf("depth_offset", 1).forGetter(Dungeon::depthOffset),
-					Codec.INT.optionalFieldOf("tries", 0).forGetter(Dungeon::tries)
+					Codec.INT.optionalFieldOf("depth_offset", 1).forGetter(Dungeon::depthOffset)
 			).apply(instance, Dungeon::new)
 	);
 	
@@ -123,12 +122,11 @@ public record Dungeon(
 			Optional<BlockPos> currentDungeon,
 			List<DepthSpecificPoolEntry> pools,
 			int dungeonDepth,
-			int depthOffset,
-			int tries
+			int depthOffset
 	) {
 		this(
 				dungeonDimension, jigsawPool, maxSize, maxDistanceFromCenter, aliases, currentDungeon,
-				pools, dungeonDepth, depthOffset, false, EMPTY_PLAYERS, List.of(), tries
+				pools, dungeonDepth, depthOffset, false, EMPTY_PLAYERS, List.of(), 0
 		);
 	}
 	
@@ -517,7 +515,7 @@ public record Dungeon(
 							}
 							return d.onThreadStop(onExit);
 						};
-					}).join();	
+					}).join();
 				},
 				DUNGEONS
 		);

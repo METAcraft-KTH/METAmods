@@ -102,7 +102,7 @@ public class PortalDeeper extends DataBlock implements MultiDataBlock {
 								Optional.empty(),
 								this.pools.orElse(pools),
 								newDepth,
-								offset, 0
+								offset
 						)
 				);
 			}
