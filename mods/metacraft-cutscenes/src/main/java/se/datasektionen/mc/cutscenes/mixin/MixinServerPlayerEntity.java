@@ -18,9 +18,11 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.cutscenes.Cutscenes;
+import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
 import se.datasektionen.mc.cutscenes.extension.EntityExtension;
 import se.datasektionen.mc.cutscenes.extension.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
@@ -124,6 +126,14 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 				cutscene = null;
 			}
 		}
+	}
+
+	@ModifyVariable(method = "teleportTo", at = @At("HEAD"), argsOnly = true)
+	public TeleportTarget fixTeleportToCutscene(TeleportTarget teleportTarget) {
+		if (teleportTarget.world() instanceof CutsceneWorld cw) {
+			((AccessorTeleportTarget) (Object) teleportTarget).setWorld(cw.getActualWorld());
+		}
+		return teleportTarget;
 	}
 
 	@Inject(method = "teleportTo", at = @At("HEAD"), cancellable = true)
