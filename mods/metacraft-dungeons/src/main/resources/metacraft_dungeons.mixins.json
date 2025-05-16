@@ -5,6 +5,7 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"AccessorMinecraftServer",
+		"AccessorPlayerSaveHandler",
 		"MixinChunkGenerating",
 		"MixinConfigManager",
 		"MixinServerChunkManager",

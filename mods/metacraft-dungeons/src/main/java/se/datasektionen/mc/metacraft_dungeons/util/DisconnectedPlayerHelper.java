@@ -1,78 +1,53 @@
 package se.datasektionen.mc.metacraft_dungeons.util;
 
 import com.mojang.authlib.GameProfile;
+import com.mojang.serialization.Dynamic;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.impl.event.interaction.FakePlayerNetworkHandler;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.network.packet.c2s.common.SyncedClientOptions;
+import net.minecraft.datafixer.DataFixTypes;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.*;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.integrated.IntegratedPlayerManager;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.DateTimeFormatters;
+import net.minecraft.util.Util;
 import net.minecraft.util.WorldSavePath;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.PlayerSaveHandler;
 import net.minecraft.world.World;
+import net.minecraft.world.dimension.DimensionType;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorIntegratedPlayerManager;
 import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorMinecraftServer;
-import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
+import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorPlayerSaveHandler;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class DisconnectedPlayerHelper {
 
-	private static void loadPlayerData(
-			ServerPlayerEntity player, MinecraftServer server, PlayerSaveHandler handler
-	) {
-		player.networkHandler = new FakePlayerNetworkHandler(player);
-		var nbt = handler.loadPlayerData(player).orElse(null);
-		var world = server.getWorld(
-				nbt != null && nbt.contains("Dimension") ? World.CODEC.parse(
-						NbtOps.INSTANCE, nbt.get("Dimension")
-				).resultOrPartial(METAcraftDungeons.LOGGER::error).orElse(World.OVERWORLD) : World.OVERWORLD
+	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatters.create();
+
+	private static GameProfile getProfile(UUID id, MinecraftServer server) {
+		return Optional.ofNullable(server.getUserCache()).flatMap(cache -> cache.getByUuid(id)).orElse(
+				new GameProfile(id, "missingno")
 		);
-		player.setServerWorld(world != null ? world : server.getOverworld());
-		player.readGameModeNbt(nbt);
-		if (nbt != null) {
-			PlayerDataHelper.loadRootVehicle(player, nbt, e -> e);
-			if (nbt.contains(ServerPlayerEntity.ENDER_PEARLS_KEY, NbtElement.LIST_TYPE)) {
-				if (nbt.get(ServerPlayerEntity.ENDER_PEARLS_KEY) instanceof NbtList l) {
-					for (var d : l) {
-						if (d instanceof NbtCompound pearl) {
-							if (pearl.contains(ServerPlayerEntity.ENDER_PEARLS_DIMENSION_KEY)) {
-								World.CODEC.parse(
-										NbtOps.INSTANCE, pearl.get(ServerPlayerEntity.ENDER_PEARLS_DIMENSION_KEY)
-								).resultOrPartial(METAcraftDungeons.LOGGER::error).map(
-										server::getWorld
-								).ifPresent(dim -> {
-									var pearlEntity = EntityType.loadEntityWithPassengers(
-											pearl, dim, SpawnReason.LOAD, e -> e
-									);
-									if (pearlEntity instanceof EnderPearlEntity e) {
-										player.getEnderPearls().add(e);
-									}
-								});
-
-							}
-						}
-					}
-				}
-			}
-		}
 	}
-
 
 	/**
 	 * Runs code for all players who are not connected to the server at that point.
@@ -82,7 +57,7 @@ public class DisconnectedPlayerHelper {
 	 * @param playerAction What to do with the player. It's a predicate to allow you to choose weather or not to save. Return true to save the player data, false to not save.
 	 */
 	protected static void forAllDisconnectedPlayers(
-			MinecraftServer server, Predicate<UUID> isPlayerOnline, Predicate<ServerPlayerEntity> playerAction
+			MinecraftServer server, Predicate<UUID> isPlayerOnline, Predicate<NbtCompound> playerAction
 	) {
 		PlayerSaveHandler handler = ((AccessorMinecraftServer)server).getSaveHandler();
 		var playerDir = ((AccessorMinecraftServer) server).getSession().getDirectory(WorldSavePath.PLAYERDATA).toFile();
@@ -97,15 +72,12 @@ public class DisconnectedPlayerHelper {
 
 				if (isPlayerOnline.test(uuid)) continue;
 
-				ServerPlayerEntity player = server.getPlayerManager().createPlayer(
-						Optional.ofNullable(server.getUserCache()).flatMap(cache -> cache.getByUuid(uuid)).orElse(
-							new GameProfile(uuid, "Player")
-						),
-						SyncedClientOptions.createDefault()
-				);
-				loadPlayerData(player, server, handler);
-				if (playerAction.test(player)) {
-					handler.savePlayerData(player);
+				var profile = getProfile(uuid, server);
+				var nbt = loadPlayerData(profile, handler).orElse(null);
+				if (nbt != null) {
+					if (playerAction.test(nbt)) {
+						savePlayerData(profile, nbt, handler);
+					}
 				}
 			} catch (IllegalArgumentException e) {
 				METAcraftDungeons.LOGGER.error(
@@ -115,21 +87,75 @@ public class DisconnectedPlayerHelper {
 		}
 		NbtCompound singlePlayer = server.getSaveProperties().getPlayerData();
 		if (singlePlayer != null && FabricLoader.getInstance().getEnvironmentType().equals(EnvType.CLIENT)) {
-			ServerPlayerEntity player = server.getPlayerManager().createPlayer(
-					new GameProfile(UUID.randomUUID(), "Player"),
-					SyncedClientOptions.createDefault()
-			);
-			loadPlayerData(player, server, handler);
-			if (playerAction.test(player)) {
-				updateUserData(server.getPlayerManager(), player);
+			if (playerAction.test(singlePlayer)) {
+				updateUserData(server.getPlayerManager(), singlePlayer);
 			}
 		}
 	}
 
+	private static void savePlayerData(GameProfile player, NbtCompound nbt, PlayerSaveHandler handler) {
+		try {
+			NbtHelper.putDataVersion(nbt);
+			var uuid = player.getId().toString();
+			Path path = ((AccessorPlayerSaveHandler) handler).getPlayerDataDir().toPath();
+			Path tmp = Files.createTempFile(path, uuid + "-", ".dat");
+			NbtIo.writeCompressed(nbt, tmp);
+			Path data = path.resolve(uuid + ".dat");
+			Path old = path.resolve(uuid + ".dat_old");
+			Util.backupAndReplace(data, tmp, old);
+		} catch (Exception var7) {
+			METAcraftDungeons.LOGGER.warn("Failed to save player data for {}", player.getName());
+		}
+	}
+
+	private static Optional<NbtCompound> loadPlayerData(GameProfile player, String extension, PlayerSaveHandler handler) {
+		File path = ((AccessorPlayerSaveHandler) handler).getPlayerDataDir();
+		String uuid = player.getId().toString();
+		File file = new File(path, uuid + extension);
+		if (file.exists() && file.isFile()) {
+			try {
+				return Optional.of(NbtIo.readCompressed(file.toPath(), NbtSizeTracker.ofUnlimitedBytes()));
+			} catch (Exception var5) {
+				METAcraftDungeons.LOGGER.warn("Failed to load player data for {}", player.getName());
+			}
+		}
+
+		return Optional.empty();
+	}
+
+	private static void backupCorruptedPlayerData(GameProfile player, String extension, PlayerSaveHandler handler) {
+		Path path = ((AccessorPlayerSaveHandler) handler).getPlayerDataDir().toPath();
+		String uuid = player.getId().toString();
+		Path data = path.resolve(uuid + extension);
+		Path corrupted = path.resolve(uuid + "_corrupted_" + LocalDateTime.now().format(DATE_TIME_FORMATTER) + extension);
+		if (Files.isRegularFile(data, new LinkOption[0])) {
+			try {
+				Files.copy(data, corrupted, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+			} catch (Exception exception) {
+				METAcraftDungeons.LOGGER.warn("Failed to copy the player.dat file for {}", player.getName(), exception);
+			}
+
+		}
+	}
+
+	private static Optional<NbtCompound> loadPlayerData(GameProfile player, PlayerSaveHandler handler) {
+		Optional<NbtCompound> optional = loadPlayerData(player, ".dat", handler);
+		if (optional.isEmpty()) {
+			backupCorruptedPlayerData(player, ".dat", handler);
+		}
+
+		return optional.or(() -> loadPlayerData(player, ".dat_old", handler)).map((nbt) -> {
+			int i = NbtHelper.getDataVersion(nbt, -1);
+			nbt = DataFixTypes.PLAYER.update(((AccessorPlayerSaveHandler) handler).getDataFixer(), nbt, i);
+			return nbt;
+		});
+	}
+
 	@Environment(EnvType.CLIENT)
-	public static void updateUserData(PlayerManager manager, ServerPlayerEntity player) {
+	public static void updateUserData(PlayerManager manager, NbtCompound nbt) {
 		if (manager instanceof IntegratedPlayerManager) {
-			((AccessorIntegratedPlayerManager)manager).setUserData(player.writeNbt(new NbtCompound()));
+			NbtHelper.putDataVersion(nbt);
+			((AccessorIntegratedPlayerManager)manager).setUserData(nbt);
 		}
 	}
 
@@ -139,7 +165,7 @@ public class DisconnectedPlayerHelper {
 	 * @param server The server to get players from.
 	 * @param playerAction What to do with the player. It's a predicate to allow you to choose weather or not to save. Return true to save the player data, false to not save.
 	 */
-	public static void forAllDisconnectedPlayers(MinecraftServer server, Predicate<ServerPlayerEntity> playerAction) {
+	public static void forAllDisconnectedPlayers(MinecraftServer server, Predicate<NbtCompound> playerAction) {
 		forAllDisconnectedPlayers(server, uuid -> {
 			for (ServerPlayerEntity onlinePlayer : server.getPlayerManager().getPlayerList()) {
 				if (onlinePlayer.getUuid().equals(uuid)) return true;
@@ -148,14 +174,102 @@ public class DisconnectedPlayerHelper {
 		}, playerAction);
 	}
 
+	public static RegistryKey<World> getPlayerDim(NbtCompound nbt) {
+		return DimensionType.worldFromDimensionNbt(new Dynamic<>(NbtOps.INSTANCE, nbt.get("Dimension"))).resultOrPartial().orElse(World.OVERWORLD);
+	}
+
+	public static RegistryKey<World> getEnderPearlDim(NbtCompound nbt) {
+		return World.CODEC.parse(NbtOps.INSTANCE, nbt.get(ServerPlayerEntity.ENDER_PEARLS_DIMENSION_KEY)).resultOrPartial().orElse(World.OVERWORLD);
+	}
+
+	public static void setDim(NbtCompound nbt, RegistryKey<World> dim) {
+		nbt.putString("Dimension", dim.getValue().toString());
+	}
+
+	public static void modifyPassengersAndRootVehicle(NbtCompound player, Consumer<NbtCompound> nbtModifier) {
+		nbtModifier.accept(player);
+		if (player.contains("RootVehicle")) {
+			var entity = player.getCompound("RootVehicle").getCompound("Entity");
+			modifyPassengersAndRootVehicle(entity, nbtModifier);
+		}
+		if (player.contains(PlayerEntity.PASSENGERS_KEY)) {
+			var list = player.getList(PlayerEntity.PASSENGERS_KEY, NbtElement.COMPOUND_TYPE);
+			for (var e : list) {
+				if (e instanceof NbtCompound passenger) {
+					modifyPassengersAndRootVehicle(passenger, nbtModifier);
+				}
+			}
+		}
+	}
+
+	private static NbtList toNbtList(double... values) {
+		NbtList nbtList = new NbtList();
+
+		for(double d : values) {
+			nbtList.add(NbtDouble.of(d));
+		}
+
+		return nbtList;
+	}
+
+	private static NbtList toNbtList(float... values) {
+		NbtList nbtList = new NbtList();
+
+		for(float f : values) {
+			nbtList.add(NbtFloat.of(f));
+		}
+
+		return nbtList;
+	}
+
+	public static void setPos(NbtCompound nbt, Vec3d pos) {
+		nbt.put("Pos", toNbtList(pos.getX(), pos.getY(), pos.getZ()));
+	}
+
+	public static void setVelocity(NbtCompound nbt, Vec3d velocity) {
+		nbt.put("Motion", toNbtList(velocity.getX(), velocity.getY(), velocity.getZ()));
+	}
+
+	public static Vec3d getVelocity(NbtCompound nbt) {
+		var velocity = nbt.getList("Motion", NbtElement.DOUBLE_TYPE);
+		return new Vec3d(velocity.getDouble(0), velocity.getDouble(1), velocity.getDouble(2));
+	}
+
+	public static float getYaw(NbtCompound nbt) {
+		var rot = nbt.getList("Rotation", NbtElement.FLOAT_TYPE);
+		return rot.getFloat(0);
+	}
+
+	public static float getPitch(NbtCompound nbt) {
+		var rot = nbt.getList("Rotation", NbtElement.FLOAT_TYPE);
+		return rot.getFloat(1);
+	}
+
+	public static void setRotation(NbtCompound nbt, float yaw, float pitch) {
+		nbt.put("Rotation", toNbtList(yaw, pitch));
+	}
+
+	public static RegistryKey<World> getSpawnPointDimension(NbtCompound nbt) {
+		return World.CODEC.parse(NbtOps.INSTANCE, nbt.get("SpawnDimension")).resultOrPartial().orElse(World.OVERWORLD);
+	}
+
+	public static void removeSpawnPoint(NbtCompound nbt) {
+		nbt.remove("SpawnX");
+		nbt.remove("SpawnY");
+		nbt.remove("SpawnZ");
+		nbt.remove("SpawnForced");
+		nbt.remove("SpawnAngle");
+		nbt.remove("SpawnDimension");
+	}
+
 	/**
 	 * Runs code for all players who are not connected to the server at that point.
 	 * Use caution, certain things might crash the game, these are not real player entities in the world, just abstract ones for easier representation!
 	 * @param world The world to get players from. Only players in this world will be affected.
 	 * @param playerAction What to do with the player. It's a predicate to allow you to choose weather or not to save. Return true to save the player data, false to not save.
 	 */
-	public static void forAllDisconnectedPlayers(ServerWorld world, Predicate<ServerPlayerEntity> playerAction) {
-		Predicate<ServerPlayerEntity> isInCorrectWorld = player -> world.equals(player.getWorld());
+	public static void forAllDisconnectedPlayers(ServerWorld world, Predicate<NbtCompound> playerAction) {
+		Predicate<NbtCompound> isInCorrectWorld = player -> world.getRegistryKey() == getPlayerDim(player);
 		forAllDisconnectedPlayers(world.getServer(), isInCorrectWorld.and(playerAction));
 	}
 

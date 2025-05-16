@@ -2,7 +2,8 @@ package se.datasektionen.mc.metacraft_dungeons.util;
 
 import com.google.common.collect.ImmutableList;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
-import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -11,6 +12,7 @@ import net.minecraft.text.Text;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.biome.source.BiomeAccess;
 import net.minecraft.world.level.UnmodifiableLevelProperties;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.extensions.ServerWorldExtension;
 import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorMinecraftServer;
@@ -25,7 +27,6 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -134,7 +135,7 @@ public class WorldDeleter {
 	public static void deleteWorldKillingPlayers(ServerWorld world, Runnable onCompleted, Predicate<Path> filesToNotRemove) {
 		delete(world, onCompleted, filesToNotRemove, () -> {
 			DisconnectedPlayerHelper.forAllDisconnectedPlayers(world, player -> {
-				player.kill(world);
+				player.putFloat("Health", 0);
 				return true;
 			});
 		});
@@ -149,37 +150,40 @@ public class WorldDeleter {
 
 	public static void deleteWorldTeleportingPlayers(
 			ServerWorld world, Runnable onCompleted, Predicate<Path> filesToNotRemove,
-			Function<ServerPlayerEntity, TeleportTarget> targetPos
+			Function<NbtCompound, TeleportTarget> targetPos
 	) {
 		delete(world, onCompleted, filesToNotRemove, () -> {
 			DisconnectedPlayerHelper.forAllDisconnectedPlayers(world.getServer(), player -> {
-				boolean modified = false;
-				if (player.getWorld() == world) {
+				MutableBoolean modified = new MutableBoolean(false);
+				if (DisconnectedPlayerHelper.getPlayerDim(player) == world.getRegistryKey()) {
 					TeleportTarget target = targetPos.apply(player);
-					player.setServerWorld(target.world()); //We don't teleport players who are not online because we don't want to crash the game. We just set the values instead.
-					player.getRootVehicle().streamSelfAndPassengers().forEach(entity -> {
-						entity.setPos(target.position().x, target.position().y, target.position().z);
-						entity.setVelocity(target.velocity());
-						entity.setYaw(target.yaw());
-						entity.setPitch(target.pitch());
+					DisconnectedPlayerHelper.setDim(player, target.world().getRegistryKey());
+					DisconnectedPlayerHelper.modifyPassengersAndRootVehicle(
+							player, entity -> {
+								DisconnectedPlayerHelper.setPos(entity, target.position());
+								DisconnectedPlayerHelper.setVelocity(entity, target.position());
+								DisconnectedPlayerHelper.setRotation(entity, target.yaw(), target.pitch());
+							}
+					);
+					modified.setTrue();
+				}
+				if (DisconnectedPlayerHelper.getSpawnPointDimension(player) == world.getRegistryKey()) {
+					DisconnectedPlayerHelper.removeSpawnPoint(player);
+					modified.setTrue();
+				}
+				if (player.contains(ServerPlayerEntity.ENDER_PEARLS_KEY)) {
+					var list = player.getList(ServerPlayerEntity.ENDER_PEARLS_KEY, NbtElement.COMPOUND_TYPE);
+					list.removeIf(nbt -> {
+						if (nbt instanceof NbtCompound pearl) {
+							if (DisconnectedPlayerHelper.getEnderPearlDim(pearl) == world.getRegistryKey()) {
+								modified.setTrue();
+								return true;
+							}
+						}
+						return false;
 					});
-					modified = true;
 				}
-				if (player.getSpawnPointDimension() == world.getRegistryKey()) {
-					player.setSpawnPoint(ServerWorld.OVERWORLD, null, 0, false, false);
-					modified = true;
-				}
-				List<EnderPearlEntity> toRemove = new ArrayList<>();
-				for (var pearl : player.getEnderPearls()) {
-					if (pearl.getWorld() == world) {
-						toRemove.add(pearl);
-					}
-				}
-				if (!toRemove.isEmpty()) {
-					toRemove.forEach(player.getEnderPearls()::remove);
-					modified = true;
-				}
-				return modified;
+				return modified.booleanValue();
 			});
 		});
 	}

@@ -40,6 +40,7 @@ import se.datasektionen.mc.metacraft_core.util.TeleportPredicate;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.Tags;
 import se.datasektionen.mc.metacraft_dungeons.compat.SquaremapCompat;
+import se.datasektionen.mc.metacraft_dungeons.util.DisconnectedPlayerHelper;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
 import se.datasektionen.mc.metacraft_lib.time_getter.RegularTimeGetter;
 import se.datasektionen.mc.metacraft_lib.util.PositionFinder;
@@ -504,7 +505,8 @@ public class DungeonData extends PersistentState {
 			}, file -> file.endsWith(key + ".dat"),
 			player -> new TeleportTarget(
 					world.getServer().getWorld(exitDim),
-					getExitPos().toCenterPos(), player.getVelocity(), player.getYaw(), player.getPitch(),
+					getExitPos().toCenterPos(), DisconnectedPlayerHelper.getVelocity(player),
+					DisconnectedPlayerHelper.getYaw(player), DisconnectedPlayerHelper.getPitch(player),
 					TeleportTarget.NO_OP
 			)
 		);
