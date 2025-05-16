@@ -73,7 +73,7 @@ import java.util.stream.Stream;
 
 public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowUser, TridentUser, PoseLockable {
 
-	private static final double BASE_SPEED = 0.4;
+	public static final double BASE_SPEED = 0.4;
 
 	protected static final TrackedData<Byte> PLAYER_MODEL_PARTS = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.BYTE);
 	protected static final TrackedData<NbtCompound> LEFT_SHOULDER_ENTITY = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.NBT_COMPOUND);
@@ -92,7 +92,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	private FakePlayer fakePlayer;
 
-	private boolean canWander = true;
+	private boolean canWander = getDefaultCanWander();
 
 	private boolean shouldRespawnClient = false;
 	private boolean lockPose = false;
@@ -120,6 +120,10 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	public boolean canWander() {
 		return canWander;
+	}
+
+	public void setCanWander(boolean canWander) {
+		this.canWander = canWander;
 	}
 
 	@Override
@@ -484,7 +488,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		return this.dataTracker.get(LEFT_SHOULDER_ENTITY);
 	}
 
-	protected void setShoulderEntityLeft(NbtCompound entityNbt) {
+	public void setShoulderEntityLeft(NbtCompound entityNbt) {
 		this.dataTracker.set(LEFT_SHOULDER_ENTITY, entityNbt);
 	}
 
@@ -492,7 +496,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		return this.dataTracker.get(RIGHT_SHOULDER_ENTITY);
 	}
 
-	protected void setShoulderEntityRight(NbtCompound entityNbt) {
+	public void setShoulderEntityRight(NbtCompound entityNbt) {
 		this.dataTracker.set(RIGHT_SHOULDER_ENTITY, entityNbt);
 	}
 
@@ -706,15 +710,23 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		fakePlayer = new FakePlayer((ServerWorld) getWorld(), profile) {};
 	}
 
+	protected GameProfile getDefaultSkin() {
+		var list = getServer().getPlayerManager().getPlayerList();
+		if (list.isEmpty()) {
+			return new GameProfile(UUID.randomUUID(), "Default");
+		} else {
+			var player = list.get(getWorld().getRandom().nextInt(list.size()));
+			return player.getGameProfile();
+		}
+	}
+
+	protected boolean getDefaultCanWander() {
+		return true;
+	}
+
 	private void initProfile() {
 		if (profile == null) {
-			var list = getServer().getPlayerManager().getPlayerList();
-			if (list.isEmpty()) {
-				profile = new GameProfile(UUID.randomUUID(), "Default");
-			} else {
-				var player = list.get(getWorld().getRandom().nextInt(list.size()));
-				profile = player.getGameProfile();
-			}
+			profile = getDefaultSkin();
 		}
 		profile = adaptProfile(profile);
 		if (shouldRespawnClient || fakePlayer == null) {

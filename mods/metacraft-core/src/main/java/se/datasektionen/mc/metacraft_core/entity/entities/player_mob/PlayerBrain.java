@@ -13,10 +13,7 @@ import net.minecraft.item.*;
 import net.minecraft.server.world.ServerWorld;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftMemoryModules;
 import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftSensorTypes;
-import se.datasektionen.mc.metacraft_core.entity.ai.tasks.GoToMoveTarget;
-import se.datasektionen.mc.metacraft_core.entity.ai.tasks.ImprovedRangedApproachTask;
-import se.datasektionen.mc.metacraft_core.entity.ai.tasks.NeedToBreathe;
-import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartProjectileAttackTask;
+import se.datasektionen.mc.metacraft_core.entity.ai.tasks.*;
 import se.datasektionen.mc.metacraft_core.util.helper.TridentHelper;
 
 import java.util.Optional;
@@ -38,7 +35,8 @@ public class PlayerBrain {
 			MemoryModuleType.ATTACK_COOLING_DOWN, MemoryModuleType.INTERACTION_TARGET, MemoryModuleType.PATH,
 			MemoryModuleType.ANGRY_AT, MemoryModuleType.UNIVERSAL_ANGER, MemoryModuleType.AVOID_TARGET,
 			MemoryModuleType.NEAREST_VISIBLE_NEMESIS, MemoryModuleType.RIDE_TARGET, MemoryModuleType.ATE_RECENTLY,
-			METAcraftMemoryModules.NEAREST_OXYGEN, METAcraftMemoryModules.MOVE_TARGET, METAcraftMemoryModules.RECOVERING_BREATH
+			METAcraftMemoryModules.NEAREST_OXYGEN, METAcraftMemoryModules.MOVE_TARGET, METAcraftMemoryModules.RECOVERING_BREATH,
+			METAcraftMemoryModules.IS_SMART_SHOOTING
 	);
 
 	protected static Brain.Profile<PlayerMob> createBrainProfile() {
@@ -55,7 +53,7 @@ public class PlayerBrain {
 		return brain;
 	}
 
-	private static void addIdleActivities(Brain<PlayerMob> brain) {
+	protected static void addIdleActivities(Brain<PlayerMob> brain) {
 		brain.setTaskList(Activity.IDLE, 10, ImmutableList.of(
 				UpdateAttackTargetTask.create((world, e) -> true, PlayerBrain::getPreferredTarget), makeRandomWanderTask(),
 				GoToMoveTarget.create(METAcraftMemoryModules.MOVE_TARGET, 0.6f, 0),
@@ -63,7 +61,7 @@ public class PlayerBrain {
 		));
 	}
 
-	private static void addCoreActivities(Brain<PlayerMob> brain) {
+	protected static void addCoreActivities(Brain<PlayerMob> brain) {
 		brain.setTaskList(Activity.CORE, 0, ImmutableList.of(
 				new NeedToBreathe(1), new StayAboveWaterTask<>(0.5f) {
 					@Override
@@ -85,7 +83,7 @@ public class PlayerBrain {
 		return target.filter(pos -> player.getBlockPos().isWithinDistance(pos.pos(), 1)).isPresent();
 	}
 
-	private static boolean allowSetMovePos(PlayerMob player) {
+	protected static boolean allowSetMovePos(PlayerMob player) {
 		return !player.getBrain().hasMemoryModule(METAcraftMemoryModules.RECOVERING_BREATH) || !player.isSubmergedInWater();
 	}
 	
@@ -100,11 +98,12 @@ public class PlayerBrain {
 						PlayerBrain::shouldAttackPhysical,
 						MeleeAttackTask.create(20)
 				), new CrossbowAttackTask<>(),
-				new SmartProjectileAttackTask<>(PlayerBrain::isSmartProjectileWeapon, 1, 20, 8)
+				new SmartShootAttackTask<>(PlayerBrain::isSmartProjectileWeapon, 20),
+				new SmartStrafeAttackTask<>(1, 8)
 		), MemoryModuleType.ATTACK_TARGET);
 	}
 
-	private static boolean shouldAttackPhysical(PlayerMob player) {
+	protected static boolean shouldAttackPhysical(PlayerMob player) {
 		var target = player.getBrain().getOptionalRegisteredMemory(MemoryModuleType.ATTACK_TARGET);
 		if (target.isPresent()) {
 			var result = TridentHelper.shouldThrowTrident(player, target.get());
@@ -115,7 +114,7 @@ public class PlayerBrain {
 		return true;
 	}
 
-	private static boolean isHoldingCrossbow(LivingEntity player) {
+	protected static boolean isHoldingCrossbow(LivingEntity player) {
 		return player.isHolding(item -> item.getItem() instanceof CrossbowItem);
 	}
 
@@ -131,7 +130,7 @@ public class PlayerBrain {
 		return player.canWander();
 	}
 
-	private static boolean isPreferredAttackTarget(ServerWorld world, PlayerMob player, LivingEntity target) {
+	protected static boolean isPreferredAttackTarget(ServerWorld world, PlayerMob player, LivingEntity target) {
 		return getPreferredTarget(world, player).filter(preferredTarget -> preferredTarget == target).isPresent();
 	}
 

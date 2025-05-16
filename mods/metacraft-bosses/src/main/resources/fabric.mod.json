@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-bosses",
+	"version": "${version}",
+	"name": "METAcraft-Core",
+	"description": "Bosses",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.metacraft.bosses.METAcraftBosses"
+		],
+		"fabric-datagen": [
+			"se.metacraft.bosses.METAcraftBossDatagen"
+		]
+	},
+	"mixins": [
+		"metacraft_bosses.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"fabric": "*",
+		"minecraft": "~${minecraft_version}",
+		"metacraft-lib": "*"
+	},
+	"custom": {
+		"loom:injected_interfaces": {
+			"net/minecraft/entity/OminousItemSpawnerEntity": ["se/metacraft/bosses/extensions/OminousItemSpawnerExtension"]
+		}
+	}
+}

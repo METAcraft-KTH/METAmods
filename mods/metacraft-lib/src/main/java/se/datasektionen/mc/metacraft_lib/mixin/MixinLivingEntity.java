@@ -183,4 +183,9 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 		return isHostile;
 	}
 
+	@Override
+	public void metacraft_lib$setHostile(boolean hostile) {
+		this.isHostile = hostile;
+	}
+
 }

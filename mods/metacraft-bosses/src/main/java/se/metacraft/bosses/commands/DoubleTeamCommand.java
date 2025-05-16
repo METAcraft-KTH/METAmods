@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_season_4.commands;
+package se.metacraft.bosses.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import me.lucko.fabric.api.permissions.v0.Permissions;
@@ -8,7 +8,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.math.floatprovider.UniformFloatProvider;
 import net.minecraft.util.math.intprovider.ConstantIntProvider;
-import se.datasektionen.mc.metacraft_season_4.util.DoubleTeamHandler;
+import se.metacraft.bosses.util.DoubleTeamHandler;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;

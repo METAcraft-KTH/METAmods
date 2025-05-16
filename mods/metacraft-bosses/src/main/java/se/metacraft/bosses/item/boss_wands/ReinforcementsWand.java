@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_season_4.item.boss_wands;
+package se.metacraft.bosses.item.boss_wands;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.minecraft.entity.player.PlayerEntity;
@@ -13,7 +13,7 @@ import net.minecraft.util.math.intprovider.IntProvider;
 import net.minecraft.util.math.intprovider.UniformIntProvider;
 import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
-import se.datasektionen.mc.metacraft_season_4.item.components.Season4Components;
+import se.metacraft.bosses.item.components.BossComponents;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 public class ReinforcementsWand extends Item implements PolymerItem {
@@ -28,9 +28,9 @@ public class ReinforcementsWand extends Item implements PolymerItem {
 	public ActionResult use(World world, PlayerEntity user, Hand hand) {
 		var stack = user.getStackInHand(hand);
 		if (world.isClient()) return ActionResult.PASS;
-		if (stack.contains(Season4Components.SPAWNS)) {
-			var pool = stack.get(Season4Components.SPAWNS);
-			int tryCount = stack.getOrDefault(Season4Components.TRY_COUNT, DEFAULT_TRY_COUNT).get(user.getRandom());
+		if (stack.contains(BossComponents.SPAWNS)) {
+			var pool = stack.get(BossComponents.SPAWNS);
+			int tryCount = stack.getOrDefault(BossComponents.TRY_COUNT, DEFAULT_TRY_COUNT).get(user.getRandom());
 			for (int i = 0; i < tryCount; i++) {
 				pool.getDataOrEmpty(user.getRandom()).ifPresent(data -> {
 					EntityHelper.spawnEntity(

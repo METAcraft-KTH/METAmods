@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_season_4.item.boss_wands;
+package se.metacraft.bosses.item.boss_wands;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.minecraft.entity.mob.EvokerFangsEntity;
@@ -17,7 +17,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
-import se.datasektionen.mc.metacraft_season_4.item.components.Season4Components;
+import se.metacraft.bosses.item.components.BossComponents;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 public class EvokerFangsWand extends Item implements PolymerItem {
@@ -29,7 +29,7 @@ public class EvokerFangsWand extends Item implements PolymerItem {
 	@Override
 	public ActionResult use(World world, PlayerEntity user, Hand hand) {
 		var stack = user.getStackInHand(hand);
-		double maxRange = stack.contains(Season4Components.MAX_RANGE) ? stack.get(Season4Components.MAX_RANGE) : 64;
+		double maxRange = stack.contains(BossComponents.MAX_RANGE) ? stack.get(BossComponents.MAX_RANGE) : 64;
 		Vec3d eyePos = user.getPos().add(0, user.getEyeHeight(user.getPose()), 0);
 		Vec3d facingVector = user.getRotationVector().multiply(maxRange);
 		Vec3d endPos = eyePos.add(facingVector);

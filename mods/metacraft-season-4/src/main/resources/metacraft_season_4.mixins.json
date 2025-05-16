@@ -5,6 +5,7 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"AccessorAreaEffectCloudEntity",
+		"AccessorLivingEntity",
 		"AccessorPlayerEntity",
 		"MixinEnderDragonFight",
 		"MixinEnderEyeItem",
@@ -12,6 +13,8 @@
 		"MixinFoodToConsumableFix",
 		"MixinGlassBottleItem",
 		"MixinLivingEntity",
+		"MixinParrotEntity",
+		"MixinPlayerEntity",
 		"MixinServerPlayerEntity"
 	],
 	"client": [

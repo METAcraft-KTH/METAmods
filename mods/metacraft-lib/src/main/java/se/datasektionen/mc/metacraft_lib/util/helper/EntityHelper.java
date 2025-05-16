@@ -120,6 +120,17 @@ public class EntityHelper {
 		spawnEntity(data, canSpawnCheck1, canSpawnCheck2, around, world, random, owner, e -> Optional.empty());
 	}
 
+	public static Vec3d findPos(
+			ServerWorld world, Random random, EntityType<?> type, SpawnEntry.SpawnRules spawnRules, Vec3d around
+	) {
+		double x = around.getX() + spawnRules.horizontalRange().get(random);
+		double preliminaryY = around.getY() + spawnRules.verticalRange().get(random);
+		double z = around.getZ() + spawnRules.horizontalRange().get(random);
+		int maxYRange = (int) Math.round(new Vec3d(x, preliminaryY, z).distanceTo(around));
+		double y = findY(world, random, type, spawnRules, x, preliminaryY, z, maxYRange);
+		return new Vec3d(x, y, z);
+	}
+
 	public static void spawnEntity(
 			SpawnEntry data,
 			Predicate<EntityType<?>> canSpawnCheck1, Predicate<Entity> canSpawnCheck2,
@@ -128,12 +139,8 @@ public class EntityHelper {
 	) {
 		EntityType.fromNbt(data.entity()).ifPresent(type -> {
 			if (!canSpawnCheck1.test(type)) return;
-			double x = around.getX() + data.spawnRules().horizontalRange().get(random);
-			double preliminaryY = around.getY() + data.spawnRules().verticalRange().get(random);
-			double z = around.getZ() + data.spawnRules().horizontalRange().get(random);
-			int maxYRange = (int) Math.round(new Vec3d(x, preliminaryY, z).distanceTo(around));
-			double y = findY(world, random, type, data, x, preliminaryY, z, maxYRange);
-			if (canSpawn(world, random, type, data.spawnRules().condition(), data.spawnRules.spawnReason(), x, y, z)) {
+			var pos = findPos(world, random, type, data.spawnRules, around);
+			if (canSpawn(world, random, type, data.spawnRules().condition(), data.spawnRules.spawnReason(), pos.getX(), pos.getY(), pos.getZ())) {
 				EntityHelper.loadEntityWithPassengers(data.entity(), world, data.spawnRules().spawnReason(), (e, nbt) -> {
 					if (owner != null) {
 						EntityHelper.setOwner(e, owner);
@@ -151,7 +158,7 @@ public class EntityHelper {
 						}
 						data.equipment().ifPresent(mob::setEquipmentFromTable);
 					}
-					e.refreshPositionAndAngles(x, y, z, random.nextFloat() * 360.0f, 0.0f);
+					e.refreshPositionAndAngles(pos.getX(), pos.getY(), pos.getZ(), random.nextFloat() * 360.0f, 0.0f);
 					getTarget.apply(e).ifPresent(target -> {
 						if (e instanceof MobEntity mob && target instanceof LivingEntity livingTarget) {
 							mob.setTarget(livingTarget);
@@ -175,21 +182,21 @@ public class EntityHelper {
 	}
 
 	private static double findY(
-			ServerWorld world, Random random, EntityType<?> type, SpawnEntry entry,
+			ServerWorld world, Random random, EntityType<?> type, SpawnEntry.SpawnRules spawnRules,
 			double x, double y, double z, int maxYOffset
 	) {
 		int maxY = Math.min(world.getTopYInclusive(), (int) Math.round(y) + maxYOffset);
 		int minY = Math.max(world.getBottomY(), (int) Math.round(y) - maxYOffset);
 		int yDown = (int) Math.round(y);
 		int yUp = (int) Math.round(y);
-		if (canSpawn(world, random, type, entry.spawnRules().condition(), entry.spawnRules().spawnReason(), x, y, z)) {
+		if (canSpawn(world, random, type, spawnRules.condition(), spawnRules.spawnReason(), x, y, z)) {
 			return y;
 		}
 		while (yDown > minY && yUp < maxY) {
-			if (canSpawn(world, random, type, entry.spawnRules().condition(), entry.spawnRules().spawnReason(), x, yUp, z)) {
+			if (canSpawn(world, random, type, spawnRules.condition(), spawnRules.spawnReason(), x, yUp, z)) {
 				return yUp;
 			}
-			if (canSpawn(world, random, type, entry.spawnRules().condition(), entry.spawnRules().spawnReason(), x, yDown, z)) {
+			if (canSpawn(world, random, type, spawnRules.condition(), spawnRules.spawnReason(), x, yDown, z)) {
 				return yDown;
 			}
 			yDown--;

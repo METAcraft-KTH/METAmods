@@ -1,8 +1,9 @@
-package se.datasektionen.mc.metacraft_season_4.util;
+package se.metacraft.bosses.util;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.entity.EntityData;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.mob.MobEntity;
@@ -17,14 +18,14 @@ import net.minecraft.util.math.intprovider.IntProvider;
 import net.minecraft.world.ServerWorldAccess;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
-import se.datasektionen.mc.metacraft_season_4.extensions.LivingEntityExtensions;
+import se.metacraft.bosses.extensions.LivingEntityExtensions;
 
 import java.util.Optional;
 
 public record DoubleTeamHandler(
 		LivingEntity primary, Settings settings,
 		int time, int spawnsSoFar
-) {
+) implements EntityData {
 
 	public static Codec<DoubleTeamHandler> getCodec(LivingEntity owner) {
 		return getMapCodec(owner).codec();
@@ -70,7 +71,7 @@ public record DoubleTeamHandler(
 			if (clone instanceof MobEntity mob) {
 				mob.initialize(
 						(ServerWorldAccess) clone.getWorld(), clone.getWorld().getLocalDifficulty(clone.getBlockPos()),
-						SpawnReason.REINFORCEMENT, null
+						SpawnReason.REINFORCEMENT, this
 				);
 			}
 		}

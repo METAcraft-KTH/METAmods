@@ -12,7 +12,10 @@ import net.minecraft.item.BowItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
+import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftMemoryModules;
 
+import java.util.OptionalInt;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -21,34 +24,37 @@ import java.util.function.Predicate;
  * with support for weapons other than bows.
  * @param <T> The entity type.
  */
-public class SmartProjectileAttackTask<T extends MobEntity & RangedAttackMob> extends MultiTickTask<T> {
+public class SmartStrafeAttackTask<T extends MobEntity & RangedAttackMob> extends MultiTickTask<T> {
 
-	protected final Predicate<ItemStack> isValidWeapon;
-
+	private final Predicate<T> shouldRun;
 	private final double speed;
-	private int attackInterval;
 	private final float squaredRange;
-	private int cooldown = -1;
 	private int targetSeeingTicker;
 	private boolean movingToLeft;
 	private boolean backward;
 	private int combatTicks = -1;
 
-	public SmartProjectileAttackTask(Predicate<ItemStack> isValidWeapon, double speed, int attackInterval, float range) {
+	public SmartStrafeAttackTask(
+			double speed, float range
+	) {
+		this(speed, range, e -> e.getBrain().hasMemoryModule(METAcraftMemoryModules.IS_SMART_SHOOTING));
+	}
+
+	public SmartStrafeAttackTask(
+			double speed, float range, Predicate<T> shouldRun
+	) {
 		super(ImmutableMap.of(
 				MemoryModuleType.LOOK_TARGET, MemoryModuleState.REGISTERED,
 				MemoryModuleType.ATTACK_TARGET, MemoryModuleState.VALUE_PRESENT
 		), 1200);
-		this.isValidWeapon = isValidWeapon;
 		this.speed = speed;
-		this.attackInterval = attackInterval;
 		this.squaredRange = range * range;
+		this.shouldRun = shouldRun;
 	}
 
 	@Override
 	protected boolean shouldRun(ServerWorld serverWorld, T mobEntity) {
-		LivingEntity livingEntity = getAttackTarget(mobEntity);
-		return mobEntity.isHolding(isValidWeapon) && TargetUtil.isVisibleInMemory(mobEntity, livingEntity) && ImprovedRangedApproachTask.isInAttackingDistance(mobEntity, livingEntity, 0);
+		return shouldRun.test(mobEntity);
 	}
 
 	@Override
@@ -96,31 +102,12 @@ public class SmartProjectileAttackTask<T extends MobEntity & RangedAttackMob> ex
 		} else {
 			mobEntity.getLookControl().lookAt(livingEntity, 30.0f, 30.0f);
 		}
-		if (mobEntity.isUsingItem()) {
-			int i;
-			if (!canSeeTarget && this.targetSeeingTicker < -60) {
-				mobEntity.clearActiveItem();
-			} else if (canSeeTarget && (i = mobEntity.getItemUseTime()) >= 20) {
-				mobEntity.clearActiveItem();
-				mobEntity.shootAt(livingEntity, BowItem.getPullProgress(i));
-				this.cooldown = this.attackInterval;
-			}
-		} else if (--this.cooldown <= 0 && this.targetSeeingTicker >= -60) {
-			if (isValidWeapon.test(mobEntity.getMainHandStack())) {
-				mobEntity.setCurrentHand(Hand.MAIN_HAND);
-			} else if (isValidWeapon.test(mobEntity.getOffHandStack())) {
-				mobEntity.setCurrentHand(Hand.OFF_HAND);
-			}
-		}
 	}
 
 	@Override
 	protected void finishRunning(ServerWorld serverWorld, T mobEntity, long l) {
 		super.finishRunning(serverWorld, mobEntity, l);
-		mobEntity.setAttacking(false);
 		this.targetSeeingTicker = 0;
-		this.cooldown = -1;
-		mobEntity.clearActiveItem();
 	}
 
 	private static LivingEntity getAttackTarget(LivingEntity entity) {

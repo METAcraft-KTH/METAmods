@@ -16,4 +16,6 @@ public interface ServerPlayerEntityExtensions {
 	void metacraft_core$setCampusLodestoneBackPos(RegistryKey<World> world, BlockPos pos);
 
 	void metacraft_core$unsetCampusLodestoneBackPos();
+
+	void metacraft_season_4$setAttackedThroughFriendlyFire(boolean state);
 }

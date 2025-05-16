@@ -36,6 +36,7 @@ import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.helper.PCollectionsHelper;
 import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.item.Season4Items;
+import se.metacraft.bosses.item.BossItems;
 
 import java.time.Instant;
 import java.util.*;
@@ -383,7 +384,7 @@ public record EndBossPlayerConfig(
 					).plus(
 							new ItemEntry(
 									new ItemStack(
-											Season4Items.EVOKER_FANGS_WAND.getRegistryEntry(), 1,
+											BossItems.EVOKER_FANGS_WAND.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
 													DataComponentTypes.ITEM_NAME, Text.literal("Evoker Fangs")
 											).add(
@@ -396,7 +397,7 @@ public record EndBossPlayerConfig(
 					).plus(
 							new ItemEntry(
 									new ItemStack(
-											Season4Items.SPAWN_REINFORCEMENTS_WAND.getRegistryEntry(), 1,
+											BossItems.SPAWN_REINFORCEMENTS_WAND.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
 													DataComponentTypes.ITEM_NAME, Text.literal("Summon Reinforcements")
 											).add(
@@ -409,7 +410,7 @@ public record EndBossPlayerConfig(
 					).plus(
 							new ItemEntry(
 									new ItemStack(
-											Season4Items.DOUBLE_TEAM_WAND.getRegistryEntry(), 1,
+											BossItems.DOUBLE_TEAM_WAND.getRegistryEntry(), 1,
 											ComponentChanges.builder().add(
 													DataComponentTypes.ITEM_NAME, Text.literal("Double Team")
 											).add(

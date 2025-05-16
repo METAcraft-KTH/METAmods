@@ -1,4 +1,4 @@
-package se.datasektionen.mc.metacraft_season_4.entity.entities;
+package se.metacraft.bosses.entity.entities;
 
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
@@ -20,7 +20,7 @@ import net.minecraft.util.math.*;
 import net.minecraft.world.World;
 import org.joml.Matrix4f;
 import se.datasektionen.mc.metacraft_core.util.DisplayEntityData;
-import se.datasektionen.mc.metacraft_season_4.Season4;
+import se.metacraft.bosses.METAcraftBosses;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.Objects;
@@ -47,7 +47,7 @@ public class Beam extends Entity implements PolymerEntity {
 		super(type, world);
 		EntityAttachment.ofTicking(holder, this);
 		data.setItem(new ItemStack(Items.DIAMOND));
-		data.getItem().set(DataComponentTypes.ITEM_MODEL, Season4.getID("laser"));
+		data.getItem().set(DataComponentTypes.ITEM_MODEL, METAcraftBosses.getID("laser"));
 		data.applyItemSettings(laserItemDisplay);
 		holder.addElement(laserItemDisplay);
 	}
@@ -210,7 +210,7 @@ public class Beam extends Entity implements PolymerEntity {
 		data.applyItemSettings(laserItemDisplay);
 		data.applySettings(laserItemDisplay);
 		if (nbt.contains(TARGET)) {
-			Vec3d.CODEC.parse(NbtOps.INSTANCE, nbt.get(TARGET)).resultOrPartial(Season4.LOGGER::error).ifPresent(
+			Vec3d.CODEC.parse(NbtOps.INSTANCE, nbt.get(TARGET)).resultOrPartial(METAcraftBosses.LOGGER::error).ifPresent(
 					this::setTarget
 			);
 		} else {
@@ -225,7 +225,7 @@ public class Beam extends Entity implements PolymerEntity {
 	protected void writeCustomDataToNbt(NbtCompound nbt) {
 		if (target != null) {
 			Vec3d.CODEC.encodeStart(NbtOps.INSTANCE, target).resultOrPartial(
-					Season4.LOGGER::error
+					METAcraftBosses.LOGGER::error
 			).ifPresent(res -> nbt.put(TARGET, res));
 		}
 		this.data.save(nbt, this);

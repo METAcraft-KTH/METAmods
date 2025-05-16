@@ -35,5 +35,10 @@
 		"minecraft": "~${minecraft_version}",
 		"metacraft-lib": "*",
 		"metacraft-cutscenes": "*"
+	},
+	"custom": {
+		"loom:injected_interfaces": {
+			"net/minecraft/entity/LivingEntity": ["se/datasektionen/mc/metacraft_season_4/extensions/DragExtension"]
+		}
 	}
 }
