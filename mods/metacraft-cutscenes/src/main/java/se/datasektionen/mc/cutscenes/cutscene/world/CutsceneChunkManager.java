@@ -121,6 +121,9 @@ public class CutsceneChunkManager extends ServerChunkManager {
 				statuses.set(i, CompletableFuture.completedFuture(OptionalChunk.of(c)));
 			}
 			getLightingProvider().initializeLight(c, true);
+			if (cutsceneWorld.loaded) {
+				c.fetchEntitiesFromActualWorld();
+			}
 			fetching = false;
 			return c;
 		}

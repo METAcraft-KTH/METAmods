@@ -356,14 +356,7 @@ public class CutsceneInstance implements AutoCloseable {
 				interval.getObject().activate(player, this, interval);
 			}
 		});
-		if (cutscene.hidePlayer()) {
-			var tracker = EntityTrackerHelper.getEntityTrackers(player.getServerWorld()).get(player.getId());
-			for (var p : getServer().getPlayerManager().getPlayerList()) {
-				if (player != p) {
-					tracker.updateTrackedStatus(player);
-				}
-			}
-		}
+		world.getActualWorld().getChunkManager().updatePosition(player);
 
 
 		swapScoreboards(player, world.getActualWorld().getScoreboard(), world.getScoreboard());

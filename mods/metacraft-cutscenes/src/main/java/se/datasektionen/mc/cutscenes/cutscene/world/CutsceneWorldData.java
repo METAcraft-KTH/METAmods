@@ -9,12 +9,13 @@ import se.datasektionen.mc.cutscenes.util.SerialisedStructure;
 import java.util.*;
 
 public record CutsceneWorldData(
-		List<SerialisedEntity> entities, SerialisedStructure blocks,
+		CutsceneEntityManager.SaveState entities, SerialisedStructure blocks,
 		NbtCompound saveProperties, NbtCompound persistentStateStorage
 ) {
+
 	public static final Codec<CutsceneWorldData> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					SerialisedEntity.CODEC.listOf().fieldOf("entities").forGetter(d -> d.entities),
+					CutsceneEntityManager.SaveState.CODEC.forGetter(d -> d.entities),
 					SerialisedStructure.CODEC.fieldOf("blocks").forGetter(d -> d.blocks),
 					NbtCompound.CODEC.optionalFieldOf("save_properties", new NbtCompound()).forGetter(d -> d.saveProperties),
 					NbtCompound.CODEC.optionalFieldOf("persistent_state_storage", new NbtCompound()).forGetter(d -> d.persistentStateStorage)

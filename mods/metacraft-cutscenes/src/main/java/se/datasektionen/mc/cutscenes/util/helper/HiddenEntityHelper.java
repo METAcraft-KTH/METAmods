@@ -14,6 +14,13 @@ public class HiddenEntityHelper {
 					return true;
 				}
 			}
+		} else {
+			var scene = CutsceneHelper.getCutscene(player);
+			if (scene.isPresent() && entity.getWorld() != scene.get().getCutsceneWorld()) {
+				if (scene.get().getCutsceneWorld().getEntityManager().isHidden(entity.getUuid())) {
+					return true;
+				}
+			}
 		}
 		return false;
 	}

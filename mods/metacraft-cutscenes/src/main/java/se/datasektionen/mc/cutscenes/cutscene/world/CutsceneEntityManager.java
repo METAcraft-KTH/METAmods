@@ -3,6 +3,8 @@ package se.datasektionen.mc.cutscenes.cutscene.world;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import eu.pb4.polymer.core.impl.interfaces.EntityAttachedPacket;
 import net.minecraft.entity.Entity;
@@ -10,6 +12,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerEntityManager;
+import net.minecraft.util.Uuids;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -34,6 +37,8 @@ public class CutsceneEntityManager {
 	private final EntityLookup<Entity> lookup = new SimpleEntityLookup<>(index, cache);
 	private CutsceneChunkLoadingManager chunkLoadingManager = null;
 	private boolean iteratingEntities = false;
+
+	private final Set<UUID> entitiesToHide = new HashSet<>();
 
 	public CutsceneEntityManager(CutsceneWorld world) {
 		this.world = world;
@@ -63,13 +68,21 @@ public class CutsceneEntityManager {
 		});
 	}
 
+	public void addEntityToHide(UUID id) {
+		this.entitiesToHide.add(id);
+	}
+
+	public boolean isHidden(UUID id) {
+		return entitiesToHide.contains(id);
+	}
+
 	public void addEntity(String id, Entity entity) {
 		if (iteratingEntities) {
 			addQueue.add(Pair.of(id, entity));
 			return;
 		}
 		var tracker = new EntityTrackerEntry(
-				world, entity, 1, false,
+				world, entity, entity.getType().getTrackTickInterval(), entity.getType().alwaysUpdateVelocity(),
 				packet -> {
 					if (entity instanceof PolymerEntity) {
 						EntityAttachedPacket.setIfEmpty(packet, entity);
@@ -109,23 +122,40 @@ public class CutsceneEntityManager {
 		return lookup;
 	}
 
-	public Stream<CutsceneWorldData.SerialisedEntity> save() {
-		return entities.entries().stream().filter(e -> e.getValue().entity.shouldSave()).map(entry -> {
-			List<String> ids = new ArrayList<>();
-			ids.add(entry.getKey());
-			if (entry.getValue().entity.hasPassengers()) {
-				entry.getValue().entity.getPassengersDeep().forEach(passenger -> {
-					getIDForEntity(passenger).ifPresent(ids::add);
-				});
-			}
+	public record SaveState(
+			List<CutsceneWorldData.SerialisedEntity> entities,
+			Set<UUID> entitiesToHide
+	) {
+		public static final MapCodec<SaveState> CODEC = RecordCodecBuilder.mapCodec(
+				instance -> instance.group(
+						CutsceneWorldData.SerialisedEntity.CODEC.listOf().fieldOf("entities").forGetter(d -> d.entities),
+						Uuids.SET_CODEC.optionalFieldOf("entities_to_hide").xmap(
+								opt -> opt.orElseGet(HashSet::new), Optional::of
+						).forGetter(d -> d.entitiesToHide)
+				).apply(instance, SaveState::new)
+		);
+	}
 
-			var nbt = new NbtCompound();
-			if (entry.getValue().entity.saveSelfNbt(nbt)) {
-				return new CutsceneWorldData.SerialisedEntity(ids, nbt);
-			} else {
-				return null;
-			}
-		}).filter(Objects::nonNull);
+	public SaveState save() {
+		return new SaveState(
+				entities.entries().stream().filter(e -> e.getValue().entity.shouldSave()).map(entry -> {
+					List<String> ids = new ArrayList<>();
+					ids.add(entry.getKey());
+					if (entry.getValue().entity.hasPassengers()) {
+						entry.getValue().entity.getPassengersDeep().forEach(passenger -> {
+							getIDForEntity(passenger).ifPresent(ids::add);
+						});
+					}
+
+					var nbt = new NbtCompound();
+					if (entry.getValue().entity.saveSelfNbt(nbt)) {
+						return new CutsceneWorldData.SerialisedEntity(ids, nbt);
+					} else {
+						return null;
+					}
+				}).filter(Objects::nonNull).toList(),
+				entitiesToHide
+		);
 	}
 
 	public void tick() {

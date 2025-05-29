@@ -72,6 +72,8 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	private CutscenePersistentStateManager persistentStateManager;
 	private NbtCompound persistentStorage = new NbtCompound();
 
+	protected boolean loaded = false;
+
 	public static ChunkGenerator createDummyChunkGenerator(World world) {
 		return new FlatChunkGenerator(new FlatChunkGeneratorConfig(
 				Optional.empty(), world.getBiome(BlockPos.ORIGIN), List.of()
@@ -127,14 +129,13 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		this.manager = new CutsceneChunkManager(this, this::getPersistentStateManager);
 		((AccessorServerWorld) this).setChunkManager(manager);
 		this.entities = new CutsceneEntityManager(this);
-		this.lookup = new CombinedEntityLookup(
-				List.of(entities.getLookup(), ((AccessorServerWorld) world).callGetEntityLookup())
-		);
+		this.lookup = entities.getLookup();
 		((AccessorServerWorld) this).setEntityManager(entities.createDummyEntityManager());
+		initScoreboard(data == null);
 		if (data != null) {
 			load(data);
 		}
-		initScoreboard(data == null);
+		loaded = true;
 	}
 
 	private void initScoreboard(boolean hasDataToLoad) {
@@ -230,6 +231,11 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 				Cutscenes.LOGGER.info("Skipped sending blocks because no network handler :(");
 			}
 		}
+	}
+
+	@Override
+	public String toString() {
+		return "Cutscene[" + getServer().getSaveProperties().getLevelName() + "]";
 	}
 
 	public Optional<WorldChunk> getChunkFromCacheIfPresent(Chunk chunk) {
@@ -352,15 +358,16 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 				this.getRandom(), Block.NOTIFY_ALL
 		);
 
-		data.entities().forEach(entity -> {
+		data.entities().entities().forEach(entity -> {
 			entity.load(this);
 		});
+		data.entities().entitiesToHide().forEach(entities::addEntityToHide);
 	}
 
 	public CutsceneWorldData save() {
 		persistentStateManager.save();
 		return new CutsceneWorldData(
-				entities.save().toList(), saveAsStructure(), saveLevelProperties(), persistentStorage
+				entities.save(), saveAsStructure(), saveLevelProperties(), persistentStorage
 		);
 	}
 
