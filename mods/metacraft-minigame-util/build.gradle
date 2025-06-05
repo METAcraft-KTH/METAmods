@@ -1,1 +1,3 @@
 version = minigame_util_version
+
+addProjectDependency(":mods:metacraft-core")

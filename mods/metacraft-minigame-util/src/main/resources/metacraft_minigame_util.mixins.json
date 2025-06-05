@@ -4,7 +4,8 @@
 	"package": "nu.metacraft.minigame_util.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"MixinPlayerEntity"
+		"MixinPlayerEntity",
+		"MixinServerPlayerInteractionManager"
 	],
 	"client": [],
 	"injectors": {

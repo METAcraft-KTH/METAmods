@@ -11,5 +11,6 @@ public class MinigameUtil implements ModInitializer {
     @Override
     public void onInitialize() {
         Commands.init();
+        MinigameGameRules.init();
     }
 }
