@@ -10,18 +10,23 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.command.argument.ScoreHolderArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.scoreboard.ReadableScoreboardScore;
 import net.minecraft.scoreboard.ScoreHolder;
 import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.ServerScoreboard;
+import net.minecraft.scoreboard.Team;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.UserCache;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -192,6 +197,21 @@ public class PointSystemCommand {
                                 )
                         )
                 )
+                .then(
+                    literal("join-scoreoard-teams-balanced")
+                        .then(
+                            argument("players", EntityArgumentType.players())
+                                .then(
+                                    argument("teams", StringArgumentType.greedyString())
+                                        .executes(ctx -> {
+                                            PointSystem pointSystem = getPointSystem(ctx);
+                                            Collection<ServerPlayerEntity> players = EntityArgumentType.getPlayers(ctx, "players");
+                                            String input = StringArgumentType.getString(ctx, "teams");
+                                            return this.joinScoreboardTeamsBalanced(ctx, players, input);
+                                        })
+                                )
+                        )
+                )
         );
     }
 
@@ -358,4 +378,30 @@ public class PointSystemCommand {
         pointSystem.joinOnlyTeams(playerUuid, codes);
         return 1;
     }
+
+    private int joinScoreboardTeamsBalanced(CommandContext<ServerCommandSource> ctx, Collection<ServerPlayerEntity> players, String input) throws CommandSyntaxException {
+        PointSystem pointSystem = getPointSystem(ctx);
+        String[] teamNames = input.split(" ");
+        MinecraftServer server = ctx.getSource().getServer();
+        ServerScoreboard scoreboard = server.getScoreboard();
+        Team[] teams = Arrays.stream(teamNames).map((name) -> scoreboard.getTeam(name)).toArray(Team[]::new);
+
+        PlayerPointStorage playerPoints = pointSystem.getPlayerPoints();
+
+        var entries = players.stream()
+                .map(player -> Map.entry(player, playerPoints.getData().getOrDefault(player.getUuid(), 0)))
+                .sorted((a, b) -> b.getValue() - a.getValue())
+                .toList();
+
+        int i = 0;
+        for (Map.Entry<ServerPlayerEntity, Integer> entry : entries) {
+            ServerPlayerEntity player = entry.getKey();
+            Team team = teams[i % teamNames.length];
+            scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), team);
+            i++;
+        }
+
+        return players.size();
+    }
+
 }
