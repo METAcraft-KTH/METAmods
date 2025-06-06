@@ -198,13 +198,12 @@ public class PointSystemCommand {
                         )
                 )
                 .then(
-                    literal("join-scoreoard-teams-balanced")
+                    literal("join-scoreboard-teams-balanced")
                         .then(
                             argument("players", EntityArgumentType.players())
                                 .then(
                                     argument("teams", StringArgumentType.greedyString())
                                         .executes(ctx -> {
-                                            PointSystem pointSystem = getPointSystem(ctx);
                                             Collection<ServerPlayerEntity> players = EntityArgumentType.getPlayers(ctx, "players");
                                             String input = StringArgumentType.getString(ctx, "teams");
                                             return this.joinScoreboardTeamsBalanced(ctx, players, input);
@@ -384,7 +383,7 @@ public class PointSystemCommand {
         String[] teamNames = input.split(" ");
         MinecraftServer server = ctx.getSource().getServer();
         ServerScoreboard scoreboard = server.getScoreboard();
-        Team[] teams = Arrays.stream(teamNames).map((name) -> scoreboard.getTeam(name)).toArray(Team[]::new);
+        Team[] teams = Arrays.stream(teamNames).map(scoreboard::getTeam).toArray(Team[]::new);
 
         PlayerPointStorage playerPoints = pointSystem.getPlayerPoints();
 
@@ -396,7 +395,7 @@ public class PointSystemCommand {
         int i = 0;
         for (Map.Entry<ServerPlayerEntity, Integer> entry : entries) {
             ServerPlayerEntity player = entry.getKey();
-            Team team = teams[i % teamNames.length];
+            Team team = teams[i % teams.length];
             scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), team);
             i++;
         }
