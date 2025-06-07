@@ -9,6 +9,7 @@ import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
+import se.datasektionen.mc.cutscenes.extension.EntityExtension;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.config.SmoothCameraPathConfig;
 import se.datasektionen.mc.cutscenes.util.CutsceneContext;
@@ -73,6 +74,7 @@ public class SmoothCameraPathTransition implements Transition {
 				display.updatePositionAndAngles(
 						target.pos().x, target.pos().y + EntityType.PLAYER.getDimensions().eyeHeight(), target.pos().z, target.yaw(), target.pitch()
 				);
+				((EntityExtension) display).metacraft$setHasAccurateMovement(true);
 				cutscene.addEntity(MARKER_ID, display);
 			});
 		});

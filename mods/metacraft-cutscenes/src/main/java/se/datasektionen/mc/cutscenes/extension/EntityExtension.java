@@ -9,4 +9,8 @@ public interface EntityExtension {
 
 	boolean metacraft$canChangeWorldInCutscene();
 
+
+	void metacraft$setHasAccurateMovement(boolean accurateMovement);
+	boolean metacraft$hasAccurateMovement();
+
 }

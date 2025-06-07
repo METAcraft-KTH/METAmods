@@ -16,6 +16,7 @@ import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
+import se.datasektionen.mc.cutscenes.extension.EntityExtension;
 import se.datasektionen.mc.cutscenes.position_ref.Fixed;
 import se.datasektionen.mc.cutscenes.position_ref.PositionRef;
 import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
@@ -104,6 +105,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 			}, () -> {
 				var display = EntityType.TEXT_DISPLAY.create(cutscene.getCutsceneWorld(), SpawnReason.TRIGGERED);
 				setLinearInterpolationDuration(display, config.interpolationDuration());
+				((EntityExtension) display).metacraft$setHasAccurateMovement(true);
 				var target = interpolationSets.get(player.getUuid()).interpolate(ctx, 0);
 				moveEntityToTarget(target, display, player, cutscene);
 				cutscene.addEntity(getMarkerID(player), display);

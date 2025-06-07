@@ -25,6 +25,7 @@
 		"MixinChunkDataSender",
 		"MixinEntity",
 		"MixinEntitySelectorOptions",
+		"MixinEntityTrackerEntry",
 		"MixinLevelStorageSession",
 		"MixinMinecraftServer",
 		"MixinMobEntity",
