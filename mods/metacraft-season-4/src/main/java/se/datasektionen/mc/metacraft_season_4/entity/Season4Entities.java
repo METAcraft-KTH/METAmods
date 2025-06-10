@@ -71,11 +71,11 @@ public class Season4Entities {
 			).maxTrackingRange(32).trackingTickInterval(2).makeFireImmune()
 	);
 
-	public static final EntityType<VictorBossEntity> VICTOR_BOSS = register(
-			"victor_boss",
+	public static final EntityType<WilliamBossEntity> WILLIAM_BOSS = register(
+			"william_boss",
 			FabricEntityType.Builder.createMob(
-					VictorBossEntity::new, SpawnGroup.MISC, builder -> builder.defaultAttributes(
-							VictorBossEntity::createBossAttributes
+					WilliamBossEntity::new, SpawnGroup.MISC, builder -> builder.defaultAttributes(
+							WilliamBossEntity::createBossAttributes
 					).spawnRestriction(
 							SpawnLocationTypes.ON_GROUND, Heightmap.Type.MOTION_BLOCKING_NO_LEAVES,
 							HostileEntity::canSpawnIgnoreLightLevel

@@ -47,7 +47,7 @@ public class Season4Datagen implements DataGeneratorEntrypoint {
 					Season4Entities.AVOLINE_BOSS,
 					Season4Entities.DEVIN_BOSS,
 					Season4Entities.GIOCAT_BOSS,
-					Season4Entities.VICTOR_BOSS,
+					Season4Entities.WILLIAM_BOSS,
 					Season4Entities.POLLY_BOSS
 			);
 		}

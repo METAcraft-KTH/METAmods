@@ -56,9 +56,9 @@ import se.metacraft.bosses.util.DoubleTeamHandler;
 
 import java.util.*;
 
-public class VictorBossEntity extends GenericBossPlayer implements AutoAttackingBoss {
+public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackingBoss {
 
-	private static final GameProfile SKIN = new GameProfile(UUID.randomUUID(), "Victor");
+	private static final GameProfile SKIN = new GameProfile(UUID.randomUUID(), "William");
 
 	static {
 		SKIN.getProperties().put(
@@ -70,7 +70,7 @@ public class VictorBossEntity extends GenericBossPlayer implements AutoAttacking
 		);
 	}
 
-	public VictorBossEntity(EntityType<? extends HostileEntity> entityType, World world) {
+	public WilliamBossEntity(EntityType<? extends HostileEntity> entityType, World world) {
 		super(entityType, world);
 	}
 
@@ -81,7 +81,7 @@ public class VictorBossEntity extends GenericBossPlayer implements AutoAttacking
 
 	@Override
 	protected Text getDefaultName() {
-		return Text.literal("Victor");
+		return Text.literal("William");
 	}
 
 	public static DefaultAttributeContainer.Builder createBossAttributes() {
@@ -240,7 +240,7 @@ public class VictorBossEntity extends GenericBossPlayer implements AutoAttacking
 
 	@Override
 	protected Brain<?> deserializeBrain(Dynamic<?> dynamic) {
-		return VictorBrain.create(this, this.createBrainProfile().deserialize(dynamic));
+		return WilliamBrain.create(this, this.createBrainProfile().deserialize(dynamic));
 	}
 
 	@Override
@@ -299,7 +299,7 @@ public class VictorBossEntity extends GenericBossPlayer implements AutoAttacking
 		return super.isInvulnerableTo(world, source) || source.isIn(DamageTypeTags.IS_EXPLOSION);
 	}
 
-	public static class VictorBrain extends PlayerBrain {
+	public static class WilliamBrain extends PlayerBrain {
 
 		protected static Brain<?> create(PlayerMob player, Brain<PlayerMob> brain) {
 			addIdleActivities(brain);
@@ -317,12 +317,12 @@ public class VictorBossEntity extends GenericBossPlayer implements AutoAttacking
 					TaskTriggerer.runIf(PlayerBrain::isHoldingCrossbow, AttackTask.create(5, 0.75f)),
 					TaskTriggerer.runIf(
 							PlayerBrain::allowSetMovePos,
-							(SingleTickTask<MobEntity>) ImprovedRangedApproachTask.create(1.0f, VictorBrain::rangeOverride)
+							(SingleTickTask<MobEntity>) ImprovedRangedApproachTask.create(1.0f, WilliamBrain::rangeOverride)
 					), TaskTriggerer.runIf(
-							VictorBrain::shouldAttackPhysical,
+							WilliamBrain::shouldAttackPhysical,
 							MeleeAttackTask.create(20)
 					), new CrossbowAttackTask<>(),
-					new SmartShootAttackTask<>(VictorBrain::isSmartProjectileWeapon, 20, VictorBrain::rangeOverride),
+					new SmartShootAttackTask<>(WilliamBrain::isSmartProjectileWeapon, 20, WilliamBrain::rangeOverride),
 					new SmartStrafeAttackTask<>(1, 8)
 			), MemoryModuleType.ATTACK_TARGET);
 		}
