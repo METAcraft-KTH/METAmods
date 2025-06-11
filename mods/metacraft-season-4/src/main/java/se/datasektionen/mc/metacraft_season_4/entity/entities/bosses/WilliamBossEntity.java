@@ -15,6 +15,9 @@ import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageTypes;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
@@ -48,6 +51,7 @@ import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.datasektionen.mc.metacraft_season_4.boss.ChangeTickSpeed;
 import se.datasektionen.mc.metacraft_season_4.boss.PlayerShadows;
 import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
+import se.datasektionen.mc.metacraft_season_4.status_effects.Season4StatusEffects;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
 import se.metacraft.bosses.boss.attacks.*;
 import se.metacraft.bosses.boss.attacks.target.MoveToGround;
@@ -254,6 +258,16 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 	}
 
 	@Override
+	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+		if (!source.isOf(DamageTypes.OUT_OF_WORLD) && !this.isInvulnerableTo(world, source) && amount > Season4Entities.MAX_ATTACK_DAMAGE && source.getAttacker() instanceof LivingEntity l) {
+			l.addStatusEffect(new StatusEffectInstance(Season4StatusEffects.SMALLIFY,  1200, 4));
+			l.addStatusEffect(new StatusEffectInstance(Season4StatusEffects.HEALTH_REDUCTION,  1200, 11));
+			return false;
+		}
+		return super.damage(world, source, amount);
+	}
+
+	@Override
 	public boolean handleShoot(Hand hand, LivingEntity target, float pullProgress) {
 		if (super.handleShoot(hand, target, pullProgress)) return true;
 		var stack = this.getStackInHand(hand);
@@ -287,8 +301,16 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 							Items.BLAZE_ROD.getRegistryEntry(), 1,
 							ComponentChanges.builder().add(
 									DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true
+							).add(
+									DataComponentTypes.ITEM_MODEL, Items.COMMAND_BLOCK.getComponents().get(DataComponentTypes.ITEM_MODEL)
 							).build()
 					)
+			);
+		}
+		if (this.getOffHandStack().isEmpty()) {
+			this.setStackInHand(
+					Hand.OFF_HAND,
+					new ItemStack(Items.CLOCK)
 			);
 		}
 		return data;

@@ -136,4 +136,10 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 		}
 		return data;
 	}
+
+	@Override
+	protected void updatePostDeath() {
+		this.getWorld().sendEntityStatus(this, EntityStatuses.ADD_PORTAL_PARTICLES);
+		discard();
+	}
 }

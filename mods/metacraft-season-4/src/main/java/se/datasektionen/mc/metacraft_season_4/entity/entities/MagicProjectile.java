@@ -56,13 +56,13 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 	public static final Codec<DataPool<StatusEffectEntry>> HIT_EFFECT_POOL_CODEC = DataPool.createEmptyAllowedCodec(StatusEffectEntry.CODEC.codec());
 	public static final Codec<DataPool<EffectEntry>> CLOUD_EFFECT_POOL_CODEC = DataPool.createEmptyAllowedCodec(EffectEntry.CODEC);
 
-	private static final IntProvider ONE = ConstantIntProvider.create(1);
-	private static final IntProvider ZERO = ConstantIntProvider.create(0);
-	private static final IntProvider VARIES = UniformIntProvider.create(0, 2);
+	public static final IntProvider ONE = ConstantIntProvider.create(1);
+	public static final IntProvider ZERO = ConstantIntProvider.create(0);
+	public static final IntProvider VARIES = UniformIntProvider.create(0, 2);
 
-	private static final IntProvider LONG = UniformIntProvider.create(350, 550);
-	private static final IntProvider MID = UniformIntProvider.create(150, 250);
-	private static final IntProvider SHORT = UniformIntProvider.create(50, 100);
+	public static final IntProvider LONG = UniformIntProvider.create(350, 550);
+	public static final IntProvider MID = UniformIntProvider.create(150, 250);
+	public static final IntProvider SHORT = UniformIntProvider.create(50, 100);
 
 	protected DataPool<EffectEntry> cloudEffects = createCloudDefaults().build();
 
@@ -94,17 +94,11 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 
 	public static DataPool.Builder<EffectEntry> createCloudDefaults() {
 		return DataPool.<EffectEntry>builder().add(
-				EffectEntry.create(StatusEffectEntry.create(StatusEffects.WEAKNESS, MID, ZERO))
-		).add(
 				EffectEntry.create(StatusEffectEntry.create(StatusEffects.BLINDNESS, SHORT, ZERO))
 		).add(
 				EffectEntry.create(StatusEffectEntry.create(StatusEffects.SLOWNESS, MID, ZERO))
 		).add(
-				EffectEntry.create(StatusEffectEntry.create(StatusEffects.LEVITATION, SHORT, ZERO))
-		).add(
 				EffectEntry.create(StatusEffectEntry.create(StatusEffects.MINING_FATIGUE, MID, ZERO))
-		).add(
-				EffectEntry.create(StatusEffectEntry.create(StatusEffects.WITHER, SHORT, ZERO))
 		).add(
 				EffectEntry.create(StatusEffectEntry.create(StatusEffects.POISON, SHORT, ZERO))
 		).add(
@@ -116,13 +110,11 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 
 	public static DataPool.Builder<StatusEffectEntry> createHitDefaults() {
 		return DataPool.<StatusEffectEntry>builder().add(
-				StatusEffectEntry.create(StatusEffects.WEAKNESS, LONG, UniformIntProvider.create(0, 2))
+				StatusEffectEntry.create(StatusEffects.WEAKNESS, MID, ZERO)
 		).add(
 				StatusEffectEntry.create(StatusEffects.BLINDNESS, MID, ZERO)
 		).add(
 				StatusEffectEntry.create(StatusEffects.SLOWNESS, LONG, VARIES)
-		).add(
-				StatusEffectEntry.create(StatusEffects.LEVITATION, MID, VARIES)
 		).add(
 				StatusEffectEntry.create(StatusEffects.MINING_FATIGUE, LONG, VARIES)
 		).add(
@@ -253,6 +245,14 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 
 	public void setHitEffects(DataPool<StatusEffectEntry> hitEffects) {
 		this.hitEffects = hitEffects;
+	}
+
+	public DataPool<EffectEntry> getCloudEffects() {
+		return cloudEffects;
+	}
+
+	public DataPool<StatusEffectEntry> getHitEffects() {
+		return hitEffects;
 	}
 
 	public void setCloudEffectCount(IntProvider cloudEffectCount) {

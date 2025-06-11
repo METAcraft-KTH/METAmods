@@ -22,6 +22,8 @@ import se.datasektionen.mc.metacraft_season_4.entity.entities.bosses.*;
 
 public class Season4Entities {
 
+	public static final int MAX_ATTACK_DAMAGE = 20;
+
 	public static final EntityType<DevinBossEntity> DEVIN_BOSS = register(
 			"devin_boss",
 			FabricEntityType.Builder.createMob(

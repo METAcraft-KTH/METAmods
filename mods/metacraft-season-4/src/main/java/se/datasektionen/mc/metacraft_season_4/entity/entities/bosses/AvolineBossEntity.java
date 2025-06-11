@@ -15,6 +15,7 @@ import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
@@ -32,6 +33,7 @@ import net.minecraft.util.math.intprovider.UniformIntProvider;
 import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
+import net.minecraft.world.explosion.AdvancedExplosionBehavior;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.ImprovedRangedApproachTask;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartShootAttackTask;
@@ -42,6 +44,7 @@ import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_lib.condition.conditions.NotInWall;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.datasektionen.mc.metacraft_season_4.boss.AvolineMultiTNT;
+import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
 import se.metacraft.bosses.boss.attacks.Attack;
 import se.metacraft.bosses.boss.attacks.SpawnForEachTarget;
@@ -137,6 +140,20 @@ public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackin
 	@Override
 	public void readCustomDataFromNbt(NbtCompound nbt) {
 		super.readCustomDataFromNbt(nbt);
+	}
+
+	@Override
+	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+		if (!source.isOf(DamageTypes.OUT_OF_WORLD) && !this.isInvulnerableTo(world, source) && amount > Season4Entities.MAX_ATTACK_DAMAGE && source.getAttacker() != null) {
+			world.createExplosion(
+					this, world.getDamageSources().explosion(source.getSource(), this),
+					new AdvancedExplosionBehavior(false, true, Optional.of(10.0f), Optional.empty()),
+					source.getAttacker().getX(), source.getAttacker().getY(), source.getAttacker().getZ(),
+					10, true, World.ExplosionSourceType.MOB
+			);
+			return false;
+		}
+		return super.damage(world, source, amount);
 	}
 
 	public static TntEntity createTNTFlyingTowards(Entity source, Entity target) {

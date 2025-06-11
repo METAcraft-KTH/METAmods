@@ -15,6 +15,7 @@ import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.effect.StatusEffectCategory;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -57,6 +58,7 @@ import se.datasektionen.mc.metacraft_season_4.boss.PlayerShuffleAttack;
 import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
 import se.datasektionen.mc.metacraft_season_4.entity.ai.FlightWithStrafeMoveControl;
 import se.datasektionen.mc.metacraft_season_4.entity.ai.tasks.FlyingStrafeTask;
+import se.datasektionen.mc.metacraft_season_4.entity.entities.MagicProjectile;
 import se.datasektionen.mc.metacraft_season_4.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_season_4.mixin.AccessorLivingEntity;
 import se.datasektionen.mc.metacraft_season_4.mixin.AccessorPlayerEntity;
@@ -66,6 +68,7 @@ import se.metacraft.bosses.boss.AutoAttackingBoss;
 import se.metacraft.bosses.boss.attacks.*;
 import se.metacraft.bosses.boss.attacks.target.MoveToGround;
 import se.metacraft.bosses.entity.entities.ItemSpawnerWithTarget;
+import se.metacraft.bosses.util.StatusEffectEntry;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -261,7 +264,7 @@ public class GiocatBossEntity extends GenericBossPlayer implements AutoAttacking
 	}
 
 	private boolean swapOnDamaged(ServerWorld world, Entity attacker, float amount, Consumer<Entity> redirector) {
-		if (random.nextInt(20 - Math.min(19, MathHelper.floor(amount))) == 0) {
+		if (random.nextInt(Season4Entities.MAX_ATTACK_DAMAGE - Math.min(Season4Entities.MAX_ATTACK_DAMAGE-1, MathHelper.floor(amount))) == 0) {
 			var players = getTargets(EntityType.PLAYER, e -> e != attacker);
 			var player = players.isEmpty() ? attacker : players.get(random.nextInt(players.size()));
 			if (player != null) {
@@ -343,7 +346,7 @@ public class GiocatBossEntity extends GenericBossPlayer implements AutoAttacking
 
 	@Override
 	public boolean damage(ServerWorld world, DamageSource source, float amount) {
-		if (swapOnDamaged(world, source.getAttacker(), amount, e -> damageThroughFriendlyFire(world, source, amount, e))) {
+		if (!source.isOf(DamageTypes.OUT_OF_WORLD) && !this.isInvulnerableTo(world, source) && swapOnDamaged(world, source.getAttacker(), amount, e -> damageThroughFriendlyFire(world, source, amount, e))) {
 			return false;
 		}
 		return super.damage(world, source, amount);
@@ -369,6 +372,15 @@ public class GiocatBossEntity extends GenericBossPlayer implements AutoAttacking
 			var projectile = Season4Entities.MAGIC_PROJECTILE.create(getWorld(), SpawnReason.TRIGGERED);
 			projectile.setOwner(this);
 			projectile.setPos(getX(), getEyeY(), getZ());
+			projectile.setHitEffects(
+					MagicProjectile.createHitDefaults().add(
+							StatusEffectEntry.create(
+									StatusEffects.LEVITATION,
+									MagicProjectile.MID,
+									MagicProjectile.VARIES
+							)
+					).build()
+			);
 			EntityAIHelper.shootProjectile(
 					this, projectile, target,
 					SoundEvents.ENTITY_EVOKER_CAST_SPELL, speed, divergence

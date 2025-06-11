@@ -15,8 +15,10 @@ import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.effect.StatusEffectCategory;
 import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.*;
@@ -35,6 +37,7 @@ import net.minecraft.util.math.intprovider.UniformIntProvider;
 import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
+import net.minecraft.world.explosion.AdvancedExplosionBehavior;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.ImprovedRangedApproachTask;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartShootAttackTask;
@@ -158,6 +161,15 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 	@Override
 	protected Brain<?> deserializeBrain(Dynamic<?> dynamic) {
 		return DevinBrain.create(this, this.createBrainProfile().deserialize(dynamic));
+	}
+
+	@Override
+	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+		if (!source.isOf(DamageTypes.OUT_OF_WORLD) && !this.isInvulnerableTo(world, source) && amount > Season4Entities.MAX_ATTACK_DAMAGE && source.getAttacker() instanceof LivingEntity l) {
+			l.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA,  1200, 0));
+			return false;
+		}
+		return super.damage(world, source, amount);
 	}
 
 	@Override
