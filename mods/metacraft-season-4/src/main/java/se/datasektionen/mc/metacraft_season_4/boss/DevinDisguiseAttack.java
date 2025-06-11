@@ -152,6 +152,6 @@ public class DevinDisguiseAttack implements Attack {
 
 	@Override
 	public AttackType getType() {
-		return Season4Attacks.DEVIN_DISGUISE;
+		return Season4Attacks.DEVIN_DISGUISE.value();
 	}
 }

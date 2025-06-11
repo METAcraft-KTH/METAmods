@@ -15,14 +15,17 @@ import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.effect.StatusEffectCategory;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.*;
+import net.minecraft.loot.condition.EntityPropertiesLootCondition;
+import net.minecraft.loot.context.LootContext;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.predicate.NumberRange;
+import net.minecraft.predicate.entity.EntityPredicate;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -37,7 +40,6 @@ import net.minecraft.util.math.intprovider.UniformIntProvider;
 import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
-import net.minecraft.world.explosion.AdvancedExplosionBehavior;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.ImprovedRangedApproachTask;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartShootAttackTask;
@@ -49,10 +51,12 @@ import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.boss.DevinDisguiseAttack;
+import se.datasektionen.mc.metacraft_season_4.boss.Season4Attacks;
 import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
 import se.datasektionen.mc.metacraft_season_4.util.DialogueHelper;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
 import se.metacraft.bosses.boss.attacks.*;
+import se.metacraft.bosses.condition.entity_sub_predicate.BossPredicateType;
 import se.metacraft.bosses.entity.entities.ItemSpawnerWithTarget;
 import se.metacraft.bosses.util.DoubleTeamHandler;
 
@@ -126,18 +130,33 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 						true
 				)
 		).add(
-				new MultiAttack(
-						new DevinDisguiseAttack(),
-						new SendMessageAttack(
-								DialogueHelper.makeDialogue(
-										Text.literal("One of you has been kidnapped, and I've disguised myself among you.")
-								), false
+				new ConditionalAttack(
+						new MultiAttack(
+								new DevinDisguiseAttack(),
+								new SendMessageAttack(
+										DialogueHelper.makeDialogue(
+												Text.literal("One of you has been kidnapped, and I've disguised myself among you.")
+										), false
+								),
+								new SendTitleAttack(
+										Text.literal("b").styled(
+												s -> s.withFont(METAcraftLib.getID("textures"))
+										), Optional.empty(),
+										new SendTitleAttack.Times(5, 50, 50)
+								)
 						),
-						new SendTitleAttack(
-								Text.literal("b").styled(
-										s -> s.withFont(METAcraftLib.getID("textures"))
-								), Optional.empty(),
-								new SendTitleAttack.Times(5, 50, 50)
+						new EntityPropertiesLootCondition(
+								Optional.of(EntityPredicate.Builder.create().typeSpecific(
+										new BossPredicateType(
+												List.of(new BossPredicateType.EntityEntry(
+														NumberRange.IntRange.atLeast(2),
+														SpawnForEachTarget.PLAYER_PREDICATE
+												)),
+												List.of(), List.of(),
+												List.of(Season4Attacks.DEVIN_DISGUISE.getKey().orElseThrow())
+										)
+								).build()),
+								LootContext.EntityTarget.THIS
 						)
 				)
 		).add(

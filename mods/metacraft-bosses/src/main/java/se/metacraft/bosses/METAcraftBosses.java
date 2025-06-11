@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.metacraft.bosses.boss.attacks.AttackRegistry;
+import se.metacraft.bosses.condition.entity_sub_predicate.BossSubPredicates;
 import se.metacraft.bosses.entity.BossEntities;
 import se.metacraft.bosses.item.BossItems;
 
@@ -19,6 +20,7 @@ public class METAcraftBosses implements ModInitializer {
 		AttackRegistry.init();
 		BossItems.init();
 		BossEntities.init();
+		BossSubPredicates.init();
 	}
 
 	public static Identifier getID(String id) {
