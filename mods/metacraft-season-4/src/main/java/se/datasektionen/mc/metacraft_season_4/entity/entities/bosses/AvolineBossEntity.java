@@ -43,6 +43,7 @@ import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_lib.condition.conditions.NotInWall;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
+import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.boss.AvolineMultiTNT;
 import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
@@ -144,7 +145,7 @@ public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackin
 
 	@Override
 	public boolean damage(ServerWorld world, DamageSource source, float amount) {
-		if (!source.isOf(DamageTypes.OUT_OF_WORLD) && !this.isInvulnerableTo(world, source) && amount > Season4Entities.MAX_ATTACK_DAMAGE && source.getAttacker() != null) {
+		if (!source.isIn(DamageTypeTags.BYPASSES_INVULNERABILITY) && !this.isInvulnerableTo(world, source) && amount > Season4Entities.MAX_ATTACK_DAMAGE && source.getAttacker() != null) {
 			world.createExplosion(
 					this, world.getDamageSources().explosion(source.getSource(), this),
 					new AdvancedExplosionBehavior(false, true, Optional.of(10.0f), Optional.empty()),
@@ -189,6 +190,7 @@ public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackin
 	@Override
 	public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
 		var data = super.initialize(world, difficulty, spawnReason, entityData);
+		setLeftHanded(false);
 		if (this.getMainHandStack().isEmpty()) {
 			this.setStackInHand(
 					Hand.MAIN_HAND,
@@ -196,6 +198,8 @@ public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackin
 							Items.BLAZE_ROD.getRegistryEntry(), 1,
 							ComponentChanges.builder().add(
 									DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true
+							).add(
+									DataComponentTypes.ITEM_MODEL, Season4.getID("tnt_launcher")
 							).build()
 					)
 			);

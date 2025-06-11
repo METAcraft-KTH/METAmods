@@ -259,7 +259,7 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 
 	@Override
 	public boolean damage(ServerWorld world, DamageSource source, float amount) {
-		if (!source.isOf(DamageTypes.OUT_OF_WORLD) && !this.isInvulnerableTo(world, source) && amount > Season4Entities.MAX_ATTACK_DAMAGE && source.getAttacker() instanceof LivingEntity l) {
+		if (!source.isIn(DamageTypeTags.BYPASSES_INVULNERABILITY) && !this.isInvulnerableTo(world, source) && amount > Season4Entities.MAX_ATTACK_DAMAGE && source.getAttacker() instanceof LivingEntity l) {
 			l.addStatusEffect(new StatusEffectInstance(Season4StatusEffects.SMALLIFY,  1200, 4));
 			l.addStatusEffect(new StatusEffectInstance(Season4StatusEffects.HEALTH_REDUCTION,  1200, 11));
 			return false;
@@ -294,6 +294,7 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 	@Override
 	public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
 		var data = super.initialize(world, difficulty, spawnReason, entityData);
+		setLeftHanded(false);
 		if (this.getMainHandStack().isEmpty()) {
 			this.setStackInHand(
 					Hand.MAIN_HAND,

@@ -47,6 +47,7 @@ import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
+import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.boss.DevinDisguiseAttack;
 import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
 import se.datasektionen.mc.metacraft_season_4.util.DialogueHelper;
@@ -165,7 +166,7 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 
 	@Override
 	public boolean damage(ServerWorld world, DamageSource source, float amount) {
-		if (!source.isOf(DamageTypes.OUT_OF_WORLD) && !this.isInvulnerableTo(world, source) && amount > Season4Entities.MAX_ATTACK_DAMAGE && source.getAttacker() instanceof LivingEntity l) {
+		if (!source.isIn(DamageTypeTags.BYPASSES_INVULNERABILITY) && !this.isInvulnerableTo(world, source) && amount > Season4Entities.MAX_ATTACK_DAMAGE && source.getAttacker() instanceof LivingEntity l) {
 			l.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA,  1200, 0));
 			return false;
 		}
@@ -210,6 +211,7 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 	@Override
 	public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
 		var data = super.initialize(world, difficulty, spawnReason, entityData);
+		setLeftHanded(false);
 		if (this.getMainHandStack().isEmpty()) {
 			this.setStackInHand(
 					Hand.MAIN_HAND,
@@ -217,6 +219,8 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 							Items.BLAZE_ROD.getRegistryEntry(), 1,
 							ComponentChanges.builder().add(
 									DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true
+							).add(
+									DataComponentTypes.ITEM_MODEL, Season4.getID("wand")
 							).build()
 					)
 			);

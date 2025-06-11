@@ -53,6 +53,7 @@ import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_lib.entity.EntityParameters;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.TeleportHelper;
+import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.boss.InventoryShuffleAttack;
 import se.datasektionen.mc.metacraft_season_4.boss.PlayerShuffleAttack;
 import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
@@ -346,7 +347,7 @@ public class GiocatBossEntity extends GenericBossPlayer implements AutoAttacking
 
 	@Override
 	public boolean damage(ServerWorld world, DamageSource source, float amount) {
-		if (!source.isOf(DamageTypes.OUT_OF_WORLD) && !this.isInvulnerableTo(world, source) && swapOnDamaged(world, source.getAttacker(), amount, e -> damageThroughFriendlyFire(world, source, amount, e))) {
+		if (!source.isIn(DamageTypeTags.BYPASSES_INVULNERABILITY) && !this.isInvulnerableTo(world, source) && swapOnDamaged(world, source.getAttacker(), amount, e -> damageThroughFriendlyFire(world, source, amount, e))) {
 			return false;
 		}
 		return super.damage(world, source, amount);
@@ -394,6 +395,7 @@ public class GiocatBossEntity extends GenericBossPlayer implements AutoAttacking
 	@Override
 	public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData) {
 		var data = super.initialize(world, difficulty, spawnReason, entityData);
+		setLeftHanded(false);
 		if (this.getMainHandStack().isEmpty()) {
 			this.setStackInHand(
 					Hand.MAIN_HAND,
@@ -401,6 +403,8 @@ public class GiocatBossEntity extends GenericBossPlayer implements AutoAttacking
 							Items.BLAZE_ROD.getRegistryEntry(), 1,
 							ComponentChanges.builder().add(
 									DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true
+							).add(
+									DataComponentTypes.ITEM_MODEL, Season4.getID("fire")
 							).build()
 					)
 			);
