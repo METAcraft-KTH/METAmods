@@ -3,12 +3,15 @@ package se.datasektionen.mc.metacraft_season_4.entity.entities.bosses;
 import com.mojang.serialization.Codec;
 import net.minecraft.entity.*;
 import net.minecraft.entity.boss.BossBar;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.DataPool;
 import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
@@ -32,6 +35,7 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 
 	protected final AttackContainer container = new AttackContainer(this);
 	protected DataPool<Attack> attacks;
+	protected Identifier deathFunction;
 
 	public GenericBossPlayer(EntityType<? extends HostileEntity> entityType, World world) {
 		super(entityType, world);
@@ -52,6 +56,27 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 	@Override
 	public int getMaxAttacks() {
 		return 10;
+	}
+
+	public boolean surviveWith1HP(DamageSource source) {
+		return !source.isIn(DamageTypeTags.BYPASSES_INVULNERABILITY);
+	}
+
+	@Override
+	public boolean metacraft_season_4$surviveDeath(DamageSource source) {
+		if (surviveWith1HP(source)) {
+			setHealth(1);
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+		if (surviveWith1HP(source) && getHealth() <= 1) {
+			return false;
+		}
+		return super.damage(world, source, amount);
 	}
 
 	@Override
@@ -135,11 +160,5 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 			}
 		}
 		return data;
-	}
-
-	@Override
-	protected void updatePostDeath() {
-		this.getWorld().sendEntityStatus(this, EntityStatuses.ADD_PORTAL_PARTICLES);
-		discard();
 	}
 }

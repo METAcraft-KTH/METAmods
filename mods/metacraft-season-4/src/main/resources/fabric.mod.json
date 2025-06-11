@@ -38,7 +38,10 @@
 	},
 	"custom": {
 		"loom:injected_interfaces": {
-			"net/minecraft/entity/LivingEntity": ["se/datasektionen/mc/metacraft_season_4/extensions/DragExtension"]
+			"net/minecraft/entity/LivingEntity": [
+				"se/datasektionen/mc/metacraft_season_4/extensions/DragExtension",
+				"se/datasektionen/mc/metacraft_season_4/extensions/SurviveDeathExtension"
+			]
 		}
 	}
 }

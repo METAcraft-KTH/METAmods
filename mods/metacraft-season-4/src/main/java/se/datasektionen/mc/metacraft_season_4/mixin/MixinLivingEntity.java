@@ -17,12 +17,13 @@ import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.metacraft_season_4.end.EndBossPlayerState;
+import se.datasektionen.mc.metacraft_season_4.extensions.SurviveDeathExtension;
 import se.datasektionen.mc.metacraft_season_4.extensions.DragExtension;
 import se.datasektionen.mc.metacraft_season_4.extensions.LivingEntityExtensionsInternal;
 import se.datasektionen.mc.metacraft_season_4.status_effects.Season4StatusEffects;
 
 @Mixin(LivingEntity.class)
-public abstract class MixinLivingEntity extends Entity implements LivingEntityExtensionsInternal, DragExtension {
+public abstract class MixinLivingEntity extends Entity implements LivingEntityExtensionsInternal, DragExtension, SurviveDeathExtension {
 
 	@Shadow public abstract boolean canFreeze();
 
@@ -102,6 +103,13 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 		}
 		if (effect.getEffectType() == Season4StatusEffects.FREEZE && this.getType().isIn(EntityTypeTags.FREEZE_IMMUNE_ENTITY_TYPES)) {
 			cir.setReturnValue(false);
+		}
+	}
+
+	@Inject(method = "tryUseDeathProtector", at = @At("HEAD"), cancellable = true)
+	private void tryUseDeathProtector(DamageSource source, CallbackInfoReturnable<Boolean> cir) {
+		if (metacraft_season_4$surviveDeath(source)) {
+			cir.setReturnValue(true);
 		}
 	}
 }
