@@ -6,10 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import se.datasektionen.mc.cutscenes.compat.CompatTransitions;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
-import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
-import se.datasektionen.mc.cutscenes.registry.RotationRefRegistry;
-import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
+import se.datasektionen.mc.cutscenes.registry.*;
 import se.datasektionen.mc.cutscenes.util.cutscene_redirector.CutsceneServerRedirector;
 
 public class Cutscenes implements ModInitializer {
@@ -19,6 +16,7 @@ public class Cutscenes implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		ChunkAreaRegistry.init();
 		EntityRefRegistry.init();
 		PositionRefRegistry.init();
 		RotationRefRegistry.init();

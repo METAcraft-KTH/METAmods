@@ -14,6 +14,7 @@ import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.transitions.RunCommandTransition;
+import se.datasektionen.mc.cutscenes.util.SerializableEntitySelector;
 
 import java.util.stream.Stream;
 
@@ -21,29 +22,20 @@ public class SelectorRef implements EntityRef {
 
 	public static final MapCodec<SelectorRef> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Codec.STRING.fieldOf("selector").forGetter(t -> t.selectorString)
+					SerializableEntitySelector.CODEC.fieldOf("selector").forGetter(t -> t.selector)
 			).apply(instance, SelectorRef::new)
 	);
 
-	private final String selectorString;
-	private final EntitySelector selector;
+	private final SerializableEntitySelector selector;
 
-	public SelectorRef(String selectorString) {
-		this.selectorString = selectorString;
-		EntitySelector s = null;
-		try {
-			s = new EntitySelectorReader(new StringReader(selectorString), true).read();
-		} catch (CommandSyntaxException e) {
-			Cutscenes.LOGGER.error(e.getMessage(), e);
-		}
-		this.selector = s;
+	public SelectorRef(SerializableEntitySelector selector) {
+		this.selector = selector;
 	}
 
 	@Override
 	public Stream<? extends Entity> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutsceneInstance) {
-		if (selector == null) return Stream.empty();
 		try {
-			return selector.getEntities(RunCommandTransition.getSource(cutsceneInstance, false)).stream();
+			return selector.get().getEntities(RunCommandTransition.getSource(cutsceneInstance, false)).stream();
 		} catch (CommandSyntaxException e) {
 			Cutscenes.LOGGER.error(e.getMessage(), e);
 			return Stream.empty();

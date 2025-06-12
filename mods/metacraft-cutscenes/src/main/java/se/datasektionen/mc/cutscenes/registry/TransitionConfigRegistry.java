@@ -154,6 +154,10 @@ public class TransitionConfigRegistry {
 			"conditional", ConditionalTransition.Config.CODEC
 	);
 
+	public static final TransitionConfigType<LoadIntoCutscene> LOAD_CHUNKS = register(
+			"load_chunks", LoadIntoCutscene.CODEC
+	);
+
 
 
 
