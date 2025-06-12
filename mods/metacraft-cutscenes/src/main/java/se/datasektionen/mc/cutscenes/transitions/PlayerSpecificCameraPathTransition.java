@@ -5,6 +5,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
@@ -148,6 +149,8 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 
 	public record DynamicTarget(PositionRef pos, RotationRef rot) implements Interpolatable<CutsceneContext> {
 
+		public static final Int2ObjectMap<InterpolationSet.Adjuster> ADJUSTER = Target.ADJUSTER;
+
 		public static final MapCodec<DynamicTarget> MAP_CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						PositionRefRegistry.CODEC.fieldOf("pos").forGetter(t -> t.pos),
@@ -212,7 +215,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 	) implements TransitionConfig {
 
 		public static final MapCodec<InterpolationSetContainer<DynamicTarget>> SMOOTH_PATH = InterpolationSetContainer.createCodec(
-				DynamicTarget.MAP_CODEC, DynamicTarget::fromList
+				DynamicTarget.MAP_CODEC, DynamicTarget::fromList, DynamicTarget.ADJUSTER
 		);
 
 		public static final MapCodec<Config> CODEC = RecordCodecBuilder.mapCodec(

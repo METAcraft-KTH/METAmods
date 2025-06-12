@@ -5,13 +5,14 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.TreePMap;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.DoubleStream;
 
 public class InterpolationSet<C, T extends Interpolatable<C>> {
@@ -25,14 +26,21 @@ public class InterpolationSet<C, T extends Interpolatable<C>> {
 		);
 	}
 
+
 	public static <C, T extends Interpolatable<C>> Codec<InterpolationSet<C, T>> createCodec(
 			MapCodec<T> valueCodec, Creator<C, T> creator
+	) {
+		return createCodec(valueCodec, creator, Int2ObjectMaps.emptyMap());
+	}
+
+	public static <C, T extends Interpolatable<C>> Codec<InterpolationSet<C, T>> createCodec(
+			MapCodec<T> valueCodec, Creator<C, T> creator, Int2ObjectMap<Adjuster> adjusters
 	) {
 		return createEntryCodec(valueCodec).listOf().xmap(
 				list -> new InterpolationSet<>(
 						list.stream().collect(
 								TreePMap.toTreePMap(Map.Entry::getKey, Map.Entry::getValue)
-						), creator
+						), creator, adjusters
 				),
 				set -> set.values.entrySet().stream().toList()
 		);
@@ -43,36 +51,32 @@ public class InterpolationSet<C, T extends Interpolatable<C>> {
 	private final TreePMap<Double, T> values; //Warning, this is a persistent map, not a normal map! That means to update it you must do = just like when updating strings!
 	private List<PolynomialSplineFunction> splines;
 	private final Creator<C, T> creator;
+	private final Int2ObjectMap<Adjuster> adjusters;
 	private final boolean dynamic;
 
 	public InterpolationSet(TreePMap<Double, T> values, Creator<C, T> creator) {
+		this(values, creator, Int2ObjectMaps.emptyMap());
+	}
+
+	public InterpolationSet(TreePMap<Double, T> values, Creator<C, T> creator, Int2ObjectMap<Adjuster> adjusters) {
 		this.values = values;
 		this.dynamic = values.values().stream().anyMatch(Interpolatable::isDynamic);
 		this.creator = creator;
+		this.adjusters = adjusters;
 	}
 
 	public InterpolationSet<C, T> setStartIfNotPresent(T start) {
 		if (!values.containsKey(0.0)) {
-			return new InterpolationSet<>(values.plus(0.0, start), creator);
+			return new InterpolationSet<>(values.plus(0.0, start), creator, adjusters);
 		}
 		return this;
 	}
 
 	public InterpolationSet<C, T> setEndIfNotPresent(T end) {
 		if (!values.containsKey(1.0)) {
-			return new InterpolationSet<>(values.plus(1.0, end), creator);
+			return new InterpolationSet<>(values.plus(1.0, end), creator, adjusters);
 		}
 		return this;
-	}
-
-	public <R extends Interpolatable<C>> InterpolationSet<C, R> map(Function<T, R> mapper, Creator<C, R> creator) {
-		return new InterpolationSet<>(
-				values.entrySet().stream().reduce(
-						TreePMap.empty(),
-						(map, entry) -> map.plus(entry.getKey(), mapper.apply(entry.getValue())),
-						TreePMap::plusAll
-				), creator
-		);
 	}
 
 	private boolean needsUpdate(@Nullable C context) {
@@ -114,6 +118,12 @@ public class InterpolationSet<C, T extends Interpolatable<C>> {
 			}
 		}
 
+		for (int i = 0; i < y.size(); i++) {
+			if (adjusters.containsKey(i)) {
+				y.set(i, adjusters.get(i).adjustValues(y.get(i)));
+			}
+		}
+
 		var xArr = x.toDoubleArray();
 		this.splines = y.stream().map(
 				list -> INTERPOLATOR.interpolate(xArr, list.toDoubleArray())
@@ -135,5 +145,66 @@ public class InterpolationSet<C, T extends Interpolatable<C>> {
 	@FunctionalInterface
 	public interface Creator<C, T extends Interpolatable<C>> {
 		T create(DoubleStream stream);
+	}
+
+	@FunctionalInterface
+	public interface Adjuster {
+		DoubleList adjustValues(DoubleList elements);
+	}
+
+	public static DoubleList fixYawRotations(DoubleList elements) {
+		if (elements.size() < 2) return elements;
+		for (double e : elements) {
+			if (Math.abs(e) > 180) {
+				return elements;
+			}
+		}
+		elements = new DoubleArrayList(elements);
+		double prev = elements.getFirst();
+
+		double offset = 0;
+
+		for (int i = 1; i < elements.size(); i++) {
+			double current = elements.getDouble(i);
+
+			if (current - prev > 180) { //-180 -> 180
+				offset -= 360;
+			} else if (current - prev < -180) { //180 -> -180
+				offset += 360;
+			}
+
+			prev = current;
+			if (offset != 0) {
+				current += offset;
+				elements.set(i, current);
+			}
+		}
+
+
+		/*double currentOffset = 0;
+		for (int i = 1; i < elements.size(); i++) {
+			double current = elements.getDouble(i);
+			double altOffset = 0;
+
+			if (prev < 0 && current >= 0) {
+				altOffset = -360;
+			} else if (prev >= 0 && current < 0) {
+				altOffset = 360;
+			}
+
+			if (Math.abs(prev - current) > Math.abs(prev - (current + altOffset))) {
+				currentOffset += altOffset;
+			}
+
+			if (currentOffset != 0) {
+				current += currentOffset;
+				elements.set(i, current);
+			}
+
+			prev = current;
+		}*/
+
+
+		return elements;
 	}
 }

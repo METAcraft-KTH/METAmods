@@ -5,6 +5,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -23,6 +24,7 @@ import se.datasektionen.mc.cutscenes.util.CutsceneContext;
 import se.datasektionen.mc.metacraft_core.util.Interpolatable;
 import se.datasektionen.mc.cutscenes.util.InterpolationSetContainer;
 import se.datasektionen.mc.cutscenes.util.Target;
+import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 
 import java.util.Arrays;
 import java.util.stream.DoubleStream;
@@ -33,7 +35,7 @@ public record SmoothEntityPathConfig(
 ) implements TransitionConfig {
 
 	public static final MapCodec<InterpolationSetContainer<DisplayEntityTarget>> SMOOTH_PATH = InterpolationSetContainer.createCodec(
-			DisplayEntityTarget.CODEC, DisplayEntityTarget::fromList
+			DisplayEntityTarget.CODEC, DisplayEntityTarget::fromList, DisplayEntityTarget.ADJUSTER
 	);
 
 	public static final MapCodec<SmoothEntityPathConfig> CODEC = RecordCodecBuilder.mapCodec(
@@ -50,6 +52,9 @@ public record SmoothEntityPathConfig(
 			float shadowRadius, float shadowStrength,
 			int background, byte textOpacity //Only used on text displays.
 	) implements Interpolatable<CutsceneContext> {
+
+		public static final Int2ObjectMap<InterpolationSet.Adjuster> ADJUSTER = Target.ADJUSTER;
+
 		public static final MapCodec<DisplayEntityTarget> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						Target.MAP_CODEC.forGetter(DisplayEntityTarget::target),

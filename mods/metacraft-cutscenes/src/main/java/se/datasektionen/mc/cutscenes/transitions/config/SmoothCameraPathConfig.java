@@ -14,7 +14,7 @@ public record SmoothCameraPathConfig(
 ) implements TransitionConfig {
 
 	public static final MapCodec<InterpolationSetContainer<Target>> SMOOTH_PATH = InterpolationSetContainer.createCodec(
-			Target.MAP_CODEC, Target::fromList
+			Target.MAP_CODEC, Target::fromList, Target.ADJUSTER
 	);
 
 	public static final MapCodec<SmoothCameraPathConfig> CODEC = RecordCodecBuilder.mapCodec(

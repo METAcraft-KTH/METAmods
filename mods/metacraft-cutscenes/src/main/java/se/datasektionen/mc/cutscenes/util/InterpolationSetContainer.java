@@ -2,6 +2,8 @@ package se.datasektionen.mc.cutscenes.util;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.*;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
 import se.datasektionen.mc.metacraft_core.util.Interpolatable;
 import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
@@ -11,8 +13,15 @@ import java.util.stream.Stream;
 
 public class InterpolationSetContainer<T extends Interpolatable<CutsceneContext>> {
 
+
 	public static <I extends Interpolatable<CutsceneContext>> MapCodec<InterpolationSetContainer<I>> createCodec(
 			MapCodec<I> elementCodec, InterpolationSet.Creator<CutsceneContext, I> creator
+	) {
+		return createCodec(elementCodec, creator, Int2ObjectMaps.emptyMap());
+	}
+
+	public static <I extends Interpolatable<CutsceneContext>> MapCodec<InterpolationSetContainer<I>> createCodec(
+			MapCodec<I> elementCodec, InterpolationSet.Creator<CutsceneContext, I> creator, Int2ObjectMap<InterpolationSet.Adjuster> adjuster
 	) {
 		return new MapCodec<>() {
 
@@ -20,8 +29,8 @@ public class InterpolationSetContainer<T extends Interpolatable<CutsceneContext>
 			private static final String EXACT = "exact_targets";
 			private static final String EITHER = "targets";
 
-			private final Codec<InterpolationSet<CutsceneContext, I>> relativeCodec = InterpolationSet.createCodec(elementCodec, creator);
-			private final Codec<TimestampedInterpolationSet<I>> exactCodec = TimestampedInterpolationSet.createCodec(elementCodec, creator);
+			private final Codec<InterpolationSet<CutsceneContext, I>> relativeCodec = InterpolationSet.createCodec(elementCodec, creator, adjuster);
+			private final Codec<TimestampedInterpolationSet<I>> exactCodec = TimestampedInterpolationSet.createCodec(elementCodec, creator, adjuster);
 
 			private final Codec<Either<InterpolationSet<CutsceneContext, I>, TimestampedInterpolationSet<I>>> eitherCodec = Codec.either(relativeCodec, exactCodec);
 

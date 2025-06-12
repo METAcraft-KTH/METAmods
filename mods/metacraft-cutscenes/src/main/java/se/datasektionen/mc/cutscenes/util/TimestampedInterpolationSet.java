@@ -3,6 +3,8 @@ package se.datasektionen.mc.cutscenes.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import org.pcollections.TreePMap;
 import se.datasektionen.mc.metacraft_core.util.Interpolatable;
 import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
@@ -24,6 +26,12 @@ public class TimestampedInterpolationSet<T extends Interpolatable<CutsceneContex
 	public static <T extends Interpolatable<CutsceneContext>> Codec<TimestampedInterpolationSet<T>> createCodec(
 			MapCodec<T> valueCodec, InterpolationSet.Creator<CutsceneContext, T> creator
 	) {
+		return createCodec(valueCodec, creator, Int2ObjectMaps.emptyMap());
+	}
+
+	public static <T extends Interpolatable<CutsceneContext>> Codec<TimestampedInterpolationSet<T>> createCodec(
+			MapCodec<T> valueCodec, InterpolationSet.Creator<CutsceneContext, T> creator, Int2ObjectMap<InterpolationSet.Adjuster> adjusters
+	) {
 		return createEntryCodec(valueCodec).listOf().xmap(
 				list -> new TimestampedInterpolationSet<>(
 						list.stream().collect(
@@ -33,7 +41,7 @@ public class TimestampedInterpolationSet<T extends Interpolatable<CutsceneContex
 										(lhs, rhs) -> lhs,
 										java.util.TreeMap::new
 								)
-						), creator
+						), creator, adjusters
 				),
 				set -> set.values.entrySet().stream().toList()
 		);
@@ -41,10 +49,12 @@ public class TimestampedInterpolationSet<T extends Interpolatable<CutsceneContex
 
 	private final Map<Integer, T> values;
 	private final InterpolationSet.Creator<CutsceneContext, T> creator;
+	private final Int2ObjectMap<InterpolationSet.Adjuster> adjusters;
 
-	public TimestampedInterpolationSet(Map<Integer, T> values, InterpolationSet.Creator<CutsceneContext, T> creator) {
+	public TimestampedInterpolationSet(Map<Integer, T> values, InterpolationSet.Creator<CutsceneContext, T> creator, Int2ObjectMap<InterpolationSet.Adjuster> adjusters) {
 		this.values = values;
 		this.creator = creator;
+		this.adjusters = adjusters;
 	}
 
 	public InterpolationSet<CutsceneContext, T> createFromRange(int start, int end) {
@@ -56,7 +66,7 @@ public class TimestampedInterpolationSet<T extends Interpolatable<CutsceneContex
 								e -> ((double) e.getKey() - start) / (end - start),
 								Map.Entry::getValue
 						)
-				), creator
+				), creator, adjusters
 		);
 	}
 }

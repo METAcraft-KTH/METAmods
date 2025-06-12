@@ -31,8 +31,7 @@ public class SmoothEntityPathTranstion implements Transition {
 		this.config = config;
 	}
 
-	@Override
-	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	private void init(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		interpolationSet = config.targets().getTargets(interval);
 		var target = config.entity().get(null, cutscene).findAny().map(
 				SmoothEntityPathConfig.DisplayEntityTarget::fromEntity
@@ -41,6 +40,11 @@ public class SmoothEntityPathTranstion implements Transition {
 		);
 		interpolationSet = interpolationSet.setStartIfNotPresent(target);
 		interpolationSet = interpolationSet.setEndIfNotPresent(target);
+	}
+
+	@Override
+	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		init(cutscene, interval);
 		config.entity().get(null, cutscene).forEach(entity -> {
 			setData(entity, interpolationSet.interpolate(0));
 			setLinearInterpolationDuration(entity, config.interpolationDuration());
@@ -77,7 +81,7 @@ public class SmoothEntityPathTranstion implements Transition {
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (interpolationSet == null) {
-			interpolationSet = config.targets().getTargets(interval);
+			init(cutscene, interval);
 		}
 		int currentTimeAdjusted = cutscene.getCurrentTime() + config.interpolationDuration();
 		if (currentTimeAdjusted > interval.getEnd()) {
