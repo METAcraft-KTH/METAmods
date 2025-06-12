@@ -180,31 +180,6 @@ public class InterpolationSet<C, T extends Interpolatable<C>> {
 			}
 		}
 
-
-		/*double currentOffset = 0;
-		for (int i = 1; i < elements.size(); i++) {
-			double current = elements.getDouble(i);
-			double altOffset = 0;
-
-			if (prev < 0 && current >= 0) {
-				altOffset = -360;
-			} else if (prev >= 0 && current < 0) {
-				altOffset = 360;
-			}
-
-			if (Math.abs(prev - current) > Math.abs(prev - (current + altOffset))) {
-				currentOffset += altOffset;
-			}
-
-			if (currentOffset != 0) {
-				current += currentOffset;
-				elements.set(i, current);
-			}
-
-			prev = current;
-		}*/
-
-
 		return elements;
 	}
 }
