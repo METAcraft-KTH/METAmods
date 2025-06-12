@@ -549,6 +549,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void removePlayerEntryFrom(Stream<ServerPlayerEntity> players) {
+		if (profile == null) return;
 		if (getServer().getPlayerManager().getPlayer(profile.getId()) == null) {
 			players.forEach(player -> {
 				player.networkHandler.sendPacket(new PlayerRemoveS2CPacket(List.of(profile.getId())));
@@ -816,6 +817,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	public void removeAllPlayerEntries() {
+		if (profile == null) return;
 		removePlayerEntryFrom(removePackets.stream().map(SendPacketEntry::player));
 		removePackets.clear();
 	}
