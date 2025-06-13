@@ -9,9 +9,12 @@ import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import eu.pb4.polymer.core.impl.interfaces.EntityAttachedPacket;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.listener.ClientPlayPacketListener;
+import net.minecraft.network.packet.Packet;
 import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerEntityManager;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -21,6 +24,7 @@ import se.datasektionen.mc.cutscenes.mixin.AccesorServerEntityManager;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class CutsceneEntityManager {
@@ -76,20 +80,56 @@ public class CutsceneEntityManager {
 		return entitiesToHide.contains(id);
 	}
 
+	public static class CutsceneTrackerEntry extends EntityTrackerEntry {
+
+		public CutsceneTrackerEntry(ServerWorld world, Entity entity) {
+			super(
+					world, entity, entity.getType().getTrackTickInterval(), entity.getType().alwaysUpdateVelocity(),
+					packet -> {
+						if (entity instanceof PolymerEntity) {
+							EntityAttachedPacket.setIfEmpty(packet, entity);
+						}
+						world.getPlayers().forEach(p -> p.networkHandler.sendPacket(packet));
+					}
+			);
+		}
+	}
+
+	public static class NoOpTrackerEntry extends CutsceneTrackerEntry {
+
+		public NoOpTrackerEntry(ServerWorld world, Entity entity) {
+			super(world, entity);
+		}
+
+		@Override
+		public void startTracking(ServerPlayerEntity player) {
+
+		}
+
+		@Override
+		public void stopTracking(ServerPlayerEntity player) {
+
+		}
+
+		@Override
+		public void sendPackets(ServerPlayerEntity player, Consumer<Packet<ClientPlayPacketListener>> sender) {
+
+		}
+	}
+
+	private EntityTrackerEntry create(Entity entity) {
+		if (entity.getType().getMaxTrackDistance() == 0) {
+			return new NoOpTrackerEntry(world, entity);
+		}
+		return new CutsceneTrackerEntry(world, entity);
+	}
+
 	public void addEntity(String id, Entity entity) {
 		if (iteratingEntities) {
 			addQueue.add(Pair.of(id, entity));
 			return;
 		}
-		var tracker = new EntityTrackerEntry(
-				world, entity, entity.getType().getTrackTickInterval(), entity.getType().alwaysUpdateVelocity(),
-				packet -> {
-					if (entity instanceof PolymerEntity) {
-						EntityAttachedPacket.setIfEmpty(packet, entity);
-					}
-					world.getPlayers().forEach(p -> p.networkHandler.sendPacket(packet));
-				}
-		);
+		var tracker = create(entity);
 		if (chunkLoadingManager != null) {
 			chunkLoadingManager.addEntity(entity, tracker);
 		}
