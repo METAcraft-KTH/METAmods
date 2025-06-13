@@ -6,7 +6,6 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.entity.*;
-import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.*;
@@ -37,7 +36,6 @@ import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.TeleportTransition;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
-import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
@@ -46,6 +44,7 @@ import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class CutsceneInstance implements AutoCloseable {
@@ -54,7 +53,6 @@ public class CutsceneInstance implements AutoCloseable {
 
 	public static final String CUTSCENE = "cutscene"; //Careful, this is used by the datafixer!
 
-	public static final String PLAYER_REFERENCE = "player";
 	public static final String PLAYER_ITEM = "player_item";
 	public static final String PLAYER_DUMMY_TAG = "metacraft_cutscenes.is_player_dummy";
 
@@ -280,15 +278,18 @@ public class CutsceneInstance implements AutoCloseable {
 		return transitionTarget;
 	}
 
-	public void addPlayerDummy(ServerPlayerEntity player) {
-		createFromData(savedPlayerData.get(player.getUuid())).ifPresent(p -> {
-			p.streamSelfAndPassengers().forEach(e -> {
-				e.getCommandTags().add(PLAYER_DUMMY_TAG);
-				if (e instanceof PlayerMob) {
-					playerDummies.put(player.getUuid(), e.getUuid());
-				}
-				world.getEntityManager().addEntity(PLAYER_REFERENCE, e);
-			});
+	public void addPlayerDummy(ServerPlayerEntity player, Function<NbtCompound, Entity> entitySpawner) {
+		var existing = playerDummies.get(player.getUuid());
+		if (existing != null && getEntityLookup().get(existing) != null) {
+			return;
+		}
+		var entity = entitySpawner.apply(savedPlayerData.get(player.getUuid()));
+		if (entity == null) return;
+		entity.streamSelfAndPassengers().forEach(e -> {
+			e.getCommandTags().add(PLAYER_DUMMY_TAG);
+			if (e instanceof PlayerMob) {
+				playerDummies.put(player.getUuid(), e.getUuid());
+			}
 		});
 	}
 
@@ -328,19 +329,9 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 		removeLead(player);
 		if (!savedPlayerData.containsKey(player.getUuid())) {
-			boolean shouldRemount = false;
-			var directVehicle = player.getVehicle();
-			if (!cutscene.hideMount() && !cutscene.createFakePlayer()) {
-				player.dismountVehicle();
-				shouldRemount = true;
-			}
 			PlayerDataHelper.detachPassengersBeforeSaving(player);
 			savedPlayerData.put(player.getUuid(), writeSafeData(player));
-			if (cutscene.hideMount() || cutscene.createFakePlayer()) {
-				PlayerDataHelper.unloadPassengersAndVehicles(player);
-			} else if (shouldRemount && directVehicle != null) {
-				player.startRiding(directVehicle, true);
-			}
+			PlayerDataHelper.unloadPassengersAndVehicles(player);
 			PlayerDataHelper.unloadFarawayEntities(player);
 		}
 		if (world != null && !world.isPlayerWorld(player)) {
@@ -348,9 +339,6 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 		players = players.plus(player);
 		world.addPlayer(player);
-		if (cutscene.createFakePlayer() && !playerDummies.containsKey(player.getUuid())) {
-			addPlayerDummy(player);
-		}
 		transitions.getIntervalsAt(getCurrentTime()).forEach(interval -> {
 			if (interval.getStart() != getCurrentTime()) {
 				interval.getObject().activate(player, this, interval);
@@ -379,23 +367,6 @@ public class CutsceneInstance implements AutoCloseable {
 			}
 		}
 		((AccessorPlayerManager) player.getServer().getPlayerManager()).callSendScoreboard(newScoreboard, player);
-	}
-
-	public Optional<Entity> createFromData(NbtCompound data) {
-		var player = METAcraftEntities.PLAYER.create(world, SpawnReason.EVENT);
-		var spawnWorld = PlayerDataHelper.getWorld(world.getServer(), data);
-		if (spawnWorld.isEmpty() || spawnWorld.get() != world.getActualWorld()) {
-			return Optional.empty();
-		}
-		player.copyFromPlayerData(data);
-		PlayerDataHelper.loadRootVehicleAndPassengers(player, data, e -> e);
-		var root = player.getRootVehicle();
-		root.streamPassengersAndSelf().forEach(e -> {
-			if (e instanceof MobEntity mob) {
-				mob.setPersistent();
-			}
-		});
-		return Optional.of(root);
 	}
 
 	public static void loadPlayerData(
@@ -549,8 +520,6 @@ public class CutsceneInstance implements AutoCloseable {
 				var player = getServer().getPlayerManager().getPlayer(playerID);
 				if (player == null || !players.contains(player)) {
 					dummyToPlayer.remove(entity.getUuid());
-				} else {
-					addPlayerDummy(player);
 				}
 			} else {
 				if (playerDummiesAtTheEnd == null) {

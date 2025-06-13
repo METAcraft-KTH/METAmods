@@ -158,6 +158,11 @@ public class TransitionConfigRegistry {
 			"load_chunks", LoadIntoCutscene.CODEC
 	);
 
+	public static final TransitionConfigType<AddPlayerDummies> PLAYER_DUMMIES = register(
+			"player_dummies", AddPlayerDummies.CODEC
+	);
+
+
 
 
 
