@@ -9,6 +9,8 @@ import se.metacraft.bosses.boss.attacks.Attack;
 import se.metacraft.bosses.boss.attacks.AttackType;
 import se.metacraft.bosses.boss.attacks.InstantAttack;
 
+import java.util.stream.Collectors;
+
 public class PlayerShuffleAttack extends InstantAttack {
 
 	private static final PlayerShuffleAttack INSTANCE = new PlayerShuffleAttack();
@@ -30,7 +32,7 @@ public class PlayerShuffleAttack extends InstantAttack {
 	public void trigger(BossContext<?> ctx) {
 		var sources = ctx.boss().getPlayerTargets();
 		if (sources.isEmpty()) return;
-		var targets = sources.stream().map(PlayerPosition::fromEntity).toList();
+		var targets = sources.stream().map(PlayerPosition::fromEntity).collect(Collectors.toList());
 		Util.shuffle(targets, ctx.random());
 		for (int i = 0; i < sources.size(); i++) {
 			var target = targets.get(i);
