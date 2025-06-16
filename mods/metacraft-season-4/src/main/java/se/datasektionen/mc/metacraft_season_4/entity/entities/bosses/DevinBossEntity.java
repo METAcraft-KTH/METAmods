@@ -246,8 +246,10 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 		}
 		if (data instanceof DoubleTeamHandler) {
 			var targets = getPlayerTargets();
-			var target = targets.get(random.nextInt(targets.size()));
-			this.getBrain().remember(MemoryModuleType.ANGRY_AT, target.getUuid());
+			if (!targets.isEmpty()) {
+				var target = targets.get(random.nextInt(targets.size()));
+				this.getBrain().remember(MemoryModuleType.ANGRY_AT, target.getUuid());
+			}
 		}
 		return data;
 	}
