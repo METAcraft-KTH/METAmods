@@ -11,7 +11,8 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.TypeFilter;
 import net.minecraft.util.collection.DataPool;
 import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
@@ -21,6 +22,7 @@ import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
 import se.datasektionen.mc.metacraft_core.util.helper.BossBarHelper;
 import se.datasektionen.mc.metacraft_lib.extensions.EntityExtensions;
+import se.datasektionen.mc.metacraft_lib.extensions.LivingEntityExtensions;
 import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
 import se.metacraft.bosses.boss.attacks.Attack;
@@ -35,7 +37,6 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 
 	protected final AttackContainer container = new AttackContainer(this);
 	protected DataPool<Attack> attacks;
-	protected Identifier deathFunction;
 
 	public GenericBossPlayer(EntityType<? extends HostileEntity> entityType, World world) {
 		super(entityType, world);
@@ -51,6 +52,22 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 		super.mobTick(world);
 		container.tickAttackDelay();
 		container.tickAttacks();
+
+		if (this.getPos().getY() < world.getBottomY()) {
+			var targets = getTargets(p -> p.getY() >= world.getBottomY());
+			if (targets.isEmpty()) {
+				targets = getAllies(TypeFilter.instanceOf(Entity.class), e -> e.getY() >= world.getBottomY());
+			}
+			if (!targets.isEmpty()) {
+				var target = targets.get(random.nextInt(targets.size()));
+				double x = this.getX() + (this.random.nextDouble() - (double)0.5F) * (double)8.0F - target.getX() * (double)16.0F;
+				double y = this.getY() + (double)(this.random.nextInt(16) - 8) - target.getY() * (double)16.0F;
+				double z = this.getZ() + (this.random.nextDouble() - (double)0.5F) * (double)8.0F - target.getZ() * (double)16.0F;
+				if (teleport(x, y, z, true)) {
+					playSound(SoundEvents.ENTITY_PLAYER_TELEPORT);
+				}
+			}
+		}
 	}
 
 	@Override
@@ -148,6 +165,8 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 		var data = super.initialize(world, difficulty, spawnReason, entityData);
 		((EntityExtensions) this).metacraft_lib$setPreventEnterVehicle(true);
 		((EntityExtensions) this).metacraft_lib$setHideUUIDInTooltip(true);
+		((LivingEntityExtensions) this).metacraft_lib$setHostile(true);
+		this.setPersistent();
 		if (data instanceof DoubleTeamHandler h) {
 			attacks = DataPool.<Attack>empty();
 			this.setLeftHanded(h.primary() instanceof MobEntity m ? m.isLeftHanded() : this.isLeftHanded());
