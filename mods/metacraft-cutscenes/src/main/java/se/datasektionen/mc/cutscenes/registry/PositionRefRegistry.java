@@ -22,6 +22,7 @@ public class PositionRefRegistry {
 	public static final PositionRefType<AtEntityRef> ENTITY = register("entity", AtEntityRef.CODEC);
 	public static final PositionRefType<Fixed> FIXED = register("fixed", Fixed.CODEC);
 	public static final PositionRefType<FirstValidPos> FIRST_VALID = register("first_valid", FirstValidPos.CODEC);
+	public static final PositionRefType<RandomRangeWithGravity> RANDOM_RANGE_WITH_GRAVITY = register("random_range_with_gravity", RandomRangeWithGravity.CODEC);
 
 	public static void init() {
 
