@@ -45,6 +45,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Arm;
 import net.minecraft.util.Hand;
+import net.minecraft.util.StringHelper;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -654,14 +655,29 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		return partSet;
 	}
 
+	private static GameProfile makeSafeForSaving(GameProfile profile) {
+		if (profile == null) {
+			return null;
+		}
+		if (StringHelper.isValidPlayerName(profile.getName())) {
+			return profile;
+		} else {
+			var newProfile = new GameProfile(profile.getId(), "");
+			newProfile.getProperties().putAll(profile.getProperties());
+			return newProfile;
+		}
+	}
+
 	@Override
 	public void writeCustomDataToNbt(NbtCompound nbt) {
 		super.writeCustomDataToNbt(nbt);
-		ProfileComponent.CODEC.encodeStart(
-				getRegistryManager().getOps(NbtOps.INSTANCE), new ProfileComponent(profile)
-		).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(
-				profile -> nbt.put(PROFILE, profile)
-		);
+		if (profile != null) {
+			ProfileComponent.CODEC.encodeStart(
+					getRegistryManager().getOps(NbtOps.INSTANCE), new ProfileComponent(makeSafeForSaving(profile))
+			).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(
+					profile -> nbt.put(PROFILE, profile)
+			);
+		}
 		ExtraCodecs.MODEL_PART_SET_CODEC.encodeStart(
 				getRegistryManager().getOps(NbtOps.INSTANCE), getVisibleSkinParts()
 		).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(
