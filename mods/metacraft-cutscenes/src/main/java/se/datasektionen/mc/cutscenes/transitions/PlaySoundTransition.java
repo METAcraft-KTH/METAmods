@@ -66,7 +66,7 @@ public class PlaySoundTransition implements Transition, TransitionConfig {
 	@Override
 	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		source.ifLeft(pos -> {
-			pos.get(player, cutscene).ifPresent(target -> {
+			pos.get(cutscene.createRefContext(player)).ifPresent(target -> {
 				player.networkHandler.sendPacket(
 						new PlaySoundS2CPacket(
 								sound, category, target.getX(), target.getY(), target.getZ(),
@@ -76,7 +76,7 @@ public class PlaySoundTransition implements Transition, TransitionConfig {
 			});
 		});
 		source.ifRight(entity -> {
-			entity.get(player, cutscene).forEach(target -> {
+			entity.get(cutscene.createRefContext(player)).forEach(target -> {
 				player.networkHandler.sendPacket(
 						new PlaySoundFromEntityS2CPacket(
 								sound, category, target,

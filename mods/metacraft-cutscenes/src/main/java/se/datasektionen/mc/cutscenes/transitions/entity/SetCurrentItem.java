@@ -42,7 +42,7 @@ public class SetCurrentItem implements Transition, TransitionConfig {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		entity.get(null, cutscene).forEach(entity -> {
+		entity.get(cutscene.getRefContext()).forEach(entity -> {
 			if (entity instanceof LivingEntity living) {
 				living.setCurrentHand(hand);
 			}
@@ -57,7 +57,7 @@ public class SetCurrentItem implements Transition, TransitionConfig {
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (stopAfter) {
-			entity.get(null, cutscene).forEach(entity -> {
+			entity.get(cutscene.getRefContext()).forEach(entity -> {
 				if (entity instanceof LivingEntity living) {
 					living.stopUsingItem();
 				}

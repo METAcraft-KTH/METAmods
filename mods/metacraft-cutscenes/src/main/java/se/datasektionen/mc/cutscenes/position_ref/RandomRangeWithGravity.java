@@ -5,7 +5,6 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.predicate.FluidPredicate;
 import net.minecraft.predicate.NumberRange;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -13,9 +12,8 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.floatprovider.FloatProvider;
 import net.minecraft.util.shape.VoxelShape;
-import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
+import se.datasektionen.mc.cutscenes.util.RefContext;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 
 import java.util.Optional;
@@ -37,9 +35,9 @@ public record RandomRangeWithGravity(
 	);
 
 	@Override
-	public Optional<Vec3d> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutscene) {
-		return center.get(player, cutscene).flatMap(centerPos -> {
-			return findCandidatePos(cutscene, centerPos);
+	public Optional<Vec3d> get(RefContext ctx) {
+		return center.get(ctx).flatMap(centerPos -> {
+			return findCandidatePos(ctx, centerPos);
 		});
 	}
 	
@@ -84,29 +82,29 @@ public record RandomRangeWithGravity(
 		return false;
 	}
 
-	private Optional<Vec3d> findCandidatePos(CutsceneInstance cutscene, Vec3d centerPos) {
-		var angle = cutscene.getRandom().nextDouble() * Math.PI * 2;
-		double length = horizontalRange.get(cutscene.getRandom());
+	private Optional<Vec3d> findCandidatePos(RefContext ctx, Vec3d centerPos) {
+		var angle = ctx.getRandom().nextDouble() * Math.PI * 2;
+		double length = horizontalRange.get(ctx.getRandom());
 		double xOffset = Math.cos(angle) * length;
 		double zOffset = Math.sin(angle) * length;
 		var targetPos = centerPos.add(xOffset, 0, zOffset);
 		BlockPos.Mutable reusedBlockPos = new BlockPos.Mutable();
 		reusedBlockPos.set(targetPos.getX(), targetPos.getY(), targetPos.getZ());
 		int startY = reusedBlockPos.getY();
-		int minY = verticalRange.min().map(y -> y + startY).orElse(cutscene.getCutsceneWorld().getBottomY());
-		int maxY = verticalRange.max().map(y -> y + startY).orElse(cutscene.getCutsceneWorld().getTopYInclusive());
+		int minY = verticalRange.min().map(y -> y + startY).orElse(ctx.getWorld().getBottomY());
+		int maxY = verticalRange.max().map(y -> y + startY).orElse(ctx.getWorld().getTopYInclusive());
 		int count = Math.max(startY - minY, maxY - startY);
 		for (int i = 0; i < count; i++) {
 			if (verticalRange.test(-i)) {
 				reusedBlockPos.setY(startY - i);
-				var y = findValidY(cutscene.getCutsceneWorld(), targetPos.getX(), targetPos.getZ(), reusedBlockPos);
+				var y = findValidY(ctx.getWorld(), targetPos.getX(), targetPos.getZ(), reusedBlockPos);
 				if (y.isPresent()) {
 					return Optional.of(new Vec3d(targetPos.getX(), y.getAsDouble(), targetPos.getZ()));
 				}
 			}
 			if (verticalRange.test(i)) {
 				reusedBlockPos.setY(startY + i);
-				var y = findValidY(cutscene.getCutsceneWorld(), targetPos.getX(), targetPos.getZ(), reusedBlockPos);
+				var y = findValidY(ctx.getWorld(), targetPos.getX(), targetPos.getZ(), reusedBlockPos);
 				if (y.isPresent()) {
 					return Optional.of(new Vec3d(targetPos.getX(), y.getAsDouble(), targetPos.getZ()));
 				}

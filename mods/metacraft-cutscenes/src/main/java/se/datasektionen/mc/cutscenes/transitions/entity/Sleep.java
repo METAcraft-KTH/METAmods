@@ -37,7 +37,7 @@ public class Sleep implements Transition, TransitionConfig {
 	}
 
 	private void sleepAt(CutsceneInstance cutscene, BlockPos pos) {
-		entity.get(null, cutscene).filter(
+		entity.get(cutscene.getRefContext()).filter(
 				entity -> entity instanceof LivingEntity
 		).map(entity -> (LivingEntity) entity).findAny().ifPresent(entity -> {
 			entity.sleep(pos);
@@ -46,7 +46,7 @@ public class Sleep implements Transition, TransitionConfig {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		pos.get(null, cutscene).ifPresent(foundPos -> {
+		pos.get(cutscene.getRefContext()).ifPresent(foundPos -> {
 			var pos = BlockPos.ofFloored(foundPos);
 			var bedState = cutscene.getCutsceneWorld().getBlockState(pos);
 			if (!(bedState.getBlock() instanceof BedBlock)) {
@@ -70,7 +70,7 @@ public class Sleep implements Transition, TransitionConfig {
 
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		entity.get(null, cutscene).filter(
+		entity.get(cutscene.getRefContext()).filter(
 				entity -> entity instanceof LivingEntity
 		).map(entity -> (LivingEntity) entity).findAny().ifPresent(entity -> {
 			if (entity.isSleeping()) {

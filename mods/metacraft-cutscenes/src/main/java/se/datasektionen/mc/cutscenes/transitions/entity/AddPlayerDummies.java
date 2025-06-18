@@ -91,7 +91,7 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 
 	@Override
 	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		var pos = position.get(player, cutscene);
+		var pos = position.get(cutscene.createRefContext(player));
 		MutableInt idIndex = new MutableInt(0);
 		Supplier<String> idGetter = () -> {
 			String id = ids.get(idIndex.getValue());
@@ -109,7 +109,7 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 				pos.ifPresent(
 						target -> e.updatePosition(target.getX(), target.getY(), target.getZ())
 				);
-				rotation.get(player, cutscene).ifPresent(
+				rotation.get(cutscene.createRefContext(player)).ifPresent(
 						target -> e.setAngles(target.y, target.x)
 				);
 				if (e instanceof PlayerMob p) {
@@ -153,7 +153,7 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		var refs = ids.stream().map(CutsceneRef::new).flatMap(e -> e.get(null, cutscene));
+		var refs = ids.stream().map(CutsceneRef::new).flatMap(e -> e.get(cutscene.getRefContext()));
 		if (killAfter) {
 			refs.forEach(e -> e.kill(cutscene.getCutsceneWorld()));
 		} else {

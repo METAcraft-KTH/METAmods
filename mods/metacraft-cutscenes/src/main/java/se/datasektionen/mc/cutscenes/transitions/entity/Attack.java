@@ -39,8 +39,8 @@ public class Attack implements Transition, TransitionConfig {
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		this.target.get(null, cutscene).findFirst().ifPresent(target -> {
-			this.entity.get(null, cutscene).forEach(entity -> {
+		this.entity.get(cutscene.getRefContext()).forEach(entity -> {
+			this.target.get(cutscene.createRefContext(entity)).findFirst().ifPresent(target -> {
 				if (entity instanceof MobEntity mob && target instanceof LivingEntity livingTarget) {
 					mob.setTarget(livingTarget);
 				}

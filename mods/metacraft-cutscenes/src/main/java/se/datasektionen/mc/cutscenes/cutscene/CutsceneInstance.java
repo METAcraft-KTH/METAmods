@@ -24,6 +24,7 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import net.minecraft.world.entity.EntityLookup;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.HashTreePSet;
 import org.pcollections.PSet;
 import se.datasektionen.mc.cutscenes.Cutscenes;
@@ -36,6 +37,7 @@ import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.TeleportTransition;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
+import se.datasektionen.mc.cutscenes.util.RefContext;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
@@ -104,6 +106,7 @@ public class CutsceneInstance implements AutoCloseable {
 	private int time = 0;
 	private boolean ended = false;
 	private CutsceneWorld world;
+	private RefContext entityLessContext;
 	private CutsceneWorldData data;
 	private RegistryKey<World> dim;
 	private RemoveHandler onRemove = null;
@@ -226,6 +229,7 @@ public class CutsceneInstance implements AutoCloseable {
 		if (this.world != null && this.world.getActualWorld() == targetWorld) return;
 		var prev = this.world;
 		this.world = new CutsceneWorld(targetWorld, this, data);
+		entityLessContext = createRefContext(null);
 		data = null;
 		this.dim = world.getRegistryKey();
 		players.forEach(world::addPlayer);
@@ -614,4 +618,17 @@ public class CutsceneInstance implements AutoCloseable {
 		void afterPlayerReset(CutsceneInstance cutscene);
 	}
 
+	public static Optional<CutsceneInstance> getCutscene(RefContext ctx) {
+		return ctx.getWorld() instanceof CutsceneWorld w ? Optional.of(w.getCutscene()) : Optional.empty();
+	}
+
+	public RefContext createRefContext(@Nullable Entity entity) {
+		return new RefContext(
+				Optional.ofNullable(entity), world, getRandom()
+		);
+	}
+
+	public RefContext getRefContext() {
+		return entityLessContext;
+	}
 }

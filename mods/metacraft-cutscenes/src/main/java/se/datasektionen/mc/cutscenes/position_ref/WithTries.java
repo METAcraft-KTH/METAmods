@@ -3,12 +3,9 @@ package se.datasektionen.mc.cutscenes.position_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.collection.DataPool;
 import net.minecraft.util.math.Vec3d;
-import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
+import se.datasektionen.mc.cutscenes.util.RefContext;
 
 import java.util.Optional;
 
@@ -25,9 +22,9 @@ public record WithTries(
 	);
 
 	@Override
-	public Optional<Vec3d> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutscene) {
+	public Optional<Vec3d> get(RefContext ctx) {
 		for (int i = 0; i < tries; i++) {
-			var pos = position.get(player, cutscene);
+			var pos = position.get(ctx);
 			if (pos.isPresent()) {
 				return pos;
 			}

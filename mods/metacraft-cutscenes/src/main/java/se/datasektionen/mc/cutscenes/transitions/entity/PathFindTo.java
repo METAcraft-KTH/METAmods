@@ -86,8 +86,8 @@ public class PathFindTo implements Transition, TransitionConfig {
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		entity.get(null, cutscene).forEach(entity -> {
-			target.get(null, cutscene).ifPresent(pos -> {
+		entity.get(cutscene.getRefContext()).forEach(entity -> {
+			target.get(cutscene.createRefContext(entity)).ifPresent(pos -> {
 				if (entity instanceof PathAwareEntity mob) {
 					if (mob.getNavigation().isIdle() && mob.getPos().distanceTo(pos) > completionDistance) {
 						var targetPos = pos;

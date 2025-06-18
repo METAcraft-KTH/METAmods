@@ -72,7 +72,7 @@ public class DisableAI implements Transition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		config.entity().get(null, cutscene).forEach(this::activate);
+		config.entity().get(cutscene.getRefContext()).forEach(this::activate);
 	}
 
 	@Override
@@ -80,7 +80,7 @@ public class DisableAI implements Transition {
 		if (!activated) {
 			activate(cutscene, interval);
 		}
-		config.entity().get(null, cutscene).forEach(entity -> {
+		config.entity().get(cutscene.getRefContext()).forEach(entity -> {
 			if (!cache.contains(entity)) {
 				activate(entity);
 			}
@@ -89,7 +89,7 @@ public class DisableAI implements Transition {
 
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		config.entity().get(null, cutscene).forEach(entity -> {
+		config.entity().get(cutscene.getRefContext()).forEach(entity -> {
 			if (!cache.contains(entity)) return;
 			if (entity instanceof MobEntity mob) {
 				if (!config.onlySensors()) {

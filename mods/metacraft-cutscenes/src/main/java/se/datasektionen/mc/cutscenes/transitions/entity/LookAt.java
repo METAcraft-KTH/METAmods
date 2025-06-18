@@ -54,8 +54,8 @@ public class LookAt implements Transition, TransitionConfig {
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		entity.get(null, cutscene).forEach(entity -> {
-			target.get(null, cutscene).ifPresent(target -> {
+		entity.get(cutscene.getRefContext()).forEach(entity -> {
+			target.get(cutscene.createRefContext(entity)).ifPresent(target -> {
 				if (entity instanceof MobEntity mob) {
 					mob.getLookControl().lookAt(
 							target.getX(), target.getY(), target.getZ(),

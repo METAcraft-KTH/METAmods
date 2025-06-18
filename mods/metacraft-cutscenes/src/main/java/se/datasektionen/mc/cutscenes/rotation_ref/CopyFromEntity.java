@@ -3,13 +3,11 @@ package se.datasektionen.mc.cutscenes.rotation_ref;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.Vec2f;
-import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.RotationRefRegistry;
+import se.datasektionen.mc.cutscenes.util.RefContext;
 
 import java.util.Optional;
 
@@ -28,8 +26,8 @@ public class CopyFromEntity implements RotationRef {
 	}
 
 	@Override
-	public Optional<Vec2f> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutsceneInstance) {
-		return entity.get(player, cutsceneInstance).findFirst().map(Entity::getRotationClient);
+	public Optional<Vec2f> get(RefContext ctx) {
+		return entity.get(ctx).findFirst().map(Entity::getRotationClient);
 	}
 
 	@Override

@@ -35,7 +35,7 @@ public class SwingHand extends InstantTransition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		entity.get(null, cutscene).filter(
+		entity.get(cutscene.getRefContext()).filter(
 				entity -> entity instanceof LivingEntity
 		).map(entity -> (LivingEntity) entity).forEach(entity -> {
 			entity.swingHand(hand);

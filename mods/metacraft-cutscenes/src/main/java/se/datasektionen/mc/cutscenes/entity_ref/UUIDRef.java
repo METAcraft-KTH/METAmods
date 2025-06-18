@@ -3,11 +3,9 @@ package se.datasektionen.mc.cutscenes.entity_ref;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Uuids;
-import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
+import se.datasektionen.mc.cutscenes.util.RefContext;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -28,8 +26,8 @@ public class UUIDRef implements EntityRef {
 	}
 
 	@Override
-	public Stream<? extends Entity> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutsceneInstance) {
-		return Optional.ofNullable(cutsceneInstance.getCutsceneWorld().getActualWorld().getEntity(uuid)).stream();
+	public Stream<? extends Entity> get(RefContext ctx) {
+		return Optional.ofNullable(ctx.getWorld().getEntity(uuid)).stream();
 	}
 
 	@Override

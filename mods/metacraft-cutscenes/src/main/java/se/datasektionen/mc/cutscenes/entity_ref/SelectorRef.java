@@ -4,12 +4,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.Cutscenes;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
-import se.datasektionen.mc.cutscenes.transitions.RunCommandTransition;
+import se.datasektionen.mc.cutscenes.util.RefContext;
 import se.datasektionen.mc.cutscenes.util.SerializableEntitySelector;
 
 import java.util.stream.Stream;
@@ -29,9 +26,9 @@ public class SelectorRef implements EntityRef {
 	}
 
 	@Override
-	public Stream<? extends Entity> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutsceneInstance) {
+	public Stream<? extends Entity> get(RefContext ctx) {
 		try {
-			return selector.get().getEntities(RunCommandTransition.getSource(cutsceneInstance, false)).stream();
+			return selector.get().getEntities(ctx.getCommandSource()).stream();
 		} catch (CommandSyntaxException e) {
 			Cutscenes.LOGGER.error(e.getMessage(), e);
 			return Stream.empty();

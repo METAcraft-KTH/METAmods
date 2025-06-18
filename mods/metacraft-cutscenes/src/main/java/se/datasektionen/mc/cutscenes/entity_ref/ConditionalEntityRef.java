@@ -9,10 +9,8 @@ import net.minecraft.loot.context.LootContext;
 import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.loot.context.LootContextTypes;
 import net.minecraft.loot.context.LootWorldContext;
-import net.minecraft.server.network.ServerPlayerEntity;
-import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
+import se.datasektionen.mc.cutscenes.util.RefContext;
 
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -35,16 +33,16 @@ public class ConditionalEntityRef implements EntityRef {
 	}
 
 	@Override
-	public Stream<? extends Entity> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutsceneInstance) {
-		return ref.get(player, cutsceneInstance).filter(
+	public Stream<? extends Entity> get(RefContext ctx) {
+		return ref.get(ctx).filter(
 				e -> {
-					LootWorldContext lootWorldContext = new LootWorldContext.Builder(cutsceneInstance.getCutsceneWorld())
+					LootWorldContext lootWorldContext = new LootWorldContext.Builder(ctx.getWorld())
 							.add(LootContextParameters.THIS_ENTITY, e)
 							.add(LootContextParameters.ORIGIN, e.getPos())
 							.build(LootContextTypes.SELECTOR);
 					return condition.test(
 							new LootContext.Builder(lootWorldContext)
-									.random(cutsceneInstance.getRandom())
+									.random(ctx.getRandom())
 									.build(Optional.empty())
 					);
 				}

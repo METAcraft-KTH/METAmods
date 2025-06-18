@@ -52,7 +52,7 @@ public abstract class DropItem extends InstantTransition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		settings.entity.get(null, cutscene).forEach(entity -> {
+		settings.entity.get(cutscene.getRefContext()).forEach(entity -> {
 			Vec3d pos = settings.offset.map(offset -> new Vec3d(
 					entity.getX() + offset.x, entity.getY() + offset.y, entity.getZ() + offset.z
 			)).orElse(new Vec3d(entity.getX(), entity.getEyeY() - 0.3, entity.getZ()));

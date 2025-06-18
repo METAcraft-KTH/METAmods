@@ -5,14 +5,12 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
-import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
+import se.datasektionen.mc.cutscenes.util.RefContext;
 
 import java.util.Optional;
 
@@ -52,8 +50,8 @@ public class AtEntityRef implements PositionRef {
 	}
 
 	@Override
-	public Optional<Vec3d> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutsceneInstance) {
-		return entityRef.get(player, cutsceneInstance).findFirst().map(entity -> getFeetOrEyePos(entity).add(axisOffset).add(
+	public Optional<Vec3d> get(RefContext ctx) {
+		return entityRef.get(ctx).findFirst().map(entity -> getFeetOrEyePos(entity).add(axisOffset).add(
 				facingOffset.rotateX(-MathHelper.RADIANS_PER_DEGREE * entity.getPitch()).rotateY(-MathHelper.RADIANS_PER_DEGREE * entity.getYaw())
 		));
 	}

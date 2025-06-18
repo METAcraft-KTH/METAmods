@@ -56,7 +56,7 @@ public class RotateHead implements Transition {
 		offsets = config.targets.getTargets(interval);
 		offsets = offsets.setStartIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
 		offsets = offsets.setEndIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
-		config.entity.get(null, cutscene).findAny().ifPresent(entity -> {
+		config.entity.get(cutscene.getRefContext()).findAny().ifPresent(entity -> {
 			entityFacings.put(entity.getUuid(), new FixedTarget(entity.getYaw(), entity.getPitch()));
 		});
 	}
@@ -68,7 +68,7 @@ public class RotateHead implements Transition {
 			offsets = offsets.setStartIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
 			offsets = offsets.setEndIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
 		}
-		config.entity.get(null, cutscene).forEach(entity -> {
+		config.entity.get(cutscene.getRefContext()).forEach(entity -> {
 			float delta = interval.getDelta(cutscene.getCurrentTime());
 			entity.prevYaw = entity.getYaw();
 			entity.prevPitch = entity.getPitch();

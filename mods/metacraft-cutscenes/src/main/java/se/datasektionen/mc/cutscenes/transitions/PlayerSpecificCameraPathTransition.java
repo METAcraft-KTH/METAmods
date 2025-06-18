@@ -88,8 +88,9 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 	}
 
 	private void moveEntityToTarget(DynamicTarget target, Entity entity, ServerPlayerEntity player, CutsceneInstance cutscene) {
-		var pos = target.pos.get(player, cutscene).orElse(player.getPos().subtract(0, EntityType.PLAYER.getDimensions().eyeHeight(), 0));
-		var facing = target.rot.get(player, cutscene).orElse(player.getRotationClient());
+		var ctx = cutscene.createRefContext(player);
+		var pos = target.pos.get(ctx).orElse(player.getPos().subtract(0, EntityType.PLAYER.getDimensions().eyeHeight(), 0));
+		var facing = target.rot.get(ctx).orElse(player.getRotationClient());
 		entity.updatePositionAndAngles(
 				pos.x, pos.y + EntityType.PLAYER.getDimensions().eyeHeight(), pos.z, facing.y, facing.x
 		);
@@ -194,9 +195,10 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 				var player = ctx.player();
 				var cutscene = ctx.cutscene();
 				if (cutscene != null) {
+					var refCtx = ctx.getRefContext();
 					var emergencyTarget = Suppliers.memoize(() -> getEmergencyPoint(cutscene));
-					var pos = pos().get(player, cutscene).orElse(player != null ? player.getPos() : emergencyTarget.get().pos());
-					var rot = rot().get(player, cutscene).orElse(player != null ? player.getRotationClient() : new Vec2f(emergencyTarget.get().pitch(), emergencyTarget.get().yaw()));
+					var pos = pos().get(refCtx).orElse(player != null ? player.getPos() : emergencyTarget.get().pos());
+					var rot = rot().get(refCtx).orElse(player != null ? player.getRotationClient() : new Vec2f(emergencyTarget.get().pitch(), emergencyTarget.get().yaw()));
 					return DoubleList.of(pos.getX(), pos.getY(), pos.getZ(), rot.y, rot.x);
 				}
 			}

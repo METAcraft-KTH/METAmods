@@ -3,11 +3,9 @@ package se.datasektionen.mc.cutscenes.rotation_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.Vec2f;
-import org.jetbrains.annotations.Nullable;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.RotationRefRegistry;
+import se.datasektionen.mc.cutscenes.util.RefContext;
 
 import java.util.Optional;
 
@@ -31,7 +29,7 @@ public class FixedRot implements RotationRef {
 	}
 
 	@Override
-	public Optional<Vec2f> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutsceneInstance) {
+	public Optional<Vec2f> get(RefContext ctx) {
 		return Optional.of(rot);
 	}
 
