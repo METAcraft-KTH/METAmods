@@ -13,7 +13,9 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.AffineTransformation;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
+import org.joml.AxisAngle4f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
 import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
@@ -77,9 +79,10 @@ public record SmoothEntityPathConfig(
 		}
 
 		private static final int TARGET_SIZE = 5;
-		private static final int MATRIX_SIZE = 4*4;
-		private static final int VARS_POS = TARGET_SIZE + MATRIX_SIZE;
-		private static final int SIZE = TARGET_SIZE+MATRIX_SIZE+4;
+		private static final int TRANSFORMATION_START = TARGET_SIZE;
+		private static final int TRANSFORMATION_SIZE = 14;
+		private static final int VARS_POS = TARGET_SIZE + TRANSFORMATION_SIZE;
+		private static final int SIZE = TARGET_SIZE+ TRANSFORMATION_SIZE +4;
 
 		public static DisplayEntityTarget fromEntity(Entity entity) {
 			var target = Target.fromEntity(entity);
@@ -113,16 +116,59 @@ public record SmoothEntityPathConfig(
 			);
 		}
 
+		public static AffineTransformation readAffine(double[] array, int startPoint) {
+			Vector3f translation = new Vector3f(
+					(float) array[startPoint],
+					(float) array[startPoint+1],
+					(float) array[startPoint+2]
+			);
+			AxisAngle4f leftRot = new AxisAngle4f(
+					(float) array[startPoint+3],
+					(float) array[startPoint+4],
+					(float) array[startPoint+5],
+					(float) array[startPoint+6]
+			);
+			Vector3f scale = new Vector3f(
+					(float) array[startPoint+7],
+					(float) array[startPoint+8],
+					(float) array[startPoint+9]
+			);
+			AxisAngle4f rightRot = new AxisAngle4f(
+					(float) array[startPoint+10],
+					(float) array[startPoint+11],
+					(float) array[startPoint+12],
+					(float) array[startPoint+13]
+			);
+			return new AffineTransformation(
+					translation, leftRot.get(new Quaternionf()),
+					scale, rightRot.get(new Quaternionf())
+			);
+		}
+
+		public static void writeVec(Vector3f vec, DoubleList list) {
+			list.add(vec.x);
+			list.add(vec.y);
+			list.add(vec.z);
+		}
+
+		public static void writeAxisAngle(AxisAngle4f axisAngle, DoubleList list) {
+			list.add(axisAngle.angle);
+			list.add(axisAngle.x);
+			list.add(axisAngle.y);
+			list.add(axisAngle.z);
+		}
+
+		public static void writeAffine(AffineTransformation transformation, DoubleList list) {
+			writeVec(transformation.getTranslation(), list);
+			writeAxisAngle(transformation.getLeftRotation().get(new AxisAngle4f()), list);
+			writeVec(transformation.getScale(), list);
+			writeAxisAngle(transformation.getRightRotation().get(new AxisAngle4f()), list);
+		}
+
 		public static DisplayEntityTarget fromList(DoubleStream stream) {
 			var array = stream.limit(SIZE).toArray();
 			var target = Target.fromList(Arrays.stream(array));
-			float[] mat = new float[MATRIX_SIZE];
-			for (int i = 0; i < mat.length; i++) {
-				mat[i] = (float) array[i+5];
-			}
-			Matrix4f matrix = new Matrix4f();
-			matrix.set(mat);
-			var transformation = new AffineTransformation(matrix);
+			var transformation = readAffine(array, TRANSFORMATION_START);
 
 			var shadowRadius = array[VARS_POS];
 			var shadowStrength = array[VARS_POS + 1];
@@ -140,11 +186,7 @@ public record SmoothEntityPathConfig(
 			var list = new DoubleArrayList(SIZE);
 			list.addAll(target.getValues(ctx));
 
-			float[] array = new float[MATRIX_SIZE];
-			transformation.getMatrix().get(array);
-			for (float f : array) {
-				list.add(f);
-			}
+			writeAffine(transformation, list);
 
 			list.add(shadowRadius);
 			list.add(shadowStrength);

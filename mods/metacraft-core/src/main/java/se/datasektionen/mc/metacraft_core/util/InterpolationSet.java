@@ -153,12 +153,21 @@ public class InterpolationSet<C, T extends Interpolatable<C>> {
 	}
 
 	public static DoubleList fixYawRotations(DoubleList elements) {
+		return fixRotations(elements, 180);
+	}
+
+	public static DoubleList fixRadianRotations(DoubleList elements) {
+		return fixRotations(elements, Math.PI);
+	}
+
+	public static DoubleList fixRotations(DoubleList elements, double halfRot) {
 		if (elements.size() < 2) return elements;
 		for (double e : elements) {
-			if (Math.abs(e) > 180) {
+			if (Math.abs(e) > halfRot) {
 				return elements;
 			}
 		}
+		final var fullRot = halfRot*2;
 		elements = new DoubleArrayList(elements);
 		double prev = elements.getFirst();
 
@@ -167,10 +176,10 @@ public class InterpolationSet<C, T extends Interpolatable<C>> {
 		for (int i = 1; i < elements.size(); i++) {
 			double current = elements.getDouble(i);
 
-			if (current - prev > 180) { //-180 -> 180
-				offset -= 360;
-			} else if (current - prev < -180) { //180 -> -180
-				offset += 360;
+			if (current - prev > halfRot) { //-180 -> 180
+				offset -= fullRot;
+			} else if (current - prev < -halfRot) { //180 -> -180
+				offset += fullRot;
 			}
 
 			prev = current;
