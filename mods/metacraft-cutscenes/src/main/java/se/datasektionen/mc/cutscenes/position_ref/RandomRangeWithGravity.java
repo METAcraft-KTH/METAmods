@@ -23,8 +23,7 @@ import java.util.OptionalDouble;
 
 public record RandomRangeWithGravity(
 		PositionRef center, Box hitbox, Optional<FluidPredicate> validFluids,
-		NumberRange.IntRange verticalRange, FloatProvider horizontalRange,
-		int maxTries, boolean fallbackToCenter
+		NumberRange.IntRange verticalRange, FloatProvider horizontalRange
 ) implements PositionRef {
 
 	public static final MapCodec<RandomRangeWithGravity> CODEC = RecordCodecBuilder.mapCodec(
@@ -33,27 +32,14 @@ public record RandomRangeWithGravity(
 					ExtraCodecs.BOX_CODEC.fieldOf("hitbox").forGetter(RandomRangeWithGravity::hitbox),
 					FluidPredicate.CODEC.optionalFieldOf("valid_fluids").forGetter(RandomRangeWithGravity::validFluids),
 					NumberRange.IntRange.CODEC.fieldOf("vertical_range").forGetter(RandomRangeWithGravity::verticalRange),
-					FloatProvider.createValidatedCodec(0, Float.MAX_VALUE).fieldOf("horizontal_range").forGetter(RandomRangeWithGravity::horizontalRange),
-					Codec.INT.optionalFieldOf("max_tries", 5).forGetter(RandomRangeWithGravity::maxTries),
-					Codec.BOOL.optionalFieldOf("fallback_to_center", true).forGetter(RandomRangeWithGravity::fallbackToCenter)
+					FloatProvider.createValidatedCodec(0, Float.MAX_VALUE).fieldOf("horizontal_range").forGetter(RandomRangeWithGravity::horizontalRange)
 			).apply(instance, RandomRangeWithGravity::new)
 	);
 
 	@Override
 	public Optional<Vec3d> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutscene) {
-		return center.get(player, cutscene).map(centerPos -> {
-			BlockPos.Mutable reused = new BlockPos.Mutable();
-			for (int i = 0; i < maxTries; i++) {
-				var pos = findCandidatePos(cutscene, centerPos, reused);
-				if (pos.isPresent()) {
-					return pos.get();
-				}
-			}
-			if (fallbackToCenter) {
-				return centerPos;
-			} else {
-				return null;
-			}
+		return center.get(player, cutscene).flatMap(centerPos -> {
+			return findCandidatePos(cutscene, centerPos);
 		});
 	}
 	
@@ -98,12 +84,13 @@ public record RandomRangeWithGravity(
 		return false;
 	}
 
-	private Optional<Vec3d> findCandidatePos(CutsceneInstance cutscene, Vec3d centerPos, BlockPos.Mutable reusedBlockPos) {
+	private Optional<Vec3d> findCandidatePos(CutsceneInstance cutscene, Vec3d centerPos) {
 		var angle = cutscene.getRandom().nextDouble() * Math.PI * 2;
 		double length = horizontalRange.get(cutscene.getRandom());
 		double xOffset = Math.cos(angle) * length;
 		double zOffset = Math.sin(angle) * length;
 		var targetPos = centerPos.add(xOffset, 0, zOffset);
+		BlockPos.Mutable reusedBlockPos = new BlockPos.Mutable();
 		reusedBlockPos.set(targetPos.getX(), targetPos.getY(), targetPos.getZ());
 		int startY = reusedBlockPos.getY();
 		int minY = verticalRange.min().map(y -> y + startY).orElse(cutscene.getCutsceneWorld().getBottomY());

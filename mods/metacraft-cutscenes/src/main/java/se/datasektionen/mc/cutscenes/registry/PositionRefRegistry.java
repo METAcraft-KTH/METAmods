@@ -23,6 +23,9 @@ public class PositionRefRegistry {
 	public static final PositionRefType<Fixed> FIXED = register("fixed", Fixed.CODEC);
 	public static final PositionRefType<FirstValidPos> FIRST_VALID = register("first_valid", FirstValidPos.CODEC);
 	public static final PositionRefType<RandomRangeWithGravity> RANDOM_RANGE_WITH_GRAVITY = register("random_range_with_gravity", RandomRangeWithGravity.CODEC);
+	public static final PositionRefType<RandomChoice> RANDOM_CHOICE = register("random_choice", RandomChoice.CODEC);
+	public static final PositionRefType<WithTries> WITH_TRIES = register("with_tries", WithTries.CODEC);
+	public static final PositionRefType<Nearest> NEAREST = register("nearest", Nearest.CODEC);
 
 	public static void init() {
 
