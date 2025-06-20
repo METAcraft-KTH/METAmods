@@ -1,4 +1,4 @@
-package se.datasektionen.mc.cutscenes.rotation_ref;
+package se.datasektionen.mc.metacraft_core.rotation_ref;
 
 import com.mojang.serialization.MapCodec;
 

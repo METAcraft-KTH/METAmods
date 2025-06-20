@@ -1,4 +1,4 @@
-package se.datasektionen.mc.cutscenes.util;
+package se.datasektionen.mc.metacraft_core.util;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.server.command.CommandOutput;

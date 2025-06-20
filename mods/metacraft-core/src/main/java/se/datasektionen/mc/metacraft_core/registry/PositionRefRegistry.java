@@ -1,4 +1,4 @@
-package se.datasektionen.mc.cutscenes.registry;
+package se.datasektionen.mc.metacraft_core.registry;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -6,13 +6,13 @@ import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.Identifier;
-import se.datasektionen.mc.cutscenes.Cutscenes;
-import se.datasektionen.mc.cutscenes.position_ref.*;
+import se.datasektionen.mc.metacraft_core.METAcraftCore;
+import se.datasektionen.mc.metacraft_core.position_ref.*;
 
 public class PositionRefRegistry {
 
 	public static final Registry<PositionRefType<?>> REGISTRY = FabricRegistryBuilder.<PositionRefType<?>>createSimple(
-			RegistryKey.ofRegistry(Cutscenes.getID("position_ref"))
+			RegistryKey.ofRegistry(METAcraftCore.getID("position_ref"))
 	).buildAndRegister();
 
 	public static final Codec<PositionRef> CODEC = REGISTRY.getCodec().dispatch(

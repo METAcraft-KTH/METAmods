@@ -1,7 +1,7 @@
-package se.datasektionen.mc.cutscenes.entity_ref;
+package se.datasektionen.mc.metacraft_core.entity_ref;
 
 import net.minecraft.entity.Entity;
-import se.datasektionen.mc.cutscenes.util.RefContext;
+import se.datasektionen.mc.metacraft_core.util.RefContext;
 
 import java.util.stream.Stream;
 

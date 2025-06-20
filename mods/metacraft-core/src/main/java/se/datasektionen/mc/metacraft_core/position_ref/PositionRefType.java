@@ -1,4 +1,4 @@
-package se.datasektionen.mc.cutscenes.position_ref;
+package se.datasektionen.mc.metacraft_core.position_ref;
 
 import com.mojang.serialization.MapCodec;
 

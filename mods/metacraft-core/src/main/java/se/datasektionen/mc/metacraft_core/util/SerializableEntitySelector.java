@@ -1,4 +1,4 @@
-package se.datasektionen.mc.cutscenes.util;
+package se.datasektionen.mc.metacraft_core.util;
 
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;

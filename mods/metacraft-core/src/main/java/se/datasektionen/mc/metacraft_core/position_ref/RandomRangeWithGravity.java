@@ -1,4 +1,4 @@
-package se.datasektionen.mc.cutscenes.position_ref;
+package se.datasektionen.mc.metacraft_core.position_ref;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -12,8 +12,8 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.floatprovider.FloatProvider;
 import net.minecraft.util.shape.VoxelShape;
-import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
-import se.datasektionen.mc.cutscenes.util.RefContext;
+import se.datasektionen.mc.metacraft_core.registry.PositionRefRegistry;
+import se.datasektionen.mc.metacraft_core.util.RefContext;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 
 import java.util.Optional;

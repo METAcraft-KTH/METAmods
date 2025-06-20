@@ -1,13 +1,13 @@
-package se.datasektionen.mc.cutscenes.entity_ref;
+package se.datasektionen.mc.metacraft_core.entity_ref;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
-import se.datasektionen.mc.cutscenes.Cutscenes;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
-import se.datasektionen.mc.cutscenes.util.RefContext;
-import se.datasektionen.mc.cutscenes.util.SerializableEntitySelector;
+import se.datasektionen.mc.metacraft_core.METAcraftCore;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.util.RefContext;
+import se.datasektionen.mc.metacraft_core.util.SerializableEntitySelector;
 
 import java.util.stream.Stream;
 
@@ -30,7 +30,7 @@ public class SelectorRef implements EntityRef {
 		try {
 			return selector.get().getEntities(ctx.getCommandSource()).stream();
 		} catch (CommandSyntaxException e) {
-			Cutscenes.LOGGER.error(e.getMessage(), e);
+			METAcraftCore.LOGGER.error(e.getMessage(), e);
 			return Stream.empty();
 		}
 	}

@@ -1,4 +1,4 @@
-package se.datasektionen.mc.cutscenes.entity_ref;
+package se.datasektionen.mc.metacraft_core.entity_ref;
 
 import com.mojang.serialization.MapCodec;
 

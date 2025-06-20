@@ -14,7 +14,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import se.datasektionen.mc.cutscenes.Cutscenes;
-import se.datasektionen.mc.cutscenes.util.SerializableEntitySelector;
+import se.datasektionen.mc.metacraft_core.util.SerializableEntitySelector;
 
 import java.util.List;
 import java.util.stream.Stream;

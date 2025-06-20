@@ -15,6 +15,9 @@ import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorPolymerItemUtils;
 import se.datasektionen.mc.metacraft_core.music.MusicTimerTracker;
 import se.datasektionen.mc.metacraft_core.preferences.Preference;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.registry.PositionRefRegistry;
+import se.datasektionen.mc.metacraft_core.registry.RotationRefRegistry;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 
 public class METAcraftCore implements ModInitializer {
@@ -25,6 +28,9 @@ public class METAcraftCore implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		EntityRefRegistry.init();
+		PositionRefRegistry.init();
+		RotationRefRegistry.init();
 		Preference.init();
 		METAcraftGameRules.init();
 		METAcraftComponents.init();

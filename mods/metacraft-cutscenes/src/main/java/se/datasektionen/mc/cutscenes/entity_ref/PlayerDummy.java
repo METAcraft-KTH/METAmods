@@ -3,8 +3,9 @@ package se.datasektionen.mc.cutscenes.entity_ref;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.entity.Entity;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
-import se.datasektionen.mc.cutscenes.util.RefContext;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRefType;
+import se.datasektionen.mc.metacraft_core.util.RefContext;
 
 import java.util.stream.Stream;
 
@@ -32,6 +33,6 @@ public class PlayerDummy implements EntityRef {
 
 	@Override
 	public EntityRefType<?> getType() {
-		return EntityRefRegistry.PLAYER_DUMMY;
+		return EntityRefs.PLAYER_DUMMY;
 	}
 }

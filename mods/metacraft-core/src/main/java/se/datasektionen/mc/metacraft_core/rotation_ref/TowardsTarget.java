@@ -1,14 +1,14 @@
-package se.datasektionen.mc.cutscenes.rotation_ref;
+package se.datasektionen.mc.metacraft_core.rotation_ref;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
-import se.datasektionen.mc.cutscenes.position_ref.PositionRef;
-import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
-import se.datasektionen.mc.cutscenes.registry.RotationRefRegistry;
-import se.datasektionen.mc.cutscenes.util.RefContext;
+import se.datasektionen.mc.metacraft_core.position_ref.PositionRef;
+import se.datasektionen.mc.metacraft_core.registry.PositionRefRegistry;
+import se.datasektionen.mc.metacraft_core.registry.RotationRefRegistry;
+import se.datasektionen.mc.metacraft_core.util.RefContext;
 
 import java.util.Optional;
 

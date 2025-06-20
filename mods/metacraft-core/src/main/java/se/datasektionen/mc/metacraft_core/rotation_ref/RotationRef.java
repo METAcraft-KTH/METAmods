@@ -1,7 +1,7 @@
-package se.datasektionen.mc.cutscenes.rotation_ref;
+package se.datasektionen.mc.metacraft_core.rotation_ref;
 
 import net.minecraft.util.math.Vec2f;
-import se.datasektionen.mc.cutscenes.util.RefContext;
+import se.datasektionen.mc.metacraft_core.util.RefContext;
 
 import java.util.Optional;
 
