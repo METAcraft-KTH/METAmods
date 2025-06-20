@@ -63,6 +63,11 @@ public class AttackRegistry {
 				"move_to_ground", new PositionTargetSelectorType(MoveToGround.CODEC)
 		);
 
+		public static final PositionTargetSelectorType POSITION_REF = register(
+				"position_ref", new PositionTargetSelectorType(PositionRefTarget.CODEC)
+		);
+
+
 
 		public static void init() {
 
