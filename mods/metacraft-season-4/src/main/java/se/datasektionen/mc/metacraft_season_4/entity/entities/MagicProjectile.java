@@ -89,7 +89,7 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 		return IntProvider.VALUE_CODEC.encodeStart(
 				lookup.getOps(JavaOps.INSTANCE),
 				provider
-		);
+		).getOrThrow();
 	}
 
 	public static DataPool.Builder<EffectEntry> createCloudDefaults() {
