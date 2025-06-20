@@ -21,6 +21,9 @@ public class BossBarHelper {
 		var bossbar = getBossBar(source);
 		if (bossbar.isPresent()) {
 			if (source != target) {
+				if (BossBarHelper.getBossBar(target).isPresent()) {
+					BossBarHelper.removeBossBar(target);
+				}
 				((EntityExtensions) target).metacraft_lib$setBossBarNoUpdate(bossbar.get());
 				((EntityExtensions) source).metacraft_lib$setBossBarNoUpdate(null);
 				((EntityExtensions) target).metacraft_lib$updateBossBarReplaced();
