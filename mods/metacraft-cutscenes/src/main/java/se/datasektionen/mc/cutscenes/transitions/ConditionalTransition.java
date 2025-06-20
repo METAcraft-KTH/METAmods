@@ -110,7 +110,7 @@ public class ConditionalTransition implements Transition {
 
 		public boolean test(CutsceneInstance cutscene) {
 			MutableBoolean isSuccessful = new MutableBoolean(false);
-			var source = RunCommandTransition.getSource(cutscene, false).withReturnValueConsumer(
+			var source = RunCommandTransition.getSource(cutscene, false, null, false).withReturnValueConsumer(
 					(success, result) -> {
 						if (result != 0) {
 							isSuccessful.setTrue();

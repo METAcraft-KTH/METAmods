@@ -51,7 +51,7 @@ public class CutsceneTests {
 							Optional.of("clear @s"),
 							Optional.empty(),
 							Optional.empty(),
-							false, true
+							false, true, false
 					)
 			),
 			new IntervalMap.Interval<>(
@@ -60,7 +60,7 @@ public class CutsceneTests {
 							Optional.of("execute at @s run tp @s ~8 ~ ~"),
 							Optional.empty(),
 							Optional.empty(),
-							false, true
+							false, true, false
 					)
 			)
 	));
