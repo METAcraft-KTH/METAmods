@@ -34,6 +34,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.floatprovider.UniformFloatProvider;
 import net.minecraft.util.math.intprovider.ConstantIntProvider;
 import net.minecraft.util.math.intprovider.UniformIntProvider;
@@ -46,16 +47,23 @@ import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartShootAttackTask;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartStrafeAttackTask;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerBrain;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
+import se.datasektionen.mc.metacraft_core.entity_ref.SelfRef;
+import se.datasektionen.mc.metacraft_core.position_ref.AtEntityRef;
+import se.datasektionen.mc.metacraft_core.position_ref.RandomRangeWithGravity;
+import se.datasektionen.mc.metacraft_core.position_ref.WithTries;
 import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.boss.DevinDisguiseAttack;
+import se.datasektionen.mc.metacraft_season_4.boss.InventoryShuffleAttack;
+import se.datasektionen.mc.metacraft_season_4.boss.PlayerShuffleAttack;
 import se.datasektionen.mc.metacraft_season_4.boss.Season4Attacks;
 import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
 import se.datasektionen.mc.metacraft_season_4.util.DialogueHelper;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
 import se.metacraft.bosses.boss.attacks.*;
+import se.metacraft.bosses.boss.attacks.target.PositionRefTarget;
 import se.metacraft.bosses.condition.entity_sub_predicate.BossPredicateType;
 import se.metacraft.bosses.entity.entities.ItemSpawnerWithTarget;
 import se.metacraft.bosses.util.DoubleTeamHandler;
@@ -170,6 +178,15 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 								Optional.of(true)
 						)
 				)
+		).add(
+				PlayerShuffleAttack.getInstance()
+		).add(
+				InventoryShuffleAttack.createSimple(
+						true, true,
+						false, false, false
+				)
+		).add(
+				TELEPORT
 		).build();
 	}
 

@@ -125,6 +125,8 @@ public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackin
 				)
 		).add(
 				AvolineMultiTNT.getInstance()
+		).add(
+				TELEPORT
 		).build();
 	}
 

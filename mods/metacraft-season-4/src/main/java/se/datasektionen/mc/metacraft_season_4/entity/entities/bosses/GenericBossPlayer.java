@@ -8,24 +8,35 @@ import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.predicate.NumberRange;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.floatprovider.UniformFloatProvider;
 import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
+import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
+import se.datasektionen.mc.metacraft_core.entity_ref.SelfRef;
 import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
+import se.datasektionen.mc.metacraft_core.position_ref.AtEntityRef;
+import se.datasektionen.mc.metacraft_core.position_ref.RandomRangeWithGravity;
+import se.datasektionen.mc.metacraft_core.position_ref.WithTries;
 import se.datasektionen.mc.metacraft_core.util.helper.BossBarHelper;
 import se.datasektionen.mc.metacraft_lib.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_lib.extensions.LivingEntityExtensions;
 import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
 import se.metacraft.bosses.boss.attacks.Attack;
+import se.metacraft.bosses.boss.attacks.TeleportAttack;
+import se.metacraft.bosses.boss.attacks.target.PositionRefTarget;
 import se.metacraft.bosses.util.DoubleTeamHandler;
 
 import java.util.Optional;
@@ -37,6 +48,28 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 
 	protected final AttackContainer container = new AttackContainer(this);
 	protected DataPool<Attack> attacks;
+
+	public static final Attack TELEPORT = createTeleport(METAcraftEntities.PLAYER.getDimensions().getBoxAt(Vec3d.ZERO));
+
+	public static Attack createTeleport(Box hitbox) {
+		return new TeleportAttack(
+			new PositionRefTarget(
+				new WithTries(
+					new RandomRangeWithGravity(
+						new AtEntityRef(
+							SelfRef.getInstance(),
+							Vec3d.ZERO, Vec3d.ZERO, false
+						),
+						hitbox, Optional.empty(),
+						NumberRange.IntRange.between(-10, 10),
+						UniformFloatProvider.create(10, 15)
+					),
+					5
+				)
+			),
+			Optional.empty()
+		);
+	}
 
 	public GenericBossPlayer(EntityType<? extends HostileEntity> entityType, World world) {
 		super(entityType, world);

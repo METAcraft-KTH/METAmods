@@ -49,7 +49,9 @@ import se.datasektionen.mc.metacraft_lib.condition.conditions.NotInWall;
 import se.datasektionen.mc.metacraft_lib.entity.EntityParameters;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.datasektionen.mc.metacraft_season_4.boss.ChangeTickSpeed;
+import se.datasektionen.mc.metacraft_season_4.boss.InventoryShuffleAttack;
 import se.datasektionen.mc.metacraft_season_4.boss.PlayerShadows;
+import se.datasektionen.mc.metacraft_season_4.boss.PlayerShuffleAttack;
 import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
 import se.datasektionen.mc.metacraft_season_4.status_effects.Season4StatusEffects;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
@@ -239,6 +241,15 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 						ConstantIntProvider.create(1),
 						true
 				)
+		).add(
+				PlayerShuffleAttack.getInstance()
+		).add(
+				InventoryShuffleAttack.createSimple(
+						true, true,
+						false, false, false
+				)
+		).add(
+				TELEPORT
 		).build();
 	}
 
