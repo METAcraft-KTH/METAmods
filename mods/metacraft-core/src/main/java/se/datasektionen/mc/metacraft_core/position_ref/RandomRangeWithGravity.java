@@ -71,7 +71,7 @@ public record RandomRangeWithGravity(
 				int minZ = MathHelper.floor(box.minZ);
 				int maxX = MathHelper.floor(box.maxX);
 				int maxZ = MathHelper.floor(box.maxZ);
-				int yInt = MathHelper.floor(y);
+				int yInt = MathHelper.floor(y)-1;
 				for (var pos : BlockPos.iterate(minX, yInt, minZ, maxX, yInt, maxZ)) {
 					if (world.getBlockState(pos).isFullCube(world, pos)) {
 						return true;
