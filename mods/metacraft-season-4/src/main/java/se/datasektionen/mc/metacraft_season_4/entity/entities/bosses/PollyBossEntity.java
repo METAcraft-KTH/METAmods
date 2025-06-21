@@ -265,7 +265,11 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 	}
 
 	protected boolean shouldContinueHoldingEntity() {
-		return getHeldEntity().isAlive() && getHeldEntity().getWorld() == this.getWorld() && (!(getHeldEntity() instanceof ServerPlayerEntity p) || !p.isDisconnected());
+		return getHeldEntity().isAlive() &&
+				getHeldEntity().getWorld() == this.getWorld() &&
+				(!(getHeldEntity() instanceof ServerPlayerEntity p) || !p.isDisconnected()) &&
+				!getHeldEntity().isInCreativeMode() &&
+				!getHeldEntity().isSpectator();
 	}
 
 	private void healFromAttack(ServerWorld world, float amount) {
@@ -849,8 +853,9 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 				polly.getBrain().getOptionalRegisteredMemory(Season4MemoryModules.SWOOP_TARGET).ifPresent(
 						target -> {
 							polly.getMoveControl().moveTo(target.getX(), target.getBodyY(0.5), target.getZ(), 1);
-							if (!target.isAlive()) {
+							if (!target.isAlive() || target.isInCreativeMode() || target.isSpectator()) {
 								polly.getBrain().forget(Season4MemoryModules.SWOOP_TARGET);
+								return;
 							}
 							if (polly.getBoundingBox().expand(1).intersects(target.getBoundingBox())) {
 								polly.getBrain().remember(MemoryModuleType.RAM_COOLDOWN_TICKS, RAM_COOLDOWN);
