@@ -102,6 +102,11 @@ public class TransitionConfigRegistry {
 			"entity_set_pose", SetPose.Config.CODEC
 	);
 
+	public static final TransitionConfigType<RemoveEntity> ENTITY_REMOVE = register(
+			"entity_remove", RemoveEntity.CODEC
+	);
+
+
 	public static final TransitionConfigType<SetGameModeTransition.Config> SET_GAME_MODE = register(
 			"gamemode", SetGameModeTransition.Config.CODEC
 	);
