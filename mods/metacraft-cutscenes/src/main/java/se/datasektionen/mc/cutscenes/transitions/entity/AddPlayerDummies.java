@@ -10,6 +10,7 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.Vec3d;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -54,7 +55,7 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 					Codec.BOOL.optionalFieldOf("include_remote_dim", false).forGetter(t -> t.includeDespiteRemoteDim),
 					AccurateSerializableNBT.CODEC.optionalFieldOf("nbt").forGetter(t -> t.nbt),
 					Identifier.CODEC.optionalFieldOf("function").forGetter(t -> t.function),
-					Codec.BOOL.optionalFieldOf("kill_after", false).forGetter(t -> t.killAfter)
+					Removal.CODEC.optionalFieldOf("removal", Removal.DISCARD).forGetter(t -> t.removal)
 			).apply(instance, AddPlayerDummies::new)
 	);
 
@@ -64,16 +65,16 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 	private final boolean includeDespiteRemoteDim;
 	private final Optional<AccurateSerializableNBT> nbt;
 	private final Optional<Identifier> function;
-	private final boolean killAfter;
+	private final Removal removal;
 
 	public static final AddPlayerDummies DEFAULT = new AddPlayerDummies(
 			List.of(PLAYER_REFERENCE), DEFAULT_POS, DEFAULT_ROT,
-			false, Optional.empty(), Optional.empty(), false
+			false, Optional.empty(), Optional.empty(), Removal.DISCARD
 	);
 
 	public AddPlayerDummies(
 			List<String> ids, PositionRef position, RotationRef rotation, boolean includeDespiteRemoteDim,
-			Optional<AccurateSerializableNBT> nbt, Optional<Identifier> function, boolean killAfter
+			Optional<AccurateSerializableNBT> nbt, Optional<Identifier> function, Removal removal
 	) {
 		this.ids = ids;
 		this.position = position;
@@ -81,7 +82,7 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 		this.includeDespiteRemoteDim = includeDespiteRemoteDim;
 		this.nbt = nbt;
 		this.function = function;
-		this.killAfter = killAfter;
+		this.removal = removal;
 	}
 
 	@Override
@@ -153,11 +154,13 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		var refs = ids.stream().map(CutsceneRef::new).flatMap(e -> e.get(cutscene.getRefContext()));
-		if (killAfter) {
-			refs.forEach(e -> e.kill(cutscene.getCutsceneWorld()));
-		} else {
-			refs.forEach(Entity::discard);
+		if (removal != Removal.NONE) {
+			var refs = ids.stream().map(CutsceneRef::new).flatMap(e -> e.get(cutscene.getRefContext()));
+			if (removal == Removal.KILL) {
+				refs.forEach(e -> e.kill(cutscene.getCutsceneWorld()));
+			} else {
+				refs.forEach(Entity::discard);
+			}
 		}
 	}
 
@@ -174,5 +177,24 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 	@Override
 	public TransitionConfigType<?> getConfigType() {
 		return TransitionConfigRegistry.PLAYER_DUMMIES;
+	}
+
+	public enum Removal implements StringIdentifiable {
+		NONE("none"),
+		DISCARD("discard"),
+		KILL("kill");
+
+		public static final Codec<Removal> CODEC = StringIdentifiable.createCodec(Removal::values);
+
+		private final String name;
+
+		Removal(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public String asString() {
+			return name;
+		}
 	}
 }
