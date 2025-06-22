@@ -167,10 +167,20 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	private void readShoulderEntities(NbtCompound nbt) {
 		if (nbt.contains(SHOULDER_ENTITY_LEFT, NbtElement.COMPOUND_TYPE)) {
-			this.setShoulderEntityLeft(nbt.getCompound(SHOULDER_ENTITY_LEFT));
+			var newLeft = nbt.getCompound(SHOULDER_ENTITY_LEFT);
+			if (!getShoulderEntityLeft().equals(newLeft)) {
+				this.setShoulderEntityLeft(newLeft);
+			}
+		} else if (!getShoulderEntityLeft().isEmpty()) {
+			this.setShoulderEntityLeft(new NbtCompound());
 		}
 		if (nbt.contains(SHOULDER_ENTITY_RIGHT, NbtElement.COMPOUND_TYPE)) {
-			this.setShoulderEntityRight(nbt.getCompound(SHOULDER_ENTITY_RIGHT));
+			var newRight = nbt.getCompound(SHOULDER_ENTITY_RIGHT);
+			if (!getShoulderEntityRight().equals(newRight)) {
+				this.setShoulderEntityRight(newRight);
+			}
+		} else if (!getShoulderEntityRight().isEmpty()) {
+			this.setShoulderEntityRight(new NbtCompound());
 		}
 	}
 
@@ -684,10 +694,10 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 				parts -> nbt.put(VISIBLE_SKIN_PARTS, parts)
 		);
 		if (!this.getShoulderEntityLeft().isEmpty()) {
-			nbt.put(SHOULDER_ENTITY_LEFT, this.getShoulderEntityLeft());
+			nbt.put(SHOULDER_ENTITY_LEFT, this.getShoulderEntityLeft().copy());
 		}
 		if (!this.getShoulderEntityRight().isEmpty()) {
-			nbt.put(SHOULDER_ENTITY_RIGHT, this.getShoulderEntityRight());
+			nbt.put(SHOULDER_ENTITY_RIGHT, this.getShoulderEntityRight().copy());
 		}
 		nbt.putBoolean(CAN_WANDER, canWander);
 	}
