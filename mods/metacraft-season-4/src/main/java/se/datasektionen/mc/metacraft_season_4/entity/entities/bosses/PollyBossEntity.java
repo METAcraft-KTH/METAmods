@@ -45,6 +45,7 @@ import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.predicate.NumberRange;
 import net.minecraft.predicate.entity.EntityPredicate;
 import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -280,8 +281,25 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 		}
 	}
 
+	public boolean surviveWith1HP(DamageSource source) {
+		return !source.isIn(DamageTypeTags.BYPASSES_INVULNERABILITY);
+	}
+
+	@Override
+	public boolean metacraft_season_4$surviveDeath(DamageSource source) {
+		if (surviveWith1HP(source)) {
+			setHeldEntity(null);
+			setHealth(1);
+			return true;
+		}
+		return false;
+	}
+
 	@Override
 	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+		if (surviveWith1HP(source) && getHealth() <= 1) {
+			return false;
+		}
 		if (getHeldEntity() != null) {
 			if (source.getAttacker() == getHeldEntity()) {
 				healFromAttack(world, amount);
