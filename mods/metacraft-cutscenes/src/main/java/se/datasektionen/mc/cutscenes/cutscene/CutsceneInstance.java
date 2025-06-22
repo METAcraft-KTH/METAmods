@@ -451,6 +451,8 @@ public class CutsceneInstance implements AutoCloseable {
 		if (skipNextCutscene(isLeavingCutscene)) {
 			savedPlayerData.remove(player.getUuid());
 		}
+
+		player.getServer().getPlayerManager().sendPlayerStatus(player);
 	}
 
 	public void resetPlayers() {
