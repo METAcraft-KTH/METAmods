@@ -220,7 +220,7 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 
 	protected ManageableServerBossBar createDefaultBossBar() {
 		return new ManageableServerBossBar(
-				getDisplayName(), BossBar.Color.PURPLE, BossBar.Style.NOTCHED_6
+				getDisplayName(), BossBar.Color.WHITE, BossBar.Style.NOTCHED_6
 		);
 	}
 

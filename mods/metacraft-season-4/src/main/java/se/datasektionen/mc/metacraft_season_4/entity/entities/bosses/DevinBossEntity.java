@@ -14,6 +14,7 @@ import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffectCategory;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -46,6 +47,7 @@ import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartShootAttackTask;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartStrafeAttackTask;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerBrain;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
+import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
 import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
@@ -103,6 +105,13 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 				EntityAttributes.FOLLOW_RANGE, 100
 		).add(
 				EntityAttributes.ARMOR, 5
+		);
+	}
+
+	@Override
+	protected ManageableServerBossBar createDefaultBossBar() {
+		return new ManageableServerBossBar(
+				getDisplayName(), BossBar.Color.GREEN, BossBar.Style.NOTCHED_6
 		);
 	}
 

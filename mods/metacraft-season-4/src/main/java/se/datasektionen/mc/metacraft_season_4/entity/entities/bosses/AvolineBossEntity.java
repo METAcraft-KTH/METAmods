@@ -14,6 +14,7 @@ import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
@@ -39,6 +40,7 @@ import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartShootAttackTask;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartStrafeAttackTask;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerBrain;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
+import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
 import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_lib.condition.conditions.NotInWall;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
@@ -164,6 +166,13 @@ public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackin
 
 	public static TntEntity createTNTFlyingTowards(Entity source, Entity target) {
 		return createTNTFlyingTowards(source, target, 1.6f, 14 - source.getWorld().getDifficulty().getId() * 4);
+	}
+
+	@Override
+	protected ManageableServerBossBar createDefaultBossBar() {
+		return new ManageableServerBossBar(
+				getDisplayName(), BossBar.Color.RED, BossBar.Style.NOTCHED_6
+		);
 	}
 
 	public static TntEntity createTNTFlyingTowards(Entity source, Entity target, float speed, float divergence) {

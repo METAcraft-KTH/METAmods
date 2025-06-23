@@ -14,6 +14,7 @@ import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.mob.HostileEntity;
@@ -41,6 +42,7 @@ import se.datasektionen.mc.metacraft_core.entity.ai.tasks.ImprovedRangedApproach
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartShootAttackTask;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerBrain;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
+import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
 import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_lib.condition.conditions.NotInWall;
 import se.datasektionen.mc.metacraft_lib.entity.EntityParameters;
@@ -281,6 +283,13 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 			l.addStatusEffect(new StatusEffectInstance(Season4StatusEffects.HEALTH_REDUCTION,  1200, 11));
 		}
 		return super.damage(world, source, amount);
+	}
+
+	@Override
+	protected ManageableServerBossBar createDefaultBossBar() {
+		return new ManageableServerBossBar(
+				getDisplayName(), BossBar.Color.PURPLE, BossBar.Style.NOTCHED_6
+		);
 	}
 
 	@Override
