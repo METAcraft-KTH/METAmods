@@ -46,6 +46,7 @@ import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.boss.AvolineMultiTNT;
 import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
+import se.datasektionen.mc.metacraft_season_4.mixin.AccessorTntEntity;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
 import se.metacraft.bosses.boss.attacks.Attack;
 import se.metacraft.bosses.boss.attacks.SpawnForEachTarget;
@@ -174,6 +175,7 @@ public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackin
 		projectile.setFuse(
 				MathHelper.floor(projectile.distanceTo(target) / speed)
 		);
+		((AccessorTntEntity) projectile).setExplosionPower(2);
 		return projectile;
 	}
 

@@ -20,13 +20,13 @@ import java.util.Optional;
 
 public class PlayerBrain {
 
-	protected static final ImmutableList<SensorType<? extends Sensor<? super PlayerMob>>> SENSOR_TYPES = ImmutableList.of(
+	public static final ImmutableList<SensorType<? extends Sensor<? super PlayerMob>>> SENSOR_TYPES = ImmutableList.of(
 			SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_PLAYERS,
 			SensorType.NEAREST_ITEMS, SensorType.HURT_BY,
 			METAcraftSensorTypes.LAST_KNOWN_OXYGEN
 	);
-	protected static final ImmutableList<MemoryModuleType<?>> MEMORY_MODULE_TYPES = ImmutableList.of(
-			MemoryModuleType.LOOK_TARGET, MemoryModuleType.DOORS_TO_CLOSE, MemoryModuleType.MOBS,
+	public static final ImmutableList<MemoryModuleType<?>> MEMORY_MODULE_TYPES = ImmutableList.of(
+			MemoryModuleType.LOOK_TARGET, MemoryModuleType.DOORS_TO_CLOSE, MemoryModuleType.MOBS, MemoryModuleType.NEAREST_ATTACKABLE,
 			MemoryModuleType.VISIBLE_MOBS, MemoryModuleType.NEAREST_VISIBLE_PLAYER,
 			MemoryModuleType.NEAREST_VISIBLE_TARGETABLE_PLAYER, MemoryModuleType.NEAREST_VISIBLE_ADULT_PIGLINS,
 			MemoryModuleType.NEARBY_ADULT_PIGLINS, MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM,
@@ -134,10 +134,15 @@ public class PlayerBrain {
 		return getPreferredTarget(world, player).filter(preferredTarget -> preferredTarget == target).isPresent();
 	}
 
+	@SuppressWarnings({"OptionalAssignedToNull"})
 	private static Optional<? extends LivingEntity> getPreferredTarget(ServerWorld world, PlayerMob player) {
 		var angerTarget = TargetUtil.getEntity(player, MemoryModuleType.ANGRY_AT);
 		if (angerTarget.isPresent() && Sensor.testAttackableTargetPredicateIgnoreVisibility(world, player, angerTarget.get())) {
 			return angerTarget;
+		}
+		var nearest = player.getBrain().getOptionalMemory(MemoryModuleType.NEAREST_ATTACKABLE);
+		if (nearest != null) {
+			return nearest;
 		}
 		return Optional.empty();
 	}

@@ -1,7 +1,11 @@
 package se.datasektionen.mc.metacraft_season_4.entity.entities.bosses;
 
+import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Codec;
 import net.minecraft.entity.*;
+import net.minecraft.entity.ai.brain.Brain;
+import net.minecraft.entity.ai.brain.sensor.Sensor;
+import net.minecraft.entity.ai.brain.sensor.SensorType;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.HostileEntity;
@@ -23,6 +27,7 @@ import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
+import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerBrain;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.entity_ref.SelfRef;
 import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
@@ -31,8 +36,8 @@ import se.datasektionen.mc.metacraft_core.position_ref.RandomRangeWithGravity;
 import se.datasektionen.mc.metacraft_core.position_ref.WithTries;
 import se.datasektionen.mc.metacraft_core.util.helper.BossBarHelper;
 import se.datasektionen.mc.metacraft_lib.extensions.EntityExtensions;
-import se.datasektionen.mc.metacraft_lib.extensions.LivingEntityExtensions;
 import se.datasektionen.mc.metacraft_season_4.Season4;
+import se.datasektionen.mc.metacraft_season_4.entity.ai.Season4Sensors;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
 import se.metacraft.bosses.boss.attacks.Attack;
 import se.metacraft.bosses.boss.attacks.TeleportAttack;
@@ -50,6 +55,10 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 	protected DataPool<Attack> attacks;
 
 	public static final Attack TELEPORT = createTeleport(METAcraftEntities.PLAYER.getDimensions().getBoxAt(Vec3d.ZERO));
+
+	public static final ImmutableList<SensorType<? extends Sensor<? super PlayerMob>>> SENSOR_TYPES = new ImmutableList.Builder<SensorType<? extends Sensor<? super PlayerMob>>>().addAll(
+			PlayerBrain.SENSOR_TYPES
+	).add(Season4Sensors.TARGET_ENTITY_SENSOR).build();
 
 	public static Attack createTeleport(Box hitbox) {
 		return new TeleportAttack(
@@ -101,6 +110,11 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 				}
 			}
 		}
+	}
+
+	@Override
+	protected Brain.Profile<PlayerMob> createBrainProfile() {
+		return Brain.createProfile(PlayerBrain.MEMORY_MODULE_TYPES, SENSOR_TYPES);
 	}
 
 	@Override
@@ -198,7 +212,6 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 		var data = super.initialize(world, difficulty, spawnReason, entityData);
 		((EntityExtensions) this).metacraft_lib$setPreventEnterVehicle(true);
 		((EntityExtensions) this).metacraft_lib$setHideUUIDInTooltip(true);
-		((LivingEntityExtensions) this).metacraft_lib$setHostile(true);
 		this.setPersistent();
 		if (data instanceof DoubleTeamHandler h) {
 			attacks = DataPool.<Attack>empty();

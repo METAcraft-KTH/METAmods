@@ -7,6 +7,7 @@
 		"AccessorAreaEffectCloudEntity",
 		"AccessorLivingEntity",
 		"AccessorPlayerEntity",
+		"AccessorTntEntity",
 		"MixinEnderDragonFight",
 		"MixinEnderEyeItem",
 		"MixinEndGatewayBlockEntity",
