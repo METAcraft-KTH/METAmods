@@ -813,7 +813,7 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 		projectile.setHitEffectCount(UniformIntProvider.create(1, 2));
 		EntityAIHelper.shootProjectile(
 				this, projectile, target,
-				SoundEvents.ENTITY_GHAST_SHOOT, speed, divergence
+				SoundEvents.ENTITY_GHAST_SHOOT, speed, divergence, 10
 		);
 	}
 

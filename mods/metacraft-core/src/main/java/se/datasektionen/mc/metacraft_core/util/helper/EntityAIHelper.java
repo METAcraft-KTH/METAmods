@@ -9,6 +9,16 @@ import net.minecraft.util.math.random.Random;
 
 public class EntityAIHelper {
 
+	public static void shootProjectile(
+			LivingEntity shooter, ProjectileEntity projectile, Entity target,
+			SoundEvent sound, float speed, float divergence, float volume
+	) {
+		var direction = getDirection(projectile, target);
+		projectile.setVelocity(direction.getX(), direction.getY(), direction.getZ(), speed, divergence);
+		shooter.playSound(sound, volume, 1.0f / (shooter.getRandom().nextFloat() * 0.4f + 0.8f));
+		shooter.getWorld().spawnEntity(projectile);
+	}
+
 	/**
 	 * Shoots the given projectile from the given shooter towards target.
 	 * Copied from {@link net.minecraft.entity.mob.SkeletonEntity#shootAt(LivingEntity, float)}
@@ -23,10 +33,7 @@ public class EntityAIHelper {
 			LivingEntity shooter, ProjectileEntity projectile, Entity target,
 			SoundEvent sound, float speed, float divergence
 	) {
-		var direction = getDirection(projectile, target);
-		projectile.setVelocity(direction.getX(), direction.getY(), direction.getZ(), speed, divergence);
-		shooter.playSound(sound, 1.0f, 1.0f / (shooter.getRandom().nextFloat() * 0.4f + 0.8f));
-		shooter.getWorld().spawnEntity(projectile);
+		shootProjectile(shooter, projectile, target, sound, speed, divergence, 1.0f);
 	}
 
 	public static Vec3d getDirection(Entity projectile, Entity target) {
