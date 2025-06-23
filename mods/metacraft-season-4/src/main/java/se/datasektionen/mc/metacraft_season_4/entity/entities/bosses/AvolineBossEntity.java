@@ -158,7 +158,6 @@ public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackin
 					source.getAttacker().getX(), source.getAttacker().getY(), source.getAttacker().getZ(),
 					10, true, World.ExplosionSourceType.MOB
 			);
-			return false;
 		}
 		return super.damage(world, source, amount);
 	}

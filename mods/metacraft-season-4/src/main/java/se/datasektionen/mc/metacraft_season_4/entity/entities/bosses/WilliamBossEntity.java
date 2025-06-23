@@ -279,7 +279,6 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 		if (!source.isIn(DamageTypeTags.BYPASSES_INVULNERABILITY) && !this.isInvulnerableTo(world, source) && amount > Season4Entities.MAX_ATTACK_DAMAGE && source.getAttacker() instanceof LivingEntity l) {
 			l.addStatusEffect(new StatusEffectInstance(Season4StatusEffects.SMALLIFY,  1200, 4));
 			l.addStatusEffect(new StatusEffectInstance(Season4StatusEffects.HEALTH_REDUCTION,  1200, 11));
-			return false;
 		}
 		return super.damage(world, source, amount);
 	}

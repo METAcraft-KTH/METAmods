@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Codec;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.brain.Brain;
+import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.sensor.Sensor;
 import net.minecraft.entity.ai.brain.sensor.SensorType;
 import net.minecraft.entity.boss.BossBar;
@@ -99,7 +100,7 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 		container.tickAttackDelay();
 		container.tickAttacks();
 
-		if (getBlockPos().equals(prevPos)) {
+		if (getBlockPos().equals(prevPos) && this.getBrain().hasMemoryModule(MemoryModuleType.ATTACK_TARGET)) {
 			stuckTime++;
 
 			if (stuckTime > 200) {

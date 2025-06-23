@@ -102,7 +102,7 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 		).add(
 				EffectEntry.create(StatusEffectEntry.create(StatusEffects.POISON, SHORT, ZERO))
 		).add(
-				EffectEntry.create(StatusEffectEntry.create(Season4StatusEffects.FREEZE, SHORT, ZERO))
+				EffectEntry.create(StatusEffectEntry.create(Season4StatusEffects.FREEZE, MID, ZERO))
 		).add(
 				EffectEntry.create(StatusEffectEntry.create(Season4StatusEffects.FIRE, ONE, UniformIntProvider.create(2, 4)))
 		);
@@ -124,7 +124,7 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 		).add(
 				StatusEffectEntry.create(StatusEffects.POISON, SHORT, VARIES)
 		).add(
-				StatusEffectEntry.create(Season4StatusEffects.FREEZE, SHORT, VARIES)
+				StatusEffectEntry.create(Season4StatusEffects.FREEZE, MID, VARIES)
 		).add(
 				StatusEffectEntry.create(Season4StatusEffects.FIRE, ONE, UniformIntProvider.create(8, 15))
 		);

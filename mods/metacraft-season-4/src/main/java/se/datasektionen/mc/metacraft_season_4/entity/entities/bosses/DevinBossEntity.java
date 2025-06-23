@@ -202,7 +202,6 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 	public boolean damage(ServerWorld world, DamageSource source, float amount) {
 		if (!source.isIn(DamageTypeTags.BYPASSES_INVULNERABILITY) && !this.isInvulnerableTo(world, source) && amount > Season4Entities.MAX_ATTACK_DAMAGE && source.getAttacker() instanceof LivingEntity l) {
 			l.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA,  1200, 0));
-			return false;
 		}
 		return super.damage(world, source, amount);
 	}

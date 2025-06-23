@@ -71,7 +71,6 @@ import se.datasektionen.mc.metacraft_core.entity_ref.SelfRef;
 import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
 import se.datasektionen.mc.metacraft_core.position_ref.AtEntityRef;
 import se.datasektionen.mc.metacraft_core.position_ref.RandomRangeNoGravity;
-import se.datasektionen.mc.metacraft_core.position_ref.RandomRangeWithGravity;
 import se.datasektionen.mc.metacraft_core.position_ref.WithTries;
 import se.datasektionen.mc.metacraft_core.util.helper.BossBarHelper;
 import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;

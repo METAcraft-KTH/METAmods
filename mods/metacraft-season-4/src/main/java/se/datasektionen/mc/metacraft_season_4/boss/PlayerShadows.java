@@ -61,6 +61,13 @@ public class PlayerShadows extends InstantAttack {
 					player.getPos()
 			);
 
+			var team = ctx.boss().getScoreboardTeam();
+			if (team != null) {
+				ctx.getWorld().getScoreboard().addScoreHolderToTeam(
+						shadow.getNameForScoreboard(), team
+				);
+			}
+
 			shadow.setPos(pos.getX(), pos.getY(), pos.getZ());
 			shadow.getBrain().remember(MemoryModuleType.ANGRY_AT, player.getUuid());
 
