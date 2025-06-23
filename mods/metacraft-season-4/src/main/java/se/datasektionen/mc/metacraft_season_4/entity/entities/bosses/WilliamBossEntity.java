@@ -15,9 +15,7 @@ import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
@@ -41,7 +39,6 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.ImprovedRangedApproachTask;
 import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartShootAttackTask;
-import se.datasektionen.mc.metacraft_core.entity.ai.tasks.SmartStrafeAttackTask;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerBrain;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
@@ -53,6 +50,8 @@ import se.datasektionen.mc.metacraft_season_4.boss.InventoryShuffleAttack;
 import se.datasektionen.mc.metacraft_season_4.boss.PlayerShadows;
 import se.datasektionen.mc.metacraft_season_4.boss.PlayerShuffleAttack;
 import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
+import se.datasektionen.mc.metacraft_season_4.entity.ai.FlightWithStrafeMoveControl;
+import se.datasektionen.mc.metacraft_season_4.entity.ai.tasks.FlyingStrafeTask;
 import se.datasektionen.mc.metacraft_season_4.status_effects.Season4StatusEffects;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
 import se.metacraft.bosses.boss.attacks.*;
@@ -78,6 +77,7 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 
 	public WilliamBossEntity(EntityType<? extends HostileEntity> entityType, World world) {
 		super(entityType, world);
+		this.moveControl = new FlightWithStrafeMoveControl(this, 10, false);
 	}
 
 	@Override
@@ -93,6 +93,12 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 	public static DefaultAttributeContainer.Builder createBossAttributes() {
 		return PlayerMob.createPlayerAttributes().add(
 				EntityAttributes.MAX_HEALTH, 512
+		).add(
+				EntityAttributes.FOLLOW_RANGE, 100
+		).add(
+				EntityAttributes.ARMOR, 5
+		).add(
+				EntityAttributes.FLYING_SPEED, PlayerMob.BASE_SPEED
 		);
 	}
 
@@ -197,7 +203,7 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 		).add(
 				new PlayerShadows(UniformIntProvider.create(10, 10), ConstantIntProvider.create(10))
 		).add(
-				new ChangeTickSpeed(UniformIntProvider.create(400, 600), UniformFloatProvider.create(10, 30))
+				new ChangeTickSpeed(UniformIntProvider.create(400, 600), UniformFloatProvider.create(20, 35))
 		).add(
 				new TeleportAttack(
 						new MoveToGround(UniformFloatProvider.create(0, 50)),
@@ -357,7 +363,7 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 							MeleeAttackTask.create(20)
 					), new CrossbowAttackTask<>(),
 					new SmartShootAttackTask<>(WilliamBrain::isSmartProjectileWeapon, 20, WilliamBrain::rangeOverride),
-					new SmartStrafeAttackTask<>(1, 8)
+					new FlyingStrafeTask(1, 8, 2, false)
 			), MemoryModuleType.ATTACK_TARGET);
 		}
 

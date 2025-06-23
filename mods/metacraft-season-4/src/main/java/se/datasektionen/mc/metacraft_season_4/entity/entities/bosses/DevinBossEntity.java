@@ -105,6 +105,10 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 	public static DefaultAttributeContainer.Builder createBossAttributes() {
 		return PlayerMob.createPlayerAttributes().add(
 				EntityAttributes.MAX_HEALTH, 512
+		).add(
+				EntityAttributes.FOLLOW_RANGE, 100
+		).add(
+				EntityAttributes.ARMOR, 5
 		);
 	}
 
