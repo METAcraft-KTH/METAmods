@@ -14,6 +14,7 @@ import eu.pb4.polymer.virtualentity.api.elements.InteractionElement;
 import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.*;
+import net.minecraft.entity.ai.RangedAttackMob;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
@@ -48,6 +49,7 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -64,8 +66,15 @@ import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.explosion.AdvancedExplosionBehavior;
 import org.jetbrains.annotations.Nullable;
+import se.datasektionen.mc.metacraft_core.entity.ai.METAcraftMemoryModules;
+import se.datasektionen.mc.metacraft_core.entity_ref.SelfRef;
 import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
+import se.datasektionen.mc.metacraft_core.position_ref.AtEntityRef;
+import se.datasektionen.mc.metacraft_core.position_ref.RandomRangeNoGravity;
+import se.datasektionen.mc.metacraft_core.position_ref.RandomRangeWithGravity;
+import se.datasektionen.mc.metacraft_core.position_ref.WithTries;
 import se.datasektionen.mc.metacraft_core.util.helper.BossBarHelper;
+import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_lib.condition.entity_sub_predicates.HealthPredicate;
 import se.datasektionen.mc.metacraft_lib.entity.EntityParameters;
 import se.datasektionen.mc.metacraft_lib.extensions.EntityExtensions;
@@ -77,14 +86,13 @@ import se.datasektionen.mc.metacraft_season_4.entity.ai.FlightWithStrafeMoveCont
 import se.datasektionen.mc.metacraft_season_4.entity.ai.Season4MemoryModules;
 import se.datasektionen.mc.metacraft_season_4.entity.ai.Season4Sensors;
 import se.datasektionen.mc.metacraft_season_4.entity.ai.tasks.FlyingStrafeTask;
+import se.datasektionen.mc.metacraft_season_4.entity.ai.tasks.SimpleShootTask;
 import se.datasektionen.mc.metacraft_season_4.entity.entities.MagicProjectile;
 import se.datasektionen.mc.metacraft_season_4.extensions.LivingEntityExtensions;
 import se.datasektionen.mc.metacraft_season_4.status_effects.Season4StatusEffects;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
-import se.metacraft.bosses.boss.attacks.Attack;
-import se.metacraft.bosses.boss.attacks.ConditionalAttack;
-import se.metacraft.bosses.boss.attacks.SpawnForEachTarget;
-import se.metacraft.bosses.boss.attacks.SpawnSpecifiedEntities;
+import se.metacraft.bosses.boss.attacks.*;
+import se.metacraft.bosses.boss.attacks.target.PositionRefTarget;
 import se.metacraft.bosses.entity.entities.ItemSpawnerWithTarget;
 import se.metacraft.bosses.util.DoubleTeamHandler;
 import se.metacraft.bosses.util.StatusEffectEntry;
@@ -92,7 +100,7 @@ import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.*;
 
-public class PollyBossEntity extends ParrotEntity implements PolymerEntity, AutoAttackingBoss {
+public class PollyBossEntity extends ParrotEntity implements PolymerEntity, AutoAttackingBoss, RangedAttackMob {
 
 	private static final String ATTACKS = "attacks";
 	private static final Codec<DataPool<Attack>> ATTACK_POOL_CODEC = DataPool.createEmptyAllowedCodec(Attack.REGISTRY_CODEC);
@@ -102,6 +110,27 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 
 	private final InteractionElement sleepingHitbox = InteractionElement.redirect(this);
 	private final ElementHolder holder = new ElementHolder();
+
+	private BlockPos prevPos;
+	private int stuckDelay = 0;
+
+	private static final Attack TELEPORT = new TeleportAttack(
+			new PositionRefTarget(
+					new WithTries(
+							new RandomRangeNoGravity(
+									new AtEntityRef(
+											SelfRef.getInstance(),
+											Vec3d.ZERO, Vec3d.ZERO, false
+									),
+									EntityType.PARROT.getDimensions().scaled(16).getBoxAt(Vec3d.ZERO),
+									Optional.empty(),
+									UniformFloatProvider.create(10, 15)
+							),
+							15
+					)
+			),
+			Optional.empty()
+	);
 
 	public PollyBossEntity(EntityType<? extends PollyBossEntity> entityType, World world) {
 		super(entityType, world);
@@ -178,9 +207,21 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 
 	public void stun() {
 		if (getBrain().hasMemoryModule(Season4MemoryModules.STUNNED)) return;
-		setVelocity(Vec3d.ZERO);
+		var player = getPlayerTargets().stream().filter(p -> p != getHeldEntity()).min(
+				Comparator.comparing(p -> p.squaredDistanceTo(this.getPos()))
+		);
+		if (player.isPresent()) {
+			setVelocity(
+					player.get().getBoundingBox().getCenter().subtract(this.getBoundingBox().getCenter()).normalize()
+			);
+		} else {
+			setVelocity(Vec3d.ZERO);
+		}
+		setHeldEntity(null);
 		getBrain().remember(Season4MemoryModules.STUNNED, Unit.INSTANCE, 200);
 		getBrain().forget(MemoryModuleType.ATTACK_TARGET);
+		getBrain().forget(Season4MemoryModules.SWOOP_TARGET);
+		getBrain().forget(METAcraftMemoryModules.IS_SMART_SHOOTING);
 		setSidewaysSpeed(0);
 		getNavigation().stop();
 		updateStunned();
@@ -312,7 +353,6 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 		}
 		if (super.damage(world, source, amount)) {
 			if (getHeldEntity() != null && (amount > 20 || getHealth() - healthOnPickup > 100)) {
-				setHeldEntity(null);
 				world.createExplosion(
 						source.getAttacker(), world.getDamageSources().explosion(source.getSource(), source.getAttacker()),
 						new AdvancedExplosionBehavior(
@@ -400,7 +440,23 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 		getBrain().tick(world, this);
 		PollyBrain.updateActivities(this);
 		super.mobTick(world);
-		container.tickAttackDelay();
+
+		if (!getBrain().hasMemoryModule(Season4MemoryModules.STUNNED)) {
+
+			if (getBlockPos().equals(prevPos)) {
+				stuckDelay++;
+				if (stuckDelay > 200) {
+					getBrain().forget(Season4MemoryModules.SWOOP_TARGET);
+					addAttack(TELEPORT);
+					stuckDelay = 0;
+				}
+			} else {
+				prevPos = getBlockPos();
+				stuckDelay = 0;
+			}
+
+			container.tickAttackDelay();
+		}
 		container.tickAttacks();
 
 		updateHeldEntity(world);
@@ -693,6 +749,8 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 								LootContext.EntityTarget.THIS
 						)
 				)
+		).add(
+				TELEPORT
 		).build();
 	}
 
@@ -742,6 +800,23 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 		return getBrain().hasMemoryModule(Season4MemoryModules.STUNNED) ? 0.98f : drag;
 	}
 
+	@Override
+	public void shootAt(LivingEntity target, float pullProgress) {
+		float speed = 1.6f;
+		float divergence = 14 - this.getWorld().getDifficulty().getId() * 4;
+		var projectile = Season4Entities.MAGIC_PROJECTILE.create(getWorld(), SpawnReason.TRIGGERED);
+		projectile.setOwner(this);
+		projectile.setPos(getX(), getEyeY(), getZ());
+		projectile.setHitEffects(EXTRA_POOL_HIT);
+		projectile.setCloudEffects(EXTRA_POOL_CLOUD);
+		projectile.setHitEffectCount(UniformIntProvider.create(3, 5));
+		projectile.setHitEffectCount(UniformIntProvider.create(1, 2));
+		EntityAIHelper.shootProjectile(
+				this, projectile, target,
+				SoundEvents.ENTITY_GHAST_SHOOT, speed, divergence
+		);
+	}
+
 	public static class PollyBrain {
 
 		static final List<SensorType<? extends Sensor<? super PollyBossEntity>>> SENSORS = ImmutableList.of(
@@ -752,7 +827,7 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 				MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE, MemoryModuleType.ATTACK_TARGET,
 				MemoryModuleType.WALK_TARGET, MemoryModuleType.HURT_BY, MemoryModuleType.HURT_BY_ENTITY,
 				MemoryModuleType.PATH, Season4MemoryModules.SWOOP_TARGET, MemoryModuleType.RAM_COOLDOWN_TICKS,
-				Season4MemoryModules.STUNNED
+				Season4MemoryModules.STUNNED, METAcraftMemoryModules.IS_SMART_SHOOTING
 		);
 
 		protected static Brain<?> create(PollyBossEntity polly, Brain<PollyBossEntity> brain) {
@@ -822,7 +897,12 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 					ImmutableList.of(
 						Pair.of(0, ForgetAttackTargetTask.create(Sensor.hasTargetBeenAttackableRecently(polly, 100).negate()::test)),
 						Pair.of(1, new FlyingStrafeTask(1, 16, 10, false)),
-						Pair.of(2, TaskTriggerer.task(
+						Pair.of(2, new SimpleShootTask<>(50, 50, i -> {
+							if (i == 20) {
+								polly.playSound(SoundEvents.ENTITY_GHAST_WARN, 10, 0.75f);
+							}
+						})),
+						Pair.of(3, TaskTriggerer.task(
 							ctx -> ctx.point((world, entity, time) -> {
 								return entity.getBrain().getOptionalRegisteredMemory(MemoryModuleType.ATTACK_TARGET).map(target -> {
 									if (entity.getY() - target.getY() > 7 && polly.getHeldEntity() == null) {

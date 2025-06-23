@@ -19,6 +19,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.collection.DataPool;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.floatprovider.UniformFloatProvider;
@@ -53,6 +54,9 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 
 	protected final AttackContainer container = new AttackContainer(this);
 	protected DataPool<Attack> attacks;
+
+	private int stuckTime = 0;
+	private BlockPos prevPos = null;
 
 	public static final Attack TELEPORT = createTeleport(METAcraftEntities.PLAYER.getDimensions().getBoxAt(Vec3d.ZERO));
 
@@ -94,6 +98,18 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 		super.mobTick(world);
 		container.tickAttackDelay();
 		container.tickAttacks();
+
+		if (getBlockPos().equals(prevPos)) {
+			stuckTime++;
+
+			if (stuckTime > 200) {
+				addAttack(TELEPORT);
+				stuckTime = 0;
+			}
+		} else {
+			prevPos = getBlockPos();
+			stuckTime = 0;
+		}
 
 		if (this.getPos().getY() < world.getBottomY()) {
 			var targets = getTargets(p -> p.getY() >= world.getBottomY());
