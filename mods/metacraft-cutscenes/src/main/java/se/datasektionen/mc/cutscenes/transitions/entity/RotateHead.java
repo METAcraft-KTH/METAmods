@@ -13,8 +13,8 @@ import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 import se.datasektionen.mc.cutscenes.util.InterpolationSetContainer;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
@@ -56,7 +56,7 @@ public class RotateHead implements Transition {
 		offsets = config.targets.getTargets(interval);
 		offsets = offsets.setStartIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
 		offsets = offsets.setEndIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
-		config.entity.get(null, cutscene).findAny().ifPresent(entity -> {
+		config.entity.get(cutscene.getRefContext()).findAny().ifPresent(entity -> {
 			entityFacings.put(entity.getUuid(), new FixedTarget(entity.getYaw(), entity.getPitch()));
 		});
 	}
@@ -68,7 +68,7 @@ public class RotateHead implements Transition {
 			offsets = offsets.setStartIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
 			offsets = offsets.setEndIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
 		}
-		config.entity.get(null, cutscene).forEach(entity -> {
+		config.entity.get(cutscene.getRefContext()).forEach(entity -> {
 			float delta = interval.getDelta(cutscene.getCurrentTime());
 			entity.lastYaw = entity.getYaw();
 			entity.lastPitch = entity.getPitch();

@@ -4,10 +4,10 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRefType;
+import se.datasektionen.mc.metacraft_core.util.RefContext;
 
 import java.util.stream.Stream;
 
@@ -26,12 +26,12 @@ public class CutsceneRef implements EntityRef {
 	}
 
 	@Override
-	public Stream<? extends Entity> get(@Nullable ServerPlayerEntity player, CutsceneInstance cutsceneInstance) {
-		return cutsceneInstance.getEntities(id);
+	public Stream<? extends Entity> get(RefContext ctx) {
+		return CutsceneInstance.getCutscene(ctx).map(scene -> scene.getEntities(id)).orElse(Stream.empty());
 	}
 
 	@Override
 	public EntityRefType<?> getType() {
-		return EntityRefRegistry.CUTSCENE;
+		return EntityRefs.CUTSCENE;
 	}
 }

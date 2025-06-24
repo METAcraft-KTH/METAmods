@@ -3,7 +3,6 @@ package se.datasektionen.mc.cutscenes.transitions;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
@@ -31,36 +30,37 @@ public class SmoothEntityPathTranstion implements Transition {
 		this.config = config;
 	}
 
-	@Override
-	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	private void init(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		interpolationSet = config.targets().getTargets(interval);
-		var target = config.entity().get(null, cutscene).findAny().map(
+		var target = config.entity().get(cutscene.getRefContext()).findAny().map(
 				SmoothEntityPathConfig.DisplayEntityTarget::fromEntity
 		).orElse(
 				SmoothEntityPathConfig.DisplayEntityTarget.DEFAULT
 		);
 		interpolationSet = interpolationSet.setStartIfNotPresent(target);
 		interpolationSet = interpolationSet.setEndIfNotPresent(target);
-		config.entity().get(null, cutscene).forEach(entity -> {
-			setData(entity, interpolationSet.interpolate(0));
-			setLinearInterpolationDuration(entity, config.interpolationDuration());
+	}
+
+	@Override
+	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		init(cutscene, interval);
+		config.entity().get(cutscene.getRefContext()).forEach(entity -> {
+			setData(entity, interpolationSet.interpolate(0), false);
+			setLinearInterpolationDuration(entity, config.interpolationDuration(), false);
 		});
 	}
 
-	private void setLinearInterpolationDuration(Entity display, int duration) {
+	private void setLinearInterpolationDuration(Entity display, int duration, boolean interpolating) {
 		var data = display.writeNbt(new NbtCompound());
 		data.putInt(DisplayEntity.TELEPORT_DURATION_KEY, duration);
 		data.putInt(DisplayEntity.INTERPOLATION_DURATION_KEY, duration);
+		if (interpolating) {
+			data.putInt(DisplayEntity.START_INTERPOLATION_KEY, 0);
+		}
 		display.readNbt(data);
 	}
 
-	private void setData(Entity display, SmoothEntityPathConfig.DisplayEntityTarget target) {
-		display.updatePositionAndAngles(
-				target.target().pos().x,
-				target.target().pos().y + EntityType.PLAYER.getDimensions().eyeHeight(),
-				target.target().pos().z,
-				target.target().yaw(), target.target().pitch()
-		);
+	private void setData(Entity display, SmoothEntityPathConfig.DisplayEntityTarget target, boolean interpolate) {
 		var data = display.writeNbt(new NbtCompound());
 		AffineTransformation.ANY_CODEC.encodeStart(NbtOps.INSTANCE, target.transformation()).resultOrPartial(
 				Cutscenes.LOGGER::error
@@ -71,30 +71,41 @@ public class SmoothEntityPathTranstion implements Transition {
 		data.putFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY, target.shadowStrength());
 		data.putInt("background", target.background());
 		data.putByte("text_opacity", target.textOpacity());
+		if (interpolate) {
+			data.putInt(DisplayEntity.START_INTERPOLATION_KEY, 0);
+		}
 		display.readNbt(data);
+		display.updatePositionAndAngles(
+				target.target().pos().x,
+				target.target().pos().y,
+				target.target().pos().z,
+				target.target().yaw(), target.target().pitch()
+		);
 	}
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (interpolationSet == null) {
-			interpolationSet = config.targets().getTargets(interval);
+			init(cutscene, interval);
 		}
 		int currentTimeAdjusted = cutscene.getCurrentTime() + config.interpolationDuration();
 		if (currentTimeAdjusted > interval.getEnd()) {
-			config.entity().get(null, cutscene).forEach(
+			config.entity().get(cutscene.getRefContext()).forEach(
 					e -> setLinearInterpolationDuration(
-							e, config.interpolationDuration() - (currentTimeAdjusted - interval.getEnd())
+							e, config.interpolationDuration() - (currentTimeAdjusted - interval.getEnd()), true
 					)
 			);
 			return;
 		}
-		double delta = ((double) currentTimeAdjusted - interval.getStart()) / interval.getLength();
-		var target = interpolationSet.interpolate(delta);
-		config.entity().get(null, cutscene).forEach(entity -> {
-			if ((cutscene.getCurrentTime() - interval.getStart()) % config.teleportInterval() == 0) {
-				setData(entity, target);
-			}
-		});
+		if (cutscene.getCurrentTime() != interval.getStart()) {
+			double delta = ((double) currentTimeAdjusted - interval.getStart()) / interval.getLength();
+			var target = interpolationSet.interpolate(delta);
+			config.entity().get(cutscene.getRefContext()).forEach(entity -> {
+				if ((cutscene.getCurrentTime() - interval.getStart()) % config.teleportInterval() == 0) {
+					setData(entity, target, true);
+				}
+			});
+		}
 	}
 
 	@Override

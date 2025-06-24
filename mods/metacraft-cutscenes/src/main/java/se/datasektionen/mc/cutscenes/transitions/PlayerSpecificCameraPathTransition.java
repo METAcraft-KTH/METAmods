@@ -5,6 +5,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
@@ -17,14 +18,14 @@ import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.extension.EntityExtension;
-import se.datasektionen.mc.cutscenes.position_ref.Fixed;
-import se.datasektionen.mc.cutscenes.position_ref.PositionRef;
-import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
-import se.datasektionen.mc.cutscenes.registry.RotationRefRegistry;
+import se.datasektionen.mc.metacraft_core.position_ref.Fixed;
+import se.datasektionen.mc.metacraft_core.position_ref.PositionRef;
+import se.datasektionen.mc.metacraft_core.registry.PositionRefRegistry;
+import se.datasektionen.mc.metacraft_core.registry.RotationRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
-import se.datasektionen.mc.cutscenes.rotation_ref.FixedRot;
-import se.datasektionen.mc.cutscenes.rotation_ref.RotationRef;
+import se.datasektionen.mc.metacraft_core.rotation_ref.FixedRot;
+import se.datasektionen.mc.metacraft_core.rotation_ref.RotationRef;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfig;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfigType;
 import se.datasektionen.mc.cutscenes.util.*;
@@ -87,8 +88,9 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 	}
 
 	private void moveEntityToTarget(DynamicTarget target, Entity entity, ServerPlayerEntity player, CutsceneInstance cutscene) {
-		var pos = target.pos.get(player, cutscene).orElse(player.getPos().subtract(0, EntityType.PLAYER.getDimensions().eyeHeight(), 0));
-		var facing = target.rot.get(player, cutscene).orElse(player.getRotationClient());
+		var ctx = cutscene.createRefContext(player);
+		var pos = target.pos.get(ctx).orElse(player.getPos().subtract(0, EntityType.PLAYER.getDimensions().eyeHeight(), 0));
+		var facing = target.rot.get(ctx).orElse(player.getRotationClient());
 		entity.updatePositionAndAngles(
 				pos.x, pos.y + EntityType.PLAYER.getDimensions().eyeHeight(), pos.z, facing.y, facing.x
 		);
@@ -148,6 +150,8 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 
 	public record DynamicTarget(PositionRef pos, RotationRef rot) implements Interpolatable<CutsceneContext> {
 
+		public static final Int2ObjectMap<InterpolationSet.Adjuster> ADJUSTER = Target.ADJUSTER;
+
 		public static final MapCodec<DynamicTarget> MAP_CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						PositionRefRegistry.CODEC.fieldOf("pos").forGetter(t -> t.pos),
@@ -191,9 +195,10 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 				var player = ctx.player();
 				var cutscene = ctx.cutscene();
 				if (cutscene != null) {
+					var refCtx = ctx.getRefContext();
 					var emergencyTarget = Suppliers.memoize(() -> getEmergencyPoint(cutscene));
-					var pos = pos().get(player, cutscene).orElse(player != null ? player.getPos() : emergencyTarget.get().pos());
-					var rot = rot().get(player, cutscene).orElse(player != null ? player.getRotationClient() : new Vec2f(emergencyTarget.get().pitch(), emergencyTarget.get().yaw()));
+					var pos = pos().get(refCtx).orElse(player != null ? player.getPos() : emergencyTarget.get().pos());
+					var rot = rot().get(refCtx).orElse(player != null ? player.getRotationClient() : new Vec2f(emergencyTarget.get().pitch(), emergencyTarget.get().yaw()));
 					return DoubleList.of(pos.getX(), pos.getY(), pos.getZ(), rot.y, rot.x);
 				}
 			}
@@ -212,7 +217,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 	) implements TransitionConfig {
 
 		public static final MapCodec<InterpolationSetContainer<DynamicTarget>> SMOOTH_PATH = InterpolationSetContainer.createCodec(
-				DynamicTarget.MAP_CODEC, DynamicTarget::fromList
+				DynamicTarget.MAP_CODEC, DynamicTarget::fromList, DynamicTarget.ADJUSTER
 		);
 
 		public static final MapCodec<Config> CODEC = RecordCodecBuilder.mapCodec(

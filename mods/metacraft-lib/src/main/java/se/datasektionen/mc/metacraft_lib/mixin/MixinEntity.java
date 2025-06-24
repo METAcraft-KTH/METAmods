@@ -92,4 +92,14 @@ public abstract class MixinEntity implements EntityExtensions {
 		return preventEnterVehicle;
 	}
 
+	@Override
+	public void metacraft_lib$setPreventEnterVehicle(boolean preventEnterVehicle) {
+		this.preventEnterVehicle = preventEnterVehicle;
+	}
+
+	@Override
+	public void metacraft_lib$setHideUUIDInTooltip(boolean hideUUIDInTooltip) {
+		this.hideUUIDInTooltip = hideUUIDInTooltip;
+	}
+
 }

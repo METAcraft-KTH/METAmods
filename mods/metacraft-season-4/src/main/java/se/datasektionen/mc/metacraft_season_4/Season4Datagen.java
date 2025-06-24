@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.datagen.v1.provider.FabricModelProvider;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.provider.FabricTagProvider;
 import net.minecraft.client.data.*;
 import net.minecraft.client.render.item.model.ItemModel;
 import net.minecraft.client.render.item.model.SelectItemModel;
@@ -18,17 +19,41 @@ import net.minecraft.item.equipment.trim.ArmorTrimAssets;
 import net.minecraft.item.equipment.trim.ArmorTrimMaterial;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.registry.tag.EntityTypeTags;
 import net.minecraft.util.Identifier;
 import org.pcollections.OrderedPSet;
 import org.pcollections.PSet;
+import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class Season4Datagen implements DataGeneratorEntrypoint {
 	@Override
 	public void onInitializeDataGenerator(FabricDataGenerator fabricDataGenerator) {
-		fabricDataGenerator.createPack().addProvider(TrimProvider::new);
+		var pack = fabricDataGenerator.createPack();
+		pack.addProvider(TrimProvider::new);
+		pack.addProvider(EntityTags::new);
+	}
+
+	public static class EntityTags extends FabricTagProvider.EntityTypeTagProvider {
+
+		public EntityTags(FabricDataOutput output, CompletableFuture<RegistryWrapper.WrapperLookup> completableFuture) {
+			super(output, completableFuture);
+		}
+
+		@Override
+		protected void configure(RegistryWrapper.WrapperLookup wrapperLookup) {
+			getOrCreateTagBuilder(EntityTypeTags.FALL_DAMAGE_IMMUNE).add(
+					Season4Entities.AVOLINE_BOSS,
+					Season4Entities.DEVIN_BOSS,
+					Season4Entities.GIOCAT_BOSS,
+					Season4Entities.WILLIAM_BOSS,
+					Season4Entities.POLLY_BOSS
+			);
+		}
 	}
 
 	public static class TrimProvider extends FabricModelProvider {

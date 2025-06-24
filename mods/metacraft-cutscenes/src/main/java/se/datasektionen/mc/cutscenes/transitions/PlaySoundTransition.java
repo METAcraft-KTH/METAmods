@@ -13,10 +13,10 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
-import se.datasektionen.mc.cutscenes.position_ref.PositionRef;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
-import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.position_ref.PositionRef;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.registry.PositionRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfig;
@@ -66,7 +66,7 @@ public class PlaySoundTransition implements Transition, TransitionConfig {
 	@Override
 	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		source.ifLeft(pos -> {
-			pos.get(player, cutscene).ifPresent(target -> {
+			pos.get(cutscene.createRefContext(player)).ifPresent(target -> {
 				player.networkHandler.sendPacket(
 						new PlaySoundS2CPacket(
 								sound, category, target.getX(), target.getY(), target.getZ(),
@@ -76,7 +76,7 @@ public class PlaySoundTransition implements Transition, TransitionConfig {
 			});
 		});
 		source.ifRight(entity -> {
-			entity.get(player, cutscene).forEach(target -> {
+			entity.get(cutscene.createRefContext(player)).forEach(target -> {
 				player.networkHandler.sendPacket(
 						new PlaySoundFromEntityS2CPacket(
 								sound, category, target,

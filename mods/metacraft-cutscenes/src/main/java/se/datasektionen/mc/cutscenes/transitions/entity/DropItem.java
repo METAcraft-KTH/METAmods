@@ -12,8 +12,8 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.InstantTransition;
@@ -52,7 +52,7 @@ public abstract class DropItem extends InstantTransition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		settings.entity.get(null, cutscene).forEach(entity -> {
+		settings.entity.get(cutscene.getRefContext()).forEach(entity -> {
 			Vec3d pos = settings.offset.map(offset -> new Vec3d(
 					entity.getX() + offset.x, entity.getY() + offset.y, entity.getZ() + offset.z
 			)).orElse(new Vec3d(entity.getX(), entity.getEyeY() - 0.3, entity.getZ()));

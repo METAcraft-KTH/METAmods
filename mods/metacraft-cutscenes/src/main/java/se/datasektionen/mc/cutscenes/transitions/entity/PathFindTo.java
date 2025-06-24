@@ -12,10 +12,10 @@ import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
-import se.datasektionen.mc.cutscenes.position_ref.PositionRef;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
-import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.position_ref.PositionRef;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.registry.PositionRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
@@ -86,8 +86,8 @@ public class PathFindTo implements Transition, TransitionConfig {
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		entity.get(null, cutscene).forEach(entity -> {
-			target.get(null, cutscene).ifPresent(pos -> {
+		entity.get(cutscene.getRefContext()).forEach(entity -> {
+			target.get(cutscene.createRefContext(entity)).ifPresent(pos -> {
 				if (entity instanceof PathAwareEntity mob) {
 					if (mob.getNavigation().isIdle() && mob.getPos().distanceTo(pos) > completionDistance) {
 						var targetPos = pos;

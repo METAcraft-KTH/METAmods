@@ -14,8 +14,8 @@ import net.minecraft.util.BlockRotation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.position_ref.PositionRef;
-import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
+import se.datasektionen.mc.metacraft_core.position_ref.PositionRef;
+import se.datasektionen.mc.metacraft_core.registry.PositionRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfigType;
@@ -89,7 +89,7 @@ public class PlaceStructure extends InstantTransition {
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		structure.get(cutscene.getServer().getStructureTemplateManager(), cutscene.getServer().getRegistryManager()).ifPresent(structure -> {
-			this.pos.get(null, cutscene).ifPresent(exactPos -> {
+			this.pos.get(cutscene.getRefContext()).ifPresent(exactPos -> {
 				var pos = BlockPos.ofFloored(exactPos);
 				var random = seed.map(Random::create).orElse(cutscene.getRandom());
 				var placementData = new StructurePlacementData()
@@ -109,7 +109,7 @@ public class PlaceStructure extends InstantTransition {
 								(forceState ? Block.FORCE_STATE : 0) |
 								(skipDrops ? Block.SKIP_DROPS : 0);
 
-				var pivot = BlockPos.ofFloored(this.pivot.flatMap(p -> p.get(null, cutscene)).orElse(exactPos));
+				var pivot = BlockPos.ofFloored(this.pivot.flatMap(p -> p.get(cutscene.getRefContext())).orElse(exactPos));
 				structure.place(
 						cutscene.getCutsceneWorld(), pos, pivot,
 						placementData, random, flags

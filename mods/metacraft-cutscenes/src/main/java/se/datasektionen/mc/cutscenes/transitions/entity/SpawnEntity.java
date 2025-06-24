@@ -14,8 +14,8 @@ import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.entity_ref.CutsceneRef;
-import se.datasektionen.mc.cutscenes.position_ref.PositionRef;
-import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
+import se.datasektionen.mc.metacraft_core.position_ref.PositionRef;
+import se.datasektionen.mc.metacraft_core.registry.PositionRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
@@ -88,7 +88,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		var pos = position.get(null, cutscene);
+		var pos = position.get(cutscene.getRefContext());
 		ids.forEach(id -> {
 			if (cutscene.getRootEntity(id).isPresent()) {
 				Cutscenes.LOGGER.warn("Warning, an entity with id " + id + " already exists. Your cutscene might behave unexpectedly!");
@@ -104,7 +104,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		var refs = ids.stream().map(CutsceneRef::new).flatMap(e -> e.get(null, cutscene));
+		var refs = ids.stream().map(CutsceneRef::new).flatMap(e -> e.get(cutscene.getRefContext()));
 		if (killAfter) {
 			refs.forEach(e -> e.kill(cutscene.getCutsceneWorld()));
 		} else {

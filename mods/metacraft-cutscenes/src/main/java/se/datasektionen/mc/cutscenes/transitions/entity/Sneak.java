@@ -3,8 +3,8 @@ package se.datasektionen.mc.cutscenes.transitions.entity;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
@@ -34,14 +34,14 @@ public class Sneak implements Transition, TransitionConfig {
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		entity.get(null, cutscene).forEach(entity -> {
+		entity.get(cutscene.getRefContext()).forEach(entity -> {
 			entity.setSneaking(true);
 		});
 	}
 
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		entity.get(null, cutscene).forEach(entity -> {
+		entity.get(cutscene.getRefContext()).forEach(entity -> {
 			entity.setSneaking(false);
 		});
 	}

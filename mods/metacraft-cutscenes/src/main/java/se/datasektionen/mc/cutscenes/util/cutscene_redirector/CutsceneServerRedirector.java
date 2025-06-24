@@ -106,7 +106,9 @@ public class CutsceneServerRedirector {
 			if (srcMethod.getName().equals(IntermediaryNames.SERVER_GET_SCOREBOARD)) {
 				return getScoreboard(server);
 			}
-			var method = server.metacraft_cutscenes$getRealServer().getClass().getMethod(srcMethod.getName());
+			var method = server.metacraft_cutscenes$getRealServer().getClass().getMethod(
+					srcMethod.getName(), srcMethod.getParameterTypes()
+			);
 			return method.invoke(server.metacraft_cutscenes$getRealServer(), args);
 		}
 	}

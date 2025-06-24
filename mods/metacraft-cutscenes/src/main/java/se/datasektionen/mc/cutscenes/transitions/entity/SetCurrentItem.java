@@ -6,8 +6,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.Hand;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
@@ -42,7 +42,7 @@ public class SetCurrentItem implements Transition, TransitionConfig {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		entity.get(null, cutscene).forEach(entity -> {
+		entity.get(cutscene.getRefContext()).forEach(entity -> {
 			if (entity instanceof LivingEntity living) {
 				living.setCurrentHand(hand);
 			}
@@ -57,7 +57,7 @@ public class SetCurrentItem implements Transition, TransitionConfig {
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (stopAfter) {
-			entity.get(null, cutscene).forEach(entity -> {
+			entity.get(cutscene.getRefContext()).forEach(entity -> {
 				if (entity instanceof LivingEntity living) {
 					living.stopUsingItem();
 				}

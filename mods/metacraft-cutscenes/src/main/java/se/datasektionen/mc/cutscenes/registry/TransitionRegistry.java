@@ -100,6 +100,10 @@ public class TransitionRegistry {
 			"entity_set_pose", SetPose.CODEC
 	);
 
+	public static final TransitionType<RemoveEntity> ENTITY_REMOVE = register(
+			"entity_remove", RemoveEntity.CODEC
+	);
+
 	public static final TransitionType<SetGameModeTransition> SET_GAME_MODE = register(
 			"gamemode", SetGameModeTransition.CODEC
 	);
@@ -152,6 +156,13 @@ public class TransitionRegistry {
 			"conditional", ConditionalTransition.CODEC
 	);
 
+	public static final TransitionType<LoadIntoCutscene> LOAD_CHUNKS = register(
+			"load_chunks", LoadIntoCutscene.CODEC
+	);
+
+	public static final TransitionType<AddPlayerDummies> PLAYER_DUMMIES = register(
+			"player_dummies", AddPlayerDummies.CODEC
+	);
 
 
 

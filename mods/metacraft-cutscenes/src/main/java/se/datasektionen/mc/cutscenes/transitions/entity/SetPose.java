@@ -5,8 +5,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.util.Uuids;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
@@ -54,7 +54,7 @@ public class SetPose implements Transition {
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		config.entity.get(null, cutscene).forEach(entity -> {
+		config.entity.get(cutscene.getRefContext()).forEach(entity -> {
 			if (entity.getPose() != config.pose) {
 				if (!prevPose.containsKey(entity.getUuid())) {
 					prevPose.put(entity.getUuid(), entity.getPose());
@@ -69,7 +69,7 @@ public class SetPose implements Transition {
 
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		config.entity.get(null, cutscene).forEach(entity -> {
+		config.entity.get(cutscene.getRefContext()).forEach(entity -> {
 			if (prevPose.containsKey(entity.getUuid())) {
 				entity.setPose(prevPose.get(entity.getUuid()));
 			}

@@ -4,17 +4,20 @@ import com.google.common.collect.ImmutableSet;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.ai.pathing.Path;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.util.Uuids;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import org.apache.commons.lang3.mutable.MutableInt;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
-import se.datasektionen.mc.cutscenes.position_ref.PositionRef;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
-import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.position_ref.PositionRef;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.registry.PositionRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
@@ -23,29 +26,33 @@ import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfig;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfigType;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorEntityNavigation;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 public class MoveTo implements Transition {
 
 	public static final MapCodec<MoveTo> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Config.CODEC.forGetter(t -> t.config),
-					Codec.INT.fieldOf("current_target").forGetter(t -> t.currentTarget)
+					Codec.unboundedMap(
+							Uuids.STRING_CODEC,
+							Codec.INT.xmap(MutableInt::new, MutableInt::getValue)
+					).fieldOf("current_targets").forGetter(t -> t.currentTargets),
+					Codec.INT.optionalFieldOf("current_target", 0).forGetter(t -> t.oldTarget)
 			).apply(instance, MoveTo::new)
 	);
 
 	private final Config config;
-	private int currentTarget;
+	private final Map<UUID, MutableInt> currentTargets;
+	private final int oldTarget;
 
-	public MoveTo(Config config, int currentTarget) {
+	public MoveTo(Config config, Map<UUID, MutableInt> currentTargets, int oldTarget) {
 		this.config = config;
-		this.currentTarget = currentTarget;
+		this.currentTargets = new HashMap<>(currentTargets);
+		this.oldTarget = oldTarget;
 	}
 
 	public MoveTo(Config config) {
-		this(config, 0);
+		this(config, Map.of(), 0);
 	}
 
 	@Override
@@ -68,10 +75,14 @@ public class MoveTo implements Transition {
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		config.entity.get(null, cutscene).forEach(entity -> {
-			if (config.path.size() > currentTarget) {
-				var target = config.path.get(currentTarget);
-				target.target.get(null, cutscene).ifPresent(pos -> {
+		config.entity.get(cutscene.getRefContext()).forEach(entity -> {
+			if (!currentTargets.containsKey(entity.getUuid())) {
+				currentTargets.put(entity.getUuid(), new MutableInt(oldTarget));
+			}
+			MutableInt currentTarget = currentTargets.get(entity.getUuid());
+			if (config.path.size() > currentTarget.getValue()) {
+				var target = config.path.get(currentTarget.getValue());
+				target.target.get(cutscene.createRefContext(entity)).ifPresent(pos -> {
 					double speed = target.speedToTarget.orElse(config.speed);
 					if (entity instanceof MobEntity mob) {
 						if (!Objects.equals(BlockPos.ofFloored(pos), mob.getNavigation().getTargetPos())) {
@@ -86,13 +97,13 @@ public class MoveTo implements Transition {
 								mob.getNavigation().getCurrentPath().isFinished() &&
 								mob.getNavigation().getCurrentPath().reachesTarget()
 						) {
-							proceedToNextTarget();
+							proceedToNextTarget(entity);
 							mob.getNavigation().stop();
 						}
 					} else {
 						entity.setVelocity(pos.subtract(entity.getPos()).normalize().multiply(speed));
 						if (entity.getPos().distanceTo(pos) <= target.completionDistance) {
-							proceedToNextTarget();
+							proceedToNextTarget(entity);
 						}
 					}
 				});
@@ -100,10 +111,11 @@ public class MoveTo implements Transition {
 		});
 	}
 
-	private void proceedToNextTarget() {
-		currentTarget++;
-		if (currentTarget >= config.path.size()) {
-			currentTarget = config.path.size()-1;
+	private void proceedToNextTarget(Entity entity) {
+		var currentTarget = currentTargets.get(entity.getUuid());
+		currentTarget.increment();
+		if (currentTarget.getValue() >= config.path.size()) {
+			currentTarget.setValue(config.path.size()-1);
 		}
 	}
 

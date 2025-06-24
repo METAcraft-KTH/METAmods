@@ -102,6 +102,11 @@ public class TransitionConfigRegistry {
 			"entity_set_pose", SetPose.Config.CODEC
 	);
 
+	public static final TransitionConfigType<RemoveEntity> ENTITY_REMOVE = register(
+			"entity_remove", RemoveEntity.CODEC
+	);
+
+
 	public static final TransitionConfigType<SetGameModeTransition.Config> SET_GAME_MODE = register(
 			"gamemode", SetGameModeTransition.Config.CODEC
 	);
@@ -153,6 +158,15 @@ public class TransitionConfigRegistry {
 	public static final TransitionConfigType<ConditionalTransition.Config> CONDITIONAL = register(
 			"conditional", ConditionalTransition.Config.CODEC
 	);
+
+	public static final TransitionConfigType<LoadIntoCutscene> LOAD_CHUNKS = register(
+			"load_chunks", LoadIntoCutscene.CODEC
+	);
+
+	public static final TransitionConfigType<AddPlayerDummies> PLAYER_DUMMIES = register(
+			"player_dummies", AddPlayerDummies.CODEC
+	);
+
 
 
 

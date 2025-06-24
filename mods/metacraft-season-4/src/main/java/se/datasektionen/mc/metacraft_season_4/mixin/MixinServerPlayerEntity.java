@@ -38,6 +38,10 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Unique
+	private boolean attackedThroughFriendlyFire = false;
+
+
+	@Unique
 	@Nullable
 	private RegistryKey<World> campusLodestoneBackWorld;
 
@@ -85,6 +89,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		).orElse(original);
 	}
 
+	@ModifyReturnValue(method = "shouldDamagePlayer", at = @At("RETURN"))
+	public boolean shouldDamagePlayer(boolean original) {
+		if (attackedThroughFriendlyFire) return true;
+		return original;
+	}
+
 	@Override
 	@Nullable
 	public RegistryKey<World> metacraft_core$getCampusLodestoneBackWorld() {
@@ -107,5 +117,11 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	public void metacraft_core$unsetCampusLodestoneBackPos() {
 		this.campusLodestoneBackWorld = null;
 		this.campusLodestoneBackPos = null;
+	}
+
+
+	@Override
+	public void metacraft_season_4$setAttackedThroughFriendlyFire(boolean state) {
+		this.attackedThroughFriendlyFire = state;
 	}
 }

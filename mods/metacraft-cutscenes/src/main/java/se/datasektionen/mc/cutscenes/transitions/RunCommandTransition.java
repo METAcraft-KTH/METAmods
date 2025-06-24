@@ -3,12 +3,16 @@ package se.datasektionen.mc.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.entity.Entity;
+import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.CommandOutput;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.TeleportTarget;
+import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
@@ -26,7 +30,8 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 					Codec.STRING.optionalFieldOf("tick_command").forGetter(t -> t.tickCommand),
 					Codec.STRING.optionalFieldOf("deactivation").forGetter(t -> t.deactivation),
 					Codec.BOOL.optionalFieldOf("run_in_real_world", false).forGetter(t -> t.runInRealWorld),
-					Codec.BOOL.optionalFieldOf("run_per_player", false).forGetter(t -> t.runPerPlayer)
+					Codec.BOOL.optionalFieldOf("run_per_player", false).forGetter(t -> t.runPerPlayer),
+					Codec.BOOL.optionalFieldOf("debug", false).forGetter(t -> t.debug)
 			).apply(instance, RunCommandTransition::new)
 	);
 
@@ -35,41 +40,81 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 	private final Optional<String> deactivation;
 	private final boolean runInRealWorld;
 	private final boolean runPerPlayer;
+	private final boolean debug;
 
-	public RunCommandTransition(Optional<String> activation, Optional<String> tickCommand, Optional<String> deactivation, boolean runInRealWorld, boolean runPerPlayer) {
+	public RunCommandTransition(
+			Optional<String> activation, Optional<String> tickCommand, Optional<String> deactivation,
+			boolean runInRealWorld, boolean runPerPlayer, boolean debug
+	) {
 		this.activation = activation;
 		this.tickCommand = tickCommand;
 		this.deactivation = deactivation;
 		this.runInRealWorld = runInRealWorld;
 		this.runPerPlayer = runPerPlayer;
+		this.debug = debug;
 	}
 
-	public static ServerCommandSource getSource(ServerPlayerEntity player, CutsceneInstance cutscene, boolean runInRealWorld) {
-		var source = player.getCommandSource().withMaxLevel(2);
-		if (!runInRealWorld) {
-			source = source.withWorld(cutscene.getCutsceneWorld());
-		}
-		return source.withSilent();
-	}
+	public static ServerCommandSource getSource(
+			CutsceneInstance cutscene, boolean runInRealWorld, @Nullable Entity entity, boolean debug
+	) {
+		var entryPoint = entity == null ? cutscene.getCutscene().getEntryPoint(null, cutscene) : Optional.<TeleportTarget>empty();
+		var src = new ServerCommandSource(
+				new CommandOutput() {
+					@Override
+					public void sendMessage(Text message) {
+						if (debug) {
+							if (entity instanceof ServerPlayerEntity p) {
+								p.sendMessage(message);
+							} else {
+								cutscene.getPlayers().forEach(p -> p.sendMessage(message));
+							}
+						}
+					}
 
-	public static ServerCommandSource getSource(CutsceneInstance cutscene, boolean runInRealWorld) {
-		return new ServerCommandSource(
-				CommandOutput.DUMMY, Vec3d.ZERO, Vec2f.ZERO,
+					@Override
+					public boolean shouldReceiveFeedback() {
+						return debug;
+					}
+
+					@Override
+					public boolean shouldTrackOutput() {
+						return debug;
+					}
+
+					@Override
+					public boolean shouldBroadcastConsoleToOps() {
+						return false;
+					}
+				},
+				entity != null ? entity.getPos() : entryPoint.map(TeleportTarget::position).orElse(Vec3d.ZERO),
+				entity != null ? entity.getRotationClient() : entryPoint.map(target -> new Vec2f(target.pitch(), target.yaw())).orElse(Vec2f.ZERO),
 				runInRealWorld ? cutscene.getCutsceneWorld().getActualWorld() : cutscene.getCutsceneWorld(),
-				2, "Cutscene", Text.literal("Cutscene"), cutscene.getServer(), null
-		).withSilent();
+				2, entity != null ? entity.getName().getString() : "Cutscene",
+				entity != null ? entity.getDisplayName() : Text.literal("Cutscene"),
+				cutscene.getServer(), entity
+		);
+		if (!debug) {
+			return src.withSilent();
+		}
+		return src;
+	}
+
+	private static void execute(CommandManager manager, ServerCommandSource source, String command, boolean debug) {
+		manager.executeWithPrefix(source, command);
 	}
 
 	private void execute(CutsceneInstance cutscene, String command) {
 		if (runPerPlayer) {
 			cutscene.forAllPlayers(player -> {
-				player.getServer().getCommandManager().executeWithPrefix(
-						getSource(player, cutscene, runInRealWorld), command
+				execute(
+						player.getServer().getCommandManager(),
+						getSource(cutscene, runInRealWorld, player, debug), command, debug
 				);
 			});
 		} else {
-			cutscene.getServer().getCommandManager().executeWithPrefix(
-					getSource(cutscene, runInRealWorld), command
+			execute(
+					cutscene.getServer().getCommandManager(),
+					getSource(cutscene, runInRealWorld, null, debug), command, debug
 			);
 		}
 	}

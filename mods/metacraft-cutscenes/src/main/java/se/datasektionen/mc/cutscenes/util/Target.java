@@ -4,14 +4,21 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.util.Interpolatable;
+import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 
 import java.util.stream.DoubleStream;
 
 public record Target(Vec3d pos, float yaw, float pitch) implements Interpolatable<CutsceneContext> {
+
+	public static final Int2ObjectMap<InterpolationSet.Adjuster> ADJUSTER = Int2ObjectMaps.singleton(
+			3, InterpolationSet::fixYawRotations
+	);
 
 	public static final MapCodec<Target> MAP_CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(

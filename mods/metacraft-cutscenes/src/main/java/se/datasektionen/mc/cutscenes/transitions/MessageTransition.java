@@ -44,7 +44,7 @@ public class MessageTransition extends InstantTransition {
 
 	public static Text parseText(ServerPlayerEntity player, CutsceneInstance cutscene, Text text) {
 		try {
-			return Texts.parse(RunCommandTransition.getSource(player, cutscene, false), text, player, 0);
+			return Texts.parse(RunCommandTransition.getSource(cutscene, false, player, false), text, player, 0);
 		} catch (CommandSyntaxException e) {
 			Cutscenes.LOGGER.error(e.getMessage());
 			return text;

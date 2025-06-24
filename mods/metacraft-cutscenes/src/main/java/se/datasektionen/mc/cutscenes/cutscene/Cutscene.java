@@ -25,9 +25,7 @@ public class Cutscene {
 	public static MapCodec<Cutscene> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					IntervalMap.createCodec(TransitionConfigRegistry.CODEC.fieldOf("config")).fieldOf("transitions").forGetter(c -> c.transitions),
-					Codec.BOOL.fieldOf("create_fake_player").forGetter(a -> a.createFakePlayer),
 					Codec.BOOL.fieldOf("return_player_to_start").forGetter(a -> a.returnPlayerToStartPos),
-					Codec.BOOL.fieldOf("hide_mount").forGetter(a -> a.hideMount),
 					Codec.BOOL.optionalFieldOf("reset_player_data", true).forGetter(a -> a.resetPlayerData),
 					Codec.BOOL.optionalFieldOf("hide_player", true).forGetter(a -> a.hidePlayer),
 					Codec.BOOL.optionalFieldOf("skippable", true).forGetter(a -> a.skippable),
@@ -41,9 +39,7 @@ public class Cutscene {
 	);
 
 	private final IntervalMap<TransitionConfig> transitions;
-	private boolean createFakePlayer;
 	private boolean returnPlayerToStartPos;
-	private boolean hideMount;
 	private boolean resetPlayerData;
 	private boolean hidePlayer;
 	private boolean skippable;
@@ -62,7 +58,7 @@ public class Cutscene {
 
 	public Cutscene(IntervalMap<TransitionConfig> transitions) {
 		this(
-				transitions, false, true,
+				transitions,
 				true, true, true, true,
 				false, ScoreboardMode.SYNC, Optional.empty(),
 				Optional.empty(), Optional.empty(), Optional.empty()
@@ -71,7 +67,7 @@ public class Cutscene {
 
 	public Cutscene(
 			IntervalMap<TransitionConfig> transitions,
-			boolean createFakePlayer, boolean returnPlayerToStartPos, boolean hideMount,
+			boolean returnPlayerToStartPos,
 			boolean resetPlayerData, boolean hidePlayer, boolean skippable, boolean resendChunksBeforeNextCutscene,
 			ScoreboardMode scoreboard,
 			Optional<String> finishCommand,
@@ -80,9 +76,7 @@ public class Cutscene {
 			Optional<String> nextCutscene
 	) {
 		this.transitions = transitions;
-		this.createFakePlayer = createFakePlayer;
 		this.returnPlayerToStartPos = returnPlayerToStartPos;
-		this.hideMount = hideMount;
 		this.resetPlayerData = resetPlayerData;
 		this.hidePlayer = hidePlayer;
 		this.skippable = skippable;
@@ -100,14 +94,6 @@ public class Cutscene {
 
 	public boolean returnToStart() {
 		return returnPlayerToStartPos;
-	}
-
-	public boolean createFakePlayer() {
-		return createFakePlayer;
-	}
-
-	public boolean hideMount() {
-		return hideMount;
 	}
 
 	public boolean resetPlayerData() {

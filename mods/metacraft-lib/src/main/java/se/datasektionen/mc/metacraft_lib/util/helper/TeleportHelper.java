@@ -5,6 +5,7 @@ import net.minecraft.entity.ai.pathing.LandPathNodeMaker;
 import net.minecraft.entity.ai.pathing.PathContext;
 import net.minecraft.entity.ai.pathing.PathNodeType;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.player.PlayerPosition;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerWorld;
@@ -115,4 +116,16 @@ public class TeleportHelper {
 		}
 	}
 
+	public static TeleportTarget fromPlayerPos(ServerWorld world, PlayerPosition pos) {
+		return fromPlayerPos(world, pos, TeleportTarget.NO_OP);
+	}
+
+	public static TeleportTarget fromPlayerPos(
+			ServerWorld world, PlayerPosition pos, TeleportTarget.PostDimensionTransition post
+	) {
+		return new TeleportTarget(
+				world, pos.position(), pos.deltaMovement(),
+				pos.yaw(), pos.pitch(), post
+		);
+	}
 }

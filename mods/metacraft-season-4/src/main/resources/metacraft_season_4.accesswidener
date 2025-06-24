@@ -1,2 +1,5 @@
 accessWidener v2 named
+accessible class net/minecraft/client/data/ItemModelGenerator$TrimMaterial
+accessible method net/minecraft/client/data/ItemModelGenerator$TrimMaterial <init> (Ljava/lang/String;Lnet/minecraft/registry/RegistryKey;Ljava/util/Map;)V
 accessible field net/minecraft/client/data/ItemModelGenerator TRIM_MATERIALS Ljava/util/List;
+accessible  class   net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker

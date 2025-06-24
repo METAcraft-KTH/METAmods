@@ -6,10 +6,9 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import org.pcollections.TreePMap;
 import se.datasektionen.mc.cutscenes.cutscene.Cutscene;
-import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.entity_ref.CutsceneRef;
-import se.datasektionen.mc.cutscenes.entity_ref.SelfRef;
-import se.datasektionen.mc.cutscenes.position_ref.AtEntityRef;
+import se.datasektionen.mc.metacraft_core.entity_ref.SelfRef;
+import se.datasektionen.mc.metacraft_core.position_ref.AtEntityRef;
 import se.datasektionen.mc.cutscenes.transitions.SetGameModeTransition;
 import se.datasektionen.mc.cutscenes.transitions.entity.*;
 import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
@@ -68,11 +67,11 @@ public class DefaultCutscenes {
 						100, 300, new DisableAIConfig(new CutsceneRef("creeper"), true)
 				),
 				new IntervalMap.Interval<>(
-						0, 300, new DisableAIConfig(new CutsceneRef(CutsceneInstance.PLAYER_REFERENCE), false)
+						0, 300, new DisableAIConfig(new CutsceneRef(AddPlayerDummies.PLAYER_REFERENCE), false)
 				),
 				new IntervalMap.Interval<>(
 						150, 250, new RotateHead.RotateHeadConfig(
-								new CutsceneRef(CutsceneInstance.PLAYER_REFERENCE),
+								new CutsceneRef(AddPlayerDummies.PLAYER_REFERENCE),
 								new InterpolationSetContainer<>(
 										Optional.of(new InterpolationSet<>(
 												TreePMap.singleton(
@@ -105,9 +104,11 @@ public class DefaultCutscenes {
 										Optional.empty()
 								), false
 						)
+				),
+				new IntervalMap.Interval<>(
+						0, 300, AddPlayerDummies.DEFAULT
 				)
-		)),
-		true, true, true,
+		)), true,
 		true, true, true, false,
 		Cutscene.ScoreboardMode.SYNC, Optional.empty(), Optional.empty(),
 		Optional.empty(), Optional.empty()

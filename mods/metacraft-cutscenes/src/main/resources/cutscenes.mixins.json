@@ -25,6 +25,7 @@
 		"MixinAbstractDhServerWorld",
 		"MixinChunkDataSender",
 		"MixinEntity",
+		"MixinEntitySelector",
 		"MixinEntitySelectorOptions",
 		"MixinEntityTrackerEntry",
 		"MixinLevelStorageSession",

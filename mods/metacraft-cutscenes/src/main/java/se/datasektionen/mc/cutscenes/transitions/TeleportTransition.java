@@ -13,10 +13,10 @@ import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.cutscenes.extension.EntityExtension;
-import se.datasektionen.mc.cutscenes.position_ref.PositionRef;
-import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
-import se.datasektionen.mc.cutscenes.registry.RotationRefRegistry;
-import se.datasektionen.mc.cutscenes.rotation_ref.RotationRef;
+import se.datasektionen.mc.metacraft_core.position_ref.PositionRef;
+import se.datasektionen.mc.metacraft_core.registry.PositionRefRegistry;
+import se.datasektionen.mc.metacraft_core.registry.RotationRefRegistry;
+import se.datasektionen.mc.metacraft_core.rotation_ref.RotationRef;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
@@ -133,8 +133,8 @@ public class TeleportTransition extends InstantTransition {
 
 		public Optional<TeleportTarget> getTeleportTarget(@Nullable ServerPlayerEntity player, CutsceneInstance cutscene) {
 			return Optional.ofNullable(cutscene.getServer().getWorld(dim.orElse(cutscene.getDim()))).flatMap(
-					dim -> pos().get(player, cutscene).map(pos -> {
-						var rot = rot().get(player, cutscene).orElse(player != null ? player.getRotationClient() : Vec2f.ZERO);
+					dim -> pos().get(cutscene.createRefContext(player)).map(pos -> {
+						var rot = rot().get(cutscene.createRefContext(player)).orElse(player != null ? player.getRotationClient() : Vec2f.ZERO);
 						return new TeleportTarget(
 								dim, pos, velocity, rot.y, rot.x, getTransition()
 						);

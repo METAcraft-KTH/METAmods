@@ -32,14 +32,18 @@ public class SmoothCameraPathTransition implements Transition {
 		this.config = config;
 	}
 
-	@Override
-	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	private void init(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		interpolationSet = config.targets().getTargets(interval);
 		var target = cutscene.getPlayers().stream().findAny().map(Target::fromEntity).orElse(
 				Target.DEFAULT
 		);
 		interpolationSet = interpolationSet.setStartIfNotPresent(target);
 		interpolationSet = interpolationSet.setEndIfNotPresent(target);
+	}
+
+	@Override
+	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		init(cutscene, interval);
 	}
 
 	private static final String MARKER_ID = "metacraft$smooth_camera_marker";
@@ -60,7 +64,7 @@ public class SmoothCameraPathTransition implements Transition {
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (interpolationSet == null) {
-			interpolationSet = config.targets().getTargets(interval);
+			init(cutscene, interval);
 		}
 		cutscene.forAllPlayers(player -> {
 			cutscene.getRootEntity(MARKER_ID).ifPresentOrElse(marker -> {

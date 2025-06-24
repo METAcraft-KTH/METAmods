@@ -44,6 +44,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Arm;
 import net.minecraft.util.Hand;
+import net.minecraft.util.StringHelper;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -73,7 +74,7 @@ import java.util.stream.Stream;
 
 public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowUser, TridentUser, PoseLockable {
 
-	private static final double BASE_SPEED = 0.4;
+	public static final double BASE_SPEED = 0.4;
 
 	protected static final TrackedData<Byte> PLAYER_MODEL_PARTS = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.BYTE);
 	protected static final TrackedData<NbtCompound> LEFT_SHOULDER_ENTITY = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.NBT_COMPOUND);
@@ -92,7 +93,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	private FakePlayer fakePlayer;
 
-	private boolean canWander = true;
+	private boolean canWander = getDefaultCanWander();
 
 	private boolean shouldRespawnClient = false;
 	private boolean lockPose = false;
@@ -120,6 +121,10 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	public boolean canWander() {
 		return canWander;
+	}
+
+	public void setCanWander(boolean canWander) {
+		this.canWander = canWander;
 	}
 
 	@Override
@@ -161,8 +166,20 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void readShoulderEntities(NbtCompound nbt) {
-		setShoulderEntityLeft(nbt.getCompoundOrEmpty(SHOULDER_ENTITY_LEFT));
-		setShoulderEntityRight(nbt.getCompoundOrEmpty(SHOULDER_ENTITY_RIGHT));
+		nbt.getCompound(SHOULDER_ENTITY_LEFT).ifPresentOrElse(newLeft -> {
+			if (!getShoulderEntityLeft().equals(newLeft)) {
+				this.setShoulderEntityLeft(newLeft);
+			}
+		}, () -> {
+			this.setShoulderEntityLeft(new NbtCompound());
+		});
+		nbt.getCompound(SHOULDER_ENTITY_RIGHT).ifPresentOrElse(newRight -> {
+			if (!getShoulderEntityRight().equals(newRight)) {
+				this.setShoulderEntityRight(newRight);
+			}
+		}, () -> {
+			this.setShoulderEntityRight(new NbtCompound());
+		});
 	}
 
 	private NbtCompound removeUnsafeNBT(NbtCompound nbt) {
@@ -480,7 +497,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		return this.dataTracker.get(LEFT_SHOULDER_ENTITY);
 	}
 
-	protected void setShoulderEntityLeft(NbtCompound entityNbt) {
+	public void setShoulderEntityLeft(NbtCompound entityNbt) {
 		this.dataTracker.set(LEFT_SHOULDER_ENTITY, entityNbt);
 	}
 
@@ -488,7 +505,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		return this.dataTracker.get(RIGHT_SHOULDER_ENTITY);
 	}
 
-	protected void setShoulderEntityRight(NbtCompound entityNbt) {
+	public void setShoulderEntityRight(NbtCompound entityNbt) {
 		this.dataTracker.set(RIGHT_SHOULDER_ENTITY, entityNbt);
 	}
 
@@ -541,6 +558,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void removePlayerEntryFrom(Stream<ServerPlayerEntity> players) {
+		if (profile == null) return;
 		if (getServer().getPlayerManager().getPlayer(profile.getId()) == null) {
 			players.forEach(player -> {
 				player.networkHandler.sendPacket(new PlayerRemoveS2CPacket(List.of(profile.getId())));
@@ -645,24 +663,39 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		return partSet;
 	}
 
+	private static GameProfile makeSafeForSaving(GameProfile profile) {
+		if (profile == null) {
+			return null;
+		}
+		if (StringHelper.isValidPlayerName(profile.getName())) {
+			return profile;
+		} else {
+			var newProfile = new GameProfile(profile.getId(), "");
+			newProfile.getProperties().putAll(profile.getProperties());
+			return newProfile;
+		}
+	}
+
 	@Override
 	public void writeCustomDataToNbt(NbtCompound nbt) {
 		super.writeCustomDataToNbt(nbt);
-		ProfileComponent.CODEC.encodeStart(
-				getRegistryManager().getOps(NbtOps.INSTANCE), new ProfileComponent(profile)
-		).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(
-				profile -> nbt.put(PROFILE, profile)
-		);
+		if (profile != null) {
+			ProfileComponent.CODEC.encodeStart(
+					getRegistryManager().getOps(NbtOps.INSTANCE), new ProfileComponent(makeSafeForSaving(profile))
+			).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(
+					profile -> nbt.put(PROFILE, profile)
+			);
+		}
 		ExtraCodecs.MODEL_PART_SET_CODEC.encodeStart(
 				getRegistryManager().getOps(NbtOps.INSTANCE), getVisibleSkinParts()
 		).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(
 				parts -> nbt.put(VISIBLE_SKIN_PARTS, parts)
 		);
 		if (!this.getShoulderEntityLeft().isEmpty()) {
-			nbt.put(SHOULDER_ENTITY_LEFT, this.getShoulderEntityLeft());
+			nbt.put(SHOULDER_ENTITY_LEFT, this.getShoulderEntityLeft().copy());
 		}
 		if (!this.getShoulderEntityRight().isEmpty()) {
-			nbt.put(SHOULDER_ENTITY_RIGHT, this.getShoulderEntityRight());
+			nbt.put(SHOULDER_ENTITY_RIGHT, this.getShoulderEntityRight().copy());
 		}
 		nbt.putBoolean(CAN_WANDER, canWander);
 	}
@@ -700,15 +733,23 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		fakePlayer = new FakePlayer((ServerWorld) getWorld(), profile) {};
 	}
 
+	protected GameProfile getDefaultSkin() {
+		var list = getServer().getPlayerManager().getPlayerList();
+		if (list.isEmpty()) {
+			return new GameProfile(UUID.randomUUID(), "Default");
+		} else {
+			var player = list.get(getWorld().getRandom().nextInt(list.size()));
+			return player.getGameProfile();
+		}
+	}
+
+	protected boolean getDefaultCanWander() {
+		return true;
+	}
+
 	private void initProfile() {
 		if (profile == null) {
-			var list = getServer().getPlayerManager().getPlayerList();
-			if (list.isEmpty()) {
-				profile = new GameProfile(UUID.randomUUID(), "Default");
-			} else {
-				var player = list.get(getWorld().getRandom().nextInt(list.size()));
-				profile = player.getGameProfile();
-			}
+			profile = getDefaultSkin();
 		}
 		profile = adaptProfile(profile);
 		if (shouldRespawnClient || fakePlayer == null) {
@@ -798,6 +839,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	public void removeAllPlayerEntries() {
+		if (profile == null) return;
 		removePlayerEntryFrom(removePackets.stream().map(SendPacketEntry::player));
 		removePackets.clear();
 	}

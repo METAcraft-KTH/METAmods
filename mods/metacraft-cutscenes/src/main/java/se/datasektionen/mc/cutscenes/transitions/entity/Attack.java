@@ -6,8 +6,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
@@ -39,8 +39,8 @@ public class Attack implements Transition, TransitionConfig {
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		this.target.get(null, cutscene).findFirst().ifPresent(target -> {
-			this.entity.get(null, cutscene).forEach(entity -> {
+		this.entity.get(cutscene.getRefContext()).forEach(entity -> {
+			this.target.get(cutscene.createRefContext(entity)).findFirst().ifPresent(target -> {
 				if (entity instanceof MobEntity mob && target instanceof LivingEntity livingTarget) {
 					mob.setTarget(livingTarget);
 				}

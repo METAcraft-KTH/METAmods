@@ -8,10 +8,10 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.util.dynamic.Codecs;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
-import se.datasektionen.mc.cutscenes.entity_ref.EntityRef;
-import se.datasektionen.mc.cutscenes.position_ref.PositionRef;
-import se.datasektionen.mc.cutscenes.registry.EntityRefRegistry;
-import se.datasektionen.mc.cutscenes.registry.PositionRefRegistry;
+import se.datasektionen.mc.metacraft_core.entity_ref.EntityRef;
+import se.datasektionen.mc.metacraft_core.position_ref.PositionRef;
+import se.datasektionen.mc.metacraft_core.registry.EntityRefRegistry;
+import se.datasektionen.mc.metacraft_core.registry.PositionRefRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionConfigRegistry;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
 import se.datasektionen.mc.cutscenes.transitions.Transition;
@@ -54,8 +54,8 @@ public class LookAt implements Transition, TransitionConfig {
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		entity.get(null, cutscene).forEach(entity -> {
-			target.get(null, cutscene).ifPresent(target -> {
+		entity.get(cutscene.getRefContext()).forEach(entity -> {
+			target.get(cutscene.createRefContext(entity)).ifPresent(target -> {
 				if (entity instanceof MobEntity mob) {
 					mob.getLookControl().lookAt(
 							target.getX(), target.getY(), target.getZ(),
