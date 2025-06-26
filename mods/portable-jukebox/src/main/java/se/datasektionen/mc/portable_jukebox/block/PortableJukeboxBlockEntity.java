@@ -7,14 +7,12 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SingleStackInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.BlockPos;
 import se.datasektionen.mc.metacraft_lib.util.EntityRef;
 import se.datasektionen.mc.portable_jukebox.item.PortableJukeboxItem;
 import se.datasektionen.mc.portable_jukebox.item.components.Components;
-import se.datasektionen.mc.portable_jukebox.PortableJukebox;
 
 public class PortableJukeboxBlockEntity extends BlockEntity implements SingleStackInventory.SingleStackBlockEntityInventory {
 
@@ -39,28 +37,16 @@ public class PortableJukeboxBlockEntity extends BlockEntity implements SingleSta
 	}
 
 	@Override
-	public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		super.readNbt(nbt, registryLookup);
-		if (nbt.contains(JUKEBOX)) {
-			ItemStack.CODEC.parse(registryLookup.getOps(NbtOps.INSTANCE), nbt.get(JUKEBOX)).resultOrPartial(
-					PortableJukebox.LOGGER::error
-			).ifPresent(jukebox -> {
-				this.jukebox = jukebox;
-			});
-		} else {
-			jukebox = ItemStack.EMPTY;
-		}
+	public void readData(ReadView nbt) {
+		super.readData(nbt);
+		jukebox = nbt.read(JUKEBOX, ItemStack.CODEC).orElse(ItemStack.EMPTY);
 	}
 
 	@Override
-	public void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		super.writeNbt(nbt, registryLookup);
+	public void writeData(WriteView nbt) {
+		super.writeData(nbt);
 		if (!jukebox.isEmpty()) {
-			ItemStack.CODEC.encodeStart(registryLookup.getOps(NbtOps.INSTANCE), jukebox).resultOrPartial(
-					PortableJukebox.LOGGER::error
-			).ifPresent(jukebox -> {
-				nbt.put(JUKEBOX, jukebox);
-			});
+			nbt.put(JUKEBOX, ItemStack.CODEC, jukebox);
 		}
 	}
 

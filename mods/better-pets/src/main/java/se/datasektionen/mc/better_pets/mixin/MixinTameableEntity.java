@@ -6,8 +6,9 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.Tameable;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.Uuids;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -40,17 +41,17 @@ public abstract class MixinTameableEntity extends AnimalEntity implements Tameab
 		super(entityType, world);
 	}
 
-	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
-	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "writeCustomData", at = @At("RETURN"))
+	public void writeNBT(WriteView nbt, CallbackInfo ci) {
 		nbt.put(TRUSTED_PLAYERS, Uuids.SET_CODEC, trustedPlayers);
 	}
 
-	@Inject(method = "readCustomDataFromNbt", at = @At("HEAD"))
-	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
-		nbt.get(TRUSTED_PLAYERS, Uuids.SET_CODEC).ifPresent(
+	@Inject(method = "readCustomData", at = @At("HEAD"))
+	public void readNBT(ReadView nbt, CallbackInfo ci) {
+		nbt.read(TRUSTED_PLAYERS, Uuids.SET_CODEC).ifPresent(
 				players -> trustedPlayers = players
 		);
-		if (!getEntityWorld().isClient()) {
+		if (!getWorld().isClient()) {
 			trustedPlayers.removeIf(
 					id -> this.getServer().getUserCache().getByUuid(id).isEmpty()
 			);

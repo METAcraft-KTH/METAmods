@@ -9,6 +9,7 @@ import net.minecraft.block.pattern.CachedBlockPosition;
 import net.minecraft.entity.*;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.property.Properties;
+import net.minecraft.storage.NbtReadView;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -21,7 +22,9 @@ import net.minecraft.world.poi.PointOfInterest;
 import net.minecraft.world.poi.PointOfInterestStorage;
 import net.minecraft.world.tick.ScheduledTickView;
 import org.jetbrains.annotations.Nullable;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.ViewHelper;
 import se.datasektionen.mc.simplecustomfeatures.Features;
 import se.datasektionen.mc.simplecustomfeatures.mixin.AccessorNetherPortalBlock;
 import xyz.nucleoid.packettweaker.PacketContext;
@@ -45,31 +48,34 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 			if (spawns != null && random.nextDouble() <= spawns.spawnChance()) {
 				spawns.entities().getOrEmpty(random).ifPresent(entityData -> {
 					var spawnPos = new BlockPos.Mutable().set(pos);
-					var type = EntityType.fromNbt(entityData).orElse(null);
-					if (SpawnRestriction.getLocation(type) != SpawnLocationTypes.UNRESTRICTED) {
-						BlockPos.Mutable blockBelowChecker = new BlockPos.Mutable().set(pos);
-						while (world.getBlockState(blockBelowChecker).isOf(this) && blockBelowChecker.getY() > world.getBottomY()) {
-							blockBelowChecker.move(Direction.DOWN);
+					try (var logging = LoggingErrorReporter.create(() -> "simple-custom-features:DynamicPortalBlock#randomTick", Features.LOGGER)) {
+						var readView = NbtReadView.create(logging, world.getRegistryManager(), entityData);
+						var type = EntityType.fromData(readView).orElse(null);
+						if (SpawnRestriction.getLocation(type) != SpawnLocationTypes.UNRESTRICTED) {
+							BlockPos.Mutable blockBelowChecker = new BlockPos.Mutable().set(pos);
+							while (world.getBlockState(blockBelowChecker).isOf(this) && blockBelowChecker.getY() > world.getBottomY()) {
+								blockBelowChecker.move(Direction.DOWN);
+							}
+							if (!world.getBlockState(blockBelowChecker).isSolid()) {
+								return;
+							}
+							spawnPos.set(blockBelowChecker.move(Direction.UP));
 						}
-						if (!world.getBlockState(blockBelowChecker).isSolid()) {
-							return;
-						}
-						spawnPos.set(blockBelowChecker.move(Direction.UP));
+						var center = Vec3d.ofBottomCenter(spawnPos);
+						var rootEntity = EntityHelper.loadEntityWithPassengers(readView, world, SpawnReason.STRUCTURE, (entity, data) -> {
+							entity.resetPortalCooldown();
+							if (spawns.initialize()) {
+								EntityHelper.initializeEntity(
+										entity, ViewHelper.getSize(data) > 1 ? data : null,
+										world, world.getLocalDifficulty(spawnPos),
+										SpawnReason.STRUCTURE, null
+								);
+							}
+							entity.setPosition(center);
+							return entity;
+						});
+						rootEntity.ifPresent(world::spawnEntityAndPassengers);
 					}
-					var center = Vec3d.ofBottomCenter(spawnPos);
-					var rootEntity = EntityHelper.loadEntityWithPassengers(entityData, world, SpawnReason.STRUCTURE, (entity, data) -> {
-						entity.resetPortalCooldown();
-						if (spawns.initialize()) {
-							EntityHelper.initializeEntity(
-									entity, data.getSize() > 1 ? data : null,
-									world, world.getLocalDifficulty(spawnPos),
-									SpawnReason.STRUCTURE, null
-							);
-						}
-						entity.setPosition(center);
-						return entity;
-					});
-					rootEntity.ifPresent(world::spawnEntityAndPassengers);
 				});
 			}
 		}

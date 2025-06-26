@@ -5,7 +5,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.entity.vehicle.BoatEntity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -38,8 +39,8 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Unique
 	private boolean hideUUIDInTooltip = false;
 
-	@Inject(method = "readNbt", at = @At("RETURN"))
-	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "readData", at = @At("RETURN"))
+	public void readNBT(ReadView nbt, CallbackInfo ci) {
 		preventEnterVehicle = nbt.getBoolean(EntityParameters.PREVENT_ENTER_VEHICLE, false);
 		hideUUIDInTooltip = nbt.getBoolean(EntityParameters.HIDE_UUID_TOOLTIP, false);
 	}
@@ -51,8 +52,8 @@ public abstract class MixinEntity implements EntityExtensions {
 		}
 	}
 
-	@Inject(method = "writeNbt", at = @At("RETURN"))
-	public void writeNBT(NbtCompound nbt, CallbackInfoReturnable<NbtCompound> cir) {
+	@Inject(method = "writeData", at = @At("RETURN"))
+	public void writeNBT(WriteView nbt, CallbackInfo ci) {
 		nbt.putBoolean(EntityParameters.PREVENT_ENTER_VEHICLE, preventEnterVehicle);
 		nbt.putBoolean(EntityParameters.HIDE_UUID_TOOLTIP, hideUUIDInTooltip);
 	}

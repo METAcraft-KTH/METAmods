@@ -8,10 +8,11 @@ import net.minecraft.entity.SpawnReason;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.BlockPos;
@@ -120,22 +121,16 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 	}
 
 	@Override
-	protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		super.readNbt(nbt, registryLookup);
-		if (nbt.contains(ENTITIES)) {
-			nbt.get(ENTITIES, EntityHelper.SpawnEntry.POOL_CODEC, registryLookup.getOps(NbtOps.INSTANCE)).ifPresent(
-					pool -> this.entities = pool
-			);
-		} else {
-			this.entities = Pool.empty();
-		}
-		if (nbt.contains(SOUND_EFFECT)) {
-			nbt.get(SOUND_EFFECT, SoundEffect.POOL_CODEC, registryLookup.getOps(NbtOps.INSTANCE)).ifPresent(
-					pool -> this.soundEffect = pool
-			);
-		} else {
-			this.soundEffect = Pool.empty();
-		}
+	protected void readData(ReadView nbt) {
+		super.readData(nbt);
+		nbt.read(ENTITIES, EntityHelper.SpawnEntry.POOL_CODEC).ifPresentOrElse(
+				pool -> this.entities = pool,
+				() -> this.entities = Pool.empty()
+		);
+		nbt.read(SOUND_EFFECT, SoundEffect.POOL_CODEC).ifPresentOrElse(
+				pool -> this.soundEffect = pool,
+				() -> this.soundEffect = Pool.empty()
+		);
 		spawnCount = nbt.getInt(SPAWN_COUNT, 1);
 		triggerOnInteraction = nbt.getBoolean(TRIGGER_ON_INTERACTION, true);
 		triggerOnBreak = nbt.getBoolean(TRIGGER_ON_BREAK, true);
@@ -143,10 +138,10 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 	}
 
 	@Override
-	protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		super.writeNbt(nbt, registryLookup);
-		nbt.put(ENTITIES, EntityHelper.SpawnEntry.POOL_CODEC, registryLookup.getOps(NbtOps.INSTANCE), entities);
-		nbt.put(SOUND_EFFECT, SoundEffect.POOL_CODEC, registryLookup.getOps(NbtOps.INSTANCE), soundEffect);
+	protected void writeData(WriteView nbt) {
+		super.writeData(nbt);
+		nbt.put(ENTITIES, EntityHelper.SpawnEntry.POOL_CODEC, entities);
+		nbt.put(SOUND_EFFECT, SoundEffect.POOL_CODEC, soundEffect);
 		nbt.putInt(SPAWN_COUNT, spawnCount);
 		nbt.putBoolean(TRIGGER_ON_INTERACTION, triggerOnInteraction);
 		nbt.putBoolean(TRIGGER_ON_BREAK, triggerOnBreak);

@@ -20,6 +20,11 @@ public class PortalTargetRegistry {
 			"fixed", new PortalTargetType<>(FixedPortalTarget.CODEC)
 	);
 
+	public static final PortalTargetType<FixedLocalPortalTarget> FIXED_LOCAL = register(
+			"fixed_local", new PortalTargetType<>(FixedLocalPortalTarget.CODEC)
+	);
+
+
 	public static final PortalTargetType<EmptyPortalTarget> EMPTY = register(
 			"empty", new PortalTargetType<>(EmptyPortalTarget.CODEC)
 	);

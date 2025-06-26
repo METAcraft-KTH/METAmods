@@ -11,6 +11,7 @@ import net.minecraft.predicate.entity.EntityTypePredicate;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextCodecs;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.Vec3d;
@@ -46,7 +47,9 @@ public abstract class SpawnEntityAttackBase extends InstantAttack {
 
 	public static Map<String, Object> customName(Text name, boolean alwaysVisible, RegistryWrapper.WrapperLookup lookup) {
 		return Map.of(
-			"CustomName", Text.Serialization.toJsonString(name, lookup),
+			"CustomName", TextCodecs.CODEC.encodeStart(
+					lookup.getOps(JavaOps.INSTANCE), name
+				).getOrThrow(),
 			"CustomNameVisible", alwaysVisible
 		);
 	}

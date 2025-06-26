@@ -4,22 +4,22 @@ import com.google.common.collect.ImmutableList;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.mojang.authlib.GameProfile;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerRemoveS2CPacket;
 import net.minecraft.server.PlayerManager;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.NbtWriteView;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.village.TradeOffer;
 import net.minecraft.village.TradeOfferList;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,6 +33,7 @@ import se.datasektionen.mc.metacraft_lib.METAcraftData;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_lib.extensions.TradeOfferExtensions;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 
@@ -41,14 +42,16 @@ import java.util.Optional;
 @Mixin(ServerPlayerEntity.class)
 public abstract class MixinServerPlayerEntity extends PlayerEntity implements ServerPlayerEntityExtensions {
 
-	@Shadow public ServerPlayNetworkHandler networkHandler;
-
-	@Shadow public abstract ServerWorld getServerWorld();
+	public MixinServerPlayerEntity(World world, GameProfile profile) {
+		super(world, profile);
+	}
 
 	@Shadow public abstract void sendMessage(Text message, boolean overlay);
 
 
 	@Shadow protected abstract void consumeItem();
+
+	@Shadow public abstract ServerWorld getWorld();
 
 	@Unique
 	private boolean teleportingOnVehicle = false;
@@ -72,11 +75,11 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private boolean announceDeath = true;
 
 
-	@Unique
-	private Optional<Identifier> statHandler = Optional.empty();
+	@Unique @Nullable
+	private Identifier statHandler = null;
 
-	@Unique
-	private Optional<Identifier> advancementTracker = Optional.empty();
+	@Unique @Nullable
+	private Identifier advancementTracker = null;
 
 	@Unique
 	private PMap<Identifier, NbtCompound> dataMap = HashTreePMap.empty();
@@ -88,34 +91,15 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private static final String CUSTOM_PLAYER_NAME_SHOW_IN_GUI = "CustomPlayerNameShowInGUI";
 
 	@Unique
-	private static final MapCodec<PMap<Identifier, NbtCompound>> DATA_MAP_CODEC = Codec.unboundedMap(
+	private static final Codec<PMap<Identifier, NbtCompound>> DATA_MAP_CODEC = Codec.unboundedMap(
 			Identifier.CODEC, NbtCompound.CODEC
 	).xmap(
-			map -> (PMap<Identifier, NbtCompound>) HashTreePMap.from(map),
+			HashTreePMap::from,
 			e -> e
-	).optionalFieldOf(PlayerDataHelper.PLAYER_DATA_ELEMENT, HashTreePMap.empty());
-
-	@Unique
-	private static final MapCodec<Optional<Identifier>> STAT_HANDLER = Identifier.CODEC.optionalFieldOf(PlayerDataHelper.STAT_HANDLER);
-
-	@Unique
-	private static final MapCodec<Optional<Identifier>> ADVANCEMENT_TRACKER = Identifier.CODEC.optionalFieldOf(PlayerDataHelper.ADVANCEMENT_TRACKER);
-
-	@Unique
-	private static final MapCodec<Boolean> ANNOUNCE_ADVANCEMENTS = Codec.BOOL.fieldOf(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS);
-
-	@Unique
-	private static final MapCodec<Boolean> ANNOUNCE_JOIN_LEAVE = Codec.BOOL.fieldOf("metacraft:announce_join_leave");
-
-	@Unique
-	private static final MapCodec<Boolean> ANNOUNCE_DEATH = Codec.BOOL.fieldOf("metacraft:announce_death");
+	);
 
 
 
-
-	public MixinServerPlayerEntity(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
-		super(world, pos, yaw, gameProfile);
-	}
 
 	@Inject(method = "copyFrom", at = @At("RETURN"))
 	public void copyFrom(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo ci) {
@@ -130,63 +114,52 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		announceDeath = ((MixinServerPlayerEntity) (Object) oldPlayer).announceDeath;
 	}
 
-	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
-	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "writeCustomData", at = @At("RETURN"))
+	public void writeNBT(WriteView nbt, CallbackInfo ci) {
 		if (customName != null) {
 			nbt.putString(CUSTOM_PLAYER_NAME, customName);
 			nbt.putBoolean(CUSTOM_PLAYER_NAME_SHOW_IN_GUI, showInGUI);
 		}
 
-		var builder = NbtOps.INSTANCE.mapBuilder();
 		if (!dataMap.isEmpty() && readOrWriteDataMap) {
-			builder = DATA_MAP_CODEC.encode(dataMap, NbtOps.INSTANCE, builder);
+			nbt.put(PlayerDataHelper.PLAYER_DATA_ELEMENT, DATA_MAP_CODEC, dataMap);
 		}
-		builder = STAT_HANDLER.encode(statHandler, NbtOps.INSTANCE, builder);
-		builder = ADVANCEMENT_TRACKER.encode(advancementTracker, NbtOps.INSTANCE, builder);
-		builder = ANNOUNCE_ADVANCEMENTS.encode(announceAdvancements, NbtOps.INSTANCE, builder);
-		builder = ANNOUNCE_JOIN_LEAVE.encode(announceJoinLeave, NbtOps.INSTANCE, builder);
-		builder = ANNOUNCE_DEATH.encode(announceDeath, NbtOps.INSTANCE, builder);
-
-		builder.build(nbt).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(n -> {
-			nbt.copyFrom((NbtCompound) n);
-		});
+		nbt.putNullable(PlayerDataHelper.STAT_HANDLER, Identifier.CODEC, statHandler);
+		nbt.putNullable(PlayerDataHelper.ADVANCEMENT_TRACKER, Identifier.CODEC, advancementTracker);
+		nbt.putBoolean(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS, announceAdvancements);
+		nbt.putBoolean(PlayerDataHelper.ANNOUNCE_DEATH, announceDeath);
+		nbt.putBoolean(PlayerDataHelper.ANNOUNCE_JOIN_LEAVE, announceJoinLeave);
 	}
 
-	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
-	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
-		nbt.getString(CUSTOM_PLAYER_NAME).ifPresentOrElse(
+	@Inject(method = "readCustomData", at = @At("RETURN"))
+	public void readNBT(ReadView nbt, CallbackInfo ci) {
+		nbt.getOptionalString(CUSTOM_PLAYER_NAME).ifPresentOrElse(
 			name -> {
-				boolean show = nbt.contains(CUSTOM_PLAYER_NAME_SHOW_IN_GUI) ? nbt.getBoolean(CUSTOM_PLAYER_NAME_SHOW_IN_GUI, false) : showInGUI;
+				boolean show = nbt.getBoolean(CUSTOM_PLAYER_NAME_SHOW_IN_GUI, showInGUI);
 				metacraft_lib$setCustomName(name, show);
 			},
 			() -> metacraft_lib$setCustomName(null, true)
 		);
-		NbtOps.INSTANCE.getMap(nbt).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(map -> {
-			if (readOrWriteDataMap) {
-				DATA_MAP_CODEC.decode(NbtOps.INSTANCE, map).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(data -> {
-					this.dataMap = data;
-				});
-			}
-			STAT_HANDLER.decode(NbtOps.INSTANCE, map).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(s -> {
-				statHandler = s;
-				statHandler.ifPresentOrElse(handler -> {
-					PlayerDataHelper.setStatHandler((ServerPlayerEntity) (Object) this, handler, false);
-				}, () -> {
-					PlayerDataHelper.restoreStatHandler((ServerPlayerEntity) (Object) this);
-				});
-			});
-			ADVANCEMENT_TRACKER.decode(NbtOps.INSTANCE, map).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(a -> {
-				advancementTracker = a;
-				advancementTracker.ifPresentOrElse(handler -> {
-					PlayerDataHelper.setAdvancementTracker((ServerPlayerEntity) (Object) this, handler, false);
-				}, () -> {
-					PlayerDataHelper.restoreAdvancementTracker((ServerPlayerEntity) (Object) this);
-				});
-			});
-			ANNOUNCE_ADVANCEMENTS.decode(NbtOps.INSTANCE, map).resultOrPartial().ifPresent(a -> announceAdvancements = a);
-			ANNOUNCE_JOIN_LEAVE.decode(NbtOps.INSTANCE, map).resultOrPartial().ifPresent(a -> announceJoinLeave = a);
-			ANNOUNCE_DEATH.decode(NbtOps.INSTANCE, map).resultOrPartial().ifPresent(a -> announceDeath = a);
-		});
+		if (readOrWriteDataMap) {
+			nbt.read(PlayerDataHelper.PLAYER_DATA_ELEMENT, DATA_MAP_CODEC).ifPresent(
+					d -> dataMap = d
+			);
+		}
+		statHandler = nbt.read(PlayerDataHelper.STAT_HANDLER, Identifier.CODEC).orElse(null);
+		if (statHandler != null) {
+			PlayerDataHelper.setStatHandler((ServerPlayerEntity) (Object) this, statHandler, false);
+		} else {
+			PlayerDataHelper.restoreStatHandler((ServerPlayerEntity) (Object) this);
+		}
+		advancementTracker = nbt.read(PlayerDataHelper.ADVANCEMENT_TRACKER, Identifier.CODEC).orElse(null);
+		if (advancementTracker != null) {
+			PlayerDataHelper.setAdvancementTracker((ServerPlayerEntity) (Object) this, advancementTracker, false);
+		} else {
+			PlayerDataHelper.restoreAdvancementTracker((ServerPlayerEntity) (Object) this);
+		}
+		announceAdvancements = nbt.getBoolean(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS, true);
+		announceDeath = nbt.getBoolean(PlayerDataHelper.ANNOUNCE_DEATH, true);
+		announceJoinLeave = nbt.getBoolean(PlayerDataHelper.ANNOUNCE_JOIN_LEAVE, true);
 	}
 
 	@WrapWithCondition(
@@ -256,20 +229,20 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		if (showInGUI) {
 			METAcraftData.getInstance(getServer()).setName(getUuid(), customName);
 		}
-		var tracker = EntityTrackerHelper.getEntityTrackers(this.getServerWorld()).get(this.getId());
+		var tracker = EntityTrackerHelper.getEntityTrackers(this.getWorld()).get(this.getId());
 		if (tracker == null) {
 			return;
 		}
 		for (var player : this.getWorld().getPlayers()) {
-			if (player != this) {
-				((ServerPlayerEntity) player).networkHandler.sendPacket(
+			if (player != (Object) this) {
+				player.networkHandler.sendPacket(
 						new PlayerRemoveS2CPacket(ImmutableList.of(this.getUuid()))
 				);
-				tracker.stopTracking((ServerPlayerEntity) player);
-				((ServerPlayerEntity) player).networkHandler.sendPacket(
+				tracker.stopTracking(player);
+				player.networkHandler.sendPacket(
 						PlayerListS2CPacket.entryFromPlayer(ImmutableList.of((ServerPlayerEntity) (Object) this))
 				);
-				tracker.updateTrackedStatus((ServerPlayerEntity) player);
+				tracker.updateTrackedStatus(player);
 			}
 		}
 	}
@@ -312,25 +285,29 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Override
 	public NbtCompound metacraft_lib$savePlayerDataExceptDataMap() {
 		readOrWriteDataMap = false;
-		var data = writeNbt(new NbtCompound());
-		readOrWriteDataMap = true;
-		return data;
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerEntity#metacraft_lib$savePlayerDataExceptDataMap", METAcraftLib.LOGGER)) {
+			NbtWriteView view = NbtWriteView.create(logging, this.getRegistryManager());
+			writeData(view);
+			return view.getNbt();
+		} finally {
+			readOrWriteDataMap = true;
+		}
 	}
 
 	@Override
-	public void metacraft_lib$loadPlayerDataExceptDataMap(NbtCompound data) {
+	public void metacraft_lib$loadPlayerDataExceptDataMap(ReadView data) {
 		readOrWriteDataMap = false;
-		readNbt(data);
+		readData(data);
 		readOrWriteDataMap = true;
 	}
 
 	@Override
-	public void metacraft_lib$setStatHandlerType(Optional<Identifier> type) {
+	public void metacraft_lib$setStatHandlerType(Identifier type) {
 		this.statHandler = type;
 	}
 
 	@Override
-	public void metacraft_lib$setAdvancementTrackerType(Optional<Identifier> type) {
+	public void metacraft_lib$setAdvancementTrackerType(Identifier type) {
 		this.advancementTracker = type;
 	}
 

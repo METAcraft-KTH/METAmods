@@ -38,6 +38,6 @@ public final class EmptyPortalTarget implements PortalTarget {
 
 	@Override
 	public PortalTargetRegistry.PortalTargetType<?> getType() {
-		return null;
+		return PortalTargetRegistry.EMPTY;
 	}
 }

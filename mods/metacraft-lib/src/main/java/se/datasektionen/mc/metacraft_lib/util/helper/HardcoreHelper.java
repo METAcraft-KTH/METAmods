@@ -29,7 +29,7 @@ public class HardcoreHelper {
 		Vec3d pos = player.getPos();
 		float yaw = player.getYaw();
 		float pitch = player.getPitch();
-		ServerWorld world = player.getServerWorld();
+		ServerWorld world = player.getWorld();
 		MinecraftServer server = player.getServer();
 		PlayerManager manager = server.getPlayerManager();
 		GameRules rules = world.getGameRules();

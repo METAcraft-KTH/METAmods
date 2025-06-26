@@ -277,11 +277,11 @@ public class DungeonData extends PersistentState {
 								player.sendMessage(Text.literal("You hear an ominous sound in the distance").styled(style -> style.withColor(Formatting.DARK_PURPLE)));
 								player.sendMessage(Text.literal("The sound fills you with dread").styled(style -> style.withColor(Formatting.RED)));
 								player.sendMessage(Text.literal("Perhaps I should get out of here?").styled(style -> style.withColor(Formatting.RED)));
-								player.getServerWorld().playSound(
+								player.getWorld().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
 										SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.MASTER, 0.15f, 0.5f
 								);
-								player.getServerWorld().playSound(
+								player.getWorld().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
 										SoundEvents.BLOCK_END_PORTAL_SPAWN, SoundCategory.MASTER, 0.15f, 0.5f
 								);
@@ -294,11 +294,11 @@ public class DungeonData extends PersistentState {
 							player -> {
 								player.sendMessage(Text.literal("The dimension is collapsing in on itself").styled(style -> style.withColor(Formatting.DARK_RED)));
 								player.sendMessage(Text.literal("Get out, get out, GET OUT!").styled(style -> style.withColor(Formatting.RED)));
-								player.getServerWorld().playSound(
+								player.getWorld().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
 										SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.MASTER,1, 0.5f
 								);
-								player.getServerWorld().playSound(
+								player.getWorld().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
 										SoundEvents.BLOCK_END_PORTAL_SPAWN, SoundCategory.MASTER, 1, 0.5f
 								);

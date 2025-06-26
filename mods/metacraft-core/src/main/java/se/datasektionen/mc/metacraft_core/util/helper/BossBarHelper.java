@@ -1,7 +1,8 @@
 package se.datasektionen.mc.metacraft_core.util.helper;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
 
@@ -39,11 +40,11 @@ public class BossBarHelper {
 		setBossBar(entity, null);
 	}
 
-	public static void loadBossBar(Entity entity, NbtCompound nbt) {
+	public static void loadBossBar(Entity entity, ReadView nbt) {
 		((EntityExtensions) entity).metacraft_lib$loadBossBar(nbt);
 	}
 
-	public static void saveBossBar(Entity entity, NbtCompound nbt) {
+	public static void saveBossBar(Entity entity, WriteView nbt) {
 		((EntityExtensions) entity).metacraft_lib$saveBossBar(nbt);
 	}
 

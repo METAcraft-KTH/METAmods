@@ -12,8 +12,10 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.*;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.storage.NbtReadView;
 import net.minecraft.test.TestContext;
 import net.minecraft.text.Text;
+import net.minecraft.util.ErrorReporter;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -21,6 +23,7 @@ import net.minecraft.util.path.SymlinkValidationException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.TestHelper;
 
@@ -30,6 +33,7 @@ import java.util.UUID;
 public class TestPlayerData {
 
 	private static final String PLAYER_DATA_PREFIX = "player-data-test/";
+	private static final ErrorReporter.Context TEST = () -> "test";
 
 	@BeforeAll
 	public static void init() {
@@ -99,7 +103,6 @@ public class TestPlayerData {
 								UUID id = UUID.randomUUID();
 								String test = "test";
 								var player = TestHelper.addMockPlayer(ctx, test, id);
-								player.updatePosition(0,0,0);
 								player.getInventory().setStack(5, new ItemStack(Items.DIAMOND));
 
 								final Identifier temp = Identifier.of("test", "test");
@@ -124,10 +127,8 @@ public class TestPlayerData {
 							METAcraftLib.getID(PLAYER_DATA_PREFIX + "save-and-load-2"),
 							ctx -> {
 								var player = TestHelper.addMockPlayer(ctx);
-								player.updatePosition(10,0,0);
 
 								var player2 = TestHelper.addMockPlayer(ctx);
-								player2.updatePosition(12,0,0);
 
 								var boat = EntityType.ACACIA_BOAT.spawn(
 										ctx.getWorld(), new BlockPos(11, 0, 0), SpawnReason.LOAD
@@ -147,7 +148,6 @@ public class TestPlayerData {
 							METAcraftLib.getID(PLAYER_DATA_PREFIX + "save-and-load-3"),
 							ctx -> {
 								var player = TestHelper.addMockPlayer(ctx);
-								player.updatePosition(20,0,0);
 
 								try {
 									var oldPlayerDataWithItem = StringNbtReader.readCompound("{seenCredits: 0b, EnderItems: {}, ShoulderEntityLeft: {}, ShoulderEntityRight: {}, Inventory: [{count: 1, Slot: 0b, components: {\"minecraft:food\": {saturation: 1.0f, nutrition: 1}}, id: \"minecraft:diamond\"}], DataVersion: 3955}");
@@ -162,10 +162,13 @@ public class TestPlayerData {
 
 									oldPlayerData = (NbtCompound) fixer.update(
 											TypeReferences.PLAYER, new Dynamic<>(NbtOps.INSTANCE, oldPlayerData),
-											version, SharedConstants.getGameVersion().getSaveVersion().getId()
+											version, SharedConstants.getGameVersion().dataVersion().id()
 									).getValue();
 
-									player.readNbt(oldPlayerData);
+									try (var logging = LoggingErrorReporter.create(TEST, METAcraftLib.LOGGER)) {
+										var readView = NbtReadView.create(logging, player.getRegistryManager(), oldPlayerData);
+										player.readData(readView);
+									}
 
 									PlayerDataHelper.loadPlayerData(player, id, false, false, false);
 

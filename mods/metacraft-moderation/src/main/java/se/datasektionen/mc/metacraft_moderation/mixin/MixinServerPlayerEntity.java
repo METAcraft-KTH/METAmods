@@ -5,7 +5,9 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -53,8 +55,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Mo
 	@Unique
 	private boolean skipSaveState = false;
 
-	public MixinServerPlayerEntity(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
-		super(world, pos, yaw, gameProfile);
+	public MixinServerPlayerEntity(World world, GameProfile profile) {
+		super(world, profile);
 	}
 
 	@Override
@@ -73,8 +75,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Mo
 	}
 
 
-	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
-	public void toNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "writeCustomData", at = @At("RETURN"))
+	public void toNBT(WriteView nbt, CallbackInfo ci) {
 		NbtCompound moderationNBT = new NbtCompound();
 		if (state != null && !skipSaveState) {
 			moderationNBT.put(MODERATION_STATE, state.toNBT());
@@ -92,43 +94,44 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Mo
 			moderationNBT.putString(DEFAULT_MODERATOR_MODE, defaultModeratorMode);
 		}
 
-		nbt.put(METACRAFT_MODERATION, moderationNBT);
+		nbt.put(METACRAFT_MODERATION, NbtCompound.CODEC, moderationNBT);
 	}
 
-	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
-	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
-		NbtCompound moderationNBT = nbt.getCompoundOrEmpty(METACRAFT_MODERATION);
-		if (moderationNBT.contains(MODERATION_STATE) && !skipSaveState) {
-			moderationNBT.getCompound(MODERATION_STATE).ifPresent(
+	@Inject(method = "readCustomData", at = @At("RETURN"))
+	public void fromNBT(ReadView nbt, CallbackInfo ci) {
+		var moderationNBT = nbt.getReadView(METACRAFT_MODERATION);
+		if (!skipSaveState) {
+			moderationNBT.read(MODERATION_STATE, NbtCompound.CODEC).ifPresent(
 					data -> {
 						state = ModerationModeState.createFromNBT(ModerationData.getInstance(server), data);
 						state.updatePlayer((ServerPlayerEntity) (Object) this);
 
 						//TODO Remove these before season 5, they are purely for backwards compatibility.
-						if (!nbt.contains(PlayerDataHelper.STAT_HANDLER) && state.getDef().shouldHaveSeparatePlayerData()) {
+						if (nbt.read(PlayerDataHelper.STAT_HANDLER, Identifier.CODEC).isEmpty() && state.getDef().shouldHaveSeparatePlayerData()) {
 							PlayerDataHelper.setStatHandler((ServerPlayerEntity) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
 						}
-						if (!nbt.contains(PlayerDataHelper.ADVANCEMENT_TRACKER) && state.getDef().shouldHaveSeparatePlayerData()) {
+						if (nbt.read(PlayerDataHelper.ADVANCEMENT_TRACKER, Identifier.CODEC).isEmpty() && state.getDef().shouldHaveSeparatePlayerData()) {
 							PlayerDataHelper.setAdvancementTracker((ServerPlayerEntity) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
 						}
-						if (!nbt.contains(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS) && !state.getDef().announceAdvancements()) {
+						if (nbt.read(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS, Identifier.CODEC).isEmpty() && !state.getDef().announceAdvancements()) {
 							PlayerDataHelper.setAnnounceAdvancements((ServerPlayerEntity) (Object) this, false);
 						}
 					}
 			);
 		}
-		defaultModeratorMode = moderationNBT.getString(DEFAULT_MODERATOR_MODE).map(
+		defaultModeratorMode = moderationNBT.getOptionalString(DEFAULT_MODERATOR_MODE).map(
 				mode -> mode.toLowerCase(Locale.ROOT)
 		).orElse(null);
 
-		if (moderationNBT.contains(MODERATOR_MODE_NBT_MAP) && !skipSaveState) {
-			savedNBT.clear();
-			NbtCompound moderatorModeNBTMap = moderationNBT.getCompoundOrEmpty(MODERATOR_MODE_NBT_MAP);
-			for (String key : moderatorModeNBTMap.getKeys()) {
-				moderatorModeNBTMap.getCompound(key).ifPresent(
-						data -> savedNBT.put(key.toLowerCase(Locale.ROOT), data)
-				);
-			}
+		if (!skipSaveState) {
+			moderationNBT.read(MODERATOR_MODE_NBT_MAP, NbtCompound.CODEC).ifPresent(moderatorModeNBTMap -> {
+				savedNBT.clear();
+				for (String key : moderatorModeNBTMap.getKeys()) {
+					moderatorModeNBTMap.getCompound(key).ifPresent(
+							data -> savedNBT.put(key.toLowerCase(Locale.ROOT), data)
+					);
+				}
+			});
 		}
 	}
 

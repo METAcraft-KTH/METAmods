@@ -6,6 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.storage.NbtReadView;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.Vec3d;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -23,7 +24,9 @@ import se.datasektionen.mc.cutscenes.transitions.TransitionType;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfig;
 import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfigType;
 import se.datasektionen.mc.metacraft_lib.util.AccurateSerializableNBT;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.ViewHelper;
 
 import java.util.List;
 import java.util.Optional;
@@ -71,19 +74,22 @@ public class SpawnEntity implements Transition, TransitionConfig {
 			}
 			return id;
 		};
-		EntityHelper.loadEntityWithPassengers(nbt, world, SpawnReason.EVENT, (entity, data) -> {
-			pos.ifPresent(entity::setPosition);
-			world.getEntityManager().addEntity(idGetter.get(), entity);
-			if (initialize.orElse(data.getSize() <= 1)) {
-				EntityHelper.initializeEntity(
-						entity, data.getSize() > 1 ? data : null,
-						world, world.getLocalDifficulty(entity.getBlockPos()),
-						SpawnReason.TRIGGERED, null
-				);
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:SpawnEntity#spawnEntities", Cutscenes.LOGGER)) {
+			var readView = NbtReadView.create(logging, world.getRegistryManager(), nbt);
+			EntityHelper.loadEntityWithPassengers(readView, world, SpawnReason.EVENT, (entity, data) -> {
 				pos.ifPresent(entity::setPosition);
-			}
-			return entity;
-		});
+				world.getEntityManager().addEntity(idGetter.get(), entity);
+				if (initialize.orElse(ViewHelper.getSize(data) <= 1)) {
+					EntityHelper.initializeEntity(
+							entity, ViewHelper.getSize(data) > 1 ? data : null,
+							world, world.getLocalDifficulty(entity.getBlockPos()),
+							SpawnReason.TRIGGERED, null
+					);
+					pos.ifPresent(entity::setPosition);
+				}
+				return entity;
+			});
+		}
 	}
 
 	@Override

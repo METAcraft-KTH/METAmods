@@ -3,11 +3,11 @@ package se.datasektionen.mc.metacraft_core.block.entities;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.particle.ParticleTypes;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
@@ -73,15 +73,15 @@ public class BlackHolePortalEntity extends PortalEntity {
 	}
 
 	@Override
-	public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
+	public void readData(ReadView nbt) {
 		center = null;
-		super.readNbt(nbt, lookup);
+		super.readData(nbt);
 		attractionRange = nbt.getDouble(ATTRACTION_RANGE, 0);
 	}
 
 	@Override
-	public void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		super.writeNbt(nbt, lookup);
+	public void writeData(WriteView nbt) {
+		super.writeData(nbt);
 		nbt.putDouble(ATTRACTION_RANGE, attractionRange);
 	}
 

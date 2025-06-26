@@ -269,7 +269,7 @@ public class PlayerOwnedProtectorate extends ZoneData {
 				DataResult<UUID> result = switch (component) {
 					case NbtComponent nbt -> nbt.get(getDecoder(uuidPath));
 					case NbtCompound nbt -> getDecoder(uuidPath).decode(NbtOps.INSTANCE, NbtOps.INSTANCE.getMap(nbt).getOrThrow());
-					case ProfileComponent profile -> profile.id().map(DataResult::success).orElse(DataResult.error(() -> "Profile component not loaded!"));
+					case ProfileComponent profile -> profile.uuid().map(DataResult::success).orElse(DataResult.error(() -> "Profile component not loaded!"));
 					default -> {
 						var codec = uuidComponent.getCodec();
 						if (codec == null) yield DataResult.error(() -> "Cannot fetch UUID from unserializable codec!");

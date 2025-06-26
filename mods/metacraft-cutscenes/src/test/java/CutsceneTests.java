@@ -322,9 +322,8 @@ public class CutsceneTests {
 	) {
 		var stack = new ItemStack(Items.DIAMOND, 64);
 		int slot = 5;
-		var start = context.getAbsolute(Vec3d.ZERO);
+		var start = player.getPos();
 		player.getInventory().insertStack(slot, stack.copy());
-		player.updatePosition(start.getX(), start.getY(), start.getZ());
 		var pig = EntityType.PIG.create(context.getWorld(), SpawnReason.TRIGGERED);
 		pig.equipStack(EquipmentSlot.SADDLE, new ItemStack(Items.SADDLE));
 		pig.updatePosition(start.getX(), start.getY(), start.getZ());

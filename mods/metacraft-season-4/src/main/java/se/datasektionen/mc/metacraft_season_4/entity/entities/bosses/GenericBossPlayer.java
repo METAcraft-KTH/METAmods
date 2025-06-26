@@ -11,13 +11,13 @@ import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.predicate.NumberRange;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.BlockPos;
@@ -38,7 +38,6 @@ import se.datasektionen.mc.metacraft_core.position_ref.RandomRangeWithGravity;
 import se.datasektionen.mc.metacraft_core.position_ref.WithTries;
 import se.datasektionen.mc.metacraft_core.util.helper.BossBarHelper;
 import se.datasektionen.mc.metacraft_lib.extensions.EntityExtensions;
-import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.entity.ai.Season4Sensors;
 import se.metacraft.bosses.boss.AutoAttackingBoss;
 import se.metacraft.bosses.boss.attacks.Attack;
@@ -186,31 +185,20 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 	}
 
 	@Override
-	public void writeCustomDataToNbt(NbtCompound nbt) {
-		super.writeCustomDataToNbt(nbt);
+	public void writeCustomData(WriteView nbt) {
+		super.writeCustomData(nbt);
 		nbt.put(
 				ATTACKS,
-				ATTACK_POOL_CODEC.encodeStart(
-						getRegistryManager().getOps(NbtOps.INSTANCE),
-						attacks
-				).getOrThrow()
+				ATTACK_POOL_CODEC,
+				attacks
 		);
 		container.writeNBT(nbt);
 	}
 
 	@Override
-	public void readCustomDataFromNbt(NbtCompound nbt) {
-		super.readCustomDataFromNbt(nbt);
-		if (nbt.contains(ATTACKS)) {
-			attacks = ATTACK_POOL_CODEC.parse(
-					getRegistryManager().getOps(NbtOps.INSTANCE),
-					nbt.get(ATTACKS)
-			).resultOrPartial(
-					Season4.LOGGER::error
-			).orElseGet(() -> Pool.<Attack>empty());
-		} else {
-			attacks = Pool.<Attack>empty();
-		}
+	public void readCustomData(ReadView nbt) {
+		super.readCustomData(nbt);
+		attacks = nbt.read(ATTACKS, ATTACK_POOL_CODEC).orElse(Pool.empty());
 		container.readNBT(nbt);
 	}
 

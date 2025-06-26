@@ -9,11 +9,13 @@ import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.storage.NbtReadView;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.Vec3d;
 import org.apache.commons.lang3.mutable.MutableInt;
+import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.cutscene.world.CutsceneWorld;
 import se.datasektionen.mc.cutscenes.entity_ref.CutsceneRef;
@@ -34,6 +36,7 @@ import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_lib.util.AccurateSerializableNBT;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 
 import java.util.List;
@@ -132,19 +135,22 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 
 	public Optional<Entity> createFromData(NbtCompound data, CutsceneWorld world) {
 		var player = METAcraftEntities.PLAYER.create(world, SpawnReason.EVENT);
-		var spawnWorld = PlayerDataHelper.getWorld(world.getServer(), data);
-		if ((spawnWorld.isEmpty() || spawnWorld.get() != world.getActualWorld()) && !includeDespiteRemoteDim) {
-			return Optional.empty();
-		}
-		player.copyFromPlayerData(data);
-		PlayerDataHelper.loadRootVehicleAndPassengers(player, data, e -> e);
-		var root = player.getRootVehicle();
-		root.streamPassengersAndSelf().forEach(e -> {
-			if (e instanceof MobEntity mob) {
-				mob.setPersistent();
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:AddPlayerDummies#createFromData", Cutscenes.LOGGER)) {
+			var readView = NbtReadView.create(logging, world.getRegistryManager(), data);
+			var spawnWorld = PlayerDataHelper.getWorld(world.getServer(), readView);
+			if ((spawnWorld.isEmpty() || spawnWorld.get() != world.getActualWorld()) && !includeDespiteRemoteDim) {
+				return Optional.empty();
 			}
-		});
-		return Optional.of(root);
+			player.copyFromPlayerData(data);
+			PlayerDataHelper.loadRootVehicleAndPassengers(player, readView, e -> e);
+			var root = player.getRootVehicle();
+			root.streamPassengersAndSelf().forEach(e -> {
+				if (e instanceof MobEntity mob) {
+					mob.setPersistent();
+				}
+			});
+			return Optional.of(root);
+		}
 	}
 
 	@Override

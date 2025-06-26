@@ -55,7 +55,7 @@ public class CutscenePersistentStateManager extends PersistentStateManager {
 	@Override
 	public <T extends PersistentState> T get(PersistentStateType<T> type) {
 		if (!loadedStates.containsKey(type) && storage.get().contains(type.id())) {
-			NbtCompound data = readNbt(type.id(), type.dataFixType(), SharedConstants.getGameVersion().getSaveVersion().getId());
+			NbtCompound data = readNbt(type.id(), type.dataFixType(), SharedConstants.getGameVersion().dataVersion().id());
 			var loaded = type.codec().apply(context).parse(
 					lookup.getOps(NbtOps.INSTANCE), data.get("data")
 			).resultOrPartial(

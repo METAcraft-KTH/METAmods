@@ -3,12 +3,10 @@ package se.datasektionen.mc.cutscenes.mixin;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -32,18 +30,16 @@ import java.util.Optional;
 @Mixin(ServerPlayerEntity.class)
 public abstract class MixinServerPlayerEntity extends PlayerEntity implements ServerPlayerEntityExtensions {
 
-	public MixinServerPlayerEntity(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
-		super(world, pos, yaw, gameProfile);
-	}
-
-	@Shadow public abstract ServerWorld getServerWorld();
-
 	@Shadow public ServerPlayNetworkHandler networkHandler;
 	@Unique
 	private CutsceneInstance cutscene;
 
 	@Unique
 	private boolean allowWrongMovements = false;
+
+	public MixinServerPlayerEntity(World world, GameProfile profile) {
+		super(world, profile);
+	}
 
 	@Override
 	public void metacraft$setAllowWrongMovements(boolean allowWrongMovements) {
@@ -141,18 +137,18 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 	}
 
-	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
-	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
-		nbt.get(CutsceneInstance.CUTSCENE, CutsceneInstance.CODEC, getRegistryManager().getOps(NbtOps.INSTANCE)).ifPresent(scene -> {
+	@Inject(method = "readCustomData", at = @At("RETURN"))
+	public void readNBT(ReadView nbt, CallbackInfo ci) {
+		nbt.read(CutsceneInstance.CUTSCENE, CutsceneInstance.CODEC).ifPresent(scene -> {
 			scene.finalizeParse(getServer());
 			this.metacraft_cutscenes$setCutscene(scene);
 		});
 	}
 
-	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
-	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "writeCustomData", at = @At("RETURN"))
+	public void writeNBT(WriteView nbt, CallbackInfo ci) {
 		if (cutscene != null) {
-			nbt.put(CutsceneInstance.CUTSCENE, CutsceneInstance.CODEC, getRegistryManager().getOps(NbtOps.INSTANCE), cutscene);
+			nbt.put(CutsceneInstance.CUTSCENE, CutsceneInstance.CODEC, cutscene);
 		}
 	}
 

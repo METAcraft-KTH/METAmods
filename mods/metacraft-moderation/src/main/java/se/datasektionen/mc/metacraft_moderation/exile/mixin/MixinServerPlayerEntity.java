@@ -4,7 +4,6 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,8 +30,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Ex
 	@Unique
 	private final Set<Zone> currentZones = new HashSet<>();
 
-	public MixinServerPlayerEntity(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
-		super(world, pos, yaw, gameProfile);
+	public MixinServerPlayerEntity(World world, GameProfile profile) {
+		super(world, profile);
 	}
 
 	@Override

@@ -23,7 +23,7 @@ public class METAcraftContextParameters {
 		var allowed = ((AccessorLootTableReporter) reporter).getContextType().getAllowed();
 		if (!allowed.contains(LootContextParameters.THIS_ENTITY) && !allowed.contains(ENTITY_TYPE)) {
 			reporter.report(
-					"Parameters " + LootContextParameters.THIS_ENTITY + " and " + ENTITY_TYPE +
+					() -> "Parameters " + LootContextParameters.THIS_ENTITY + " and " + ENTITY_TYPE +
 					" are not provided in this context (note that only one of them is necessary)"
 			);
 		}
@@ -39,7 +39,7 @@ public class METAcraftContextParameters {
 				!allowed.contains(additional)
 		) {
 			reporter.report(
-					"Parameters " + LootContextParameters.THIS_ENTITY + ", "  +
+					() -> "Parameters " + LootContextParameters.THIS_ENTITY + ", "  +
 					LootContextParameters.BLOCK_ENTITY + " and " + additional +
 					" are not provided in this context (note that only one of them is necessary)"
 			);

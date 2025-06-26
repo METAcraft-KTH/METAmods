@@ -7,8 +7,8 @@ import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.vehicle.*;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
@@ -59,16 +59,16 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 		super(entityType, world);
 	}
 
-	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
-	public void toNBT(NbtCompound nbt, CallbackInfo ci) {
-		minecartItem.flatMap(
-				m -> ItemStack.CODEC.encodeStart(
-						getRegistryManager().getOps(NbtOps.INSTANCE),
-						m
-				).resultOrPartial(FasterMinecarts.LOGGER::error)
-		).ifPresent(
-				m -> nbt.put(FasterMinecarts.MINECART_ITEM, m)
+	@Inject(method = "writeCustomData", at = @At("RETURN"))
+	public void toNBT(WriteView nbt, CallbackInfo ci) {
+		minecartItem.ifPresent(
+				item -> {
+					if (!item.isEmpty()) {
+						nbt.put(FasterMinecarts.MINECART_ITEM, ItemStack.CODEC, item);
+					}
+				}
 		);
+
 	}
 
 	@Unique
@@ -80,16 +80,9 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 		}
 	}
 
-	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
-	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
-		if (nbt.contains(FasterMinecarts.MINECART_ITEM)) {
-			minecartItem = ItemStack.CODEC.parse(
-					getRegistryManager().getOps(NbtOps.INSTANCE),
-					nbt.get(FasterMinecarts.MINECART_ITEM)
-			).resultOrPartial(FasterMinecarts.LOGGER::error);
-		} else {
-			minecartItem = Optional.empty();
-		}
+	@Inject(method = "readCustomData", at = @At("RETURN"))
+	public void fromNBT(ReadView nbt, CallbackInfo ci) {
+		minecartItem = nbt.read(FasterMinecarts.MINECART_ITEM, ItemStack.CODEC);
 		updateTag();
 		updateController();
 	}

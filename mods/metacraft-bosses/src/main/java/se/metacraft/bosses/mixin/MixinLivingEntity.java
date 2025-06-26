@@ -4,9 +4,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,7 +16,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.metacraft_lib.util.TrackedEntity;
-import se.metacraft.bosses.METAcraftBosses;
 import se.metacraft.bosses.extensions.LivingEntityExtensions;
 import se.metacraft.bosses.util.DoubleTeamHandler;
 
@@ -115,47 +114,27 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 		}
 	}
 
-	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
-	public void save(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "writeCustomData", at = @At("RETURN"))
+	public void save(WriteView nbt, CallbackInfo ci) {
 		nbt.putBoolean(PHANTOM_ENTITY, phantomEntity);
-		final var ops = getRegistryManager().getOps(NbtOps.INSTANCE);
-		if (doubleTeamHandler != null) {
-			DoubleTeamHandler.getCodec((LivingEntity) (Object) this).encodeStart(
-					ops, doubleTeamHandler
-			).resultOrPartial(METAcraftBosses.LOGGER::error).ifPresent(
-				data -> nbt.put(DOUBLE_TEAM_DATA, data)
-			);
-		}
-		if (soulboundEntity != null) {
-			TrackedEntity.ENTITY_CODEC.encodeStart(
-					ops, soulboundEntity
-			).resultOrPartial(METAcraftBosses.LOGGER::error).ifPresent(
-					data -> nbt.put(SOULBOUND_ENTITY, data)
-			);
-		}
+		nbt.putNullable(
+				DOUBLE_TEAM_DATA, DoubleTeamHandler.getCodec((LivingEntity) (Object) this),
+				doubleTeamHandler
+		);
+		nbt.putNullable(
+				SOULBOUND_ENTITY, TrackedEntity.ENTITY_CODEC,
+				soulboundEntity
+		);
 	}
 
-	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
-	public void load(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "readCustomData", at = @At("RETURN"))
+	public void load(ReadView nbt, CallbackInfo ci) {
 		phantomEntity = nbt.getBoolean(PHANTOM_ENTITY, false);
-		final var ops = getRegistryManager().getOps(NbtOps.INSTANCE);
-		if (nbt.contains(DOUBLE_TEAM_DATA)) {
-			DoubleTeamHandler.getCodec(((LivingEntity) (Object) this)).parse(
-					ops, nbt.get(DOUBLE_TEAM_DATA)
-			).resultOrPartial(METAcraftBosses.LOGGER::error).ifPresent(
-					handler -> this.doubleTeamHandler = handler
-			);
-		} else {
-			doubleTeamHandler = null;
-		}
-		if (nbt.contains(SOULBOUND_ENTITY)) {
-			TrackedEntity.ENTITY_CODEC.parse(
-					ops, nbt.get(SOULBOUND_ENTITY)
-			).resultOrPartial(METAcraftBosses.LOGGER::error).ifPresent(
-					tracked -> this.soulboundEntity = tracked
-			);
-		} else {
-			soulboundEntity = null;
-		}
+		doubleTeamHandler = nbt.read(
+				DOUBLE_TEAM_DATA, DoubleTeamHandler.getCodec(((LivingEntity) (Object) this))
+		).orElse(null);
+		soulboundEntity = nbt.read(
+				SOULBOUND_ENTITY, TrackedEntity.ENTITY_CODEC
+		).orElse(null);
 	}
 }

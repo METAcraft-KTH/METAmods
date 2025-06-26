@@ -139,7 +139,7 @@ public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
 	}
 
 	@Override
-	protected ChunkHolder getCurrentChunkHolder(long pos) {
+	public ChunkHolder getCurrentChunkHolder(long pos) {
 		return getChunkHolder(pos);
 	}
 

@@ -15,6 +15,7 @@
 		"AccessorLootTableReporter",
 		"AccessorMinecraftDedicatedServer",
 		"AccessorMinecraftServer",
+		"AccessorNbtReadView",
 		"AccessorPlayerAdvancementTracker",
 		"AccessorPlayerManager",
 		"AccessorRegistryOps",

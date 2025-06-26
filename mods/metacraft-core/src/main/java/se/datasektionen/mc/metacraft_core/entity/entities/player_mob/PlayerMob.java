@@ -41,6 +41,9 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
 import net.minecraft.util.Arm;
 import net.minecraft.util.Hand;
@@ -64,6 +67,7 @@ import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_core.util.helper.ServerDefaultSkinHelper;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorServerChunkLoadingManager;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.*;
@@ -116,7 +120,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		super(entityType, world);
 		this.moveControl = new PlayerMoveControl(this);
 		this.landNavigation.setCanSwim(true);
-		this.landNavigation.setCanPathThroughDoors(true);
+		this.landNavigation.setCanOpenDoors(true);
 	}
 
 	public boolean canWander() {
@@ -165,15 +169,15 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		this.navigation = newNavigation;
 	}
 
-	private void readShoulderEntities(NbtCompound nbt) {
-		nbt.getCompound(SHOULDER_ENTITY_LEFT).ifPresentOrElse(newLeft -> {
+	private void readShoulderEntities(ReadView nbt) {
+		nbt.read(SHOULDER_ENTITY_LEFT, NbtCompound.CODEC).ifPresentOrElse(newLeft -> {
 			if (!getShoulderEntityLeft().equals(newLeft)) {
 				this.setShoulderEntityLeft(newLeft);
 			}
 		}, () -> {
 			this.setShoulderEntityLeft(new NbtCompound());
 		});
-		nbt.getCompound(SHOULDER_ENTITY_RIGHT).ifPresentOrElse(newRight -> {
+		nbt.read(SHOULDER_ENTITY_RIGHT, NbtCompound.CODEC).ifPresentOrElse(newRight -> {
 			if (!getShoulderEntityRight().equals(newRight)) {
 				this.setShoulderEntityRight(newRight);
 			}
@@ -195,14 +199,17 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	public void copyFromPlayerData(NbtCompound nbt) {
-		this.readNbt(removeUnsafeNBT(nbt));
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerMob#copyFromPlayerData", METAcraftCore.LOGGER)) {
+			var readView = NbtReadView.create(logging, getRegistryManager(), removeUnsafeNBT(nbt));
+			this.readData(readView);
+			readShoulderEntities(readView);
+		}
 		getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).setBaseValue(BASE_SPEED);
 		NbtList nbtList = nbt.getListOrEmpty("Inventory");
 		int selectedSlot = nbt.getInt("SelectedItemSlot", 0);
 		for (var entry : nbtList) {
 			handleItemEntry((NbtCompound) entry, selectedSlot);
 		}
-		readShoulderEntities(nbt);
 		var id = nbt.get(UUID_KEY, Uuids.CODEC);
 		var player = id.map(value -> getServer().getPlayerManager().getPlayer(value)).orElse(null);
 		if (player != null) {
@@ -233,7 +240,9 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	private void handleItemEntry(NbtCompound stackNBT, int selectedSlot) {
 		int slot = stackNBT.getByte("Slot", (byte) 0) & 0xFF;
-		ItemStack.fromNbt(this.getRegistryManager(), stackNBT).ifPresent(stack -> {
+		ItemStack.CODEC.parse(
+				getRegistryManager().getOps(NbtOps.INSTANCE), stackNBT
+		).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(stack -> {
 			getFromSlot(slot, selectedSlot).ifPresent(equipmentSlot -> {
 				this.equipStack(equipmentSlot, stack);
 			});
@@ -486,10 +495,13 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	private void dropShoulderEntity(NbtCompound entityNbt) {
 		if (!this.getWorld().isClient && !entityNbt.isEmpty()) {
-			EntityType.getEntityFromNbt(entityNbt, this.getWorld(), SpawnReason.LOAD).ifPresent(entity -> {
-				entity.setPosition(this.getX(), this.getY() + (double)0.7f, this.getZ());
-				((ServerWorld)this.getWorld()).tryLoadEntity(entity);
-			});
+			try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerMob#dropShoulderEntity", METAcraftCore.LOGGER)) {
+				var readView = NbtReadView.create(logging, getRegistryManager(), entityNbt);
+				EntityType.getEntityFromData(readView, this.getWorld(), SpawnReason.LOAD).ifPresent(entity -> {
+					entity.setPosition(this.getX(), this.getY() + (double)0.7f, this.getZ());
+					((ServerWorld)this.getWorld()).tryLoadEntity(entity);
+				});
+			}
 		}
 	}
 
@@ -677,50 +689,34 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	@Override
-	public void writeCustomDataToNbt(NbtCompound nbt) {
-		super.writeCustomDataToNbt(nbt);
+	public void writeCustomData(WriteView nbt) {
+		super.writeCustomData(nbt);
 		if (profile != null) {
-			ProfileComponent.CODEC.encodeStart(
-					getRegistryManager().getOps(NbtOps.INSTANCE), new ProfileComponent(makeSafeForSaving(profile))
-			).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(
-					profile -> nbt.put(PROFILE, profile)
-			);
+			nbt.put(PROFILE, ProfileComponent.CODEC, new ProfileComponent(makeSafeForSaving(profile)));
 		}
-		ExtraCodecs.MODEL_PART_SET_CODEC.encodeStart(
-				getRegistryManager().getOps(NbtOps.INSTANCE), getVisibleSkinParts()
-		).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(
-				parts -> nbt.put(VISIBLE_SKIN_PARTS, parts)
-		);
+		nbt.put(VISIBLE_SKIN_PARTS, ExtraCodecs.MODEL_PART_SET_CODEC, getVisibleSkinParts());
 		if (!this.getShoulderEntityLeft().isEmpty()) {
-			nbt.put(SHOULDER_ENTITY_LEFT, this.getShoulderEntityLeft().copy());
+			nbt.put(SHOULDER_ENTITY_LEFT, NbtCompound.CODEC, this.getShoulderEntityLeft().copy());
 		}
 		if (!this.getShoulderEntityRight().isEmpty()) {
-			nbt.put(SHOULDER_ENTITY_RIGHT, this.getShoulderEntityRight().copy());
+			nbt.put(SHOULDER_ENTITY_RIGHT, NbtCompound.CODEC, this.getShoulderEntityRight().copy());
 		}
 		nbt.putBoolean(CAN_WANDER, canWander);
 	}
 
 	@Override
-	public void readCustomDataFromNbt(NbtCompound nbt) {
-		super.readCustomDataFromNbt(nbt);
-		if (nbt.contains(PROFILE)) {
-			ProfileComponent.CODEC.parse(
-					getRegistryManager().getOps(NbtOps.INSTANCE), nbt.get(PROFILE)
-			).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(
+	public void readCustomData(ReadView nbt) {
+		super.readCustomData(nbt);
+		nbt.read(PROFILE, ProfileComponent.CODEC).ifPresentOrElse(
 				profileComponent -> profileComponent.getFuture().thenAcceptAsync(
 						profile -> setSkin(profile.gameProfile()), SkullBlockEntity.EXECUTOR
-				)
-			);
-		}
-		if (nbt.contains(VISIBLE_SKIN_PARTS)) {
-			ExtraCodecs.MODEL_PART_SET_CODEC.parse(
-					getRegistryManager().getOps(NbtOps.INSTANCE), nbt.get(VISIBLE_SKIN_PARTS)
-			).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(
-					this::setVisibleSkinParts
-			);
-		} else {
-			setVisibleSkinParts(EnumSet.allOf(PlayerModelPart.class));
-		}
+				),
+				() -> setSkin(getDefaultSkin())
+		);
+		nbt.read(VISIBLE_SKIN_PARTS, ExtraCodecs.MODEL_PART_SET_CODEC).ifPresentOrElse(
+				this::setVisibleSkinParts,
+				() -> setVisibleSkinParts(EnumSet.allOf(PlayerModelPart.class))
+		);
 		canWander = nbt.getBoolean(CAN_WANDER, true);
 		readShoulderEntities(nbt);
 	}

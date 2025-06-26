@@ -6,7 +6,8 @@ import net.minecraft.entity.ai.goal.GoalSelector;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.PathAwareEntity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -43,15 +44,15 @@ public abstract class MixinMobEntity extends LivingEntity {
 	}
 
 
-	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
-	public void toNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "writeCustomData", at = @At("RETURN"))
+	public void toNBT(WriteView nbt, CallbackInfo ci) {
 		if ((Object) this instanceof HostileEntity) {
 			nbt.putBoolean(EntityParameters.SURVIVES_SUNLIGHT, ((HostileEntityExtensions) this).metacraft_lib$survivesSunlight());
 		}
 	}
 
-	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
-	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "readCustomData", at = @At("RETURN"))
+	public void fromNBT(ReadView nbt, CallbackInfo ci) {
 		if ((Object) this instanceof HostileEntity) {
 			((HostileEntityExtensions) this).metacraft_lib$setSurvivesSunlight(nbt.getBoolean(EntityParameters.SURVIVES_SUNLIGHT, false));
 		}

@@ -1,9 +1,9 @@
 package se.datasektionen.mc.metacraft_lib.mixin;
 
 import net.minecraft.advancement.PlayerAdvancementTracker;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.stat.ServerStatHandler;
+import net.minecraft.storage.ReadView;
 import net.minecraft.world.GameMode;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -23,7 +23,7 @@ public interface AccessorServerPlayerEntity {
 	void setStatHandler(ServerStatHandler statHandler);
 
 	@Invoker
-	static GameMode callGameModeFromNbt(@Nullable NbtCompound nbt, String key) {
+	static GameMode callGameModeFromData(@Nullable ReadView view, String key) {
 		throw new IllegalStateException("Broken Mixin");
 	}
 

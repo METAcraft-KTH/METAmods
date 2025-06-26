@@ -37,7 +37,7 @@ public class ChooseProtectorateMenu extends LayeredGui {
 				"protectorate.metacraft.gui.choose", "Choose Protectorate"
 		));
 
-		for (var zone : ZoneManager.getInstance(player.server).getZones().getZones()) {
+		for (var zone : ZoneManager.getInstance(player.getServer()).getZones().getZones()) {
 			zone.get(PlotDataTypes.PLAYER_PROTECTORATE).ifPresent(protectorate -> {
 				if (protectorate.isAdmin(player)) {
 					primary.add(protectorate);
@@ -112,7 +112,7 @@ public class ChooseProtectorateMenu extends LayeredGui {
 		return SGUIHelper.createGameProfileHeadIcon(
 				Text.literal(protectorate.getZone().getName()), getPlayer().getServer(),
 				protectorate.getOwners().stream().map(
-						owner -> getPlayer().server.getUserCache().getByUuid(owner).orElse(null)
+						owner -> getPlayer().getServer().getUserCache().getByUuid(owner).orElse(null)
 				).filter(Objects::nonNull)
 		);
 	}

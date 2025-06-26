@@ -11,6 +11,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 
 import java.util.function.UnaryOperator;
 
+//TODO Remove these for security reasons.
 public class CommandComponents {
 
 	/**
@@ -110,7 +111,7 @@ public class CommandComponents {
 		MutableObject<ActionResult> result = new MutableObject<>();
 		var source = new ServerCommandSource(
 				player.isCreativeLevelTwoOp() ? player.getCommandOutput() : CommandOutput.DUMMY,
-				pos, player.getRotationClient(), player.getServerWorld(),
+				pos, player.getRotationClient(), player.getWorld(),
 				2, player.getName().getString(), player.getDisplayName(),
 				player.getServer(), player
 		).withReturnValueConsumer((successful, value) -> {

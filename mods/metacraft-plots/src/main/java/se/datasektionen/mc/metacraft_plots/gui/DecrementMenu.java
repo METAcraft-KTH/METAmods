@@ -24,7 +24,7 @@ public class DecrementMenu extends PaymentMenu {
 						"protectorate.metacraft.gui.deliver_head.deliver", "Deliver"
 				)
 		).setCallback((index, type, action) -> {
-			for (var zone : ZoneManager.getInstance(getPlayer().server).getZones().getZones()) {
+			for (var zone : ZoneManager.getInstance(getPlayer().getServer()).getZones().getZones()) {
 				zone.get(PlotDataTypes.PLAYER_PROTECTORATE).ifPresent(protectorate -> {
 					for (int i = 0; i < inventory.size(); i++) {
 						protectorate.applyDecrementItem(inventory.getStack(i));

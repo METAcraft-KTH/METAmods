@@ -11,14 +11,12 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.ContainerLock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -29,14 +27,10 @@ import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.joml.*;
-import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.METAcraftCoreTags;
 import se.datasektionen.mc.metacraft_core.block.METAcraftBlockEntities;
 import se.datasektionen.mc.metacraft_core.callbacks.PortalTargetValidEvent;
-import se.datasektionen.mc.metacraft_core.portal.EmptyPortalTarget;
-import se.datasektionen.mc.metacraft_core.portal.PortalTarget;
-import se.datasektionen.mc.metacraft_core.portal.PortalTargetRegistry;
-import se.datasektionen.mc.metacraft_core.portal.FixedPortalTarget;
+import se.datasektionen.mc.metacraft_core.portal.*;
 import se.datasektionen.mc.metacraft_core.util.TeleportPredicate;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
@@ -155,37 +149,23 @@ public class PortalEntity extends BlockEntity {
 	}
 
 	@Override
-	public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapperLookup) {
-		super.readNbt(nbt, wrapperLookup);
-		target = nbt.get(
-				TARGET, PortalTargetRegistry.CODEC, wrapperLookup.getOps(NbtOps.INSTANCE)
+	public void readData(ReadView nbt) {
+		super.readData(nbt);
+		target = nbt.read(
+				TARGET, PortalTargetRegistry.CODEC
 		).orElse(EmptyPortalTarget.getInstance());
-		if (nbt.contains(TARGET_POS)) {
-			RegistryKey<World> targetDim = null;
-			var targetPos = nbt.get(TARGET_POS, BlockPos.CODEC).orElse(null);
-			if (nbt.contains(TARGET_DIM)) {
-				targetDim = nbt.get(TARGET_DIM, World.CODEC).orElse(null);
-			}
-			try {
-				target = FixedPortalTarget.create(targetDim, targetPos);
-			} catch (NullPointerException e) {
-				METAcraftCore.LOGGER.error(
-						"Failed to update previous portal destination because some other mod added a weird mixin", e
-				);
-			}
-		}
-		if (nbt.contains(PORTAL_FACING)) {
-			portalFacing = nbt.get(PORTAL_FACING, ExtraCodecs.ORIENTATION_CODEC).orElse(null);
-		} else {
-			portalFacing = null;
-		}
+		nbt.read(TARGET_POS, BlockPos.CODEC).ifPresent(targetPos -> {
+			target = nbt.read(TARGET_DIM, World.CODEC).<PortalTarget>map(
+					targetDim -> FixedPortalTarget.create(targetDim, targetPos)
+			).orElseGet(() -> FixedLocalPortalTarget.create(targetPos));
+		});
+		nbt.read(PORTAL_FACING, ExtraCodecs.ORIENTATION_CODEC).ifPresentOrElse(
+				facing -> portalFacing = facing,
+				() -> portalFacing = null
+		);
 		shouldTeleport.clear();
-		if (nbt.contains(SHOULD_TELEPORT)) {
-			nbt.get(
-					SHOULD_TELEPORT, TeleportPredicate.LIST_CODEC, wrapperLookup.getOps(NbtOps.INSTANCE)
-			).ifPresent(this.shouldTeleport::addAll);
-		}
-		lock = ContainerLock.fromNbt(nbt, wrapperLookup);
+		nbt.read(SHOULD_TELEPORT, TeleportPredicate.LIST_CODEC).ifPresent(this.shouldTeleport::addAll);
+		lock = ContainerLock.read(nbt);
 	}
 
 	public boolean isPartOfPortal() {
@@ -198,17 +178,17 @@ public class PortalEntity extends BlockEntity {
 	}
 
 	@Override
-	public void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapperLookup) {
-		super.writeNbt(nbt, wrapperLookup);
+	public void writeData(WriteView nbt) {
+		super.writeData(nbt);
 		if (target != EmptyPortalTarget.getInstance()) {
-			nbt.put(TARGET, PortalTargetRegistry.CODEC, wrapperLookup.getOps(NbtOps.INSTANCE), target);
+			nbt.put(TARGET, PortalTargetRegistry.CODEC, target);
 		}
 		if (portalFacing != null) {
 			nbt.put(PORTAL_FACING, ExtraCodecs.ORIENTATION_CODEC, portalFacing);
 		}
-		nbt.put(SHOULD_TELEPORT, TeleportPredicate.LIST_CODEC, wrapperLookup.getOps(NbtOps.INSTANCE), shouldTeleport);
+		nbt.put(SHOULD_TELEPORT, TeleportPredicate.LIST_CODEC, shouldTeleport);
 
-		lock.writeNbt(nbt, wrapperLookup);
+		lock.write(nbt);
 	}
 
 	public ServerWorld getTargetDim(GlobalPos target) {

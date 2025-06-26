@@ -40,7 +40,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 	)
 	public int computeFallDamage(int original) {
 		if ((Object) this instanceof ServerPlayerEntity player) {
-			return EndBossPlayerState.getInstance(player.getServerWorld()).filter(
+			return EndBossPlayerState.getInstance(player.getWorld()).filter(
 					state -> state.isBoss(player)
 			).map(s -> 0).orElse(original);
 		}

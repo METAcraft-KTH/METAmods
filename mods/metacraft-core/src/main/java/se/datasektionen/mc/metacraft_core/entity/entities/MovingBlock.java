@@ -18,12 +18,12 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.mob.ShulkerEntity;
 import net.minecraft.entity.player.PlayerPosition;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.AffineTransformation;
 import net.minecraft.util.math.Box;
@@ -31,9 +31,9 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorEntity;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorLivingEntity;
@@ -88,7 +88,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		var teleported = super.teleportTo(teleportTarget);
 		if (teleported != null) {
 			var box = selectionBox(this.getBoundingBox(), Vec3d.ZERO);
-			for (var entity : getEntityWorld().getOtherEntities(this, box, this::shouldMove)) {
+			for (var entity : getWorld().getOtherEntities(this, box, this::shouldMove)) {
 				entity.teleportTo(teleportTarget.withPosition(
 						entity.getPos().subtract(this.getPos()).add(teleported.getPos())
 				));
@@ -191,7 +191,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 	}
 
 	public boolean shouldMove(Entity entity) {
-		return !this.isConnectedThroughVehicle(entity) && !entity.noClip && !(entity instanceof MovingBlock) && ((EntityExtensions) entity).metacraft$getLastMovedByMovingBlockTick() != getEntityWorld().getTime();
+		return !this.isConnectedThroughVehicle(entity) && !entity.noClip && !(entity instanceof MovingBlock) && ((EntityExtensions) entity).metacraft$getLastMovedByMovingBlockTick() != getWorld().getTime();
 	}
 
 	private ServerPlayerEntity getRelevantPlayer(Entity entity) {
@@ -212,7 +212,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		} else {
 			entity.move(MovementType.SHULKER, movement);
 		}
-		((EntityExtensions) entity).metacraft$setLastMovedByMovingBlockTick(getEntityWorld().getTime());
+		((EntityExtensions) entity).metacraft$setLastMovedByMovingBlockTick(getWorld().getTime());
 	}
 
 	private static Box selectionBox(Box entityBox, Vec3d movement) {
@@ -229,7 +229,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		super.move(type, movement);
 		if (isMovementValid(movement)) {
 			var box = selectionBox(entityBox, movement);
-			for (var entity : getEntityWorld().getOtherEntities(this, box, this::shouldMove)) {
+			for (var entity : getWorld().getOtherEntities(this, box, this::shouldMove)) {
 				moveEntity(entity, movement);
 			}
 		}
@@ -255,28 +255,21 @@ public class MovingBlock extends Entity implements PolymerEntity {
 	}
 
 	@Override
-	protected void readCustomDataFromNbt(NbtCompound nbt) {
-		if (nbt.contains(ANCHOR)) {
-			Anchor.CODEC.parse(NbtOps.INSTANCE, nbt.get(ANCHOR)).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(this::setRootAnchor);
-		} else {
-			setRootAnchor(null);
-		}
+	protected void readCustomData(ReadView nbt) {
+		nbt.read(ANCHOR, Anchor.CODEC).ifPresentOrElse(
+				this::setRootAnchor,
+				() -> setRootAnchor(null)
+		);
 		blockData.load(nbt, this);
 		blockData.applySettings(block);
 		blockData.applyBlockSettings(block);
-		if (nbt.contains(SLIPPERINESS)) {
-			slipperiness = nbt.getFloat(SLIPPERINESS);
-		} else {
-			slipperiness = Optional.empty();
-		}
+		slipperiness = nbt.read(SLIPPERINESS, Codec.FLOAT);
 	}
 
 	@Override
-	protected void writeCustomDataToNbt(NbtCompound nbt) {
+	protected void writeCustomData(WriteView nbt) {
 		if (anchor != null) {
-			nbt.put(ANCHOR, Anchor.CODEC.encodeStart(NbtOps.INSTANCE, anchor).getOrThrow());
+			nbt.put(ANCHOR, Anchor.CODEC, anchor);
 		}
 		blockData.save(nbt, this);
 		slipperiness.ifPresent(
@@ -307,7 +300,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 	}
 
 	@Override
-	public boolean isCollidable() {
+	public boolean isCollidable(@Nullable Entity entity) {
 		return true;
 	}
 

@@ -18,9 +18,10 @@ import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.structure.StructureTemplate;
 import net.minecraft.structure.StructureTemplateManager;
 import net.minecraft.util.Identifier;
@@ -62,11 +63,11 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 	}
 
 	@Override
-	protected void readCustomDataFromNbt(NbtCompound nbt) {
+	protected void readCustomData(ReadView nbt) {
 		boolean shouldFixDisplays = true;
 		data.load(nbt, this);
 
-		var idString = nbt.getString(STRUCTURE);
+		var idString = nbt.getOptionalString(STRUCTURE);
 		if (idString.isPresent()) {
 			var id = Identifier.tryParse(idString.get());
 			if (id != null && getWorld() instanceof ServerWorld sw) {
@@ -75,34 +76,34 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 				}
 			}
 		} else {
-			var s = new StructureTemplate();
-			s.readNbt(this.getRegistryManager().getOrThrow(RegistryKeys.BLOCK), nbt.getCompoundOrEmpty(STRUCTURE));
-			if (setFromStructure(s)) {
-				shouldFixDisplays = false;
+			var data = nbt.read(STRUCTURE, NbtCompound.CODEC).orElse(null);
+			if (data != null) {
+				var s = new StructureTemplate();
+				s.readNbt(this.getRegistryManager().getOrThrow(RegistryKeys.BLOCK), data);
+				if (setFromStructure(s)) {
+					shouldFixDisplays = false;
+				}
 			}
 		}
-		if (nbt.contains(PASSENGER_SLOTS)) {
-			nbt.get(PASSENGER_SLOTS, DisplayRider.LIST_CODEC, getRegistryManager().getOps(NbtOps.INSTANCE)).ifPresent(
-					data -> riderSlots = data
-			);
-		} else {
-			riderSlots = new ArrayList<>();
-		}
+		nbt.read(PASSENGER_SLOTS, DisplayRider.LIST_CODEC).ifPresentOrElse(
+				data -> riderSlots = data,
+				() -> riderSlots = new ArrayList<>()
+		);
 		if (shouldFixDisplays) {
 			refreshDisplayValues();
 		}
 	}
 
 	@Override
-	protected void writeCustomDataToNbt(NbtCompound nbt) {
+	protected void writeCustomData(WriteView nbt) {
 		if (structureID != null) {
 			nbt.putString(STRUCTURE, structureID.toString());
 		} else {
-			nbt.put(STRUCTURE, structure.writeNbt(new NbtCompound()));
+			nbt.put(STRUCTURE, NbtCompound.CODEC, structure.writeNbt(new NbtCompound()));
 		}
 		data.save(nbt, this);
 		if (!riderSlots.isEmpty()) {
-			nbt.put(PASSENGER_SLOTS, DisplayRider.LIST_CODEC, getRegistryManager().getOps(NbtOps.INSTANCE), riderSlots);
+			nbt.put(PASSENGER_SLOTS, DisplayRider.LIST_CODEC, riderSlots);
 		}
 	}
 

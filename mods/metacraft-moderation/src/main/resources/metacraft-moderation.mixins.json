@@ -3,8 +3,6 @@
   "package": "se.datasektionen.mc.metacraft_moderation.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "AccessorPlayerManager",
-    "AccessorServerPlayerEntity",
     "MixinServerPlayerEntity",
     "MixinTameableEntity"
   ],

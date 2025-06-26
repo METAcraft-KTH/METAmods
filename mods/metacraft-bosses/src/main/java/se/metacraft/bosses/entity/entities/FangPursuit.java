@@ -5,8 +5,9 @@ import net.minecraft.entity.*;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.mob.*;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
@@ -185,14 +186,14 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 	}
 
 	@Override
-	public void readCustomDataFromNbt(NbtCompound nbt) {
+	public void readCustomData(ReadView nbt) {
 		owner.readNBT(nbt, OWNER);
 		target.readNBT(nbt, TARGET);
 		speed = nbt.getDouble(SPEED, 0);
 	}
 
 	@Override
-	public void writeCustomDataToNbt(NbtCompound nbt) {
+	public void writeCustomData(WriteView nbt) {
 		owner.writeNBT(nbt, OWNER);
 		target.writeNBT(nbt, TARGET);
 		nbt.putDouble(SPEED, speed);

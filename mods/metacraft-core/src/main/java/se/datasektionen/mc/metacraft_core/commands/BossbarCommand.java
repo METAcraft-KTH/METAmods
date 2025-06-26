@@ -7,8 +7,12 @@ import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.command.argument.NbtCompoundArgumentType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.storage.NbtWriteView;
 import net.minecraft.text.Text;
+import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.util.helper.BossBarHelper;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -26,11 +30,16 @@ public class BossbarCommand {
                         ctx -> {
                             var entity = EntityArgumentType.getEntity(ctx, "entity");
                             var data = NbtCompoundArgumentType.getNbtCompound(ctx, "data");
-                            var entityData = entity.writeNbt(new NbtCompound());
-                            var existing = entityData.getCompoundOrEmpty("BossBar");
-                            existing.copyFrom(data);
-                            entityData.put("BossBar", existing);
-                            BossBarHelper.loadBossBar(entity, entityData);
+                            try (var logging = LoggingErrorReporter.create(() -> "metacraft:/entity-bossbar", METAcraftCore.LOGGER)) {
+                                var writeView = NbtWriteView.create(logging, ctx.getSource().getRegistryManager());
+                                entity.writeData(writeView);
+                                NbtCompound entityData = writeView.getNbt();
+                                var existing = entityData.getCompoundOrEmpty("BossBar");
+                                existing.copyFrom(data);
+                                entityData.put("BossBar", existing);
+                                var readView = NbtReadView.create(logging, ctx.getSource().getRegistryManager(), entityData);
+                                BossBarHelper.loadBossBar(entity, readView);
+                            }
                             return 0;
                         }
                     )

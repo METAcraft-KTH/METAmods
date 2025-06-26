@@ -10,12 +10,15 @@ import net.minecraft.entity.EntityCollisionHandler;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
+import net.minecraft.storage.NbtReadView;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.block.entities.PortalEntity;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 public class PortalPadding extends Block implements PolymerBlock {
@@ -44,12 +47,18 @@ public class PortalPadding extends Block implements PolymerBlock {
 	}
 
 	public static void sendDummyEndGateway(BlockPos pos, PacketContext.NotNullWithPlayer ctx) {
-		var tile = new EndGatewayBlockEntity(pos, Blocks.END_GATEWAY.getDefaultState());
-		var nbt = tile.toInitialChunkDataNbt(ctx.getPlayer().getRegistryManager());
-		nbt.putLong("Age", 300);
-		tile.read(nbt, ctx.getPlayer().getRegistryManager());
-		tile.setWorld(ctx.getPlayer().getWorld());
-		ctx.getPlayer().networkHandler.sendPacket(BlockEntityUpdateS2CPacket.create(tile));
+		var lookup = ctx.getRegistryWrapperLookup();
+		if (lookup != null) {
+			var tile = new EndGatewayBlockEntity(pos, Blocks.END_GATEWAY.getDefaultState());
+			var nbt = tile.toInitialChunkDataNbt(ctx.getPlayer().getRegistryManager());
+			nbt.putLong("Age", 300);
+			try (var logging = LoggingErrorReporter.create(() -> "metacraft:PortalPadding#sendDummyEndGateway", METAcraftCore.LOGGER)) {
+				var readView = NbtReadView.create(logging, lookup, nbt);
+				tile.read(readView);
+			}
+			tile.setWorld(ctx.getPlayer().getWorld());
+			ctx.getPlayer().networkHandler.sendPacket(BlockEntityUpdateS2CPacket.create(tile));
+		}
 	}
 
 	@Override

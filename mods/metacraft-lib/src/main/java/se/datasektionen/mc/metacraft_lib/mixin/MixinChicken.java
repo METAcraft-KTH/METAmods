@@ -6,7 +6,8 @@ import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.passive.ChickenEntity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -45,18 +46,16 @@ public abstract class MixinChicken extends AnimalEntity implements ChickenExtens
 		return builder.add(EntityAttributes.ATTACK_DAMAGE, 5);
 	}
 
-	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
-	public void toNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "writeCustomData", at = @At("RETURN"))
+	public void toNBT(WriteView nbt, CallbackInfo ci) {
 		nbt.putBoolean(CUCCO, isCucco);
 		nbt.putInt(REINFORCEMENT_COUNT, reinforcementCount);
 	}
 
-	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
-	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "readCustomData", at = @At("RETURN"))
+	public void fromNBT(ReadView nbt, CallbackInfo ci) {
 		isCucco = nbt.getBoolean(CUCCO, false);
-		if (nbt.contains(REINFORCEMENT_COUNT)) {
-			reinforcementCount = nbt.getInt(REINFORCEMENT_COUNT, 0);
-		}
+		reinforcementCount = nbt.getOptionalInt(REINFORCEMENT_COUNT).orElseGet(() -> getRandom().nextInt(20));
 	}
 
 	@Inject(method = "initGoals", at = @At("HEAD"))

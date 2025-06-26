@@ -1,7 +1,8 @@
 package se.datasektionen.mc.cutscenes.mixin;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
@@ -41,15 +42,15 @@ public abstract class MixinEntity implements EntityExtension {
 		}
 	}
 
-	@Inject(method = "writeNbt", at = @At("RETURN"))
-	public void save(NbtCompound nbt, CallbackInfoReturnable<NbtCompound> cir) {
+	@Inject(method = "writeData", at = @At("RETURN"))
+	public void save(WriteView nbt, CallbackInfo ci) {
 		if (hasAccurateMovement) {
 			nbt.putBoolean(HAS_ACCURATE_MOVEMENT, true);
 		}
 	}
 
-	@Inject(method = "readNbt", at = @At("RETURN"))
-	public void load(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "readData", at = @At("RETURN"))
+	public void load(ReadView nbt, CallbackInfo ci) {
 		hasAccurateMovement = nbt.getBoolean(HAS_ACCURATE_MOVEMENT, false);
 	}
 

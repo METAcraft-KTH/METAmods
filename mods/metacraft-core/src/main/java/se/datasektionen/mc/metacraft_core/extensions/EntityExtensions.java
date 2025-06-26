@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_core.extensions;
 
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import se.datasektionen.mc.metacraft_core.music.ManageableServerBossBar;
 
 import java.util.Optional;
@@ -15,9 +16,9 @@ public interface EntityExtensions {
 
 	void metacraft_lib$updateBossBarReplaced();
 
-	void metacraft_lib$loadBossBar(NbtCompound nbt);
+	void metacraft_lib$loadBossBar(ReadView nbt);
 
-	void metacraft_lib$saveBossBar(NbtCompound nbt);
+	void metacraft_lib$saveBossBar(WriteView nbt);
 
 
 	void metacraft$setLastMovedByMovingBlockTick(long tick);

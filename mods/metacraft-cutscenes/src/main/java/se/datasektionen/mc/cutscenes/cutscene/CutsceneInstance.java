@@ -17,6 +17,9 @@ import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.storage.NbtWriteView;
+import net.minecraft.storage.ReadView;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.Vec2f;
@@ -42,6 +45,7 @@ import se.datasektionen.mc.metacraft_core.util.RefContext;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_lib.util.TaskScheduler;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityTrackerHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 
@@ -248,9 +252,13 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	private static NbtCompound writeSafeData(ServerPlayerEntity player) {
-		var nbt = player.writeNbt(new NbtCompound());
-		nbt.remove(CUTSCENE);
-		return nbt;
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:CutsceneInstance#writeSafedata", Cutscenes.LOGGER)) {
+			var writeView = NbtWriteView.create(logging, player.getRegistryManager());
+			player.writeData(writeView);
+			var nbt = writeView.getNbt();
+			nbt.remove(CUTSCENE);
+			return nbt;
+		}
 	}
 
 	public boolean canAddPlayer(ServerPlayerEntity player) {
@@ -310,7 +318,7 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	private void removeLead(ServerPlayerEntity player) {
-		player.getServerWorld().getEntitiesByType(
+		player.getWorld().getEntitiesByType(
 				TypeFilter.instanceOf(Entity.class),
 				entity -> entity instanceof Leashable leashable && leashable.isLeashed() && leashable.getLeashHolder() == player
 		).forEach(entity -> {
@@ -375,7 +383,7 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	public static void loadPlayerData(
-			ServerPlayerEntity player, NbtCompound data, boolean usePlayerDataPosition,
+			ServerPlayerEntity player, ReadView data, boolean usePlayerDataPosition,
 			Optional<TeleportTarget> exitPosOverride
 	) {
 		PlayerDataHelper.applyPlayerData(player, data, usePlayerDataPosition && exitPosOverride.isEmpty());
@@ -399,54 +407,59 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	protected void resetPlayer(ServerPlayerEntity player, boolean isLeavingCutscene) {
-		if (cutscene.resetPlayerData()) {
-			var data = savedPlayerData.get(player.getUuid());
-			if (data == null) {
-				data = new NbtCompound();
-			}
-			if (skipNextCutscene(isLeavingCutscene)) {
-				loadPlayerData(player, data, cutscene.returnToStart(), cutscene.getExitPoint(player, this));
-			}
-		} else if (skipNextCutscene(isLeavingCutscene)) {
-			TeleportTarget target = null;
-			if (cutscene.hasExitPoint()) {
-				target = cutscene.getExitPoint(player, this).orElseThrow();
-			} else if (cutscene.returnToStart() && skipNextCutscene(isLeavingCutscene)) {
-				target = Optional.ofNullable(savedPlayerData.get(player.getUuid())).flatMap(data -> {
-					Vec3d pos = data.get("Pos", Vec3d.CODEC).orElse(Vec3d.ZERO);
-					Vec3d velocity = data.get("Motion", Vec3d.CODEC).orElse(Vec3d.ZERO);
-					Vec2f rotation = data.get("Rotation", Vec2f.CODEC).orElse(Vec2f.ZERO);
-					var dim = PlayerDataHelper.getWorld(player.getServer(), data);
-					return dim.map(world -> {
-						return new TeleportTarget(
-								world, pos, velocity,
-								rotation.x, rotation.y, TeleportTarget.NO_OP
-						);
-					});
-				}).orElseGet(() -> player.getRespawnTarget(true, TeleportTarget.NO_OP));
-			}
-			if (target != null) {
-				player.teleportTo(target);
-			}
-
-			if (savedPlayerData.containsKey(player.getUuid())) {
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:CutsceneInstance#resetPlayer", Cutscenes.LOGGER)) {
+			if (cutscene.resetPlayerData()) {
 				var data = savedPlayerData.get(player.getUuid());
-				PlayerDataHelper.loadRootVehicleAndPassengers(player, data, e -> {
-					if (player.getWorld().spawnEntity(e)) {
-						e.updatePositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
-						return e;
-					}
-					return null;
-				});
-				if (target != null) {
-					var vehicle = player.getRootVehicle();
-					vehicle.teleportTo(
-							target.withPosition(target.position().subtract(player.getPos().subtract(vehicle.getPos())))
-					);
+				if (data == null) {
+					data = new NbtCompound();
 				}
-				player.readEnderPearls(data);
-			}
+				if (skipNextCutscene(isLeavingCutscene)) {
+					var readView = NbtReadView.create(logging, player.getRegistryManager(), data);
+					loadPlayerData(player, readView, cutscene.returnToStart(), cutscene.getExitPoint(player, this));
+				}
+			} else if (skipNextCutscene(isLeavingCutscene)) {
+				TeleportTarget target = null;
+				if (cutscene.hasExitPoint()) {
+					target = cutscene.getExitPoint(player, this).orElseThrow();
+				} else if (cutscene.returnToStart() && skipNextCutscene(isLeavingCutscene)) {
+					target = Optional.ofNullable(savedPlayerData.get(player.getUuid())).flatMap(data -> {
+						Vec3d pos = data.get("Pos", Vec3d.CODEC).orElse(Vec3d.ZERO);
+						Vec3d velocity = data.get("Motion", Vec3d.CODEC).orElse(Vec3d.ZERO);
+						Vec2f rotation = data.get("Rotation", Vec2f.CODEC).orElse(Vec2f.ZERO);
+						var readView = NbtReadView.create(logging, player.getRegistryManager(), data);
+						var dim = PlayerDataHelper.getWorld(player.getServer(), readView);
+						return dim.map(world -> {
+							return new TeleportTarget(
+									world, pos, velocity,
+									rotation.x, rotation.y, TeleportTarget.NO_OP
+							);
+						});
+					}).orElseGet(() -> player.getRespawnTarget(true, TeleportTarget.NO_OP));
+				}
+				if (target != null) {
+					player.teleportTo(target);
+				}
 
+				if (savedPlayerData.containsKey(player.getUuid())) {
+					var data = savedPlayerData.get(player.getUuid());
+					var readView = NbtReadView.create(logging, player.getRegistryManager(), data);
+					PlayerDataHelper.loadRootVehicleAndPassengers(player, readView, e -> {
+						if (player.getWorld().spawnEntity(e)) {
+							e.updatePositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+							return e;
+						}
+						return null;
+					});
+					if (target != null) {
+						var vehicle = player.getRootVehicle();
+						vehicle.teleportTo(
+								target.withPosition(target.position().subtract(player.getPos().subtract(vehicle.getPos())))
+						);
+					}
+					player.readEnderPearls(readView);
+				}
+
+			}
 		}
 		if (skipNextCutscene(isLeavingCutscene)) {
 			savedPlayerData.remove(player.getUuid());
@@ -476,7 +489,7 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 
 		if (cutscene.hidePlayer()) {
-			var tracker = EntityTrackerHelper.getEntityTrackers(player.getServerWorld()).get(player.getId());
+			var tracker = EntityTrackerHelper.getEntityTrackers(player.getWorld()).get(player.getId());
 			for (var p : getServer().getPlayerManager().getPlayerList()) {
 				if (p != player) {
 					tracker.updateTrackedStatus(p);

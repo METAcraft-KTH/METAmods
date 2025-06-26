@@ -27,6 +27,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.*;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
+import net.minecraft.storage.NbtWriteView;
 import net.minecraft.structure.StructurePlacementData;
 import net.minecraft.structure.StructureTemplate;
 import net.minecraft.util.math.*;
@@ -49,6 +50,7 @@ import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.extension.ServerScoreboardExtensions;
 import se.datasektionen.mc.cutscenes.mixin.*;
 import se.datasektionen.mc.cutscenes.util.SerialisedStructure;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import se.datasektionen.mc.metacraft_lib.util.helper.StructureTemplateHelper;
 import se.datasektionen.mc.metacraft_lib.util.helper.WorldHelper;
 
@@ -383,35 +385,44 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		BlockPos.Mutable min = new BlockPos.Mutable(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
 		BlockPos.Mutable max = new BlockPos.Mutable(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 
-		streamChangedChunks().forEach(chunk -> {
-			chunk.getChangedBlocks().forEach(pos -> {
-				var newState = chunk.getBlockState(pos);
-				var blockEntity = chunk.getBlockEntity(pos);
-				StructureTemplate.StructureBlockInfo info = new StructureTemplate.StructureBlockInfo(
-						pos, newState, blockEntity != null ? blockEntity.createNbtWithId(getRegistryManager()) : null
-				);
-				StructureTemplateHelper.categorize(info, fullBlocks, blockWithNBT, otherBlocks);
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:CutsceneWorld#saveAsStructure", Cutscenes.LOGGER)) {
+			streamChangedChunks().forEach(chunk -> {
+				chunk.getChangedBlocks().forEach(pos -> {
+					var newState = chunk.getBlockState(pos);
+					var blockEntity = chunk.getBlockEntity(pos);
+					NbtCompound blockData = null;
+					if (blockEntity != null) {
+						var writeView = NbtWriteView.create(logging, getRegistryManager());
+						blockEntity.writeDataWithId(writeView);
+						blockData = writeView.getNbt();
+					}
+					StructureTemplate.StructureBlockInfo info = new StructureTemplate.StructureBlockInfo(
+							pos, newState, blockData
+					);
+					StructureTemplateHelper.categorize(info, fullBlocks, blockWithNBT, otherBlocks);
 
-				if (pos.getX() < min.getX()) {
-					min.setX(pos.getX());
-				}
-				if (pos.getY() < min.getY()) {
-					min.setY(pos.getY());
-				}
-				if (pos.getZ() < min.getZ()) {
-					min.setZ(pos.getZ());
-				}
-				if (pos.getX() > max.getX()) {
-					max.setX(pos.getX());
-				}
-				if (pos.getY() > max.getY()) {
-					max.setY(pos.getY());
-				}
-				if (pos.getZ() > max.getZ()) {
-					max.setZ(pos.getZ());
-				}
+					if (pos.getX() < min.getX()) {
+						min.setX(pos.getX());
+					}
+					if (pos.getY() < min.getY()) {
+						min.setY(pos.getY());
+					}
+					if (pos.getZ() < min.getZ()) {
+						min.setZ(pos.getZ());
+					}
+					if (pos.getX() > max.getX()) {
+						max.setX(pos.getX());
+					}
+					if (pos.getY() > max.getY()) {
+						max.setY(pos.getY());
+					}
+					if (pos.getZ() > max.getZ()) {
+						max.setZ(pos.getZ());
+					}
+				});
 			});
-		});
+		}
+
 		BlockBox box = BlockBox.create(min, max);
 		StructureTemplateHelper.setSize(
 				template,

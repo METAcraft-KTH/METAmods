@@ -11,7 +11,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.TypeFilter;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,11 +26,11 @@ import java.util.List;
 @Mixin(ServerPlayerEntity.class)
 public abstract class MixinServerPlayerEntity extends PlayerEntity {
 
-	public MixinServerPlayerEntity(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
-		super(world, pos, yaw, gameProfile);
-	}
+	@Shadow public abstract ServerWorld getWorld();
 
-	@Shadow public abstract ServerWorld getServerWorld();
+	public MixinServerPlayerEntity(World world, GameProfile profile) {
+		super(world, profile);
+	}
 
 	@Inject(
 			method = "teleportTo",
@@ -43,24 +42,24 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity {
 			@Share("pets") LocalRef<List<? extends LivingEntity>> pets
 	) {
 		leashed.set(
-				getServerWorld().getEntitiesByType(
+				getWorld().getEntitiesByType(
 						TypeFilter.instanceOf(Entity.class),
 						entity -> entity instanceof Leashable leashable && leashable.isLeashed() && leashable.getLeashHolder() == this
 				)
 		);
-		pets.set(getServerWorld().getEntitiesByType(
+		pets.set(getWorld().getEntitiesByType(
 				TypeFilter.instanceOf(TameableEntity.class),
 				entity ->
 						((TameableExtension) entity).metacraft$getCurrentFollowTarget() == (Object) this
 						&& !entity.cannotFollowOwner()
 		));
 		pets.get().forEach(pet -> {
-			this.getServerWorld().getChunkManager().addTicket(
+			this.getWorld().getChunkManager().addTicket(
 					TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2
 			);
 		});
 		leashed.get().forEach(pet -> {
-			this.getServerWorld().getChunkManager().addTicket(
+			this.getWorld().getChunkManager().addTicket(
 					TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2
 			);
 		});

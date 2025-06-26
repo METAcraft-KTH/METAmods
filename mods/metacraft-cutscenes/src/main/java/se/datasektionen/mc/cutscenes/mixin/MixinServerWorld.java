@@ -72,12 +72,12 @@ public abstract class MixinServerWorld extends World {
 		method = "sendToPlayerIfNearby",
 		at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/server/network/ServerPlayerEntity;getWorld()Lnet/minecraft/world/World;"
+				target = "Lnet/minecraft/server/network/ServerPlayerEntity;getWorld()Lnet/minecraft/server/world/ServerWorld;"
 		)
 	)
-	public final World sendToPlayerIfNearby(ServerPlayerEntity player, Operation<World> original) {
+	public final ServerWorld sendToPlayerIfNearby(ServerPlayerEntity player, Operation<ServerWorld> original) {
 		if ((Object) this instanceof CutsceneWorld cw && cw.getCutscene().hasPlayer(player)) {
-			return this;
+			return (ServerWorld) (Object) this;
 		}
 		return original.call(player);
 	}

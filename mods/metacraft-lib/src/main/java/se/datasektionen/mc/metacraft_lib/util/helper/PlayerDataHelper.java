@@ -1,29 +1,29 @@
 package se.datasektionen.mc.metacraft_lib.util.helper;
 
-import com.mojang.serialization.DataResult;
-import com.mojang.serialization.Dynamic;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.storage.ReadView;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.World;
 import se.datasektionen.mc.metacraft_lib.METAcraftLib;
 import se.datasektionen.mc.metacraft_lib.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorPlayerAdvancementTracker;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorPlayerManager;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorServerPlayerEntity;
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorStatHandler;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import se.datasektionen.mc.metacraft_lib.util.SeparateAdvancementTracker;
 import se.datasektionen.mc.metacraft_lib.util.SeparateStatHandler;
 
@@ -53,6 +53,8 @@ public class PlayerDataHelper {
 	public static final String ADVANCEMENT_TRACKER = "metacraft:advancement_tracker";
 
 	public static final String ANNOUNCE_ADVANCEMENTS = "metacraft:announce_advancements";
+	public static final String ANNOUNCE_DEATH = "metacraft:announce_death";
+	public static final String ANNOUNCE_JOIN_LEAVE = "metacraft:announce_join_leave";
 
 	/**
 	 * Saves the current player data to the given id slot.
@@ -89,7 +91,12 @@ public class PlayerDataHelper {
 			boolean includeVehicleAndPassengers, boolean includeFarawayEntities
 	) {
 		ext(player).metacraft_lib$getPlayerData(id).ifPresent(data -> {
-			applyPlayerData(player, data, moveToDataPosition, includeVehicleAndPassengers, includeFarawayEntities);
+			try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerDataHelper#loadPlayerData", METAcraftLib.LOGGER)) {
+				var view = NbtReadView.create(
+						logging, player.getRegistryManager(), data
+				);
+				applyPlayerData(player, view, moveToDataPosition, includeVehicleAndPassengers, includeFarawayEntities);
+			}
 		});
 	}
 
@@ -160,7 +167,17 @@ public class PlayerDataHelper {
 	 * @param player The player to modify.
 	 */
 	public static void resetPlayerData(ServerPlayerEntity player) {
-		applyPlayerData(player, getEmptyPlayerData(), false, false, false);
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerDataHelper#resetPlayerData", METAcraftLib.LOGGER)) {
+			var view = NbtReadView.create(
+					logging,
+					player.getRegistryManager(),
+					getEmptyPlayerData()
+			);
+			applyPlayerData(
+					player, view,
+					false, false, false
+			);
+		}
 	}
 
 	/**
@@ -174,19 +191,11 @@ public class PlayerDataHelper {
 	/**
 	 * Gets the world from the given player data.
 	 * @param server The server to load the world in.
-	 * @param data The data containing a dimension tag.
+	 * @param view The data containing a dimension tag.
 	 * @return The world or empty if that world did not exist.
 	 */
-	public static Optional<ServerWorld> getWorld(MinecraftServer server, NbtCompound data) {
-		return DimensionType.worldFromDimensionNbt(
-				new Dynamic<>(NbtOps.INSTANCE, data.get("Dimension"))
-		).flatMap(key -> {
-			var dim = server.getWorld(key);
-			if (dim == null) {
-				return DataResult.error(() -> "Dimension " + key + " did not exist.");
-			}
-			return DataResult.success(dim);
-		}).resultOrPartial(METAcraftLib.LOGGER::error);
+	public static Optional<ServerWorld> getWorld(MinecraftServer server, ReadView view) {
+		return view.read("Dimension", World.CODEC).map(server::getWorld);
 	}
 
 	/**
@@ -194,10 +203,10 @@ public class PlayerDataHelper {
 	 * @param entity The entity to modify.
 	 * @param nbt The data.
 	 * @param spawner A modifier to run for each entity loaded. If player is already in a world, this would likely include a spawnEntity call.
-	 * @see PlayerDataHelper#loadPassengers(LivingEntity, NbtCompound, UnaryOperator)
-	 * @see PlayerDataHelper#loadRootVehicle(LivingEntity, NbtCompound, UnaryOperator)
+	 * @see PlayerDataHelper#loadPassengers(LivingEntity, ReadView, UnaryOperator)
+	 * @see PlayerDataHelper#loadRootVehicle(LivingEntity, ReadView, UnaryOperator)
 	 */
-	public static void loadRootVehicleAndPassengers(LivingEntity entity, NbtCompound nbt, UnaryOperator<Entity> spawner) {
+	public static void loadRootVehicleAndPassengers(LivingEntity entity, ReadView nbt, UnaryOperator<Entity> spawner) {
 		loadRootVehicle(entity, nbt, spawner);
 		loadPassengers(entity, nbt, spawner);
 	}
@@ -208,12 +217,10 @@ public class PlayerDataHelper {
 	 * @param nbt The data.
 	 * @param spawner A modifier to run for each entity loaded. If player is already in a world, this would likely include a spawnEntity call.
 	 */
-	public static void loadPassengers(LivingEntity entity, NbtCompound nbt, UnaryOperator<Entity> spawner) {
-		NbtList nbtList = nbt.getListOrEmpty(Entity.PASSENGERS_KEY);
-
-		for (int i = 0; i < nbtList.size(); i++) {
+	public static void loadPassengers(LivingEntity entity, ReadView nbt, UnaryOperator<Entity> spawner) {
+		for (var e : nbt.getListReadView(Entity.PASSENGERS_KEY)) {
 			Entity entity2 = EntityType.loadEntityWithPassengers(
-					nbtList.getCompoundOrEmpty(i), entity.getWorld(), SpawnReason.LOAD, spawner
+					e, entity.getWorld(), SpawnReason.LOAD, spawner
 			);
 			if (entity2 != null) {
 				entity2.startRiding(entity, true);
@@ -227,16 +234,15 @@ public class PlayerDataHelper {
 	 * @param data The data.
 	 * @param spawner A modifier to run for each entity loaded. If player is already in a world, this would likely include a spawnEntity call.
 	 */
-	public static void loadRootVehicle(LivingEntity player, NbtCompound data, UnaryOperator<Entity> spawner) {
-		if (data.contains("RootVehicle")) {
-			var vehicle = data.getCompoundOrEmpty("RootVehicle");
-			var e = EntityType.loadEntityWithPassengers(vehicle.getCompoundOrEmpty("Entity"), player.getWorld(), SpawnReason.LOAD, spawner);
+	public static void loadRootVehicle(LivingEntity player, ReadView data, UnaryOperator<Entity> spawner) {
+		data.getOptionalReadView("RootVehicle").ifPresent(vehicle -> {
+			var e = EntityType.loadEntityWithPassengers(vehicle.getReadView("Entity"), player.getWorld(), SpawnReason.LOAD, spawner);
 			if (e != null) {
 				Runnable clearEntity = () -> {
 					e.streamPassengersAndSelf().forEach(Entity::discard);
 					METAcraftLib.LOGGER.error("Unable to reattach player to entity.");
 				};
-				vehicle.get("Attach", Uuids.INT_STREAM_CODEC).ifPresentOrElse(id -> {
+				vehicle.read("Attach", Uuids.INT_STREAM_CODEC).ifPresentOrElse(id -> {
 					for (var entity : (Iterable<Entity>) e.streamSelfAndPassengers()::iterator) {
 						if (entity.getUuid().equals(id)) {
 							player.startRiding(entity, true);
@@ -247,7 +253,7 @@ public class PlayerDataHelper {
 					}
 				}, clearEntity);
 			}
-		}
+		});
 	}
 
 	/**
@@ -258,7 +264,7 @@ public class PlayerDataHelper {
 	 * @param moveToDataPosition Whether to teleport the player to their position in the data.
 	 */
 	public static void applyPlayerData(
-			ServerPlayerEntity player, NbtCompound data, boolean moveToDataPosition
+			ServerPlayerEntity player, ReadView data, boolean moveToDataPosition
 	) {
 		applyPlayerData(player, data, moveToDataPosition, true, true);
 	}
@@ -272,7 +278,7 @@ public class PlayerDataHelper {
 	 * @param spawnFarawayEntities Whether to spawn any additional entities such as ender pearls stored in player data.
 	 */
 	public static void applyPlayerData(
-			ServerPlayerEntity player, NbtCompound data, boolean moveToDataPosition,
+			ServerPlayerEntity player, ReadView data, boolean moveToDataPosition,
 			boolean spawnVehicleAndPassengers, boolean spawnFarawayEntities
 	) {
 		player.clearStatusEffects();
@@ -307,7 +313,7 @@ public class PlayerDataHelper {
 			player.setPitch(prevPitch);
 			player.setVelocity(prevVelocity);
 		}
-		var gameMode = AccessorServerPlayerEntity.callGameModeFromNbt(data, "playerGameType");
+		var gameMode = AccessorServerPlayerEntity.callGameModeFromData(data, "playerGameType");
 		if (gameMode != null) {
 			player.changeGameMode(gameMode);
 		}
@@ -369,7 +375,7 @@ public class PlayerDataHelper {
 			((AccessorPlayerManager) playerManager).getAdvancementTrackers().put(
 					player.getUuid(), player.getAdvancementTracker()
 			);
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(Optional.of(type));
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(type);
 
 			if (copy) {
 				var progress = ((AccessorPlayerAdvancementTracker) prevTracker).getProgress();
@@ -391,7 +397,7 @@ public class PlayerDataHelper {
 			t.clearCriteria();
 			((AccessorPlayerManager) playerManager).getAdvancementTrackers().remove(player.getUuid());
 			((AccessorServerPlayerEntity) player).setAdvancementTracker(playerManager.getAdvancementTracker(player));
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(Optional.empty());
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(null);
 		}
 	}
 
@@ -399,11 +405,11 @@ public class PlayerDataHelper {
 		if (!(player.getStatHandler() instanceof SeparateStatHandler h) || !h.getType().equals(type)) {
 			var prevHandler = player.getStatHandler();
 			player.getStatHandler().save();
-			((AccessorServerPlayerEntity) player).setStatHandler(new SeparateStatHandler(player.server, player, type));
+			((AccessorServerPlayerEntity) player).setStatHandler(new SeparateStatHandler(player.getServer(), player, type));
 			((AccessorPlayerManager) player.getServer().getPlayerManager()).getStatisticsMap().put(
 					player.getUuid(), player.getStatHandler()
 			);
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(Optional.of(type));
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(type);
 
 			if (copy) {
 				for (var entry : ((AccessorStatHandler) prevHandler).getStatMap().object2IntEntrySet()) {
@@ -419,7 +425,7 @@ public class PlayerDataHelper {
 			t.save();
 			((AccessorPlayerManager) playerManager).getStatisticsMap().remove(player.getUuid());
 			((AccessorServerPlayerEntity) player).setStatHandler(playerManager.createStatHandler(player));
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(Optional.empty());
+			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(null);
 		}
 	}
 

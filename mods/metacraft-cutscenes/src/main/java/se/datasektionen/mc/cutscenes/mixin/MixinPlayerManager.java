@@ -38,7 +38,7 @@ public class MixinPlayerManager {
 		method = "sendToDimension",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/World;getRegistryKey()Lnet/minecraft/registry/RegistryKey;"
+			target = "Lnet/minecraft/server/world/ServerWorld;getRegistryKey()Lnet/minecraft/registry/RegistryKey;"
 		)
 	)
 	public RegistryKey<World> sendToDimension(

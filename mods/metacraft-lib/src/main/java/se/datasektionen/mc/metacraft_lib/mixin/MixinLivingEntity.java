@@ -16,9 +16,10 @@ import net.minecraft.entity.attribute.*;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.passive.ChickenEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -91,8 +92,8 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 		}
 	}
 
-	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
-	public void toNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "writeCustomData", at = @At("RETURN"))
+	public void toNBT(WriteView nbt, CallbackInfo ci) {
 		nbt.putBoolean(EntityParameters.IS_HOSTILE, isHostile);
 		nbt.putBoolean(HAS_ANGER_PARTICLES, hasAngerParticles);
 	}
@@ -107,13 +108,13 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 			"named", UpdateAttackTargetTask.class.getName()
 	);
 
-	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
-	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "readCustomData", at = @At("RETURN"))
+	public void fromNBT(ReadView nbt, CallbackInfo ci) {
 		isHostile = nbt.getBoolean(EntityParameters.IS_HOSTILE, false);
 		hasAngerParticles = nbt.getBoolean(HAS_ANGER_PARTICLES, false);
-		if (nbt.contains(ANGRY)) {
-			isHostile = nbt.getBoolean(ANGRY, false);
-			hasAngerParticles = nbt.getBoolean(ANGRY, false);
+		if (nbt.getBoolean(ANGRY, false)) {
+			isHostile = true;
+			hasAngerParticles = true;
 		}
 		if (isHostile && (Object) this instanceof MobEntity) {
 			((AccessorBrain) this.brain).getTasks().forEach((id, tasks) -> {

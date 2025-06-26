@@ -77,7 +77,7 @@ public class PlaySoundFromEntity {
 		dispatcher.register(
 			literal("playsound-from-entity").requires(Permissions.require("metacraft.playsound-from-entity", 2)).then(
 				argument("sound", IdentifierArgumentType.identifier()).suggests(
-					SuggestionProviders.AVAILABLE_SOUNDS
+						SuggestionProviders.cast(SuggestionProviders.AVAILABLE_SOUNDS)
 				).executes(
 					ctx -> playSound(
 							ctx, IdentifierArgumentType.getIdentifier(ctx, "sound"),

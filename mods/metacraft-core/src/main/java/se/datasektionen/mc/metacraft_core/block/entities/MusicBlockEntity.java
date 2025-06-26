@@ -5,13 +5,13 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.structure.StructureTemplate;
 import net.minecraft.util.collection.Pool;
+import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
@@ -27,6 +27,7 @@ import java.util.*;
 
 public class MusicBlockEntity extends BlockEntity {
 	public static final Codec<Pool<MusicEntry>> MUSIC_POOL_CODEC = Pool.createCodec(MusicEntry.CODEC);
+	public static final Codec<Map<String, Pool<MusicEntry>>> NAMED_MUSIC_POOLS_CODEC = Codec.unboundedMap(Codec.STRING, MUSIC_POOL_CODEC);
 	public static final String RANGE = "Range";
 	public static final String BOX = "Box";
 	public static final String MUSIC_CHOICES = "MusicChoices";
@@ -143,49 +144,38 @@ public class MusicBlockEntity extends BlockEntity {
 	}
 
 	@Override
-	public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapper) {
-		super.readNbt(nbt, wrapper);
+	public void readData(ReadView nbt) {
+		super.readData(nbt);
 
 		this.musicChoices.clear();
-		NbtCompound musicChoices = nbt.getCompoundOrEmpty(MUSIC_CHOICES);
-		for (var key : musicChoices.getKeys()) {
-			musicChoices.get(key, MUSIC_POOL_CODEC, wrapper.getOps(NbtOps.INSTANCE)).ifPresent(
-					musicPool -> this.musicChoices.put(key, musicPool)
-			);
-		}
+		nbt.read(MUSIC_CHOICES, NAMED_MUSIC_POOLS_CODEC).ifPresent(
+				this.musicChoices::putAll
+		);
 
-		if (nbt.contains(CURRENT_MUSIC)) {
-			setMusicInternal(nbt.getString(CURRENT_MUSIC, DEFAULT_MUSIC));
-		} else {
-			setMusicInternal(null);
-		}
-		
-		if (nbt.contains("Reset")) {
+		setMusicInternal(nbt.getString(CURRENT_MUSIC, null));
+
+		if (nbt.read("Reset", Codecs.NBT_ELEMENT).isPresent()) {
 			resetMusic();
 		}
 
 		range = nbt.getDouble(RANGE, 128);
-		if (nbt.contains(BOX)) {
-			nbt.get(BOX, ExtraCodecs.BOX_CODEC).ifPresent(
-					box -> {
-						boundingBox = box;
-						cachedBox = null;
-					}
-			);
-		} else {
-			boundingBox = null;
-			cachedBox = null;
-		}
+		nbt.read(BOX, ExtraCodecs.BOX_CODEC).ifPresentOrElse(
+				box -> {
+					boundingBox = box;
+					cachedBox = null;
+				},
+				() -> {
+					boundingBox = null;
+					cachedBox = null;
+				}
+		);
 	}
 
 	@Override
-	public void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapper) {
-		super.writeNbt(nbt, wrapper);
-		NbtCompound musicChoices = new NbtCompound();
-		for (var entry : this.musicChoices.entrySet()) {
-			musicChoices.put(entry.getKey(), MUSIC_POOL_CODEC, wrapper.getOps(NbtOps.INSTANCE), entry.getValue());
-		}
-		nbt.put(MUSIC_CHOICES, musicChoices);
+	public void writeData(WriteView nbt) {
+		super.writeData(nbt);
+
+		nbt.put(MUSIC_CHOICES, NAMED_MUSIC_POOLS_CODEC, musicChoices);
 		if (currentMusic != null) {
 			nbt.putString(CURRENT_MUSIC, currentMusic);
 		}

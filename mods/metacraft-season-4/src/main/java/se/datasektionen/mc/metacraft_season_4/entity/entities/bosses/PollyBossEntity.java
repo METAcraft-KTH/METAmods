@@ -50,6 +50,8 @@ import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -78,6 +80,7 @@ import se.datasektionen.mc.metacraft_lib.condition.entity_sub_predicates.HealthP
 import se.datasektionen.mc.metacraft_lib.entity.EntityParameters;
 import se.datasektionen.mc.metacraft_lib.extensions.EntityExtensions;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
+import se.datasektionen.mc.metacraft_lib.util.helper.ViewHelper;
 import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.boss.ChangeTickSpeed;
 import se.datasektionen.mc.metacraft_season_4.entity.Season4Entities;
@@ -495,32 +498,20 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 	}
 
 	@Override
-	public void writeCustomDataToNbt(NbtCompound nbt) {
-		super.writeCustomDataToNbt(nbt);
+	public void writeCustomData(WriteView nbt) {
+		super.writeCustomData(nbt);
 		nbt.put(
 				ATTACKS,
-				ATTACK_POOL_CODEC.encodeStart(
-						getRegistryManager().getOps(NbtOps.INSTANCE),
-						attacks
-				).getOrThrow()
+				ATTACK_POOL_CODEC,
+				attacks
 		);
 		container.writeNBT(nbt);
 	}
 
 	@Override
-	public void readCustomDataFromNbt(NbtCompound nbt) {
-		nbt.remove("Owner");
-		super.readCustomDataFromNbt(nbt);
-		if (nbt.contains(ATTACKS)) {
-			attacks = ATTACK_POOL_CODEC.parse(
-					getRegistryManager().getOps(NbtOps.INSTANCE),
-					nbt.get(ATTACKS)
-			).resultOrPartial(
-					Season4.LOGGER::error
-			).orElseGet(Pool::empty);
-		} else {
-			attacks = Pool.empty();
-		}
+	public void readCustomData(ReadView nbt) {
+		super.readCustomData(ViewHelper.filtered(nbt, Set.of("Owner")));
+		attacks = nbt.read(ATTACKS, ATTACK_POOL_CODEC).orElse(Pool.empty());
 		container.readNBT(nbt);
 	}
 

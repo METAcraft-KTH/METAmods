@@ -4,8 +4,9 @@ import com.mojang.datafixers.util.Either;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.Ownable;
 import net.minecraft.entity.Targeter;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.Uuids;
 import net.minecraft.world.World;
 
@@ -110,7 +111,7 @@ public class EntityTarget {
 		);
 	}
 
-	public void writeNBT(NbtCompound nbt, String name) {
+	public void writeNBT(WriteView nbt, String name) {
 		if (context.serialiseAsString) {
 			getID().ifPresent(
 					id -> nbt.putString(name, id.toString())
@@ -122,8 +123,8 @@ public class EntityTarget {
 		}
 	}
 
-	public void readNBT(NbtCompound nbt, String name) {
-		nbt.get(name, Uuids.CODEC).ifPresent(this::set);
+	public void readNBT(ReadView nbt, String name) {
+		nbt.read(name, Uuids.CODEC).ifPresent(this::set);
 	}
 
 	public record Context(

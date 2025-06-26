@@ -4,13 +4,11 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import se.datasektionen.mc.metacraft_core.mixin.AccessorChunkHolder;
@@ -56,18 +54,14 @@ public class DisguisedBlockEntity extends BlockEntity implements BlockEntityWith
 	}
 
 	@Override
-	protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		super.readNbt(nbt, registryLookup);
-		if (nbt.contains(BLOCK_STATE)) {
-			setBlockState(NbtHelper.toBlockState(
-					registryLookup.getOrThrow(RegistryKeys.BLOCK), nbt.getCompoundOrEmpty(BLOCK_STATE)
-			));
-		}
+	protected void readData(ReadView nbt) {
+		super.readData(nbt);
+		setBlockState(nbt.read(BLOCK_STATE, BlockState.CODEC).orElse(Blocks.BARRIER.getDefaultState()));
 	}
 
 	@Override
-	protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-		super.writeNbt(nbt, registryLookup);
-		nbt.put(BLOCK_STATE, NbtHelper.fromBlockState(state));
+	protected void writeData(WriteView nbt) {
+		super.writeData(nbt);
+		nbt.put(BLOCK_STATE, BlockState.CODEC, state);
 	}
 }

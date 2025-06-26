@@ -1,7 +1,6 @@
 package se.datasektionen.mc.metacraft_core.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.serialization.Codec;
 import net.minecraft.component.ComponentType;
@@ -47,13 +46,6 @@ public class MixinItemStack {
 	)
 	private static Codec<Optional<ItemStack>> fixCodec2(Codec<Optional<ItemStack>> original) {
 		return original.xmap(ItemModifiers::deleteOnLoad, s -> s);
-	}
-
-	@ModifyReturnValue(method = "fromNbt", at = @At("RETURN"))
-	private static Optional<ItemStack> fromNbt(
-			Optional<ItemStack> original
-	) {
-		return original.map(ItemModifiers::setToEmptyOnLoad);
 	}
 
 	@ModifyArg(

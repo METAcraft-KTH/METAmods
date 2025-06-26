@@ -83,7 +83,7 @@ public class TeleportHelper {
 
 	public static void teleportEntityToPlayer(ServerPlayerEntity player, Entity entity, TeleportTarget.PostDimensionTransition transition) {
 		teleportEntityToPos(
-				player.getServerWorld(), player.getBlockPos(), player.getRandom(),
+				player.getWorld(), player.getBlockPos(), player.getRandom(),
 				player.getYaw(), player.getPitch(), player.getVelocity(), entity, transition
 		);
 	}

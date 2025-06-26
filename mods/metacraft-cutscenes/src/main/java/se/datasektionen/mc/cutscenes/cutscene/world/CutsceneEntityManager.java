@@ -8,19 +8,21 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import eu.pb4.polymer.core.impl.interfaces.EntityAttachedPacket;
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerEntityManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.NbtWriteView;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.entity.*;
+import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.mixin.AccesorServerEntityManager;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 
 import java.io.IOException;
 import java.util.*;
@@ -187,25 +189,27 @@ public class CutsceneEntityManager {
 	}
 
 	public SaveState save() {
-		return new SaveState(
-				entities.entries().stream().filter(e -> e.getValue().entity.shouldSave()).map(entry -> {
-					List<String> ids = new ArrayList<>();
-					ids.add(entry.getKey());
-					if (entry.getValue().entity.hasPassengers()) {
-						entry.getValue().entity.getPassengersDeep().forEach(passenger -> {
-							getIDForEntity(passenger).ifPresent(ids::add);
-						});
-					}
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:CutsceneEntityManager#save", Cutscenes.LOGGER)) {
+			return new SaveState(
+					entities.entries().stream().filter(e -> e.getValue().entity.shouldSave()).map(entry -> {
+						List<String> ids = new ArrayList<>();
+						ids.add(entry.getKey());
+						if (entry.getValue().entity.hasPassengers()) {
+							entry.getValue().entity.getPassengersDeep().forEach(passenger -> {
+								getIDForEntity(passenger).ifPresent(ids::add);
+							});
+						}
 
-					var nbt = new NbtCompound();
-					if (entry.getValue().entity.saveSelfNbt(nbt)) {
-						return new CutsceneWorldData.SerialisedEntity(ids, nbt);
-					} else {
-						return null;
-					}
-				}).filter(Objects::nonNull).toList(),
-				entitiesToHide
-		);
+						var writeView = NbtWriteView.create(logging, entry.getValue().entity.getRegistryManager());
+						if (entry.getValue().entity.saveSelfData(writeView)) {
+							return new CutsceneWorldData.SerialisedEntity(ids, writeView.getNbt());
+						} else {
+							return null;
+						}
+					}).filter(Objects::nonNull).toList(),
+					entitiesToHide
+			);
+		}
 	}
 
 	public void tick() {

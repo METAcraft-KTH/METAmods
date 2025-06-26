@@ -15,11 +15,14 @@ import net.minecraft.server.network.ConnectedClientData;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.test.TestContext;
 import net.minecraft.test.TestInstanceUtil;
+import net.minecraft.test.TestManager;
 import net.minecraft.test.TestServer;
 import net.minecraft.text.Text;
 import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.path.SymlinkValidationException;
+import net.minecraft.world.GameMode;
 import net.minecraft.world.level.storage.LevelStorage;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -58,13 +61,8 @@ public class TestHelper {
 				ctx.getWorld().getServer(), ctx.getWorld(), connectedClientData.gameProfile(), connectedClientData.syncedOptions()
 		) {
 			@Override
-			public boolean isSpectator() {
-				return false;
-			}
-
-			@Override
-			public boolean isCreative() {
-				return true;
+			public @NotNull GameMode getGameMode() {
+				return GameMode.CREATIVE;
 			}
 		};
 		ClientConnection clientConnection = new ClientConnection(NetworkSide.SERVERBOUND);
@@ -110,12 +108,14 @@ public class TestHelper {
 					}
 				}
 		);
-		var server = MinecraftServer.startServer(
-				thread -> TestServer.create(
-						thread, session, manager,
-						Optional.of(testNamespace + ":" + testsPath), false
-				)
-		);
+		var server = MinecraftServer.startServer(thread -> {
+			var s = TestServer.create(
+					thread, session, manager,
+					Optional.of(testNamespace + ":" + testsPath), false
+			);
+			TestManager.INSTANCE.startTicking();
+			return s;
+		});
 		server.getThread().join();
 		assert ((TestServerExtension) server).metacraft$testPassed();
 	}

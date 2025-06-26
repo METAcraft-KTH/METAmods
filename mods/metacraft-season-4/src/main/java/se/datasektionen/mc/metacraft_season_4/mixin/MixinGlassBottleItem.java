@@ -20,9 +20,10 @@ public class MixinGlassBottleItem {
 	)
 	private static boolean makeMcmakisteinDragonBreathPossibleToPickUp(Object object, Operation<Boolean> original, @Local(argsOnly = true) AreaEffectCloudEntity cloud) {
 		var ownerEntity = object instanceof Entity e ? e : null;
-		if (ownerEntity == null && cloud instanceof AccessorAreaEffectCloudEntity e && e.getOwnerUuid() != null) {
-			if (cloud.getWorld() instanceof ServerWorld world) {
-				ownerEntity = world.getEntity(e.getOwnerUuid());
+		if (ownerEntity == null && cloud instanceof AccessorAreaEffectCloudEntity e) {
+			var owner = e.getOwner();
+			if (cloud.getWorld() instanceof ServerWorld world && owner != null) {
+				ownerEntity = world.getEntity(owner.getUuid());
 			}
 		}
 		if (ownerEntity != null && ownerEntity.getCommandTags().contains("aj.impossible_dragon.root")) {

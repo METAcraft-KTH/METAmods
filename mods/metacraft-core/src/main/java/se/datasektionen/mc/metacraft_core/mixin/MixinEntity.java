@@ -2,12 +2,13 @@ package se.datasektionen.mc.metacraft_core.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.PlayerAssociatedNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.Box;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +18,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.datasektionen.mc.metacraft_core.entity.entities.MovingBlock;
 import se.datasektionen.mc.metacraft_core.entity.entities.player_mob.PlayerMob;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
@@ -81,8 +81,8 @@ public abstract class MixinEntity implements EntityExtensions {
 		}
 	}
 
-	@Inject(method = "readNbt", at = @At("RETURN"))
-	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "readData", at = @At("RETURN"))
+	public void readNBT(ReadView nbt, CallbackInfo ci) {
 		metacraft_lib$loadBossBar(nbt);
 	}
 
@@ -93,27 +93,24 @@ public abstract class MixinEntity implements EntityExtensions {
 		}
 	}
 
-	@Inject(method = "writeNbt", at = @At("RETURN"))
-	public void writeNBT(NbtCompound nbt, CallbackInfoReturnable<NbtCompound> cir) {
+	@Inject(method = "writeData", at = @At("RETURN"))
+	public void writeNBT(WriteView nbt, CallbackInfo ci) {
 		metacraft_lib$saveBossBar(nbt);
 	}
 
 	@Override
-	public void metacraft_lib$loadBossBar(NbtCompound nbt) {
-		if (nbt.contains(ManageableServerBossBar.BOSS_BAR)) {
-			NbtCompound bossBar = nbt.getCompoundOrEmpty(ManageableServerBossBar.BOSS_BAR);
+	public void metacraft_lib$loadBossBar(ReadView nbt) {
+		nbt.read(ManageableServerBossBar.BOSS_BAR, ManageableServerBossBar.BossBarData.CODEC).ifPresentOrElse(data -> {
 			if (this.bossBar == null) {
 				this.bossBar = ManageableServerBossBar.create();
-				this.bossBar.readNBT(bossBar, getRegistryManager());
+				this.bossBar.deserialize(data);
 				this.bossBar.updateFromEntity((Entity) (Object) this);
 				initialiseBossBar();
 			} else {
-				this.bossBar.readNBT(bossBar, getRegistryManager());
+				this.bossBar.deserialize(data);
 				this.bossBar.updateFromEntity((Entity) (Object) this);
 			}
-		} else {
-			removeBossBar();
-		}
+		}, this::removeBossBar);
 	}
 
 	@Inject(method = "setRemoved", at = @At("HEAD"))
@@ -124,9 +121,9 @@ public abstract class MixinEntity implements EntityExtensions {
 	}
 
 	@Override
-	public void metacraft_lib$saveBossBar(NbtCompound nbt) {
+	public void metacraft_lib$saveBossBar(WriteView nbt) {
 		if (bossBar != null) {
-			nbt.put(ManageableServerBossBar.BOSS_BAR, bossBar.writeNBT(new NbtCompound(), this.getRegistryManager()));
+			nbt.put(ManageableServerBossBar.BOSS_BAR, ManageableServerBossBar.BossBarData.CODEC, bossBar.serialize());
 		}
 	}
 

@@ -3,7 +3,7 @@ package se.datasektionen.mc.metacraft_core.mixin;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.storage.ReadView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -42,8 +42,8 @@ public abstract class MixinBlockEntity implements BlockEntityExtensions {
 		return isMovable;
 	}
 
-	@Inject(method = {"read", "readComponentlessNbt"}, at = @At("RETURN"))
-	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup, CallbackInfo ci) {
+	@Inject(method = {"read", "readComponentlessData"}, at = @At("RETURN"))
+	public void readNBT(ReadView nbt, CallbackInfo ci) {
 		isMovable = nbt.getBoolean(IS_MOVABLE, false);
 		validate();
 	}

@@ -9,6 +9,9 @@ import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.storage.NbtWriteView;
+import net.minecraft.util.ErrorReporter;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
@@ -18,6 +21,8 @@ import net.minecraft.util.math.intprovider.IntProvider;
 import net.minecraft.world.ServerWorldAccess;
 import se.datasektionen.mc.metacraft_core.entity.METAcraftEntities;
 import se.datasektionen.mc.metacraft_core.extensions.EntityExtensions;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
+import se.metacraft.bosses.METAcraftBosses;
 import se.metacraft.bosses.extensions.LivingEntityExtensions;
 
 import java.util.Optional;
@@ -55,7 +60,7 @@ public record DoubleTeamHandler(
 		((LivingEntityExtensions) handler.primary).metacraft$setDoubleTeamHandler(handler);
 	}
 
-	private void setCloneData(LivingEntity clone) {
+	private void setCloneData(LivingEntity clone, ErrorReporter logger) {
 		((LivingEntityExtensions) clone).metacraft$setPhantomEntity(true);
 		((LivingEntityExtensions) clone).metacraft$setDoubleTeamHandler(null);
 		if (primary.getScoreboardTeam() != null) {
@@ -76,25 +81,34 @@ public record DoubleTeamHandler(
 			}
 		}
 		if (!settings.dataToApply.isEmpty()) {
-			var data = clone.writeNbt(new NbtCompound());
+			var l = logger.makeChild(() -> "metacraft:DoubleTeamHandler#setCloneData");
+			var writeView = NbtWriteView.create(l, clone.getRegistryManager());
+			clone.writeData(writeView);
+			var data = writeView.getNbt();
 			data.copyFrom(settings.dataToApply);
-			clone.readNbt(data);
+			var readView = NbtReadView.create(l, clone.getRegistryManager(), data);
+			clone.readData(readView);
 		}
 	}
 
 	private LivingEntity createClone() {
-		var data = primary.writeNbt(new NbtCompound());
-		if (primary instanceof PlayerEntity) {
-			var player = METAcraftEntities.PLAYER.create(primary.getWorld(), SpawnReason.REINFORCEMENT);
-			player.copyFromPlayerData(data);
-			setCloneData(player);
-			return player;
-		} else {
-			var clone = (LivingEntity) primary.getType().create(primary.getWorld(), SpawnReason.REINFORCEMENT);
-			data.remove("UUID");
-			clone.readNbt(data);
-			setCloneData(clone);
-			return clone;
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:DoubleTeamHandler#craeteClone", METAcraftBosses.LOGGER)) {
+			var writeView = NbtWriteView.create(logging, primary.getRegistryManager());
+			primary.writeData(writeView);
+			var data = writeView.getNbt();
+			if (primary instanceof PlayerEntity) {
+				var player = METAcraftEntities.PLAYER.create(primary.getWorld(), SpawnReason.REINFORCEMENT);
+				player.copyFromPlayerData(data);
+				setCloneData(player, logging);
+				return player;
+			} else {
+				var clone = (LivingEntity) primary.getType().create(primary.getWorld(), SpawnReason.REINFORCEMENT);
+				data.remove("UUID");
+				var readView = NbtReadView.create(logging, primary.getRegistryManager(), data);
+				clone.readData(readView);
+				setCloneData(clone, logging);
+				return clone;
+			}
 		}
 	}
 

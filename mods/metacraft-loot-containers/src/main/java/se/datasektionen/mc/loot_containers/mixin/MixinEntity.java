@@ -35,8 +35,8 @@ public abstract class MixinEntity {
 		)
 	)
 	public void teleportTo(
-			ServerWorld target, TeleportTarget teleportTarget,
-			CallbackInfoReturnable<Entity> cir
+			ServerWorld from, ServerWorld target,
+			TeleportTarget teleportTarget, CallbackInfoReturnable<Entity> cir
 	) {
 		if (target.isClient()) return;
 		var data = LootContainerData.getInstance(getServer());

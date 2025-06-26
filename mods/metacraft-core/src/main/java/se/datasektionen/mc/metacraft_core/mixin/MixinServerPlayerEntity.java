@@ -11,8 +11,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.MarkerEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.s2c.play.BundleS2CPacket;
@@ -26,8 +24,9 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.TeleportTarget;
@@ -40,7 +39,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.extensions.ServerPlayerEntityExtensions;
 import se.datasektionen.mc.metacraft_core.item.components.METAcraftComponents;
 import se.datasektionen.mc.metacraft_core.music.MusicEntry;
@@ -58,11 +56,16 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Shadow public ServerPlayNetworkHandler networkHandler;
 
-	@Shadow public abstract ServerWorld getServerWorld();
+	public MixinServerPlayerEntity(World world, GameProfile profile) {
+		super(world, profile);
+	}
 
 	@Shadow public abstract void sendMessage(Text message, boolean overlay);
 
 	@Shadow @Final public MinecraftServer server;
+
+	@Shadow public abstract ServerWorld getWorld();
+
 	@Unique
 	private static final String ARE_BLOCKS_MOVABLE = "AreBlocksMovable";
 
@@ -107,10 +110,6 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Unique
 	private int displayTimer = 0;
 
-	public MixinServerPlayerEntity(World world, BlockPos pos, float yaw, GameProfile gameProfile) {
-		super(world, pos, yaw, gameProfile);
-	}
-
 	@Unique
 	private int musicStopTimer = -1;
 
@@ -135,7 +134,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			};
 			pointHolder.addElement(point);
 			pointHolder.startWatching((ServerPlayerEntity) (Object) this);
-			pointAttachment = new ManualAttachment(pointHolder, getServerWorld(), this::getPos);
+			pointAttachment = new ManualAttachment(pointHolder, getWorld(), this::getPos);
 			if (shouldReset) {
 				metacraft_core$resetMusicTimer();
 			}
@@ -161,7 +160,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	public void tick(CallbackInfo ci) {
 		if (pointAttachment != null) {
 			pointAttachment.tick();
-			if (pointAttachment.getWorld() != this.getServerWorld()) {
+			if (pointAttachment.getWorld() != this.getWorld()) {
 				removeMusicPoint();
 			}
 		}
@@ -172,12 +171,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			removeMusicPoint();
 		}
 
-		getServerWorld().getBiome(this.getBlockPos()).value().getMusic().ifPresent(music -> {
+		getWorld().getBiome(this.getBlockPos()).value().getMusic().ifPresent(music -> {
 			for (var musicEntry : music.getEntries()) {
-				if (potentiallyPlayingMusic.containsKey(musicEntry.value().getSound())) {
-					potentiallyPlayingMusic.get(musicEntry.value().getSound()).setValue(musicEntry.value().getMinDelay());
+				if (potentiallyPlayingMusic.containsKey(musicEntry.value().sound())) {
+					potentiallyPlayingMusic.get(musicEntry.value().sound()).setValue(musicEntry.value().minDelay());
 				} else {
-					potentiallyPlayingMusic.put(musicEntry.value().getSound(), new MutableInt(musicEntry.value().getMinDelay()));
+					potentiallyPlayingMusic.put(musicEntry.value().sound(), new MutableInt(musicEntry.value().minDelay()));
 				}
 			}
 		});
@@ -236,7 +235,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			this.point = ((MixinServerPlayerEntity) (Object) oldPlayer).point;
 			this.pointHolder = ((MixinServerPlayerEntity) (Object) oldPlayer).pointHolder;
 			if (pointHolder != null) {
-				pointAttachment = new ManualAttachment(pointHolder, getServerWorld(), this::getPos);
+				pointAttachment = new ManualAttachment(pointHolder, getWorld(), this::getPos);
 			}
 		} else {
 			TaskScheduler.scheduleImmediately(getServer(), this::metacraft_core$resetMusicTimer);
@@ -252,17 +251,17 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 	}
 
-	@Inject(method = "writeCustomDataToNbt", at = @At("HEAD"))
-	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "writeCustomData", at = @At("HEAD"))
+	public void writeNBT(WriteView nbt, CallbackInfo ci) {
 		nbt.putBoolean(ARE_BLOCKS_MOVABLE, movable);
-		nbt.put(PREFERENCES, PreferenceData.CODEC, getRegistryManager().getOps(NbtOps.INSTANCE), preferenceData);
+		nbt.put(PREFERENCES, PreferenceData.CODEC, preferenceData);
 	}
 
-	@Inject(method = "readCustomDataFromNbt", at = @At("HEAD"))
-	public void readNbt(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "readCustomData", at = @At("HEAD"))
+	public void readNbt(ReadView nbt, CallbackInfo ci) {
 		movable = nbt.getBoolean(ARE_BLOCKS_MOVABLE, false);
-		nbt.get(
-				PREFERENCES, PreferenceData.CODEC, getRegistryManager().getOps(NbtOps.INSTANCE)
+		nbt.read(
+				PREFERENCES, PreferenceData.CODEC
 		).ifPresent(preferenceData::applyFrom);
 	}
 
@@ -293,7 +292,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 					SoundEvents.MUSIC_CREATIVE.value().id(), SoundCategory.MUSIC
 			));
 		}
-		if (this.getServerWorld().getRegistryKey() == World.END) {
+		if (this.getWorld().getRegistryKey() == World.END) {
 			this.networkHandler.sendPacket(new StopSoundS2CPacket(
 					SoundEvents.MUSIC_END.value().id(), SoundCategory.MUSIC
 			));

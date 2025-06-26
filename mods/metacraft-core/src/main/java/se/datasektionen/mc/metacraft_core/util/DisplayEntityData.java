@@ -10,12 +10,9 @@ import net.minecraft.entity.decoration.Brightness;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.item.ItemDisplayContext;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.AffineTransformation;
-import se.datasektionen.mc.metacraft_core.METAcraftCore;
 
 public class DisplayEntityData {
 
@@ -69,13 +66,13 @@ public class DisplayEntityData {
 		element.setGlowing(glowing);
 	}
 
-	public void load(NbtCompound nbt, Entity entity) {
+	public void load(ReadView nbt, Entity entity) {
 		startInterpolation = nbt.getInt(DisplayEntity.START_INTERPOLATION_KEY, 0);
 		interpolationDuration = nbt.getInt(DisplayEntity.INTERPOLATION_DURATION_KEY, 0);
 		teleportDuration = nbt.getInt(DisplayEntity.TELEPORT_DURATION_KEY, 0);
-		transformation = nbt.get(DisplayEntity.TRANSFORMATION_NBT_KEY, AffineTransformation.ANY_CODEC).orElse(AffineTransformation.identity());
-		billboardMode = nbt.get(DisplayEntity.BILLBOARD_NBT_KEY, DisplayEntity.BillboardMode.CODEC).orElse(DisplayEntity.BillboardMode.FIXED);
-		brightness = nbt.get(DisplayEntity.BRIGHTNESS_NBT_KEY, Brightness.CODEC).orElse(null);
+		transformation = nbt.read(DisplayEntity.TRANSFORMATION_NBT_KEY, AffineTransformation.ANY_CODEC).orElse(AffineTransformation.identity());
+		billboardMode = nbt.read(DisplayEntity.BILLBOARD_NBT_KEY, DisplayEntity.BillboardMode.CODEC).orElse(DisplayEntity.BillboardMode.FIXED);
+		brightness = nbt.read(DisplayEntity.BRIGHTNESS_NBT_KEY, Brightness.CODEC).orElse(null);
 		viewRange = nbt.getFloat(DisplayEntity.VIEW_RANGE_NBT_KEY, 1);
 		shadowRadius = nbt.getFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY, 0);
 		shadowStrength = nbt.getFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY, 1);
@@ -85,27 +82,19 @@ public class DisplayEntityData {
 		glowing = entity.isGlowing();
 	}
 
-	public void save(NbtCompound nbt, Entity entity) {
+	public void save(WriteView nbt, Entity entity) {
 		nbt.putInt(DisplayEntity.START_INTERPOLATION_KEY, startInterpolation);
 		nbt.putInt(DisplayEntity.INTERPOLATION_DURATION_KEY, interpolationDuration);
 		nbt.putInt(DisplayEntity.TELEPORT_DURATION_KEY, teleportDuration);
-		DisplayEntity.BillboardMode.CODEC.encodeStart(NbtOps.INSTANCE, billboardMode).resultOrPartial(
-				METAcraftCore.LOGGER::error
-		).ifPresent(b -> nbt.put(DisplayEntity.BILLBOARD_NBT_KEY, b));
-		if (brightness != null) {
-			Brightness.CODEC.encodeStart(NbtOps.INSTANCE, brightness).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(brightness -> nbt.put(DisplayEntity.BRIGHTNESS_NBT_KEY, brightness));
-		}
+		nbt.put(DisplayEntity.BILLBOARD_NBT_KEY, DisplayEntity.BillboardMode.CODEC, billboardMode);
+		nbt.putNullable(DisplayEntity.BRIGHTNESS_NBT_KEY, Brightness.CODEC, brightness);
 		nbt.putFloat(DisplayEntity.VIEW_RANGE_NBT_KEY, viewRange);
 		nbt.putFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY, shadowRadius);
 		nbt.putFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY, shadowStrength);
 		nbt.putFloat(DisplayEntity.WIDTH_NBT_KEY, width);
 		nbt.putFloat(DisplayEntity.HEIGHT_NBT_KEY, height);
 		nbt.putInt(DisplayEntity.GLOW_COLOR_OVERRIDE_NBT_KEY, glowColourOverride);
-		AffineTransformation.ANY_CODEC.encodeStart(NbtOps.INSTANCE, transformation).resultOrPartial(
-				METAcraftCore.LOGGER::error
-		).ifPresent(t -> nbt.put(DisplayEntity.TRANSFORMATION_NBT_KEY, t));
+		nbt.put(DisplayEntity.TRANSFORMATION_NBT_KEY, AffineTransformation.ANY_CODEC, transformation);
 	}
 
 
@@ -130,31 +119,19 @@ public class DisplayEntityData {
 		}
 
 		@Override
-		public void load(NbtCompound nbt, Entity entity) {
+		public void load(ReadView nbt, Entity entity) {
 			super.load(nbt, entity);
-			if (nbt.contains(ITEM)) {
-				ItemStack.CODEC.parse(entity.getRegistryManager().getOps(NbtOps.INSTANCE), nbt.get(ITEM)).resultOrPartial(
-						METAcraftCore.LOGGER::error
-				).ifPresent(s -> stack = s);
-			}
-			if (nbt.contains(ITEM_DISPLAY)) {
-				ItemDisplayContext.CODEC.parse(NbtOps.INSTANCE, nbt.get(ITEM_DISPLAY)).resultOrPartial(
-						METAcraftCore.LOGGER::error
-				).ifPresent(m -> itemModel = m);
-			}
+			stack = nbt.read(ITEM, ItemStack.CODEC).orElse(ItemStack.EMPTY);
+			itemModel = nbt.read(ITEM_DISPLAY, ItemDisplayContext.CODEC).orElse(ItemDisplayContext.NONE);
 		}
 
 		@Override
-		public void save(NbtCompound nbt, Entity entity) {
+		public void save(WriteView nbt, Entity entity) {
 			super.save(nbt, entity);
 			if (!stack.isEmpty()) {
-				ItemStack.CODEC.encodeStart(entity.getRegistryManager().getOps(NbtOps.INSTANCE), stack).resultOrPartial(
-						METAcraftCore.LOGGER::error
-				).ifPresent(s -> nbt.put(ITEM, s));
+				nbt.put(ITEM, ItemStack.CODEC, stack);
 			}
-			ItemDisplayContext.CODEC.encodeStart(NbtOps.INSTANCE, itemModel).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(m -> nbt.put(ITEM_DISPLAY, m));
+			nbt.put(ITEM_DISPLAY, ItemDisplayContext.CODEC, itemModel);
 		}
 	}
 
@@ -175,18 +152,17 @@ public class DisplayEntityData {
 		}
 
 		@Override
-		public void load(NbtCompound nbt, Entity entity) {
+		public void load(ReadView nbt, Entity entity) {
 			super.load(nbt, entity);
-			state = NbtHelper.toBlockState(
-					entity.getWorld().createCommandRegistryWrapper(RegistryKeys.BLOCK),
-					nbt.getCompoundOrEmpty(DisplayEntity.BlockDisplayEntity.BLOCK_STATE_NBT_KEY)
+			state = nbt.read(DisplayEntity.BlockDisplayEntity.BLOCK_STATE_NBT_KEY, BlockState.CODEC).orElse(
+					Blocks.AIR.getDefaultState()
 			);
 		}
 
 		@Override
-		public void save(NbtCompound nbt, Entity entity) {
+		public void save(WriteView nbt, Entity entity) {
 			super.save(nbt, entity);
-			nbt.put(DisplayEntity.BlockDisplayEntity.BLOCK_STATE_NBT_KEY, NbtHelper.fromBlockState(state));
+			nbt.put(DisplayEntity.BlockDisplayEntity.BLOCK_STATE_NBT_KEY, BlockState.CODEC, state);
 		}
 	}
 

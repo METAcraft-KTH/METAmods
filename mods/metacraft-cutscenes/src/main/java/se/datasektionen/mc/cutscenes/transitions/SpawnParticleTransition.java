@@ -45,7 +45,7 @@ public class SpawnParticleTransition implements Transition {
 							p -> p.get(cutscene.getServer()).resultOrPartial(Cutscenes.LOGGER::error).orElse(null)
 					);
 					if (particle != null) {
-						player.getServerWorld().spawnParticles(
+						player.getWorld().spawnParticles(
 								player, particle, config.force(), config.important(), pos.x, pos.y, pos.z,
 								config.count(), config.delta().x, config.delta().y, config.delta().z, config.speed()
 						);

@@ -6,11 +6,10 @@ import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.MarkerEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import se.datasektionen.mc.metacraft_core.METAcraftCore;
 import se.datasektionen.mc.metacraft_core.util.Interpolatable;
 import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 import xyz.nucleoid.packettweaker.PacketContext;
@@ -58,31 +57,24 @@ public class MovingMarker extends MarkerEntity implements PolymerEntity {
 	}
 
 	@Override
-	protected void readCustomDataFromNbt(NbtCompound nbt) {
-		super.readCustomDataFromNbt(nbt);
+	protected void readCustomData(ReadView nbt) {
+		super.readCustomData(nbt);
 
-		if (nbt.contains(PATH)) {
-			PATH_CODEC.parse(this.getRegistryManager().getOps(NbtOps.INSTANCE), nbt.get(PATH)).resultOrPartial(
-					METAcraftCore.LOGGER::error
-			).ifPresent(p -> path = p);
-
-			if (path != null) {
-				path = path.setStartIfNotPresent(new Target(this.getPos(), getYaw(), getPitch()));
-				path = path.setEndIfNotPresent(new Target(this.getPos(), getYaw(), getPitch()));
-			}
-		} else {
-			path = null;
-		}
+		nbt.read(PATH, PATH_CODEC).ifPresentOrElse(p -> {
+			path = p;
+			path = path.setStartIfNotPresent(new Target(this.getPos(), getYaw(), getPitch()));
+			path = path.setEndIfNotPresent(new Target(this.getPos(), getYaw(), getPitch()));
+		}, () -> path = null);
 
 		pathTime = nbt.getInt(PATH_TIME, 100);
 		pathProgress = nbt.getInt(PATH_PROGRESS, 0);
 	}
 
 	@Override
-	protected void writeCustomDataToNbt(NbtCompound nbt) {
-		super.writeCustomDataToNbt(nbt);
+	protected void writeCustomData(WriteView nbt) {
+		super.writeCustomData(nbt);
 		if (path != null) {
-			nbt.put(PATH, PATH_CODEC.encodeStart(this.getRegistryManager().getOps(NbtOps.INSTANCE), path).getOrThrow());
+			nbt.put(PATH, PATH_CODEC, path);
 		}
 		nbt.putInt(PATH_TIME, pathTime);
 		nbt.putInt(PATH_PROGRESS, pathProgress);

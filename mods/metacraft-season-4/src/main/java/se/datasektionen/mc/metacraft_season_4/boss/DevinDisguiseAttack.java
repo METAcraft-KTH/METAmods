@@ -126,7 +126,7 @@ public class DevinDisguiseAttack implements Attack {
 		if (targetEntity != null) {
 			ctx.boss().teleportTo(
 					new TeleportTarget(
-							targetEntity.getServerWorld(),
+							targetEntity.getWorld(),
 							targetEntity.getPos(),
 							targetEntity.getVelocity(),
 							targetEntity.getYaw(),

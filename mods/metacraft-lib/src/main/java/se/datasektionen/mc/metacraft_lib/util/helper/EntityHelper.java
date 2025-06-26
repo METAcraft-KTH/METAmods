@@ -18,6 +18,9 @@ import net.minecraft.loot.context.LootWorldContext;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.storage.NbtWriteView;
+import net.minecraft.storage.ReadView;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.Vec3d;
@@ -38,6 +41,7 @@ import se.datasektionen.mc.metacraft_lib.condition.conditions.ValidateSpawnRestr
 import se.datasektionen.mc.metacraft_lib.mixin.AccessorTntEntity;
 import se.datasektionen.mc.metacraft_lib.util.EntityTarget;
 import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 
 import java.util.List;
 import java.util.Map;
@@ -48,11 +52,11 @@ import java.util.function.Predicate;
 
 public class EntityHelper {
 
-	public static Optional<Entity> loadEntityWithPassengers(NbtCompound nbt, World world, SpawnReason reason, BiFunction<Entity, NbtCompound, Entity> entityProcessor) {
+	public static Optional<Entity> loadEntityWithPassengers(ReadView nbt, World world, SpawnReason reason, BiFunction<Entity, ReadView, Entity> entityProcessor) {
 		return getEntityFromNBTSafely(nbt, world, reason).map(e -> entityProcessor.apply(e, nbt)).map(entity -> {
-			var passengers = nbt.getListOrEmpty(Entity.PASSENGERS_KEY);
-			for (int i = 0; i < passengers.size(); ++i) {
-				loadEntityWithPassengers(passengers.getCompoundOrEmpty(i), world, reason, entityProcessor).ifPresent(
+			var passengers = nbt.getListReadView(Entity.PASSENGERS_KEY);
+			for (var p : passengers) {
+				loadEntityWithPassengers(p, world, reason, entityProcessor).ifPresent(
 						passenger -> passenger.startRiding(entity, true)
 				);
 			}
@@ -61,23 +65,28 @@ public class EntityHelper {
 	}
 
 	public static void initializeEntity(
-			Entity entity, @Nullable NbtCompound nbt,
+			Entity entity, @Nullable ReadView nbt,
 			ServerWorldAccess world, LocalDifficulty difficulty,
 			SpawnReason spawnReason, @Nullable EntityData entityData
 	) {
 		if (entity instanceof MobEntity mob) {
 			mob.initialize(world, difficulty, spawnReason, entityData);
 			if (nbt != null) {
-				var data = mob.writeNbt(new NbtCompound());
-				data.copyFrom(nbt);
-				mob.readNbt(data);
+				try (var logging = LoggingErrorReporter.create(() -> "metacraft:EntityHelper#initializeEntity", METAcraftLib.LOGGER)) {
+					var writeView = NbtWriteView.create(logging, entity.getRegistryManager());
+					mob.writeData(writeView);
+					NbtCompound data = writeView.getNbt();
+					data.copyFrom(ViewHelper.getNBT(nbt));
+					var readView = NbtReadView.create(logging, entity.getRegistryManager(), data);
+					mob.readData(readView);
+				}
 			}
 		}
 	}
 
-	public static Optional<Entity> getEntityFromNBTSafely(NbtCompound nbt, World world, SpawnReason reason) {
+	public static Optional<Entity> getEntityFromNBTSafely(ReadView nbt, World world, SpawnReason reason) {
 		try {
-			return EntityType.getEntityFromNbt(nbt, world, reason);
+			return EntityType.getEntityFromData(nbt, world, reason);
 		} catch (RuntimeException runtimeException) {
 			METAcraftLib.LOGGER.warn("Exception loading entity: ", runtimeException);
 			return Optional.empty();
@@ -101,7 +110,7 @@ public class EntityHelper {
 			cloud.setOwner(living);
 		}
 		if (entity instanceof AccessorTntEntity tnt && owner instanceof LivingEntity living) {
-			tnt.setCausingEntity(living);
+			tnt.setCausingEntity(new LazyEntityReference<>(living));
 		}
 		if (entity instanceof EntityTarget.CanSetOwner can) {
 			can.setOwner(owner);
@@ -133,48 +142,51 @@ public class EntityHelper {
 			Vec3d around, ServerWorld world, Random random,
 			@Nullable Entity owner, Function<Entity, Optional<Entity>> getTarget
 	) {
-		EntityType.fromNbt(data.entity()).ifPresent(type -> {
-			if (!canSpawnCheck1.test(type)) return;
-			var pos = findPos(world, random, type, data.spawnRules, around);
-			if (canSpawn(world, random, type, data.spawnRules().condition(), data.spawnRules.spawnReason(), pos.getX(), pos.getY(), pos.getZ())) {
-				EntityHelper.loadEntityWithPassengers(data.entity(), world, data.spawnRules().spawnReason(), (e, nbt) -> {
-					if (owner != null) {
-						EntityHelper.setOwner(e, owner);
-					}
-					if (e instanceof MobEntity mob) {
-						if (data.initialize()) {
-							EntityHelper.initializeEntity(
-									mob, nbt.getSize() > 1 ? nbt : null,
-									world, world.getLocalDifficulty(mob.getBlockPos()),
-									data.spawnRules().spawnReason(), null
-							);
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:EntityHelper#spawnEntity", METAcraftLib.LOGGER)) {
+			var view = NbtReadView.create(logging, world.getRegistryManager(), data.entity());
+			EntityType.fromData(view).ifPresent(type -> {
+				if (!canSpawnCheck1.test(type)) return;
+				var pos = findPos(world, random, type, data.spawnRules, around);
+				if (canSpawn(world, random, type, data.spawnRules().condition(), data.spawnRules.spawnReason(), pos.getX(), pos.getY(), pos.getZ())) {
+					EntityHelper.loadEntityWithPassengers(view, world, data.spawnRules().spawnReason(), (e, nbt) -> {
+						if (owner != null) {
+							EntityHelper.setOwner(e, owner);
 						}
-						if (data.preventDespawn()) {
-							mob.setPersistent();
+						if (e instanceof MobEntity mob) {
+							if (data.initialize()) {
+								EntityHelper.initializeEntity(
+										mob, ViewHelper.getSize(nbt) > 1 ? nbt : null,
+										world, world.getLocalDifficulty(mob.getBlockPos()),
+										data.spawnRules().spawnReason(), null
+								);
+							}
+							if (data.preventDespawn()) {
+								mob.setPersistent();
+							}
+							data.equipment().ifPresent(mob::setEquipmentFromTable);
 						}
-						data.equipment().ifPresent(mob::setEquipmentFromTable);
-					}
-					e.refreshPositionAndAngles(pos.getX(), pos.getY(), pos.getZ(), random.nextFloat() * 360.0f, 0.0f);
-					getTarget.apply(e).ifPresent(target -> {
-						if (e instanceof MobEntity mob && target instanceof LivingEntity livingTarget) {
-							mob.setTarget(livingTarget);
-						} else if (e instanceof EntityTarget.CanSetTarget entity) {
-							entity.setTarget(target);
+						e.refreshPositionAndAngles(pos.getX(), pos.getY(), pos.getZ(), random.nextFloat() * 360.0f, 0.0f);
+						getTarget.apply(e).ifPresent(target -> {
+							if (e instanceof MobEntity mob && target instanceof LivingEntity livingTarget) {
+								mob.setTarget(livingTarget);
+							} else if (e instanceof EntityTarget.CanSetTarget entity) {
+								entity.setTarget(target);
+							}
+						});
+						if (owner != null) {
+							var team = owner.getScoreboardTeam();
+							if (team != null) {
+								team.getScoreboard().addScoreHolderToTeam(e.getNameForScoreboard(), team);
+							}
 						}
+						return e;
+					}).ifPresent(entity -> {
+						if (!canSpawnCheck2.test(entity)) return;
+						world.spawnNewEntityAndPassengers(entity);
 					});
-					if (owner != null) {
-						var team = owner.getScoreboardTeam();
-						if (team != null) {
-							team.getScoreboard().addScoreHolderToTeam(e.getNameForScoreboard(), team);
-						}
-					}
-					return e;
-				}).ifPresent(entity -> {
-					if (!canSpawnCheck2.test(entity)) return;
-					world.spawnNewEntityAndPassengers(entity);
-				});
-			}
-		});
+				}
+			});
+		}
 	}
 
 	private static double findY(

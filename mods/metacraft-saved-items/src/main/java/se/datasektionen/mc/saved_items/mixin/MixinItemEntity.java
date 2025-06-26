@@ -8,8 +8,8 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextCodecs;
 import net.minecraft.world.World;
@@ -21,7 +21,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.datasektionen.mc.saved_items.item_saving.ItemEntityData;
-import se.datasektionen.mc.saved_items.SavedItems;
 import se.datasektionen.mc.saved_items.item_saving.SavedItemsData;
 
 @Mixin(ItemEntity.class)
@@ -52,33 +51,19 @@ public abstract class MixinItemEntity extends Entity implements ItemEntityData {
 	}
 
 	@Inject(
-		method = "writeCustomDataToNbt",
+		method = "writeCustomData",
 		at = @At("RETURN")
 	)
-	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
-		if (playerName != null) {
-			TextCodecs.CODEC.encodeStart(NbtOps.INSTANCE, playerName).resultOrPartial(
-					SavedItems.LOGGER::error
-			).ifPresent(name -> {
-				nbt.put(DROPPED_BY_DEAD_PLAYER, name);
-			});
-		}
+	public void writeNBT(WriteView nbt, CallbackInfo ci) {
+		nbt.putNullable(DROPPED_BY_DEAD_PLAYER, TextCodecs.CODEC, playerName);
 	}
 
 	@Inject(
-		method = "readCustomDataFromNbt",
+		method = "readCustomData",
 		at = @At("RETURN")
 	)
-	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
-		if (nbt.contains(DROPPED_BY_DEAD_PLAYER)) {
-			TextCodecs.CODEC.parse(NbtOps.INSTANCE, nbt.get(DROPPED_BY_DEAD_PLAYER)).resultOrPartial(
-					SavedItems.LOGGER::error
-			).ifPresent(name -> {
-				playerName = name;
-			});
-		} else {
-			playerName = null;
-		}
+	public void readNBT(ReadView nbt, CallbackInfo ci) {
+		playerName = nbt.read(DROPPED_BY_DEAD_PLAYER, TextCodecs.CODEC).orElse(null);
 	}
 
 	@Inject(

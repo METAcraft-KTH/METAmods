@@ -2,7 +2,9 @@ package se.datasektionen.mc.metacraft_lib.extensions;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.storage.ReadView;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_lib.util.helper.CustomNameHelper;
 
 import java.util.Optional;
@@ -35,12 +37,12 @@ public interface ServerPlayerEntityExtensions {
 
 	NbtCompound metacraft_lib$savePlayerDataExceptDataMap();
 
-	void metacraft_lib$loadPlayerDataExceptDataMap(NbtCompound data);
+	void metacraft_lib$loadPlayerDataExceptDataMap(ReadView data);
 
 
-	void metacraft_lib$setStatHandlerType(Optional<Identifier> type);
+	void metacraft_lib$setStatHandlerType(@Nullable Identifier type);
 
-	void metacraft_lib$setAdvancementTrackerType(Optional<Identifier> type);
+	void metacraft_lib$setAdvancementTrackerType(@Nullable Identifier type);
 
 	void metacraft_lib$setAnnounceAdvancements(boolean announceAdvancements);
 

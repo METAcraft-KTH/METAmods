@@ -12,10 +12,10 @@ import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.player.PlayerPosition;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.*;
 import net.minecraft.world.World;
 import org.joml.Matrix4f;
@@ -205,27 +205,17 @@ public class Beam extends Entity implements PolymerEntity {
 	}
 
 	@Override
-	protected void readCustomDataFromNbt(NbtCompound nbt) {
+	protected void readCustomData(ReadView nbt) {
 		data.load(nbt, this);
 		data.applyItemSettings(laserItemDisplay);
 		data.applySettings(laserItemDisplay);
-		if (nbt.contains(TARGET)) {
-			Vec3d.CODEC.parse(NbtOps.INSTANCE, nbt.get(TARGET)).resultOrPartial(METAcraftBosses.LOGGER::error).ifPresent(
-					this::setTarget
-			);
-		} else {
-			setTarget(null);
-		}
+		setTarget(nbt.read(TARGET, Vec3d.CODEC).orElse(null));
 		thickness = nbt.getFloat(THICKNESS, 0.5f);
 	}
 
 	@Override
-	protected void writeCustomDataToNbt(NbtCompound nbt) {
-		if (target != null) {
-			Vec3d.CODEC.encodeStart(NbtOps.INSTANCE, target).resultOrPartial(
-					METAcraftBosses.LOGGER::error
-			).ifPresent(res -> nbt.put(TARGET, res));
-		}
+	protected void writeCustomData(WriteView nbt) {
+		nbt.putNullable(TARGET, Vec3d.CODEC, target);
 		this.data.save(nbt, this);
 		nbt.putFloat(THICKNESS, thickness);
 	}

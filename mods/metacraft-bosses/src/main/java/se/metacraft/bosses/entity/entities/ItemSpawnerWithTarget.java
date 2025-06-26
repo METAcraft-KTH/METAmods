@@ -9,10 +9,12 @@ import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ProjectileItem;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.intprovider.IntProvider;
@@ -22,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import se.datasektionen.mc.metacraft_core.util.helper.EntityAIHelper;
 import se.datasektionen.mc.metacraft_lib.condition.conditions.NotInWall;
 import se.datasektionen.mc.metacraft_lib.util.EntityTarget;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import se.datasektionen.mc.metacraft_lib.util.helper.EntityHelper;
 import se.metacraft.bosses.METAcraftBosses;
 import se.metacraft.bosses.boss.attacks.SpawnEntityAttackBase;
@@ -56,7 +59,10 @@ public class ItemSpawnerWithTarget extends OminousItemSpawnerEntity implements P
 				METAcraftBosses.LOGGER::error
 		).ifPresent(d -> nbt.put(SPAWN_DELAY, d));
 		if (!stack.isEmpty()) {
-			nbt.put(AccessorOminousItemSpawnerEntity.getItemKey(), stack.toNbt(lookup).copy());
+			nbt.put(
+					AccessorOminousItemSpawnerEntity.getItemKey(), ItemStack.CODEC,
+					lookup.getOps(NbtOps.INSTANCE), stack
+			);
 		}
 		if (override != null) {
 			nbt.put(
@@ -100,32 +106,24 @@ public class ItemSpawnerWithTarget extends OminousItemSpawnerEntity implements P
 	}
 
 	@Override
-	public void readCustomDataFromNbt(NbtCompound nbt) {
-		super.readCustomDataFromNbt(nbt);
+	public void readCustomData(ReadView nbt) {
+		super.readCustomData(nbt);
 		owner.readNBT(nbt, OWNER);
 		target.readNBT(nbt, TARGET);
-		projectileOverride = nbt.get(
-				PROJECTILE_OVERRIDE, ProjectileOverride.CODEC, getRegistryManager().getOps(NbtOps.INSTANCE)
+		projectileOverride = nbt.read(
+				PROJECTILE_OVERRIDE, ProjectileOverride.CODEC
 		).orElse(null);
-		nbt.get(SPAWN_DELAY, IntProvider.POSITIVE_CODEC).ifPresent(
+		nbt.read(SPAWN_DELAY, IntProvider.POSITIVE_CODEC).ifPresent(
 				range -> setSpawnItemsAfterTicks(range.get(random))
 		);
 	}
 
 	@Override
-	public void writeCustomDataToNbt(NbtCompound nbt) {
-		super.writeCustomDataToNbt(nbt);
+	public void writeCustomData(WriteView nbt) {
+		super.writeCustomData(nbt);
 		owner.writeNBT(nbt, OWNER);
 		target.writeNBT(nbt, TARGET);
-		if (projectileOverride != null) {
-			nbt.put(
-					PROJECTILE_OVERRIDE,
-					ProjectileOverride.CODEC.encodeStart(
-							getRegistryManager().getOps(NbtOps.INSTANCE),
-							projectileOverride
-					).getOrThrow()
-			);
-		}
+		nbt.putNullable(PROJECTILE_OVERRIDE, ProjectileOverride.CODEC, projectileOverride);
 	}
 
 	@Override
@@ -154,25 +152,33 @@ public class ItemSpawnerWithTarget extends OminousItemSpawnerEntity implements P
 	@Override
 	public Entity metacraft_bosses$getSpawnOverride() {
 		if (projectileOverride != null) {
-			return EntityHelper.loadEntityWithPassengers(
-					projectileOverride.entity, getWorld(), SpawnReason.TRIGGERED,
-					(e, nbt) -> {
-						e.updatePosition(getX(), getY(), getZ());
-						return getWorld().spawnEntity(e) ? e : null;
-					}
-			).map(
-					e -> {
-						if (e instanceof ProjectileEntity p) {
-							var direction = target.getEntity().map(t -> EntityAIHelper.getDirection(p, t)).orElse(Direction.DOWN.getDoubleVector());
-							p.setVelocity(
-									direction.getX(), direction.getY(), direction.getZ(),
-									projectileOverride.power, projectileOverride.uncertainty
-							);
-							p.triggerProjectileSpawned((ServerWorld) getWorld(), getItem());
+			try (
+				var logging = LoggingErrorReporter.create(
+						() -> "metacraft:ItemSpawnerWithTarget#metacraft_bosses$getSpawnOverride",
+						METAcraftBosses.LOGGER
+				)
+			) {
+				var readView = NbtReadView.create(logging, getRegistryManager(), projectileOverride.entity);
+				return EntityHelper.loadEntityWithPassengers(
+						readView, getWorld(), SpawnReason.TRIGGERED,
+						(e, nbt) -> {
+							e.updatePosition(getX(), getY(), getZ());
+							return getWorld().spawnEntity(e) ? e : null;
 						}
-						return e;
-					}
-			).orElse(null);
+				).map(
+						e -> {
+							if (e instanceof ProjectileEntity p) {
+								var direction = target.getEntity().map(t -> EntityAIHelper.getDirection(p, t)).orElse(Direction.DOWN.getDoubleVector());
+								p.setVelocity(
+										direction.getX(), direction.getY(), direction.getZ(),
+										projectileOverride.power, projectileOverride.uncertainty
+								);
+								p.triggerProjectileSpawned((ServerWorld) getWorld(), getItem());
+							}
+							return e;
+						}
+				).orElse(null);
+			}
 		}
 		return null;
 	}

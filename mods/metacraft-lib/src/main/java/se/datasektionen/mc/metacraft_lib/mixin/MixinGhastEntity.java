@@ -3,8 +3,9 @@ package se.datasektionen.mc.metacraft_lib.mixin;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.GhastEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -29,14 +30,14 @@ public class MixinGhastEntity {
 	private boolean preventReturnInstakill = false;
 
 
-	@Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
-	public void writeNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "writeCustomData", at = @At("RETURN"))
+	public void writeNBT(WriteView nbt, CallbackInfo ci) {
 		nbt.putBoolean(IGNORE_Y_CHECK, ignoreYCheck);
 		nbt.putBoolean(PREVENT_RETURN_INSTAKILL, preventReturnInstakill);
 	}
 
-	@Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
-	public void readNBT(NbtCompound nbt, CallbackInfo ci) {
+	@Inject(method = "readCustomData", at = @At("RETURN"))
+	public void readNBT(ReadView nbt, CallbackInfo ci) {
 		ignoreYCheck = nbt.getBoolean(IGNORE_Y_CHECK, false);
 		preventReturnInstakill = nbt.getBoolean(PREVENT_RETURN_INSTAKILL, false);
 	}

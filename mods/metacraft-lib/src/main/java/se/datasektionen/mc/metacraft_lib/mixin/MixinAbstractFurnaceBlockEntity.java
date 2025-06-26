@@ -7,13 +7,13 @@ import net.minecraft.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.LockableContainerBlockEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.recipe.RecipeEntry;
 import net.minecraft.recipe.input.SingleStackRecipeInput;
 import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -122,13 +122,13 @@ public abstract class MixinAbstractFurnaceBlockEntity extends LockableContainerB
 		}
 	}
 
-	@Inject(method = "writeNbt", at = @At("RETURN"))
-	public void writeNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup, CallbackInfo ci) {
+	@Inject(method = "writeData", at = @At("RETURN"))
+	public void writeNBT(WriteView nbt, CallbackInfo ci) {
 		nbt.putBoolean(IS_INPUT_EXTRACTABLE, isInputExtractable);
 	}
 
-	@Inject(method = "readNbt", at = @At("RETURN"))
-	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup, CallbackInfo ci) {
+	@Inject(method = "readData", at = @At("RETURN"))
+	public void readNBT(ReadView nbt, CallbackInfo ci) {
 		isInputExtractable = nbt.getBoolean(IS_INPUT_EXTRACTABLE, false);
 	}
 

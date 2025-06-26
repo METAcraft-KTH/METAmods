@@ -19,13 +19,13 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.projectile.AbstractFireballEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.collection.Pool;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -36,7 +36,6 @@ import net.minecraft.util.math.intprovider.ConstantIntProvider;
 import net.minecraft.util.math.intprovider.IntProvider;
 import net.minecraft.util.math.intprovider.UniformIntProvider;
 import net.minecraft.world.World;
-import se.datasektionen.mc.metacraft_season_4.Season4;
 import se.datasektionen.mc.metacraft_season_4.status_effects.Season4StatusEffects;
 import se.metacraft.bosses.util.StatusEffectEntry;
 import xyz.nucleoid.packettweaker.PacketContext;
@@ -143,89 +142,36 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 	}
 
 	@Override
-	public void readCustomDataFromNbt(NbtCompound nbt) {
-		super.readCustomDataFromNbt(nbt);
-		if (!nbt.contains("Item")) {
+	public void readCustomData(ReadView nbt) {
+		super.readCustomData(nbt);
+		if (nbt.read("Item", ItemStack.CODEC).isEmpty()) {
 			setItem(getDefaultItem());
 		}
 
-		if (nbt.contains(CLOUD_EFFECTS)) {
-			CLOUD_EFFECT_POOL_CODEC.parse(
-					getRegistryManager().getOps(NbtOps.INSTANCE),
-					nbt.get(CLOUD_EFFECTS)
-			).resultOrPartial(
-					Season4.LOGGER::error
-			).ifPresent(pool -> {
-				this.cloudEffects = pool;
-			});
-		} else {
-			this.cloudEffects = Pool.empty();
-		}
-
-		if (nbt.contains(HIT_EFFECTS)) {
-			HIT_EFFECT_POOL_CODEC.parse(
-					getRegistryManager().getOps(NbtOps.INSTANCE),
-					nbt.get(HIT_EFFECTS)
-			).resultOrPartial(
-					Season4.LOGGER::error
-			).ifPresent(pool -> {
-				this.hitEffects = pool;
-			});
-		} else {
-			this.hitEffects = Pool.empty();
-		}
-		if (nbt.contains(HIT_EFFECT_COUNT)) {
-			IntProvider.NON_NEGATIVE_CODEC.parse(
-					getRegistryManager().getOps(NbtOps.INSTANCE),
-					nbt.get(HIT_EFFECT_COUNT)
-			).resultOrPartial(
-					Season4.LOGGER::error
-			).ifPresent(count -> {
-				this.hitEffectCount = count;
-			});
-		} else {
-			this.hitEffectCount = ONE;
-		}
-		if (nbt.contains(CLOUD_EFFECT_COUNT)) {
-			IntProvider.NON_NEGATIVE_CODEC.parse(
-					getRegistryManager().getOps(NbtOps.INSTANCE),
-					nbt.get(CLOUD_EFFECT_COUNT)
-			).resultOrPartial(
-					Season4.LOGGER::error
-			).ifPresent(count -> {
-				this.cloudEffectCount = count;
-			});
-		} else {
-			this.cloudEffectCount = ONE;
-		}
+		this.cloudEffects = nbt.read(CLOUD_EFFECTS, CLOUD_EFFECT_POOL_CODEC).orElse(Pool.empty());
+		this.hitEffects = nbt.read(HIT_EFFECTS, HIT_EFFECT_POOL_CODEC).orElse(Pool.empty());
+		this.hitEffectCount = nbt.read(HIT_EFFECT_COUNT, IntProvider.NON_NEGATIVE_CODEC).orElse(ONE);
+		this.hitEffectCount = nbt.read(CLOUD_EFFECT_COUNT, IntProvider.NON_NEGATIVE_CODEC).orElse(ONE);
 	}
 
 	@Override
-	public void writeCustomDataToNbt(NbtCompound nbt) {
-		super.writeCustomDataToNbt(nbt);
+	public void writeCustomData(WriteView nbt) {
+		super.writeCustomData(nbt);
 		nbt.put(
-				CLOUD_EFFECTS, CLOUD_EFFECT_POOL_CODEC.encodeStart(
-						getRegistryManager().getOps(NbtOps.INSTANCE),
-						cloudEffects
-				).getOrThrow()
+				CLOUD_EFFECTS, CLOUD_EFFECT_POOL_CODEC,
+				cloudEffects
 		);
 		nbt.put(
-				HIT_EFFECTS, HIT_EFFECT_POOL_CODEC.encodeStart(
-						getRegistryManager().getOps(NbtOps.INSTANCE),
-						hitEffects
-				).getOrThrow()
+				HIT_EFFECTS, HIT_EFFECT_POOL_CODEC,
+				hitEffects
 		);
 		nbt.put(
-				HIT_EFFECT_COUNT, IntProvider.NON_NEGATIVE_CODEC.encodeStart(
-						getRegistryManager().getOps(NbtOps.INSTANCE),
-						hitEffectCount
-				).getOrThrow()
+				HIT_EFFECT_COUNT, IntProvider.NON_NEGATIVE_CODEC,
+				hitEffectCount
 		);
 		nbt.put(
-				CLOUD_EFFECT_COUNT, IntProvider.NON_NEGATIVE_CODEC.encodeStart(
-						getRegistryManager().getOps(NbtOps.INSTANCE),
-						cloudEffectCount
-				).getOrThrow()
+				CLOUD_EFFECT_COUNT, IntProvider.NON_NEGATIVE_CODEC,
+				cloudEffectCount
 		);
 	}
 

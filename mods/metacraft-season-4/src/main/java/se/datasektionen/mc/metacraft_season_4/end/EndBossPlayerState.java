@@ -264,7 +264,7 @@ public class EndBossPlayerState extends PersistentState {
 		return new EquippableComponent(
 				equippable.slot(), equippable.equipSound(), equippable.assetId(), Optional.ofNullable(overlay),
 				equippable.allowedEntities(), equippable.dispensable(), equippable.swappable(), equippable.damageOnHurt(),
-				equippable.equipOnInteract()
+				equippable.equipOnInteract(), equippable.canBeSheared(), equippable.shearingSound()
 		);
 	}
 
@@ -543,7 +543,7 @@ public class EndBossPlayerState extends PersistentState {
 
 	private TeleportTarget getNearBoss(ServerWorld world, Entity entity) {
 		if (currentBoss != null) {
-			return getTargetAroundPos(currentBoss.getServerWorld(), entity, currentBoss.getPos());
+			return getTargetAroundPos(currentBoss.getWorld(), entity, currentBoss.getPos());
 		} else {
 			return getPlayerSpawnPoint(world, entity);
 		}
@@ -568,7 +568,7 @@ public class EndBossPlayerState extends PersistentState {
 
 		if (particleTime > 0) {
 			particleTime--;
-			currentBoss.getServerWorld().spawnParticles(
+			currentBoss.getWorld().spawnParticles(
 					new TrailParticleEffect(
 							currentBoss.getBoundingBox().getCenter(),
 							-12648385, 20
@@ -604,7 +604,7 @@ public class EndBossPlayerState extends PersistentState {
 
 		for (var player : world.getPlayers()) {
 			if (player != currentBoss && player.distanceTo(currentBoss) > config.get().maxDistanceFromBoss()) {
-				player.teleportTo(getNearBoss(currentBoss.getServerWorld(), player));
+				player.teleportTo(getNearBoss(currentBoss.getWorld(), player));
 			}
 		}
 		if (currentBoss.getPos().distanceTo(playerSpawnPos.orElse(null)) > config.get().maxDistanceFromSpawn() || currentBoss.getWorld() != world) {

@@ -95,7 +95,7 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 
 		@Override
 		protected void configure(RegistryWrapper.WrapperLookup wrapperLookup) {
-			getOrCreateTagBuilder(BlockTags.PICKAXE_MINEABLE).add(RelayBlocks.RELAY);
+			valueLookupBuilder(BlockTags.PICKAXE_MINEABLE).add(RelayBlocks.RELAY);
 		}
 	}
 
@@ -107,7 +107,7 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 
 		@Override
 		protected void configure(RegistryWrapper.WrapperLookup wrapperLookup) {
-			getOrCreateTagBuilder(RelayItems.RELAY_RECHARGE_ITEMS).add(Items.END_CRYSTAL);
+			valueLookupBuilder(RelayItems.RELAY_RECHARGE_ITEMS).add(Items.END_CRYSTAL);
 		}
 	}
 

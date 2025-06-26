@@ -10,6 +10,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.storage.NbtWriteView;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.AffineTransformation;
 import org.jetbrains.annotations.Nullable;
@@ -27,6 +28,7 @@ import se.datasektionen.mc.metacraft_core.util.Interpolatable;
 import se.datasektionen.mc.cutscenes.util.InterpolationSetContainer;
 import se.datasektionen.mc.cutscenes.util.Target;
 import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 
 import java.util.Arrays;
 import java.util.stream.DoubleStream;
@@ -86,7 +88,12 @@ public record SmoothEntityPathConfig(
 
 		public static DisplayEntityTarget fromEntity(Entity entity) {
 			var target = Target.fromEntity(entity);
-			var data = entity.writeNbt(new NbtCompound());
+			NbtCompound data;
+			try (var logging = LoggingErrorReporter.create(() -> "metacraft:SmoothEntityPathConfig#fromEntity", Cutscenes.LOGGER)) {
+				var writeView = NbtWriteView.create(logging, entity.getRegistryManager());
+				entity.writeData(writeView);
+				data = writeView.getNbt();
+			}
 			var transformation = AffineTransformation.identity();
 			if (data.contains(DisplayEntity.TRANSFORMATION_NBT_KEY)) {
 				transformation = AffineTransformation.ANY_CODEC.parse(NbtOps.INSTANCE, data.get(DisplayEntity.TRANSFORMATION_NBT_KEY)).resultOrPartial(

@@ -1,12 +1,9 @@
 package se.datasektionen.mc.metacraft_dungeons.util;
 
 import com.mojang.authlib.GameProfile;
-import com.mojang.serialization.Dynamic;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.datafixer.DataFixTypes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.*;
@@ -23,7 +20,6 @@ import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.PlayerSaveHandler;
 import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionType;
 import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
 import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorIntegratedPlayerManager;
 import se.datasektionen.mc.metacraft_dungeons.mixin.AccessorMinecraftServer;
@@ -178,7 +174,7 @@ public class DisconnectedPlayerHelper {
 	}
 
 	public static RegistryKey<World> getPlayerDim(NbtCompound nbt) {
-		return DimensionType.worldFromDimensionNbt(new Dynamic<>(NbtOps.INSTANCE, nbt.get("Dimension"))).resultOrPartial().orElse(World.OVERWORLD);
+		return nbt.get("Dimension", World.CODEC).orElse(World.OVERWORLD);
 	}
 
 	public static RegistryKey<World> getEnderPearlDim(NbtCompound nbt) {

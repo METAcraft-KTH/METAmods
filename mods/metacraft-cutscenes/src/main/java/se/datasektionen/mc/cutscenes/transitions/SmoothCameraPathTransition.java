@@ -6,8 +6,10 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.storage.NbtWriteView;
+import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.extension.EntityExtension;
 import se.datasektionen.mc.cutscenes.registry.TransitionRegistry;
@@ -16,6 +18,7 @@ import se.datasektionen.mc.cutscenes.util.CutsceneContext;
 import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
 import se.datasektionen.mc.cutscenes.util.IntervalMap;
 import se.datasektionen.mc.cutscenes.util.Target;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 
 public class SmoothCameraPathTransition implements Transition {
 
@@ -49,9 +52,14 @@ public class SmoothCameraPathTransition implements Transition {
 	private static final String MARKER_ID = "metacraft$smooth_camera_marker";
 
 	private void setLinearInterpolationDuration(Entity display, int duration) {
-		var data = display.writeNbt(new NbtCompound());
-		data.putInt(DisplayEntity.TELEPORT_DURATION_KEY, duration);
-		display.readNbt(data);
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:SmoothCameraPathTransition#setLinearInterpolationDuration", Cutscenes.LOGGER)) {
+			var writeView = NbtWriteView.create(logging, display.getRegistryManager());
+			display.writeData(writeView);
+			var data = writeView.getNbt();
+			data.putInt(DisplayEntity.TELEPORT_DURATION_KEY, duration);
+			var readView = NbtReadView.create(logging, display.getRegistryManager(), data);
+			display.readData(readView);
+		}
 	}
 
 	private int getAdjustedTime(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {

@@ -10,7 +10,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.entity.*;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.collection.Pool;
@@ -143,9 +142,7 @@ public abstract class MixinSpawnHelper {
 	private static void applyNBTBeforeSpawnCheck(SpawnSettings.SpawnEntry spawnEntry, MobEntity mob) {
 		//Apply nbt before spawn check to allow modified nbt to impact the spawn check.
 		if (spawnEntry instanceof BetterSpawnEntry betterSpawnEntry) {
-			var nbt = mob.writeNbt(new NbtCompound());
-			nbt.copyFrom(betterSpawnEntry.nbt);
-			mob.readNbt(nbt);
+			betterSpawnEntry.applyData(mob);
 		}
 	}
 
@@ -167,9 +164,7 @@ public abstract class MixinSpawnHelper {
 			EntityData data = null;
 			if (betterSpawnEntry.shouldInitialise) {
 				data = initialise.call(mob, world, difficulty, spawnReason, entityData);
-				var nbt = mob.writeNbt(new NbtCompound()); //Apply nbt again after initialisation since initialisation might remove stuff.
-				nbt.copyFrom(betterSpawnEntry.nbt);
-				mob.readNbt(nbt);
+				betterSpawnEntry.applyData(mob);
 			}
 			return data;
 		}

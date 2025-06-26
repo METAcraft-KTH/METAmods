@@ -33,7 +33,7 @@ public class CutsceneHelper {
 	}
 
 	public static void playPlayerSpecificCutscene(ServerPlayerEntity player, Cutscene cutscene) {
-		((ServerPlayerEntityExtensions) player).metacraft_cutscenes$setCutscene(new CutsceneInstance(cutscene, player.getServerWorld()));
+		((ServerPlayerEntityExtensions) player).metacraft_cutscenes$setCutscene(new CutsceneInstance(cutscene, player.getWorld()));
 	}
 
 	public static void stopPlayerSpecificCutscene(ServerPlayerEntity player) {

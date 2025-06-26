@@ -2,11 +2,10 @@ package se.metacraft.bosses.boss;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import org.pcollections.HashTreePSet;
 import org.pcollections.PSet;
-import se.metacraft.bosses.METAcraftBosses;
 import se.metacraft.bosses.boss.attacks.Attack;
 
 import java.util.*;
@@ -103,23 +102,19 @@ public interface AutoAttackingBoss extends Boss {
 			currentAttacks.forEach(attack -> attack.tick(boss.getContext(attack)));
 		}
 
-		public void writeNBT(NbtCompound nbt) {
+		public void writeNBT(WriteView nbt) {
 			nbt.put(
 					ATTACK_CONTAINER,
-					Serialized.CODEC.encodeStart(
-							boss.getAsEntity().getRegistryManager().getOps(NbtOps.INSTANCE),
-							save()
-					).getOrThrow()
+					Serialized.CODEC,
+					save()
 			);
 		}
 
-		public void readNBT(NbtCompound nbt) {
-			if (nbt.contains(ATTACK_CONTAINER)) {
-				Serialized.CODEC.parse(
-						boss.getAsEntity().getRegistryManager().getOps(NbtOps.INSTANCE),
-						nbt.get(ATTACK_CONTAINER)
-				).resultOrPartial(METAcraftBosses.LOGGER::error).ifPresent(this::load);
-			}
+		public void readNBT(ReadView nbt) {
+			nbt.read(ATTACK_CONTAINER, Serialized.CODEC).ifPresentOrElse(
+					this::load,
+					this::removeAllAttacks
+			);
 		}
 
 		public Serialized save() {

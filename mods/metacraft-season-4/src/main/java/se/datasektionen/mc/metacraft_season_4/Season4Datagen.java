@@ -46,7 +46,7 @@ public class Season4Datagen implements DataGeneratorEntrypoint {
 
 		@Override
 		protected void configure(RegistryWrapper.WrapperLookup wrapperLookup) {
-			getOrCreateTagBuilder(EntityTypeTags.FALL_DAMAGE_IMMUNE).add(
+			valueLookupBuilder(EntityTypeTags.FALL_DAMAGE_IMMUNE).add(
 					Season4Entities.AVOLINE_BOSS,
 					Season4Entities.DEVIN_BOSS,
 					Season4Entities.GIOCAT_BOSS,

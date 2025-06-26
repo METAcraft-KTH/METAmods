@@ -10,12 +10,14 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.storage.NbtWriteView;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
+import se.datasektionen.mc.cutscenes.Cutscenes;
 import se.datasektionen.mc.cutscenes.cutscene.CutsceneInstance;
 import se.datasektionen.mc.cutscenes.extension.EntityExtension;
 import se.datasektionen.mc.metacraft_core.position_ref.Fixed;
@@ -31,6 +33,7 @@ import se.datasektionen.mc.cutscenes.transitions.config.TransitionConfigType;
 import se.datasektionen.mc.cutscenes.util.*;
 import se.datasektionen.mc.metacraft_core.util.Interpolatable;
 import se.datasektionen.mc.metacraft_core.util.InterpolationSet;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -71,9 +74,14 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 	private static final String MARKER_ID_PREFIX = "metacraft$player_smooth_camera_marker_";
 
 	private void setLinearInterpolationDuration(Entity display, int duration) {
-		var data = display.writeNbt(new NbtCompound());
-		data.putInt(DisplayEntity.TELEPORT_DURATION_KEY, duration);
-		display.readNbt(data);
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:SmoothCameraPathTransition#setLinearInterpolationDuration", Cutscenes.LOGGER)) {
+			var writeView = NbtWriteView.create(logging, display.getRegistryManager());
+			display.writeData(writeView);
+			var data = writeView.getNbt();
+			data.putInt(DisplayEntity.TELEPORT_DURATION_KEY, duration);
+			var readView = NbtReadView.create(logging, display.getRegistryManager(), data);
+			display.readData(readView);
+		}
 	}
 
 	private int getAdjustedTime(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {

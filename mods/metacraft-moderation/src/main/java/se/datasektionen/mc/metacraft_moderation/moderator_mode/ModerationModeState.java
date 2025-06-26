@@ -2,8 +2,12 @@ package se.datasektionen.mc.metacraft_moderation.moderator_mode;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.storage.NbtWriteView;
+import net.minecraft.util.ErrorReporter;
 import net.minecraft.util.Identifier;
 import se.datasektionen.mc.metacraft_lib.compat.IsLoaded;
+import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
 import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
 import se.datasektionen.mc.metacraft_moderation.METAcraftModeration;
 import se.datasektionen.mc.metacraft_moderation.ModerationData;
@@ -28,11 +32,12 @@ public class ModerationModeState {
 		this.def = def;
 	}
 
-	private NbtCompound writePlayerToNBT(ServerPlayerEntity player) {
+	private NbtCompound writePlayerToNBT(ServerPlayerEntity player, ErrorReporter logger) {
 		PlayerDataHelper.detachPassengersBeforeSaving(player);
-		NbtCompound nbt = player.writeNbt(new NbtCompound());
+		var writeView = NbtWriteView.create(logger, player.getRegistryManager());
+		player.writeData(writeView);
 		PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
-		return nbt;
+		return writeView.getNbt();
 	}
 
 	public static Identifier getFromDef(ModeratorModeDefinition def) {
@@ -46,50 +51,56 @@ public class ModerationModeState {
 		if (this != NULL) {
 			this.playerNBT = prev.playerNBT;
 		}
-		if (prev.def.shouldHaveSeparatePlayerData()) {
-			((ModerationPlayerData) player).METAcraft_Moderation$getSavedNBT().put(prev.def.getName(), writePlayerToNBT(player));
-		}
 
-		boolean applyVanishBeforeData = def.vanish;
-
-		if (applyVanishBeforeData) {
-			if (IsLoaded.VANISH.isLoaded()) {
-				Vanish.setVanishState(player, def.vanish);
+		try (var logging = LoggingErrorReporter.create(() -> "metacraft:ModerationModeState#applyToPlayer", METAcraftModeration.LOGGER)) {
+			if (prev.def.shouldHaveSeparatePlayerData()) {
+				((ModerationPlayerData) player).METAcraft_Moderation$getSavedNBT().put(prev.def.getName(), writePlayerToNBT(player, logging));
 			}
-		}
 
-		if (def.shouldHaveSeparatePlayerData()) {
-			if (!prev.def.shouldHaveSeparatePlayerData()) {
-				if (playerNBT != null) {
-					METAcraftModeration.LOGGER.fatal("Overwriting player data for " + player + "!" + "Their previous nbt was " + playerNBT.asString() + ". This should not happen!");
+			boolean applyVanishBeforeData = def.vanish;
+
+			if (applyVanishBeforeData) {
+				if (IsLoaded.VANISH.isLoaded()) {
+					Vanish.setVanishState(player, def.vanish);
 				}
-				playerNBT = writePlayerToNBT(player);
 			}
-			NbtCompound newNbt = PlayerDataHelper.getEmptyPlayerData();
-			Optional.ofNullable(((ModerationPlayerData) player).METAcraft_Moderation$getSavedNBT().get(def.getName())).ifPresent(newNbt::copyFrom);
-			PlayerDataHelper.applyPlayerData(player, newNbt, false);
-			PlayerDataHelper.setAdvancementTracker(player, getFromDef(def), false);
-			PlayerDataHelper.setStatHandler(player, getFromDef(def), false);
-			if (!def.announceAdvancements) {
-				PlayerDataHelper.setAnnounceAdvancements(player, false);
+
+			if (def.shouldHaveSeparatePlayerData()) {
+				if (!prev.def.shouldHaveSeparatePlayerData()) {
+					if (playerNBT != null) {
+						METAcraftModeration.LOGGER.fatal("Overwriting player data for " + player + "!" + "Their previous nbt was " + playerNBT.asString() + ". This should not happen!");
+					}
+					playerNBT = writePlayerToNBT(player, logging);
+				}
+				NbtCompound newNbt = PlayerDataHelper.getEmptyPlayerData();
+				Optional.ofNullable(((ModerationPlayerData) player).METAcraft_Moderation$getSavedNBT().get(def.getName())).ifPresent(newNbt::copyFrom);
+				var readView = NbtReadView.create(logging, player.getRegistryManager(), newNbt);
+				PlayerDataHelper.applyPlayerData(player, readView, false);
+				PlayerDataHelper.setAdvancementTracker(player, getFromDef(def), false);
+				PlayerDataHelper.setStatHandler(player, getFromDef(def), false);
+				if (!def.announceAdvancements) {
+					PlayerDataHelper.setAnnounceAdvancements(player, false);
+				}
+			} else if (prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
+				if (prev.playerNBT != null) {
+					var readView = NbtReadView.create(logging, player.getRegistryManager(), prev.playerNBT);
+					PlayerDataHelper.applyPlayerData(player, readView, true);
+				} else {
+					METAcraftModeration.LOGGER.fatal("Player " + player.getName() + " lost their player data! This is a bug!");
+				}
 			}
-		} else if (prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
-			if (prev.playerNBT != null) {
-				PlayerDataHelper.applyPlayerData(player, prev.playerNBT, true);
-			} else {
-				METAcraftModeration.LOGGER.fatal("Player " + player.getName() + " lost their player data! This is a bug!");
+
+			if (!prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
+				PlayerDataHelper.setAnnounceAdvancements(player, def.announceAdvancements);
+			}
+
+			if (!applyVanishBeforeData) {
+				if (IsLoaded.VANISH.isLoaded()) {
+					Vanish.setVanishState(player, def.vanish);
+				}
 			}
 		}
 
-		if (!prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
-			PlayerDataHelper.setAnnounceAdvancements(player, def.announceAdvancements);
-		}
-
-		if (!applyVanishBeforeData) {
-			if (IsLoaded.VANISH.isLoaded()) {
-				Vanish.setVanishState(player, def.vanish);
-			}
-		}
 
 		prev.def.getExitCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().getName())).ifPresent(exit -> {
 			player.getServer().getCommandManager().executeWithPrefix(
