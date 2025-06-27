@@ -23,6 +23,7 @@ import net.minecraft.util.path.SymlinkValidationException;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.level.storage.LevelStorage;
 import org.jetbrains.annotations.NotNull;
+import org.spongepowered.asm.util.Files;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -74,8 +75,13 @@ public class TestHelper {
 	public static void runTestServer(
 			String testNamespace, String testsPath
 	) throws IOException, SymlinkValidationException, InterruptedException {
-		var storage = LevelStorage.create(Path.of("./run"));
-		var session = storage.createSession("Test");
+		var path = Path.of("./run/Test");
+		var file = path.toFile();
+		if (file.isDirectory()) {
+			Files.deleteRecursively(file);
+		}
+		var storage = LevelStorage.create(path.getParent());
+		var session = storage.createSession(file.getName());
 		var manager = new ResourcePackManager(
 				new VanillaDataPackProvider(session.getLevelStorage().getSymlinkFinder()),
 				new FileResourcePackProvider(
