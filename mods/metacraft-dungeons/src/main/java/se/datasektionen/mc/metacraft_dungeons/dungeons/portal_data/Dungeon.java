@@ -413,9 +413,10 @@ public record Dungeon(
 						poolStructurePiece.generate(cache, structureAccessor, chunkGenerator, random, BlockBox.infinite(), pos, false);
 						if (poolStructurePiece.getPoolElement() instanceof SinglePoolElement simplePool) {
 							for (var data : simplePool.getDataStructureBlocks(structureTemplateManager, poolStructurePiece.getPos(), poolStructurePiece.getRotation(), true)) {
-								if (data.nbt() != null && data.nbt().contains("metadata")) {
+								if (data.nbt() != null) {
 									var value = data.nbt().getString("metadata");
-									DataBlockRegistry.PARSER_CODEC.parse(portal.getWorld().getRegistryManager().getOps(JavaOps.INSTANCE), value).resultOrPartial(
+									if (value.isEmpty()) continue;
+									DataBlockRegistry.PARSER_CODEC.parse(portal.getWorld().getRegistryManager().getOps(JavaOps.INSTANCE), value.get()).resultOrPartial(
 											METAcraftDungeons.LOGGER::error
 									).ifPresent(dataBlock -> {
 										dataBlock.initialise(portal, parameters);
