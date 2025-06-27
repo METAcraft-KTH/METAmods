@@ -150,8 +150,8 @@ public class TestPlayerData {
 								var player = TestHelper.addMockPlayer(ctx);
 
 								try {
-									var oldPlayerDataWithItem = StringNbtReader.readCompound("{seenCredits: 0b, EnderItems: {}, ShoulderEntityLeft: {}, ShoulderEntityRight: {}, Inventory: [{count: 1, Slot: 0b, components: {\"minecraft:food\": {saturation: 1.0f, nutrition: 1}}, id: \"minecraft:diamond\"}], DataVersion: 3955}");
-									var oldPlayerData = StringNbtReader.readCompound("{seenCredits: 0b, EnderItems: {}, ShoulderEntityLeft: {}, ShoulderEntityRight: {}, DataVersion: 3955}");
+									var oldPlayerDataWithItem = StringNbtReader.readCompound("{seenCredits: 0b, EnderItems: [], ShoulderEntityLeft: {}, ShoulderEntityRight: {}, Inventory: [{count: 1, Slot: 0b, components: {\"minecraft:food\": {saturation: 1.0f, nutrition: 1}}, id: \"minecraft:diamond\"}], DataVersion: 3955}");
+									var oldPlayerData = StringNbtReader.readCompound("{seenCredits: 0b, EnderItems: [], ShoulderEntityLeft: {}, ShoulderEntityRight: {}, Inventory: [], DataVersion: 3955}");
 									var version = NbtHelper.getDataVersion(oldPlayerData, 1343);
 
 									var id = Identifier.of("test", "test");

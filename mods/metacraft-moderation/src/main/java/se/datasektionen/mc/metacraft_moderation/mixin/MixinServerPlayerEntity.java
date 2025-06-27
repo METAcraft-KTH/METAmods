@@ -32,12 +32,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Mo
 	@Shadow @Final public MinecraftServer server;
 
 	@Unique
-	private static final String METACRAFT_MODERATION = "METAcraft-Moderation"; //Careful, this is used by the datafixer!
+	private static final String METACRAFT_MODERATION = "METAcraft-Moderation";
 	@Unique
 	private static final String MODERATION_STATE = "ModerationState";
 
 	@Unique
-	private static final String MODERATOR_MODE_NBT_MAP = "ModeratorModeNBTMap"; //Careful, this is used by the datafixer!
+	private static final String MODERATOR_MODE_NBT_MAP = "ModeratorModeNBTMap";
 
 
 	@Unique
@@ -128,7 +128,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Mo
 				savedNBT.clear();
 				for (String key : moderatorModeNBTMap.getKeys()) {
 					moderatorModeNBTMap.getCompound(key).ifPresent(
-							data -> savedNBT.put(key.toLowerCase(Locale.ROOT), data)
+							data -> savedNBT.put(key.toLowerCase(Locale.ROOT), PlayerDataHelper.updatePlayerData(data, getServer().getDataFixer()))
 					);
 				}
 			});

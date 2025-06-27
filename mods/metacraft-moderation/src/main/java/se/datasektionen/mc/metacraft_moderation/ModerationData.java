@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.PersistentStateType;
+import se.datasektionen.mc.metacraft_lib.util.ExtraCodecs;
 import se.datasektionen.mc.metacraft_moderation.moderator_mode.ModeratorModeDefinition;
 
 import java.util.HashMap;
@@ -23,8 +24,9 @@ public class ModerationData extends PersistentState {
 
 	private static final Codec<ModerationData> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					Codec.unboundedMap(
-							Codec.STRING, ModeratorModeDefinition.CODEC
+					ExtraCodecs.createListSerializedMap(
+							Codec.STRING.fieldOf(ModeratorModeDefinition.NAME), ModeratorModeDefinition.CODEC,
+							HashMap::new
 					).fieldOf("Definitions").forGetter(d -> d.definitions)
 			).apply(instance, ModerationData::fromData)
 	);

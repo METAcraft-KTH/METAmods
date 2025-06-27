@@ -2,6 +2,7 @@ package se.datasektionen.mc.cutscenes.cutscene;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.mojang.datafixers.DataFixer;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -97,7 +98,7 @@ public class CutsceneInstance implements AutoCloseable {
 					),
 					Codec.INT.fieldOf("time").forGetter(a -> a.time),
 					CutsceneWorldData.CODEC.fieldOf("data").forGetter(a -> a.world.save()),
-					SAVED_DATA_CODEC.fieldOf("saved_players").forGetter(cutscene -> cutscene.savedPlayerData), //Careful, this is used by the datafixer!
+					SAVED_DATA_CODEC.fieldOf("saved_players").forGetter(cutscene -> cutscene.savedPlayerData),
 					ExtraCodecs.createListSerializedMap(
 							Uuids.STRICT_CODEC.fieldOf("player"), Uuids.STRICT_CODEC.fieldOf("dummy"), HashMap::new
 					).optionalFieldOf("player_dummies", new HashMap<>()).forGetter(a -> a.playerDummies),
@@ -291,12 +292,16 @@ public class CutsceneInstance implements AutoCloseable {
 		return transitionTarget;
 	}
 
+	protected NbtCompound getPlayerData(UUID id, DataFixer fixer) {
+		return PlayerDataHelper.updatePlayerData(savedPlayerData.get(id), fixer);
+	}
+
 	public void addPlayerDummy(ServerPlayerEntity player, Function<NbtCompound, Entity> entitySpawner) {
 		var existing = playerDummies.get(player.getUuid());
 		if (existing != null && getEntityLookup().get(existing) != null) {
 			return;
 		}
-		var entity = entitySpawner.apply(savedPlayerData.get(player.getUuid()));
+		var entity = entitySpawner.apply(getPlayerData(player.getUuid(), player.getServer().getDataFixer()));
 		if (entity == null) return;
 		entity.streamSelfAndPassengers().forEach(e -> {
 			e.getCommandTags().add(PLAYER_DUMMY_TAG);
@@ -409,7 +414,7 @@ public class CutsceneInstance implements AutoCloseable {
 	protected void resetPlayer(ServerPlayerEntity player, boolean isLeavingCutscene) {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:CutsceneInstance#resetPlayer", Cutscenes.LOGGER)) {
 			if (cutscene.resetPlayerData()) {
-				var data = savedPlayerData.get(player.getUuid());
+				var data = getPlayerData(player.getUuid(), player.getServer().getDataFixer());
 				if (data == null) {
 					data = new NbtCompound();
 				}
@@ -422,7 +427,7 @@ public class CutsceneInstance implements AutoCloseable {
 				if (cutscene.hasExitPoint()) {
 					target = cutscene.getExitPoint(player, this).orElseThrow();
 				} else if (cutscene.returnToStart() && skipNextCutscene(isLeavingCutscene)) {
-					target = Optional.ofNullable(savedPlayerData.get(player.getUuid())).flatMap(data -> {
+					target = Optional.ofNullable(getPlayerData(player.getUuid(), player.getServer().getDataFixer())).flatMap(data -> {
 						Vec3d pos = data.get("Pos", Vec3d.CODEC).orElse(Vec3d.ZERO);
 						Vec3d velocity = data.get("Motion", Vec3d.CODEC).orElse(Vec3d.ZERO);
 						Vec2f rotation = data.get("Rotation", Vec2f.CODEC).orElse(Vec2f.ZERO);
@@ -441,7 +446,7 @@ public class CutsceneInstance implements AutoCloseable {
 				}
 
 				if (savedPlayerData.containsKey(player.getUuid())) {
-					var data = savedPlayerData.get(player.getUuid());
+					var data = getPlayerData(player.getUuid(), player.getServer().getDataFixer());
 					var readView = NbtReadView.create(logging, player.getRegistryManager(), data);
 					PlayerDataHelper.loadRootVehicleAndPassengers(player, readView, e -> {
 						if (player.getWorld().spawnEntity(e)) {

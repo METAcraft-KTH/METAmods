@@ -1,11 +1,17 @@
 package se.datasektionen.mc.metacraft_lib.util.helper;
 
+import com.mojang.datafixers.DataFixer;
+import com.mojang.serialization.Dynamic;
+import net.minecraft.SharedConstants;
+import net.minecraft.datafixer.TypeReferences;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -90,7 +96,9 @@ public class PlayerDataHelper {
 			ServerPlayerEntity player, Identifier id, boolean moveToDataPosition,
 			boolean includeVehicleAndPassengers, boolean includeFarawayEntities
 	) {
-		ext(player).metacraft_lib$getPlayerData(id).ifPresent(data -> {
+		ext(player).metacraft_lib$getPlayerData(id).map(
+				data -> updatePlayerData(data, player.getServer().getDataFixer())
+		).ifPresent(data -> {
 			try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerDataHelper#loadPlayerData", METAcraftLib.LOGGER)) {
 				var view = NbtReadView.create(
 						logging, player.getRegistryManager(), data
@@ -267,6 +275,16 @@ public class PlayerDataHelper {
 			ServerPlayerEntity player, ReadView data, boolean moveToDataPosition
 	) {
 		applyPlayerData(player, data, moveToDataPosition, true, true);
+	}
+
+	public static NbtCompound updatePlayerData(NbtCompound data, DataFixer dataFixer) {
+		int oldVersion = NbtHelper.getDataVersion(data, -1);
+		if (oldVersion >= SharedConstants.getGameVersion().dataVersion().id()) return data;
+		var newData = dataFixer.update(
+				TypeReferences.PLAYER, new Dynamic<>(NbtOps.INSTANCE, data),
+				oldVersion, SharedConstants.getGameVersion().dataVersion().id()
+		);
+		return (NbtCompound) newData.getValue();
 	}
 
 	/**

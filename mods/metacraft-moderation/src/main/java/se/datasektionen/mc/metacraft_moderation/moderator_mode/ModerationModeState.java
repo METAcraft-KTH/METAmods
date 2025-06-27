@@ -83,7 +83,7 @@ public class ModerationModeState {
 				}
 			} else if (prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
 				if (prev.playerNBT != null) {
-					var readView = NbtReadView.create(logging, player.getRegistryManager(), prev.playerNBT);
+					var readView = NbtReadView.create(logging, player.getRegistryManager(), PlayerDataHelper.updatePlayerData(prev.playerNBT, player.getServer().getDataFixer()));
 					PlayerDataHelper.applyPlayerData(player, readView, true);
 				} else {
 					METAcraftModeration.LOGGER.fatal("Player " + player.getName() + " lost their player data! This is a bug!");

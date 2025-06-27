@@ -22,9 +22,6 @@
 		],
 		"mm:early_risers": [
 			"se.datasektionen.mc.cutscenes.CutsceneEnums"
-		],
-		"metacraft:player_datafixer": [
-			"se.datasektionen.mc.cutscenes.PlayerDataFix"
 		]
 	},
 	"mixins": [

@@ -1,6 +1,7 @@
 package se.datasektionen.mc.metacraft_moderation.moderator_mode;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.text.Text;
 
@@ -8,9 +9,11 @@ import java.util.Optional;
 
 public class ModeratorModeDefinition {
 
-	public static final Codec<ModeratorModeDefinition> CODEC = RecordCodecBuilder.create(
+	public static final String NAME = "Name";
+
+	public static final MapCodec<ModeratorModeDefinition> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Codec.STRING.fieldOf("Name").forGetter(ModeratorModeDefinition::getName),
+					Codec.STRING.fieldOf(NAME).forGetter(ModeratorModeDefinition::getName),
 					Codec.BOOL.fieldOf("SeparatePlayerData").forGetter(ModeratorModeDefinition::shouldHaveSeparatePlayerData),
 					Codec.STRING.optionalFieldOf("EnterCommand").forGetter(ModeratorModeDefinition::getEnterCommand),
 					Codec.STRING.optionalFieldOf("ExitCommand").forGetter(ModeratorModeDefinition::getExitCommand),

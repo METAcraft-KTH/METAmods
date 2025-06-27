@@ -3,7 +3,6 @@ package se.datasektionen.mc.cutscenes.mixin;
 import com.mojang.datafixers.DSL;
 import com.mojang.datafixers.schemas.Schema;
 import com.mojang.datafixers.types.templates.TypeTemplate;
-import net.minecraft.datafixer.TypeReferences;
 import net.minecraft.datafixer.schema.Schema1460;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,11 +24,7 @@ public class MixinSchema1460 {
 	public void registerTypes(Schema schema, Map<String, Supplier<TypeTemplate>> entityTypes, Map<String, Supplier<TypeTemplate>> blockEntityTypes, CallbackInfo ci) {
 		schema.registerType(
 			false, CutsceneDataFixer.CUTSCENE,
-			() -> DSL.optionalFields(
-				"saved_players", DSL.compoundList(
-						TypeReferences.PLAYER.in(schema)
-				)
-			)
+			DSL::remainder
 		);
 		schema.registerType(
 				false, CutsceneDataFixer.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER,
