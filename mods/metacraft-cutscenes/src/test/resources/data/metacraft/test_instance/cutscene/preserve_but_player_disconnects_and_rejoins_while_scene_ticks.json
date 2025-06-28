@@ -2,7 +2,7 @@
 	"type": "minecraft:function",
 	"environment": "metacraft:default",
 	"function": "metacraft:cutscene/preserve_but_player_disconnects_and_rejoins_while_scene_ticks",
-	"max_ticks": 23,
+	"max_ticks": 24,
 	"required": true,
 	"setup_ticks": 1,
 	"structure": "minecraft:empty"

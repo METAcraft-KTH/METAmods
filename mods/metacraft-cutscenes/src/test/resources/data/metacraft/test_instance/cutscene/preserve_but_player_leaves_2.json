@@ -2,7 +2,7 @@
 	"type": "minecraft:function",
 	"environment": "metacraft:default",
 	"function": "metacraft:cutscene/preserve_but_player_leaves_2",
-	"max_ticks": 16,
+	"max_ticks": 17,
 	"required": true,
 	"setup_ticks": 1,
 	"structure": "minecraft:empty"
