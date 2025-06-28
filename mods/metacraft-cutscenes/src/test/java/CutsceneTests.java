@@ -7,6 +7,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.scoreboard.AbstractTeam;
+import net.minecraft.scoreboard.Scoreboard;
+import net.minecraft.scoreboard.Team;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.test.TestContext;
 import net.minecraft.text.Text;
@@ -88,6 +91,17 @@ public class CutsceneTests {
 			() -> new Cutscene(SIMPLE_CLEARING_CUTSCENE)
 					.setReturnPlayerToStartPos(false).resetPlayerData(true).setCachedNextCutscene(preservePlayerButNotPos.get())
 	);
+
+	public static Team getPlayerTeam(Scoreboard scoreboard) {
+		final var name = "testing";
+		var team = scoreboard.getTeam(name);
+		if (team != null) {
+			return team;
+		}
+		team = scoreboard.addTeam(name);
+		team.setCollisionRule(AbstractTeam.CollisionRule.NEVER);
+		return team;
+	}
 
 	@BeforeAll
 	public static void init() {
@@ -198,6 +212,10 @@ public class CutsceneTests {
 
 								UUID uuid2 = UUID.randomUUID();
 								MutableObject<ServerPlayerEntity> extraPlayer = new MutableObject<>(TestHelper.addMockPlayer(context, name, uuid2));
+								context.getWorld().getScoreboard().addScoreHolderToTeam(
+										extraPlayer.getValue().getNameForScoreboard(),
+										getPlayerTeam(context.getWorld().getScoreboard())
+								);
 								manager.addToCutscene(sceneName, extraPlayer.getValue());
 
 
@@ -246,6 +264,10 @@ public class CutsceneTests {
 								manager.addToCutscene(sceneName, data.getValue().player);
 
 								MutableObject<ServerPlayerEntity> extraPlayer = new MutableObject<>(TestHelper.addMockPlayer(context, name, uuid2));
+								context.getWorld().getScoreboard().addScoreHolderToTeam(
+										extraPlayer.getValue().getNameForScoreboard(),
+										getPlayerTeam(context.getWorld().getScoreboard())
+								);
 								extraPlayer.getValue().getInventory().insertStack(2, new ItemStack(Items.DIAMOND, 64));
 								manager.addToCutscene(sceneName, extraPlayer.getValue());
 
@@ -320,6 +342,8 @@ public class CutsceneTests {
 	private static Data prepare(
 			TestContext context, ServerPlayerEntity player
 	) {
+		var team = getPlayerTeam(player.getScoreboard());
+		player.getScoreboard().addScoreHolderToTeam(player.getNameForScoreboard(), team);
 		var stack = new ItemStack(Items.DIAMOND, 64);
 		int slot = 5;
 		var start = player.getPos();
