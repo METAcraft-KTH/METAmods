@@ -57,6 +57,7 @@
 		"MixinRecipeManager",
 		"MixinServerPlayerEntity",
 		"MixinServerPlayNetworkHandler",
+		"MixinServerWorld",
 		"MixinShapedRecipe",
 		"MixinShapelessRecipe",
 		"MixinSoundCategory",
