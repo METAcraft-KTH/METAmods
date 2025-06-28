@@ -1,6 +1,6 @@
 {
 	"type": "minecraft:function",
-	"environment": "minecraft:default",
+	"environment": "metacraft:default",
 	"function": "metacraft:cutscene/preserve",
 	"max_ticks": 22,
 	"required": true,

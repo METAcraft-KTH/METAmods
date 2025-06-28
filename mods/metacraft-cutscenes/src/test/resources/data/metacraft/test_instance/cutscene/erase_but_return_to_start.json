@@ -1,6 +1,6 @@
 {
 	"type": "minecraft:function",
-	"environment": "minecraft:default",
+	"environment": "metacraft:default",
 	"function": "metacraft:cutscene/erase_but_return_to_start",
 	"max_ticks": 22,
 	"required": true,

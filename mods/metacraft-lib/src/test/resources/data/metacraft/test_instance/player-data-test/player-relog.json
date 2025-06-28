@@ -1,6 +1,6 @@
 {
 	"type": "minecraft:function",
-	"environment": "minecraft:default",
+	"environment": "metacraft:default",
 	"function": "metacraft:player-data-test/player-relog",
 	"max_ticks": 2,
 	"required": true,

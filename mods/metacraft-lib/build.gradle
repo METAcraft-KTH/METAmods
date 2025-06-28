@@ -4,6 +4,10 @@ loom {
 	accessWidenerPath = file("src/main/resources/metacraft_lib.accesswidener")
 }
 
+fabricApi {
+	configureDataGeneration()
+}
+
 dependencies {
 	include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
 	include("com.github.Chocohead:Fabric-ASM:${project.fabric_asm_version}")
