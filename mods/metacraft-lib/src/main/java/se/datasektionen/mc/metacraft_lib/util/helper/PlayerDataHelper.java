@@ -280,11 +280,12 @@ public class PlayerDataHelper {
 	public static NbtCompound updatePlayerData(NbtCompound data, DataFixer dataFixer) {
 		int oldVersion = NbtHelper.getDataVersion(data, -1);
 		if (oldVersion >= SharedConstants.getGameVersion().dataVersion().id()) return data;
-		var newData = dataFixer.update(
+		NbtCompound newData = (NbtCompound) dataFixer.update(
 				TypeReferences.PLAYER, new Dynamic<>(NbtOps.INSTANCE, data),
 				oldVersion, SharedConstants.getGameVersion().dataVersion().id()
-		);
-		return (NbtCompound) newData.getValue();
+		).getValue();
+		NbtHelper.putDataVersion(newData);
+		return newData;
 	}
 
 	/**
