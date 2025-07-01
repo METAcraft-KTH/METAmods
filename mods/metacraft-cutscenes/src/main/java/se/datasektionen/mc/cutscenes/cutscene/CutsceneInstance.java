@@ -293,7 +293,12 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	protected NbtCompound getPlayerData(UUID id, DataFixer fixer) {
-		return PlayerDataHelper.updatePlayerData(savedPlayerData.get(id), fixer);
+		var oldData = savedPlayerData.get(id);
+		var newData = PlayerDataHelper.updatePlayerData(oldData, fixer);
+		if (oldData != newData) {
+			savedPlayerData.put(id, newData);
+		}
+		return newData;
 	}
 
 	public void addPlayerDummy(ServerPlayerEntity player, Function<NbtCompound, Entity> entitySpawner) {
