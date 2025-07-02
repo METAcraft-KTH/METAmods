@@ -1,14 +1,5 @@
 version = project.bosses_version
 
-addProjectDependency(":mods:metacraft-core")
-addPolymerDependency()
+addCoreDependencies()
 
-fabricApi {
-	configureDataGeneration{
-		modId = "metacraft-bosses"
-	}
-}
-
-dependencies {
-	modImplementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
-}
+setupRunDatagen("metacraft-bosses")

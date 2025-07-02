@@ -11,62 +11,35 @@ def nonModSubprojects = [
         "dist"
 ]
 
-//If you can think of a smarter way to remove a project from the Fabric Loom cache, feel free to rewrite this function.
-ext.cleanRemappedSubprojectAt = {rDir, p ->
-    var v = minecraft_version + "_" + yarn_mappings + "_${yarn_mappings_version}"
-    v = v.replaceAll("\\.", "_").replaceAll("\\+", "_").replaceAll("-", "_")
-    var g = p.maven_group.replaceAll("\\.", "/")
-    delete(project.file("${rDir}/.gradle/loom-cache/remapped_mods/net_fabricmc_yarn_${v}/${g}/${p.name}"))
-}
-
-ext.cleanRemappedSubproject = {p ->
-    cleanRemappedSubprojectAt(rootDir, p)
-}
-
-project.runMode = hasProperty("run-mode")
-
 // For all modules that are fabric mods (all mods and dist)
 subprojects {
     if (nonMcSubprojects.contains(it.name)) {
         return
     }
-    clean.doFirst {
-        rootProject.runMode = false
-    }
     apply plugin: "fabric-loom"
-    runClient.doFirst {
-        rootProject.runMode = true
-    }
-    if (project.tasks.findByName('runDatagen') != null) {
-        runDatagen.doFirst {
-            rootProject.runMode = true
-        }
-    }
-    runServer.doFirst {
-        rootProject.runMode = true
-    }
 
-    ext.dependIfPossible = {Project dep ->
+    ext.initDist = { ->
         dependencies {
-            //modImplementation fails if the library has not been built.
-            //But we still need to use it for the runtime environment to work.
-            //When it's not present, we use implementation instead so we can at least compile.
-            if (dep.file("build/libs").exists() && rootProject.runMode) {
-                modImplementation dep
-            } else {
-                implementation dep
+            afterEvaluate {
+                rootProject.subprojects.each {
+                    if (nonModSubprojects.contains(it.name)) {
+                        return
+                    }
+                    implementation(project(path: "${it.path}", configuration: "namedElements"))
+                }
             }
         }
     }
 
     ext.addProjectDependency = {dep ->
-        var p = project(dep)
-        dependIfPossible(p)
-
+        dependencies {
+            implementation project(path: dep, configuration: "namedElements")
+        }
         compileJava {
-            cleanRemappedSubprojectAt(
-                    project.layout.projectDirectory, p
-            )
+            dependsOn dep + ":remapSourcesJar"
+        }
+        test {
+            dependsOn dep + ":test"
         }
     }
 
@@ -89,11 +62,35 @@ subprojects {
         }
     }
 
+    ext.addCoreDependencies = { ->
+        addProjectDependency(":mods:metacraft-core")
+        addPolymerDependency()
+        addSGUIDependency()
+        dependencies {
+           modImplementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+           implementation("org.apache.commons:commons-math3:3.6.1")
+        }
+    }
+
     ext.addVanishDependency = { ->
         dependencies {
             modCompileOnly "maven.modrinth:vanish:${project.vanish_version}"
             modCompileOnly "eu.pb4:player-data-api:${project.player_data_api_version}" //Dependency for Vanish.
             modCompileOnly("eu.pb4:placeholder-api:${project.placeholder_api_version}") //Dependency for Vanish.
+        }
+    }
+
+    ext.setupRunDatagen = {modid ->
+        fabricApi {
+            configureDataGeneration{
+                modId = modid
+                client = true
+            }
+        }
+        for (var s : gradle.startParameter.taskNames) {
+            if (s.endsWith("runDatagen")) {
+                tasks['sourcesJar'].dependsOn('runDatagen')
+            }
         }
     }
 
@@ -182,14 +179,8 @@ subprojects {
 // For all mods (but not dist)
 subprojects {
 
-    if (nonModSubprojects.contains(it.name)) {
+    if (nonMcSubprojects.contains(it.name)) {
         return
-    }
-
-    for (var s : gradle.startParameter.taskNames) {
-        if (s.endsWith("test") || s.endsWith("build") || s.endsWith("runDatagen")) {
-            rootProject.runMode = true
-        }
     }
 
     base {
@@ -221,10 +212,5 @@ subprojects {
 
     test {
         useJUnitPlatform()
-    }
-
-    //Cleans Fabric Loom cache on compilation.
-    compileJava {
-        cleanRemappedSubproject(project)
     }
 }

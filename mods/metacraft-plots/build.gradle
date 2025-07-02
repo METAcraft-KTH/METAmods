@@ -1,7 +1,5 @@
 version = project.plots_version
 
-addProjectDependency(":mods:metacraft-core")
+addCoreDependencies()
 addProjectDependency(":mods:metacraft-zones")
 addLeukocyteDependency()
-addSGUIDependency()
-addPolymerDependency()

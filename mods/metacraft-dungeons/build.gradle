@@ -1,13 +1,7 @@
 version = project.dungeons_version
 
-addProjectDependency(":mods:metacraft-core")
-
-addPolymerDependency()
+addCoreDependencies()
 
 dependencies {
 	modCompileOnly("maven.modrinth:squaremap:${project.squaremap_version}")
-}
-
-test {
-	useJUnitPlatform()
 }

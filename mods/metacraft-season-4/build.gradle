@@ -1,23 +1,18 @@
 version = project.season_4_version
 
-addProjectDependency(":mods:metacraft-core")
+addCoreDependencies()
 addProjectDependency(":mods:metacraft-bosses")
 addProjectDependency(":mods:metacraft-cutscenes")
 addLeukocyteDependency()
-addPolymerDependency()
 
 loom {
 	accessWidenerPath = file("src/main/resources/metacraft_season_4.accesswidener")
 }
 
-fabricApi {
-	configureDataGeneration{
-		client = true
-		modId = "metacraft-season-4"
-	}
-}
+setupRunDatagen("metacraft-season-4")
 
 dependencies {
 	modCompileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
 	modImplementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+	implementation("org.objenesis:objenesis:${project.objenesis_version}")
 }

@@ -6,16 +6,11 @@ loom {
 
 addLeukocyteDependency()
 
-fabricApi {
-	configureDataGeneration()
-}
+setupRunDatagen("metacraft-core")
 
 dependencies {
 	modCompileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
 	implementation(include("org.apache.commons:commons-math3:3.6.1"))
-}
-
-dependencies {
 	modImplementation include("eu.pb4:polymer-core:${project.polymer_version}")
 	modImplementation include("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 	modImplementation include("eu.pb4:sgui:${project.sgui_version}")

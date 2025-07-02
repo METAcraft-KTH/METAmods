@@ -4,9 +4,7 @@ loom {
 	accessWidenerPath = file("src/main/resources/metacraft_lib.accesswidener")
 }
 
-fabricApi {
-	configureDataGeneration()
-}
+setupRunDatagen("metacraft-lib")
 
 dependencies {
 	include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")

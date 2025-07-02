@@ -1,6 +1,6 @@
 version = project.zones_version
 
-addProjectDependency(":mods:metacraft-core")
+addCoreDependencies()
 addProjectDependency(":mods:metacraft-resource-packs")
 addLeukocyteDependency()
 
