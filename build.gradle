@@ -90,6 +90,7 @@ subprojects {
         for (var s : gradle.startParameter.taskNames) {
             if (s.endsWith("runDatagen")) {
                 tasks['sourcesJar'].dependsOn('runDatagen')
+                tasks['test'].dependsOn('runDatagen')
             }
         }
     }
