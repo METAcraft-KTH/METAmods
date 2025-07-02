@@ -3,17 +3,13 @@ plugins {
     id 'base'
 }
 
-def nonMcSubprojects = [
+def nonModSubProjects = [
         "mods"
-]
-def nonModSubprojects = [
-        "mods",
-        "dist"
 ]
 
 // For all modules that are fabric mods (all mods and dist)
 subprojects {
-    if (nonMcSubprojects.contains(it.name)) {
+    if (nonModSubProjects.contains(it.name)) {
         return
     }
     apply plugin: "fabric-loom"
@@ -22,7 +18,10 @@ subprojects {
         dependencies {
             afterEvaluate {
                 rootProject.subprojects.each {
-                    if (nonModSubprojects.contains(it.name)) {
+                    if (nonModSubProjects.contains(it.name)) {
+                        return
+                    }
+                    if (it.name == "dist") {
                         return
                     }
                     implementation(project(path: "${it.path}", configuration: "namedElements"))
@@ -180,7 +179,7 @@ subprojects {
 // For all mods (but not dist)
 subprojects {
 
-    if (nonMcSubprojects.contains(it.name)) {
+    if (nonModSubProjects.contains(it.name)) {
         return
     }
 
