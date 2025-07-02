@@ -19,6 +19,7 @@ import net.minecraft.util.ErrorReporter;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.path.SymlinkValidationException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -63,6 +64,9 @@ public class TestPlayerData {
 								player.equipStack(EquipmentSlot.MAINHAND, pearl);
 								pearl.use(player.getWorld(), player, Hand.MAIN_HAND);
 								var pearlInWorld = player.getEnderPearls().stream().findAny().orElseThrow();
+								pearlInWorld.noClip = true;
+								pearlInWorld.setNoGravity(true);
+								pearlInWorld.setVelocity(Vec3d.ZERO);
 
 								final Identifier temp = Identifier.of("test", "test");
 								PlayerDataHelper.saveCurrentPlayerData(player, temp);

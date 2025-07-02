@@ -354,6 +354,7 @@ public class CutsceneTests {
 		var pearl = new EnderPearlEntity(player.getWorld(), player, new ItemStack(Items.ENDER_PEARL));
 		pearl.updatePosition(start.getX(), start.getY(), start.getZ());
 		pearl.setNoGravity(true);
+		pearl.noClip = true;
 		context.getWorld().spawnEntity(pearl);
 		context.getWorld().spawnEntity(pig);
 		player.startRiding(pig);
