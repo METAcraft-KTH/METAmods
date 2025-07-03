@@ -13,8 +13,10 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.*;
+import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.List;
@@ -32,10 +34,11 @@ public class ResourcePackServer implements AutoCloseable {
 	private final ThreadPoolExecutor threadPool;
 	private final HttpServer server;
 
+	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	public ResourcePackServer(
 			MinecraftServer mc, int port, Optional<String> localAddress,
 			int maxConnections, Optional<SSLSettings> sslSettings
-	) {
+	) throws UnknownHostException, BindException {
 		this.mc = mc;
 		this.threadPool = new ThreadPoolExecutor(16, 24, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<>(16));
 		try {
@@ -61,6 +64,8 @@ public class ResourcePackServer implements AutoCloseable {
 						exchange.getRequestURI().getPath().substring(1), exchange
 				);
 			});
+		} catch (UnknownHostException | BindException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

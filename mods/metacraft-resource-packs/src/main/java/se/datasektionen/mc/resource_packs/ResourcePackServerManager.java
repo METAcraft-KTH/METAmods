@@ -3,6 +3,7 @@ package se.datasektionen.mc.resource_packs;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 
+import java.net.BindException;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Set;
@@ -19,8 +20,8 @@ public class ResourcePackServerManager {
 				var s = ResourcePackConfig.getConfig().createResourcePackServer(server);
 				servers.put(server, s);
 				s.start();
-			} catch (UnknownHostException e) {
-				ResourcePacks.LOGGER.error(e);
+			} catch (UnknownHostException | BindException e) {
+				ResourcePacks.LOGGER.error("Unable to start resource pack server: " + e.getMessage(), e);
 			}
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {

@@ -21,6 +21,7 @@ import se.datasektionen.mc.metacraft_lib.config.extensions.Modifiable;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.BindException;
 import java.net.UnknownHostException;
 import java.nio.file.*;
 import java.util.*;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 
 public class ResourcePackConfig implements Modifiable, LoadAware {
 
+	@SuppressWarnings("deprecation")
 	private static final HashFunction SHA1 = Hashing.sha1();
 
 	private static final Path configDir = FabricLoader.getInstance().getConfigDir().resolve(ResourcePacks.MODID);
@@ -51,7 +53,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 	private static final ConfigContainer<ResourcePackConfig> CONFIG = ConfigContainer.Builder.create(
 			CODEC,
-			() -> new ResourcePackConfig()
+			ResourcePackConfig::new
 	).setReloader((old, reloaded, cause) -> reloaded.get().map(c -> {
 		old.getResourcePacks().forEach(pack -> {
 			c.prevPacks.put(pack.getKey(), pack.getValue());
@@ -62,13 +64,17 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	private final Map<UUID, ResourcePack> resourcePacks;
 	private final Map<UUID, ResourcePack> prevPacks = new HashMap<>();
 	private final boolean required;
+	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	private final Optional<Text> prompt;
 	private final String serverAddress;
+	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	private final Optional<String> networkAddress;
 	private final int port;
 	private final int maxConnections;
+	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	private final Optional<ResourcePackServer.SSLSettings> sslSettings;
 
+	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	public ResourcePackConfig(
 			Map<UUID, ResourcePack> resourcePacks,
 			boolean required, Optional<Text> prompt, String serverAddress,
@@ -145,7 +151,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		return port;
 	}
 
-	public ResourcePackServer createResourcePackServer(MinecraftServer server) throws UnknownHostException {
+	public ResourcePackServer createResourcePackServer(MinecraftServer server) throws UnknownHostException, BindException {
 		return new ResourcePackServer(server, port, networkAddress, maxConnections, sslSettings);
 	}
 
@@ -176,10 +182,12 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		try {
 			Files.createDirectories(RP_UPDATE_DIR);
 			var zipsToUpdate = RP_UPDATE_DIR.toFile().listFiles(file -> file.getName().endsWith(".zip"));
-			for (File file : zipsToUpdate) {
-				Path dest = RESOURCE_PACK_DIR.resolve(file.getName());
-				ResourcePacks.LOGGER.info("Moving {} to {}", file, dest);
-				Files.move(file.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
+			if (zipsToUpdate != null) {
+				for (File file : zipsToUpdate) {
+					Path dest = RESOURCE_PACK_DIR.resolve(file.getName());
+					ResourcePacks.LOGGER.info("Moving {} to {}", file, dest);
+					Files.move(file.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
+				}
 			}
 			var resourcePackZips = RESOURCE_PACK_DIR.toFile().listFiles(file -> file.getName().endsWith(".zip"));
 			if (resourcePackZips != null) {
