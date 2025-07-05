@@ -18,7 +18,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.ErrorReporter;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.path.SymlinkValidationException;
 import org.junit.jupiter.api.BeforeAll;
@@ -49,12 +48,12 @@ public class TestPlayerData {
 								player.getEnderChestInventory().setStack(2, new ItemStack(Items.DIAMOND));
 
 								var boat = EntityType.ACACIA_BOAT.spawn(
-										ctx.getWorld(), BlockPos.ORIGIN, SpawnReason.LOAD
+										ctx.getWorld(), player.getBlockPos(), SpawnReason.LOAD
 								);
-								var pig = EntityType.PIG.spawn(ctx.getWorld(), BlockPos.ORIGIN, SpawnReason.LOAD);
+								var pig = EntityType.PIG.spawn(ctx.getWorld(), player.getBlockPos(), SpawnReason.LOAD);
 								pig.startRiding(boat);
 								var boat2 = EntityType.ACACIA_BOAT.spawn(
-										ctx.getWorld(), BlockPos.ORIGIN, SpawnReason.LOAD
+										ctx.getWorld(), player.getBlockPos(), SpawnReason.LOAD
 								);
 								boat2.startRiding(boat);
 								player.startRiding(boat2);
@@ -134,7 +133,7 @@ public class TestPlayerData {
 								var player2 = TestHelper.addMockPlayer(ctx);
 
 								var boat = EntityType.ACACIA_BOAT.spawn(
-										ctx.getWorld(), new BlockPos(11, 0, 0), SpawnReason.LOAD
+										ctx.getWorld(), player.getBlockPos(), SpawnReason.LOAD
 								);
 
 								player.startRiding(boat);
