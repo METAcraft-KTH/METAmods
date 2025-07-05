@@ -45,7 +45,6 @@ public class TestPlayerData {
 							METAcraftLib.getID(PLAYER_DATA_PREFIX + "save-and-load"),
 							ctx -> {
 								var player = TestHelper.addMockPlayer(ctx);
-								player.updatePosition(0,0,0);
 								player.getInventory().setStack(5, new ItemStack(Items.DIAMOND));
 								player.getEnderChestInventory().setStack(2, new ItemStack(Items.DIAMOND));
 
