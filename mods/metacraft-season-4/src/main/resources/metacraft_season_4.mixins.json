@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "se.datasektionen.mc.metacraft_season_4.mixin",
+	"package": "nu.metacraft.season_4.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"AccessorAreaEffectCloudEntity",

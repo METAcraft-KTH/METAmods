@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "se.datasektionen.mc.metacraft_weather.mixin",
+	"package": "nu.metacraft.weather.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"MixinServerWorld"

@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "se.datasektionen.mc.better_pets.mixin",
+	"package": "nu.metacraft.better_pets.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"MixinAnimalEntity",

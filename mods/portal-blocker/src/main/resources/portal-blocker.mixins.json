@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "se.datasektionen.mc.portal_blocker.mixin",
+	"package": "nu.metacraft.portal_blocker.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"AccessorAbstractPropertiesHandler",

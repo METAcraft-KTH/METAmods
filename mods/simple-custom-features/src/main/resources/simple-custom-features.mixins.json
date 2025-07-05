@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "se.datasektionen.mc.simplecustomfeatures.mixin",
+	"package": "nu.metacraft.simplecustomfeatures.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"AccessorCachedBlockPosition",

@@ -18,7 +18,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.datasektionen.mc.resource_packs.ResourcePacks"
+			"nu.metacraft.resource_packs.ResourcePacks"
 		]
 	},
 	"mixins": [

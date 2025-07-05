@@ -19,7 +19,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.datasektionen.mc.portal_blocker.PortalBlocker"
+			"nu.metacraft.portal_blocker.PortalBlocker"
 		]
 	},
 	"mixins": [

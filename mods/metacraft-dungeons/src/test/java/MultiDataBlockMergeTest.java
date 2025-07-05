@@ -1,13 +1,13 @@
 import net.minecraft.util.math.BlockPos;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import se.datasektionen.mc.metacraft_core.METAcraftCore;
-import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
-import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.DataBlock;
-import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.MultiDataBlock;
-import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.PortalDeeper;
-import se.datasektionen.mc.metacraft_lib.METAcraftLib;
-import se.datasektionen.mc.metacraft_lib.util.helper.TestHelper;
+import nu.metacraft.core.METAcraftCore;
+import nu.metacraft.dungeons.METAcraftDungeons;
+import nu.metacraft.dungeons.dungeons.datablocks.DataBlock;
+import nu.metacraft.dungeons.dungeons.datablocks.MultiDataBlock;
+import nu.metacraft.dungeons.dungeons.datablocks.PortalDeeper;
+import nu.metacraft.lib.METAcraftLib;
+import nu.metacraft.lib.util.helper.TestHelper;
 
 import java.util.*;
 

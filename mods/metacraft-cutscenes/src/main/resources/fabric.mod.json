@@ -18,10 +18,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.datasektionen.mc.cutscenes.Cutscenes"
+			"nu.metacraft.cutscenes.Cutscenes"
 		],
 		"mm:early_risers": [
-			"se.datasektionen.mc.cutscenes.CutsceneEnums"
+			"nu.metacraft.cutscenes.CutsceneEnums"
 		]
 	},
 	"mixins": [

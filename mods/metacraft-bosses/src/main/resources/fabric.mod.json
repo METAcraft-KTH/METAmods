@@ -18,10 +18,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.metacraft.bosses.METAcraftBosses"
+			"nu.metacraft.bosses.METAcraftBosses"
 		],
 		"fabric-datagen": [
-			"se.metacraft.bosses.METAcraftBossDatagen"
+			"nu.metacraft.bosses.METAcraftBossDatagen"
 		]
 	},
 	"mixins": [
@@ -35,7 +35,7 @@
 	},
 	"custom": {
 		"loom:injected_interfaces": {
-			"net/minecraft/entity/OminousItemSpawnerEntity": ["se/metacraft/bosses/extensions/OminousItemSpawnerExtension"]
+			"net/minecraft/entity/OminousItemSpawnerEntity": ["nu/metacraft/bosses/extensions/OminousItemSpawnerExtension"]
 		}
 	}
 }

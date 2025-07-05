@@ -19,10 +19,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.datasektionen.mc.metacraft_season_4.Season4"
+			"nu.metacraft.season_4.Season4"
 		],
 		"fabric-datagen": [
-			"se.datasektionen.mc.metacraft_season_4.Season4Datagen"
+			"nu.metacraft.season_4.Season4Datagen"
 		]
 	},
 	"mixins": [
@@ -39,8 +39,8 @@
 	"custom": {
 		"loom:injected_interfaces": {
 			"net/minecraft/entity/LivingEntity": [
-				"se/datasektionen/mc/metacraft_season_4/extensions/DragExtension",
-				"se/datasektionen/mc/metacraft_season_4/extensions/SurviveDeathExtension"
+				"nu/metacraft/season_4/extensions/DragExtension",
+				"nu/metacraft/season_4/extensions/SurviveDeathExtension"
 			]
 		}
 	}

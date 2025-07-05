@@ -1,0 +1,60 @@
+package nu.metacraft.core.music;
+
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import nu.metacraft.core.extensions.ServerPlayerEntityExtensions;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
+public class MusicTimerTracker {
+
+	private static final Map<MinecraftServer, ScheduledExecutorService> TIMER_MAP = new ConcurrentHashMap<>();
+
+	public static ScheduledExecutorService getTimer(MinecraftServer server) {
+		return TIMER_MAP.get(server);
+	}
+
+	public static void init() {
+		ServerLifecycleEvents.SERVER_STARTING.register(
+				server -> {
+					if (!TIMER_MAP.containsKey(server)) {
+						TIMER_MAP.put(server, Executors.newSingleThreadScheduledExecutor());
+					}
+				}
+		);
+		ServerLifecycleEvents.SERVER_STOPPED.register(
+				server -> {
+					var timer = TIMER_MAP.remove(server);
+					if (timer != null) {
+						timer.close();
+					}
+				}
+		);
+	}
+
+	public static class SendPacketTask implements Runnable {
+
+		private final ServerPlayerEntity player;
+		private final MusicEntry toPlay;
+		private final Packet<?> packet;
+
+		public SendPacketTask(ServerPlayerEntity player, MusicEntry toPlay, Packet<?> packet) {
+			this.player = player;
+			this.toPlay = toPlay;
+			this.packet = packet;
+		}
+
+		@Override
+		public void run() {
+			if (((ServerPlayerEntityExtensions) player).metacraft_core$hasMusicEntry(toPlay)) {
+				player.networkHandler.sendPacket(packet);
+			}
+		}
+	}
+
+}

@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "se.datasektionen.mc.metacraft_core.mixin",
+	"package": "nu.metacraft.core.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"AccessorBlockUpdateS2CPacket",

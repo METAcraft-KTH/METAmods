@@ -23,10 +23,10 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.path.SymlinkValidationException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import se.datasektionen.mc.metacraft_lib.METAcraftLib;
-import se.datasektionen.mc.metacraft_lib.util.error_reporters.LoggingErrorReporter;
-import se.datasektionen.mc.metacraft_lib.util.helper.PlayerDataHelper;
-import se.datasektionen.mc.metacraft_lib.util.helper.TestHelper;
+import nu.metacraft.lib.METAcraftLib;
+import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
+import nu.metacraft.lib.util.helper.PlayerDataHelper;
+import nu.metacraft.lib.util.helper.TestHelper;
 
 import java.io.IOException;
 import java.util.UUID;
