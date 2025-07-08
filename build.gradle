@@ -25,6 +25,7 @@ subprojects {
                         return
                     }
                     implementation(project(path: "${it.path}", configuration: "namedElements"))
+                    include(it)
                 }
             }
         }
