@@ -27,7 +27,6 @@
   "mixins": [
     "fasterminecarts.mixins.json"
   ],
-  "accessWidener" : "fasterminecarts.accesswidener",
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",

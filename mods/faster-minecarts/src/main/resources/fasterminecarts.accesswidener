@@ -1,4 +1,0 @@
-accessWidener v2 named
-accessible	class	net/minecraft/recipe/Ingredient$Entry
-accessible	class	net/minecraft/recipe/Ingredient$StackEntry
-accessible	method	net/minecraft/recipe/Ingredient$StackEntry	<init>	(Lnet/minecraft/item/ItemStack;)V
