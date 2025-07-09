@@ -17,6 +17,7 @@
 		"MixinLivingEntity",
 		"MixinParrotEntity",
 		"MixinPlayerEntity",
+		"MixinSchemas",
 		"MixinServerPlayerEntity"
 	],
 	"client": [
