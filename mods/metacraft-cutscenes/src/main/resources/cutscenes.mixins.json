@@ -22,7 +22,6 @@
 		"AccessorServerWorld",
 		"AccessorStatusEffectInstance",
 		"AccessorTeleportTarget",
-		"MixinAbstractDhServerWorld",
 		"MixinChunkDataSender",
 		"MixinEntity",
 		"MixinEntitySelector",
