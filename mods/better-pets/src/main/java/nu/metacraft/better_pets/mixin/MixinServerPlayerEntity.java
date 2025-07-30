@@ -4,22 +4,18 @@ import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.Leashable;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.TypeFilter;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
+import nu.metacraft.better_pets.BetterPetsTeleportHelper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import nu.metacraft.better_pets.TameableExtension;
-import nu.metacraft.lib.util.helper.TeleportHelper;
 
 import java.util.List;
 
@@ -41,28 +37,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity {
 			@Share("leashed") LocalRef<List<? extends Entity>> leashed,
 			@Share("pets") LocalRef<List<? extends LivingEntity>> pets
 	) {
-		leashed.set(
-				getWorld().getEntitiesByType(
-						TypeFilter.instanceOf(Entity.class),
-						entity -> entity instanceof Leashable leashable && leashable.isLeashed() && leashable.getLeashHolder() == this
-				)
-		);
-		pets.set(getWorld().getEntitiesByType(
-				TypeFilter.instanceOf(TameableEntity.class),
-				entity ->
-						((TameableExtension) entity).metacraft$getCurrentFollowTarget() == (Object) this
-						&& !entity.cannotFollowOwner()
-		));
-		pets.get().forEach(pet -> {
-			this.getWorld().getChunkManager().addTicket(
-					TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2
-			);
-		});
-		leashed.get().forEach(pet -> {
-			this.getWorld().getChunkManager().addTicket(
-					TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2
-			);
-		});
+		BetterPetsTeleportHelper.collectPets(this, leashed, pets);
 	}
 
 	@Inject(
@@ -75,17 +50,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity {
 	public void teleportPets(
 			TeleportTarget teleportTarget, CallbackInfoReturnable<Entity> cir,
 			@Share("leashed") LocalRef<List<? extends Entity>> leashed,
-			@Share("pets") LocalRef<List<? extends TameableEntity>> pets
+			@Share("pets") LocalRef<List<? extends LivingEntity>> pets
 	) {
-		leashed.get().forEach(l -> {
-			((Leashable) l).detachLeashWithoutDrop();
-			TeleportHelper.teleportEntityToPlayer(
-					(ServerPlayerEntity) (Object) this, l,
-					e -> ((Leashable) e).attachLeash(this, true)
-			);
-		});
-		pets.get().forEach(pet -> {
-			TeleportHelper.teleportEntityToPlayer((ServerPlayerEntity) (Object) this, pet);
-		});
+		BetterPetsTeleportHelper.teleportPets(this, leashed, pets);
 	}
 }

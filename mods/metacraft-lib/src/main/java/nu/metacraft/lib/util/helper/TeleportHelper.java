@@ -18,6 +18,7 @@ import nu.metacraft.lib.extensions.ServerPlayerEntityExtensions;
 import nu.metacraft.lib.util.TaskScheduler;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 public class TeleportHelper {
 
@@ -77,21 +78,29 @@ public class TeleportHelper {
 		return false;
 	}
 
-	public static void teleportEntityToPlayer(ServerPlayerEntity player, Entity entity) {
+	public static void teleportEntityToPlayer(Entity player, Entity entity) {
 		teleportEntityToPlayer(player, entity, TeleportTarget.NO_OP);
 	}
 
-	public static void teleportEntityToPlayer(ServerPlayerEntity player, Entity entity, TeleportTarget.PostDimensionTransition transition) {
+	public static void teleportEntityToPlayer(Entity player, Entity entity, TeleportTarget.PostDimensionTransition transition) {
+		teleportEntityToPlayer(player, entity, transition, e -> {});
+	}
+
+	public static void teleportEntityToPlayer(
+			Entity player, Entity entity,
+			TeleportTarget.PostDimensionTransition transition,
+			Consumer<Entity> onFail
+	) {
 		teleportEntityToPos(
-				player.getWorld(), player.getBlockPos(), player.getRandom(),
-				player.getYaw(), player.getPitch(), player.getVelocity(), entity, transition
+				(ServerWorld) player.getWorld(), player.getBlockPos(), player.getRandom(),
+				player.getYaw(), player.getPitch(), player.getVelocity(), entity, transition, onFail
 		);
 	}
 
 	public static void teleportEntityToPos(
 			ServerWorld world, BlockPos targetPos, net.minecraft.util.math.random.Random random,
 			float yaw, float pitch, Vec3d velocity,
-			Entity entity, TeleportTarget.PostDimensionTransition transition
+			Entity entity, TeleportTarget.PostDimensionTransition transition, Consumer<Entity> onFail
 	) {
 		List<BlockPos> list = new ArrayList<>();
 		for (var pos : BlockPos.iterate(targetPos.add(-3, -1, -3), targetPos.add(3, 1, 3))) {
@@ -113,6 +122,8 @@ public class TeleportHelper {
 							yaw, pitch, transition
 					)
 			);
+		} else {
+			onFail.accept(entity);
 		}
 	}
 
