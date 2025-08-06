@@ -1,4 +1,4 @@
-package nu.metacraft.lib.mixin;
+package nu.metacraft.bundles.mixin;
 
 import net.minecraft.component.type.BundleContentsComponent;
 import net.minecraft.item.ItemStack;

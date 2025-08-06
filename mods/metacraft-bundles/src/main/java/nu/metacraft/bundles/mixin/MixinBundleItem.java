@@ -1,4 +1,4 @@
-package nu.metacraft.core.mixin;
+package nu.metacraft.bundles.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.component.type.BundleContentsComponent;
@@ -12,12 +12,13 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.ClickType;
+import nu.metacraft.bundles.util.BundleHelper;
+import nu.metacraft.core.mixin.AccessorScreenHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import nu.metacraft.core.util.helper.BundleHelper;
 import nu.metacraft.lib.util.TaskScheduler;
 
 @Mixin(BundleItem.class)

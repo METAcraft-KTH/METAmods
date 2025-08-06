@@ -1,4 +1,4 @@
-package nu.metacraft.core.extensions;
+package nu.metacraft.bundles.extensions;
 
 import org.apache.commons.lang3.math.Fraction;
 

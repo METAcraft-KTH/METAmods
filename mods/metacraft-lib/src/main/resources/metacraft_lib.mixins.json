@@ -7,7 +7,6 @@
 		"AccessorAbstractPropertiesHandler",
 		"AccessorBrain",
 		"AccessorBrainProfile",
-		"AccessorBundleContentsComponent",
 		"AccessorEntity",
 		"AccessorItemEntity",
 		"AccessorLevelProperties",

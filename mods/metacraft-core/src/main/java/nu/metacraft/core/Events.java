@@ -14,7 +14,6 @@ import nu.metacraft.core.entity.entities.MovingBlock;
 import nu.metacraft.core.item.METAcraftItems;
 import nu.metacraft.core.item.components.CommandComponents;
 import nu.metacraft.core.item.items.Wrench;
-import nu.metacraft.core.util.helper.BundleHelper;
 
 public class Events {
 
@@ -159,8 +158,6 @@ public class Events {
 				});
 			}
 		});
-
-		BundleHelper.init();
 	}
 
 }

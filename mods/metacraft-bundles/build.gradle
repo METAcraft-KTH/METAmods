@@ -1,0 +1,4 @@
+version = project.bundles_version
+
+
+addCoreDependencies()

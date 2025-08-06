@@ -1,4 +1,4 @@
-package nu.metacraft.core.util.helper;
+package nu.metacraft.bundles.util;
 
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.minecraft.component.ComponentMap;
@@ -11,15 +11,15 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
+import nu.metacraft.bundles.BundleComponents;
+import nu.metacraft.bundles.METAcraftBundles;
+import nu.metacraft.bundles.extensions.BundlesComponentExtensions;
 import org.apache.commons.lang3.math.Fraction;
-import nu.metacraft.core.METAcraftCore;
-import nu.metacraft.core.item.components.METAcraftComponents;
-import nu.metacraft.core.extensions.BundlesComponentExtensions;
 
 public class BundleHelper {
 
 	private static final int MAX_PIXELS = 94;
-	private static final Identifier TEXTURES_FONT = METAcraftCore.getID("bundle_textures");
+	private static final Identifier TEXTURES_FONT = METAcraftBundles.getID("bundle_textures");
 
 	public static Text getOccupancyText(ItemStack bundle) {
 		var contents = bundle.get(DataComponentTypes.BUNDLE_CONTENTS);
@@ -47,7 +47,7 @@ public class BundleHelper {
 	}
 
 	public static Fraction getBundleSizeFactor(ComponentMap components) {
-		return components.getOrDefault(METAcraftComponents.BUNDLE_SIZE_FACTOR, Fraction.ONE);
+		return components.getOrDefault(BundleComponents.BUNDLE_SIZE_FACTOR, Fraction.ONE);
 	}
 
 	public static Fraction getBundleSizeFactor(ItemStack stack) {

@@ -1,19 +1,18 @@
-package nu.metacraft.core.mixin;
+package nu.metacraft.bundles.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.component.type.BundleContentsComponent;
 import net.minecraft.item.ItemStack;
+import nu.metacraft.bundles.extensions.BundlesComponentExtensions;
+import nu.metacraft.bundles.util.BundleHelper;
 import org.apache.commons.lang3.math.Fraction;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import nu.metacraft.core.extensions.BundlesComponentExtensions;
-import nu.metacraft.lib.mixin.AccessorBundleContentsComponent;
-import nu.metacraft.core.util.helper.BundleHelper;
 
 import java.util.List;
 
@@ -53,7 +52,7 @@ public abstract class MixinBundleContentsComponent implements BundlesComponentEx
 	)
 	public boolean equals(
 			boolean original,
-			@Local(ordinal = 1) BundleContentsComponent bundleContentsComponent
+			@Local BundleContentsComponent bundleContentsComponent
 	) {
 		return original && this.bundleSizeFactor.equals(BundleHelper.getStoredBundleSizeFactor(bundleContentsComponent));
 	}

@@ -8,9 +8,7 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Unit;
-import org.apache.commons.lang3.math.Fraction;
 import nu.metacraft.core.METAcraftCore;
-import nu.metacraft.lib.util.ExtraCodecs;
 
 import java.util.function.UnaryOperator;
 
@@ -50,11 +48,6 @@ public class METAcraftComponents {
 	public static final ComponentType<Unit> ANTI_KEEP_INVENTORY = register(
 			"anti-keep-inventory", builder -> builder.codec(Codec.unit(Unit.INSTANCE))
 	);
-
-	public static final ComponentType<Fraction> BUNDLE_SIZE_FACTOR = register(
-			"bundle_size_factor", builder -> builder.codec(ExtraCodecs.POSITIVE_FRACTION_CODEC)
-	);
-
 
 
 	public static void init() {

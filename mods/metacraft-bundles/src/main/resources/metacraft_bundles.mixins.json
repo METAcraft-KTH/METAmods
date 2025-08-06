@@ -1,0 +1,21 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "nu.metacraft.bundles.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"AccessorBundleContentsComponent",
+		"MixinBundleContentsComponent",
+		"MixinBundleContentsComponent$Builder",
+		"MixinBundleItem",
+		"MixinItem",
+		"MixinItem$Settings",
+		"MixinItemStack",
+		"MixinPolymerItemUtilsToFixBundle"
+	],
+	"client": [
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

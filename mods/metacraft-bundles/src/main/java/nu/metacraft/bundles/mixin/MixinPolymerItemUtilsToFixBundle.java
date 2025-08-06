@@ -1,4 +1,4 @@
-package nu.metacraft.core.mixin;
+package nu.metacraft.bundles.mixin;
 
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.minecraft.component.DataComponentTypes;
