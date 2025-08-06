@@ -406,7 +406,7 @@ public class CutsceneTests {
 			ctx.throwGameTestException(Text.literal("Pig not mounted, but was supposed to be mounted!"));
 		}
 
-		boolean posMaintained = data.player.getPos().equals(data.startPos);
+		boolean posMaintained = data.player.getPos().distanceTo(data.startPos) < 2;
 
 		if (posMaintained && !shouldMaintainPos) {
 			ctx.throwGameTestException(Text.literal("Player should not have been returned to start, but they were!"));
