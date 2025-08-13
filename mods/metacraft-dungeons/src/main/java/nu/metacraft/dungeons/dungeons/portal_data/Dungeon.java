@@ -501,10 +501,10 @@ public record Dungeon(
 								for (var player : playersToNotify) {
 									player.sendMessage(Text.literal("The room you wanted to enter is now ready!"), true);
 									player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 10, 0.5f);
-									TaskScheduler.schedule(portal.getWorld().getServer(), () -> {
+									TaskScheduler.scheduleThrowaway(portal.getWorld().getServer(), () -> {
 										player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 10, 0.75f);
 									}, 10);
-									TaskScheduler.schedule(portal.getWorld().getServer(), () -> {
+									TaskScheduler.scheduleThrowaway(portal.getWorld().getServer(), () -> {
 										player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.BLOCKS, 10, 1);
 									}, 20);
 								}

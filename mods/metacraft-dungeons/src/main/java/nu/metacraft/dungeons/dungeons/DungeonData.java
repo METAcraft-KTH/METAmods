@@ -33,7 +33,7 @@ import nu.metacraft.core.util.TeleportPredicate;
 import nu.metacraft.dungeons.METAcraftDungeons;
 import nu.metacraft.dungeons.Tags;
 import nu.metacraft.dungeons.compat.SquaremapCompat;
-import nu.metacraft.dungeons.util.DisconnectedPlayerHelper;
+import nu.metacraft.lib.util.helper.DisconnectedPlayerHelper;
 import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.lib.time_getter.RegularTimeGetter;
 import nu.metacraft.lib.util.PositionFinder;

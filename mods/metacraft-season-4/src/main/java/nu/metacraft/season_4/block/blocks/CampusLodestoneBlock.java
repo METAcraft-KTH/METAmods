@@ -23,6 +23,8 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import nu.metacraft.lib.scheduler.TeleportPlayer;
+import nu.metacraft.lib.util.SerializableTeleportTarget;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.lib.util.TaskScheduler;
 import nu.metacraft.season_4.block.Season4Blocks;
@@ -111,14 +113,21 @@ public class CampusLodestoneBlock extends Block implements PolymerBlock {
 		player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 4 * 20, 3, false, false));
 
 		// After 1 seconds, show particles that last for 3 seconds
-		TaskScheduler.schedule(server, () -> {
+		TaskScheduler.scheduleThrowaway(server, () -> {
 			world.spawnParticles(ParticleTypes.PORTAL, player.getX(), player.getY(), player.getZ(), 100, 0, 0, 0, 1);
 		}, 20);
 
 		// After 4 seconds, teleport.
-		TaskScheduler.schedule(server, () -> {
-			player.teleport(world, x, y, z, PositionFlag.ROT, 0, 0, false);
-		}, 4 * 20);
+		TaskScheduler.schedule(
+				server, new TeleportPlayer(
+						player, new SerializableTeleportTarget(
+								Optional.of(world.getRegistryKey()),
+								new Vec3d(x, y ,z), Vec3d.ZERO,
+								0, 0, false, false,
+								PositionFlag.ROT
+						)
+				), 4 * 20
+		);
 	}
 
 	/**

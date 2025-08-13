@@ -1,4 +1,4 @@
-package nu.metacraft.dungeons.mixin;
+package nu.metacraft.lib.mixin;
 
 import com.mojang.datafixers.DataFixer;
 import net.minecraft.world.PlayerSaveHandler;

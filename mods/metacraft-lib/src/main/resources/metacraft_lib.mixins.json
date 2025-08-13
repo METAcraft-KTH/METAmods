@@ -17,6 +17,7 @@
 		"AccessorNbtReadView",
 		"AccessorPlayerAdvancementTracker",
 		"AccessorPlayerManager",
+		"AccessorPlayerSaveHandler",
 		"AccessorRegistryOps",
 		"AccessorRegistryOps$AccessorCachedRegistryInfoGetter",
 		"AccessorServerChunkLoadingManager",
@@ -61,6 +62,7 @@
 		"MixinShapelessRecipe",
 		"MixinSoundCategory",
 		"MixinTestServer",
+		"MixinTimer",
 		"MixinTradeOffer"
 	],
 	"client": [

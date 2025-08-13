@@ -11,11 +11,12 @@ import net.minecraft.text.Text;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.biome.source.BiomeAccess;
 import net.minecraft.world.level.UnmodifiableLevelProperties;
+import nu.metacraft.lib.util.TaskScheduler;
+import nu.metacraft.lib.util.helper.DisconnectedPlayerHelper;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import nu.metacraft.dungeons.METAcraftDungeons;
 import nu.metacraft.dungeons.extensions.ServerWorldExtension;
 import nu.metacraft.dungeons.mixin.AccessorMinecraftServer;
-import nu.metacraft.lib.util.TaskScheduler;
 import nu.metacraft.lib.util.helper.WorldHelper;
 
 import java.io.IOException;
@@ -37,6 +38,8 @@ public class WorldDeleter {
 		MinecraftServer server = world.getServer();
 		world.savingDisabled = true;
 		((ServerWorldExtension) world).metacraft$setBeingDeleted(true);
+
+		//This might be in a world tick, if we don't schedule it, we might get a ConcurrentModificationException.
 		TaskScheduler.scheduleImmediately(world.getServer(), () -> {
 			boolean shouldRestore;
 			if (server.getWorld(world.getRegistryKey()) != null) {
@@ -63,8 +66,8 @@ public class WorldDeleter {
 				if (world.getServer().isStopping()) {
 					return;
 				}
-				if (shouldRestore) {
-					TaskScheduler.scheduleImmediately(world.getServer(), () -> {
+				server.execute(() -> {
+					if (shouldRestore) {
 						var newWorld = new ServerWorld(
 								server, ((AccessorMinecraftServer) server).getWorkerExecutor(),
 								((AccessorMinecraftServer) server).getSession(),
@@ -85,10 +88,10 @@ public class WorldDeleter {
 						);
 						ServerWorldEvents.LOAD.invoker().onWorldLoad(server, newWorld);
 						onCompleted.run();
-					});
-				} else {
-					onCompleted.run();
-				}
+					} else {
+						onCompleted.run();
+					}
+				});
 			});
 			deleterThread.start();
 		});
@@ -166,7 +169,7 @@ public class WorldDeleter {
 					);
 					modified.setTrue();
 				}
-				if (DisconnectedPlayerHelper.getSpawnPointDimension(player) == world.getRegistryKey()) {
+				if (DisconnectedPlayerHelper.getSpawnPoint(player).map(ServerPlayerEntity.Respawn::dimension).orElse(null) == world.getRegistryKey()) {
 					DisconnectedPlayerHelper.removeSpawnPoint(player);
 					modified.setTrue();
 				}

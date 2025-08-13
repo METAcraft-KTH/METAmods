@@ -3,7 +3,6 @@ package nu.metacraft.dungeons.mixin;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.PlayerSaveHandler;
 import net.minecraft.world.World;
 import net.minecraft.world.level.storage.LevelStorage;
 import org.spongepowered.asm.mixin.Mixin;
@@ -23,8 +22,5 @@ public interface AccessorMinecraftServer {
 
 	@Accessor
 	LevelStorage.Session getSession();
-
-	@Accessor
-	PlayerSaveHandler getSaveHandler();
 
 }

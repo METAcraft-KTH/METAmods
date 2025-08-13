@@ -5,12 +5,12 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
+import nu.metacraft.lib.util.SerializableTeleportTarget;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.extension.EntityExtension;
 import nu.metacraft.core.position_ref.PositionRef;
@@ -40,7 +40,7 @@ public class TeleportTransition extends InstantTransition {
 	}
 
 	public Optional<TeleportTarget> getTarget(CutsceneInstance cutscene) {
-		return teleportTarget.getTeleportTarget(cutscene.getServer(), cutscene.getCutsceneWorld().getRegistryKey());
+		return teleportTarget.getFixedOrLocal(cutscene.getServer(), cutscene.getCutsceneWorld().getRegistryKey());
 	}
 
 	@Override
@@ -65,43 +65,6 @@ public class TeleportTransition extends InstantTransition {
 	@Override
 	public TransitionConfigType<?> getConfigType() {
 		return TransitionConfigRegistry.TELEPORT_TRANSITION;
-	}
-
-	public record SerializableTeleportTarget(
-			Optional<RegistryKey<World>> dim, Vec3d pos, Vec3d velocity, float yaw, float pitch,
-			boolean playPortalSound, boolean chunkload
-	) {
-
-		public static final MapCodec<SerializableTeleportTarget> TELEPORT_TARGET_CODEC = RecordCodecBuilder.mapCodec(
-				instance -> instance.group(
-						World.CODEC.optionalFieldOf("world").orElse(Optional.of(World.OVERWORLD)).forGetter(SerializableTeleportTarget::dim),
-						Vec3d.CODEC.fieldOf("position").forGetter(SerializableTeleportTarget::pos),
-						Vec3d.CODEC.fieldOf("velocity").forGetter(SerializableTeleportTarget::velocity),
-						Codec.floatRange(-180, 180).fieldOf("yaw").forGetter(SerializableTeleportTarget::yaw),
-						Codec.floatRange(-90, 90).fieldOf("pitch").forGetter(SerializableTeleportTarget::pitch),
-						Codec.BOOL.optionalFieldOf("play_portal_sound", true).forGetter(SerializableTeleportTarget::playPortalSound),
-						Codec.BOOL.optionalFieldOf("chunkload", false).forGetter(SerializableTeleportTarget::chunkload)
-				).apply(instance, SerializableTeleportTarget::new)
-		);
-
-		private TeleportTarget.PostDimensionTransition getTransition() {
-			TeleportTarget.PostDimensionTransition postDimensionTransition = TeleportTarget.NO_OP;
-			if (playPortalSound) {
-				postDimensionTransition = postDimensionTransition.then(TeleportTarget.SEND_TRAVEL_THROUGH_PORTAL_PACKET);
-			}
-			if (chunkload) {
-				postDimensionTransition = postDimensionTransition.then(TeleportTarget.ADD_PORTAL_CHUNK_TICKET);
-			}
-			return postDimensionTransition;
-		}
-
-		public Optional<TeleportTarget> getTeleportTarget(MinecraftServer server, RegistryKey<World> fallbackDim) {
-			return Optional.ofNullable(server.getWorld(dim.orElse(fallbackDim))).map(
-					dim -> new TeleportTarget(
-							dim, pos, velocity, yaw, pitch, getTransition()
-					)
-			);
-		}
 	}
 
 	public record SerializableTeleportTargetDynamic(
@@ -151,14 +114,14 @@ public class TeleportTransition extends InstantTransition {
 
 		public Optional<TeleportTarget> getTeleportTarget(@Nullable ServerPlayerEntity player, CutsceneInstance cutscene) {
 			return target.map(
-					t -> t.getTeleportTarget(cutscene.getServer(), cutscene.getDim()),
+					t -> t.getFixedOrLocal(cutscene.getServer(), cutscene.getDim()),
 					t -> t.getTeleportTarget(player, cutscene)
 			);
 		}
 
 		public Optional<RegistryKey<World>> getDim() {
 			return target.map(
-					TeleportTransition.SerializableTeleportTarget::dim,
+					SerializableTeleportTarget::dim,
 					TeleportTransition.SerializableTeleportTargetDynamic::dim
 			);
 		}

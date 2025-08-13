@@ -6,6 +6,7 @@ import net.minecraft.entity.ai.pathing.PathContext;
 import net.minecraft.entity.ai.pathing.PathNodeType;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerPosition;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerWorld;
@@ -137,6 +138,26 @@ public class TeleportHelper {
 		return new TeleportTarget(
 				world, pos.position(), pos.deltaMovement(),
 				pos.yaw(), pos.pitch(), post
+		);
+	}
+
+	public static BlockPos getWorldSpawn(ServerWorld world) {
+		//Basically just Mojang's function in Entity, but now it's static.
+		BlockPos blockpos = world.getSpawnPos();
+		Vec3d vec3 = blockpos.toCenterPos();
+		int i = world.getWorldChunk(blockpos).sampleHeightmap(net.minecraft.world.Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, blockpos.getX(), blockpos.getZ()) + 1;
+		return BlockPos.ofFloored(vec3.x, i, vec3.z);
+	}
+
+	public static TeleportTarget getOverworldSpawn(
+			MinecraftServer server, boolean missingRespawnBlock,
+			TeleportTarget.PostDimensionTransition postDimensionTransition
+	) {
+		var overworld = server.getOverworld();
+		return new TeleportTarget(
+				overworld, getWorldSpawn(overworld).toBottomCenterPos(),
+				Vec3d.ZERO, overworld.getSpawnAngle(), 0, missingRespawnBlock, false,
+				Set.of(), postDimensionTransition
 		);
 	}
 }

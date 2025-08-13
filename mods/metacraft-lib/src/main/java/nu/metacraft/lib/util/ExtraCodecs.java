@@ -9,6 +9,7 @@ import net.minecraft.block.enums.Orientation;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.player.PlayerModelPart;
+import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.registry.Registries;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.Hand;
@@ -31,6 +32,11 @@ import java.util.stream.IntStream;
 
 @SuppressWarnings("unused")
 public class ExtraCodecs {
+
+	public static final Codec<PositionFlag> POSITION_FLAG_CODEC = enumCodec(PositionFlag.class, true);
+	public static final Codec<Set<PositionFlag>> POSITION_FLAG_SET_CODEC = POSITION_FLAG_CODEC.listOf().xmap(
+			HashSet::new, ArrayList::new
+	);
 
 	public static final Codec<EntityPose> ENTITY_POSE_CODEC = enumCodec(EntityPose.class, true);
 

@@ -25,7 +25,9 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.*;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
+import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.portal.*;
+import nu.metacraft.lib.scheduler.Throwaway;
 import org.jetbrains.annotations.NotNull;
 import org.joml.*;
 import nu.metacraft.core.METAcraftCoreTags;
@@ -471,6 +473,7 @@ public class PortalEntity extends BlockEntity {
 
 	public void onCollision(BlockState state, World world, BlockPos pos, Entity entity) {
 		if (entity.hasVehicle()) return;
+		if (world.isClient()) return;
 		Box box = getBoundingBox();
 		Box entityBox = getBoundingBoxIncludingPassengers(entity);
 		if (isLocked() && !pushedAway.contains(entity)) {
@@ -496,7 +499,10 @@ public class PortalEntity extends BlockEntity {
 			entity.velocityModified = true;
 			notifyLocked(entity.streamSelfAndPassengers().filter(e -> e instanceof PlayerEntity).map(p -> (PlayerEntity) p));
 			if (pushedAway.isEmpty()) {
-				TaskScheduler.schedule(world.getServer(), pushedAway::clear, 5);
+				TaskScheduler.schedule(
+						world.getServer(), METAcraftCore.getID("portal_clear/" + getPos().asLong() + ""),
+						new Throwaway(pushedAway::clear), 5
+				);
 			}
 			pushedAway.add(entity);
 			return;

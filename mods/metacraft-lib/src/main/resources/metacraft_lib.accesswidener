@@ -1,3 +1,4 @@
 accessWidener v2 named
 accessible  class   net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker
 mutable     field   net/minecraft/village/TradeOffer    maxUses     I
+accessible  class   net/minecraft/server/network/ServerPlayerEntity$RespawnPos
