@@ -27,13 +27,13 @@ import org.spongepowered.asm.util.Files;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class TestHelper {
+
+	private static final Set<Class<? extends ModInitializer>> ALREADY_LOADED = new HashSet<>();
 
 	private static boolean junit = false;
 
@@ -143,7 +143,10 @@ public class TestHelper {
 		SharedConstants.createGameVersion();
 		Bootstrap.initialize();
 		for (Supplier<? extends ModInitializer> mod : modsToLoad) {
-			mod.get().onInitialize();
+			var modInstance = mod.get();
+			if (ALREADY_LOADED.contains(modInstance.getClass())) continue;
+			modInstance.onInitialize();
+			ALREADY_LOADED.add(modInstance.getClass());
 		}
 		additionalRegistrations.run();
 		Registries.bootstrap();

@@ -7,18 +7,12 @@ import net.minecraft.registry.entry.RegistryFixedCodec;
 import net.minecraft.text.TextCodecs;
 import net.minecraft.util.Uuids;
 import net.minecraft.world.World;
-import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.helper.RegistryDependentCodecHelper;
-import nu.metacraft.lib.util.helper.TestHelper;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(TestInit.class)
 public class TestRegistryDependenceDetector {
-
-	@BeforeAll
-	public static void init() {
-		TestHelper.init(METAcraftLib::new);
-	}
 
 	private static void check(Codec<?> codec, boolean value) {
 		assert value == RegistryDependentCodecHelper.isRegistryDependent(
