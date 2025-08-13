@@ -38,8 +38,7 @@
 		"MixinServerBossBar",
 		"MixinServerCommonNetworkHandler",
 		"MixinServerPlayerEntity",
-		"MixinServerPlayerInteractionManager",
-		"MixinServerPlayNetworkHandler"
+		"MixinServerPlayerInteractionManager"
 	],
 	"client": [
 	],

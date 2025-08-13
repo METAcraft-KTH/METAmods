@@ -52,7 +52,6 @@ public class METAcraftComponents {
 
 	public static void init() {
 		ExpiresComponent.init();
-		CommandComponents.init();
 	}
 
 	protected static <T> ComponentType<T> register(String id, UnaryOperator<ComponentType.Builder<T>> builderOperator) {
