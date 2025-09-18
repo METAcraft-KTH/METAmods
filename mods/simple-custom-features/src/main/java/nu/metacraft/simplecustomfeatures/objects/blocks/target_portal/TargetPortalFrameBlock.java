@@ -77,7 +77,7 @@ public class TargetPortalFrameBlock extends EndPortalFrameBlock implements Polym
 			if (IsLoaded.PORTAL_BLOCKER.isLoaded() && !world.isClient()) {
 				var reference = frame.getPortalReference();
 				if (reference.isPresent()) {
-					if (PortalBlockerCompat.isCreationBlocked(
+					if (PortalBlockerCompat.isActivationBlocked(
 							reference.get(), world.getServer(), world.getRegistryKey(), pos
 					)) {
 						return ActionResult.FAIL;

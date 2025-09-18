@@ -97,7 +97,7 @@ public class PortalShape {
 		}
 		if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
 			if (world instanceof World w && !w.isClient()) {
-				if (PortalBlockerCompat.isCreationBlocked(
+				if (PortalBlockerCompat.isActivationBlocked(
 						portal.getPortal().getBlock(), w.getServer(), w.getRegistryKey(), insidePortal
 				)) {
 					return;

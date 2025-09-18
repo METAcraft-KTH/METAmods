@@ -50,7 +50,7 @@ public class Commands {
 				literal("set").then(
 						PortalType.argument(PORTAL).then(
 								allowBlockArgument("state", false).executes(ctx -> setState(
-										ctx, PortalBlockType.BOTH
+										ctx, PortalBlockType.ALL
 								))
 						).then(
 								allowBlockArgument("state", false).then(
@@ -69,7 +69,7 @@ public class Commands {
 								PortalBlockType.blockTypeArgument(TYPE).executes(
 										ctx -> getState(ctx, PortalBlockType.getAllowBlockArgument(ctx, TYPE))
 								)
-							).executes(ctx -> getState(ctx, PortalBlockType.BOTH))
+							).executes(ctx -> getState(ctx, PortalBlockType.ALL))
 					)
 		);
 	}
@@ -106,7 +106,7 @@ public class Commands {
 	private static int getAllStates(CommandContext<ServerCommandSource> context) {
 		PortalTypeRegistry.REGISTRY.stream().forEach(type -> {
 			context.getSource().sendFeedback(() -> Text.of(
-					type + " is currently " + PortalBlockType.BOTH.getBlockingString(
+					type + " is currently " + PortalBlockType.ALL.getBlockingString(
 							bType -> PortalBlockerSettings.getInstance(context.getSource().getServer()).isPortalBlockedGlobally(type, bType)
 					)),
 					false
@@ -149,9 +149,11 @@ public class Commands {
 	}
 
 	public enum PortalBlockType {
-		CREATION(PortalState.BlockingType.CREATION),
+		ACTIVATION(PortalState.BlockingType.ACTIVATION),
 		TRAVEL(PortalState.BlockingType.TRAVEL),
-		BOTH(PortalState.BlockingType.CREATION, PortalState.BlockingType.TRAVEL);
+		GENERATION(PortalState.BlockingType.GENERATION),
+		CREATION(PortalState.BlockingType.GENERATION, PortalState.BlockingType.ACTIVATION),
+		ALL(PortalState.BlockingType.GENERATION, PortalState.BlockingType.ACTIVATION, PortalState.BlockingType.TRAVEL);
 
 		public final PortalState.BlockingType[] blockingTypes;
 

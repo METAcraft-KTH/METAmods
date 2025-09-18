@@ -45,8 +45,9 @@ public record PortalState(Object2BooleanMap<BlockingType> map) {
 	}
 
 	public enum BlockingType implements StringIdentifiable {
-		CREATION("creation"),
-		TRAVEL("travel");
+		ACTIVATION("activation"),
+		TRAVEL("travel"),
+		GENERATION("generation");
 
 		public static final Codec<BlockingType> CODEC = StringIdentifiable.createCodec(BlockingType::values);
 

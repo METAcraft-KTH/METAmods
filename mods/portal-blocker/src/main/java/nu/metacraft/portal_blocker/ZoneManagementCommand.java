@@ -27,7 +27,7 @@ public class ZoneManagementCommand {
 	static void registerCommand(LiteralArgumentBuilder<ServerCommandSource> builder, CommandRegistryAccess registryAccess) {
 		builder.then(
 			literal("zone").then(
-				literal("portal").then(
+				literal("set-portal").then(
 					zone().then(
 							PortalType.argument(Commands.PORTAL).then(
 									Commands.PortalBlockType.blockTypeArgument(TYPE).then(
@@ -59,7 +59,7 @@ public class ZoneManagementCommand {
 		data.setBlocking(portal, type, state);
 		ctx.getSource().sendFeedback(
 				() -> Text.literal(
-						"Set " + portal + " for " + type + " to " + state + " in " + zone.getName()
+						"Set portal " + portal + " for " + type + " to " + state + " in " + zone.getName()
 				),
 				true
 		);

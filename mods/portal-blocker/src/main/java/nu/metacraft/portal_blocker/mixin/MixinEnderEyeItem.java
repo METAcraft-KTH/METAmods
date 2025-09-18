@@ -19,7 +19,7 @@ public class MixinEnderEyeItem {
 	private void useOnBlock(ItemUsageContext context, CallbackInfoReturnable<ActionResult> info) {
 		if (context.getWorld() instanceof ServerWorld world) {
 			if (PortalBlockerSettings.getInstance(world.getServer()).isPortalBlocked(
-					PortalTypeRegistry.END, world.getRegistryKey(), PortalState.BlockingType.CREATION, context.getBlockPos()
+					PortalTypeRegistry.END, world.getRegistryKey(), PortalState.BlockingType.ACTIVATION, context.getBlockPos()
 			)) {
 				PlayerEntity player = context.getPlayer();
 				if (player != null) {

@@ -40,7 +40,7 @@ public class MixinPortalForcer {
 			@Local(ordinal = 0) Direction direction
 	) {
 		if (PortalBlockerSettings.getInstance(world.getServer()).isPortalBlocked(
-			PortalTypeRegistry.NETHER, world.getRegistryKey(), PortalState.BlockingType.CREATION, BlockPos.iterate(
+			PortalTypeRegistry.NETHER, world.getRegistryKey(), PortalState.BlockingType.GENERATION, BlockPos.iterate(
 				mutable.set(blockPos, -1 * direction.getOffsetX(), -1, -1 * direction.getOffsetZ()),
 				mutable.set(blockPos, 2 * direction.getOffsetX(), 3, 2 * direction.getOffsetZ())
 			)
@@ -57,7 +57,7 @@ public class MixinPortalForcer {
 	) {
 		Direction direction = portalDirection.rotateYClockwise();
 		if (PortalBlockerSettings.getInstance(world.getServer()).isPortalBlocked(
-			PortalTypeRegistry.NETHER, world.getRegistryKey(), PortalState.BlockingType.CREATION, BlockPos.iterate(
+			PortalTypeRegistry.NETHER, world.getRegistryKey(), PortalState.BlockingType.GENERATION, BlockPos.iterate(
 				temp.set(
 					pos,
 					portalDirection.getOffsetX() * -1 + direction.getOffsetX() * distanceOrthogonalToPortal,

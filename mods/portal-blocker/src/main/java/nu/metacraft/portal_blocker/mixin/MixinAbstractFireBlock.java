@@ -32,7 +32,7 @@ public class MixinAbstractFireBlock {
 	) {
 		if (world.getServer() != null) {
 			if (PortalBlockerSettings.getInstance(world.getServer()).isPortalBlocked(
-					PortalTypeRegistry.NETHER, world.getRegistryKey(), PortalState.BlockingType.CREATION, pos
+					PortalTypeRegistry.NETHER, world.getRegistryKey(), PortalState.BlockingType.ACTIVATION, pos
 			)) {
 				world.removeBlock(pos, false);
 				world.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS);

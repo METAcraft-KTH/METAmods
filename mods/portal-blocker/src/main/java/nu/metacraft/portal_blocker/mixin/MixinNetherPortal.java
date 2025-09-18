@@ -62,7 +62,7 @@ public class MixinNetherPortal {
 				center.set(this.lowerCorner.offset(Direction.UP, this.height/2).offset(this.negativeDir, this.width/2));
 			}
 			if (PortalBlockerSettings.getInstance(world.getServer()).isPortalBlocked(
-					PortalTypeRegistry.NETHER, w.getRegistryKey(), PortalState.BlockingType.CREATION, positions
+					PortalTypeRegistry.NETHER, w.getRegistryKey(), PortalState.BlockingType.ACTIVATION, positions
 			)) {
 				PortalTypeRegistry.NETHER.getCreationMessage().ifPresent(msg -> {
 					world.getEntitiesByClass(PlayerEntity.class, Box.enclosing(

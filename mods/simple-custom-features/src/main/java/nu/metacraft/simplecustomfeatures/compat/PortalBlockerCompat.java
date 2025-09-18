@@ -53,19 +53,27 @@ public class PortalBlockerCompat {
 		return map;
 	}
 
-	public static boolean isCreationBlocked(Portal portal, MinecraftServer server, RegistryKey<World> dim, BlockPos pos) {
+	public static boolean isActivationBlocked(Portal portal, MinecraftServer server, RegistryKey<World> dim, BlockPos pos) {
 		PortalType type = BlockPortalType.getFromPortal(portal);
 		if (type == null) return false;
 		return PortalBlockerSettings.getInstance(server).isPortalBlocked(
-				type, dim, PortalState.BlockingType.CREATION, pos
+				type, dim, PortalState.BlockingType.ACTIVATION, pos
 		);
 	}
 
-	public static boolean isCreationBlocked(Portal portal, MinecraftServer server, RegistryKey<World> dim, Iterable<BlockPos> positions) {
+	public static boolean isActivationBlocked(Portal portal, MinecraftServer server, RegistryKey<World> dim, Iterable<BlockPos> positions) {
 		PortalType type = BlockPortalType.getFromPortal(portal);
 		if (type == null) return false;
 		return PortalBlockerSettings.getInstance(server).isPortalBlocked(
-				type, dim, PortalState.BlockingType.CREATION, positions
+				type, dim, PortalState.BlockingType.ACTIVATION, positions
+		);
+	}
+
+	public static boolean isGenerationBlocked(Portal portal, MinecraftServer server, RegistryKey<World> dim, Iterable<BlockPos> positions) {
+		PortalType type = BlockPortalType.getFromPortal(portal);
+		if (type == null) return false;
+		return PortalBlockerSettings.getInstance(server).isPortalBlocked(
+				type, dim, PortalState.BlockingType.GENERATION, positions
 		);
 	}
 

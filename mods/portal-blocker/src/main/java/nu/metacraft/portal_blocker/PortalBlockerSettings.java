@@ -105,7 +105,7 @@ public class PortalBlockerSettings extends PersistentState {
 
 	private PortalState get(PortalType type) {
 		return portalIsBlockedMap.computeIfAbsent(type, t -> PortalState.from(
-				PortalState.BlockingType.CREATION, PortalState.BlockingType.TRAVEL
+				PortalState.BlockingType.ACTIVATION, PortalState.BlockingType.TRAVEL, PortalState.BlockingType.GENERATION
 		));
 	}
 

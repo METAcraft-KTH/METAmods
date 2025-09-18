@@ -120,7 +120,7 @@ public class PortalGenerator {
 			));
 			if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
 				var minPos = getMinFramePos(foundPos, invOffset);
-				if (PortalBlockerCompat.isCreationBlocked(
+				if (PortalBlockerCompat.isGenerationBlocked(
 						portal, targetWorld.getServer(), targetWorld.getRegistryKey(),
 						BlockPos.iterate(minPos, getMaxFramePos(minPos.mutableCopy()))
 				)) {
@@ -155,7 +155,7 @@ public class PortalGenerator {
 		var minPos = getMinFramePos(portalPos, invertedOffset).move(facing, outDistance);
 
 		if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
-			if (PortalBlockerCompat.isCreationBlocked(
+			if (PortalBlockerCompat.isGenerationBlocked(
 					portal, world.getServer(), world.getRegistryKey(),
 					BlockPos.iterate(minPos, getMaxFramePos(minPos.mutableCopy()))
 			)) {
