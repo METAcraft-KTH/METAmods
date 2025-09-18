@@ -202,10 +202,6 @@ subprojects {
 
         testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 
-        modApi("com.terraformersmc:modmenu:${project.modmenu_version}"){
-            exclude group: "net.fabricmc.fabric-api"
-        }
-
         implementation("net.bytebuddy:byte-buddy:${project.byte_buddy_version}")
 
         implementation("org.pcollections:pcollections:${project.pcollections_version}")
