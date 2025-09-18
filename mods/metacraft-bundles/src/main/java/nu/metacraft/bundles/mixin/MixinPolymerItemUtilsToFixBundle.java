@@ -3,6 +3,7 @@ package nu.metacraft.bundles.mixin;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
+import nu.metacraft.bundles.BundleConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -20,7 +21,7 @@ public class MixinPolymerItemUtilsToFixBundle {
 	private static void isPolymerServerItem(
 			ItemStack itemStack, PacketContext context, CallbackInfoReturnable<Boolean> cir
 	) {
-		if (itemStack.contains(DataComponentTypes.BUNDLE_CONTENTS)) {
+		if (itemStack.contains(DataComponentTypes.BUNDLE_CONTENTS) && BundleConfig.getInstance().bundleRendering()) {
 			cir.setReturnValue(true);
 		}
 	}
