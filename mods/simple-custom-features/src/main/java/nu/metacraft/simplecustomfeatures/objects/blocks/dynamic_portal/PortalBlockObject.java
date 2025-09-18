@@ -241,7 +241,7 @@ public class PortalBlockObject implements BaseBlock {
 	public Multimap<Identifier, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
 		poiKey = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, container.getID());
 		Multimap<Identifier, BaseObject<?>> map = Multimaps.forMap(Map.of(
-				container.getID(), new POI(new PointOfInterestType(
+				container.getID(), new POI(new POI.PolymerPOI(
 						ImmutableSet.copyOf(container.getActualObject().getStateManager().getStates()), 0, 1
 				))
 		));

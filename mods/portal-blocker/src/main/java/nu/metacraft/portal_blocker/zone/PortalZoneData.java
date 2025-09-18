@@ -82,6 +82,11 @@ public class PortalZoneData extends ZoneData {
 			return name;
 		}
 
+		@Override
+		public String toString() {
+			return asString();
+		}
+
 		public static Optional<BlockResult> fromString(String value) {
 			return Optional.ofNullable(MAPPER.apply(value));
 		}
