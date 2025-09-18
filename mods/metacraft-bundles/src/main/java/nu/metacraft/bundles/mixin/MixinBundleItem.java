@@ -58,7 +58,7 @@ public abstract class MixinBundleItem {
 		if (builder.getOccupancy().multiplyBy(factor).doubleValue() >= 1 && player instanceof ServerPlayerEntity p) {
 			p.networkHandler.sendPacket(new PlaySoundFromEntityS2CPacket(
 					RegistryEntry.of(SoundEvents.ITEM_BUNDLE_INSERT), player.getSoundCategory(), player, 0.8f,
-					0.8f + player.getWorld().getRandom().nextFloat() * 0.4f, player.getWorld().getRandom().nextLong()
+					0.8f + player.getEntityWorld().getRandom().nextFloat() * 0.4f, player.getEntityWorld().getRandom().nextLong()
 			));
 		}
 	}
@@ -74,10 +74,10 @@ public abstract class MixinBundleItem {
 			CallbackInfoReturnable<Boolean> cir, @Local(argsOnly = true) Slot slot,
 			@Local(argsOnly = true) PlayerEntity player
 	) {
-		if (!player.getWorld().isClient()) {
+		if (!player.getEntityWorld().isClient()) {
 			var handler = player.currentScreenHandler;
 			TaskScheduler.scheduleImmediately(
-				player.getServer(), () -> {
+				player.getEntityWorld().getServer(), () -> {
 					if (player.currentScreenHandler == handler) {
 						((AccessorScreenHandler) player.currentScreenHandler).getSyncHandler().updateSlot(
 								player.currentScreenHandler, slot.id, slot.getStack()

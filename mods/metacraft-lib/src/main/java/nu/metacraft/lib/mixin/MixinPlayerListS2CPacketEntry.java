@@ -1,6 +1,7 @@
 package nu.metacraft.lib.mixin;
 
 import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.PropertyMap;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -29,8 +30,11 @@ public class MixinPlayerListS2CPacketEntry {
 		if (name.isPresent()) {
 			if (profile != null) {
 				var oldProfile = profile;
-				profile = new GameProfile(oldProfile.getId(), name.get());
-				profile.getProperties().putAll(oldProfile.getProperties());
+				profile = new GameProfile(
+						oldProfile.id(), name.get(), new PropertyMap(
+								oldProfile.properties()
+						)
+				);
 			}
 			if (displayName != null) {
 				displayName = Text.literal(name.get());

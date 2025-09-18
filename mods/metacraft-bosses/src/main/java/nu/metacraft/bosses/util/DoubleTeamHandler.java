@@ -64,7 +64,7 @@ public record DoubleTeamHandler(
 		((LivingEntityExtensions) clone).metacraft$setPhantomEntity(true);
 		((LivingEntityExtensions) clone).metacraft$setDoubleTeamHandler(null);
 		if (primary.getScoreboardTeam() != null) {
-			clone.getWorld().getScoreboard().addScoreHolderToTeam(
+			clone.getEntityWorld().getScoreboard().addScoreHolderToTeam(
 					clone.getNameForScoreboard(), primary.getScoreboardTeam()
 			);
 		}
@@ -75,7 +75,7 @@ public record DoubleTeamHandler(
 		if (settings.initializeClone.orElse(settings.dataToApply.isEmpty())) {
 			if (clone instanceof MobEntity mob) {
 				mob.initialize(
-						(ServerWorldAccess) clone.getWorld(), clone.getWorld().getLocalDifficulty(clone.getBlockPos()),
+						(ServerWorldAccess) clone.getEntityWorld(), clone.getEntityWorld().getLocalDifficulty(clone.getBlockPos()),
 						SpawnReason.REINFORCEMENT, this
 				);
 			}
@@ -97,12 +97,12 @@ public record DoubleTeamHandler(
 			primary.writeData(writeView);
 			var data = writeView.getNbt();
 			if (primary instanceof PlayerEntity) {
-				var player = METAcraftEntities.PLAYER.create(primary.getWorld(), SpawnReason.REINFORCEMENT);
+				var player = METAcraftEntities.PLAYER.create(primary.getEntityWorld(), SpawnReason.REINFORCEMENT);
 				player.copyFromPlayerData(data);
 				setCloneData(player, logging);
 				return player;
 			} else {
-				var clone = (LivingEntity) primary.getType().create(primary.getWorld(), SpawnReason.REINFORCEMENT);
+				var clone = (LivingEntity) primary.getType().create(primary.getEntityWorld(), SpawnReason.REINFORCEMENT);
 				data.remove("UUID");
 				var readView = NbtReadView.create(logging, primary.getRegistryManager(), data);
 				clone.readData(readView);
@@ -113,7 +113,7 @@ public record DoubleTeamHandler(
 	}
 
 	private void handleTick(LivingEntity clone) {
-		primary.getWorld().spawnEntity(clone);
+		primary.getEntityWorld().spawnEntity(clone);
 		var angle = primary.getRandom().nextFloat() * 360;
 		var angleUp = primary.getRandom().nextFloat() * 180;
 		angleUp -= angleUp/2;
@@ -126,7 +126,7 @@ public record DoubleTeamHandler(
 
 		int upDist = MathHelper.ceil(settings.distance.get(primary.getRandom()));
 		for (int i = 0; i < upDist; i++) {
-			if (!primary.getWorld().getBlockState(pos).blocksMovement()) {
+			if (!primary.getEntityWorld().getBlockState(pos).blocksMovement()) {
 				if (i > 0) {
 					target = target.add(0, i, 0);
 				}

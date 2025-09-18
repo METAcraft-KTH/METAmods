@@ -3,11 +3,13 @@ package nu.metacraft.cutscenes.transitions.entity;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.TypedEntityData;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.storage.NbtReadView;
 import net.minecraft.util.Identifier;
@@ -61,6 +63,8 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 					Removal.CODEC.optionalFieldOf("removal", Removal.DISCARD).forGetter(t -> t.removal)
 			).apply(instance, AddPlayerDummies::new)
 	);
+
+	public static final Codec<TypedEntityData<EntityType<?>>> ENTITY_DATA_CODEC = TypedEntityData.createCodec(EntityType.CODEC);
 
 	private final List<String> ids;
 	private final PositionRef position;
@@ -117,13 +121,15 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 						target -> e.setAngles(target.y, target.x)
 				);
 				if (e instanceof PlayerMob p) {
-					nbt.ifPresent(
-							nbt -> NbtComponent.of(nbt.getMerged()).applyToEntity(p)
-					);
+					nbt.flatMap(
+							nbt -> ENTITY_DATA_CODEC.parse(
+									NbtOps.INSTANCE, nbt.getMerged()
+							).resultOrPartial(Cutscenes.LOGGER::error)
+					).ifPresent(d -> d.applyToEntity(p));
 					function.flatMap(
-							function -> player.getServer().getCommandFunctionManager().getFunction(function)
+							function -> player.getEntityWorld().getServer().getCommandFunctionManager().getFunction(function)
 					).ifPresent(function -> {
-						player.getServer().getCommandFunctionManager().execute(function, p.getCommandSource(cutscene.getCutsceneWorld()).withLevel(2));
+						player.getEntityWorld().getServer().getCommandFunctionManager().execute(function, p.getCommandSource(cutscene.getCutsceneWorld()).withLevel(2));
 					});
 				}
 				cutscene.addEntity(idGetter.get(), e);

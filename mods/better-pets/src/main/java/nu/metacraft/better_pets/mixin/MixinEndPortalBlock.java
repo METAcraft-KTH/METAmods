@@ -55,7 +55,7 @@ public class MixinEndPortalBlock {
 			BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler, CallbackInfo ci, @Local ServerPlayerEntity player
 	) {
 		var target = player.getRespawnTarget(true, TeleportTarget.ADD_PORTAL_CHUNK_TICKET);
-		player.getWorld().getEntitiesByType(
+		player.getEntityWorld().getEntitiesByType(
 				TypeFilter.instanceOf(TameableEntity.class),
 				e ->    ((TameableExtension) e).metacraft$getCurrentFollowTarget() == player
 						&& !e.cannotFollowOwner()

@@ -97,10 +97,10 @@ public class ExileDefinition {
 
 	public <T extends ServerPlayerEntity & ExilePlayerData> void tick(T player) {
 		zoneRules.keySet().forEach(zone -> {
-			if (!player.METAcraft_Moderation$getCurrentZones().contains(zone) && zone.contains(player.getWorld().getRegistryKey(), player.getBlockPos())) {
+			if (!player.METAcraft_Moderation$getCurrentZones().contains(zone) && zone.contains(player.getEntityWorld().getRegistryKey(), player.getBlockPos())) {
 				zoneRules.get(zone).forEach(rule -> rule.enterAllowedArea(player));
 				player.METAcraft_Moderation$getCurrentZones().add(zone);
-			} else if (player.METAcraft_Moderation$getCurrentZones().contains(zone) && !zone.contains(player.getWorld().getRegistryKey(), player.getBlockPos())) {
+			} else if (player.METAcraft_Moderation$getCurrentZones().contains(zone) && !zone.contains(player.getEntityWorld().getRegistryKey(), player.getBlockPos())) {
 				zoneRules.get(zone).forEach(rule -> rule.enterProhibitedArea(player));
 				player.METAcraft_Moderation$getCurrentZones().remove(zone);
 			}

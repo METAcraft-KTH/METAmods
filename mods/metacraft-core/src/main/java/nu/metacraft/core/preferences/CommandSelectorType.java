@@ -73,7 +73,7 @@ public class CommandSelectorType implements PreferenceType<CommandSelectorType.C
 	}
 
 	private void runCommand(ServerPlayerEntity player, CommandData.CommandEntry command) {
-		player.getServer().getCommandManager().executeWithPrefix(
+		player.getEntityWorld().getServer().getCommandManager().executeWithPrefix(
 				player.getCommandSource().withSilent().withLevel(2),
 				command.command
 		);

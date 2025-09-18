@@ -72,7 +72,7 @@ public class CutsceneChunk extends WorldChunk {
 			for (var passenger : entity.getPassengerList()) {
 				var newPassenger = copyEntityAndPassengers(passenger);
 				if (newPassenger != null) {
-					newPassenger.startRiding(newEntity, true);
+					newPassenger.startRiding(newEntity, true, false);
 				}
 			}
 		}

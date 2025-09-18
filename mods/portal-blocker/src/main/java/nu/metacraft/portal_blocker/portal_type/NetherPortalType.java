@@ -3,12 +3,9 @@ package nu.metacraft.portal_blocker.portal_type;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.Portal;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.text.Text;
+import net.minecraft.world.GameRules;
 import nu.metacraft.portal_blocker.PortalState;
-import nu.metacraft.portal_blocker.mixin.AccessorAbstractPropertiesHandler;
-import nu.metacraft.portal_blocker.mixin.AccessorMinecraftDedicatedServer;
-import nu.metacraft.portal_blocker.mixin.AccessorServerPropertiesHandler;
 
 public class NetherPortalType extends PortalType {
 
@@ -22,12 +19,12 @@ public class NetherPortalType extends PortalType {
 
 	@Override
 	public void onGlobalStateChange(MinecraftServer server, boolean netherBlocked, PortalState.BlockingType type) {
-		if (type == PortalState.BlockingType.TRAVEL && server instanceof DedicatedServer dedicatedServer) {
-			((AccessorServerPropertiesHandler) dedicatedServer.getProperties()).setAllowNether(!netherBlocked);
-			((AccessorAbstractPropertiesHandler) dedicatedServer.getProperties()).getProperties().put(
-					"allow-nether", Boolean.toString(!netherBlocked)
-			);
-			((AccessorMinecraftDedicatedServer) dedicatedServer).getPropertiesLoader().store();
+		if (type == PortalState.BlockingType.TRAVEL) {
+			var allowPortals = server.getGameRules().get(GameRules.ALLOW_ENTERING_NETHER_USING_PORTALS);
+			if (allowPortals.get() == netherBlocked) {
+				allowPortals.set(!netherBlocked, server);
+				server.onGameRuleUpdated(GameRules.ALLOW_ENTERING_NETHER_USING_PORTALS.getName(), allowPortals);
+			}
 		}
 	}
 

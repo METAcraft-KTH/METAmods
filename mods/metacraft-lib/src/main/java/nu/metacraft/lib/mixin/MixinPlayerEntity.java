@@ -33,7 +33,7 @@ public abstract class MixinPlayerEntity extends LivingEntity {
 			method = "addTellClickEvent",
 			at = @At(
 					value = "INVOKE",
-					target = "Lcom/mojang/authlib/GameProfile;getName()Ljava/lang/String;"
+					target = "Lcom/mojang/authlib/GameProfile;name()Ljava/lang/String;"
 			)
 	)
 	private String addTellClickEvent(String original) {

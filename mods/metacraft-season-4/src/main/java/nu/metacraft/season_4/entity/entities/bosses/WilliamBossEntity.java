@@ -1,12 +1,15 @@
 package nu.metacraft.season_4.entity.entities.bosses;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
+import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.serialization.Dynamic;
 import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
@@ -67,17 +70,17 @@ import java.util.*;
 
 public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackingBoss {
 
-	private static final GameProfile SKIN = new GameProfile(UUID.randomUUID(), "William");
-
-	static {
-		SKIN.getProperties().put(
-				"textures", new Property(
-						"textures",
-						"ewogICJ0aW1lc3RhbXAiIDogMTc0OTQwMTk2MDM1NSwKICAicHJvZmlsZUlkIiA6ICI0Y2M0NmE0ODRlZWI0MTczOTYwNGY4ODg2MTk0ZjAyZiIsCiAgInByb2ZpbGVOYW1lIiA6ICJBY3VhZHJhZ29uMTAwIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2ZkYWI0ZGY4NTdkZDE0NTFlY2IwMmFkZWJhMDUxOTkwMGUxNzg2MDhlMDQwYjNkNDM0ZjIxOTEwMzIxYmEyZGUiCiAgICB9LAogICAgIkNBUEUiIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzU2OWI3ZjJhMWQwMGQyNmYzMGVmZTNmOWFiOWFjODE3YjFlNmQzNWY0ZjNjZmIwMzI0ZWYyZDMyODIyM2QzNTAiCiAgICB9CiAgfQp9",
-						"faxgZ2WgqelChe4dPglq61Eo2bMFlpfHqAlvVtNnpGRPB5sSUYmXkYXojjzUOnpIUKZCzTs6Mmro5BRBKGGB075lNii5p9XyoHE5NXj1kVM+N11nUmPPI3bTnpj/7Qdp2X/JNbbHo4rlZJrzP2HHkgfSmQ22rwbsn57Nelj9AxaA2ngXfK342OS92FyerJnNV1084VooY1Mx32YL6SKf9xszs++zWghFb66/u70J6F/OSnRonZYuMglfvgI76K53rCrckK1Vu/Ucaz4VlbUCgNEmEY27sgETxJ5XsNPqsTwP97WXgvox8Vnyxn+U/0fYxDig0pxe4m5wcp/nvYN79Fv5fCWTX4Pq0+ykOlJVf3ktJFsyNxo0rDKhnz0dNJGhdnM0guRZUNecbhI0nXSfn0SKkX6n7exJZzCHqE7qfIc8yVlPVjzVLlaR3Keo4edkbZOkMGtm2Tu2bbAljRQLUES09hvpKdBeOhaHUHXP5MRKYnmxdqTI7KDjXgoNjSQknS9L9u/vTeM6Qz4XfsGhsEtdmL0JEn3JK+tsnZzR4krLoWSAGLFcobG7cu1QXas7ffE4+SHopRTakRJ/5ORdiC9XrAziRfwjikn3gR+qeJx6JRi7Ww4G6BuzRb8mEhP/Oxe6sH8sC4TwZbJmAeAHU+hbAAs7Al6sMjrOOGTdzWk="
+	private static final GameProfile SKIN = new GameProfile(
+			UUID.randomUUID(), "William", new PropertyMap(
+				ImmutableMultimap.of(
+						"textures", new Property(
+								"textures",
+								"ewogICJ0aW1lc3RhbXAiIDogMTc0OTQwMTk2MDM1NSwKICAicHJvZmlsZUlkIiA6ICI0Y2M0NmE0ODRlZWI0MTczOTYwNGY4ODg2MTk0ZjAyZiIsCiAgInByb2ZpbGVOYW1lIiA6ICJBY3VhZHJhZ29uMTAwIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2ZkYWI0ZGY4NTdkZDE0NTFlY2IwMmFkZWJhMDUxOTkwMGUxNzg2MDhlMDQwYjNkNDM0ZjIxOTEwMzIxYmEyZGUiCiAgICB9LAogICAgIkNBUEUiIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzU2OWI3ZjJhMWQwMGQyNmYzMGVmZTNmOWFiOWFjODE3YjFlNmQzNWY0ZjNjZmIwMzI0ZWYyZDMyODIyM2QzNTAiCiAgICB9CiAgfQp9",
+								"faxgZ2WgqelChe4dPglq61Eo2bMFlpfHqAlvVtNnpGRPB5sSUYmXkYXojjzUOnpIUKZCzTs6Mmro5BRBKGGB075lNii5p9XyoHE5NXj1kVM+N11nUmPPI3bTnpj/7Qdp2X/JNbbHo4rlZJrzP2HHkgfSmQ22rwbsn57Nelj9AxaA2ngXfK342OS92FyerJnNV1084VooY1Mx32YL6SKf9xszs++zWghFb66/u70J6F/OSnRonZYuMglfvgI76K53rCrckK1Vu/Ucaz4VlbUCgNEmEY27sgETxJ5XsNPqsTwP97WXgvox8Vnyxn+U/0fYxDig0pxe4m5wcp/nvYN79Fv5fCWTX4Pq0+ykOlJVf3ktJFsyNxo0rDKhnz0dNJGhdnM0guRZUNecbhI0nXSfn0SKkX6n7exJZzCHqE7qfIc8yVlPVjzVLlaR3Keo4edkbZOkMGtm2Tu2bbAljRQLUES09hvpKdBeOhaHUHXP5MRKYnmxdqTI7KDjXgoNjSQknS9L9u/vTeM6Qz4XfsGhsEtdmL0JEn3JK+tsnZzR4krLoWSAGLFcobG7cu1QXas7ffE4+SHopRTakRJ/5ORdiC9XrAziRfwjikn3gR+qeJx6JRi7Ww4G6BuzRb8mEhP/Oxe6sH8sC4TwZbJmAeAHU+hbAAs7Al6sMjrOOGTdzWk="
+						)
 				)
-		);
-	}
+			)
+	);
 
 	public WilliamBossEntity(EntityType<? extends HostileEntity> entityType, World world) {
 		super(entityType, world);
@@ -85,8 +88,8 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 	}
 
 	@Override
-	protected GameProfile getDefaultSkin() {
-		return SKIN;
+	protected ProfileComponent getDefaultSkin() {
+		return ProfileComponent.ofStatic(SKIN);
 	}
 
 	@Override
@@ -299,9 +302,9 @@ public class WilliamBossEntity extends GenericBossPlayer implements AutoAttackin
 		if (super.handleShoot(hand, target, pullProgress)) return true;
 		var stack = this.getStackInHand(hand);
 		float speed = 1.6f;
-		float divergence = 14 - this.getWorld().getDifficulty().getId() * 4;
+		float divergence = 14 - this.getEntityWorld().getDifficulty().getId() * 4;
 		if (stack.isOf(Items.BLAZE_ROD)) {
-			var projectile = Season4Entities.MAGIC_PROJECTILE.create(getWorld(), SpawnReason.TRIGGERED);
+			var projectile = Season4Entities.MAGIC_PROJECTILE.create(getEntityWorld(), SpawnReason.TRIGGERED);
 			projectile.setOwner(this);
 			projectile.setPos(getX(), getEyeY(), getZ());
 			projectile.setCloudEffects(PollyBossEntity.EXTRA_POOL_CLOUD);

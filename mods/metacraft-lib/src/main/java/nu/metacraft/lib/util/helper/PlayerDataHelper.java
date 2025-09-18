@@ -97,7 +97,7 @@ public class PlayerDataHelper {
 			boolean includeVehicleAndPassengers, boolean includeFarawayEntities
 	) {
 		ext(player).metacraft_lib$getPlayerData(id).map(
-				data -> updatePlayerData(data, player.getServer().getDataFixer())
+				data -> updatePlayerData(data, player.getEntityWorld().getServer().getDataFixer())
 		).ifPresent(data -> {
 			try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerDataHelper#loadPlayerData", METAcraftLib.LOGGER)) {
 				var view = NbtReadView.create(
@@ -228,10 +228,10 @@ public class PlayerDataHelper {
 	public static void loadPassengers(LivingEntity entity, ReadView nbt, UnaryOperator<Entity> spawner) {
 		for (var e : nbt.getListReadView(Entity.PASSENGERS_KEY)) {
 			Entity entity2 = EntityType.loadEntityWithPassengers(
-					e, entity.getWorld(), SpawnReason.LOAD, spawner
+					e, entity.getEntityWorld(), SpawnReason.LOAD, spawner
 			);
 			if (entity2 != null) {
-				entity2.startRiding(entity, true);
+				entity2.startRiding(entity, true, false);
 			}
 		}
 	}
@@ -244,7 +244,7 @@ public class PlayerDataHelper {
 	 */
 	public static void loadRootVehicle(LivingEntity player, ReadView data, UnaryOperator<Entity> spawner) {
 		data.getOptionalReadView("RootVehicle").ifPresent(vehicle -> {
-			var e = EntityType.loadEntityWithPassengers(vehicle.getReadView("Entity"), player.getWorld(), SpawnReason.LOAD, spawner);
+			var e = EntityType.loadEntityWithPassengers(vehicle.getReadView("Entity"), player.getEntityWorld(), SpawnReason.LOAD, spawner);
 			if (e != null) {
 				Runnable clearEntity = () -> {
 					e.streamPassengersAndSelf().forEach(Entity::discard);
@@ -253,7 +253,7 @@ public class PlayerDataHelper {
 				vehicle.read("Attach", Uuids.INT_STREAM_CODEC).ifPresentOrElse(id -> {
 					for (var entity : (Iterable<Entity>) e.streamSelfAndPassengers()::iterator) {
 						if (entity.getUuid().equals(id)) {
-							player.startRiding(entity, true);
+							player.startRiding(entity, true, false);
 						}
 					}
 					if (!player.hasVehicle()) {
@@ -318,7 +318,7 @@ public class PlayerDataHelper {
 		var prevVehicleVelocity = player.getRootVehicle().getVelocity();
 
 		ext(player).metacraft_lib$loadPlayerDataExceptDataMap(data);
-		Optional<ServerWorld> world = getWorld(player.getServer(), data);
+		Optional<ServerWorld> world = getWorld(player.getEntityWorld().getServer(), data);
 		if (moveToDataPosition) {
 			world.ifPresentOrElse(w -> {
 				player.teleport(w, player.getX(), player.getY(), player.getZ(), Set.of(), player.getYaw(), player.getPitch(), false);
@@ -344,7 +344,7 @@ public class PlayerDataHelper {
 					e.setPitch(prevVehiclePitch);
 					e.setVelocity(prevVehicleVelocity);
 				}
-				if (!player.getWorld().spawnEntity(e)) {
+				if (!player.getEntityWorld().spawnEntity(e)) {
 					return null;
 				}
 				return e;
@@ -384,11 +384,11 @@ public class PlayerDataHelper {
 			var prevTracker = player.getAdvancementTracker();
 			prevTracker.save();
 			prevTracker.clearCriteria();
-			var playerManager = player.getServer().getPlayerManager();
+			var playerManager = player.getEntityWorld().getServer().getPlayerManager();
 			((AccessorServerPlayerEntity) player).setAdvancementTracker(
 					new SeparateAdvancementTracker(
-							player.getServer().getDataFixer(), playerManager,
-							player.getServer().getAdvancementLoader(), player, type
+							player.getEntityWorld().getServer().getDataFixer(), playerManager,
+							player.getEntityWorld().getServer().getAdvancementLoader(), player, type
 					)
 			);
 			((AccessorPlayerManager) playerManager).getAdvancementTrackers().put(
@@ -410,7 +410,7 @@ public class PlayerDataHelper {
 	}
 
 	public static void restoreAdvancementTracker(ServerPlayerEntity player) {
-		var playerManager = player.getServer().getPlayerManager();
+		var playerManager = player.getEntityWorld().getServer().getPlayerManager();
 		if (player.getAdvancementTracker() instanceof SeparateAdvancementTracker t) {
 			t.save();
 			t.clearCriteria();
@@ -424,8 +424,8 @@ public class PlayerDataHelper {
 		if (!(player.getStatHandler() instanceof SeparateStatHandler h) || !h.getType().equals(type)) {
 			var prevHandler = player.getStatHandler();
 			player.getStatHandler().save();
-			((AccessorServerPlayerEntity) player).setStatHandler(new SeparateStatHandler(player.getServer(), player, type));
-			((AccessorPlayerManager) player.getServer().getPlayerManager()).getStatisticsMap().put(
+			((AccessorServerPlayerEntity) player).setStatHandler(new SeparateStatHandler(player.getEntityWorld().getServer(), player, type));
+			((AccessorPlayerManager) player.getEntityWorld().getServer().getPlayerManager()).getStatisticsMap().put(
 					player.getUuid(), player.getStatHandler()
 			);
 			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(type);
@@ -439,7 +439,7 @@ public class PlayerDataHelper {
 	}
 
 	public static void restoreStatHandler(ServerPlayerEntity player) {
-		var playerManager = player.getServer().getPlayerManager();
+		var playerManager = player.getEntityWorld().getServer().getPlayerManager();
 		if (player.getStatHandler() instanceof SeparateStatHandler t) {
 			t.save();
 			((AccessorPlayerManager) playerManager).getStatisticsMap().remove(player.getUuid());

@@ -48,9 +48,9 @@ public class Events {
 			for (var e : world.getEntitiesByType(TypeFilter.instanceOf(MovingBlock.class), e -> e.getRootAnchor().isPresent())) {
 				e.getRootAnchor().ifPresent(anchor -> {
 					var targetPos = anchor.getTargetPos();
-					if (!targetPos.equals(e.getPos()) || anchor.entity().getWorld() != e.getWorld()) {
+					if (!targetPos.equals(e.getPos()) || anchor.entity().getEntityWorld() != e.getEntityWorld()) {
 						var dist = e.squaredDistanceTo(anchor.entity());
-						if (dist > MovingBlock.SQ_MAX_MOVE_DIST || anchor.entity().getWorld() != e.getWorld()) {
+						if (dist > MovingBlock.SQ_MAX_MOVE_DIST || anchor.entity().getEntityWorld() != e.getEntityWorld()) {
 							e.setVelocity(Vec3d.ZERO);
 							e.teleport(
 									world, targetPos.getX(), targetPos.getY(), targetPos.getZ(),

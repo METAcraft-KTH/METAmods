@@ -70,7 +70,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		var idString = nbt.getOptionalString(STRUCTURE);
 		if (idString.isPresent()) {
 			var id = Identifier.tryParse(idString.get());
-			if (id != null && getWorld() instanceof ServerWorld sw) {
+			if (id != null && getEntityWorld() instanceof ServerWorld sw) {
 				if (setFromStructure(sw.getStructureTemplateManager(), id)) {
 					shouldFixDisplays = false;
 				}
@@ -213,9 +213,9 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 			data.applySettings(display.displayElement);
 			display.applyTransformation(data.getTransformation());
 		}
-		if (getWorld() instanceof ServerWorld) {
+		if (getEntityWorld() instanceof ServerWorld) {
 			for (var display : riderSlots) {
-				var world = (ServerWorld) getWorld();
+				var world = (ServerWorld) getEntityWorld();
 				var disp = display.getDisplay(world);
 				if (disp == null) continue;
 				disp.setInterpolationDuration(data.getInterpolationDuration());
@@ -228,9 +228,9 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 	}
 
 	private void updatePositions() {
-		if (getWorld() instanceof ServerWorld) {
+		if (getEntityWorld() instanceof ServerWorld) {
 			for (var d : riderSlots) {
-				d.updatePos(this, (ServerWorld) getWorld());
+				d.updatePos(this, (ServerWorld) getEntityWorld());
 			}
 		}
 	}

@@ -17,7 +17,7 @@ public class ResourcePackHelper {
 		var entry = config.getResourcePack(pack);
 		if (entry == null) return;
 		if (!entry.isGlobal()) {
-			PlayerPackDataManager.getInstance(player.getServer()).update(
+			PlayerPackDataManager.getInstance(player.getEntityWorld().getServer()).update(
 					player.getGameProfile(), data -> data.addPack(pack)
 			);
 			player.networkHandler.sendPacket(config.createEnablePacket(pack));
@@ -29,7 +29,7 @@ public class ResourcePackHelper {
 		var entry = config.getResourcePack(pack);
 		if (entry == null) return;
 		if (!entry.isGlobal()) {
-			PlayerPackDataManager.getInstance(player.getServer()).update(
+			PlayerPackDataManager.getInstance(player.getEntityWorld().getServer()).update(
 					player.getGameProfile(), data -> data.removePack(pack)
 			);
 			player.networkHandler.sendPacket(new ResourcePackRemoveS2CPacket(Optional.of(pack)));
@@ -41,7 +41,7 @@ public class ResourcePackHelper {
 	}
 
 	public static boolean hasResourcePack(ServerPlayerEntity player, UUID pack) {
-		return hasResourcePack(player.getServer(), player.getGameProfile(), pack);
+		return hasResourcePack(player.getEntityWorld().getServer(), player.getGameProfile(), pack);
 	}
 
 	public static boolean hasResourcePack(MinecraftServer server, GameProfile profile, UUID pack) {

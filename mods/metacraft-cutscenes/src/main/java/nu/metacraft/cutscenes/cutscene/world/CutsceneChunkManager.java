@@ -3,6 +3,7 @@ package nu.metacraft.cutscenes.cutscene.world;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.entity.Entity;
+import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.server.world.*;
 import net.minecraft.util.math.BlockPos;
@@ -21,7 +22,6 @@ import nu.metacraft.cutscenes.mixin.AccessorChunkHolder;
 import nu.metacraft.cutscenes.mixin.AccessorMinecraftServer;
 import nu.metacraft.cutscenes.mixin.AccessorServerChunkManager;
 import nu.metacraft.cutscenes.util.helper.LightingHelper;
-import nu.metacraft.lib.util.helper.WorldHelper;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -50,7 +50,6 @@ public class CutsceneChunkManager extends ServerChunkManager {
 				cutsceneWorld.getServer().getPlayerManager().getViewDistance(),
 				cutsceneWorld.getServer().getPlayerManager().getSimulationDistance(),
 				cutsceneWorld.getServer().syncChunkWrites(),
-				WorldHelper.getGenerationProgressListener(cutsceneWorld.getActualWorld()),
 				(pos, status) -> {}, persistentStateManagerFactory
 		);
 		var tickerManager = new ChunkTicketManager();
@@ -63,7 +62,6 @@ public class CutsceneChunkManager extends ServerChunkManager {
 				((AccessorMinecraftServer) cutsceneWorld.getServer()).getWorkerExecutor(),
 				((AccessorServerChunkManager) this).getMainThreadExecutor(),
 				this, CutsceneWorld.createDummyChunkGenerator(cutsceneWorld.getActualWorld()),
-				WorldHelper.getGenerationProgressListener(cutsceneWorld.getActualWorld()),
 				(pos, status) -> {}, persistentStateManagerFactory,
 				tickerManager,
 				cutsceneWorld.getServer().getPlayerManager().getViewDistance(),
@@ -247,12 +245,12 @@ public class CutsceneChunkManager extends ServerChunkManager {
 	}
 
 	@Override
-	public void sendToNearbyPlayers(Entity entity, Packet<?> packet) {
+	public void sendToNearbyPlayers(Entity entity, Packet<? super ClientPlayPacketListener> packet) {
 		cutsceneWorld.getPlayers().forEach(p -> p.networkHandler.sendPacket(packet));
 	}
 
 	@Override
-	public void sendToOtherNearbyPlayers(Entity entity, Packet<?> packet) {
+	public void sendToOtherNearbyPlayers(Entity entity, Packet<? super ClientPlayPacketListener> packet) {
 		cutsceneWorld.getPlayers().forEach(p -> {
 			if (p != entity) {
 				p.networkHandler.sendPacket(packet);

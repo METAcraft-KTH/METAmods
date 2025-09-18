@@ -116,7 +116,7 @@ public class SpawnSpecifiedEntities extends SpawnEntityAttackBase {
 				var actualTargets = targets.stream().filter(
 						target -> spawned.distanceTo(target) < maxDistanceToTarget
 				).filter(
-						target -> spawned.getWorld().raycast(new RaycastContext(
+						target -> spawned.getEntityWorld().raycast(new RaycastContext(
 								spawned.getBoundingBox().getCenter(), target.getBoundingBox().getCenter(), RaycastContext.ShapeType.COLLIDER,
 								RaycastContext.FluidHandling.NONE, ShapeContext.of(spawned)
 						)).getType() == HitResult.Type.MISS

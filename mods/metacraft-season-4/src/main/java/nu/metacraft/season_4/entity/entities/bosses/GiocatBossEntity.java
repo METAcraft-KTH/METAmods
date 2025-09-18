@@ -1,12 +1,15 @@
 package nu.metacraft.season_4.entity.entities.bosses;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
+import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.serialization.Dynamic;
 import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
@@ -21,7 +24,6 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerPosition;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.ProjectileItem;
@@ -76,17 +78,17 @@ import java.util.function.Consumer;
 
 public class GiocatBossEntity extends GenericBossPlayer implements AutoAttackingBoss {
 
-	private static final GameProfile SKIN = new GameProfile(UUID.randomUUID(), "Giocat");
-
-	static {
-		SKIN.getProperties().put(
-				"textures", new Property(
-						"textures",
-						"ewogICJ0aW1lc3RhbXAiIDogMTc0ODAyODY0MzM1OSwKICAicHJvZmlsZUlkIiA6ICI1ODc5MjNlNDkxMzM0ZDMzYWE4ZjQ3ZWJkZTljOTc3MiIsCiAgInByb2ZpbGVOYW1lIiA6ICJFbGV2ZW5mb3VyMTAiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZWEwN2Y2MjkyNTA0Y2E5MWVmM2NiYmM4YTcwNWRiOTc0OGVkNTM5YTdkZTVhMTIzYTdhOTU3YTg3Yjk2Y2RkNSIsCiAgICAgICJtZXRhZGF0YSIgOiB7CiAgICAgICAgIm1vZGVsIiA6ICJzbGltIgogICAgICB9CiAgICB9CiAgfQp9",
-						"hx54A3anDfCzZXZhITe0MIdOlqfO44ZX+by0RoW0L1cEiFc2Z76Ej8qqB+VKanqjyBs/OkO9lRRkyQCSrtPN+jwN2FEF2EJ0/viMoTFsd6w0ofquLaRj+BT/cqiniJdBlXjwZjXNz9HmCDChfwyZa4+i0b9SVV79DuCngteiZ2SjuyeMRZ0AhI3YvueGd7dUyakzLp6Xi6gpuu+OvlboQrCAtLc4YWQUxO3j+ZHj2BdxF23QOYnFSpD5nm6w9esTUHku96gvJ49IT58bArGqmB5PnH56ZbRzxWWfBxtM+gsSt/wFgS5lABoNTBR0oTwrdTGIn4u3WSMp9nmifUSsspG3bxJ+XW726YxUVxTHIgtvAczA1xb6k+9Th9NJf+Tp3A7h2LGNTzdrFvkwp0PulRqKmY8bvYG8RgS94P0kRNWfadX4JO7DfU/y0fw4YuuYp51Ys1TTzaFaB2bv72n6R6nzvoi9phFg+42FZ5+Y3tzCbVci2MzunUTzyXfANpoT/pzT+2DfkTswpT6ldSiBLVa/CX1tAX9nt39aR/7r6dscDTp3axf7v60Z/eTWmWxBBEOxF+SvWR7tI10fTBsrtsFQXIdrduNsLkP/8+ddL0WOowTefpA6WqC1DQr0GMHFuFvDSEcZgaXyHdZFjdvdSvXEz0jyzK0nxi6HNqEGzok="
+	private static final GameProfile SKIN = new GameProfile(
+			UUID.randomUUID(), "Giocat", new PropertyMap(
+				ImmutableMultimap.of(
+						"textures", new Property(
+								"textures",
+								"ewogICJ0aW1lc3RhbXAiIDogMTc0ODAyODY0MzM1OSwKICAicHJvZmlsZUlkIiA6ICI1ODc5MjNlNDkxMzM0ZDMzYWE4ZjQ3ZWJkZTljOTc3MiIsCiAgInByb2ZpbGVOYW1lIiA6ICJFbGV2ZW5mb3VyMTAiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZWEwN2Y2MjkyNTA0Y2E5MWVmM2NiYmM4YTcwNWRiOTc0OGVkNTM5YTdkZTVhMTIzYTdhOTU3YTg3Yjk2Y2RkNSIsCiAgICAgICJtZXRhZGF0YSIgOiB7CiAgICAgICAgIm1vZGVsIiA6ICJzbGltIgogICAgICB9CiAgICB9CiAgfQp9",
+								"hx54A3anDfCzZXZhITe0MIdOlqfO44ZX+by0RoW0L1cEiFc2Z76Ej8qqB+VKanqjyBs/OkO9lRRkyQCSrtPN+jwN2FEF2EJ0/viMoTFsd6w0ofquLaRj+BT/cqiniJdBlXjwZjXNz9HmCDChfwyZa4+i0b9SVV79DuCngteiZ2SjuyeMRZ0AhI3YvueGd7dUyakzLp6Xi6gpuu+OvlboQrCAtLc4YWQUxO3j+ZHj2BdxF23QOYnFSpD5nm6w9esTUHku96gvJ49IT58bArGqmB5PnH56ZbRzxWWfBxtM+gsSt/wFgS5lABoNTBR0oTwrdTGIn4u3WSMp9nmifUSsspG3bxJ+XW726YxUVxTHIgtvAczA1xb6k+9Th9NJf+Tp3A7h2LGNTzdrFvkwp0PulRqKmY8bvYG8RgS94P0kRNWfadX4JO7DfU/y0fw4YuuYp51Ys1TTzaFaB2bv72n6R6nzvoi9phFg+42FZ5+Y3tzCbVci2MzunUTzyXfANpoT/pzT+2DfkTswpT6ldSiBLVa/CX1tAX9nt39aR/7r6dscDTp3axf7v60Z/eTWmWxBBEOxF+SvWR7tI10fTBsrtsFQXIdrduNsLkP/8+ddL0WOowTefpA6WqC1DQr0GMHFuFvDSEcZgaXyHdZFjdvdSvXEz0jyzK0nxi6HNqEGzok="
+						)
 				)
-		);
-	}
+			)
+	);
 
 	public GiocatBossEntity(EntityType<? extends HostileEntity> entityType, World world) {
 		super(entityType, world);
@@ -102,8 +104,8 @@ public class GiocatBossEntity extends GenericBossPlayer implements AutoAttacking
 	}
 
 	@Override
-	protected GameProfile getDefaultSkin() {
-		return SKIN;
+	protected ProfileComponent getDefaultSkin() {
+		return ProfileComponent.ofStatic(SKIN);
 	}
 
 	@Override
@@ -269,8 +271,8 @@ public class GiocatBossEntity extends GenericBossPlayer implements AutoAttacking
 			var players = getTargets(EntityType.PLAYER, e -> e != attacker);
 			var player = players.isEmpty() ? attacker : players.get(random.nextInt(players.size()));
 			if (player != null) {
-				PlayerPosition target = PlayerPosition.fromEntity(player);
-				PlayerPosition self = PlayerPosition.fromEntity(this);
+				EntityPosition target = EntityPosition.fromEntity(player);
+				EntityPosition self = EntityPosition.fromEntity(this);
 				player.teleportTo(
 						TeleportHelper.fromPlayerPos(world, self)
 				);
@@ -368,9 +370,9 @@ public class GiocatBossEntity extends GenericBossPlayer implements AutoAttacking
 		if (super.handleShoot(hand, target, pullProgress)) return true;
 		var stack = this.getStackInHand(hand);
 		float speed = 1.6f;
-		float divergence = 14 - this.getWorld().getDifficulty().getId() * 4;
+		float divergence = 14 - this.getEntityWorld().getDifficulty().getId() * 4;
 		if (stack.isOf(Items.BLAZE_ROD)) {
-			var projectile = Season4Entities.MAGIC_PROJECTILE.create(getWorld(), SpawnReason.TRIGGERED);
+			var projectile = Season4Entities.MAGIC_PROJECTILE.create(getEntityWorld(), SpawnReason.TRIGGERED);
 			projectile.setOwner(this);
 			projectile.setPos(getX(), getEyeY(), getZ());
 			projectile.setHitEffects(

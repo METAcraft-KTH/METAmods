@@ -82,7 +82,7 @@ public abstract class MixinItemEntity extends Entity implements ItemEntityData {
 	)
 	public void onDespawn(CallbackInfo ci) {
 		if (playerName != null) {
-			if (SavedItemsData.getInstance(this.getServer()).tryAddItem(SavedItemsData.DESPAWN_TYPE, this.getStack())) {
+			if (SavedItemsData.getInstance(this.getEntityWorld().getServer()).tryAddItem(SavedItemsData.DESPAWN_TYPE, this.getStack())) {
 				this.setStack(ItemStack.EMPTY);
 			}
 		}
@@ -97,7 +97,7 @@ public abstract class MixinItemEntity extends Entity implements ItemEntityData {
 	)
 	public boolean onDestroy(ItemStack stack, ItemEntity entity, @Local(argsOnly = true) DamageSource source) {
 		if (playerName != null) {
-			if (SavedItemsData.getInstance(getServer()).tryAddItem(SavedItemsData.getForDamageType(source), stack)) {
+			if (SavedItemsData.getInstance(getEntityWorld().getServer()).tryAddItem(SavedItemsData.getForDamageType(source), stack)) {
 				this.setStack(ItemStack.EMPTY);
 				return false;
 			}

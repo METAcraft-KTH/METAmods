@@ -29,8 +29,8 @@ public class HardcoreHelper {
 		Vec3d pos = player.getPos();
 		float yaw = player.getYaw();
 		float pitch = player.getPitch();
-		ServerWorld world = player.getWorld();
-		MinecraftServer server = player.getServer();
+		ServerWorld world = player.getEntityWorld();
+		MinecraftServer server = player.getEntityWorld().getServer();
 		PlayerManager manager = server.getPlayerManager();
 		GameRules rules = world.getGameRules();
 
@@ -47,7 +47,7 @@ public class HardcoreHelper {
 								player.createCommonPlayerSpawnInfo(world), false
 						),
 						new PlayerRespawnS2CPacket(player.createCommonPlayerSpawnInfo(world), (byte) 3),
-						new PlayerSpawnPositionS2CPacket(world.getSpawnPos(), world.getSpawnAngle()),
+						new PlayerSpawnPositionS2CPacket(world.method_74854()),
 						new DifficultyS2CPacket(world.getDifficulty(), world.getLevelProperties().isDifficultyLocked()),
 						new ExperienceBarUpdateS2CPacket(player.experienceProgress, player.totalExperience, player.experienceLevel),
 						new PlayerAbilitiesS2CPacket(player.getAbilities()),
@@ -58,9 +58,9 @@ public class HardcoreHelper {
 		world.removePlayer(player, Entity.RemovalReason.CHANGED_DIMENSION);
 		((AccessorEntity) player).callUnsetRemoved();
 		world.onPlayerRespawned(player);
-		player.getServer().getPlayerManager().sendCommandTree(player);
-		player.getServer().getPlayerManager().sendWorldInfo(player, world);
-		player.getServer().getPlayerManager().sendPlayerStatus(player);
+		player.getEntityWorld().getServer().getPlayerManager().sendCommandTree(player);
+		player.getEntityWorld().getServer().getPlayerManager().sendWorldInfo(player, world);
+		player.getEntityWorld().getServer().getPlayerManager().sendPlayerStatus(player);
 		player.networkHandler.requestTeleport(pos.x, pos.y, pos.z, yaw, pitch);
 		player.networkHandler.syncWithPlayerPosition();
 

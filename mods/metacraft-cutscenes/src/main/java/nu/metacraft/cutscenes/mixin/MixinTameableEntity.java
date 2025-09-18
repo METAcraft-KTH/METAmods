@@ -31,9 +31,9 @@ public abstract class MixinTameableEntity extends AnimalEntity {
 		if (owner instanceof ServerPlayerEntity player) {
 			var scene = CutsceneHelper.getCutscene(player);
 			if (scene.isPresent()) {
-				if (this.getWorld() != scene.get().getCutsceneWorld()) return true;
+				if (this.getEntityWorld() != scene.get().getCutsceneWorld()) return true;
 			} else {
-				if (this.getWorld() instanceof CutsceneWorld) return true;
+				if (this.getEntityWorld() instanceof CutsceneWorld) return true;
 			}
 		}
 		return original.call(owner);

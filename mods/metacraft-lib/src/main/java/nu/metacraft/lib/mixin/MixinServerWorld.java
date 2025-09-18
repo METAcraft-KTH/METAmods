@@ -28,7 +28,7 @@ public abstract class MixinServerWorld extends World {
 	}
 
 	@ModifyExpressionValue(
-		method = "method_72080", //Inside method_72079
+		method = "method_72271", //Inside loadChunks
 		at = @At(
 				value = "INVOKE",
 				target = "Lnet/minecraft/server/world/ServerWorld;isChunkLoaded(J)Z"

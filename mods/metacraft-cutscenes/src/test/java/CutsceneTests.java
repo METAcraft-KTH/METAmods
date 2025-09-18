@@ -342,8 +342,8 @@ public class CutsceneTests {
 	private static Data prepare(
 			TestContext context, ServerPlayerEntity player
 	) {
-		var team = getPlayerTeam(player.getScoreboard());
-		player.getScoreboard().addScoreHolderToTeam(player.getNameForScoreboard(), team);
+		var team = getPlayerTeam(player.getEntityWorld().getScoreboard());
+		player.getEntityWorld().getScoreboard().addScoreHolderToTeam(player.getNameForScoreboard(), team);
 		var stack = new ItemStack(Items.DIAMOND, 64);
 		int slot = 5;
 		var start = player.getPos();
@@ -351,7 +351,7 @@ public class CutsceneTests {
 		var pig = EntityType.PIG.create(context.getWorld(), SpawnReason.TRIGGERED);
 		pig.equipStack(EquipmentSlot.SADDLE, new ItemStack(Items.SADDLE));
 		pig.updatePosition(start.getX(), start.getY(), start.getZ());
-		var pearl = new EnderPearlEntity(player.getWorld(), player, new ItemStack(Items.ENDER_PEARL));
+		var pearl = new EnderPearlEntity(player.getEntityWorld(), player, new ItemStack(Items.ENDER_PEARL));
 		pearl.updatePosition(start.getX(), start.getY(), start.getZ());
 		pearl.setNoGravity(true);
 		pearl.noClip = true;

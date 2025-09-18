@@ -12,7 +12,6 @@ import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.entity.vehicle.DefaultMinecartController;
 import net.minecraft.entity.vehicle.ExperimentalMinecartController;
 import net.minecraft.entity.vehicle.MinecartController;
-import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.s2c.play.MoveMinecartAlongTrackS2CPacket;
 import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.util.math.Direction;
@@ -25,7 +24,6 @@ import nu.metacraft.faster_minecarts.FasterMinecartsConfig;
 import nu.metacraft.faster_minecarts.MinecartExtensions;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 @Mixin(EntityTrackerEntry.class)
 public abstract class MixinEntityTrackerEntry {
@@ -38,7 +36,7 @@ public abstract class MixinEntityTrackerEntry {
 
 	@Shadow protected abstract void syncEntityData();
 
-	@Shadow @Final private Consumer<Packet<?>> watchingSender;
+	@Shadow @Final private EntityTrackerEntry.TrackerPacketSender packetSender;
 
 	@ModifyExpressionValue(
 		method = "tick",
@@ -68,7 +66,7 @@ public abstract class MixinEntityTrackerEntry {
 		if (controller == null) {
 			syncEntityData();
 			var railPos = minecart.getRailOrMinecartPos();
-			var railState = entity.getWorld().getBlockState(railPos);
+			var railState = entity.getEntityWorld().getBlockState(railPos);
 			float yaw = this.entity.getYaw();
 			float pitch = this.entity.getPitch();
 			var data = (MinecartExtensions) minecart;
@@ -115,7 +113,7 @@ public abstract class MixinEntityTrackerEntry {
 				}
 			}
 			if (this.entity.getVelocity().horizontalLengthSquared() > 1.0E-7 || yawUpdate || this.trackingTick % this.tickInterval == 0) {
-				this.watchingSender.accept(
+				this.packetSender.sendToListeners(
 						new MoveMinecartAlongTrackS2CPacket(
 								this.entity.getId(),
 								List.of(

@@ -36,7 +36,7 @@ public class PreventInteraction implements ZoneRule {
 		if (shouldCancelInteraction(player)) {
 			return true;
 		} else {
-			return shouldCancelInteractionAt(player.getServer(), player.getUuid(), player.getWorld().getRegistryKey(), pos);
+			return shouldCancelInteractionAt(player.getEntityWorld().getServer(), player.getUuid(), player.getEntityWorld().getRegistryKey(), pos);
 		}
 	}
 

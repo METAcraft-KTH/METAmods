@@ -34,7 +34,7 @@ public abstract class MixinMobEntity extends LivingEntity {
 
 	@Inject(method = "<init>", at = @At("RETURN"))
 	protected void initGoals(CallbackInfo ci) {
-		if (getWorld() != null && !getWorld().isClient() && (Object) this instanceof PathAwareEntity) {
+		if (getEntityWorld() != null && !getEntityWorld().isClient() && (Object) this instanceof PathAwareEntity) {
 			AccessorBrainProfile profile = (AccessorBrainProfile) (Object) this.createBrainProfile();
 			if (profile.getMemoryModules().isEmpty() && profile.getSensors().isEmpty()) {
 				this.goalSelector.add(1, new HostileMobAttackGoal((PathAwareEntity) (Object) this));

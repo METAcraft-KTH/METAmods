@@ -1,5 +1,6 @@
 package nu.metacraft.better_pets;
 
+import com.google.common.collect.ImmutableMultimap;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
@@ -11,6 +12,7 @@ import net.minecraft.item.Items;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Util;
 import nu.metacraft.core.gui.MultiplePlayerSelector;
 import nu.metacraft.lib.util.helper.GameProfileHelper;
 
@@ -78,10 +80,13 @@ public class TrustPlayerSelector extends MultiplePlayerSelector {
 	);
 
 	private static ProfileComponent withTexture(String value, String signature) {
-		PropertyMap map = new PropertyMap();
-		map.put("textures", new Property("textures", value, signature));
-		return new ProfileComponent(
-				Optional.empty(), Optional.empty(), map
+		PropertyMap map = new PropertyMap(
+				ImmutableMultimap.of(
+						"textures", new Property("textures", value, signature)
+				)
+		);
+		return ProfileComponent.ofStatic(
+				new GameProfile(Util.NIL_UUID, "", map)
 		);
 	}
 
@@ -104,7 +109,7 @@ public class TrustPlayerSelector extends MultiplePlayerSelector {
 		super(
 				ScreenHandlerType.GENERIC_9X5, player,
 				tameable.metacraft$getTrustedPlayers().stream().map(
-						id -> GameProfileHelper.getForUUID(id, player.getServer())
+						id -> GameProfileHelper.getForUUID(id, player.getEntityWorld().getServer())
 				).filter(Optional::isPresent).map(Optional::get).toList()
 		);
 		this.tameable = tameable;
@@ -127,15 +132,15 @@ public class TrustPlayerSelector extends MultiplePlayerSelector {
 	@Override
 	protected Comparator<GameProfile> customNonSelectedComparator() {
 		return Comparator.<GameProfile>comparingInt(profile -> {
-			var foundPlayer = getPlayer().getServer().getPlayerManager().getPlayer(profile.getId());
+			var foundPlayer = getPlayer().getEntityWorld().getServer().getPlayerManager().getPlayer(profile.id());
 			if (foundPlayer == null) {
 				return Integer.MAX_VALUE;
 			}
-			if (foundPlayer.getWorld() != getPlayer().getWorld()) {
+			if (foundPlayer.getEntityWorld() != getPlayer().getEntityWorld()) {
 				return Integer.MAX_VALUE-1;
 			}
 			return Math.round(foundPlayer.distanceTo(getPlayer()));
-		}).thenComparing(getDefaultComparator(getPlayer().getServer()));
+		}).thenComparing(getDefaultComparator(getPlayer().getEntityWorld().getServer()));
 	}
 
 	@Override
@@ -145,11 +150,11 @@ public class TrustPlayerSelector extends MultiplePlayerSelector {
 
 	@Override
 	protected void onSelected(GameProfile gameProfile) {
-		tameable.metacraft$addTrustedPlayer(gameProfile.getId());
+		tameable.metacraft$addTrustedPlayer(gameProfile.id());
 	}
 
 	@Override
 	protected void onDeselected(GameProfile gameProfile) {
-		tameable.metacraft$removeTrustedPlayer(gameProfile.getId());
+		tameable.metacraft$removeTrustedPlayer(gameProfile.id());
 	}
 }

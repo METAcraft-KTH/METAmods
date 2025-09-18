@@ -59,8 +59,8 @@ public class DungeonData extends PersistentState {
 				instance -> instance.group(
 						Codec.LONG.fieldOf("index").forGetter(d -> d.index),
 						Codec.INT.fieldOf("width").forGetter(d -> d.dungeonWidth),
-						World.CODEC.optionalFieldOf("exit_dim", World.OVERWORLD).forGetter(d -> d.exitDim),
-						BlockPos.CODEC.fieldOf("exit_pos").orElse(world.getServer().getOverworld().getSpawnPos()).forGetter(d -> d.exitPos),
+						World.CODEC.optionalFieldOf("exit_dim", world.getServer().method_74945().method_74894()).forGetter(d -> d.exitDim),
+						BlockPos.CODEC.fieldOf("exit_pos").orElse(world.getServer().method_74945().method_74897()).forGetter(d -> d.exitPos),
 						Codec.DOUBLE.fieldOf("max_range_from_exit_pos").forGetter(d -> d.maxRangeFromExitPos),
 						Codec.BOOL.fieldOf("clearing").forGetter(d -> d.clearing),
 						Codec.BOOL.fieldOf("resetting").forGetter(d -> d.resetting),
@@ -74,7 +74,7 @@ public class DungeonData extends PersistentState {
 	}
 
 	private int dungeonWidth;
-	private RegistryKey<World> exitDim = World.OVERWORLD;
+	private RegistryKey<World> exitDim;
 	private BlockPos exitPos;
 	private double maxRangeFromExitPos = 100;
 	private final List<TeleportPredicate> shouldTeleport = new ArrayList<>(
@@ -118,7 +118,8 @@ public class DungeonData extends PersistentState {
 	private DungeonData(ServerWorld world) {
 		this.world = world;
 		dungeonWidth = world.getHeight();
-		exitPos = world.getServer().getOverworld().getSpawnPos();
+		exitDim = world.getServer().method_74945().method_74894();
+		exitPos = world.getServer().method_74945().method_74897();
 		fixSquaremap();
 	}
 
@@ -222,7 +223,7 @@ public class DungeonData extends PersistentState {
 
 	private boolean hasOwnerPlayer(Tameable tameable) {
 		if (tameable.getTopLevelOwner() instanceof ServerPlayerEntity) return true;
-		if (tameable.getOwnerReference() != null && world.getServer().getUserCache().getByUuid(tameable.getOwnerReference().getUuid()).isPresent()) {
+		if (tameable.getOwnerReference() != null && world.getServer().getApiServices().nameToIdCache().getByUuid(tameable.getOwnerReference().getUuid()).isPresent()) {
 			return true;
 		}
 		return false;
@@ -277,11 +278,11 @@ public class DungeonData extends PersistentState {
 								player.sendMessage(Text.literal("You hear an ominous sound in the distance").styled(style -> style.withColor(Formatting.DARK_PURPLE)));
 								player.sendMessage(Text.literal("The sound fills you with dread").styled(style -> style.withColor(Formatting.RED)));
 								player.sendMessage(Text.literal("Perhaps I should get out of here?").styled(style -> style.withColor(Formatting.RED)));
-								player.getWorld().playSound(
+								player.getEntityWorld().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
 										SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.MASTER, 0.15f, 0.5f
 								);
-								player.getWorld().playSound(
+								player.getEntityWorld().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
 										SoundEvents.BLOCK_END_PORTAL_SPAWN, SoundCategory.MASTER, 0.15f, 0.5f
 								);
@@ -294,11 +295,11 @@ public class DungeonData extends PersistentState {
 							player -> {
 								player.sendMessage(Text.literal("The dimension is collapsing in on itself").styled(style -> style.withColor(Formatting.DARK_RED)));
 								player.sendMessage(Text.literal("Get out, get out, GET OUT!").styled(style -> style.withColor(Formatting.RED)));
-								player.getWorld().playSound(
+								player.getEntityWorld().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
 										SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.MASTER,1, 0.5f
 								);
-								player.getWorld().playSound(
+								player.getEntityWorld().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
 										SoundEvents.BLOCK_END_PORTAL_SPAWN, SoundCategory.MASTER, 1, 0.5f
 								);
@@ -394,11 +395,11 @@ public class DungeonData extends PersistentState {
 		List<EnderPearlEntity> pearlsToRemove = new ArrayList<>();
 		for (var player : world.getServer().getPlayerManager().getPlayerList()) {
 			for (var pearl : player.getEnderPearls()) {
-				if (pearl.getWorld().getRegistryKey() == world.getRegistryKey()) {
+				if (pearl.getEntityWorld().getRegistryKey() == world.getRegistryKey()) {
 					pearlsToRemove.add(pearl);
 				}
 			}
-			if (player.getRespawn() != null && player.getRespawn().dimension() == world.getRegistryKey()) {
+			if (player.getRespawn() != null && player.getRespawn().respawnData().method_74894() == world.getRegistryKey()) {
 				player.setSpawnPoint(null, false);
 				player.sendMessage(Text.literal("Respawn point reset"));
 			}

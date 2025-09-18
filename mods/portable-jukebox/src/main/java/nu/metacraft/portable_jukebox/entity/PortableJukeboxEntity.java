@@ -57,11 +57,11 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		return EntityType.MARKER;
 	}
 
-	public void setEntity(EntityRef entity) {
+	public void setConnectedEntity(EntityRef entity) {
 		this.attachment = entity;
 	}
 
-	public Optional<EntityRef> getEntity() {
+	public Optional<EntityRef> getConnectedEntity() {
 		return Optional.ofNullable(attachment);
 	}
 
@@ -85,7 +85,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 				);
 			}
 			var config = jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_CONFIGURATION, PortableJukeboxConfiguration.DEFAULT);
-			for (var player : getWorld().getPlayers()) {
+			for (var player : getEntityWorld().getPlayers()) {
 				((ServerPlayerEntity) player).networkHandler.sendPacket(new PlaySoundFromEntityS2CPacket(
 						song.soundEvent(), SoundCategory.RECORDS, this,
 						config.volume(), config.pitch(), this.getRandom().nextLong()
@@ -116,9 +116,9 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		if (song.isEmpty() || age > song.get().getLengthInTicks() / config.pitch()) {
 			discard();
 		}
-		if (!this.isRemoved() && !this.getWorld().isClient() && age % 20 == 0) {
-			getWorld().emitGameEvent(this, GameEvent.JUKEBOX_PLAY, this.getPos());
-			((ServerWorld) getWorld()).spawnParticles(
+		if (!this.isRemoved() && !this.getEntityWorld().isClient() && age % 20 == 0) {
+			getEntityWorld().emitGameEvent(this, GameEvent.JUKEBOX_PLAY, this.getPos());
+			((ServerWorld) getEntityWorld()).spawnParticles(
 					ParticleTypes.NOTE, getX(), getY() + attachment.getHeight()+0.2, getZ(), 1,
 					0, getRandom().nextInt(4) / 24.0f, 0, 1
 			);
@@ -206,9 +206,9 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	private static Optional<EntityRef> getPortableJukeboxAttachmentNonRecursive(ItemStack stack, World world) {
 		if (stack.contains(Components.PORTABLE_JUKEBOX_ENTITY) && !world.isClient()) {
 			var entry = stack.get(Components.PORTABLE_JUKEBOX_ENTITY);
-			var e = ((ServerWorld) world).getEntity(entry.entity());
+			var e = world.getEntity(entry.entity());
 			if (e instanceof PortableJukeboxEntity jukebox) {
-				return jukebox.getEntity();
+				return jukebox.getConnectedEntity();
 			}
 		}
 		return Optional.empty();
@@ -236,7 +236,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	}
 
 	public static void transferToEntityFromUnknown(ItemStack stack, Entity entity) {
-		getPortableJukeboxAttachment(stack, entity.getWorld()).ifPresent(music -> {
+		getPortableJukeboxAttachment(stack, entity.getEntityWorld()).ifPresent(music -> {
 			PortableJukeboxEntity.transfer(
 					music, EntityRef.fromEntity(entity), stack
 			);
@@ -298,7 +298,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		if (attachment != null) {
 			attachment.onUpdate();
 		}
-		getWorld().emitGameEvent(this, GameEvent.JUKEBOX_STOP_PLAY, this.getPos());
+		getEntityWorld().emitGameEvent(this, GameEvent.JUKEBOX_STOP_PLAY, this.getPos());
 		for (var player : hearingPlayers) {
 			player.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(this.getId()));
 		}
@@ -310,7 +310,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		super.onStartedTrackingBy(player);
 		if (hearingPlayers.add(player)) {
 
-			var trackers = EntityTrackerHelper.getEntityTrackers((ServerWorld) getWorld());
+			var trackers = EntityTrackerHelper.getEntityTrackers((ServerWorld) getEntityWorld());
 			var entry = EntityTrackerHelper.getEntry(trackers.get(this.getId()));
 			ArrayList<Packet<? super ClientPlayPacketListener>> packets = new ArrayList<>();
 			entry.sendPackets(player, packets::add);
@@ -321,7 +321,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	@Override
 	public void onStoppedTrackingBy(ServerPlayerEntity player) {
 		super.onStoppedTrackingBy(player);
-		if (player.getWorld() != this.getWorld() || !this.isAlive()) {
+		if (player.getEntityWorld() != this.getEntityWorld() || !this.isAlive()) {
 			if (hearingPlayers.remove(player)) {
 				player.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(this.getId()));
 			}

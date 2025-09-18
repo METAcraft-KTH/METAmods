@@ -32,13 +32,13 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 	private static final String SPEED = "Speed";
 
 	protected EntityTarget owner = EntityTarget.create(
-			getWorld(), new EntityTarget.Context(
+			getEntityWorld(), new EntityTarget.Context(
 					false, false, false, this::discard
 			)
 	);
 
 	protected EntityTarget target = EntityTarget.create(
-			getWorld(), new EntityTarget.Context(
+			getEntityWorld(), new EntityTarget.Context(
 					false, true, false, this::discard
 			)
 	);
@@ -107,20 +107,20 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 					ticksToSkip = 20;
 				}
 				if (age % ticksToSkip == 0) {
-					if (this.getWorld().getBlockState(pos).isAir()) {
+					if (this.getEntityWorld().getBlockState(pos).isAir()) {
 						spawnFangs(findGroundYBelow(MathHelper.floor(getY())-1));
 					} else {
-						for (int y = MathHelper.floor(getY())+1; y <= getWorld().getTopYInclusive(); y++) {
+						for (int y = MathHelper.floor(getY())+1; y <= getEntityWorld().getTopYInclusive(); y++) {
 							pos.setY(y);
-							if (getWorld().getBlockState(pos).isAir()) {
+							if (getEntityWorld().getBlockState(pos).isAir()) {
 								spawnFangs(findGroundYBelow(y));
 								break;
 							}
 						}
 
-						for (int y = MathHelper.floor(getY())-1; y >= getWorld().getBottomY(); y--) {
+						for (int y = MathHelper.floor(getY())-1; y >= getEntityWorld().getBottomY(); y--) {
 							pos.setY(y);
-							if (getWorld().getBlockState(pos).isAir()) {
+							if (getEntityWorld().getBlockState(pos).isAir()) {
 								spawnFangs(findGroundYBelow(y));
 								break;
 							}
@@ -130,9 +130,9 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 			}
 
 			if (this.distanceTo(entity) <= 0.5) {
-				var lightning = EntityType.LIGHTNING_BOLT.create(getWorld(), SpawnReason.TRIGGERED);
+				var lightning = EntityType.LIGHTNING_BOLT.create(getEntityWorld(), SpawnReason.TRIGGERED);
 				lightning.refreshPositionAfterTeleport(Vec3d.ofBottomCenter(entity.getBlockPos()));
-				this.getWorld().spawnEntity(lightning);
+				this.getEntityWorld().spawnEntity(lightning);
 				spawnFangs(entity);
 				discard();
 			}
@@ -147,39 +147,39 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 	private double findGroundYBelow(int startY) {
 		BlockPos.Mutable pos = new BlockPos.Mutable();
 		pos.set(getBlockPos());
-		for (int y = startY; y >= getWorld().getBottomY(); y--) {
+		for (int y = startY; y >= getEntityWorld().getBottomY(); y--) {
 			pos.setY(y);
-			var state = getWorld().getBlockState(pos);
-			if (state.isSideSolidFullSquare(getWorld(), pos, Direction.UP) && !getWorld().isAir(pos)) {
-				var shape = state.getCollisionShape(getWorld(), pos);
+			var state = getEntityWorld().getBlockState(pos);
+			if (state.isSideSolidFullSquare(getEntityWorld(), pos, Direction.UP) && !getEntityWorld().isAir(pos)) {
+				var shape = state.getCollisionShape(getEntityWorld(), pos);
 				if (!shape.isEmpty()) {
 					return shape.getMax(Direction.Axis.Y) + y;
 				}
 			}
 		}
-		return getWorld().getBottomY();
+		return getEntityWorld().getBottomY();
 	}
 
 	private void spawnFangs(double y) {
-		if (y == this.getWorld().getBottomY()) return;
+		if (y == this.getEntityWorld().getBottomY()) return;
 		spawnFangs(new Vec3d(getX(), y, getZ()));
 	}
 
 	private void spawnFangs(Entity entity) {
 		entity.startRiding(spawnFangs(new Vec3d(
 				entity.getX(), findGroundYBelow(MathHelper.floor(entity.getY())), entity.getZ()
-		)), true);
+		)), true, true);
 	}
 
 	private Entity spawnFangs(Vec3d pos) {
 		var entity = new EvokerFangsEntity(
-				getWorld(), pos.x, pos.y, pos.z,
+				getEntityWorld(), pos.x, pos.y, pos.z,
 				getYaw(), 0, (LivingEntity) owner.getEntity().filter(
 						e -> e instanceof LivingEntity
 				).orElse(null)
 		);
-		this.getWorld().spawnEntity(entity);
-		this.getWorld().emitGameEvent(
+		this.getEntityWorld().spawnEntity(entity);
+		this.getEntityWorld().emitGameEvent(
 				GameEvent.ENTITY_PLACE, pos, GameEvent.Emitter.of(this)
 		);
 		return entity;

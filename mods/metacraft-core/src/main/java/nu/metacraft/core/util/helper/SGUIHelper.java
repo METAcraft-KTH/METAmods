@@ -1,7 +1,6 @@
 package nu.metacraft.core.util.helper;
 
 import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.properties.PropertyMap;
 import eu.pb4.sgui.api.elements.AnimatedGuiElementBuilder;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ProfileComponent;
@@ -10,7 +9,6 @@ import net.minecraft.item.Items;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.text.Text;
 
-import java.util.Optional;
 import java.util.stream.Stream;
 
 public class SGUIHelper {
@@ -48,8 +46,8 @@ public class SGUIHelper {
 		}
 		if (!foundPlayer) {
 			builder.setItem(Items.PLAYER_HEAD);
-			builder.setComponent(DataComponentTypes.PROFILE, new ProfileComponent(
-					Optional.of("MHF_Herobrine"), Optional.empty(), new PropertyMap()
+			builder.setComponent(DataComponentTypes.PROFILE, ProfileComponent.method_74889(
+					"MHF_Herobrine"
 			));
 			builder.setName(name);
 			builder.saveItemStack();

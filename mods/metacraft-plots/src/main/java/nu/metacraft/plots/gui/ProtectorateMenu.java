@@ -35,8 +35,8 @@ public class ProtectorateMenu extends SimpleGui {
 				Text.translatableWithFallback(
 						"protectorate.metacraft.gui.deliver_head", "Deliver Head"
 				),
-				getPlayer().getServer(),
-				player.getServer().getPlayerManager().getPlayerList().stream().filter(
+				getPlayer().getEntityWorld().getServer(),
+				player.getEntityWorld().getServer().getPlayerManager().getPlayerList().stream().filter(
 						p -> !p.isSpectator() && !p.isCreative() && !p.hasPermissionLevel(1) &&
 								!Permissions.check(p, "metacraft.zone.protectorates.hide_from_gui")
 				)

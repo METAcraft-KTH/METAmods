@@ -53,7 +53,6 @@ import nu.metacraft.cutscenes.mixin.AccessorServerWorld;
 import nu.metacraft.cutscenes.util.SerialisedStructure;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import nu.metacraft.lib.util.helper.StructureTemplateHelper;
-import nu.metacraft.lib.util.helper.WorldHelper;
 
 import java.util.*;
 import java.util.function.BooleanSupplier;
@@ -122,7 +121,6 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 						world.getRegistryManager().getOrThrow(RegistryKeys.DIMENSION_TYPE).getEntry(world.getDimension()),
 						createDummyChunkGenerator(world)
 				),
-				WorldHelper.getGenerationProgressListener(world),
 				world.isDebugWorld(), world.getSeed(), List.of(), true, world.getRandomSequences()
 		);
 		this.savingDisabled = true;
@@ -281,7 +279,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		entities.onAddPlayer(player);
 		sendBlocks(player, c -> c);
 		getChunkManager().cutsceneChunkLoadingManager.addPlayer(player);
-		createWeatherFixPacket(player.getWorld().isRaining(), isRaining(), rainGradient, thunderGradient).ifPresent(player.networkHandler::sendPacket);
+		createWeatherFixPacket(player.getEntityWorld().isRaining(), isRaining(), rainGradient, thunderGradient).ifPresent(player.networkHandler::sendPacket);
 	}
 
 	public Optional<Packet<?>> createWeatherFixPacket(
@@ -312,9 +310,9 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		}
 		getChunkManager().cutsceneChunkLoadingManager.removePlayer(player);
 		createWeatherFixPacket(
-				isRaining(), player.getWorld().isRaining(),
-				player.getWorld().getRainGradient(1),
-				player.getWorld().getThunderGradient(1)
+				isRaining(), player.getEntityWorld().isRaining(),
+				player.getEntityWorld().getRainGradient(1),
+				player.getEntityWorld().getThunderGradient(1)
 		).ifPresent(player.networkHandler::sendPacket);
 	}
 
@@ -323,7 +321,7 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	public boolean isPlayerWorld(PlayerEntity player) {
-		return player.getWorld() == world;
+		return player.getEntityWorld() == world;
 	}
 
 	public ServerWorld getActualWorld() {

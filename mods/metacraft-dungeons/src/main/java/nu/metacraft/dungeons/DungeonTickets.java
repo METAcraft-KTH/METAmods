@@ -9,7 +9,7 @@ public class DungeonTickets {
 	public static final ChunkTicketType DUNGEON_ENTRANCE = register(
 			"dungeon_entrance",
 			new ChunkTicketType(
-					0, false, ChunkTicketType.Use.LOADING
+					0, ChunkTicketType.FOR_LOADING
 			)
 	);
 

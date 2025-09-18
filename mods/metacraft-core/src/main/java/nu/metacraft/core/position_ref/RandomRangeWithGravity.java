@@ -91,8 +91,8 @@ public record RandomRangeWithGravity(
 		BlockPos.Mutable reusedBlockPos = new BlockPos.Mutable();
 		reusedBlockPos.set(targetPos.getX(), targetPos.getY(), targetPos.getZ());
 		int startY = reusedBlockPos.getY();
-		int minY = verticalRange.min().map(y -> y + startY).orElse(ctx.getWorld().getBottomY());
-		int maxY = verticalRange.max().map(y -> y + startY).orElse(ctx.getWorld().getTopYInclusive());
+		int minY = verticalRange.bounds().min().map(y -> y + startY).orElse(ctx.getWorld().getBottomY());
+		int maxY = verticalRange.bounds().max().map(y -> y + startY).orElse(ctx.getWorld().getTopYInclusive());
 		int count = Math.max(startY - minY, maxY - startY);
 		for (int i = 0; i < count; i++) {
 			if (verticalRange.test(-i)) {

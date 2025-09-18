@@ -14,7 +14,7 @@ import nu.metacraft.simplecustomfeatures.objects.blocks.dynamic_portal.PortalBlo
 @Mixin(DispenserBlock.class)
 public class MixinDispenserBlock {
 
-	@ModifyReturnValue(method = "getBehaviorForItem", at = @At("RETURN"))
+	@ModifyReturnValue(method = "getBehaviorForItem(Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;)Lnet/minecraft/block/dispenser/DispenserBehavior;", at = @At("RETURN"))
 	protected DispenserBehavior getDispenserBehavior(
 			DispenserBehavior original, @Local(argsOnly = true) World world, @Local(argsOnly = true) ItemStack stack
 	) {

@@ -11,18 +11,17 @@ import net.minecraft.registry.Registries;
 import net.minecraft.resource.*;
 import net.minecraft.resource.featuretoggle.FeatureSet;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.network.ConnectedClientData;
+import net.minecraft.server.network.PrepareSpawnTask;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.test.TestContext;
 import net.minecraft.test.TestInstanceUtil;
-import net.minecraft.test.TestManager;
 import net.minecraft.test.TestServer;
 import net.minecraft.text.Text;
 import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.path.SymlinkValidationException;
-import net.minecraft.world.GameMode;
 import net.minecraft.world.level.storage.LevelStorage;
-import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.util.Files;
 
 import java.io.IOException;
@@ -58,18 +57,13 @@ public class TestHelper {
 			TestContext ctx, String name, UUID uuid
 	) {
 		ConnectedClientData connectedClientData = ConnectedClientData.createDefault(new GameProfile(uuid, name), false);
-		ServerPlayerEntity serverPlayerEntity = new ServerPlayerEntity(
-				ctx.getWorld().getServer(), ctx.getWorld(), connectedClientData.gameProfile(), connectedClientData.syncedOptions()
-		) {
-			@Override
-			public @NotNull GameMode getGameMode() {
-				return GameMode.CREATIVE;
-			}
-		};
 		ClientConnection clientConnection = new ClientConnection(NetworkSide.SERVERBOUND);
 		new EmbeddedChannel(clientConnection);
-		ctx.getWorld().getServer().getPlayerManager().onPlayerConnect(clientConnection, serverPlayerEntity, connectedClientData);
-		return serverPlayerEntity;
+
+		var prepareSpawnTask = new PrepareSpawnTask(ctx.getWorld().getServer(), new PlayerConfigEntry(uuid, name));
+		prepareSpawnTask.sendPacket(p -> {}); //Initialize spawn point preparation and player data loading task.
+		ctx.getWorld().getServer().runTasks(prepareSpawnTask::hasFinished); //Wait for server to find a spawn point.
+		return prepareSpawnTask.onReady(clientConnection, connectedClientData); //Finish loading the player.
 	}
 
 	public static void runTestServer(
@@ -114,14 +108,10 @@ public class TestHelper {
 					}
 				}
 		);
-		var server = MinecraftServer.startServer(thread -> {
-			var s = TestServer.create(
-					thread, session, manager,
-					Optional.of(testNamespace + ":" + testsPath), false
-			);
-			TestManager.INSTANCE.startTicking();
-			return s;
-		});
+		var server = MinecraftServer.startServer(thread -> TestServer.create(
+				thread, session, manager,
+				Optional.of(testNamespace + ":" + testsPath), false
+		));
 		server.getThread().join();
 		assert ((TestServerExtension) server).metacraft$testPassed();
 	}

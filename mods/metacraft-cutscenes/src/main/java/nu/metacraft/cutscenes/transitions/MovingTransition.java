@@ -3,7 +3,7 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.player.PlayerPosition;
+import net.minecraft.entity.EntityPosition;
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.Vec3d;
@@ -169,11 +169,11 @@ public class MovingTransition implements Transition, SmoothMovementTransition, D
 			//We don't use requestTeleport because it's not thread safe.
 			player.networkHandler.sendPacket(new PlayerPositionLookS2CPacket(
 					-1, //Ignores the teleport confirm packet.
-					new PlayerPosition(target.pos(), Vec3d.ZERO, target.yaw(), target.pitch()),
+					new EntityPosition(target.pos(), Vec3d.ZERO, target.yaw(), target.pitch()),
 					Set.of()
 			));
 			if (prevTick != cutscene.getCurrentTime()) {
-				player.getServer().execute(() -> {
+				player.getEntityWorld().getServer().execute(() -> {
 					player.updatePositionAndAngles(
 							target.pos().x, target.pos().y, target.pos().z, target.yaw(), target.pitch()
 					);

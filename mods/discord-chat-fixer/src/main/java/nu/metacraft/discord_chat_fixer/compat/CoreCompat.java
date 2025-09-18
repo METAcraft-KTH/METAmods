@@ -11,7 +11,7 @@ public class CoreCompat {
 	}
 
 	public static GameProfile getFromMETAcraftPlayer(Entity entity) {
-		return ((PlayerMob) entity).getProfile();
+		return ((PlayerMob) entity).getSkinData().getGameProfile();
 	}
 
 }

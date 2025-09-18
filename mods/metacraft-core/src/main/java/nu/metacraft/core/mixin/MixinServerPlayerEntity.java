@@ -62,9 +62,10 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Shadow public abstract void sendMessage(Text message, boolean overlay);
 
-	@Shadow @Final public MinecraftServer server;
+	@Shadow @Final
+	private MinecraftServer server;
 
-	@Shadow public abstract ServerWorld getWorld();
+	@Shadow public abstract ServerWorld getEntityWorld();
 
 	@Unique
 	private static final String ARE_BLOCKS_MOVABLE = "AreBlocksMovable";
@@ -134,7 +135,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			};
 			pointHolder.addElement(point);
 			pointHolder.startWatching((ServerPlayerEntity) (Object) this);
-			pointAttachment = new ManualAttachment(pointHolder, getWorld(), this::getPos);
+			pointAttachment = new ManualAttachment(pointHolder, getEntityWorld(), this::getPos);
 			if (shouldReset) {
 				metacraft_core$resetMusicTimer();
 			}
@@ -160,7 +161,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	public void tick(CallbackInfo ci) {
 		if (pointAttachment != null) {
 			pointAttachment.tick();
-			if (pointAttachment.getWorld() != this.getWorld()) {
+			if (pointAttachment.getWorld() != this.getEntityWorld()) {
 				removeMusicPoint();
 			}
 		}
@@ -171,7 +172,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			removeMusicPoint();
 		}
 
-		getWorld().getBiome(this.getBlockPos()).value().getMusic().ifPresent(music -> {
+		getEntityWorld().getBiome(this.getBlockPos()).value().getMusic().ifPresent(music -> {
 			for (var musicEntry : music.getEntries()) {
 				if (potentiallyPlayingMusic.containsKey(musicEntry.value().sound())) {
 					potentiallyPlayingMusic.get(musicEntry.value().sound()).setValue(musicEntry.value().minDelay());
@@ -231,14 +232,14 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		this.musicEntriesInQueue.putAll(((MixinServerPlayerEntity) (Object) oldPlayer).musicEntriesInQueue);
 		this.skipQueue = ((MixinServerPlayerEntity) (Object) oldPlayer).skipQueue;
 
-		if (oldPlayer.getWorld() == getWorld()) {
+		if (oldPlayer.getEntityWorld() == getEntityWorld()) {
 			this.point = ((MixinServerPlayerEntity) (Object) oldPlayer).point;
 			this.pointHolder = ((MixinServerPlayerEntity) (Object) oldPlayer).pointHolder;
 			if (pointHolder != null) {
-				pointAttachment = new ManualAttachment(pointHolder, getWorld(), this::getPos);
+				pointAttachment = new ManualAttachment(pointHolder, getEntityWorld(), this::getPos);
 			}
 		} else {
-			TaskScheduler.scheduleImmediately(getServer(), this::metacraft_core$resetMusicTimer);
+			TaskScheduler.scheduleImmediately(getEntityWorld().getServer(), this::metacraft_core$resetMusicTimer);
 		}
 
 		if (!server.getGameRules().getBoolean(GameRules.KEEP_INVENTORY)) {
@@ -292,7 +293,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 					SoundEvents.MUSIC_CREATIVE.value().id(), SoundCategory.MUSIC
 			));
 		}
-		if (this.getWorld().getRegistryKey() == World.END) {
+		if (this.getEntityWorld().getRegistryKey() == World.END) {
 			this.networkHandler.sendPacket(new StopSoundS2CPacket(
 					SoundEvents.MUSIC_END.value().id(), SoundCategory.MUSIC
 			));
@@ -332,7 +333,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			if (startTimeServerside <= 0 || System.currentTimeMillis() >= actualTime) {
 				this.networkHandler.sendPacket(packet);
 			} else {
-				MusicTimerTracker.getTimer(getServer()).schedule(
+				MusicTimerTracker.getTimer(getEntityWorld().getServer()).schedule(
 						new MusicTimerTracker.SendPacketTask((ServerPlayerEntity) (Object) this, this.music, packet),
 						actualTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS
 				);

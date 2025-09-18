@@ -52,8 +52,8 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 		var targetWorld = world.getServer().getWorld(target.targetDim());
 		if (targetWorld == null) return null;
 
-		var targetPos = target.targetPos().orElse(targetWorld.getSpawnPos());
-		var targetAngle = target.targetAngle().orElse(targetWorld.getSpawnAngle());
+		var targetPos = target.targetPos().orElse(targetWorld.method_74854().method_74897());
+		var targetAngle = target.targetAngle().orElse(targetWorld.method_74854().yaw());
 
 		var portalTransition = TeleportTarget.SEND_TRAVEL_THROUGH_PORTAL_PACKET.then(TeleportTarget.ADD_PORTAL_CHUNK_TICKET);
 
@@ -85,7 +85,7 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 	@Override
 	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, PacketContext.NotNullWithPlayer ctx) {
 		var blockEntity = new EndPortalBlockEntity(pos, Blocks.END_PORTAL.getDefaultState());
-		blockEntity.setWorld(ctx.getPlayer().getWorld());
+		blockEntity.setWorld(ctx.getPlayer().getEntityWorld());
 		ctx.getPlayer().networkHandler.sendPacket(BlockEntityUpdateS2CPacket.create(blockEntity));
 	}
 }

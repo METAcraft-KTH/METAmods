@@ -134,7 +134,7 @@ public abstract class MixinParrotEntity extends TameableEntity {
 		cancellable = true
 	)
 	public void interactWhenTamed(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
-		if (!player.getWorld().isClient() && isTamed() && (isOwner(player) || ((TameableExtension) this).metaraft$isTrusted(player))) {
+		if (!player.getEntityWorld().isClient() && isTamed() && (isOwner(player) || ((TameableExtension) this).metaraft$isTrusted(player))) {
 			interactParrot(player, hand).ifPresent(cir::setReturnValue);
 		}
 	}

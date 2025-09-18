@@ -36,7 +36,7 @@ public abstract class MixinPlayerEntity extends LivingEntity {
 		)
 	)
 	public void dropInventory(CallbackInfo ci) {
-		if (this.getServer().getGameRules().getBoolean(GameRules.KEEP_INVENTORY)) {
+		if (this.getEntityWorld().getServer().getGameRules().getBoolean(GameRules.KEEP_INVENTORY)) {
 			for (int i = 0; i < getInventory().size(); ++i) {
 				ItemStack stack = getInventory().getStack(i);
 				if (stack.contains(METAcraftComponents.ANTI_KEEP_INVENTORY)) {
@@ -51,7 +51,7 @@ public abstract class MixinPlayerEntity extends LivingEntity {
 
 	@Inject(method = "damageArmor", at = @At("HEAD"), cancellable = true)
 	public void noBreakArmor(DamageSource source, float amount, CallbackInfo ci) {
-		MinecraftServer server = getServer();
+		MinecraftServer server = getEntityWorld().getServer();
 		if (server == null) {
 			return;
 		}

@@ -40,7 +40,7 @@ public abstract class DisguisedBlock extends BlockWithEntity implements PolymerB
 
 	@Override
 	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, PacketContext.NotNullWithPlayer context) {
-		getBlockEntity(context.getPlayer().getWorld(), pos).ifPresent(disguised -> disguised.updateClient(context.getPlayer()));
+		getBlockEntity(context.getPlayer().getEntityWorld(), pos).ifPresent(disguised -> disguised.updateClient(context.getPlayer()));
 	}
 
 	@Override

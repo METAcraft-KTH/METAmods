@@ -135,7 +135,7 @@ public interface LootAccess {
 
 		@Override
 		public ServerWorld getWorld() {
-			return (ServerWorld) entity.getWorld();
+			return (ServerWorld) entity.getEntityWorld();
 		}
 
 		@Override

@@ -49,7 +49,7 @@ public class TrackedEntity<T extends Entity> {
 		this(
 				(Class<T>) entity.getClass(),
 				entity.getUuid(),
-				entity.getWorld().getRegistryKey(),
+				entity.getEntityWorld().getRegistryKey(),
 				entity.getChunkPos()
 		);
 		this.entity = entity;
@@ -60,7 +60,7 @@ public class TrackedEntity<T extends Entity> {
 	}
 
 	private RegistryKey<World> getDim() {
-		return entity != null ? entity.getWorld().getRegistryKey() : dim;
+		return entity != null ? entity.getEntityWorld().getRegistryKey() : dim;
 	}
 
 	private ChunkPos getPos() {
@@ -87,10 +87,10 @@ public class TrackedEntity<T extends Entity> {
 	public void tick() {
 		if (entity != null) {
 			pos = entity.getChunkPos();
-			dim = entity.getWorld().getRegistryKey();
+			dim = entity.getEntityWorld().getRegistryKey();
 
 			if (entity.getRemovalReason() == Entity.RemovalReason.CHANGED_DIMENSION) {
-				for (var dim : entity.getServer().getWorlds()) {
+				for (var dim : entity.getEntityWorld().getServer().getWorlds()) {
 					entity = filter.downcast(dim.getEntity(uuid));
 					if (entity != null) {
 						break;

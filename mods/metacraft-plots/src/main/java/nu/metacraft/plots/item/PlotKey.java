@@ -208,7 +208,7 @@ public class PlotKey extends Item implements PolymerItem {
 
 	@Override
 	public Identifier getPolymerItemModel(ItemStack itemStack, PacketContext ctx) {
-		return modelIdGetter.apply(itemStack, Optional.ofNullable(ctx.getPlayer()).map(ServerPlayerEntity::getServer).orElse(null));
+		return modelIdGetter.apply(itemStack, Optional.ofNullable(ctx.getPlayer()).map(player -> player.getEntityWorld().getServer()).orElse(null));
 	}
 
 	public record ZoneContainer(Zone zone, PlotData plotData) {}
@@ -222,7 +222,7 @@ public class PlotKey extends Item implements PolymerItem {
 	public void onItemEntityDestroyed(ItemEntity entity) {
 		super.onItemEntityDestroyed(entity);
 		if (this == PlotItems.PLOT_KEY) {
-			PlotKey.revokePlotKey(entity.getStack(), entity.getServer());
+			PlotKey.revokePlotKey(entity.getStack(), entity.getEntityWorld().getServer());
 		}
 	}
 

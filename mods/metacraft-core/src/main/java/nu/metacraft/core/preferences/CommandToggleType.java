@@ -40,7 +40,7 @@ public class CommandToggleType implements PreferenceType<CommandToggleType.Comma
 	}
 
 	private void runCommand(ServerPlayerEntity player, String command) {
-		player.getServer().getCommandManager().executeWithPrefix(
+		player.getEntityWorld().getServer().getCommandManager().executeWithPrefix(
 				player.getCommandSource().withSilent().withLevel(2),
 				command
 		);

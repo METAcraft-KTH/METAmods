@@ -12,7 +12,7 @@ public class Particles {
 	public static void spawnAngerParticles(Entity entity, Random random) {
 		Box box = entity.getBoundingBox();
 		Vec3d center = box.getCenter();
-		((ServerWorld) entity.getWorld()).spawnParticles(
+		((ServerWorld) entity.getEntityWorld()).spawnParticles(
 				ParticleTypes.ANGRY_VILLAGER,
 				center.getX() + random.nextGaussian() * box.getLengthX() / 2,
 				center.getY() + box.getLengthY()/4 + random.nextGaussian() * box.getLengthY()/4,

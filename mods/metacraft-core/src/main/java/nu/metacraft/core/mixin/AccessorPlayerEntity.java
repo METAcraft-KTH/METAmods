@@ -1,41 +1,38 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.entity.EntityDimensions;
-import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.passive.ParrotEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.spongepowered.asm.mixin.gen.Invoker;
+import org.spongepowered.asm.mixin.throwables.MixinError;
 
-import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
 
 @Mixin(PlayerEntity.class)
 public interface AccessorPlayerEntity {
 
-	@Accessor("PLAYER_MODEL_PARTS")
-	static TrackedData<Byte> getModelParts() {
+	@Accessor("LEFT_SHOULDER_PARROT_VARIANT_ID")
+	static TrackedData<OptionalInt> getLeftShoulderEntity() {
 		throw new IllegalStateException("Mixin Error");
 	}
 
-	@Accessor("MAIN_ARM")
-	static TrackedData<Byte> getMainArm() {
+	@Accessor("RIGHT_SHOULDER_PARROT_VARIANT_ID")
+	static TrackedData<OptionalInt> getRightShoulderEntity() {
 		throw new IllegalStateException("Mixin Error");
 	}
 
-	@Accessor("LEFT_SHOULDER_ENTITY")
-	static TrackedData<NbtCompound> getLeftShoulderEntity() {
-		throw new IllegalStateException("Mixin Error");
+	@Invoker
+	static Optional<ParrotEntity.Variant> callReadParrotVariant(NbtCompound nbt) {
+		throw new MixinError("Not Working");
 	}
 
-	@Accessor("RIGHT_SHOULDER_ENTITY")
-	static TrackedData<NbtCompound> getRightShoulderEntity() {
-		throw new IllegalStateException("Mixin Error");
-	}
-
-	@Accessor("POSE_DIMENSIONS")
-	static Map<EntityPose, EntityDimensions> getPoseDimensions() {
-		throw new IllegalStateException("Mixin Error");
+	@Invoker
+	static OptionalInt callMapParrotVariant(Optional<ParrotEntity.Variant> variant) {
+		throw new MixinError("Not Working");
 	}
 
 }

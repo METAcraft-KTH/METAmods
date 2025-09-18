@@ -1,12 +1,15 @@
 package nu.metacraft.season_4.entity.entities.bosses;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
+import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.serialization.Dynamic;
 import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
@@ -34,6 +37,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.storage.ReadView;
 import net.minecraft.storage.WriteView;
+import net.minecraft.text.StyleSpriteSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.collection.Pool;
@@ -70,17 +74,17 @@ import java.util.*;
 
 public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingBoss {
 
-	private static final GameProfile SKIN = new GameProfile(UUID.randomUUID(), "Devin");
-
-	static {
-		SKIN.getProperties().put(
-				"textures", new Property(
-						"textures",
-						"ewogICJ0aW1lc3RhbXAiIDogMTczOTkyMDY0MTMxNiwKICAicHJvZmlsZUlkIiA6ICI0OTY5YTVlZTYxMTY0MDBkYTM4YzhmZjRiMWJhZTZiZiIsCiAgInByb2ZpbGVOYW1lIiA6ICJSZWFjdFpJUCIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS8xZGFkNDc2NjM4ODhmOWE5ZWI3MjNlNjlkZWE1NDMwZGY2YjEzNWNjMzYzMjQ2YWFlMGRiYzkzNTM5NGM1OWI0IiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=",
-						"P4xZ7nvXEE4JeS5ia47k+k5owkwia/5bE0OBFyHRx2FVgqbXskrlvK53xtnNW0G+9letTZbTr/p8ypRA+yEhmVyqKoUPle0m/qk6O/AgDh7LIwfGUN2ys49XnFUW/wYCv6Dl58PfegHkuoU4Gxkqk4PQFRxD22zqRc07eOXVatPWuH0l2q7FeKPyVnfPVNBIM1wzfl+R44IjOT6AbvQMK7X/bYL019teheVFhe5aWd/vsw3NsrxwyYOdloXbbBsmjBTQd3cX1bKccWBrhegR1pN5Nzz41QK7FInn3NuB1rw0m/6+AhMmJpvSsnhITwz+BxKH+lbE0wXVSexRkBijJYGFUh52HEbg7Q8MV7JtnxZOD+rimt51+BkerGjhhkUweWLusNfAg02+LEg1ZRH8+LK7eWTdhn9kGQVu/xUBMJ2jOy2M8CY/toZiAvnXBI/gF8Kj38wtdKYwSMdiS1YCxW4CKQkhRc6RWINyg7AtCgPU3iVZ8x28SQc68roRA9Mdu5/cDUArHhTt9LXeb2WMKqT0spSlrvjEGFcmIynil8Bu6or/41d86W9n29I02C6dMqzPRpQ13sazSsK06eIU0pfxVfogGL6/7TrAjYBaNtDKRUMrLuECzQiZnER10is3XMlLPje4+UzzWHHTeU0RoiycRuXsZmpIXzPys+qxfjw="
+	private static final GameProfile SKIN = new GameProfile(
+			UUID.randomUUID(), "Devin", new PropertyMap(
+				ImmutableMultimap.of(
+						"textures", new Property(
+								"textures",
+								"ewogICJ0aW1lc3RhbXAiIDogMTczOTkyMDY0MTMxNiwKICAicHJvZmlsZUlkIiA6ICI0OTY5YTVlZTYxMTY0MDBkYTM4YzhmZjRiMWJhZTZiZiIsCiAgInByb2ZpbGVOYW1lIiA6ICJSZWFjdFpJUCIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS8xZGFkNDc2NjM4ODhmOWE5ZWI3MjNlNjlkZWE1NDMwZGY2YjEzNWNjMzYzMjQ2YWFlMGRiYzkzNTM5NGM1OWI0IiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=",
+								"P4xZ7nvXEE4JeS5ia47k+k5owkwia/5bE0OBFyHRx2FVgqbXskrlvK53xtnNW0G+9letTZbTr/p8ypRA+yEhmVyqKoUPle0m/qk6O/AgDh7LIwfGUN2ys49XnFUW/wYCv6Dl58PfegHkuoU4Gxkqk4PQFRxD22zqRc07eOXVatPWuH0l2q7FeKPyVnfPVNBIM1wzfl+R44IjOT6AbvQMK7X/bYL019teheVFhe5aWd/vsw3NsrxwyYOdloXbbBsmjBTQd3cX1bKccWBrhegR1pN5Nzz41QK7FInn3NuB1rw0m/6+AhMmJpvSsnhITwz+BxKH+lbE0wXVSexRkBijJYGFUh52HEbg7Q8MV7JtnxZOD+rimt51+BkerGjhhkUweWLusNfAg02+LEg1ZRH8+LK7eWTdhn9kGQVu/xUBMJ2jOy2M8CY/toZiAvnXBI/gF8Kj38wtdKYwSMdiS1YCxW4CKQkhRc6RWINyg7AtCgPU3iVZ8x28SQc68roRA9Mdu5/cDUArHhTt9LXeb2WMKqT0spSlrvjEGFcmIynil8Bu6or/41d86W9n29I02C6dMqzPRpQ13sazSsK06eIU0pfxVfogGL6/7TrAjYBaNtDKRUMrLuECzQiZnER10is3XMlLPje4+UzzWHHTeU0RoiycRuXsZmpIXzPys+qxfjw="
+						)
 				)
-		);
-	}
+			)
+	);
 
 	public DevinBossEntity(EntityType<? extends HostileEntity> entityType, World world) {
 		super(entityType, world);
@@ -91,8 +95,8 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 	private static final UniformIntProvider HORIZONTAL_RANGE = UniformIntProvider.create(-10, 10);
 
 	@Override
-	protected GameProfile getDefaultSkin() {
-		return SKIN;
+	protected ProfileComponent getDefaultSkin() {
+		return ProfileComponent.ofStatic(SKIN);
 	}
 
 	@Override
@@ -157,7 +161,7 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 								),
 								new SendTitleAttack(
 										Text.literal("b").styled(
-												s -> s.withFont(METAcraftLib.getID("textures"))
+												s -> s.withFont(new StyleSpriteSource.Font(METAcraftLib.getID("textures")))
 										), Optional.empty(),
 										new SendTitleAttack.Times(5, 50, 50)
 								)
@@ -237,9 +241,9 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 		if (super.handleShoot(hand, target, pullProgress)) return true;
 		var stack = this.getStackInHand(hand);
 		float speed = 1.6f;
-		float divergence = 14 - this.getWorld().getDifficulty().getId() * 4;
+		float divergence = 14 - this.getEntityWorld().getDifficulty().getId() * 4;
 		if (stack.isOf(Items.BLAZE_ROD)) {
-			var projectile = Season4Entities.MAGIC_PROJECTILE.create(getWorld(), SpawnReason.TRIGGERED);
+			var projectile = Season4Entities.MAGIC_PROJECTILE.create(getEntityWorld(), SpawnReason.TRIGGERED);
 			projectile.setOwner(this);
 			projectile.setPos(getX(), getEyeY(), getZ());
 			EntityAIHelper.shootProjectile(

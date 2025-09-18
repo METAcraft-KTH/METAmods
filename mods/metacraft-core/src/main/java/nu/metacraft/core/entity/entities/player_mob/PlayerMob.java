@@ -6,7 +6,6 @@ import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.serialization.Dynamic;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import net.fabricmc.fabric.api.entity.FakePlayer;
-import net.minecraft.block.entity.SkullBlockEntity;
 import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.*;
@@ -45,15 +44,13 @@ import net.minecraft.storage.NbtReadView;
 import net.minecraft.storage.ReadView;
 import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
-import net.minecraft.util.Arm;
-import net.minecraft.util.Hand;
-import net.minecraft.util.StringHelper;
-import net.minecraft.util.Uuids;
+import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldView;
+import nu.metacraft.core.mixin.AccessorPlayerLikeEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.METAcraftCore;
@@ -81,15 +78,15 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	public static final double BASE_SPEED = 0.4;
 
 	protected static final TrackedData<Byte> PLAYER_MODEL_PARTS = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.BYTE);
-	protected static final TrackedData<NbtCompound> LEFT_SHOULDER_ENTITY = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.NBT_COMPOUND);
-	protected static final TrackedData<NbtCompound> RIGHT_SHOULDER_ENTITY = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.NBT_COMPOUND);
+	protected static final TrackedData<OptionalInt> LEFT_SHOULDER_ENTITY = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.OPTIONAL_INT);
+	protected static final TrackedData<OptionalInt> RIGHT_SHOULDER_ENTITY = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.OPTIONAL_INT);
 
 	private static final String PROFILE = "profile";
 	private static final String VISIBLE_SKIN_PARTS = "visible_skin_parts";
 	private static final String SHOULDER_ENTITY_LEFT = "ShoulderEntityLeft";
 	private static final String SHOULDER_ENTITY_RIGHT = "ShoulderEntityRight";
 	private static final String CAN_WANDER = "can_wander";
-	private GameProfile profile;
+	private ProfileComponent skinData;
 
 	private static final int REMOVE_PLAYER_LIST_ENTRY_DELAY = 20;
 
@@ -97,12 +94,15 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	private FakePlayer fakePlayer;
 
+	private NbtCompound leftShoulderNbt = new NbtCompound();
+	private NbtCompound rightShoulderNbt = new NbtCompound();
+
 	private boolean canWander = getDefaultCanWander();
 
 	private boolean shouldRespawnClient = false;
 	private boolean lockPose = false;
 
-	private final SwimNavigation waterNavigation = new SwimNavigation(this, getWorld()) {
+	private final SwimNavigation waterNavigation = new SwimNavigation(this, getEntityWorld()) {
 		@Override
 		protected PathNodeNavigator createPathNodeNavigator(int range) {
 			this.nodeMaker = new WaterPathNodeMaker(true);
@@ -114,7 +114,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 			return true;
 		}
 	};
-	private final MobNavigation landNavigation = new MobNavigation(this, getWorld());
+	private final MobNavigation landNavigation = new MobNavigation(this, getEntityWorld());
 
 	public PlayerMob(EntityType<? extends HostileEntity> entityType, World world) {
 		super(entityType, world);
@@ -135,8 +135,8 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	protected void initDataTracker(DataTracker.Builder builder) {
 		super.initDataTracker(builder);
 		builder.add(PLAYER_MODEL_PARTS, getVisiblePartsByte(EnumSet.allOf(PlayerModelPart.class)));
-		builder.add(LEFT_SHOULDER_ENTITY, new NbtCompound());
-		builder.add(RIGHT_SHOULDER_ENTITY, new NbtCompound());
+		builder.add(LEFT_SHOULDER_ENTITY, OptionalInt.empty());
+		builder.add(RIGHT_SHOULDER_ENTITY, OptionalInt.empty());
 	}
 
 	protected Brain.Profile<PlayerMob> createBrainProfile() {
@@ -194,8 +194,8 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	public void copySkinFromPlayer(ServerPlayerEntity player) {
 		setLeftHanded(player.getMainArm() == Arm.LEFT);
-		setVisibleSkinParts(Arrays.stream(PlayerModelPart.values()).filter(player::isPartVisible).collect(Collectors.toSet()));
-		setSkin(ServerDefaultSkinHelper.getOrDefault(player.getGameProfile()));
+		setVisibleSkinParts(Arrays.stream(PlayerModelPart.values()).filter(player::isModelPartVisible).collect(Collectors.toSet()));
+		setSkin(ProfileComponent.ofStatic(ServerDefaultSkinHelper.getOrDefault(player.getGameProfile())));
 	}
 
 	public void copyFromPlayerData(NbtCompound nbt) {
@@ -211,14 +211,17 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 			handleItemEntry((NbtCompound) entry, selectedSlot);
 		}
 		var id = nbt.get(UUID_KEY, Uuids.CODEC);
-		var player = id.map(value -> getServer().getPlayerManager().getPlayer(value)).orElse(null);
+		var player = id.map(value -> getEntityWorld().getServer().getPlayerManager().getPlayer(value)).orElse(null);
 		if (player != null) {
 			copySkinFromPlayer(player);
 			setCustomName(player.getName());
-		} else {
-			new ProfileComponent(Optional.empty(), id, new PropertyMap()).getFuture().thenAcceptAsync(
-					profile -> setSkin(profile.gameProfile()), SkullBlockEntity.EXECUTOR
-			);
+		} else if (id.isPresent()) {
+			var resolver = getEntityWorld().getServer().getApiServices().profileResolver();
+			Util.getDownloadWorkerExecutor().execute(() -> {
+				resolver.getProfileById(id.get()).ifPresent(profile -> {
+					getEntityWorld().getServer().execute(() -> setSkin(ProfileComponent.ofStatic(profile)));
+				});
+			});
 		}
 	}
 
@@ -266,8 +269,8 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		updatePose();
 
 		if (shouldRespawnClient) {
-			if (profile != null) {
-				var manager = ((ServerChunkManager) this.getWorld().getChunkManager()).chunkLoadingManager;
+			if (skinData != null) {
+				var manager = ((ServerChunkManager) this.getEntityWorld().getChunkManager()).chunkLoadingManager;
 				List<ServerPlayerEntity> players = List.of();
 				var tracker = ((AccessorServerChunkLoadingManager) manager).getEntityTrackers().get(this.getId());
 				if (tracker != null) {
@@ -288,13 +291,13 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 			}
 			shouldRespawnClient = false;
 		} else if (!removePackets.isEmpty()) {
-			removePlayerEntryFrom(removePackets.stream().filter(p -> p.time < getWorld().getTime()).map(SendPacketEntry::player));
-			removePackets.removeIf(p -> p.time < getWorld().getTime());
+			removePlayerEntryFrom(removePackets.stream().filter(p -> p.time < getEntityWorld().getTime()).map(SendPacketEntry::player));
+			removePackets.removeIf(p -> p.time < getEntityWorld().getTime());
 		}
 	}
 
 	protected boolean canChangeIntoPose(EntityPose pose) {
-		return this.getWorld().isSpaceEmpty(this, this.getDimensions(pose).getBoxAt(this.getPos()).contract(1.0E-7));
+		return this.getEntityWorld().isSpaceEmpty(this, this.getDimensions(pose).getBoxAt(this.getPos()).contract(1.0E-7));
 	}
 
 	protected void updatePose() {
@@ -309,7 +312,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	@Override
 	public EntityDimensions getBaseDimensions(EntityPose pose) {
-		return AccessorPlayerEntity.getPoseDimensions().getOrDefault(pose, PlayerEntity.STANDING_DIMENSIONS);
+		return AccessorPlayerLikeEntity.getPoseDimensions().getOrDefault(pose, AccessorPlayerLikeEntity.getStandingDimensions());
 	}
 
 	@Override
@@ -317,13 +320,13 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		return ImmutableList.of(EntityPose.STANDING, EntityPose.CROUCHING, EntityPose.SWIMMING);
 	}
 
-	public GameProfile getProfile() {
-		return profile;
+	public ProfileComponent getSkinData() {
+		return skinData;
 	}
 
 	@Override
 	public void updateSwimming() {
-		if (!this.getWorld().isClient) {
+		if (!this.getEntityWorld().isClient()) {
 			if (this.canActVoluntarily() && this.isTouchingWater() && shouldSwim()) {
 				replaceNavigation(waterNavigation);
 				this.setSwimming(true);
@@ -336,13 +339,13 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	protected boolean shouldSwim() {
 		var eyePos = BlockPos.ofFloored(getEyePos()).up();
-		boolean isCurrentlyInWater = getWorld().getBlockState(eyePos).getFluidState().isIn(FluidTags.WATER);
+		boolean isCurrentlyInWater = getEntityWorld().getBlockState(eyePos).getFluidState().isIn(FluidTags.WATER);
 		if (getBrain().hasMemoryModule(METAcraftMemoryModules.RECOVERING_BREATH)) {
 			return isCurrentlyInWater;
 		}
 		var target = navigation.getTargetPos();
 		if (target != null) {
-			var f = getWorld().getBlockState(target).getFluidState();
+			var f = getEntityWorld().getBlockState(target).getFluidState();
 			if (f.isIn(FluidTags.WATER) && f.isStill()) {
 				return true;
 			} else {
@@ -409,11 +412,6 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	@Override
-	protected boolean isDisallowedInPeaceful() {
-		return false;
-	}
-
-	@Override
 	protected void updateDespawnCounter() {}
 
 	@Override
@@ -435,14 +433,14 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		this.riptideTicks = riptideTicks;
 		this.riptideAttackDamage = riptideAttackDamage;
 		this.riptideStack = stack;
-		if (!this.getWorld().isClient) {
+		if (!this.getEntityWorld().isClient()) {
 			this.dropShoulderEntities();
 			this.setLivingFlag(LivingEntity.USING_RIPTIDE_FLAG, true);
 		}
 	}
 
 	protected float getDamageAgainst(Entity target, float baseDamage, DamageSource damageSource) {
-		return EnchantmentHelper.getDamage((ServerWorld) this.getWorld(), this.getWeaponStack(), target, damageSource, baseDamage);
+		return EnchantmentHelper.getDamage((ServerWorld) this.getEntityWorld(), this.getWeaponStack(), target, damageSource, baseDamage);
 	}
 
 	@Override
@@ -463,7 +461,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 			if (damage > 0) {
 				Vec3d oldVelocity = target.getVelocity();
 				damage += itemStack.getItem().getBonusAttackDamage(target, this.riptideAttackDamage, damageSource);
-				if (target.damage((ServerWorld) this.getWorld(), damageSource, damage)) {
+				if (target.damage((ServerWorld) this.getEntityWorld(), damageSource, damage)) {
 					float k = this.getAttackKnockbackAgainst(target, damageSource);
 					target.takeKnockback(k * 0.5f, MathHelper.sin(this.getYaw() * ((float)Math.PI / 180)), -MathHelper.cos(this.getYaw() * ((float)Math.PI / 180)));
 					this.setVelocity(this.getVelocity().multiply(0.6, 1.0, 0.6));
@@ -478,7 +476,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 					this.onAttacking(target);
 
-					EnchantmentHelper.onTargetDamaged((ServerWorld) getWorld(), target, damageSource);
+					EnchantmentHelper.onTargetDamaged((ServerWorld) getEntityWorld(), target, damageSource);
 				}
 			}
 		}
@@ -494,31 +492,39 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void dropShoulderEntity(NbtCompound entityNbt) {
-		if (!this.getWorld().isClient && !entityNbt.isEmpty()) {
+		if (!this.getEntityWorld().isClient() && !entityNbt.isEmpty()) {
 			try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerMob#dropShoulderEntity", METAcraftCore.LOGGER)) {
 				var readView = NbtReadView.create(logging, getRegistryManager(), entityNbt);
-				EntityType.getEntityFromData(readView, this.getWorld(), SpawnReason.LOAD).ifPresent(entity -> {
+				EntityType.getEntityFromData(readView, this.getEntityWorld(), SpawnReason.LOAD).ifPresent(entity -> {
 					entity.setPosition(this.getX(), this.getY() + (double)0.7f, this.getZ());
-					((ServerWorld)this.getWorld()).tryLoadEntity(entity);
+					((ServerWorld)this.getEntityWorld()).tryLoadEntity(entity);
 				});
 			}
 		}
 	}
 
 	public NbtCompound getShoulderEntityLeft() {
-		return this.dataTracker.get(LEFT_SHOULDER_ENTITY);
+		return leftShoulderNbt;
 	}
 
 	public void setShoulderEntityLeft(NbtCompound entityNbt) {
-		this.dataTracker.set(LEFT_SHOULDER_ENTITY, entityNbt);
+		leftShoulderNbt = entityNbt;
+		this.dataTracker.set(
+				LEFT_SHOULDER_ENTITY,
+				AccessorPlayerEntity.callMapParrotVariant(AccessorPlayerEntity.callReadParrotVariant(entityNbt))
+		);
 	}
 
 	public NbtCompound getShoulderEntityRight() {
-		return this.dataTracker.get(RIGHT_SHOULDER_ENTITY);
+		return rightShoulderNbt;
 	}
 
 	public void setShoulderEntityRight(NbtCompound entityNbt) {
-		this.dataTracker.set(RIGHT_SHOULDER_ENTITY, entityNbt);
+		rightShoulderNbt = entityNbt;
+		this.dataTracker.set(
+				RIGHT_SHOULDER_ENTITY,
+				AccessorPlayerEntity.callMapParrotVariant(AccessorPlayerEntity.callReadParrotVariant(entityNbt))
+		);
 	}
 
 	protected void dropShoulderEntities() {
@@ -534,10 +540,10 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		ItemStack stack = this.getStackInHand(hand);
 		Item item = stack.getItem();
 		float speed = 1.6f;
-		float divergence = 14 - this.getWorld().getDifficulty().getId() * 4;
+		float divergence = 14 - this.getEntityWorld().getDifficulty().getId() * 4;
 		switch (item) {
 			case CrossbowItem crossbowItem -> {
-				crossbowItem.shootAll(this.getWorld(), this, hand, stack, speed, divergence, this.getTarget());
+				crossbowItem.shootAll(this.getEntityWorld(), this, hand, stack, speed, divergence, this.getTarget());
 				return true;
 			}
 			case BowItem bow -> {
@@ -570,10 +576,10 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void removePlayerEntryFrom(Stream<ServerPlayerEntity> players) {
-		if (profile == null) return;
-		if (getServer().getPlayerManager().getPlayer(profile.getId()) == null) {
+		if (skinData == null) return;
+		if (getEntityWorld().getServer().getPlayerManager().getPlayer(skinData.getGameProfile().id()) == null) {
 			players.forEach(player -> {
-				player.networkHandler.sendPacket(new PlayerRemoveS2CPacket(List.of(profile.getId())));
+				player.networkHandler.sendPacket(new PlayerRemoveS2CPacket(List.of(skinData.getGameProfile().id())));
 			});
 		}
 	}
@@ -585,13 +591,13 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void schedulePlayerListEntryRemoval(ServerPlayerEntity player) {
-		removePackets.add(new SendPacketEntry(player, getWorld().getTime()+REMOVE_PLAYER_LIST_ENTRY_DELAY));
+		removePackets.add(new SendPacketEntry(player, getEntityWorld().getTime()+REMOVE_PLAYER_LIST_ENTRY_DELAY));
 	}
 
 	@Override
 	public boolean damage(ServerWorld world, DamageSource source, float amount) {
 		boolean bl = super.damage(world, source, amount);
-		if (this.getWorld().isClient) {
+		if (this.getEntityWorld().isClient()) {
 			return false;
 		}
 		if (bl && source.getAttacker() instanceof LivingEntity) {
@@ -602,21 +608,19 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	private GameProfile adaptProfile(GameProfile profile) {
 		var name = getName().getString();
-		if (!profile.getId().equals(getUuid()) || !profile.getName().equals(name)) {
+		if (!profile.id().equals(getUuid()) || !profile.name().equals(name)) {
 			if (name.length() > 16) {
 				name = name.substring(0, 16);
 			}
-			var newProfile = new GameProfile(
-					getUuid(), name
+			return new GameProfile(
+					getUuid(), name, new PropertyMap(profile.properties())
 			);
-			newProfile.getProperties().putAll(profile.getProperties());
-			return newProfile;
 		}
 		return profile;
 	}
 
 	private void respawnForClients() {
-		if (profile == null) return;
+		if (skinData == null) return;
 		shouldRespawnClient = true;
 	}
 
@@ -624,15 +628,14 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	public void setCustomName(@Nullable Text name) {
 		boolean changed = !Objects.equals(this.getCustomName(), name);
 		super.setCustomName(name);
-		if (changed && profile != null) {
-			setSkin(profile);
+		if (changed && skinData != null) {
+			setSkin(skinData);
 		}
 	}
 
-	public void setSkin(GameProfile profile) {
-		profile = adaptProfile(profile);
-		if (profile.equals(this.profile) && profile.getProperties().equals(this.profile.getProperties())) return;
-		this.profile = profile;
+	public void setSkin(ProfileComponent profile) {
+		if (profile.equals(this.skinData) && profile.getGameProfile().properties().equals(this.skinData.getGameProfile().properties())) return;
+		this.skinData = profile;
 		respawnForClients();
 	}
 
@@ -675,24 +678,11 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		return partSet;
 	}
 
-	private static GameProfile makeSafeForSaving(GameProfile profile) {
-		if (profile == null) {
-			return null;
-		}
-		if (StringHelper.isValidPlayerName(profile.getName())) {
-			return profile;
-		} else {
-			var newProfile = new GameProfile(profile.getId(), "");
-			newProfile.getProperties().putAll(profile.getProperties());
-			return newProfile;
-		}
-	}
-
 	@Override
 	public void writeCustomData(WriteView nbt) {
 		super.writeCustomData(nbt);
-		if (profile != null) {
-			nbt.put(PROFILE, ProfileComponent.CODEC, new ProfileComponent(makeSafeForSaving(profile)));
+		if (skinData != null) {
+			nbt.put(PROFILE, ProfileComponent.field_49359, skinData);
 		}
 		nbt.put(VISIBLE_SKIN_PARTS, ExtraCodecs.MODEL_PART_SET_CODEC, getVisibleSkinParts());
 		if (!this.getShoulderEntityLeft().isEmpty()) {
@@ -707,10 +697,8 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	@Override
 	public void readCustomData(ReadView nbt) {
 		super.readCustomData(nbt);
-		nbt.read(PROFILE, ProfileComponent.CODEC).ifPresentOrElse(
-				profileComponent -> profileComponent.getFuture().thenAcceptAsync(
-						profile -> setSkin(profile.gameProfile()), SkullBlockEntity.EXECUTOR
-				),
+		nbt.read(PROFILE, ProfileComponent.field_49359).ifPresentOrElse(
+				profileComponent -> setSkin(profileComponent),
 				() -> setSkin(getDefaultSkin())
 		);
 		nbt.read(VISIBLE_SKIN_PARTS, ExtraCodecs.MODEL_PART_SET_CODEC).ifPresentOrElse(
@@ -726,16 +714,16 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void resetFakePlayer() {
-		fakePlayer = new FakePlayer((ServerWorld) getWorld(), profile) {};
+		fakePlayer = new FakePlayer((ServerWorld) getEntityWorld(), adaptProfile(skinData.getGameProfile())) {};
 	}
 
-	protected GameProfile getDefaultSkin() {
-		var list = getServer().getPlayerManager().getPlayerList();
+	protected ProfileComponent getDefaultSkin() {
+		var list = getEntityWorld().getServer().getPlayerManager().getPlayerList();
 		if (list.isEmpty()) {
-			return new GameProfile(UUID.randomUUID(), "Default");
+			return ProfileComponent.ofStatic(new GameProfile(UUID.randomUUID(), "Default"));
 		} else {
-			var player = list.get(getWorld().getRandom().nextInt(list.size()));
-			return player.getGameProfile();
+			var player = list.get(getEntityWorld().getRandom().nextInt(list.size()));
+			return ProfileComponent.ofStatic(player.getGameProfile());
 		}
 	}
 
@@ -744,10 +732,9 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void initProfile() {
-		if (profile == null) {
-			profile = getDefaultSkin();
+		if (skinData == null) {
+			skinData = getDefaultSkin();
 		}
-		profile = adaptProfile(profile);
 		if (shouldRespawnClient || fakePlayer == null) {
 			resetFakePlayer();
 			shouldRespawnClient = false;
@@ -765,16 +752,16 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		if (initial) {
 			data.add(
 				DataTracker.SerializedEntry.of(
-						AccessorPlayerEntity.getModelParts(), dataTracker.get(PLAYER_MODEL_PARTS)
+						AccessorPlayerLikeEntity.getModelParts(), dataTracker.get(PLAYER_MODEL_PARTS)
 				)
 			);
 		}
 		for (int i = 0; i < data.size(); i++) {
 			replace(
-					data, i, AccessorMobEntity.getMobFlags(), AccessorPlayerEntity.getMainArm(),
+					data, i, AccessorMobEntity.getMobFlags(), AccessorPlayerLikeEntity.getMainArm(),
 					flags -> (byte) (isLeftHanded() ? Arm.LEFT.getId() : Arm.RIGHT.getId())
 			);
-			replace(data, i, PLAYER_MODEL_PARTS, AccessorPlayerEntity.getModelParts());
+			replace(data, i, PLAYER_MODEL_PARTS, AccessorPlayerLikeEntity.getModelParts());
 			replace(data, i, RIGHT_SHOULDER_ENTITY, AccessorPlayerEntity.getRightShoulderEntity());
 			replace(data, i, LEFT_SHOULDER_ENTITY, AccessorPlayerEntity.getLeftShoulderEntity());
 		}
@@ -835,7 +822,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	public void removeAllPlayerEntries() {
-		if (profile == null) return;
+		if (skinData == null) return;
 		removePlayerEntryFrom(removePackets.stream().map(SendPacketEntry::player));
 		removePackets.clear();
 	}

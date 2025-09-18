@@ -60,7 +60,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 			CallbackInfoReturnable<Boolean> cir
 	) {
 		if (phantomEntity) {
-			this.getWorld().sendEntityStatus(this, (byte) 60);
+			this.getEntityWorld().sendEntityStatus(this, (byte) 60);
 			discard();
 			cir.setReturnValue(true);
 		}
@@ -68,7 +68,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 
 	@Inject(method = "tick", at = @At("RETURN"))
 	public void tick(CallbackInfo ci) {
-		if (!getWorld().isClient()) {
+		if (!getEntityWorld().isClient()) {
 			if (doubleTeamHandler != null) {
 				doubleTeamHandler = doubleTeamHandler.tick();
 				if (doubleTeamHandler.isDone()) {
@@ -77,9 +77,9 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 			}
 			if (soulboundEntity != null) {
 				soulboundEntity.tick();
-				var target = soulboundEntity.getEntity(this.getServer());
+				var target = soulboundEntity.getEntity(this.getEntityWorld().getServer());
 				if (target.entityState() == TrackedEntity.EntityResult.EntityState.ABSENT || (target.isPresent() && !target.entity().isAlive())) {
-					kill((ServerWorld) this.getWorld());
+					kill((ServerWorld) this.getEntityWorld());
 				}
 			}
 		}
@@ -105,7 +105,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 		if (soulboundEntity == null) {
 			return this;
 		} else {
-			var result = soulboundEntity.getEntity(getServer()).entity();
+			var result = soulboundEntity.getEntity(getEntityWorld().getServer()).entity();
 			if (result != null && result != this) {
 				return ((LivingEntityExtensions) result).metacraft$getNonSoulboundMaster();
 			} else {

@@ -27,6 +27,7 @@ import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class CutsceneEntityManager {
@@ -87,21 +88,31 @@ public class CutsceneEntityManager {
 		public CutsceneTrackerEntry(ServerWorld world, Entity entity) {
 			super(
 					world, entity, entity.getType().getTrackTickInterval(), entity.getType().alwaysUpdateVelocity(),
-					packet -> {
-						if (entity instanceof PolymerEntity) {
-							EntityAttachedPacket.setIfEmpty(packet, entity);
-						}
-						world.getPlayers().forEach(p -> p.networkHandler.sendPacket(packet));
-					},
-					(packet, skip) -> {
-						if (entity instanceof PolymerEntity) {
-							EntityAttachedPacket.setIfEmpty(packet, entity);
-						}
-						world.getPlayers().forEach(p -> {
-							if (!skip.contains(p.getUuid())) {
-								p.networkHandler.sendPacket(packet);
+					new TrackerPacketSender() {
+						@Override
+						public void sendToListeners(Packet<? super ClientPlayPacketListener> packet) {
+							if (entity instanceof PolymerEntity) {
+								EntityAttachedPacket.setIfEmpty(packet, entity);
 							}
-						});
+							world.getPlayers().forEach(p -> p.networkHandler.sendPacket(packet));
+						}
+
+						@Override
+						public void sendToSelfAndListeners(Packet<? super ClientPlayPacketListener> packet) {
+							this.sendToListeners(packet);
+						}
+
+						@Override
+						public void sendToListenersIf(Packet<? super ClientPlayPacketListener> packet, Predicate<ServerPlayerEntity> predicate) {
+							if (entity instanceof PolymerEntity) {
+								EntityAttachedPacket.setIfEmpty(packet, entity);
+							}
+							world.getPlayers().forEach(p -> {
+								if (predicate.test(p)) {
+									p.networkHandler.sendPacket(packet);
+								}
+							});
+						}
 					}
 			);
 		}

@@ -41,10 +41,10 @@ public class ItemSpawnerWithTarget extends OminousItemSpawnerEntity implements P
 	private static final String SPAWN_DELAY = "SpawnDelay";
 	private static final String PROJECTILE_OVERRIDE = "projectile_override";
 
-	private final EntityTarget owner = EntityTarget.create(getWorld(), new EntityTarget.Context(
+	private final EntityTarget owner = EntityTarget.create(getEntityWorld(), new EntityTarget.Context(
 			false, false, false, this::discard
 	));
-	private final EntityTarget target = EntityTarget.create(getWorld(), new EntityTarget.Context(
+	private final EntityTarget target = EntityTarget.create(getEntityWorld(), new EntityTarget.Context(
 			false, true, false, this::discard
 	));
 
@@ -160,10 +160,10 @@ public class ItemSpawnerWithTarget extends OminousItemSpawnerEntity implements P
 			) {
 				var readView = NbtReadView.create(logging, getRegistryManager(), projectileOverride.entity);
 				return EntityHelper.loadEntityWithPassengers(
-						readView, getWorld(), SpawnReason.TRIGGERED,
+						readView, getEntityWorld(), SpawnReason.TRIGGERED,
 						(e, nbt) -> {
 							e.updatePosition(getX(), getY(), getZ());
-							return getWorld().spawnEntity(e) ? e : null;
+							return getEntityWorld().spawnEntity(e) ? e : null;
 						}
 				).map(
 						e -> {
@@ -173,7 +173,7 @@ public class ItemSpawnerWithTarget extends OminousItemSpawnerEntity implements P
 										direction.getX(), direction.getY(), direction.getZ(),
 										projectileOverride.power, projectileOverride.uncertainty
 								);
-								p.triggerProjectileSpawned((ServerWorld) getWorld(), getItem());
+								p.triggerProjectileSpawned((ServerWorld) getEntityWorld(), getItem());
 							}
 							return e;
 						}

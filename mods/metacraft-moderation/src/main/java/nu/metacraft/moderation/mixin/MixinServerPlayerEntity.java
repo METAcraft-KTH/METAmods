@@ -128,7 +128,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Mo
 				savedNBT.clear();
 				for (String key : moderatorModeNBTMap.getKeys()) {
 					moderatorModeNBTMap.getCompound(key).ifPresent(
-							data -> savedNBT.put(key.toLowerCase(Locale.ROOT), PlayerDataHelper.updatePlayerData(data, getServer().getDataFixer()))
+							data -> savedNBT.put(key.toLowerCase(Locale.ROOT), PlayerDataHelper.updatePlayerData(data, getEntityWorld().getServer().getDataFixer()))
 					);
 				}
 			});

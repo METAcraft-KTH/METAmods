@@ -32,7 +32,7 @@ public class BlackHolePortalEntity extends PortalEntity {
 
 	@Override
 	protected void onTeleportFail(Entity entity) {
-		entity.kill((ServerWorld) entity.getWorld());
+		entity.kill((ServerWorld) entity.getEntityWorld());
 	}
 
 	@Override
@@ -43,7 +43,7 @@ public class BlackHolePortalEntity extends PortalEntity {
 	}
 
 	public static void tick(World world, BlockPos pos, BlockState state, BlackHolePortalEntity blackHole) {
-		if (world.isClient) return;
+		if (world.isClient()) return;
 		if (blackHole.center == null) {
 			blackHole.center = BlockPos.ofFloored(blackHole.getBoundingBox().getCenter());
 		}

@@ -49,7 +49,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 		return Comparator.<GameProfile, String>comparing(
 				profile -> GameProfileHelper.getNameFromProfile(profile, server).toLowerCase(Locale.ROOT)
 		).thenComparing(
-				GameProfile::getId
+				GameProfile::id
 		);
 	}
 
@@ -58,8 +58,8 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 			ServerPlayerEntity player, Collection<GameProfile> selectedPlayers
 	) {
 		super(type, player, true);
-		this.nonSelectedPlayersSorted = new TreeSet<>(getDefaultComparator(player.getServer()));
-		this.selectedPlayersSorted = new TreeSet<>(getDefaultComparator(player.getServer()));
+		this.nonSelectedPlayersSorted = new TreeSet<>(getDefaultComparator(player.getEntityWorld().getServer()));
+		this.selectedPlayersSorted = new TreeSet<>(getDefaultComparator(player.getEntityWorld().getServer()));
 		setTitle(Text.translatableWithFallback("gui.metacraft.player_selector", "Player Selector"));
 
 		selectedPlayersSorted.addAll(selectedPlayers);
@@ -119,7 +119,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	private GuiElementInterface makeButton(GameProfile profile, GuiElementInterface.ClickCallback callback) {
 		return new DeferredPlayerHead(
 				profile, ComponentChanges.builder().add(
-						DataComponentTypes.ITEM_NAME, Text.literal(GameProfileHelper.getNameFromProfile(profile, getPlayer().getServer()))
+						DataComponentTypes.ITEM_NAME, Text.literal(GameProfileHelper.getNameFromProfile(profile, getPlayer().getEntityWorld().getServer()))
 				).build(), callback
 		);
 	}
@@ -137,7 +137,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	private boolean matchesSearchTerm(GameProfile profile) {
 		if (button == null) return true;
 		if (button.getSearchQuery().isBlank()) return true;
-		return GameProfileHelper.getNameFromProfile(profile, getPlayer().getServer()).toLowerCase(Locale.ROOT).contains(
+		return GameProfileHelper.getNameFromProfile(profile, getPlayer().getEntityWorld().getServer()).toLowerCase(Locale.ROOT).contains(
 				button.getSearchQuery().toLowerCase(Locale.ROOT)
 		);
 	}
@@ -156,7 +156,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	}
 
 	private void updateLayers() {
-		getPlayer().getServer().getPlayerManager().getPlayerList().stream().filter(this::isReallyValid).map(
+		getPlayer().getEntityWorld().getServer().getPlayerManager().getPlayerList().stream().filter(this::isReallyValid).map(
 				ServerPlayerEntity::getGameProfile
 		).filter(
 				p -> !selectedPlayersSorted.contains(p)

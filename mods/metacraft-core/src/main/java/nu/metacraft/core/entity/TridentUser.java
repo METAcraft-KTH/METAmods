@@ -28,7 +28,7 @@ public interface TridentUser extends RangedAttackMob {
 				stack, EnchantmentEffectComponentTypes.TRIDENT_SOUND
 		).orElse(SoundEvents.ITEM_TRIDENT_THROW).value();
 		if (spinAttackStrength <= 0) {
-			TridentEntity tridentEntity = new TridentEntity(thrower.getWorld(), thrower, stack);
+			TridentEntity tridentEntity = new TridentEntity(thrower.getEntityWorld(), thrower, stack);
 			EntityAIHelper.shootProjectile(
 					thrower, tridentEntity, target, sound, speed, divergence
 			);
@@ -48,7 +48,7 @@ public interface TridentUser extends RangedAttackMob {
 			if (thrower.isOnGround()) {
 				thrower.move(MovementType.SELF, new Vec3d(0.0, 1.1999999f, 0.0));
 			}
-			thrower.getWorld().playSoundFromEntity(null, thrower, sound, SoundCategory.PLAYERS, 1.0f, 1.0f);
+			thrower.getEntityWorld().playSoundFromEntity(null, thrower, sound, SoundCategory.PLAYERS, 1.0f, 1.0f);
 		} else {
 			return false;
 		}

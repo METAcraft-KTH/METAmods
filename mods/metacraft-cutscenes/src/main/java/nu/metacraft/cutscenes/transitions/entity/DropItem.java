@@ -58,7 +58,7 @@ public abstract class DropItem extends InstantTransition {
 			)).orElse(new Vec3d(entity.getX(), entity.getEyeY() - 0.3, entity.getZ()));
 			var stack = getItemToDrop(cutscene, interval, entity);
 			if (!stack.isEmpty()) {
-				var item = new ItemEntity(entity.getWorld(), pos.x, pos.y, pos.z, stack);
+				var item = new ItemEntity(entity.getEntityWorld(), pos.x, pos.y, pos.z, stack);
 				item.setThrower(entity);
 				item.setPickupDelay(40);
 				setThrowVelocity(entity, settings.yawOffset, settings.pitchOffset, item, settings.randomSeed.map(Random::create).orElse(entity.getRandom()));

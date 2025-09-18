@@ -2,8 +2,8 @@ package nu.metacraft.portal_blocker;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraft.util.Identifier;
+import net.minecraft.world.GameRules;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
@@ -20,21 +20,15 @@ public class PortalBlocker implements ModInitializer {
 		PortalTypeRegistry.init();
 		Commands.registerCommands();
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			if (server instanceof DedicatedServer dedicatedServer) {
-				var instance = PortalBlockerSettings.getInstance(server);
-				boolean netherBlocked = PortalBlockerSettings.getInstance(server).isPortalBlockedGlobally(
-						PortalTypeRegistry.NETHER, PortalState.BlockingType.TRAVEL
+			var instance = PortalBlockerSettings.getInstance(server);
+			boolean netherBlocked = PortalBlockerSettings.getInstance(server).isPortalBlockedGlobally(
+					PortalTypeRegistry.NETHER, PortalState.BlockingType.TRAVEL
+			);
+			if (server.getGameRules().getBoolean(GameRules.ALLOW_ENTERING_NETHER_USING_PORTALS) == netherBlocked) {
+				instance.setPortalBlockedGlobally(
+						PortalTypeRegistry.NETHER, PortalState.BlockingType.TRAVEL,
+						!netherBlocked
 				);
-				if (dedicatedServer.getProperties().allowNether == netherBlocked) {
-					instance.setPortalBlockedGlobally(
-							PortalTypeRegistry.NETHER, PortalState.BlockingType.TRAVEL,
-							!dedicatedServer.getProperties().allowNether
-					);
-					LOGGER.info(
-							"server.properties mismatch, changing nether portals from " + Commands.getBlockStateText(netherBlocked) +
-							" to " + Commands.getBlockStateText(!dedicatedServer.getProperties().allowNether)
-					);
-				}
 			}
 		});
 		LOGGER.info("Loaded Portal-Blocker by Leddy231 and Acuadragon100");

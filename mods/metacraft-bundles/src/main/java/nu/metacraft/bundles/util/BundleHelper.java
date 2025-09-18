@@ -6,9 +6,9 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.BundleContentsComponent;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.ItemStack;
+import net.minecraft.text.StyleSpriteSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 import nu.metacraft.bundles.BundleComponents;
@@ -19,7 +19,7 @@ import org.apache.commons.lang3.math.Fraction;
 public class BundleHelper {
 
 	private static final int MAX_PIXELS = 94;
-	private static final Identifier TEXTURES_FONT = METAcraftBundles.getID("bundle_textures");
+	private static final StyleSpriteSource.Font TEXTURES_FONT = new StyleSpriteSource.Font(METAcraftBundles.getID("bundle_textures"));
 
 	public static Text getOccupancyText(ItemStack bundle) {
 		var contents = bundle.get(DataComponentTypes.BUNDLE_CONTENTS);

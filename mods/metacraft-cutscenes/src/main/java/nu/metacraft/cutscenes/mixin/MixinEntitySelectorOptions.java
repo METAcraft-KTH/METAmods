@@ -27,7 +27,7 @@ public class MixinEntitySelectorOptions {
 			MinecraftServer instance, Operation<ServerScoreboard> original,
 			@Local(argsOnly = true) Entity entity
 	) {
-		if (entity.getWorld() instanceof CutsceneWorld w) {
+		if (entity.getEntityWorld() instanceof CutsceneWorld w) {
 			return w.getScoreboard();
 		}
 		if (entity instanceof ServerPlayerEntity p && CutsceneHelper.isInCutscene(p)) {

@@ -4,12 +4,13 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTextures;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.GuiInterface;
-import net.minecraft.block.entity.SkullBlockEntity;
 import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.util.Util;
+import org.apache.commons.lang3.mutable.MutableObject;
 
 /**
  * Creates a player head icon without causing lag spikes when loading the game profile.
@@ -47,18 +48,23 @@ public class DeferredPlayerHead implements GuiElementInterface {
 	public ItemStack getItemStackForDisplay(GuiInterface gui) {
 		if (gui.isOpen() && !initialized) {
 			initialized = true;
-			if (gui.getPlayer().getServer().getSessionService().getTextures(profile) == MinecraftProfileTextures.EMPTY) {
-				SkullBlockEntity.fetchProfileByUuid(profile.getId()).thenAccept(profile -> {
-					profile.ifPresent(p -> {
+			var apiServices = gui.getPlayer().getEntityWorld().getServer().getApiServices();
+			if (apiServices.sessionService().getTextures(profile) == MinecraftProfileTextures.EMPTY) {
+				Util.getDownloadWorkerExecutor().execute(() -> {
+					var textures = new MutableObject<>(apiServices.profileResolver().getProfileById(profile.id()));
+					if (textures.getValue().isEmpty()) {
+						textures.setValue(apiServices.profileResolver().getProfileByName(profile.name()));
+					}
+					if (textures.getValue().isPresent()) {
 						if (gui.isOpen()) {
-							gui.getPlayer().getServer().execute(() -> {
-								head.set(DataComponentTypes.PROFILE, new ProfileComponent(p));
+							gui.getPlayer().getEntityWorld().getServer().execute(() -> {
+								head.set(DataComponentTypes.PROFILE, ProfileComponent.ofStatic(textures.getValue().get()));
 							});
 						}
-					});
+					}
 				});
 			} else {
-				head.set(DataComponentTypes.PROFILE, new ProfileComponent(profile));
+				head.set(DataComponentTypes.PROFILE, ProfileComponent.ofStatic(profile));
 			}
 		}
 		return GuiElementInterface.super.getItemStackForDisplay(gui);

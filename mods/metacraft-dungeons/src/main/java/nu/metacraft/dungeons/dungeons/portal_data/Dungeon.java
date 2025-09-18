@@ -34,6 +34,7 @@ import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 import net.minecraft.world.gen.structure.DimensionPadding;
+import net.minecraft.world.gen.structure.JigsawStructure;
 import net.minecraft.world.gen.structure.Structure;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.HashTreePSet;
@@ -560,7 +561,10 @@ public record Dungeon(
 			);
 			var result = StructurePoolBasedGenerator.generate(
 					context, structurePool, Optional.empty(), maxSize, pos, false,
-					Optional.empty(), maxDistanceFromCenter.orElse(dungeonData.getDungeonWidth()/2),
+					Optional.empty(), new JigsawStructure.MaxDistanceFromCenter(
+							maxDistanceFromCenter.orElse(dungeonData.getDungeonWidth()/2),
+							maxDistanceFromCenter.orElse(dungeonData.getDungeonWidth()/2)
+					),
 					StructurePoolAliasLookup.create(aliases, pos, dungeons.getRandom().nextLong()), new DimensionPadding(0),
 					StructureLiquidSettings.IGNORE_WATERLOGGING
 			);

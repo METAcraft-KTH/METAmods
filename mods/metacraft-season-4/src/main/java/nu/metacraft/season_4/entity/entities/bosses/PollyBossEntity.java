@@ -32,7 +32,6 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.passive.ParrotEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerPosition;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.ProjectileItem;
@@ -255,7 +254,7 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 			if (getPose() != EntityPose.SLEEPING) {
 				setPose(EntityPose.SLEEPING);
 			}
-			rotate(0, 0);
+			rotate(0, false, 0, false);
 			setBodyYaw(0);
 			this.lastBodyYaw = 0;
 		} else {
@@ -309,7 +308,7 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 
 	protected boolean shouldContinueHoldingEntity() {
 		return getHeldEntity().isAlive() &&
-				getHeldEntity().getWorld() == this.getWorld() &&
+				getHeldEntity().getEntityWorld() == this.getEntityWorld() &&
 				(!(getHeldEntity() instanceof ServerPlayerEntity p) || !p.isDisconnected()) &&
 				!getHeldEntity().isInCreativeMode() &&
 				!getHeldEntity().isSpectator();
@@ -377,7 +376,7 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 				);
 				world.getChunkManager().sendToNearbyPlayers(
 						this, EntityPositionS2CPacket.create(
-								getHeldEntity().getId(), new PlayerPosition(getHeldEntity().getPos(), Vec3d.ZERO, 0, 0),
+								getHeldEntity().getId(), new EntityPosition(getHeldEntity().getPos(), Vec3d.ZERO, 0, 0),
 								Sets.union(PositionFlag.ROT, PositionFlag.DELTA), false
 						)
 				);
@@ -798,8 +797,8 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 	@Override
 	public void shootAt(LivingEntity target, float pullProgress) {
 		float speed = 1.6f;
-		float divergence = 14 - this.getWorld().getDifficulty().getId() * 4;
-		var projectile = Season4Entities.MAGIC_PROJECTILE.create(getWorld(), SpawnReason.TRIGGERED);
+		float divergence = 14 - this.getEntityWorld().getDifficulty().getId() * 4;
+		var projectile = Season4Entities.MAGIC_PROJECTILE.create(getEntityWorld(), SpawnReason.TRIGGERED);
 		projectile.setOwner(this);
 		projectile.setPos(getX(), getEyeY(), getZ());
 		projectile.setHitEffects(EXTRA_POOL_HIT);

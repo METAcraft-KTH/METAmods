@@ -1,10 +1,10 @@
 package nu.metacraft.moderation.exile;
 
-import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Uuids;
 import net.minecraft.world.PersistentState;
@@ -75,7 +75,7 @@ public class ExileData extends PersistentState {
 			if (def != null) {
 				this.exiledPlayers.put(player, def);
 			} else {
-				Optional.ofNullable(server.getUserCache()).flatMap(cache -> cache.getByUuid(player)).map(GameProfile::getName).ifPresentOrElse(playerName -> {
+				server.getApiServices().nameToIdCache().getByUuid(player).map(PlayerConfigEntry::name).ifPresentOrElse(playerName -> {
 					METAcraftModeration.LOGGER.fatal(
 							"Exile definition " + name + " did not exist. Player " + playerName + " is free from exile!"
 					);

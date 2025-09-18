@@ -58,7 +58,7 @@ public class TestPlayerData {
 
 					var pearl = new ItemStack(Items.ENDER_PEARL);
 					player.equipStack(EquipmentSlot.MAINHAND, pearl);
-					pearl.use(player.getWorld(), player, Hand.MAIN_HAND);
+					pearl.use(player.getEntityWorld(), player, Hand.MAIN_HAND);
 					var pearlInWorld = player.getEnderPearls().stream().findAny().orElseThrow();
 					pearlInWorld.noClip = true;
 					pearlInWorld.setNoGravity(true);
@@ -181,7 +181,7 @@ public class TestPlayerData {
 					}
 				}
 		);
-	};
+	}
 
 	private static Entity getNewEntity(TestContext ctx, Entity oldEntity) {
 		var entity = ctx.getWorld().getEntity(oldEntity.getUuid());

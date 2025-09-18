@@ -50,7 +50,7 @@ public class DiscordChatFixer implements ModInitializer {
 		var api = DiscordConfigAccessor.getAvatarAPI();
 		if (api.contains("{player_textures}")) {
 			try {
-				String textures = profile.getProperties().get("textures").iterator().next().value();
+				String textures = profile.properties().get("textures").iterator().next().value();
 
 				JsonObject json = new Gson().fromJson(new String(Base64.getDecoder().decode(textures), StandardCharsets.UTF_8), JsonObject.class);
 				String url = json.getAsJsonObject("textures").getAsJsonObject("SKIN").get("url").getAsString();

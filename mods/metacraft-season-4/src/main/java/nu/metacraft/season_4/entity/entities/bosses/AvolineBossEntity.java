@@ -1,12 +1,15 @@
 package nu.metacraft.season_4.entity.entities.bosses;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
+import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.serialization.Dynamic;
 import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
@@ -58,25 +61,25 @@ import java.util.*;
 
 public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackingBoss {
 
-	private static final GameProfile SKIN = new GameProfile(UUID.randomUUID(), "Avoline");
-
-	static {
-		SKIN.getProperties().put(
-				"textures", new Property(
-						"textures",
-						"ewogICJ0aW1lc3RhbXAiIDogMTc0NTcxNDM3ODY5MCwKICAicHJvZmlsZUlkIiA6ICJmNzM0MmExODMxZDA0ZDA5ODc4Y2ViOTVmOTUxYTllMSIsCiAgInByb2ZpbGVOYW1lIiA6ICJOb3RNMWtzIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2QyOWE2MGVmMGNlMzFhZTc3NWZmMDAzNmZkZTc3MTE1NzkxMzJiOGEzNGFiNTBjYTMwZmUzY2FjODA4NzE2ZTQiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==",
-						"xDMCRuEiecnI2ZX2Qw13IuE29P+h+wcBSedY5FhMZJ7fAIgxPZG/y67fiBOCotgF6hS3o6sj44BDBCiSVk6zwg3kwSfWV/vQjrRa5r86FPEjsMNmzn5xLmXA/WWfTNsIbl95ojDNGQn1lWj3xFDDpzPvKPpviRs1hK6OADuc9WRs/96L2cN88n8H35e2epx0MD/PSdVzlSA68IHcEwdSaSp7K72c/x7NvhJQLpkftRMlYAIzIlofvNn4TKpY+WUfnDN/aXajAcdx/TE1q9zl2IMoN3GMFetfC3GHKJKldhhcjKXk5bmYjTE2SjJx4STQd2VNM708r4Z6CcFnIQm9QSBtsqHGirlRwBcDGpkmdv2CfhfUXTWPvpxf4aj3W3GZaVMRcphTV84u3elcZ1DlhP6+RbHrMcMNGTaWZ8PUexeyqIf7RX5x44emvEEOXF02+VYAYTKnwWZ4BUYZhVGembaHUJM0YiIslTXMWgH03NilD7Fb6+gtCZvO1Bv8RISUIXIQisXres7/zzwjnt7CrY/Mn9va6J02wn2rw0HMi9ErEXRC8uS/eUEhn417yDYG8I03NhrlvzMULYNhyz6NWbxGDtqlT5JB9hcEn7uVmxoZIeQdQJoXVqDssjBLXKp/SFoUIqFTQMJJM+WXCQFusOGL8M0goyMGHgYL9ArI3ik="
+	private static final GameProfile SKIN = new GameProfile(
+			UUID.randomUUID(), "Avoline", new PropertyMap(
+				ImmutableMultimap.of(
+						"textures", new Property(
+								"textures",
+								"ewogICJ0aW1lc3RhbXAiIDogMTc0NTcxNDM3ODY5MCwKICAicHJvZmlsZUlkIiA6ICJmNzM0MmExODMxZDA0ZDA5ODc4Y2ViOTVmOTUxYTllMSIsCiAgInByb2ZpbGVOYW1lIiA6ICJOb3RNMWtzIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2QyOWE2MGVmMGNlMzFhZTc3NWZmMDAzNmZkZTc3MTE1NzkxMzJiOGEzNGFiNTBjYTMwZmUzY2FjODA4NzE2ZTQiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==",
+								"xDMCRuEiecnI2ZX2Qw13IuE29P+h+wcBSedY5FhMZJ7fAIgxPZG/y67fiBOCotgF6hS3o6sj44BDBCiSVk6zwg3kwSfWV/vQjrRa5r86FPEjsMNmzn5xLmXA/WWfTNsIbl95ojDNGQn1lWj3xFDDpzPvKPpviRs1hK6OADuc9WRs/96L2cN88n8H35e2epx0MD/PSdVzlSA68IHcEwdSaSp7K72c/x7NvhJQLpkftRMlYAIzIlofvNn4TKpY+WUfnDN/aXajAcdx/TE1q9zl2IMoN3GMFetfC3GHKJKldhhcjKXk5bmYjTE2SjJx4STQd2VNM708r4Z6CcFnIQm9QSBtsqHGirlRwBcDGpkmdv2CfhfUXTWPvpxf4aj3W3GZaVMRcphTV84u3elcZ1DlhP6+RbHrMcMNGTaWZ8PUexeyqIf7RX5x44emvEEOXF02+VYAYTKnwWZ4BUYZhVGembaHUJM0YiIslTXMWgH03NilD7Fb6+gtCZvO1Bv8RISUIXIQisXres7/zzwjnt7CrY/Mn9va6J02wn2rw0HMi9ErEXRC8uS/eUEhn417yDYG8I03NhrlvzMULYNhyz6NWbxGDtqlT5JB9hcEn7uVmxoZIeQdQJoXVqDssjBLXKp/SFoUIqFTQMJJM+WXCQFusOGL8M0goyMGHgYL9ArI3ik="
+						)
 				)
-		);
-	}
+			)
+	);
 
 	public AvolineBossEntity(EntityType<? extends HostileEntity> entityType, World world) {
 		super(entityType, world);
 	}
 
 	@Override
-	protected GameProfile getDefaultSkin() {
-		return SKIN;
+	protected ProfileComponent getDefaultSkin() {
+		return ProfileComponent.ofStatic(SKIN);
 	}
 
 	@Override
@@ -166,7 +169,7 @@ public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackin
 	}
 
 	public static TntEntity createTNTFlyingTowards(Entity source, Entity target) {
-		return createTNTFlyingTowards(source, target, 1.6f, 14 - source.getWorld().getDifficulty().getId() * 4);
+		return createTNTFlyingTowards(source, target, 1.6f, 14 - source.getEntityWorld().getDifficulty().getId() * 4);
 	}
 
 	@Override
@@ -177,7 +180,7 @@ public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackin
 	}
 
 	public static TntEntity createTNTFlyingTowards(Entity source, Entity target, float speed, float divergence) {
-		var projectile = new TntEntity(source.getWorld(), source.getX(), source.getEyeY(), source.getZ(), source instanceof LivingEntity living ? living : null);
+		var projectile = new TntEntity(source.getEntityWorld(), source.getX(), source.getEyeY(), source.getZ(), source instanceof LivingEntity living ? living : null);
 		var direction = EntityAIHelper.getDirection(projectile, target);
 		var velocity = EntityAIHelper.calculateVelocity(
 				direction.getX(), direction.getY(), direction.getZ(),
@@ -196,7 +199,7 @@ public class AvolineBossEntity extends GenericBossPlayer implements AutoAttackin
 		if (super.handleShoot(hand, target, pullProgress)) return true;
 		var stack = this.getStackInHand(hand);
 		if (stack.isOf(Items.BLAZE_ROD)) {
-			getWorld().spawnEntity(createTNTFlyingTowards(this, target));
+			getEntityWorld().spawnEntity(createTNTFlyingTowards(this, target));
 			this.swingHand(hand);
 			return true;
 		}

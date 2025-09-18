@@ -238,12 +238,12 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 	@Override
 	protected void onCollision(HitResult hitResult) {
 		super.onCollision(hitResult);
-		getWorld().playSound(
+		getEntityWorld().playSound(
 				null, hitResult.getPos().getX(), hitResult.getPos().getY(), hitResult.getPos().getZ(),
 				SoundEvents.BLOCK_END_PORTAL_FRAME_FILL,
 				SoundCategory.HOSTILE, 1, 0.5f
 		);
-		if (getWorld() instanceof ServerWorld sw) {
+		if (getEntityWorld() instanceof ServerWorld sw) {
 			sw.spawnParticles(
 					ParticleTypes.ENCHANTED_HIT, hitResult.getPos().getX(), hitResult.getPos().getY(), hitResult.getPos().getZ(),
 					50, 0, 0, 0, 0.5
@@ -258,12 +258,12 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 					var cloud = EntityType.AREA_EFFECT_CLOUD.create(sw, SpawnReason.TRIGGERED);
 					cloud.setRadius(effect.radius.get(getRandom()));
 					cloud.setDuration(effect.cloudDuration.get(getRandom()));
-					getWorld().spawnEntity(cloud);
+					getEntityWorld().spawnEntity(cloud);
 					effects.add(effect.effect.effect().value());
 				});
 			}
 		}
-		if (!getWorld().isClient()) {
+		if (!getEntityWorld().isClient()) {
 			discard();
 		}
 	}

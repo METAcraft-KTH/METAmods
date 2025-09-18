@@ -193,9 +193,9 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 					cutscene.getCutscene().getExitPoint(null, cutscene).map(
 							t -> new Target(t.position(), t.yaw(), t.pitch())
 					).orElse(new Target(
-							Vec3d.ofBottomCenter(cutscene.getCutsceneWorld().getActualWorld().getSpawnPos()),
-							cutscene.getCutsceneWorld().getActualWorld().getSpawnAngle(),
-							0
+							Vec3d.ofBottomCenter(cutscene.getCutsceneWorld().getActualWorld().method_74854().method_74897()),
+							cutscene.getCutsceneWorld().getActualWorld().method_74854().yaw(),
+							cutscene.getCutsceneWorld().getActualWorld().method_74854().pitch()
 					))
 			);
 		}

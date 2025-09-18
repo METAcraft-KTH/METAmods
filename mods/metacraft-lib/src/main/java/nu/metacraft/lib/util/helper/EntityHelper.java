@@ -57,7 +57,7 @@ public class EntityHelper {
 			var passengers = nbt.getListReadView(Entity.PASSENGERS_KEY);
 			for (var p : passengers) {
 				loadEntityWithPassengers(p, world, reason, entityProcessor).ifPresent(
-						passenger -> passenger.startRiding(entity, true)
+						passenger -> passenger.startRiding(entity, true, false)
 				);
 			}
 			return entity;
@@ -110,7 +110,7 @@ public class EntityHelper {
 			cloud.setOwner(living);
 		}
 		if (entity instanceof AccessorTntEntity tnt && owner instanceof LivingEntity living) {
-			tnt.setCausingEntity(new LazyEntityReference<>(living));
+			tnt.setCausingEntity(LazyEntityReference.of(living));
 		}
 		if (entity instanceof EntityTarget.CanSetOwner can) {
 			can.setOwner(owner);

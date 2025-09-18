@@ -32,7 +32,7 @@ public class FasterMinecartsHelper {
 	) {
 		if (hasSuperSpeed(minecart)) {
 			return applyMaxSpeedFromBlockBellow(
-					minecart.getWorld(), minecart.getBlockPos(),
+					minecart.getEntityWorld(), minecart.getBlockPos(),
 					minecart.isTouchingWater() ? ((MinecartExtensions) minecart).fasterMinecarts$getMaxSpeedUnderwater().orElse(
 							FasterMinecartsConfig.getConfig().maxMinecartSpeedUnderwater
 					) : ((MinecartExtensions) minecart).fasterMinecarts$getMaxSpeed().orElse(

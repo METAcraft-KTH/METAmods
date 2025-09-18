@@ -34,7 +34,7 @@ public class PortableJukeboxItem extends PolymerHeadBlockItem {
 		var jukeboxPlayer = Entities.PORTABLE_JUKEBOX.create(entity.getWorld(), SpawnReason.TRIGGERED);
 		var pos = entity.getPos();
 		jukeboxPlayer.setPos(pos.getX(), pos.getY(), pos.getZ());
-		jukeboxPlayer.setEntity(entity);
+		jukeboxPlayer.setConnectedEntity(entity);
 		entity.getWorld().spawnEntity(jukeboxPlayer);
 		jukeboxPlayer.setJukebox(stack);
 		EntityRefHelper.addPortableJukebox(entity, jukeboxPlayer);
@@ -64,7 +64,7 @@ public class PortableJukeboxItem extends PolymerHeadBlockItem {
 	public void onItemEntityDestroyed(ItemEntity entity) {
 		super.onItemEntityDestroyed(entity);
 		Optional.ofNullable(entity.getStack().get(Components.PORTABLE_JUKEBOX)).ifPresent(disc -> {
-			ItemScatterer.spawn(entity.getWorld(), entity.getX(), entity.getY(), entity.getZ(), disc);
+			ItemScatterer.spawn(entity.getEntityWorld(), entity.getX(), entity.getY(), entity.getZ(), disc);
 		});
 	}
 

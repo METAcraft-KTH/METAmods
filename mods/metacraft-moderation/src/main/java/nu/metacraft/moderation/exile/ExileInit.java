@@ -1,6 +1,5 @@
 package nu.metacraft.moderation.exile;
 
-import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -14,6 +13,7 @@ import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.GameProfileArgumentType;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import org.apache.commons.lang3.mutable.Mutable;
@@ -61,7 +61,7 @@ public class ExileInit {
 	};
 
 	static Optional<String> getPlayerNameFromUUID(MinecraftServer server, UUID player) {
-		return Optional.ofNullable(server.getUserCache()).flatMap(cache -> cache.getByUuid(player)).map(GameProfile::getName);
+		return server.getApiServices().nameToIdCache().getByUuid(player).map(PlayerConfigEntry::name);
 	}
 
 	public static void init() {
@@ -186,12 +186,12 @@ public class ExileInit {
 							argument("player", GameProfileArgumentType.gameProfile()).executes(ctx -> {
 								var data = ExileData.getInstance(ctx.getSource().getServer());
 								var players = GameProfileArgumentType.getProfileArgument(ctx, "player").stream().map(
-									profile -> data.getExile(profile.getId()).map(
+									profile -> data.getExile(profile.id()).map(
 										def -> Text.literal("Player " + getPlayerNameFromUUID(
-												ctx.getSource().getServer(), profile.getId()
+												ctx.getSource().getServer(), profile.id()
 										).orElse("missingno") + " is exiled to " + def.getName())
 									).orElse(Text.literal("Player " + getPlayerNameFromUUID(
-											ctx.getSource().getServer(), profile.getId()
+											ctx.getSource().getServer(), profile.id()
 									).orElse("missingno") + " is not in exile"))
 								).toList();
 								players.forEach(message -> ctx.getSource().sendFeedback(() -> message, false));
@@ -261,10 +261,10 @@ public class ExileInit {
 		MutableInt total = new MutableInt(0);
 		Mutable<String> name = new MutableObject<>(null);
 		for (var player : GameProfileArgumentType.getProfileArgument(ctx, "player")) {
-			if (action.apply(player.getId())) {
+			if (action.apply(player.id())) {
 				total.increment();
 				if (total.getValue() == 1) {
-					name.setValue(player.getName());
+					name.setValue(player.name());
 				}
 			}
 		}

@@ -32,12 +32,12 @@ public class PlayerPackDataManager {
 	}
 
 	public PlayerPackData getFromPlayer(GameProfile profile) {
-		var uuid = profile.getId();
+		var uuid = profile.id();
 		return packDataMap.get().getOrDefault(uuid, PlayerPackEntry.EMPTY).data;
 	}
 
 	public void update(GameProfile profile, UnaryOperator<PlayerPackData> update) {
-		var uuid = profile.getId();
+		var uuid = profile.id();
 		if (!packDataMap.get().containsKey(uuid)) return;
 		packDataMap.updateAndGet(
 				map -> {
@@ -87,21 +87,21 @@ public class PlayerPackDataManager {
 	}
 
 	public void unloadPlayer(GameProfile profile) {
-		var uuid = profile.getId();
+		var uuid = profile.id();
 		if (!packDataMap.get().containsKey(uuid)) return;
 		packDataMap.getAndUpdate(map -> map.minus(uuid)).get(uuid);
 		locks.remove(uuid);
 	}
 
 	public void save(GameProfile profile) {
-		var uuid = profile.getId();
+		var uuid = profile.id();
 		if (!packDataMap.get().containsKey(uuid)) return;
 		var data = packDataMap.get().get(uuid);
 		saveEntry(uuid, data);
 	}
 
 	public void loadPlayer(GameProfile profile) {
-		var uuid = profile.getId();
+		var uuid = profile.id();
 		if (packDataMap.get().containsKey(uuid)) return;
 		var lock = getLock(uuid);
 		lock.lock();

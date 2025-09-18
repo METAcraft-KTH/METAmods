@@ -51,9 +51,9 @@ public class METAcraftData extends PersistentState {
 	}
 
 	public String getName(GameProfile profile) {
-		if (nameCache.containsKey(profile.getId())) {
-			return nameCache.get(profile.getId());
+		if (nameCache.containsKey(profile.id())) {
+			return nameCache.get(profile.id());
 		}
-		return profile.getName();
+		return profile.name();
 	}
 }

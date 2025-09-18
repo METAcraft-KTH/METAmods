@@ -15,7 +15,7 @@ public class MixinProtectionExclusions {
 
 	@Inject(method = "isExcluded", at = @At("RETURN"), cancellable = true)
 	public void isExcluded(PlayerEntity player, CallbackInfoReturnable<Boolean> cir) {
-		if (!player.getWorld().isClient()) {
+		if (!player.getEntityWorld().isClient()) {
 			LeukocyteZoneManager.getZoneFromExclusions((ProtectionExclusions) (Object) this).ifPresent(zone -> {
 				if (zone.get(PlotDataTypes.PLAYER_PROTECTORATE).map(data -> data.isAllowed(player)).orElse(false)) {
 					cir.setReturnValue(true);
@@ -24,7 +24,7 @@ public class MixinProtectionExclusions {
 
 				for (int i = 0; i < player.getInventory().size(); i++) {
 					var stack = player.getInventory().getStack(i);
-					PlotKey.getZone(stack, player.getServer()).ifPresent(z -> {
+					PlotKey.getZone(stack, player.getEntityWorld().getServer()).ifPresent(z -> {
 						if (z.zone() == zone) {
 							cir.setReturnValue(true);
 						}

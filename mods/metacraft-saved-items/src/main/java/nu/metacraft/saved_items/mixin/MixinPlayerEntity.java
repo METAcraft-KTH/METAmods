@@ -24,7 +24,7 @@ public abstract class MixinPlayerEntity extends LivingEntity {
 		at = @At("RETURN")
 	)
 	public ItemEntity dropItem(ItemEntity original, ItemStack stack, boolean throwRandomly, boolean retainOwnership) {
-		if (original != null && !this.getWorld().isClient() && this.isDead()) {
+		if (original != null && !this.getEntityWorld().isClient() && this.isDead()) {
 			((ItemEntityData) original).metacraft_saved_items$setDroppedByDeadPlayer((PlayerEntity) (Object) this);
 		}
 		return original;

@@ -39,12 +39,12 @@ public class HideOtherPlayersTransition implements Transition, TransitionConfig 
 
 	@Override
 	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		var tracker = EntityTrackerHelper.getEntityTrackers(player.getWorld()).get(player.getId());
+		var tracker = EntityTrackerHelper.getEntityTrackers(player.getEntityWorld()).get(player.getId());
 		cutscene.forAllPlayers(tracker::updateTrackedStatus);
 		if (interval.getStart() != cutscene.getCurrentTime()) {
 			cutscene.forAllPlayers(p -> {
 				if (p != player) {
-					var otherTracker = EntityTrackerHelper.getEntityTrackers(player.getWorld()).get(player.getId());
+					var otherTracker = EntityTrackerHelper.getEntityTrackers(player.getEntityWorld()).get(player.getId());
 					otherTracker.updateTrackedStatus(player);
 				}
 			});
@@ -53,7 +53,7 @@ public class HideOtherPlayersTransition implements Transition, TransitionConfig 
 
 	@Override
 	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		var tracker = EntityTrackerHelper.getEntityTrackers(player.getWorld()).get(player.getId());
+		var tracker = EntityTrackerHelper.getEntityTrackers(player.getEntityWorld()).get(player.getId());
 		cutscene.forAllPlayers(tracker::updateTrackedStatus);
 	}
 

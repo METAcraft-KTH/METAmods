@@ -87,7 +87,7 @@ public class MusicBlockEntity extends BlockEntity {
 				MusicHelper.playMusic(player, musicPlayer.currentEntry, p -> {
 					if (
 							p.isDead() || !musicPlayer.shouldHearMusic(p) ||
-									p.getWorld().getRegistryKey() != world.getRegistryKey() ||
+									p.getEntityWorld().getRegistryKey() != world.getRegistryKey() ||
 									musicPlayer.isRemoved()
 					) {
 						musicPlayer.trackedPlayers.remove(p);

@@ -158,7 +158,7 @@ public class PlaySoundFromEntity {
 	private static int playSound(
 			CommandContext<ServerCommandSource> ctx, Identifier sound, Collection<ServerPlayerEntity> targets, Entity entity, SoundCategory category, float volume, float pitch
 	) throws CommandSyntaxException {
-		if (!(entity.getWorld() instanceof ServerWorld sw)) {
+		if (!(entity.getEntityWorld() instanceof ServerWorld sw)) {
 			return 0;
 		}
 		var tracker = ((AccessorServerChunkLoadingManager) sw.getChunkManager().chunkLoadingManager).getEntityTrackers().get(entity.getId());

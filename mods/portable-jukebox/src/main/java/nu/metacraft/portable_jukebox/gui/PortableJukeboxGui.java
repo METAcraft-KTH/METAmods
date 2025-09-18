@@ -43,7 +43,7 @@ public class PortableJukeboxGui extends LayeredGui {
 
 			@Override
 			protected void onTake(int amount) {
-				PortableJukeboxItem.stop(portableJukebox, player.getWorld());
+				PortableJukeboxItem.stop(portableJukebox, player.getEntityWorld());
 			}
 		});
 		Layer buttons = new Layer(1, 2);
@@ -65,7 +65,7 @@ public class PortableJukeboxGui extends LayeredGui {
 						).build()
 				),
 				(index, type, action) -> {
-					PortableJukeboxItem.stop(portableJukebox, player.getWorld());
+					PortableJukeboxItem.stop(portableJukebox, player.getEntityWorld());
 				}
 		);
 

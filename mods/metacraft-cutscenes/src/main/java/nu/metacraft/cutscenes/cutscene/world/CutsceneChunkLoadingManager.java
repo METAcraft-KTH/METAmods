@@ -2,8 +2,8 @@ package nu.metacraft.cutscenes.cutscene.world;
 
 import com.mojang.datafixers.DataFixer;
 import net.minecraft.entity.Entity;
+import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.packet.Packet;
-import net.minecraft.server.WorldGenerationProgressListener;
 import net.minecraft.server.network.EntityTrackerEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.*;
@@ -38,13 +38,12 @@ public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
 			DataFixer dataFixer, StructureTemplateManager structureTemplateManager,
 			Executor executor, ThreadExecutor<Runnable> mainThreadExecutor,
 			ChunkProvider chunkProvider, ChunkGenerator chunkGenerator,
-			WorldGenerationProgressListener worldGenerationProgressListener,
 			ChunkStatusChangeListener chunkStatusChangeListener,
 			Supplier<PersistentStateManager> persistentStateManagerFactory,
 			ChunkTicketManager ticketManager,
 			int viewDistance, boolean dsync
 	) {
-		super(cutsceneWorld.getActualWorld(), session, dataFixer, structureTemplateManager, executor, mainThreadExecutor, chunkProvider, chunkGenerator, worldGenerationProgressListener, chunkStatusChangeListener, persistentStateManagerFactory, ticketManager, viewDistance, dsync);
+		super(cutsceneWorld.getActualWorld(), session, dataFixer, structureTemplateManager, executor, mainThreadExecutor, chunkProvider, chunkGenerator, chunkStatusChangeListener, persistentStateManagerFactory, ticketManager, viewDistance, dsync);
 		this.cutsceneWorld = cutsceneWorld;
 		((AccessorServerChunkLoadingManager) this).setLightingProvider(
 				new CutsceneLightingProvider(
@@ -105,8 +104,8 @@ public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
 		var e = new EntityTracker(entity, 0, 0, false) {
 
 			@Override
-			public void sendToNearbyPlayers(Packet<?> packet) {
-				sendToOtherNearbyPlayers(packet);
+			public void sendToSelfAndListeners(Packet<? super ClientPlayPacketListener> packet) {
+				sendToListeners(packet);
 			}
 
 			@Override

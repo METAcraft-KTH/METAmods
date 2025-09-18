@@ -70,7 +70,7 @@ public abstract class MixinChicken extends AnimalEntity implements ChickenExtens
 
 	@Inject(method = "tickMovement", at = @At("RETURN"))
 	public void tick(CallbackInfo ci) {
-		if (!getWorld().isClient() && isCucco) {
+		if (!getEntityWorld().isClient() && isCucco) {
 			if (particleDelay <= 0) {
 				Particles.spawnAngerParticles(this, random);
 				particleDelay = 10 + random.nextInt(30);

@@ -14,6 +14,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
@@ -111,7 +112,7 @@ public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHead
 	}
 
 	@Override
-	protected int getComparatorOutput(BlockState state, World world, BlockPos pos) {
+	protected int getComparatorOutput(BlockState state, World world, BlockPos pos, Direction direction) {
 		var blockEntity = world.getBlockEntity(pos);
 		if (blockEntity instanceof PortableJukeboxBlockEntity portable) {
 			return PortableJukeboxItem.getComparatorOutput(portable.getJukebox(), world.getRegistryManager());

@@ -1,15 +1,15 @@
 package nu.metacraft.lib.util.helper;
 
-import com.mojang.authlib.GameProfile;
 import net.minecraft.datafixer.DataFixTypes;
+import net.minecraft.entity.EntityPosition;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerPosition;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.DateTimeFormatters;
@@ -45,9 +45,9 @@ public class DisconnectedPlayerHelper {
 
 	private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatters.create();
 
-	private static GameProfile getProfile(UUID id, MinecraftServer server) {
-		return Optional.ofNullable(server.getUserCache()).flatMap(cache -> cache.getByUuid(id)).orElse(
-				new GameProfile(id, "missingno")
+	private static PlayerConfigEntry getProfile(UUID id, MinecraftServer server) {
+		return Optional.ofNullable(server.getApiServices().nameToIdCache()).flatMap(cache -> cache.getByUuid(id)).orElse(
+				new PlayerConfigEntry(id, "missingno")
 		);
 	}
 
@@ -81,7 +81,6 @@ public class DisconnectedPlayerHelper {
 	protected static void forAllDisconnectedPlayers(
 			MinecraftServer server, Predicate<UUID> isPlayerOnline, Predicate<NbtCompound> playerAction
 	) {
-		PlayerSaveHandler handler = ((AccessorMinecraftServer)server).getSaveHandler();
 		var playerDir = ((AccessorMinecraftServer) server).getSession().getDirectory(WorldSavePath.PLAYERDATA).toFile();
 		String[] ids = Optional.ofNullable(playerDir.list()).map(
 				playerFiles -> Arrays.stream(playerFiles).filter(id -> id.endsWith(".dat")).map(
@@ -101,10 +100,10 @@ public class DisconnectedPlayerHelper {
 		}
 	}
 
-	private static void savePlayerData(GameProfile player, NbtCompound nbt, PlayerSaveHandler handler) {
+	private static void savePlayerData(PlayerConfigEntry player, NbtCompound nbt, PlayerSaveHandler handler) {
 		try {
 			NbtHelper.putDataVersion(nbt);
-			var uuid = player.getId().toString();
+			var uuid = player.id().toString();
 			Path path = ((AccessorPlayerSaveHandler) handler).getPlayerDataDir().toPath();
 			Path tmp = Files.createTempFile(path, uuid + "-", ".dat");
 			NbtIo.writeCompressed(nbt, tmp);
@@ -112,41 +111,41 @@ public class DisconnectedPlayerHelper {
 			Path old = path.resolve(uuid + ".dat_old");
 			Util.backupAndReplace(data, tmp, old);
 		} catch (Exception var7) {
-			METAcraftLib.LOGGER.warn("Failed to save player data for {}", player.getName());
+			METAcraftLib.LOGGER.warn("Failed to save player data for {}", player.name());
 		}
 	}
 
-	private static Optional<NbtCompound> loadPlayerData(GameProfile player, String extension, PlayerSaveHandler handler) {
+	private static Optional<NbtCompound> loadPlayerData(PlayerConfigEntry player, String extension, PlayerSaveHandler handler) {
 		File path = ((AccessorPlayerSaveHandler) handler).getPlayerDataDir();
-		String uuid = player.getId().toString();
+		String uuid = player.id().toString();
 		File file = new File(path, uuid + extension);
 		if (file.exists() && file.isFile()) {
 			try {
 				return Optional.of(NbtIo.readCompressed(file.toPath(), NbtSizeTracker.ofUnlimitedBytes()));
 			} catch (Exception var5) {
-				METAcraftLib.LOGGER.warn("Failed to load player data for {}", player.getName());
+				METAcraftLib.LOGGER.warn("Failed to load player data for {}", player.name());
 			}
 		}
 
 		return Optional.empty();
 	}
 
-	private static void backupCorruptedPlayerData(GameProfile player, String extension, PlayerSaveHandler handler) {
+	private static void backupCorruptedPlayerData(PlayerConfigEntry player, String extension, PlayerSaveHandler handler) {
 		Path path = ((AccessorPlayerSaveHandler) handler).getPlayerDataDir().toPath();
-		String uuid = player.getId().toString();
+		String uuid = player.id().toString();
 		Path data = path.resolve(uuid + extension);
 		Path corrupted = path.resolve(uuid + "_corrupted_" + LocalDateTime.now().format(DATE_TIME_FORMATTER) + extension);
 		if (Files.isRegularFile(data)) {
 			try {
 				Files.copy(data, corrupted, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
 			} catch (Exception exception) {
-				METAcraftLib.LOGGER.warn("Failed to copy the player.dat file for {}", player.getName(), exception);
+				METAcraftLib.LOGGER.warn("Failed to copy the player.dat file for {}", player.name(), exception);
 			}
 
 		}
 	}
 
-	private static Optional<NbtCompound> loadPlayerData(GameProfile player, PlayerSaveHandler handler) {
+	private static Optional<NbtCompound> loadPlayerData(PlayerConfigEntry player, PlayerSaveHandler handler) {
 		Optional<NbtCompound> optional = loadPlayerData(player, ".dat", handler);
 		if (optional.isEmpty()) {
 			backupCorruptedPlayerData(player, ".dat", handler);
@@ -223,8 +222,8 @@ public class DisconnectedPlayerHelper {
 		nbt.put("Motion", Vec3d.CODEC, velocity);
 	}
 
-	public static PlayerPosition getPlayerPosition(NbtCompound nbt) {
-		return new PlayerPosition(
+	public static EntityPosition getPlayerPosition(NbtCompound nbt) {
+		return new EntityPosition(
 				getPos(nbt),
 				getVelocity(nbt),
 				getYaw(nbt),
@@ -252,7 +251,7 @@ public class DisconnectedPlayerHelper {
 		nbt.put("Rotation", Vec2f.CODEC, new Vec2f(yaw, pitch));
 	}
 
-	public static void setPlayerPosition(NbtCompound player, PlayerPosition position) {
+	public static void setPlayerPosition(NbtCompound player, EntityPosition position) {
 		modifyPassengersAndRootVehicle(
 				player, entity -> {
 					setPos(entity, position.position());
@@ -264,9 +263,9 @@ public class DisconnectedPlayerHelper {
 
 	public static void setFromTeleportTarget(NbtCompound player, TeleportTarget target) {
 		setDim(player, target.world().getRegistryKey());
-		PlayerPosition actualTarget = PlayerPosition.apply(
+		EntityPosition actualTarget = EntityPosition.apply(
 				getPlayerPosition(player),
-				PlayerPosition.fromTeleportTarget(target),
+				EntityPosition.fromTeleportTarget(target),
 				target.relatives()
 		);
 		setPlayerPosition(player, actualTarget);
@@ -281,7 +280,7 @@ public class DisconnectedPlayerHelper {
 			boolean drainRespawnAnchor, TeleportTarget.PostDimensionTransition postDimensionTransition
 	) {
 		//Basically just Mojang's function in ServerPlayerEntity, but now it's static.
-		ServerWorld serverWorld = server.getWorld(respawn != null ? respawn.dimension() : World.OVERWORLD);
+		ServerWorld serverWorld = server.getWorld(respawn != null ? respawn.respawnData().method_74894() : World.OVERWORLD);
 		if (serverWorld != null && respawn != null) {
 			Optional<ServerPlayerEntity.RespawnPos> optional = AccessorServerPlayerEntity.callFindRespawnPosition(serverWorld, respawn, drainRespawnAnchor);
 			if (optional.isPresent()) {
@@ -305,7 +304,7 @@ public class DisconnectedPlayerHelper {
 
 	public static boolean removeSpawnPointIfMatching(NbtCompound nbt, BiPredicate<RegistryKey<World>, BlockPos> dim) {
 		var spawnPoint = DisconnectedPlayerHelper.getSpawnPoint(nbt);
-		if (spawnPoint.isPresent() && dim.test(spawnPoint.get().dimension(), spawnPoint.get().pos())) {
+		if (spawnPoint.isPresent() && dim.test(spawnPoint.get().respawnData().method_74894(), spawnPoint.get().respawnData().method_74897())) {
 			DisconnectedPlayerHelper.removeSpawnPoint(nbt);
 			return true;
 		}

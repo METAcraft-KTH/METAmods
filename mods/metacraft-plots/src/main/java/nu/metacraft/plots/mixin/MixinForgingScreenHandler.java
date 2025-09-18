@@ -27,7 +27,7 @@ public class MixinForgingScreenHandler {
 	public ItemStack quickMove(ItemStack stack, @Local(argsOnly = true) PlayerEntity player) {
 		if ((Object) this instanceof AnvilScreenHandler) {
 			if (stack.isOf(PlotItems.PLOT_KEY) && stack.contains(DataComponentTypes.CUSTOM_NAME)) {
-				PlotKey.renameKey(stack, player.getServer(), stack.getName().getString());
+				PlotKey.renameKey(stack, player.getEntityWorld().getServer(), stack.getName().getString());
 			}
 		}
 		return stack;

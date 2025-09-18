@@ -73,11 +73,11 @@ public class FasterMinecarts implements ModInitializer {
 	}
 
 	public static void damageEntitiesFromCart(Entity minecart, double velocity, Box box) {
-		DamageSource source = new DamageSource(minecart.getWorld().getRegistryManager().getOrThrow(RegistryKeys.DAMAGE_TYPE).getOrThrow(MINECART));
+		DamageSource source = new DamageSource(minecart.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.DAMAGE_TYPE).getOrThrow(MINECART));
 		if (velocity > FasterMinecartsConfig.getConfig().dangerousMinecartSpeed && FasterMinecartsConfig.getConfig().dangerousMinecartSpeed > 0) {
-			for (Entity entity : minecart.getWorld().getOtherEntities(minecart, box, entity -> shouldBeDamaged.test(entity, minecart))) {
+			for (Entity entity : minecart.getEntityWorld().getOtherEntities(minecart, box, entity -> shouldBeDamaged.test(entity, minecart))) {
 				float damage = (float) ((velocity - FasterMinecartsConfig.getConfig().dangerousMinecartSpeed) * FasterMinecartsConfig.getConfig().damageFactor);
-				entity.damage((ServerWorld) minecart.getWorld(), source, damage);
+				entity.damage((ServerWorld) minecart.getEntityWorld(), source, damage);
 			}
 		}
 	}

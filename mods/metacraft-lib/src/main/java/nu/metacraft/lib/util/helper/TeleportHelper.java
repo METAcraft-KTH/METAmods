@@ -1,11 +1,12 @@
 package nu.metacraft.lib.util.helper;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityPosition;
 import net.minecraft.entity.ai.pathing.LandPathNodeMaker;
 import net.minecraft.entity.ai.pathing.PathContext;
 import net.minecraft.entity.ai.pathing.PathNodeType;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.player.PlayerPosition;
+import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkTicketType;
@@ -33,12 +34,15 @@ public class TeleportHelper {
 				var ext = (ServerPlayerEntityExtensions) player;
 				ext.metacraft_lib$setTeleportingOnVehicle(true);
 				players.add(ext);
-				player.rotate(target.yaw(), target.pitch());
+				player.rotate(
+						target.yaw(), target.relatives().contains(PositionFlag.Y_ROT),
+						target.pitch(), target.relatives().contains(PositionFlag.X_ROT)
+				);
 			}
 		}
 		var result = entity.teleportTo(target);
 		TaskScheduler.scheduleImmediately(
-				entity.getServer(),
+				entity.getEntityWorld().getServer(),
 				() -> {
 					for (var player : players) {
 						player.metacraft_lib$setTeleportingOnVehicle(false);
@@ -93,7 +97,7 @@ public class TeleportHelper {
 			Consumer<Entity> onFail
 	) {
 		teleportEntityToPos(
-				(ServerWorld) player.getWorld(), player.getBlockPos(), player.getRandom(),
+				(ServerWorld) player.getEntityWorld(), player.getBlockPos(), player.getRandom(),
 				player.getYaw(), player.getPitch(), player.getVelocity(), entity, transition, onFail
 		);
 	}
@@ -128,12 +132,12 @@ public class TeleportHelper {
 		}
 	}
 
-	public static TeleportTarget fromPlayerPos(ServerWorld world, PlayerPosition pos) {
+	public static TeleportTarget fromPlayerPos(ServerWorld world, EntityPosition pos) {
 		return fromPlayerPos(world, pos, TeleportTarget.NO_OP);
 	}
 
 	public static TeleportTarget fromPlayerPos(
-			ServerWorld world, PlayerPosition pos, TeleportTarget.PostDimensionTransition post
+			ServerWorld world, EntityPosition pos, TeleportTarget.PostDimensionTransition post
 	) {
 		return new TeleportTarget(
 				world, pos.position(), pos.deltaMovement(),
@@ -143,7 +147,7 @@ public class TeleportHelper {
 
 	public static BlockPos getWorldSpawn(ServerWorld world) {
 		//Basically just Mojang's function in Entity, but now it's static.
-		BlockPos blockpos = world.getSpawnPos();
+		BlockPos blockpos = world.method_74854().method_74897();
 		Vec3d vec3 = blockpos.toCenterPos();
 		int i = world.getWorldChunk(blockpos).sampleHeightmap(net.minecraft.world.Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, blockpos.getX(), blockpos.getZ()) + 1;
 		return BlockPos.ofFloored(vec3.x, i, vec3.z);
@@ -153,10 +157,14 @@ public class TeleportHelper {
 			MinecraftServer server, boolean missingRespawnBlock,
 			TeleportTarget.PostDimensionTransition postDimensionTransition
 	) {
-		var overworld = server.getOverworld();
+		var respawnWorld = server.getWorld(server.method_74945().method_74894());
+		if (respawnWorld == null) {
+			respawnWorld = server.getOverworld();
+		}
 		return new TeleportTarget(
-				overworld, getWorldSpawn(overworld).toBottomCenterPos(),
-				Vec3d.ZERO, overworld.getSpawnAngle(), 0, missingRespawnBlock, false,
+				respawnWorld, getWorldSpawn(respawnWorld).toBottomCenterPos(),
+				Vec3d.ZERO, respawnWorld.method_74854().yaw(), respawnWorld.method_74854().pitch(),
+				missingRespawnBlock, false,
 				Set.of(), postDimensionTransition
 		);
 	}

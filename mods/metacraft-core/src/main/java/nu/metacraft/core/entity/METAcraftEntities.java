@@ -4,7 +4,6 @@ import eu.pb4.polymer.core.api.entity.PolymerEntityUtils;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
 import net.minecraft.entity.*;
 import net.minecraft.entity.mob.HostileEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
@@ -34,7 +33,7 @@ public class METAcraftEntities {
 			).dimensions(
 					0.6f, 1.8f
 			).eyeHeight(1.62f).vehicleAttachment(
-					PlayerEntity.VEHICLE_ATTACHMENT_POS
+					PlayerLikeEntity.VEHICLE_ATTACHMENT
 			).maxTrackingRange(32).trackingTickInterval(2)
 	);
 

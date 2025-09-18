@@ -63,7 +63,7 @@ public abstract class MixinEnderDragonFight {
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/boss/dragon/EnderDragonFight;generateNewEndGateway()V")
 	)
 	public boolean mcmakisteinImpossibleDragonFix(EnderDragonFight instance, @Local(argsOnly = true) EnderDragonEntity dragon) {
-		var scoreboard = dragon.getWorld().getScoreboard();
+		var scoreboard = dragon.getEntityWorld().getScoreboard();
 		var dragonSetup = scoreboard.getNullableObjective("mcm.its.dragon.setup.state");
 		int state = 0;
 		if (dragonSetup != null) {

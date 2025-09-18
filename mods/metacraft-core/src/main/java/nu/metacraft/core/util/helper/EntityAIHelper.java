@@ -16,7 +16,7 @@ public class EntityAIHelper {
 		var direction = getDirection(projectile, target);
 		projectile.setVelocity(direction.getX(), direction.getY(), direction.getZ(), speed, divergence);
 		shooter.playSound(sound, volume, 1.0f / (shooter.getRandom().nextFloat() * 0.4f + 0.8f));
-		shooter.getWorld().spawnEntity(projectile);
+		shooter.getEntityWorld().spawnEntity(projectile);
 	}
 
 	/**

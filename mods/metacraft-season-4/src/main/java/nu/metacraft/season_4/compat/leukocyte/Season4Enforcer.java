@@ -26,7 +26,7 @@ public class Season4Enforcer implements ProtectionRuleEnforcer {
 			return (player, hand, hitResult) -> {
 				if (hitResult.getType() == HitResult.Type.BLOCK) {
 					var pos = hitResult.getBlockPos();
-					if (player.getWorld().getBlockState(pos).isOf(Season4Blocks.CAMPUS_LODESTONE)) {
+					if (player.getEntityWorld().getBlockState(pos).isOf(Season4Blocks.CAMPUS_LODESTONE)) {
 						if (rule == EventResult.DENY) {
 							player.sendMessage(
 									Text.translatableWithFallback(

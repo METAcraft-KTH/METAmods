@@ -107,7 +107,7 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 		if (runPerPlayer) {
 			cutscene.forAllPlayers(player -> {
 				execute(
-						player.getServer().getCommandManager(),
+						player.getEntityWorld().getServer().getCommandManager(),
 						getSource(cutscene, runInRealWorld, player, debug), command, debug
 				);
 			});

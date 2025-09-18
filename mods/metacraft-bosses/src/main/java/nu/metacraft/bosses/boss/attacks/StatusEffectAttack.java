@@ -84,7 +84,7 @@ public class StatusEffectAttack extends InstantAttack {
 		if (affectTargets) {
 			ctx.boss().getTargets(
 					TypeFilter.instanceOf(LivingEntity.class),
-					e -> predicate.test(METAcraftContexTypes.createTickContext((ServerWorld) e.getWorld(), e, e.getRandom()))
+					e -> predicate.test(METAcraftContexTypes.createTickContext((ServerWorld) e.getEntityWorld(), e, e.getRandom()))
 			).forEach(target -> {
 				target.addStatusEffect(
 						effect.createEffect(target.getRandom())
@@ -94,7 +94,7 @@ public class StatusEffectAttack extends InstantAttack {
 		if (affectAllies) {
 			ctx.boss().getAllies(
 					TypeFilter.instanceOf(LivingEntity.class),
-					e -> predicate.test(METAcraftContexTypes.createTickContext((ServerWorld) e.getWorld(), e, e.getRandom()))
+					e -> predicate.test(METAcraftContexTypes.createTickContext((ServerWorld) e.getEntityWorld(), e, e.getRandom()))
 			).forEach(target -> {
 				target.addStatusEffect(
 						effect.createEffect(target.getRandom())

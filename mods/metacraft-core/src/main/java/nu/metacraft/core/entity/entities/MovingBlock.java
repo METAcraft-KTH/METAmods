@@ -10,6 +10,7 @@ import eu.pb4.polymer.virtualentity.api.elements.EntityElement;
 import eu.pb4.polymer.virtualentity.api.tracker.DisplayTrackedData;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityPosition;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.Flutterer;
 import net.minecraft.entity.MovementType;
@@ -17,7 +18,6 @@ import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.mob.ShulkerEntity;
-import net.minecraft.entity.player.PlayerPosition;
 import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -88,7 +88,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		var teleported = super.teleportTo(teleportTarget);
 		if (teleported != null) {
 			var box = selectionBox(this.getBoundingBox(), Vec3d.ZERO);
-			for (var entity : getWorld().getOtherEntities(this, box, this::shouldMove)) {
+			for (var entity : getEntityWorld().getOtherEntities(this, box, this::shouldMove)) {
 				entity.teleportTo(teleportTarget.withPosition(
 						entity.getPos().subtract(this.getPos()).add(teleported.getPos())
 				));
@@ -101,7 +101,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 	public void tick() {
 		super.tick();
 
-		if (getWorld() instanceof ServerWorld) {
+		if (getEntityWorld() instanceof ServerWorld) {
 			this.move(MovementType.SELF, this.getVelocity());
 			if (!initializedShulker) { //Shulker is usually not present when it first spawns, shows up after first movement.
 				shulker.entity().updatePosition(this.getX(), this.getY(), this.getZ());
@@ -175,7 +175,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 			removeY = true;
 		}
 
-		var targetPos = new PlayerPosition(motionVec, root.getVelocity(), 0, 0);
+		var targetPos = new EntityPosition(motionVec, root.getVelocity(), 0, 0);
 		var set = EnumSet.allOf(PositionFlag.class);
 		set.removeAll(PositionFlag.DELTA);
 		if (removeY) {
@@ -191,7 +191,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 	}
 
 	public boolean shouldMove(Entity entity) {
-		return !this.isConnectedThroughVehicle(entity) && !entity.noClip && !(entity instanceof MovingBlock) && ((EntityExtensions) entity).metacraft$getLastMovedByMovingBlockTick() != getWorld().getTime();
+		return !this.isConnectedThroughVehicle(entity) && !entity.noClip && !(entity instanceof MovingBlock) && ((EntityExtensions) entity).metacraft$getLastMovedByMovingBlockTick() != getEntityWorld().getTime();
 	}
 
 	private ServerPlayerEntity getRelevantPlayer(Entity entity) {
@@ -212,7 +212,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		} else {
 			entity.move(MovementType.SHULKER, movement);
 		}
-		((EntityExtensions) entity).metacraft$setLastMovedByMovingBlockTick(getWorld().getTime());
+		((EntityExtensions) entity).metacraft$setLastMovedByMovingBlockTick(getEntityWorld().getTime());
 	}
 
 	private static Box selectionBox(Box entityBox, Vec3d movement) {
@@ -229,7 +229,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		super.move(type, movement);
 		if (isMovementValid(movement)) {
 			var box = selectionBox(entityBox, movement);
-			for (var entity : getWorld().getOtherEntities(this, box, this::shouldMove)) {
+			for (var entity : getEntityWorld().getOtherEntities(this, box, this::shouldMove)) {
 				moveEntity(entity, movement);
 			}
 		}
@@ -285,7 +285,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 	public Optional<AnchorEntity> getRootAnchor() {
 		if (anchorEntity != null) return Optional.of(anchorEntity);
 		if (anchor == null) return Optional.empty();
-		if (getWorld() instanceof ServerWorld world) {
+		if (getEntityWorld() instanceof ServerWorld world) {
 			var offset = anchor.offset;
 			var e = world.getEntity(this.anchor.id);
 			while (e instanceof MovingBlock b && b.anchor != null) {

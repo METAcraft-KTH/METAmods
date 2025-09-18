@@ -124,7 +124,7 @@ public class ChunkAreaRegistry {
 			try {
 				return selector.get().getEntities(
 						world.getServer().getCommandFunctionManager().getScheduledCommandSource()
-				).stream().filter(e -> e.getWorld() == world).map(Entity::getChunkPos).distinct();
+				).stream().filter(e -> e.getEntityWorld() == world).map(Entity::getChunkPos).distinct();
 			} catch (CommandSyntaxException e) {
 				Cutscenes.LOGGER.error(e.getMessage());
 				return Stream.of();

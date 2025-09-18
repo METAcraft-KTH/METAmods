@@ -30,7 +30,7 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 	)
 	public void onTakeOutput(PlayerEntity player, ItemStack stack, CallbackInfo ci) {
 		if (stack.isOf(PlotItems.PLOT_KEY) && stack.contains(DataComponentTypes.CUSTOM_NAME)) {
-			PlotKey.renameKey(stack, player.getServer(), stack.getName().getString());
+			PlotKey.renameKey(stack, player.getEntityWorld().getServer(), stack.getName().getString());
 		}
 	}
 
@@ -38,7 +38,7 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 	public void updateResult(CallbackInfo ci) {
 		var output = this.output.getStack(0);
 		if (this.input.getStack(0).isOf(PlotItems.PLOT_KEY) && output.isOf(PlotItems.PLOT_KEY) && output.contains(DataComponentTypes.CUSTOM_NAME)) {
-			PlotKey.getZone(output, this.player.getServer()).ifPresent(zone -> {
+			PlotKey.getZone(output, this.player.getEntityWorld().getServer()).ifPresent(zone -> {
 				if (!zone.plotData().friendlyNameIsOccupied(output.getName().getString())) {
 					PlotKey.setPlaceholderName(output, output.getName().getString());
 				}

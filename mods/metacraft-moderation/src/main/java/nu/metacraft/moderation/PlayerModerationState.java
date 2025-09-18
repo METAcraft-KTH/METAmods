@@ -12,7 +12,7 @@ public class PlayerModerationState {
 		if (!canEnterModerationMode(player, mode)) {
 			return false;
 		}
-		var data = ModerationData.getInstance(player.getServer());
+		var data = ModerationData.getInstance(player.getEntityWorld().getServer());
 		return data.getDefinition(mode).map(actualMode -> {
 			var state = new ModerationModeState(actualMode);
 			((ModerationPlayerData) player).METAcraft_Moderation$setModerationMode(state);

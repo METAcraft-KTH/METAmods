@@ -22,7 +22,7 @@ public class MixinGlassBottleItem {
 		var ownerEntity = object instanceof Entity e ? e : null;
 		if (ownerEntity == null && cloud instanceof AccessorAreaEffectCloudEntity e) {
 			var owner = e.getOwner();
-			if (cloud.getWorld() instanceof ServerWorld world && owner != null) {
+			if (cloud.getEntityWorld() instanceof ServerWorld world && owner != null) {
 				ownerEntity = world.getEntity(owner.getUuid());
 			}
 		}

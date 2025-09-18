@@ -56,7 +56,7 @@ public class PortalPadding extends Block implements PolymerBlock {
 				var readView = NbtReadView.create(logging, lookup, nbt);
 				tile.read(readView);
 			}
-			tile.setWorld(ctx.getPlayer().getWorld());
+			tile.setWorld(ctx.getPlayer().getEntityWorld());
 			ctx.getPlayer().networkHandler.sendPacket(BlockEntityUpdateS2CPacket.create(tile));
 		}
 	}

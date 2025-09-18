@@ -21,7 +21,7 @@ public class MixinServerCommonNetworkHandler {
 	public void fixTrapBlock(Packet<?> packet, CallbackInfo ci) {
 		if ((Object) this instanceof ServerPlayNetworkHandler play && packet instanceof BlockUpdateS2CPacket blockUpdate) {
 			if (blockUpdate.getState().getBlock() instanceof BlockWithDisguise disguised) {
-				disguised.getBlockEntity(play.player.getWorld(), blockUpdate.getPos()).ifPresent(entity -> {
+				disguised.getBlockEntity(play.player.getEntityWorld(), blockUpdate.getPos()).ifPresent(entity -> {
 					((AccessorBlockUpdateS2CPacket) blockUpdate).setState(entity.getBlockState());
 				});
 			}

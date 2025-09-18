@@ -82,7 +82,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 
 	@Inject(method = "tick", at = @At("RETURN"))
 	public void tick(CallbackInfo ci) {
-		if (!getWorld().isClient() && hasAngerParticles) {
+		if (!getEntityWorld().isClient() && hasAngerParticles) {
 			if (particleDelay <= 0) {
 				Particles.spawnAngerParticles(this, random);
 				particleDelay = 10 + random.nextInt(30);
@@ -157,7 +157,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 	private static Optional<? extends LivingEntity> getTarget(ServerWorld world, LivingEntity entity) {
 		Optional<LivingEntity> angryAt = getMemory(entity, MemoryModuleType.ANGRY_AT).map(
 			uuid -> {
-				var target = ((ServerWorld) entity.getWorld()).getEntity(uuid);
+				var target = ((ServerWorld) entity.getEntityWorld()).getEntity(uuid);
 				if (target instanceof LivingEntity living) {
 					return living;
 				} else {

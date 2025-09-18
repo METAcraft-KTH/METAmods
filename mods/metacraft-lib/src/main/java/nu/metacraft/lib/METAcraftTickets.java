@@ -9,7 +9,7 @@ public class METAcraftTickets {
 	public static final ChunkTicketType TELEPORT_MOB_SOON = register(
 			"teleport_mob_soon",
 			new ChunkTicketType(
-					1, false, ChunkTicketType.Use.LOADING_AND_SIMULATION
+					1, ChunkTicketType.FOR_LOADING | ChunkTicketType.FOR_SIMULATION
 			)
 	);
 	

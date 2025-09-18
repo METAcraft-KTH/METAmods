@@ -31,6 +31,7 @@ import net.minecraft.loot.LootPool;
 import net.minecraft.loot.LootTable;
 import net.minecraft.loot.condition.LootConditionConsumingBuilder;
 import net.minecraft.loot.condition.SurvivesExplosionLootCondition;
+import net.minecraft.loot.context.LootContextParameters;
 import net.minecraft.loot.entry.ItemEntry;
 import net.minecraft.loot.function.CopyComponentsLootFunction;
 import net.minecraft.loot.provider.number.ConstantLootNumberProvider;
@@ -134,8 +135,8 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 									ConstantLootNumberProvider.create(1.0F)
 							).with(
 									ItemEntry.builder(drop).apply(
-											CopyComponentsLootFunction.builder(
-													CopyComponentsLootFunction.Source.BLOCK_ENTITY
+											CopyComponentsLootFunction.method_74903(
+													LootContextParameters.BLOCK_ENTITY
 											)
 									)
 							)

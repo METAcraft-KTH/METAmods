@@ -15,7 +15,7 @@ public class SeparateAdvancementTracker extends PlayerAdvancementTracker {
 	private final Identifier type;
 
 	public static Path getPath(WorldSavePath path, ServerPlayerEntity owner, Identifier type) {
-		return owner.getServer().getSavePath(path).resolve(
+		return owner.getEntityWorld().getServer().getSavePath(path).resolve(
 				owner.getUuid() + "-" + PathUtil.replaceInvalidChars(type.getNamespace())
 		).resolve(type.getPath() + ".json");
 	}

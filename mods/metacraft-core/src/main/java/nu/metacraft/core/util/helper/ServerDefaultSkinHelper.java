@@ -1,7 +1,9 @@
 package nu.metacraft.core.util.helper;
 
+import com.google.common.collect.ImmutableMultimap;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
+import com.mojang.authlib.properties.PropertyMap;
 import net.minecraft.util.Util;
 
 import java.util.UUID;
@@ -107,9 +109,11 @@ public class ServerDefaultSkinHelper {
 	};
 
 	private static GameProfile fromTexture(String name, String value, String signature) {
-		GameProfile profile = new GameProfile(Util.NIL_UUID, name);
-		profile.getProperties().put(TEXTURES, new Property(TEXTURES, value, signature));
-		return profile;
+		return new GameProfile(
+				Util.NIL_UUID, name, new PropertyMap(
+					ImmutableMultimap.of(TEXTURES, new Property(TEXTURES, value, signature))
+				)
+		);
 	}
 
 	/**
@@ -120,10 +124,10 @@ public class ServerDefaultSkinHelper {
 	 * @return A game profile with a skin texture attached. Note that the UUID and name will not be preserved if the default skin is returned.
 	 */
 	public static GameProfile getOrDefault(GameProfile profile) {
-		if (profile.getProperties().containsKey(TEXTURES)) {
+		if (profile.properties().containsKey(TEXTURES)) {
 			return profile;
 		} else {
-			return getDefaultSkin(profile.getId());
+			return getDefaultSkin(profile.id());
 		}
 	}
 

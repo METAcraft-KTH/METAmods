@@ -306,7 +306,7 @@ public class CutsceneInstance implements AutoCloseable {
 		if (existing != null && getEntityLookup().get(existing) != null) {
 			return;
 		}
-		var entity = entitySpawner.apply(getPlayerData(player.getUuid(), player.getServer().getDataFixer()));
+		var entity = entitySpawner.apply(getPlayerData(player.getUuid(), player.getEntityWorld().getServer().getDataFixer()));
 		if (entity == null) return;
 		entity.streamSelfAndPassengers().forEach(e -> {
 			e.getCommandTags().add(PLAYER_DUMMY_TAG);
@@ -328,7 +328,7 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	private void removeLead(ServerPlayerEntity player) {
-		player.getWorld().getEntitiesByType(
+		player.getEntityWorld().getEntitiesByType(
 				TypeFilter.instanceOf(Entity.class),
 				entity -> entity instanceof Leashable leashable && leashable.isLeashed() && leashable.getLeashHolder() == player
 		).forEach(entity -> {
@@ -337,9 +337,9 @@ public class CutsceneInstance implements AutoCloseable {
 				var lead = new ItemStack(Items.LEAD);
 				player.getInventory().insertStack(lead);
 				if (!lead.isEmpty()) {
-					var leadEntity = new ItemEntity(player.getWorld(), player.getX(), player.getY(), player.getZ(), lead);
+					var leadEntity = new ItemEntity(player.getEntityWorld(), player.getX(), player.getY(), player.getZ(), lead);
 					leadEntity.setNeverDespawn();
-					player.getWorld().spawnEntity(leadEntity);
+					player.getEntityWorld().spawnEntity(leadEntity);
 				}
 			}
 		});
@@ -389,7 +389,7 @@ public class CutsceneInstance implements AutoCloseable {
 				}
 			}
 		}
-		((AccessorPlayerManager) player.getServer().getPlayerManager()).callSendScoreboard(newScoreboard, player);
+		((AccessorPlayerManager) player.getEntityWorld().getServer().getPlayerManager()).callSendScoreboard(newScoreboard, player);
 	}
 
 	public static void loadPlayerData(
@@ -419,7 +419,7 @@ public class CutsceneInstance implements AutoCloseable {
 	protected void resetPlayer(ServerPlayerEntity player, boolean isLeavingCutscene) {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:CutsceneInstance#resetPlayer", Cutscenes.LOGGER)) {
 			if (cutscene.resetPlayerData()) {
-				var data = getPlayerData(player.getUuid(), player.getServer().getDataFixer());
+				var data = getPlayerData(player.getUuid(), player.getEntityWorld().getServer().getDataFixer());
 				if (data == null) {
 					data = new NbtCompound();
 				}
@@ -432,12 +432,12 @@ public class CutsceneInstance implements AutoCloseable {
 				if (cutscene.hasExitPoint()) {
 					target = cutscene.getExitPoint(player, this).orElseThrow();
 				} else if (cutscene.returnToStart() && skipNextCutscene(isLeavingCutscene)) {
-					target = Optional.ofNullable(getPlayerData(player.getUuid(), player.getServer().getDataFixer())).flatMap(data -> {
+					target = Optional.ofNullable(getPlayerData(player.getUuid(), player.getEntityWorld().getServer().getDataFixer())).flatMap(data -> {
 						Vec3d pos = data.get("Pos", Vec3d.CODEC).orElse(Vec3d.ZERO);
 						Vec3d velocity = data.get("Motion", Vec3d.CODEC).orElse(Vec3d.ZERO);
 						Vec2f rotation = data.get("Rotation", Vec2f.CODEC).orElse(Vec2f.ZERO);
 						var readView = NbtReadView.create(logging, player.getRegistryManager(), data);
-						var dim = PlayerDataHelper.getWorld(player.getServer(), readView);
+						var dim = PlayerDataHelper.getWorld(player.getEntityWorld().getServer(), readView);
 						return dim.map(world -> {
 							return new TeleportTarget(
 									world, pos, velocity,
@@ -451,10 +451,10 @@ public class CutsceneInstance implements AutoCloseable {
 				}
 
 				if (savedPlayerData.containsKey(player.getUuid())) {
-					var data = getPlayerData(player.getUuid(), player.getServer().getDataFixer());
+					var data = getPlayerData(player.getUuid(), player.getEntityWorld().getServer().getDataFixer());
 					var readView = NbtReadView.create(logging, player.getRegistryManager(), data);
 					PlayerDataHelper.loadRootVehicleAndPassengers(player, readView, e -> {
-						if (player.getWorld().spawnEntity(e)) {
+						if (player.getEntityWorld().spawnEntity(e)) {
 							e.updatePositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
 							return e;
 						}
@@ -475,7 +475,7 @@ public class CutsceneInstance implements AutoCloseable {
 			savedPlayerData.remove(player.getUuid());
 		}
 
-		player.getServer().getPlayerManager().sendPlayerStatus(player);
+		player.getEntityWorld().getServer().getPlayerManager().sendPlayerStatus(player);
 	}
 
 	public void resetPlayers() {
@@ -499,7 +499,7 @@ public class CutsceneInstance implements AutoCloseable {
 		}
 
 		if (cutscene.hidePlayer()) {
-			var tracker = EntityTrackerHelper.getEntityTrackers(player.getWorld()).get(player.getId());
+			var tracker = EntityTrackerHelper.getEntityTrackers(player.getEntityWorld()).get(player.getId());
 			for (var p : getServer().getPlayerManager().getPlayerList()) {
 				if (p != player) {
 					tracker.updateTrackedStatus(p);

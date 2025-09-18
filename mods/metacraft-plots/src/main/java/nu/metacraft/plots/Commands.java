@@ -1,6 +1,5 @@
 package nu.metacraft.plots;
 
-import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -12,6 +11,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.GameProfileArgumentType;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
@@ -116,7 +116,7 @@ public class Commands {
 			PlayerOwnedProtectorate protectorate,
 			String prefix,
 			CommandContext<ServerCommandSource> ctx,
-			Collection<GameProfile> players
+			Collection<PlayerConfigEntry> players
 	) {
 		if (players.isEmpty()) {
 			ctx.getSource().sendFeedback(
@@ -125,7 +125,7 @@ public class Commands {
 			);
 		} else {
 			Text message = Text.literal(prefix + " " + players.stream().map(
-					GameProfile::getName
+					PlayerConfigEntry::name
 			).collect(Collectors.joining(", ")));
 			protectorate.getOwnersAndAdmins().filter(
 					owner -> ctx.getSource().getPlayer() == null || !ctx.getSource().getPlayer().getUuid().equals(owner)
@@ -144,7 +144,7 @@ public class Commands {
 
 	private static Stream<String> getNames(Stream<UUID> ids, ServerCommandSource source) {
 		return ids.map(
-			member -> source.getServer().getUserCache().getByUuid(member).map(GameProfile::getName).orElse(null)
+			member -> source.getServer().getApiServices().nameToIdCache().getByUuid(member).map(PlayerConfigEntry::name).orElse(null)
 		).filter(Objects::nonNull);
 	}
 
@@ -163,7 +163,7 @@ public class Commands {
 									return false;
 								}
 							}
-					).map(player -> player.getGameProfile().getName()),
+					).map(player -> player.getGameProfile().name()),
 					builder
 			);
 		};
@@ -177,9 +177,9 @@ public class Commands {
 			var protectorate = getProtectorateUnsafe(ctx, protectorateArg);
 			return CommandSource.suggestMatching(
 					existingPlayers.apply(ctx, protectorate).filter(
-							player -> ctx.getSource().getServer().getUserCache().getByUuid(player).isPresent()
+							player -> ctx.getSource().getServer().getApiServices().nameToIdCache().getByUuid(player).isPresent()
 					).map(
-							player -> ctx.getSource().getServer().getUserCache().getByUuid(player).get().getName()
+							player -> ctx.getSource().getServer().getApiServices().nameToIdCache().getByUuid(player).get().name()
 					),
 					builder
 			);
@@ -247,11 +247,11 @@ public class Commands {
 										var it = players.iterator();
 										while (it.hasNext()) {
 											var id = it.next();
-											if (protectorate.isAllowed(id.getId())) {
+											if (protectorate.isAllowed(id.id())) {
 												it.remove();
 												continue;
 											}
-											protectorate.addMember(id.getId());
+											protectorate.addMember(id.id());
 										}
 										printPlayers(protectorate, "Added new members:", ctx, players);
 										return players.size();
@@ -285,11 +285,11 @@ public class Commands {
 										var it = players.iterator();
 										while (it.hasNext()) {
 											var id = it.next();
-											if (protectorate.isAllowed(id.getId())) {
+											if (protectorate.isAllowed(id.id())) {
 												it.remove();
 												continue;
 											}
-											protectorate.addOwner(id.getId());
+											protectorate.addOwner(id.id());
 										}
 										printPlayers(protectorate, "Added new owners:", ctx, players);
 										return players.size();
@@ -323,11 +323,11 @@ public class Commands {
 										var it = players.iterator();
 										while (it.hasNext()) {
 											var id = it.next();
-											if (protectorate.isAllowed(id.getId())) {
+											if (protectorate.isAllowed(id.id())) {
 												it.remove();
 												continue;
 											}
-											protectorate.addAdmin(id.getId());
+											protectorate.addAdmin(id.id());
 										}
 										printPlayers(protectorate, "Added new admins:", ctx, players);
 										return players.size();
@@ -378,8 +378,8 @@ public class Commands {
 											var id = it.next();
 											if (
 													(
-															protectorate.isOwner(id.getId()) ||
-															protectorate.isAdmin(id.getId())
+															protectorate.isOwner(id.id()) ||
+															protectorate.isAdmin(id.id())
 													) && !isOwner
 											) {
 												it.remove();
@@ -387,7 +387,7 @@ public class Commands {
 											}
 											if (
 												ctx.getSource().getPlayer() != null &&
-												ctx.getSource().getPlayer().getUuid().equals(id.getId()) &&
+												ctx.getSource().getPlayer().getUuid().equals(id.id()) &&
 												!canModifyOtherProtectorates(ctx.getSource())
 											) {
 												it.remove();
@@ -396,14 +396,14 @@ public class Commands {
 												));
 												continue;
 											}
-											if (protectorate.isMember(id.getId())) {
-												protectorate.removeMember(id.getId());
+											if (protectorate.isMember(id.id())) {
+												protectorate.removeMember(id.id());
 											}
-											if (protectorate.isAdmin(id.getId())) {
-												protectorate.removeAdmin(id.getId());
+											if (protectorate.isAdmin(id.id())) {
+												protectorate.removeAdmin(id.id());
 											}
-											if (protectorate.isOwner(id.getId())) {
-												protectorate.removeOwner(id.getId());
+											if (protectorate.isOwner(id.id())) {
+												protectorate.removeOwner(id.id());
 											}
 										}
 									}
@@ -430,13 +430,13 @@ public class Commands {
 									var players = GameProfileArgumentType.getProfileArgument(ctx, "player");
 									var protectorate = getProtectorateFromOwner(ctx, PROTECTORATE);
 									for (var player : players) {
-										if (protectorate.isAdmin(player.getId())) {
-											protectorate.removeAdmin(player.getId());
-											protectorate.addOwner(player.getId());
+										if (protectorate.isAdmin(player.id())) {
+											protectorate.removeAdmin(player.id());
+											protectorate.addOwner(player.id());
 										}
-										if (protectorate.isMember(player.getId())) {
-											protectorate.removeMember(player.getId());
-											protectorate.addAdmin(player.getId());
+										if (protectorate.isMember(player.id())) {
+											protectorate.removeMember(player.id());
+											protectorate.addAdmin(player.id());
 										}
 									}
 									printPlayers(protectorate, "Promoted:", ctx, players);
@@ -465,7 +465,7 @@ public class Commands {
 										var player = it.next();
 										if (
 												ctx.getSource().getPlayer() != null &&
-												ctx.getSource().getPlayer().getUuid().equals(player.getId()) &&
+												ctx.getSource().getPlayer().getUuid().equals(player.id()) &&
 												!canModifyOtherProtectorates(ctx.getSource())
 										) {
 											it.remove();
@@ -475,16 +475,16 @@ public class Commands {
 											continue;
 										}
 
-										if (protectorate.isMember(player.getId())) {
-											protectorate.removeMember(player.getId());
+										if (protectorate.isMember(player.id())) {
+											protectorate.removeMember(player.id());
 										}
-										if (protectorate.isAdmin(player.getId())) {
-											protectorate.removeAdmin(player.getId());
-											protectorate.addMember(player.getId());
+										if (protectorate.isAdmin(player.id())) {
+											protectorate.removeAdmin(player.id());
+											protectorate.addMember(player.id());
 										}
-										if (protectorate.isOwner(player.getId())) {
-											protectorate.removeOwner(player.getId());
-											protectorate.addAdmin(player.getId());
+										if (protectorate.isOwner(player.id())) {
+											protectorate.removeOwner(player.id());
+											protectorate.addAdmin(player.id());
 										}
 									}
 									printPlayers(protectorate, "Demoted:", ctx, players);

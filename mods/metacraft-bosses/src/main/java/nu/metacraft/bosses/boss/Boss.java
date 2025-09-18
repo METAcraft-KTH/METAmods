@@ -19,7 +19,7 @@ public interface Boss {
 	Entity getAsEntity();
 
 	default ServerWorld getServerWorld() {
-		return (ServerWorld) getAsEntity().getWorld();
+		return (ServerWorld) getAsEntity().getEntityWorld();
 	}
 
 	default ManageableServerBossBar getBossBar() {

@@ -31,9 +31,9 @@ public record DisplayItemData(Either<List<ItemStack>, LootTable> items) {
 	public static final Codec<DisplayItemData> CODEC = ICON_CODEC.xmap(DisplayItemData::new, DisplayItemData::items);
 
 	public List<ItemStack> getItems(Entity entity) {
-		if (entity.getWorld().isClient()) return List.of();
+		if (entity.getEntityWorld().isClient()) return List.of();
 		float luck = entity instanceof LivingEntity living ? (float) living.getAttributeValue(EntityAttributes.LUCK) : 0;
-		Supplier<LootWorldContext> ctx = () -> new LootWorldContext.Builder((ServerWorld) entity.getWorld())
+		Supplier<LootWorldContext> ctx = () -> new LootWorldContext.Builder((ServerWorld) entity.getEntityWorld())
 				.add(LootContextParameters.ORIGIN, entity.getPos())
 				.luck(luck)
 				.add(LootContextParameters.THIS_ENTITY, entity)

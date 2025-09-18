@@ -39,7 +39,7 @@ public abstract class MixinItemEntity extends Entity {
 	)
 	public void onDespawn(CallbackInfo ci) {
 		if (!this.getStack().isEmpty() && this.getStack().isOf(PlotItems.PLOT_KEY)) {
-			PlotKey.revokePlotKey(this.getStack(), this.getServer());
+			PlotKey.revokePlotKey(this.getStack(), this.getEntityWorld().getServer());
 		}
 	}
 

@@ -3,6 +3,7 @@ package nu.metacraft.resource_packs.mixin;
 import net.minecraft.registry.CombinedDynamicRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerManager;
+import net.minecraft.server.dedicated.management.listener.ManagementListener;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.PlayerSaveHandler;
 import org.spongepowered.asm.mixin.Mixin;
@@ -20,7 +21,7 @@ public class MixinPlayerManager implements PlayerManagerExtension {
 	private PlayerPackDataManager manager;
 
 	@Inject(method = "<init>", at = @At("RETURN"))
-	public void init(MinecraftServer server, CombinedDynamicRegistries<?> registryManager, PlayerSaveHandler saveHandler, int maxPlayers, CallbackInfo ci) {
+	public void init(MinecraftServer server, CombinedDynamicRegistries<?> registryManager, PlayerSaveHandler saveHandler, ManagementListener managementListener, CallbackInfo ci) {
 		manager = new PlayerPackDataManager(server);
 	}
 	

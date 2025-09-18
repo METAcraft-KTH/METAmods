@@ -57,7 +57,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			return;
 		}
 		if (this.networkHandler == null) {
-			TaskScheduler.scheduleImmediately(getServer(), () -> metacraft_cutscenes$setCutscene(cutscene));
+			TaskScheduler.scheduleImmediately(getEntityWorld().getServer(), () -> metacraft_cutscenes$setCutscene(cutscene));
 			return;
 		}
 		if (this.cutscene != null && !this.cutscene.isEnded()) {
@@ -116,7 +116,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		if (
 				CutsceneHelper.isInMultiplayerCutscene((ServerPlayerEntity) (Object) this) &&
 				!((EntityExtension) this).metacraft$canChangeWorldInCutscene() &&
-				this.getWorld().getRegistryKey() != teleportTarget.world().getRegistryKey()
+				this.getEntityWorld().getRegistryKey() != teleportTarget.world().getRegistryKey()
 		) {
 			cir.setReturnValue(this);
 		}
@@ -124,14 +124,14 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Inject(method = "teleportTo", at = @At("RETURN"))
 	public void teleportPost(TeleportTarget teleportTarget, CallbackInfoReturnable<Entity> cir) {
-		if (cutscene != null && this.getWorld().getRegistryKey() != teleportTarget.world().getRegistryKey()) {
+		if (cutscene != null && this.getEntityWorld().getRegistryKey() != teleportTarget.world().getRegistryKey()) {
 			cutscene.setTargetWorld(teleportTarget.world());
 		}
 	}
 
 	@Inject(method = "onDisconnect", at = @At("HEAD"))
 	public void onDisconnect(CallbackInfo ci) {
-		MultiplayerCutsceneManager.getInstance(getServer()).onPlayerLeave((ServerPlayerEntity) (Object) this);
+		MultiplayerCutsceneManager.getInstance(getEntityWorld().getServer()).onPlayerLeave((ServerPlayerEntity) (Object) this);
 		if (cutscene != null) {
 			cutscene.close();
 		}
@@ -140,7 +140,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	@Inject(method = "readCustomData", at = @At("RETURN"))
 	public void readNBT(ReadView nbt, CallbackInfo ci) {
 		nbt.read(CutsceneInstance.CUTSCENE, CutsceneInstance.CODEC).ifPresent(scene -> {
-			scene.finalizeParse(getServer());
+			scene.finalizeParse(getEntityWorld().getServer());
 			this.metacraft_cutscenes$setCutscene(scene);
 		});
 	}

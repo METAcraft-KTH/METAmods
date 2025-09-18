@@ -44,7 +44,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Ex
 		at = @At("HEAD")
 	)
 	public void tick(CallbackInfo ci) {
-		if (!this.getWorld().isClient()) {
+		if (!this.getEntityWorld().isClient()) {
 			ExileData.getInstance(server).getExile((ServerPlayerEntity) (Object) this).ifPresent(exile -> {
 				exile.tick((ServerPlayerEntity & ExilePlayerData) (Object) this);
 			});

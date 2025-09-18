@@ -21,7 +21,7 @@ public class BetterPetsTeleportHelper {
 			LocalRef<List<? extends Entity>> leashed,
 			LocalRef<List<? extends LivingEntity>> pets
 	) {
-		if (e.getWorld() instanceof ServerWorld world) {
+		if (e.getEntityWorld() instanceof ServerWorld world) {
 			leashed.set(
 					world.getEntitiesByType(
 							TypeFilter.instanceOf(Entity.class),
@@ -52,7 +52,7 @@ public class BetterPetsTeleportHelper {
 			LocalRef<List<? extends Entity>> leashed,
 			LocalRef<List<? extends LivingEntity>> pets
 	) {
-		if (entity.getWorld() instanceof ServerWorld world) {
+		if (entity.getEntityWorld() instanceof ServerWorld world) {
 			leashed.get().forEach(l -> {
 				((Leashable) l).detachLeashWithoutDrop();
 				TeleportHelper.teleportEntityToPlayer(

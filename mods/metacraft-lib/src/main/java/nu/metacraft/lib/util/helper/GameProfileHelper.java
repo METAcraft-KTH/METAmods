@@ -22,7 +22,9 @@ public class GameProfileHelper {
 		if (player != null) {
 			return Optional.of(player.getGameProfile());
 		} else {
-			return server.getUserCache().getByUuid(uuid);
+			return server.getApiServices().nameToIdCache().getByUuid(uuid).map(
+					config -> new GameProfile(config.id(), config.name())
+			);
 		}
 	}
 

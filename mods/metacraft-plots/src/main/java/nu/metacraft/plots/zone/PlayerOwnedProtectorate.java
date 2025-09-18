@@ -1,7 +1,6 @@
 package nu.metacraft.plots.zone;
 
 import com.google.common.collect.Lists;
-import com.mojang.authlib.GameProfile;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.component.ComponentType;
@@ -17,6 +16,7 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.predicate.item.ItemPredicate;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.text.Text;
 import net.minecraft.util.Uuids;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -267,9 +267,9 @@ public class PlayerOwnedProtectorate extends ZoneData {
 			if (!predicate.test(stack)) return Optional.empty();
 			return Optional.ofNullable(stack.get(uuidComponent)).flatMap(component -> {
 				DataResult<UUID> result = switch (component) {
-					case NbtComponent nbt -> nbt.get(getDecoder(uuidPath));
+					case NbtComponent nbt -> getDecoder(uuidPath).decode(NbtOps.INSTANCE, NbtOps.INSTANCE.getMap(nbt.copyNbt()).getOrThrow());
 					case NbtCompound nbt -> getDecoder(uuidPath).decode(NbtOps.INSTANCE, NbtOps.INSTANCE.getMap(nbt).getOrThrow());
-					case ProfileComponent profile -> profile.uuid().map(DataResult::success).orElse(DataResult.error(() -> "Profile component not loaded!"));
+					case ProfileComponent profile -> DataResult.success(profile.getGameProfile().id());
 					default -> {
 						var codec = uuidComponent.getCodec();
 						if (codec == null) yield DataResult.error(() -> "Cannot fetch UUID from unserializable codec!");
@@ -345,18 +345,18 @@ public class PlayerOwnedProtectorate extends ZoneData {
 		return Text.literal(
 				"PlayerOwnedProtectorate[owners=[" +
 						owners.stream().map(
-								owner -> zone.getWorld().getServer().getUserCache().getByUuid(owner)
-										.map(GameProfile::getName).orElse(owner.toString())
+								owner -> zone.getWorld().getServer().getApiServices().nameToIdCache().getByUuid(owner)
+										.map(PlayerConfigEntry::name).orElse(owner.toString())
 						).collect(Collectors.joining(", ")) +
 						"], admins=[" +
 						admins.stream().map(
-								owner -> zone.getWorld().getServer().getUserCache().getByUuid(owner)
-										.map(GameProfile::getName).orElse(owner.toString())
+								owner -> zone.getWorld().getServer().getApiServices().nameToIdCache().getByUuid(owner)
+										.map(PlayerConfigEntry::name).orElse(owner.toString())
 						).collect(Collectors.joining(", ")) +
 						"], members=[" +
 						allowedPlayers.stream().map(
-								owner -> zone.getWorld().getServer().getUserCache().getByUuid(owner)
-										.map(GameProfile::getName).orElse(owner.toString())
+								owner -> zone.getWorld().getServer().getApiServices().nameToIdCache().getByUuid(owner)
+										.map(PlayerConfigEntry::name).orElse(owner.toString())
 						).collect(Collectors.joining(", ")) +
 						"], balance=" +
 						balance +

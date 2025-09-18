@@ -28,7 +28,7 @@ public class CuccoRevengeGoal extends RevengeGoal {
 	public void callSameTypeForRevenge() {
 		final int minAttackers = ((ChickenExtensions) mob).metacraft_lib$getReinforcementCount();
 		double range = getFollowRange();
-		var mobs = mob.getWorld().getOtherEntities(mob, new Box(
+		var mobs = mob.getEntityWorld().getOtherEntities(mob, new Box(
 				mob.getX() - range, mob.getY() - range, mob.getZ() - range,
 				mob.getX() + range, mob.getY() + range, mob.getZ() + range
 		), entity -> entity instanceof ChickenEntity && ((ChickenExtensions) entity).metacraft_lib$isCucco());
@@ -36,19 +36,19 @@ public class CuccoRevengeGoal extends RevengeGoal {
 			int toSpawn = minAttackers - mobs.size();
 			((ChickenExtensions) mob).metacraft_lib$setReinforcementCount(minAttackers - toSpawn);
 			for (int i = 0; i < toSpawn; i++) {
-				var chicken = EntityType.CHICKEN.create(mob.getWorld(), SpawnReason.REINFORCEMENT);
+				var chicken = EntityType.CHICKEN.create(mob.getEntityWorld(), SpawnReason.REINFORCEMENT);
 				chicken.initialize(
-						(ServerWorldAccess) mob.getWorld(),
-						mob.getWorld().getLocalDifficulty(mob.getBlockPos()),
+						(ServerWorldAccess) mob.getEntityWorld(),
+						mob.getEntityWorld().getLocalDifficulty(mob.getBlockPos()),
 						SpawnReason.REINFORCEMENT, null
 				);
 				((ChickenExtensions) chicken).metacraft_lib$setCucco(true);
 				((ChickenExtensions) chicken).metacraft_lib$setReinforcementCount(0);
-				double x = mob.getX() + mob.getWorld().getRandom().nextGaussian() * range;
-				double z = mob.getZ() + mob.getWorld().getRandom().nextGaussian() * range;
-				int y = mob.getWorld().getTopY(Heightmap.Type.MOTION_BLOCKING, MathHelper.floor(x), MathHelper.floor(z));
+				double x = mob.getX() + mob.getEntityWorld().getRandom().nextGaussian() * range;
+				double z = mob.getZ() + mob.getEntityWorld().getRandom().nextGaussian() * range;
+				int y = mob.getEntityWorld().getTopY(Heightmap.Type.MOTION_BLOCKING, MathHelper.floor(x), MathHelper.floor(z));
 				chicken.refreshPositionAndAngles(x, y, z, 0, 0);
-				mob.getWorld().spawnEntity(chicken);
+				mob.getEntityWorld().spawnEntity(chicken);
 			}
 		}
 		super.callSameTypeForRevenge();

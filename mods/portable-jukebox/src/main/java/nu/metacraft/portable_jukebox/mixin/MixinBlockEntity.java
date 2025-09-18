@@ -20,7 +20,7 @@ public class MixinBlockEntity implements HasPortableJukebox {
 	public void portable_jukebox$addPortableJukebox(PortableJukeboxEntity entity) {
 		this.jukeboxes.add(entity);
 		if (entity != null) {
-			entity.setEntity(EntityRef.fromBlock((BlockEntity) (Object) this));
+			entity.setConnectedEntity(EntityRef.fromBlock((BlockEntity) (Object) this));
 		}
 	}
 

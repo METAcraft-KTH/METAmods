@@ -97,7 +97,7 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 	@Unique
 	private void updateController() {
 		if (FasterMinecartsHelper.areMinecartExperimentsEnabledForCart(
-				areMinecartImprovementsEnabled(getWorld()),(AbstractMinecartEntity) (Object) this
+				areMinecartImprovementsEnabled(getEntityWorld()),(AbstractMinecartEntity) (Object) this
 		)) {
 			trySetController(
 					ExperimentalMinecartController.class,

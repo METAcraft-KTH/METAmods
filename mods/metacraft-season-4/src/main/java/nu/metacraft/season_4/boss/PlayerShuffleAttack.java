@@ -1,7 +1,7 @@
 package nu.metacraft.season_4.boss;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.entity.player.PlayerPosition;
+import net.minecraft.entity.EntityPosition;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Util;
 import net.minecraft.world.TeleportTarget;
@@ -32,7 +32,7 @@ public class PlayerShuffleAttack extends InstantAttack {
 	public void trigger(BossContext<?> ctx) {
 		var sources = ctx.boss().getPlayerTargets();
 		if (sources.isEmpty()) return;
-		var targets = sources.stream().map(PlayerPosition::fromEntity).collect(Collectors.toList());
+		var targets = sources.stream().map(EntityPosition::fromEntity).collect(Collectors.toList());
 		Util.shuffle(targets, ctx.random());
 		for (int i = 0; i < sources.size(); i++) {
 			var target = targets.get(i);

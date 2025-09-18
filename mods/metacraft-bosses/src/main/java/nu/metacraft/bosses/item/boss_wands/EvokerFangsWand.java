@@ -36,7 +36,7 @@ public class EvokerFangsWand extends Item implements PolymerItem {
 
 		HitResult result = ProjectileUtil.raycast(user, eyePos, endPos, user.getBoundingBox().stretch(facingVector), entity -> true, facingVector.length());
 		if (result == null) {
-			result = user.getWorld().raycast(new RaycastContext(eyePos, endPos, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, user));
+			result = user.getEntityWorld().raycast(new RaycastContext(eyePos, endPos, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, user));
 		}
 		//Credits to Mojang.
 		Vec3d target = result.getPos().add(user.getRotationVector());
@@ -71,20 +71,20 @@ public class EvokerFangsWand extends Item implements PolymerItem {
 		do {
 			VoxelShape voxelShape;
 			BlockPos blockPos2;
-			if (!owner.getWorld().getBlockState(blockPos2 = blockPos.down()).isSideSolidFullSquare(owner.getWorld(), blockPos2, Direction.UP)) continue;
-			if (!owner.getWorld().isAir(blockPos) && !(voxelShape = owner.getWorld().getBlockState(blockPos).getCollisionShape(owner.getWorld(), blockPos)).isEmpty()) {
+			if (!owner.getEntityWorld().getBlockState(blockPos2 = blockPos.down()).isSideSolidFullSquare(owner.getEntityWorld(), blockPos2, Direction.UP)) continue;
+			if (!owner.getEntityWorld().isAir(blockPos) && !(voxelShape = owner.getEntityWorld().getBlockState(blockPos).getCollisionShape(owner.getEntityWorld(), blockPos)).isEmpty()) {
 				d = voxelShape.getMax(Direction.Axis.Y);
 			}
 			bl = true;
 			break;
 		} while ((blockPos = blockPos.down()).getY() >= MathHelper.floor(maxY) - 1);
 		if (bl) {
-			var entity = new EvokerFangsEntity(owner.getWorld(), x, (double)blockPos.getY() + d, z, yaw, warmup, owner);
+			var entity = new EvokerFangsEntity(owner.getEntityWorld(), x, (double)blockPos.getY() + d, z, yaw, warmup, owner);
 			entity.setOwner(owner);
 			if (owner.getScoreboardTeam() != null) {
-				owner.getServer().getScoreboard().addScoreHolderToTeam(entity.getNameForScoreboard(), owner.getScoreboardTeam());
+				owner.getEntityWorld().getServer().getScoreboard().addScoreHolderToTeam(entity.getNameForScoreboard(), owner.getScoreboardTeam());
 			}
-			owner.getWorld().spawnEntity(entity);
+			owner.getEntityWorld().spawnEntity(entity);
 		}
 	}
 

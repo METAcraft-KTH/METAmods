@@ -51,7 +51,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Shadow protected abstract void consumeItem();
 
-	@Shadow public abstract ServerWorld getWorld();
+	@Shadow public abstract ServerWorld getEntityWorld();
 
 	@Unique
 	private boolean teleportingOnVehicle = false;
@@ -227,13 +227,13 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		this.customName = customName;
 		this.showInGUI = showInGUI;
 		if (showInGUI) {
-			METAcraftData.getInstance(getServer()).setName(getUuid(), customName);
+			METAcraftData.getInstance(getEntityWorld().getServer()).setName(getUuid(), customName);
 		}
-		var tracker = EntityTrackerHelper.getEntityTrackers(this.getWorld()).get(this.getId());
+		var tracker = EntityTrackerHelper.getEntityTrackers(this.getEntityWorld()).get(this.getId());
 		if (tracker == null) {
 			return;
 		}
-		for (var player : this.getWorld().getPlayers()) {
+		for (var player : this.getEntityWorld().getPlayers()) {
 			if (player != (Object) this) {
 				player.networkHandler.sendPacket(
 						new PlayerRemoveS2CPacket(ImmutableList.of(this.getUuid()))

@@ -15,7 +15,7 @@ public class CutsceneHelper {
 	}
 
 	public static boolean isInMultiplayerCutscene(ServerPlayerEntity player) {
-		return MultiplayerCutsceneManager.getInstance(player.getServer()).isInCutscene(player);
+		return MultiplayerCutsceneManager.getInstance(player.getEntityWorld().getServer()).isInCutscene(player);
 	}
 
 	public static boolean isInCutscene(ServerPlayerEntity player) {
@@ -24,7 +24,7 @@ public class CutsceneHelper {
 
 	public static Optional<CutsceneInstance> getCutscene(ServerPlayerEntity player) {
 		if (isInMultiplayerCutscene(player)) {
-			return MultiplayerCutsceneManager.getInstance(player.getServer()).getCutsceneFromPlayer(player);
+			return MultiplayerCutsceneManager.getInstance(player.getEntityWorld().getServer()).getCutsceneFromPlayer(player);
 		} else if (isInPlayerSpecificCutscene(player)) {
 			return ((ServerPlayerEntityExtensions) player).metacraft_cutscenes$getCutscene();
 		} else {
@@ -33,7 +33,7 @@ public class CutsceneHelper {
 	}
 
 	public static void playPlayerSpecificCutscene(ServerPlayerEntity player, Cutscene cutscene) {
-		((ServerPlayerEntityExtensions) player).metacraft_cutscenes$setCutscene(new CutsceneInstance(cutscene, player.getWorld()));
+		((ServerPlayerEntityExtensions) player).metacraft_cutscenes$setCutscene(new CutsceneInstance(cutscene, player.getEntityWorld()));
 	}
 
 	public static void stopPlayerSpecificCutscene(ServerPlayerEntity player) {
@@ -45,7 +45,7 @@ public class CutsceneHelper {
 			stopPlayerSpecificCutscene(player);
 		}
 		if (isInMultiplayerCutscene(player)) {
-			MultiplayerCutsceneManager.getInstance(player.getServer()).leaveCutscene(player);
+			MultiplayerCutsceneManager.getInstance(player.getEntityWorld().getServer()).leaveCutscene(player);
 		}
 	}
 

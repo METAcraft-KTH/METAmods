@@ -1,5 +1,6 @@
 package nu.metacraft.plots.gui;
 
+import com.mojang.authlib.GameProfile;
 import eu.pb4.sgui.api.elements.AnimatedGuiElementBuilder;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.layered.Layer;
@@ -37,7 +38,7 @@ public class ChooseProtectorateMenu extends LayeredGui {
 				"protectorate.metacraft.gui.choose", "Choose Protectorate"
 		));
 
-		for (var zone : ZoneManager.getInstance(player.getServer()).getZones().getZones()) {
+		for (var zone : ZoneManager.getInstance(player.getEntityWorld().getServer()).getZones().getZones()) {
 			zone.get(PlotDataTypes.PLAYER_PROTECTORATE).ifPresent(protectorate -> {
 				if (protectorate.isAdmin(player)) {
 					primary.add(protectorate);
@@ -110,10 +111,10 @@ public class ChooseProtectorateMenu extends LayeredGui {
 
 	public AnimatedGuiElementBuilder createIconFrom(PlayerOwnedProtectorate protectorate) {
 		return SGUIHelper.createGameProfileHeadIcon(
-				Text.literal(protectorate.getZone().getName()), getPlayer().getServer(),
+				Text.literal(protectorate.getZone().getName()), getPlayer().getEntityWorld().getServer(),
 				protectorate.getOwners().stream().map(
-						owner -> getPlayer().getServer().getUserCache().getByUuid(owner).orElse(null)
-				).filter(Objects::nonNull)
+						owner -> getPlayer().getEntityWorld().getServer().getApiServices().nameToIdCache().getByUuid(owner).orElse(null)
+				).filter(Objects::nonNull).map(config -> new GameProfile(config.id(), config.name()))
 		);
 	}
 

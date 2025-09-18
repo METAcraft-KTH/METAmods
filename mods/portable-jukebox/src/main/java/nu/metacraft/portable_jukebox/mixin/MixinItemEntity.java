@@ -21,7 +21,7 @@ public abstract class MixinItemEntity extends Entity {
 	@Inject(method = "setStack", at = @At("RETURN"))
 	public void setStack(ItemStack stack, CallbackInfo ci) {
 		PortableJukeboxEntity.transferToItemFromUnknown(
-				stack, getWorld(), (ItemEntity) (Object) this
+				stack, getEntityWorld(), (ItemEntity) (Object) this
 		);
 	}
 

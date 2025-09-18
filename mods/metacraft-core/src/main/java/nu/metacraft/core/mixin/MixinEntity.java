@@ -3,7 +3,6 @@ package nu.metacraft.core.mixin;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.Entity;
 import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.PlayerAssociatedNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -11,7 +10,6 @@ import net.minecraft.storage.ReadView;
 import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.Box;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -32,17 +30,17 @@ import java.util.stream.Collectors;
 @Mixin(Entity.class)
 public abstract class MixinEntity implements EntityExtensions {
 
-	@Shadow public abstract World getWorld();
-
 	@Shadow public abstract int getId();
-
-	@Shadow @Nullable public abstract MinecraftServer getServer();
 
 	@Shadow public abstract DynamicRegistryManager getRegistryManager();
 
 	@Shadow public abstract Box getBoundingBox();
 
 	@Shadow private World world;
+
+	@Shadow
+	public abstract World getEntityWorld();
+
 	@Unique
 	private ManageableServerBossBar bossBar;
 
@@ -64,7 +62,7 @@ public abstract class MixinEntity implements EntityExtensions {
 
 	@Unique
 	private void initialiseBossBar() {
-		if (bossBar == null || !(this.getWorld() instanceof ServerWorld sw)) return;
+		if (bossBar == null || !(this.getEntityWorld() instanceof ServerWorld sw)) return;
 		var tracker = EntityTrackerHelper.getEntityTrackers(sw).get(this.getId());
 		if (tracker != null) {
 			for (var player : EntityTrackerHelper.getListeners(tracker)) {
@@ -157,7 +155,7 @@ public abstract class MixinEntity implements EntityExtensions {
 
 	@Override
 	public void metacraft_lib$updateBossBarReplaced() {
-		if (!(this.getWorld() instanceof ServerWorld sw)) return;
+		if (!(this.getEntityWorld() instanceof ServerWorld sw)) return;
 		if (bossBar != null) {
 			var tracker = EntityTrackerHelper.getEntityTrackers(sw).get(this.getId());
 			if (tracker != null) {

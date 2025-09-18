@@ -51,9 +51,9 @@ public abstract class MixinTameableEntity extends AnimalEntity implements Tameab
 		nbt.read(TRUSTED_PLAYERS, Uuids.SET_CODEC).ifPresent(
 				players -> trustedPlayers = players
 		);
-		if (!getWorld().isClient()) {
+		if (!getEntityWorld().isClient()) {
 			trustedPlayers.removeIf(
-					id -> this.getServer().getUserCache().getByUuid(id).isEmpty()
+					id -> this.getEntityWorld().getServer().getApiServices().nameToIdCache().getByUuid(id).isEmpty()
 			);
 		}
 	}
@@ -85,7 +85,7 @@ public abstract class MixinTameableEntity extends AnimalEntity implements Tameab
 	public LivingEntity metacraft$getCurrentFollowTarget() {
 		if (!isTamed()) return null;
 		if (followTargetOverride != null) {
-			if (followTargetOverride.getWorld() != getWorld()) {
+			if (followTargetOverride.getEntityWorld() != getEntityWorld()) {
 				return null;
 			}
 			return followTargetOverride;

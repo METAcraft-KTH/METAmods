@@ -19,7 +19,7 @@ public class MixinBlockItem {
 		method = "writeNbtToBlockEntity",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/component/type/NbtComponent;applyToBlockEntity(Lnet/minecraft/block/entity/BlockEntity;Lnet/minecraft/registry/RegistryWrapper$WrapperLookup;)Z"
+			target = "Lnet/minecraft/entity/TypedEntityData;applyToBlockEntity(Lnet/minecraft/block/entity/BlockEntity;Lnet/minecraft/registry/RegistryWrapper$WrapperLookup;)Z"
 		)
 	)
 	private static void writeNbtToBlockEntity(

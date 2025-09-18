@@ -34,7 +34,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Shadow public abstract void sendMessage(Text message, boolean overlay);
 
-	@Shadow public abstract ServerWorld getWorld();
+	@Shadow public abstract ServerWorld getEntityWorld();
 
 	@Unique
 	private static final String CAMPUS_LODESTONE_BACK = "CampusLodestoneBack";
@@ -86,8 +86,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@ModifyReturnValue(method = "getRespawnTarget", at = @At("RETURN"))
 	public TeleportTarget getRespawnTarget(TeleportTarget original) {
-		return EndBossPlayerState.getInstance(this.getWorld()).filter(EndBossPlayerState::hasBoss).map(
-				state -> state.getPlayerSpawnPoint(this.getWorld(), this)
+		return EndBossPlayerState.getInstance(this.getEntityWorld()).filter(EndBossPlayerState::hasBoss).map(
+				state -> state.getPlayerSpawnPoint(this.getEntityWorld(), this)
 		).orElse(original);
 	}
 

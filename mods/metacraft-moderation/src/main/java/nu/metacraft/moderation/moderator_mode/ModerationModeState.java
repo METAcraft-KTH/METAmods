@@ -83,7 +83,7 @@ public class ModerationModeState {
 				}
 			} else if (prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
 				if (prev.playerNBT != null) {
-					var readView = NbtReadView.create(logging, player.getRegistryManager(), PlayerDataHelper.updatePlayerData(prev.playerNBT, player.getServer().getDataFixer()));
+					var readView = NbtReadView.create(logging, player.getRegistryManager(), PlayerDataHelper.updatePlayerData(prev.playerNBT, player.getEntityWorld().getServer().getDataFixer()));
 					PlayerDataHelper.applyPlayerData(player, readView, true);
 				} else {
 					METAcraftModeration.LOGGER.fatal("Player " + player.getName() + " lost their player data! This is a bug!");
@@ -102,13 +102,13 @@ public class ModerationModeState {
 		}
 
 
-		prev.def.getExitCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().getName())).ifPresent(exit -> {
-			player.getServer().getCommandManager().executeWithPrefix(
+		prev.def.getExitCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().name())).ifPresent(exit -> {
+			player.getEntityWorld().getServer().getCommandManager().executeWithPrefix(
 					player.getCommandSource().withLevel(4), exit
 			);
 		});
-		def.getEnterCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().getName())).ifPresent(enter -> {
-			player.getServer().getCommandManager().executeWithPrefix(
+		def.getEnterCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().name())).ifPresent(enter -> {
+			player.getEntityWorld().getServer().getCommandManager().executeWithPrefix(
 					player.getCommandSource().withLevel(4), enter
 			);
 		});

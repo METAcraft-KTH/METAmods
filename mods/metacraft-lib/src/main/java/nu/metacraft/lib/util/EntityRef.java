@@ -40,7 +40,7 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 
 		@Override
 		public World getWorld() {
-			return entity.getWorld();
+			return entity.getEntityWorld();
 		}
 
 		@Override

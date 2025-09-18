@@ -17,7 +17,6 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import nu.metacraft.dungeons.METAcraftDungeons;
 import nu.metacraft.dungeons.extensions.ServerWorldExtension;
 import nu.metacraft.dungeons.mixin.AccessorMinecraftServer;
-import nu.metacraft.lib.util.helper.WorldHelper;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -77,7 +76,6 @@ public class WorldDeleter {
 								world.getRegistryKey(),
 								server.getCombinedDynamicRegistries().getCombinedRegistryManager().getOrThrow(RegistryKeys.DIMENSION)
 										.get(world.getRegistryKey().getValue()),
-								WorldHelper.getGenerationProgressListener(world),
 								server.getSaveProperties().isDebugWorld(),
 								BiomeAccess.hashSeed(server.getSaveProperties().getGeneratorOptions().getSeed()),
 								ImmutableList.of(), false, server.getOverworld().getRandomSequences()
@@ -169,7 +167,7 @@ public class WorldDeleter {
 					);
 					modified.setTrue();
 				}
-				if (DisconnectedPlayerHelper.getSpawnPoint(player).map(ServerPlayerEntity.Respawn::dimension).orElse(null) == world.getRegistryKey()) {
+				if (DisconnectedPlayerHelper.getSpawnPoint(player).map(dim -> dim.respawnData().method_74894()).orElse(null) == world.getRegistryKey()) {
 					DisconnectedPlayerHelper.removeSpawnPoint(player);
 					modified.setTrue();
 				}

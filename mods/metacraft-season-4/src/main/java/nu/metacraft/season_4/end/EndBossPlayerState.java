@@ -197,7 +197,7 @@ public class EndBossPlayerState extends PersistentState {
 		);
 		PlayerDataHelper.removePlayerData(player, BOSS_DATA_BACKUP);
 
-		var scoreboard = player.getWorld().getScoreboard();
+		var scoreboard = player.getEntityWorld().getScoreboard();
 		scoreboard.clearTeam(player.getNameForScoreboard());
 		if (bossPrevTeam.isPresent()) {
 			var team = scoreboard.getTeam(bossPrevTeam.get());
@@ -430,7 +430,7 @@ public class EndBossPlayerState extends PersistentState {
 		}
 
 		config.get().bossInitCommand().ifPresent(command -> {
-			player.getServer().getCommandManager().executeWithPrefix(
+			player.getEntityWorld().getServer().getCommandManager().executeWithPrefix(
 					player.getCommandSource().withSilent().withLevel(2), command
 			);
 		});
@@ -543,7 +543,7 @@ public class EndBossPlayerState extends PersistentState {
 
 	private TeleportTarget getNearBoss(ServerWorld world, Entity entity) {
 		if (currentBoss != null) {
-			return getTargetAroundPos(currentBoss.getWorld(), entity, currentBoss.getPos());
+			return getTargetAroundPos(currentBoss.getEntityWorld(), entity, currentBoss.getPos());
 		} else {
 			return getPlayerSpawnPoint(world, entity);
 		}
@@ -568,7 +568,7 @@ public class EndBossPlayerState extends PersistentState {
 
 		if (particleTime > 0) {
 			particleTime--;
-			currentBoss.getWorld().spawnParticles(
+			currentBoss.getEntityWorld().spawnParticles(
 					new TrailParticleEffect(
 							currentBoss.getBoundingBox().getCenter(),
 							-12648385, 20
@@ -604,10 +604,10 @@ public class EndBossPlayerState extends PersistentState {
 
 		for (var player : world.getPlayers()) {
 			if (player != currentBoss && player.distanceTo(currentBoss) > config.get().maxDistanceFromBoss()) {
-				player.teleportTo(getNearBoss(currentBoss.getWorld(), player));
+				player.teleportTo(getNearBoss(currentBoss.getEntityWorld(), player));
 			}
 		}
-		if (currentBoss.getPos().distanceTo(playerSpawnPos.orElse(null)) > config.get().maxDistanceFromSpawn() || currentBoss.getWorld() != world) {
+		if (currentBoss.getPos().distanceTo(playerSpawnPos.orElse(null)) > config.get().maxDistanceFromSpawn() || currentBoss.getEntityWorld() != world) {
 			currentBoss.teleportTo(getPlayerSpawnPoint(world, currentBoss));
 		}
 		if (currentBoss.getY() < world.getBottomY()) {

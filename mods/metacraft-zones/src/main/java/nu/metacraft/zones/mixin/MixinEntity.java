@@ -1,10 +1,8 @@
 package nu.metacraft.zones.mixin;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -20,10 +18,11 @@ import java.util.*;
 public abstract class MixinEntity {
 	@Shadow public abstract BlockPos getBlockPos();
 
-	@Shadow @Nullable public abstract MinecraftServer getServer();
-
 	@Shadow private World world;
 	@Shadow public int age;
+
+	@Shadow
+	public abstract World getEntityWorld();
 
 	@Unique
 	private final Set<Zone> currentZones = new TreeSet<>();
@@ -41,7 +40,7 @@ public abstract class MixinEntity {
 					removeZones.add(currentZone);
 				}
 			}
-			ZoneManager.getInstance(getServer()).getZones().forZones(this.world.getRegistryKey(), zone -> {
+			ZoneManager.getInstance(getEntityWorld().getServer()).getZones().forZones(this.world.getRegistryKey(), zone -> {
 				if (!currentZones.contains(zone) && zone.isPosWithinZoneBoundsNoDimCheck(this.getBlockPos())) {
 					currentZones.add(zone);
 					zone.addToZone((Entity) (Object) this);

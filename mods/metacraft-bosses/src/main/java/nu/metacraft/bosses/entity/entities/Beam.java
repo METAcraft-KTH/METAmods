@@ -6,10 +6,10 @@ import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityPosition;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.player.PlayerPosition;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
@@ -188,7 +188,7 @@ public class Beam extends Entity implements PolymerEntity {
 	}
 
 	@Override
-	public void setPosition(PlayerPosition pos, Set<PositionFlag> flags) {
+	public void setPosition(EntityPosition pos, Set<PositionFlag> flags) {
 		var prevPos = getPos();
 		super.setPosition(pos, flags);
 		onPositionUpdate(prevPos);
