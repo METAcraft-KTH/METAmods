@@ -1,84 +1,69 @@
 package nu.metacraft.portal_blocker;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.nbt.AbstractNbtNumber;
-import net.minecraft.nbt.NbtByte;
-import net.minecraft.nbt.NbtElement;
+import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
+import net.minecraft.util.StringIdentifiable;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.Locale;
+public record PortalState(Object2BooleanMap<BlockingType> map) {
 
-public class PortalState {
-
-	private byte state;
-
-	private static final byte CREATION = 0;
-	private static final byte TRAVEL = 1;
-
-	public static final Codec<PortalState> CODEC = Codec.BYTE.xmap(
-			PortalState::new, s -> s.state
+	public static final Codec<PortalState> CODEC = Codec.unboundedMap(
+			BlockingType.CODEC, Codec.BOOL
+	).xmap(
+			map -> new PortalState(new Object2BooleanOpenHashMap<>(map)),
+			state -> state.map
 	);
 
-	private PortalState(byte v) {
-		this.state = v;
-	}
-
-	public PortalState(BlockingType... values) {
-		for (BlockingType type : values) {
-			setBlocked(type, true);
+	public static PortalState from(BlockingType... isBlocked) {
+		var state = new PortalState(new Object2BooleanOpenHashMap<>());
+		for (var block : isBlocked) {
+			state.setBlocked(block, true);
 		}
-	}
-
-	private void set(boolean value, byte pos) {
-		if (value) {
-			state |= (byte) ((byte) 1 << pos);
-		} else {
-			state &= (byte) ~(1 << pos);
-		}
-	}
-
-	private boolean get(byte pos) {
-		return (state & 1 << pos) != 0;
+		return state;
 	}
 
 	public void setBlocked(BlockingType type, boolean value) {
-		set(value, type.pos);
+		map.put(type, value);
+	}
+
+	public void removeFromState(BlockingType type) {
+		map.removeBoolean(type);
 	}
 
 	public boolean isBlocked(BlockingType type) {
-		return get(type.pos);
+		return map.getBoolean(type);
 	}
 
-	public NbtByte toNBT() {
-		return NbtByte.of(state);
-	}
-
-	public PortalState fromNBT(NbtElement element) {
-		if (element instanceof AbstractNbtNumber num) {
-			state = num.byteValue();
-		} else {
-			PortalBlocker.LOGGER.error("Invalid number for PortalState in NBT.");
-		}
-		return this;
+	public boolean isInState(BlockingType type) {
+		return map.containsKey(type);
 	}
 
 	@Override
-	public String toString() {
-		return "PortalState[creation=" + Commands.getBlockStateText(get(CREATION)) + ", travel=" + Commands.getBlockStateText(get(TRAVEL)) + "]";
+	public @NotNull String toString() {
+		return "PortalState" + map;
 	}
 
-	public enum BlockingType {
-		CREATION(PortalState.CREATION),
-		TRAVEL(PortalState.TRAVEL);
+	public enum BlockingType implements StringIdentifiable {
+		CREATION("creation"),
+		TRAVEL("travel");
 
-		private final byte pos;
+		public static final Codec<BlockingType> CODEC = StringIdentifiable.createCodec(BlockingType::values);
+
+		private final String name;
 
 		@Override
 		public String toString() {
-			return name().toLowerCase(Locale.ROOT);
+			return asString();
 		}
 
-		BlockingType(byte pos) {
-			this.pos = pos;
+		BlockingType(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public String asString() {
+			return name;
 		}
 	}
 

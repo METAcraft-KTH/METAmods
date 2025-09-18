@@ -15,6 +15,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import nu.metacraft.portal_blocker.portal_type.PortalType;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
+import nu.metacraft.portal_blocker.zone.PortalZoneData;
 
 import java.util.Locale;
 import java.util.function.Function;
@@ -48,13 +49,13 @@ public class Commands {
 		builder.then(
 				literal("set").then(
 						PortalType.argument(PORTAL).then(
-								boolAllowBlockArgument("state").executes(ctx -> setState(
+								allowBlockArgument("state", false).executes(ctx -> setState(
 										ctx, PortalBlockType.BOTH
 								))
 						).then(
-								boolAllowBlockArgument("state").then(
+								allowBlockArgument("state", false).then(
 										PortalBlockType.blockTypeArgument(TYPE).executes(ctx -> setState(
-												ctx, PortalBlockType.getBoolAllowBlockArgument(ctx, TYPE)
+												ctx, PortalBlockType.getAllowBlockArgument(ctx, TYPE)
 										))
 								)
 						)
@@ -66,7 +67,7 @@ public class Commands {
 						PortalType.argument(PORTAL)
 							.then(
 								PortalBlockType.blockTypeArgument(TYPE).executes(
-										ctx -> getState(ctx, PortalBlockType.getBoolAllowBlockArgument(ctx, TYPE))
+										ctx -> getState(ctx, PortalBlockType.getAllowBlockArgument(ctx, TYPE))
 								)
 							).executes(ctx -> getState(ctx, PortalBlockType.BOTH))
 					)
@@ -75,7 +76,7 @@ public class Commands {
 
 	private static int setState(CommandContext<ServerCommandSource> context, PortalBlockType blockingType) throws CommandSyntaxException {
 		PortalType type = PortalType.getArgument(context, PORTAL);
-		boolean stateValue = getBoolAllowBlockArgument(context, "state");
+		boolean stateValue = getAllowBlockArgument(context, "state", false) == PortalZoneData.BlockResult.BLOCKED;
 
 		for (PortalState.BlockingType bType : blockingType.blockingTypes) {
 			if (PortalBlockerSettings.getInstance(context.getSource().getServer()).isPortalBlockedGlobally(type, bType) == stateValue) {
@@ -122,23 +123,21 @@ public class Commands {
 		return (blockState ? "block" : "allow") + suffix;
 	}
 
-	public static RequiredArgumentBuilder<ServerCommandSource, String> boolAllowBlockArgument(String name) {
+	public static RequiredArgumentBuilder<ServerCommandSource, String> allowBlockArgument(String name, boolean includeDefault) {
 		return CommandManager.argument(name, StringArgumentType.word()).suggests((context, builder) -> {
-			builder.suggest("allow");
-			builder.suggest("block");
+			for (var key : PortalZoneData.BlockResult.values()) {
+				if (key == PortalZoneData.BlockResult.DEFAULT && !includeDefault) continue;
+				builder.suggest(key.asString());
+			}
 			return builder.buildFuture();
 		});
 	}
 
-	public static boolean getBoolAllowBlockArgument(CommandContext<ServerCommandSource> context, String name) throws CommandSyntaxException {
+	public static PortalZoneData.BlockResult getAllowBlockArgument(CommandContext<ServerCommandSource> context, String name, boolean allowDefault) throws CommandSyntaxException {
 		var type = StringArgumentType.getString(context, name);
-		if (type.equals("block")) {
-			return true;
-		} else if (type.equals("allow")) {
-			return false;
-		} else {
-			throw BLOCK_OR_ALLOW.create();
-		}
+		var result = PortalZoneData.BlockResult.fromString(type).orElseThrow(BLOCK_OR_ALLOW::create);
+		if (!allowDefault && result == PortalZoneData.BlockResult.DEFAULT) throw BLOCK_OR_ALLOW.create();
+		return result;
 	}
 
 	public static String getIDAsString(Identifier id) {
@@ -174,7 +173,7 @@ public class Commands {
 			return name().toLowerCase(Locale.ROOT);
 		}
 
-		public static PortalBlockType getBoolAllowBlockArgument(CommandContext<ServerCommandSource> context, String name) throws CommandSyntaxException {
+		public static PortalBlockType getAllowBlockArgument(CommandContext<ServerCommandSource> context, String name) throws CommandSyntaxException {
 			var type = StringArgumentType.getString(context, name);
 			try {
 				return PortalBlockType.valueOf(type.toUpperCase(Locale.ROOT));

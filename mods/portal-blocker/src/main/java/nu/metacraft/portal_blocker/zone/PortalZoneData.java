@@ -3,7 +3,7 @@ package nu.metacraft.portal_blocker.zone;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.nbt.NbtByte;
+import net.minecraft.util.StringIdentifiable;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import nu.metacraft.portal_blocker.Commands;
@@ -13,53 +13,45 @@ import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
 import nu.metacraft.zones.zone.data.ZoneData;
 import nu.metacraft.zones.zone.data.ZoneDataType;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 
 public class PortalZoneData extends ZoneData {
 
 	public static final MapCodec<PortalZoneData> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-			PortalTypeRegistry.REGISTRY.getCodec().listOf().fieldOf("affected_portals").forGetter(
-					portalZoneData -> portalZoneData.affectedPortals.stream().toList()
-			),
-			Codec.BYTE.xmap(
-					num -> new PortalState().fromNBT(NbtByte.of(num)),
-					state -> state.toNBT().byteValue()
-			).fieldOf("blocking_state").forGetter(value -> value.blockingState)
+			Codec.unboundedMap(
+					PortalTypeRegistry.REGISTRY.getCodec(),
+					PortalState.CODEC
+			).fieldOf("portal_states").forGetter(data -> data.portalStates)
 	).apply(instance, PortalZoneData::new));
 
-	protected final Set<PortalType> affectedPortals;
-	protected PortalState blockingState;
+	protected final Map<PortalType, PortalState> portalStates;
 
-	public PortalZoneData(List<PortalType> affectedPortals, PortalState blockingState) {
-		this.affectedPortals = new HashSet<>(affectedPortals);
-		this.blockingState = blockingState;
+	public PortalZoneData(Map<PortalType, PortalState> affectedPortals) {
+		this.portalStates = new HashMap<>(affectedPortals);
 	}
 
 	public BlockResult getBlockedState(PortalType type, PortalState.BlockingType blockingType) {
-		if (affectedPortals.contains(type)) {
-			return blockingState.isBlocked(blockingType) ? BlockResult.BLOCKED : BlockResult.ALLOWED;
+		if (portalStates.containsKey(type) && portalStates.get(type).isInState(blockingType)) {
+			return portalStates.get(type).isBlocked(blockingType) ? BlockResult.BLOCKED : BlockResult.ALLOWED;
 		}
 		return BlockResult.DEFAULT;
 	}
 
-	public void setBlocking(PortalState.BlockingType blockingType, boolean isBlocking) {
-		this.blockingState.setBlocked(blockingType, isBlocking);
+	public Map<PortalType, PortalState> getPortalStates() {
+		return Collections.unmodifiableMap(portalStates);
+	}
+
+	public void setBlocking(PortalType portal, Commands.PortalBlockType blockingType, BlockResult isBlocking) {
+		for (var type : blockingType.blockingTypes) {
+			var state = this.portalStates.computeIfAbsent(portal, (k) -> PortalState.from());
+			if (isBlocking == BlockResult.DEFAULT) {
+				state.removeFromState(type);
+			} else {
+				state.setBlocked(type, isBlocking == BlockResult.BLOCKED);
+			}
+		}
 		markDirty();
-	}
-
-	public boolean isBlocking(PortalState.BlockingType blockingType) {
-		return blockingState.isBlocked(blockingType);
-	}
-
-	public String getCommandStateMessage(String suffix) {
-		return Commands.PortalBlockType.BOTH.getBlockingString(this::isBlocking, suffix);
-	}
-
-	public Collection<PortalType> getAffectedPortals() {
-		return affectedPortals;
 	}
 
 	@Override
@@ -72,9 +64,26 @@ public class PortalZoneData extends ZoneData {
 		return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
 	}
 
-	public enum BlockResult {
-		BLOCKED,
-		ALLOWED,
-		DEFAULT
+	public enum BlockResult implements StringIdentifiable {
+		BLOCKED("block"),
+		ALLOWED("allow"),
+		DEFAULT("default");
+
+		private static final Function<String, BlockResult> MAPPER = StringIdentifiable.createMapper(BlockResult.values());
+
+		private final String name;
+
+		BlockResult(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public String asString() {
+			return name;
+		}
+
+		public static Optional<BlockResult> fromString(String value) {
+			return Optional.ofNullable(MAPPER.apply(value));
+		}
 	}
 }

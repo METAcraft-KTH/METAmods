@@ -104,7 +104,7 @@ public class PortalBlockerSettings extends PersistentState {
 	}
 
 	private PortalState get(PortalType type) {
-		return portalIsBlockedMap.computeIfAbsent(type, t -> new PortalState(
+		return portalIsBlockedMap.computeIfAbsent(type, t -> PortalState.from(
 				PortalState.BlockingType.CREATION, PortalState.BlockingType.TRAVEL
 		));
 	}
@@ -122,7 +122,7 @@ public class PortalBlockerSettings extends PersistentState {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("EndDisableSettings [");
+		builder.append("PortalBlockerSettings [");
 		for (Map.Entry<PortalType, PortalState> state : portalIsBlockedMap.entrySet()) {
 			builder.append(state.getKey().toString()).append("=").append(state.getValue()).append(",");
 		}
