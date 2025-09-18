@@ -124,8 +124,10 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 
 
 	@Override
-	public boolean fasterMinecarts$isSuperFast() {
-		return minecartItem.map(item -> item.contains(MinecartComponents.SPEED_UPGRADE)).orElse(false);
+	public SuperSpeedState fasterMinecarts$speedUpgrade() {
+		return minecartItem.map(item -> item.get(MinecartComponents.SPEED_UPGRADE)).map(
+				val -> val ? SuperSpeedState.TRUE : SuperSpeedState.FALSE
+		).orElse(SuperSpeedState.DEFAULT);
 	}
 
 	@Override

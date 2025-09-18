@@ -10,8 +10,21 @@ import java.util.OptionalDouble;
 
 public interface MinecartExtensions {
 
+	enum SuperSpeedState {
+		TRUE,
+		FALSE,
+		DEFAULT;
 
-	boolean fasterMinecarts$isSuperFast();
+		boolean getValue(boolean fallback) {
+			return switch (this) {
+				case TRUE -> true;
+				case FALSE -> false;
+				case DEFAULT -> fallback;
+			};
+		}
+	}
+
+	SuperSpeedState fasterMinecarts$speedUpgrade();
 
 	OptionalDouble fasterMinecarts$getAcceleration();
 	OptionalDouble fasterMinecarts$getMaxSpeed();

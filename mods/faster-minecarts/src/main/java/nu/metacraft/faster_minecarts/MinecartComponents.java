@@ -11,8 +11,10 @@ import java.util.function.UnaryOperator;
 
 public class MinecartComponents {
 
-	public static final ComponentType<Unit> SPEED_UPGRADE = register(
-			"speed_upgrade", builder -> builder.codec(Codec.unit(Unit.INSTANCE))
+	public static final ComponentType<Boolean> SPEED_UPGRADE = register(
+			"speed_upgrade", builder -> builder.codec(
+					Codec.withAlternative(Codec.BOOL, Codec.unit(Unit.INSTANCE), u -> true)
+			)
 	);
 
 	public static final ComponentType<Double> MAX_SPEED = register(

@@ -12,7 +12,7 @@ import java.util.Optional;
 public class FasterMinecartsHelper {
 
 	public static boolean hasSuperSpeed(AbstractMinecartEntity minecart) {
-		return ((MinecartExtensions) minecart).fasterMinecarts$isSuperFast() || FasterMinecartsConfig.getConfig().globalFasterMinecarts;
+		return ((MinecartExtensions) minecart).fasterMinecarts$speedUpgrade().getValue(FasterMinecartsConfig.getConfig().globalFasterMinecarts);
 	}
 
 	public static double getValue(AbstractMinecartEntity minecart, double defaultValue, EntityFactorConfig config) {
