@@ -1,166 +1,229 @@
 package nu.metacraft.repair_fix;
 
 import com.google.common.collect.ImmutableList;
-import io.github.fablabsmc.fablabs.api.fiber.v1.annotation.Setting;
-import io.github.fablabsmc.fablabs.api.fiber.v1.annotation.Settings;
-import io.github.fablabsmc.fablabs.api.fiber.v1.exception.ValueDeserializationException;
-import io.github.fablabsmc.fablabs.api.fiber.v1.serialization.FiberSerialization;
-import io.github.fablabsmc.fablabs.api.fiber.v1.serialization.JanksonValueSerializer;
-import io.github.fablabsmc.fablabs.api.fiber.v1.tree.ConfigTree;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import nu.metacraft.repair_fix.parse.reader.EnchantmentConfigReader;
-import nu.metacraft.repair_fix.parse.reader.RepairConfigReader;
-import nu.metacraft.repair_fix.util.FutureValue;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.Enchantments;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.predicate.item.ItemPredicate;
+import net.minecraft.registry.*;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.entry.RegistryEntryList;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.StringIdentifiable;
+import net.minecraft.util.dynamic.Codecs;
+import nu.metacraft.lib.config.ObjectStorage;
+import nu.metacraft.lib.config.container.ConfigContainer;
+import nu.metacraft.lib.config.container.ServerAware;
 
-import java.io.*;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
 
-@Settings(onlyAnnotated = true)
 public final class RepairFixConfig {
 
 	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve(RepairFix.modid + ".json");
-	private static final JanksonValueSerializer jankson = new JanksonValueSerializer(false);
+
+	public static final Codec<RepairFixConfig> CODEC = RecordCodecBuilder.create(
+			instance -> instance.group(
+					Codecs.NON_NEGATIVE_INT.optionalFieldOf("max_repair_cost").forGetter(c -> c.maxRepairConst),
+					Codec.BOOL.fieldOf("cap_at_max_level").forGetter(c -> c.capAtMaxLevel),
+					ObjectStorage.createCodec(RepairEntry.CODEC.listOf()).fieldOf("repair_item_cost_balancing").forGetter(c -> c.repairItemCostBalancing),
+					ObjectStorage.createCodec(EnchantmentEntry.CODEC.listOf()).fieldOf("enchantment_cost_combine_overrides").forGetter(c -> c.enchantmentCombineCostOverrides),
+					BaseCostIncreaseMode.CODEC.fieldOf("base_cost_increase_mode").forGetter(c -> c.baseCostIncreaseMode)
+			).apply(instance, RepairFixConfig::new)
+	);
+
+	private static final ServerAware<ConfigContainer<RepairFixConfig>, Loaded> CONTAINER = ConfigContainer.Builder.create(
+			CODEC, RepairFixConfig::createDefault
+	).buildRegistryAware(
+			configPath,
+			(config, server) -> Loaded.create(
+					config.repairItemCostBalancing,
+					config.enchantmentCombineCostOverrides,
+					server.getRegistryManager()
+			)
+	);
 
 	public static void init() {
-		config = new RepairFixConfig();
-		configTree = ConfigTree.builder().applyFromPojo(config).build();
-
-		var file = configPath.toFile();
-		if (file.exists()) {
-			try (var stream = new BufferedInputStream(new FileInputStream(file))) {
-				FiberSerialization.deserialize(configTree, stream, jankson);
-			} catch (IOException | ValueDeserializationException err) {
-				err.printStackTrace();
-			}
-		} else {
-			try {
-				file.createNewFile();
-			} catch (IOException err) {
-				err.printStackTrace();
-			}
-			try (var stream = new BufferedOutputStream(new FileOutputStream(file))) {
-				FiberSerialization.serialize(configTree, stream, jankson);
-			} catch (IOException err) {
-				err.printStackTrace();
-			}
-		}
-		config.onLoad();
-
-		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			getConfig().repairConfigReader.complete(new RepairConfigReader(
-					server.getRegistryManager(), server.getOverworld().getEnabledFeatures()
-			));
-		});
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-			getConfig().repairConfigReader.clear();
-		});
+		getConfig();
 	}
-
-	public void onLoad() {
-		enchantmentConfigReader.loadConfig();
-		repairConfigReader.apply(RepairConfigReader::loadConfig);
-	}
-
-	private static RepairFixConfig config;
-	private static ConfigTree configTree;
 
 	public static RepairFixConfig getConfig() {
-		return config;
+		return CONTAINER.getContainer().get();
 	}
 
-	@Setting(
-			comment = "Allows you to change the maximum repair cost. " +
-					"To remove the maximum repair cost, set it to -1. " +
-					"This setting will still show \"Too Expensive\" on the client unless the client installs a mod, " +
-					"but the result will still show up in the output slot on Java Edition." +
-					"This setting does not work on Bedrock Edition for now."
-	)
-	@Setting.Constrain.Range(min=-1)
-	private int maxRepairConst = 40;
+	public static Loaded getConfig(MinecraftServer server) {
+		return CONTAINER.get(server);
+	}
 
-	@Setting(comment = "If set to true, the xp cost will never ever exceed the maximum repair cost stated above.")
-	public boolean capAtMaxLevel = true;
+	private Optional<Integer> maxRepairConst;
+
+	private boolean capAtMaxLevel;
+
+	private ObjectStorage<List<RepairEntry>> repairItemCostBalancing;
+
+	private ObjectStorage<List<EnchantmentEntry>> enchantmentCombineCostOverrides;
+
+	private BaseCostIncreaseMode baseCostIncreaseMode = BaseCostIncreaseMode.ENCHANTING_ONLY;
+
+	public RepairFixConfig(
+			Optional<Integer> maxRepairConst, boolean capAtMaxLevel,
+			ObjectStorage<List<RepairEntry>> repairItemCostBalancing,
+			ObjectStorage<List<EnchantmentEntry>> enchantmentCombineCostOverrides,
+			BaseCostIncreaseMode baseCostIncreaseMode
+	) {
+		this.maxRepairConst = maxRepairConst;
+		this.capAtMaxLevel = capAtMaxLevel;
+		this.repairItemCostBalancing = repairItemCostBalancing;
+		this.enchantmentCombineCostOverrides = enchantmentCombineCostOverrides;
+		this.baseCostIncreaseMode = baseCostIncreaseMode;
+	}
+
+	public boolean capAtMaxLevel() {
+		return capAtMaxLevel;
+	}
 
 	public int getMaxRepairCost() {
-		if (maxRepairConst < 0) {
-			return Integer.MAX_VALUE;
-		} else {
-			return maxRepairConst;
+		return maxRepairConst.orElse(Integer.MAX_VALUE);
+	}
+
+	public BaseCostIncreaseMode baseCostIncreaseMode() {
+		return baseCostIncreaseMode;
+	}
+
+	private static RepairFixConfig createDefault() {
+		return new RepairFixConfig(
+				Optional.of(40), true,
+				ObjectStorage.fromValue(
+						RepairEntry.CODEC.listOf(), new ArrayList<>(
+								ImmutableList.of(
+										new RepairEntry(
+												ItemPredicate.Builder.create().items(
+														Registries.ITEM,
+														Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE,
+														Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS,
+														Items.NETHERITE_PICKAXE, Items.NETHERITE_AXE,
+														Items.NETHERITE_SWORD, Items.NETHERITE_SHOVEL,
+														Items.NETHERITE_HOE
+												).build(),
+												ItemPredicate.Builder.create().items(Registries.ITEM, Items.NETHERITE_INGOT).build(),
+												1
+										),
+										new RepairEntry(
+												ItemPredicate.Builder.create().items(
+														Registries.ITEM,
+														Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE,
+														Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS,
+														Items.NETHERITE_PICKAXE, Items.NETHERITE_AXE,
+														Items.NETHERITE_SWORD, Items.NETHERITE_SHOVEL,
+														Items.NETHERITE_HOE
+												).build(),
+												ItemPredicate.Builder.create().items(Registries.ITEM, Items.NETHERITE_SCRAP).build(),
+												4
+										)
+								)
+						)
+				),
+				ObjectStorage.fromValueWithDefaultOps(
+						EnchantmentEntry.CODEC.listOf(), lookup -> new ArrayList<>(
+								ImmutableList.of(
+										new EnchantmentEntry(
+												RegistryEntryList.of(lookup.getEntryOrThrow(Enchantments.MENDING)),
+												RegistryEntryList.of(lookup.getEntryOrThrow(Enchantments.INFINITY)),
+												10
+										)
+								)
+						)
+				),
+				BaseCostIncreaseMode.ENCHANTING_ONLY
+		);
+	}
+
+	public record RepairEntry(ItemPredicate tool, ItemPredicate material, int amountToFull) {
+		public static final Codec<RepairEntry> CODEC = RecordCodecBuilder.create(
+				instance -> instance.group(
+						ItemPredicate.CODEC.fieldOf("tool").forGetter(RepairEntry::tool),
+						ItemPredicate.CODEC.fieldOf("material").forGetter(RepairEntry::material),
+						Codecs.NON_NEGATIVE_INT.fieldOf("amount_to_full").forGetter(RepairEntry::amountToFull)
+				).apply(instance, RepairEntry::new)
+		);
+	}
+
+	public record EnchantmentEntry(RegistryEntryList<Enchantment> first, RegistryEntryList<Enchantment> second, int combineCost) {
+		public static final Codec<EnchantmentEntry> CODEC = RecordCodecBuilder.create(
+				instance -> instance.group(
+						RegistryCodecs.entryList(RegistryKeys.ENCHANTMENT).fieldOf("first").forGetter(EnchantmentEntry::first),
+						RegistryCodecs.entryList(RegistryKeys.ENCHANTMENT).fieldOf("second").forGetter(EnchantmentEntry::second),
+						Codecs.NON_NEGATIVE_INT.fieldOf("cost").forGetter(EnchantmentEntry::combineCost)
+				).apply(instance, EnchantmentEntry::new)
+		);
+	}
+
+
+	public enum BaseCostIncreaseMode implements StringIdentifiable {
+		DEFAULT("default"),
+		ENCHANTING_ONLY("enchanting_only"),
+		NONE("none");
+
+		private final String name;
+
+		public static final Codec<BaseCostIncreaseMode> CODEC = StringIdentifiable.createCodec(BaseCostIncreaseMode::values);
+
+		BaseCostIncreaseMode(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public String asString() {
+			return name;
 		}
 	}
 
-	public static final String COMBINE_SYMBOL = "&";
-	public static final String SEPARATE_SYMBOL = "|";
-	public static final String ADDITIONAL_COST_SYMBOL = "$";
 
-	@Setting(
-			comment = "List of items and what should or should not repair them. " +
-					"Uses the following syntax: \"<itemToRepair><symbol><repairMaterial>\" where <symbol> is \"" + COMBINE_SYMBOL + "\" " +
-					"to allow repair and \"" + SEPARATE_SYMBOL + "\" to prevent repair." +
-					"You can also use " + ADDITIONAL_COST_SYMBOL + " to set how many items of the material it takes to repair the item fully."
-	)
-	public List<? extends String> repairItemCostBalancing = new ArrayList<>(
-			ImmutableList.of(
+	public static class Loaded {
 
-					"netherite_helmet&netherite_ingot$1",
-					"netherite_chestplate&netherite_ingot$1",
-					"netherite_leggings&netherite_ingot$1",
-					"netherite_boots&netherite_ingot$1",
-					"netherite_sword&netherite_ingot$1",
-					"netherite_axe&netherite_ingot$1",
-					"netherite_pickaxe&netherite_ingot$1",
-					"netherite_shovel&netherite_ingot$1",
-					"netherite_hoe&netherite_ingot$1",
+		private final List<RepairEntry> repairItemCostBalancing;
+		private final List<EnchantmentEntry> enchantmentCombineCostOverrides;
 
-					"netherite_helmet&netherite_scrap$4",
-					"netherite_chestplate&netherite_scrap$4",
-					"netherite_leggings&netherite_scrap$4",
-					"netherite_boots&netherite_scrap$4",
-					"netherite_sword&netherite_scrap$4",
-					"netherite_axe&netherite_scrap$4",
-					"netherite_pickaxe&netherite_scrap$4",
-					"netherite_shovel&netherite_scrap$4",
-					"netherite_hoe&netherite_scrap$4"
-			)
-	);
-	public final FutureValue<RepairConfigReader> repairConfigReader = new FutureValue<>();
+		protected Loaded(List<RepairEntry> repairItemCostBalancing, List<EnchantmentEntry> enchantmentCombineCostOverrides) {
+			this.repairItemCostBalancing = repairItemCostBalancing;
+			this.enchantmentCombineCostOverrides = enchantmentCombineCostOverrides;
+		}
 
+		public OptionalInt findRepairCount(ItemStack tool, ItemStack material) {
+			for (var entry : repairItemCostBalancing) {
+				if (entry.tool.test(tool) && entry.material.test(material)) {
+					return OptionalInt.of(entry.amountToFull);
+				}
+			}
+			return OptionalInt.empty();
+		}
 
-	@Setting(
-			comment = "List of enchantment pairs that should be allowed or not allowed. " +
-					"Uses the following syntax: \"<enchantment><symbol><enchantment>\" where <symbol> is \"" + COMBINE_SYMBOL + "\" " +
-					"to force compatibility and \"" + SEPARATE_SYMBOL + "\" to force incompatibility." +
-					"You can also use " + ADDITIONAL_COST_SYMBOL + " to set a custom additional cost." +
-					"Examples:  \"mending" + COMBINE_SYMBOL + "infinity" + ADDITIONAL_COST_SYMBOL + "10\" makes mending and infinity no longer incompatible, but costs 10 extra levels. " +
-					"\"minecraft:mending" + COMBINE_SYMBOL + "minecraft:infinity\" is also valid." +
-					" \"sharpness" + SEPARATE_SYMBOL + "looting\" makes looting and sharpness incompatible." +
-					"This setting also does not work on Bedrock Edition."
-	)
-	public List<String> enchantmentCompatOverrides = new ArrayList<>(
-			ImmutableList.of(
-					"mending&infinity$10"
-			)
-	);
+		public OptionalInt findCombineCost(RegistryEntry<Enchantment> first, RegistryEntry<Enchantment> second) {
+			for (var entry : enchantmentCombineCostOverrides) {
+				if ((entry.first.contains(first) && entry.second.contains(second)) || (entry.first.contains(second) && entry.second.contains(first))) {
+					return OptionalInt.of(entry.combineCost);
+				}
+			}
+			return OptionalInt.empty();
+		}
 
-	public final EnchantmentConfigReader enchantmentConfigReader = new EnchantmentConfigReader();
+		public static Loaded create(
+				ObjectStorage<List<RepairEntry>> repairItemCostBalancing,
+				ObjectStorage<List<EnchantmentEntry>> enchantmentCombineCostOverrides,
+				RegistryWrapper.WrapperLookup lookup
+		) {
+			return new Loaded(
+					repairItemCostBalancing.parse(lookup).resultOrPartial(RepairFix.getLogger()::error).orElse(new ArrayList<>()),
+					enchantmentCombineCostOverrides.parse(lookup).resultOrPartial(RepairFix.getLogger()::error).orElse(new ArrayList<>())
+			);
+		}
 
-
-	public enum RemoveBaseCostMode {
-		DEFAULT,
-		ENCHANTING_ONLY,
-		NONE
 	}
-
-	@Setting(
-			comment = "This controls the method used when increasing the cost of items while enchanting. It has 3 modes. " +
-					"DEFAULT is like vanilla, everything will double the cost, including repairing items. " +
-					"ENCHANTING_ONLY is the recommended mode. In this mode, it will only double the cost if at least one enchantment was added. " +
-					"NONE removes incremental enchantment costs completely. This makes enchanting with an anvil very cheap."
-	)
-	public RemoveBaseCostMode baseCostIncreaseMode = RemoveBaseCostMode.ENCHANTING_ONLY;
-
-
 }

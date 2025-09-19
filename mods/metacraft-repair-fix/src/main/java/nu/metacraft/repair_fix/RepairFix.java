@@ -6,7 +6,7 @@ import org.apache.logging.log4j.Logger;
 
 public final class RepairFix implements ModInitializer {
 
-	public static final String modid = "metacraft_repair_fix";
+	public static final String modid = "metacraft-repair-fix";
 	private static final Logger logger = LogManager.getLogger(modid);
 
 	public static Logger getLogger() {

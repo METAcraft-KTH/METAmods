@@ -19,7 +19,7 @@ public class MixinGameRules {
 			)
 	)
 	private static FeatureSet removeFeatureFlagRequirement(FeatureSet original) {
-		if (original.contains(FeatureFlags.MINECART_IMPROVEMENTS) && FasterMinecartsConfig.getConfig().experimentalMinecartMode.isEnabled()) {
+		if (original.contains(FeatureFlags.MINECART_IMPROVEMENTS) && FasterMinecartsConfig.getConfig().experimentalMinecartMode().isEnabled()) {
 			return original.subtract(FeatureSet.of(FeatureFlags.MINECART_IMPROVEMENTS));
 		}
 		return original;

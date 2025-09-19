@@ -1,10 +1,12 @@
 package nu.metacraft.lib.config;
 
+import com.google.common.base.Suppliers;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JavaOps;
+import net.minecraft.registry.BuiltinRegistries;
 import net.minecraft.registry.RegistryOps;
 import net.minecraft.registry.RegistryWrapper;
 import nu.metacraft.lib.METAcraftLib;
@@ -14,6 +16,7 @@ import nu.metacraft.lib.config.container.ServerAware;
 import nu.metacraft.lib.mixin.AccessorServerDynamicRegistryType;
 
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -30,18 +33,7 @@ import java.util.function.UnaryOperator;
  */
 public class ObjectStorage<T> {
 
-	private static final Supplier<RegistryWrapper.WrapperLookup> DEFAULT_LOOKUP = new Supplier<RegistryWrapper.WrapperLookup>() {
-
-		private RegistryWrapper.WrapperLookup lookup;
-
-		@Override
-		public RegistryWrapper.WrapperLookup get() {
-			if (lookup == null) {
-				lookup = AccessorServerDynamicRegistryType.getStaticRegistryManager();
-			}
-			return lookup;
-		}
-	};
+	private static final Supplier<RegistryWrapper.WrapperLookup> DEFAULT_LOOKUP = Suppliers.memoize(BuiltinRegistries::createWrapperLookup);
 
 	private Object rawData;
 	private final Codec<T> codec;
@@ -49,6 +41,10 @@ public class ObjectStorage<T> {
 	protected ObjectStorage(Codec<T> codec, Object data) {
 		this.codec = codec;
 		this.rawData = data;
+	}
+
+	public static <T, S> ObjectStorage<T> fromValueWithDefaultOps(Codec<T> codec, Function<RegistryWrapper.WrapperLookup, T> value) {
+		return fromValue(codec, value.apply(DEFAULT_LOOKUP.get()));
 	}
 
 	public static <T, S> ObjectStorage<T> fromValue(Codec<T> codec, T value) {

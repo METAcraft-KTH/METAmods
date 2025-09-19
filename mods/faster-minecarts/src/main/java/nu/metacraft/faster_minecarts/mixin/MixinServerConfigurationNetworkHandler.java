@@ -22,7 +22,7 @@ public class MixinServerConfigurationNetworkHandler {
 		)
 	)
 	public Set<Identifier> sendConfigurations(Set<Identifier> set) {
-		if (!FasterMinecartsConfig.getConfig().experimentalMinecartMode.isEnabled()) {
+		if (!FasterMinecartsConfig.getConfig().experimentalMinecartMode().isEnabled()) {
 			return set;
 		}
 		if (set.contains(FasterMinecarts.MINECART_IMPROVEMENTS)) return set;

@@ -55,7 +55,7 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 	)
 	public double changePoweredRailAcceleration(double acceleration) {
 		return getData().fasterMinecarts$getAcceleration().orElse(
-				FasterMinecartsHelper.getValue(minecart, acceleration, FasterMinecartsConfig.getPoweredRailAccelerationFactor())
+				FasterMinecartsHelper.getValue(minecart, acceleration, FasterMinecartsConfig.MinecartModifier::poweredRailAccelerationFactor)
 		);
 	}
 
@@ -168,9 +168,9 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 	)
 	public double increaseTopSpeedFactor(double value) {
 		if (value == 0.75) {
-			return FasterMinecartsHelper.getValue(minecart, value, FasterMinecartsConfig.getTopSpeedFactorNoPassenger());
+			return FasterMinecartsHelper.getValue(minecart, value, FasterMinecartsConfig.MinecartModifier::topSpeedFactor);
 		} else if (value == 1.0) {
-			return FasterMinecartsHelper.getValue(minecart, value, FasterMinecartsConfig.getTopSpeedFactorWithPassenger());
+			return FasterMinecartsHelper.getValue(minecart, value, FasterMinecartsConfig.MinecartModifier::topSpeedFactor);
 		}
 		return value;
 	}

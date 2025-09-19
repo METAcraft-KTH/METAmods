@@ -17,8 +17,6 @@ import net.minecraft.screen.*;
 import net.minecraft.screen.slot.ForgingSlotsManager;
 import net.minecraft.server.network.ServerPlayerEntity;
 import nu.metacraft.repair_fix.RepairFixConfig;
-import nu.metacraft.repair_fix.parse.ParseBase;
-import nu.metacraft.repair_fix.parse.RepairParse;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Final;
@@ -45,12 +43,12 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 	)
 	public boolean canRepair(
 			ItemStack stack, ItemStack ingredient, Operation<Boolean> op,
-			@Share("parse") LocalRef<ParseBase.ParseResult<ItemStack, RepairParse>> parse
+			@Share("parse") LocalRef<Integer> parse
 	) {
-		return RepairFixConfig.getConfig().repairConfigReader.get().getFirstMatch(stack, ingredient).map(value -> {
+		return RepairFixConfig.getConfig(player.getEntityWorld().getServer()).findRepairCount(stack, ingredient).stream().mapToObj(value -> {
 			parse.set(value);
-			return value.result().shouldAllow();
-		}).orElse(op.call(stack, ingredient));
+			return value > 0;
+		}).findAny().orElse(op.call(stack, ingredient));
 	}
 
 	@ModifyExpressionValue(
@@ -61,10 +59,10 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 		)
 	)
 	public int modifyValue(
-			int constant, @Share("parse") LocalRef<ParseBase.ParseResult<ItemStack, RepairParse>> parse
+			int constant, @Share("parse") LocalRef<Integer> parse
 	) {
 		if (parse.get() != null) {
-			return parse.get().parse().getRepairItemsUntilFull();
+			return parse.get();
 		}
 		return constant;
 	}
@@ -113,7 +111,7 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 		)
 	)
 	public void capAtMaxLevelIfConfigured(CallbackInfo ci) {
-		if (RepairFixConfig.getConfig().capAtMaxLevel) {
+		if (RepairFixConfig.getConfig().capAtMaxLevel()) {
 			if (this.levelCost.get() >= RepairFixConfig.getConfig().getMaxRepairCost()) {
 				this.levelCost.set(RepairFixConfig.getConfig().getMaxRepairCost()-1);
 				if (!player.getEntityWorld().isClient()) {
@@ -136,10 +134,10 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 			RegistryEntry<Enchantment> first, RegistryEntry<Enchantment> second, Operation<Boolean> org,
 			@Share("additionalCost") LocalIntRef additionalCost
 	) {
-		return RepairFixConfig.getConfig().enchantmentConfigReader.getFirstMatch(first, second).map(result -> {
-			additionalCost.set(result.parse().getAdditionalCost());
-			return result.result().shouldAllow();
-		}).orElse(org.call(first, second));
+		return RepairFixConfig.getConfig(player.getEntityWorld().getServer()).findCombineCost(first, second).stream().mapToObj(result -> {
+			additionalCost.set(result);
+			return true;
+		}).findAny().orElse(org.call(first, second));
 	}
 
 	@ModifyVariable(
@@ -185,7 +183,7 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 		)
 	)
 	public int preventPriceGrowth(int value, @Share("isAddingEnchantment") LocalBooleanRef isAddingEnchantment) {
-		value = switch (RepairFixConfig.getConfig().baseCostIncreaseMode) {
+		value = switch (RepairFixConfig.getConfig().baseCostIncreaseMode()) {
 			case DEFAULT -> AnvilScreenHandler.getNextCost(value);
 			case ENCHANTING_ONLY -> {
 				if (isAddingEnchantment.get()) {

@@ -4,8 +4,7 @@
 	"package": "nu.metacraft.repair_fix.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"MixinAnvilScreenHandler",
-		"MixinEnchantment"
+		"MixinAnvilScreenHandler"
 	],
 	"client": [
 		"MixinAnvilScreen"

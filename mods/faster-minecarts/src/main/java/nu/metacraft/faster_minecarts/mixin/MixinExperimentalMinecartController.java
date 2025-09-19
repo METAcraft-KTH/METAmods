@@ -37,7 +37,7 @@ public abstract class MixinExperimentalMinecartController extends MinecartContro
 	)
 	private double accelerateFromPoweredRail(double acceleration) {
 		return getData().fasterMinecarts$getAcceleration().orElse(
-				FasterMinecartsHelper.getValue(minecart, acceleration, FasterMinecartsConfig.getPoweredRailAccelerationFactor())
+				FasterMinecartsHelper.getValue(minecart, acceleration, FasterMinecartsConfig.MinecartModifier::poweredRailAccelerationFactor)
 		);
 	}
 

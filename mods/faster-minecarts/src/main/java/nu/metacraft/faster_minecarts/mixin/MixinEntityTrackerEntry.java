@@ -47,7 +47,7 @@ public abstract class MixinEntityTrackerEntry {
 	)
 	public MinecartController makeControllerNull(MinecartController controller) {
 		if (
-				FasterMinecartsConfig.getConfig().experimentalMinecartMode.isEnabled() &&
+				FasterMinecartsConfig.getConfig().experimentalMinecartMode().isEnabled() &&
 				controller instanceof DefaultMinecartController
 		) {
 			return null;

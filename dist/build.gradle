@@ -15,7 +15,6 @@ initDist()
 addCoreDependencies()
 
 dependencies {
-    implementation("me.zeroeightsix:fiber:${project.fiber_version}")
     implementation("org.objenesis:objenesis:${project.objenesis_version}")
 }
 

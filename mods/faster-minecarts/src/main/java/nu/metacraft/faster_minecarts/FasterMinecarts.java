@@ -38,7 +38,7 @@ public class FasterMinecarts implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		FasterMinecartsConfig.init();
+		FasterMinecartsConfig.getConfig();
 		MinecartComponents.init();
 		RecipeLoad.EVENT.register((id, json, recipe, registryLookup) -> {
 			if (recipe.getClass().equals(ShapedRecipe.class) || recipe.getClass().equals(ShapelessRecipe.class)) {
@@ -57,10 +57,10 @@ public class FasterMinecarts implements ModInitializer {
 	}
 
 	public static BiPredicate<Entity, Entity> shouldBeDamaged = (entity, minecart) -> {
-		if (minecart.hasPassenger(entity.getRootVehicle())) {
+		if (minecart == entity.getRootVehicle()) {
 			return false;
 		}
-		return FasterMinecartsConfig.getEntityDamageBlacklist().shouldDamageEntity(entity);
+		return FasterMinecartsConfig.getConfig(entity.getEntityWorld().getServer()).shouldDamageEntity(minecart.getPos(), entity);
 	};
 
 	public static void damageEntitiesFromCart(AbstractMinecartEntity minecart, double actualSpeed, Vec3d movement) {
@@ -74,9 +74,9 @@ public class FasterMinecarts implements ModInitializer {
 
 	public static void damageEntitiesFromCart(Entity minecart, double velocity, Box box) {
 		DamageSource source = new DamageSource(minecart.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.DAMAGE_TYPE).getOrThrow(MINECART));
-		if (velocity > FasterMinecartsConfig.getConfig().dangerousMinecartSpeed && FasterMinecartsConfig.getConfig().dangerousMinecartSpeed > 0) {
+		if (FasterMinecartsConfig.getConfig().dangerousMinecartSpeed().isPresent() && velocity > FasterMinecartsConfig.getConfig().dangerousMinecartSpeed().get()) {
 			for (Entity entity : minecart.getEntityWorld().getOtherEntities(minecart, box, entity -> shouldBeDamaged.test(entity, minecart))) {
-				float damage = (float) ((velocity - FasterMinecartsConfig.getConfig().dangerousMinecartSpeed) * FasterMinecartsConfig.getConfig().damageFactor);
+				float damage = (float) ((velocity - FasterMinecartsConfig.getConfig().dangerousMinecartSpeed().get()) * FasterMinecartsConfig.getConfig().damageFactor());
 				entity.damage((ServerWorld) minecart.getEntityWorld(), source, damage);
 			}
 		}
