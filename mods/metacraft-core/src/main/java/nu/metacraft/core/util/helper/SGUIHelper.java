@@ -46,7 +46,7 @@ public class SGUIHelper {
 		}
 		if (!foundPlayer) {
 			builder.setItem(Items.PLAYER_HEAD);
-			builder.setComponent(DataComponentTypes.PROFILE, ProfileComponent.method_74889(
+			builder.setComponent(DataComponentTypes.PROFILE, ProfileComponent.ofDynamic(
 					"MHF_Herobrine"
 			));
 			builder.setName(name);

@@ -34,7 +34,7 @@ public record DisplayItemData(Either<List<ItemStack>, LootTable> items) {
 		if (entity.getEntityWorld().isClient()) return List.of();
 		float luck = entity instanceof LivingEntity living ? (float) living.getAttributeValue(EntityAttributes.LUCK) : 0;
 		Supplier<LootWorldContext> ctx = () -> new LootWorldContext.Builder((ServerWorld) entity.getEntityWorld())
-				.add(LootContextParameters.ORIGIN, entity.getPos())
+				.add(LootContextParameters.ORIGIN, entity.getEntityPos())
 				.luck(luck)
 				.add(LootContextParameters.THIS_ENTITY, entity)
 				.build(LootContextTypes.CHEST);

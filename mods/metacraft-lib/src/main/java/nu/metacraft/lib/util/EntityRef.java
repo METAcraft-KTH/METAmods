@@ -30,7 +30,7 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 
 		@Override
 		public Vec3d getPos() {
-			return entity.getPos();
+			return entity.getEntityPos();
 		}
 
 		@Override

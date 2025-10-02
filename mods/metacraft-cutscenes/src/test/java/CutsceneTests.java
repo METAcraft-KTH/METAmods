@@ -346,7 +346,7 @@ public class CutsceneTests {
 		player.getEntityWorld().getScoreboard().addScoreHolderToTeam(player.getNameForScoreboard(), team);
 		var stack = new ItemStack(Items.DIAMOND, 64);
 		int slot = 5;
-		var start = player.getPos();
+		var start = player.getEntityPos();
 		player.getInventory().insertStack(slot, stack.copy());
 		var pig = EntityType.PIG.create(context.getWorld(), SpawnReason.TRIGGERED);
 		pig.equipStack(EquipmentSlot.SADDLE, new ItemStack(Items.SADDLE));
@@ -358,7 +358,7 @@ public class CutsceneTests {
 		context.getWorld().spawnEntity(pearl);
 		context.getWorld().spawnEntity(pig);
 		player.startRiding(pig);
-		var pos = player.getPos();
+		var pos = player.getEntityPos();
 		return new Data(player, stack, slot, pig.getUuid(), pearl.getUuid(), pos);
 	}
 
@@ -406,7 +406,7 @@ public class CutsceneTests {
 			ctx.throwGameTestException(Text.literal("Pig not mounted, but was supposed to be mounted!"));
 		}
 
-		boolean posMaintained = data.player.getPos().distanceTo(data.startPos) < 2;
+		boolean posMaintained = data.player.getEntityPos().distanceTo(data.startPos) < 2;
 
 		if (posMaintained && !shouldMaintainPos) {
 			ctx.throwGameTestException(Text.literal("Player should not have been returned to start, but they were!"));

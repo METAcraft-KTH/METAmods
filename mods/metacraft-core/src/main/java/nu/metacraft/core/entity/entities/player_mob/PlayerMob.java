@@ -297,7 +297,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	protected boolean canChangeIntoPose(EntityPose pose) {
-		return this.getEntityWorld().isSpaceEmpty(this, this.getDimensions(pose).getBoxAt(this.getPos()).contract(1.0E-7));
+		return this.getEntityWorld().isSpaceEmpty(this, this.getDimensions(pose).getBoxAt(this.getEntityPos()).contract(1.0E-7));
 	}
 
 	protected void updatePose() {
@@ -682,7 +682,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	public void writeCustomData(WriteView nbt) {
 		super.writeCustomData(nbt);
 		if (skinData != null) {
-			nbt.put(PROFILE, ProfileComponent.field_49359, skinData);
+			nbt.put(PROFILE, ProfileComponent.CODEC, skinData);
 		}
 		nbt.put(VISIBLE_SKIN_PARTS, ExtraCodecs.MODEL_PART_SET_CODEC, getVisibleSkinParts());
 		if (!this.getShoulderEntityLeft().isEmpty()) {
@@ -697,7 +697,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	@Override
 	public void readCustomData(ReadView nbt) {
 		super.readCustomData(nbt);
-		nbt.read(PROFILE, ProfileComponent.field_49359).ifPresentOrElse(
+		nbt.read(PROFILE, ProfileComponent.CODEC).ifPresentOrElse(
 				profileComponent -> setSkin(profileComponent),
 				() -> setSkin(getDefaultSkin())
 		);

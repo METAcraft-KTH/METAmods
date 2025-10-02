@@ -44,7 +44,7 @@ public class NeedToBreathe extends MultiTickTask<MobEntity> {
 			var nearestOxygen = entity.getBrain().getOptionalRegisteredMemory(METAcraftMemoryModules.NEAREST_OXYGEN);
 			if (nearestOxygen.isPresent() && nearestOxygen.get().dimension() == world.getRegistryKey()) {
 				double entitySpeed = entity.getAttributeValue(EntityAttributes.MOVEMENT_SPEED);
-				if (nearestOxygen.get().pos().getSquaredDistance(entity.getPos()) * speed * entitySpeed >= getActualAir(entity)) {
+				if (nearestOxygen.get().pos().getSquaredDistance(entity.getEntityPos()) * speed * entitySpeed >= getActualAir(entity)) {
 					return true;
 				}
 			}

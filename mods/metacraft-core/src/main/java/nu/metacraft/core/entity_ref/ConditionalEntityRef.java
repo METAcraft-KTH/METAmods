@@ -38,7 +38,7 @@ public class ConditionalEntityRef implements EntityRef {
 				e -> {
 					LootWorldContext lootWorldContext = new LootWorldContext.Builder(ctx.getWorld())
 							.add(LootContextParameters.THIS_ENTITY, e)
-							.add(LootContextParameters.ORIGIN, e.getPos())
+							.add(LootContextParameters.ORIGIN, e.getEntityPos())
 							.build(LootContextTypes.SELECTOR);
 					return condition.test(
 							new LootContext.Builder(lootWorldContext)

@@ -31,7 +31,7 @@ public class MoveToGround extends PositionTargetSelector {
 		float pitch = ctx.random().nextFloat() * 45;
 		var direction = Vec3d.fromPolar(pitch, yaw);
 		var offset = direction.multiply(range.get(ctx.random()));
-		Vec3d pos = ctx.boss().getPos().add(offset);
+		Vec3d pos = ctx.boss().getEntityPos().add(offset);
 		int groundY = ctx.getWorld().getTopY(Heightmap.Type.MOTION_BLOCKING, MathHelper.floor(pos.x), MathHelper.floor(pos.z));
 		if (pos.y < groundY) {
 			pos = new Vec3d(pos.x, groundY, pos.z);

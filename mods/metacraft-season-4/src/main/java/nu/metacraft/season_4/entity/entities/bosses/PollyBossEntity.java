@@ -208,7 +208,7 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 	public void stun() {
 		if (getBrain().hasMemoryModule(Season4MemoryModules.STUNNED)) return;
 		var player = getPlayerTargets().stream().filter(p -> p != getHeldEntity()).min(
-				Comparator.comparing(p -> p.squaredDistanceTo(this.getPos()))
+				Comparator.comparing(p -> p.squaredDistanceTo(this.getEntityPos()))
 		);
 		if (player.isPresent()) {
 			setVelocity(
@@ -376,7 +376,7 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 				);
 				world.getChunkManager().sendToNearbyPlayers(
 						this, EntityPositionS2CPacket.create(
-								getHeldEntity().getId(), new EntityPosition(getHeldEntity().getPos(), Vec3d.ZERO, 0, 0),
+								getHeldEntity().getId(), new EntityPosition(getHeldEntity().getEntityPos(), Vec3d.ZERO, 0, 0),
 								Sets.union(PositionFlag.ROT, PositionFlag.DELTA), false
 						)
 				);
@@ -740,7 +740,7 @@ public class PollyBossEntity extends ParrotEntity implements PolymerEntity, Auto
 												)
 										).build()
 								),
-								LootContext.EntityTarget.THIS
+								LootContext.EntityReference.THIS
 						)
 				)
 		).add(

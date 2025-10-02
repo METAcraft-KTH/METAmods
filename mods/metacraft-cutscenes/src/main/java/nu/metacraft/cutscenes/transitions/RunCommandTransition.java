@@ -86,7 +86,7 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 						return false;
 					}
 				},
-				entity != null ? entity.getPos() : entryPoint.map(TeleportTarget::position).orElse(Vec3d.ZERO),
+				entity != null ? entity.getEntityPos() : entryPoint.map(TeleportTarget::position).orElse(Vec3d.ZERO),
 				entity != null ? entity.getRotationClient() : entryPoint.map(target -> new Vec2f(target.pitch(), target.yaw())).orElse(Vec2f.ZERO),
 				runInRealWorld ? cutscene.getCutsceneWorld().getActualWorld() : cutscene.getCutsceneWorld(),
 				2, entity != null ? entity.getName().getString() : "Cutscene",

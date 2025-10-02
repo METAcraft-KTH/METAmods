@@ -26,7 +26,7 @@ public class HardcoreHelper {
 	 * @param hardcore Whether hardcore mode should be enabled or disabled.
 	 */
 	public static void sendHardcoreState(ServerPlayerEntity player, boolean hardcore) {
-		Vec3d pos = player.getPos();
+		Vec3d pos = player.getEntityPos();
 		float yaw = player.getYaw();
 		float pitch = player.getPitch();
 		ServerWorld world = player.getEntityWorld();
@@ -47,7 +47,7 @@ public class HardcoreHelper {
 								player.createCommonPlayerSpawnInfo(world), false
 						),
 						new PlayerRespawnS2CPacket(player.createCommonPlayerSpawnInfo(world), (byte) 3),
-						new PlayerSpawnPositionS2CPacket(world.method_74854()),
+						new PlayerSpawnPositionS2CPacket(world.getSpawnPoint()),
 						new DifficultyS2CPacket(world.getDifficulty(), world.getLevelProperties().isDifficultyLocked()),
 						new ExperienceBarUpdateS2CPacket(player.experienceProgress, player.totalExperience, player.experienceLevel),
 						new PlayerAbilitiesS2CPacket(player.getAbilities()),

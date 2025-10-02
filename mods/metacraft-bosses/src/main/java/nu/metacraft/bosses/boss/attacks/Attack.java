@@ -72,7 +72,7 @@ public interface Attack {
 	record Context(Optional<Entity> entity, ServerWorld world, Vec3d pos, BlockPos blockPos, EntityType<?> entityType, Random random) {
 
 		public static Context forEntity(Entity entity, Random random) {
-			return new Context(Optional.of(entity), (ServerWorld) entity.getEntityWorld(), entity.getPos(), entity.getBlockPos(), entity.getType(), random);
+			return new Context(Optional.of(entity), (ServerWorld) entity.getEntityWorld(), entity.getEntityPos(), entity.getBlockPos(), entity.getType(), random);
 		}
 
 		public Box getBoundingBox() {

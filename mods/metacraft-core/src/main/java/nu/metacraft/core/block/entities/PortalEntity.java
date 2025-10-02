@@ -576,7 +576,7 @@ public class PortalEntity extends BlockEntity {
 					//Find position to place the player on other portal.
 					var sourceBox = getBoundingBox();
 					var targetBox = portal.getBoundingBox();
-					Vec3d entityMovement = entity.getPos().subtract(entity.lastX, entity.lastY, entity.lastZ);
+					Vec3d entityMovement = entity.getEntityPos().subtract(entity.lastX, entity.lastY, entity.lastZ);
 					if (entity.getVelocity().length() > entityMovement.length()) {
 						entityMovement = entity.getVelocity();
 					}
@@ -591,7 +591,7 @@ public class PortalEntity extends BlockEntity {
 
 					Vec3d targetPos = getTarget(targetBox, dist, entity);
 
-					var centeredBox = entityBox.offset(entity.getPos().multiply(-1));
+					var centeredBox = entityBox.offset(entity.getEntityPos().multiply(-1));
 					if (!targetDim.isSpaceEmpty(centeredBox.offset(targetPos))) {
 						targetPos = getTarget(targetBox, dist, entity);
 						if (!targetDim.isSpaceEmpty(centeredBox.offset(targetPos))) {

@@ -307,12 +307,12 @@ public class PlayerDataHelper {
 				inst.clearModifiers();
 			}
 		});
-		var prevPos = player.getPos();
+		var prevPos = player.getEntityPos();
 		var prevYaw = player.getYaw();
 		var prevPitch = player.getPitch();
 		Vec3d prevVelocity = player.getVelocity();
 
-		var prevVehiclePos = player.getRootVehicle().getPos();
+		var prevVehiclePos = player.getRootVehicle().getEntityPos();
 		var prevVehicleYaw = player.getRootVehicle().getYaw();
 		var prevVehiclePitch = player.getRootVehicle().getPitch();
 		var prevVehicleVelocity = player.getRootVehicle().getVelocity();

@@ -130,7 +130,7 @@ public interface LootAccess {
 
 		@Override
 		public Vec3d getPos() {
-			return entity.getPos();
+			return entity.getEntityPos();
 		}
 
 		@Override

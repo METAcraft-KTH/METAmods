@@ -111,7 +111,7 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 
 	public void triggerStep(Entity entity) {
 		if (!triggerOnStep) return;
-		triggerThenRemoveBlock(entity.getPos(), entity);
+		triggerThenRemoveBlock(entity.getEntityPos(), entity);
 	}
 
 	public ActionResult triggerInteract(Direction side, Entity entity) {

@@ -100,7 +100,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 
 	private void moveEntityToTarget(DynamicTarget target, Entity entity, ServerPlayerEntity player, CutsceneInstance cutscene) {
 		var ctx = cutscene.createRefContext(player);
-		var pos = target.pos.get(ctx).orElse(player.getPos().subtract(0, EntityType.PLAYER.getDimensions().eyeHeight(), 0));
+		var pos = target.pos.get(ctx).orElse(player.getEntityPos().subtract(0, EntityType.PLAYER.getDimensions().eyeHeight(), 0));
 		var facing = target.rot.get(ctx).orElse(player.getRotationClient());
 		entity.updatePositionAndAngles(
 				pos.x, pos.y + EntityType.PLAYER.getDimensions().eyeHeight(), pos.z, facing.y, facing.x
@@ -173,7 +173,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 		public static final Codec<DynamicTarget> CODEC = MAP_CODEC.codec();
 
 		public static DynamicTarget fromEntity(Entity entity) {
-			return new DynamicTarget(new Fixed(entity.getPos()), new FixedRot(entity.getYaw(), entity.getPitch()));
+			return new DynamicTarget(new Fixed(entity.getEntityPos()), new FixedRot(entity.getYaw(), entity.getPitch()));
 		}
 
 		public static DynamicTarget fromList(DoubleStream stream) {
@@ -193,9 +193,9 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 					cutscene.getCutscene().getExitPoint(null, cutscene).map(
 							t -> new Target(t.position(), t.yaw(), t.pitch())
 					).orElse(new Target(
-							Vec3d.ofBottomCenter(cutscene.getCutsceneWorld().getActualWorld().method_74854().method_74897()),
-							cutscene.getCutsceneWorld().getActualWorld().method_74854().yaw(),
-							cutscene.getCutsceneWorld().getActualWorld().method_74854().pitch()
+							Vec3d.ofBottomCenter(cutscene.getCutsceneWorld().getActualWorld().getSpawnPoint().getPos()),
+							cutscene.getCutsceneWorld().getActualWorld().getSpawnPoint().yaw(),
+							cutscene.getCutsceneWorld().getActualWorld().getSpawnPoint().pitch()
 					))
 			);
 		}
@@ -208,7 +208,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 				if (cutscene != null) {
 					var refCtx = ctx.getRefContext();
 					var emergencyTarget = Suppliers.memoize(() -> getEmergencyPoint(cutscene));
-					var pos = pos().get(refCtx).orElse(player != null ? player.getPos() : emergencyTarget.get().pos());
+					var pos = pos().get(refCtx).orElse(player != null ? player.getEntityPos() : emergencyTarget.get().pos());
 					var rot = rot().get(refCtx).orElse(player != null ? player.getRotationClient() : new Vec2f(emergencyTarget.get().pitch(), emergencyTarget.get().yaw()));
 					return DoubleList.of(pos.getX(), pos.getY(), pos.getZ(), rot.y, rot.x);
 				}

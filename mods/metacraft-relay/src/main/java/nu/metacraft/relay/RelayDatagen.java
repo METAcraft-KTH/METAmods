@@ -135,7 +135,7 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 									ConstantLootNumberProvider.create(1.0F)
 							).with(
 									ItemEntry.builder(drop).apply(
-											CopyComponentsLootFunction.method_74903(
+											CopyComponentsLootFunction.blockEntity(
 													LootContextParameters.BLOCK_ENTITY
 											)
 									)

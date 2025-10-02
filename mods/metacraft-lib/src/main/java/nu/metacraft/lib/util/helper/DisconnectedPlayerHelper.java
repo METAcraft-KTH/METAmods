@@ -280,7 +280,7 @@ public class DisconnectedPlayerHelper {
 			boolean drainRespawnAnchor, TeleportTarget.PostDimensionTransition postDimensionTransition
 	) {
 		//Basically just Mojang's function in ServerPlayerEntity, but now it's static.
-		ServerWorld serverWorld = server.getWorld(respawn != null ? respawn.respawnData().method_74894() : World.OVERWORLD);
+		ServerWorld serverWorld = server.getWorld(respawn != null ? respawn.respawnData().getDimension() : World.OVERWORLD);
 		if (serverWorld != null && respawn != null) {
 			Optional<ServerPlayerEntity.RespawnPos> optional = AccessorServerPlayerEntity.callFindRespawnPosition(serverWorld, respawn, drainRespawnAnchor);
 			if (optional.isPresent()) {
@@ -304,7 +304,7 @@ public class DisconnectedPlayerHelper {
 
 	public static boolean removeSpawnPointIfMatching(NbtCompound nbt, BiPredicate<RegistryKey<World>, BlockPos> dim) {
 		var spawnPoint = DisconnectedPlayerHelper.getSpawnPoint(nbt);
-		if (spawnPoint.isPresent() && dim.test(spawnPoint.get().respawnData().method_74894(), spawnPoint.get().respawnData().method_74897())) {
+		if (spawnPoint.isPresent() && dim.test(spawnPoint.get().respawnData().getDimension(), spawnPoint.get().respawnData().getPos())) {
 			DisconnectedPlayerHelper.removeSpawnPoint(nbt);
 			return true;
 		}

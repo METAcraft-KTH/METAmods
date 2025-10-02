@@ -59,8 +59,8 @@ public class DungeonData extends PersistentState {
 				instance -> instance.group(
 						Codec.LONG.fieldOf("index").forGetter(d -> d.index),
 						Codec.INT.fieldOf("width").forGetter(d -> d.dungeonWidth),
-						World.CODEC.optionalFieldOf("exit_dim", world.getServer().method_74945().method_74894()).forGetter(d -> d.exitDim),
-						BlockPos.CODEC.fieldOf("exit_pos").orElse(world.getServer().method_74945().method_74897()).forGetter(d -> d.exitPos),
+						World.CODEC.optionalFieldOf("exit_dim", world.getServer().getSpawnPoint().getDimension()).forGetter(d -> d.exitDim),
+						BlockPos.CODEC.fieldOf("exit_pos").orElse(world.getServer().getSpawnPoint().getPos()).forGetter(d -> d.exitPos),
 						Codec.DOUBLE.fieldOf("max_range_from_exit_pos").forGetter(d -> d.maxRangeFromExitPos),
 						Codec.BOOL.fieldOf("clearing").forGetter(d -> d.clearing),
 						Codec.BOOL.fieldOf("resetting").forGetter(d -> d.resetting),
@@ -118,8 +118,8 @@ public class DungeonData extends PersistentState {
 	private DungeonData(ServerWorld world) {
 		this.world = world;
 		dungeonWidth = world.getHeight();
-		exitDim = world.getServer().method_74945().method_74894();
-		exitPos = world.getServer().method_74945().method_74897();
+		exitDim = world.getServer().getSpawnPoint().getDimension();
+		exitPos = world.getServer().getSpawnPoint().getPos();
 		fixSquaremap();
 	}
 
@@ -399,7 +399,7 @@ public class DungeonData extends PersistentState {
 					pearlsToRemove.add(pearl);
 				}
 			}
-			if (player.getRespawn() != null && player.getRespawn().respawnData().method_74894() == world.getRegistryKey()) {
+			if (player.getRespawn() != null && player.getRespawn().respawnData().getDimension() == world.getRegistryKey()) {
 				player.setSpawnPoint(null, false);
 				player.sendMessage(Text.literal("Respawn point reset"));
 			}

@@ -47,7 +47,7 @@ public class StatusEffectAttack extends InstantAttack {
 						List.of(
 								new EntityPropertiesLootCondition(
 										Optional.of(predicate),
-										LootContext.EntityTarget.THIS
+										LootContext.EntityReference.THIS
 								),
 								new InvertedLootCondition(
 									new EntityPropertiesLootCondition(
@@ -56,7 +56,7 @@ public class StatusEffectAttack extends InstantAttack {
 													EntityEffectPredicate.Builder.create().addEffect(effect)
 											).build()
 										),
-										LootContext.EntityTarget.THIS
+										LootContext.EntityReference.THIS
 									)
 								),
 								new RandomChanceLootCondition(

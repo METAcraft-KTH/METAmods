@@ -22,7 +22,7 @@ public class EndBossCommand {
 				literal("init").then(
 					argument("player", EntityArgumentType.player()).executes(ctx -> {
 						var player = EntityArgumentType.getPlayer(ctx, "player");
-						EndBossPlayerState.initBossState(ctx.getSource().getWorld(), player, player.getPos());
+						EndBossPlayerState.initBossState(ctx.getSource().getWorld(), player, player.getEntityPos());
 						ctx.getSource().sendFeedback(() -> Text.literal("Started bossfight with ").append(player.getName()), true);
 						return 1;
 					})

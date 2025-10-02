@@ -75,7 +75,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		if (world instanceof ServerWorld sw) {
 			shulker = new EntityElement<>(EntityType.SHULKER, sw);
 			shulker.entity().setInvisible(true);
-			shulker.setInitialPosition(this.getPos());
+			shulker.setInitialPosition(this.getEntityPos());
 			holder.addPassengerElement(shulker);
 		} else {
 			shulker = null;
@@ -90,7 +90,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 			var box = selectionBox(this.getBoundingBox(), Vec3d.ZERO);
 			for (var entity : getEntityWorld().getOtherEntities(this, box, this::shouldMove)) {
 				entity.teleportTo(teleportTarget.withPosition(
-						entity.getPos().subtract(this.getPos()).add(teleported.getPos())
+						entity.getEntityPos().subtract(this.getEntityPos()).add(teleported.getEntityPos())
 				));
 			}
 		}
@@ -345,7 +345,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		}
 
 		public Vec3d getTargetPos() {
-			return entity.getPos().subtract(offset);
+			return entity.getEntityPos().subtract(offset);
 		}
 	}
 }

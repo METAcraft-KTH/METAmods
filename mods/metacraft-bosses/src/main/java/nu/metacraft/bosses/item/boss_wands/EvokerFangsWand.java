@@ -30,7 +30,7 @@ public class EvokerFangsWand extends Item implements PolymerItem {
 	public ActionResult use(World world, PlayerEntity user, Hand hand) {
 		var stack = user.getStackInHand(hand);
 		double maxRange = stack.contains(BossComponents.MAX_RANGE) ? stack.get(BossComponents.MAX_RANGE) : 64;
-		Vec3d eyePos = user.getPos().add(0, user.getEyeHeight(user.getPose()), 0);
+		Vec3d eyePos = user.getEntityPos().add(0, user.getEyeHeight(user.getPose()), 0);
 		Vec3d facingVector = user.getRotationVector().multiply(maxRange);
 		Vec3d endPos = eyePos.add(facingVector);
 

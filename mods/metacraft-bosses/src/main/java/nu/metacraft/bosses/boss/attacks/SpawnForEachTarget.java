@@ -49,7 +49,7 @@ public class SpawnForEachTarget extends SpawnEntityAttackBase {
 	@Override
 	public void trigger(BossContext<?> ctx) {
 		var targets = ctx.boss().getTargets(e -> this.targets.stream().anyMatch(
-				predicate -> predicate.test(ctx.getWorld(), ctx.boss().getPos(), e)
+				predicate -> predicate.test(ctx.getWorld(), ctx.boss().getEntityPos(), e)
 		));
 		targets.forEach(target -> {
 			int count = countPerTarget.get(ctx.random());
@@ -57,7 +57,7 @@ public class SpawnForEachTarget extends SpawnEntityAttackBase {
 				if (targetSelectCondition.map(
 						cond -> cond.test(METAcraftContexTypes.createTickContext(ctx.getWorld(), target, ctx.random()))
 				).orElse(true)) {
-					spawnEntity(ctx, spawnAroundTarget ? target.getPos() : ctx.boss().getPos(), spawned -> Optional.of(target));
+					spawnEntity(ctx, spawnAroundTarget ? target.getEntityPos() : ctx.boss().getEntityPos(), spawned -> Optional.of(target));
 				}
 			}
 		});

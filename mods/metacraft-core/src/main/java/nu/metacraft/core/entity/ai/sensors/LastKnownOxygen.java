@@ -30,7 +30,7 @@ public class LastKnownOxygen extends Sensor<MobEntity> {
 					var existing = entity.getBrain().getOptionalRegisteredMemory(METAcraftMemoryModules.NEAREST_OXYGEN);
 					if (
 							existing.isEmpty() || existing.get().dimension() != world.getRegistryKey() ||
-							existing.get().pos().getSquaredDistance(entity.getPos()) > pos.getSquaredDistance(entity.getPos())
+							existing.get().pos().getSquaredDistance(entity.getEntityPos()) > pos.getSquaredDistance(entity.getEntityPos())
 					) {
 						entity.getBrain().remember(METAcraftMemoryModules.NEAREST_OXYGEN, GlobalPos.create(world.getRegistryKey(), pos.toImmutable()));
 					}

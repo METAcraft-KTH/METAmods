@@ -463,7 +463,7 @@ public class CutsceneInstance implements AutoCloseable {
 					if (target != null) {
 						var vehicle = player.getRootVehicle();
 						vehicle.teleportTo(
-								target.withPosition(target.position().subtract(player.getPos().subtract(vehicle.getPos())))
+								target.withPosition(target.position().subtract(player.getEntityPos().subtract(vehicle.getEntityPos())))
 						);
 					}
 					player.readEnderPearls(readView);

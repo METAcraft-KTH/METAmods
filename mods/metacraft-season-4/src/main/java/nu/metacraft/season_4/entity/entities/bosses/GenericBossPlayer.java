@@ -111,7 +111,7 @@ public class GenericBossPlayer extends PlayerMob implements AutoAttackingBoss {
 			stuckTime = 0;
 		}
 
-		if (this.getPos().getY() < world.getBottomY()) {
+		if (this.getEntityPos().getY() < world.getBottomY()) {
 			var targets = getTargets(p -> p.getY() >= world.getBottomY());
 			if (targets.isEmpty()) {
 				targets = getAllies(TypeFilter.instanceOf(Entity.class), e -> e.getY() >= world.getBottomY());

@@ -543,7 +543,7 @@ public class EndBossPlayerState extends PersistentState {
 
 	private TeleportTarget getNearBoss(ServerWorld world, Entity entity) {
 		if (currentBoss != null) {
-			return getTargetAroundPos(currentBoss.getEntityWorld(), entity, currentBoss.getPos());
+			return getTargetAroundPos(currentBoss.getEntityWorld(), entity, currentBoss.getEntityPos());
 		} else {
 			return getPlayerSpawnPoint(world, entity);
 		}
@@ -580,7 +580,7 @@ public class EndBossPlayerState extends PersistentState {
 			particlePos = currentBoss.getBoundingBox().getCenter();
 		}
 		if (this.playerSpawnPos.isEmpty()) {
-			this.playerSpawnPos = Optional.of(currentBoss.getPos());
+			this.playerSpawnPos = Optional.of(currentBoss.getEntityPos());
 		}
 		BossBarHelper.getBossBar(currentBoss).ifPresent(bar -> {
 			if (bar != this.cachedBossBar) {
@@ -607,7 +607,7 @@ public class EndBossPlayerState extends PersistentState {
 				player.teleportTo(getNearBoss(currentBoss.getEntityWorld(), player));
 			}
 		}
-		if (currentBoss.getPos().distanceTo(playerSpawnPos.orElse(null)) > config.get().maxDistanceFromSpawn() || currentBoss.getEntityWorld() != world) {
+		if (currentBoss.getEntityPos().distanceTo(playerSpawnPos.orElse(null)) > config.get().maxDistanceFromSpawn() || currentBoss.getEntityWorld() != world) {
 			currentBoss.teleportTo(getPlayerSpawnPoint(world, currentBoss));
 		}
 		if (currentBoss.getY() < world.getBottomY()) {

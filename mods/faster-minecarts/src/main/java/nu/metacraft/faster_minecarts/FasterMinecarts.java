@@ -60,14 +60,14 @@ public class FasterMinecarts implements ModInitializer {
 		if (minecart == entity.getRootVehicle()) {
 			return false;
 		}
-		return FasterMinecartsConfig.getConfig(entity.getEntityWorld().getServer()).shouldDamageEntity(minecart.getPos(), entity);
+		return FasterMinecartsConfig.getConfig(entity.getEntityWorld().getServer()).shouldDamageEntity(minecart.getEntityPos(), entity);
 	};
 
 	public static void damageEntitiesFromCart(AbstractMinecartEntity minecart, double actualSpeed, Vec3d movement) {
 		Vec3d facing = movement.normalize();
 		Vec3d left = facing.rotateY((float) Math.PI / 2);
 		double halfWidth = minecart.getWidth()/2;
-		Vec3d boxStart = minecart.getPos().add(facing.multiply(halfWidth));
+		Vec3d boxStart = minecart.getEntityPos().add(facing.multiply(halfWidth));
 		Box ahead = new Box(boxStart.add(left.multiply(-halfWidth)), boxStart.add(facing.multiply(movement.horizontalLength())).add(left.multiply(halfWidth)).add(0, minecart.getHeight(),0));
 		damageEntitiesFromCart(minecart, actualSpeed, ahead);
 	}

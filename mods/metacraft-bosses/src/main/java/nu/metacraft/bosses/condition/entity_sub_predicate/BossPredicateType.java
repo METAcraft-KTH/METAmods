@@ -56,7 +56,7 @@ public record BossPredicateType(
 			for (var t : targetCounts) {
 				var allies = b.getTargets(
 						TypeFilter.instanceOf(Entity.class),
-						e -> t.predicate.test(world, e.getPos(), e)
+						e -> t.predicate.test(world, e.getEntityPos(), e)
 				);
 				if (!t.count.test(allies.size())) {
 					return false;
@@ -65,7 +65,7 @@ public record BossPredicateType(
 			for (var t : allyCounts) {
 				var allies = b.getAllies(
 						TypeFilter.instanceOf(Entity.class),
-						e -> t.predicate.test(world, e.getPos(), e)
+						e -> t.predicate.test(world, e.getEntityPos(), e)
 				);
 				if (!t.count.test(allies.size())) {
 					return false;

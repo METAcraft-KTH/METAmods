@@ -48,7 +48,7 @@ public class Events {
 			for (var e : world.getEntitiesByType(TypeFilter.instanceOf(MovingBlock.class), e -> e.getRootAnchor().isPresent())) {
 				e.getRootAnchor().ifPresent(anchor -> {
 					var targetPos = anchor.getTargetPos();
-					if (!targetPos.equals(e.getPos()) || anchor.entity().getEntityWorld() != e.getEntityWorld()) {
+					if (!targetPos.equals(e.getEntityPos()) || anchor.entity().getEntityWorld() != e.getEntityWorld()) {
 						var dist = e.squaredDistanceTo(anchor.entity());
 						if (dist > MovingBlock.SQ_MAX_MOVE_DIST || anchor.entity().getEntityWorld() != e.getEntityWorld()) {
 							e.setVelocity(Vec3d.ZERO);
@@ -58,7 +58,7 @@ public class Events {
 									0, 0, false
 							);
 						} else {
-							var movement = targetPos.subtract(e.getPos());
+							var movement = targetPos.subtract(e.getEntityPos());
 							e.setVelocity(movement);
 						}
 						e.velocityDirty = true;

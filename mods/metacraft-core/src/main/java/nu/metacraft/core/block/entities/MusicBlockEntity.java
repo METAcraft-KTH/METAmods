@@ -53,7 +53,7 @@ public class MusicBlockEntity extends BlockEntity {
 	}
 
 	private boolean shouldHearMusic(PlayerEntity player) {
-		return player.squaredDistanceTo(pos.toCenterPos()) <= Math.pow(range, 2) || getBoundingBoxTransformed().contains(player.getPos());
+		return player.squaredDistanceTo(pos.toCenterPos()) <= Math.pow(range, 2) || getBoundingBoxTransformed().contains(player.getEntityPos());
 	}
 
 	private Box getBoundingBoxTransformed() {

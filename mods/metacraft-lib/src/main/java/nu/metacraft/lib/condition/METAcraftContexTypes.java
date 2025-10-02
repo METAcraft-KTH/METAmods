@@ -46,7 +46,7 @@ public class METAcraftContexTypes {
 		LootWorldContext.Builder parameters = new LootWorldContext.Builder(world).add(
 				LootContextParameters.THIS_ENTITY, entity
 		).add(
-				LootContextParameters.ORIGIN, entity.getPos()
+				LootContextParameters.ORIGIN, entity.getEntityPos()
 		).addOptional(
 				LootContextParameters.ATTACKING_ENTITY, entity instanceof LivingEntity living ? living.getLastAttacker() : null
 		);

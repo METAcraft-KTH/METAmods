@@ -117,7 +117,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 			discard();
 		}
 		if (!this.isRemoved() && !this.getEntityWorld().isClient() && age % 20 == 0) {
-			getEntityWorld().emitGameEvent(this, GameEvent.JUKEBOX_PLAY, this.getPos());
+			getEntityWorld().emitGameEvent(this, GameEvent.JUKEBOX_PLAY, this.getEntityPos());
 			((ServerWorld) getEntityWorld()).spawnParticles(
 					ParticleTypes.NOTE, getX(), getY() + attachment.getHeight()+0.2, getZ(), 1,
 					0, getRandom().nextInt(4) / 24.0f, 0, 1
@@ -298,7 +298,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		if (attachment != null) {
 			attachment.onUpdate();
 		}
-		getEntityWorld().emitGameEvent(this, GameEvent.JUKEBOX_STOP_PLAY, this.getPos());
+		getEntityWorld().emitGameEvent(this, GameEvent.JUKEBOX_STOP_PLAY, this.getEntityPos());
 		for (var player : hearingPlayers) {
 			player.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(this.getId()));
 		}

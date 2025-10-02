@@ -118,7 +118,7 @@ public abstract class MixinEntityTrackerEntry {
 								this.entity.getId(),
 								List.of(
 										new ExperimentalMinecartController.Step(
-												this.entity.getPos(), this.entity.getVelocity(),
+												this.entity.getEntityPos(), this.entity.getVelocity(),
 												-yaw, pitch,
 												1.0f
 										)

@@ -52,8 +52,8 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 		var targetWorld = world.getServer().getWorld(target.targetDim());
 		if (targetWorld == null) return null;
 
-		var targetPos = target.targetPos().orElse(targetWorld.method_74854().method_74897());
-		var targetAngle = target.targetAngle().orElse(targetWorld.method_74854().yaw());
+		var targetPos = target.targetPos().orElse(targetWorld.getSpawnPoint().getPos());
+		var targetAngle = target.targetAngle().orElse(targetWorld.getSpawnPoint().yaw());
 
 		var portalTransition = TeleportTarget.SEND_TRAVEL_THROUGH_PORTAL_PACKET.then(TeleportTarget.ADD_PORTAL_CHUNK_TICKET);
 

@@ -177,7 +177,7 @@ public class DevinBossEntity extends GenericBossPlayer implements AutoAttackingB
 												List.of(Season4Attacks.DEVIN_DISGUISE.getKey().orElseThrow())
 										)
 								).build()),
-								LootContext.EntityTarget.THIS
+								LootContext.EntityReference.THIS
 						)
 				)
 		).add(

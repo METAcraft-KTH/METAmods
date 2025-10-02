@@ -193,7 +193,7 @@ public class Wrench extends Item implements PolymerItem {
 			for (int x = minX; x <= maxX; x++) {
 				for (int z = minZ; z <= maxZ; z++) {
 					for (var pos : world.getChunk(x, z).getBlockEntityPositions()) {
-						if (pos.isWithinDistance(player.getPos(), SCAN_RADIUS)) {
+						if (pos.isWithinDistance(player.getEntityPos(), SCAN_RADIUS)) {
 							boolean movable = ((BlockEntityExtensions) world.getBlockEntity(pos)).metacraft_core$isMovable();
 							if (movable) {
 								player.getEntityWorld().spawnParticles(

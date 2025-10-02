@@ -118,7 +118,7 @@ public record DoubleTeamHandler(
 		var angleUp = primary.getRandom().nextFloat() * 180;
 		angleUp -= angleUp/2;
 		var facing = Vec3d.fromPolar(angleUp, angle);
-		var target = primary.getPos().add(facing.multiply(
+		var target = primary.getEntityPos().add(facing.multiply(
 				settings.distance.get(primary.getRandom())
 		));
 		var pos = new BlockPos.Mutable();

@@ -33,7 +33,7 @@ public record Target(Vec3d pos, float yaw, float pitch) implements Interpolatabl
 	public static final Target DEFAULT = new Target(Vec3d.ZERO, 0, 0);
 
 	public static Target fromEntity(Entity entity) {
-		return new Target(entity.getPos(), entity.getYaw(), entity.getPitch());
+		return new Target(entity.getEntityPos(), entity.getYaw(), entity.getPitch());
 	}
 
 	public static Target fromList(DoubleStream stream) {

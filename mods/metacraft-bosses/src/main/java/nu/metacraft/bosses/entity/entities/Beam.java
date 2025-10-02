@@ -114,9 +114,9 @@ public class Beam extends Entity implements PolymerEntity {
 
 	private Vec3d getEffectivePos() {
 		if (currentOffset != null) {
-			return getPos().subtract(getCurrentOffset());
+			return getEntityPos().subtract(getCurrentOffset());
 		}
-		return getPos();
+		return getEntityPos();
 	}
 
 	public void updateTransformation() {
@@ -172,7 +172,7 @@ public class Beam extends Entity implements PolymerEntity {
 
 	@Override
 	public void setPosition(double x, double y, double z) {
-		var prevPos = getPos();
+		var prevPos = getEntityPos();
 		boolean shouldUpdate = getX() != x || getY() != y || getZ() != z;
 		super.setPosition(x, y, z);
 		if (shouldUpdate) {
@@ -182,14 +182,14 @@ public class Beam extends Entity implements PolymerEntity {
 
 	@Override
 	public void refreshPositionAndAngles(double x, double y, double z, float yaw, float pitch) {
-		var prevPos = getPos();
+		var prevPos = getEntityPos();
 		super.refreshPositionAndAngles(x, y, z, yaw, pitch);
 		onPositionUpdate(prevPos);
 	}
 
 	@Override
 	public void setPosition(EntityPosition pos, Set<PositionFlag> flags) {
-		var prevPos = getPos();
+		var prevPos = getEntityPos();
 		super.setPosition(pos, flags);
 		onPositionUpdate(prevPos);
 	}

@@ -91,7 +91,7 @@ public class SpawnSpecifiedEntities extends SpawnEntityAttackBase {
 			return;
 		}
 		var targets = ctx.boss().getTargets(e -> this.targets.stream().anyMatch(
-				predicate -> predicate.test(ctx.getWorld(), ctx.boss().getPos(), e)
+				predicate -> predicate.test(ctx.getWorld(), ctx.boss().getEntityPos(), e)
 		));
 		int initialAmount = toSpawn.get(ctx.random()) +
 				Math.round(
@@ -101,11 +101,11 @@ public class SpawnSpecifiedEntities extends SpawnEntityAttackBase {
 				maxAllies -> Math.clamp(initialAmount, 0, maxAllies - allyCount.getAsInt())
 		).orElse(initialAmount);
 		while (amount-- > 0) {
-			spawnEntity(ctx, ctx.boss().getPos(), type -> {
+			spawnEntity(ctx, ctx.boss().getEntityPos(), type -> {
 				for (var entry : specificMaxAllies) {
 					var count = ctx.boss().getAllies(
 							TypeFilter.instanceOf(Entity.class),
-							entity -> entry.getEntityPredicate(ctx.getWorld(), ctx.boss().getPos()).test(entity)
+							entity -> entry.getEntityPredicate(ctx.getWorld(), ctx.boss().getEntityPos()).test(entity)
 					).size();
 					if (count > entry.count) {
 						return false;

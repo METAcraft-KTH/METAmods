@@ -89,10 +89,10 @@ public class PathFindTo implements Transition, TransitionConfig {
 		entity.get(cutscene.getRefContext()).forEach(entity -> {
 			target.get(cutscene.createRefContext(entity)).ifPresent(pos -> {
 				if (entity instanceof PathAwareEntity mob) {
-					if (mob.getNavigation().isIdle() && mob.getPos().distanceTo(pos) > completionDistance) {
+					if (mob.getNavigation().isIdle() && mob.getEntityPos().distanceTo(pos) > completionDistance) {
 						var targetPos = pos;
 						boolean isFuzzy = false;
-						if (pos.distanceTo(mob.getPos()) >= searchRange) {
+						if (pos.distanceTo(mob.getEntityPos()) >= searchRange) {
 							targetPos = FuzzyTargeting.findTo(mob, searchRange, fuzzyVerticalRange.orElse(searchRange/2), pos);
 							if (targetPos == null) return;
 							isFuzzy = true;
@@ -107,7 +107,7 @@ public class PathFindTo implements Transition, TransitionConfig {
 						mob.getNavigation().stop();
 					}
 				} else {
-					entity.setVelocity(pos.subtract(entity.getPos()).normalize().multiply(speed));
+					entity.setVelocity(pos.subtract(entity.getEntityPos()).normalize().multiply(speed));
 				}
 			});
 		});

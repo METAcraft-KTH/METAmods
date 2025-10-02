@@ -45,7 +45,7 @@ public class AtEntityRef implements PositionRef {
 				return entity.getBoundingBox().getCenter();
 			}
 		} else {
-			return entity.getPos();
+			return entity.getEntityPos();
 		}
 	}
 

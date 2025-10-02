@@ -101,8 +101,8 @@ public class MoveTo implements Transition {
 							mob.getNavigation().stop();
 						}
 					} else {
-						entity.setVelocity(pos.subtract(entity.getPos()).normalize().multiply(speed));
-						if (entity.getPos().distanceTo(pos) <= target.completionDistance) {
+						entity.setVelocity(pos.subtract(entity.getEntityPos()).normalize().multiply(speed));
+						if (entity.getEntityPos().distanceTo(pos) <= target.completionDistance) {
 							proceedToNextTarget(entity);
 						}
 					}

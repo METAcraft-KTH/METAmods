@@ -117,7 +117,7 @@ public class TeleportHelper {
 				return random.nextInt(bound);
 			}
 		});
-		var originBox = entity.getBoundingBox().offset(entity.getPos().multiply(-1));
+		var originBox = entity.getBoundingBox().offset(entity.getEntityPos().multiply(-1));
 		list.removeIf(pos -> isPosUnsafe(pos, world, entity, originBox));
 		Vec3d target = list.isEmpty() ? null : Vec3d.ofBottomCenter(list.getFirst());
 		if (target != null) {
@@ -147,7 +147,7 @@ public class TeleportHelper {
 
 	public static BlockPos getWorldSpawn(ServerWorld world) {
 		//Basically just Mojang's function in Entity, but now it's static.
-		BlockPos blockpos = world.method_74854().method_74897();
+		BlockPos blockpos = world.getSpawnPoint().getPos();
 		Vec3d vec3 = blockpos.toCenterPos();
 		int i = world.getWorldChunk(blockpos).sampleHeightmap(net.minecraft.world.Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, blockpos.getX(), blockpos.getZ()) + 1;
 		return BlockPos.ofFloored(vec3.x, i, vec3.z);
@@ -157,13 +157,13 @@ public class TeleportHelper {
 			MinecraftServer server, boolean missingRespawnBlock,
 			TeleportTarget.PostDimensionTransition postDimensionTransition
 	) {
-		var respawnWorld = server.getWorld(server.method_74945().method_74894());
+		var respawnWorld = server.getWorld(server.getSpawnPoint().getDimension());
 		if (respawnWorld == null) {
 			respawnWorld = server.getOverworld();
 		}
 		return new TeleportTarget(
 				respawnWorld, getWorldSpawn(respawnWorld).toBottomCenterPos(),
-				Vec3d.ZERO, respawnWorld.method_74854().yaw(), respawnWorld.method_74854().pitch(),
+				Vec3d.ZERO, respawnWorld.getSpawnPoint().yaw(), respawnWorld.getSpawnPoint().pitch(),
 				missingRespawnBlock, false,
 				Set.of(), postDimensionTransition
 		);

@@ -22,12 +22,12 @@ public interface AccessorPlayerLikeEntity {
 		throw new IllegalStateException("Mixin Error");
 	}
 
-	@Accessor("field_63011")
+	@Accessor("POSE_DIMENSIONS")
 	static Map<EntityPose, EntityDimensions> getPoseDimensions() {
 		throw new IllegalStateException("Mixin Error");
 	}
 
-	@Accessor("field_63010")
+	@Accessor("STANDING_DIMENSIONS")
 	static EntityDimensions getStandingDimensions() {
 		throw new IllegalStateException("Mixin Error");
 	}

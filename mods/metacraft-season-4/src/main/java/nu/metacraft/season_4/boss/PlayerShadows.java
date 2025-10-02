@@ -64,7 +64,7 @@ public class PlayerShadows extends InstantAttack {
 								SpawnReason.REINFORCEMENT,
 								horizontalRange, verticalRange
 						),
-						player.getPos()
+						player.getEntityPos()
 				);
 
 				var team = ctx.boss().getScoreboardTeam();

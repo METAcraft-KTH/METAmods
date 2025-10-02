@@ -62,8 +62,8 @@ public class MovingMarker extends MarkerEntity implements PolymerEntity {
 
 		nbt.read(PATH, PATH_CODEC).ifPresentOrElse(p -> {
 			path = p;
-			path = path.setStartIfNotPresent(new Target(this.getPos(), getYaw(), getPitch()));
-			path = path.setEndIfNotPresent(new Target(this.getPos(), getYaw(), getPitch()));
+			path = path.setStartIfNotPresent(new Target(this.getEntityPos(), getYaw(), getPitch()));
+			path = path.setEndIfNotPresent(new Target(this.getEntityPos(), getYaw(), getPitch()));
 		}, () -> path = null);
 
 		pathTime = nbt.getInt(PATH_TIME, 100);

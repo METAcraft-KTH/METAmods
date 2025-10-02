@@ -167,7 +167,7 @@ public class WorldDeleter {
 					);
 					modified.setTrue();
 				}
-				if (DisconnectedPlayerHelper.getSpawnPoint(player).map(dim -> dim.respawnData().method_74894()).orElse(null) == world.getRegistryKey()) {
+				if (DisconnectedPlayerHelper.getSpawnPoint(player).map(dim -> dim.respawnData().getDimension()).orElse(null) == world.getRegistryKey()) {
 					DisconnectedPlayerHelper.removeSpawnPoint(player);
 					modified.setTrue();
 				}

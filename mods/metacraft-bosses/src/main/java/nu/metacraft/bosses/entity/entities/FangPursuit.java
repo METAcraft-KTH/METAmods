@@ -94,7 +94,7 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 		this.setNoGravity(true);
 
 		target.getEntity().ifPresent(entity -> {
-			var facing = entity.getPos().subtract(this.getPos()).normalize();
+			var facing = entity.getEntityPos().subtract(this.getEntityPos()).normalize();
 			this.setVelocity(facing.multiply(speed));
 			this.move(MovementType.SELF, this.getVelocity());
 

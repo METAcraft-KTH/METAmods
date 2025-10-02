@@ -298,7 +298,7 @@ public class FasterMinecartsConfig {
 		}
 
 		public Stream<MinecartModifier> getRelevantModifiers(AbstractMinecartEntity minecart) {
-			return minecartModifiers.stream().filter(modifier -> modifier.minecartPredicate.test((ServerWorld) minecart.getEntityWorld(), minecart.getPos(), minecart));
+			return minecartModifiers.stream().filter(modifier -> modifier.minecartPredicate.test((ServerWorld) minecart.getEntityWorld(), minecart.getEntityPos(), minecart));
 		}
 
 	}

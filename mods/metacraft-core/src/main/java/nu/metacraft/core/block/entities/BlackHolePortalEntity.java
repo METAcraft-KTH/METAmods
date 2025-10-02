@@ -61,7 +61,7 @@ public class BlackHolePortalEntity extends PortalEntity {
 			if (entity instanceof ServerPlayerEntity player && player.getAbilities().flying) {
 				continue;
 			}
-			Vec3d toBlackHole = centerPos.subtract(entity.getPos());
+			Vec3d toBlackHole = centerPos.subtract(entity.getEntityPos());
 			double dist = toBlackHole.length();
 			Vec3d motionVector = toBlackHole.normalize().multiply(
 					Math.pow((blackHole.attractionRange - dist) / blackHole.attractionRange, 2)

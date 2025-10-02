@@ -50,7 +50,7 @@ public abstract class MixinEnderDragonFight {
 					world.createExplosion(c, c.getX(), c.getY(), c.getZ(), 6.0F, World.ExplosionSourceType.NONE);
 					c.discard();
 				});
-				world.getPlayers(p -> p.getPos().squaredDistanceTo(origin.getX(), origin.getY(), origin.getZ()) <= dist).forEach(
+				world.getPlayers(p -> p.getEntityPos().squaredDistanceTo(origin.getX(), origin.getY(), origin.getZ()) <= dist).forEach(
 						player -> player.sendMessage(Text.literal("The powerful aura of ").append(state.getBossName()).append(" makes it impossible to respawn the ender dragon!"), true)
 				);
 				ci.cancel();

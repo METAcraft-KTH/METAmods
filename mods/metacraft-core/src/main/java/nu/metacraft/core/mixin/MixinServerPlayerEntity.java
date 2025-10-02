@@ -135,7 +135,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			};
 			pointHolder.addElement(point);
 			pointHolder.startWatching((ServerPlayerEntity) (Object) this);
-			pointAttachment = new ManualAttachment(pointHolder, getEntityWorld(), this::getPos);
+			pointAttachment = new ManualAttachment(pointHolder, getEntityWorld(), this::getEntityPos);
 			if (shouldReset) {
 				metacraft_core$resetMusicTimer();
 			}
@@ -236,7 +236,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			this.point = ((MixinServerPlayerEntity) (Object) oldPlayer).point;
 			this.pointHolder = ((MixinServerPlayerEntity) (Object) oldPlayer).pointHolder;
 			if (pointHolder != null) {
-				pointAttachment = new ManualAttachment(pointHolder, getEntityWorld(), this::getPos);
+				pointAttachment = new ManualAttachment(pointHolder, getEntityWorld(), this::getEntityPos);
 			}
 		} else {
 			TaskScheduler.scheduleImmediately(getEntityWorld().getServer(), this::metacraft_core$resetMusicTimer);

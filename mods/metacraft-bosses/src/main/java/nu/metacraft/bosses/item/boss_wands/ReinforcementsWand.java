@@ -34,7 +34,7 @@ public class ReinforcementsWand extends Item implements PolymerItem {
 			for (int i = 0; i < tryCount; i++) {
 				pool.getOrEmpty(user.getRandom()).ifPresent(data -> {
 					EntityHelper.spawnEntity(
-							data, e -> true, e -> true, user.getPos(),
+							data, e -> true, e -> true, user.getEntityPos(),
 							(ServerWorld) user.getEntityWorld(), user.getRandom(), user
 					);
 				});
