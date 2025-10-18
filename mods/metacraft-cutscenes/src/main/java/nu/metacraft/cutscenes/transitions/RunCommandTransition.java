@@ -100,7 +100,7 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 	}
 
 	private static void execute(CommandManager manager, ServerCommandSource source, String command, boolean debug) {
-		manager.executeWithPrefix(source, command);
+		manager.parseAndExecute(source, command);
 	}
 
 	private void execute(CutsceneInstance cutscene, String command) {

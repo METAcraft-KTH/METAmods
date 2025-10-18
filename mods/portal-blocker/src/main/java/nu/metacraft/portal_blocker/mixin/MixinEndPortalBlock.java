@@ -28,7 +28,7 @@ public class MixinEndPortalBlock {
 		),
 		cancellable = true
 	)
-	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler, CallbackInfo ci) {
+	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler, boolean bl, CallbackInfo ci) {
 		if (world instanceof ServerWorld serverWorld) {
 			MinecraftServer server = serverWorld.getServer();
 			if (PortalBlockerSettings.getInstance(server).isPortalBlocked(

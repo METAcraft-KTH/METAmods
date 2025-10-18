@@ -55,7 +55,7 @@ public class MixinEnderEyeItem {
 					"EndPortal", Text.of("EndPortal"), context.getWorld().getServer(),
 					context.getPlayer()
 			);
-			context.getWorld().getServer().getCommandManager().executeWithPrefix(source, command);
+			context.getWorld().getServer().getCommandManager().parseAndExecute(source, command);
 		});
 		return pos;
 	}

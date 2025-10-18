@@ -39,7 +39,7 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 	}
 
 	@Override
-	protected void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler) {
+	protected void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler, boolean bl) {
 		if (!entity.canUsePortals(false)) return;
 		if (!VoxelShapes.matchesAnywhere(VoxelShapes.cuboid(entity.getBoundingBox().offset(-pos.getX(), -pos.getY(), -pos.getZ())), state.getOutlineShape(world, pos), BooleanBiFunction.AND)) return;
 		entity.tryUsePortal(this, pos);

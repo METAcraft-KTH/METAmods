@@ -205,7 +205,7 @@ public class CutsceneInstance implements AutoCloseable {
 			TaskScheduler.scheduleImmediately(
 					getServer(), () -> {
 						var source = getServer().getCommandFunctionManager().getScheduledCommandSource();
-						getServer().getCommandManager().executeWithPrefix(source, command);
+						getServer().getCommandManager().parseAndExecute(source, command);
 					}
 			);
 		});

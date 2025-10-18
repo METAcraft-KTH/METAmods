@@ -103,12 +103,12 @@ public class ModerationModeState {
 
 
 		prev.def.getExitCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().name())).ifPresent(exit -> {
-			player.getEntityWorld().getServer().getCommandManager().executeWithPrefix(
+			player.getEntityWorld().getServer().getCommandManager().parseAndExecute(
 					player.getCommandSource().withLevel(4), exit
 			);
 		});
 		def.getEnterCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().name())).ifPresent(enter -> {
-			player.getEntityWorld().getServer().getCommandManager().executeWithPrefix(
+			player.getEntityWorld().getServer().getCommandManager().parseAndExecute(
 					player.getCommandSource().withLevel(4), enter
 			);
 		});

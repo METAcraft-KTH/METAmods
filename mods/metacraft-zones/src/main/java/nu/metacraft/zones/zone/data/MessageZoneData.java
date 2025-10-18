@@ -34,7 +34,7 @@ public class MessageZoneData extends ZoneDataEntityTracking {
 	public void onEnter(Entity entity) {
 		if (entity instanceof ServerPlayerEntity player) {
 			enterCommand.ifPresent(cmd -> {
-				player.getEntityWorld().getServer().getCommandManager().executeWithPrefix(
+				player.getEntityWorld().getServer().getCommandManager().parseAndExecute(
 						createFromPlayer(player), cmd
 				);
 			});
@@ -45,7 +45,7 @@ public class MessageZoneData extends ZoneDataEntityTracking {
 	public void onLeave(Entity entity) {
 		if (entity instanceof ServerPlayerEntity player) {
 			leaveCommand.ifPresent(cmd -> {
-				player.getEntityWorld().getServer().getCommandManager().executeWithPrefix(
+				player.getEntityWorld().getServer().getCommandManager().parseAndExecute(
 						createFromPlayer(player), cmd
 				);
 			});

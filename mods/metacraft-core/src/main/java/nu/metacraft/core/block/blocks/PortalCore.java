@@ -39,7 +39,7 @@ public class PortalCore extends BlockWithEntity implements PolymerBlock {
 	}
 
 	@Override
-	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler) {
+	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler, boolean bl) {
 		if (world.getBlockEntity(pos) instanceof PortalEntity portal) {
 			portal.onCollision(state, world, pos, entity);
 		}

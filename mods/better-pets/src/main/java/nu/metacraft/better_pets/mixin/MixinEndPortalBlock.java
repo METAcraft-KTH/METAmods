@@ -52,7 +52,7 @@ public class MixinEndPortalBlock {
 		)
 	)
 	public void teleportPetsFirstTime(
-			BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler, CallbackInfo ci, @Local ServerPlayerEntity player
+			BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler, boolean bl, CallbackInfo ci, @Local ServerPlayerEntity player
 	) {
 		var target = player.getRespawnTarget(true, TeleportTarget.ADD_PORTAL_CHUNK_TICKET);
 		player.getEntityWorld().getEntitiesByType(

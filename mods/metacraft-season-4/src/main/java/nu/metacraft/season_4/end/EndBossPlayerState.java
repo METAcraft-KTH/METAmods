@@ -145,7 +145,7 @@ public class EndBossPlayerState extends PersistentState {
 					.getScheduledCommandSource().withWorld(world).withPosition(
 							particlePos != null ? particlePos : playerSpawnPos.orElse(Vec3d.ZERO)
 					);
-			world.getServer().getCommandManager().executeWithPrefix(source, command);
+			world.getServer().getCommandManager().parseAndExecute(source, command);
 		});
 	}
 
@@ -430,7 +430,7 @@ public class EndBossPlayerState extends PersistentState {
 		}
 
 		config.get().bossInitCommand().ifPresent(command -> {
-			player.getEntityWorld().getServer().getCommandManager().executeWithPrefix(
+			player.getEntityWorld().getServer().getCommandManager().parseAndExecute(
 					player.getCommandSource().withSilent().withLevel(2), command
 			);
 		});

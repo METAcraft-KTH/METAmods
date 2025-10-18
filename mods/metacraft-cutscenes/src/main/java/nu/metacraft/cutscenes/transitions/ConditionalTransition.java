@@ -117,7 +117,7 @@ public class ConditionalTransition implements Transition {
 						}
 					}
 			);
-			cutscene.getServer().getCommandManager().executeWithPrefix(source, commandCondition);
+			cutscene.getServer().getCommandManager().parseAndExecute(source, commandCondition);
 			return isSuccessful.booleanValue();
 		}
 

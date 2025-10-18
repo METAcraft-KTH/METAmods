@@ -118,11 +118,11 @@ public class ExileData extends PersistentState {
 		if (actualPlayer != null) {
 			var prevExileState = exiledPlayers.get(player);
 			if (prevExileState == null && exile != null) {
-				server.getCommandManager().executeWithPrefix(
+				server.getCommandManager().parseAndExecute(
 						actualPlayer.getCommandSource().withLevel(2).withSilent(), exile.getExileCommand()
 				);
 			} else if (prevExileState != null && exile == null) {
-				server.getCommandManager().executeWithPrefix(
+				server.getCommandManager().parseAndExecute(
 						actualPlayer.getCommandSource().withLevel(2).withSilent(), prevExileState.getPardonCommand()
 				);
 				prevExileState.onRemove((ServerPlayerEntity & ExilePlayerData) actualPlayer);

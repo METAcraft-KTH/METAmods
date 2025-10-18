@@ -28,7 +28,7 @@ public class PortalPadding extends Block implements PolymerBlock {
 	}
 
 	@Override
-	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler) {
+	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler, boolean bl) {
 		for (BlockPos portalPos : PortalEntity.forAllNearbyPortals(world, pos)) {
 			if (world.getBlockEntity(portalPos) instanceof PortalEntity portal) {
 				portal.onCollision(state, world, pos, entity);
