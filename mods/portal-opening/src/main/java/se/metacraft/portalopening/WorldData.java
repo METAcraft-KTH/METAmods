@@ -1,4 +1,4 @@
-package se.datasektionen.mc.portalopening;
+package se.metacraft.portalopening;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;

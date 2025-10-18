@@ -1,17 +1,17 @@
-package se.datasektionen.mc.portalopening.rifts;
+package se.metacraft.portalopening.rifts;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtLongArray;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
-import se.datasektionen.mc.portalopening.EntityData;
-import se.datasektionen.mc.portalopening.WorldData;
-import se.datasektionen.mc.portalopening.raid.Wave;
+import se.metacraft.portalopening.EntityData;
+import se.metacraft.portalopening.WorldData;
+import se.metacraft.portalopening.raid.Wave;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -23,6 +23,26 @@ public class PortalRift {
 	private static final String LAUNCH_DIRECTION = "LaunchDirection";
 	private static final String LAUNCH_STRENGTH = "LaunchStrength";
 	private static final String OFFSET_FACTOR = "OffsetFactor";
+
+	private static final Codec<List<BlockPos>> POSITIONS_CODEC = Codec.LONG_STREAM.xmap(
+			positions -> positions.mapToObj(BlockPos::fromLong).toList(),
+			positions -> positions.stream().mapToLong(BlockPos::asLong)
+	);
+
+	public static Codec<PortalRift> createCodec(World world) {
+		return RecordCodecBuilder.create(instance -> instance.group(
+				POSITIONS_CODEC.fieldOf(BLOCKS).forGetter(r -> r.blocks),
+				Direction.Axis.CODEC.optionalFieldOf(AXIS).forGetter(r -> Optional.ofNullable(r.axis)),
+				Direction.CODEC.optionalFieldOf(LAUNCH_DIRECTION).forGetter(r -> Optional.ofNullable(r.launchDirection)),
+				Codec.DOUBLE.fieldOf(LAUNCH_STRENGTH).forGetter(r -> r.launchStrength),
+				Codec.DOUBLE.fieldOf(OFFSET_FACTOR).forGetter(r -> r.offsetFactor)
+		).apply(
+				instance,
+				(blocks, axis, direction, strength, factor) -> new PortalRift(
+						world, blocks, axis.orElse(null), direction.orElse(null), strength, factor
+				)
+		));
+	}
 
 	protected final World world;
 	protected List<BlockPos> blocks = new ArrayList<>();
@@ -37,6 +57,20 @@ public class PortalRift {
 	protected Runnable shouldSave;
 
 	protected int delay = 0;
+
+	private PortalRift(
+			World world, List<BlockPos> blocks,
+			Direction.Axis axis, Direction launchDirection,
+			double launchStrength, double offsetFactor
+	) {
+		this.world = world;
+		this.blocks.addAll(blocks);
+		this.blocksChecker.addAll(blocks);
+		this.axis = axis;
+		this.launchDirection = launchDirection;
+		this.launchStrength = launchStrength;
+		this.offsetFactor = offsetFactor;
+	}
 
 	public PortalRift(
 			World world, BlockPos pos, int size, Direction.Axis axis, Runnable shouldSave
@@ -84,10 +118,8 @@ public class PortalRift {
 		}
 	}
 
-	public PortalRift(World world, NbtCompound nbt, Runnable markSave) {
-		this.world = world;
-		this.shouldSave = markSave;
-		fromNBT(nbt);
+	public void setSaveCallback(Runnable shouldSave) {
+		this.shouldSave = shouldSave;
 	}
 
 	public boolean successful() {
@@ -148,35 +180,6 @@ public class PortalRift {
 
 	public BlockPos getRandomPos() {
 		return blocks.get(world.getRandom().nextInt(blocks.size()));
-	}
-
-	public NbtCompound toNBT() {
-		NbtCompound nbt = new NbtCompound();
-		NbtLongArray blocks = new NbtLongArray(this.blocks.stream().mapToLong(BlockPos::asLong).toArray());
-		nbt.put(BLOCKS, blocks);
-		if (axis != null) {
-			nbt.putInt(AXIS, axis.ordinal());
-		}
-		if (launchDirection != null) {
-			nbt.putInt(LAUNCH_DIRECTION, launchDirection.ordinal());
-		}
-		nbt.putDouble(LAUNCH_STRENGTH, launchStrength);
-		nbt.putDouble(OFFSET_FACTOR, offsetFactor);
-		return nbt;
-	}
-
-	public void fromNBT(NbtCompound nbt) {
-		var blockList = Arrays.stream(nbt.getLongArray(BLOCKS)).mapToObj(BlockPos::fromLong).toList();
-		blocks.addAll(blockList);
-		blocksChecker.addAll(blockList);
-		if (nbt.contains(AXIS)) {
-			axis = Direction.Axis.values()[nbt.getInt(AXIS)];
-		}
-		if (nbt.contains(LAUNCH_DIRECTION)) {
-			launchDirection = Direction.byId(nbt.getInt(LAUNCH_DIRECTION));
-		}
-		launchStrength = nbt.getDouble(LAUNCH_STRENGTH);
-		offsetFactor = nbt.getDouble(OFFSET_FACTOR);
 	}
 
 	public void addEntity(Entity entity) {

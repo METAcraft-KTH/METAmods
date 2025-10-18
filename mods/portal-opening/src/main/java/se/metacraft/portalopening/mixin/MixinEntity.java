@@ -1,8 +1,9 @@
-package se.datasektionen.mc.portalopening.mixin;
+package se.metacraft.portalopening.mixin;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,10 +12,9 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import se.datasektionen.mc.portalopening.EntityData;
-import se.datasektionen.mc.portalopening.PortalOpeningDimensionData;
-import se.datasektionen.mc.portalopening.rifts.PortalRift;
+import se.metacraft.portalopening.EntityData;
+import se.metacraft.portalopening.PortalOpeningDimensionData;
+import se.metacraft.portalopening.rifts.PortalRift;
 
 @Mixin(Entity.class)
 public class MixinEntity implements EntityData {
@@ -31,18 +31,19 @@ public class MixinEntity implements EntityData {
 		this.rift = rift;
 	}
 
-	@Inject(method = "writeNbt", at = @At("RETURN"))
-	public void toNBT(NbtCompound nbt, CallbackInfoReturnable<NbtCompound> cir) {
+	@Inject(method = "writeData", at = @At("RETURN"))
+	public void toNBT(WriteView nbt, CallbackInfo ci) {
 		if (rift != null) {
 			nbt.putLong(RIFT, rift.getRandomPos().asLong());
 		}
 	}
 
-	@Inject(method = "readNbt", at = @At("RETURN"))
-	public void fromNBT(NbtCompound nbt, CallbackInfo ci) {
-		if (world instanceof ServerWorld && nbt.contains(RIFT)) {
-			var pos = BlockPos.fromLong(nbt.getLong(RIFT));
-			PortalOpeningDimensionData.getInstance((ServerWorld) world).getRiftAt(pos).ifPresent(rift -> {
+	@Inject(method = "readData", at = @At("RETURN"))
+	public void fromNBT(ReadView nbt, CallbackInfo ci) {
+		if (world instanceof ServerWorld) {
+			nbt.getOptionalLong(RIFT).map(BlockPos::fromLong).flatMap(
+					pos -> PortalOpeningDimensionData.getInstance((ServerWorld) world).getRiftAt(pos)
+			).ifPresent(rift -> {
 				rift.addEntity((Entity) (Object) this);
 			});
 		}

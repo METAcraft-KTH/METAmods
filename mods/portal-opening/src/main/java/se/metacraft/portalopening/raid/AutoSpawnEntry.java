@@ -1,4 +1,4 @@
-package se.datasektionen.mc.portalopening.raid;
+package se.metacraft.portalopening.raid;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -6,7 +6,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.intprovider.IntProvider;
 import net.minecraft.world.World;
-import se.datasektionen.mc.portalopening.rifts.PortalRift;
+import se.metacraft.portalopening.rifts.PortalRift;
 
 import java.util.function.Consumer;
 

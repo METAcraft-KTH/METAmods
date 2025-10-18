@@ -1,4 +1,4 @@
-package se.datasektionen.mc.portalopening.mixin;
+package se.metacraft.portalopening.mixin;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import se.datasektionen.mc.portalopening.PortalOpeningDimensionData;
-import se.datasektionen.mc.portalopening.WorldData;
+import se.metacraft.portalopening.PortalOpeningDimensionData;
+import se.metacraft.portalopening.WorldData;
 
 @Mixin(World.class)
 public abstract class MixinWorld implements WorldData {

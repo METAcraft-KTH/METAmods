@@ -1,4 +1,4 @@
-package se.datasektionen.mc.portalopening;
+package se.metacraft.portalopening;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
@@ -49,14 +49,14 @@ public class Commands {
 
 	private static final SuggestionProvider<ServerCommandSource> X_OR_Z_AXIS = (ctx, builder) -> {
 		return CommandSource.suggestMatching(
-				ImmutableList.of(Direction.Axis.X.getName(), Direction.Axis.Z.getName()),
+				ImmutableList.of(Direction.Axis.X.getId(), Direction.Axis.Z.getId()),
 				builder
 		);
 	};
 
 	private static final SuggestionProvider<ServerCommandSource> DIRECTION = (ctx, builder) -> {
 		return CommandSource.suggestMatching(
-				Stream.concat(Arrays.stream(Direction.values()).map(Direction::getName), Stream.of("null")),
+				Stream.concat(Arrays.stream(Direction.values()).map(Direction::getId), Stream.of("null")),
 				builder
 		);
 	};
@@ -172,23 +172,23 @@ public class Commands {
 														random.nextBetween(-range, range), 0, random.nextBetween(-range, range)
 												)
 										);
-										boolean blocked = !player.getWorld().getBlockState(pos).isAir();
+										boolean blocked = !player.getEntityWorld().getBlockState(pos).isAir();
 										for (int y = 0; y < range; y++) {
 											if (blocked) {
 												if (
-														player.getWorld().isInBuildLimit(pos.setY((int) player.getY() - y)) &&
-														player.getWorld().getBlockState(pos).isAir()
+														player.getEntityWorld().isInBuildLimit(pos.setY((int) player.getY() - y)) &&
+														player.getEntityWorld().getBlockState(pos).isAir()
 												) {
 													blocked = false;
 												} else if (
-														player.getWorld().isInBuildLimit(pos.setY((int) player.getY() + y)) &&
-														player.getWorld().getBlockState(pos).isAir()
+														player.getEntityWorld().isInBuildLimit(pos.setY((int) player.getY() + y)) &&
+														player.getEntityWorld().getBlockState(pos).isAir()
 												) {
 													break;
 												}
 											} else if (
-													player.getWorld().isInBuildLimit(pos.setY((int) player.getY() - y)) &&
-													player.getWorld().getBlockState(pos).isAir()
+													player.getEntityWorld().isInBuildLimit(pos.setY((int) player.getY() - y)) &&
+													player.getEntityWorld().getBlockState(pos).isAir()
 											) {
 												break;
 											} else {
@@ -309,7 +309,7 @@ public class Commands {
 										if (directionString.equals("null")) {
 											direction = null;
 										} else {
-											direction = Direction.byName(directionString);
+											direction = Direction.byId(directionString);
 										}
 										var pos = BlockPosArgumentType.getBlockPos(ctx, "pos");
 										var strength = DoubleArgumentType.getDouble(ctx, "strength");
@@ -338,7 +338,7 @@ public class Commands {
 	}
 
 	private static Direction.Axis getXOrZAxis(CommandContext<ServerCommandSource> ctx, String name) throws CommandSyntaxException {
-		var axis = Direction.Axis.fromName(StringArgumentType.getString(ctx, name));
+		var axis = Direction.Axis.fromId(StringArgumentType.getString(ctx, name));
 		if (axis == null || axis == Direction.Axis.Y) {
 			throw AXIS_ERROR.create();
 		}

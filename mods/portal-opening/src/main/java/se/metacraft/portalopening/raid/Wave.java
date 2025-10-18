@@ -1,4 +1,4 @@
-package se.datasektionen.mc.portalopening.raid;
+package se.metacraft.portalopening.raid;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;

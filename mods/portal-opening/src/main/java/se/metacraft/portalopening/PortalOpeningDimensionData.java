@@ -1,13 +1,11 @@
-package se.datasektionen.mc.portalopening;
+package se.metacraft.portalopening;
 
 import com.google.common.collect.ImmutableSet;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.NetherPortalBlock;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.command.CommandOutput;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.world.ServerWorld;
@@ -17,16 +15,15 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.PersistentState;
-import se.datasektionen.mc.portalopening.raid.Wave;
-import se.datasektionen.mc.portalopening.rifts.PortalRift;
+import net.minecraft.world.PersistentStateType;
+import se.metacraft.portalopening.raid.Wave;
+import se.metacraft.portalopening.rifts.PortalRift;
 
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 public class PortalOpeningDimensionData extends PersistentState {
-
-	private static final String KEY = "portal-opening-manager";
 
 	private static final String MAIN_RIFT = "MainRift";
 	private static final String RIFTS = "Rifts";
@@ -40,10 +37,22 @@ public class PortalOpeningDimensionData extends PersistentState {
 
 	private final ServerCommandSource source;
 
-	private static PersistentState.Type<PortalOpeningDimensionData> getType(ServerWorld world) {
-		return new Type<>(
-				() -> createNew(world), (nbt, lookup) -> fromNbt(world, nbt, lookup), null
-		);
+	private static final PersistentStateType<PortalOpeningDimensionData> TYPE = new PersistentStateType<>(
+			"portal-opening-manager", ctx -> createNew(ctx.getWorldOrThrow()),
+			ctx -> createCodec(ctx.getWorldOrThrow()), null
+	);
+
+	private PortalOpeningDimensionData(
+			ServerWorld world, PortalRift mainRift, List<PortalRift> rifts, Optional<Integer> currentWave
+	) {
+		this(world);
+		mainRift.setSaveCallback(this::markDirty);
+		for (var rift : rifts) {
+			rift.setSaveCallback(this::markDirty);
+		}
+		this.mainRift = mainRift;
+		this.rifts = new HashSet<>(rifts);
+		this.currentWave = currentWave.stream().mapToInt(i -> i).findAny();
 	}
 
 	protected PortalOpeningDimensionData(ServerWorld world) {
@@ -78,14 +87,22 @@ public class PortalOpeningDimensionData extends PersistentState {
 		return new PortalOpeningDimensionData(world);
 	}
 
-	private static PortalOpeningDimensionData fromNbt(ServerWorld world, NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		var manager = new PortalOpeningDimensionData(world);
-		manager.readNbt(nbt, lookup);
-		return manager;
+	private static Codec<PortalOpeningDimensionData> createCodec(ServerWorld world) {
+		var riftCodec = PortalRift.createCodec(world);
+		return RecordCodecBuilder.create(instance -> instance.group(
+				riftCodec.optionalFieldOf(MAIN_RIFT).forGetter(d -> Optional.ofNullable(d.mainRift)),
+				riftCodec.listOf().fieldOf(RIFTS).forGetter(d -> new ArrayList<>(d.rifts)),
+				Codec.INT.optionalFieldOf(CURRENT_WAVE).forGetter(d -> d.currentWave.stream().boxed().findAny())
+		).apply(
+				instance,
+				(mainRift, rifts, currentWave) -> new PortalOpeningDimensionData(
+						world, mainRift.orElse(null), rifts, currentWave
+				)
+		));
 	}
 
 	public static PortalOpeningDimensionData getInstance(ServerWorld world) {
-		return world.getPersistentStateManager().getOrCreate(getType(world), KEY);
+		return world.getPersistentStateManager().getOrCreate(TYPE);
 	}
 
 	public boolean createRift(BlockPos pos, int size, BlockState xAxisState, BlockState zAxisState, Direction.Axis axis) {
@@ -202,7 +219,7 @@ public class PortalOpeningDimensionData extends PersistentState {
 
 	public void stopRaid() {
 		currentWave = OptionalInt.empty();
-		world.getServer().getCommandManager().executeWithPrefix(
+		world.getServer().getCommandManager().parseAndExecute(
 				source, PortalOpening.getConfig().getCommandOnRaidEnd()
 		);
 		markDirty();
@@ -234,7 +251,7 @@ public class PortalOpeningDimensionData extends PersistentState {
 		}
 		fixMainRift();
 		getCurrentWave().ifPresent(actualWave -> {
-			world.getServer().getCommandManager().executeWithPrefix(
+			world.getServer().getCommandManager().parseAndExecute(
 					source, actualWave.command()
 			);
 			mainRift.nextWave(actualWave);
@@ -340,33 +357,5 @@ public class PortalOpeningDimensionData extends PersistentState {
 		}
 		rifts.clear();
 		markDirty();
-	}
-
-	public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		if (nbt.contains(MAIN_RIFT)) {
-			mainRift = new PortalRift(world, nbt.getCompound(MAIN_RIFT), this::markDirty);
-		}
-		NbtList rifts = nbt.getList(RIFTS, NbtElement.COMPOUND_TYPE);
-		this.rifts.clear();
-		for (NbtElement rift : rifts) {
-			this.rifts.add(new PortalRift(world, (NbtCompound) rift, this::markDirty));
-		}
-		if (nbt.contains(CURRENT_WAVE)) {
-			currentWave = OptionalInt.of(nbt.getInt(CURRENT_WAVE));
-		}
-	}
-
-	@Override
-	public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		if (mainRift != null) {
-			nbt.put(MAIN_RIFT, mainRift.toNBT());
-		}
-		NbtList rifts = new NbtList();
-		this.rifts.forEach(rift -> rifts.add(rift.toNBT()));
-		nbt.put(RIFTS, rifts);
-		currentWave.ifPresent(wave -> {
-			nbt.putInt(CURRENT_WAVE, wave);
-		});
-		return nbt;
 	}
 }

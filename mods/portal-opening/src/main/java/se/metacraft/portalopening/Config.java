@@ -1,8 +1,8 @@
-package se.datasektionen.mc.portalopening;
+package se.metacraft.portalopening;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import se.datasektionen.mc.portalopening.raid.Wave;
+import se.metacraft.portalopening.raid.Wave;
 
 import java.util.ArrayList;
 import java.util.List;
