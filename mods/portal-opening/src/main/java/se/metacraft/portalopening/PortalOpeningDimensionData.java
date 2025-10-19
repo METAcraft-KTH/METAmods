@@ -46,7 +46,9 @@ public class PortalOpeningDimensionData extends PersistentState {
 			ServerWorld world, PortalRift mainRift, List<PortalRift> rifts, Optional<Integer> currentWave
 	) {
 		this(world);
-		mainRift.setSaveCallback(this::markDirty);
+		if (mainRift != null) {
+			mainRift.setSaveCallback(this::markDirty);
+		}
 		for (var rift : rifts) {
 			rift.setSaveCallback(this::markDirty);
 		}
