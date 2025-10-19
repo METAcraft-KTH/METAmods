@@ -4,11 +4,11 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
-import net.minecraft.world.World;
 import se.metacraft.portalopening.EntityData;
 import se.metacraft.portalopening.WorldData;
 import se.metacraft.portalopening.raid.Wave;
@@ -29,7 +29,7 @@ public class PortalRift {
 			positions -> positions.stream().mapToLong(BlockPos::asLong)
 	);
 
-	public static Codec<PortalRift> createCodec(World world) {
+	public static Codec<PortalRift> createCodec(ServerWorld world) {
 		return RecordCodecBuilder.create(instance -> instance.group(
 				POSITIONS_CODEC.fieldOf(BLOCKS).forGetter(r -> r.blocks),
 				Direction.Axis.CODEC.optionalFieldOf(AXIS).forGetter(r -> Optional.ofNullable(r.axis)),
@@ -44,7 +44,7 @@ public class PortalRift {
 		));
 	}
 
-	protected final World world;
+	protected final ServerWorld world;
 	protected List<BlockPos> blocks = new ArrayList<>();
 	protected Set<BlockPos> blocksChecker = new HashSet<>();
 	protected Direction.Axis axis;
@@ -59,7 +59,7 @@ public class PortalRift {
 	protected int delay = 0;
 
 	private PortalRift(
-			World world, List<BlockPos> blocks,
+			ServerWorld world, List<BlockPos> blocks,
 			Direction.Axis axis, Direction launchDirection,
 			double launchStrength, double offsetFactor
 	) {
@@ -73,14 +73,14 @@ public class PortalRift {
 	}
 
 	public PortalRift(
-			World world, BlockPos pos, int size, Direction.Axis axis, Runnable shouldSave
+			ServerWorld world, BlockPos pos, int size, Direction.Axis axis, Runnable shouldSave
 	) {
 		this.world = world;
 		this.shouldSave = shouldSave;
 		choosePositions(pos, size, axis);
 	}
 
-	public PortalRift(World world, BlockPos pos1, BlockPos pos2, Runnable shouldSave) {
+	public PortalRift(ServerWorld world, BlockPos pos1, BlockPos pos2, Runnable shouldSave) {
 		this.world = world;
 		if (pos1.getX() == pos2.getX()) {
 			axis = Direction.Axis.X;
@@ -97,7 +97,7 @@ public class PortalRift {
 	}
 
 	public PortalRift(
-			World world, BlockPos pos, int maxSize,
+			ServerWorld world, BlockPos pos, int maxSize,
 			Direction.Axis axis, Predicate<BlockState> blockChecker,
 			Runnable shouldSave
 	) {

@@ -28,7 +28,7 @@ public class PortalOpening implements ModInitializer {
 				piglin.putString("id", Registries.ENTITY_TYPE.getId(EntityType.PIGLIN).toString());
 
 				config.getWaves().add(new Wave(new MobEntry(
-						Pool.of(piglin), ConstantIntProvider.create(1), 0.5, Optional.of(ConstantIntProvider.create(1))
+						Pool.of(MobEntry.EntityEntry.fromData(piglin)), ConstantIntProvider.create(1), 0.5, Optional.of(ConstantIntProvider.create(1))
 				)));
 
 				NbtCompound ghast = new NbtCompound();
@@ -40,10 +40,10 @@ public class PortalOpening implements ModInitializer {
 				NbtCompound hoglin = new NbtCompound();
 				hoglin.putString("id", Registries.ENTITY_TYPE.getId(EntityType.HOGLIN).toString());
 
-				config.getWaves().add(new Wave(new MobEntry(new Pool.Builder<NbtCompound>().add(
-						ghast, 2
+				config.getWaves().add(new Wave(new MobEntry(new Pool.Builder<MobEntry.EntityEntry>().add(
+						MobEntry.EntityEntry.fromData(ghast), 2
 				).add(
-						brute, 1
+						MobEntry.EntityEntry.fromData(brute), 1
 				).build(), UniformIntProvider.create(5, 10), 0.75, Optional.of(UniformIntProvider.create(1, 2)))));
 				return config;
 			}
