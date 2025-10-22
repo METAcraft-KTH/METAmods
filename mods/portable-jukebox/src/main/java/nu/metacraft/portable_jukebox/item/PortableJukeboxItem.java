@@ -1,6 +1,5 @@
 package nu.metacraft.portable_jukebox.item;
 
-import eu.pb4.polymer.core.api.item.PolymerHeadBlockItem;
 import net.minecraft.block.jukebox.JukeboxSong;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.SpawnReason;
@@ -23,7 +22,7 @@ import nu.metacraft.portable_jukebox.gui.PortableJukeboxGui;
 
 import java.util.Optional;
 
-public class PortableJukeboxItem extends PolymerHeadBlockItem {
+public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
 
 	public PortableJukeboxItem(net.minecraft.item.Item.Settings settings) {
 		super(Blocks.PORTABLE_JUKEBOX, settings);
