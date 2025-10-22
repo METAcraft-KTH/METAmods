@@ -6,10 +6,10 @@ import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.GuiInterface;
 import net.minecraft.component.ComponentChanges;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.util.Util;
+import nu.metacraft.lib.util.helper.GameProfileHelper;
 import org.apache.commons.lang3.mutable.MutableObject;
 
 /**
@@ -58,13 +58,22 @@ public class DeferredPlayerHead implements GuiElementInterface {
 					if (textures.getValue().isPresent()) {
 						if (gui.isOpen()) {
 							gui.getPlayer().getEntityWorld().getServer().execute(() -> {
-								head.set(DataComponentTypes.PROFILE, ProfileComponent.ofStatic(textures.getValue().get()));
+								head.set(
+										DataComponentTypes.PROFILE,
+										GameProfileHelper.staticComponentBuilder()
+												.withID(textures.getValue().get().id())
+												.withProperties(textures.getValue().get().properties()).build()
+								);
 							});
 						}
 					}
 				});
 			} else {
-				head.set(DataComponentTypes.PROFILE, ProfileComponent.ofStatic(profile));
+				head.set(
+						DataComponentTypes.PROFILE,
+						GameProfileHelper.staticComponentBuilder()
+								.withID(profile.id()).withProperties(profile.properties()).build()
+				);
 			}
 		}
 		return GuiElementInterface.super.getItemStackForDisplay(gui);

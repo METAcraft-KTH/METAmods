@@ -12,7 +12,6 @@ import net.minecraft.item.Items;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Util;
 import nu.metacraft.core.gui.MultiplePlayerSelector;
 import nu.metacraft.lib.util.helper.GameProfileHelper;
 
@@ -85,9 +84,7 @@ public class TrustPlayerSelector extends MultiplePlayerSelector {
 						"textures", new Property("textures", value, signature)
 				)
 		);
-		return ProfileComponent.ofStatic(
-				new GameProfile(Util.NIL_UUID, "", map)
-		);
+		return GameProfileHelper.staticComponentBuilder().withProperties(map).build();
 	}
 
 	private static GuiElementInterface createMovingLetter(
