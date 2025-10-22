@@ -37,6 +37,7 @@ public class Commands {
 			LiteralArgumentBuilder<ServerCommandSource> rootBuilder = literal("portal-blocker")
 					.requires(Permissions.require("metacraft.portal-blocker", 2));
 			registerSetGetGlobal(rootBuilder);
+			registerSetGetBlockOutsideBorder(rootBuilder);
 			ZoneManagementCommand.registerCommand(rootBuilder, registryAccess);
 			dispatcher.register(rootBuilder);
 		});
@@ -71,6 +72,36 @@ public class Commands {
 								)
 							).executes(ctx -> getState(ctx, PortalBlockType.ALL))
 					)
+		);
+	}
+
+	private static void registerSetGetBlockOutsideBorder(LiteralArgumentBuilder<ServerCommandSource> builder) {
+		builder.then(
+				literal("block-outside-border")
+						.then(
+							literal("set")
+									.then(
+										literal("block").executes(ctx -> {
+												PortalBlockerSettings.getInstance(ctx.getSource().getServer()).setBlockPortalCreationOutsideBorder(true);
+												ctx.getSource().sendFeedback(() -> Text.of("Portal creation outside world border is now blocked."), true);
+												return 1;
+										})
+									)
+									.then(
+											literal("allow").executes(ctx -> {
+													PortalBlockerSettings.getInstance(ctx.getSource().getServer()).setBlockPortalCreationOutsideBorder(false);
+													ctx.getSource().sendFeedback(() -> Text.of("Portal creation outside world border is now allowed."), true);
+													return 1;
+											})
+									)
+						)
+						.then(
+								literal("get").executes(ctx -> {
+										boolean isBlocked = PortalBlockerSettings.getInstance(ctx.getSource().getServer()).blockPortalCreationOutsideBorder();
+										ctx.getSource().sendFeedback(() -> Text.of("Portal creation outside world border is currently " + getBlockStateText(isBlocked) + "."), false);
+										return 1;
+								})
+						)
 		);
 	}
 

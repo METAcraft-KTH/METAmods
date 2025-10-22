@@ -42,15 +42,17 @@ public class PortalBlockerSettings extends PersistentState {
 	private static Codec<PortalBlockerSettings> createCodec(MinecraftServer server) {
 		return RecordCodecBuilder.create(
 				instance -> instance.group(
-						PORTAL_MAP.fieldOf("global-portal-states").forGetter(s -> s.portalIsBlockedMap)
-				).apply(instance, data -> fromData(server, data))
+				PORTAL_MAP.fieldOf("global-portal-states").forGetter(s -> s.portalIsBlockedMap),
+				Codec.BOOL.fieldOf("block-portal-creation-outside-border").forGetter(s -> s.blockPortalCreationOutsideBorder)
+			).apply(instance, (data, blockOutside) -> fromData(server, data, blockOutside))
 		);
 	}
 
-	private static PortalBlockerSettings fromData(MinecraftServer server, Map<PortalType, PortalState> data) {
+	private static PortalBlockerSettings fromData(MinecraftServer server, Map<PortalType, PortalState> data, boolean blockPortalCreationOutsideBorder) {
 		PortalBlocker.LOGGER.info("Previous state found, loading values");
 		PortalBlockerSettings settings = new PortalBlockerSettings(server);
 		settings.portalIsBlockedMap.putAll(data);
+		settings.blockPortalCreationOutsideBorder = blockPortalCreationOutsideBorder;
 		return settings;
 	}
 
@@ -61,6 +63,7 @@ public class PortalBlockerSettings extends PersistentState {
 	}
 
 	protected Map<PortalType, PortalState> portalIsBlockedMap = new HashMap<>();
+	protected boolean blockPortalCreationOutsideBorder = false;
 
 	protected <T> Optional<T> get(RegistryKey<World> dim, BlockPos pos, Function<PortalZoneData, Optional<T>> mapper) {
 		return ZoneManager.getInstance(server).getValueForPrimaryZone(
@@ -119,6 +122,15 @@ public class PortalBlockerSettings extends PersistentState {
 		markDirty();
 	}
 
+	public boolean blockPortalCreationOutsideBorder() {
+		return this.blockPortalCreationOutsideBorder;
+	}
+
+	public void setBlockPortalCreationOutsideBorder(boolean block) {
+		this.blockPortalCreationOutsideBorder = block;
+		markDirty();
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -126,7 +138,8 @@ public class PortalBlockerSettings extends PersistentState {
 		for (Map.Entry<PortalType, PortalState> state : portalIsBlockedMap.entrySet()) {
 			builder.append(state.getKey().toString()).append("=").append(state.getValue()).append(",");
 		}
-		builder.replace(builder.length()-1, builder.length(), "]");
+		builder.append("blockPortalCreationOutsideBorder=").append(blockPortalCreationOutsideBorder);
+		builder.append("]");
 		return builder.toString();
 	}
 

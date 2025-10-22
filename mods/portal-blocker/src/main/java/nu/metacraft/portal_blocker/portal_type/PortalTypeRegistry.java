@@ -15,7 +15,7 @@ public class PortalTypeRegistry {
 			RegistryKey.ofRegistry(PortalBlocker.getID("portal-type"))
 	).buildAndRegister();
 
-	public static final PortalType NETHER = register("nether", new NetherPortalType());
+	public static final NetherPortalType NETHER = register("nether", new NetherPortalType());
 	public static final PortalType END = register("end", new PortalType(
 			(Portal) Blocks.END_PORTAL,
 			Text.literal("A mysterious force rejects the Eye of Ender"),
@@ -26,7 +26,7 @@ public class PortalTypeRegistry {
 		//Makes sure registry is loaded before registry is frozen. DO NOT REMOVE THIS FUNCTION!
 	}
 
-	private static PortalType register(String name, PortalType type) {
+	private static <T extends PortalType> T register(String name, T type) {
 		//Register the default ones under the minecraft namespace to simplify the command.
 		return Registry.register(REGISTRY, Identifier.ofVanilla(name), type);
 	}

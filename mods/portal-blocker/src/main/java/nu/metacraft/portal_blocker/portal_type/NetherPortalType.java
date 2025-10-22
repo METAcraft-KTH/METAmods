@@ -8,6 +8,7 @@ import net.minecraft.world.GameRules;
 import nu.metacraft.portal_blocker.PortalState;
 
 public class NetherPortalType extends PortalType {
+	private final Text outsideBorderMessage;
 
 	public NetherPortalType() {
 		super(
@@ -15,6 +16,7 @@ public class NetherPortalType extends PortalType {
 				Text.literal("The portal could not activate"),
 				Text.literal("The portal cannot teleport you")
 		);
+		this.outsideBorderMessage = Text.literal("The portal would generate outside of the world border");
 	}
 
 	@Override
@@ -28,4 +30,7 @@ public class NetherPortalType extends PortalType {
 		}
 	}
 
+	public Text getOutsideBorderMessage() {
+		return this.outsideBorderMessage;
+	}
 }
