@@ -1,4 +1,4 @@
-package nu.metacraft.season_4.status_effects;
+package nu.metacraft.core.status_effects;
 
 import eu.pb4.polymer.core.api.other.PolymerStatusEffect;
 import net.minecraft.entity.Entity;

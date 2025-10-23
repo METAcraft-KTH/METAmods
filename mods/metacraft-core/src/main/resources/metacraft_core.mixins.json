@@ -32,6 +32,7 @@
 		"MixinExplosionBehavior",
 		"MixinFlowableFluid",
 		"MixinItemStack",
+		"MixinLivingEntity",
 		"MixinPistonBlock",
 		"MixinPlayerEntity",
 		"MixinPlayerInventory",

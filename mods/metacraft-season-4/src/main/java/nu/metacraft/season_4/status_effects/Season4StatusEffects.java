@@ -4,14 +4,14 @@ import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.entry.RegistryEntry;
+import nu.metacraft.core.status_effects.ApplyFire;
+import nu.metacraft.core.status_effects.Freezing;
 import nu.metacraft.season_4.Season4;
 
 public class Season4StatusEffects {
 
 	public static final RegistryEntry<StatusEffect> SMALLIFY = register("smallify", new Smallify());
 	public static final RegistryEntry<StatusEffect> HEALTH_REDUCTION = register("health_reduction", new HealthReduction());
-	public static final RegistryEntry<StatusEffect> FIRE = register("fire", new ApplyFire());
-	public static final RegistryEntry<StatusEffect> FREEZE = register("freeze", new Freezing());
 
 	public static void init() {
 

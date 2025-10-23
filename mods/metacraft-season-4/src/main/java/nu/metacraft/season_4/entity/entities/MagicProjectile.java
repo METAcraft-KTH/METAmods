@@ -36,6 +36,7 @@ import net.minecraft.util.math.intprovider.ConstantIntProvider;
 import net.minecraft.util.math.intprovider.IntProvider;
 import net.minecraft.util.math.intprovider.UniformIntProvider;
 import net.minecraft.world.World;
+import nu.metacraft.core.status_effects.METAcraftEffects;
 import nu.metacraft.season_4.status_effects.Season4StatusEffects;
 import nu.metacraft.bosses.util.StatusEffectEntry;
 import xyz.nucleoid.packettweaker.PacketContext;
@@ -101,9 +102,9 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 		).add(
 				EffectEntry.create(StatusEffectEntry.create(StatusEffects.POISON, SHORT, ZERO))
 		).add(
-				EffectEntry.create(StatusEffectEntry.create(Season4StatusEffects.FREEZE, MID, ZERO))
+				EffectEntry.create(StatusEffectEntry.create(METAcraftEffects.FREEZE, MID, ZERO))
 		).add(
-				EffectEntry.create(StatusEffectEntry.create(Season4StatusEffects.FIRE, ONE, UniformIntProvider.create(2, 4)))
+				EffectEntry.create(StatusEffectEntry.create(METAcraftEffects.FIRE, ONE, UniformIntProvider.create(2, 4)))
 		);
 	}
 
@@ -123,9 +124,9 @@ public class MagicProjectile extends AbstractFireballEntity implements PolymerEn
 		).add(
 				StatusEffectEntry.create(StatusEffects.POISON, SHORT, VARIES)
 		).add(
-				StatusEffectEntry.create(Season4StatusEffects.FREEZE, MID, VARIES)
+				StatusEffectEntry.create(METAcraftEffects.FREEZE, MID, VARIES)
 		).add(
-				StatusEffectEntry.create(Season4StatusEffects.FIRE, ONE, UniformIntProvider.create(8, 15))
+				StatusEffectEntry.create(METAcraftEffects.FIRE, ONE, UniformIntProvider.create(8, 15))
 		);
 	}
 

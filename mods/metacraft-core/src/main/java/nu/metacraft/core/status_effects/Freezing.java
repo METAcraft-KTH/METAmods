@@ -1,4 +1,4 @@
-package nu.metacraft.season_4.status_effects;
+package nu.metacraft.core.status_effects;
 
 import eu.pb4.polymer.core.api.other.PolymerStatusEffect;
 import net.minecraft.entity.LivingEntity;
@@ -15,6 +15,7 @@ public class Freezing extends StatusEffect implements PolymerStatusEffect {
 	public boolean applyUpdateEffect(ServerWorld world, LivingEntity entity, int amplifier) {
 		if (entity.canFreeze()) {
 			entity.setInPowderSnow(true);
+			entity.setFrozenTicks(Math.min(entity.getMinFreezeDamageTicks(), entity.getFrozenTicks() + 1));
 			if (amplifier > 0 && entity.isFrozen() && entity.age % 40 != 0) {
 				if (entity.age % Math.max(1, (25 >> amplifier)) == 0) {
 					entity.damage(world, world.getDamageSources().freeze(), 1);

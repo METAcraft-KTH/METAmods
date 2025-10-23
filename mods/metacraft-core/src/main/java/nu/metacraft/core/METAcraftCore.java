@@ -4,6 +4,7 @@ import net.fabricmc.api.ModInitializer;
 import net.minecraft.component.ComponentType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.util.Identifier;
+import nu.metacraft.core.status_effects.METAcraftEffects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.core.block.METAcraftBlocks;
@@ -34,6 +35,7 @@ public class METAcraftCore implements ModInitializer {
 		RotationRefRegistry.init();
 		PortalTargetRegistry.init();
 		Preference.init();
+		METAcraftEffects.init();
 		METAcraftGameRules.init();
 		METAcraftComponents.init();
 		METAcraftBlocks.init();

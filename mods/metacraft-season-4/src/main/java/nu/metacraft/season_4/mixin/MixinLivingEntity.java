@@ -94,18 +94,6 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 		this.prevDamageAmount = prevDamageAmount;
 	}
 
-	@Inject(method = "canHaveStatusEffect", at = @At("HEAD"), cancellable = true)
-	public void canHaveStatusEffect(
-			StatusEffectInstance effect, CallbackInfoReturnable<Boolean> cir
-	) {
-		if (effect.getEffectType() == Season4StatusEffects.FIRE && this.isFireImmune()) {
-			cir.setReturnValue(false);
-		}
-		if (effect.getEffectType() == Season4StatusEffects.FREEZE && this.getType().isIn(EntityTypeTags.FREEZE_IMMUNE_ENTITY_TYPES)) {
-			cir.setReturnValue(false);
-		}
-	}
-
 	@Inject(method = "tryUseDeathProtector", at = @At("HEAD"), cancellable = true)
 	private void tryUseDeathProtector(DamageSource source, CallbackInfoReturnable<Boolean> cir) {
 		if (metacraft_season_4$surviveDeath(source)) {
