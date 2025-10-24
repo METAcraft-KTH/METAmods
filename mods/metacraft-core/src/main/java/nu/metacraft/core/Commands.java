@@ -24,6 +24,7 @@ public class Commands {
 			ForcedRespawnCommand.register(dispatcher);
 			BossbarCommand.register(dispatcher, registryAccess);
 			PrefCommand.register(dispatcher, registryAccess);
+			TechnicalDifficultiesCommand.register(dispatcher, registryAccess);
 		});
 	}
 
