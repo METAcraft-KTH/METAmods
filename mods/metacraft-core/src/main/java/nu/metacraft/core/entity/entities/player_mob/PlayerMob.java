@@ -87,6 +87,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	private static final String SHOULDER_ENTITY_RIGHT = "ShoulderEntityRight";
 	private static final String CAN_WANDER = "can_wander";
 	private ProfileComponent skinData;
+	private GameProfile actualProfile;
 
 	private static final int REMOVE_PLAYER_LIST_ENTRY_DELAY = 20;
 
@@ -269,7 +270,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		updatePose();
 
 		if (shouldRespawnClient) {
-			if (skinData != null) {
+			if (actualProfile != null) {
 				var manager = ((ServerChunkManager) this.getEntityWorld().getChunkManager()).chunkLoadingManager;
 				List<ServerPlayerEntity> players = List.of();
 				var tracker = ((AccessorServerChunkLoadingManager) manager).getEntityTrackers().get(this.getId());
@@ -576,10 +577,10 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void removePlayerEntryFrom(Stream<ServerPlayerEntity> players) {
-		if (skinData == null) return;
-		if (getEntityWorld().getServer().getPlayerManager().getPlayer(skinData.getGameProfile().id()) == null) {
+		if (fakePlayer == null) return;
+		if (getEntityWorld().getServer().getPlayerManager().getPlayer(fakePlayer.getGameProfile().id()) == null) {
 			players.forEach(player -> {
-				player.networkHandler.sendPacket(new PlayerRemoveS2CPacket(List.of(skinData.getGameProfile().id())));
+				player.networkHandler.sendPacket(new PlayerRemoveS2CPacket(List.of(fakePlayer.getGameProfile().id())));
 			});
 		}
 	}
@@ -620,7 +621,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void respawnForClients() {
-		if (skinData == null) return;
+		if (actualProfile == null) return;
 		shouldRespawnClient = true;
 	}
 
@@ -628,15 +629,34 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	public void setCustomName(@Nullable Text name) {
 		boolean changed = !Objects.equals(this.getCustomName(), name);
 		super.setCustomName(name);
-		if (changed && skinData != null) {
-			setSkin(skinData);
+		if (changed && actualProfile != null) {
+			setSkin(actualProfile);
 		}
 	}
 
-	public void setSkin(ProfileComponent profile) {
-		if (profile.equals(this.skinData) && profile.getGameProfile().properties().equals(this.skinData.getGameProfile().properties())) return;
-		this.skinData = profile;
+	private void setSkin(GameProfile profile) {
+		if (profile.equals(actualProfile) && profile.properties().equals(actualProfile.properties())) return;
+		actualProfile = profile;
 		respawnForClients();
+	}
+
+	public void setSkin(ProfileComponent profile) {
+		this.skinData = profile;
+		switch (profile) {
+			case ProfileComponent.Static s -> setSkin(s.getGameProfile());
+			case ProfileComponent.Dynamic d -> {
+				var server = getEntityWorld().getServer();
+				d.resolve(server.getApiServices().profileResolver()).thenAccept(p -> {
+					if (server.isRunning()) {
+						server.execute(() -> {
+							if (this.isAlive()) {
+								setSkin(p);
+							}
+						});
+					}
+				});
+			}
+		}
 	}
 
 	public void addVisibleSkinPart(PlayerModelPart... parts) {
@@ -698,7 +718,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	public void readCustomData(ReadView nbt) {
 		super.readCustomData(nbt);
 		nbt.read(PROFILE, ProfileComponent.CODEC).ifPresentOrElse(
-				profileComponent -> setSkin(profileComponent),
+				this::setSkin,
 				() -> setSkin(getDefaultSkin())
 		);
 		nbt.read(VISIBLE_SKIN_PARTS, ExtraCodecs.MODEL_PART_SET_CODEC).ifPresentOrElse(
@@ -714,7 +734,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private void resetFakePlayer() {
-		fakePlayer = new FakePlayer((ServerWorld) getEntityWorld(), adaptProfile(skinData.getGameProfile())) {};
+		fakePlayer = new FakePlayer((ServerWorld) getEntityWorld(), adaptProfile(actualProfile)) {};
 	}
 
 	protected ProfileComponent getDefaultSkin() {
@@ -734,6 +754,9 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	private void initProfile() {
 		if (skinData == null) {
 			skinData = getDefaultSkin();
+		}
+		if (actualProfile == null) {
+			actualProfile = skinData.getGameProfile();
 		}
 		if (shouldRespawnClient || fakePlayer == null) {
 			resetFakePlayer();
@@ -822,7 +845,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	public void removeAllPlayerEntries() {
-		if (skinData == null) return;
+		if (actualProfile == null) return;
 		removePlayerEntryFrom(removePackets.stream().map(SendPacketEntry::player));
 		removePackets.clear();
 	}
