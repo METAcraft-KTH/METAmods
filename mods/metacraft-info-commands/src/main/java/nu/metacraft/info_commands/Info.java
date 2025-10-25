@@ -1,6 +1,7 @@
 package nu.metacraft.info_commands;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -28,14 +29,20 @@ public class Info implements ModInitializer {
 								Style.EMPTY.withBold(true).withItalic(true).withColor(0xccffff)
 						).append(Text.literal("Cool right?").setStyle(Style.EMPTY.withObfuscated(true)))
 				));
+				config.getInfoMessages().add(new InfoMessage("example", Text.literal("Did you know? You can use /example1 to see information!")));
 				return config;
 			}
 	).reloadBeforeServer().build(configPath);
 
 	public static final Logger LOGGER = LogManager.getLogger("METAcraft-info-commands");
+
+	private final InfoMessages infoMessages = new InfoMessages();
+
 	@Override
 	public void onInitialize() {
 		Commands.init();
+
+		ServerTickEvents.END_SERVER_TICK.register(server -> this.infoMessages.tick(server, getConfig()));
 	}
 
 	/**
