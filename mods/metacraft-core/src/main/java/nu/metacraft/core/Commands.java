@@ -25,6 +25,7 @@ public class Commands {
 			BossbarCommand.register(dispatcher, registryAccess);
 			PrefCommand.register(dispatcher, registryAccess);
 			TechnicalDifficultiesCommand.register(dispatcher, registryAccess);
+			CountdownCommand.register(dispatcher, registryAccess);
 		});
 	}
 

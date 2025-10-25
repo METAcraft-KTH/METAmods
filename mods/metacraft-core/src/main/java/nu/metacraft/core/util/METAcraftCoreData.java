@@ -8,6 +8,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.PersistentStateType;
 import net.minecraft.world.World;
+import nu.metacraft.core.countdown.Countdown;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.METAcraftCore;
 
@@ -17,20 +18,25 @@ public class METAcraftCoreData extends PersistentState {
 
 	public static final Codec<METAcraftCoreData> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					SpawnPos.CODEC.optionalFieldOf("forced_respawn").forGetter(t -> t.forcedRespawn)
+					SpawnPos.CODEC.optionalFieldOf("forced_respawn").forGetter(t -> t.forcedRespawn),
+					Countdown.CODEC.optionalFieldOf("countdown").forGetter(t -> t.countdown)
 			).apply(instance, METAcraftCoreData::new)
 	);
 
 	private Optional<SpawnPos> forcedRespawn;
+	private Optional<Countdown> countdown;
 
 	public METAcraftCoreData(
-			Optional<SpawnPos> forcedRespawn
+			Optional<SpawnPos> forcedRespawn,
+			Optional<Countdown> countdown
 	) {
 		this.forcedRespawn = forcedRespawn;
+		this.countdown = countdown;
+		this.countdown.ifPresent(c -> c.setParent(this));
 	}
 
 	public METAcraftCoreData() {
-		this(Optional.empty());
+		this(Optional.empty(), Optional.empty());
 	}
 
 	private static final PersistentStateType<METAcraftCoreData> TYPE = new PersistentStateType<>(
@@ -62,6 +68,16 @@ public class METAcraftCoreData extends PersistentState {
 
 	public void unsetForcedRespawn() {
 		this.forcedRespawn = Optional.empty();
+		this.markDirty();
+	}
+
+	public Optional<Countdown> getCountdown() {
+		return countdown;
+	}
+
+	public void setCountdown(Optional<Countdown> countdown) {
+		this.countdown = countdown;
+		this.countdown.ifPresent(c -> c.setParent(this));
 		this.markDirty();
 	}
 

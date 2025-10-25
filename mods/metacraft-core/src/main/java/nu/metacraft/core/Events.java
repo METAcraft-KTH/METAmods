@@ -13,6 +13,7 @@ import net.minecraft.util.math.Vec3d;
 import nu.metacraft.core.entity.entities.MovingBlock;
 import nu.metacraft.core.item.METAcraftItems;
 import nu.metacraft.core.item.items.Wrench;
+import nu.metacraft.core.util.METAcraftCoreData;
 
 public class Events {
 
@@ -65,6 +66,10 @@ public class Events {
 					}
 				});
 			}
+		});
+
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			METAcraftCoreData.getInstance(server).getCountdown().ifPresent(countdown-> countdown.tick(server));
 		});
 	}
 
