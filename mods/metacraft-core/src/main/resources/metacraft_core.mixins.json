@@ -15,6 +15,7 @@
 		"AccessorMobEntity",
 		"AccessorPlayerEntity",
 		"AccessorPlayerLikeEntity",
+		"AccessorPlayerListS2CPacket",
 		"AccessorPolymerItemUtils",
 		"AccessorScreenHandler",
 		"AccessorServerChunkManager",
