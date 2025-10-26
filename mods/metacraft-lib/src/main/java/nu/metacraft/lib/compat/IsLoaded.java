@@ -15,6 +15,7 @@ public record IsLoaded(String modID) {
 	public static final IsLoaded RESOURCE_PACKS = new IsLoaded("metacraft-resource-packs");
 	public static final IsLoaded CORE = new IsLoaded("metacraft-core");
 	public static final IsLoaded DISCORD_MC_CHAT = new IsLoaded("discord-mc-chat");
+	public static final IsLoaded LEDGER = new IsLoaded("ledger");
 
 	public boolean isLoaded() {
 		return FabricLoader.getInstance().isModLoaded(modID);

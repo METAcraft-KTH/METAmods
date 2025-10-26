@@ -9,4 +9,5 @@ addSGUIDependency()
 
 dependencies {
 	modImplementation("maven.modrinth:lithium:$lithium_version-fabric")
+	modCompileOnly("maven.modrinth:ledger:$ledger_version")
 }

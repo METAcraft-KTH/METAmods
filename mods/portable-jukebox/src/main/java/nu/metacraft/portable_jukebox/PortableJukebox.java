@@ -2,6 +2,7 @@ package nu.metacraft.portable_jukebox;
 
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.util.Identifier;
+import nu.metacraft.portable_jukebox.compat.CompatInit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.portable_jukebox.block.Blocks;
@@ -19,6 +20,7 @@ public class PortableJukebox implements ModInitializer {
 		Items.init();
 		Blocks.init();
 		Entities.init();
+		CompatInit.init();
 	}
 
 	public static Identifier getID(String id) {
