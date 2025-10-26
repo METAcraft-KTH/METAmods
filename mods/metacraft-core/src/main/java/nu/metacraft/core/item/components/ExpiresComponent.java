@@ -86,7 +86,10 @@ public record ExpiresComponent(Instant at, Pool<ItemStack> replacement) {
 
 	public static void init() {
 		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register((original, client, player) -> {
-			if (original.contains(METAcraftComponents.EXPIRES_AT)) {
+			if (original.contains(METAcraftComponents.EXPIRES_AT) &&
+					Optional.ofNullable(original.get(DataComponentTypes.TOOLTIP_DISPLAY))
+							.map(tooltip -> tooltip.shouldDisplay(METAcraftComponents.EXPIRES_AT))
+							.orElse(true)) {
 				var result = original.get(METAcraftComponents.EXPIRES_AT).replacement.isEmpty() ?
 						Text.literal("disappear") : Text.literal("transform into something else");
 				client.set(
