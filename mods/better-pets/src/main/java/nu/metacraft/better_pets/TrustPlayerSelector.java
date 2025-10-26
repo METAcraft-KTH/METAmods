@@ -8,10 +8,14 @@ import eu.pb4.sgui.api.elements.AnimatedGuiElementBuilder;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ProfileComponent;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.StyleSpriteSource;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import nu.metacraft.core.gui.MultiplePlayerSelector;
 import nu.metacraft.lib.util.helper.GameProfileHelper;
 
@@ -20,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class TrustPlayerSelector extends MultiplePlayerSelector {
+	public static final StyleSpriteSource MENU_FONT = new StyleSpriteSource.Font(Identifier.of("metacraft", "pet_gui"));
 
 	private final TameableExtension tameable;
 
@@ -110,20 +115,38 @@ public class TrustPlayerSelector extends MultiplePlayerSelector {
 				).filter(Optional::isPresent).map(Optional::get).toList()
 		);
 		this.tameable = tameable;
-		setTitle(Text.translatableWithFallback("gui.metacraft.player_selector", "Player Selector"));
 
-		int interval = 30;
-		Text text = Text.literal("Nearby");
-		setSlot(0, createMovingLetter(text, NEARBY, 0, interval));
-		setSlot(1, createMovingLetter(text, NEARBY, 1, interval));
-		setSlot(2, createMovingLetter(text, NEARBY, 2, interval));
-		setSlot(3, createMovingLetter(text, NEARBY, 3, interval));
+		// Font magic
+		// a = move cursor by -8
+		//     (back by 8, aligns to vanilla GUI corner)
+		// b = pet_gui.png
+		//     (width: 176, so moves cursor by 176)
+		// c = move cursor by -169
+		//     (back by 169 = -8 + 176 + 1, resets cursor.
+		//      + 1 is to count space between characters)
+		//
+		// See: https://github.com/METAcraft-KTH/resource-pack
+		//
+		var fontMagic = Text.literal("abc").styled(style ->
+			style.withFont(new StyleSpriteSource.Font(Identifier.of("metacraft", "pet_gui"))).withColor(Formatting.WHITE)
+		);
+		setTitle(Text.empty().append(fontMagic).append(Text.translatableWithFallback("gui.metacraft.player_selector", "Player Selector")));
 
-		text = Text.literal("Trusted");
-		setSlot(5, createMovingLetter(text, TRUSTED, 0, interval));
-		setSlot(6, createMovingLetter(text, TRUSTED, 1, interval));
-		setSlot(7, createMovingLetter(text, TRUSTED, 2, interval));
-		setSlot(8, createMovingLetter(text, TRUSTED, 3, interval));
+		setSlot(0, ItemStack.EMPTY);
+		setSlot(1, ItemStack.EMPTY);
+		setSlot(2, ItemStack.EMPTY);
+		setSlot(3, ItemStack.EMPTY);
+
+		setSlot(5, ItemStack.EMPTY);
+		setSlot(6, ItemStack.EMPTY);
+		setSlot(7, ItemStack.EMPTY);
+		setSlot(8, ItemStack.EMPTY);
+
+		setSlot(4, ItemStack.EMPTY);
+		setSlot(13, ItemStack.EMPTY);
+		setSlot(22, ItemStack.EMPTY);
+		setSlot(31, ItemStack.EMPTY);
+		setSlot(40, ItemStack.EMPTY);
 	}
 
 	@Override

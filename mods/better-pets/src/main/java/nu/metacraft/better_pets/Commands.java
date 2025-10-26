@@ -12,7 +12,7 @@ public class Commands {
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			dispatcher.register(
-					literal("pet-gui").executes(ctx -> {
+					literal("petgui").executes(ctx -> {
 						var player = ctx.getSource().getPlayerOrThrow();
 						var facingVec = player.getRotationVector().multiply(6);
 						var result = ProjectileUtil.raycast(
