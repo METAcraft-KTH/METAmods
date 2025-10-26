@@ -3,6 +3,7 @@ package nu.metacraft.faster_minecarts;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.block.AbstractRailBlock;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -15,6 +16,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import nu.metacraft.lib.config.ObjectStorage;
 import nu.metacraft.lib.config.container.ConfigContainer;
@@ -290,7 +292,12 @@ public class FasterMinecartsConfig {
 		public double getBlockBoost(ServerWorld world, BlockPos pos) {
 			double amount = 0;
 			for (var boosters : blockBoosters) {
-				if (boosters.predicate.test(world, pos.down()) || boosters.predicate.test(world, pos.down(2))) {
+				var targetPos = new BlockPos.Mutable();
+				targetPos.set(pos.down());
+				if (world.getBlockState(targetPos).getBlock() instanceof AbstractRailBlock) {
+					targetPos.move(Direction.DOWN);
+				}
+				if (boosters.predicate.test(world, targetPos)) {
 					amount += boosters.topSpeedIncrease;
 				}
 			}
