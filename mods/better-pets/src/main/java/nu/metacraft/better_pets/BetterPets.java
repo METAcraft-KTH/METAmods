@@ -13,7 +13,7 @@ public class BetterPets implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		Commands.init();
+
 	}
 
 	public static Identifier getID(String name) {
