@@ -290,7 +290,7 @@ public class FasterMinecartsConfig {
 		public double getBlockBoost(ServerWorld world, BlockPos pos) {
 			double amount = 0;
 			for (var boosters : blockBoosters) {
-				if (boosters.predicate.test(world, pos)) {
+				if (boosters.predicate.test(world, pos.down()) || boosters.predicate.test(world, pos.down(2))) {
 					amount += boosters.topSpeedIncrease;
 				}
 			}
