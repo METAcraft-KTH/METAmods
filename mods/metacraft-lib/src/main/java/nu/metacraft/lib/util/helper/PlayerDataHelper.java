@@ -317,6 +317,11 @@ public class PlayerDataHelper {
 		var prevVehiclePitch = player.getRootVehicle().getPitch();
 		var prevVehicleVelocity = player.getRootVehicle().getVelocity();
 
+		var gameMode = AccessorServerPlayerEntity.callGameModeFromData(data, "playerGameType");
+		if (gameMode != null) {
+			player.changeGameMode(gameMode);
+		}
+
 		ext(player).metacraft_lib$loadPlayerDataExceptDataMap(data);
 		Optional<ServerWorld> world = getWorld(player.getEntityWorld().getServer(), data);
 		if (moveToDataPosition) {
@@ -331,10 +336,6 @@ public class PlayerDataHelper {
 			player.setYaw(prevYaw);
 			player.setPitch(prevPitch);
 			player.setVelocity(prevVelocity);
-		}
-		var gameMode = AccessorServerPlayerEntity.callGameModeFromData(data, "playerGameType");
-		if (gameMode != null) {
-			player.changeGameMode(gameMode);
 		}
 		if (spawnVehicleAndPassengers) {
 			loadRootVehicleAndPassengers(player, data, e -> {
