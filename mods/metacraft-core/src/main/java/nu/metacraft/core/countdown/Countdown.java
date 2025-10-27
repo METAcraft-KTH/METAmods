@@ -69,6 +69,13 @@ public class Countdown {
 
     public void setDate(Date date) {
         this.date = date;
+        for (Action action : this.actions) {
+            if (this.getMillisLeft() <= action.activationMillis) {
+                this.executedActions.add(action);
+            } else {
+                this.executedActions.remove(action);
+            }
+        }
         this.markDirty();
     }
 
