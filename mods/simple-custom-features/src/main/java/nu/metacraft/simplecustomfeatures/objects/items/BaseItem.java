@@ -104,7 +104,9 @@ public interface BaseItem extends BaseObject<Item> {
 	@Override
 	default void onRegistrationSuccess(RegistryEntry.Reference<Item> entry) {
 		if (entry.value() instanceof BlockItem blockItem) {
-			blockItem.appendBlocks(Item.BLOCK_ITEMS, entry.value());
+			if (!Item.BLOCK_ITEMS.containsKey(blockItem.getBlock())) {
+				blockItem.appendBlocks(Item.BLOCK_ITEMS, entry.value());
+			}
 		}
 	}
 
