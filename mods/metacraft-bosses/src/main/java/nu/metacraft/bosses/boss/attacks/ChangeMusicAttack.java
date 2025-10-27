@@ -2,19 +2,19 @@ package nu.metacraft.bosses.boss.attacks;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import nu.metacraft.core.music.MusicEntry;
+import nu.metacraft.core.music.PlayerMusic;
 
 public class ChangeMusicAttack extends InstantAttack {
 
 	public static final MapCodec<ChangeMusicAttack> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					MusicEntry.CODEC.fieldOf("music").forGetter(a -> a.music)
+					PlayerMusic.EASY_CODEC.fieldOf("music").forGetter(a -> a.music)
 			).apply(instance, ChangeMusicAttack::new)
 	);
 
-	private final MusicEntry music;
+	private final PlayerMusic music;
 
-	public ChangeMusicAttack(MusicEntry music) {
+	public ChangeMusicAttack(PlayerMusic music) {
 		this.music = music;
 	}
 

@@ -3,26 +3,26 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.network.ServerPlayerEntity;
+import nu.metacraft.core.music.PlayerMusic;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.registry.TransitionConfigRegistry;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfig;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfigType;
 import nu.metacraft.cutscenes.util.IntervalMap;
-import nu.metacraft.core.music.MusicEntry;
 import nu.metacraft.core.util.helper.MusicHelper;
 
 public class MusicTransition implements Transition, TransitionConfig {
 
 	public static final MapCodec<MusicTransition> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					MusicEntry.MAP_CODEC.forGetter(t -> t.music)
+					PlayerMusic.EASY_MAP_CODEC.forGetter(t -> t.music)
 			).apply(instance, MusicTransition::new)
 	);
 
-	private final MusicEntry music;
+	private final PlayerMusic music;
 
-	public MusicTransition(MusicEntry music) {
+	public MusicTransition(PlayerMusic music) {
 		this.music = music;
 	}
 

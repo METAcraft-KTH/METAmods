@@ -1,19 +1,21 @@
 package nu.metacraft.core.music;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.JavaOps;
-import com.mojang.serialization.MapCodec;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.block.jukebox.JukeboxSong;
+import net.minecraft.component.type.JukeboxPlayableComponent;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.RegistryOps;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.sound.SoundEvent;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextCodecs;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.dynamic.Codecs;
+import nu.metacraft.lib.util.ExtraCodecs;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -21,24 +23,67 @@ import java.util.Map;
 import java.util.Optional;
 
 public record MusicEntry(
-		Music music, Optional<Music> intro, int priority, Optional<Credit> credit
-) implements Comparable<MusicEntry> {
+		Music music, Optional<Music> intro, Optional<Credit> credit
+) {
+
+	protected static final Codec<MusicEntry> DISC_CODEC = new Codec<>() {
+		@Override
+		public <T> DataResult<Pair<MusicEntry, T>> decode(DynamicOps<T> ops, T input) {
+			return JukeboxPlayableComponent.CODEC.decode(ops, input).flatMap(
+					song -> {
+						DataResult<? extends RegistryEntry<JukeboxSong>> entry = song.getFirst().song().contents().map(
+								DataResult::success,
+								k -> {
+									if (ops instanceof RegistryOps<T> registryOps) {
+										var l = registryOps.getEntryLookup(RegistryKeys.JUKEBOX_SONG);
+										if (l.isEmpty()) return DataResult.error(() -> "Cannot find jukebox song registry!");
+										var lookup = l.get();
+										return lookup.getOptional(k).map(
+												DataResult::success
+										).orElse(DataResult.error(() -> "Jukebox song with id " + k.getValue() + " did not exist"));
+									}
+									return DataResult.error(() -> "Parsing this value requires RegistryOps.");
+								}
+						);
+						if (entry.error().isPresent()) return DataResult.error(entry.error().get().messageSupplier());
+						var actualEntry = entry.getOrThrow().value();
+						return DataResult.success(
+								Pair.of(
+										new MusicEntry(
+												new MusicEntry.Music(actualEntry.soundEvent(), actualEntry.lengthInSeconds(), 1, false),
+												Optional.empty(), Optional.of(new MusicEntry.Credit(actualEntry.description(), 1))
+										),
+										song.getSecond()
+								)
+						);
+					}
+			);
+		}
+
+		@Override
+		public <T> DataResult<T> encode(MusicEntry input, DynamicOps<T> ops, T prefix) {
+			return CODEC.encode(input, ops, prefix);
+		}
+	};
 
 	private static final Map<RegistryKey<SoundEvent>, RegistryEntry<SoundEvent>> cache = new HashMap<>();
 	public static final Codec<RegistryEntry<SoundEvent>> MUSIC_CODEC_WITH_CACHE = Identifier.CODEC.xmap(
 			MusicEntry::getFromID, MusicEntry::getID
 	);
 
-	public static final MapCodec<MusicEntry> MAP_CODEC = RecordCodecBuilder.mapCodec(
+	private static final MapCodec<MusicEntry> MAP_CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
 			Music.MAP_CODEC.forGetter(MusicEntry::music),
 			Music.CODEC.optionalFieldOf("intro").forGetter(MusicEntry::intro),
-			Codec.INT.fieldOf("priority").orElse(0).forGetter(MusicEntry::priority),
-			Credit.CODEC.optionalFieldOf("credit").forGetter(MusicEntry::credit)
+			Credit.SIMPLE_CODEC.optionalFieldOf("credit").forGetter(MusicEntry::credit)
 		).apply(instance, MusicEntry::new)
 	);
 
-	public static final Codec<MusicEntry> CODEC = MAP_CODEC.codec();
+	private static final Codec<MusicEntry> CODEC = MAP_CODEC.codec();
+
+	public static final Codec<MusicEntry> EASY_CODEC = Codec.withAlternative(CODEC, DISC_CODEC);
+
+	public static final MapCodec<MusicEntry> EASY_MAP_CODEC = ExtraCodecs.withAlternative(MAP_CODEC, DISC_CODEC.fieldOf("song"));
 
 	public static RegistryEntry<SoundEvent> getFromID(Identifier id) {
 		return getFromID(RegistryKey.of(RegistryKeys.SOUND_EVENT, id));
@@ -69,8 +114,8 @@ public record MusicEntry(
 	}
 
 	@Override
-	public String toString() {
-		String firstPart = "MusicEntry[music=" + music + ", priority=" + priority;
+	public @NotNull String toString() {
+		String firstPart = "MusicEntry[music=" + music;
 		if (intro.isPresent()) {
 			firstPart += ", intro=" + intro.get();
 		}
@@ -80,47 +125,20 @@ public record MusicEntry(
 		return firstPart + "]";
 	}
 
-	@Override
-	public int compareTo(@NotNull MusicEntry musicEntry) {
-		return -Integer.compare(this.priority, musicEntry.priority);
-	}
-
-	public record Credit(Text name, Text author, Style style, Optional<Style> playingStyle, Optional<Credit> basedOf) {
-		private static Codec<Credit> getCodec() {
-			return Codec.lazyInitialized(() -> CODEC);
-		}
+	public record Credit(Text text, int displayTime) {
 		public static final Codec<Credit> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						TextCodecs.CODEC.fieldOf("name").forGetter(Credit::name),
-						TextCodecs.CODEC.fieldOf("author").forGetter(Credit::author),
-						Style.Codecs.CODEC.fieldOf("style").orElse(Style.EMPTY.withColor(Formatting.AQUA)).forGetter(Credit::style),
-						Style.Codecs.CODEC.optionalFieldOf("style").forGetter(Credit::playingStyle),
-						getCodec().optionalFieldOf("based_of").forGetter(Credit::basedOf)
+						TextCodecs.CODEC.fieldOf("text").forGetter(Credit::text),
+						Codecs.POSITIVE_INT.optionalFieldOf("display_time", 1).forGetter(Credit::displayTime)
 				).apply(instance, Credit::new)
 		);
 
-		public Text getCredit() {
-			return basedOf.map(
-					other -> Text.translatableWithFallback(
-							"music.metacraft.recursive_credit", "%s by %s based of %s",
-							name, author, other.getCredit()
-					).fillStyle(style)
-			).orElse(
-					Text.translatableWithFallback(
-							"music.metacraft.credit", "%s by %s",
-							name, author
-					).fillStyle(style)
-			);
-		}
-
-		public Text getPlayingCredit() {
-			return Text.translatable(
-					"record.nowPlaying", getCredit()
-			).fillStyle(playingStyle.orElse(style));
-		}
+		public static final Codec<Credit> SIMPLE_CODEC = Codec.withAlternative(
+				CODEC, TextCodecs.CODEC.xmap(text -> new Credit(text, 1), credit -> credit.text)
+		);
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			return CODEC.encodeStart(JavaOps.INSTANCE, this).getOrThrow().toString();
 		}
 	}
@@ -140,7 +158,7 @@ public record MusicEntry(
 		public static final Codec<Music> CODEC = MAP_CODEC.codec();
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			return  "Music[music=" + music.value().id() + ", length=" +
 					length + ", pitch=" + pitch + "]";
 		}

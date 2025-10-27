@@ -12,13 +12,13 @@ import net.minecraft.server.command.BossBarCommand;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
+import nu.metacraft.core.music.PlayerMusic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Slice;
 import nu.metacraft.core.extensions.CommandBossBarExtension;
-import nu.metacraft.core.music.MusicEntry;
 
 @Mixin(BossBarCommand.class)
 public abstract class MixinBossBarCommand {
@@ -55,7 +55,7 @@ public abstract class MixinBossBarCommand {
 								ctx -> {
 									var bossBar = (CommandBossBarExtension) getBossBar(ctx);
 									var musicData = NbtCompoundArgumentType.getNbtCompound(ctx, "metacraft:music");
-									var music = MusicEntry.CODEC.parse(
+									var music = PlayerMusic.EASY_CODEC.parse(
 											ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE),
 											musicData
 									).getOrThrow(PASSTHROUGH::create);

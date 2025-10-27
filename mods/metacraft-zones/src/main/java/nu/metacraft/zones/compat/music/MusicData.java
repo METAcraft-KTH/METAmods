@@ -4,7 +4,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.network.ServerPlayerEntity;
-import nu.metacraft.core.music.MusicEntry;
+import nu.metacraft.core.music.PlayerMusic;
 import nu.metacraft.core.util.helper.MusicHelper;
 import nu.metacraft.zones.compat.CoreTypes;
 import nu.metacraft.zones.zone.data.ZoneData;
@@ -17,17 +17,17 @@ public class MusicData extends ZoneDataEntityTracking {
 
 	public static final MapCodec<MusicData> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					MusicEntry.CODEC.optionalFieldOf("music").forGetter(d -> d.music)
+					PlayerMusic.EASY_CODEC.optionalFieldOf("music").forGetter(d -> d.music)
 			).apply(instance, MusicData::new)
 	);
 
-	private Optional<MusicEntry> music;
+	private Optional<PlayerMusic> music;
 
-	public MusicData(Optional<MusicEntry> music) {
+	public MusicData(Optional<PlayerMusic> music) {
 		this.music = music;
 	}
 
-	public void setMusic(Optional<MusicEntry> music) {
+	public void setMusic(Optional<PlayerMusic> music) {
 		this.music.ifPresent(musicEntry -> zone.getEntities().forEach(e -> {
 			if (e instanceof ServerPlayerEntity p && MusicHelper.isMusicPlaying(p, musicEntry)) {
 				MusicHelper.stopMusic(p);
@@ -67,7 +67,7 @@ public class MusicData extends ZoneDataEntityTracking {
 
 	@Override
 	public String toString() {
-		return "MusicData[" + music.map(MusicEntry::toString).orElse("") + "]";
+		return "MusicData[" + music.map(PlayerMusic::toString).orElse("") + "]";
 	}
 
 }

@@ -14,7 +14,7 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import nu.metacraft.core.music.MusicEntry;
+import nu.metacraft.core.music.PlayerMusic;
 import nu.metacraft.core.util.helper.MusicHelper;
 
 import java.util.Collection;
@@ -28,8 +28,8 @@ public class PlayMusic {
 
 	private static final DynamicCommandExceptionType INVALID = new DynamicCommandExceptionType(e -> e::toString);
 
-	public static MusicEntry parse(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) throws CommandSyntaxException {
-		return MusicEntry.CODEC.parse(lookup.getOps(NbtOps.INSTANCE), nbt).getOrThrow(INVALID::create);
+	public static PlayerMusic parse(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) throws CommandSyntaxException {
+		return PlayerMusic.EASY_CODEC.parse(lookup.getOps(NbtOps.INSTANCE), nbt).getOrThrow(INVALID::create);
 	}
 
 	public static void register(
@@ -129,7 +129,7 @@ public class PlayMusic {
 
 	private static int playMusic(
 			CommandContext<ServerCommandSource> ctx,
-			MusicEntry music, Collection<ServerPlayerEntity> players, boolean skipQueue
+			PlayerMusic music, Collection<ServerPlayerEntity> players, boolean skipQueue
 	) {
 		for (var p : players) {
 			MusicHelper.playMusic(p, music, skipQueue);
@@ -140,7 +140,7 @@ public class PlayMusic {
 
 	private static int stopMusic(
 			CommandContext<ServerCommandSource> ctx,
-			Optional<MusicEntry> music, Collection<ServerPlayerEntity> players, boolean all
+			Optional<PlayerMusic> music, Collection<ServerPlayerEntity> players, boolean all
 	) {
 		int count = 0;
 		for (var p : players) {

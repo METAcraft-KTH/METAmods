@@ -32,11 +32,11 @@ public class ManageableServerBossBar extends ServerBossBar {
 		super(displayName, color, style);
 	}
 
-	public void setMusic(MusicEntry music) {
+	public void setMusic(PlayerMusic music) {
 		this.handler.setMusic(music);
 	}
 
-	public Optional<MusicEntry> getMusic() {
+	public Optional<PlayerMusic> getMusic() {
 		return this.handler.getMusic();
 	}
 
@@ -141,7 +141,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 			boolean darkenSky,
 			boolean thickenFog,
 			boolean visible,
-			Optional<MusicEntry> music,
+			Optional<PlayerMusic> music,
 			Optional<Health> health,
 			Optional<Text> name
 	) {
@@ -157,7 +157,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 						Codec.BOOL.optionalFieldOf("darken_sky", false).forGetter(BossBarData::darkenSky),
 						Codec.BOOL.optionalFieldOf("thicken_fog", false).forGetter(BossBarData::thickenFog),
 						Codec.BOOL.optionalFieldOf("visible", true).forGetter(BossBarData::visible),
-						MusicEntry.CODEC.optionalFieldOf("music").forGetter(BossBarData::music),
+						PlayerMusic.EASY_CODEC.optionalFieldOf("music").forGetter(BossBarData::music),
 						Health.OPT_CODEC.forGetter(BossBarData::health),
 						TextCodecs.CODEC.optionalFieldOf("name").forGetter(BossBarData::name)
 				).apply(instance, BossBarData::new)

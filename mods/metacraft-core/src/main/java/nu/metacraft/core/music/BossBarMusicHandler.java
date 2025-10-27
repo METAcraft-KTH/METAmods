@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public class BossBarMusicHandler {
 
-	private MusicEntry music;
+	private PlayerMusic music;
 
 	private final ServerBossBar bossbar;
 
@@ -43,7 +43,7 @@ public class BossBarMusicHandler {
 		}
 	}
 
-	public void setMusic(MusicEntry music) {
+	public void setMusic(PlayerMusic music) {
 		var prevMusic = this.music;
 		this.music = music;
 		if (music != prevMusic) {
@@ -53,7 +53,7 @@ public class BossBarMusicHandler {
 		}
 	}
 
-	public Optional<MusicEntry> getMusic() {
+	public Optional<PlayerMusic> getMusic() {
 		return Optional.ofNullable(music);
 	}
 }

@@ -10,24 +10,21 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.storage.ReadView;
 import net.minecraft.storage.WriteView;
 import net.minecraft.structure.StructureTemplate;
-import net.minecraft.util.collection.Pool;
 import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import nu.metacraft.core.block.METAcraftBlockEntities;
 import nu.metacraft.core.block.blocks.MusicBlock;
-import nu.metacraft.core.music.MusicEntry;
+import nu.metacraft.core.music.PlayerMusic;
 import nu.metacraft.core.util.helper.MusicHelper;
 import nu.metacraft.lib.util.ExtraCodecs;
 
 import java.util.*;
 
 public class MusicBlockEntity extends BlockEntity {
-	public static final Codec<Pool<MusicEntry>> MUSIC_POOL_CODEC = Pool.createCodec(MusicEntry.CODEC);
-	public static final Codec<Map<String, Pool<MusicEntry>>> NAMED_MUSIC_POOLS_CODEC = Codec.unboundedMap(Codec.STRING, MUSIC_POOL_CODEC);
+	public static final Codec<Map<String, PlayerMusic>> NAMED_MUSIC_POOLS_CODEC = Codec.unboundedMap(Codec.STRING, PlayerMusic.EASY_CODEC);
 	public static final String RANGE = "Range";
 	public static final String BOX = "Box";
 	public static final String MUSIC_CHOICES = "MusicChoices";
@@ -35,10 +32,10 @@ public class MusicBlockEntity extends BlockEntity {
 
 	private static final String DEFAULT_MUSIC = "default";
 
-	private MusicEntry currentEntry = null;
+	private PlayerMusic currentEntry = null;
 	private boolean firstTick = true;
 	private String currentMusic = DEFAULT_MUSIC;
-	private final Map<String, Pool<MusicEntry>> musicChoices = new HashMap<>();
+	private final Map<String, PlayerMusic> musicChoices = new HashMap<>();
 	private double range = 128;
 	private Box boundingBox;
 	private Box cachedBox;
@@ -99,16 +96,16 @@ public class MusicBlockEntity extends BlockEntity {
 		}
 	}
 
-	public Optional<MusicEntry> getCurrentMusic(Random random) {
+	public Optional<PlayerMusic> getCurrentMusic() {
 		if (currentMusic == null) return Optional.empty();
-		return Optional.ofNullable(musicChoices.get(currentMusic)).flatMap(pool -> pool.getOrEmpty(random));
+		return Optional.ofNullable(musicChoices.get(currentMusic));
 	}
 
 	public void resetMusic() {
 		trackedPlayers.forEach(MusicHelper::stopMusic);
 		trackedPlayers.clear();
 		if (world != null) {
-			currentEntry = getCurrentMusic(world.getRandom()).orElse(null);
+			currentEntry = getCurrentMusic().orElse(null);
 		}
 	}
 
@@ -137,7 +134,7 @@ public class MusicBlockEntity extends BlockEntity {
 		markDirty();
 	}
 
-	public void setMusicTracks(Map<String, Pool<MusicEntry>> musicTracks) {
+	public void setMusicTracks(Map<String, PlayerMusic> musicTracks) {
 		this.musicChoices.clear();
 		this.musicChoices.putAll(musicTracks);
 		markDirty();

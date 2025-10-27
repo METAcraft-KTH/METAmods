@@ -1,6 +1,7 @@
 package nu.metacraft.lib.util;
 
 import com.google.common.collect.Multimap;
+import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.Block;
@@ -129,6 +130,13 @@ public class ExtraCodecs {
 				return DataResult.success(positions);
 			}
 	);
+
+	public static <T> MapCodec<T> withAlternative(MapCodec<T> left, MapCodec<T> right) {
+		return Codec.mapEither(left, right).xmap(
+				Either::unwrap,
+				Either::left
+		);
+	}
 
 	public static <T, C extends Collection<T>> Codec<C> createCollectionCodec(
 			Codec<T> codec, Supplier<C> collectionSupplier

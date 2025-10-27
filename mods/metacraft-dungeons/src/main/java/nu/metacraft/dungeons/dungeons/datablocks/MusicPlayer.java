@@ -6,13 +6,12 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.structure.StructurePiece;
 import net.minecraft.util.StringIdentifiable;
-import net.minecraft.util.collection.Pool;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import nu.metacraft.core.block.METAcraftBlocks;
 import nu.metacraft.core.block.blocks.MusicBlock;
 import nu.metacraft.core.block.entities.MusicBlockEntity;
-import nu.metacraft.core.music.MusicEntry;
+import nu.metacraft.core.music.PlayerMusic;
 import nu.metacraft.lib.util.ExtraCodecs;
 
 import java.util.Map;
@@ -20,15 +19,13 @@ import java.util.Map;
 public class MusicPlayer extends DataBlock {
 
 	protected String selectedMusicTrack;
-	protected Map<String, Pool<MusicEntry>> musicTracks;
+	protected Map<String, PlayerMusic> musicTracks;
 	protected Either<Either<Double, Box>, CalculatedArea> area;
 
 	public static final MapCodec<MusicPlayer> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
 			Codec.STRING.fieldOf("selected_track").orElse("default").forGetter(player -> player.selectedMusicTrack),
-			Codec.unboundedMap(
-					Codec.STRING, MusicBlockEntity.MUSIC_POOL_CODEC
-			).fieldOf("tracks").forGetter(player -> player.musicTracks),
+			MusicBlockEntity.NAMED_MUSIC_POOLS_CODEC.fieldOf("tracks").forGetter(player -> player.musicTracks),
 			Codec.either(
 					Codec.either(Codec.DOUBLE, ExtraCodecs.BOX_CODEC), CalculatedArea.CODEC
 			).fieldOf("area").orElse(Either.right(CalculatedArea.DUNGEON)).forGetter(player -> player.area)
@@ -37,7 +34,7 @@ public class MusicPlayer extends DataBlock {
 
 	public MusicPlayer(
 			String selectedMusicTrack,
-			Map<String, Pool<MusicEntry>> musicTracks,
+			Map<String, PlayerMusic> musicTracks,
 			Either<Either<Double, Box>, CalculatedArea> area
 	) {
 		this.selectedMusicTrack = selectedMusicTrack;

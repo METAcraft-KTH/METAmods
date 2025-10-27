@@ -31,6 +31,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
+import nu.metacraft.core.music.PlayerMusic;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -93,13 +94,16 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private boolean inIntro;
 
 	@Unique
-	private volatile MusicEntry music;
+	private volatile PlayerMusic music;
 
 	@Unique
-	private final Queue<MusicEntry> musicEntryQueue = new PriorityQueue<>();
+	private volatile MusicEntry currentEntry;
 
 	@Unique
-	private final Map<MusicEntry, Predicate<ServerPlayerEntity>> musicEntriesInQueue = new HashMap<>();
+	private final Queue<PlayerMusic> musicEntryQueue = new PriorityQueue<>();
+
+	@Unique
+	private final Map<PlayerMusic, Predicate<ServerPlayerEntity>> musicEntriesInQueue = new HashMap<>();
 
 
 	@Unique
@@ -199,9 +203,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 
 		if (displayTimer > 0) {
-			if (music != null) {
-				music.credit().ifPresent(credit -> {
-					this.sendMessage(credit.getPlayingCredit(), true);
+			if (currentEntry != null) {
+				currentEntry.credit().ifPresent(credit -> {
+					this.sendMessage(credit.text(), true);
 				});
 				displayTimer--;
 			} else {
@@ -211,8 +215,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 		long currentTime = System.currentTimeMillis() + networkHandler.getLatency();
 		if (music != null && currentTime >= musicStartTime + musicLengthMillis - 50) {
-			var music = this.music.getMusic(inIntro);
-			playMusic(music.forceStop(), false, musicStartTime + musicLengthMillis - networkHandler.getLatency());
+			playMusic(false, true, musicStartTime + musicLengthMillis - networkHandler.getLatency());
 		}
 
 		if (music != null) {
@@ -310,14 +313,24 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private static final MarkerEntity PASSTHROUGH = new MarkerEntity(EntityType.MARKER, null);
 
 	@Unique
-	private void playMusic(boolean stopOnRestart, boolean playIntro, long startTimeServerside) {
+	private void playMusic(boolean stopOnRestart, boolean canBeLoop, long startTimeServerside) {
 		if (this.music != null) {
-			var music = this.music.getMusic(playIntro);
+			if (currentEntry != null) {
+				if (currentEntry.getMusic(inIntro).forceStop()) {
+					stopOnRestart = true;
+				}
+			}
+			var musicEntry = inIntro ? currentEntry : this.music.music().get(getRandom());
+
+			boolean playIntro = !canBeLoop || musicEntry != currentEntry;
+
+			this.currentEntry = musicEntry;
+			var music = musicEntry.getMusic(playIntro);
 			refreshMusicPoint(false);
 			var actualTime = Math.max(System.currentTimeMillis(), startTimeServerside);
 			this.musicStartTime = actualTime + networkHandler.getLatency();
 			this.musicLengthMillis = (int) Math.round(music.length() * 1000);
-			this.inIntro = playIntro && this.music.intro().isPresent();
+			this.inIntro = playIntro && musicEntry.intro().isPresent();
 			PASSTHROUGH.setId(point.getEntityId());
 			Packet<? super ClientPlayPacketListener> packet = new PlaySoundFromEntityS2CPacket(
 					music.music(), SoundCategory.MUSIC, PASSTHROUGH, 1, music.pitch(), this.getRandom().nextLong()
@@ -334,7 +347,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 				this.networkHandler.sendPacket(packet);
 			} else {
 				MusicTimerTracker.getTimer(getEntityWorld().getServer()).schedule(
-						new MusicTimerTracker.SendPacketTask((ServerPlayerEntity) (Object) this, this.music, packet),
+						new MusicTimerTracker.SendPacketTask((ServerPlayerEntity) (Object) this, musicEntry, packet),
 						actualTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS
 				);
 			}
@@ -342,7 +355,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Unique
-	private void addToQueue(MusicEntry entry, Predicate<ServerPlayerEntity> predicate) {
+	private void addToQueue(PlayerMusic entry, Predicate<ServerPlayerEntity> predicate) {
 		if (!musicEntriesInQueue.containsKey(entry)) {
 			musicEntriesInQueue.put(entry, predicate);
 			musicEntryQueue.add(entry);
@@ -350,7 +363,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Unique
-	private Pair<MusicEntry, Predicate<ServerPlayerEntity>> grabFromQueue() {
+	private Pair<PlayerMusic, Predicate<ServerPlayerEntity>> grabFromQueue() {
 		var entry = musicEntryQueue.poll();
 		Predicate<ServerPlayerEntity> pred = null;
 		if (entry != null) {
@@ -361,20 +374,20 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Unique
 	private void stopCurrentMusic(boolean shouldPlaySomethingElse) {
-		if (music != null) {
-			var music = this.music.getMusic(inIntro);
+		if (currentEntry != null) {
+			var music = this.currentEntry.getMusic(inIntro);
 			this.networkHandler.sendPacket(new StopSoundS2CPacket(music.music().value().id(), SoundCategory.MUSIC));
 			if (pointHolder != null && !shouldPlaySomethingElse) {
 				removeMusicPoint();
 			}
-			if (shouldPlaySomethingElse && !skipQueue) {
+			if (shouldPlaySomethingElse && !skipQueue && this.music != null) {
 				addToQueue(this.music, shouldContinuePlayingMusic);
 			}
 		}
 	}
 
 	@Override
-	public void metacraft_core$replacePredicate(MusicEntry entry, Predicate<ServerPlayerEntity> predicate) {
+	public void metacraft_core$replacePredicate(PlayerMusic entry, Predicate<ServerPlayerEntity> predicate) {
 		if (Objects.equals(entry, music)) {
 			shouldContinuePlayingMusic = predicate;
 		}
@@ -384,7 +397,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Override
-	public void metacraft_core$playMusic(MusicEntry entry, boolean skipQueue, Predicate<ServerPlayerEntity> predicate) {
+	public void metacraft_core$playMusic(PlayerMusic entry, boolean skipQueue, Predicate<ServerPlayerEntity> predicate) {
 		if (entry == null) return;
 		if (entry.equals(music)) {
 			this.shouldContinuePlayingMusic = predicate;
@@ -394,7 +407,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			stopCurrentMusic(true);
 			this.skipQueue = skipQueue;
 			this.music = entry;
-			playMusic(true, true, 0);
+			playMusic(true, false, 0);
 			this.shouldContinuePlayingMusic = predicate;
 		} else if (!skipQueue) {
 			addToQueue(entry, predicate);
@@ -402,7 +415,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Override
-	public void metacraft_core$stopMusic(MusicEntry entry) {
+	public void metacraft_core$stopMusic(PlayerMusic entry) {
 		if (music != null) {
 			if (Objects.equals(music, entry) || entry == null) {
 				stopCurrentMusic(false);
@@ -427,14 +440,19 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Override
-	public boolean metacraft_core$hasMusicEntry(MusicEntry entry) {
+	public boolean metacraft_core$hasMusic(PlayerMusic entry) {
 		return Objects.equals(entry, music);
+	}
+
+	@Override
+	public boolean metacraft_core$hasMusicEntry(MusicEntry entry) {
+		return Objects.equals(entry, currentEntry);
 	}
 
 	@Override
 	public void metacraft_core$resetMusicTimer() {
 		if (this.music != null) {
-			playMusic(true, true, 0);
+			playMusic(true, false, 0);
 		}
 	}
 

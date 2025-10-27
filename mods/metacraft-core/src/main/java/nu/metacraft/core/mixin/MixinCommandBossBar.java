@@ -10,6 +10,7 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.entity.boss.CommandBossBar;
 import net.minecraft.server.network.ServerPlayerEntity;
+import nu.metacraft.core.music.PlayerMusic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,7 +19,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import nu.metacraft.core.extensions.CommandBossBarExtension;
 import nu.metacraft.core.extensions.CommandBossBarSerializedExtension;
 import nu.metacraft.core.music.BossBarMusicHandler;
-import nu.metacraft.core.music.MusicEntry;
 
 import java.util.Optional;
 
@@ -62,9 +62,9 @@ public class MixinCommandBossBar implements CommandBossBarExtension {
 	private static class Serialized implements CommandBossBarSerializedExtension {
 
 		@Unique
-		private static final MapCodec<Optional<MusicEntry>> MUSIC = MusicEntry.CODEC.optionalFieldOf("metacraft:music");
+		private static final MapCodec<Optional<PlayerMusic>> MUSIC = PlayerMusic.EASY_CODEC.optionalFieldOf("metacraft:music");
 
-		private Optional<MusicEntry> music = Optional.empty();
+		private Optional<PlayerMusic> music = Optional.empty();
 
 		@ModifyExpressionValue(
 			method = "<clinit>",
@@ -105,12 +105,12 @@ public class MixinCommandBossBar implements CommandBossBarExtension {
 		}
 
 		@Override
-		public Optional<MusicEntry> metacraft_core$getMusic() {
+		public Optional<PlayerMusic> metacraft_core$getMusic() {
 			return music;
 		}
 
 		@Override
-		public void metacraft_core$setMusic(Optional<MusicEntry> music) {
+		public void metacraft_core$setMusic(Optional<PlayerMusic> music) {
 			this.music = music;
 		}
 	}
