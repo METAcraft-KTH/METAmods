@@ -100,6 +100,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private volatile MusicEntry currentEntry;
 
 	@Unique
+	private final Set<MusicEntry> seenCreditFor = new HashSet<>();
+
+	@Unique
 	private final Queue<PlayerMusic> musicEntryQueue = new PriorityQueue<>();
 
 	@Unique
@@ -234,6 +237,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		this.musicEntryQueue.addAll(((MixinServerPlayerEntity) (Object) oldPlayer).musicEntryQueue);
 		this.musicEntriesInQueue.putAll(((MixinServerPlayerEntity) (Object) oldPlayer).musicEntriesInQueue);
 		this.skipQueue = ((MixinServerPlayerEntity) (Object) oldPlayer).skipQueue;
+		this.seenCreditFor.addAll(((MixinServerPlayerEntity) (Object) oldPlayer).seenCreditFor);
 
 		if (oldPlayer.getEntityWorld() == getEntityWorld()) {
 			this.point = ((MixinServerPlayerEntity) (Object) oldPlayer).point;
@@ -323,6 +327,11 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			var musicEntry = inIntro ? currentEntry : this.music.music().get(getRandom());
 
 			boolean playIntro = !canBeLoop || musicEntry != currentEntry;
+
+			if (musicEntry != currentEntry && musicEntry.credit().isPresent() && !seenCreditFor.contains(musicEntry)) {
+				displayTimer = musicEntry.credit().get().displayTime();
+				seenCreditFor.add(musicEntry);
+			}
 
 			this.currentEntry = musicEntry;
 			var music = musicEntry.getMusic(playIntro);
