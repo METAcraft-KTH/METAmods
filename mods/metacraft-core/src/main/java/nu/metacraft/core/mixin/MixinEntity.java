@@ -116,6 +116,9 @@ public abstract class MixinEntity implements EntityExtensions {
 		if ((Object) this instanceof PlayerMob p) {
 			p.removeAllPlayerEntries();
 		}
+		if (bossBar != null) {
+			bossBar.onEntityRemoved((Entity) (Object) this, reason);
+		}
 	}
 
 	@Override
@@ -135,7 +138,7 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Inject(method = "onStoppedTrackingBy", at = @At("HEAD"))
 	public void onStopTracking(ServerPlayerEntity player, CallbackInfo ci) {
 		if (this.bossBar != null) {
-			this.bossBar.removePlayer(player);
+			if (this.bossBar.isMainEntity((Entity) (Object) this)) this.bossBar.removePlayer(player);
 		}
 	}
 

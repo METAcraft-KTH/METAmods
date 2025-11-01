@@ -30,6 +30,7 @@
 		"MixinContainerComponent",
 		"MixinElementHolder",
 		"MixinEntity",
+		"MixinEntityConversionType",
 		"MixinEntityEquipment",
 		"MixinExplosionBehavior",
 		"MixinFlowableFluid",
