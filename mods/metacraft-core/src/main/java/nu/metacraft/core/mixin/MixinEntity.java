@@ -131,7 +131,7 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Inject(method = "onStartedTrackingBy", at = @At("HEAD"))
 	public void onStartTracking(ServerPlayerEntity player, CallbackInfo ci) {
 		if (this.bossBar != null) {
-			this.bossBar.addPlayer(player);
+			if (this.bossBar.isMainEntity((Entity) (Object) this)) this.bossBar.addPlayer(player);
 		}
 	}
 

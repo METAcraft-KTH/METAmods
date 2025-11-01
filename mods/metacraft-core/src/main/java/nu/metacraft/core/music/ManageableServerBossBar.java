@@ -84,6 +84,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 	public void removeEntity(UUID entity) {
 		includedEntityIDs.remove(entity);
 		includedEntities.remove(entity);
+		updateMainEntity();
 	}
 
 	public void removeEntity(Entity entity) {
@@ -136,6 +137,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 		if (reason.shouldDestroy()) {
 			includedEntityIDs.remove(entity.getUuid());
 		}
+		updateMainEntity();
 	}
 
 	public void setMainEntity(Entity entity) {
@@ -143,10 +145,24 @@ public class ManageableServerBossBar extends ServerBossBar {
 		this.mainUUID = entity.getUuid();
 	}
 
+	private UUID findMainEntity() {
+		return includedEntityIDs.stream().filter(includedEntities::containsKey).filter(e -> includedEntities.get(e).isAlive()).findFirst().orElse(null);
+	}
+
 	public boolean isMainEntity(Entity entity) {
 		if (includedEntityIDs.isEmpty()) return true;
 		if (mainEntity == entity) return true;
-		return Objects.equals(entity.getUuid(), includedEntityIDs.stream().findFirst().orElse(null));
+		var first = findMainEntity();
+		return first == null || Objects.equals(entity.getUuid(), first);
+	}
+
+	private void updateMainEntity() {
+		if (mainEntity == null || !mainEntity.isAlive()) {
+			var main = findMainEntity();
+			if (main != null) {
+				setMainEntity(includedEntities.get(main));
+			}
+		}
 	}
 
 	public void updateFromEntity(Entity entity) {
@@ -160,6 +176,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 				}
 			});
 		}
+		updateMainEntity();
 		if (isMainEntity(entity)) {
 			if (trackingName) {
 				setName(entity.getDisplayName());
@@ -197,10 +214,11 @@ public class ManageableServerBossBar extends ServerBossBar {
 
 	public BossBarData serialize() {
 		var entityIds = includedEntityIDs.size() == 1 ? Set.<UUID>of() : includedEntityIDs;
+		var main = includedEntityIDs.size() == 1 ? Optional.<UUID>empty() : Optional.ofNullable(mainUUID);
 		return new BossBarData(
 				color, style, darkenSky, thickenFog, isVisible(), includePassengers, extraMaxHealth, getMusic(),
 				trackingHealth ? Optional.empty() : Optional.of(new BossBarData.Health(value, max)),
-				trackingName ? Optional.empty() : Optional.of(getName()), entityIds, Optional.ofNullable(mainUUID)
+				trackingName ? Optional.empty() : Optional.of(getName()), entityIds, main
 		);
 	}
 
