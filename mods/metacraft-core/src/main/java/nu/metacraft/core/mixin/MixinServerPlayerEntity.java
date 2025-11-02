@@ -324,7 +324,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 					stopOnRestart = true;
 				}
 			}
-			var musicEntry = inIntro ? currentEntry : this.music.music().get(getRandom());
+			var musicEntry = inIntro && canBeLoop ? currentEntry : this.music.music().get(getRandom());
 
 			boolean playIntro = !canBeLoop || musicEntry != currentEntry;
 
