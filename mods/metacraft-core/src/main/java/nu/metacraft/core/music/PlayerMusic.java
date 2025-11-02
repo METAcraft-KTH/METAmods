@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.util.collection.Pool;
+import nu.metacraft.core.mixin.AccessorPool;
 import nu.metacraft.lib.util.ExtraCodecs;
 import org.jetbrains.annotations.NotNull;
 
@@ -68,6 +69,27 @@ public record PlayerMusic(Pool<MusicEntry> music, int priority) implements Compa
 			return b.toString();
 		}
 		return "PlayerMusic[music=" + musicString + ", priority=" + priority + "]";
+	}
+
+	// Necessary for compatibility with Lithium:
+	// https://github.com/CaffeineMC/lithium/blob/28f9fe57f5bebbcb1889911130dee27aae03d4c2/common/src/main/java/net/caffeinemc/mods/lithium/mixin/collections/mob_spawning/WeightedListMixin.java#L4
+	@Override
+	public boolean equals(Object other) {
+		if (other instanceof PlayerMusic(Pool<MusicEntry> otherMusic, int otherPriority)) {
+			if (this.priority != otherPriority) return false;
+			//noinspection DataFlowIssue
+			if (
+					((AccessorPool) (Object) this.music).getTotalWeight() !=
+					((AccessorPool) (Object) otherMusic).getTotalWeight()
+			) return false;
+			if (this.music.getEntries().size() != otherMusic.getEntries().size()) return false;
+			for (int i = 0; i < this.music.getEntries().size(); i++) {
+				if (!this.music.getEntries().get(i).equals(otherMusic.getEntries().get(i))) return false;
+			}
+
+			return true;
+		}
+		return false;
 	}
 
 }

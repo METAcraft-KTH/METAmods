@@ -17,6 +17,7 @@
 		"AccessorPlayerLikeEntity",
 		"AccessorPlayerListS2CPacket",
 		"AccessorPolymerItemUtils",
+		"AccessorPool",
 		"AccessorScreenHandler",
 		"AccessorServerChunkManager",
 		"AccessorWitherEntity",
