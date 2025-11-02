@@ -26,7 +26,9 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.storage.ReadView;
 import net.minecraft.storage.WriteView;
+import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.TeleportTarget;
@@ -101,6 +103,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Unique
 	private final Set<MusicEntry> seenCreditFor = new HashSet<>();
+
+	@Unique
+	private boolean seenMusicInfo = false;
 
 	@Unique
 	private final Queue<PlayerMusic> musicEntryQueue = new PriorityQueue<>();
@@ -359,6 +364,21 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 						new MusicTimerTracker.SendPacketTask((ServerPlayerEntity) (Object) this, musicEntry, packet),
 						actualTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS
 				);
+			}
+			if (!seenMusicInfo) {
+				var msg = Text.literal("").append(
+						Text.literal(" \uD83D\uDEC8 ").styled(style -> style.withColor(Formatting.AQUA))
+				).append(
+						"Custom music started playing. If you cannot hear it, check your music volume in settings and run "
+				).append(
+						Text.literal("/reset-music").styled(
+								style -> style.withClickEvent(
+										new ClickEvent.SuggestCommand("/reset-music")
+								).withColor(Formatting.GREEN)
+						)
+				);
+				sendMessage(msg, false);
+				seenMusicInfo = true;
 			}
 		}
 	}
