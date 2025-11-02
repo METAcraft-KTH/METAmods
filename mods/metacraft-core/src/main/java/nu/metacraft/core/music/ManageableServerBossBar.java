@@ -15,6 +15,7 @@ import net.minecraft.text.TextCodecs;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.dynamic.Codecs;
 import nu.metacraft.core.util.helper.BossBarHelper;
+import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -31,7 +32,10 @@ public class ManageableServerBossBar extends ServerBossBar {
 	private UUID mainUUID;
 	private final Map<UUID, Entity> includedEntities = new HashMap<>();
 	private final Set<UUID> includedEntityIDs = new LinkedHashSet<>();
+	private final Map<ServerPlayerEntity, MutableInt> playerAddedCounts = new HashMap<>();
 	private boolean loaded = false;
+
+	private long lastTick = -1;
 
 	private float extraMaxHealth;
 
@@ -52,14 +56,31 @@ public class ManageableServerBossBar extends ServerBossBar {
 		return this.handler.getMusic();
 	}
 
-	public void addPlayer(ServerPlayerEntity player) {
+	protected void onAddedForReal(ServerPlayerEntity player) {
 		super.addPlayer(player);
 		handler.onPlayerAdded(player);
 	}
 
-	public void removePlayer(ServerPlayerEntity player) {
+	protected void onRemovedForReal(ServerPlayerEntity player) {
 		super.removePlayer(player);
 		handler.onPlayerRemoved(player);
+	}
+
+	public void addPlayer(ServerPlayerEntity player) {
+		MutableInt count = playerAddedCounts.computeIfAbsent(player, k -> new MutableInt(0));
+		if (count.getValue() == 0) onAddedForReal(player);
+		count.increment();
+	}
+
+	public void removePlayer(ServerPlayerEntity player) {
+		MutableInt count = playerAddedCounts.get(player);
+		if (count != null) {
+			count.decrement();
+		}
+		if (count == null || count.getValue() <= 0) {
+			playerAddedCounts.remove(player);
+			onRemovedForReal(player);
+		}
 	}
 
 	@Override
@@ -181,6 +202,8 @@ public class ManageableServerBossBar extends ServerBossBar {
 			if (trackingName) {
 				setName(entity.getDisplayName());
 			}
+		}
+		if (entity.getEntityWorld().getTime() != lastTick) {
 			if (trackingHealth) {
 				float health = 0;
 				float maxHealth = extraMaxHealth;
@@ -192,6 +215,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 				}
 				setPercent(health / maxHealth);
 			}
+			lastTick = entity.getEntityWorld().getTime();
 		}
 		if (mainEntity == null && mainUUID != null) {
 			mainEntity = entity.getEntityWorld().getEntity(mainUUID);
