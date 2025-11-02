@@ -223,7 +223,6 @@ public class ManageableServerBossBar extends ServerBossBar {
 		if (!loaded) {
 			loaded = true;
 			for (var id : includedEntityIDs) {
-				if (includedEntities.containsKey(id)) return;
 				var otherE = entity.getEntityWorld().getEntity(id);
 				if (otherE != null) {
 					includedEntities.put(id, otherE);
