@@ -72,7 +72,7 @@ public class Commands {
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			dispatcher.register(
-				literal("rift").requires(Permissions.require("se.datasektionen.mc.rift", 2)).then(
+				literal("rift").requires(Permissions.require("metacraft.portal_opening.rift", 2)).then(
 					literal("raid").then(
 						literal("next-wave").executes(ctx -> {
 							var data = PortalOpeningDimensionData.getInstance(ctx.getSource().getWorld());
