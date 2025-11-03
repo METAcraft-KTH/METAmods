@@ -13,9 +13,7 @@ import net.minecraft.entity.MarkerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.s2c.play.BundleS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket;
-import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
+import net.minecraft.network.packet.s2c.play.*;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
@@ -243,6 +241,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		this.musicEntriesInQueue.putAll(((MixinServerPlayerEntity) (Object) oldPlayer).musicEntriesInQueue);
 		this.skipQueue = ((MixinServerPlayerEntity) (Object) oldPlayer).skipQueue;
 		this.seenCreditFor.addAll(((MixinServerPlayerEntity) (Object) oldPlayer).seenCreditFor);
+		this.seenMusicInfo = ((MixinServerPlayerEntity) (Object) oldPlayer).seenMusicInfo;
 
 		if (oldPlayer.getEntityWorld() == getEntityWorld()) {
 			this.point = ((MixinServerPlayerEntity) (Object) oldPlayer).point;
@@ -378,6 +377,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 						)
 				);
 				sendMessage(msg, false);
+				networkHandler.sendPacket(new TitleS2CPacket(Text.literal("Custom Music!!!!")));
+				networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("See chat for details")));
 				seenMusicInfo = true;
 			}
 		}
