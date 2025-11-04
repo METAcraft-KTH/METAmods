@@ -133,7 +133,7 @@ public class PlayerPackDataManager {
 	}
 
 	public static PlayerPackDataManager getInstance(MinecraftServer server) {
-		return ((PlayerManagerExtension) server.getPlayerList()).metacraft_resource_packs$getPlayerPackDataManager();
+		return ((PlayerListExtension) server.getPlayerList()).metacraft_resource_packs$getPlayerPackDataManager();
 	}
 
 	public record PlayerPackEntry(PlayerPackData data, boolean shouldSave) {

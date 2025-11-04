@@ -9,8 +9,8 @@ import net.minecraft.world.level.lighting.SkyLightSectionStorage;
 import nu.metacraft.cutscenes.mixin.LightEngineAccessor;
 import nu.metacraft.cutscenes.util.helper.LightingHelper;
 
-public class CutsceneLightingProvider extends ThreadedLevelLightEngine {
-	public CutsceneLightingProvider(
+public class CutsceneLightEngine extends ThreadedLevelLightEngine {
+	public CutsceneLightEngine(
 			LightChunkGetter chunkProvider, CutsceneChunkLoadingManager chunkLoadingManager,
 			boolean hasSkyLight, ConsecutiveExecutor processor,
 			ChunkTaskDispatcher executor

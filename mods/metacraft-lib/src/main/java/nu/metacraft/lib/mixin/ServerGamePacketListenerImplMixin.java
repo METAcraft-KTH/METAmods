@@ -9,7 +9,7 @@ import net.minecraft.server.players.PlayerList;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import nu.metacraft.lib.extensions.ServerPlayerEntityExtensions;
+import nu.metacraft.lib.extensions.ServerPlayerExtensions;
 import nu.metacraft.lib.util.helper.PlayerDataHelper;
 
 @Mixin(ServerGamePacketListenerImpl.class)
@@ -33,7 +33,7 @@ public class ServerGamePacketListenerImplMixin {
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerPlayer;hasClientLoaded()Z")
 	)
 	public boolean onVehicleMove(boolean original) {
-		if (((ServerPlayerEntityExtensions) player).metacraft_lib$isTeleportingOnVehicle()) {
+		if (((ServerPlayerExtensions) player).metacraft_lib$isTeleportingOnVehicle()) {
 			return false;
 		}
 		return original;

@@ -45,7 +45,7 @@ public class CutsceneEntityManager {
 
 	private final List<Pair<String, Entity>> addQueue = new ArrayList<>();
 
-	private final CutsceneWorld world;
+	private final CutsceneLevel world;
 	private final EntitySectionStorage<Entity> cache = new EntitySectionStorage<>(Entity.class, i -> Visibility.TICKING);
 	private final EntityLookup<Entity> index = new EntityLookup<>();
 	private final LevelEntityGetter<Entity> lookup = new LevelEntityGetterAdapter<>(index, cache);
@@ -54,7 +54,7 @@ public class CutsceneEntityManager {
 
 	private final Set<UUID> entitiesToHide = new HashSet<>();
 
-	public CutsceneEntityManager(CutsceneWorld world) {
+	public CutsceneEntityManager(CutsceneLevel world) {
 		this.world = world;
 		this.chunkLoadingManager = world.getChunkSource().cutsceneChunkLoadingManager;
 		if (chunkLoadingManager != null) {

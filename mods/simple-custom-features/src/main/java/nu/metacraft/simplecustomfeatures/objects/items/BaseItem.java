@@ -17,7 +17,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import nu.metacraft.simplecustomfeatures.RegistryHelper;
-import nu.metacraft.simplecustomfeatures.extension.ItemSettingsExtension;
+import nu.metacraft.simplecustomfeatures.extension.ItemPropertiesExtension;
 import nu.metacraft.simplecustomfeatures.mixin.ItemPropertiesAccessor;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 
@@ -60,7 +60,7 @@ public interface BaseItem extends BaseObject<Item> {
 						}
 						var name = components.get(DataComponents.ITEM_NAME);
 						if (name != null) {
-							((ItemSettingsExtension) settings).simple_custom_features$setCustomName(name);
+							((ItemPropertiesExtension) settings).simple_custom_features$setCustomName(name);
 						}
 						return settings.setId(key);
 					}

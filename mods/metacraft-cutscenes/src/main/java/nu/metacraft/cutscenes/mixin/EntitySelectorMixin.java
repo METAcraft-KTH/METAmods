@@ -6,7 +6,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.selector.EntitySelector;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
+import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 
 @Mixin(EntitySelector.class)
 public class EntitySelectorMixin {
@@ -22,7 +22,7 @@ public class EntitySelectorMixin {
 		)
 	)
 	public boolean getEntities(boolean original, @Local(argsOnly = true) CommandSourceStack source) {
-		if (source.getLevel() instanceof CutsceneWorld) {
+		if (source.getLevel() instanceof CutsceneLevel) {
 			return true;
 		}
 		return original;

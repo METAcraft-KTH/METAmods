@@ -3,7 +3,7 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import nu.metacraft.cutscenes.extension.ServerPlayerEntityExtensions;
+import nu.metacraft.cutscenes.extension.ServerPlayerExtensions;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.util.Target;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
@@ -86,7 +86,7 @@ public class MovingTransition implements Transition, SmoothMovementTransition, D
 
 	@Override
 	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		((ServerPlayerEntityExtensions) player).metacraft$setAllowWrongMovements(true);
+		((ServerPlayerExtensions) player).metacraft$setAllowWrongMovements(true);
 	}
 
 	@Override
@@ -119,7 +119,7 @@ public class MovingTransition implements Transition, SmoothMovementTransition, D
 		if (cutscene.getTransitions().getValuesAt(interval.getEnd()+1).noneMatch(
 				movement -> movement instanceof MovingTransition
 		)) {
-			((ServerPlayerEntityExtensions) player).metacraft$setAllowWrongMovements(false);
+			((ServerPlayerExtensions) player).metacraft$setAllowWrongMovements(false);
 		}
 	}
 

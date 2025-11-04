@@ -4,7 +4,7 @@ import nu.metacraft.core.music.PlayerMusic;
 
 import java.util.Optional;
 
-public interface CommandBossBarSerializedExtension {
+public interface CommandBossBarPackedExtension {
 
 	Optional<PlayerMusic> metacraft_core$getMusic();
 

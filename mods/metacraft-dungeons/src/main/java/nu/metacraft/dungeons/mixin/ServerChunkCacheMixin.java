@@ -6,7 +6,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import nu.metacraft.dungeons.extensions.ServerWorldExtension;
+import nu.metacraft.dungeons.extensions.ServerLevelExtension;
 
 import java.io.IOException;
 import net.minecraft.server.level.ServerChunkCache;
@@ -24,7 +24,7 @@ public class ServerChunkCacheMixin {
 		cancellable = true
 	)
 	public void save(boolean flush, CallbackInfo ci) throws IOException {
-		if (((ServerWorldExtension) level).metacraft$isBeingDeleted()) {
+		if (((ServerLevelExtension) level).metacraft$isBeingDeleted()) {
 			ci.cancel();
 		}
 	}

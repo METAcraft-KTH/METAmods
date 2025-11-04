@@ -10,7 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.trading.MerchantOffer;
-import nu.metacraft.lib.extensions.TradeOfferExtensions;
+import nu.metacraft.lib.extensions.MerchantOfferExtensions;
 
 @Mixin(AbstractVillager.class)
 public class AbstractVillagerMixin {
@@ -18,7 +18,7 @@ public class AbstractVillagerMixin {
 
 	@Inject(method = "notifyTrade", at = @At("TAIL"))
 	public void a(MerchantOffer offer, CallbackInfo ci) {
-		var ext = (TradeOfferExtensions) offer;
+		var ext = (MerchantOfferExtensions) offer;
 		if (ext.metacraft$getMaxUsesPerPlayer() != -1 && this.tradingPlayer instanceof ServerPlayer player) {
 			int playerUses = ext.metacraft$getUsesPerPlayer().getOrDefault(player.getUUID(), 0);
 			ext.metacraft$getUsesPerPlayer().put(player.getUUID(), playerUses + 1);

@@ -11,11 +11,11 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import nu.metacraft.resource_packs.PlayerManagerExtension;
+import nu.metacraft.resource_packs.PlayerListExtension;
 import nu.metacraft.resource_packs.PlayerPackDataManager;
 
 @Mixin(PlayerList.class)
-public class PlayerListMixin implements PlayerManagerExtension {
+public class PlayerListMixin implements PlayerListExtension {
 
 	@Unique
 	private PlayerPackDataManager manager;

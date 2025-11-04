@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import nu.metacraft.cutscenes.extension.ServerPlayerEntityExtensions;
+import nu.metacraft.cutscenes.extension.ServerPlayerExtensions;
 import nu.metacraft.cutscenes.util.helper.CutsceneHelper;
 
 @Mixin(ServerGamePacketListenerImpl.class)
@@ -24,7 +24,7 @@ public class ServerGamePacketListenerImplMixin {
 		)
 	)
 	public boolean onPlayerMove(boolean inTPState) {
-		if (((ServerPlayerEntityExtensions) player).metacraft$getAllowWrongMovements()) {
+		if (((ServerPlayerExtensions) player).metacraft$getAllowWrongMovements()) {
 			return true;
 		}
 		return inTPState;

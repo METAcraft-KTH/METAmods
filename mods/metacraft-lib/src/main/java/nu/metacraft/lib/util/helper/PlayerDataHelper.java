@@ -24,7 +24,7 @@ import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.extensions.ServerPlayerEntityExtensions;
+import nu.metacraft.lib.extensions.ServerPlayerExtensions;
 import nu.metacraft.lib.mixin.PlayerAdvancementsAccessor;
 import nu.metacraft.lib.mixin.PlayerListAccessor;
 import nu.metacraft.lib.mixin.ServerPlayerAccessor;
@@ -48,8 +48,8 @@ public class PlayerDataHelper {
 		CLEAR_PLAYER.put("ShoulderEntityRight", new CompoundTag());
 	}
 
-	private static ServerPlayerEntityExtensions ext(ServerPlayer player) {
-		return (ServerPlayerEntityExtensions) player;
+	private static ServerPlayerExtensions ext(ServerPlayer player) {
+		return (ServerPlayerExtensions) player;
 	}
 
 	public static final String PLAYER_DATA_ELEMENT = "metacraft:data_map";
@@ -357,27 +357,27 @@ public class PlayerDataHelper {
 	}
 
 	public static void setAnnounceAdvancements(ServerPlayer player, boolean announceAdvancements) {
-		((ServerPlayerEntityExtensions) player).metacraft_lib$setAnnounceAdvancements(announceAdvancements);
+		((ServerPlayerExtensions) player).metacraft_lib$setAnnounceAdvancements(announceAdvancements);
 	}
 
 	public static boolean getAnnounceAdvancements(ServerPlayer player) {
-		return ((ServerPlayerEntityExtensions) player).metacraft_lib$getAnnounceAdvancements();
+		return ((ServerPlayerExtensions) player).metacraft_lib$getAnnounceAdvancements();
 	}
 
 	public static void setAnnounceJoinLeave(ServerPlayer player, boolean announceJoinLeave) {
-		((ServerPlayerEntityExtensions) player).metacraft_lib$setAnnounceJoinLeave(announceJoinLeave);
+		((ServerPlayerExtensions) player).metacraft_lib$setAnnounceJoinLeave(announceJoinLeave);
 	}
 
 	public static boolean getAnnounceJoinLeave(ServerPlayer player) {
-		return ((ServerPlayerEntityExtensions) player).metacraft_lib$getAnnounceJoinLeave();
+		return ((ServerPlayerExtensions) player).metacraft_lib$getAnnounceJoinLeave();
 	}
 
 	public static void setAnnounceDeath(ServerPlayer player, boolean announceDeath) {
-		((ServerPlayerEntityExtensions) player).metacraft_lib$setAnnounceDeath(announceDeath);
+		((ServerPlayerExtensions) player).metacraft_lib$setAnnounceDeath(announceDeath);
 	}
 
 	public static boolean getAnnounceDeath(ServerPlayer player) {
-		return ((ServerPlayerEntityExtensions) player).metacraft_lib$getAnnounceDeath();
+		return ((ServerPlayerExtensions) player).metacraft_lib$getAnnounceDeath();
 	}
 
 	public static void setAdvancementTracker(ServerPlayer player, ResourceLocation type, boolean copy) {
@@ -395,7 +395,7 @@ public class PlayerDataHelper {
 			((PlayerListAccessor) playerManager).getAdvancements().put(
 					player.getUUID(), player.getAdvancements()
 			);
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(type);
+			((ServerPlayerExtensions) player).metacraft_lib$setAdvancementTrackerType(type);
 
 			if (copy) {
 				var progress = ((PlayerAdvancementsAccessor) prevTracker).getProgress();
@@ -417,7 +417,7 @@ public class PlayerDataHelper {
 			t.stopListening();
 			((PlayerListAccessor) playerManager).getAdvancements().remove(player.getUUID());
 			((ServerPlayerAccessor) player).setAdvancements(playerManager.getPlayerAdvancements(player));
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(null);
+			((ServerPlayerExtensions) player).metacraft_lib$setAdvancementTrackerType(null);
 		}
 	}
 
@@ -429,7 +429,7 @@ public class PlayerDataHelper {
 			((PlayerListAccessor) player.level().getServer().getPlayerList()).getStats().put(
 					player.getUUID(), player.getStats()
 			);
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(type);
+			((ServerPlayerExtensions) player).metacraft_lib$setStatHandlerType(type);
 
 			if (copy) {
 				for (var entry : ((StatsCounterAccessor) prevHandler).getStats().object2IntEntrySet()) {
@@ -445,7 +445,7 @@ public class PlayerDataHelper {
 			t.save();
 			((PlayerListAccessor) playerManager).getStats().remove(player.getUUID());
 			((ServerPlayerAccessor) player).setStats(playerManager.getPlayerStats(player));
-			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(null);
+			((ServerPlayerExtensions) player).metacraft_lib$setStatHandlerType(null);
 		}
 	}
 

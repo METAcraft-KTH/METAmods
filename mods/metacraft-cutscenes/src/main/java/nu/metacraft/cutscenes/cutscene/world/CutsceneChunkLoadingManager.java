@@ -34,12 +34,12 @@ import java.util.function.Supplier;
 
 public class CutsceneChunkLoadingManager extends ChunkMap {
 
-	private final CutsceneWorld cutsceneWorld;
+	private final CutsceneLevel cutsceneLevel;
 
 	private final Map<Long,ChunkHolder> cachedChunkHolders = new ConcurrentHashMap<>();
 
 	public CutsceneChunkLoadingManager(
-			CutsceneWorld cutsceneWorld, LevelStorageSource.LevelStorageAccess session,
+			CutsceneLevel cutsceneLevel, LevelStorageSource.LevelStorageAccess session,
 			DataFixer dataFixer, StructureTemplateManager structureTemplateManager,
 			Executor executor, BlockableEventLoop<Runnable> mainThreadExecutor,
 			LightChunkGetter chunkProvider, ChunkGenerator chunkGenerator,
@@ -48,12 +48,12 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 			TicketStorage ticketManager,
 			int viewDistance, boolean dsync
 	) {
-		super(cutsceneWorld.getActualWorld(), session, dataFixer, structureTemplateManager, executor, mainThreadExecutor, chunkProvider, chunkGenerator, chunkStatusChangeListener, persistentStateManagerFactory, ticketManager, viewDistance, dsync);
-		this.cutsceneWorld = cutsceneWorld;
+		super(cutsceneLevel.getActualWorld(), session, dataFixer, structureTemplateManager, executor, mainThreadExecutor, chunkProvider, chunkGenerator, chunkStatusChangeListener, persistentStateManagerFactory, ticketManager, viewDistance, dsync);
+		this.cutsceneLevel = cutsceneLevel;
 		((ChunkMapAccessor) this).setLightEngine(
-				new CutsceneLightingProvider(
+				new CutsceneLightEngine(
 						chunkProvider, this,
-						cutsceneWorld.dimensionType().hasSkyLight(),
+						cutsceneLevel.dimensionType().hasSkyLight(),
 						((ThreadedLevelLightEngineAccessor) getLightEngine()).getConsecutiveExecutor(),
 						((ChunkMapAccessor) this).getLightTaskDispatcher()
 				)
@@ -69,9 +69,9 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 		);
 		((ChunkMapAccessor) this).setPoiManager(
 				new PoiManager(
-						new RegionStorageInfo(session.getLevelId(), cutsceneWorld.dimension(), "poi"),
-						session.getDimensionPath(cutsceneWorld.dimension()).resolve("poi"), dataFixer, dsync,
-						cutsceneWorld.registryAccess(), cutsceneWorld.getServer(), cutsceneWorld.getActualWorld()
+						new RegionStorageInfo(session.getLevelId(), cutsceneLevel.dimension(), "poi"),
+						session.getDimensionPath(cutsceneLevel.dimension()).resolve("poi"), dataFixer, dsync,
+						cutsceneLevel.registryAccess(), cutsceneLevel.getServer(), cutsceneLevel.getActualWorld()
 				) { //TODO Save this.
 
 					@Override
@@ -116,7 +116,7 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 			@Override
 			public void updatePlayer(ServerPlayer player) {
 				var listeners = EntityTrackerHelper.getListeners(this);
-				if (cutsceneWorld.getCutscene().hasPlayer(player)) {
+				if (cutsceneLevel.getCutscene().hasPlayer(player)) {
 					if (listeners.add(player.connection)) {
 						entry.addPairing(player);
 					}
@@ -126,7 +126,7 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 			}
 		};
 		((ChunkMapAccessor.TrackedEntity) (Object) e).setServerEntity(entry);
-		cutsceneWorld.players().forEach(p -> {
+		cutsceneLevel.players().forEach(p -> {
 			EntityTrackerHelper.getListeners(e).add(p.connection);
 		});
 		EntityTrackerHelper.getEntityTrackers(this).put(
@@ -138,8 +138,8 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 		EntityTrackerHelper.getEntityTrackers(this).remove(entity.getId());
 	}
 
-	public CutsceneWorld getCutsceneWorld() {
-		return cutsceneWorld;
+	public CutsceneLevel getCutsceneWorld() {
+		return cutsceneLevel;
 	}
 
 	@Override
@@ -155,9 +155,9 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 
 		return cachedChunkHolders.computeIfAbsent(pos, i -> new ChunkHolder(
 				new ChunkPos(pos), ChunkLevel.byStatus(FullChunkStatus.ENTITY_TICKING),
-				cutsceneWorld, getLightEngine(),
+				cutsceneLevel, getLightEngine(),
 				(a, b, c, d) -> {},
-				(p, b) -> cutsceneWorld.players()
+				(p, b) -> cutsceneLevel.players()
 		) {
 			@Override
 			protected void updateHighestAllowedStatus(ChunkMap chunkLoadingManager) {

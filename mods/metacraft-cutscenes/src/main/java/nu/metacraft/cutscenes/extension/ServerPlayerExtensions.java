@@ -4,7 +4,7 @@ import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 
 import java.util.Optional;
 
-public interface ServerPlayerEntityExtensions {
+public interface ServerPlayerExtensions {
 
 	void metacraft_cutscenes$setCutscene(CutsceneInstance cutscene);
 	boolean metacraft_cutscenes$hasCutscene();

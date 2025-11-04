@@ -13,7 +13,7 @@ public class CutsceneBlockLightStorage extends BlockLightSectionStorage {
 	@Override
 	protected DataLayer createDataLayer(long sectionPos) {
 		if (queuedSections.containsKey(sectionPos)) return super.createDataLayer(sectionPos);
-		var provider = ((CutsceneChunkManager) chunkSource).getCutsceneWorld().getActualWorld().getLightEngine();
+		var provider = ((CutsceneChunkCache) chunkSource).getCutsceneWorld().getActualWorld().getLightEngine();
 		var storage = LightingHelper.getBlockLightStorage(provider).getDataLayerData(sectionPos);
 		return storage != null ? storage.copy() : super.createDataLayer(sectionPos);
 	}

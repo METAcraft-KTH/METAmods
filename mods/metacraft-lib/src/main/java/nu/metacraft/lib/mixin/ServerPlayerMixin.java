@@ -16,8 +16,8 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import nu.metacraft.lib.METAcraftData;
 import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.extensions.ServerPlayerEntityExtensions;
-import nu.metacraft.lib.extensions.TradeOfferExtensions;
+import nu.metacraft.lib.extensions.ServerPlayerExtensions;
+import nu.metacraft.lib.extensions.MerchantOfferExtensions;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import nu.metacraft.lib.util.helper.EntityTrackerHelper;
 import nu.metacraft.lib.util.helper.PlayerDataHelper;
@@ -40,7 +40,7 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
 @Mixin(ServerPlayer.class)
-public abstract class ServerPlayerMixin extends Player implements ServerPlayerEntityExtensions {
+public abstract class ServerPlayerMixin extends Player implements ServerPlayerExtensions {
 
 	public ServerPlayerMixin(Level world, GameProfile profile) {
 		super(world, profile);
@@ -103,8 +103,8 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEn
 
 	@Inject(method = "restoreFrom", at = @At("RETURN"))
 	public void copyFrom(ServerPlayer oldPlayer, boolean alive, CallbackInfo ci) {
-		customName = ((ServerPlayerEntityExtensions) oldPlayer).metacraft_lib$getCustomName();
-		showInGUI = ((ServerPlayerEntityExtensions) oldPlayer).metacraft_lib$showInGUI();
+		customName = ((ServerPlayerExtensions) oldPlayer).metacraft_lib$getCustomName();
+		showInGUI = ((ServerPlayerExtensions) oldPlayer).metacraft_lib$showInGUI();
 		dataMap = ((ServerPlayerMixin) (Object) oldPlayer).dataMap;
 
 		statHandler = ((ServerPlayerMixin) (Object) oldPlayer).statHandler;
@@ -196,7 +196,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEn
 		Player playerEntity = (Player) this;
 		MerchantOffers newOffers = new MerchantOffers();
 		for (MerchantOffer offer : tradeOfferList) {
-			var ext = ((TradeOfferExtensions) offer);
+			var ext = ((MerchantOfferExtensions) offer);
 			int maxUsesPerPlayer = ext.metacraft$getMaxUsesPerPlayer();
 			if (maxUsesPerPlayer == -1) {
 				newOffers.add(offer);
@@ -212,7 +212,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEn
 			}
 			// Otherwise modify the max uses and uses to be the per-player ones.
 			MerchantOffer copy = offer.copy();
-			var copyExt = ((TradeOfferExtensions) copy);
+			var copyExt = ((MerchantOfferExtensions) copy);
 			copyExt.metacraft$setUses(playerUses);
 			copyExt.metacraft$setMaxUses(maxUsesPerPlayer);
 			copyExt.metacraft$setMaxUsesPerPlayer(maxUsesPerPlayer);

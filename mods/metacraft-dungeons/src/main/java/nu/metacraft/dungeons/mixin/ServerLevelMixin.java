@@ -13,10 +13,10 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 import nu.metacraft.dungeons.dungeons.DungeonData;
 import nu.metacraft.dungeons.extensions.ServerEntityManagerExtension;
-import nu.metacraft.dungeons.extensions.ServerWorldExtension;
+import nu.metacraft.dungeons.extensions.ServerLevelExtension;
 
 @Mixin(ServerLevel.class)
-public class ServerLevelMixin implements ServerWorldExtension {
+public class ServerLevelMixin implements ServerLevelExtension {
 
 	@Shadow @Final private PersistentEntitySectionManager<Entity> entityManager;
 	@Unique

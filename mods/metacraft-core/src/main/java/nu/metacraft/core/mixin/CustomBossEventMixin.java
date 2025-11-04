@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import nu.metacraft.core.extensions.CommandBossBarExtension;
-import nu.metacraft.core.extensions.CommandBossBarSerializedExtension;
+import nu.metacraft.core.extensions.CommandBossBarPackedExtension;
 import nu.metacraft.core.music.BossBarMusicHandler;
 
 import java.util.Optional;
@@ -40,13 +40,13 @@ public class CustomBossEventMixin implements CommandBossBarExtension {
 
 	@ModifyReturnValue(method = "pack", at = @At("RETURN"))
 	public CustomBossEvent.Packed toSerialized(CustomBossEvent.Packed original) {
-		((CommandBossBarSerializedExtension) (Object) original).metacraft_core$setMusic(handler.getMusic());
+		((CommandBossBarPackedExtension) (Object) original).metacraft_core$setMusic(handler.getMusic());
 		return original;
 	}
 
 	@ModifyReturnValue(method = "load", at = @At("RETURN"))
 	private static CustomBossEvent fromSerialized(CustomBossEvent original, @Local(argsOnly = true) CustomBossEvent.Packed serialized) {
-		((CommandBossBarSerializedExtension) (Object) serialized).metacraft_core$getMusic().ifPresent(music -> {
+		((CommandBossBarPackedExtension) (Object) serialized).metacraft_core$getMusic().ifPresent(music -> {
 			((CommandBossBarExtension) original).metacraft_core$getMusicHandler().setMusic(music);
 		});
 		return original;
@@ -59,7 +59,7 @@ public class CustomBossEventMixin implements CommandBossBarExtension {
 
 
 	@Mixin(CustomBossEvent.Packed.class)
-	private static class Packed implements CommandBossBarSerializedExtension {
+	private static class Packed implements CommandBossBarPackedExtension {
 
 		@Unique
 		private static final MapCodec<Optional<PlayerMusic>> MUSIC = PlayerMusic.EASY_CODEC.optionalFieldOf("metacraft:music");
@@ -83,7 +83,7 @@ public class CustomBossEventMixin implements CommandBossBarExtension {
 									return MUSIC.decode(dynamicOps, map);
 								}
 						).map(music -> {
-							((CommandBossBarSerializedExtension) bossBar.getFirst()).metacraft_core$setMusic(music);
+							((CommandBossBarPackedExtension) bossBar.getFirst()).metacraft_core$setMusic(music);
 							return bossBar;
 						});
 					});
@@ -92,7 +92,7 @@ public class CustomBossEventMixin implements CommandBossBarExtension {
 				@Override
 				public <T> DataResult<T> encode(O o, DynamicOps<T> dynamicOps, T t) {
 					return original.encode(o, dynamicOps, t).flatMap(data -> {
-						var music = ((CommandBossBarSerializedExtension) o).metacraft_core$getMusic();
+						var music = ((CommandBossBarPackedExtension) o).metacraft_core$getMusic();
 						return MUSIC.encode(music, dynamicOps, dynamicOps.mapBuilder()).build(data);
 					});
 				}

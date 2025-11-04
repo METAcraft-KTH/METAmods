@@ -74,18 +74,18 @@ import java.util.function.BooleanSupplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
-public class CutsceneWorld extends ServerLevel implements net.minecraft.world.level.ServerLevelAccessor {
+public class CutsceneLevel extends ServerLevel implements net.minecraft.world.level.ServerLevelAccessor {
 
 	private final ServerLevel world;
 	private final CutsceneInstance cutscene;
-	private final CutsceneChunkManager manager;
+	private final CutsceneChunkCache manager;
 	private final CutsceneEntityManager entities;
 
 	private ServerScoreboard scoreboard;
 
 	private final LevelEntityGetter<Entity> lookup;
 
-	private CutscenePersistentStateManager persistentStateManager;
+	private CutsceneDimensionDataStorage persistentStateManager;
 	private CompoundTag persistentStorage = new CompoundTag();
 
 	protected boolean loaded = false;
@@ -126,7 +126,7 @@ public class CutsceneWorld extends ServerLevel implements net.minecraft.world.le
 		);
 	}
 
-	public CutsceneWorld(ServerLevel world, CutsceneInstance cutscene, CutsceneWorldData data) {
+	public CutsceneLevel(ServerLevel world, CutsceneInstance cutscene, CutsceneWorldData data) {
 		super(
 				world.getServer(), ((MinecraftServerAccessor) world.getServer()).getExecutor(),
 				((MinecraftServerAccessor) world.getServer()).getStorageSource(),
@@ -141,7 +141,7 @@ public class CutsceneWorld extends ServerLevel implements net.minecraft.world.le
 		this.noSave = true;
 		this.cutscene = cutscene;
 		this.world = world;
-		this.manager = new CutsceneChunkManager(this, this::getDataStorage);
+		this.manager = new CutsceneChunkCache(this, this::getDataStorage);
 		((ServerLevelAccessor) this).setChunkSource(manager);
 		this.entities = new CutsceneEntityManager(this);
 		this.lookup = entities.getLookup();
@@ -215,7 +215,7 @@ public class CutsceneWorld extends ServerLevel implements net.minecraft.world.le
 		return cutscene;
 	}
 
-	public void transferFrom(CutsceneWorld prev) {
+	public void transferFrom(CutsceneLevel prev) {
 		if (getActualWorld().isRaining() == isRaining()) {
 			createWeatherFixPacket(prev.isRaining(), isRaining(), rainLevel, thunderLevel).ifPresent(cutscene::sendToPlayers);
 		}
@@ -487,7 +487,7 @@ public class CutsceneWorld extends ServerLevel implements net.minecraft.world.le
 			if (persistentStorage == null) {
 				persistentStorage = new CompoundTag();
 			}
-			persistentStateManager = new CutscenePersistentStateManager(
+			persistentStateManager = new CutsceneDimensionDataStorage(
 					new SavedData.Context(this), null,
 					getServer().getFixerUpper(), registryAccess(), () -> persistentStorage
 			);
@@ -553,7 +553,7 @@ public class CutsceneWorld extends ServerLevel implements net.minecraft.world.le
 	}
 
 	@Override
-	public CutsceneChunkManager getChunkSource() {
+	public CutsceneChunkCache getChunkSource() {
 		return manager;
 	}
 

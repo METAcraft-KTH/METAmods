@@ -30,7 +30,7 @@ public record CutsceneWorldData(
 				).apply(instance, SerialisedEntity::new)
 		);
 
-		public void load(CutsceneWorld world) {
+		public void load(CutsceneLevel world) {
 			SpawnEntity.spawnEntities(
 					ids, data, Optional.empty(), world, Optional.of(false)
 			);

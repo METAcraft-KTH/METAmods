@@ -10,7 +10,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import nu.metacraft.core.extensions.BlockEntityExtensions;
-import nu.metacraft.core.extensions.ServerPlayerEntityExtensions;
+import nu.metacraft.core.extensions.ServerPlayerExtensions;
 
 @Mixin(BlockItem.class)
 public class BlockItemMixin {
@@ -28,7 +28,7 @@ public class BlockItemMixin {
 	) {
 		var tile = world.getBlockEntity(pos);
 		if (tile != null) {
-			((BlockEntityExtensions) tile).metacraft_core$setMovable(((ServerPlayerEntityExtensions) player).metacraft_core$areBlocksPistonMovable());
+			((BlockEntityExtensions) tile).metacraft_core$setMovable(((ServerPlayerExtensions) player).metacraft_core$areBlocksPistonMovable());
 		}
 	}
 

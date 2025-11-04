@@ -4,7 +4,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 
 import java.util.UUID;
 
-public interface TradeOfferExtensions {
+public interface MerchantOfferExtensions {
 	int metacraft$getMaxUsesPerPlayer();
 	void metacraft$setMaxUsesPerPlayer(int maxUsesPerPlayer);
 	Object2IntMap<UUID> metacraft$getUsesPerPlayer();

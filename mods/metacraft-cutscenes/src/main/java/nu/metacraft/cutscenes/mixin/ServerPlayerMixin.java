@@ -9,9 +9,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
+import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 import nu.metacraft.cutscenes.extension.EntityExtension;
-import nu.metacraft.cutscenes.extension.ServerPlayerEntityExtensions;
+import nu.metacraft.cutscenes.extension.ServerPlayerExtensions;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.cutscene.MultiplayerCutsceneManager;
 import nu.metacraft.cutscenes.util.helper.CutsceneHelper;
@@ -28,7 +28,7 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
 @Mixin(ServerPlayer.class)
-public abstract class ServerPlayerMixin extends Player implements ServerPlayerEntityExtensions {
+public abstract class ServerPlayerMixin extends Player implements ServerPlayerExtensions {
 
 	@Shadow public ServerGamePacketListenerImpl connection;
 	@Unique
@@ -105,7 +105,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEn
 
 	@ModifyVariable(method = "teleport", at = @At("HEAD"), argsOnly = true)
 	public TeleportTransition fixTeleportToCutscene(TeleportTransition teleportTarget) {
-		if (teleportTarget.newLevel() instanceof CutsceneWorld cw) {
+		if (teleportTarget.newLevel() instanceof CutsceneLevel cw) {
 			((TeleportTransitionAccessor) (Object) teleportTarget).setNewLevel(cw.getActualWorld());
 		}
 		return teleportTarget;

@@ -5,7 +5,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.cutscenes.Cutscenes;
-import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
+import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.entity_ref.CutsceneRef;
@@ -64,7 +64,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 	}
 
 	public static void spawnEntities(
-			List<String> ids, CompoundTag nbt, Optional<Vec3> pos, CutsceneWorld world, Optional<Boolean> initialize
+			List<String> ids, CompoundTag nbt, Optional<Vec3> pos, CutsceneLevel world, Optional<Boolean> initialize
 	) {
 		MutableInt idIndex = new MutableInt(0);
 		Supplier<String> idGetter = () -> {

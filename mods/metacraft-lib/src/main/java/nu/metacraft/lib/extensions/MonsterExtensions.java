@@ -1,6 +1,6 @@
 package nu.metacraft.lib.extensions;
 
-public interface HostileEntityExtensions {
+public interface MonsterExtensions {
 
 	boolean metacraft_lib$survivesSunlight();
 

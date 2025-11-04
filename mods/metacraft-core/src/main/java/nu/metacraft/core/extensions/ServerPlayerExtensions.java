@@ -8,7 +8,7 @@ import nu.metacraft.core.util.helper.MusicHelper;
 import java.util.function.Predicate;
 import net.minecraft.server.level.ServerPlayer;
 
-public interface ServerPlayerEntityExtensions {
+public interface ServerPlayerExtensions {
 
 
 	void metacraft_core$playMusic(PlayerMusic entry, boolean skipQueue, Predicate<ServerPlayer> predicate);

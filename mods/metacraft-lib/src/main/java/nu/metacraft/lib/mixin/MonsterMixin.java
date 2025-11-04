@@ -8,10 +8,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.LevelReader;
-import nu.metacraft.lib.extensions.HostileEntityExtensions;
+import nu.metacraft.lib.extensions.MonsterExtensions;
 
 @Mixin(Monster.class)
-public class MonsterMixin implements HostileEntityExtensions {
+public class MonsterMixin implements MonsterExtensions {
 
 	@Unique
 	private boolean survivesSunlight = false;

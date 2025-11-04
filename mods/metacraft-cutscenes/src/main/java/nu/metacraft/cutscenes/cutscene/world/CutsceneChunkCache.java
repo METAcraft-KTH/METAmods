@@ -32,43 +32,43 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class CutsceneChunkManager extends ServerChunkCache {
+public class CutsceneChunkCache extends ServerChunkCache {
 
 	private final Long2ObjectMap<CutsceneChunk> cachedChunks = new Long2ObjectOpenHashMap<>();
 
 	public final CutsceneChunkLoadingManager cutsceneChunkLoadingManager;
 
-	private final CutsceneWorld cutsceneWorld;
+	private final CutsceneLevel cutsceneLevel;
 
-	public CutsceneChunkManager(
-			CutsceneWorld cutsceneWorld, Supplier<DimensionDataStorage> persistentStateManagerFactory
+	public CutsceneChunkCache(
+			CutsceneLevel cutsceneLevel, Supplier<DimensionDataStorage> persistentStateManagerFactory
 	) {
 		super(
-				cutsceneWorld.getActualWorld(),
-				((MinecraftServerAccessor) cutsceneWorld.getServer()).getStorageSource(),
-				cutsceneWorld.getServer().getFixerUpper(),
-				cutsceneWorld.getServer().getStructureManager(),
-				((MinecraftServerAccessor) cutsceneWorld.getServer()).getExecutor(),
-				CutsceneWorld.createDummyChunkGenerator(cutsceneWorld.getActualWorld()),
-				cutsceneWorld.getServer().getPlayerList().getViewDistance(),
-				cutsceneWorld.getServer().getPlayerList().getSimulationDistance(),
-				cutsceneWorld.getServer().forceSynchronousWrites(),
+				cutsceneLevel.getActualWorld(),
+				((MinecraftServerAccessor) cutsceneLevel.getServer()).getStorageSource(),
+				cutsceneLevel.getServer().getFixerUpper(),
+				cutsceneLevel.getServer().getStructureManager(),
+				((MinecraftServerAccessor) cutsceneLevel.getServer()).getExecutor(),
+				CutsceneLevel.createDummyChunkGenerator(cutsceneLevel.getActualWorld()),
+				cutsceneLevel.getServer().getPlayerList().getViewDistance(),
+				cutsceneLevel.getServer().getPlayerList().getSimulationDistance(),
+				cutsceneLevel.getServer().forceSynchronousWrites(),
 				(pos, status) -> {}, persistentStateManagerFactory
 		);
 		var tickerManager = new TicketStorage();
-		this.cutsceneWorld = cutsceneWorld;
+		this.cutsceneLevel = cutsceneLevel;
 		this.cutsceneChunkLoadingManager = new CutsceneChunkLoadingManager(
-				cutsceneWorld,
-				((MinecraftServerAccessor) cutsceneWorld.getServer()).getStorageSource(),
-				cutsceneWorld.getServer().getFixerUpper(),
-				cutsceneWorld.getServer().getStructureManager(),
-				((MinecraftServerAccessor) cutsceneWorld.getServer()).getExecutor(),
+				cutsceneLevel,
+				((MinecraftServerAccessor) cutsceneLevel.getServer()).getStorageSource(),
+				cutsceneLevel.getServer().getFixerUpper(),
+				cutsceneLevel.getServer().getStructureManager(),
+				((MinecraftServerAccessor) cutsceneLevel.getServer()).getExecutor(),
 				((ServerChunkCacheAccessor) this).getMainThreadExecutor(),
-				this, CutsceneWorld.createDummyChunkGenerator(cutsceneWorld.getActualWorld()),
+				this, CutsceneLevel.createDummyChunkGenerator(cutsceneLevel.getActualWorld()),
 				(pos, status) -> {}, persistentStateManagerFactory,
 				tickerManager,
-				cutsceneWorld.getServer().getPlayerList().getViewDistance(),
-				cutsceneWorld.getServer().forceSynchronousWrites()
+				cutsceneLevel.getServer().getPlayerList().getViewDistance(),
+				cutsceneLevel.getServer().forceSynchronousWrites()
 		);
 		((ServerChunkCacheAccessor) this).setChunkMap(
 				cutsceneChunkLoadingManager
@@ -82,13 +82,13 @@ public class CutsceneChunkManager extends ServerChunkCache {
 		((ServerChunkCacheAccessor) this).setLightEngine(
 				cutsceneChunkLoadingManager.getLightEngine()
 		);
-		this.cutsceneChunkLoadingManager.getDistanceManager().updateSimulationDistance(cutsceneWorld.getServer().getPlayerList().getSimulationDistance());
+		this.cutsceneChunkLoadingManager.getDistanceManager().updateSimulationDistance(cutsceneLevel.getServer().getPlayerList().getSimulationDistance());
 
 	}
 
 	@Override
 	public boolean hasChunk(int x, int z) {
-		return isInCache(x, z) || cutsceneWorld.getActualWorld().hasChunk(x, z);
+		return isInCache(x, z) || cutsceneLevel.getActualWorld().hasChunk(x, z);
 	}
 
 	private boolean isInCache(int x, int z) {
@@ -107,7 +107,7 @@ public class CutsceneChunkManager extends ServerChunkCache {
 
 	@Override
 	public DimensionDataStorage getDataStorage() {
-		return cutsceneWorld.getDataStorage();
+		return cutsceneLevel.getDataStorage();
 	}
 
 	private boolean fetching = false;
@@ -115,10 +115,10 @@ public class CutsceneChunkManager extends ServerChunkCache {
 	private ChunkAccess getCutsceneChunk(int x, int z, ChunkAccess chunk) {
 		if (chunk instanceof LevelChunk wc && !fetching) {
 			fetching = true; //Mob spawners may cause this function to be called recursively.
-			var c = cachedChunks.computeIfAbsent(ChunkPos.asLong(x, z), i -> new CutsceneChunk(wc, cutsceneWorld));
+			var c = cachedChunks.computeIfAbsent(ChunkPos.asLong(x, z), i -> new CutsceneChunk(wc, cutsceneLevel));
 			c.setLoaded(true);
 			c.setLightCorrect(true);
-			c.registerTickContainerInLevel(cutsceneWorld);
+			c.registerTickContainerInLevel(cutsceneLevel);
 			var holder = getChunkHolder(x, z);
 			((ChunkHolderAccessor) holder).setTickingChunkFuture(
 					CompletableFuture.completedFuture(ChunkResult.of(c))
@@ -130,7 +130,7 @@ public class CutsceneChunkManager extends ServerChunkCache {
 				statuses.set(i, CompletableFuture.completedFuture(ChunkResult.of(c)));
 			}
 			getLightEngine().initializeLight(c, true);
-			if (cutsceneWorld.loaded) {
+			if (cutsceneLevel.loaded) {
 				c.fetchEntitiesFromActualWorld();
 			}
 			fetching = false;
@@ -141,8 +141,8 @@ public class CutsceneChunkManager extends ServerChunkCache {
 
 	public boolean isLightingCached(int x, int z) {
 		if (isInCache(x, z)) return true;
-		for (int i = 0; i < cutsceneWorld.getSectionsCount(); i++) {
-			int y = cutsceneWorld.getSectionYFromSectionIndex(i);
+		for (int i = 0; i < cutsceneLevel.getSectionsCount(); i++) {
+			int y = cutsceneLevel.getSectionYFromSectionIndex(i);
 			long pos = SectionPos.asLong(x, y, z);
 			if (LightingHelper.getBlockLightProvider(getLightEngine()).getDebugSectionType(pos) != LayerLightSectionStorage.SectionType.LIGHT_AND_DATA) {
 				return false;
@@ -168,7 +168,7 @@ public class CutsceneChunkManager extends ServerChunkCache {
 		if (isInCache(x, z)) {
 			return getFromCache(x, z);
 		}
-		return getCutsceneChunk(x, z, cutsceneWorld.getActualWorld().getChunk(x, z, leastStatus, create));
+		return getCutsceneChunk(x, z, cutsceneLevel.getActualWorld().getChunk(x, z, leastStatus, create));
 	}
 
 	@Override
@@ -178,7 +178,7 @@ public class CutsceneChunkManager extends ServerChunkCache {
 		}
 		return (LevelChunk) getCutsceneChunk(
 				chunkX, chunkZ,
-				cutsceneWorld.getActualWorld().getChunkSource().getChunkNow(chunkX, chunkZ)
+				cutsceneLevel.getActualWorld().getChunkSource().getChunkNow(chunkX, chunkZ)
 		);
 	}
 
@@ -230,31 +230,31 @@ public class CutsceneChunkManager extends ServerChunkCache {
 
 	@Override
 	public String gatherStats() {
-		return cutsceneWorld.getActualWorld().getChunkSource().gatherStats();
+		return cutsceneLevel.getActualWorld().getChunkSource().gatherStats();
 	}
 
 	@Override
 	public int getLoadedChunksCount() {
-		return cutsceneWorld.getActualWorld().getChunkSource().getLoadedChunksCount();
+		return cutsceneLevel.getActualWorld().getChunkSource().getLoadedChunksCount();
 	}
 
 	@Override
 	public Level getLevel() {//This runs before cutsceneWorld has been initialized properly, so we need to provide a fallback.
-		return cutsceneWorld != null ? cutsceneWorld : super.getLevel();
+		return cutsceneLevel != null ? cutsceneLevel : super.getLevel();
 	}
 
-	public CutsceneWorld getCutsceneWorld() {
-		return cutsceneWorld;
+	public CutsceneLevel getCutsceneWorld() {
+		return cutsceneLevel;
 	}
 
 	@Override
 	public void sendToTrackingPlayersAndSelf(Entity entity, Packet<? super ClientGamePacketListener> packet) {
-		cutsceneWorld.players().forEach(p -> p.connection.send(packet));
+		cutsceneLevel.players().forEach(p -> p.connection.send(packet));
 	}
 
 	@Override
 	public void sendToTrackingPlayers(Entity entity, Packet<? super ClientGamePacketListener> packet) {
-		cutsceneWorld.players().forEach(p -> {
+		cutsceneLevel.players().forEach(p -> {
 			if (p != entity) {
 				p.connection.send(packet);
 			}

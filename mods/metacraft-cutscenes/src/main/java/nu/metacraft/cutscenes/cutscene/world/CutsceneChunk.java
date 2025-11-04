@@ -15,9 +15,9 @@ public class CutsceneChunk extends LevelChunk {
 
 	private final Set<BlockPos> changedBlocks = new HashSet<>();
 
-	protected final CutsceneWorld world;
+	protected final CutsceneLevel world;
 
-	public CutsceneChunk(LevelChunk chunk, CutsceneWorld world) {
+	public CutsceneChunk(LevelChunk chunk, CutsceneLevel world) {
 		super(world, chunk.getPos());
 		this.world = world;
 		var data = new ClientboundLevelChunkPacketData(chunk);

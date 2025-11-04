@@ -10,7 +10,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
+import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 
 @Mixin(Mob.class)
 public abstract class MobMixin extends LivingEntity {
@@ -27,10 +27,10 @@ public abstract class MobMixin extends LivingEntity {
 		)
 	)
 	public boolean convertTo(ServerLevel world, Entity entity, Operation<Boolean> original) {
-		if (world instanceof CutsceneWorld cutsceneWorld) {
-			var id = cutsceneWorld.getCutscene().getIDForEntity(this);
+		if (world instanceof CutsceneLevel cutsceneLevel) {
+			var id = cutsceneLevel.getCutscene().getIDForEntity(this);
 			if (id.isPresent()) {
-				cutsceneWorld.getCutscene().addEntity(id.get(), entity);
+				cutsceneLevel.getCutscene().addEntity(id.get(), entity);
 				return true;
 			}
 		}

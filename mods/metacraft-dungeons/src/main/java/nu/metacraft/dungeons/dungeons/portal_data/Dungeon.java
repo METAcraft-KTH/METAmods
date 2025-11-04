@@ -59,7 +59,7 @@ import nu.metacraft.dungeons.dungeons.datablocks.DataBlock;
 import nu.metacraft.dungeons.dungeons.datablocks.DataBlockRegistry;
 import nu.metacraft.dungeons.dungeons.datablocks.MultiDataBlock;
 import nu.metacraft.dungeons.dungeons.datablocks.PortalDeeper;
-import nu.metacraft.dungeons.extensions.ServerWorldExtension;
+import nu.metacraft.dungeons.extensions.ServerLevelExtension;
 import nu.metacraft.dungeons.util.ChunkHelper;
 import nu.metacraft.lib.util.TaskScheduler;
 
@@ -325,7 +325,7 @@ public record Dungeon(
 		var current = getCurrent(portal).orElse(null);
 		if (portal.getTarget() != current) return true;
 		if (portal.isRemoved()) return true;
-		if (portal.getLevel() instanceof ServerWorldExtension w && w.metacraft$isBeingDeleted()) return true;
+		if (portal.getLevel() instanceof ServerLevelExtension w && w.metacraft$isBeingDeleted()) return true;
 		return portal.getLevel() == null || portal.getLevel().getServer() == null || portal.getLevel().getServer().isShutdown();
 	}
 	

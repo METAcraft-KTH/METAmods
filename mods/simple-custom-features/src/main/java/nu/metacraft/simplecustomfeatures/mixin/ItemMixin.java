@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import nu.metacraft.simplecustomfeatures.extension.ItemSettingsExtension;
+import nu.metacraft.simplecustomfeatures.extension.ItemPropertiesExtension;
 
 @Mixin(Item.class)
 public class ItemMixin {
@@ -21,7 +21,7 @@ public class ItemMixin {
 		index = 0
 	)
 	public Component init(Component name, @Local(argsOnly = true) Item.Properties settings) {
-		var customName = ((ItemSettingsExtension) settings).simple_custom_features$getCustomName();
+		var customName = ((ItemPropertiesExtension) settings).simple_custom_features$getCustomName();
 		if (customName != null) {
 			return customName;
 		}
@@ -29,7 +29,7 @@ public class ItemMixin {
 	}
 
 	@Mixin(Item.Properties.class)
-	public static class Properties implements ItemSettingsExtension {
+	public static class Properties implements ItemPropertiesExtension {
 
 		@Unique
 		private Component customName = null;

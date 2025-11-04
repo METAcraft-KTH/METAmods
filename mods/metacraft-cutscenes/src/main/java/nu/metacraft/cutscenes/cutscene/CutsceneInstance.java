@@ -35,7 +35,7 @@ import org.pcollections.HashTreePSet;
 import org.pcollections.PSet;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.mixin.PlayerListAccessor;
-import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
+import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneWorldData;
 import nu.metacraft.cutscenes.transitions.DeltaTickTransition;
 import nu.metacraft.cutscenes.transitions.HideOtherPlayersTransition;
@@ -112,7 +112,7 @@ public class CutsceneInstance implements AutoCloseable {
 	private final IntervalMap<Transition> transitions;
 	private int time = 0;
 	private boolean ended = false;
-	private CutsceneWorld world;
+	private CutsceneLevel world;
 	private RefContext entityLessContext;
 	private CutsceneWorldData data;
 	private ResourceKey<Level> dim;
@@ -151,7 +151,7 @@ public class CutsceneInstance implements AutoCloseable {
 		getTransitions().getIntervalsAt(getCurrentTime()).forEach(this::setupSmooth);
 	}
 
-	public CutsceneWorld getCutsceneWorld() {
+	public CutsceneLevel getCutsceneWorld() {
 		return world;
 	}
 
@@ -235,7 +235,7 @@ public class CutsceneInstance implements AutoCloseable {
 	public void setTargetWorld(ServerLevel targetWorld) {
 		if (this.world != null && this.world.getActualWorld() == targetWorld) return;
 		var prev = this.world;
-		this.world = new CutsceneWorld(targetWorld, this, data);
+		this.world = new CutsceneLevel(targetWorld, this, data);
 		entityLessContext = createRefContext(null);
 		data = null;
 		this.dim = world.dimension();
@@ -645,7 +645,7 @@ public class CutsceneInstance implements AutoCloseable {
 	}
 
 	public static Optional<CutsceneInstance> getCutscene(RefContext ctx) {
-		return ctx.world() instanceof CutsceneWorld w ? Optional.of(w.getCutscene()) : Optional.empty();
+		return ctx.world() instanceof CutsceneLevel w ? Optional.of(w.getCutscene()) : Optional.empty();
 	}
 
 	public RefContext createRefContext(@Nullable Entity entity) {

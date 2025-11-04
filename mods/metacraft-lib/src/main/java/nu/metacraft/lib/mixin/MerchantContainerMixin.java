@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import nu.metacraft.lib.extensions.TradeOfferExtensions;
+import nu.metacraft.lib.extensions.MerchantOfferExtensions;
 
 @Mixin(MerchantContainer.class)
 public class MerchantContainerMixin {
@@ -23,7 +23,7 @@ public class MerchantContainerMixin {
 			return true;
 		}
 		// Check if disabled for this player.
-		TradeOfferExtensions ext = (TradeOfferExtensions) tradeOffer;
+		MerchantOfferExtensions ext = (MerchantOfferExtensions) tradeOffer;
 		int maxUsesPerPlayer = ext.metacraft$getMaxUsesPerPlayer();
 		if (maxUsesPerPlayer == -1) {
 			// No per player uses.

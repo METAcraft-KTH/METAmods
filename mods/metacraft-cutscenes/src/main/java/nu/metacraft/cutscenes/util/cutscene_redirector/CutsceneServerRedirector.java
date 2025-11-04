@@ -12,7 +12,7 @@ import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import org.objenesis.instantiator.ObjectInstantiator;
 import nu.metacraft.cutscenes.Cutscenes;
-import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
+import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 import nu.metacraft.lib.util.IntermediaryNames;
 
 import java.lang.reflect.*;
@@ -34,7 +34,7 @@ public class CutsceneServerRedirector {
 				.subclass(
 						MinecraftServer.class
 				).implement(ExtraServerData.class)
-				.defineField(CUTSCENE_WORLD_FIELD_NAME, CutsceneWorld.class, Visibility.PRIVATE)
+				.defineField(CUTSCENE_WORLD_FIELD_NAME, CutsceneLevel.class, Visibility.PRIVATE)
 				.defineField(REAL_SERVER_FIELD_NAME, MinecraftServer.class, Visibility.PRIVATE)
 				.method(
 						ElementMatchers.any()
@@ -50,7 +50,7 @@ public class CutsceneServerRedirector {
 		field.setAccessible(false);
 	}
 
-	public static MinecraftServer createProxyServer(MinecraftServer server, CutsceneWorld world) {
+	public static MinecraftServer createProxyServer(MinecraftServer server, CutsceneLevel world) {
 		try {
 			MinecraftServer newServer = SERVER_INSTANTIATOR.newInstance();
 
@@ -82,7 +82,7 @@ public class CutsceneServerRedirector {
 
 	@SuppressWarnings("unused")
 	public static class Proxy {
-		public static CutsceneWorld metacraft_cutscenes$getCutsceneWorld(@This MinecraftServer server) {
+		public static CutsceneLevel metacraft_cutscenes$getCutsceneWorld(@This MinecraftServer server) {
 			return getPrivate(server, CUTSCENE_WORLD_FIELD_NAME);
 		}
 
@@ -114,7 +114,7 @@ public class CutsceneServerRedirector {
 	}
 
 	public interface ExtraServerData {
-		CutsceneWorld metacraft_cutscenes$getCutsceneWorld();
+		CutsceneLevel metacraft_cutscenes$getCutsceneWorld();
 		MinecraftServer metacraft_cutscenes$getRealServer();
 	}
 

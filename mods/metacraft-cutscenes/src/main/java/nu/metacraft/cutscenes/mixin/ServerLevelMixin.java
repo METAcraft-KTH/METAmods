@@ -15,7 +15,7 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.storage.WritableLevelData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
+import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 
 @Mixin(ServerLevel.class)
 public abstract class ServerLevelMixin extends Level {
@@ -32,7 +32,7 @@ public abstract class ServerLevelMixin extends Level {
 		)
 	)
 	private void redirectCutscenePackets(PlayerList instance, Packet<?> packet, ResourceKey<Level> dimension, Operation<Void> original) {
-		if ((Object) this instanceof CutsceneWorld cw) {
+		if ((Object) this instanceof CutsceneLevel cw) {
 			cw.getCutscene().sendToPlayers(packet);
 		} else {
 			original.call(instance, packet, dimension);
@@ -47,7 +47,7 @@ public abstract class ServerLevelMixin extends Level {
 			)
 	)
 	private void redirectCutscenePackets(PlayerList instance, Packet<?> packet, Operation<Void> original) {
-		if ((Object) this instanceof CutsceneWorld cw) {
+		if ((Object) this instanceof CutsceneLevel cw) {
 			cw.getCutscene().sendToPlayers(packet);
 		} else {
 			original.call(instance, packet);
@@ -62,7 +62,7 @@ public abstract class ServerLevelMixin extends Level {
 			)
 	)
 	public boolean skipDespawnInCutscenes(boolean original) {
-		if ((Object) this instanceof CutsceneWorld) {
+		if ((Object) this instanceof CutsceneLevel) {
 			return true;
 		}
 		return original;
@@ -76,7 +76,7 @@ public abstract class ServerLevelMixin extends Level {
 		)
 	)
 	public final ServerLevel sendToPlayerIfNearby(ServerPlayer player, Operation<ServerLevel> original) {
-		if ((Object) this instanceof CutsceneWorld cw && cw.getCutscene().hasPlayer(player)) {
+		if ((Object) this instanceof CutsceneLevel cw && cw.getCutscene().hasPlayer(player)) {
 			return (ServerLevel) (Object) this;
 		}
 		return original.call(player);

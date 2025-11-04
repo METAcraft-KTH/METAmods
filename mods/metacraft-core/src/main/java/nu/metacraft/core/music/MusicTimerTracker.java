@@ -4,7 +4,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import nu.metacraft.core.extensions.ServerPlayerEntityExtensions;
+import nu.metacraft.core.extensions.ServerPlayerExtensions;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +51,7 @@ public class MusicTimerTracker {
 
 		@Override
 		public void run() {
-			if (((ServerPlayerEntityExtensions) player).metacraft_core$hasMusicEntry(toPlay)) {
+			if (((ServerPlayerExtensions) player).metacraft_core$hasMusicEntry(toPlay)) {
 				player.connection.send(packet);
 			}
 		}

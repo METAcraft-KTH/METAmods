@@ -6,7 +6,7 @@ import net.minecraft.server.level.ServerPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import nu.metacraft.lib.extensions.ServerPlayerEntityExtensions;
+import nu.metacraft.lib.extensions.ServerPlayerExtensions;
 
 @Mixin(PlayerAdvancements.class)
 public class PlayerAdvancementsMixin {
@@ -21,7 +21,7 @@ public class PlayerAdvancementsMixin {
 		)
 	)
 	public boolean grantCriterion(boolean original) {
-		if (!((ServerPlayerEntityExtensions) player).metacraft_lib$getAnnounceAdvancements()) {
+		if (!((ServerPlayerExtensions) player).metacraft_lib$getAnnounceAdvancements()) {
 			return false;
 		}
 		return original;

@@ -15,7 +15,7 @@ import nu.metacraft.lib.util.TaskScheduler;
 import nu.metacraft.lib.util.helper.DisconnectedPlayerHelper;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import nu.metacraft.dungeons.METAcraftDungeons;
-import nu.metacraft.dungeons.extensions.ServerWorldExtension;
+import nu.metacraft.dungeons.extensions.ServerLevelExtension;
 import nu.metacraft.dungeons.mixin.MinecraftServerAccessor;
 
 import java.io.IOException;
@@ -36,7 +36,7 @@ public class WorldDeleter {
 		if (world.dimension() == ServerLevel.OVERWORLD) return;
 		MinecraftServer server = world.getServer();
 		world.noSave = true;
-		((ServerWorldExtension) world).metacraft$setBeingDeleted(true);
+		((ServerLevelExtension) world).metacraft$setBeingDeleted(true);
 
 		//This might be in a world tick, if we don't schedule it, we might get a ConcurrentModificationException.
 		TaskScheduler.scheduleImmediately(world.getServer(), () -> {

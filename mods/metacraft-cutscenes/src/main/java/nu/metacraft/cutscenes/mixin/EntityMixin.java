@@ -13,7 +13,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
+import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 import nu.metacraft.cutscenes.extension.EntityExtension;
 
 @Mixin(Entity.class)
@@ -35,7 +35,7 @@ public abstract class EntityMixin implements EntityExtension {
 	@Inject(method = "teleport", at = @At("HEAD"), cancellable = true)
 	public void stopTeleportInMultiplayerCutscene(TeleportTransition teleportTarget, CallbackInfoReturnable<Entity> cir) {
 		if (
-				this.level instanceof CutsceneWorld && !canChangeWorldInCutscene &&
+				this.level instanceof CutsceneLevel && !canChangeWorldInCutscene &&
 				this.level.dimension() != teleportTarget.newLevel().dimension()
 		) {
 			cir.setReturnValue((Entity) (Object) this);

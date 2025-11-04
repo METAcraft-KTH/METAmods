@@ -19,7 +19,7 @@ import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
-import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
+import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 import nu.metacraft.cutscenes.entity_ref.CutsceneRef;
 import nu.metacraft.core.entity_ref.SelfRef;
 import nu.metacraft.core.position_ref.AtEntityRef;
@@ -139,7 +139,7 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 		});
 	}
 
-	public Optional<Entity> createFromData(CompoundTag data, CutsceneWorld world) {
+	public Optional<Entity> createFromData(CompoundTag data, CutsceneLevel world) {
 		var player = METAcraftEntities.PLAYER.create(world, EntitySpawnReason.EVENT);
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:AddPlayerDummies#createFromData", Cutscenes.LOGGER)) {
 			var readView = TagValueInput.create(logging, world.registryAccess(), data);

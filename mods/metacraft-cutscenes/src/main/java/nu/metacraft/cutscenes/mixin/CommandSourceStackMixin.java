@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
+import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 import nu.metacraft.cutscenes.util.cutscene_redirector.CutsceneServerRedirector;
 
 @Mixin(CommandSourceStack.class)
@@ -22,7 +22,7 @@ public class CommandSourceStackMixin {
 
 	@ModifyReturnValue(method = "getServer", at = @At("RETURN"))
 	public MinecraftServer getServer(MinecraftServer server) {
-		if (level instanceof CutsceneWorld cw) {
+		if (level instanceof CutsceneLevel cw) {
 			if (proxyServer == null) {
 				proxyServer = CutsceneServerRedirector.createProxyServer(server, cw);
 			}

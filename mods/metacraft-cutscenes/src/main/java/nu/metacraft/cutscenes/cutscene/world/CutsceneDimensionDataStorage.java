@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
-public class CutscenePersistentStateManager extends DimensionDataStorage {
+public class CutsceneDimensionDataStorage extends DimensionDataStorage {
 
 	private final Supplier<CompoundTag> storage;
 	private final DataFixer dataFixer;
@@ -29,7 +29,7 @@ public class CutscenePersistentStateManager extends DimensionDataStorage {
 
 	protected final SavedData.Context context;
 
-	public CutscenePersistentStateManager(
+	public CutsceneDimensionDataStorage(
 			SavedData.Context context,
 			Path directory, DataFixer dataFixer,
 			HolderLookup.Provider registries,

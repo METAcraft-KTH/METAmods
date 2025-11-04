@@ -1,7 +1,7 @@
 package nu.metacraft.core.preferences;
 
 import com.mojang.serialization.Codec;
-import nu.metacraft.core.extensions.ServerPlayerEntityExtensions;
+import nu.metacraft.core.extensions.ServerPlayerExtensions;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,7 +49,7 @@ public class PreferenceData {
 	}
 
 	public static PreferenceData getForPlayer(ServerPlayer player) {
-		return ((ServerPlayerEntityExtensions) player).metacraft_core$getPreferences();
+		return ((ServerPlayerExtensions) player).metacraft_core$getPreferences();
 	}
 
 	@SuppressWarnings("unchecked")

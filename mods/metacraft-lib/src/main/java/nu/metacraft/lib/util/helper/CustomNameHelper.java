@@ -1,7 +1,7 @@
 package nu.metacraft.lib.util.helper;
 
 import org.jetbrains.annotations.Nullable;
-import nu.metacraft.lib.extensions.ServerPlayerEntityExtensions;
+import nu.metacraft.lib.extensions.ServerPlayerExtensions;
 
 import java.util.Optional;
 import net.minecraft.server.level.ServerPlayer;
@@ -14,7 +14,7 @@ public class CustomNameHelper {
 	 * @return An optional containing the player's custom name, or empty if the player does not have a custom name.
 	 */
 	public static Optional<String> getCustomName(ServerPlayer player) {
-		return Optional.ofNullable(((ServerPlayerEntityExtensions) player).metacraft_lib$getCustomName());
+		return Optional.ofNullable(((ServerPlayerExtensions) player).metacraft_lib$getCustomName());
 	}
 
 	/**
@@ -37,7 +37,7 @@ public class CustomNameHelper {
 		if (name != null && name.length() > 16) {
 			throw new IllegalArgumentException("Name must be at most 16 characters!");
 		}
-		((ServerPlayerEntityExtensions) player).metacraft_lib$setCustomName(name, showInGUI);
+		((ServerPlayerExtensions) player).metacraft_lib$setCustomName(name, showInGUI);
 	}
 
 	/**

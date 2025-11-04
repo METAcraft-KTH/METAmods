@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import nu.metacraft.lib.extensions.HostileEntityExtensions;
+import nu.metacraft.lib.extensions.MonsterExtensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -47,20 +47,20 @@ public abstract class MobMixin extends LivingEntity {
 	@Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
 	public void toNBT(ValueOutput nbt, CallbackInfo ci) {
 		if ((Object) this instanceof Monster) {
-			nbt.putBoolean(EntityParameters.SURVIVES_SUNLIGHT, ((HostileEntityExtensions) this).metacraft_lib$survivesSunlight());
+			nbt.putBoolean(EntityParameters.SURVIVES_SUNLIGHT, ((MonsterExtensions) this).metacraft_lib$survivesSunlight());
 		}
 	}
 
 	@Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
 	public void fromNBT(ValueInput nbt, CallbackInfo ci) {
 		if ((Object) this instanceof Monster) {
-			((HostileEntityExtensions) this).metacraft_lib$setSurvivesSunlight(nbt.getBooleanOr(EntityParameters.SURVIVES_SUNLIGHT, false));
+			((MonsterExtensions) this).metacraft_lib$setSurvivesSunlight(nbt.getBooleanOr(EntityParameters.SURVIVES_SUNLIGHT, false));
 		}
 	}
 
 	@Inject(method = "isSunBurnTick", at = @At("HEAD"), cancellable = true)
 	protected void isAffectedByDaylight(CallbackInfoReturnable<Boolean> cir) {
-		if ((Object) this instanceof Monster && ((HostileEntityExtensions) this).metacraft_lib$survivesSunlight()) {
+		if ((Object) this instanceof Monster && ((MonsterExtensions) this).metacraft_lib$survivesSunlight()) {
 			cir.setReturnValue(false);
 		}
 	}

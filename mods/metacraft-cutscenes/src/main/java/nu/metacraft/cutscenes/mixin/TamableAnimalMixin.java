@@ -10,7 +10,7 @@ import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
+import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 import nu.metacraft.cutscenes.util.helper.CutsceneHelper;
 
 @Mixin(TamableAnimal.class)
@@ -33,7 +33,7 @@ public abstract class TamableAnimalMixin extends Animal {
 			if (scene.isPresent()) {
 				if (this.level() != scene.get().getCutsceneWorld()) return true;
 			} else {
-				if (this.level() instanceof CutsceneWorld) return true;
+				if (this.level() instanceof CutsceneLevel) return true;
 			}
 		}
 		return original.call(owner);

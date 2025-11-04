@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.extensions.TradeOfferExtensions;
+import nu.metacraft.lib.extensions.MerchantOfferExtensions;
 
 import java.util.Map;
 import java.util.UUID;
@@ -23,7 +23,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.world.item.trading.MerchantOffer;
 
 @Mixin(MerchantOffer.class)
-public class MerchantOfferMixin implements TradeOfferExtensions {
+public class MerchantOfferMixin implements MerchantOfferExtensions {
 	@Shadow
 	private int uses;
 	@Shadow
@@ -43,8 +43,8 @@ public class MerchantOfferMixin implements TradeOfferExtensions {
 		return new MapCodec<MerchantOffer>() {
 			@Override
 			public <T> RecordBuilder<T> encode(MerchantOffer input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
-				var maxUsesPerPlayer = ((TradeOfferExtensions) input).metacraft$getMaxUsesPerPlayer();
-				var usesPerPlayer = ((TradeOfferExtensions) input).metacraft$getUsesPerPlayer();
+				var maxUsesPerPlayer = ((MerchantOfferExtensions) input).metacraft$getMaxUsesPerPlayer();
+				var usesPerPlayer = ((MerchantOfferExtensions) input).metacraft$getUsesPerPlayer();
 				if (maxUsesPerPlayer != -1) {
 					prefix.add("maxUsesPerPlayer", ops.createInt(maxUsesPerPlayer));
 				}
@@ -61,12 +61,12 @@ public class MerchantOfferMixin implements TradeOfferExtensions {
 				var result = codec.decode(ops, input);
 				return result.map(tradeOffer -> {
 					if (maxUsesPerPlayer != null) {
-						((TradeOfferExtensions) tradeOffer).metacraft$setMaxUsesPerPlayer(ops.getNumberValue(maxUsesPerPlayer, -1).intValue());
+						((MerchantOfferExtensions) tradeOffer).metacraft$setMaxUsesPerPlayer(ops.getNumberValue(maxUsesPerPlayer, -1).intValue());
 					}
 					if (usesPerPlayer != null) {
 						var mapResult = USES_PER_PLAYER_CODEC.parse(ops, usesPerPlayer).resultOrPartial(METAcraftLib.LOGGER::error);
 						mapResult.ifPresent(map -> {
-							var existingMap = ((TradeOfferExtensions) tradeOffer).metacraft$getUsesPerPlayer();
+							var existingMap = ((MerchantOfferExtensions) tradeOffer).metacraft$getUsesPerPlayer();
 							existingMap.clear();
 							existingMap.putAll(map);
 						});

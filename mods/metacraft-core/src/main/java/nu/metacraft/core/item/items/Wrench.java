@@ -3,7 +3,7 @@ package nu.metacraft.core.item.items;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.extensions.BlockEntityExtensions;
-import nu.metacraft.core.extensions.ServerPlayerEntityExtensions;
+import nu.metacraft.core.extensions.ServerPlayerExtensions;
 import nu.metacraft.core.util.helper.PlayerInventoryHelper;
 import xyz.nucleoid.packettweaker.PacketContext;
 
@@ -162,8 +162,8 @@ public class Wrench extends Item implements PolymerItem {
 	@Override
 	public InteractionResult use(Level world, Player user, InteractionHand hand) {
 		if (user.isShiftKeyDown() && world instanceof ServerLevel) {
-			var newState = !((ServerPlayerEntityExtensions) user).metacraft_core$areBlocksPistonMovable();
-			((ServerPlayerEntityExtensions) user).metacraft_core$setBlocksPistonMovable(newState);
+			var newState = !((ServerPlayerExtensions) user).metacraft_core$areBlocksPistonMovable();
+			((ServerPlayerExtensions) user).metacraft_core$setBlocksPistonMovable(newState);
 			user.displayClientMessage(
 					getPlayerText(newState), true
 			);
@@ -221,7 +221,7 @@ public class Wrench extends Item implements PolymerItem {
 		if (player != null) {
 			tooltip.add(
 					getTooltipText(
-							((ServerPlayerEntityExtensions) player).metacraft_core$areBlocksPistonMovable()
+							((ServerPlayerExtensions) player).metacraft_core$areBlocksPistonMovable()
 					)
 			);
 		}

@@ -1,6 +1,6 @@
 package nu.metacraft.dungeons.extensions;
 
-public interface ServerWorldExtension {
+public interface ServerLevelExtension {
 
 	boolean metacraft$isBeingDeleted();
 

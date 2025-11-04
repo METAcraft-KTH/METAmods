@@ -44,7 +44,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import nu.metacraft.core.extensions.ServerPlayerEntityExtensions;
+import nu.metacraft.core.extensions.ServerPlayerExtensions;
 import nu.metacraft.core.item.components.METAcraftComponents;
 import nu.metacraft.core.music.MusicEntry;
 import nu.metacraft.core.music.MusicTimerTracker;
@@ -57,7 +57,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 @Mixin(ServerPlayer.class)
-public abstract class ServerPlayerMixin extends Player implements ServerPlayerEntityExtensions {
+public abstract class ServerPlayerMixin extends Player implements ServerPlayerExtensions {
 
 	@Shadow public ServerGamePacketListenerImpl connection;
 

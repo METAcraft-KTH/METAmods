@@ -19,7 +19,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.METAcraftTickets;
 import nu.metacraft.lib.METAcraftLibTags;
-import nu.metacraft.lib.extensions.ServerPlayerEntityExtensions;
+import nu.metacraft.lib.extensions.ServerPlayerExtensions;
 import nu.metacraft.lib.util.TaskScheduler;
 
 import java.util.*;
@@ -31,10 +31,10 @@ public class TeleportHelper {
 
 	//Fix for players not being rotated properly and console spam when riding on vehicle while teleporting.
 	public static Entity teleportEntity(Entity entity, TeleportTransition target) {
-		Set<ServerPlayerEntityExtensions> players = new HashSet<>();
+		Set<ServerPlayerExtensions> players = new HashSet<>();
 		for (var p : entity.getIndirectPassengers()) {
 			if (p instanceof ServerPlayer player) {
-				var ext = (ServerPlayerEntityExtensions) player;
+				var ext = (ServerPlayerExtensions) player;
 				ext.metacraft_lib$setTeleportingOnVehicle(true);
 				players.add(ext);
 				player.forceSetRotation(
