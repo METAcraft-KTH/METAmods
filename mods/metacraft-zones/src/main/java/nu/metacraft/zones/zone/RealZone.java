@@ -2,10 +2,10 @@ package nu.metacraft.zones.zone;
 
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.level.Level;
 import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.zones.METAcraftZones;
 import nu.metacraft.zones.ZoneManager;
@@ -26,17 +26,17 @@ public class RealZone extends Zone {
 	private static final String DATA = "data";
 	private static final String PRIORITY = "priority";
 
-	protected final World world;
+	protected final Level world;
 
 	protected String name;
 	protected ZoneType zone;
-	protected final Map<RegistryKey<World>, Zone> remoteDimensions = new HashMap<>();
-	private final List<RegistryKey<World>> remoteWorldsToCheck = new ArrayList<>();
+	protected final Map<ResourceKey<Level>, Zone> remoteDimensions = new HashMap<>();
+	private final List<ResourceKey<Level>> remoteWorldsToCheck = new ArrayList<>();
 	protected int priority;
 	protected final Map<ZoneDataType<?>, ZoneData> zoneData;
 	protected final Runnable markNeedsSave;
 
-	public RealZone(String name, World world, ZoneType zone, Map<ZoneDataType<?>, ZoneData> zoneData, int priority, Runnable markNeedsSave) {
+	public RealZone(String name, Level world, ZoneType zone, Map<ZoneDataType<?>, ZoneData> zoneData, int priority, Runnable markNeedsSave) {
 		this.name = name;
 		this.world = world;
 		this.zone = zone;
@@ -52,8 +52,8 @@ public class RealZone extends Zone {
 		return zone.contains(pos);
 	}
 
-	public boolean contains(RegistryKey<World> dim, BlockPos pos) {
-		if (this.world.getRegistryKey() == dim) {
+	public boolean contains(ResourceKey<Level> dim, BlockPos pos) {
+		if (this.world.dimension() == dim) {
 			return isPosWithinZoneBoundsNoDimCheck(pos);
 		} else if (remoteDimensions.containsKey(dim)) {
 			return remoteDimensions.get(dim).isPosWithinZoneBoundsNoDimCheck(pos);
@@ -72,7 +72,7 @@ public class RealZone extends Zone {
 
 	public <T extends ZoneData> T getOrCreate(ZoneDataType<T> data) {
 		return get(data).orElseGet(() -> {
-			if (ZoneDataRegistry.REGISTRY.getKey(data).isEmpty()) {
+			if (ZoneDataRegistry.REGISTRY.getResourceKey(data).isEmpty()) {
 				throw new IllegalStateException("You need to register your zone data types!");
 			}
 			var newData = data.creator().get();
@@ -99,12 +99,12 @@ public class RealZone extends Zone {
 	}
 
 	@Override
-	public RegistryKey<World> getDim() {
-		return world.getRegistryKey();
+	public ResourceKey<Level> getDim() {
+		return world.dimension();
 	}
 
 	@Override
-	public World getWorld() {
+	public Level getWorld() {
 		return world;
 	}
 
@@ -147,7 +147,7 @@ public class RealZone extends Zone {
 			MinecraftServer server, SerializedZone zone, Runnable markNeedsSave, boolean printDimensionErrors
 	) {
 		var name = zone.name;
-		World world = server.getWorld(zone.dim);
+		Level world = server.getLevel(zone.dim);
 		if (world == null) {
 			if (printDimensionErrors) {
 				METAcraftZones.LOGGER.error("Root dimension invalid, deleting zone " + name);
@@ -164,9 +164,9 @@ public class RealZone extends Zone {
 		);
 
 		for (var remoteDim : zone.remoteDims) {
-			var remoteWorld = server.getWorld(remoteDim);
+			var remoteWorld = server.getLevel(remoteDim);
 			if (remoteWorld != null) {
-				container.remoteDimensions.put(remoteWorld.getRegistryKey(), new RemoteZone(remoteWorld, container));
+				container.remoteDimensions.put(remoteWorld.dimension(), new RemoteZone(remoteWorld, container));
 			} else {
 				container.remoteWorldsToCheck.add(remoteDim);
 			}
@@ -175,15 +175,15 @@ public class RealZone extends Zone {
 	}
 
 	public record SerializedZone(
-			String name, RegistryKey<World> dim, List<RegistryKey<World>> remoteDims,
+			String name, ResourceKey<Level> dim, List<ResourceKey<Level>> remoteDims,
 			ZoneType zone, List<ZoneData> data, int priority
 	) {
 
 		public static final Codec<SerializedZone> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
 						Codec.STRING.fieldOf("name").forGetter(SerializedZone::name),
-						World.CODEC.fieldOf("dim").forGetter(SerializedZone::dim),
-						World.CODEC.listOf().fieldOf("remote_dims").forGetter(SerializedZone::remoteDims),
+						Level.RESOURCE_KEY_CODEC.fieldOf("dim").forGetter(SerializedZone::dim),
+						Level.RESOURCE_KEY_CODEC.listOf().fieldOf("remote_dims").forGetter(SerializedZone::remoteDims),
 						ZoneType.REGISTRY_CODEC.fieldOf("zone").mapResult(new MapCodec.ResultFunction<>() {
 							@Override
 							public <T> DataResult<ZoneType> apply(DynamicOps<T> ops, MapLike<T> input, DataResult<ZoneType> a) {
@@ -209,7 +209,7 @@ public class RealZone extends Zone {
 	public void onWorldLoad() {
 		MinecraftServer server = getWorld().getServer();
 		for (var dim : remoteWorldsToCheck) {
-			var world = server.getWorld(dim);
+			var world = server.getLevel(dim);
 			if (world != null) {
 				addRemoteDimensionInternal(world);
 			}
@@ -227,7 +227,7 @@ public class RealZone extends Zone {
 		return this;
 	}
 
-	public boolean hasRemoteZone(RegistryKey<World> dim) {
+	public boolean hasRemoteZone(ResourceKey<Level> dim) {
 		return remoteDimensions.containsKey(dim);
 	}
 
@@ -235,29 +235,29 @@ public class RealZone extends Zone {
 		return remoteDimensions.values();
 	}
 
-	public Zone getRemoteDimension(RegistryKey<World> dim) {
+	public Zone getRemoteDimension(ResourceKey<Level> dim) {
 		return remoteDimensions.get(dim);
 	}
 
-	public void addRemoteDimension(World remoteDim) {
-		if (remoteDim.getRegistryKey() != getDim()) {
+	public void addRemoteDimension(Level remoteDim) {
+		if (remoteDim.dimension() != getDim()) {
 			addRemoteDimensionInternal(remoteDim);
 			markDirty();
 		}
 	}
 
-	private void addRemoteDimensionInternal(World remoteDim) {
+	private void addRemoteDimensionInternal(Level remoteDim) {
 		var newContainer = new RemoteZone(remoteDim, this);
 		if (world.getServer() != null) {
 			ZoneManager.getInstance(world.getServer()).addZone(newContainer);
 		}
-		remoteDimensions.put(remoteDim.getRegistryKey(), newContainer);
+		remoteDimensions.put(remoteDim.dimension(), newContainer);
 		fixDimensionLeukocyte();
 	}
 
-	public void removeRemoteDimension(World remoteDim) {
+	public void removeRemoteDimension(Level remoteDim) {
 		if (world.getServer() != null) {
-			ZoneManager.getInstance(world.getServer()).removeZone(remoteDimensions.remove(remoteDim.getRegistryKey()));
+			ZoneManager.getInstance(world.getServer()).removeZone(remoteDimensions.remove(remoteDim.dimension()));
 			fixDimensionLeukocyte();
 			markDirty();
 		}

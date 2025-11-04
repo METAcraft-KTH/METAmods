@@ -4,10 +4,10 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.WorldSavePath;
+import net.minecraft.world.level.storage.LevelResource;
 import nu.metacraft.lib.config.JsonHelper;
 import nu.metacraft.lib.util.TaskScheduler;
 import nu.metacraft.simplecustomfeatures.objects.ObjectRegistry;
@@ -32,13 +32,13 @@ public class ObjectCache {
 	private static ObjectCache cache = null;
 
 	private static Path getPath(MinecraftServer server) {
-		return server.getSavePath(WorldSavePath.ROOT).resolve("data").resolve(stateKey + ".json");
+		return server.getWorldPath(LevelResource.ROOT).resolve("data").resolve(stateKey + ".json");
 	}
 
 	public static ObjectCache getInstance(MinecraftServer server) {
 		if (cache == null || cache.server != server) {
 			cache = JsonHelper.load(
-					getPath(server), CODEC, server.getRegistryManager()
+					getPath(server), CODEC, server.registryAccess()
 			).orElse(new ObjectCache());
 			cache.setServer(server);
 		}
@@ -51,7 +51,7 @@ public class ObjectCache {
 	private boolean loaded = false;
 
 	//HashBasedTable uses linked hashmap in backend, which should preserve insertion order.
-	private final Table<RegistryKey<?>, Identifier, ObjectContainer> objects = HashBasedTable.create();
+	private final Table<ResourceKey<?>, ResourceLocation, ObjectContainer> objects = HashBasedTable.create();
 
 	private void setServer(MinecraftServer server) {
 		this.server = server;
@@ -64,7 +64,7 @@ public class ObjectCache {
 			object.getType().resultOrPartial(
 					Features.LOGGER::error
 			).ifPresent(type -> {
-				this.objects.put(type.getRegistry().getKey(), object.getID(), object);
+				this.objects.put(type.getRegistry().key(), object.getID(), object);
 			});
 		});
 	}
@@ -88,35 +88,35 @@ public class ObjectCache {
 		}
 		for (var object : objects.values()) {
 			var validObject = switch (object) {
-				case ObjectContainer.Deferred deferred -> deferred.load(server.getRegistryManager()).resultOrPartial(
+				case ObjectContainer.Deferred deferred -> deferred.load(server.registryAccess()).resultOrPartial(
 						Features.LOGGER::error
 				);
 				case ObjectContainer.Loaded<?> l -> Optional.of(l);
 			};
-			if (validObject.isPresent() && !validObject.get().getObject().getType().getRegistry().containsId(object.getID())) {
+			if (validObject.isPresent() && !validObject.get().getObject().getType().getRegistry().containsKey(object.getID())) {
 				reRegistered.add(validObject.get());
 				Features.LOGGER.warn(
 						object.getID() + " of type " +
-						Optional.ofNullable(ObjectRegistry.REGISTRY.getId(validObject.get().getObject().getType())).map(
-								Identifier::toString
+						Optional.ofNullable(ObjectRegistry.REGISTRY.getKey(validObject.get().getObject().getType())).map(
+								ResourceLocation::toString
 						).orElse("error not registered") + " was removed from config. " +
 						"To avoid data loss, the latest version of the item will be re-registered."
 				);
 			}
 		}
 		if (!reRegistered.isEmpty()) {
-			ObjectContainer.register(reRegistered.stream(), server.getRegistryManager());
+			ObjectContainer.register(reRegistered.stream(), server.registryAccess());
 		}
 		if (!hasSecondaryReloaded) {
 			hasSecondaryReloaded = true;
 			TaskScheduler.scheduleImmediately(server, () -> {
-				server.reloadResources(server.getDataPackManager().getEnabledIds());
+				server.reloadResources(server.getPackRepository().getSelectedIds());
 			});
 		}
 		save();
 	}
 
 	public void save() {
-		JsonHelper.save(getPath(server), CODEC, this, server.getRegistryManager());
+		JsonHelper.save(getPath(server), CODEC, this, server.registryAccess());
 	}
 }

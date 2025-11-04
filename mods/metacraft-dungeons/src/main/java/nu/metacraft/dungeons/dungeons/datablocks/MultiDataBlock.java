@@ -4,12 +4,11 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import net.minecraft.util.math.Direction;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.core.Direction;
 
 public interface MultiDataBlock {
 
@@ -42,7 +41,7 @@ public interface MultiDataBlock {
 
 		for (var entry : multiBlockDataBlocks) {
 			for (Direction dir : Direction.values()) {
-				long pos = entry.pos().add(dir.getVector()).asLong();
+				long pos = entry.pos().offset(dir.getUnitVec3i()).asLong();
 				if (positions.containsKey(pos)) {
 					var otherEntry = positions.get(pos);
 					if (!entry.datablock().shouldMergeWith(otherEntry.datablock())) {

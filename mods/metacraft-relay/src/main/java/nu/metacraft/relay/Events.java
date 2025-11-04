@@ -1,13 +1,13 @@
 package nu.metacraft.relay;
 
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.component.type.TooltipDisplayComponent;
-import net.minecraft.item.BlockItem;
-import net.minecraft.recipe.ShapelessRecipe;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.crafting.ShapelessRecipe;
 import nu.metacraft.relay.blocks.block.RelayBlock;
 import nu.metacraft.relay.recipe.RelayProgramRecipe;
 import nu.metacraft.lib.event.RecipeLoad;
@@ -25,39 +25,39 @@ public class Events {
 			if (original.getItem() instanceof BlockItem b && b.getBlock() instanceof RelayBlock) {
 				if (
 						original.getOrDefault(
-								DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT
-						).shouldDisplay(DataComponentTypes.LODESTONE_TRACKER)
+								DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT
+						).shows(DataComponents.LODESTONE_TRACKER)
 				) {
-					var tracker = original.get(DataComponentTypes.LODESTONE_TRACKER);
+					var tracker = original.get(DataComponents.LODESTONE_TRACKER);
 					if (tracker != null && tracker.target().isPresent()) {
 						var targetPos = tracker.target().get().pos().toShortString();
-						var targetDim = tracker.target().get().dimension().getValue().toString();
-						client.apply(
-								DataComponentTypes.LORE, LoreComponent.DEFAULT,
-								lore -> lore.with(
+						var targetDim = tracker.target().get().dimension().location().toString();
+						client.update(
+								DataComponents.LORE, ItemLore.EMPTY,
+								lore -> lore.withLineAdded(
 										RelayBlock.getTargetText(targetPos, targetDim).setStyle(PolymerItemUtils.CLEAN_STYLE)
 								)
 						);
 					} else {
-						client.apply(
-								DataComponentTypes.LORE, LoreComponent.DEFAULT,
-								lore -> lore.with(
-										Text.translatableWithFallback(
+						client.update(
+								DataComponents.LORE, ItemLore.EMPTY,
+								lore -> lore.withLineAdded(
+										Component.translatableWithFallback(
 												"block.metacraft.relay.no_target", "No Target"
-										).setStyle(PolymerItemUtils.CLEAN_STYLE).styled(
-												style -> style.withFormatting(Formatting.RED)
+										).setStyle(PolymerItemUtils.CLEAN_STYLE).withStyle(
+												style -> style.applyFormat(ChatFormatting.RED)
 										)
-								).with(
-										Text.translatableWithFallback(
+								).withLineAdded(
+										Component.translatableWithFallback(
 												"block.metacraft.relay.no_target.1", "Please combine me with a lodestone"
-										).setStyle(PolymerItemUtils.CLEAN_STYLE).styled(
-												style -> style.withFormatting(Formatting.YELLOW)
+										).setStyle(PolymerItemUtils.CLEAN_STYLE).withStyle(
+												style -> style.applyFormat(ChatFormatting.YELLOW)
 										)
-								).with(
-										Text.translatableWithFallback(
+								).withLineAdded(
+										Component.translatableWithFallback(
 												"block.metacraft.relay.no_target.2", "compass in a crafting grid"
-										).setStyle(PolymerItemUtils.CLEAN_STYLE).styled(
-												style -> style.withFormatting(Formatting.YELLOW)
+										).setStyle(PolymerItemUtils.CLEAN_STYLE).withStyle(
+												style -> style.applyFormat(ChatFormatting.YELLOW)
 										)
 								)
 						);

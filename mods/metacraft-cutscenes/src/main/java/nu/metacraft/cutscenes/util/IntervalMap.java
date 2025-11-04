@@ -3,13 +3,12 @@ package nu.metacraft.cutscenes.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.Util;
-
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import net.minecraft.Util;
 
 public class IntervalMap<T> {
 
@@ -70,7 +69,7 @@ public class IntervalMap<T> {
 			return RecordCodecBuilder.create(
 					instance -> instance.group(
 							Codec.INT_STREAM.comapFlatMap(
-									stream -> Util.decodeFixedLengthArray(stream, 2), IntStream::of
+									stream -> Util.fixedSize(stream, 2), IntStream::of
 							).fieldOf("range").forGetter(
 									interval -> new int[]{interval.getStart(), interval.getEnd()}
 							),

@@ -3,21 +3,21 @@ package nu.metacraft.lib.condition.conditions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.loot.condition.LootCondition;
-import net.minecraft.loot.condition.LootConditionType;
-import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.util.StringIdentifiable;
-import net.minecraft.util.context.ContextParameter;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.ServerWorldAccess;
-import net.minecraft.world.biome.Biome;
 import nu.metacraft.lib.condition.METAcraftConditions;
 
 import java.util.Set;
 import java.util.function.BiPredicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.util.context.ContextKey;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 
-public class LocalWeather implements LootCondition {
+public class LocalWeather implements LootItemCondition {
 
 	public static final MapCodec<LocalWeather> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
@@ -32,56 +32,56 @@ public class LocalWeather implements LootCondition {
 	}
 
 	@Override
-	public LootConditionType getType() {
+	public LootItemConditionType getType() {
 		return METAcraftConditions.LOCAL_WEATHER;
 	}
 
 	@Override
 	public boolean test(LootContext context) {
-		var pos = context.get(LootContextParameters.ORIGIN);
+		var pos = context.getOptionalParameter(LootContextParams.ORIGIN);
 		if (pos == null) return false;
-		return weather.isActive(context.getWorld(), BlockPos.ofFloored(pos));
+		return weather.isActive(context.getLevel(), BlockPos.containing(pos));
 	}
 
 	@Override
-	public Set<ContextParameter<?>> getAllowedParameters() {
-		return Set.of(LootContextParameters.ORIGIN);
+	public Set<ContextKey<?>> getReferencedContextParams() {
+		return Set.of(LootContextParams.ORIGIN);
 	}
 
-	public enum WeatherType implements StringIdentifiable {
+	public enum WeatherType implements StringRepresentable {
 		CLEAR("clear", (world, pos) ->
-				!world.getLevelProperties().isRaining() ||
-				world.getBiome(pos).value().getPrecipitation(pos, world.getSeaLevel()) == Biome.Precipitation.NONE
+				!world.getLevelData().isRaining() ||
+				world.getBiome(pos).value().getPrecipitationAt(pos, world.getSeaLevel()) == Biome.Precipitation.NONE
 		),
 		RAIN("rain", (world, pos) ->
-				world.getLevelProperties().isRaining() &&
-				world.getBiome(pos).value().getPrecipitation(pos, world.getSeaLevel()) == Biome.Precipitation.RAIN
+				world.getLevelData().isRaining() &&
+				world.getBiome(pos).value().getPrecipitationAt(pos, world.getSeaLevel()) == Biome.Precipitation.RAIN
 		),
 		SNOW("snow", (world, pos) ->
-				world.getLevelProperties().isRaining() &&
-				world.getBiome(pos).value().getPrecipitation(pos, world.getSeaLevel()) == Biome.Precipitation.SNOW
+				world.getLevelData().isRaining() &&
+				world.getBiome(pos).value().getPrecipitationAt(pos, world.getSeaLevel()) == Biome.Precipitation.SNOW
 		),
 		THUNDER("thunder", (world, pos) ->
-				world.getLevelProperties().isThundering() &&
-				world.getBiome(pos).value().getPrecipitation(pos, world.getSeaLevel()) == Biome.Precipitation.RAIN
+				world.getLevelData().isThundering() &&
+				world.getBiome(pos).value().getPrecipitationAt(pos, world.getSeaLevel()) == Biome.Precipitation.RAIN
 		);
 
-		public static final Codec<WeatherType> CODEC = StringIdentifiable.createCodec(WeatherType::values);
+		public static final Codec<WeatherType> CODEC = StringRepresentable.fromEnum(WeatherType::values);
 
 		private final String name;
-		private final BiPredicate<ServerWorldAccess, BlockPos> isActive;
+		private final BiPredicate<ServerLevelAccessor, BlockPos> isActive;
 
-		WeatherType(String name, BiPredicate<ServerWorldAccess, BlockPos> isActive) {
+		WeatherType(String name, BiPredicate<ServerLevelAccessor, BlockPos> isActive) {
 			this.name = name;
 			this.isActive = isActive;
 		}
 
 		@Override
-		public String asString() {
+		public String getSerializedName() {
 			return name;
 		}
 
-		public boolean isActive(ServerWorldAccess world, BlockPos pos) {
+		public boolean isActive(ServerLevelAccessor world, BlockPos pos) {
 			return isActive.test(world, pos);
 		}
 	}

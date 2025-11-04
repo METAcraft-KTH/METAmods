@@ -3,14 +3,14 @@ package nu.metacraft.core.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.chunk.ChunkAccess;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 /**
  * A command for querying and freezing the InhabitedTime value of chunks.
@@ -26,16 +26,16 @@ public class InhabitedTimeCommand {
 	 */
 	public static boolean frozen = false;
 
-	public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
+	public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess) {
 		dispatcher.register(
 			literal("inhabitedtime")
 				.requires(Permissions.require("metacraft.inhabitedtime", 2))
 				.then(
 					literal("query")
 						.executes(ctx -> {
-							ServerCommandSource source = ctx.getSource();
-							Chunk chunk = source.getWorld().getChunk(BlockPos.ofFloored(source.getPosition()));
-							source.sendMessage(Text.literal("Inhabited time for chunk at " + chunk.getPos() + " is " + chunk.getInhabitedTime() + " ticks."));
+							CommandSourceStack source = ctx.getSource();
+							ChunkAccess chunk = source.getLevel().getChunk(BlockPos.containing(source.getPosition()));
+							source.sendSystemMessage(Component.literal("Inhabited time for chunk at " + chunk.getPos() + " is " + chunk.getInhabitedTime() + " ticks."));
 							return 1;
 						})
 						.then(
@@ -43,11 +43,11 @@ public class InhabitedTimeCommand {
 								.then(
 									argument("chunkY", IntegerArgumentType.integer())
 										.executes(ctx -> {
-											ServerCommandSource source = ctx.getSource();
+											CommandSourceStack source = ctx.getSource();
 											int chunkX = IntegerArgumentType.getInteger(ctx, "chunkX");
 											int chunkZ = IntegerArgumentType.getInteger(ctx, "chunkY");
-											Chunk chunk = source.getWorld().getChunk(chunkX, chunkZ);
-											source.sendMessage(Text.literal("Inhabited time for chunk at " + chunk.getPos() + " is " + chunk.getInhabitedTime() + " ticks."));
+											ChunkAccess chunk = source.getLevel().getChunk(chunkX, chunkZ);
+											source.sendSystemMessage(Component.literal("Inhabited time for chunk at " + chunk.getPos() + " is " + chunk.getInhabitedTime() + " ticks."));
 											return 1;
 										})
 								)
@@ -57,7 +57,7 @@ public class InhabitedTimeCommand {
 					literal("freeze")
 						.executes(ctx -> {
 							frozen = true;
-							ctx.getSource().sendMessage(Text.literal("Inhabited time incrementation is now frozen."));
+							ctx.getSource().sendSystemMessage(Component.literal("Inhabited time incrementation is now frozen."));
 							return 1;
 						})
 				)
@@ -65,14 +65,14 @@ public class InhabitedTimeCommand {
 					literal("unfreeze")
 						.executes(ctx -> {
 							frozen = false;
-							ctx.getSource().sendMessage(Text.literal("Inhabited time incrementation is now unfrozen."));
+							ctx.getSource().sendSystemMessage(Component.literal("Inhabited time incrementation is now unfrozen."));
 							return 1;
 						})
 				)
 				.then(
 					literal("status")
 						.executes(ctx -> {
-							ctx.getSource().sendMessage(Text.literal("Inhabited time incrementation is currently " + (frozen ? "frozen." : "unfrozen.")));
+							ctx.getSource().sendSystemMessage(Component.literal("Inhabited time incrementation is currently " + (frozen ? "frozen." : "unfrozen.")));
 							return 1;
 						})
 				)

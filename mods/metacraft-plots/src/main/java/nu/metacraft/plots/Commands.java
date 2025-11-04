@@ -8,13 +8,12 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.argument.GameProfileArgumentType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.PlayerConfigEntry;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.GameProfileArgument;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.players.NameAndId;
+import net.minecraft.world.entity.player.Player;
 import nu.metacraft.plots.gui.ProtectorateMenu;
 import nu.metacraft.plots.item.PlotKey;
 import nu.metacraft.plots.zone.PlayerOwnedProtectorate;
@@ -30,15 +29,15 @@ import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public class Commands {
 
 	private static final String PROTECTORATE = "protectorate";
 
-	public static final SuggestionProvider<ServerCommandSource> PLOT_NAME_SUGGESTIONS = (ctx, suggestionsBuilder) -> {
-		return CommandSource.suggestMatching(
+	public static final SuggestionProvider<CommandSourceStack> PLOT_NAME_SUGGESTIONS = (ctx, suggestionsBuilder) -> {
+		return SharedSuggestionProvider.suggest(
 				ZoneManager.getInstance(ctx.getSource().getServer()).getZones().getZones().stream().filter(
 						zone -> zone.get(PlotDataTypes.PLOT).isPresent()
 				).map(RealZone::getName),
@@ -46,28 +45,28 @@ public class Commands {
 		);
 	};
 
-	private static boolean canModifyOtherProtectorates(ServerCommandSource source) {
+	private static boolean canModifyOtherProtectorates(CommandSourceStack source) {
 		return Permissions.check(source, "metacraft.zone.protectorates.modify_members", 2);
 	}
 
-	public static final SuggestionProvider<ServerCommandSource> PROTECTORATE_NAME_SUGGESTIONS_ANY = (ctx, suggestionsBuilder) ->
-		CommandSource.suggestMatching(
+	public static final SuggestionProvider<CommandSourceStack> PROTECTORATE_NAME_SUGGESTIONS_ANY = (ctx, suggestionsBuilder) ->
+		SharedSuggestionProvider.suggest(
 				ZoneManager.getInstance(ctx.getSource().getServer()).getZones().getZones().stream().filter(
 						zone -> zone.get(PlotDataTypes.PLAYER_PROTECTORATE).isPresent()
 				).map(RealZone::getName),
 				suggestionsBuilder
 		);
-	public static final SuggestionProvider<ServerCommandSource> PROTECTORATE_NAME_SUGGESTIONS_MEMBER = getProvider(PlayerOwnedProtectorate::isAllowed);
-	public static final SuggestionProvider<ServerCommandSource> PROTECTORATE_NAME_SUGGESTIONS_ADMIN = getProvider(PlayerOwnedProtectorate::canModifyMembers);
-	public static final SuggestionProvider<ServerCommandSource> PROTECTORATE_NAME_SUGGESTIONS_OWNER = getProvider(PlayerOwnedProtectorate::isOwner);
+	public static final SuggestionProvider<CommandSourceStack> PROTECTORATE_NAME_SUGGESTIONS_MEMBER = getProvider(PlayerOwnedProtectorate::isAllowed);
+	public static final SuggestionProvider<CommandSourceStack> PROTECTORATE_NAME_SUGGESTIONS_ADMIN = getProvider(PlayerOwnedProtectorate::canModifyMembers);
+	public static final SuggestionProvider<CommandSourceStack> PROTECTORATE_NAME_SUGGESTIONS_OWNER = getProvider(PlayerOwnedProtectorate::isOwner);
 
-	public static SuggestionProvider<ServerCommandSource> getProvider(
-			BiPredicate<PlayerOwnedProtectorate, PlayerEntity> hasPermission
+	public static SuggestionProvider<CommandSourceStack> getProvider(
+			BiPredicate<PlayerOwnedProtectorate, Player> hasPermission
 	) {
 		return (ctx, suggestionsBuilder) -> {
 			boolean allowAll = canModifyOtherProtectorates(ctx.getSource());
-			PlayerEntity player = allowAll ? null : ctx.getSource().getPlayerOrThrow();
-			return CommandSource.suggestMatching(
+			Player player = allowAll ? null : ctx.getSource().getPlayerOrException();
+			return SharedSuggestionProvider.suggest(
 					ZoneManager.getInstance(ctx.getSource().getServer()).getZones().getZones().stream().filter(
 							zone -> zone.get(PlotDataTypes.PLAYER_PROTECTORATE).map(
 									protectorate -> allowAll || hasPermission.test(protectorate, player)
@@ -78,9 +77,9 @@ public class Commands {
 		};
 	}
 
-	public static SuggestionProvider<ServerCommandSource> getFriendlyKeyNamesSuggestions(String plotArgument) {
+	public static SuggestionProvider<CommandSourceStack> getFriendlyKeyNamesSuggestions(String plotArgument) {
 		return (ctx, suggestionsBuilder) -> {
-			return CommandSource.suggestMatching(
+			return SharedSuggestionProvider.suggest(
 					getPlot(ctx, plotArgument).getSecondaryKeyNames().stream().map(StringArgumentType::escapeIfRequired),
 					suggestionsBuilder
 			);
@@ -88,74 +87,74 @@ public class Commands {
 	}
 
 	private static final DynamicCommandExceptionType NOT_A_PLOT = new DynamicCommandExceptionType(
-			object -> Text.literal(object + " is not a plot!")
+			object -> Component.literal(object + " is not a plot!")
 	);
 
 	private static final DynamicCommandExceptionType NOT_A_PROTECTORATE = new DynamicCommandExceptionType(
-			object -> Text.literal(object + " is not a protectorate!")
+			object -> Component.literal(object + " is not a protectorate!")
 	);
 
 	private static final DynamicCommandExceptionType NOT_MEMBER = new DynamicCommandExceptionType(
-			object -> Text.literal("You are not a member of " + object + "!")
+			object -> Component.literal("You are not a member of " + object + "!")
 	);
 
 	private static final DynamicCommandExceptionType NOT_ADMIN = new DynamicCommandExceptionType(
-			object -> Text.literal("You are not an admin of " + object + "!")
+			object -> Component.literal("You are not an admin of " + object + "!")
 	);
 
 	private static final DynamicCommandExceptionType NOT_OWNER = new DynamicCommandExceptionType(
-			object -> Text.literal("You are not an owner of " + object + "!")
+			object -> Component.literal("You are not an owner of " + object + "!")
 	);
 
 
 	private static final DynamicCommandExceptionType FRIENDLY_NAME_TAKE = new DynamicCommandExceptionType(
-			object -> Text.literal(object + " is already used by another key!")
+			object -> Component.literal(object + " is already used by another key!")
 	);
 
 	private static void printPlayers(
 			PlayerOwnedProtectorate protectorate,
 			String prefix,
-			CommandContext<ServerCommandSource> ctx,
-			Collection<PlayerConfigEntry> players
+			CommandContext<CommandSourceStack> ctx,
+			Collection<NameAndId> players
 	) {
 		if (players.isEmpty()) {
-			ctx.getSource().sendFeedback(
-					() -> Text.literal("No members modified"),
+			ctx.getSource().sendSuccess(
+					() -> Component.literal("No members modified"),
 					false
 			);
 		} else {
-			Text message = Text.literal(prefix + " " + players.stream().map(
-					PlayerConfigEntry::name
+			Component message = Component.literal(prefix + " " + players.stream().map(
+					NameAndId::name
 			).collect(Collectors.joining(", ")));
 			protectorate.getOwnersAndAdmins().filter(
-					owner -> ctx.getSource().getPlayer() == null || !ctx.getSource().getPlayer().getUuid().equals(owner)
+					owner -> ctx.getSource().getPlayer() == null || !ctx.getSource().getPlayer().getUUID().equals(owner)
 			).forEach(owner -> {
-				Optional.ofNullable(ctx.getSource().getServer().getPlayerManager().getPlayer(owner)).ifPresent(o -> {
-					o.sendMessage(message);
+				Optional.ofNullable(ctx.getSource().getServer().getPlayerList().getPlayer(owner)).ifPresent(o -> {
+					o.sendSystemMessage(message);
 				});
 			});
-			ctx.getSource().sendFeedback(() -> message, false);
+			ctx.getSource().sendSuccess(() -> message, false);
 		}
 	}
 
-	private static Stream<String> getNames(Collection<UUID> ids, ServerCommandSource source) {
+	private static Stream<String> getNames(Collection<UUID> ids, CommandSourceStack source) {
 		return getNames(ids.stream(), source);
 	}
 
-	private static Stream<String> getNames(Stream<UUID> ids, ServerCommandSource source) {
+	private static Stream<String> getNames(Stream<UUID> ids, CommandSourceStack source) {
 		return ids.map(
-			member -> source.getServer().getApiServices().nameToIdCache().getByUuid(member).map(PlayerConfigEntry::name).orElse(null)
+			member -> source.getServer().services().nameToIdCache().get(member).map(NameAndId::name).orElse(null)
 		).filter(Objects::nonNull);
 	}
 
-	private static SuggestionProvider<ServerCommandSource> getPlayerAddSuggestions(
+	private static SuggestionProvider<CommandSourceStack> getPlayerAddSuggestions(
 			String protectorateArg,
-			BiPredicateThrowing<PlayerOwnedProtectorate, PlayerEntity> alreadyPresentCheck
+			BiPredicateThrowing<PlayerOwnedProtectorate, Player> alreadyPresentCheck
 	) {
 		return (ctx, builder) -> {
 			var protectorate = getProtectorateUnsafe(ctx, protectorateArg);
-			return CommandSource.suggestMatching(
-					ctx.getSource().getServer().getPlayerManager().getPlayerList().stream().filter(
+			return SharedSuggestionProvider.suggest(
+					ctx.getSource().getServer().getPlayerList().getPlayers().stream().filter(
 							player -> {
 								try {
 									return !alreadyPresentCheck.test(protectorate, player);
@@ -169,17 +168,17 @@ public class Commands {
 		};
 	}
 
-	private static SuggestionProvider<ServerCommandSource> getExistingPlayerSuggestions(
+	private static SuggestionProvider<CommandSourceStack> getExistingPlayerSuggestions(
 			String protectorateArg,
-			BiFunctionThrowing<CommandContext<ServerCommandSource>, PlayerOwnedProtectorate, Stream<UUID>> existingPlayers
+			BiFunctionThrowing<CommandContext<CommandSourceStack>, PlayerOwnedProtectorate, Stream<UUID>> existingPlayers
 	) {
 		return (ctx, builder) -> {
 			var protectorate = getProtectorateUnsafe(ctx, protectorateArg);
-			return CommandSource.suggestMatching(
+			return SharedSuggestionProvider.suggest(
 					existingPlayers.apply(ctx, protectorate).filter(
-							player -> ctx.getSource().getServer().getApiServices().nameToIdCache().getByUuid(player).isPresent()
+							player -> ctx.getSource().getServer().services().nameToIdCache().get(player).isPresent()
 					).map(
-							player -> ctx.getSource().getServer().getApiServices().nameToIdCache().getByUuid(player).get().name()
+							player -> ctx.getSource().getServer().services().nameToIdCache().get(player).get().name()
 					),
 					builder
 			);
@@ -191,15 +190,15 @@ public class Commands {
 			dispatcher.register(
 					literal("land-ownership").then(
 						literal("gui").executes(ctx -> {
-							new ProtectorateMenu(ctx.getSource().getPlayerOrThrow()).open();
+							new ProtectorateMenu(ctx.getSource().getPlayerOrException()).open();
 							return 1;
 						})
 					).then(
 						literal("balance").then(
 							protectorateIfMember(PROTECTORATE).executes(ctx -> {
 								var protectorate = getProtectorateFromMember(ctx, PROTECTORATE);
-								ctx.getSource().sendFeedback(
-										() -> Text.literal("Balance: " + protectorate.getBalance()),
+								ctx.getSource().sendSuccess(
+										() -> Component.literal("Balance: " + protectorate.getBalance()),
 										false
 								);
 								return 1;
@@ -212,7 +211,7 @@ public class Commands {
 							ZoneCommandUtils.zone("zone").executes(ctx -> {
 								Zone zone = ZoneCommandUtils.getZone(ctx, "zone");
 								zone.getOrCreate(PlotDataTypes.PLAYER_PROTECTORATE);
-								ctx.getSource().sendFeedback(() -> Text.literal(
+								ctx.getSource().sendSuccess(() -> Component.literal(
 										zone.getName() + " is now a protectorate"
 								), true);
 								return 1;
@@ -227,7 +226,7 @@ public class Commands {
 									protectorateAny(PROTECTORATE).executes(ctx -> {
 										RealZone zone = ZoneCommandUtils.getZone(ctx, PROTECTORATE);
 										zone.removeZoneData(PlotDataTypes.PLAYER_PROTECTORATE);
-										ctx.getSource().sendFeedback(() -> Text.literal(
+										ctx.getSource().sendSuccess(() -> Component.literal(
 												zone.getName() + " is no longer a protectorate"
 										), true);
 										return 1;
@@ -239,10 +238,10 @@ public class Commands {
 						literal("member").then(
 							literal("add").then(
 								protectorateIfAdmin(PROTECTORATE).then(
-									argument("player", GameProfileArgumentType.gameProfile()).suggests(
+									argument("player", GameProfileArgument.gameProfile()).suggests(
 										getPlayerAddSuggestions(PROTECTORATE, PlayerOwnedProtectorate::isAllowed)
 									).executes(ctx -> {
-										var players = new HashSet<>(GameProfileArgumentType.getProfileArgument(ctx, "player"));
+										var players = new HashSet<>(GameProfileArgument.getGameProfiles(ctx, "player"));
 										var protectorate = getProtectorateFromAdmin(ctx,PROTECTORATE);
 										var it = players.iterator();
 										while (it.hasNext()) {
@@ -262,8 +261,8 @@ public class Commands {
 							literal("list").then(
 								protectorateIfMember(PROTECTORATE).executes(ctx -> {
 									var protectorate = getProtectorateFromMember(ctx,PROTECTORATE);
-									ctx.getSource().sendFeedback(
-											() -> Text.literal(
+									ctx.getSource().sendSuccess(
+											() -> Component.literal(
 												"Members:\n" + getNames(
 														protectorate.getMembers(), ctx.getSource()
 												).collect(Collectors.joining("\n"))
@@ -277,10 +276,10 @@ public class Commands {
 						literal("owner").then(
 							literal("add").then(
 								protectorateIfOwner(PROTECTORATE).then(
-									argument("player", GameProfileArgumentType.gameProfile()).suggests(
+									argument("player", GameProfileArgument.gameProfile()).suggests(
 										getPlayerAddSuggestions(PROTECTORATE, PlayerOwnedProtectorate::isAllowed)
 									).executes(ctx -> {
-										var players = new HashSet<>(GameProfileArgumentType.getProfileArgument(ctx, "player"));
+										var players = new HashSet<>(GameProfileArgument.getGameProfiles(ctx, "player"));
 										var protectorate = getProtectorateFromOwner(ctx,PROTECTORATE);
 										var it = players.iterator();
 										while (it.hasNext()) {
@@ -300,8 +299,8 @@ public class Commands {
 							literal("list").then(
 								protectorateIfMember(PROTECTORATE).executes(ctx -> {
 									var protectorate = getProtectorateFromMember(ctx,PROTECTORATE);
-									ctx.getSource().sendFeedback(
-										() -> Text.literal(
+									ctx.getSource().sendSuccess(
+										() -> Component.literal(
 											"Owners:\n" + getNames(
 													protectorate.getOwners(), ctx.getSource()
 											).collect(Collectors.joining("\n"))
@@ -315,10 +314,10 @@ public class Commands {
 						literal("admin").then(
 							literal("add").then(
 								protectorateIfOwner(PROTECTORATE).then(
-									argument("player", GameProfileArgumentType.gameProfile()).suggests(
+									argument("player", GameProfileArgument.gameProfile()).suggests(
 											getPlayerAddSuggestions(PROTECTORATE, PlayerOwnedProtectorate::isAdmin)
 									).executes(ctx -> {
-										var players = new HashSet<>(GameProfileArgumentType.getProfileArgument(ctx, "player"));
+										var players = new HashSet<>(GameProfileArgument.getGameProfiles(ctx, "player"));
 										var protectorate = getProtectorateFromOwner(ctx,PROTECTORATE);
 										var it = players.iterator();
 										while (it.hasNext()) {
@@ -338,8 +337,8 @@ public class Commands {
 							literal("list").then(
 								protectorateIfMember(PROTECTORATE).executes(ctx -> {
 									var protectorate = getProtectorateFromMember(ctx,PROTECTORATE);
-									ctx.getSource().sendFeedback(
-											() -> Text.literal(
+									ctx.getSource().sendSuccess(
+											() -> Component.literal(
 												"Members:\n" + getNames(
 														protectorate.getAdmins(), ctx.getSource()
 												).collect(Collectors.joining("\n"))
@@ -352,26 +351,26 @@ public class Commands {
 					).then(
 						literal("remove").then(
 							protectorateIfAdmin(PROTECTORATE).then(
-								argument("player", GameProfileArgumentType.gameProfile()).suggests(
+								argument("player", GameProfileArgument.gameProfile()).suggests(
 										getExistingPlayerSuggestions(PROTECTORATE, (ctx, protectorate) -> {
 											if (
 													canModifyOtherProtectorates(ctx.getSource()) ||
-													protectorate.isOwner(ctx.getSource().getPlayerOrThrow())
+													protectorate.isOwner(ctx.getSource().getPlayerOrException())
 											) {
 												return protectorate.getEveryone();
 											}
-											if (protectorate.isAdmin(ctx.getSource().getPlayerOrThrow())) {
+											if (protectorate.isAdmin(ctx.getSource().getPlayerOrException())) {
 												return protectorate.getMembers().stream();
 											}
 											return Stream.empty();
 										})
 								).executes(ctx -> {
-									var players = new HashSet<>(GameProfileArgumentType.getProfileArgument(ctx, "player"));
+									var players = new HashSet<>(GameProfileArgument.getGameProfiles(ctx, "player"));
 									var protectorate = getProtectorateFromAdmin(ctx, PROTECTORATE);
 									boolean isOwner = canModifyOtherProtectorates(ctx.getSource()) ||
-											protectorate.isOwner(ctx.getSource().getPlayerOrThrow());
+											protectorate.isOwner(ctx.getSource().getPlayerOrException());
 									boolean isAdmin = canModifyOtherProtectorates(ctx.getSource()) ||
-											protectorate.isAdmin(ctx.getSource().getPlayerOrThrow());
+											protectorate.isAdmin(ctx.getSource().getPlayerOrException());
 									if (isAdmin || isOwner) {
 										var it = players.iterator();
 										while (it.hasNext()) {
@@ -387,11 +386,11 @@ public class Commands {
 											}
 											if (
 												ctx.getSource().getPlayer() != null &&
-												ctx.getSource().getPlayer().getUuid().equals(id.id()) &&
+												ctx.getSource().getPlayer().getUUID().equals(id.id()) &&
 												!canModifyOtherProtectorates(ctx.getSource())
 											) {
 												it.remove();
-												ctx.getSource().sendError(Text.literal(
+												ctx.getSource().sendFailure(Component.literal(
 													"Removing yourself from the protectorate is a bad idea, good thing I noticed and stopped you."
 												));
 												continue;
@@ -416,18 +415,18 @@ public class Commands {
 					).then(
 						literal("promote").then(
 							protectorateIfOwner(PROTECTORATE).then(
-								argument("player", GameProfileArgumentType.gameProfile()).suggests(
+								argument("player", GameProfileArgument.gameProfile()).suggests(
 									getExistingPlayerSuggestions(PROTECTORATE, (ctx, protectorate) -> {
 										if (
 											canModifyOtherProtectorates(ctx.getSource()) ||
-											protectorate.isOwner(ctx.getSource().getPlayerOrThrow())
+											protectorate.isOwner(ctx.getSource().getPlayerOrException())
 										) {
 											return protectorate.getNonOwners();
 										}
 										return Stream.empty();
 									})
 								).executes(ctx -> {
-									var players = GameProfileArgumentType.getProfileArgument(ctx, "player");
+									var players = GameProfileArgument.getGameProfiles(ctx, "player");
 									var protectorate = getProtectorateFromOwner(ctx, PROTECTORATE);
 									for (var player : players) {
 										if (protectorate.isAdmin(player.id())) {
@@ -447,29 +446,29 @@ public class Commands {
 					).then(
 						literal("demote").then(
 							protectorateIfOwner(PROTECTORATE).then(
-								argument("player", GameProfileArgumentType.gameProfile()).suggests(
+								argument("player", GameProfileArgument.gameProfile()).suggests(
 									getExistingPlayerSuggestions(PROTECTORATE, (ctx, protectorate) -> {
 										if (
 												canModifyOtherProtectorates(ctx.getSource()) ||
-												protectorate.isOwner(ctx.getSource().getPlayerOrThrow())
+												protectorate.isOwner(ctx.getSource().getPlayerOrException())
 										) {
 											return protectorate.getOwnersAndAdmins();
 										}
 										return Stream.empty();
 									})
 								).executes(ctx -> {
-									var players = new HashSet<>(GameProfileArgumentType.getProfileArgument(ctx, "player"));
+									var players = new HashSet<>(GameProfileArgument.getGameProfiles(ctx, "player"));
 									var protectorate = getProtectorateFromOwner(ctx, PROTECTORATE);
 									var it = players.iterator();
 									while (it.hasNext()) {
 										var player = it.next();
 										if (
 												ctx.getSource().getPlayer() != null &&
-												ctx.getSource().getPlayer().getUuid().equals(player.id()) &&
+												ctx.getSource().getPlayer().getUUID().equals(player.id()) &&
 												!canModifyOtherProtectorates(ctx.getSource())
 										) {
 											it.remove();
-											ctx.getSource().sendError(Text.literal(
+											ctx.getSource().sendFailure(Component.literal(
 												"Demoting yourself is a bad idea, good thing I noticed and stopped you."
 											));
 											continue;
@@ -495,7 +494,7 @@ public class Commands {
 					).then(
 						literal("list").then(
 							literal("protectorates").executes(ctx -> {
-								ctx.getSource().sendFeedback(() -> Text.literal(
+								ctx.getSource().sendSuccess(() -> Component.literal(
 										"Protectorates:\n" + ZoneManager.getInstance(ctx.getSource().getServer()).getZones().getZones().stream().filter(
 												zone -> zone.get(PlotDataTypes.PLAYER_PROTECTORATE).isPresent()
 										).map(RealZone::getName).collect(Collectors.joining("\n"))
@@ -506,8 +505,8 @@ public class Commands {
 							literal("members").then(
 								protectorateAny(PROTECTORATE).executes(ctx -> {
 									var protectorate = getProtectorateUnsafe(ctx,PROTECTORATE);
-									ctx.getSource().sendFeedback(
-											() -> Text.literal(
+									ctx.getSource().sendSuccess(
+											() -> Component.literal(
 												"Members:\n" + getNames(
 														protectorate.getEveryone(), ctx.getSource()
 												).collect(Collectors.joining("\n"))
@@ -527,8 +526,8 @@ public class Commands {
 							ZoneCommandUtils.zone("zone").executes(ctx -> {
 								var zone = ZoneCommandUtils.getZone(ctx, "zone");
 								zone.getOrCreate(PlotDataTypes.PLOT);
-								ctx.getSource().sendFeedback(
-										() -> Text.literal("Zone " + zone.getName() + " is now a plot!"),
+								ctx.getSource().sendSuccess(
+										() -> Component.literal("Zone " + zone.getName() + " is now a plot!"),
 										true
 								);
 								return 1;
@@ -541,8 +540,8 @@ public class Commands {
 									literal("yes-im-really-sure").executes(ctx -> {
 										var zone = ZoneCommandUtils.getZone(ctx, "plot");
 										zone.removeZoneData(PlotDataTypes.PLOT);
-										ctx.getSource().sendFeedback(
-												() -> Text.literal("Zone " + zone.getName() + " is no longer a plot!"),
+										ctx.getSource().sendSuccess(
+												() -> Component.literal("Zone " + zone.getName() + " is no longer a plot!"),
 												true
 										);
 										return 1;
@@ -554,11 +553,11 @@ public class Commands {
 						literal("create-master-key").then(
 								plot("plot").executes(ctx -> {
 									var data = getPlot(ctx, "plot");
-									ctx.getSource().getPlayerOrThrow().getInventory().insertStack(
+									ctx.getSource().getPlayerOrException().getInventory().add(
 											PlotKey.createMasterKey(data)
 									);
-									ctx.getSource().sendFeedback(
-											() -> Text.literal("Obtained master key for plot " + data.getZone().getName()),
+									ctx.getSource().sendSuccess(
+											() -> Component.literal("Obtained master key for plot " + data.getZone().getName()),
 											true
 									);
 									return 1;
@@ -570,24 +569,24 @@ public class Commands {
 								argument("friendly-name", StringArgumentType.string()).executes(ctx -> {
 									var data = getPlot(ctx, "plot");
 									var friendlyName = StringArgumentType.getString(ctx, "friendly-name");
-									ctx.getSource().getPlayerOrThrow().getInventory().insertStack(
+									ctx.getSource().getPlayerOrException().getInventory().add(
 											PlotKey.createKey(friendlyName, data).orElseThrow(
 													() -> FRIENDLY_NAME_TAKE.create(friendlyName)
 											)
 									);
-									ctx.getSource().sendFeedback(
-											() -> Text.literal("Obtained key for plot " + data.getZone().getName()),
+									ctx.getSource().sendSuccess(
+											() -> Component.literal("Obtained key for plot " + data.getZone().getName()),
 											true
 									);
 									return 1;
 								})
 							).executes(ctx -> {
 								var data = getPlot(ctx, "plot");
-								ctx.getSource().getPlayerOrThrow().getInventory().insertStack(
+								ctx.getSource().getPlayerOrException().getInventory().add(
 										PlotKey.createKey(data)
 								);
-								ctx.getSource().sendFeedback(
-										() -> Text.literal("Obtained key for plot " + data.getZone().getName()),
+								ctx.getSource().sendSuccess(
+										() -> Component.literal("Obtained key for plot " + data.getZone().getName()),
 										true
 								);
 								return 1;
@@ -602,13 +601,13 @@ public class Commands {
 									var data = getPlot(ctx, "plot");
 									var friendlyName = StringArgumentType.getString(ctx, "friendly-name");
 									if (data.revokeSecondarySecret(friendlyName)) {
-										ctx.getSource().sendFeedback(
-												() -> Text.literal("Revoked key " + friendlyName + " from plot " + data.getZone().getName()),
+										ctx.getSource().sendSuccess(
+												() -> Component.literal("Revoked key " + friendlyName + " from plot " + data.getZone().getName()),
 												true
 										);
 										return 1;
 									} else {
-										ctx.getSource().sendError(Text.literal("Invalid friendly key name!"));
+										ctx.getSource().sendFailure(Component.literal("Invalid friendly key name!"));
 										return 0;
 									}
 								})
@@ -620,8 +619,8 @@ public class Commands {
 								literal("yes-im-sure").executes(ctx -> {
 									var data = getPlot(ctx, "plot");
 									data.revokeAllSecondarySecrets();
-									ctx.getSource().sendFeedback(
-											() -> Text.literal("Revoked all secondary keys from plot " + data.getZone().getName()),
+									ctx.getSource().sendSuccess(
+											() -> Component.literal("Revoked all secondary keys from plot " + data.getZone().getName()),
 											true
 									);
 									return 1;
@@ -634,8 +633,8 @@ public class Commands {
 								literal("yes-im-sure").executes(ctx -> {
 									var data = getPlot(ctx,"plot");
 									data.regeneratePlotSecret();
-									ctx.getSource().sendFeedback(
-											() -> Text.literal("Revoked master key from plot " + data.getZone().getName()),
+									ctx.getSource().sendSuccess(
+											() -> Component.literal("Revoked master key from plot " + data.getZone().getName()),
 											true
 									);
 									return 1;
@@ -648,58 +647,58 @@ public class Commands {
 	}
 
 
-	public static RequiredArgumentBuilder<ServerCommandSource, ?> plot(String arg) {
-		return CommandManager.argument(arg, StringArgumentType.string()).suggests(PLOT_NAME_SUGGESTIONS);
+	public static RequiredArgumentBuilder<CommandSourceStack, ?> plot(String arg) {
+		return net.minecraft.commands.Commands.argument(arg, StringArgumentType.string()).suggests(PLOT_NAME_SUGGESTIONS);
 	}
 
-	public static RequiredArgumentBuilder<ServerCommandSource, ?> protectorateAny(String arg) {
-		return CommandManager.argument(arg, StringArgumentType.string()).suggests(PROTECTORATE_NAME_SUGGESTIONS_ANY);
+	public static RequiredArgumentBuilder<CommandSourceStack, ?> protectorateAny(String arg) {
+		return net.minecraft.commands.Commands.argument(arg, StringArgumentType.string()).suggests(PROTECTORATE_NAME_SUGGESTIONS_ANY);
 	}
-	public static RequiredArgumentBuilder<ServerCommandSource, ?> protectorateIfMember(String arg) {
-		return CommandManager.argument(arg, StringArgumentType.string()).suggests(PROTECTORATE_NAME_SUGGESTIONS_MEMBER);
+	public static RequiredArgumentBuilder<CommandSourceStack, ?> protectorateIfMember(String arg) {
+		return net.minecraft.commands.Commands.argument(arg, StringArgumentType.string()).suggests(PROTECTORATE_NAME_SUGGESTIONS_MEMBER);
 	}
-	public static RequiredArgumentBuilder<ServerCommandSource, ?> protectorateIfAdmin(String arg) {
-		return CommandManager.argument(arg, StringArgumentType.string()).suggests(PROTECTORATE_NAME_SUGGESTIONS_ADMIN);
+	public static RequiredArgumentBuilder<CommandSourceStack, ?> protectorateIfAdmin(String arg) {
+		return net.minecraft.commands.Commands.argument(arg, StringArgumentType.string()).suggests(PROTECTORATE_NAME_SUGGESTIONS_ADMIN);
 	}
-	public static RequiredArgumentBuilder<ServerCommandSource, ?> protectorateIfOwner(String arg) {
-		return CommandManager.argument(arg, StringArgumentType.string()).suggests(PROTECTORATE_NAME_SUGGESTIONS_OWNER);
+	public static RequiredArgumentBuilder<CommandSourceStack, ?> protectorateIfOwner(String arg) {
+		return net.minecraft.commands.Commands.argument(arg, StringArgumentType.string()).suggests(PROTECTORATE_NAME_SUGGESTIONS_OWNER);
 	}
 
-	public static PlotData getPlot(CommandContext<ServerCommandSource> ctx, String arg) throws CommandSyntaxException {
+	public static PlotData getPlot(CommandContext<CommandSourceStack> ctx, String arg) throws CommandSyntaxException {
 		var zone = ZoneCommandUtils.getZone(ctx, arg);
 		return zone.get(PlotDataTypes.PLOT).orElseThrow(
 				() -> NOT_A_PLOT.create(zone.getName())
 		);
 	}
 
-	public static PlayerOwnedProtectorate getProtectorateUnsafe(CommandContext<ServerCommandSource> ctx, String arg) throws CommandSyntaxException {
+	public static PlayerOwnedProtectorate getProtectorateUnsafe(CommandContext<CommandSourceStack> ctx, String arg) throws CommandSyntaxException {
 		var zone = ZoneCommandUtils.getZone(ctx, arg);
 		return zone.get(PlotDataTypes.PLAYER_PROTECTORATE).orElseThrow(
 				() -> NOT_A_PROTECTORATE.create(zone.getName())
 		);
 	}
 
-	public static PlayerOwnedProtectorate getProtectorateFromMember(CommandContext<ServerCommandSource> ctx, String arg) throws CommandSyntaxException {
+	public static PlayerOwnedProtectorate getProtectorateFromMember(CommandContext<CommandSourceStack> ctx, String arg) throws CommandSyntaxException {
 		var protectorate = getProtectorateUnsafe(ctx, arg);
-		if (canModifyOtherProtectorates(ctx.getSource()) || protectorate.isAllowed(ctx.getSource().getPlayerOrThrow())) {
+		if (canModifyOtherProtectorates(ctx.getSource()) || protectorate.isAllowed(ctx.getSource().getPlayerOrException())) {
 			return protectorate;
 		} else {
 			throw NOT_MEMBER.create(protectorate.getZone().getName());
 		}
 	}
 
-	public static PlayerOwnedProtectorate getProtectorateFromAdmin(CommandContext<ServerCommandSource> ctx, String arg) throws CommandSyntaxException {
+	public static PlayerOwnedProtectorate getProtectorateFromAdmin(CommandContext<CommandSourceStack> ctx, String arg) throws CommandSyntaxException {
 		var protectorate = getProtectorateUnsafe(ctx, arg);
-		if (canModifyOtherProtectorates(ctx.getSource()) || protectorate.canModifyMembers(ctx.getSource().getPlayerOrThrow())) {
+		if (canModifyOtherProtectorates(ctx.getSource()) || protectorate.canModifyMembers(ctx.getSource().getPlayerOrException())) {
 			return protectorate;
 		} else {
 			throw NOT_ADMIN.create(protectorate.getZone().getName());
 		}
 	}
 
-	public static PlayerOwnedProtectorate getProtectorateFromOwner(CommandContext<ServerCommandSource> ctx, String arg) throws CommandSyntaxException {
+	public static PlayerOwnedProtectorate getProtectorateFromOwner(CommandContext<CommandSourceStack> ctx, String arg) throws CommandSyntaxException {
 		var protectorate = getProtectorateUnsafe(ctx, arg);
-		if (canModifyOtherProtectorates(ctx.getSource()) || protectorate.isOwner(ctx.getSource().getPlayerOrThrow())) {
+		if (canModifyOtherProtectorates(ctx.getSource()) || protectorate.isOwner(ctx.getSource().getPlayerOrException())) {
 			return protectorate;
 		} else {
 			throw NOT_OWNER.create(protectorate.getZone().getName());

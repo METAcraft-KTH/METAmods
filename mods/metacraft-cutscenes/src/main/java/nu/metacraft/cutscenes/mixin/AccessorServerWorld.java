@@ -1,26 +1,26 @@
 package nu.metacraft.cutscenes.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.server.world.ServerChunkManager;
-import net.minecraft.server.world.ServerEntityManager;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.entity.EntityLookup;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.entity.LevelEntityGetter;
+import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(ServerWorld.class)
+@Mixin(ServerLevel.class)
 public interface AccessorServerWorld {
 	@Invoker
-	EntityLookup<Entity> callGetEntityLookup();
+	LevelEntityGetter<Entity> callGetEntities();
 
 	@Accessor
 	@Mutable
-	void setEntityManager(ServerEntityManager<Entity> manager);
+	void setEntityManager(PersistentEntitySectionManager<Entity> manager);
 
 	@Accessor
 	@Mutable
-	void setChunkManager(ServerChunkManager chunkManager);
+	void setChunkSource(ServerChunkCache chunkManager);
 
 }

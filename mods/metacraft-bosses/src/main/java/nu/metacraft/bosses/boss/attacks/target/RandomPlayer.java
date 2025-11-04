@@ -1,11 +1,11 @@
 package nu.metacraft.bosses.boss.attacks.target;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.util.math.Vec3d;
 import nu.metacraft.bosses.boss.attacks.Attack;
 import nu.metacraft.bosses.boss.attacks.AttackRegistry;
 
 import java.util.Optional;
+import net.minecraft.world.phys.Vec3;
 
 public class RandomPlayer extends PositionTargetSelector {
 
@@ -20,7 +20,7 @@ public class RandomPlayer extends PositionTargetSelector {
 	private RandomPlayer() {}
 
 	@Override
-	public Optional<Vec3d> getTarget(Attack.BossContext<?> ctx) {
+	public Optional<Vec3> getTarget(Attack.BossContext<?> ctx) {
 		var playerTargets = ctx.boss().getPlayerTargets();
 		if (playerTargets.isEmpty()) return Optional.empty();
 		return Optional.of(playerTargets.get(ctx.random().nextInt(playerTargets.size())).getBoundingBox().getCenter());

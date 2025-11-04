@@ -1,26 +1,34 @@
 package nu.metacraft.simplecustomfeatures.objects.blocks.dynamic_portal;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.NetherPortalBlock;
-import net.minecraft.block.pattern.CachedBlockPosition;
-import net.minecraft.entity.*;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.state.property.Properties;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
+import net.minecraft.BlockUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.*;
-import net.minecraft.world.dimension.DimensionType;
-import net.minecraft.world.poi.PointOfInterest;
-import net.minecraft.world.poi.PointOfInterestStorage;
-import net.minecraft.world.tick.ScheduledTickView;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.SpawnPlacementTypes;
+import net.minecraft.world.entity.SpawnPlacements;
+import net.minecraft.world.entity.ai.village.poi.PoiManager;
+import net.minecraft.world.entity.ai.village.poi.PoiRecord;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.NetherPortalBlock;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.pattern.BlockInWorld;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import nu.metacraft.lib.util.helper.EntityHelper;
@@ -36,24 +44,24 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 
 	private final PortalBlockObject portal;
 
-	public DynamicPortalBlock(AbstractBlock.Settings settings, PortalBlockObject portal) {
+	public DynamicPortalBlock(BlockBehaviour.Properties settings, PortalBlockObject portal) {
 		super(settings);
 		this.portal = portal;
 	}
 
 	@Override
-	protected void randomTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {
-		if (world.getGameRules().getBoolean(GameRules.DO_MOB_SPAWNING)) {
-			var spawns = portal.getEntitySpawns().get(world.getRegistryKey());
+	protected void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
+		if (world.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {
+			var spawns = portal.getEntitySpawns().get(world.dimension());
 			if (spawns != null && random.nextDouble() <= spawns.spawnChance()) {
-				spawns.entities().getOrEmpty(random).ifPresent(entityData -> {
-					var spawnPos = new BlockPos.Mutable().set(pos);
+				spawns.entities().getRandom(random).ifPresent(entityData -> {
+					var spawnPos = new BlockPos.MutableBlockPos().set(pos);
 					try (var logging = LoggingErrorReporter.create(() -> "simple-custom-features:DynamicPortalBlock#randomTick", Features.LOGGER)) {
-						var readView = NbtReadView.create(logging, world.getRegistryManager(), entityData);
-						var type = EntityType.fromData(readView).orElse(null);
-						if (SpawnRestriction.getLocation(type) != SpawnLocationTypes.UNRESTRICTED) {
-							BlockPos.Mutable blockBelowChecker = new BlockPos.Mutable().set(pos);
-							while (world.getBlockState(blockBelowChecker).isOf(this) && blockBelowChecker.getY() > world.getBottomY()) {
+						var readView = TagValueInput.create(logging, world.registryAccess(), entityData);
+						var type = EntityType.by(readView).orElse(null);
+						if (SpawnPlacements.getPlacementType(type) != SpawnPlacementTypes.NO_RESTRICTIONS) {
+							BlockPos.MutableBlockPos blockBelowChecker = new BlockPos.MutableBlockPos().set(pos);
+							while (world.getBlockState(blockBelowChecker).is(this) && blockBelowChecker.getY() > world.getMinY()) {
 								blockBelowChecker.move(Direction.DOWN);
 							}
 							if (!world.getBlockState(blockBelowChecker).isSolid()) {
@@ -61,20 +69,20 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 							}
 							spawnPos.set(blockBelowChecker.move(Direction.UP));
 						}
-						var center = Vec3d.ofBottomCenter(spawnPos);
-						var rootEntity = EntityHelper.loadEntityWithPassengers(readView, world, SpawnReason.STRUCTURE, (entity, data) -> {
-							entity.resetPortalCooldown();
+						var center = Vec3.atBottomCenterOf(spawnPos);
+						var rootEntity = EntityHelper.loadEntityWithPassengers(readView, world, EntitySpawnReason.STRUCTURE, (entity, data) -> {
+							entity.setPortalCooldown();
 							if (spawns.initialize()) {
 								EntityHelper.initializeEntity(
 										entity, ViewHelper.getSize(data) > 1 ? data : null,
-										world, world.getLocalDifficulty(spawnPos),
-										SpawnReason.STRUCTURE, null
+										world, world.getCurrentDifficultyAt(spawnPos),
+										EntitySpawnReason.STRUCTURE, null
 								);
 							}
-							entity.setPosition(center);
+							entity.setPos(center);
 							return entity;
 						});
-						rootEntity.ifPresent(world::spawnEntityAndPassengers);
+						rootEntity.ifPresent(world::addFreshEntityWithPassengers);
 					}
 				});
 			}
@@ -86,36 +94,36 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 	}
 
 	@Override
-	protected BlockState getStateForNeighborUpdate(
-			BlockState state, WorldView world, ScheduledTickView tickView, BlockPos pos,
-			Direction direction, BlockPos neighborPos, BlockState neighborState, Random random
+	protected BlockState updateShape(
+			BlockState state, LevelReader world, ScheduledTickAccess tickView, BlockPos pos,
+			Direction direction, BlockPos neighborPos, BlockState neighborState, RandomSource random
 	) {
-		var axis = state.get(AXIS);
+		var axis = state.getValue(AXIS);
 		var isIrrelevant = direction.getAxis().isHorizontal() && axis != direction.getAxis();
-		if (isIrrelevant || neighborState.isOf(this) || findPortalShape(world, pos, axis).isPresent()) {
-			return super.getStateForNeighborUpdate(state, world, tickView, pos, direction, neighborPos, neighborState, random);
+		if (isIrrelevant || neighborState.is(this) || findPortalShape(world, pos, axis).isPresent()) {
+			return super.updateShape(state, world, tickView, pos, direction, neighborPos, neighborState, random);
 		}
-		return Blocks.AIR.getDefaultState();
+		return Blocks.AIR.defaultBlockState();
 	}
 
 	public Optional<PortalShape> findPortalShape(
-			ServerWorld world, BlockPos pos
+			ServerLevel world, BlockPos pos
 	) {
 		return PortalShape.findPortalShape(world, pos, this);
 	}
 
-	public Optional<PortalShape> findPortalShape(WorldView world, BlockPos pos, Direction.Axis axis) {
+	public Optional<PortalShape> findPortalShape(LevelReader world, BlockPos pos, Direction.Axis axis) {
 		return PortalShape.findPortalShape(world, pos, this, axis);
 	}
 
-	public boolean isValidStateInsidePortal(CachedBlockPosition state) {
-		return state.getBlockState().isAir() || state.getBlockState().isOf(this) ||
-				portal.getBlockActivator().map(activator -> activator.test(state)).orElse(false) ||
-				portal.getReplaceableByPortal().map(activator -> activator.test(state)).orElse(false);
+	public boolean isValidStateInsidePortal(BlockInWorld state) {
+		return state.getState().isAir() || state.getState().is(this) ||
+				portal.getBlockActivator().map(activator -> activator.matches(state)).orElse(false) ||
+				portal.getReplaceableByPortal().map(activator -> activator.matches(state)).orElse(false);
 	}
 
-	public boolean isFrameBlock(CachedBlockPosition state) {
-		return portal.getValidFrameBlock().test(state);
+	public boolean isFrameBlock(BlockInWorld state) {
+		return portal.getValidFrameBlock().matches(state);
 	}
 
 	public int getMaxPortalSideLength() {
@@ -124,36 +132,36 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 
 	@Nullable
 	@Override
-	public TeleportTarget createTeleportTarget(ServerWorld world, Entity entity, BlockPos pos) {
-		var targetDim = portal.getTargetDim(world.getRegistryKey());
+	public TeleportTransition getPortalDestination(ServerLevel world, Entity entity, BlockPos pos) {
+		var targetDim = portal.getTargetDim(world.dimension());
 		if (targetDim == null) return null;
-		var targetWorld = world.getServer().getWorld(targetDim);
+		var targetWorld = world.getServer().getLevel(targetDim);
 		if (targetWorld == null) return null;
-		var factor = DimensionType.getCoordinateScaleFactor(world.getDimension(), targetWorld.getDimension());
-		BlockPos targetPos = targetWorld.getWorldBorder().clampFloored(pos.getX() * factor, pos.getY(), pos.getZ() * factor);
+		var factor = DimensionType.getTeleportationScale(world.dimensionType(), targetWorld.dimensionType());
+		BlockPos targetPos = targetWorld.getWorldBorder().clampToBounds(pos.getX() * factor, pos.getY(), pos.getZ() * factor);
 		return getPortalTarget(entity, targetWorld, targetPos, pos);
 	}
 
-	private static void log(Identifier id) {
+	private static void log(ResourceLocation id) {
 		Features.LOGGER.error(
 				"{} is not a valid structure, portal generation cancelled.", id
 		);
 	}
 
-	private TeleportTarget getPortalTarget(Entity entity, ServerWorld targetWorld, BlockPos targetPos, BlockPos srcPos) {
+	private TeleportTransition getPortalTarget(Entity entity, ServerLevel targetWorld, BlockPos targetPos, BlockPos srcPos) {
 		var existingPortal = findExistingPortal(targetWorld, targetPos);
-		BlockLocating.Rectangle portalShape;
-		TeleportTarget.PostDimensionTransition transition;
+		BlockUtil.FoundRectangle portalShape;
+		TeleportTransition.PostTeleportTransition transition;
 		if (existingPortal.isPresent()) {
 			var portalPos = existingPortal.get();
 			var portalState = targetWorld.getBlockState(portalPos);
-			portalShape = BlockLocating.getLargestRectangle(
-					portalPos, portalState.get(Properties.HORIZONTAL_AXIS), 21,
+			portalShape = BlockUtil.getLargestRectangleAround(
+					portalPos, portalState.getValue(BlockStateProperties.HORIZONTAL_AXIS), 21,
 					Direction.Axis.Y, 21, checkPos -> targetWorld.getBlockState(checkPos) == portalState
 			);
-			transition = TeleportTarget.SEND_TRAVEL_THROUGH_PORTAL_PACKET.then(e -> e.addPortalChunkTicketAt(targetPos));
+			transition = TeleportTransition.PLAY_PORTAL_SOUND.then(e -> e.placePortalTicket(targetPos));
 		} else {
-			var axis = entity.getEntityWorld().getBlockState(srcPos).getOrEmpty(AXIS).orElse(Direction.Axis.X);
+			var axis = entity.level().getBlockState(srcPos).getOptionalValue(AXIS).orElse(Direction.Axis.X);
 			var normalPortal = portal.getPortalStructure(targetWorld);
 			var portalWithPlatform = portal.getPortalWithPlatformStructure(targetWorld);
 			if (normalPortal.isEmpty()) {
@@ -168,31 +176,31 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 			targetWorld.getChunk(targetPos);
 			portalShape = generator.createPortal(targetWorld, targetPos).orElse(null);
 			if (portalShape == null) {
-				Features.LOGGER.error("Unable to create portal near {} in {}", targetPos, targetWorld.getRegistryKey());
+				Features.LOGGER.error("Unable to create portal near {} in {}", targetPos, targetWorld.dimension());
 				return null;
 			}
-			transition = TeleportTarget.SEND_TRAVEL_THROUGH_PORTAL_PACKET.then(TeleportTarget.ADD_PORTAL_CHUNK_TICKET);
+			transition = TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET);
 		}
 
-		return AccessorNetherPortalBlock.callGetExitPortalTarget(entity, targetPos, portalShape, targetWorld, transition);
+		return AccessorNetherPortalBlock.callGetDimensionTransitionFromExit(entity, targetPos, portalShape, targetWorld, transition);
 	}
 
-	private Optional<BlockPos> findExistingPortal(ServerWorld targetWorld, BlockPos targetPos) {
-		var poiStorage = targetWorld.getPointOfInterestStorage();
-		int searchRange = MathHelper.floor(128 / targetWorld.getDimension().coordinateScale());
-		poiStorage.preloadChunks(
+	private Optional<BlockPos> findExistingPortal(ServerLevel targetWorld, BlockPos targetPos) {
+		var poiStorage = targetWorld.getPoiManager();
+		int searchRange = Mth.floor(128 / targetWorld.dimensionType().coordinateScale());
+		poiStorage.ensureLoadedAndValid(
 				targetWorld, targetPos, searchRange
 		);
 		return poiStorage.getInSquare(
-				poi -> poi.matchesKey(portal.getPoiKey()), targetPos, searchRange, PointOfInterestStorage.OccupationStatus.ANY
-		).map(PointOfInterest::getPos).filter(targetWorld.getWorldBorder()::contains).filter(
-				blockPos -> targetWorld.getBlockState(blockPos).contains(Properties.HORIZONTAL_AXIS)
-		).min(Comparator.<BlockPos>comparingDouble(p -> p.getSquaredDistance(targetPos)).thenComparingInt(BlockPos::getY));
+				poi -> poi.is(portal.getPoiKey()), targetPos, searchRange, PoiManager.Occupancy.ANY
+		).map(PoiRecord::getPos).filter(targetWorld.getWorldBorder()::isWithinBounds).filter(
+				blockPos -> targetWorld.getBlockState(blockPos).hasProperty(BlockStateProperties.HORIZONTAL_AXIS)
+		).min(Comparator.<BlockPos>comparingDouble(p -> p.distSqr(targetPos)).thenComparingInt(BlockPos::getY));
 	}
 
 	@Override
 	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
-		return Blocks.NETHER_PORTAL.getDefaultState().with(NetherPortalBlock.AXIS, state.get(NetherPortalBlock.AXIS));
+		return Blocks.NETHER_PORTAL.defaultBlockState().setValue(NetherPortalBlock.AXIS, state.getValue(NetherPortalBlock.AXIS));
 	}
 
 }

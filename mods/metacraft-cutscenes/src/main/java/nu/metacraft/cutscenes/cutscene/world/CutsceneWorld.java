@@ -5,44 +5,60 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
-import net.minecraft.block.Block;
-import net.minecraft.component.type.MapIdComponent;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.map.MapState;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.SectionPos;
+import net.minecraft.core.Vec3i;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.network.listener.ClientPlayPacketListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.s2c.play.*;
-import net.minecraft.recipe.BrewingRecipeRegistry;
-import net.minecraft.recipe.ServerRecipeManager;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.resource.featuretoggle.FeatureSet;
-import net.minecraft.scoreboard.AbstractTeam;
-import net.minecraft.scoreboard.ScoreboardDisplaySlot;
-import net.minecraft.scoreboard.ServerScoreboard;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.*;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.structure.StructurePlacementData;
-import net.minecraft.structure.StructureTemplate;
-import net.minecraft.util.math.*;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBundlePacket;
+import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
+import net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
+import net.minecraft.server.ServerScoreboard;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.*;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.chunk.*;
-import net.minecraft.world.dimension.DimensionOptions;
-import net.minecraft.world.entity.EntityLookup;
-import net.minecraft.world.event.GameEvent;
-import net.minecraft.world.gen.chunk.ChunkGenerator;
-import net.minecraft.world.gen.chunk.FlatChunkGenerator;
-import net.minecraft.world.gen.chunk.FlatChunkGeneratorConfig;
-import net.minecraft.world.level.LevelProperties;
-import net.minecraft.world.level.ServerWorldProperties;
-import net.minecraft.world.tick.TickManager;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.flag.FeatureFlagSet;
+import net.minecraft.world.item.alchemy.PotionBrewing;
+import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.dimension.LevelStem;
+import net.minecraft.world.level.entity.LevelEntityGetter;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.level.levelgen.FlatLevelSource;
+import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.maps.MapId;
+import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import net.minecraft.world.level.storage.DimensionDataStorage;
+import net.minecraft.world.level.storage.PrimaryLevelData;
+import net.minecraft.world.level.storage.ServerLevelData;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.WorldData;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.scores.DisplaySlot;
+import net.minecraft.world.scores.Team;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.Cutscene;
@@ -59,75 +75,75 @@ import java.util.function.BooleanSupplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
-public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
+public class CutsceneWorld extends ServerLevel implements ServerLevelAccessor {
 
-	private final ServerWorld world;
+	private final ServerLevel world;
 	private final CutsceneInstance cutscene;
-	private CutsceneChunkManager manager;
+	private final CutsceneChunkManager manager;
 	private final CutsceneEntityManager entities;
 
 	private ServerScoreboard scoreboard;
 
-	private final EntityLookup<Entity> lookup;
+	private final LevelEntityGetter<Entity> lookup;
 
 	private CutscenePersistentStateManager persistentStateManager;
-	private NbtCompound persistentStorage = new NbtCompound();
+	private CompoundTag persistentStorage = new CompoundTag();
 
 	protected boolean loaded = false;
 
-	public static ChunkGenerator createDummyChunkGenerator(World world) {
-		return new FlatChunkGenerator(new FlatChunkGeneratorConfig(
-				Optional.empty(), world.getBiome(BlockPos.ORIGIN), List.of()
+	public static ChunkGenerator createDummyChunkGenerator(Level world) {
+		return new FlatLevelSource(new FlatLevelGeneratorSettings(
+				Optional.empty(), world.getBiome(BlockPos.ZERO), List.of()
 		));
 	}
 
-	private static ServerWorldProperties readProperties(
-			NbtCompound nbt, ServerWorld parent
+	private static ServerLevelData readProperties(
+			CompoundTag nbt, ServerLevel parent
 	) {
-		var p = parent.getServer().getSaveProperties();
-		return LevelProperties.readProperties(
+		var p = parent.getServer().getWorldData();
+		return PrimaryLevelData.parse(
 				new Dynamic<>(
 						NbtOps.INSTANCE,
 						nbt
-				), p.getLevelInfo(),
-				p.isFlatWorld() ? LevelProperties.SpecialProperty.FLAT : p.isDebugWorld() ? LevelProperties.SpecialProperty.DEBUG : LevelProperties.SpecialProperty.NONE,
-				p.getGeneratorOptions(), p.getLifecycle()
+				), p.getLevelSettings(),
+				p.isFlatWorld() ? PrimaryLevelData.SpecialWorldProperty.FLAT : (p.isDebugWorld() ? PrimaryLevelData.SpecialWorldProperty.DEBUG : PrimaryLevelData.SpecialWorldProperty.NONE),
+				p.worldGenOptions(), p.worldGenSettingsLifecycle()
 		);
 	}
 
-	private static NbtCompound getInitialSavePropertiesData(
-			CutsceneWorldData data, ServerWorld world
+	private static CompoundTag getInitialSavePropertiesData(
+			CutsceneWorldData data, ServerLevel world
 	) {
-		return data != null ? data.saveProperties() : world.getServer().getSaveProperties().cloneWorldNbt(
-				world.getRegistryManager(), null
+		return data != null ? data.saveProperties() : world.getServer().getWorldData().createTag(
+				world.registryAccess(), null
 		);
 	}
 
-	private static ServerWorldProperties getProperties(
-			CutsceneWorldData data, ServerWorld parent
+	private static ServerLevelData getProperties(
+			CutsceneWorldData data, ServerLevel parent
 	) {
 		return readProperties(
 				getInitialSavePropertiesData(data, parent), parent
 		);
 	}
 
-	public CutsceneWorld(ServerWorld world, CutsceneInstance cutscene, CutsceneWorldData data) {
+	public CutsceneWorld(ServerLevel world, CutsceneInstance cutscene, CutsceneWorldData data) {
 		super(
-				world.getServer(), ((AccessorMinecraftServer) world.getServer()).getWorkerExecutor(),
-				((AccessorMinecraftServer) world.getServer()).getSession(),
+				world.getServer(), ((AccessorMinecraftServer) world.getServer()).getExecutor(),
+				((AccessorMinecraftServer) world.getServer()).getStorageSource(),
 				getProperties(data, world),
-				world.getRegistryKey(),
-				new DimensionOptions(
-						world.getRegistryManager().getOrThrow(RegistryKeys.DIMENSION_TYPE).getEntry(world.getDimension()),
+				world.dimension(),
+				new LevelStem(
+						world.registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE).wrapAsHolder(world.dimensionType()),
 						createDummyChunkGenerator(world)
 				),
-				world.isDebugWorld(), world.getSeed(), List.of(), true, world.getRandomSequences()
+				world.isDebug(), world.getSeed(), List.of(), true, world.getRandomSequences()
 		);
-		this.savingDisabled = true;
+		this.noSave = true;
 		this.cutscene = cutscene;
 		this.world = world;
-		this.manager = new CutsceneChunkManager(this, this::getPersistentStateManager);
-		((AccessorServerWorld) this).setChunkManager(manager);
+		this.manager = new CutsceneChunkManager(this, this::getDataStorage);
+		((AccessorServerWorld) this).setChunkSource(manager);
 		this.entities = new CutsceneEntityManager(this);
 		this.lookup = entities.getLookup();
 		((AccessorServerWorld) this).setEntityManager(entities.createDummyEntityManager());
@@ -148,50 +164,50 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 				var defaultScoreboard = world.getScoreboard();
 				for (var ob : defaultScoreboard.getObjectives()) {
 					scoreboard.addObjective(
-							ob.getName(), ob.getCriterion(),
+							ob.getName(), ob.getCriteria(),
 							ob.getDisplayName(), ob.getRenderType(),
-							ob.shouldDisplayAutoUpdate(), ob.getNumberFormat()
+							ob.displayAutoUpdate(), ob.numberFormat()
 					);
 				}
-				for (var team : defaultScoreboard.getTeams()) {
-					var newTeam = scoreboard.addTeam(team.getName());
+				for (var team : defaultScoreboard.getPlayerTeams()) {
+					var newTeam = scoreboard.addPlayerTeam(team.getName());
 					newTeam.setCollisionRule(team.getCollisionRule());
 					newTeam.setColor(team.getColor());
-					newTeam.setPrefix(team.getPrefix());
+					newTeam.setPlayerPrefix(team.getPlayerPrefix());
 					newTeam.setDisplayName(team.getDisplayName());
-					newTeam.setSuffix(team.getSuffix());
-					newTeam.setDeathMessageVisibilityRule(team.getDeathMessageVisibilityRule());
-					newTeam.setFriendlyFireAllowed(team.isFriendlyFireAllowed());
-					newTeam.setShowFriendlyInvisibles(team.shouldShowFriendlyInvisibles());
-					newTeam.setNameTagVisibilityRule(team.getNameTagVisibilityRule());
+					newTeam.setPlayerSuffix(team.getPlayerSuffix());
+					newTeam.setDeathMessageVisibility(team.getDeathMessageVisibility());
+					newTeam.setAllowFriendlyFire(team.isAllowFriendlyFire());
+					newTeam.setSeeFriendlyInvisibles(team.canSeeFriendlyInvisibles());
+					newTeam.setNameTagVisibility(team.getNameTagVisibility());
 				}
-				for (var holder : defaultScoreboard.getKnownScoreHolders()) {
-					for (var ob : defaultScoreboard.getScoreHolderObjectives(holder).object2IntEntrySet()) {
-						scoreboard.getOrCreateScore(holder, ob.getKey(), true).setScore(
+				for (var holder : defaultScoreboard.getTrackedPlayers()) {
+					for (var ob : defaultScoreboard.listPlayerScores(holder).object2IntEntrySet()) {
+						scoreboard.getOrCreatePlayerScore(holder, ob.getKey(), true).set(
 								ob.getIntValue()
 						);
 					}
 
-					var name = holder.getNameForScoreboard();
-					var team = defaultScoreboard.getScoreHolderTeam(name);
+					var name = holder.getScoreboardName();
+					var team = defaultScoreboard.getPlayersTeam(name);
 					if (team != null) {
-						scoreboard.addScoreHolderToTeam(name, scoreboard.getTeam(team.getName()));
+						scoreboard.addPlayerToTeam(name, scoreboard.getPlayerTeam(team.getName()));
 					}
 				}
-				for (var slot : ScoreboardDisplaySlot.values()) {
-					var ob = defaultScoreboard.getObjectiveForSlot(slot);
+				for (var slot : DisplaySlot.values()) {
+					var ob = defaultScoreboard.getDisplayObjective(slot);
 					if (ob != null) {
-						scoreboard.setObjectiveSlot(slot, scoreboard.getNullableObjective(ob.getName()));
+						scoreboard.setDisplayObjective(slot, scoreboard.getObjective(ob.getName()));
 					}
 				}
 			}
 
-			var team = scoreboard.addTeam("metacraft_cutscenes_empty_player_holder");
-			team.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.NEVER);
-			scoreboard.addScoreHolderToTeam("", team);
+			var team = scoreboard.addPlayerTeam("metacraft_cutscenes_empty_player_holder");
+			team.setNameTagVisibility(Team.Visibility.NEVER);
+			scoreboard.addPlayerToTeam("", team);
 
 			if (cutscene.getCutscene().getScoreboardMode() != Cutscene.ScoreboardMode.SYNC) {
-				persistentStateManager.getOrCreate(ServerScoreboard.STATE_TYPE);
+				persistentStateManager.computeIfAbsent(ServerScoreboard.TYPE);
 			}
 		}
 	}
@@ -202,31 +218,31 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 
 	public void transferFrom(CutsceneWorld prev) {
 		if (getActualWorld().isRaining() == isRaining()) {
-			createWeatherFixPacket(prev.isRaining(), isRaining(), rainGradient, thunderGradient).ifPresent(cutscene::sendToPlayers);
+			createWeatherFixPacket(prev.isRaining(), isRaining(), rainLevel, thunderLevel).ifPresent(cutscene::sendToPlayers);
 		}
 	}
 
-	private void sendBlocks(ServerPlayerEntity player, UnaryOperator<Chunk> chunkGetter) {
-		List<Packet<? super ClientPlayPacketListener>> list = new ArrayList<>();
+	private void sendBlocks(ServerPlayer player, UnaryOperator<ChunkAccess> chunkGetter) {
+		List<Packet<? super ClientGamePacketListener>> list = new ArrayList<>();
 		streamChangedChunks().filter(
-				c -> player.getChunkFilter().isWithinDistance(c.getPos())
+				c -> player.getChunkTrackingView().contains(c.getPos())
 		).flatMap(c -> {
 			Int2ObjectMap<ShortSet> map = new Int2ObjectOpenHashMap<>();
 			var chunk = chunkGetter.apply(c);
 			c.getChangedBlocks().forEach(pos -> {
 				map.computeIfAbsent(this.getSectionIndex(pos.getY()), i -> new ShortOpenHashSet()).add(
-						ChunkSectionPos.packLocal(pos)
+						SectionPos.sectionRelativePos(pos)
 				);
 			});
 			if (chunk == null) return Stream.empty();
-			return map.int2ObjectEntrySet().stream().map(entry -> new ChunkDeltaUpdateS2CPacket(
-					ChunkSectionPos.from(chunk.getPos(), this.sectionIndexToCoord(entry.getIntKey())),
+			return map.int2ObjectEntrySet().stream().map(entry -> new ClientboundSectionBlocksUpdatePacket(
+					SectionPos.of(chunk.getPos(), this.getSectionYFromSectionIndex(entry.getIntKey())),
 					entry.getValue(), chunk.getSection(entry.getIntKey())
 			));
 		}).forEach(list::add);
 		if (!list.isEmpty()) {
-			if (player.networkHandler != null) {
-				player.networkHandler.sendPacket(new BundleS2CPacket(list));
+			if (player.connection != null) {
+				player.connection.send(new ClientboundBundlePacket(list));
 			} else {
 				Cutscenes.LOGGER.info("Skipped sending blocks because no network handler :(");
 			}
@@ -235,96 +251,96 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 
 	@Override
 	public String toString() {
-		return "Cutscene[" + getServer().getSaveProperties().getLevelName() + "]";
+		return "Cutscene[" + getServer().getWorldData().getLevelName() + "]";
 	}
 
-	public Optional<WorldChunk> getChunkFromCacheIfPresent(Chunk chunk) {
+	public Optional<LevelChunk> getChunkFromCacheIfPresent(ChunkAccess chunk) {
 		return getChunkFromCacheIfPresent(chunk.getPos());
 	}
 
 	public boolean isLightingInCache(ChunkPos pos) {
-		return getChunkManager().isLightingCached(pos.x, pos.z);
+		return getChunkSource().isLightingCached(pos.x, pos.z);
 	}
 
-	public Optional<WorldChunk> getChunkFromCacheIfPresent(ChunkPos pos) {
+	public Optional<LevelChunk> getChunkFromCacheIfPresent(ChunkPos pos) {
 		return getChunkFromCacheIfPresent(pos.x, pos.z);
 	}
 
-	public Optional<WorldChunk> getChunkFromCacheIfPresent(int x, int z) {
+	public Optional<LevelChunk> getChunkFromCacheIfPresent(int x, int z) {
 		return manager.getChunkFromCacheIfPresent(x, z);
 	}
 
 	public void syncTime() {
 		cutscene.sendToPlayers(
-				new WorldTimeUpdateS2CPacket(
-						getTime(), getTimeOfDay(),
-						getGameRules().getBoolean(GameRules.DO_DAYLIGHT_CYCLE)
+				new ClientboundSetTimePacket(
+						getGameTime(), getDayTime(),
+						getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)
 				)
 		);
 	}
 
 	@Override
 	public void tick(BooleanSupplier shouldKeepTicking) {
-		if (this.getTime() % 20 == 0) {
+		if (this.getGameTime() % 20 == 0) {
 			syncTime();
 		}
 		entities.tick();
 		super.tick(shouldKeepTicking);
 
-		getChunkManager().getLightingProvider().tick();
+		getChunkSource().getLightEngine().tryScheduleUpdate();
 	}
 
-	public void addPlayer(ServerPlayerEntity player) {
-		this.getPlayers().add(player);
+	public void addPlayer(ServerPlayer player) {
+		this.players().add(player);
 		entities.onAddPlayer(player);
 		sendBlocks(player, c -> c);
-		getChunkManager().cutsceneChunkLoadingManager.addPlayer(player);
-		createWeatherFixPacket(player.getEntityWorld().isRaining(), isRaining(), rainGradient, thunderGradient).ifPresent(player.networkHandler::sendPacket);
+		getChunkSource().cutsceneChunkLoadingManager.addPlayer(player);
+		createWeatherFixPacket(player.level().isRaining(), isRaining(), rainLevel, thunderLevel).ifPresent(player.connection::send);
 	}
 
 	public Optional<Packet<?>> createWeatherFixPacket(
 			boolean wasRaining, boolean isRaining, float rainGradient, float thunderGradient
 	) {
-		List<Packet<? super ClientPlayPacketListener>> packets = new ArrayList<>();
+		List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
 		if (wasRaining != isRaining) {
 			if (wasRaining) {
-				packets.add(new GameStateChangeS2CPacket(GameStateChangeS2CPacket.RAIN_STOPPED, 0));
+				packets.add(new ClientboundGameEventPacket(ClientboundGameEventPacket.STOP_RAINING, 0));
 			} else {
-				packets.add(new GameStateChangeS2CPacket(GameStateChangeS2CPacket.RAIN_STARTED, 0));
+				packets.add(new ClientboundGameEventPacket(ClientboundGameEventPacket.START_RAINING, 0));
 			}
-			packets.add(new GameStateChangeS2CPacket(GameStateChangeS2CPacket.RAIN_GRADIENT_CHANGED, rainGradient));
-			packets.add(new GameStateChangeS2CPacket(GameStateChangeS2CPacket.THUNDER_GRADIENT_CHANGED, thunderGradient));
+			packets.add(new ClientboundGameEventPacket(ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, rainGradient));
+			packets.add(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, thunderGradient));
 		}
 		if (packets.isEmpty()) {
 			return Optional.empty();
 		} else {
-			return Optional.of(new BundleS2CPacket(packets));
+			return Optional.of(new ClientboundBundlePacket(packets));
 		}
 	}
 
-	public void removePlayer(ServerPlayerEntity player, boolean isLeavingCutscene) {
-		this.getPlayers().remove(player);
+	public void removePlayer(ServerPlayer player, boolean isLeavingCutscene) {
+		this.players().remove(player);
 		entities.onRemovePlayer(player);
 		if (cutscene.getCutscene().shouldResendChunksBeforeNextCutscene() || getCutscene().skipNextCutscene(isLeavingCutscene)) {
 			sendBlocks(player, c -> world.getChunk(c.getPos().x, c.getPos().z, ChunkStatus.FULL, false));
 		}
-		getChunkManager().cutsceneChunkLoadingManager.removePlayer(player);
+		getChunkSource().cutsceneChunkLoadingManager.removePlayer(player);
 		createWeatherFixPacket(
-				isRaining(), player.getEntityWorld().isRaining(),
-				player.getEntityWorld().getRainGradient(1),
-				player.getEntityWorld().getThunderGradient(1)
-		).ifPresent(player.networkHandler::sendPacket);
+				isRaining(), player.level().isRaining(),
+				player.level().getRainLevel(1),
+				player.level().getThunderLevel(1)
+		).ifPresent(player.connection::send);
 	}
 
 	protected void onEntityRemoved(Entity entity) {
 		cutscene.onEntityRemoved(entity);
 	}
 
-	public boolean isPlayerWorld(PlayerEntity player) {
-		return player.getEntityWorld() == world;
+	public boolean isPlayerWorld(Player player) {
+		return player.level() == world;
 	}
 
-	public ServerWorld getActualWorld() {
+	public ServerLevel getActualWorld() {
 		return world;
 	}
 
@@ -341,21 +357,21 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	@Override
-	public boolean shouldTickBlocksInChunk(long chunkPos) {
-		return world.shouldTickBlocksInChunk(chunkPos);
+	public boolean shouldTickBlocksAt(long chunkPos) {
+		return world.shouldTickBlocksAt(chunkPos);
 	}
 
 	private void load(CutsceneWorldData data) {
 		if (this.persistentStorage != null) {
 			persistentStateManager.saveAndReload();
-			this.persistentStorage.copyFrom(data.persistentStateStorage());
+			this.persistentStorage.merge(data.persistentStateStorage());
 		}
 
-		var blocks = data.blocks().parse(world.getRegistryManager());
+		var blocks = data.blocks().parse(world.registryAccess());
 
-		blocks.place(
-				this, BlockPos.ORIGIN, BlockPos.ORIGIN, new StructurePlacementData(),
-				this.getRandom(), Block.NOTIFY_ALL
+		blocks.placeInWorld(
+				this, BlockPos.ZERO, BlockPos.ZERO, new StructurePlaceSettings(),
+				this.getRandom(), Block.UPDATE_ALL
 		);
 
 		data.entities().entities().forEach(entity -> {
@@ -365,14 +381,14 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	public CutsceneWorldData save() {
-		persistentStateManager.save();
+		persistentStateManager.saveAndJoin();
 		return new CutsceneWorldData(
 				entities.save(), saveAsStructure(), saveLevelProperties(), persistentStorage
 		);
 	}
 
-	private NbtCompound saveLevelProperties() {
-		return ((SaveProperties) this.getLevelProperties()).cloneWorldNbt(getRegistryManager(), null);
+	private CompoundTag saveLevelProperties() {
+		return ((WorldData) this.getLevelData()).createTag(registryAccess(), null);
 	}
 
 	private SerialisedStructure saveAsStructure() {
@@ -381,19 +397,19 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 		List<StructureTemplate.StructureBlockInfo> blockWithNBT = new ArrayList<>();
 		List<StructureTemplate.StructureBlockInfo> otherBlocks = new ArrayList<>();
 
-		BlockPos.Mutable min = new BlockPos.Mutable(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
-		BlockPos.Mutable max = new BlockPos.Mutable(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
+		BlockPos.MutableBlockPos min = new BlockPos.MutableBlockPos(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+		BlockPos.MutableBlockPos max = new BlockPos.MutableBlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:CutsceneWorld#saveAsStructure", Cutscenes.LOGGER)) {
 			streamChangedChunks().forEach(chunk -> {
 				chunk.getChangedBlocks().forEach(pos -> {
 					var newState = chunk.getBlockState(pos);
 					var blockEntity = chunk.getBlockEntity(pos);
-					NbtCompound blockData = null;
+					CompoundTag blockData = null;
 					if (blockEntity != null) {
-						var writeView = NbtWriteView.create(logging, getRegistryManager());
-						blockEntity.writeDataWithId(writeView);
-						blockData = writeView.getNbt();
+						var writeView = TagValueOutput.createWithContext(logging, registryAccess());
+						blockEntity.saveWithId(writeView);
+						blockData = writeView.buildResult();
 					}
 					StructureTemplate.StructureBlockInfo info = new StructureTemplate.StructureBlockInfo(
 							pos, newState, blockData
@@ -422,10 +438,10 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 			});
 		}
 
-		BlockBox box = BlockBox.create(min, max);
+		BoundingBox box = BoundingBox.fromCorners(min, max);
 		StructureTemplateHelper.setSize(
 				template,
-				new Vec3i(box.getBlockCountX(), box.getBlockCountY(), box.getBlockCountZ())
+				new Vec3i(box.getXSpan(), box.getYSpan(), box.getZSpan())
 		);
 		List<StructureTemplate.StructureBlockInfo> blocks = StructureTemplateHelper.combineSorted(fullBlocks, blockWithNBT, otherBlocks);
 		StructureTemplateHelper.getBlockInfoLists(template).add(
@@ -437,9 +453,9 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 
 	public void clear() {
 		if (cutscene.getCutscene().shouldResendChunksBeforeNextCutscene() || getCutscene().skipNextCutscene(false)) {
-			if (!this.getPlayers().isEmpty()) {
+			if (!this.players().isEmpty()) {
 				streamChangedBlocks().forEach(pos -> {
-					world.getChunkManager().markForUpdate(pos);
+					world.getChunkSource().blockChanged(pos);
 				});
 			}
 		}
@@ -447,74 +463,74 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	@Override
-	public void markDirty(BlockPos pos) {
-		if (this.isChunkLoaded(pos)) {
-			if (getWorldChunk(pos) instanceof CutsceneChunk chunk) {
+	public void blockEntityChanged(BlockPos pos) {
+		if (this.hasChunkAt(pos)) {
+			if (getChunkAt(pos) instanceof CutsceneChunk chunk) {
 				chunk.getChangedBlocks().add(pos);
 			}
 		}
 	}
 
 	@Override
-	public void playSound(@Nullable Entity source, double x, double y, double z, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {
-		world.playSound(source, x, y, z, sound, category, volume, pitch, seed);
+	public void playSeededSound(@Nullable Entity source, double x, double y, double z, Holder<SoundEvent> sound, SoundSource category, float volume, float pitch, long seed) {
+		world.playSeededSound(source, x, y, z, sound, category, volume, pitch, seed);
 	}
 
 	@Override
-	public void playSoundFromEntity(@Nullable Entity source, Entity entity, RegistryEntry<SoundEvent> sound, SoundCategory category, float volume, float pitch, long seed) {
-		world.playSoundFromEntity(source, entity, sound, category, volume, pitch, seed);
+	public void playSeededSound(@Nullable Entity source, Entity entity, Holder<SoundEvent> sound, SoundSource category, float volume, float pitch, long seed) {
+		world.playSeededSound(source, entity, sound, category, volume, pitch, seed);
 	}
 
 	@Override
-	public PersistentStateManager getPersistentStateManager() {
+	public DimensionDataStorage getDataStorage() {
 		//ChunkManager is not initialized when this is run for the first time, so we must create it here.
 		if (persistentStateManager == null) {
 			if (persistentStorage == null) {
-				persistentStorage = new NbtCompound();
+				persistentStorage = new CompoundTag();
 			}
 			persistentStateManager = new CutscenePersistentStateManager(
-					new PersistentState.Context(this), null,
-					getServer().getDataFixer(), getRegistryManager(), () -> persistentStorage
+					new SavedData.Context(this), null,
+					getServer().getFixerUpper(), registryAccess(), () -> persistentStorage
 			);
 		}
 		return persistentStateManager;
 	}
 
 	@Override
-	public String asString() {
-		return world.asString();
+	public String gatherChunkSourceStats() {
+		return world.gatherChunkSourceStats();
 	}
 
 	@Nullable
 	@Override
-	public Entity getEntityById(int id) {
-		return getEntityLookup().get(id);
+	public Entity getEntity(int id) {
+		return getEntities().get(id);
 	}
 
 	@Override
-	public TickManager getTickManager() {
-		return world.getTickManager();
+	public TickRateManager tickRateManager() {
+		return world.tickRateManager();
 	}
 
 	@Nullable
 	@Override
-	public MapState getMapState(MapIdComponent id) {
-		return world.getMapState(id);
+	public MapItemSavedData getMapData(MapId id) {
+		return world.getMapData(id);
 	}
 
 	@Override
-	public void putMapState(MapIdComponent id, MapState state) {
-		world.putMapState(id, state);
+	public void setMapData(MapId id, MapItemSavedData state) {
+		world.setMapData(id, state);
 	}
 
 	@Override
-	public MapIdComponent increaseAndGetMapId() {
-		return world.increaseAndGetMapId();
+	public MapId getFreeMapId() {
+		return world.getFreeMapId();
 	}
 
 	@Override
-	public void setBlockBreakingInfo(int entityId, BlockPos pos, int progress) {
-		world.setBlockBreakingInfo(entityId, pos, progress);
+	public void destroyBlockProgress(int entityId, BlockPos pos, int progress) {
+		world.destroyBlockProgress(entityId, pos, progress);
 	}
 
 	@Override
@@ -523,22 +539,22 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	@Override
-	public ServerRecipeManager getRecipeManager() {
-		return world.getRecipeManager();
+	public RecipeManager recipeAccess() {
+		return world.recipeAccess();
 	}
 
 	@Override
-	protected EntityLookup<Entity> getEntityLookup() {
+	protected LevelEntityGetter<Entity> getEntities() {
 		return lookup;
 	}
 
 	@Override
-	public BrewingRecipeRegistry getBrewingRecipeRegistry() {
-		return world.getBrewingRecipeRegistry();
+	public PotionBrewing potionBrewing() {
+		return world.potionBrewing();
 	}
 
 	@Override
-	public CutsceneChunkManager getChunkManager() {
+	public CutsceneChunkManager getChunkSource() {
 		return manager;
 	}
 
@@ -547,62 +563,62 @@ public class CutsceneWorld extends ServerWorld implements ServerWorldAccess {
 	}
 
 	@Override
-	public boolean spawnEntity(Entity entity) {
+	public boolean addFreshEntity(Entity entity) {
 		entities.addEntity("AddedByWorld" + entity.getId(), entity);
 		return true;
 	}
 
 	@Override
-	public boolean tryLoadEntity(Entity entity) {
-		return spawnEntity(entity);
+	public boolean addWithUUID(Entity entity) {
+		return addFreshEntity(entity);
 	}
 
 	@Override
-	public void onDimensionChanged(Entity entity) {
-		if (entity instanceof ServerPlayerEntity) {
-			world.onDimensionChanged(entity);
+	public void addDuringTeleport(Entity entity) {
+		if (entity instanceof ServerPlayer) {
+			world.addDuringTeleport(entity);
 		} else {
-			spawnEntity(entity);
+			addFreshEntity(entity);
 		}
 	}
 
 	@Override
-	public void onPlayerConnected(ServerPlayerEntity player) {
-		world.onPlayerConnected(player);
+	public void addNewPlayer(ServerPlayer player) {
+		world.addNewPlayer(player);
 	}
 
 	@Override
-	public void onPlayerRespawned(ServerPlayerEntity player) {
-		world.onPlayerRespawned(player);
+	public void addRespawnedPlayer(ServerPlayer player) {
+		world.addRespawnedPlayer(player);
 	}
 
 	@Override
-	public void syncWorldEvent(@Nullable Entity player, int eventId, BlockPos pos, int data) {
-		world.syncWorldEvent(player, eventId, pos, data);
+	public void levelEvent(@Nullable Entity player, int eventId, BlockPos pos, int data) {
+		world.levelEvent(player, eventId, pos, data);
 	}
 
 	@Override
-	public void emitGameEvent(RegistryEntry<GameEvent> event, Vec3d emitterPos, GameEvent.Emitter emitter) {
-		world.emitGameEvent(event, emitterPos, emitter);
+	public void gameEvent(Holder<GameEvent> event, Vec3 emitterPos, GameEvent.Context emitter) {
+		world.gameEvent(event, emitterPos, emitter);
 	}
 
 	@Override
-	public float getBrightness(Direction direction, boolean shaded) {
-		return world.getBrightness(direction, shaded);
+	public float getShade(Direction direction, boolean shaded) {
+		return world.getShade(direction, shaded);
 	}
 
 	@Override
-	public RegistryEntry<Biome> getGeneratorStoredBiome(int biomeX, int biomeY, int biomeZ) {
-		return world.getGeneratorStoredBiome(biomeX, biomeY, biomeZ);
+	public Holder<Biome> getUncachedNoiseBiome(int biomeX, int biomeY, int biomeZ) {
+		return world.getUncachedNoiseBiome(biomeX, biomeY, biomeZ);
 	}
 
 	@Override
-	public FeatureSet getEnabledFeatures() {
-		return world.getEnabledFeatures();
+	public FeatureFlagSet enabledFeatures() {
+		return world.enabledFeatures();
 	}
 
 	@Override
-	public ServerWorld toServerWorld() {
+	public ServerLevel getLevel() {
 		return this;
 	}
 }

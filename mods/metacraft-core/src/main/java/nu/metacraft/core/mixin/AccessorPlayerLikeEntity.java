@@ -1,29 +1,29 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.entity.EntityDimensions;
-import net.minecraft.entity.EntityPose;
-import net.minecraft.entity.PlayerLikeEntity;
-import net.minecraft.entity.data.TrackedData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 import java.util.Map;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.world.entity.Avatar;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.Pose;
 
-@Mixin(PlayerLikeEntity.class)
+@Mixin(Avatar.class)
 public interface AccessorPlayerLikeEntity {
 
-	@Accessor("PLAYER_MODE_CUSTOMIZATION_ID")
-	static TrackedData<Byte> getModelParts() {
+	@Accessor("DATA_PLAYER_MODE_CUSTOMISATION")
+	static EntityDataAccessor<Byte> getModelParts() {
 		throw new IllegalStateException("Mixin Error");
 	}
 
-	@Accessor("MAIN_ARM_ID")
-	static TrackedData<Byte> getMainArm() {
+	@Accessor("DATA_PLAYER_MAIN_HAND")
+	static EntityDataAccessor<Byte> getMainArm() {
 		throw new IllegalStateException("Mixin Error");
 	}
 
-	@Accessor("POSE_DIMENSIONS")
-	static Map<EntityPose, EntityDimensions> getPoseDimensions() {
+	@Accessor("POSES")
+	static Map<Pose, EntityDimensions> getPoseDimensions() {
 		throw new IllegalStateException("Mixin Error");
 	}
 

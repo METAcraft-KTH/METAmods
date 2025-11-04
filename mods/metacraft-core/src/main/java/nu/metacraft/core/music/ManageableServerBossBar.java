@@ -2,25 +2,25 @@ package nu.metacraft.core.music;
 
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.boss.ServerBossBar;
-import net.minecraft.entity.mob.SlimeEntity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
-import net.minecraft.util.Uuids;
-import net.minecraft.util.dynamic.Codecs;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.Slime;
 import nu.metacraft.core.util.helper.BossBarHelper;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.util.*;
 import java.util.stream.Stream;
 
-public class ManageableServerBossBar extends ServerBossBar {
+public class ManageableServerBossBar extends ServerBossEvent {
 
 	public static final String BOSS_BAR = "BossBar";
 
@@ -32,7 +32,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 	private UUID mainUUID;
 	private final Map<UUID, Entity> includedEntities = new HashMap<>();
 	private final Set<UUID> includedEntityIDs = new LinkedHashSet<>();
-	private final Map<ServerPlayerEntity, MutableInt> playerAddedCounts = new HashMap<>();
+	private final Map<ServerPlayer, MutableInt> playerAddedCounts = new HashMap<>();
 	private boolean loaded = false;
 
 	private long lastTick = -1;
@@ -44,7 +44,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 
 	private final BossBarMusicHandler handler = new BossBarMusicHandler(this);
 
-	public ManageableServerBossBar(Text displayName, Color color, Style style) {
+	public ManageableServerBossBar(Component displayName, BossBarColor color, BossBarOverlay style) {
 		super(displayName, color, style);
 	}
 
@@ -56,23 +56,23 @@ public class ManageableServerBossBar extends ServerBossBar {
 		return this.handler.getMusic();
 	}
 
-	protected void onAddedForReal(ServerPlayerEntity player) {
+	protected void onAddedForReal(ServerPlayer player) {
 		super.addPlayer(player);
 		handler.onPlayerAdded(player);
 	}
 
-	protected void onRemovedForReal(ServerPlayerEntity player) {
+	protected void onRemovedForReal(ServerPlayer player) {
 		super.removePlayer(player);
 		handler.onPlayerRemoved(player);
 	}
 
-	public void addPlayer(ServerPlayerEntity player) {
+	public void addPlayer(ServerPlayer player) {
 		MutableInt count = playerAddedCounts.computeIfAbsent(player, k -> new MutableInt(0));
 		if (count.getValue() == 0) onAddedForReal(player);
 		count.increment();
 	}
 
-	public void removePlayer(ServerPlayerEntity player) {
+	public void removePlayer(ServerPlayer player) {
 		MutableInt count = playerAddedCounts.get(player);
 		if (count != null) {
 			count.decrement();
@@ -94,8 +94,8 @@ public class ManageableServerBossBar extends ServerBossBar {
 	}
 
 	public void addEntity(Entity entity) {
-		includedEntityIDs.add(entity.getUuid());
-		includedEntities.put(entity.getUuid(), entity);
+		includedEntityIDs.add(entity.getUUID());
+		includedEntities.put(entity.getUUID(), entity);
 		var b = BossBarHelper.getBossBar(entity);
 		if (b.isEmpty() || b.get() != this) {
 			BossBarHelper.setBossBar(entity, this);
@@ -109,7 +109,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 	}
 
 	public void removeEntity(Entity entity) {
-		removeEntity(entity.getUuid());
+		removeEntity(entity.getUUID());
 	}
 
 	public boolean isTrackingHealth() {
@@ -125,45 +125,45 @@ public class ManageableServerBossBar extends ServerBossBar {
 	}
 
 	public ManageableServerBossBar copy() {
-		var bossBar = new ManageableServerBossBar(getName(), getColor(), getStyle());
+		var bossBar = new ManageableServerBossBar(getName(), getColor(), getOverlay());
 		getMusic().ifPresent(bossBar::setMusic);
-		bossBar.setDarkenSky(darkenSky);
-		bossBar.setDragonMusic(dragonMusic);
+		bossBar.setDarkenScreen(darkenScreen);
+		bossBar.setPlayBossMusic(playBossMusic);
 		bossBar.trackingHealth = trackingHealth;
 		bossBar.trackingName = trackingName;
-		bossBar.setPercent(percent);
+		bossBar.setProgress(progress);
 		bossBar.value = value;
 		bossBar.max = max;
-		bossBar.setThickenFog(thickenFog);
+		bossBar.setCreateWorldFog(createWorldFog);
 		bossBar.setVisible(isVisible());
 		return bossBar;
 	}
 	
 	public static ManageableServerBossBar create() {
-		return new ManageableServerBossBar(Text.empty(), Color.WHITE, Style.PROGRESS);
+		return new ManageableServerBossBar(Component.empty(), BossBarColor.WHITE, BossBarOverlay.PROGRESS);
 	}
 
 	private boolean shouldExtendExtraHealth(Entity entity) {
-		if (entity instanceof SlimeEntity slime) {
-			return slime.getSize() == SlimeEntity.MIN_SIZE;
+		if (entity instanceof Slime slime) {
+			return slime.getSize() == Slime.MIN_SIZE;
 		}
 		return true;
 	}
 
 	public void onEntityRemoved(Entity entity, Entity.RemovalReason reason) {
-		includedEntities.remove(entity.getUuid());
+		includedEntities.remove(entity.getUUID());
 		if (reason == Entity.RemovalReason.KILLED && entity instanceof LivingEntity living && shouldExtendExtraHealth(entity)) {
 			extraMaxHealth += living.getMaxHealth();
 		}
 		if (reason.shouldDestroy()) {
-			includedEntityIDs.remove(entity.getUuid());
+			includedEntityIDs.remove(entity.getUUID());
 		}
 		updateMainEntity();
 	}
 
 	public void setMainEntity(Entity entity) {
 		this.mainEntity = entity;
-		this.mainUUID = entity.getUuid();
+		this.mainUUID = entity.getUUID();
 	}
 
 	private UUID findMainEntity() {
@@ -174,7 +174,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 		if (includedEntityIDs.isEmpty()) return true;
 		if (mainEntity == entity) return true;
 		var first = findMainEntity();
-		return first == null || Objects.equals(entity.getUuid(), first);
+		return first == null || Objects.equals(entity.getUUID(), first);
 	}
 
 	private void updateMainEntity() {
@@ -187,12 +187,12 @@ public class ManageableServerBossBar extends ServerBossBar {
 	}
 
 	public void updateFromEntity(Entity entity) {
-		if (!includedEntityIDs.contains(entity.getUuid())) {
+		if (!includedEntityIDs.contains(entity.getUUID())) {
 			addEntity(entity);
 		}
-		if (includePassengers && entity.age % 20 == 0) {
-			entity.getRootVehicle().streamSelfAndPassengers().forEach(passenger -> {
-				if (!includedEntityIDs.contains(passenger.getUuid())) {
+		if (includePassengers && entity.tickCount % 20 == 0) {
+			entity.getRootVehicle().getSelfAndPassengers().forEach(passenger -> {
+				if (!includedEntityIDs.contains(passenger.getUUID())) {
 					addEntity(passenger);
 				}
 			});
@@ -203,7 +203,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 				setName(entity.getDisplayName());
 			}
 		}
-		if (entity.getEntityWorld().getTime() != lastTick) {
+		if (entity.level().getGameTime() != lastTick) {
 			if (trackingHealth) {
 				float health = 0;
 				float maxHealth = extraMaxHealth;
@@ -213,17 +213,17 @@ public class ManageableServerBossBar extends ServerBossBar {
 						maxHealth += living.getMaxHealth();
 					}
 				}
-				setPercent(health / maxHealth);
+				setProgress(health / maxHealth);
 			}
-			lastTick = entity.getEntityWorld().getTime();
+			lastTick = entity.level().getGameTime();
 		}
 		if (mainEntity == null && mainUUID != null) {
-			mainEntity = entity.getEntityWorld().getEntity(mainUUID);
+			mainEntity = entity.level().getEntity(mainUUID);
 		}
 		if (!loaded) {
 			loaded = true;
 			for (var id : includedEntityIDs) {
-				var otherE = entity.getEntityWorld().getEntity(id);
+				var otherE = entity.level().getEntity(id);
 				if (otherE != null) {
 					includedEntities.put(id, otherE);
 					BossBarHelper.setBossBar(otherE, this);
@@ -239,7 +239,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 		var entityIds = includedEntityIDs.size() == 1 ? Set.<UUID>of() : includedEntityIDs;
 		var main = includedEntityIDs.size() == 1 ? Optional.<UUID>empty() : Optional.ofNullable(mainUUID);
 		return new BossBarData(
-				color, style, darkenSky, thickenFog, isVisible(), includePassengers, extraMaxHealth, getMusic(),
+				color, overlay, darkenScreen, createWorldFog, isVisible(), includePassengers, extraMaxHealth, getMusic(),
 				trackingHealth ? Optional.empty() : Optional.of(new BossBarData.Health(value, max)),
 				trackingName ? Optional.empty() : Optional.of(getName()), entityIds, main
 		);
@@ -247,9 +247,9 @@ public class ManageableServerBossBar extends ServerBossBar {
 
 	public void deserialize(BossBarData data) {
 		setColor(data.color);
-		setStyle(data.style);
-		setDarkenSky(data.darkenSky);
-		setThickenFog(data.thickenFog);
+		setOverlay(data.style);
+		setDarkenScreen(data.darkenSky);
+		setCreateWorldFog(data.thickenFog);
 		setVisible(data.visible);
 		setIncludePassengers(data.includePassengers);
 		extraMaxHealth = data.extraMaxHealth;
@@ -267,7 +267,7 @@ public class ManageableServerBossBar extends ServerBossBar {
 					value = health.value;
 					max = health.max;
 					if (max > 0) {
-						this.setPercent((float) this.value / this.max);
+						this.setProgress((float) this.value / this.max);
 					}
 				}
 		);
@@ -275,20 +275,20 @@ public class ManageableServerBossBar extends ServerBossBar {
 		data.name.ifPresent(this::setName);
 	}
 
-	public void readNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		final var ops = lookup.getOps(NbtOps.INSTANCE);
-		nbt.decode(BossBarData.MAP_CODEC, ops).ifPresent(this::deserialize);
+	public void readNBT(CompoundTag nbt, HolderLookup.Provider lookup) {
+		final var ops = lookup.createSerializationContext(NbtOps.INSTANCE);
+		nbt.read(BossBarData.MAP_CODEC, ops).ifPresent(this::deserialize);
 	}
 
-	public NbtCompound writeNBT(NbtCompound nbt, RegistryWrapper.WrapperLookup lookup) {
-		final var ops = lookup.getOps(NbtOps.INSTANCE);
-		nbt.copyFromCodec(BossBarData.MAP_CODEC, ops, this.serialize());
+	public CompoundTag writeNBT(CompoundTag nbt, HolderLookup.Provider lookup) {
+		final var ops = lookup.createSerializationContext(NbtOps.INSTANCE);
+		nbt.store(BossBarData.MAP_CODEC, ops, this.serialize());
 		return nbt;
 	}
 
 	public record BossBarData(
-			Color color,
-			Style style,
+			BossBarColor color,
+			BossBarOverlay style,
 			boolean darkenSky,
 			boolean thickenFog,
 			boolean visible,
@@ -296,19 +296,19 @@ public class ManageableServerBossBar extends ServerBossBar {
 			float extraMaxHealth,
 			Optional<PlayerMusic> music,
 			Optional<Health> health,
-			Optional<Text> name,
+			Optional<Component> name,
 			Set<UUID> entities,
 			Optional<UUID> mainEntity
 	) {
 		public static final BossBarData DEFAULT = new BossBarData(
-				Color.WHITE, Style.PROGRESS, false, false, true, false, 0,
+				BossBarColor.WHITE, BossBarOverlay.PROGRESS, false, false, true, false, 0,
 				Optional.empty(), Optional.empty(), Optional.empty(), Set.of(), Optional.empty()
 		);
 
 		public static final MapCodec<BossBarData> MAP_CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
-						Color.CODEC.fieldOf("color").orElse(Color.WHITE).forGetter(BossBarData::color),
-						Style.CODEC.fieldOf("style").orElse(Style.PROGRESS).forGetter(BossBarData::style),
+						BossBarColor.CODEC.fieldOf("color").orElse(BossBarColor.WHITE).forGetter(BossBarData::color),
+						BossBarOverlay.CODEC.fieldOf("style").orElse(BossBarOverlay.PROGRESS).forGetter(BossBarData::style),
 						Codec.BOOL.optionalFieldOf("darken_sky", false).forGetter(BossBarData::darkenSky),
 						Codec.BOOL.optionalFieldOf("thicken_fog", false).forGetter(BossBarData::thickenFog),
 						Codec.BOOL.optionalFieldOf("visible", true).forGetter(BossBarData::visible),
@@ -316,9 +316,9 @@ public class ManageableServerBossBar extends ServerBossBar {
 						Codec.FLOAT.optionalFieldOf("extra_max_health", 0.0f).forGetter(BossBarData::extraMaxHealth),
 						PlayerMusic.EASY_CODEC.optionalFieldOf("music").forGetter(BossBarData::music),
 						Health.OPT_CODEC.forGetter(BossBarData::health),
-						TextCodecs.CODEC.optionalFieldOf("name").forGetter(BossBarData::name),
-						Uuids.LINKED_SET_CODEC.optionalFieldOf("entities", Set.of()).forGetter(BossBarData::entities),
-						Uuids.INT_STREAM_CODEC.optionalFieldOf("main_entity").forGetter(BossBarData::mainEntity)
+						ComponentSerialization.CODEC.optionalFieldOf("name").forGetter(BossBarData::name),
+						UUIDUtil.CODEC_LINKED_SET.optionalFieldOf("entities", Set.of()).forGetter(BossBarData::entities),
+						UUIDUtil.CODEC.optionalFieldOf("main_entity").forGetter(BossBarData::mainEntity)
 				).apply(instance, BossBarData::new)
 		);
 
@@ -327,8 +327,8 @@ public class ManageableServerBossBar extends ServerBossBar {
 		public record Health(int value, int max) {
 			public static final MapCodec<Health> CODEC = RecordCodecBuilder.mapCodec(
 					instance -> instance.group(
-							Codecs.NON_NEGATIVE_INT.fieldOf("value").forGetter(Health::value),
-							Codecs.POSITIVE_INT.fieldOf("max").forGetter(Health::max)
+							ExtraCodecs.NON_NEGATIVE_INT.fieldOf("value").forGetter(Health::value),
+							ExtraCodecs.POSITIVE_INT.fieldOf("max").forGetter(Health::max)
 					).apply(instance, Health::new)
 			);
 

@@ -3,7 +3,6 @@ package nu.metacraft.portal_blocker.zone;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.StringIdentifiable;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import nu.metacraft.portal_blocker.Commands;
@@ -15,12 +14,13 @@ import nu.metacraft.zones.zone.data.ZoneDataType;
 
 import java.util.*;
 import java.util.function.Function;
+import net.minecraft.util.StringRepresentable;
 
 public class PortalZoneData extends ZoneData {
 
 	public static final MapCodec<PortalZoneData> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.unboundedMap(
-					PortalTypeRegistry.REGISTRY.getCodec(),
+					PortalTypeRegistry.REGISTRY.byNameCodec(),
 					PortalState.CODEC
 			).fieldOf("portal_states").forGetter(data -> data.portalStates)
 	).apply(instance, PortalZoneData::new));
@@ -64,12 +64,12 @@ public class PortalZoneData extends ZoneData {
 		return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
 	}
 
-	public enum BlockResult implements StringIdentifiable {
+	public enum BlockResult implements StringRepresentable {
 		BLOCKED("block"),
 		ALLOWED("allow"),
 		DEFAULT("default");
 
-		private static final Function<String, BlockResult> MAPPER = StringIdentifiable.createMapper(BlockResult.values());
+		private static final Function<String, BlockResult> MAPPER = StringRepresentable.createNameLookup(BlockResult.values());
 
 		private final String name;
 
@@ -78,13 +78,13 @@ public class PortalZoneData extends ZoneData {
 		}
 
 		@Override
-		public String asString() {
+		public String getSerializedName() {
 			return name;
 		}
 
 		@Override
 		public String toString() {
-			return asString();
+			return getSerializedName();
 		}
 
 		public static Optional<BlockResult> fromString(String value) {

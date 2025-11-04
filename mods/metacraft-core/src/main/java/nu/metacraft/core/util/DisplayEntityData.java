@@ -1,27 +1,27 @@
 package nu.metacraft.core.util;
 
+import com.mojang.math.Transformation;
 import eu.pb4.polymer.virtualentity.api.elements.BlockDisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.DisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.Brightness;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.item.ItemDisplayContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.math.AffineTransformation;
+import net.minecraft.util.Brightness;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class DisplayEntityData {
 
 	protected int interpolationDuration = 1;
 	protected int startInterpolation = -1;
 	protected int teleportDuration = 1;
-	protected AffineTransformation transformation = AffineTransformation.identity();
+	protected Transformation transformation = Transformation.identity();
 
-	protected DisplayEntity.BillboardMode billboardMode = DisplayEntity.BillboardMode.FIXED;
+	protected Display.BillboardConstraints billboardMode = Display.BillboardConstraints.FIXED;
 	protected Brightness brightness = null;
 	protected float viewRange = 1;
 	protected float shadowRadius = 0;
@@ -43,7 +43,7 @@ public class DisplayEntityData {
 		return teleportDuration;
 	}
 
-	public AffineTransformation getTransformation() {
+	public Transformation getTransformation() {
 		return transformation;
 	}
 
@@ -66,35 +66,35 @@ public class DisplayEntityData {
 		element.setGlowing(glowing);
 	}
 
-	public void load(ReadView nbt, Entity entity) {
-		startInterpolation = nbt.getInt(DisplayEntity.START_INTERPOLATION_KEY, 0);
-		interpolationDuration = nbt.getInt(DisplayEntity.INTERPOLATION_DURATION_KEY, 0);
-		teleportDuration = nbt.getInt(DisplayEntity.TELEPORT_DURATION_KEY, 0);
-		transformation = nbt.read(DisplayEntity.TRANSFORMATION_NBT_KEY, AffineTransformation.ANY_CODEC).orElse(AffineTransformation.identity());
-		billboardMode = nbt.read(DisplayEntity.BILLBOARD_NBT_KEY, DisplayEntity.BillboardMode.CODEC).orElse(DisplayEntity.BillboardMode.FIXED);
-		brightness = nbt.read(DisplayEntity.BRIGHTNESS_NBT_KEY, Brightness.CODEC).orElse(null);
-		viewRange = nbt.getFloat(DisplayEntity.VIEW_RANGE_NBT_KEY, 1);
-		shadowRadius = nbt.getFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY, 0);
-		shadowStrength = nbt.getFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY, 1);
-		width = nbt.getFloat(DisplayEntity.WIDTH_NBT_KEY, 0);
-		height = nbt.getFloat(DisplayEntity.HEIGHT_NBT_KEY, 0);
-		glowColourOverride = nbt.getInt(DisplayEntity.GLOW_COLOR_OVERRIDE_NBT_KEY, -1);
-		glowing = entity.isGlowing();
+	public void load(ValueInput nbt, Entity entity) {
+		startInterpolation = nbt.getIntOr(Display.TAG_TRANSFORMATION_START_INTERPOLATION, 0);
+		interpolationDuration = nbt.getIntOr(Display.TAG_TRANSFORMATION_INTERPOLATION_DURATION, 0);
+		teleportDuration = nbt.getIntOr(Display.TAG_POS_ROT_INTERPOLATION_DURATION, 0);
+		transformation = nbt.read(Display.TAG_TRANSFORMATION, Transformation.EXTENDED_CODEC).orElse(Transformation.identity());
+		billboardMode = nbt.read(Display.TAG_BILLBOARD, Display.BillboardConstraints.CODEC).orElse(Display.BillboardConstraints.FIXED);
+		brightness = nbt.read(Display.TAG_BRIGHTNESS, Brightness.CODEC).orElse(null);
+		viewRange = nbt.getFloatOr(Display.TAG_VIEW_RANGE, 1);
+		shadowRadius = nbt.getFloatOr(Display.TAG_SHADOW_RADIUS, 0);
+		shadowStrength = nbt.getFloatOr(Display.TAG_SHADOW_STRENGTH, 1);
+		width = nbt.getFloatOr(Display.TAG_WIDTH, 0);
+		height = nbt.getFloatOr(Display.TAG_HEIGHT, 0);
+		glowColourOverride = nbt.getIntOr(Display.TAG_GLOW_COLOR_OVERRIDE, -1);
+		glowing = entity.isCurrentlyGlowing();
 	}
 
-	public void save(WriteView nbt, Entity entity) {
-		nbt.putInt(DisplayEntity.START_INTERPOLATION_KEY, startInterpolation);
-		nbt.putInt(DisplayEntity.INTERPOLATION_DURATION_KEY, interpolationDuration);
-		nbt.putInt(DisplayEntity.TELEPORT_DURATION_KEY, teleportDuration);
-		nbt.put(DisplayEntity.BILLBOARD_NBT_KEY, DisplayEntity.BillboardMode.CODEC, billboardMode);
-		nbt.putNullable(DisplayEntity.BRIGHTNESS_NBT_KEY, Brightness.CODEC, brightness);
-		nbt.putFloat(DisplayEntity.VIEW_RANGE_NBT_KEY, viewRange);
-		nbt.putFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY, shadowRadius);
-		nbt.putFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY, shadowStrength);
-		nbt.putFloat(DisplayEntity.WIDTH_NBT_KEY, width);
-		nbt.putFloat(DisplayEntity.HEIGHT_NBT_KEY, height);
-		nbt.putInt(DisplayEntity.GLOW_COLOR_OVERRIDE_NBT_KEY, glowColourOverride);
-		nbt.put(DisplayEntity.TRANSFORMATION_NBT_KEY, AffineTransformation.ANY_CODEC, transformation);
+	public void save(ValueOutput nbt, Entity entity) {
+		nbt.putInt(Display.TAG_TRANSFORMATION_START_INTERPOLATION, startInterpolation);
+		nbt.putInt(Display.TAG_TRANSFORMATION_INTERPOLATION_DURATION, interpolationDuration);
+		nbt.putInt(Display.TAG_POS_ROT_INTERPOLATION_DURATION, teleportDuration);
+		nbt.store(Display.TAG_BILLBOARD, Display.BillboardConstraints.CODEC, billboardMode);
+		nbt.storeNullable(Display.TAG_BRIGHTNESS, Brightness.CODEC, brightness);
+		nbt.putFloat(Display.TAG_VIEW_RANGE, viewRange);
+		nbt.putFloat(Display.TAG_SHADOW_RADIUS, shadowRadius);
+		nbt.putFloat(Display.TAG_SHADOW_STRENGTH, shadowStrength);
+		nbt.putFloat(Display.TAG_WIDTH, width);
+		nbt.putFloat(Display.TAG_HEIGHT, height);
+		nbt.putInt(Display.TAG_GLOW_COLOR_OVERRIDE, glowColourOverride);
+		nbt.store(Display.TAG_TRANSFORMATION, Transformation.EXTENDED_CODEC, transformation);
 	}
 
 
@@ -119,25 +119,25 @@ public class DisplayEntityData {
 		}
 
 		@Override
-		public void load(ReadView nbt, Entity entity) {
+		public void load(ValueInput nbt, Entity entity) {
 			super.load(nbt, entity);
 			stack = nbt.read(ITEM, ItemStack.CODEC).orElse(ItemStack.EMPTY);
 			itemModel = nbt.read(ITEM_DISPLAY, ItemDisplayContext.CODEC).orElse(ItemDisplayContext.NONE);
 		}
 
 		@Override
-		public void save(WriteView nbt, Entity entity) {
+		public void save(ValueOutput nbt, Entity entity) {
 			super.save(nbt, entity);
 			if (!stack.isEmpty()) {
-				nbt.put(ITEM, ItemStack.CODEC, stack);
+				nbt.store(ITEM, ItemStack.CODEC, stack);
 			}
-			nbt.put(ITEM_DISPLAY, ItemDisplayContext.CODEC, itemModel);
+			nbt.store(ITEM_DISPLAY, ItemDisplayContext.CODEC, itemModel);
 		}
 	}
 
 	public static class Block extends DisplayEntityData {
 
-		private BlockState state = Blocks.AIR.getDefaultState();
+		private BlockState state = Blocks.AIR.defaultBlockState();
 
 		public BlockState getBlockState() {
 			return state;
@@ -152,17 +152,17 @@ public class DisplayEntityData {
 		}
 
 		@Override
-		public void load(ReadView nbt, Entity entity) {
+		public void load(ValueInput nbt, Entity entity) {
 			super.load(nbt, entity);
-			state = nbt.read(DisplayEntity.BlockDisplayEntity.BLOCK_STATE_NBT_KEY, BlockState.CODEC).orElse(
-					Blocks.AIR.getDefaultState()
+			state = nbt.read(Display.BlockDisplay.TAG_BLOCK_STATE, BlockState.CODEC).orElse(
+					Blocks.AIR.defaultBlockState()
 			);
 		}
 
 		@Override
-		public void save(WriteView nbt, Entity entity) {
+		public void save(ValueOutput nbt, Entity entity) {
 			super.save(nbt, entity);
-			nbt.put(DisplayEntity.BlockDisplayEntity.BLOCK_STATE_NBT_KEY, BlockState.CODEC, state);
+			nbt.store(Display.BlockDisplay.TAG_BLOCK_STATE, BlockState.CODEC, state);
 		}
 	}
 

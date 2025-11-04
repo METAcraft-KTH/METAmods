@@ -6,16 +6,6 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.util.dynamic.Codecs;
-import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
@@ -42,6 +32,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.DoubleStream;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 
 public class PlayerSpecificCameraPathTransition implements Transition {
 
@@ -64,13 +64,13 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 	}
 
 	@Override
-	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		if (!interpolationSets.containsKey(player.getUuid())) {
+	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		if (!interpolationSets.containsKey(player.getUUID())) {
 			var interpolationSet = config.targets().getTargets(interval);
 			var target = DynamicTarget.fromEntity(player);
 			interpolationSet = interpolationSet.setStartIfNotPresent(target);
 			interpolationSet = interpolationSet.setEndIfNotPresent(target);
-			interpolationSets.put(player.getUuid(), interpolationSet);
+			interpolationSets.put(player.getUUID(), interpolationSet);
 		}
 	}
 
@@ -78,12 +78,12 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 
 	private void setLinearInterpolationDuration(Entity display, int duration) {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:SmoothCameraPathTransition#setLinearInterpolationDuration", Cutscenes.LOGGER)) {
-			var writeView = NbtWriteView.create(logging, display.getRegistryManager());
-			display.writeData(writeView);
-			var data = writeView.getNbt();
-			data.putInt(DisplayEntity.TELEPORT_DURATION_KEY, duration);
-			var readView = NbtReadView.create(logging, display.getRegistryManager(), data);
-			display.readData(readView);
+			var writeView = TagValueOutput.createWithContext(logging, display.registryAccess());
+			display.saveWithoutId(writeView);
+			var data = writeView.buildResult();
+			data.putInt(Display.TAG_POS_ROT_INTERPOLATION_DURATION, duration);
+			var readView = TagValueInput.create(logging, display.registryAccess(), data);
+			display.load(readView);
 		}
 	}
 
@@ -94,15 +94,15 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 		return cutscene.getCurrentTime() + config.interpolationDuration();
 	}
 
-	private static String getMarkerID(ServerPlayerEntity player) {
-		return MARKER_ID_PREFIX + player.getUuidAsString();
+	private static String getMarkerID(ServerPlayer player) {
+		return MARKER_ID_PREFIX + player.getStringUUID();
 	}
 
-	private void moveEntityToTarget(DynamicTarget target, Entity entity, ServerPlayerEntity player, CutsceneInstance cutscene) {
+	private void moveEntityToTarget(DynamicTarget target, Entity entity, ServerPlayer player, CutsceneInstance cutscene) {
 		var ctx = cutscene.createRefContext(player);
-		var pos = target.pos.get(ctx).orElse(player.getEntityPos().subtract(0, EntityType.PLAYER.getDimensions().eyeHeight(), 0));
-		var facing = target.rot.get(ctx).orElse(player.getRotationClient());
-		entity.updatePositionAndAngles(
+		var pos = target.pos.get(ctx).orElse(player.position().subtract(0, EntityType.PLAYER.getDimensions().eyeHeight(), 0));
+		var facing = target.rot.get(ctx).orElse(player.getRotationVector());
+		entity.absSnapTo(
 				pos.x, pos.y + EntityType.PLAYER.getDimensions().eyeHeight(), pos.z, facing.y, facing.x
 		);
 	}
@@ -113,13 +113,13 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 			var ctx = new CutsceneContext(player, cutscene);
 			cutscene.getRootEntity(getMarkerID(player)).ifPresentOrElse(marker -> {
 				if (player.isSpectator()) {
-					player.setCameraEntity(marker);
+					player.setCamera(marker);
 				}
 			}, () -> {
-				var display = EntityType.TEXT_DISPLAY.create(cutscene.getCutsceneWorld(), SpawnReason.TRIGGERED);
+				var display = EntityType.TEXT_DISPLAY.create(cutscene.getCutsceneWorld(), EntitySpawnReason.TRIGGERED);
 				setLinearInterpolationDuration(display, config.interpolationDuration());
 				((EntityExtension) display).metacraft$setHasAccurateMovement(true);
-				var target = interpolationSets.get(player.getUuid()).interpolate(ctx, 0);
+				var target = interpolationSets.get(player.getUUID()).interpolate(ctx, 0);
 				moveEntityToTarget(target, display, player, cutscene);
 				cutscene.addEntity(getMarkerID(player), display);
 			});
@@ -132,7 +132,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 				return;
 			}
 			double delta = ((double) currentTimeAdjusted - interval.getStart()) / interval.getLength();
-			var target = interpolationSets.get(player.getUuid()).interpolate(ctx, delta);
+			var target = interpolationSets.get(player.getUUID()).interpolate(ctx, delta);
 			cutscene.getRootEntity(getMarkerID(player)).ifPresent(entity -> {
 				if ((cutscene.getCurrentTime() - interval.getStart()) % config.teleportInterval() == 0) {
 					moveEntityToTarget(target, entity, player, cutscene);
@@ -147,10 +147,10 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 	}
 
 	@Override
-	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	public void deactivate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		cutscene.getEntities(getMarkerID(player)).forEach(Entity::discard);
 		if (player.isSpectator()) {
-			player.setCameraEntity(null);
+			player.setCamera(null);
 		}
 	}
 
@@ -173,7 +173,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 		public static final Codec<DynamicTarget> CODEC = MAP_CODEC.codec();
 
 		public static DynamicTarget fromEntity(Entity entity) {
-			return new DynamicTarget(new Fixed(entity.getEntityPos()), new FixedRot(entity.getYaw(), entity.getPitch()));
+			return new DynamicTarget(new Fixed(entity.position()), new FixedRot(entity.getYRot(), entity.getXRot()));
 		}
 
 		public static DynamicTarget fromList(DoubleStream stream) {
@@ -183,19 +183,19 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 			double z = list[2];
 			float yaw = (float) list[3];
 			float pitch = (float) list[4];
-			return new DynamicTarget(new Fixed(new Vec3d(x, y, z)), new FixedRot(yaw, pitch));
+			return new DynamicTarget(new Fixed(new Vec3(x, y, z)), new FixedRot(yaw, pitch));
 		}
 
 		private Target getEmergencyPoint(CutsceneInstance cutscene) {
 			return cutscene.getCutscene().getEntryPoint(null, cutscene).map(
-					t -> new Target(t.position(), t.yaw(), t.pitch())
+					t -> new Target(t.position(), t.yRot(), t.xRot())
 			).orElse(
 					cutscene.getCutscene().getExitPoint(null, cutscene).map(
-							t -> new Target(t.position(), t.yaw(), t.pitch())
+							t -> new Target(t.position(), t.yRot(), t.xRot())
 					).orElse(new Target(
-							Vec3d.ofBottomCenter(cutscene.getCutsceneWorld().getActualWorld().getSpawnPoint().getPos()),
-							cutscene.getCutsceneWorld().getActualWorld().getSpawnPoint().yaw(),
-							cutscene.getCutsceneWorld().getActualWorld().getSpawnPoint().pitch()
+							Vec3.atBottomCenterOf(cutscene.getCutsceneWorld().getActualWorld().getRespawnData().pos()),
+							cutscene.getCutsceneWorld().getActualWorld().getRespawnData().yaw(),
+							cutscene.getCutsceneWorld().getActualWorld().getRespawnData().pitch()
 					))
 			);
 		}
@@ -208,9 +208,9 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 				if (cutscene != null) {
 					var refCtx = ctx.getRefContext();
 					var emergencyTarget = Suppliers.memoize(() -> getEmergencyPoint(cutscene));
-					var pos = pos().get(refCtx).orElse(player != null ? player.getEntityPos() : emergencyTarget.get().pos());
-					var rot = rot().get(refCtx).orElse(player != null ? player.getRotationClient() : new Vec2f(emergencyTarget.get().pitch(), emergencyTarget.get().yaw()));
-					return DoubleList.of(pos.getX(), pos.getY(), pos.getZ(), rot.y, rot.x);
+					var pos = pos().get(refCtx).orElse(player != null ? player.position() : emergencyTarget.get().pos());
+					var rot = rot().get(refCtx).orElse(player != null ? player.getRotationVector() : new Vec2(emergencyTarget.get().pitch(), emergencyTarget.get().yaw()));
+					return DoubleList.of(pos.x(), pos.y(), pos.z(), rot.y, rot.x);
 				}
 			}
 			return DoubleList.of(0,0,0,0,0);
@@ -234,8 +234,8 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 		public static final MapCodec<Config> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						SMOOTH_PATH.forGetter(c -> c.targets),
-						Codecs.POSITIVE_INT.optionalFieldOf("linear_interpolation_duration", 20).forGetter(Config::interpolationDuration),
-						Codecs.POSITIVE_INT.optionalFieldOf("teleport_interval", 1).forGetter(Config::teleportInterval)
+						ExtraCodecs.POSITIVE_INT.optionalFieldOf("linear_interpolation_duration", 20).forGetter(Config::interpolationDuration),
+						ExtraCodecs.POSITIVE_INT.optionalFieldOf("teleport_interval", 1).forGetter(Config::teleportInterval)
 				).apply(instance, Config::new)
 		);
 

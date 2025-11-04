@@ -1,6 +1,6 @@
 package nu.metacraft.plots.zone;
 
-import net.minecraft.registry.Registry;
+import net.minecraft.core.Registry;
 import nu.metacraft.plots.METAcraftPlots;
 import nu.metacraft.zones.zone.data.ZoneData;
 import nu.metacraft.zones.zone.data.ZoneDataRegistry;

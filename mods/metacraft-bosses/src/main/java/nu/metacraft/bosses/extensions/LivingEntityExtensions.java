@@ -1,6 +1,6 @@
 package nu.metacraft.bosses.extensions;
 
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 import nu.metacraft.bosses.util.DoubleTeamHandler;
 
 public interface LivingEntityExtensions {

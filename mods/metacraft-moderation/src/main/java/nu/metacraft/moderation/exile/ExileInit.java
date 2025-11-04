@@ -9,13 +9,13 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import it.unimi.dsi.fastutil.ints.Int2ObjectFunction;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.argument.GameProfileArgumentType;
-import net.minecraft.command.argument.IdentifierArgumentType;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.GameProfileArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.PlayerConfigEntry;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
+import net.minecraft.server.players.NameAndId;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -28,23 +28,23 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public class ExileInit {
 
 	public static final SimpleCommandExceptionType ZONE_RULE_WRONG = new SimpleCommandExceptionType(
-		Text.literal("Invalid Zone Rule")
+		Component.literal("Invalid Zone Rule")
 	);
 
 	public static final SimpleCommandExceptionType EXILE_DEFINITION_DOES_NOT_EXIST = new SimpleCommandExceptionType(
-		Text.literal("That exile definition does not exist.")
+		Component.literal("That exile definition does not exist.")
 	);
 
-	public static final SuggestionProvider<ServerCommandSource> ZONE_RULE_SUGGESTIONS = (ctx, suggestionsBuilder) -> {
-		return CommandSource.suggestMatching(
-			ZoneRuleRegistry.REGISTRY.getKeys().stream().map(key -> {
-				var id = key.getValue();
+	public static final SuggestionProvider<CommandSourceStack> ZONE_RULE_SUGGESTIONS = (ctx, suggestionsBuilder) -> {
+		return SharedSuggestionProvider.suggest(
+			ZoneRuleRegistry.REGISTRY.registryKeySet().stream().map(key -> {
+				var id = key.location();
 				if (id.getNamespace().equals("minecraft")) {
 					return id.getPath();
 				} else {
@@ -54,14 +54,14 @@ public class ExileInit {
 		);
 	};
 
-	public static final SuggestionProvider<ServerCommandSource> EXILE_DEFINITION_SUGGESTIONS = (ctx, suggestionsBuilder) -> {
-		return CommandSource.suggestMatching(
+	public static final SuggestionProvider<CommandSourceStack> EXILE_DEFINITION_SUGGESTIONS = (ctx, suggestionsBuilder) -> {
+		return SharedSuggestionProvider.suggest(
 				ExileData.getInstance(ctx.getSource().getServer()).getAll().stream().map(ExileDefinition::getName), suggestionsBuilder
 		);
 	};
 
 	static Optional<String> getPlayerNameFromUUID(MinecraftServer server, UUID player) {
-		return server.getApiServices().nameToIdCache().getByUuid(player).map(PlayerConfigEntry::name);
+		return server.services().nameToIdCache().get(player).map(NameAndId::name);
 	}
 
 	public static void init() {
@@ -76,7 +76,7 @@ public class ExileInit {
 								ExileData.getInstance(ctx.getSource().getServer()).add(new ExileDefinition(
 									ctx.getSource().getServer(), name
 								));
-								ctx.getSource().sendFeedback(() -> Text.literal("Added new exile definition " + name), true);
+								ctx.getSource().sendSuccess(() -> Component.literal("Added new exile definition " + name), true);
 								return 1;
 							})
 						)
@@ -85,7 +85,7 @@ public class ExileInit {
 							exileDefinition("exile_name").executes(ctx -> {
 								ExileDefinition def = getExileDefinition(ctx, "exile_name");
 								ExileData.getInstance(ctx.getSource().getServer()).remove(def.getName());
-								ctx.getSource().sendFeedback(() -> Text.literal("Removed exile definition " + def.getName()), true);
+								ctx.getSource().sendSuccess(() -> Component.literal("Removed exile definition " + def.getName()), true);
 								return 1;
 							})
 						)
@@ -99,8 +99,8 @@ public class ExileInit {
 								CommandUtil.command("arg", 10, dispatcher, (ctx, command) -> {
 									var def = getExileDefinition(ctx, "exile_def");
 									def.setExileCommand(command);
-									ctx.getSource().sendFeedback(
-											() -> Text.literal("Set exile command for " + def.getName() + " to " + command), true
+									ctx.getSource().sendSuccess(
+											() -> Component.literal("Set exile command for " + def.getName() + " to " + command), true
 									);
 									return 1;
 								})
@@ -112,8 +112,8 @@ public class ExileInit {
 								CommandUtil.command("arg", 10, dispatcher, (ctx, command) -> {
 									var def = getExileDefinition(ctx, "exile_def");
 									def.setPardonCommand(command);
-									ctx.getSource().sendFeedback(
-											() -> Text.literal("Set pardon command for " + def.getName() + " to " + command), true
+									ctx.getSource().sendSuccess(
+											() -> Component.literal("Set pardon command for " + def.getName() + " to " + command), true
 									);
 									return 1;
 								})
@@ -123,7 +123,7 @@ public class ExileInit {
 						literal("get").then(
 							exileDefinition("exile_def").executes(ctx -> {
 								var def = getExileDefinition(ctx, "exile_def");
-								ctx.getSource().sendFeedback(
+								ctx.getSource().sendSuccess(
 									def::toText, false
 								);
 								return 1;
@@ -133,11 +133,11 @@ public class ExileInit {
 				).then(
 					literal("player").then(
 						literal("exile").then(
-							argument("player", GameProfileArgumentType.gameProfile()).then(
+							argument("player", GameProfileArgument.gameProfile()).then(
 								exileDefinition("exile_definition").executes(ctx -> {
 									var exile = getExileDefinition(ctx, "exile_definition");
 									return addRemovePlayers("player", ctx, player -> {
-												var actualPlayer = ctx.getSource().getServer().getPlayerManager().getPlayer(player);
+												var actualPlayer = ctx.getSource().getServer().getPlayerList().getPlayer(player);
 												if (actualPlayer != null) {
 													ExileData.getInstance(ctx.getSource().getServer()).setExile(actualPlayer, exile);
 												} else {
@@ -147,10 +147,10 @@ public class ExileInit {
 												return true;
 											},
 											name -> {
-												return Text.literal("Exiled ").append(name).append(Text.literal(" into " + exile.getName()));
+												return Component.literal("Exiled ").append(name).append(Component.literal(" into " + exile.getName()));
 											},
 											players -> {
-												return Text.literal("Exiled " + players + " players into " + exile.getName());
+												return Component.literal("Exiled " + players + " players into " + exile.getName());
 											}
 									);
 								})
@@ -158,11 +158,11 @@ public class ExileInit {
 						)
 					).then(
 						literal("pardon").then(
-							argument("player", GameProfileArgumentType.gameProfile()).executes(ctx -> {
+							argument("player", GameProfileArgument.gameProfile()).executes(ctx -> {
 								return addRemovePlayers("player", ctx, player -> {
 											var data = ExileData.getInstance(ctx.getSource().getServer());
 											if (data.getExile(player).isPresent()) {
-												var actualPlayer = ctx.getSource().getServer().getPlayerManager().getPlayer(player);
+												var actualPlayer = ctx.getSource().getServer().getPlayerList().getPlayer(player);
 												if (actualPlayer != null) {
 													data.removeExile(actualPlayer);
 												} else {
@@ -173,28 +173,28 @@ public class ExileInit {
 											return false;
 										},
 										name -> {
-											return Text.literal("Pardoned ").append(name);
+											return Component.literal("Pardoned ").append(name);
 										},
 										players -> {
-											return Text.literal("Pardoned " + players + " players");
+											return Component.literal("Pardoned " + players + " players");
 										}
 								);
 							})
 						)
 					).then(
 						literal("get").then(
-							argument("player", GameProfileArgumentType.gameProfile()).executes(ctx -> {
+							argument("player", GameProfileArgument.gameProfile()).executes(ctx -> {
 								var data = ExileData.getInstance(ctx.getSource().getServer());
-								var players = GameProfileArgumentType.getProfileArgument(ctx, "player").stream().map(
+								var players = GameProfileArgument.getGameProfiles(ctx, "player").stream().map(
 									profile -> data.getExile(profile.id()).map(
-										def -> Text.literal("Player " + getPlayerNameFromUUID(
+										def -> Component.literal("Player " + getPlayerNameFromUUID(
 												ctx.getSource().getServer(), profile.id()
 										).orElse("missingno") + " is exiled to " + def.getName())
-									).orElse(Text.literal("Player " + getPlayerNameFromUUID(
+									).orElse(Component.literal("Player " + getPlayerNameFromUUID(
 											ctx.getSource().getServer(), profile.id()
 									).orElse("missingno") + " is not in exile"))
 								).toList();
-								players.forEach(message -> ctx.getSource().sendFeedback(() -> message, false));
+								players.forEach(message -> ctx.getSource().sendSuccess(() -> message, false));
 								return players.size();
 							})
 						)
@@ -204,8 +204,8 @@ public class ExileInit {
 		});
 	}
 
-	static ArgumentBuilder<ServerCommandSource, ?> addRemoveCommand(ArgumentBuilder<ServerCommandSource, ?> name, boolean add) {
-		ArgumentBuilder<ServerCommandSource, ?> zoneCommandPoint;
+	static ArgumentBuilder<CommandSourceStack, ?> addRemoveCommand(ArgumentBuilder<CommandSourceStack, ?> name, boolean add) {
+		ArgumentBuilder<CommandSourceStack, ?> zoneCommandPoint;
 		name.then(
 			exileDefinition("exile_name").then(
 				zoneCommandPoint = ZoneCommandUtils.zone("zone").then(
@@ -215,15 +215,15 @@ public class ExileInit {
 						var rule = getZoneRule(ctx, "rule");
 						if (add) {
 							def.addRule(zone, rule);
-							ctx.getSource().sendFeedback(
-								() -> Text.literal(
+							ctx.getSource().sendSuccess(
+								() -> Component.literal(
 										"Added rule " + rule.getID() + " to zone " + zone.getName() + " in exile definition " + def.getName()
 								), true
 							);
 						} else {
 							def.removeRule(zone, rule);
-							ctx.getSource().sendFeedback(
-									() -> Text.literal(
+							ctx.getSource().sendSuccess(
+									() -> Component.literal(
 											"Removed rule " + rule.getID() + " from zone " + zone.getName() + " in exile definition " + def.getName()
 									), true
 							);
@@ -238,8 +238,8 @@ public class ExileInit {
 				var def = getExileDefinition(ctx, "exile_name");
 				var zone = ZoneCommandUtils.getZone(ctx, "zone");
 				def.removeZone(zone);
-				ctx.getSource().sendFeedback(
-						() -> Text.literal(
+				ctx.getSource().sendSuccess(
+						() -> Component.literal(
 								"Removed zone " + zone.getName() + " in exile definition " + def.getName()
 						), true
 				);
@@ -255,12 +255,12 @@ public class ExileInit {
 	}
 
 	static int addRemovePlayers(
-		String arg, CommandContext<ServerCommandSource> ctx, PlayerAction action,
-		Function<String, Text> getSinglePlayerMessage, Int2ObjectFunction<Text> getMultiPlayerMessage
+		String arg, CommandContext<CommandSourceStack> ctx, PlayerAction action,
+		Function<String, Component> getSinglePlayerMessage, Int2ObjectFunction<Component> getMultiPlayerMessage
 	) throws CommandSyntaxException {
 		MutableInt total = new MutableInt(0);
 		Mutable<String> name = new MutableObject<>(null);
-		for (var player : GameProfileArgumentType.getProfileArgument(ctx, "player")) {
+		for (var player : GameProfileArgument.getGameProfiles(ctx, "player")) {
 			if (action.apply(player.id())) {
 				total.increment();
 				if (total.getValue() == 1) {
@@ -269,18 +269,18 @@ public class ExileInit {
 			}
 		}
 		switch (total.getValue()) {
-			case 0 -> ctx.getSource().sendFeedback(() -> Text.literal("No player was affected"), false);
-			case 1 -> ctx.getSource().sendFeedback(() -> getSinglePlayerMessage.apply(name.getValue()),true);
-			default -> ctx.getSource().sendFeedback(() -> getMultiPlayerMessage.apply(total.getValue()),true);
+			case 0 -> ctx.getSource().sendSuccess(() -> Component.literal("No player was affected"), false);
+			case 1 -> ctx.getSource().sendSuccess(() -> getSinglePlayerMessage.apply(name.getValue()),true);
+			default -> ctx.getSource().sendSuccess(() -> getMultiPlayerMessage.apply(total.getValue()),true);
 		}
 		return total.getValue();
 	}
 
-	static ArgumentBuilder<ServerCommandSource, ?> exileDefinition(String arg) {
+	static ArgumentBuilder<CommandSourceStack, ?> exileDefinition(String arg) {
 		return argument(arg, StringArgumentType.string()).suggests(EXILE_DEFINITION_SUGGESTIONS);
 	}
 
-	static ExileDefinition getExileDefinition(CommandContext<ServerCommandSource> ctx, String arg) throws CommandSyntaxException {
+	static ExileDefinition getExileDefinition(CommandContext<CommandSourceStack> ctx, String arg) throws CommandSyntaxException {
 		var def = ExileData.getInstance(ctx.getSource().getServer()).get(StringArgumentType.getString(ctx, arg));
 		if (def != null) {
 			return def;
@@ -289,12 +289,12 @@ public class ExileInit {
 		}
 	}
 
-	static ArgumentBuilder<ServerCommandSource, ?> zoneRule(String arg) {
-		return argument(arg, IdentifierArgumentType.identifier()).suggests(ZONE_RULE_SUGGESTIONS);
+	static ArgumentBuilder<CommandSourceStack, ?> zoneRule(String arg) {
+		return argument(arg, ResourceLocationArgument.id()).suggests(ZONE_RULE_SUGGESTIONS);
 	}
 
-	static ZoneRule getZoneRule(CommandContext<ServerCommandSource> ctx, String arg) throws CommandSyntaxException {
-		var rule = ZoneRuleRegistry.REGISTRY.get(IdentifierArgumentType.getIdentifier(ctx, arg));
+	static ZoneRule getZoneRule(CommandContext<CommandSourceStack> ctx, String arg) throws CommandSyntaxException {
+		var rule = ZoneRuleRegistry.REGISTRY.getValue(ResourceLocationArgument.getId(ctx, arg));
 		if (rule != null) {
 			return rule;
 		} else {

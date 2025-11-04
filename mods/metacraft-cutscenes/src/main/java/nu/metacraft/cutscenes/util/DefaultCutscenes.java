@@ -1,9 +1,6 @@
 package nu.metacraft.cutscenes.util;
 
 import com.mojang.serialization.JavaOps;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.GameMode;
 import nu.metacraft.cutscenes.transitions.entity.*;
 import org.pcollections.TreePMap;
 import nu.metacraft.cutscenes.cutscene.Cutscene;
@@ -16,26 +13,29 @@ import nu.metacraft.core.util.InterpolationSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.phys.Vec3;
 
 public class DefaultCutscenes {
 
 	public static final Cutscene CREEPER_KILL_PIGLIN = new Cutscene(new IntervalMap<>(List.of(
 				new IntervalMap.Interval<>(
-						0, 300, new SetGameModeTransition.Config(GameMode.SPECTATOR, true)
+						0, 300, new SetGameModeTransition.Config(GameType.SPECTATOR, true)
 				),
 				new IntervalMap.Interval<>(
 						0, 300, new SpawnEntity(
 								List.of("zombie"),
-								new AtEntityRef(SelfRef.getInstance(), Vec3d.ZERO, new Vec3d(5, 0, 3), false),
-								NbtCompound.CODEC.parse(JavaOps.INSTANCE, Map.of("id", "piglin")).getOrThrow(), Optional.empty(),
+								new AtEntityRef(SelfRef.getInstance(), Vec3.ZERO, new Vec3(5, 0, 3), false),
+								CompoundTag.CODEC.parse(JavaOps.INSTANCE, Map.of("id", "piglin")).getOrThrow(), Optional.empty(),
 								false
 						)
 				),
 				new IntervalMap.Interval<>(
 						0, 300, new SpawnEntity(
 								List.of("creeper"),
-								new AtEntityRef(SelfRef.getInstance(), Vec3d.ZERO, new Vec3d(-5, 0, 3), false),
-								NbtCompound.CODEC.parse(JavaOps.INSTANCE, Map.of("id", "creeper")).getOrThrow(), Optional.empty(),
+								new AtEntityRef(SelfRef.getInstance(), Vec3.ZERO, new Vec3(-5, 0, 3), false),
+								CompoundTag.CODEC.parse(JavaOps.INSTANCE, Map.of("id", "creeper")).getOrThrow(), Optional.empty(),
 								false
 						)
 				),
@@ -43,15 +43,15 @@ public class DefaultCutscenes {
 						100, 200, new MoveTo.Config(
 									new CutsceneRef("zombie"), List.of(
 										new MoveTo.Config.PathTarget(new AtEntityRef(
-												new CutsceneRef("creeper"), Vec3d.ZERO,
-												Vec3d.ZERO, false
+												new CutsceneRef("creeper"), Vec3.ZERO,
+												Vec3.ZERO, false
 										))
 									), 1
 						)
 				),
 				new IntervalMap.Interval<>(
 						100, 200, new LookAt(
-								new CutsceneRef("creeper"), new AtEntityRef(new CutsceneRef("zombie"), Vec3d.ZERO, Vec3d.ZERO, true),
+								new CutsceneRef("creeper"), new AtEntityRef(new CutsceneRef("zombie"), Vec3.ZERO, Vec3.ZERO, true),
 								Optional.empty(), Optional.empty(), true
 						)
 				),

@@ -2,7 +2,6 @@ package nu.metacraft.bosses.boss.attacks.target;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.Vec3d;
 import nu.metacraft.core.position_ref.PositionRef;
 import nu.metacraft.core.registry.PositionRefRegistry;
 import nu.metacraft.core.util.RefContext;
@@ -10,6 +9,7 @@ import nu.metacraft.bosses.boss.attacks.Attack;
 import nu.metacraft.bosses.boss.attacks.AttackRegistry;
 
 import java.util.Optional;
+import net.minecraft.world.phys.Vec3;
 
 public class PositionRefTarget extends PositionTargetSelector {
 
@@ -26,7 +26,7 @@ public class PositionRefTarget extends PositionTargetSelector {
 	}
 
 	@Override
-	protected Optional<Vec3d> getTarget(Attack.BossContext<?> ctx) {
+	protected Optional<Vec3> getTarget(Attack.BossContext<?> ctx) {
 		return position.get(
 				new RefContext(Optional.of(ctx.boss()), ctx.getWorld(), ctx.random())
 		);

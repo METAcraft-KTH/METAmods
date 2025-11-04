@@ -1,16 +1,16 @@
 package nu.metacraft.portable_jukebox.mixin;
 
-import net.minecraft.inventory.InventoryChangedListener;
-import net.minecraft.inventory.SimpleInventory;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 import java.util.List;
+import net.minecraft.world.ContainerListener;
+import net.minecraft.world.SimpleContainer;
 
-@Mixin(SimpleInventory.class)
+@Mixin(SimpleContainer.class)
 public interface AccessorSimpleInventory {
 
 	@Accessor
-	List<InventoryChangedListener> getListeners();
+	List<ContainerListener> getListeners();
 
 }

@@ -1,6 +1,6 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.server.world.ChunkHolder;
+import net.minecraft.server.level.ChunkHolder;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -8,6 +8,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface AccessorChunkHolder {
 
 	@Accessor
-	ChunkHolder.PlayersWatchingChunkProvider getPlayersWatchingChunkProvider();
+	ChunkHolder.PlayerProvider getPlayerProvider();
 
 }

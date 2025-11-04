@@ -1,66 +1,66 @@
 package nu.metacraft.lib.util.helper;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.server.network.EntityTrackerEntry;
-import net.minecraft.server.network.PlayerAssociatedNetworkHandler;
-import net.minecraft.server.world.ServerChunkLoadingManager;
-import net.minecraft.server.world.ServerWorld;
 import nu.metacraft.lib.mixin.AccessorServerChunkLoadingManager;
 
 import java.util.Set;
+import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.ServerEntity;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.network.ServerPlayerConnection;
 
 /**
  * Note that when in the METAmods repository, you will have to set up an access widener for
- * {@link ServerChunkLoadingManager.EntityTracker} in the module to use this.
+ * {@link ChunkMap.TrackedEntity} in the module to use this.
  */
 public class EntityTrackerHelper {
 
 	/**
 	 * Returns all entity trackers for the given world.
 	 * Note that when in the METAmods repository, you will have to set up an access widener for
-	 * {@link ServerChunkLoadingManager.EntityTracker} in the module to use this.
+	 * {@link ChunkMap.TrackedEntity} in the module to use this.
 	 * @param world The world.
 	 * @return The indexed entity tracker map.
 	 */
-	public static Int2ObjectMap<ServerChunkLoadingManager.EntityTracker> getEntityTrackers(
-			ServerWorld world
+	public static Int2ObjectMap<ChunkMap.TrackedEntity> getEntityTrackers(
+			ServerLevel world
 	) {
-		return getEntityTrackers(world.getChunkManager().chunkLoadingManager);
+		return getEntityTrackers(world.getChunkSource().chunkMap);
 	}
 
 	/**
 	 * Returns all entity trackers for the given world.
 	 * Note that when in the METAmods repository, you will have to set up an access widener for
-	 * {@link ServerChunkLoadingManager.EntityTracker} in the module to use this.
+	 * {@link ChunkMap.TrackedEntity} in the module to use this.
 	 * @param manager The server chunkloading manager.
 	 * @return The indexed entity tracker map.
 	 */
-	public static Int2ObjectMap<ServerChunkLoadingManager.EntityTracker> getEntityTrackers(
-			ServerChunkLoadingManager manager
+	public static Int2ObjectMap<ChunkMap.TrackedEntity> getEntityTrackers(
+			ChunkMap manager
 	) {
-		return ((AccessorServerChunkLoadingManager) manager).getEntityTrackers();
+		return ((AccessorServerChunkLoadingManager) manager).getEntityMap();
 	}
 
 	/**
 	 * Returns the entity tracker entry for your entity tracker.
 	 * Note that when in the METAmods repository, you will have to set up an access widener for
-	 * {@link ServerChunkLoadingManager.EntityTracker} in the module to use this.
+	 * {@link ChunkMap.TrackedEntity} in the module to use this.
 	 * @param entityTracker The entity tracker.
 	 * @return The entity tracker entry.
 	 */
-	public static EntityTrackerEntry getEntry(ServerChunkLoadingManager.EntityTracker entityTracker) {
-		return ((AccessorServerChunkLoadingManager.EntityTracker) entityTracker).getEntry();
+	public static ServerEntity getEntry(ChunkMap.TrackedEntity entityTracker) {
+		return ((AccessorServerChunkLoadingManager.EntityTracker) entityTracker).getServerEntity();
 	}
 
 	/**
 	 * Returns all player associated network handlers for your entity tracker.
 	 * Note that when in the METAmods repository, you will have to set up an access widener for
-	 * {@link ServerChunkLoadingManager.EntityTracker} in the module to use this.
+	 * {@link ChunkMap.TrackedEntity} in the module to use this.
 	 * @param entityTracker The entity tracker.
 	 * @return A set of all network listeners.
 	 */
-	public static Set<PlayerAssociatedNetworkHandler> getListeners(ServerChunkLoadingManager.EntityTracker entityTracker) {
-		return ((AccessorServerChunkLoadingManager.EntityTracker) entityTracker).getListeners();
+	public static Set<ServerPlayerConnection> getListeners(ChunkMap.TrackedEntity entityTracker) {
+		return ((AccessorServerChunkLoadingManager.EntityTracker) entityTracker).getSeenBy();
 	}
 
 }

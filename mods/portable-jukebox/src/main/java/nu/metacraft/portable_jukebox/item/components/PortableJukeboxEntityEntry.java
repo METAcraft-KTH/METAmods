@@ -1,17 +1,17 @@
 package nu.metacraft.portable_jukebox.item.components;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Uuids;
 import nu.metacraft.portable_jukebox.ItemWithInventoryHelper;
 
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.item.ItemStack;
 
 public record PortableJukeboxEntityEntry(UUID entity) {
 
-	public static final Codec<PortableJukeboxEntityEntry> CODEC = Uuids.STRICT_CODEC.xmap(
+	public static final Codec<PortableJukeboxEntityEntry> CODEC = UUIDUtil.LENIENT_CODEC.xmap(
 			PortableJukeboxEntityEntry::new, PortableJukeboxEntityEntry::entity
 	);
 

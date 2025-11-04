@@ -3,15 +3,15 @@ package nu.metacraft.portable_jukebox.gui;
 import eu.pb4.sgui.api.gui.layered.Layer;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
 import it.unimi.dsi.fastutil.objects.ReferenceSortedSets;
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.TooltipDisplayComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.TooltipDisplay;
 import nu.metacraft.lib.util.EntityRef;
 import nu.metacraft.portable_jukebox.item.PortableJukeboxItem;
 
@@ -19,38 +19,38 @@ public class PortableJukeboxGui extends LayeredGui {
 
 	private final PortableJukeboxInventory portableJukebox;
 
-	public static PortableJukeboxGui create(ServerPlayerEntity player, ItemStack portableJukebox, EntityRef toPlayFrom) {
+	public static PortableJukeboxGui create(ServerPlayer player, ItemStack portableJukebox, EntityRef toPlayFrom) {
 		return new PortableJukeboxGui(player, portableJukebox, toPlayFrom, toPlayFrom::onUpdate);
 	}
 
 	public PortableJukeboxGui(
-			ServerPlayerEntity player, ItemStack portableJukebox, EntityRef toPlayFrom, Runnable onUpdate
+			ServerPlayer player, ItemStack portableJukebox, EntityRef toPlayFrom, Runnable onUpdate
 	) {
-		super(ScreenHandlerType.GENERIC_9X1, player, false);
+		super(MenuType.GENERIC_9x1, player, false);
 
 		this.portableJukebox = new PortableJukeboxInventory(portableJukebox, onUpdate);
 
-		this.setTitle(Text.translatableWithFallback(
+		this.setTitle(Component.translatableWithFallback(
 				"portable_jukebox.gui", "Portable Jukebox"
 		));
 
 		Layer slot = new Layer(1, 1);
 		slot.setSlotRedirect(0, new Slot(this.portableJukebox, 0, 0, 0) {
 			@Override
-			public boolean canInsert(ItemStack stack) {
-				return stack.contains(DataComponentTypes.JUKEBOX_PLAYABLE);
+			public boolean mayPlace(ItemStack stack) {
+				return stack.has(DataComponents.JUKEBOX_PLAYABLE);
 			}
 
 			@Override
-			protected void onTake(int amount) {
-				PortableJukeboxItem.stop(portableJukebox, player.getEntityWorld());
+			protected void onSwapCraft(int amount) {
+				PortableJukeboxItem.stop(portableJukebox, player.level());
 			}
 		});
 		Layer buttons = new Layer(1, 2);
 		buttons.setSlot(
 				0, new ItemStack(
-					Items.GREEN_WOOL.getRegistryEntry(), 1, ComponentChanges.builder().add(
-						DataComponentTypes.ITEM_NAME, Text.literal("Play")
+					Items.GREEN_WOOL.builtInRegistryHolder(), 1, DataComponentPatch.builder().set(
+						DataComponents.ITEM_NAME, Component.literal("Play")
 					).build()
 				),
 				(index, type, action) -> {
@@ -60,20 +60,20 @@ public class PortableJukeboxGui extends LayeredGui {
 		buttons.setSlot(
 				1,
 				new ItemStack(
-						Items.RED_WOOL.getRegistryEntry(), 1, ComponentChanges.builder().add(
-							DataComponentTypes.ITEM_NAME, Text.literal("Stop")
+						Items.RED_WOOL.builtInRegistryHolder(), 1, DataComponentPatch.builder().set(
+							DataComponents.ITEM_NAME, Component.literal("Stop")
 						).build()
 				),
 				(index, type, action) -> {
-					PortableJukeboxItem.stop(portableJukebox, player.getEntityWorld());
+					PortableJukeboxItem.stop(portableJukebox, player.level());
 				}
 		);
 
 		setBackground(new ItemStack(
-				Items.ORANGE_STAINED_GLASS_PANE.getRegistryEntry(), 1, ComponentChanges.builder().add(
-						DataComponentTypes.ITEM_NAME, Text.literal("")
-				).add(
-						DataComponentTypes.TOOLTIP_DISPLAY, new TooltipDisplayComponent(true, ReferenceSortedSets.emptySet())
+				Items.ORANGE_STAINED_GLASS_PANE.builtInRegistryHolder(), 1, DataComponentPatch.builder().set(
+						DataComponents.ITEM_NAME, Component.literal("")
+				).set(
+						DataComponents.TOOLTIP_DISPLAY, new TooltipDisplay(true, ReferenceSortedSets.emptySet())
 				).build()
 		));
 

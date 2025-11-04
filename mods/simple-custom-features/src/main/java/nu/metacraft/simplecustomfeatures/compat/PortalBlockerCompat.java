@@ -2,14 +2,14 @@ package nu.metacraft.simplecustomfeatures.compat;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
-import net.minecraft.block.Block;
-import net.minecraft.block.Portal;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Portal;
 import nu.metacraft.portal_blocker.PortalBlocker;
 import nu.metacraft.portal_blocker.PortalBlockerSettings;
 import nu.metacraft.portal_blocker.PortalState;
@@ -39,8 +39,8 @@ public class PortalBlockerCompat {
 		return registries;
 	}
 
-	public static <T extends Block & Portal> Multimap<Identifier, BaseObject<?>> addPortalType(
-			Multimap<Identifier, BaseObject<?>> map, Identifier id, T portal,
+	public static <T extends Block & Portal> Multimap<ResourceLocation, BaseObject<?>> addPortalType(
+			Multimap<ResourceLocation, BaseObject<?>> map, ResourceLocation id, T portal,
 			PortalTypeData data
 	) {
 		var object = new BlockPortalType(Set.of(portal), data);
@@ -53,7 +53,7 @@ public class PortalBlockerCompat {
 		return map;
 	}
 
-	public static boolean isActivationBlocked(Portal portal, MinecraftServer server, RegistryKey<World> dim, BlockPos pos) {
+	public static boolean isActivationBlocked(Portal portal, MinecraftServer server, ResourceKey<Level> dim, BlockPos pos) {
 		PortalType type = BlockPortalType.getFromPortal(portal);
 		if (type == null) return false;
 		return PortalBlockerSettings.getInstance(server).isPortalBlocked(
@@ -61,7 +61,7 @@ public class PortalBlockerCompat {
 		);
 	}
 
-	public static boolean isActivationBlocked(Portal portal, MinecraftServer server, RegistryKey<World> dim, Iterable<BlockPos> positions) {
+	public static boolean isActivationBlocked(Portal portal, MinecraftServer server, ResourceKey<Level> dim, Iterable<BlockPos> positions) {
 		PortalType type = BlockPortalType.getFromPortal(portal);
 		if (type == null) return false;
 		return PortalBlockerSettings.getInstance(server).isPortalBlocked(
@@ -69,7 +69,7 @@ public class PortalBlockerCompat {
 		);
 	}
 
-	public static boolean isGenerationBlocked(Portal portal, MinecraftServer server, RegistryKey<World> dim, Iterable<BlockPos> positions) {
+	public static boolean isGenerationBlocked(Portal portal, MinecraftServer server, ResourceKey<Level> dim, Iterable<BlockPos> positions) {
 		PortalType type = BlockPortalType.getFromPortal(portal);
 		if (type == null) return false;
 		return PortalBlockerSettings.getInstance(server).isPortalBlocked(

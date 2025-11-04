@@ -3,11 +3,11 @@ package nu.metacraft.core.position_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.Vec3d;
 import nu.metacraft.core.registry.PositionRefRegistry;
 import nu.metacraft.core.util.RefContext;
 
 import java.util.Optional;
+import net.minecraft.world.phys.Vec3;
 
 public record WithTries(
 		PositionRef position,
@@ -22,7 +22,7 @@ public record WithTries(
 	);
 
 	@Override
-	public Optional<Vec3d> get(RefContext ctx) {
+	public Optional<Vec3> get(RefContext ctx) {
 		for (int i = 0; i < tries; i++) {
 			var pos = position.get(ctx);
 			if (pos.isPresent()) {

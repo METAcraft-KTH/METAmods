@@ -2,12 +2,6 @@ package nu.metacraft.lib.util.helper;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.component.ComponentType;
-import net.minecraft.dialog.type.Dialog;
-import net.minecraft.registry.entry.RegistryFixedCodec;
-import net.minecraft.text.HoverEvent;
-
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
@@ -15,6 +9,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.resources.RegistryFixedCodec;
+import net.minecraft.server.dialog.Dialog;
 
 public class RegistryDependentCodecHelper {
 
@@ -136,11 +135,11 @@ public class RegistryDependentCodecHelper {
 		 * @see {@link net.minecraft.component.type.ItemEnchantmentsComponent}
 		 * @see {@link net.minecraft.component.type.BlockPredicatesComponent}
 		 */
-		markRegistryDependent(ComponentChanges.CODEC);
-		markRegistryDependent(ComponentType.TYPE_TO_VALUE_MAP_CODEC);
+		markRegistryDependent(DataComponentPatch.CODEC);
+		markRegistryDependent(DataComponentType.VALUE_MAP_CODEC);
 
 		//A consequence of above.
 		markRegistryDependent(HoverEvent.CODEC);
-		markRegistryDependent(Dialog.CODEC);
+		markRegistryDependent(Dialog.DIRECT_CODEC);
 	}
 }

@@ -1,12 +1,12 @@
 package nu.metacraft.saved_items.item_saving;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Player;
 
 public interface ItemEntityData {
 
-	Text metacraft_saved_items$getSourcePlayerName();
+	Component metacraft_saved_items$getSourcePlayerName();
 
-	void metacraft_saved_items$setDroppedByDeadPlayer(PlayerEntity player);
+	void metacraft_saved_items$setDroppedByDeadPlayer(Player player);
 
 }

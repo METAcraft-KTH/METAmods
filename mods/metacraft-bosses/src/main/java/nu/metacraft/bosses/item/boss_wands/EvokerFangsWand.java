@@ -1,90 +1,90 @@
 package nu.metacraft.bosses.item.boss_wands;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
-import net.minecraft.entity.mob.EvokerFangsEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.world.RaycastContext;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.EvokerFangs;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import nu.metacraft.bosses.item.components.BossComponents;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 public class EvokerFangsWand extends Item implements PolymerItem {
 
-	public EvokerFangsWand(net.minecraft.item.Item.Settings settings) {
+	public EvokerFangsWand(net.minecraft.world.item.Item.Properties settings) {
 		super(settings);
 	}
 
 	@Override
-	public ActionResult use(World world, PlayerEntity user, Hand hand) {
-		var stack = user.getStackInHand(hand);
-		double maxRange = stack.contains(BossComponents.MAX_RANGE) ? stack.get(BossComponents.MAX_RANGE) : 64;
-		Vec3d eyePos = user.getEntityPos().add(0, user.getEyeHeight(user.getPose()), 0);
-		Vec3d facingVector = user.getRotationVector().multiply(maxRange);
-		Vec3d endPos = eyePos.add(facingVector);
+	public InteractionResult use(Level world, Player user, InteractionHand hand) {
+		var stack = user.getItemInHand(hand);
+		double maxRange = stack.has(BossComponents.MAX_RANGE) ? stack.get(BossComponents.MAX_RANGE) : 64;
+		Vec3 eyePos = user.position().add(0, user.getEyeHeight(user.getPose()), 0);
+		Vec3 facingVector = user.getLookAngle().scale(maxRange);
+		Vec3 endPos = eyePos.add(facingVector);
 
-		HitResult result = ProjectileUtil.raycast(user, eyePos, endPos, user.getBoundingBox().stretch(facingVector), entity -> true, facingVector.length());
+		HitResult result = ProjectileUtil.getEntityHitResult(user, eyePos, endPos, user.getBoundingBox().expandTowards(facingVector), entity -> true, facingVector.length());
 		if (result == null) {
-			result = user.getEntityWorld().raycast(new RaycastContext(eyePos, endPos, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, user));
+			result = user.level().clip(new ClipContext(eyePos, endPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, user));
 		}
 		//Credits to Mojang.
-		Vec3d target = result.getPos().add(user.getRotationVector());
-		double minYDist = Math.min(target.getY(), user.getY());
-		double maxYDist = Math.max(target.getY(), user.getY()) + 1.0;
-		float yawToTarget = (float) MathHelper.atan2(target.getZ() - user.getZ(), target.getX() - user.getX());
-		if (user.isSneaking()) {
+		Vec3 target = result.getLocation().add(user.getLookAngle());
+		double minYDist = Math.min(target.y(), user.getY());
+		double maxYDist = Math.max(target.y(), user.getY()) + 1.0;
+		float yawToTarget = (float) Mth.atan2(target.z() - user.getZ(), target.x() - user.getX());
+		if (user.isShiftKeyDown()) {
 			float yaw;
 			int i;
 			for (i = 0; i < 5; ++i) {
 				yaw = yawToTarget + (float)i * (float)Math.PI * 0.4f;
-				this.conjureFangs(user, user.getX() + (double)MathHelper.cos(yaw) * 1.5, user.getZ() + (double)MathHelper.sin(yaw) * 1.5, minYDist, maxYDist, yaw, 0);
+				this.conjureFangs(user, user.getX() + (double)Mth.cos(yaw) * 1.5, user.getZ() + (double)Mth.sin(yaw) * 1.5, minYDist, maxYDist, yaw, 0);
 			}
 			for (i = 0; i < 8; ++i) {
 				yaw = yawToTarget + (float)i * (float)Math.PI * 2.0f / 8.0f + 1.2566371f;
-				this.conjureFangs(user, user.getX() + (double)MathHelper.cos(yaw) * 2.5, user.getZ() + (double)MathHelper.sin(yaw) * 2.5, minYDist, maxYDist, yaw, 3);
+				this.conjureFangs(user, user.getX() + (double)Mth.cos(yaw) * 2.5, user.getZ() + (double)Mth.sin(yaw) * 2.5, minYDist, maxYDist, yaw, 3);
 			}
 		} else {
 			for (int i = 0; i < maxRange; ++i) {
 				double h = 1.25 * (double)(i + 1);
-				this.conjureFangs(user, user.getX() + (double)MathHelper.cos(yawToTarget) * h, user.getZ() + (double)MathHelper.sin(yawToTarget) * h, minYDist, maxYDist, yawToTarget, i);
+				this.conjureFangs(user, user.getX() + (double)Mth.cos(yawToTarget) * h, user.getZ() + (double)Mth.sin(yawToTarget) * h, minYDist, maxYDist, yawToTarget, i);
 			}
 		}
-		return ActionResult.SUCCESS_SERVER.noIncrementStat();
+		return InteractionResult.SUCCESS_SERVER.withoutItem();
 	}
 
-	public void conjureFangs(PlayerEntity owner, double x, double z, double maxY, double y, float yaw, int warmup) {
+	public void conjureFangs(Player owner, double x, double z, double maxY, double y, float yaw, int warmup) {
 		//Credits to Mojang.
-		BlockPos blockPos = BlockPos.ofFloored(x, y, z);
+		BlockPos blockPos = BlockPos.containing(x, y, z);
 		boolean bl = false;
 		double d = 0.0;
 		do {
 			VoxelShape voxelShape;
 			BlockPos blockPos2;
-			if (!owner.getEntityWorld().getBlockState(blockPos2 = blockPos.down()).isSideSolidFullSquare(owner.getEntityWorld(), blockPos2, Direction.UP)) continue;
-			if (!owner.getEntityWorld().isAir(blockPos) && !(voxelShape = owner.getEntityWorld().getBlockState(blockPos).getCollisionShape(owner.getEntityWorld(), blockPos)).isEmpty()) {
-				d = voxelShape.getMax(Direction.Axis.Y);
+			if (!owner.level().getBlockState(blockPos2 = blockPos.below()).isFaceSturdy(owner.level(), blockPos2, Direction.UP)) continue;
+			if (!owner.level().isEmptyBlock(blockPos) && !(voxelShape = owner.level().getBlockState(blockPos).getCollisionShape(owner.level(), blockPos)).isEmpty()) {
+				d = voxelShape.max(Direction.Axis.Y);
 			}
 			bl = true;
 			break;
-		} while ((blockPos = blockPos.down()).getY() >= MathHelper.floor(maxY) - 1);
+		} while ((blockPos = blockPos.below()).getY() >= Mth.floor(maxY) - 1);
 		if (bl) {
-			var entity = new EvokerFangsEntity(owner.getEntityWorld(), x, (double)blockPos.getY() + d, z, yaw, warmup, owner);
+			var entity = new EvokerFangs(owner.level(), x, (double)blockPos.getY() + d, z, yaw, warmup, owner);
 			entity.setOwner(owner);
-			if (owner.getScoreboardTeam() != null) {
-				owner.getEntityWorld().getServer().getScoreboard().addScoreHolderToTeam(entity.getNameForScoreboard(), owner.getScoreboardTeam());
+			if (owner.getTeam() != null) {
+				owner.level().getServer().getScoreboard().addPlayerToTeam(entity.getScoreboardName(), owner.getTeam());
 			}
-			owner.getEntityWorld().spawnEntity(entity);
+			owner.level().addFreshEntity(entity);
 		}
 	}
 

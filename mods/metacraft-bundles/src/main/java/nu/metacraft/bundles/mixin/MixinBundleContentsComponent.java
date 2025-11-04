@@ -3,8 +3,6 @@ package nu.metacraft.bundles.mixin;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.component.type.BundleContentsComponent;
-import net.minecraft.item.ItemStack;
 import nu.metacraft.bundles.extensions.BundlesComponentExtensions;
 import nu.metacraft.bundles.util.BundleHelper;
 import org.apache.commons.lang3.math.Fraction;
@@ -15,21 +13,23 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.BundleContents;
 
-@Mixin(BundleContentsComponent.class)
+@Mixin(BundleContents.class)
 public abstract class MixinBundleContentsComponent implements BundlesComponentExtensions.Internal {
 
 	@Unique
 	private Fraction bundleSizeFactor = Fraction.ONE;
 
 	@ModifyExpressionValue(
-		method = "getOccupancy(Lnet/minecraft/item/ItemStack;)Lorg/apache/commons/lang3/math/Fraction;",
+		method = "getWeight(Lnet/minecraft/world/item/ItemStack;)Lorg/apache/commons/lang3/math/Fraction;",
 		at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/component/type/BundleContentsComponent;getOccupancy()Lorg/apache/commons/lang3/math/Fraction;"
+				target = "Lnet/minecraft/world/item/component/BundleContents;weight()Lorg/apache/commons/lang3/math/Fraction;"
 		)
 	)
-	private static Fraction getOccupancy(Fraction fraction, @Local BundleContentsComponent bundle) {
+	private static Fraction getOccupancy(Fraction fraction, @Local BundleContents bundle) {
 		return fraction.multiplyBy(BundleHelper.getStoredBundleSizeFactor(bundle));
 	}
 
@@ -52,39 +52,39 @@ public abstract class MixinBundleContentsComponent implements BundlesComponentEx
 	)
 	public boolean equals(
 			boolean original,
-			@Local BundleContentsComponent bundleContentsComponent
+			@Local BundleContents bundleContentsComponent
 	) {
 		return original && this.bundleSizeFactor.equals(BundleHelper.getStoredBundleSizeFactor(bundleContentsComponent));
 	}
 
-	@Mixin(BundleContentsComponent.Builder.class)
+	@Mixin(BundleContents.Mutable.class)
 	public static abstract class Builder implements Internal {
-		@Shadow private Fraction occupancy;
-		@Shadow @Final private List<ItemStack> stacks;
+		@Shadow private Fraction weight;
+		@Shadow @Final private List<ItemStack> items;
 
-		@Shadow public abstract int add(ItemStack stack);
+		@Shadow public abstract int tryInsert(ItemStack stack);
 
 		@Unique
 		private Fraction bundleSizeFactor;
 
 		@Inject(method = "<init>", at = @At("RETURN"))
-		public void init(BundleContentsComponent base, CallbackInfo ci) {
+		public void init(BundleContents base, CallbackInfo ci) {
 			this.bundleSizeFactor = ((BundlesComponentExtensions) (Object) base).METAcraft_Fixes$getBundleSizeFactor();
 		}
 
 		@ModifyExpressionValue(
-			method = {"getMaxAllowed", "add(Lnet/minecraft/item/ItemStack;)I", "removeSelected"},
+			method = {"getMaxAmountToAdd", "tryInsert(Lnet/minecraft/world/item/ItemStack;)I", "removeOne"},
 			at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/component/type/BundleContentsComponent;getOccupancy(Lnet/minecraft/item/ItemStack;)Lorg/apache/commons/lang3/math/Fraction;"
+				target = "Lnet/minecraft/world/item/component/BundleContents;getWeight(Lnet/minecraft/world/item/ItemStack;)Lorg/apache/commons/lang3/math/Fraction;"
 			)
 		)
 		public Fraction fixGetOccupancy(Fraction original) {
 			return original.divideBy(bundleSizeFactor);
 		}
 
-		@ModifyReturnValue(method = "build", at = @At("RETURN"))
-		public BundleContentsComponent build(BundleContentsComponent original) {
+		@ModifyReturnValue(method = "toImmutable", at = @At("RETURN"))
+		public BundleContents build(BundleContents original) {
 			((BundlesComponentExtensions.Internal) (Object) original).METAcraft_Fixes$setBundleSizeFactor(bundleSizeFactor);
 			return original;
 		}
@@ -92,7 +92,7 @@ public abstract class MixinBundleContentsComponent implements BundlesComponentEx
 		@Override
 		public void METAcraft_Fixes$setBundleSizeFactor(Fraction factor) {
 			bundleSizeFactor = factor;
-			occupancy = AccessorBundleContentsComponent.callCalculateOccupancy(this.stacks).divideBy(factor);
+			weight = AccessorBundleContentsComponent.callComputeContentWeight(this.items).divideBy(factor);
 		}
 
 		@Override
@@ -101,33 +101,33 @@ public abstract class MixinBundleContentsComponent implements BundlesComponentEx
 		}
 
 		@ModifyExpressionValue(
-			method = "getInsertionIndex",
+			method = "findStackIndex",
 			at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/item/ItemStack;areItemsAndComponentsEqual(Lnet/minecraft/item/ItemStack;Lnet/minecraft/item/ItemStack;)Z"
+				target = "Lnet/minecraft/world/item/ItemStack;isSameItemSameComponents(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemStack;)Z"
 			)
 		)
 		public boolean getInsertionIndex(boolean original, @Local int i) {
-			var s = this.stacks.get(i);
-			if (s.getCount() >= s.getMaxCount()) {
+			var s = this.items.get(i);
+			if (s.getCount() >= s.getMaxStackSize()) {
 				return false;
 			}
 			return original;
 		}
 
 		@ModifyArg(
-			method = "add(Lnet/minecraft/item/ItemStack;)I",
+			method = "tryInsert(Lnet/minecraft/world/item/ItemStack;)I",
 			at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/item/ItemStack;copyWithCount(I)Lnet/minecraft/item/ItemStack;"
+				target = "Lnet/minecraft/world/item/ItemStack;copyWithCount(I)Lnet/minecraft/world/item/ItemStack;"
 			)
 		)
 		public int add(
 				int total, @Local(ordinal = 1) ItemStack itemStack
 		) {
-			if (total > itemStack.getMaxCount()) {
-				stacks.addFirst(itemStack.copyWithCount(itemStack.getMaxCount()));
-				return total - itemStack.getMaxCount();
+			if (total > itemStack.getMaxStackSize()) {
+				items.addFirst(itemStack.copyWithCount(itemStack.getMaxStackSize()));
+				return total - itemStack.getMaxStackSize();
 			}
 			return total;
 		}

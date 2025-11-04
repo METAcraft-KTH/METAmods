@@ -1,32 +1,32 @@
 package nu.metacraft.core.block.blocks;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.BlockWithEntity;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.ShapeContext;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.loot.context.LootWorldContext;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.world.BlockView;
 import nu.metacraft.core.block.entities.BlockEntityWithDisguise;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
-public abstract class DisguisedBlock extends BlockWithEntity implements PolymerBlock, BlockWithDisguise {
+public abstract class DisguisedBlock extends BaseEntityBlock implements PolymerBlock, BlockWithDisguise {
 
-	public DisguisedBlock(Settings settings) {
+	public DisguisedBlock(Properties settings) {
 		super(settings);
 	}
 
 	@Override
-	protected float calcBlockBreakingDelta(BlockState state, PlayerEntity player, BlockView world, BlockPos pos) {
-		float hardness = state.getHardness(world, pos); //Handled by mixin.
+	protected float getDestroyProgress(BlockState state, Player player, BlockGetter world, BlockPos pos) {
+		float hardness = state.getDestroySpeed(world, pos); //Handled by mixin.
 		if (hardness == -1.0f) {
 			return 0.0f;
 		}
@@ -34,41 +34,41 @@ public abstract class DisguisedBlock extends BlockWithEntity implements PolymerB
 		if (disguised.isPresent()) {
 			state = disguised.get().getBlockState();
 		}
-		int toolModifier = player.canHarvest(state) ? 30 : 100;
-		return player.getBlockBreakingSpeed(state) / hardness / toolModifier;
+		int toolModifier = player.hasCorrectToolForDrops(state) ? 30 : 100;
+		return player.getDestroySpeed(state) / hardness / toolModifier;
 	}
 
 	@Override
-	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, PacketContext.NotNullWithPlayer context) {
-		getBlockEntity(context.getPlayer().getEntityWorld(), pos).ifPresent(disguised -> disguised.updateClient(context.getPlayer()));
+	public void onPolymerBlockSend(BlockState blockState, BlockPos.MutableBlockPos pos, PacketContext.NotNullWithPlayer context) {
+		getBlockEntity(context.getPlayer().level(), pos).ifPresent(disguised -> disguised.updateClient(context.getPlayer()));
 	}
 
 	@Override
 	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
-		return Blocks.BARRIER.getDefaultState();
+		return Blocks.BARRIER.defaultBlockState();
 	}
 
 	@Override
-	protected VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-		return getBlockEntity(world, pos).map(disguised -> disguised.getBlockState().getOutlineShape(world, pos, context)).orElse(
-				super.getOutlineShape(state, world, pos, context)
+	protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+		return getBlockEntity(world, pos).map(disguised -> disguised.getBlockState().getShape(world, pos, context)).orElse(
+				super.getShape(state, world, pos, context)
 		);
 	}
 
 	@Override
-	protected VoxelShape getCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+	protected VoxelShape getCollisionShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
 		return getBlockEntity(world, pos).map(disguised -> disguised.getBlockState().getCollisionShape(world, pos, context)).orElse(
 				super.getCollisionShape(state, world, pos, context)
 		);
 	}
 
 	@Override
-	protected List<ItemStack> getDroppedStacks(BlockState state, LootWorldContext.Builder builder) {
-		Object blockEntity = builder.getOptional(LootContextParameters.BLOCK_ENTITY);
+	protected List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
+		Object blockEntity = builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
 		if (blockEntity == null) {
-			var pos = builder.getOptional(LootContextParameters.ORIGIN);
+			var pos = builder.getOptionalParameter(LootContextParams.ORIGIN);
 			if (pos != null) {
-				blockEntity = getBlockEntity(builder.getWorld(), BlockPos.ofFloored(pos)).orElse(null);
+				blockEntity = getBlockEntity(builder.getLevel(), BlockPos.containing(pos)).orElse(null);
 			}
 		}
 		return Optional.ofNullable(blockEntity).filter(
@@ -78,9 +78,9 @@ public abstract class DisguisedBlock extends BlockWithEntity implements PolymerB
 		).map(BlockEntityWithDisguise::getBlockState).filter(
 				s -> !(s.getBlock() instanceof DisguisedBlock)
 		).map(
-				s -> s.getDroppedStacks(builder)
+				s -> s.getDrops(builder)
 		).orElse(
-				super.getDroppedStacks(state, builder)
+				super.getDrops(state, builder)
 		);
 	}
 }

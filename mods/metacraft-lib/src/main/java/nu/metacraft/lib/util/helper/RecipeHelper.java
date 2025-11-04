@@ -1,16 +1,16 @@
 package nu.metacraft.lib.util.helper;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.recipe.Ingredient;
-import net.minecraft.recipe.Recipe;
-import net.minecraft.recipe.ShapelessRecipe;
-import net.minecraft.registry.Registries;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.extensions.RecipeComponentCarryoverExtension;
 import nu.metacraft.lib.mixin.AccessorShapelessRecipe;
 
 import java.util.List;
 import java.util.function.Predicate;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.ShapelessRecipe;
 
 public class RecipeHelper {
 
@@ -28,7 +28,7 @@ public class RecipeHelper {
 		} else if (!skipError) {
 			METAcraftLib.LOGGER.error(
 					"Recipe type {} does not support component carryover!",
-					Registries.RECIPE_TYPE.getId(recipe.getType())
+					BuiltInRegistries.RECIPE_TYPE.getKey(recipe.getType())
 			);
 		}
 	}

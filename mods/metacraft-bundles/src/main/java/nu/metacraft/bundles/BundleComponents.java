@@ -1,18 +1,18 @@
 package nu.metacraft.bundles;
 
 import eu.pb4.polymer.core.api.other.PolymerComponent;
-import net.minecraft.component.ComponentType;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 import org.apache.commons.lang3.math.Fraction;
 
 import java.util.function.UnaryOperator;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public class BundleComponents {
 
-	public static final ComponentType<Fraction> BUNDLE_SIZE_FACTOR = register(
-			"bundle_size_factor", builder -> builder.codec(ExtraCodecs.POSITIVE_FRACTION_CODEC)
+	public static final DataComponentType<Fraction> BUNDLE_SIZE_FACTOR = register(
+			"bundle_size_factor", builder -> builder.persistent(METACodecs.POSITIVE_FRACTION_CODEC)
 	);
 
 	public static void init() {
@@ -20,10 +20,10 @@ public class BundleComponents {
 	}
 
 
-	protected static <T> ComponentType<T> register(String id, UnaryOperator<ComponentType.Builder<T>> builderOperator) {
+	protected static <T> DataComponentType<T> register(String id, UnaryOperator<DataComponentType.Builder<T>> builderOperator) {
 		var entry = Registry.register(
-				Registries.DATA_COMPONENT_TYPE, METAcraftBundles.getID(id),
-				builderOperator.apply(ComponentType.builder()).build()
+				BuiltInRegistries.DATA_COMPONENT_TYPE, METAcraftBundles.getID(id),
+				builderOperator.apply(DataComponentType.builder()).build()
 		);
 		PolymerComponent.registerDataComponent(entry);
 		return entry;

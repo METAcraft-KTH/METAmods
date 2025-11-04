@@ -1,8 +1,7 @@
 package nu.metacraft.lib.extensions;
 
-import net.minecraft.item.ItemStack;
-
 import java.util.function.UnaryOperator;
+import net.minecraft.world.item.ItemStack;
 
 public interface RecipeRemainderExtension {
 

@@ -1,7 +1,5 @@
 package nu.metacraft.dungeons.mixin;
 
-import net.minecraft.server.world.ServerChunkManager;
-import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -11,12 +9,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import nu.metacraft.dungeons.extensions.ServerWorldExtension;
 
 import java.io.IOException;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.ServerLevel;
 
-@Mixin(ServerChunkManager.class)
+@Mixin(ServerChunkCache.class)
 public class MixinServerChunkManager {
 
 	@Shadow @Final
-	ServerWorld world;
+	ServerLevel level;
 
 	@Inject(
 		method = "save",
@@ -24,7 +24,7 @@ public class MixinServerChunkManager {
 		cancellable = true
 	)
 	public void save(boolean flush, CallbackInfo ci) throws IOException {
-		if (((ServerWorldExtension) world).metacraft$isBeingDeleted()) {
+		if (((ServerWorldExtension) level).metacraft$isBeingDeleted()) {
 			ci.cancel();
 		}
 	}

@@ -1,30 +1,30 @@
 package nu.metacraft.cutscenes.cutscene.world;
 
-import net.minecraft.server.world.ChunkTaskScheduler;
-import net.minecraft.server.world.ServerLightingProvider;
-import net.minecraft.util.thread.SimpleConsecutiveExecutor;
-import net.minecraft.world.chunk.ChunkProvider;
-import net.minecraft.world.chunk.light.BlockLightStorage;
-import net.minecraft.world.chunk.light.SkyLightStorage;
+import net.minecraft.server.level.ChunkTaskDispatcher;
+import net.minecraft.server.level.ThreadedLevelLightEngine;
+import net.minecraft.util.thread.ConsecutiveExecutor;
+import net.minecraft.world.level.chunk.LightChunkGetter;
+import net.minecraft.world.level.lighting.BlockLightSectionStorage;
+import net.minecraft.world.level.lighting.SkyLightSectionStorage;
 import nu.metacraft.cutscenes.mixin.AccessorChunkLightProvider;
 import nu.metacraft.cutscenes.util.helper.LightingHelper;
 
-public class CutsceneLightingProvider extends ServerLightingProvider {
+public class CutsceneLightingProvider extends ThreadedLevelLightEngine {
 	public CutsceneLightingProvider(
-			ChunkProvider chunkProvider, CutsceneChunkLoadingManager chunkLoadingManager,
-			boolean hasSkyLight, SimpleConsecutiveExecutor processor,
-			ChunkTaskScheduler executor
+			LightChunkGetter chunkProvider, CutsceneChunkLoadingManager chunkLoadingManager,
+			boolean hasSkyLight, ConsecutiveExecutor processor,
+			ChunkTaskDispatcher executor
 	) {
 		super(chunkProvider, chunkLoadingManager, hasSkyLight, processor, executor);
 
 		var blockProvider = LightingHelper.getBlockLightProvider(this);
 		var skyProvider = LightingHelper.getSkyLightProvider(this);
 
-		((AccessorChunkLightProvider<?,BlockLightStorage>) blockProvider).setLightStorage(
+		((AccessorChunkLightProvider<?,BlockLightSectionStorage>) blockProvider).setStorage(
 				new CutsceneBlockLightStorage(chunkProvider)
 		);
 		if (skyProvider != null) {
-			((AccessorChunkLightProvider<?,SkyLightStorage>) skyProvider).setLightStorage(
+			((AccessorChunkLightProvider<?,SkyLightSectionStorage>) skyProvider).setStorage(
 					new CutsceneSkyLightStorage(chunkProvider)
 			);
 		}

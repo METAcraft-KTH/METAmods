@@ -3,13 +3,13 @@ package nu.metacraft.core.position_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.Vec3d;
 import nu.metacraft.core.registry.PositionRefRegistry;
 import nu.metacraft.core.util.RefContext;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.world.phys.Vec3;
 
 public record Nearest(
 		List<PositionRef> targets,
@@ -24,12 +24,12 @@ public record Nearest(
 	);
 
 	@Override
-	public Optional<Vec3d> get(RefContext ctx) {
+	public Optional<Vec3> get(RefContext ctx) {
 		return referencePoint.get(ctx).flatMap(
 				referencePoint -> targets.stream().map(
 						point -> point.get(ctx)
 				).filter(Optional::isPresent).map(Optional::get).min(
-						Comparator.comparing(referencePoint::squaredDistanceTo)
+						Comparator.comparing(referencePoint::distanceToSqr)
 				)
 		);
 	}

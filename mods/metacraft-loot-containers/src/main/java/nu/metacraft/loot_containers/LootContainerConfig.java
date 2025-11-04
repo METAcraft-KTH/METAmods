@@ -22,10 +22,10 @@ public class LootContainerConfig implements Modifiable {
 	//Lazy-initialized because otherwise LootContainerRegistry attempts to access config too early, resulting in null pointer exception (because the initConfig event applies while code is in static block).
 	public static final Codec<LootContainerConfig> CODEC = Codec.lazyInitialized(() -> RecordCodecBuilder.create(instance -> instance.group(
 			Codec.<LootContainerType<?>, LootContainer>dispatchedMap(
-					LootContainerRegistry.REGISTRY.getCodec(), key -> key.codec().codec()
+					LootContainerRegistry.REGISTRY.byNameCodec(), key -> key.codec().codec()
 			).fieldOf("defaultContainerData").forGetter(config -> config.defaultContainerData),
 			Codec.<LootContainerEventType<?>, LootContainerEvent>dispatchedMap(
-					LootContainerEventRegistry.REGISTRY.getCodec(), key -> key.codec().codec()
+					LootContainerEventRegistry.REGISTRY.byNameCodec(), key -> key.codec().codec()
 			).fieldOf("defaultEventData").forGetter(config -> config.defaultEventData)
 	).apply(instance, LootContainerConfig::new)));
 

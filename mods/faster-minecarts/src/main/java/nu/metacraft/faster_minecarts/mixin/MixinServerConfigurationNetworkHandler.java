@@ -1,7 +1,5 @@
 package nu.metacraft.faster_minecarts.mixin;
 
-import net.minecraft.server.network.ServerConfigurationNetworkHandler;
-import net.minecraft.util.Identifier;
 import org.pcollections.HashTreePSet;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -10,18 +8,20 @@ import nu.metacraft.faster_minecarts.FasterMinecarts;
 import nu.metacraft.faster_minecarts.FasterMinecartsConfig;
 
 import java.util.Set;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 
-@Mixin(ServerConfigurationNetworkHandler.class)
+@Mixin(ServerConfigurationPacketListenerImpl.class)
 public class MixinServerConfigurationNetworkHandler {
 
 	@ModifyArg(
-		method = "sendConfigurations",
+		method = "startConfiguration",
 		at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/network/packet/s2c/config/FeaturesS2CPacket;<init>(Ljava/util/Set;)V"
+				target = "Lnet/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket;<init>(Ljava/util/Set;)V"
 		)
 	)
-	public Set<Identifier> sendConfigurations(Set<Identifier> set) {
+	public Set<ResourceLocation> sendConfigurations(Set<ResourceLocation> set) {
 		if (!FasterMinecartsConfig.getConfig().experimentalMinecartMode().isEnabled()) {
 			return set;
 		}

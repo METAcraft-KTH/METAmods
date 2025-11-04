@@ -1,14 +1,14 @@
 package nu.metacraft.lib.mixin;
 
-import net.minecraft.server.dedicated.MinecraftDedicatedServer;
-import net.minecraft.server.dedicated.ServerPropertiesLoader;
+import net.minecraft.server.dedicated.DedicatedServer;
+import net.minecraft.server.dedicated.DedicatedServerSettings;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(MinecraftDedicatedServer.class)
+@Mixin(DedicatedServer.class)
 public interface AccessorMinecraftDedicatedServer {
 
 	@Accessor
-	ServerPropertiesLoader getPropertiesLoader();
+	DedicatedServerSettings getSettings();
 
 }

@@ -1,10 +1,10 @@
 package nu.metacraft.core.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.storage.ReadView;
-import net.minecraft.world.World;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.storage.ValueInput;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -22,9 +22,9 @@ public abstract class MixinBlockEntity implements BlockEntityExtensions {
 	@Unique
 	private static final String IS_MOVABLE = "IsMovable";
 
-	@Shadow public abstract void markDirty();
+	@Shadow public abstract void setChanged();
 
-	@Shadow @Nullable protected World world;
+	@Shadow @Nullable protected Level level;
 	@Unique
 	private boolean isMovable = false;
 
@@ -32,8 +32,8 @@ public abstract class MixinBlockEntity implements BlockEntityExtensions {
 	public void metacraft_core$setMovable(boolean movable) {
 		this.isMovable = movable;
 		validate();
-		if (this.world != null) {
-			markDirty();
+		if (this.level != null) {
+			setChanged();
 		}
 	}
 
@@ -42,9 +42,9 @@ public abstract class MixinBlockEntity implements BlockEntityExtensions {
 		return isMovable;
 	}
 
-	@Inject(method = {"read", "readComponentlessData"}, at = @At("RETURN"))
-	public void readNBT(ReadView nbt, CallbackInfo ci) {
-		isMovable = nbt.getBoolean(IS_MOVABLE, false);
+	@Inject(method = {"loadWithComponents", "loadCustomOnly"}, at = @At("RETURN"))
+	public void readNBT(ValueInput nbt, CallbackInfo ci) {
+		isMovable = nbt.getBooleanOr(IS_MOVABLE, false);
 		validate();
 	}
 
@@ -57,9 +57,9 @@ public abstract class MixinBlockEntity implements BlockEntityExtensions {
 		}
 	}
 
-	@ModifyReturnValue(method = {"createNbt", "createComponentlessNbt"}, at = @At("RETURN"))
-	public NbtCompound writeNBT(
-			NbtCompound nbt
+	@ModifyReturnValue(method = {"saveWithoutMetadata(Lnet/minecraft/core/HolderLookup$Provider;)Lnet/minecraft/nbt/CompoundTag;", "saveCustomOnly(Lnet/minecraft/core/HolderLookup$Provider;)Lnet/minecraft/nbt/CompoundTag;"}, at = @At("RETURN"))
+	public CompoundTag writeNBT(
+			CompoundTag nbt
 	) {
 		nbt.putBoolean(IS_MOVABLE, isMovable);
 		return nbt;

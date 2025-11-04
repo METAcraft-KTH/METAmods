@@ -2,20 +2,23 @@ package nu.metacraft.cutscenes.cutscene.world;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import net.minecraft.entity.Entity;
-import net.minecraft.network.listener.ClientPlayPacketListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.server.world.*;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.world.LightType;
-import net.minecraft.world.PersistentStateManager;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkStatus;
-import net.minecraft.world.chunk.WorldChunk;
-import net.minecraft.world.chunk.light.LightStorage;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.server.level.ChunkHolder;
+import net.minecraft.server.level.ChunkResult;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.TicketStorage;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.lighting.LayerLightSectionStorage;
+import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.mixin.AccessorAbstractChunkHolder;
 import nu.metacraft.cutscenes.mixin.AccessorChunkHolder;
@@ -29,7 +32,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class CutsceneChunkManager extends ServerChunkManager {
+public class CutsceneChunkManager extends ServerChunkCache {
 
 	private final Long2ObjectMap<CutsceneChunk> cachedChunks = new Long2ObjectOpenHashMap<>();
 
@@ -38,95 +41,95 @@ public class CutsceneChunkManager extends ServerChunkManager {
 	private final CutsceneWorld cutsceneWorld;
 
 	public CutsceneChunkManager(
-			CutsceneWorld cutsceneWorld, Supplier<PersistentStateManager> persistentStateManagerFactory
+			CutsceneWorld cutsceneWorld, Supplier<DimensionDataStorage> persistentStateManagerFactory
 	) {
 		super(
 				cutsceneWorld.getActualWorld(),
-				((AccessorMinecraftServer) cutsceneWorld.getServer()).getSession(),
-				cutsceneWorld.getServer().getDataFixer(),
-				cutsceneWorld.getServer().getStructureTemplateManager(),
-				((AccessorMinecraftServer) cutsceneWorld.getServer()).getWorkerExecutor(),
+				((AccessorMinecraftServer) cutsceneWorld.getServer()).getStorageSource(),
+				cutsceneWorld.getServer().getFixerUpper(),
+				cutsceneWorld.getServer().getStructureManager(),
+				((AccessorMinecraftServer) cutsceneWorld.getServer()).getExecutor(),
 				CutsceneWorld.createDummyChunkGenerator(cutsceneWorld.getActualWorld()),
-				cutsceneWorld.getServer().getPlayerManager().getViewDistance(),
-				cutsceneWorld.getServer().getPlayerManager().getSimulationDistance(),
-				cutsceneWorld.getServer().syncChunkWrites(),
+				cutsceneWorld.getServer().getPlayerList().getViewDistance(),
+				cutsceneWorld.getServer().getPlayerList().getSimulationDistance(),
+				cutsceneWorld.getServer().forceSynchronousWrites(),
 				(pos, status) -> {}, persistentStateManagerFactory
 		);
-		var tickerManager = new ChunkTicketManager();
+		var tickerManager = new TicketStorage();
 		this.cutsceneWorld = cutsceneWorld;
 		this.cutsceneChunkLoadingManager = new CutsceneChunkLoadingManager(
 				cutsceneWorld,
-				((AccessorMinecraftServer) cutsceneWorld.getServer()).getSession(),
-				cutsceneWorld.getServer().getDataFixer(),
-				cutsceneWorld.getServer().getStructureTemplateManager(),
-				((AccessorMinecraftServer) cutsceneWorld.getServer()).getWorkerExecutor(),
+				((AccessorMinecraftServer) cutsceneWorld.getServer()).getStorageSource(),
+				cutsceneWorld.getServer().getFixerUpper(),
+				cutsceneWorld.getServer().getStructureManager(),
+				((AccessorMinecraftServer) cutsceneWorld.getServer()).getExecutor(),
 				((AccessorServerChunkManager) this).getMainThreadExecutor(),
 				this, CutsceneWorld.createDummyChunkGenerator(cutsceneWorld.getActualWorld()),
 				(pos, status) -> {}, persistentStateManagerFactory,
 				tickerManager,
-				cutsceneWorld.getServer().getPlayerManager().getViewDistance(),
-				cutsceneWorld.getServer().syncChunkWrites()
+				cutsceneWorld.getServer().getPlayerList().getViewDistance(),
+				cutsceneWorld.getServer().forceSynchronousWrites()
 		);
-		((AccessorServerChunkManager) this).setChunkLoadingManager(
+		((AccessorServerChunkManager) this).setChunkMap(
 				cutsceneChunkLoadingManager
 		);
-		((AccessorServerChunkManager) this).setTicketManager(
+		((AccessorServerChunkManager) this).setTicketStorage(
 				tickerManager
 		);
-		((AccessorServerChunkManager) this).setLevelManager(
-				cutsceneChunkLoadingManager.getLevelManager()
+		((AccessorServerChunkManager) this).setDistanceManager(
+				cutsceneChunkLoadingManager.getDistanceManager()
 		);
-		((AccessorServerChunkManager) this).setLightingProvider(
-				cutsceneChunkLoadingManager.getLightingProvider()
+		((AccessorServerChunkManager) this).setLightEngine(
+				cutsceneChunkLoadingManager.getLightEngine()
 		);
-		this.cutsceneChunkLoadingManager.getLevelManager().setSimulationDistance(cutsceneWorld.getServer().getPlayerManager().getSimulationDistance());
+		this.cutsceneChunkLoadingManager.getDistanceManager().updateSimulationDistance(cutsceneWorld.getServer().getPlayerList().getSimulationDistance());
 
 	}
 
 	@Override
-	public boolean isChunkLoaded(int x, int z) {
-		return isInCache(x, z) || cutsceneWorld.getActualWorld().isChunkLoaded(x, z);
+	public boolean hasChunk(int x, int z) {
+		return isInCache(x, z) || cutsceneWorld.getActualWorld().hasChunk(x, z);
 	}
 
 	private boolean isInCache(int x, int z) {
-		return cachedChunks.containsKey(ChunkPos.toLong(x, z));
+		return cachedChunks.containsKey(ChunkPos.asLong(x, z));
 	}
 
-	private WorldChunk getFromCache(int x, int z) {
-		return cachedChunks.get(ChunkPos.toLong(x, z));
+	private LevelChunk getFromCache(int x, int z) {
+		return cachedChunks.get(ChunkPos.asLong(x, z));
 	}
 
 	public ChunkHolder getChunkHolder(int x, int z) {
-		return ((CutsceneChunkLoadingManager) chunkLoadingManager).getChunkHolder(
-				ChunkPos.toLong(x, z)
+		return ((CutsceneChunkLoadingManager) chunkMap).getVisibleChunkIfPresent(
+				ChunkPos.asLong(x, z)
 		);
 	}
 
 	@Override
-	public PersistentStateManager getPersistentStateManager() {
-		return cutsceneWorld.getPersistentStateManager();
+	public DimensionDataStorage getDataStorage() {
+		return cutsceneWorld.getDataStorage();
 	}
 
 	private boolean fetching = false;
 
-	private Chunk getCutsceneChunk(int x, int z, Chunk chunk) {
-		if (chunk instanceof WorldChunk wc && !fetching) {
+	private ChunkAccess getCutsceneChunk(int x, int z, ChunkAccess chunk) {
+		if (chunk instanceof LevelChunk wc && !fetching) {
 			fetching = true; //Mob spawners may cause this function to be called recursively.
-			var c = cachedChunks.computeIfAbsent(ChunkPos.toLong(x, z), i -> new CutsceneChunk(wc, cutsceneWorld));
-			c.setLoadedToWorld(true);
-			c.setLightOn(true);
-			c.addChunkTickSchedulers(cutsceneWorld);
+			var c = cachedChunks.computeIfAbsent(ChunkPos.asLong(x, z), i -> new CutsceneChunk(wc, cutsceneWorld));
+			c.setLoaded(true);
+			c.setLightCorrect(true);
+			c.registerTickContainerInLevel(cutsceneWorld);
 			var holder = getChunkHolder(x, z);
-			((AccessorChunkHolder) holder).setTickingFuture(
-					CompletableFuture.completedFuture(OptionalChunk.of(c))
+			((AccessorChunkHolder) holder).setTickingChunkFuture(
+					CompletableFuture.completedFuture(ChunkResult.of(c))
 			);
-			((AccessorAbstractChunkHolder) holder).setStatus(ChunkStatus.FULL);
-			((AccessorAbstractChunkHolder) holder).getCurrentStatus().set(ChunkStatus.FULL);
-			var statuses = ((AccessorAbstractChunkHolder) holder).getChunkFuturesByStatus();
+			((AccessorAbstractChunkHolder) holder).setHighestAllowedStatus(ChunkStatus.FULL);
+			((AccessorAbstractChunkHolder) holder).getStartedWork().set(ChunkStatus.FULL);
+			var statuses = ((AccessorAbstractChunkHolder) holder).getFutures();
 			for (int i = 0; i < statuses.length(); i++) {
-				statuses.set(i, CompletableFuture.completedFuture(OptionalChunk.of(c)));
+				statuses.set(i, CompletableFuture.completedFuture(ChunkResult.of(c)));
 			}
-			getLightingProvider().initializeLight(c, true);
+			getLightEngine().initializeLight(c, true);
 			if (cutsceneWorld.loaded) {
 				c.fetchEntitiesFromActualWorld();
 			}
@@ -138,20 +141,20 @@ public class CutsceneChunkManager extends ServerChunkManager {
 
 	public boolean isLightingCached(int x, int z) {
 		if (isInCache(x, z)) return true;
-		for (int i = 0; i < cutsceneWorld.countVerticalSections(); i++) {
-			int y = cutsceneWorld.sectionIndexToCoord(i);
-			long pos = ChunkSectionPos.asLong(x, y, z);
-			if (LightingHelper.getBlockLightProvider(getLightingProvider()).getStatus(pos) != LightStorage.Status.LIGHT_AND_DATA) {
+		for (int i = 0; i < cutsceneWorld.getSectionsCount(); i++) {
+			int y = cutsceneWorld.getSectionYFromSectionIndex(i);
+			long pos = SectionPos.asLong(x, y, z);
+			if (LightingHelper.getBlockLightProvider(getLightEngine()).getDebugSectionType(pos) != LayerLightSectionStorage.SectionType.LIGHT_AND_DATA) {
 				return false;
 			}
-			if (LightingHelper.getSkyLightProvider(getLightingProvider()).getStatus(pos) != LightStorage.Status.LIGHT_AND_DATA) {
+			if (LightingHelper.getSkyLightProvider(getLightEngine()).getDebugSectionType(pos) != LayerLightSectionStorage.SectionType.LIGHT_AND_DATA) {
 				return false;
 			}
 		}
 		return true;
 	}
 
-	public Optional<WorldChunk> getChunkFromCacheIfPresent(int x, int z) {
+	public Optional<LevelChunk> getChunkFromCacheIfPresent(int x, int z) {
 		return isInCache(x, z) ? Optional.of(getFromCache(x, z)) : Optional.empty();
 	}
 
@@ -161,7 +164,7 @@ public class CutsceneChunkManager extends ServerChunkManager {
 
 	@Nullable
 	@Override
-	public Chunk getChunk(int x, int z, ChunkStatus leastStatus, boolean create) {
+	public ChunkAccess getChunk(int x, int z, ChunkStatus leastStatus, boolean create) {
 		if (isInCache(x, z)) {
 			return getFromCache(x, z);
 		}
@@ -169,53 +172,53 @@ public class CutsceneChunkManager extends ServerChunkManager {
 	}
 
 	@Override
-	public WorldChunk getWorldChunk(int chunkX, int chunkZ) {
+	public LevelChunk getChunkNow(int chunkX, int chunkZ) {
 		if (isInCache(chunkX, chunkZ)) {
 			return getFromCache(chunkX, chunkZ);
 		}
-		return (WorldChunk) getCutsceneChunk(
+		return (LevelChunk) getCutsceneChunk(
 				chunkX, chunkZ,
-				cutsceneWorld.getActualWorld().getChunkManager().getWorldChunk(chunkX, chunkZ)
+				cutsceneWorld.getActualWorld().getChunkSource().getChunkNow(chunkX, chunkZ)
 		);
 	}
 
 	@Override
-	public CompletableFuture<OptionalChunk<Chunk>> getChunkFutureSyncOnMainThread(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
+	public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFuture(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
 		if (isInCache(chunkX, chunkZ)) {
-			return CompletableFuture.completedFuture(OptionalChunk.of(getFromCache(chunkX, chunkZ)));
+			return CompletableFuture.completedFuture(ChunkResult.of(getFromCache(chunkX, chunkZ)));
 		}
-		return super.getChunkFutureSyncOnMainThread(chunkX, chunkZ, leastStatus, create).thenApply(
+		return super.getChunkFuture(chunkX, chunkZ, leastStatus, create).thenApply(
 				c -> c.map(chunk -> getCutsceneChunk(chunkX, chunkZ, chunk))
 		);
 	}
 
 	@Override
-	public boolean isTickingFutureReady(long pos) {
-		int x = ChunkPos.getPackedX(pos);
-		int z = ChunkPos.getPackedZ(pos);
+	public boolean isPositionTicking(long pos) {
+		int x = ChunkPos.getX(pos);
+		int z = ChunkPos.getZ(pos);
 		if (isInCache(x, z)) {
 			return true;
 		}
-		return super.isTickingFutureReady(pos);
+		return super.isPositionTicking(pos);
 	}
 
 	@Override
-	public void markForUpdate(BlockPos pos) {
+	public void blockChanged(BlockPos pos) {
 		getChunkHolder(
-				ChunkSectionPos.getSectionCoord(pos.getX()), ChunkSectionPos.getSectionCoord(pos.getZ())
-		).markForBlockUpdate(pos);
+				SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ())
+		).blockChanged(pos);
 	}
 
 	@Override
-	public void onLightUpdate(LightType type, ChunkSectionPos pos) {
-		getChunkHolder(pos.getX(), pos.getZ()).markForLightUpdate(type, pos.getY());
+	public void onLightUpdate(LightLayer type, SectionPos pos) {
+		getChunkHolder(pos.getX(), pos.getZ()).sectionLightChanged(type, pos.getY());
 	}
 
 	@Override
 	public void tick(BooleanSupplier shouldKeepTicking, boolean tickChunks) {
 		if (tickChunks) {
 			cachedChunks.values().forEach(chunk -> {
-				getChunkHolder(chunk.getPos().x, chunk.getPos().z).flushUpdates(chunk);
+				getChunkHolder(chunk.getPos().x, chunk.getPos().z).broadcastChanges(chunk);
 			});
 		}
 	}
@@ -226,18 +229,18 @@ public class CutsceneChunkManager extends ServerChunkManager {
 	}
 
 	@Override
-	public String getDebugString() {
-		return cutsceneWorld.getActualWorld().getChunkManager().getDebugString();
+	public String gatherStats() {
+		return cutsceneWorld.getActualWorld().getChunkSource().gatherStats();
 	}
 
 	@Override
-	public int getLoadedChunkCount() {
-		return cutsceneWorld.getActualWorld().getChunkManager().getLoadedChunkCount();
+	public int getLoadedChunksCount() {
+		return cutsceneWorld.getActualWorld().getChunkSource().getLoadedChunksCount();
 	}
 
 	@Override
-	public World getWorld() {//This runs before cutsceneWorld has been initialized properly, so we need to provide a fallback.
-		return cutsceneWorld != null ? cutsceneWorld : super.getWorld();
+	public Level getLevel() {//This runs before cutsceneWorld has been initialized properly, so we need to provide a fallback.
+		return cutsceneWorld != null ? cutsceneWorld : super.getLevel();
 	}
 
 	public CutsceneWorld getCutsceneWorld() {
@@ -245,15 +248,15 @@ public class CutsceneChunkManager extends ServerChunkManager {
 	}
 
 	@Override
-	public void sendToNearbyPlayers(Entity entity, Packet<? super ClientPlayPacketListener> packet) {
-		cutsceneWorld.getPlayers().forEach(p -> p.networkHandler.sendPacket(packet));
+	public void sendToTrackingPlayersAndSelf(Entity entity, Packet<? super ClientGamePacketListener> packet) {
+		cutsceneWorld.players().forEach(p -> p.connection.send(packet));
 	}
 
 	@Override
-	public void sendToOtherNearbyPlayers(Entity entity, Packet<? super ClientPlayPacketListener> packet) {
-		cutsceneWorld.getPlayers().forEach(p -> {
+	public void sendToTrackingPlayers(Entity entity, Packet<? super ClientGamePacketListener> packet) {
+		cutsceneWorld.players().forEach(p -> {
 			if (p != entity) {
-				p.networkHandler.sendPacket(packet);
+				p.connection.send(packet);
 			}
 		});
 	}

@@ -1,12 +1,12 @@
 package nu.metacraft.lib.mixin;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.recipe.AbstractCookingRecipe;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import nu.metacraft.lib.extensions.RecipeRemainderExtension;
 
 import java.util.function.UnaryOperator;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.AbstractCookingRecipe;
 
 @Mixin(AbstractCookingRecipe.class)
 public class MixinAbstractCookingRecipe implements RecipeRemainderExtension {

@@ -3,9 +3,9 @@ package nu.metacraft.cutscenes.registry;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.cutscenes.transitions.*;
 import nu.metacraft.cutscenes.transitions.config.*;
 import nu.metacraft.cutscenes.transitions.entity.*;
@@ -14,10 +14,10 @@ import nu.metacraft.cutscenes.Cutscenes;
 public class TransitionConfigRegistry {
 
 	public static final Registry<TransitionConfigType<?>> REGISTRY = FabricRegistryBuilder.<TransitionConfigType<?>>createSimple(
-			RegistryKey.ofRegistry(Cutscenes.getID("transition_config"))
+			ResourceKey.createRegistryKey(Cutscenes.getID("transition_config"))
 	).buildAndRegister();
 
-	public static final Codec<TransitionConfig> CODEC = REGISTRY.getCodec().dispatch(
+	public static final Codec<TransitionConfig> CODEC = REGISTRY.byNameCodec().dispatch(
 			TransitionConfig::getConfigType, TransitionConfigType::codec
 	);
 
@@ -178,7 +178,7 @@ public class TransitionConfigRegistry {
 	}
 
 	private static <T extends TransitionConfig> TransitionConfigType<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(REGISTRY, Identifier.ofVanilla(id), new TransitionConfigType<>(codec));
+		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), new TransitionConfigType<>(codec));
 	}
 
 }

@@ -1,9 +1,9 @@
 package nu.metacraft.cutscenes.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -12,17 +12,17 @@ import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
 import nu.metacraft.cutscenes.util.cutscene_redirector.CutsceneServerRedirector;
 
-@Mixin(ServerCommandSource.class)
+@Mixin(CommandSourceStack.class)
 public class MixinServerCommandSource {
 
-	@Shadow @Final private ServerWorld world;
+	@Shadow @Final private ServerLevel level;
 
 	@Unique
 	private MinecraftServer proxyServer;
 
 	@ModifyReturnValue(method = "getServer", at = @At("RETURN"))
 	public MinecraftServer getServer(MinecraftServer server) {
-		if (world instanceof CutsceneWorld cw) {
+		if (level instanceof CutsceneWorld cw) {
 			if (proxyServer == null) {
 				proxyServer = CutsceneServerRedirector.createProxyServer(server, cw);
 			}

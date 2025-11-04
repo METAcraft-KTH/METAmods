@@ -1,13 +1,5 @@
 package nu.metacraft.bosses.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -16,13 +8,21 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import nu.metacraft.lib.util.TrackedEntity;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import nu.metacraft.bosses.extensions.LivingEntityExtensions;
 import nu.metacraft.bosses.util.DoubleTeamHandler;
 
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntity extends Entity implements LivingEntityExtensions {
 
-	@Shadow public abstract void kill(ServerWorld world);
+	@Shadow public abstract void kill(ServerLevel world);
 
 	@Unique
 	private static final String PHANTOM_ENTITY = "phantom_entity";
@@ -43,24 +43,24 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 	@Unique
 	private DoubleTeamHandler doubleTeamHandler = null;
 
-	public MixinLivingEntity(EntityType<?> type, World world) {
+	public MixinLivingEntity(EntityType<?> type, Level world) {
 		super(type, world);
 	}
 
 	@Inject(
-		method = "damage",
+		method = "hurtServer",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/entity/LivingEntity;applyDamage(Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/entity/damage/DamageSource;F)V"
+			target = "Lnet/minecraft/world/entity/LivingEntity;actuallyHurt(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)V"
 		),
 		cancellable = true
 	)
 	public void damage(
-			ServerWorld world, DamageSource source, float amount,
+			ServerLevel world, DamageSource source, float amount,
 			CallbackInfoReturnable<Boolean> cir
 	) {
 		if (phantomEntity) {
-			this.getEntityWorld().sendEntityStatus(this, (byte) 60);
+			this.level().broadcastEntityEvent(this, (byte) 60);
 			discard();
 			cir.setReturnValue(true);
 		}
@@ -68,7 +68,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 
 	@Inject(method = "tick", at = @At("RETURN"))
 	public void tick(CallbackInfo ci) {
-		if (!getEntityWorld().isClient()) {
+		if (!level().isClientSide()) {
 			if (doubleTeamHandler != null) {
 				doubleTeamHandler = doubleTeamHandler.tick();
 				if (doubleTeamHandler.isDone()) {
@@ -77,9 +77,9 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 			}
 			if (soulboundEntity != null) {
 				soulboundEntity.tick();
-				var target = soulboundEntity.getEntity(this.getEntityWorld().getServer());
+				var target = soulboundEntity.getEntity(this.level().getServer());
 				if (target.entityState() == TrackedEntity.EntityResult.EntityState.ABSENT || (target.isPresent() && !target.entity().isAlive())) {
-					kill((ServerWorld) this.getEntityWorld());
+					kill((ServerLevel) this.level());
 				}
 			}
 		}
@@ -105,7 +105,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 		if (soulboundEntity == null) {
 			return this;
 		} else {
-			var result = soulboundEntity.getEntity(getEntityWorld().getServer()).entity();
+			var result = soulboundEntity.getEntity(level().getServer()).entity();
 			if (result != null && result != this) {
 				return ((LivingEntityExtensions) result).metacraft$getNonSoulboundMaster();
 			} else {
@@ -114,22 +114,22 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 		}
 	}
 
-	@Inject(method = "writeCustomData", at = @At("RETURN"))
-	public void save(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
+	public void save(ValueOutput nbt, CallbackInfo ci) {
 		nbt.putBoolean(PHANTOM_ENTITY, phantomEntity);
-		nbt.putNullable(
+		nbt.storeNullable(
 				DOUBLE_TEAM_DATA, DoubleTeamHandler.getCodec((LivingEntity) (Object) this),
 				doubleTeamHandler
 		);
-		nbt.putNullable(
+		nbt.storeNullable(
 				SOULBOUND_ENTITY, TrackedEntity.ENTITY_CODEC,
 				soulboundEntity
 		);
 	}
 
-	@Inject(method = "readCustomData", at = @At("RETURN"))
-	public void load(ReadView nbt, CallbackInfo ci) {
-		phantomEntity = nbt.getBoolean(PHANTOM_ENTITY, false);
+	@Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
+	public void load(ValueInput nbt, CallbackInfo ci) {
+		phantomEntity = nbt.getBooleanOr(PHANTOM_ENTITY, false);
 		doubleTeamHandler = nbt.read(
 				DOUBLE_TEAM_DATA, DoubleTeamHandler.getCodec(((LivingEntity) (Object) this))
 		).orElse(null);

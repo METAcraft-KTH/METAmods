@@ -4,11 +4,10 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkStatus;
-
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -20,9 +19,9 @@ public class ChunkHelper {
 
 	private static final Lock lock = new ReentrantLock();
 	private static boolean init = false;
-	private static final Map<ServerWorld, Long2ObjectMap<Consumer<Optional<Chunk>>>> whenChunkCompleteMap = new HashMap<>();
+	private static final Map<ServerLevel, Long2ObjectMap<Consumer<Optional<ChunkAccess>>>> whenChunkCompleteMap = new HashMap<>();
 
-	public static void whenChunkReady(ServerWorld world, ChunkPos pos, ChunkStatus status, Consumer<Optional<Chunk>> chunkAction) {
+	public static void whenChunkReady(ServerLevel world, ChunkPos pos, ChunkStatus status, Consumer<Optional<ChunkAccess>> chunkAction) {
 		var c = world.getChunk(pos.x, pos.z, status, false);
 		if (c != null) {
 			chunkAction.accept(Optional.of(c));

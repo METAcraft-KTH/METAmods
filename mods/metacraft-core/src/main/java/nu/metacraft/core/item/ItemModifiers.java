@@ -2,17 +2,17 @@ package nu.metacraft.core.item;
 
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.*;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.random.Random;
 import nu.metacraft.core.item.components.ExpiresComponent;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.ItemStack;
 
 public class ItemModifiers {
 
-	public static Optional<ItemStack> modifyTick(ItemStack stack, Random random) {
+	public static Optional<ItemStack> modifyTick(ItemStack stack, RandomSource random) {
 		return ExpiresComponent.apply(stack, random);
 	}
 

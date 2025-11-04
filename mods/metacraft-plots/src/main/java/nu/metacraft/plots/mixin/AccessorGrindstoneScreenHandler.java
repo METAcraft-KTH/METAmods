@@ -1,14 +1,14 @@
 package nu.metacraft.plots.mixin;
 
-import net.minecraft.inventory.Inventory;
-import net.minecraft.screen.GrindstoneScreenHandler;
+import net.minecraft.world.Container;
+import net.minecraft.world.inventory.GrindstoneMenu;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(GrindstoneScreenHandler.class)
+@Mixin(GrindstoneMenu.class)
 public interface AccessorGrindstoneScreenHandler {
 
 	@Accessor
-	Inventory getInput();
+	Container getRepairSlots();
 
 }

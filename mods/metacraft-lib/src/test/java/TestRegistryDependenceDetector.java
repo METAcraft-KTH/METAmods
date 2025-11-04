@@ -1,12 +1,12 @@
 import com.mojang.serialization.Codec;
-import net.minecraft.item.ItemStack;
-import net.minecraft.loot.condition.LootCondition;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryFixedCodec;
-import net.minecraft.text.TextCodecs;
-import net.minecraft.util.Uuids;
-import net.minecraft.world.World;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.resources.RegistryFixedCodec;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import nu.metacraft.lib.util.helper.RegistryDependentCodecHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,14 +23,14 @@ public class TestRegistryDependenceDetector {
 	@Test
 	public void checkRegistrations() {
 		check(Codec.STRING, false);
-		check(Uuids.LINKED_SET_CODEC, false);
-		check(RegistryFixedCodec.of(RegistryKeys.ENTITY_TYPE), true);
-		check(Codec.unboundedMap(Codec.STRING, RegistryFixedCodec.of(RegistryKeys.ENTITY_TYPE)), true);
-		check(LootCondition.CODEC, true);
+		check(UUIDUtil.CODEC_LINKED_SET, false);
+		check(RegistryFixedCodec.create(Registries.ENTITY_TYPE), true);
+		check(Codec.unboundedMap(Codec.STRING, RegistryFixedCodec.create(Registries.ENTITY_TYPE)), true);
+		check(LootItemCondition.DIRECT_CODEC, true);
 		check(ItemStack.CODEC, true); //Because of enchantment component. Might not always be on each item stack, but it "could be".
-		check(TextCodecs.CODEC, true); //Because of item stack above.
-		check(NbtCompound.CODEC, false);
-		check(World.CODEC, false);
+		check(ComponentSerialization.CODEC, true); //Because of item stack above.
+		check(CompoundTag.CODEC, false);
+		check(Level.RESOURCE_KEY_CODEC, false);
 	}
 
 }

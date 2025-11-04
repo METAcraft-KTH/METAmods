@@ -1,10 +1,10 @@
 package nu.metacraft.lib.util.helper;
 
-import net.minecraft.structure.StructureTemplate;
-import net.minecraft.util.math.Vec3i;
 import nu.metacraft.lib.mixin.AccessorStructureTemplate;
 
 import java.util.List;
+import net.minecraft.core.Vec3i;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
 @SuppressWarnings("unused")
 public class StructureTemplateHelper {
@@ -13,8 +13,8 @@ public class StructureTemplateHelper {
 		((AccessorStructureTemplate) structure).setSize(size);
 	}
 
-	public static List<StructureTemplate.PalettedBlockInfoList> getBlockInfoLists(StructureTemplate structure) {
-		return ((AccessorStructureTemplate) structure).getBlockInfoLists();
+	public static List<StructureTemplate.Palette> getBlockInfoLists(StructureTemplate structure) {
+		return ((AccessorStructureTemplate) structure).getPalettes();
 	}
 
 	public static void categorize(
@@ -23,7 +23,7 @@ public class StructureTemplateHelper {
 			List<StructureTemplate.StructureBlockInfo> blocksWithNbt,
 			List<StructureTemplate.StructureBlockInfo> otherBlocks
 	) {
-		AccessorStructureTemplate.callCategorize(blockInfo, fullBlocks, blocksWithNbt, otherBlocks);
+		AccessorStructureTemplate.callAddToLists(blockInfo, fullBlocks, blocksWithNbt, otherBlocks);
 	}
 
 	public static List<StructureTemplate.StructureBlockInfo> combineSorted(
@@ -31,10 +31,10 @@ public class StructureTemplateHelper {
 			List<StructureTemplate.StructureBlockInfo> blocksWithNbt,
 			List<StructureTemplate.StructureBlockInfo> otherBlocks
 	) {
-		return AccessorStructureTemplate.callCombineSorted(fullBlocks, blocksWithNbt, otherBlocks);
+		return AccessorStructureTemplate.callBuildInfoList(fullBlocks, blocksWithNbt, otherBlocks);
 	}
 
-	public static StructureTemplate.PalettedBlockInfoList createPalettedBlockInfoList(
+	public static StructureTemplate.Palette createPalettedBlockInfoList(
 			List<StructureTemplate.StructureBlockInfo> infos
 	) {
 		return AccessorStructureTemplate.AccessorPalettedBlockInfoList.init(infos);

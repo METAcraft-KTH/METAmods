@@ -1,13 +1,13 @@
 package nu.metacraft.core.mixin;
 
 import io.netty.channel.ChannelFutureListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.c2s.common.ResourcePackStatusC2SPacket;
-import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.common.ServerboundResourcePackPacket;
+import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerCommonNetworkHandler;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.server.network.ServerCommonPacketListenerImpl;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import nu.metacraft.core.compat.Vanish;
 import nu.metacraft.lib.compat.IsLoaded;
 import org.spongepowered.asm.mixin.Final;
@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import nu.metacraft.core.block.blocks.BlockWithDisguise;
 import nu.metacraft.core.util.helper.MusicHelper;
 
-@Mixin(value = ServerCommonNetworkHandler.class, priority = 0)
+@Mixin(value = ServerCommonPacketListenerImpl.class, priority = 0)
 public abstract class MixinServerCommonNetworkHandler {
 
 	@Shadow
@@ -28,37 +28,37 @@ public abstract class MixinServerCommonNetworkHandler {
 	protected MinecraftServer server;
 
 	@Shadow
-	public abstract void sendPacket(Packet<?> packet);
+	public abstract void send(Packet<?> packet);
 
 	@SuppressWarnings("ConstantValue")
-	@Inject(method = "send", at = @At("HEAD"))
+	@Inject(method = "send(Lnet/minecraft/network/protocol/Packet;Lio/netty/channel/ChannelFutureListener;)V", at = @At("HEAD"))
 	public void fixTrapBlock(Packet<?> packet, ChannelFutureListener channelFutureListener, CallbackInfo ci) {
 		//Required to fix flickering whenever player interacts in vicinity of trap block.
-		if ((Object) this instanceof ServerPlayNetworkHandler play && packet instanceof BlockUpdateS2CPacket blockUpdate) {
-			if (blockUpdate.getState().getBlock() instanceof BlockWithDisguise disguised) {
-				disguised.getBlockEntity(play.player.getEntityWorld(), blockUpdate.getPos()).ifPresent(entity -> {
-					((AccessorBlockUpdateS2CPacket) blockUpdate).setState(entity.getBlockState());
+		if ((Object) this instanceof ServerGamePacketListenerImpl play && packet instanceof ClientboundBlockUpdatePacket blockUpdate) {
+			if (blockUpdate.getBlockState().getBlock() instanceof BlockWithDisguise disguised) {
+				disguised.getBlockEntity(play.player.level(), blockUpdate.getPos()).ifPresent(entity -> {
+					((AccessorBlockUpdateS2CPacket) blockUpdate).setBlockState(entity.getBlockState());
 				});
 			}
 		}
 
 		// Required to fix metacraft:player always invisible when vanish is installed.
 		if (
-				(Object) this instanceof ServerPlayNetworkHandler listener && IsLoaded.VANISH.isLoaded() &&
-				packet instanceof PlayerListS2CPacket playerListPacket
+				(Object) this instanceof ServerGamePacketListenerImpl listener && IsLoaded.VANISH.isLoaded() &&
+				packet instanceof ClientboundPlayerInfoUpdatePacket playerListPacket
 		) {
-			Vanish.vanishDoNotHideMETAcraftPlayerMob(server, playerListPacket, listener, this::sendPacket);
+			Vanish.vanishDoNotHideMETAcraftPlayerMob(server, playerListPacket, listener, this::send);
 		}
 	}
 
 	@Unique
 	private int lastResourcePackTime = -1;
 
-	@Inject(method = "onResourcePackStatus", at = @At("RETURN"))
-	public void onResourcePackStatus(ResourcePackStatusC2SPacket packet, CallbackInfo ci) {
-		if ((Object) this instanceof ServerPlayNetworkHandler h) {
-			if (packet.status() == ResourcePackStatusC2SPacket.Status.SUCCESSFULLY_LOADED) {
-				int time = h.getPlayer().age;
+	@Inject(method = "handleResourcePackResponse", at = @At("RETURN"))
+	public void onResourcePackStatus(ServerboundResourcePackPacket packet, CallbackInfo ci) {
+		if ((Object) this instanceof ServerGamePacketListenerImpl h) {
+			if (packet.action() == ServerboundResourcePackPacket.Action.SUCCESSFULLY_LOADED) {
+				int time = h.getPlayer().tickCount;
 				if (time <= lastResourcePackTime) {
 					return;
 				}

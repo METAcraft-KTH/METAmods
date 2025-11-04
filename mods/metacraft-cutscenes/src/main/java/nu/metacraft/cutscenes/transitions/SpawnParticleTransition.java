@@ -38,14 +38,14 @@ public class SpawnParticleTransition implements Transition {
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		cutscene.forAllPlayers(player -> {
-			if (player.age % config.spawnInterval() == startTick) {
+			if (player.tickCount % config.spawnInterval() == startTick) {
 				config.pos().get(cutscene.createRefContext(player)).ifPresent(pos -> {
 					var particle = config.particle().map(
 							p -> p,
 							p -> p.get(cutscene.getServer()).resultOrPartial(Cutscenes.LOGGER::error).orElse(null)
 					);
 					if (particle != null) {
-						player.getEntityWorld().spawnParticles(
+						player.level().sendParticles(
 								player, particle, config.force(), config.important(), pos.x, pos.y, pos.z,
 								config.count(), config.delta().x, config.delta().y, config.delta().z, config.speed()
 						);

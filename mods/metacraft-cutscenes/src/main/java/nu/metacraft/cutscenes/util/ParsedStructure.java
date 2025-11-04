@@ -2,29 +2,28 @@ package nu.metacraft.cutscenes.util;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.structure.StructureTemplate;
-import net.minecraft.structure.StructureTemplateManager;
-import net.minecraft.util.Identifier;
-
 import java.util.Optional;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 public class ParsedStructure {
 
-	private final Either<Identifier, SerialisedStructure> structure;
+	private final Either<ResourceLocation, SerialisedStructure> structure;
 
 	public static final Codec<ParsedStructure> CODEC = Codec.either(
-			Identifier.CODEC, SerialisedStructure.CODEC
+			ResourceLocation.CODEC, SerialisedStructure.CODEC
 	).xmap(
 			ParsedStructure::new,
 			structure -> structure.structure
 	);
 
-	public ParsedStructure(Either<Identifier, SerialisedStructure> structure) {
+	public ParsedStructure(Either<ResourceLocation, SerialisedStructure> structure) {
 		this.structure = structure;
 	}
 
-	public ParsedStructure(Identifier id) {
+	public ParsedStructure(ResourceLocation id) {
 		this(Either.left(id));
 	}
 
@@ -37,10 +36,10 @@ public class ParsedStructure {
 	}
 
 	public Optional<StructureTemplate> get(
-			StructureTemplateManager manager, RegistryWrapper.WrapperLookup lookup
+			StructureTemplateManager manager, HolderLookup.Provider lookup
 	) {
 		return structure.map(
-				manager::getTemplate,
+				manager::get,
 				serialized -> Optional.of(serialized.parse(lookup))
 		);
 	}

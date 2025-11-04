@@ -3,14 +3,14 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.dynamic.Codecs;
-import net.minecraft.util.math.Vec3d;
 import nu.metacraft.bosses.boss.attacks.target.PositionTargetSelector;
 
 import java.util.Optional;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.phys.Vec3;
 
 public class TeleportAttack extends InstantAttack {
 
@@ -22,8 +22,8 @@ public class TeleportAttack extends InstantAttack {
 			instance -> instance.group(
 					PositionTargetSelector.REGISTRY_CODEC.fieldOf("selector").forGetter(a -> a.selector),
 					Codec.lazyInitialized(() -> Attack.REGISTRY_CODEC).optionalFieldOf("onArrival").forGetter(a -> a.onArrival),
-					Codecs.NON_NEGATIVE_INT.optionalFieldOf("particle_count", PARTICLES).forGetter(a -> a.particleCount),
-					Codecs.NON_NEGATIVE_FLOAT.optionalFieldOf("volume", VOLUME).forGetter(a -> a.volume),
+					ExtraCodecs.NON_NEGATIVE_INT.optionalFieldOf("particle_count", PARTICLES).forGetter(a -> a.particleCount),
+					ExtraCodecs.NON_NEGATIVE_FLOAT.optionalFieldOf("volume", VOLUME).forGetter(a -> a.volume),
 					Codec.floatRange(0.5f, 2f).optionalFieldOf("pitch", PITCH).forGetter(a -> a.pitch)
 			).apply(instance, TeleportAttack::new)
 	);
@@ -52,28 +52,28 @@ public class TeleportAttack extends InstantAttack {
 	@Override
 	public void trigger(BossContext<?> ctx) {
 		selector.getTargetInWorld(ctx).ifPresent(target -> {
-			double size = (ctx.boss().getWidth() + ctx.boss().getHeight()) / 4;
+			double size = (ctx.boss().getBbWidth() + ctx.boss().getBbHeight()) / 4;
 			double delta = size/2;
-			Vec3d srcCenter = ctx.boss().getBoundingBox().getCenter();
-			ctx.getWorld().spawnParticles(
-					ParticleTypes.PORTAL, srcCenter.getX(), srcCenter.getY(), srcCenter.getZ(), particleCount,
+			Vec3 srcCenter = ctx.boss().getBoundingBox().getCenter();
+			ctx.getWorld().sendParticles(
+					ParticleTypes.PORTAL, srcCenter.x(), srcCenter.y(), srcCenter.z(), particleCount,
 					delta, delta, delta, size
 			);
-			ctx.boss().teleport(target.x, target.y, target.z, false);
-			Vec3d targetCenter = ctx.boss().getBoundingBox().getCenter();
+			ctx.boss().randomTeleport(target.x, target.y, target.z, false);
+			Vec3 targetCenter = ctx.boss().getBoundingBox().getCenter();
 			if (particleCount > 0) {
-				ctx.getWorld().getPlayers().forEach(player -> {
-					ctx.getWorld().spawnParticles(
+				ctx.getWorld().players().forEach(player -> {
+					ctx.getWorld().sendParticles(
 							player, ParticleTypes.REVERSE_PORTAL, true, true,
-							targetCenter.getX(), targetCenter.getY(), targetCenter.getZ(), particleCount,
+							targetCenter.x(), targetCenter.y(), targetCenter.z(), particleCount,
 							delta, delta, delta, size
 					);
 				});
 			}
 			if (volume > 0) {
 				ctx.getWorld().playSound(
-						null, targetCenter.getX(), targetCenter.getY(), targetCenter.getZ(), SoundEvents.ENTITY_PLAYER_TELEPORT,
-						SoundCategory.HOSTILE, volume, pitch
+						null, targetCenter.x(), targetCenter.y(), targetCenter.z(), SoundEvents.PLAYER_TELEPORT,
+						SoundSource.HOSTILE, volume, pitch
 				);
 			}
 			onArrival.ifPresent(onArrival -> ctx.boss().addAttack(onArrival));

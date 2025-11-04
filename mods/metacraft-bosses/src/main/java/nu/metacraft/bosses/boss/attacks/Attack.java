@@ -2,27 +2,27 @@ package nu.metacraft.bosses.boss.attacks;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JavaOps;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.loot.context.LootContext;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
 import nu.metacraft.lib.condition.METAcraftContexTypes;
 import nu.metacraft.bosses.METAcraftBosses;
 import nu.metacraft.bosses.boss.AutoAttackingBoss;
 
 import java.util.Optional;
 import java.util.OptionalInt;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public interface Attack {
 
-	Codec<Attack> REGISTRY_CODEC = AttackRegistry.REGISTRY.getCodec().dispatch(
+	Codec<Attack> REGISTRY_CODEC = AttackRegistry.REGISTRY.byNameCodec().dispatch(
 			Attack::getType, AttackType::codec
 	);
 
@@ -50,8 +50,8 @@ public interface Attack {
 
 	AttackType getType();
 
-	record BossContext<T extends LivingEntity & AutoAttackingBoss>(T boss, Random random) {
-		public ServerWorld getWorld() {
+	record BossContext<T extends LivingEntity & AutoAttackingBoss>(T boss, RandomSource random) {
+		public ServerLevel getWorld() {
 			return boss.getServerWorld();
 		}
 
@@ -63,33 +63,33 @@ public interface Attack {
 			return METAcraftContexTypes.createTickContext(boss.getServerWorld(), boss, random);
 		}
 
-		public Optional<MobEntity> getAsMob() {
-			return boss instanceof MobEntity mob ? Optional.of(mob) : Optional.empty();
+		public Optional<Mob> getAsMob() {
+			return boss instanceof Mob mob ? Optional.of(mob) : Optional.empty();
 		}
 
 	}
 
-	record Context(Optional<Entity> entity, ServerWorld world, Vec3d pos, BlockPos blockPos, EntityType<?> entityType, Random random) {
+	record Context(Optional<Entity> entity, ServerLevel world, Vec3 pos, BlockPos blockPos, EntityType<?> entityType, RandomSource random) {
 
-		public static Context forEntity(Entity entity, Random random) {
-			return new Context(Optional.of(entity), (ServerWorld) entity.getEntityWorld(), entity.getEntityPos(), entity.getBlockPos(), entity.getType(), random);
+		public static Context forEntity(Entity entity, RandomSource random) {
+			return new Context(Optional.of(entity), (ServerLevel) entity.level(), entity.position(), entity.blockPosition(), entity.getType(), random);
 		}
 
-		public Box getBoundingBox() {
-			return entity.map(Entity::getBoundingBox).orElse(entityType.getSpawnBox(pos.x, pos.y, pos.z));
+		public AABB getBoundingBox() {
+			return entity.map(Entity::getBoundingBox).orElse(entityType.getSpawnAABB(pos.x, pos.y, pos.z));
 		}
 
 		public Optional<LivingEntity> getAsLivingEntity() {
 			return entity.filter(e -> e instanceof LivingEntity).map(e -> (LivingEntity) e);
 		}
 
-		public Optional<MobEntity> getAsMob() {
-			return entity.filter(e -> e instanceof MobEntity).map(e -> (MobEntity) e);
+		public Optional<Mob> getAsMob() {
+			return entity.filter(e -> e instanceof Mob).map(e -> (Mob) e);
 		}
 	}
 
-	default Attack copy(RegistryWrapper.WrapperLookup lookup) {
-		var ops = lookup.getOps(JavaOps.INSTANCE);
+	default Attack copy(HolderLookup.Provider lookup) {
+		var ops = lookup.createSerializationContext(JavaOps.INSTANCE);
 		return REGISTRY_CODEC.parse(ops, REGISTRY_CODEC.encodeStart(ops, this).resultOrPartial(
 				METAcraftBosses.LOGGER::error
 		).get()).resultOrPartial(

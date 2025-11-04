@@ -2,21 +2,21 @@ package nu.metacraft.lib.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.AbstractFurnaceBlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.block.entity.LockableContainerBlockEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.recipe.RecipeEntry;
-import net.minecraft.recipe.input.SingleStackRecipeInput;
-import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.collection.DefaultedList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.SingleRecipeInput;
+import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -29,12 +29,12 @@ import nu.metacraft.lib.extensions.AbstractFurnaceEntityExtensions;
 import nu.metacraft.lib.extensions.RecipeRemainderExtension;
 
 @Mixin(AbstractFurnaceBlockEntity.class)
-public abstract class MixinAbstractFurnaceBlockEntity extends LockableContainerBlockEntity implements AbstractFurnaceEntityExtensions {
+public abstract class MixinAbstractFurnaceBlockEntity extends BaseContainerBlockEntity implements AbstractFurnaceEntityExtensions {
 
 	@Unique
 	private static final String IS_INPUT_EXTRACTABLE = "IsInputExtractable";
 
-	@Shadow protected DefaultedList<ItemStack> inventory;
+	@Shadow protected NonNullList<ItemStack> items;
 
 	@Unique
 	private boolean isInputExtractable = false;
@@ -47,17 +47,17 @@ public abstract class MixinAbstractFurnaceBlockEntity extends LockableContainerB
 	}
 
 	@WrapOperation(
-		method = "craftRecipe",
+		method = "burn",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/item/ItemStack;decrement(I)V"
+			target = "Lnet/minecraft/world/item/ItemStack;shrink(I)V"
 		)
 	)
 	private static void craftRecipe(
 			ItemStack stack, int amount, Operation<Void> original,
-			DynamicRegistryManager registryManager, @Nullable RecipeEntry<?> recipe,
-			SingleStackRecipeInput input,
-			DefaultedList<ItemStack> slots
+			RegistryAccess registryManager, @Nullable RecipeHolder<?> recipe,
+			SingleRecipeInput input,
+			NonNullList<ItemStack> slots
 	) {
 		if (recipe != null && recipe.value() instanceof RecipeRemainderExtension data && stack.getCount() - amount <= 0) {
 			ItemStack replacement = data.metacraft_lib$getRemainderFunction().apply(stack);
@@ -72,43 +72,43 @@ public abstract class MixinAbstractFurnaceBlockEntity extends LockableContainerB
 	}
 
 	@Inject(
-		method = "tick",
+		method = "serverTick",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/block/entity/AbstractFurnaceBlockEntity;setLastRecipe(Lnet/minecraft/recipe/RecipeEntry;)V"
+			target = "Lnet/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity;setRecipeUsed(Lnet/minecraft/world/item/crafting/RecipeHolder;)V"
 		)
 	)
 	private static void setInputExtractable(
-			ServerWorld world, BlockPos pos, BlockState state, AbstractFurnaceBlockEntity blockEntity, CallbackInfo ci
+			ServerLevel world, BlockPos pos, BlockState state, AbstractFurnaceBlockEntity blockEntity, CallbackInfo ci
 	) {
 		if (shouldMakeExtractable.get()) {
 			((MixinAbstractFurnaceBlockEntity) (Object) blockEntity).isInputExtractable = true;
-			blockEntity.markDirty();
+			blockEntity.setChanged();
 		}
 	}
 
-	@Inject(method = "tick", at = @At("RETURN"))
+	@Inject(method = "serverTick", at = @At("RETURN"))
 	private static void tickEnd(
-			ServerWorld world, BlockPos pos, BlockState state, AbstractFurnaceBlockEntity blockEntity, CallbackInfo ci
+			ServerLevel world, BlockPos pos, BlockState state, AbstractFurnaceBlockEntity blockEntity, CallbackInfo ci
 	) {
 		shouldMakeExtractable.remove();
 	}
 
 	@Inject(
-		method = "getAvailableSlots",
+		method = "getSlotsForFace",
 		at = @At("HEAD"),
 		cancellable = true
 	)
 	public void getAvailableSlots(Direction side, CallbackInfoReturnable<int[]> cir) {
 		if (
-				side == Direction.DOWN && !inventory.get(0).isEmpty() && isInputExtractable
+				side == Direction.DOWN && !items.get(0).isEmpty() && isInputExtractable
 		) {
 			cir.setReturnValue(new int[]{0, 1, 2});
 		}
 	}
 
 	@Inject(
-			method = "canExtract",
+			method = "canTakeItemThroughFace",
 			at = @At("HEAD"),
 			cancellable = true
 	)
@@ -117,46 +117,46 @@ public abstract class MixinAbstractFurnaceBlockEntity extends LockableContainerB
 				dir == Direction.DOWN && slot == 0
 		) {
 			cir.setReturnValue(
-					!inventory.get(0).isEmpty() && isInputExtractable
+					!items.get(0).isEmpty() && isInputExtractable
 			);
 		}
 	}
 
-	@Inject(method = "writeData", at = @At("RETURN"))
-	public void writeNBT(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "saveAdditional", at = @At("RETURN"))
+	public void writeNBT(ValueOutput nbt, CallbackInfo ci) {
 		nbt.putBoolean(IS_INPUT_EXTRACTABLE, isInputExtractable);
 	}
 
-	@Inject(method = "readData", at = @At("RETURN"))
-	public void readNBT(ReadView nbt, CallbackInfo ci) {
-		isInputExtractable = nbt.getBoolean(IS_INPUT_EXTRACTABLE, false);
+	@Inject(method = "loadAdditional", at = @At("RETURN"))
+	public void readNBT(ValueInput nbt, CallbackInfo ci) {
+		isInputExtractable = nbt.getBooleanOr(IS_INPUT_EXTRACTABLE, false);
 	}
 
 	@Inject(
-			method = "setStack",
+			method = "setItem",
 			at = @At("HEAD")
 	)
 	public void onSetStack(int slot, ItemStack stack, CallbackInfo ci) {
-		if (slot == 0 && !inventory.get(0).isEmpty() && !ItemStack.areItemsAndComponentsEqual(stack, inventory.get(0))) {
+		if (slot == 0 && !items.get(0).isEmpty() && !ItemStack.isSameItemSameComponents(stack, items.get(0))) {
 			isInputExtractable = false;
-			this.markDirty();
+			this.setChanged();
 		}
 	}
 
 	@Inject(
 			method = {
-					"dropExperienceForRecipesUsed"
+					"awardUsedRecipesAndPopExperience"
 			},
 			at = @At("RETURN")
 	)
-	public void onRemoveStack(ServerPlayerEntity player, CallbackInfo ci) {
+	public void onRemoveStack(ServerPlayer player, CallbackInfo ci) {
 		isInputExtractable = false;
-		this.markDirty();
+		this.setChanged();
 	}
 
 	@Override
 	public void metacraft_lib$unsetInputExtractable() {
 		isInputExtractable = false;
-		this.markDirty();
+		this.setChanged();
 	}
 }

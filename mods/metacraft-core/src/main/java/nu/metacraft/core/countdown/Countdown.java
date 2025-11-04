@@ -2,12 +2,12 @@ package nu.metacraft.core.countdown;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.Uuids;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
 import nu.metacraft.core.util.METAcraftCoreData;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,11 +29,11 @@ public class Countdown {
             Codec.LONG.fieldOf("date").forGetter(c -> c.date.getTime()),
             Codec.INT.fieldOf("interval").forGetter(c -> c.interval),
             Codec.list(Action.CODEC).fieldOf("actions").forGetter(c -> c.actions),
-            Codec.list(Uuids.CODEC).fieldOf("entity_uuids").forGetter(c -> c.entityUuids)
+            Codec.list(UUIDUtil.AUTHLIB_CODEC).fieldOf("entity_uuids").forGetter(c -> c.entityUuids)
     ).apply(instance, Countdown::new));
 
     private List<UUID> entityUuids;
-    private Map<UUID, DisplayEntity.TextDisplayEntity> entityCache;
+    private Map<UUID, Display.TextDisplay> entityCache;
     private Date date;
     private int tickCount = 0;
     private int interval;
@@ -99,7 +99,7 @@ public class Countdown {
 
     private void markDirty() {
         if (this.parent != null) {
-            this.parent.markDirty();
+            this.parent.setDirty();
         }
     }
 
@@ -120,14 +120,14 @@ public class Countdown {
     }
 
     @Nullable
-    public DisplayEntity.TextDisplayEntity getEntity(MinecraftServer server, UUID uuid) {
-        DisplayEntity.TextDisplayEntity cached = this.entityCache.get(uuid);
+    public Display.TextDisplay getEntity(MinecraftServer server, UUID uuid) {
+        Display.TextDisplay cached = this.entityCache.get(uuid);
         if (cached != null && cached.isAlive()) {
             return cached;
         }
-        for (ServerWorld world : server.getWorlds()) {
+        for (ServerLevel world : server.getAllLevels()) {
             Entity entity = world.getEntity(uuid);
-            if (entity instanceof DisplayEntity.TextDisplayEntity textDisplay && entity.isAlive()) {
+            if (entity instanceof Display.TextDisplay textDisplay && entity.isAlive()) {
                 this.entityCache.put(uuid, textDisplay);
                 return textDisplay;
             }
@@ -182,8 +182,8 @@ public class Countdown {
         if (this.tickCount % this.interval != 0) {
             return;
         }
-        if (server.getCurrentPlayerCount() > 0) {
-            Text text = Text.literal(this.getTimeLeftString());
+        if (server.getPlayerCount() > 0) {
+            Component text = Component.literal(this.getTimeLeftString());
             for (UUID uuid : this.entityUuids) {
                 var entity = this.getEntity(server, uuid);
                 if (entity != null) {
@@ -193,8 +193,8 @@ public class Countdown {
             long millisLeft = this.getMillisLeft();
             for (Action action : this.actions) {
                 if (millisLeft <= action.activationMillis && !this.executedActions.contains(action)) {
-                    server.getCommandManager().parseAndExecute(
-                            server.getCommandSource().withSilent(),
+                    server.getCommands().performPrefixedCommand(
+                            server.createCommandSourceStack().withSuppressedOutput(),
                             action.command
                     );
                     this.executedActions.add(action);

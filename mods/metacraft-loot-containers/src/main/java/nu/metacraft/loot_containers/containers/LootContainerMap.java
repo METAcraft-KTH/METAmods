@@ -5,8 +5,6 @@ import com.google.common.collect.Table;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.world.World;
 import org.apache.logging.log4j.util.TriConsumer;
 
 import java.util.Collection;
@@ -14,21 +12,23 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
 
 public class LootContainerMap<T> {
 
-	private final Table<RegistryKey<World>, T, LootContainer> containers = HashBasedTable.create();
-	private final Table<RegistryKey<World>, T, Runnable> tickers = HashBasedTable.create();
-	private final Table<RegistryKey<World>, T, Runnable> tickerTemp = HashBasedTable.create();
+	private final Table<ResourceKey<Level>, T, LootContainer> containers = HashBasedTable.create();
+	private final Table<ResourceKey<Level>, T, Runnable> tickers = HashBasedTable.create();
+	private final Table<ResourceKey<Level>, T, Runnable> tickerTemp = HashBasedTable.create();
 
 	private boolean isIteratingTickers = false;
 
 	private final Codec<T> codec;
 
-	private final TriConsumer<RegistryKey<World>, T, LootContainer> lootContainerInitializer;
+	private final TriConsumer<ResourceKey<Level>, T, LootContainer> lootContainerInitializer;
 
 	public LootContainerMap(
-			Codec<T> codec, TriConsumer<RegistryKey<World>, T, LootContainer> lootContainerInitializer
+			Codec<T> codec, TriConsumer<ResourceKey<Level>, T, LootContainer> lootContainerInitializer
 	) {
 		this.codec = codec;
 		this.lootContainerInitializer = lootContainerInitializer;
@@ -43,14 +43,14 @@ public class LootContainerMap<T> {
 	}
 
 	public void removeLootContainer(
-			RegistryKey<World> dim, T pos
+			ResourceKey<Level> dim, T pos
 	) {
 		containers.remove(dim, pos);
 		removeTicker(dim, pos);
 	}
 
 	public void putLootContainer(
-			RegistryKey<World> dim, T pos, LootContainer container
+			ResourceKey<Level> dim, T pos, LootContainer container
 	) {
 		lootContainerInitializer.accept(dim, pos, container);
 		containers.put(dim, pos, container);
@@ -62,11 +62,11 @@ public class LootContainerMap<T> {
 		}
 	}
 
-	public LootContainer getLootContainer(RegistryKey<World> dim, T pos) {
+	public LootContainer getLootContainer(ResourceKey<Level> dim, T pos) {
 		return containers.get(dim, pos);
 	}
 
-	private void addTicker(RegistryKey<World> dim, T pos, Runnable ticker) {
+	private void addTicker(ResourceKey<Level> dim, T pos, Runnable ticker) {
 		if (!isIteratingTickers) {
 			tickers.put(dim, pos, ticker);
 		} else {
@@ -74,7 +74,7 @@ public class LootContainerMap<T> {
 		}
 	}
 
-	private void removeTicker(RegistryKey<World> dim, T pos) {
+	private void removeTicker(ResourceKey<Level> dim, T pos) {
 		if (!isIteratingTickers) {
 			tickers.remove(dim, pos);
 		} else {
@@ -111,11 +111,11 @@ public class LootContainerMap<T> {
 		return containers.isEmpty();
 	}
 
-	public record SerializedMap<T>(Map<RegistryKey<World>, List<Container<T>>> map) {
+	public record SerializedMap<T>(Map<ResourceKey<Level>, List<Container<T>>> map) {
 
 		public static <T> Codec<SerializedMap<T>> createCodec(Codec<T> posCodec) {
 			return Codec.unboundedMap(
-					World.CODEC, Container.createCodec(posCodec).listOf()
+					Level.RESOURCE_KEY_CODEC, Container.createCodec(posCodec).listOf()
 			).xmap(SerializedMap::new, SerializedMap::map);
 		}
 

@@ -1,29 +1,33 @@
 package nu.metacraft.cutscenes.util.helper;
 
-import net.minecraft.world.chunk.ChunkToNibbleArrayMap;
-import net.minecraft.world.chunk.light.*;
+import net.minecraft.world.level.lighting.BlockLightSectionStorage;
+import net.minecraft.world.level.lighting.DataLayerStorageMap;
+import net.minecraft.world.level.lighting.LayerLightSectionStorage;
+import net.minecraft.world.level.lighting.LevelLightEngine;
+import net.minecraft.world.level.lighting.LightEngine;
+import net.minecraft.world.level.lighting.SkyLightSectionStorage;
 import nu.metacraft.cutscenes.mixin.AccessorChunkLightProvider;
 import nu.metacraft.cutscenes.mixin.AccessorLightingProvider;
 
 public class LightingHelper {
 
-	public static ChunkLightProvider<?, SkyLightStorage> getSkyLightProvider(LightingProvider provider) {
-		return (ChunkLightProvider<?, SkyLightStorage>) ((AccessorLightingProvider) provider).getSkyLightProvider();
+	public static LightEngine<?, SkyLightSectionStorage> getSkyLightProvider(LevelLightEngine provider) {
+		return (LightEngine<?, SkyLightSectionStorage>) ((AccessorLightingProvider) provider).getSkyEngine();
 	}
 
-	public static ChunkLightProvider<? extends ChunkToNibbleArrayMap<?>, BlockLightStorage> getBlockLightProvider(LightingProvider provider) {
-		return (ChunkLightProvider<?, BlockLightStorage>) ((AccessorLightingProvider) provider).getBlockLightProvider();
+	public static LightEngine<? extends DataLayerStorageMap<?>, BlockLightSectionStorage> getBlockLightProvider(LevelLightEngine provider) {
+		return (LightEngine<?, BlockLightSectionStorage>) ((AccessorLightingProvider) provider).getBlockEngine();
 	}
 
-	public static <S extends LightStorage<?>> S getLightStorage(ChunkLightProvider<?, S> provider) {
-		return ((AccessorChunkLightProvider<?, S>) provider).getLightStorage();
+	public static <S extends LayerLightSectionStorage<?>> S getLightStorage(LightEngine<?, S> provider) {
+		return ((AccessorChunkLightProvider<?, S>) provider).getStorage();
 	}
 
-	public static SkyLightStorage getSkyLightStorage(LightingProvider provider) {
+	public static SkyLightSectionStorage getSkyLightStorage(LevelLightEngine provider) {
 		return getLightStorage(getSkyLightProvider(provider));
 	}
 
-	public static BlockLightStorage getBlockLightStorage(LightingProvider provider) {
+	public static BlockLightSectionStorage getBlockLightStorage(LevelLightEngine provider) {
 		return getLightStorage(getBlockLightProvider(provider));
 	}
 

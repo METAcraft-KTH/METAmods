@@ -3,15 +3,15 @@ package nu.metacraft.loot_containers.containers;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.loot.LootTable;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.storage.loot.LootTable;
 
 public class RefillingContainer extends LootContainer {
 
@@ -19,9 +19,9 @@ public class RefillingContainer extends LootContainer {
 		instance -> instance.group(
 			Codec.INT.fieldOf("refillDelay").forGetter(container -> container.refillDelay),
 			Codec.INT.fieldOf("timer").orElse(0).forGetter(container -> container.timer),
-			RegistryKey.createCodec(RegistryKeys.LOOT_TABLE).fieldOf("autoUpdatingLootTable").forGetter(container -> container.autoUpdatingLootTable),
+			ResourceKey.codec(Registries.LOOT_TABLE).fieldOf("autoUpdatingLootTable").forGetter(container -> container.autoUpdatingLootTable),
 			Codec.unboundedMap(
-					RegistryKey.createCodec(RegistryKeys.LOOT_TABLE), LootTableEntry.CODEC
+					ResourceKey.codec(Registries.LOOT_TABLE), LootTableEntry.CODEC
 			).fieldOf("lootTableCounts").orElse(new HashMap<>()).forGetter(container -> container.lootTableCounts),
 			Codec.INT.fieldOf("maxLootTableCount").orElse(64).forGetter(container -> container.maxLootTableCount)
 		).apply(instance, RefillingContainer::new)
@@ -29,26 +29,26 @@ public class RefillingContainer extends LootContainer {
 
 	private final int refillDelay;
 	private int timer;
-	private final RegistryKey<LootTable> autoUpdatingLootTable;
-	private final Map<RegistryKey<LootTable>, LootTableEntry> lootTableCounts;
+	private final ResourceKey<LootTable> autoUpdatingLootTable;
+	private final Map<ResourceKey<LootTable>, LootTableEntry> lootTableCounts;
 	private final int maxLootTableCount;
 
-	public RefillingContainer(int refillDelay, RegistryKey<LootTable> autoUpdatingLootTable) {
+	public RefillingContainer(int refillDelay, ResourceKey<LootTable> autoUpdatingLootTable) {
 		this(refillDelay, 0, autoUpdatingLootTable, new HashMap<>(), 64);
 	}
 
 	public RefillingContainer(
-			int refillDelay, int timer, RegistryKey<LootTable> autoUpdatingLootTable,
-			Map<RegistryKey<LootTable>, LootTableEntry> lootTableCounts, int maxLootTableCount
+			int refillDelay, int timer, ResourceKey<LootTable> autoUpdatingLootTable,
+			Map<ResourceKey<LootTable>, LootTableEntry> lootTableCounts, int maxLootTableCount
 	) {
 		this.refillDelay = refillDelay;
 		this.timer = timer;
 		this.autoUpdatingLootTable = autoUpdatingLootTable;
-		this.lootTableCounts = lootTableCounts instanceof HashMap<RegistryKey<LootTable>, LootTableEntry> ? lootTableCounts : new HashMap<>(lootTableCounts);
+		this.lootTableCounts = lootTableCounts instanceof HashMap<ResourceKey<LootTable>, LootTableEntry> ? lootTableCounts : new HashMap<>(lootTableCounts);
 		this.maxLootTableCount = maxLootTableCount;
 	}
 
-	public void addLootTable(RegistryKey<LootTable> lootTable, int priority) {
+	public void addLootTable(ResourceKey<LootTable> lootTable, int priority) {
 		var entry = lootTableCounts.computeIfAbsent(lootTable, key -> new LootTableEntry(0, priority));
 		entry.increment();
 		if (entry.getPriority() != priority) {
@@ -59,7 +59,7 @@ public class RefillingContainer extends LootContainer {
 
 
 	@Override
-	public void onOpen(@Nullable ServerPlayerEntity player) {
+	public void onOpen(@Nullable ServerPlayer player) {
 		access.get().ifPresent(access -> {
 			lootTableCounts.entrySet().stream().sorted(
 					Comparator.comparingInt(entry -> -entry.getValue().getPriority())

@@ -1,9 +1,9 @@
 package nu.metacraft.core.music;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.network.packet.Packet;
+import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import nu.metacraft.core.extensions.ServerPlayerEntityExtensions;
 
 import java.util.Map;
@@ -39,11 +39,11 @@ public class MusicTimerTracker {
 
 	public static class SendPacketTask implements Runnable {
 
-		private final ServerPlayerEntity player;
+		private final ServerPlayer player;
 		private final MusicEntry toPlay;
 		private final Packet<?> packet;
 
-		public SendPacketTask(ServerPlayerEntity player, MusicEntry toPlay, Packet<?> packet) {
+		public SendPacketTask(ServerPlayer player, MusicEntry toPlay, Packet<?> packet) {
 			this.player = player;
 			this.toPlay = toPlay;
 			this.packet = packet;
@@ -52,7 +52,7 @@ public class MusicTimerTracker {
 		@Override
 		public void run() {
 			if (((ServerPlayerEntityExtensions) player).metacraft_core$hasMusicEntry(toPlay)) {
-				player.networkHandler.sendPacket(packet);
+				player.connection.send(packet);
 			}
 		}
 	}

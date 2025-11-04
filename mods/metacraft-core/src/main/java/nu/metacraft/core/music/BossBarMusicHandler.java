@@ -1,31 +1,31 @@
 package nu.metacraft.core.music;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.boss.ServerBossBar;
-import net.minecraft.server.network.ServerPlayerEntity;
 import nu.metacraft.core.util.helper.MusicHelper;
 
 import java.util.Optional;
+import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 
 public class BossBarMusicHandler {
 
 	private PlayerMusic music;
 
-	private final ServerBossBar bossbar;
+	private final ServerBossEvent bossbar;
 
-	public BossBarMusicHandler(ServerBossBar bossbar) {
+	public BossBarMusicHandler(ServerBossEvent bossbar) {
 		this.bossbar = bossbar;
 	}
 
-	public void onPlayerAdded(ServerPlayerEntity player) {
+	public void onPlayerAdded(ServerPlayer player) {
 		if (music != null && bossbar.isVisible()) {
 			MusicHelper.playMusic(player, music);
 		}
 	}
 
-	public void onPlayerRemoved(ServerPlayerEntity player) {
+	public void onPlayerRemoved(ServerPlayer player) {
 		if (music != null && bossbar.isVisible()) {
-			MusicHelper.replacePredicate(player, music, LivingEntity::isDead);
+			MusicHelper.replacePredicate(player, music, LivingEntity::isDeadOrDying);
 		}
 	}
 

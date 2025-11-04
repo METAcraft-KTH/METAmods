@@ -2,31 +2,31 @@ package nu.metacraft.cutscenes.cutscene.world;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.nbt.NbtCompound;
 import nu.metacraft.cutscenes.transitions.entity.SpawnEntity;
 import nu.metacraft.cutscenes.util.SerialisedStructure;
 
 import java.util.*;
+import net.minecraft.nbt.CompoundTag;
 
 public record CutsceneWorldData(
 		CutsceneEntityManager.SaveState entities, SerialisedStructure blocks,
-		NbtCompound saveProperties, NbtCompound persistentStateStorage
+		CompoundTag saveProperties, CompoundTag persistentStateStorage
 ) {
 
 	public static final Codec<CutsceneWorldData> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
 					CutsceneEntityManager.SaveState.CODEC.forGetter(d -> d.entities),
 					SerialisedStructure.CODEC.fieldOf("blocks").forGetter(d -> d.blocks),
-					NbtCompound.CODEC.optionalFieldOf("save_properties", new NbtCompound()).forGetter(d -> d.saveProperties),
-					NbtCompound.CODEC.optionalFieldOf("persistent_state_storage", new NbtCompound()).forGetter(d -> d.persistentStateStorage)
+					CompoundTag.CODEC.optionalFieldOf("save_properties", new CompoundTag()).forGetter(d -> d.saveProperties),
+					CompoundTag.CODEC.optionalFieldOf("persistent_state_storage", new CompoundTag()).forGetter(d -> d.persistentStateStorage)
 			).apply(instance, CutsceneWorldData::new)
 	);
 
-	public record SerialisedEntity(List<String> ids, NbtCompound data) {
+	public record SerialisedEntity(List<String> ids, CompoundTag data) {
 		public static final Codec<SerialisedEntity> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
 						Codec.STRING.listOf().fieldOf("ids").forGetter(SerialisedEntity::ids),
-						NbtCompound.CODEC.fieldOf("data").forGetter(SerialisedEntity::data)
+						CompoundTag.CODEC.fieldOf("data").forGetter(SerialisedEntity::data)
 				).apply(instance, SerialisedEntity::new)
 		);
 

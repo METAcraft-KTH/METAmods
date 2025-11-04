@@ -1,16 +1,16 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
+import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(BlockUpdateS2CPacket.class)
+@Mixin(ClientboundBlockUpdatePacket.class)
 public interface AccessorBlockUpdateS2CPacket {
 
 	@Accessor
 	@Mutable
-	void setState(BlockState state);
+	void setBlockState(BlockState state);
 
 }

@@ -1,25 +1,25 @@
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Dynamic;
 import net.minecraft.SharedConstants;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.datafixer.TypeReferences;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.*;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.test.TestContext;
-import net.minecraft.text.Text;
-import net.minecraft.util.ErrorReporter;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.path.SymlinkValidationException;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.util.datafix.fixes.References;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.validation.ContentValidationException;
+import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
@@ -34,96 +34,96 @@ import java.util.UUID;
 public class TestPlayerData {
 
 	private static final String PLAYER_DATA_PREFIX = "player-data-test/";
-	private static final ErrorReporter.Context TEST = () -> "test";
+	private static final ProblemReporter.PathElement TEST = () -> "test";
 
 	public static void init() {
 		Registry.register(
-				Registries.TEST_FUNCTION,
+				BuiltInRegistries.TEST_FUNCTION,
 				METAcraftLib.getID(PLAYER_DATA_PREFIX + "save-and-load"),
 				ctx -> {
 					var player = TestHelper.addMockPlayer(ctx);
-					player.getInventory().setStack(5, new ItemStack(Items.DIAMOND));
-					player.getEnderChestInventory().setStack(2, new ItemStack(Items.DIAMOND));
+					player.getInventory().setItem(5, new ItemStack(Items.DIAMOND));
+					player.getEnderChestInventory().setItem(2, new ItemStack(Items.DIAMOND));
 
 					var boat = EntityType.ACACIA_BOAT.spawn(
-							ctx.getWorld(), player.getBlockPos(), SpawnReason.LOAD
+							ctx.getLevel(), player.blockPosition(), EntitySpawnReason.LOAD
 					);
-					var pig = EntityType.PIG.spawn(ctx.getWorld(), player.getBlockPos(), SpawnReason.LOAD);
+					var pig = EntityType.PIG.spawn(ctx.getLevel(), player.blockPosition(), EntitySpawnReason.LOAD);
 					pig.startRiding(boat);
 					var boat2 = EntityType.ACACIA_BOAT.spawn(
-							ctx.getWorld(), player.getBlockPos(), SpawnReason.LOAD
+							ctx.getLevel(), player.blockPosition(), EntitySpawnReason.LOAD
 					);
 					boat2.startRiding(boat);
 					player.startRiding(boat2);
 
 					var pearl = new ItemStack(Items.ENDER_PEARL);
-					player.equipStack(EquipmentSlot.MAINHAND, pearl);
-					pearl.use(player.getEntityWorld(), player, Hand.MAIN_HAND);
+					player.setItemSlot(EquipmentSlot.MAINHAND, pearl);
+					pearl.use(player.level(), player, InteractionHand.MAIN_HAND);
 					var pearlInWorld = player.getEnderPearls().stream().findAny().orElseThrow();
-					pearlInWorld.noClip = true;
+					pearlInWorld.noPhysics = true;
 					pearlInWorld.setNoGravity(true);
-					pearlInWorld.setVelocity(Vec3d.ZERO);
+					pearlInWorld.setDeltaMovement(Vec3.ZERO);
 
-					final Identifier temp = Identifier.of("test", "test");
+					final ResourceLocation temp = ResourceLocation.fromNamespaceAndPath("test", "test");
 					PlayerDataHelper.saveCurrentPlayerData(player, temp);
 					PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
 					PlayerDataHelper.resetPlayerData(player);
 
-					ctx.assertFalse(player.isRemoved(), Text.literal("Player was removed!"));
-					ctx.assertTrue(pearlInWorld.isRemoved(), Text.literal("Ender pearl remained!"));
-					ctx.assertTrue(boat.isRemoved(), Text.literal("Boat remained!"));
-					ctx.assertTrue(pig.isRemoved(), Text.literal("Pig remained!"));
-					ctx.assertTrue(player.getInventory().getStack(5).isEmpty(), Text.literal("Diamond remained!"));
-					ctx.assertTrue(player.getEnderChestInventory().getStack(2).isEmpty(), Text.literal("EnderChest Diamond remained!"));
+					ctx.assertFalse(player.isRemoved(), Component.literal("Player was removed!"));
+					ctx.assertTrue(pearlInWorld.isRemoved(), Component.literal("Ender pearl remained!"));
+					ctx.assertTrue(boat.isRemoved(), Component.literal("Boat remained!"));
+					ctx.assertTrue(pig.isRemoved(), Component.literal("Pig remained!"));
+					ctx.assertTrue(player.getInventory().getItem(5).isEmpty(), Component.literal("Diamond remained!"));
+					ctx.assertTrue(player.getEnderChestInventory().getItem(2).isEmpty(), Component.literal("EnderChest Diamond remained!"));
 
-					ctx.runAtTick(1, () -> {
+					ctx.runAtTickTime(1, () -> {
 						PlayerDataHelper.loadPlayerData(player, temp, false, true, true);
 					});
 
-					ctx.runAtTick(2, () -> {
-						ctx.assertTrue(player.getEnderPearls().contains(getNewEntity(ctx, pearlInWorld)), Text.literal("Ender pearl was not connected to player!"));
+					ctx.runAtTickTime(2, () -> {
+						ctx.assertTrue(player.getEnderPearls().contains(getNewEntity(ctx, pearlInWorld)), Component.literal("Ender pearl was not connected to player!"));
 
 						var midBoat = getNewEntity(ctx, boat2);
 						var rootBoat = getNewEntity(ctx, boat);
-						ctx.assertTrue(midBoat.getVehicle() == rootBoat, Text.literal("Mid boat not riding root boat."));
-						ctx.assertTrue(getNewEntity(ctx, pig).getVehicle() == rootBoat, Text.literal("Pig not in boat!"));
-						ctx.assertTrue(player.getVehicle() == midBoat, Text.literal("Pig not in boat!"));
+						ctx.assertTrue(midBoat.getVehicle() == rootBoat, Component.literal("Mid boat not riding root boat."));
+						ctx.assertTrue(getNewEntity(ctx, pig).getVehicle() == rootBoat, Component.literal("Pig not in boat!"));
+						ctx.assertTrue(player.getVehicle() == midBoat, Component.literal("Pig not in boat!"));
 
-						ctx.assertTrue(player.getInventory().getStack(5).getItem() == Items.DIAMOND, Text.literal("Diamond is lost!"));
-						ctx.assertTrue(player.getEnderChestInventory().getStack(2).getItem() == Items.DIAMOND, Text.literal("EnderChest Diamond is lost!"));
+						ctx.assertTrue(player.getInventory().getItem(5).getItem() == Items.DIAMOND, Component.literal("Diamond is lost!"));
+						ctx.assertTrue(player.getEnderChestInventory().getItem(2).getItem() == Items.DIAMOND, Component.literal("EnderChest Diamond is lost!"));
 
-						ctx.complete();
+						ctx.succeed();
 					});
 				}
 		);
 		Registry.register(
-				Registries.TEST_FUNCTION,
+				BuiltInRegistries.TEST_FUNCTION,
 				METAcraftLib.getID(PLAYER_DATA_PREFIX + "player-relog"),
 				ctx -> {
 					UUID id = UUID.randomUUID();
 					String test = "test";
 					var player = TestHelper.addMockPlayer(ctx, test, id);
-					player.getInventory().setStack(5, new ItemStack(Items.DIAMOND));
+					player.getInventory().setItem(5, new ItemStack(Items.DIAMOND));
 
-					final Identifier temp = Identifier.of("test", "test");
+					final ResourceLocation temp = ResourceLocation.fromNamespaceAndPath("test", "test");
 					PlayerDataHelper.saveCurrentPlayerData(player, temp);
 					PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
 					PlayerDataHelper.resetPlayerData(player);
 
-					player.networkHandler.disconnect(Text.empty());
+					player.connection.disconnect(Component.empty());
 
-					ctx.runAtTick(1, () -> {
+					ctx.runAtTickTime(1, () -> {
 						var playerRelogged = TestHelper.addMockPlayer(ctx, test, id);
 						PlayerDataHelper.loadPlayerData(playerRelogged, temp, false, true, true);
 
-						ctx.assertTrue(playerRelogged.getInventory().getStack(5).getItem() == Items.DIAMOND, Text.literal("Diamond is lost!"));
+						ctx.assertTrue(playerRelogged.getInventory().getItem(5).getItem() == Items.DIAMOND, Component.literal("Diamond is lost!"));
 
-						ctx.complete();
+						ctx.succeed();
 					});
 				}
 		);
 		Registry.register(
-				Registries.TEST_FUNCTION,
+				BuiltInRegistries.TEST_FUNCTION,
 				METAcraftLib.getID(PLAYER_DATA_PREFIX + "save-and-load-2"),
 				ctx -> {
 					var player = TestHelper.addMockPlayer(ctx);
@@ -131,51 +131,51 @@ public class TestPlayerData {
 					var player2 = TestHelper.addMockPlayer(ctx);
 
 					var boat = EntityType.ACACIA_BOAT.spawn(
-							ctx.getWorld(), player.getBlockPos(), SpawnReason.LOAD
+							ctx.getLevel(), player.blockPosition(), EntitySpawnReason.LOAD
 					);
 
 					player.startRiding(boat);
 					player2.startRiding(boat);
 
 					PlayerDataHelper.unloadPassengersAndVehicles(player);
-					ctx.assertFalse(boat.isRemoved(), Text.literal("Boat was removed despite another player riding it!"));
+					ctx.assertFalse(boat.isRemoved(), Component.literal("Boat was removed despite another player riding it!"));
 
-					ctx.complete();
+					ctx.succeed();
 				}
 		);
 		Registry.register(
-				Registries.TEST_FUNCTION,
+				BuiltInRegistries.TEST_FUNCTION,
 				METAcraftLib.getID(PLAYER_DATA_PREFIX + "save-and-load-3"),
 				ctx -> {
 					var player = TestHelper.addMockPlayer(ctx);
 
 					try {
-						var oldPlayerDataWithItem = StringNbtReader.readCompound("{seenCredits: 0b, EnderItems: [], ShoulderEntityLeft: {}, ShoulderEntityRight: {}, Inventory: [{count: 1, Slot: 0b, components: {\"minecraft:food\": {saturation: 1.0f, nutrition: 1}}, id: \"minecraft:diamond\"}], DataVersion: 3955}");
-						var oldPlayerData = StringNbtReader.readCompound("{seenCredits: 0b, EnderItems: [], ShoulderEntityLeft: {}, ShoulderEntityRight: {}, Inventory: [], DataVersion: 3955}");
-						var version = NbtHelper.getDataVersion(oldPlayerData, 1343);
+						var oldPlayerDataWithItem = TagParser.parseCompoundFully("{seenCredits: 0b, EnderItems: [], ShoulderEntityLeft: {}, ShoulderEntityRight: {}, Inventory: [{count: 1, Slot: 0b, components: {\"minecraft:food\": {saturation: 1.0f, nutrition: 1}}, id: \"minecraft:diamond\"}], DataVersion: 3955}");
+						var oldPlayerData = TagParser.parseCompoundFully("{seenCredits: 0b, EnderItems: [], ShoulderEntityLeft: {}, ShoulderEntityRight: {}, Inventory: [], DataVersion: 3955}");
+						var version = NbtUtils.getDataVersion(oldPlayerData, 1343);
 
-						var id = Identifier.of("test", "test");
-						NbtCompound dataMap = new NbtCompound();
+						var id = ResourceLocation.fromNamespaceAndPath("test", "test");
+						CompoundTag dataMap = new CompoundTag();
 						dataMap.put(id.toString(), oldPlayerDataWithItem);
 						oldPlayerData.put(PlayerDataHelper.PLAYER_DATA_ELEMENT, dataMap);
-						var fixer = ctx.getWorld().getServer().getDataFixer();
+						var fixer = ctx.getLevel().getServer().getFixerUpper();
 
-						oldPlayerData = (NbtCompound) fixer.update(
-								TypeReferences.PLAYER, new Dynamic<>(NbtOps.INSTANCE, oldPlayerData),
-								version, SharedConstants.getGameVersion().dataVersion().id()
+						oldPlayerData = (CompoundTag) fixer.update(
+								References.PLAYER, new Dynamic<>(NbtOps.INSTANCE, oldPlayerData),
+								version, SharedConstants.getCurrentVersion().dataVersion().version()
 						).getValue();
 
 						try (var logging = LoggingErrorReporter.create(TEST, METAcraftLib.LOGGER)) {
-							var readView = NbtReadView.create(logging, player.getRegistryManager(), oldPlayerData);
-							player.readData(readView);
+							var readView = TagValueInput.create(logging, player.registryAccess(), oldPlayerData);
+							player.load(readView);
 						}
 
 						PlayerDataHelper.loadPlayerData(player, id, false, false, false);
 
-						ctx.assertEquals(player.getMainHandStack().getItem(), Items.DIAMOND, Text.literal("Diamond went missing!"));
-						ctx.assertTrue(player.getMainHandStack().contains(DataComponentTypes.CONSUMABLE), Text.literal("Item was not upgraded properly!"));
+						ctx.assertValueEqual(player.getMainHandItem().getItem(), Items.DIAMOND, Component.literal("Diamond went missing!"));
+						ctx.assertTrue(player.getMainHandItem().has(DataComponents.CONSUMABLE), Component.literal("Item was not upgraded properly!"));
 
-						ctx.complete();
+						ctx.succeed();
 					} catch (CommandSyntaxException e) {
 						throw new RuntimeException(e);
 					}
@@ -183,14 +183,14 @@ public class TestPlayerData {
 		);
 	}
 
-	private static Entity getNewEntity(TestContext ctx, Entity oldEntity) {
-		var entity = ctx.getWorld().getEntity(oldEntity.getUuid());
-		ctx.assertTrue(entity != null, Text.empty().append(oldEntity.getDisplayName()).append(" went missing!"));
+	private static Entity getNewEntity(GameTestHelper ctx, Entity oldEntity) {
+		var entity = ctx.getLevel().getEntity(oldEntity.getUUID());
+		ctx.assertTrue(entity != null, Component.empty().append(oldEntity.getDisplayName()).append(" went missing!"));
 		return entity;
 	}
 
 	@Test
-	public void testPlayerDataMap() throws IOException, SymlinkValidationException, InterruptedException {
+	public void testPlayerDataMap() throws IOException, ContentValidationException, InterruptedException {
 		TestHelper.runTestServer(METAcraftLib.NAMESPACE,PLAYER_DATA_PREFIX+"*");
 	}
 

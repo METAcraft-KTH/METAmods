@@ -2,19 +2,19 @@ package nu.metacraft.resource_packs;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.Uuids;
 import org.pcollections.HashTreePSet;
 import org.pcollections.PSet;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 
 import java.util.UUID;
+import net.minecraft.core.UUIDUtil;
 
 public record PlayerPackData(PSet<UUID> resourcePacks) {
 
 	public static final Codec<PlayerPackData> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					ExtraCodecs.createPCollectionCodec(
-							Uuids.INT_STREAM_CODEC, (PSet<UUID>) HashTreePSet.<UUID>empty()
+					METACodecs.createPCollectionCodec(
+							UUIDUtil.CODEC, (PSet<UUID>) HashTreePSet.<UUID>empty()
 					).fieldOf("resource_packs").forGetter(PlayerPackData::resourcePacks)
 			).apply(instance, PlayerPackData::new)
 	);

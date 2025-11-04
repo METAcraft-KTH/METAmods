@@ -9,10 +9,9 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.portal_blocker.portal_type.PortalType;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
 import nu.metacraft.portal_blocker.zone.PortalZoneData;
@@ -20,21 +19,21 @@ import nu.metacraft.portal_blocker.zone.PortalZoneData;
 import java.util.Locale;
 import java.util.function.Function;
 
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.literal;
 
 public class Commands {
 
 	public static final SimpleCommandExceptionType BLOCK_OR_ALLOW = new SimpleCommandExceptionType(
-			Text.literal("Please type either block or allow!")
+			Component.literal("Please type either block or allow!")
 	);
 
 	public static final DynamicCommandExceptionType INVALID_TYPE = new DynamicCommandExceptionType(
-			type -> Text.literal(type + " is not a valid type!")
+			type -> Component.literal(type + " is not a valid type!")
 	);
 
 	public static void registerCommands() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-			LiteralArgumentBuilder<ServerCommandSource> rootBuilder = literal("portal-blocker")
+			LiteralArgumentBuilder<CommandSourceStack> rootBuilder = literal("portal-blocker")
 					.requires(Permissions.require("metacraft.portal-blocker", 2));
 			registerSetGetGlobal(rootBuilder);
 			registerSetGetBlockOutsideBorder(rootBuilder);
@@ -46,7 +45,7 @@ public class Commands {
 	public static final String PORTAL = "portal";
 	public static final String TYPE = "type";
 
-	private static void registerSetGetGlobal(LiteralArgumentBuilder<ServerCommandSource> builder) {
+	private static void registerSetGetGlobal(LiteralArgumentBuilder<CommandSourceStack> builder) {
 		builder.then(
 				literal("set").then(
 						PortalType.argument(PORTAL).then(
@@ -75,7 +74,7 @@ public class Commands {
 		);
 	}
 
-	private static void registerSetGetBlockOutsideBorder(LiteralArgumentBuilder<ServerCommandSource> builder) {
+	private static void registerSetGetBlockOutsideBorder(LiteralArgumentBuilder<CommandSourceStack> builder) {
 		builder.then(
 				literal("block-outside-border")
 						.then(
@@ -83,14 +82,14 @@ public class Commands {
 									.then(
 										literal("block").executes(ctx -> {
 												PortalBlockerSettings.getInstance(ctx.getSource().getServer()).setBlockPortalCreationOutsideBorder(true);
-												ctx.getSource().sendFeedback(() -> Text.of("Portal creation outside world border is now blocked."), true);
+												ctx.getSource().sendSuccess(() -> Component.nullToEmpty("Portal creation outside world border is now blocked."), true);
 												return 1;
 										})
 									)
 									.then(
 											literal("allow").executes(ctx -> {
 													PortalBlockerSettings.getInstance(ctx.getSource().getServer()).setBlockPortalCreationOutsideBorder(false);
-													ctx.getSource().sendFeedback(() -> Text.of("Portal creation outside world border is now allowed."), true);
+													ctx.getSource().sendSuccess(() -> Component.nullToEmpty("Portal creation outside world border is now allowed."), true);
 													return 1;
 											})
 									)
@@ -98,33 +97,33 @@ public class Commands {
 						.then(
 								literal("get").executes(ctx -> {
 										boolean isBlocked = PortalBlockerSettings.getInstance(ctx.getSource().getServer()).blockPortalCreationOutsideBorder();
-										ctx.getSource().sendFeedback(() -> Text.of("Portal creation outside world border is currently " + getBlockStateText(isBlocked) + "."), false);
+										ctx.getSource().sendSuccess(() -> Component.nullToEmpty("Portal creation outside world border is currently " + getBlockStateText(isBlocked) + "."), false);
 										return 1;
 								})
 						)
 		);
 	}
 
-	private static int setState(CommandContext<ServerCommandSource> context, PortalBlockType blockingType) throws CommandSyntaxException {
+	private static int setState(CommandContext<CommandSourceStack> context, PortalBlockType blockingType) throws CommandSyntaxException {
 		PortalType type = PortalType.getArgument(context, PORTAL);
 		boolean stateValue = getAllowBlockArgument(context, "state", false) == PortalZoneData.BlockResult.BLOCKED;
 
 		for (PortalState.BlockingType bType : blockingType.blockingTypes) {
 			if (PortalBlockerSettings.getInstance(context.getSource().getServer()).isPortalBlockedGlobally(type, bType) == stateValue) {
-				context.getSource().sendFeedback(() -> Text.of(type + " is already " + getBlockStateText(stateValue) + " for " + bType), false);
+				context.getSource().sendSuccess(() -> Component.nullToEmpty(type + " is already " + getBlockStateText(stateValue) + " for " + bType), false);
 				continue;
 			}
 
 			PortalBlockerSettings.getInstance(context.getSource().getServer()).setPortalBlockedGlobally(type, bType, stateValue);
-			context.getSource().sendFeedback(() -> Text.of("Set " + type + " to " + getBlockStateText(stateValue) + " for " + bType), true);
+			context.getSource().sendSuccess(() -> Component.nullToEmpty("Set " + type + " to " + getBlockStateText(stateValue) + " for " + bType), true);
 		}
 		return 1;
 	}
 
-	private static int getState(CommandContext<ServerCommandSource> context, PortalBlockType blockingType) throws CommandSyntaxException {
+	private static int getState(CommandContext<CommandSourceStack> context, PortalBlockType blockingType) throws CommandSyntaxException {
 		PortalType type = PortalType.getArgument(context, PORTAL);
-		context.getSource().sendFeedback(
-			() -> Text.of(
+		context.getSource().sendSuccess(
+			() -> Component.nullToEmpty(
 				type + " is currently " + blockingType.getBlockingString(
 					bType -> PortalBlockerSettings.getInstance(context.getSource().getServer()).isPortalBlockedGlobally(type, bType)
 				)
@@ -134,9 +133,9 @@ public class Commands {
 		return 1;
 	}
 
-	private static int getAllStates(CommandContext<ServerCommandSource> context) {
+	private static int getAllStates(CommandContext<CommandSourceStack> context) {
 		PortalTypeRegistry.REGISTRY.stream().forEach(type -> {
-			context.getSource().sendFeedback(() -> Text.of(
+			context.getSource().sendSuccess(() -> Component.nullToEmpty(
 					type + " is currently " + PortalBlockType.ALL.getBlockingString(
 							bType -> PortalBlockerSettings.getInstance(context.getSource().getServer()).isPortalBlockedGlobally(type, bType)
 					)),
@@ -154,24 +153,24 @@ public class Commands {
 		return (blockState ? "block" : "allow") + suffix;
 	}
 
-	public static RequiredArgumentBuilder<ServerCommandSource, String> allowBlockArgument(String name, boolean includeDefault) {
-		return CommandManager.argument(name, StringArgumentType.word()).suggests((context, builder) -> {
+	public static RequiredArgumentBuilder<CommandSourceStack, String> allowBlockArgument(String name, boolean includeDefault) {
+		return net.minecraft.commands.Commands.argument(name, StringArgumentType.word()).suggests((context, builder) -> {
 			for (var key : PortalZoneData.BlockResult.values()) {
 				if (key == PortalZoneData.BlockResult.DEFAULT && !includeDefault) continue;
-				builder.suggest(key.asString());
+				builder.suggest(key.getSerializedName());
 			}
 			return builder.buildFuture();
 		});
 	}
 
-	public static PortalZoneData.BlockResult getAllowBlockArgument(CommandContext<ServerCommandSource> context, String name, boolean allowDefault) throws CommandSyntaxException {
+	public static PortalZoneData.BlockResult getAllowBlockArgument(CommandContext<CommandSourceStack> context, String name, boolean allowDefault) throws CommandSyntaxException {
 		var type = StringArgumentType.getString(context, name);
 		var result = PortalZoneData.BlockResult.fromString(type).orElseThrow(BLOCK_OR_ALLOW::create);
 		if (!allowDefault && result == PortalZoneData.BlockResult.DEFAULT) throw BLOCK_OR_ALLOW.create();
 		return result;
 	}
 
-	public static String getIDAsString(Identifier id) {
+	public static String getIDAsString(ResourceLocation id) {
 		if (id.getNamespace().equals("minecraft")) {
 			return id.getPath();
 		} else {
@@ -192,8 +191,8 @@ public class Commands {
 			this.blockingTypes = blockingTypes;
 		}
 
-		public static RequiredArgumentBuilder<ServerCommandSource, String> blockTypeArgument(String name) {
-			return CommandManager.argument(name, StringArgumentType.word()).suggests((context, builder) -> {
+		public static RequiredArgumentBuilder<CommandSourceStack, String> blockTypeArgument(String name) {
+			return net.minecraft.commands.Commands.argument(name, StringArgumentType.word()).suggests((context, builder) -> {
 				for (PortalBlockType type : PortalBlockType.values()) {
 					builder.suggest(type.name().toLowerCase(Locale.ROOT));
 				}
@@ -206,7 +205,7 @@ public class Commands {
 			return name().toLowerCase(Locale.ROOT);
 		}
 
-		public static PortalBlockType getAllowBlockArgument(CommandContext<ServerCommandSource> context, String name) throws CommandSyntaxException {
+		public static PortalBlockType getAllowBlockArgument(CommandContext<CommandSourceStack> context, String name) throws CommandSyntaxException {
 			var type = StringArgumentType.getString(context, name);
 			try {
 				return PortalBlockType.valueOf(type.toUpperCase(Locale.ROOT));

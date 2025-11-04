@@ -2,35 +2,35 @@ package nu.metacraft.lib.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.server.players.PlayerList;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.lib.extensions.ServerPlayerEntityExtensions;
 import nu.metacraft.lib.util.helper.PlayerDataHelper;
 
-@Mixin(ServerPlayNetworkHandler.class)
+@Mixin(ServerGamePacketListenerImpl.class)
 public class MixinServerPlayNetworkHandler {
 
-	@Shadow public ServerPlayerEntity player;
+	@Shadow public ServerPlayer player;
 
 	@WrapWithCondition(
-		method = "cleanUp",
+		method = "removePlayerFromWorld",
 		at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/server/PlayerManager;broadcast(Lnet/minecraft/text/Text;Z)V"
+				target = "Lnet/minecraft/server/players/PlayerList;broadcastSystemMessage(Lnet/minecraft/network/chat/Component;Z)V"
 		)
 	)
-	private boolean shouldAnnounceLeave(PlayerManager instance, Text message, boolean overlay) {
+	private boolean shouldAnnounceLeave(PlayerList instance, Component message, boolean overlay) {
 		return PlayerDataHelper.getAnnounceJoinLeave(this.player);
 	}
 
 	@ModifyExpressionValue(
-		method = "onVehicleMove",
-		at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerPlayerEntity;isLoaded()Z")
+		method = "handleMoveVehicle",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerPlayer;hasClientLoaded()Z")
 	)
 	public boolean onVehicleMove(boolean original) {
 		if (((ServerPlayerEntityExtensions) player).metacraft_lib$isTeleportingOnVehicle()) {

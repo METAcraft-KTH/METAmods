@@ -3,63 +3,63 @@ package nu.metacraft.core.position_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.predicate.FluidPredicate;
-import net.minecraft.predicate.NumberRange;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.floatprovider.FloatProvider;
-import net.minecraft.util.shape.VoxelShape;
 import nu.metacraft.core.registry.PositionRefRegistry;
 import nu.metacraft.core.util.RefContext;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
+import net.minecraft.advancements.critereon.FluidPredicate;
+import net.minecraft.advancements.critereon.MinMaxBounds;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.util.valueproviders.FloatProvider;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 public record RandomRangeWithGravity(
-		PositionRef center, Box hitbox, Optional<FluidPredicate> validFluids,
-		NumberRange.IntRange verticalRange, FloatProvider horizontalRange
+		PositionRef center, AABB hitbox, Optional<FluidPredicate> validFluids,
+		MinMaxBounds.Ints verticalRange, FloatProvider horizontalRange
 ) implements PositionRef {
 
 	public static final MapCodec<RandomRangeWithGravity> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codec.lazyInitialized(() -> PositionRefRegistry.CODEC).fieldOf("center").forGetter(RandomRangeWithGravity::center),
-					ExtraCodecs.BOX_CODEC.fieldOf("hitbox").forGetter(RandomRangeWithGravity::hitbox),
+					METACodecs.BOX_CODEC.fieldOf("hitbox").forGetter(RandomRangeWithGravity::hitbox),
 					FluidPredicate.CODEC.optionalFieldOf("valid_fluids").forGetter(RandomRangeWithGravity::validFluids),
-					NumberRange.IntRange.CODEC.fieldOf("vertical_range").forGetter(RandomRangeWithGravity::verticalRange),
-					FloatProvider.createValidatedCodec(0, Float.MAX_VALUE).fieldOf("horizontal_range").forGetter(RandomRangeWithGravity::horizontalRange)
+					MinMaxBounds.Ints.CODEC.fieldOf("vertical_range").forGetter(RandomRangeWithGravity::verticalRange),
+					FloatProvider.codec(0, Float.MAX_VALUE).fieldOf("horizontal_range").forGetter(RandomRangeWithGravity::horizontalRange)
 			).apply(instance, RandomRangeWithGravity::new)
 	);
 
 	@Override
-	public Optional<Vec3d> get(RefContext ctx) {
+	public Optional<Vec3> get(RefContext ctx) {
 		return center.get(ctx).flatMap(centerPos -> {
 			return findCandidatePos(ctx, centerPos);
 		});
 	}
 	
-	private OptionalDouble findValidY(ServerWorld world, double x, double z, BlockPos pos) {
+	private OptionalDouble findValidY(ServerLevel world, double x, double z, BlockPos pos) {
 		var state = world.getBlockState(pos);
-		if (state.isFullCube(world, pos)) return OptionalDouble.empty();
+		if (state.isCollisionShapeFullBlock(world, pos)) return OptionalDouble.empty();
 		var shape = state.getCollisionShape(world, pos);
 		if (shape.isEmpty()) {
 			return isValidPos(world, x, pos.getY(), z, shape) ? OptionalDouble.of(pos.getY()) : OptionalDouble.empty();
 		} else {
-			var box = shape.getBoundingBox();
-			return box.maxY < 1 && isValidPos(world, x, pos.getY() + shape.getBoundingBox().maxY, z, shape) ?
-					OptionalDouble.of(pos.getY() + shape.getBoundingBox().maxY) : OptionalDouble.empty();
+			var box = shape.bounds();
+			return box.maxY < 1 && isValidPos(world, x, pos.getY() + shape.bounds().maxY, z, shape) ?
+					OptionalDouble.of(pos.getY() + shape.bounds().maxY) : OptionalDouble.empty();
 		}
 	}
 	
-	private boolean isValidPos(ServerWorld world, double x, double y, double z, VoxelShape posShape) {
-		var box = hitbox.offset(x, y, z);
-		if (world.isSpaceEmpty(box)) {
+	private boolean isValidPos(ServerLevel world, double x, double y, double z, VoxelShape posShape) {
+		var box = hitbox.move(x, y, z);
+		if (world.noCollision(box)) {
 			if (validFluids.isPresent()) {
-				for (var pos : BlockPos.iterate(box)) {
-					if (!validFluids.get().test(world, pos)) {
+				for (var pos : BlockPos.betweenClosed(box)) {
+					if (!validFluids.get().matches(world, pos)) {
 						return false;
 					}
 				}
@@ -67,13 +67,13 @@ public record RandomRangeWithGravity(
 			if (!posShape.isEmpty()) {
 				return true;
 			} else {
-				int minX = MathHelper.floor(box.minX);
-				int minZ = MathHelper.floor(box.minZ);
-				int maxX = MathHelper.floor(box.maxX);
-				int maxZ = MathHelper.floor(box.maxZ);
-				int yInt = MathHelper.floor(y)-1;
-				for (var pos : BlockPos.iterate(minX, yInt, minZ, maxX, yInt, maxZ)) {
-					if (world.getBlockState(pos).isFullCube(world, pos)) {
+				int minX = Mth.floor(box.minX);
+				int minZ = Mth.floor(box.minZ);
+				int maxX = Mth.floor(box.maxX);
+				int maxZ = Mth.floor(box.maxZ);
+				int yInt = Mth.floor(y)-1;
+				for (var pos : BlockPos.betweenClosed(minX, yInt, minZ, maxX, yInt, maxZ)) {
+					if (world.getBlockState(pos).isCollisionShapeFullBlock(world, pos)) {
 						return true;
 					}
 				}
@@ -82,31 +82,31 @@ public record RandomRangeWithGravity(
 		return false;
 	}
 
-	private Optional<Vec3d> findCandidatePos(RefContext ctx, Vec3d centerPos) {
-		var angle = ctx.getRandom().nextDouble() * Math.PI * 2;
-		double length = horizontalRange.get(ctx.getRandom());
+	private Optional<Vec3> findCandidatePos(RefContext ctx, Vec3 centerPos) {
+		var angle = ctx.random().nextDouble() * Math.PI * 2;
+		double length = horizontalRange.sample(ctx.random());
 		double xOffset = Math.cos(angle) * length;
 		double zOffset = Math.sin(angle) * length;
 		var targetPos = centerPos.add(xOffset, 0, zOffset);
-		BlockPos.Mutable reusedBlockPos = new BlockPos.Mutable();
-		reusedBlockPos.set(targetPos.getX(), targetPos.getY(), targetPos.getZ());
+		BlockPos.MutableBlockPos reusedBlockPos = new BlockPos.MutableBlockPos();
+		reusedBlockPos.set(targetPos.x(), targetPos.y(), targetPos.z());
 		int startY = reusedBlockPos.getY();
-		int minY = verticalRange.bounds().min().map(y -> y + startY).orElse(ctx.getWorld().getBottomY());
-		int maxY = verticalRange.bounds().max().map(y -> y + startY).orElse(ctx.getWorld().getTopYInclusive());
+		int minY = verticalRange.bounds().min().map(y -> y + startY).orElse(ctx.world().getMinY());
+		int maxY = verticalRange.bounds().max().map(y -> y + startY).orElse(ctx.world().getMaxY());
 		int count = Math.max(startY - minY, maxY - startY);
 		for (int i = 0; i < count; i++) {
-			if (verticalRange.test(-i)) {
+			if (verticalRange.matches(-i)) {
 				reusedBlockPos.setY(startY - i);
-				var y = findValidY(ctx.getWorld(), targetPos.getX(), targetPos.getZ(), reusedBlockPos);
+				var y = findValidY(ctx.world(), targetPos.x(), targetPos.z(), reusedBlockPos);
 				if (y.isPresent()) {
-					return Optional.of(new Vec3d(targetPos.getX(), y.getAsDouble(), targetPos.getZ()));
+					return Optional.of(new Vec3(targetPos.x(), y.getAsDouble(), targetPos.z()));
 				}
 			}
-			if (verticalRange.test(i)) {
+			if (verticalRange.matches(i)) {
 				reusedBlockPos.setY(startY + i);
-				var y = findValidY(ctx.getWorld(), targetPos.getX(), targetPos.getZ(), reusedBlockPos);
+				var y = findValidY(ctx.world(), targetPos.x(), targetPos.z(), reusedBlockPos);
 				if (y.isPresent()) {
-					return Optional.of(new Vec3d(targetPos.getX(), y.getAsDouble(), targetPos.getZ()));
+					return Optional.of(new Vec3(targetPos.x(), y.getAsDouble(), targetPos.z()));
 				}
 			}
 		}

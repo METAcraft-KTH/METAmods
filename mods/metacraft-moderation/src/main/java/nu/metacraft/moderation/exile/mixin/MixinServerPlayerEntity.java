@@ -1,10 +1,10 @@
 package nu.metacraft.moderation.exile.mixin;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,8 +19,8 @@ import nu.metacraft.zones.zone.Zone;
 import java.util.HashSet;
 import java.util.Set;
 
-@Mixin(ServerPlayerEntity.class)
-public abstract class MixinServerPlayerEntity extends PlayerEntity implements ExilePlayerData {
+@Mixin(ServerPlayer.class)
+public abstract class MixinServerPlayerEntity extends Player implements ExilePlayerData {
 
 	@Shadow @Final public MinecraftServer server;
 
@@ -30,7 +30,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Ex
 	@Unique
 	private final Set<Zone> currentZones = new HashSet<>();
 
-	public MixinServerPlayerEntity(World world, GameProfile profile) {
+	public MixinServerPlayerEntity(Level world, GameProfile profile) {
 		super(world, profile);
 	}
 
@@ -44,9 +44,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Ex
 		at = @At("HEAD")
 	)
 	public void tick(CallbackInfo ci) {
-		if (!this.getEntityWorld().isClient()) {
-			ExileData.getInstance(server).getExile((ServerPlayerEntity) (Object) this).ifPresent(exile -> {
-				exile.tick((ServerPlayerEntity & ExilePlayerData) (Object) this);
+		if (!this.level().isClientSide()) {
+			ExileData.getInstance(server).getExile((ServerPlayer) (Object) this).ifPresent(exile -> {
+				exile.tick((ServerPlayer & ExilePlayerData) (Object) this);
 			});
 		}
 	}

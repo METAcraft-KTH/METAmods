@@ -1,28 +1,28 @@
 package nu.metacraft.lib.mixin;
 
-import net.minecraft.advancement.AdvancementEntry;
-import net.minecraft.advancement.AdvancementProgress;
-import net.minecraft.advancement.PlayerAdvancementTracker;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.util.Map;
 import java.util.Set;
+import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.AdvancementProgress;
+import net.minecraft.server.PlayerAdvancements;
 
-@Mixin(PlayerAdvancementTracker.class)
+@Mixin(PlayerAdvancements.class)
 public interface AccessorPlayerAdvancementTracker {
 
 	@Accessor
-	Map<AdvancementEntry, AdvancementProgress> getProgress();
+	Map<AdvancementHolder, AdvancementProgress> getProgress();
 
 	@Invoker
-	void callInitProgress(AdvancementEntry advancement, AdvancementProgress progress);
+	void callStartProgress(AdvancementHolder advancement, AdvancementProgress progress);
 
 	@Accessor
-	Set<AdvancementEntry> getProgressUpdates();
+	Set<AdvancementHolder> getProgressChanged();
 
 	@Invoker
-	void callOnStatusUpdate(AdvancementEntry advancement);
+	void callMarkForVisibilityUpdate(AdvancementHolder advancement);
 
 }

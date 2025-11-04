@@ -1,16 +1,16 @@
 package nu.metacraft.portable_jukebox.mixin;
 
-import net.minecraft.component.type.BundleContentsComponent;
-import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 import java.util.List;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.BundleContents;
 
-@Mixin(BundleContentsComponent.Builder.class)
+@Mixin(BundleContents.Mutable.class)
 public interface AccessorBundleContentsComponentBuilder {
 
 	@Accessor
-	List<ItemStack> getStacks();
+	List<ItemStack> getItems();
 
 }

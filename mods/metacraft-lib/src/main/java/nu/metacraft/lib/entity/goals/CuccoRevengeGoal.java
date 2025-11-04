@@ -1,61 +1,61 @@
 package nu.metacraft.lib.entity.goals;
 
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.ai.goal.RevengeGoal;
-import net.minecraft.entity.passive.ChickenEntity;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.Heightmap;
-import net.minecraft.world.ServerWorldAccess;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
+import net.minecraft.world.entity.animal.Chicken;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.AABB;
 import nu.metacraft.lib.extensions.ChickenExtensions;
 
-public class CuccoRevengeGoal extends RevengeGoal {
-	public CuccoRevengeGoal(ChickenEntity mob, Class<?>... noRevengeTypes) {
+public class CuccoRevengeGoal extends HurtByTargetGoal {
+	public CuccoRevengeGoal(Chicken mob, Class<?>... noRevengeTypes) {
 		super(mob, noRevengeTypes);
-		this.setGroupRevenge();
+		this.setAlertOthers();
 	}
 
 	@Override
-	public boolean canStart() {
-		if (mob.getTarget() != null && mob.getTarget().isDead()) {
+	public boolean canUse() {
+		if (mob.getTarget() != null && mob.getTarget().isDeadOrDying()) {
 			mob.setTarget(null);
 		}
-		return ((ChickenExtensions) mob).metacraft_lib$isCucco() && super.canStart();
+		return ((ChickenExtensions) mob).metacraft_lib$isCucco() && super.canUse();
 	}
 
 	@Override
-	public void callSameTypeForRevenge() {
+	public void alertOthers() {
 		final int minAttackers = ((ChickenExtensions) mob).metacraft_lib$getReinforcementCount();
-		double range = getFollowRange();
-		var mobs = mob.getEntityWorld().getOtherEntities(mob, new Box(
+		double range = getFollowDistance();
+		var mobs = mob.level().getEntities(mob, new AABB(
 				mob.getX() - range, mob.getY() - range, mob.getZ() - range,
 				mob.getX() + range, mob.getY() + range, mob.getZ() + range
-		), entity -> entity instanceof ChickenEntity && ((ChickenExtensions) entity).metacraft_lib$isCucco());
+		), entity -> entity instanceof Chicken && ((ChickenExtensions) entity).metacraft_lib$isCucco());
 		if (mobs.size() < minAttackers) {
 			int toSpawn = minAttackers - mobs.size();
 			((ChickenExtensions) mob).metacraft_lib$setReinforcementCount(minAttackers - toSpawn);
 			for (int i = 0; i < toSpawn; i++) {
-				var chicken = EntityType.CHICKEN.create(mob.getEntityWorld(), SpawnReason.REINFORCEMENT);
-				chicken.initialize(
-						(ServerWorldAccess) mob.getEntityWorld(),
-						mob.getEntityWorld().getLocalDifficulty(mob.getBlockPos()),
-						SpawnReason.REINFORCEMENT, null
+				var chicken = EntityType.CHICKEN.create(mob.level(), EntitySpawnReason.REINFORCEMENT);
+				chicken.finalizeSpawn(
+						(ServerLevelAccessor) mob.level(),
+						mob.level().getCurrentDifficultyAt(mob.blockPosition()),
+						EntitySpawnReason.REINFORCEMENT, null
 				);
 				((ChickenExtensions) chicken).metacraft_lib$setCucco(true);
 				((ChickenExtensions) chicken).metacraft_lib$setReinforcementCount(0);
-				double x = mob.getX() + mob.getEntityWorld().getRandom().nextGaussian() * range;
-				double z = mob.getZ() + mob.getEntityWorld().getRandom().nextGaussian() * range;
-				int y = mob.getEntityWorld().getTopY(Heightmap.Type.MOTION_BLOCKING, MathHelper.floor(x), MathHelper.floor(z));
-				chicken.refreshPositionAndAngles(x, y, z, 0, 0);
-				mob.getEntityWorld().spawnEntity(chicken);
+				double x = mob.getX() + mob.level().getRandom().nextGaussian() * range;
+				double z = mob.getZ() + mob.level().getRandom().nextGaussian() * range;
+				int y = mob.level().getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(x), Mth.floor(z));
+				chicken.snapTo(x, y, z, 0, 0);
+				mob.level().addFreshEntity(chicken);
 			}
 		}
-		super.callSameTypeForRevenge();
+		super.alertOthers();
 	}
 
 	@Override
-	protected double getFollowRange() {
-		return super.getFollowRange();
+	protected double getFollowDistance() {
+		return super.getFollowDistance();
 	}
 }

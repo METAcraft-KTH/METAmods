@@ -3,93 +3,93 @@ package se.metacraft.portalopening;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.NetherPortalBlock;
-import net.minecraft.server.command.CommandOutput;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
 import se.metacraft.portalopening.raid.Wave;
 import se.metacraft.portalopening.rifts.PortalRift;
 
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+import net.minecraft.commands.CommandSource;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.NetherPortalBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 
-public class PortalOpeningDimensionData extends PersistentState {
+public class PortalOpeningDimensionData extends SavedData {
 
 	private static final String MAIN_RIFT = "MainRift";
 	private static final String RIFTS = "Rifts";
 	private static final String CURRENT_WAVE = "CurrentWave";
 
-	private final ServerWorld world;
+	private final ServerLevel world;
 
 	protected PortalRift mainRift;
 	protected Set<PortalRift> rifts = new HashSet<>();
 	protected OptionalInt currentWave = OptionalInt.empty();
 
-	private final ServerCommandSource source;
+	private final CommandSourceStack source;
 
-	private static final PersistentStateType<PortalOpeningDimensionData> TYPE = new PersistentStateType<>(
-			"portal-opening-manager", ctx -> createNew(ctx.getWorldOrThrow()),
-			ctx -> createCodec(ctx.getWorldOrThrow()), null
+	private static final SavedDataType<PortalOpeningDimensionData> TYPE = new SavedDataType<>(
+			"portal-opening-manager", ctx -> createNew(ctx.levelOrThrow()),
+			ctx -> createCodec(ctx.levelOrThrow()), null
 	);
 
 	private PortalOpeningDimensionData(
-			ServerWorld world, PortalRift mainRift, List<PortalRift> rifts, Optional<Integer> currentWave
+			ServerLevel world, PortalRift mainRift, List<PortalRift> rifts, Optional<Integer> currentWave
 	) {
 		this(world);
 		if (mainRift != null) {
-			mainRift.setSaveCallback(this::markDirty);
+			mainRift.setSaveCallback(this::setDirty);
 		}
 		for (var rift : rifts) {
-			rift.setSaveCallback(this::markDirty);
+			rift.setSaveCallback(this::setDirty);
 		}
 		this.mainRift = mainRift;
 		this.rifts = new HashSet<>(rifts);
 		this.currentWave = currentWave.stream().mapToInt(i -> i).findAny();
 	}
 
-	protected PortalOpeningDimensionData(ServerWorld world) {
+	protected PortalOpeningDimensionData(ServerLevel world) {
 		this.world = world;
-		this.source = new ServerCommandSource(
-				new CommandOutput() {
+		this.source = new CommandSourceStack(
+				new CommandSource() {
 					@Override
-					public void sendMessage(Text message) {
+					public void sendSystemMessage(Component message) {
 						PortalOpening.LOGGER.info("PortalOpeningCommandExecutor: " + message.getString());
 					}
 
 					@Override
-					public boolean shouldReceiveFeedback() {
+					public boolean acceptsSuccess() {
 						return false;
 					}
 
 					@Override
-					public boolean shouldTrackOutput() {
+					public boolean acceptsFailure() {
 						return true;
 					}
 
 					@Override
-					public boolean shouldBroadcastConsoleToOps() {
+					public boolean shouldInformAdmins() {
 						return false;
 					}
-				}, Vec3d.ZERO, Vec2f.ZERO, world, 2, "PortalOpening",
-				Text.literal("PortalOpening"), world.getServer(), null
+				}, Vec3.ZERO, Vec2.ZERO, world, 2, "PortalOpening",
+				Component.literal("PortalOpening"), world.getServer(), null
 		);
 	}
 
-	private static PortalOpeningDimensionData createNew(ServerWorld world) {
+	private static PortalOpeningDimensionData createNew(ServerLevel world) {
 		return new PortalOpeningDimensionData(world);
 	}
 
-	private static Codec<PortalOpeningDimensionData> createCodec(ServerWorld world) {
+	private static Codec<PortalOpeningDimensionData> createCodec(ServerLevel world) {
 		var riftCodec = PortalRift.createCodec(world);
 		return RecordCodecBuilder.create(instance -> instance.group(
 				riftCodec.optionalFieldOf(MAIN_RIFT).forGetter(d -> Optional.ofNullable(d.mainRift)),
@@ -103,12 +103,12 @@ public class PortalOpeningDimensionData extends PersistentState {
 		));
 	}
 
-	public static PortalOpeningDimensionData getInstance(ServerWorld world) {
-		return world.getPersistentStateManager().getOrCreate(TYPE);
+	public static PortalOpeningDimensionData getInstance(ServerLevel world) {
+		return world.getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	public boolean createRift(BlockPos pos, int size, BlockState xAxisState, BlockState zAxisState, Direction.Axis axis) {
-		PortalRift rift = new PortalRift(world, pos, size, axis, this::markDirty);
+		PortalRift rift = new PortalRift(world, pos, size, axis, this::setDirty);
 		if (!rift.successful()) {
 			return false;
 		}
@@ -120,37 +120,37 @@ public class PortalOpeningDimensionData extends PersistentState {
 			}
 		});
 		rifts.add(rift);
-		markDirty();
+		setDirty();
 		return true;
 	}
 
 	public boolean addExistingRift(
 			BlockPos pos, int size, Direction.Axis axis, Predicate<BlockState> isValidBlock
 	) {
-		PortalRift rift = new PortalRift(world, pos, size, axis, isValidBlock, this::markDirty);
+		PortalRift rift = new PortalRift(world, pos, size, axis, isValidBlock, this::setDirty);
 		if (!rift.successful()) {
 			return false;
 		}
 		rifts.add(rift);
-		markDirty();
+		setDirty();
 		return true;
 	}
 
 	public void addManualRift(BlockPos pos1, BlockPos pos2) {
 		this.rifts.add(new PortalRift(
-				world, pos1, pos2, this::markDirty
+				world, pos1, pos2, this::setDirty
 		));
 	}
 
 	public boolean addExistingNetherPortalRift(BlockPos pos, int size) {
 		var state = world.getBlockState(pos);
-		if (!state.isOf(Blocks.NETHER_PORTAL)) {
+		if (!state.is(Blocks.NETHER_PORTAL)) {
 			return false;
 		}
-		var axis = state.get(NetherPortalBlock.AXIS);
+		var axis = state.getValue(NetherPortalBlock.AXIS);
 		return addExistingRift(
 				pos, size, axis,
-				block -> block.isOf(Blocks.NETHER_PORTAL) && block.get(NetherPortalBlock.AXIS).equals(axis)
+				block -> block.is(Blocks.NETHER_PORTAL) && block.getValue(NetherPortalBlock.AXIS).equals(axis)
 		);
 	}
 
@@ -164,7 +164,7 @@ public class PortalOpeningDimensionData extends PersistentState {
 		for (var rift : rifts) {
 			if (rift.containsPos(pos)) {
 				mainRift = rift;
-				markDirty();
+				setDirty();
 				break;
 			}
 		}
@@ -192,26 +192,26 @@ public class PortalOpeningDimensionData extends PersistentState {
 		} else {
 			this.rifts.remove(rift2);
 		}
-		markDirty();
+		setDirty();
 	}
 
 	public void removeRiftAt(BlockPos pos) {
 		if (rifts.removeIf(rift -> {
 			boolean replaced = false;
 			if (rift.containsPos(pos)) {
-				rift.replaceBlocks(Blocks.AIR.getDefaultState());
+				rift.replaceBlocks(Blocks.AIR.defaultBlockState());
 				rift.clearMobs();
 				replaced = true;
 			}
 			return replaced;
 		})) {
-			markDirty();
+			setDirty();
 		}
 		if (mainRift != null && mainRift.containsPos(pos)) {
-			mainRift.replaceBlocks(Blocks.AIR.getDefaultState());
+			mainRift.replaceBlocks(Blocks.AIR.defaultBlockState());
 			mainRift.clearMobs();
 			mainRift = null;
-			markDirty();
+			setDirty();
 		}
 	}
 
@@ -221,10 +221,10 @@ public class PortalOpeningDimensionData extends PersistentState {
 
 	public void stopRaid() {
 		currentWave = OptionalInt.empty();
-		world.getServer().getCommandManager().parseAndExecute(
+		world.getServer().getCommands().performPrefixedCommand(
 				source, PortalOpening.getConfig().getCommandOnRaidEnd()
 		);
-		markDirty();
+		setDirty();
 	}
 
 	public void nextWave() {
@@ -240,7 +240,7 @@ public class PortalOpeningDimensionData extends PersistentState {
 			int chosenRift = world.getRandom().nextInt(rifts.size());
 			mainRift = rifts.stream().skip(chosenRift).findAny().get();
 			rifts.remove(mainRift);
-			markDirty();
+			setDirty();
 		}
 	}
 
@@ -253,14 +253,14 @@ public class PortalOpeningDimensionData extends PersistentState {
 		}
 		fixMainRift();
 		getCurrentWave().ifPresent(actualWave -> {
-			world.getServer().getCommandManager().parseAndExecute(
+			world.getServer().getCommands().performPrefixedCommand(
 					source, actualWave.command()
 			);
 			mainRift.nextWave(actualWave);
 			for (var rift : rifts) {
 				rift.nextWave(actualWave);
 			}
-			markDirty();
+			setDirty();
 		});
 	}
 
@@ -282,14 +282,14 @@ public class PortalOpeningDimensionData extends PersistentState {
 		fixMainRift();
 		getCurrentWave().ifPresent(wave -> {
 			for (var mobEntry : wave.manualSpawns().get(name)) {
-				int toSpawn = mobEntry.amountPerSpawn().get(world.getRandom());
+				int toSpawn = mobEntry.amountPerSpawn().sample(world.getRandom());
 				for (int i = 0; i < toSpawn; i++) {
 					mobEntry.spawnMobsFromNBT(world, mainRift.getRandomPos(), mainRift::attemptLaunch);
 				}
 				mobEntry.amountPerSpawnOtherRifts().ifPresent(amount -> {
 					for (var rift : rifts) {
 						if (mobEntry.probabilityToSpawnOtherRift() <= world.getRandom().nextDouble()) {
-							int toSpawnOtherRift = amount.get(world.getRandom());
+							int toSpawnOtherRift = amount.sample(world.getRandom());
 							for (int i = 0; i < toSpawnOtherRift; i++) {
 								mobEntry.spawnMobsFromNBT(world, rift.getRandomPos(), rift::attemptLaunch);
 							}
@@ -338,26 +338,26 @@ public class PortalOpeningDimensionData extends PersistentState {
 	}
 
 	public boolean createNetherPortalRift(BlockPos pos, int size, Direction.Axis axis) {
-		var block = Blocks.NETHER_PORTAL.getDefaultState();
+		var block = Blocks.NETHER_PORTAL.defaultBlockState();
 		return createRift(
 				pos, size,
-				block.with(NetherPortalBlock.AXIS, Direction.Axis.X),
-				block.with(NetherPortalBlock.AXIS, Direction.Axis.Z),
+				block.setValue(NetherPortalBlock.AXIS, Direction.Axis.X),
+				block.setValue(NetherPortalBlock.AXIS, Direction.Axis.Z),
 				axis
 		);
 	}
 
 	public void closeAllRifts(boolean includeMainRift) {
 		for (var rift : rifts) {
-			rift.replaceBlocks(Blocks.AIR.getDefaultState());
+			rift.replaceBlocks(Blocks.AIR.defaultBlockState());
 			rift.clearMobs();
 		}
 		if (mainRift != null && includeMainRift) {
-			mainRift.replaceBlocks(Blocks.AIR.getDefaultState());
+			mainRift.replaceBlocks(Blocks.AIR.defaultBlockState());
 			mainRift.clearMobs();
 			mainRift = null;
 		}
 		rifts.clear();
-		markDirty();
+		setDirty();
 	}
 }

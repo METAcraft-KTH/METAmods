@@ -3,27 +3,27 @@ package nu.metacraft.lib;
 import com.mojang.authlib.GameProfile;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Uuids;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class METAcraftData extends PersistentState {
+public class METAcraftData extends SavedData {
 
 	public static final Codec<METAcraftData> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
 					Codec.unboundedMap(
-							Uuids.STRING_CODEC, Codec.STRING
+							UUIDUtil.STRING_CODEC, Codec.STRING
 					).fieldOf("offline_name_cache").forGetter(d -> d.nameCache)
 			).apply(instance, METAcraftData::new)
 	);
 
-	private static final PersistentStateType<METAcraftData> TYPE = new PersistentStateType<>(
+	private static final SavedDataType<METAcraftData> TYPE = new SavedDataType<>(
 			METAcraftLib.NAMESPACE + "-data", METAcraftData::new, CODEC, null
 	);
 
@@ -38,7 +38,7 @@ public class METAcraftData extends PersistentState {
 	private final Map<UUID, String> nameCache;
 
 	public static METAcraftData getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	public void setName(UUID id, @Nullable String name) {
@@ -47,7 +47,7 @@ public class METAcraftData extends PersistentState {
 		} else {
 			nameCache.remove(id);
 		}
-		markDirty();
+		setDirty();
 	}
 
 	public String getName(GameProfile profile) {

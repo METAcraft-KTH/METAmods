@@ -3,14 +3,14 @@ package nu.metacraft.lib.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.datafixers.DataFixer;
-import net.minecraft.resource.ResourcePackManager;
+import net.minecraft.gametest.framework.GameTestServer;
+import net.minecraft.gametest.framework.MultipleTestTracker;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.SaveLoader;
-import net.minecraft.test.TestServer;
-import net.minecraft.test.TestSet;
-import net.minecraft.util.ApiServices;
-import net.minecraft.world.chunk.ChunkLoadProgress;
-import net.minecraft.world.level.storage.LevelStorage;
+import net.minecraft.server.Services;
+import net.minecraft.server.WorldStem;
+import net.minecraft.server.level.progress.LevelLoadListener;
+import net.minecraft.server.packs.repository.PackRepository;
+import net.minecraft.world.level.storage.LevelStorageSource;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,19 +19,19 @@ import nu.metacraft.lib.util.helper.TestHelper;
 
 import java.net.Proxy;
 
-@Mixin(TestServer.class)
+@Mixin(GameTestServer.class)
 public abstract class MixinTestServer extends MinecraftServer implements TestHelper.TestServerExtension {
 
-	@Shadow @Nullable private TestSet testSet;
+	@Shadow @Nullable private MultipleTestTracker testTracker;
 
-	public MixinTestServer(Thread serverThread, LevelStorage.Session session, ResourcePackManager dataPackManager, SaveLoader saveLoader, Proxy proxy, DataFixer dataFixer, ApiServices apiServices, ChunkLoadProgress chunkLoadProgress) {
+	public MixinTestServer(Thread serverThread, LevelStorageSource.LevelStorageAccess session, PackRepository dataPackManager, WorldStem saveLoader, Proxy proxy, DataFixer dataFixer, Services apiServices, LevelLoadListener chunkLoadProgress) {
 		super(serverThread, session, dataPackManager, saveLoader, proxy, dataFixer, apiServices, chunkLoadProgress);
 	}
 
 	@WrapOperation(
 		method = {
-				"exit",
-				"setCrashReport"
+				"onServerExit",
+				"onServerCrash"
 		},
 		at = @At(
 				value = "INVOKE",
@@ -39,12 +39,12 @@ public abstract class MixinTestServer extends MinecraftServer implements TestHel
 		)
 	)
 	private void onExit(int status, Operation<Void> original) {
-		this.getThread().interrupt();
+		this.getRunningThread().interrupt();
 	}
 
 	@Override
 	public boolean metacraft$testPassed() {
-		return testSet != null && !testSet.failed();
+		return testTracker != null && !testTracker.hasFailedRequired();
 	}
 
 }

@@ -1,7 +1,7 @@
 package nu.metacraft.lib.config.container;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.server.MinecraftServer;
 import nu.metacraft.lib.config.ObjectStorage;
 import nu.metacraft.lib.config.container.impl.BasicConfigContainer;
@@ -26,7 +26,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 
 		protected final Codec<T> codec;
 		protected final Supplier<T> defaultConfigInitializer;
-		protected Function<RegistryWrapper.WrapperLookup, T> defaultConfigInitializerWithLookup;
+		protected Function<HolderLookup.Provider, T> defaultConfigInitializerWithLookup;
 		protected boolean reloadsBeforeServer = false;
 		protected boolean reloadsAfterServer = false;
 		protected ReloadFunction<T> reloader = ReloadFunction.getDefault();
@@ -72,7 +72,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 			return this;
 		}
 
-		public Builder<T> registryAvailableConfigInitializer(Function<RegistryWrapper.WrapperLookup, T> defaultConfigInitializerWithLookup) {
+		public Builder<T> registryAvailableConfigInitializer(Function<HolderLookup.Provider, T> defaultConfigInitializerWithLookup) {
 			this.defaultConfigInitializerWithLookup = defaultConfigInitializerWithLookup;
 			return this;
 		}
@@ -89,7 +89,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		 * Builds a normal config container with registry access.
 		 * @return The config container.
 		 */
-		public ConfigContainer<T> build(Path configPath, Supplier<RegistryWrapper.WrapperLookup> lookupSupplier) {
+		public ConfigContainer<T> build(Path configPath, Supplier<HolderLookup.Provider> lookupSupplier) {
 			return new BasicConfigContainer.WithLookup<>(
 					codec, configPath,
 					defaultConfigInitializerWithLookup != null ? defaultConfigInitializerWithLookup : l -> defaultConfigInitializer.get(),
@@ -101,13 +101,13 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		 * Builds a normal config container with registry access.
 		 * @return The config container.
 		 */
-		public ConfigContainer<T> build(Path configPath, RegistryWrapper.WrapperLookup lookup) {
+		public ConfigContainer<T> build(Path configPath, HolderLookup.Provider lookup) {
 			return build(configPath, () -> lookup);
 		}
 
 		/**
 		 * Builds a config container with an additional registry aware cache creator.
-		 * Sometimes you may want to use codecs that require a valid {@link net.minecraft.registry.RegistryWrapper.WrapperLookup}
+		 * Sometimes you may want to use codecs that require a valid {@link net.minecraft.core.HolderLookup.Provider}
 		 * which is obviously not available at load time with the rest of the config.
 		 * Therefore, you can use {@link ObjectStorage} or similar to hold
 		 * the raw objects in the config. Then, you can use {@link ServerAware#get(MinecraftServer)}
@@ -128,7 +128,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 
 		/**
 		 * Builds a config container with an additional registry aware cache creator.
-		 * Sometimes you may want to use codecs that require a valid {@link net.minecraft.registry.RegistryWrapper.WrapperLookup}
+		 * Sometimes you may want to use codecs that require a valid {@link net.minecraft.core.HolderLookup.Provider}
 		 * which is obviously not available at load time with the rest of the config.
 		 * Therefore, you can use {@link ObjectStorage} or similar to hold
 		 * the raw objects in the config. Then, you can use {@link ServerAware#get(MinecraftServer)}
@@ -146,7 +146,7 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 				BiFunction<T, MinecraftServer, S> parser,
 				ReloadFunction<S> cacheReloader
 		) {
-			return ServerAware.<ConfigContainer<T>, S>wrap(
+			return ServerAware.wrap(
 					build(configPath),
 					(config, server) -> parser.apply(config.get(), server),
 					cacheReloader

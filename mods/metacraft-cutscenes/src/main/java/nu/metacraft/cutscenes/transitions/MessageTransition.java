@@ -4,10 +4,10 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
-import net.minecraft.text.Texts;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.server.level.ServerPlayer;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
@@ -19,15 +19,15 @@ public class MessageTransition extends InstantTransition {
 
 	public static final MapCodec<MessageTransition> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					TextCodecs.CODEC.fieldOf("message").forGetter(t -> t.message),
+					ComponentSerialization.CODEC.fieldOf("message").forGetter(t -> t.message),
 					Codec.BOOL.optionalFieldOf("overlay", false).forGetter(t -> t.overlay)
 			).apply(instance, MessageTransition::new)
 	);
 
-	private final Text message;
+	private final Component message;
 	private final boolean overlay;
 
-	public MessageTransition(Text message, boolean overlay) {
+	public MessageTransition(Component message, boolean overlay) {
 		this.message = message;
 		this.overlay = overlay;
 	}
@@ -38,13 +38,13 @@ public class MessageTransition extends InstantTransition {
 	}
 
 	@Override
-	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		player.sendMessage(parseText(player, cutscene, message), overlay);
+	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		player.displayClientMessage(parseText(player, cutscene, message), overlay);
 	}
 
-	public static Text parseText(ServerPlayerEntity player, CutsceneInstance cutscene, Text text) {
+	public static Component parseText(ServerPlayer player, CutsceneInstance cutscene, Component text) {
 		try {
-			return Texts.parse(RunCommandTransition.getSource(cutscene, false, player, false), text, player, 0);
+			return ComponentUtils.updateForEntity(RunCommandTransition.getSource(cutscene, false, player, false), text, player, 0);
 		} catch (CommandSyntaxException e) {
 			Cutscenes.LOGGER.error(e.getMessage());
 			return text;

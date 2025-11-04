@@ -2,13 +2,13 @@ package nu.metacraft.cutscenes.transitions;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.storage.NbtWriteView;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.extension.EntityExtension;
@@ -53,12 +53,12 @@ public class SmoothCameraPathTransition implements Transition {
 
 	private void setLinearInterpolationDuration(Entity display, int duration) {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:SmoothCameraPathTransition#setLinearInterpolationDuration", Cutscenes.LOGGER)) {
-			var writeView = NbtWriteView.create(logging, display.getRegistryManager());
-			display.writeData(writeView);
-			var data = writeView.getNbt();
-			data.putInt(DisplayEntity.TELEPORT_DURATION_KEY, duration);
-			var readView = NbtReadView.create(logging, display.getRegistryManager(), data);
-			display.readData(readView);
+			var writeView = TagValueOutput.createWithContext(logging, display.registryAccess());
+			display.saveWithoutId(writeView);
+			var data = writeView.buildResult();
+			data.putInt(Display.TAG_POS_ROT_INTERPOLATION_DURATION, duration);
+			var readView = TagValueInput.create(logging, display.registryAccess(), data);
+			display.load(readView);
 		}
 	}
 
@@ -77,13 +77,13 @@ public class SmoothCameraPathTransition implements Transition {
 		cutscene.forAllPlayers(player -> {
 			cutscene.getRootEntity(MARKER_ID).ifPresentOrElse(marker -> {
 				if (player.isSpectator()) {
-					player.setCameraEntity(marker);
+					player.setCamera(marker);
 				}
 			}, () -> {
-				var display = EntityType.TEXT_DISPLAY.create(cutscene.getCutsceneWorld(), SpawnReason.TRIGGERED);
+				var display = EntityType.TEXT_DISPLAY.create(cutscene.getCutsceneWorld(), EntitySpawnReason.TRIGGERED);
 				setLinearInterpolationDuration(display, config.interpolationDuration());
 				var target = interpolationSet.interpolate(0);
-				display.updatePositionAndAngles(
+				display.absSnapTo(
 						target.pos().x, target.pos().y + EntityType.PLAYER.getDimensions().eyeHeight(), target.pos().z, target.yaw(), target.pitch()
 				);
 				((EntityExtension) display).metacraft$setHasAccurateMovement(true);
@@ -101,7 +101,7 @@ public class SmoothCameraPathTransition implements Transition {
 		var target = interpolationSet.interpolate(delta);
 		cutscene.getRootEntity(MARKER_ID).ifPresent(entity -> {
 			if ((cutscene.getCurrentTime() - interval.getStart()) % config.teleportInterval() == 0) {
-				entity.updatePositionAndAngles(
+				entity.absSnapTo(
 						target.pos().x, target.pos().y + EntityType.PLAYER.getDimensions().eyeHeight(), target.pos().z, target.yaw(), target.pitch()
 				);
 			}
@@ -114,9 +114,9 @@ public class SmoothCameraPathTransition implements Transition {
 	}
 
 	@Override
-	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	public void deactivate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (player.isSpectator()) {
-			player.setCameraEntity(null);
+			player.setCamera(null);
 		}
 	}
 

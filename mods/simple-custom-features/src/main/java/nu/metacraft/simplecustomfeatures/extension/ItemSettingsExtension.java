@@ -1,10 +1,10 @@
 package nu.metacraft.simplecustomfeatures.extension;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public interface ItemSettingsExtension {
 
-	Text simple_custom_features$getCustomName();
-	void simple_custom_features$setCustomName(Text name);
+	Component simple_custom_features$getCustomName();
+	void simple_custom_features$setCustomName(Component name);
 
 }

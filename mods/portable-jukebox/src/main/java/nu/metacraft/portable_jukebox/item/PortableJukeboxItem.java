@@ -1,18 +1,18 @@
 package nu.metacraft.portable_jukebox.item;
 
-import net.minecraft.block.jukebox.JukeboxSong;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.*;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ItemScatterer;
-import net.minecraft.world.World;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.JukeboxSong;
+import net.minecraft.world.level.Level;
 import nu.metacraft.lib.util.EntityRef;
 import nu.metacraft.portable_jukebox.block.Blocks;
 import nu.metacraft.portable_jukebox.item.components.Components;
@@ -24,22 +24,22 @@ import java.util.Optional;
 
 public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
 
-	public PortableJukeboxItem(net.minecraft.item.Item.Settings settings) {
+	public PortableJukeboxItem(net.minecraft.world.item.Item.Properties settings) {
 		super(Blocks.PORTABLE_JUKEBOX, settings);
 	}
 
 	public static void play(ItemStack stack, EntityRef entity) {
-		stop(stack, (ServerWorld) entity.getWorld());
-		var jukeboxPlayer = Entities.PORTABLE_JUKEBOX.create(entity.getWorld(), SpawnReason.TRIGGERED);
+		stop(stack, (ServerLevel) entity.getWorld());
+		var jukeboxPlayer = Entities.PORTABLE_JUKEBOX.create(entity.getWorld(), EntitySpawnReason.TRIGGERED);
 		var pos = entity.getPos();
-		jukeboxPlayer.setPos(pos.getX(), pos.getY(), pos.getZ());
+		jukeboxPlayer.setPosRaw(pos.x(), pos.y(), pos.z());
 		jukeboxPlayer.setConnectedEntity(entity);
-		entity.getWorld().spawnEntity(jukeboxPlayer);
+		entity.getWorld().addFreshEntity(jukeboxPlayer);
 		jukeboxPlayer.setJukebox(stack);
 		EntityRefHelper.addPortableJukebox(entity, jukeboxPlayer);
 	}
 
-	public static void stop(ItemStack stack, ServerWorld world) {
+	public static void stop(ItemStack stack, ServerLevel world) {
 		Optional.ofNullable(stack.get(Components.PORTABLE_JUKEBOX_ENTITY)).ifPresent(entityEntry -> {
 			var entity = world.getEntity(entityEntry.entity());
 			if (entity != null) {
@@ -49,21 +49,21 @@ public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
 	}
 
 	@Override
-	public ActionResult use(World world, PlayerEntity user, Hand hand) {
-		var stack = user.getStackInHand(hand);
-		if (!world.isClient()) {
-			var gui = PortableJukeboxGui.create((ServerPlayerEntity) user, stack, EntityRef.fromEntity(user));
+	public InteractionResult use(Level world, Player user, InteractionHand hand) {
+		var stack = user.getItemInHand(hand);
+		if (!world.isClientSide()) {
+			var gui = PortableJukeboxGui.create((ServerPlayer) user, stack, EntityRef.fromEntity(user));
 			gui.open();
-			return ActionResult.SUCCESS;
+			return InteractionResult.SUCCESS;
 		}
-		return ActionResult.PASS;
+		return InteractionResult.PASS;
 	}
 
 	@Override
-	public void onItemEntityDestroyed(ItemEntity entity) {
-		super.onItemEntityDestroyed(entity);
-		Optional.ofNullable(entity.getStack().get(Components.PORTABLE_JUKEBOX)).ifPresent(disc -> {
-			ItemScatterer.spawn(entity.getEntityWorld(), entity.getX(), entity.getY(), entity.getZ(), disc);
+	public void onDestroyed(ItemEntity entity) {
+		super.onDestroyed(entity);
+		Optional.ofNullable(entity.getItem().get(Components.PORTABLE_JUKEBOX)).ifPresent(disc -> {
+			Containers.dropItemStack(entity.level(), entity.getX(), entity.getY(), entity.getZ(), disc);
 		});
 	}
 
@@ -71,20 +71,20 @@ public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
 		return Optional.ofNullable(stack.get(Components.PORTABLE_JUKEBOX));
 	}
 
-	public static Optional<RegistryEntry<JukeboxSong>> getSongFromJukebox(ItemStack stack, RegistryWrapper.WrapperLookup lookup) {
-		return getDiscFromJukebox(stack).flatMap(disc -> JukeboxSong.getSongEntryFromStack(lookup, disc));
+	public static Optional<Holder<JukeboxSong>> getSongFromJukebox(ItemStack stack, HolderLookup.Provider lookup) {
+		return getDiscFromJukebox(stack).flatMap(disc -> JukeboxSong.fromStack(lookup, disc));
 	}
 
-	public static int getComparatorOutput(ItemStack stack, RegistryWrapper.WrapperLookup lookup) {
+	public static int getComparatorOutput(ItemStack stack, HolderLookup.Provider lookup) {
 		return getSongFromJukebox(stack, lookup).map(song -> song.value().comparatorOutput()).orElse(0);
 	}
 
 	public static void updateStackChange(EntityRef entity, ItemStack prevDisc, ItemStack stack) {
-		if (stack.contains(Components.PORTABLE_JUKEBOX_ENTITY)) {
+		if (stack.has(Components.PORTABLE_JUKEBOX_ENTITY)) {
 			var currentSong = getSongFromJukebox(stack, entity.getRegistryManager());
 			if (
 					currentSong.isPresent() &&
-					!JukeboxSong.getSongEntryFromStack(entity.getRegistryManager(), prevDisc).equals(currentSong)
+					!JukeboxSong.fromStack(entity.getRegistryManager(), prevDisc).equals(currentSong)
 			) {
 				play(stack, entity);
 			}
@@ -93,7 +93,7 @@ public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
 
 	public static void updateRedstone(EntityRef entity, ItemStack stack) {
 		if (entity.isReceivingRedstonePower()) {
-			if (!stack.contains(Components.PORTABLE_JUKEBOX_ENTITY)) {
+			if (!stack.has(Components.PORTABLE_JUKEBOX_ENTITY)) {
 				play(stack, entity);
 			}
 		}

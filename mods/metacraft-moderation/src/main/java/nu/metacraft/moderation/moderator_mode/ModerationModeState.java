@@ -1,11 +1,5 @@
 package nu.metacraft.moderation.moderator_mode;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.util.ErrorReporter;
-import net.minecraft.util.Identifier;
 import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import nu.metacraft.lib.util.helper.PlayerDataHelper;
@@ -15,6 +9,12 @@ import nu.metacraft.moderation.ModerationPlayerData;
 import nu.metacraft.moderation.compat.Vanish;
 
 import java.util.*;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 
 public class ModerationModeState {
 
@@ -26,25 +26,25 @@ public class ModerationModeState {
 	private static final String PLAYER_NBT = "PlayerNBT";
 
 	protected ModeratorModeDefinition def;
-	protected NbtCompound playerNBT;
+	protected CompoundTag playerNBT;
 
 	public ModerationModeState(ModeratorModeDefinition def) {
 		this.def = def;
 	}
 
-	private NbtCompound writePlayerToNBT(ServerPlayerEntity player, ErrorReporter logger) {
+	private CompoundTag writePlayerToNBT(ServerPlayer player, ProblemReporter logger) {
 		PlayerDataHelper.detachPassengersBeforeSaving(player);
-		var writeView = NbtWriteView.create(logger, player.getRegistryManager());
-		player.writeData(writeView);
+		var writeView = TagValueOutput.createWithContext(logger, player.registryAccess());
+		player.saveWithoutId(writeView);
 		PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
-		return writeView.getNbt();
+		return writeView.buildResult();
 	}
 
-	public static Identifier getFromDef(ModeratorModeDefinition def) {
+	public static ResourceLocation getFromDef(ModeratorModeDefinition def) {
 		return METAcraftModeration.getID(def.getName().toLowerCase(Locale.ROOT));
 	}
 
-	public void applyToPlayer(ModerationModeState prev, ServerPlayerEntity player) {
+	public void applyToPlayer(ModerationModeState prev, ServerPlayer player) {
 		if (prev == null) {
 			prev = NULL;
 		}
@@ -72,9 +72,9 @@ public class ModerationModeState {
 					}
 					playerNBT = writePlayerToNBT(player, logging);
 				}
-				NbtCompound newNbt = PlayerDataHelper.getEmptyPlayerData();
-				Optional.ofNullable(((ModerationPlayerData) player).METAcraft_Moderation$getSavedNBT().get(def.getName())).ifPresent(newNbt::copyFrom);
-				var readView = NbtReadView.create(logging, player.getRegistryManager(), newNbt);
+				CompoundTag newNbt = PlayerDataHelper.getEmptyPlayerData();
+				Optional.ofNullable(((ModerationPlayerData) player).METAcraft_Moderation$getSavedNBT().get(def.getName())).ifPresent(newNbt::merge);
+				var readView = TagValueInput.create(logging, player.registryAccess(), newNbt);
 				PlayerDataHelper.applyPlayerData(player, readView, false);
 				PlayerDataHelper.setAdvancementTracker(player, getFromDef(def), false);
 				PlayerDataHelper.setStatHandler(player, getFromDef(def), false);
@@ -83,7 +83,7 @@ public class ModerationModeState {
 				}
 			} else if (prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
 				if (prev.playerNBT != null) {
-					var readView = NbtReadView.create(logging, player.getRegistryManager(), PlayerDataHelper.updatePlayerData(prev.playerNBT, player.getEntityWorld().getServer().getDataFixer()));
+					var readView = TagValueInput.create(logging, player.registryAccess(), PlayerDataHelper.updatePlayerData(prev.playerNBT, player.level().getServer().getFixerUpper()));
 					PlayerDataHelper.applyPlayerData(player, readView, true);
 				} else {
 					METAcraftModeration.LOGGER.fatal("Player " + player.getName() + " lost their player data! This is a bug!");
@@ -103,26 +103,26 @@ public class ModerationModeState {
 
 
 		prev.def.getExitCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().name())).ifPresent(exit -> {
-			player.getEntityWorld().getServer().getCommandManager().parseAndExecute(
-					player.getCommandSource().withLevel(4), exit
+			player.level().getServer().getCommands().performPrefixedCommand(
+					player.createCommandSourceStack().withPermission(4), exit
 			);
 		});
 		def.getEnterCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().name())).ifPresent(enter -> {
-			player.getEntityWorld().getServer().getCommandManager().parseAndExecute(
-					player.getCommandSource().withLevel(4), enter
+			player.level().getServer().getCommands().performPrefixedCommand(
+					player.createCommandSourceStack().withPermission(4), enter
 			);
 		});
 		updatePlayer(player);
 	}
 
-	public void updatePlayer(ServerPlayerEntity player) {
+	public void updatePlayer(ServerPlayer player) {
 		if (!IsLoaded.VANISH.isLoaded()) {
 			player.setInvisible(def.vanish);
 		}
 	}
 
-	public NbtCompound toNBT() {
-		NbtCompound nbt = new NbtCompound();
+	public CompoundTag toNBT() {
+		CompoundTag nbt = new CompoundTag();
 		if (this.playerNBT != null) {
 			nbt.put(PLAYER_NBT, this.playerNBT);
 		}
@@ -130,7 +130,7 @@ public class ModerationModeState {
 		return nbt;
 	}
 
-	public void fromNBT(ModerationData data, NbtCompound nbt) {
+	public void fromNBT(ModerationData data, CompoundTag nbt) {
 		this.playerNBT = nbt.getCompound(PLAYER_NBT).orElse(null);
 		var defName = nbt.getString(DEF).map(
 				name -> name.toLowerCase(Locale.ROOT)
@@ -147,7 +147,7 @@ public class ModerationModeState {
 		return def;
 	}
 
-	public static ModerationModeState createFromNBT(ModerationData data, NbtCompound nbt) {
+	public static ModerationModeState createFromNBT(ModerationData data, CompoundTag nbt) {
 		var state = new ModerationModeState(NULL.def);
 		state.fromNBT(data, nbt);
 		return state;

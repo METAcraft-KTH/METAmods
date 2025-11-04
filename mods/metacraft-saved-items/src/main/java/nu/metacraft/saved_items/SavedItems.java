@@ -1,7 +1,7 @@
 package nu.metacraft.saved_items;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.lib.compat.IsLoaded;
@@ -13,8 +13,8 @@ public class SavedItems implements ModInitializer {
 	public static final String MODID = "metacraft-saved-items";
 	public static final Logger LOGGER = LogManager.getLogger(MODID);
 
-	public static Identifier getID(String id) {
-		return Identifier.of(NAMESPACE, id);
+	public static ResourceLocation getID(String id) {
+		return ResourceLocation.fromNamespaceAndPath(NAMESPACE, id);
 	}
 
 	@Override

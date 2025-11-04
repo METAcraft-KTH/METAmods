@@ -1,22 +1,22 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.PistonBlock;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.piston.PistonBaseBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import nu.metacraft.core.extensions.BlockEntityExtensions;
 
-@Mixin(PistonBlock.class)
+@Mixin(PistonBaseBlock.class)
 public class MixinPistonBlock {
 
-	@Inject(method = "isMovable", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "isPushable", at = @At("HEAD"), cancellable = true)
 	private static void isMovable(
-			BlockState state, World world, BlockPos pos, Direction direction, boolean canBreak,
+			BlockState state, Level world, BlockPos pos, Direction direction, boolean canBreak,
 			Direction pistonDir, CallbackInfoReturnable<Boolean> cir
 	) {
 		if (state.hasBlockEntity()) {

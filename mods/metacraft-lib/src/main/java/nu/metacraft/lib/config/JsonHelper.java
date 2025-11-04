@@ -9,13 +9,13 @@ import com.google.gson.stream.JsonWriter;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.registry.RegistryWrapper;
 import nu.metacraft.lib.METAcraftLib;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
+import net.minecraft.core.HolderLookup;
 
 public class JsonHelper {
 
@@ -27,12 +27,12 @@ public class JsonHelper {
 		save(configPath, codec, object, ops -> ops);
 	}
 
-	public static <T> Optional<T> load(Path configPath, Codec<T> codec, RegistryWrapper.WrapperLookup lookup) {
-		return load(configPath, codec, lookup::getOps);
+	public static <T> Optional<T> load(Path configPath, Codec<T> codec, HolderLookup.Provider lookup) {
+		return load(configPath, codec, lookup::createSerializationContext);
 	}
 
-	public static <T> void save(Path configPath, Codec<T> codec, T object, RegistryWrapper.WrapperLookup lookup) {
-		save(configPath, codec, object, lookup::getOps);
+	public static <T> void save(Path configPath, Codec<T> codec, T object, HolderLookup.Provider lookup) {
+		save(configPath, codec, object, lookup::createSerializationContext);
 	}
 
 	public static <T> Optional<T> load(Path configPath, Codec<T> codec, UnaryOperator<DynamicOps<JsonElement>> opsFixer) {

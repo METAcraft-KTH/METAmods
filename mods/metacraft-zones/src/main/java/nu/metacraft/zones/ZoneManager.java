@@ -2,12 +2,12 @@ package nu.metacraft.zones;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
-import net.minecraft.world.World;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.zones.compat.leukocyte.LeukocyteZoneManager;
 import nu.metacraft.zones.zone.RealZone;
@@ -20,12 +20,12 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class ZoneManager extends PersistentState {
+public class ZoneManager extends SavedData {
 
 	private static boolean loading = false;
 
 	public static ZoneManager getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	public static Optional<ZoneManager> getInstanceNoStackOverflow(MinecraftServer server) {
@@ -35,9 +35,9 @@ public class ZoneManager extends PersistentState {
 		return Optional.of(getInstance(server));
 	}
 
-	private static final PersistentStateType<ZoneManager> TYPE = new PersistentStateType<>(
-			"metacraft-zones", ctx -> createNew(ctx.getWorldOrThrow().getServer()),
-			ctx -> createCodec(ctx.getWorldOrThrow().getServer()), null
+	private static final SavedDataType<ZoneManager> TYPE = new SavedDataType<>(
+			"metacraft-zones", ctx -> createNew(ctx.levelOrThrow().getServer()),
+			ctx -> createCodec(ctx.levelOrThrow().getServer()), null
 	);
 
 	private static Codec<ZoneManager> createCodec(MinecraftServer server) {
@@ -67,7 +67,7 @@ public class ZoneManager extends PersistentState {
 	protected ZoneManager(MinecraftServer server) {
 		this.server = server;
 	}
-	private final ZoneMap zones = new ZoneMap(this::markDirty, this::onZoneAdd, this::onZoneRemove);
+	private final ZoneMap zones = new ZoneMap(this::setDirty, this::onZoneAdd, this::onZoneRemove);
 
 	protected void onZoneAdd(Zone zone) {
 		if (IsLoaded.LEUKOCYTE.isLoaded()) {
@@ -81,27 +81,27 @@ public class ZoneManager extends PersistentState {
 		}
 	}
 
-	public List<Zone> getZonesMatching(RegistryKey<World> dim, Predicate<Zone> zonePredicate) {
+	public List<Zone> getZonesMatching(ResourceKey<Level> dim, Predicate<Zone> zonePredicate) {
 		return zones.getZones(dim, zonePredicate);
 	}
 
-	public Optional<Zone> getFirstZoneMatching(RegistryKey<World> dim, Predicate<Zone> zonePredicate) {
+	public Optional<Zone> getFirstZoneMatching(ResourceKey<Level> dim, Predicate<Zone> zonePredicate) {
 		return zones.getFirstZoneMatching(dim, zonePredicate);
 	}
 
-	public Optional<Zone> getZoneAt(RegistryKey<World> dim, BlockPos pos, Predicate<Zone> zonePredicate) {
+	public Optional<Zone> getZoneAt(ResourceKey<Level> dim, BlockPos pos, Predicate<Zone> zonePredicate) {
 		return getFirstZoneMatching(dim, zone -> zone.isPosWithinZoneBoundsNoDimCheck(pos) && zonePredicate.test(zone));
 	}
 
-	public Optional<Zone> getZoneAt(RegistryKey<World> dim, BlockPos pos) {
+	public Optional<Zone> getZoneAt(ResourceKey<Level> dim, BlockPos pos) {
 		return getFirstZoneMatching(dim, zone -> zone.isPosWithinZoneBoundsNoDimCheck(pos));
 	}
 
-	public List<Zone> getZonesAt(RegistryKey<World> dim, BlockPos pos, Predicate<Zone> additionaLPredicate) {
+	public List<Zone> getZonesAt(ResourceKey<Level> dim, BlockPos pos, Predicate<Zone> additionaLPredicate) {
 		return getZonesMatching(dim, zone -> zone.isPosWithinZoneBoundsNoDimCheck(pos) && additionaLPredicate.test(zone));
 	}
 
-	public <T> Optional<T> getValueForPrimaryZone(RegistryKey<World> dim, BlockPos pos, Function<Zone, Optional<T>> valueGetter) {
+	public <T> Optional<T> getValueForPrimaryZone(ResourceKey<Level> dim, BlockPos pos, Function<Zone, Optional<T>> valueGetter) {
 		return getValueForPrimaryZone(dim, zone -> {
 			if (!zone.isPosWithinZoneBoundsNoDimCheck(pos)) {
 				return Optional.empty();
@@ -110,7 +110,7 @@ public class ZoneManager extends PersistentState {
 		});
 	}
 
-	public <T> Optional<T> getValueForPrimaryZone(RegistryKey<World> dim, Function<Zone, Optional<T>> valueGetter) {
+	public <T> Optional<T> getValueForPrimaryZone(ResourceKey<Level> dim, Function<Zone, Optional<T>> valueGetter) {
 		return zones.getValueForPrimaryZone(dim, valueGetter);
 	}
 

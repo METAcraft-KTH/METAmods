@@ -1,39 +1,39 @@
 package nu.metacraft.plots.recipes;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.recipe.CraftingRecipe;
-import net.minecraft.recipe.ShapelessRecipe;
-import net.minecraft.recipe.input.CraftingRecipeInput;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.ShapelessRecipe;
 import nu.metacraft.plots.item.PlotItems;
 import nu.metacraft.plots.item.PlotKey;
 
 public class AuthoriseSecondaryKeyRecipe extends ShapelessRecipe {
 	public AuthoriseSecondaryKeyRecipe(CraftingRecipe recipe) {
 		super(
-				recipe.getGroup(), recipe.getCategory(),
-				recipe.craft(null, null),
-				recipe.getIngredientPlacement().getIngredients()
+				recipe.group(), recipe.category(),
+				recipe.assemble(null, null),
+				recipe.placementInfo().ingredients()
 		);
 	}
 
 	@Override
-	public ItemStack craft(CraftingRecipeInput recipeInputInventory, RegistryWrapper.WrapperLookup lookup) {
+	public ItemStack assemble(CraftingInput recipeInputInventory, HolderLookup.Provider lookup) {
 		var result = ItemStack.EMPTY;
 		String prevPlot = null;
 		String prevPlotFriendlyName = null;
-		for (var stack : recipeInputInventory.getStacks()) {
-			if (stack.isOf(PlotItems.PLOT_MASTER_KEY)) {
+		for (var stack : recipeInputInventory.items()) {
+			if (stack.is(PlotItems.PLOT_MASTER_KEY)) {
 				result = PlotKey.createUninitialisedKeyFromMasterKey(stack);
 			}
-			if (stack.isOf(PlotItems.PLOT_KEY)) {
+			if (stack.is(PlotItems.PLOT_KEY)) {
 				prevPlot = PlotKey.getPlot(stack);
 				prevPlotFriendlyName = PlotKey.getFriendlyName(stack);
 			}
 		}
 		if (result.isEmpty()) {
-			result = super.craft(recipeInputInventory, lookup);
+			result = super.assemble(recipeInputInventory, lookup);
 		}
 		if (prevPlot != null && prevPlotFriendlyName != null) {
 			PlotKey.addKeyToRevoke(result, prevPlotFriendlyName, prevPlot);
@@ -42,11 +42,11 @@ public class AuthoriseSecondaryKeyRecipe extends ShapelessRecipe {
 	}
 
 	@Override
-	public DefaultedList<ItemStack> getRecipeRemainders(CraftingRecipeInput inventory) {
-		DefaultedList<ItemStack> remainders = DefaultedList.ofSize(inventory.size(), ItemStack.EMPTY);
+	public NonNullList<ItemStack> getRemainingItems(CraftingInput inventory) {
+		NonNullList<ItemStack> remainders = NonNullList.withSize(inventory.size(), ItemStack.EMPTY);
 		for (int i = 0; i < inventory.size(); i++) {
-			if (inventory.getStackInSlot(i).isOf(PlotItems.PLOT_MASTER_KEY)) {
-				remainders.set(i, inventory.getStackInSlot(i).copy());
+			if (inventory.getItem(i).is(PlotItems.PLOT_MASTER_KEY)) {
+				remainders.set(i, inventory.getItem(i).copy());
 				break;
 			}
 		}

@@ -3,44 +3,43 @@ package nu.metacraft.core.music;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.jukebox.JukeboxSong;
-import net.minecraft.component.type.JukeboxPlayableComponent;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryOps;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.dynamic.Codecs;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.item.JukeboxPlayable;
+import net.minecraft.world.item.JukeboxSong;
 
 public record MusicEntry(
 		Music music, Optional<Music> intro, Optional<Credit> credit
 ) {
 
-	protected static final Codec<MusicEntry> DISC_CODEC = new Codec<>() {
+	static final Codec<MusicEntry> DISC_CODEC = new Codec<>() {
 		@Override
 		public <T> DataResult<Pair<MusicEntry, T>> decode(DynamicOps<T> ops, T input) {
-			return JukeboxPlayableComponent.CODEC.decode(ops, input).flatMap(
+			return JukeboxPlayable.CODEC.decode(ops, input).flatMap(
 					song -> {
-						DataResult<? extends RegistryEntry<JukeboxSong>> entry = song.getFirst().song().contents().map(
+						DataResult<? extends Holder<JukeboxSong>> entry = song.getFirst().song().contents().map(
 								DataResult::success,
 								k -> {
 									if (ops instanceof RegistryOps<T> registryOps) {
-										var l = registryOps.getEntryLookup(RegistryKeys.JUKEBOX_SONG);
+										var l = registryOps.getter(Registries.JUKEBOX_SONG);
 										if (l.isEmpty()) return DataResult.error(() -> "Cannot find jukebox song registry!");
 										var lookup = l.get();
-										return lookup.getOptional(k).map(
+										return lookup.get(k).map(
 												DataResult::success
-										).orElse(DataResult.error(() -> "Jukebox song with id " + k.getValue() + " did not exist"));
+										).orElse(DataResult.error(() -> "Jukebox song with id " + k.location() + " did not exist"));
 									}
 									return DataResult.error(() -> "Parsing this value requires RegistryOps.");
 								}
@@ -66,8 +65,8 @@ public record MusicEntry(
 		}
 	};
 
-	private static final Map<RegistryKey<SoundEvent>, RegistryEntry<SoundEvent>> cache = new HashMap<>();
-	public static final Codec<RegistryEntry<SoundEvent>> MUSIC_CODEC_WITH_CACHE = Identifier.CODEC.xmap(
+	private static final Map<ResourceKey<SoundEvent>, Holder<SoundEvent>> cache = new HashMap<>();
+	public static final Codec<Holder<SoundEvent>> MUSIC_CODEC_WITH_CACHE = ResourceLocation.CODEC.xmap(
 			MusicEntry::getFromID, MusicEntry::getID
 	);
 
@@ -83,26 +82,26 @@ public record MusicEntry(
 
 	public static final Codec<MusicEntry> EASY_CODEC = Codec.withAlternative(CODEC, DISC_CODEC);
 
-	public static final MapCodec<MusicEntry> EASY_MAP_CODEC = ExtraCodecs.withAlternative(MAP_CODEC, DISC_CODEC.fieldOf("song"));
+	public static final MapCodec<MusicEntry> EASY_MAP_CODEC = METACodecs.withAlternative(MAP_CODEC, DISC_CODEC.fieldOf("song"));
 
-	public static RegistryEntry<SoundEvent> getFromID(Identifier id) {
-		return getFromID(RegistryKey.of(RegistryKeys.SOUND_EVENT, id));
+	public static Holder<SoundEvent> getFromID(ResourceLocation id) {
+		return getFromID(ResourceKey.create(Registries.SOUND_EVENT, id));
 	}
 
-	public static RegistryEntry<SoundEvent> getFromID(RegistryKey<SoundEvent> key) {
-		return Registries.SOUND_EVENT.getOptional(key).map(
-				e -> (RegistryEntry<SoundEvent>) e
+	public static Holder<SoundEvent> getFromID(ResourceKey<SoundEvent> key) {
+		return BuiltInRegistries.SOUND_EVENT.get(key).map(
+				e -> (Holder<SoundEvent>) e
 		).orElseGet(() -> {
 			if (!cache.containsKey(key)) {
-				var newSound = RegistryEntry.of(SoundEvent.of(key.getValue()));
+				var newSound = Holder.direct(SoundEvent.createVariableRangeEvent(key.location()));
 				cache.put(key, newSound);
 			}
 			return cache.get(key);
 		});
 	}
 
-	public static Identifier getID(RegistryEntry<SoundEvent> entry) {
-		return entry.getKeyOrValue().map(RegistryKey::getValue, SoundEvent::id);
+	public static ResourceLocation getID(Holder<SoundEvent> entry) {
+		return entry.unwrap().map(ResourceKey::location, SoundEvent::location);
 	}
 
 	public Music getMusic(boolean intro) {
@@ -125,16 +124,16 @@ public record MusicEntry(
 		return firstPart + "]";
 	}
 
-	public record Credit(Text text, int displayTime) {
+	public record Credit(Component text, int displayTime) {
 		public static final Codec<Credit> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						TextCodecs.CODEC.fieldOf("text").forGetter(Credit::text),
-						Codecs.POSITIVE_INT.optionalFieldOf("display_time", 1).forGetter(Credit::displayTime)
+						ComponentSerialization.CODEC.fieldOf("text").forGetter(Credit::text),
+						net.minecraft.util.ExtraCodecs.POSITIVE_INT.optionalFieldOf("display_time", 1).forGetter(Credit::displayTime)
 				).apply(instance, Credit::new)
 		);
 
 		public static final Codec<Credit> SIMPLE_CODEC = Codec.withAlternative(
-				CODEC, TextCodecs.CODEC.xmap(text -> new Credit(text, 1), credit -> credit.text)
+				CODEC, ComponentSerialization.CODEC.xmap(text -> new Credit(text, 1), credit -> credit.text)
 		);
 
 		@Override
@@ -144,7 +143,7 @@ public record MusicEntry(
 	}
 
 	public record Music(
-			RegistryEntry<SoundEvent> music, double length, float pitch, boolean forceStop
+			Holder<SoundEvent> music, double length, float pitch, boolean forceStop
 	) {
 		public static final MapCodec<Music> MAP_CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
@@ -159,7 +158,7 @@ public record MusicEntry(
 
 		@Override
 		public @NotNull String toString() {
-			return  "Music[music=" + music.value().id() + ", length=" +
+			return  "Music[music=" + music.value().location() + ", length=" +
 					length + ", pitch=" + pitch + "]";
 		}
 	}

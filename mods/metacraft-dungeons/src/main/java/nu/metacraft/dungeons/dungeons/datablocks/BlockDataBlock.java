@@ -3,19 +3,19 @@ package nu.metacraft.dungeons.dungeons.datablocks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.BlockState;
-import net.minecraft.structure.StructurePiece;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.gen.stateprovider.BlockStateProvider;
-import net.minecraft.world.gen.stateprovider.SimpleBlockStateProvider;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
+import net.minecraft.world.level.levelgen.feature.stateproviders.SimpleStateProvider;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
 
 public class BlockDataBlock extends DataBlock {
 
 	public static final MapCodec<BlockDataBlock> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
 			Codec.withAlternative(
-					BlockStateProvider.TYPE_CODEC,
-					BlockState.CODEC, SimpleBlockStateProvider::of
+					BlockStateProvider.CODEC,
+					BlockState.CODEC, SimpleStateProvider::simple
 			).fieldOf("block").forGetter(b -> b.block)
 		).apply(instance, BlockDataBlock::new)
 	);
@@ -35,6 +35,6 @@ public class BlockDataBlock extends DataBlock {
 
 	@Override
 	public void processDataBlock(BlockPos pos, StructurePiece piece) {
-		parameters.dungeons.setBlockState(pos, block.get(parameters.dungeons.getRandom(), pos));
+		parameters.dungeons.setBlockAndUpdate(pos, block.getState(parameters.dungeons.getRandom(), pos));
 	}
 }

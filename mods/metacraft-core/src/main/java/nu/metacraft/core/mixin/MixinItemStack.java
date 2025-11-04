@@ -2,12 +2,12 @@ package nu.metacraft.core.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.mojang.serialization.Codec;
-import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.core.item.ItemModifiers;
 
 import java.util.Optional;
+import net.minecraft.world.item.ItemStack;
 
 @Mixin(ItemStack.class)
 public class MixinItemStack {
@@ -27,7 +27,7 @@ public class MixinItemStack {
 			method = "<clinit>",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/util/dynamic/Codecs;optional(Lcom/mojang/serialization/Codec;)Lcom/mojang/serialization/Codec;"
+					target = "Lnet/minecraft/util/ExtraCodecs;optionalEmptyMap(Lcom/mojang/serialization/Codec;)Lcom/mojang/serialization/Codec;"
 			)
 	)
 	private static Codec<Optional<ItemStack>> fixCodec2(Codec<Optional<ItemStack>> original) {

@@ -1,71 +1,69 @@
 package nu.metacraft.core.entity.ai.tasks;
 
-import net.minecraft.entity.ai.brain.MemoryModuleState;
-import net.minecraft.entity.ai.brain.MemoryModuleType;
-import net.minecraft.entity.ai.brain.WalkTarget;
-import net.minecraft.entity.ai.brain.task.MultiTickTask;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.effect.StatusEffectUtil;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Unit;
+import net.minecraft.world.effect.MobEffectUtil;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.behavior.Behavior;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.memory.MemoryStatus;
+import net.minecraft.world.entity.ai.memory.WalkTarget;
 import nu.metacraft.core.entity.ai.METAcraftMemoryModules;
 
 import java.util.Map;
 
-public class NeedToBreathe extends MultiTickTask<MobEntity> {
+public class NeedToBreathe extends Behavior<Mob> {
 
 	private final float speed;
 
 	public NeedToBreathe(float speed) {
-		super(Map.of(METAcraftMemoryModules.NEAREST_OXYGEN, MemoryModuleState.VALUE_PRESENT, MemoryModuleType.WALK_TARGET, MemoryModuleState.REGISTERED, METAcraftMemoryModules.RECOVERING_BREATH, MemoryModuleState.REGISTERED));
+		super(Map.of(METAcraftMemoryModules.NEAREST_OXYGEN, MemoryStatus.VALUE_PRESENT, MemoryModuleType.WALK_TARGET, MemoryStatus.REGISTERED, METAcraftMemoryModules.RECOVERING_BREATH, MemoryStatus.REGISTERED));
 		this.speed = speed;
 	}
 
-	private double getActualAir(MobEntity mob) {
-		var attribute = mob.getAttributeInstance(EntityAttributes.OXYGEN_BONUS);
+	private double getActualAir(Mob mob) {
+		var attribute = mob.getAttribute(Attributes.OXYGEN_BONUS);
 		double value = attribute != null ? attribute.getValue() : 0;
 		double airLossProbability = 1.0 / (value + 1.0);
 		if (airLossProbability == 0) {
 			return Double.POSITIVE_INFINITY;
 		} else {
-			return mob.getAir() / airLossProbability;
+			return mob.getAirSupply() / airLossProbability;
 		}
 	}
 
-	private boolean isRelevant(MobEntity entity) {
-		return !entity.canBreatheInWater() && !StatusEffectUtil.hasWaterBreathing(entity);
+	private boolean isRelevant(Mob entity) {
+		return !entity.canBreatheUnderwater() && !MobEffectUtil.hasWaterBreathing(entity);
 	}
 
 
 	@Override
-	protected boolean shouldRun(ServerWorld world, MobEntity entity) {
-		if (entity.isSubmergedInWater() && isRelevant(entity)) {
-			var nearestOxygen = entity.getBrain().getOptionalRegisteredMemory(METAcraftMemoryModules.NEAREST_OXYGEN);
-			if (nearestOxygen.isPresent() && nearestOxygen.get().dimension() == world.getRegistryKey()) {
-				double entitySpeed = entity.getAttributeValue(EntityAttributes.MOVEMENT_SPEED);
-				if (nearestOxygen.get().pos().getSquaredDistance(entity.getEntityPos()) * speed * entitySpeed >= getActualAir(entity)) {
-					return true;
-				}
+	protected boolean checkExtraStartConditions(ServerLevel world, Mob entity) {
+		if (entity.isUnderWater() && isRelevant(entity)) {
+			var nearestOxygen = entity.getBrain().getMemory(METAcraftMemoryModules.NEAREST_OXYGEN);
+			if (nearestOxygen.isPresent() && nearestOxygen.get().dimension() == world.dimension()) {
+				double entitySpeed = entity.getAttributeValue(Attributes.MOVEMENT_SPEED);
+				return nearestOxygen.get().pos().distToCenterSqr(entity.position()) * speed * entitySpeed >= getActualAir(entity);
 			}
 		}
 		return false;
 	}
 
-	private void updateTarget(ServerWorld world, MobEntity entity) {
-		if (!entity.isSubmergedInWater()) {
+	private void updateTarget(ServerLevel world, Mob entity) {
+		if (!entity.isUnderWater()) {
 			return;
 		}
-		var nearestOxygen = entity.getBrain().getOptionalRegisteredMemory(METAcraftMemoryModules.NEAREST_OXYGEN);
-		if (nearestOxygen.isPresent() && nearestOxygen.get().dimension() == world.getRegistryKey()) {
+		var nearestOxygen = entity.getBrain().getMemory(METAcraftMemoryModules.NEAREST_OXYGEN);
+		if (nearestOxygen.isPresent() && nearestOxygen.get().dimension() == world.dimension()) {
 			if (
-					entity.getNavigation().getCurrentPath() != null &&
-					nearestOxygen.get().pos().equals(entity.getNavigation().getCurrentPath().getTarget())
+					entity.getNavigation().getPath() != null &&
+					nearestOxygen.get().pos().equals(entity.getNavigation().getPath().getTarget())
 			) {
 				return;
 			}
 			entity.getNavigation().stop();
-			entity.getBrain().remember(
+			entity.getBrain().setMemory(
 					MemoryModuleType.WALK_TARGET,
 					new WalkTarget(nearestOxygen.get().pos(), speed, 0)
 			);
@@ -73,36 +71,36 @@ public class NeedToBreathe extends MultiTickTask<MobEntity> {
 	}
 
 	@Override
-	protected void run(ServerWorld world, MobEntity entity, long time) {
-		super.run(world, entity, time);
+	protected void start(ServerLevel world, Mob entity, long time) {
+		super.start(world, entity, time);
 		updateTarget(world, entity);
-		entity.getBrain().remember(METAcraftMemoryModules.RECOVERING_BREATH, Unit.INSTANCE);
+		entity.getBrain().setMemory(METAcraftMemoryModules.RECOVERING_BREATH, Unit.INSTANCE);
 	}
 
 	@Override
-	protected void keepRunning(ServerWorld world, MobEntity entity, long time) {
-		super.keepRunning(world, entity, time);
+	protected void tick(ServerLevel world, Mob entity, long time) {
+		super.tick(world, entity, time);
 		updateTarget(world, entity);
 	}
 
 	@Override
-	protected boolean shouldKeepRunning(ServerWorld world, MobEntity entity, long time) {
-		if (isRelevant(entity) && entity.getAir() < entity.getMaxAir()) {
-			return entity.getBrain().getOptionalRegisteredMemory(METAcraftMemoryModules.NEAREST_OXYGEN).isPresent();
+	protected boolean canStillUse(ServerLevel world, Mob entity, long time) {
+		if (isRelevant(entity) && entity.getAirSupply() < entity.getMaxAirSupply()) {
+			return entity.getBrain().getMemory(METAcraftMemoryModules.NEAREST_OXYGEN).isPresent();
 		}
-		return super.shouldKeepRunning(world, entity, time);
+		return super.canStillUse(world, entity, time);
 	}
 
 	@Override
-	protected void finishRunning(ServerWorld world, MobEntity entity, long time) {
-		super.finishRunning(world, entity, time);
-		entity.getBrain().forget(MemoryModuleType.WALK_TARGET);
-		entity.getBrain().forget(METAcraftMemoryModules.RECOVERING_BREATH);
+	protected void stop(ServerLevel world, Mob entity, long time) {
+		super.stop(world, entity, time);
+		entity.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
+		entity.getBrain().eraseMemory(METAcraftMemoryModules.RECOVERING_BREATH);
 		entity.getNavigation().stop();
 	}
 
 	@Override
-	protected boolean isTimeLimitExceeded(long time) {
+	protected boolean timedOut(long time) {
 		return false;
 	}
 }

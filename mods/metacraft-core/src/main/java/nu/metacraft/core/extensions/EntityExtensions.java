@@ -1,10 +1,10 @@
 package nu.metacraft.core.extensions;
 
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
 import nu.metacraft.core.music.ManageableServerBossBar;
 
 import java.util.Optional;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public interface EntityExtensions {
 
@@ -16,9 +16,9 @@ public interface EntityExtensions {
 
 	void metacraft_lib$updateBossBarReplaced();
 
-	void metacraft_lib$loadBossBar(ReadView nbt);
+	void metacraft_lib$loadBossBar(ValueInput nbt);
 
-	void metacraft_lib$saveBossBar(WriteView nbt);
+	void metacraft_lib$saveBossBar(ValueOutput nbt);
 
 
 	void metacraft$setLastMovedByMovingBlockTick(long tick);

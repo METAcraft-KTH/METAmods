@@ -1,11 +1,11 @@
 package nu.metacraft.resource_packs;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.WorldSavePath;
+import net.minecraft.world.level.storage.LevelResource;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 
@@ -27,7 +27,7 @@ public class PlayerPackDataManager {
 	private final Map<UUID, Lock> locks = new ConcurrentHashMap<>();
 
 	public PlayerPackDataManager(MinecraftServer server) {
-		this.directory = server.getSavePath(WorldSavePath.ROOT).resolve("metacraft-resource-packs");
+		this.directory = server.getWorldPath(LevelResource.ROOT).resolve("metacraft-resource-packs");
 		directory.toFile().mkdirs();
 	}
 
@@ -75,7 +75,7 @@ public class PlayerPackDataManager {
 				);
 				if (nbt.isPresent()) {
 					try {
-						NbtIo.write((NbtCompound) nbt.get(), path);
+						NbtIo.write((CompoundTag) nbt.get(), path);
 					} catch (IOException e) {
 						ResourcePacks.LOGGER.error(e.getMessage(), e);
 					}
@@ -133,7 +133,7 @@ public class PlayerPackDataManager {
 	}
 
 	public static PlayerPackDataManager getInstance(MinecraftServer server) {
-		return ((PlayerManagerExtension) server.getPlayerManager()).metacraft_resource_packs$getPlayerPackDataManager();
+		return ((PlayerManagerExtension) server.getPlayerList()).metacraft_resource_packs$getPlayerPackDataManager();
 	}
 
 	public record PlayerPackEntry(PlayerPackData data, boolean shouldSave) {

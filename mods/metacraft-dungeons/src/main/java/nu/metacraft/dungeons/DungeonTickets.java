@@ -1,15 +1,15 @@
 package nu.metacraft.dungeons;
 
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.server.world.ChunkTicketType;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.server.level.TicketType;
 
 public class DungeonTickets {
 
-	public static final ChunkTicketType DUNGEON_ENTRANCE = register(
+	public static final TicketType DUNGEON_ENTRANCE = register(
 			"dungeon_entrance",
-			new ChunkTicketType(
-					0, ChunkTicketType.FOR_LOADING
+			new TicketType(
+					0, TicketType.FLAG_LOADING
 			)
 	);
 
@@ -17,8 +17,8 @@ public class DungeonTickets {
 
 	}
 
-	private static ChunkTicketType register(String name, ChunkTicketType type) {
-		return Registry.register(Registries.TICKET_TYPE, METAcraftDungeons.getID(name), type);
+	private static TicketType register(String name, TicketType type) {
+		return Registry.register(BuiltInRegistries.TICKET_TYPE, METAcraftDungeons.getID(name), type);
 	}
 
 }

@@ -3,14 +3,6 @@ package nu.metacraft.cutscenes.transitions.entity;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.core.entity_ref.EntityRef;
 import nu.metacraft.core.registry.EntityRefRegistry;
@@ -23,6 +15,14 @@ import nu.metacraft.cutscenes.transitions.config.TransitionConfigType;
 import nu.metacraft.cutscenes.util.IntervalMap;
 
 import java.util.Optional;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 
 public abstract class DropItem extends InstantTransition {
 
@@ -32,16 +32,16 @@ public abstract class DropItem extends InstantTransition {
 		this.settings = settings;
 	}
 
-	public static void setThrowVelocity(Entity thrower, float yawOffset, float pitchOffset, ItemEntity itemEntity, Random random) {
-		float yaw = thrower.getYaw() + yawOffset;
-		float pitch = thrower.getPitch() + pitchOffset;
-		float g = MathHelper.sin(pitch * ((float)Math.PI / 180F));
-		float h = MathHelper.cos(pitch * ((float)Math.PI / 180F));
-		float i = MathHelper.sin(yaw * ((float)Math.PI / 180F));
-		float j = MathHelper.cos(yaw * ((float)Math.PI / 180F));
+	public static void setThrowVelocity(Entity thrower, float yawOffset, float pitchOffset, ItemEntity itemEntity, RandomSource random) {
+		float yaw = thrower.getYRot() + yawOffset;
+		float pitch = thrower.getXRot() + pitchOffset;
+		float g = Mth.sin(pitch * ((float)Math.PI / 180F));
+		float h = Mth.cos(pitch * ((float)Math.PI / 180F));
+		float i = Mth.sin(yaw * ((float)Math.PI / 180F));
+		float j = Mth.cos(yaw * ((float)Math.PI / 180F));
 		float k = random.nextFloat() * ((float)Math.PI * 2F);
 		float l = 0.02F * random.nextFloat();
-		itemEntity.setVelocity(
+		itemEntity.setDeltaMovement(
 				(double)(-i * h * 0.3F) + Math.cos(k) * (double)l,
 				-g * 0.3F + 0.1F + (random.nextFloat() - random.nextFloat()) * 0.1F,
 				(double)(j * h * 0.3F) + Math.sin(k) * (double)l
@@ -53,15 +53,15 @@ public abstract class DropItem extends InstantTransition {
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		settings.entity.get(cutscene.getRefContext()).forEach(entity -> {
-			Vec3d pos = settings.offset.map(offset -> new Vec3d(
+			Vec3 pos = settings.offset.map(offset -> new Vec3(
 					entity.getX() + offset.x, entity.getY() + offset.y, entity.getZ() + offset.z
-			)).orElse(new Vec3d(entity.getX(), entity.getEyeY() - 0.3, entity.getZ()));
+			)).orElse(new Vec3(entity.getX(), entity.getEyeY() - 0.3, entity.getZ()));
 			var stack = getItemToDrop(cutscene, interval, entity);
 			if (!stack.isEmpty()) {
-				var item = new ItemEntity(entity.getEntityWorld(), pos.x, pos.y, pos.z, stack);
+				var item = new ItemEntity(entity.level(), pos.x, pos.y, pos.z, stack);
 				item.setThrower(entity);
-				item.setPickupDelay(40);
-				setThrowVelocity(entity, settings.yawOffset, settings.pitchOffset, item, settings.randomSeed.map(Random::create).orElse(entity.getRandom()));
+				item.setPickUpDelay(40);
+				setThrowVelocity(entity, settings.yawOffset, settings.pitchOffset, item, settings.randomSeed.map(RandomSource::create).orElse(entity.getRandom()));
 				cutscene.getCutsceneWorld().addEntity(settings.newID, item);
 			}
 		});
@@ -70,7 +70,7 @@ public abstract class DropItem extends InstantTransition {
 	public record GeneralSettings(
 			EntityRef entity,
 			String newID,
-			Optional<Vec3d> offset,
+			Optional<Vec3> offset,
 			float yawOffset,
 			float pitchOffset,
 			Optional<Long> randomSeed
@@ -79,7 +79,7 @@ public abstract class DropItem extends InstantTransition {
 				instance -> instance.group(
 						EntityRefRegistry.CODEC.fieldOf("entity").forGetter(t -> t.entity),
 						Codec.STRING.fieldOf("new_id").forGetter(t -> t.newID),
-						Vec3d.CODEC.optionalFieldOf("offset").forGetter(t -> t.offset),
+						Vec3.CODEC.optionalFieldOf("offset").forGetter(t -> t.offset),
 						Codec.FLOAT.optionalFieldOf("yaw_offset", 0.0f).forGetter(t -> t.yawOffset),
 						Codec.FLOAT.optionalFieldOf("pitch_offset", 0.0f).forGetter(t -> t.pitchOffset),
 						Codec.LONG.optionalFieldOf("random_seed").forGetter(t -> t.randomSeed)
@@ -153,8 +153,8 @@ public abstract class DropItem extends InstantTransition {
 				IntervalMap.Interval<Transition> interval,
 				Entity entity
 		) {
-			if (entity instanceof MobEntity mob) {
-				var stack = mob.getEquippedStack(slot);
+			if (entity instanceof Mob mob) {
+				var stack = mob.getItemBySlot(slot);
 				if (removeFromSlot) {
 					return stack.split(amountToDrop);
 				} else {

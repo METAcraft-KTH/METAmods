@@ -1,9 +1,6 @@
 package nu.metacraft.lib.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.item.ItemStack;
-import net.minecraft.recipe.ShapedRecipe;
-import net.minecraft.recipe.input.CraftingRecipeInput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,6 +10,9 @@ import nu.metacraft.lib.extensions.RecipeRemainderExtension;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.ShapedRecipe;
 
 @Mixin(ShapedRecipe.class)
 public abstract class MixinShapedRecipe implements RecipeComponentCarryoverExtension, RecipeRemainderExtension {
@@ -34,11 +34,11 @@ public abstract class MixinShapedRecipe implements RecipeComponentCarryoverExten
 	}
 
 	@ModifyReturnValue(
-			method = "craft(Lnet/minecraft/recipe/input/CraftingRecipeInput;Lnet/minecraft/registry/RegistryWrapper$WrapperLookup;)Lnet/minecraft/item/ItemStack;",
+			method = "assemble(Lnet/minecraft/world/item/crafting/CraftingInput;Lnet/minecraft/core/HolderLookup$Provider;)Lnet/minecraft/world/item/ItemStack;",
 			at = @At("RETURN")
 	)
-	public ItemStack onCraft(ItemStack original, CraftingRecipeInput recipeInputInventory) {
-		metacraft_lib$onCraft(original, recipeInputInventory != null ? recipeInputInventory.getStacks() : List.of());
+	public ItemStack onCraft(ItemStack original, CraftingInput recipeInputInventory) {
+		metacraft_lib$onCraft(original, recipeInputInventory != null ? recipeInputInventory.items() : List.of());
 		return original;
 	}
 

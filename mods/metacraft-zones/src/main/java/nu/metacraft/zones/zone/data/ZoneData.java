@@ -1,8 +1,8 @@
 package nu.metacraft.zones.zone.data;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.text.Text;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.chat.Component;
 import nu.metacraft.zones.zone.Zone;
 
 public abstract class ZoneData {
@@ -13,7 +13,7 @@ public abstract class ZoneData {
 		this.zone = zone;
 	}
 
-	public static final Codec<ZoneData> REGISTRY_CODEC = ZoneDataRegistry.REGISTRY.getCodec().dispatch(
+	public static final Codec<ZoneData> REGISTRY_CODEC = ZoneDataRegistry.REGISTRY.byNameCodec().dispatch(
 			ZoneData::getType, ZoneDataType::codec
 	);
 
@@ -27,11 +27,11 @@ public abstract class ZoneData {
 
 	public abstract ZoneDataType<? extends ZoneData> getType();
 
-	protected Text toText() {
-		return Text.literal(this.toString());
+	protected Component toText() {
+		return Component.literal(this.toString());
 	}
 
-	public Text toText(RegistryWrapper.WrapperLookup lookup) {
+	public Component toText(HolderLookup.Provider lookup) {
 		return toText();
 	}
 

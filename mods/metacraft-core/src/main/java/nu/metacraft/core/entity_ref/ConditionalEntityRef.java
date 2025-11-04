@@ -3,31 +3,31 @@ package nu.metacraft.core.entity_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.loot.condition.LootCondition;
-import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.loot.context.LootContextTypes;
-import net.minecraft.loot.context.LootWorldContext;
 import nu.metacraft.core.registry.EntityRefRegistry;
 import nu.metacraft.core.util.RefContext;
 
 import java.util.Optional;
 import java.util.stream.Stream;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
 public class ConditionalEntityRef implements EntityRef {
 
 	public static final MapCodec<ConditionalEntityRef> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					LootCondition.CODEC.fieldOf("condition").forGetter(t -> t.condition),
+					LootItemCondition.DIRECT_CODEC.fieldOf("condition").forGetter(t -> t.condition),
 					Codec.lazyInitialized(() -> EntityRefRegistry.CODEC).fieldOf("entity").forGetter(t -> t.ref)
 			).apply(instance, ConditionalEntityRef::new)
 	);
 
-	private final LootCondition condition;
+	private final LootItemCondition condition;
 	private final EntityRef ref;
 
-	public ConditionalEntityRef(LootCondition condition, EntityRef ref) {
+	public ConditionalEntityRef(LootItemCondition condition, EntityRef ref) {
 		this.condition = condition;
 		this.ref = ref;
 	}
@@ -36,14 +36,14 @@ public class ConditionalEntityRef implements EntityRef {
 	public Stream<? extends Entity> get(RefContext ctx) {
 		return ref.get(ctx).filter(
 				e -> {
-					LootWorldContext lootWorldContext = new LootWorldContext.Builder(ctx.getWorld())
-							.add(LootContextParameters.THIS_ENTITY, e)
-							.add(LootContextParameters.ORIGIN, e.getEntityPos())
-							.build(LootContextTypes.SELECTOR);
+					LootParams lootWorldContext = new LootParams.Builder(ctx.world())
+							.withParameter(LootContextParams.THIS_ENTITY, e)
+							.withParameter(LootContextParams.ORIGIN, e.position())
+							.create(LootContextParamSets.SELECTOR);
 					return condition.test(
 							new LootContext.Builder(lootWorldContext)
-									.random(ctx.getRandom())
-									.build(Optional.empty())
+									.withOptionalRandomSource(ctx.random())
+									.create(Optional.empty())
 					);
 				}
 		);

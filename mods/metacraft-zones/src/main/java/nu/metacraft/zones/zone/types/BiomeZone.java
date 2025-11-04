@@ -9,30 +9,30 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.command.argument.RegistryPredicateArgumentType;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryElementCodec;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.ResourceOrTagKeyArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.RegistryFileCodec;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.biome.Biome;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import nu.metacraft.zones.util.ZoneCommandUtils;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.Zone;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
-import static net.minecraft.server.command.CommandManager.argument;
+import static net.minecraft.commands.Commands.argument;
 
 public class BiomeZone extends ZoneType {
 
-	private static final Codec<Either<RegistryEntry<Biome>, TagKey<Biome>>> BIOME_CODEC = Codec.either(
-			RegistryElementCodec.of(RegistryKeys.BIOME, Biome.CODEC, false), TagKey.codec(RegistryKeys.BIOME)
+	private static final Codec<Either<Holder<Biome>, TagKey<Biome>>> BIOME_CODEC = Codec.either(
+			RegistryFileCodec.create(Registries.BIOME, Biome.DIRECT_CODEC, false), TagKey.hashedCodec(Registries.BIOME)
 	); //For some reason, the vanilla biome registry entry codec allows inline definitions, despite the fact that this breaks the game...
 
-	protected Either<RegistryEntry<Biome>, TagKey<Biome>> biome;
+	protected Either<Holder<Biome>, TagKey<Biome>> biome;
 	protected boolean alwaysCheckSourceDim;
 
 	public static final MapCodec<BiomeZone> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -41,13 +41,13 @@ public class BiomeZone extends ZoneType {
 	).apply(instance, BiomeZone::new));
 
 
-	private static final DynamicCommandExceptionType BIOME_FAIL = new DynamicCommandExceptionType(id -> Text.literal(id + " is not a valid biome or tag!"));
+	private static final DynamicCommandExceptionType BIOME_FAIL = new DynamicCommandExceptionType(id -> Component.literal(id + " is not a valid biome or tag!"));
 
-	public static ArgumentBuilder<ServerCommandSource, ?> createCommand(
-			ArgumentBuilder<ServerCommandSource, ?> builder, ZoneManagementCommand.ZoneAdder addZone
+	public static ArgumentBuilder<CommandSourceStack, ?> createCommand(
+			ArgumentBuilder<CommandSourceStack, ?> builder, ZoneManagementCommand.ZoneAdder addZone
 	) {
 		return builder.then(
-				argument("biome", RegistryPredicateArgumentType.registryPredicate(RegistryKeys.BIOME)).executes(ctx -> {
+				argument("biome", ResourceOrTagKeyArgument.resourceOrTagKey(Registries.BIOME)).executes(ctx -> {
 					return runCommand(ctx, false, addZone);
 				}).then(
 					argument("alwaysCheckSourceDim", BoolArgumentType.bool()).executes(ctx -> {
@@ -57,19 +57,19 @@ public class BiomeZone extends ZoneType {
 		);
 	}
 
-	private static int runCommand(CommandContext<ServerCommandSource> ctx, boolean alwaysCheckSourceDim, ZoneManagementCommand.ZoneAdder addZone) throws CommandSyntaxException {
-		var biome = RegistryPredicateArgumentType.getPredicate(ctx, "biome", RegistryKeys.BIOME, BIOME_FAIL);
+	private static int runCommand(CommandContext<CommandSourceStack> ctx, boolean alwaysCheckSourceDim, ZoneManagementCommand.ZoneAdder addZone) throws CommandSyntaxException {
+		var biome = ResourceOrTagKeyArgument.getResourceOrTagKey(ctx, "biome", Registries.BIOME, BIOME_FAIL);
 		MutableBoolean error = new MutableBoolean(false);
-		Either<RegistryEntry<Biome>, TagKey<Biome>> mapped = biome.getKey().mapLeft(
-				key -> ctx.getSource().getServer().getRegistryManager().getOrThrow(RegistryKeys.BIOME)
-						.getOptional(key).orElseGet(() -> {
+		Either<Holder<Biome>, TagKey<Biome>> mapped = biome.unwrap().mapLeft(
+				key -> ctx.getSource().getServer().registryAccess().lookupOrThrow(Registries.BIOME)
+						.get(key).orElseGet(() -> {
 							error.setTrue();
 							return null;
 						})
 		);
 		if (error.booleanValue()) {
 			throw ZoneCommandUtils.OTHER_ERROR.create(
-					biome.asString() + " is not a valid biome!"
+					biome.asPrintable() + " is not a valid biome!"
 			);
 		}
 		return addZone.add(() -> new BiomeZone(
@@ -78,7 +78,7 @@ public class BiomeZone extends ZoneType {
 		), ctx);
 	}
 
-	public BiomeZone(Either<RegistryEntry<Biome>, TagKey<Biome>> biome, boolean alwaysCheckSourceDim) {
+	public BiomeZone(Either<Holder<Biome>, TagKey<Biome>> biome, boolean alwaysCheckSourceDim) {
 		this.biome = biome;
 		this.alwaysCheckSourceDim = alwaysCheckSourceDim;
 	}
@@ -87,15 +87,15 @@ public class BiomeZone extends ZoneType {
 	public boolean contains(BlockPos pos) {
 		var actualBiome = getZoneRef().getWorld().getBiome(pos);
 		return biome.map(
-				biome -> actualBiome.getKeyOrValue().equals(biome.getKeyOrValue()),
-				actualBiome::isIn
+				biome -> actualBiome.unwrap().equals(biome.unwrap()),
+				actualBiome::is
 		);
 	}
 
 	@Override
 	public double getSize() {
 		double width = getZoneRef().getWorld().getWorldBorder().getSize();
-		int biomeCount = getZoneRef().getWorld().getRegistryManager().getOrThrow(RegistryKeys.BIOME).size();
+		int biomeCount = getZoneRef().getWorld().registryAccess().lookupOrThrow(Registries.BIOME).size();
 		return width * width * getZoneRef().getWorld().getHeight() / (biomeCount * biomeCount * biomeCount);
 	}
 
@@ -125,9 +125,9 @@ public class BiomeZone extends ZoneType {
 
 	@Override
 	public String toString() {
-		return "Biome[" + biome.map(entry -> entry.getKeyOrValue().map(
-				key -> key.getValue().toString(),
+		return "Biome[" + biome.map(entry -> entry.unwrap().map(
+				key -> key.location().toString(),
 				Object::toString
-		), tag -> tag.id().toString()) + "]";
+		), tag -> tag.location().toString()) + "]";
 	}
 }

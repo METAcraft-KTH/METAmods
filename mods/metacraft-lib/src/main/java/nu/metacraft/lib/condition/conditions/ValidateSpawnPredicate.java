@@ -2,66 +2,66 @@ package nu.metacraft.lib.condition.conditions;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.SpawnRestriction;
-import net.minecraft.loot.LootTableReporter;
-import net.minecraft.loot.condition.LootCondition;
-import net.minecraft.loot.condition.LootConditionType;
-import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.util.context.ContextParameter;
-import net.minecraft.util.math.BlockPos;
 import nu.metacraft.lib.condition.METAcraftConditions;
 import nu.metacraft.lib.condition.METAcraftContextParameters;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 
 import java.util.Optional;
 import java.util.Set;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.context.ContextKey;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.SpawnPlacements;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.ValidationContext;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 
-public class ValidateSpawnPredicate implements LootCondition {
+public class ValidateSpawnPredicate implements LootItemCondition {
 
 	public static final MapCodec<ValidateSpawnPredicate> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					ExtraCodecs.SPAWN_REASON_CODEC.optionalFieldOf("spawn_reason_override").forGetter(a -> a.spawnReasonOverride)
+					METACodecs.SPAWN_REASON_CODEC.optionalFieldOf("spawn_reason_override").forGetter(a -> a.spawnReasonOverride)
 			).apply(instance, ValidateSpawnPredicate::new)
 	);
 
-	private final Optional<SpawnReason> spawnReasonOverride;
+	private final Optional<EntitySpawnReason> spawnReasonOverride;
 
-	public ValidateSpawnPredicate(Optional<SpawnReason> spawnReasonOverride) {
+	public ValidateSpawnPredicate(Optional<EntitySpawnReason> spawnReasonOverride) {
 		this.spawnReasonOverride = spawnReasonOverride;
 	}
 
 	@Override
-	public LootConditionType getType() {
+	public LootItemConditionType getType() {
 		return METAcraftConditions.SPAWN_PREDICATE;
 	}
 
 	@Override
 	public boolean test(LootContext lootContext) {
-		var pos = lootContext.get(LootContextParameters.ORIGIN);
+		var pos = lootContext.getOptionalParameter(LootContextParams.ORIGIN);
 		if (pos == null) return false;
-		var spawnReason = lootContext.get(METAcraftContextParameters.SPAWN_REASON);
+		var spawnReason = lootContext.getOptionalParameter(METAcraftContextParameters.SPAWN_REASON);
 		if (spawnReason == null && spawnReasonOverride.isEmpty()) {
 			return false;
 		}
 		return METAcraftContextParameters.getEntityType(lootContext).map(
-			entityType -> SpawnRestriction.canSpawn(
-					entityType, lootContext.getWorld(), spawnReasonOverride.orElse(spawnReason),
-					BlockPos.ofFloored(pos),
+			entityType -> SpawnPlacements.checkSpawnRules(
+					entityType, lootContext.getLevel(), spawnReasonOverride.orElse(spawnReason),
+					BlockPos.containing(pos),
 					lootContext.getRandom()
 			)
 		).orElse(false);
 	}
 
 	@Override
-	public void validate(LootTableReporter reporter) {
-		LootCondition.super.validate(reporter);
+	public void validate(ValidationContext reporter) {
+		LootItemCondition.super.validate(reporter);
 		METAcraftContextParameters.validateEntityType(reporter);
 	}
 
 	@Override
-	public Set<ContextParameter<?>> getAllowedParameters() {
-		return spawnReasonOverride.isPresent() ? Set.of(LootContextParameters.ORIGIN) : Set.of(LootContextParameters.ORIGIN, METAcraftContextParameters.SPAWN_REASON);
+	public Set<ContextKey<?>> getReferencedContextParams() {
+		return spawnReasonOverride.isPresent() ? Set.of(LootContextParams.ORIGIN) : Set.of(LootContextParams.ORIGIN, METAcraftContextParameters.SPAWN_REASON);
 	}
 }

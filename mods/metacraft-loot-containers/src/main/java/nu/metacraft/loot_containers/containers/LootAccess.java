@@ -2,121 +2,121 @@ package nu.metacraft.loot_containers.containers;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import net.minecraft.advancement.criterion.Criteria;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.loot.LootTable;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.loot.context.LootContextTypes;
-import net.minecraft.loot.context.LootWorldContext;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.loot_containers.mixin.AccessorLootTable;
 import nu.metacraft.loot_containers.util.EntityOrBlockEntity;
 
 import java.util.Optional;
 
 public interface LootAccess {
-	Vec3d getPos();
+	Vec3 getPos();
 
-	ServerWorld getWorld();
+	ServerLevel getWorld();
 
 	default MinecraftServer getServer() {
 		return getWorld().getServer();
 	}
 
-	Inventory getInventory();
+	Container getInventory();
 
 	EntityOrBlockEntity getEntity();
 
 	default IntList getPossibleSlots(ItemStack stack) {
-		IntList possibleSlots = new IntArrayList(getInventory().size());
-		for (int i = 0; i < getInventory().size(); i++) {
-			var stackInSlot = getInventory().getStack(i);
-			if (stackInSlot.isEmpty() || (ItemStack.areItemsAndComponentsEqual(stack, stackInSlot) && stackInSlot.getCount() < stackInSlot.getMaxCount())) {
+		IntList possibleSlots = new IntArrayList(getInventory().getContainerSize());
+		for (int i = 0; i < getInventory().getContainerSize(); i++) {
+			var stackInSlot = getInventory().getItem(i);
+			if (stackInSlot.isEmpty() || (ItemStack.isSameItemSameComponents(stack, stackInSlot) && stackInSlot.getCount() < stackInSlot.getMaxStackSize())) {
 				possibleSlots.add(i);
 			}
 		}
 		return possibleSlots;
 	}
 
-	default ItemStack insertStack(ItemStack stack, Random random) {
+	default ItemStack insertStack(ItemStack stack, RandomSource random) {
 		if (stack.isEmpty()) return stack;
 		var possibleSlots = getPossibleSlots(stack);
 		if (possibleSlots.isEmpty()) return stack;
 		int slot = possibleSlots.getInt(random.nextInt(possibleSlots.size()));
-		var previousStack = getInventory().getStack(slot);
+		var previousStack = getInventory().getItem(slot);
 		if (previousStack.isEmpty()) {
-			getInventory().setStack(slot, stack);
+			getInventory().setItem(slot, stack);
 			return ItemStack.EMPTY;
 		} else {
 			boolean insertedEntireStack = true;
-			previousStack.increment(stack.getCount());
-			if (previousStack.getCount() > previousStack.getMaxCount()) {
-				int overFlowAmount = previousStack.getCount() - previousStack.getMaxCount();
-				previousStack.setCount(previousStack.getMaxCount());
+			previousStack.grow(stack.getCount());
+			if (previousStack.getCount() > previousStack.getMaxStackSize()) {
+				int overFlowAmount = previousStack.getCount() - previousStack.getMaxStackSize();
+				previousStack.setCount(previousStack.getMaxStackSize());
 				stack.setCount(overFlowAmount);
 				insertedEntireStack = false;
 			}
-			getInventory().markDirty();
+			getInventory().setChanged();
 			return insertedEntireStack ? ItemStack.EMPTY : stack;
 		}
 	}
 
 	default void generateLootTable(
-			RegistryKey<LootTable> id, ServerPlayerEntity player
+			ResourceKey<LootTable> id, ServerPlayer player
 	) {
-		Random random = getWorld().getRandom();
+		RandomSource random = getWorld().getRandom();
 
-		LootTable lootTable = getServer().getReloadableRegistries().getLootTable(id);
+		LootTable lootTable = getServer().reloadableRegistries().getLootTable(id);
 		if (player != null) {
-			Criteria.PLAYER_GENERATES_CONTAINER_LOOT.trigger(player, id);
+			CriteriaTriggers.GENERATE_LOOT.trigger(player, id);
 		}
-		LootWorldContext.Builder builder = new LootWorldContext.Builder(getWorld()).add(LootContextParameters.ORIGIN, getPos());
+		LootParams.Builder builder = new LootParams.Builder(getWorld()).withParameter(LootContextParams.ORIGIN, getPos());
 		if (player != null) {
-			builder.luck(player.getLuck()).add(LootContextParameters.THIS_ENTITY, player);
+			builder.withLuck(player.getLuck()).withParameter(LootContextParams.THIS_ENTITY, player);
 		}
 
-		var params = builder.build(LootContextTypes.CHEST);
+		var params = builder.create(LootContextParamSets.CHEST);
 
-		var freeSlots = ((AccessorLootTable) lootTable).callGetFreeSlots(getInventory(), random);
-		var loot = lootTable.generateLoot(params);
-		((AccessorLootTable) lootTable).callSpreadStacks(loot, freeSlots.size(), random);
+		var freeSlots = ((AccessorLootTable) lootTable).callGetAvailableSlots(getInventory(), random);
+		var loot = lootTable.getRandomItems(params);
+		((AccessorLootTable) lootTable).callShuffleAndSplitItems(loot, freeSlots.size(), random);
 
 		for (var stack : loot) {
 			insertStack(stack, random);
 		}
 	}
 
-	static <T extends Entity & Inventory> LootAccess entity(T entity) {
+	static <T extends Entity & Container> LootAccess entity(T entity) {
 		return new EntityLootAccess(entity);
 	}
 
-	static <T extends BlockEntity & Inventory> LootAccess block(T block) {
+	static <T extends BlockEntity & Container> LootAccess block(T block) {
 		return new BlockEntityLootAccess(block);
 	}
 
-	static Optional<Inventory> getInventoryFromEntity(Entity entity) {
-		if (entity instanceof Inventory) {
-			return Optional.of((Inventory) entity);
+	static Optional<Container> getInventoryFromEntity(Entity entity) {
+		if (entity instanceof Container c) {
+			return Optional.of(c);
 		}
 		return Optional.empty();
 	}
 
-	static Optional<Inventory> getInventoryFromBlockEntity(BlockEntity blockEntity) {
-		if (blockEntity instanceof Inventory) {
-			return Optional.of((Inventory) blockEntity);
+	static Optional<Container> getInventoryFromBlockEntity(BlockEntity blockEntity) {
+		if (blockEntity instanceof Container c) {
+			return Optional.of(c);
 		}
 		return Optional.empty();
 	}
 
-	static Optional<Inventory> getInventory(EntityOrBlockEntity entity) {
+	static Optional<Container> getInventory(EntityOrBlockEntity entity) {
 		return entity.map(LootAccess::getInventoryFromEntity, LootAccess::getInventoryFromBlockEntity);
 	}
 
@@ -129,17 +129,17 @@ public interface LootAccess {
 		}
 
 		@Override
-		public Vec3d getPos() {
-			return entity.getEntityPos();
+		public Vec3 getPos() {
+			return entity.position();
 		}
 
 		@Override
-		public ServerWorld getWorld() {
-			return (ServerWorld) entity.getEntityWorld();
+		public ServerLevel getWorld() {
+			return (ServerLevel) entity.level();
 		}
 
 		@Override
-		public Inventory getInventory() {
+		public Container getInventory() {
 			return getInventoryFromEntity(entity).orElse(null);
 		}
 
@@ -158,17 +158,17 @@ public interface LootAccess {
 		}
 
 		@Override
-		public Vec3d getPos() {
-			return Vec3d.ofCenter(blockEntity.getPos());
+		public Vec3 getPos() {
+			return Vec3.atCenterOf(blockEntity.getBlockPos());
 		}
 
 		@Override
-		public ServerWorld getWorld() {
-			return (ServerWorld) blockEntity.getWorld();
+		public ServerLevel getWorld() {
+			return (ServerLevel) blockEntity.getLevel();
 		}
 
 		@Override
-		public Inventory getInventory() {
+		public Container getInventory() {
 			return getInventoryFromBlockEntity(blockEntity).orElse(null);
 		}
 

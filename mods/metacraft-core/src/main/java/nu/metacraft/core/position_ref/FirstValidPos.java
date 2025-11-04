@@ -3,12 +3,12 @@ package nu.metacraft.core.position_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.Vec3d;
 import nu.metacraft.core.registry.PositionRefRegistry;
 import nu.metacraft.core.util.RefContext;
 
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.world.phys.Vec3;
 
 public class FirstValidPos implements PositionRef {
 
@@ -25,7 +25,7 @@ public class FirstValidPos implements PositionRef {
 	}
 
 	@Override
-	public Optional<Vec3d> get(RefContext ctx) {
+	public Optional<Vec3> get(RefContext ctx) {
 		return positions.stream().map(
 				pos -> pos.get(ctx)
 		).filter(Optional::isPresent).map(Optional::get).findFirst();

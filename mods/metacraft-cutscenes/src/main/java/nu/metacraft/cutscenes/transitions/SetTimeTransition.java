@@ -25,7 +25,7 @@ public class SetTimeTransition extends InstantTransition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		cutscene.getCutsceneWorld().setTimeOfDay(time);
+		cutscene.getCutsceneWorld().setDayTime(time);
 		cutscene.getCutsceneWorld().syncTime();
 	}
 

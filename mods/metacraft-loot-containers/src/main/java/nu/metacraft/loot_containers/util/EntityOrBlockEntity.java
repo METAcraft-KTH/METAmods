@@ -1,11 +1,10 @@
 package nu.metacraft.loot_containers.util;
 
 import com.mojang.datafixers.util.Either;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.Entity;
-
 import java.util.function.Consumer;
 import java.util.function.Function;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class EntityOrBlockEntity {
 

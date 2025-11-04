@@ -1,22 +1,22 @@
 package nu.metacraft.loot_containers.mixin;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.loot.LootTable;
-import net.minecraft.util.math.random.Random;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.util.List;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.Container;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.LootTable;
 
 @Mixin(LootTable.class)
 public interface AccessorLootTable {
 
 	@Invoker
-	void callSpreadStacks(ObjectArrayList<ItemStack> drops, int freeSlots, Random random);
+	void callShuffleAndSplitItems(ObjectArrayList<ItemStack> drops, int freeSlots, RandomSource random);
 
 	@Invoker
-	List<Integer> callGetFreeSlots(Inventory inventory, Random random);
+	List<Integer> callGetAvailableSlots(Container inventory, RandomSource random);
 
 }

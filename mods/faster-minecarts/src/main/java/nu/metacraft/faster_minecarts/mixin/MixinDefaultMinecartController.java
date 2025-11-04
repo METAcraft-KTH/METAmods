@@ -6,16 +6,16 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
-import net.minecraft.block.AbstractRailBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.PoweredRailBlock;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.DefaultMinecartController;
-import net.minecraft.entity.vehicle.MinecartController;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.MinecartBehavior;
+import net.minecraft.world.entity.vehicle.OldMinecartBehavior;
+import net.minecraft.world.level.block.BaseRailBlock;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.PoweredRailBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.faster_minecarts.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -23,14 +23,14 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(DefaultMinecartController.class)
-public abstract class MixinDefaultMinecartController extends MinecartController {
+@Mixin(OldMinecartBehavior.class)
+public abstract class MixinDefaultMinecartController extends MinecartBehavior {
 
-	protected MixinDefaultMinecartController(AbstractMinecartEntity minecart) {
+	protected MixinDefaultMinecartController(AbstractMinecart minecart) {
 		super(minecart);
 	}
 
-	@ModifyExpressionValue(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/BlockState;isOf(Lnet/minecraft/block/Block;)Z"))
+	@ModifyExpressionValue(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;is(Lnet/minecraft/world/level/block/Block;)Z"))
 	public boolean activatorRail(
 			boolean isOfBlock, @Share("shouldUseActivatorRail") LocalBooleanRef shouldUseActivatorRail
 	) {
@@ -47,7 +47,7 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 	}
 
 	@ModifyExpressionValue(
-		method = "moveOnRail",
+		method = "moveAlongTrack",
 		at = @At(
 			value = "CONSTANT",
 			args = "doubleValue=0.06"
@@ -63,44 +63,44 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 		method = "tick",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/util/math/MathHelper;atan2(DD)D"
+			target = "Lnet/minecraft/util/Mth;atan2(DD)D"
 		)
 	)
 	public void fixYaw(CallbackInfo ci) {
 		((MinecartExtensions) minecart).fasterMinecarts$setYawFixed();
 	}
 
-	@WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/vehicle/DefaultMinecartController;moveOnRail(Lnet/minecraft/server/world/ServerWorld;)V"))
+	@WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/vehicle/OldMinecartBehavior;moveAlongTrack(Lnet/minecraft/server/level/ServerLevel;)V"))
 	public void moveMinecartsSeveralTimesPerTick(
-			DefaultMinecartController instance, ServerWorld world, Operation<Void> moveOnRail,
+			OldMinecartBehavior instance, ServerLevel world, Operation<Void> moveOnRail,
 			@Share("shouldUseActivatorRail") LocalBooleanRef shouldUseActivatorRail
 	) {
 		shouldUseActivatorRail.set(true);
 		final double maxSpeed = 0.4;
-		if (this.getVelocity().horizontalLength() > maxSpeed && FasterMinecartsHelper.hasSuperSpeed(minecart)) {
+		if (this.getDeltaMovement().horizontalDistance() > maxSpeed && FasterMinecartsHelper.hasSuperSpeed(minecart)) {
 			shouldUseActivatorRail.set(false);
-			double prevVelocity = this.getVelocity().horizontalLength();
+			double prevVelocity = this.getDeltaMovement().horizontalDistance();
 
-			Vec3d currentVelocity = this.getVelocity().normalize().multiply(maxSpeed);
+			Vec3 currentVelocity = this.getDeltaMovement().normalize().scale(maxSpeed);
 
 			double distanceMoved = 0;
 
 			while (prevVelocity > distanceMoved) {
-				Vec3d prevPos = this.getPos();
-				if (currentVelocity.horizontalLength() < 0.01) {
+				Vec3 prevPos = this.position();
+				if (currentVelocity.horizontalDistance() < 0.01) {
 					break;
 				}
-				this.setVelocity(currentVelocity);
-				BlockPos railPos = minecart.getBlockPos();
-				BlockState railState = this.getWorld().getBlockState(railPos);
-				if (!(railState.getBlock() instanceof AbstractRailBlock)) {
-					railPos = railPos.up();
-					railState = this.getWorld().getBlockState(railPos);
-					if (!(railState.getBlock() instanceof AbstractRailBlock)) {
-						railPos = railPos.down(2);
-						railState = this.getWorld().getBlockState(railPos);
-						if (!(railState.getBlock() instanceof AbstractRailBlock)) {
-							this.setVelocity(this.getVelocity().normalize().multiply(prevVelocity));
+				this.setDeltaMovement(currentVelocity);
+				BlockPos railPos = minecart.blockPosition();
+				BlockState railState = this.level().getBlockState(railPos);
+				if (!(railState.getBlock() instanceof BaseRailBlock)) {
+					railPos = railPos.above();
+					railState = this.level().getBlockState(railPos);
+					if (!(railState.getBlock() instanceof BaseRailBlock)) {
+						railPos = railPos.below(2);
+						railState = this.level().getBlockState(railPos);
+						if (!(railState.getBlock() instanceof BaseRailBlock)) {
+							this.setDeltaMovement(this.getDeltaMovement().normalize().scale(prevVelocity));
 							break;
 						}
 					}
@@ -112,21 +112,21 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 				moveOnRail.call(instance, world);
 				((MinecartExtensions) minecart).fasterMinecarts$setCurrentRailPosOverride(null);
 
-				double newSpeed = this.getVelocity().horizontalLength();
+				double newSpeed = this.getDeltaMovement().horizontalDistance();
 				if (newSpeed == 0) {
 					break;
 				}
 
-				double distance = this.getPos().distanceTo(prevPos);
+				double distance = this.position().distanceTo(prevPos);
 
-				double acceleration = (Math.pow(newSpeed, 2) - Math.pow(currentVelocity.horizontalLength(), 2)) / (2 * distance);
+				double acceleration = (Math.pow(newSpeed, 2) - Math.pow(currentVelocity.horizontalDistance(), 2)) / (2 * distance);
 				double time = distance / prevVelocity;
 				prevVelocity += acceleration * time;
 
-				Vec3d v = this.getVelocity();
-				((MinecartExtensions) minecart).fasterMinecarts$applySlowdown(this.getVelocity());
-				prevVelocity *= this.getVelocity().length() / v.length();
-				this.setVelocity(v);
+				Vec3 v = this.getDeltaMovement();
+				((MinecartExtensions) minecart).fasterMinecarts$applySlowdown(this.getDeltaMovement());
+				prevVelocity *= this.getDeltaMovement().length() / v.length();
+				this.setDeltaMovement(v);
 
 
 				if (prevVelocity > this.getMaxSpeed(world)*20) {
@@ -134,17 +134,17 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 				}
 				distanceMoved += distance;
 				if (newSpeed > maxSpeed) {
-					currentVelocity = this.getVelocity().normalize().multiply(Math.min(maxSpeed, Math.abs(prevVelocity - distanceMoved)));
+					currentVelocity = this.getDeltaMovement().normalize().scale(Math.min(maxSpeed, Math.abs(prevVelocity - distanceMoved)));
 				} else {
-					currentVelocity = this.getVelocity().normalize().multiply(newSpeed);
+					currentVelocity = this.getDeltaMovement().normalize().scale(newSpeed);
 				}
 
-				if (railState.isOf(Blocks.ACTIVATOR_RAIL)) {
-					minecart.onActivatorRail(railPos.getX(), railPos.getY(), railPos.getZ(), railState.get(PoweredRailBlock.POWERED));
+				if (railState.is(Blocks.ACTIVATOR_RAIL)) {
+					minecart.activateMinecart(railPos.getX(), railPos.getY(), railPos.getZ(), railState.getValue(PoweredRailBlock.POWERED));
 				}
 			}
 
-			this.setVelocity(this.getVelocity().normalize().multiply(prevVelocity));
+			this.setDeltaMovement(this.getDeltaMovement().normalize().scale(prevVelocity));
 
 		} else {
 			moveOnRail.call(instance, world);
@@ -152,7 +152,7 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 	}
 
 	@ModifyExpressionValue(
-		method = "moveOnRail",
+		method = "moveAlongTrack",
 		at = {
 				@At(
 						value = "CONSTANT",
@@ -182,7 +182,7 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 
 
 	@ModifyExpressionValue(
-			method = "getSpeedRetention",
+			method = "getSlowdownFactor",
 			at = @At(
 					value = "CONSTANT",
 					args = "doubleValue=0.96"
@@ -195,7 +195,7 @@ public abstract class MixinDefaultMinecartController extends MinecartController 
 	}
 
 	@ModifyExpressionValue(
-		method = "getSpeedRetention",
+		method = "getSlowdownFactor",
 		at = @At(
 			value = "CONSTANT",
 				args = "doubleValue=0.997"

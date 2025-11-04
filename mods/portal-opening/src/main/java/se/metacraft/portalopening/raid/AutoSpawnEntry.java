@@ -2,13 +2,13 @@ package se.metacraft.portalopening.raid;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.intprovider.IntProvider;
 import se.metacraft.portalopening.rifts.PortalRift;
 
 import java.util.function.Consumer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.world.entity.Entity;
 
 public record AutoSpawnEntry(MobEntry entry, IntProvider spawnDelay, int maxMobs) {
 
@@ -18,11 +18,11 @@ public record AutoSpawnEntry(MobEntry entry, IntProvider spawnDelay, int maxMobs
 			Codec.INT.fieldOf("maxMobs").forGetter(AutoSpawnEntry::maxMobs)
 	).apply(instance, AutoSpawnEntry::new));
 
-	public void spawnMobsFromNBT(ServerWorld world, BlockPos pos, PortalRift rift) {
+	public void spawnMobsFromNBT(ServerLevel world, BlockPos pos, PortalRift rift) {
 		spawnMobsFromNBT(world, pos, rift, e -> {});
 	}
 
-	public void spawnMobsFromNBT(ServerWorld world, BlockPos pos, PortalRift rift, Consumer<Entity> entityModifier) {
+	public void spawnMobsFromNBT(ServerLevel world, BlockPos pos, PortalRift rift, Consumer<Entity> entityModifier) {
 		entry.spawnMobsFromNBT(world, pos, e -> {
 			rift.addEntity(e);
 			entityModifier.accept(e);

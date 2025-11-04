@@ -3,15 +3,15 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.loot.condition.LootCondition;
-import net.minecraft.predicate.entity.EntityPredicate;
-import net.minecraft.util.collection.Pool;
-import net.minecraft.util.math.intprovider.IntProvider;
 import nu.metacraft.lib.condition.METAcraftContexTypes;
 import nu.metacraft.lib.util.helper.EntityHelper;
 
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.advancements.critereon.EntityPredicate;
+import net.minecraft.util.random.WeightedList;
+import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
 public class SpawnForEachTarget extends SpawnEntityAttackBase {
 
@@ -21,23 +21,23 @@ public class SpawnForEachTarget extends SpawnEntityAttackBase {
 					EntityPredicate.CODEC.listOf().fieldOf("targets").forGetter(a -> a.targets),
 					IntProvider.NON_NEGATIVE_CODEC.fieldOf("countPerTarget").forGetter(a -> a.countPerTarget),
 					Codec.BOOL.fieldOf("spawnAroundTarget").forGetter(a -> a.spawnAroundTarget),
-					LootCondition.CODEC.optionalFieldOf("targetSelectCondition").forGetter(a -> a.targetSelectCondition)
+					LootItemCondition.DIRECT_CODEC.optionalFieldOf("targetSelectCondition").forGetter(a -> a.targetSelectCondition)
 			).apply(instance, SpawnForEachTarget::new)
 	);
 
 	private final List<EntityPredicate> targets;
 	private final IntProvider countPerTarget;
 	private final boolean spawnAroundTarget;
-	private final Optional<LootCondition> targetSelectCondition;
+	private final Optional<LootItemCondition> targetSelectCondition;
 
 	public SpawnForEachTarget(
-			Pool<EntityHelper.SpawnEntry> entities, List<EntityPredicate> targets, IntProvider countPerTarget, boolean spawnAroundTarget
+			WeightedList<EntityHelper.SpawnEntry> entities, List<EntityPredicate> targets, IntProvider countPerTarget, boolean spawnAroundTarget
 	) {
 		this(entities, targets, countPerTarget, spawnAroundTarget, Optional.empty());
 	}
 
 	public SpawnForEachTarget(
-			Pool<EntityHelper.SpawnEntry> entities, List<EntityPredicate> targets, IntProvider countPerTarget, boolean spawnAroundTarget, Optional<LootCondition> targetSelectCondition
+			WeightedList<EntityHelper.SpawnEntry> entities, List<EntityPredicate> targets, IntProvider countPerTarget, boolean spawnAroundTarget, Optional<LootItemCondition> targetSelectCondition
 	) {
 		super(entities);
 		this.targets = targets;
@@ -49,15 +49,15 @@ public class SpawnForEachTarget extends SpawnEntityAttackBase {
 	@Override
 	public void trigger(BossContext<?> ctx) {
 		var targets = ctx.boss().getTargets(e -> this.targets.stream().anyMatch(
-				predicate -> predicate.test(ctx.getWorld(), ctx.boss().getEntityPos(), e)
+				predicate -> predicate.matches(ctx.getWorld(), ctx.boss().position(), e)
 		));
 		targets.forEach(target -> {
-			int count = countPerTarget.get(ctx.random());
+			int count = countPerTarget.sample(ctx.random());
 			for (int i = 0; i < count; i++) {
 				if (targetSelectCondition.map(
 						cond -> cond.test(METAcraftContexTypes.createTickContext(ctx.getWorld(), target, ctx.random()))
 				).orElse(true)) {
-					spawnEntity(ctx, spawnAroundTarget ? target.getEntityPos() : ctx.boss().getEntityPos(), spawned -> Optional.of(target));
+					spawnEntity(ctx, spawnAroundTarget ? target.position() : ctx.boss().position(), spawned -> Optional.of(target));
 				}
 			}
 		});

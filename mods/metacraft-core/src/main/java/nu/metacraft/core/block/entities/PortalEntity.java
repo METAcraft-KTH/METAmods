@@ -2,29 +2,35 @@ package nu.metacraft.core.block.entities;
 
 import com.google.common.collect.Iterables;
 import com.mojang.serialization.DataResult;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.block.enums.Orientation;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.ContainerLock;
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.collection.ArrayListDeque;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.*;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.FrontAndTop;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ArrayListDeque;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.LockCode;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.portal.*;
 import nu.metacraft.lib.scheduler.Throwaway;
@@ -34,7 +40,7 @@ import nu.metacraft.core.METAcraftCoreTags;
 import nu.metacraft.core.block.METAcraftBlockEntities;
 import nu.metacraft.core.callbacks.PortalTargetValidEvent;
 import nu.metacraft.core.util.TeleportPredicate;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.lib.util.TaskScheduler;
 import nu.metacraft.lib.util.helper.OrientationHelper;
 import nu.metacraft.lib.util.helper.TeleportHelper;
@@ -56,9 +62,9 @@ public class PortalEntity extends BlockEntity {
 
 	@NotNull
 	protected volatile PortalTarget target = EmptyPortalTarget.getInstance();
-	protected Orientation portalFacing;
+	protected FrontAndTop portalFacing;
 	protected final List<TeleportPredicate> shouldTeleport = new ArrayList<>();
-	protected ContainerLock lock = ContainerLock.EMPTY;
+	protected LockCode lock = LockCode.NO_LOCK;
 
 	private final Set<Entity> pushedAway = new HashSet<>();
 
@@ -77,7 +83,7 @@ public class PortalEntity extends BlockEntity {
 	public void setTarget(PortalTarget target, boolean needsSaving) {
 		this.target = target;
 		if (needsSaving) {
-			markDirty();
+			setChanged();
 		}
 	}
 
@@ -85,148 +91,148 @@ public class PortalEntity extends BlockEntity {
 		return target;
 	}
 
-	public void setPortalFacing(Orientation facing) {
+	public void setPortalFacing(FrontAndTop facing) {
 		portalFacing = facing;
-		markDirty();
+		setChanged();
 	}
 
 	public void setShouldTeleport(List<TeleportPredicate> shouldTeleport) {
 		this.shouldTeleport.clear();
 		this.shouldTeleport.addAll(shouldTeleport);
-		markDirty();
+		setChanged();
 	}
 
-	private void notifyLocked(Stream<PlayerEntity> players) {
-		players.forEach(p -> p.sendMessage(Text.literal("The portal is locked"), true));
-		world.playSound(null, pos, SoundEvents.BLOCK_CHEST_LOCKED, SoundCategory.BLOCKS);
+	private void notifyLocked(Stream<Player> players) {
+		players.forEach(p -> p.displayClientMessage(Component.literal("The portal is locked"), true));
+		level.playSound(null, worldPosition, SoundEvents.CHEST_LOCKED, SoundSource.BLOCKS);
 	}
 
 	public void initializeTarget() {
 		getTarget().initialize(this);
 	}
 
-	protected void onUnlocked(PlayerEntity player, Hand hand, ItemStack stack) {
-		lock = ContainerLock.EMPTY;
-		markDirty();
-		var useRemainder = stack.get(DataComponentTypes.USE_REMAINDER);
+	protected void onUnlocked(Player player, InteractionHand hand, ItemStack stack) {
+		lock = LockCode.NO_LOCK;
+		setChanged();
+		var useRemainder = stack.get(DataComponents.USE_REMAINDER);
 		int c = stack.getCount();
-		stack.decrementUnlessCreative(1, player);
+		stack.consume(1, player);
 		if (useRemainder != null) {
-			player.setStackInHand(hand, useRemainder.convert(stack, c, player.isCreative(), player::giveOrDropStack));
+			player.setItemInHand(hand, useRemainder.convertIntoRemainder(stack, c, player.isCreative(), player::handleExtraItemsCreatedOnUse));
 		}
-		world.playSound(null, pos, SoundEvents.BLOCK_VAULT_INSERT_ITEM, SoundCategory.BLOCKS);
-		player.sendMessage(Text.literal("The portal is now unlocked!"), true);
+		level.playSound(null, worldPosition, SoundEvents.VAULT_INSERT_ITEM, SoundSource.BLOCKS);
+		player.displayClientMessage(Component.literal("The portal is now unlocked!"), true);
 		initializeTarget();
 	}
 
-	public ActionResult interactWithItem(
-			ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player,
-			Hand hand, BlockHitResult hit
+	public InteractionResult interactWithItem(
+			ItemStack stack, BlockState state, Level world, BlockPos pos, Player player,
+			InteractionHand hand, BlockHitResult hit
 	) {
 		if (isLocked()) {
-			if (lock.canOpen(stack)) {
+			if (lock.unlocksWith(stack)) {
 				onUnlocked(player, hand, stack);
 			} else {
 				notifyLocked(Stream.of(player));
 			}
-			return ActionResult.SUCCESS_SERVER;
+			return InteractionResult.SUCCESS_SERVER;
 		}
-		return ActionResult.PASS_TO_DEFAULT_BLOCK_ACTION;
+		return InteractionResult.TRY_WITH_EMPTY_HAND;
 	}
 
 	@Override
-	public void setWorld(World world) {
-		super.setWorld(world);
-		if (!world.isClient() && target instanceof FixedPortalTarget(GlobalPos t, boolean autolink)) {
+	public void setLevel(Level world) {
+		super.setLevel(world);
+		if (!world.isClientSide() && target instanceof FixedPortalTarget(GlobalPos t, boolean autolink)) {
 			if (t.pos() == null) {
 				target = EmptyPortalTarget.getInstance();
 				return;
 			}
 			if (t.dimension() == null) {
 				target = FixedPortalTarget.create(
-						world.getRegistryKey(), t.pos()
+						world.dimension(), t.pos()
 				);
 			}
 		}
 	}
 
 	@Override
-	public void readData(ReadView nbt) {
-		super.readData(nbt);
+	public void loadAdditional(ValueInput nbt) {
+		super.loadAdditional(nbt);
 		target = nbt.read(
 				TARGET, PortalTargetRegistry.CODEC
 		).orElse(EmptyPortalTarget.getInstance());
 		nbt.read(TARGET_POS, BlockPos.CODEC).ifPresent(targetPos -> {
-			target = nbt.read(TARGET_DIM, World.CODEC).<PortalTarget>map(
+			target = nbt.read(TARGET_DIM, Level.RESOURCE_KEY_CODEC).<PortalTarget>map(
 					targetDim -> FixedPortalTarget.create(targetDim, targetPos)
 			).orElseGet(() -> FixedLocalPortalTarget.create(targetPos));
 		});
-		nbt.read(PORTAL_FACING, ExtraCodecs.ORIENTATION_CODEC).ifPresentOrElse(
+		nbt.read(PORTAL_FACING, METACodecs.ORIENTATION_CODEC).ifPresentOrElse(
 				facing -> portalFacing = facing,
 				() -> portalFacing = null
 		);
 		shouldTeleport.clear();
 		nbt.read(SHOULD_TELEPORT, TeleportPredicate.LIST_CODEC).ifPresent(this.shouldTeleport::addAll);
-		lock = ContainerLock.read(nbt);
+		lock = LockCode.fromTag(nbt);
 	}
 
 	public boolean isPartOfPortal() {
 		return true;
 	}
 
-	public void setLock(ContainerLock lock) {
+	public void setLock(LockCode lock) {
 		this.lock = lock;
-		markDirty();
+		setChanged();
 	}
 
 	@Override
-	public void writeData(WriteView nbt) {
-		super.writeData(nbt);
+	public void saveAdditional(ValueOutput nbt) {
+		super.saveAdditional(nbt);
 		if (target != EmptyPortalTarget.getInstance()) {
-			nbt.put(TARGET, PortalTargetRegistry.CODEC, target);
+			nbt.store(TARGET, PortalTargetRegistry.CODEC, target);
 		}
 		if (portalFacing != null) {
-			nbt.put(PORTAL_FACING, ExtraCodecs.ORIENTATION_CODEC, portalFacing);
+			nbt.store(PORTAL_FACING, METACodecs.ORIENTATION_CODEC, portalFacing);
 		}
-		nbt.put(SHOULD_TELEPORT, TeleportPredicate.LIST_CODEC, shouldTeleport);
+		nbt.store(SHOULD_TELEPORT, TeleportPredicate.LIST_CODEC, shouldTeleport);
 
-		lock.write(nbt);
+		lock.addToTag(nbt);
 	}
 
-	public ServerWorld getTargetDim(GlobalPos target) {
-		if (world == null || world.isClient()) return null;
+	public ServerLevel getTargetDim(GlobalPos target) {
+		if (level == null || level.isClientSide()) return null;
 		if (target != null) {
-			var dim = world.getServer().getWorld(target.dimension());
+			var dim = level.getServer().getLevel(target.dimension());
 			if (dim != null) {
 				return dim;
 			}
 		}
-		return (ServerWorld) world;
+		return (ServerLevel) level;
 	}
 
 	protected boolean shouldTeleport(Entity entity) {
-		return entity.canUsePortals(false) && TeleportPredicate.shouldTeleport(shouldTeleport, (ServerWorld) world, entity);
+		return entity.canUsePortal(false) && TeleportPredicate.shouldTeleport(shouldTeleport, (ServerLevel) level, entity);
 	}
 
 	protected void onTeleportFail(Entity entity) {
-		if (entity instanceof ServerPlayerEntity player) {
-			player.sendMessage(Text.literal("This portal cannot teleport players."));
+		if (entity instanceof ServerPlayer player) {
+			player.sendSystemMessage(Component.literal("This portal cannot teleport players."));
 		}
 	}
 
-	private boolean isSpaceOpen(World world, BlockPos pos) {
+	private boolean isSpaceOpen(Level world, BlockPos pos) {
 		return world.getBlockState(pos).getCollisionShape(world, pos).isEmpty();
 	}
 
 	public Iterable<BlockPos> forAllNearbyPortals() {
-		return forAllNearbyPortals(world, pos, MAX_SEARCH_BLOCKS, false);
+		return forAllNearbyPortals(level, worldPosition, MAX_SEARCH_BLOCKS, false);
 	}
 
-	public static Iterable<BlockPos> forAllNearbyPortals(World world, BlockPos pos) {
+	public static Iterable<BlockPos> forAllNearbyPortals(Level world, BlockPos pos) {
 		return forAllNearbyPortals(world, pos, false);
 	}
 
-	public static Optional<PortalEntity> findPortal(World world, BlockPos pos) {
+	public static Optional<PortalEntity> findPortal(Level world, BlockPos pos) {
 		if (world.getBlockEntity(pos) instanceof PortalEntity p) {
 			return Optional.of(p);
 		}
@@ -238,14 +244,14 @@ public class PortalEntity extends BlockEntity {
 		return Optional.empty();
 	}
 
-	public static Iterable<BlockPos> forAllNearbyPortals(World world, BlockPos pos, boolean alwaysIncludeCore) {
+	public static Iterable<BlockPos> forAllNearbyPortals(Level world, BlockPos pos, boolean alwaysIncludeCore) {
 		return forAllNearbyPortals(world, pos, MAX_SEARCH_BLOCKS, alwaysIncludeCore);
 	}
 
-	public static Iterable<BlockPos> forAllNearbyPortals(World world, BlockPos pos, int maxBlocks, boolean alwaysIncludeCore) {
+	public static Iterable<BlockPos> forAllNearbyPortals(Level world, BlockPos pos, int maxBlocks, boolean alwaysIncludeCore) {
 		Set<BlockPos> visited = new HashSet<>();
 		visited.add(pos);
-		BlockPos.Mutable currentPos = new BlockPos.Mutable();
+		BlockPos.MutableBlockPos currentPos = new BlockPos.MutableBlockPos();
 		currentPos.set(pos);
 		return () -> new Iterator<>() {
 			private final Queue<BlockPos> toSearch = new ArrayListDeque<>();
@@ -255,17 +261,17 @@ public class PortalEntity extends BlockEntity {
 
 			private void findNextPositions() {
 				if (stepsRemaining <= 0) return;
-				BlockPos.Mutable checker = new BlockPos.Mutable();
+				BlockPos.MutableBlockPos checker = new BlockPos.MutableBlockPos();
 				for (Direction direction : Direction.values()) {
-					checker.set(currentPos, direction);
+					checker.setWithOffset(currentPos, direction);
 					if (
 							(
-								world.getBlockState(checker).isIn(METAcraftCoreTags.PORTAL_PADDING) ||
+								world.getBlockState(checker).is(METAcraftCoreTags.PORTAL_PADDING) ||
 								world.getBlockEntity(checker) instanceof PortalEntity p && (p.isPartOfPortal() || alwaysIncludeCore)
 							) && !visited.contains(checker)
 					) {
 						stepsRemaining--;
-						var pos = checker.toImmutable();
+						var pos = checker.immutable();
 						toSearch.add(pos);
 						visited.add(pos);
 					}
@@ -291,16 +297,16 @@ public class PortalEntity extends BlockEntity {
 	}
 
 	private void chooseDirection(Set<Direction.Axis> axes) {
-		if (world != null) {
+		if (level != null) {
 			int currentBest = 0;
 			for (Direction.AxisDirection direction : Direction.AxisDirection.values()) {
 				for (Direction.Axis axis : axes) {
-					var facing = Direction.from(axis, direction);
+					var facing = Direction.fromAxisAndDirection(axis, direction);
 					var found = countEmptySpaces(facing);
 					if (found > currentBest) {
 						currentBest = found;
 						portalFacing = OrientationHelper.fromDirection(facing);
-						markDirty();
+						setChanged();
 					}
 				}
 			}
@@ -308,14 +314,14 @@ public class PortalEntity extends BlockEntity {
 	}
 
 	private int countEmptySpaces(Direction direction) {
-		if (world == null) return 0;
+		if (level == null) return 0;
 		int spaces = 0;
 		for (BlockPos pos : forAllNearbyPortals()) {
-			BlockPos.Mutable check = new BlockPos.Mutable();
-			check.set(pos, direction);
-			if (isSpaceOpen(world, check)) {
+			BlockPos.MutableBlockPos check = new BlockPos.MutableBlockPos();
+			check.setWithOffset(pos, direction);
+			if (isSpaceOpen(level, check)) {
 				spaces++;
-				for (int i = 0; i < RANGE_CHECK && isSpaceOpen(world, check); i++) {
+				for (int i = 0; i < RANGE_CHECK && isSpaceOpen(level, check); i++) {
 					spaces++;
 				}
 			}
@@ -325,8 +331,8 @@ public class PortalEntity extends BlockEntity {
 
 	public void computeFacing() {
 		Set<Direction.Axis> validAxes = new HashSet<>(List.of(Direction.Axis.values()));
-		BlockPos.Mutable prevPos = new BlockPos.Mutable();
-		prevPos.set(pos);
+		BlockPos.MutableBlockPos prevPos = new BlockPos.MutableBlockPos();
+		prevPos.set(worldPosition);
 		for (BlockPos pos : forAllNearbyPortals()) {
 			if (prevPos.getX() != pos.getX()) {
 				validAxes.remove(Direction.Axis.X);
@@ -356,9 +362,9 @@ public class PortalEntity extends BlockEntity {
 		var targetDim = getTargetDim(target);
 		return TeleportHelper.teleportEntity(
 				entity,
-				new TeleportTarget(
-						targetDim, Vec3d.ofBottomCenter(target.pos()), entity.getVelocity(), entity.getYaw(), entity.getPitch(),
-						TeleportTarget.NO_OP
+				new TeleportTransition(
+						targetDim, Vec3.atBottomCenterOf(target.pos()), entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(),
+						TeleportTransition.DO_NOTHING
 				)
 		);
 	}
@@ -366,13 +372,13 @@ public class PortalEntity extends BlockEntity {
 	public record Angles(float yaw, float pitch) {}
 
 	private static Angles fix(Angles toFix) {
-		var yaw = MathHelper.wrapDegrees(toFix.yaw);
+		var yaw = Mth.wrapDegrees(toFix.yaw);
 		var pitch = toFix.pitch % 360.0f;
 		var absPitch = Math.abs(pitch);
 		if (absPitch > 90 && absPitch < 270) {
-			yaw = MathHelper.wrapDegrees(yaw + 180);
+			yaw = Mth.wrapDegrees(yaw + 180);
 		}
-		pitch = MathHelper.wrapDegrees(pitch);
+		pitch = Mth.wrapDegrees(pitch);
 		if (Math.abs(pitch) > 90) {
 			var pitchOffset = pitch < 0 ? -90 : 90;
 			var diff = pitch - pitchOffset;
@@ -391,11 +397,11 @@ public class PortalEntity extends BlockEntity {
 			return 180;
 		} else {
 			if (source.getAxis().isVertical()) {
-				return -source.getDirection().offset() * 90;
+				return -source.getAxisDirection().getStep() * 90;
 			} else if (target.getAxis().isVertical()) {
-				return target.getDirection().offset() * 90;
+				return target.getAxisDirection().getStep() * 90;
 			} else {
-				if (source.rotateClockwise(Direction.Axis.Y) == target) {
+				if (source.getClockWise(Direction.Axis.Y) == target) {
 					return -90;
 				} else {
 					return 90;
@@ -405,23 +411,23 @@ public class PortalEntity extends BlockEntity {
 	}
 
 	private static Quaterniond getQuaternion(
-			Orientation sourceDirection, Orientation targetDirection, Direction entityFacing
+			FrontAndTop sourceDirection, FrontAndTop targetDirection, Direction entityFacing
 	) {
-		double angle = Math.toRadians(getAngleBetweenDirections(sourceDirection.getFacing(), targetDirection.getFacing()));
+		double angle = Math.toRadians(getAngleBetweenDirections(sourceDirection.front(), targetDirection.front()));
 
 		if (OrientationHelper.isHorizontal(sourceDirection) && OrientationHelper.isHorizontal(targetDirection)) {
 			return new Quaterniond().rotateYXZ(angle, 0, 0);
 		} else if (OrientationHelper.isVertical(sourceDirection) && OrientationHelper.isHorizontal(targetDirection)) {
 			int offsetAngle = entityFacing != null ? getAngleBetweenDirections(
-					entityFacing, sourceDirection.getRotation().getOpposite()
+					entityFacing, sourceDirection.top().getOpposite()
 			) : 0;
-			var horizontalAngle = getAngleBetweenDirections(sourceDirection.getRotation().getOpposite(), targetDirection.getFacing());
+			var horizontalAngle = getAngleBetweenDirections(sourceDirection.top().getOpposite(), targetDirection.front());
 			return new Quaterniond().rotateYXZ(Math.toRadians(horizontalAngle + offsetAngle), angle, Math.PI);
 		} else if (OrientationHelper.isHorizontal(sourceDirection) && OrientationHelper.isVertical(targetDirection)) {
-			var horizontalAngle = Math.toRadians(getAngleBetweenDirections(sourceDirection.getFacing(), targetDirection.getRotation().getOpposite()));
+			var horizontalAngle = Math.toRadians(getAngleBetweenDirections(sourceDirection.front(), targetDirection.top().getOpposite()));
 			return new Quaterniond().rotateYXZ(horizontalAngle, -angle, 0);
 		} else {
-			var horizontalAngle = Math.toRadians(getAngleBetweenDirections(sourceDirection.getRotation(), targetDirection.getRotation()));
+			var horizontalAngle = Math.toRadians(getAngleBetweenDirections(sourceDirection.top(), targetDirection.top()));
 			return new Quaterniond().rotateYXZ(horizontalAngle, -angle, 0);
 		}
 	}
@@ -429,9 +435,9 @@ public class PortalEntity extends BlockEntity {
 	private Angles rotateYawPitch(float yaw, float pitch, Quaterniond quaternion) {
 		var angles = quaternion.getEulerAnglesYXZ(new Vector3d());
 
-		float yawOffset = MathHelper.sin((float) angles.z) * MathHelper.HALF_PI * MathHelper.DEGREES_PER_RADIAN;
-		float pitchOffset = (MathHelper.HALF_PI - MathHelper.cos((float) angles.z) * MathHelper.HALF_PI) * MathHelper.DEGREES_PER_RADIAN;
-		angles = angles.mul(MathHelper.DEGREES_PER_RADIAN);
+		float yawOffset = Mth.sin((float) angles.z) * Mth.HALF_PI * Mth.RAD_TO_DEG;
+		float pitchOffset = (Mth.HALF_PI - Mth.cos((float) angles.z) * Mth.HALF_PI) * Mth.RAD_TO_DEG;
+		angles = angles.mul(Mth.RAD_TO_DEG);
 
 		return fix(new Angles(
 				(float) -angles.y + yaw + yawOffset,
@@ -439,45 +445,45 @@ public class PortalEntity extends BlockEntity {
 		));
 	}
 
-	private Quaterniond getRotationToPortal(Orientation otherFacing, Entity entity) {
+	private Quaterniond getRotationToPortal(FrontAndTop otherFacing, Entity entity) {
 		if (portalFacing == null || otherFacing == null) {
 			return new Quaterniond();
 		}
-		return getQuaternion(Orientation.byDirections(portalFacing.getFacing().getOpposite(), portalFacing.getRotation()), otherFacing, entity != null ? entity.getHorizontalFacing() : null);
+		return getQuaternion(FrontAndTop.fromFrontAndTop(portalFacing.front().getOpposite(), portalFacing.top()), otherFacing, entity != null ? entity.getDirection() : null);
 	}
 
-	public Box getBoundingBox() {
-		return Box.from(BlockBox.encompassPositions(Iterables.concat(
-				List.of(pos),
+	public AABB getBoundingBox() {
+		return AABB.of(BoundingBox.encapsulatingPositions(Iterables.concat(
+				List.of(worldPosition),
 				forAllNearbyPortals()
-		)).orElse(BlockBox.create(pos, pos)));
+		)).orElse(BoundingBox.fromCorners(worldPosition, worldPosition)));
 	}
 
-	private Box getBoundingBoxIncludingPassengers(Entity entity) {
+	private AABB getBoundingBoxIncludingPassengers(Entity entity) {
 		var entityBox = entity.getBoundingBox();
-		if (entity.hasPassengers()) {
-			for (var passenger : entity.getPassengersDeep()) {
-				entityBox = entityBox.union(passenger.getBoundingBox());
+		if (entity.isVehicle()) {
+			for (var passenger : entity.getIndirectPassengers()) {
+				entityBox = entityBox.minmax(passenger.getBoundingBox());
 			}
 		}
 		return entityBox;
 	}
 
-	private static double getVectorPartForAxis(Vec3d pos, Direction.Axis axis) {
+	private static double getVectorPartForAxis(Vec3 pos, Direction.Axis axis) {
 		return switch (axis) {
-			case X -> pos.getX();
-			case Y -> pos.getY();
-			case Z -> pos.getZ();
+			case X -> pos.x();
+			case Y -> pos.y();
+			case Z -> pos.z();
 		};
 	}
 
-	public void onCollision(BlockState state, World world, BlockPos pos, Entity entity) {
-		if (entity.hasVehicle()) return;
-		if (world.isClient()) return;
-		Box box = getBoundingBox();
-		Box entityBox = getBoundingBoxIncludingPassengers(entity);
+	public void onCollision(BlockState state, Level world, BlockPos pos, Entity entity) {
+		if (entity.isPassenger()) return;
+		if (world.isClientSide()) return;
+		AABB box = getBoundingBox();
+		AABB entityBox = getBoundingBoxIncludingPassengers(entity);
 		if (isLocked() && !pushedAway.contains(entity)) {
-			var axis = portalFacing.getFacing().getAxis();
+			var axis = portalFacing.front().getAxis();
 			var entityPos = getVectorPartForAxis(entityBox.getCenter(), axis);
 			var thisPos = getVectorPartForAxis(box.getCenter(), axis);
 			Direction.AxisDirection pushDirection;
@@ -487,20 +493,20 @@ public class PortalEntity extends BlockEntity {
 				pushDirection = Direction.AxisDirection.POSITIVE;
 			}
 
-			var vector = Direction.from(axis, pushDirection).getDoubleVector().add(
-					new Vec3d(
+			var vector = Direction.fromAxisAndDirection(axis, pushDirection).getUnitVec3().add(
+					new Vec3(
 							0.25 * entity.getRandom().nextGaussian(),
 							0.25 * entity.getRandom().nextGaussian(),
 							0.25 * entity.getRandom().nextGaussian()
 					)
 			).normalize();
-			entity.setVelocity(vector);
-			entity.velocityDirty = true;
-			entity.velocityModified = true;
-			notifyLocked(entity.streamSelfAndPassengers().filter(e -> e instanceof PlayerEntity).map(p -> (PlayerEntity) p));
+			entity.setDeltaMovement(vector);
+			entity.hasImpulse = true;
+			entity.hurtMarked = true;
+			notifyLocked(entity.getSelfAndPassengers().filter(e -> e instanceof Player).map(p -> (Player) p));
 			if (pushedAway.isEmpty()) {
 				TaskScheduler.schedule(
-						world.getServer(), METAcraftCore.getID("portal_clear/" + getPos().asLong() + ""),
+						world.getServer(), METAcraftCore.getID("portal_clear/" + getBlockPos().asLong()),
 						new Throwaway(pushedAway::clear), 5
 				);
 			}
@@ -508,21 +514,21 @@ public class PortalEntity extends BlockEntity {
 			return;
 		}
 		if (portalFacing != null) {
-			var x = Math.max(entityBox.getLengthX() - box.getLengthX(), 0) + Math.abs(entity.getX() - entity.lastX);
-			var y = Math.max(entityBox.getLengthY() - box.getLengthY(), 0) + Math.abs(entity.getY() - entity.lastY);
-			var z = Math.max(entityBox.getLengthZ() - box.getLengthZ(), 0) + Math.abs(entity.getZ() - entity.lastZ);
-			box = box.stretch(
-					x * portalFacing.getFacing().getOffsetX(),
-					y * portalFacing.getFacing().getOffsetY(),
-					z * portalFacing.getFacing().getOffsetZ()
+			var x = Math.max(entityBox.getXsize() - box.getXsize(), 0) + Math.abs(entity.getX() - entity.xo);
+			var y = Math.max(entityBox.getYsize() - box.getYsize(), 0) + Math.abs(entity.getY() - entity.yo);
+			var z = Math.max(entityBox.getZsize() - box.getZsize(), 0) + Math.abs(entity.getZ() - entity.zo);
+			box = box.expandTowards(
+					x * portalFacing.front().getStepX(),
+					y * portalFacing.front().getStepY(),
+					z * portalFacing.front().getStepZ()
 			);
-			box = box.stretch(
-					x * -portalFacing.getFacing().getOffsetX(),
-					y * -portalFacing.getFacing().getOffsetY(),
-					z * -portalFacing.getFacing().getOffsetZ()
+			box = box.expandTowards(
+					x * -portalFacing.front().getStepX(),
+					y * -portalFacing.front().getStepY(),
+					z * -portalFacing.front().getStepZ()
 			);
 		}
-		if (box.union(entityBox).equals(box)) {
+		if (box.minmax(entityBox).equals(box)) {
 			TaskScheduler.scheduleImmediately(world.getServer(), () -> {
 				Entity toTP = entity;
 				if (toTP.getPortalCooldown() <= 0) {
@@ -535,18 +541,18 @@ public class PortalEntity extends BlockEntity {
 		}
 	}
 
-	private static Vec3d rotate(Vec3d vec, Quaterniond quaternion) {
-		Vector3d rotatable = new Vector3d(vec.getX(), vec.getY(), vec.getZ());
+	private static Vec3 rotate(Vec3 vec, Quaterniond quaternion) {
+		Vector3d rotatable = new Vector3d(vec.x(), vec.y(), vec.z());
 		rotatable.rotate(quaternion);
-		return new Vec3d(rotatable.x, rotatable.y, rotatable.z);
+		return new Vec3(rotatable.x, rotatable.y, rotatable.z);
 	}
 
-	private Vec3d getTarget(Box targetBox, Vec3d dist, Entity entity) {
-		return targetBox.getCenter().add(dist).subtract(0, entity.getHeight()/2, 0);
+	private Vec3 getTarget(AABB targetBox, Vec3 dist, Entity entity) {
+		return targetBox.getCenter().add(dist).subtract(0, entity.getBbHeight()/2, 0);
 	}
 
 	public boolean isLocked() {
-		return lock != ContainerLock.EMPTY;
+		return lock != LockCode.NO_LOCK;
 	}
 
 	public Entity teleport(Entity entity) {
@@ -571,46 +577,46 @@ public class PortalEntity extends BlockEntity {
 				if (portal.portalFacing != null) {
 					var rotation = getRotationToPortal(portal.portalFacing, null);
 
-					Vec3d velocity = rotate(entity.getVelocity(), rotation);
+					Vec3 velocity = rotate(entity.getDeltaMovement(), rotation);
 
 					//Find position to place the player on other portal.
 					var sourceBox = getBoundingBox();
 					var targetBox = portal.getBoundingBox();
-					Vec3d entityMovement = entity.getEntityPos().subtract(entity.lastX, entity.lastY, entity.lastZ);
-					if (entity.getVelocity().length() > entityMovement.length()) {
-						entityMovement = entity.getVelocity();
+					Vec3 entityMovement = entity.position().subtract(entity.xo, entity.yo, entity.zo);
+					if (entity.getDeltaMovement().length() > entityMovement.length()) {
+						entityMovement = entity.getDeltaMovement();
 					}
-					Vec3d dist = entity.getBoundingBox().getCenter().subtract(entityMovement).subtract(sourceBox.getCenter());
+					Vec3 dist = entity.getBoundingBox().getCenter().subtract(entityMovement).subtract(sourceBox.getCenter());
 
-					dist = new Vec3d(dist.getX() / (sourceBox.getLengthX()/2), dist.getY() / (sourceBox.getLengthY()/2), dist.getZ() / (sourceBox.getLengthZ()/2));
+					dist = new Vec3(dist.x() / (sourceBox.getXsize()/2), dist.y() / (sourceBox.getYsize()/2), dist.z() / (sourceBox.getZsize()/2));
 
 					dist = rotate(dist, rotation);
-					dist = dist.multiply(targetBox.getLengthX()/2, targetBox.getLengthY()/2, targetBox.getLengthZ()/2);
+					dist = dist.multiply(targetBox.getXsize()/2, targetBox.getYsize()/2, targetBox.getZsize()/2);
 
-					Box entityBox = getBoundingBoxIncludingPassengers(entity);
+					AABB entityBox = getBoundingBoxIncludingPassengers(entity);
 
-					Vec3d targetPos = getTarget(targetBox, dist, entity);
+					Vec3 targetPos = getTarget(targetBox, dist, entity);
 
-					var centeredBox = entityBox.offset(entity.getEntityPos().multiply(-1));
-					if (!targetDim.isSpaceEmpty(centeredBox.offset(targetPos))) {
+					var centeredBox = entityBox.move(entity.position().scale(-1));
+					if (!targetDim.noCollision(centeredBox.move(targetPos))) {
 						targetPos = getTarget(targetBox, dist, entity);
-						if (!targetDim.isSpaceEmpty(centeredBox.offset(targetPos))) {
-							if (entity instanceof ServerPlayerEntity player) {
-								player.sendMessage(Text.literal("Could not deposit you safely on the other side"), true);
+						if (!targetDim.noCollision(centeredBox.move(targetPos))) {
+							if (entity instanceof ServerPlayer player) {
+								player.displayClientMessage(Component.literal("Could not deposit you safely on the other side"), true);
 							}
 							return entity;
 						}
 					}
 
 					var facing = rotateYawPitch(
-							entity.getYaw(), entity.getPitch(), getRotationToPortal(portal.portalFacing, entity)
+							entity.getYRot(), entity.getXRot(), getRotationToPortal(portal.portalFacing, entity)
 					);
 
 					newEntity = TeleportHelper.teleportEntity(
 							entity,
-							new TeleportTarget(
+							new TeleportTransition(
 									targetDim, targetPos, velocity, facing.yaw, facing.pitch,
-									TeleportTarget.NO_OP
+									TeleportTransition.DO_NOTHING
 							)
 					);
 				} else {
@@ -619,8 +625,8 @@ public class PortalEntity extends BlockEntity {
 			} else {
 				newEntity = teleportNoFacing(entity, target);
 			}
-		} else if (entity instanceof ServerPlayerEntity player) {
-			player.sendMessage(Text.literal(targetRes.error().map(DataResult.Error::message).orElse("missingno")), true);
+		} else if (entity instanceof ServerPlayer player) {
+			player.displayClientMessage(Component.literal(targetRes.error().map(DataResult.Error::message).orElse("missingno")), true);
 		}
 		return newEntity;
 	}

@@ -9,15 +9,15 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.command.argument.TimeArgumentType;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.TimeArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
 import nu.metacraft.core.countdown.Countdown;
 import nu.metacraft.core.util.METAcraftCoreData;
 
@@ -37,16 +37,16 @@ public class CountdownCommand {
 	private static final SimpleCommandExceptionType NO_COUNTDOWN
 		= new SimpleCommandExceptionType(new LiteralMessage("There is no countdown right now"));
 
-	public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
+	public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess) {
 		dispatcher.register(
-			CommandManager.literal("countdown")
+			Commands.literal("countdown")
 				.requires(Permissions.require("metacraft.countdown", 2))
 				.then(
-					CommandManager.literal("init")
+					Commands.literal("init")
 						.then(
-							CommandManager.argument("date", StringArgumentType.greedyString())
+							Commands.argument("date", StringArgumentType.greedyString())
 								.executes(context -> {
-									ServerCommandSource source = context.getSource();
+									CommandSourceStack source = context.getSource();
 									METAcraftCoreData data = METAcraftCoreData.getInstance(source.getServer());
 									if (data.getCountdown().isPresent())
 										throw COUNTDOWN_ALREADY_RUNNING.create();
@@ -59,13 +59,13 @@ public class CountdownCommand {
 										throw INVALID_DATE.create(dateString);
 									}
 
-									BlockPos center = BlockPos.ofFloored(source.getPosition());
-									List<UUID> entityUuids = source.getWorld().getEntitiesByClass(DisplayEntity.TextDisplayEntity.class, Box.enclosing(
-											center.south(20).east(20).down(20),
-											center.north(20).west(20).up(20)
-										), entity -> entity.getCommandTags().contains("countdown"))
+									BlockPos center = BlockPos.containing(source.getPosition());
+									List<UUID> entityUuids = source.getLevel().getEntitiesOfClass(Display.TextDisplay.class, AABB.encapsulatingFullBlocks(
+											center.south(20).east(20).below(20),
+											center.north(20).west(20).above(20)
+										), entity -> entity.getTags().contains("countdown"))
 										.stream()
-										.map(Entity::getUuid)
+										.map(Entity::getUUID)
 										.toList();
 
 									if (entityUuids.isEmpty()) throw NO_ITEM_DISPLAY.create();
@@ -77,9 +77,9 @@ public class CountdownCommand {
 						)
 				)
 				.then(
-					CommandManager.literal("date")
+					Commands.literal("date")
 						.then(
-							CommandManager.argument("date", StringArgumentType.greedyString())
+							Commands.argument("date", StringArgumentType.greedyString())
 								.executes(context -> {
 									Countdown countdown = getCountdownRequired(context);
 									String dateString = StringArgumentType.getString(context, "date");
@@ -91,7 +91,7 @@ public class CountdownCommand {
 									}
 
 									countdown.setDate(date);
-									context.getSource().sendMessage(Text.literal("Set the date to " + date.toString() + " (" + countdown.getTimeLeftString() + " left)"));
+									context.getSource().sendSystemMessage(Component.literal("Set the date to " + date.toString() + " (" + countdown.getTimeLeftString() + " left)"));
 
 									return 1;
 								})
@@ -99,13 +99,13 @@ public class CountdownCommand {
 						.executes(context -> {
 							Countdown countdown = getCountdownRequired(context);
 
-							context.getSource().sendMessage(Text.literal(countdown.getDate().toString()));
+							context.getSource().sendSystemMessage(Component.literal(countdown.getDate().toString()));
 
 							return 1;
 						})
 				)
 				.then(
-					CommandManager.literal("stop")
+					Commands.literal("stop")
 						.executes(context -> {
 							METAcraftCoreData data = METAcraftCoreData.getInstance(context.getSource().getServer());
 							if (data.getCountdown().isEmpty())
@@ -113,40 +113,40 @@ public class CountdownCommand {
 
 							data.setCountdown(Optional.empty());
 
-							context.getSource().sendMessage(Text.literal("The countdown was stopped"));
+							context.getSource().sendSystemMessage(Component.literal("The countdown was stopped"));
 
 							return 1;
 						})
 				)
 				.then(
-					CommandManager.literal("interval")
+					Commands.literal("interval")
 						.then(
-							CommandManager.argument("interval", TimeArgumentType.time(1))
+							Commands.argument("interval", TimeArgument.time(1))
 								.executes(context -> {
 									int interval = IntegerArgumentType.getInteger(context, "interval");
 									Countdown countdown = getCountdownRequired(context);
 									countdown.setInterval(interval);
-									context.getSource().sendMessage(Text.literal("Set the interval to "+ interval + " ticks"));
+									context.getSource().sendSystemMessage(Component.literal("Set the interval to "+ interval + " ticks"));
 									return 1;
 								})
 						)
 						.executes(context -> {
 							Countdown countdown = getCountdownRequired(context);
 							int interval = countdown.getInterval();
-							context.getSource().sendMessage(Text.literal("The interval is currently set to "+ interval));
+							context.getSource().sendSystemMessage(Component.literal("The interval is currently set to "+ interval));
 							return 1;
 						})
 				)
 				.then(
-					CommandManager.literal("action")
+					Commands.literal("action")
 						.then(
-							CommandManager.literal("add")
+							Commands.literal("add")
 								.then(
-									CommandManager.argument("name", StringArgumentType.word())
+									Commands.argument("name", StringArgumentType.word())
 										.then(
-											CommandManager.argument("activationMillis", IntegerArgumentType.integer(0))
+											Commands.argument("activationMillis", IntegerArgumentType.integer(0))
 												.then(
-													CommandManager.argument("command", StringArgumentType.greedyString())
+													Commands.argument("command", StringArgumentType.greedyString())
 														.executes(context -> {
 															Countdown countdown = getCountdownRequired(context);
 															String name = StringArgumentType.getString(context, "name");
@@ -154,7 +154,7 @@ public class CountdownCommand {
 															String command = StringArgumentType.getString(context, "command");
 
 															countdown.addAction(new Countdown.Action(name, activationMillis, command));
-															context.getSource().sendMessage(Text.literal("Added action \""+ name +"\" to be executed at "+ activationMillis +" ms: /"+ command));
+															context.getSource().sendSystemMessage(Component.literal("Added action \""+ name +"\" to be executed at "+ activationMillis +" ms: /"+ command));
 															return 1;
 														})
 												)
@@ -162,9 +162,9 @@ public class CountdownCommand {
 								)
 						)
 						.then(
-							CommandManager.literal("remove")
+							Commands.literal("remove")
 								.then(
-									CommandManager.argument("name", StringArgumentType.word())
+									Commands.argument("name", StringArgumentType.word())
 										.suggests((context, builder) -> {
 											Countdown countdown = getCountdownRequired(context);
 											for (Countdown.Action action : countdown.getActions()) {
@@ -179,25 +179,25 @@ public class CountdownCommand {
 											String name = StringArgumentType.getString(context, "name");
 											boolean removed = countdown.removeAction(name);
 											if (removed) {
-												context.getSource().sendMessage(Text.literal("Removed action \""+ name +"\"."));
+												context.getSource().sendSystemMessage(Component.literal("Removed action \""+ name +"\"."));
 											} else {
-												context.getSource().sendMessage(Text.literal("No action with the name \""+ name +"\" was found."));
+												context.getSource().sendSystemMessage(Component.literal("No action with the name \""+ name +"\" was found."));
 											}
 											return 1;
 										})
 								)
 						)
 						.then(
-							CommandManager.literal("list")
+							Commands.literal("list")
 								.executes(context -> {
 									Countdown countdown = getCountdownRequired(context);
 									List<Countdown.Action> actions = countdown.getActions();
 									if (actions.isEmpty()) {
-										context.getSource().sendMessage(Text.literal("There are no actions defined."));
+										context.getSource().sendSystemMessage(Component.literal("There are no actions defined."));
 									} else {
-										context.getSource().sendMessage(Text.literal("Defined actions:"));
+										context.getSource().sendSystemMessage(Component.literal("Defined actions:"));
 										for (Countdown.Action action : actions) {
-											context.getSource().sendMessage(Text.literal(
+											context.getSource().sendSystemMessage(Component.literal(
 												"- \""+ action.name() +"\" at "+ action.activationMillis() +" ms: /"+ action.command()
 											));
 										}
@@ -207,22 +207,22 @@ public class CountdownCommand {
 						)
 				)
 				.then(
-					CommandManager.literal("update-entities")
+					Commands.literal("update-entities")
 						.executes(context -> {
 							Countdown countdown = getCountdownRequired(context);
-							BlockPos center = BlockPos.ofFloored(context.getSource().getPosition());
-							List<UUID> entityUuids = context.getSource().getWorld().getEntitiesByClass(DisplayEntity.TextDisplayEntity.class, Box.enclosing(
-									center.south(20).east(20).down(20),
-									center.north(20).west(20).up(20)
-								), entity -> entity.getCommandTags().contains("countdown"))
+							BlockPos center = BlockPos.containing(context.getSource().getPosition());
+							List<UUID> entityUuids = context.getSource().getLevel().getEntitiesOfClass(Display.TextDisplay.class, AABB.encapsulatingFullBlocks(
+									center.south(20).east(20).below(20),
+									center.north(20).west(20).above(20)
+								), entity -> entity.getTags().contains("countdown"))
 								.stream()
-								.map(Entity::getUuid)
+								.map(Entity::getUUID)
 								.toList();
 
 							if (entityUuids.isEmpty()) throw NO_ITEM_DISPLAY.create();
 
 							countdown.updateEntityUuids(entityUuids);
-							context.getSource().sendMessage(Text.literal("Updated countdown display entities, now using " + entityUuids.size() + " entities."));
+							context.getSource().sendSystemMessage(Component.literal("Updated countdown display entities, now using " + entityUuids.size() + " entities."));
 							return 1;
 						})
 				)
@@ -235,7 +235,7 @@ public class CountdownCommand {
 	 * @return The {@link Countdown}
 	 * @throws CommandSyntaxException If there is no active {@link Countdown}
 	 */
-	public static Countdown getCountdownRequired(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+	public static Countdown getCountdownRequired(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		METAcraftCoreData data = METAcraftCoreData.getInstance(ctx.getSource().getServer());
 		return data.getCountdown().orElseThrow(NO_COUNTDOWN::create);
 	}

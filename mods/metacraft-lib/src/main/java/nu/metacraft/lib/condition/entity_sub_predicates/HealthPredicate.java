@@ -3,12 +3,12 @@ package nu.metacraft.lib.condition.entity_sub_predicates;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.predicate.NumberRange;
-import net.minecraft.predicate.entity.EntitySubPredicate;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.advancements.critereon.EntitySubPredicate;
+import net.minecraft.advancements.critereon.MinMaxBounds;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.lib.mixin.AccessorItemEntity;
 
@@ -16,31 +16,31 @@ public class HealthPredicate implements EntitySubPredicate {
 
 	public static final MapCodec<HealthPredicate> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					NumberRange.DoubleRange.CODEC.fieldOf("health_range").forGetter(c -> c.healthRange),
+					MinMaxBounds.Doubles.CODEC.fieldOf("health_range").forGetter(c -> c.healthRange),
 					Codec.BOOL.optionalFieldOf("fraction_mode", false).forGetter(c -> c.fractionMode)
 			).apply(instance, HealthPredicate::new)
 	);
 
-	private final NumberRange.DoubleRange healthRange;
+	private final MinMaxBounds.Doubles healthRange;
 	private final boolean fractionMode;
 
-	public HealthPredicate(NumberRange.DoubleRange healthRange, boolean fractionMode) {
+	public HealthPredicate(MinMaxBounds.Doubles healthRange, boolean fractionMode) {
 		this.healthRange = healthRange;
 		this.fractionMode = fractionMode;
 	}
 
 	@Override
-	public MapCodec<? extends EntitySubPredicate> getCodec() {
+	public MapCodec<? extends EntitySubPredicate> codec() {
 		return CODEC;
 	}
 
 	@Override
-	public boolean test(Entity entity, ServerWorld world, @Nullable Vec3d pos) {
+	public boolean matches(Entity entity, ServerLevel world, @Nullable Vec3 pos) {
 		if (entity instanceof LivingEntity living) {
-			return fractionMode ? healthRange.test(living.getHealth() / living.getMaxHealth()) : healthRange.test(living.getHealth());
+			return fractionMode ? healthRange.matches(living.getHealth() / living.getMaxHealth()) : healthRange.matches(living.getHealth());
 		}
 		if (entity instanceof AccessorItemEntity item) {
-			return fractionMode ? healthRange.test(item.getHealth() / 5.0f) : healthRange.test(item.getHealth());
+			return fractionMode ? healthRange.matches(item.getHealth() / 5.0f) : healthRange.matches(item.getHealth());
 		}
 		return false;
 	}

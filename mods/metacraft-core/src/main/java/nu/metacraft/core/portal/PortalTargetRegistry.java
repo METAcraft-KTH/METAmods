@@ -3,18 +3,18 @@ package nu.metacraft.core.portal;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.core.METAcraftCore;
 
 public class PortalTargetRegistry {
 
 	public static final Registry<PortalTargetType<?>> REGISTRY = FabricRegistryBuilder.<PortalTargetType<?>>createSimple(
-			RegistryKey.ofRegistry(METAcraftCore.getID("portal_target"))
+			ResourceKey.createRegistryKey(METAcraftCore.getID("portal_target"))
 	).buildAndRegister();
 
-	public static final Codec<PortalTarget> CODEC = REGISTRY.getCodec().dispatch(PortalTarget::getType, PortalTargetType::codec);
+	public static final Codec<PortalTarget> CODEC = REGISTRY.byNameCodec().dispatch(PortalTarget::getType, PortalTargetType::codec);
 
 	public static final PortalTargetType<FixedPortalTarget> FIXED = register(
 			"fixed", new PortalTargetType<>(FixedPortalTarget.CODEC)
@@ -32,7 +32,7 @@ public class PortalTargetRegistry {
 
 
 	private static <T extends PortalTargetType<? extends PortalTarget>> T register(String id, T object) {
-		return Registry.register(REGISTRY, Identifier.ofVanilla(id), object);
+		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), object);
 	}
 
 	public record PortalTargetType<T extends PortalTarget>(MapCodec<T> codec) {

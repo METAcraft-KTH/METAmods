@@ -3,12 +3,6 @@ package nu.metacraft.cutscenes.transitions.entity;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.util.dynamic.Codecs;
-import net.minecraft.util.math.Vec3d;
 import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
@@ -31,13 +25,19 @@ import nu.metacraft.lib.util.helper.ViewHelper;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.phys.Vec3;
 
 public class SpawnEntity implements Transition, TransitionConfig {
 
 
 	public static final MapCodec<SpawnEntity> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Codecs.nonEmptyList(Codec.STRING.listOf()).fieldOf("ids").forGetter(t -> t.ids),
+					ExtraCodecs.nonEmptyList(Codec.STRING.listOf()).fieldOf("ids").forGetter(t -> t.ids),
 					PositionRefRegistry.CODEC.fieldOf("position").forGetter(t -> t.position),
 					AccurateSerializableNBT.CODEC.fieldOf("nbt").forGetter(t -> t.nbt),
 					Codec.BOOL.optionalFieldOf("initialize").forGetter(t -> t.initialize),
@@ -51,8 +51,8 @@ public class SpawnEntity implements Transition, TransitionConfig {
 	private final Optional<Boolean> initialize;
 	private final boolean killAfter;
 
-	public SpawnEntity(List<String> ids, PositionRef position, NbtCompound nbt, Optional<Boolean> initialize, boolean killAfter) {
-		this(ids, position, new AccurateSerializableNBT(new NbtCompound(), nbt), initialize, killAfter);
+	public SpawnEntity(List<String> ids, PositionRef position, CompoundTag nbt, Optional<Boolean> initialize, boolean killAfter) {
+		this(ids, position, new AccurateSerializableNBT(new CompoundTag(), nbt), initialize, killAfter);
 	}
 
 	public SpawnEntity(List<String> ids, PositionRef position, AccurateSerializableNBT nbt, Optional<Boolean> initialize, boolean killAfter) {
@@ -64,7 +64,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 	}
 
 	public static void spawnEntities(
-			List<String> ids, NbtCompound nbt, Optional<Vec3d> pos, CutsceneWorld world, Optional<Boolean> initialize
+			List<String> ids, CompoundTag nbt, Optional<Vec3> pos, CutsceneWorld world, Optional<Boolean> initialize
 	) {
 		MutableInt idIndex = new MutableInt(0);
 		Supplier<String> idGetter = () -> {
@@ -75,17 +75,17 @@ public class SpawnEntity implements Transition, TransitionConfig {
 			return id;
 		};
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:SpawnEntity#spawnEntities", Cutscenes.LOGGER)) {
-			var readView = NbtReadView.create(logging, world.getRegistryManager(), nbt);
-			EntityHelper.loadEntityWithPassengers(readView, world, SpawnReason.EVENT, (entity, data) -> {
-				pos.ifPresent(entity::setPosition);
+			var readView = TagValueInput.create(logging, world.registryAccess(), nbt);
+			EntityHelper.loadEntityWithPassengers(readView, world, EntitySpawnReason.EVENT, (entity, data) -> {
+				pos.ifPresent(entity::setPos);
 				world.getEntityManager().addEntity(idGetter.get(), entity);
 				if (initialize.orElse(ViewHelper.getSize(data) <= 1)) {
 					EntityHelper.initializeEntity(
 							entity, ViewHelper.getSize(data) > 1 ? data : null,
-							world, world.getLocalDifficulty(entity.getBlockPos()),
-							SpawnReason.TRIGGERED, null
+							world, world.getCurrentDifficultyAt(entity.blockPosition()),
+							EntitySpawnReason.TRIGGERED, null
 					);
-					pos.ifPresent(entity::setPosition);
+					pos.ifPresent(entity::setPos);
 				}
 				return entity;
 			});

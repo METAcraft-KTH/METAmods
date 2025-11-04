@@ -1,38 +1,37 @@
 package nu.metacraft.resource_packs;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.network.listener.ClientPlayPacketListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.s2c.common.ResourcePackRemoveS2CPacket;
-import net.minecraft.network.packet.s2c.play.BundleS2CPacket;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-
+import net.minecraft.server.level.ServerPlayer;
 import java.util.*;
 
 public class ResourcePackHelper {
 
-	public static void enableResourcePack(ServerPlayerEntity player, UUID pack) {
+	public static void enableResourcePack(ServerPlayer player, UUID pack) {
 		var config = ResourcePackConfig.getConfig();
 		var entry = config.getResourcePack(pack);
 		if (entry == null) return;
 		if (!entry.isGlobal()) {
-			PlayerPackDataManager.getInstance(player.getEntityWorld().getServer()).update(
+			PlayerPackDataManager.getInstance(player.level().getServer()).update(
 					player.getGameProfile(), data -> data.addPack(pack)
 			);
-			player.networkHandler.sendPacket(config.createEnablePacket(pack));
+			player.connection.send(config.createEnablePacket(pack));
 		}
 	}
 
-	public static void disableResourcePack(ServerPlayerEntity player, UUID pack) {
+	public static void disableResourcePack(ServerPlayer player, UUID pack) {
 		var config = ResourcePackConfig.getConfig();
 		var entry = config.getResourcePack(pack);
 		if (entry == null) return;
 		if (!entry.isGlobal()) {
-			PlayerPackDataManager.getInstance(player.getEntityWorld().getServer()).update(
+			PlayerPackDataManager.getInstance(player.level().getServer()).update(
 					player.getGameProfile(), data -> data.removePack(pack)
 			);
-			player.networkHandler.sendPacket(new ResourcePackRemoveS2CPacket(Optional.of(pack)));
+			player.connection.send(new ClientboundResourcePackPopPacket(Optional.of(pack)));
 		}
 	}
 
@@ -40,8 +39,8 @@ public class ResourcePackHelper {
 		return packData.isGlobal() || playerHasPack(server, profile, pack);
 	}
 
-	public static boolean hasResourcePack(ServerPlayerEntity player, UUID pack) {
-		return hasResourcePack(player.getEntityWorld().getServer(), player.getGameProfile(), pack);
+	public static boolean hasResourcePack(ServerPlayer player, UUID pack) {
+		return hasResourcePack(player.level().getServer(), player.getGameProfile(), pack);
 	}
 
 	public static boolean hasResourcePack(MinecraftServer server, GameProfile profile, UUID pack) {
@@ -55,14 +54,14 @@ public class ResourcePackHelper {
 	public static void resendResourcePacks(MinecraftServer server) {
 		var config = ResourcePackConfig.getConfig();
 		{ //Remove all removed resource packs from all players.
-			List<Packet<? super ClientPlayPacketListener>> removePackets = new ArrayList<>();
+			List<Packet<? super ClientGamePacketListener>> removePackets = new ArrayList<>();
 			for (var pack : config.getRemovedPacks()) {
-				removePackets.add(new ResourcePackRemoveS2CPacket(Optional.of(pack)));
+				removePackets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
 			}
 			if (!removePackets.isEmpty()) {
-				var firstRemovePacket = new BundleS2CPacket(removePackets);
-				for (var player : server.getPlayerManager().getPlayerList()) {
-					player.networkHandler.sendPacket(firstRemovePacket);
+				var firstRemovePacket = new ClientboundBundlePacket(removePackets);
+				for (var player : server.getPlayerList().getPlayers()) {
+					player.connection.send(firstRemovePacket);
 				}
 			}
 		}
@@ -70,33 +69,33 @@ public class ResourcePackHelper {
 		var packManager = PlayerPackDataManager.getInstance(server);
 
 		//Remove all packs that were changed from global to non-global unless the player has it enabled.
-		for (var player : server.getPlayerManager().getPlayerList()) {
-			List<Packet<? super ClientPlayPacketListener>> packets = new ArrayList<>();
+		for (var player : server.getPlayerList().getPlayers()) {
+			List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
 			for (var pack : config.getPrevGlobals()) {
 				if (!packManager.getFromPlayer(player.getGameProfile()).hasPack(pack)) {
-					packets.add(new ResourcePackRemoveS2CPacket(Optional.of(pack)));
+					packets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
 				}
 			}
 			if (!packets.isEmpty()) {
-				player.networkHandler.sendPacket(new BundleS2CPacket(packets));
+				player.connection.send(new ClientboundBundlePacket(packets));
 			}
 		}
 		//Send all updated global resource packs to the players.
 		for (var pack : config.getResourcePacks()) {
-			List<Packet<? super ClientPlayPacketListener>> packets = new ArrayList<>();
+			List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
 			if (pack.getValue().isGlobal() && (config.hasChanged(pack.getKey()) || config.isNowGlobal(pack.getKey()))) {
 				packets.add(config.createEnablePacket(pack.getKey()));
 			}
 			if (!packets.isEmpty()) {
-				var packet = new BundleS2CPacket(packets);
-				for (var player : server.getPlayerManager().getPlayerList()) {
-					player.networkHandler.sendPacket(packet);
+				var packet = new ClientboundBundlePacket(packets);
+				for (var player : server.getPlayerList().getPlayers()) {
+					player.connection.send(packet);
 				}
 			}
 		}
 		//Send all updated player-specific resource packs to affected players.
-		for (var player : server.getPlayerManager().getPlayerList()) {
-			List<Packet<? super ClientPlayPacketListener>> packets = new ArrayList<>();
+		for (var player : server.getPlayerList().getPlayers()) {
+			List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
 			packManager.getFromPlayer(player.getGameProfile()).resourcePacks().forEach(pack -> {
 				if (ResourcePackConfig.getConfig().resourcePackExists(pack)) {
 					if (config.hasChanged(pack)) {
@@ -106,12 +105,12 @@ public class ResourcePackHelper {
 						packManager.update(player.getGameProfile(), data -> data.removePack(pack));
 					}
 				} else {
-					packets.add(new ResourcePackRemoveS2CPacket(Optional.of(pack)));
+					packets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
 					packManager.update(player.getGameProfile(), data -> data.removePack(pack));
 				}
 			});
 			if (!packets.isEmpty()) {
-				player.networkHandler.sendPacket(new BundleS2CPacket(packets));
+				player.connection.send(new ClientboundBundlePacket(packets));
 			}
 		}
 	}

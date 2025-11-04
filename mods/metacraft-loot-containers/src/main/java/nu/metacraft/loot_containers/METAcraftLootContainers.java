@@ -1,7 +1,7 @@
 package nu.metacraft.loot_containers;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.loot_containers.containers.LootContainerRegistry;
@@ -12,8 +12,8 @@ public class METAcraftLootContainers implements ModInitializer {
 	public static final String MODID = "metacraft-loot-containers";
 	public static final Logger LOGGER = LogManager.getLogger("metacraft-loot-containers");
 
-	public static Identifier getID(String id) {
-		return Identifier.of(NAMESPACE, id);
+	public static ResourceLocation getID(String id) {
+		return ResourceLocation.fromNamespaceAndPath(NAMESPACE, id);
 	}
 
 	@Override

@@ -1,9 +1,8 @@
 package nu.metacraft.lib.compat;
 
 import me.drex.vanish.api.VanishAPI;
-import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
-
+import net.minecraft.world.entity.Entity;
 import java.util.UUID;
 
 public class VanishCompat {

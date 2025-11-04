@@ -8,14 +8,18 @@ import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
 import com.llamalad7.mixinextras.sugar.ref.LocalIntRef;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.s2c.play.ScreenHandlerPropertyUpdateS2CPacket;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.screen.*;
-import net.minecraft.screen.slot.ForgingSlotsManager;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.core.Holder;
+import net.minecraft.network.protocol.game.ClientboundContainerSetDataPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AnvilMenu;
+import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.DataSlot;
+import net.minecraft.world.inventory.ItemCombinerMenu;
+import net.minecraft.world.inventory.ItemCombinerMenuSlotDefinition;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
 import nu.metacraft.repair_fix.RepairFixConfig;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
@@ -25,34 +29,34 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(value = AnvilScreenHandler.class, priority = 0)
-public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
+@Mixin(value = AnvilMenu.class, priority = 0)
+public abstract class MixinAnvilScreenHandler extends ItemCombinerMenu {
 
-	@Shadow @Final private Property levelCost;
+	@Shadow @Final private DataSlot cost;
 
-	public MixinAnvilScreenHandler(@Nullable ScreenHandlerType<?> type, int syncId, PlayerInventory playerInventory, ScreenHandlerContext context, ForgingSlotsManager forgingSlotsManager) {
+	public MixinAnvilScreenHandler(@Nullable MenuType<?> type, int syncId, Inventory playerInventory, ContainerLevelAccess context, ItemCombinerMenuSlotDefinition forgingSlotsManager) {
 		super(type, syncId, playerInventory, context, forgingSlotsManager);
 	}
 
 	@WrapOperation(
-		method = "updateResult",
+		method = "createResult",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/item/ItemStack;canRepairWith(Lnet/minecraft/item/ItemStack;)Z"
+			target = "Lnet/minecraft/world/item/ItemStack;isValidRepairItem(Lnet/minecraft/world/item/ItemStack;)Z"
 		)
 	)
 	public boolean canRepair(
 			ItemStack stack, ItemStack ingredient, Operation<Boolean> op,
 			@Share("parse") LocalRef<Integer> parse
 	) {
-		return RepairFixConfig.getConfig(player.getEntityWorld().getServer()).findRepairCount(stack, ingredient).stream().mapToObj(value -> {
+		return RepairFixConfig.getConfig(player.level().getServer()).findRepairCount(stack, ingredient).stream().mapToObj(value -> {
 			parse.set(value);
 			return value > 0;
 		}).findAny().orElse(op.call(stack, ingredient));
 	}
 
 	@ModifyExpressionValue(
-		method = "updateResult",
+		method = "createResult",
 		at = @At(
 			value = "CONSTANT",
 			args = "intValue=4"
@@ -68,7 +72,7 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 	}
 
 	@ModifyExpressionValue(
-		method = "updateResult",
+		method = "createResult",
 		at = @At(
 			value = "CONSTANT",
 			args = "intValue=40",
@@ -80,7 +84,7 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 	}
 
 	@ModifyExpressionValue(
-		method = "updateResult",
+		method = "createResult",
 		at = @At(
 			value = "CONSTANT",
 			args = "intValue=40",
@@ -92,7 +96,7 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 	}
 
 	@ModifyExpressionValue(
-		method = "updateResult",
+		method = "createResult",
 		at = @At(
 			value = "CONSTANT",
 			args = "intValue=39"
@@ -103,20 +107,20 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 	}
 
 	@Inject(
-		method = "updateResult",
+		method = "createResult",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/screen/Property;get()I",
+			target = "Lnet/minecraft/world/inventory/DataSlot;get()I",
 			ordinal = 1
 		)
 	)
 	public void capAtMaxLevelIfConfigured(CallbackInfo ci) {
 		if (RepairFixConfig.getConfig().capAtMaxLevel()) {
-			if (this.levelCost.get() >= RepairFixConfig.getConfig().getMaxRepairCost()) {
-				this.levelCost.set(RepairFixConfig.getConfig().getMaxRepairCost()-1);
-				if (!player.getEntityWorld().isClient()) {
-					((ServerPlayerEntity) player).networkHandler.sendPacket(
-							new ScreenHandlerPropertyUpdateS2CPacket(syncId, 0, this.levelCost.get())
+			if (this.cost.get() >= RepairFixConfig.getConfig().getMaxRepairCost()) {
+				this.cost.set(RepairFixConfig.getConfig().getMaxRepairCost()-1);
+				if (!player.level().isClientSide()) {
+					((ServerPlayer) player).connection.send(
+							new ClientboundContainerSetDataPacket(containerId, 0, this.cost.get())
 					);
 				}
 			}
@@ -124,27 +128,27 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 	}
 
 	@WrapOperation(
-		method = "updateResult",
+		method = "createResult",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/enchantment/Enchantment;canBeCombined(Lnet/minecraft/registry/entry/RegistryEntry;Lnet/minecraft/registry/entry/RegistryEntry;)Z"
+			target = "Lnet/minecraft/world/item/enchantment/Enchantment;areCompatible(Lnet/minecraft/core/Holder;Lnet/minecraft/core/Holder;)Z"
 		)
 	)
 	public boolean setAdditionalCostOnCanCombine(
-			RegistryEntry<Enchantment> first, RegistryEntry<Enchantment> second, Operation<Boolean> org,
+			Holder<Enchantment> first, Holder<Enchantment> second, Operation<Boolean> org,
 			@Share("additionalCost") LocalIntRef additionalCost
 	) {
-		return RepairFixConfig.getConfig(player.getEntityWorld().getServer()).findCombineCost(first, second).stream().mapToObj(result -> {
+		return RepairFixConfig.getConfig(player.level().getServer()).findCombineCost(first, second).stream().mapToObj(result -> {
 			additionalCost.set(result);
 			return true;
 		}).findAny().orElse(org.call(first, second));
 	}
 
 	@ModifyVariable(
-		method = "updateResult",
+		method = "createResult",
 		slice = @Slice(from = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/enchantment/Enchantment;isAcceptableItem(Lnet/minecraft/item/ItemStack;)Z"
+			target = "Lnet/minecraft/world/item/enchantment/Enchantment;canEnchant(Lnet/minecraft/world/item/ItemStack;)Z"
 		)),
 		at = @At(
 			value = "JUMP", opcode = Opcodes.GOTO, ordinal = 0
@@ -162,10 +166,10 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 	}
 
 	@Inject(
-		method = "updateResult",
+		method = "createResult",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/enchantment/Enchantment;getMaxLevel()I",
+			target = "Lnet/minecraft/world/item/enchantment/Enchantment;getMaxLevel()I",
 			ordinal = 0
 		)
 	)
@@ -176,18 +180,18 @@ public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
 	}
 
 	@Redirect(
-		method = "updateResult",
+		method = "createResult",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/screen/AnvilScreenHandler;getNextCost(I)I"
+			target = "Lnet/minecraft/world/inventory/AnvilMenu;calculateIncreasedRepairCost(I)I"
 		)
 	)
 	public int preventPriceGrowth(int value, @Share("isAddingEnchantment") LocalBooleanRef isAddingEnchantment) {
 		value = switch (RepairFixConfig.getConfig().baseCostIncreaseMode()) {
-			case DEFAULT -> AnvilScreenHandler.getNextCost(value);
+			case DEFAULT -> AnvilMenu.calculateIncreasedRepairCost(value);
 			case ENCHANTING_ONLY -> {
 				if (isAddingEnchantment.get()) {
-					yield AnvilScreenHandler.getNextCost(value);
+					yield AnvilMenu.calculateIncreasedRepairCost(value);
 				} else {
 					yield value;
 				}

@@ -5,18 +5,18 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.item.equipment.ArmorMaterial;
-import net.minecraft.item.equipment.ArmorMaterials;
-import net.minecraft.item.equipment.EquipmentAssetKeys;
-import net.minecraft.item.equipment.EquipmentType;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryElementCodec;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.StringIdentifiable;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.RegistryFileCodec;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.item.equipment.ArmorMaterial;
+import net.minecraft.world.item.equipment.ArmorMaterials;
+import net.minecraft.world.item.equipment.ArmorType;
+import net.minecraft.world.item.equipment.EquipmentAssets;
 import nu.metacraft.simplecustomfeatures.Features;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 import nu.metacraft.simplecustomfeatures.objects.ObjectRegistry;
@@ -24,32 +24,32 @@ import nu.metacraft.simplecustomfeatures.objects.ObjectType;
 
 public class ArmorMaterialRegistry {
 
-	public static final RegistryKey<Registry<ArmorMaterial>> KEY = RegistryKey.ofRegistry(Features.getID("armor_material"));
+	public static final ResourceKey<Registry<ArmorMaterial>> KEY = ResourceKey.createRegistryKey(Features.getID("armor_material"));
 	public static final Registry<ArmorMaterial> REGISTRY = FabricRegistryBuilder.createSimple(KEY).buildAndRegister();
 
 	private static final Codec<ArmorMaterial> INLINE_CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
 					Codec.INT.fieldOf("durability").forGetter(ArmorMaterial::durability),
 					Codec.simpleMap(
-							EquipmentType.CODEC, Codec.INT,
-							StringIdentifiable.toKeyable(EquipmentType.values())
+							ArmorType.CODEC, Codec.INT,
+							StringRepresentable.keys(ArmorType.values())
 					).fieldOf("defense").forGetter(ArmorMaterial::defense),
 					Codec.INT.fieldOf("enchantment_value").forGetter(ArmorMaterial::enchantmentValue),
-					SoundEvent.ENTRY_CODEC.fieldOf("equip_sound").forGetter(ArmorMaterial::equipSound),
+					SoundEvent.CODEC.fieldOf("equip_sound").forGetter(ArmorMaterial::equipSound),
 					Codec.FLOAT.fieldOf("toughness").forGetter(ArmorMaterial::toughness),
 					Codec.FLOAT.fieldOf("knockback_resistance").forGetter(ArmorMaterial::knockbackResistance),
-					TagKey.codec(RegistryKeys.ITEM).fieldOf("repair_ingredient").forGetter(ArmorMaterial::repairIngredient),
-					RegistryKey.createCodec(EquipmentAssetKeys.REGISTRY_KEY).fieldOf("asset_id").forGetter(ArmorMaterial::assetId)
+					TagKey.hashedCodec(Registries.ITEM).fieldOf("repair_ingredient").forGetter(ArmorMaterial::repairIngredient),
+					ResourceKey.codec(EquipmentAssets.ROOT_ID).fieldOf("asset_id").forGetter(ArmorMaterial::assetId)
 			).apply(instance, ArmorMaterial::new)
 	);
 
-	public static final Codec<RegistryEntry<ArmorMaterial>> ENTRY_CODEC = RegistryElementCodec.of(KEY, INLINE_CODEC);
-	public static final Codec<ArmorMaterial> CODEC = ENTRY_CODEC.xmap(RegistryEntry::value, REGISTRY::getEntry);
+	public static final Codec<Holder<ArmorMaterial>> ENTRY_CODEC = RegistryFileCodec.create(KEY, INLINE_CODEC);
+	public static final Codec<ArmorMaterial> CODEC = ENTRY_CODEC.xmap(Holder::value, REGISTRY::wrapAsHolder);
 
 
 	public static void init() {
 		Registry.register(REGISTRY, "leather", ArmorMaterials.LEATHER);
-		Registry.register(REGISTRY, "chain", ArmorMaterials.CHAIN);
+		Registry.register(REGISTRY, "chain", ArmorMaterials.CHAINMAIL);
 		Registry.register(REGISTRY, "iron", ArmorMaterials.IRON);
 		Registry.register(REGISTRY, "gold", ArmorMaterials.GOLD);
 		Registry.register(REGISTRY, "diamond", ArmorMaterials.DIAMOND);
@@ -66,9 +66,9 @@ public class ArmorMaterialRegistry {
 				).apply(instance, MaterialObject::new)
 		);
 
-		private final RegistryEntry<ArmorMaterial> material;
+		private final Holder<ArmorMaterial> material;
 
-		public MaterialObject(RegistryEntry<ArmorMaterial> material) {
+		public MaterialObject(Holder<ArmorMaterial> material) {
 			this.material = material;
 		}
 
@@ -78,7 +78,7 @@ public class ArmorMaterialRegistry {
 		}
 
 		@Override
-		public DataResult<ArmorMaterial> createObject(RegistryKey<ArmorMaterial> id) {
+		public DataResult<ArmorMaterial> createObject(ResourceKey<ArmorMaterial> id) {
 			return DataResult.success(material.value());
 		}
 	}

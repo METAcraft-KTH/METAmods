@@ -1,10 +1,10 @@
 package se.metacraft.portalopening.mixin;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -14,26 +14,26 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.metacraft.portalopening.PortalOpeningDimensionData;
 import se.metacraft.portalopening.WorldData;
 
-@Mixin(World.class)
+@Mixin(Level.class)
 public abstract class MixinWorld implements WorldData {
 
-	@Shadow public abstract boolean setBlockState(BlockPos pos, BlockState state, int flags);
+	@Shadow public abstract boolean setBlock(BlockPos pos, BlockState state, int flags);
 
 	@Unique
 	private boolean breakRifts = true;
 
 	@Inject(
-		method = "setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;II)Z",
+		method = "setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;II)Z",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/World;getWorldChunk(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/WorldChunk;"
+			target = "Lnet/minecraft/world/level/Level;getChunkAt(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/chunk/LevelChunk;"
 		)
 	)
 	public void onSetBlockState(
 			BlockPos pos, BlockState state, int flags, int maxUpdateDepth,
 			CallbackInfoReturnable<Boolean> cir
 	) {
-		if ((Object) this instanceof ServerWorld world && breakRifts) {
+		if ((Object) this instanceof ServerLevel world && breakRifts) {
 			PortalOpeningDimensionData.getInstance(world).removeRiftAt(pos);
 		}
 	}
@@ -41,7 +41,7 @@ public abstract class MixinWorld implements WorldData {
 	@Override
 	public void portalOpening$setBlockNoTrigger(BlockPos pos, BlockState state) {
 		breakRifts = false;
-		this.setBlockState(pos, state, Block.NOTIFY_LISTENERS | Block.FORCE_STATE);
+		this.setBlock(pos, state, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
 		breakRifts = true;
 	}
 }

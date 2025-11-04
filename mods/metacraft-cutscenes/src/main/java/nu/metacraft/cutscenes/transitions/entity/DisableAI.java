@@ -2,13 +2,6 @@ package nu.metacraft.cutscenes.transitions.entity;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.ai.brain.Activity;
-import net.minecraft.entity.ai.brain.sensor.Sensor;
-import net.minecraft.entity.ai.brain.sensor.SensorType;
-import net.minecraft.entity.ai.brain.task.Task;
-import net.minecraft.entity.ai.goal.PrioritizedGoal;
-import net.minecraft.entity.mob.MobEntity;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.mixin.AccessorBrain;
@@ -18,6 +11,13 @@ import nu.metacraft.cutscenes.transitions.TransitionType;
 import nu.metacraft.core.mixin.AccessorMobEntity;
 
 import java.util.*;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.behavior.BehaviorControl;
+import net.minecraft.world.entity.ai.goal.WrappedGoal;
+import net.minecraft.world.entity.ai.sensing.Sensor;
+import net.minecraft.world.entity.ai.sensing.SensorType;
+import net.minecraft.world.entity.schedule.Activity;
 
 public class DisableAI implements Transition {
 
@@ -35,10 +35,10 @@ public class DisableAI implements Transition {
 
 	private boolean activated = false;
 
-	private Set<PrioritizedGoal> goalSelector;
-	private Set<PrioritizedGoal> targetSelector;
+	private Set<WrappedGoal> goalSelector;
+	private Set<WrappedGoal> targetSelector;
 
-	private Map<Integer, Map<Activity, Set<Task<?>>>> tasks;
+	private Map<Integer, Map<Activity, Set<BehaviorControl<?>>>> tasks;
 	private Map<SensorType<? extends Sensor<?>>, Sensor<?>> sensors;
 
 	private final Set<Entity> cache = new HashSet<>();
@@ -48,19 +48,19 @@ public class DisableAI implements Transition {
 		targetSelector = null;
 		tasks = null;
 		sensors = null;
-		if (entity instanceof MobEntity mob) {
+		if (entity instanceof Mob mob) {
 			if (!config.onlySensors()) {
 				var selector = ((AccessorMobEntity) mob).getGoalSelector();
-				goalSelector = new HashSet<>(selector.getGoals());
-				selector.clear(goal -> true);
+				goalSelector = new HashSet<>(selector.getAvailableGoals());
+				selector.removeAllGoals(goal -> true);
 
-				var tasks = ((AccessorBrain) mob.getBrain()).getTasks();
+				var tasks = ((AccessorBrain) mob.getBrain()).getAvailableBehaviorsByPriority();
 				this.tasks = new HashMap<>(tasks);
 				tasks.clear();
 			}
 			var tselector = ((AccessorMobEntity) mob).getTargetSelector();
-			targetSelector = new HashSet<>(tselector.getGoals());
-			tselector.clear(goal -> true);
+			targetSelector = new HashSet<>(tselector.getAvailableGoals());
+			tselector.removeAllGoals(goal -> true);
 			activated = true;
 
 			var sensors = ((AccessorBrain) mob.getBrain()).getSensors();
@@ -91,22 +91,22 @@ public class DisableAI implements Transition {
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		config.entity().get(cutscene.getRefContext()).forEach(entity -> {
 			if (!cache.contains(entity)) return;
-			if (entity instanceof MobEntity mob) {
+			if (entity instanceof Mob mob) {
 				if (!config.onlySensors()) {
 					var selector = ((AccessorMobEntity) mob).getGoalSelector();
 					goalSelector.forEach(goal -> {
-						selector.add(goal.getPriority(), goal.getGoal());
+						selector.addGoal(goal.getPriority(), goal.getGoal());
 					});
 					goalSelector.clear();
 
-					var tasks = ((AccessorBrain) mob.getBrain()).getTasks();
+					var tasks = ((AccessorBrain) mob.getBrain()).getAvailableBehaviorsByPriority();
 					tasks.putAll(this.tasks);
 					this.tasks.clear();
 				}
 
 				var tSelector = ((AccessorMobEntity) mob).getTargetSelector();
 				targetSelector.forEach(goal -> {
-					tSelector.add(goal.getPriority(), goal.getGoal());
+					tSelector.addGoal(goal.getPriority(), goal.getGoal());
 				});
 				targetSelector.clear();
 

@@ -6,13 +6,13 @@ import com.google.common.collect.Multimaps;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import nu.metacraft.lib.util.ExtraCodecs;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.Level;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.moderation.METAcraftModeration;
 import nu.metacraft.moderation.exile.rules.ZoneRule;
 import nu.metacraft.moderation.exile.rules.ZoneRuleRegistry;
@@ -79,13 +79,13 @@ public class ExileDefinition {
 		return commandOnPardon;
 	}
 
-	public boolean ruleAppliesAt(RegistryKey<World> dim, BlockPos pos, ZoneRule rule) {
+	public boolean ruleAppliesAt(ResourceKey<Level> dim, BlockPos pos, ZoneRule rule) {
 		return zoneRules.entries().stream().filter(
 				entry -> entry.getKey().contains(dim, pos)
 		).map(Map.Entry::getValue).collect(Collectors.toSet()).contains(rule);
 	}
 
-	public <T extends ServerPlayerEntity & ExilePlayerData> void onRemove(T player) {
+	public <T extends ServerPlayer & ExilePlayerData> void onRemove(T player) {
 		zoneRules.keySet().forEach(zone -> {
 			if (!player.METAcraft_Moderation$getCurrentZones().contains(zone)) {
 				zoneRules.get(zone).forEach(rule -> rule.enterAllowedArea(player));
@@ -95,12 +95,12 @@ public class ExileDefinition {
 	}
 
 
-	public <T extends ServerPlayerEntity & ExilePlayerData> void tick(T player) {
+	public <T extends ServerPlayer & ExilePlayerData> void tick(T player) {
 		zoneRules.keySet().forEach(zone -> {
-			if (!player.METAcraft_Moderation$getCurrentZones().contains(zone) && zone.contains(player.getEntityWorld().getRegistryKey(), player.getBlockPos())) {
+			if (!player.METAcraft_Moderation$getCurrentZones().contains(zone) && zone.contains(player.level().dimension(), player.blockPosition())) {
 				zoneRules.get(zone).forEach(rule -> rule.enterAllowedArea(player));
 				player.METAcraft_Moderation$getCurrentZones().add(zone);
-			} else if (player.METAcraft_Moderation$getCurrentZones().contains(zone) && !zone.contains(player.getEntityWorld().getRegistryKey(), player.getBlockPos())) {
+			} else if (player.METAcraft_Moderation$getCurrentZones().contains(zone) && !zone.contains(player.level().dimension(), player.blockPosition())) {
 				zoneRules.get(zone).forEach(rule -> rule.enterProhibitedArea(player));
 				player.METAcraft_Moderation$getCurrentZones().remove(zone);
 			}
@@ -136,7 +136,7 @@ public class ExileDefinition {
 		}
 	}
 
-	public Text toText() {
+	public Component toText() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Name: ").append(name).append("\n");
 		builder.append("ExileCommand: ").append(commandOnExile).append("\n");
@@ -146,14 +146,14 @@ public class ExileDefinition {
 			builder.append(" ").append(zone.getName()).append(": ");
 			var it = zoneRules.get(zone).iterator();
 			if (it.hasNext()) {
-				builder.append(ZoneRuleRegistry.REGISTRY.getId(it.next()));
+				builder.append(ZoneRuleRegistry.REGISTRY.getKey(it.next()));
 			}
 			while (it.hasNext()) {
-				builder.append(", ").append(ZoneRuleRegistry.REGISTRY.getId(it.next()));
+				builder.append(", ").append(ZoneRuleRegistry.REGISTRY.getKey(it.next()));
 			}
 			builder.append("\n");
 		}
-		return Text.literal(builder.toString());
+		return Component.literal(builder.toString());
 	}
 
 	public void markDirty() {
@@ -170,8 +170,8 @@ public class ExileDefinition {
 	) {
 		public static final Codec<Serialized> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						ExtraCodecs.unboundedMultimap(
-								Codec.STRING, ZoneRuleRegistry.REGISTRY.getCodec(),
+						METACodecs.unboundedMultimap(
+								Codec.STRING, ZoneRuleRegistry.REGISTRY.byNameCodec(),
 								HashMultimap::create
 						).optionalFieldOf("zone_rules", HashMultimap.create()).forGetter(Serialized::zoneRules),
 						Codec.STRING.fieldOf(NAME).forGetter(Serialized::name)

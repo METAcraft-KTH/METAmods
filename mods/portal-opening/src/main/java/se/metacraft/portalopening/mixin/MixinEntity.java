@@ -1,11 +1,11 @@
 package se.metacraft.portalopening.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -19,7 +19,7 @@ import se.metacraft.portalopening.rifts.PortalRift;
 @Mixin(Entity.class)
 public class MixinEntity implements EntityData {
 
-	@Shadow private World world;
+	@Shadow private Level level;
 	@Unique
 	private static final String RIFT = "PortalRift";
 
@@ -31,18 +31,18 @@ public class MixinEntity implements EntityData {
 		this.rift = rift;
 	}
 
-	@Inject(method = "writeData", at = @At("RETURN"))
-	public void toNBT(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "saveWithoutId", at = @At("RETURN"))
+	public void toNBT(ValueOutput nbt, CallbackInfo ci) {
 		if (rift != null) {
 			nbt.putLong(RIFT, rift.getRandomPos().asLong());
 		}
 	}
 
-	@Inject(method = "readData", at = @At("RETURN"))
-	public void fromNBT(ReadView nbt, CallbackInfo ci) {
-		if (world instanceof ServerWorld) {
-			nbt.getOptionalLong(RIFT).map(BlockPos::fromLong).flatMap(
-					pos -> PortalOpeningDimensionData.getInstance((ServerWorld) world).getRiftAt(pos)
+	@Inject(method = "load", at = @At("RETURN"))
+	public void fromNBT(ValueInput nbt, CallbackInfo ci) {
+		if (level instanceof ServerLevel) {
+			nbt.getLong(RIFT).map(BlockPos::of).flatMap(
+					pos -> PortalOpeningDimensionData.getInstance((ServerLevel) level).getRiftAt(pos)
 			).ifPresent(rift -> {
 				rift.addEntity((Entity) (Object) this);
 			});

@@ -1,11 +1,11 @@
 package nu.metacraft.lib.mixin;
 
-import net.minecraft.server.dedicated.ServerPropertiesHandler;
+import net.minecraft.server.dedicated.DedicatedServerProperties;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(ServerPropertiesHandler.class)
+@Mixin(DedicatedServerProperties.class)
 public interface AccessorServerPropertiesHandler {
 
 	@Accessor

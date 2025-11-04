@@ -1,25 +1,21 @@
 package nu.metacraft.cutscenes.util.helper;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 
 public class HiddenEntityHelper {
 
-	public static boolean isHiddenFrom(Entity entity, ServerPlayerEntity player) {
-		if (entity instanceof ServerPlayerEntity p) {
+	public static boolean isHiddenFrom(Entity entity, ServerPlayer player) {
+		if (entity instanceof ServerPlayer p) {
 			if (p == player) return false;
 			var scene = CutsceneHelper.getCutscene(p);
 			if (scene.isPresent()) {
-				if (scene.get().isPlayerHiddenFrom(p, player)) {
-					return true;
-				}
+				return scene.get().isPlayerHiddenFrom(p, player);
 			}
 		} else {
 			var scene = CutsceneHelper.getCutscene(player);
-			if (scene.isPresent() && entity.getEntityWorld() != scene.get().getCutsceneWorld()) {
-				if (scene.get().getCutsceneWorld().getEntityManager().isHidden(entity.getUuid())) {
-					return true;
-				}
+			if (scene.isPresent() && entity.level() != scene.get().getCutsceneWorld()) {
+				return scene.get().getCutsceneWorld().getEntityManager().isHidden(entity.getUUID());
 			}
 		}
 		return false;

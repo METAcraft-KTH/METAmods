@@ -1,6 +1,6 @@
 package nu.metacraft.zones.zone.types;
 
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
 public class SphereZone extends CircleZone {
@@ -11,7 +11,7 @@ public class SphereZone extends CircleZone {
 
 	@Override
 	public boolean contains(BlockPos pos) {
-		return center.isWithinDistance(pos, radius);
+		return center.closerThan(pos, radius);
 	}
 
 	@Override
@@ -21,7 +21,7 @@ public class SphereZone extends CircleZone {
 
 	@Override
 	public ZoneType copy() {
-		return new SphereZone(center.toImmutable(), radius);
+		return new SphereZone(center.immutable(), radius);
 	}
 
 	@Override

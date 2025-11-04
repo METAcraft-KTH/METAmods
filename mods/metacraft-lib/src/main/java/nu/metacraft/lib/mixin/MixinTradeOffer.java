@@ -9,8 +9,6 @@ import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.util.Uuids;
-import net.minecraft.village.TradeOffer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -21,8 +19,10 @@ import nu.metacraft.lib.extensions.TradeOfferExtensions;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.world.item.trading.MerchantOffer;
 
-@Mixin(TradeOffer.class)
+@Mixin(MerchantOffer.class)
 public class MixinTradeOffer implements TradeOfferExtensions {
 	@Shadow
 	private int uses;
@@ -35,14 +35,14 @@ public class MixinTradeOffer implements TradeOfferExtensions {
 	private final Object2IntMap<UUID> usesPerPlayer = new Object2IntOpenHashMap<>(0);
 
 	@Unique
-	private static final Codec<Map<UUID, Integer>> USES_PER_PLAYER_CODEC = Codec.unboundedMap(Uuids.CODEC, Codec.INT);
+	private static final Codec<Map<UUID, Integer>> USES_PER_PLAYER_CODEC = Codec.unboundedMap(UUIDUtil.AUTHLIB_CODEC, Codec.INT);
 
 	@ModifyExpressionValue(method = "<clinit>", at = @At(value = "INVOKE", target = "Lcom/mojang/serialization/codecs/RecordCodecBuilder;create(Ljava/util/function/Function;)Lcom/mojang/serialization/Codec;"))
-	private static Codec<TradeOffer> wrapCodec(Codec<TradeOffer> original) {
-		MapCodec<TradeOffer> codec = ((MapCodec.MapCodecCodec<TradeOffer>) original).codec();
-		return new MapCodec<TradeOffer>() {
+	private static Codec<MerchantOffer> wrapCodec(Codec<MerchantOffer> original) {
+		MapCodec<MerchantOffer> codec = ((MapCodec.MapCodecCodec<MerchantOffer>) original).codec();
+		return new MapCodec<MerchantOffer>() {
 			@Override
-			public <T> RecordBuilder<T> encode(TradeOffer input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+			public <T> RecordBuilder<T> encode(MerchantOffer input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
 				var maxUsesPerPlayer = ((TradeOfferExtensions) input).metacraft$getMaxUsesPerPlayer();
 				var usesPerPlayer = ((TradeOfferExtensions) input).metacraft$getUsesPerPlayer();
 				if (maxUsesPerPlayer != -1) {
@@ -55,7 +55,7 @@ public class MixinTradeOffer implements TradeOfferExtensions {
 			}
 
 			@Override
-			public <T> DataResult<TradeOffer> decode(DynamicOps<T> ops, MapLike<T> input) {
+			public <T> DataResult<MerchantOffer> decode(DynamicOps<T> ops, MapLike<T> input) {
 				var maxUsesPerPlayer = input.get("maxUsesPerPlayer");
 				var usesPerPlayer = input.get("usesPerPlayer");
 				var result = codec.decode(ops, input);

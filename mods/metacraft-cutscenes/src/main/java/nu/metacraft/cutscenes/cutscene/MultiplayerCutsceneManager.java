@@ -2,12 +2,12 @@ package nu.metacraft.cutscenes.cutscene;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Uuids;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 import nu.metacraft.cutscenes.CutsceneDataFixer;
@@ -18,19 +18,19 @@ import nu.metacraft.cutscenes.util.helper.CutsceneHelper;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class MultiplayerCutsceneManager extends PersistentState {
+public class MultiplayerCutsceneManager extends SavedData {
 
 	public static final String CUTSCENES = "cutscenes";
 	public static final String OFFLINE_PLAYERS_KEY = "offline-players";
 
 	private static final Codec<Map<String, CutsceneInstance>> CUTSCENE_LIST = Codec.unboundedMap(Codec.STRING, CutsceneInstance.CODEC);
-	private static final Codec<Map<UUID, String>> PLAYER_TO_CUTSCENE = Codec.unboundedMap(Uuids.STRING_CODEC, Codec.STRING);
-	private static final Codec<Map<UUID, CutsceneInstance>> OFFLINE_PLAYERS = Codec.unboundedMap(Uuids.STRING_CODEC, CutsceneInstance.CODEC);
+	private static final Codec<Map<UUID, String>> PLAYER_TO_CUTSCENE = Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.STRING);
+	private static final Codec<Map<UUID, CutsceneInstance>> OFFLINE_PLAYERS = Codec.unboundedMap(UUIDUtil.STRING_CODEC, CutsceneInstance.CODEC);
 
-	private static final PersistentStateType<MultiplayerCutsceneManager> TYPE = new PersistentStateType<>(
+	private static final SavedDataType<MultiplayerCutsceneManager> TYPE = new SavedDataType<>(
 			"multiplayer-cutscene-manager",
-			ctx -> new MultiplayerCutsceneManager(ctx.getWorldOrThrow().getServer()),
-			ctx -> createCodec(ctx.getWorldOrThrow().getServer()),
+			ctx -> new MultiplayerCutsceneManager(ctx.levelOrThrow().getServer()),
+			ctx -> createCodec(ctx.levelOrThrow().getServer()),
 			CutsceneDataFixer.Types.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
 	);
 
@@ -65,7 +65,7 @@ public class MultiplayerCutsceneManager extends PersistentState {
 	}
 
 	public static MultiplayerCutsceneManager getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	private final MinecraftServer server;
@@ -84,8 +84,8 @@ public class MultiplayerCutsceneManager extends PersistentState {
 		return Optional.ofNullable(activeCutscenes.get(cutscene));
 	}
 
-	public Optional<CutsceneInstance> getCutsceneFromPlayer(ServerPlayerEntity player) {
-		return Optional.ofNullable(cutsceneByPlayerActive.get(player.getUuid()));
+	public Optional<CutsceneInstance> getCutsceneFromPlayer(ServerPlayer player) {
+		return Optional.ofNullable(cutsceneByPlayerActive.get(player.getUUID()));
 	}
 
 	public Collection<String> getCutsceneNames() {
@@ -105,36 +105,36 @@ public class MultiplayerCutsceneManager extends PersistentState {
 		cutsceneByPlayer.put(player, cutscene);
 		cutsceneByPlayerActive.put(player, scene);
 		playerByCutscene = playerByCutscene.plus(cutscene, player);
-		markDirty();
+		setDirty();
 	}
 
 	private void removePlayer(UUID player) {
 		var name = cutsceneByPlayer.remove(player);
 		cutsceneByPlayerActive.remove(player);
 		playerByCutscene = playerByCutscene.minus(name, player);
-		markDirty();
+		setDirty();
 	}
 
-	public void addToCutscene(String cutscene, ServerPlayerEntity player) {
+	public void addToCutscene(String cutscene, ServerPlayer player) {
 		if (CutsceneHelper.isInPlayerSpecificCutscene(player)) {
 			return;
 		}
 		getCutscene(cutscene).ifPresent(scene -> {
-			if (cutsceneByPlayerActive.get(player.getUuid()) == scene || !scene.canAddPlayer(player)) {
+			if (cutsceneByPlayerActive.get(player.getUUID()) == scene || !scene.canAddPlayer(player)) {
 				return;
 			} else {
 				removeFromCutscene(player);
 			}
 			scene.addPlayer(player);
-			addPlayer(cutscene, scene, player.getUuid());
+			addPlayer(cutscene, scene, player.getUUID());
 		});
 	}
 
 	private CutsceneInstance.RemoveHandler getRemoveHandler(String name) {
 		return new CutsceneInstance.RemoveHandler() {
 
-			Consumer<ServerPlayerEntity> playerAction = p -> removePlayer(p.getUuid());
-			List<ServerPlayerEntity> players = null;
+			Consumer<ServerPlayer> playerAction = p -> removePlayer(p.getUUID());
+			List<ServerPlayer> players = null;
 
 			@Override
 			public void beforePlayerReset(CutsceneInstance cutscene) {
@@ -156,7 +156,7 @@ public class MultiplayerCutsceneManager extends PersistentState {
 						cutsceneByPlayerActive.put(player, activeCutscenes.get(name));
 					}
 				});
-				markDirty();
+				setDirty();
 			}
 
 			@Override
@@ -174,51 +174,51 @@ public class MultiplayerCutsceneManager extends PersistentState {
 		if (activeCutscenes.containsKey(cutscene)) {
 			activeCutscenes.get(cutscene).end(false);
 			activeCutscenes = activeCutscenes.minus(cutscene);
-			markDirty();
+			setDirty();
 		}
 	}
 
-	public void addCutscene(String name, Cutscene cutscene, ServerWorld world) {
+	public void addCutscene(String name, Cutscene cutscene, ServerLevel world) {
 		var scene = new CutsceneInstance(cutscene, world);
 		scene.setRemoveHandler(getRemoveHandler(name));
 		activeCutscenes = activeCutscenes.plus(name, scene);
-		markDirty();
+		setDirty();
 	}
 
-	public void leaveCutscene(ServerPlayerEntity player) {
+	public void leaveCutscene(ServerPlayer player) {
 		removeFromCutscene(player);
 	}
 
 
-	protected void removeFromCutscene(ServerPlayerEntity player) {
-		var scene = cutsceneByPlayerActive.get(player.getUuid());
+	protected void removeFromCutscene(ServerPlayer player) {
+		var scene = cutsceneByPlayerActive.get(player.getUUID());
 		if (scene != null) {
 			scene.removePlayer(player, true);
 			scene.resetPlayer(player, true);
 		}
-		removePlayer(player.getUuid());
+		removePlayer(player.getUUID());
 	}
 
-	public boolean isInCutscene(ServerPlayerEntity player) {
-		return cutsceneByPlayer.containsKey(player.getUuid());
+	public boolean isInCutscene(ServerPlayer player) {
+		return cutsceneByPlayer.containsKey(player.getUUID());
 	}
 
-	public void onPlayerJoin(ServerPlayerEntity player) {
-		if (disconnectedPlayers.containsKey(player.getUuid())) {
-			var scene = disconnectedPlayers.get(player.getUuid());
+	public void onPlayerJoin(ServerPlayer player) {
+		if (disconnectedPlayers.containsKey(player.getUUID())) {
+			var scene = disconnectedPlayers.get(player.getUUID());
 			scene.disableTransitions(player);
 			scene.resetPlayer(player, true);
-			disconnectedPlayers.remove(player.getUuid());
-			markDirty();
+			disconnectedPlayers.remove(player.getUUID());
+			setDirty();
 		}
-		if (cutsceneByPlayer.containsKey(player.getUuid())) {
-			cutsceneByPlayerActive.get(player.getUuid()).addPlayer(player);
+		if (cutsceneByPlayer.containsKey(player.getUUID())) {
+			cutsceneByPlayerActive.get(player.getUUID()).addPlayer(player);
 		}
 	}
 
-	public void onPlayerLeave(ServerPlayerEntity player) {
-		if (cutsceneByPlayer.containsKey(player.getUuid())) {
-			cutsceneByPlayerActive.get(player.getUuid()).removePlayer(player, false);
+	public void onPlayerLeave(ServerPlayer player) {
+		if (cutsceneByPlayer.containsKey(player.getUUID())) {
+			cutsceneByPlayerActive.get(player.getUUID()).removePlayer(player, false);
 		}
 	}
 
@@ -231,7 +231,7 @@ public class MultiplayerCutsceneManager extends PersistentState {
 	public void tick() {
 		activeCutscenes.forEach((name, scene) -> {
 			scene.tick();
-			markDirty();
+			setDirty();
 		});
 	}
 }

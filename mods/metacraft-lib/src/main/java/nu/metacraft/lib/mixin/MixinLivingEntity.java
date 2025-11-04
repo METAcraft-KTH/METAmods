@@ -3,24 +3,28 @@ package nu.metacraft.lib.mixin;
 import com.google.common.collect.ImmutableList;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.brain.Activity;
-import net.minecraft.entity.ai.brain.Brain;
-import net.minecraft.entity.ai.brain.MemoryModuleType;
-import net.minecraft.entity.ai.brain.sensor.Sensor;
-import net.minecraft.entity.ai.brain.task.ForgetAttackTargetTask;
-import net.minecraft.entity.ai.brain.task.UpdateAttackTargetTask;
-import net.minecraft.entity.attribute.*;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.passive.ChickenEntity;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.world.World;
+import net.minecraft.core.Holder;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.Brain;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.behavior.StartAttacking;
+import net.minecraft.world.entity.ai.behavior.StopAttackingIfTargetInvalid;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.sensing.Sensor;
+import net.minecraft.world.entity.animal.Chicken;
+import net.minecraft.world.entity.schedule.Activity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -45,15 +49,15 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 	@Unique
 	private static final String HAS_ANGER_PARTICLES = "AngerParticles";
 
-	public MixinLivingEntity(EntityType<?> type, World world) {
+	public MixinLivingEntity(EntityType<?> type, Level world) {
 		super(type, world);
 	}
 
-	@Shadow public abstract @Nullable LivingEntity getAttacker();
+	@Shadow public abstract @Nullable LivingEntity getLastHurtByMob();
 
 	@Shadow protected Brain<?> brain;
 
-	@Shadow public abstract @Nullable EntityAttributeInstance getAttributeInstance(RegistryEntry<EntityAttribute> attribute);
+	@Shadow public abstract @Nullable AttributeInstance getAttribute(Holder<Attribute> attribute);
 
 	@Unique
 	private boolean isHostile;
@@ -62,16 +66,16 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 	private boolean hasAngerParticles;
 
 
-	@Inject(method = "onDeath", at = @At("RETURN"))
+	@Inject(method = "die", at = @At("RETURN"))
 	public void onDeath(DamageSource damageSource, CallbackInfo ci) {
-		if ((Object) this instanceof ChickenEntity && ((ChickenExtensions) this).metacraft_lib$isCucco()) {
+		if ((Object) this instanceof Chicken && ((ChickenExtensions) this).metacraft_lib$isCucco()) {
 			((ChickenExtensions) this).metacraft_lib$setReinforcementCount(
 					((ChickenExtensions) this).metacraft_lib$getReinforcementCount() * 2
 			);
-			this.getAttributeInstance(EntityAttributes.FOLLOW_RANGE).addTemporaryModifier(
-					new EntityAttributeModifier(METAcraftLib.getID("double_range"), 2, EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL)
+			this.getAttribute(Attributes.FOLLOW_RANGE).addTransientModifier(
+					new AttributeModifier(METAcraftLib.getID("double_range"), 2, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL)
 			);
-			if (this.getAttacker() != null) {
+			if (this.getLastHurtByMob() != null) {
 				((ChickenExtensions) this).metacraft_lib$makeNearbyChickensAngry();
 			}
 		}
@@ -82,7 +86,7 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 
 	@Inject(method = "tick", at = @At("RETURN"))
 	public void tick(CallbackInfo ci) {
-		if (!getEntityWorld().isClient() && hasAngerParticles) {
+		if (!level().isClientSide() && hasAngerParticles) {
 			if (particleDelay <= 0) {
 				Particles.spawnAngerParticles(this, random);
 				particleDelay = 10 + random.nextInt(30);
@@ -92,48 +96,48 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 		}
 	}
 
-	@Inject(method = "writeCustomData", at = @At("RETURN"))
-	public void toNBT(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
+	public void toNBT(ValueOutput nbt, CallbackInfo ci) {
 		nbt.putBoolean(EntityParameters.IS_HOSTILE, isHostile);
 		nbt.putBoolean(HAS_ANGER_PARTICLES, hasAngerParticles);
 	}
 
 	@Unique
 	private static final String FORGET_ATTACK_TARGET_TASK = FabricLoader.getInstance().getMappingResolver().mapClassName(
-			"named", ForgetAttackTargetTask.class.getName()
+			"named", StopAttackingIfTargetInvalid.class.getName()
 	);
 
 	@Unique
 	private static final String UPDATE_ATTACK_TARGET_TASK = FabricLoader.getInstance().getMappingResolver().mapClassName(
-			"named", UpdateAttackTargetTask.class.getName()
+			"named", StartAttacking.class.getName()
 	);
 
-	@Inject(method = "readCustomData", at = @At("RETURN"))
-	public void fromNBT(ReadView nbt, CallbackInfo ci) {
-		isHostile = nbt.getBoolean(EntityParameters.IS_HOSTILE, false);
-		hasAngerParticles = nbt.getBoolean(HAS_ANGER_PARTICLES, false);
-		if (nbt.getBoolean(ANGRY, false)) {
+	@Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
+	public void fromNBT(ValueInput nbt, CallbackInfo ci) {
+		isHostile = nbt.getBooleanOr(EntityParameters.IS_HOSTILE, false);
+		hasAngerParticles = nbt.getBooleanOr(HAS_ANGER_PARTICLES, false);
+		if (nbt.getBooleanOr(ANGRY, false)) {
 			isHostile = true;
 			hasAngerParticles = true;
 		}
-		if (isHostile && (Object) this instanceof MobEntity) {
-			((AccessorBrain) this.brain).getTasks().forEach((id, tasks) -> {
+		if (isHostile && (Object) this instanceof Mob) {
+			((AccessorBrain) this.brain).getAvailableBehaviorsByPriority().forEach((id, tasks) -> {
 				tasks.forEach((activity, taskSet) -> {
 					taskSet.removeIf(task -> {
-						return task.getName().contains(FORGET_ATTACK_TARGET_TASK) || task.getName().contains(UPDATE_ATTACK_TARGET_TASK);
+						return task.debugString().contains(FORGET_ATTACK_TARGET_TASK) || task.debugString().contains(UPDATE_ATTACK_TARGET_TASK);
 					});
 				});
 			});
-			((Brain<? extends MobEntity>) this.brain).setTaskList(
+			((Brain<? extends Mob>) this.brain).addActivity(
 					Activity.IDLE, 0,
 					ImmutableList.of(
-							UpdateAttackTargetTask.create(MixinLivingEntity::getTarget)
+							StartAttacking.create(MixinLivingEntity::getTarget)
 					)
 			);
-			((Brain<? extends MobEntity>) this.brain).setTaskList(
+			((Brain<? extends Mob>) this.brain).addActivityAndRemoveMemoryWhenStopped(
 					Activity.FIGHT, 0,
 					ImmutableList.of(
-							ForgetAttackTargetTask.create(
+							StopAttackingIfTargetInvalid.create(
 									(world, entity) -> getTarget(world, (LivingEntity) (Object) this).filter(
 											target -> target == entity
 									).isEmpty()
@@ -144,20 +148,20 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 	}
 
 	@ModifyReturnValue(method = "createLivingAttributes", at = @At("RETURN"))
-	private static DefaultAttributeContainer.Builder createMobAttributes(DefaultAttributeContainer.Builder original) {
-		return original.add(EntityAttributes.ATTACK_DAMAGE, 5);
+	private static AttributeSupplier.Builder createMobAttributes(AttributeSupplier.Builder original) {
+		return original.add(Attributes.ATTACK_DAMAGE, 5);
 	}
 
 	@Unique
 	private static <T> Optional<T> getMemory(LivingEntity entity, MemoryModuleType<T> memoryModuleType) {
-		return Optional.ofNullable(entity.getBrain().getOptionalMemory(memoryModuleType)).flatMap(o -> o);
+		return Optional.ofNullable(entity.getBrain().getMemoryInternal(memoryModuleType)).flatMap(o -> o);
 	}
 
 	@Unique
-	private static Optional<? extends LivingEntity> getTarget(ServerWorld world, LivingEntity entity) {
+	private static Optional<? extends LivingEntity> getTarget(ServerLevel world, LivingEntity entity) {
 		Optional<LivingEntity> angryAt = getMemory(entity, MemoryModuleType.ANGRY_AT).map(
 			uuid -> {
-				var target = ((ServerWorld) entity.getEntityWorld()).getEntity(uuid);
+				var target = ((ServerLevel) entity.level()).getEntity(uuid);
 				if (target instanceof LivingEntity living) {
 					return living;
 				} else {
@@ -165,13 +169,13 @@ public abstract class MixinLivingEntity extends Entity implements LivingEntityEx
 				}
 			}
 		);
-		if (angryAt.isPresent() && Sensor.testAttackableTargetPredicateIgnoreVisibility(world, entity, angryAt.get())) {
+		if (angryAt.isPresent() && Sensor.isEntityAttackableIgnoringLineOfSight(world, entity, angryAt.get())) {
 			return angryAt;
 		}
 		Optional<? extends LivingEntity> foundTarget = getMemory(
-				entity, MemoryModuleType.NEAREST_VISIBLE_TARGETABLE_PLAYER
+				entity, MemoryModuleType.NEAREST_VISIBLE_ATTACKABLE_PLAYER
 		).filter(
-				target -> target.isInRange(entity, entity.getAttributeValue(EntityAttributes.FOLLOW_RANGE))
+				target -> target.closerThan(entity, entity.getAttributeValue(Attributes.FOLLOW_RANGE))
 		);
 		if (foundTarget.isPresent()) {
 			return foundTarget;

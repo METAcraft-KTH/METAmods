@@ -2,19 +2,19 @@ package nu.metacraft.core.util;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
-import net.minecraft.world.World;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.core.countdown.Countdown;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.METAcraftCore;
 
 import java.util.Optional;
 
-public class METAcraftCoreData extends PersistentState {
+public class METAcraftCoreData extends SavedData {
 
 	public static final Codec<METAcraftCoreData> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
@@ -39,21 +39,21 @@ public class METAcraftCoreData extends PersistentState {
 		this(Optional.empty(), Optional.empty());
 	}
 
-	private static final PersistentStateType<METAcraftCoreData> TYPE = new PersistentStateType<>(
+	private static final SavedDataType<METAcraftCoreData> TYPE = new SavedDataType<>(
 			METAcraftCore.NAMESPACE + "-core-data", METAcraftCoreData::new, CODEC, null
 	);
 
 	public static METAcraftCoreData getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	@Nullable
-	public RegistryKey<World> getForcedRespawnWorld() {
+	public ResourceKey<Level> getForcedRespawnWorld() {
 		return this.forcedRespawn.map(SpawnPos::world).orElse(null);
 	}
 
 	@Nullable
-	public Vec3d getForcedRespawnPos() {
+	public Vec3 getForcedRespawnPos() {
 		return this.forcedRespawn.map(SpawnPos::pos).orElse(null);
 	}
 
@@ -61,14 +61,14 @@ public class METAcraftCoreData extends PersistentState {
 		return this.forcedRespawn.map(SpawnPos::angle).orElse(0.0f);
 	}
 
-	public void setForcedRespawn(RegistryKey<World> world, Vec3d pos, float angle) {
+	public void setForcedRespawn(ResourceKey<Level> world, Vec3 pos, float angle) {
 		this.forcedRespawn = Optional.of(new SpawnPos(pos, world, angle));
-		this.markDirty();
+		this.setDirty();
 	}
 
 	public void unsetForcedRespawn() {
 		this.forcedRespawn = Optional.empty();
-		this.markDirty();
+		this.setDirty();
 	}
 
 	public Optional<Countdown> getCountdown() {
@@ -78,14 +78,14 @@ public class METAcraftCoreData extends PersistentState {
 	public void setCountdown(Optional<Countdown> countdown) {
 		this.countdown = countdown;
 		this.countdown.ifPresent(c -> c.setParent(this));
-		this.markDirty();
+		this.setDirty();
 	}
 
-	public record SpawnPos(Vec3d pos, RegistryKey<World> world, float angle) {
+	public record SpawnPos(Vec3 pos, ResourceKey<Level> world, float angle) {
 		public static final Codec<SpawnPos> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						Vec3d.CODEC.fieldOf("pos").forGetter(SpawnPos::pos),
-						World.CODEC.fieldOf("dimension").forGetter(SpawnPos::world),
+						Vec3.CODEC.fieldOf("pos").forGetter(SpawnPos::pos),
+						Level.RESOURCE_KEY_CODEC.fieldOf("dimension").forGetter(SpawnPos::world),
 						Codec.FLOAT.fieldOf("angle").forGetter(SpawnPos::angle)
 				).apply(instance, SpawnPos::new)
 		);

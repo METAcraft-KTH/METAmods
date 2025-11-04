@@ -6,15 +6,15 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.util.Interpolatable;
 import nu.metacraft.core.util.InterpolationSet;
 
 import java.util.stream.DoubleStream;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 
-public record Target(Vec3d pos, float yaw, float pitch) implements Interpolatable<CutsceneContext> {
+public record Target(Vec3 pos, float yaw, float pitch) implements Interpolatable<CutsceneContext> {
 
 	public static final Int2ObjectMap<InterpolationSet.Adjuster> ADJUSTER = Int2ObjectMaps.singleton(
 			3, InterpolationSet::fixYawRotations
@@ -22,7 +22,7 @@ public record Target(Vec3d pos, float yaw, float pitch) implements Interpolatabl
 
 	public static final MapCodec<Target> MAP_CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Vec3d.CODEC.fieldOf("pos").forGetter(t -> t.pos),
+					Vec3.CODEC.fieldOf("pos").forGetter(t -> t.pos),
 					Codec.FLOAT.fieldOf("yaw").forGetter(t -> t.yaw),
 					Codec.FLOAT.fieldOf("pitch").forGetter(t -> t.pitch)
 			).apply(instance, Target::new)
@@ -30,10 +30,10 @@ public record Target(Vec3d pos, float yaw, float pitch) implements Interpolatabl
 
 	public static final Codec<Target> CODEC = MAP_CODEC.codec();
 
-	public static final Target DEFAULT = new Target(Vec3d.ZERO, 0, 0);
+	public static final Target DEFAULT = new Target(Vec3.ZERO, 0, 0);
 
 	public static Target fromEntity(Entity entity) {
-		return new Target(entity.getEntityPos(), entity.getYaw(), entity.getPitch());
+		return new Target(entity.position(), entity.getYRot(), entity.getXRot());
 	}
 
 	public static Target fromList(DoubleStream stream) {
@@ -43,7 +43,7 @@ public record Target(Vec3d pos, float yaw, float pitch) implements Interpolatabl
 		double z = list[2];
 		float yaw = (float) list[3];
 		float pitch = (float) list[4];
-		return new Target(new Vec3d(x, y, z), yaw, pitch);
+		return new Target(new Vec3(x, y, z), yaw, pitch);
 	}
 
 	@Override

@@ -1,19 +1,19 @@
 package nu.metacraft.lib.mixin;
 
 import com.mojang.datafixers.DataFixer;
-import net.minecraft.world.PlayerSaveHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 import java.io.File;
+import net.minecraft.world.level.storage.PlayerDataStorage;
 
-@Mixin(PlayerSaveHandler.class)
+@Mixin(PlayerDataStorage.class)
 public interface AccessorPlayerSaveHandler {
 
 	@Accessor
-	File getPlayerDataDir();
+	File getPlayerDir();
 
 	@Accessor
-	DataFixer getDataFixer();
+	DataFixer getFixerUpper();
 
 }

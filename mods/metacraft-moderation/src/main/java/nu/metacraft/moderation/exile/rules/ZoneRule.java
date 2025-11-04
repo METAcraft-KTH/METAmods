@@ -1,16 +1,15 @@
 package nu.metacraft.moderation.exile.rules;
 
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
-
 import java.util.Optional;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 
 public interface ZoneRule {
-	void enterAllowedArea(ServerPlayerEntity player);
-	void enterProhibitedArea(ServerPlayerEntity player);
-	void tick(ServerPlayerEntity player);
+	void enterAllowedArea(ServerPlayer player);
+	void enterProhibitedArea(ServerPlayer player);
+	void tick(ServerPlayer player);
 
-	default Identifier getID() {
-		return Optional.ofNullable(ZoneRuleRegistry.REGISTRY.getId(this)).orElse(Identifier.ofVanilla("missingno"));
+	default ResourceLocation getID() {
+		return Optional.ofNullable(ZoneRuleRegistry.REGISTRY.getKey(this)).orElse(ResourceLocation.withDefaultNamespace("missingno"));
 	}
 }

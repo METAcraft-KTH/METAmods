@@ -1,9 +1,9 @@
 package nu.metacraft.zones.compat;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.command.argument.NbtCompoundArgumentType;
-import net.minecraft.registry.Registry;
-import net.minecraft.text.Text;
+import net.minecraft.commands.arguments.CompoundTagArgument;
+import net.minecraft.core.Registry;
+import net.minecraft.network.chat.Component;
 import nu.metacraft.core.commands.PlayMusic;
 import nu.metacraft.zones.METAcraftZones;
 import nu.metacraft.zones.compat.music.MusicData;
@@ -13,8 +13,8 @@ import nu.metacraft.zones.zone.data.ZoneDataType;
 
 import java.util.Optional;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public class CoreTypes {
 
@@ -30,15 +30,15 @@ public class CoreTypes {
 					literal("music").then(
 						literal("set").then(
 							ZoneCommandUtils.zone("zone").then(
-								argument("music", NbtCompoundArgumentType.nbtCompound()).executes(ctx -> {
+								argument("music", CompoundTagArgument.compoundTag()).executes(ctx -> {
 									var zone = ZoneCommandUtils.getZone(ctx, "zone");
 									var music = PlayMusic.parse(
-											NbtCompoundArgumentType.getNbtCompound(ctx, "music"),
-											ctx.getSource().getRegistryManager()
+											CompoundTagArgument.getCompoundTag(ctx, "music"),
+											ctx.getSource().registryAccess()
 									);
 									zone.getOrCreate(MUSIC).setMusic(Optional.of(music));
-									ctx.getSource().sendFeedback(
-											() -> Text.literal("Set music to " + music + " in " + zone.getName()),
+									ctx.getSource().sendSuccess(
+											() -> Component.literal("Set music to " + music + " in " + zone.getName()),
 											true
 									);
 									return 1;
@@ -52,8 +52,8 @@ public class CoreTypes {
 								zone.get(MUSIC).ifPresent(data -> {
 									data.setMusic(Optional.empty());
 								});
-								ctx.getSource().sendFeedback(
-										() -> Text.literal("Removed music from " + zone.getName()),
+								ctx.getSource().sendSuccess(
+										() -> Component.literal("Removed music from " + zone.getName()),
 										true
 								);
 								return 1;

@@ -1,13 +1,13 @@
 package nu.metacraft.core.entity.ai;
 
-import net.minecraft.entity.ai.brain.sensor.Sensor;
-import net.minecraft.entity.ai.brain.sensor.SensorType;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.entity.ai.sensors.LastKnownOxygen;
 
 import java.util.function.Supplier;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.entity.ai.sensing.Sensor;
+import net.minecraft.world.entity.ai.sensing.SensorType;
 
 public class METAcraftSensorTypes {
 
@@ -18,7 +18,7 @@ public class METAcraftSensorTypes {
 	}
 
 	private static <U extends Sensor<?>> SensorType<U> register(String id, Supplier<U> factory) {
-		return Registry.register(Registries.SENSOR_TYPE, METAcraftCore.getID(id), new SensorType<U>(factory));
+		return Registry.register(BuiltInRegistries.SENSOR_TYPE, METAcraftCore.getID(id), new SensorType<U>(factory));
 	}
 
 }

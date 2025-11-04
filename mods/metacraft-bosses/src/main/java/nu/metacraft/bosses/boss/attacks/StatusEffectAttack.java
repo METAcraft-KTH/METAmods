@@ -3,17 +3,21 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.loot.condition.*;
-import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.provider.number.LootNumberProvider;
-import net.minecraft.predicate.entity.EntityEffectPredicate;
-import net.minecraft.predicate.entity.EntityPredicate;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.TypeFilter;
-import net.minecraft.util.math.intprovider.IntProvider;
+import net.minecraft.advancements.critereon.EntityPredicate;
+import net.minecraft.advancements.critereon.MobEffectsPredicate;
+import net.minecraft.core.Holder;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.predicates.AllOfCondition;
+import net.minecraft.world.level.storage.loot.predicates.InvertedLootItemCondition;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import net.minecraft.world.level.storage.loot.predicates.LootItemEntityPropertyCondition;
+import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition;
+import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
 import nu.metacraft.lib.condition.METAcraftContexTypes;
 import nu.metacraft.bosses.util.StatusEffectEntry;
 
@@ -23,43 +27,43 @@ import java.util.Optional;
 public class StatusEffectAttack extends InstantAttack {
 
 	protected final StatusEffectEntry effect;
-	protected final LootCondition predicate;
+	protected final LootItemCondition predicate;
 	protected final boolean affectTargets;
 	protected final boolean affectAllies;
 
 	public static final MapCodec<StatusEffectAttack> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					StatusEffectEntry.CODEC.forGetter(a -> a.effect),
-					LootCondition.CODEC.fieldOf("predicate").forGetter(a -> a.predicate),
+					LootItemCondition.DIRECT_CODEC.fieldOf("predicate").forGetter(a -> a.predicate),
 					Codec.BOOL.optionalFieldOf("affect_targets", true).forGetter(a -> a.affectTargets),
 					Codec.BOOL.optionalFieldOf("affect_allies", false).forGetter(a -> a.affectAllies)
 			).apply(instance, StatusEffectAttack::new)
 	);
 
 	public static StatusEffectAttack create(
-			RegistryEntry<StatusEffect> effect,
+			Holder<MobEffect> effect,
 			IntProvider duration, IntProvider amplifier,
-			EntityPredicate predicate, LootNumberProvider probability
+			EntityPredicate predicate, NumberProvider probability
 	) {
 		return new StatusEffectAttack(
 				StatusEffectEntry.create(effect, duration, amplifier),
-				AllOfLootCondition.create(
+				AllOfCondition.allOf(
 						List.of(
-								new EntityPropertiesLootCondition(
+								new LootItemEntityPropertyCondition(
 										Optional.of(predicate),
-										LootContext.EntityReference.THIS
+										LootContext.EntityTarget.THIS
 								),
-								new InvertedLootCondition(
-									new EntityPropertiesLootCondition(
+								new InvertedLootItemCondition(
+									new LootItemEntityPropertyCondition(
 										Optional.of(
-											EntityPredicate.Builder.create().effects(
-													EntityEffectPredicate.Builder.create().addEffect(effect)
+											EntityPredicate.Builder.entity().effects(
+													MobEffectsPredicate.Builder.effects().and(effect)
 											).build()
 										),
-										LootContext.EntityReference.THIS
+										LootContext.EntityTarget.THIS
 									)
 								),
-								new RandomChanceLootCondition(
+								new LootItemRandomChanceCondition(
 										probability
 								)
 						)
@@ -69,7 +73,7 @@ public class StatusEffectAttack extends InstantAttack {
 
 	public StatusEffectAttack(
 			StatusEffectEntry effect,
-			LootCondition predicate,
+			LootItemCondition predicate,
 			boolean affectTargets,
 			boolean affectAllies
 	) {
@@ -83,20 +87,20 @@ public class StatusEffectAttack extends InstantAttack {
 	public void trigger(Attack.BossContext<?> ctx) {
 		if (affectTargets) {
 			ctx.boss().getTargets(
-					TypeFilter.instanceOf(LivingEntity.class),
-					e -> predicate.test(METAcraftContexTypes.createTickContext((ServerWorld) e.getEntityWorld(), e, e.getRandom()))
+					EntityTypeTest.forClass(LivingEntity.class),
+					e -> predicate.test(METAcraftContexTypes.createTickContext((ServerLevel) e.level(), e, e.getRandom()))
 			).forEach(target -> {
-				target.addStatusEffect(
+				target.addEffect(
 						effect.createEffect(target.getRandom())
 				);
 			});
 		}
 		if (affectAllies) {
 			ctx.boss().getAllies(
-					TypeFilter.instanceOf(LivingEntity.class),
-					e -> predicate.test(METAcraftContexTypes.createTickContext((ServerWorld) e.getEntityWorld(), e, e.getRandom()))
+					EntityTypeTest.forClass(LivingEntity.class),
+					e -> predicate.test(METAcraftContexTypes.createTickContext((ServerLevel) e.level(), e, e.getRandom()))
 			).forEach(target -> {
-				target.addStatusEffect(
+				target.addEffect(
 						effect.createEffect(target.getRandom())
 				);
 			});

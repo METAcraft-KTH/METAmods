@@ -1,7 +1,7 @@
 package nu.metacraft.portable_jukebox.mixin;
 
-import net.minecraft.block.SkullBlock;
-import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.world.level.block.SkullBlock;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 

@@ -1,7 +1,7 @@
 package nu.metacraft.discord_chat_fixer.compat;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 import nu.metacraft.core.entity.entities.player_mob.PlayerMob;
 
 public class CoreCompat {
@@ -11,7 +11,7 @@ public class CoreCompat {
 	}
 
 	public static GameProfile getFromMETAcraftPlayer(Entity entity) {
-		return ((PlayerMob) entity).getSkinData().getGameProfile();
+		return ((PlayerMob) entity).getSkinData().partialProfile();
 	}
 
 }

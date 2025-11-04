@@ -1,40 +1,40 @@
 package nu.metacraft.core.item;
 
 import eu.pb4.polymer.core.api.item.PolymerBlockItem;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.block.METAcraftBlocks;
 import nu.metacraft.core.item.items.Wrench;
 
 import java.util.function.Function;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 public class METAcraftItems {
 
 	public static final Item PORTAL_PADDING = register(
 			"portal_padding", settings -> new PolymerBlockItem(METAcraftBlocks.PORTAL_PADDING, settings, Items.ENDER_PEARL),
-			new Item.Settings().useBlockPrefixedTranslationKey()
+			new Item.Properties().useBlockDescriptionPrefix()
 	);
 
 	public static final Item WRENCH = register(
 			"wrench", Wrench::new,
-			new Item.Settings().maxCount(1)
+			new Item.Properties().stacksTo(1)
 	);
 
 	public static void init() {
 
 	}
 
-	private static Item register(String id, Function<Item.Settings, Item> creator, Item.Settings settings) {
-		var key = RegistryKey.of(RegistryKeys.ITEM, METAcraftCore.getID(id));
-		var item = Registry.register(Registries.ITEM, key, creator.apply(settings.registryKey(key)));
+	private static Item register(String id, Function<Item.Properties, Item> creator, Item.Properties settings) {
+		var key = ResourceKey.create(Registries.ITEM, METAcraftCore.getID(id));
+		var item = Registry.register(BuiltInRegistries.ITEM, key, creator.apply(settings.setId(key)));
 		if (item instanceof BlockItem b) {
-			Item.BLOCK_ITEMS.put(b.getBlock(), b);
+			Item.BY_BLOCK.put(b.getBlock(), b);
 		}
 		return item;
 	}

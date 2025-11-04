@@ -1,11 +1,10 @@
 package nu.metacraft.bosses.extensions;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.projectile.ProjectileEntity;
-import net.minecraft.item.ProjectileItem;
-import net.minecraft.util.math.Vec3d;
-
 import java.util.Optional;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.item.ProjectileItem;
+import net.minecraft.world.phys.Vec3;
 
 public interface OminousItemSpawnerExtension {
 
@@ -13,7 +12,7 @@ public interface OminousItemSpawnerExtension {
 		return null;
 	}
 
-	default Optional<Vec3d> metacraft_bosses$getDirection(ProjectileEntity projectile, ProjectileItem.Settings settings) {
+	default Optional<Vec3> metacraft_bosses$getDirection(Projectile projectile, ProjectileItem.DispenseConfig settings) {
 		return Optional.empty();
 	}
 }

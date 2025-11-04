@@ -1,18 +1,27 @@
 package nu.metacraft.lib.util.helper;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.network.listener.ClientPlayPacketListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.s2c.play.*;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBundlePacket;
+import net.minecraft.network.protocol.game.ClientboundChangeDifficultyPacket;
+import net.minecraft.network.protocol.game.ClientboundLoginPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacket;
+import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
+import net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.network.protocol.game.ClientboundSetExperiencePacket;
+import net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket;
+import net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.GameRules;
-import net.minecraft.world.level.LevelInfo;
-import net.minecraft.world.level.LevelProperties;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.PlayerList;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.storage.PrimaryLevelData;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.mixin.*;
 
 import java.util.ArrayList;
@@ -25,51 +34,51 @@ public class HardcoreHelper {
 	 * @param player The player to send the state to.
 	 * @param hardcore Whether hardcore mode should be enabled or disabled.
 	 */
-	public static void sendHardcoreState(ServerPlayerEntity player, boolean hardcore) {
-		Vec3d pos = player.getEntityPos();
-		float yaw = player.getYaw();
-		float pitch = player.getPitch();
-		ServerWorld world = player.getEntityWorld();
-		MinecraftServer server = player.getEntityWorld().getServer();
-		PlayerManager manager = server.getPlayerManager();
+	public static void sendHardcoreState(ServerPlayer player, boolean hardcore) {
+		Vec3 pos = player.position();
+		float yaw = player.getYRot();
+		float pitch = player.getXRot();
+		ServerLevel world = player.level();
+		MinecraftServer server = player.level().getServer();
+		PlayerList manager = server.getPlayerList();
 		GameRules rules = world.getGameRules();
 
 		//The only way to change the hardcore mode state is via the ClientJoinS2CPacket.
 		//However, this breaks the world clientside if received while the world is loaded.
 		//Hence, we must send all the packets normally necessary to send when respawning the player.
-		player.networkHandler.sendPacket(new BundleS2CPacket(
+		player.connection.send(new ClientboundBundlePacket(
 				List.of(
-						new GameJoinS2CPacket(
-								player.getId(), hardcore, server.getWorldRegistryKeys(),
-								server.getMaxPlayerCount(), manager.getViewDistance(), manager.getSimulationDistance(),
-								rules.getBoolean(GameRules.REDUCED_DEBUG_INFO), !rules.getBoolean(GameRules.DO_IMMEDIATE_RESPAWN),
-								rules.getBoolean(GameRules.DO_LIMITED_CRAFTING),
-								player.createCommonPlayerSpawnInfo(world), false
+						new ClientboundLoginPacket(
+								player.getId(), hardcore, server.levelKeys(),
+								server.getMaxPlayers(), manager.getViewDistance(), manager.getSimulationDistance(),
+								rules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO), !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
+								rules.getBoolean(GameRules.RULE_LIMITED_CRAFTING),
+								player.createCommonSpawnInfo(world), false
 						),
-						new PlayerRespawnS2CPacket(player.createCommonPlayerSpawnInfo(world), (byte) 3),
-						new PlayerSpawnPositionS2CPacket(world.getSpawnPoint()),
-						new DifficultyS2CPacket(world.getDifficulty(), world.getLevelProperties().isDifficultyLocked()),
-						new ExperienceBarUpdateS2CPacket(player.experienceProgress, player.totalExperience, player.experienceLevel),
-						new PlayerAbilitiesS2CPacket(player.getAbilities()),
-						new UpdateSelectedSlotS2CPacket(player.getInventory().getSelectedSlot())
+						new ClientboundRespawnPacket(player.createCommonSpawnInfo(world), (byte) 3),
+						new ClientboundSetDefaultSpawnPositionPacket(world.getRespawnData()),
+						new ClientboundChangeDifficultyPacket(world.getDifficulty(), world.getLevelData().isDifficultyLocked()),
+						new ClientboundSetExperiencePacket(player.experienceProgress, player.totalExperience, player.experienceLevel),
+						new ClientboundPlayerAbilitiesPacket(player.getAbilities()),
+						new ClientboundSetHeldSlotPacket(player.getInventory().getSelectedSlot())
 				)
 		));
 
-		world.removePlayer(player, Entity.RemovalReason.CHANGED_DIMENSION);
+		world.removePlayerImmediately(player, Entity.RemovalReason.CHANGED_DIMENSION);
 		((AccessorEntity) player).callUnsetRemoved();
-		world.onPlayerRespawned(player);
-		player.getEntityWorld().getServer().getPlayerManager().sendCommandTree(player);
-		player.getEntityWorld().getServer().getPlayerManager().sendWorldInfo(player, world);
-		player.getEntityWorld().getServer().getPlayerManager().sendPlayerStatus(player);
-		player.networkHandler.requestTeleport(pos.x, pos.y, pos.z, yaw, pitch);
-		player.networkHandler.syncWithPlayerPosition();
+		world.addRespawnedPlayer(player);
+		player.level().getServer().getPlayerList().sendPlayerPermissionLevel(player);
+		player.level().getServer().getPlayerList().sendLevelInfo(player, world);
+		player.level().getServer().getPlayerList().sendAllPlayerInfo(player);
+		player.connection.teleport(pos.x, pos.y, pos.z, yaw, pitch);
+		player.connection.resetPosition();
 
-		List<Packet<? super ClientPlayPacketListener>> packets = new ArrayList<>();
-		packets.add(new EntityVelocityUpdateS2CPacket(player));
-		for (StatusEffectInstance statusEffectInstance : player.getStatusEffects()) {
-			packets.add(new EntityStatusEffectS2CPacket(player.getId(), statusEffectInstance, false));
+		List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
+		packets.add(new ClientboundSetEntityMotionPacket(player));
+		for (MobEffectInstance statusEffectInstance : player.getActiveEffects()) {
+			packets.add(new ClientboundUpdateMobEffectPacket(player.getId(), statusEffectInstance, false));
 		}
-		player.networkHandler.sendPacket(new BundleS2CPacket(packets));
+		player.connection.send(new ClientboundBundlePacket(packets));
 	}
 
 	/**
@@ -81,19 +90,19 @@ public class HardcoreHelper {
 	public static boolean setHardcoreMode(MinecraftServer server, boolean hardcore) {
 		if (server.isHardcore() == hardcore) return false;
 		boolean changed = false;
-		if (server.getOverworld().getLevelProperties() instanceof LevelProperties properties) {
-			LevelInfo info = properties.getLevelInfo();
-			((AccessorLevelProperties) properties).setLevelInfo(
-					new LevelInfo(
-							info.getLevelName(), info.getGameMode(), hardcore,
-							info.getDifficulty(), info.areCommandsAllowed(),
-							info.getGameRules(), info.getDataConfiguration()
+		if (server.overworld().getLevelData() instanceof PrimaryLevelData properties) {
+			LevelSettings info = properties.getLevelSettings();
+			((AccessorLevelProperties) properties).setSettings(
+					new LevelSettings(
+							info.levelName(), info.gameType(), hardcore,
+							info.difficulty(), info.allowCommands(),
+							info.gameRules(), info.getDataConfiguration()
 					)
 			);
 			changed = true;
 		}
 		if (server instanceof AccessorMinecraftDedicatedServer dedicated) {
-			dedicated.getPropertiesLoader().apply(
+			dedicated.getSettings().update(
 					p -> {
 						((AccessorServerPropertiesHandler) p).setHardcore(hardcore);
 						((AccessorAbstractPropertiesHandler) p).getProperties().setProperty(
@@ -105,7 +114,7 @@ public class HardcoreHelper {
 			changed = true;
 		}
 		if (changed) {
-			for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+			for (ServerPlayer p : server.getPlayerList().getPlayers()) {
 				sendHardcoreState(p, hardcore);
 			}
 		}

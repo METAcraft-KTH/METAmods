@@ -2,8 +2,8 @@ package nu.metacraft.zones.zone.types;
 
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.serialization.MapCodec;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
@@ -13,8 +13,8 @@ public class EmptyZone extends ZoneType {
 
 	public static final MapCodec<EmptyZone> CODEC = MapCodec.unit(INSTANCE);
 
-	public static ArgumentBuilder<ServerCommandSource, ?> createCommand(
-			ArgumentBuilder<ServerCommandSource, ?> builder, ZoneManagementCommand.ZoneAdder addZone
+	public static ArgumentBuilder<CommandSourceStack, ?> createCommand(
+			ArgumentBuilder<CommandSourceStack, ?> builder, ZoneManagementCommand.ZoneAdder addZone
 	) {
 		return builder.executes(ctx -> addZone.add(() -> INSTANCE, ctx));
 	}

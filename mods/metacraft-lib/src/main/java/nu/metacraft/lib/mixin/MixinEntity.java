@@ -1,15 +1,15 @@
 package nu.metacraft.lib.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.BoatEntity;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.Boat;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -25,11 +25,11 @@ import nu.metacraft.lib.entity.EntityParameters;
 public abstract class MixinEntity implements EntityExtensions {
 
 
-	@Shadow public abstract void dismountVehicle();
+	@Shadow public abstract void removeVehicle();
 
 	@Shadow @Nullable public abstract Entity getVehicle();
 
-	@Shadow public abstract Text getName();
+	@Shadow public abstract Component getName();
 
 	@Shadow public abstract EntityType<?> getType();
 
@@ -39,21 +39,21 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Unique
 	private boolean hideUUIDInTooltip = false;
 
-	@Inject(method = "readData", at = @At("RETURN"))
-	public void readNBT(ReadView nbt, CallbackInfo ci) {
-		preventEnterVehicle = nbt.getBoolean(EntityParameters.PREVENT_ENTER_VEHICLE, false);
-		hideUUIDInTooltip = nbt.getBoolean(EntityParameters.HIDE_UUID_TOOLTIP, false);
+	@Inject(method = "load", at = @At("RETURN"))
+	public void readNBT(ValueInput nbt, CallbackInfo ci) {
+		preventEnterVehicle = nbt.getBooleanOr(EntityParameters.PREVENT_ENTER_VEHICLE, false);
+		hideUUIDInTooltip = nbt.getBooleanOr(EntityParameters.HIDE_UUID_TOOLTIP, false);
 	}
 
 	@Inject(method = "tick", at = @At("RETURN"))
 	public void tick(CallbackInfo ci) {
-		if (preventEnterVehicle && (this.getVehicle() instanceof BoatEntity || this.getVehicle() instanceof AbstractMinecartEntity)) {
-			this.dismountVehicle();
+		if (preventEnterVehicle && (this.getVehicle() instanceof Boat || this.getVehicle() instanceof AbstractMinecart)) {
+			this.removeVehicle();
 		}
 	}
 
-	@Inject(method = "writeData", at = @At("RETURN"))
-	public void writeNBT(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "saveWithoutId", at = @At("RETURN"))
+	public void writeNBT(ValueOutput nbt, CallbackInfo ci) {
 		nbt.putBoolean(EntityParameters.PREVENT_ENTER_VEHICLE, preventEnterVehicle);
 		nbt.putBoolean(EntityParameters.HIDE_UUID_TOOLTIP, hideUUIDInTooltip);
 	}
@@ -62,27 +62,27 @@ public abstract class MixinEntity implements EntityExtensions {
 			method = "getDisplayName",
 			at = @At("RETURN")
 	)
-	public Text getDisplayName(Text text) {
+	public Component getDisplayName(Component text) {
 		if (hideUUIDInTooltip) {
-			return ((MutableText) text).styled(style -> style.withInsertion(null));
+			return ((MutableComponent) text).withStyle(style -> style.withInsertion(null));
 		}
 		return text;
 	}
 
 	@Inject(
-			method = "getHoverEvent",
+			method = "createHoverEvent",
 			at = @At("HEAD"),
 			cancellable = true
 	)
 	public void getHoverEvent(CallbackInfoReturnable<HoverEvent> cir) {
 		if (hideUUIDInTooltip) {
 			cir.setReturnValue(new HoverEvent.ShowText(
-					Text.empty().append(
+					Component.empty().append(
 							this.getName()
 					).append(
-							Text.literal("\n")
+							Component.literal("\n")
 					).append(
-							Text.translatable("gui.entity_tooltip.type", this.getType().getName())
+							Component.translatable("gui.entity_tooltip.type", this.getType().getDescription())
 					)
 			));
 		}

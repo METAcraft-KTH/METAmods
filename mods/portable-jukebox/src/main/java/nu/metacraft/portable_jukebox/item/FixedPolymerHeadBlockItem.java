@@ -2,22 +2,22 @@ package nu.metacraft.portable_jukebox.item;
 
 import eu.pb4.polymer.core.api.block.PolymerHeadBlock;
 import eu.pb4.polymer.core.api.item.PolymerItem;
-import net.minecraft.block.Block;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.block.Block;
 import nu.metacraft.lib.util.helper.GameProfileHelper;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 public class FixedPolymerHeadBlockItem extends BlockItem implements PolymerItem {
 	private final PolymerHeadBlock polymerBlock;
 
-	public <T extends Block & PolymerHeadBlock> FixedPolymerHeadBlockItem(T block, Settings settings) {
+	public <T extends Block & PolymerHeadBlock> FixedPolymerHeadBlockItem(T block, Properties settings) {
 		super(block, settings);
 		this.polymerBlock = block;
 	}
@@ -28,18 +28,18 @@ public class FixedPolymerHeadBlockItem extends BlockItem implements PolymerItem 
 	}
 
 	@Override
-	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context) {
+	public ResourceLocation getPolymerItemModel(ItemStack stack, PacketContext context) {
 		return null;
 	}
 
-	public ItemStack getPolymerItemStack(ItemStack itemStack, TooltipType tooltipType, PacketContext context) {
+	public ItemStack getPolymerItemStack(ItemStack itemStack, TooltipFlag tooltipType, PacketContext context) {
 		ItemStack out = PolymerItem.super.getPolymerItemStack(itemStack, tooltipType, context);
 
 		out.set(
-				DataComponentTypes.PROFILE,
+				DataComponents.PROFILE,
 				GameProfileHelper.staticComponentBuilder().withServersideSkin(
-						this.polymerBlock.getPolymerSkinValue(this.getBlock().getDefaultState(), BlockPos.ORIGIN, context),
-						this.polymerBlock.getPolymerSkinSignature(this.getBlock().getDefaultState(), BlockPos.ORIGIN, context)
+						this.polymerBlock.getPolymerSkinValue(this.getBlock().defaultBlockState(), BlockPos.ZERO, context),
+						this.polymerBlock.getPolymerSkinSignature(this.getBlock().defaultBlockState(), BlockPos.ZERO, context)
 				).build()
 		);
 		return out;

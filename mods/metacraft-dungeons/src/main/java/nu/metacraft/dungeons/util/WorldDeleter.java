@@ -2,15 +2,15 @@ package nu.metacraft.dungeons.util;
 
 import com.google.common.collect.ImmutableList;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.biome.source.BiomeAccess;
-import net.minecraft.world.level.UnmodifiableLevelProperties;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.biome.BiomeManager;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.storage.DerivedLevelData;
 import nu.metacraft.lib.util.TaskScheduler;
 import nu.metacraft.lib.util.helper.DisconnectedPlayerHelper;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -32,22 +32,22 @@ import java.util.function.Predicate;
 
 public class WorldDeleter {
 
-	protected static void delete(ServerWorld world, Runnable onCompleted, Predicate<Path> filesToNotRemove, Runnable handlePlayers) {
-		if (world.getRegistryKey() == ServerWorld.OVERWORLD) return;
+	protected static void delete(ServerLevel world, Runnable onCompleted, Predicate<Path> filesToNotRemove, Runnable handlePlayers) {
+		if (world.dimension() == ServerLevel.OVERWORLD) return;
 		MinecraftServer server = world.getServer();
-		world.savingDisabled = true;
+		world.noSave = true;
 		((ServerWorldExtension) world).metacraft$setBeingDeleted(true);
 
 		//This might be in a world tick, if we don't schedule it, we might get a ConcurrentModificationException.
 		TaskScheduler.scheduleImmediately(world.getServer(), () -> {
 			boolean shouldRestore;
-			if (server.getWorld(world.getRegistryKey()) != null) {
+			if (server.getLevel(world.dimension()) != null) {
 				shouldRestore = true;
-				for (var player : new ArrayList<>(world.getPlayers())) {
-					player.networkHandler.disconnect(Text.literal("This dimension is being reset"));
+				for (var player : new ArrayList<>(world.players())) {
+					player.connection.disconnect(Component.literal("This dimension is being reset"));
 				}
 				handlePlayers.run();
-				((AccessorMinecraftServer) server).getWorlds().remove(world.getRegistryKey());
+				((AccessorMinecraftServer) server).getLevels().remove(world.dimension());
 				ServerWorldEvents.UNLOAD.invoker().onWorldUnload(server, world);
 			} else {
 				shouldRestore = false;
@@ -59,29 +59,29 @@ public class WorldDeleter {
 				} catch (IOException ignored) {}
 				METAcraftDungeons.LOGGER.info("World unloaded, deleting files.");
 				deleteFiles(
-						((AccessorMinecraftServer) server).getSession().getWorldDirectory(world.getRegistryKey()),
+						((AccessorMinecraftServer) server).getStorageSource().getDimensionPath(world.dimension()),
 						filesToNotRemove
 				);
-				if (world.getServer().isStopping()) {
+				if (world.getServer().isShutdown()) {
 					return;
 				}
 				server.execute(() -> {
 					if (shouldRestore) {
-						var newWorld = new ServerWorld(
-								server, ((AccessorMinecraftServer) server).getWorkerExecutor(),
-								((AccessorMinecraftServer) server).getSession(),
-								new UnmodifiableLevelProperties(
-										server.getSaveProperties(), server.getSaveProperties().getMainWorldProperties()
+						var newWorld = new ServerLevel(
+								server, ((AccessorMinecraftServer) server).getExecutor(),
+								((AccessorMinecraftServer) server).getStorageSource(),
+								new DerivedLevelData(
+										server.getWorldData(), server.getWorldData().overworldData()
 								),
-								world.getRegistryKey(),
-								server.getCombinedDynamicRegistries().getCombinedRegistryManager().getOrThrow(RegistryKeys.DIMENSION)
-										.get(world.getRegistryKey().getValue()),
-								server.getSaveProperties().isDebugWorld(),
-								BiomeAccess.hashSeed(server.getSaveProperties().getGeneratorOptions().getSeed()),
-								ImmutableList.of(), false, server.getOverworld().getRandomSequences()
+								world.dimension(),
+								server.registries().compositeAccess().lookupOrThrow(Registries.LEVEL_STEM)
+										.getValue(world.dimension().location()),
+								server.getWorldData().isDebugWorld(),
+								BiomeManager.obfuscateSeed(server.getWorldData().worldGenOptions().seed()),
+								ImmutableList.of(), false, server.overworld().getRandomSequences()
 						);
-						((AccessorMinecraftServer) server).getWorlds().put(
-								world.getRegistryKey(),
+						((AccessorMinecraftServer) server).getLevels().put(
+								world.dimension(),
 								newWorld
 						);
 						ServerWorldEvents.LOAD.invoker().onWorldLoad(server, newWorld);
@@ -132,7 +132,7 @@ public class WorldDeleter {
 		}
 	}
 
-	public static void deleteWorldKillingPlayers(ServerWorld world, Runnable onCompleted, Predicate<Path> filesToNotRemove) {
+	public static void deleteWorldKillingPlayers(ServerLevel world, Runnable onCompleted, Predicate<Path> filesToNotRemove) {
 		delete(world, onCompleted, filesToNotRemove, () -> {
 			DisconnectedPlayerHelper.forAllDisconnectedPlayers(world, player -> {
 				player.putFloat("Health", 0);
@@ -142,40 +142,40 @@ public class WorldDeleter {
 	}
 
 	public static void deleteWorldTeleportingPlayers(
-			ServerWorld world, Runnable onCompleted, Predicate<Path> filesToNotRemove,
-			TeleportTarget targetPos
+			ServerLevel world, Runnable onCompleted, Predicate<Path> filesToNotRemove,
+			TeleportTransition targetPos
 	) {
 		deleteWorldTeleportingPlayers(world, onCompleted, filesToNotRemove, player -> targetPos);
 	}
 
 	public static void deleteWorldTeleportingPlayers(
-			ServerWorld world, Runnable onCompleted, Predicate<Path> filesToNotRemove,
-			Function<NbtCompound, TeleportTarget> targetPos
+			ServerLevel world, Runnable onCompleted, Predicate<Path> filesToNotRemove,
+			Function<CompoundTag, TeleportTransition> targetPos
 	) {
 		delete(world, onCompleted, filesToNotRemove, () -> {
 			DisconnectedPlayerHelper.forAllDisconnectedPlayers(world.getServer(), player -> {
 				MutableBoolean modified = new MutableBoolean(false);
-				if (DisconnectedPlayerHelper.getPlayerDim(player) == world.getRegistryKey()) {
-					TeleportTarget target = targetPos.apply(player);
-					DisconnectedPlayerHelper.setDim(player, target.world().getRegistryKey());
+				if (DisconnectedPlayerHelper.getPlayerDim(player) == world.dimension()) {
+					TeleportTransition target = targetPos.apply(player);
+					DisconnectedPlayerHelper.setDim(player, target.newLevel().dimension());
 					DisconnectedPlayerHelper.modifyPassengersAndRootVehicle(
 							player, entity -> {
 								DisconnectedPlayerHelper.setPos(entity, target.position());
 								DisconnectedPlayerHelper.setVelocity(entity, target.position());
-								DisconnectedPlayerHelper.setRotation(entity, target.yaw(), target.pitch());
+								DisconnectedPlayerHelper.setRotation(entity, target.yRot(), target.xRot());
 							}
 					);
 					modified.setTrue();
 				}
-				if (DisconnectedPlayerHelper.getSpawnPoint(player).map(dim -> dim.respawnData().getDimension()).orElse(null) == world.getRegistryKey()) {
+				if (DisconnectedPlayerHelper.getSpawnPoint(player).map(dim -> dim.respawnData().dimension()).orElse(null) == world.dimension()) {
 					DisconnectedPlayerHelper.removeSpawnPoint(player);
 					modified.setTrue();
 				}
-				if (player.contains(ServerPlayerEntity.ENDER_PEARLS_KEY)) {
-					var list = player.getListOrEmpty(ServerPlayerEntity.ENDER_PEARLS_KEY);
+				if (player.contains(ServerPlayer.ENDER_PEARLS_TAG)) {
+					var list = player.getListOrEmpty(ServerPlayer.ENDER_PEARLS_TAG);
 					list.removeIf(nbt -> {
-						if (nbt instanceof NbtCompound pearl) {
-							if (DisconnectedPlayerHelper.getEnderPearlDim(pearl) == world.getRegistryKey()) {
+						if (nbt instanceof CompoundTag pearl) {
+							if (DisconnectedPlayerHelper.getEnderPearlDim(pearl) == world.dimension()) {
 								modified.setTrue();
 								return true;
 							}

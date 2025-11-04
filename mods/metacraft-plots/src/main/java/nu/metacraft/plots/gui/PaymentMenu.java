@@ -3,19 +3,19 @@ package nu.metacraft.plots.gui;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.layered.Layer;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public abstract class PaymentMenu extends LayeredGui {
 
 	protected Layer input = new Layer(3, 9);
-	protected Inventory inventory = new SimpleInventory(input.getSize());
+	protected Container inventory = new SimpleContainer(input.getSize());
 
 	protected abstract GuiElementBuilder createPaymentButton();
 
@@ -25,7 +25,7 @@ public abstract class PaymentMenu extends LayeredGui {
 
 	protected GuiElementBuilder createCloseButton() {
 		return GuiElementBuilder.from(new ItemStack(Items.BARRIER)).setName(
-				Text.translatableWithFallback(
+				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.close", "Close"
 				)
 		).setCallback((index, type, action) -> {
@@ -33,8 +33,8 @@ public abstract class PaymentMenu extends LayeredGui {
 		});
 	}
 
-	public PaymentMenu(ServerPlayerEntity player) {
-		super(ScreenHandlerType.GENERIC_9X4, player, false);
+	public PaymentMenu(ServerPlayer player) {
+		super(MenuType.GENERIC_9x4, player, false);
 
 		for (int i = 0; i < input.getSize(); i++) {
 			input.setSlotRedirect(i, createSlot(i));
@@ -49,13 +49,13 @@ public abstract class PaymentMenu extends LayeredGui {
 	@Override
 	public void onClose() {
 		super.onClose();
-		if (getPlayer().isDead() || getPlayer().isDisconnected()) {
-			for (int i = 0; i < inventory.size(); i++) {
-				getPlayer().dropItem(inventory.removeStack(i), false);
+		if (getPlayer().isDeadOrDying() || getPlayer().hasDisconnected()) {
+			for (int i = 0; i < inventory.getContainerSize(); i++) {
+				getPlayer().drop(inventory.removeItemNoUpdate(i), false);
 			}
 		} else {
-			for (int i = 0; i < inventory.size(); i++) {
-				getPlayer().getInventory().offerOrDrop(inventory.removeStack(i));
+			for (int i = 0; i < inventory.getContainerSize(); i++) {
+				getPlayer().getInventory().placeItemBackInInventory(inventory.removeItemNoUpdate(i));
 			}
 		}
 	}

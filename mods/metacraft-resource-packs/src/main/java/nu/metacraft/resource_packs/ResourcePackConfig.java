@@ -8,11 +8,11 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.network.packet.s2c.common.ResourcePackSendS2CPacket;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
-import net.minecraft.util.Uuids;
 import nu.metacraft.resource_packs.mixin.AccessorNetworkUtils;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ReloadCause;
@@ -38,11 +38,11 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 	public static final Codec<ResourcePackConfig> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					Codec.unboundedMap(Uuids.STRING_CODEC, ResourcePack.CODEC).fieldOf("resource_packs").forGetter(
+					Codec.unboundedMap(UUIDUtil.STRING_CODEC, ResourcePack.CODEC).fieldOf("resource_packs").forGetter(
 							c -> c.resourcePacks
 					),
 					Codec.BOOL.fieldOf("required").forGetter(c -> c.required),
-					TextCodecs.CODEC.optionalFieldOf("prompt").forGetter(c -> c.prompt),
+					ComponentSerialization.CODEC.optionalFieldOf("prompt").forGetter(c -> c.prompt),
 					Codec.STRING.fieldOf("server_address").forGetter(c -> c.serverAddress),
 					Codec.STRING.optionalFieldOf("network_address").forGetter(c -> c.networkAddress),
 					Codec.intRange(0, 65535).fieldOf("port").forGetter(c -> c.port),
@@ -65,7 +65,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	private final Map<UUID, ResourcePack> prevPacks = new HashMap<>();
 	private final boolean required;
 	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-	private final Optional<Text> prompt;
+	private final Optional<Component> prompt;
 	private final String serverAddress;
 	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	private final Optional<String> networkAddress;
@@ -77,7 +77,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	public ResourcePackConfig(
 			Map<UUID, ResourcePack> resourcePacks,
-			boolean required, Optional<Text> prompt, String serverAddress,
+			boolean required, Optional<Component> prompt, String serverAddress,
 			Optional<String> networkAddress, int port, int maxConnections,
 			Optional<ResourcePackServer.SSLSettings> sslSettings
 	) {
@@ -167,11 +167,11 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		return modified;
 	}
 
-	public ResourcePackSendS2CPacket createEnablePacket(UUID uuid) {
+	public ClientboundResourcePackPushPacket createEnablePacket(UUID uuid) {
 		var entry = getResourcePack(uuid);
 		if (entry == null) return null;
 		String protocol = sslSettings.isPresent() ? "https" : "http";
-		return new ResourcePackSendS2CPacket(
+		return new ClientboundResourcePackPushPacket(
 				uuid,  protocol + "://" + getServerAddress() + ":" + getPort()+ "/" + uuid.toString(),
 				entry.getHash().toString(), required, prompt
 		);
@@ -193,7 +193,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 			if (resourcePackZips != null) {
 				for (var file : resourcePackZips) {
 					var path = file.toPath();
-					var hash = AccessorNetworkUtils.callHash(path, SHA1);
+					var hash = AccessorNetworkUtils.callHashFile(path, SHA1);
 					UUID uuid = UUID.randomUUID();
 					CONFIG.modify(c -> {
 						if (c.resourcePacks.containsKey(uuid)) {

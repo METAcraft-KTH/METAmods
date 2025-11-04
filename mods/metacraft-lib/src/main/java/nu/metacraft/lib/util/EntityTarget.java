@@ -1,36 +1,35 @@
 package nu.metacraft.lib.util;
 
 import com.mojang.datafixers.util.Either;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.Ownable;
-import net.minecraft.entity.Targeter;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.Uuids;
-import net.minecraft.world.World;
-
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Targeting;
+import net.minecraft.world.entity.TraceableEntity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class EntityTarget {
 
-	private final ServerWorld world;
+	private final ServerLevel world;
 	private Either<Entity, UUID> target = null;
 
 	private final Context context;
 	
 	public EntityTarget(
-			ServerWorld world, Context context
+			ServerLevel world, Context context
 	) {
 		this.world = world;
 		this.context = context;
 	}
 
-	public static EntityTarget create(World world, Context context) {
-		if (world instanceof ServerWorld) {
-			return new EntityTarget((ServerWorld) world, context);
+	public static EntityTarget create(Level world, Context context) {
+		if (world instanceof ServerLevel) {
+			return new EntityTarget((ServerLevel) world, context);
 		} else {
 			return new EntityTarget(null, context);
 		}
@@ -41,7 +40,7 @@ public class EntityTarget {
 	}
 
 	public Optional<UUID> getID() {
-		return Optional.ofNullable(target).map(owner -> owner.map(Entity::getUuid, id -> id));
+		return Optional.ofNullable(target).map(owner -> owner.map(Entity::getUUID, id -> id));
 	}
 
 	public void remove() {
@@ -76,14 +75,14 @@ public class EntityTarget {
 			o -> {
 				Consumer<UUID> findOwner = id -> {
 					if (context.prioritisePlayers) {
-						var player = world.getServer().getPlayerManager().getPlayer(id);
+						var player = world.getServer().getPlayerList().getPlayer(id);
 						if (player != null) {
 							set(player);
 							return;
 						}
 					}
 					if (context.otherDimLookup) {
-						for (var world : world.getServer().getWorlds()) {
+						for (var world : world.getServer().getAllLevels()) {
 							var entity = world.getEntity(id);
 							if (entity != null) {
 								set(entity);
@@ -103,7 +102,7 @@ public class EntityTarget {
 							removeAndTrigger();
 						}
 						if (owner.getRemovalReason() == Entity.RemovalReason.CHANGED_DIMENSION) {
-							findOwner.accept(owner.getUuid());
+							findOwner.accept(owner.getUUID());
 						}
 					}
 				});
@@ -111,20 +110,20 @@ public class EntityTarget {
 		);
 	}
 
-	public void writeNBT(WriteView nbt, String name) {
+	public void writeNBT(ValueOutput nbt, String name) {
 		if (context.serialiseAsString) {
 			getID().ifPresent(
 					id -> nbt.putString(name, id.toString())
 			);
 		} else {
 			getID().ifPresent(
-					id -> nbt.put(name, Uuids.INT_STREAM_CODEC, id)
+					id -> nbt.store(name, UUIDUtil.CODEC, id)
 			);
 		}
 	}
 
-	public void readNBT(ReadView nbt, String name) {
-		nbt.read(name, Uuids.CODEC).ifPresent(this::set);
+	public void readNBT(ValueInput nbt, String name) {
+		nbt.read(name, UUIDUtil.AUTHLIB_CODEC).ifPresent(this::set);
 	}
 
 	public record Context(
@@ -132,11 +131,11 @@ public class EntityTarget {
 			Runnable onTargetRemoved
 	) {}
 
-	public interface CanSetTarget extends Targeter {
+	public interface CanSetTarget extends Targeting {
 		void setTarget(Entity target);
 	}
 
-	public interface CanSetOwner extends Ownable {
+	public interface CanSetOwner extends TraceableEntity {
 		void setOwner(Entity owner);
 	}
 }

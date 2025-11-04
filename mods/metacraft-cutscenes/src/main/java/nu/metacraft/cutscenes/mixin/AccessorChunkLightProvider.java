@@ -1,19 +1,19 @@
 package nu.metacraft.cutscenes.mixin;
 
-import net.minecraft.world.chunk.ChunkToNibbleArrayMap;
-import net.minecraft.world.chunk.light.ChunkLightProvider;
-import net.minecraft.world.chunk.light.LightStorage;
+import net.minecraft.world.level.lighting.DataLayerStorageMap;
+import net.minecraft.world.level.lighting.LayerLightSectionStorage;
+import net.minecraft.world.level.lighting.LightEngine;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(ChunkLightProvider.class)
-public interface AccessorChunkLightProvider<M extends ChunkToNibbleArrayMap<M>, S extends LightStorage<M>>  {
+@Mixin(LightEngine.class)
+public interface AccessorChunkLightProvider<M extends DataLayerStorageMap<M>, S extends LayerLightSectionStorage<M>>  {
 
 	@Accessor
-	S getLightStorage();
+	S getStorage();
 
 	@Mutable
 	@Accessor
-	void setLightStorage(S storage);
+	void setStorage(S storage);
 }

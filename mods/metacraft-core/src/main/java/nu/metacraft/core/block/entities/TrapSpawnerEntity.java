@@ -1,25 +1,25 @@
 package nu.metacraft.core.block.entities;
 
 import com.mojang.serialization.JavaOps;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.Registries;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.collection.Pool;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.intprovider.ConstantIntProvider;
-import net.minecraft.util.math.random.Random;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
+import net.minecraft.util.random.WeightedList;
+import net.minecraft.util.valueproviders.ConstantInt;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.core.block.METAcraftBlockEntities;
 import nu.metacraft.lib.util.SoundEffect;
 import nu.metacraft.lib.util.helper.EntityHelper;
@@ -36,15 +36,15 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 	private static final String TRIGGER_ON_BREAK = "TriggerOnBreak";
 	private static final String TRIGGER_ON_STEP = "TriggerOnStep";
 
-	private Pool<EntityHelper.SpawnEntry> entities = Pool.of(
+	private WeightedList<EntityHelper.SpawnEntry> entities = WeightedList.of(
 			new EntityHelper.SpawnEntry(
-					(NbtCompound) JavaOps.INSTANCE.convertTo(
+					(CompoundTag) JavaOps.INSTANCE.convertTo(
 							NbtOps.INSTANCE, Map.of(
 									"id", "pig"
 							)
 					), true, false, new EntityHelper.SpawnEntry.SpawnRules(
-							Optional.empty(), SpawnReason.STRUCTURE,
-							ConstantIntProvider.create(0), ConstantIntProvider.create(0)
+							Optional.empty(), EntitySpawnReason.STRUCTURE,
+							ConstantInt.of(0), ConstantInt.of(0)
 					),
 					Optional.empty()
 			)
@@ -54,9 +54,9 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 	private boolean triggerOnBreak = true;
 	private boolean triggerOnStep = true;
 
-	private Pool<SoundEffect> soundEffect = Pool.of(new SoundEffect(
-			Registries.SOUND_EVENT.getEntry(SoundEvents.BLOCK_IRON_DOOR_OPEN),
-			SoundCategory.HOSTILE, 1, 1
+	private WeightedList<SoundEffect> soundEffect = WeightedList.of(new SoundEffect(
+			BuiltInRegistries.SOUND_EVENT.wrapAsHolder(SoundEvents.IRON_DOOR_OPEN),
+			SoundSource.HOSTILE, 1, 1
 	));
 
 	private boolean triggered = false;
@@ -69,9 +69,9 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 		super(METAcraftBlockEntities.TRAP_SPAWNER, pos, state);
 	}
 
-	public void spawnEntity(ServerWorld world, Vec3d pos, Random random, Entity target) {
+	public void spawnEntity(ServerLevel world, Vec3 pos, RandomSource random, Entity target) {
 		for (int i = 0; i < spawnCount; i++) {
-			entities.getOrEmpty(random).ifPresent(entity -> {
+			entities.getRandom(random).ifPresent(entity -> {
 				EntityHelper.spawnEntity(
 						entity, e -> true, e -> true, pos,
 						world, random, null, e -> Optional.ofNullable(target)
@@ -81,67 +81,67 @@ public class TrapSpawnerEntity extends DisguisedBlockEntity {
 		playSound(random);
 	}
 
-	public void playSound(Random random) {
-		if (world != null) {
-			soundEffect.getOrEmpty(random).ifPresent(sound -> {
-				sound.playSound(world, pos);
+	public void playSound(RandomSource random) {
+		if (level != null) {
+			soundEffect.getRandom(random).ifPresent(sound -> {
+				sound.playSound(level, worldPosition);
 			});
 		}
 	}
 
-	private void trigger(Vec3d spawnPos, Entity target) {
+	private void trigger(Vec3 spawnPos, Entity target) {
 		if (triggered) return;
-		if (world instanceof ServerWorld sw) {
-			spawnEntity(sw, spawnPos, world.getRandom(), target);
+		if (level instanceof ServerLevel sw) {
+			spawnEntity(sw, spawnPos, level.getRandom(), target);
 		}
 		triggered = true;
 	}
 
-	private void triggerThenRemoveBlock(Vec3d spawnPos, Entity target) {
+	private void triggerThenRemoveBlock(Vec3 spawnPos, Entity target) {
 		trigger(spawnPos, target);
-		if (world != null) {
-			world.setBlockState(pos, state);
+		if (level != null) {
+			level.setBlockAndUpdate(worldPosition, state);
 		}
 	}
 
 	public void triggerRemove() {
 		if (!triggerOnBreak) return;
-		trigger(Vec3d.ofBottomCenter(pos), null);
+		trigger(Vec3.atBottomCenterOf(worldPosition), null);
 	}
 
 	public void triggerStep(Entity entity) {
 		if (!triggerOnStep) return;
-		triggerThenRemoveBlock(entity.getEntityPos(), entity);
+		triggerThenRemoveBlock(entity.position(), entity);
 	}
 
-	public ActionResult triggerInteract(Direction side, Entity entity) {
-		if (!triggerOnInteraction) return ActionResult.PASS;
-		triggerThenRemoveBlock(Vec3d.ofBottomCenter(pos.offset(side)), entity);
-		return ActionResult.SUCCESS;
+	public InteractionResult triggerInteract(Direction side, Entity entity) {
+		if (!triggerOnInteraction) return InteractionResult.PASS;
+		triggerThenRemoveBlock(Vec3.atBottomCenterOf(worldPosition.relative(side)), entity);
+		return InteractionResult.SUCCESS;
 	}
 
 	@Override
-	protected void readData(ReadView nbt) {
-		super.readData(nbt);
+	protected void loadAdditional(ValueInput nbt) {
+		super.loadAdditional(nbt);
 		nbt.read(ENTITIES, EntityHelper.SpawnEntry.POOL_CODEC).ifPresentOrElse(
 				pool -> this.entities = pool,
-				() -> this.entities = Pool.empty()
+				() -> this.entities = WeightedList.of()
 		);
 		nbt.read(SOUND_EFFECT, SoundEffect.POOL_CODEC).ifPresentOrElse(
 				pool -> this.soundEffect = pool,
-				() -> this.soundEffect = Pool.empty()
+				() -> this.soundEffect = WeightedList.of()
 		);
-		spawnCount = nbt.getInt(SPAWN_COUNT, 1);
-		triggerOnInteraction = nbt.getBoolean(TRIGGER_ON_INTERACTION, true);
-		triggerOnBreak = nbt.getBoolean(TRIGGER_ON_BREAK, true);
-		triggerOnStep = nbt.getBoolean(TRIGGER_ON_STEP, true);
+		spawnCount = nbt.getIntOr(SPAWN_COUNT, 1);
+		triggerOnInteraction = nbt.getBooleanOr(TRIGGER_ON_INTERACTION, true);
+		triggerOnBreak = nbt.getBooleanOr(TRIGGER_ON_BREAK, true);
+		triggerOnStep = nbt.getBooleanOr(TRIGGER_ON_STEP, true);
 	}
 
 	@Override
-	protected void writeData(WriteView nbt) {
-		super.writeData(nbt);
-		nbt.put(ENTITIES, EntityHelper.SpawnEntry.POOL_CODEC, entities);
-		nbt.put(SOUND_EFFECT, SoundEffect.POOL_CODEC, soundEffect);
+	protected void saveAdditional(ValueOutput nbt) {
+		super.saveAdditional(nbt);
+		nbt.store(ENTITIES, EntityHelper.SpawnEntry.POOL_CODEC, entities);
+		nbt.store(SOUND_EFFECT, SoundEffect.POOL_CODEC, soundEffect);
 		nbt.putInt(SPAWN_COUNT, spawnCount);
 		nbt.putBoolean(TRIGGER_ON_INTERACTION, triggerOnInteraction);
 		nbt.putBoolean(TRIGGER_ON_BREAK, triggerOnBreak);

@@ -1,47 +1,47 @@
 package nu.metacraft.portal_blocker.mixin;
 
-import net.minecraft.block.Portal;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.dimension.PortalManager;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.PortalProcessor;
+import net.minecraft.world.level.block.Portal;
+import net.minecraft.world.level.portal.TeleportTransition;
 import nu.metacraft.portal_blocker.PortalBlockerSettings;
 import nu.metacraft.portal_blocker.PortalState;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
 
-@Mixin(PortalManager.class)
+@Mixin(PortalProcessor.class)
 public class MixinPortalManager {
 
-	@Shadow private BlockPos pos;
+	@Shadow private BlockPos entryPosition;
 
 	@Final
 	@Shadow private Portal portal;
 
 	@Inject(
-		method = "tick",
+		method = "processPortalTeleportation",
 		at = @At(
 			value = "FIELD",
-			target = "Lnet/minecraft/world/dimension/PortalManager;ticksInPortal:I",
+			target = "Lnet/minecraft/world/entity/PortalProcessor;portalTime:I",
 			ordinal = 0
 		),
 		cancellable = true
 	)
-	public void tick(ServerWorld world, Entity entity, boolean canUsePortals, CallbackInfoReturnable<Boolean> cir) {
+	public void tick(ServerLevel world, Entity entity, boolean canUsePortals, CallbackInfoReturnable<Boolean> cir) {
 		for (var type : PortalTypeRegistry.REGISTRY) {
 			if (type.affectsPortal(portal) && PortalBlockerSettings.getInstance(world.getServer()).isPortalBlocked(
-					type, world.getRegistryKey(), PortalState.BlockingType.TRAVEL, pos)
+					type, world.dimension(), PortalState.BlockingType.TRAVEL, entryPosition)
 			) {
-				if (entity instanceof ServerPlayerEntity player) {
+				if (entity instanceof ServerPlayer player) {
 					type.getTravelMessage().ifPresent(msg -> {
-						player.sendMessage(msg, true);
+						player.displayClientMessage(msg, true);
 					});
 				}
 				cir.setReturnValue(false);
@@ -50,11 +50,11 @@ public class MixinPortalManager {
 	}
 
 	//Technically not necessary, but does well as a last resort.
-	@Inject(method = "createTeleportTarget", at = @At("HEAD"), cancellable = true)
-	public void createTeleportTarget(ServerWorld world, Entity entity, CallbackInfoReturnable<TeleportTarget> cir) {
+	@Inject(method = "getPortalDestination", at = @At("HEAD"), cancellable = true)
+	public void createTeleportTarget(ServerLevel world, Entity entity, CallbackInfoReturnable<TeleportTransition> cir) {
 		for (var type : PortalTypeRegistry.REGISTRY) {
 			if (type.affectsPortal(portal) && PortalBlockerSettings.getInstance(world.getServer()).isPortalBlocked(
-					type, world.getRegistryKey(), PortalState.BlockingType.TRAVEL, pos)
+					type, world.dimension(), PortalState.BlockingType.TRAVEL, entryPosition)
 			) {
 				cir.setReturnValue(null);
 			}

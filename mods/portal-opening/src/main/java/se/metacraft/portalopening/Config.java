@@ -15,7 +15,7 @@ public class Config {
 	).apply(instance, Config::new));
 
 	private final List<Wave> waves;
-	private String commandOnRaidEnd;
+	private final String commandOnRaidEnd;
 
 	public Config(List<Wave> waves, String commandOnRaidEnd) {
 		this.waves = waves;

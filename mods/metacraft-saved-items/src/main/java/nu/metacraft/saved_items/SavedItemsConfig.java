@@ -9,23 +9,23 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.entity.damage.DamageType;
-import net.minecraft.item.Items;
-import net.minecraft.predicate.NumberRange;
-import net.minecraft.predicate.component.ComponentPredicateTypes;
-import net.minecraft.predicate.component.ComponentsPredicate;
-import net.minecraft.predicate.item.EnchantmentPredicate;
-import net.minecraft.predicate.item.EnchantmentsPredicate;
-import net.minecraft.predicate.item.ItemPredicate;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.registry.tag.TagKey;
+import net.minecraft.advancements.critereon.DataComponentMatchers;
+import net.minecraft.advancements.critereon.EnchantmentPredicate;
+import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.advancements.critereon.MinMaxBounds;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.predicates.DataComponentPredicates;
+import net.minecraft.core.component.predicates.EnchantmentsPredicate;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.floatprovider.ConstantFloatProvider;
-import net.minecraft.util.math.floatprovider.FloatProvider;
-import net.minecraft.util.math.floatprovider.UniformFloatProvider;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.valueproviders.ConstantFloat;
+import net.minecraft.util.valueproviders.FloatProvider;
+import net.minecraft.util.valueproviders.UniformFloat;
+import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.item.Items;
 import nu.metacraft.lib.config.ObjectStorage;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ServerAware;
@@ -65,52 +65,52 @@ public class SavedItemsConfig implements Modifiable {
 				config.getSaveEntries().put(SavedItemsData.ANY, new SavingEntry(
 						ObjectStorage.fromValue(
 								ItemPredicate.CODEC,
-								ItemPredicate.Builder.create().items(
-										Registries.ITEM,
+								ItemPredicate.Builder.item().of(
+										BuiltInRegistries.ITEM,
 										Items.SHULKER_BOX, Items.BUNDLE
 								).build()
 						),
 						1,
-						ConstantFloatProvider.create(1),
-						ConstantFloatProvider.create(1)
+						ConstantFloat.of(1),
+						ConstantFloat.of(1)
 				));
 				config.getSaveEntries().put(SavedItemsData.ANY, new SavingEntry(
 						ObjectStorage.fromValue(
 								ItemPredicate.CODEC,
-								ItemPredicate.Builder.create().items(
-										Registries.ITEM,
+								ItemPredicate.Builder.item().of(
+										BuiltInRegistries.ITEM,
 										Items.DIAMOND, Items.NETHER_STAR, Items.NETHERITE_INGOT, Items.NETHERITE_SCRAP,
 										Items.NETHERITE_BLOCK, Items.DIAMOND_BLOCK, Items.ANCIENT_DEBRIS,
 										Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION
 								).build()
 						),
 						1,
-						UniformFloatProvider.create(0.75f, 1),
-						UniformFloatProvider.create(0.75f, 1)
+						UniformFloat.of(0.75f, 1),
+						UniformFloat.of(0.75f, 1)
 				));
 				config.getSaveEntries().put(SavedItemsData.ANY, new SavingEntry(
 						ObjectStorage.fromValue(
 								ItemPredicate.CODEC,
-								ItemPredicate.Builder.create().components(
-										ComponentsPredicate.Builder.create().partial(
-												ComponentPredicateTypes.ENCHANTMENTS,
+								ItemPredicate.Builder.item().withComponents(
+										DataComponentMatchers.Builder.components().partial(
+												DataComponentPredicates.ENCHANTMENTS,
 												EnchantmentsPredicate.enchantments(
 														List.of(new EnchantmentPredicate(
-																Optional.empty(), NumberRange.IntRange.ANY
+																Optional.empty(), MinMaxBounds.Ints.ANY
 														))
 												)
 										).build()
 								).build()
 						),
 						1,
-						UniformFloatProvider.create(0.75f, 1),
-						UniformFloatProvider.create(0.75f, 1)
+						UniformFloat.of(0.75f, 1),
+						UniformFloat.of(0.75f, 1)
 				));
 				return config;
 			}
 	).reloadAfterServer().buildRegistryAware(
 			configPath,
-			(config, server) -> Loaded.create(config.saveEntries, server.getRegistryManager())
+			(config, server) -> Loaded.create(config.saveEntries, server.registryAccess())
 	);
 
 	private final Multimap<SavingType, SavingEntry> saveEntries;
@@ -259,12 +259,12 @@ public class SavedItemsConfig implements Modifiable {
 				instance -> instance.group(
 						ObjectStorage.createCodec(ItemPredicate.CODEC).fieldOf("predicate").forGetter(SavingEntry::predicate),
 						Codec.DOUBLE.fieldOf("probability").forGetter(SavingEntry::probability),
-						FloatProvider.VALUE_CODEC.fieldOf("damageModifier").forGetter(SavingEntry::damageModifier),
-						FloatProvider.VALUE_CODEC.fieldOf("countModifier").forGetter(SavingEntry::countModifier)
+						FloatProvider.CODEC.fieldOf("damageModifier").forGetter(SavingEntry::damageModifier),
+						FloatProvider.CODEC.fieldOf("countModifier").forGetter(SavingEntry::countModifier)
 				).apply(instance, SavingEntry::new)
 		);
 
-		public Optional<LoadedSavingEntry> load(RegistryWrapper.WrapperLookup lookup) {
+		public Optional<LoadedSavingEntry> load(HolderLookup.Provider lookup) {
 			return predicate.parse(lookup).resultOrPartial(
 					SavedItems.LOGGER::error
 			).map(
@@ -283,7 +283,7 @@ public class SavedItemsConfig implements Modifiable {
 	public record Loaded(Multimap<SavingType, SavingEntry.LoadedSavingEntry> saveEntries) {
 
 		public static Loaded create(
-				Multimap<SavingType, SavingEntry> saveEntries, RegistryWrapper.WrapperLookup lookup
+				Multimap<SavingType, SavingEntry> saveEntries, HolderLookup.Provider lookup
 		) {
 			return new Loaded(
 					saveEntries.entries().stream().map(
@@ -300,13 +300,13 @@ public class SavedItemsConfig implements Modifiable {
 
 	}
 
-	public record SavingType(Either<Identifier, TagKey<DamageType>> key) {
+	public record SavingType(Either<ResourceLocation, TagKey<DamageType>> key) {
 		public static final Codec<SavingType> CODEC = Codec.either(
-				Identifier.CODEC, TagKey.codec(RegistryKeys.DAMAGE_TYPE)
+				ResourceLocation.CODEC, TagKey.hashedCodec(Registries.DAMAGE_TYPE)
 		).xmap(
 				SavingType::new, SavingType::key
 		);
-		public static SavingType of(Identifier id) {
+		public static SavingType of(ResourceLocation id) {
 			return new SavingType(Either.left(id));
 		}
 
@@ -314,8 +314,8 @@ public class SavedItemsConfig implements Modifiable {
 			return new SavingType(Either.right(tag));
 		}
 
-		public Identifier getValue() {
-			return key.map(id -> id, TagKey::id);
+		public ResourceLocation getValue() {
+			return key.map(id -> id, TagKey::location);
 		}
 
 		public static SavingType fromString(String name) {

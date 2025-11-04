@@ -4,9 +4,9 @@ import com.google.common.collect.ImmutableList;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerChunkLoadingManager;
+import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -14,36 +14,33 @@ import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.cutscenes.util.helper.CutsceneHelper;
 import nu.metacraft.cutscenes.util.helper.HiddenEntityHelper;
 
-@Mixin(ServerChunkLoadingManager.class)
+@Mixin(ChunkMap.class)
 public class MixinServerChunkLoadingManager {
 
 	@WrapWithCondition(
-		method = "getPlayersWatchingChunk(Lnet/minecraft/util/math/ChunkPos;Z)Ljava/util/List;",
+		method = "getPlayers(Lnet/minecraft/world/level/ChunkPos;Z)Ljava/util/List;",
 		at = @At(
 				value = "INVOKE",
 				target = "Lcom/google/common/collect/ImmutableList$Builder;add(Ljava/lang/Object;)Lcom/google/common/collect/ImmutableList$Builder;"
 		)
 	)
-	public boolean getPlayersWatchingChunk(ImmutableList.Builder<ServerPlayerEntity> instance, Object element) {
-		if (CutsceneHelper.isInCutscene(((ServerPlayerEntity) element))) {
-			return false;
-		}
-		return true;
+	public boolean getPlayersWatchingChunk(ImmutableList.Builder<ServerPlayer> instance, Object element) {
+		return !CutsceneHelper.isInCutscene(((ServerPlayer) element));
 	}
 
-	@Mixin(ServerChunkLoadingManager.EntityTracker.class)
+	@Mixin(ChunkMap.TrackedEntity.class)
 	public static class EntityTracker {
 		@Shadow @Final private Entity entity;
 
 		@WrapOperation(
-			method = "updateTrackedStatus(Lnet/minecraft/server/network/ServerPlayerEntity;)V",
+			method = "updatePlayer(Lnet/minecraft/server/level/ServerPlayer;)V",
 			at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/server/world/ServerChunkLoadingManager;isTracked(Lnet/minecraft/server/network/ServerPlayerEntity;II)Z"
+				target = "Lnet/minecraft/server/level/ChunkMap;isChunkTracked(Lnet/minecraft/server/level/ServerPlayer;II)Z"
 			)
 		)
 		public boolean updateTrackingStatus(
-				ServerChunkLoadingManager manager, ServerPlayerEntity player,
+				ChunkMap manager, ServerPlayer player,
 				int chunkX, int chunkZ, Operation<Boolean> original
 		) {
 			if (HiddenEntityHelper.isHiddenFrom(entity, player)) {

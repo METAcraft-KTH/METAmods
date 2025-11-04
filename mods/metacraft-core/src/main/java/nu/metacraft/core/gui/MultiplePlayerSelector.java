@@ -6,15 +6,15 @@ import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
 import it.unimi.dsi.fastutil.objects.ReferenceSortedSets;
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.TooltipDisplayComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.TooltipDisplay;
 import nu.metacraft.lib.util.helper.GameProfileHelper;
 import nu.metacraft.lib.util.helper.PlayerHelper;
 
@@ -30,9 +30,9 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 
 	protected GuiElementInterface background = GuiElementBuilder.from(
 			new ItemStack(
-					Items.ORANGE_STAINED_GLASS_PANE.getRegistryEntry(), 1,
-					ComponentChanges.builder().add(
-							DataComponentTypes.TOOLTIP_DISPLAY, new TooltipDisplayComponent(
+					Items.ORANGE_STAINED_GLASS_PANE.builtInRegistryHolder(), 1,
+					DataComponentPatch.builder().set(
+							DataComponents.TOOLTIP_DISPLAY, new TooltipDisplay(
 									true, ReferenceSortedSets.emptySet()
 							)
 					).build()
@@ -54,13 +54,13 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	}
 
 	public MultiplePlayerSelector(
-			ScreenHandlerType<?> type,
-			ServerPlayerEntity player, Collection<GameProfile> selectedPlayers
+			MenuType<?> type,
+			ServerPlayer player, Collection<GameProfile> selectedPlayers
 	) {
 		super(type, player, true);
-		this.nonSelectedPlayersSorted = new TreeSet<>(getDefaultComparator(player.getEntityWorld().getServer()));
-		this.selectedPlayersSorted = new TreeSet<>(getDefaultComparator(player.getEntityWorld().getServer()));
-		setTitle(Text.translatableWithFallback("gui.metacraft.player_selector", "Player Selector"));
+		this.nonSelectedPlayersSorted = new TreeSet<>(getDefaultComparator(player.level().getServer()));
+		this.selectedPlayersSorted = new TreeSet<>(getDefaultComparator(player.level().getServer()));
+		setTitle(Component.translatableWithFallback("gui.metacraft.player_selector", "Player Selector"));
 
 		selectedPlayersSorted.addAll(selectedPlayers);
 
@@ -94,11 +94,11 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 		return null;
 	}
 
-	private boolean isReallyValid(ServerPlayerEntity player) {
+	private boolean isReallyValid(ServerPlayer player) {
 		return (allowSelfSelect() || player != getPlayer()) && isValid(player) && PlayerHelper.shouldShowInGUI(player);
 	}
 
-	protected abstract boolean isValid(ServerPlayerEntity player);
+	protected abstract boolean isValid(ServerPlayer player);
 
 	protected boolean allowSelfSelect() {
 		return false;
@@ -118,8 +118,8 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 
 	private GuiElementInterface makeButton(GameProfile profile, GuiElementInterface.ClickCallback callback) {
 		return new DeferredPlayerHead(
-				profile, ComponentChanges.builder().add(
-						DataComponentTypes.ITEM_NAME, Text.literal(GameProfileHelper.getNameFromProfile(profile, getPlayer().getEntityWorld().getServer()))
+				profile, DataComponentPatch.builder().set(
+						DataComponents.ITEM_NAME, Component.literal(GameProfileHelper.getNameFromProfile(profile, getPlayer().level().getServer()))
 				).build(), callback
 		);
 	}
@@ -137,7 +137,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	private boolean matchesSearchTerm(GameProfile profile) {
 		if (button == null) return true;
 		if (button.getSearchQuery().isBlank()) return true;
-		return GameProfileHelper.getNameFromProfile(profile, getPlayer().getEntityWorld().getServer()).toLowerCase(Locale.ROOT).contains(
+		return GameProfileHelper.getNameFromProfile(profile, getPlayer().level().getServer()).toLowerCase(Locale.ROOT).contains(
 				button.getSearchQuery().toLowerCase(Locale.ROOT)
 		);
 	}
@@ -156,8 +156,8 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	}
 
 	private void updateLayers() {
-		getPlayer().getEntityWorld().getServer().getPlayerManager().getPlayerList().stream().filter(this::isReallyValid).map(
-				ServerPlayerEntity::getGameProfile
+		getPlayer().level().getServer().getPlayerList().getPlayers().stream().filter(this::isReallyValid).map(
+				ServerPlayer::getGameProfile
 		).filter(
 				p -> !selectedPlayersSorted.contains(p)
 		).forEach(nonSelectedPlayersSorted::add);

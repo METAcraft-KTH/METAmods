@@ -2,19 +2,19 @@ package se.metacraft.portalopening.rifts;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3i;
 import se.metacraft.portalopening.EntityData;
 import se.metacraft.portalopening.WorldData;
 import se.metacraft.portalopening.raid.Wave;
 
 import java.util.*;
 import java.util.function.Predicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 
 public class PortalRift {
 
@@ -25,11 +25,11 @@ public class PortalRift {
 	private static final String OFFSET_FACTOR = "OffsetFactor";
 
 	private static final Codec<List<BlockPos>> POSITIONS_CODEC = Codec.LONG_STREAM.xmap(
-			positions -> positions.mapToObj(BlockPos::fromLong).toList(),
+			positions -> positions.mapToObj(BlockPos::of).toList(),
 			positions -> positions.stream().mapToLong(BlockPos::asLong)
 	);
 
-	public static Codec<PortalRift> createCodec(ServerWorld world) {
+	public static Codec<PortalRift> createCodec(ServerLevel world) {
 		return RecordCodecBuilder.create(instance -> instance.group(
 				POSITIONS_CODEC.fieldOf(BLOCKS).forGetter(r -> r.blocks),
 				Direction.Axis.CODEC.optionalFieldOf(AXIS).forGetter(r -> Optional.ofNullable(r.axis)),
@@ -44,7 +44,7 @@ public class PortalRift {
 		));
 	}
 
-	protected final ServerWorld world;
+	protected final ServerLevel world;
 	protected List<BlockPos> blocks = new ArrayList<>();
 	protected Set<BlockPos> blocksChecker = new HashSet<>();
 	protected Direction.Axis axis;
@@ -59,7 +59,7 @@ public class PortalRift {
 	protected int delay = 0;
 
 	private PortalRift(
-			ServerWorld world, List<BlockPos> blocks,
+			ServerLevel world, List<BlockPos> blocks,
 			Direction.Axis axis, Direction launchDirection,
 			double launchStrength, double offsetFactor
 	) {
@@ -73,14 +73,14 @@ public class PortalRift {
 	}
 
 	public PortalRift(
-			ServerWorld world, BlockPos pos, int size, Direction.Axis axis, Runnable shouldSave
+			ServerLevel world, BlockPos pos, int size, Direction.Axis axis, Runnable shouldSave
 	) {
 		this.world = world;
 		this.shouldSave = shouldSave;
 		choosePositions(pos, size, axis);
 	}
 
-	public PortalRift(ServerWorld world, BlockPos pos1, BlockPos pos2, Runnable shouldSave) {
+	public PortalRift(ServerLevel world, BlockPos pos1, BlockPos pos2, Runnable shouldSave) {
 		this.world = world;
 		if (pos1.getX() == pos2.getX()) {
 			axis = Direction.Axis.X;
@@ -89,15 +89,15 @@ public class PortalRift {
 			axis = Direction.Axis.Z;
 		}
 		this.shouldSave = shouldSave;
-		BlockPos.iterate(pos1, pos2).forEach(pos -> {
-			var foundPos = pos.toImmutable();
+		BlockPos.betweenClosed(pos1, pos2).forEach(pos -> {
+			var foundPos = pos.immutable();
 			blocks.add(foundPos);
 			blocksChecker.add(foundPos);
 		});
 	}
 
 	public PortalRift(
-			ServerWorld world, BlockPos pos, int maxSize,
+			ServerLevel world, BlockPos pos, int maxSize,
 			Direction.Axis axis, Predicate<BlockState> blockChecker,
 			Runnable shouldSave
 	) {
@@ -105,13 +105,13 @@ public class PortalRift {
 		this.shouldSave = shouldSave;
 		assert axis != Direction.Axis.Y;
 		this.axis = axis;
-		var positions = BlockPos.iterateOutwards(
+		var positions = BlockPos.withinManhattan(
 				pos, axis == Direction.Axis.X ? maxSize : 0,
 				maxSize, axis == Direction.Axis.Z ? maxSize : 0
 		);
 		for (BlockPos target : positions) {
 			if (blockChecker.test(world.getBlockState(target))) {
-				var foundPos = target.toImmutable();
+				var foundPos = target.immutable();
 				blocks.add(foundPos);
 				this.blocksChecker.add(foundPos);
 			}
@@ -134,19 +134,19 @@ public class PortalRift {
 		} else {
 			this.axis = world.random.nextBoolean() ? Direction.Axis.X : Direction.Axis.Z;
 		}
-		offsets[0] = Direction.UP.getVector();
-		offsets[1] = Direction.DOWN.getVector();
-		offsets[2] = Direction.from(axis, Direction.AxisDirection.POSITIVE).getVector();
-		offsets[3] = Direction.from(axis, Direction.AxisDirection.NEGATIVE).getVector();
+		offsets[0] = Direction.UP.getUnitVec3i();
+		offsets[1] = Direction.DOWN.getUnitVec3i();
+		offsets[2] = Direction.fromAxisAndDirection(axis, Direction.AxisDirection.POSITIVE).getUnitVec3i();
+		offsets[3] = Direction.fromAxisAndDirection(axis, Direction.AxisDirection.NEGATIVE).getUnitVec3i();
 
-		BlockPos.Mutable pos = new BlockPos.Mutable().set(center);
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos().set(center);
 		for (int i = 0; i < size * size; i++) {
 			if (isReplaceableBlock(pos)) {
-				var newPos = pos.toImmutable();
+				var newPos = pos.immutable();
 				blocks.add(newPos);
 				blocksChecker.add(newPos);
 			}
-			pos.set(pos, offsets[world.getRandom().nextInt(offsets.length)]);
+			pos.setWithOffset(pos, offsets[world.getRandom().nextInt(offsets.length)]);
 		}
 	}
 
@@ -196,16 +196,16 @@ public class PortalRift {
 		if (launchDirection != null) {
 			List<Direction.Axis> axes = new ArrayList<>(List.of(Direction.Axis.values()));
 			axes.remove(launchDirection.getAxis());
-			var facing = Vec3d.of(launchDirection.getVector()).add(
-					Vec3d.of(launchDirection.rotateClockwise(axes.getFirst()).getVector()).multiply(
+			var facing = Vec3.atLowerCornerOf(launchDirection.getUnitVec3i()).add(
+					Vec3.atLowerCornerOf(launchDirection.getClockWise(axes.getFirst()).getUnitVec3i()).scale(
 							entity.getRandom().nextGaussian() * offsetFactor
 					)
 			).add(
-					Vec3d.of(launchDirection.rotateClockwise(axes.getLast()).getVector()).multiply(
+					Vec3.atLowerCornerOf(launchDirection.getClockWise(axes.getLast()).getUnitVec3i()).scale(
 							entity.getRandom().nextGaussian() * offsetFactor
 					)
-			).normalize().multiply(launchStrength);
-			entity.setVelocity(facing);
+			).normalize().scale(launchStrength);
+			entity.setDeltaMovement(facing);
 		}
 	}
 
@@ -217,7 +217,7 @@ public class PortalRift {
 	}
 
 	public void nextWave(Wave wave) {
-		delay = wave.autoSpawns().map(spawns -> spawns.spawnDelay().get(world.getRandom())).orElse(0);
+		delay = wave.autoSpawns().map(spawns -> spawns.spawnDelay().sample(world.getRandom())).orElse(0);
 		clearMobs();
 		markDirty();
 	}
@@ -231,18 +231,18 @@ public class PortalRift {
 				int toSpawn = 0;
 				if (!isMainRift) {
 					if (world.getRandom().nextDouble() > autoSpawns.entry().probabilityToSpawnOtherRift()) {
-						delay = autoSpawns.spawnDelay().get(world.getRandom());
+						delay = autoSpawns.spawnDelay().sample(world.getRandom());
 						return;
 					}
-					toSpawn = autoSpawns.entry().amountPerSpawnOtherRifts().map(num -> num.get(world.getRandom())).orElse(0);
+					toSpawn = autoSpawns.entry().amountPerSpawnOtherRifts().map(num -> num.sample(world.getRandom())).orElse(0);
 				} else {
-					toSpawn = autoSpawns.entry().amountPerSpawn().get(world.getRandom());
+					toSpawn = autoSpawns.entry().amountPerSpawn().sample(world.getRandom());
 				}
 				toSpawn = Math.min(toSpawn, autoSpawns.maxMobs() - mobs.size());
 				for (int i = 0; i < toSpawn; i++) {
 					autoSpawns.spawnMobsFromNBT(world, getRandomPos(), this, this::attemptLaunch);
 				}
-				delay = autoSpawns.spawnDelay().get(world.getRandom());
+				delay = autoSpawns.spawnDelay().sample(world.getRandom());
 				markDirty();
 			}
 		});

@@ -1,30 +1,6 @@
 package nu.metacraft.core.item.items;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUsageContext;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.s2c.play.ParticleS2CPacket;
-import net.minecraft.particle.DustParticleEffect;
-import net.minecraft.particle.ParticleEffect;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.util.math.ColorHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.extensions.BlockEntityExtensions;
 import nu.metacraft.core.extensions.ServerPlayerEntityExtensions;
@@ -32,14 +8,38 @@ import nu.metacraft.core.util.helper.PlayerInventoryHelper;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ARGB;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 
 public class Wrench extends Item implements PolymerItem {
 
-	private static final ParticleEffect RED_DUST = new DustParticleEffect(
-			ColorHelper.fromFloats(1, 1, 0, 0), 1
+	private static final ParticleOptions RED_DUST = new DustParticleOptions(
+			ARGB.colorFromFloat(1, 1, 0, 0), 1
 	);
 
-	public Wrench(net.minecraft.item.Item.Settings settings) {
+	public Wrench(net.minecraft.world.item.Item.Properties settings) {
 		super(settings);
 	}
 
@@ -49,48 +49,48 @@ public class Wrench extends Item implements PolymerItem {
 	}
 
 
-	private Text getBlockText(boolean newState) {
+	private Component getBlockText(boolean newState) {
 		if (newState) {
-			return Text.translatableWithFallback(
+			return Component.translatableWithFallback(
 					"item.metacraft.wrench.block.on",
 					"The block is now movable by pistons"
-			).styled(style -> style.withFormatting(Formatting.GREEN));
+			).withStyle(style -> style.applyFormat(ChatFormatting.GREEN));
 		} else {
-			return Text.translatableWithFallback(
+			return Component.translatableWithFallback(
 					"item.metacraft.wrench.block.off",
 					"The block is no longer movable by pistons"
-			).styled(style -> style.withFormatting(Formatting.RED));
+			).withStyle(style -> style.applyFormat(ChatFormatting.RED));
 		}
 	}
 
-	private Text getPlayerText(boolean newState) {
+	private Component getPlayerText(boolean newState) {
 		if (newState) {
-			return Text.translatableWithFallback(
+			return Component.translatableWithFallback(
 					"item.metacraft.wrench.player.on",
 					"All block entities you place will now be movable by pistons"
-			).styled(style -> style.withFormatting(Formatting.GREEN));
+			).withStyle(style -> style.applyFormat(ChatFormatting.GREEN));
 		} else {
-			return Text.translatableWithFallback(
+			return Component.translatableWithFallback(
 					"item.metacraft.wrench.player.off",
 					"All block entities you place will no longer be movable by pistons"
-			).styled(style -> style.withFormatting(Formatting.RED));
+			).withStyle(style -> style.applyFormat(ChatFormatting.RED));
 		}
 	}
 
-	private Text getTooltipText(boolean currentState) {
-		Text state;
+	private Component getTooltipText(boolean currentState) {
+		Component state;
 		if (currentState) {
-			state = Text.translatableWithFallback(
+			state = Component.translatableWithFallback(
 					"item.metacraft.wrench.tooltip.on",
 					"Movable"
-			).styled(style -> style.withFormatting(Formatting.GREEN));
+			).withStyle(style -> style.applyFormat(ChatFormatting.GREEN));
 		} else {
-			state = Text.translatableWithFallback(
+			state = Component.translatableWithFallback(
 					"item.metacraft.wrench.tooltip.off",
 					"Not Movable"
-			).styled(style -> style.withFormatting(Formatting.RED));
+			).withStyle(style -> style.applyFormat(ChatFormatting.RED));
 		}
-		return Text.translatableWithFallback(
+		return Component.translatableWithFallback(
 				"item.metacraft.wrench.tooltip",
 				"Default: " + state.getString(),
 				state
@@ -98,14 +98,14 @@ public class Wrench extends Item implements PolymerItem {
 	}
 
 	private void spawnParticlesForPlayer(
-			ServerWorld world, PlayerEntity player, ParticleEffect particle,
+			ServerLevel world, Player player, ParticleOptions particle,
 			double x, double y, double z, int count,
 			float xOffset, float yOffset, float zOffset, float speed
 	) {
-		for (var p : world.getPlayers()) {
-			world.sendToPlayerIfNearby(
+		for (var p : world.players()) {
+			world.sendParticles(
 					p, p == player, x, y, z,
-					new ParticleS2CPacket(
+					new ClientboundLevelParticlesPacket(
 							particle, p == player, p == player,
 							x, y, z, xOffset, yOffset, zOffset,
 							speed, count
@@ -114,67 +114,67 @@ public class Wrench extends Item implements PolymerItem {
 		}
 	}
 
-	public static boolean canUse(World world, BlockPos pos) {
+	public static boolean canUse(Level world, BlockPos pos) {
 		return world.getBlockEntity(pos) != null;
 	}
 
 	@Override
-	public ActionResult useOnBlock(ItemUsageContext context) {
-		if (context.getWorld() instanceof ServerWorld world) {
-			var entity = context.getWorld().getBlockEntity(context.getBlockPos());
+	public InteractionResult useOn(UseOnContext context) {
+		if (context.getLevel() instanceof ServerLevel world) {
+			var entity = context.getLevel().getBlockEntity(context.getClickedPos());
 			if (entity != null) {
 				boolean newState = !((BlockEntityExtensions) entity).metacraft_core$isMovable();
 				((BlockEntityExtensions) entity).metacraft_core$setMovable(newState);
-				context.getPlayer().sendMessage(
+				context.getPlayer().displayClientMessage(
 						getBlockText(newState), true
 				);
-				var pos = Vec3d.ofCenter(context.getBlockPos());
+				var pos = Vec3.atCenterOf(context.getClickedPos());
 				if (newState) {
 					spawnParticlesForPlayer(
 							world, context.getPlayer(),
 							ParticleTypes.HAPPY_VILLAGER,
-							pos.getX(), pos.getY(), pos.getZ(), 50,
+							pos.x(), pos.y(), pos.z(), 50,
 							0.45f, 0.45f, 0.45f, 1
 					);
 				} else {
 					spawnParticlesForPlayer(
 							world, context.getPlayer(),
 							RED_DUST,
-							pos.getX(), pos.getY(), pos.getZ(), 50,
+							pos.x(), pos.y(), pos.z(), 50,
 							0.4f, 0.4f, 0.4f, 0.1f
 					);
 				}
 				world.playSound(
 						null,
-						pos.getX(), pos.getY(), pos.getZ(),
-						newState ? SoundEvents.BLOCK_METAL_PRESSURE_PLATE_CLICK_ON : SoundEvents.BLOCK_METAL_PRESSURE_PLATE_CLICK_OFF,
-						SoundCategory.BLOCKS, 1, 1
+						pos.x(), pos.y(), pos.z(),
+						newState ? SoundEvents.METAL_PRESSURE_PLATE_CLICK_ON : SoundEvents.METAL_PRESSURE_PLATE_CLICK_OFF,
+						SoundSource.BLOCKS, 1, 1
 				);
-				context.getPlayer().getItemCooldownManager().set(context.getStack(), 1); //Sneak-clicking on blocks should not change default state.
-				return ActionResult.SUCCESS_SERVER;
+				context.getPlayer().getCooldowns().addCooldown(context.getItemInHand(), 1); //Sneak-clicking on blocks should not change default state.
+				return InteractionResult.SUCCESS_SERVER;
 			}
 		}
-		return super.useOnBlock(context);
+		return super.useOn(context);
 	}
 
 
 
 	@Override
-	public ActionResult use(World world, PlayerEntity user, Hand hand) {
-		if (user.isSneaking() && world instanceof ServerWorld) {
+	public InteractionResult use(Level world, Player user, InteractionHand hand) {
+		if (user.isShiftKeyDown() && world instanceof ServerLevel) {
 			var newState = !((ServerPlayerEntityExtensions) user).metacraft_core$areBlocksPistonMovable();
 			((ServerPlayerEntityExtensions) user).metacraft_core$setBlocksPistonMovable(newState);
-			user.sendMessage(
+			user.displayClientMessage(
 					getPlayerText(newState), true
 			);
 			world.playSound(
 					null,
 					user.getX(), user.getY(), user.getZ(),
-					newState ? SoundEvents.BLOCK_METAL_PRESSURE_PLATE_CLICK_ON : SoundEvents.BLOCK_METAL_PRESSURE_PLATE_CLICK_OFF,
-					SoundCategory.PLAYERS, 1, 1
+					newState ? SoundEvents.METAL_PRESSURE_PLATE_CLICK_ON : SoundEvents.METAL_PRESSURE_PLATE_CLICK_OFF,
+					SoundSource.PLAYERS, 1, 1
 			);
 			PlayerInventoryHelper.syncHandStack(user, hand); //Update tooltip.
-			return ActionResult.SUCCESS_SERVER;
+			return InteractionResult.SUCCESS_SERVER;
 		}
 		return super.use(world, user, hand);
 	}
@@ -182,27 +182,27 @@ public class Wrench extends Item implements PolymerItem {
 	private static final int SCAN_RADIUS = 10;
 
 	@Override
-	public void inventoryTick(ItemStack stack, ServerWorld world, Entity entity, @Nullable EquipmentSlot slot) {
+	public void inventoryTick(ItemStack stack, ServerLevel world, Entity entity, @Nullable EquipmentSlot slot) {
 		super.inventoryTick(stack, world, entity, slot); //selected is false in offhand.
-		if (entity instanceof ServerPlayerEntity player && entity.isSneaking() && slot != null && slot.getType() == EquipmentSlot.Type.HAND) {
-			int minX = ChunkSectionPos.getSectionCoord(player.getBlockX() - SCAN_RADIUS);
-			int minZ = ChunkSectionPos.getSectionCoord(player.getBlockZ() - SCAN_RADIUS);
-			int maxX = ChunkSectionPos.getSectionCoord(player.getBlockX() + SCAN_RADIUS);
-			int maxZ = ChunkSectionPos.getSectionCoord(player.getBlockZ() + SCAN_RADIUS);
+		if (entity instanceof ServerPlayer player && entity.isShiftKeyDown() && slot != null && slot.getType() == EquipmentSlot.Type.HAND) {
+			int minX = SectionPos.blockToSectionCoord(player.getBlockX() - SCAN_RADIUS);
+			int minZ = SectionPos.blockToSectionCoord(player.getBlockZ() - SCAN_RADIUS);
+			int maxX = SectionPos.blockToSectionCoord(player.getBlockX() + SCAN_RADIUS);
+			int maxZ = SectionPos.blockToSectionCoord(player.getBlockZ() + SCAN_RADIUS);
 
 			for (int x = minX; x <= maxX; x++) {
 				for (int z = minZ; z <= maxZ; z++) {
-					for (var pos : world.getChunk(x, z).getBlockEntityPositions()) {
-						if (pos.isWithinDistance(player.getEntityPos(), SCAN_RADIUS)) {
+					for (var pos : world.getChunk(x, z).getBlockEntitiesPos()) {
+						if (pos.closerToCenterThan(player.position(), SCAN_RADIUS)) {
 							boolean movable = ((BlockEntityExtensions) world.getBlockEntity(pos)).metacraft_core$isMovable();
 							if (movable) {
-								player.getEntityWorld().spawnParticles(
+								player.level().sendParticles(
 										player, ParticleTypes.HAPPY_VILLAGER, true, true,
 										pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 5,
 										0.45f, 0.45f, 0.45f, 1
 								);
 							} else {
-								player.getEntityWorld().spawnParticles(
+								player.level().sendParticles(
 										player, RED_DUST, true, true,
 										pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 5,
 										0.4f, 0.4f, 0.4f, 0.1f
@@ -216,7 +216,7 @@ public class Wrench extends Item implements PolymerItem {
 	}
 
 	@Override
-	public void modifyClientTooltip(List<Text> tooltip, ItemStack stack, PacketContext context) {
+	public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
 		var player = context.getPlayer();
 		if (player != null) {
 			tooltip.add(

@@ -1,12 +1,12 @@
 package nu.metacraft.core.util.helper;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
 import nu.metacraft.core.extensions.EntityExtensions;
 import nu.metacraft.core.music.ManageableServerBossBar;
 
 import java.util.Optional;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class BossBarHelper {
 
@@ -40,11 +40,11 @@ public class BossBarHelper {
 		setBossBar(entity, null);
 	}
 
-	public static void loadBossBar(Entity entity, ReadView nbt) {
+	public static void loadBossBar(Entity entity, ValueInput nbt) {
 		((EntityExtensions) entity).metacraft_lib$loadBossBar(nbt);
 	}
 
-	public static void saveBossBar(Entity entity, WriteView nbt) {
+	public static void saveBossBar(Entity entity, ValueOutput nbt) {
 		((EntityExtensions) entity).metacraft_lib$saveBossBar(nbt);
 	}
 

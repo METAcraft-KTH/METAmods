@@ -4,15 +4,15 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.Portal;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.entry.RegistryEntry;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.portal_blocker.portal_type.PortalType;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 import nu.metacraft.simplecustomfeatures.objects.ObjectType;
 
 import java.util.*;
+import net.minecraft.core.Holder;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.block.Portal;
 
 public class BlockPortalType implements BaseObject<PortalType> {
 
@@ -21,8 +21,8 @@ public class BlockPortalType implements BaseObject<PortalType> {
 	public static final MapCodec<BlockPortalType> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codec.withAlternative(
-							ExtraCodecs.RegistryDependent.PORTAL_CODEC.listOf(),
-							ExtraCodecs.RegistryDependent.PORTAL_CODEC, List::of
+							METACodecs.RegistryDependent.PORTAL_CODEC.listOf(),
+							METACodecs.RegistryDependent.PORTAL_CODEC, List::of
 					).xmap(
 							blocks -> (Set<Portal>) new HashSet<>(blocks), ArrayList::new
 					).fieldOf("portals").forGetter(t -> t.portals),
@@ -48,7 +48,7 @@ public class BlockPortalType implements BaseObject<PortalType> {
 	}
 
 	@Override
-	public DataResult<PortalType> createObject(RegistryKey<PortalType> id) {
+	public DataResult<PortalType> createObject(ResourceKey<PortalType> id) {
 		return DataResult.success(new PortalType(
 				portals::contains,
 				data.blockedCreationMessage().orElse(null),
@@ -57,14 +57,14 @@ public class BlockPortalType implements BaseObject<PortalType> {
 	}
 
 	@Override
-	public void onUnregister(RegistryEntry<PortalType> entry) {
+	public void onUnregister(Holder<PortalType> entry) {
 		for (var portal : portals) {
 			TYPES.remove(portal, entry.value());
 		}
 	}
 
 	@Override
-	public void onRegistrationSuccess(RegistryEntry.Reference<PortalType> entry) {
+	public void onRegistrationSuccess(Holder.Reference<PortalType> entry) {
 		for (var portal : portals) {
 			TYPES.put(portal, entry.value());
 		}

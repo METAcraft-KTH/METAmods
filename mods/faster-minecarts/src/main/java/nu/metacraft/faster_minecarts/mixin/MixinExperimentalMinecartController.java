@@ -2,19 +2,19 @@ package nu.metacraft.faster_minecarts.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.ExperimentalMinecartController;
-import net.minecraft.entity.vehicle.MinecartController;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.MinecartBehavior;
+import net.minecraft.world.entity.vehicle.NewMinecartBehavior;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.faster_minecarts.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.*;
 
-@Mixin(ExperimentalMinecartController.class)
-public abstract class MixinExperimentalMinecartController extends MinecartController {
+@Mixin(NewMinecartBehavior.class)
+public abstract class MixinExperimentalMinecartController extends MinecartBehavior {
 
-	protected MixinExperimentalMinecartController(AbstractMinecartEntity minecart) {
+	protected MixinExperimentalMinecartController(AbstractMinecart minecart) {
 		super(minecart);
 	}
 
@@ -29,7 +29,7 @@ public abstract class MixinExperimentalMinecartController extends MinecartContro
 	}
 
 	@ModifyExpressionValue(
-		method = "accelerateFromPoweredRail",
+		method = "calculateBoostTrackSpeed",
 			at = @At(
 					value = "CONSTANT",
 					args = "doubleValue=0.06"
@@ -42,22 +42,22 @@ public abstract class MixinExperimentalMinecartController extends MinecartContro
 	}
 
 	@ModifyArg(
-		method = "moveAlongTrack",
+		method = "stepAlongTrack",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/entity/vehicle/AbstractMinecartEntity;move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V"
+			target = "Lnet/minecraft/world/entity/vehicle/AbstractMinecart;move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V"
 		),
 		index = 1
 	)
-	public Vec3d moveAlongTrack(
-			Vec3d movement
+	public Vec3 moveAlongTrack(
+			Vec3 movement
 	) {
-		FasterMinecarts.damageEntitiesFromCart(minecart, this.getVelocity().length(), movement);
+		FasterMinecarts.damageEntitiesFromCart(minecart, this.getDeltaMovement().length(), movement);
 		return movement;
 	}
 
 	@ModifyExpressionValue(
-			method = "getSpeedRetention",
+			method = "getSlowdownFactor",
 			at = @At(
 					value = "CONSTANT",
 					args = "doubleValue=0.975"
@@ -70,7 +70,7 @@ public abstract class MixinExperimentalMinecartController extends MinecartContro
 	}
 
 	@ModifyExpressionValue(
-			method = "getSpeedRetention",
+			method = "getSlowdownFactor",
 			at = @At(
 					value = "CONSTANT",
 					args = "doubleValue=0.997"

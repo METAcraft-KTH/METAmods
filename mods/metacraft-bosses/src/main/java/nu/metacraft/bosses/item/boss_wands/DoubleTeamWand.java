@@ -1,33 +1,33 @@
 package nu.metacraft.bosses.item.boss_wands;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.world.World;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 import nu.metacraft.bosses.item.components.BossComponents;
 import nu.metacraft.bosses.util.DoubleTeamHandler;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 public class DoubleTeamWand extends Item implements PolymerItem {
-	public DoubleTeamWand(net.minecraft.item.Item.Settings settings) {
+	public DoubleTeamWand(net.minecraft.world.item.Item.Properties settings) {
 		super(settings);
 	}
 
 	@Override
-	public ActionResult use(World world, PlayerEntity user, Hand hand) {
-		var settings = user.getStackInHand(hand).get(BossComponents.DOUBLE_TEAM_SETTINGS);
+	public InteractionResult use(Level world, Player user, InteractionHand hand) {
+		var settings = user.getItemInHand(hand).get(BossComponents.DOUBLE_TEAM_SETTINGS);
 		if (settings == null) {
-			return ActionResult.FAIL;
+			return InteractionResult.FAIL;
 		}
 		var handler = new DoubleTeamHandler(
 				user, settings, 0, 0
 		);
 		DoubleTeamHandler.applyToEntity(handler);
-		return ActionResult.SUCCESS_SERVER.noIncrementStat();
+		return InteractionResult.SUCCESS_SERVER.withoutItem();
 	}
 
 	@Override

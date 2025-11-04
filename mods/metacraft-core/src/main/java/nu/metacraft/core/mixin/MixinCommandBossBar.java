@@ -8,8 +8,6 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapCodec;
-import net.minecraft.entity.boss.CommandBossBar;
-import net.minecraft.server.network.ServerPlayerEntity;
 import nu.metacraft.core.music.PlayerMusic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -21,31 +19,33 @@ import nu.metacraft.core.extensions.CommandBossBarSerializedExtension;
 import nu.metacraft.core.music.BossBarMusicHandler;
 
 import java.util.Optional;
+import net.minecraft.server.bossevents.CustomBossEvent;
+import net.minecraft.server.level.ServerPlayer;
 
-@Mixin(CommandBossBar.class)
+@Mixin(CustomBossEvent.class)
 public class MixinCommandBossBar implements CommandBossBarExtension {
 
 	@Unique
-	private final BossBarMusicHandler handler = new BossBarMusicHandler((CommandBossBar) (Object) this);
+	private final BossBarMusicHandler handler = new BossBarMusicHandler((CustomBossEvent) (Object) this);
 
-	@Inject(method = "addPlayer(Lnet/minecraft/server/network/ServerPlayerEntity;)V", at = @At("RETURN"))
-	public void addPlayer(ServerPlayerEntity player, CallbackInfo ci) {
+	@Inject(method = "addPlayer(Lnet/minecraft/server/level/ServerPlayer;)V", at = @At("RETURN"))
+	public void addPlayer(ServerPlayer player, CallbackInfo ci) {
 		handler.onPlayerAdded(player);
 	}
 
 	@Inject(method = "removePlayer", at = @At("RETURN"))
-	public void removePlayer(ServerPlayerEntity player, CallbackInfo ci) {
+	public void removePlayer(ServerPlayer player, CallbackInfo ci) {
 		handler.onPlayerRemoved(player);
 	}
 
-	@ModifyReturnValue(method = "toSerialized", at = @At("RETURN"))
-	public CommandBossBar.Serialized toSerialized(CommandBossBar.Serialized original) {
+	@ModifyReturnValue(method = "pack", at = @At("RETURN"))
+	public CustomBossEvent.Packed toSerialized(CustomBossEvent.Packed original) {
 		((CommandBossBarSerializedExtension) (Object) original).metacraft_core$setMusic(handler.getMusic());
 		return original;
 	}
 
-	@ModifyReturnValue(method = "fromSerialized", at = @At("RETURN"))
-	private static CommandBossBar fromSerialized(CommandBossBar original, @Local(argsOnly = true) CommandBossBar.Serialized serialized) {
+	@ModifyReturnValue(method = "load", at = @At("RETURN"))
+	private static CustomBossEvent fromSerialized(CustomBossEvent original, @Local(argsOnly = true) CustomBossEvent.Packed serialized) {
 		((CommandBossBarSerializedExtension) (Object) serialized).metacraft_core$getMusic().ifPresent(music -> {
 			((CommandBossBarExtension) original).metacraft_core$getMusicHandler().setMusic(music);
 		});
@@ -58,7 +58,7 @@ public class MixinCommandBossBar implements CommandBossBarExtension {
 	}
 
 
-	@Mixin(CommandBossBar.Serialized.class)
+	@Mixin(CustomBossEvent.Packed.class)
 	private static class Serialized implements CommandBossBarSerializedExtension {
 
 		@Unique

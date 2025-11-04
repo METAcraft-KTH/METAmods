@@ -3,13 +3,13 @@ package nu.metacraft.core;
 import com.google.common.collect.Sets;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.*;
-import net.minecraft.item.ItemUsageContext;
-import net.minecraft.network.packet.s2c.play.PositionFlag;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.TypeFilter;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Relative;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.core.entity.entities.MovingBlock;
 import nu.metacraft.core.item.METAcraftItems;
 import nu.metacraft.core.item.items.Wrench;
@@ -19,50 +19,50 @@ public class Events {
 
 	public static void init() {
 		UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
-			if (!world.isClient() && player instanceof ServerPlayerEntity p) {
-				var stack = player.getStackInHand(hand);
+			if (!world.isClientSide() && player instanceof ServerPlayer p) {
+				var stack = player.getItemInHand(hand);
 				if (stack.getItem() == METAcraftItems.WRENCH) {
-					if (hand == Hand.MAIN_HAND) {
-						var offhand = player.getOffHandStack();
+					if (hand == InteractionHand.MAIN_HAND) {
+						var offhand = player.getOffhandItem();
 						if (!offhand.isEmpty()) {
-							player.getItemCooldownManager().set(offhand, 1);
+							player.getCooldowns().addCooldown(offhand, 1);
 						}
-						return stack.useOnBlock(new ItemUsageContext(world, player, hand, player.getStackInHand(hand), hitResult));
+						return stack.useOn(new UseOnContext(world, player, hand, player.getItemInHand(hand), hitResult));
 					} else {
-						return ActionResult.FAIL;
+						return InteractionResult.FAIL;
 					}
 				}
-				if (hand == Hand.MAIN_HAND) {
-					var offhand = player.getOffHandStack();
+				if (hand == InteractionHand.MAIN_HAND) {
+					var offhand = player.getOffhandItem();
 					if (offhand.getItem() == METAcraftItems.WRENCH && Wrench.canUse(world, hitResult.getBlockPos())) {
-						if (offhand.useOnBlock(new ItemUsageContext(world, player, hand, offhand, hitResult)).isAccepted()) {
-							player.swingHand(Hand.OFF_HAND, true);
+						if (offhand.useOn(new UseOnContext(world, player, hand, offhand, hitResult)).consumesAction()) {
+							player.swing(InteractionHand.OFF_HAND, true);
 						}
-						return ActionResult.FAIL;
+						return InteractionResult.FAIL;
 					}
 				}
 			}
-			return ActionResult.PASS;
+			return InteractionResult.PASS;
 		});
 
 		ServerTickEvents.END_WORLD_TICK.register(world -> { //Needs to run outside the general entity tick loop to avoid desync.
-			for (var e : world.getEntitiesByType(TypeFilter.instanceOf(MovingBlock.class), e -> e.getRootAnchor().isPresent())) {
+			for (var e : world.getEntities(EntityTypeTest.forClass(MovingBlock.class), e -> e.getRootAnchor().isPresent())) {
 				e.getRootAnchor().ifPresent(anchor -> {
 					var targetPos = anchor.getTargetPos();
-					if (!targetPos.equals(e.getEntityPos()) || anchor.entity().getEntityWorld() != e.getEntityWorld()) {
-						var dist = e.squaredDistanceTo(anchor.entity());
-						if (dist > MovingBlock.SQ_MAX_MOVE_DIST || anchor.entity().getEntityWorld() != e.getEntityWorld()) {
-							e.setVelocity(Vec3d.ZERO);
-							e.teleport(
-									world, targetPos.getX(), targetPos.getY(), targetPos.getZ(),
-									Sets.union(PositionFlag.ROT, PositionFlag.DELTA),
+					if (!targetPos.equals(e.position()) || anchor.entity().level() != e.level()) {
+						var dist = e.distanceToSqr(anchor.entity());
+						if (dist > MovingBlock.SQ_MAX_MOVE_DIST || anchor.entity().level() != e.level()) {
+							e.setDeltaMovement(Vec3.ZERO);
+							e.teleportTo(
+									world, targetPos.x(), targetPos.y(), targetPos.z(),
+									Sets.union(Relative.ROTATION, Relative.DELTA),
 									0, 0, false
 							);
 						} else {
-							var movement = targetPos.subtract(e.getEntityPos());
-							e.setVelocity(movement);
+							var movement = targetPos.subtract(e.position());
+							e.setDeltaMovement(movement);
 						}
-						e.velocityDirty = true;
+						e.hasImpulse = true;
 					}
 				});
 			}

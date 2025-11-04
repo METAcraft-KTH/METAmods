@@ -1,13 +1,13 @@
 package nu.metacraft.dungeons;
 
-import net.minecraft.block.Block;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.TagKey;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.block.Block;
 
 public class Tags {
 
-	public static final TagKey<Block> DUNGEON_RESET_UNBREAKABLE = TagKey.of(
-			RegistryKeys.BLOCK, METAcraftDungeons.getID("dungeon_reset_unbreakable")
+	public static final TagKey<Block> DUNGEON_RESET_UNBREAKABLE = TagKey.create(
+			Registries.BLOCK, METAcraftDungeons.getID("dungeon_reset_unbreakable")
 	);
 
 }

@@ -1,9 +1,8 @@
 package nu.metacraft.loot_containers.util;
 
 import com.mojang.datafixers.util.Either;
-import net.minecraft.util.math.BlockPos;
-
 import java.util.UUID;
+import net.minecraft.core.BlockPos;
 
 public class PosOrUUID {
 

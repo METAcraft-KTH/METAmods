@@ -3,14 +3,14 @@ package nu.metacraft.lib.condition.entity_sub_predicates;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.predicate.entity.EntitySubPredicate;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Function;
+import net.minecraft.advancements.critereon.EntitySubPredicate;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 
 public abstract class MultiSubPredicate implements EntitySubPredicate {
 
@@ -45,13 +45,13 @@ public abstract class MultiSubPredicate implements EntitySubPredicate {
 		}
 
 		@Override
-		public MapCodec<? extends EntitySubPredicate> getCodec() {
+		public MapCodec<? extends EntitySubPredicate> codec() {
 			return CODEC;
 		}
 
 		@Override
-		public boolean test(Entity entity, ServerWorld world, @Nullable Vec3d pos) {
-			return subPredicates.stream().allMatch(sub -> sub.test(entity, world, pos));
+		public boolean matches(Entity entity, ServerLevel world, @Nullable Vec3 pos) {
+			return subPredicates.stream().allMatch(sub -> sub.matches(entity, world, pos));
 		}
 	}
 
@@ -64,13 +64,13 @@ public abstract class MultiSubPredicate implements EntitySubPredicate {
 		}
 
 		@Override
-		public MapCodec<? extends EntitySubPredicate> getCodec() {
+		public MapCodec<? extends EntitySubPredicate> codec() {
 			return CODEC;
 		}
 
 		@Override
-		public boolean test(Entity entity, ServerWorld world, @Nullable Vec3d pos) {
-			return subPredicates.stream().anyMatch(sub -> sub.test(entity, world, pos));
+		public boolean matches(Entity entity, ServerLevel world, @Nullable Vec3 pos) {
+			return subPredicates.stream().anyMatch(sub -> sub.matches(entity, world, pos));
 		}
 	}
 }

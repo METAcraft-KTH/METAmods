@@ -1,35 +1,35 @@
 package nu.metacraft.lib.mixin;
 
-import net.minecraft.block.entity.AbstractFurnaceBlockEntity;
-import net.minecraft.block.entity.LockableContainerBlockEntity;
-import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import nu.metacraft.lib.extensions.AbstractFurnaceEntityExtensions;
 
-@Mixin(LockableContainerBlockEntity.class)
+@Mixin(BaseContainerBlockEntity.class)
 public abstract class MixinLockableContainerBlockEntity {
 
-	@Shadow public abstract ItemStack getStack(int slot);
+	@Shadow public abstract ItemStack getItem(int slot);
 
 	@Inject(
 			method = {
-					"removeStack(II)Lnet/minecraft/item/ItemStack;"
+					"removeItem(II)Lnet/minecraft/world/item/ItemStack;"
 			},
 			at = @At("RETURN")
 	)
 	public void onRemoveStack(int slot, int amount, CallbackInfoReturnable<ItemStack> cir) {
-		if ((Object) this instanceof AbstractFurnaceBlockEntity && this.getStack(slot).isEmpty()) {
+		if ((Object) this instanceof AbstractFurnaceBlockEntity && this.getItem(slot).isEmpty()) {
 			((AbstractFurnaceEntityExtensions) this).metacraft_lib$unsetInputExtractable();
 		}
 	}
 
 	@Inject(
 			method = {
-					"removeStack(I)Lnet/minecraft/item/ItemStack;"
+					"removeItemNoUpdate(I)Lnet/minecraft/world/item/ItemStack;"
 			},
 			at = @At("RETURN")
 	)

@@ -1,23 +1,23 @@
 package nu.metacraft.cutscenes.cutscene.world;
 
 import com.google.common.collect.Iterables;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.TypeFilter;
-import net.minecraft.util.function.LazyIterationConsumer;
-import net.minecraft.util.math.Box;
-import net.minecraft.world.entity.EntityLookup;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import net.minecraft.util.AbortableIterationConsumer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.level.entity.LevelEntityGetter;
+import net.minecraft.world.phys.AABB;
 
-public class CombinedEntityLookup implements EntityLookup<Entity> {
+public class CombinedEntityLookup implements LevelEntityGetter<Entity> {
 
-	private final List<EntityLookup<Entity>> lookups;
+	private final List<LevelEntityGetter<Entity>> lookups;
 
-	public CombinedEntityLookup(List<EntityLookup<Entity>> lookups) {
+	public CombinedEntityLookup(List<LevelEntityGetter<Entity>> lookups) {
 		this.lookups = lookups;
 	}
 
@@ -34,22 +34,22 @@ public class CombinedEntityLookup implements EntityLookup<Entity> {
 	}
 
 	@Override
-	public Iterable<Entity> iterate() {
-		return Iterables.concat((Iterable<Iterable<Entity>>) () -> lookups.stream().map(EntityLookup::iterate).iterator());
+	public Iterable<Entity> getAll() {
+		return Iterables.concat((Iterable<Iterable<Entity>>) () -> lookups.stream().map(LevelEntityGetter::getAll).iterator());
 	}
 
 	@Override
-	public <U extends Entity> void forEach(TypeFilter<Entity, U> filter, LazyIterationConsumer<U> consumer) {
-		lookups.forEach(lookup -> lookup.forEach(filter, consumer));
+	public <U extends Entity> void get(EntityTypeTest<Entity, U> filter, AbortableIterationConsumer<U> consumer) {
+		lookups.forEach(lookup -> lookup.get(filter, consumer));
 	}
 
 	@Override
-	public void forEachIntersects(Box box, Consumer<Entity> action) {
-		lookups.forEach(lookup -> lookup.forEachIntersects(box, action));
+	public void get(AABB box, Consumer<Entity> action) {
+		lookups.forEach(lookup -> lookup.get(box, action));
 	}
 
 	@Override
-	public <U extends Entity> void forEachIntersects(TypeFilter<Entity, U> filter, Box box, LazyIterationConsumer<U> consumer) {
-		lookups.forEach(lookup -> lookup.forEachIntersects(filter, box, consumer));
+	public <U extends Entity> void get(EntityTypeTest<Entity, U> filter, AABB box, AbortableIterationConsumer<U> consumer) {
+		lookups.forEach(lookup -> lookup.get(filter, box, consumer));
 	}
 }

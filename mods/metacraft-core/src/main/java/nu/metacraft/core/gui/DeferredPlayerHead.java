@@ -4,11 +4,11 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTextures;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.GuiInterface;
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.Util;
+import net.minecraft.Util;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import nu.metacraft.lib.util.helper.GameProfileHelper;
 import org.apache.commons.lang3.mutable.MutableObject;
 
@@ -28,9 +28,9 @@ public class DeferredPlayerHead implements GuiElementInterface {
 	 * @param components The components of the item stack. May contain a profile component to use until profile is ready.
 	 * @param callback The click event.
 	 */
-	public DeferredPlayerHead(GameProfile profile, ComponentChanges components, ClickCallback callback) {
+	public DeferredPlayerHead(GameProfile profile, DataComponentPatch components, ClickCallback callback) {
 		this.profile = profile;
-		this.head = new ItemStack(Items.PLAYER_HEAD.getRegistryEntry(), 1, components);
+		this.head = new ItemStack(Items.PLAYER_HEAD.builtInRegistryHolder(), 1, components);
 		this.callback = callback;
 	}
 
@@ -48,18 +48,18 @@ public class DeferredPlayerHead implements GuiElementInterface {
 	public ItemStack getItemStackForDisplay(GuiInterface gui) {
 		if (gui.isOpen() && !initialized) {
 			initialized = true;
-			var apiServices = gui.getPlayer().getEntityWorld().getServer().getApiServices();
+			var apiServices = gui.getPlayer().level().getServer().services();
 			if (apiServices.sessionService().getTextures(profile) == MinecraftProfileTextures.EMPTY) {
-				Util.getDownloadWorkerExecutor().execute(() -> {
-					var textures = new MutableObject<>(apiServices.profileResolver().getProfileById(profile.id()));
+				Util.nonCriticalIoPool().execute(() -> {
+					var textures = new MutableObject<>(apiServices.profileResolver().fetchById(profile.id()));
 					if (textures.getValue().isEmpty()) {
-						textures.setValue(apiServices.profileResolver().getProfileByName(profile.name()));
+						textures.setValue(apiServices.profileResolver().fetchByName(profile.name()));
 					}
 					if (textures.getValue().isPresent()) {
 						if (gui.isOpen()) {
-							gui.getPlayer().getEntityWorld().getServer().execute(() -> {
+							gui.getPlayer().level().getServer().execute(() -> {
 								head.set(
-										DataComponentTypes.PROFILE,
+										DataComponents.PROFILE,
 										GameProfileHelper.staticComponentBuilder()
 												.withID(textures.getValue().get().id())
 												.withProperties(textures.getValue().get().properties()).build()
@@ -70,7 +70,7 @@ public class DeferredPlayerHead implements GuiElementInterface {
 				});
 			} else {
 				head.set(
-						DataComponentTypes.PROFILE,
+						DataComponents.PROFILE,
 						GameProfileHelper.staticComponentBuilder()
 								.withID(profile.id()).withProperties(profile.properties()).build()
 				);

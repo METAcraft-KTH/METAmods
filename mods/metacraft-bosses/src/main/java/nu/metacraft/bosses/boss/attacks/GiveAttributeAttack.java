@@ -2,33 +2,32 @@ package nu.metacraft.bosses.boss.attacks;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.attribute.EntityAttribute;
-import net.minecraft.entity.attribute.EntityAttributeInstance;
-import net.minecraft.entity.attribute.EntityAttributeModifier;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryElementCodec;
-import net.minecraft.registry.entry.RegistryEntry;
-
 import java.util.function.Consumer;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.RegistryFileCodec;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
 public class GiveAttributeAttack implements Attack {
 
 	public static final MapCodec<GiveAttributeAttack> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					RegistryElementCodec.of(
-							RegistryKeys.ATTRIBUTE, Registries.ATTRIBUTE.getCodec()
+					RegistryFileCodec.create(
+							Registries.ATTRIBUTE, BuiltInRegistries.ATTRIBUTE.byNameCodec()
 					).fieldOf("attribute").forGetter(a -> a.attribute),
-					EntityAttributeModifier.CODEC.fieldOf("modifier").forGetter(a -> a.modifier)
+					AttributeModifier.CODEC.fieldOf("modifier").forGetter(a -> a.modifier)
 			).apply(instance, GiveAttributeAttack::new)
 	);
 
-	private final RegistryEntry<EntityAttribute> attribute;
+	private final Holder<Attribute> attribute;
 
-	private final EntityAttributeModifier modifier;
+	private final AttributeModifier modifier;
 
 	public GiveAttributeAttack(
-			RegistryEntry<EntityAttribute> attribute, EntityAttributeModifier modifier
+			Holder<Attribute> attribute, AttributeModifier modifier
 	) {
 		this.attribute = attribute;
 		this.modifier = modifier;
@@ -47,16 +46,16 @@ public class GiveAttributeAttack implements Attack {
 	public void giveAttribute(BossContext<?> ctx) {
 		forAttributeInstances(ctx, attribute -> {
 			if (!attribute.hasModifier(modifier.id())) {
-				attribute.addTemporaryModifier(modifier);
+				attribute.addTransientModifier(modifier);
 			}
 		});
 	}
 
-	private void forAttributeInstances(BossContext<?> ctx, Consumer<EntityAttributeInstance> function) {
+	private void forAttributeInstances(BossContext<?> ctx, Consumer<AttributeInstance> function) {
 		for (var target : ctx.boss().getLivingTargets()) {
-			switch (target.getAttributeInstance(attribute)) {
+			switch (target.getAttribute(attribute)) {
 				case null -> {}
-				case EntityAttributeInstance instance -> {
+				case AttributeInstance instance -> {
 					function.accept(instance);
 				}
 			}

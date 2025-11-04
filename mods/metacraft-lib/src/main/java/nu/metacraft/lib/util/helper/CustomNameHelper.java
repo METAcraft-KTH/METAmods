@@ -1,10 +1,10 @@
 package nu.metacraft.lib.util.helper;
 
-import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.lib.extensions.ServerPlayerEntityExtensions;
 
 import java.util.Optional;
+import net.minecraft.server.level.ServerPlayer;
 
 public class CustomNameHelper {
 
@@ -13,7 +13,7 @@ public class CustomNameHelper {
 	 * @param player The player to get the custom name for.
 	 * @return An optional containing the player's custom name, or empty if the player does not have a custom name.
 	 */
-	public static Optional<String> getCustomName(ServerPlayerEntity player) {
+	public static Optional<String> getCustomName(ServerPlayer player) {
 		return Optional.ofNullable(((ServerPlayerEntityExtensions) player).metacraft_lib$getCustomName());
 	}
 
@@ -22,7 +22,7 @@ public class CustomNameHelper {
 	 * @param player The player to get the custom name for.
 	 * @return An optional containing the player's custom name without formatting, or empty if the player does not have a custom name.
 	 */
-	public static Optional<String> getCustomNameWithoutFormatting(ServerPlayerEntity player) {
+	public static Optional<String> getCustomNameWithoutFormatting(ServerPlayer player) {
 		return getCustomName(player).map(CustomNameHelper::stripOutColourCodes);
 	}
 
@@ -33,7 +33,7 @@ public class CustomNameHelper {
 	 * @param showInGUI If true, the name cache will be updated, making sure the custom name is visible in guis. Set to true when you change your name because of personal preference, and false when you intend to role-play as another character.
 	 * @throws IllegalStateException if name is more than 16 characters.
 	 */
-	public static void setCustomName(ServerPlayerEntity player, @Nullable String name, boolean showInGUI) {
+	public static void setCustomName(ServerPlayer player, @Nullable String name, boolean showInGUI) {
 		if (name != null && name.length() > 16) {
 			throw new IllegalArgumentException("Name must be at most 16 characters!");
 		}
@@ -44,7 +44,7 @@ public class CustomNameHelper {
 	 * Removes a player's custom name.
 	 * @param player The player to remove the custom name of.
 	 */
-	public static void removeCustomName(ServerPlayerEntity player) {
+	public static void removeCustomName(ServerPlayer player) {
 		setCustomName(player, null, true);
 	}
 

@@ -1,18 +1,18 @@
 package nu.metacraft.better_pets.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.EndPortalBlock;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityCollisionHandler;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.TypeFilter;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.InsideBlockEffectApplier;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.projectile.ThrownEnderpearl;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.EndPortalBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.level.portal.TeleportTransition;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -25,42 +25,42 @@ import nu.metacraft.lib.util.helper.TamedHelper;
 public class MixinEndPortalBlock {
 
 	@Inject(
-		method = "createTeleportTarget",
+		method = "getPortalDestination",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/entity/Entity;getWorldSpawnPos(Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/util/math/BlockPos;"
+			target = "Lnet/minecraft/world/entity/Entity;adjustSpawnLocation(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/BlockPos;"
 		),
 		cancellable = true
 	)
 	public void createTeleportTarget(
-			ServerWorld world, Entity entity, BlockPos pos, CallbackInfoReturnable<TeleportTarget> cir
+			ServerLevel world, Entity entity, BlockPos pos, CallbackInfoReturnable<TeleportTransition> cir
 	) {
-		if (entity instanceof EnderPearlEntity) return; //If people throw an ender pearl through the portal, they probably want to get to world spawn.
+		if (entity instanceof ThrownEnderpearl) return; //If people throw an ender pearl through the portal, they probably want to get to world spawn.
 		TamedHelper.getRelevantPlayer(entity).ifPresent(playerID -> {
-			var player = world.getServer().getPlayerManager().getPlayer(playerID);
+			var player = world.getServer().getPlayerList().getPlayer(playerID);
 			if (player != null) {
-				cir.setReturnValue(player.getRespawnTarget(true, TeleportTarget.ADD_PORTAL_CHUNK_TICKET));
+				cir.setReturnValue(player.findRespawnPositionAndUseSpawnBlock(true, TeleportTransition.PLACE_PORTAL_TICKET));
 			}
 		});
 	}
 
 	@Inject(
-		method = "onEntityCollision",
+		method = "entityInside",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/network/ServerPlayerEntity;detachForDimensionChange()V"
+			target = "Lnet/minecraft/server/level/ServerPlayer;showEndCredits()V"
 		)
 	)
 	public void teleportPetsFirstTime(
-			BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler, boolean bl, CallbackInfo ci, @Local ServerPlayerEntity player
+			BlockState state, Level world, BlockPos pos, Entity entity, InsideBlockEffectApplier handler, boolean bl, CallbackInfo ci, @Local ServerPlayer player
 	) {
-		var target = player.getRespawnTarget(true, TeleportTarget.ADD_PORTAL_CHUNK_TICKET);
-		player.getEntityWorld().getEntitiesByType(
-				TypeFilter.instanceOf(TameableEntity.class),
+		var target = player.findRespawnPositionAndUseSpawnBlock(true, TeleportTransition.PLACE_PORTAL_TICKET);
+		player.level().getEntities(
+				EntityTypeTest.forClass(TamableAnimal.class),
 				e ->    ((TameableExtension) e).metacraft$getCurrentFollowTarget() == player
-						&& !e.cannotFollowOwner()
+						&& !e.unableToMoveToOwner()
 		).forEach(pet -> {
-			pet.teleportTo(target);
+			pet.teleport(target);
 		});
 	}
 

@@ -4,8 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.mojang.authlib.GameProfile;
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.Identifier;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.resources.ResourceLocation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.lib.compat.IsLoaded;
@@ -32,11 +32,11 @@ public class DiscordChatFixer implements ModInitializer {
 		}
 	}
 
-	public static Optional<String> getAvatarURL(ServerCommandSource source) {
+	public static Optional<String> getAvatarURL(CommandSourceStack source) {
 		return getProfileFromSource(source).flatMap(DiscordChatFixer::getAvatarURL);
 	}
 
-	public static Optional<GameProfile> getProfileFromSource(ServerCommandSource source) {
+	public static Optional<GameProfile> getProfileFromSource(CommandSourceStack source) {
 		if (IsLoaded.CORE.isLoaded()) {
 			if (CoreCompat.isMETAcraftPlayer(source.getEntity())) {
 				return Optional.of(CoreCompat.getFromMETAcraftPlayer(source.getEntity()));
@@ -67,7 +67,7 @@ public class DiscordChatFixer implements ModInitializer {
 		return Optional.of(api.replace("{player_textures}", hash));
 	}
 
-	public static Identifier getID(String name) {
-		return Identifier.of(MODID, name);
+	public static ResourceLocation getID(String name) {
+		return ResourceLocation.fromNamespaceAndPath(MODID, name);
 	}
 }

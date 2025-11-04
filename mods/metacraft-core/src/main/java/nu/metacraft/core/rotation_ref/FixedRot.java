@@ -3,11 +3,11 @@ package nu.metacraft.core.rotation_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.Vec2f;
 import nu.metacraft.core.registry.RotationRefRegistry;
 import nu.metacraft.core.util.RefContext;
 
 import java.util.Optional;
+import net.minecraft.world.phys.Vec2;
 
 public class FixedRot implements RotationRef {
 
@@ -20,16 +20,16 @@ public class FixedRot implements RotationRef {
 
 	private final float yaw;
 	private final float pitch;
-	private final Vec2f rot;
+	private final Vec2 rot;
 
 	public FixedRot(float yaw, float pitch) {
 		this.yaw = yaw;
 		this.pitch = pitch;
-		this.rot = new Vec2f(pitch, yaw);
+		this.rot = new Vec2(pitch, yaw);
 	}
 
 	@Override
-	public Optional<Vec2f> get(RefContext ctx) {
+	public Optional<Vec2> get(RefContext ctx) {
 		return Optional.of(rot);
 	}
 

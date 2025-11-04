@@ -1,27 +1,27 @@
 package nu.metacraft.lib.mixin;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.server.network.EntityTrackerEntry;
-import net.minecraft.server.network.PlayerAssociatedNetworkHandler;
-import net.minecraft.server.world.ServerChunkLoadingManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 import java.util.Set;
+import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.ServerEntity;
+import net.minecraft.server.network.ServerPlayerConnection;
 
-@Mixin(ServerChunkLoadingManager.class)
+@Mixin(ChunkMap.class)
 public interface AccessorServerChunkLoadingManager {
 
 	@Accessor
-	Int2ObjectMap<ServerChunkLoadingManager.EntityTracker> getEntityTrackers();
+	Int2ObjectMap<ChunkMap.TrackedEntity> getEntityMap();
 
-	@Mixin(ServerChunkLoadingManager.EntityTracker.class)
+	@Mixin(ChunkMap.TrackedEntity.class)
 	interface EntityTracker {
 		@Accessor
-		EntityTrackerEntry getEntry();
+		ServerEntity getServerEntity();
 
 		@Accessor
-		Set<PlayerAssociatedNetworkHandler> getListeners();
+		Set<ServerPlayerConnection> getSeenBy();
 	}
 
 }

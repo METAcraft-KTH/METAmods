@@ -3,26 +3,26 @@ package nu.metacraft.lib.util.helper;
 import com.mojang.datafixers.DataFixer;
 import com.mojang.serialization.Dynamic;
 import net.minecraft.SharedConstants;
-import net.minecraft.datafixer.TypeReferences;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
-import net.minecraft.nbt.NbtList;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.Registries;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.storage.ReadView;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Uuids;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.datafix.fixes.References;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.extensions.ServerPlayerEntityExtensions;
 import nu.metacraft.lib.mixin.AccessorPlayerAdvancementTracker;
@@ -39,16 +39,16 @@ import java.util.function.UnaryOperator;
 
 public class PlayerDataHelper {
 
-	private static final NbtCompound CLEAR_PLAYER = new NbtCompound();
+	private static final CompoundTag CLEAR_PLAYER = new CompoundTag();
 
 	static {
 		CLEAR_PLAYER.putBoolean("seenCredits", true);
-		CLEAR_PLAYER.put("EnderItems", new NbtList());
-		CLEAR_PLAYER.put("ShoulderEntityLeft", new NbtCompound());
-		CLEAR_PLAYER.put("ShoulderEntityRight", new NbtCompound());
+		CLEAR_PLAYER.put("EnderItems", new ListTag());
+		CLEAR_PLAYER.put("ShoulderEntityLeft", new CompoundTag());
+		CLEAR_PLAYER.put("ShoulderEntityRight", new CompoundTag());
 	}
 
-	private static ServerPlayerEntityExtensions ext(ServerPlayerEntity player) {
+	private static ServerPlayerEntityExtensions ext(ServerPlayer player) {
 		return (ServerPlayerEntityExtensions) player;
 	}
 
@@ -67,20 +67,20 @@ public class PlayerDataHelper {
 	 * @param player The player to save data from.
 	 * @param id The id slot within that player to save to.
 	 */
-	public static void saveCurrentPlayerData(ServerPlayerEntity player, Identifier id) {
+	public static void saveCurrentPlayerData(ServerPlayer player, ResourceLocation id) {
 		var ext = ext(player);
 		ext.metacraft_lib$setPlayerData(id, ext.metacraft_lib$savePlayerDataExceptDataMap());
 	}
 
-	public static void removePlayerData(ServerPlayerEntity player, Identifier id) {
+	public static void removePlayerData(ServerPlayer player, ResourceLocation id) {
 		ext(player).metacraft_lib$setPlayerData(id, null);
 	}
 
-	public static Optional<NbtCompound> getPlayerData(ServerPlayerEntity player, Identifier id) {
+	public static Optional<CompoundTag> getPlayerData(ServerPlayer player, ResourceLocation id) {
 		return ext(player).metacraft_lib$getPlayerData(id);
 	}
 
-	public static void setPlayerData(ServerPlayerEntity player, Identifier id, NbtCompound data) {
+	public static void setPlayerData(ServerPlayer player, ResourceLocation id, CompoundTag data) {
 		ext(player).metacraft_lib$setPlayerData(id, data);
 	}
 
@@ -93,15 +93,15 @@ public class PlayerDataHelper {
 	 * @param includeFarawayEntities Whether to spawn any additional entities such as ender pearls stored in player data.
 	 */
 	public static void loadPlayerData(
-			ServerPlayerEntity player, Identifier id, boolean moveToDataPosition,
+			ServerPlayer player, ResourceLocation id, boolean moveToDataPosition,
 			boolean includeVehicleAndPassengers, boolean includeFarawayEntities
 	) {
 		ext(player).metacraft_lib$getPlayerData(id).map(
-				data -> updatePlayerData(data, player.getEntityWorld().getServer().getDataFixer())
+				data -> updatePlayerData(data, player.level().getServer().getFixerUpper())
 		).ifPresent(data -> {
 			try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerDataHelper#loadPlayerData", METAcraftLib.LOGGER)) {
-				var view = NbtReadView.create(
-						logging, player.getRegistryManager(), data
+				var view = TagValueInput.create(
+						logging, player.registryAccess(), data
 				);
 				applyPlayerData(player, view, moveToDataPosition, includeVehicleAndPassengers, includeFarawayEntities);
 			}
@@ -111,32 +111,32 @@ public class PlayerDataHelper {
 
 	/**
 	 * Detaches player from any vehicle/passengers if another player is riding them.
-	 * Run this before saving the player data before {@link PlayerDataHelper#unloadPassengersAndVehicles(ServerPlayerEntity)}
-	 * or {@link PlayerDataHelper#unloadAllPlayerConnectedEntities(ServerPlayerEntity)}
+	 * Run this before saving the player data before {@link PlayerDataHelper#unloadPassengersAndVehicles(ServerPlayer)}
+	 * or {@link PlayerDataHelper#unloadAllPlayerConnectedEntities(ServerPlayer)}
 	 * @param player The player to update.
 	 */
-	public static void detachPassengersBeforeSaving(ServerPlayerEntity player) {
-		if (player.getRootVehicle().getPlayerPassengers() != 1) {
-			player.dismountVehicle();
+	public static void detachPassengersBeforeSaving(ServerPlayer player) {
+		if (player.getRootVehicle().countPlayerPassengers() != 1) {
+			player.removeVehicle();
 		}
-		if (player.getPlayerPassengers() != 0) {
-			player.removeAllPassengers();
+		if (player.countPlayerPassengers() != 0) {
+			player.ejectPassengers();
 		}
 	}
 
 	/**
 	 * Unloads all vehicles the player is riding if no other player is also riding them.
-	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayerEntity, Identifier)}
+	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayer, ResourceLocation)}
 	 * they will be lost forever!
-	 * Also, make sure to run {@link PlayerDataHelper#detachPassengersBeforeSaving(ServerPlayerEntity)}
+	 * Also, make sure to run {@link PlayerDataHelper#detachPassengersBeforeSaving(ServerPlayer)}
 	 * before actually saving the data before running this function. Otherwise, you might get duplicate entities when loading!
 	 * @param player The player to remove vehicles from.
 	 */
-	public static void unloadPassengersAndVehicles(ServerPlayerEntity player) {
+	public static void unloadPassengersAndVehicles(ServerPlayer player) {
 		var rootVehicle = player.getRootVehicle();
-		if (rootVehicle.getPlayerPassengers() == 1) {
-			player.dismountVehicle();
-			rootVehicle.streamPassengersAndSelf().forEach(entity -> {
+		if (rootVehicle.countPlayerPassengers() == 1) {
+			player.removeVehicle();
+			rootVehicle.getPassengersAndSelf().forEach(entity -> {
 				entity.remove(Entity.RemovalReason.UNLOADED_WITH_PLAYER);
 			});
 		}
@@ -144,26 +144,26 @@ public class PlayerDataHelper {
 
 	/**
 	 * Unloads all entities connected but not directly attached to players (basically just ender pearls).
-	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayerEntity, Identifier)}
+	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayer, ResourceLocation)}
 	 * they will be lost forever!
 	 * @param player The player to remove vehicle from.
 	 */
-	public static void unloadFarawayEntities(ServerPlayerEntity player) {
+	public static void unloadFarawayEntities(ServerPlayer player) {
 		player.getEnderPearls().forEach(pearl -> pearl.remove(Entity.RemovalReason.UNLOADED_WITH_PLAYER));
 		player.getEnderPearls().clear();
 	}
 
 	/**
 	 * Unloads all entities that should unload when a player disconnects (at least in vanilla).
-	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayerEntity, Identifier)}
+	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayer, ResourceLocation)}
 	 * they will be lost forever!
-	 * Also, make sure to run {@link PlayerDataHelper#detachPassengersBeforeSaving(ServerPlayerEntity)}
+	 * Also, make sure to run {@link PlayerDataHelper#detachPassengersBeforeSaving(ServerPlayer)}
 	 * before actually saving the data before running this function. Otherwise, you might get duplicate entities when loading!
 	 * @param player The player to remove vehicle from.
-	 * @see PlayerDataHelper#unloadPassengersAndVehicles(ServerPlayerEntity)
-	 * @see PlayerDataHelper#unloadFarawayEntities(ServerPlayerEntity)
+	 * @see PlayerDataHelper#unloadPassengersAndVehicles(ServerPlayer)
+	 * @see PlayerDataHelper#unloadFarawayEntities(ServerPlayer)
 	 */
-	public static void unloadAllPlayerConnectedEntities(ServerPlayerEntity player) {
+	public static void unloadAllPlayerConnectedEntities(ServerPlayer player) {
 		unloadPassengersAndVehicles(player);
 		unloadFarawayEntities(player);
 	}
@@ -171,14 +171,14 @@ public class PlayerDataHelper {
 	/**
 	 * Resets the player data to nothing. This includes the inventory, ender chest and basically everything.
 	 * Note that vehicle and ender pearls are not reset.
-	 * To remove them, please use {@link PlayerDataHelper#unloadAllPlayerConnectedEntities(ServerPlayerEntity)}
+	 * To remove them, please use {@link PlayerDataHelper#unloadAllPlayerConnectedEntities(ServerPlayer)}
 	 * @param player The player to modify.
 	 */
-	public static void resetPlayerData(ServerPlayerEntity player) {
+	public static void resetPlayerData(ServerPlayer player) {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerDataHelper#resetPlayerData", METAcraftLib.LOGGER)) {
-			var view = NbtReadView.create(
+			var view = TagValueInput.create(
 					logging,
-					player.getRegistryManager(),
+					player.registryAccess(),
 					getEmptyPlayerData()
 			);
 			applyPlayerData(
@@ -192,7 +192,7 @@ public class PlayerDataHelper {
 	 * Returns player data that will reset a player.
 	 * @return The data.
 	 */
-	public static NbtCompound getEmptyPlayerData() {
+	public static CompoundTag getEmptyPlayerData() {
 		return CLEAR_PLAYER.copy();
 	}
 
@@ -202,8 +202,8 @@ public class PlayerDataHelper {
 	 * @param view The data containing a dimension tag.
 	 * @return The world or empty if that world did not exist.
 	 */
-	public static Optional<ServerWorld> getWorld(MinecraftServer server, ReadView view) {
-		return view.read("Dimension", World.CODEC).map(server::getWorld);
+	public static Optional<ServerLevel> getWorld(MinecraftServer server, ValueInput view) {
+		return view.read("Dimension", Level.RESOURCE_KEY_CODEC).map(server::getLevel);
 	}
 
 	/**
@@ -211,10 +211,10 @@ public class PlayerDataHelper {
 	 * @param entity The entity to modify.
 	 * @param nbt The data.
 	 * @param spawner A modifier to run for each entity loaded. If player is already in a world, this would likely include a spawnEntity call.
-	 * @see PlayerDataHelper#loadPassengers(LivingEntity, ReadView, UnaryOperator)
-	 * @see PlayerDataHelper#loadRootVehicle(LivingEntity, ReadView, UnaryOperator)
+	 * @see PlayerDataHelper#loadPassengers(LivingEntity, ValueInput, UnaryOperator)
+	 * @see PlayerDataHelper#loadRootVehicle(LivingEntity, ValueInput, UnaryOperator)
 	 */
-	public static void loadRootVehicleAndPassengers(LivingEntity entity, ReadView nbt, UnaryOperator<Entity> spawner) {
+	public static void loadRootVehicleAndPassengers(LivingEntity entity, ValueInput nbt, UnaryOperator<Entity> spawner) {
 		loadRootVehicle(entity, nbt, spawner);
 		loadPassengers(entity, nbt, spawner);
 	}
@@ -225,10 +225,10 @@ public class PlayerDataHelper {
 	 * @param nbt The data.
 	 * @param spawner A modifier to run for each entity loaded. If player is already in a world, this would likely include a spawnEntity call.
 	 */
-	public static void loadPassengers(LivingEntity entity, ReadView nbt, UnaryOperator<Entity> spawner) {
-		for (var e : nbt.getListReadView(Entity.PASSENGERS_KEY)) {
-			Entity entity2 = EntityType.loadEntityWithPassengers(
-					e, entity.getEntityWorld(), SpawnReason.LOAD, spawner
+	public static void loadPassengers(LivingEntity entity, ValueInput nbt, UnaryOperator<Entity> spawner) {
+		for (var e : nbt.childrenListOrEmpty(Entity.TAG_PASSENGERS)) {
+			Entity entity2 = EntityType.loadEntityRecursive(
+					e, entity.level(), EntitySpawnReason.LOAD, spawner
 			);
 			if (entity2 != null) {
 				entity2.startRiding(entity, true, false);
@@ -242,21 +242,21 @@ public class PlayerDataHelper {
 	 * @param data The data.
 	 * @param spawner A modifier to run for each entity loaded. If player is already in a world, this would likely include a spawnEntity call.
 	 */
-	public static void loadRootVehicle(LivingEntity player, ReadView data, UnaryOperator<Entity> spawner) {
-		data.getOptionalReadView("RootVehicle").ifPresent(vehicle -> {
-			var e = EntityType.loadEntityWithPassengers(vehicle.getReadView("Entity"), player.getEntityWorld(), SpawnReason.LOAD, spawner);
+	public static void loadRootVehicle(LivingEntity player, ValueInput data, UnaryOperator<Entity> spawner) {
+		data.child("RootVehicle").ifPresent(vehicle -> {
+			var e = EntityType.loadEntityRecursive(vehicle.childOrEmpty("Entity"), player.level(), EntitySpawnReason.LOAD, spawner);
 			if (e != null) {
 				Runnable clearEntity = () -> {
-					e.streamPassengersAndSelf().forEach(Entity::discard);
+					e.getPassengersAndSelf().forEach(Entity::discard);
 					METAcraftLib.LOGGER.error("Unable to reattach player to entity.");
 				};
-				vehicle.read("Attach", Uuids.INT_STREAM_CODEC).ifPresentOrElse(id -> {
-					for (var entity : (Iterable<Entity>) e.streamSelfAndPassengers()::iterator) {
-						if (entity.getUuid().equals(id)) {
+				vehicle.read("Attach", UUIDUtil.CODEC).ifPresentOrElse(id -> {
+					for (var entity : (Iterable<Entity>) e.getSelfAndPassengers()::iterator) {
+						if (entity.getUUID().equals(id)) {
 							player.startRiding(entity, true, false);
 						}
 					}
-					if (!player.hasVehicle()) {
+					if (!player.isPassenger()) {
 						clearEntity.run();
 					}
 				}, clearEntity);
@@ -272,19 +272,19 @@ public class PlayerDataHelper {
 	 * @param moveToDataPosition Whether to teleport the player to their position in the data.
 	 */
 	public static void applyPlayerData(
-			ServerPlayerEntity player, ReadView data, boolean moveToDataPosition
+			ServerPlayer player, ValueInput data, boolean moveToDataPosition
 	) {
 		applyPlayerData(player, data, moveToDataPosition, true, true);
 	}
 
-	public static NbtCompound updatePlayerData(NbtCompound data, DataFixer dataFixer) {
-		int oldVersion = NbtHelper.getDataVersion(data, -1);
-		if (oldVersion >= SharedConstants.getGameVersion().dataVersion().id()) return data;
-		NbtCompound newData = (NbtCompound) dataFixer.update(
-				TypeReferences.PLAYER, new Dynamic<>(NbtOps.INSTANCE, data),
-				oldVersion, SharedConstants.getGameVersion().dataVersion().id()
+	public static CompoundTag updatePlayerData(CompoundTag data, DataFixer dataFixer) {
+		int oldVersion = NbtUtils.getDataVersion(data, -1);
+		if (oldVersion >= SharedConstants.getCurrentVersion().dataVersion().version()) return data;
+		CompoundTag newData = (CompoundTag) dataFixer.update(
+				References.PLAYER, new Dynamic<>(NbtOps.INSTANCE, data),
+				oldVersion, SharedConstants.getCurrentVersion().dataVersion().version()
 		).getValue();
-		NbtHelper.putDataVersion(newData);
+		NbtUtils.addCurrentDataVersion(newData);
 		return newData;
 	}
 
@@ -297,154 +297,154 @@ public class PlayerDataHelper {
 	 * @param spawnFarawayEntities Whether to spawn any additional entities such as ender pearls stored in player data.
 	 */
 	public static void applyPlayerData(
-			ServerPlayerEntity player, ReadView data, boolean moveToDataPosition,
+			ServerPlayer player, ValueInput data, boolean moveToDataPosition,
 			boolean spawnVehicleAndPassengers, boolean spawnFarawayEntities
 	) {
-		player.clearStatusEffects();
-		Registries.ATTRIBUTE.streamEntries().forEach(attribute -> {
-			var inst = player.getAttributeInstance(attribute);
+		player.removeAllEffects();
+		BuiltInRegistries.ATTRIBUTE.listElements().forEach(attribute -> {
+			var inst = player.getAttribute(attribute);
 			if (inst != null) {
-				inst.clearModifiers();
+				inst.removeModifiers();
 			}
 		});
-		var prevPos = player.getEntityPos();
-		var prevYaw = player.getYaw();
-		var prevPitch = player.getPitch();
-		Vec3d prevVelocity = player.getVelocity();
+		var prevPos = player.position();
+		var prevYaw = player.getYRot();
+		var prevPitch = player.getXRot();
+		Vec3 prevVelocity = player.getDeltaMovement();
 
-		var prevVehiclePos = player.getRootVehicle().getEntityPos();
-		var prevVehicleYaw = player.getRootVehicle().getYaw();
-		var prevVehiclePitch = player.getRootVehicle().getPitch();
-		var prevVehicleVelocity = player.getRootVehicle().getVelocity();
+		var prevVehiclePos = player.getRootVehicle().position();
+		var prevVehicleYaw = player.getRootVehicle().getYRot();
+		var prevVehiclePitch = player.getRootVehicle().getXRot();
+		var prevVehicleVelocity = player.getRootVehicle().getDeltaMovement();
 
-		var gameMode = AccessorServerPlayerEntity.callGameModeFromData(data, "playerGameType");
+		var gameMode = AccessorServerPlayerEntity.callReadPlayerMode(data, "playerGameType");
 		if (gameMode != null) {
-			player.changeGameMode(gameMode);
+			player.setGameMode(gameMode);
 		}
 
 		ext(player).metacraft_lib$loadPlayerDataExceptDataMap(data);
-		Optional<ServerWorld> world = getWorld(player.getEntityWorld().getServer(), data);
+		Optional<ServerLevel> world = getWorld(player.level().getServer(), data);
 		if (moveToDataPosition) {
 			world.ifPresentOrElse(w -> {
-				player.teleport(w, player.getX(), player.getY(), player.getZ(), Set.of(), player.getYaw(), player.getPitch(), false);
-				player.velocityModified = true;
+				player.teleportTo(w, player.getX(), player.getY(), player.getZ(), Set.of(), player.getYRot(), player.getXRot(), false);
+				player.hurtMarked = true;
 			}, () -> {
-				player.teleportTo(player.getRespawnTarget(true, TeleportTarget.NO_OP));
+				player.teleport(player.findRespawnPositionAndUseSpawnBlock(true, TeleportTransition.DO_NOTHING));
 			});
 		} else {
-			player.setPos(prevPos.getX(), prevPos.getY(), prevPos.getZ());
-			player.setYaw(prevYaw);
-			player.setPitch(prevPitch);
-			player.setVelocity(prevVelocity);
+			player.setPosRaw(prevPos.x(), prevPos.y(), prevPos.z());
+			player.setYRot(prevYaw);
+			player.setXRot(prevPitch);
+			player.setDeltaMovement(prevVelocity);
 		}
 		if (spawnVehicleAndPassengers) {
 			loadRootVehicleAndPassengers(player, data, e -> {
 				if (!moveToDataPosition) {
-					e.setPos(prevVehiclePos.x, prevVehiclePos.y, prevVehiclePos.z);
-					e.setYaw(prevVehicleYaw);
-					e.setPitch(prevVehiclePitch);
-					e.setVelocity(prevVehicleVelocity);
+					e.setPosRaw(prevVehiclePos.x, prevVehiclePos.y, prevVehiclePos.z);
+					e.setYRot(prevVehicleYaw);
+					e.setXRot(prevVehiclePitch);
+					e.setDeltaMovement(prevVehicleVelocity);
 				}
-				if (!player.getEntityWorld().spawnEntity(e)) {
+				if (!player.level().addFreshEntity(e)) {
 					return null;
 				}
 				return e;
 			});
 		}
 		if (spawnFarawayEntities) {
-			player.readEnderPearls(data);
+			player.loadAndSpawnEnderPearls(data);
 		}
 	}
 
-	public static void setAnnounceAdvancements(ServerPlayerEntity player, boolean announceAdvancements) {
+	public static void setAnnounceAdvancements(ServerPlayer player, boolean announceAdvancements) {
 		((ServerPlayerEntityExtensions) player).metacraft_lib$setAnnounceAdvancements(announceAdvancements);
 	}
 
-	public static boolean getAnnounceAdvancements(ServerPlayerEntity player) {
+	public static boolean getAnnounceAdvancements(ServerPlayer player) {
 		return ((ServerPlayerEntityExtensions) player).metacraft_lib$getAnnounceAdvancements();
 	}
 
-	public static void setAnnounceJoinLeave(ServerPlayerEntity player, boolean announceJoinLeave) {
+	public static void setAnnounceJoinLeave(ServerPlayer player, boolean announceJoinLeave) {
 		((ServerPlayerEntityExtensions) player).metacraft_lib$setAnnounceJoinLeave(announceJoinLeave);
 	}
 
-	public static boolean getAnnounceJoinLeave(ServerPlayerEntity player) {
+	public static boolean getAnnounceJoinLeave(ServerPlayer player) {
 		return ((ServerPlayerEntityExtensions) player).metacraft_lib$getAnnounceJoinLeave();
 	}
 
-	public static void setAnnounceDeath(ServerPlayerEntity player, boolean announceDeath) {
+	public static void setAnnounceDeath(ServerPlayer player, boolean announceDeath) {
 		((ServerPlayerEntityExtensions) player).metacraft_lib$setAnnounceDeath(announceDeath);
 	}
 
-	public static boolean getAnnounceDeath(ServerPlayerEntity player) {
+	public static boolean getAnnounceDeath(ServerPlayer player) {
 		return ((ServerPlayerEntityExtensions) player).metacraft_lib$getAnnounceDeath();
 	}
 
-	public static void setAdvancementTracker(ServerPlayerEntity player, Identifier type, boolean copy) {
-		if (!(player.getAdvancementTracker() instanceof SeparateAdvancementTracker h) || !h.getType().equals(type)) {
-			var prevTracker = player.getAdvancementTracker();
+	public static void setAdvancementTracker(ServerPlayer player, ResourceLocation type, boolean copy) {
+		if (!(player.getAdvancements() instanceof SeparateAdvancementTracker h) || !h.getType().equals(type)) {
+			var prevTracker = player.getAdvancements();
 			prevTracker.save();
-			prevTracker.clearCriteria();
-			var playerManager = player.getEntityWorld().getServer().getPlayerManager();
-			((AccessorServerPlayerEntity) player).setAdvancementTracker(
+			prevTracker.stopListening();
+			var playerManager = player.level().getServer().getPlayerList();
+			((AccessorServerPlayerEntity) player).setAdvancements(
 					new SeparateAdvancementTracker(
-							player.getEntityWorld().getServer().getDataFixer(), playerManager,
-							player.getEntityWorld().getServer().getAdvancementLoader(), player, type
+							player.level().getServer().getFixerUpper(), playerManager,
+							player.level().getServer().getAdvancements(), player, type
 					)
 			);
-			((AccessorPlayerManager) playerManager).getAdvancementTrackers().put(
-					player.getUuid(), player.getAdvancementTracker()
+			((AccessorPlayerManager) playerManager).getAdvancements().put(
+					player.getUUID(), player.getAdvancements()
 			);
 			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(type);
 
 			if (copy) {
 				var progress = ((AccessorPlayerAdvancementTracker) prevTracker).getProgress();
-				var tracker = (AccessorPlayerAdvancementTracker) player.getAdvancementTracker();
+				var tracker = (AccessorPlayerAdvancementTracker) player.getAdvancements();
 				tracker.getProgress().putAll(progress);
 				progress.forEach((entry, p) -> {
-					tracker.callInitProgress(entry, p);
-					tracker.getProgressUpdates().add(entry);
-					tracker.callOnStatusUpdate(entry);
+					tracker.callStartProgress(entry, p);
+					tracker.getProgressChanged().add(entry);
+					tracker.callMarkForVisibilityUpdate(entry);
 				});
 			}
 		}
 	}
 
-	public static void restoreAdvancementTracker(ServerPlayerEntity player) {
-		var playerManager = player.getEntityWorld().getServer().getPlayerManager();
-		if (player.getAdvancementTracker() instanceof SeparateAdvancementTracker t) {
+	public static void restoreAdvancementTracker(ServerPlayer player) {
+		var playerManager = player.level().getServer().getPlayerList();
+		if (player.getAdvancements() instanceof SeparateAdvancementTracker t) {
 			t.save();
-			t.clearCriteria();
-			((AccessorPlayerManager) playerManager).getAdvancementTrackers().remove(player.getUuid());
-			((AccessorServerPlayerEntity) player).setAdvancementTracker(playerManager.getAdvancementTracker(player));
+			t.stopListening();
+			((AccessorPlayerManager) playerManager).getAdvancements().remove(player.getUUID());
+			((AccessorServerPlayerEntity) player).setAdvancements(playerManager.getPlayerAdvancements(player));
 			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(null);
 		}
 	}
 
-	public static void setStatHandler(ServerPlayerEntity player, Identifier type, boolean copy) {
-		if (!(player.getStatHandler() instanceof SeparateStatHandler h) || !h.getType().equals(type)) {
-			var prevHandler = player.getStatHandler();
-			player.getStatHandler().save();
-			((AccessorServerPlayerEntity) player).setStatHandler(new SeparateStatHandler(player.getEntityWorld().getServer(), player, type));
-			((AccessorPlayerManager) player.getEntityWorld().getServer().getPlayerManager()).getStatisticsMap().put(
-					player.getUuid(), player.getStatHandler()
+	public static void setStatHandler(ServerPlayer player, ResourceLocation type, boolean copy) {
+		if (!(player.getStats() instanceof SeparateStatHandler h) || !h.getType().equals(type)) {
+			var prevHandler = player.getStats();
+			player.getStats().save();
+			((AccessorServerPlayerEntity) player).setStats(new SeparateStatHandler(player.level().getServer(), player, type));
+			((AccessorPlayerManager) player.level().getServer().getPlayerList()).getStats().put(
+					player.getUUID(), player.getStats()
 			);
 			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(type);
 
 			if (copy) {
-				for (var entry : ((AccessorStatHandler) prevHandler).getStatMap().object2IntEntrySet()) {
-					player.getStatHandler().setStat(player, entry.getKey(), entry.getIntValue());
+				for (var entry : ((AccessorStatHandler) prevHandler).getStats().object2IntEntrySet()) {
+					player.getStats().setValue(player, entry.getKey(), entry.getIntValue());
 				}
 			}
 		}
 	}
 
-	public static void restoreStatHandler(ServerPlayerEntity player) {
-		var playerManager = player.getEntityWorld().getServer().getPlayerManager();
-		if (player.getStatHandler() instanceof SeparateStatHandler t) {
+	public static void restoreStatHandler(ServerPlayer player) {
+		var playerManager = player.level().getServer().getPlayerList();
+		if (player.getStats() instanceof SeparateStatHandler t) {
 			t.save();
-			((AccessorPlayerManager) playerManager).getStatisticsMap().remove(player.getUuid());
-			((AccessorServerPlayerEntity) player).setStatHandler(playerManager.createStatHandler(player));
+			((AccessorPlayerManager) playerManager).getStats().remove(player.getUUID());
+			((AccessorServerPlayerEntity) player).setStats(playerManager.getPlayerStats(player));
 			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(null);
 		}
 	}

@@ -1,29 +1,29 @@
 package nu.metacraft.better_pets;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.StyleSpriteSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import nu.metacraft.core.gui.MultiplePlayerSelector;
 import nu.metacraft.lib.util.helper.GameProfileHelper;
 
 import java.util.Comparator;
 import java.util.Optional;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
 
 public class TrustPlayerSelector extends MultiplePlayerSelector {
-	public static final StyleSpriteSource MENU_FONT = new StyleSpriteSource.Font(Identifier.of("metacraft", "pet_gui"));
+	public static final FontDescription MENU_FONT = new FontDescription.Resource(ResourceLocation.fromNamespaceAndPath("metacraft", "pet_gui"));
 
 	private final TameableExtension tameable;
 
-	public TrustPlayerSelector(ServerPlayerEntity player, TameableExtension tameable) {
+	public TrustPlayerSelector(ServerPlayer player, TameableExtension tameable) {
 		super(
-				ScreenHandlerType.GENERIC_9X5, player,
+				MenuType.GENERIC_9x5, player,
 				tameable.metacraft$getTrustedPlayers().stream().map(
-						id -> GameProfileHelper.getForUUID(id, player.getEntityWorld().getServer())
+						id -> GameProfileHelper.getForUUID(id, player.level().getServer())
 				).filter(Optional::isPresent).map(Optional::get).toList()
 		);
 		this.tameable = tameable;
@@ -39,10 +39,10 @@ public class TrustPlayerSelector extends MultiplePlayerSelector {
 		//
 		// See: https://github.com/METAcraft-KTH/resource-pack
 		//
-		var fontMagic = Text.literal("abc").styled(style ->
-			style.withFont(MENU_FONT).withColor(Formatting.WHITE)
+		var fontMagic = Component.literal("abc").withStyle(style ->
+			style.withFont(MENU_FONT).withColor(ChatFormatting.WHITE)
 		);
-		setTitle(Text.empty().append(fontMagic).append(Text.translatableWithFallback("gui.metacraft.player_selector", "Player Selector")));
+		setTitle(Component.empty().append(fontMagic).append(Component.translatableWithFallback("gui.metacraft.player_selector", "Player Selector")));
 
 		setSlot(0, ItemStack.EMPTY);
 		setSlot(1, ItemStack.EMPTY);
@@ -64,19 +64,19 @@ public class TrustPlayerSelector extends MultiplePlayerSelector {
 	@Override
 	protected Comparator<GameProfile> customNonSelectedComparator() {
 		return Comparator.<GameProfile>comparingInt(profile -> {
-			var foundPlayer = getPlayer().getEntityWorld().getServer().getPlayerManager().getPlayer(profile.id());
+			var foundPlayer = getPlayer().level().getServer().getPlayerList().getPlayer(profile.id());
 			if (foundPlayer == null) {
 				return Integer.MAX_VALUE;
 			}
-			if (foundPlayer.getEntityWorld() != getPlayer().getEntityWorld()) {
+			if (foundPlayer.level() != getPlayer().level()) {
 				return Integer.MAX_VALUE-1;
 			}
 			return Math.round(foundPlayer.distanceTo(getPlayer()));
-		}).thenComparing(getDefaultComparator(getPlayer().getEntityWorld().getServer()));
+		}).thenComparing(getDefaultComparator(getPlayer().level().getServer()));
 	}
 
 	@Override
-	protected boolean isValid(ServerPlayerEntity player) {
+	protected boolean isValid(ServerPlayer player) {
 		return getPlayer().distanceTo(player) < 16;
 	}
 

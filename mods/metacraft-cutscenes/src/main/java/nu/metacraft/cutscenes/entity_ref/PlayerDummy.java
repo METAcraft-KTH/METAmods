@@ -1,13 +1,13 @@
 package nu.metacraft.cutscenes.entity_ref;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.entity.Entity;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.core.entity_ref.EntityRef;
 import nu.metacraft.core.entity_ref.EntityRefType;
 import nu.metacraft.core.util.RefContext;
 
 import java.util.stream.Stream;
+import net.minecraft.world.entity.Entity;
 
 public class PlayerDummy implements EntityRef {
 

@@ -3,10 +3,10 @@ package nu.metacraft.lib.event;
 import com.google.gson.JsonObject;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.recipe.Recipe;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.crafting.Recipe;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.lib.METAcraftLib;
 
@@ -18,12 +18,12 @@ public interface RecipeLoad {
 	 * Runs before everything else. Useful for "rescuing" removed recipes.
 	 * Please don't remove recipes in this phase unless you have a very good reason.
 	 */
-	Identifier PRE = METAcraftLib.getID("pre");
+	ResourceLocation PRE = METAcraftLib.getID("pre");
 
 	/**
 	 * Runs after everything else, in case you want to take the modifications of other mods into account.
 	 */
-	Identifier POST = METAcraftLib.getID("post");
+	ResourceLocation POST = METAcraftLib.getID("post");
 
 	/**
 	 * Allows you to modify or downright replace recipes as they are loaded.
@@ -52,6 +52,6 @@ public interface RecipeLoad {
 	);
 
 	@Nullable
-	Recipe<?> modify(RegistryKey<Recipe<?>> key, JsonObject json, Recipe<?> recipe, RegistryWrapper.WrapperLookup registryLookup);
+	Recipe<?> modify(ResourceKey<Recipe<?>> key, JsonObject json, Recipe<?> recipe, HolderLookup.Provider registryLookup);
 
 }

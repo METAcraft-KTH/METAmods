@@ -1,11 +1,11 @@
 package nu.metacraft.simplecustomfeatures.mixin;
 
-import net.minecraft.block.NetherPortalBlock;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.BlockLocating;
-import net.minecraft.world.TeleportTarget;
+import net.minecraft.BlockUtil;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.NetherPortalBlock;
+import net.minecraft.world.level.portal.TeleportTransition;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
@@ -13,9 +13,9 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 public interface AccessorNetherPortalBlock {
 
 	@Invoker
-	static TeleportTarget callGetExitPortalTarget(
-			Entity entity, BlockPos pos, BlockLocating.Rectangle exitPortalRectangle,
-			ServerWorld world, TeleportTarget.PostDimensionTransition postDimensionTransition
+	static TeleportTransition callGetDimensionTransitionFromExit(
+			Entity entity, BlockPos pos, BlockUtil.FoundRectangle exitPortalRectangle,
+			ServerLevel world, TeleportTransition.PostTeleportTransition postDimensionTransition
 	) {
 		throw new IllegalStateException("Mixin Error");
 	}

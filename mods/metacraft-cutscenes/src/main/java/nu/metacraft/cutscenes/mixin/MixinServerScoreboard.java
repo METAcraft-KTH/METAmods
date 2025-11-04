@@ -2,10 +2,10 @@ package nu.metacraft.cutscenes.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.scoreboard.*;
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.server.ServerScoreboard;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.PlayerList;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,49 +25,49 @@ public class MixinServerScoreboard implements ServerScoreboardExtensions {
 
 	@WrapOperation(
 		method = {
-			"updateScore",
-			"onScoreHolderRemoved",
-			"onScoreRemoved",
-			"setObjectiveSlot",
-			"addScoreHolderToTeam",
-			"removeScoreHolderFromTeam",
-			"updateExistingObjective",
-			"updateScoreboardTeamAndPlayers",
-			"updateScoreboardTeam",
-			"updateRemovedTeam"
+			"onScoreChanged",
+			"onPlayerRemoved",
+			"onPlayerScoreRemoved",
+			"setDisplayObjective",
+			"addPlayerToTeam",
+			"removePlayerFromTeam(Ljava/lang/String;Lnet/minecraft/world/scores/PlayerTeam;)V",
+			"onObjectiveChanged",
+			"onTeamAdded",
+			"onTeamChanged",
+			"onTeamRemoved"
 		},
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/PlayerManager;sendToAll(Lnet/minecraft/network/packet/Packet;)V"
+			target = "Lnet/minecraft/server/players/PlayerList;broadcastAll(Lnet/minecraft/network/protocol/Packet;)V"
 		)
 	)
 	public void sendOnlyToPlayersInSameCutscene(
-			PlayerManager playerManager, Packet<?> packet, Operation<Void> original
+			PlayerList playerManager, Packet<?> packet, Operation<Void> original
 	) {
 		getMatchingPlayers(playerManager).forEach(
-				player -> player.networkHandler.sendPacket(packet)
+				player -> player.connection.send(packet)
 		);
 	}
 
 	@WrapOperation(
 			method = {
-					"startSyncing",
-					"stopSyncing"
+					"startTrackingObjective",
+					"stopTrackingObjective"
 			},
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/server/PlayerManager;getPlayerList()Ljava/util/List;"
+					target = "Lnet/minecraft/server/players/PlayerList;getPlayers()Ljava/util/List;"
 			)
 	)
-	public List<ServerPlayerEntity> syncOnlyToPlayersInSameCutscene(
-			PlayerManager playerManager, Operation<List<ServerPlayerEntity>> original
+	public List<ServerPlayer> syncOnlyToPlayersInSameCutscene(
+			PlayerList playerManager, Operation<List<ServerPlayer>> original
 	) {
 		return getMatchingPlayers(playerManager).toList();
 	}
 
 	@Unique
-	private Stream<ServerPlayerEntity> getMatchingPlayers(PlayerManager playerManager) {
-		return playerManager.getPlayerList().stream().filter(
+	private Stream<ServerPlayer> getMatchingPlayers(PlayerList playerManager) {
+		return playerManager.getPlayers().stream().filter(
 				player -> {
 					var scene = CutsceneHelper.getCutscene(player).orElse(null);
 					if (scene == connectedCutscene) return true;

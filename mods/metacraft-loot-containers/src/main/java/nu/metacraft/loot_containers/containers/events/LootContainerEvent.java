@@ -2,19 +2,19 @@ package nu.metacraft.loot_containers.containers.events;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JavaOps;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.visitor.NbtTextFormatter;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.TextComponentTagVisitor;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.text.Text;
 import nu.metacraft.loot_containers.METAcraftLootContainers;
 import nu.metacraft.loot_containers.containers.LootContainerData;
 
 public abstract class LootContainerEvent {
 
-	private static final NbtTextFormatter formatter = new NbtTextFormatter(" ");
+	private static final TextComponentTagVisitor formatter = new TextComponentTagVisitor(" ");
 
-	public static final Codec<LootContainerEvent> REGISTRY_CODEC = LootContainerEventRegistry.REGISTRY.getCodec().dispatch(
+	public static final Codec<LootContainerEvent> REGISTRY_CODEC = LootContainerEventRegistry.REGISTRY.byNameCodec().dispatch(
 			LootContainerEvent::getType, LootContainerEventType::codec
 	);
 
@@ -57,13 +57,13 @@ public abstract class LootContainerEvent {
 	public String toString() {
 		return REGISTRY_CODEC.encodeStart(NbtOps.INSTANCE, this).resultOrPartial(
 				METAcraftLootContainers.LOGGER::error
-		).map(NbtElement::toString).orElse("null");
+		).map(Tag::toString).orElse("null");
 	}
 
-	public Text toText() {
+	public Component toText() {
 		return REGISTRY_CODEC.encodeStart(NbtOps.INSTANCE, this).resultOrPartial(
 				METAcraftLootContainers.LOGGER::error
-		).map(formatter::apply).orElse(Text.literal("null"));
+		).map(formatter::visit).orElse(Component.literal("null"));
 	}
 
 }

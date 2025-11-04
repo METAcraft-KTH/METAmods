@@ -1,14 +1,14 @@
 package nu.metacraft.lib.mixin;
 
-import net.minecraft.loot.LootTableReporter;
-import net.minecraft.util.context.ContextType;
+import net.minecraft.util.context.ContextKeySet;
+import net.minecraft.world.level.storage.loot.ValidationContext;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(LootTableReporter.class)
+@Mixin(ValidationContext.class)
 public interface AccessorLootTableReporter {
 
 	@Accessor
-	ContextType getContextType();
+	ContextKeySet getContextKeySet();
 
 }

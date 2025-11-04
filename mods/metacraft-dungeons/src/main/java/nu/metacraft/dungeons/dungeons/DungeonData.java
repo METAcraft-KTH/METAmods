@@ -3,27 +3,36 @@ package nu.metacraft.dungeons.dungeons;
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.Block;
-import net.minecraft.entity.*;
-import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
-import net.minecraft.particle.BlockStateParticleEffect;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.predicate.entity.EntityPredicate;
-import net.minecraft.predicate.entity.EntityTypePredicate;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.TypeFilter;
-import net.minecraft.util.dynamic.Codecs;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.ChatFormatting;
+import net.minecraft.advancements.critereon.EntityPredicate;
+import net.minecraft.advancements.critereon.EntityTypePredicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.util.Mth;
 import net.minecraft.world.*;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.item.FallingBlockEntity;
+import net.minecraft.world.entity.projectile.ThrownEnderpearl;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import nu.metacraft.core.block.METAcraftBlocks;
 import nu.metacraft.core.block.entities.BlackHolePortalEntity;
 import nu.metacraft.core.block.entities.MusicBlockEntity;
@@ -45,22 +54,22 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class DungeonData extends PersistentState {
+public class DungeonData extends SavedData {
 
 	private static final String key = METAcraftDungeons.MODID;
 
-	private static final PersistentStateType<DungeonData> TYPE = new PersistentStateType<>(
-			key, ctx -> create(ctx.getWorldOrThrow()),
-			ctx -> createCodec(ctx.getWorldOrThrow()), null
+	private static final SavedDataType<DungeonData> TYPE = new SavedDataType<>(
+			key, ctx -> create(ctx.levelOrThrow()),
+			ctx -> createCodec(ctx.levelOrThrow()), null
 	);
 
-	private static Codec<DungeonData> createCodec(ServerWorld world) {
+	private static Codec<DungeonData> createCodec(ServerLevel world) {
 		return RecordCodecBuilder.create(
 				instance -> instance.group(
 						Codec.LONG.fieldOf("index").forGetter(d -> d.index),
 						Codec.INT.fieldOf("width").forGetter(d -> d.dungeonWidth),
-						World.CODEC.optionalFieldOf("exit_dim", world.getServer().getSpawnPoint().getDimension()).forGetter(d -> d.exitDim),
-						BlockPos.CODEC.fieldOf("exit_pos").orElse(world.getServer().getSpawnPoint().getPos()).forGetter(d -> d.exitPos),
+						Level.RESOURCE_KEY_CODEC.optionalFieldOf("exit_dim", world.getServer().getRespawnData().dimension()).forGetter(d -> d.exitDim),
+						BlockPos.CODEC.fieldOf("exit_pos").orElse(world.getServer().getRespawnData().pos()).forGetter(d -> d.exitPos),
 						Codec.DOUBLE.fieldOf("max_range_from_exit_pos").forGetter(d -> d.maxRangeFromExitPos),
 						Codec.BOOL.fieldOf("clearing").forGetter(d -> d.clearing),
 						Codec.BOOL.fieldOf("resetting").forGetter(d -> d.resetting),
@@ -68,21 +77,21 @@ public class DungeonData extends PersistentState {
 						EntranceEntry.LIST_CODEC.fieldOf("external_entrances").forGetter(d -> d.externalEntrances),
 						TeleportPredicate.LIST_CODEC.fieldOf("should_teleport").forGetter(d -> d.shouldTeleport),
 						RegularTimeGetter.REGISTRY_CODEC.optionalFieldOf("reset_getter").forGetter(d -> d.resetGetter),
-						Codecs.INSTANT.optionalFieldOf("next_reset").forGetter(d -> d.nextReset)
+						ExtraCodecs.INSTANT_ISO8601.optionalFieldOf("next_reset").forGetter(d -> d.nextReset)
 				).apply(instance, DungeonData.create(world)::load)
 		);
 	}
 
 	private int dungeonWidth;
-	private RegistryKey<World> exitDim;
+	private ResourceKey<Level> exitDim;
 	private BlockPos exitPos;
 	private double maxRangeFromExitPos = 100;
 	private final List<TeleportPredicate> shouldTeleport = new ArrayList<>(
 			ImmutableList.of(
 					new TeleportPredicate(
-							EntityPredicate.Builder.create().type(
-									EntityTypePredicate.create(
-											Registries.ENTITY_TYPE, EntityType.FALLING_BLOCK
+							EntityPredicate.Builder.entity().entityType(
+									EntityTypePredicate.of(
+											BuiltInRegistries.ENTITY_TYPE, EntityType.FALLING_BLOCK
 									)
 							).build(),
 							false
@@ -105,21 +114,21 @@ public class DungeonData extends PersistentState {
 	private final Set<MusicBlockEntity> knownMusicBlocks = new HashSet<>();
 
 
-	public static DungeonData getInstance(ServerWorld world) {
-		return world.getPersistentStateManager().getOrCreate(TYPE);
+	public static DungeonData getInstance(ServerLevel world) {
+		return world.getDataStorage().computeIfAbsent(TYPE);
 	}
 
-	public static Optional<DungeonData> getIfPresent(ServerWorld world) {
-		return Optional.ofNullable(world.getPersistentStateManager().get(TYPE));
+	public static Optional<DungeonData> getIfPresent(ServerLevel world) {
+		return Optional.ofNullable(world.getDataStorage().get(TYPE));
 	}
 
-	private final ServerWorld world;
+	private final ServerLevel world;
 
-	private DungeonData(ServerWorld world) {
+	private DungeonData(ServerLevel world) {
 		this.world = world;
 		dungeonWidth = world.getHeight();
-		exitDim = world.getServer().getSpawnPoint().getDimension();
-		exitPos = world.getServer().getSpawnPoint().getPos();
+		exitDim = world.getServer().getRespawnData().dimension();
+		exitPos = world.getServer().getRespawnData().pos();
 		fixSquaremap();
 	}
 
@@ -127,12 +136,12 @@ public class DungeonData extends PersistentState {
 		return dungeonWidth;
 	}
 
-	private static DungeonData create(ServerWorld world) {
+	private static DungeonData create(ServerLevel world) {
 		return new DungeonData(world);
 	}
 
 	private DungeonData load(
-			long index, int width, RegistryKey<World> exitDim, BlockPos exitPos,
+			long index, int width, ResourceKey<Level> exitDim, BlockPos exitPos,
 			double maxRangeFromExitPos, boolean clearing, boolean resetting, int timeSinceReset,
 			Set<EntranceEntry> externalEntrances, List<TeleportPredicate> shouldTeleport,
 			Optional<RegularTimeGetter> resetGetter, Optional<Instant> nextReset
@@ -174,12 +183,12 @@ public class DungeonData extends PersistentState {
 		this.resetGetter = data.resetGetter;
 		this.shouldTeleport.clear();
 		this.shouldTeleport.addAll(data.shouldTeleport);
-		markDirty();
+		setDirty();
 	}
 
 	public void resetIndexCounter() {
 		index = 0;
-		markDirty();
+		setDirty();
 	}
 	public boolean isResetting() {
 		return resetting;
@@ -190,11 +199,11 @@ public class DungeonData extends PersistentState {
 	}
 
 	public void resetDimension() {
-		if (world.getRegistryKey() == World.OVERWORLD) {
+		if (world.dimension() == Level.OVERWORLD) {
 			METAcraftDungeons.LOGGER.error("No, I refuse to delete the overworld!");
 			return;
 		}
-		world.savingDisabled = true;
+		world.noSave = true;
 		resetting = true;
 		nextReset = Optional.empty();
 		resetIndexCounter();
@@ -210,10 +219,10 @@ public class DungeonData extends PersistentState {
 		if (!shouldTeleport(entity)) {
 			entity.kill(world);
 		}
-		var exitPos = getExitPos().toCenterPos();
-		entity.teleportTo(
-				new TeleportTarget(
-						world.getServer().getWorld(exitDim), exitPos, entity.getVelocity(), entity.getYaw(), entity.getPitch(),
+		var exitPos = getExitPos().getCenter();
+		entity.teleport(
+				new TeleportTransition(
+						world.getServer().getLevel(exitDim), exitPos, entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(),
 						pet -> {
 							pet.fallDistance = 0;
 						}
@@ -221,18 +230,15 @@ public class DungeonData extends PersistentState {
 		);
 	}
 
-	private boolean hasOwnerPlayer(Tameable tameable) {
-		if (tameable.getTopLevelOwner() instanceof ServerPlayerEntity) return true;
-		if (tameable.getOwnerReference() != null && world.getServer().getApiServices().nameToIdCache().getByUuid(tameable.getOwnerReference().getUuid()).isPresent()) {
-			return true;
-		}
-		return false;
+	private boolean hasOwnerPlayer(OwnableEntity tameable) {
+		if (tameable.getRootOwner() instanceof ServerPlayer) return true;
+		return tameable.getOwnerReference() != null && world.getServer().services().nameToIdCache().get(tameable.getOwnerReference().getUUID()).isPresent();
 	}
 
-	private <T extends LivingEntity & Tameable> void forAllPets(Consumer<T> action) {
-		for (var pet : world.getEntitiesByType(
-				TypeFilter.instanceOf(LivingEntity.class),
-				entity -> entity instanceof Tameable t && hasOwnerPlayer(t))
+	private <T extends LivingEntity & OwnableEntity> void forAllPets(Consumer<T> action) {
+		for (var pet : world.getEntities(
+				EntityTypeTest.forClass(LivingEntity.class),
+				entity -> entity instanceof OwnableEntity t && hasOwnerPlayer(t))
 		) {
 			action.accept((T) pet);
 		}
@@ -240,7 +246,7 @@ public class DungeonData extends PersistentState {
 
 	private void fixSquaremap() {
 		IsLoaded.SQUAREMAP.ifLoaded(() -> { //Squaremap causes lag spikes so bad the server crashes, but not if we disable the renderer.
-			SquaremapCompat.disableRenderer(world.getRegistryKey());
+			SquaremapCompat.disableRenderer(world.dimension());
 		});
 	}
 
@@ -253,9 +259,9 @@ public class DungeonData extends PersistentState {
 			return;
 		}
 		forAllPets(pet -> {
-			if (pet.getY() < world.getBottomY()) {
+			if (pet.getY() < world.getMinY()) {
 				pet.fallDistance = 0;
-				var player = pet.getTopLevelOwner() instanceof ServerPlayerEntity p ? p : null;
+				var player = pet.getRootOwner() instanceof ServerPlayer p ? p : null;
 				if (player == null) {
 					teleportOut(pet);
 				} else {
@@ -263,8 +269,8 @@ public class DungeonData extends PersistentState {
 				}
 			}
 		});
-		for (var player : new ArrayList<>(world.getPlayers())) {
-			if (player.getY() < world.getBottomY()) {
+		for (var player : new ArrayList<>(world.players())) {
+			if (player.getY() < world.getMinY()) {
 				player.fallDistance = 0;
 				teleportOut(player);
 			}
@@ -273,35 +279,35 @@ public class DungeonData extends PersistentState {
 			if (nextReset.isPresent()) {
 				var now = Instant.now();
 				if (now.isAfter(nextReset.get().minus(15, ChronoUnit.MINUTES)) && !hasWarned) {
-					world.getPlayers().forEach(
+					world.players().forEach(
 							player -> {
-								player.sendMessage(Text.literal("You hear an ominous sound in the distance").styled(style -> style.withColor(Formatting.DARK_PURPLE)));
-								player.sendMessage(Text.literal("The sound fills you with dread").styled(style -> style.withColor(Formatting.RED)));
-								player.sendMessage(Text.literal("Perhaps I should get out of here?").styled(style -> style.withColor(Formatting.RED)));
-								player.getEntityWorld().playSound(
+								player.sendSystemMessage(Component.literal("You hear an ominous sound in the distance").withStyle(style -> style.withColor(ChatFormatting.DARK_PURPLE)));
+								player.sendSystemMessage(Component.literal("The sound fills you with dread").withStyle(style -> style.withColor(ChatFormatting.RED)));
+								player.sendSystemMessage(Component.literal("Perhaps I should get out of here?").withStyle(style -> style.withColor(ChatFormatting.RED)));
+								player.level().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
-										SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.MASTER, 0.15f, 0.5f
+										SoundEvents.PORTAL_TRIGGER, SoundSource.MASTER, 0.15f, 0.5f
 								);
-								player.getEntityWorld().playSound(
+								player.level().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
-										SoundEvents.BLOCK_END_PORTAL_SPAWN, SoundCategory.MASTER, 0.15f, 0.5f
+										SoundEvents.END_PORTAL_SPAWN, SoundSource.MASTER, 0.15f, 0.5f
 								);
 							}
 					);
 					hasWarned = true;
 				}
 				if (now.isAfter(nextReset.get())) {
-					world.getPlayers().forEach(
+					world.players().forEach(
 							player -> {
-								player.sendMessage(Text.literal("The dimension is collapsing in on itself").styled(style -> style.withColor(Formatting.DARK_RED)));
-								player.sendMessage(Text.literal("Get out, get out, GET OUT!").styled(style -> style.withColor(Formatting.RED)));
-								player.getEntityWorld().playSound(
+								player.sendSystemMessage(Component.literal("The dimension is collapsing in on itself").withStyle(style -> style.withColor(ChatFormatting.DARK_RED)));
+								player.sendSystemMessage(Component.literal("Get out, get out, GET OUT!").withStyle(style -> style.withColor(ChatFormatting.RED)));
+								player.level().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
-										SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.MASTER,1, 0.5f
+										SoundEvents.PORTAL_TRIGGER, SoundSource.MASTER,1, 0.5f
 								);
-								player.getEntityWorld().playSound(
+								player.level().playSound(
 										null, player.getX(), player.getY(), player.getZ(),
-										SoundEvents.BLOCK_END_PORTAL_SPAWN, SoundCategory.MASTER, 1, 0.5f
+										SoundEvents.END_PORTAL_SPAWN, SoundSource.MASTER, 1, 0.5f
 								);
 							}
 					);
@@ -310,7 +316,7 @@ public class DungeonData extends PersistentState {
 			}
 			if (resetGetter.isPresent() && nextReset.isEmpty()) {
 				nextReset = Optional.of(resetGetter.get().getNextTime(Instant.now()));
-				markDirty();
+				setDirty();
 			}
 		}
 		if (resetting) {
@@ -326,49 +332,49 @@ public class DungeonData extends PersistentState {
 			if (timeSinceReset > 1000) {
 				comparison = 20;
 			}
-			for (var player : world.getPlayers()) {
-				if (player.age % (player.getRandom().nextInt(comparison) + 1) == 0) {
+			for (var player : world.players()) {
+				if (player.tickCount % (player.getRandom().nextInt(comparison) + 1) == 0) {
 					int count = player.getRandom().nextInt(250);
 					int range = player.getRandom().nextInt(50);
-					for (BlockPos pos : BlockPos.iterateRandomly(player.getRandom(), count, player.getBlockPos(), range)) {
-						if (world.getBlockState(pos).isIn(Tags.DUNGEON_RESET_UNBREAKABLE) || world.getBlockState(pos).isAir()) {
+					for (BlockPos pos : BlockPos.randomInCube(player.getRandom(), count, player.blockPosition(), range)) {
+						if (world.getBlockState(pos).is(Tags.DUNGEON_RESET_UNBREAKABLE) || world.getBlockState(pos).isAir()) {
 							continue;
 						}
-						var centerPos = pos.toCenterPos();
-						world.spawnParticles(
-								new BlockStateParticleEffect(ParticleTypes.FALLING_DUST, world.getBlockState(pos)),
+						var centerPos = pos.getCenter();
+						world.sendParticles(
+								new BlockParticleOption(ParticleTypes.FALLING_DUST, world.getBlockState(pos)),
 								centerPos.x, centerPos.y-3, centerPos.z, 5,
 								player.getRandom().nextDouble(),
 								player.getRandom().nextDouble() * 3,
 								player.getRandom().nextDouble(),
 								1
 						);
-						if (world.getBlockState(pos.down()).isAir() && world.getBlockEntity(pos) == null && player.getRandom().nextDouble() > 0.5) {
-							var falling = FallingBlockEntity.spawnFromBlock(world, pos, world.getBlockState(pos));
+						if (world.getBlockState(pos.below()).isAir() && world.getBlockEntity(pos) == null && player.getRandom().nextDouble() > 0.5) {
+							var falling = FallingBlockEntity.fall(world, pos, world.getBlockState(pos));
 							falling.dropItem = false;
 						} else {
-							world.setBlockState(pos, world.getBlockState(pos).getFluidState().getBlockState(), Block.NOTIFY_LISTENERS | Block.SKIP_DROPS);
+							world.setBlock(pos, world.getBlockState(pos).getFluidState().createLegacyBlock(), Block.UPDATE_CLIENTS | Block.UPDATE_SUPPRESS_DROPS);
 						}
 					}
 				}
 			}
 			if (timeSinceReset == 1500) {
-				List<BlockPos> positions = new ArrayList<>(world.getPlayers().size());
-				playerLoop: for (var player : world.getPlayers()) {
+				List<BlockPos> positions = new ArrayList<>(world.players().size());
+				playerLoop: for (var player : world.players()) {
 					BlockPos pos;
 					do {
-						pos = player.getBlockPos().add(
+						pos = player.blockPosition().offset(
 								player.getRandom().nextInt(50) - 25,
-								MathHelper.clamp(
+								Mth.clamp(
 										player.getRandom().nextInt(50) - 25,
-										world.getBottomY() + 10,
-										world.getBottomY() + world.getHeight() - 10
+										world.getMinY() + 10,
+										world.getMinY() + world.getHeight() - 10
 								),
 								player.getRandom().nextInt(50) - 25
 						);
-					} while (world.getBlockState(pos).isIn(Tags.DUNGEON_RESET_UNBREAKABLE));
+					} while (world.getBlockState(pos).is(Tags.DUNGEON_RESET_UNBREAKABLE));
 					for (var position : positions) {
-						if (pos.isWithinDistance(position, dungeonWidth)) {
+						if (pos.closerThan(position, dungeonWidth)) {
 							continue playerLoop;
 						}
 					}
@@ -379,7 +385,7 @@ public class DungeonData extends PersistentState {
 				}
 			}
 
-			if (timeSinceReset > 2500 || world.getPlayers().isEmpty()) {
+			if (timeSinceReset > 2500 || world.players().isEmpty()) {
 				clear();
 			}
 		}
@@ -388,27 +394,27 @@ public class DungeonData extends PersistentState {
 	private void clear() {
 		if (clearing) return;
 		clearing = true;
-		List<ServerPlayerEntity> players = new ArrayList<>(world.getPlayers());
+		List<ServerPlayer> players = new ArrayList<>(world.players());
 		for (var player : players) {
 			teleportOut(player);
 		}
-		List<EnderPearlEntity> pearlsToRemove = new ArrayList<>();
-		for (var player : world.getServer().getPlayerManager().getPlayerList()) {
+		List<ThrownEnderpearl> pearlsToRemove = new ArrayList<>();
+		for (var player : world.getServer().getPlayerList().getPlayers()) {
 			for (var pearl : player.getEnderPearls()) {
-				if (pearl.getEntityWorld().getRegistryKey() == world.getRegistryKey()) {
+				if (pearl.level().dimension() == world.dimension()) {
 					pearlsToRemove.add(pearl);
 				}
 			}
-			if (player.getRespawn() != null && player.getRespawn().respawnData().getDimension() == world.getRegistryKey()) {
-				player.setSpawnPoint(null, false);
-				player.sendMessage(Text.literal("Respawn point reset"));
+			if (player.getRespawnConfig() != null && player.getRespawnConfig().respawnData().dimension() == world.dimension()) {
+				player.setRespawnPosition(null, false);
+				player.sendSystemMessage(Component.literal("Respawn point reset"));
 			}
 		}
-		pearlsToRemove.forEach(EnderPearlEntity::discard);
-		markDirty();
+		pearlsToRemove.forEach(ThrownEnderpearl::discard);
+		setDirty();
 		List<EntranceEntry> entrancesToReinitialize = new ArrayList<>();
 		for (var entrancePos : externalEntrances) {
-			var entranceWorld = world.getServer().getWorld(entrancePos.dim);
+			var entranceWorld = world.getServer().getLevel(entrancePos.dim);
 			if (
 					entranceWorld != null &&
 					entranceWorld.getBlockEntity(entrancePos.pos) instanceof PortalEntity entrance
@@ -418,54 +424,54 @@ public class DungeonData extends PersistentState {
 			}
 		}
 		externalEntrances.clear();
-		world.getPersistentStateManager().save();
+		world.getDataStorage().saveAndJoin();
 
 		WorldDeleter.deleteWorldTeleportingPlayers(
 			world, () -> {
 				clearing = false;
 				resetting = false;
-				DungeonData.getInstance(world.getServer().getWorld(world.getRegistryKey())).copyFromPrevious(this);
-				for (var player : world.getServer().getPlayerManager().getPlayerList()) {
-					player.sendMessage(Text.literal("The dungeon portal opens again").styled(style -> style.withColor(Formatting.DARK_AQUA)));
+				DungeonData.getInstance(world.getServer().getLevel(world.dimension())).copyFromPrevious(this);
+				for (var player : world.getServer().getPlayerList().getPlayers()) {
+					player.sendSystemMessage(Component.literal("The dungeon portal opens again").withStyle(style -> style.withColor(ChatFormatting.DARK_AQUA)));
 				}
-				METAcraftDungeons.LOGGER.info("Reset of " + world.getRegistryKey().getValue() + " completed.");
+				METAcraftDungeons.LOGGER.info("Reset of " + world.dimension().location() + " completed.");
 				for (var entrance : entrancesToReinitialize) {
-					var e = world.getServer().getWorld(entrance.dim).getBlockEntity(entrance.pos);
+					var e = world.getServer().getLevel(entrance.dim).getBlockEntity(entrance.pos);
 					if (e instanceof PortalEntity p) {
 						p.initializeTarget();
 					}
 				}
 			}, file -> file.endsWith(key + ".dat"),
-			player -> new TeleportTarget(
-					world.getServer().getWorld(exitDim),
-					getExitPos().toCenterPos(), DisconnectedPlayerHelper.getVelocity(player),
+			player -> new TeleportTransition(
+					world.getServer().getLevel(exitDim),
+					getExitPos().getCenter(), DisconnectedPlayerHelper.getVelocity(player),
 					DisconnectedPlayerHelper.getYaw(player), DisconnectedPlayerHelper.getPitch(player),
-					TeleportTarget.NO_OP
+					TeleportTransition.DO_NOTHING
 			)
 		);
 	}
 
-	public ServerWorld getExitWorld() {
-		ServerWorld targetWorld = world.getServer().getWorld(exitDim);
+	public ServerLevel getExitWorld() {
+		ServerLevel targetWorld = world.getServer().getLevel(exitDim);
 		if (targetWorld == null) {
-			exitDim = World.OVERWORLD;
-			targetWorld = world.getServer().getOverworld();
-			markDirty();
+			exitDim = Level.OVERWORLD;
+			targetWorld = world.getServer().overworld();
+			setDirty();
 		}
 		return targetWorld;
 	}
 
 	public BlockPos getExitPos() {
-		ServerWorld targetWorld = getExitWorld();
-		BlockPos.Mutable target = new BlockPos.Mutable();
+		ServerLevel targetWorld = getExitWorld();
+		BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
 		int tries = 0;
 		while (true) {
 			int first = targetWorld.getRandom().nextInt(
-					MathHelper.floor(maxRangeFromExitPos*2)
-			) - MathHelper.floor(maxRangeFromExitPos);
+					Mth.floor(maxRangeFromExitPos*2)
+			) - Mth.floor(maxRangeFromExitPos);
 			int second = targetWorld.getRandom().nextInt(
-					(MathHelper.floor(maxRangeFromExitPos) - first)*2
-			) - MathHelper.floor(MathHelper.floor(maxRangeFromExitPos) - first);
+					(Mth.floor(maxRangeFromExitPos) - first)*2
+			) - Mth.floor(Mth.floor(maxRangeFromExitPos) - first);
 			target.setY(exitPos.getY());
 			if (targetWorld.getRandom().nextBoolean()) {
 				target.setX(first + exitPos.getX());
@@ -474,33 +480,33 @@ public class DungeonData extends PersistentState {
 				target.setX(second + exitPos.getX());
 				target.setZ(first + exitPos.getZ());
 			}
-			var nbt = targetWorld.getChunkManager().chunkLoadingManager.getNbt(new ChunkPos(target)).join();
+			var nbt = targetWorld.getChunkSource().chunkMap.read(new ChunkPos(target)).join();
 			if (nbt.isPresent() && tries++ < 1000) {
-				BlockPos.Mutable below = new BlockPos.Mutable();
+				BlockPos.MutableBlockPos below = new BlockPos.MutableBlockPos();
 				below.set(target.getX(), target.getY()-1, target.getZ());
-				if (targetWorld.getBlockState(target).isAir() && targetWorld.getBlockState(target.up()).isAir()) {
-					if (!targetWorld.getBlockState(below).isSolidBlock(targetWorld, below)) {
+				if (targetWorld.getBlockState(target).isAir() && targetWorld.getBlockState(target.above()).isAir()) {
+					if (!targetWorld.getBlockState(below).isRedstoneConductor(targetWorld, below)) {
 						for (int i = 0; i < 100; i++) {
 							below.setY(below.getY()-1);
-							if (targetWorld.getBlockState(below).isSolidBlock(targetWorld, below)) {
+							if (targetWorld.getBlockState(below).isRedstoneConductor(targetWorld, below)) {
 								target.setY(below.getY());
 								break;
 							}
 						}
-						if (!targetWorld.getBlockState(below).isSolidBlock(targetWorld, below)) {
-							target.setY(targetWorld.getTopY(Heightmap.Type.MOTION_BLOCKING, target.getX(), target.getZ()));
+						if (!targetWorld.getBlockState(below).isRedstoneConductor(targetWorld, below)) {
+							target.setY(targetWorld.getHeight(Heightmap.Types.MOTION_BLOCKING, target.getX(), target.getZ()));
 						}
 					}
 				} else {
-					target.setY(targetWorld.getTopY(Heightmap.Type.MOTION_BLOCKING, target.getX(), target.getZ()));
+					target.setY(targetWorld.getHeight(Heightmap.Types.MOTION_BLOCKING, target.getX(), target.getZ()));
 				}
 				if (world.getBlockState(target).isAir()) {
-					return target.toImmutable();
+					return target.immutable();
 				}
 			} else {
-				target.setY(targetWorld.getChunkManager().getChunkGenerator().getHeightOnGround(
-						target.getX(), target.getZ(), Heightmap.Type.WORLD_SURFACE_WG,
-						targetWorld, targetWorld.getChunkManager().getNoiseConfig()
+				target.setY(targetWorld.getChunkSource().getGenerator().getFirstFreeHeight(
+						target.getX(), target.getZ(), Heightmap.Types.WORLD_SURFACE_WG,
+						targetWorld, targetWorld.getChunkSource().randomState()
 				));
 				return target;
 			}
@@ -508,17 +514,17 @@ public class DungeonData extends PersistentState {
 	}
 
 	private void addBlackHole(BlockPos pos) {
-		for (var spherePos : BlockPos.iterateOutwards(pos, 15, 15, 15)) {
-			if (world.getBlockState(spherePos).isIn(Tags.DUNGEON_RESET_UNBREAKABLE)) continue;
-			if (spherePos.isWithinDistance(pos, 5)) {
-				world.setBlockState(spherePos, METAcraftBlocks.PORTAL_PADDING.getDefaultState());
-			} else if (spherePos.isWithinDistance(pos, 15)) {
-				if (!world.isAir(spherePos)) {
-					world.setBlockState(spherePos, world.getBlockState(spherePos).getFluidState().getBlockState());
+		for (var spherePos : BlockPos.withinManhattan(pos, 15, 15, 15)) {
+			if (world.getBlockState(spherePos).is(Tags.DUNGEON_RESET_UNBREAKABLE)) continue;
+			if (spherePos.closerThan(pos, 5)) {
+				world.setBlockAndUpdate(spherePos, METAcraftBlocks.PORTAL_PADDING.defaultBlockState());
+			} else if (spherePos.closerThan(pos, 15)) {
+				if (!world.isEmptyBlock(spherePos)) {
+					world.setBlockAndUpdate(spherePos, world.getBlockState(spherePos).getFluidState().createLegacyBlock());
 				}
 			}
 		}
-		world.setBlockState(pos, METAcraftBlocks.BLACK_HOLE_CORE.getDefaultState());
+		world.setBlockAndUpdate(pos, METAcraftBlocks.BLACK_HOLE_CORE.defaultBlockState());
 		var entity = ((BlackHolePortalEntity) world.getBlockEntity(pos));
 		entity.setAttractionRange(dungeonWidth/2.0);
 		entity.setTarget(FixedPortalTarget.create(exitDim, getExitPos()));
@@ -527,18 +533,18 @@ public class DungeonData extends PersistentState {
 
 	public BlockPos getNextSpawnPos() {
 		var pos = PositionFinder.findPosAroundOrigin(index++, dungeonWidth+1);
-		markDirty();
-		if (!world.getWorldBorder().contains(pos.x(), pos.z())) {
+		setDirty();
+		if (!world.getWorldBorder().isWithinBounds(pos.x(), pos.z())) {
 			resetIndexCounter();
 			METAcraftDungeons.LOGGER.error("Dungeon Dimension reached the maximum number of allowed dungeons, flushing dimension.");
 			return getNextSpawnPos();
 		}
-		return BlockPos.ofFloored(pos.x(), world.getBottomY() + world.getHeight()/2.0, pos.z());
+		return BlockPos.containing(pos.x(), world.getMinY() + world.getHeight()/2.0, pos.z());
 	}
 
-	public void addExternalEntrance(RegistryKey<World> dim, BlockPos pos) {
+	public void addExternalEntrance(ResourceKey<Level> dim, BlockPos pos) {
 		externalEntrances.add(new EntranceEntry(dim, pos));
-		markDirty();
+		setDirty();
 	}
 
 	public void loadMusicBlock(MusicBlockEntity block) {
@@ -548,10 +554,10 @@ public class DungeonData extends PersistentState {
 		knownMusicBlocks.remove(block);
 	}
 
-	public record EntranceEntry(RegistryKey<World> dim, BlockPos pos) {
+	public record EntranceEntry(ResourceKey<Level> dim, BlockPos pos) {
 		public static final Codec<EntranceEntry> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-				World.CODEC.fieldOf("dim").forGetter(EntranceEntry::dim),
+				Level.RESOURCE_KEY_CODEC.fieldOf("dim").forGetter(EntranceEntry::dim),
 				BlockPos.CODEC.fieldOf("pos").forGetter(EntranceEntry::pos)
 			).apply(instance, EntranceEntry::new)
 		);

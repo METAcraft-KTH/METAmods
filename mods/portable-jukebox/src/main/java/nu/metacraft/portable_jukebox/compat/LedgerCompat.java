@@ -9,8 +9,8 @@ public class LedgerCompat {
 
 	public static void init() {
 		ItemPickUpCallback.EVENT.register((itemEntity, playerEntity) -> {
-			if (itemEntity.getStack().contains(Components.PORTABLE_JUKEBOX_ENTITY)) {
-				var stack = playerEntity.getInventory().getStack(playerEntity.getInventory().getSlotWithStack(itemEntity.getStack()));
+			if (itemEntity.getItem().has(Components.PORTABLE_JUKEBOX_ENTITY)) {
+				var stack = playerEntity.getInventory().getItem(playerEntity.getInventory().findSlotMatchingItem(itemEntity.getItem()));
 				if (!stack.isEmpty()) {
 					PortableJukeboxEntity.transfer(
 							EntityRef.fromEntity(itemEntity),

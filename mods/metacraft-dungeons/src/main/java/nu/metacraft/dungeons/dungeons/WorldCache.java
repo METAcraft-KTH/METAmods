@@ -1,44 +1,44 @@
 package nu.metacraft.dungeons.dungeons;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockEntityProvider;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.fluid.Fluids;
-import net.minecraft.particle.ParticleEffect;
-import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.resource.featuretoggle.FeatureSet;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.TypeFilter;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.Heightmap;
-import net.minecraft.world.LocalDifficulty;
-import net.minecraft.world.StructureWorldAccess;
-import net.minecraft.world.WorldProperties;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.source.BiomeAccess;
-import net.minecraft.world.border.WorldBorder;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkManager;
-import net.minecraft.world.chunk.ChunkStatus;
-import net.minecraft.world.chunk.light.LightingProvider;
-import net.minecraft.world.dimension.DimensionType;
-import net.minecraft.world.event.GameEvent;
-import net.minecraft.world.tick.OrderedTick;
-import net.minecraft.world.tick.QueryableTickScheduler;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.flag.FeatureFlagSet;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeManager;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.border.WorldBorder;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkSource;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.lighting.LevelLightEngine;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.storage.LevelData;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.ticks.LevelTickAccess;
+import net.minecraft.world.ticks.ScheduledTick;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -46,21 +46,21 @@ import java.util.concurrent.CountDownLatch;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public class WorldCache implements StructureWorldAccess {
+public class WorldCache implements WorldGenLevel {
 
-	private final ServerWorld world;
+	private final ServerLevel world;
 	private final Map<BlockPos, BlockEntry> blockCache = new LinkedHashMap<>();
 	private final Map<BlockPos, BlockEntity> blockEntities = new HashMap<>();
 
-	private final QueryableTickScheduler<Block> blockScheduler;
-	private final QueryableTickScheduler<Fluid> fluidScheduler;
+	private final LevelTickAccess<Block> blockScheduler;
+	private final LevelTickAccess<Fluid> fluidScheduler;
 
 	private final Set<Entity> entities = new LinkedHashSet<>();
 
-	public WorldCache(ServerWorld world) {
+	public WorldCache(ServerLevel world) {
 		this.world = world;
-		this.blockScheduler = new DeferredTickScheduler<>(world::getBlockTickScheduler);
-		this.fluidScheduler = new DeferredTickScheduler<>(world::getFluidTickScheduler);
+		this.blockScheduler = new DeferredTickScheduler<>(world::getBlockTicks);
+		this.fluidScheduler = new DeferredTickScheduler<>(world::getFluidTicks);
 	}
 
 	public void flush(long maxTime) {
@@ -70,13 +70,13 @@ public class WorldCache implements StructureWorldAccess {
 			var it = blockCache.entrySet().iterator();
 			while (it.hasNext()){
 				var entry = it.next();
-				if (!world.isChunkLoaded(entry.getKey())) {
+				if (!world.hasChunkAt(entry.getKey())) {
 					break;
 				}
 				entry.getValue().functionCall.run();
 				if (blockEntities.containsKey(entry.getKey())) {
 					world.removeBlockEntity(entry.getKey());
-					world.addBlockEntity(blockEntities.get(entry.getKey()));
+					world.setBlockEntity(blockEntities.get(entry.getKey()));
 					blockEntities.remove(entry.getKey());
 				}
 				it.remove();
@@ -88,10 +88,10 @@ public class WorldCache implements StructureWorldAccess {
 			var entityIt = entities.iterator();
 			while (entityIt.hasNext()) {
 				var entity = entityIt.next();
-				if (!world.isChunkLoaded(entity.getBlockPos())) {
+				if (!world.hasChunkAt(entity.blockPosition())) {
 					break;
 				}
-				world.spawnEntity(entity);
+				world.addFreshEntity(entity);
 				entityIt.remove();
 
 				if (System.currentTimeMillis() - startTime > maxTime) {
@@ -117,42 +117,42 @@ public class WorldCache implements StructureWorldAccess {
 	}
 
 	@Override
-	public ServerWorld toServerWorld() {
+	public ServerLevel getLevel() {
 		return world;
 	}
 
 	@Override
-	public long getTickOrder() {
+	public long nextSubTickCount() {
 		return 0;
 	}
 
 	@Override
-	public QueryableTickScheduler<Block> getBlockTickScheduler() {
+	public LevelTickAccess<Block> getBlockTicks() {
 		return blockScheduler;
 	}
 
 	@Override
-	public QueryableTickScheduler<Fluid> getFluidTickScheduler() {
+	public LevelTickAccess<Fluid> getFluidTicks() {
 		return fluidScheduler;
 	}
 
 	@Override
-	public void updateNeighbors(BlockPos pos, Block block) {
+	public void updateNeighborsAt(BlockPos pos, Block block) {
 		if (blockCache.containsKey(pos)) {
 			blockCache.put(pos, blockCache.get(pos).andThen(() -> {
-				world.updateNeighbors(pos, block);
+				world.updateNeighborsAt(pos, block);
 			}));
 		}
 	}
 
 	@Override
-	public WorldProperties getLevelProperties() {
-		return world.getLevelProperties();
+	public LevelData getLevelData() {
+		return world.getLevelData();
 	}
 
 	@Override
-	public LocalDifficulty getLocalDifficulty(BlockPos pos) {
-		return world.getLocalDifficulty(pos);
+	public DifficultyInstance getCurrentDifficultyAt(BlockPos pos) {
+		return world.getCurrentDifficultyAt(pos);
 	}
 
 	@Nullable
@@ -162,43 +162,43 @@ public class WorldCache implements StructureWorldAccess {
 	}
 
 	@Override
-	public ChunkManager getChunkManager() {
-		return world.getChunkManager();
+	public ChunkSource getChunkSource() {
+		return world.getChunkSource();
 	}
 
 	@Override
-	public Random getRandom() {
+	public RandomSource getRandom() {
 		return world.getRandom();
 	}
 
 	@Override
-	public void playSound(@Nullable Entity source, BlockPos pos, SoundEvent sound, SoundCategory category, float volume, float pitch) {
+	public void playSound(@Nullable Entity source, BlockPos pos, SoundEvent sound, SoundSource category, float volume, float pitch) {
 		world.playSound(source, pos, sound, category, volume, pitch);
 	}
 
 	@Override
-	public void addParticleClient(ParticleEffect parameters, double x, double y, double z, double velocityX, double velocityY, double velocityZ) {
-		world.addParticleClient(parameters, x, y, z, velocityX, velocityY, velocityZ);
+	public void addParticle(ParticleOptions parameters, double x, double y, double z, double velocityX, double velocityY, double velocityZ) {
+		world.addParticle(parameters, x, y, z, velocityX, velocityY, velocityZ);
 	}
 
 	@Override
-	public void syncWorldEvent(@Nullable Entity player, int eventId, BlockPos pos, int data) {
-		world.syncWorldEvent(player, eventId, pos, data);
+	public void levelEvent(@Nullable Entity player, int eventId, BlockPos pos, int data) {
+		world.levelEvent(player, eventId, pos, data);
 	}
 
 	@Override
-	public void emitGameEvent(RegistryEntry<GameEvent> event, Vec3d emitterPos, GameEvent.Emitter emitter) {
-		world.emitGameEvent(event, emitterPos, emitter);
+	public void gameEvent(Holder<GameEvent> event, Vec3 emitterPos, GameEvent.Context emitter) {
+		world.gameEvent(event, emitterPos, emitter);
 	}
 
 	@Override
-	public float getBrightness(Direction direction, boolean shaded) {
-		return world.getBrightness(direction, shaded);
+	public float getShade(Direction direction, boolean shaded) {
+		return world.getShade(direction, shaded);
 	}
 
 	@Override
-	public LightingProvider getLightingProvider() {
-		return world.getLightingProvider();
+	public LevelLightEngine getLightEngine() {
+		return world.getLightEngine();
 	}
 
 	@Override
@@ -211,19 +211,19 @@ public class WorldCache implements StructureWorldAccess {
 	public BlockEntity getBlockEntity(BlockPos pos) {
 		if (blockEntities.containsKey(pos)) {
 			var entity = blockEntities.get(pos);
-			if (entity.getCachedState() == blockCache.get(pos).state()) {
+			if (entity.getBlockState() == blockCache.get(pos).state()) {
 				return entity;
 			}
 		}
 		if (blockCache.containsKey(pos)) {
 			var state = blockCache.get(pos).state();
 			if (state.hasBlockEntity()) {
-				var blockEntity = ((BlockEntityProvider) state.getBlock()).createBlockEntity(pos.toImmutable(), state);
-				blockEntities.put(pos.toImmutable(), blockEntity);
+				var blockEntity = ((EntityBlock) state.getBlock()).newBlockEntity(pos.immutable(), state);
+				blockEntities.put(pos.immutable(), blockEntity);
 				return blockEntity;
 			}
 		}
-		if (isChunkLoaded(pos)) {
+		if (hasChunkAt(pos)) {
 			return world.getBlockEntity(pos);
 		} else {
 			return null;
@@ -231,7 +231,7 @@ public class WorldCache implements StructureWorldAccess {
 	}
 
 	@Override
-	public boolean isChunkLoaded(int chunkX, int chunkZ) {
+	public boolean hasChunk(int chunkX, int chunkZ) {
 		return false;
 	}
 
@@ -240,10 +240,10 @@ public class WorldCache implements StructureWorldAccess {
 		if (blockCache.containsKey(pos)) {
 			return blockCache.get(pos).state();
 		}
-		if (isChunkLoaded(pos)) {
+		if (hasChunkAt(pos)) {
 			return world.getBlockState(pos);
 		} else {
-			return Blocks.AIR.getDefaultState();
+			return Blocks.AIR.defaultBlockState();
 		}
 	}
 
@@ -252,115 +252,115 @@ public class WorldCache implements StructureWorldAccess {
 		if (blockCache.containsKey(pos)) {
 			return blockCache.get(pos).state().getFluidState();
 		}
-		if (isChunkLoaded(pos)) {
+		if (hasChunkAt(pos)) {
 			return world.getFluidState(pos);
 		} else {
-			return Fluids.EMPTY.getDefaultState();
+			return Fluids.EMPTY.defaultFluidState();
 		}
 	}
 
 	@Override
-	public List<Entity> getOtherEntities(@Nullable Entity except, Box box, Predicate<? super Entity> predicate) {
-		return world.getOtherEntities(except, box, predicate);
+	public List<Entity> getEntities(@Nullable Entity except, AABB box, Predicate<? super Entity> predicate) {
+		return world.getEntities(except, box, predicate);
 	}
 
 	@Override
-	public boolean spawnEntity(Entity entity) {
+	public boolean addFreshEntity(Entity entity) {
 		return entities.add(entity);
 	}
 
 	@Override
-	public <T extends Entity> List<T> getEntitiesByType(TypeFilter<Entity, T> filter, Box box, Predicate<? super T> predicate) {
-		return world.getEntitiesByType(filter, box, predicate);
+	public <T extends Entity> List<T> getEntities(EntityTypeTest<Entity, T> filter, AABB box, Predicate<? super T> predicate) {
+		return world.getEntities(filter, box, predicate);
 	}
 
 	@Override
-	public List<? extends PlayerEntity> getPlayers() {
-		return world.getPlayers();
+	public List<? extends Player> players() {
+		return world.players();
 	}
 
 	@Override
-	public boolean setBlockState(BlockPos pos, BlockState state, int flags, int maxUpdateDepth) {
-		var actualPos = pos.toImmutable();
+	public boolean setBlock(BlockPos pos, BlockState state, int flags, int maxUpdateDepth) {
+		var actualPos = pos.immutable();
 		var entry = new BlockEntry(state, () -> {
-			world.setBlockState(actualPos, state, flags, maxUpdateDepth);
+			world.setBlock(actualPos, state, flags, maxUpdateDepth);
 		});
-		return !entry.equals(blockCache.put(pos.toImmutable(), entry));
+		return !entry.equals(blockCache.put(pos.immutable(), entry));
 	}
 
 	@Override
 	public boolean removeBlock(BlockPos pos, boolean move) {
-		var actualPos = pos.toImmutable();
+		var actualPos = pos.immutable();
 		var entry = new BlockEntry(
-				getBlockState(pos).getFluidState().getBlockState(),
+				getBlockState(pos).getFluidState().createLegacyBlock(),
 				() -> world.removeBlock(actualPos, move)
 		);
-		return !entry.equals(blockCache.put(pos.toImmutable(), entry));
+		return !entry.equals(blockCache.put(pos.immutable(), entry));
 	}
 
 	@Override
-	public boolean breakBlock(BlockPos pos, boolean drop, @Nullable Entity breakingEntity, int maxUpdateDepth) {
-		var actualPos = pos.toImmutable();
+	public boolean destroyBlock(BlockPos pos, boolean drop, @Nullable Entity breakingEntity, int maxUpdateDepth) {
+		var actualPos = pos.immutable();
 		var entry = new BlockEntry(
-				getBlockState(pos).getFluidState().getBlockState(),
-				() -> world.breakBlock(actualPos, drop, breakingEntity, maxUpdateDepth)
+				getBlockState(pos).getFluidState().createLegacyBlock(),
+				() -> world.destroyBlock(actualPos, drop, breakingEntity, maxUpdateDepth)
 		);
 		return !entry.equals(blockCache.put(actualPos, entry));
 	}
 
 	@Override
-	public boolean testBlockState(BlockPos pos, Predicate<BlockState> state) {
+	public boolean isStateAtPosition(BlockPos pos, Predicate<BlockState> state) {
 		if (blockCache.containsKey(pos)) {
 			return state.test(blockCache.get(pos).state());
 		}
-		if (isChunkLoaded(pos)) {
-			return world.testBlockState(pos, state);
+		if (hasChunkAt(pos)) {
+			return world.isStateAtPosition(pos, state);
 		} else {
-			return state.test(Blocks.AIR.getDefaultState());
+			return state.test(Blocks.AIR.defaultBlockState());
 		}
 	}
 
 	@Override
-	public boolean testFluidState(BlockPos pos, Predicate<FluidState> state) {
+	public boolean isFluidAtPosition(BlockPos pos, Predicate<FluidState> state) {
 		if (blockCache.containsKey(pos)) {
 			return state.test(blockCache.get(pos).state().getFluidState());
 		}
-		if (isChunkLoaded(pos)) {
-			return world.testFluidState(pos, state);
+		if (hasChunkAt(pos)) {
+			return world.isFluidAtPosition(pos, state);
 		} else {
-			return state.test(Fluids.EMPTY.getDefaultState());
+			return state.test(Fluids.EMPTY.defaultFluidState());
 		}
 	}
 
 	@Nullable
 	@Override
-	public Chunk getChunk(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
+	public ChunkAccess getChunk(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
 		return world.getChunk(chunkX, chunkZ, leastStatus, create);
 	}
 
 	@Override
-	public int getTopY(Heightmap.Type heightmap, int x, int z) {
-		return world.getTopY(heightmap, x, z);
+	public int getHeight(Heightmap.Types heightmap, int x, int z) {
+		return world.getHeight(heightmap, x, z);
 	}
 
 	@Override
-	public int getAmbientDarkness() {
-		return world.getAmbientDarkness();
+	public int getSkyDarken() {
+		return world.getSkyDarken();
 	}
 
 	@Override
-	public BiomeAccess getBiomeAccess() {
-		return world.getBiomeAccess();
+	public BiomeManager getBiomeManager() {
+		return world.getBiomeManager();
 	}
 
 	@Override
-	public RegistryEntry<Biome> getGeneratorStoredBiome(int biomeX, int biomeY, int biomeZ) {
-		return world.getGeneratorStoredBiome(biomeX, biomeY, biomeZ);
+	public Holder<Biome> getUncachedNoiseBiome(int biomeX, int biomeY, int biomeZ) {
+		return world.getUncachedNoiseBiome(biomeX, biomeY, biomeZ);
 	}
 
 	@Override
-	public boolean isClient() {
-		return world.isClient();
+	public boolean isClientSide() {
+		return world.isClientSide();
 	}
 
 	@Override
@@ -369,18 +369,18 @@ public class WorldCache implements StructureWorldAccess {
 	}
 
 	@Override
-	public DimensionType getDimension() {
-		return world.getDimension();
+	public DimensionType dimensionType() {
+		return world.dimensionType();
 	}
 
 	@Override
-	public DynamicRegistryManager getRegistryManager() {
-		return world.getRegistryManager();
+	public RegistryAccess registryAccess() {
+		return world.registryAccess();
 	}
 
 	@Override
-	public FeatureSet getEnabledFeatures() {
-		return world.getEnabledFeatures();
+	public FeatureFlagSet enabledFeatures() {
+		return world.enabledFeatures();
 	}
 
 	public record BlockEntry(BlockState state, Runnable functionCall) {
@@ -394,37 +394,37 @@ public class WorldCache implements StructureWorldAccess {
 
 	}
 
-	public class DeferredTickScheduler<T> implements QueryableTickScheduler<T> {
+	public class DeferredTickScheduler<T> implements LevelTickAccess<T> {
 
-		private final Supplier<QueryableTickScheduler<T>> scheduler;
+		private final Supplier<LevelTickAccess<T>> scheduler;
 
-		public DeferredTickScheduler(Supplier<QueryableTickScheduler<T>> scheduler) {
+		public DeferredTickScheduler(Supplier<LevelTickAccess<T>> scheduler) {
 			this.scheduler = scheduler;
 		}
 
 		@Override
-		public boolean isTicking(BlockPos pos, T type) {
+		public boolean willTickThisTick(BlockPos pos, T type) {
 			return false;
 		}
 
 		@Override
-		public void scheduleTick(OrderedTick<T> orderedTick) {
+		public void schedule(ScheduledTick<T> orderedTick) {
 			if (blockCache.containsKey(orderedTick.pos())) {
 				blockCache.put(orderedTick.pos(), blockCache.get(orderedTick.pos()).andThen(() -> {
-					scheduler.get().scheduleTick(
-						new OrderedTick<>(orderedTick.type(), orderedTick.pos(), orderedTick.triggerTick(), world.getTickOrder())
+					scheduler.get().schedule(
+						new ScheduledTick<>(orderedTick.type(), orderedTick.pos(), orderedTick.triggerTick(), world.nextSubTickCount())
 					);
 				}));
 			}
 		}
 
 		@Override
-		public boolean isQueued(BlockPos pos, T type) {
+		public boolean hasScheduledTick(BlockPos pos, T type) {
 			return false;
 		}
 
 		@Override
-		public int getTickCount() {
+		public int count() {
 			return 0;
 		}
 	}

@@ -3,8 +3,6 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.GameRules;
 import org.apache.commons.lang3.mutable.MutableObject;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
@@ -16,6 +14,8 @@ import nu.metacraft.cutscenes.transitions.config.TransitionConfigType;
 import nu.metacraft.cutscenes.util.IntervalMap;
 
 import java.util.Optional;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.GameRules;
 
 public class SetGameRuleTransition implements Transition {
 
@@ -39,14 +39,14 @@ public class SetGameRuleTransition implements Transition {
 		this.prev = prev;
 	}
 
-	private static <T extends GameRules.Rule<T>> void setRule(CutsceneInstance cutscene, GameRuleEntry.Parsed<T> e) {
-		cutscene.getCutsceneWorld().getGameRules().get(e.key).setValue((T) e.rule, cutscene.getServer());
+	private static <T extends GameRules.Value<T>> void setRule(CutsceneInstance cutscene, GameRuleEntry.Parsed<T> e) {
+		cutscene.getCutsceneWorld().getGameRules().getRule(e.key).setFrom((T) e.rule, cutscene.getServer());
 	}
 
-	private <T extends GameRules.Rule<T>> void cacheRule(CutsceneInstance cutscene, GameRules.Key<T> key) {
+	private <T extends GameRules.Value<T>> void cacheRule(CutsceneInstance cutscene, GameRules.Key<T> key) {
 		this.prevReady = Optional.of(
 				new GameRuleEntry.Parsed<>(
-						key, cutscene.getCutsceneWorld().getGameRules().get(key)
+						key, cutscene.getCutsceneWorld().getGameRules().getRule(key)
 				)
 		);
 		this.prev = prevReady.map(GameRuleEntry.Parsed::serialize);
@@ -114,12 +114,12 @@ public class SetGameRuleTransition implements Transition {
 				).apply(instance, GameRuleEntry::new)
 		);
 
-		public Optional<Parsed<?>> parse(ServerWorld world) {
+		public Optional<Parsed<?>> parse(ServerLevel world) {
 			MutableObject<GameRuleEntry.Parsed<?>> rule = new MutableObject<>();
-			world.getGameRules().accept(new GameRules.Visitor() {
+			world.getGameRules().visitGameRuleTypes(new GameRules.GameRuleTypeVisitor() {
 				@Override
-				public <T extends GameRules.Rule<T>> void visit(GameRules.Key<T> key, GameRules.Type<T> type) {
-					if (key.getName().equals(GameRuleEntry.this.key)) {
+				public <T extends GameRules.Value<T>> void visit(GameRules.Key<T> key, GameRules.Type<T> type) {
+					if (key.getId().equals(GameRuleEntry.this.key)) {
 						var r = type.createRule();
 						((AccessorGameRulesRule) r).callDeserialize(value);
 						rule.setValue(new GameRuleEntry.Parsed<>(key, r));
@@ -129,9 +129,9 @@ public class SetGameRuleTransition implements Transition {
 			return Optional.ofNullable(rule.getValue());
 		}
 
-		public record Parsed<T extends GameRules.Rule<T>>(GameRules.Key<T> key, GameRules.Rule<T> rule) {
+		public record Parsed<T extends GameRules.Value<T>>(GameRules.Key<T> key, GameRules.Value<T> rule) {
 			public GameRuleEntry serialize() {
-				return new GameRuleEntry(key.getName(), rule.serialize());
+				return new GameRuleEntry(key.getId(), rule.serialize());
 			}
 		}
 	}

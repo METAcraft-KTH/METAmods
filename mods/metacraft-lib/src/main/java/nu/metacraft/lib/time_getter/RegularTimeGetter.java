@@ -6,7 +6,7 @@ import java.time.Instant;
 
 public interface RegularTimeGetter {
 
-	Codec<RegularTimeGetter> REGISTRY_CODEC = RegularTimeGetterRegistry.REGISTRY.getCodec().dispatch(
+	Codec<RegularTimeGetter> REGISTRY_CODEC = RegularTimeGetterRegistry.REGISTRY.byNameCodec().dispatch(
 			RegularTimeGetter::getType, RegularTimeGetterType::codec
 	);
 

@@ -1,13 +1,13 @@
 package nu.metacraft.bosses.entity;
 
 import eu.pb4.polymer.core.api.entity.PolymerEntityUtils;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnGroup;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.bosses.entity.entities.Beam;
 import nu.metacraft.bosses.entity.entities.FangPursuit;
@@ -17,21 +17,21 @@ public class BossEntities {
 
 
 	public static final EntityType<Beam> LASER = register(
-			"beam", EntityType.Builder.create(
-					Beam::new, SpawnGroup.MISC
-			).dimensions(0, 0)
+			"beam", EntityType.Builder.of(
+					Beam::new, MobCategory.MISC
+			).sized(0, 0)
 	);
 
 	public static final EntityType<FangPursuit> FANG_PURSUIT = register(
-			"fang_pursuit", EntityType.Builder.create(
-					FangPursuit::new, SpawnGroup.MISC
-			).dimensions(0, 0).makeFireImmune()
+			"fang_pursuit", EntityType.Builder.of(
+					FangPursuit::new, MobCategory.MISC
+			).sized(0, 0).fireImmune()
 	);
 
 	public static final EntityType<ItemSpawnerWithTarget> OMINOUS_SPAWNER_WITH_TARGET = register(
-			"ominous_item_spawner_with_target", EntityType.Builder.create(
-					ItemSpawnerWithTarget::new, SpawnGroup.MISC
-			).dimensions(0.25f, 0.25f).maxTrackingRange(8)
+			"ominous_item_spawner_with_target", EntityType.Builder.of(
+					ItemSpawnerWithTarget::new, MobCategory.MISC
+			).sized(0.25f, 0.25f).clientTrackingRange(8)
 	);
 
 	public static void init() {
@@ -39,10 +39,10 @@ public class BossEntities {
 	}
 
 	private static <T extends Entity> EntityType<T> register(String id, EntityType.Builder<T> builder) {
-		var key = RegistryKey.of(RegistryKeys.ENTITY_TYPE, METAcraftCore.getID(id));
+		var key = ResourceKey.create(Registries.ENTITY_TYPE, METAcraftCore.getID(id));
 		var type = builder.build(key);
 		PolymerEntityUtils.registerType(type);
-		return Registry.register(Registries.ENTITY_TYPE, key, type);
+		return Registry.register(BuiltInRegistries.ENTITY_TYPE, key, type);
 	}
 
 }

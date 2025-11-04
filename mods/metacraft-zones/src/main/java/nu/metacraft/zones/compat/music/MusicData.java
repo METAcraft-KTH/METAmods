@@ -2,8 +2,6 @@ package nu.metacraft.zones.compat.music;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
 import nu.metacraft.core.music.PlayerMusic;
 import nu.metacraft.core.util.helper.MusicHelper;
 import nu.metacraft.zones.compat.CoreTypes;
@@ -12,6 +10,8 @@ import nu.metacraft.zones.zone.data.ZoneDataEntityTracking;
 import nu.metacraft.zones.zone.data.ZoneDataType;
 
 import java.util.Optional;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 
 public class MusicData extends ZoneDataEntityTracking {
 
@@ -29,13 +29,13 @@ public class MusicData extends ZoneDataEntityTracking {
 
 	public void setMusic(Optional<PlayerMusic> music) {
 		this.music.ifPresent(musicEntry -> zone.getEntities().forEach(e -> {
-			if (e instanceof ServerPlayerEntity p && MusicHelper.isMusicPlaying(p, musicEntry)) {
+			if (e instanceof ServerPlayer p && MusicHelper.isMusicPlaying(p, musicEntry)) {
 				MusicHelper.stopMusic(p);
 			}
 		}));
 		this.music = music;
 		this.music.ifPresent(musicEntry -> zone.getEntities().forEach(e -> {
-			if (e instanceof ServerPlayerEntity p) {
+			if (e instanceof ServerPlayer p) {
 				MusicHelper.playMusic(p, musicEntry);
 			}
 		}));
@@ -45,7 +45,7 @@ public class MusicData extends ZoneDataEntityTracking {
 	@Override
 	public void onEnter(Entity entity) {
 		music.ifPresent(music -> {
-			if (entity instanceof ServerPlayerEntity p) {
+			if (entity instanceof ServerPlayer p) {
 				MusicHelper.playMusic(p, music);
 			}
 		});
@@ -54,7 +54,7 @@ public class MusicData extends ZoneDataEntityTracking {
 	@Override
 	public void onLeave(Entity entity) {
 		music.ifPresent(music -> {
-			if (entity instanceof ServerPlayerEntity p && MusicHelper.isMusicPlaying(p, music)) {
+			if (entity instanceof ServerPlayer p && MusicHelper.isMusicPlaying(p, music)) {
 				MusicHelper.stopMusic(p);
 			}
 		});

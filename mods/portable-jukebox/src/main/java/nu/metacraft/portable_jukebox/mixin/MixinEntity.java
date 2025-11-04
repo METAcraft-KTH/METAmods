@@ -1,6 +1,5 @@
 package nu.metacraft.portable_jukebox.mixin;
 
-import net.minecraft.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,6 +11,7 @@ import nu.metacraft.portable_jukebox.data.RemovalAware;
 import nu.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
 
 import java.util.*;
+import net.minecraft.world.entity.Entity;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity implements HasPortableJukebox {

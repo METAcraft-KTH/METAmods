@@ -3,16 +3,6 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.Block;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.structure.StructureLiquidSettings;
-import net.minecraft.structure.StructurePlacementData;
-import net.minecraft.structure.processor.StructureProcessorList;
-import net.minecraft.structure.processor.StructureProcessorType;
-import net.minecraft.util.BlockMirror;
-import net.minecraft.util.BlockRotation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.random.Random;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.core.position_ref.PositionRef;
 import nu.metacraft.core.registry.PositionRefRegistry;
@@ -24,6 +14,16 @@ import nu.metacraft.cutscenes.util.ParsedStructure;
 
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorList;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType;
 
 public class PlaceStructure extends InstantTransition {
 
@@ -32,18 +32,18 @@ public class PlaceStructure extends InstantTransition {
 					ParsedStructure.CODEC.fieldOf("structure").forGetter(t -> t.structure),
 					PositionRefRegistry.CODEC.fieldOf("pos").forGetter(t -> t.pos),
 					PositionRefRegistry.CODEC.optionalFieldOf("pivot").forGetter(t -> t.pivot),
-					BlockPos.CODEC.optionalFieldOf("local_pivot", BlockPos.ORIGIN).forGetter(t -> t.localPivot),
-					BlockMirror.CODEC.optionalFieldOf("mirror", BlockMirror.NONE).forGetter(t -> t.mirror),
-					BlockRotation.CODEC.optionalFieldOf("rotation", BlockRotation.NONE).forGetter(t -> t.rotation),
+					BlockPos.CODEC.optionalFieldOf("local_pivot", BlockPos.ZERO).forGetter(t -> t.localPivot),
+					Mirror.CODEC.optionalFieldOf("mirror", Mirror.NONE).forGetter(t -> t.mirror),
+					Rotation.CODEC.optionalFieldOf("rotation", Rotation.NONE).forGetter(t -> t.rotation),
 					Codec.BOOL.optionalFieldOf("ignore_entities", false).forGetter(t -> t.ignoreEntities),
-					StructureLiquidSettings.codec.optionalFieldOf(
-							"structure_liquid_settings", StructureLiquidSettings.IGNORE_WATERLOGGING
+					LiquidSettings.CODEC.optionalFieldOf(
+							"structure_liquid_settings", LiquidSettings.IGNORE_WATERLOGGING
 					).forGetter(t -> t.structureLiquidSettings),
 					Codec.BOOL.optionalFieldOf("update_neighbours", true).forGetter(t -> t.updateNeighbours),
 					Codec.BOOL.optionalFieldOf("force_state", false).forGetter(t -> t.forceState),
 					Codec.BOOL.optionalFieldOf("skip_drops", true).forGetter(t -> t.skipDrops),
-					StructureProcessorType.REGISTRY_CODEC.optionalFieldOf(
-							"processors", RegistryEntry.of(new StructureProcessorList(List.of()))
+					StructureProcessorType.LIST_CODEC.optionalFieldOf(
+							"processors", Holder.direct(new StructureProcessorList(List.of()))
 					).forGetter(t -> t.processors),
 					Codec.LONG.optionalFieldOf("seed").forGetter(t -> t.seed)
 			).apply(instance, PlaceStructure::new)
@@ -53,22 +53,22 @@ public class PlaceStructure extends InstantTransition {
 	private final PositionRef pos;
 	private final Optional<PositionRef> pivot;
 	private final BlockPos localPivot;
-	private final BlockMirror mirror;
-	private final BlockRotation rotation;
+	private final Mirror mirror;
+	private final Rotation rotation;
 	private final boolean ignoreEntities;
-	private final StructureLiquidSettings structureLiquidSettings;
+	private final LiquidSettings structureLiquidSettings;
 	private final boolean updateNeighbours;
 	private final boolean forceState;
 	private final boolean skipDrops;
-	private final RegistryEntry<StructureProcessorList> processors;
-	private Optional<Long> seed;
+	private final Holder<StructureProcessorList> processors;
+	private final Optional<Long> seed;
 
 	private PlaceStructure(
 			ParsedStructure structure, PositionRef pos, Optional<PositionRef> pivot,
 			BlockPos localPivot,
-			BlockMirror mirror, BlockRotation rotation, boolean ignoreEntities,
-			StructureLiquidSettings structureLiquidSettings, boolean updateNeighbours,
-			boolean forceState, boolean skipDrops, RegistryEntry<StructureProcessorList> processors,
+			Mirror mirror, Rotation rotation, boolean ignoreEntities,
+			LiquidSettings structureLiquidSettings, boolean updateNeighbours,
+			boolean forceState, boolean skipDrops, Holder<StructureProcessorList> processors,
 			Optional<Long> seed
 	) {
 		this.structure = structure;
@@ -88,29 +88,29 @@ public class PlaceStructure extends InstantTransition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		structure.get(cutscene.getServer().getStructureTemplateManager(), cutscene.getServer().getRegistryManager()).ifPresent(structure -> {
+		structure.get(cutscene.getServer().getStructureManager(), cutscene.getServer().registryAccess()).ifPresent(structure -> {
 			this.pos.get(cutscene.getRefContext()).ifPresent(exactPos -> {
-				var pos = BlockPos.ofFloored(exactPos);
-				var random = seed.map(Random::create).orElse(cutscene.getRandom());
-				var placementData = new StructurePlacementData()
-						.setPosition(localPivot)
+				var pos = BlockPos.containing(exactPos);
+				var random = seed.map(RandomSource::create).orElse(cutscene.getRandom());
+				var placementData = new StructurePlaceSettings()
+						.setRotationPivot(localPivot)
 						.setMirror(mirror)
 						.setRotation(rotation)
 						.setIgnoreEntities(ignoreEntities)
 						.setRandom(random)
 						.setLiquidSettings(structureLiquidSettings)
-						.setUpdateNeighbors(!updateNeighbours); //Fabric Yarn uses a misleading name here, updateNeighbours should be false to perform a neighbour update.
-				for (var processor : processors.value().getList()) {
+						.setKnownShape(!updateNeighbours); //Fabric Yarn uses a misleading name here, updateNeighbours should be false to perform a neighbour update.
+				for (var processor : processors.value().list()) {
 					placementData.addProcessor(processor);
 				}
 
 				int flags =
-						Block.NOTIFY_LISTENERS |
-								(forceState ? Block.FORCE_STATE : 0) |
-								(skipDrops ? Block.SKIP_DROPS : 0);
+						Block.UPDATE_CLIENTS |
+								(forceState ? Block.UPDATE_KNOWN_SHAPE : 0) |
+								(skipDrops ? Block.UPDATE_SUPPRESS_DROPS : 0);
 
-				var pivot = BlockPos.ofFloored(this.pivot.flatMap(p -> p.get(cutscene.getRefContext())).orElse(exactPos));
-				structure.place(
+				var pivot = BlockPos.containing(this.pivot.flatMap(p -> p.get(cutscene.getRefContext())).orElse(exactPos));
+				structure.placeInWorld(
 						cutscene.getCutsceneWorld(), pos, pivot,
 						placementData, random, flags
 				);

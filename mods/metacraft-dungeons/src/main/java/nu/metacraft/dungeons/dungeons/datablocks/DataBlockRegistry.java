@@ -6,12 +6,12 @@ import com.google.gson.stream.JsonWriter;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.*;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.core.Registry;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryOps;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.dungeons.METAcraftDungeons;
 
 import java.io.IOException;
@@ -20,7 +20,7 @@ import java.io.StringWriter;
 public class DataBlockRegistry {
 
 	public static final Registry<DataBlockType<?>> REGISTRY = FabricRegistryBuilder.<DataBlockType<?>>createSimple(
-			RegistryKey.ofRegistry(METAcraftDungeons.getID("data_block"))
+			ResourceKey.createRegistryKey(METAcraftDungeons.getID("data_block"))
 	).buildAndRegister();
 
 	public static final DataBlockType<EntranceDataBlock> ENTRANCE = register(
@@ -42,7 +42,7 @@ public class DataBlockRegistry {
 			"music_player", new DataBlockType<>(MusicPlayer.CODEC)
 	);
 
-	public static final Codec<DataBlock> CODEC = REGISTRY.getCodec().dispatch(DataBlock::getType, DataBlockType::codec);
+	public static final Codec<DataBlock> CODEC = REGISTRY.byNameCodec().dispatch(DataBlock::getType, DataBlockType::codec);
 
 	public static final Codec<? extends DataBlock> PARSER_CODEC = new Codec<DataBlock>() {
 		@Override
@@ -53,12 +53,12 @@ public class DataBlockRegistry {
 							var line = data.getFirst();
 							int open = line.indexOf('{');
 							if (open != -1) {
-								return REGISTRY.getCodec().parse(registryOps.withDelegate(JavaOps.INSTANCE), line.substring(0, open)).flatMap(
+								return REGISTRY.byNameCodec().parse(registryOps.withParent(JavaOps.INSTANCE), line.substring(0, open)).flatMap(
 										type -> {
 											int close = line.lastIndexOf('}');
 											if (close != -1) {
 												return type.getCodec().parse(
-														registryOps.withDelegate(JsonOps.INSTANCE), JsonParser.parseString(line.substring(open, close+1))
+														registryOps.withParent(JsonOps.INSTANCE), JsonParser.parseString(line.substring(open, close+1))
 												).map(
 														res -> Pair.of(res, data.getSecond())
 												);
@@ -68,9 +68,9 @@ public class DataBlockRegistry {
 										}
 								);
 							}
-							return REGISTRY.getCodec().parse(registryOps.withDelegate(JavaOps.INSTANCE), line).flatMap(
+							return REGISTRY.byNameCodec().parse(registryOps.withParent(JavaOps.INSTANCE), line).flatMap(
 									type -> type.getCodec().parse(
-											registryOps.withDelegate(NbtOps.INSTANCE), new NbtCompound()
+											registryOps.withParent(NbtOps.INSTANCE), new CompoundTag()
 									)
 							).map(res -> Pair.of(res, data.getSecond()));
 						}
@@ -83,15 +83,15 @@ public class DataBlockRegistry {
 		@Override
 		public <T> DataResult<T> encode(DataBlock data, DynamicOps<T> ops, T init) {
 			if (ops instanceof RegistryOps<T> registryOps) {
-				return REGISTRY.getCodec().encodeStart(registryOps.withDelegate(JavaOps.INSTANCE), data.getType()).flatMap(
+				return REGISTRY.byNameCodec().encodeStart(registryOps.withParent(JavaOps.INSTANCE), data.getType()).flatMap(
 						typeName -> {
 							String prefix;
-							if (typeName instanceof Identifier id && id.getNamespace().equals("minecraft")) {
+							if (typeName instanceof ResourceLocation id && id.getNamespace().equals("minecraft")) {
 								prefix = id.getPath();
 							} else {
 								prefix = typeName.toString();
 							}
-							return data.getType().getCodec().encodeStart(registryOps.withDelegate(JsonOps.INSTANCE), data).flatMap(json -> {
+							return data.getType().getCodec().encodeStart(registryOps.withParent(JsonOps.INSTANCE), data).flatMap(json -> {
 								var string = new StringWriter();
 								try {
 									Streams.write(json, new JsonWriter(string));
@@ -111,7 +111,7 @@ public class DataBlockRegistry {
 	};
 
 	private static <T extends DataBlockType<? extends DataBlock>> T register(String id, T object) {
-		return Registry.register(REGISTRY, Identifier.ofVanilla(id), object);
+		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), object);
 	}
 
 	public record DataBlockType<T extends DataBlock>(MapCodec<T> codec) {

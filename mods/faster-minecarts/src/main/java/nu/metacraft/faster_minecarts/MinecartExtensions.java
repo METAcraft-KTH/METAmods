@@ -1,12 +1,11 @@
 package nu.metacraft.faster_minecarts;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-
 import java.util.Optional;
 import java.util.OptionalDouble;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 
 public interface MinecartExtensions {
 
@@ -34,7 +33,7 @@ public interface MinecartExtensions {
 	void fasterMinecarts$setMinecartItem(Optional<ItemStack> stack);
 
 	void fasterMinecarts$setCurrentRailPosOverride(BlockPos pos);
-	void fasterMinecarts$applySlowdown(Vec3d velocity);
+	void fasterMinecarts$applySlowdown(Vec3 velocity);
 
 	void fasterMinecarts$setInitialZ(Direction.AxisDirection direction);
 	Direction.AxisDirection fasterMinecarts$getInitialZ();

@@ -2,24 +2,28 @@ package nu.metacraft.portable_jukebox.block;
 
 import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.core.api.block.PolymerHeadBlock;
-import net.minecraft.block.*;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.loot.context.LootWorldContext;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
-import net.minecraft.world.BlockView;
-import net.minecraft.world.World;
-import net.minecraft.world.block.WireOrientation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EnderChestBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.redstone.Orientation;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.lib.util.EntityRef;
 import nu.metacraft.portable_jukebox.item.PortableJukeboxItem;
@@ -30,16 +34,16 @@ import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 
-public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHeadBlock {
+public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerHeadBlock {
 
-	public static final MapCodec<PortableJukeboxBlock> CODEC = EnderChestBlock.createCodec(PortableJukeboxBlock::new);
+	public static final MapCodec<PortableJukeboxBlock> CODEC = EnderChestBlock.simpleCodec(PortableJukeboxBlock::new);
 
-	public PortableJukeboxBlock(Settings settings) {
+	public PortableJukeboxBlock(Properties settings) {
 		super(settings);
 	}
 
 	@Override
-	protected MapCodec<? extends BlockWithEntity> getCodec() {
+	protected MapCodec<? extends BaseEntityBlock> codec() {
 		return CODEC;
 	}
 
@@ -50,18 +54,18 @@ public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHead
 	}
 
 	@Override
-	protected VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+	protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
 		return AccessorSkullBlock.getShape();
 	}
 
 	@Override
-	protected VoxelShape getCullingShape(BlockState state) {
-		return VoxelShapes.empty();
+	protected VoxelShape getOcclusionShape(BlockState state) {
+		return Shapes.empty();
 	}
 
 	@Override
-	public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
-		super.onPlaced(world, pos, state, placer, itemStack);
+	public void setPlacedBy(Level world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
+		super.setPlacedBy(world, pos, state, placer, itemStack);
 		var blockEntity = world.getBlockEntity(pos);
 		if (blockEntity instanceof PortableJukeboxBlockEntity b && placer != null) {
 			b.setJukebox(itemStack.copy());
@@ -72,58 +76,58 @@ public class PortableJukeboxBlock extends BlockWithEntity implements PolymerHead
 	}
 
 	@Override
-	protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
+	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
 		var block = world.getBlockEntity(pos);
 		if (block instanceof PortableJukeboxBlockEntity jukebox) {
-			var gui = PortableJukeboxGui.create((ServerPlayerEntity) player, jukebox.getJukebox(), EntityRef.fromBlock(jukebox));
+			var gui = PortableJukeboxGui.create((ServerPlayer) player, jukebox.getJukebox(), EntityRef.fromBlock(jukebox));
 			gui.open();
-			return ActionResult.SUCCESS;
+			return InteractionResult.SUCCESS;
 		}
-		return ActionResult.PASS;
+		return InteractionResult.PASS;
 	}
 
 	@Override
-	protected List<ItemStack> getDroppedStacks(BlockState state, LootWorldContext.Builder builder) {
-		BlockEntity blockEntity = builder.getOptional(LootContextParameters.BLOCK_ENTITY);
+	protected List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
+		BlockEntity blockEntity = builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
 		if (blockEntity instanceof PortableJukeboxBlockEntity jukebox) {
 			return List.of(jukebox.getJukebox());
 		}
-		return super.getDroppedStacks(state, builder);
+		return super.getDrops(state, builder);
 	}
 
 	@Override
-	protected void onStateReplaced(BlockState state, ServerWorld world, BlockPos pos, boolean moved) {
+	protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel world, BlockPos pos, boolean moved) {
 		BlockEntity blockEntity = world.getBlockEntity(pos);
-		super.onStateReplaced(state, world, pos, moved);
+		super.affectNeighborsAfterRemoval(state, world, pos, moved);
 		if (blockEntity instanceof PortableJukeboxBlockEntity jukebox) {
-			world.updateComparators(pos, state.getBlock());
+			world.updateNeighbourForOutputSignal(pos, state.getBlock());
 		}
 	}
 
 	@Nullable
 	@Override
-	public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+	public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
 		return new PortableJukeboxBlockEntity(pos, state);
 	}
 
 	@Override
-	protected boolean hasComparatorOutput(BlockState state) {
+	protected boolean hasAnalogOutputSignal(BlockState state) {
 		return true;
 	}
 
 	@Override
-	protected int getComparatorOutput(BlockState state, World world, BlockPos pos, Direction direction) {
+	protected int getAnalogOutputSignal(BlockState state, Level world, BlockPos pos, Direction direction) {
 		var blockEntity = world.getBlockEntity(pos);
 		if (blockEntity instanceof PortableJukeboxBlockEntity portable) {
-			return PortableJukeboxItem.getComparatorOutput(portable.getJukebox(), world.getRegistryManager());
+			return PortableJukeboxItem.getComparatorOutput(portable.getJukebox(), world.registryAccess());
 		}
 		return 0;
 	}
 
 	@Override
-	protected void neighborUpdate(
-			BlockState state, World world, BlockPos pos, Block sourceBlock,
-			WireOrientation orientation, boolean notify
+	protected void neighborChanged(
+			BlockState state, Level world, BlockPos pos, Block sourceBlock,
+			Orientation orientation, boolean notify
 	) {
 		var blockEntity = world.getBlockEntity(pos);
 		if (blockEntity instanceof PortableJukeboxBlockEntity portable) {

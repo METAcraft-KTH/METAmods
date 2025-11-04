@@ -2,17 +2,17 @@ package nu.metacraft.core.callbacks;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.block.entities.PortalEntity;
 
 public interface PortalTargetValidEvent {
 
-	Identifier PRE = METAcraftCore.getID("pre");
-	Identifier POST = METAcraftCore.getID("post");
+	ResourceLocation PRE = METAcraftCore.getID("pre");
+	ResourceLocation POST = METAcraftCore.getID("post");
 
 	Event<PortalTargetValidEvent> EVENT = EventFactory.createWithPhases(
 			PortalTargetValidEvent.class, callbacks -> (targetDim, targetPos, portal, teleporting, currentlyValid) -> {
@@ -24,6 +24,6 @@ public interface PortalTargetValidEvent {
 			PRE, Event.DEFAULT_PHASE, POST
 	);
 
-	boolean isValid(ServerWorld targetDim, BlockPos targetPos, PortalEntity portal, Entity teleporting, boolean isCurrentlyValid);
+	boolean isValid(ServerLevel targetDim, BlockPos targetPos, PortalEntity portal, Entity teleporting, boolean isCurrentlyValid);
 
 }

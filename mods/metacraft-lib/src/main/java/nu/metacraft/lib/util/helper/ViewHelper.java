@@ -1,12 +1,12 @@
 package nu.metacraft.lib.util.helper;
 
 import com.mojang.serialization.*;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryOps;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.storage.ReadView;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.ValueInput;
 import org.jetbrains.annotations.NotNull;
 import nu.metacraft.lib.mixin.AccessorNbtReadView;
 
@@ -17,54 +17,54 @@ import java.util.stream.Stream;
 
 public class ViewHelper {
 
-	public static int getSize(ReadView view) {
+	public static int getSize(ValueInput view) {
 		var dynamic = getDynamic(view);
 		return dynamic.asMapOpt().result().map(Stream::count).or(
 				() -> dynamic.asStreamOpt().result().map(Stream::count)
 		).orElse(0L).intValue();
 	}
 
-	public static Dynamic<?> getDynamic(ReadView view) {
-		if (view instanceof NbtReadView v) {
-			return new Dynamic<>(view.getRegistries().getOps(NbtOps.INSTANCE), ((AccessorNbtReadView) v).getNbt());
+	public static Dynamic<?> getDynamic(ValueInput view) {
+		if (view instanceof TagValueInput v) {
+			return new Dynamic<>(view.lookup().createSerializationContext(NbtOps.INSTANCE), ((AccessorNbtReadView) v).getInput());
 		}
 		if (view instanceof ExtendedReadView v) {
 			return v.getData();
 		}
-		return new Dynamic<>(view.getRegistries().getOps(JavaOps.INSTANCE));
+		return new Dynamic<>(view.lookup().createSerializationContext(JavaOps.INSTANCE));
 	}
 
-	public static <T> T getContents(ReadView view, DynamicOps<T> ops) {
+	public static <T> T getContents(ValueInput view, DynamicOps<T> ops) {
 		var dynamic = getDynamic(view);
 		var targetOps = ops;
 		if (dynamic.getOps() instanceof RegistryOps<?> r && !(targetOps instanceof RegistryOps<T>)) {
-			targetOps = r.withDelegate(targetOps);
+			targetOps = r.withParent(targetOps);
 		}
 		return dynamic.convert(targetOps).getValue();
 	}
 
-	public static NbtCompound getNBT(ReadView view) {
-		return getContents(view, NbtOps.INSTANCE).asCompound().orElseGet(NbtCompound::new);
+	public static CompoundTag getNBT(ValueInput view) {
+		return getContents(view, NbtOps.INSTANCE).asCompound().orElseGet(CompoundTag::new);
 	}
 
-	public static final ReadView.ListReadView EMPTY_LIST = new ReadView.ListReadView() {
+	public static final ValueInput.ValueInputList EMPTY_LIST = new ValueInput.ValueInputList() {
 		@Override
 		public boolean isEmpty() {
 			return true;
 		}
 
 		@Override
-		public Stream<ReadView> stream() {
+		public Stream<ValueInput> stream() {
 			return Stream.empty();
 		}
 
 		@Override
-		public @NotNull Iterator<ReadView> iterator() {
+		public @NotNull Iterator<ValueInput> iterator() {
 			return stream().iterator();
 		}
 	};
 
-	private static final ReadView.TypedListReadView<?> EMPTY_TYPED_LIST = new ReadView.TypedListReadView<Object>() {
+	private static final ValueInput.TypedInputList<?> EMPTY_TYPED_LIST = new ValueInput.TypedInputList<Object>() {
 		@Override
 		public boolean isEmpty() {
 			return true;
@@ -82,12 +82,12 @@ public class ViewHelper {
 	};
 
 	@SuppressWarnings("unchecked")
-	public static <T> ReadView.TypedListReadView<T> emptyTypedList() {
-		return (ReadView.TypedListReadView<T>) EMPTY_TYPED_LIST;
+	public static <T> ValueInput.TypedInputList<T> emptyTypedList() {
+		return (ValueInput.TypedInputList<T>) EMPTY_TYPED_LIST;
 	}
 
-	public static ReadView empty(RegistryWrapper.WrapperLookup lookup) {
-		return new ReadView() {
+	public static ValueInput empty(HolderLookup.Provider lookup) {
+		return new ValueInput() {
 			@Override
 			public <T> Optional<T> read(String key, Codec<T> codec) {
 				return Optional.empty();
@@ -99,103 +99,103 @@ public class ViewHelper {
 			}
 
 			@Override
-			public Optional<ReadView> getOptionalReadView(String key) {
+			public Optional<ValueInput> child(String key) {
 				return Optional.empty();
 			}
 
 			@Override
-			public ReadView getReadView(String key) {
+			public ValueInput childOrEmpty(String key) {
 				return this;
 			}
 
 			@Override
-			public Optional<ListReadView> getOptionalListReadView(String key) {
+			public Optional<ValueInputList> childrenList(String key) {
 				return Optional.empty();
 			}
 
 			@Override
-			public ListReadView getListReadView(String key) {
+			public ValueInputList childrenListOrEmpty(String key) {
 				return EMPTY_LIST;
 			}
 
 			@Override
-			public <T> Optional<TypedListReadView<T>> getOptionalTypedListView(String key, Codec<T> typeCodec) {
+			public <T> Optional<TypedInputList<T>> list(String key, Codec<T> typeCodec) {
 				return Optional.empty();
 			}
 
 			@Override
-			public <T> TypedListReadView<T> getTypedListView(String key, Codec<T> typeCodec) {
+			public <T> TypedInputList<T> listOrEmpty(String key, Codec<T> typeCodec) {
 				return emptyTypedList();
 			}
 
 			@Override
-			public boolean getBoolean(String key, boolean fallback) {
+			public boolean getBooleanOr(String key, boolean fallback) {
 				return fallback;
 			}
 
 			@Override
-			public byte getByte(String key, byte fallback) {
+			public byte getByteOr(String key, byte fallback) {
 				return fallback;
 			}
 
 			@Override
-			public int getShort(String key, short fallback) {
+			public int getShortOr(String key, short fallback) {
 				return fallback;
 			}
 
 			@Override
-			public Optional<Integer> getOptionalInt(String key) {
+			public Optional<Integer> getInt(String key) {
 				return Optional.empty();
 			}
 
 			@Override
-			public int getInt(String key, int fallback) {
+			public int getIntOr(String key, int fallback) {
 				return fallback;
 			}
 
 			@Override
-			public long getLong(String key, long fallback) {
+			public long getLongOr(String key, long fallback) {
 				return fallback;
 			}
 
 			@Override
-			public Optional<Long> getOptionalLong(String key) {
+			public Optional<Long> getLong(String key) {
 				return Optional.empty();
 			}
 
 			@Override
-			public float getFloat(String key, float fallback) {
+			public float getFloatOr(String key, float fallback) {
 				return fallback;
 			}
 
 			@Override
-			public double getDouble(String key, double fallback) {
+			public double getDoubleOr(String key, double fallback) {
 				return fallback;
 			}
 
 			@Override
-			public Optional<String> getOptionalString(String key) {
+			public Optional<String> getString(String key) {
 				return Optional.empty();
 			}
 
 			@Override
-			public String getString(String key, String fallback) {
+			public String getStringOr(String key, String fallback) {
 				return fallback;
 			}
 
 			@Override
-			public Optional<int[]> getOptionalIntArray(String key) {
+			public Optional<int[]> getIntArray(String key) {
 				return Optional.empty();
 			}
 
 			@Override
-			public RegistryWrapper.WrapperLookup getRegistries() {
+			public HolderLookup.Provider lookup() {
 				return lookup;
 			}
 		};
 	}
 
-	public static ReadView filtered(ReadView view, Set<String> toRemove) {
+	public static ValueInput filtered(ValueInput view, Set<String> toRemove) {
 		return new FilteredReadView(view, toRemove);
 	}
 
@@ -203,16 +203,16 @@ public class ViewHelper {
 		Dynamic<?> getData();
 	}
 
-	public static class FilteredReadView implements ReadView, ExtendedReadView {
+	public static class FilteredReadView implements ValueInput, ExtendedReadView {
 
-		private final ReadView view;
+		private final ValueInput view;
 		private final Set<String> toRemove;
-		private final ReadView empty;
+		private final ValueInput empty;
 
-		public FilteredReadView(ReadView view, Set<String> toRemove) {
+		public FilteredReadView(ValueInput view, Set<String> toRemove) {
 			this.view = view;
 			this.toRemove = toRemove;
-			this.empty = empty(view.getRegistries());
+			this.empty = empty(view.lookup());
 		}
 
 		@Override
@@ -227,116 +227,116 @@ public class ViewHelper {
 		}
 
 		@Override
-		public Optional<ReadView> getOptionalReadView(String key) {
+		public Optional<ValueInput> child(String key) {
 			if (toRemove.contains(key)) return Optional.empty();
-			return view.getOptionalReadView(key);
+			return view.child(key);
 		}
 
 		@Override
-		public ReadView getReadView(String key) {
+		public ValueInput childOrEmpty(String key) {
 			if (toRemove.contains(key)) return empty;
-			return view.getReadView(key);
+			return view.childOrEmpty(key);
 		}
 
 		@Override
-		public Optional<ListReadView> getOptionalListReadView(String key) {
+		public Optional<ValueInputList> childrenList(String key) {
 			if (toRemove.contains(key)) return Optional.empty();
-			return view.getOptionalListReadView(key);
+			return view.childrenList(key);
 		}
 
 		@Override
-		public ListReadView getListReadView(String key) {
+		public ValueInputList childrenListOrEmpty(String key) {
 			if (toRemove.contains(key)) return EMPTY_LIST;
-			return view.getListReadView(key);
+			return view.childrenListOrEmpty(key);
 		}
 
 		@Override
-		public <T> Optional<TypedListReadView<T>> getOptionalTypedListView(String key, Codec<T> typeCodec) {
+		public <T> Optional<TypedInputList<T>> list(String key, Codec<T> typeCodec) {
 			if (toRemove.contains(key)) return Optional.empty();
-			return view.getOptionalTypedListView(key, typeCodec);
+			return view.list(key, typeCodec);
 		}
 
 		@Override
-		public <T> TypedListReadView<T> getTypedListView(String key, Codec<T> typeCodec) {
+		public <T> TypedInputList<T> listOrEmpty(String key, Codec<T> typeCodec) {
 			if (toRemove.contains(key)) return emptyTypedList();
-			return view.getTypedListView(key, typeCodec);
+			return view.listOrEmpty(key, typeCodec);
 		}
 
 		@Override
-		public boolean getBoolean(String key, boolean fallback) {
+		public boolean getBooleanOr(String key, boolean fallback) {
 			if (toRemove.contains(key)) return fallback;
-			return view.getBoolean(key, fallback);
+			return view.getBooleanOr(key, fallback);
 		}
 
 		@Override
-		public byte getByte(String key, byte fallback) {
+		public byte getByteOr(String key, byte fallback) {
 			if (toRemove.contains(key)) return fallback;
-			return view.getByte(key, fallback);
+			return view.getByteOr(key, fallback);
 		}
 
 		@Override
-		public int getShort(String key, short fallback) {
+		public int getShortOr(String key, short fallback) {
 			if (toRemove.contains(key)) return fallback;
-			return view.getShort(key, fallback);
+			return view.getShortOr(key, fallback);
 		}
 
 		@Override
-		public Optional<Integer> getOptionalInt(String key) {
+		public Optional<Integer> getInt(String key) {
 			if (toRemove.contains(key)) return Optional.empty();
-			return view.getOptionalInt(key);
+			return view.getInt(key);
 		}
 
 		@Override
-		public int getInt(String key, int fallback) {
+		public int getIntOr(String key, int fallback) {
 			if (toRemove.contains(key)) return fallback;
-			return view.getInt(key, fallback);
+			return view.getIntOr(key, fallback);
 		}
 
 		@Override
-		public long getLong(String key, long fallback) {
+		public long getLongOr(String key, long fallback) {
 			if (toRemove.contains(key)) return fallback;
-			return view.getLong(key, fallback);
+			return view.getLongOr(key, fallback);
 		}
 
 		@Override
-		public Optional<Long> getOptionalLong(String key) {
+		public Optional<Long> getLong(String key) {
 			if (toRemove.contains(key)) return Optional.empty();
-			return view.getOptionalLong(key);
+			return view.getLong(key);
 		}
 
 		@Override
-		public float getFloat(String key, float fallback) {
+		public float getFloatOr(String key, float fallback) {
 			if (toRemove.contains(key)) return fallback;
-			return view.getFloat(key, fallback);
+			return view.getFloatOr(key, fallback);
 		}
 
 		@Override
-		public double getDouble(String key, double fallback) {
+		public double getDoubleOr(String key, double fallback) {
 			if (toRemove.contains(key)) return fallback;
-			return view.getDouble(key, fallback);
+			return view.getDoubleOr(key, fallback);
 		}
 
 		@Override
-		public Optional<String> getOptionalString(String key) {
+		public Optional<String> getString(String key) {
 			if (toRemove.contains(key)) return Optional.empty();
-			return view.getOptionalString(key);
+			return view.getString(key);
 		}
 
 		@Override
-		public String getString(String key, String fallback) {
+		public String getStringOr(String key, String fallback) {
 			if (toRemove.contains(key)) return fallback;
-			return view.getString(key, fallback);
+			return view.getStringOr(key, fallback);
 		}
 
 		@Override
-		public Optional<int[]> getOptionalIntArray(String key) {
+		public Optional<int[]> getIntArray(String key) {
 			if (toRemove.contains(key)) return Optional.empty();
-			return view.getOptionalIntArray(key);
+			return view.getIntArray(key);
 		}
 
 		@Override
-		public RegistryWrapper.WrapperLookup getRegistries() {
-			return view.getRegistries();
+		public HolderLookup.Provider lookup() {
+			return view.lookup();
 		}
 
 		@Override

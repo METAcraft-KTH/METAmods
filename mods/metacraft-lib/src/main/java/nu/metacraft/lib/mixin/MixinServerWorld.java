@@ -2,28 +2,28 @@ package nu.metacraft.lib.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.entity.Entity;
-import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.world.ServerEntityManager;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.MutableWorldProperties;
-import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionType;
-import net.minecraft.world.entity.EntityTrackingStatus;
+import net.minecraft.core.Holder;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.entity.PersistentEntitySectionManager;
+import net.minecraft.world.level.entity.Visibility;
+import net.minecraft.world.level.storage.WritableLevelData;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 
-@Mixin(ServerWorld.class)
-public abstract class MixinServerWorld extends World {
+@Mixin(ServerLevel.class)
+public abstract class MixinServerWorld extends Level {
 
-	@Shadow @Final private ServerEntityManager<Entity> entityManager;
+	@Shadow @Final private PersistentEntitySectionManager<Entity> entityManager;
 
-	protected MixinServerWorld(MutableWorldProperties properties, RegistryKey<World> registryRef, DynamicRegistryManager registryManager, RegistryEntry<DimensionType> dimensionEntry, boolean isClient, boolean debugWorld, long seed, int maxChainedNeighborUpdates) {
+	protected MixinServerWorld(WritableLevelData properties, ResourceKey<Level> registryRef, RegistryAccess registryManager, Holder<DimensionType> dimensionEntry, boolean isClient, boolean debugWorld, long seed, int maxChainedNeighborUpdates) {
 		super(properties, registryRef, registryManager, dimensionEntry, isClient, debugWorld, seed, maxChainedNeighborUpdates);
 	}
 
@@ -31,12 +31,12 @@ public abstract class MixinServerWorld extends World {
 		method = "method_72271", //Inside loadChunks
 		at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/server/world/ServerWorld;isChunkLoaded(J)Z"
+				target = "Lnet/minecraft/server/level/ServerLevel;areEntitiesLoaded(J)Z"
 		)
 	)
 	public boolean onLoadChunks(boolean original, @Local ChunkPos chunkPos) {
 		if (!original) {
-			this.entityManager.updateTrackingStatus(chunkPos, EntityTrackingStatus.TRACKED);
+			this.entityManager.updateChunkStatus(chunkPos, Visibility.TRACKED);
 		}
 		return original;
 	}

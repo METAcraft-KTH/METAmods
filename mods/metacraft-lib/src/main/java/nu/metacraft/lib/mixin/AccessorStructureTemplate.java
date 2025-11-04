@@ -1,12 +1,12 @@
 package nu.metacraft.lib.mixin;
 
-import net.minecraft.structure.StructureTemplate;
-import net.minecraft.util.math.Vec3i;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.util.List;
+import net.minecraft.core.Vec3i;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
 @Mixin(StructureTemplate.class)
 public interface AccessorStructureTemplate {
@@ -15,10 +15,10 @@ public interface AccessorStructureTemplate {
 	void setSize(Vec3i size);
 
 	@Accessor
-	List<StructureTemplate.PalettedBlockInfoList> getBlockInfoLists();
+	List<StructureTemplate.Palette> getPalettes();
 
 	@Invoker
-	static void callCategorize(
+	static void callAddToLists(
 			StructureTemplate.StructureBlockInfo blockInfo,
 			List<StructureTemplate.StructureBlockInfo> fullBlocks,
 			List<StructureTemplate.StructureBlockInfo> blocksWithNbt,
@@ -26,7 +26,7 @@ public interface AccessorStructureTemplate {
 	) {}
 
 	@Invoker
-	static List<StructureTemplate.StructureBlockInfo> callCombineSorted(
+	static List<StructureTemplate.StructureBlockInfo> callBuildInfoList(
 			List<StructureTemplate.StructureBlockInfo> fullBlocks,
 			List<StructureTemplate.StructureBlockInfo> blocksWithNbt,
 			List<StructureTemplate.StructureBlockInfo> otherBlocks
@@ -34,11 +34,11 @@ public interface AccessorStructureTemplate {
 		return null;
 	}
 
-	@Mixin(StructureTemplate.PalettedBlockInfoList.class)
+	@Mixin(StructureTemplate.Palette.class)
 	interface AccessorPalettedBlockInfoList {
 
 		@Invoker("<init>")
-		static StructureTemplate.PalettedBlockInfoList init(List<StructureTemplate.StructureBlockInfo> infos) {
+		static StructureTemplate.Palette init(List<StructureTemplate.StructureBlockInfo> infos) {
 			return null;
 		}
 

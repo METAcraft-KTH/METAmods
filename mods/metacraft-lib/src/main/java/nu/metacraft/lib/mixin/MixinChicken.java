@@ -1,14 +1,14 @@
 package nu.metacraft.lib.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.attribute.DefaultAttributeContainer;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.entity.passive.ChickenEntity;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.Chicken;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,8 +19,8 @@ import nu.metacraft.lib.entity.goals.CuccoChickenAttackGoal;
 import nu.metacraft.lib.entity.goals.CuccoRevengeGoal;
 import nu.metacraft.lib.util.Particles;
 
-@Mixin(ChickenEntity.class)
-public abstract class MixinChicken extends AnimalEntity implements ChickenExtensions {
+@Mixin(Chicken.class)
+public abstract class MixinChicken extends Animal implements ChickenExtensions {
 
 	@Unique
 	private static final String CUCCO = "Cucco";
@@ -37,40 +37,40 @@ public abstract class MixinChicken extends AnimalEntity implements ChickenExtens
 	@Unique
 	private CuccoRevengeGoal cuccoRevengeGoal;
 
-	protected MixinChicken(EntityType<? extends AnimalEntity> entityType, World world) {
+	protected MixinChicken(EntityType<? extends Animal> entityType, Level world) {
 		super(entityType, world);
 	}
 
-	@ModifyReturnValue(method = "createChickenAttributes", at = @At("RETURN"))
-	private static DefaultAttributeContainer.Builder initAttributes(DefaultAttributeContainer.Builder builder) {
-		return builder.add(EntityAttributes.ATTACK_DAMAGE, 5);
+	@ModifyReturnValue(method = "createAttributes", at = @At("RETURN"))
+	private static AttributeSupplier.Builder initAttributes(AttributeSupplier.Builder builder) {
+		return builder.add(Attributes.ATTACK_DAMAGE, 5);
 	}
 
-	@Inject(method = "writeCustomData", at = @At("RETURN"))
-	public void toNBT(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
+	public void toNBT(ValueOutput nbt, CallbackInfo ci) {
 		nbt.putBoolean(CUCCO, isCucco);
 		nbt.putInt(REINFORCEMENT_COUNT, reinforcementCount);
 	}
 
-	@Inject(method = "readCustomData", at = @At("RETURN"))
-	public void fromNBT(ReadView nbt, CallbackInfo ci) {
-		isCucco = nbt.getBoolean(CUCCO, false);
-		reinforcementCount = nbt.getOptionalInt(REINFORCEMENT_COUNT).orElseGet(() -> getRandom().nextInt(20));
+	@Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
+	public void fromNBT(ValueInput nbt, CallbackInfo ci) {
+		isCucco = nbt.getBooleanOr(CUCCO, false);
+		reinforcementCount = nbt.getInt(REINFORCEMENT_COUNT).orElseGet(() -> getRandom().nextInt(20));
 	}
 
-	@Inject(method = "initGoals", at = @At("HEAD"))
+	@Inject(method = "registerGoals", at = @At("HEAD"))
 	protected void initGoals(CallbackInfo ci) {
-		this.goalSelector.add(1, new CuccoChickenAttackGoal((ChickenEntity) (Object) this));
-		cuccoRevengeGoal = new CuccoRevengeGoal((ChickenEntity) (Object) this);
-		this.targetSelector.add(1, cuccoRevengeGoal);
+		this.goalSelector.addGoal(1, new CuccoChickenAttackGoal((Chicken) (Object) this));
+		cuccoRevengeGoal = new CuccoRevengeGoal((Chicken) (Object) this);
+		this.targetSelector.addGoal(1, cuccoRevengeGoal);
 	}
 
 	@Unique
 	private int particleDelay = 0;
 
-	@Inject(method = "tickMovement", at = @At("RETURN"))
+	@Inject(method = "aiStep", at = @At("RETURN"))
 	public void tick(CallbackInfo ci) {
-		if (!getEntityWorld().isClient() && isCucco) {
+		if (!level().isClientSide() && isCucco) {
 			if (particleDelay <= 0) {
 				Particles.spawnAngerParticles(this, random);
 				particleDelay = 10 + random.nextInt(30);
@@ -104,7 +104,7 @@ public abstract class MixinChicken extends AnimalEntity implements ChickenExtens
 	@Override
 	public void metacraft_lib$makeNearbyChickensAngry() {
 		if (cuccoRevengeGoal != null) {
-			cuccoRevengeGoal.callSameTypeForRevenge();
+			cuccoRevengeGoal.alertOthers();
 		}
 	}
 }

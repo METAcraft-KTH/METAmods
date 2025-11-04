@@ -3,8 +3,8 @@ package nu.metacraft.zones.zone.types;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 import nu.metacraft.zones.util.ZoneCommandUtils;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.Zone;
@@ -19,8 +19,8 @@ public class NegateZone extends ZoneType {
 	).apply(instance, NegateZone::new));
 
 
-	public static ArgumentBuilder<ServerCommandSource, ?> createCommand(
-			ArgumentBuilder<ServerCommandSource, ?> builder, ZoneManagementCommand.ZoneAdder addZone
+	public static ArgumentBuilder<CommandSourceStack, ?> createCommand(
+			ArgumentBuilder<CommandSourceStack, ?> builder, ZoneManagementCommand.ZoneAdder addZone
 	) {
 		return builder.then(
 				ZoneCommandUtils.zoneType("zone").executes(ctx -> {

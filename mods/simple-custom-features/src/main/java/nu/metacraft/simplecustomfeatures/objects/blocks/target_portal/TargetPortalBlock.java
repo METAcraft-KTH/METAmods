@@ -1,21 +1,21 @@
 package nu.metacraft.simplecustomfeatures.objects.blocks.target_portal;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.EndPortalBlock;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.EndPortalBlockEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityCollisionHandler;
-import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.function.BooleanBiFunction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.shape.VoxelShapes;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
-import net.minecraft.world.gen.feature.EndPlatformFeature;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.InsideBlockEffectApplier;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.EndPortalBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.TheEndPortalBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.feature.EndPlatformFeature;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.Shapes;
 import nu.metacraft.lib.util.helper.TamedHelper;
 import xyz.nucleoid.packettweaker.PacketContext;
 
@@ -23,49 +23,49 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 
 	private final TargetPortalObject portal;
 
-	public TargetPortalBlock(Settings settings, TargetPortalObject portal) {
+	public TargetPortalBlock(Properties settings, TargetPortalObject portal) {
 		super(settings);
 		this.portal = portal;
 	}
 
 	@Override
-	public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+	public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
 		return null;
 	}
 
 	@Override
 	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
-		return Blocks.END_PORTAL.getDefaultState();
+		return Blocks.END_PORTAL.defaultBlockState();
 	}
 
 	@Override
-	protected void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity, EntityCollisionHandler handler, boolean bl) {
-		if (!entity.canUsePortals(false)) return;
-		if (!VoxelShapes.matchesAnywhere(VoxelShapes.cuboid(entity.getBoundingBox().offset(-pos.getX(), -pos.getY(), -pos.getZ())), state.getOutlineShape(world, pos), BooleanBiFunction.AND)) return;
-		entity.tryUsePortal(this, pos);
+	protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity, InsideBlockEffectApplier handler, boolean bl) {
+		if (!entity.canUsePortal(false)) return;
+		if (!Shapes.joinIsNotEmpty(Shapes.create(entity.getBoundingBox().move(-pos.getX(), -pos.getY(), -pos.getZ())), state.getShape(world, pos), BooleanOp.AND)) return;
+		entity.setAsInsidePortal(this, pos);
 	}
 
 	@Override
-	public TeleportTarget createTeleportTarget(ServerWorld world, Entity entity, BlockPos pos) {
-		var target = portal.getTarget(world.getRegistryKey());
+	public TeleportTransition getPortalDestination(ServerLevel world, Entity entity, BlockPos pos) {
+		var target = portal.getTarget(world.dimension());
 		if (target == null) return null;
-		var targetWorld = world.getServer().getWorld(target.targetDim());
+		var targetWorld = world.getServer().getLevel(target.targetDim());
 		if (targetWorld == null) return null;
 
-		var targetPos = target.targetPos().orElse(targetWorld.getSpawnPoint().getPos());
-		var targetAngle = target.targetAngle().orElse(targetWorld.getSpawnPoint().yaw());
+		var targetPos = target.targetPos().orElse(targetWorld.getRespawnData().pos());
+		var targetAngle = target.targetAngle().orElse(targetWorld.getRespawnData().yaw());
 
-		var portalTransition = TeleportTarget.SEND_TRAVEL_THROUGH_PORTAL_PACKET.then(TeleportTarget.ADD_PORTAL_CHUNK_TICKET);
+		var portalTransition = TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET);
 
 		if (target.spawnObsidianPlatform()) {
-			EndPlatformFeature.generate(targetWorld, targetPos.down(), true);
+			EndPlatformFeature.createEndPlatform(targetWorld, targetPos.below(), true);
 		} else if (target.usePlayerSpawn()) {
 			var playerID = TamedHelper.getRelevantPlayer(entity);
 			if (playerID.isPresent()) {
-				var player = world.getServer().getPlayerManager().getPlayer(playerID.get());
+				var player = world.getServer().getPlayerList().getPlayer(playerID.get());
 				if (player != null) {
-					var teleportTarget = player.getRespawnTarget(true, portalTransition);
-					if (teleportTarget.world() != world) {
+					var teleportTarget = player.findRespawnPositionAndUseSpawnBlock(true, portalTransition);
+					if (teleportTarget.newLevel() != world) {
 						return teleportTarget;
 					}
 				}
@@ -73,19 +73,19 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 		}
 
 		if (target.targetPos().isEmpty()) {
-			targetPos = entity.getWorldSpawnPos(targetWorld, targetPos);
+			targetPos = entity.adjustSpawnLocation(targetWorld, targetPos);
 		}
 
-		return new TeleportTarget(
-				targetWorld, targetPos.toBottomCenterPos(), entity.getVelocity(),
-				targetAngle, entity.getPitch(), portalTransition
+		return new TeleportTransition(
+				targetWorld, targetPos.getBottomCenter(), entity.getDeltaMovement(),
+				targetAngle, entity.getXRot(), portalTransition
 		);
 	}
 
 	@Override
-	public void onPolymerBlockSend(BlockState blockState, BlockPos.Mutable pos, PacketContext.NotNullWithPlayer ctx) {
-		var blockEntity = new EndPortalBlockEntity(pos, Blocks.END_PORTAL.getDefaultState());
-		blockEntity.setWorld(ctx.getPlayer().getEntityWorld());
-		ctx.getPlayer().networkHandler.sendPacket(BlockEntityUpdateS2CPacket.create(blockEntity));
+	public void onPolymerBlockSend(BlockState blockState, BlockPos.MutableBlockPos pos, PacketContext.NotNullWithPlayer ctx) {
+		var blockEntity = new TheEndPortalBlockEntity(pos, Blocks.END_PORTAL.defaultBlockState());
+		blockEntity.setLevel(ctx.getPlayer().level());
+		ctx.getPlayer().connection.send(ClientboundBlockEntityDataPacket.create(blockEntity));
 	}
 }

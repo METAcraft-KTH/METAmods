@@ -1,7 +1,7 @@
 package nu.metacraft.plots;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.plots.item.PlotItems;
@@ -20,7 +20,7 @@ public class METAcraftPlots implements ModInitializer {
 		Events.init();
 	}
 
-	public static Identifier getID(String name) {
-		return Identifier.of(NAMESPACE, name);
+	public static ResourceLocation getID(String name) {
+		return ResourceLocation.fromNamespaceAndPath(NAMESPACE, name);
 	}
 }

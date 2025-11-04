@@ -1,5 +1,6 @@
 package nu.metacraft.core.entity.entities;
 
+import com.mojang.math.Transformation;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
@@ -8,26 +9,27 @@ import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.BlockDisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.DisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
-import net.minecraft.block.FluidBlock;
-import net.minecraft.block.SkullBlock;
-import net.minecraft.block.WallSkullBlock;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.structure.StructureTemplate;
-import net.minecraft.structure.StructureTemplateManager;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Uuids;
-import net.minecraft.util.math.*;
-import net.minecraft.world.World;
+import net.minecraft.core.Direction;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.SkullBlock;
+import net.minecraft.world.level.block.WallSkullBlock;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
@@ -50,36 +52,36 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 
 	private final DisplayEntityData data = new DisplayEntityData();
 
-	private Identifier structureID;
+	private ResourceLocation structureID;
 	private StructureTemplate structure = new StructureTemplate();
 
-	public StructureDisplay(EntityType<?> type, World world) {
+	public StructureDisplay(EntityType<?> type, Level world) {
 		super(type, world);
 	}
 
 	@Override
-	protected void initDataTracker(DataTracker.Builder builder) {
+	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 
 	}
 
 	@Override
-	protected void readCustomData(ReadView nbt) {
+	protected void readAdditionalSaveData(ValueInput nbt) {
 		boolean shouldFixDisplays = true;
 		data.load(nbt, this);
 
-		var idString = nbt.getOptionalString(STRUCTURE);
+		var idString = nbt.getString(STRUCTURE);
 		if (idString.isPresent()) {
-			var id = Identifier.tryParse(idString.get());
-			if (id != null && getEntityWorld() instanceof ServerWorld sw) {
-				if (setFromStructure(sw.getStructureTemplateManager(), id)) {
+			var id = ResourceLocation.tryParse(idString.get());
+			if (id != null && level() instanceof ServerLevel sw) {
+				if (setFromStructure(sw.getStructureManager(), id)) {
 					shouldFixDisplays = false;
 				}
 			}
 		} else {
-			var data = nbt.read(STRUCTURE, NbtCompound.CODEC).orElse(null);
+			var data = nbt.read(STRUCTURE, CompoundTag.CODEC).orElse(null);
 			if (data != null) {
 				var s = new StructureTemplate();
-				s.readNbt(this.getRegistryManager().getOrThrow(RegistryKeys.BLOCK), data);
+				s.load(this.registryAccess().lookupOrThrow(Registries.BLOCK), data);
 				if (setFromStructure(s)) {
 					shouldFixDisplays = false;
 				}
@@ -95,20 +97,20 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 	}
 
 	@Override
-	protected void writeCustomData(WriteView nbt) {
+	protected void addAdditionalSaveData(ValueOutput nbt) {
 		if (structureID != null) {
 			nbt.putString(STRUCTURE, structureID.toString());
 		} else {
-			nbt.put(STRUCTURE, NbtCompound.CODEC, structure.writeNbt(new NbtCompound()));
+			nbt.store(STRUCTURE, CompoundTag.CODEC, structure.save(new CompoundTag()));
 		}
 		data.save(nbt, this);
 		if (!riderSlots.isEmpty()) {
-			nbt.put(PASSENGER_SLOTS, DisplayRider.LIST_CODEC, riderSlots);
+			nbt.store(PASSENGER_SLOTS, DisplayRider.LIST_CODEC, riderSlots);
 		}
 	}
 
-	public boolean setFromStructure(StructureTemplateManager manager, Identifier id) {
-		return manager.getTemplate(id).map(
+	public boolean setFromStructure(StructureTemplateManager manager, ResourceLocation id) {
+		return manager.get(id).map(
 				structure -> {
 					var result = setFromStructure(structure);
 					structureID = id;
@@ -121,14 +123,14 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		if (!lhs.getSize().equals(rhs.getSize())) {
 			return true;
 		}
-		var lhsLists = ((AccessorStructureTemplate) lhs).getBlockInfoLists();
-		var rhsLists = ((AccessorStructureTemplate) rhs).getBlockInfoLists();
+		var lhsLists = ((AccessorStructureTemplate) lhs).getPalettes();
+		var rhsLists = ((AccessorStructureTemplate) rhs).getPalettes();
 		if (lhsLists.size() != rhsLists.size()) {
 			return true;
 		}
 		for (int i = 0; i < lhsLists.size(); i++) {
-			var lhsList = lhsLists.get(i).getAll();
-			var rhsList = rhsLists.get(i).getAll();
+			var lhsList = lhsLists.get(i).blocks();
+			var rhsList = rhsLists.get(i).blocks();
 			if (lhsList.size() != rhsList.size()) {
 				return true;
 			}
@@ -152,11 +154,11 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		return false;
 	}
 
-	private void addDisplay(DisplayElement element, Vec3d pos) {
+	private void addDisplay(DisplayElement element, Vec3 pos) {
 		addDisplay(element, pos, 0, 0);
 	}
 
-	private void addDisplay(DisplayElement element, Vec3d pos, float yawOffset, float pitchOffset) {
+	private void addDisplay(DisplayElement element, Vec3 pos, float yawOffset, float pitchOffset) {
 		var d = new Display(
 				element, pos.subtract(
 						structure.getSize().getX()*0.5,
@@ -173,35 +175,35 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		holder.destroy();
 		holder = new ElementHolder();
 
-		for (var list : ((AccessorStructureTemplate) structure).getBlockInfoLists()) {
-			for (var l : list.getAll()) {
-				if (l.state().isAir() || l.state().getBlock() instanceof FluidBlock) continue;
+		for (var list : ((AccessorStructureTemplate) structure).getPalettes()) {
+			for (var l : list.blocks()) {
+				if (l.state().isAir() || l.state().getBlock() instanceof LiquidBlock) continue;
 				if (l.state().getBlock() instanceof SkullBlock skullBlock) {
 					var itemDisplay = new ItemDisplayElement();
 					itemDisplay.setItem(new ItemStack(skullBlock.asItem()));
-					float yaw = MathHelper.wrapDegrees(l.state().get(SkullBlock.ROTATION) * 360.0f/16);
-					addDisplay(itemDisplay, Vec3d.ofCenter(l.pos()), yaw, 0);
+					float yaw = Mth.wrapDegrees(l.state().getValue(SkullBlock.ROTATION) * 360.0f/16);
+					addDisplay(itemDisplay, Vec3.atCenterOf(l.pos()), yaw, 0);
 					continue;
 				}
 				if (l.state().getBlock() instanceof WallSkullBlock skullBlock) {
 					var itemDisplay = new ItemDisplayElement();
 					itemDisplay.setItem(new ItemStack(skullBlock.asItem()));
-					var facing = l.state().get(WallSkullBlock.FACING);
+					var facing = l.state().getValue(WallSkullBlock.FACING);
 					addDisplay(
 							itemDisplay,
-							Vec3d.add(
+							Vec3.atLowerCornerWithOffset(
 									l.pos(),
-									0.5 - facing.getOffsetX() * 0.25,
+									0.5 - facing.getStepX() * 0.25,
 									0.75,
-									0.5 - facing.getOffsetZ() * 0.25
+									0.5 - facing.getStepZ() * 0.25
 							),
-							Direction.getHorizontalDegreesOrThrow(facing.getOpposite()), 0
+							Direction.getYRot(facing.getOpposite()), 0
 					);
 					continue;
 				}
 				var blockDisplay = new BlockDisplayElement();
 				blockDisplay.setBlockState(l.state());
-				addDisplay(blockDisplay, Vec3d.of(l.pos()));
+				addDisplay(blockDisplay, Vec3.atLowerCornerOf(l.pos()));
 			}
 		}
 		refreshDisplayValues();
@@ -213,14 +215,14 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 			data.applySettings(display.displayElement);
 			display.applyTransformation(data.getTransformation());
 		}
-		if (getEntityWorld() instanceof ServerWorld) {
+		if (level() instanceof ServerLevel) {
 			for (var display : riderSlots) {
-				var world = (ServerWorld) getEntityWorld();
+				var world = (ServerLevel) level();
 				var disp = display.getDisplay(world);
 				if (disp == null) continue;
-				disp.setInterpolationDuration(data.getInterpolationDuration());
-				disp.setTeleportDuration(data.getTeleportDuration());
-				disp.setStartInterpolation(data.getStartInterpolation());
+				disp.setTransformationInterpolationDuration(data.getInterpolationDuration());
+				disp.setPosRotInterpolationDuration(data.getTeleportDuration());
+				disp.setTransformationInterpolationDelay(data.getStartInterpolation());
 				display.applyTransformation(data.getTransformation(), world);
 			}
 		}
@@ -228,9 +230,9 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 	}
 
 	private void updatePositions() {
-		if (getEntityWorld() instanceof ServerWorld) {
+		if (level() instanceof ServerLevel) {
 			for (var d : riderSlots) {
-				d.updatePos(this, (ServerWorld) getEntityWorld());
+				d.updatePos(this, (ServerLevel) level());
 			}
 		}
 	}
@@ -243,32 +245,32 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 	}
 
 	@Override
-	public void setAngles(float yaw, float pitch) {
-		super.setAngles(yaw, pitch);
+	public void absSnapRotationTo(float yaw, float pitch) {
+		super.absSnapRotationTo(yaw, pitch);
 		updateOffsets();
 	}
 
 	@Override
-	public void updateLastAngles() {
-		if (lastYaw != getYaw() || lastPitch != getPitch()) {
+	public void setOldRot() {
+		if (yRotO != getYRot() || xRotO != getXRot()) {
 			updateOffsets();
 		}
-		super.updateLastAngles();
+		super.setOldRot();
 	}
 
 	@Override
 	public void tick() {
 		super.tick();
-		if (lastYaw != getYaw() || lastPitch != getPitch()) {
+		if (yRotO != getYRot() || xRotO != getXRot()) {
 			updateOffsets();
 		}
-		if (lastX != getX() || lastY != getY() || lastZ != getZ()) {
+		if (xo != getX() || yo != getY() || zo != getZ()) {
 			updatePositions();
 		}
 	}
 
 	@Override
-	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+	public boolean hurtServer(ServerLevel world, DamageSource source, float amount) {
 		return false;
 	}
 
@@ -281,17 +283,17 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		return EntityType.MARKER;
 	}
 
-	public static Vec3d applyOffset(
-			StructureDisplay entity, Vec3d offset
+	public static Vec3 applyOffset(
+			StructureDisplay entity, Vec3 offset
 	) {
 		var mat = new Matrix4f();
 		mat.rotateYXZ(
-				-entity.getYaw() * MathHelper.RADIANS_PER_DEGREE,
-				entity.getPitch() * MathHelper.RADIANS_PER_DEGREE,
+				-entity.getYRot() * Mth.DEG_TO_RAD,
+				entity.getXRot() * Mth.DEG_TO_RAD,
 				0
 		);
 		Vector3d newOffset = new Vector3d(offset.x, offset.y, offset.z);
-		var transformation = new AffineTransformation(
+		var transformation = new Transformation(
 				null,
 				entity.data.getTransformation().getLeftRotation(),
 				entity.data.getTransformation().getScale(),
@@ -299,18 +301,18 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		);
 		mat.mul(transformation.getMatrix());
 		newOffset.mulPosition(mat);
-		return new Vec3d(newOffset.x, newOffset.y, newOffset.z);
+		return new Vec3(newOffset.x, newOffset.y, newOffset.z);
 	}
 
 	public static Matrix4f applyTransformation(
 			float yawOffset, float pitchOffset,
-			AffineTransformation transformation
+			Transformation transformation
 	) {
-		var rotated = transformation.copyMatrix();
+		var rotated = transformation.getMatrixCopy();
 		if (yawOffset != 0 || pitchOffset != 0) {
 			var rot = new Matrix4f().rotateXYZ(
-					-pitchOffset * MathHelper.RADIANS_PER_DEGREE,
-					-yawOffset * MathHelper.RADIANS_PER_DEGREE,
+					-pitchOffset * Mth.DEG_TO_RAD,
+					-yawOffset * Mth.DEG_TO_RAD,
 					0
 			);
 			rotated = rotated.mul(rot);
@@ -318,16 +320,16 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		return rotated;
 	}
 
-	public record Display(DisplayElement displayElement, Vec3d offset, float yawOffset, float pitchOffset) {
+	public record Display(DisplayElement displayElement, Vec3 offset, float yawOffset, float pitchOffset) {
 		public void updateOffset(StructureDisplay entity) {
 			displayElement.setOffset(
 					StructureDisplay.applyOffset(entity, offset)
 			);
-			displayElement.setYaw(entity.getYaw());
-			displayElement.setPitch(entity.getPitch());
+			displayElement.setYaw(entity.getYRot());
+			displayElement.setPitch(entity.getXRot());
 		}
 
-		public void applyTransformation(AffineTransformation transformation) {
+		public void applyTransformation(Transformation transformation) {
 			displayElement.setTransformation(
 					StructureDisplay.applyTransformation(
 							yawOffset, pitchOffset, transformation
@@ -340,8 +342,8 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 
 		public static final Codec<DisplayRider> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						Uuids.CODEC.fieldOf("entity").forGetter(t -> t.entity),
-						Vec3d.CODEC.fieldOf("offset").forGetter(t -> t.offset),
+						UUIDUtil.AUTHLIB_CODEC.fieldOf("entity").forGetter(t -> t.entity),
+						Vec3.CODEC.fieldOf("offset").forGetter(t -> t.offset),
 						Codec.FLOAT.fieldOf("yaw_offset").forGetter(t -> t.yawOffset),
 						Codec.FLOAT.fieldOf("pitch_offset").forGetter(t -> t.pitchOffset)
 				).apply(instance, DisplayRider::new)
@@ -350,14 +352,14 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		public static final Codec<List<DisplayRider>> LIST_CODEC = CODEC.listOf();
 
 		public final UUID entity;
-		public final Vec3d offset;
+		public final Vec3 offset;
 		public final float yawOffset;
 		public final float pitchOffset;
 
 		@Nullable
-		private DisplayEntity disp;
+		private net.minecraft.world.entity.Display disp;
 
-		public DisplayRider(UUID entity, Vec3d offset, float yawOffset, float pitchOffset) {
+		public DisplayRider(UUID entity, Vec3 offset, float yawOffset, float pitchOffset) {
 			this.entity = entity;
 			this.offset = offset;
 			this.yawOffset = yawOffset;
@@ -365,46 +367,46 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		}
 
 		@Nullable
-		public DisplayEntity getDisplay(ServerWorld world) {
+		public net.minecraft.world.entity.Display getDisplay(ServerLevel world) {
 			if (disp == null || !disp.isAlive()) {
 				var e = world.getEntity(entity);
-				if (e instanceof DisplayEntity d) {
+				if (e instanceof net.minecraft.world.entity.Display d) {
 					this.disp = d;
 				}
 			}
 			return disp;
 		}
 
-		public void updatePos(StructureDisplay entity, ServerWorld world) {
+		public void updatePos(StructureDisplay entity, ServerLevel world) {
 			var offset = StructureDisplay.applyOffset(entity, this.offset);
 			var display = getDisplay(world);
 			if (display == null) return;
-			var prevYaw = display.getYaw();
-			var prevPitch = display.getPitch();
-			display.updatePositionAndAngles(
-					entity.getX() + offset.getX(),
-					entity.getY() + offset.getY(),
-					entity.getZ() + offset.getZ(),
-					entity.getYaw(),
-					entity.getPitch()
+			var prevYaw = display.getYRot();
+			var prevPitch = display.getXRot();
+			display.absSnapTo(
+					entity.getX() + offset.x(),
+					entity.getY() + offset.y(),
+					entity.getZ() + offset.z(),
+					entity.getYRot(),
+					entity.getXRot()
 			);
-			var yawDiff = entity.getYaw() - prevYaw;
-			var pitchDiff = entity.getPitch() - prevPitch;
-			display.getPassengersDeep().forEach(p -> {
-				p.setYaw(p.getYaw() + yawDiff);
-				p.setBodyYaw(p.getBodyYaw() + yawDiff);
-				p.setHeadYaw(p.getHeadYaw() + yawDiff);
-				p.setPitch(p.getPitch() + pitchDiff);
+			var yawDiff = entity.getYRot() - prevYaw;
+			var pitchDiff = entity.getXRot() - prevPitch;
+			display.getIndirectPassengers().forEach(p -> {
+				p.setYRot(p.getYRot() + yawDiff);
+				p.setYBodyRot(p.getVisualRotationYInDegrees() + yawDiff);
+				p.setYHeadRot(p.getYHeadRot() + yawDiff);
+				p.setXRot(p.getXRot() + pitchDiff);
 			});
 		}
 
 		public void applyTransformation(
-				AffineTransformation transformation, ServerWorld world
+				Transformation transformation, ServerLevel world
 		) {
 			var disp = getDisplay(world);
 			if (disp == null) return;
 			disp.setTransformation(
-					new AffineTransformation(
+					new Transformation(
 							StructureDisplay.applyTransformation(
 									yawOffset, pitchOffset, transformation
 							)

@@ -1,9 +1,9 @@
 package nu.metacraft.core;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.component.ComponentType;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.core.status_effects.METAcraftEffects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,13 +48,13 @@ public class METAcraftCore implements ModInitializer {
 
 		//Fix for crossbows not working properly with polymer items.
 		var oldComponents = AccessorPolymerItemUtils.getComponentsToCopy();
-		var newComponents = new ComponentType<?>[oldComponents.length+1];
+		var newComponents = new DataComponentType<?>[oldComponents.length+1];
 		System.arraycopy(oldComponents, 0, newComponents, 0, oldComponents.length);
-		newComponents[oldComponents.length] = DataComponentTypes.CHARGED_PROJECTILES;
+		newComponents[oldComponents.length] = DataComponents.CHARGED_PROJECTILES;
 		AccessorPolymerItemUtils.setComponentsToCopy(newComponents);
 	}
 
-	public static Identifier getID(String id) {
-		return Identifier.of(NAMESPACE, id);
+	public static ResourceLocation getID(String id) {
+		return ResourceLocation.fromNamespaceAndPath(NAMESPACE, id);
 	}
 }

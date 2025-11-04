@@ -2,12 +2,12 @@ package nu.metacraft.portal_blocker;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
-import net.minecraft.world.World;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import nu.metacraft.portal_blocker.portal_type.PortalType;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
 import nu.metacraft.portal_blocker.zone.PortalZoneData;
@@ -19,19 +19,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class PortalBlockerSettings extends PersistentState {
+public class PortalBlockerSettings extends SavedData {
 
 	private static final Codec<Map<PortalType, PortalState>> PORTAL_MAP = Codec.unboundedMap(
-			PortalTypeRegistry.REGISTRY.getCodec(), PortalState.CODEC
+			PortalTypeRegistry.REGISTRY.byNameCodec(), PortalState.CODEC
 	);
 
 	public static PortalBlockerSettings getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
 	}
 
-	private static final PersistentStateType<PortalBlockerSettings> TYPE = new PersistentStateType<>(
-			"portal-blocker", ctx -> createNew(ctx.getWorldOrThrow().getServer()),
-			ctx -> createCodec(ctx.getWorldOrThrow().getServer()), null
+	private static final SavedDataType<PortalBlockerSettings> TYPE = new SavedDataType<>(
+			"portal-blocker", ctx -> createNew(ctx.levelOrThrow().getServer()),
+			ctx -> createCodec(ctx.levelOrThrow().getServer()), null
 	);
 
 	private static PortalBlockerSettings createNew(MinecraftServer server) {
@@ -65,14 +65,14 @@ public class PortalBlockerSettings extends PersistentState {
 	protected Map<PortalType, PortalState> portalIsBlockedMap = new HashMap<>();
 	protected boolean blockPortalCreationOutsideBorder = false;
 
-	protected <T> Optional<T> get(RegistryKey<World> dim, BlockPos pos, Function<PortalZoneData, Optional<T>> mapper) {
+	protected <T> Optional<T> get(ResourceKey<Level> dim, BlockPos pos, Function<PortalZoneData, Optional<T>> mapper) {
 		return ZoneManager.getInstance(server).getValueForPrimaryZone(
 				dim, pos, zone -> mapper.apply(zone.getOrCreate(ZoneDataPortalBlocker.PORTAL_DATA))
 		);
 	}
 
 	public boolean isPortalBlocked(
-			PortalType type, RegistryKey<World> dim, PortalState.BlockingType blockingType, BlockPos pos
+			PortalType type, ResourceKey<Level> dim, PortalState.BlockingType blockingType, BlockPos pos
 	) {
 		return get(dim, pos, data -> {
 			var value = data.getBlockedState(type, blockingType);
@@ -84,7 +84,7 @@ public class PortalBlockerSettings extends PersistentState {
 	}
 
 	public boolean isPortalBlocked(
-			PortalType type, RegistryKey<World> dim, PortalState.BlockingType blockingType, Iterable<BlockPos> positions
+			PortalType type, ResourceKey<Level> dim, PortalState.BlockingType blockingType, Iterable<BlockPos> positions
 	) {
 		return ZoneManager.getInstance(server).getValueForPrimaryZone(
 				dim, zone -> {
@@ -119,7 +119,7 @@ public class PortalBlockerSettings extends PersistentState {
 	public void setPortalBlockedGlobally(PortalType type, PortalState.BlockingType state, boolean blocked) {
 		get(type).setBlocked(state, blocked);
 		type.onGlobalStateChange(server, blocked, state);
-		markDirty();
+		setDirty();
 	}
 
 	public boolean blockPortalCreationOutsideBorder() {
@@ -128,7 +128,7 @@ public class PortalBlockerSettings extends PersistentState {
 
 	public void setBlockPortalCreationOutsideBorder(boolean block) {
 		this.blockPortalCreationOutsideBorder = block;
-		markDirty();
+		setDirty();
 	}
 
 	@Override

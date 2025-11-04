@@ -1,18 +1,18 @@
 package nu.metacraft.better_pets;
 
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.Leashable;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.item.Items;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.TypeFilter;
 import nu.metacraft.lib.util.helper.TeleportHelper;
 
 import java.util.List;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Leashable;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.entity.EntityTypeTest;
 
 public class BetterPetsTeleportHelper {
 
@@ -21,27 +21,27 @@ public class BetterPetsTeleportHelper {
 			LocalRef<List<? extends Entity>> leashed,
 			LocalRef<List<? extends LivingEntity>> pets
 	) {
-		if (e.getEntityWorld() instanceof ServerWorld world) {
+		if (e.level() instanceof ServerLevel world) {
 			leashed.set(
-					world.getEntitiesByType(
-							TypeFilter.instanceOf(Entity.class),
+					world.getEntities(
+							EntityTypeTest.forClass(Entity.class),
 							entity -> entity instanceof Leashable leashable && leashable.isLeashed() && leashable.getLeashHolder() == e
 					)
 			);
-			pets.set(world.getEntitiesByType(
-					TypeFilter.instanceOf(TameableEntity.class),
+			pets.set(world.getEntities(
+					EntityTypeTest.forClass(TamableAnimal.class),
 					entity ->
 							((TameableExtension) entity).metacraft$getCurrentFollowTarget() == e
-							&& !entity.cannotFollowOwner()
+							&& !entity.unableToMoveToOwner()
 			));
 			pets.get().forEach(pet -> {
-				world.getChunkManager().addTicket(
-						TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2
+				world.getChunkSource().addTicketWithRadius(
+						TeleportHelper.TELEPORT_MOB_SOON, pet.chunkPosition(), 2
 				);
 			});
 			leashed.get().forEach(pet -> {
-				world.getChunkManager().addTicket(
-						TeleportHelper.TELEPORT_MOB_SOON, pet.getChunkPos(), 2
+				world.getChunkSource().addTicketWithRadius(
+						TeleportHelper.TELEPORT_MOB_SOON, pet.chunkPosition(), 2
 				);
 			});
 		}
@@ -52,15 +52,15 @@ public class BetterPetsTeleportHelper {
 			LocalRef<List<? extends Entity>> leashed,
 			LocalRef<List<? extends LivingEntity>> pets
 	) {
-		if (entity.getEntityWorld() instanceof ServerWorld world) {
+		if (entity.level() instanceof ServerLevel world) {
 			leashed.get().forEach(l -> {
-				((Leashable) l).detachLeashWithoutDrop();
+				((Leashable) l).removeLeash();
 				TeleportHelper.teleportEntityToPlayer(
 						entity, l,
-						e -> ((Leashable) e).attachLeash(entity, true),
+						e -> ((Leashable) e).setLeashedTo(entity, true),
 						e -> {
-							e.dropItem(world, Items.LEAD);
-							world.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.ITEM_LEAD_BREAK, SoundCategory.NEUTRAL, 1.0F, 1.0F);
+							e.spawnAtLocation(world, Items.LEAD);
+							world.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.LEAD_BREAK, SoundSource.NEUTRAL, 1.0F, 1.0F);
 						}
 				);
 			});

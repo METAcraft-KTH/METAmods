@@ -8,66 +8,66 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.serialization.*;
 import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.block.enums.Orientation;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.argument.BlockPosArgumentType;
-import net.minecraft.command.argument.DimensionArgumentType;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.StringIdentifiable;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.DimensionArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.FrontAndTop;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.level.Level;
 import nu.metacraft.core.METAcraftCoreTags;
 import nu.metacraft.core.block.METAcraftBlocks;
 import nu.metacraft.core.block.entities.PortalEntity;
 import nu.metacraft.core.portal.FixedPortalTarget;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.lib.util.helper.TextHelper;
 
 import java.util.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public class LinkPortals {
 
 	public static void register(
-			CommandDispatcher<ServerCommandSource> dispatcher,
-			CommandRegistryAccess registryAccess
+			CommandDispatcher<CommandSourceStack> dispatcher,
+			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
 				literal("portal-link").requires(Permissions.require("metacraft.portal-link", 2)).then(
-						argument("source", BlockPosArgumentType.blockPos()).then(
-								argument("target", BlockPosArgumentType.blockPos()).executes(
+						argument("source", BlockPosArgument.blockPos()).then(
+								argument("target", BlockPosArgument.blockPos()).executes(
 										ctx -> linkPortals(
-												ctx, ctx.getSource().getWorld(),
-												BlockPosArgumentType.getBlockPos(ctx, "source"),
-												ctx.getSource().getWorld(),
-												BlockPosArgumentType.getBlockPos(ctx, "target")
+												ctx, ctx.getSource().getLevel(),
+												BlockPosArgument.getBlockPos(ctx, "source"),
+												ctx.getSource().getLevel(),
+												BlockPosArgument.getBlockPos(ctx, "target")
 										)
 								).then(
-										argument("target-world", DimensionArgumentType.dimension()).executes(
+										argument("target-world", DimensionArgument.dimension()).executes(
 												ctx -> linkPortals(
-														ctx, ctx.getSource().getWorld(),
-														BlockPosArgumentType.getBlockPos(ctx, "source"),
-														DimensionArgumentType.getDimensionArgument(ctx, "target-world"),
-														BlockPosArgumentType.getBlockPos(ctx, "target")
+														ctx, ctx.getSource().getLevel(),
+														BlockPosArgument.getBlockPos(ctx, "source"),
+														DimensionArgument.getDimension(ctx, "target-world"),
+														BlockPosArgument.getBlockPos(ctx, "target")
 												)
 										)
 								)
 						).then(
-								argument("source-world", DimensionArgumentType.dimension()).then(
-										argument("target", BlockPosArgumentType.blockPos()).executes(
+								argument("source-world", DimensionArgument.dimension()).then(
+										argument("target", BlockPosArgument.blockPos()).executes(
 												ctx -> linkPortals(
-														ctx, DimensionArgumentType.getDimensionArgument(ctx, "source-world"),
-														BlockPosArgumentType.getBlockPos(ctx, "source"),
-														ctx.getSource().getWorld(),
-														BlockPosArgumentType.getBlockPos(ctx, "target")
+														ctx, DimensionArgument.getDimension(ctx, "source-world"),
+														BlockPosArgument.getBlockPos(ctx, "source"),
+														ctx.getSource().getLevel(),
+														BlockPosArgument.getBlockPos(ctx, "target")
 												)
 										)
 								)
@@ -76,10 +76,10 @@ public class LinkPortals {
 		);
 		dispatcher.register(
 				literal("portal-facing").requires(Permissions.require("metacraft.portal-link", 2)).then(
-						argument("pos", BlockPosArgumentType.blockPos()).then(
+						argument("pos", BlockPosArgument.blockPos()).then(
 								orientation("orientation").executes(
 										ctx -> setFacing(
-												ctx, BlockPosArgumentType.getBlockPos(ctx,"pos"),
+												ctx, BlockPosArgument.getBlockPos(ctx,"pos"),
 												getOrientation(ctx, "orientation")
 										)
 								)
@@ -96,30 +96,30 @@ public class LinkPortals {
 		@Override
 		public <T> Stream<T> keys(DynamicOps<T> ops) {
 			return Stream.concat(
-					StringIdentifiable.toKeyable(Orientation.values()).keys(ops),
-					StringIdentifiable.toKeyable(Direction.values()).keys(ops)
+					StringRepresentable.keys(FrontAndTop.values()).keys(ops),
+					StringRepresentable.keys(Direction.values()).keys(ops)
 			);
 		}
 	};
 
-	private static final Decoder<Orientation> DECODER = ExtraCodecs.ORIENTATION_CODEC;
+	private static final Decoder<FrontAndTop> DECODER = METACodecs.ORIENTATION_CODEC;
 
-	private static Orientation getOrientation(CommandContext<ServerCommandSource> ctx, String name) throws CommandSyntaxException {
+	private static FrontAndTop getOrientation(CommandContext<CommandSourceStack> ctx, String name) throws CommandSyntaxException {
 		var orientationKey = StringArgumentType.getString(ctx, name);
 		return DECODER.parse(JavaOps.INSTANCE, orientationKey).result().orElseThrow(() -> INVALID_ORIENTATION.create(orientationKey));
 	}
 
-	private static ArgumentBuilder<ServerCommandSource, ?> orientation(String name) {
-		return argument(name, StringArgumentType.word()).suggests((ctx, builder) -> CommandSource.suggestMatching(
+	private static ArgumentBuilder<CommandSourceStack, ?> orientation(String name) {
+		return argument(name, StringArgumentType.word()).suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
 				KEYS.keys(JavaOps.INSTANCE).map(Object::toString), builder)
 		);
 	}
 
-	private static String invalidPortal(ServerWorld world, BlockPos pos) {
-		return "No valid portal at " + pos.toShortString() + " in " + world.getRegistryKey().getValue();
+	private static String invalidPortal(ServerLevel world, BlockPos pos) {
+		return "No valid portal at " + pos.toShortString() + " in " + world.dimension().location();
 	}
 
-	private static PortalEntity getPortal(World world, BlockPos pos) {
+	private static PortalEntity getPortal(Level world, BlockPos pos) {
 		var entity = world.getBlockEntity(pos);
 		if (entity instanceof PortalEntity p) {
 			return p;
@@ -127,16 +127,16 @@ public class LinkPortals {
 		return null;
 	}
 
-	private static List<BlockPos> getAllPortalPositions(World world, BlockPos startPos) {
+	private static List<BlockPos> getAllPortalPositions(Level world, BlockPos startPos) {
 		List<BlockPos> positions = new ArrayList<>();
 		positions.add(startPos);
 		for (var pos : PortalEntity.forAllNearbyPortals(world, startPos, true)) {
-			positions.add(pos.toImmutable());
+			positions.add(pos.immutable());
 		}
 		return positions;
 	}
 
-	private static Stream<PortalEntity> getAllPortals(World world, BlockPos startPos) {
+	private static Stream<PortalEntity> getAllPortals(Level world, BlockPos startPos) {
 		var it = StreamSupport.stream(
 				PortalEntity.forAllNearbyPortals(world, startPos, true).spliterator(), false
 		).map(pos -> getPortal(world, pos)).filter(Objects::nonNull);
@@ -148,7 +148,7 @@ public class LinkPortals {
 		}
 	}
 
-	private static List<PortalEntity> getAllPortals(World world, List<BlockPos> portalPositions) {
+	private static List<PortalEntity> getAllPortals(Level world, List<BlockPos> portalPositions) {
 		List<PortalEntity> portals = new ArrayList<>();
 		for (var pos : portalPositions) {
 			var portal = getPortal(world, pos);
@@ -159,56 +159,56 @@ public class LinkPortals {
 		return portals;
 	}
 
-	private static PortalEntity insertPortal(World world, List<BlockPos> portalPositions) {
+	private static PortalEntity insertPortal(Level world, List<BlockPos> portalPositions) {
 		var pos = portalPositions.get(world.getRandom().nextInt(portalPositions.size()));
-		world.setBlockState(pos, METAcraftBlocks.PORTAL_CORE.getDefaultState());
+		world.setBlockAndUpdate(pos, METAcraftBlocks.PORTAL_CORE.defaultBlockState());
 		return getPortal(world, pos);
 	}
 
 	private static String stringify(PortalEntity portal) {
-		return portal.getPos().toShortString();
+		return portal.getBlockPos().toShortString();
 	}
 
-	private static String tooManyPortals(World world, List<PortalEntity> portals) {
+	private static String tooManyPortals(Level world, List<PortalEntity> portals) {
 		return "Multiple portal cores present at " + TextHelper.combine(portals, LinkPortals::stringify)
-				+ " in " + world.getRegistryKey().getValue() + ". Please remove them to link the portals.";
+				+ " in " + world.dimension().location() + ". Please remove them to link the portals.";
 	}
 
-	private static int setFacing(CommandContext<ServerCommandSource> ctx, BlockPos pos, Orientation orientation) {
-		var portals = (Iterable<PortalEntity>) getAllPortals(ctx.getSource().getWorld(), pos)::iterator;
+	private static int setFacing(CommandContext<CommandSourceStack> ctx, BlockPos pos, FrontAndTop orientation) {
+		var portals = (Iterable<PortalEntity>) getAllPortals(ctx.getSource().getLevel(), pos)::iterator;
 		int foundPortals = 0;
 		for (var portal : portals) {
 			portal.setPortalFacing(orientation);
 			foundPortals++;
 		}
 		if (foundPortals == 0) {
-			ctx.getSource().sendError(
-					Text.literal(invalidPortal(ctx.getSource().getWorld(), pos))
+			ctx.getSource().sendFailure(
+					Component.literal(invalidPortal(ctx.getSource().getLevel(), pos))
 			);
 		} else {
-			ctx.getSource().sendFeedback(() -> Text.literal("Set facing to " + orientation.asString()), false);
+			ctx.getSource().sendSuccess(() -> Component.literal("Set facing to " + orientation.getSerializedName()), false);
 		}
 		return foundPortals;
 	}
 
 	private static int linkPortals(
-			CommandContext<ServerCommandSource> ctx,
-			ServerWorld sourceWorld, BlockPos sourcePos,
-			ServerWorld targetWorld, BlockPos targetPos
+			CommandContext<CommandSourceStack> ctx,
+			ServerLevel sourceWorld, BlockPos sourcePos,
+			ServerLevel targetWorld, BlockPos targetPos
 	) throws CommandSyntaxException {
 		var sourceState = sourceWorld.getBlockState(sourcePos);
 		var targetState = targetWorld.getBlockState(targetPos);
 
-		if (!sourceState.isIn(METAcraftCoreTags.PORTAL)) {
-			ctx.getSource().sendError(
-					Text.literal(invalidPortal(sourceWorld, sourcePos))
+		if (!sourceState.is(METAcraftCoreTags.PORTAL)) {
+			ctx.getSource().sendFailure(
+					Component.literal(invalidPortal(sourceWorld, sourcePos))
 			);
 			return 0;
 		}
 
-		if (!targetState.isIn(METAcraftCoreTags.PORTAL)) {
-			ctx.getSource().sendError(
-					Text.literal(invalidPortal(targetWorld, targetPos))
+		if (!targetState.is(METAcraftCoreTags.PORTAL)) {
+			ctx.getSource().sendFailure(
+					Component.literal(invalidPortal(targetWorld, targetPos))
 			);
 			return 0;
 		}
@@ -216,14 +216,14 @@ public class LinkPortals {
 		var sourcePortalPositions = getAllPortalPositions(sourceWorld, sourcePos);
 		var sourcePortals = getAllPortals(sourceWorld, sourcePortalPositions);
 		if (sourcePortals.size() > 1) {
-			ctx.getSource().sendError(Text.literal(tooManyPortals(sourceWorld, sourcePortals)));
+			ctx.getSource().sendFailure(Component.literal(tooManyPortals(sourceWorld, sourcePortals)));
 			return 0;
 		}
 
 		var targetPortalPositions = getAllPortalPositions(targetWorld, targetPos);
 		var targetPortals = getAllPortals(sourceWorld, targetPortalPositions);
 		if (targetPortals.size() > 1) {
-			ctx.getSource().sendError(Text.literal(tooManyPortals(targetWorld, targetPortals)));
+			ctx.getSource().sendFailure(Component.literal(tooManyPortals(targetWorld, targetPortals)));
 			return 0;
 		}
 
@@ -237,10 +237,10 @@ public class LinkPortals {
 			targetPortal = insertPortal(targetWorld, targetPortalPositions);
 		}
 
-		sourcePortal.setTarget(FixedPortalTarget.create(targetWorld.getRegistryKey(), targetPortal.getPos()));
-		targetPortal.setTarget(FixedPortalTarget.create(sourceWorld.getRegistryKey(), sourcePortal.getPos()));
+		sourcePortal.setTarget(FixedPortalTarget.create(targetWorld.dimension(), targetPortal.getBlockPos()));
+		targetPortal.setTarget(FixedPortalTarget.create(sourceWorld.dimension(), sourcePortal.getBlockPos()));
 
-		ctx.getSource().sendFeedback(() -> Text.literal("Successfully linked portals"), false);
+		ctx.getSource().sendSuccess(() -> Component.literal("Successfully linked portals"), false);
 
 		return 1;
 	}

@@ -3,25 +3,25 @@ package nu.metacraft.moderation.exile;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.PlayerConfigEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Uuids;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
-import nu.metacraft.lib.util.ExtraCodecs;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.NameAndId;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.moderation.METAcraftModeration;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ExileData extends PersistentState {
+public class ExileData extends SavedData {
 
 	private final Map<String, ExileDefinition> exileDefinitions = new HashMap<>();
 	private final Map<UUID, ExileDefinition> exiledPlayers = new HashMap<>();
 
 	public static ExileData getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	private static Codec<ExileData> createCodec(MinecraftServer server) {
@@ -30,8 +30,8 @@ public class ExileData extends PersistentState {
 						ExileDefinition.Serialized.CODEC.listOf().fieldOf("ExileDefinitions").forGetter(
 								d -> d.exileDefinitions.values().stream().map(ExileDefinition::serialize).toList()
 						),
-						ExtraCodecs.createListSerializedMap(
-								Uuids.CODEC.fieldOf("Player"),
+						METACodecs.createListSerializedMap(
+								UUIDUtil.AUTHLIB_CODEC.fieldOf("Player"),
 								Codec.STRING.fieldOf("Exile"),
 								HashMap::new
 						).fieldOf("ExiledPlayers").forGetter(
@@ -45,9 +45,9 @@ public class ExileData extends PersistentState {
 		);
 	}
 
-	private static final PersistentStateType<ExileData> TYPE = new PersistentStateType<>(
-			"metacraft-moderation-exile", ctx -> createNew(ctx.getWorldOrThrow().getServer()),
-			ctx -> createCodec(ctx.getWorldOrThrow().getServer()), null
+	private static final SavedDataType<ExileData> TYPE = new SavedDataType<>(
+			"metacraft-moderation-exile", ctx -> createNew(ctx.levelOrThrow().getServer()),
+			ctx -> createCodec(ctx.levelOrThrow().getServer()), null
 	);
 
 	private static ExileData createNew(MinecraftServer server) {
@@ -63,7 +63,7 @@ public class ExileData extends PersistentState {
 
 		for (var e : definitions) {
 			var def = new ExileDefinition(server);
-			def.setSaveFunction(this::markDirty);
+			def.setSaveFunction(this::setDirty);
 			def.deserialize(e);
 			exileDefinitions.put(def.getName(), def);
 		}
@@ -75,7 +75,7 @@ public class ExileData extends PersistentState {
 			if (def != null) {
 				this.exiledPlayers.put(player, def);
 			} else {
-				server.getApiServices().nameToIdCache().getByUuid(player).map(PlayerConfigEntry::name).ifPresentOrElse(playerName -> {
+				server.services().nameToIdCache().get(player).map(NameAndId::name).ifPresentOrElse(playerName -> {
 					METAcraftModeration.LOGGER.fatal(
 							"Exile definition " + name + " did not exist. Player " + playerName + " is free from exile!"
 					);
@@ -96,9 +96,9 @@ public class ExileData extends PersistentState {
 	}
 
 	public void add(ExileDefinition def) {
-		def.setSaveFunction(this::markDirty);
+		def.setSaveFunction(this::setDirty);
 		exileDefinitions.put(def.getName(), def);
-		markDirty();
+		setDirty();
 	}
 
 	public void remove(String defName) {
@@ -106,7 +106,7 @@ public class ExileData extends PersistentState {
 		if (removed != null) {
 			exiledPlayers.values().removeIf(def -> def == removed);
 		}
-		markDirty();
+		setDirty();
 	}
 
 	public ExileDefinition get(String defName) {
@@ -114,18 +114,18 @@ public class ExileData extends PersistentState {
 	}
 
 	public void setExile(UUID player, ExileDefinition exile) {
-		var actualPlayer = server.getPlayerManager().getPlayer(player);
+		var actualPlayer = server.getPlayerList().getPlayer(player);
 		if (actualPlayer != null) {
 			var prevExileState = exiledPlayers.get(player);
 			if (prevExileState == null && exile != null) {
-				server.getCommandManager().parseAndExecute(
-						actualPlayer.getCommandSource().withLevel(2).withSilent(), exile.getExileCommand()
+				server.getCommands().performPrefixedCommand(
+						actualPlayer.createCommandSourceStack().withPermission(2).withSuppressedOutput(), exile.getExileCommand()
 				);
 			} else if (prevExileState != null && exile == null) {
-				server.getCommandManager().parseAndExecute(
-						actualPlayer.getCommandSource().withLevel(2).withSilent(), prevExileState.getPardonCommand()
+				server.getCommands().performPrefixedCommand(
+						actualPlayer.createCommandSourceStack().withPermission(2).withSuppressedOutput(), prevExileState.getPardonCommand()
 				);
-				prevExileState.onRemove((ServerPlayerEntity & ExilePlayerData) actualPlayer);
+				prevExileState.onRemove((ServerPlayer & ExilePlayerData) actualPlayer);
 			}
 		}
 		if (exile != null) {
@@ -133,14 +133,14 @@ public class ExileData extends PersistentState {
 		} else {
 			exiledPlayers.remove(player);
 		}
-		markDirty();
+		setDirty();
 	}
 
-	public void setExile(ServerPlayerEntity player, ExileDefinition exile) {
-		setExile(player.getUuid(), exile);
+	public void setExile(ServerPlayer player, ExileDefinition exile) {
+		setExile(player.getUUID(), exile);
 	}
 
-	public void removeExile(ServerPlayerEntity player) {
+	public void removeExile(ServerPlayer player) {
 		setExile(player, null);
 	}
 
@@ -148,8 +148,8 @@ public class ExileData extends PersistentState {
 		setExile(player, null);
 	}
 
-	public Optional<ExileDefinition> getExile(ServerPlayerEntity player) {
-		return getExile(player.getUuid());
+	public Optional<ExileDefinition> getExile(ServerPlayer player) {
+		return getExile(player.getUUID());
 	}
 
 	public Optional<ExileDefinition> getExile(UUID player) {

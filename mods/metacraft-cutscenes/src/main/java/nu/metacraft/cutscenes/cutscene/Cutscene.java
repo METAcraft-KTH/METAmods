@@ -3,12 +3,11 @@ package nu.metacraft.cutscenes.cutscene;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.StringIdentifiable;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 import nu.metacraft.cutscenes.CutscenesConfig;
@@ -41,10 +40,10 @@ public class Cutscene {
 	private final IntervalMap<TransitionConfig> transitions;
 	private boolean returnPlayerToStartPos;
 	private boolean resetPlayerData;
-	private boolean hidePlayer;
-	private boolean skippable;
-	private boolean resendChunksBeforeNextCutscene;
-	private ScoreboardMode scoreboardMode;
+	private final boolean hidePlayer;
+	private final boolean skippable;
+	private final boolean resendChunksBeforeNextCutscene;
+	private final ScoreboardMode scoreboardMode;
 	private final Optional<String> finishCommand;
 	private final Optional<TeleportTransition.SerializableTeleportTargetBoth> entryPoint;
 	private final Optional<TeleportTransition.SerializableTeleportTargetBoth> exitPoint;
@@ -127,13 +126,13 @@ public class Cutscene {
 		return finishCommand;
 	}
 
-	public Optional<RegistryKey<World>> getEntryDim() {
+	public Optional<ResourceKey<Level>> getEntryDim() {
 		return entryPoint.flatMap(
 				TeleportTransition.SerializableTeleportTargetBoth::getDim
 		);
 	}
 
-	public Optional<TeleportTarget> getEntryPoint(@Nullable ServerPlayerEntity player, CutsceneInstance cutscene) {
+	public Optional<net.minecraft.world.level.portal.TeleportTransition> getEntryPoint(@Nullable ServerPlayer player, CutsceneInstance cutscene) {
 		return entryPoint.flatMap(target -> target.getTeleportTarget(player, cutscene));
 	}
 
@@ -141,16 +140,16 @@ public class Cutscene {
 		return exitPoint.isPresent();
 	}
 
-	public Optional<TeleportTarget> getExitPoint(@Nullable ServerPlayerEntity player, CutsceneInstance cutscene) {
+	public Optional<net.minecraft.world.level.portal.TeleportTransition> getExitPoint(@Nullable ServerPlayer player, CutsceneInstance cutscene) {
 		return exitPoint.flatMap(target -> target.getTeleportTarget(player, cutscene));
 	}
 
-	public enum ScoreboardMode implements StringIdentifiable {
+	public enum ScoreboardMode implements StringRepresentable {
 		SYNC("sync"),
 		COPY("copy"),
 		EMPTY("empty");
 
-		public static final Codec<ScoreboardMode> CODEC = StringIdentifiable.createCodec(ScoreboardMode::values);
+		public static final Codec<ScoreboardMode> CODEC = StringRepresentable.fromEnum(ScoreboardMode::values);
 
 		private final String name;
 
@@ -159,7 +158,7 @@ public class Cutscene {
 		}
 
 		@Override
-		public String asString() {
+		public String getSerializedName() {
 			return name;
 		}
 	}

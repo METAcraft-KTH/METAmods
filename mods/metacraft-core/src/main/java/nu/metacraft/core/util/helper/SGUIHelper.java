@@ -2,37 +2,36 @@ package nu.metacraft.core.util.helper;
 
 import com.mojang.authlib.GameProfile;
 import eu.pb4.sgui.api.elements.AnimatedGuiElementBuilder;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.ProfileComponent;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Items;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.text.Text;
-
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ResolvableProfile;
 import java.util.stream.Stream;
 
 public class SGUIHelper {
 
 	public static AnimatedGuiElementBuilder createPlayerHeadIcon(
-			Text name, MinecraftServer server, Stream<? extends PlayerEntity> players
+			Component name, MinecraftServer server, Stream<? extends Player> players
 	) {
-		return createGameProfileHeadIcon(name, server, players.map(PlayerEntity::getGameProfile));
+		return createGameProfileHeadIcon(name, server, players.map(Player::getGameProfile));
 	}
 
 	public static AnimatedGuiElementBuilder createPlayerHeadIcon(
-			Text name, int interval, MinecraftServer server, Stream<? extends PlayerEntity> players
+			Component name, int interval, MinecraftServer server, Stream<? extends Player> players
 	) {
-		return createGameProfileHeadIcon(name, interval, server, players.map(PlayerEntity::getGameProfile));
+		return createGameProfileHeadIcon(name, interval, server, players.map(Player::getGameProfile));
 	}
 
 	public static AnimatedGuiElementBuilder createGameProfileHeadIcon(
-			Text name, MinecraftServer server, Stream<GameProfile> players
+			Component name, MinecraftServer server, Stream<GameProfile> players
 	) {
 		return createGameProfileHeadIcon(name, 30, server, players);
 	}
 
 	public static AnimatedGuiElementBuilder createGameProfileHeadIcon(
-			Text name, int interval, MinecraftServer server, Stream<GameProfile> players
+			Component name, int interval, MinecraftServer server, Stream<GameProfile> players
 	) {
 		AnimatedGuiElementBuilder builder = new AnimatedGuiElementBuilder();
 		boolean foundPlayer = false;
@@ -46,7 +45,7 @@ public class SGUIHelper {
 		}
 		if (!foundPlayer) {
 			builder.setItem(Items.PLAYER_HEAD);
-			builder.setComponent(DataComponentTypes.PROFILE, ProfileComponent.ofDynamic(
+			builder.setComponent(DataComponents.PROFILE, ResolvableProfile.createUnresolved(
 					"MHF_Herobrine"
 			));
 			builder.setName(name);

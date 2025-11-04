@@ -5,20 +5,19 @@ import com.google.common.collect.Multimap;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.intprovider.ConstantIntProvider;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import net.minecraft.util.valueproviders.ConstantInt;
 
 public record Wave(Multimap<String, MobEntry> manualSpawns, Optional<AutoSpawnEntry> autoSpawns, String command) {
 
 	public Wave(MobEntry mobs) {
 		this(
 				HashMultimap.create(),
-				Optional.of(new AutoSpawnEntry(mobs, ConstantIntProvider.create(500), 5)),
+				Optional.of(new AutoSpawnEntry(mobs, ConstantInt.of(500), 5)),
 				"tellraw @a {\"text\":\"Starting Next Wave\"}"
 		);
 		this.manualSpawns.put("groupName", mobs);

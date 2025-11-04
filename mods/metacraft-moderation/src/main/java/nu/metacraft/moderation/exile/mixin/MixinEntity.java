@@ -1,46 +1,46 @@
 package nu.metacraft.moderation.exile.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.level.Level;
 import nu.metacraft.moderation.exile.rules.PreventInteraction;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
 
-	@Shadow public abstract BlockPos getBlockPos();
+	@Shadow public abstract BlockPos blockPosition();
 
-	@Shadow private World world;
+	@Shadow private Level level;
 
-	@Shadow public abstract World getEntityWorld();
+	@Shadow public abstract Level level();
 
 	@Inject(
-		method = "isAlwaysInvulnerableTo",
+		method = "isInvulnerableToBase",
 		at = @At("HEAD"),
 		cancellable = true
 	)
 	public void isInvulnerableTo(DamageSource damageSource, CallbackInfoReturnable<Boolean> cir) {
-		if (!world.isClient()) {
-			ServerPlayerEntity player = null;
-			if (damageSource.getAttacker() instanceof ServerPlayerEntity p) {
+		if (!level.isClientSide()) {
+			ServerPlayer player = null;
+			if (damageSource.getEntity() instanceof ServerPlayer p) {
 				player = p;
-			} else if (damageSource.getAttacker() instanceof TameableEntity tamed) {
-				if (tamed.getOwner() instanceof ServerPlayerEntity p) {
+			} else if (damageSource.getEntity() instanceof TamableAnimal tamed) {
+				if (tamed.getOwner() instanceof ServerPlayer p) {
 					player = p;
 				} else {
 					if (
 						tamed.getOwnerReference() != null &&
-						world.getServer().getApiServices().nameToIdCache().getByUuid(tamed.getOwnerReference().getUuid()).isPresent() &&
+						level.getServer().services().nameToIdCache().get(tamed.getOwnerReference().getUUID()).isPresent() &&
 						PreventInteraction.shouldCancelInteractionAt(
-								this.getEntityWorld().getServer(), tamed.getOwnerReference().getUuid(), getEntityWorld().getRegistryKey(), this.getBlockPos()
+								this.level().getServer(), tamed.getOwnerReference().getUUID(), level().dimension(), this.blockPosition()
 						)
 					) {
 						cir.setReturnValue(true);
@@ -49,7 +49,7 @@ public abstract class MixinEntity {
 				}
 			}
 			if (player != null) {
-				if (PreventInteraction.shouldCancelInteraction(player, this.getBlockPos())) {
+				if (PreventInteraction.shouldCancelInteraction(player, this.blockPosition())) {
 					cir.setReturnValue(true);
 				}
 			}

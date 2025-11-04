@@ -1,30 +1,30 @@
 package nu.metacraft.cutscenes.util.helper;
 
-import net.minecraft.server.network.ServerPlayerEntity;
 import nu.metacraft.cutscenes.extension.ServerPlayerEntityExtensions;
 import nu.metacraft.cutscenes.cutscene.Cutscene;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.cutscene.MultiplayerCutsceneManager;
 
 import java.util.Optional;
+import net.minecraft.server.level.ServerPlayer;
 
 public class CutsceneHelper {
 
-	public static boolean isInPlayerSpecificCutscene(ServerPlayerEntity player) {
+	public static boolean isInPlayerSpecificCutscene(ServerPlayer player) {
 		return ((ServerPlayerEntityExtensions) player).metacraft_cutscenes$hasCutscene();
 	}
 
-	public static boolean isInMultiplayerCutscene(ServerPlayerEntity player) {
-		return MultiplayerCutsceneManager.getInstance(player.getEntityWorld().getServer()).isInCutscene(player);
+	public static boolean isInMultiplayerCutscene(ServerPlayer player) {
+		return MultiplayerCutsceneManager.getInstance(player.level().getServer()).isInCutscene(player);
 	}
 
-	public static boolean isInCutscene(ServerPlayerEntity player) {
+	public static boolean isInCutscene(ServerPlayer player) {
 		return isInMultiplayerCutscene(player) || isInPlayerSpecificCutscene(player);
 	}
 
-	public static Optional<CutsceneInstance> getCutscene(ServerPlayerEntity player) {
+	public static Optional<CutsceneInstance> getCutscene(ServerPlayer player) {
 		if (isInMultiplayerCutscene(player)) {
-			return MultiplayerCutsceneManager.getInstance(player.getEntityWorld().getServer()).getCutsceneFromPlayer(player);
+			return MultiplayerCutsceneManager.getInstance(player.level().getServer()).getCutsceneFromPlayer(player);
 		} else if (isInPlayerSpecificCutscene(player)) {
 			return ((ServerPlayerEntityExtensions) player).metacraft_cutscenes$getCutscene();
 		} else {
@@ -32,20 +32,20 @@ public class CutsceneHelper {
 		}
 	}
 
-	public static void playPlayerSpecificCutscene(ServerPlayerEntity player, Cutscene cutscene) {
-		((ServerPlayerEntityExtensions) player).metacraft_cutscenes$setCutscene(new CutsceneInstance(cutscene, player.getEntityWorld()));
+	public static void playPlayerSpecificCutscene(ServerPlayer player, Cutscene cutscene) {
+		((ServerPlayerEntityExtensions) player).metacraft_cutscenes$setCutscene(new CutsceneInstance(cutscene, player.level()));
 	}
 
-	public static void stopPlayerSpecificCutscene(ServerPlayerEntity player) {
+	public static void stopPlayerSpecificCutscene(ServerPlayer player) {
 		((ServerPlayerEntityExtensions) player).metacraft_cutscenes$setCutscene(null);
 	}
 
-	public static void forceOutOfCutscene(ServerPlayerEntity player) {
+	public static void forceOutOfCutscene(ServerPlayer player) {
 		if (isInPlayerSpecificCutscene(player)) {
 			stopPlayerSpecificCutscene(player);
 		}
 		if (isInMultiplayerCutscene(player)) {
-			MultiplayerCutsceneManager.getInstance(player.getEntityWorld().getServer()).leaveCutscene(player);
+			MultiplayerCutsceneManager.getInstance(player.level().getServer()).leaveCutscene(player);
 		}
 	}
 

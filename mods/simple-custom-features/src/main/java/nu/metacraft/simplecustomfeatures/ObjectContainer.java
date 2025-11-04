@@ -6,11 +6,11 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.dynamic.Codecs;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ExtraCodecs;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 import nu.metacraft.simplecustomfeatures.objects.ObjectRegistry;
@@ -37,15 +37,15 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 	private static final String ID = "id";
 	private static final String OBJECT = "object";
 
-	protected final Identifier id;
+	protected final ResourceLocation id;
 
-	public ObjectContainer(Identifier id) {
+	public ObjectContainer(ResourceLocation id) {
 		this.id = id;
 	}
 
 	public abstract DataResult<? extends ObjectType<?, ?>> getType();
 
-	public Identifier getID() {
+	public ResourceLocation getID() {
 		return id;
 	}
 
@@ -53,15 +53,15 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 
 		public static final Codec<Deferred> DEFERRED_CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						Identifier.CODEC.fieldOf(ID).forGetter(o -> o.id),
-						Codecs.BASIC_OBJECT.fieldOf(OBJECT).forGetter(o -> o.rawObject)
+						ResourceLocation.CODEC.fieldOf(ID).forGetter(o -> o.id),
+						ExtraCodecs.JAVA.fieldOf(OBJECT).forGetter(o -> o.rawObject)
 				).apply(instance, Deferred::new)
 		);
 
 		private final Object rawObject;
 		private Optional<Loaded<?>> partial;
 
-		public Deferred(Identifier id, Object rawObject) {
+		public Deferred(ResourceLocation id, Object rawObject) {
 			super(id);
 			this.rawObject = rawObject;
 			this.partial = BaseObject.REGISTRY_CODEC.parse(
@@ -78,7 +78,7 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 			if (rawObject instanceof Map<?,?> map) {
 				var type = map.get("type");
 				if (type instanceof String key) {
-					return Optional.ofNullable(ObjectRegistry.REGISTRY.get(Identifier.tryParse(key))).map(
+					return Optional.ofNullable(ObjectRegistry.REGISTRY.getValue(ResourceLocation.tryParse(key))).map(
 							DataResult::success
 					).orElse(DataResult.error(() -> parseErrorStart() + ", " + type + " is not a valid registered object type"));
 				} else {
@@ -99,8 +99,8 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 			return tryParse(ops -> ops).map(o -> new Loaded<>(id, o));
 		}
 
-		public DataResult<Loaded<?>> load(RegistryWrapper.WrapperLookup lookup) {
-			return tryParse(lookup::getOps).map(o -> new Loaded<>(id, o));
+		public DataResult<Loaded<?>> load(HolderLookup.Provider lookup) {
+			return tryParse(lookup::createSerializationContext).map(o -> new Loaded<>(id, o));
 		}
 
 		public Optional<Loaded<?>> getPartial() {
@@ -122,22 +122,22 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 
 		public static final Codec<Loaded<?>> LOADED_CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						Identifier.CODEC.fieldOf(ID).forGetter(o -> o.id),
+						ResourceLocation.CODEC.fieldOf(ID).forGetter(o -> o.id),
 						BaseObject.REGISTRY_CODEC.fieldOf(OBJECT).forGetter(o -> o.object)
 				).apply(instance, Loaded::new)
 		);
 
 		private final BaseObject<T> object;
 		private T actualObject;
-		private final Multimap<Identifier, Child<?>> children = HashMultimap.create();
+		private final Multimap<ResourceLocation, Child<?>> children = HashMultimap.create();
 
-		public Loaded(Identifier id, BaseObject<T> object) {
+		public Loaded(ResourceLocation id, BaseObject<T> object) {
 			super(id);
 			this.object = object;
 		}
 
-		private static <T> void register(Identifier id, BaseObject<T> baseObject, Consumer<T> onSuccess, @Nullable RegistryWrapper.WrapperLookup lookup) {
-			var key = RegistryKey.of(baseObject.getType().getRegistry().getKey(), id);
+		private static <T> void register(ResourceLocation id, BaseObject<T> baseObject, Consumer<T> onSuccess, @Nullable HolderLookup.Provider lookup) {
+			var key = ResourceKey.create(baseObject.getType().getRegistry().key(), id);
 			baseObject.createObject(key, lookup).resultOrPartial(
 					message -> {
 						if (!message.startsWith(BaseObject.NO_ERROR_PREFIX) || FabricLoader.getInstance().isDevelopmentEnvironment()) {
@@ -146,8 +146,8 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 						}
 					}
 			).ifPresent(object -> {
-				if (!baseObject.getType().getRegistry().contains(key)) {
-					var ref = Registry.registerReference(baseObject.getType().getRegistry(), key, object);
+				if (!baseObject.getType().getRegistry().containsKey(key)) {
+					var ref = Registry.registerForHolder(baseObject.getType().getRegistry(), key, object);
 					baseObject.onRegistrationSuccess(ref);
 					onSuccess.accept(object);
 				} else {
@@ -158,13 +158,13 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 		}
 
 		private static <T> void unregister(BaseObject<T> baseObject, T object) {
-			baseObject.onUnregister(baseObject.getType().getRegistry().getEntry(object));
+			baseObject.onUnregister(baseObject.getType().getRegistry().wrapAsHolder(object));
 			((RegistryExtensions) baseObject.getType().getRegistry()).simpleCustomFeatures$remove(
 					object
 			);
 		}
 
-		private <S> void registerChild(Identifier id, BaseObject<S> baseObject, @Nullable RegistryWrapper.WrapperLookup lookup) {
+		private <S> void registerChild(ResourceLocation id, BaseObject<S> baseObject, @Nullable HolderLookup.Provider lookup) {
 			register(id, baseObject, object -> {
 				children.put(id, new Child<>(baseObject, object));
 			}, lookup);
@@ -174,7 +174,7 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 			unregister(object.baseObject, object.object);
 		}
 
-		private void register(@Nullable RegistryWrapper.WrapperLookup lookup) {
+		private void register(@Nullable HolderLookup.Provider lookup) {
 			if (actualObject == null) {
 				register(id, object, object -> {
 					this.actualObject = object;
@@ -207,7 +207,7 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 			return actualObject;
 		}
 
-		public Multimap<Identifier, Child<?>> getChildren() {
+		public Multimap<ResourceLocation, Child<?>> getChildren() {
 			return children;
 		}
 
@@ -232,7 +232,7 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 		}
 	}
 
-	public static void register(Stream<Loaded<?>> loadedEntries, @Nullable RegistryWrapper.WrapperLookup lookup) {
+	public static void register(Stream<Loaded<?>> loadedEntries, @Nullable HolderLookup.Provider lookup) {
 		applyRegistryChanges(loadedEntries, object -> object.register(lookup));
 	}
 

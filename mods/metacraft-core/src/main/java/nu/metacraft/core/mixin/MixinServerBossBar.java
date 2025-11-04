@@ -1,13 +1,13 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.entity.boss.ServerBossBar;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import net.minecraft.server.level.ServerBossEvent;
 import nu.metacraft.core.extensions.CommandBossBarExtension;
 
-@Mixin(ServerBossBar.class)
+@Mixin(ServerBossEvent.class)
 public class MixinServerBossBar {
 
 	@Inject(method = "setVisible", at = @At("RETURN"))

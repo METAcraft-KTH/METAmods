@@ -2,8 +2,8 @@ package nu.metacraft.cutscenes.transitions;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.network.packet.s2c.play.EntityStatusEffectS2CPacket;
+import net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket;
+import net.minecraft.world.effect.MobEffectInstance;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.mixin.AccessorStatusEffectInstance;
@@ -19,7 +19,7 @@ public class StatusEffectTransition implements Transition {
 	);
 
 	private final StatusEffectTransitionConfig config;
-	private StatusEffectInstance template;
+	private MobEffectInstance template;
 
 	public StatusEffectTransition(StatusEffectTransitionConfig config) {
 		this.config = config;
@@ -30,8 +30,8 @@ public class StatusEffectTransition implements Transition {
 
 	}
 
-	private StatusEffectInstance createEffect() {
-		return new StatusEffectInstance(config.effect(), config.duration(), config.amplifier(), true, false);
+	private MobEffectInstance createEffect() {
+		return new MobEffectInstance(config.effect(), config.duration(), config.amplifier(), true, false);
 	}
 
 	@Override
@@ -40,16 +40,16 @@ public class StatusEffectTransition implements Transition {
 			template = createEffect();
 		}
 		cutscene.forAllPlayers(player -> {
-			if (!player.hasStatusEffect(config.effect())) {
-				player.addStatusEffect(createEffect());
+			if (!player.hasEffect(config.effect())) {
+				player.addEffect(createEffect());
 			} else {
-				var existingEffect = player.getStatusEffect(config.effect());
+				var existingEffect = player.getEffect(config.effect());
 				if (existingEffect.getAmplifier() != config.amplifier()) {
-					player.addStatusEffect(createEffect());
+					player.addEffect(createEffect());
 				} else if (existingEffect.getDuration() != config.duration()) {
-					((AccessorStatusEffectInstance) existingEffect).callCopyFrom(template);
-					if (player.age % config.resetInterval() == 0) {
-						player.networkHandler.sendPacket(new EntityStatusEffectS2CPacket(player.getId(), existingEffect, true));
+					((AccessorStatusEffectInstance) existingEffect).callSetDetailsFrom(template);
+					if (player.tickCount % config.resetInterval() == 0) {
+						player.connection.send(new ClientboundUpdateMobEffectPacket(player.getId(), existingEffect, true));
 					}
 				}
 			}
@@ -59,12 +59,12 @@ public class StatusEffectTransition implements Transition {
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		cutscene.forAllPlayers(player -> {
-			if (player.hasStatusEffect(config.effect())) {
-				var effect = player.getStatusEffect(config.effect());
-				player.removeStatusEffect(config.effect());
+			if (player.hasEffect(config.effect())) {
+				var effect = player.getEffect(config.effect());
+				player.removeEffect(config.effect());
 				effect = ((AccessorStatusEffectInstance) effect).getHiddenEffect();
 				if (effect != null) {
-					player.addStatusEffect(effect);
+					player.addEffect(effect);
 				}
 			}
 		});

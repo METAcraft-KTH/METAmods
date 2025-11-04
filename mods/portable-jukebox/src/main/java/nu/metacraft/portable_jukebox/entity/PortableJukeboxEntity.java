@@ -1,30 +1,32 @@
 package nu.metacraft.portable_jukebox.entity;
 
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
-import net.minecraft.block.entity.EnderChestBlockEntity;
-import net.minecraft.block.jukebox.JukeboxSong;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.listener.ClientPlayPacketListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.s2c.play.*;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.world.World;
-import net.minecraft.world.event.GameEvent;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBundlePacket;
+import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
+import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.Container;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.JukeboxSong;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.EnderChestBlockEntity;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import nu.metacraft.lib.util.EntityRef;
 import nu.metacraft.lib.util.helper.EntityTrackerHelper;
 import nu.metacraft.portable_jukebox.EntityRefHelper;
@@ -46,9 +48,9 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	private EntityRef attachment;
 	private ItemStack jukebox = ItemStack.EMPTY;
 
-	private final Set<ServerPlayerEntity> hearingPlayers = new HashSet<>();
+	private final Set<ServerPlayer> hearingPlayers = new HashSet<>();
 
-	public PortableJukeboxEntity(EntityType<?> type, World world) {
+	public PortableJukeboxEntity(EntityType<?> type, Level world) {
 		super(type, world);
 	}
 
@@ -66,28 +68,28 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	}
 
 	private Optional<JukeboxSong> get() {
-		return PortableJukeboxItem.getSongFromJukebox(jukebox, getRegistryManager()).map(RegistryEntry::value);
+		return PortableJukeboxItem.getSongFromJukebox(jukebox, registryAccess()).map(Holder::value);
 	}
 
-	private static final int MAX_COLOUR_INDEX = Arrays.stream(Formatting.values()).mapToInt(Formatting::getColorIndex).max().orElse(0);
+	private static final int MAX_COLOUR_INDEX = Arrays.stream(ChatFormatting.values()).mapToInt(ChatFormatting::getId).max().orElse(0);
 
 	public void setJukebox(ItemStack jukebox) {
 		this.jukebox = jukebox;
 		get().ifPresentOrElse(song -> {
 			jukebox.set(Components.PORTABLE_JUKEBOX_ENTITY, new PortableJukeboxEntityEntry(
-					this.getUuid()
+					this.getUUID()
 			));
 			for (var player : hearingPlayers) {
-				player.sendMessage(
-						Text.translatable("record.nowPlaying", song.description()).styled(
-								style -> style.withColor(Formatting.byColorIndex(player.getRandom().nextInt(MAX_COLOUR_INDEX+1)))
+				player.displayClientMessage(
+						Component.translatable("record.nowPlaying", song.description()).withStyle(
+								style -> style.withColor(ChatFormatting.getById(player.getRandom().nextInt(MAX_COLOUR_INDEX+1)))
 						), true
 				);
 			}
 			var config = jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_CONFIGURATION, PortableJukeboxConfiguration.DEFAULT);
-			for (var player : getEntityWorld().getPlayers()) {
-				((ServerPlayerEntity) player).networkHandler.sendPacket(new PlaySoundFromEntityS2CPacket(
-						song.soundEvent(), SoundCategory.RECORDS, this,
+			for (var player : level().players()) {
+				((ServerPlayer) player).connection.send(new ClientboundSoundEntityPacket(
+						song.soundEvent(), SoundSource.RECORDS, this,
 						config.volume(), config.pitch(), this.getRandom().nextLong()
 				));
 			}
@@ -107,18 +109,18 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 			discard();
 		} else {
 			var pos = attachment.getPos();
-			this.updatePosition(
-					pos.getX(), pos.getY(), pos.getZ()
+			this.absSnapTo(
+					pos.x(), pos.y(), pos.z()
 			);
 		}
 		var song = get();
 		var config = jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_CONFIGURATION, PortableJukeboxConfiguration.DEFAULT);
-		if (song.isEmpty() || age > song.get().getLengthInTicks() / config.pitch()) {
+		if (song.isEmpty() || tickCount > song.get().lengthInTicks() / config.pitch()) {
 			discard();
 		}
-		if (!this.isRemoved() && !this.getEntityWorld().isClient() && age % 20 == 0) {
-			getEntityWorld().emitGameEvent(this, GameEvent.JUKEBOX_PLAY, this.getEntityPos());
-			((ServerWorld) getEntityWorld()).spawnParticles(
+		if (!this.isRemoved() && !this.level().isClientSide() && tickCount % 20 == 0) {
+			level().gameEvent(this, GameEvent.JUKEBOX_PLAY, this.position());
+			((ServerLevel) level()).sendParticles(
 					ParticleTypes.NOTE, getX(), getY() + attachment.getHeight()+0.2, getZ(), 1,
 					0, getRandom().nextInt(4) / 24.0f, 0, 1
 			);
@@ -126,7 +128,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	}
 
 	@Override
-	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+	public boolean hurtServer(ServerLevel world, DamageSource source, float amount) {
 		return false;
 	}
 
@@ -137,13 +139,13 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	}
 
 	private static boolean isValidStack(ItemStack stack) {
-		return stack.isOf(Items.PORTABLE_JUKEBOX);
+		return stack.is(Items.PORTABLE_JUKEBOX);
 	}
 
 	private static Runnable transferInternal(EntityRef from, EntityRef to, UUID toTransfer) {
 		if (from != null && to != null && from.get() == to.get()) return () -> {};
 		if (from != null) {
-			var jukebox = ((ServerWorld) from.getWorld()).getEntity(toTransfer);
+			var jukebox = ((ServerLevel) from.getWorld()).getEntity(toTransfer);
 			if (!(jukebox instanceof PortableJukeboxEntity actualJukebox)) {
 				PortableJukebox.LOGGER.error(
 						Optional.ofNullable(to).map(
@@ -167,7 +169,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	private static void transferSingle(EntityRef from, EntityRef to, ItemStack resultStack) {
 		PortableJukeboxEntityEntry.getWithoutInventories(resultStack).ifPresent(toTransfer -> {
 			var after = transferInternal(from, to, toTransfer);
-			var jukebox = ((ServerWorld) from.getWorld()).getEntity(toTransfer);
+			var jukebox = ((ServerLevel) from.getWorld()).getEntity(toTransfer);
 			if (jukebox instanceof PortableJukeboxEntity j) {
 				j.fixStack(resultStack);
 			}
@@ -203,8 +205,8 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		}
 	}
 
-	private static Optional<EntityRef> getPortableJukeboxAttachmentNonRecursive(ItemStack stack, World world) {
-		if (stack.contains(Components.PORTABLE_JUKEBOX_ENTITY) && !world.isClient()) {
+	private static Optional<EntityRef> getPortableJukeboxAttachmentNonRecursive(ItemStack stack, Level world) {
+		if (stack.has(Components.PORTABLE_JUKEBOX_ENTITY) && !world.isClientSide()) {
 			var entry = stack.get(Components.PORTABLE_JUKEBOX_ENTITY);
 			var e = world.getEntity(entry.entity());
 			if (e instanceof PortableJukeboxEntity jukebox) {
@@ -214,7 +216,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		return Optional.empty();
 	}
 
-	public static Optional<EntityRef> getPortableJukeboxAttachment(ItemStack stack, World world) {
+	public static Optional<EntityRef> getPortableJukeboxAttachment(ItemStack stack, Level world) {
 		var current = getPortableJukeboxAttachmentNonRecursive(stack, world);
 		if (current.isPresent()) return current;
 		//If it is an item with a container, all the items will have the same attachment, so it doesn't matter which one we take.
@@ -227,28 +229,28 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		return Optional.empty();
 	}
 
-	public static void transferToItemFromUnknown(ItemStack stack, World world, ItemEntity itemEntity) {
+	public static void transferToItemFromUnknown(ItemStack stack, Level world, ItemEntity itemEntity) {
 		getPortableJukeboxAttachment(stack, world).ifPresent(entity -> {
 			PortableJukeboxEntity.transfer(
-					entity, EntityRef.fromEntity(itemEntity), itemEntity.getStack()
+					entity, EntityRef.fromEntity(itemEntity), itemEntity.getItem()
 			);
 		});
 	}
 
 	public static void transferToEntityFromUnknown(ItemStack stack, Entity entity) {
-		getPortableJukeboxAttachment(stack, entity.getEntityWorld()).ifPresent(music -> {
+		getPortableJukeboxAttachment(stack, entity.level()).ifPresent(music -> {
 			PortableJukeboxEntity.transfer(
 					music, EntityRef.fromEntity(entity), stack
 			);
 		});
 	}
 
-	public static void transferInScreenHandlerFromUnknown(ItemStack stack, ScreenHandler handler) {
+	public static void transferInScreenHandlerFromUnknown(ItemStack stack, AbstractContainerMenu handler) {
 		if (handler.slots.isEmpty()) return;
-		transferToInventoryFromUnknown(stack, handler.slots.getLast().inventory);
+		transferToInventoryFromUnknown(stack, handler.slots.getLast().container);
 	}
 
-	private static EntityRef getFromInventory(Inventory inventory) {
+	private static EntityRef getFromInventory(Container inventory) {
 		return InventoryHelper.getEntityFromInventory(inventory).map(ref -> {
 			//Since ender chests store the items in some sort of player-specific dimension, it makes sense that the music
 			//would stop when you close the lid. Also, it would cause issues if it plays from a specific ender chest
@@ -260,11 +262,11 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		}).orElse(null);
 	}
 
-	public static void transferToInventory(EntityRef from, ItemStack stack, Inventory inventory) {
+	public static void transferToInventory(EntityRef from, ItemStack stack, Container inventory) {
 		PortableJukeboxEntity.transfer(from, getFromInventory(inventory), stack);
 	}
 
-	public static void transferToInventoryFromUnknown(ItemStack stack, Inventory inventory) {
+	public static void transferToInventoryFromUnknown(ItemStack stack, Container inventory) {
 		var world = InventoryHelper.getWorldFromInventory(inventory);
 		if (world.isEmpty()) return;
 		getPortableJukeboxAttachment(stack, world.get()).ifPresent(entity -> {
@@ -275,17 +277,17 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	}
 
 	@Override
-	protected void initDataTracker(DataTracker.Builder builder) {
+	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 
 	}
 
 	@Override
-	protected void readCustomData(ReadView nbt) {
+	protected void readAdditionalSaveData(ValueInput nbt) {
 
 	}
 
 	@Override
-	protected void writeCustomData(WriteView nbt) {
+	protected void addAdditionalSaveData(ValueOutput nbt) {
 
 	}
 
@@ -298,32 +300,32 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		if (attachment != null) {
 			attachment.onUpdate();
 		}
-		getEntityWorld().emitGameEvent(this, GameEvent.JUKEBOX_STOP_PLAY, this.getEntityPos());
+		level().gameEvent(this, GameEvent.JUKEBOX_STOP_PLAY, this.position());
 		for (var player : hearingPlayers) {
-			player.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(this.getId()));
+			player.connection.send(new ClientboundRemoveEntitiesPacket(this.getId()));
 		}
 		hearingPlayers.clear();
 	}
 
 	@Override
-	public void onStartedTrackingBy(ServerPlayerEntity player) {
-		super.onStartedTrackingBy(player);
+	public void startSeenByPlayer(ServerPlayer player) {
+		super.startSeenByPlayer(player);
 		if (hearingPlayers.add(player)) {
 
-			var trackers = EntityTrackerHelper.getEntityTrackers((ServerWorld) getEntityWorld());
+			var trackers = EntityTrackerHelper.getEntityTrackers((ServerLevel) level());
 			var entry = EntityTrackerHelper.getEntry(trackers.get(this.getId()));
-			ArrayList<Packet<? super ClientPlayPacketListener>> packets = new ArrayList<>();
-			entry.sendPackets(player, packets::add);
-			player.networkHandler.sendPacket(new BundleS2CPacket(packets));
+			ArrayList<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
+			entry.sendPairingData(player, packets::add);
+			player.connection.send(new ClientboundBundlePacket(packets));
 		}
 	}
 
 	@Override
-	public void onStoppedTrackingBy(ServerPlayerEntity player) {
-		super.onStoppedTrackingBy(player);
-		if (player.getEntityWorld() != this.getEntityWorld() || !this.isAlive()) {
+	public void stopSeenByPlayer(ServerPlayer player) {
+		super.stopSeenByPlayer(player);
+		if (player.level() != this.level() || !this.isAlive()) {
 			if (hearingPlayers.remove(player)) {
-				player.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(this.getId()));
+				player.connection.send(new ClientboundRemoveEntitiesPacket(this.getId()));
 			}
 		}
 	}

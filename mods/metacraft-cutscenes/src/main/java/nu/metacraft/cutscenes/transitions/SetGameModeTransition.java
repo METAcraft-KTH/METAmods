@@ -3,9 +3,6 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Uuids;
-import net.minecraft.world.GameMode;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.registry.TransitionConfigRegistry;
@@ -17,25 +14,28 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.GameType;
 
 public class SetGameModeTransition implements Transition {
 
 	public static final MapCodec<SetGameModeTransition> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Config.CODEC.forGetter(t -> t.config),
-					Codec.unboundedMap(Uuids.STRING_CODEC, GameMode.CODEC).fieldOf("prev_gamemodes").forGetter(t -> t.prevGamemodes)
+					Codec.unboundedMap(UUIDUtil.STRING_CODEC, GameType.CODEC).fieldOf("prev_gamemodes").forGetter(t -> t.prevGamemodes)
 			).apply(instance, SetGameModeTransition::new)
 	);
 
 	private final Config config;
-	private final Map<UUID, GameMode> prevGamemodes;
+	private final Map<UUID, GameType> prevGamemodes;
 
 	public SetGameModeTransition(Config config) {
 		this.config = config;
 		this.prevGamemodes = new HashMap<>();
 	}
 
-	public SetGameModeTransition(Config config, Map<UUID, GameMode> prevGamemodes) {
+	public SetGameModeTransition(Config config, Map<UUID, GameType> prevGamemodes) {
 		this.config = config;
 		this.prevGamemodes = new HashMap<>(prevGamemodes);
 	}
@@ -63,17 +63,17 @@ public class SetGameModeTransition implements Transition {
 	}
 
 	@Override
-	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		if (config.resetAfterwards && !prevGamemodes.containsKey(player.getUuid())) {
-			prevGamemodes.put(player.getUuid(), player.interactionManager.getGameMode());
+	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		if (config.resetAfterwards && !prevGamemodes.containsKey(player.getUUID())) {
+			prevGamemodes.put(player.getUUID(), player.gameMode.getGameModeForPlayer());
 		}
 	}
 
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		cutscene.forAllPlayers(player -> {
-			if (player.interactionManager.getGameMode() != config.gamemode) {
-				player.changeGameMode(config.gamemode);
+			if (player.gameMode.getGameModeForPlayer() != config.gamemode) {
+				player.setGameMode(config.gamemode);
 			}
 		});
 	}
@@ -84,9 +84,9 @@ public class SetGameModeTransition implements Transition {
 	}
 
 	@Override
-	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		if (config.resetAfterwards && prevGamemodes.containsKey(player.getUuid())) {
-			player.changeGameMode(prevGamemodes.get(player.getUuid()));
+	public void deactivate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		if (config.resetAfterwards && prevGamemodes.containsKey(player.getUUID())) {
+			player.setGameMode(prevGamemodes.get(player.getUUID()));
 		}
 	}
 
@@ -95,11 +95,11 @@ public class SetGameModeTransition implements Transition {
 		return TransitionRegistry.SET_GAME_MODE;
 	}
 
-	public record Config(GameMode gamemode, boolean resetAfterwards) implements TransitionConfig {
+	public record Config(GameType gamemode, boolean resetAfterwards) implements TransitionConfig {
 
 		public static final MapCodec<Config> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
-						GameMode.CODEC.fieldOf("gamemode").forGetter(Config::gamemode),
+						GameType.CODEC.fieldOf("gamemode").forGetter(Config::gamemode),
 						Codec.BOOL.optionalFieldOf("reset_afterwards", true).forGetter(Config::resetAfterwards)
 				).apply(instance, Config::new)
 		);

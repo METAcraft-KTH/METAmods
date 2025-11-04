@@ -1,14 +1,14 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.entity.boss.ServerBossBar;
-import net.minecraft.entity.boss.WitherEntity;
+import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(WitherEntity.class)
+@Mixin(WitherBoss.class)
 public interface AccessorWitherEntity {
 
 	@Accessor
-	ServerBossBar getBossBar();
+	ServerBossEvent getBossEvent();
 
 }

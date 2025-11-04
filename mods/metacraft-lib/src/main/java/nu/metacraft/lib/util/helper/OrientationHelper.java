@@ -1,25 +1,25 @@
 package nu.metacraft.lib.util.helper;
 
-import net.minecraft.block.enums.Orientation;
-import net.minecraft.util.BlockRotation;
-import net.minecraft.util.math.Direction;
+import net.minecraft.core.Direction;
+import net.minecraft.core.FrontAndTop;
+import net.minecraft.world.level.block.Rotation;
 
 public class OrientationHelper {
 
-	public static Orientation rotate(Orientation orientation, BlockRotation rotation) {
-		return Orientation.byDirections(rotation.rotate(orientation.getFacing()), rotation.rotate(orientation.getRotation()));
+	public static FrontAndTop rotate(FrontAndTop orientation, Rotation rotation) {
+		return FrontAndTop.fromFrontAndTop(rotation.rotate(orientation.front()), rotation.rotate(orientation.top()));
 	}
 
-	public static boolean isHorizontal(Orientation orientation) {
-		return orientation.getFacing().getAxis().isHorizontal();
+	public static boolean isHorizontal(FrontAndTop orientation) {
+		return orientation.front().getAxis().isHorizontal();
 	}
 
-	public static boolean isVertical(Orientation orientation) {
-		return orientation.getFacing().getAxis().isVertical();
+	public static boolean isVertical(FrontAndTop orientation) {
+		return orientation.front().getAxis().isVertical();
 	}
 
-	public static Orientation fromDirection(Direction direction) {
-		return Orientation.byDirections(direction, direction.getAxis().isHorizontal() ? Direction.UP : Direction.SOUTH);
+	public static FrontAndTop fromDirection(Direction direction) {
+		return FrontAndTop.fromFrontAndTop(direction, direction.getAxis().isHorizontal() ? Direction.UP : Direction.SOUTH);
 	}
 
 }

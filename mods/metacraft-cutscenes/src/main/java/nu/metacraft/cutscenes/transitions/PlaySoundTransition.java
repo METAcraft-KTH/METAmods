@@ -4,13 +4,6 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
-import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.core.entity_ref.EntityRef;
@@ -21,16 +14,23 @@ import nu.metacraft.cutscenes.registry.TransitionConfigRegistry;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfig;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfigType;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 
 import java.util.OptionalLong;
+import net.minecraft.core.Holder;
+import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 
 public class PlaySoundTransition implements Transition, TransitionConfig {
 
 	public static final MapCodec<PlaySoundTransition> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					SoundEvent.ENTRY_CODEC.fieldOf("sound").forGetter(t -> t.sound),
-					ExtraCodecs.SOUND_CATEGORY_CODEC.optionalFieldOf("category", SoundCategory.MASTER).forGetter(t -> t.category),
+					SoundEvent.CODEC.fieldOf("sound").forGetter(t -> t.sound),
+					METACodecs.SOUND_CATEGORY_CODEC.optionalFieldOf("category", SoundSource.MASTER).forGetter(t -> t.category),
 					Codec.either(PositionRefRegistry.CODEC, EntityRefRegistry.CODEC).fieldOf("source").forGetter(t -> t.source),
 					Codec.floatRange(0, Float.MAX_VALUE).optionalFieldOf("volume", 1.0f).forGetter(t -> t.volume),
 					Codec.floatRange(0.5f, 2).optionalFieldOf("pitch", 1.0f).forGetter(t -> t.pitch),
@@ -42,8 +42,8 @@ public class PlaySoundTransition implements Transition, TransitionConfig {
 			).apply(instance, PlaySoundTransition::new)
 	);
 
-	private final RegistryEntry<SoundEvent> sound;
-	private final SoundCategory category;
+	private final Holder<SoundEvent> sound;
+	private final SoundSource category;
 	private final Either<PositionRef, EntityRef> source;
 	private final float volume;
 	private final float pitch;
@@ -51,7 +51,7 @@ public class PlaySoundTransition implements Transition, TransitionConfig {
 	private final boolean stopAtEnd;
 
 	public PlaySoundTransition(
-			RegistryEntry<SoundEvent> sound, SoundCategory category, Either<PositionRef, EntityRef> source,
+			Holder<SoundEvent> sound, SoundSource category, Either<PositionRef, EntityRef> source,
 			float volume, float pitch, OptionalLong seed, boolean stopAtEnd
 	) {
 		this.sound = sound;
@@ -64,12 +64,12 @@ public class PlaySoundTransition implements Transition, TransitionConfig {
 	}
 
 	@Override
-	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		source.ifLeft(pos -> {
 			pos.get(cutscene.createRefContext(player)).ifPresent(target -> {
-				player.networkHandler.sendPacket(
-						new PlaySoundS2CPacket(
-								sound, category, target.getX(), target.getY(), target.getZ(),
+				player.connection.send(
+						new ClientboundSoundPacket(
+								sound, category, target.x(), target.y(), target.z(),
 								volume, pitch, seed.orElse(player.getRandom().nextLong())
 						)
 				);
@@ -77,8 +77,8 @@ public class PlaySoundTransition implements Transition, TransitionConfig {
 		});
 		source.ifRight(entity -> {
 			entity.get(cutscene.createRefContext(player)).forEach(target -> {
-				player.networkHandler.sendPacket(
-						new PlaySoundFromEntityS2CPacket(
+				player.connection.send(
+						new ClientboundSoundEntityPacket(
 								sound, category, target,
 								volume, pitch, seed.orElse(player.getRandom().nextLong())
 						)
@@ -103,9 +103,9 @@ public class PlaySoundTransition implements Transition, TransitionConfig {
 	}
 
 	@Override
-	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	public void deactivate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (stopAtEnd) {
-			player.networkHandler.sendPacket(new StopSoundS2CPacket(sound.value().id(), category));
+			player.connection.send(new ClientboundStopSoundPacket(sound.value().location(), category));
 		}
 	}
 

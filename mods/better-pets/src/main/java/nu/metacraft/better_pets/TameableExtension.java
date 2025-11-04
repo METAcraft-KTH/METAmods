@@ -1,14 +1,13 @@
 package nu.metacraft.better_pets;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-
 import java.util.Collection;
 import java.util.UUID;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 
 public interface TameableExtension {
 
-	void metacraft$setCurrentFollowTarget(ServerPlayerEntity entity);
+	void metacraft$setCurrentFollowTarget(ServerPlayer entity);
 	LivingEntity metacraft$getCurrentFollowTarget();
 	boolean metaraft$isTrusted(LivingEntity player);
 	void metacraft$addTrustedPlayer(UUID player);

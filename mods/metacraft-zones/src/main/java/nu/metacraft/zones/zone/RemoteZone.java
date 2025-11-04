@@ -1,23 +1,23 @@
 package nu.metacraft.zones.zone;
 
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionType;
 import nu.metacraft.zones.zone.data.ZoneData;
 import nu.metacraft.zones.zone.data.ZoneDataType;
 import nu.metacraft.zones.zone.types.ZoneType;
 
 import java.util.Collection;
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.dimension.DimensionType;
 
 public class RemoteZone extends Zone {
 
-	private final World world;
+	private final Level world;
 	private final RealZone container;
 	private final ZoneType zone;
 
-	public RemoteZone(World world, RealZone container) {
+	public RemoteZone(Level world, RealZone container) {
 		this.world = world;
 		this.container = container;
 		this.zone = container.getZone().copy();
@@ -26,9 +26,9 @@ public class RemoteZone extends Zone {
 
 	@Override
 	public boolean isPosWithinZoneBoundsNoDimCheck(BlockPos pos) {
-		double factor = DimensionType.getCoordinateScaleFactor(world.getDimension(), container.world.getDimension());
+		double factor = DimensionType.getTeleportationScale(world.dimensionType(), container.world.dimensionType());
 		return zone.contains(
-				world.getWorldBorder().clampFloored(
+				world.getWorldBorder().clampToBounds(
 						pos.getX() * factor, pos.getY(), pos.getZ() * factor
 				)
 		);
@@ -55,8 +55,8 @@ public class RemoteZone extends Zone {
 	}
 
 	@Override
-	public RegistryKey<World> getDim() {
-		return world.getRegistryKey();
+	public ResourceKey<Level> getDim() {
+		return world.dimension();
 	}
 
 	@Override
@@ -80,7 +80,7 @@ public class RemoteZone extends Zone {
 	}
 
 	@Override
-	public World getWorld() {
+	public Level getWorld() {
 		return world;
 	}
 

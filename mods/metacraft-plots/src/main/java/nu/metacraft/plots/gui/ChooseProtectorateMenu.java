@@ -5,11 +5,6 @@ import eu.pb4.sgui.api.elements.AnimatedGuiElementBuilder;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.layered.Layer;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
 import nu.metacraft.core.util.helper.SGUIHelper;
 import nu.metacraft.plots.zone.PlayerOwnedProtectorate;
 import nu.metacraft.plots.zone.PlotDataTypes;
@@ -17,6 +12,11 @@ import nu.metacraft.zones.ZoneManager;
 
 import java.util.*;
 import java.util.function.Predicate;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public class ChooseProtectorateMenu extends LayeredGui {
 
@@ -32,13 +32,13 @@ public class ChooseProtectorateMenu extends LayeredGui {
 
 	private final Predicate<PlayerOwnedProtectorate> onClick;
 
-	public ChooseProtectorateMenu(ServerPlayerEntity player, Predicate<PlayerOwnedProtectorate> onClick) {
-		super(ScreenHandlerType.GENERIC_9X4, player, true);
-		this.setTitle(Text.translatableWithFallback(
+	public ChooseProtectorateMenu(ServerPlayer player, Predicate<PlayerOwnedProtectorate> onClick) {
+		super(MenuType.GENERIC_9x4, player, true);
+		this.setTitle(Component.translatableWithFallback(
 				"protectorate.metacraft.gui.choose", "Choose Protectorate"
 		));
 
-		for (var zone : ZoneManager.getInstance(player.getEntityWorld().getServer()).getZones().getZones()) {
+		for (var zone : ZoneManager.getInstance(player.level().getServer()).getZones().getZones()) {
 			zone.get(PlotDataTypes.PLAYER_PROTECTORATE).ifPresent(protectorate -> {
 				if (protectorate.isAdmin(player)) {
 					primary.add(protectorate);
@@ -67,21 +67,21 @@ public class ChooseProtectorateMenu extends LayeredGui {
 
 		Layer controller = new Layer(1, 9);
 		controller.setSlot(0, GuiElementBuilder.from(new ItemStack(Items.END_CRYSTAL)).setName(
-				Text.translatableWithFallback(
+				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.choose.admin_page", "Admin Page"
 				)
 		).setCallback(
 				(index, type, action) -> setPageLayer(primary)
 		));
 		controller.setSlot(1, GuiElementBuilder.from(new ItemStack(Items.ACACIA_HANGING_SIGN)).setName(
-				Text.translatableWithFallback(
+				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.choose.member_page", "Member Page"
 				)
 		).setCallback(
 				(index, type, action) -> setPageLayer(membership)
 		));
 		controller.setSlot(2, GuiElementBuilder.from(new ItemStack(Items.GRASS_BLOCK)).setName(
-				Text.translatableWithFallback(
+				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.choose.other_page", "Other Page"
 				)
 		).setCallback(
@@ -89,7 +89,7 @@ public class ChooseProtectorateMenu extends LayeredGui {
 		));
 
 		controller.setSlot(5, GuiElementBuilder.from(new ItemStack(Items.BRICK)).setName(
-				Text.translatableWithFallback(
+				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.choose.prev_page", "Previous Page"
 				)
 		).setCallback(
@@ -97,7 +97,7 @@ public class ChooseProtectorateMenu extends LayeredGui {
 		));
 
 		controller.setSlot(7, GuiElementBuilder.from(new ItemStack(Items.NETHER_BRICK)).setName(
-				Text.translatableWithFallback(
+				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.choose.next_page", "Next Page"
 				)
 		).setCallback(
@@ -111,9 +111,9 @@ public class ChooseProtectorateMenu extends LayeredGui {
 
 	public AnimatedGuiElementBuilder createIconFrom(PlayerOwnedProtectorate protectorate) {
 		return SGUIHelper.createGameProfileHeadIcon(
-				Text.literal(protectorate.getZone().getName()), getPlayer().getEntityWorld().getServer(),
+				Component.literal(protectorate.getZone().getName()), getPlayer().level().getServer(),
 				protectorate.getOwners().stream().map(
-						owner -> getPlayer().getEntityWorld().getServer().getApiServices().nameToIdCache().getByUuid(owner).orElse(null)
+						owner -> getPlayer().level().getServer().services().nameToIdCache().get(owner).orElse(null)
 				).filter(Objects::nonNull).map(config -> new GameProfile(config.id(), config.name()))
 		);
 	}

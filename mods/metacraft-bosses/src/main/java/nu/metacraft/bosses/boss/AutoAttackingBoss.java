@@ -2,14 +2,14 @@ package nu.metacraft.bosses.boss;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
 import org.pcollections.HashTreePSet;
 import org.pcollections.PSet;
 import nu.metacraft.bosses.boss.attacks.Attack;
 
 import java.util.*;
 import java.util.function.Predicate;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public interface AutoAttackingBoss extends Boss {
 
@@ -48,7 +48,7 @@ public interface AutoAttackingBoss extends Boss {
 		}
 
 		protected boolean addAttack(Attack attack) {
-			attack = attack.copy(boss.getServerWorld().getRegistryManager());
+			attack = attack.copy(boss.getServerWorld().registryAccess());
 			for (var a : currentAttacks) {
 				if (!a.compatibleWith(attack) || !attack.compatibleWith(a)) {
 					return false;
@@ -102,15 +102,15 @@ public interface AutoAttackingBoss extends Boss {
 			currentAttacks.forEach(attack -> attack.tick(boss.getContext(attack)));
 		}
 
-		public void writeNBT(WriteView nbt) {
-			nbt.put(
+		public void writeNBT(ValueOutput nbt) {
+			nbt.store(
 					ATTACK_CONTAINER,
 					Serialized.CODEC,
 					save()
 			);
 		}
 
-		public void readNBT(ReadView nbt) {
+		public void readNBT(ValueInput nbt) {
 			nbt.read(ATTACK_CONTAINER, Serialized.CODEC).ifPresentOrElse(
 					this::load,
 					this::removeAllAttacks

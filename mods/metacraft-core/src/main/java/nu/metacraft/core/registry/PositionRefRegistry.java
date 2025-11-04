@@ -3,19 +3,19 @@ package nu.metacraft.core.registry;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.position_ref.*;
 
 public class PositionRefRegistry {
 
 	public static final Registry<PositionRefType<?>> REGISTRY = FabricRegistryBuilder.<PositionRefType<?>>createSimple(
-			RegistryKey.ofRegistry(METAcraftCore.getID("position_ref"))
+			ResourceKey.createRegistryKey(METAcraftCore.getID("position_ref"))
 	).buildAndRegister();
 
-	public static final Codec<PositionRef> CODEC = REGISTRY.getCodec().dispatch(
+	public static final Codec<PositionRef> CODEC = REGISTRY.byNameCodec().dispatch(
 			PositionRef::getType, PositionRefType::codec
 	);
 
@@ -34,7 +34,7 @@ public class PositionRefRegistry {
 	}
 
 	private static <T extends PositionRef> PositionRefType<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(REGISTRY, Identifier.ofVanilla(id), new PositionRefType<>(codec));
+		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), new PositionRefType<>(codec));
 	}
 
 

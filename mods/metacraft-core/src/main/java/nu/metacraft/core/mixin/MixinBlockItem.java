@@ -1,14 +1,14 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import nu.metacraft.core.extensions.BlockEntityExtensions;
 import nu.metacraft.core.extensions.ServerPlayerEntityExtensions;
 
@@ -16,14 +16,14 @@ import nu.metacraft.core.extensions.ServerPlayerEntityExtensions;
 public class MixinBlockItem {
 
 	@Inject(
-		method = "writeNbtToBlockEntity",
+		method = "updateCustomBlockEntityTag(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/item/ItemStack;)Z",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/entity/TypedEntityData;applyToBlockEntity(Lnet/minecraft/block/entity/BlockEntity;Lnet/minecraft/registry/RegistryWrapper$WrapperLookup;)Z"
+			target = "Lnet/minecraft/world/item/component/TypedEntityData;loadInto(Lnet/minecraft/world/level/block/entity/BlockEntity;Lnet/minecraft/core/HolderLookup$Provider;)Z"
 		)
 	)
 	private static void writeNbtToBlockEntity(
-			World world, PlayerEntity player, BlockPos pos, ItemStack stack,
+			Level world, Player player, BlockPos pos, ItemStack stack,
 			CallbackInfoReturnable<Boolean> cir
 	) {
 		var tile = world.getBlockEntity(pos);

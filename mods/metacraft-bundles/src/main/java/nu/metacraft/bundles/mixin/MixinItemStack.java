@@ -1,10 +1,14 @@
 package nu.metacraft.bundles.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.component.*;
-import net.minecraft.component.type.BundleContentsComponent;
-import net.minecraft.item.ItemConvertible;
-import net.minecraft.item.ItemStack;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.component.PatchedDataComponentMap;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.level.ItemLike;
 import nu.metacraft.bundles.util.BundleHelper;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
@@ -18,45 +22,45 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ItemStack.class)
 public class MixinItemStack {
 
-	@Shadow @Final MergedComponentMap components;
+	@Shadow @Final PatchedDataComponentMap components;
 
 	@ModifyArg(
 			method = "set",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/component/MergedComponentMap;set(Lnet/minecraft/component/ComponentType;Ljava/lang/Object;)Ljava/lang/Object;"
+					target = "Lnet/minecraft/core/component/PatchedDataComponentMap;set(Lnet/minecraft/core/component/DataComponentType;Ljava/lang/Object;)Ljava/lang/Object;"
 			),
 			index = 1
 	)
 	public <T> T set(
-			@Nullable T value, @Local(argsOnly = true) ComponentType<? super T> type
+			@Nullable T value, @Local(argsOnly = true) DataComponentType<? super T> type
 	) {//When we "clear" the bundle, we need to copy the bundle size factor.
-		if (type == DataComponentTypes.BUNDLE_CONTENTS && value == BundleContentsComponent.DEFAULT) {
-			var existing = (BundleContentsComponent) components.get(type);
+		if (type == DataComponents.BUNDLE_CONTENTS && value == BundleContents.EMPTY) {
+			var existing = (BundleContents) components.get(type);
 			if (existing != null) {
-				return (T) BundleHelper.fixBundle((BundleContentsComponent) value, (ItemStack) (Object) this);
+				return (T) BundleHelper.fixBundle((BundleContents) value, (ItemStack) (Object) this);
 			}
 		}
 		return value;
 	}
 
-	@Inject(method = "<init>(Lnet/minecraft/item/ItemConvertible;ILnet/minecraft/component/MergedComponentMap;)V", at = @At("RETURN"))
-	public void init(ItemConvertible item, int count, MergedComponentMap components, CallbackInfo ci) {
+	@Inject(method = "<init>(Lnet/minecraft/world/level/ItemLike;ILnet/minecraft/core/component/PatchedDataComponentMap;)V", at = @At("RETURN"))
+	public void init(ItemLike item, int count, PatchedDataComponentMap components, CallbackInfo ci) {
 		BundleHelper.fixBundle((ItemStack) (Object) this);
 	}
 
-	@Inject(method = "applyChanges", at = @At("RETURN"))
-	public void applyChanges(ComponentChanges changes, CallbackInfo ci) {
+	@Inject(method = "applyComponentsAndValidate", at = @At("RETURN"))
+	public void applyChanges(DataComponentPatch changes, CallbackInfo ci) {
 		BundleHelper.fixBundle((ItemStack) (Object) this);
 	}
 
-	@Inject(method = "applyUnvalidatedChanges", at = @At("RETURN"))
-	public void applyUnvalidatedChanges(ComponentChanges changes, CallbackInfo ci) {
+	@Inject(method = "applyComponents(Lnet/minecraft/core/component/DataComponentPatch;)V", at = @At("RETURN"))
+	public void applyUnvalidatedChanges(DataComponentPatch changes, CallbackInfo ci) {
 		BundleHelper.fixBundle((ItemStack) (Object) this);
 	}
 
-	@Inject(method = "applyComponentsFrom", at = @At("RETURN"))
-	public void applyComponentsFrom(ComponentMap components, CallbackInfo ci) {
+	@Inject(method = "applyComponents(Lnet/minecraft/core/component/DataComponentMap;)V", at = @At("RETURN"))
+	public void applyComponentsFrom(DataComponentMap components, CallbackInfo ci) {
 		BundleHelper.fixBundle((ItemStack) (Object) this);
 	}
 

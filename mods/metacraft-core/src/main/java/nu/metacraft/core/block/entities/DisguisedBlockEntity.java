@@ -1,16 +1,16 @@
 package nu.metacraft.core.block.entities;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import nu.metacraft.core.mixin.AccessorChunkHolder;
 import nu.metacraft.core.mixin.AccessorServerChunkManager;
 
@@ -18,7 +18,7 @@ public class DisguisedBlockEntity extends BlockEntity implements BlockEntityWith
 
 	protected static final String BLOCK_STATE = "BlockState";
 
-	protected BlockState state = Blocks.BARRIER.getDefaultState();
+	protected BlockState state = Blocks.BARRIER.defaultBlockState();
 
 	protected DisguisedBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -32,13 +32,13 @@ public class DisguisedBlockEntity extends BlockEntity implements BlockEntityWith
 	public void setBlockState(BlockState state) {
 		if (this.state != state) {
 			this.state = state;
-			markDirty();
-			if (world instanceof ServerWorld sw) {
-				var cPos = new ChunkPos(pos);
-				var holder = ((AccessorServerChunkManager) sw.getChunkManager()).callGetChunkHolder(
+			setChanged();
+			if (level instanceof ServerLevel sw) {
+				var cPos = new ChunkPos(worldPosition);
+				var holder = ((AccessorServerChunkManager) sw.getChunkSource()).callGetVisibleChunkIfPresent(
 						cPos.toLong()
 				);
-				var players = ((AccessorChunkHolder) holder).getPlayersWatchingChunkProvider().getPlayersWatchingChunk(
+				var players = ((AccessorChunkHolder) holder).getPlayerProvider().getPlayers(
 						cPos, false
 				);
 				for (var player : players) {
@@ -49,19 +49,19 @@ public class DisguisedBlockEntity extends BlockEntity implements BlockEntityWith
 	}
 
 	@Override
-	public void updateClient(ServerPlayerEntity player) {
-		player.networkHandler.sendPacket(new BlockUpdateS2CPacket(pos, state));
+	public void updateClient(ServerPlayer player) {
+		player.connection.send(new ClientboundBlockUpdatePacket(worldPosition, state));
 	}
 
 	@Override
-	protected void readData(ReadView nbt) {
-		super.readData(nbt);
-		setBlockState(nbt.read(BLOCK_STATE, BlockState.CODEC).orElse(Blocks.BARRIER.getDefaultState()));
+	protected void loadAdditional(ValueInput nbt) {
+		super.loadAdditional(nbt);
+		setBlockState(nbt.read(BLOCK_STATE, BlockState.CODEC).orElse(Blocks.BARRIER.defaultBlockState()));
 	}
 
 	@Override
-	protected void writeData(WriteView nbt) {
-		super.writeData(nbt);
-		nbt.put(BLOCK_STATE, BlockState.CODEC, state);
+	protected void saveAdditional(ValueOutput nbt) {
+		super.saveAdditional(nbt);
+		nbt.store(BLOCK_STATE, BlockState.CODEC, state);
 	}
 }

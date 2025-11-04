@@ -3,9 +3,9 @@ package nu.metacraft.lib.event;
 import com.google.gson.JsonObject;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.recipe.Recipe;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.crafting.Recipe;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -33,6 +33,6 @@ public interface RecipeDataGen {
 	);
 
 	@Nullable
-	JsonObject modify(RegistryKey<Recipe<?>> key, JsonObject json, Recipe<?> recipe, RegistryWrapper.WrapperLookup registryLookup);
+	JsonObject modify(ResourceKey<Recipe<?>> key, JsonObject json, Recipe<?> recipe, HolderLookup.Provider registryLookup);
 
 }

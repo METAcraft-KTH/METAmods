@@ -8,23 +8,27 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.entity.*;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.collection.Pool;
-import net.minecraft.util.collection.Weighted;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.LocalDifficulty;
-import net.minecraft.world.ServerWorldAccess;
-import net.minecraft.world.SpawnHelper;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.SpawnSettings;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.gen.StructureAccessor;
-import net.minecraft.world.gen.chunk.ChunkGenerator;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.util.random.Weighted;
+import net.minecraft.util.random.WeightedList;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.NaturalSpawner;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.StructureManager;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.MobSpawnSettings;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.PVector;
@@ -40,40 +44,40 @@ import nu.metacraft.zones.zone.data.ZoneDataRegistry;
 import java.util.ArrayList;
 import java.util.List;
 
-@Mixin(SpawnHelper.class)
+@Mixin(NaturalSpawner.class)
 public abstract class MixinSpawnHelper {
 
-	@ModifyReturnValue(method = "getSpawnEntries", at = @At("RETURN"))
-	private static Pool<SpawnSettings.SpawnEntry> getSpawnEntryFromZone(
-			Pool<SpawnSettings.SpawnEntry> original, ServerWorld world, StructureAccessor structureAccessor,
-			ChunkGenerator chunkGenerator, SpawnGroup spawnGroup, BlockPos pos, @Nullable RegistryEntry<Biome> biomeEntry
+	@ModifyReturnValue(method = "mobsAt", at = @At("RETURN"))
+	private static WeightedList<MobSpawnSettings.SpawnerData> getSpawnEntryFromZone(
+			WeightedList<MobSpawnSettings.SpawnerData> original, ServerLevel world, StructureManager structureAccessor,
+			ChunkGenerator chunkGenerator, MobCategory spawnGroup, BlockPos pos, @Nullable Holder<Biome> biomeEntry
 	) {
 		return applySpawnsAndRemovers(original, world, pos, spawnGroup);
 	}
 
 	@ModifyExpressionValue(
-		method = "populateEntities",
+		method = "spawnMobsForChunkGeneration",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/biome/SpawnSettings;getSpawnEntries(Lnet/minecraft/entity/SpawnGroup;)Lnet/minecraft/util/collection/Pool;"
+			target = "Lnet/minecraft/world/level/biome/MobSpawnSettings;getMobs(Lnet/minecraft/world/entity/MobCategory;)Lnet/minecraft/util/random/WeightedList;"
 		)
 	)
-	private static Pool<SpawnSettings.SpawnEntry> test(
-			Pool<SpawnSettings.SpawnEntry> original, @Local ServerWorldAccess world, @Local ChunkPos chunkPos
+	private static WeightedList<MobSpawnSettings.SpawnerData> test(
+			WeightedList<MobSpawnSettings.SpawnerData> original, @Local ServerLevelAccessor world, @Local ChunkPos chunkPos
 	) {
 		return applySpawnsAndRemovers(
-				original, world.toServerWorld(),
-				chunkPos.getStartPos().withY(world.getTopYInclusive() - 1), //This is what vanilla uses to fetch the biome, so this is no less accurate than vanilla.
-				SpawnGroup.CREATURE
+				original, world.getLevel(),
+				chunkPos.getWorldPosition().atY(world.getMaxY() - 1), //This is what vanilla uses to fetch the biome, so this is no less accurate than vanilla.
+				MobCategory.CREATURE
 		);
 	}
 
 	@Unique
-	private static Pool<SpawnSettings.SpawnEntry> applySpawnsAndRemovers(
-			Pool<SpawnSettings.SpawnEntry> original, ServerWorld world, BlockPos pos, SpawnGroup spawnGroup
+	private static WeightedList<MobSpawnSettings.SpawnerData> applySpawnsAndRemovers(
+			WeightedList<MobSpawnSettings.SpawnerData> original, ServerLevel world, BlockPos pos, MobCategory spawnGroup
 	) {
 		MutableBoolean hasRemovers = new MutableBoolean(false);
-		var zones = ZoneManager.getInstance(world.getServer()).getZonesAt(world.getRegistryKey(), pos, zone -> {
+		var zones = ZoneManager.getInstance(world.getServer()).getZonesAt(world.dimension(), pos, zone -> {
 			return zone.get(ZoneDataRegistry.SPAWN).map(data -> {
 				if (!data.getSpawnRemovers().isEmpty()) {
 					hasRemovers.setTrue();
@@ -82,9 +86,9 @@ public abstract class MixinSpawnHelper {
 			}).orElse(false);
 		});
 		if (!zones.isEmpty()) {
-			List<Weighted<SpawnSettings.SpawnEntry>> spawns = original.getEntries();
+			List<Weighted<MobSpawnSettings.SpawnerData>> spawns = original.unwrap();
 			if (hasRemovers.isTrue()) {
-				Multimap<EntityType<?>, Weighted<SpawnSettings.SpawnEntry>> spawnsMap = spawns.stream().collect(
+				Multimap<EntityType<?>, Weighted<MobSpawnSettings.SpawnerData>> spawnsMap = spawns.stream().collect(
 						Multimaps.toMultimap(entry -> entry.value().type(), entry -> entry, HashMultimap::create)
 				);
 				for (var zone : zones) {
@@ -96,15 +100,15 @@ public abstract class MixinSpawnHelper {
 				}
 				spawns = new ArrayList<>(spawnsMap.values());
 			} else {
-				spawns = new ArrayList<>(original.getEntries());
+				spawns = new ArrayList<>(original.unwrap());
 			}
 			for (var zone : zones) {
 				var spawnData = zone.get(ZoneDataRegistry.SPAWN).orElse(null);
 				if (spawnData != null) {
-					spawns.addAll((PVector<Weighted<SpawnSettings.SpawnEntry>>) (Object) spawnData.getSpawns(spawnGroup).get());
+					spawns.addAll((PVector<Weighted<MobSpawnSettings.SpawnerData>>) (Object) spawnData.getSpawns(spawnGroup).get());
 				}
 			}
-			return Pool.of(spawns);
+			return WeightedList.of(spawns);
 		}
 		return original;
 	}
@@ -112,14 +116,14 @@ public abstract class MixinSpawnHelper {
 	@Inject(
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/world/SpawnHelper;isValidSpawn(Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/entity/mob/MobEntity;D)Z"
+					target = "Lnet/minecraft/world/level/NaturalSpawner;isValidPositionForMob(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Mob;D)Z"
 			),
-			method = "spawnEntitiesInChunk(Lnet/minecraft/entity/SpawnGroup;Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/world/chunk/Chunk;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/SpawnHelper$Checker;Lnet/minecraft/world/SpawnHelper$Runner;)V"
+			method = "spawnCategoryForPosition(Lnet/minecraft/world/entity/MobCategory;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/NaturalSpawner$SpawnPredicate;Lnet/minecraft/world/level/NaturalSpawner$AfterSpawnCallback;)V"
 	)
 	private static void addNBTBeforeSpawnCheck(
-			SpawnGroup group, ServerWorld world, Chunk chunk, BlockPos pos, SpawnHelper.Checker checker,
-			SpawnHelper.Runner runner, CallbackInfo ci, @Local SpawnSettings.SpawnEntry spawnEntry,
-			@Local MobEntity mob
+			MobCategory group, ServerLevel world, ChunkAccess chunk, BlockPos pos, NaturalSpawner.SpawnPredicate checker,
+			NaturalSpawner.AfterSpawnCallback runner, CallbackInfo ci, @Local MobSpawnSettings.SpawnerData spawnEntry,
+			@Local Mob mob
 	) {
 		applyNBTBeforeSpawnCheck(spawnEntry, mob);
 	}
@@ -127,19 +131,19 @@ public abstract class MixinSpawnHelper {
 	@Inject(
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/entity/mob/MobEntity;canSpawn(Lnet/minecraft/world/WorldAccess;Lnet/minecraft/entity/SpawnReason;)Z"
+					target = "Lnet/minecraft/world/entity/Mob;checkSpawnRules(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/world/entity/EntitySpawnReason;)Z"
 			),
-			method = "populateEntities"
+			method = "spawnMobsForChunkGeneration"
 	)
 	private static void addNBTBeforeSpawnCheck(
-			ServerWorldAccess world, RegistryEntry<Biome> biomeEntry, ChunkPos chunkPos, Random random,
-			CallbackInfo ci, @Local SpawnSettings.SpawnEntry spawnEntry, @Local MobEntity mob
+			ServerLevelAccessor world, Holder<Biome> biomeEntry, ChunkPos chunkPos, RandomSource random,
+			CallbackInfo ci, @Local MobSpawnSettings.SpawnerData spawnEntry, @Local Mob mob
 	) {
 		applyNBTBeforeSpawnCheck(spawnEntry, mob);
 	}
 
 	@Unique
-	private static void applyNBTBeforeSpawnCheck(SpawnSettings.SpawnEntry spawnEntry, MobEntity mob) {
+	private static void applyNBTBeforeSpawnCheck(MobSpawnSettings.SpawnerData spawnEntry, Mob mob) {
 		//Apply nbt before spawn check to allow modified nbt to impact the spawn check.
 		if (spawnEntry instanceof BetterSpawnEntry betterSpawnEntry) {
 			betterSpawnEntry.applyData(mob);
@@ -149,19 +153,19 @@ public abstract class MixinSpawnHelper {
 	@WrapOperation(
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/entity/mob/MobEntity;initialize(Lnet/minecraft/world/ServerWorldAccess;Lnet/minecraft/world/LocalDifficulty;Lnet/minecraft/entity/SpawnReason;Lnet/minecraft/entity/EntityData;)Lnet/minecraft/entity/EntityData;"
+			target = "Lnet/minecraft/world/entity/Mob;finalizeSpawn(Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/world/DifficultyInstance;Lnet/minecraft/world/entity/EntitySpawnReason;Lnet/minecraft/world/entity/SpawnGroupData;)Lnet/minecraft/world/entity/SpawnGroupData;"
 		),
 		method = {
-				"spawnEntitiesInChunk(Lnet/minecraft/entity/SpawnGroup;Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/world/chunk/Chunk;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/SpawnHelper$Checker;Lnet/minecraft/world/SpawnHelper$Runner;)V",
-				"populateEntities"
+				"spawnCategoryForPosition(Lnet/minecraft/world/entity/MobCategory;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/NaturalSpawner$SpawnPredicate;Lnet/minecraft/world/level/NaturalSpawner$AfterSpawnCallback;)V",
+				"spawnMobsForChunkGeneration"
 		}
 	)
-	private static EntityData onSpawnEntities(
-			MobEntity mob, ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason,
-			EntityData entityData, Operation<EntityData> initialise, @Local SpawnSettings.SpawnEntry spawnEntry
+	private static SpawnGroupData onSpawnEntities(
+			Mob mob, ServerLevelAccessor world, DifficultyInstance difficulty, EntitySpawnReason spawnReason,
+			SpawnGroupData entityData, Operation<SpawnGroupData> initialise, @Local MobSpawnSettings.SpawnerData spawnEntry
 	) {
 		if (spawnEntry instanceof BetterSpawnEntry betterSpawnEntry) {
-			EntityData data = null;
+			SpawnGroupData data = null;
 			if (betterSpawnEntry.shouldInitialise) {
 				data = initialise.call(mob, world, difficulty, spawnReason, entityData);
 				betterSpawnEntry.applyData(mob);
@@ -173,18 +177,18 @@ public abstract class MixinSpawnHelper {
 
 	@WrapOperation(
 		method = {
-				"canSpawn(Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/entity/SpawnGroup;Lnet/minecraft/world/gen/StructureAccessor;Lnet/minecraft/world/gen/chunk/ChunkGenerator;Lnet/minecraft/world/biome/SpawnSettings$SpawnEntry;Lnet/minecraft/util/math/BlockPos$Mutable;D)Z",
-				"populateEntities"
+				"isValidSpawnPostitionForType(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/MobCategory;Lnet/minecraft/world/level/StructureManager;Lnet/minecraft/world/level/chunk/ChunkGenerator;Lnet/minecraft/world/level/biome/MobSpawnSettings$SpawnerData;Lnet/minecraft/core/BlockPos$MutableBlockPos;D)Z",
+				"spawnMobsForChunkGeneration"
 		},
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/entity/SpawnRestriction;canSpawn(Lnet/minecraft/entity/EntityType;Lnet/minecraft/world/ServerWorldAccess;Lnet/minecraft/entity/SpawnReason;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/random/Random;)Z"
+			target = "Lnet/minecraft/world/entity/SpawnPlacements;checkSpawnRules(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/world/entity/EntitySpawnReason;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)Z"
 		)
 	)
 	private static <T extends Entity> boolean canSpawn(
-			EntityType<T> type, ServerWorldAccess world, SpawnReason spawnReason, BlockPos pos, Random random, Operation<Boolean> original
+			EntityType<T> type, ServerLevelAccessor world, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random, Operation<Boolean> original
 	) {
-		var zones = ZoneManager.getInstance(world.getServer()).getZonesAt(world.toServerWorld().getRegistryKey(), pos, zone -> {
+		var zones = ZoneManager.getInstance(world.getServer()).getZonesAt(world.getLevel().dimension(), pos, zone -> {
 			return zone.get(ZoneDataRegistry.SPAWN).map(data -> {
 				return !data.getSpawnRules().isEmpty();
 			}).orElse(false);

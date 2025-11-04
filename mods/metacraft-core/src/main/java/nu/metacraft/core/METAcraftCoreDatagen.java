@@ -4,24 +4,24 @@ import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
-import net.minecraft.advancement.Advancement;
-import net.minecraft.advancement.AdvancementRequirements;
-import net.minecraft.advancement.AdvancementRewards;
-import net.minecraft.advancement.criterion.Criteria;
-import net.minecraft.advancement.criterion.RecipeUnlockedCriterion;
-import net.minecraft.advancement.criterion.TickCriterion;
-import net.minecraft.data.recipe.RecipeExporter;
-import net.minecraft.data.recipe.RecipeGenerator;
-import net.minecraft.item.Items;
-import net.minecraft.recipe.Ingredient;
-import net.minecraft.recipe.RawShapedRecipe;
-import net.minecraft.recipe.ShapedRecipe;
-import net.minecraft.recipe.book.CraftingRecipeCategory;
-import net.minecraft.recipe.book.RecipeCategory;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.util.Identifier;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementRequirements;
+import net.minecraft.advancements.AdvancementRewards;
+import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.advancements.critereon.PlayerTrigger;
+import net.minecraft.advancements.critereon.RecipeUnlockedTrigger;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.RecipeOutput;
+import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.CraftingBookCategory;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.ShapedRecipe;
+import net.minecraft.world.item.crafting.ShapedRecipePattern;
 import nu.metacraft.core.item.METAcraftItems;
 
 import java.util.Map;
@@ -37,27 +37,27 @@ public class METAcraftCoreDatagen implements DataGeneratorEntrypoint {
 
 	public static class Recipes extends FabricRecipeProvider {
 
-		public Recipes(FabricDataOutput output, CompletableFuture<RegistryWrapper.WrapperLookup> registriesFuture) {
+		public Recipes(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
 			super(output, registriesFuture);
 		}
 
 		@Override
-		protected RecipeGenerator getRecipeGenerator(RegistryWrapper.WrapperLookup wrapperLookup, RecipeExporter recipeExporter) {
-			return new RecipeGenerator(wrapperLookup, recipeExporter) {
+		protected RecipeProvider createRecipeProvider(HolderLookup.Provider wrapperLookup, RecipeOutput recipeExporter) {
+			return new RecipeProvider(wrapperLookup, recipeExporter) {
 				@Override
-				public void generate() {
-					var wrench = RegistryKey.of(
-							RegistryKeys.RECIPE,
-							Identifier.of(METAcraftCore.MODID, "wrench")
+				public void buildRecipes() {
+					var wrench = ResourceKey.create(
+							Registries.RECIPE,
+							ResourceLocation.fromNamespaceAndPath(METAcraftCore.MODID, "wrench")
 					);
-					Advancement.Builder builder = recipeExporter.getAdvancementBuilder().criterion(
-							"has_the_recipe", RecipeUnlockedCriterion.create(wrench)
-					).rewards(AdvancementRewards.Builder.recipe(wrench)).criteriaMerger(
-							AdvancementRequirements.CriterionMerger.OR
+					Advancement.Builder builder = recipeExporter.advancement().addCriterion(
+							"has_the_recipe", RecipeUnlockedTrigger.unlocked(wrench)
+					).rewards(AdvancementRewards.Builder.recipe(wrench)).requirements(
+							AdvancementRequirements.Strategy.OR
 					);
-					builder.criterion(
+					builder.addCriterion(
 							"trigger_always",
-							Criteria.TICK.create(new TickCriterion.Conditions(
+							CriteriaTriggers.TICK.createCriterion(new PlayerTrigger.TriggerInstance(
 									Optional.empty()
 							))
 					);
@@ -65,18 +65,18 @@ public class METAcraftCoreDatagen implements DataGeneratorEntrypoint {
 							wrench,
 							new ShapedRecipe(
 									"misc",
-									CraftingRecipeCategory.EQUIPMENT,
-									RawShapedRecipe.create(
+									CraftingBookCategory.EQUIPMENT,
+									ShapedRecipePattern.of(
 											Map.of(
-													'S', Ingredient.ofItem(Items.STICK)
+													'S', Ingredient.of(Items.STICK)
 											),
 											"S S",
 											" S ",
 											" S "
 									),
-									METAcraftItems.WRENCH.getDefaultStack()
+									METAcraftItems.WRENCH.getDefaultInstance()
 							),
-							builder.build(wrench.getValue().withPrefixedPath("recipes/" + RecipeCategory.TOOLS.getName() + "/"))
+							builder.build(wrench.location().withPrefix("recipes/" + RecipeCategory.TOOLS.getFolderName() + "/"))
 					);
 				}
 			};

@@ -1,18 +1,17 @@
 package nu.metacraft.lib.util;
 
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
-
 import java.util.Optional;
 import java.util.function.UnaryOperator;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 
@@ -24,33 +23,33 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 		}
 
 		@Override
-		public Box getBoundingBox() {
+		public AABB getBoundingBox() {
 			return entity.getBoundingBox();
 		}
 
 		@Override
-		public Vec3d getPos() {
-			return entity.getEntityPos();
+		public Vec3 getPos() {
+			return entity.position();
 		}
 
 		@Override
 		public BlockPos getBlockPos() {
-			return entity.getBlockPos();
+			return entity.blockPosition();
 		}
 
 		@Override
-		public World getWorld() {
-			return entity.getEntityWorld();
+		public Level getWorld() {
+			return entity.level();
 		}
 
 		@Override
 		public String getBackendName() {
-			return entity.getUuidAsString();
+			return entity.getStringUUID();
 		}
 
 		@Override
 		public float getHeight() {
-			return entity.getHeight();
+			return entity.getBbHeight();
 		}
 
 		@Override
@@ -96,25 +95,25 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 			this.blockEntity = blockEntity;
 		}
 
-		public Box getBoundingBox() {
-			return blockEntity.getCachedState().getCollisionShape(
-					blockEntity.getWorld(), blockEntity.getPos()
-			).getBoundingBox().offset(blockEntity.getPos());
+		public AABB getBoundingBox() {
+			return blockEntity.getBlockState().getCollisionShape(
+					blockEntity.getLevel(), blockEntity.getBlockPos()
+			).bounds().move(blockEntity.getBlockPos());
 		}
 
 		@Override
 		public BlockPos getBlockPos() {
-			return blockEntity.getPos();
+			return blockEntity.getBlockPos();
 		}
 
 		@Override
-		public World getWorld() {
-			return blockEntity.getWorld();
+		public Level getWorld() {
+			return blockEntity.getLevel();
 		}
 
 		@Override
 		public String getBackendName() {
-			return blockEntity.getPos().toShortString();
+			return blockEntity.getBlockPos().toShortString();
 		}
 
 		@Override
@@ -124,7 +123,7 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 
 		@Override
 		public void onUpdate() {
-			blockEntity.markDirty();
+			blockEntity.setChanged();
 		}
 
 		@Override
@@ -158,8 +157,8 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 		}
 	}
 
-	public DynamicRegistryManager getRegistryManager() {
-		return getWorld().getRegistryManager();
+	public RegistryAccess getRegistryManager() {
+		return getWorld().registryAccess();
 	}
 
 	public static EntityRef fromBlock(BlockEntity block) {
@@ -170,26 +169,26 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 		return new E(entity);
 	}
 
-	public abstract Box getBoundingBox();
+	public abstract AABB getBoundingBox();
 
 	public float getHeight() {
-		return (float) getBoundingBox().getLengthY();
+		return (float) getBoundingBox().getYsize();
 	}
 
-	public Vec3d getPos() {
-		return getBoundingBox().getHorizontalCenter();
+	public Vec3 getPos() {
+		return getBoundingBox().getBottomCenter();
 	}
 
 	public abstract BlockPos getBlockPos();
 
-	public abstract World getWorld();
+	public abstract Level getWorld();
 
-	public ServerWorld getServerWorld() {
-		return (ServerWorld) getWorld();
+	public ServerLevel getServerWorld() {
+		return (ServerLevel) getWorld();
 	}
 
 	public boolean isReceivingRedstonePower() {
-		return getWorld().isReceivingRedstonePower(getBlockPos());
+		return getWorld().hasNeighborSignal(getBlockPos());
 	}
 
 	public abstract String getBackendName();
@@ -217,11 +216,11 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 	public abstract EntityRef map(UnaryOperator<Entity> entityModifier, UnaryOperator<BlockEntity> blockModifier);
 
 	public static Optional<EntityRef> fromContext(LootContext context) {
-		if (context.hasParameter(LootContextParameters.THIS_ENTITY)) {
-			return Optional.of(EntityRef.fromEntity(context.get(LootContextParameters.THIS_ENTITY)));
+		if (context.hasParameter(LootContextParams.THIS_ENTITY)) {
+			return Optional.of(EntityRef.fromEntity(context.getOptionalParameter(LootContextParams.THIS_ENTITY)));
 		}
-		if (context.hasParameter(LootContextParameters.BLOCK_ENTITY)) {
-			return Optional.of(EntityRef.fromBlock(context.get(LootContextParameters.BLOCK_ENTITY)));
+		if (context.hasParameter(LootContextParams.BLOCK_ENTITY)) {
+			return Optional.of(EntityRef.fromBlock(context.getOptionalParameter(LootContextParams.BLOCK_ENTITY)));
 		}
 		return Optional.empty();
 	}

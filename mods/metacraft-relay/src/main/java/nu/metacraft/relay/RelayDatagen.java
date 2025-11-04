@@ -9,43 +9,43 @@ import net.fabricmc.fabric.api.datagen.v1.provider.FabricBlockLootTableProvider;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricTagProvider;
 import net.fabricmc.fabric.api.recipe.v1.ingredient.DefaultCustomIngredients;
-import net.minecraft.advancement.Advancement;
-import net.minecraft.advancement.AdvancementRequirements;
-import net.minecraft.advancement.AdvancementRewards;
-import net.minecraft.advancement.criterion.Criteria;
-import net.minecraft.advancement.criterion.InventoryChangedCriterion;
-import net.minecraft.advancement.criterion.RecipeUnlockedCriterion;
-import net.minecraft.block.Block;
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LodestoneTrackerComponent;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.component.type.TooltipDisplayComponent;
-import net.minecraft.data.recipe.RecipeExporter;
-import net.minecraft.data.recipe.RecipeGenerator;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemConvertible;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.loot.LootPool;
-import net.minecraft.loot.LootTable;
-import net.minecraft.loot.condition.LootConditionConsumingBuilder;
-import net.minecraft.loot.condition.SurvivesExplosionLootCondition;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.loot.entry.ItemEntry;
-import net.minecraft.loot.function.CopyComponentsLootFunction;
-import net.minecraft.loot.provider.number.ConstantLootNumberProvider;
-import net.minecraft.predicate.item.ItemPredicate;
-import net.minecraft.recipe.Ingredient;
-import net.minecraft.recipe.Recipe;
-import net.minecraft.recipe.ShapelessRecipe;
-import net.minecraft.recipe.book.CraftingRecipeCategory;
-import net.minecraft.recipe.book.RecipeCategory;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.util.Identifier;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementRequirements;
+import net.minecraft.advancements.AdvancementRewards;
+import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.advancements.critereon.InventoryChangeTrigger;
+import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.advancements.critereon.RecipeUnlockedTrigger;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.RecipeOutput;
+import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.component.LodestoneTracker;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.crafting.CraftingBookCategory;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.ShapelessRecipe;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.storage.loot.LootPool;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.entries.LootItem;
+import net.minecraft.world.level.storage.loot.functions.CopyComponentsFunction;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.level.storage.loot.predicates.ConditionUserBuilder;
+import net.minecraft.world.level.storage.loot.predicates.ExplosionCondition;
+import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 import nu.metacraft.relay.blocks.RelayBlocks;
 import nu.metacraft.relay.blocks.block.RelayBlock;
 import nu.metacraft.relay.items.RelayItems;
@@ -59,9 +59,9 @@ import java.util.concurrent.CompletableFuture;
 
 public class RelayDatagen implements DataGeneratorEntrypoint {
 
-	public static final RegistryKey<Recipe<?>> RELAY_PROGRAM = RegistryKey.of(
-			RegistryKeys.RECIPE,
-			Identifier.of(Relay.MODID, "relay_program")
+	public static final ResourceKey<Recipe<?>> RELAY_PROGRAM = ResourceKey.create(
+			Registries.RECIPE,
+			ResourceLocation.fromNamespaceAndPath(Relay.MODID, "relay_program")
 	);
 
 	@Override
@@ -90,24 +90,24 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 
 	public static class RelayBlockTagProvider extends FabricTagProvider.BlockTagProvider {
 
-		public RelayBlockTagProvider(FabricDataOutput output, CompletableFuture<RegistryWrapper.WrapperLookup> registriesFuture) {
+		public RelayBlockTagProvider(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
 			super(output, registriesFuture);
 		}
 
 		@Override
-		protected void configure(RegistryWrapper.WrapperLookup wrapperLookup) {
-			valueLookupBuilder(BlockTags.PICKAXE_MINEABLE).add(RelayBlocks.RELAY);
+		protected void addTags(HolderLookup.Provider wrapperLookup) {
+			valueLookupBuilder(BlockTags.MINEABLE_WITH_PICKAXE).add(RelayBlocks.RELAY);
 		}
 	}
 
 	public static class RelayItemTagProvider extends FabricTagProvider.ItemTagProvider {
 
-		public RelayItemTagProvider(FabricDataOutput output, CompletableFuture<RegistryWrapper.WrapperLookup> registriesFuture) {
+		public RelayItemTagProvider(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
 			super(output, registriesFuture);
 		}
 
 		@Override
-		protected void configure(RegistryWrapper.WrapperLookup wrapperLookup) {
+		protected void addTags(HolderLookup.Provider wrapperLookup) {
 			valueLookupBuilder(RelayItems.RELAY_RECHARGE_ITEMS).add(Items.END_CRYSTAL);
 		}
 	}
@@ -118,25 +118,25 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 				RelayItems.RELAY
 		);
 
-		protected LootTableProvider(FabricDataOutput dataOutput, CompletableFuture<RegistryWrapper.WrapperLookup> registryLookup) {
+		protected LootTableProvider(FabricDataOutput dataOutput, CompletableFuture<HolderLookup.Provider> registryLookup) {
 			super(dataOutput, registryLookup);
 		}
 
 		@Override
-		public <T extends LootConditionConsumingBuilder<T>> T addSurvivesExplosionCondition(ItemConvertible drop, LootConditionConsumingBuilder<T> builder) {
-			return !this.explosionImmuneItems.contains(drop.asItem()) ? builder.conditionally(SurvivesExplosionLootCondition.builder()) : builder.getThisConditionConsumingBuilder();
+		public <T extends ConditionUserBuilder<T>> T applyExplosionCondition(ItemLike drop, ConditionUserBuilder<T> builder) {
+			return !this.explosionResistant.contains(drop.asItem()) ? builder.when(ExplosionCondition.survivesExplosion()) : builder.unwrap();
 		}
 
 		public LootTable.Builder endRelayDrop(Block drop) {
-			return LootTable.builder().pool(
-					this.addSurvivesExplosionCondition(
+			return LootTable.lootTable().withPool(
+					this.applyExplosionCondition(
 							drop,
-							LootPool.builder().rolls(
-									ConstantLootNumberProvider.create(1.0F)
-							).with(
-									ItemEntry.builder(drop).apply(
-											CopyComponentsLootFunction.blockEntity(
-													LootContextParameters.BLOCK_ENTITY
+							LootPool.lootPool().setRolls(
+									ConstantValue.exactly(1.0F)
+							).add(
+									LootItem.lootTableItem(drop).apply(
+											CopyComponentsFunction.copyComponentsFromBlockEntity(
+													LootContextParams.BLOCK_ENTITY
 											)
 									)
 							)
@@ -146,33 +146,33 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 
 		@Override
 		public void generate() {
-			addDrop(RelayBlocks.RELAY, this::endRelayDrop);
+			add(RelayBlocks.RELAY, this::endRelayDrop);
 		}
 	}
 
 	public static class Recipes extends FabricRecipeProvider {
-		public Recipes(FabricDataOutput output, CompletableFuture<RegistryWrapper.WrapperLookup> registriesFuture) {
+		public Recipes(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
 			super(output, registriesFuture);
 		}
 
 		@Override
-		protected RecipeGenerator getRecipeGenerator(RegistryWrapper.WrapperLookup wrapperLookup, RecipeExporter recipeExporter) {
-			return new RecipeGenerator(wrapperLookup, recipeExporter) {
+		protected RecipeProvider createRecipeProvider(HolderLookup.Provider wrapperLookup, RecipeOutput recipeExporter) {
+			return new RecipeProvider(wrapperLookup, recipeExporter) {
 				@Override
-				public void generate() {
-					Advancement.Builder builder = recipeExporter.getAdvancementBuilder().criterion(
-							"has_the_recipe", RecipeUnlockedCriterion.create(RELAY_PROGRAM)
-					).rewards(AdvancementRewards.Builder.recipe(RELAY_PROGRAM)).criteriaMerger(
-							AdvancementRequirements.CriterionMerger.OR
+				public void buildRecipes() {
+					Advancement.Builder builder = recipeExporter.advancement().addCriterion(
+							"has_the_recipe", RecipeUnlockedTrigger.unlocked(RELAY_PROGRAM)
+					).rewards(AdvancementRewards.Builder.recipe(RELAY_PROGRAM)).requirements(
+							AdvancementRequirements.Strategy.OR
 					);
-					builder.criterion(
+					builder.addCriterion(
 							"has_relay",
-							Criteria.INVENTORY_CHANGED.create(new InventoryChangedCriterion.Conditions(
+							CriteriaTriggers.INVENTORY_CHANGED.createCriterion(new InventoryChangeTrigger.TriggerInstance(
 									Optional.empty(),
-									InventoryChangedCriterion.Conditions.Slots.ANY,
+									InventoryChangeTrigger.TriggerInstance.Slots.ANY,
 									List.of(
-											ItemPredicate.Builder.create().items(
-													wrapperLookup.getOrThrow(RegistryKeys.ITEM),
+											ItemPredicate.Builder.item().of(
+													wrapperLookup.lookupOrThrow(Registries.ITEM),
 													RelayItems.RELAY
 											).build()
 									)
@@ -182,44 +182,44 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 							RELAY_PROGRAM,
 							new ShapelessRecipe(
 									"relay",
-									CraftingRecipeCategory.MISC,
+									CraftingBookCategory.MISC,
 									new ItemStack(
-											RelayItems.RELAY.getRegistryEntry(), 1,
-											ComponentChanges.builder().add(
-													DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT.with(
-															DataComponentTypes.LODESTONE_TRACKER, true
+											RelayItems.RELAY.builtInRegistryHolder(), 1,
+											DataComponentPatch.builder().set(
+													DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT.withHidden(
+															DataComponents.LODESTONE_TRACKER, true
 													)
-											).add(
-													DataComponentTypes.LORE, new LoreComponent(
-															List.of(RelayBlock.getTargetText("?, ?, ?", "?").styled(style -> style.withItalic(false)))
+											).set(
+													DataComponents.LORE, new ItemLore(
+															List.of(RelayBlock.getTargetText("?, ?, ?", "?").withStyle(style -> style.withItalic(false)))
 													)
 											).build()
 									),
 									List.of(
 										new CustomDisplayIngredient(
 												DefaultCustomIngredients.difference(
-														Ingredient.ofItem(Items.COMPASS),
+														Ingredient.of(Items.COMPASS),
 														DefaultCustomIngredients.components(
-																Ingredient.ofItem(Items.COMPASS),
-																components -> components.remove(DataComponentTypes.LODESTONE_TRACKER)
+																Ingredient.of(Items.COMPASS),
+																components -> components.remove(DataComponents.LODESTONE_TRACKER)
 														)
 												),
 												List.of(
 														new ItemStack(
-																Items.COMPASS.getRegistryEntry(),
+																Items.COMPASS.builtInRegistryHolder(),
 																1,
-																ComponentChanges.builder().add(
-																		DataComponentTypes.LODESTONE_TRACKER, new LodestoneTrackerComponent(
+																DataComponentPatch.builder().set(
+																		DataComponents.LODESTONE_TRACKER, new LodestoneTracker(
 																				Optional.empty(), true
 																		)
 																).build()
 														)
 												)
 										).toVanilla(),
-										Ingredient.ofItem(RelayItems.RELAY)
+										Ingredient.of(RelayItems.RELAY)
 									)
 							),
-							builder.build(RELAY_PROGRAM.getValue().withPrefixedPath("recipes/" + RecipeCategory.MISC.getName() + "/"))
+							builder.build(RELAY_PROGRAM.location().withPrefix("recipes/" + RecipeCategory.MISC.getFolderName() + "/"))
 					);
 				}
 			};

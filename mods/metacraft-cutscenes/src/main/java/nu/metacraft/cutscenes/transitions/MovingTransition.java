@@ -3,10 +3,6 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.EntityPosition;
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.Vec3d;
 import nu.metacraft.cutscenes.extension.ServerPlayerEntityExtensions;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.util.Target;
@@ -18,6 +14,10 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimerTask;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.PositionMoveRotation;
+import net.minecraft.world.phys.Vec3;
 
 public class MovingTransition implements Transition, SmoothMovementTransition, DeltaTickTransition {
 
@@ -57,7 +57,7 @@ public class MovingTransition implements Transition, SmoothMovementTransition, D
 					SmoothMovementTransition::getEnd
 			).orElse(
 					cutscene.getPlayers().stream().findAny().map(Target::fromEntity).orElse(
-							new Target(Vec3d.ZERO, 0, 0)
+							new Target(Vec3.ZERO, 0, 0)
 					)
 			);
 		}
@@ -68,24 +68,24 @@ public class MovingTransition implements Transition, SmoothMovementTransition, D
 		return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
 	}
 
-	public static Vec3d interpolate(double x, Vec3d[] p) {
-		return new Vec3d(
-				interpolate(x, Arrays.stream(p).mapToDouble(Vec3d::getX).toArray()),
-				interpolate(x, Arrays.stream(p).mapToDouble(Vec3d::getY).toArray()),
-				interpolate(x, Arrays.stream(p).mapToDouble(Vec3d::getZ).toArray())
+	public static Vec3 interpolate(double x, Vec3[] p) {
+		return new Vec3(
+				interpolate(x, Arrays.stream(p).mapToDouble(Vec3::x).toArray()),
+				interpolate(x, Arrays.stream(p).mapToDouble(Vec3::y).toArray()),
+				interpolate(x, Arrays.stream(p).mapToDouble(Vec3::z).toArray())
 		);
 	}
 
 	public static Target interpolate(double x, Target[] p) {
 		return new Target(
-				interpolate(x, Arrays.stream(p).map(Target::pos).toArray(Vec3d[]::new)),
+				interpolate(x, Arrays.stream(p).map(Target::pos).toArray(Vec3[]::new)),
 				(float) interpolate(x, Arrays.stream(p).mapToDouble(Target::yaw).toArray()),
 				(float) interpolate(x, Arrays.stream(p).mapToDouble(Target::pitch).toArray())
 		);
 	}
 
 	@Override
-	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		((ServerPlayerEntityExtensions) player).metacraft$setAllowWrongMovements(true);
 	}
 
@@ -93,8 +93,8 @@ public class MovingTransition implements Transition, SmoothMovementTransition, D
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		cutscene.forAllPlayers(player -> {
 			boolean send = false;
-			if (!player.getAbilities().allowFlying) {
-				player.getAbilities().allowFlying = true;
+			if (!player.getAbilities().mayfly) {
+				player.getAbilities().mayfly = true;
 				send = true;
 			}
 			if (!player.getAbilities().flying) {
@@ -102,7 +102,7 @@ public class MovingTransition implements Transition, SmoothMovementTransition, D
 				send = true;
 			}
 			if (send) {
-				player.sendAbilitiesUpdate();
+				player.onUpdateAbilities();
 			}
 		});
 	}
@@ -113,9 +113,9 @@ public class MovingTransition implements Transition, SmoothMovementTransition, D
 	}
 
 	@Override
-	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		player.interactionManager.getGameMode().setAbilities(player.getAbilities());
-		player.sendAbilitiesUpdate();
+	public void deactivate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		player.gameMode.getGameModeForPlayer().updatePlayerAbilities(player.getAbilities());
+		player.onUpdateAbilities();
 		if (cutscene.getTransitions().getValuesAt(interval.getEnd()+1).noneMatch(
 				movement -> movement instanceof MovingTransition
 		)) {
@@ -167,14 +167,14 @@ public class MovingTransition implements Transition, SmoothMovementTransition, D
 
 		cutscene.forAllPlayers(player -> {
 			//We don't use requestTeleport because it's not thread safe.
-			player.networkHandler.sendPacket(new PlayerPositionLookS2CPacket(
+			player.connection.send(new ClientboundPlayerPositionPacket(
 					-1, //Ignores the teleport confirm packet.
-					new EntityPosition(target.pos(), Vec3d.ZERO, target.yaw(), target.pitch()),
+					new PositionMoveRotation(target.pos(), Vec3.ZERO, target.yaw(), target.pitch()),
 					Set.of()
 			));
 			if (prevTick != cutscene.getCurrentTime()) {
-				player.getEntityWorld().getServer().execute(() -> {
-					player.updatePositionAndAngles(
+				player.level().getServer().execute(() -> {
+					player.absSnapTo(
 							target.pos().x, target.pos().y, target.pos().z, target.yaw(), target.pitch()
 					);
 				});

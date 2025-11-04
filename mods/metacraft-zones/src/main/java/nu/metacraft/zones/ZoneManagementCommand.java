@@ -15,30 +15,30 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.CommandNode;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.argument.BlockPosArgumentType;
-import net.minecraft.command.argument.DimensionArgumentType;
-import net.minecraft.command.argument.NbtCompoundArgumentType;
-import net.minecraft.command.argument.RegistryPredicateArgumentType;
-import net.minecraft.entity.SpawnGroup;
-import net.minecraft.loot.condition.LootCondition;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.ChatFormatting;
+import net.minecraft.advancements.critereon.EntityTypePredicate;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.CompoundTagArgument;
+import net.minecraft.commands.arguments.DimensionArgument;
+import net.minecraft.commands.arguments.ResourceOrTagKeyArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.NbtString;
-import net.minecraft.predicate.entity.EntityTypePredicate;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.StringIdentifiable;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import nu.metacraft.zones.zone.types.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.zones.mixin.AccessorStringRange;
@@ -58,8 +58,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public class ZoneManagementCommand {
 
@@ -68,20 +68,20 @@ public class ZoneManagementCommand {
 	public static final String NAME = "name";
 
 	public static final SimpleCommandExceptionType ZONE_ALREADY_EXISTS = new SimpleCommandExceptionType(
-			Text.literal("Another zone already exists with that name.")
+			Component.literal("Another zone already exists with that name.")
 	);
 
 	public static final SimpleCommandExceptionType INVALID_SPAWN_GROUP = new SimpleCommandExceptionType(
-			Text.literal("Invalid Spawn Group")
+			Component.literal("Invalid Spawn Group")
 	);
 
-	public static final SuggestionProvider<ServerCommandSource> SUGGEST_SPAWN_GROUP = (ctx, builder) -> {
-		return CommandSource.suggestMatching(StringIdentifiable.toKeyable(SpawnGroup.values()).keys(NbtOps.INSTANCE).map(NbtElement::toString), builder);
+	public static final SuggestionProvider<CommandSourceStack> SUGGEST_SPAWN_GROUP = (ctx, builder) -> {
+		return SharedSuggestionProvider.suggest(StringRepresentable.keys(MobCategory.values()).keys(NbtOps.INSTANCE).map(Tag::toString), builder);
 	};
 
-	private static final DynamicCommandExceptionType ENTITY_FAIL = new DynamicCommandExceptionType(id -> Text.literal(id + " is not a valid entity or entity tag!"));
+	private static final DynamicCommandExceptionType ENTITY_FAIL = new DynamicCommandExceptionType(id -> Component.literal(id + " is not a valid entity or entity tag!"));
 
-	private static final Dynamic2CommandExceptionType CONTAINS_FAIL = new Dynamic2CommandExceptionType((pos, zone) -> Text.literal(pos + " is not inside " + zone));
+	private static final Dynamic2CommandExceptionType CONTAINS_FAIL = new Dynamic2CommandExceptionType((pos, zone) -> Component.literal(pos + " is not inside " + zone));
 
 	public static void init() {
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -93,11 +93,11 @@ public class ZoneManagementCommand {
 
 	private record ZoneEntry(String name, MutableInt timeLeft) {}
 
-	private static int contains(CommandContext<ServerCommandSource> ctx, BlockPos pos) throws CommandSyntaxException {
+	private static int contains(CommandContext<CommandSourceStack> ctx, BlockPos pos) throws CommandSyntaxException {
 		var zone = getZone(ctx);
-		if (zone.contains(ctx.getSource().getWorld().getRegistryKey(), pos)) {
-			ctx.getSource().sendFeedback(
-					() -> Text.literal(pos.toShortString() + " is indeed inside " + zone.getName()),
+		if (zone.contains(ctx.getSource().getLevel().dimension(), pos)) {
+			ctx.getSource().sendSuccess(
+					() -> Component.literal(pos.toShortString() + " is indeed inside " + zone.getName()),
 					false
 			);
 			return 1;
@@ -107,8 +107,8 @@ public class ZoneManagementCommand {
 	}
 
 	static void registerCommand(
-			LiteralArgumentBuilder<ServerCommandSource> builder, CommandRegistryAccess registryAccess,
-			CommandDispatcher<ServerCommandSource> dispatcher
+			LiteralArgumentBuilder<CommandSourceStack> builder, CommandBuildContext registryAccess,
+			CommandDispatcher<CommandSourceStack> dispatcher
 	) {
 		builder.then(
 			literal("create").then(
@@ -125,8 +125,8 @@ public class ZoneManagementCommand {
 						ZoneType prevZone = zone.getZone();
 						zone.setZone(new UnionZone(prevZone, newZone));
 					}
-					ctx.getSource().sendFeedback(
-							() -> Text.literal("Expanded zone " + zone.getName() + " to include " + newZone),
+					ctx.getSource().sendSuccess(
+							() -> Component.literal("Expanded zone " + zone.getName() + " to include " + newZone),
 							true
 					);
 					return 1;
@@ -143,8 +143,8 @@ public class ZoneManagementCommand {
 						ZoneType prevZone = zone.getZone();
 						zone.setZone(new IntersectZone(prevZone, newZone));
 					}
-					ctx.getSource().sendFeedback(
-							() -> Text.literal("Limited zone " + zone.getName() + " to " + newZone),
+					ctx.getSource().sendSuccess(
+							() -> Component.literal("Limited zone " + zone.getName() + " to " + newZone),
 							true
 					);
 					return 1;
@@ -152,9 +152,9 @@ public class ZoneManagementCommand {
 			)
 		).then(
 			literal("contains").then(
-				zone().executes(ctx -> contains(ctx, BlockPos.ofFloored(ctx.getSource().getPosition()))).then(
-					argument("pos", BlockPosArgumentType.blockPos()).executes(
-						ctx -> contains(ctx, BlockPosArgumentType.getBlockPos(ctx, "pos"))
+				zone().executes(ctx -> contains(ctx, BlockPos.containing(ctx.getSource().getPosition()))).then(
+					argument("pos", BlockPosArgument.blockPos()).executes(
+						ctx -> contains(ctx, BlockPosArgument.getBlockPos(ctx, "pos"))
 					)
 				)
 			)
@@ -164,8 +164,8 @@ public class ZoneManagementCommand {
 					var zone = getZone(ctx);
 					var newZone = zoneCreator.create();
 					zone.setZone(newZone);
-					ctx.getSource().sendFeedback(
-							() -> Text.literal("Replaced zone shape of " + zone.getName() + " with " + newZone),
+					ctx.getSource().sendSuccess(
+							() -> Component.literal("Replaced zone shape of " + zone.getName() + " with " + newZone),
 							true
 					);
 					return 1;
@@ -181,8 +181,8 @@ public class ZoneManagementCommand {
 						if (zone.getZone() instanceof CombinedZone combined) {
 							if (combined.zoneCount() > index) {
 								var removed = combined.removeZone(index);
-								ctx.getSource().sendFeedback(
-										() -> Text.literal("Removed shape " + removed + " from " + zone.getName()),
+								ctx.getSource().sendSuccess(
+										() -> Component.literal("Removed shape " + removed + " from " + zone.getName()),
 										true
 								);
 								if (combined.zoneCount() == 1) {
@@ -190,12 +190,12 @@ public class ZoneManagementCommand {
 								}
 								return 1;
 							} else {
-								ctx.getSource().sendError(Text.literal(
+								ctx.getSource().sendFailure(Component.literal(
 										"Index too high"
 								));
 							}
 						} else {
-							ctx.getSource().sendError(Text.literal(
+							ctx.getSource().sendFailure(Component.literal(
 									"Not a combined zone"
 							));
 						}
@@ -212,18 +212,18 @@ public class ZoneManagementCommand {
 								if (combined.zoneCount() > index) {
 									var toKeep = combined.getZone(index);
 									zone.setZone(toKeep);
-									ctx.getSource().sendFeedback(
-											() -> Text.literal("Set shape to " + toKeep + " for " + zone.getName()),
+									ctx.getSource().sendSuccess(
+											() -> Component.literal("Set shape to " + toKeep + " for " + zone.getName()),
 											true
 									);
 									return combined.zoneCount()-1;
 								} else {
-									ctx.getSource().sendError(Text.literal(
+									ctx.getSource().sendFailure(Component.literal(
 											"Index too high"
 									));
 								}
 							} else {
-								ctx.getSource().sendError(Text.literal(
+								ctx.getSource().sendFailure(Component.literal(
 										"Not a combined zone"
 								));
 							}
@@ -242,7 +242,7 @@ public class ZoneManagementCommand {
 					} else {
 						zone.setZone(new NegateZone(zone.getZone()));
 					}
-					ctx.getSource().sendFeedback(() -> Text.literal("Negated " + zone.getName()), true);
+					ctx.getSource().sendSuccess(() -> Component.literal("Negated " + zone.getName()), true);
 					return 1;
 				})
 			)
@@ -254,8 +254,8 @@ public class ZoneManagementCommand {
 						int priority = IntegerArgumentType.getInteger(ctx, "priority");
 						zone.setPriority(priority);
 						getSettings(ctx).updatePriority(zone);
-						ctx.getSource().sendFeedback(
-								() -> Text.literal("Set zone priority for " + zone.getName() + " to " + priority),
+						ctx.getSource().sendSuccess(
+								() -> Component.literal("Set zone priority for " + zone.getName() + " to " + priority),
 								true
 						);
 						return 1;
@@ -265,15 +265,15 @@ public class ZoneManagementCommand {
 		).then(
 			ZoneCommandUtils.queryZoneMulti(literal("get"), zone -> {
 				return ImmutableList.of(
-					Text.literal("Name: " + zone.getName()),
-					Text.literal("Dimension: " + zone.getDim().getValue()),
-					Text.literal("Zone: " + zone.getZone()),
-					Text.literal("Priority: " + zone.getPriority()),
-					Text.literal("AdditionalDimensions: " + zone.getRemoteZones().stream().map(type -> {
-						return type.getDim().getValue().toString();
+					Component.literal("Name: " + zone.getName()),
+					Component.literal("Dimension: " + zone.getDim().location()),
+					Component.literal("Zone: " + zone.getZone()),
+					Component.literal("Priority: " + zone.getPriority()),
+					Component.literal("AdditionalDimensions: " + zone.getRemoteZones().stream().map(type -> {
+						return type.getDim().location().toString();
 					}).collect(Collectors.joining(", "))),
-					Text.literal("Data: ").append(
-						join(zone.getAllData().stream().map(data -> Text.literal(" ").append(data.toText(zone.getWorld().getRegistryManager()))).iterator(), Text.literal(",\n"))
+					Component.literal("Data: ").append(
+						join(zone.getAllData().stream().map(data -> Component.literal(" ").append(data.toText(zone.getWorld().registryAccess()))).iterator(), Component.literal(",\n"))
 					)
 				);
 			})
@@ -289,15 +289,15 @@ public class ZoneManagementCommand {
 					String name = StringArgumentType.getString(ctx, NAME);
 					var settings = getSettings(ctx);
 					if (settings.containsZone(name)) {
-						zonesToRemove.put(ctx.getSource().getName(), new ZoneEntry(name, new MutableInt(60*20)));
-						ctx.getSource().sendFeedback(
-								() -> Text.literal("Are you sure you want to remove " + name + "?"),
+						zonesToRemove.put(ctx.getSource().getTextName(), new ZoneEntry(name, new MutableInt(60*20)));
+						ctx.getSource().sendSuccess(
+								() -> Component.literal("Are you sure you want to remove " + name + "?"),
 								false
 						);
-						ctx.getSource().sendFeedback(
-								() -> Text.literal("If yes, please type ").append(
-										Text.literal("/zone confirm-remove " + name).fillStyle(
-												Style.EMPTY.withColor(Formatting.RED).withClickEvent(new ClickEvent.SuggestCommand(
+						ctx.getSource().sendSuccess(
+								() -> Component.literal("If yes, please type ").append(
+										Component.literal("/zone confirm-remove " + name).withStyle(
+												Style.EMPTY.withColor(ChatFormatting.RED).withClickEvent(new ClickEvent.SuggestCommand(
 														"/zone confirm-remove " + name
 												))
 										)
@@ -306,8 +306,8 @@ public class ZoneManagementCommand {
 						);
 						return 1;
 					} else {
-						ctx.getSource().sendFeedback(
-								() -> Text.literal("No zone with " + name + " exists!"),
+						ctx.getSource().sendSuccess(
+								() -> Component.literal("No zone with " + name + " exists!"),
 								false
 						);
 						return 0;
@@ -318,12 +318,12 @@ public class ZoneManagementCommand {
 			literal("confirm-remove").then(
 				argument(NAME, StringArgumentType.string()).executes(ctx -> {
 					String name = StringArgumentType.getString(ctx, NAME);
-					var toRemove = zonesToRemove.get(ctx.getSource().getName());
+					var toRemove = zonesToRemove.get(ctx.getSource().getTextName());
 					if (toRemove == null) {
-						ctx.getSource().sendError(
-							Text.literal("Please type ").append(
-								Text.literal("/zone remove " + name).fillStyle(
-									Style.EMPTY.withColor(Formatting.YELLOW)
+						ctx.getSource().sendFailure(
+							Component.literal("Please type ").append(
+								Component.literal("/zone remove " + name).withStyle(
+									Style.EMPTY.withColor(ChatFormatting.YELLOW)
 											.withClickEvent(new ClickEvent.SuggestCommand(
 												"/zone remove " + name
 											))
@@ -335,21 +335,21 @@ public class ZoneManagementCommand {
 
 					if (toRemove.name.equals(name)) {
 						if (getSettings(ctx).removeZone(name)) {
-							ctx.getSource().sendFeedback(
-									() -> Text.literal("Removed " + name),
+							ctx.getSource().sendSuccess(
+									() -> Component.literal("Removed " + name),
 									true
 							);
 							return 1;
 						} else {
-							ctx.getSource().sendFeedback(
-									() -> Text.literal("No zone with " + name + " exists!"),
+							ctx.getSource().sendSuccess(
+									() -> Component.literal("No zone with " + name + " exists!"),
 									false
 							);
 							return 0;
 						}
 					} else {
-						ctx.getSource().sendError(
-							Text.literal("Are you sure you're trying to remove the right zone? Because you specified another zone in the remove command...")
+						ctx.getSource().sendFailure(
+							Component.literal("Are you sure you're trying to remove the right zone? Because you specified another zone in the remove command...")
 						);
 					}
 					return 0;
@@ -358,10 +358,10 @@ public class ZoneManagementCommand {
 		).then(
 			literal("list").executes(ctx -> {
 				if (getSettings(ctx).getZoneNames().isEmpty()) {
-					ctx.getSource().sendFeedback(() -> Text.literal("There are no zones"), false);
+					ctx.getSource().sendSuccess(() -> Component.literal("There are no zones"), false);
 				}
 				getSettings(ctx).getZoneNames().forEach(name -> {
-					ctx.getSource().sendFeedback(() -> Text.literal(name), false);
+					ctx.getSource().sendSuccess(() -> Component.literal(name), false);
 				});
 				return 1;
 			})
@@ -374,12 +374,12 @@ public class ZoneManagementCommand {
 				literal("add").then(
 					zone().then(
 						spawnGroup("spawnGroup").then(
-							argument("data", NbtCompoundArgumentType.nbtCompound()).executes(ctx -> {
+							argument("data", CompoundTagArgument.compoundTag()).executes(ctx -> {
 								var spawnEntry = BetterSpawnEntry.WEIGHTED_CODEC.parse(
-										ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE),
-										NbtCompoundArgumentType.getNbtCompound(ctx, "data")
+										ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE),
+										CompoundTagArgument.getCompoundTag(ctx, "data")
 								).resultOrPartial(
-										err -> ctx.getSource().sendError(Text.literal(err))
+										err -> ctx.getSource().sendFailure(Component.literal(err))
 								);
 								return addSpawnRule(
 										ctx, "spawn", spawnEntry,
@@ -413,8 +413,8 @@ public class ZoneManagementCommand {
 						})
 					).executes(ctx -> {
 						int returnNum = 0;
-						for (SpawnGroup group : SpawnGroup.values()) {
-							ctx.getSource().sendFeedback(() -> Text.literal("\n" + group.getName() + ":"), false);
+						for (MobCategory group : MobCategory.values()) {
+							ctx.getSource().sendSuccess(() -> Component.literal("\n" + group.getName() + ":"), false);
 							returnNum += listSpawnRules(
 									ctx, "spawn", BetterSpawnEntry::toString,
 									data -> data.getSpawns(group)
@@ -429,20 +429,20 @@ public class ZoneManagementCommand {
 				literal("add").then(
 					zone().then(
 						literal("types").then(
-							argument("entity", RegistryPredicateArgumentType.registryPredicate(RegistryKeys.ENTITY_TYPE)).executes(ctx -> {
+							argument("entity", ResourceOrTagKeyArgument.resourceOrTagKey(Registries.ENTITY_TYPE)).executes(ctx -> {
 								return addSpawnRule(
 										ctx, "spawn remover",
-										RegistryPredicateArgumentType.getPredicate(
-												ctx, "entity", RegistryKeys.ENTITY_TYPE, ENTITY_FAIL
-										).getKey().map(
-												entity -> Optional.ofNullable(Registries.ENTITY_TYPE.get(entity)).map(
-														e -> EntityTypePredicate.create(
-																registryAccess.getOrThrow(RegistryKeys.ENTITY_TYPE), e
+										ResourceOrTagKeyArgument.getResourceOrTagKey(
+												ctx, "entity", Registries.ENTITY_TYPE, ENTITY_FAIL
+										).unwrap().map(
+												entity -> Optional.ofNullable(BuiltInRegistries.ENTITY_TYPE.getValue(entity)).map(
+														e -> EntityTypePredicate.of(
+																registryAccess.lookupOrThrow(Registries.ENTITY_TYPE), e
 														)
 												),
 												entityTag -> Optional.of(
-														EntityTypePredicate.create(
-																registryAccess.getOrThrow(RegistryKeys.ENTITY_TYPE),
+														EntityTypePredicate.of(
+																registryAccess.lookupOrThrow(Registries.ENTITY_TYPE),
 																entityTag
 														)
 												)
@@ -478,10 +478,10 @@ public class ZoneManagementCommand {
 							return removeSpawnRule(
 									ctx, "spawn remover",
 									blocker -> SpawnRemoverRegistry.SpawnRemover.REGISTRY_CODEC.encodeStart(
-											ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE), blocker
+											ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE), blocker
 									).resultOrPartial(
 											METAcraftZones.LOGGER::error
-									).map(NbtElement::toString).orElse("Error"),
+									).map(Tag::toString).orElse("Error"),
 									AdditionalSpawnsZoneData::getSpawnRemovers
 							);
 						})
@@ -493,10 +493,10 @@ public class ZoneManagementCommand {
 						return listSpawnRules(
 								ctx, "spawn remover",
 								blocker -> SpawnRemoverRegistry.SpawnRemover.REGISTRY_CODEC.encodeStart(
-										ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE), blocker
+										ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE), blocker
 								).resultOrPartial(
 										METAcraftZones.LOGGER::error
-								).map(NbtElement::toString).orElse("Error"),
+								).map(Tag::toString).orElse("Error"),
 								AdditionalSpawnsZoneData::getSpawnRemovers
 						);
 					})
@@ -506,27 +506,27 @@ public class ZoneManagementCommand {
 			literal("spawnrules").then(
 				literal("add").then(
 					zone().then(
-						argument("entity", RegistryPredicateArgumentType.registryPredicate(RegistryKeys.ENTITY_TYPE)).then(
-							argument("data", NbtCompoundArgumentType.nbtCompound()).executes(ctx -> {
+						argument("entity", ResourceOrTagKeyArgument.resourceOrTagKey(Registries.ENTITY_TYPE)).then(
+							argument("data", CompoundTagArgument.compoundTag()).executes(ctx -> {
 								return addSpawnRule(
 									ctx, "spawn rule",
-									RegistryPredicateArgumentType.getPredicate(ctx, "entity", RegistryKeys.ENTITY_TYPE, ENTITY_FAIL).getKey().map(
-											entity -> Optional.ofNullable(Registries.ENTITY_TYPE.get(entity)).map(
-													e -> EntityTypePredicate.create(
-															registryAccess.getOrThrow(RegistryKeys.ENTITY_TYPE), e
+									ResourceOrTagKeyArgument.getResourceOrTagKey(ctx, "entity", Registries.ENTITY_TYPE, ENTITY_FAIL).unwrap().map(
+											entity -> Optional.ofNullable(BuiltInRegistries.ENTITY_TYPE.getValue(entity)).map(
+													e -> EntityTypePredicate.of(
+															registryAccess.lookupOrThrow(Registries.ENTITY_TYPE), e
 													)
 											),
 											entityTag -> Optional.of(
-													EntityTypePredicate.create(
-															registryAccess.getOrThrow(RegistryKeys.ENTITY_TYPE),
+													EntityTypePredicate.of(
+															registryAccess.lookupOrThrow(Registries.ENTITY_TYPE),
 															entityTag
 													)
 											)
 									).flatMap(entity -> {
-										return LootCondition.CODEC.parse(
-												ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE),
-												NbtCompoundArgumentType.getNbtCompound(ctx, "data")).resultOrPartial(
-												error -> ctx.getSource().sendError(Text.literal(error))
+										return LootItemCondition.DIRECT_CODEC.parse(
+												ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE),
+												CompoundTagArgument.getCompoundTag(ctx, "data")).resultOrPartial(
+												error -> ctx.getSource().sendFailure(Component.literal(error))
 										).map(rule -> new AdditionalSpawnsZoneData.SpawnRuleEntry(entity, rule));
 									}),
 									AdditionalSpawnsZoneData::getSpawnRules
@@ -542,10 +542,10 @@ public class ZoneManagementCommand {
 							return removeSpawnRule(
 									ctx, "spawn rule",
 									rule -> AdditionalSpawnsZoneData.SpawnRuleEntry.CODEC.encodeStart(
-											ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE), rule
+											ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE), rule
 									).resultOrPartial(
 											METAcraftZones.LOGGER::error
-									).map(NbtElement::toString).orElse("Error"),
+									).map(Tag::toString).orElse("Error"),
 									AdditionalSpawnsZoneData::getSpawnRules
 							);
 						})
@@ -557,10 +557,10 @@ public class ZoneManagementCommand {
 						return listSpawnRules(
 								ctx, "spawn rule",
 								rule -> AdditionalSpawnsZoneData.SpawnRuleEntry.CODEC.encodeStart(
-										ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE), rule
+										ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE), rule
 								).resultOrPartial(
 										METAcraftZones.LOGGER::error
-								).map(NbtElement::toString).orElse("Error"),
+								).map(Tag::toString).orElse("Error"),
 								AdditionalSpawnsZoneData::getSpawnRules
 						);
 					})
@@ -575,7 +575,7 @@ public class ZoneManagementCommand {
 	}
 
 	private static <T> int addSpawnRule(
-			CommandContext<ServerCommandSource> ctx,
+			CommandContext<CommandSourceStack> ctx,
 			String nameOfObject,
 			Optional<T> creatorFromArgs,
 			FunctionForCommands<AdditionalSpawnsZoneData, AdditionalSpawnsZoneData.ListAccessor<T>> dataGetter
@@ -585,7 +585,7 @@ public class ZoneManagementCommand {
 		if (data != null) {
 			var spawnData = zone.getOrCreate(ZoneDataRegistry.SPAWN);
 			dataGetter.apply(spawnData).add(data);
-			ctx.getSource().sendFeedback(() -> Text.literal("Added " + nameOfObject + " to " + zone.getName()), true);
+			ctx.getSource().sendSuccess(() -> Component.literal("Added " + nameOfObject + " to " + zone.getName()), true);
 			return 1;
 		} else {
 			return 0;
@@ -593,7 +593,7 @@ public class ZoneManagementCommand {
 	}
 
 	private static <T> int removeSpawnRule(
-			CommandContext<ServerCommandSource> ctx,
+			CommandContext<CommandSourceStack> ctx,
 			String nameOfObject, Function<T, String> printer,
 			FunctionForCommands<AdditionalSpawnsZoneData, AdditionalSpawnsZoneData.ListAccessor<T>> dataGetter
 	) throws CommandSyntaxException {
@@ -603,20 +603,20 @@ public class ZoneManagementCommand {
 		if (data != null) {
 			var list = dataGetter.apply(data);
 			if (index >= list.size()) {
-				ctx.getSource().sendError(Text.literal("Index too large"));
+				ctx.getSource().sendFailure(Component.literal("Index too large"));
 				return 0;
 			}
 			var entry = list.remove(index);
-			ctx.getSource().sendFeedback(() -> Text.literal("Removed " + nameOfObject + " " + printer.apply(entry) + " successfully from " + zone.getName()), true);
+			ctx.getSource().sendSuccess(() -> Component.literal("Removed " + nameOfObject + " " + printer.apply(entry) + " successfully from " + zone.getName()), true);
 		} else {
-			ctx.getSource().sendFeedback(() -> Text.literal("No data"), false);
+			ctx.getSource().sendSuccess(() -> Component.literal("No data"), false);
 			return 0;
 		}
 		return 1;
 	}
 
 	private static <T> int listSpawnRules(
-			CommandContext<ServerCommandSource> ctx,
+			CommandContext<CommandSourceStack> ctx,
 			String nameOfObject, Function<T, String> printer,
 			FunctionForCommands<AdditionalSpawnsZoneData, AdditionalSpawnsZoneData.ListAccessor<T>> dataGetter
 	) throws CommandSyntaxException {
@@ -626,32 +626,32 @@ public class ZoneManagementCommand {
 			var objects = dataGetter.apply(data);
 			MutableInt i = new MutableInt(0);
 			objects.forEach(o -> {
-				ctx.getSource().sendFeedback(() -> Text.literal(i.getAndIncrement() + ": " + printer.apply(o)), false);
+				ctx.getSource().sendSuccess(() -> Component.literal(i.getAndIncrement() + ": " + printer.apply(o)), false);
 			});
 			if (objects.isEmpty()) {
-				ctx.getSource().sendFeedback(() -> Text.literal("No " + nameOfObject + "s defined"), false);
+				ctx.getSource().sendSuccess(() -> Component.literal("No " + nameOfObject + "s defined"), false);
 			}
 			return objects.size();
 		} else {
-			ctx.getSource().sendFeedback(() -> Text.literal("No data"), false);
+			ctx.getSource().sendSuccess(() -> Component.literal("No data"), false);
 			return 0;
 		}
 	}
 
-	private static ArgumentBuilder<ServerCommandSource, ?> spawnGroup(String name) {
+	private static ArgumentBuilder<CommandSourceStack, ?> spawnGroup(String name) {
 		return argument(name, StringArgumentType.word()).suggests(SUGGEST_SPAWN_GROUP);
 	}
 
-	private static SpawnGroup getSpawnGroup(CommandContext<ServerCommandSource> ctx, String name) throws CommandSyntaxException {
+	private static MobCategory getSpawnGroup(CommandContext<CommandSourceStack> ctx, String name) throws CommandSyntaxException {
 		String argVal = StringArgumentType.getString(ctx, name);
-		return SpawnGroup.CODEC.parse(
+		return MobCategory.CODEC.parse(
 				NbtOps.INSTANCE,
-				NbtString.of(argVal)
-		).resultOrPartial(err -> ctx.getSource().sendError(Text.literal(err))).orElseThrow(INVALID_SPAWN_GROUP::create);
+				StringTag.valueOf(argVal)
+		).resultOrPartial(err -> ctx.getSource().sendFailure(Component.literal(err))).orElseThrow(INVALID_SPAWN_GROUP::create);
 	}
 
-	static Text join(Iterator<? extends Text> text, Text delimiter) {
-		MutableText full = Text.empty();
+	static Component join(Iterator<? extends Component> text, Component delimiter) {
+		MutableComponent full = Component.empty();
 		if (text.hasNext()) {
 			full.append(text.next());
 		}
@@ -664,11 +664,11 @@ public class ZoneManagementCommand {
 
 	@FunctionalInterface
 	public interface PassCommand {
-		int run(CommandContext<ServerCommandSource> context, String command) throws CommandSyntaxException;
+		int run(CommandContext<CommandSourceStack> context, String command) throws CommandSyntaxException;
 	}
 
-	public static SuggestionProvider<ServerCommandSource> getCommandSuggest(
-			int pos, CommandDispatcher<ServerCommandSource> dispatcher
+	public static SuggestionProvider<CommandSourceStack> getCommandSuggest(
+			int pos, CommandDispatcher<CommandSourceStack> dispatcher
 	) {
 		return (ctx, suggestionsBuilder) -> {
 			StringBuilder builder = new StringBuilder();
@@ -698,16 +698,16 @@ public class ZoneManagementCommand {
 		};
 	}
 
-	public static final SuggestionProvider<ServerCommandSource> ROOT_COMMAND_SUGGEST = (ctx, suggestionsBuilder) -> {
-		return CommandSource.suggestMatching(
+	public static final SuggestionProvider<CommandSourceStack> ROOT_COMMAND_SUGGEST = (ctx, suggestionsBuilder) -> {
+		return SharedSuggestionProvider.suggest(
 				ctx.getRootNode().getChildren().stream().map(CommandNode::getName), suggestionsBuilder
 		);
 	};
 
-	public static ArgumentBuilder<ServerCommandSource, ?> command(
-			String prefix, int maxLength, CommandDispatcher<ServerCommandSource> dispatcher, PassCommand passCommand
+	public static ArgumentBuilder<CommandSourceStack, ?> command(
+			String prefix, int maxLength, CommandDispatcher<CommandSourceStack> dispatcher, PassCommand passCommand
 	) {
-		ArgumentBuilder<ServerCommandSource, ?> current = argument("the_rest", StringArgumentType.greedyString()).executes(ctx -> {
+		ArgumentBuilder<CommandSourceStack, ?> current = argument("the_rest", StringArgumentType.greedyString()).executes(ctx -> {
 			StringBuilder builder = new StringBuilder(StringArgumentType.getString(ctx, prefix + "0"));
 			for (int j = 1; j <= maxLength; j++) {
 				builder.append(" ").append(StringArgumentType.getString(ctx, prefix + j));
@@ -733,20 +733,20 @@ public class ZoneManagementCommand {
 		}).then(current);
 	}
 
-	static ArgumentBuilder<ServerCommandSource, ?> messageCommand(
+	static ArgumentBuilder<CommandSourceStack, ?> messageCommand(
 			String name,
 			Function<MessageZoneData, Optional<String>> messageGetter,
 			BiConsumer<MessageZoneData, Optional<String>> messageSetter,
-			CommandDispatcher<ServerCommandSource> dispatcher
+			CommandDispatcher<CommandSourceStack> dispatcher
 	) {
 		return literal(name).then(
 			literal("get").then(
 				zone().executes(ctx -> {
 					var opt = getZone(ctx).get(ZoneDataRegistry.MESSAGE).flatMap(messageGetter);
 					opt.ifPresentOrElse(text -> {
-						ctx.getSource().sendFeedback(() -> Text.literal("Message: ").append(text), false);
+						ctx.getSource().sendSuccess(() -> Component.literal("Message: ").append(text), false);
 					}, () -> {
-						ctx.getSource().sendFeedback(() -> Text.literal("No message set for this zone"), false);
+						ctx.getSource().sendSuccess(() -> Component.literal("No message set for this zone"), false);
 					});
 					return opt.isPresent() ? 1 : 0;
 				})
@@ -760,8 +760,8 @@ public class ZoneManagementCommand {
 								zone.getOrCreate(ZoneDataRegistry.MESSAGE),
 								Optional.of(command)
 						);
-						ctx.getSource().sendFeedback(
-								() -> Text.literal("Set " + name + " in zone " + zone.getName() + " to " + command),
+						ctx.getSource().sendSuccess(
+								() -> Component.literal("Set " + name + " in zone " + zone.getName() + " to " + command),
 								true
 						);
 						return 1;
@@ -776,8 +776,8 @@ public class ZoneManagementCommand {
 							zone.getOrCreate(ZoneDataRegistry.MESSAGE),
 						Optional.empty()
 					);
-					ctx.getSource().sendFeedback(
-							() -> Text.literal("Removed " + name + " from " + zone.getName()),
+					ctx.getSource().sendSuccess(
+							() -> Component.literal("Removed " + name + " from " + zone.getName()),
 							true
 					);
 					return 1;
@@ -786,37 +786,37 @@ public class ZoneManagementCommand {
 		);
 	}
 
-	static ArgumentBuilder<ServerCommandSource, ?> addRemoveSubDim(LiteralArgumentBuilder<ServerCommandSource> name, boolean add) {
+	static ArgumentBuilder<CommandSourceStack, ?> addRemoveSubDim(LiteralArgumentBuilder<CommandSourceStack> name, boolean add) {
 		return name.then(
 			zone().then(
-				argument("dim", DimensionArgumentType.dimension()).executes(ctx -> {
-					ServerWorld dim = DimensionArgumentType.getDimensionArgument(ctx, "dim");
-					var dimKey = dim.getRegistryKey();
+				argument("dim", DimensionArgument.dimension()).executes(ctx -> {
+					ServerLevel dim = DimensionArgument.getDimension(ctx, "dim");
+					var dimKey = dim.dimension();
 					RealZone zone = getZone(ctx);
 					if (add) {
 						if (zone.getDim() == dimKey || zone.hasRemoteZone(dimKey)) {
-							ctx.getSource().sendFeedback(() -> Text.literal(
+							ctx.getSource().sendSuccess(() -> Component.literal(
 									"Dimension already covered!"
 							), false);
 						} else {
 							zone.addRemoteDimension(dim);
-							ctx.getSource().sendFeedback(() -> Text.literal(
-									"Added dimension " + dimKey.getValue() + " to " + zone.getName()
+							ctx.getSource().sendSuccess(() -> Component.literal(
+									"Added dimension " + dimKey.location() + " to " + zone.getName()
 							), true);
 						}
 					} else {
 						if (zone.getDim() == dimKey) {
-							ctx.getSource().sendFeedback(() -> Text.literal(
+							ctx.getSource().sendSuccess(() -> Component.literal(
 											"Cannot remove source dimension, delete the zone instead!"
 									), false
 							);
 						} else if (zone.hasRemoteZone(dimKey)) {
 							zone.removeRemoteDimension(dim);
-							ctx.getSource().sendFeedback(() -> Text.literal(
-									"Removed dimension " + dimKey.getValue() + " from " + zone.getName()
+							ctx.getSource().sendSuccess(() -> Component.literal(
+									"Removed dimension " + dimKey.location() + " from " + zone.getName()
 							), true);
 						} else {
-							ctx.getSource().sendFeedback(() -> Text.literal(
+							ctx.getSource().sendSuccess(() -> Component.literal(
 									"Dimension not covered!"
 							), false);
 						}
@@ -827,43 +827,43 @@ public class ZoneManagementCommand {
 		);
 	}
 
-	static RealZone getZone(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+	static RealZone getZone(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		return ZoneCommandUtils.getZone(ctx, NAME);
 	}
 
-	static RequiredArgumentBuilder<ServerCommandSource, ?> zone() {
+	static RequiredArgumentBuilder<CommandSourceStack, ?> zone() {
 		return ZoneCommandUtils.zone(NAME);
 	}
 
-	static ArgumentBuilder<ServerCommandSource, ?> createCreateCommandsFromRegistry(
-			ArgumentBuilder<ServerCommandSource, ?> builder, CommandRegistryAccess registryAccess
+	static ArgumentBuilder<CommandSourceStack, ?> createCreateCommandsFromRegistry(
+			ArgumentBuilder<CommandSourceStack, ?> builder, CommandBuildContext registryAccess
 	) {
 		return getZoneCreator(builder, registryAccess, (zoneCreator, ctx) -> {
-			World world = ctx.getSource().getWorld();
+			Level world = ctx.getSource().getLevel();
 			ZoneType zone = zoneCreator.create();
 			String name = StringArgumentType.getString(ctx, NAME);
 			if (getSettings(ctx).containsZone(name)) {
 				throw ZONE_ALREADY_EXISTS.create();
 			}
 			RealZone container = new RealZone(
-					name, world, zone, new HashMap<>(), 0, getSettings(ctx)::markDirty
+					name, world, zone, new HashMap<>(), 0, getSettings(ctx)::setDirty
 			);
 			getSettings(ctx).addZone(container);
-			ctx.getSource().sendFeedback(
-					() -> Text.literal("Added " + container.getName()), true
+			ctx.getSource().sendSuccess(
+					() -> Component.literal("Added " + container.getName()), true
 			);
 			return 1;
 		});
 	}
 
-	static ArgumentBuilder<ServerCommandSource, ?> getZoneCreator(
-			ArgumentBuilder<ServerCommandSource, ?> builder, CommandRegistryAccess registryAccess, ZoneAdder zoneAdder
+	static ArgumentBuilder<CommandSourceStack, ?> getZoneCreator(
+			ArgumentBuilder<CommandSourceStack, ?> builder, CommandBuildContext registryAccess, ZoneAdder zoneAdder
 	) {
-		ZoneRegistry.REGISTRY.streamEntries().forEach(entry -> {
+		ZoneRegistry.REGISTRY.listElements().forEach(entry -> {
 			if(entry.value().commandCreator() != null) {
 				builder.then(
 						entry.value().commandCreator().createCommand(
-								literal(Commands.getIDAsString(entry.registryKey().getValue())), registryAccess, zoneAdder
+								literal(Commands.getIDAsString(entry.key().location())), registryAccess, zoneAdder
 						)
 				);
 			}
@@ -873,7 +873,7 @@ public class ZoneManagementCommand {
 
 	@FunctionalInterface
 	public interface ZoneAdder {
-		int add(ZoneCreator zoneCreator, CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException;
+		int add(ZoneCreator zoneCreator, CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException;
 	}
 
 	@FunctionalInterface
@@ -881,7 +881,7 @@ public class ZoneManagementCommand {
 		ZoneType create() throws CommandSyntaxException;
 	}
 
-	public static ZoneManager getSettings(CommandContext<ServerCommandSource> ctx) {
+	public static ZoneManager getSettings(CommandContext<CommandSourceStack> ctx) {
 		return ZoneManager.getInstance(ctx.getSource().getServer());
 	}
 

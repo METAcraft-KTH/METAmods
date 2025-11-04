@@ -2,12 +2,12 @@ package nu.metacraft.lib.scheduler;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Uuids;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.timer.Timer;
-import net.minecraft.world.timer.TimerCallback;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.timers.TimerCallback;
+import net.minecraft.world.level.timers.TimerQueue;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.SerializableTeleportTarget;
 import nu.metacraft.lib.util.helper.DisconnectedPlayerHelper;
@@ -18,14 +18,14 @@ public class TeleportPlayer implements TimerCallback<MinecraftServer>, Named {
 
 	public static final MapCodec<TeleportPlayer> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Uuids.STRICT_CODEC.fieldOf("player").forGetter(t -> t.player),
+					UUIDUtil.LENIENT_CODEC.fieldOf("player").forGetter(t -> t.player),
 					SerializableTeleportTarget.TELEPORT_TARGET_CODEC.fieldOf("target").forGetter(t -> t.target)
 			).apply(instance, TeleportPlayer::new)
 	);
 
 	private final UUID player;
 	private final SerializableTeleportTarget target;
-	private TeleportTarget parsedTarget;
+	private TeleportTransition parsedTarget;
 
 	public TeleportPlayer(
 			UUID player,
@@ -35,8 +35,8 @@ public class TeleportPlayer implements TimerCallback<MinecraftServer>, Named {
 		this.target = target;
 	}
 
-	public TeleportPlayer(PlayerEntity playerEntity, SerializableTeleportTarget target) {
-		this(playerEntity.getUuid(), target);
+	public TeleportPlayer(Player playerEntity, SerializableTeleportTarget target) {
+		this(playerEntity.getUUID(), target);
 	}
 
 	@Override
@@ -47,7 +47,7 @@ public class TeleportPlayer implements TimerCallback<MinecraftServer>, Named {
 	}
 
 	@Override
-	public void call(MinecraftServer server, Timer<MinecraftServer> events, long time) {
+	public void handle(MinecraftServer server, TimerQueue<MinecraftServer> events, long time) {
 		if (parsedTarget == null) {
 			var t = target.getIfFixed(server);
 			if (t.isPresent()) {
@@ -56,9 +56,9 @@ public class TeleportPlayer implements TimerCallback<MinecraftServer>, Named {
 				return;
 			}
 		}
-		var player = server.getPlayerManager().getPlayer(this.player);
+		var player = server.getPlayerList().getPlayer(this.player);
 		if (player != null) {
-			player.teleportTo(parsedTarget);
+			player.teleport(parsedTarget);
 		} else {
 			DisconnectedPlayerHelper.forDisconnectedPlayer(server, this.player, playerData -> {
 				DisconnectedPlayerHelper.setFromTeleportTarget(playerData, parsedTarget);
@@ -68,7 +68,7 @@ public class TeleportPlayer implements TimerCallback<MinecraftServer>, Named {
 	}
 
 	@Override
-	public MapCodec<? extends TimerCallback<MinecraftServer>> getCodec() {
+	public MapCodec<? extends TimerCallback<MinecraftServer>> codec() {
 		return CODEC;
 	}
 }

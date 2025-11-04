@@ -1,7 +1,7 @@
 package nu.metacraft.cutscenes.transitions;
 
-import net.minecraft.server.network.ServerPlayerEntity;
 import nu.metacraft.cutscenes.util.IntervalMap;
+import net.minecraft.server.level.ServerPlayer;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfig;
 
@@ -18,7 +18,7 @@ public abstract class InstantTransition implements Transition, TransitionConfig 
 	}
 
 	@Override
-	public final void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {}
+	public final void deactivate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {}
 
 	@Override
 	public final Transition create() {

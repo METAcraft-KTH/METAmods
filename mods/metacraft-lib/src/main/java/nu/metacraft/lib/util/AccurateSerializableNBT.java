@@ -6,12 +6,11 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.StringNbtReader;
-
 import java.util.HashSet;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.TagParser;
 
 /**
  * Some things such as entities depend on the ability to specify type information in the NBT data.
@@ -25,17 +24,17 @@ import java.util.HashSet;
  */
 public class AccurateSerializableNBT {
 
-	protected static final Codec<NbtCompound> SNBT_CODEC = Codec.STRING.comapFlatMap(line -> {
+	protected static final Codec<CompoundTag> SNBT_CODEC = Codec.STRING.comapFlatMap(line -> {
 		try {
-			return DataResult.success(StringNbtReader.readCompound(line));
+			return DataResult.success(TagParser.parseCompoundFully(line));
 		} catch (CommandSyntaxException e) {
 			return DataResult.error(e::getMessage);
 		}
-	}, NbtElement::toString);
+	}, Tag::toString);
 
 	protected static final Codec<AccurateSerializableNBT> SPECIFIC_CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					NbtCompound.CODEC.fieldOf("data").forGetter(t -> t.data),
+					CompoundTag.CODEC.fieldOf("data").forGetter(t -> t.data),
 					SNBT_CODEC.fieldOf("snbt").forGetter(t -> t.snbt)
 			).apply(instance, AccurateSerializableNBT::new)
 	);
@@ -47,12 +46,12 @@ public class AccurateSerializableNBT {
 			if (merged.isSuccess()) {
 				return merged;
 			}
-			var nbt = NbtCompound.CODEC.decode(dynamicOps, t);
+			var nbt = CompoundTag.CODEC.decode(dynamicOps, t);
 			if (nbt.isSuccess()) {
 				return nbt.map(
 					d -> d.mapFirst(
 						data -> new AccurateSerializableNBT(
-								data, new NbtCompound()
+								data, new CompoundTag()
 						)
 					)
 				);
@@ -62,7 +61,7 @@ public class AccurateSerializableNBT {
 				return snbt.map(
 						d -> d.mapFirst(
 								data -> new AccurateSerializableNBT(
-										new NbtCompound(), data
+										new CompoundTag(), data
 								)
 						)
 				);
@@ -79,7 +78,7 @@ public class AccurateSerializableNBT {
 		@Override
 		public <T> DataResult<T> encode(AccurateSerializableNBT accurateSerializableNBT, DynamicOps<T> dynamicOps, T t) {
 			if (accurateSerializableNBT.snbt.isEmpty()) {
-				return NbtCompound.CODEC.encode(accurateSerializableNBT.data, dynamicOps, t);
+				return CompoundTag.CODEC.encode(accurateSerializableNBT.data, dynamicOps, t);
 			}
 			if (accurateSerializableNBT.data.isEmpty()) {
 				return SNBT_CODEC.encode(accurateSerializableNBT.snbt, dynamicOps, t);
@@ -88,32 +87,32 @@ public class AccurateSerializableNBT {
 		}
 	};
 
-	private final NbtCompound data;
-	private final NbtCompound snbt;
-	private final NbtCompound merged;
+	private final CompoundTag data;
+	private final CompoundTag snbt;
+	private final CompoundTag merged;
 
-	public AccurateSerializableNBT(NbtCompound data, NbtCompound snbt) {
+	public AccurateSerializableNBT(CompoundTag data, CompoundTag snbt) {
 		this.data = data;
 		this.snbt = snbt;
 		this.merged = mergeCompounds(snbt, data);
 	}
 
-	public NbtCompound getMerged() {
+	public CompoundTag getMerged() {
 		return merged;
 	}
 
-	public static NbtCompound mergeCompounds(NbtCompound primaryCompound, NbtCompound secondaryCompound) {
-		NbtCompound result = new NbtCompound();
-		var keys = new HashSet<>(primaryCompound.getKeys());
-		keys.addAll(secondaryCompound.getKeys());
+	public static CompoundTag mergeCompounds(CompoundTag primaryCompound, CompoundTag secondaryCompound) {
+		CompoundTag result = new CompoundTag();
+		var keys = new HashSet<>(primaryCompound.keySet());
+		keys.addAll(secondaryCompound.keySet());
 		for (var key : keys) {
 			result.put(key, merge(primaryCompound.get(key), secondaryCompound.get(key)));
 		}
 		return result;
 	}
 
-	public static NbtList mergeLists(NbtList primaryList, NbtList secondaryList) {
-		NbtList result = new NbtList();
+	public static ListTag mergeLists(ListTag primaryList, ListTag secondaryList) {
+		ListTag result = new ListTag();
 		int minSize = Math.min(primaryList.size(), secondaryList.size());
 		for (int i = 0; i < minSize; i++) {
 			result.add(merge(primaryList.get(i), secondaryList.get(i)));
@@ -127,12 +126,12 @@ public class AccurateSerializableNBT {
 		return result;
 	}
 
-	public static NbtElement merge(NbtElement primary, NbtElement secondary) {
+	public static Tag merge(Tag primary, Tag secondary) {
 		return switch (primary) {
 			case null -> secondary;
-			case NbtCompound primaryCompound when secondary instanceof NbtCompound secondaryCompound ->
+			case CompoundTag primaryCompound when secondary instanceof CompoundTag secondaryCompound ->
 					mergeCompounds(primaryCompound, secondaryCompound);
-			case NbtList primaryList when secondary instanceof NbtList secondaryList ->
+			case ListTag primaryList when secondary instanceof ListTag secondaryList ->
 					mergeLists(primaryList, secondaryList);
 			default -> primary;
 		};

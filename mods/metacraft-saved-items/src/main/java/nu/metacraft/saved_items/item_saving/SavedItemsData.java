@@ -5,25 +5,25 @@ import com.google.common.collect.MultimapBuilder;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.predicate.item.ItemPredicate;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableTextContent;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.intprovider.IntProvider;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
+import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import org.apache.commons.lang3.mutable.MutableInt;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.saved_items.SavedItemsConfig;
 import nu.metacraft.saved_items.SavedItems;
 import nu.metacraft.saved_items.SavedItemsDataFixer;
@@ -33,17 +33,17 @@ import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class SavedItemsData extends PersistentState {
+public class SavedItemsData extends SavedData {
 
 	public static final String ITEMS = "Items"; //Careful, this is used by a datafixer!
-	private static final PersistentStateType<SavedItemsData> TYPE = new PersistentStateType<>(
-			SavedItems.MODID, ctx -> create(ctx.getWorldOrThrow().getServer()),
-			ctx -> createCodec(ctx.getWorldOrThrow().getServer()),
+	private static final SavedDataType<SavedItemsData> TYPE = new SavedDataType<>(
+			SavedItems.MODID, ctx -> create(ctx.levelOrThrow().getServer()),
+			ctx -> createCodec(ctx.levelOrThrow().getServer()),
 			SavedItemsDataFixer.Types.SAVED_DATA_SAVED_ITEMS
 	);
 
-	private static final Codec<Multimap<Item, SavedItemEntry>> CODEC = ExtraCodecs.unboundedMultimap(
-			Registries.ITEM.getCodec(), SavedItemEntry.CODEC,
+	private static final Codec<Multimap<Item, SavedItemEntry>> CODEC = METACodecs.unboundedMultimap(
+			BuiltInRegistries.ITEM.byNameCodec(), SavedItemEntry.CODEC,
 			MultimapBuilder.hashKeys().arrayListValues()::build
 	);
 
@@ -56,7 +56,7 @@ public class SavedItemsData extends PersistentState {
 	}
 
 	public static SavedItemsData getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	private final Multimap<Item, SavedItemEntry> items = MultimapBuilder.hashKeys().arrayListValues().build();
@@ -67,40 +67,40 @@ public class SavedItemsData extends PersistentState {
 		this.server = server;
 	}
 
-	public static final SavedItemsConfig.SavingType DESPAWN_TYPE = SavedItemsConfig.SavingType.of(Identifier.ofVanilla("despawn"));
-	public static final SavedItemsConfig.SavingType ANY_DAMAGE = SavedItemsConfig.SavingType.of(Identifier.ofVanilla("any_damage"));
-	public static final SavedItemsConfig.SavingType ANY = SavedItemsConfig.SavingType.of(Identifier.ofVanilla("any"));
+	public static final SavedItemsConfig.SavingType DESPAWN_TYPE = SavedItemsConfig.SavingType.of(ResourceLocation.withDefaultNamespace("despawn"));
+	public static final SavedItemsConfig.SavingType ANY_DAMAGE = SavedItemsConfig.SavingType.of(ResourceLocation.withDefaultNamespace("any_damage"));
+	public static final SavedItemsConfig.SavingType ANY = SavedItemsConfig.SavingType.of(ResourceLocation.withDefaultNamespace("any"));
 
 	public static SavedItemsConfig.SavingType getForDamageType(DamageSource source) {
 		return SavedItemsConfig.SavingType.of(
-				source.getTypeRegistryEntry().getKey().map(RegistryKey::getValue).orElse(
-						Identifier.of("error", "unable_to_determine_damage_type_id")
+				source.typeHolder().unwrapKey().map(ResourceKey::location).orElse(
+						ResourceLocation.fromNamespaceAndPath("error", "unable_to_determine_damage_type_id")
 				)
 		);
 	}
 
 	public static Stream<SavedItemsConfig.SavingType> getDamageTypeGroupsFromType(SavedItemsConfig.SavingType type, MinecraftServer server) {
-		var registry = server.getOverworld().getDamageSources().registry;
-		if (!registry.containsId(type.getValue())) {
+		var registry = server.overworld().damageSources().damageTypes;
+		if (!registry.containsKey(type.getValue())) {
 			return Stream.empty();
 		}
 		return Stream.concat(
-				registry.getOptional(RegistryKey.of(RegistryKeys.DAMAGE_TYPE, type.getValue())).stream().flatMap(
-						entry -> entry.streamTags().map(SavedItemsConfig.SavingType::of)
+				registry.get(ResourceKey.create(Registries.DAMAGE_TYPE, type.getValue())).stream().flatMap(
+						entry -> entry.tags().map(SavedItemsConfig.SavingType::of)
 				),
 				Stream.of(ANY_DAMAGE)
 		);
 	}
 
 	public static Stream<SavedItemsConfig.SavingType> getDamageTypesInGroup(SavedItemsConfig.SavingType typeGroup, MinecraftServer server) {
-		var registry = server.getOverworld().getDamageSources().registry;
+		var registry = server.overworld().damageSources().damageTypes;
 		if (typeGroup.equals(ANY_DAMAGE)) {
-			return registry.getIds().stream().map(SavedItemsConfig.SavingType::of);
+			return registry.keySet().stream().map(SavedItemsConfig.SavingType::of);
 		} else if (typeGroup.key().right().isPresent()) {
-			return registry.getOptional(typeGroup.key().right().get()).map(
+			return registry.get(typeGroup.key().right().get()).map(
 					entryList -> entryList.stream().filter(
-							entry -> entry.getKey().isPresent()
-					).map(entry -> SavedItemsConfig.SavingType.of(entry.getKey().get().getValue()))
+							entry -> entry.unwrapKey().isPresent()
+					).map(entry -> SavedItemsConfig.SavingType.of(entry.unwrapKey().get().location()))
 			).orElse(Stream.empty());
 		} else {
 			return Stream.empty();
@@ -110,7 +110,7 @@ public class SavedItemsData extends PersistentState {
 	private void addItem(SavedItemsConfig.SavingType category, ItemStack stack) {
 		try {
 			for (var item : items.get(stack.getItem())) {
-				if (item.components.equals(Optional.ofNullable(stack.getComponentChanges()))) {
+				if (item.components.equals(Optional.ofNullable(stack.getComponentsPatch()))) {
 					if (item.typeCounts.containsKey(category)) {
 						item.typeCounts.get(category).add(stack.getCount());
 					} else {
@@ -122,24 +122,24 @@ public class SavedItemsData extends PersistentState {
 
 			Map<SavedItemsConfig.SavingType, MutableInt> map = new HashMap<>();
 			map.put(category, new MutableInt(stack.getCount()));
-			items.put(stack.getItem(), new SavedItemEntry(Optional.ofNullable(stack.getComponentChanges()), map));
+			items.put(stack.getItem(), new SavedItemEntry(Optional.ofNullable(stack.getComponentsPatch()), map));
 		} finally {
-			markDirty();
+			setDirty();
 		}
 	}
 
 	private static final String translationKey = "lore.metacraft.dropped_by";
-	private void tryAddPlayerSource(ItemStack stack, Text playerSource) {
-		var dropNBTString = Text.translatableWithFallback(
+	private void tryAddPlayerSource(ItemStack stack, Component playerSource) {
+		var dropNBTString = Component.translatableWithFallback(
 				translationKey,"Dropped by " + playerSource.getString(), playerSource
-		).styled(style -> style.withItalic(false));
+		).withStyle(style -> style.withItalic(false));
 		if (dropNBTString != null) {
-			var lore = stack.getOrDefault(DataComponentTypes.LORE, new LoreComponent(new ArrayList<>()));
+			var lore = stack.getOrDefault(DataComponents.LORE, new ItemLore(new ArrayList<>()));
 			boolean inserted = false;
 			for (int i = 0; i < lore.lines().size(); i++) {
 				var line = lore.lines().get(i);
 				if (
-						line.getContent() instanceof TranslatableTextContent message &&
+						line.getContents() instanceof TranslatableContents message &&
 						message.getKey().equals(translationKey)
 				) {
 					lore.lines().set(i, dropNBTString);
@@ -148,13 +148,13 @@ public class SavedItemsData extends PersistentState {
 				}
 			}
 			if (!inserted) {
-				lore = lore.with(dropNBTString);
+				lore = lore.withLineAdded(dropNBTString);
 			}
-			stack.set(DataComponentTypes.LORE, lore);
+			stack.set(DataComponents.LORE, lore);
 		}
 	}
-	private Optional<Text> getPlayerSource(ItemStack stack) {
-		if (stack.getHolder() instanceof ItemEntityData data) {
+	private Optional<Component> getPlayerSource(ItemStack stack) {
+		if (stack.getEntityRepresentation() instanceof ItemEntityData data) {
 			return Optional.ofNullable(data.metacraft_saved_items$getSourcePlayerName());
 		} else {
 			return Optional.empty();
@@ -162,23 +162,23 @@ public class SavedItemsData extends PersistentState {
 	}
 
 	public boolean tryAddItem(SavedItemsConfig.SavingType category, ItemStack stack) {
-		var random = server.getOverworld().getRandom();
+		var random = server.overworld().getRandom();
 		return SavedItemsConfig.getConfig().streamAllGroupsFromTypes(category, server).filter(
 				save ->
 					save.predicate().test(stack) &&
 					random.nextDouble() <= save.probability()
 		).findFirst().map(save -> {
 			var newStack = stack.copy();
-			if (newStack.isDamageable()) {
-				int durability = newStack.getMaxDamage() - newStack.getDamage();
-				int newDurability = Math.round(durability * save.damageModifier().get(random));
-				newStack.damage(durability - newDurability, server.getOverworld(), null, item -> {});
+			if (newStack.isDamageableItem()) {
+				int durability = newStack.getMaxDamage() - newStack.getDamageValue();
+				int newDurability = Math.round(durability * save.damageModifier().sample(random));
+				newStack.hurtAndBreak(durability - newDurability, server.overworld(), null, item -> {});
 			}
-			newStack.setCount(Math.round(newStack.getCount() * save.countModifier().get(random)));
+			newStack.setCount(Math.round(newStack.getCount() * save.countModifier().sample(random)));
 			if (newStack.isEmpty()) {
 				return false;
 			}
-			if (newStack.contains(DataComponentTypes.CUSTOM_NAME)) {
+			if (newStack.has(DataComponents.CUSTOM_NAME)) {
 				getPlayerSource(stack).ifPresent(source -> {
 					tryAddPlayerSource(newStack, source);
 				});
@@ -207,7 +207,7 @@ public class SavedItemsData extends PersistentState {
 			SavedItemsConfig.SavingType type, IntProvider numItemTypes, IntProvider countRange, ItemPredicate items,
 			ToIntFunction<ItemStack> extractor
 	) {
-		var random = server.getOverworld().getRandom();
+		var random = server.overworld().getRandom();
 		List<Item> keys = new ArrayList<>(this.items.keySet());
 		Collections.shuffle(keys, new java.util.Random() {
 			@Override
@@ -215,10 +215,10 @@ public class SavedItemsData extends PersistentState {
 				return random.nextInt(bound);
 			}
 		});
-		keys = keys.stream().limit(numItemTypes.get(random)).toList();
+		keys = keys.stream().limit(numItemTypes.sample(random)).toList();
 		for (var item : keys) {
 			var selection = (List<SavedItemEntry>) this.items.get(item);
-			int count = countRange.get(server.getOverworld().getRandom());
+			int count = countRange.sample(server.overworld().getRandom());
 			var types = SavedItemsConfig.getConfig().streamAllTypesInGroup(type, server).collect(Collectors.toSet());
 			countLoop: while (count > 0) {
 				if (types.isEmpty()) break;
@@ -238,10 +238,10 @@ public class SavedItemsData extends PersistentState {
 							typeIt.remove();
 							continue typeChecker;
 						}
-						countToExtract = Math.min(count, Math.min(amountAvailable.getValue(), item.getMaxCount()));
+						countToExtract = Math.min(count, Math.min(amountAvailable.getValue(), item.getDefaultMaxStackSize()));
 						stack = new ItemStack(
-								Registries.ITEM.getEntry(item),
-								countToExtract, selected.components().orElse(ComponentChanges.EMPTY)
+								BuiltInRegistries.ITEM.wrapAsHolder(item),
+								countToExtract, selected.components().orElse(DataComponentPatch.EMPTY)
 						);
 						selectedSlot++;
 						if (selectedSlot > selection.size()) {
@@ -256,7 +256,7 @@ public class SavedItemsData extends PersistentState {
 					countToExtract -= remainder;
 					count -= countToExtract;
 					amountAvailable.subtract(countToExtract);
-					markDirty();
+					setDirty();
 					if (amountAvailable.getValue() <= 0) {
 						selected.typeCounts.remove(individualType);
 						if (selected.typeCounts.isEmpty()) {
@@ -283,10 +283,10 @@ public class SavedItemsData extends PersistentState {
 		return this;
 	}
 
-	public record SavedItemEntry(Optional<ComponentChanges> components, Map<SavedItemsConfig.SavingType, MutableInt> typeCounts) {
+	public record SavedItemEntry(Optional<DataComponentPatch> components, Map<SavedItemsConfig.SavingType, MutableInt> typeCounts) {
 		public static final Codec<SavedItemEntry> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(//Careful, this is used by a datafixer!
-						ComponentChanges.CODEC.optionalFieldOf("components").forGetter(SavedItemEntry::components),
+						DataComponentPatch.CODEC.optionalFieldOf("components").forGetter(SavedItemEntry::components),
 						Codec.unboundedMap(SavedItemsConfig.SavingType.CODEC, Codec.INT).xmap(
 								map -> map.entrySet().stream().map(
 										entry -> Pair.of(entry.getKey(), new MutableInt(entry.getValue()))

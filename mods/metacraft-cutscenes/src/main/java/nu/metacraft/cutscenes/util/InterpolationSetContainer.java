@@ -82,8 +82,8 @@ public class InterpolationSetContainer<T extends Interpolatable<CutsceneContext>
 		};
 	}
 
-	private Optional<InterpolationSet<CutsceneContext, T>> relativeTargets;
-	private Optional<TimestampedInterpolationSet<T>> exactTargets;
+	private final Optional<InterpolationSet<CutsceneContext, T>> relativeTargets;
+	private final Optional<TimestampedInterpolationSet<T>> exactTargets;
 
 	public InterpolationSetContainer(Optional<InterpolationSet<CutsceneContext, T>> relativeTargets, Optional<TimestampedInterpolationSet<T>> exactTargets) {
 		this.relativeTargets = relativeTargets;

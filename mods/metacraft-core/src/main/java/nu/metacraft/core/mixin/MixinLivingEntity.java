@@ -1,11 +1,11 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.registry.tag.EntityTypeTags;
-import net.minecraft.world.World;
+import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.Level;
 import nu.metacraft.core.status_effects.METAcraftEffects;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -15,18 +15,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntity extends Entity {
 
-	public MixinLivingEntity(EntityType<?> type, World world) {
+	public MixinLivingEntity(EntityType<?> type, Level world) {
 		super(type, world);
 	}
 
-	@Inject(method = "canHaveStatusEffect", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "canBeAffected", at = @At("HEAD"), cancellable = true)
 	public void canHaveStatusEffect(
-			StatusEffectInstance effect, CallbackInfoReturnable<Boolean> cir
+			MobEffectInstance effect, CallbackInfoReturnable<Boolean> cir
 	) {
-		if (effect.getEffectType() == METAcraftEffects.FIRE && this.isFireImmune()) {
+		if (effect.getEffect() == METAcraftEffects.FIRE && this.fireImmune()) {
 			cir.setReturnValue(false);
 		}
-		if (effect.getEffectType() == METAcraftEffects.FREEZE && this.getType().isIn(EntityTypeTags.FREEZE_IMMUNE_ENTITY_TYPES)) {
+		if (effect.getEffect() == METAcraftEffects.FREEZE && this.getType().is(EntityTypeTags.FREEZE_IMMUNE_ENTITY_TYPES)) {
 			cir.setReturnValue(false);
 		}
 	}

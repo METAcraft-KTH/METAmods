@@ -1,17 +1,17 @@
 package nu.metacraft.portable_jukebox.mixin;
 
-import net.minecraft.inventory.DoubleInventory;
-import net.minecraft.inventory.Inventory;
+import net.minecraft.world.CompoundContainer;
+import net.minecraft.world.Container;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(DoubleInventory.class)
+@Mixin(CompoundContainer.class)
 public interface AccessorDoubleInventory {
 
 	@Accessor
-	Inventory getFirst();
+	Container getContainer1();
 
 	@Accessor
-	Inventory getSecond();
+	Container getContainer2();
 
 }

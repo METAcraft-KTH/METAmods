@@ -1,30 +1,34 @@
 package nu.metacraft.cutscenes.mixin;
 
-import net.minecraft.server.world.*;
+import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.DistanceManager;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.ThreadedLevelLightEngine;
+import net.minecraft.world.level.TicketStorage;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(ServerChunkManager.class)
+@Mixin(ServerChunkCache.class)
 public interface AccessorServerChunkManager {
 
-	@Accessor("mainThreadExecutor")
-	ServerChunkManager.MainThreadExecutor getMainThreadExecutor();
+	@Accessor("mainThreadProcessor")
+	ServerChunkCache.MainThreadExecutor getMainThreadExecutor();
 
 	@Accessor
 	@Mutable
-	void setChunkLoadingManager(ServerChunkLoadingManager chunkLoadingManager);
+	void setChunkMap(ChunkMap chunkLoadingManager);
 
 	@Accessor
 	@Mutable
-	void setLevelManager(ChunkLevelManager chunkLoadingManager);
+	void setDistanceManager(DistanceManager chunkLoadingManager);
 
 	@Accessor
 	@Mutable
-	void setLightingProvider(ServerLightingProvider chunkLoadingManager);
+	void setLightEngine(ThreadedLevelLightEngine chunkLoadingManager);
 
 	@Mutable
 	@Accessor
-	void setTicketManager(ChunkTicketManager ticketManager);
+	void setTicketStorage(TicketStorage ticketManager);
 
 }

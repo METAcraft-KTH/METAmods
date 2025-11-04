@@ -3,9 +3,6 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.StringIdentifiable;
-import net.minecraft.util.math.intprovider.IntProvider;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.registry.TransitionConfigRegistry;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
@@ -14,6 +11,9 @@ import nu.metacraft.cutscenes.util.IntervalMap;
 
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.util.valueproviders.IntProvider;
 
 public class SetWeatherTransition extends InstantTransition {
 
@@ -34,7 +34,7 @@ public class SetWeatherTransition extends InstantTransition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		int duration = this.duration.orElse(weather.getDefaultProvider()).get(cutscene.getRandom());
+		int duration = this.duration.orElse(weather.getDefaultProvider()).sample(cutscene.getRandom());
 		weather.activateWeather(cutscene.getCutsceneWorld(), duration);
 	}
 
@@ -48,27 +48,27 @@ public class SetWeatherTransition extends InstantTransition {
 		return TransitionConfigRegistry.SET_WEATHER;
 	}
 
-	public enum Weather implements StringIdentifiable {
+	public enum Weather implements StringRepresentable {
 		CLEAR(
-				"clear", ServerWorld.CLEAR_WEATHER_DURATION_PROVIDER,
-				(world, duration) -> world.setWeather(duration, 0, false, false)
+				"clear", ServerLevel.RAIN_DELAY,
+				(world, duration) -> world.setWeatherParameters(duration, 0, false, false)
 		),
 		RAIN(
-				"rain", ServerWorld.RAIN_WEATHER_DURATION_PROVIDER,
-				(world, duration) -> world.setWeather(0, duration, true, false)
+				"rain", ServerLevel.RAIN_DURATION,
+				(world, duration) -> world.setWeatherParameters(0, duration, true, false)
 		),
 		THUNDER(
-				"thunder", ServerWorld.THUNDER_WEATHER_DURATION_PROVIDER,
-				(world, duration) -> world.setWeather(0, duration, true, true)
+				"thunder", ServerLevel.THUNDER_DURATION,
+				(world, duration) -> world.setWeatherParameters(0, duration, true, true)
 		);
 
-		public static final Codec<Weather> CODEC = StringIdentifiable.createCodec(Weather::values);
+		public static final Codec<Weather> CODEC = StringRepresentable.fromEnum(Weather::values);
 
 		private final String name;
 		private final IntProvider defaultProvider;
-		private final BiConsumer<ServerWorld, Integer> activator;
+		private final BiConsumer<ServerLevel, Integer> activator;
 
-		Weather(String name, IntProvider defaultProvider, BiConsumer<ServerWorld, Integer> activator) {
+		Weather(String name, IntProvider defaultProvider, BiConsumer<ServerLevel, Integer> activator) {
 			this.name = name;
 			this.defaultProvider = defaultProvider;
 			this.activator = activator;
@@ -79,11 +79,11 @@ public class SetWeatherTransition extends InstantTransition {
 		}
 
 		@Override
-		public String asString() {
+		public String getSerializedName() {
 			return name;
 		}
 
-		public void activateWeather(ServerWorld world, int duration) {
+		public void activateWeather(ServerLevel world, int duration) {
 			activator.accept(world, duration);
 		}
 	}

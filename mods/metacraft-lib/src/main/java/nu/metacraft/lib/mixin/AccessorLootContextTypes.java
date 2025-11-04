@@ -1,17 +1,17 @@
 package nu.metacraft.lib.mixin;
 
 import com.google.common.collect.BiMap;
-import net.minecraft.loot.context.LootContextTypes;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.context.ContextType;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.context.ContextKeySet;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(LootContextTypes.class)
+@Mixin(LootContextParamSets.class)
 public interface AccessorLootContextTypes {
 
-	@Accessor("MAP")
-	static BiMap<Identifier, ContextType> getMap() {
+	@Accessor("REGISTRY")
+	static BiMap<ResourceLocation, ContextKeySet> getMap() {
 		return null;
 	}
 

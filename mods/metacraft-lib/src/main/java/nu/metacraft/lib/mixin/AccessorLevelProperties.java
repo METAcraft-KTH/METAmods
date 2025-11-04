@@ -1,14 +1,14 @@
 package nu.metacraft.lib.mixin;
 
-import net.minecraft.world.level.LevelInfo;
-import net.minecraft.world.level.LevelProperties;
+import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.storage.PrimaryLevelData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(LevelProperties.class)
+@Mixin(PrimaryLevelData.class)
 public interface AccessorLevelProperties {
 
 	@Accessor
-	void setLevelInfo(LevelInfo info);
+	void setSettings(LevelSettings info);
 
 }

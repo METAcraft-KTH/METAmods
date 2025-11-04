@@ -1,23 +1,26 @@
 package nu.metacraft.bosses.entity.entities;
 
+import com.mojang.math.Transformation;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityPosition;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.s2c.play.PositionFlag;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.math.*;
-import net.minecraft.world.World;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.PositionMoveRotation;
+import net.minecraft.world.entity.Relative;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import nu.metacraft.core.util.DisplayEntityData;
 import nu.metacraft.bosses.METAcraftBosses;
@@ -31,44 +34,44 @@ public class Beam extends Entity implements PolymerEntity {
 	private static final String TARGET = "target";
 	private static final String THICKNESS = "thickness";
 
-	private Vec3d target;
-	private Vec3d prevTarget;
+	private Vec3 target;
+	private Vec3 prevTarget;
 	private final ElementHolder holder = new ElementHolder();
 	private final ItemDisplayElement laserItemDisplay = new ItemDisplayElement();
 
 	private int interpolationTicks = -1;
 	private int offsetInterpolationTicks = -1;
-	private Vec3d currentOffset;
+	private Vec3 currentOffset;
 
 	private final DisplayEntityData.Item data = new DisplayEntityData.Item();
 	private float thickness = 0.5f;
 
-	public Beam(EntityType<?> type, World world) {
+	public Beam(EntityType<?> type, Level world) {
 		super(type, world);
 		EntityAttachment.ofTicking(holder, this);
 		data.setItem(new ItemStack(Items.DIAMOND));
-		data.getItem().set(DataComponentTypes.ITEM_MODEL, METAcraftBosses.getID("laser"));
+		data.getItem().set(DataComponents.ITEM_MODEL, METAcraftBosses.getID("laser"));
 		data.applyItemSettings(laserItemDisplay);
 		holder.addElement(laserItemDisplay);
 	}
 
-	private float getDistance(Vec3d target) {
+	private float getDistance(Vec3 target) {
 		return (float) this.getEffectivePos().distanceTo(target);
 	}
 
-	private Vec2f getRotationToTarget(Vec3d target) {
-		if (target == null) return new Vec2f(0,0);
+	private Vec2 getRotationToTarget(Vec3 target) {
+		if (target == null) return new Vec2(0,0);
 		var effectivePos = getEffectivePos();
 		double d = target.x - effectivePos.x;
 		double e = target.y - effectivePos.y;
 		double f = target.z - effectivePos.z;
 		double g = Math.sqrt(d * d + f * f);
-		var pitch = -MathHelper.atan2(e, g) + Math.PI/2;
-		var yaw = -MathHelper.atan2(f, d) + Math.PI/2;
-		return new Vec2f((float) pitch, (float) yaw);
+		var pitch = -Mth.atan2(e, g) + Math.PI/2;
+		var yaw = -Mth.atan2(f, d) + Math.PI/2;
+		return new Vec2((float) pitch, (float) yaw);
 	}
 
-	public void setTarget(Vec3d target) {
+	public void setTarget(Vec3 target) {
 		if (Objects.equals(target, this.target)) return;
 		if (interpolationTicks != -1) {
 			prevTarget = getTarget();
@@ -76,13 +79,13 @@ public class Beam extends Entity implements PolymerEntity {
 			this.prevTarget = this.target;
 		}
 		this.target = target;
-		if (data.getInterpolationDuration() > 0 && !firstUpdate) {
+		if (data.getInterpolationDuration() > 0 && !firstTick) {
 			interpolationTicks = 0;
 		}
 		updateTransformation();
 	}
 
-	private Vec3d getTarget() {
+	private Vec3 getTarget() {
 		if (prevTarget == null || interpolationTicks == -1) return target;
 		float delta = (float) interpolationTicks / data.getInterpolationDuration();
 		float invDelta = 1 - delta;
@@ -93,30 +96,30 @@ public class Beam extends Entity implements PolymerEntity {
 			return target;
 		}
 
-		return new Vec3d(
+		return new Vec3(
 				prevTarget.x * invDelta + target.x * delta,
 				prevTarget.y * invDelta + target.y * delta,
 				prevTarget.z * invDelta + target.z * delta
 		);
 	}
 
-	private Vec3d getCurrentOffset() {
-		if (currentOffset == null) return Vec3d.ZERO;
+	private Vec3 getCurrentOffset() {
+		if (currentOffset == null) return Vec3.ZERO;
 		var invDelta = 1 - (float) offsetInterpolationTicks / data.getTeleportDuration();
 		if (invDelta >= 1) {
 			return currentOffset;
 		}
 		if (invDelta <= 0) {
-			return Vec3d.ZERO;
+			return Vec3.ZERO;
 		}
-		return currentOffset.multiply(invDelta);
+		return currentOffset.scale(invDelta);
 	}
 
-	private Vec3d getEffectivePos() {
+	private Vec3 getEffectivePos() {
 		if (currentOffset != null) {
-			return getEntityPos().subtract(getCurrentOffset());
+			return position().subtract(getCurrentOffset());
 		}
-		return getEntityPos();
+		return position();
 	}
 
 	public void updateTransformation() {
@@ -135,7 +138,7 @@ public class Beam extends Entity implements PolymerEntity {
 		laserItemDisplay.setStartInterpolation(0);
 		laserItemDisplay.setInterpolationDuration(data.getInterpolationDuration() > 0 ? 1 : 0);
 		data.applySettingsNoInterpolation(laserItemDisplay);
-		laserItemDisplay.setTransformation(new AffineTransformation(data.getTransformation().getMatrix().mul(matrix, new Matrix4f())));
+		laserItemDisplay.setTransformation(new Transformation(data.getTransformation().getMatrix().mul(matrix, new Matrix4f())));
 	}
 
 	@Override
@@ -162,7 +165,7 @@ public class Beam extends Entity implements PolymerEntity {
 		}
 	}
 
-	private void onPositionUpdate(Vec3d prevPos) {
+	private void onPositionUpdate(Vec3 prevPos) {
 		if (data.getTeleportDuration() > 0) {
 			currentOffset = getEffectivePos().subtract(prevPos);
 			offsetInterpolationTicks = 0;
@@ -171,51 +174,51 @@ public class Beam extends Entity implements PolymerEntity {
 	}
 
 	@Override
-	public void setPosition(double x, double y, double z) {
-		var prevPos = getEntityPos();
+	public void setPos(double x, double y, double z) {
+		var prevPos = position();
 		boolean shouldUpdate = getX() != x || getY() != y || getZ() != z;
-		super.setPosition(x, y, z);
+		super.setPos(x, y, z);
 		if (shouldUpdate) {
 			onPositionUpdate(prevPos);
 		}
 	}
 
 	@Override
-	public void refreshPositionAndAngles(double x, double y, double z, float yaw, float pitch) {
-		var prevPos = getEntityPos();
-		super.refreshPositionAndAngles(x, y, z, yaw, pitch);
+	public void snapTo(double x, double y, double z, float yaw, float pitch) {
+		var prevPos = position();
+		super.snapTo(x, y, z, yaw, pitch);
 		onPositionUpdate(prevPos);
 	}
 
 	@Override
-	public void setPosition(EntityPosition pos, Set<PositionFlag> flags) {
-		var prevPos = getEntityPos();
-		super.setPosition(pos, flags);
+	public void teleportSetPosition(PositionMoveRotation pos, Set<Relative> flags) {
+		var prevPos = position();
+		super.teleportSetPosition(pos, flags);
 		onPositionUpdate(prevPos);
 	}
 
 	@Override
-	protected void initDataTracker(DataTracker.Builder builder) {
+	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 
 	}
 
 	@Override
-	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+	public boolean hurtServer(ServerLevel world, DamageSource source, float amount) {
 		return false;
 	}
 
 	@Override
-	protected void readCustomData(ReadView nbt) {
+	protected void readAdditionalSaveData(ValueInput nbt) {
 		data.load(nbt, this);
 		data.applyItemSettings(laserItemDisplay);
 		data.applySettings(laserItemDisplay);
-		setTarget(nbt.read(TARGET, Vec3d.CODEC).orElse(null));
-		thickness = nbt.getFloat(THICKNESS, 0.5f);
+		setTarget(nbt.read(TARGET, Vec3.CODEC).orElse(null));
+		thickness = nbt.getFloatOr(THICKNESS, 0.5f);
 	}
 
 	@Override
-	protected void writeCustomData(WriteView nbt) {
-		nbt.putNullable(TARGET, Vec3d.CODEC, target);
+	protected void addAdditionalSaveData(ValueOutput nbt) {
+		nbt.storeNullable(TARGET, Vec3.CODEC, target);
 		this.data.save(nbt, this);
 		nbt.putFloat(THICKNESS, thickness);
 	}

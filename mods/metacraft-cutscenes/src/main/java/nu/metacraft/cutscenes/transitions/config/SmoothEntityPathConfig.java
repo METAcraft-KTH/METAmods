@@ -1,18 +1,18 @@
 package nu.metacraft.cutscenes.transitions.config;
 
+import com.mojang.math.Transformation;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.util.dynamic.Codecs;
-import net.minecraft.util.math.AffineTransformation;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.storage.TagValueOutput;
 import org.jetbrains.annotations.Nullable;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
@@ -45,14 +45,14 @@ public record SmoothEntityPathConfig(
 	public static final MapCodec<SmoothEntityPathConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					SMOOTH_PATH.forGetter(c -> c.targets),
-					Codecs.POSITIVE_INT.optionalFieldOf("linear_interpolation_duration", 20).forGetter(SmoothEntityPathConfig::interpolationDuration),
-					Codecs.POSITIVE_INT.optionalFieldOf("teleport_interval", 1).forGetter(SmoothEntityPathConfig::teleportInterval),
+					ExtraCodecs.POSITIVE_INT.optionalFieldOf("linear_interpolation_duration", 20).forGetter(SmoothEntityPathConfig::interpolationDuration),
+					ExtraCodecs.POSITIVE_INT.optionalFieldOf("teleport_interval", 1).forGetter(SmoothEntityPathConfig::teleportInterval),
 					EntityRefRegistry.CODEC.fieldOf("entity").forGetter(SmoothEntityPathConfig::entity)
 			).apply(instance, SmoothEntityPathConfig::new)
 	);
 
 	public record DisplayEntityTarget(
-			Target target, AffineTransformation transformation,
+			Target target, Transformation transformation,
 			float shadowRadius, float shadowStrength,
 			int background, byte textOpacity //Only used on text displays.
 	) implements Interpolatable<CutsceneContext> {
@@ -62,18 +62,18 @@ public record SmoothEntityPathConfig(
 		public static final MapCodec<DisplayEntityTarget> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						Target.MAP_CODEC.forGetter(DisplayEntityTarget::target),
-						AffineTransformation.CODEC.optionalFieldOf("transformation", AffineTransformation.identity()).forGetter(DisplayEntityTarget::transformation),
+						Transformation.CODEC.optionalFieldOf("transformation", Transformation.identity()).forGetter(DisplayEntityTarget::transformation),
 						Codec.FLOAT.optionalFieldOf("shadow_radius", 0.0f).forGetter(DisplayEntityTarget::shadowRadius),
 						Codec.FLOAT.optionalFieldOf("shadow_strength", 1.0f).forGetter(DisplayEntityTarget::shadowStrength),
-						Codec.INT.optionalFieldOf("background", DisplayEntity.TextDisplayEntity.INITIAL_BACKGROUND).forGetter(DisplayEntityTarget::background),
+						Codec.INT.optionalFieldOf("background", Display.TextDisplay.INITIAL_BACKGROUND).forGetter(DisplayEntityTarget::background),
 						Codec.BYTE.optionalFieldOf("text_opacity", (byte) -1).forGetter(DisplayEntityTarget::textOpacity)
 				).apply(instance, DisplayEntityTarget::new)
 		);
 
 		public static final DisplayEntityTarget DEFAULT = new SmoothEntityPathConfig.DisplayEntityTarget(
 				Target.DEFAULT,
-				AffineTransformation.identity(),
-				0, 0, DisplayEntity.TextDisplayEntity.INITIAL_BACKGROUND,  (byte) -1
+				Transformation.identity(),
+				0, 0, Display.TextDisplay.INITIAL_BACKGROUND,  (byte) -1
 		);
 
 		public DisplayEntityTarget {
@@ -88,42 +88,42 @@ public record SmoothEntityPathConfig(
 
 		public static DisplayEntityTarget fromEntity(Entity entity) {
 			var target = Target.fromEntity(entity);
-			NbtCompound data;
+			CompoundTag data;
 			try (var logging = LoggingErrorReporter.create(() -> "metacraft:SmoothEntityPathConfig#fromEntity", Cutscenes.LOGGER)) {
-				var writeView = NbtWriteView.create(logging, entity.getRegistryManager());
-				entity.writeData(writeView);
-				data = writeView.getNbt();
+				var writeView = TagValueOutput.createWithContext(logging, entity.registryAccess());
+				entity.saveWithoutId(writeView);
+				data = writeView.buildResult();
 			}
-			var transformation = AffineTransformation.identity();
-			if (data.contains(DisplayEntity.TRANSFORMATION_NBT_KEY)) {
-				transformation = AffineTransformation.ANY_CODEC.parse(NbtOps.INSTANCE, data.get(DisplayEntity.TRANSFORMATION_NBT_KEY)).resultOrPartial(
+			var transformation = Transformation.identity();
+			if (data.contains(Display.TAG_TRANSFORMATION)) {
+				transformation = Transformation.EXTENDED_CODEC.parse(NbtOps.INSTANCE, data.get(Display.TAG_TRANSFORMATION)).resultOrPartial(
 						Cutscenes.LOGGER::error
 				).orElse(transformation);
 			}
 			float shadowRadius = 0;
-			if (data.contains(DisplayEntity.SHADOW_RADIUS_NBT_KEY)) {
-				shadowRadius = data.getFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY, 0);
+			if (data.contains(Display.TAG_SHADOW_RADIUS)) {
+				shadowRadius = data.getFloatOr(Display.TAG_SHADOW_RADIUS, 0);
 			}
 			float shadowStrength = 1;
-			if (data.contains(DisplayEntity.SHADOW_STRENGTH_NBT_KEY)) {
-				shadowStrength = data.getFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY, 1);
+			if (data.contains(Display.TAG_SHADOW_STRENGTH)) {
+				shadowStrength = data.getFloatOr(Display.TAG_SHADOW_STRENGTH, 1);
 			}
 
-			int background = DisplayEntity.TextDisplayEntity.INITIAL_BACKGROUND;
+			int background = Display.TextDisplay.INITIAL_BACKGROUND;
 			if (data.contains("background")) {
-				background = data.getInt("background", 1073741824);
+				background = data.getIntOr("background", 1073741824);
 			}
 
 			byte textOpacity = -1;
 			if (data.contains("text_opacity")) {
-				textOpacity = data.getByte("text_opacity", (byte) -1);
+				textOpacity = data.getByteOr("text_opacity", (byte) -1);
 			}
 			return new DisplayEntityTarget(
 					target, transformation, shadowRadius, shadowStrength, background, textOpacity
 			);
 		}
 
-		public static AffineTransformation readAffine(double[] array, int startPoint) {
+		public static Transformation readAffine(double[] array, int startPoint) {
 			Vector3f translation = new Vector3f(
 					(float) array[startPoint],
 					(float) array[startPoint+1],
@@ -146,7 +146,7 @@ public record SmoothEntityPathConfig(
 					(float) array[startPoint+12],
 					(float) array[startPoint+13]
 			);
-			return new AffineTransformation(
+			return new Transformation(
 					translation, leftRot.get(new Quaternionf()),
 					scale, rightRot.get(new Quaternionf())
 			);
@@ -165,7 +165,7 @@ public record SmoothEntityPathConfig(
 			list.add(axisAngle.z);
 		}
 
-		public static void writeAffine(AffineTransformation transformation, DoubleList list) {
+		public static void writeAffine(Transformation transformation, DoubleList list) {
 			writeVec(transformation.getTranslation(), list);
 			writeAxisAngle(transformation.getLeftRotation().get(new AxisAngle4f()), list);
 			writeVec(transformation.getScale(), list);

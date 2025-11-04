@@ -3,7 +3,7 @@ package nu.metacraft.portal_blocker;
 import com.mojang.serialization.Codec;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
-import net.minecraft.util.StringIdentifiable;
+import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.NotNull;
 
 public record PortalState(Object2BooleanMap<BlockingType> map) {
@@ -44,18 +44,18 @@ public record PortalState(Object2BooleanMap<BlockingType> map) {
 		return "PortalState" + map;
 	}
 
-	public enum BlockingType implements StringIdentifiable {
+	public enum BlockingType implements StringRepresentable {
 		ACTIVATION("activation"),
 		TRAVEL("travel"),
 		GENERATION("generation");
 
-		public static final Codec<BlockingType> CODEC = StringIdentifiable.createCodec(BlockingType::values);
+		public static final Codec<BlockingType> CODEC = StringRepresentable.fromEnum(BlockingType::values);
 
 		private final String name;
 
 		@Override
 		public String toString() {
-			return asString();
+			return getSerializedName();
 		}
 
 		BlockingType(String name) {
@@ -63,7 +63,7 @@ public record PortalState(Object2BooleanMap<BlockingType> map) {
 		}
 
 		@Override
-		public String asString() {
+		public String getSerializedName() {
 			return name;
 		}
 	}

@@ -6,50 +6,70 @@ import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.serialization.Dynamic;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import net.fabricmc.fabric.api.entity.FakePlayer;
-import net.minecraft.component.type.ProfileComponent;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.*;
-import net.minecraft.entity.ai.brain.Brain;
-import net.minecraft.entity.ai.control.MoveControl;
-import net.minecraft.entity.ai.pathing.*;
-import net.minecraft.entity.attribute.DefaultAttributeContainer;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.data.TrackedData;
-import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.entity.mob.HostileEntity;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerModelPart;
-import net.minecraft.entity.projectile.PersistentProjectileEntity;
-import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.item.*;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtList;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlayerRemoveS2CPacket;
-import net.minecraft.registry.tag.FluidTags;
-import net.minecraft.server.network.PlayerAssociatedNetworkHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerChunkManager;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerPlayerConnection;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.util.*;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldView;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.ai.Brain;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.control.MoveControl;
+import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.ai.navigation.WaterBoundPathNavigation;
+import net.minecraft.world.entity.monster.CrossbowAttackMob;
+import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.PlayerModelPart;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.item.BowItem;
+import net.minecraft.world.item.CrossbowItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ProjectileWeaponItem;
+import net.minecraft.world.item.TridentItem;
+import net.minecraft.world.item.component.ResolvableProfile;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.pathfinder.PathFinder;
+import net.minecraft.world.level.pathfinder.SwimNodeEvaluator;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.core.mixin.AccessorPlayerLikeEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -63,7 +83,7 @@ import nu.metacraft.core.mixin.AccessorPlayerEntity;
 import nu.metacraft.core.util.helper.EntityAIHelper;
 import nu.metacraft.core.util.helper.ServerDefaultSkinHelper;
 import nu.metacraft.lib.mixin.AccessorServerChunkLoadingManager;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import xyz.nucleoid.packettweaker.PacketContext;
 
@@ -73,20 +93,20 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowUser, TridentUser, PoseLockable {
+public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackMob, TridentUser, PoseLockable {
 
 	public static final double BASE_SPEED = 0.4;
 
-	protected static final TrackedData<Byte> PLAYER_MODEL_PARTS = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.BYTE);
-	protected static final TrackedData<OptionalInt> LEFT_SHOULDER_ENTITY = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.OPTIONAL_INT);
-	protected static final TrackedData<OptionalInt> RIGHT_SHOULDER_ENTITY = DataTracker.registerData(PlayerMob.class, TrackedDataHandlerRegistry.OPTIONAL_INT);
+	protected static final EntityDataAccessor<Byte> PLAYER_MODEL_PARTS = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.BYTE);
+	protected static final EntityDataAccessor<OptionalInt> LEFT_SHOULDER_ENTITY = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.OPTIONAL_UNSIGNED_INT);
+	protected static final EntityDataAccessor<OptionalInt> RIGHT_SHOULDER_ENTITY = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.OPTIONAL_UNSIGNED_INT);
 
 	private static final String PROFILE = "profile";
 	private static final String VISIBLE_SKIN_PARTS = "visible_skin_parts";
 	private static final String SHOULDER_ENTITY_LEFT = "ShoulderEntityLeft";
 	private static final String SHOULDER_ENTITY_RIGHT = "ShoulderEntityRight";
 	private static final String CAN_WANDER = "can_wander";
-	private ProfileComponent skinData;
+	private ResolvableProfile skinData;
 	private GameProfile actualProfile;
 
 	private static final int REMOVE_PLAYER_LIST_ENTRY_DELAY = 20;
@@ -95,32 +115,32 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	private FakePlayer fakePlayer;
 
-	private NbtCompound leftShoulderNbt = new NbtCompound();
-	private NbtCompound rightShoulderNbt = new NbtCompound();
+	private CompoundTag leftShoulderNbt = new CompoundTag();
+	private CompoundTag rightShoulderNbt = new CompoundTag();
 
 	private boolean canWander = getDefaultCanWander();
 
 	private boolean shouldRespawnClient = false;
 	private boolean lockPose = false;
 
-	private final SwimNavigation waterNavigation = new SwimNavigation(this, getEntityWorld()) {
+	private final WaterBoundPathNavigation waterNavigation = new WaterBoundPathNavigation(this, level()) {
 		@Override
-		protected PathNodeNavigator createPathNodeNavigator(int range) {
-			this.nodeMaker = new WaterPathNodeMaker(true);
-			return new PathNodeNavigator(this.nodeMaker, range);
+		protected PathFinder createPathFinder(int range) {
+			this.nodeEvaluator = new SwimNodeEvaluator(true);
+			return new PathFinder(this.nodeEvaluator, range);
 		}
 
 		@Override
-		protected boolean isAtValidPosition() {
+		protected boolean canUpdatePath() {
 			return true;
 		}
 	};
-	private final MobNavigation landNavigation = new MobNavigation(this, getEntityWorld());
+	private final GroundPathNavigation landNavigation = new GroundPathNavigation(this, level());
 
-	public PlayerMob(EntityType<? extends HostileEntity> entityType, World world) {
+	public PlayerMob(EntityType<? extends Monster> entityType, Level world) {
 		super(entityType, world);
 		this.moveControl = new PlayerMoveControl(this);
-		this.landNavigation.setCanSwim(true);
+		this.landNavigation.setCanFloat(true);
 		this.landNavigation.setCanOpenDoors(true);
 	}
 
@@ -133,14 +153,14 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	@Override
-	protected void initDataTracker(DataTracker.Builder builder) {
-		super.initDataTracker(builder);
-		builder.add(PLAYER_MODEL_PARTS, getVisiblePartsByte(EnumSet.allOf(PlayerModelPart.class)));
-		builder.add(LEFT_SHOULDER_ENTITY, OptionalInt.empty());
-		builder.add(RIGHT_SHOULDER_ENTITY, OptionalInt.empty());
+	protected void defineSynchedData(SynchedEntityData.Builder builder) {
+		super.defineSynchedData(builder);
+		builder.define(PLAYER_MODEL_PARTS, getVisiblePartsByte(EnumSet.allOf(PlayerModelPart.class)));
+		builder.define(LEFT_SHOULDER_ENTITY, OptionalInt.empty());
+		builder.define(RIGHT_SHOULDER_ENTITY, OptionalInt.empty());
 	}
 
-	protected Brain.Profile<PlayerMob> createBrainProfile() {
+	protected Brain.Provider<PlayerMob> brainProvider() {
 		return PlayerBrain.createBrainProfile();
 	}
 
@@ -149,78 +169,78 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		return (Brain<PlayerMob>) super.getBrain();
 	}
 
-	public static DefaultAttributeContainer.Builder createPlayerAttributes() {
-		return MobEntity.createMobAttributes().add(
-				EntityAttributes.ATTACK_DAMAGE, 1
+	public static AttributeSupplier.Builder createPlayerAttributes() {
+		return Mob.createMobAttributes().add(
+				Attributes.ATTACK_DAMAGE, 1
 		).add(
-				EntityAttributes.MOVEMENT_SPEED, BASE_SPEED
+				Attributes.MOVEMENT_SPEED, BASE_SPEED
 		).add(
-				EntityAttributes.WATER_MOVEMENT_EFFICIENCY, 0.3
+				Attributes.WATER_MOVEMENT_EFFICIENCY, 0.3
 		);
 	}
 
-	private void replaceNavigation(EntityNavigation newNavigation) {
+	private void replaceNavigation(PathNavigation newNavigation) {
 		if (this.navigation == newNavigation) return;
 		if (navigation.getTargetPos() != null) {
-			var path = newNavigation.findPathTo(navigation.getTargetPos(), ((AccessorEntityNavigation) navigation).getCurrentDistance());
-			var speed = ((AccessorEntityNavigation) navigation).getSpeed();
-			newNavigation.startMovingAlong(path, speed);
+			var path = newNavigation.createPath(navigation.getTargetPos(), ((AccessorEntityNavigation) navigation).getReachRange());
+			var speed = ((AccessorEntityNavigation) navigation).getSpeedModifier();
+			newNavigation.moveTo(path, speed);
 		}
 		this.navigation.stop();
 		this.navigation = newNavigation;
 	}
 
-	private void readShoulderEntities(ReadView nbt) {
-		nbt.read(SHOULDER_ENTITY_LEFT, NbtCompound.CODEC).ifPresentOrElse(newLeft -> {
+	private void readShoulderEntities(ValueInput nbt) {
+		nbt.read(SHOULDER_ENTITY_LEFT, CompoundTag.CODEC).ifPresentOrElse(newLeft -> {
 			if (!getShoulderEntityLeft().equals(newLeft)) {
 				this.setShoulderEntityLeft(newLeft);
 			}
 		}, () -> {
-			this.setShoulderEntityLeft(new NbtCompound());
+			this.setShoulderEntityLeft(new CompoundTag());
 		});
-		nbt.read(SHOULDER_ENTITY_RIGHT, NbtCompound.CODEC).ifPresentOrElse(newRight -> {
+		nbt.read(SHOULDER_ENTITY_RIGHT, CompoundTag.CODEC).ifPresentOrElse(newRight -> {
 			if (!getShoulderEntityRight().equals(newRight)) {
 				this.setShoulderEntityRight(newRight);
 			}
 		}, () -> {
-			this.setShoulderEntityRight(new NbtCompound());
+			this.setShoulderEntityRight(new CompoundTag());
 		});
 	}
 
-	private NbtCompound removeUnsafeNBT(NbtCompound nbt) {
+	private CompoundTag removeUnsafeNBT(CompoundTag nbt) {
 		var newNbt = nbt.copy();
-		newNbt.remove(UUID_KEY);
+		newNbt.remove(TAG_UUID);
 		return newNbt;
 	}
 
-	public void copySkinFromPlayer(ServerPlayerEntity player) {
-		setLeftHanded(player.getMainArm() == Arm.LEFT);
-		setVisibleSkinParts(Arrays.stream(PlayerModelPart.values()).filter(player::isModelPartVisible).collect(Collectors.toSet()));
-		setSkin(ProfileComponent.ofStatic(ServerDefaultSkinHelper.getOrDefault(player.getGameProfile())));
+	public void copySkinFromPlayer(ServerPlayer player) {
+		setLeftHanded(player.getMainArm() == HumanoidArm.LEFT);
+		setVisibleSkinParts(Arrays.stream(PlayerModelPart.values()).filter(player::isModelPartShown).collect(Collectors.toSet()));
+		setSkin(ResolvableProfile.createResolved(ServerDefaultSkinHelper.getOrDefault(player.getGameProfile())));
 	}
 
-	public void copyFromPlayerData(NbtCompound nbt) {
+	public void copyFromPlayerData(CompoundTag nbt) {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerMob#copyFromPlayerData", METAcraftCore.LOGGER)) {
-			var readView = NbtReadView.create(logging, getRegistryManager(), removeUnsafeNBT(nbt));
-			this.readData(readView);
+			var readView = TagValueInput.create(logging, registryAccess(), removeUnsafeNBT(nbt));
+			this.load(readView);
 			readShoulderEntities(readView);
 		}
-		getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).setBaseValue(BASE_SPEED);
-		NbtList nbtList = nbt.getListOrEmpty("Inventory");
-		int selectedSlot = nbt.getInt("SelectedItemSlot", 0);
+		getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(BASE_SPEED);
+		ListTag nbtList = nbt.getListOrEmpty("Inventory");
+		int selectedSlot = nbt.getIntOr("SelectedItemSlot", 0);
 		for (var entry : nbtList) {
-			handleItemEntry((NbtCompound) entry, selectedSlot);
+			handleItemEntry((CompoundTag) entry, selectedSlot);
 		}
-		var id = nbt.get(UUID_KEY, Uuids.CODEC);
-		var player = id.map(value -> getEntityWorld().getServer().getPlayerManager().getPlayer(value)).orElse(null);
+		var id = nbt.read(TAG_UUID, UUIDUtil.AUTHLIB_CODEC);
+		var player = id.map(value -> level().getServer().getPlayerList().getPlayer(value)).orElse(null);
 		if (player != null) {
 			copySkinFromPlayer(player);
 			setCustomName(player.getName());
 		} else if (id.isPresent()) {
-			var resolver = getEntityWorld().getServer().getApiServices().profileResolver();
-			Util.getDownloadWorkerExecutor().execute(() -> {
-				resolver.getProfileById(id.get()).ifPresent(profile -> {
-					getEntityWorld().getServer().execute(() -> setSkin(ProfileComponent.ofStatic(profile)));
+			var resolver = level().getServer().services().profileResolver();
+			Util.nonCriticalIoPool().execute(() -> {
+				resolver.fetchById(id.get()).ifPresent(profile -> {
+					level().getServer().execute(() -> setSkin(ResolvableProfile.createResolved(profile)));
 				});
 			});
 		}
@@ -242,23 +262,23 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		};
 	}
 
-	private void handleItemEntry(NbtCompound stackNBT, int selectedSlot) {
-		int slot = stackNBT.getByte("Slot", (byte) 0) & 0xFF;
+	private void handleItemEntry(CompoundTag stackNBT, int selectedSlot) {
+		int slot = stackNBT.getByteOr("Slot", (byte) 0) & 0xFF;
 		ItemStack.CODEC.parse(
-				getRegistryManager().getOps(NbtOps.INSTANCE), stackNBT
+				registryAccess().createSerializationContext(NbtOps.INSTANCE), stackNBT
 		).resultOrPartial(METAcraftCore.LOGGER::error).ifPresent(stack -> {
 			getFromSlot(slot, selectedSlot).ifPresent(equipmentSlot -> {
-				this.equipStack(equipmentSlot, stack);
+				this.setItemSlot(equipmentSlot, stack);
 			});
 		});
 	}
 
 	@Override
-	public void travel(Vec3d movementInput) {
-		if (this.isLogicalSideForUpdatingMovement() && this.isTouchingWater() && shouldSwim()) {
-			this.updateVelocity(0.02f, movementInput);
-			this.move(MovementType.SELF, this.getVelocity());
-			this.setVelocity(this.getVelocity().multiply(0.9));
+	public void travel(Vec3 movementInput) {
+		if (this.isLocalInstanceAuthoritative() && this.isInWater() && shouldSwim()) {
+			this.moveRelative(0.02f, movementInput);
+			this.move(MoverType.SELF, this.getDeltaMovement());
+			this.setDeltaMovement(this.getDeltaMovement().scale(0.9));
 		} else {
 			super.travel(movementInput);
 		}
@@ -271,13 +291,13 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 		if (shouldRespawnClient) {
 			if (actualProfile != null) {
-				var manager = ((ServerChunkManager) this.getEntityWorld().getChunkManager()).chunkLoadingManager;
-				List<ServerPlayerEntity> players = List.of();
-				var tracker = ((AccessorServerChunkLoadingManager) manager).getEntityTrackers().get(this.getId());
+				var manager = ((ServerChunkCache) this.level().getChunkSource()).chunkMap;
+				List<ServerPlayer> players = List.of();
+				var tracker = ((AccessorServerChunkLoadingManager) manager).getEntityMap().get(this.getId());
 				if (tracker != null) {
-					var listeners = ((AccessorServerChunkLoadingManager.EntityTracker) tracker).getListeners();
-					players = listeners.stream().map(PlayerAssociatedNetworkHandler::getPlayer).toList();
-					tracker.stopTracking();
+					var listeners = ((AccessorServerChunkLoadingManager.EntityTracker) tracker).getSeenBy();
+					players = listeners.stream().map(ServerPlayerConnection::getPlayer).toList();
+					tracker.broadcastRemoved();
 					listeners.clear(); //Necessary because stopTracking does not clear listeners.
 				}
 				removePlayerEntryFrom(removePackets.stream().map(SendPacketEntry::player));
@@ -287,48 +307,48 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 				}
 				resetFakePlayer();
 				if (tracker != null) {
-					tracker.updateTrackedStatus(players);
+					tracker.updatePlayers(players);
 				}
 			}
 			shouldRespawnClient = false;
 		} else if (!removePackets.isEmpty()) {
-			removePlayerEntryFrom(removePackets.stream().filter(p -> p.time < getEntityWorld().getTime()).map(SendPacketEntry::player));
-			removePackets.removeIf(p -> p.time < getEntityWorld().getTime());
+			removePlayerEntryFrom(removePackets.stream().filter(p -> p.time < level().getGameTime()).map(SendPacketEntry::player));
+			removePackets.removeIf(p -> p.time < level().getGameTime());
 		}
 	}
 
-	protected boolean canChangeIntoPose(EntityPose pose) {
-		return this.getEntityWorld().isSpaceEmpty(this, this.getDimensions(pose).getBoxAt(this.getEntityPos()).contract(1.0E-7));
+	protected boolean canChangeIntoPose(Pose pose) {
+		return this.level().noCollision(this, this.getDimensions(pose).makeBoundingBox(this.position()).deflate(1.0E-7));
 	}
 
 	protected void updatePose() {
 		if (lockPose) return;
-		if (!this.canChangeIntoPose(EntityPose.SWIMMING)) {
+		if (!this.canChangeIntoPose(Pose.SWIMMING)) {
 			return;
 		}
-		EntityPose entityPose = this.isGliding() ? EntityPose.GLIDING : (this.isSleeping() ? EntityPose.SLEEPING : (this.isSwimming() ? EntityPose.SWIMMING : (this.isUsingRiptide() ? EntityPose.SPIN_ATTACK : (this.isSneaking() ? EntityPose.CROUCHING : EntityPose.STANDING))));
-		EntityPose entityPose2 = this.hasVehicle() || this.canChangeIntoPose(entityPose) ? entityPose : (this.canChangeIntoPose(EntityPose.CROUCHING) ? EntityPose.CROUCHING : EntityPose.SWIMMING);
+		Pose entityPose = this.isFallFlying() ? Pose.FALL_FLYING : (this.isSleeping() ? Pose.SLEEPING : (this.isSwimming() ? Pose.SWIMMING : (this.isAutoSpinAttack() ? Pose.SPIN_ATTACK : (this.isShiftKeyDown() ? Pose.CROUCHING : Pose.STANDING))));
+		Pose entityPose2 = this.isPassenger() || this.canChangeIntoPose(entityPose) ? entityPose : (this.canChangeIntoPose(Pose.CROUCHING) ? Pose.CROUCHING : Pose.SWIMMING);
 		this.setPose(entityPose2);
 	}
 
 	@Override
-	public EntityDimensions getBaseDimensions(EntityPose pose) {
+	public EntityDimensions getDefaultDimensions(Pose pose) {
 		return AccessorPlayerLikeEntity.getPoseDimensions().getOrDefault(pose, AccessorPlayerLikeEntity.getStandingDimensions());
 	}
 
 	@Override
-	public ImmutableList<EntityPose> getPoses() {
-		return ImmutableList.of(EntityPose.STANDING, EntityPose.CROUCHING, EntityPose.SWIMMING);
+	public ImmutableList<Pose> getDismountPoses() {
+		return ImmutableList.of(Pose.STANDING, Pose.CROUCHING, Pose.SWIMMING);
 	}
 
-	public ProfileComponent getSkinData() {
+	public ResolvableProfile getSkinData() {
 		return skinData;
 	}
 
 	@Override
 	public void updateSwimming() {
-		if (!this.getEntityWorld().isClient()) {
-			if (this.canActVoluntarily() && this.isTouchingWater() && shouldSwim()) {
+		if (!this.level().isClientSide()) {
+			if (this.isEffectiveAi() && this.isInWater() && shouldSwim()) {
 				replaceNavigation(waterNavigation);
 				this.setSwimming(true);
 			} else {
@@ -339,15 +359,15 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	protected boolean shouldSwim() {
-		var eyePos = BlockPos.ofFloored(getEyePos()).up();
-		boolean isCurrentlyInWater = getEntityWorld().getBlockState(eyePos).getFluidState().isIn(FluidTags.WATER);
-		if (getBrain().hasMemoryModule(METAcraftMemoryModules.RECOVERING_BREATH)) {
+		var eyePos = BlockPos.containing(getEyePosition()).above();
+		boolean isCurrentlyInWater = level().getBlockState(eyePos).getFluidState().is(FluidTags.WATER);
+		if (getBrain().hasMemoryValue(METAcraftMemoryModules.RECOVERING_BREATH)) {
 			return isCurrentlyInWater;
 		}
 		var target = navigation.getTargetPos();
 		if (target != null) {
-			var f = getEntityWorld().getBlockState(target).getFluidState();
-			if (f.isIn(FluidTags.WATER) && f.isStill()) {
+			var f = level().getBlockState(target).getFluidState();
+			if (f.is(FluidTags.WATER) && f.isSource()) {
 				return true;
 			} else {
 				return isCurrentlyInWater;
@@ -357,28 +377,28 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	@Override
-	protected void mobTick(ServerWorld world) {
+	protected void customServerAiStep(ServerLevel world) {
 		PlayerBrain.tick(world, this);
-		super.mobTick(world);
+		super.customServerAiStep(world);
 	}
 
 	@Override
-	protected Brain<?> deserializeBrain(Dynamic<?> dynamic) {
-		return PlayerBrain.create(this, this.createBrainProfile().deserialize(dynamic));
+	protected Brain<?> makeBrain(Dynamic<?> dynamic) {
+		return PlayerBrain.create(this, this.brainProvider().makeBrain(dynamic));
 	}
 
 	@Override
-	public boolean isAngryAt(ServerWorld world, PlayerEntity player) {
+	public boolean isPreventingPlayerRest(ServerLevel world, Player player) {
 		return this.getTarget() == player;
 	}
 
 	@Override
-	public SoundCategory getSoundCategory() {
-		return SoundCategory.PLAYERS;
+	public SoundSource getSoundSource() {
+		return SoundSource.PLAYERS;
 	}
 
 	@Override
-	public float getPathfindingFavor(BlockPos pos, WorldView world) {
+	public float getWalkTargetValue(BlockPos pos, LevelReader world) {
 		return 0.0f;
 	}
 
@@ -389,95 +409,95 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	@Override
 	protected SoundEvent getSwimSound() {
-		return SoundEvents.ENTITY_PLAYER_SWIM;
+		return SoundEvents.PLAYER_SWIM;
 	}
 
 	@Override
-	protected SoundEvent getSplashSound() {
-		return SoundEvents.ENTITY_PLAYER_SPLASH;
+	protected SoundEvent getSwimSplashSound() {
+		return SoundEvents.PLAYER_SPLASH;
 	}
 
 	@Override
 	protected SoundEvent getHurtSound(DamageSource source) {
-		return SoundEvents.ENTITY_PLAYER_HURT;
+		return SoundEvents.PLAYER_HURT;
 	}
 
 	@Override
 	protected SoundEvent getDeathSound() {
-		return SoundEvents.ENTITY_PLAYER_DEATH;
+		return SoundEvents.PLAYER_DEATH;
 	}
 
 	@Override
-	public LivingEntity.FallSounds getFallSounds() {
-		return new LivingEntity.FallSounds(SoundEvents.ENTITY_PLAYER_SMALL_FALL, SoundEvents.ENTITY_PLAYER_BIG_FALL);
+	public LivingEntity.Fallsounds getFallSounds() {
+		return new LivingEntity.Fallsounds(SoundEvents.PLAYER_SMALL_FALL, SoundEvents.PLAYER_BIG_FALL);
 	}
 
 	@Override
-	protected void updateDespawnCounter() {}
+	protected void updateNoActionTime() {}
 
 	@Override
-	public boolean canUseRangedWeapon(RangedWeaponItem weapon) {
+	public boolean canFireProjectileWeapon(ProjectileWeaponItem weapon) {
 		return weapon instanceof BowItem || weapon instanceof CrossbowItem;
 	}
 
 	@Override
-	public void setCharging(boolean charging) {
+	public void setChargingCrossbow(boolean charging) {
 
 	}
 
 	@Deprecated //This is never used, just here because it's a mandatory override from CrossbowUser.
 	@Override
-	public void postShoot() {}
+	public void onCrossbowAttackPerformed() {}
 
 	@Override
 	public void activateRiptide(int riptideTicks, float riptideAttackDamage, ItemStack stack) {
-		this.riptideTicks = riptideTicks;
-		this.riptideAttackDamage = riptideAttackDamage;
-		this.riptideStack = stack;
-		if (!this.getEntityWorld().isClient()) {
+		this.autoSpinAttackTicks = riptideTicks;
+		this.autoSpinAttackDmg = riptideAttackDamage;
+		this.autoSpinAttackItemStack = stack;
+		if (!this.level().isClientSide()) {
 			this.dropShoulderEntities();
-			this.setLivingFlag(LivingEntity.USING_RIPTIDE_FLAG, true);
+			this.setLivingEntityFlag(LivingEntity.LIVING_ENTITY_FLAG_SPIN_ATTACK, true);
 		}
 	}
 
 	protected float getDamageAgainst(Entity target, float baseDamage, DamageSource damageSource) {
-		return EnchantmentHelper.getDamage((ServerWorld) this.getEntityWorld(), this.getWeaponStack(), target, damageSource, baseDamage);
+		return EnchantmentHelper.modifyDamage((ServerLevel) this.level(), this.getWeaponItem(), target, damageSource, baseDamage);
 	}
 
 	@Override
-	protected void attackLivingEntity(LivingEntity target) {
-		super.attackLivingEntity(target);
-		if (this.isUsingRiptide()) {
+	protected void doAutoAttackOnTouch(LivingEntity target) {
+		super.doAutoAttackOnTouch(target);
+		if (this.isAutoSpinAttack()) {
 			if (!target.isAttackable()) {
 				return;
 			}
-			if (target.handleAttack(this)) {
+			if (target.skipAttackInteraction(this)) {
 				return;
 			}
 
-			ItemStack itemStack = this.getWeaponStack();
-			DamageSource damageSource = this.getDamageSources().mobAttack(this);
-			float damage = this.getDamageAgainst(target, this.riptideAttackDamage, damageSource);
+			ItemStack itemStack = this.getWeaponItem();
+			DamageSource damageSource = this.damageSources().mobAttack(this);
+			float damage = this.getDamageAgainst(target, this.autoSpinAttackDmg, damageSource);
 
 			if (damage > 0) {
-				Vec3d oldVelocity = target.getVelocity();
-				damage += itemStack.getItem().getBonusAttackDamage(target, this.riptideAttackDamage, damageSource);
-				if (target.damage((ServerWorld) this.getEntityWorld(), damageSource, damage)) {
-					float k = this.getAttackKnockbackAgainst(target, damageSource);
-					target.takeKnockback(k * 0.5f, MathHelper.sin(this.getYaw() * ((float)Math.PI / 180)), -MathHelper.cos(this.getYaw() * ((float)Math.PI / 180)));
-					this.setVelocity(this.getVelocity().multiply(0.6, 1.0, 0.6));
+				Vec3 oldVelocity = target.getDeltaMovement();
+				damage += itemStack.getItem().getAttackDamageBonus(target, this.autoSpinAttackDmg, damageSource);
+				if (target.hurtServer((ServerLevel) this.level(), damageSource, damage)) {
+					float k = this.getKnockback(target, damageSource);
+					target.knockback(k * 0.5f, Mth.sin(this.getYRot() * ((float)Math.PI / 180)), -Mth.cos(this.getYRot() * ((float)Math.PI / 180)));
+					this.setDeltaMovement(this.getDeltaMovement().multiply(0.6, 1.0, 0.6));
 
-					if (target instanceof ServerPlayerEntity && target.velocityModified) {
-						((ServerPlayerEntity)target).networkHandler.sendPacket(new EntityVelocityUpdateS2CPacket(target));
-						target.velocityModified = false;
-						target.setVelocity(oldVelocity);
+					if (target instanceof ServerPlayer && target.hurtMarked) {
+						((ServerPlayer)target).connection.send(new ClientboundSetEntityMotionPacket(target));
+						target.hurtMarked = false;
+						target.setDeltaMovement(oldVelocity);
 					}
 
-					playSound(SoundEvents.ENTITY_PLAYER_ATTACK_WEAK, 1.0f, 1.0f);
+					playSound(SoundEvents.PLAYER_ATTACK_WEAK, 1.0f, 1.0f);
 
-					this.onAttacking(target);
+					this.setLastHurtMob(target);
 
-					EnchantmentHelper.onTargetDamaged((ServerWorld) getEntityWorld(), target, damageSource);
+					EnchantmentHelper.doPostAttackEffects((ServerLevel) level(), target, damageSource);
 				}
 			}
 		}
@@ -485,74 +505,74 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 	@Override
 	@NotNull
-	public ItemStack getWeaponStack() {
-		if (this.isUsingRiptide() && this.riptideStack != null) {
-			return this.riptideStack;
+	public ItemStack getWeaponItem() {
+		if (this.isAutoSpinAttack() && this.autoSpinAttackItemStack != null) {
+			return this.autoSpinAttackItemStack;
 		}
-		return super.getWeaponStack();
+		return super.getWeaponItem();
 	}
 
-	private void dropShoulderEntity(NbtCompound entityNbt) {
-		if (!this.getEntityWorld().isClient() && !entityNbt.isEmpty()) {
+	private void dropShoulderEntity(CompoundTag entityNbt) {
+		if (!this.level().isClientSide() && !entityNbt.isEmpty()) {
 			try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerMob#dropShoulderEntity", METAcraftCore.LOGGER)) {
-				var readView = NbtReadView.create(logging, getRegistryManager(), entityNbt);
-				EntityType.getEntityFromData(readView, this.getEntityWorld(), SpawnReason.LOAD).ifPresent(entity -> {
-					entity.setPosition(this.getX(), this.getY() + (double)0.7f, this.getZ());
-					((ServerWorld)this.getEntityWorld()).tryLoadEntity(entity);
+				var readView = TagValueInput.create(logging, registryAccess(), entityNbt);
+				EntityType.create(readView, this.level(), EntitySpawnReason.LOAD).ifPresent(entity -> {
+					entity.setPos(this.getX(), this.getY() + (double)0.7f, this.getZ());
+					((ServerLevel)this.level()).addWithUUID(entity);
 				});
 			}
 		}
 	}
 
-	public NbtCompound getShoulderEntityLeft() {
+	public CompoundTag getShoulderEntityLeft() {
 		return leftShoulderNbt;
 	}
 
-	public void setShoulderEntityLeft(NbtCompound entityNbt) {
+	public void setShoulderEntityLeft(CompoundTag entityNbt) {
 		leftShoulderNbt = entityNbt;
-		this.dataTracker.set(
+		this.entityData.set(
 				LEFT_SHOULDER_ENTITY,
-				AccessorPlayerEntity.callMapParrotVariant(AccessorPlayerEntity.callReadParrotVariant(entityNbt))
+				AccessorPlayerEntity.callConvertParrotVariant(AccessorPlayerEntity.callExtractParrotVariant(entityNbt))
 		);
 	}
 
-	public NbtCompound getShoulderEntityRight() {
+	public CompoundTag getShoulderEntityRight() {
 		return rightShoulderNbt;
 	}
 
-	public void setShoulderEntityRight(NbtCompound entityNbt) {
+	public void setShoulderEntityRight(CompoundTag entityNbt) {
 		rightShoulderNbt = entityNbt;
-		this.dataTracker.set(
+		this.entityData.set(
 				RIGHT_SHOULDER_ENTITY,
-				AccessorPlayerEntity.callMapParrotVariant(AccessorPlayerEntity.callReadParrotVariant(entityNbt))
+				AccessorPlayerEntity.callConvertParrotVariant(AccessorPlayerEntity.callExtractParrotVariant(entityNbt))
 		);
 	}
 
 	protected void dropShoulderEntities() {
 		if (!getShoulderEntityLeft().isEmpty() || !getShoulderEntityRight().isEmpty()) {
 			this.dropShoulderEntity(this.getShoulderEntityLeft());
-			this.setShoulderEntityLeft(new NbtCompound());
+			this.setShoulderEntityLeft(new CompoundTag());
 			this.dropShoulderEntity(this.getShoulderEntityRight());
-			this.setShoulderEntityRight(new NbtCompound());
+			this.setShoulderEntityRight(new CompoundTag());
 		}
 	}
 
-	public boolean handleShoot(Hand hand, LivingEntity target, float pullProgress) {
-		ItemStack stack = this.getStackInHand(hand);
+	public boolean handleShoot(InteractionHand hand, LivingEntity target, float pullProgress) {
+		ItemStack stack = this.getItemInHand(hand);
 		Item item = stack.getItem();
 		float speed = 1.6f;
-		float divergence = 14 - this.getEntityWorld().getDifficulty().getId() * 4;
+		float divergence = 14 - this.level().getDifficulty().getId() * 4;
 		switch (item) {
 			case CrossbowItem crossbowItem -> {
-				crossbowItem.shootAll(this.getEntityWorld(), this, hand, stack, speed, divergence, this.getTarget());
+				crossbowItem.performShooting(this.level(), this, hand, stack, speed, divergence, this.getTarget());
 				return true;
 			}
 			case BowItem bow -> {
-				ItemStack arrow = this.getProjectileType(stack);
-				PersistentProjectileEntity persistentProjectileEntity = this.createArrowProjectile(arrow, pullProgress, stack);
+				ItemStack arrow = this.getProjectile(stack);
+				AbstractArrow persistentProjectileEntity = this.createArrowProjectile(arrow, pullProgress, stack);
 				EntityAIHelper.shootProjectile(
 						this, persistentProjectileEntity, target,
-						SoundEvents.ENTITY_ARROW_SHOOT, speed, divergence
+						SoundEvents.ARROW_SHOOT, speed, divergence
 				);
 				return true;
 			}
@@ -566,55 +586,55 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	@Override
-	public void shootAt(LivingEntity target, float pullProgress) {
-		if (!handleShoot(Hand.MAIN_HAND, target, pullProgress)) {
-			handleShoot(Hand.OFF_HAND, target, pullProgress);
+	public void performRangedAttack(LivingEntity target, float pullProgress) {
+		if (!handleShoot(InteractionHand.MAIN_HAND, target, pullProgress)) {
+			handleShoot(InteractionHand.OFF_HAND, target, pullProgress);
 		}
 	}
 
-	protected PersistentProjectileEntity createArrowProjectile(ItemStack arrow, float damageModifier, @Nullable ItemStack shotFrom) {
-		return ProjectileUtil.createArrowProjectile(this, arrow, damageModifier, shotFrom);
+	protected AbstractArrow createArrowProjectile(ItemStack arrow, float damageModifier, @Nullable ItemStack shotFrom) {
+		return ProjectileUtil.getMobArrow(this, arrow, damageModifier, shotFrom);
 	}
 
-	private void removePlayerEntryFrom(Stream<ServerPlayerEntity> players) {
+	private void removePlayerEntryFrom(Stream<ServerPlayer> players) {
 		if (fakePlayer == null) return;
-		if (getEntityWorld().getServer().getPlayerManager().getPlayer(fakePlayer.getGameProfile().id()) == null) {
+		if (level().getServer().getPlayerList().getPlayer(fakePlayer.getGameProfile().id()) == null) {
 			players.forEach(player -> {
-				player.networkHandler.sendPacket(new PlayerRemoveS2CPacket(List.of(fakePlayer.getGameProfile().id())));
+				player.connection.send(new ClientboundPlayerInfoRemovePacket(List.of(fakePlayer.getGameProfile().id())));
 			});
 		}
 	}
 
 	@Override
-	public void onStartedTrackingBy(ServerPlayerEntity player) {
-		super.onStartedTrackingBy(player);
+	public void startSeenByPlayer(ServerPlayer player) {
+		super.startSeenByPlayer(player);
 		schedulePlayerListEntryRemoval(player);
 	}
 
-	private void schedulePlayerListEntryRemoval(ServerPlayerEntity player) {
-		removePackets.add(new SendPacketEntry(player, getEntityWorld().getTime()+REMOVE_PLAYER_LIST_ENTRY_DELAY));
+	private void schedulePlayerListEntryRemoval(ServerPlayer player) {
+		removePackets.add(new SendPacketEntry(player, level().getGameTime()+REMOVE_PLAYER_LIST_ENTRY_DELAY));
 	}
 
 	@Override
-	public boolean damage(ServerWorld world, DamageSource source, float amount) {
-		boolean bl = super.damage(world, source, amount);
-		if (this.getEntityWorld().isClient()) {
+	public boolean hurtServer(ServerLevel world, DamageSource source, float amount) {
+		boolean bl = super.hurtServer(world, source, amount);
+		if (this.level().isClientSide()) {
 			return false;
 		}
-		if (bl && source.getAttacker() instanceof LivingEntity) {
-			PlayerBrain.onAttacked(world, this, (LivingEntity) source.getAttacker());
+		if (bl && source.getEntity() instanceof LivingEntity) {
+			PlayerBrain.onAttacked(world, this, (LivingEntity) source.getEntity());
 		}
 		return bl;
 	}
 
 	private GameProfile adaptProfile(GameProfile profile) {
 		var name = getName().getString();
-		if (!profile.id().equals(getUuid()) || !profile.name().equals(name)) {
+		if (!profile.id().equals(getUUID()) || !profile.name().equals(name)) {
 			if (name.length() > 16) {
 				name = name.substring(0, 16);
 			}
 			return new GameProfile(
-					getUuid(), name, new PropertyMap(profile.properties())
+					getUUID(), name, new PropertyMap(profile.properties())
 			);
 		}
 		return profile;
@@ -626,7 +646,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	@Override
-	public void setCustomName(@Nullable Text name) {
+	public void setCustomName(@Nullable Component name) {
 		boolean changed = !Objects.equals(this.getCustomName(), name);
 		super.setCustomName(name);
 		if (changed && actualProfile != null) {
@@ -640,13 +660,13 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		respawnForClients();
 	}
 
-	public void setSkin(ProfileComponent profile) {
+	public void setSkin(ResolvableProfile profile) {
 		this.skinData = profile;
 		switch (profile) {
-			case ProfileComponent.Static s -> setSkin(s.getGameProfile());
-			case ProfileComponent.Dynamic d -> {
-				var server = getEntityWorld().getServer();
-				d.resolve(server.getApiServices().profileResolver()).thenAccept(p -> {
+			case ResolvableProfile.Static s -> setSkin(s.partialProfile());
+			case ResolvableProfile.Dynamic d -> {
+				var server = level().getServer();
+				d.resolveProfile(server.services().profileResolver()).thenAccept(p -> {
 					if (server.isRunning()) {
 						server.execute(() -> {
 							if (this.isAlive()) {
@@ -680,70 +700,70 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	private static byte getVisiblePartsByte(Set<PlayerModelPart> parts) {
-		return (byte) parts.stream().mapToInt(PlayerModelPart::getBitFlag).reduce(0, (lhs, rhs) -> lhs | rhs);
+		return (byte) parts.stream().mapToInt(PlayerModelPart::getMask).reduce(0, (lhs, rhs) -> lhs | rhs);
 	}
 
 	public void setVisibleSkinParts(Set<PlayerModelPart> parts) {
-		dataTracker.set(
+		entityData.set(
 				PLAYER_MODEL_PARTS, getVisiblePartsByte(parts)
 		);
 	}
 
 	public Set<PlayerModelPart> getVisibleSkinParts() {
-		var parts = dataTracker.get(PLAYER_MODEL_PARTS);
+		var parts = entityData.get(PLAYER_MODEL_PARTS);
 		var partSet = EnumSet.allOf(PlayerModelPart.class);
 		partSet.removeIf(
-				part -> (part.getBitFlag() & parts) == 0
+				part -> (part.getMask() & parts) == 0
 		);
 		return partSet;
 	}
 
 	@Override
-	public void writeCustomData(WriteView nbt) {
-		super.writeCustomData(nbt);
+	public void addAdditionalSaveData(ValueOutput nbt) {
+		super.addAdditionalSaveData(nbt);
 		if (skinData != null) {
-			nbt.put(PROFILE, ProfileComponent.CODEC, skinData);
+			nbt.store(PROFILE, ResolvableProfile.CODEC, skinData);
 		}
-		nbt.put(VISIBLE_SKIN_PARTS, ExtraCodecs.MODEL_PART_SET_CODEC, getVisibleSkinParts());
+		nbt.store(VISIBLE_SKIN_PARTS, METACodecs.MODEL_PART_SET_CODEC, getVisibleSkinParts());
 		if (!this.getShoulderEntityLeft().isEmpty()) {
-			nbt.put(SHOULDER_ENTITY_LEFT, NbtCompound.CODEC, this.getShoulderEntityLeft().copy());
+			nbt.store(SHOULDER_ENTITY_LEFT, CompoundTag.CODEC, this.getShoulderEntityLeft().copy());
 		}
 		if (!this.getShoulderEntityRight().isEmpty()) {
-			nbt.put(SHOULDER_ENTITY_RIGHT, NbtCompound.CODEC, this.getShoulderEntityRight().copy());
+			nbt.store(SHOULDER_ENTITY_RIGHT, CompoundTag.CODEC, this.getShoulderEntityRight().copy());
 		}
 		nbt.putBoolean(CAN_WANDER, canWander);
 	}
 
 	@Override
-	public void readCustomData(ReadView nbt) {
-		super.readCustomData(nbt);
-		nbt.read(PROFILE, ProfileComponent.CODEC).ifPresentOrElse(
+	public void readAdditionalSaveData(ValueInput nbt) {
+		super.readAdditionalSaveData(nbt);
+		nbt.read(PROFILE, ResolvableProfile.CODEC).ifPresentOrElse(
 				this::setSkin,
 				() -> setSkin(getDefaultSkin())
 		);
-		nbt.read(VISIBLE_SKIN_PARTS, ExtraCodecs.MODEL_PART_SET_CODEC).ifPresentOrElse(
+		nbt.read(VISIBLE_SKIN_PARTS, METACodecs.MODEL_PART_SET_CODEC).ifPresentOrElse(
 				this::setVisibleSkinParts,
 				() -> setVisibleSkinParts(EnumSet.allOf(PlayerModelPart.class))
 		);
-		canWander = nbt.getBoolean(CAN_WANDER, true);
+		canWander = nbt.getBooleanOr(CAN_WANDER, true);
 		readShoulderEntities(nbt);
 	}
 
 	private Packet<?> createPlayerInitPacket() {
-		return PlayerListS2CPacket.entryFromPlayer(List.of(fakePlayer));
+		return ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(fakePlayer));
 	}
 
 	private void resetFakePlayer() {
-		fakePlayer = new FakePlayer((ServerWorld) getEntityWorld(), adaptProfile(actualProfile)) {};
+		fakePlayer = new FakePlayer((ServerLevel) level(), adaptProfile(actualProfile)) {};
 	}
 
-	protected ProfileComponent getDefaultSkin() {
-		var list = getEntityWorld().getServer().getPlayerManager().getPlayerList();
+	protected ResolvableProfile getDefaultSkin() {
+		var list = level().getServer().getPlayerList().getPlayers();
 		if (list.isEmpty()) {
-			return ProfileComponent.ofStatic(new GameProfile(UUID.randomUUID(), "Default"));
+			return ResolvableProfile.createResolved(new GameProfile(UUID.randomUUID(), "Default"));
 		} else {
-			var player = list.get(getEntityWorld().getRandom().nextInt(list.size()));
-			return ProfileComponent.ofStatic(player.getGameProfile());
+			var player = list.get(level().getRandom().nextInt(list.size()));
+			return ResolvableProfile.createResolved(player.getGameProfile());
 		}
 	}
 
@@ -756,7 +776,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 			skinData = getDefaultSkin();
 		}
 		if (actualProfile == null) {
-			actualProfile = skinData.getGameProfile();
+			actualProfile = skinData.partialProfile();
 		}
 		if (shouldRespawnClient || fakePlayer == null) {
 			resetFakePlayer();
@@ -765,24 +785,24 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 	}
 
 	@Override
-	public void onBeforeSpawnPacket(ServerPlayerEntity player, Consumer<Packet<?>> packetConsumer) {
+	public void onBeforeSpawnPacket(ServerPlayer player, Consumer<Packet<?>> packetConsumer) {
 		initProfile();
-		player.networkHandler.sendPacket(createPlayerInitPacket());
+		player.connection.send(createPlayerInitPacket());
 	}
 
 	@Override
-	public void modifyRawTrackedData(List<DataTracker.SerializedEntry<?>> data, ServerPlayerEntity player, boolean initial) {
+	public void modifyRawTrackedData(List<SynchedEntityData.DataValue<?>> data, ServerPlayer player, boolean initial) {
 		if (initial) {
 			data.add(
-				DataTracker.SerializedEntry.of(
-						AccessorPlayerLikeEntity.getModelParts(), dataTracker.get(PLAYER_MODEL_PARTS)
+				SynchedEntityData.DataValue.create(
+						AccessorPlayerLikeEntity.getModelParts(), entityData.get(PLAYER_MODEL_PARTS)
 				)
 			);
 		}
 		for (int i = 0; i < data.size(); i++) {
 			replace(
 					data, i, AccessorMobEntity.getMobFlags(), AccessorPlayerLikeEntity.getMainArm(),
-					flags -> (byte) (isLeftHanded() ? Arm.LEFT.getId() : Arm.RIGHT.getId())
+					flags -> (byte) (isLeftHanded() ? HumanoidArm.LEFT.getId() : HumanoidArm.RIGHT.getId())
 			);
 			replace(data, i, PLAYER_MODEL_PARTS, AccessorPlayerLikeEntity.getModelParts());
 			replace(data, i, RIGHT_SHOULDER_ENTITY, AccessorPlayerEntity.getRightShoulderEntity());
@@ -790,15 +810,15 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		}
 	}
 
-	private static <T> void replace(List<DataTracker.SerializedEntry<?>> data, int current, TrackedData<? extends T> from, TrackedData<T> to) {
+	private static <T> void replace(List<SynchedEntityData.DataValue<?>> data, int current, EntityDataAccessor<? extends T> from, EntityDataAccessor<T> to) {
 		replace(data, current, from, to, t -> t);
 	}
 
-	private static <T, U> void replace(List<DataTracker.SerializedEntry<?>> data, int current, TrackedData<T> from, TrackedData<U> to, Function<T, U> converter) {
+	private static <T, U> void replace(List<SynchedEntityData.DataValue<?>> data, int current, EntityDataAccessor<T> from, EntityDataAccessor<U> to, Function<T, U> converter) {
 		var existing = data.get(current);
-		if (existing.id() == from.id() && existing.handler() == from.dataType()) {
+		if (existing.id() == from.id() && existing.serializer() == from.serializer()) {
 			data.remove(current);
-			data.add(current, DataTracker.SerializedEntry.of(to, converter.apply((T) existing.value())));
+			data.add(current, SynchedEntityData.DataValue.create(to, converter.apply((T) existing.value())));
 		}
 	}
 
@@ -817,27 +837,27 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 
 		@Override
 		public void tick() {
-			if (this.player.isTouchingWater() && player.shouldSwim()) {
+			if (this.player.isInWater() && player.shouldSwim()) {
 				BlockPos target = player.getNavigation().getTargetPos();
-				if (target != null && target.getY() >= this.player.getBlockPos().getY()) {
-					this.player.setVelocity(this.player.getVelocity().add(0.0, 0.002, 0.0));
+				if (target != null && target.getY() >= this.player.blockPosition().getY()) {
+					this.player.setDeltaMovement(this.player.getDeltaMovement().add(0.0, 0.002, 0.0));
 				}
-				if (this.state != MoveControl.State.MOVE_TO || this.player.getNavigation().isIdle()) {
-					this.player.setMovementSpeed(0.0f);
+				if (this.operation != MoveControl.Operation.MOVE_TO || this.player.getNavigation().isDone()) {
+					this.player.setSpeed(0.0f);
 					return;
 				}
-				double d = this.targetX - this.player.getX();
-				double e = this.targetY - this.player.getY();
-				double f = this.targetZ - this.player.getZ();
+				double d = this.wantedX - this.player.getX();
+				double e = this.wantedY - this.player.getY();
+				double f = this.wantedZ - this.player.getZ();
 				double g = Math.sqrt(d * d + e * e + f * f);
 				e /= g;
-				float h = (float)(MathHelper.atan2(f, d) * 57.2957763671875) - 90.0f;
-				this.player.setYaw(this.wrapDegrees(this.player.getYaw(), h, 90.0f));
-				this.player.bodyYaw = this.player.getYaw();
-				float i = (float)(this.speed * this.player.getAttributeValue(EntityAttributes.MOVEMENT_SPEED));
-				float j = MathHelper.lerp(0.125f, this.player.getMovementSpeed(), i);
-				this.player.setMovementSpeed(j);
-				this.player.setVelocity(this.player.getVelocity().add((double)j * d * 0.005, (double)j * e * 0.1, (double)j * f * 0.005));
+				float h = (float)(Mth.atan2(f, d) * 57.2957763671875) - 90.0f;
+				this.player.setYRot(this.rotlerp(this.player.getYRot(), h, 90.0f));
+				this.player.yBodyRot = this.player.getYRot();
+				float i = (float)(this.speedModifier * this.player.getAttributeValue(Attributes.MOVEMENT_SPEED));
+				float j = Mth.lerp(0.125f, this.player.getSpeed(), i);
+				this.player.setSpeed(j);
+				this.player.setDeltaMovement(this.player.getDeltaMovement().add((double)j * d * 0.005, (double)j * e * 0.1, (double)j * f * 0.005));
 			} else {
 				super.tick();
 			}
@@ -850,7 +870,7 @@ public class PlayerMob extends HostileEntity implements PolymerEntity, CrossbowU
 		removePackets.clear();
 	}
 
-	public record SendPacketEntry(ServerPlayerEntity player, long time) {
+	public record SendPacketEntry(ServerPlayer player, long time) {
 
 	}
 }

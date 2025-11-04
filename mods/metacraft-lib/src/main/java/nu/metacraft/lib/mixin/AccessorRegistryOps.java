@@ -1,7 +1,7 @@
 package nu.metacraft.lib.mixin;
 
-import net.minecraft.registry.RegistryOps;
-import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.resources.RegistryOps;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -9,12 +9,12 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface AccessorRegistryOps {
 
 	@Accessor
-	RegistryOps.RegistryInfoGetter getRegistryInfoGetter();
+	RegistryOps.RegistryInfoLookup getLookupProvider();
 
 
-	@Mixin(targets = "net.minecraft.registry.RegistryOps$CachedRegistryInfoGetter")
+	@Mixin(targets = "net.minecraft.resources.RegistryOps$HolderLookupAdapter")
 	interface AccessorCachedRegistryInfoGetter {
 		@Accessor
-		RegistryWrapper.WrapperLookup getRegistries();
+		HolderLookup.Provider getLookupProvider();
 	}
 }

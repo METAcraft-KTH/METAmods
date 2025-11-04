@@ -4,8 +4,6 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.math.BlockPos;
 import nu.metacraft.zones.METAcraftZones;
 import nu.metacraft.zones.util.ZoneCommandUtils;
 import nu.metacraft.zones.ZoneManagementCommand;
@@ -15,6 +13,8 @@ import nu.metacraft.zones.zone.ZoneRegistry;
 
 import java.util.Optional;
 import java.util.function.Function;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 
 public class ZoneZone extends ZoneType {
 
@@ -27,8 +27,8 @@ public class ZoneZone extends ZoneType {
 			Codec.DOUBLE.fieldOf("cachedSize").orElse(0.0).forGetter(zone -> zone.size)
 	).apply(instance, ZoneZone::new));
 
-	public static ArgumentBuilder<ServerCommandSource, ?> createCommand(
-			ArgumentBuilder<ServerCommandSource, ?> builder, ZoneManagementCommand.ZoneAdder addZone
+	public static ArgumentBuilder<CommandSourceStack, ?> createCommand(
+			ArgumentBuilder<CommandSourceStack, ?> builder, ZoneManagementCommand.ZoneAdder addZone
 	) {
 		return builder.then(
 			ZoneCommandUtils.zone("zone").executes(ctx -> {

@@ -4,14 +4,14 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.GlobalPos;
-import net.minecraft.world.World;
 import nu.metacraft.core.block.entities.PortalEntity;
 
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 
 public record FixedPortalTarget(GlobalPos target, boolean autolink) implements PortalTarget {
 
@@ -22,8 +22,8 @@ public record FixedPortalTarget(GlobalPos target, boolean autolink) implements P
 			).apply(instance, FixedPortalTarget::new)
 	);
 
-	public static FixedPortalTarget create(RegistryKey<World> dim, BlockPos pos) {
-		return new FixedPortalTarget(GlobalPos.create(dim, pos), false);
+	public static FixedPortalTarget create(ResourceKey<Level> dim, BlockPos pos) {
+		return new FixedPortalTarget(GlobalPos.of(dim, pos), false);
 	}
 
 	@Override
@@ -34,11 +34,11 @@ public record FixedPortalTarget(GlobalPos target, boolean autolink) implements P
 	@Override
 	public void initialize(PortalEntity portal) {
 		if (autolink) {
-			var targetWorld = portal.getWorld().getServer().getWorld(target.dimension());
+			var targetWorld = portal.getLevel().getServer().getLevel(target.dimension());
 			PortalEntity.findPortal(targetWorld, target.pos()).ifPresent(
 					target -> {
-						target.setTarget(create(portal.getWorld().getRegistryKey(), portal.getPos()));
-						portal.setTarget(create(target.getWorld().getRegistryKey(), target.getPos()));
+						target.setTarget(create(portal.getLevel().dimension(), portal.getBlockPos()));
+						portal.setTarget(create(target.getLevel().dimension(), target.getBlockPos()));
 					}
 			);
 		}

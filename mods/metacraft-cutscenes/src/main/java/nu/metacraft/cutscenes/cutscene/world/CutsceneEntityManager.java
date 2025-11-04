@@ -7,19 +7,26 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import eu.pb4.polymer.core.impl.interfaces.EntityAttachedPacket;
-import net.minecraft.entity.Entity;
-import net.minecraft.network.listener.ClientPlayPacketListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.server.network.EntityTrackerEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerEntityManager;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.util.Uuids;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.server.level.ServerEntity;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.entity.EntityInLevelCallback;
+import net.minecraft.world.level.entity.EntityLookup;
+import net.minecraft.world.level.entity.EntitySection;
+import net.minecraft.world.level.entity.EntitySectionStorage;
+import net.minecraft.world.level.entity.LevelCallback;
+import net.minecraft.world.level.entity.LevelEntityGetter;
+import net.minecraft.world.level.entity.LevelEntityGetterAdapter;
+import net.minecraft.world.level.entity.PersistentEntitySectionManager;
+import net.minecraft.world.level.entity.Visibility;
+import net.minecraft.world.level.storage.TagValueOutput;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.mixin.AccesorServerEntityManager;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
@@ -39,9 +46,9 @@ public class CutsceneEntityManager {
 	private final List<Pair<String, Entity>> addQueue = new ArrayList<>();
 
 	private final CutsceneWorld world;
-	private final SectionedEntityCache<Entity> cache = new SectionedEntityCache<>(Entity.class, i -> EntityTrackingStatus.TICKING);
-	private final EntityIndex<Entity> index = new EntityIndex<>();
-	private final EntityLookup<Entity> lookup = new SimpleEntityLookup<>(index, cache);
+	private final EntitySectionStorage<Entity> cache = new EntitySectionStorage<>(Entity.class, i -> Visibility.TICKING);
+	private final EntityLookup<Entity> index = new EntityLookup<>();
+	private final LevelEntityGetter<Entity> lookup = new LevelEntityGetterAdapter<>(index, cache);
 	private CutsceneChunkLoadingManager chunkLoadingManager = null;
 	private boolean iteratingEntities = false;
 
@@ -49,7 +56,7 @@ public class CutsceneEntityManager {
 
 	public CutsceneEntityManager(CutsceneWorld world) {
 		this.world = world;
-		this.chunkLoadingManager = world.getChunkManager().cutsceneChunkLoadingManager;
+		this.chunkLoadingManager = world.getChunkSource().cutsceneChunkLoadingManager;
 		if (chunkLoadingManager != null) {
 			for (var e : entities.values()) {
 				chunkLoadingManager.addEntity(e.entity, e.tracker);
@@ -57,21 +64,21 @@ public class CutsceneEntityManager {
 		}
 	}
 
-	void entityLeftSection(long sectionPos, EntityTrackingSection<Entity> section) {
+	void entityLeftSection(long sectionPos, EntitySection<Entity> section) {
 		if (section.isEmpty()) {
-			this.cache.removeSection(sectionPos);
+			this.cache.remove(sectionPos);
 		}
 	}
 
-	public void onAddPlayer(ServerPlayerEntity player) {
+	public void onAddPlayer(ServerPlayer player) {
 		entities.values().forEach(entity -> {
-			entity.tracker.startTracking(player);
+			entity.tracker.addPairing(player);
 		});
 	}
 
-	public void onRemovePlayer(ServerPlayerEntity player) {
+	public void onRemovePlayer(ServerPlayer player) {
 		entities.values().forEach(entity -> {
-			entity.tracker.stopTracking(player);
+			entity.tracker.removePairing(player);
 		});
 	}
 
@@ -83,33 +90,33 @@ public class CutsceneEntityManager {
 		return entitiesToHide.contains(id);
 	}
 
-	public static class CutsceneTrackerEntry extends EntityTrackerEntry {
+	public static class CutsceneTrackerEntry extends ServerEntity {
 
-		public CutsceneTrackerEntry(ServerWorld world, Entity entity) {
+		public CutsceneTrackerEntry(ServerLevel world, Entity entity) {
 			super(
-					world, entity, entity.getType().getTrackTickInterval(), entity.getType().alwaysUpdateVelocity(),
-					new TrackerPacketSender() {
+					world, entity, entity.getType().updateInterval(), entity.getType().trackDeltas(),
+					new Synchronizer() {
 						@Override
-						public void sendToListeners(Packet<? super ClientPlayPacketListener> packet) {
+						public void sendToTrackingPlayers(Packet<? super ClientGamePacketListener> packet) {
 							if (entity instanceof PolymerEntity) {
 								EntityAttachedPacket.setIfEmpty(packet, entity);
 							}
-							world.getPlayers().forEach(p -> p.networkHandler.sendPacket(packet));
+							world.players().forEach(p -> p.connection.send(packet));
 						}
 
 						@Override
-						public void sendToSelfAndListeners(Packet<? super ClientPlayPacketListener> packet) {
-							this.sendToListeners(packet);
+						public void sendToTrackingPlayersAndSelf(Packet<? super ClientGamePacketListener> packet) {
+							this.sendToTrackingPlayers(packet);
 						}
 
 						@Override
-						public void sendToListenersIf(Packet<? super ClientPlayPacketListener> packet, Predicate<ServerPlayerEntity> predicate) {
+						public void sendToTrackingPlayersFiltered(Packet<? super ClientGamePacketListener> packet, Predicate<ServerPlayer> predicate) {
 							if (entity instanceof PolymerEntity) {
 								EntityAttachedPacket.setIfEmpty(packet, entity);
 							}
-							world.getPlayers().forEach(p -> {
+							world.players().forEach(p -> {
 								if (predicate.test(p)) {
-									p.networkHandler.sendPacket(packet);
+									p.connection.send(packet);
 								}
 							});
 						}
@@ -120,28 +127,28 @@ public class CutsceneEntityManager {
 
 	public static class NoOpTrackerEntry extends CutsceneTrackerEntry {
 
-		public NoOpTrackerEntry(ServerWorld world, Entity entity) {
+		public NoOpTrackerEntry(ServerLevel world, Entity entity) {
 			super(world, entity);
 		}
 
 		@Override
-		public void startTracking(ServerPlayerEntity player) {
+		public void addPairing(ServerPlayer player) {
 
 		}
 
 		@Override
-		public void stopTracking(ServerPlayerEntity player) {
+		public void removePairing(ServerPlayer player) {
 
 		}
 
 		@Override
-		public void sendPackets(ServerPlayerEntity player, Consumer<Packet<ClientPlayPacketListener>> sender) {
+		public void sendPairingData(ServerPlayer player, Consumer<Packet<ClientGamePacketListener>> sender) {
 
 		}
 	}
 
-	private EntityTrackerEntry create(Entity entity) {
-		if (entity.getType().getMaxTrackDistance() == 0) {
+	private ServerEntity create(Entity entity) {
+		if (entity.getType().clientTrackingRange() == 0) {
 			return new NoOpTrackerEntry(world, entity);
 		}
 		return new CutsceneTrackerEntry(world, entity);
@@ -157,16 +164,16 @@ public class CutsceneEntityManager {
 			chunkLoadingManager.addEntity(entity, tracker);
 		}
 		entities.put(id, new EntityEntry(entity, tracker));
-		var prev = idLookup.put(entity.getUuid(), id);
+		var prev = idLookup.put(entity.getUUID(), id);
 		if (prev != null) {
-			removalSkips.add(entity.getUuid());
+			removalSkips.add(entity.getUUID());
 		}
 		index.add(entity);
-		world.getPlayers().forEach(tracker::startTracking);
-		var pos = ChunkSectionPos.toLong(entity.getBlockPos());
-		var section = this.cache.getTrackingSection(pos);
+		world.players().forEach(tracker::addPairing);
+		var pos = SectionPos.asLong(entity.blockPosition());
+		var section = this.cache.getOrCreateSection(pos);
 		section.add(entity);
-		entity.setChangeListener(new Listener(entity, pos, section));
+		entity.setLevelCallback(new Listener(entity, pos, section));
 	}
 
 	public Optional<Entity> getRootEntity(String id) {
@@ -178,10 +185,10 @@ public class CutsceneEntityManager {
 	}
 
 	public Optional<String> getIDForEntity(Entity entity) {
-		return Optional.ofNullable(idLookup.get(entity.getUuid()));
+		return Optional.ofNullable(idLookup.get(entity.getUUID()));
 	}
 
-	public EntityLookup<Entity> getLookup() {
+	public LevelEntityGetter<Entity> getLookup() {
 		return lookup;
 	}
 
@@ -192,7 +199,7 @@ public class CutsceneEntityManager {
 		public static final MapCodec<SaveState> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						CutsceneWorldData.SerialisedEntity.CODEC.listOf().fieldOf("entities").forGetter(d -> d.entities),
-						Uuids.SET_CODEC.optionalFieldOf("entities_to_hide").xmap(
+						UUIDUtil.CODEC_SET.optionalFieldOf("entities_to_hide").xmap(
 								opt -> opt.orElseGet(HashSet::new), Optional::of
 						).forGetter(d -> d.entitiesToHide)
 				).apply(instance, SaveState::new)
@@ -202,18 +209,18 @@ public class CutsceneEntityManager {
 	public SaveState save() {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:CutsceneEntityManager#save", Cutscenes.LOGGER)) {
 			return new SaveState(
-					entities.entries().stream().filter(e -> e.getValue().entity.shouldSave()).map(entry -> {
+					entities.entries().stream().filter(e -> e.getValue().entity.shouldBeSaved()).map(entry -> {
 						List<String> ids = new ArrayList<>();
 						ids.add(entry.getKey());
-						if (entry.getValue().entity.hasPassengers()) {
-							entry.getValue().entity.getPassengersDeep().forEach(passenger -> {
+						if (entry.getValue().entity.isVehicle()) {
+							entry.getValue().entity.getIndirectPassengers().forEach(passenger -> {
 								getIDForEntity(passenger).ifPresent(ids::add);
 							});
 						}
 
-						var writeView = NbtWriteView.create(logging, entry.getValue().entity.getRegistryManager());
-						if (entry.getValue().entity.saveSelfData(writeView)) {
-							return new CutsceneWorldData.SerialisedEntity(ids, writeView.getNbt());
+						var writeView = TagValueOutput.createWithContext(logging, entry.getValue().entity.registryAccess());
+						if (entry.getValue().entity.saveAsPassenger(writeView)) {
+							return new CutsceneWorldData.SerialisedEntity(ids, writeView.buildResult());
 						} else {
 							return null;
 						}
@@ -226,7 +233,7 @@ public class CutsceneEntityManager {
 	public void tick() {
 		iteratingEntities = true;
 		entities.values().removeIf(e -> {
-			e.tracker.tick();
+			e.tracker.sendChanges();
 			if (e.entity.isRemoved()) {
 				onEntityRemove(e);
 				return true;
@@ -235,7 +242,7 @@ public class CutsceneEntityManager {
 				if (vehicle != null && (vehicle.isRemoved() || !vehicle.hasPassenger(e.entity))) {
 					e.entity.stopRiding();
 				}
-				world.tickEntity(world::tickEntity, e.entity);
+				world.guardEntityTick(world::tickNonPassenger, e.entity);
 				return false;
 			}
 		});
@@ -246,13 +253,13 @@ public class CutsceneEntityManager {
 	}
 
 	private void onEntityRemove(EntityEntry entity) {
-		world.getPlayers().forEach(entity.tracker::stopTracking);
+		world.players().forEach(entity.tracker::removePairing);
 		index.remove(entity.entity);
 		if (chunkLoadingManager != null) {
 			chunkLoadingManager.removeEntity(entity.entity);
 		}
-		if (!removalSkips.contains(entity.entity.getUuid())) {
-			idLookup.remove(entity.entity.getUuid());
+		if (!removalSkips.contains(entity.entity.getUUID())) {
+			idLookup.remove(entity.entity.getUUID());
 		}
 		world.onEntityRemoved(entity.entity);
 	}
@@ -269,36 +276,36 @@ public class CutsceneEntityManager {
 		idLookup.clear();
 	}
 
-	public record EntityEntry(Entity entity, EntityTrackerEntry tracker) {}
+	public record EntityEntry(Entity entity, ServerEntity tracker) {}
 
-	public class Listener implements EntityChangeListener {
+	public class Listener implements EntityInLevelCallback {
 
 		private final Entity entity;
 		private long sectionPos;
-		private EntityTrackingSection<Entity> section;
+		private EntitySection<Entity> section;
 
-		public Listener(Entity entity, long sectionPos, EntityTrackingSection<Entity> section) {
+		public Listener(Entity entity, long sectionPos, EntitySection<Entity> section) {
 			this.entity = entity;
 			this.sectionPos = sectionPos;
 			this.section = section;
 		}
 
 		@Override
-		public void updateEntityPosition() {
-			var newPos = ChunkSectionPos.toLong(entity.getBlockPos());
+		public void onMove() {
+			var newPos = SectionPos.asLong(entity.blockPosition());
 			if (newPos != sectionPos) {
 				section.remove(entity);
 				entityLeftSection(sectionPos, section);
 				sectionPos = newPos;
-				section = cache.getTrackingSection(sectionPos);
+				section = cache.getOrCreateSection(sectionPos);
 				section.add(entity);
 			}
 		}
 
 		@Override
-		public void remove(Entity.RemovalReason reason) {
+		public void onRemove(Entity.RemovalReason reason) {
 			section.remove(entity);
-			entity.setChangeListener(EntityChangeListener.NONE);
+			entity.setLevelCallback(EntityInLevelCallback.NULL);
 			entityLeftSection(sectionPos, section);
 		}
 	}
@@ -307,48 +314,48 @@ public class CutsceneEntityManager {
 		return new Dummy();
 	}
 
-	public class Dummy extends ServerEntityManager<Entity> {
+	public class Dummy extends PersistentEntitySectionManager<Entity> {
 
 		public Dummy() {
-			super(Entity.class, new EntityHandler<>() {
+			super(Entity.class, new LevelCallback<>() {
 				@Override
-				public void create(Entity entity) {
+				public void onCreated(Entity entity) {
 
 				}
 
 				@Override
-				public void destroy(Entity entity) {
+				public void onDestroyed(Entity entity) {
 
 				}
 
 				@Override
-				public void startTicking(Entity entity) {
+				public void onTickingStart(Entity entity) {
 
 				}
 
 				@Override
-				public void stopTicking(Entity entity) {
+				public void onTickingEnd(Entity entity) {
 
 				}
 
 				@Override
-				public void startTracking(Entity entity) {
+				public void onTrackingStart(Entity entity) {
 
 				}
 
 				@Override
-				public void stopTracking(Entity entity) {
+				public void onTrackingEnd(Entity entity) {
 
 				}
 
 				@Override
-				public void updateLoadStatus(Entity entity) {
+				public void onSectionChange(Entity entity) {
 
 				}
 			}, null);
 
-			((AccesorServerEntityManager<Entity>) this).setCache(CutsceneEntityManager.this.cache);
-			((AccesorServerEntityManager<Entity>) this).setIndex(CutsceneEntityManager.this.index);
+			((AccesorServerEntityManager<Entity>) this).setSectionStorage(CutsceneEntityManager.this.cache);
+			((AccesorServerEntityManager<Entity>) this).setVisibleEntityStorage(CutsceneEntityManager.this.index);
 		}
 
 		@Override
@@ -357,17 +364,17 @@ public class CutsceneEntityManager {
 		}
 
 		@Override
-		public void updateTrackingStatus(ChunkPos chunkPos, EntityTrackingStatus trackingStatus) {
+		public void updateChunkStatus(ChunkPos chunkPos, Visibility trackingStatus) {
 
 		}
 
 		@Override
-		public void save() {
+		public void autoSave() {
 
 		}
 
 		@Override
-		public void flush() {
+		public void saveAll() {
 
 		}
 
@@ -377,27 +384,27 @@ public class CutsceneEntityManager {
 		}
 
 		@Override
-		public EntityLookup<Entity> getLookup() {
+		public LevelEntityGetter<Entity> getEntityGetter() {
 			return lookup;
 		}
 
 		@Override
-		public boolean has(UUID uuid) {
+		public boolean isLoaded(UUID uuid) {
 			return idLookup.containsKey(uuid);
 		}
 
 		@Override
-		public boolean shouldTick(BlockPos pos) {
+		public boolean canPositionTick(BlockPos pos) {
 			return true;
 		}
 
 		@Override
-		public boolean shouldTick(ChunkPos pos) {
+		public boolean canPositionTick(ChunkPos pos) {
 			return true;
 		}
 
 		@Override
-		public boolean isLoaded(long chunkPos) {
+		public boolean areEntitiesLoaded(long chunkPos) {
 			return true;
 		}
 

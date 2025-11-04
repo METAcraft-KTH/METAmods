@@ -2,15 +2,15 @@ package nu.metacraft.cutscenes;
 
 import com.chocohead.mm.api.ClassTinkerers;
 import com.mojang.datafixers.DSL;
-import net.minecraft.datafixer.DataFixTypes;
-import net.minecraft.datafixer.TypeReferences;
+import net.minecraft.util.datafix.DataFixTypes;
+import net.minecraft.util.datafix.fixes.References;
 
 public class CutsceneDataFixer {
 
-	public static final DSL.TypeReference CUTSCENE = TypeReferences.create(
+	public static final DSL.TypeReference CUTSCENE = References.reference(
 			"metacraft/cutscene"
 	);
-	public static final DSL.TypeReference SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER = TypeReferences.create(
+	public static final DSL.TypeReference SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER = References.reference(
 			"metacraft/saved_data/multiplayer_cutscene_manager"
 	);
 

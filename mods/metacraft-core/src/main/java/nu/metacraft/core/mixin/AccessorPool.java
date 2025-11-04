@@ -1,10 +1,10 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.util.collection.Pool;
+import net.minecraft.util.random.WeightedList;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(Pool.class)
+@Mixin(WeightedList.class)
 public interface AccessorPool {
 
 	@Accessor

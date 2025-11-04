@@ -4,9 +4,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
 import nu.metacraft.zones.ZoneManager;
 import nu.metacraft.zones.zone.RealZone;
 import xyz.nucleoid.leukocyte.shape.ProtectionShape;
@@ -63,12 +63,12 @@ public class ZoneShape implements ProtectionShape {
 	}
 
 	@Override
-	public MutableText display() {
-		return Text.literal("Zone: " + name);
+	public MutableComponent display() {
+		return Component.literal("Zone: " + name);
 	}
 
 	@Override
-	public MutableText displayShort() {
+	public MutableComponent displayShort() {
 		return display();
 	}
 }

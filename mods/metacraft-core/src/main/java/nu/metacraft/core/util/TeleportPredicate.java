@@ -2,11 +2,10 @@ package nu.metacraft.core.util;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.predicate.entity.EntityPredicate;
-import net.minecraft.server.world.ServerWorld;
-
 import java.util.List;
+import net.minecraft.advancements.critereon.EntityPredicate;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 
 public record TeleportPredicate(EntityPredicate entityPredicate, boolean result) {
 	public static final Codec<TeleportPredicate> CODEC = RecordCodecBuilder.create(
@@ -19,10 +18,10 @@ public record TeleportPredicate(EntityPredicate entityPredicate, boolean result)
 
 
 	public static boolean shouldTeleport(
-			List<TeleportPredicate> shouldTeleport, ServerWorld world, Entity entity
+			List<TeleportPredicate> shouldTeleport, ServerLevel world, Entity entity
 	) {
 		for (var entry : shouldTeleport) {
-			if (entry.entityPredicate().test(world, null, entity)) {
+			if (entry.entityPredicate().matches(world, null, entity)) {
 				return entry.result();
 			}
 		}

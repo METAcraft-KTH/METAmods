@@ -1,18 +1,18 @@
 package nu.metacraft.lib.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.mob.GhastEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.monster.Ghast;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(GhastEntity.class)
+@Mixin(Ghast.class)
 public class MixinGhastEntity {
 
 	@Unique
@@ -30,16 +30,16 @@ public class MixinGhastEntity {
 	private boolean preventReturnInstakill = false;
 
 
-	@Inject(method = "writeCustomData", at = @At("RETURN"))
-	public void writeNBT(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
+	public void writeNBT(ValueOutput nbt, CallbackInfo ci) {
 		nbt.putBoolean(IGNORE_Y_CHECK, ignoreYCheck);
 		nbt.putBoolean(PREVENT_RETURN_INSTAKILL, preventReturnInstakill);
 	}
 
-	@Inject(method = "readCustomData", at = @At("RETURN"))
-	public void readNBT(ReadView nbt, CallbackInfo ci) {
-		ignoreYCheck = nbt.getBoolean(IGNORE_Y_CHECK, false);
-		preventReturnInstakill = nbt.getBoolean(PREVENT_RETURN_INSTAKILL, false);
+	@Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
+	public void readNBT(ValueInput nbt, CallbackInfo ci) {
+		ignoreYCheck = nbt.getBooleanOr(IGNORE_Y_CHECK, false);
+		preventReturnInstakill = nbt.getBooleanOr(PREVENT_RETURN_INSTAKILL, false);
 	}
 
 	@ModifyExpressionValue(
@@ -57,13 +57,13 @@ public class MixinGhastEntity {
 	}
 
 	@ModifyExpressionValue(
-		method = "damage",
+		method = "hurtServer",
 		at = @At(
 			value = "CONSTANT",
 			args = "floatValue=1000.0f"
 		)
 	)
-	public float modifyInstakillDamage(float instakillAmount, ServerWorld world, DamageSource source, float amount) {
+	public float modifyInstakillDamage(float instakillAmount, ServerLevel world, DamageSource source, float amount) {
 		if (preventReturnInstakill) {
 			return amount;
 		}

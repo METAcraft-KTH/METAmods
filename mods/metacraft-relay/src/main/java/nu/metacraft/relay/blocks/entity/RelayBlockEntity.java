@@ -1,23 +1,23 @@
 package nu.metacraft.relay.blocks.entity;
 
 import com.mojang.serialization.DataResult;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.RespawnAnchorBlock;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.entity.EntityType;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
 import nu.metacraft.relay.blocks.RelayBlockEntities;
 import nu.metacraft.relay.items.RelayComponents;
 import nu.metacraft.relay.mixin.AccessorServerPlayerEntityRespawnPos;
 import org.pcollections.HashTreePSet;
 
 import java.util.Set;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.RespawnAnchorBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.phys.Vec3;
 
 public class RelayBlockEntity extends BlockEntity {
 
@@ -29,50 +29,50 @@ public class RelayBlockEntity extends BlockEntity {
 		this(RelayBlockEntities.RELAY, pos, state);
 	}
 
-	public DataResult<TeleportTarget> getTarget() {
-		var mappings = getComponents().get(RelayComponents.VALID_DIMENSIONS);
-		Set<RegistryKey<World>> validTargets;
+	public DataResult<TeleportTransition> getTarget() {
+		var mappings = components().get(RelayComponents.VALID_DIMENSIONS);
+		Set<ResourceKey<Level>> validTargets;
 		if (mappings != null) {
-			validTargets = mappings.getOrDefault(world.getRegistryKey(), HashTreePSet.empty());
+			validTargets = mappings.getOrDefault(level.dimension(), HashTreePSet.empty());
 		} else {
 			validTargets = HashTreePSet.empty();
 		}
-		var target = getComponents().get(DataComponentTypes.LODESTONE_TRACKER);
+		var target = components().get(DataComponents.LODESTONE_TRACKER);
 		if (target != null && target.target().isPresent()) {
 			if (!validTargets.contains(target.target().get().dimension())) {
-				if (validTargets.size() == 1 && validTargets.contains(world.getRegistryKey())) {
+				if (validTargets.size() == 1 && validTargets.contains(level.dimension())) {
 					return DataResult.error(() -> "Target is in another dimension");
 				}
 				return DataResult.error(() -> "Target dimension is not reachable");
 			}
-			var dim = world.getServer().getWorld(target.target().get().dimension());
+			var dim = level.getServer().getLevel(target.target().get().dimension());
 			if (dim == null) return DataResult.error(() -> "Targeted dimension does not exist");
-			return target.forWorld(dim).target().map(
+			return target.tick(dim).target().map(
 					t -> {
-						var respawnPos = RespawnAnchorBlock.findRespawnPosition(
+						var respawnPos = RespawnAnchorBlock.findStandUpPosition(
 								EntityType.PLAYER, dim, t.pos()
 						);
 						return respawnPos.map(pos -> DataResult.success(
-								new TeleportTarget(
-										dim, pos, Vec3d.ZERO,
-										AccessorServerPlayerEntityRespawnPos.callGetYaw(pos, t.pos()),
-										0, TeleportTarget.SEND_TRAVEL_THROUGH_PORTAL_PACKET
+								new TeleportTransition(
+										dim, pos, Vec3.ZERO,
+										AccessorServerPlayerEntityRespawnPos.callCalculateLookAtYaw(pos, t.pos()),
+										0, TeleportTransition.PLAY_PORTAL_SOUND
 								)
 						)).orElseGet(() -> DataResult.error(
 								() -> "Target lodestone is obstructed (" +
-										target.target().map(p -> p.pos().toShortString() + ", " + p.dimension().getValue()).orElse("missingno") + ")"
+										target.target().map(p -> p.pos().toShortString() + ", " + p.dimension().location()).orElse("missingno") + ")"
 						));
 					}
 			).orElse(DataResult.error(
 					() -> "Target lodestone missing (" +
-							target.target().map(t -> t.pos().toShortString() + ", " + t.dimension().getValue()).orElse("missingno") + ")"
+							target.target().map(t -> t.pos().toShortString() + ", " + t.dimension().location()).orElse("missingno") + ")"
 			));
 		}
 		return DataResult.error(() -> "No Target");
 	}
 
 	public boolean shouldExplode() {
-		var mappings = getComponents().get(RelayComponents.VALID_DIMENSIONS);
-		return mappings == null || !mappings.containsKey(world.getRegistryKey());
+		var mappings = components().get(RelayComponents.VALID_DIMENSIONS);
+		return mappings == null || !mappings.containsKey(level.dimension());
 	}
 }

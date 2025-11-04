@@ -5,16 +5,6 @@ import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.block.AbstractRailBlock;
-import net.minecraft.block.enums.RailShape;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.DefaultMinecartController;
-import net.minecraft.entity.vehicle.ExperimentalMinecartController;
-import net.minecraft.entity.vehicle.MinecartController;
-import net.minecraft.network.packet.s2c.play.MoveMinecartAlongTrackS2CPacket;
-import net.minecraft.server.network.EntityTrackerEntry;
-import net.minecraft.util.math.Direction;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -24,31 +14,41 @@ import nu.metacraft.faster_minecarts.FasterMinecartsConfig;
 import nu.metacraft.faster_minecarts.MinecartExtensions;
 
 import java.util.List;
+import net.minecraft.core.Direction;
+import net.minecraft.network.protocol.game.ClientboundMoveMinecartPacket;
+import net.minecraft.server.level.ServerEntity;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.MinecartBehavior;
+import net.minecraft.world.entity.vehicle.NewMinecartBehavior;
+import net.minecraft.world.entity.vehicle.OldMinecartBehavior;
+import net.minecraft.world.level.block.BaseRailBlock;
+import net.minecraft.world.level.block.state.properties.RailShape;
 
-@Mixin(EntityTrackerEntry.class)
+@Mixin(ServerEntity.class)
 public abstract class MixinEntityTrackerEntry {
 
 	@Shadow @Final private Entity entity;
 
-	@Shadow private int trackingTick;
+	@Shadow private int tickCount;
 
-	@Shadow @Final private int tickInterval;
+	@Shadow @Final private int updateInterval;
 
-	@Shadow protected abstract void syncEntityData();
+	@Shadow protected abstract void sendDirtyEntityData();
 
-	@Shadow @Final private EntityTrackerEntry.TrackerPacketSender packetSender;
+	@Shadow @Final private ServerEntity.Synchronizer synchronizer;
 
 	@ModifyExpressionValue(
-		method = "tick",
+		method = "sendChanges",
 		at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/entity/vehicle/AbstractMinecartEntity;getController()Lnet/minecraft/entity/vehicle/MinecartController;"
+				target = "Lnet/minecraft/world/entity/vehicle/AbstractMinecart;getBehavior()Lnet/minecraft/world/entity/vehicle/MinecartBehavior;"
 		)
 	)
-	public MinecartController makeControllerNull(MinecartController controller) {
+	public MinecartBehavior makeControllerNull(MinecartBehavior controller) {
 		if (
 				FasterMinecartsConfig.getConfig().experimentalMinecartMode().isEnabled() &&
-				controller instanceof DefaultMinecartController
+				controller instanceof OldMinecartBehavior
 		) {
 			return null;
 		}
@@ -56,27 +56,27 @@ public abstract class MixinEntityTrackerEntry {
 	}
 
 	@WrapOperation(
-		method = "tick",
+		method = "sendChanges",
 		constant = @Constant(
-				classValue = ExperimentalMinecartController.class,
+				classValue = NewMinecartBehavior.class,
 				ordinal = 0
 		) //Targets instanceof ExperimentalMinecartController
 	)
-	public boolean simulateLegacyCartMovement(Object controller, Operation<Boolean> original, @Local AbstractMinecartEntity minecart) {
+	public boolean simulateLegacyCartMovement(Object controller, Operation<Boolean> original, @Local AbstractMinecart minecart) {
 		if (controller == null) {
-			syncEntityData();
-			var railPos = minecart.getRailOrMinecartPos();
-			var railState = entity.getEntityWorld().getBlockState(railPos);
-			float yaw = this.entity.getYaw();
-			float pitch = this.entity.getPitch();
+			sendDirtyEntityData();
+			var railPos = minecart.getCurrentBlockPosOrRailBelow();
+			var railState = entity.level().getBlockState(railPos);
+			float yaw = this.entity.getYRot();
+			float pitch = this.entity.getXRot();
 			var data = (MinecartExtensions) minecart;
-			double xDist = minecart.lastX - minecart.getX();
-			double zDist = minecart.lastZ - minecart.getZ();
+			double xDist = minecart.xo - minecart.getX();
+			double zDist = minecart.zo - minecart.getZ();
 			boolean yawUpdate = xDist * xDist + zDist * zDist > 0.001;
-			if (railState.getBlock() instanceof AbstractRailBlock railBlock) {
-				var railShape = railState.get(railBlock.getShapeProperty());
-				if (railShape.isAscending()) {
-					var facing = entity.getHorizontalFacing();
+			if (railState.getBlock() instanceof BaseRailBlock railBlock) {
+				var railShape = railState.getValue(railBlock.getShapeProperty());
+				if (railShape.isSlope()) {
+					var facing = entity.getDirection();
 
 					Direction rail = switch (railShape) {
 						case ASCENDING_NORTH -> Direction.NORTH;
@@ -89,7 +89,7 @@ public abstract class MixinEntityTrackerEntry {
 					if (rail != null) {
 						int pitchOffset;
 
-						if (rail.rotateYClockwise() == facing) {
+						if (rail.getClockWise() == facing) {
 							pitchOffset = -45;
 						} else {
 							pitchOffset = 45;
@@ -98,27 +98,27 @@ public abstract class MixinEntityTrackerEntry {
 						pitch += pitchOffset;
 
 						if (!data.fasterMinecarts$yawFixed() && rail != Direction.EAST) {
-							yaw = Direction.getHorizontalDegreesOrThrow(rail.rotateYClockwise());
+							yaw = Direction.getYRot(rail.getClockWise());
 							pitch = -pitch;
 						}
 					}
 				}
 				if (railShape == RailShape.NORTH_SOUTH && !data.fasterMinecarts$yawFixed()) {
-					yaw = -90 * data.fasterMinecarts$getInitialZ().offset();
+					yaw = -90 * data.fasterMinecarts$getInitialZ().getStep();
 				}
-				if (entity.getVelocity().horizontalLengthSquared() < 1.0E-7) {
+				if (entity.getDeltaMovement().horizontalDistanceSqr() < 1.0E-7) {
 					switch (railShape) {
 						case NORTH_EAST, SOUTH_EAST, NORTH_WEST, SOUTH_WEST -> yaw = -yaw;
 					}
 				}
 			}
-			if (this.entity.getVelocity().horizontalLengthSquared() > 1.0E-7 || yawUpdate || this.trackingTick % this.tickInterval == 0) {
-				this.packetSender.sendToListeners(
-						new MoveMinecartAlongTrackS2CPacket(
+			if (this.entity.getDeltaMovement().horizontalDistanceSqr() > 1.0E-7 || yawUpdate || this.tickCount % this.updateInterval == 0) {
+				this.synchronizer.sendToTrackingPlayers(
+						new ClientboundMoveMinecartPacket(
 								this.entity.getId(),
 								List.of(
-										new ExperimentalMinecartController.Step(
-												this.entity.getEntityPos(), this.entity.getVelocity(),
+										new NewMinecartBehavior.MinecartStep(
+												this.entity.position(), this.entity.getDeltaMovement(),
 												-yaw, pitch,
 												1.0f
 										)
@@ -132,13 +132,13 @@ public abstract class MixinEntityTrackerEntry {
 	}
 
 	@WrapWithCondition(
-		method = "tick",
+		method = "sendChanges",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/network/EntityTrackerEntry;tickExperimentalMinecart(Lnet/minecraft/entity/vehicle/ExperimentalMinecartController;BBZ)V"
+			target = "Lnet/minecraft/server/level/ServerEntity;handleMinecartPosRot(Lnet/minecraft/world/entity/vehicle/NewMinecartBehavior;BBZ)V"
 		)
 	)
-	public boolean skip(EntityTrackerEntry instance, ExperimentalMinecartController controller, byte yaw, byte pitch, boolean changedAngles) {
+	public boolean skip(ServerEntity instance, NewMinecartBehavior controller, byte yaw, byte pitch, boolean changedAngles) {
 		return controller != null;
 	}
 

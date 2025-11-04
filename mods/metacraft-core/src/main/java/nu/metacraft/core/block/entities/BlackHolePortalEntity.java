@@ -1,17 +1,17 @@
 package nu.metacraft.core.block.entities;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.Entity;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.core.block.METAcraftBlockEntities;
 import nu.metacraft.lib.util.TaskScheduler;
 
@@ -32,62 +32,62 @@ public class BlackHolePortalEntity extends PortalEntity {
 
 	@Override
 	protected void onTeleportFail(Entity entity) {
-		entity.kill((ServerWorld) entity.getEntityWorld());
+		entity.kill((ServerLevel) entity.level());
 	}
 
 	@Override
-	public void onCollision(BlockState state, World world, BlockPos pos, Entity entity) {
+	public void onCollision(BlockState state, Level world, BlockPos pos, Entity entity) {
 		TaskScheduler.scheduleImmediately(world.getServer(), () -> {
 			teleport(entity); //Black holes do not check portal cooldown since doing so could cause players to get stuck.
 		});
 	}
 
-	public static void tick(World world, BlockPos pos, BlockState state, BlackHolePortalEntity blackHole) {
-		if (world.isClient()) return;
+	public static void tick(Level world, BlockPos pos, BlockState state, BlackHolePortalEntity blackHole) {
+		if (world.isClientSide()) return;
 		if (blackHole.center == null) {
-			blackHole.center = BlockPos.ofFloored(blackHole.getBoundingBox().getCenter());
+			blackHole.center = BlockPos.containing(blackHole.getBoundingBox().getCenter());
 		}
-		var centerPos = blackHole.center.toCenterPos();
-		double particleRadius = blackHole.getBoundingBox().getAverageSideLength();
-		((ServerWorld) world).spawnParticles(
+		var centerPos = blackHole.center.getCenter();
+		double particleRadius = blackHole.getBoundingBox().getSize();
+		((ServerLevel) world).sendParticles(
 				ParticleTypes.PORTAL, centerPos.x, centerPos.y, centerPos.z,  10 * (int) Math.round(particleRadius),
 				0, 0, 0, particleRadius
 		);
-		var entities = world.getEntitiesByClass(
-				Entity.class, new Box(blackHole.center).expand(blackHole.attractionRange),
-				entity -> entity.squaredDistanceTo(centerPos) < Math.pow(blackHole.attractionRange, 2)
+		var entities = world.getEntitiesOfClass(
+				Entity.class, new AABB(blackHole.center).inflate(blackHole.attractionRange),
+				entity -> entity.distanceToSqr(centerPos) < Math.pow(blackHole.attractionRange, 2)
 		);
 		for (var entity : entities) {
-			if (entity instanceof ServerPlayerEntity player && player.getAbilities().flying) {
+			if (entity instanceof ServerPlayer player && player.getAbilities().flying) {
 				continue;
 			}
-			Vec3d toBlackHole = centerPos.subtract(entity.getEntityPos());
+			Vec3 toBlackHole = centerPos.subtract(entity.position());
 			double dist = toBlackHole.length();
-			Vec3d motionVector = toBlackHole.normalize().multiply(
+			Vec3 motionVector = toBlackHole.normalize().scale(
 					Math.pow((blackHole.attractionRange - dist) / blackHole.attractionRange, 2)
 			);
-			entity.addVelocity(motionVector);
-			entity.velocityModified = true;
+			entity.push(motionVector);
+			entity.hurtMarked = true;
 			entity.fallDistance = 0;
 		}
 	}
 
 	@Override
-	public void readData(ReadView nbt) {
+	public void loadAdditional(ValueInput nbt) {
 		center = null;
-		super.readData(nbt);
-		attractionRange = nbt.getDouble(ATTRACTION_RANGE, 0);
+		super.loadAdditional(nbt);
+		attractionRange = nbt.getDoubleOr(ATTRACTION_RANGE, 0);
 	}
 
 	@Override
-	public void writeData(WriteView nbt) {
-		super.writeData(nbt);
+	public void saveAdditional(ValueOutput nbt) {
+		super.saveAdditional(nbt);
 		nbt.putDouble(ATTRACTION_RANGE, attractionRange);
 	}
 
 	public void setAttractionRange(double attractionRange) {
 		this.attractionRange = attractionRange;
-		markDirty();
+		setChanged();
 	}
 
 }

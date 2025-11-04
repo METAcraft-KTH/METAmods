@@ -10,18 +10,30 @@ import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.block.DispenserBlock;
-import net.minecraft.component.*;
-import net.minecraft.item.*;
-import net.minecraft.item.equipment.ArmorMaterial;
-import net.minecraft.item.equipment.EquipmentType;
-import net.minecraft.registry.*;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.dynamic.Codecs;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.component.PatchedDataComponentMap;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.ToolMaterial;
+import net.minecraft.world.item.equipment.ArmorMaterial;
+import net.minecraft.world.item.equipment.ArmorType;
+import net.minecraft.world.level.block.DispenserBlock;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Type;
 import nu.metacraft.simplecustomfeatures.Features;
@@ -45,51 +57,51 @@ public record SimpleItem(
 	public record TypeObject(
 			Codec<?> codec,
 			boolean requiresLookup,
-			RegistryKey<TypeObject> name
+			ResourceKey<TypeObject> name
 	) {}
 
-	private static final RegistryKey<? extends Registry<TypeObject>> KEY = RegistryKey.ofRegistry(Features.getID("type_object"));
+	private static final ResourceKey<? extends Registry<TypeObject>> KEY = ResourceKey.createRegistryKey(Features.getID("type_object"));
 
 	private static final Map<Class<?>, TypeObject> SUPPORTED_TYPES = new HashMap<>();
-	private static final Map<RegistryKey<TypeObject>, TypeObject> NAMED_TYPES = new HashMap<>();
+	private static final Map<ResourceKey<TypeObject>, TypeObject> NAMED_TYPES = new HashMap<>();
 
-	private static final Codec<TagKey<?>> ARBITRARY_TAG_CODEC = fixTagDispatch(RegistryKey.createCodec(Registries.REGISTRIES.getKey()));
+	private static final Codec<TagKey<?>> ARBITRARY_TAG_CODEC = fixTagDispatch(ResourceKey.codec(BuiltInRegistries.REGISTRY.key()));
 
-	private static <R extends RegistryKey<? extends Registry<?>>> Codec<TagKey<?>> fixTagDispatch(Codec<R> codec) {
-		return codec.dispatch(key -> (R) key.registryRef(), t -> fixTagCodec(t).fieldOf("tag"));
+	private static <R extends ResourceKey<? extends Registry<?>>> Codec<TagKey<?>> fixTagDispatch(Codec<R> codec) {
+		return codec.dispatch(key -> (R) key.registry(), t -> fixTagCodec(t).fieldOf("tag"));
 	}
 
-	private static <T> Codec<TagKey<T>> fixTagCodec(RegistryKey<? extends Registry<?>> registryRef) {
-		return TagKey.codec((RegistryKey<? extends Registry<T>>) registryRef);
+	private static <T> Codec<TagKey<T>> fixTagCodec(ResourceKey<? extends Registry<?>> registryRef) {
+		return TagKey.hashedCodec((ResourceKey<? extends Registry<T>>) registryRef);
 	}
 
-	private static final Codec<RegistryKey<?>> ARBITRARY_KEY_CODEC = fixKeyDispatch(RegistryKey.createCodec(Registries.REGISTRIES.getKey()));
+	private static final Codec<ResourceKey<?>> ARBITRARY_KEY_CODEC = fixKeyDispatch(ResourceKey.codec(BuiltInRegistries.REGISTRY.key()));
 
-	private static <R extends RegistryKey<? extends Registry<?>>> Codec<RegistryKey<?>> fixKeyDispatch(Codec<R> codec) {
-		return codec.dispatch(key -> (R) key.getRegistryRef(), t -> fixKeyCodec(t).fieldOf("key"));
+	private static <R extends ResourceKey<? extends Registry<?>>> Codec<ResourceKey<?>> fixKeyDispatch(Codec<R> codec) {
+		return codec.dispatch(key -> (R) key.registryKey(), t -> fixKeyCodec(t).fieldOf("key"));
 	}
 
-	private static <T> Codec<RegistryKey<T>> fixKeyCodec(RegistryKey<? extends Registry<?>> registryRef) {
-		return RegistryKey.createCodec((RegistryKey<? extends Registry<T>>) registryRef);
+	private static <T> Codec<ResourceKey<T>> fixKeyCodec(ResourceKey<? extends Registry<?>> registryRef) {
+		return ResourceKey.codec((ResourceKey<? extends Registry<T>>) registryRef);
 	}
 
-	private static final Codec<? extends RegistryEntry<?>> ARBITRARY_ENTRY_CODEC = new Codec<>() {
+	private static final Codec<? extends Holder<?>> ARBITRARY_ENTRY_CODEC = new Codec<>() {
 
-		private static <T, V> DataResult<Pair<RegistryEntry<? extends V>, T>> handleKey(Pair<? extends RegistryKey<? extends V>, T> key, RegistryOps<T> r) {
-			Optional<RegistryEntryLookup<V>> lookup = r.getEntryLookup(key.getFirst().getRegistryRef());
+		private static <T, V> DataResult<Pair<Holder<? extends V>, T>> handleKey(Pair<? extends ResourceKey<? extends V>, T> key, RegistryOps<T> r) {
+			Optional<HolderGetter<V>> lookup = r.getter(key.getFirst().registryKey());
 			if (lookup.isEmpty()) {
-				return DataResult.error(() -> "Registry " + key.getFirst().getRegistryRef().getValue() + " could not be found.");
+				return DataResult.error(() -> "Registry " + key.getFirst().registryKey().location() + " could not be found.");
 			}
-			var entry = lookup.get().getOptional((RegistryKey<V>) key.getFirst());
-			return entry.<DataResult<Pair<RegistryEntry<? extends V>, T>>>map(
+			var entry = lookup.get().get((ResourceKey<V>) key.getFirst());
+			return entry.<DataResult<Pair<Holder<? extends V>, T>>>map(
 					vReference -> DataResult.success(Pair.of(vReference, key.getSecond()))
 			).orElseGet(
-					() -> DataResult.error(() -> key.getFirst().getValue() + " was not present in " + key.getFirst().getRegistryRef().getValue())
+					() -> DataResult.error(() -> key.getFirst().location() + " was not present in " + key.getFirst().registryKey().location())
 			);
 		}
 
 		@Override
-		public <T> DataResult<Pair<RegistryEntry<?>, T>> decode(DynamicOps<T> ops, T input) {
+		public <T> DataResult<Pair<Holder<?>, T>> decode(DynamicOps<T> ops, T input) {
 			if (ops instanceof RegistryOps<T> r) {
 				return ARBITRARY_KEY_CODEC.decode(ops, input).flatMap(key -> handleKey(key, r));
 			} else {
@@ -98,23 +110,23 @@ public record SimpleItem(
 		}
 
 		@Override
-		public <T> DataResult<T> encode(RegistryEntry<?> input, DynamicOps<T> ops, T prefix) {
-			if (input.getKey().isPresent()) {
+		public <T> DataResult<T> encode(Holder<?> input, DynamicOps<T> ops, T prefix) {
+			if (input.unwrapKey().isPresent()) {
 				return DataResult.error(() -> "Cannot serialize non-registered entry " + input);
 			}
-			return ARBITRARY_KEY_CODEC.encode(input.getKey().get(), ops, prefix);
+			return ARBITRARY_KEY_CODEC.encode(input.unwrapKey().get(), ops, prefix);
 		}
 	};
 
-	private static final Codec<?> ARBITRARY_CODEC = RegistryKey.createCodec(KEY).dispatch(
+	private static final Codec<?> ARBITRARY_CODEC = ResourceKey.codec(KEY).dispatch(
 			object -> SUPPORTED_TYPES.get(object.getClass()).name,
 			type -> NAMED_TYPES.get(type).codec.fieldOf("object")
 	);
 
 	private static final Codec<? extends List<?>> ARBITRARY_LIST_CODEC = ARBITRARY_CODEC.listOf();
 
-	private static RegistryKey<TypeObject> keyOf(Identifier id) {
-		return RegistryKey.of(KEY, id);
+	private static ResourceKey<TypeObject> keyOf(ResourceLocation id) {
+		return ResourceKey.create(KEY, id);
 	}
 
 	static {
@@ -133,34 +145,34 @@ public record SimpleItem(
 		addPrimitive(Long.class, Long.TYPE, "long", Codec.LONG);
 		addPrimitive(Float.class, Float.TYPE, "float", Codec.FLOAT);
 		addPrimitive(Double.class, Double.TYPE, "double", Codec.DOUBLE);
-		addSupportedArgumentType(Number.class, Identifier.of("java", "number"), Codec.DOUBLE);
-		addSupportedArgumentType(String.class, Identifier.of("java", "string"), Codec.STRING);
-		addSupportedArgumentType(Identifier.class, Identifier.ofVanilla("identifier"), Identifier.CODEC);
-		addSupportedArgumentType(EquipmentType.class, Identifier.ofVanilla("equipment_type"), EquipmentType.CODEC);
-		addSupportedArgumentType(Text.class, Identifier.ofVanilla("text"), TextCodecs.CODEC);
-		Registries.REGISTRIES.forEach(registry -> {
-			registry.streamEntries().forEach(entry -> {
+		addSupportedArgumentType(Number.class, ResourceLocation.fromNamespaceAndPath("java", "number"), Codec.DOUBLE);
+		addSupportedArgumentType(String.class, ResourceLocation.fromNamespaceAndPath("java", "string"), Codec.STRING);
+		addSupportedArgumentType(ResourceLocation.class, ResourceLocation.withDefaultNamespace("identifier"), ResourceLocation.CODEC);
+		addSupportedArgumentType(ArmorType.class, ResourceLocation.withDefaultNamespace("equipment_type"), ArmorType.CODEC);
+		addSupportedArgumentType(Component.class, ResourceLocation.withDefaultNamespace("text"), ComponentSerialization.CODEC);
+		BuiltInRegistries.REGISTRY.forEach(registry -> {
+			registry.listElements().forEach(entry -> {
 				if (!SUPPORTED_TYPES.containsKey(entry.value().getClass())) {
-					addSupportedArgumentType(entry.value().getClass(), registry.getKey().getValue(), registry.getCodec());
+					addSupportedArgumentType(entry.value().getClass(), registry.key().location(), registry.byNameCodec());
 				}
 			});
-			registry.getDefaultEntry().ifPresent(entry -> {
+			registry.getAny().ifPresent(entry -> {
 				var clazz = entry.value().getClass();
 				while (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class) {
 					clazz = clazz.getSuperclass();
 					if (!SUPPORTED_TYPES.containsKey(clazz)) {
-						addSupportedArgumentType(clazz, registry.getKey().getValue(), registry.getCodec());
+						addSupportedArgumentType(clazz, registry.key().location(), registry.byNameCodec());
 					}
 				}
 			});
 		});
-		addSupportedArgumentType(ToolMaterial.class, Identifier.ofVanilla("tool_material"), ToolMaterialRegistry.CODEC);
-		addSupportedArgumentType(ArmorMaterial.class, Identifier.ofVanilla("armor_material"), ArmorMaterialRegistry.CODEC);
+		addSupportedArgumentType(ToolMaterial.class, ResourceLocation.withDefaultNamespace("tool_material"), ToolMaterialRegistry.CODEC);
+		addSupportedArgumentType(ArmorMaterial.class, ResourceLocation.withDefaultNamespace("armor_material"), ArmorMaterialRegistry.CODEC);
 
-		addSupportedArgumentType(TagKey.class, Identifier.ofVanilla("tag"), ARBITRARY_TAG_CODEC);
-		addSupportedArgumentType(RegistryKey.class, Identifier.ofVanilla("registry_key"), ARBITRARY_KEY_CODEC);
-		addSupportedArgumentType(RegistryEntry.class, Identifier.ofVanilla("registry_entry"), ARBITRARY_ENTRY_CODEC);
-		addSupportedArgumentType(List.class, Identifier.of("java", "list"), ARBITRARY_LIST_CODEC);
+		addSupportedArgumentType(TagKey.class, ResourceLocation.withDefaultNamespace("tag"), ARBITRARY_TAG_CODEC);
+		addSupportedArgumentType(ResourceKey.class, ResourceLocation.withDefaultNamespace("registry_key"), ARBITRARY_KEY_CODEC);
+		addSupportedArgumentType(Holder.class, ResourceLocation.withDefaultNamespace("registry_entry"), ARBITRARY_ENTRY_CODEC);
+		addSupportedArgumentType(List.class, ResourceLocation.fromNamespaceAndPath("java", "list"), ARBITRARY_LIST_CODEC);
 	}
 
 	static final String SETTINGS_FIELD_NAME = "simple_custom_features$settings";
@@ -168,8 +180,8 @@ public record SimpleItem(
 	public static final MapCodec<SimpleItem> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					ITEM_SETTINGS_WITH_BASE_ITEM_CODEC.forGetter(item -> item.itemSettings),
-					ItemStack.UNCOUNTED_CODEC.optionalFieldOf("disguise").forGetter(item -> item.disguise),
-					Codecs.BASIC_OBJECT.listOf().optionalFieldOf("args", new ArrayList<>()).forGetter(item -> item.args)
+					ItemStack.SINGLE_ITEM_CODEC.optionalFieldOf("disguise").forGetter(item -> item.disguise),
+					ExtraCodecs.JAVA.listOf().optionalFieldOf("args", new ArrayList<>()).forGetter(item -> item.args)
 			).apply(instance, SimpleItem::new)
 	);
 
@@ -206,36 +218,36 @@ public record SimpleItem(
 	}
 
 	private static boolean hasItemSettings(Class<?>[] paramTypes) {
-		return Arrays.stream(paramTypes).anyMatch(c -> c == Item.Settings.class);
+		return Arrays.stream(paramTypes).anyMatch(c -> c == Item.Properties.class);
 	}
 
-	private static DataResult<Object> getObjectForParam(Object object, Class<?> paramType, @Nullable RegistryWrapper.WrapperLookup lookup) {
+	private static DataResult<Object> getObjectForParam(Object object, Class<?> paramType, @Nullable HolderLookup.Provider lookup) {
 		if (paramType.isInstance(object) || object.getClass() == paramType) {
 			return DataResult.success(object);
 		}
 		if (SUPPORTED_TYPES.containsKey(paramType)) {
 			var type = SUPPORTED_TYPES.get(paramType);
 			return type.codec.parse(
-					lookup != null ? lookup.getOps(JavaOps.INSTANCE) : JavaOps.INSTANCE, object
+					lookup != null ? lookup.createSerializationContext(JavaOps.INSTANCE) : JavaOps.INSTANCE, object
 			).map(t -> t);
 		}
 		return DataResult.error(() -> paramType + " is not a supported type.");
 	}
 
-	private static <T> void setComponentFromChanges(ComponentMap.Builder builder, ComponentType<T> c, ComponentChanges changes) {
-		builder.add(c, changes.get(c).orElse(null));
+	private static <T> void setComponentFromChanges(DataComponentMap.Builder builder, DataComponentType<T> c, DataComponentPatch changes) {
+		builder.set(c, changes.get(c).orElse(null));
 	}
 
 	private Item fixItem(Item item) {
-		List<ComponentType<?>> componentsToFix = new ArrayList<>();
+		List<DataComponentType<?>> componentsToFix = new ArrayList<>();
 		for (var c : itemSettings.components().entrySet()) {
-			if (!Objects.equals(item.getComponents().get(c.getKey()), c.getValue().orElse(null))) {
+			if (!Objects.equals(item.components().get(c.getKey()), c.getValue().orElse(null))) {
 				componentsToFix.add(c.getKey());
 			}
 		}
 		if (!componentsToFix.isEmpty()) {
-			var builder = ComponentMap.builder();
-			builder.addAll(item.getComponents());
+			var builder = DataComponentMap.builder();
+			builder.addAll(item.components());
 			for (var c : componentsToFix) {
 				setComponentFromChanges(builder, c, itemSettings.components());
 			}
@@ -245,7 +257,7 @@ public record SimpleItem(
 	}
 
 	private DataResult<Item> createItem(
-			Class<? extends Item> clazz, Item.Settings settings, @Nullable RegistryWrapper.WrapperLookup lookup
+			Class<? extends Item> clazz, Item.Properties settings, @Nullable HolderLookup.Provider lookup
 			) {
 		Constructor<?>[] constructors = clazz.getDeclaredConstructors();
 		Arrays.sort(constructors, (lhs, rhs) -> {
@@ -283,7 +295,7 @@ public record SimpleItem(
 		List<Supplier<String>> errors = new ArrayList<>();
 		boolean requiresLookup = false;
 		for (var c : constructors) {
-			int settingsIndex = Arrays.asList(c.getParameterTypes()).indexOf(Item.Settings.class);
+			int settingsIndex = Arrays.asList(c.getParameterTypes()).indexOf(Item.Properties.class);
 			List<Object> objects = new ArrayList<>(args);
 			if (settingsIndex != -1 && settingsIndex <= objects.size()) {
 				objects.add(settingsIndex, settings);
@@ -323,7 +335,7 @@ public record SimpleItem(
 		);
 	}
 
-	private DataResult<Item> createNewItem(Item.Settings settings, @Nullable RegistryWrapper.WrapperLookup lookup) {
+	private DataResult<Item> createNewItem(Item.Properties settings, @Nullable HolderLookup.Provider lookup) {
 		var baseClass = itemSettings.baseItem().value().getClass();
 		var newType = createItemBuilder(baseClass);
 		try {
@@ -351,33 +363,33 @@ public record SimpleItem(
 	}
 
 	@Override
-	public DataResult<Item> createObject(RegistryKey<Item> id, @Nullable RegistryWrapper.WrapperLookup lookup) {
-		var components = MergedComponentMap.create(itemSettings.baseItem().value().getComponents(), this.itemSettings().components());
+	public DataResult<Item> createObject(ResourceKey<Item> id, @Nullable HolderLookup.Provider lookup) {
+		var components = PatchedDataComponentMap.fromPatch(itemSettings.baseItem().value().components(), this.itemSettings().components());
 		var result = ItemStack.validateComponents(components);
 		if (result.isError()) {
 			return result.map(e -> Items.AIR);
 		}
 		return itemSettings.makeSettings(
-				id, disguise.map(stack -> stack.get(DataComponentTypes.ITEM_MODEL)).orElse(null)
+				id, disguise.map(stack -> stack.get(DataComponents.ITEM_MODEL)).orElse(null)
 		).flatMap(settings -> this.createNewItem(settings, lookup));
 	}
 
 	@Override
-	public void onRegistrationSuccess(RegistryEntry.Reference<Item> entry) {
+	public void onRegistrationSuccess(Holder.Reference<Item> entry) {
 		BaseItem.super.onRegistrationSuccess(entry);
-		if (DispenserBlock.BEHAVIORS.containsKey(itemSettings.baseItem().value())) {
-			DispenserBlock.BEHAVIORS.put(entry.value(), DispenserBlock.BEHAVIORS.get(itemSettings.baseItem().value()));
+		if (DispenserBlock.DISPENSER_REGISTRY.containsKey(itemSettings.baseItem().value())) {
+			DispenserBlock.DISPENSER_REGISTRY.put(entry.value(), DispenserBlock.DISPENSER_REGISTRY.get(itemSettings.baseItem().value()));
 		}
 	}
 
 	@Override
-	public void onUnregister(RegistryEntry<Item> entry) {
+	public void onUnregister(Holder<Item> entry) {
 		BaseItem.super.onUnregister(entry);
-		DispenserBlock.BEHAVIORS.remove(entry.value());
+		DispenserBlock.DISPENSER_REGISTRY.remove(entry.value());
 	}
 
 	private static void addPrimitive(Class<?> clazz, Class<?> primitiveClass, String name, Codec<?> codec) {
-		var type = new TypeObject(codec, false, keyOf(Identifier.of("java", name)));
+		var type = new TypeObject(codec, false, keyOf(ResourceLocation.fromNamespaceAndPath("java", name)));
 		addSupportedArgumentType(clazz, type);
 		addSupportedArgumentType(primitiveClass, type);
 	}
@@ -387,11 +399,11 @@ public record SimpleItem(
 		NAMED_TYPES.put(object.name, object);
 	}
 
-	public static void addSupportedArgumentType(Class<?> clazz, Identifier name, Codec<?> codec) {
+	public static void addSupportedArgumentType(Class<?> clazz, ResourceLocation name, Codec<?> codec) {
 		addSupportedArgumentType(clazz, new TypeObject(codec, false, keyOf(name)));
 	}
 
-	public static void addRegistryLookupType(Class<?> clazz, Identifier name, Codec<?> codec) {
+	public static void addRegistryLookupType(Class<?> clazz, ResourceLocation name, Codec<?> codec) {
 		addSupportedArgumentType(clazz, new TypeObject(codec, true, keyOf(name)));
 	}
 }

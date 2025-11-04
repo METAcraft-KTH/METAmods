@@ -2,12 +2,12 @@ package nu.metacraft.core.portal;
 
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.GlobalPos;
 import nu.metacraft.core.block.entities.PortalEntity;
 
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.world.entity.Entity;
 
 public final class EmptyPortalTarget implements PortalTarget {
 

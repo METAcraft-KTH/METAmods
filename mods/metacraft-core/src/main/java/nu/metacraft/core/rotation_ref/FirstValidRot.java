@@ -3,12 +3,12 @@ package nu.metacraft.core.rotation_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.Vec2f;
 import nu.metacraft.core.registry.RotationRefRegistry;
 import nu.metacraft.core.util.RefContext;
 
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.world.phys.Vec2;
 
 public class FirstValidRot implements RotationRef {
 
@@ -25,7 +25,7 @@ public class FirstValidRot implements RotationRef {
 	}
 
 	@Override
-	public Optional<Vec2f> get(RefContext ctx) {
+	public Optional<Vec2> get(RefContext ctx) {
 		return rotations.stream().map(
 				pos -> pos.get(ctx)
 		).filter(Optional::isPresent).map(Optional::get).findFirst();

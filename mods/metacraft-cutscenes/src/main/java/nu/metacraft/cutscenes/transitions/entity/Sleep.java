@@ -2,10 +2,10 @@ package nu.metacraft.cutscenes.transitions.entity;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.BedBlock;
-import net.minecraft.block.enums.BedPart;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.state.properties.BedPart;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.core.entity_ref.EntityRef;
 import nu.metacraft.core.position_ref.PositionRef;
@@ -40,22 +40,22 @@ public class Sleep implements Transition, TransitionConfig {
 		entity.get(cutscene.getRefContext()).filter(
 				entity -> entity instanceof LivingEntity
 		).map(entity -> (LivingEntity) entity).findAny().ifPresent(entity -> {
-			entity.sleep(pos);
+			entity.startSleeping(pos);
 		});
 	}
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		pos.get(cutscene.getRefContext()).ifPresent(foundPos -> {
-			var pos = BlockPos.ofFloored(foundPos);
+			var pos = BlockPos.containing(foundPos);
 			var bedState = cutscene.getCutsceneWorld().getBlockState(pos);
 			if (!(bedState.getBlock() instanceof BedBlock)) {
 				return;
 			}
-			if (bedState.get(BedBlock.PART) == BedPart.HEAD) {
+			if (bedState.getValue(BedBlock.PART) == BedPart.HEAD) {
 				sleepAt(cutscene, pos);
 			} else {
-				pos = pos.offset(bedState.get(BedBlock.FACING));
+				pos = pos.relative(bedState.getValue(BedBlock.FACING));
 				if (cutscene.getCutsceneWorld().getBlockState(pos).getBlock() instanceof BedBlock) {
 					sleepAt(cutscene, pos);
 				}
@@ -74,7 +74,7 @@ public class Sleep implements Transition, TransitionConfig {
 				entity -> entity instanceof LivingEntity
 		).map(entity -> (LivingEntity) entity).findAny().ifPresent(entity -> {
 			if (entity.isSleeping()) {
-				entity.wakeUp();
+				entity.stopSleeping();
 			}
 		});
 	}

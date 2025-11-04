@@ -3,8 +3,6 @@ package nu.metacraft.cutscenes.compat.resource_pack;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Uuids;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.transitions.Transition;
 import nu.metacraft.cutscenes.transitions.TransitionType;
@@ -14,6 +12,8 @@ import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.resource_packs.ResourcePackHelper;
 
 import java.util.UUID;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.server.level.ServerPlayer;
 
 public class SetResourcePackTransition implements Transition {
 
@@ -52,7 +52,7 @@ public class SetResourcePackTransition implements Transition {
 	}
 
 	@Override
-	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (!ResourcePackHelper.hasResourcePack(player, config.resourcePack)) {
 			ResourcePackHelper.enableResourcePack(player, config.resourcePack);
 			toggled = true;
@@ -60,7 +60,7 @@ public class SetResourcePackTransition implements Transition {
 	}
 
 	@Override
-	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	public void deactivate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (config.disableAfterwards && toggled) {
 			ResourcePackHelper.disableResourcePack(player, config.resourcePack);
 		}
@@ -74,7 +74,7 @@ public class SetResourcePackTransition implements Transition {
 	public record Config(UUID resourcePack, boolean disableAfterwards) implements TransitionConfig {
 		public static final MapCodec<Config> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
-						Uuids.STRING_CODEC.fieldOf("resource_pack").forGetter(t -> t.resourcePack),
+						UUIDUtil.STRING_CODEC.fieldOf("resource_pack").forGetter(t -> t.resourcePack),
 						Codec.BOOL.optionalFieldOf("disable_afterwards", true).forGetter(t -> t.disableAfterwards)
 				).apply(instance, Config::new)
 		);

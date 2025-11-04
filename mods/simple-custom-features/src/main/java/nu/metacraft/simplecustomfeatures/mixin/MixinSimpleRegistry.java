@@ -6,15 +6,6 @@ import com.google.common.collect.Multimap;
 import com.mojang.serialization.Lifecycle;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import net.minecraft.registry.MutableRegistry;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.SimpleRegistry;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.entry.RegistryEntryInfo;
-import net.minecraft.registry.entry.RegistryEntryList;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,56 +18,65 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import nu.metacraft.simplecustomfeatures.RegistryExtensions;
 
 import java.util.*;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.MappedRegistry;
+import net.minecraft.core.RegistrationInfo;
+import net.minecraft.core.Registry;
+import net.minecraft.core.WritableRegistry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 
-@Mixin(SimpleRegistry.class)
-public abstract class MixinSimpleRegistry<T> implements MutableRegistry<T>, RegistryExtensions<T> {
+@Mixin(MappedRegistry.class)
+public abstract class MixinSimpleRegistry<T> implements WritableRegistry<T>, RegistryExtensions<T> {
 
-	@Shadow public abstract RegistryKey<? extends Registry<T>> getKey();
+	@Shadow public abstract ResourceKey<? extends Registry<T>> key();
 
-	@Shadow public abstract boolean containsId(Identifier id);
+	@Shadow public abstract boolean containsKey(ResourceLocation id);
 
 	@Shadow private boolean frozen;
-	@Shadow private @Nullable Map<T, RegistryEntry.Reference<T>> intrusiveValueToEntry;
-	@Shadow @Final private Map<T, RegistryEntry.Reference<T>> valueToEntry;
+	@Shadow private @Nullable Map<T, Holder.Reference<T>> unregisteredIntrusiveHolders;
+	@Shadow @Final private Map<T, Holder.Reference<T>> byValue;
 
-	@Shadow public abstract Optional<RegistryKey<T>> getKey(T entry);
+	@Shadow public abstract Optional<ResourceKey<T>> getResourceKey(T entry);
 
-	@Shadow @Final private Map<RegistryKey<T>, RegistryEntry.Reference<T>> keyToEntry;
-	@Shadow @Final private Map<Identifier, RegistryEntry.Reference<T>> idToEntry;
-	@Shadow @Final private ObjectList<RegistryEntry.Reference<T>> rawIdToEntry;
+	@Shadow @Final private Map<ResourceKey<T>, Holder.Reference<T>> byKey;
+	@Shadow @Final private Map<ResourceLocation, Holder.Reference<T>> byLocation;
+	@Shadow @Final private ObjectList<Holder.Reference<T>> byId;
 
-	@Shadow public abstract int getRawId(@Nullable T value);
+	@Shadow public abstract int getId(@Nullable T value);
 
-	@Shadow @Final private Reference2IntMap<T> entryToRawId;
-	@Shadow @Final private Map<RegistryKey<T>, RegistryEntryInfo> keyToEntryInfo;
+	@Shadow @Final private Reference2IntMap<T> toId;
+	@Shadow @Final private Map<ResourceKey<T>, RegistrationInfo> registrationInfos;
 
-	@Shadow public abstract Optional<RegistryEntry.Reference<T>> getEntry(Identifier id);
+	@Shadow public abstract Optional<Holder.Reference<T>> get(ResourceLocation id);
 
-	@Shadow public abstract RegistryEntry<T> getEntry(T value);
+	@Shadow public abstract Holder<T> wrapAsHolder(T value);
 
-	@Shadow public abstract Optional<RegistryEntry.Reference<T>> getEntry(int rawId);
+	@Shadow public abstract Optional<Holder.Reference<T>> get(int rawId);
 
 	@Shadow
-	SimpleRegistry.TagLookup<T> tagLookup;
+	MappedRegistry.TagSet<T> allTags;
 
-	@Shadow protected abstract RegistryEntryList.Named<T> createNamedEntryList(TagKey<T> tag);
+	@Shadow protected abstract HolderSet.Named<T> createTag(TagKey<T> tag);
 
-	@Shadow @Final private Map<TagKey<T>, RegistryEntryList.Named<T>> tags;
+	@Shadow @Final private Map<TagKey<T>, HolderSet.Named<T>> frozenTags;
 
-	@Shadow public abstract Optional<RegistryEntryList.Named<T>> getOptional(TagKey<T> tag);
+	@Shadow public abstract Optional<HolderSet.Named<T>> get(TagKey<T> tag);
 
-	@Shadow @Final private RegistryKey<? extends Registry<T>> key;
+	@Shadow @Final private ResourceKey<? extends Registry<T>> key;
 	@Unique
 	private boolean wasIntrusive = false;
 
 	@Unique
-	private final Multimap<TagKey<T>, RegistryKey<T>> prevTags = HashMultimap.create();
+	private final Multimap<TagKey<T>, ResourceKey<T>> prevTags = HashMultimap.create();
 
 	@Inject(
-		method = "<init>(Lnet/minecraft/registry/RegistryKey;Lcom/mojang/serialization/Lifecycle;Z)V",
+		method = "<init>(Lnet/minecraft/resources/ResourceKey;Lcom/mojang/serialization/Lifecycle;Z)V",
 		at = @At("RETURN")
 	)
-	public void init(RegistryKey<? extends Registry<T>> key, Lifecycle lifecycle, boolean intrusive, CallbackInfo ci) {
+	public void init(ResourceKey<? extends Registry<T>> key, Lifecycle lifecycle, boolean intrusive, CallbackInfo ci) {
 		if (intrusive) {
 			wasIntrusive = true;
 		}
@@ -87,16 +87,16 @@ public abstract class MixinSimpleRegistry<T> implements MutableRegistry<T>, Regi
 		if (this.frozen) {
 			this.frozen = false;
 			if (wasIntrusive) {
-				this.intrusiveValueToEntry = new IdentityHashMap<>();
+				this.unregisteredIntrusiveHolders = new IdentityHashMap<>();
 			}
-			tagLookup.forEach((key, entries) -> {
+			allTags.forEach((key, entries) -> {
 				for (var entry : entries) {
-					entry.getKey().ifPresent(k -> {
+					entry.unwrapKey().ifPresent(k -> {
 						prevTags.put(key, k);
 					});
 				}
 			});
-			this.tagLookup = SimpleRegistry.TagLookup.ofUnbound();
+			this.allTags = MappedRegistry.TagSet.unbound();
 			return true;
 		}
 		return false;
@@ -106,21 +106,21 @@ public abstract class MixinSimpleRegistry<T> implements MutableRegistry<T>, Regi
 		method = "freeze",
 		at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/registry/SimpleRegistry$TagLookup;fromMap(Ljava/util/Map;)Lnet/minecraft/registry/SimpleRegistry$TagLookup;"
+				target = "Lnet/minecraft/core/MappedRegistry$TagSet;fromMap(Ljava/util/Map;)Lnet/minecraft/core/MappedRegistry$TagSet;"
 		)
 	)
-	public Map<TagKey<T>, RegistryEntryList.Named<T>> fixTagsOnReFreeze(Map<TagKey<T>, RegistryEntryList.Named<T>> map) {
+	public Map<TagKey<T>, HolderSet.Named<T>> fixTagsOnReFreeze(Map<TagKey<T>, HolderSet.Named<T>> map) {
 		if (!prevTags.isEmpty()) {
-			ImmutableMap.Builder<TagKey<T>, RegistryEntryList.Named<T>> newMap = ImmutableMap.builder();
+			ImmutableMap.Builder<TagKey<T>, HolderSet.Named<T>> newMap = ImmutableMap.builder();
 			for (var tagKey : prevTags.keySet()) {
-				var list = tags.get(tagKey);
+				var list = frozenTags.get(tagKey);
 				if (list == null) {
-					list = this.createNamedEntryList(tagKey);
+					list = this.createTag(tagKey);
 				}
 
-				((AccessorRegistryEntryListName<T>) list).setEntries(
+				((AccessorRegistryEntryListName<T>) list).setContents(
 						prevTags.get(tagKey).stream().map(
-								key -> (RegistryEntry<T>) getOptional(key).orElse(null)
+								key -> (Holder<T>) get(key).orElse(null)
 						).filter(Objects::nonNull).toList()
 				);
 				newMap.put(tagKey, list);
@@ -133,28 +133,28 @@ public abstract class MixinSimpleRegistry<T> implements MutableRegistry<T>, Regi
 
 	@Override
 	public void simpleCustomFeatures$remove(T value) {
-		getKey(value).ifPresent(key -> {
-			this.keyToEntry.remove(key);
-			this.idToEntry.remove(key.getValue());
-			this.valueToEntry.remove(value);
-			int id = getRawId(value);
-			this.rawIdToEntry.remove(id);
-			this.entryToRawId.remove(value, id);
-			this.entryToRawId.reference2IntEntrySet().forEach(
+		getResourceKey(value).ifPresent(key -> {
+			this.byKey.remove(key);
+			this.byLocation.remove(key.location());
+			this.byValue.remove(value);
+			int id = getId(value);
+			this.byId.remove(id);
+			this.toId.remove(value, id);
+			this.toId.reference2IntEntrySet().forEach(
 					e -> {
 						if (e.getIntValue() > id) {
 							e.setValue(e.getIntValue()-1);
 						}
 					}
 			);
-			this.keyToEntryInfo.remove(key);
+			this.registrationInfos.remove(key);
 		});
 	}
 
 	@Override
 	public void simpleCustomFeatures$removeIntrusiveEntry(T value) {
-		if (this.intrusiveValueToEntry != null) {
-			this.intrusiveValueToEntry.remove(value);
+		if (this.unregisteredIntrusiveHolders != null) {
+			this.unregisteredIntrusiveHolders.remove(value);
 		}
 	}
 

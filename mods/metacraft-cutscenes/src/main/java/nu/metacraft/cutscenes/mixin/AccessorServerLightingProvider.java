@@ -1,18 +1,18 @@
 package nu.metacraft.cutscenes.mixin;
 
-import net.minecraft.server.world.ServerLightingProvider;
-import net.minecraft.util.thread.SimpleConsecutiveExecutor;
+import net.minecraft.server.level.ThreadedLevelLightEngine;
+import net.minecraft.util.thread.ConsecutiveExecutor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(ServerLightingProvider.class)
+@Mixin(ThreadedLevelLightEngine.class)
 public interface AccessorServerLightingProvider {
 
 	@Accessor
-	SimpleConsecutiveExecutor getProcessor();
+	ConsecutiveExecutor getConsecutiveExecutor();
 
 	@Invoker
-	void callRunTasks();
+	void callRunUpdate();
 
 }

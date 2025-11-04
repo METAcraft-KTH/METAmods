@@ -11,14 +11,17 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.serialization.Codec;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.argument.*;
-import net.minecraft.entity.Entity;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.CompoundTagArgument;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import nu.metacraft.loot_containers.containers.*;
 import nu.metacraft.loot_containers.containers.events.LootContainerEvent;
 import nu.metacraft.loot_containers.containers.events.LootContainerEventRegistry;
@@ -27,57 +30,57 @@ import nu.metacraft.loot_containers.util.EntityOrBlockEntity;
 
 import java.util.stream.Collectors;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public class Commands {
 	private static final SimpleCommandExceptionType NOT_BLOCK_ENTITY = new SimpleCommandExceptionType(
-			Text.literal("Not a block entity!")
+			Component.literal("Not a block entity!")
 	);
 
 
 	private static final DynamicCommandExceptionType INVALID_TYPE = new DynamicCommandExceptionType(
-			name -> Text.literal(name + " is not a valid type!")
+			name -> Component.literal(name + " is not a valid type!")
 	);
 
 	private static final DynamicCommandExceptionType INVALID_EVENT_TYPE = new DynamicCommandExceptionType(
-			name -> Text.literal(name + " is not a valid event type!")
+			name -> Component.literal(name + " is not a valid event type!")
 	);
 
 	private static final SimpleCommandExceptionType NBT_ERROR = new SimpleCommandExceptionType(
-			Text.literal("Invalid NBT")
+			Component.literal("Invalid NBT")
 	);
 
-	private static final SuggestionProvider<ServerCommandSource> CONTAINER_GROUP_SUGGESTIONS = (ctx, builder) -> {
-		return CommandSource.suggestMatching(
+	private static final SuggestionProvider<CommandSourceStack> CONTAINER_GROUP_SUGGESTIONS = (ctx, builder) -> {
+		return SharedSuggestionProvider.suggest(
 				LootContainerData.getInstance(ctx.getSource().getServer()).getGroups(), builder
 		);
 	};
 
-	private static final SuggestionProvider<ServerCommandSource> CONTAINER_TYPE_SUGGESTIONS = (ctx, builder) -> {
-		return CommandSource.suggestMatching(
-				LootContainerRegistry.REGISTRY.getIds().stream().map(
+	private static final SuggestionProvider<CommandSourceStack> CONTAINER_TYPE_SUGGESTIONS = (ctx, builder) -> {
+		return SharedSuggestionProvider.suggest(
+				LootContainerRegistry.REGISTRY.keySet().stream().map(
 						id -> id.getNamespace().equals("minecraft") ? id.getPath() : id.toString()
 				), builder
 		);
 	};
 
-	private static final SuggestionProvider<ServerCommandSource> CONTAINER_EVENT_SUGGESTIONS = (ctx, builder) -> {
-		return CommandSource.suggestMatching(
-				LootContainerEventRegistry.REGISTRY.getIds().stream().map(
+	private static final SuggestionProvider<CommandSourceStack> CONTAINER_EVENT_SUGGESTIONS = (ctx, builder) -> {
+		return SharedSuggestionProvider.suggest(
+				LootContainerEventRegistry.REGISTRY.keySet().stream().map(
 						id -> id.getNamespace().equals("minecraft") ? id.getPath() : id.toString()
 				), builder
 		);
 	};
 
 	@SafeVarargs
-	private static ArgumentBuilder<ServerCommandSource, ?> blockAndEntity(
-			ArgumentBuilder<ServerCommandSource, ?> parent,
+	private static ArgumentBuilder<CommandSourceStack, ?> blockAndEntity(
+			ArgumentBuilder<CommandSourceStack, ?> parent,
 			String block, String entity,
-			ArgumentBuilder<ServerCommandSource, ?>... children
+			ArgumentBuilder<CommandSourceStack, ?>... children
 	) {
-		var blockPath = argument(block, BlockPosArgumentType.blockPos());
-		var entityPath = argument(entity, EntityArgumentType.entity());
+		var blockPath = argument(block, BlockPosArgument.blockPos());
+		var entityPath = argument(entity, EntityArgument.entity());
 		for (var child : children) {
 			blockPath.then(child);
 			entityPath.then(child);
@@ -89,33 +92,33 @@ public class Commands {
 		);
 	}
 
-	private static ArgumentBuilder<ServerCommandSource, ?> blockAndEntity(
-			ArgumentBuilder<ServerCommandSource, ?> parent,
+	private static ArgumentBuilder<CommandSourceStack, ?> blockAndEntity(
+			ArgumentBuilder<CommandSourceStack, ?> parent,
 			String block, String entity,
-			Command<ServerCommandSource> command
+			Command<CommandSourceStack> command
 	) {
 		return parent.then(
-				literal("block").then(argument(block, BlockPosArgumentType.blockPos()).executes(command))
+				literal("block").then(argument(block, BlockPosArgument.blockPos()).executes(command))
 		).then(
-				literal("entity").then(argument(entity, EntityArgumentType.entity()).executes(command))
+				literal("entity").then(argument(entity, EntityArgument.entity()).executes(command))
 		);
 	}
 
-	private static Command<ServerCommandSource> forEntityAndBlockEntity(
+	private static Command<CommandSourceStack> forEntityAndBlockEntity(
 			String blockName, String entityName,
-			CommandWithParam<CommandContext<ServerCommandSource>, EntityOrBlockEntity> action
+			CommandWithParam<CommandContext<CommandSourceStack>, EntityOrBlockEntity> action
 	) {
 		return ctx -> {
 			try {
-				BlockPos pos = BlockPosArgumentType.getBlockPos(ctx, blockName);
-				var blockEntity = ctx.getSource().getWorld().getBlockEntity(pos);
+				BlockPos pos = BlockPosArgument.getBlockPos(ctx, blockName);
+				var blockEntity = ctx.getSource().getLevel().getBlockEntity(pos);
 				if (blockEntity == null) {
 					throw NOT_BLOCK_ENTITY.create();
 				}
 				return action.run(ctx, new EntityOrBlockEntity(blockEntity));
 			} catch (IllegalArgumentException err) {
 				try {
-					Entity entity = EntityArgumentType.getEntity(ctx, entityName);
+					Entity entity = EntityArgument.getEntity(ctx, entityName);
 					return action.run(ctx, new EntityOrBlockEntity(entity));
 				} catch (IllegalArgumentException err2) {
 					throw new IllegalArgumentException(
@@ -141,35 +144,35 @@ public class Commands {
 										String group = StringArgumentType.getString(ctx, "group");
 										if (LootAccess.getInventory(entity).isPresent()) {
 											LootContainerData.getInstance(ctx.getSource().getServer()).putLootContainer(
-													group, ctx.getSource().getWorld().getRegistryKey(), entity, type.createDefault()
+													group, ctx.getSource().getLevel().dimension(), entity, type.createDefault()
 											);
-											ctx.getSource().sendFeedback(() -> Text.literal("Added container for " + entity.map(
-													Entity::getNameForScoreboard, BlockEntity::getPos
+											ctx.getSource().sendSuccess(() -> Component.literal("Added container for " + entity.map(
+													Entity::getScoreboardName, BlockEntity::getBlockPos
 											)), true);
 											return 1;
 										} else {
-											ctx.getSource().sendFeedback(
-													() -> Text.literal("That is not a block entity with an inventory."),
+											ctx.getSource().sendSuccess(
+													() -> Component.literal("That is not a block entity with an inventory."),
 													false
 											);
 											return 0;
 										}
 									})
-								), argument("parameters", NbtCompoundArgumentType.nbtCompound()).executes(
+								), argument("parameters", CompoundTagArgument.compoundTag()).executes(
 									forEntityAndBlockEntity("block", "entity", (ctx, entity) -> {
 										var container = parseCodec(ctx, "parameters", LootContainer.REGISTRY_CODEC);
 										String group = StringArgumentType.getString(ctx, "group");
 										if (LootAccess.getInventory(entity).isPresent()) {
 											LootContainerData.getInstance(ctx.getSource().getServer()).putLootContainer(
-													group, ctx.getSource().getWorld().getRegistryKey(), entity, container
+													group, ctx.getSource().getLevel().dimension(), entity, container
 											);
-											ctx.getSource().sendFeedback(() -> Text.literal("Added container for " + entity.map(
-													Entity::getNameForScoreboard, BlockEntity::getPos
+											ctx.getSource().sendSuccess(() -> Component.literal("Added container for " + entity.map(
+													Entity::getScoreboardName, BlockEntity::getBlockPos
 											)), true);
 											return 1;
 										} else {
-											ctx.getSource().sendFeedback(
-													() -> Text.literal("That is not a block entity with an inventory."),
+											ctx.getSource().sendSuccess(
+													() -> Component.literal("That is not a block entity with an inventory."),
 													false
 											);
 											return 0;
@@ -185,9 +188,9 @@ public class Commands {
 								forEntityAndBlockEntity("block", "entity", (ctx, entity) -> {
 									String group = StringArgumentType.getString(ctx, "group");
 									var container = LootContainerData.getInstance(ctx.getSource().getServer()).getLootContainer(
-											group, ctx.getSource().getWorld().getRegistryKey(), entity
+											group, ctx.getSource().getLevel().dimension(), entity
 									);
-									ctx.getSource().sendFeedback(container::toText, false);
+									ctx.getSource().sendSuccess(container::toText, false);
 									return 1;
 								})
 							)
@@ -196,7 +199,7 @@ public class Commands {
 						literal("list").then(
 							containerGroup("group").executes(ctx -> {
 								String group = StringArgumentType.getString(ctx, "group");
-								ctx.getSource().sendFeedback(() -> Text.literal(
+								ctx.getSource().sendSuccess(() -> Component.literal(
 										LootContainerData.getInstance(ctx.getSource().getServer()).getAllLootContainers(group).map(
 												container -> container.getPos().toString()
 										).collect(Collectors.joining("\n"))
@@ -215,19 +218,19 @@ public class Commands {
 									LootContainerData.getInstance(ctx.getSource().getServer()).addEvent(
 											group, type.createDefault()
 									);
-									ctx.getSource().sendFeedback(() -> Text.literal(
+									ctx.getSource().sendSuccess(() -> Component.literal(
 											"Added new event to " + group
 									), true);
 									return 1;
 								})
 							).then(
-								argument("parameters", NbtCompoundArgumentType.nbtCompound()).executes(ctx -> {
+								argument("parameters", CompoundTagArgument.compoundTag()).executes(ctx -> {
 									String group = StringArgumentType.getString(ctx, "group");
 									var event = parseCodec(ctx, "parameters", LootContainerEvent.REGISTRY_CODEC);
 									LootContainerData.getInstance(ctx.getSource().getServer()).addEvent(
 											group, event
 									);
-									ctx.getSource().sendFeedback(() -> Text.literal(
+									ctx.getSource().sendSuccess(() -> Component.literal(
 											"Added new event to " + group
 									), true);
 									return 1;
@@ -243,14 +246,14 @@ public class Commands {
 									var data = LootContainerData.getInstance(ctx.getSource().getServer());
 									if (data.getEvents(group).size() > index) {
 										var event = data.removeEvent(group, index);
-										ctx.getSource().sendFeedback(
-												() -> Text.literal(
+										ctx.getSource().sendSuccess(
+												() -> Component.literal(
 														"Removed " + event
 												), true
 										);
 										return 1;
 									} else {
-										ctx.getSource().sendError(Text.literal("Index too large"));
+										ctx.getSource().sendFailure(Component.literal("Index too large"));
 										return 0;
 									}
 								})
@@ -265,12 +268,12 @@ public class Commands {
 									var data = LootContainerData.getInstance(ctx.getSource().getServer());
 									if (data.getEvents(group).size() > index) {
 										var event = data.getEvent(group, index);
-										ctx.getSource().sendFeedback(
+										ctx.getSource().sendSuccess(
 												event::toText, true
 										);
 										return 1;
 									} else {
-										ctx.getSource().sendError(Text.literal("Index too large"));
+										ctx.getSource().sendFailure(Component.literal("Index too large"));
 										return 0;
 									}
 								})
@@ -287,7 +290,7 @@ public class Commands {
 									builder.append(index).append(": ").append(event).append("\n");
 									index++;
 								}
-								ctx.getSource().sendFeedback(() -> Text.literal(builder.toString()), false);
+								ctx.getSource().sendSuccess(() -> Component.literal(builder.toString()), false);
 								return 1;
 							})
 						)
@@ -298,21 +301,21 @@ public class Commands {
 	}
 
 
-	private static ArgumentBuilder<ServerCommandSource, ?> containerGroup(String name) {
+	private static ArgumentBuilder<CommandSourceStack, ?> containerGroup(String name) {
 		return argument(name, StringArgumentType.string()).suggests(CONTAINER_GROUP_SUGGESTIONS);
 	}
 
-	private static ArgumentBuilder<ServerCommandSource, ?> containerType(String name) {
-		return argument(name, IdentifierArgumentType.identifier()).suggests(CONTAINER_TYPE_SUGGESTIONS);
+	private static ArgumentBuilder<CommandSourceStack, ?> containerType(String name) {
+		return argument(name, ResourceLocationArgument.id()).suggests(CONTAINER_TYPE_SUGGESTIONS);
 	}
 
-	private static ArgumentBuilder<ServerCommandSource, ?> containerEventType(String name) {
-		return argument(name, IdentifierArgumentType.identifier()).suggests(CONTAINER_EVENT_SUGGESTIONS);
+	private static ArgumentBuilder<CommandSourceStack, ?> containerEventType(String name) {
+		return argument(name, ResourceLocationArgument.id()).suggests(CONTAINER_EVENT_SUGGESTIONS);
 	}
 
-	private static LootContainerType<?> getContainerType(CommandContext<ServerCommandSource> ctx, String name) throws CommandSyntaxException {
-		var id = IdentifierArgumentType.getIdentifier(ctx, name);
-		var type = LootContainerRegistry.REGISTRY.get(id);
+	private static LootContainerType<?> getContainerType(CommandContext<CommandSourceStack> ctx, String name) throws CommandSyntaxException {
+		var id = ResourceLocationArgument.getId(ctx, name);
+		var type = LootContainerRegistry.REGISTRY.getValue(id);
 		if (type != null) {
 			return type;
 		} else {
@@ -320,9 +323,9 @@ public class Commands {
 		}
 	}
 
-	private static LootContainerEventType<?> getContainerEventType(CommandContext<ServerCommandSource> ctx, String name) throws CommandSyntaxException {
-		var id = IdentifierArgumentType.getIdentifier(ctx, name);
-		var type = LootContainerEventRegistry.REGISTRY.get(id);
+	private static LootContainerEventType<?> getContainerEventType(CommandContext<CommandSourceStack> ctx, String name) throws CommandSyntaxException {
+		var id = ResourceLocationArgument.getId(ctx, name);
+		var type = LootContainerEventRegistry.REGISTRY.getValue(id);
 		if (type != null) {
 			return type;
 		} else {
@@ -330,9 +333,9 @@ public class Commands {
 		}
 	}
 
-	private static <T> T parseCodec(CommandContext<ServerCommandSource> ctx, String name, Codec<T> codec) throws CommandSyntaxException {
-		return codec.parse(NbtOps.INSTANCE, NbtCompoundArgumentType.getNbtCompound(ctx, name)).resultOrPartial(
-				error -> ctx.getSource().sendError(Text.literal(error))
+	private static <T> T parseCodec(CommandContext<CommandSourceStack> ctx, String name, Codec<T> codec) throws CommandSyntaxException {
+		return codec.parse(NbtOps.INSTANCE, CompoundTagArgument.getCompoundTag(ctx, name)).resultOrPartial(
+				error -> ctx.getSource().sendFailure(Component.literal(error))
 		).orElseThrow(NBT_ERROR::create);
 	}
 

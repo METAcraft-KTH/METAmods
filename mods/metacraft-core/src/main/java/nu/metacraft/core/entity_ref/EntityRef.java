@@ -1,9 +1,9 @@
 package nu.metacraft.core.entity_ref;
 
-import net.minecraft.entity.Entity;
 import nu.metacraft.core.util.RefContext;
 
 import java.util.stream.Stream;
+import net.minecraft.world.entity.Entity;
 
 public interface EntityRef {
 

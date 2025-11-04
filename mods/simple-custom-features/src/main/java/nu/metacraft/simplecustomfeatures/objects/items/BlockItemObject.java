@@ -4,13 +4,13 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.item.PolymerItem;
-import net.minecraft.block.Block;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 import nu.metacraft.simplecustomfeatures.objects.ObjectRegistry;
 import nu.metacraft.simplecustomfeatures.objects.ObjectType;
@@ -20,18 +20,18 @@ public class BlockItemObject implements BaseItem {
 
 	public static final MapCodec<BlockItemObject> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Item.ENTRY_CODEC.fieldOf("display_item").forGetter(o -> o.displayItem),
+					Item.CODEC.fieldOf("display_item").forGetter(o -> o.displayItem),
 					ITEM_SETTINGS_CODEC.forGetter(o -> o.settings),
-					Registries.BLOCK.getCodec().fieldOf("block").forGetter(o -> o.block)
+					BuiltInRegistries.BLOCK.byNameCodec().fieldOf("block").forGetter(o -> o.block)
 			).apply(instance, BlockItemObject::new)
 	);
 
-	private final RegistryEntry<Item> displayItem;
+	private final Holder<Item> displayItem;
 	private final ItemSettings settings;
 	private final Block block;
 
 	public BlockItemObject(
-			RegistryEntry<Item> displayItem, ItemSettings settings, Block block
+			Holder<Item> displayItem, ItemSettings settings, Block block
 	) {
 		this.displayItem = displayItem;
 		this.settings = settings;
@@ -44,9 +44,9 @@ public class BlockItemObject implements BaseItem {
 	}
 
 	@Override
-	public DataResult<Item> createObject(RegistryKey<Item> id) {
+	public DataResult<Item> createObject(ResourceKey<Item> id) {
 		return settings.makeSettings(id, BaseItem.getModel(displayItem)).map(
-				settings -> new CustomBlockItem(block, settings.useBlockPrefixedTranslationKey(), this)
+				settings -> new CustomBlockItem(block, settings.useBlockDescriptionPrefix(), this)
 		);
 	}
 
@@ -54,7 +54,7 @@ public class BlockItemObject implements BaseItem {
 
 		private final BlockItemObject object;
 
-		public CustomBlockItem(Block block, net.minecraft.item.Item.Settings settings, BlockItemObject object) {
+		public CustomBlockItem(Block block, net.minecraft.world.item.Item.Properties settings, BlockItemObject object) {
 			super(block, settings);
 			this.object = object;
 		}

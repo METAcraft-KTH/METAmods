@@ -1,14 +1,14 @@
 package nu.metacraft.lib.util.helper;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.storage.LevelStorage;
+import net.minecraft.world.level.storage.LevelStorageSource;
 import nu.metacraft.lib.mixin.AccessorMinecraftServer;
 
 @SuppressWarnings("unused")
 public class WorldHelper {
 
-	public static LevelStorage.Session getSession(MinecraftServer server) {
-		return ((AccessorMinecraftServer) server).getSession();
+	public static LevelStorageSource.LevelStorageAccess getSession(MinecraftServer server) {
+		return ((AccessorMinecraftServer) server).getStorageSource();
 	}
 
 }

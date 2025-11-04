@@ -7,24 +7,24 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.CommandNode;
-import net.minecraft.command.CommandSource;
-import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
 import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.moderation.exile.mixin.AccessorStringRange;
 import nu.metacraft.moderation.exile.mixin.AccessorSuggestion;
 
-import static net.minecraft.server.command.CommandManager.argument;
+import static net.minecraft.commands.Commands.argument;
 
 public class CommandUtil {
 
-	public static final SuggestionProvider<ServerCommandSource> ROOT_COMMAND_SUGGEST = (ctx, suggestionsBuilder) -> {
-		return CommandSource.suggestMatching(
+	public static final SuggestionProvider<CommandSourceStack> ROOT_COMMAND_SUGGEST = (ctx, suggestionsBuilder) -> {
+		return SharedSuggestionProvider.suggest(
 				ctx.getRootNode().getChildren().stream().map(CommandNode::getName), suggestionsBuilder
 		);
 	};
 
-	public static SuggestionProvider<ServerCommandSource> getCommandSuggest(
-			int pos, CommandDispatcher<ServerCommandSource> dispatcher
+	public static SuggestionProvider<CommandSourceStack> getCommandSuggest(
+			int pos, CommandDispatcher<CommandSourceStack> dispatcher
 	) {
 		return (ctx, suggestionsBuilder) -> {
 			StringBuilder builder = new StringBuilder();
@@ -56,13 +56,13 @@ public class CommandUtil {
 
 	@FunctionalInterface
 	public interface PassCommand {
-		int run(CommandContext<ServerCommandSource> context, String command) throws CommandSyntaxException;
+		int run(CommandContext<CommandSourceStack> context, String command) throws CommandSyntaxException;
 	}
 
-	public static ArgumentBuilder<ServerCommandSource, ?> command(
-			String prefix, int maxLength, CommandDispatcher<ServerCommandSource> dispatcher, PassCommand passCommand
+	public static ArgumentBuilder<CommandSourceStack, ?> command(
+			String prefix, int maxLength, CommandDispatcher<CommandSourceStack> dispatcher, PassCommand passCommand
 	) {
-		ArgumentBuilder<ServerCommandSource, ?> current = argument("the_rest", StringArgumentType.greedyString()).executes(ctx -> {
+		ArgumentBuilder<CommandSourceStack, ?> current = argument("the_rest", StringArgumentType.greedyString()).executes(ctx -> {
 			StringBuilder builder = new StringBuilder(StringArgumentType.getString(ctx, prefix + "0"));
 			for (int j = 1; j <= maxLength; j++) {
 				builder.append(" ").append(StringArgumentType.getString(ctx, prefix + j));

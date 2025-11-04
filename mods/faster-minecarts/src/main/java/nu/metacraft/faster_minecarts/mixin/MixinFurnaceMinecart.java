@@ -2,19 +2,19 @@ package nu.metacraft.faster_minecarts.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.FurnaceMinecartEntity;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.MinecartFurnace;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.faster_minecarts.FasterMinecartsHelper;
 import nu.metacraft.faster_minecarts.MinecartComponents;
 
-@Mixin(FurnaceMinecartEntity.class)
-public abstract class MixinFurnaceMinecart extends AbstractMinecartEntity {
+@Mixin(MinecartFurnace.class)
+public abstract class MixinFurnaceMinecart extends AbstractMinecart {
 
-	protected MixinFurnaceMinecart(EntityType<?> entityType, World world) {
+	protected MixinFurnaceMinecart(EntityType<?> entityType, Level world) {
 		super(entityType, world);
 	}
 
@@ -24,7 +24,7 @@ public abstract class MixinFurnaceMinecart extends AbstractMinecartEntity {
 	}
 
 	@ModifyExpressionValue(
-			method = "applySlowdown",
+			method = "applyNaturalSlowdown",
 			at = @At(
 					value = "CONSTANT",
 					args = "doubleValue=0.1"
@@ -37,7 +37,7 @@ public abstract class MixinFurnaceMinecart extends AbstractMinecartEntity {
 	}
 
 	@ModifyExpressionValue(
-			method = "applySlowdown",
+			method = "applyNaturalSlowdown",
 			at = @At(
 					value = "CONSTANT",
 					args = "doubleValue=0.98"

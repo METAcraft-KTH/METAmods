@@ -2,9 +2,6 @@ package nu.metacraft.zones.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.mojang.serialization.*;
-import net.minecraft.predicate.entity.LocationPredicate;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -15,6 +12,9 @@ import nu.metacraft.zones.util.LocationPredicateAccess;
 
 import java.util.Optional;
 import java.util.stream.Stream;
+import net.minecraft.advancements.critereon.LocationPredicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 
 @Mixin(LocationPredicate.class)
 public class MixinLocationPredicate implements LocationPredicateAccess {
@@ -26,21 +26,21 @@ public class MixinLocationPredicate implements LocationPredicateAccess {
 	private static final String ZONE = "zone";
 
 	@Inject(
-		method = "test",
+		method = "matches",
 		at = @At(
 			value = "FIELD",
-			target = "Lnet/minecraft/predicate/entity/LocationPredicate;canSeeSky:Ljava/util/Optional;"
+			target = "Lnet/minecraft/advancements/critereon/LocationPredicate;canSeeSky:Ljava/util/Optional;"
 		),
 		cancellable = true
 	)
 	public void test(
-			ServerWorld world, double x, double y, double z, CallbackInfoReturnable<Boolean> cir
+			ServerLevel world, double x, double y, double z, CallbackInfoReturnable<Boolean> cir
 	) {
 		if (zone.isPresent()) {
 			var zone = this.zone.get();
 			var manager = ZoneManager.getInstance(world.getServer());
 			if (manager.containsZone(zone)) {
-				if (!manager.getZone(zone).contains(world.getRegistryKey(), BlockPos.ofFloored(x, y, z))) {
+				if (!manager.getZone(zone).contains(world.dimension(), BlockPos.containing(x, y, z))) {
 					cir.setReturnValue(false);
 				}
 			}

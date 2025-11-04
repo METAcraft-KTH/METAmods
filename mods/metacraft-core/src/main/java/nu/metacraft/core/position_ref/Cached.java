@@ -3,14 +3,14 @@ package nu.metacraft.core.position_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.Vec3d;
 import nu.metacraft.core.registry.PositionRefRegistry;
 import nu.metacraft.core.util.RefContext;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 
 public class Cached implements PositionRef {
 
@@ -23,7 +23,7 @@ public class Cached implements PositionRef {
 
 	private final PositionRef position;
 	private final boolean onlyFound;
-	private final Map<RefKey, Optional<Vec3d>> cache = new HashMap<>();
+	private final Map<RefKey, Optional<Vec3>> cache = new HashMap<>();
 
 	public Cached(PositionRef position, boolean onlyFound) {
 		this.position = position;
@@ -31,7 +31,7 @@ public class Cached implements PositionRef {
 	}
 
 	@Override
-	public Optional<Vec3d> get(RefContext ctx) {
+	public Optional<Vec3> get(RefContext ctx) {
 		var key = RefKey.from(ctx);
 		if (cache.containsKey(key)) {
 			return cache.get(key);
@@ -50,7 +50,7 @@ public class Cached implements PositionRef {
 	
 	public record RefKey(Optional<Entity> entity) {
 		public static RefKey from(RefContext ctx) {
-			return new RefKey(ctx.getEntity());
+			return new RefKey(ctx.entity());
 		}
 	}
 }

@@ -1,12 +1,12 @@
 package nu.metacraft.relay.recipe;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.recipe.*;
-import net.minecraft.recipe.input.CraftingRecipeInput;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.util.collection.DefaultedList;
-import net.minecraft.world.World;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.ShapelessRecipe;
+import net.minecraft.world.level.Level;
 import nu.metacraft.relay.items.RelayComponents;
 import nu.metacraft.relay.items.RelayItems;
 import nu.metacraft.lib.util.helper.RecipeHelper;
@@ -15,20 +15,20 @@ public class RelayProgramRecipe extends ShapelessRecipe {
 
 	public RelayProgramRecipe(ShapelessRecipe recipe) {
 		super(
-				recipe.getGroup(), recipe.getCategory(),
-				recipe.craft(null, null),
+				recipe.group(), recipe.category(),
+				recipe.assemble(null, null),
 				RecipeHelper.getIngredients(recipe)
 		);
 	}
 
 	@Override
-	public boolean matches(CraftingRecipeInput craftingRecipeInput, World world) {
+	public boolean matches(CraftingInput craftingRecipeInput, Level world) {
 		int compass = getCompassSlot(craftingRecipeInput);
 		int relay = getRelaySlot(craftingRecipeInput);
 		if (compass == -1 || relay == -1) return false;
-		var dimensions = craftingRecipeInput.getStackInSlot(relay).get(RelayComponents.VALID_DIMENSIONS);
+		var dimensions = craftingRecipeInput.getItem(relay).get(RelayComponents.VALID_DIMENSIONS);
 		if (dimensions == null) return false;
-		var target = craftingRecipeInput.getStackInSlot(compass).get(DataComponentTypes.LODESTONE_TRACKER);
+		var target = craftingRecipeInput.getItem(compass).get(DataComponents.LODESTONE_TRACKER);
 		if (target == null || target.target().isEmpty()) return false;
 		var targetDim = target.target().get().dimension();
 		for (var d : dimensions.values()) {
@@ -39,20 +39,20 @@ public class RelayProgramRecipe extends ShapelessRecipe {
 		return false;
 	}
 
-	private int getCompassSlot(CraftingRecipeInput craftingRecipeInput) {
+	private int getCompassSlot(CraftingInput craftingRecipeInput) {
 		for (int i = 0; i < craftingRecipeInput.size(); i++) {
-			var stack = craftingRecipeInput.getStackInSlot(i);
-			if (stack.contains(DataComponentTypes.LODESTONE_TRACKER) && !stack.isOf(RelayItems.RELAY)) {
+			var stack = craftingRecipeInput.getItem(i);
+			if (stack.has(DataComponents.LODESTONE_TRACKER) && !stack.is(RelayItems.RELAY)) {
 				return i;
 			}
 		}
 		return -1;
 	}
 
-	private int getRelaySlot(CraftingRecipeInput craftingRecipeInput) {
+	private int getRelaySlot(CraftingInput craftingRecipeInput) {
 		for (int i = 0; i < craftingRecipeInput.size(); i++) {
-			var stack = craftingRecipeInput.getStackInSlot(i);
-			if (stack.isOf(RelayItems.RELAY)) {
+			var stack = craftingRecipeInput.getItem(i);
+			if (stack.is(RelayItems.RELAY)) {
 				return i;
 			}
 		}
@@ -60,22 +60,22 @@ public class RelayProgramRecipe extends ShapelessRecipe {
 	}
 
 	@Override
-	public ItemStack craft(CraftingRecipeInput recipeInputInventory, RegistryWrapper.WrapperLookup lookup) {
+	public ItemStack assemble(CraftingInput recipeInputInventory, HolderLookup.Provider lookup) {
 		int relay = getRelaySlot(recipeInputInventory);
 		int compass = getCompassSlot(recipeInputInventory);
 		if (relay == -1 || compass == -1) return ItemStack.EMPTY;
-		var relayItem = recipeInputInventory.getStackInSlot(relay).copy();
-		var compassItem = recipeInputInventory.getStackInSlot(compass);
-		relayItem.set(DataComponentTypes.LODESTONE_TRACKER, compassItem.get(DataComponentTypes.LODESTONE_TRACKER));
+		var relayItem = recipeInputInventory.getItem(relay).copy();
+		var compassItem = recipeInputInventory.getItem(compass);
+		relayItem.set(DataComponents.LODESTONE_TRACKER, compassItem.get(DataComponents.LODESTONE_TRACKER));
 		return relayItem;
 	}
 
 	@Override
-	public DefaultedList<ItemStack> getRecipeRemainders(CraftingRecipeInput inventory) {
+	public NonNullList<ItemStack> getRemainingItems(CraftingInput inventory) {
 		int compass = getCompassSlot(inventory);
-		var remainders = super.getRecipeRemainders(inventory);
+		var remainders = super.getRemainingItems(inventory);
 		if (compass != -1) {
-			remainders.set(compass, inventory.getStackInSlot(compass).copy());
+			remainders.set(compass, inventory.getItem(compass).copy());
 		}
 		return remainders;
 	}

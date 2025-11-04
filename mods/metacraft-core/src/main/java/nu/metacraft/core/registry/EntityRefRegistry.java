@@ -3,19 +3,19 @@ package nu.metacraft.core.registry;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.entity_ref.*;
 
 public class EntityRefRegistry {
 
 	public static final Registry<EntityRefType<?>> REGISTRY = FabricRegistryBuilder.<EntityRefType<?>>createSimple(
-			RegistryKey.ofRegistry(METAcraftCore.getID("entity_ref"))
+			ResourceKey.createRegistryKey(METAcraftCore.getID("entity_ref"))
 	).buildAndRegister();
 
-	public static final Codec<EntityRef> CODEC = REGISTRY.getCodec().dispatch(
+	public static final Codec<EntityRef> CODEC = REGISTRY.byNameCodec().dispatch(
 			EntityRef::getType, EntityRefType::codec
 	);
 
@@ -29,7 +29,7 @@ public class EntityRefRegistry {
 	}
 
 	private static <T extends EntityRef> EntityRefType<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(REGISTRY, Identifier.ofVanilla(id), new EntityRefType<>(codec));
+		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), new EntityRefType<>(codec));
 	}
 
 

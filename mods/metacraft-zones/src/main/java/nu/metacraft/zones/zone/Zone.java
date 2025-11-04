@@ -1,9 +1,5 @@
 package nu.metacraft.zones.zone;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import nu.metacraft.zones.zone.data.ZoneData;
 import nu.metacraft.zones.zone.data.ZoneDataEntityTracking;
@@ -11,6 +7,10 @@ import nu.metacraft.zones.zone.data.ZoneDataType;
 import nu.metacraft.zones.zone.types.ZoneType;
 
 import java.util.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 
 public abstract class Zone implements Comparable<Zone> {
 
@@ -26,7 +26,7 @@ public abstract class Zone implements Comparable<Zone> {
 
 	public abstract String getName();
 
-	public abstract RegistryKey<World> getDim();
+	public abstract ResourceKey<Level> getDim();
 
 	public abstract ZoneType getZone();
 
@@ -36,7 +36,7 @@ public abstract class Zone implements Comparable<Zone> {
 
 	public abstract RealZone getRealZone();
 
-	public abstract World getWorld();
+	public abstract Level getWorld();
 
 	public void addToZone(Entity entity) {
 		entities.add(entity);

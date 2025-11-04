@@ -1,16 +1,16 @@
 package nu.metacraft.lib.entity.goals;
 
-import net.minecraft.entity.ai.goal.MeleeAttackGoal;
-import net.minecraft.entity.mob.PathAwareEntity;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import nu.metacraft.lib.extensions.LivingEntityExtensions;
 
 public class HostileMobAttackGoal extends MeleeAttackGoal {
-	public HostileMobAttackGoal(PathAwareEntity mob) {
+	public HostileMobAttackGoal(PathfinderMob mob) {
 		super(mob, 1.25, true);
 	}
 
 	@Override
-	public boolean canStart() {
-		return ((LivingEntityExtensions) mob).metacraft_lib$isHostile() && super.canStart();
+	public boolean canUse() {
+		return ((LivingEntityExtensions) mob).metacraft_lib$isHostile() && super.canUse();
 	}
 }

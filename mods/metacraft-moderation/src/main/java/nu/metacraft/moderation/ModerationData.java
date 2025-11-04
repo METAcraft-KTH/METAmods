@@ -3,10 +3,10 @@ package nu.metacraft.moderation;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
-import nu.metacraft.lib.util.ExtraCodecs;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.moderation.moderator_mode.ModeratorModeDefinition;
 
 import java.util.HashMap;
@@ -14,24 +14,24 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public class ModerationData extends PersistentState {
+public class ModerationData extends SavedData {
 
 	protected Map<String, ModeratorModeDefinition> definitions = new HashMap<>();
 
 	public static ModerationData getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	private static final Codec<ModerationData> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					ExtraCodecs.createListSerializedMap(
+					METACodecs.createListSerializedMap(
 							Codec.STRING.fieldOf(ModeratorModeDefinition.NAME), ModeratorModeDefinition.CODEC,
 							HashMap::new
 					).fieldOf("Definitions").forGetter(d -> d.definitions)
 			).apply(instance, ModerationData::fromData)
 	);
 
-	private static final PersistentStateType<ModerationData> TYPE = new PersistentStateType<>(
+	private static final SavedDataType<ModerationData> TYPE = new SavedDataType<>(
 			"metacraft-moderation", ModerationData::createNew, CODEC, null
 	);
 
@@ -39,21 +39,21 @@ public class ModerationData extends PersistentState {
 		return Optional.ofNullable(definitions.get(name));
 	}
 
-	public Stream<String> getValidDefinitionNamesFor(ServerPlayerEntity player) {
+	public Stream<String> getValidDefinitionNamesFor(ServerPlayer player) {
 		return definitions.keySet().stream().filter(def -> {
 			return PlayerModerationState.canEnterModerationMode(player, def);
 		});
 	}
 
 	public void addModeratorDef(ModeratorModeDefinition definition) {
-		definition.setSave(this::markDirty);
+		definition.setSave(this::setDirty);
 		definitions.put(definition.getName(), definition);
-		markDirty();
+		setDirty();
 	}
 
 	public void removeModeratorDef(String name) {
 		definitions.remove(name);
-		markDirty();
+		setDirty();
 	}
 
 	private static ModerationData createNew() {
@@ -69,7 +69,7 @@ public class ModerationData extends PersistentState {
 	protected ModerationData(Map<String, ModeratorModeDefinition> definitions) {
 		this.definitions.putAll(definitions);
 		this.definitions.values().forEach(
-				def -> def.setSave(this::markDirty)
+				def -> def.setSave(this::setDirty)
 		);
 	}
 

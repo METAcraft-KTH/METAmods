@@ -1,15 +1,15 @@
 package nu.metacraft.cutscenes.mixin;
 
-import net.minecraft.scoreboard.ServerScoreboard;
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.ServerScoreboard;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.PlayerList;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(PlayerManager.class)
+@Mixin(PlayerList.class)
 public interface AccessorPlayerManager {
 
 	@Invoker
-	void callSendScoreboard(ServerScoreboard scoreboard, ServerPlayerEntity player);
+	void callUpdateEntireScoreboard(ServerScoreboard scoreboard, ServerPlayer player);
 
 }

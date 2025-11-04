@@ -1,7 +1,7 @@
 package nu.metacraft.relay;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.relay.blocks.RelayBlockEntities;
 import nu.metacraft.relay.blocks.RelayBlocks;
 import nu.metacraft.relay.items.RelayComponents;
@@ -25,7 +25,7 @@ public class Relay implements ModInitializer {
 		Events.init();
 	}
 
-	public static Identifier getID(String id) {
-		return Identifier.of(NAMESPACE, id);
+	public static ResourceLocation getID(String id) {
+		return ResourceLocation.fromNamespaceAndPath(NAMESPACE, id);
 	}
 }

@@ -4,10 +4,10 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
-import net.minecraft.text.Texts;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.world.entity.Entity;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import nu.metacraft.bosses.METAcraftBosses;
 
@@ -15,23 +15,23 @@ public class SendMessageAttack extends InstantAttack {
 
 	public static final MapCodec<SendMessageAttack> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					TextCodecs.CODEC.fieldOf("text").forGetter(a -> a.text),
+					ComponentSerialization.CODEC.fieldOf("text").forGetter(a -> a.text),
 					Codec.BOOL.fieldOf("actionbar").forGetter(a -> a.actionbar)
 			).apply(instance, SendMessageAttack::new)
 	);
 
-	private final Text text;
+	private final Component text;
 	private final boolean actionbar;
 
-	public SendMessageAttack(Text text, boolean actionbar) {
+	public SendMessageAttack(Component text, boolean actionbar) {
 		this.text = text;
 		this.actionbar = actionbar;
 	}
 
-	public static Text parseText(Text text, BossContext<?> ctx, Entity sender, MutableBoolean errored) {
+	public static Component parseText(Component text, BossContext<?> ctx, Entity sender, MutableBoolean errored) {
 		try {
-			return Texts.parse(
-					ctx.boss().getCommandSource(ctx.getWorld()).withLevel(2), text, sender, 0
+			return ComponentUtils.updateForEntity(
+					ctx.boss().createCommandSourceStackForNameResolution(ctx.getWorld()).withPermission(2), text, sender, 0
 			);
 		} catch (CommandSyntaxException e) {
 			if (!errored.booleanValue()) {
@@ -46,7 +46,7 @@ public class SendMessageAttack extends InstantAttack {
 	public void trigger(BossContext<?> ctx) {
 		MutableBoolean errored = new MutableBoolean(false);
 		ctx.boss().getPlayerTargets().forEach(player -> {
-			player.sendMessage(
+			player.displayClientMessage(
 					parseText(text, ctx, player, errored),
 					actionbar
 			);

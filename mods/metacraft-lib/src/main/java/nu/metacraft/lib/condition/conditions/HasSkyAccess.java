@@ -2,45 +2,45 @@ package nu.metacraft.lib.condition.conditions;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.loot.condition.LootCondition;
-import net.minecraft.loot.condition.LootConditionType;
-import net.minecraft.loot.context.LootContext;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.util.context.ContextParameter;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.Heightmap;
 import nu.metacraft.lib.condition.METAcraftConditions;
 
 import java.util.Set;
+import net.minecraft.util.Mth;
+import net.minecraft.util.context.ContextKey;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 
-public class HasSkyAccess implements LootCondition {
+public class HasSkyAccess implements LootItemCondition {
 
 	public static final MapCodec<HasSkyAccess> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Heightmap.Type.CODEC.fieldOf("heightmap").forGetter(type -> type.heightmap)
+					Heightmap.Types.CODEC.fieldOf("heightmap").forGetter(type -> type.heightmap)
 			).apply(instance, HasSkyAccess::new)
 	);
 
-	private final Heightmap.Type heightmap;
+	private final Heightmap.Types heightmap;
 
-	public HasSkyAccess(Heightmap.Type heightmap) {
+	public HasSkyAccess(Heightmap.Types heightmap) {
 		this.heightmap = heightmap;
 	}
 
 	@Override
-	public LootConditionType getType() {
+	public LootItemConditionType getType() {
 		return METAcraftConditions.HAS_SKY_ACCESS;
 	}
 
 	@Override
 	public boolean test(LootContext context) {
-		var pos = context.get(LootContextParameters.ORIGIN);
+		var pos = context.getOptionalParameter(LootContextParams.ORIGIN);
 		if (pos == null) return false;
-		return context.getWorld().getTopY(heightmap, MathHelper.floor(pos.getX()), MathHelper.floor(pos.getZ())) <= pos.getY();
+		return context.getLevel().getHeight(heightmap, Mth.floor(pos.x()), Mth.floor(pos.z())) <= pos.y();
 	}
 
 	@Override
-	public Set<ContextParameter<?>> getAllowedParameters() {
-		return Set.of(LootContextParameters.ORIGIN);
+	public Set<ContextKey<?>> getReferencedContextParams() {
+		return Set.of(LootContextParams.ORIGIN);
 	}
 }

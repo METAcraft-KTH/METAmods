@@ -1,8 +1,8 @@
 package nu.metacraft.lib.mixin;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.PlayerSaveHandler;
-import net.minecraft.world.level.storage.LevelStorage;
+import net.minecraft.world.level.storage.LevelStorageSource;
+import net.minecraft.world.level.storage.PlayerDataStorage;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -10,9 +10,9 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface AccessorMinecraftServer {
 
 	@Accessor
-	LevelStorage.Session getSession();
+	LevelStorageSource.LevelStorageAccess getStorageSource();
 
 	@Accessor
-	PlayerSaveHandler getSaveHandler();
+	PlayerDataStorage getPlayerDataStorage();
 
 }

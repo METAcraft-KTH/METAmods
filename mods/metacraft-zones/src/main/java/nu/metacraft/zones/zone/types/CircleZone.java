@@ -5,16 +5,16 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.command.argument.BlockPosArgumentType;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
 import java.util.function.BiFunction;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 
-import static net.minecraft.server.command.CommandManager.argument;
+import static net.minecraft.commands.Commands.argument;
 
 public class CircleZone extends ZoneType {
 
@@ -25,15 +25,15 @@ public class CircleZone extends ZoneType {
 		).apply(instance, creator));
 	}
 
-	public static ArgumentBuilder<ServerCommandSource, ?> createCommand(
-			ArgumentBuilder<ServerCommandSource, ?> builder, ZoneManagementCommand.ZoneAdder addZone,
+	public static ArgumentBuilder<CommandSourceStack, ?> createCommand(
+			ArgumentBuilder<CommandSourceStack, ?> builder, ZoneManagementCommand.ZoneAdder addZone,
 			BiFunction<BlockPos, Double, ? extends CircleZone> creator
 	) {
 		return builder.then(
-				argument("center", BlockPosArgumentType.blockPos()).then(
+				argument("center", BlockPosArgument.blockPos()).then(
 						argument("radius", DoubleArgumentType.doubleArg(0)).executes(ctx -> {
 							return addZone.add(() -> creator.apply(
-									BlockPosArgumentType.getBlockPos(ctx,"center"),
+									BlockPosArgument.getBlockPos(ctx,"center"),
 									DoubleArgumentType.getDouble(ctx,"radius")
 							), ctx);
 						})
@@ -51,7 +51,7 @@ public class CircleZone extends ZoneType {
 
 	@Override
 	public boolean contains(BlockPos pos) {
-		return center.getSquaredDistance(pos.getX(), center.getY(), pos.getZ()) < MathHelper.square(radius);
+		return center.distToLowCornerSqr(pos.getX(), center.getY(), pos.getZ()) < Mth.square(radius);
 	}
 
 	@Override
@@ -61,7 +61,7 @@ public class CircleZone extends ZoneType {
 
 	@Override
 	public ZoneType copy() {
-		return new CircleZone(center.toImmutable(), radius);
+		return new CircleZone(center.immutable(), radius);
 	}
 
 	@Override

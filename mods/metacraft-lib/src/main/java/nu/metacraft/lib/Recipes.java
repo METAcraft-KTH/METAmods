@@ -4,16 +4,20 @@ import com.google.gson.JsonObject;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.predicate.item.ItemPredicate;
-import net.minecraft.recipe.*;
-import net.minecraft.recipe.book.RecipeBookCategories;
-import net.minecraft.recipe.book.RecipeBookCategory;
-import net.minecraft.recipe.input.CraftingRecipeInput;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
+import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.PlacementInfo;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeBookCategories;
+import net.minecraft.world.item.crafting.RecipeBookCategory;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.Level;
 import org.apache.commons.lang3.mutable.MutableObject;
 import nu.metacraft.lib.event.RecipeLoad;
 import nu.metacraft.lib.extensions.RecipeComponentCarryoverExtension;
@@ -43,8 +47,8 @@ public class Recipes {
 					var remainderMapper = json.get(REMAINDER);
 					if (remainderMapper.isJsonPrimitive()) {
 						Optional.ofNullable(
-								Identifier.tryParse(remainderMapper.getAsString())
-						).map(Registries.ITEM::get).ifPresentOrElse(item -> {
+								ResourceLocation.tryParse(remainderMapper.getAsString())
+						).map(BuiltInRegistries.ITEM::getValue).ifPresentOrElse(item -> {
 							recipeData.metacraft_lib$setRemainderFunction(stack -> new ItemStack(item));
 						}, () -> {
 							METAcraftLib.LOGGER.error("Item " + remainderMapper + " did not exist.");
@@ -75,7 +79,7 @@ public class Recipes {
 						if (object.has(TO) && object.has(FROM)) {
 							parseMapping(object, registryLookup).ifPresent(recipeData::metacraft_lib$setRemainderFunction);
 						} else {
-							ItemStack.CODEC.parse(registryLookup.getOps(JsonOps.INSTANCE), remainderMapper).resultOrPartial(
+							ItemStack.CODEC.parse(registryLookup.createSerializationContext(JsonOps.INSTANCE), remainderMapper).resultOrPartial(
 									METAcraftLib.LOGGER::error
 							).ifPresent(stack -> {
 								recipeData.metacraft_lib$setRemainderFunction(orgStack -> stack.copy());
@@ -88,7 +92,7 @@ public class Recipes {
 				if (json.has(COMPONENT_CARRYOVER)) {
 					Codec.either(
 							ItemPredicate.CODEC, ItemPredicate.CODEC.listOf()
-					).parse(registryLookup.getOps(JsonOps.INSTANCE), json.get(COMPONENT_CARRYOVER)).resultOrPartial(
+					).parse(registryLookup.createSerializationContext(JsonOps.INSTANCE), json.get(COMPONENT_CARRYOVER)).resultOrPartial(
 							METAcraftLib.LOGGER::error
 					).map(either -> either.map(predicate -> predicate, predicateList -> {
 						Predicate<ItemStack> rootPredicate = stack -> false;
@@ -103,11 +107,11 @@ public class Recipes {
 		});
 	}
 
-	private static Optional<UnaryOperator<ItemStack>> parseMapping(JsonObject object, RegistryWrapper.WrapperLookup lookup) {
-		return Ingredient.CODEC.parse(lookup.getOps(JsonOps.INSTANCE), object.get(FROM)).resultOrPartial(
+	private static Optional<UnaryOperator<ItemStack>> parseMapping(JsonObject object, HolderLookup.Provider lookup) {
+		return Ingredient.CODEC.parse(lookup.createSerializationContext(JsonOps.INSTANCE), object.get(FROM)).resultOrPartial(
 				METAcraftLib.LOGGER::error
 		).flatMap(from -> {
-			return ItemStack.CODEC.parse(lookup.getOps(JsonOps.INSTANCE), object.get(TO)).resultOrPartial(
+			return ItemStack.CODEC.parse(lookup.createSerializationContext(JsonOps.INSTANCE), object.get(TO)).resultOrPartial(
 					METAcraftLib.LOGGER::error
 			).map(to -> {
 				return stack -> from.test(stack) ? to.copy() : ItemStack.EMPTY;
@@ -115,34 +119,34 @@ public class Recipes {
 		});
 	}
 
-	public static final Recipe<?> DUMMY = new Recipe<CraftingRecipeInput>() {
+	public static final Recipe<?> DUMMY = new Recipe<CraftingInput>() {
 		@Override
-		public boolean matches(CraftingRecipeInput input, World world) {
+		public boolean matches(CraftingInput input, Level world) {
 			return false;
 		}
 
 		@Override
-		public ItemStack craft(CraftingRecipeInput input, RegistryWrapper.WrapperLookup lookup) {
+		public ItemStack assemble(CraftingInput input, HolderLookup.Provider lookup) {
 			return ItemStack.EMPTY;
 		}
 
 		@Override
-		public RecipeSerializer<? extends Recipe<CraftingRecipeInput>> getSerializer() {
-			return RecipeSerializer.SHAPELESS;
+		public RecipeSerializer<? extends Recipe<CraftingInput>> getSerializer() {
+			return RecipeSerializer.SHAPELESS_RECIPE;
 		}
 
 		@Override
-		public RecipeType<? extends Recipe<CraftingRecipeInput>> getType() {
+		public RecipeType<? extends Recipe<CraftingInput>> getType() {
 			return RecipeType.CRAFTING;
 		}
 
 		@Override
-		public IngredientPlacement getIngredientPlacement() {
-			return IngredientPlacement.NONE;
+		public PlacementInfo placementInfo() {
+			return PlacementInfo.NOT_PLACEABLE;
 		}
 
 		@Override
-		public RecipeBookCategory getRecipeBookCategory() {
+		public RecipeBookCategory recipeBookCategory() {
 			return RecipeBookCategories.CRAFTING_MISC;
 		}
 	};

@@ -2,22 +2,22 @@ package nu.metacraft.lib.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.village.Merchant;
-import net.minecraft.village.MerchantInventory;
-import net.minecraft.village.TradeOffer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.MerchantContainer;
+import net.minecraft.world.item.trading.Merchant;
+import net.minecraft.world.item.trading.MerchantOffer;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.lib.extensions.TradeOfferExtensions;
 
-@Mixin(MerchantInventory.class)
+@Mixin(MerchantContainer.class)
 public class MixinMerchantInventory {
 	@Shadow @Final private Merchant merchant;
 
-	@ModifyExpressionValue(method = "updateOffers", at = @At(value = "INVOKE", target = "Lnet/minecraft/village/TradeOffer;isDisabled()Z"))
-	public boolean isDisabledForPlayer(boolean original, @Local TradeOffer tradeOffer) {
+	@ModifyExpressionValue(method = "updateSellItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/trading/MerchantOffer;isOutOfStock()Z"))
+	public boolean isDisabledForPlayer(boolean original, @Local MerchantOffer tradeOffer) {
 		if (original) {
 			// If disabled then it's disabled for all players.
 			return true;
@@ -29,12 +29,12 @@ public class MixinMerchantInventory {
 			// No per player uses.
 			return false;
 		}
-		PlayerEntity player = this.merchant.getCustomer();
+		Player player = this.merchant.getTradingPlayer();
 		if (player == null) {
 			// No customer...?
 			return false;
 		}
-		int playerUses = ext.metacraft$getUsesPerPlayer().getOrDefault(player.getUuid(), 0);
+		int playerUses = ext.metacraft$getUsesPerPlayer().getOrDefault(player.getUUID(), 0);
 		return playerUses >= maxUsesPerPlayer;
 	}
 }

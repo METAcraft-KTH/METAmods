@@ -3,7 +3,7 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.intprovider.IntProvider;
+import net.minecraft.util.valueproviders.IntProvider;
 
 public class TimedAttack implements Attack {
 
@@ -32,7 +32,7 @@ public class TimedAttack implements Attack {
 	@Override
 	public void activate(BossContext<?> ctx) {
 		attack.activate(ctx);
-		time = timeGetter.get(ctx.random());
+		time = timeGetter.sample(ctx.random());
 	}
 
 	@Override

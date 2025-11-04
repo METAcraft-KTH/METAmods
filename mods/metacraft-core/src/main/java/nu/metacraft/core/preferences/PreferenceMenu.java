@@ -1,32 +1,32 @@
 package nu.metacraft.core.preferences;
 
 import eu.pb4.sgui.api.elements.GuiElementInterface;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
 import nu.metacraft.lib.util.DisplayItemData;
 
 import java.util.List;
 import java.util.stream.Stream;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 
 public class PreferenceMenu extends SelectorMenu {
 
 	public static final String COMMAND = "metaprefs";
 
-	private static <T, V, P extends Preference<? extends T, ? extends V, ?>> boolean isVisibleTo(RegistryEntry<P> pref, ServerPlayerEntity player) {
+	private static <T, V, P extends Preference<? extends T, ? extends V, ?>> boolean isVisibleTo(Holder<P> pref, ServerPlayer player) {
 		return PreferenceData.downcast(pref).value().type().isVisibleTo(player, PreferenceData.downcast(pref));
 	}
 
-	private static Stream<RegistryEntry.Reference<Preference<?, ?, ?>>> getPreferences(ServerPlayerEntity player) {
-		return player.getRegistryManager().getOrThrow(Preference.REGISTRY_KEY).streamEntries().filter(
+	private static Stream<Holder.Reference<Preference<?, ?, ?>>> getPreferences(ServerPlayer player) {
+		return player.registryAccess().lookupOrThrow(Preference.REGISTRY_KEY).listElements().filter(
 				pref -> isVisibleTo(pref, player)
 		);
 	}
 
-	private final ServerPlayerEntity player;
+	private final ServerPlayer player;
 
 	public <T, V, P extends Preference<? extends T, ? extends V, ?>> GuiElementInterface getGuiElement(
-			ServerPlayerEntity player, RegistryEntry<P> entry
+			ServerPlayer player, Holder<P> entry
 	) {
 		var icon = PreferenceData.downcast(entry).value().icons().stream().filter(
 				i -> i.shouldShowIcon(
@@ -47,10 +47,10 @@ public class PreferenceMenu extends SelectorMenu {
 		pages.setElements(buttons);
 	}
 
-	public PreferenceMenu(ServerPlayerEntity player) {
+	public PreferenceMenu(ServerPlayer player) {
 		super((int) getPreferences(player).count(), player);
 		this.player = player;
-		this.setTitle(Text.literal("Preferences Menu"));
+		this.setTitle(Component.literal("Preferences Menu"));
 		refreshButtons();
 	}
 

@@ -1,16 +1,16 @@
 package nu.metacraft.bosses.boss.attacks;
 
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.bosses.METAcraftBosses;
 import nu.metacraft.bosses.boss.attacks.target.*;
 
 public class AttackRegistry {
 
 	public static final Registry<AttackType> REGISTRY = FabricRegistryBuilder.<AttackType>createSimple(
-			RegistryKey.ofRegistry(METAcraftBosses.getID("attacks"))
+			ResourceKey.createRegistryKey(METAcraftBosses.getID("attacks"))
 	).buildAndRegister();
 
 	public static final AttackType TIMED = register("timed", new AttackType(TimedAttack.CODEC));
@@ -39,12 +39,12 @@ public class AttackRegistry {
 	}
 
 	private static AttackType register(String id, AttackType type) {
-		return Registry.register(REGISTRY, Identifier.ofVanilla(id), type);
+		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), type);
 	}
 
 	public static class PTS {
 		public static final Registry<PositionTargetSelectorType> REGISTRY = FabricRegistryBuilder.<PositionTargetSelectorType>createSimple(
-				RegistryKey.ofRegistry(METAcraftBosses.getID("attack_position_target_selectors"))
+				ResourceKey.createRegistryKey(METAcraftBosses.getID("attack_position_target_selectors"))
 		).buildAndRegister();
 
 		public static final PositionTargetSelectorType NEAREST_PLAYER = register(
@@ -74,7 +74,7 @@ public class AttackRegistry {
 		}
 
 		private static PositionTargetSelectorType register(String id, PositionTargetSelectorType type) {
-			return Registry.register(REGISTRY, Identifier.ofVanilla(id), type);
+			return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), type);
 		}
 	}
 }

@@ -3,22 +3,22 @@ package nu.metacraft.plots.zone;
 import com.google.common.collect.Lists;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.component.ComponentType;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.NbtComponent;
-import net.minecraft.component.type.ProfileComponent;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.predicate.item.ItemPredicate;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.server.PlayerConfigEntry;
-import net.minecraft.text.Text;
-import net.minecraft.util.Uuids;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.players.NameAndId;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.component.ResolvableProfile;
 import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.plots.METAcraftPlots;
 import nu.metacraft.zones.zone.data.ZoneData;
@@ -41,13 +41,13 @@ public class PlayerOwnedProtectorate extends ZoneData {
 
 	public static final MapCodec<PlayerOwnedProtectorate> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-				Uuids.STRICT_CODEC.listOf().fieldOf("owners").forGetter(
+				UUIDUtil.LENIENT_CODEC.listOf().fieldOf("owners").forGetter(
 						data -> data.owners.stream().toList()
 				),
-				Uuids.STRICT_CODEC.listOf().fieldOf("admins").forGetter(
+				UUIDUtil.LENIENT_CODEC.listOf().fieldOf("admins").forGetter(
 						data -> data.admins.stream().toList()
 				),
-				Uuids.STRICT_CODEC.listOf().fieldOf("allowedPlayers").forGetter(
+				UUIDUtil.LENIENT_CODEC.listOf().fieldOf("allowedPlayers").forGetter(
 						data -> data.allowedPlayers.stream().toList()
 				),
 				Codec.LONG.fieldOf("balance").forGetter(data -> data.balance),
@@ -65,13 +65,13 @@ public class PlayerOwnedProtectorate extends ZoneData {
 				new HashSet<>(), new HashSet<>(), new HashSet<>(), 1,
 				Lists.newArrayList(
 						new IncrementItem(
-								ItemPredicate.Builder.create().items(Registries.ITEM, Items.DIAMOND_BLOCK).build(),
+								ItemPredicate.Builder.item().of(BuiltInRegistries.ITEM, Items.DIAMOND_BLOCK).build(),
 								1
 						)
 				),
 				Lists.newArrayList(new DecrementItem(
-						ItemPredicate.Builder.create().items(Registries.ITEM, Items.PLAYER_HEAD).build(),
-						DataComponentTypes.PROFILE, "", 1
+						ItemPredicate.Builder.item().of(BuiltInRegistries.ITEM, Items.PLAYER_HEAD).build(),
+						DataComponents.PROFILE, "", 1
 				))
 		);
 	}
@@ -102,12 +102,12 @@ public class PlayerOwnedProtectorate extends ZoneData {
 		return owners.contains(player);
 	}
 
-	public boolean isOwner(PlayerEntity player) {
-		return isOwner(player.getUuid());
+	public boolean isOwner(Player player) {
+		return isOwner(player.getUUID());
 	}
 
-	public boolean isAdmin(PlayerEntity player) {
-		return isAdmin(player.getUuid());
+	public boolean isAdmin(Player player) {
+		return isAdmin(player.getUUID());
 	}
 
 	public boolean isAdmin(UUID player) {
@@ -118,12 +118,12 @@ public class PlayerOwnedProtectorate extends ZoneData {
 		return isAdmin(player) || isOwner(player);
 	}
 
-	public boolean canModifyMembers(PlayerEntity player) {
-		return canModifyMembers(player.getUuid());
+	public boolean canModifyMembers(Player player) {
+		return canModifyMembers(player.getUUID());
 	}
 
-	public boolean isMember(PlayerEntity player) {
-		return isMember(player.getUuid());
+	public boolean isMember(Player player) {
+		return isMember(player.getUUID());
 	}
 
 	public boolean isMember(UUID player) {
@@ -134,8 +134,8 @@ public class PlayerOwnedProtectorate extends ZoneData {
 		return canModifyMembers(player) || isMember(player) || balance <= 0;
 	}
 
-	public boolean isAllowed(PlayerEntity player) {
-		return isAllowed(player.getUuid());
+	public boolean isAllowed(Player player) {
+		return isAllowed(player.getUUID());
 	}
 
 	public void addOwner(UUID player) {
@@ -200,13 +200,13 @@ public class PlayerOwnedProtectorate extends ZoneData {
 	public void applyDecrementItem(ItemStack stack) {
 		if (stack.isEmpty()) return;
 		for (var type : acceptedDecrementItems) {
-			var owner = type.getOwner(stack, zone.getWorld().getRegistryManager()).orElse(null);
+			var owner = type.getOwner(stack, zone.getWorld().registryAccess()).orElse(null);
 			if (owner != null && isAllowed(owner)) {
 				long newAmount = balance - (long) type.amount * stack.getCount();
 				if (newAmount < 0) {
 					newAmount = 0;
 				}
-				stack.decrement((int) ((balance - newAmount) / type.amount));
+				stack.shrink((int) ((balance - newAmount) / type.amount));
 				balance = newAmount;
 				markDirty();
 			}
@@ -231,7 +231,7 @@ public class PlayerOwnedProtectorate extends ZoneData {
 				if (newAmount < 0) {
 					newAmount = Long.MAX_VALUE;
 				}
-				stack.decrement((int) ((newAmount - balance) / type.amount));
+				stack.shrink((int) ((newAmount - balance) / type.amount));
 				balance = newAmount;
 				markDirty();
 			}
@@ -253,27 +253,27 @@ public class PlayerOwnedProtectorate extends ZoneData {
 		);
 	}
 
-	public record DecrementItem<T>(ItemPredicate predicate, ComponentType<T> uuidComponent, String uuidPath, int amount) {
+	public record DecrementItem<T>(ItemPredicate predicate, DataComponentType<T> uuidComponent, String uuidPath, int amount) {
 		public static final Codec<DecrementItem<?>> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
 						ItemPredicate.CODEC.fieldOf("predicate").forGetter(DecrementItem::predicate),
-						Registries.DATA_COMPONENT_TYPE.getCodec().fieldOf("uuidComponent").forGetter(DecrementItem::uuidComponent),
+						BuiltInRegistries.DATA_COMPONENT_TYPE.byNameCodec().fieldOf("uuidComponent").forGetter(DecrementItem::uuidComponent),
 						Codec.STRING.fieldOf("uuidPath").forGetter(DecrementItem::uuidPath),
 						Codec.INT.fieldOf("amount").forGetter(DecrementItem::amount)
 				).apply(instance, DecrementItem::new)
 		);
 
-		public Optional<UUID> getOwner(ItemStack stack, RegistryWrapper.WrapperLookup lookup) {
+		public Optional<UUID> getOwner(ItemStack stack, HolderLookup.Provider lookup) {
 			if (!predicate.test(stack)) return Optional.empty();
 			return Optional.ofNullable(stack.get(uuidComponent)).flatMap(component -> {
 				DataResult<UUID> result = switch (component) {
-					case NbtComponent nbt -> getDecoder(uuidPath).decode(NbtOps.INSTANCE, NbtOps.INSTANCE.getMap(nbt.copyNbt()).getOrThrow());
-					case NbtCompound nbt -> getDecoder(uuidPath).decode(NbtOps.INSTANCE, NbtOps.INSTANCE.getMap(nbt).getOrThrow());
-					case ProfileComponent profile -> DataResult.success(profile.getGameProfile().id());
+					case CustomData nbt -> getDecoder(uuidPath).decode(NbtOps.INSTANCE, NbtOps.INSTANCE.getMap(nbt.copyTag()).getOrThrow());
+					case CompoundTag nbt -> getDecoder(uuidPath).decode(NbtOps.INSTANCE, NbtOps.INSTANCE.getMap(nbt).getOrThrow());
+					case ResolvableProfile profile -> DataResult.success(profile.partialProfile().id());
 					default -> {
-						var codec = uuidComponent.getCodec();
+						var codec = uuidComponent.codec();
 						if (codec == null) yield DataResult.error(() -> "Cannot fetch UUID from unserializable codec!");
-						yield codec.encodeStart(lookup.getOps(JavaOps.INSTANCE), component).flatMap(
+						yield codec.encodeStart(lookup.createSerializationContext(JavaOps.INSTANCE), component).flatMap(
 								encoded -> JavaOps.INSTANCE.getMap(encoded).flatMap(
 										map -> getDecoder(uuidPath).decode(JavaOps.INSTANCE, map)
 								)
@@ -323,7 +323,7 @@ public class PlayerOwnedProtectorate extends ZoneData {
 						var lastKey = path[path.length - 1];
 						var uuid = map.get(lastKey);
 						if (uuid != null) {
-							return addBetterError(Uuids.CODEC.parse(ops, uuid), path.length);
+							return addBetterError(UUIDUtil.AUTHLIB_CODEC.parse(ops, uuid), path.length);
 						} else {
 							var least = map.get(lastKey + "Least");
 							var most = map.get(lastKey + "Most");
@@ -341,36 +341,36 @@ public class PlayerOwnedProtectorate extends ZoneData {
 	}
 
 	@Override
-	public Text toText(RegistryWrapper.WrapperLookup lookup) {
-		return Text.literal(
+	public Component toText(HolderLookup.Provider lookup) {
+		return Component.literal(
 				"PlayerOwnedProtectorate[owners=[" +
 						owners.stream().map(
-								owner -> zone.getWorld().getServer().getApiServices().nameToIdCache().getByUuid(owner)
-										.map(PlayerConfigEntry::name).orElse(owner.toString())
+								owner -> zone.getWorld().getServer().services().nameToIdCache().get(owner)
+										.map(NameAndId::name).orElse(owner.toString())
 						).collect(Collectors.joining(", ")) +
 						"], admins=[" +
 						admins.stream().map(
-								owner -> zone.getWorld().getServer().getApiServices().nameToIdCache().getByUuid(owner)
-										.map(PlayerConfigEntry::name).orElse(owner.toString())
+								owner -> zone.getWorld().getServer().services().nameToIdCache().get(owner)
+										.map(NameAndId::name).orElse(owner.toString())
 						).collect(Collectors.joining(", ")) +
 						"], members=[" +
 						allowedPlayers.stream().map(
-								owner -> zone.getWorld().getServer().getApiServices().nameToIdCache().getByUuid(owner)
-										.map(PlayerConfigEntry::name).orElse(owner.toString())
+								owner -> zone.getWorld().getServer().services().nameToIdCache().get(owner)
+										.map(NameAndId::name).orElse(owner.toString())
 						).collect(Collectors.joining(", ")) +
 						"], balance=" +
 						balance +
 						", acceptedPaymentItems=[" +
 						acceptedPaymentItems.stream().map(
-								element -> IncrementItem.CODEC.encodeStart(lookup.getOps(NbtOps.INSTANCE), element).resultOrPartial(
+								element -> IncrementItem.CODEC.encodeStart(lookup.createSerializationContext(NbtOps.INSTANCE), element).resultOrPartial(
 										METAcraftPlots.LOGGER::error
-								).map(NbtElement::toString).orElse(null)
+								).map(Tag::toString).orElse(null)
 						).collect(Collectors.joining(", ")) +
 						", acceptedDecrementItems=[" +
 						acceptedDecrementItems.stream().map(
-								element -> DecrementItem.CODEC.encodeStart(lookup.getOps(NbtOps.INSTANCE), element).resultOrPartial(
+								element -> DecrementItem.CODEC.encodeStart(lookup.createSerializationContext(NbtOps.INSTANCE), element).resultOrPartial(
 										METAcraftPlots.LOGGER::error
-								).map(NbtElement::toString).orElse(null)
+								).map(Tag::toString).orElse(null)
 						).collect(Collectors.joining(", ")) +
 						"]"
 		);

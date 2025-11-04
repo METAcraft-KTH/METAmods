@@ -1,11 +1,11 @@
 package nu.metacraft.cutscenes.extension;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.world.TeleportTarget;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.portal.TeleportTransition;
 
 public interface EntityExtension {
 
-	Entity metacraft$teleportInCutscene(TeleportTarget target);
+	Entity metacraft$teleportInCutscene(TeleportTransition target);
 
 	boolean metacraft$canChangeWorldInCutscene();
 

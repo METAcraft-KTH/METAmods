@@ -1,8 +1,8 @@
 package nu.metacraft.cutscenes.entity_ref;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.registry.Registry;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.core.entity_ref.EntityRef;
 import nu.metacraft.core.entity_ref.EntityRefType;
 import nu.metacraft.core.registry.EntityRefRegistry;
@@ -17,7 +17,7 @@ public class EntityRefs {
 	}
 
 	private static <T extends EntityRef> EntityRefType<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(EntityRefRegistry.REGISTRY, Identifier.ofVanilla(id), new EntityRefType<>(codec));
+		return Registry.register(EntityRefRegistry.REGISTRY, ResourceLocation.withDefaultNamespace(id), new EntityRefType<>(codec));
 	}
 
 }

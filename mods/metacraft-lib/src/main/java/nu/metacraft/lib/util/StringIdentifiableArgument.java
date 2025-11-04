@@ -9,34 +9,34 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.Keyable;
-import net.minecraft.command.CommandSource;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.StringIdentifiable;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.StringRepresentable;
 
-import static net.minecraft.server.command.CommandManager.argument;
+import static net.minecraft.commands.Commands.argument;
 
 public class StringIdentifiableArgument {
 
 	private static final Dynamic2CommandExceptionType INVALID_KEY = new Dynamic2CommandExceptionType(
-			(value, name) -> Text.literal(value + " is not a valid value for " + name + "!")
+			(value, name) -> Component.literal(value + " is not a valid value for " + name + "!")
 	);
 
-	private static SuggestionProvider<ServerCommandSource> getSuggestions(Keyable keys) {
+	private static SuggestionProvider<CommandSourceStack> getSuggestions(Keyable keys) {
 		return (ctx, builder) -> {
-			return CommandSource.suggestMatching(
+			return SharedSuggestionProvider.suggest(
 				keys.keys(JavaOps.INSTANCE).map(Object::toString), builder
 			);
 		};
 	}
 
 
-	public static ArgumentBuilder<ServerCommandSource, ?> stringIdentifiable(String name, Keyable keys) {
+	public static ArgumentBuilder<CommandSourceStack, ?> stringIdentifiable(String name, Keyable keys) {
 		return argument(name, StringArgumentType.word()).suggests(getSuggestions(keys));
 	}
 
-	public static <T extends StringIdentifiable> T getStringIdentifiable(
-			CommandContext<ServerCommandSource> ctx, String name, Codec<T> codec
+	public static <T extends StringRepresentable> T getStringIdentifiable(
+			CommandContext<CommandSourceStack> ctx, String name, Codec<T> codec
 	) throws CommandSyntaxException {
 		var key = StringArgumentType.getString(ctx, name);
 		return codec.parse(JavaOps.INSTANCE, key).getOrThrow(

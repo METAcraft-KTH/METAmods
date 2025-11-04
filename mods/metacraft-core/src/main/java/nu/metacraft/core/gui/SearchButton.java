@@ -5,16 +5,15 @@ import eu.pb4.sgui.api.elements.GuiElementBuilderInterface;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.AnvilInputGui;
 import eu.pb4.sgui.api.gui.GuiInterface;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public class SearchButton implements GuiElementInterface {
 
@@ -26,7 +25,7 @@ public class SearchButton implements GuiElementInterface {
 	private final Consumer<String> onUpdate;
 
 	public static final BiFunction<ItemStack, String, ItemStack> DEFAULT = (stack, query) -> {
-		stack.set(DataComponentTypes.ITEM_NAME, Text.translatableWithFallback(
+		stack.set(DataComponents.ITEM_NAME, Component.translatableWithFallback(
 				"gui.metacraft.search", "Search: " + query, query
 		));
 		return stack;
@@ -83,7 +82,7 @@ public class SearchButton implements GuiElementInterface {
 		return (index, type, action, gui) -> {
 			var searchMenu = new SearchMenu(
 					gui.getPlayer(), this::update,
-					GuiElementBuilder.from(new ItemStack(Items.SPYGLASS)).setName(Text.translatableWithFallback(
+					GuiElementBuilder.from(new ItemStack(Items.SPYGLASS)).setName(Component.translatableWithFallback(
 							"gui.metacraft.search", "Search"
 					)), gui
 			);
@@ -99,7 +98,7 @@ public class SearchButton implements GuiElementInterface {
 		private final GuiElementInterface closeButton;
 
 		public SearchMenu(
-				ServerPlayerEntity player, Consumer<String> acceptor,
+				ServerPlayer player, Consumer<String> acceptor,
 				GuiElementBuilderInterface<?> closeButton,
 				GuiInterface prev
 		) {

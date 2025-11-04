@@ -3,38 +3,38 @@ package nu.metacraft.core.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import nu.metacraft.core.entity.entities.player_mob.PlayerMob;
 
 import java.util.Collection;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public class PlayerMobCommand {
 
 	public static void register(
-			CommandDispatcher<ServerCommandSource> dispatcher,
-			CommandRegistryAccess registryAccess
+			CommandDispatcher<CommandSourceStack> dispatcher,
+			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
 				literal("player-mob").requires(Permissions.require("metacraft.player-mob", 2)).then(
 						literal("copy-skin-to").then(
-								argument("player-mobs", EntityArgumentType.entities()).executes(
+								argument("player-mobs", EntityArgument.entities()).executes(
 										ctx -> copySkinTo(
-												ctx, EntityArgumentType.getEntities(ctx, "player-mobs"),
-												ctx.getSource().getPlayerOrThrow()
+												ctx, EntityArgument.getEntities(ctx, "player-mobs"),
+												ctx.getSource().getPlayerOrException()
 										)
 								).then(
-										argument("source", EntityArgumentType.player()).executes(
+										argument("source", EntityArgument.player()).executes(
 												ctx -> copySkinTo(
-														ctx, EntityArgumentType.getEntities(ctx, "player-mobs"),
-														EntityArgumentType.getPlayer(ctx, "source")
+														ctx, EntityArgument.getEntities(ctx, "player-mobs"),
+														EntityArgument.getPlayer(ctx, "source")
 												)
 										)
 								)
@@ -43,7 +43,7 @@ public class PlayerMobCommand {
 		);
 	}
 
-	private static int copySkinTo(CommandContext<ServerCommandSource> ctx, Collection<? extends Entity> cutscenePlayers, ServerPlayerEntity source) {
+	private static int copySkinTo(CommandContext<CommandSourceStack> ctx, Collection<? extends Entity> cutscenePlayers, ServerPlayer source) {
 		int count = 0;
 		for (var entity : cutscenePlayers) {
 			if (entity instanceof PlayerMob player) {
@@ -52,14 +52,14 @@ public class PlayerMobCommand {
 			}
 		}
 		if (count == 0) {
-			ctx.getSource().sendError(Text.literal("No entity changed."));
+			ctx.getSource().sendFailure(Component.literal("No entity changed."));
 		} else if (count == 1) {
-			ctx.getSource().sendFeedback(() -> Text.literal("Changed skin of ").append(cutscenePlayers.stream().filter(
+			ctx.getSource().sendSuccess(() -> Component.literal("Changed skin of ").append(cutscenePlayers.stream().filter(
 					e -> e instanceof PlayerMob
 			).findAny().get().getName()), true);
 		} else {
 			int c = count;
-			ctx.getSource().sendFeedback(() -> Text.literal("Changed skin of " + c + " players"), true);
+			ctx.getSource().sendSuccess(() -> Component.literal("Changed skin of " + c + " players"), true);
 		}
 		return count;
 	}

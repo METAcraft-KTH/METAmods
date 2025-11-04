@@ -3,20 +3,20 @@ package nu.metacraft.zones.zone.data;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnGroup;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.loot.condition.LootCondition;
+import net.minecraft.ChatFormatting;
+import net.minecraft.advancements.critereon.EntityTypePredicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.visitor.NbtTextFormatter;
-import net.minecraft.predicate.entity.EntityTypePredicate;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.collection.Weighted;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.ServerWorldAccess;
+import net.minecraft.nbt.TextComponentTagVisitor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.RandomSource;
+import net.minecraft.util.random.Weighted;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.pcollections.PMap;
 import org.pcollections.PVector;
@@ -36,26 +36,26 @@ import java.util.function.Supplier;
 
 public class AdditionalSpawnsZoneData extends ZoneData {
 
-	private static final NbtTextFormatter formatter = new NbtTextFormatter("");
+	private static final TextComponentTagVisitor formatter = new TextComponentTagVisitor("");
 
 	public static final MapCodec<AdditionalSpawnsZoneData> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.unboundedMap(
-					SpawnGroup.CODEC,
+					MobCategory.CODEC,
 					BetterSpawnEntry.WEIGHTED_CODEC.listOf()
-			).fieldOf("spawns").forGetter(data -> (PMap<SpawnGroup, List<Weighted<BetterSpawnEntry>>>) (Object) data.spawns.get()),
+			).fieldOf("spawns").forGetter(data -> (PMap<MobCategory, List<Weighted<BetterSpawnEntry>>>) (Object) data.spawns.get()),
 			SpawnRemoverRegistry.SpawnRemover.REGISTRY_CODEC.listOf().fieldOf("spawnRemovers").forGetter(data -> data.spawnRemovers.get()),
 			SpawnRuleEntry.CODEC.listOf().fieldOf("spawnRules").forGetter(data -> data.rules.get())
 	).apply(instance, AdditionalSpawnsZoneData::new));
 
 
-	private final AtomicReference<PMap<SpawnGroup, PVector<Weighted<BetterSpawnEntry>>>> spawns;
+	private final AtomicReference<PMap<MobCategory, PVector<Weighted<BetterSpawnEntry>>>> spawns;
 	private final AtomicReference<PVector<SpawnRemoverRegistry.SpawnRemover>> spawnRemovers;
 
 	private final AtomicReference<PVector<SpawnRuleEntry>> rules;
 
 
 	public AdditionalSpawnsZoneData(
-			Map<SpawnGroup, List<Weighted<BetterSpawnEntry>>> spawns, List<SpawnRemoverRegistry.SpawnRemover> spawnRemovers,
+			Map<MobCategory, List<Weighted<BetterSpawnEntry>>> spawns, List<SpawnRemoverRegistry.SpawnRemover> spawnRemovers,
 			List<SpawnRuleEntry> rules
 	)  {
 		this.spawns = new AtomicReference<>(spawns.entrySet().stream().reduce(
@@ -69,7 +69,7 @@ public class AdditionalSpawnsZoneData extends ZoneData {
 		this.rules = new AtomicReference<>(TreePVector.from(rules));
 	}
 
-	public ListAccessor<Weighted<BetterSpawnEntry>> getSpawns(SpawnGroup spawnGroup) {
+	public ListAccessor<Weighted<BetterSpawnEntry>> getSpawns(MobCategory spawnGroup) {
 		return new ListAccessor<>(() -> spawns.get().getOrDefault(spawnGroup, TreePVector.empty()), l -> {
 			ThreadHelper.updateAtomic(spawns, () -> {
 				var list = l.get();
@@ -107,21 +107,21 @@ public class AdditionalSpawnsZoneData extends ZoneData {
 	}
 
 	@Override
-	public Text toText(RegistryWrapper.WrapperLookup lookup) {
-		return CODEC.codec().encodeStart(lookup.getOps(NbtOps.INSTANCE), this).resultOrPartial(METAcraftZones.LOGGER::error).map(formatter::apply).orElse(Text.literal("Error").formatted(Formatting.RED));
+	public Component toText(HolderLookup.Provider lookup) {
+		return CODEC.codec().encodeStart(lookup.createSerializationContext(NbtOps.INSTANCE), this).resultOrPartial(METAcraftZones.LOGGER::error).map(formatter::visit).orElse(Component.literal("Error").withStyle(ChatFormatting.RED));
 	}
 
-	public record SpawnRuleEntry(EntityTypePredicate type, LootCondition condition) {
+	public record SpawnRuleEntry(EntityTypePredicate type, LootItemCondition condition) {
 		public static final Codec<SpawnRuleEntry> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 				EntityTypePredicate.CODEC.fieldOf("type").forGetter(SpawnRuleEntry::type),
-				LootCondition.CODEC.fieldOf("condition").forGetter(SpawnRuleEntry::condition)
+				LootItemCondition.DIRECT_CODEC.fieldOf("condition").forGetter(SpawnRuleEntry::condition)
 		).apply(instance, SpawnRuleEntry::new));
 
 		public boolean test(
-				EntityType<?> entityType, ServerWorldAccess world, SpawnReason reason, BlockPos pos, Random random
+				EntityType<?> entityType, ServerLevelAccessor world, EntitySpawnReason reason, BlockPos pos, RandomSource random
 		) {
 			return EntityHelper.canSpawn(
-					world.toServerWorld(), random, entityType, condition, reason,
+					world.getLevel(), random, entityType, condition, reason,
 					pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5
 			);
 		}

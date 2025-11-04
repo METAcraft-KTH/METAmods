@@ -1,8 +1,8 @@
 package nu.metacraft.zones.zone.data;
 
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
 import nu.metacraft.zones.METAcraftZones;
 import nu.metacraft.zones.spawns.SpawnRemoverRegistry;
 
@@ -13,7 +13,7 @@ import java.util.Optional;
 public class ZoneDataRegistry {
 
 	public static final Registry<ZoneDataType<?>> REGISTRY = FabricRegistryBuilder.<ZoneDataType<?>>createSimple(
-			RegistryKey.ofRegistry(METAcraftZones.getID("data_types"))
+			ResourceKey.createRegistryKey(METAcraftZones.getID("data_types"))
 	).buildAndRegister();
 
 

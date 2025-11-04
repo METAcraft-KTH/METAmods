@@ -1,26 +1,26 @@
 package nu.metacraft.simplecustomfeatures.mixin;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.world.poi.PointOfInterestType;
-import net.minecraft.world.poi.PointOfInterestTypes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.util.Map;
 import java.util.Set;
+import net.minecraft.core.Holder;
+import net.minecraft.world.entity.ai.village.poi.PoiType;
+import net.minecraft.world.entity.ai.village.poi.PoiTypes;
+import net.minecraft.world.level.block.state.BlockState;
 
-@Mixin(PointOfInterestTypes.class)
+@Mixin(PoiTypes.class)
 public interface AccessorPointOfInterestTypes {
 
-	@Accessor("POI_STATES_TO_TYPE")
-	static Map<BlockState, RegistryEntry<PointOfInterestType>> getStatesToTypeMap() {
+	@Accessor("TYPE_BY_STATE")
+	static Map<BlockState, Holder<PoiType>> getStatesToTypeMap() {
 		throw new IllegalStateException("Mixin failure");
 	}
 
 	@Invoker
-	static void callRegisterStates(RegistryEntry<PointOfInterestType> poiTypeEntry, Set<BlockState> states) {
+	static void callRegisterBlockStates(Holder<PoiType> poiTypeEntry, Set<BlockState> states) {
 
 	}
 

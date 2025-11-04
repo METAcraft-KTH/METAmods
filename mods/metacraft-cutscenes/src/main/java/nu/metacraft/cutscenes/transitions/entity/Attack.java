@@ -2,8 +2,8 @@ package nu.metacraft.cutscenes.transitions.entity;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.core.entity_ref.EntityRef;
@@ -41,7 +41,7 @@ public class Attack implements Transition, TransitionConfig {
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		this.entity.get(cutscene.getRefContext()).forEach(entity -> {
 			this.target.get(cutscene.createRefContext(entity)).findFirst().ifPresent(target -> {
-				if (entity instanceof MobEntity mob && target instanceof LivingEntity livingTarget) {
+				if (entity instanceof Mob mob && target instanceof LivingEntity livingTarget) {
 					mob.setTarget(livingTarget);
 				}
 			});

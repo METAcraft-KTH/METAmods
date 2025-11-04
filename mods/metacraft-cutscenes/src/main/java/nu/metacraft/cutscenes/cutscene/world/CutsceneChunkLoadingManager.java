@@ -1,22 +1,27 @@
 package nu.metacraft.cutscenes.cutscene.world;
 
 import com.mojang.datafixers.DataFixer;
-import net.minecraft.entity.Entity;
-import net.minecraft.network.listener.ClientPlayPacketListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.server.network.EntityTrackerEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.*;
-import net.minecraft.structure.StructureTemplateManager;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.thread.ThreadExecutor;
-import net.minecraft.world.PersistentStateManager;
-import net.minecraft.world.chunk.ChunkProvider;
-import net.minecraft.world.chunk.ChunkStatusChangeListener;
-import net.minecraft.world.gen.chunk.ChunkGenerator;
-import net.minecraft.world.level.storage.LevelStorage;
-import net.minecraft.world.poi.PointOfInterestStorage;
-import net.minecraft.world.storage.StorageKey;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.server.level.ChunkHolder;
+import net.minecraft.server.level.ChunkLevel;
+import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.FullChunkStatus;
+import net.minecraft.server.level.ServerEntity;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ThreadedLevelLightEngine;
+import net.minecraft.util.thread.BlockableEventLoop;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ai.village.poi.PoiManager;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.TicketStorage;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.chunk.LightChunkGetter;
+import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
+import net.minecraft.world.level.entity.ChunkStatusUpdateListener;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import net.minecraft.world.level.storage.DimensionDataStorage;
+import net.minecraft.world.level.storage.LevelStorageSource;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.mixin.AccessorServerChunkLoadingManager;
 import nu.metacraft.cutscenes.mixin.AccessorServerLightingProvider;
@@ -27,55 +32,55 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
-public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
+public class CutsceneChunkLoadingManager extends ChunkMap {
 
 	private final CutsceneWorld cutsceneWorld;
 
 	private final Map<Long,ChunkHolder> cachedChunkHolders = new ConcurrentHashMap<>();
 
 	public CutsceneChunkLoadingManager(
-			CutsceneWorld cutsceneWorld, LevelStorage.Session session,
+			CutsceneWorld cutsceneWorld, LevelStorageSource.LevelStorageAccess session,
 			DataFixer dataFixer, StructureTemplateManager structureTemplateManager,
-			Executor executor, ThreadExecutor<Runnable> mainThreadExecutor,
-			ChunkProvider chunkProvider, ChunkGenerator chunkGenerator,
-			ChunkStatusChangeListener chunkStatusChangeListener,
-			Supplier<PersistentStateManager> persistentStateManagerFactory,
-			ChunkTicketManager ticketManager,
+			Executor executor, BlockableEventLoop<Runnable> mainThreadExecutor,
+			LightChunkGetter chunkProvider, ChunkGenerator chunkGenerator,
+			ChunkStatusUpdateListener chunkStatusChangeListener,
+			Supplier<DimensionDataStorage> persistentStateManagerFactory,
+			TicketStorage ticketManager,
 			int viewDistance, boolean dsync
 	) {
 		super(cutsceneWorld.getActualWorld(), session, dataFixer, structureTemplateManager, executor, mainThreadExecutor, chunkProvider, chunkGenerator, chunkStatusChangeListener, persistentStateManagerFactory, ticketManager, viewDistance, dsync);
 		this.cutsceneWorld = cutsceneWorld;
-		((AccessorServerChunkLoadingManager) this).setLightingProvider(
+		((AccessorServerChunkLoadingManager) this).setLightEngine(
 				new CutsceneLightingProvider(
 						chunkProvider, this,
-						cutsceneWorld.getDimension().hasSkyLight(),
-						((AccessorServerLightingProvider) getLightingProvider()).getProcessor(),
-						((AccessorServerChunkLoadingManager) this).getLightScheduler()
+						cutsceneWorld.dimensionType().hasSkyLight(),
+						((AccessorServerLightingProvider) getLightEngine()).getConsecutiveExecutor(),
+						((AccessorServerChunkLoadingManager) this).getLightTaskDispatcher()
 				)
 		);
-		((AccessorServerChunkLoadingManager) this).setLevelManager(
-				new LevelManager(ticketManager, mainThreadExecutor, executor) {
+		((AccessorServerChunkLoadingManager) this).setDistanceManager(
+				new DistanceManager(ticketManager, mainThreadExecutor, executor) {
 
 					@Override
-					protected ChunkHolder setLevel(long pos, int level, @Nullable ChunkHolder holder, int i) {
+					protected ChunkHolder updateChunkScheduling(long pos, int level, @Nullable ChunkHolder holder, int i) {
 						return holder;
 					}
 				}
 		);
-		((AccessorServerChunkLoadingManager) this).setPointOfInterestStorage(
-				new PointOfInterestStorage(
-						new StorageKey(session.getDirectoryName(), cutsceneWorld.getRegistryKey(), "poi"),
-						session.getWorldDirectory(cutsceneWorld.getRegistryKey()).resolve("poi"), dataFixer, dsync,
-						cutsceneWorld.getRegistryManager(), cutsceneWorld.getServer(), cutsceneWorld.getActualWorld()
+		((AccessorServerChunkLoadingManager) this).setPoiManager(
+				new PoiManager(
+						new RegionStorageInfo(session.getLevelId(), cutsceneWorld.dimension(), "poi"),
+						session.getDimensionPath(cutsceneWorld.dimension()).resolve("poi"), dataFixer, dsync,
+						cutsceneWorld.registryAccess(), cutsceneWorld.getServer(), cutsceneWorld.getActualWorld()
 				) { //TODO Save this.
 
 					@Override
-					public void saveChunk(ChunkPos pos) {
+					public void flush(ChunkPos pos) {
 
 					}
 
 					@Override
-					public boolean hasUnsavedElements() {
+					public boolean hasWork() {
 						return false;
 					}
 
@@ -84,45 +89,45 @@ public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
 	}
 
 	@Override
-	public ServerLightingProvider getLightingProvider() {
-		return super.getLightingProvider();
+	public ThreadedLevelLightEngine getLightEngine() {
+		return super.getLightEngine();
 	}
 
-	public void addPlayer(ServerPlayerEntity player) {
+	public void addPlayer(ServerPlayer player) {
 		EntityTrackerHelper.getEntityTrackers(this).values().forEach(t -> {
-			EntityTrackerHelper.getListeners(t).add(player.networkHandler);
+			EntityTrackerHelper.getListeners(t).add(player.connection);
 		});
 	}
 
-	public void removePlayer(ServerPlayerEntity player) {
+	public void removePlayer(ServerPlayer player) {
 		EntityTrackerHelper.getEntityTrackers(this).values().forEach(t -> {
-			EntityTrackerHelper.getListeners(t).remove(player.networkHandler);
+			EntityTrackerHelper.getListeners(t).remove(player.connection);
 		});
 	}
 
-	public void addEntity(Entity entity, EntityTrackerEntry entry) {
-		var e = new EntityTracker(entity, 0, 0, false) {
+	public void addEntity(Entity entity, ServerEntity entry) {
+		var e = new TrackedEntity(entity, 0, 0, false) {
 
 			@Override
-			public void sendToSelfAndListeners(Packet<? super ClientPlayPacketListener> packet) {
-				sendToListeners(packet);
+			public void sendToTrackingPlayersAndSelf(Packet<? super ClientGamePacketListener> packet) {
+				sendToTrackingPlayers(packet);
 			}
 
 			@Override
-			public void updateTrackedStatus(ServerPlayerEntity player) {
+			public void updatePlayer(ServerPlayer player) {
 				var listeners = EntityTrackerHelper.getListeners(this);
 				if (cutsceneWorld.getCutscene().hasPlayer(player)) {
-					if (listeners.add(player.networkHandler)) {
-						entry.startTracking(player);
+					if (listeners.add(player.connection)) {
+						entry.addPairing(player);
 					}
-				} else if (listeners.remove(player.networkHandler)) {
-					entry.stopTracking(player);
+				} else if (listeners.remove(player.connection)) {
+					entry.removePairing(player);
 				}
 			}
 		};
-		((AccessorServerChunkLoadingManager.EntityTracker) (Object) e).setEntry(entry);
-		cutsceneWorld.getPlayers().forEach(p -> {
-			EntityTrackerHelper.getListeners(e).add(p.networkHandler);
+		((AccessorServerChunkLoadingManager.EntityTracker) (Object) e).setServerEntity(entry);
+		cutsceneWorld.players().forEach(p -> {
+			EntityTrackerHelper.getListeners(e).add(p.connection);
 		});
 		EntityTrackerHelper.getEntityTrackers(this).put(
 				entity.getId(), e
@@ -138,36 +143,36 @@ public class CutsceneChunkLoadingManager extends ServerChunkLoadingManager {
 	}
 
 	@Override
-	public ChunkHolder getCurrentChunkHolder(long pos) {
-		return getChunkHolder(pos);
+	public ChunkHolder getUpdatingChunkIfPresent(long pos) {
+		return getVisibleChunkIfPresent(pos);
 	}
 
 	@Override
-	public ChunkHolder getChunkHolder(long pos) {
+	public ChunkHolder getVisibleChunkIfPresent(long pos) {
 		if (cachedChunkHolders.containsKey(pos)) {
 			return cachedChunkHolders.get(pos);
 		}
 
 		return cachedChunkHolders.computeIfAbsent(pos, i -> new ChunkHolder(
-				new ChunkPos(pos), ChunkLevels.getLevelFromType(ChunkLevelType.ENTITY_TICKING),
-				cutsceneWorld, getLightingProvider(),
+				new ChunkPos(pos), ChunkLevel.byStatus(FullChunkStatus.ENTITY_TICKING),
+				cutsceneWorld, getLightEngine(),
 				(a, b, c, d) -> {},
-				(p, b) -> cutsceneWorld.getPlayers()
+				(p, b) -> cutsceneWorld.players()
 		) {
 			@Override
-			protected void updateStatus(ServerChunkLoadingManager chunkLoadingManager) {
+			protected void updateHighestAllowedStatus(ChunkMap chunkLoadingManager) {
 
 			}
 
 			@Override
-			protected void updateFutures(ServerChunkLoadingManager chunkLoadingManager, Executor executor) {
+			protected void updateFutures(ChunkMap chunkLoadingManager, Executor executor) {
 
 			}
 		});
 	}
 
 	@Override
-	protected void save(boolean flush) {
+	protected void saveAllChunks(boolean flush) {
 
 	}
 }

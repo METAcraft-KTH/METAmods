@@ -4,30 +4,30 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.structure.StructurePiece;
-import net.minecraft.util.StringIdentifiable;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
 import nu.metacraft.core.block.METAcraftBlocks;
 import nu.metacraft.core.block.blocks.MusicBlock;
 import nu.metacraft.core.block.entities.MusicBlockEntity;
 import nu.metacraft.core.music.PlayerMusic;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 
 import java.util.Map;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
+import net.minecraft.world.phys.AABB;
 
 public class MusicPlayer extends DataBlock {
 
 	protected String selectedMusicTrack;
 	protected Map<String, PlayerMusic> musicTracks;
-	protected Either<Either<Double, Box>, CalculatedArea> area;
+	protected Either<Either<Double, AABB>, CalculatedArea> area;
 
 	public static final MapCodec<MusicPlayer> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
 			Codec.STRING.fieldOf("selected_track").orElse("default").forGetter(player -> player.selectedMusicTrack),
 			MusicBlockEntity.NAMED_MUSIC_POOLS_CODEC.fieldOf("tracks").forGetter(player -> player.musicTracks),
 			Codec.either(
-					Codec.either(Codec.DOUBLE, ExtraCodecs.BOX_CODEC), CalculatedArea.CODEC
+					Codec.either(Codec.DOUBLE, METACodecs.BOX_CODEC), CalculatedArea.CODEC
 			).fieldOf("area").orElse(Either.right(CalculatedArea.DUNGEON)).forGetter(player -> player.area)
 		).apply(instance, MusicPlayer::new)
 	);
@@ -35,7 +35,7 @@ public class MusicPlayer extends DataBlock {
 	public MusicPlayer(
 			String selectedMusicTrack,
 			Map<String, PlayerMusic> musicTracks,
-			Either<Either<Double, Box>, CalculatedArea> area
+			Either<Either<Double, AABB>, CalculatedArea> area
 	) {
 		this.selectedMusicTrack = selectedMusicTrack;
 		this.musicTracks = musicTracks;
@@ -49,12 +49,12 @@ public class MusicPlayer extends DataBlock {
 
 	@Override
 	public void processDataBlock(BlockPos pos, StructurePiece piece) {
-		var state = METAcraftBlocks.MUSIC_PLAYER.getDefaultState();
+		var state = METAcraftBlocks.MUSIC_PLAYER.defaultBlockState();
 		if (area.left().isPresent()) {
-			state = state.with(MusicBlock.ROTATION, piece.getRotation())
-					.with(MusicBlock.MIRROR, piece.getMirror());
+			state = state.setValue(MusicBlock.ROTATION, piece.getRotation())
+					.setValue(MusicBlock.MIRROR, piece.getMirror());
 		}
-		parameters.dungeons.setBlockState(pos, state);
+		parameters.dungeons.setBlockAndUpdate(pos, state);
 		if (parameters.dungeons.getBlockEntity(pos) instanceof MusicBlockEntity musicPlayer) {
 			area.ifLeft(area -> {
 				area.ifLeft(musicPlayer::setRange);
@@ -64,12 +64,12 @@ public class MusicPlayer extends DataBlock {
 				switch (type) {
 					case ROOM -> {
 						musicPlayer.setBoundingBox(
-							Box.from(piece.getBoundingBox()).offset(pos.toCenterPos().negate())
+							AABB.of(piece.getBoundingBox()).move(pos.getCenter().reverse())
 						);
 					}
 					case DUNGEON -> {
 						musicPlayer.setBoundingBox(
-								Box.from(parameters.structureBounds).offset(pos.toCenterPos().negate())
+								AABB.of(parameters.structureBounds).move(pos.getCenter().reverse())
 						);
 					}
 				}
@@ -79,19 +79,19 @@ public class MusicPlayer extends DataBlock {
 		}
 	}
 
-	public enum CalculatedArea implements StringIdentifiable {
+	public enum CalculatedArea implements StringRepresentable {
 		DUNGEON("dungeon"),
 		ROOM("room");
 
-		public static final Codec<CalculatedArea> CODEC = StringIdentifiable.createCodec(CalculatedArea::values);
+		public static final Codec<CalculatedArea> CODEC = StringRepresentable.fromEnum(CalculatedArea::values);
 
 		private final String name;
-		private CalculatedArea(String name) {
+		CalculatedArea(String name) {
 			this.name = name;
 		}
 
 		@Override
-		public String asString() {
+		public String getSerializedName() {
 			return name;
 		}
 	}

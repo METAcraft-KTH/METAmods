@@ -3,8 +3,8 @@ package nu.metacraft.info_commands;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.lib.config.container.ConfigContainer;
@@ -19,17 +19,17 @@ public class Info implements ModInitializer {
 			InfoConfig.CODEC, () -> {
 				var config = new InfoConfig();
 				var sub = new HashMap<String, InfoNode>();
-				config.getCommands().put("example1", new InfoNode(Text.literal("Test"), sub));
-				sub.put("example3", new InfoNode(Text.literal("Look")));
+				config.commands().put("example1", new InfoNode(Component.literal("Test"), sub));
+				sub.put("example3", new InfoNode(Component.literal("Look")));
 				var sub2 = new HashMap<String, InfoNode>();
-				sub2.put("example5", new InfoNode(Text.literal("Without limits")));
-				sub.put("example4", new InfoNode(Text.literal("It's ").append(Text.literal("recursive.")), sub2));
-				config.getCommands().put("example2", new InfoNode(
-						Text.literal("And it supports JSON text! ").setStyle(
+				sub2.put("example5", new InfoNode(Component.literal("Without limits")));
+				sub.put("example4", new InfoNode(Component.literal("It's ").append(Component.literal("recursive.")), sub2));
+				config.commands().put("example2", new InfoNode(
+						Component.literal("And it supports JSON text! ").setStyle(
 								Style.EMPTY.withBold(true).withItalic(true).withColor(0xccffff)
-						).append(Text.literal("Cool right?").setStyle(Style.EMPTY.withObfuscated(true)))
+						).append(Component.literal("Cool right?").setStyle(Style.EMPTY.withObfuscated(true)))
 				));
-				config.getInfoMessages().add(new InfoMessage("example", Text.literal("Did you know? You can use /example1 to see information!")));
+				config.infoMessages().add(new InfoMessage("example", Component.literal("Did you know? You can use /example1 to see information!")));
 				return config;
 			}
 	).reloadBeforeServer().build(configPath);

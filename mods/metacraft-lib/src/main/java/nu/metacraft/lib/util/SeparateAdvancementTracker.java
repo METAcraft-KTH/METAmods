@@ -1,38 +1,38 @@
 package nu.metacraft.lib.util;
 
 import com.mojang.datafixers.DataFixer;
-import net.minecraft.advancement.PlayerAdvancementTracker;
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.ServerAdvancementLoader;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.WorldSavePath;
-import net.minecraft.util.path.PathUtil;
 import java.nio.file.Path;
+import net.minecraft.FileUtil;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.PlayerAdvancements;
+import net.minecraft.server.ServerAdvancementManager;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.PlayerList;
+import net.minecraft.world.level.storage.LevelResource;
 
-public class SeparateAdvancementTracker extends PlayerAdvancementTracker {
+public class SeparateAdvancementTracker extends PlayerAdvancements {
 
-	private final Identifier type;
+	private final ResourceLocation type;
 
-	public static Path getPath(WorldSavePath path, ServerPlayerEntity owner, Identifier type) {
-		return owner.getEntityWorld().getServer().getSavePath(path).resolve(
-				owner.getUuid() + "-" + PathUtil.replaceInvalidChars(type.getNamespace())
+	public static Path getPath(LevelResource path, ServerPlayer owner, ResourceLocation type) {
+		return owner.level().getServer().getWorldPath(path).resolve(
+				owner.getUUID() + "-" + FileUtil.sanitizeName(type.getNamespace())
 		).resolve(type.getPath() + ".json");
 	}
 
 	public SeparateAdvancementTracker(
-			DataFixer dataFixer, PlayerManager playerManager,
-			ServerAdvancementLoader advancementLoader, ServerPlayerEntity owner,
-			Identifier type
+			DataFixer dataFixer, PlayerList playerManager,
+			ServerAdvancementManager advancementLoader, ServerPlayer owner,
+			ResourceLocation type
 	) {
 		super(
 				dataFixer, playerManager, advancementLoader,
-				getPath(WorldSavePath.ADVANCEMENTS, owner, type), owner
+				getPath(LevelResource.PLAYER_ADVANCEMENTS_DIR, owner, type), owner
 		);
 		this.type = type;
 	}
 
-	public Identifier getType() {
+	public ResourceLocation getType() {
 		return type;
 	}
 }

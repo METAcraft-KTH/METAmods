@@ -2,7 +2,7 @@ package nu.metacraft.lib.config.container.impl;
 
 import com.mojang.serialization.Codec;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.util.Unit;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.config.container.ConfigContainer;
@@ -175,13 +175,13 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 
 	public static class WithLookup<T> extends BasicConfigContainer<T> {
 
-		protected final Supplier<RegistryWrapper.WrapperLookup> lookupSupplier;
-		protected final Function<RegistryWrapper.WrapperLookup, T> defaultConfigInitializer;
+		protected final Supplier<HolderLookup.Provider> lookupSupplier;
+		protected final Function<HolderLookup.Provider, T> defaultConfigInitializer;
 
 		public WithLookup(
-				Codec<T> codec, Path configPath, Function<RegistryWrapper.WrapperLookup, T> defaultConfigInitializer,
+				Codec<T> codec, Path configPath, Function<HolderLookup.Provider, T> defaultConfigInitializer,
 				boolean reloadsBeforeServer, boolean reloadsAfterServer, ReloadFunction<T> reloader,
-				Supplier<RegistryWrapper.WrapperLookup> lookupSupplier
+				Supplier<HolderLookup.Provider> lookupSupplier
 		) {
 			super(codec, configPath, null, reloadsBeforeServer, reloadsAfterServer, reloader);
 			this.lookupSupplier = lookupSupplier;

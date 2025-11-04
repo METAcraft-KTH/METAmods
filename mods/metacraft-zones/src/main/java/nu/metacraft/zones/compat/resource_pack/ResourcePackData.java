@@ -2,9 +2,6 @@ package nu.metacraft.zones.compat.resource_pack;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Uuids;
 import nu.metacraft.resource_packs.ResourcePackHelper;
 import nu.metacraft.zones.zone.data.ZoneData;
 import nu.metacraft.zones.zone.data.ZoneDataEntityTracking;
@@ -14,12 +11,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 
 public class ResourcePackData extends ZoneDataEntityTracking {
 
 	public static final MapCodec<ResourcePackData> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Uuids.SET_CODEC.fieldOf("resource_packs").forGetter(a -> a.resourcePacks)
+					UUIDUtil.CODEC_SET.fieldOf("resource_packs").forGetter(a -> a.resourcePacks)
 			).apply(instance, ResourcePackData::new)
 	);
 
@@ -32,7 +32,7 @@ public class ResourcePackData extends ZoneDataEntityTracking {
 	public boolean addPack(UUID pack) {
 		if (resourcePacks.contains(pack)) return false;
 		this.getZone().getEntities().forEach(e -> {
-			if (e instanceof ServerPlayerEntity p) {
+			if (e instanceof ServerPlayer p) {
 				enablePack(p, pack);
 			}
 		});
@@ -44,7 +44,7 @@ public class ResourcePackData extends ZoneDataEntityTracking {
 	public boolean removePack(UUID pack) {
 		if (!resourcePacks.contains(pack)) return false;
 		this.getZone().getEntities().forEach(e -> {
-			if (e instanceof ServerPlayerEntity p) {
+			if (e instanceof ServerPlayer p) {
 				disablePack(p, pack);
 			}
 		});
@@ -57,13 +57,13 @@ public class ResourcePackData extends ZoneDataEntityTracking {
 		return Collections.unmodifiableSet(resourcePacks);
 	}
 
-	private void enablePack(ServerPlayerEntity p, UUID pack) {
+	private void enablePack(ServerPlayer p, UUID pack) {
 		if (!ResourcePackHelper.hasResourcePack(p, pack)) {
 			ResourcePackHelper.enableResourcePack(p, pack);
 		}
 	}
 
-	private void disablePack(ServerPlayerEntity p, UUID pack) {
+	private void disablePack(ServerPlayer p, UUID pack) {
 		if (ResourcePackHelper.hasResourcePack(p, pack)) {
 			ResourcePackHelper.disableResourcePack(p, pack);
 		}
@@ -71,7 +71,7 @@ public class ResourcePackData extends ZoneDataEntityTracking {
 
 	@Override
 	public void onEnter(Entity entity) {
-		if (entity instanceof ServerPlayerEntity p) {
+		if (entity instanceof ServerPlayer p) {
 			resourcePacks.forEach(pack -> {
 				enablePack(p, pack);
 			});
@@ -80,7 +80,7 @@ public class ResourcePackData extends ZoneDataEntityTracking {
 
 	@Override
 	public void onLeave(Entity entity) {
-		if (entity instanceof ServerPlayerEntity p && !p.isDisconnected()) {
+		if (entity instanceof ServerPlayer p && !p.hasDisconnected()) {
 			resourcePacks.forEach(pack -> {
 				disablePack(p, pack);
 			});

@@ -3,10 +3,9 @@ package nu.metacraft.lib.util;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Uuids;
-
+import net.minecraft.server.level.ServerPlayer;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,9 +27,9 @@ public sealed abstract class PotentialPlayer permits PotentialPlayer.Absent, Pot
 		);
 	}
 
-	public abstract Optional<ServerPlayerEntity> getPlayer(MinecraftServer server);
+	public abstract Optional<ServerPlayer> getPlayer(MinecraftServer server);
 
-	public static PotentialPlayer get(ServerPlayerEntity player) {
+	public static PotentialPlayer get(ServerPlayer player) {
 		return new Present(player);
 	}
 
@@ -50,33 +49,33 @@ public sealed abstract class PotentialPlayer permits PotentialPlayer.Absent, Pot
 		private Absent() {}
 
 		@Override
-		public Optional<ServerPlayerEntity> getPlayer(MinecraftServer server) {
+		public Optional<ServerPlayer> getPlayer(MinecraftServer server) {
 			return Optional.empty();
 		}
 	}
 
 	static final class Present extends PotentialPlayer {
 
-		public static final Codec<Present> CODEC = Uuids.STRICT_CODEC.xmap(
+		public static final Codec<Present> CODEC = UUIDUtil.LENIENT_CODEC.xmap(
 				Present::new, p -> p.uuid
 		);
 
 		private final UUID uuid;
-		private ServerPlayerEntity player;
+		private ServerPlayer player;
 
 		public Present(UUID id) {
 			this.uuid = id;
 		}
 
-		public Present(ServerPlayerEntity player) {
-			this(player.getUuid());
+		public Present(ServerPlayer player) {
+			this(player.getUUID());
 			this.player = player;
 		}
 
 		@Override
-		public Optional<ServerPlayerEntity> getPlayer(MinecraftServer server) {
+		public Optional<ServerPlayer> getPlayer(MinecraftServer server) {
 			if (player == null || player.isRemoved()) {
-				player = server.getPlayerManager().getPlayer(uuid);
+				player = server.getPlayerList().getPlayer(uuid);
 			}
 			return Optional.ofNullable(player);
 		}

@@ -3,15 +3,6 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.CommandOutput;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.TeleportTarget;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
@@ -21,6 +12,15 @@ import nu.metacraft.cutscenes.transitions.config.TransitionConfig;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfigType;
 
 import java.util.Optional;
+import net.minecraft.commands.CommandSource;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 
 public class RunCommandTransition implements Transition, TransitionConfig {
 
@@ -54,66 +54,66 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 		this.debug = debug;
 	}
 
-	public static ServerCommandSource getSource(
+	public static CommandSourceStack getSource(
 			CutsceneInstance cutscene, boolean runInRealWorld, @Nullable Entity entity, boolean debug
 	) {
-		var entryPoint = entity == null ? cutscene.getCutscene().getEntryPoint(null, cutscene) : Optional.<TeleportTarget>empty();
-		var src = new ServerCommandSource(
-				new CommandOutput() {
+		var entryPoint = entity == null ? cutscene.getCutscene().getEntryPoint(null, cutscene) : Optional.<TeleportTransition>empty();
+		var src = new CommandSourceStack(
+				new CommandSource() {
 					@Override
-					public void sendMessage(Text message) {
+					public void sendSystemMessage(Component message) {
 						if (debug) {
-							if (entity instanceof ServerPlayerEntity p) {
-								p.sendMessage(message);
+							if (entity instanceof ServerPlayer p) {
+								p.sendSystemMessage(message);
 							} else {
-								cutscene.getPlayers().forEach(p -> p.sendMessage(message));
+								cutscene.getPlayers().forEach(p -> p.sendSystemMessage(message));
 							}
 						}
 					}
 
 					@Override
-					public boolean shouldReceiveFeedback() {
+					public boolean acceptsSuccess() {
 						return debug;
 					}
 
 					@Override
-					public boolean shouldTrackOutput() {
+					public boolean acceptsFailure() {
 						return debug;
 					}
 
 					@Override
-					public boolean shouldBroadcastConsoleToOps() {
+					public boolean shouldInformAdmins() {
 						return false;
 					}
 				},
-				entity != null ? entity.getEntityPos() : entryPoint.map(TeleportTarget::position).orElse(Vec3d.ZERO),
-				entity != null ? entity.getRotationClient() : entryPoint.map(target -> new Vec2f(target.pitch(), target.yaw())).orElse(Vec2f.ZERO),
+				entity != null ? entity.position() : entryPoint.map(TeleportTransition::position).orElse(Vec3.ZERO),
+				entity != null ? entity.getRotationVector() : entryPoint.map(target -> new Vec2(target.xRot(), target.yRot())).orElse(Vec2.ZERO),
 				runInRealWorld ? cutscene.getCutsceneWorld().getActualWorld() : cutscene.getCutsceneWorld(),
 				2, entity != null ? entity.getName().getString() : "Cutscene",
-				entity != null ? entity.getDisplayName() : Text.literal("Cutscene"),
+				entity != null ? entity.getDisplayName() : Component.literal("Cutscene"),
 				cutscene.getServer(), entity
 		);
 		if (!debug) {
-			return src.withSilent();
+			return src.withSuppressedOutput();
 		}
 		return src;
 	}
 
-	private static void execute(CommandManager manager, ServerCommandSource source, String command, boolean debug) {
-		manager.parseAndExecute(source, command);
+	private static void execute(Commands manager, CommandSourceStack source, String command, boolean debug) {
+		manager.performPrefixedCommand(source, command);
 	}
 
 	private void execute(CutsceneInstance cutscene, String command) {
 		if (runPerPlayer) {
 			cutscene.forAllPlayers(player -> {
 				execute(
-						player.getEntityWorld().getServer().getCommandManager(),
+						player.level().getServer().getCommands(),
 						getSource(cutscene, runInRealWorld, player, debug), command, debug
 				);
 			});
 		} else {
 			execute(
-					cutscene.getServer().getCommandManager(),
+					cutscene.getServer().getCommands(),
 					getSource(cutscene, runInRealWorld, null, debug), command, debug
 			);
 		}

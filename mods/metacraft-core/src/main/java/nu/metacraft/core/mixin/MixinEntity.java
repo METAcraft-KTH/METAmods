@@ -1,15 +1,6 @@
 package nu.metacraft.core.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.entity.Entity;
-import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.server.network.PlayerAssociatedNetworkHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.math.Box;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -26,20 +17,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerPlayerConnection;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity implements EntityExtensions {
 
 	@Shadow public abstract int getId();
 
-	@Shadow public abstract DynamicRegistryManager getRegistryManager();
+	@Shadow public abstract RegistryAccess registryAccess();
 
-	@Shadow public abstract Box getBoundingBox();
+	@Shadow public abstract AABB getBoundingBox();
 
-	@Shadow private World world;
+	@Shadow private Level level;
 
 	@Shadow
-	public abstract World getEntityWorld();
+	public abstract Level level();
 
 	@Unique
 	private ManageableServerBossBar bossBar;
@@ -47,7 +47,7 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Unique
 	private void removeBossBar() {
 		if (this.bossBar != null) {
-			this.bossBar.clearPlayers();
+			this.bossBar.removeAllPlayers();
 			this.bossBar = null;
 			onBossBarRemoved();
 		}
@@ -56,13 +56,13 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Unique
 	private void onBossBarRemoved() {
 		if (this instanceof AccessorWitherEntity w) {
-			w.getBossBar().setVisible(true);
+			w.getBossEvent().setVisible(true);
 		}
 	}
 
 	@Unique
 	private void initialiseBossBar() {
-		if (bossBar == null || !(this.getEntityWorld() instanceof ServerWorld sw)) return;
+		if (bossBar == null || !(this.level() instanceof ServerLevel sw)) return;
 		var tracker = EntityTrackerHelper.getEntityTrackers(sw).get(this.getId());
 		if (tracker != null) {
 			for (var player : EntityTrackerHelper.getListeners(tracker)) {
@@ -75,12 +75,12 @@ public abstract class MixinEntity implements EntityExtensions {
 	@Unique
 	private void onBossBarAdded() {
 		if (this instanceof AccessorWitherEntity w) {
-			w.getBossBar().setVisible(false);
+			w.getBossEvent().setVisible(false);
 		}
 	}
 
-	@Inject(method = "readData", at = @At("RETURN"))
-	public void readNBT(ReadView nbt, CallbackInfo ci) {
+	@Inject(method = "load", at = @At("RETURN"))
+	public void readNBT(ValueInput nbt, CallbackInfo ci) {
 		metacraft_lib$loadBossBar(nbt);
 	}
 
@@ -91,13 +91,13 @@ public abstract class MixinEntity implements EntityExtensions {
 		}
 	}
 
-	@Inject(method = "writeData", at = @At("RETURN"))
-	public void writeNBT(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "saveWithoutId", at = @At("RETURN"))
+	public void writeNBT(ValueOutput nbt, CallbackInfo ci) {
 		metacraft_lib$saveBossBar(nbt);
 	}
 
 	@Override
-	public void metacraft_lib$loadBossBar(ReadView nbt) {
+	public void metacraft_lib$loadBossBar(ValueInput nbt) {
 		nbt.read(ManageableServerBossBar.BOSS_BAR, ManageableServerBossBar.BossBarData.CODEC).ifPresentOrElse(data -> {
 			if (this.bossBar == null) {
 				this.bossBar = ManageableServerBossBar.create();
@@ -122,21 +122,21 @@ public abstract class MixinEntity implements EntityExtensions {
 	}
 
 	@Override
-	public void metacraft_lib$saveBossBar(WriteView nbt) {
+	public void metacraft_lib$saveBossBar(ValueOutput nbt) {
 		if (bossBar != null) {
-			nbt.put(ManageableServerBossBar.BOSS_BAR, ManageableServerBossBar.BossBarData.CODEC, bossBar.serialize());
+			nbt.store(ManageableServerBossBar.BOSS_BAR, ManageableServerBossBar.BossBarData.CODEC, bossBar.serialize());
 		}
 	}
 
-	@Inject(method = "onStartedTrackingBy", at = @At("HEAD"))
-	public void onStartTracking(ServerPlayerEntity player, CallbackInfo ci) {
+	@Inject(method = "startSeenByPlayer", at = @At("HEAD"))
+	public void onStartTracking(ServerPlayer player, CallbackInfo ci) {
 		if (this.bossBar != null) {
 			this.bossBar.addPlayer(player);
 		}
 	}
 
-	@Inject(method = "onStoppedTrackingBy", at = @At("HEAD"))
-	public void onStopTracking(ServerPlayerEntity player, CallbackInfo ci) {
+	@Inject(method = "stopSeenByPlayer", at = @At("HEAD"))
+	public void onStopTracking(ServerPlayer player, CallbackInfo ci) {
 		if (this.bossBar != null) {
 			this.bossBar.removePlayer(player);
 		}
@@ -158,14 +158,14 @@ public abstract class MixinEntity implements EntityExtensions {
 
 	@Override
 	public void metacraft_lib$updateBossBarReplaced() {
-		if (!(this.getEntityWorld() instanceof ServerWorld sw)) return;
+		if (!(this.level() instanceof ServerLevel sw)) return;
 		if (bossBar != null) {
 			var tracker = EntityTrackerHelper.getEntityTrackers(sw).get(this.getId());
 			if (tracker != null) {
 				var players = EntityTrackerHelper.getListeners(tracker).stream().map(
-						PlayerAssociatedNetworkHandler::getPlayer
+						ServerPlayerConnection::getPlayer
 				).collect(Collectors.toSet());
-				List<ServerPlayerEntity> removals = new ArrayList<>();
+				List<ServerPlayer> removals = new ArrayList<>();
 				for (var prevPlayer : bossBar.getPlayers()) {
 					if (!players.contains(prevPlayer)) {
 						removals.add(prevPlayer);
@@ -208,19 +208,19 @@ public abstract class MixinEntity implements EntityExtensions {
 	}
 
 	@ModifyExpressionValue(
-			method = "getJumpVelocityMultiplier",
+			method = "getBlockJumpFactor",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/block/Block;getJumpVelocityMultiplier()F",
+					target = "Lnet/minecraft/world/level/block/Block;getJumpFactor()F",
 					ordinal = 1
 			)
 	)
 	protected float getJumpVelocityMultiplier(float g) {
-		var selector = new Box(
+		var selector = new AABB(
 				this.getBoundingBox().minX, this.getBoundingBox().minY, this.getBoundingBox().minZ,
 				this.getBoundingBox().maxX, this.getBoundingBox().minY - 0.1, this.getBoundingBox().maxZ
 		);
-		for (var e : world.getOtherEntities((Entity) (Object) this, selector)) {
+		for (var e : level.getEntities((Entity) (Object) this, selector)) {
 			if (e instanceof MovingBlock box) {
 				return 1;
 			}

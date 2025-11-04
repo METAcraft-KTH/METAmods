@@ -2,20 +2,19 @@ package nu.metacraft.bosses.boss.attacks;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.gen.feature.FeaturePlacementContext;
-import net.minecraft.world.gen.placementmodifier.PlacementModifier;
-import net.minecraft.world.gen.stateprovider.BlockStateProvider;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
+import net.minecraft.world.level.levelgen.placement.PlacementContext;
+import net.minecraft.world.level.levelgen.placement.PlacementModifier;
 
 public class PlaceBlocksAttack extends InstantAttack {
 
 	public static final MapCodec<PlaceBlocksAttack> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					BlockStateProvider.TYPE_CODEC.fieldOf("blocks").forGetter(a -> a.blocks),
+					BlockStateProvider.CODEC.fieldOf("blocks").forGetter(a -> a.blocks),
 					PlacementModifier.CODEC.listOf().fieldOf("positionsGetters").forGetter(a -> a.positionsGetters)
 			).apply(instance, PlaceBlocksAttack::new)
 	);
@@ -32,12 +31,12 @@ public class PlaceBlocksAttack extends InstantAttack {
 
 	@Override
 	public void trigger(BossContext<?> ctx) {
-		Stream<BlockPos> positions = Stream.of(ctx.boss().getBlockPos());
+		Stream<BlockPos> positions = Stream.of(ctx.boss().blockPosition());
 		for (var positionsGetter : this.positionsGetters) {
 			positions = positions.flatMap(
 				position -> positionsGetter.getPositions(
-					new FeaturePlacementContext(
-						ctx.getWorld(), ctx.getWorld().getChunkManager().getChunkGenerator(),
+					new PlacementContext(
+						ctx.getWorld(), ctx.getWorld().getChunkSource().getGenerator(),
 						Optional.empty()
 					),
 					ctx.random(), position
@@ -45,7 +44,7 @@ public class PlaceBlocksAttack extends InstantAttack {
 			);
 		}
 		positions.forEach(pos -> {
-			ctx.getWorld().setBlockState(pos, blocks.get(ctx.random(), pos));
+			ctx.getWorld().setBlockAndUpdate(pos, blocks.getState(ctx.random(), pos));
 		});
 	}
 

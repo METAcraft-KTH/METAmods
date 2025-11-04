@@ -3,11 +3,10 @@ package nu.metacraft.zones.zone.data;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-
 import java.util.Optional;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 
 public class MessageZoneData extends ZoneDataEntityTracking {
 
@@ -26,15 +25,15 @@ public class MessageZoneData extends ZoneDataEntityTracking {
 		this.leaveCommand = leaveCommand;
 	}
 
-	private ServerCommandSource createFromPlayer(ServerPlayerEntity player) {
-		return player.getCommandSource().withLevel(2).withSilent();
+	private CommandSourceStack createFromPlayer(ServerPlayer player) {
+		return player.createCommandSourceStack().withPermission(2).withSuppressedOutput();
 	}
 
 	@Override
 	public void onEnter(Entity entity) {
-		if (entity instanceof ServerPlayerEntity player) {
+		if (entity instanceof ServerPlayer player) {
 			enterCommand.ifPresent(cmd -> {
-				player.getEntityWorld().getServer().getCommandManager().parseAndExecute(
+				player.level().getServer().getCommands().performPrefixedCommand(
 						createFromPlayer(player), cmd
 				);
 			});
@@ -43,9 +42,9 @@ public class MessageZoneData extends ZoneDataEntityTracking {
 
 	@Override
 	public void onLeave(Entity entity) {
-		if (entity instanceof ServerPlayerEntity player) {
+		if (entity instanceof ServerPlayer player) {
 			leaveCommand.ifPresent(cmd -> {
-				player.getEntityWorld().getServer().getCommandManager().parseAndExecute(
+				player.level().getServer().getCommands().performPrefixedCommand(
 						createFromPlayer(player), cmd
 				);
 			});

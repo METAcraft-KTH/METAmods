@@ -2,45 +2,44 @@ package nu.metacraft.lib.util;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.loot.LootTable;
-import net.minecraft.loot.context.LootContextParameters;
-import net.minecraft.loot.context.LootContextTypes;
-import net.minecraft.loot.context.LootWorldContext;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.dynamic.Codecs;
-
 import java.util.List;
 import java.util.function.Supplier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
 public record DisplayItemData(Either<List<ItemStack>, LootTable> items) {
 	public static final DisplayItemData EMPTY = new DisplayItemData(Either.left(List.of()));
 
 	public static final Codec<List<ItemStack>> ITEM_LIST_CODEC = Codec.withAlternative(
-			Codecs.nonEmptyList(ItemStack.CODEC.listOf()), ItemStack.CODEC, List::of
+			ExtraCodecs.nonEmptyList(ItemStack.CODEC.listOf()), ItemStack.CODEC, List::of
 	);
 
 	private static final Codec<Either<List<ItemStack>, LootTable>> ICON_CODEC = Codec.either(
-			ITEM_LIST_CODEC, LootTable.CODEC
+			ITEM_LIST_CODEC, LootTable.DIRECT_CODEC
 	);
 
 	public static final Codec<DisplayItemData> CODEC = ICON_CODEC.xmap(DisplayItemData::new, DisplayItemData::items);
 
 	public List<ItemStack> getItems(Entity entity) {
-		if (entity.getEntityWorld().isClient()) return List.of();
-		float luck = entity instanceof LivingEntity living ? (float) living.getAttributeValue(EntityAttributes.LUCK) : 0;
-		Supplier<LootWorldContext> ctx = () -> new LootWorldContext.Builder((ServerWorld) entity.getEntityWorld())
-				.add(LootContextParameters.ORIGIN, entity.getEntityPos())
-				.luck(luck)
-				.add(LootContextParameters.THIS_ENTITY, entity)
-				.build(LootContextTypes.CHEST);
+		if (entity.level().isClientSide()) return List.of();
+		float luck = entity instanceof LivingEntity living ? (float) living.getAttributeValue(Attributes.LUCK) : 0;
+		Supplier<LootParams> ctx = () -> new LootParams.Builder((ServerLevel) entity.level())
+				.withParameter(LootContextParams.ORIGIN, entity.position())
+				.withLuck(luck)
+				.withParameter(LootContextParams.THIS_ENTITY, entity)
+				.create(LootContextParamSets.CHEST);
 		var icon = items().map(
 				items -> items,
-				lootTable -> lootTable.generateLoot(ctx.get())
+				lootTable -> lootTable.getRandomItems(ctx.get())
 		);
 		if (icon.isEmpty()) {
 			icon = List.of(new ItemStack(Items.BARRIER));

@@ -2,11 +2,11 @@ package nu.metacraft.weather.rainseason;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 
-public class RainSeasonState extends PersistentState {
+public class RainSeasonState extends SavedData {
 
     private boolean isRainSeason;
     private double rainPercentage = 0.5;
@@ -18,12 +18,12 @@ public class RainSeasonState extends PersistentState {
             ).apply(instance, RainSeasonState::new)
     );
 
-    private static final PersistentStateType<RainSeasonState> TYPE = new PersistentStateType<>(
+    private static final SavedDataType<RainSeasonState> TYPE = new SavedDataType<>(
             "rain-season", RainSeasonState::new, CODEC, null
     );
 
-    public static RainSeasonState get(ServerWorld world) {
-        return world.getPersistentStateManager().getOrCreate(TYPE);
+    public static RainSeasonState get(ServerLevel world) {
+        return world.getDataStorage().computeIfAbsent(TYPE);
     }
 
     public RainSeasonState() {
@@ -44,11 +44,11 @@ public class RainSeasonState extends PersistentState {
 
     public void setIsRainSeason(boolean isRainSeason) {
         this.isRainSeason = isRainSeason;
-        this.markDirty();
+        this.setDirty();
     }
 
     public void setRainPercentage(double rainPercentage) {
         this.rainPercentage = rainPercentage;
-        this.markDirty();
+        this.setDirty();
     }
 }

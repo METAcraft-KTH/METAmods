@@ -5,9 +5,9 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.datafixers.util.Either;
-import net.minecraft.component.type.ProfileComponent;
-import net.minecraft.entity.player.SkinTextures;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.player.PlayerSkin;
+import net.minecraft.world.item.component.ResolvableProfile;
 import nu.metacraft.lib.METAcraftData;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,11 +25,11 @@ public class GameProfileHelper {
 	 * @return A game profile, or empty if not found.
 	 */
 	public static Optional<GameProfile> getForUUID(UUID uuid, MinecraftServer server) {
-		var player = server.getPlayerManager().getPlayer(uuid);
+		var player = server.getPlayerList().getPlayer(uuid);
 		if (player != null) {
 			return Optional.of(player.getGameProfile());
 		} else {
-			return server.getApiServices().nameToIdCache().getByUuid(uuid).map(
+			return server.services().nameToIdCache().get(uuid).map(
 					config -> new GameProfile(config.id(), config.name())
 			);
 		}
@@ -60,7 +60,7 @@ public class GameProfileHelper {
 
 		private PropertyMap propertyMap = PropertyMap.EMPTY;
 
-		private SkinTextures.SkinOverride skinOverride = SkinTextures.SkinOverride.EMPTY;
+		private PlayerSkin.Patch skinOverride = PlayerSkin.Patch.EMPTY;
 
 
 		private StaticProfileComponentBuilder() {}
@@ -121,7 +121,7 @@ public class GameProfileHelper {
 		 * @param skinOverride The skin override parameter.
 		 * @return The builder.
 		 */
-		public StaticProfileComponentBuilder withSkinOverride(SkinTextures.SkinOverride skinOverride) {
+		public StaticProfileComponentBuilder withSkinOverride(PlayerSkin.Patch skinOverride) {
 			this.skinOverride = skinOverride;
 			return this;
 		}
@@ -130,9 +130,9 @@ public class GameProfileHelper {
 		 * Builds the final profile component.
 		 * @return The profile component.
 		 */
-		public ProfileComponent build() {
-			return new ProfileComponent.Static(
-					Either.right(new ProfileComponent.Data(name, id, propertyMap)),
+		public ResolvableProfile build() {
+			return new ResolvableProfile.Static(
+					Either.right(new ResolvableProfile.Partial(name, id, propertyMap)),
 					skinOverride
 			);
 		}

@@ -1,15 +1,15 @@
 package nu.metacraft.lib.mixin;
 
-import net.minecraft.entity.LazyEntityReference;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.TntEntity;
+import net.minecraft.world.entity.EntityReference;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.PrimedTnt;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(TntEntity.class)
+@Mixin(PrimedTnt.class)
 public interface AccessorTntEntity {
 
 	@Accessor
-	void setCausingEntity(LazyEntityReference<LivingEntity> living);
+	void setOwner(EntityReference<LivingEntity> living);
 
 }

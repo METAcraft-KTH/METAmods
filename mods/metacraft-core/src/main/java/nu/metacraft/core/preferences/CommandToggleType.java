@@ -3,10 +3,9 @@ package nu.metacraft.core.preferences;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
-
 import java.util.function.Predicate;
+import net.minecraft.core.Holder;
+import net.minecraft.server.level.ServerPlayer;
 
 public class CommandToggleType implements PreferenceType<CommandToggleType.CommandData, Boolean, CommandToggleType.BoolPredicate> {
 
@@ -28,7 +27,7 @@ public class CommandToggleType implements PreferenceType<CommandToggleType.Comma
 
 	@Override
 	public void onClicked(
-			ServerPlayerEntity player, RegistryEntry<Preference<CommandData, Boolean, ?>> definition, PreferenceMenu menu
+			ServerPlayer player, Holder<Preference<CommandData, Boolean, ?>> definition, PreferenceMenu menu
 	) {
 		var data = PreferenceData.getForPlayer(player);
 
@@ -39,17 +38,17 @@ public class CommandToggleType implements PreferenceType<CommandToggleType.Comma
 		menu.refreshButtons();
 	}
 
-	private void runCommand(ServerPlayerEntity player, String command) {
-		player.getEntityWorld().getServer().getCommandManager().parseAndExecute(
-				player.getCommandSource().withSilent().withLevel(2),
+	private void runCommand(ServerPlayer player, String command) {
+		player.level().getServer().getCommands().performPrefixedCommand(
+				player.createCommandSourceStack().withSuppressedOutput().withPermission(2),
 				command
 		);
 	}
 
 	@Override
 	public void initDefaultValue(
-			ServerPlayerEntity player,
-			RegistryEntry<Preference<CommandToggleType.CommandData, Boolean, ?>> definition
+			ServerPlayer player,
+			Holder<Preference<CommandToggleType.CommandData, Boolean, ?>> definition
 	) {
 		runCommand(player, definition.value().definition().getCommand(definition.value().defaultValue()));
 	}

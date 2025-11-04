@@ -2,8 +2,8 @@ package nu.metacraft.lib.scheduler;
 
 import com.mojang.serialization.MapCodec;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.timer.Timer;
-import net.minecraft.world.timer.TimerCallback;
+import net.minecraft.world.level.timers.TimerCallback;
+import net.minecraft.world.level.timers.TimerQueue;
 
 /**
  * A simple TimerCallback which does not persist on reboot.
@@ -21,12 +21,12 @@ public class Throwaway implements TimerCallback<MinecraftServer> {
 	}
 
 	@Override
-	public void call(MinecraftServer server, Timer<MinecraftServer> events, long time) {
+	public void handle(MinecraftServer server, TimerQueue<MinecraftServer> events, long time) {
 		runnable.run();
 	}
 
 	@Override
-	public MapCodec<? extends TimerCallback<MinecraftServer>> getCodec() {
+	public MapCodec<? extends TimerCallback<MinecraftServer>> codec() {
 		return CODEC;
 	}
 }

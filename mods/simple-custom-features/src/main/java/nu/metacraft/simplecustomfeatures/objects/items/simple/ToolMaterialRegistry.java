@@ -5,13 +5,13 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.item.ToolMaterial;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryElementCodec;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.TagKey;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.RegistryFileCodec;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.ToolMaterial;
 import nu.metacraft.simplecustomfeatures.Features;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 import nu.metacraft.simplecustomfeatures.objects.ObjectRegistry;
@@ -19,22 +19,22 @@ import nu.metacraft.simplecustomfeatures.objects.ObjectType;
 
 public class ToolMaterialRegistry {
 
-	public static final RegistryKey<Registry<ToolMaterial>> KEY = RegistryKey.ofRegistry(Features.getID("tool_material"));
+	public static final ResourceKey<Registry<ToolMaterial>> KEY = ResourceKey.createRegistryKey(Features.getID("tool_material"));
 	public static final Registry<ToolMaterial> REGISTRY = FabricRegistryBuilder.createSimple(KEY).buildAndRegister();
 
 	private static final Codec<ToolMaterial> INLINE_CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					TagKey.codec(RegistryKeys.BLOCK).fieldOf("incorrect_blocks_for_drops").forGetter(ToolMaterial::incorrectBlocksForDrops),
+					TagKey.hashedCodec(Registries.BLOCK).fieldOf("incorrect_blocks_for_drops").forGetter(ToolMaterial::incorrectBlocksForDrops),
 					Codec.INT.fieldOf("durability").forGetter(ToolMaterial::durability),
 					Codec.FLOAT.fieldOf("speed").forGetter(ToolMaterial::speed),
 					Codec.FLOAT.fieldOf("attack_damage_bonus").forGetter(ToolMaterial::attackDamageBonus),
 					Codec.INT.fieldOf("enchantment_value").forGetter(ToolMaterial::enchantmentValue),
-					TagKey.codec(RegistryKeys.ITEM).fieldOf("repair_items").forGetter(ToolMaterial::repairItems)
+					TagKey.hashedCodec(Registries.ITEM).fieldOf("repair_items").forGetter(ToolMaterial::repairItems)
 			).apply(instance, ToolMaterial::new)
 	);
 
-	public static final Codec<RegistryEntry<ToolMaterial>> ENTRY_CODEC = RegistryElementCodec.of(KEY, INLINE_CODEC);
-	public static final Codec<ToolMaterial> CODEC = ENTRY_CODEC.xmap(RegistryEntry::value, REGISTRY::getEntry);
+	public static final Codec<Holder<ToolMaterial>> ENTRY_CODEC = RegistryFileCodec.create(KEY, INLINE_CODEC);
+	public static final Codec<ToolMaterial> CODEC = ENTRY_CODEC.xmap(Holder::value, REGISTRY::wrapAsHolder);
 
 
 	public static void init() {
@@ -54,9 +54,9 @@ public class ToolMaterialRegistry {
 				).apply(instance, MaterialObject::new)
 		);
 
-		private final RegistryEntry<ToolMaterial> material;
+		private final Holder<ToolMaterial> material;
 
-		public MaterialObject(RegistryEntry<ToolMaterial> material) {
+		public MaterialObject(Holder<ToolMaterial> material) {
 			this.material = material;
 		}
 
@@ -66,7 +66,7 @@ public class ToolMaterialRegistry {
 		}
 
 		@Override
-		public DataResult<ToolMaterial> createObject(RegistryKey<ToolMaterial> id) {
+		public DataResult<ToolMaterial> createObject(ResourceKey<ToolMaterial> id) {
 			return DataResult.success(material.value());
 		}
 	}

@@ -1,16 +1,16 @@
 package nu.metacraft.cutscenes.mixin;
 
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.TeleportTarget;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.portal.TeleportTransition;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(TeleportTarget.class)
+@Mixin(TeleportTransition.class)
 public interface AccessorTeleportTarget {
 
 	@Accessor
 	@Mutable
-	void setWorld(ServerWorld world);
+	void setNewLevel(ServerLevel world);
 
 }

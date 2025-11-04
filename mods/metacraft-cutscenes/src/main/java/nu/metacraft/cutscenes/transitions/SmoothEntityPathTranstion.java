@@ -1,12 +1,12 @@
 package nu.metacraft.cutscenes.transitions;
 
+import com.mojang.math.Transformation;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.util.math.AffineTransformation;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
@@ -53,36 +53,36 @@ public class SmoothEntityPathTranstion implements Transition {
 
 	private void setLinearInterpolationDuration(Entity display, int duration, boolean interpolating) {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:SmoothEntityPathTransition#setLinearInterpolationDuration", Cutscenes.LOGGER)) {
-			var writeView = NbtWriteView.create(logging, display.getRegistryManager());
-			display.writeData(writeView);
-			var data = writeView.getNbt();
-			data.putInt(DisplayEntity.TELEPORT_DURATION_KEY, duration);
-			data.putInt(DisplayEntity.INTERPOLATION_DURATION_KEY, duration);
+			var writeView = TagValueOutput.createWithContext(logging, display.registryAccess());
+			display.saveWithoutId(writeView);
+			var data = writeView.buildResult();
+			data.putInt(Display.TAG_POS_ROT_INTERPOLATION_DURATION, duration);
+			data.putInt(Display.TAG_TRANSFORMATION_INTERPOLATION_DURATION, duration);
 			if (interpolating) {
-				data.putInt(DisplayEntity.START_INTERPOLATION_KEY, 0);
+				data.putInt(Display.TAG_TRANSFORMATION_START_INTERPOLATION, 0);
 			}
-			var readView = NbtReadView.create(logging, display.getRegistryManager(), data);
-			display.readData(readView);
+			var readView = TagValueInput.create(logging, display.registryAccess(), data);
+			display.load(readView);
 		}
 	}
 
 	private void setData(Entity display, SmoothEntityPathConfig.DisplayEntityTarget target, boolean interpolate) {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:SmoothEntityPathTransition#setData", Cutscenes.LOGGER)) {
-			var writeView = NbtWriteView.create(logging, display.getRegistryManager());
-			display.writeData(writeView);
-			var data = writeView.getNbt();
-			data.put(DisplayEntity.TRANSFORMATION_NBT_KEY, AffineTransformation.ANY_CODEC, target.transformation());
-			data.putFloat(DisplayEntity.SHADOW_RADIUS_NBT_KEY, target.shadowRadius());
-			data.putFloat(DisplayEntity.SHADOW_STRENGTH_NBT_KEY, target.shadowStrength());
+			var writeView = TagValueOutput.createWithContext(logging, display.registryAccess());
+			display.saveWithoutId(writeView);
+			var data = writeView.buildResult();
+			data.store(Display.TAG_TRANSFORMATION, Transformation.EXTENDED_CODEC, target.transformation());
+			data.putFloat(Display.TAG_SHADOW_RADIUS, target.shadowRadius());
+			data.putFloat(Display.TAG_SHADOW_STRENGTH, target.shadowStrength());
 			data.putInt("background", target.background());
 			data.putByte("text_opacity", target.textOpacity());
 			if (interpolate) {
-				data.putInt(DisplayEntity.START_INTERPOLATION_KEY, 0);
+				data.putInt(Display.TAG_TRANSFORMATION_START_INTERPOLATION, 0);
 			}
-			var readView = NbtReadView.create(logging, display.getRegistryManager(), data);
-			display.readData(readView);
+			var readView = TagValueInput.create(logging, display.registryAccess(), data);
+			display.load(readView);
 		}
-		display.updatePositionAndAngles(
+		display.absSnapTo(
 				target.target().pos().x,
 				target.target().pos().y,
 				target.target().pos().z,

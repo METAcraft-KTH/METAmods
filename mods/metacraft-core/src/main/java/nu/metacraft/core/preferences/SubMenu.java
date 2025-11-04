@@ -2,11 +2,10 @@ package nu.metacraft.core.preferences;
 
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.SlotGuiInterface;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-
 import java.util.List;
 import java.util.function.Function;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 
 public class SubMenu extends SelectorMenu {
 
@@ -14,9 +13,9 @@ public class SubMenu extends SelectorMenu {
 	private final Function<SubMenu, List<GuiElementInterface>> buttonCreator;
 
 	public SubMenu(
-			SlotGuiInterface parentMenu, ServerPlayerEntity player,
+			SlotGuiInterface parentMenu, ServerPlayer player,
 			Function<SubMenu, List<GuiElementInterface>> buttonCreator, int buttonCount,
-			Text menuTitle
+			Component menuTitle
 	) {
 		super(buttonCount, player);
 		this.parentMenu = parentMenu;

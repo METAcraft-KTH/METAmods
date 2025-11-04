@@ -1,22 +1,22 @@
 package nu.metacraft.core.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
 import nu.metacraft.core.preferences.PreferenceMenu;
 
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.literal;
 
 public class PrefCommand {
 
 	public static void register(
-			CommandDispatcher<ServerCommandSource> dispatcher,
-			CommandRegistryAccess registryAccess
+			CommandDispatcher<CommandSourceStack> dispatcher,
+			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
 				literal(PreferenceMenu.COMMAND).executes(
 						ctx -> {
-							new PreferenceMenu(ctx.getSource().getPlayerOrThrow()).open();
+							new PreferenceMenu(ctx.getSource().getPlayerOrException()).open();
 							return 1;
 						}
 				)

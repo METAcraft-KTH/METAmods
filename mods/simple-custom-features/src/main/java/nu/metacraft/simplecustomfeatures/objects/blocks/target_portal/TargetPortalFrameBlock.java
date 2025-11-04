@@ -2,24 +2,24 @@ package nu.metacraft.simplecustomfeatures.objects.blocks.target_portal;
 
 import com.google.common.base.Predicates;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.EndPortalFrameBlock;
-import net.minecraft.block.pattern.BlockPattern;
-import net.minecraft.block.pattern.BlockPatternBuilder;
-import net.minecraft.block.pattern.CachedBlockPosition;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.predicate.block.BlockStatePredicate;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldEvents;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.EndPortalFrameBlock;
+import net.minecraft.world.level.block.LevelEvent;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.pattern.BlockInWorld;
+import net.minecraft.world.level.block.state.pattern.BlockPattern;
+import net.minecraft.world.level.block.state.pattern.BlockPatternBuilder;
+import net.minecraft.world.level.block.state.predicate.BlockStatePredicate;
+import net.minecraft.world.phys.BlockHitResult;
 import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.simplecustomfeatures.Features;
 import nu.metacraft.simplecustomfeatures.compat.PortalBlockerCompat;
@@ -30,83 +30,83 @@ public class TargetPortalFrameBlock extends EndPortalFrameBlock implements Polym
 	private final BlockPattern pattern = BlockPatternBuilder.start().aisle(
 			"?vvv?", ">???<", ">???<", ">???<", "?^^^?"
 	).where(
-			'?', CachedBlockPosition.matchesBlockState(BlockStatePredicate.ANY)
+			'?', BlockInWorld.hasState(BlockStatePredicate.ANY)
 	).where(
-			'^', CachedBlockPosition.matchesBlockState(
-					BlockStatePredicate.forBlock(this).with(
-							EYE, Predicates.equalTo(true)
-					).with(FACING, Predicates.equalTo(Direction.SOUTH))
+			'^', BlockInWorld.hasState(
+					BlockStatePredicate.forBlock(this).where(
+							HAS_EYE, Predicates.equalTo(true)
+					).where(FACING, Predicates.equalTo(Direction.SOUTH))
 			)
 	).where(
-			'>', CachedBlockPosition.matchesBlockState(
-					BlockStatePredicate.forBlock(this).with(
-							EYE, Predicates.equalTo(true)
-					).with(FACING, Predicates.equalTo(Direction.WEST))
+			'>', BlockInWorld.hasState(
+					BlockStatePredicate.forBlock(this).where(
+							HAS_EYE, Predicates.equalTo(true)
+					).where(FACING, Predicates.equalTo(Direction.WEST))
 			)
 	).where(
-			'v', CachedBlockPosition.matchesBlockState(
-					BlockStatePredicate.forBlock(this).with(
-							EYE, Predicates.equalTo(true)
-					).with(FACING, Predicates.equalTo(Direction.NORTH))
+			'v', BlockInWorld.hasState(
+					BlockStatePredicate.forBlock(this).where(
+							HAS_EYE, Predicates.equalTo(true)
+					).where(FACING, Predicates.equalTo(Direction.NORTH))
 			)
 	).where(
-			'<', CachedBlockPosition.matchesBlockState(
-					BlockStatePredicate.forBlock(this).with(
-							EYE, Predicates.equalTo(true)
-					).with(FACING, Predicates.equalTo(Direction.EAST))
+			'<', BlockInWorld.hasState(
+					BlockStatePredicate.forBlock(this).where(
+							HAS_EYE, Predicates.equalTo(true)
+					).where(FACING, Predicates.equalTo(Direction.EAST))
 			)
 	).build();
 
 	private final TargetPortalFrameObject frame;
 
-	public TargetPortalFrameBlock(Settings settings, TargetPortalFrameObject frame) {
+	public TargetPortalFrameBlock(Properties settings, TargetPortalFrameObject frame) {
 		super(settings);
 		this.frame = frame;
 	}
 
 	@Override
 	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
-		return Blocks.END_PORTAL_FRAME.getDefaultState().with(FACING, state.get(FACING)).with(EYE, state.get(EYE));
+		return Blocks.END_PORTAL_FRAME.defaultBlockState().setValue(FACING, state.getValue(FACING)).setValue(HAS_EYE, state.getValue(HAS_EYE));
 	}
 
 	@Override
-	protected ActionResult onUseWithItem(
-			ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit
+	protected InteractionResult useItemOn(
+			ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit
 	) {
-		if (!state.get(EYE) && frame.getActivator().test(stack)) {
-			if (IsLoaded.PORTAL_BLOCKER.isLoaded() && !world.isClient()) {
-				var reference = frame.getPortalReference();
+		if (!state.getValue(HAS_EYE) && frame.activator().test(stack)) {
+			if (IsLoaded.PORTAL_BLOCKER.isLoaded() && !world.isClientSide()) {
+				var reference = frame.portalReference();
 				if (reference.isPresent()) {
 					if (PortalBlockerCompat.isActivationBlocked(
-							reference.get(), world.getServer(), world.getRegistryKey(), pos
+							reference.get(), world.getServer(), world.dimension(), pos
 					)) {
-						return ActionResult.FAIL;
+						return InteractionResult.FAIL;
 					}
 				} else {
 					Features.LOGGER.warn("Portal frame " + this + " does not have a valid portal reference, and therefore cannot be blocked by portal blocker!");
 				}
 			}
-			BlockState activated = state.with(EndPortalFrameBlock.EYE, true);
-			Block.pushEntitiesUpBeforeBlockChange(state, activated, world, pos);
-			world.setBlockState(pos, activated, Block.NOTIFY_LISTENERS);
-			world.updateComparators(pos, Blocks.END_PORTAL_FRAME);
-			if (stack.isDamageable()) {
-				stack.damage(1, player, hand == Hand.OFF_HAND ? EquipmentSlot.OFFHAND : EquipmentSlot.MAINHAND);
+			BlockState activated = state.setValue(EndPortalFrameBlock.HAS_EYE, true);
+			Block.pushEntitiesUp(state, activated, world, pos);
+			world.setBlock(pos, activated, Block.UPDATE_CLIENTS);
+			world.updateNeighbourForOutputSignal(pos, Blocks.END_PORTAL_FRAME);
+			if (stack.isDamageableItem()) {
+				stack.hurtAndBreak(1, player, hand == InteractionHand.OFF_HAND ? EquipmentSlot.OFFHAND : EquipmentSlot.MAINHAND);
 			} else {
-				stack.decrementUnlessCreative(1, player);
+				stack.consume(1, player);
 			}
-			world.syncWorldEvent(WorldEvents.END_PORTAL_FRAME_FILLED, pos, 0);
+			world.levelEvent(LevelEvent.END_PORTAL_FRAME_FILL, pos, 0);
 
-			var portalResult = pattern.searchAround(world, pos);
+			var portalResult = pattern.find(world, pos);
 			if (portalResult != null) {
-				var bottom = portalResult.getFrontTopLeft().add(-3, 0, -3);
-				for (var portalPos : BlockPos.iterate(bottom, new BlockPos.Mutable().set(bottom).move(2, 0, 2))) {
-					world.setBlockState(portalPos, frame.getPortalBlock().get(world.getRandom(), portalPos));
+				var bottom = portalResult.getFrontTopLeft().offset(-3, 0, -3);
+				for (var portalPos : BlockPos.betweenClosed(bottom, new BlockPos.MutableBlockPos().set(bottom).move(2, 0, 2))) {
+					world.setBlockAndUpdate(portalPos, frame.portalBlock().getState(world.getRandom(), portalPos));
 				}
-				world.syncGlobalEvent(WorldEvents.END_PORTAL_OPENED, bottom.add(1, 0, 1), 0);
+				world.globalLevelEvent(LevelEvent.SOUND_END_PORTAL_SPAWN, bottom.offset(1, 0, 1), 0);
 			}
-			return ActionResult.SUCCESS_SERVER;
+			return InteractionResult.SUCCESS_SERVER;
 		}
-		return ActionResult.PASS_TO_DEFAULT_BLOCK_ACTION;
+		return InteractionResult.TRY_WITH_EMPTY_HAND;
 	}
 }

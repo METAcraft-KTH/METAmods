@@ -3,10 +3,6 @@ package nu.metacraft.better_pets.mixin;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.TeleportTarget;
 import nu.metacraft.better_pets.BetterPetsTeleportHelper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,6 +10,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.portal.TeleportTransition;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
@@ -23,8 +23,8 @@ public abstract class MixinEntity {
 			at = @At("HEAD")
 	)
 	public void collectPets(
-			ServerWorld from, ServerWorld _to,
-			TeleportTarget teleportTarget, CallbackInfoReturnable<Entity> cir,
+			ServerLevel from, ServerLevel _to,
+			TeleportTransition teleportTarget, CallbackInfoReturnable<Entity> cir,
 			@Share("leashed") LocalRef<List<? extends Entity>> leashed,
 			@Share("pets") LocalRef<List<? extends LivingEntity>> pets
 	) {
@@ -36,7 +36,7 @@ public abstract class MixinEntity {
 			at = @At("HEAD")
 	)
 	public void collectPets(
-			ServerWorld world, TeleportTarget teleportTarget,
+			ServerLevel world, TeleportTransition teleportTarget,
 			CallbackInfoReturnable<Entity> cir,
 			@Share("leashed") LocalRef<List<? extends Entity>> leashed,
 			@Share("pets") LocalRef<List<? extends LivingEntity>> pets
@@ -48,12 +48,12 @@ public abstract class MixinEntity {
 			method = "teleportCrossDimension",
 			at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/world/TeleportTarget$PostDimensionTransition;onTransition(Lnet/minecraft/entity/Entity;)V"
+				target = "Lnet/minecraft/world/level/portal/TeleportTransition$PostTeleportTransition;onTransition(Lnet/minecraft/world/entity/Entity;)V"
 			)
 	)
 	public void teleportPets(
-			ServerWorld from, ServerWorld _to,
-			TeleportTarget teleportTarget, CallbackInfoReturnable<Entity> cir,
+			ServerLevel from, ServerLevel _to,
+			TeleportTransition teleportTarget, CallbackInfoReturnable<Entity> cir,
 			@Local Entity entity, //The new entity created at the destination teleport.
 			@Share("leashed") LocalRef<List<? extends Entity>> leashed,
 			@Share("pets") LocalRef<List<? extends LivingEntity>> pets
@@ -65,11 +65,11 @@ public abstract class MixinEntity {
 			method = "teleportSameDimension",
 			at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/world/TeleportTarget$PostDimensionTransition;onTransition(Lnet/minecraft/entity/Entity;)V"
+				target = "Lnet/minecraft/world/level/portal/TeleportTransition$PostTeleportTransition;onTransition(Lnet/minecraft/world/entity/Entity;)V"
 			)
 	)
 	public void teleportPets(
-			ServerWorld world, TeleportTarget teleportTarget,
+			ServerLevel world, TeleportTransition teleportTarget,
 			CallbackInfoReturnable<Entity> cir,
 			@Share("leashed") LocalRef<List<? extends Entity>> leashed,
 			@Share("pets") LocalRef<List<? extends LivingEntity>> pets

@@ -1,11 +1,11 @@
 package nu.metacraft.core.entity.ai;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.entity.ai.brain.MemoryModuleType;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Unit;
-import net.minecraft.util.math.GlobalPos;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import nu.metacraft.core.METAcraftCore;
 
 import java.util.Optional;
@@ -22,12 +22,12 @@ public class METAcraftMemoryModules {
 	}
 
 	private static <U> MemoryModuleType<U> register(String id) {
-		return Registry.register(Registries.MEMORY_MODULE_TYPE, METAcraftCore.getID(id), new MemoryModuleType<>(Optional.empty()));
+		return Registry.register(BuiltInRegistries.MEMORY_MODULE_TYPE, METAcraftCore.getID(id), new MemoryModuleType<>(Optional.empty()));
 	}
 
 	private static <U> MemoryModuleType<U> register(String id, Codec<U> codec) {
 		return Registry.register(
-				Registries.MEMORY_MODULE_TYPE, METAcraftCore.getID(id), new MemoryModuleType<U>(Optional.of(codec))
+				BuiltInRegistries.MEMORY_MODULE_TYPE, METAcraftCore.getID(id), new MemoryModuleType<U>(Optional.of(codec))
 		);
 	}
 

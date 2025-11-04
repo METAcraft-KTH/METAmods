@@ -5,13 +5,13 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
-import net.minecraft.command.argument.NbtCompoundArgumentType;
-import net.minecraft.entity.boss.CommandBossBar;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.CompoundTagArgument;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.server.command.BossBarCommand;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.bossevents.CustomBossEvent;
+import net.minecraft.server.commands.BossBarCommands;
 import nu.metacraft.core.music.PlayerMusic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -20,14 +20,14 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Slice;
 import nu.metacraft.core.extensions.CommandBossBarExtension;
 
-@Mixin(BossBarCommand.class)
+@Mixin(BossBarCommands.class)
 public abstract class MixinBossBarCommand {
 
 	@Unique
-	private static final DynamicCommandExceptionType PASSTHROUGH = new DynamicCommandExceptionType(m -> Text.literal(m.toString()));
+	private static final DynamicCommandExceptionType PASSTHROUGH = new DynamicCommandExceptionType(m -> Component.literal(m.toString()));
 
 	@Shadow
-	public static CommandBossBar getBossBar(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+	public static CustomBossEvent getBossBar(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		return null;
 	}
 
@@ -46,17 +46,17 @@ public abstract class MixinBossBarCommand {
 					ordinal = 0
 			)
 	)
-	private static ArgumentBuilder<ServerCommandSource, ?> register(
-			ArgumentBuilder<ServerCommandSource, ?> argumentBuilder
+	private static ArgumentBuilder<CommandSourceStack, ?> register(
+			ArgumentBuilder<CommandSourceStack, ?> argumentBuilder
 	) {
 		return argumentBuilder.then(
-				CommandManager.literal("metacraft.music").then(
-						CommandManager.argument("metacraft:music", NbtCompoundArgumentType.nbtCompound()).executes(
+				Commands.literal("metacraft.music").then(
+						Commands.argument("metacraft:music", CompoundTagArgument.compoundTag()).executes(
 								ctx -> {
 									var bossBar = (CommandBossBarExtension) getBossBar(ctx);
-									var musicData = NbtCompoundArgumentType.getNbtCompound(ctx, "metacraft:music");
+									var musicData = CompoundTagArgument.getCompoundTag(ctx, "metacraft:music");
 									var music = PlayerMusic.EASY_CODEC.parse(
-											ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE),
+											ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE),
 											musicData
 									).getOrThrow(PASSTHROUGH::create);
 									bossBar.metacraft_core$getMusicHandler().setMusic(music);
@@ -64,7 +64,7 @@ public abstract class MixinBossBarCommand {
 								}
 						)
 				).then(
-						CommandManager.literal("none").executes(
+						Commands.literal("none").executes(
 								ctx -> {
 									var bossBar = (CommandBossBarExtension) getBossBar(ctx);
 									bossBar.metacraft_core$getMusicHandler().setMusic(null);

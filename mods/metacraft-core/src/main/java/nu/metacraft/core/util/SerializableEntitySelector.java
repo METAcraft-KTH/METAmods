@@ -4,8 +4,8 @@ import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import net.minecraft.command.EntitySelector;
-import net.minecraft.command.EntitySelectorReader;
+import net.minecraft.commands.arguments.selector.EntitySelector;
+import net.minecraft.commands.arguments.selector.EntitySelectorParser;
 
 public class SerializableEntitySelector {
 
@@ -18,7 +18,7 @@ public class SerializableEntitySelector {
 
 	protected SerializableEntitySelector(String selector) throws CommandSyntaxException {
 		this.selectorString = selector;
-		this.selector = new EntitySelectorReader(new StringReader(selectorString), true).read();
+		this.selector = new EntitySelectorParser(new StringReader(selectorString), true).parse();
 	}
 
 	public static DataResult<SerializableEntitySelector> create(String selector) {

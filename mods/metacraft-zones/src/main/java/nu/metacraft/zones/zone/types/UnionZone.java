@@ -1,12 +1,12 @@
 package nu.metacraft.zones.zone.types;
 
-import net.minecraft.util.math.BlockPos;
 import org.apache.commons.lang3.stream.Streams;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import net.minecraft.core.BlockPos;
 
 public class UnionZone extends CombinedZone {
 

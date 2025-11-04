@@ -3,7 +3,7 @@ package nu.metacraft.simplecustomfeatures;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.lib.compat.IsLoaded;
@@ -44,8 +44,8 @@ public class Features implements ModInitializer, ClientModInitializer, Dedicated
 		FeaturesConfig.getConfig(); //Init config, to allow datapacks to access all non-registry-dependent items.
 	}
 
-	public static Identifier getID(String id) {
-		return Identifier.of(MODID, id);
+	public static ResourceLocation getID(String id) {
+		return ResourceLocation.fromNamespaceAndPath(MODID, id);
 	}
 
 }

@@ -6,14 +6,6 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.simplecustomfeatures.ObjectContainer;
 import nu.metacraft.simplecustomfeatures.compat.PortalBlockerCompat;
@@ -27,30 +19,38 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 
 public class TargetPortalObject implements BaseBlock {
 
 	public static final MapCodec<TargetPortalObject> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Codec.unboundedMap(World.CODEC, DimensionTarget.CODEC).fieldOf("dimensions").forGetter(p -> p.dimensions),
+					Codec.unboundedMap(Level.RESOURCE_KEY_CODEC, DimensionTarget.CODEC).fieldOf("dimensions").forGetter(p -> p.dimensions),
 					PortalTypeData.CODEC.forGetter(t -> t.portalType)
 			).apply(instance, TargetPortalObject::new)
 	);
 
-	private final Map<RegistryKey<World>, DimensionTarget> dimensions;
+	private final Map<ResourceKey<Level>, DimensionTarget> dimensions;
 	private final PortalTypeData portalType;
 
 	private TargetPortalBlock block;
 
 	public TargetPortalObject(
-			Map<RegistryKey<World>, DimensionTarget> dimensions,
+			Map<ResourceKey<Level>, DimensionTarget> dimensions,
 			PortalTypeData portalType
 	) {
 		this.dimensions = dimensions;
 		this.portalType = portalType;
 	}
 
-	public DimensionTarget getTarget(RegistryKey<World> src) {
+	public DimensionTarget getTarget(ResourceKey<Level> src) {
 		return dimensions.get(src);
 	}
 
@@ -60,15 +60,15 @@ public class TargetPortalObject implements BaseBlock {
 	}
 
 	@Override
-	public DataResult<Block> createObject(RegistryKey<Block> id) {
+	public DataResult<Block> createObject(ResourceKey<Block> id) {
 		return DataResult.success(
-				block = new TargetPortalBlock(AbstractBlock.Settings.copy(Blocks.END_PORTAL).registryKey(id), this)
+				block = new TargetPortalBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.END_PORTAL).setId(id), this)
 		);
 	}
 
 	@Override
-	public Multimap<Identifier, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
-		Multimap<Identifier, BaseObject<?>> map = Multimaps.forMap(Map.of());
+	public Multimap<ResourceLocation, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
+		Multimap<ResourceLocation, BaseObject<?>> map = Multimaps.forMap(Map.of());
 		if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
 			map = PortalBlockerCompat.addPortalType(map, container.getID(), block, portalType);
 		}
@@ -85,12 +85,12 @@ public class TargetPortalObject implements BaseBlock {
 	}
 
 	public record DimensionTarget(
-			RegistryKey<World> targetDim, Optional<BlockPos> targetPos, Optional<Float> targetAngle, boolean spawnObsidianPlatform,
+			ResourceKey<Level> targetDim, Optional<BlockPos> targetPos, Optional<Float> targetAngle, boolean spawnObsidianPlatform,
 			boolean usePlayerSpawn
 	) {
 		public static final Codec<DimensionTarget> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						World.CODEC.fieldOf("target_dim").forGetter(DimensionTarget::targetDim),
+						Level.RESOURCE_KEY_CODEC.fieldOf("target_dim").forGetter(DimensionTarget::targetDim),
 						BlockPos.CODEC.optionalFieldOf("target_pos").forGetter(DimensionTarget::targetPos),
 						Codec.floatRange(-180, 180).optionalFieldOf("target_angle").forGetter(DimensionTarget::targetAngle),
 						Codec.BOOL.fieldOf("spawn_obsidian_platform").forGetter(DimensionTarget::spawnObsidianPlatform),

@@ -2,17 +2,21 @@ package nu.metacraft.faster_minecarts.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.vehicle.*;
-import net.minecraft.item.ItemStack;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.MinecartBehavior;
+import net.minecraft.world.entity.vehicle.NewMinecartBehavior;
+import net.minecraft.world.entity.vehicle.OldMinecartBehavior;
+import net.minecraft.world.entity.vehicle.VehicleEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -28,13 +32,13 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.Supplier;
 
-@Mixin(AbstractMinecartEntity.class)
+@Mixin(AbstractMinecart.class)
 public abstract class MixinAbstractMinecartEntity extends VehicleEntity implements MinecartExtensions {
 
-	@Shadow protected abstract Vec3d applySlowdown(Vec3d velocity);
+	@Shadow protected abstract Vec3 applyNaturalSlowdown(Vec3 velocity);
 
 	@Shadow
-	public static boolean areMinecartImprovementsEnabled(World world) {
+	public static boolean useExperimentalMovement(Level world) {
 		throw new IllegalStateException("Mixin Error");
 	}
 
@@ -47,7 +51,7 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 	private boolean yawFixed = false;
 
 	@Shadow @Final @Mutable
-	private MinecartController controller;
+	private MinecartBehavior behavior;
 
 	@Unique
 	private Optional<ItemStack> minecartItem = Optional.empty();
@@ -55,16 +59,16 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 	@Unique
 	private BlockPos currentRailPosOverride;
 
-	public MixinAbstractMinecartEntity(EntityType<?> entityType, World world) {
+	public MixinAbstractMinecartEntity(EntityType<?> entityType, Level world) {
 		super(entityType, world);
 	}
 
-	@Inject(method = "writeCustomData", at = @At("RETURN"))
-	public void toNBT(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
+	public void toNBT(ValueOutput nbt, CallbackInfo ci) {
 		minecartItem.ifPresent(
 				item -> {
 					if (!item.isEmpty()) {
-						nbt.put(FasterMinecarts.MINECART_ITEM, ItemStack.CODEC, item);
+						nbt.store(FasterMinecarts.MINECART_ITEM, ItemStack.CODEC, item);
 					}
 				}
 		);
@@ -73,46 +77,46 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 
 	@Unique
 	private void updateTag() {
-		if (FasterMinecartsHelper.hasSuperSpeed((AbstractMinecartEntity) (Object) this)) {
-			getCommandTags().add(MINECART_TAG);
+		if (FasterMinecartsHelper.hasSuperSpeed((AbstractMinecart) (Object) this)) {
+			getTags().add(MINECART_TAG);
 		} else {
-			getCommandTags().remove(MINECART_TAG);
+			getTags().remove(MINECART_TAG);
 		}
 	}
 
-	@Inject(method = "readCustomData", at = @At("RETURN"))
-	public void fromNBT(ReadView nbt, CallbackInfo ci) {
+	@Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
+	public void fromNBT(ValueInput nbt, CallbackInfo ci) {
 		minecartItem = nbt.read(FasterMinecarts.MINECART_ITEM, ItemStack.CODEC);
 		updateTag();
 		updateController();
 	}
 
 	@Unique
-	private void trySetController(Class<? extends MinecartController> clazz, Supplier<MinecartController> controllerCreator) {
-		if (!clazz.isInstance(controller)) {
-			this.controller = controllerCreator.get();
+	private void trySetController(Class<? extends MinecartBehavior> clazz, Supplier<MinecartBehavior> controllerCreator) {
+		if (!clazz.isInstance(behavior)) {
+			this.behavior = controllerCreator.get();
 		}
 	}
 
 	@Unique
 	private void updateController() {
 		if (FasterMinecartsHelper.areMinecartExperimentsEnabledForCart(
-				areMinecartImprovementsEnabled(getEntityWorld()),(AbstractMinecartEntity) (Object) this
+				useExperimentalMovement(level()),(AbstractMinecart) (Object) this
 		)) {
 			trySetController(
-					ExperimentalMinecartController.class,
-					() -> new ExperimentalMinecartController((AbstractMinecartEntity) (Object) this)
+					NewMinecartBehavior.class,
+					() -> new NewMinecartBehavior((AbstractMinecart) (Object) this)
 			);
 		} else {
 			trySetController(
-					DefaultMinecartController.class,
-					() -> new DefaultMinecartController((AbstractMinecartEntity) (Object) this)
+					OldMinecartBehavior.class,
+					() -> new OldMinecartBehavior((AbstractMinecart) (Object) this)
 			);
 		}
 	}
 
 	@Inject(
-		method = "getRailOrMinecartPos",
+		method = "getCurrentBlockPosOrRailBelow",
 		at = @At("HEAD"),
 		cancellable = true
 	)
@@ -157,12 +161,12 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 	}
 
 	@Override
-	public void fasterMinecarts$applySlowdown(Vec3d velocity) {
-		this.applySlowdown(velocity);
+	public void fasterMinecarts$applySlowdown(Vec3 velocity) {
+		this.applyNaturalSlowdown(velocity);
 	}
 
 	@ModifyExpressionValue(
-		method = "applySlowdown",
+		method = "applyNaturalSlowdown",
 		at = @At(
 				value = "CONSTANT",
 				args = "doubleValue=0.949999988079071"
@@ -177,33 +181,33 @@ public abstract class MixinAbstractMinecartEntity extends VehicleEntity implemen
 
 	@ModifyExpressionValue(
 		method = {
-			"getRailOrMinecartPos", "move", "tickBlockCollision", "pushAwayFromMinecart"
+			"getCurrentBlockPosOrRailBelow", "move", "applyEffectsFromBlocks", "pushOtherMinecart"
 		},
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/entity/vehicle/AbstractMinecartEntity;areMinecartImprovementsEnabled(Lnet/minecraft/world/World;)Z"
+			target = "Lnet/minecraft/world/entity/vehicle/AbstractMinecart;useExperimentalMovement(Lnet/minecraft/world/level/Level;)Z"
 		)
 	)
 	public boolean checkIfCart(boolean original) {
-		return FasterMinecartsHelper.areMinecartExperimentsEnabledForCart(original, (AbstractMinecartEntity) (Object) this);
+		return FasterMinecartsHelper.areMinecartExperimentsEnabledForCart(original, (AbstractMinecart) (Object) this);
 	}
 
 	@Inject(
-		method = "create",
+		method = "createMinecart",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/entity/vehicle/AbstractMinecartEntity;getController()Lnet/minecraft/entity/vehicle/MinecartController;"
+			target = "Lnet/minecraft/world/entity/vehicle/AbstractMinecart;getBehavior()Lnet/minecraft/world/entity/vehicle/MinecartBehavior;"
 		)
 	)
-	private static <T extends AbstractMinecartEntity> void create(
-			World world, double x, double y, double z, EntityType<T> type,
-			SpawnReason reason, ItemStack stack, PlayerEntity player, CallbackInfoReturnable<T> cir,
-			@Local AbstractMinecartEntity minecart
+	private static <T extends AbstractMinecart> void create(
+			Level world, double x, double y, double z, EntityType<T> type,
+			EntitySpawnReason reason, ItemStack stack, Player player, CallbackInfoReturnable<T> cir,
+			@Local AbstractMinecart minecart
 	) {
 		if (!stack.isEmpty()) {
 			((MinecartExtensions) minecart).fasterMinecarts$setMinecartItem(Optional.of(stack.copyWithCount(1)));
 		}
-		if (player != null && Math.abs(player.getYaw()) > 90) {
+		if (player != null && Math.abs(player.getYRot()) > 90) {
 			((MinecartExtensions) minecart).fasterMinecarts$setInitialZ(Direction.AxisDirection.NEGATIVE);
 		}
 	}

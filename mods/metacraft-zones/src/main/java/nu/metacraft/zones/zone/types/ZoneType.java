@@ -1,7 +1,7 @@
 package nu.metacraft.zones.zone.types;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 import nu.metacraft.zones.zone.Zone;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
@@ -10,7 +10,7 @@ public abstract class ZoneType {
 	/**
 	 * WARNING, this codec will require RegistryOps!
 	 */
-	public static Codec<ZoneType> REGISTRY_CODEC = ZoneRegistry.REGISTRY.getCodec().dispatch(
+	public static Codec<ZoneType> REGISTRY_CODEC = ZoneRegistry.REGISTRY.byNameCodec().dispatch(
 			ZoneType::getType, ZoneRegistry.ZoneTypeType::codec
 	);
 

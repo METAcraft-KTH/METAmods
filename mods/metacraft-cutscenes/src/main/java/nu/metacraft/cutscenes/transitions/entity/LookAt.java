@@ -3,9 +3,6 @@ package nu.metacraft.cutscenes.transitions.entity;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.command.argument.EntityAnchorArgumentType;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.util.dynamic.Codecs;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.core.entity_ref.EntityRef;
@@ -20,6 +17,9 @@ import nu.metacraft.cutscenes.transitions.config.TransitionConfig;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfigType;
 
 import java.util.Optional;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.entity.Mob;
 
 public class LookAt implements Transition, TransitionConfig {
 
@@ -27,8 +27,8 @@ public class LookAt implements Transition, TransitionConfig {
 			instance -> instance.group(
 					EntityRefRegistry.CODEC.fieldOf("entity").forGetter(t -> t.entity),
 					PositionRefRegistry.CODEC.fieldOf("target").forGetter(t -> t.target),
-					Codecs.POSITIVE_FLOAT.optionalFieldOf("max_yaw_change").forGetter(t -> t.maxYawChange),
-					Codecs.POSITIVE_FLOAT.optionalFieldOf("max_pitch_change").forGetter(t -> t.maxPitchChange),
+					ExtraCodecs.POSITIVE_FLOAT.optionalFieldOf("max_yaw_change").forGetter(t -> t.maxYawChange),
+					ExtraCodecs.POSITIVE_FLOAT.optionalFieldOf("max_pitch_change").forGetter(t -> t.maxPitchChange),
 					Codec.BOOL.optionalFieldOf("update_body_yaw", true).forGetter(t -> t.updateBodyYaw)
 			).apply(instance, LookAt::new)
 	);
@@ -56,17 +56,17 @@ public class LookAt implements Transition, TransitionConfig {
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		entity.get(cutscene.getRefContext()).forEach(entity -> {
 			target.get(cutscene.createRefContext(entity)).ifPresent(target -> {
-				if (entity instanceof MobEntity mob) {
-					mob.getLookControl().lookAt(
-							target.getX(), target.getY(), target.getZ(),
-							this.maxYawChange.orElse((float) mob.getMaxLookYawChange()),
-							maxPitchChange.orElse((float) mob.getMaxLookPitchChange())
+				if (entity instanceof Mob mob) {
+					mob.getLookControl().setLookAt(
+							target.x(), target.y(), target.z(),
+							this.maxYawChange.orElse((float) mob.getHeadRotSpeed()),
+							maxPitchChange.orElse((float) mob.getMaxHeadXRot())
 					);
 					if (updateBodyYaw) {
-						mob.setYaw(mob.getHeadYaw());
+						mob.setYRot(mob.getYHeadRot());
 					}
 				} else {
-					entity.lookAt(EntityAnchorArgumentType.EntityAnchor.EYES, target);
+					entity.lookAt(EntityAnchorArgument.Anchor.EYES, target);
 				}
 			});
 		});

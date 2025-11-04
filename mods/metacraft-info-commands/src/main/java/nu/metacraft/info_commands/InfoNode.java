@@ -3,20 +3,19 @@ package nu.metacraft.info_commands;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
-
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 
-public record InfoNode(Text message, Map<String, InfoNode> subCommands) {
+public record InfoNode(Component message, Map<String, InfoNode> subCommands) {
 	public static final Codec<InfoNode> RECORD_CODEC = RecordCodecBuilder.create(instance -> instance.group(
-			TextCodecs.CODEC.fieldOf("message").forGetter(InfoNode::message),
+			ComponentSerialization.CODEC.fieldOf("message").forGetter(InfoNode::message),
 			Codec.unboundedMap(Codec.STRING, Codec.lazyInitialized(InfoNode::getCodec)).fieldOf("subCommands")
 					.orElse(new HashMap<>()).forGetter(InfoNode::subCommands)
 	).apply(instance, InfoNode::new));
 
-	public static final Codec<InfoNode> CODEC = Codec.either(TextCodecs.CODEC, RECORD_CODEC).xmap(
+	public static final Codec<InfoNode> CODEC = Codec.either(ComponentSerialization.CODEC, RECORD_CODEC).xmap(
 			either -> either.map(InfoNode::new, node -> node),
 			node -> node.subCommands().isEmpty() ? Either.left(node.message()) : Either.right(node)
 	);
@@ -25,7 +24,7 @@ public record InfoNode(Text message, Map<String, InfoNode> subCommands) {
 		return CODEC;
 	}
 
-	public InfoNode(Text message) {
+	public InfoNode(Component message) {
 		this(message, new HashMap<>());
 	}
 }

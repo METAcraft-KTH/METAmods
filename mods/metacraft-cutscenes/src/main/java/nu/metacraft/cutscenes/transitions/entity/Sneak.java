@@ -35,14 +35,14 @@ public class Sneak implements Transition, TransitionConfig {
 	@Override
 	public void tick(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		entity.get(cutscene.getRefContext()).forEach(entity -> {
-			entity.setSneaking(true);
+			entity.setShiftKeyDown(true);
 		});
 	}
 
 	@Override
 	public void deactivate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		entity.get(cutscene.getRefContext()).forEach(entity -> {
-			entity.setSneaking(false);
+			entity.setShiftKeyDown(false);
 		});
 	}
 

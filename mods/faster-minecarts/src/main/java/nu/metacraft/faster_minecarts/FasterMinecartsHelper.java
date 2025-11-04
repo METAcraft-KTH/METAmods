@@ -1,26 +1,25 @@
 package nu.metacraft.faster_minecarts;
 
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-
 import java.util.Optional;
 import java.util.function.Function;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 
 public class FasterMinecartsHelper {
 
-	public static boolean hasSuperSpeed(AbstractMinecartEntity minecart) {
+	public static boolean hasSuperSpeed(AbstractMinecart minecart) {
 		return ((MinecartExtensions) minecart).fasterMinecarts$speedUpgrade().getValue(FasterMinecartsConfig.getConfig().globalFasterMinecarts());
 	}
 
-	public static double getValue(AbstractMinecartEntity minecart, double defaultValue, Function<FasterMinecartsConfig.MinecartModifier, Optional<Double>> valueGetter) {
+	public static double getValue(AbstractMinecart minecart, double defaultValue, Function<FasterMinecartsConfig.MinecartModifier, Optional<Double>> valueGetter) {
 		if (!hasSuperSpeed(minecart)) {
 			return defaultValue;
 		}
 
-		double configValue = FasterMinecartsConfig.getConfig(minecart.getEntityWorld().getServer()).getRelevantModifiers(minecart).map(valueGetter).filter(
+		double configValue = FasterMinecartsConfig.getConfig(minecart.level().getServer()).getRelevantModifiers(minecart).map(valueGetter).filter(
 				Optional::isPresent
 		).mapToDouble(Optional::get).max().orElse(defaultValue);
 		if (Double.isNaN(configValue)) {
@@ -31,12 +30,12 @@ public class FasterMinecartsHelper {
 	}
 
 	public static double getActualMaxSpeed(
-			AbstractMinecartEntity minecart, double defaultMaxSpeed
+			AbstractMinecart minecart, double defaultMaxSpeed
 	) {
 		if (hasSuperSpeed(minecart)) {
 			return applyMaxSpeedFromBlockBellow(
-					minecart.getEntityWorld(), minecart.getBlockPos(),
-					minecart.isTouchingWater() ? ((MinecartExtensions) minecart).fasterMinecarts$getMaxSpeedUnderwater().orElse(
+					minecart.level(), minecart.blockPosition(),
+					minecart.isInWater() ? ((MinecartExtensions) minecart).fasterMinecarts$getMaxSpeedUnderwater().orElse(
 							FasterMinecartsConfig.getConfig().maxMinecartSpeedUnderwater()
 					) : ((MinecartExtensions) minecart).fasterMinecarts$getMaxSpeed().orElse(
 							FasterMinecartsConfig.getConfig().maxMinecartSpeed()
@@ -46,16 +45,16 @@ public class FasterMinecartsHelper {
 		return defaultMaxSpeed;
 	}
 
-	public static double applyMaxSpeedFromBlockBellow(World world, BlockPos pos, double maxSpeed) {
-		if (!(world instanceof ServerWorld)) return maxSpeed;
-		var boost = FasterMinecartsConfig.getConfig(world.getServer()).getBlockBoost((ServerWorld) world, pos);
+	public static double applyMaxSpeedFromBlockBellow(Level world, BlockPos pos, double maxSpeed) {
+		if (!(world instanceof ServerLevel)) return maxSpeed;
+		var boost = FasterMinecartsConfig.getConfig(world.getServer()).getBlockBoost((ServerLevel) world, pos);
 		if (!Double.isNaN(boost)) {
 			return maxSpeed + boost;
 		}
 		return maxSpeed;
 	}
 
-	public static boolean areMinecartExperimentsEnabledForCart(boolean worldSetting, AbstractMinecartEntity minecart) {
+	public static boolean areMinecartExperimentsEnabledForCart(boolean worldSetting, AbstractMinecart minecart) {
 		return areMinecartExperimentsEnabledForCart(worldSetting, hasSuperSpeed(minecart));
 	}
 
@@ -66,7 +65,7 @@ public class FasterMinecartsHelper {
 		return worldSetting;
 	}
 
-	public static Optional<ItemStack> getMinecartItem(AbstractMinecartEntity minecart) {
+	public static Optional<ItemStack> getMinecartItem(AbstractMinecart minecart) {
 		return ((MinecartExtensions) minecart).fasterMinecarts$getMinecartItem();
 	}
 }

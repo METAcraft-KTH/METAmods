@@ -3,16 +3,15 @@ package nu.metacraft.lib.time_getter;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.dynamic.Codecs;
-
 import java.time.*;
 import java.util.List;
+import net.minecraft.util.ExtraCodecs;
 
 public class Or implements RegularTimeGetter {
 
 	public static final MapCodec<Or> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Codecs.nonEmptyList(
+					ExtraCodecs.nonEmptyList(
 							Codec.lazyInitialized(() -> RegularTimeGetter.REGISTRY_CODEC).listOf()
 					).fieldOf("options").forGetter(
 							t -> t.options

@@ -1,26 +1,26 @@
 package nu.metacraft.simplecustomfeatures;
 
-import net.minecraft.block.Block;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.SimpleRegistry;
-import net.minecraft.util.collection.IdList;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 import nu.metacraft.simplecustomfeatures.mixin.AccessorIdList;
 
 import java.util.Set;
+import net.minecraft.core.IdMapper;
+import net.minecraft.core.MappedRegistry;
+import net.minecraft.core.Registry;
+import net.minecraft.world.level.block.Block;
 
 public class RegistryHelper {
 
 	public static boolean unlockRegistry(Registry<?> registry) {
-		if (registry instanceof SimpleRegistry<?>) {
+		if (registry instanceof MappedRegistry<?>) {
 			return ((RegistryExtensions) registry).simpleCustomFeatures$unfreezeRegistry();
 		}
 		return false;
 	}
 
 	public static void lockRegistry(Registry<?> registry) {
-		if (registry instanceof SimpleRegistry<?> simple) {
-			simple.resetTagEntries();
+		if (registry instanceof MappedRegistry<?> simple) {
+			simple.bindAllTagsToEmpty();
 			registry.freeze();
 		}
 	}
@@ -31,12 +31,12 @@ public class RegistryHelper {
 	 * @param elements The elements to remove.
 	 * @param <T> The type of the elements.
 	 */
-	public static <T> void removeFromIdList(IdList<T> list, Set<T> elements) {
+	public static <T> void removeFromIdList(IdMapper<T> list, Set<T> elements) {
 		var listAccessor = (AccessorIdList<T>) list;
-		listAccessor.getList().removeIf(elements::contains);
+		listAccessor.getIdToT().removeIf(elements::contains);
 		for (var element : elements) {
-			var id = listAccessor.getIdMap().removeInt(element);
-			listAccessor.getIdMap().reference2IntEntrySet().forEach(
+			var id = listAccessor.getTToId().removeInt(element);
+			listAccessor.getTToId().reference2IntEntrySet().forEach(
 					stateEntry -> {
 						if (stateEntry.getIntValue() > id) {
 							stateEntry.setValue(stateEntry.getIntValue()-1);
@@ -48,7 +48,7 @@ public class RegistryHelper {
 	}
 
 	/**
-	 * Some objects, such as {@link Block} and {@link net.minecraft.item.Item} create registry entries immediately when the object is created.
+	 * Some objects, such as {@link Block} and {@link net.minecraft.world.item.Item} create registry entries immediately when the object is created.
 	 * This is a problem, because if we create an object, and then never register it, the game will crash.
 	 * Basically, put this into {@link BaseObject#onRegistrationFail(Object)}
 	 * to make sure the game doesn't crash when using any object that registers intrusive entries.

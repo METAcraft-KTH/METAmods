@@ -3,9 +3,8 @@ package nu.metacraft.moderation.moderator_mode;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.text.Text;
-
 import java.util.Optional;
+import net.minecraft.network.chat.Component;
 
 public class ModeratorModeDefinition {
 
@@ -113,14 +112,14 @@ public class ModeratorModeDefinition {
 		return announceAdvancements;
 	}
 
-	public Text toText() {
+	public Component toText() {
 		String builder = "Name: " + name + "\n" +
 				"SeparatePlayerData: " + separatePlayerData + "\n" +
 				"Vanish: " + vanish + "\n" +
 				"PreventTamedAnimalFollow: " + preventTamedMobFollow + "\n" +
 				"EnterCommand: " + (enterCommand != null ? enterCommand : "None") + "\n" +
 				"ExitCommand: " + (exitCommand != null ? exitCommand : "None") + "\n";
-		return Text.literal(builder);
+		return Component.literal(builder);
 	}
 
 	public void markDirty() {

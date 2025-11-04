@@ -2,10 +2,10 @@ package nu.metacraft.core.block;
 
 import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.block.entities.BlackHolePortalEntity;
 import nu.metacraft.core.block.entities.MusicBlockEntity;
@@ -43,7 +43,7 @@ public class METAcraftBlockEntities {
 
 	private static <T extends BlockEntity> BlockEntityType<T> register(String id, BlockEntityType<T> type) {
 		PolymerBlockUtils.registerBlockEntity(type);
-		return Registry.register(Registries.BLOCK_ENTITY_TYPE, METAcraftCore.getID(id), type);
+		return Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, METAcraftCore.getID(id), type);
 	}
 
 }

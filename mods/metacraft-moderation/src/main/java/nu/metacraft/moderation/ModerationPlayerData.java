@@ -1,10 +1,10 @@
 package nu.metacraft.moderation;
 
-import net.minecraft.nbt.NbtCompound;
 import nu.metacraft.moderation.moderator_mode.ModerationModeState;
 
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.nbt.CompoundTag;
 
 public interface ModerationPlayerData {
 
@@ -15,6 +15,6 @@ public interface ModerationPlayerData {
 
 	Optional<String> METAcraft_Moderation$getDefaultModerationMode();
 
-	Map<String, NbtCompound> METAcraft_Moderation$getSavedNBT();
+	Map<String, CompoundTag> METAcraft_Moderation$getSavedNBT();
 
 }

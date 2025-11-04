@@ -3,7 +3,6 @@ package nu.metacraft.cutscenes.mixin;
 import com.mojang.datafixers.DSL;
 import com.mojang.datafixers.schemas.Schema;
 import com.mojang.datafixers.types.templates.TypeTemplate;
-import net.minecraft.datafixer.schema.Schema1460;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -13,8 +12,9 @@ import nu.metacraft.cutscenes.cutscene.MultiplayerCutsceneManager;
 
 import java.util.Map;
 import java.util.function.Supplier;
+import net.minecraft.util.datafix.schemas.V1460;
 
-@Mixin(Schema1460.class)
+@Mixin(V1460.class)
 public class MixinSchema1460 {
 
 	@Inject(

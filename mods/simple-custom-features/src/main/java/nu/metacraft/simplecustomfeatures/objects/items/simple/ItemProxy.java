@@ -2,9 +2,8 @@ package nu.metacraft.simplecustomfeatures.objects.items.simple;
 
 import net.bytebuddy.implementation.bind.annotation.SuperCall;
 import net.bytebuddy.implementation.bind.annotation.This;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import java.lang.reflect.Field;
 import java.util.concurrent.Callable;
 
@@ -38,7 +37,7 @@ public class ItemProxy {
 		var settings = item.simple_custom_features$getSettings();
 		var stack = superCall.call();
 		return settings.disguise().map(result -> {
-			result.applyChanges(stack.getComponentChanges());
+			result.applyComponentsAndValidate(stack.getComponentsPatch());
 			result.setCount(stack.getCount());
 			return result;
 		}).orElse(stack);

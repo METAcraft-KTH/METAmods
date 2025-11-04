@@ -7,10 +7,6 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.command.argument.ColumnPosArgumentType;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ColumnPos;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.Zone;
 import nu.metacraft.zones.zone.ZoneRegistry;
@@ -19,8 +15,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.coordinates.ColumnPosArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ColumnPos;
 
-import static net.minecraft.server.command.CommandManager.argument;
+import static net.minecraft.commands.Commands.argument;
 
 public class PolygonZone extends ZoneType {
 
@@ -46,11 +46,11 @@ public class PolygonZone extends ZoneType {
 			error -> () -> ((Exception) error).getMessage()
 	);
 
-	public static ArgumentBuilder<ServerCommandSource, ?> createCommand(
-			ArgumentBuilder<ServerCommandSource, ?> builder, ZoneManagementCommand.ZoneAdder addZone
+	public static ArgumentBuilder<CommandSourceStack, ?> createCommand(
+			ArgumentBuilder<CommandSourceStack, ?> builder, ZoneManagementCommand.ZoneAdder addZone
 	) {
 		int max = 10;
-		ArgumentBuilder<ServerCommandSource, ?> inside = argument("the_rest", StringArgumentType.greedyString()).executes(ctx -> {
+		ArgumentBuilder<CommandSourceStack, ?> inside = argument("the_rest", StringArgumentType.greedyString()).executes(ctx -> {
 			var args = getArgs(max, ctx);
 			try {
 				var elements = Arrays.stream(StringArgumentType.getString(ctx, "the_rest").split(" ")).mapToInt(
@@ -70,7 +70,7 @@ public class PolygonZone extends ZoneType {
 			}
 		});
 		for (int i = max; i >= 3; i--) {
-			var newOuterMost = argument("pos" + i, ColumnPosArgumentType.columnPos());
+			var newOuterMost = argument("pos" + i, ColumnPosArgument.columnPos());
 			int num = i;
 			newOuterMost.executes(ctx -> {
 				return addZone.add(() -> new PolygonZone(
@@ -81,15 +81,15 @@ public class PolygonZone extends ZoneType {
 			inside = newOuterMost;
 		}
 		return builder.then(
-				argument("pos1", ColumnPosArgumentType.columnPos()).then(
-						argument("pos2", ColumnPosArgumentType.columnPos()).then(inside)
+				argument("pos1", ColumnPosArgument.columnPos()).then(
+						argument("pos2", ColumnPosArgument.columnPos()).then(inside)
 				)
 		);
 	}
 
-	private static Stream<ColumnPos> getArgs(int limit, CommandContext<ServerCommandSource> ctx) {
+	private static Stream<ColumnPos> getArgs(int limit, CommandContext<CommandSourceStack> ctx) {
 		return Stream.iterate(1, n -> n + 1).limit(limit).map(n -> "pos" + n).map(
-				arg -> ColumnPosArgumentType.getColumnPos(ctx, arg)
+				arg -> ColumnPosArgument.getColumnPos(ctx, arg)
 		);
 	}
 

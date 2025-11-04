@@ -3,25 +3,35 @@ package nu.metacraft.lib.util.helper;
 import com.mojang.authlib.GameProfile;
 import io.netty.channel.embedded.EmbeddedChannel;
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.Bootstrap;
 import net.minecraft.SharedConstants;
-import net.minecraft.network.ClientConnection;
-import net.minecraft.network.NetworkSide;
-import net.minecraft.registry.Registries;
-import net.minecraft.resource.*;
-import net.minecraft.resource.featuretoggle.FeatureSet;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.GameTestServer;
+import net.minecraft.gametest.framework.StructureUtils;
+import net.minecraft.network.Connection;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.server.Bootstrap;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.PlayerConfigEntry;
-import net.minecraft.server.network.ConnectedClientData;
-import net.minecraft.server.network.PrepareSpawnTask;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.test.TestContext;
-import net.minecraft.test.TestInstanceUtil;
-import net.minecraft.test.TestServer;
-import net.minecraft.text.Text;
-import net.minecraft.util.WorldSavePath;
-import net.minecraft.util.path.SymlinkValidationException;
-import net.minecraft.world.level.storage.LevelStorage;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
+import net.minecraft.server.network.config.PrepareSpawnTask;
+import net.minecraft.server.packs.PackLocationInfo;
+import net.minecraft.server.packs.PackSelectionConfig;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.PathPackResources;
+import net.minecraft.server.packs.repository.FolderRepositorySource;
+import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.server.packs.repository.PackCompatibility;
+import net.minecraft.server.packs.repository.PackRepository;
+import net.minecraft.server.packs.repository.PackSource;
+import net.minecraft.server.packs.repository.RepositorySource;
+import net.minecraft.server.packs.repository.ServerPacksSource;
+import net.minecraft.server.players.NameAndId;
+import net.minecraft.world.flag.FeatureFlagSet;
+import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.level.storage.LevelStorageSource;
+import net.minecraft.world.level.validation.ContentValidationException;
 import org.spongepowered.asm.util.Files;
 
 import java.io.IOException;
@@ -49,70 +59,70 @@ public class TestHelper {
 		return junit;
 	}
 
-	public static ServerPlayerEntity addMockPlayer(TestContext ctx) {
+	public static ServerPlayer addMockPlayer(GameTestHelper ctx) {
 		return addMockPlayer(ctx, "test-player", UUID.randomUUID());
 	}
 
-	public static ServerPlayerEntity addMockPlayer(
-			TestContext ctx, String name, UUID uuid
+	public static ServerPlayer addMockPlayer(
+			GameTestHelper ctx, String name, UUID uuid
 	) {
-		ConnectedClientData connectedClientData = ConnectedClientData.createDefault(new GameProfile(uuid, name), false);
-		ClientConnection clientConnection = new ClientConnection(NetworkSide.SERVERBOUND);
+		CommonListenerCookie connectedClientData = CommonListenerCookie.createInitial(new GameProfile(uuid, name), false);
+		Connection clientConnection = new Connection(PacketFlow.SERVERBOUND);
 		new EmbeddedChannel(clientConnection);
 
-		var prepareSpawnTask = new PrepareSpawnTask(ctx.getWorld().getServer(), new PlayerConfigEntry(uuid, name));
-		prepareSpawnTask.sendPacket(p -> {}); //Initialize spawn point preparation and player data loading task.
-		ctx.getWorld().getServer().runTasks(prepareSpawnTask::hasFinished); //Wait for server to find a spawn point.
-		return prepareSpawnTask.onReady(clientConnection, connectedClientData); //Finish loading the player.
+		var prepareSpawnTask = new PrepareSpawnTask(ctx.getLevel().getServer(), new NameAndId(uuid, name));
+		prepareSpawnTask.start(p -> {}); //Initialize spawn point preparation and player data loading task.
+		ctx.getLevel().getServer().managedBlock(prepareSpawnTask::tick); //Wait for server to find a spawn point.
+		return prepareSpawnTask.spawnPlayer(clientConnection, connectedClientData); //Finish loading the player.
 	}
 
 	public static void runTestServer(
 			String testNamespace, String testsPath
-	) throws IOException, SymlinkValidationException, InterruptedException {
+	) throws IOException, ContentValidationException, InterruptedException {
 		var path = Path.of("./run/Test");
 		var file = path.toFile();
 		if (file.isDirectory()) {
 			Files.deleteRecursively(file);
 		}
-		var storage = LevelStorage.create(path.getParent());
-		var session = storage.createSession(file.getName());
-		var manager = new ResourcePackManager(
-				new VanillaDataPackProvider(session.getLevelStorage().getSymlinkFinder()),
-				new FileResourcePackProvider(
-						session.getDirectory(WorldSavePath.DATAPACKS),
-						ResourceType.SERVER_DATA, ResourcePackSource.WORLD,
-						session.getLevelStorage().getSymlinkFinder()
+		var storage = LevelStorageSource.createDefault(path.getParent());
+		var session = storage.validateAndCreateAccess(file.getName());
+		var manager = new PackRepository(
+				new ServerPacksSource(session.parent().getWorldDirValidator()),
+				new FolderRepositorySource(
+						session.getLevelPath(LevelResource.DATAPACK_DIR),
+						PackType.SERVER_DATA, PackSource.WORLD,
+						session.parent().getWorldDirValidator()
 				),
-				new ResourcePackProvider() {
+				new RepositorySource() {
 					@Override
-					public void register(Consumer<ResourcePackProfile> profileAdder) {
+					public void loadPacks(Consumer<Pack> profileAdder) {
 						var path = Path.of("./src/test/resources");
 						if (path.resolve("data").toFile().exists()) {
 							profileAdder.accept(
-									new ResourcePackProfile(
-											new ResourcePackInfo(
-													"metacraft:test_container", Text.literal("Test Pack"),
-													ResourcePackSource.BUILTIN, Optional.empty()
+									new Pack(
+											new PackLocationInfo(
+													"metacraft:test_container", Component.literal("Test Pack"),
+													PackSource.BUILT_IN, Optional.empty()
 											),
-											new DirectoryResourcePack.DirectoryBackedFactory(path),
-											new ResourcePackProfile.Metadata(
-													Text.literal("Test Pack"),
-													ResourcePackCompatibility.COMPATIBLE,
-													FeatureSet.empty(),
+											new PathPackResources.PathResourcesSupplier(path),
+											new Pack.Metadata(
+													Component.literal("Test Pack"),
+													PackCompatibility.COMPATIBLE,
+													FeatureFlagSet.of(),
 													List.of()
 											),
-											new ResourcePackPosition(true, ResourcePackProfile.InsertionPosition.BOTTOM, true)
+											new PackSelectionConfig(true, Pack.Position.BOTTOM, true)
 									)
 							);
 						}
 					}
 				}
 		);
-		var server = MinecraftServer.startServer(thread -> TestServer.create(
+		var server = MinecraftServer.spin(thread -> GameTestServer.create(
 				thread, session, manager,
 				Optional.of(testNamespace + ":" + testsPath), false
 		));
-		server.getThread().join();
+		server.getRunningThread().join();
 		assert ((TestServerExtension) server).metacraft$testPassed();
 	}
 
@@ -128,10 +138,10 @@ public class TestHelper {
 			Runnable additionalRegistrations,
 			Supplier<? extends ModInitializer>... modsToLoad
 	) {
-		TestInstanceUtil.testStructuresDirectoryName = Path.of("./src/test/resources/structures");
-		SharedConstants.isDevelopment = true;
-		SharedConstants.createGameVersion();
-		Bootstrap.initialize();
+		StructureUtils.testStructuresDir = Path.of("./src/test/resources/structures");
+		SharedConstants.IS_RUNNING_IN_IDE = true;
+		SharedConstants.tryDetectVersion();
+		Bootstrap.bootStrap();
 		for (Supplier<? extends ModInitializer> mod : modsToLoad) {
 			var modInstance = mod.get();
 			if (ALREADY_LOADED.contains(modInstance.getClass())) continue;
@@ -139,7 +149,7 @@ public class TestHelper {
 			ALREADY_LOADED.add(modInstance.getClass());
 		}
 		additionalRegistrations.run();
-		Registries.bootstrap();
+		BuiltInRegistries.bootStrap();
 	}
 
 	public interface TestServerExtension {

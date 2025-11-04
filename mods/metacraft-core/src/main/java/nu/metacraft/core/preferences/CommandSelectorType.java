@@ -4,17 +4,17 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
-import net.minecraft.predicate.NumberRange;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextCodecs;
 import nu.metacraft.lib.util.DisplayItemData;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
+import net.minecraft.advancements.critereon.MinMaxBounds;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.server.level.ServerPlayer;
 
 public class CommandSelectorType implements PreferenceType<CommandSelectorType.CommandData, Integer, CommandSelectorType.IntPredicate> {
 
@@ -36,7 +36,7 @@ public class CommandSelectorType implements PreferenceType<CommandSelectorType.C
 
 	@Override
 	public void onClicked(
-			ServerPlayerEntity player, RegistryEntry<Preference<CommandData, Integer, ?>> definition, PreferenceMenu menu
+			ServerPlayer player, Holder<Preference<CommandData, Integer, ?>> definition, PreferenceMenu menu
 	) {
 		var data = PreferenceData.getForPlayer(player);
 		var def = definition.value().definition();
@@ -72,27 +72,27 @@ public class CommandSelectorType implements PreferenceType<CommandSelectorType.C
 		).open();
 	}
 
-	private void runCommand(ServerPlayerEntity player, CommandData.CommandEntry command) {
-		player.getEntityWorld().getServer().getCommandManager().parseAndExecute(
-				player.getCommandSource().withSilent().withLevel(2),
+	private void runCommand(ServerPlayer player, CommandData.CommandEntry command) {
+		player.level().getServer().getCommands().performPrefixedCommand(
+				player.createCommandSourceStack().withSuppressedOutput().withPermission(2),
 				command.command
 		);
 	}
 
 	@Override
 	public void initDefaultValue(
-			ServerPlayerEntity player,
-			RegistryEntry<Preference<CommandSelectorType.CommandData, Integer, ?>> definition
+			ServerPlayer player,
+			Holder<Preference<CommandSelectorType.CommandData, Integer, ?>> definition
 	) {
 		runCommand(player, definition.value().definition().commands.get(definition.value().defaultValue()));
 	}
 
-	public record CommandData(List<CommandEntry> commands, Text menuTitle) {
+	public record CommandData(List<CommandEntry> commands, Component menuTitle) {
 
 		public static final MapCodec<CommandData> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						CommandEntry.CODEC.listOf().fieldOf("commands").forGetter(CommandData::commands),
-						TextCodecs.CODEC.fieldOf("menu_title").forGetter(CommandData::menuTitle)
+						ComponentSerialization.CODEC.fieldOf("menu_title").forGetter(CommandData::menuTitle)
 				).apply(instance, CommandData::new)
 		);
 
@@ -109,16 +109,16 @@ public class CommandSelectorType implements PreferenceType<CommandSelectorType.C
 	}
 
 	public record IntPredicate(
-			NumberRange.IntRange num
+			MinMaxBounds.Ints num
 	) implements Predicate<Integer> {
 
-		public static final Codec<IntPredicate> CODEC = NumberRange.IntRange.CODEC.xmap(
+		public static final Codec<IntPredicate> CODEC = MinMaxBounds.Ints.CODEC.xmap(
 				IntPredicate::new, IntPredicate::num
 		);
 
 		@Override
 		public boolean test(Integer i) {
-			return num.test(i);
+			return num.matches(i);
 		}
 	}
 }

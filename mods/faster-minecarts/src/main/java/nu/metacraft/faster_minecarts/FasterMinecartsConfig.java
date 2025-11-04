@@ -3,21 +3,21 @@ package nu.metacraft.faster_minecarts;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.block.AbstractRailBlock;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.predicate.BlockPredicate;
-import net.minecraft.predicate.entity.EntityPredicate;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.advancements.critereon.BlockPredicate;
+import net.minecraft.advancements.critereon.EntityPredicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.StringIdentifiable;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.level.block.BaseRailBlock;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.config.ObjectStorage;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ServerAware;
@@ -51,7 +51,7 @@ public class FasterMinecartsConfig {
 	).buildRegistryAware(
 			configPath,
 			(config, server) -> new Loaded(
-					config, server.getRegistryManager()
+					config, server.registryAccess()
 			)
 	);
 
@@ -62,42 +62,42 @@ public class FasterMinecartsConfig {
 				ExperimentalMinecartMode.EXPERIMENTAL,
 				ObjectStorage.fromValue(
 						MinecartModifier.CODEC.listOf(), List.of(
-								new MinecartModifier(EntityPredicate.Builder.create().build(), Optional.empty(), Optional.of(0.8))
+								new MinecartModifier(EntityPredicate.Builder.entity().build(), Optional.empty(), Optional.of(0.8))
 						)
 				),
 				ObjectStorage.fromValue(
 						EntityDamageList.CODEC, new EntityDamageList(
 								List.of(
-										EntityPredicate.Builder.create().type(
-												Registries.ENTITY_TYPE, EntityType.MINECART
+										EntityPredicate.Builder.entity().of(
+												BuiltInRegistries.ENTITY_TYPE, EntityType.MINECART
 										).build(),
-										EntityPredicate.Builder.create().type(
-												Registries.ENTITY_TYPE, EntityType.CHEST_MINECART
+										EntityPredicate.Builder.entity().of(
+												BuiltInRegistries.ENTITY_TYPE, EntityType.CHEST_MINECART
 										).build(),
-										EntityPredicate.Builder.create().type(
-												Registries.ENTITY_TYPE, EntityType.COMMAND_BLOCK_MINECART
+										EntityPredicate.Builder.entity().of(
+												BuiltInRegistries.ENTITY_TYPE, EntityType.COMMAND_BLOCK_MINECART
 										).build(),
-										EntityPredicate.Builder.create().type(
-												Registries.ENTITY_TYPE, EntityType.FURNACE_MINECART
+										EntityPredicate.Builder.entity().of(
+												BuiltInRegistries.ENTITY_TYPE, EntityType.FURNACE_MINECART
 										).build(),
-										EntityPredicate.Builder.create().type(
-												Registries.ENTITY_TYPE, EntityType.HOPPER_MINECART
+										EntityPredicate.Builder.entity().of(
+												BuiltInRegistries.ENTITY_TYPE, EntityType.HOPPER_MINECART
 										).build(),
-										EntityPredicate.Builder.create().type(
-												Registries.ENTITY_TYPE, EntityType.TNT_MINECART
+										EntityPredicate.Builder.entity().of(
+												BuiltInRegistries.ENTITY_TYPE, EntityType.TNT_MINECART
 										).build(),
-										EntityPredicate.Builder.create().type(
-												Registries.ENTITY_TYPE, EntityType.SPAWNER_MINECART
+										EntityPredicate.Builder.entity().of(
+												BuiltInRegistries.ENTITY_TYPE, EntityType.SPAWNER_MINECART
 										).build(),
-										EntityPredicate.Builder.create().type(
-												Registries.ENTITY_TYPE, EntityType.ITEM
+										EntityPredicate.Builder.entity().of(
+												BuiltInRegistries.ENTITY_TYPE, EntityType.ITEM
 										).build(),
-										EntityPredicate.Builder.create().type(
-												Registries.ENTITY_TYPE, EntityType.EXPERIENCE_ORB
+										EntityPredicate.Builder.entity().of(
+												BuiltInRegistries.ENTITY_TYPE, EntityType.EXPERIENCE_ORB
 										).build(),
-										EntityPredicate.Builder.create().vehicle(
-												EntityPredicate.Builder.create().type(
-														Registries.ENTITY_TYPE, EntityType.MINECART
+										EntityPredicate.Builder.entity().vehicle(
+												EntityPredicate.Builder.entity().of(
+														BuiltInRegistries.ENTITY_TYPE, EntityType.MINECART
 												)
 										).build()
 								),
@@ -106,14 +106,14 @@ public class FasterMinecartsConfig {
 				),
 				ObjectStorage.fromValue(
 						BlockBooster.CODEC.listOf(), List.of(
-								new BlockBooster(BlockPredicate.Builder.create().blocks(
-										Registries.BLOCK, Blocks.ICE
+								new BlockBooster(BlockPredicate.Builder.block().of(
+										BuiltInRegistries.BLOCK, Blocks.ICE
 								).build(), 5),
-								new BlockBooster(BlockPredicate.Builder.create().blocks(
-										Registries.BLOCK, Blocks.PACKED_ICE
+								new BlockBooster(BlockPredicate.Builder.block().of(
+										BuiltInRegistries.BLOCK, Blocks.PACKED_ICE
 								).build(), 10),
-								new BlockBooster(BlockPredicate.Builder.create().blocks(
-										Registries.BLOCK, Blocks.BLUE_ICE
+								new BlockBooster(BlockPredicate.Builder.block().of(
+										BuiltInRegistries.BLOCK, Blocks.BLUE_ICE
 								).build(), 20)
 						)
 				)
@@ -128,23 +128,23 @@ public class FasterMinecartsConfig {
 		return CONTAINER.get(server);
 	}
 
-	private boolean globalFasterMinecarts;
+	private final boolean globalFasterMinecarts;
 
-	private double maxMinecartSpeed;
+	private final double maxMinecartSpeed;
 
-	private double maxMinecartSpeedUnderwater;
+	private final double maxMinecartSpeedUnderwater;
 
-	private Optional<Double> dangerousMinecartSpeed;
+	private final Optional<Double> dangerousMinecartSpeed;
 
-	private double damageFactor;
+	private final double damageFactor;
 
-	private ExperimentalMinecartMode experimentalMinecartMode;
+	private final ExperimentalMinecartMode experimentalMinecartMode;
 
-	private ObjectStorage<List<MinecartModifier>> minecartModifiers;
+	private final ObjectStorage<List<MinecartModifier>> minecartModifiers;
 
-	private ObjectStorage<EntityDamageList> entityDamageList;
+	private final ObjectStorage<EntityDamageList> entityDamageList;
 
-	private ObjectStorage<List<BlockBooster>> blockBoosters;
+	private final ObjectStorage<List<BlockBooster>> blockBoosters;
 
 	public FasterMinecartsConfig(
 			boolean globalFasterMinecarts, double maxMinecartSpeed,
@@ -208,10 +208,10 @@ public class FasterMinecartsConfig {
 				).apply(instance, EntityDamageList::new)
 		);
 
-		public boolean isIncluded(Vec3d pos, Entity entity) {
-			if (entity.getEntityWorld() instanceof ServerWorld sw) {
+		public boolean isIncluded(Vec3 pos, Entity entity) {
+			if (entity.level() instanceof ServerLevel sw) {
 				for (var predicate : predicates) {
-					if (predicate.test(sw, pos, entity)) {
+					if (predicate.matches(sw, pos, entity)) {
 						return mode == Mode.ONLY;
 					}
 				}
@@ -219,11 +219,11 @@ public class FasterMinecartsConfig {
 			return mode == Mode.IGNORE;
 		}
 
-		public enum Mode implements StringIdentifiable {
+		public enum Mode implements StringRepresentable {
 			ONLY("only"),
 			IGNORE("ignore");
 
-			public static final Codec<Mode> CODEC = StringIdentifiable.createCodec(Mode::values);
+			public static final Codec<Mode> CODEC = StringRepresentable.fromEnum(Mode::values);
 
 			private final String name;
 
@@ -232,7 +232,7 @@ public class FasterMinecartsConfig {
 			}
 
 			@Override
-			public String asString() {
+			public String getSerializedName() {
 				return name;
 			}
 		}
@@ -247,11 +247,11 @@ public class FasterMinecartsConfig {
 		);
 	}
 
-	public enum ExperimentalMinecartMode implements StringIdentifiable {
+	public enum ExperimentalMinecartMode implements StringRepresentable {
 		LEGACY(false, "legacy"),
 		EXPERIMENTAL(true, "experimental");
 
-		public static final Codec<ExperimentalMinecartMode> CODEC = StringIdentifiable.createCodec(ExperimentalMinecartMode::values);
+		public static final Codec<ExperimentalMinecartMode> CODEC = StringRepresentable.fromEnum(ExperimentalMinecartMode::values);
 
 		private final boolean enabled;
 		private final String name;
@@ -266,7 +266,7 @@ public class FasterMinecartsConfig {
 		}
 
 		@Override
-		public String asString() {
+		public String getSerializedName() {
 			return name;
 		}
 	}
@@ -279,33 +279,33 @@ public class FasterMinecartsConfig {
 
 		private final List<BlockBooster> blockBoosters;
 
-		public Loaded(FasterMinecartsConfig config, RegistryWrapper.WrapperLookup lookup) {
+		public Loaded(FasterMinecartsConfig config, HolderLookup.Provider lookup) {
 			this.minecartModifiers = config.minecartModifiers.parse(lookup).resultOrPartial().orElse(new ArrayList<>());
 			this.entityDamageList = config.entityDamageList.parse(lookup).resultOrPartial().orElse(new EntityDamageList(new ArrayList<>(), EntityDamageList.Mode.IGNORE));
 			this.blockBoosters = config.blockBoosters.parse(lookup).resultOrPartial().orElse(new ArrayList<>());
 		}
 
-		public boolean shouldDamageEntity(Vec3d pos, Entity entity) {
+		public boolean shouldDamageEntity(Vec3 pos, Entity entity) {
 			return entityDamageList.isIncluded(pos, entity);
 		}
 
-		public double getBlockBoost(ServerWorld world, BlockPos pos) {
+		public double getBlockBoost(ServerLevel world, BlockPos pos) {
 			double amount = 0;
 			for (var boosters : blockBoosters) {
-				var targetPos = new BlockPos.Mutable();
-				targetPos.set(pos.down());
-				if (world.getBlockState(targetPos).getBlock() instanceof AbstractRailBlock) {
+				var targetPos = new BlockPos.MutableBlockPos();
+				targetPos.set(pos.below());
+				if (world.getBlockState(targetPos).getBlock() instanceof BaseRailBlock) {
 					targetPos.move(Direction.DOWN);
 				}
-				if (boosters.predicate.test(world, targetPos)) {
+				if (boosters.predicate.matches(world, targetPos)) {
 					amount += boosters.topSpeedIncrease;
 				}
 			}
 			return amount;
 		}
 
-		public Stream<MinecartModifier> getRelevantModifiers(AbstractMinecartEntity minecart) {
-			return minecartModifiers.stream().filter(modifier -> modifier.minecartPredicate.test((ServerWorld) minecart.getEntityWorld(), minecart.getEntityPos(), minecart));
+		public Stream<MinecartModifier> getRelevantModifiers(AbstractMinecart minecart) {
+			return minecartModifiers.stream().filter(modifier -> modifier.minecartPredicate.matches((ServerLevel) minecart.level(), minecart.position(), minecart));
 		}
 
 	}

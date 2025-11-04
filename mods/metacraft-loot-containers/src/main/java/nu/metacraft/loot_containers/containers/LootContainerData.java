@@ -5,32 +5,32 @@ import com.google.common.collect.MultimapBuilder;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Uuids;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
-import net.minecraft.world.World;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import org.apache.logging.log4j.util.TriConsumer;
 import nu.metacraft.loot_containers.METAcraftLootContainers;
 import nu.metacraft.loot_containers.containers.events.LootContainerEvent;
 import nu.metacraft.loot_containers.util.EntityOrBlockEntity;
 import nu.metacraft.loot_containers.util.PosOrUUID;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class LootContainerData extends PersistentState {
+public class LootContainerData extends SavedData {
 
-	private static final PersistentStateType<LootContainerData> TYPE = new PersistentStateType<>(
-			METAcraftLootContainers.MODID, ctx -> create(ctx.getWorldOrThrow().getServer()),
-			ctx -> createCodec(ctx.getWorldOrThrow().getServer()), null
+	private static final SavedDataType<LootContainerData> TYPE = new SavedDataType<>(
+			METAcraftLootContainers.MODID, ctx -> create(ctx.levelOrThrow().getServer()),
+			ctx -> createCodec(ctx.levelOrThrow().getServer()), null
 	);
 
 	private static Codec<LootContainerData> createCodec(MinecraftServer server) {
@@ -41,7 +41,7 @@ public class LootContainerData extends PersistentState {
 										e -> Pair.of(e.getKey(), e.getValue().serialize())
 								).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond))
 						),
-						ExtraCodecs.unboundedMultimap(
+						METACodecs.unboundedMultimap(
 								Codec.STRING, LootContainerEvent.REGISTRY_CODEC,
 								MultimapBuilder.hashKeys().arrayListValues()::build
 						).fieldOf("Events").forGetter(d -> d.containerEvents)
@@ -50,7 +50,7 @@ public class LootContainerData extends PersistentState {
 	}
 
 	public static LootContainerData getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	private final Map<String, LootContainers> containerGroups = new HashMap<>();
@@ -72,7 +72,7 @@ public class LootContainerData extends PersistentState {
 	) {
 		containerGroups.forEach(
 				(group, containers) -> {
-					this.containerGroups.put(group, new LootContainers(server, this::markDirty).deserialize(containers));
+					this.containerGroups.put(group, new LootContainers(server, this::setDirty).deserialize(containers));
 				}
 		);
 		containerEvents.forEach(this::addEventInternal);
@@ -80,11 +80,11 @@ public class LootContainerData extends PersistentState {
 	}
 
 	private LootContainers get(String group) {
-		return containerGroups.computeIfAbsent(group, key -> new LootContainers(server, this::markDirty));
+		return containerGroups.computeIfAbsent(group, key -> new LootContainers(server, this::setDirty));
 	}
 
 	private void addEventInternal(String group, LootContainerEvent event) {
-		event.initialise(this::markDirty);
+		event.initialise(this::setDirty);
 		containerEvents.put(group, event);
 	}
 
@@ -92,7 +92,7 @@ public class LootContainerData extends PersistentState {
 		return containerGroups.keySet();
 	}
 
-	public Stream<Pair<String, LootContainer>> getLootContainers(RegistryKey<World> dim, BlockPos pos) {
+	public Stream<Pair<String, LootContainer>> getLootContainers(ResourceKey<Level> dim, BlockPos pos) {
 		return containerGroups.entrySet().stream().map(
 				map -> Optional.ofNullable(map.getValue().blocks.getLootContainer(dim, pos)).map(
 						container -> Pair.of(map.getKey(), container)
@@ -100,42 +100,42 @@ public class LootContainerData extends PersistentState {
 		).filter(Objects::nonNull);
 	}
 
-	public LootContainer getLootContainer(String group, RegistryKey<World> dim, BlockPos pos) {
+	public LootContainer getLootContainer(String group, ResourceKey<Level> dim, BlockPos pos) {
 		return get(group).blocks.getLootContainer(dim, pos);
 	}
 
-	public void putLootContainer(String group, RegistryKey<World> dim, BlockPos pos, LootContainer container) {
+	public void putLootContainer(String group, ResourceKey<Level> dim, BlockPos pos, LootContainer container) {
 		get(group).blocks.putLootContainer(dim, pos, container);
-		markDirty();
+		setDirty();
 	}
 
-	public void removeLootContainers(RegistryKey<World> dim, BlockPos pos) {
+	public void removeLootContainers(ResourceKey<Level> dim, BlockPos pos) {
 		for (var group : containerGroups.values()) {
 			group.blocks.removeLootContainer(dim, pos);
 		}
-		markDirty();
+		setDirty();
 	}
 
-	public void removeLootContainer(String group, RegistryKey<World> dim, BlockPos pos) {
+	public void removeLootContainer(String group, ResourceKey<Level> dim, BlockPos pos) {
 		get(group).blocks.removeLootContainer(dim, pos);
-		markDirty();
+		setDirty();
 	}
 
-	public void putLootContainer(String group, RegistryKey<World> dim, EntityOrBlockEntity entity, LootContainer container) {
+	public void putLootContainer(String group, ResourceKey<Level> dim, EntityOrBlockEntity entity, LootContainer container) {
 		entity.run(
-				e -> putLootContainer(group, dim, e.getUuid(), container),
-				b -> putLootContainer(group, dim, b.getPos(), container)
+				e -> putLootContainer(group, dim, e.getUUID(), container),
+				b -> putLootContainer(group, dim, b.getBlockPos(), container)
 		);
 	}
 
-	public LootContainer getLootContainer(String group, RegistryKey<World> dim, EntityOrBlockEntity entity) {
+	public LootContainer getLootContainer(String group, ResourceKey<Level> dim, EntityOrBlockEntity entity) {
 		return entity.map(
-				e -> getLootContainer(group, dim, e.getUuid()),
-				b -> getLootContainer(group, dim, b.getPos())
+				e -> getLootContainer(group, dim, e.getUUID()),
+				b -> getLootContainer(group, dim, b.getBlockPos())
 		);
 	}
 
-	public Stream<Pair<String, LootContainer>> getLootContainers(RegistryKey<World> dim, UUID entity) {
+	public Stream<Pair<String, LootContainer>> getLootContainers(ResourceKey<Level> dim, UUID entity) {
 		return containerGroups.entrySet().stream().map(
 				map -> Optional.ofNullable(map.getValue().entities.getLootContainer(dim, entity)).map(
 						container -> Pair.of(map.getKey(), container)
@@ -143,37 +143,37 @@ public class LootContainerData extends PersistentState {
 		).filter(Objects::nonNull);
 	}
 
-	public LootContainer getLootContainer(String group, RegistryKey<World> dim, UUID entity) {
+	public LootContainer getLootContainer(String group, ResourceKey<Level> dim, UUID entity) {
 		return get(group).entities.getLootContainer(dim, entity);
 	}
 
-	public void putLootContainer(String group, RegistryKey<World> dim, UUID entity, LootContainer container) {
+	public void putLootContainer(String group, ResourceKey<Level> dim, UUID entity, LootContainer container) {
 		get(group).entities.putLootContainer(dim, entity, container);
-		markDirty();
+		setDirty();
 	}
 
-	public void removeLootContainers(RegistryKey<World> dim, UUID entity) {
+	public void removeLootContainers(ResourceKey<Level> dim, UUID entity) {
 		for (var group : containerGroups.values()) {
 			group.entities.removeLootContainer(dim, entity);
 		}
-		markDirty();
+		setDirty();
 	}
 
-	public void removeLootContainer(String group, RegistryKey<World> dim, UUID entity) {
+	public void removeLootContainer(String group, ResourceKey<Level> dim, UUID entity) {
 		get(group).entities.removeLootContainer(dim, entity);
-		markDirty();
+		setDirty();
 	}
 
 	public void addEvent(String group, LootContainerEvent event) {
 		addEventInternal(group, event);
-		markDirty();
+		setDirty();
 	}
 
 	public LootContainerEvent removeEvent(String group, int index) {
 		var entries = containerEvents.get(group);
 		if (entries instanceof List<LootContainerEvent> list) {
 			var event = list.remove(index);
-			markDirty();
+			setDirty();
 			return event;
 		}
 		return null;
@@ -209,20 +209,20 @@ public class LootContainerData extends PersistentState {
 	public static class LootContainers {
 
 		public static final Codec<BlockPos> POS_CODEC = BlockPos.CODEC;
-		public static final Codec<UUID> UUID_CODEC = Uuids.STRICT_CODEC;
+		public static final Codec<UUID> UUID_CODEC = UUIDUtil.LENIENT_CODEC;
 
 		private final LootContainerMap<BlockPos> blocks;
 		private final LootContainerMap<UUID> entities;
 
-		private static TriConsumer<RegistryKey<World>, BlockPos, LootContainer> getBlockPosContainerInitializer(
+		private static TriConsumer<ResourceKey<Level>, BlockPos, LootContainer> getBlockPosContainerInitializer(
 				MinecraftServer server, Runnable markDirty
 		) {
 			return (dim, pos, container) -> {
-				var world = server.getWorld(dim);
+				var world = server.getLevel(dim);
 				container.initialise(world, () -> {
 					var blockEntity = world.getBlockEntity(pos);
-					if (blockEntity instanceof Inventory) {
-						return Optional.of(LootAccess.block((BlockEntity & Inventory) blockEntity));
+					if (blockEntity instanceof Container) {
+						return Optional.of(LootAccess.block((BlockEntity & Container) blockEntity));
 					} else {
 						return Optional.empty();
 					}
@@ -230,15 +230,15 @@ public class LootContainerData extends PersistentState {
 			};
 		}
 
-		private static TriConsumer<RegistryKey<World>, UUID, LootContainer> getEntityContainerInitializer(
+		private static TriConsumer<ResourceKey<Level>, UUID, LootContainer> getEntityContainerInitializer(
 				MinecraftServer server, Runnable markDirty
 		) {
 			return (dim, uuid, container) -> {
-				var world = server.getWorld(dim);
+				var world = server.getLevel(dim);
 				container.initialise(world, () -> {
 					var entity = world.getEntity(uuid);
-					if (entity instanceof Inventory) {
-						return Optional.of(LootAccess.entity((Entity & Inventory) entity));
+					if (entity instanceof Container) {
+						return Optional.of(LootAccess.entity((Entity & Container) entity));
 					} else {
 						return Optional.empty();
 					}

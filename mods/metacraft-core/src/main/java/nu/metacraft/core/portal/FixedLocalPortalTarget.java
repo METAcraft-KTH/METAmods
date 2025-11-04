@@ -4,12 +4,12 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.GlobalPos;
 import nu.metacraft.core.block.entities.PortalEntity;
 
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.world.entity.Entity;
 
 public record FixedLocalPortalTarget(BlockPos target, boolean autolink) implements PortalTarget {
 
@@ -32,11 +32,11 @@ public record FixedLocalPortalTarget(BlockPos target, boolean autolink) implemen
 	@Override
 	public void initialize(PortalEntity portal) {
 		if (autolink) {
-			var targetWorld = portal.getWorld();
+			var targetWorld = portal.getLevel();
 			PortalEntity.findPortal(targetWorld, target).ifPresent(
 					target -> {
-						target.setTarget(create(portal.getPos()));
-						portal.setTarget(create(target.getPos()));
+						target.setTarget(create(portal.getBlockPos()));
+						portal.setTarget(create(target.getBlockPos()));
 					}
 			);
 		}
@@ -45,12 +45,12 @@ public record FixedLocalPortalTarget(BlockPos target, boolean autolink) implemen
 	@Override
 	public DataResult<GlobalPos> getOrInitializeTargetForEntity(PortalEntity portal, Entity entity) {
 		portal.initializeTarget();
-		return DataResult.success(GlobalPos.create(portal.getWorld().getRegistryKey(), target));
+		return DataResult.success(GlobalPos.of(portal.getLevel().dimension(), target));
 	}
 
 	@Override
 	public Optional<GlobalPos> getFixedTarget(PortalEntity portal) {
-		return Optional.of(GlobalPos.create(portal.getWorld().getRegistryKey(), target));
+		return Optional.of(GlobalPos.of(portal.getLevel().dimension(), target));
 	}
 
 	@Override

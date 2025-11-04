@@ -1,14 +1,14 @@
 package nu.metacraft.dungeons.block;
 
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
 import nu.metacraft.dungeons.METAcraftDungeons;
 
 import java.util.function.Function;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 
 public class DungeonBlocks {
 
@@ -17,11 +17,11 @@ public class DungeonBlocks {
 	}
 
 	private static Block register(
-			String id, Function<Block.Settings, Block> block,
-			AbstractBlock.Settings settings
+			String id, Function<BlockBehaviour.Properties, Block> block,
+			BlockBehaviour.Properties settings
 	) {
-		var key = RegistryKey.of(RegistryKeys.BLOCK, METAcraftDungeons.getID(id));
-		return Registry.register(Registries.BLOCK, key, block.apply(settings.registryKey(key)));
+		var key = ResourceKey.create(Registries.BLOCK, METAcraftDungeons.getID(id));
+		return Registry.register(BuiltInRegistries.BLOCK, key, block.apply(settings.setId(key)));
 	}
 
 }

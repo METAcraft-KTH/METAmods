@@ -1,11 +1,11 @@
 package nu.metacraft.portal_blocker.zone;
 
-import net.minecraft.registry.Registry;
 import nu.metacraft.portal_blocker.PortalBlocker;
 import nu.metacraft.zones.zone.data.ZoneDataRegistry;
 import nu.metacraft.zones.zone.data.ZoneDataType;
 
 import java.util.Map;
+import net.minecraft.core.Registry;
 
 public class ZoneDataPortalBlocker {
 

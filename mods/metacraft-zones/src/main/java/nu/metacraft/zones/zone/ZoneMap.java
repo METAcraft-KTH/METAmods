@@ -1,8 +1,8 @@
 package nu.metacraft.zones.zone;
 
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.World;
+import net.minecraft.world.level.Level;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 import org.pcollections.TreePSet;
@@ -17,7 +17,7 @@ import java.util.function.Predicate;
 
 public class ZoneMap {
 
-	protected final AtomicReference<PMap<RegistryKey<World>, TreePSet<Zone>>> worldZones = new AtomicReference<>(HashTreePMap.empty());
+	protected final AtomicReference<PMap<ResourceKey<Level>, TreePSet<Zone>>> worldZones = new AtomicReference<>(HashTreePMap.empty());
 	protected final AtomicReference<PMap<String, RealZone>> zones = new AtomicReference<>(HashTreePMap.empty());
 
 	protected final Runnable markNeedsSave;
@@ -40,7 +40,7 @@ public class ZoneMap {
 		addZoneInternal(zone);
 	}
 
-	private TreePSet<Zone> getWorldZone(RegistryKey<World> dim) {
+	private TreePSet<Zone> getWorldZone(ResourceKey<Level> dim) {
 		return worldZones.get().getOrDefault(dim, TreePSet.empty());
 	}
 
@@ -108,19 +108,19 @@ public class ZoneMap {
 		return zones.get().get(name);
 	}
 
-	public void forZones(RegistryKey<World> dim, Consumer<Zone> run) {
+	public void forZones(ResourceKey<Level> dim, Consumer<Zone> run) {
 		getWorldZone(dim).forEach(run);
 	}
 
-	public List<Zone> getZones(RegistryKey<World> dim, Predicate<Zone> zonePredicate) {
+	public List<Zone> getZones(ResourceKey<Level> dim, Predicate<Zone> zonePredicate) {
 		return getWorldZone(dim).stream().filter(zonePredicate).toList();
 	}
 
-	public Optional<Zone> getFirstZoneMatching(RegistryKey<World> dim, Predicate<Zone> zonePredicate) {
+	public Optional<Zone> getFirstZoneMatching(ResourceKey<Level> dim, Predicate<Zone> zonePredicate) {
 		return getWorldZone(dim).stream().filter(zonePredicate).findFirst();
 	}
 
-	public <T> Optional<T> getValueForPrimaryZone(RegistryKey<World> dim, Function<Zone, Optional<T>> valueGetter) {
+	public <T> Optional<T> getValueForPrimaryZone(ResourceKey<Level> dim, Function<Zone, Optional<T>> valueGetter) {
 		return getWorldZone(dim).stream().map(valueGetter).filter(
 				Optional::isPresent
 		).map(Optional::get).findFirst();

@@ -1,11 +1,11 @@
 package nu.metacraft.core;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import nu.metacraft.core.commands.*;
 import nu.metacraft.core.util.helper.MusicHelper;
 
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.literal;
 
 public class Commands {
 
@@ -13,8 +13,8 @@ public class Commands {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			dispatcher.register(
 					literal("reset-music").executes(ctx -> {
-						MusicHelper.resetMusicTimer(ctx.getSource().getPlayerOrThrow());
-						ctx.getSource().sendFeedback(() -> Text.literal("Reset Music Timer"), false);
+						MusicHelper.resetMusicTimer(ctx.getSource().getPlayerOrException());
+						ctx.getSource().sendSuccess(() -> Component.literal("Reset Music Timer"), false);
 						return 1;
 					})
 			);

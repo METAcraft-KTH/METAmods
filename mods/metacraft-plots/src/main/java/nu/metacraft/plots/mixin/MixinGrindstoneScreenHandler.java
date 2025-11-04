@@ -1,11 +1,5 @@
 package nu.metacraft.plots.mixin;
 
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.GrindstoneScreenHandler;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldEvents;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -18,60 +12,66 @@ import nu.metacraft.plots.item.PlotItems;
 import nu.metacraft.plots.item.PlotKey;
 
 import java.util.function.BiConsumer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.Container;
+import net.minecraft.world.inventory.GrindstoneMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.LevelEvent;
 
-@Mixin(GrindstoneScreenHandler.class)
+@Mixin(GrindstoneMenu.class)
 public class MixinGrindstoneScreenHandler {
 
-	@Shadow @Final Inventory input;
+	@Shadow @Final Container repairSlots;
 
-	@Shadow @Final private Inventory result;
+	@Shadow @Final private Container resultSlots;
 
-	@Inject(method = "updateResult", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "createResult", at = @At("HEAD"), cancellable = true)
 	public void updateResult(CallbackInfo ci) {
-		if (this.input.getStack(0).isOf(PlotItems.PLOT_MASTER_KEY) && this.input.getStack(1).isEmpty()) {
-			this.result.setStack(0, this.input.getStack(0).copy());
+		if (this.repairSlots.getItem(0).is(PlotItems.PLOT_MASTER_KEY) && this.repairSlots.getItem(1).isEmpty()) {
+			this.resultSlots.setItem(0, this.repairSlots.getItem(0).copy());
 			ci.cancel();
 		}
 	}
 
-	@Mixin(targets = "net.minecraft.screen.GrindstoneScreenHandler$2")
+	@Mixin(targets = "net.minecraft.world.inventory.GrindstoneMenu$2")
 	private static class InputSlot1 {
 		@Inject(
-				method = "canInsert",
+				method = "mayPlace",
 				at = @At("HEAD"),
 				cancellable = true
 		)
 		public void canInsert(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
-			if (stack.isOf(PlotItems.PLOT_MASTER_KEY)) {
+			if (stack.is(PlotItems.PLOT_MASTER_KEY)) {
 				cir.setReturnValue(true);
 			}
 		}
 	}
 
-	@Mixin(targets = "net.minecraft.screen.GrindstoneScreenHandler$4")
+	@Mixin(targets = "net.minecraft.world.inventory.GrindstoneMenu$4")
 	private static class ResultSlot {
 
-		@Shadow @Final GrindstoneScreenHandler field_16780;
+		@Shadow @Final GrindstoneMenu field_16780;
 
 		@ModifyArg(
-			method = "onTakeItem",
+			method = "onTake",
 			at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/screen/ScreenHandlerContext;run(Ljava/util/function/BiConsumer;)V"
+				target = "Lnet/minecraft/world/inventory/ContainerLevelAccess;execute(Ljava/util/function/BiConsumer;)V"
 			)
 		)
-		public BiConsumer<World, BlockPos> onTakeItemInsideContext(BiConsumer<World, BlockPos> function) {
+		public BiConsumer<Level, BlockPos> onTakeItemInsideContext(BiConsumer<Level, BlockPos> function) {
 			var grindstone = (AccessorGrindstoneScreenHandler) field_16780;
-			var plotMasterKey = grindstone.getInput().getStack(0);
+			var plotMasterKey = grindstone.getRepairSlots().getItem(0);
 			if (
-					plotMasterKey.isOf(PlotItems.PLOT_MASTER_KEY) &&
-					grindstone.getInput().getStack(1).isEmpty()
+					plotMasterKey.is(PlotItems.PLOT_MASTER_KEY) &&
+					grindstone.getRepairSlots().getItem(1).isEmpty()
 			) {
 				return (world, pos) -> {
 					PlotKey.getZone(plotMasterKey, world.getServer()).ifPresent(zone -> {
 						zone.plotData().revokeAllSecondarySecrets();
 					});
-					world.syncWorldEvent(WorldEvents.GRINDSTONE_USED, pos, 0);
+					world.levelEvent(LevelEvent.SOUND_GRINDSTONE_USED, pos, 0);
 				};
 			}
 			return function;

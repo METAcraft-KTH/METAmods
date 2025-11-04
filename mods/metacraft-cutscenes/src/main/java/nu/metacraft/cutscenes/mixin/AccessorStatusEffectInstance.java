@@ -1,17 +1,17 @@
 package nu.metacraft.cutscenes.mixin;
 
-import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.world.effect.MobEffectInstance;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(StatusEffectInstance.class)
+@Mixin(MobEffectInstance.class)
 public interface AccessorStatusEffectInstance {
 
 	@Accessor
-	StatusEffectInstance getHiddenEffect();
+	MobEffectInstance getHiddenEffect();
 
 	@Invoker
-	void callCopyFrom(StatusEffectInstance that);
+	void callSetDetailsFrom(MobEffectInstance that);
 
 }

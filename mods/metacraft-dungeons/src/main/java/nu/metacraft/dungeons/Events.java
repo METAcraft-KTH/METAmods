@@ -15,7 +15,7 @@ public class Events {
 		});
 		ServerWorldEvents.LOAD.register(
 				(server, world) -> {
-					if (world.getRegistryKey() == Dimensions.DUNGEONS) {
+					if (world.dimension() == Dimensions.DUNGEONS) {
 						DungeonData.getInstance(world); //Init data for dungeons dimension.
 					}
 				}

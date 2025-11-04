@@ -4,13 +4,12 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
-import net.minecraft.block.Portal;
-import net.minecraft.command.argument.IdentifierArgumentType;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.level.block.Portal;
 import nu.metacraft.portal_blocker.Commands;
 import nu.metacraft.portal_blocker.PortalBlocker;
 import nu.metacraft.portal_blocker.PortalState;
@@ -21,18 +20,18 @@ import java.util.function.Predicate;
 public class PortalType {
 
 	public static final SimpleCommandExceptionType INVALID_PORTAL = new SimpleCommandExceptionType(
-			Text.literal("Invalid portal type")
+			Component.literal("Invalid portal type")
 	);
 
 	private final Predicate<Portal> affectsPortal;
-	private final Text creationMessage;
-	private final Text travelMessage;
+	private final Component creationMessage;
+	private final Component travelMessage;
 
-	public PortalType(Portal blockedPortal, Text creationMessage, Text travelMessage) {
+	public PortalType(Portal blockedPortal, Component creationMessage, Component travelMessage) {
 		this(portal -> portal == blockedPortal, creationMessage, travelMessage);
 	}
 
-	public PortalType(Predicate<Portal> affectsPortal, Text creationMessage, Text travelMessage) {
+	public PortalType(Predicate<Portal> affectsPortal, Component creationMessage, Component travelMessage) {
 		this.affectsPortal = affectsPortal;
 		this.creationMessage = creationMessage;
 		this.travelMessage = travelMessage;
@@ -40,8 +39,8 @@ public class PortalType {
 
 	public void onGlobalStateChange(MinecraftServer server, boolean newState, PortalState.BlockingType type) {}
 
-	public final Identifier getID() {
-		var id = PortalTypeRegistry.REGISTRY.getId(this);
+	public final ResourceLocation getID() {
+		var id = PortalTypeRegistry.REGISTRY.getKey(this);
 		if (id != null) {
 			return id;
 		} else {
@@ -49,8 +48,8 @@ public class PortalType {
 		}
 	}
 
-	public static RequiredArgumentBuilder<ServerCommandSource, Identifier> argument(String name) {
-		return CommandManager.argument(name, IdentifierArgumentType.identifier()).suggests((context, builder) -> {
+	public static RequiredArgumentBuilder<CommandSourceStack, ResourceLocation> argument(String name) {
+		return net.minecraft.commands.Commands.argument(name, ResourceLocationArgument.id()).suggests((context, builder) -> {
 			PortalTypeRegistry.REGISTRY.forEach(value -> {
 				builder.suggest(Commands.getIDAsString(value.getID()));
 			});
@@ -58,8 +57,8 @@ public class PortalType {
 		});
 	}
 
-	public static PortalType getArgument(CommandContext<ServerCommandSource> context, String name) throws CommandSyntaxException {
-		var type = PortalTypeRegistry.REGISTRY.get(IdentifierArgumentType.getIdentifier(context, name));
+	public static PortalType getArgument(CommandContext<CommandSourceStack> context, String name) throws CommandSyntaxException {
+		var type = PortalTypeRegistry.REGISTRY.getValue(ResourceLocationArgument.getId(context, name));
 		if (type == null) {
 			throw INVALID_PORTAL.create();
 		}
@@ -70,11 +69,11 @@ public class PortalType {
 		return affectsPortal.test(portal);
 	}
 
-	public Optional<Text> getTravelMessage() {
+	public Optional<Component> getTravelMessage() {
 		return Optional.ofNullable(travelMessage);
 	}
 
-	public Optional<Text> getCreationMessage() {
+	public Optional<Component> getCreationMessage() {
 		return Optional.ofNullable(creationMessage);
 	}
 

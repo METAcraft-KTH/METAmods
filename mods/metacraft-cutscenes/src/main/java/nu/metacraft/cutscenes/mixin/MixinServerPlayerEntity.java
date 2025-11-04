@@ -1,14 +1,6 @@
 package nu.metacraft.cutscenes.mixin;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -26,18 +18,26 @@ import nu.metacraft.cutscenes.util.helper.CutsceneHelper;
 import nu.metacraft.lib.util.TaskScheduler;
 
 import java.util.Optional;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
-@Mixin(ServerPlayerEntity.class)
-public abstract class MixinServerPlayerEntity extends PlayerEntity implements ServerPlayerEntityExtensions {
+@Mixin(ServerPlayer.class)
+public abstract class MixinServerPlayerEntity extends Player implements ServerPlayerEntityExtensions {
 
-	@Shadow public ServerPlayNetworkHandler networkHandler;
+	@Shadow public ServerGamePacketListenerImpl connection;
 	@Unique
 	private CutsceneInstance cutscene;
 
 	@Unique
 	private boolean allowWrongMovements = false;
 
-	public MixinServerPlayerEntity(World world, GameProfile profile) {
+	public MixinServerPlayerEntity(Level world, GameProfile profile) {
 		super(world, profile);
 	}
 
@@ -53,11 +53,11 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 
 	@Override
 	public void metacraft_cutscenes$setCutscene(CutsceneInstance cutscene) {
-		if (CutsceneHelper.isInMultiplayerCutscene((ServerPlayerEntity) (Object) this)) {
+		if (CutsceneHelper.isInMultiplayerCutscene((ServerPlayer) (Object) this)) {
 			return;
 		}
-		if (this.networkHandler == null) {
-			TaskScheduler.scheduleImmediately(getEntityWorld().getServer(), () -> metacraft_cutscenes$setCutscene(cutscene));
+		if (this.connection == null) {
+			TaskScheduler.scheduleImmediately(level().getServer(), () -> metacraft_cutscenes$setCutscene(cutscene));
 			return;
 		}
 		if (this.cutscene != null && !this.cutscene.isEnded()) {
@@ -65,7 +65,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 		this.cutscene = cutscene;
 		if (this.cutscene != null) {
-			this.cutscene.addPlayer((ServerPlayerEntity) (Object) this);
+			this.cutscene.addPlayer((ServerPlayer) (Object) this);
 			this.cutscene.setRemoveHandler(new CutsceneInstance.RemoveHandler() {
 
 				@Override
@@ -103,61 +103,61 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 	}
 
-	@ModifyVariable(method = "teleportTo", at = @At("HEAD"), argsOnly = true)
-	public TeleportTarget fixTeleportToCutscene(TeleportTarget teleportTarget) {
-		if (teleportTarget.world() instanceof CutsceneWorld cw) {
-			((AccessorTeleportTarget) (Object) teleportTarget).setWorld(cw.getActualWorld());
+	@ModifyVariable(method = "teleport", at = @At("HEAD"), argsOnly = true)
+	public TeleportTransition fixTeleportToCutscene(TeleportTransition teleportTarget) {
+		if (teleportTarget.newLevel() instanceof CutsceneWorld cw) {
+			((AccessorTeleportTarget) (Object) teleportTarget).setNewLevel(cw.getActualWorld());
 		}
 		return teleportTarget;
 	}
 
-	@Inject(method = "teleportTo", at = @At("HEAD"), cancellable = true)
-	public void stopTeleportInMultiplayerCutscene(TeleportTarget teleportTarget, CallbackInfoReturnable<Entity> cir) {
+	@Inject(method = "teleport", at = @At("HEAD"), cancellable = true)
+	public void stopTeleportInMultiplayerCutscene(TeleportTransition teleportTarget, CallbackInfoReturnable<Entity> cir) {
 		if (
-				CutsceneHelper.isInMultiplayerCutscene((ServerPlayerEntity) (Object) this) &&
+				CutsceneHelper.isInMultiplayerCutscene((ServerPlayer) (Object) this) &&
 				!((EntityExtension) this).metacraft$canChangeWorldInCutscene() &&
-				this.getEntityWorld().getRegistryKey() != teleportTarget.world().getRegistryKey()
+				this.level().dimension() != teleportTarget.newLevel().dimension()
 		) {
 			cir.setReturnValue(this);
 		}
 	}
 
-	@Inject(method = "teleportTo", at = @At("RETURN"))
-	public void teleportPost(TeleportTarget teleportTarget, CallbackInfoReturnable<Entity> cir) {
-		if (cutscene != null && this.getEntityWorld().getRegistryKey() != teleportTarget.world().getRegistryKey()) {
-			cutscene.setTargetWorld(teleportTarget.world());
+	@Inject(method = "teleport", at = @At("RETURN"))
+	public void teleportPost(TeleportTransition teleportTarget, CallbackInfoReturnable<Entity> cir) {
+		if (cutscene != null && this.level().dimension() != teleportTarget.newLevel().dimension()) {
+			cutscene.setTargetWorld(teleportTarget.newLevel());
 		}
 	}
 
-	@Inject(method = "onDisconnect", at = @At("HEAD"))
+	@Inject(method = "disconnect", at = @At("HEAD"))
 	public void onDisconnect(CallbackInfo ci) {
-		MultiplayerCutsceneManager.getInstance(getEntityWorld().getServer()).onPlayerLeave((ServerPlayerEntity) (Object) this);
+		MultiplayerCutsceneManager.getInstance(level().getServer()).onPlayerLeave((ServerPlayer) (Object) this);
 		if (cutscene != null) {
 			cutscene.close();
 		}
 	}
 
-	@Inject(method = "readCustomData", at = @At("RETURN"))
-	public void readNBT(ReadView nbt, CallbackInfo ci) {
+	@Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
+	public void readNBT(ValueInput nbt, CallbackInfo ci) {
 		nbt.read(CutsceneInstance.CUTSCENE, CutsceneInstance.CODEC).ifPresent(scene -> {
-			scene.finalizeParse(getEntityWorld().getServer());
+			scene.finalizeParse(level().getServer());
 			this.metacraft_cutscenes$setCutscene(scene);
 		});
 	}
 
-	@Inject(method = "writeCustomData", at = @At("RETURN"))
-	public void writeNBT(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
+	public void writeNBT(ValueOutput nbt, CallbackInfo ci) {
 		if (cutscene != null) {
-			nbt.put(CutsceneInstance.CUTSCENE, CutsceneInstance.CODEC, cutscene);
+			nbt.store(CutsceneInstance.CUTSCENE, CutsceneInstance.CODEC, cutscene);
 		}
 	}
 
-	@Inject(method = "copyFrom", at = @At("RETURN"))
-	public void copyFrom(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo ci) {
+	@Inject(method = "restoreFrom", at = @At("RETURN"))
+	public void copyFrom(ServerPlayer oldPlayer, boolean alive, CallbackInfo ci) {
 		this.cutscene = ((MixinServerPlayerEntity) (Object) oldPlayer).cutscene;
 		if (cutscene != null) {
 			cutscene.removePlayer(oldPlayer, false);
-			cutscene.addPlayer((ServerPlayerEntity) (Object) this);
+			cutscene.addPlayer((ServerPlayer) (Object) this);
 		}
 	}
 }

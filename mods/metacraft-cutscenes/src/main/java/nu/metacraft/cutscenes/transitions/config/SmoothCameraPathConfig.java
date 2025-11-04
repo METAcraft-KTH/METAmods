@@ -2,7 +2,7 @@ package nu.metacraft.cutscenes.transitions.config;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.dynamic.Codecs;
+import net.minecraft.util.ExtraCodecs;
 import nu.metacraft.cutscenes.registry.TransitionConfigRegistry;
 import nu.metacraft.cutscenes.transitions.SmoothCameraPathTransition;
 import nu.metacraft.cutscenes.transitions.Transition;
@@ -20,8 +20,8 @@ public record SmoothCameraPathConfig(
 	public static final MapCodec<SmoothCameraPathConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					SMOOTH_PATH.forGetter(c -> c.targets),
-					Codecs.POSITIVE_INT.optionalFieldOf("linear_interpolation_duration", 20).forGetter(SmoothCameraPathConfig::interpolationDuration),
-					Codecs.POSITIVE_INT.optionalFieldOf("teleport_interval", 1).forGetter(SmoothCameraPathConfig::teleportInterval)
+					ExtraCodecs.POSITIVE_INT.optionalFieldOf("linear_interpolation_duration", 20).forGetter(SmoothCameraPathConfig::interpolationDuration),
+					ExtraCodecs.POSITIVE_INT.optionalFieldOf("teleport_interval", 1).forGetter(SmoothCameraPathConfig::teleportInterval)
 			).apply(instance, SmoothCameraPathConfig::new)
 	);
 

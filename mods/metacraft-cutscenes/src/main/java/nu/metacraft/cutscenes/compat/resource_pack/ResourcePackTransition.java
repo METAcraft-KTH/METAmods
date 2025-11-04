@@ -1,8 +1,8 @@
 package nu.metacraft.cutscenes.compat.resource_pack;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.registry.Registry;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.cutscenes.registry.TransitionConfigRegistry;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
 import nu.metacraft.cutscenes.transitions.Transition;
@@ -24,11 +24,11 @@ public class ResourcePackTransition {
 	}
 
 	private static <T extends TransitionConfig> TransitionConfigType<T> registerConfig(String id, MapCodec<T> codec) {
-		return Registry.register(TransitionConfigRegistry.REGISTRY, Identifier.ofVanilla(id), new TransitionConfigType<>(codec));
+		return Registry.register(TransitionConfigRegistry.REGISTRY, ResourceLocation.withDefaultNamespace(id), new TransitionConfigType<>(codec));
 	}
 
 	private static <T extends Transition> TransitionType<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(TransitionRegistry.REGISTRY, Identifier.ofVanilla(id), new TransitionType<>(codec));
+		return Registry.register(TransitionRegistry.REGISTRY, ResourceLocation.withDefaultNamespace(id), new TransitionType<>(codec));
 	}
 
 }

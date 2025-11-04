@@ -1,8 +1,5 @@
 package nu.metacraft.zones.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -13,16 +10,19 @@ import nu.metacraft.zones.ZoneManager;
 import nu.metacraft.zones.zone.Zone;
 
 import java.util.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
-	@Shadow public abstract BlockPos getBlockPos();
+	@Shadow public abstract BlockPos blockPosition();
 
-	@Shadow private World world;
-	@Shadow public int age;
+	@Shadow private Level level;
+	@Shadow public int tickCount;
 
 	@Shadow
-	public abstract World getEntityWorld();
+	public abstract Level level();
 
 	@Unique
 	private final Set<Zone> currentZones = new TreeSet<>();
@@ -32,16 +32,16 @@ public abstract class MixinEntity {
 			at = @At("HEAD")
 	)
 	public void tick(CallbackInfo ci) {
-		if (!world.isClient() && this.age % 100 == 0) {
+		if (!level.isClientSide() && this.tickCount % 100 == 0) {
 			Set<Zone> removeZones = new HashSet<>();
 			for (Zone currentZone : currentZones) {
-				if (!currentZone.isPosWithinZoneBoundsNoDimCheck(this.getBlockPos())) {
+				if (!currentZone.isPosWithinZoneBoundsNoDimCheck(this.blockPosition())) {
 					currentZone.removeFromZone((Entity) (Object) this);
 					removeZones.add(currentZone);
 				}
 			}
-			ZoneManager.getInstance(getEntityWorld().getServer()).getZones().forZones(this.world.getRegistryKey(), zone -> {
-				if (!currentZones.contains(zone) && zone.isPosWithinZoneBoundsNoDimCheck(this.getBlockPos())) {
+			ZoneManager.getInstance(level().getServer()).getZones().forZones(this.level.dimension(), zone -> {
+				if (!currentZones.contains(zone) && zone.isPosWithinZoneBoundsNoDimCheck(this.blockPosition())) {
 					currentZones.add(zone);
 					zone.addToZone((Entity) (Object) this);
 				}

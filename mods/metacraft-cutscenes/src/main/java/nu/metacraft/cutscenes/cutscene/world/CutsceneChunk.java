@@ -1,31 +1,30 @@
 package nu.metacraft.cutscenes.cutscene.world;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.network.packet.s2c.play.ChunkData;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.world.chunk.WorldChunk;
-
 import java.util.HashSet;
 import java.util.Set;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.phys.AABB;
 
-public class CutsceneChunk extends WorldChunk {
+public class CutsceneChunk extends LevelChunk {
 
 	private final Set<BlockPos> changedBlocks = new HashSet<>();
 
 	protected final CutsceneWorld world;
 
-	public CutsceneChunk(WorldChunk chunk, CutsceneWorld world) {
+	public CutsceneChunk(LevelChunk chunk, CutsceneWorld world) {
 		super(world, chunk.getPos());
 		this.world = world;
-		var data = new ChunkData(chunk);
-		this.loadFromPacket(data.getSectionsDataBuf(), data.getHeightmap(), data.getBlockEntities(chunk.getPos().x, chunk.getPos().z));
-		this.setLevelTypeProvider(chunk::getLevelType);
-		setLoadedToWorld(true);
-		updateAllBlockEntities();
+		var data = new ClientboundLevelChunkPacketData(chunk);
+		this.replaceWithPacketData(data.getReadBuffer(), data.getHeightmaps(), data.getBlockEntitiesTagsConsumer(chunk.getPos().x, chunk.getPos().z));
+		this.setFullStatus(chunk::getFullStatus);
+		setLoaded(true);
+		registerAllBlockEntitiesAfterLevelLoad();
 	}
 
 	@Override
@@ -36,7 +35,7 @@ public class CutsceneChunk extends WorldChunk {
 
 	@Override
 	public void setBlockEntity(BlockEntity blockEntity) {
-		changedBlocks.add(blockEntity.getPos());
+		changedBlocks.add(blockEntity.getBlockPos());
 		super.setBlockEntity(blockEntity);
 	}
 
@@ -47,9 +46,9 @@ public class CutsceneChunk extends WorldChunk {
 	}
 
 	@Override
-	public void clear() {
+	public void clearAllBlockEntities() {
 		changedBlocks.clear();
-		super.clear();
+		super.clearAllBlockEntities();
 	}
 
 	public Set<BlockPos> getChangedBlocks() {
@@ -57,19 +56,19 @@ public class CutsceneChunk extends WorldChunk {
 	}
 
 	private Entity copyEntityAndPassengers(Entity entity) {
-		var existing = world.getEntityLookup().get(entity.getUuid());
+		var existing = world.getEntities().get(entity.getUUID());
 		if (existing != null) {
 			return null;
 		}
-		var newEntity = entity.getType().create(world, SpawnReason.LOAD);
+		var newEntity = entity.getType().create(world, EntitySpawnReason.LOAD);
 		if (newEntity == null) return null;
-		var id = newEntity.getUuid();
-		newEntity.copyFrom(entity);
-		newEntity.setUuid(id);
-		world.getEntityManager().addEntityToHide(entity.getUuid());
-		world.onDimensionChanged(newEntity);
-		if (entity.hasPassengers()) {
-			for (var passenger : entity.getPassengerList()) {
+		var id = newEntity.getUUID();
+		newEntity.restoreFrom(entity);
+		newEntity.setUUID(id);
+		world.getEntityManager().addEntityToHide(entity.getUUID());
+		world.addDuringTeleport(newEntity);
+		if (entity.isVehicle()) {
+			for (var passenger : entity.getPassengers()) {
 				var newPassenger = copyEntityAndPassengers(passenger);
 				if (newPassenger != null) {
 					newPassenger.startRiding(newEntity, true, false);
@@ -80,12 +79,12 @@ public class CutsceneChunk extends WorldChunk {
 	}
 
 	public void fetchEntitiesFromActualWorld() {
-		world.getActualWorld().getEntitiesByClass(
-				Entity.class, Box.enclosing(
-						new BlockPos(getPos().getStartX(), world.getBottomY(), getPos().getStartZ()),
-						new BlockPos(getPos().getEndX(), world.getTopYInclusive(), getPos().getEndZ())
+		world.getActualWorld().getEntitiesOfClass(
+				Entity.class, AABB.encapsulatingFullBlocks(
+						new BlockPos(getPos().getMinBlockX(), world.getMinY(), getPos().getMinBlockZ()),
+						new BlockPos(getPos().getMaxBlockX(), world.getMaxY(), getPos().getMaxBlockZ())
 				),
-				entity -> !entity.hasVehicle() && entity.getChunkPos().equals(this.getPos())
+				entity -> !entity.isPassenger() && entity.chunkPosition().equals(this.getPos())
 		).forEach(this::copyEntityAndPassengers);
 	}
 }

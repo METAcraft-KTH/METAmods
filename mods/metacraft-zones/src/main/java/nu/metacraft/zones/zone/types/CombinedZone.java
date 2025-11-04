@@ -4,8 +4,6 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.math.BlockPos;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.pcollections.PVector;
 import org.pcollections.TreePVector;
@@ -19,6 +17,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 
 public abstract class CombinedZone extends ZoneType {
 
@@ -32,11 +32,11 @@ public abstract class CombinedZone extends ZoneType {
 		).apply(instance, creator));
 	}
 
-	public static ArgumentBuilder<ServerCommandSource, ?> createCommand(
-			ArgumentBuilder<ServerCommandSource, ?> builder, ZoneManagementCommand.ZoneAdder addZone,
+	public static ArgumentBuilder<CommandSourceStack, ?> createCommand(
+			ArgumentBuilder<CommandSourceStack, ?> builder, ZoneManagementCommand.ZoneAdder addZone,
 			Function<List<ZoneType>, CombinedZone> creator
 	) {
-		Function<Integer, Command<ServerCommandSource>> commandExecution = zoneCount -> {
+		Function<Integer, Command<CommandSourceStack>> commandExecution = zoneCount -> {
 			return ctx -> {
 				List<ZoneType> zones = new ArrayList<>(zoneCount);
 				for (int i = 0; i < zoneCount; i++) {

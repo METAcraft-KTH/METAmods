@@ -6,13 +6,13 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ChunkPos;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.core.util.SerializableEntitySelector;
 
@@ -22,14 +22,14 @@ import java.util.stream.Stream;
 public class ChunkAreaRegistry {
 
 	public static final Registry<MapCodec<? extends ChunkArea>> REGISTRY = FabricRegistryBuilder.<MapCodec<? extends ChunkArea>>createSimple(
-			RegistryKey.ofRegistry(Cutscenes.getID("chunk_area"))
+			ResourceKey.createRegistryKey(Cutscenes.getID("chunk_area"))
 	).buildAndRegister();
 
 	public static final Codec<ChunkPos> CHUNK_OR_BLOCK_POS_CODEC = Codec.withAlternative(
 			ChunkPos.CODEC, BlockPos.CODEC, ChunkPos::new
 	);
 
-	protected static final Codec<ChunkArea> REGISTRY_CODEC = REGISTRY.getCodec().dispatch(
+	protected static final Codec<ChunkArea> REGISTRY_CODEC = REGISTRY.byNameCodec().dispatch(
 			ChunkArea::getCodec, c -> c
 	);
 
@@ -48,13 +48,13 @@ public class ChunkAreaRegistry {
 	}
 
 	private static <T extends ChunkArea> MapCodec<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(REGISTRY, Identifier.ofVanilla(id), codec);
+		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), codec);
 	}
 
 
 	public interface ChunkArea {
 		MapCodec<? extends ChunkArea> getCodec();
-		Stream<ChunkPos> getPositions(ServerWorld world);
+		Stream<ChunkPos> getPositions(ServerLevel world);
 	}
 
 	public record ChunkRange(ChunkPos lhs, ChunkPos rhs) implements ChunkArea {
@@ -64,8 +64,8 @@ public class ChunkAreaRegistry {
 		).fieldOf("range");
 
 		@Override
-		public Stream<ChunkPos> getPositions(ServerWorld world) {
-			return ChunkPos.stream(lhs, rhs);
+		public Stream<ChunkPos> getPositions(ServerLevel world) {
+			return ChunkPos.rangeClosed(lhs, rhs);
 		}
 
 		@Override
@@ -84,8 +84,8 @@ public class ChunkAreaRegistry {
 		);
 
 		@Override
-		public Stream<ChunkPos> getPositions(ServerWorld world) {
-			return ChunkPos.stream(center, radius);
+		public Stream<ChunkPos> getPositions(ServerLevel world) {
+			return ChunkPos.rangeClosed(center, radius);
 		}
 
 		@Override
@@ -101,7 +101,7 @@ public class ChunkAreaRegistry {
 		).fieldOf("chunk");
 
 		@Override
-		public Stream<ChunkPos> getPositions(ServerWorld world) {
+		public Stream<ChunkPos> getPositions(ServerLevel world) {
 			return Stream.of(chunk);
 		}
 
@@ -120,11 +120,11 @@ public class ChunkAreaRegistry {
 		);
 
 		@Override
-		public Stream<ChunkPos> getPositions(ServerWorld world) {
+		public Stream<ChunkPos> getPositions(ServerLevel world) {
 			try {
-				return selector.get().getEntities(
-						world.getServer().getCommandFunctionManager().getScheduledCommandSource()
-				).stream().filter(e -> e.getEntityWorld() == world).map(Entity::getChunkPos).distinct();
+				return selector.get().findEntities(
+						world.getServer().getFunctions().getGameLoopSender()
+				).stream().filter(e -> e.level() == world).map(Entity::chunkPosition).distinct();
 			} catch (CommandSyntaxException e) {
 				Cutscenes.LOGGER.error(e.getMessage());
 				return Stream.of();

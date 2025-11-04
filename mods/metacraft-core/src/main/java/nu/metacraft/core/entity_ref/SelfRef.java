@@ -1,11 +1,11 @@
 package nu.metacraft.core.entity_ref;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.entity.Entity;
 import nu.metacraft.core.registry.EntityRefRegistry;
 import nu.metacraft.core.util.RefContext;
 
 import java.util.stream.Stream;
+import net.minecraft.world.entity.Entity;
 
 public final class SelfRef implements EntityRef {
 
@@ -21,7 +21,7 @@ public final class SelfRef implements EntityRef {
 
 	@Override
 	public Stream<? extends Entity> get(RefContext ctx) {
-		return ctx.getEntity().stream();
+		return ctx.entity().stream();
 	}
 
 	@Override

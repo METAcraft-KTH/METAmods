@@ -6,16 +6,16 @@ import com.mojang.datafixers.DSL;
 import com.mojang.datafixers.schemas.Schema;
 import com.mojang.datafixers.types.templates.Product;
 import com.mojang.datafixers.types.templates.TypeTemplate;
-import net.minecraft.datafixer.TypeReferences;
-import net.minecraft.datafixer.schema.Schema1460;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.faster_minecarts.FasterMinecarts;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.util.datafix.fixes.References;
+import net.minecraft.util.datafix.schemas.V1460;
 
-@Mixin(Schema1460.class)
+@Mixin(V1460.class)
 public class MixinSchema1460 {
 
 	@ModifyExpressionValue(
@@ -26,7 +26,7 @@ public class MixinSchema1460 {
 					"method_5238", //Hopper minecart
 					"method_5263", //Minecart
 					"method_5262", //Spawner minecart
-					"method_5244"  //TNT minecart
+					"method_5244"
 			},
 			expect = 7,
 			at = {
@@ -54,7 +54,7 @@ public class MixinSchema1460 {
 				p = p2;
 			}
 			elements.add(p.f());
-			elements.add(DSL.optional(DSL.field(FasterMinecarts.MINECART_ITEM, TypeReferences.ITEM_STACK.in(schema))));
+			elements.add(DSL.optional(DSL.field(FasterMinecarts.MINECART_ITEM, References.ITEM_STACK.in(schema))));
 			elements.add(p.g());
 
 			return DSL.and(elements);

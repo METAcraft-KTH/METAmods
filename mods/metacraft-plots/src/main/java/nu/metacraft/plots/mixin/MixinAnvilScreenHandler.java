@@ -1,46 +1,46 @@
 package nu.metacraft.plots.mixin;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.AnvilScreenHandler;
-import net.minecraft.screen.ForgingScreenHandler;
-import net.minecraft.screen.ScreenHandlerContext;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.screen.slot.ForgingSlotsManager;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AnvilMenu;
+import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.ItemCombinerMenu;
+import net.minecraft.world.inventory.ItemCombinerMenuSlotDefinition;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
 import nu.metacraft.plots.item.PlotItems;
 import nu.metacraft.plots.item.PlotKey;
 
-@Mixin(AnvilScreenHandler.class)
-public abstract class MixinAnvilScreenHandler extends ForgingScreenHandler {
+@Mixin(AnvilMenu.class)
+public abstract class MixinAnvilScreenHandler extends ItemCombinerMenu {
 
-	public MixinAnvilScreenHandler(@Nullable ScreenHandlerType<?> type, int syncId, PlayerInventory playerInventory, ScreenHandlerContext context, ForgingSlotsManager forgingSlotsManager) {
+	public MixinAnvilScreenHandler(@Nullable MenuType<?> type, int syncId, Inventory playerInventory, ContainerLevelAccess context, ItemCombinerMenuSlotDefinition forgingSlotsManager) {
 		super(type, syncId, playerInventory, context, forgingSlotsManager);
 	}
 
 	@Inject(
-		method = "onTakeOutput",
+		method = "onTake",
 		at = @At("HEAD")
 	)
-	public void onTakeOutput(PlayerEntity player, ItemStack stack, CallbackInfo ci) {
-		if (stack.isOf(PlotItems.PLOT_KEY) && stack.contains(DataComponentTypes.CUSTOM_NAME)) {
-			PlotKey.renameKey(stack, player.getEntityWorld().getServer(), stack.getName().getString());
+	public void onTakeOutput(Player player, ItemStack stack, CallbackInfo ci) {
+		if (stack.is(PlotItems.PLOT_KEY) && stack.has(DataComponents.CUSTOM_NAME)) {
+			PlotKey.renameKey(stack, player.level().getServer(), stack.getHoverName().getString());
 		}
 	}
 
-	@Inject(method = "updateResult", at = @At("RETURN"))
+	@Inject(method = "createResult", at = @At("RETURN"))
 	public void updateResult(CallbackInfo ci) {
-		var output = this.output.getStack(0);
-		if (this.input.getStack(0).isOf(PlotItems.PLOT_KEY) && output.isOf(PlotItems.PLOT_KEY) && output.contains(DataComponentTypes.CUSTOM_NAME)) {
-			PlotKey.getZone(output, this.player.getEntityWorld().getServer()).ifPresent(zone -> {
-				if (!zone.plotData().friendlyNameIsOccupied(output.getName().getString())) {
-					PlotKey.setPlaceholderName(output, output.getName().getString());
+		var output = this.resultSlots.getItem(0);
+		if (this.inputSlots.getItem(0).is(PlotItems.PLOT_KEY) && output.is(PlotItems.PLOT_KEY) && output.has(DataComponents.CUSTOM_NAME)) {
+			PlotKey.getZone(output, this.player.level().getServer()).ifPresent(zone -> {
+				if (!zone.plotData().friendlyNameIsOccupied(output.getHoverName().getString())) {
+					PlotKey.setPlaceholderName(output, output.getHoverName().getString());
 				}
 			});
 		}

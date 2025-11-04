@@ -4,14 +4,14 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.command.argument.ColumnPosArgumentType;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ColumnPos;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.coordinates.ColumnPosArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ColumnPos;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
-import static net.minecraft.server.command.CommandManager.argument;
+import static net.minecraft.commands.Commands.argument;
 
 public class RegionZone extends ZoneType {
 
@@ -22,15 +22,15 @@ public class RegionZone extends ZoneType {
 			Codec.INT.fieldOf("z2").forGetter(zone -> zone.maxZ)
 	).apply(instance, RegionZone::new));
 
-	public static ArgumentBuilder<ServerCommandSource, ?> createCommand(
-			ArgumentBuilder<ServerCommandSource, ?> builder, ZoneManagementCommand.ZoneAdder addZone
+	public static ArgumentBuilder<CommandSourceStack, ?> createCommand(
+			ArgumentBuilder<CommandSourceStack, ?> builder, ZoneManagementCommand.ZoneAdder addZone
 	) {
 		return builder.then(
-				argument("pos1", ColumnPosArgumentType.columnPos()).then(
-						argument("pos2", ColumnPosArgumentType.columnPos()).executes(ctx -> {
+				argument("pos1", ColumnPosArgument.columnPos()).then(
+						argument("pos2", ColumnPosArgument.columnPos()).executes(ctx -> {
 							return addZone.add(() -> new RegionZone(
-									ColumnPosArgumentType.getColumnPos(ctx,"pos1"),
-									ColumnPosArgumentType.getColumnPos(ctx,"pos2")
+									ColumnPosArgument.getColumnPos(ctx,"pos1"),
+									ColumnPosArgument.getColumnPos(ctx,"pos2")
 							), ctx);
 						})
 				)

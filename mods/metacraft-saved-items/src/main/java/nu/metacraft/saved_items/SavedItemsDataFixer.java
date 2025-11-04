@@ -2,12 +2,12 @@ package nu.metacraft.saved_items;
 
 import com.chocohead.mm.api.ClassTinkerers;
 import com.mojang.datafixers.DSL;
-import net.minecraft.datafixer.DataFixTypes;
-import net.minecraft.datafixer.TypeReferences;
+import net.minecraft.util.datafix.DataFixTypes;
+import net.minecraft.util.datafix.fixes.References;
 
 public class SavedItemsDataFixer {
 
-	public static final DSL.TypeReference SAVED_DATA_SAVED_ITEMS = TypeReferences.create(
+	public static final DSL.TypeReference SAVED_DATA_SAVED_ITEMS = References.reference(
 			"metacraft/saved_data/saved_items"
 	);
 

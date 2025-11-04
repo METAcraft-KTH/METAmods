@@ -2,11 +2,11 @@ package nu.metacraft.simplecustomfeatures.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.block.DispenserBlock;
-import net.minecraft.block.dispenser.DispenserBehavior;
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.World;
+import net.minecraft.core.dispenser.DispenseItemBehavior;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.DispenserBlock;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.simplecustomfeatures.objects.blocks.dynamic_portal.PortalBlockObject;
@@ -14,11 +14,11 @@ import nu.metacraft.simplecustomfeatures.objects.blocks.dynamic_portal.PortalBlo
 @Mixin(DispenserBlock.class)
 public class MixinDispenserBlock {
 
-	@ModifyReturnValue(method = "getBehaviorForItem(Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;)Lnet/minecraft/block/dispenser/DispenserBehavior;", at = @At("RETURN"))
-	protected DispenserBehavior getDispenserBehavior(
-			DispenserBehavior original, @Local(argsOnly = true) World world, @Local(argsOnly = true) ItemStack stack
+	@ModifyReturnValue(method = "getDispenseMethod(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/core/dispenser/DispenseItemBehavior;", at = @At("RETURN"))
+	protected DispenseItemBehavior getDispenserBehavior(
+			DispenseItemBehavior original, @Local(argsOnly = true) Level world, @Local(argsOnly = true) ItemStack stack
 	) {
-		if (!(world instanceof ServerWorld sw)) return original;
+		if (!(world instanceof ServerLevel sw)) return original;
 		return PortalBlockObject.getForItem(stack, sw).map(portal -> portal.getDispenserBehaviour(original)).orElse(original);
 	}
 

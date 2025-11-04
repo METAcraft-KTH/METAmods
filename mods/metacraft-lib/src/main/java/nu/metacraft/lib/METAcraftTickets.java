@@ -1,15 +1,15 @@
 package nu.metacraft.lib;
 
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.server.world.ChunkTicketType;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.server.level.TicketType;
 
 public class METAcraftTickets {
 
-	public static final ChunkTicketType TELEPORT_MOB_SOON = register(
+	public static final TicketType TELEPORT_MOB_SOON = register(
 			"teleport_mob_soon",
-			new ChunkTicketType(
-					1, ChunkTicketType.FOR_LOADING | ChunkTicketType.FOR_SIMULATION
+			new TicketType(
+					1, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION
 			)
 	);
 	
@@ -17,8 +17,8 @@ public class METAcraftTickets {
 		
 	}
 	
-	private static ChunkTicketType register(String name, ChunkTicketType type) {
-		return Registry.register(Registries.TICKET_TYPE, METAcraftLib.getID(name), type);
+	private static TicketType register(String name, TicketType type) {
+		return Registry.register(BuiltInRegistries.TICKET_TYPE, METAcraftLib.getID(name), type);
 	}
 	
 }

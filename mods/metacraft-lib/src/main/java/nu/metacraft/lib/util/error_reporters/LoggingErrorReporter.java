@@ -1,9 +1,9 @@
 package nu.metacraft.lib.util.error_reporters;
 
-import net.minecraft.util.ErrorReporter;
+import net.minecraft.util.ProblemReporter;
 import org.apache.logging.log4j.Logger;
 
-public class LoggingErrorReporter extends ErrorReporter.Impl implements AutoCloseable {
+public class LoggingErrorReporter extends ProblemReporter.Collector implements AutoCloseable {
 
 	private final Logger logger;
 
@@ -11,19 +11,19 @@ public class LoggingErrorReporter extends ErrorReporter.Impl implements AutoClos
 		this.logger = logger;
 	}
 
-	public LoggingErrorReporter(ErrorReporter.Context context, Logger logger) {
+	public LoggingErrorReporter(ProblemReporter.PathElement context, Logger logger) {
 		super(context);
 		this.logger = logger;
 	}
 
-	public static LoggingErrorReporter create(ErrorReporter.Context context, Logger logger) {
+	public static LoggingErrorReporter create(ProblemReporter.PathElement context, Logger logger) {
 		return new LoggingErrorReporter(context, logger);
 	}
 
 	@Override
 	public void close() {
 		if (!this.isEmpty()) {
-			this.logger.warn("[{}] Serialization errors:\n{}", this.logger.getName(), this.getErrorsAsLongString());
+			this.logger.warn("[{}] Serialization errors:\n{}", this.logger.getName(), this.getTreeReport());
 		}
 	}
 }

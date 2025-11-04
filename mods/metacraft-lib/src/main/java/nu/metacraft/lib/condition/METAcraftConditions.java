@@ -1,11 +1,11 @@
 package nu.metacraft.lib.condition;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.loot.condition.LootCondition;
-import net.minecraft.loot.condition.LootConditionType;
-import net.minecraft.predicate.entity.EntitySubPredicate;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
+import net.minecraft.advancements.critereon.EntitySubPredicate;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.condition.conditions.*;
 import nu.metacraft.lib.condition.entity_sub_predicates.HealthPredicate;
@@ -14,15 +14,15 @@ import nu.metacraft.lib.condition.entity_sub_predicates.MultiSubPredicate;
 
 public class METAcraftConditions {
 
-	public static final LootConditionType SPAWN_PREDICATE = register("spawn_predicate", ValidateSpawnPredicate.CODEC);
-	public static final LootConditionType SPAWN_RESTRICTION = register("spawn_restriction", ValidateSpawnRestriction.CODEC);
-	public static final LootConditionType SOLID_BLOCK_BELOW = register("solid_block_below", SolidBlockBelow.CODEC);
-	public static final LootConditionType NOT_IN_WALL = register("not_in_wall", NotInWall.CODEC);
-	public static final LootConditionType IS_NEAR_GROUND = register("is_near_ground", IsNearGround.CODEC);
-	public static final LootConditionType MATCHES_SPAWN_REASON = register("spawn_reason", MatchesSpawnReason.CODEC);
-	public static final LootConditionType HAS_SKY_ACCESS = register("has_sky_access", HasSkyAccess.CODEC);
-	public static final LootConditionType BLOCK_BELOW_CAN_SPAWN = register("block_below_can_spawn", BlockBelowCanSpawn.CODEC);
-	public static final LootConditionType LOCAL_WEATHER = register("local_weather", LocalWeather.CODEC);
+	public static final LootItemConditionType SPAWN_PREDICATE = register("spawn_predicate", ValidateSpawnPredicate.CODEC);
+	public static final LootItemConditionType SPAWN_RESTRICTION = register("spawn_restriction", ValidateSpawnRestriction.CODEC);
+	public static final LootItemConditionType SOLID_BLOCK_BELOW = register("solid_block_below", SolidBlockBelow.CODEC);
+	public static final LootItemConditionType NOT_IN_WALL = register("not_in_wall", NotInWall.CODEC);
+	public static final LootItemConditionType IS_NEAR_GROUND = register("is_near_ground", IsNearGround.CODEC);
+	public static final LootItemConditionType MATCHES_SPAWN_REASON = register("spawn_reason", MatchesSpawnReason.CODEC);
+	public static final LootItemConditionType HAS_SKY_ACCESS = register("has_sky_access", HasSkyAccess.CODEC);
+	public static final LootItemConditionType BLOCK_BELOW_CAN_SPAWN = register("block_below_can_spawn", BlockBelowCanSpawn.CODEC);
+	public static final LootItemConditionType LOCAL_WEATHER = register("local_weather", LocalWeather.CODEC);
 
 
 	public static void init() {
@@ -31,9 +31,9 @@ public class METAcraftConditions {
 		EntitySubPredicates.init();
 	}
 
-	private static LootConditionType register(String id, MapCodec<? extends LootCondition> codec) {
+	private static LootItemConditionType register(String id, MapCodec<? extends LootItemCondition> codec) {
 		return Registry.register(
-				Registries.LOOT_CONDITION_TYPE, METAcraftLib.getID(id), new LootConditionType(codec)
+				BuiltInRegistries.LOOT_CONDITION_TYPE, METAcraftLib.getID(id), new LootItemConditionType(codec)
 		);
 	}
 
@@ -47,7 +47,7 @@ public class METAcraftConditions {
 		}
 
 		private static void register(String id, MapCodec<? extends EntitySubPredicate> codec) {
-			Registry.register(Registries.ENTITY_SUB_PREDICATE_TYPE, METAcraftLib.getID(id), codec);
+			Registry.register(BuiltInRegistries.ENTITY_SUB_PREDICATE_TYPE, METAcraftLib.getID(id), codec);
 		}
 	}
 

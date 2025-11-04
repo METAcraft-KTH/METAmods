@@ -1,9 +1,5 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.entity.data.TrackedData;
-import net.minecraft.entity.passive.ParrotEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
@@ -11,27 +7,31 @@ import org.spongepowered.asm.mixin.throwables.MixinError;
 
 import java.util.Optional;
 import java.util.OptionalInt;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.world.entity.animal.Parrot;
+import net.minecraft.world.entity.player.Player;
 
-@Mixin(PlayerEntity.class)
+@Mixin(Player.class)
 public interface AccessorPlayerEntity {
 
-	@Accessor("LEFT_SHOULDER_PARROT_VARIANT_ID")
-	static TrackedData<OptionalInt> getLeftShoulderEntity() {
+	@Accessor("DATA_SHOULDER_PARROT_LEFT")
+	static EntityDataAccessor<OptionalInt> getLeftShoulderEntity() {
 		throw new IllegalStateException("Mixin Error");
 	}
 
-	@Accessor("RIGHT_SHOULDER_PARROT_VARIANT_ID")
-	static TrackedData<OptionalInt> getRightShoulderEntity() {
+	@Accessor("DATA_SHOULDER_PARROT_RIGHT")
+	static EntityDataAccessor<OptionalInt> getRightShoulderEntity() {
 		throw new IllegalStateException("Mixin Error");
 	}
 
 	@Invoker
-	static Optional<ParrotEntity.Variant> callReadParrotVariant(NbtCompound nbt) {
+	static Optional<Parrot.Variant> callExtractParrotVariant(CompoundTag nbt) {
 		throw new MixinError("Not Working");
 	}
 
 	@Invoker
-	static OptionalInt callMapParrotVariant(Optional<ParrotEntity.Variant> variant) {
+	static OptionalInt callConvertParrotVariant(Optional<Parrot.Variant> variant) {
 		throw new MixinError("Not Working");
 	}
 

@@ -1,23 +1,23 @@
 package nu.metacraft.lib.util;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public class Particles {
 
-	public static void spawnAngerParticles(Entity entity, Random random) {
-		Box box = entity.getBoundingBox();
-		Vec3d center = box.getCenter();
-		((ServerWorld) entity.getEntityWorld()).spawnParticles(
+	public static void spawnAngerParticles(Entity entity, RandomSource random) {
+		AABB box = entity.getBoundingBox();
+		Vec3 center = box.getCenter();
+		((ServerLevel) entity.level()).sendParticles(
 				ParticleTypes.ANGRY_VILLAGER,
-				center.getX() + random.nextGaussian() * box.getLengthX() / 2,
-				center.getY() + box.getLengthY()/4 + random.nextGaussian() * box.getLengthY()/4,
-				center.getZ() + random.nextGaussian() * box.getLengthZ() / 2,
-				1, 0, 0.1 + random.nextDouble() * box.getLengthY()/4, 0, 1
+				center.x() + random.nextGaussian() * box.getXsize() / 2,
+				center.y() + box.getYsize()/4 + random.nextGaussian() * box.getYsize()/4,
+				center.z() + random.nextGaussian() * box.getZsize() / 2,
+				1, 0, 0.1 + random.nextDouble() * box.getYsize()/4, 0, 1
 		);
 	}
 

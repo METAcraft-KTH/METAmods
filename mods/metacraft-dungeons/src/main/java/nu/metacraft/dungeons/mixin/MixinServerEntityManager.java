@@ -1,6 +1,5 @@
 package nu.metacraft.dungeons.mixin;
 
-import net.minecraft.server.world.ServerEntityManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -9,15 +8,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import nu.metacraft.dungeons.extensions.ServerEntityManagerExtension;
 
 import java.io.IOException;
+import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 
-@Mixin(ServerEntityManager.class)
+@Mixin(PersistentEntitySectionManager.class)
 public class MixinServerEntityManager implements ServerEntityManagerExtension {
 
 	@Unique
 	private boolean isBeingDeleted = false;
 
 	@Inject(
-			method = {"save", "flush"},
+			method = {"autoSave", "saveAll"},
 			at = @At("HEAD"),
 			cancellable = true
 	)

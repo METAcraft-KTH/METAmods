@@ -1,7 +1,7 @@
 package nu.metacraft.dungeons.dungeons.portal_data;
 
-import net.minecraft.registry.Registry;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.core.portal.PortalTarget;
 import nu.metacraft.core.portal.PortalTargetRegistry;
 
@@ -13,7 +13,7 @@ public class DungeonPortalTargets {
 	);
 
 	private static <T extends PortalTargetRegistry.PortalTargetType<? extends PortalTarget>> T register(String id, T object) {
-		return Registry.register(PortalTargetRegistry.REGISTRY, Identifier.ofVanilla(id), object);
+		return Registry.register(PortalTargetRegistry.REGISTRY, ResourceLocation.withDefaultNamespace(id), object);
 	}
 
 	public static void init() {

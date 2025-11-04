@@ -1,16 +1,16 @@
 package nu.metacraft.lib.mixin;
 
-import net.minecraft.entity.player.PlayerModelPart;
-import net.minecraft.util.StringIdentifiable;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.entity.player.PlayerModelPart;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
 @Mixin(PlayerModelPart.class)
-public abstract class MixinPlayerModelPart implements StringIdentifiable {
-	@Shadow public abstract String getName();
+public abstract class MixinPlayerModelPart implements StringRepresentable {
+	@Shadow public abstract String getId();
 
 	@Override
-	public String asString() {
-		return getName();
+	public String getSerializedName() {
+		return getId();
 	}
 }

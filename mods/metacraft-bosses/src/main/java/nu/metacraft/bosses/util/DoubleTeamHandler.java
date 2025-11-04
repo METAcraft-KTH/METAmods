@@ -3,22 +3,6 @@ package nu.metacraft.bosses.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.EntityData;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.storage.NbtReadView;
-import net.minecraft.storage.NbtWriteView;
-import net.minecraft.util.ErrorReporter;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.floatprovider.FloatProvider;
-import net.minecraft.util.math.intprovider.IntProvider;
-import net.minecraft.world.ServerWorldAccess;
 import nu.metacraft.core.entity.METAcraftEntities;
 import nu.metacraft.core.extensions.EntityExtensions;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
@@ -26,11 +10,27 @@ import nu.metacraft.bosses.METAcraftBosses;
 import nu.metacraft.bosses.extensions.LivingEntityExtensions;
 
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.Mth;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.util.valueproviders.FloatProvider;
+import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.phys.Vec3;
 
 public record DoubleTeamHandler(
 		LivingEntity primary, Settings settings,
 		int time, int spawnsSoFar
-) implements EntityData {
+) implements SpawnGroupData {
 
 	public static Codec<DoubleTeamHandler> getCodec(LivingEntity owner) {
 		return getMapCodec(owner).codec();
@@ -53,19 +53,19 @@ public record DoubleTeamHandler(
 	public DoubleTeamHandler(
 			LivingEntity primary, IntProvider delay, int maxSpawns, FloatProvider dist, double handoverChance
 	) {
-		this(primary, new Settings(delay, maxSpawns, dist, handoverChance, new NbtCompound(), Optional.empty()), 0, 0);
+		this(primary, new Settings(delay, maxSpawns, dist, handoverChance, new CompoundTag(), Optional.empty()), 0, 0);
 	}
 
 	public static void applyToEntity(DoubleTeamHandler handler) {
 		((LivingEntityExtensions) handler.primary).metacraft$setDoubleTeamHandler(handler);
 	}
 
-	private void setCloneData(LivingEntity clone, ErrorReporter logger) {
+	private void setCloneData(LivingEntity clone, ProblemReporter logger) {
 		((LivingEntityExtensions) clone).metacraft$setPhantomEntity(true);
 		((LivingEntityExtensions) clone).metacraft$setDoubleTeamHandler(null);
-		if (primary.getScoreboardTeam() != null) {
-			clone.getEntityWorld().getScoreboard().addScoreHolderToTeam(
-					clone.getNameForScoreboard(), primary.getScoreboardTeam()
+		if (primary.getTeam() != null) {
+			clone.level().getScoreboard().addPlayerToTeam(
+					clone.getScoreboardName(), primary.getTeam()
 			);
 		}
 		((LivingEntityExtensions) clone).metacraft$setSoulboundEntity(
@@ -73,39 +73,39 @@ public record DoubleTeamHandler(
 		);
 		((EntityExtensions) clone).metacraft_lib$setBossBar(null);
 		if (settings.initializeClone.orElse(settings.dataToApply.isEmpty())) {
-			if (clone instanceof MobEntity mob) {
-				mob.initialize(
-						(ServerWorldAccess) clone.getEntityWorld(), clone.getEntityWorld().getLocalDifficulty(clone.getBlockPos()),
-						SpawnReason.REINFORCEMENT, this
+			if (clone instanceof Mob mob) {
+				mob.finalizeSpawn(
+						(ServerLevelAccessor) clone.level(), clone.level().getCurrentDifficultyAt(clone.blockPosition()),
+						EntitySpawnReason.REINFORCEMENT, this
 				);
 			}
 		}
 		if (!settings.dataToApply.isEmpty()) {
-			var l = logger.makeChild(() -> "metacraft:DoubleTeamHandler#setCloneData");
-			var writeView = NbtWriteView.create(l, clone.getRegistryManager());
-			clone.writeData(writeView);
-			var data = writeView.getNbt();
-			data.copyFrom(settings.dataToApply);
-			var readView = NbtReadView.create(l, clone.getRegistryManager(), data);
-			clone.readData(readView);
+			var l = logger.forChild(() -> "metacraft:DoubleTeamHandler#setCloneData");
+			var writeView = TagValueOutput.createWithContext(l, clone.registryAccess());
+			clone.saveWithoutId(writeView);
+			var data = writeView.buildResult();
+			data.merge(settings.dataToApply);
+			var readView = TagValueInput.create(l, clone.registryAccess(), data);
+			clone.load(readView);
 		}
 	}
 
 	private LivingEntity createClone() {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:DoubleTeamHandler#craeteClone", METAcraftBosses.LOGGER)) {
-			var writeView = NbtWriteView.create(logging, primary.getRegistryManager());
-			primary.writeData(writeView);
-			var data = writeView.getNbt();
-			if (primary instanceof PlayerEntity) {
-				var player = METAcraftEntities.PLAYER.create(primary.getEntityWorld(), SpawnReason.REINFORCEMENT);
+			var writeView = TagValueOutput.createWithContext(logging, primary.registryAccess());
+			primary.saveWithoutId(writeView);
+			var data = writeView.buildResult();
+			if (primary instanceof Player) {
+				var player = METAcraftEntities.PLAYER.create(primary.level(), EntitySpawnReason.REINFORCEMENT);
 				player.copyFromPlayerData(data);
 				setCloneData(player, logging);
 				return player;
 			} else {
-				var clone = (LivingEntity) primary.getType().create(primary.getEntityWorld(), SpawnReason.REINFORCEMENT);
+				var clone = (LivingEntity) primary.getType().create(primary.level(), EntitySpawnReason.REINFORCEMENT);
 				data.remove("UUID");
-				var readView = NbtReadView.create(logging, primary.getRegistryManager(), data);
-				clone.readData(readView);
+				var readView = TagValueInput.create(logging, primary.registryAccess(), data);
+				clone.load(readView);
 				setCloneData(clone, logging);
 				return clone;
 			}
@@ -113,20 +113,20 @@ public record DoubleTeamHandler(
 	}
 
 	private void handleTick(LivingEntity clone) {
-		primary.getEntityWorld().spawnEntity(clone);
+		primary.level().addFreshEntity(clone);
 		var angle = primary.getRandom().nextFloat() * 360;
 		var angleUp = primary.getRandom().nextFloat() * 180;
 		angleUp -= angleUp/2;
-		var facing = Vec3d.fromPolar(angleUp, angle);
-		var target = primary.getEntityPos().add(facing.multiply(
-				settings.distance.get(primary.getRandom())
+		var facing = Vec3.directionFromRotation(angleUp, angle);
+		var target = primary.position().add(facing.scale(
+				settings.distance.sample(primary.getRandom())
 		));
-		var pos = new BlockPos.Mutable();
+		var pos = new BlockPos.MutableBlockPos();
 		pos.set(target.x, target.y, target.z);
 
-		int upDist = MathHelper.ceil(settings.distance.get(primary.getRandom()));
+		int upDist = Mth.ceil(settings.distance.sample(primary.getRandom()));
 		for (int i = 0; i < upDist; i++) {
-			if (!primary.getEntityWorld().getBlockState(pos).blocksMovement()) {
+			if (!primary.level().getBlockState(pos).blocksMotion()) {
 				if (i > 0) {
 					target = target.add(0, i, 0);
 				}
@@ -135,7 +135,7 @@ public record DoubleTeamHandler(
 			pos.move(Direction.UP);
 		}
 
-		primary.teleport(target.x, target.y, target.z, false);
+		primary.randomTeleport(target.x, target.y, target.z, false);
 	}
 
 	public DoubleTeamHandler tick() {
@@ -162,7 +162,7 @@ public record DoubleTeamHandler(
 
 	private int getNextTick() {
 		int nextTick = time+1;
-		if (nextTick >= settings.delay.get(primary.getRandom())) {
+		if (nextTick >= settings.delay.sample(primary.getRandom())) {
 			nextTick = 0;
 		}
 		return nextTick;
@@ -187,15 +187,15 @@ public record DoubleTeamHandler(
 	public record Settings(
 			IntProvider delay, int maxSplits,
 			FloatProvider distance, double passToCloneChance,
-			NbtCompound dataToApply, Optional<Boolean> initializeClone
+			CompoundTag dataToApply, Optional<Boolean> initializeClone
 	) {
 		public static final MapCodec<Settings> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 				IntProvider.POSITIVE_CODEC.fieldOf("delay").forGetter(Settings::delay),
 				Codec.INT.fieldOf("max_splits").forGetter(Settings::maxSplits),
-				FloatProvider.VALUE_CODEC.fieldOf("distance").forGetter(Settings::distance),
+				FloatProvider.CODEC.fieldOf("distance").forGetter(Settings::distance),
 				Codec.DOUBLE.fieldOf("pass_to_clone_chance").forGetter(Settings::passToCloneChance),
-				NbtCompound.CODEC.optionalFieldOf("data_to_apply", new NbtCompound()).forGetter(Settings::dataToApply),
+				CompoundTag.CODEC.optionalFieldOf("data_to_apply", new CompoundTag()).forGetter(Settings::dataToApply),
 				Codec.BOOL.optionalFieldOf("initialize_clone").forGetter(Settings::initializeClone)
 			).apply(instance, Settings::new)
 		);

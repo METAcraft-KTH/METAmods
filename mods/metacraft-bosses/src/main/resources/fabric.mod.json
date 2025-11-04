@@ -35,7 +35,7 @@
 	},
 	"custom": {
 		"loom:injected_interfaces": {
-			"net/minecraft/entity/OminousItemSpawnerEntity": ["nu/metacraft/bosses/extensions/OminousItemSpawnerExtension"]
+			"net/minecraft/world/entity/OminousItemSpawner": ["nu/metacraft/bosses/extensions/OminousItemSpawnerExtension"]
 		}
 	}
 }

@@ -7,12 +7,12 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.Text;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import nu.metacraft.cutscenes.cutscene.MultiplayerCutsceneManager;
 import nu.metacraft.cutscenes.util.helper.CutsceneHelper;
 
@@ -20,8 +20,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public class Commands {
 
@@ -37,23 +37,23 @@ public class Commands {
 			o -> () -> "Another cutscene is already playing with the name " + o
 	);
 
-	private static final SuggestionProvider<ServerCommandSource> SUGGEST_CUTSCENES = (ctx, builder) -> CommandSource.suggestMatching(
+	private static final SuggestionProvider<CommandSourceStack> SUGGEST_CUTSCENES = (ctx, builder) -> SharedSuggestionProvider.suggest(
 			CutscenesConfig.getOrCreateConfig(ctx.getSource().getServer()).getCutsceneNames(), builder
 	);
 
-	private static final SuggestionProvider<ServerCommandSource> SUGGEST_MULTIPLAYER_CUTSCENES = (ctx, builder) -> CommandSource.suggestMatching(
+	private static final SuggestionProvider<CommandSourceStack> SUGGEST_MULTIPLAYER_CUTSCENES = (ctx, builder) -> SharedSuggestionProvider.suggest(
 			MultiplayerCutsceneManager.getInstance(ctx.getSource().getServer()).getCutsceneNames(), builder
 	);
 
-	private static int playCutscene(CommandContext<ServerCommandSource> ctx, String cutscene, ServerPlayerEntity player) throws CommandSyntaxException {
+	private static int playCutscene(CommandContext<CommandSourceStack> ctx, String cutscene, ServerPlayer player) throws CommandSyntaxException {
 		return CutscenesConfig.getOrCreateConfig(ctx.getSource().getServer()).getCutscene(cutscene).map(scene -> {
 			if (CutsceneHelper.isInMultiplayerCutscene(player)) {
-				ctx.getSource().sendError(Text.literal("Player is in a multiplayer cutscene"));
+				ctx.getSource().sendFailure(Component.literal("Player is in a multiplayer cutscene"));
 				return 0;
 			}
 			CutsceneHelper.playPlayerSpecificCutscene(player, scene);
-			ctx.getSource().sendFeedback(
-					() -> Text.literal("Started playing cutscene " + cutscene + " for " + player.getName().getString()),
+			ctx.getSource().sendSuccess(
+					() -> Component.literal("Started playing cutscene " + cutscene + " for " + player.getName().getString()),
 					false
 			);
 			return 1;
@@ -61,9 +61,9 @@ public class Commands {
 	}
 
 	private static int forPlayers(
-			CommandContext<ServerCommandSource> ctx, Collection<ServerPlayerEntity> players,
-			Predicate<ServerPlayerEntity> playerAction,
-			Text zeroPlayerMessage, boolean zeroIsError, Function<String, Text> getMessage
+			CommandContext<CommandSourceStack> ctx, Collection<ServerPlayer> players,
+			Predicate<ServerPlayer> playerAction,
+			Component zeroPlayerMessage, boolean zeroIsError, Function<String, Component> getMessage
 	) {
 		int count = 0;
 		String firstPlayer = "";
@@ -77,22 +77,22 @@ public class Commands {
 		}
 		if (count == 0) {
 			if (zeroIsError) {
-				ctx.getSource().sendError(zeroPlayerMessage);
+				ctx.getSource().sendFailure(zeroPlayerMessage);
 			} else {
-				ctx.getSource().sendFeedback(
+				ctx.getSource().sendSuccess(
 						() -> zeroPlayerMessage,
 						true
 				);
 			}
 		} else if (count == 1) {
 			String p = firstPlayer;
-			ctx.getSource().sendFeedback(
+			ctx.getSource().sendSuccess(
 					() -> getMessage.apply(p),
 					true
 			);
 		} else {
 			int c = count;
-			ctx.getSource().sendFeedback(
+			ctx.getSource().sendSuccess(
 					() -> getMessage.apply(c + " players"),
 					true
 			);
@@ -101,21 +101,21 @@ public class Commands {
 	}
 
 	private static int addPlayers(
-			CommandContext<ServerCommandSource> ctx,
-			MultiplayerCutsceneManager manager, String name, Collection<ServerPlayerEntity> players,
-			Text zeroPlayerMessage, boolean zeroIsError, Function<String, Text> getAddMessage
+			CommandContext<CommandSourceStack> ctx,
+			MultiplayerCutsceneManager manager, String name, Collection<ServerPlayer> players,
+			Component zeroPlayerMessage, boolean zeroIsError, Function<String, Component> getAddMessage
 	) throws CommandSyntaxException {
 		var scene = manager.getCutscene(name).orElseThrow(() -> NO_MULTIPLAYER_CUTSCENE.create(name));
 
 		return forPlayers(ctx, players, player -> {
 			if (CutsceneHelper.isInPlayerSpecificCutscene(player)) {
-				player.sendMessage(Text.literal("You were not added to cutscene " + name + " because you were busy with another cutscene."));
+				player.sendSystemMessage(Component.literal("You were not added to cutscene " + name + " because you were busy with another cutscene."));
 				return false;
 			}
 			if (!scene.canAddPlayer(player)) {
-				player.sendMessage(Text.literal(
+				player.sendSystemMessage(Component.literal(
 						"You were not added to cutscene " + name + " because you are not in " +
-								scene.getCutsceneWorld().getActualWorld().getRegistryKey().getValue()
+								scene.getCutsceneWorld().getActualWorld().dimension().location()
 				));
 				return false;
 			}
@@ -133,34 +133,34 @@ public class Commands {
 		return opt.isPresent() ? Optional.ofNullable(func.apply(opt.get())) : Optional.empty();
 	}
 
-	private static int playMultiplayerCutscene(CommandContext<ServerCommandSource> ctx, String cutscene, String name, Collection<ServerPlayerEntity> players) throws CommandSyntaxException {
+	private static int playMultiplayerCutscene(CommandContext<CommandSourceStack> ctx, String cutscene, String name, Collection<ServerPlayer> players) throws CommandSyntaxException {
 		var existing = MultiplayerCutsceneManager.getInstance(ctx.getSource().getServer()).getCutscene(name);
 		if (existing.isPresent()) {
 			throw MULTIPLAYER_OCCUPIED.create(name);
 		}
 		return map(CutscenesConfig.getOrCreateConfig(ctx.getSource().getServer()).getCutscene(cutscene), scene -> {
 			var manager = MultiplayerCutsceneManager.getInstance(ctx.getSource().getServer());
-			manager.addCutscene(name, scene, ctx.getSource().getWorld());
+			manager.addCutscene(name, scene, ctx.getSource().getLevel());
 			return addPlayers(
-					ctx, manager, name, players, Text.literal("Prepared multiplayer cutscene " + name), false,
-					added -> Text.literal("Started playing multiplayer cutscene " + name + " for " + added)
+					ctx, manager, name, players, Component.literal("Prepared multiplayer cutscene " + name), false,
+					added -> Component.literal("Started playing multiplayer cutscene " + name + " for " + added)
 			);
 		}).orElseThrow(() -> NO_CUTSCENE.create(cutscene));
 	}
 
-	private static int joinMultiplayerCutscene(CommandContext<ServerCommandSource> ctx, String name, Collection<ServerPlayerEntity> players) throws CommandSyntaxException {
+	private static int joinMultiplayerCutscene(CommandContext<CommandSourceStack> ctx, String name, Collection<ServerPlayer> players) throws CommandSyntaxException {
 		var existing = MultiplayerCutsceneManager.getInstance(ctx.getSource().getServer()).getCutscene(name);
 		if (existing.isEmpty()) {
 			throw NO_MULTIPLAYER_CUTSCENE.create(name);
 		}
 		var manager = MultiplayerCutsceneManager.getInstance(ctx.getSource().getServer());
 		return addPlayers(
-				ctx, manager, name, players, Text.literal("No players could be added to " + name), true,
-				added -> Text.literal("Added " + added + " to " + name)
+				ctx, manager, name, players, Component.literal("No players could be added to " + name), true,
+				added -> Component.literal("Added " + added + " to " + name)
 		);
 	}
 
-	private static int endCutscene(CommandContext<ServerCommandSource> ctx, Collection<ServerPlayerEntity> players) throws CommandSyntaxException {
+	private static int endCutscene(CommandContext<CommandSourceStack> ctx, Collection<ServerPlayer> players) throws CommandSyntaxException {
 		return forPlayers(ctx, players, player -> {
 			if (CutsceneHelper.isInMultiplayerCutscene(player)) {
 				return false;
@@ -169,14 +169,14 @@ public class Commands {
 				CutsceneHelper.stopPlayerSpecificCutscene(player);
 			}
 			return true;
-		}, Text.literal("No players modified"), true, player -> Text.literal("Stopped cutscene for ").append(player));
+		}, Component.literal("No players modified"), true, player -> Component.literal("Stopped cutscene for ").append(player));
 	}
 
-	private static int endMultiplayerCutscene(CommandContext<ServerCommandSource> ctx, String name) throws CommandSyntaxException {
+	private static int endMultiplayerCutscene(CommandContext<CommandSourceStack> ctx, String name) throws CommandSyntaxException {
 		var manager = MultiplayerCutsceneManager.getInstance(ctx.getSource().getServer());
 		if (manager.getCutscene(name).isPresent()) {
 			manager.endCutscene(name);
-			ctx.getSource().sendFeedback(() -> Text.literal("Stopped multiplayer cutscene " + name), true);
+			ctx.getSource().sendSuccess(() -> Component.literal("Stopped multiplayer cutscene " + name), true);
 			return 1;
 		} else {
 			throw NO_MULTIPLAYER_CUTSCENE.create(name);
@@ -184,7 +184,7 @@ public class Commands {
 	}
 
 	private static int leaveCutscene(
-			CommandContext<ServerCommandSource> ctx, Collection<ServerPlayerEntity> players
+			CommandContext<CommandSourceStack> ctx, Collection<ServerPlayer> players
 	) throws CommandSyntaxException {
 		var manager = MultiplayerCutsceneManager.getInstance(ctx.getSource().getServer());
 		return forPlayers(ctx, players, player -> {
@@ -193,34 +193,34 @@ public class Commands {
 						return true;
 					}
 					return false;
-		}, Text.literal("No players affected"), true, player ->
-			Text.literal(player + " removed from cutscene")
+		}, Component.literal("No players affected"), true, player ->
+			Component.literal(player + " removed from cutscene")
 		);
 	}
 
 	private static int leaveCutscene(
-			CommandContext<ServerCommandSource> ctx
+			CommandContext<CommandSourceStack> ctx
 	) throws CommandSyntaxException {
 		var manager = MultiplayerCutsceneManager.getInstance(ctx.getSource().getServer());
-		var player = ctx.getSource().getPlayerOrThrow();
+		var player = ctx.getSource().getPlayerOrException();
 		if (CutsceneHelper.isInMultiplayerCutscene(player)) {
 			var scene = CutsceneHelper.getCutscene(player).orElseThrow();
 			if (!scene.getCutscene().isSkippable() && !Permissions.check(ctx.getSource(), "metacraft.cutscenes.multiplayer.leave.non-skippable", 2)) {
-				ctx.getSource().sendError(Text.literal("You can't leave unskippable cutscenes!"));
+				ctx.getSource().sendFailure(Component.literal("You can't leave unskippable cutscenes!"));
 				return 0;
 			}
 			manager.leaveCutscene(player);
-			var message = Text.literal("You left the cutscene");
+			var message = Component.literal("You left the cutscene");
 			manager.getCutsceneName(scene).ifPresent(name -> {
 				String rejoin = "/cutscene multiplayer join " + name;
-				message.append(Text.literal(", you can rejoin it by typing ").append(Text.literal(rejoin).styled(
+				message.append(Component.literal(", you can rejoin it by typing ").append(Component.literal(rejoin).withStyle(
 						style -> style.withClickEvent(new ClickEvent.RunCommand(rejoin))
 				)));
 			});
-			ctx.getSource().sendFeedback(() -> message, false);
+			ctx.getSource().sendSuccess(() -> message, false);
 			return 1;
 		}
-		ctx.getSource().sendError(Text.literal("You are not in a multiplayer cutscene!"));
+		ctx.getSource().sendFailure(Component.literal("You are not in a multiplayer cutscene!"));
 		return 0;
 	}
 
@@ -233,13 +233,13 @@ public class Commands {
 							argument("cutscene", StringArgumentType.word()).suggests(SUGGEST_CUTSCENES).executes(
 								ctx -> playCutscene(
 										ctx, StringArgumentType.getString(ctx, "cutscene"),
-										ctx.getSource().getPlayerOrThrow()
+										ctx.getSource().getPlayerOrException()
 								)
 							).then(
-								argument("player", EntityArgumentType.player()).executes(
+								argument("player", EntityArgument.player()).executes(
 									ctx -> playCutscene(
 											ctx, StringArgumentType.getString(ctx, "cutscene"),
-											EntityArgumentType.getPlayer(ctx, "player")
+											EntityArgument.getPlayer(ctx, "player")
 									)
 								)
 							)
@@ -248,42 +248,42 @@ public class Commands {
 						literal("stop").requires(
 								Permissions.require("metacraft.cutscenes.stop", 2)
 						).executes(
-								ctx -> endCutscene(ctx, List.of(ctx.getSource().getPlayerOrThrow()))
+								ctx -> endCutscene(ctx, List.of(ctx.getSource().getPlayerOrException()))
 						).then(
-								argument("players", EntityArgumentType.players()).executes(
-										ctx -> endCutscene(ctx, EntityArgumentType.getPlayers(ctx, "players"))
+								argument("players", EntityArgument.players()).executes(
+										ctx -> endCutscene(ctx, EntityArgument.getPlayers(ctx, "players"))
 								)
 						)
 					).then(
 						literal("skip").requires(
 								Permissions.require("metacraft.cutscenes.skip", 0)
 						).executes(ctx -> {
-							var player = ctx.getSource().getPlayerOrThrow();
+							var player = ctx.getSource().getPlayerOrException();
 							var scene = CutsceneHelper.getCutscene(player);
 							if (scene.isPresent()) {
 								if (scene.get().getCutscene().isSkippable()) {
 									if (CutsceneHelper.isInPlayerSpecificCutscene(player)) {
 										CutsceneHelper.stopPlayerSpecificCutscene(player);
-										ctx.getSource().sendFeedback(
-												() -> Text.literal("You skipped the cutscene"), false
+										ctx.getSource().sendSuccess(
+												() -> Component.literal("You skipped the cutscene"), false
 										);
 									} else  {
 										return leaveCutscene(ctx);
 									}
 									return 1;
 								} else {
-									ctx.getSource().sendError(Text.literal("This cutscene is not skippable!"));
+									ctx.getSource().sendFailure(Component.literal("This cutscene is not skippable!"));
 								}
 							} else {
-								ctx.getSource().sendError(Text.literal("You are not in a cutscene!"));
+								ctx.getSource().sendFailure(Component.literal("You are not in a cutscene!"));
 							}
 							return 0;
 						})
 					).then(
 						literal("reload").requires(Permissions.require("metacraft.cutscenes.reload", 4)).executes(ctx -> {
 							CutscenesConfig.reload(ctx.getSource().getServer());
-							ctx.getSource().sendFeedback(
-									() -> Text.literal(
+							ctx.getSource().sendSuccess(
+									() -> Component.literal(
 											"Reloading cutscenes"
 									), true
 							);
@@ -299,11 +299,11 @@ public class Commands {
 											StringArgumentType.getString(ctx, "name"), List.of()
 										)
 									).then(
-										argument("players", EntityArgumentType.players()).executes(
+										argument("players", EntityArgument.players()).executes(
 											ctx -> playMultiplayerCutscene(
 													ctx, StringArgumentType.getString(ctx, "cutscene"),
 													StringArgumentType.getString(ctx, "name"),
-													EntityArgumentType.getPlayers(ctx, "players")
+													EntityArgument.getPlayers(ctx, "players")
 											)
 										)
 									)
@@ -316,15 +316,15 @@ public class Commands {
 								argument("name", StringArgumentType.word()).suggests(SUGGEST_MULTIPLAYER_CUTSCENES).executes(
 										ctx -> joinMultiplayerCutscene(
 												ctx, StringArgumentType.getString(ctx, "name"),
-												List.of(ctx.getSource().getPlayerOrThrow())
+												List.of(ctx.getSource().getPlayerOrException())
 										)
 								).then(
-									argument("players", EntityArgumentType.players()).requires(
+									argument("players", EntityArgument.players()).requires(
 											Permissions.require("metacraft.cutscenes.multiplayer.join.others", 2)
 									).executes(
 										ctx -> joinMultiplayerCutscene(
 												ctx, StringArgumentType.getString(ctx, "name"),
-												EntityArgumentType.getPlayers(ctx, "players")
+												EntityArgument.getPlayers(ctx, "players")
 										)
 									)
 								)
@@ -341,9 +341,9 @@ public class Commands {
 							literal("leave").requires(
 									Permissions.require("metacraft.cutscenes.multiplayer.leave", 0)
 							).executes(Commands::leaveCutscene).then(
-									argument("players", EntityArgumentType.players()).requires(
+									argument("players", EntityArgument.players()).requires(
 											Permissions.require("metacraft.cutscenes.multiplayer.leave.others", 2)
-									).executes(ctx -> leaveCutscene(ctx, EntityArgumentType.getPlayers(ctx, "players")))
+									).executes(ctx -> leaveCutscene(ctx, EntityArgument.getPlayers(ctx, "players")))
 							)
 						)
 					)

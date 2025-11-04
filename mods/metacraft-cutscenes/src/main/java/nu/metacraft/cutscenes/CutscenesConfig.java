@@ -1,8 +1,8 @@
 package nu.metacraft.cutscenes;
 
+import net.minecraft.FileUtil;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.WorldSavePath;
-import net.minecraft.util.path.PathUtil;
+import net.minecraft.world.level.storage.LevelResource;
 import nu.metacraft.cutscenes.cutscene.Cutscene;
 import nu.metacraft.cutscenes.extension.MinecraftServerExtension;
 import nu.metacraft.cutscenes.util.DefaultCutscenes;
@@ -23,18 +23,18 @@ public class CutscenesConfig {
 		var s = (MinecraftServerExtension) server;
 		var config = s.metacraft_cutscenes$getConfig();
 		if (config != null) return config;
-		var path = server.getSavePath(WorldSavePath.ROOT).resolve("metacraft-cutscenes");
+		var path = server.getWorldPath(LevelResource.ROOT).resolve("metacraft-cutscenes");
 		var dir = path.toFile();
 		var codec = Cutscene.CODEC.codec();
 		if (!dir.exists()) {
 			dir.mkdirs();
 			config = new CutscenesConfig();
 			for (var name : config.getCutsceneNames()) {
-				String actualName = PathUtil.replaceInvalidChars(name);
+				String actualName = FileUtil.sanitizeName(name);
 				config.getCutscene(actualName).ifPresent(scene -> {
 					JsonHelper.save(
 							path.resolve(actualName + ".json"), codec,
-							scene, server.getRegistryManager()
+							scene, server.registryAccess()
 					);
 				});
 			}
@@ -45,7 +45,7 @@ public class CutscenesConfig {
 		var files = dir.listFiles((file, name) -> name.endsWith(".json"));
 		if (files != null) {
 			for (var f : files) {
-				JsonHelper.load(f.toPath(), codec, server.getRegistryManager()).ifPresent(
+				JsonHelper.load(f.toPath(), codec, server.registryAccess()).ifPresent(
 						cutscene -> cutscenes.put(f.getName().substring(0, f.getName().length()-5), cutscene)
 				);
 			}

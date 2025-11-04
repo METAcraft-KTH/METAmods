@@ -1,18 +1,5 @@
 package nu.metacraft.portal_blocker.mixin;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockBox;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldAccess;
-import net.minecraft.world.border.WorldBorder;
-import net.minecraft.world.dimension.DimensionType;
-import net.minecraft.world.dimension.NetherPortal;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,25 +14,38 @@ import nu.metacraft.portal_blocker.PortalState;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
 
 import java.util.List;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.border.WorldBorder;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.portal.PortalShape;
+import net.minecraft.world.phys.AABB;
 
-@Mixin(value = NetherPortal.class, priority = 999)
+@Mixin(value = PortalShape.class, priority = 999)
 public class MixinNetherPortal {
 
 	@Final
-	@Shadow private @Nullable BlockPos lowerCorner;
+	@Shadow private @Nullable BlockPos bottomLeft;
 
 	@Final
 	@Shadow private int height;
 
-	@Shadow @Final private Direction negativeDir;
+	@Shadow @Final private Direction rightDir;
 
 	@Shadow @Final private int width;
 
-	@Inject(method = "createPortal", at = @At("HEAD"), cancellable = true)
-	public void create(WorldAccess world, CallbackInfo ci) {
-		if (world.getServer() != null && world instanceof World w) {
+	@Inject(method = "createPortalBlocks", at = @At("HEAD"), cancellable = true)
+	public void create(LevelAccessor world, CallbackInfo ci) {
+		if (world.getServer() != null && world instanceof Level w) {
 			Iterable<BlockPos> positions = List.of();
-			BlockPos.Mutable center = new BlockPos.Mutable();
+			BlockPos.MutableBlockPos center = new BlockPos.MutableBlockPos();
 			boolean foundConfigurablePortals = false;
 			try {
 				var blocksField = this.getClass().getDeclaredField("blocks");
@@ -54,40 +54,40 @@ public class MixinNetherPortal {
 					var pos = blockList.getFirst();
 					if (pos instanceof BlockPos) {
 						positions = (List<BlockPos>) blockList;
-						center.set(BlockBox.encompassPositions(positions).orElseThrow().getCenter());
+						center.set(BoundingBox.encapsulatingPositions(positions).orElseThrow().getCenter());
 						foundConfigurablePortals = true;
 					}
 				}
 			} catch (NoSuchFieldException | IllegalAccessException ignored) {}
 			if (!foundConfigurablePortals) {
-				if (this.lowerCorner == null) {
+				if (this.bottomLeft == null) {
 					PortalBlocker.LOGGER.error("Unable to block portal creation because some mod changes portal creation!");
 					return;
 				}
-				positions = BlockPos.iterate(this.lowerCorner, this.lowerCorner.offset(Direction.UP, this.height - 1).offset(this.negativeDir, this.width - 1));
-				center.set(this.lowerCorner.offset(Direction.UP, this.height/2).offset(this.negativeDir, this.width/2));
+				positions = BlockPos.betweenClosed(this.bottomLeft, this.bottomLeft.relative(Direction.UP, this.height - 1).relative(this.rightDir, this.width - 1));
+				center.set(this.bottomLeft.relative(Direction.UP, this.height/2).relative(this.rightDir, this.width/2));
 			}
 			if (PortalBlockerSettings.getInstance(world.getServer()).isPortalBlocked(
-					PortalTypeRegistry.NETHER, w.getRegistryKey(), PortalState.BlockingType.ACTIVATION, positions
+					PortalTypeRegistry.NETHER, w.dimension(), PortalState.BlockingType.ACTIVATION, positions
 			)) {
 				PortalTypeRegistry.NETHER.getCreationMessage().ifPresent(msg -> {
-					world.getEntitiesByClass(PlayerEntity.class, Box.enclosing(
-							center.south(6).east(6).down(6),
-							center.north(6).west(6).up(6)
+					world.getEntitiesOfClass(Player.class, AABB.encapsulatingFullBlocks(
+							center.south(6).east(6).below(6),
+							center.north(6).west(6).above(6)
 					), player -> true).forEach(player -> {
-						player.sendMessage(msg, true);
+						player.displayClientMessage(msg, true);
 					});
 				});
 				ci.cancel();
 			}
 			if (PortalBlockerSettings.getInstance(world.getServer()).blockPortalCreationOutsideBorder()
 					&& outsideWorldBorderOnOtherSide(world, center)) {
-				Text msg = PortalTypeRegistry.NETHER.getOutsideBorderMessage();
-				world.getEntitiesByClass(PlayerEntity.class, Box.enclosing(
-						center.south(6).east(6).down(6),
-						center.north(6).west(6).up(6)
+				Component msg = PortalTypeRegistry.NETHER.getOutsideBorderMessage();
+				world.getEntitiesOfClass(Player.class, AABB.encapsulatingFullBlocks(
+						center.south(6).east(6).below(6),
+						center.north(6).west(6).above(6)
 				), player -> true).forEach(player -> {
-					player.sendMessage(msg, true);
+					player.displayClientMessage(msg, true);
 				});
 				ci.cancel();
 			}
@@ -99,33 +99,33 @@ public class MixinNetherPortal {
 	}
 
 	@Unique
-	private boolean outsideWorldBorderOnOtherSide(WorldAccess worldAccess, BlockPos.Mutable center) {
-	    if (!(worldAccess instanceof World world) || world.getServer() == null) {
+	private boolean outsideWorldBorderOnOtherSide(LevelAccessor worldAccess, BlockPos.MutableBlockPos center) {
+	    if (!(worldAccess instanceof Level world) || world.getServer() == null) {
 	        return false;
 	    }
 
-	    RegistryKey<World> currentDim = world.getRegistryKey();
-	    RegistryKey<World> targetDim;
+	    ResourceKey<Level> currentDim = world.dimension();
+	    ResourceKey<Level> targetDim;
 
-	    if (currentDim == World.OVERWORLD) {
-	        targetDim = World.NETHER;
-	    } else if (currentDim == World.NETHER) {
-	        targetDim = World.OVERWORLD;
+	    if (currentDim == Level.OVERWORLD) {
+	        targetDim = Level.NETHER;
+	    } else if (currentDim == Level.NETHER) {
+	        targetDim = Level.OVERWORLD;
 	    } else {
 	        return false;
 	    }
 
-	    ServerWorld targetWorld = world.getServer().getWorld(targetDim);
+	    ServerLevel targetWorld = world.getServer().getLevel(targetDim);
 	    if (targetWorld == null) {
 	        return false;
 	    }
-		double coordinateScale = DimensionType.getCoordinateScaleFactor(world.getDimension(), targetWorld.getDimension());
+		double coordinateScale = DimensionType.getTeleportationScale(world.dimensionType(), targetWorld.dimensionType());
 	    WorldBorder targetBorder = targetWorld.getWorldBorder();
 
 	    double targetX = center.getX() * coordinateScale;
 	    double targetZ = center.getZ() * coordinateScale;
 
-	    return !targetBorder.contains(targetX, targetZ);
+	    return !targetBorder.isWithinBounds(targetX, targetZ);
 	}
 
 }

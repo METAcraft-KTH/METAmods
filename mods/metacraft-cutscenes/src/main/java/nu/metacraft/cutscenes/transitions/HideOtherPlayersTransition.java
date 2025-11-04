@@ -1,7 +1,7 @@
 package nu.metacraft.cutscenes.transitions;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.registry.TransitionConfigRegistry;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
@@ -38,23 +38,23 @@ public class HideOtherPlayersTransition implements Transition, TransitionConfig 
 	}
 
 	@Override
-	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		var tracker = EntityTrackerHelper.getEntityTrackers(player.getEntityWorld()).get(player.getId());
-		cutscene.forAllPlayers(tracker::updateTrackedStatus);
+	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		var tracker = EntityTrackerHelper.getEntityTrackers(player.level()).get(player.getId());
+		cutscene.forAllPlayers(tracker::updatePlayer);
 		if (interval.getStart() != cutscene.getCurrentTime()) {
 			cutscene.forAllPlayers(p -> {
 				if (p != player) {
-					var otherTracker = EntityTrackerHelper.getEntityTrackers(player.getEntityWorld()).get(player.getId());
-					otherTracker.updateTrackedStatus(player);
+					var otherTracker = EntityTrackerHelper.getEntityTrackers(player.level()).get(player.getId());
+					otherTracker.updatePlayer(player);
 				}
 			});
 		}
 	}
 
 	@Override
-	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		var tracker = EntityTrackerHelper.getEntityTrackers(player.getEntityWorld()).get(player.getId());
-		cutscene.forAllPlayers(tracker::updateTrackedStatus);
+	public void deactivate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+		var tracker = EntityTrackerHelper.getEntityTrackers(player.level()).get(player.getId());
+		cutscene.forAllPlayers(tracker::updatePlayer);
 	}
 
 	@Override

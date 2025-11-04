@@ -1,20 +1,20 @@
 package nu.metacraft.simplecustomfeatures.mixin;
 
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import net.minecraft.util.collection.IdList;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 import java.util.List;
+import net.minecraft.core.IdMapper;
 
-@Mixin(IdList.class)
+@Mixin(IdMapper.class)
 public interface AccessorIdList<T> {
 
 	@Accessor
-	Reference2IntMap<T> getIdMap();
+	Reference2IntMap<T> getTToId();
 
 	@Accessor
-	List<T> getList();
+	List<T> getIdToT();
 
 	@Accessor
 	int getNextId();

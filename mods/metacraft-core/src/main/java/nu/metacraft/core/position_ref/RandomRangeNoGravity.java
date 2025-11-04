@@ -3,45 +3,45 @@ package nu.metacraft.core.position_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.predicate.FluidPredicate;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.floatprovider.FloatProvider;
 import nu.metacraft.core.registry.PositionRefRegistry;
 import nu.metacraft.core.util.RefContext;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 
 import java.util.Optional;
+import net.minecraft.advancements.critereon.FluidPredicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.valueproviders.FloatProvider;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public record RandomRangeNoGravity(
-		PositionRef center, Box hitbox, Optional<FluidPredicate> validFluids,
+		PositionRef center, AABB hitbox, Optional<FluidPredicate> validFluids,
 		FloatProvider range
 ) implements PositionRef {
 
 	public static final MapCodec<RandomRangeNoGravity> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codec.lazyInitialized(() -> PositionRefRegistry.CODEC).fieldOf("center").forGetter(RandomRangeNoGravity::center),
-					ExtraCodecs.BOX_CODEC.fieldOf("hitbox").forGetter(RandomRangeNoGravity::hitbox),
+					METACodecs.BOX_CODEC.fieldOf("hitbox").forGetter(RandomRangeNoGravity::hitbox),
 					FluidPredicate.CODEC.optionalFieldOf("valid_fluids").forGetter(RandomRangeNoGravity::validFluids),
-					FloatProvider.createValidatedCodec(0, Float.MAX_VALUE).fieldOf("range").forGetter(RandomRangeNoGravity::range)
+					FloatProvider.codec(0, Float.MAX_VALUE).fieldOf("range").forGetter(RandomRangeNoGravity::range)
 			).apply(instance, RandomRangeNoGravity::new)
 	);
 
 	@Override
-	public Optional<Vec3d> get(RefContext ctx) {
+	public Optional<Vec3> get(RefContext ctx) {
 		return center.get(ctx).flatMap(centerPos -> {
 			return findCandidatePos(ctx, centerPos);
 		});
 	}
 	
-	private boolean isValidPos(ServerWorld world, double x, double y, double z) {
-		var box = hitbox.offset(x, y, z);
-		if (world.isSpaceEmpty(box)) {
+	private boolean isValidPos(ServerLevel world, double x, double y, double z) {
+		var box = hitbox.move(x, y, z);
+		if (world.noCollision(box)) {
 			if (validFluids.isPresent()) {
-				for (var pos : BlockPos.iterate(box)) {
-					if (!validFluids.get().test(world, pos)) {
+				for (var pos : BlockPos.betweenClosed(box)) {
+					if (!validFluids.get().matches(world, pos)) {
 						return false;
 					}
 				}
@@ -51,19 +51,19 @@ public record RandomRangeNoGravity(
 		return false;
 	}
 
-	private Optional<Vec3d> findCandidatePos(RefContext ctx, Vec3d centerPos) {
-		var angle = ctx.getRandom().nextDouble() * Math.PI * 2;
-		var heightAngle = ctx.getRandom().nextDouble() * Math.PI - Math.PI/2;
-		double length = range.get(ctx.getRandom());
+	private Optional<Vec3> findCandidatePos(RefContext ctx, Vec3 centerPos) {
+		var angle = ctx.random().nextDouble() * Math.PI * 2;
+		var heightAngle = ctx.random().nextDouble() * Math.PI - Math.PI/2;
+		double length = range.sample(ctx.random());
 
 		double initialZ = Math.cos(angle);
 		double initialX = Math.sin(angle);
 		double horizontal = Math.cos(heightAngle);
 		double initialY = Math.sin(heightAngle);
-		var offset = new Vec3d(initialX * horizontal, -initialY, initialZ * horizontal).multiply(length);
+		var offset = new Vec3(initialX * horizontal, -initialY, initialZ * horizontal).scale(length);
 
 		var targetPos = centerPos.add(offset);
-		if (isValidPos(ctx.getWorld(), targetPos.getX(), targetPos.getY(), targetPos.getZ())) {
+		if (isValidPos(ctx.world(), targetPos.x(), targetPos.y(), targetPos.z())) {
 			return Optional.of(targetPos);
 		}
 		return Optional.empty();

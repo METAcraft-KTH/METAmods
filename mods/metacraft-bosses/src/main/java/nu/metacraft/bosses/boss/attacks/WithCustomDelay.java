@@ -3,9 +3,8 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.intprovider.IntProvider;
-
 import java.util.OptionalInt;
+import net.minecraft.util.valueproviders.IntProvider;
 
 public class WithCustomDelay extends InstantAttack {
 
@@ -31,7 +30,7 @@ public class WithCustomDelay extends InstantAttack {
 
 	@Override
 	public OptionalInt getDelayOverride(BossContext<?> ctx) {
-		return OptionalInt.of(delay.get(ctx.random()));
+		return OptionalInt.of(delay.sample(ctx.random()));
 	}
 
 	@Override

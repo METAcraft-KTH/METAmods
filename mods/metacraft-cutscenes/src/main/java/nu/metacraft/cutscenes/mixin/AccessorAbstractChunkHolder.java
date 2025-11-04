@@ -1,26 +1,26 @@
 package nu.metacraft.cutscenes.mixin;
 
-import net.minecraft.server.world.OptionalChunk;
-import net.minecraft.world.chunk.AbstractChunkHolder;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkStatus;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import net.minecraft.server.level.ChunkResult;
+import net.minecraft.server.level.GenerationChunkHolder;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 
-@Mixin(AbstractChunkHolder.class)
+@Mixin(GenerationChunkHolder.class)
 public interface AccessorAbstractChunkHolder {
 
 	@Accessor
-	void setStatus(ChunkStatus status);
+	void setHighestAllowedStatus(ChunkStatus status);
 
 	@Accessor
-	AtomicReference<ChunkStatus> getCurrentStatus();
+	AtomicReference<ChunkStatus> getStartedWork();
 
 	@Accessor
-	AtomicReferenceArray<CompletableFuture<OptionalChunk<Chunk>>> getChunkFuturesByStatus();
+	AtomicReferenceArray<CompletableFuture<ChunkResult<ChunkAccess>>> getFutures();
 
 }

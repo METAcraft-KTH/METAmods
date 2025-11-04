@@ -2,11 +2,11 @@ package nu.metacraft.cutscenes.transitions;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.network.packet.s2c.play.ClearTitleS2CPacket;
-import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
-import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
-import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.network.protocol.game.ClientboundClearTitlesPacket;
+import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
+import net.minecraft.server.level.ServerPlayer;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
@@ -32,17 +32,17 @@ public class TitleTransition implements Transition {
 	}
 
 	@Override
-	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		int pos = interval.getPosInRange(cutscene.getCurrentTime());
 		int remaining = interval.getRemaining(cutscene.getCurrentTime());
 		int stayTicks = config.stay().orElse(Math.max(remaining - config.fadeIn() - config.fadeOut(), 0));
-		player.networkHandler.sendPacket(new TitleFadeS2CPacket(
+		player.connection.send(new ClientboundSetTitlesAnimationPacket(
 				Math.max(config.fadeIn() - pos, 0),
 				stayTicks, Math.min(config.fadeOut(), remaining)
 		));
-		player.networkHandler.sendPacket(new TitleS2CPacket(MessageTransition.parseText(player, cutscene, config.title())));
+		player.connection.send(new ClientboundSetTitleTextPacket(MessageTransition.parseText(player, cutscene, config.title())));
 		config.subtitle().ifPresent(subtitle -> {
-			player.networkHandler.sendPacket(new SubtitleS2CPacket(MessageTransition.parseText(player, cutscene, subtitle)));
+			player.connection.send(new ClientboundSetSubtitleTextPacket(MessageTransition.parseText(player, cutscene, subtitle)));
 		});
 	}
 
@@ -57,9 +57,9 @@ public class TitleTransition implements Transition {
 	}
 
 	@Override
-	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	public void deactivate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (config.stopAtEnd()) {
-			player.networkHandler.sendPacket(new ClearTitleS2CPacket(true));
+			player.connection.send(new ClientboundClearTitlesPacket(true));
 		}
 	}
 

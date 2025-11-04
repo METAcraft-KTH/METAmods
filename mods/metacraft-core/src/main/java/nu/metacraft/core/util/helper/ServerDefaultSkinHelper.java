@@ -4,12 +4,11 @@ import com.google.common.collect.ImmutableMultimap;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
-import net.minecraft.util.Util;
-
 import java.util.UUID;
+import net.minecraft.Util;
 
 /**
- * Server-side alternative to {@link net.minecraft.client.util.DefaultSkinHelper}
+ * Server-side alternative to {@link net.minecraft.client.resources.DefaultPlayerSkin}
  */
 public class ServerDefaultSkinHelper {
 
@@ -133,7 +132,7 @@ public class ServerDefaultSkinHelper {
 
 	/**
 	 * Returns the default skin for the given UUID.
-	 * Will be the same skin as {@link net.minecraft.client.util.DefaultSkinHelper} (unless the client has a resource-pack changing it).
+	 * Will be the same skin as {@link net.minecraft.client.resources.DefaultPlayerSkin} (unless the client has a resource-pack changing it).
 	 * @param uuid The uuid to get the skin for.
 	 * @return A game profile containing the skin. Note that the UUID will be {@link Util#NIL_UUID}.
 	 */

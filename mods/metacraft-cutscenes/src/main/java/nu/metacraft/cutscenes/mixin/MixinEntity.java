@@ -1,10 +1,5 @@
 package nu.metacraft.cutscenes.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -13,6 +8,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
 import nu.metacraft.cutscenes.extension.EntityExtension;
 
@@ -22,9 +22,9 @@ public abstract class MixinEntity implements EntityExtension {
 	@Unique
 	private static final String HAS_ACCURATE_MOVEMENT = "metacraft:has_accurate_movement";
 
-	@Shadow private World world;
+	@Shadow private Level level;
 
-	@Shadow public abstract @Nullable Entity teleportTo(TeleportTarget teleportTarget);
+	@Shadow public abstract @Nullable Entity teleport(TeleportTransition teleportTarget);
 
 	@Unique
 	private boolean canChangeWorldInCutscene = false;
@@ -32,33 +32,33 @@ public abstract class MixinEntity implements EntityExtension {
 	@Unique
 	private boolean hasAccurateMovement = false;
 
-	@Inject(method = "teleportTo", at = @At("HEAD"), cancellable = true)
-	public void stopTeleportInMultiplayerCutscene(TeleportTarget teleportTarget, CallbackInfoReturnable<Entity> cir) {
+	@Inject(method = "teleport", at = @At("HEAD"), cancellable = true)
+	public void stopTeleportInMultiplayerCutscene(TeleportTransition teleportTarget, CallbackInfoReturnable<Entity> cir) {
 		if (
-				this.world instanceof CutsceneWorld && !canChangeWorldInCutscene &&
-				this.world.getRegistryKey() != teleportTarget.world().getRegistryKey()
+				this.level instanceof CutsceneWorld && !canChangeWorldInCutscene &&
+				this.level.dimension() != teleportTarget.newLevel().dimension()
 		) {
 			cir.setReturnValue((Entity) (Object) this);
 		}
 	}
 
-	@Inject(method = "writeData", at = @At("RETURN"))
-	public void save(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "saveWithoutId", at = @At("RETURN"))
+	public void save(ValueOutput nbt, CallbackInfo ci) {
 		if (hasAccurateMovement) {
 			nbt.putBoolean(HAS_ACCURATE_MOVEMENT, true);
 		}
 	}
 
-	@Inject(method = "readData", at = @At("RETURN"))
-	public void load(ReadView nbt, CallbackInfo ci) {
-		hasAccurateMovement = nbt.getBoolean(HAS_ACCURATE_MOVEMENT, false);
+	@Inject(method = "load", at = @At("RETURN"))
+	public void load(ValueInput nbt, CallbackInfo ci) {
+		hasAccurateMovement = nbt.getBooleanOr(HAS_ACCURATE_MOVEMENT, false);
 	}
 
 
 	@Override
-	public Entity metacraft$teleportInCutscene(TeleportTarget target) {
+	public Entity metacraft$teleportInCutscene(TeleportTransition target) {
 		canChangeWorldInCutscene = true;
-		var result = this.teleportTo(target);
+		var result = this.teleport(target);
 		canChangeWorldInCutscene = false;
 		return result;
 	}

@@ -1,16 +1,6 @@
 package nu.metacraft.better_pets.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.Tameable;
-import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.Uuids;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -22,44 +12,54 @@ import nu.metacraft.better_pets.TameableExtension;
 import nu.metacraft.lib.util.helper.TamedHelper;
 
 import java.util.*;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
-@Mixin(TameableEntity.class)
-public abstract class MixinTameableEntity extends AnimalEntity implements TameableExtension, Tameable {
+@Mixin(TamableAnimal.class)
+public abstract class MixinTameableEntity extends Animal implements TameableExtension, OwnableEntity {
 
-	@Shadow public abstract boolean isTamed();
+	@Shadow public abstract boolean isTame();
 
 	@Unique
 	private static final String TRUSTED_PLAYERS = "trusted_players";
 
 	@Unique
-	private ServerPlayerEntity followTargetOverride;
+	private ServerPlayer followTargetOverride;
 
 	@Unique
 	private Set<UUID> trustedPlayers = new HashSet<>();
 
-	protected MixinTameableEntity(EntityType<? extends AnimalEntity> entityType, World world) {
+	protected MixinTameableEntity(EntityType<? extends Animal> entityType, Level world) {
 		super(entityType, world);
 	}
 
-	@Inject(method = "writeCustomData", at = @At("RETURN"))
-	public void writeNBT(WriteView nbt, CallbackInfo ci) {
-		nbt.put(TRUSTED_PLAYERS, Uuids.SET_CODEC, trustedPlayers);
+	@Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
+	public void writeNBT(ValueOutput nbt, CallbackInfo ci) {
+		nbt.store(TRUSTED_PLAYERS, UUIDUtil.CODEC_SET, trustedPlayers);
 	}
 
-	@Inject(method = "readCustomData", at = @At("HEAD"))
-	public void readNBT(ReadView nbt, CallbackInfo ci) {
-		nbt.read(TRUSTED_PLAYERS, Uuids.SET_CODEC).ifPresent(
+	@Inject(method = "readAdditionalSaveData", at = @At("HEAD"))
+	public void readNBT(ValueInput nbt, CallbackInfo ci) {
+		nbt.read(TRUSTED_PLAYERS, UUIDUtil.CODEC_SET).ifPresent(
 				players -> trustedPlayers = players
 		);
-		if (!getEntityWorld().isClient()) {
+		if (!level().isClientSide()) {
 			trustedPlayers.removeIf(
-					id -> this.getEntityWorld().getServer().getApiServices().nameToIdCache().getByUuid(id).isEmpty()
+					id -> this.level().getServer().services().nameToIdCache().get(id).isEmpty()
 			);
 		}
 	}
 
 	@Inject(
-			method = "canTarget",
+			method = "canAttack",
 			at = @At("HEAD"),
 			cancellable = true
 	)
@@ -71,21 +71,21 @@ public abstract class MixinTameableEntity extends AnimalEntity implements Tameab
 
 	@Override
 	public void metacraft$tick() {
-		if (followTargetOverride != null && followTargetOverride.isDisconnected()) {
+		if (followTargetOverride != null && followTargetOverride.hasDisconnected()) {
 			followTargetOverride = null;
 		}
 	}
 
 	@Override
-	public void metacraft$setCurrentFollowTarget(ServerPlayerEntity entity) {
+	public void metacraft$setCurrentFollowTarget(ServerPlayer entity) {
 		followTargetOverride = entity;
 	}
 
 	@Override
 	public LivingEntity metacraft$getCurrentFollowTarget() {
-		if (!isTamed()) return null;
+		if (!isTame()) return null;
 		if (followTargetOverride != null) {
-			if (followTargetOverride.getEntityWorld() != getEntityWorld()) {
+			if (followTargetOverride.level() != level()) {
 				return null;
 			}
 			return followTargetOverride;
@@ -96,7 +96,7 @@ public abstract class MixinTameableEntity extends AnimalEntity implements Tameab
 
 	@Override
 	public boolean metaraft$isTrusted(LivingEntity player) {
-		return trustedPlayers.contains(player.getUuid());
+		return trustedPlayers.contains(player.getUUID());
 	}
 
 	@Override
@@ -116,13 +116,13 @@ public abstract class MixinTameableEntity extends AnimalEntity implements Tameab
 
 	@ModifyExpressionValue(
 			method = {
-					"cannotFollowOwner",
+					"unableToMoveToOwner",
 					"shouldTryTeleportToOwner",
-					"tryTeleportToOwner"
+					"tryToTeleportToOwner"
 			},
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/entity/passive/TameableEntity;getOwner()Lnet/minecraft/entity/LivingEntity;"
+					target = "Lnet/minecraft/world/entity/TamableAnimal;getOwner()Lnet/minecraft/world/entity/LivingEntity;"
 			)
 	)
 	public LivingEntity checkFollowTarget(LivingEntity original) {

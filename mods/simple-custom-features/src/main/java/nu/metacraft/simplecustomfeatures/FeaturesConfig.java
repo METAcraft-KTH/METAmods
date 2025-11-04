@@ -7,16 +7,18 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.ConsumableComponents;
-import net.minecraft.component.type.DamageResistantComponent;
-import net.minecraft.component.type.FoodComponents;
-import net.minecraft.item.Items;
-import net.minecraft.registry.*;
-import net.minecraft.registry.tag.DamageTypeTags;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Rarity;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.food.Foods;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.component.Consumables;
+import net.minecraft.world.item.component.DamageResistant;
 import nu.metacraft.lib.config.container.MultiFileConfigContainer;
 import nu.metacraft.lib.config.container.ReloadCause;
 import nu.metacraft.lib.config.container.ServerAware;
@@ -33,7 +35,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class FeaturesConfig implements ReloadAware {
+public record FeaturesConfig(
+		Multimap<ResourceKey<? extends Registry<?>>, ObjectContainer> objects) implements ReloadAware {
 
 	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("simple-custom-features");
 
@@ -64,66 +67,64 @@ public class FeaturesConfig implements ReloadAware {
 					objects -> unwrapDataResults(objects.stream().map(
 							object -> object.getType().map(type -> Pair.of(type, object))
 					)).map(
-						result -> result.stream().collect(
-								Multimaps.<
-										Pair<? extends ObjectType<?, ?>, ? extends ObjectContainer>,
-									RegistryKey<? extends Registry<?>>, ObjectContainer,
-									Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer>
-								>toMultimap(
-										object -> object.getFirst().getRegistry().getKey(),
-										Pair::getSecond,
-										FeaturesConfig::createMultimap
-								)
-						)
+							result -> result.stream().collect(
+									Multimaps.<
+											Pair<? extends ObjectType<?, ?>, ? extends ObjectContainer>,
+											ResourceKey<? extends Registry<?>>, ObjectContainer,
+											Multimap<ResourceKey<? extends Registry<?>>, ObjectContainer>
+											>toMultimap(
+											object -> object.getFirst().getRegistry().key(),
+											Pair::getSecond,
+											FeaturesConfig::createMultimap
+									)
+							)
 					),
 					objects -> DataResult.success(objects.values().stream().toList())
-			).fieldOf("objects").forGetter(FeaturesConfig::getObjects)
+			).fieldOf("objects").forGetter(FeaturesConfig::objects)
 	).apply(instance, FeaturesConfig::new));
 
 	//This config should not be reloaded on the /reload command as doing so will modify the registries.
 	private static final ServerAware<MultiFileConfigContainer.Mergable<FeaturesConfig, FeaturesConfig>, WorldSpecificEntries> config = ServerAware.wrap(
-		MultiFileConfigContainer.Builder.create(CODEC).addDefaultSetting(
-				"default", () -> {
-					var config = new FeaturesConfig();
-					config.addObjects(new ObjectContainer.Loaded<>(
-							Features.getID("test"), new SimpleItem(
-							new BaseItem.ItemSettingsWithBaseItem(
-									Items.BRICK.getRegistryEntry(),
-									ComponentChanges.builder().add(
-											DataComponentTypes.MAX_STACK_SIZE, 32
-									).add(
-											DataComponentTypes.DAMAGE_RESISTANT, new DamageResistantComponent(DamageTypeTags.IS_FIRE)
-									).add(
-											DataComponentTypes.RARITY, Rarity.UNCOMMON
-									).add(
-											DataComponentTypes.FOOD, FoodComponents.ENCHANTED_GOLDEN_APPLE
-									).add(
-											DataComponentTypes.CONSUMABLE, ConsumableComponents.DRINK
-									).build(),
-									Optional.empty()
-							),
-							Optional.empty(), List.of()
-					)));
-					return config;
-				}
-		).build(
-				configPath,
-				results -> results.reduce(
-						new FeaturesConfig(),
-						(main, toAdd) -> {
-							main.objects.putAll(toAdd.objects);
-							return main;
-						}
-				)
-		),
-		(config, server) -> new WorldSpecificEntries(config.get().objects, server.getRegistryManager()),
-		(oldConfig, newConfig, cause) -> oldConfig
+			MultiFileConfigContainer.Builder.create(CODEC).addDefaultSetting(
+					"default", () -> {
+						var config = new FeaturesConfig();
+						config.addObjects(new ObjectContainer.Loaded<>(
+								Features.getID("test"), new SimpleItem(
+								new BaseItem.ItemSettingsWithBaseItem(
+										Items.BRICK.builtInRegistryHolder(),
+										DataComponentPatch.builder().set(
+												DataComponents.MAX_STACK_SIZE, 32
+										).set(
+												DataComponents.DAMAGE_RESISTANT, new DamageResistant(DamageTypeTags.IS_FIRE)
+										).set(
+												DataComponents.RARITY, Rarity.UNCOMMON
+										).set(
+												DataComponents.FOOD, Foods.ENCHANTED_GOLDEN_APPLE
+										).set(
+												DataComponents.CONSUMABLE, Consumables.DEFAULT_DRINK
+										).build(),
+										Optional.empty()
+								),
+								Optional.empty(), List.of()
+						)));
+						return config;
+					}
+			).build(
+					configPath,
+					results -> results.reduce(
+							new FeaturesConfig(),
+							(main, toAdd) -> {
+								main.objects.putAll(toAdd.objects);
+								return main;
+							}
+					)
+			),
+			(config, server) -> new WorldSpecificEntries(config.get().objects, server.registryAccess()),
+			(oldConfig, newConfig, cause) -> oldConfig
 	);
 
-	private final Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer> objects;
-
 	public FeaturesConfig(
-			Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer> objects
+			Multimap<ResourceKey<? extends Registry<?>>, ObjectContainer> objects
 	) {
 		this.objects = objects;
 		ObjectContainer.register(getLoadedObjects(objects), null);
@@ -133,12 +134,13 @@ public class FeaturesConfig implements ReloadAware {
 		this(MultimapBuilder.hashKeys().arrayListValues().build());
 	}
 
-	public Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer> getObjects() {
+	@Override
+	public Multimap<ResourceKey<? extends Registry<?>>, ObjectContainer> objects() {
 		return Multimaps.unmodifiableMultimap(objects);
 	}
 
 	private static Stream<ObjectContainer.Loaded<?>> getLoadedObjects(
-			Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer> objects
+			Multimap<ResourceKey<? extends Registry<?>>, ObjectContainer> objects
 	) {
 		return getLoadedObjects(objects.values().stream());
 	}
@@ -160,14 +162,14 @@ public class FeaturesConfig implements ReloadAware {
 		);
 	}
 
-	public Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer.Loaded<?>> getObjectsInWorld(MinecraftServer server) {
+	public Multimap<ResourceKey<? extends Registry<?>>, ObjectContainer.Loaded<?>> getObjectsInWorld(MinecraftServer server) {
 		return Multimaps.unmodifiableMultimap(config.get(server).loadedObjects);
 	}
 
 	private void addObjects(ObjectContainer... containers) {
 		for (var container : containers) {
 			container.getType().resultOrPartial(Features.LOGGER::error).ifPresent(
-					type -> objects.put(type.getRegistry().getKey(), container)
+					type -> objects.put(type.getRegistry().key(), container)
 			);
 		}
 		ObjectContainer.register(getLoadedObjects(Arrays.stream(containers)), null);
@@ -176,6 +178,7 @@ public class FeaturesConfig implements ReloadAware {
 	/**
 	 * Returns the config.
 	 * DO NOT CACHE THIS IN VARIABLES FOR LONGER PERIODS OF TIME!
+	 *
 	 * @return The config.
 	 */
 	public static FeaturesConfig getConfig() {
@@ -189,12 +192,12 @@ public class FeaturesConfig implements ReloadAware {
 
 	public static class WorldSpecificEntries implements ServerUnloadAware, ServerLoadAware {
 
-		private final Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer.Loaded<?>> loadedObjects;
+		private final Multimap<ResourceKey<? extends Registry<?>>, ObjectContainer.Loaded<?>> loadedObjects;
 		private final List<ObjectContainer.Loaded<?>> objectsRegistered;
 
 		protected WorldSpecificEntries(
-				Multimap<RegistryKey<? extends Registry<?>>, ObjectContainer> objectMap,
-				RegistryWrapper.WrapperLookup lookup
+				Multimap<ResourceKey<? extends Registry<?>>, ObjectContainer> objectMap,
+				HolderLookup.Provider lookup
 		) {
 			this.objectsRegistered = new ArrayList<>();
 			List<ObjectContainer.Deferred> partialsToRemove = new ArrayList<>();

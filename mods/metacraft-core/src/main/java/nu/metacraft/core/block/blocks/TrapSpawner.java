@@ -1,76 +1,76 @@
 package nu.metacraft.core.block.blocks;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.BlockWithEntity;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.BlockView;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.block.entities.TrapSpawnerEntity;
 
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 
 public class TrapSpawner extends DisguisedBlock {
 
-	public static final MapCodec<TrapSpawner> CODEC = TrapSpawner.createCodec(TrapSpawner::new);
+	public static final MapCodec<TrapSpawner> CODEC = TrapSpawner.simpleCodec(TrapSpawner::new);
 
-	public TrapSpawner(Settings settings) {
+	public TrapSpawner(Properties settings) {
 		super(settings);
 	}
 
 	@Override
-	protected MapCodec<? extends BlockWithEntity> getCodec() {
+	protected MapCodec<? extends BaseEntityBlock> codec() {
 		return CODEC;
 	}
 
 	@Override
-	protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
+	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
 		return getTrap(world, pos).map(
 				trap -> {
-					return trap.triggerInteract(hit.getSide(), player);
+					return trap.triggerInteract(hit.getDirection(), player);
 				}
-		).orElse(super.onUse(state, world, pos, player, hit));
+		).orElse(super.useWithoutItem(state, world, pos, player, hit));
 	}
 
 	@Override
-	protected void onBlockBreakStart(BlockState state, World world, BlockPos pos, PlayerEntity player) {
-		super.onBlockBreakStart(state, world, pos, player);
-		var hit = player.raycast(player.getAttributeValue(EntityAttributes.BLOCK_INTERACTION_RANGE), 0, false);
+	protected void attack(BlockState state, Level world, BlockPos pos, Player player) {
+		super.attack(state, world, pos, player);
+		var hit = player.pick(player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE), 0, false);
 		if (hit != null && hit.getType() != HitResult.Type.MISS) {
-			getTrap(world, pos).ifPresent(trap -> trap.triggerInteract(((BlockHitResult) hit).getSide(), player));
+			getTrap(world, pos).ifPresent(trap -> trap.triggerInteract(((BlockHitResult) hit).getDirection(), player));
 		}
 	}
 
 	@Override
-	public void onSteppedOn(World world, BlockPos pos, BlockState state, Entity entity) {
-		super.onSteppedOn(world, pos, state, entity);
+	public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {
+		super.stepOn(world, pos, state, entity);
 		getTrap(world, pos).ifPresent(trap -> trap.triggerStep(entity));
 	}
 
 	@Override
-	protected void onStateReplaced(BlockState state, ServerWorld world, BlockPos pos, boolean moved) {
-		if (!state.isOf(world.getBlockState(pos).getBlock()) && !moved) {
+	protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel world, BlockPos pos, boolean moved) {
+		if (!state.is(world.getBlockState(pos).getBlock()) && !moved) {
 			getTrap(world, pos).ifPresent(TrapSpawnerEntity::triggerRemove);
 		}
-		super.onStateReplaced(state, world, pos, moved);
+		super.affectNeighborsAfterRemoval(state, world, pos, moved);
 	}
 
 	@Nullable
 	@Override
-	public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+	public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
 		return new TrapSpawnerEntity(pos, state);
 	}
 
-	public Optional<TrapSpawnerEntity> getTrap(BlockView world, BlockPos pos) {
+	public Optional<TrapSpawnerEntity> getTrap(BlockGetter world, BlockPos pos) {
 		var entity = world.getBlockEntity(pos);
 		if (entity instanceof TrapSpawnerEntity trap) {
 			return Optional.of(trap);

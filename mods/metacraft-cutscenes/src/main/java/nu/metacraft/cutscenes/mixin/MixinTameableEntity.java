@@ -2,38 +2,38 @@ package nu.metacraft.cutscenes.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
 import nu.metacraft.cutscenes.util.helper.CutsceneHelper;
 
-@Mixin(TameableEntity.class)
-public abstract class MixinTameableEntity extends AnimalEntity {
+@Mixin(TamableAnimal.class)
+public abstract class MixinTameableEntity extends Animal {
 
-	protected MixinTameableEntity(EntityType<? extends AnimalEntity> entityType, World world) {
+	protected MixinTameableEntity(EntityType<? extends Animal> entityType, Level world) {
 		super(entityType, world);
 	}
 
 	@WrapOperation(
-		method = "cannotFollowOwner",
+		method = "unableToMoveToOwner",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/entity/LivingEntity;isSpectator()Z"
+					target = "Lnet/minecraft/world/entity/LivingEntity;isSpectator()Z"
 			)
 	)
 	public boolean cannotFollowOwner(LivingEntity owner, Operation<Boolean> original) {
-		if (owner instanceof ServerPlayerEntity player) {
+		if (owner instanceof ServerPlayer player) {
 			var scene = CutsceneHelper.getCutscene(player);
 			if (scene.isPresent()) {
-				if (this.getEntityWorld() != scene.get().getCutsceneWorld()) return true;
+				if (this.level() != scene.get().getCutsceneWorld()) return true;
 			} else {
-				if (this.getEntityWorld() instanceof CutsceneWorld) return true;
+				if (this.level() instanceof CutsceneWorld) return true;
 			}
 		}
 		return original.call(owner);

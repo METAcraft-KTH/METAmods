@@ -3,7 +3,7 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.registry.TransitionConfigRegistry;
@@ -76,14 +76,14 @@ public class ConditionalTransition implements Transition {
 	}
 
 	@Override
-	public void activate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (active) {
 			transition.activate(player, cutscene, interval);
 		}
 	}
 
 	@Override
-	public void deactivate(ServerPlayerEntity player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
+	public void deactivate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (active) {
 			transition.deactivate(player, cutscene, interval);
 		}
@@ -110,14 +110,14 @@ public class ConditionalTransition implements Transition {
 
 		public boolean test(CutsceneInstance cutscene) {
 			MutableBoolean isSuccessful = new MutableBoolean(false);
-			var source = RunCommandTransition.getSource(cutscene, false, null, false).withReturnValueConsumer(
+			var source = RunCommandTransition.getSource(cutscene, false, null, false).withCallback(
 					(success, result) -> {
 						if (result != 0) {
 							isSuccessful.setTrue();
 						}
 					}
 			);
-			cutscene.getServer().getCommandManager().parseAndExecute(source, commandCondition);
+			cutscene.getServer().getCommands().performPrefixedCommand(source, commandCondition);
 			return isSuccessful.booleanValue();
 		}
 

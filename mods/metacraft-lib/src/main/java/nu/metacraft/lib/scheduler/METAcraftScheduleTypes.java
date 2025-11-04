@@ -2,7 +2,7 @@ package nu.metacraft.lib.scheduler;
 
 import com.mojang.serialization.MapCodec;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.timer.TimerCallback;
+import net.minecraft.world.level.timers.TimerCallback;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.TaskScheduler;
 

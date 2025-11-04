@@ -2,40 +2,40 @@ package nu.metacraft.core.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.network.packet.s2c.play.ClearTitleS2CPacket;
-import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
-import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
-import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundClearTitlesPacket;
+import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
 
 public class TechnicalDifficultiesCommand {
-	public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
+	public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess) {
 		dispatcher.register(
-			CommandManager.literal("td")
+			Commands.literal("td")
 				.requires(Permissions.require("metacraft.technical_difficulties", 2))
 				.then(
-					CommandManager.literal("title")
+					Commands.literal("title")
 						.executes(ctx -> {
-							var timesPacket = new TitleFadeS2CPacket(20, 72000, 20);
-							var subtitlePacket = new SubtitleS2CPacket(Text.literal("Please stand by"));
-							var titlePacket = new TitleS2CPacket(Text.literal("Technical difficulties"));
-							for (var player : ctx.getSource().getServer().getPlayerManager().getPlayerList()) {
-								player.networkHandler.sendPacket(timesPacket);
-								player.networkHandler.sendPacket(subtitlePacket);
-								player.networkHandler.sendPacket(titlePacket);
+							var timesPacket = new ClientboundSetTitlesAnimationPacket(20, 72000, 20);
+							var subtitlePacket = new ClientboundSetSubtitleTextPacket(Component.literal("Please stand by"));
+							var titlePacket = new ClientboundSetTitleTextPacket(Component.literal("Technical difficulties"));
+							for (var player : ctx.getSource().getServer().getPlayerList().getPlayers()) {
+								player.connection.send(timesPacket);
+								player.connection.send(subtitlePacket);
+								player.connection.send(titlePacket);
 							}
 							return 1;
 						})
 				)
 				.then(
-					CommandManager.literal("reset")
+					Commands.literal("reset")
 						.executes(ctx -> {
-							var clearPacket = new ClearTitleS2CPacket(true);
-							for (var player : ctx.getSource().getServer().getPlayerManager().getPlayerList()) {
-								player.networkHandler.sendPacket(clearPacket);
+							var clearPacket = new ClientboundClearTitlesPacket(true);
+							for (var player : ctx.getSource().getServer().getPlayerList().getPlayers()) {
+								player.connection.send(clearPacket);
 							}
 							return 1;
 						})

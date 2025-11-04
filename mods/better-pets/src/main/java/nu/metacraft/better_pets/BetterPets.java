@@ -1,7 +1,7 @@
 package nu.metacraft.better_pets;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,7 +16,7 @@ public class BetterPets implements ModInitializer {
 
 	}
 
-	public static Identifier getID(String name) {
-		return Identifier.of(NAMESPACE, name);
+	public static ResourceLocation getID(String name) {
+		return ResourceLocation.fromNamespaceAndPath(NAMESPACE, name);
 	}
 }

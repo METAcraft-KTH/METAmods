@@ -5,22 +5,6 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.FoodComponent;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.ai.goal.AnimalMateGoal;
-import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.entity.passive.ParrotEntity;
-import net.minecraft.entity.passive.PassiveEntity;
-import net.minecraft.entity.passive.TameableEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.tag.ItemTags;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -31,28 +15,44 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import nu.metacraft.better_pets.TameableExtension;
 
 import java.util.Optional;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.ai.goal.BreedGoal;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.Parrot;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 
-@Mixin(ParrotEntity.class)
-public abstract class MixinParrotEntity extends TameableEntity {
+@Mixin(Parrot.class)
+public abstract class MixinParrotEntity extends TamableAnimal {
 
-	@Shadow public abstract ParrotEntity.Variant getVariant();
+	@Shadow public abstract Parrot.Variant getVariant();
 
-	protected MixinParrotEntity(EntityType<? extends TameableEntity> entityType, World world) {
+	protected MixinParrotEntity(EntityType<? extends TamableAnimal> entityType, Level world) {
 		super(entityType, world);
 	}
 
 	@ModifyExpressionValue(
-			method = "interactMob",
+			method = "mobInteract",
 			at = @At(
-					value = "INVOKE", target = "Lnet/minecraft/entity/passive/ParrotEntity;isOwner(Lnet/minecraft/entity/LivingEntity;)Z"
+					value = "INVOKE", target = "Lnet/minecraft/world/entity/animal/Parrot;isOwnedBy(Lnet/minecraft/world/entity/LivingEntity;)Z"
 			)
 	)
 	public boolean isTrusted(
-			boolean original, @Local(argsOnly = true) PlayerEntity player, @Local(argsOnly = true) Hand hand, @Share("notOwner") LocalBooleanRef notOwner
+			boolean original, @Local(argsOnly = true) Player player, @Local(argsOnly = true) InteractionHand hand, @Share("notOwner") LocalBooleanRef notOwner
 	) {
 		if (original) {
 			return true;
-		} else if (hand == Hand.MAIN_HAND) { //Check for main hand to prevent double interactions.
+		} else if (hand == InteractionHand.MAIN_HAND) { //Check for main hand to prevent double interactions.
 			notOwner.set(((TameableExtension) this).metaraft$isTrusted(player));
 			return notOwner.get();
 		}
@@ -60,15 +60,15 @@ public abstract class MixinParrotEntity extends TameableEntity {
 	}
 
 	@ModifyExpressionValue(
-		method = "interactMob",
+		method = "mobInteract",
 		at = @At(
 			value = "FIELD",
-			target = "Lnet/minecraft/util/ActionResult;SUCCESS:Lnet/minecraft/util/ActionResult$Success;"
+			target = "Lnet/minecraft/world/InteractionResult;SUCCESS:Lnet/minecraft/world/InteractionResult$Success;"
 		)
 	)
-	public ActionResult.Success swingArm(ActionResult.Success original, @Share("notOwner") LocalBooleanRef notOwner) {
+	public InteractionResult.Success swingArm(InteractionResult.Success original, @Share("notOwner") LocalBooleanRef notOwner) {
 		if (notOwner.get()) {
-			return ActionResult.SUCCESS_SERVER;
+			return InteractionResult.SUCCESS_SERVER;
 		}
 		return original;
 	}
@@ -78,47 +78,47 @@ public abstract class MixinParrotEntity extends TameableEntity {
 		return super.isBaby();
 	}
 
-	@Inject(method = "canBreedWith", at = @At("HEAD"), cancellable = true)
-	public void canBreedWith(AnimalEntity other, CallbackInfoReturnable<Boolean> cir) {
-		cir.setReturnValue(super.canBreedWith(other));
+	@Inject(method = "canMate", at = @At("HEAD"), cancellable = true)
+	public void canBreedWith(Animal other, CallbackInfoReturnable<Boolean> cir) {
+		cir.setReturnValue(super.canMate(other));
 	}
 
-	@Inject(method = "isBreedingItem", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "isFood", at = @At("HEAD"), cancellable = true)
 	public void isBreedingItem(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
-		cir.setReturnValue(stack.isIn(ItemTags.PARROT_FOOD));
+		cir.setReturnValue(stack.is(ItemTags.PARROT_FOOD));
 	}
 
-	@Inject(method = "createChild", at = @At("HEAD"), cancellable = true)
-	public void createChild(ServerWorld world, PassiveEntity entity, CallbackInfoReturnable<PassiveEntity> cir) {
-		var baby = EntityType.PARROT.create(world, SpawnReason.BREEDING);
-		if (baby != null && entity instanceof ParrotEntity otherParrot) {
+	@Inject(method = "getBreedOffspring", at = @At("HEAD"), cancellable = true)
+	public void createChild(ServerLevel world, AgeableMob entity, CallbackInfoReturnable<AgeableMob> cir) {
+		var baby = EntityType.PARROT.create(world, EntitySpawnReason.BREEDING);
+		if (baby != null && entity instanceof Parrot otherParrot) {
 			if (this.getRandom().nextBoolean()) {
-				baby.setComponent(DataComponentTypes.PARROT_VARIANT, this.getVariant());
+				baby.setComponent(DataComponents.PARROT_VARIANT, this.getVariant());
 			} else {
-				baby.setComponent(DataComponentTypes.PARROT_VARIANT, otherParrot.getVariant());
+				baby.setComponent(DataComponents.PARROT_VARIANT, otherParrot.getVariant());
 			}
-			if (this.isTamed()) {
-				baby.setOwner(this.getOwnerReference());
-				baby.setTamed(true, true);
+			if (this.isTame()) {
+				baby.setOwnerReference(this.getOwnerReference());
+				baby.setTame(true, true);
 			}
 		}
 		cir.setReturnValue(baby);
 	}
 
 	@Unique
-	private Optional<ActionResult> interactParrot(PlayerEntity player, Hand hand) {
-		if (hand == Hand.OFF_HAND) {
-			return Optional.of(ActionResult.FAIL);
+	private Optional<InteractionResult> interactParrot(Player player, InteractionHand hand) {
+		if (hand == InteractionHand.OFF_HAND) {
+			return Optional.of(InteractionResult.FAIL);
 		}
-		if (player.getStackInHand(hand).isIn(ItemTags.PARROT_FOOD) && this.getHealth() < this.getMaxHealth()) {
-			var stack = player.getStackInHand(hand);
-			this.eat(player, hand, stack);
-			FoodComponent foodComponent = stack.get(DataComponentTypes.FOOD);
+		if (player.getItemInHand(hand).is(ItemTags.PARROT_FOOD) && this.getHealth() < this.getMaxHealth()) {
+			var stack = player.getItemInHand(hand);
+			this.usePlayerItem(player, hand, stack);
+			FoodProperties foodComponent = stack.get(DataComponents.FOOD);
 			this.heal(foodComponent != null ? foodComponent.nutrition() : 1.0f);
-			return Optional.of(ActionResult.SUCCESS_SERVER);
+			return Optional.of(InteractionResult.SUCCESS_SERVER);
 		} else {
-			var result = super.interactMob(player, hand);
-			if (result.isAccepted()) {
+			var result = super.mobInteract(player, hand);
+			if (result.consumesAction()) {
 				return Optional.of(result);
 			}
 		}
@@ -126,21 +126,21 @@ public abstract class MixinParrotEntity extends TameableEntity {
 	}
 
 	@Inject(
-		method = "interactMob",
+		method = "mobInteract",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/entity/passive/ParrotEntity;isInAir()Z"
+			target = "Lnet/minecraft/world/entity/animal/Parrot;isFlying()Z"
 		),
 		cancellable = true
 	)
-	public void interactWhenTamed(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
-		if (!player.getEntityWorld().isClient() && isTamed() && (isOwner(player) || ((TameableExtension) this).metaraft$isTrusted(player))) {
+	public void interactWhenTamed(Player player, InteractionHand hand, CallbackInfoReturnable<InteractionResult> cir) {
+		if (!player.level().isClientSide() && isTame() && (isOwnedBy(player) || ((TameableExtension) this).metaraft$isTrusted(player))) {
 			interactParrot(player, hand).ifPresent(cir::setReturnValue);
 		}
 	}
 
-	@Inject(method = "initGoals", at = @At("HEAD"))
+	@Inject(method = "registerGoals", at = @At("HEAD"))
 	public void initGoals(CallbackInfo ci) {
-		this.goalSelector.add(3, new AnimalMateGoal(this, 0.8));
+		this.goalSelector.addGoal(3, new BreedGoal(this, 0.8));
 	}
 }

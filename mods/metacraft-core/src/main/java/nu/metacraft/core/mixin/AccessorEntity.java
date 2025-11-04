@@ -1,16 +1,16 @@
 package nu.metacraft.core.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.MovementType;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(Entity.class)
 public interface AccessorEntity {
 	@Invoker
-	Vec3d callAdjustMovementForCollisions(Vec3d movement);
+	Vec3 callCollide(Vec3 movement);
 
 	@Invoker
-	Vec3d callAdjustMovementForSneaking(Vec3d movement, MovementType type);
+	Vec3 callMaybeBackOffFromEdge(Vec3 movement, MoverType type);
 }

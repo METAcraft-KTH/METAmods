@@ -5,7 +5,6 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
-import net.minecraft.util.Uuids;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.util.CutsceneContext;
 import nu.metacraft.core.util.Interpolatable;
@@ -24,13 +23,14 @@ import nu.metacraft.cutscenes.transitions.config.TransitionConfigType;
 
 import java.util.*;
 import java.util.stream.DoubleStream;
+import net.minecraft.core.UUIDUtil;
 
 public class RotateHead implements Transition {
 
 	public static final MapCodec<RotateHead> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					RotateHeadConfig.CODEC.forGetter(a -> a.config),
-					Codec.unboundedMap(Uuids.STRING_CODEC, FixedTarget.CODEC.codec()).fieldOf("entity_facings").forGetter(
+					Codec.unboundedMap(UUIDUtil.STRING_CODEC, FixedTarget.CODEC.codec()).fieldOf("entity_facings").forGetter(
 							t -> t.entityFacings
 					)
 			).apply(instance, RotateHead::new)
@@ -57,7 +57,7 @@ public class RotateHead implements Transition {
 		offsets = offsets.setStartIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
 		offsets = offsets.setEndIfNotPresent(new RotateHeadConfig.OffsetTarget(0, 0));
 		config.entity.get(cutscene.getRefContext()).findAny().ifPresent(entity -> {
-			entityFacings.put(entity.getUuid(), new FixedTarget(entity.getYaw(), entity.getPitch()));
+			entityFacings.put(entity.getUUID(), new FixedTarget(entity.getYRot(), entity.getXRot()));
 		});
 	}
 
@@ -70,18 +70,18 @@ public class RotateHead implements Transition {
 		}
 		config.entity.get(cutscene.getRefContext()).forEach(entity -> {
 			float delta = interval.getDelta(cutscene.getCurrentTime());
-			entity.lastYaw = entity.getYaw();
-			entity.lastPitch = entity.getPitch();
+			entity.yRotO = entity.getYRot();
+			entity.xRotO = entity.getXRot();
 			var offset = offsets.interpolate(delta);
 			var origin = entityFacings.computeIfAbsent(
-					entity.getUuid(), k -> new FixedTarget(entity.getYaw(), entity.getPitch())
+					entity.getUUID(), k -> new FixedTarget(entity.getYRot(), entity.getXRot())
 			);
 			float newYaw = origin.yaw() + offset.yawOffset();
 			if (!config.onlyHead) {
-				entity.setYaw(newYaw);
+				entity.setYRot(newYaw);
 			}
-			entity.setHeadYaw(newYaw);
-			entity.setPitch(origin.pitch() + offset.pitchOffset());
+			entity.setYHeadRot(newYaw);
+			entity.setXRot(origin.pitch() + offset.pitchOffset());
 		});
 	}
 

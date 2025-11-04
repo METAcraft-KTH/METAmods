@@ -1,32 +1,32 @@
 package nu.metacraft.relay.items;
 
 import eu.pb4.polymer.core.api.item.PolymerBlockItem;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.world.World;
 import nu.metacraft.relay.Relay;
 import nu.metacraft.relay.blocks.RelayBlocks;
 import org.pcollections.HashTreePMap;
 import org.pcollections.HashTreePSet;
 
 import java.util.function.Function;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 
 public class RelayItems {
 
-	public static final TagKey<Item> RELAY_RECHARGE_ITEMS = TagKey.of(
-			RegistryKeys.ITEM, Relay.getID("relay_recharge_items")
+	public static final TagKey<Item> RELAY_RECHARGE_ITEMS = TagKey.create(
+			Registries.ITEM, Relay.getID("relay_recharge_items")
 	);
 
 	public static final Item RELAY = register(
 			"relay", settings -> new PolymerBlockItem(RelayBlocks.RELAY, settings, Items.STONE, true),
-			new Item.Settings().useBlockPrefixedTranslationKey()
-					.component(RelayComponents.VALID_DIMENSIONS, HashTreePMap.singleton(World.END, HashTreePSet.singleton(World.END)))
+			new Item.Properties().useBlockDescriptionPrefix()
+					.component(RelayComponents.VALID_DIMENSIONS, HashTreePMap.singleton(Level.END, HashTreePSet.singleton(Level.END)))
 					.component(RelayComponents.VALID_CHARGE_ITEM, RELAY_RECHARGE_ITEMS)
 					.component(RelayComponents.BLOCK_MODEL, Relay.getID("relay"))
 	);
@@ -35,11 +35,11 @@ public class RelayItems {
 
 	}
 
-	private static Item register(String id, Function<Item.Settings, Item> creator, Item.Settings settings) {
-		var key = RegistryKey.of(RegistryKeys.ITEM, Relay.getID(id));
-		var item = Registry.register(Registries.ITEM, key, creator.apply(settings.registryKey(key)));
+	private static Item register(String id, Function<Item.Properties, Item> creator, Item.Properties settings) {
+		var key = ResourceKey.create(Registries.ITEM, Relay.getID(id));
+		var item = Registry.register(BuiltInRegistries.ITEM, key, creator.apply(settings.setId(key)));
 		if (item instanceof BlockItem b) {
-			Item.BLOCK_ITEMS.put(b.getBlock(), b);
+			Item.BY_BLOCK.put(b.getBlock(), b);
 		}
 		return item;
 	}

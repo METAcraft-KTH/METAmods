@@ -5,19 +5,19 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import it.unimi.dsi.fastutil.Pair;
-import net.minecraft.component.type.TooltipDisplayComponent;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.tooltip.TooltipType;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import nu.metacraft.plots.zone.PlotDataTypes;
 import nu.metacraft.plots.zone.PlotData;
 import nu.metacraft.zones.ZoneManager;
@@ -31,9 +31,9 @@ import java.util.function.Consumer;
 
 public class PlotKey extends Item implements PolymerItem {
 
-	private final BiFunction<ItemStack, MinecraftServer, Identifier> modelIdGetter;
+	private final BiFunction<ItemStack, MinecraftServer, ResourceLocation> modelIdGetter;
 
-	public PlotKey(Item.Settings settings, BiFunction<ItemStack, MinecraftServer, Identifier> modelIdGetter) {
+	public PlotKey(Item.Properties settings, BiFunction<ItemStack, MinecraftServer, ResourceLocation> modelIdGetter) {
 		super(settings);
 		this.modelIdGetter = modelIdGetter;
 	}
@@ -74,20 +74,20 @@ public class PlotKey extends Item implements PolymerItem {
 	}
 
 	@Override
-	public void inventoryTick(ItemStack stack, ServerWorld world, Entity entity, EquipmentSlot slot) {
+	public void inventoryTick(ItemStack stack, ServerLevel world, Entity entity, EquipmentSlot slot) {
 		super.inventoryTick(stack, world, entity, slot);
 		if (
-			!world.isClient() && entity instanceof ServerPlayerEntity
+			!world.isClientSide() && entity instanceof ServerPlayer
 		) {
 			if (
 					stack.getCount() == 1 &&
-					stack.contains(PlotComponents.CREATION_SECRET)
+					stack.has(PlotComponents.CREATION_SECRET)
 			) {
 				getZone(stack, world.getServer(), false).ifPresent(zone -> {
 					turnIntoSecondaryKeyIfCreationSecret(stack, zone.plotData);
 				});
 			}
-			if (stack.contains(PlotComponents.KEYS_TO_REVOKE)) {
+			if (stack.has(PlotComponents.KEYS_TO_REVOKE)) {
 				var prevZones = stack.get(PlotComponents.KEYS_TO_REVOKE).zones;
 				for (var z : prevZones) {
 					var name = z.zone;
@@ -162,7 +162,7 @@ public class PlotKey extends Item implements PolymerItem {
 		).ifPresentOrElse(nbt -> {
 			turnIntoSecondaryKeyFor(key, data);
 		}, () -> {
-			key.applyComponentsFrom(key.getDefaultComponents());
+			key.applyComponents(key.getPrototype());
 		});
 	}
 
@@ -176,7 +176,7 @@ public class PlotKey extends Item implements PolymerItem {
 
 	public static void renameKey(ItemStack plotKey, MinecraftServer server, String newName) {
 		PlotKey.getZone(plotKey, server).flatMap(
-				zone -> zone.plotData().addSecondarySecretWithFriendlyName(plotKey.getName().getString()).flatMap(
+				zone -> zone.plotData().addSecondarySecretWithFriendlyName(plotKey.getHoverName().getString()).flatMap(
 						secret -> Optional.of(Pair.of(zone, secret))
 				)
 		).ifPresent(pair -> {
@@ -192,23 +192,23 @@ public class PlotKey extends Item implements PolymerItem {
 	}
 
 	@Override
-	public void appendTooltip(ItemStack stack, TooltipContext context, TooltipDisplayComponent component, Consumer<Text> tooltip, TooltipType type) {
-		super.appendTooltip(stack, context, component, tooltip, type);
-		if (stack.contains(PlotComponents.KEY)) {
+	public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay component, Consumer<Component> tooltip, TooltipFlag type) {
+		super.appendHoverText(stack, context, component, tooltip, type);
+		if (stack.has(PlotComponents.KEY)) {
 			var zoneName = stack.get(PlotComponents.KEY).zoneName;
-			if (stack.contains(PlotComponents.PLACEHOLDER_NAME) && component.shouldDisplay(PlotComponents.PLACEHOLDER_NAME)) {
-				tooltip.accept(Text.literal(zoneName + ":" + stack.get(PlotComponents.PLACEHOLDER_NAME).placeholderName));
-			} else if (stack.contains(PlotComponents.FRIENDLY_NAME) && component.shouldDisplay(PlotComponents.FRIENDLY_NAME)) {
-				tooltip.accept(Text.literal(zoneName + ":" + stack.get(PlotComponents.FRIENDLY_NAME).friendlyName));
-			} else if (component.shouldDisplay(PlotComponents.KEY)) {
-				tooltip.accept(Text.literal(zoneName));
+			if (stack.has(PlotComponents.PLACEHOLDER_NAME) && component.shows(PlotComponents.PLACEHOLDER_NAME)) {
+				tooltip.accept(Component.literal(zoneName + ":" + stack.get(PlotComponents.PLACEHOLDER_NAME).placeholderName));
+			} else if (stack.has(PlotComponents.FRIENDLY_NAME) && component.shows(PlotComponents.FRIENDLY_NAME)) {
+				tooltip.accept(Component.literal(zoneName + ":" + stack.get(PlotComponents.FRIENDLY_NAME).friendlyName));
+			} else if (component.shows(PlotComponents.KEY)) {
+				tooltip.accept(Component.literal(zoneName));
 			}
 		}
 	}
 
 	@Override
-	public Identifier getPolymerItemModel(ItemStack itemStack, PacketContext ctx) {
-		return modelIdGetter.apply(itemStack, Optional.ofNullable(ctx.getPlayer()).map(player -> player.getEntityWorld().getServer()).orElse(null));
+	public ResourceLocation getPolymerItemModel(ItemStack itemStack, PacketContext ctx) {
+		return modelIdGetter.apply(itemStack, Optional.ofNullable(ctx.getPlayer()).map(player -> player.level().getServer()).orElse(null));
 	}
 
 	public record ZoneContainer(Zone zone, PlotData plotData) {}
@@ -219,10 +219,10 @@ public class PlotKey extends Item implements PolymerItem {
 	}
 
 	@Override
-	public void onItemEntityDestroyed(ItemEntity entity) {
-		super.onItemEntityDestroyed(entity);
+	public void onDestroyed(ItemEntity entity) {
+		super.onDestroyed(entity);
 		if (this == PlotItems.PLOT_KEY) {
-			PlotKey.revokePlotKey(entity.getStack(), entity.getEntityWorld().getServer());
+			PlotKey.revokePlotKey(entity.getItem(), entity.level().getServer());
 		}
 	}
 

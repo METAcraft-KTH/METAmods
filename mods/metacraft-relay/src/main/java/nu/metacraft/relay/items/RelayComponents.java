@@ -3,15 +3,6 @@ package nu.metacraft.relay.items;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import eu.pb4.polymer.core.api.other.PolymerComponent;
-import net.minecraft.component.ComponentType;
-import net.minecraft.item.Item;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
 import nu.metacraft.relay.Relay;
 import org.pcollections.HashTreePSet;
 import org.pcollections.PMap;
@@ -20,13 +11,22 @@ import nu.metacraft.lib.util.helper.PCollectionsHelper;
 
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.Level;
 
 public class RelayComponents {
 
-	public static final ComponentType<PMap<RegistryKey<World>, PSet<RegistryKey<World>>>> VALID_DIMENSIONS = register(
-			"relay_valid_dimensions", builder -> builder.codec(
+	public static final DataComponentType<PMap<ResourceKey<Level>, PSet<ResourceKey<Level>>>> VALID_DIMENSIONS = register(
+			"relay_valid_dimensions", builder -> builder.persistent(
 					Codec.unboundedMap(
-							World.CODEC, World.CODEC.listOf()
+							Level.RESOURCE_KEY_CODEC, Level.RESOURCE_KEY_CODEC.listOf()
 					).xmap(
 							map -> PCollectionsHelper.collectToMap(
 									map.entrySet().stream().map(
@@ -40,22 +40,22 @@ public class RelayComponents {
 			)
 	);
 
-	public static final ComponentType<TagKey<Item>> VALID_CHARGE_ITEM = register(
-			"relay_valid_charge_item", builder -> builder.codec(TagKey.codec(RegistryKeys.ITEM))
+	public static final DataComponentType<TagKey<Item>> VALID_CHARGE_ITEM = register(
+			"relay_valid_charge_item", builder -> builder.persistent(TagKey.hashedCodec(Registries.ITEM))
 	);
 
-	public static final ComponentType<Identifier> BLOCK_MODEL = register(
-			"block_model", builder -> builder.codec(Identifier.CODEC)
+	public static final DataComponentType<ResourceLocation> BLOCK_MODEL = register(
+			"block_model", builder -> builder.persistent(ResourceLocation.CODEC)
 	);
 
 	public static void init() {
 
 	}
 
-	protected static <T> ComponentType<T> register(String id, UnaryOperator<ComponentType.Builder<T>> builderOperator) {
+	protected static <T> DataComponentType<T> register(String id, UnaryOperator<DataComponentType.Builder<T>> builderOperator) {
 		var entry = Registry.register(
-				Registries.DATA_COMPONENT_TYPE, Relay.getID(id),
-				builderOperator.apply(ComponentType.builder()).build()
+				BuiltInRegistries.DATA_COMPONENT_TYPE, Relay.getID(id),
+				builderOperator.apply(DataComponentType.builder()).build()
 		);
 		PolymerComponent.registerDataComponent(entry);
 		return entry;

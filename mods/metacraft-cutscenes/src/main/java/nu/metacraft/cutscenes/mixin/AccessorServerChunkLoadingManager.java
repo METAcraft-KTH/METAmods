@@ -1,38 +1,38 @@
 package nu.metacraft.cutscenes.mixin;
 
-import net.minecraft.server.network.EntityTrackerEntry;
-import net.minecraft.server.world.ChunkTaskScheduler;
-import net.minecraft.server.world.ServerChunkLoadingManager;
-import net.minecraft.server.world.ServerLightingProvider;
-import net.minecraft.world.poi.PointOfInterestStorage;
+import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.ChunkTaskDispatcher;
+import net.minecraft.server.level.ServerEntity;
+import net.minecraft.server.level.ThreadedLevelLightEngine;
+import net.minecraft.world.entity.ai.village.poi.PoiManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(ServerChunkLoadingManager.class)
+@Mixin(ChunkMap.class)
 public interface AccessorServerChunkLoadingManager {
 
 	@Accessor
 	@Mutable
-	void setPointOfInterestStorage(PointOfInterestStorage poiStorage);
+	void setPoiManager(PoiManager poiStorage);
 
 
-	@Mixin(ServerChunkLoadingManager.EntityTracker.class)
+	@Mixin(ChunkMap.TrackedEntity.class)
 	interface EntityTracker {
 		@Accessor
 		@Mutable
-		void setEntry(EntityTrackerEntry entry);
+		void setServerEntity(ServerEntity entry);
 	}
 
 	@Mutable
 	@Accessor
-	void setLightingProvider(ServerLightingProvider lightingProvider);
+	void setLightEngine(ThreadedLevelLightEngine lightingProvider);
 
 	@Mutable
 	@Accessor
-	void setLevelManager(ServerChunkLoadingManager.LevelManager lightingProvider);
+	void setDistanceManager(ChunkMap.DistanceManager lightingProvider);
 
 	@Accessor
-	ChunkTaskScheduler getLightScheduler();
+	ChunkTaskDispatcher getLightTaskDispatcher();
 
 }

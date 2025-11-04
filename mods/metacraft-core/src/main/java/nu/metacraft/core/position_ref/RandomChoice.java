@@ -3,22 +3,22 @@ package nu.metacraft.core.position_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.collection.Pool;
-import net.minecraft.util.math.Vec3d;
 import nu.metacraft.core.registry.PositionRefRegistry;
 import nu.metacraft.core.util.RefContext;
 
 import java.util.Optional;
+import net.minecraft.util.random.WeightedList;
+import net.minecraft.world.phys.Vec3;
 
 public record RandomChoice(
-		Pool<PositionRef> positions
+		WeightedList<PositionRef> positions
 ) implements PositionRef {
 
-	private static final Codec<Pool<PositionRef>> POSITION_POOL_CODEC = Codec.lazyInitialized(
+	private static final Codec<WeightedList<PositionRef>> POSITION_POOL_CODEC = Codec.lazyInitialized(
 			() -> Codec.withAlternative(
-					Pool.createNonEmptyCodec(PositionRefRegistry.CODEC), PositionRefRegistry.CODEC.listOf(),
+					WeightedList.nonEmptyCodec(PositionRefRegistry.CODEC), PositionRefRegistry.CODEC.listOf(),
 					list -> {
-						var builder = Pool.<PositionRef>builder();
+						var builder = WeightedList.<PositionRef>builder();
 						list.forEach(builder::add);
 						return builder.build();
 					}
@@ -32,8 +32,8 @@ public record RandomChoice(
 	);
 
 	@Override
-	public Optional<Vec3d> get(RefContext ctx) {
-		return positions.get(ctx.getRandom()).get(ctx);
+	public Optional<Vec3> get(RefContext ctx) {
+		return positions.getRandomOrThrow(ctx.random()).get(ctx);
 	}
 
 	@Override

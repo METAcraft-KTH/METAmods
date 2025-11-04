@@ -3,20 +3,6 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.ShapeContext;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.predicate.entity.EntityPredicate;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.TypeFilter;
-import net.minecraft.util.collection.Pool;
-import net.minecraft.util.dynamic.Codecs;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.floatprovider.FloatProvider;
-import net.minecraft.util.math.intprovider.IntProvider;
-import net.minecraft.world.RaycastContext;
 import nu.metacraft.lib.util.helper.EntityHelper;
 
 import java.util.List;
@@ -24,6 +10,20 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.IntSupplier;
 import java.util.function.Predicate;
+import net.minecraft.advancements.critereon.EntityPredicate;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.util.random.WeightedList;
+import net.minecraft.util.valueproviders.FloatProvider;
+import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 
 public class SpawnSpecifiedEntities extends SpawnEntityAttackBase {
 
@@ -31,11 +31,11 @@ public class SpawnSpecifiedEntities extends SpawnEntityAttackBase {
 			instance -> instance.group(
 					EntityHelper.SpawnEntry.POOL_CODEC.fieldOf("entities").forGetter(attack -> attack.entities),
 					IntProvider.NON_NEGATIVE_CODEC.fieldOf("toSpawn").forGetter(a -> a.toSpawn),
-					FloatProvider.VALUE_CODEC.fieldOf("playerScaleFactor").forGetter(a -> a.targetScaleFactor),
+					FloatProvider.CODEC.fieldOf("playerScaleFactor").forGetter(a -> a.targetScaleFactor),
 					EntityPredicate.CODEC.listOf().fieldOf("targets").forGetter(a -> a.targets),
 					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("maxDistanceToTarget").forGetter(a -> a.maxDistanceToTarget),
 					Codec.BOOL.fieldOf("mustSeeTarget").forGetter(a -> a.mustSeeTarget),
-					Codecs.rangedInt(0, Integer.MAX_VALUE).optionalFieldOf("maxAllies").forGetter(a -> a.maxAllies),
+					ExtraCodecs.intRange(0, Integer.MAX_VALUE).optionalFieldOf("maxAllies").forGetter(a -> a.maxAllies),
 					AllyEntry.CODEC.listOf().optionalFieldOf("specificMaxAllies", List.of()).forGetter(a -> a.specificMaxAllies)
 			).apply(instance, SpawnSpecifiedEntities::new)
 	);
@@ -49,14 +49,14 @@ public class SpawnSpecifiedEntities extends SpawnEntityAttackBase {
 	private final List<AllyEntry> specificMaxAllies;
 
 	public SpawnSpecifiedEntities(
-			Pool<EntityHelper.SpawnEntry> entities, IntProvider toSpawn, FloatProvider targetScaleFactor, List<EntityPredicate> targets,
+			WeightedList<EntityHelper.SpawnEntry> entities, IntProvider toSpawn, FloatProvider targetScaleFactor, List<EntityPredicate> targets,
 			double maxDistanceToTarget, boolean mustSeeTarget, Optional<Integer> maxAllies
 	) {
 		this(entities, toSpawn, targetScaleFactor, targets, maxDistanceToTarget, mustSeeTarget, maxAllies, List.of());
 	}
 
 	public SpawnSpecifiedEntities(
-			Pool<EntityHelper.SpawnEntry> entities, IntProvider toSpawn, FloatProvider targetScaleFactor, List<EntityPredicate> targets,
+			WeightedList<EntityHelper.SpawnEntry> entities, IntProvider toSpawn, FloatProvider targetScaleFactor, List<EntityPredicate> targets,
 			double maxDistanceToTarget, boolean mustSeeTarget, Optional<Integer> maxAllies, List<AllyEntry> specificMaxAllies
 	) {
 		super(entities);
@@ -91,21 +91,21 @@ public class SpawnSpecifiedEntities extends SpawnEntityAttackBase {
 			return;
 		}
 		var targets = ctx.boss().getTargets(e -> this.targets.stream().anyMatch(
-				predicate -> predicate.test(ctx.getWorld(), ctx.boss().getEntityPos(), e)
+				predicate -> predicate.matches(ctx.getWorld(), ctx.boss().position(), e)
 		));
-		int initialAmount = toSpawn.get(ctx.random()) +
+		int initialAmount = toSpawn.sample(ctx.random()) +
 				Math.round(
-						Math.max(targets.size() - 1, 0) * targetScaleFactor.get(ctx.random())
+						Math.max(targets.size() - 1, 0) * targetScaleFactor.sample(ctx.random())
 				);
 		int amount = maxAllies.map(
 				maxAllies -> Math.clamp(initialAmount, 0, maxAllies - allyCount.getAsInt())
 		).orElse(initialAmount);
 		while (amount-- > 0) {
-			spawnEntity(ctx, ctx.boss().getEntityPos(), type -> {
+			spawnEntity(ctx, ctx.boss().position(), type -> {
 				for (var entry : specificMaxAllies) {
 					var count = ctx.boss().getAllies(
-							TypeFilter.instanceOf(Entity.class),
-							entity -> entry.getEntityPredicate(ctx.getWorld(), ctx.boss().getEntityPos()).test(entity)
+							EntityTypeTest.forClass(Entity.class),
+							entity -> entry.getEntityPredicate(ctx.getWorld(), ctx.boss().position()).test(entity)
 					).size();
 					if (count > entry.count) {
 						return false;
@@ -116,9 +116,9 @@ public class SpawnSpecifiedEntities extends SpawnEntityAttackBase {
 				var actualTargets = targets.stream().filter(
 						target -> spawned.distanceTo(target) < maxDistanceToTarget
 				).filter(
-						target -> spawned.getEntityWorld().raycast(new RaycastContext(
-								spawned.getBoundingBox().getCenter(), target.getBoundingBox().getCenter(), RaycastContext.ShapeType.COLLIDER,
-								RaycastContext.FluidHandling.NONE, ShapeContext.of(spawned)
+						target -> spawned.level().clip(new ClipContext(
+								spawned.getBoundingBox().getCenter(), target.getBoundingBox().getCenter(), ClipContext.Block.COLLIDER,
+								ClipContext.Fluid.NONE, CollisionContext.of(spawned)
 						)).getType() == HitResult.Type.MISS
 				).toList();
 				if (!actualTargets.isEmpty()) {
@@ -143,20 +143,20 @@ public class SpawnSpecifiedEntities extends SpawnEntityAttackBase {
 				).apply(instance, AllyEntry::new)
 		);
 
-		public Predicate<Entity> getEntityPredicate(ServerPlayerEntity player) {
+		public Predicate<Entity> getEntityPredicate(ServerPlayer player) {
 			return entities.stream().reduce(
-					e -> false, (p1, p2) -> entity -> p1.test(entity) || p2.test(player, entity), Predicate::or
+					e -> false, (p1, p2) -> entity -> p1.test(entity) || p2.matches(player, entity), Predicate::or
 			);
 		}
 
-		public Predicate<Entity> getEntityPredicate(ServerWorld world, Vec3d pos) {
+		public Predicate<Entity> getEntityPredicate(ServerLevel world, Vec3 pos) {
 			return entities.stream().reduce(
-					e -> false, (p1, p2) -> entity -> p1.test(entity) || p2.test(world, pos, entity), Predicate::or
+					e -> false, (p1, p2) -> entity -> p1.test(entity) || p2.matches(world, pos, entity), Predicate::or
 			);
 		}
 
 		public Predicate<EntityType<?>> getTypePredicate() {
-			return entities.stream().map(e -> e.type().<Predicate<EntityType<?>>>map(t -> t::matches).orElse(e2 -> true)).reduce(
+			return entities.stream().map(e -> e.entityType().<Predicate<EntityType<?>>>map(t -> t::matches).orElse(e2 -> true)).reduce(
 					e -> false, Predicate::or, Predicate::or
 			);
 		}

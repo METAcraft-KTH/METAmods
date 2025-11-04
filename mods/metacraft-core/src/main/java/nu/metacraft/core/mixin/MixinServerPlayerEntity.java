@@ -7,30 +7,34 @@ import com.mojang.datafixers.util.Pair;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.ManualAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.GenericEntityElement;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.MarkerEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.listener.ClientPlayPacketListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.s2c.play.*;
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBundlePacket;
+import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.GameRules;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Marker;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.core.music.PlayerMusic;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.spongepowered.asm.mixin.Final;
@@ -52,21 +56,21 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-@Mixin(ServerPlayerEntity.class)
-public abstract class MixinServerPlayerEntity extends PlayerEntity implements ServerPlayerEntityExtensions {
+@Mixin(ServerPlayer.class)
+public abstract class MixinServerPlayerEntity extends Player implements ServerPlayerEntityExtensions {
 
-	@Shadow public ServerPlayNetworkHandler networkHandler;
+	@Shadow public ServerGamePacketListenerImpl connection;
 
-	public MixinServerPlayerEntity(World world, GameProfile profile) {
+	public MixinServerPlayerEntity(Level world, GameProfile profile) {
 		super(world, profile);
 	}
 
-	@Shadow public abstract void sendMessage(Text message, boolean overlay);
+	@Shadow public abstract void displayClientMessage(Component message, boolean overlay);
 
 	@Shadow @Final
 	private MinecraftServer server;
 
-	@Shadow public abstract ServerWorld getEntityWorld();
+	@Shadow public abstract ServerLevel level();
 
 	@Unique
 	private static final String ARE_BLOCKS_MOVABLE = "AreBlocksMovable";
@@ -82,7 +86,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private boolean movable = false;
 
 	@Unique
-	private final Map<RegistryEntry<SoundEvent>, MutableInt> potentiallyPlayingMusic = new HashMap<>();
+	private final Map<Holder<SoundEvent>, MutableInt> potentiallyPlayingMusic = new HashMap<>();
 
 	@Unique
 	private long musicStartTime;
@@ -109,11 +113,11 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private final Queue<PlayerMusic> musicEntryQueue = new PriorityQueue<>();
 
 	@Unique
-	private final Map<PlayerMusic, Predicate<ServerPlayerEntity>> musicEntriesInQueue = new HashMap<>();
+	private final Map<PlayerMusic, Predicate<ServerPlayer>> musicEntriesInQueue = new HashMap<>();
 
 
 	@Unique
-	private Predicate<ServerPlayerEntity> shouldContinuePlayingMusic = player -> true;
+	private Predicate<ServerPlayer> shouldContinuePlayingMusic = player -> true;
 
 	@Unique
 	private boolean skipQueue;
@@ -144,8 +148,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 				}
 			};
 			pointHolder.addElement(point);
-			pointHolder.startWatching((ServerPlayerEntity) (Object) this);
-			pointAttachment = new ManualAttachment(pointHolder, getEntityWorld(), this::getEntityPos);
+			pointHolder.startWatching((ServerPlayer) (Object) this);
+			pointAttachment = new ManualAttachment(pointHolder, level(), this::position);
 			if (shouldReset) {
 				metacraft_core$resetMusicTimer();
 			}
@@ -162,7 +166,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		pointHolder = null;
 	}
 
-	@Inject(method = "onDisconnect", at = @At("HEAD"))
+	@Inject(method = "disconnect", at = @At("HEAD"))
 	public void onDisconnect(CallbackInfo ci) {
 		removeMusicPoint();
 	}
@@ -171,7 +175,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	public void tick(CallbackInfo ci) {
 		if (pointAttachment != null) {
 			pointAttachment.tick();
-			if (pointAttachment.getWorld() != this.getEntityWorld()) {
+			if (pointAttachment.getWorld() != this.level()) {
 				removeMusicPoint();
 			}
 		}
@@ -182,12 +186,12 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			removeMusicPoint();
 		}
 
-		getEntityWorld().getBiome(this.getBlockPos()).value().getMusic().ifPresent(music -> {
-			for (var musicEntry : music.getEntries()) {
-				if (potentiallyPlayingMusic.containsKey(musicEntry.value().sound())) {
-					potentiallyPlayingMusic.get(musicEntry.value().sound()).setValue(musicEntry.value().minDelay());
+		level().getBiome(this.blockPosition()).value().getBackgroundMusic().ifPresent(music -> {
+			for (var musicEntry : music.unwrap()) {
+				if (potentiallyPlayingMusic.containsKey(musicEntry.value().event())) {
+					potentiallyPlayingMusic.get(musicEntry.value().event()).setValue(musicEntry.value().minDelay());
 				} else {
-					potentiallyPlayingMusic.put(musicEntry.value().sound(), new MutableInt(musicEntry.value().minDelay()));
+					potentiallyPlayingMusic.put(musicEntry.value().event(), new MutableInt(musicEntry.value().minDelay()));
 				}
 			}
 		});
@@ -195,7 +199,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			return potentiallyPlayingMusic.get(music).decrementAndGet() <= 0;
 		});
 
-		if (!shouldContinuePlayingMusic.test((ServerPlayerEntity) (Object) this)) {
+		if (!shouldContinuePlayingMusic.test((ServerPlayer) (Object) this)) {
 			if (musicStopTimer < 0) {
 				musicStopTimer = 10;
 			} else if (musicStopTimer > 0) {
@@ -211,7 +215,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		if (displayTimer > 0) {
 			if (currentEntry != null) {
 				currentEntry.credit().ifPresent(credit -> {
-					this.sendMessage(credit.text(), true);
+					this.displayClientMessage(credit.text(), true);
 				});
 				displayTimer--;
 			} else {
@@ -219,9 +223,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			}
 		}
 
-		long currentTime = System.currentTimeMillis() + networkHandler.getLatency();
+		long currentTime = System.currentTimeMillis() + connection.latency();
 		if (music != null && currentTime >= musicStartTime + musicLengthMillis - 50) {
-			playMusic(false, true, musicStartTime + musicLengthMillis - networkHandler.getLatency());
+			playMusic(false, true, musicStartTime + musicLengthMillis - connection.latency());
 		}
 
 		if (music != null) {
@@ -229,8 +233,8 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		}
 	}
 
-	@Inject(method = "copyFrom", at = @At("RETURN"))
-	public void copyFrom(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo ci) {
+	@Inject(method = "restoreFrom", at = @At("RETURN"))
+	public void copyFrom(ServerPlayer oldPlayer, boolean alive, CallbackInfo ci) {
 		this.music = ((MixinServerPlayerEntity) (Object) oldPlayer).music;
 		this.musicStartTime = ((MixinServerPlayerEntity) (Object) oldPlayer).musicStartTime;
 		this.musicLengthMillis = ((MixinServerPlayerEntity) (Object) oldPlayer).musicLengthMillis;
@@ -243,82 +247,82 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 		this.seenCreditFor.addAll(((MixinServerPlayerEntity) (Object) oldPlayer).seenCreditFor);
 		this.seenMusicInfo = ((MixinServerPlayerEntity) (Object) oldPlayer).seenMusicInfo;
 
-		if (oldPlayer.getEntityWorld() == getEntityWorld()) {
+		if (oldPlayer.level() == level()) {
 			this.point = ((MixinServerPlayerEntity) (Object) oldPlayer).point;
 			this.pointHolder = ((MixinServerPlayerEntity) (Object) oldPlayer).pointHolder;
 			if (pointHolder != null) {
-				pointAttachment = new ManualAttachment(pointHolder, getEntityWorld(), this::getEntityPos);
+				pointAttachment = new ManualAttachment(pointHolder, level(), this::position);
 			}
 		} else {
-			TaskScheduler.scheduleImmediately(getEntityWorld().getServer(), this::metacraft_core$resetMusicTimer);
+			TaskScheduler.scheduleImmediately(level().getServer(), this::metacraft_core$resetMusicTimer);
 		}
 
-		if (!server.getGameRules().getBoolean(GameRules.KEEP_INVENTORY)) {
-			for (int i = 0; i < oldPlayer.getInventory().size(); i++) {
-				var stack = oldPlayer.getInventory().getStack(i);
-				if (stack.contains(METAcraftComponents.SOULBOUND)) {
-					this.getInventory().setStack(i, stack);
+		if (!server.getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) {
+			for (int i = 0; i < oldPlayer.getInventory().getContainerSize(); i++) {
+				var stack = oldPlayer.getInventory().getItem(i);
+				if (stack.has(METAcraftComponents.SOULBOUND)) {
+					this.getInventory().setItem(i, stack);
 				}
 			}
 		}
 	}
 
-	@Inject(method = "writeCustomData", at = @At("HEAD"))
-	public void writeNBT(WriteView nbt, CallbackInfo ci) {
+	@Inject(method = "addAdditionalSaveData", at = @At("HEAD"))
+	public void writeNBT(ValueOutput nbt, CallbackInfo ci) {
 		nbt.putBoolean(ARE_BLOCKS_MOVABLE, movable);
-		nbt.put(PREFERENCES, PreferenceData.CODEC, preferenceData);
+		nbt.store(PREFERENCES, PreferenceData.CODEC, preferenceData);
 	}
 
-	@Inject(method = "readCustomData", at = @At("HEAD"))
-	public void readNbt(ReadView nbt, CallbackInfo ci) {
-		movable = nbt.getBoolean(ARE_BLOCKS_MOVABLE, false);
+	@Inject(method = "readAdditionalSaveData", at = @At("HEAD"))
+	public void readNbt(ValueInput nbt, CallbackInfo ci) {
+		movable = nbt.getBooleanOr(ARE_BLOCKS_MOVABLE, false);
 		nbt.read(
 				PREFERENCES, PreferenceData.CODEC
 		).ifPresent(preferenceData::applyFrom);
 	}
 
-	@ModifyReturnValue(method = "getRespawnTarget", at = @At("RETURN"))
-	public TeleportTarget forcedRespawnPos(
-			TeleportTarget original,
-			@Local(argsOnly = true) TeleportTarget.PostDimensionTransition postDimensionTransition
+	@ModifyReturnValue(method = "findRespawnPositionAndUseSpawnBlock", at = @At("RETURN"))
+	public TeleportTransition forcedRespawnPos(
+			TeleportTransition original,
+			@Local(argsOnly = true) TeleportTransition.PostTeleportTransition postDimensionTransition
 	) {
 		METAcraftCoreData data = METAcraftCoreData.getInstance(this.server);
-		Vec3d pos = data.getForcedRespawnPos();
-		ServerWorld world = Optional.ofNullable(data.getForcedRespawnWorld()).map(server::getWorld).orElse(null);
+		Vec3 pos = data.getForcedRespawnPos();
+		ServerLevel world = Optional.ofNullable(data.getForcedRespawnWorld()).map(server::getLevel).orElse(null);
 		if (pos != null && world != null) {
-			return new TeleportTarget(world, pos, Vec3d.ZERO, data.getForcedRespawnAngle(), 0, postDimensionTransition);
+			return new TeleportTransition(world, pos, Vec3.ZERO, data.getForcedRespawnAngle(), 0, postDimensionTransition);
 		}
 		return original;
 	}
 
 	@Unique
 	private void disableVanillaMusic() {
-		this.networkHandler.sendPacket(new StopSoundS2CPacket(
-				SoundEvents.MUSIC_GAME.value().id(), SoundCategory.MUSIC
+		this.connection.send(new ClientboundStopSoundPacket(
+				SoundEvents.MUSIC_GAME.value().location(), SoundSource.MUSIC
 		));
-		this.networkHandler.sendPacket(new StopSoundS2CPacket(
-				SoundEvents.MUSIC_UNDER_WATER.value().id(), SoundCategory.MUSIC
+		this.connection.send(new ClientboundStopSoundPacket(
+				SoundEvents.MUSIC_UNDER_WATER.value().location(), SoundSource.MUSIC
 		));
 		if (this.isCreative()) {
-			this.networkHandler.sendPacket(new StopSoundS2CPacket(
-					SoundEvents.MUSIC_CREATIVE.value().id(), SoundCategory.MUSIC
+			this.connection.send(new ClientboundStopSoundPacket(
+					SoundEvents.MUSIC_CREATIVE.value().location(), SoundSource.MUSIC
 			));
 		}
-		if (this.getEntityWorld().getRegistryKey() == World.END) {
-			this.networkHandler.sendPacket(new StopSoundS2CPacket(
-					SoundEvents.MUSIC_END.value().id(), SoundCategory.MUSIC
+		if (this.level().dimension() == Level.END) {
+			this.connection.send(new ClientboundStopSoundPacket(
+					SoundEvents.MUSIC_END.value().location(), SoundSource.MUSIC
 			));
 		}
 		potentiallyPlayingMusic.keySet().forEach(music -> {
-			this.networkHandler.sendPacket(new StopSoundS2CPacket(
-					music.value().id(), SoundCategory.MUSIC
+			this.connection.send(new ClientboundStopSoundPacket(
+					music.value().location(), SoundSource.MUSIC
 			));
 		});
 		potentiallyPlayingMusic.clear();
 	}
 
 	@Unique
-	private static final MarkerEntity PASSTHROUGH = new MarkerEntity(EntityType.MARKER, null);
+	private static final Marker PASSTHROUGH = new Marker(EntityType.MARKER, null);
 
 	@Unique
 	private void playMusic(boolean stopOnRestart, boolean canBeLoop, long startTimeServerside) {
@@ -328,7 +332,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 					stopOnRestart = true;
 				}
 			}
-			var musicEntry = inIntro && canBeLoop ? currentEntry : this.music.music().get(getRandom());
+			var musicEntry = inIntro && canBeLoop ? currentEntry : this.music.music().getRandomOrThrow(getRandom());
 
 			boolean playIntro = !canBeLoop || musicEntry != currentEntry;
 
@@ -341,51 +345,51 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 			var music = musicEntry.getMusic(playIntro);
 			refreshMusicPoint(false);
 			var actualTime = Math.max(System.currentTimeMillis(), startTimeServerside);
-			this.musicStartTime = actualTime + networkHandler.getLatency();
+			this.musicStartTime = actualTime + connection.latency();
 			this.musicLengthMillis = (int) Math.round(music.length() * 1000);
 			this.inIntro = playIntro && musicEntry.intro().isPresent();
 			PASSTHROUGH.setId(point.getEntityId());
-			Packet<? super ClientPlayPacketListener> packet = new PlaySoundFromEntityS2CPacket(
-					music.music(), SoundCategory.MUSIC, PASSTHROUGH, 1, music.pitch(), this.getRandom().nextLong()
+			Packet<? super ClientGamePacketListener> packet = new ClientboundSoundEntityPacket(
+					music.music(), SoundSource.MUSIC, PASSTHROUGH, 1, music.pitch(), this.getRandom().nextLong()
 			);
 			if (stopOnRestart) {
-				packet = new BundleS2CPacket(
+				packet = new ClientboundBundlePacket(
 						List.of(
-								new StopSoundS2CPacket(null, SoundCategory.MUSIC),
+								new ClientboundStopSoundPacket(null, SoundSource.MUSIC),
 								packet
 						)
 				);
 			}
 			if (startTimeServerside <= 0 || System.currentTimeMillis() >= actualTime) {
-				this.networkHandler.sendPacket(packet);
+				this.connection.send(packet);
 			} else {
-				MusicTimerTracker.getTimer(getEntityWorld().getServer()).schedule(
-						new MusicTimerTracker.SendPacketTask((ServerPlayerEntity) (Object) this, musicEntry, packet),
+				MusicTimerTracker.getTimer(level().getServer()).schedule(
+						new MusicTimerTracker.SendPacketTask((ServerPlayer) (Object) this, musicEntry, packet),
 						actualTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS
 				);
 			}
 			if (!seenMusicInfo) {
-				var msg = Text.literal("").append(
-						Text.literal(" \uD83D\uDEC8 ").styled(style -> style.withColor(Formatting.AQUA))
+				var msg = Component.literal("").append(
+						Component.literal(" \uD83D\uDEC8 ").withStyle(style -> style.withColor(ChatFormatting.AQUA))
 				).append(
 						"Custom music started playing. If you cannot hear it, check your music volume in settings and run "
 				).append(
-						Text.literal("/reset-music").styled(
+						Component.literal("/reset-music").withStyle(
 								style -> style.withClickEvent(
 										new ClickEvent.SuggestCommand("/reset-music")
-								).withColor(Formatting.GREEN)
+								).withColor(ChatFormatting.GREEN)
 						)
 				);
-				sendMessage(msg, false);
-				networkHandler.sendPacket(new TitleS2CPacket(Text.literal("Custom Music!!!!")));
-				networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("See chat for details")));
+				displayClientMessage(msg, false);
+				connection.send(new ClientboundSetTitleTextPacket(Component.literal("Custom Music!!!!")));
+				connection.send(new ClientboundSetSubtitleTextPacket(Component.literal("See chat for details")));
 				seenMusicInfo = true;
 			}
 		}
 	}
 
 	@Unique
-	private void addToQueue(PlayerMusic entry, Predicate<ServerPlayerEntity> predicate) {
+	private void addToQueue(PlayerMusic entry, Predicate<ServerPlayer> predicate) {
 		if (!musicEntriesInQueue.containsKey(entry)) {
 			musicEntriesInQueue.put(entry, predicate);
 			musicEntryQueue.add(entry);
@@ -393,9 +397,9 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Unique
-	private Pair<PlayerMusic, Predicate<ServerPlayerEntity>> grabFromQueue() {
+	private Pair<PlayerMusic, Predicate<ServerPlayer>> grabFromQueue() {
 		var entry = musicEntryQueue.poll();
-		Predicate<ServerPlayerEntity> pred = null;
+		Predicate<ServerPlayer> pred = null;
 		if (entry != null) {
 			pred = musicEntriesInQueue.remove(entry);
 		}
@@ -406,7 +410,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	private void stopCurrentMusic(boolean shouldPlaySomethingElse) {
 		if (currentEntry != null) {
 			var music = this.currentEntry.getMusic(inIntro);
-			this.networkHandler.sendPacket(new StopSoundS2CPacket(music.music().value().id(), SoundCategory.MUSIC));
+			this.connection.send(new ClientboundStopSoundPacket(music.music().value().location(), SoundSource.MUSIC));
 			if (pointHolder != null && !shouldPlaySomethingElse) {
 				removeMusicPoint();
 			}
@@ -417,7 +421,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Override
-	public void metacraft_core$replacePredicate(PlayerMusic entry, Predicate<ServerPlayerEntity> predicate) {
+	public void metacraft_core$replacePredicate(PlayerMusic entry, Predicate<ServerPlayer> predicate) {
 		if (Objects.equals(entry, music)) {
 			shouldContinuePlayingMusic = predicate;
 		}
@@ -427,7 +431,7 @@ public abstract class MixinServerPlayerEntity extends PlayerEntity implements Se
 	}
 
 	@Override
-	public void metacraft_core$playMusic(PlayerMusic entry, boolean skipQueue, Predicate<ServerPlayerEntity> predicate) {
+	public void metacraft_core$playMusic(PlayerMusic entry, boolean skipQueue, Predicate<ServerPlayer> predicate) {
 		if (entry == null) return;
 		if (entry.equals(music)) {
 			this.shouldContinuePlayingMusic = predicate;

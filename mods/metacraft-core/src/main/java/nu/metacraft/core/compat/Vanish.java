@@ -1,12 +1,12 @@
 package nu.metacraft.core.compat;
 
 import me.drex.vanish.util.Arguments;
-import net.minecraft.network.listener.ClientPlayPacketListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import nu.metacraft.core.mixin.AccessorPlayerListS2CPacket;
 
 import java.util.ArrayList;
@@ -16,23 +16,23 @@ import java.util.function.Consumer;
 public class Vanish {
 
 	public static void vanishDoNotHideMETAcraftPlayerMob(
-			MinecraftServer server, PlayerListS2CPacket playerListPacket,
-			ServerPlayNetworkHandler listener, Consumer<Packet<ClientPlayPacketListener>> packetSender
+			MinecraftServer server, ClientboundPlayerInfoUpdatePacket playerListPacket,
+			ServerGamePacketListenerImpl listener, Consumer<Packet<ClientGamePacketListener>> packetSender
 	) {
 		if (Arguments.PACKET_CONTEXT.get() != null) {
 			return;
 		}
-		List<PlayerListS2CPacket.Entry> playersToSendAnyway = new ArrayList<>();
-		for (var player : playerListPacket.getEntries()) {
-			if (server.getPlayerManager().getPlayer(player.profileId()) == null) {
+		List<ClientboundPlayerInfoUpdatePacket.Entry> playersToSendAnyway = new ArrayList<>();
+		for (var player : playerListPacket.entries()) {
+			if (server.getPlayerList().getPlayer(player.profileId()) == null) {
 				playersToSendAnyway.add(player);
 			}
 		}
 
 		if (!playersToSendAnyway.isEmpty()) {
-			ServerPlayerEntity prev = Arguments.PACKET_CONTEXT.get();
+			ServerPlayer prev = Arguments.PACKET_CONTEXT.get();
 			Arguments.PACKET_CONTEXT.set(listener.player);
-			var fixedPacket = new PlayerListS2CPacket(playerListPacket.getActions(), List.of());
+			var fixedPacket = new ClientboundPlayerInfoUpdatePacket(playerListPacket.actions(), List.of());
 			((AccessorPlayerListS2CPacket) fixedPacket).setEntries(playersToSendAnyway);
 			packetSender.accept(fixedPacket);
 			Arguments.PACKET_CONTEXT.set(prev);

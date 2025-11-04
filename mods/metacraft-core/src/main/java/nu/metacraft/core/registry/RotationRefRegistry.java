@@ -3,19 +3,19 @@ package nu.metacraft.core.registry;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.rotation_ref.*;
 
 public class RotationRefRegistry {
 
 	public static final Registry<RotationRefType<?>> REGISTRY = FabricRegistryBuilder.<RotationRefType<?>>createSimple(
-			RegistryKey.ofRegistry(METAcraftCore.getID("rotation_ref"))
+			ResourceKey.createRegistryKey(METAcraftCore.getID("rotation_ref"))
 	).buildAndRegister();
 
-	public static final Codec<RotationRef> CODEC = REGISTRY.getCodec().dispatch(
+	public static final Codec<RotationRef> CODEC = REGISTRY.byNameCodec().dispatch(
 			RotationRef::getType, RotationRefType::codec
 	);
 
@@ -29,7 +29,7 @@ public class RotationRefRegistry {
 	}
 
 	private static <T extends RotationRef> RotationRefType<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(REGISTRY, Identifier.ofVanilla(id), new RotationRefType<>(codec));
+		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), new RotationRefType<>(codec));
 	}
 
 

@@ -1,20 +1,24 @@
 package nu.metacraft.bosses.entity.entities;
 
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
-import net.minecraft.entity.*;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.mob.*;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.intprovider.IntProvider;
-import net.minecraft.world.World;
-import net.minecraft.world.event.GameEvent;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.projectile.EvokerFangs;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.lib.util.EntityTarget;
 import nu.metacraft.lib.util.helper.EntityHelper;
@@ -32,25 +36,25 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 	private static final String SPEED = "Speed";
 
 	protected EntityTarget owner = EntityTarget.create(
-			getEntityWorld(), new EntityTarget.Context(
+			level(), new EntityTarget.Context(
 					false, false, false, this::discard
 			)
 	);
 
 	protected EntityTarget target = EntityTarget.create(
-			getEntityWorld(), new EntityTarget.Context(
+			level(), new EntityTarget.Context(
 					false, true, false, this::discard
 			)
 	);
 
 	protected double speed;
 
-	public FangPursuit(EntityType<?> type, World world) {
+	public FangPursuit(EntityType<?> type, Level world) {
 		super(type, world);
 	}
 
 	@Override
-	protected void initDataTracker(DataTracker.Builder builder) {
+	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 
 	}
 
@@ -79,7 +83,7 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 				),
 				false, false,
 				new EntityHelper.SpawnEntry.SpawnRules(
-						Optional.empty(), SpawnReason.REINFORCEMENT,
+						Optional.empty(), EntitySpawnReason.REINFORCEMENT,
 						horizontalSpawnRange, verticalSpawnRange
 				),
 				Optional.empty()
@@ -88,39 +92,39 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 
 	@Override
 	public void tick() {
-		this.noClip = false;
+		this.noPhysics = false;
 		super.tick();
-		this.noClip = true;
+		this.noPhysics = true;
 		this.setNoGravity(true);
 
 		target.getEntity().ifPresent(entity -> {
-			var facing = entity.getEntityPos().subtract(this.getEntityPos()).normalize();
-			this.setVelocity(facing.multiply(speed));
-			this.move(MovementType.SELF, this.getVelocity());
+			var facing = entity.position().subtract(this.position()).normalize();
+			this.setDeltaMovement(facing.scale(speed));
+			this.move(MoverType.SELF, this.getDeltaMovement());
 
-			BlockPos.Mutable pos = new BlockPos.Mutable();
-			pos.set(this.getBlockPos());
+			BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+			pos.set(this.blockPosition());
 			if (speed != 0) {
 				double horizontalSpeed = (speed * (1 - Math.abs(facing.y)));
 				int ticksToSkip = horizontalSpeed == 0 ? 20 : Math.max((int) Math.round(0.75 / horizontalSpeed), 1);
 				if (ticksToSkip > 20) {
 					ticksToSkip = 20;
 				}
-				if (age % ticksToSkip == 0) {
-					if (this.getEntityWorld().getBlockState(pos).isAir()) {
-						spawnFangs(findGroundYBelow(MathHelper.floor(getY())-1));
+				if (tickCount % ticksToSkip == 0) {
+					if (this.level().getBlockState(pos).isAir()) {
+						spawnFangs(findGroundYBelow(Mth.floor(getY())-1));
 					} else {
-						for (int y = MathHelper.floor(getY())+1; y <= getEntityWorld().getTopYInclusive(); y++) {
+						for (int y = Mth.floor(getY())+1; y <= level().getMaxY(); y++) {
 							pos.setY(y);
-							if (getEntityWorld().getBlockState(pos).isAir()) {
+							if (level().getBlockState(pos).isAir()) {
 								spawnFangs(findGroundYBelow(y));
 								break;
 							}
 						}
 
-						for (int y = MathHelper.floor(getY())-1; y >= getEntityWorld().getBottomY(); y--) {
+						for (int y = Mth.floor(getY())-1; y >= level().getMinY(); y--) {
 							pos.setY(y);
-							if (getEntityWorld().getBlockState(pos).isAir()) {
+							if (level().getBlockState(pos).isAir()) {
 								spawnFangs(findGroundYBelow(y));
 								break;
 							}
@@ -130,9 +134,9 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 			}
 
 			if (this.distanceTo(entity) <= 0.5) {
-				var lightning = EntityType.LIGHTNING_BOLT.create(getEntityWorld(), SpawnReason.TRIGGERED);
-				lightning.refreshPositionAfterTeleport(Vec3d.ofBottomCenter(entity.getBlockPos()));
-				this.getEntityWorld().spawnEntity(lightning);
+				var lightning = EntityType.LIGHTNING_BOLT.create(level(), EntitySpawnReason.TRIGGERED);
+				lightning.snapTo(Vec3.atBottomCenterOf(entity.blockPosition()));
+				this.level().addFreshEntity(lightning);
 				spawnFangs(entity);
 				discard();
 			}
@@ -140,60 +144,60 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 	}
 
 	@Override
-	public boolean damage(ServerWorld world, DamageSource source, float amount) {
+	public boolean hurtServer(ServerLevel world, DamageSource source, float amount) {
 		return false;
 	}
 
 	private double findGroundYBelow(int startY) {
-		BlockPos.Mutable pos = new BlockPos.Mutable();
-		pos.set(getBlockPos());
-		for (int y = startY; y >= getEntityWorld().getBottomY(); y--) {
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+		pos.set(blockPosition());
+		for (int y = startY; y >= level().getMinY(); y--) {
 			pos.setY(y);
-			var state = getEntityWorld().getBlockState(pos);
-			if (state.isSideSolidFullSquare(getEntityWorld(), pos, Direction.UP) && !getEntityWorld().isAir(pos)) {
-				var shape = state.getCollisionShape(getEntityWorld(), pos);
+			var state = level().getBlockState(pos);
+			if (state.isFaceSturdy(level(), pos, Direction.UP) && !level().isEmptyBlock(pos)) {
+				var shape = state.getCollisionShape(level(), pos);
 				if (!shape.isEmpty()) {
-					return shape.getMax(Direction.Axis.Y) + y;
+					return shape.max(Direction.Axis.Y) + y;
 				}
 			}
 		}
-		return getEntityWorld().getBottomY();
+		return level().getMinY();
 	}
 
 	private void spawnFangs(double y) {
-		if (y == this.getEntityWorld().getBottomY()) return;
-		spawnFangs(new Vec3d(getX(), y, getZ()));
+		if (y == this.level().getMinY()) return;
+		spawnFangs(new Vec3(getX(), y, getZ()));
 	}
 
 	private void spawnFangs(Entity entity) {
-		entity.startRiding(spawnFangs(new Vec3d(
-				entity.getX(), findGroundYBelow(MathHelper.floor(entity.getY())), entity.getZ()
+		entity.startRiding(spawnFangs(new Vec3(
+				entity.getX(), findGroundYBelow(Mth.floor(entity.getY())), entity.getZ()
 		)), true, true);
 	}
 
-	private Entity spawnFangs(Vec3d pos) {
-		var entity = new EvokerFangsEntity(
-				getEntityWorld(), pos.x, pos.y, pos.z,
-				getYaw(), 0, (LivingEntity) owner.getEntity().filter(
+	private Entity spawnFangs(Vec3 pos) {
+		var entity = new EvokerFangs(
+				level(), pos.x, pos.y, pos.z,
+				getYRot(), 0, (LivingEntity) owner.getEntity().filter(
 						e -> e instanceof LivingEntity
 				).orElse(null)
 		);
-		this.getEntityWorld().spawnEntity(entity);
-		this.getEntityWorld().emitGameEvent(
-				GameEvent.ENTITY_PLACE, pos, GameEvent.Emitter.of(this)
+		this.level().addFreshEntity(entity);
+		this.level().gameEvent(
+				GameEvent.ENTITY_PLACE, pos, GameEvent.Context.of(this)
 		);
 		return entity;
 	}
 
 	@Override
-	public void readCustomData(ReadView nbt) {
+	public void readAdditionalSaveData(ValueInput nbt) {
 		owner.readNBT(nbt, OWNER);
 		target.readNBT(nbt, TARGET);
-		speed = nbt.getDouble(SPEED, 0);
+		speed = nbt.getDoubleOr(SPEED, 0);
 	}
 
 	@Override
-	public void writeCustomData(WriteView nbt) {
+	public void addAdditionalSaveData(ValueOutput nbt) {
 		owner.writeNBT(nbt, OWNER);
 		target.writeNBT(nbt, TARGET);
 		nbt.putDouble(SPEED, speed);

@@ -1,8 +1,8 @@
 package nu.metacraft.info_commands;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -21,22 +21,22 @@ public class InfoMessages {
 
 	public void tick(MinecraftServer server, InfoConfig config) {
 		this.tickCount++;
-		if (this.tickCount % config.getInfoMessageIntervalTicks() != 0) {
+		if (this.tickCount % config.infoMessageIntervalTicks() != 0) {
 			return;
 		}
-		if (server.getCurrentPlayerCount() == 0) {
+		if (server.getPlayerCount() == 0) {
 			return;
 		}
-		InfoMessage message = this.getNextInfoMessage(config.getInfoMessages());
+		InfoMessage message = this.getNextInfoMessage(config.infoMessages());
 		if (message == null) {
 			return;
 		}
-		Text text = Text.empty()
-			.append(config.getInfoMessagePrefix())
+		Component text = Component.empty()
+			.append(config.infoMessagePrefix())
 			.append(message.message());
-		server.sendMessage(text);
-		for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-			player.sendMessage(text);
+		server.sendSystemMessage(text);
+		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+			player.sendSystemMessage(text);
 		}
 	}
 }

@@ -1,11 +1,11 @@
 package nu.metacraft.portable_jukebox.gui;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import nu.metacraft.portable_jukebox.item.components.Components;
 
-public class PortableJukeboxInventory implements Inventory {
+public class PortableJukeboxInventory implements Container {
 
 	private final ItemStack portableJukebox;
 	private final Runnable onUpdate;
@@ -24,7 +24,7 @@ public class PortableJukeboxInventory implements Inventory {
 	}
 
 	@Override
-	public int size() {
+	public int getContainerSize() {
 		return 1;
 	}
 
@@ -34,12 +34,12 @@ public class PortableJukeboxInventory implements Inventory {
 	}
 
 	@Override
-	public ItemStack getStack(int slot) {
+	public ItemStack getItem(int slot) {
 		return getStack();
 	}
 
 	@Override
-	public ItemStack removeStack(int slot, int amount) {
+	public ItemStack removeItem(int slot, int amount) {
 		var stack = getStack().split(amount);
 		if (getStack().isEmpty()) {
 			remove();
@@ -48,12 +48,12 @@ public class PortableJukeboxInventory implements Inventory {
 	}
 
 	@Override
-	public ItemStack removeStack(int slot) {
+	public ItemStack removeItemNoUpdate(int slot) {
 		return remove();
 	}
 
 	@Override
-	public void setStack(int slot, ItemStack stack) {
+	public void setItem(int slot, ItemStack stack) {
 		if (!stack.isEmpty()) {
 			portableJukebox.set(Components.PORTABLE_JUKEBOX, stack);
 		} else {
@@ -62,22 +62,22 @@ public class PortableJukeboxInventory implements Inventory {
 	}
 
 	@Override
-	public void markDirty() {
+	public void setChanged() {
 		onUpdate.run();
 	}
 
 	@Override
-	public boolean canPlayerUse(PlayerEntity player) {
+	public boolean stillValid(Player player) {
 		return true;
 	}
 
 	@Override
-	public void clear() {
+	public void clearContent() {
 		remove();
 	}
 
 	@Override
-	public int getMaxCountPerStack() {
+	public int getMaxStackSize() {
 		return 1;
 	}
 

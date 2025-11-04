@@ -7,12 +7,12 @@ import eu.pb4.sgui.api.elements.AnimatedGuiElementBuilder;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.elements.GuiElementBuilderInterface;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.minecraft.component.ComponentType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.lib.util.DisplayItemData;
 
@@ -22,7 +22,7 @@ import java.util.function.Predicate;
 public interface PreferenceType<T, V, P extends Predicate<V>> {
 
 	Registry<PreferenceType<?, ?, ?>> REGISTRY = FabricRegistryBuilder.<PreferenceType<?, ?, ?>>createSimple(
-			RegistryKey.ofRegistry(METAcraftCore.getID("preference_type"))
+			ResourceKey.createRegistryKey(METAcraftCore.getID("preference_type"))
 	).buildAndRegister();
 
 	//PreferenceType<?> LANGUAGE = register("language", null);
@@ -46,13 +46,13 @@ public interface PreferenceType<T, V, P extends Predicate<V>> {
 		);
 	}
 
-	default boolean isVisibleTo(ServerPlayerEntity player, RegistryEntry<Preference<T, V, ?>> definition) {
+	default boolean isVisibleTo(ServerPlayer player, Holder<Preference<T, V, ?>> definition) {
 		return true;
 	}
 
-	void onClicked(ServerPlayerEntity player, RegistryEntry<Preference<T, V, ?>> definition, PreferenceMenu menu);
+	void onClicked(ServerPlayer player, Holder<Preference<T, V, ?>> definition, PreferenceMenu menu);
 
-	default void initDefaultValue(ServerPlayerEntity player, RegistryEntry<Preference<T, V, ?>> definition) {}
+	default void initDefaultValue(ServerPlayer player, Holder<Preference<T, V, ?>> definition) {}
 
 	record Icon<V, P extends Predicate<V>>(
 			DisplayItemData items, Optional<P> predicate
@@ -62,11 +62,11 @@ public interface PreferenceType<T, V, P extends Predicate<V>> {
 			return predicate.map(p -> p.test(value)).orElse(true);
 		}
 
-		private static <T> void set(AnimatedGuiElementBuilder builder, ComponentType<T> c, ItemStack i) {
+		private static <T> void set(AnimatedGuiElementBuilder builder, DataComponentType<T> c, ItemStack i) {
 			builder.setComponent(c, i.get(c));
 		}
 
-		public static GuiElementBuilderInterface<?> createBuilder(DisplayItemData items, ServerPlayerEntity player) {
+		public static GuiElementBuilderInterface<?> createBuilder(DisplayItemData items, ServerPlayer player) {
 			var icon = items.getItems(player);
 			if (icon.size() == 1) {
 				return GuiElementBuilder.from(icon.getFirst());
@@ -74,7 +74,7 @@ public interface PreferenceType<T, V, P extends Predicate<V>> {
 				var animatedBuilder = new AnimatedGuiElementBuilder().setInterval(5).setRandom(true);
 				for (var i : icon) {
 					animatedBuilder.setItem(i.getItem());
-					for (var c : i.getComponentChanges().entrySet()) {
+					for (var c : i.getComponentsPatch().entrySet()) {
 						set(animatedBuilder, c.getKey(), i);
 					}
 					animatedBuilder.saveItemStack();

@@ -1,17 +1,17 @@
 package nu.metacraft.cutscenes.mixin;
 
-import net.minecraft.world.chunk.light.ChunkLightProvider;
-import net.minecraft.world.chunk.light.LightingProvider;
+import net.minecraft.world.level.lighting.LevelLightEngine;
+import net.minecraft.world.level.lighting.LightEngine;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(LightingProvider.class)
+@Mixin(LevelLightEngine.class)
 public interface AccessorLightingProvider {
 
 	@Accessor
-	ChunkLightProvider<?, ?> getBlockLightProvider();
+	LightEngine<?, ?> getBlockEngine();
 
 	@Accessor
-	ChunkLightProvider<?, ?> getSkyLightProvider();
+	LightEngine<?, ?> getSkyEngine();
 
 }

@@ -2,47 +2,47 @@ package nu.metacraft.faster_minecarts;
 
 import com.mojang.serialization.Codec;
 import eu.pb4.polymer.core.api.other.PolymerComponent;
-import net.minecraft.component.ComponentType;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Unit;
 
 import java.util.function.UnaryOperator;
 
 public class MinecartComponents {
 
-	public static final ComponentType<Boolean> SPEED_UPGRADE = register(
-			"speed_upgrade", builder -> builder.codec(
+	public static final DataComponentType<Boolean> SPEED_UPGRADE = register(
+			"speed_upgrade", builder -> builder.persistent(
 					Codec.withAlternative(Codec.BOOL, Codec.unit(Unit.INSTANCE), u -> true)
 			)
 	);
 
-	public static final ComponentType<Double> MAX_SPEED = register(
-			"max_speed", builder -> builder.codec(Codec.DOUBLE)
+	public static final DataComponentType<Double> MAX_SPEED = register(
+			"max_speed", builder -> builder.persistent(Codec.DOUBLE)
 	);
 
-	public static final ComponentType<Double> MAX_SPEED_UNDERWATER = register(
-			"max_speed_underwater", builder -> builder.codec(Codec.DOUBLE)
+	public static final DataComponentType<Double> MAX_SPEED_UNDERWATER = register(
+			"max_speed_underwater", builder -> builder.persistent(Codec.DOUBLE)
 	);
 
-	public static final ComponentType<Double> ACCELERATION = register(
-			"acceleration", builder -> builder.codec(Codec.DOUBLE)
+	public static final DataComponentType<Double> ACCELERATION = register(
+			"acceleration", builder -> builder.persistent(Codec.DOUBLE)
 	);
 
-	public static final ComponentType<Double> SLOWDOWN = register(
-			"slowdown", builder -> builder.codec(Codec.DOUBLE)
+	public static final DataComponentType<Double> SLOWDOWN = register(
+			"slowdown", builder -> builder.persistent(Codec.DOUBLE)
 	);
 
-	public static final ComponentType<Double> SLOWDOWN_WITH_PASSENGER = register(
-			"slowdown_with_passenger", builder -> builder.codec(Codec.DOUBLE)
+	public static final DataComponentType<Double> SLOWDOWN_WITH_PASSENGER = register(
+			"slowdown_with_passenger", builder -> builder.persistent(Codec.DOUBLE)
 	);
 
-	public static final ComponentType<Float> ITEM_SLOWDOWN_MODIFIER = register(
-			"item_slowdown_modifier", builder -> builder.codec(Codec.FLOAT)
+	public static final DataComponentType<Float> ITEM_SLOWDOWN_MODIFIER = register(
+			"item_slowdown_modifier", builder -> builder.persistent(Codec.FLOAT)
 	);
 
-	public static final ComponentType<Double> UNDERWATER_SLOWDOWN = register(
-			"underwater_slowdown", builder -> builder.codec(Codec.DOUBLE)
+	public static final DataComponentType<Double> UNDERWATER_SLOWDOWN = register(
+			"underwater_slowdown", builder -> builder.persistent(Codec.DOUBLE)
 	);
 
 
@@ -50,10 +50,10 @@ public class MinecartComponents {
 
 	}
 
-	protected static <T> ComponentType<T> register(String id, UnaryOperator<ComponentType.Builder<T>> builderOperator) {
+	protected static <T> DataComponentType<T> register(String id, UnaryOperator<DataComponentType.Builder<T>> builderOperator) {
 		var entry = Registry.register(
-				Registries.DATA_COMPONENT_TYPE, FasterMinecarts.getID(id),
-				builderOperator.apply(ComponentType.builder()).build()
+				BuiltInRegistries.DATA_COMPONENT_TYPE, FasterMinecarts.getID(id),
+				builderOperator.apply(DataComponentType.builder()).build()
 		);
 		PolymerComponent.registerDataComponent(entry);
 		return entry;

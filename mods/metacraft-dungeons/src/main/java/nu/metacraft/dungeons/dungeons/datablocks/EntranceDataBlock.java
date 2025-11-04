@@ -3,38 +3,38 @@ package nu.metacraft.dungeons.dungeons.datablocks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.enums.Orientation;
-import net.minecraft.structure.StructurePiece;
-import net.minecraft.util.math.BlockPos;
 import nu.metacraft.core.block.METAcraftBlocks;
 import nu.metacraft.core.block.entities.PortalEntity;
 import nu.metacraft.core.portal.FixedPortalTarget;
 import nu.metacraft.dungeons.METAcraftDungeons;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.lib.util.helper.OrientationHelper;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.FrontAndTop;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
 
 public class EntranceDataBlock extends DataBlock implements MultiDataBlock {
 
 	public static final MapCodec<EntranceDataBlock> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
 			Codec.lazyInitialized(() -> DataBlockRegistry.CODEC).optionalFieldOf("fallback").forGetter(d -> d.fallback),
-			ExtraCodecs.ORIENTATION_CODEC.optionalFieldOf("direction").forGetter(portal -> portal.direction),
+			METACodecs.ORIENTATION_CODEC.optionalFieldOf("direction").forGetter(portal -> portal.direction),
 			Codec.DOUBLE.optionalFieldOf("min_dist_from_center", 0.0).forGetter(portal -> portal.minDistFromCenter)
 		).apply(instance, EntranceDataBlock::new)
 	);
 
 	protected final Optional<DataBlock> fallback;
-	protected final Optional<Orientation> direction;
+	protected final Optional<FrontAndTop> direction;
 	protected final double minDistFromCenter;
 
 	public EntranceDataBlock(
 			Optional<DataBlock> fallback,
-			Optional<Orientation> direction,
+			Optional<FrontAndTop> direction,
 			double minDistFromCenter
 	) {
 		this.fallback = fallback;
@@ -49,7 +49,7 @@ public class EntranceDataBlock extends DataBlock implements MultiDataBlock {
 
 	@Override
 	public void processDataBlock(BlockPos pos, StructurePiece piece) {
-		parameters.dungeons.setBlockState(pos, METAcraftBlocks.PORTAL_PADDING.getDefaultState());
+		parameters.dungeons.setBlockAndUpdate(pos, METAcraftBlocks.PORTAL_PADDING.defaultBlockState());
 	}
 
 	private void applyFallback(Collection<DataMultiBlockEntry<?>> blocks) {
@@ -63,7 +63,7 @@ public class EntranceDataBlock extends DataBlock implements MultiDataBlock {
 			}
 		}, () -> {
 			for (var b : blocks) {
-				parameters.dungeons.setBlockState(b.pos(), Blocks.AIR.getDefaultState());
+				parameters.dungeons.setBlockAndUpdate(b.pos(), Blocks.AIR.defaultBlockState());
 			}
 		});
 	}
@@ -73,14 +73,14 @@ public class EntranceDataBlock extends DataBlock implements MultiDataBlock {
 		if (!parameters.foundEntrance) {
 			List<DataMultiBlockEntry<?>> entrances = blocks.stream().toList();
 			if (!entrances.isEmpty()) {
-				var entrance = entrances.get(this.entrance.getWorld().getRandom().nextInt(entrances.size()));
-				if (entrance.pos().isWithinDistance(parameters.spawnPos, minDistFromCenter)) {
+				var entrance = entrances.get(this.entrance.getLevel().getRandom().nextInt(entrances.size()));
+				if (entrance.pos().closerThan(parameters.spawnPos, minDistFromCenter)) {
 					applyFallback(blocks);
 					return;
 				}
-				parameters.dungeons.setBlockState(entrance.pos(), METAcraftBlocks.PORTAL_CORE.getDefaultState());
+				parameters.dungeons.setBlockAndUpdate(entrance.pos(), METAcraftBlocks.PORTAL_CORE.defaultBlockState());
 				if (parameters.dungeons.getBlockEntity(entrance.pos()) instanceof PortalEntity portal) {
-					portal.setTarget(FixedPortalTarget.create(this.entrance.getWorld().getRegistryKey(), this.entrance.getPos()));
+					portal.setTarget(FixedPortalTarget.create(this.entrance.getLevel().dimension(), this.entrance.getBlockPos()));
 					portal.setPortalFacing(direction.map(
 							direction -> OrientationHelper.rotate(direction, entrance.piece().getRotation())
 					).orElse(null));

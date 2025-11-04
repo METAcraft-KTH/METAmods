@@ -2,40 +2,40 @@ package nu.metacraft.core.block.blocks;
 
 import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.BlockWithEntity;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityTicker;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.state.StateManager;
-import net.minecraft.state.property.EnumProperty;
-import net.minecraft.util.BlockMirror;
-import net.minecraft.util.BlockRotation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.block.METAcraftBlockEntities;
 import nu.metacraft.core.block.entities.MusicBlockEntity;
 import xyz.nucleoid.packettweaker.PacketContext;
 
-public class MusicBlock extends BlockWithEntity implements PolymerBlock {
+public class MusicBlock extends BaseEntityBlock implements PolymerBlock {
 
-	public static final EnumProperty<BlockRotation> ROTATION = EnumProperty.of("rotation", BlockRotation.class);
-	public static final EnumProperty<BlockMirror> MIRROR = EnumProperty.of("mirror", BlockMirror.class);
+	public static final EnumProperty<Rotation> ROTATION = EnumProperty.create("rotation", Rotation.class);
+	public static final EnumProperty<Mirror> MIRROR = EnumProperty.create("mirror", Mirror.class);
 
 
-	public static final MapCodec<MusicBlock> CODEC = createCodec(MusicBlock::new);
-	public MusicBlock(Settings settings) {
+	public static final MapCodec<MusicBlock> CODEC = simpleCodec(MusicBlock::new);
+	public MusicBlock(Properties settings) {
 		super(settings);
-		this.setDefaultState(
-			this.stateManager.getDefaultState().with(ROTATION, BlockRotation.NONE).with(MIRROR, BlockMirror.NONE)
+		this.registerDefaultState(
+			this.stateDefinition.any().setValue(ROTATION, Rotation.NONE).setValue(MIRROR, Mirror.NONE)
 		);
 	}
 	@Override
-	protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
+	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
 		builder.add(ROTATION);
 		builder.add(MIRROR);
 	}
@@ -43,42 +43,42 @@ public class MusicBlock extends BlockWithEntity implements PolymerBlock {
 	@Override
 	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
 		if (ctx.getPlayer() != null && ctx.getPlayer().isCreative()) {
-			return Blocks.TRIAL_SPAWNER.getDefaultState();
+			return Blocks.TRIAL_SPAWNER.defaultBlockState();
 		} else {
-			return Blocks.AIR.getDefaultState();
+			return Blocks.AIR.defaultBlockState();
 		}
 	}
 
 	@Override
-	public BlockState rotate(BlockState state, BlockRotation rotation) {
-		return state.with(ROTATION, state.get(ROTATION).rotate(rotation));
+	public BlockState rotate(BlockState state, Rotation rotation) {
+		return state.setValue(ROTATION, state.getValue(ROTATION).getRotated(rotation));
 	}
 
 	@Override
-	public BlockState mirror(BlockState state, BlockMirror mirror) {
-		switch (state.get(MIRROR)) {
+	public BlockState mirror(BlockState state, Mirror mirror) {
+		switch (state.getValue(MIRROR)) {
 			case NONE -> {
-				state.with(MIRROR, mirror);
+				state.setValue(MIRROR, mirror);
 			}
 			case FRONT_BACK -> {
 				switch (mirror) {
 					case FRONT_BACK -> {
-						return state.with(MIRROR, BlockMirror.NONE);
+						return state.setValue(MIRROR, Mirror.NONE);
 					}
 					case LEFT_RIGHT -> {
-						return state.with(MIRROR, BlockMirror.NONE)
-								.with(ROTATION, state.get(ROTATION).rotate(BlockRotation.CLOCKWISE_180));
+						return state.setValue(MIRROR, Mirror.NONE)
+								.setValue(ROTATION, state.getValue(ROTATION).getRotated(Rotation.CLOCKWISE_180));
 					}
 				}
 			}
 			case LEFT_RIGHT -> {
 				switch (mirror) {
 					case FRONT_BACK -> {
-						return state.with(MIRROR, BlockMirror.NONE)
-								.with(ROTATION, state.get(ROTATION).rotate(BlockRotation.CLOCKWISE_180));
+						return state.setValue(MIRROR, Mirror.NONE)
+								.setValue(ROTATION, state.getValue(ROTATION).getRotated(Rotation.CLOCKWISE_180));
 					}
 					case LEFT_RIGHT -> {
-						return state.with(MIRROR, BlockMirror.NONE);
+						return state.setValue(MIRROR, Mirror.NONE);
 					}
 				}
 			}
@@ -87,26 +87,26 @@ public class MusicBlock extends BlockWithEntity implements PolymerBlock {
 	}
 
 	@Override
-	protected MapCodec<? extends BlockWithEntity> getCodec() {
+	protected MapCodec<? extends BaseEntityBlock> codec() {
 		return CODEC;
 	}
 
 	@Nullable
 	@Override
-	public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+	public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
 		return new MusicBlockEntity(pos, state);
 	}
 
 	@Override
-	public void onStateReplaced(BlockState state, ServerWorld world, BlockPos pos, boolean moved) {
-		if (!moved && !world.getBlockState(pos).isOf(this) && world.getBlockEntity(pos) instanceof MusicBlockEntity blockEntity) {
+	public void affectNeighborsAfterRemoval(BlockState state, ServerLevel world, BlockPos pos, boolean moved) {
+		if (!moved && !world.getBlockState(pos).is(this) && world.getBlockEntity(pos) instanceof MusicBlockEntity blockEntity) {
 			blockEntity.resetMusic();
 		}
-		super.onStateReplaced(state, world, pos, moved);
+		super.affectNeighborsAfterRemoval(state, world, pos, moved);
 	}
 
 	@Override
-	public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
-		return validateTicker(type, METAcraftBlockEntities.MUSIC_PLAYER, MusicBlockEntity::tick);
+	public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level world, BlockState state, BlockEntityType<T> type) {
+		return createTickerHelper(type, METAcraftBlockEntities.MUSIC_PLAYER, MusicBlockEntity::tick);
 	}
 }

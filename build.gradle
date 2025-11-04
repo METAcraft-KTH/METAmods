@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.11-SNAPSHOT' apply false
+    id 'fabric-loom' version '1.13-SNAPSHOT' apply false
     id 'base'
 }
 
@@ -146,13 +146,21 @@ subprojects {
     dependencies {
         // To change the versions see the gradle.properties file
         minecraft "com.mojang:minecraft:${project.minecraft_version}"
-        mappings "net.fabricmc:yarn:${project.yarn_mappings}:${project.yarn_mappings_version}"
+		mappings loom.layered() {
+			officialMojangMappings()
+			parchment("org.parchmentmc.data:parchment-$minecraft_version:$parchment_version@zip")
+		}
         modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     }
 
     repositories {
         //Polymer
         maven { url 'https://maven.nucleoid.xyz' }
+
+		maven {
+			name = 'ParchmentMC'
+			url = 'https://maven.parchmentmc.org'
+		}
 
         //Leukocyte
         exclusiveContent {

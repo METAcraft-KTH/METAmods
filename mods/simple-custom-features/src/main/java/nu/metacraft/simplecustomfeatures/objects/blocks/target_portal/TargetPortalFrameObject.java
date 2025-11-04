@@ -5,18 +5,7 @@ import com.google.common.collect.Multimaps;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.Portal;
-import net.minecraft.item.Items;
-import net.minecraft.predicate.item.ItemPredicate;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.gen.stateprovider.BlockStateProvider;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.simplecustomfeatures.ObjectContainer;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 import nu.metacraft.simplecustomfeatures.objects.ObjectRegistry;
@@ -29,45 +18,36 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Portal;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
 
-public class TargetPortalFrameObject implements BaseBlock {
+public record TargetPortalFrameObject(BlockStateProvider portalBlock, ItemPredicate activator,
+                                      Optional<Portal> portalReference) implements BaseBlock {
 
 	public static final MapCodec<TargetPortalFrameObject> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					BlockStateProvider.TYPE_CODEC.fieldOf("portal_block").forGetter(p -> p.portalBlock),
+					BlockStateProvider.CODEC.fieldOf("portal_block").forGetter(p -> p.portalBlock),
 					ItemPredicate.CODEC.fieldOf("activator").forGetter(p -> p.activator),
-					ExtraCodecs.RegistryDependent.PORTAL_CODEC.optionalFieldOf("portal_reference").forGetter(p -> p.portalReference)
+					METACodecs.RegistryDependent.PORTAL_CODEC.optionalFieldOf("portal_reference").forGetter(p -> p.portalReference)
 			).apply(instance, TargetPortalFrameObject::new)
 	);
 
-	private final BlockStateProvider portalBlock;
-	private final ItemPredicate activator;
-	private final Optional<Portal> portalReference;
-
-	public TargetPortalFrameObject(BlockStateProvider portalBlock, ItemPredicate activator, Optional<Portal> portalReference) {
-		this.portalBlock = portalBlock;
-		this.activator = activator;
-		this.portalReference = portalReference;
-	}
-
-	public Optional<Portal> getPortalReference() {
-		return portalReference;
-	}
-
-	public ItemPredicate getActivator() {
-		return activator;
-	}
-
-	public BlockStateProvider getPortalBlock() {
-		return portalBlock;
-	}
 
 	@Override
-	public Multimap<Identifier, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
+	public Multimap<ResourceLocation, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
 		return Multimaps.forMap(Map.of(
 				container.getID(), new BlockItemObject(
-						Items.END_PORTAL_FRAME.getRegistryEntry(),
-						new BaseItem.ItemSettings(Items.END_PORTAL_FRAME.getComponents(), Optional.empty()),
+						Items.END_PORTAL_FRAME.builtInRegistryHolder(),
+						new BaseItem.ItemSettings(Items.END_PORTAL_FRAME.components(), Optional.empty()),
 						container.getActualObject()
 				)
 		));
@@ -75,7 +55,7 @@ public class TargetPortalFrameObject implements BaseBlock {
 
 	@Override
 	public Collection<Registry<?>> getChildrenRegistries() {
-		return List.of(Registries.ITEM);
+		return List.of(BuiltInRegistries.ITEM);
 	}
 
 	@Override
@@ -84,9 +64,9 @@ public class TargetPortalFrameObject implements BaseBlock {
 	}
 
 	@Override
-	public DataResult<Block> createObject(RegistryKey<Block> id) {
+	public DataResult<Block> createObject(ResourceKey<Block> id) {
 		return DataResult.success(
-				new TargetPortalFrameBlock(AbstractBlock.Settings.copy(Blocks.END_PORTAL_FRAME).registryKey(id), this)
+				new TargetPortalFrameBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.END_PORTAL_FRAME).setId(id), this)
 		);
 	}
 }

@@ -1,17 +1,17 @@
 package nu.metacraft.lib.entity.goals;
 
-import net.minecraft.entity.ai.goal.ActiveTargetGoal;
-import net.minecraft.entity.mob.PathAwareEntity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.world.entity.player.Player;
 import nu.metacraft.lib.extensions.LivingEntityExtensions;
 
-public class HostileMobTargetGoal extends ActiveTargetGoal<PlayerEntity> {
-	public HostileMobTargetGoal(PathAwareEntity mob) {
-		super(mob, PlayerEntity.class, true);
+public class HostileMobTargetGoal extends NearestAttackableTargetGoal<Player> {
+	public HostileMobTargetGoal(PathfinderMob mob) {
+		super(mob, Player.class, true);
 	}
 
 	@Override
-	public boolean canStart() {
-		return ((LivingEntityExtensions) mob).metacraft_lib$isHostile() && super.canStart();
+	public boolean canUse() {
+		return ((LivingEntityExtensions) mob).metacraft_lib$isHostile() && super.canUse();
 	}
 }

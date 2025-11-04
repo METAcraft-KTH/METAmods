@@ -3,63 +3,63 @@ package nu.metacraft.core.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.command.argument.AngleArgumentType;
-import net.minecraft.command.argument.Vec3ArgumentType;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.AngleArgument;
+import net.minecraft.commands.arguments.coordinates.Vec3Argument;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.core.util.METAcraftCoreData;
 
 public class ForcedRespawnCommand {
 
-	private static int set(CommandContext<ServerCommandSource> ctx, Vec3d pos, float angle) {
-		ServerCommandSource source = ctx.getSource();
+	private static int set(CommandContext<CommandSourceStack> ctx, Vec3 pos, float angle) {
+		CommandSourceStack source = ctx.getSource();
 		METAcraftCoreData data = METAcraftCoreData.getInstance(source.getServer());
-		data.setForcedRespawn(source.getWorld().getRegistryKey(), pos, angle);
-		source.sendFeedback(() -> Text.literal("Forced respawn position updated."), true);
+		data.setForcedRespawn(source.getLevel().dimension(), pos, angle);
+		source.sendSuccess(() -> Component.literal("Forced respawn position updated."), true);
 		return 1;
 	}
 
-	public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
+	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(
-			CommandManager.literal("forced-respawn")
+			Commands.literal("forced-respawn")
 				.requires(Permissions.require("metacraft.forced-respawn", 2))
 				.executes(ctx -> {
-					ServerCommandSource source = ctx.getSource();
+					CommandSourceStack source = ctx.getSource();
 					METAcraftCoreData data = METAcraftCoreData.getInstance(source.getServer());
-					RegistryKey<World> world = data.getForcedRespawnWorld();
-					Vec3d pos = data.getForcedRespawnPos();
+					ResourceKey<Level> world = data.getForcedRespawnWorld();
+					Vec3 pos = data.getForcedRespawnPos();
 					boolean enabled = world != null && pos != null;
-					source.sendFeedback(() -> Text.literal(enabled
+					source.sendSuccess(() -> Component.literal(enabled
 						? "Forced respawn is activated and set to " + world + " at " + pos
 						: "Forced respawn is not enabled right now."
 					), true);
 					return enabled ? 1 : 0;
 				})
 				.then(
-					CommandManager.literal("set")
+					Commands.literal("set")
 						.then(
-							CommandManager.argument("pos", Vec3ArgumentType.vec3(true))
-								.executes(ctx -> set(ctx, Vec3ArgumentType.getVec3(ctx, "pos"), 0)).then(
-											CommandManager.argument("angle", AngleArgumentType.angle()).executes(
+							Commands.argument("pos", Vec3Argument.vec3(true))
+								.executes(ctx -> set(ctx, Vec3Argument.getVec3(ctx, "pos"), 0)).then(
+											Commands.argument("angle", AngleArgument.angle()).executes(
 													ctx -> set(
-															ctx, Vec3ArgumentType.getVec3(ctx, "pos"),
-															AngleArgumentType.getAngle(ctx, "angle")
+															ctx, Vec3Argument.getVec3(ctx, "pos"),
+															AngleArgument.getAngle(ctx, "angle")
 													)
 											)
 								)
 						)
 				)
 				.then(
-					CommandManager.literal("unset")
+					Commands.literal("unset")
 						.executes(ctx -> {
-							ServerCommandSource source = ctx.getSource();
+							CommandSourceStack source = ctx.getSource();
 							METAcraftCoreData data = METAcraftCoreData.getInstance(source.getServer());
 							data.unsetForcedRespawn();
-							source.sendFeedback(() -> Text.literal("Forced respawn deactivated."), true);
+							source.sendSuccess(() -> Component.literal("Forced respawn deactivated."), true);
 							return 1;
 						})
 				)

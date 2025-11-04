@@ -1,27 +1,26 @@
 package nu.metacraft.core.block.entities;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.structure.StructureTemplate;
-import net.minecraft.util.dynamic.Codecs;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
 import nu.metacraft.core.block.METAcraftBlockEntities;
 import nu.metacraft.core.block.blocks.MusicBlock;
 import nu.metacraft.core.music.PlayerMusic;
 import nu.metacraft.core.util.helper.MusicHelper;
-import nu.metacraft.lib.util.ExtraCodecs;
+import nu.metacraft.lib.util.METACodecs;
 
 import java.util.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public class MusicBlockEntity extends BlockEntity {
 	public static final Codec<Map<String, PlayerMusic>> NAMED_MUSIC_POOLS_CODEC = Codec.unboundedMap(Codec.STRING, PlayerMusic.EASY_CODEC);
@@ -37,9 +36,9 @@ public class MusicBlockEntity extends BlockEntity {
 	private String currentMusic = DEFAULT_MUSIC;
 	private final Map<String, PlayerMusic> musicChoices = new HashMap<>();
 	private double range = 128;
-	private Box boundingBox;
-	private Box cachedBox;
-	private final Set<ServerPlayerEntity> trackedPlayers = new HashSet<>();
+	private AABB boundingBox;
+	private AABB cachedBox;
+	private final Set<ServerPlayer> trackedPlayers = new HashSet<>();
 
 	public MusicBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -49,46 +48,46 @@ public class MusicBlockEntity extends BlockEntity {
 		super(METAcraftBlockEntities.MUSIC_PLAYER, pos, state);
 	}
 
-	private boolean shouldHearMusic(PlayerEntity player) {
-		return player.squaredDistanceTo(pos.toCenterPos()) <= Math.pow(range, 2) || getBoundingBoxTransformed().contains(player.getEntityPos());
+	private boolean shouldHearMusic(Player player) {
+		return player.distanceToSqr(worldPosition.getCenter()) <= Math.pow(range, 2) || getBoundingBoxTransformed().contains(player.position());
 	}
 
-	private Box getBoundingBoxTransformed() {
+	private AABB getBoundingBoxTransformed() {
 		if (cachedBox != null) {
 			return cachedBox;
 		}
 		if (boundingBox == null) {
-			return Box.from(Vec3d.of(pos));
+			return AABB.unitCubeFromLowerCorner(Vec3.atLowerCornerOf(worldPosition));
 		}
-		var mirror = getCachedState().get(MusicBlock.MIRROR);
-		var rotation = getCachedState().get(MusicBlock.ROTATION);
-		Vec3d pos1 = new Vec3d(boundingBox.minX, boundingBox.minY, boundingBox.minZ).add(pos.toCenterPos());
-		Vec3d pos2 = new Vec3d(boundingBox.maxX, boundingBox.maxY, boundingBox.maxZ).add(pos.toCenterPos());
-		cachedBox = new Box(
-				StructureTemplate.transformAround(pos1, mirror, rotation, pos),
-				StructureTemplate.transformAround(pos2, mirror, rotation, pos)
+		var mirror = getBlockState().getValue(MusicBlock.MIRROR);
+		var rotation = getBlockState().getValue(MusicBlock.ROTATION);
+		Vec3 pos1 = new Vec3(boundingBox.minX, boundingBox.minY, boundingBox.minZ).add(worldPosition.getCenter());
+		Vec3 pos2 = new Vec3(boundingBox.maxX, boundingBox.maxY, boundingBox.maxZ).add(worldPosition.getCenter());
+		cachedBox = new AABB(
+				StructureTemplate.transform(pos1, mirror, rotation, worldPosition),
+				StructureTemplate.transform(pos2, mirror, rotation, worldPosition)
 		);
 		return cachedBox;
 	}
 
-	public static void tick(World world, BlockPos pos, BlockState state, MusicBlockEntity musicPlayer) {
-		if (world.isClient() || (!(world instanceof ServerWorld sw))) return;
+	public static void tick(Level world, BlockPos pos, BlockState state, MusicBlockEntity musicPlayer) {
+		if (world.isClientSide() || (!(world instanceof ServerLevel sw))) return;
 		if (musicPlayer.firstTick) {
 			musicPlayer.firstTick = false;
 			musicPlayer.resetMusic();
 		}
 		if (musicPlayer.currentEntry == null) return;
-		for (var player : sw.getPlayers()) {
+		for (var player : sw.players()) {
 			if (musicPlayer.shouldHearMusic(player)) {
 				musicPlayer.trackedPlayers.add(player);
 				MusicHelper.playMusic(player, musicPlayer.currentEntry, p -> {
 					if (
-							p.isDead() || !musicPlayer.shouldHearMusic(p) ||
-									p.getEntityWorld().getRegistryKey() != world.getRegistryKey() ||
+							p.isDeadOrDying() || !musicPlayer.shouldHearMusic(p) ||
+									p.level().dimension() != world.dimension() ||
 									musicPlayer.isRemoved()
 					) {
 						musicPlayer.trackedPlayers.remove(p);
-						return p.isDead() || !MusicHelper.isMusicPlaying(p, musicPlayer.currentEntry);
+						return p.isDeadOrDying() || !MusicHelper.isMusicPlaying(p, musicPlayer.currentEntry);
 					}
 					return true;
 				});
@@ -104,7 +103,7 @@ public class MusicBlockEntity extends BlockEntity {
 	public void resetMusic() {
 		trackedPlayers.forEach(MusicHelper::stopMusic);
 		trackedPlayers.clear();
-		if (world != null) {
+		if (level != null) {
 			currentEntry = getCurrentMusic().orElse(null);
 		}
 	}
@@ -119,44 +118,44 @@ public class MusicBlockEntity extends BlockEntity {
 
 	public void setMusic(String name) {
 		setMusicInternal(name);
-		markDirty();
+		setChanged();
 	}
 
 	public void setRange(double range) {
 		this.range = range;
 		boundingBox = null;
-		markDirty();
+		setChanged();
 	}
 
-	public void setBoundingBox(Box box) {
+	public void setBoundingBox(AABB box) {
 		this.boundingBox = box;
 		this.range = 0;
-		markDirty();
+		setChanged();
 	}
 
 	public void setMusicTracks(Map<String, PlayerMusic> musicTracks) {
 		this.musicChoices.clear();
 		this.musicChoices.putAll(musicTracks);
-		markDirty();
+		setChanged();
 	}
 
 	@Override
-	public void readData(ReadView nbt) {
-		super.readData(nbt);
+	public void loadAdditional(ValueInput nbt) {
+		super.loadAdditional(nbt);
 
 		this.musicChoices.clear();
 		nbt.read(MUSIC_CHOICES, NAMED_MUSIC_POOLS_CODEC).ifPresent(
 				this.musicChoices::putAll
 		);
 
-		setMusicInternal(nbt.getString(CURRENT_MUSIC, null));
+		setMusicInternal(nbt.getStringOr(CURRENT_MUSIC, null));
 
-		if (nbt.read("Reset", Codecs.NBT_ELEMENT).isPresent()) {
+		if (nbt.read("Reset", net.minecraft.util.ExtraCodecs.NBT).isPresent()) {
 			resetMusic();
 		}
 
-		range = nbt.getDouble(RANGE, 128);
-		nbt.read(BOX, ExtraCodecs.BOX_CODEC).ifPresentOrElse(
+		range = nbt.getDoubleOr(RANGE, 128);
+		nbt.read(BOX, METACodecs.BOX_CODEC).ifPresentOrElse(
 				box -> {
 					boundingBox = box;
 					cachedBox = null;
@@ -169,16 +168,16 @@ public class MusicBlockEntity extends BlockEntity {
 	}
 
 	@Override
-	public void writeData(WriteView nbt) {
-		super.writeData(nbt);
+	public void saveAdditional(ValueOutput nbt) {
+		super.saveAdditional(nbt);
 
-		nbt.put(MUSIC_CHOICES, NAMED_MUSIC_POOLS_CODEC, musicChoices);
+		nbt.store(MUSIC_CHOICES, NAMED_MUSIC_POOLS_CODEC, musicChoices);
 		if (currentMusic != null) {
 			nbt.putString(CURRENT_MUSIC, currentMusic);
 		}
 		nbt.putDouble(RANGE, range);
 		if (boundingBox != null) {
-			nbt.put(BOX, ExtraCodecs.BOX_CODEC, boundingBox);
+			nbt.store(BOX, METACodecs.BOX_CODEC, boundingBox);
 		}
 	}
 

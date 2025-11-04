@@ -1,20 +1,20 @@
 package nu.metacraft.cutscenes.cutscene.world;
 
-import net.minecraft.world.chunk.ChunkNibbleArray;
-import net.minecraft.world.chunk.ChunkProvider;
-import net.minecraft.world.chunk.light.BlockLightStorage;
+import net.minecraft.world.level.chunk.DataLayer;
+import net.minecraft.world.level.chunk.LightChunkGetter;
+import net.minecraft.world.level.lighting.BlockLightSectionStorage;
 import nu.metacraft.cutscenes.util.helper.LightingHelper;
 
-public class CutsceneBlockLightStorage extends BlockLightStorage {
-	protected CutsceneBlockLightStorage(ChunkProvider chunkProvider) {
+public class CutsceneBlockLightStorage extends BlockLightSectionStorage {
+	protected CutsceneBlockLightStorage(LightChunkGetter chunkProvider) {
 		super(chunkProvider);
 	}
 
 	@Override
-	protected ChunkNibbleArray createSection(long sectionPos) {
-		if (queuedSections.containsKey(sectionPos)) return super.createSection(sectionPos);
-		var provider = ((CutsceneChunkManager) chunkProvider).getCutsceneWorld().getActualWorld().getLightingProvider();
-		var storage = LightingHelper.getBlockLightStorage(provider).getLightSection(sectionPos);
-		return storage != null ? storage.copy() : super.createSection(sectionPos);
+	protected DataLayer createDataLayer(long sectionPos) {
+		if (queuedSections.containsKey(sectionPos)) return super.createDataLayer(sectionPos);
+		var provider = ((CutsceneChunkManager) chunkSource).getCutsceneWorld().getActualWorld().getLightEngine();
+		var storage = LightingHelper.getBlockLightStorage(provider).getDataLayerData(sectionPos);
+		return storage != null ? storage.copy() : super.createDataLayer(sectionPos);
 	}
 }

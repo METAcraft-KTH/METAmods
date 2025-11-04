@@ -1,9 +1,9 @@
 package nu.metacraft.bosses.condition.entity_sub_predicate;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.predicate.entity.EntitySubPredicate;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
+import net.minecraft.advancements.critereon.EntitySubPredicate;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import nu.metacraft.bosses.METAcraftBosses;
 
 public class BossSubPredicates {
@@ -15,7 +15,7 @@ public class BossSubPredicates {
 	}
 
 	private static <T extends EntitySubPredicate> MapCodec<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(Registries.ENTITY_SUB_PREDICATE_TYPE, METAcraftBosses.getID(id), codec);
+		return Registry.register(BuiltInRegistries.ENTITY_SUB_PREDICATE_TYPE, METAcraftBosses.getID(id), codec);
 	}
 
 }

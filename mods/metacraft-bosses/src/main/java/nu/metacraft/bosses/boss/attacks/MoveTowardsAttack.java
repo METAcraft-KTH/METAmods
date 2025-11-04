@@ -3,11 +3,11 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.math.Vec3d;
 import nu.metacraft.bosses.boss.attacks.target.FixedPos;
 import nu.metacraft.bosses.boss.attacks.target.PositionTargetSelector;
 
 import java.util.Optional;
+import net.minecraft.world.phys.Vec3;
 
 public class MoveTowardsAttack implements Attack {
 
@@ -17,7 +17,7 @@ public class MoveTowardsAttack implements Attack {
 					Codec.DOUBLE.fieldOf("speed").forGetter(m -> m.speed),
 					Codec.floatRange(0, 1).fieldOf("chanceToTeleportIfStuck").forGetter(m -> m.chanceToTeleportIfStuck),
 					OnArrival.CODEC.optionalFieldOf("onArrival").forGetter(m -> m.onArrival),
-					Vec3d.CODEC.optionalFieldOf("selected", Vec3d.ZERO).forGetter(m -> m.selected)
+					Vec3.CODEC.optionalFieldOf("selected", Vec3.ZERO).forGetter(m -> m.selected)
 			).apply(instance, MoveTowardsAttack::new)
 	);
 
@@ -25,7 +25,7 @@ public class MoveTowardsAttack implements Attack {
 	private final double speed;
 	private final float chanceToTeleportIfStuck;
 	private final Optional<OnArrival> onArrival;
-	private Vec3d selected = Vec3d.ZERO;
+	private Vec3 selected = Vec3.ZERO;
 
 	private int timeStuck = 0;
 
@@ -36,7 +36,7 @@ public class MoveTowardsAttack implements Attack {
 		this.onArrival = onArrival;
 	}
 
-	public MoveTowardsAttack(PositionTargetSelector selector, double speed, float chanceToTeleportIfStuck, Optional<OnArrival> onArrival, Vec3d selected) {
+	public MoveTowardsAttack(PositionTargetSelector selector, double speed, float chanceToTeleportIfStuck, Optional<OnArrival> onArrival, Vec3 selected) {
 		this(selector, speed, chanceToTeleportIfStuck, onArrival);
 		this.selected = selected;
 	}
@@ -53,7 +53,7 @@ public class MoveTowardsAttack implements Attack {
 	@Override
 	public void tick(BossContext<?> ctx) {
 		ctx.getAsMob().ifPresent(mob -> {
-			mob.getMoveControl().moveTo(selected.getX(), selected.getY(), selected.getZ(), speed);
+			mob.getMoveControl().setWantedPosition(selected.x(), selected.y(), selected.z(), speed);
 		});
 		if (ctx.boss().getBoundingBox().contains(selected)) {
 			onArrival.ifPresent(arrival -> {

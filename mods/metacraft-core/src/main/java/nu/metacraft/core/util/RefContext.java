@@ -1,51 +1,30 @@
 package nu.metacraft.core.util;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.server.command.CommandOutput;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
-
 import java.util.Optional;
+import net.minecraft.commands.CommandSource;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 
-public class RefContext {
+public record RefContext(Optional<Entity> entity, ServerLevel world, RandomSource random) {
 
-	protected final ServerWorld world;
-	protected final Optional<Entity> entity;
-	protected final Random random;
 
-	public RefContext(Optional<Entity> entity, ServerWorld world, Random random) {
-		this.world = world;
-		this.entity = entity;
-		this.random = random;
+	public Optional<ServerPlayer> getPlayer() {
+		return entity.map(entity -> entity instanceof ServerPlayer p ? p : null);
 	}
 
-	public Optional<Entity> getEntity() {
-		return entity;
-	}
 
-	public Optional<ServerPlayerEntity> getPlayer() {
-		return entity.map(entity -> entity instanceof ServerPlayerEntity p ? p : null);
-	}
-
-	public Random getRandom() {
-		return random;
-	}
-
-	public ServerWorld getWorld() {
-		return world;
-	}
-
-	public ServerCommandSource getCommandSource() {
-		return new ServerCommandSource(
-				CommandOutput.DUMMY, Vec3d.ZERO, Vec2f.ZERO,
-				world, 2, "RefContext", Text.literal("RefContext"),
+	public CommandSourceStack getCommandSource() {
+		return new CommandSourceStack(
+				CommandSource.NULL, Vec3.ZERO, Vec2.ZERO,
+				world, 2, "RefContext", Component.literal("RefContext"),
 				world.getServer(), entity.orElse(null)
-		).withSilent();
+		).withSuppressedOutput();
 	}
 
 }

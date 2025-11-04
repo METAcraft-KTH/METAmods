@@ -4,29 +4,29 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
-import net.minecraft.entity.passive.CatEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.animal.Cat;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.better_pets.TameableExtension;
 
-@Mixin(CatEntity.class)
+@Mixin(Cat.class)
 public class MixinCatEntity {
 
 	@ModifyExpressionValue(
-		method = "interactMob",
+		method = "mobInteract",
 		at = @At(
-			value = "INVOKE", target = "Lnet/minecraft/entity/passive/CatEntity;isOwner(Lnet/minecraft/entity/LivingEntity;)Z"
+			value = "INVOKE", target = "Lnet/minecraft/world/entity/animal/Cat;isOwnedBy(Lnet/minecraft/world/entity/LivingEntity;)Z"
 		)
 	)
 	public boolean isTrusted(
-			boolean original, @Local(argsOnly = true) PlayerEntity player, @Local(argsOnly = true) Hand hand, @Share("notOwner") LocalBooleanRef notOwner
+			boolean original, @Local(argsOnly = true) Player player, @Local(argsOnly = true) InteractionHand hand, @Share("notOwner") LocalBooleanRef notOwner
 	) {
 		if (original) {
 			return true;
-		} else if (hand == Hand.MAIN_HAND) { //Check for main hand to prevent double interactions.
+		} else if (hand == InteractionHand.MAIN_HAND) { //Check for main hand to prevent double interactions.
 			notOwner.set(((TameableExtension) this).metaraft$isTrusted(player));
 			return notOwner.get();
 		}
@@ -34,15 +34,15 @@ public class MixinCatEntity {
 	}
 
 	@ModifyExpressionValue(
-		method = "interactMob",
+		method = "mobInteract",
 		at = @At(
 			value = "FIELD",
-			target = "Lnet/minecraft/util/ActionResult;SUCCESS:Lnet/minecraft/util/ActionResult$Success;"
+			target = "Lnet/minecraft/world/InteractionResult;SUCCESS:Lnet/minecraft/world/InteractionResult$Success;"
 		)
 	)
-	public ActionResult.Success swingArm(ActionResult.Success original, @Share("notOwner") LocalBooleanRef notOwner) {
+	public InteractionResult.Success swingArm(InteractionResult.Success original, @Share("notOwner") LocalBooleanRef notOwner) {
 		if (notOwner.get()) {
-			return ActionResult.SUCCESS_SERVER;
+			return InteractionResult.SUCCESS_SERVER;
 		}
 		return original;
 	}

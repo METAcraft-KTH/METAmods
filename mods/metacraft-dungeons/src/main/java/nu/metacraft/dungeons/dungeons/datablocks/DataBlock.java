@@ -1,8 +1,8 @@
 package nu.metacraft.dungeons.dungeons.datablocks;
 
-import net.minecraft.structure.PoolStructurePiece;
-import net.minecraft.structure.StructurePiece;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import nu.metacraft.core.block.entities.PortalEntity;
 import nu.metacraft.dungeons.dungeons.portal_data.Dungeon;
 
@@ -22,8 +22,8 @@ public abstract class DataBlock {
 
 	public abstract void processDataBlock(BlockPos pos, StructurePiece piece);
 
-	public record DataBlockEntry<T extends DataBlock>(BlockPos pos, PoolStructurePiece piece, T datablock) {}
+	public record DataBlockEntry<T extends DataBlock>(BlockPos pos, PoolElementStructurePiece piece, T datablock) {}
 
-	public record DataMultiBlockEntry<T extends DataBlock & MultiDataBlock>(BlockPos pos, PoolStructurePiece piece, T datablock) {}
+	public record DataMultiBlockEntry<T extends DataBlock & MultiDataBlock>(BlockPos pos, PoolElementStructurePiece piece, T datablock) {}
 
 }

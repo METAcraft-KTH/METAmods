@@ -3,10 +3,10 @@ package nu.metacraft.loot_containers.containers;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JavaOps;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.visitor.NbtTextFormatter;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
+import net.minecraft.nbt.TextComponentTagVisitor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.loot_containers.METAcraftLootContainers;
 import nu.metacraft.loot_containers.util.PosOrUUID;
@@ -16,27 +16,27 @@ import java.util.function.Supplier;
 
 public abstract class LootContainer {
 
-	private static final NbtTextFormatter formatter = new NbtTextFormatter(" ");
+	private static final TextComponentTagVisitor formatter = new TextComponentTagVisitor(" ");
 
-	public static final Codec<LootContainer> REGISTRY_CODEC = LootContainerRegistry.REGISTRY.getCodec().dispatch(
+	public static final Codec<LootContainer> REGISTRY_CODEC = LootContainerRegistry.REGISTRY.byNameCodec().dispatch(
 			LootContainer::getType, LootContainerType::codec
 	);
 
-	protected ServerWorld world;
+	protected ServerLevel world;
 
 	protected Supplier<Optional<LootAccess>> access;
 	protected PosOrUUID pos;
 	private Runnable markDirty;
 
 
-	public void initialise(ServerWorld world, Supplier<Optional<LootAccess>> access, PosOrUUID pos, Runnable markDirty) {
+	public void initialise(ServerLevel world, Supplier<Optional<LootAccess>> access, PosOrUUID pos, Runnable markDirty) {
 		this.world = world;
 		this.access = access;
 		this.pos = pos;
 		this.markDirty = markDirty;
 	}
 
-	public abstract void onOpen(@Nullable ServerPlayerEntity player);
+	public abstract void onOpen(@Nullable ServerPlayer player);
 
 	public abstract LootContainerType<? extends LootContainer> getType();
 
@@ -50,7 +50,7 @@ public abstract class LootContainer {
 		}
 	}
 
-	public ServerWorld getWorld() {
+	public ServerLevel getWorld() {
 		return world;
 	}
 
@@ -67,9 +67,9 @@ public abstract class LootContainer {
 		).resultOrPartial(METAcraftLootContainers.LOGGER::error).get();
 	}
 
-	public Text toText() {
+	public Component toText() {
 		return REGISTRY_CODEC.encodeStart(NbtOps.INSTANCE, this).resultOrPartial(
 				METAcraftLootContainers.LOGGER::error
-		).map(formatter::apply).orElse(Text.literal("null"));
+		).map(formatter::visit).orElse(Component.literal("null"));
 	}
 }

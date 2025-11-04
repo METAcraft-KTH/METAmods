@@ -1,6 +1,5 @@
 package nu.metacraft.portable_jukebox.mixin;
 
-import net.minecraft.block.entity.BlockEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import nu.metacraft.lib.util.EntityRef;
@@ -9,6 +8,7 @@ import nu.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
 
 import java.util.HashSet;
 import java.util.Set;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 @Mixin(BlockEntity.class)
 public class MixinBlockEntity implements HasPortableJukebox {

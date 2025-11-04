@@ -4,17 +4,20 @@ import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.predicate.item.ItemPredicate;
-import net.minecraft.registry.*;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.entry.RegistryEntryList;
+import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.RegistryCodecs;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.StringIdentifiable;
-import net.minecraft.util.dynamic.Codecs;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantments;
 import nu.metacraft.lib.config.ObjectStorage;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ServerAware;
@@ -31,7 +34,7 @@ public final class RepairFixConfig {
 
 	public static final Codec<RepairFixConfig> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					Codecs.NON_NEGATIVE_INT.optionalFieldOf("max_repair_cost").forGetter(c -> c.maxRepairConst),
+					ExtraCodecs.NON_NEGATIVE_INT.optionalFieldOf("max_repair_cost").forGetter(c -> c.maxRepairConst),
 					Codec.BOOL.fieldOf("cap_at_max_level").forGetter(c -> c.capAtMaxLevel),
 					ObjectStorage.createCodec(RepairEntry.CODEC.listOf()).fieldOf("repair_item_cost_balancing").forGetter(c -> c.repairItemCostBalancing),
 					ObjectStorage.createCodec(EnchantmentEntry.CODEC.listOf()).fieldOf("enchantment_cost_combine_overrides").forGetter(c -> c.enchantmentCombineCostOverrides),
@@ -46,7 +49,7 @@ public final class RepairFixConfig {
 			(config, server) -> Loaded.create(
 					config.repairItemCostBalancing,
 					config.enchantmentCombineCostOverrides,
-					server.getRegistryManager()
+					server.registryAccess()
 			)
 	);
 
@@ -62,13 +65,13 @@ public final class RepairFixConfig {
 		return CONTAINER.get(server);
 	}
 
-	private Optional<Integer> maxRepairConst;
+	private final Optional<Integer> maxRepairConst;
 
-	private boolean capAtMaxLevel;
+	private final boolean capAtMaxLevel;
 
-	private ObjectStorage<List<RepairEntry>> repairItemCostBalancing;
+	private final ObjectStorage<List<RepairEntry>> repairItemCostBalancing;
 
-	private ObjectStorage<List<EnchantmentEntry>> enchantmentCombineCostOverrides;
+	private final ObjectStorage<List<EnchantmentEntry>> enchantmentCombineCostOverrides;
 
 	private BaseCostIncreaseMode baseCostIncreaseMode = BaseCostIncreaseMode.ENCHANTING_ONLY;
 
@@ -104,27 +107,27 @@ public final class RepairFixConfig {
 						RepairEntry.CODEC.listOf(), new ArrayList<>(
 								ImmutableList.of(
 										new RepairEntry(
-												ItemPredicate.Builder.create().items(
-														Registries.ITEM,
+												ItemPredicate.Builder.item().of(
+														BuiltInRegistries.ITEM,
 														Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE,
 														Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS,
 														Items.NETHERITE_PICKAXE, Items.NETHERITE_AXE,
 														Items.NETHERITE_SWORD, Items.NETHERITE_SHOVEL,
 														Items.NETHERITE_HOE
 												).build(),
-												ItemPredicate.Builder.create().items(Registries.ITEM, Items.NETHERITE_INGOT).build(),
+												ItemPredicate.Builder.item().of(BuiltInRegistries.ITEM, Items.NETHERITE_INGOT).build(),
 												1
 										),
 										new RepairEntry(
-												ItemPredicate.Builder.create().items(
-														Registries.ITEM,
+												ItemPredicate.Builder.item().of(
+														BuiltInRegistries.ITEM,
 														Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE,
 														Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS,
 														Items.NETHERITE_PICKAXE, Items.NETHERITE_AXE,
 														Items.NETHERITE_SWORD, Items.NETHERITE_SHOVEL,
 														Items.NETHERITE_HOE
 												).build(),
-												ItemPredicate.Builder.create().items(Registries.ITEM, Items.NETHERITE_SCRAP).build(),
+												ItemPredicate.Builder.item().of(BuiltInRegistries.ITEM, Items.NETHERITE_SCRAP).build(),
 												4
 										)
 								)
@@ -134,8 +137,8 @@ public final class RepairFixConfig {
 						EnchantmentEntry.CODEC.listOf(), lookup -> new ArrayList<>(
 								ImmutableList.of(
 										new EnchantmentEntry(
-												RegistryEntryList.of(lookup.getEntryOrThrow(Enchantments.MENDING)),
-												RegistryEntryList.of(lookup.getEntryOrThrow(Enchantments.INFINITY)),
+												HolderSet.direct(lookup.getOrThrow(Enchantments.MENDING)),
+												HolderSet.direct(lookup.getOrThrow(Enchantments.INFINITY)),
 												10
 										)
 								)
@@ -150,37 +153,37 @@ public final class RepairFixConfig {
 				instance -> instance.group(
 						ItemPredicate.CODEC.fieldOf("tool").forGetter(RepairEntry::tool),
 						ItemPredicate.CODEC.fieldOf("material").forGetter(RepairEntry::material),
-						Codecs.NON_NEGATIVE_INT.fieldOf("amount_to_full").forGetter(RepairEntry::amountToFull)
+						ExtraCodecs.NON_NEGATIVE_INT.fieldOf("amount_to_full").forGetter(RepairEntry::amountToFull)
 				).apply(instance, RepairEntry::new)
 		);
 	}
 
-	public record EnchantmentEntry(RegistryEntryList<Enchantment> first, RegistryEntryList<Enchantment> second, int combineCost) {
+	public record EnchantmentEntry(HolderSet<Enchantment> first, HolderSet<Enchantment> second, int combineCost) {
 		public static final Codec<EnchantmentEntry> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						RegistryCodecs.entryList(RegistryKeys.ENCHANTMENT).fieldOf("first").forGetter(EnchantmentEntry::first),
-						RegistryCodecs.entryList(RegistryKeys.ENCHANTMENT).fieldOf("second").forGetter(EnchantmentEntry::second),
-						Codecs.NON_NEGATIVE_INT.fieldOf("cost").forGetter(EnchantmentEntry::combineCost)
+						RegistryCodecs.homogeneousList(Registries.ENCHANTMENT).fieldOf("first").forGetter(EnchantmentEntry::first),
+						RegistryCodecs.homogeneousList(Registries.ENCHANTMENT).fieldOf("second").forGetter(EnchantmentEntry::second),
+						ExtraCodecs.NON_NEGATIVE_INT.fieldOf("cost").forGetter(EnchantmentEntry::combineCost)
 				).apply(instance, EnchantmentEntry::new)
 		);
 	}
 
 
-	public enum BaseCostIncreaseMode implements StringIdentifiable {
+	public enum BaseCostIncreaseMode implements StringRepresentable {
 		DEFAULT("default"),
 		ENCHANTING_ONLY("enchanting_only"),
 		NONE("none");
 
 		private final String name;
 
-		public static final Codec<BaseCostIncreaseMode> CODEC = StringIdentifiable.createCodec(BaseCostIncreaseMode::values);
+		public static final Codec<BaseCostIncreaseMode> CODEC = StringRepresentable.fromEnum(BaseCostIncreaseMode::values);
 
 		BaseCostIncreaseMode(String name) {
 			this.name = name;
 		}
 
 		@Override
-		public String asString() {
+		public String getSerializedName() {
 			return name;
 		}
 	}
@@ -205,7 +208,7 @@ public final class RepairFixConfig {
 			return OptionalInt.empty();
 		}
 
-		public OptionalInt findCombineCost(RegistryEntry<Enchantment> first, RegistryEntry<Enchantment> second) {
+		public OptionalInt findCombineCost(Holder<Enchantment> first, Holder<Enchantment> second) {
 			for (var entry : enchantmentCombineCostOverrides) {
 				if ((entry.first.contains(first) && entry.second.contains(second)) || (entry.first.contains(second) && entry.second.contains(first))) {
 					return OptionalInt.of(entry.combineCost);
@@ -217,7 +220,7 @@ public final class RepairFixConfig {
 		public static Loaded create(
 				ObjectStorage<List<RepairEntry>> repairItemCostBalancing,
 				ObjectStorage<List<EnchantmentEntry>> enchantmentCombineCostOverrides,
-				RegistryWrapper.WrapperLookup lookup
+				HolderLookup.Provider lookup
 		) {
 			return new Loaded(
 					repairItemCostBalancing.parse(lookup).resultOrPartial(RepairFix.getLogger()::error).orElse(new ArrayList<>()),

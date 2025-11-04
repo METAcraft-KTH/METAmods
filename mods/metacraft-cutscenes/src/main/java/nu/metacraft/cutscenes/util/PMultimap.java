@@ -13,31 +13,31 @@ public interface PMultimap<K, V> extends Multimap<K ,V> {
 	 * @param value
 	 * @return a map with the mappings of this but with key mapped to value
 	 */
-	public PMultimap<K, V> plus(K key, V value);
+	PMultimap<K, V> plus(K key, V value);
 
 	/**
 	 * @param map
 	 * @return this combined with map, with map's mappings used for any keys in both map and this
 	 */
-	public PMultimap<K, V> plusAll(Multimap<? extends K, ? extends V> map);
+	PMultimap<K, V> plusAll(Multimap<? extends K, ? extends V> map);
 
 	/**
 	 * @param key
 	 * @return a map with the mappings of this but with no value for key
 	 */
-	public PMultimap<K, V> minus(Object key);
+	PMultimap<K, V> minus(Object key);
 
 	/**
 	 * @param key
 	 * @return a map with the mappings of this but with no value for key
 	 */
-	public PMultimap<K, V> minus(Object key, Object value);
+	PMultimap<K, V> minus(Object key, Object value);
 
 	/**
 	 * @param keys
 	 * @return a map with the mappings of this but with no value for any element of keys
 	 */
-	public PMultimap<K, V> minusAll(Collection<?> keys);
+	PMultimap<K, V> minusAll(Collection<?> keys);
 
 	@Override
 	@Deprecated

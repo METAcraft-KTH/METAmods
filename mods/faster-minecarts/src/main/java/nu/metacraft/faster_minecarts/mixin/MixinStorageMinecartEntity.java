@@ -1,24 +1,24 @@
 package nu.metacraft.faster_minecarts.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.StorageMinecartEntity;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.vehicle.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.AbstractMinecartContainer;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.faster_minecarts.FasterMinecartsHelper;
 import nu.metacraft.faster_minecarts.MinecartComponents;
 
-@Mixin(StorageMinecartEntity.class)
-public abstract class MixinStorageMinecartEntity extends AbstractMinecartEntity {
+@Mixin(AbstractMinecartContainer.class)
+public abstract class MixinStorageMinecartEntity extends AbstractMinecart {
 
-	protected MixinStorageMinecartEntity(EntityType<?> entityType, World world) {
+	protected MixinStorageMinecartEntity(EntityType<?> entityType, Level world) {
 		super(entityType, world);
 	}
 
 	@ModifyExpressionValue(
-			method = "applySlowdown",
+			method = "applyNaturalSlowdown",
 			at = @At(
 					value = "CONSTANT",
 					args = "floatValue=0.95"
@@ -33,7 +33,7 @@ public abstract class MixinStorageMinecartEntity extends AbstractMinecartEntity 
 	}
 
 	@ModifyExpressionValue(
-			method = "applySlowdown",
+			method = "applyNaturalSlowdown",
 			at = @At(
 					value = "CONSTANT",
 					args = "floatValue=0.98"
@@ -48,7 +48,7 @@ public abstract class MixinStorageMinecartEntity extends AbstractMinecartEntity 
 	}
 
 	@ModifyExpressionValue(
-			method = "applySlowdown",
+			method = "applyNaturalSlowdown",
 			at = @At(
 					value = "CONSTANT",
 					args = "floatValue=0.001"
