@@ -2,7 +2,7 @@ package nu.metacraft.simplecustomfeatures.objects.blocks.dynamic_portal;
 
 import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.simplecustomfeatures.compat.PortalBlockerCompat;
-import nu.metacraft.simplecustomfeatures.mixin.AccessorPortalForcer;
+import nu.metacraft.simplecustomfeatures.mixin.PortalForcerAccessor;
 
 import java.util.Optional;
 import net.minecraft.BlockUtil;
@@ -63,7 +63,7 @@ public class PortalGenerator {
 			ServerLevel targetWorld, BlockPos targetPos
 	) {
 		int maxY = Math.min(targetWorld.getMaxY(), targetWorld.getMinY() + targetWorld.getLogicalHeight()) - 1;
-		var forcer = (AccessorPortalForcer) targetWorld.getPortalForcer();
+		var forcer = (PortalForcerAccessor) targetWorld.getPortalForcer();
 		var border = targetWorld.getWorldBorder();
 		var positive = Direction.fromAxisAndDirection(axis, Direction.AxisDirection.POSITIVE);
 		boolean foundSafePos = false;
@@ -168,7 +168,7 @@ public class PortalGenerator {
 				return false;
 			}
 		}
-		var forcer = (AccessorPortalForcer) world.getPortalForcer();
+		var forcer = (PortalForcerAccessor) world.getPortalForcer();
 		for (BlockPos pos : BlockPos.betweenClosed(minPos.mutable().move(Direction.UP), getMaxFramePos(minPos))) {
 			if (!forcer.callCanPortalReplaceBlock((BlockPos.MutableBlockPos) pos)) {
 				return false;

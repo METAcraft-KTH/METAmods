@@ -10,7 +10,6 @@ import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.config.container.ConfigContainerBase;
 import nu.metacraft.lib.config.container.ReloadFunction;
 import nu.metacraft.lib.config.container.ServerAware;
-import nu.metacraft.lib.mixin.AccessorServerDynamicRegistryType;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;

@@ -6,7 +6,7 @@ import net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket;
 import net.minecraft.world.effect.MobEffectInstance;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
-import nu.metacraft.cutscenes.mixin.AccessorStatusEffectInstance;
+import nu.metacraft.cutscenes.mixin.MobEffectInstanceAccessor;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
 import nu.metacraft.cutscenes.transitions.config.StatusEffectTransitionConfig;
 
@@ -47,7 +47,7 @@ public class StatusEffectTransition implements Transition {
 				if (existingEffect.getAmplifier() != config.amplifier()) {
 					player.addEffect(createEffect());
 				} else if (existingEffect.getDuration() != config.duration()) {
-					((AccessorStatusEffectInstance) existingEffect).callSetDetailsFrom(template);
+					((MobEffectInstanceAccessor) existingEffect).callSetDetailsFrom(template);
 					if (player.tickCount % config.resetInterval() == 0) {
 						player.connection.send(new ClientboundUpdateMobEffectPacket(player.getId(), existingEffect, true));
 					}
@@ -62,7 +62,7 @@ public class StatusEffectTransition implements Transition {
 			if (player.hasEffect(config.effect())) {
 				var effect = player.getEffect(config.effect());
 				player.removeEffect(config.effect());
-				effect = ((AccessorStatusEffectInstance) effect).getHiddenEffect();
+				effect = ((MobEffectInstanceAccessor) effect).getHiddenEffect();
 				if (effect != null) {
 					player.addEffect(effect);
 				}

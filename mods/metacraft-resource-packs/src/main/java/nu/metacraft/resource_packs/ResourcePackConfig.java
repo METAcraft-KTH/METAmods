@@ -13,7 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.server.MinecraftServer;
-import nu.metacraft.resource_packs.mixin.AccessorNetworkUtils;
+import nu.metacraft.resource_packs.mixin.HttpUtilAccessor;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ReloadCause;
 import nu.metacraft.lib.config.extensions.LoadAware;
@@ -193,7 +193,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 			if (resourcePackZips != null) {
 				for (var file : resourcePackZips) {
 					var path = file.toPath();
-					var hash = AccessorNetworkUtils.callHashFile(path, SHA1);
+					var hash = HttpUtilAccessor.callHashFile(path, SHA1);
 					UUID uuid = UUID.randomUUID();
 					CONFIG.modify(c -> {
 						if (c.resourcePacks.containsKey(uuid)) {

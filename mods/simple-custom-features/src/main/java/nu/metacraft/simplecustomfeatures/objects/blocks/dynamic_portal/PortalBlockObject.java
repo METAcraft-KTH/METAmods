@@ -24,7 +24,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.random.WeightedList;
-import net.minecraft.world.*;
 import net.minecraft.world.entity.ai.village.poi.PoiType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.UseRemainder;
@@ -43,7 +42,7 @@ import nu.metacraft.lib.util.helper.StructureTemplateHelper;
 import nu.metacraft.simplecustomfeatures.ObjectContainer;
 import nu.metacraft.simplecustomfeatures.compat.PortalBlockerCompat;
 import nu.metacraft.simplecustomfeatures.compat.PortalTypeData;
-import nu.metacraft.simplecustomfeatures.mixin.AccessorCachedBlockPosition;
+import nu.metacraft.simplecustomfeatures.mixin.BlockInWorldAccessor;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 import nu.metacraft.simplecustomfeatures.objects.ObjectRegistry;
 import nu.metacraft.simplecustomfeatures.objects.ObjectType;
@@ -290,7 +289,7 @@ public class PortalBlockObject implements BaseBlock {
 		return StreamSupport.stream(Block.BLOCK_STATE_REGISTRY.spliterator(), false).map(
 				state -> {
 					var cached = new BlockInWorld(world, BlockPos.ZERO, false);
-					var accessor = (AccessorCachedBlockPosition) cached;
+					var accessor = (BlockInWorldAccessor) cached;
 					accessor.setState(state);
 					accessor.setCachedEntity(true);
 					if (state.hasBlockEntity()) {

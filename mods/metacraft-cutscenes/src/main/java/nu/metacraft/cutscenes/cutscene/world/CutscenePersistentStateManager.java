@@ -13,7 +13,7 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import nu.metacraft.cutscenes.Cutscenes;
-import nu.metacraft.cutscenes.mixin.AccessorPersistentStateManager;
+import nu.metacraft.cutscenes.mixin.DimensionDataStorageAccessor;
 
 import java.nio.file.Path;
 import java.util.Map;
@@ -85,7 +85,7 @@ public class CutscenePersistentStateManager extends DimensionDataStorage {
 			if (entry.getValue().isDirty()) {
 				storage.get().put(
 						entry.getKey().id(),
-						((AccessorPersistentStateManager) this).callEncodeUnchecked(entry.getKey(), entry.getValue(), ops)
+						((DimensionDataStorageAccessor) this).callEncodeUnchecked(entry.getKey(), entry.getValue(), ops)
 				);
 			}
 		}

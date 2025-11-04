@@ -4,11 +4,11 @@
 	"plugin": "nu.metacraft.moderation.exile.ExileMixins",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"AccessorStringRange",
-		"AccessorSuggestion",
-		"MixinEntity",
-		"MixinServerPlayerEntity",
-		"MixinServerPlayerInteractionManager"
+		"StringRangeAccessor",
+		"SuggestionAccessor",
+		"EntityMixin",
+		"ServerPlayerMixin",
+		"ServerPlayerGameModeMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

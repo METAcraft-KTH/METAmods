@@ -3,14 +3,14 @@
 	"package": "nu.metacraft.portal_blocker.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"AccessorGameRulesType",
-		"MixinAbstractFireBlock",
-		"MixinEnderEyeItem",
-		"MixinEndPortalBlock",
-		"MixinGameRules",
-		"MixinNetherPortal",
-		"MixinPortalForcer",
-		"MixinPortalManager"
+		"GameRulesTypeAccessor",
+		"BaseFireBlockMixin",
+		"EnderEyeItemMixin",
+		"EndPortalBlockMixin",
+		"GameRulesMixin",
+		"PortalShapeMixin",
+		"PortalForcerMixin",
+		"PortalProcessorMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

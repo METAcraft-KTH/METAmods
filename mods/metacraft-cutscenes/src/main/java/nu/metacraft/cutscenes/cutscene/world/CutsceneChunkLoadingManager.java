@@ -23,8 +23,8 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import org.jetbrains.annotations.Nullable;
-import nu.metacraft.cutscenes.mixin.AccessorServerChunkLoadingManager;
-import nu.metacraft.cutscenes.mixin.AccessorServerLightingProvider;
+import nu.metacraft.cutscenes.mixin.ChunkMapAccessor;
+import nu.metacraft.cutscenes.mixin.ThreadedLevelLightEngineAccessor;
 import nu.metacraft.lib.util.helper.EntityTrackerHelper;
 
 import java.util.Map;
@@ -50,15 +50,15 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 	) {
 		super(cutsceneWorld.getActualWorld(), session, dataFixer, structureTemplateManager, executor, mainThreadExecutor, chunkProvider, chunkGenerator, chunkStatusChangeListener, persistentStateManagerFactory, ticketManager, viewDistance, dsync);
 		this.cutsceneWorld = cutsceneWorld;
-		((AccessorServerChunkLoadingManager) this).setLightEngine(
+		((ChunkMapAccessor) this).setLightEngine(
 				new CutsceneLightingProvider(
 						chunkProvider, this,
 						cutsceneWorld.dimensionType().hasSkyLight(),
-						((AccessorServerLightingProvider) getLightEngine()).getConsecutiveExecutor(),
-						((AccessorServerChunkLoadingManager) this).getLightTaskDispatcher()
+						((ThreadedLevelLightEngineAccessor) getLightEngine()).getConsecutiveExecutor(),
+						((ChunkMapAccessor) this).getLightTaskDispatcher()
 				)
 		);
-		((AccessorServerChunkLoadingManager) this).setDistanceManager(
+		((ChunkMapAccessor) this).setDistanceManager(
 				new DistanceManager(ticketManager, mainThreadExecutor, executor) {
 
 					@Override
@@ -67,7 +67,7 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 					}
 				}
 		);
-		((AccessorServerChunkLoadingManager) this).setPoiManager(
+		((ChunkMapAccessor) this).setPoiManager(
 				new PoiManager(
 						new RegionStorageInfo(session.getLevelId(), cutsceneWorld.dimension(), "poi"),
 						session.getDimensionPath(cutsceneWorld.dimension()).resolve("poi"), dataFixer, dsync,
@@ -125,7 +125,7 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 				}
 			}
 		};
-		((AccessorServerChunkLoadingManager.EntityTracker) (Object) e).setServerEntity(entry);
+		((ChunkMapAccessor.TrackedEntity) (Object) e).setServerEntity(entry);
 		cutsceneWorld.players().forEach(p -> {
 			EntityTrackerHelper.getListeners(e).add(p.connection);
 		});

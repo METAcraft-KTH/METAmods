@@ -1,7 +1,7 @@
 package nu.metacraft.simplecustomfeatures;
 
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
-import nu.metacraft.simplecustomfeatures.mixin.AccessorIdList;
+import nu.metacraft.simplecustomfeatures.mixin.IdMapperAccessor;
 
 import java.util.Set;
 import net.minecraft.core.IdMapper;
@@ -32,7 +32,7 @@ public class RegistryHelper {
 	 * @param <T> The type of the elements.
 	 */
 	public static <T> void removeFromIdList(IdMapper<T> list, Set<T> elements) {
-		var listAccessor = (AccessorIdList<T>) list;
+		var listAccessor = (IdMapperAccessor<T>) list;
 		listAccessor.getIdToT().removeIf(elements::contains);
 		for (var element : elements) {
 			var id = listAccessor.getTToId().removeInt(element);

@@ -33,7 +33,7 @@ import nu.metacraft.lib.util.helper.EntityHelper;
 import nu.metacraft.bosses.METAcraftBosses;
 import nu.metacraft.bosses.boss.attacks.SpawnEntityAttackBase;
 import nu.metacraft.bosses.entity.BossEntities;
-import nu.metacraft.bosses.mixin.AccessorOminousItemSpawnerEntity;
+import nu.metacraft.bosses.mixin.OminousItemSpawnerAccessor;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.Optional;
@@ -64,7 +64,7 @@ public class ItemSpawnerWithTarget extends OminousItemSpawner implements Polymer
 		).ifPresent(d -> nbt.put(SPAWN_DELAY, d));
 		if (!stack.isEmpty()) {
 			nbt.store(
-					AccessorOminousItemSpawnerEntity.getItemKey(), ItemStack.CODEC,
+					OminousItemSpawnerAccessor.getItemKey(), ItemStack.CODEC,
 					lookup.createSerializationContext(NbtOps.INSTANCE), stack
 			);
 		}
@@ -146,11 +146,11 @@ public class ItemSpawnerWithTarget extends OminousItemSpawner implements Polymer
 	}
 
 	public void setItem(ItemStack stack) {
-		((AccessorOminousItemSpawnerEntity) this).callSetItem(stack);
+		((OminousItemSpawnerAccessor) this).callSetItem(stack);
 	}
 
 	public void setSpawnItemsAfterTicks(long ticks) {
-		((AccessorOminousItemSpawnerEntity) this).setSpawnItemAfterTicks(ticks);
+		((OminousItemSpawnerAccessor) this).setSpawnItemAfterTicks(ticks);
 	}
 
 	@Override

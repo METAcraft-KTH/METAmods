@@ -4,10 +4,10 @@
 	"package": "nu.metacraft.repair_fix.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"MixinAnvilScreenHandler"
+		"AnvilMenuMixin"
 	],
 	"client": [
-		"MixinAnvilScreen"
+		"AnvilScreenMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

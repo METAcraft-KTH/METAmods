@@ -33,7 +33,6 @@ import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -64,8 +63,8 @@ import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.Cutscene;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.extension.ServerScoreboardExtensions;
-import nu.metacraft.cutscenes.mixin.AccessorMinecraftServer;
-import nu.metacraft.cutscenes.mixin.AccessorServerWorld;
+import nu.metacraft.cutscenes.mixin.MinecraftServerAccessor;
+import nu.metacraft.cutscenes.mixin.ServerLevelAccessor;
 import nu.metacraft.cutscenes.util.SerialisedStructure;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import nu.metacraft.lib.util.helper.StructureTemplateHelper;
@@ -75,7 +74,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
-public class CutsceneWorld extends ServerLevel implements ServerLevelAccessor {
+public class CutsceneWorld extends ServerLevel implements net.minecraft.world.level.ServerLevelAccessor {
 
 	private final ServerLevel world;
 	private final CutsceneInstance cutscene;
@@ -129,8 +128,8 @@ public class CutsceneWorld extends ServerLevel implements ServerLevelAccessor {
 
 	public CutsceneWorld(ServerLevel world, CutsceneInstance cutscene, CutsceneWorldData data) {
 		super(
-				world.getServer(), ((AccessorMinecraftServer) world.getServer()).getExecutor(),
-				((AccessorMinecraftServer) world.getServer()).getStorageSource(),
+				world.getServer(), ((MinecraftServerAccessor) world.getServer()).getExecutor(),
+				((MinecraftServerAccessor) world.getServer()).getStorageSource(),
 				getProperties(data, world),
 				world.dimension(),
 				new LevelStem(
@@ -143,10 +142,10 @@ public class CutsceneWorld extends ServerLevel implements ServerLevelAccessor {
 		this.cutscene = cutscene;
 		this.world = world;
 		this.manager = new CutsceneChunkManager(this, this::getDataStorage);
-		((AccessorServerWorld) this).setChunkSource(manager);
+		((ServerLevelAccessor) this).setChunkSource(manager);
 		this.entities = new CutsceneEntityManager(this);
 		this.lookup = entities.getLookup();
-		((AccessorServerWorld) this).setEntityManager(entities.createDummyEntityManager());
+		((ServerLevelAccessor) this).setEntityManager(entities.createDummyEntityManager());
 		initScoreboard(data == null);
 		if (data != null) {
 			load(data);

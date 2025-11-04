@@ -6,7 +6,7 @@ import net.minecraft.util.thread.ConsecutiveExecutor;
 import net.minecraft.world.level.chunk.LightChunkGetter;
 import net.minecraft.world.level.lighting.BlockLightSectionStorage;
 import net.minecraft.world.level.lighting.SkyLightSectionStorage;
-import nu.metacraft.cutscenes.mixin.AccessorChunkLightProvider;
+import nu.metacraft.cutscenes.mixin.LightEngineAccessor;
 import nu.metacraft.cutscenes.util.helper.LightingHelper;
 
 public class CutsceneLightingProvider extends ThreadedLevelLightEngine {
@@ -20,11 +20,11 @@ public class CutsceneLightingProvider extends ThreadedLevelLightEngine {
 		var blockProvider = LightingHelper.getBlockLightProvider(this);
 		var skyProvider = LightingHelper.getSkyLightProvider(this);
 
-		((AccessorChunkLightProvider<?,BlockLightSectionStorage>) blockProvider).setStorage(
+		((LightEngineAccessor<?,BlockLightSectionStorage>) blockProvider).setStorage(
 				new CutsceneBlockLightStorage(chunkProvider)
 		);
 		if (skyProvider != null) {
-			((AccessorChunkLightProvider<?,SkyLightSectionStorage>) skyProvider).setStorage(
+			((LightEngineAccessor<?,SkyLightSectionStorage>) skyProvider).setStorage(
 					new CutsceneSkyLightStorage(chunkProvider)
 			);
 		}

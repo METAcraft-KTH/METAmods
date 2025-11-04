@@ -23,7 +23,7 @@ import nu.metacraft.lib.condition.conditions.ValidateSpawnPredicate;
 import nu.metacraft.lib.condition.conditions.ValidateSpawnRestriction;
 import nu.metacraft.lib.util.helper.EntityHelper;
 import nu.metacraft.bosses.METAcraftBosses;
-import nu.metacraft.bosses.mixin.AccessorLivingEntity;
+import nu.metacraft.bosses.mixin.LivingEntityAccessor;
 
 import java.util.*;
 import java.util.function.*;
@@ -40,7 +40,7 @@ public abstract class SpawnEntityAttackBase extends InstantAttack {
 
 	public static Map<String, Object> createPotions(MobEffectInstance... effects) {
 		return Map.of(
-				AccessorLivingEntity.getActiveEffectsKey(),
+				LivingEntityAccessor.getActiveEffectsKey(),
 				MobEffectInstance.CODEC.listOf().encodeStart(JavaOps.INSTANCE, Arrays.stream(effects).toList()).resultOrPartial(
 						METAcraftBosses.LOGGER::error
 				).orElse(new ArrayList<>())

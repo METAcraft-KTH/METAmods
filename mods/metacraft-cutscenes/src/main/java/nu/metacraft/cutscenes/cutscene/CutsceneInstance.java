@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import org.pcollections.HashTreePSet;
 import org.pcollections.PSet;
 import nu.metacraft.cutscenes.Cutscenes;
-import nu.metacraft.cutscenes.mixin.AccessorPlayerManager;
+import nu.metacraft.cutscenes.mixin.PlayerListAccessor;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneWorld;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneWorldData;
 import nu.metacraft.cutscenes.transitions.DeltaTickTransition;
@@ -390,7 +390,7 @@ public class CutsceneInstance implements AutoCloseable {
 				}
 			}
 		}
-		((AccessorPlayerManager) player.level().getServer().getPlayerList()).callUpdateEntireScoreboard(newScoreboard, player);
+		((PlayerListAccessor) player.level().getServer().getPlayerList()).callUpdateEntireScoreboard(newScoreboard, player);
 	}
 
 	public static void loadPlayerData(

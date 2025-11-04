@@ -17,7 +17,7 @@ import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.loot_containers.mixin.AccessorLootTable;
+import nu.metacraft.loot_containers.mixin.LootTableAccessor;
 import nu.metacraft.loot_containers.util.EntityOrBlockEntity;
 
 import java.util.Optional;
@@ -85,9 +85,9 @@ public interface LootAccess {
 
 		var params = builder.create(LootContextParamSets.CHEST);
 
-		var freeSlots = ((AccessorLootTable) lootTable).callGetAvailableSlots(getInventory(), random);
+		var freeSlots = ((LootTableAccessor) lootTable).callGetAvailableSlots(getInventory(), random);
 		var loot = lootTable.getRandomItems(params);
-		((AccessorLootTable) lootTable).callShuffleAndSplitItems(loot, freeSlots.size(), random);
+		((LootTableAccessor) lootTable).callShuffleAndSplitItems(loot, freeSlots.size(), random);
 
 		for (var stack : loot) {
 			insertStack(stack, random);

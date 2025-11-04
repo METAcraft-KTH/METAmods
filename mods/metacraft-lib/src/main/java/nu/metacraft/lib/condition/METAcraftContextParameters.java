@@ -1,7 +1,7 @@
 package nu.metacraft.lib.condition;
 
 import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.mixin.AccessorLootTableReporter;
+import nu.metacraft.lib.mixin.ValidationContextAccessor;
 import nu.metacraft.lib.util.EntityRef;
 
 import java.util.Optional;
@@ -20,7 +20,7 @@ public class METAcraftContextParameters {
 	public static final ContextKey<EntitySpawnReason> SPAWN_REASON = register("spawn_reason");
 
 	public static void validateEntityType(ValidationContext reporter) {
-		var allowed = ((AccessorLootTableReporter) reporter).getContextKeySet().allowed();
+		var allowed = ((ValidationContextAccessor) reporter).getContextKeySet().allowed();
 		if (!allowed.contains(LootContextParams.THIS_ENTITY) && !allowed.contains(ENTITY_TYPE)) {
 			reporter.reportProblem(
 					() -> "Parameters " + LootContextParams.THIS_ENTITY + " and " + ENTITY_TYPE +
@@ -32,7 +32,7 @@ public class METAcraftContextParameters {
 	public static void validateEntityOrBlockEntity(
 			ValidationContext reporter, ContextKey<?> additional
 	) {
-		var allowed = ((AccessorLootTableReporter) reporter).getContextKeySet().allowed();
+		var allowed = ((ValidationContextAccessor) reporter).getContextKeySet().allowed();
 		if (
 				!allowed.contains(LootContextParams.THIS_ENTITY) &&
 				!allowed.contains(LootContextParams.BLOCK_ENTITY) &&

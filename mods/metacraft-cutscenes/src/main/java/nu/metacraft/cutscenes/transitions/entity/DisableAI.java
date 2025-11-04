@@ -4,11 +4,11 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
-import nu.metacraft.cutscenes.mixin.AccessorBrain;
+import nu.metacraft.cutscenes.mixin.BrainAccessor;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
 import nu.metacraft.cutscenes.transitions.Transition;
 import nu.metacraft.cutscenes.transitions.TransitionType;
-import nu.metacraft.core.mixin.AccessorMobEntity;
+import nu.metacraft.core.mixin.MobAccessor;
 
 import java.util.*;
 import net.minecraft.world.entity.Entity;
@@ -50,20 +50,20 @@ public class DisableAI implements Transition {
 		sensors = null;
 		if (entity instanceof Mob mob) {
 			if (!config.onlySensors()) {
-				var selector = ((AccessorMobEntity) mob).getGoalSelector();
+				var selector = ((MobAccessor) mob).getGoalSelector();
 				goalSelector = new HashSet<>(selector.getAvailableGoals());
 				selector.removeAllGoals(goal -> true);
 
-				var tasks = ((AccessorBrain) mob.getBrain()).getAvailableBehaviorsByPriority();
+				var tasks = ((BrainAccessor) mob.getBrain()).getAvailableBehaviorsByPriority();
 				this.tasks = new HashMap<>(tasks);
 				tasks.clear();
 			}
-			var tselector = ((AccessorMobEntity) mob).getTargetSelector();
+			var tselector = ((MobAccessor) mob).getTargetSelector();
 			targetSelector = new HashSet<>(tselector.getAvailableGoals());
 			tselector.removeAllGoals(goal -> true);
 			activated = true;
 
-			var sensors = ((AccessorBrain) mob.getBrain()).getSensors();
+			var sensors = ((BrainAccessor) mob.getBrain()).getSensors();
 			this.sensors = new HashMap<>(sensors);
 			sensors.clear();
 		}
@@ -93,24 +93,24 @@ public class DisableAI implements Transition {
 			if (!cache.contains(entity)) return;
 			if (entity instanceof Mob mob) {
 				if (!config.onlySensors()) {
-					var selector = ((AccessorMobEntity) mob).getGoalSelector();
+					var selector = ((MobAccessor) mob).getGoalSelector();
 					goalSelector.forEach(goal -> {
 						selector.addGoal(goal.getPriority(), goal.getGoal());
 					});
 					goalSelector.clear();
 
-					var tasks = ((AccessorBrain) mob.getBrain()).getAvailableBehaviorsByPriority();
+					var tasks = ((BrainAccessor) mob.getBrain()).getAvailableBehaviorsByPriority();
 					tasks.putAll(this.tasks);
 					this.tasks.clear();
 				}
 
-				var tSelector = ((AccessorMobEntity) mob).getTargetSelector();
+				var tSelector = ((MobAccessor) mob).getTargetSelector();
 				targetSelector.forEach(goal -> {
 					tSelector.addGoal(goal.getPriority(), goal.getGoal());
 				});
 				targetSelector.clear();
 
-				var sensors = ((AccessorBrain) mob.getBrain()).getSensors();
+				var sensors = ((BrainAccessor) mob.getBrain()).getSensors();
 				sensors.putAll(this.sensors);
 				this.sensors.clear();
 			}

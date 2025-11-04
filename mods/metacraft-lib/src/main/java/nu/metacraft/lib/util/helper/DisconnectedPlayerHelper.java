@@ -22,9 +22,9 @@ import net.minecraft.world.level.storage.PlayerDataStorage;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.mixin.AccessorMinecraftServer;
-import nu.metacraft.lib.mixin.AccessorPlayerSaveHandler;
-import nu.metacraft.lib.mixin.AccessorServerPlayerEntity;
+import nu.metacraft.lib.mixin.MinecraftServerAccessor;
+import nu.metacraft.lib.mixin.PlayerDataStorageAccessor;
+import nu.metacraft.lib.mixin.ServerPlayerAccessor;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.jetbrains.annotations.Nullable;
 
@@ -63,7 +63,7 @@ public class DisconnectedPlayerHelper {
 			Predicate<CompoundTag> playerAction
 	) {
 		var profile = getProfile(uuid, server);
-		PlayerDataStorage handler = ((AccessorMinecraftServer)server).getPlayerDataStorage();
+		PlayerDataStorage handler = ((MinecraftServerAccessor)server).getPlayerDataStorage();
 		var nbt = loadPlayerData(profile, handler).orElse(null);
 		if (nbt != null) {
 			if (playerAction.test(nbt)) {
@@ -81,7 +81,7 @@ public class DisconnectedPlayerHelper {
 	protected static void forAllDisconnectedPlayers(
 			MinecraftServer server, Predicate<UUID> isPlayerOnline, Predicate<CompoundTag> playerAction
 	) {
-		var playerDir = ((AccessorMinecraftServer) server).getStorageSource().getLevelPath(LevelResource.PLAYER_DATA_DIR).toFile();
+		var playerDir = ((MinecraftServerAccessor) server).getStorageSource().getLevelPath(LevelResource.PLAYER_DATA_DIR).toFile();
 		String[] ids = Optional.ofNullable(playerDir.list()).map(
 				playerFiles -> Arrays.stream(playerFiles).filter(id -> id.endsWith(".dat")).map(
 						id -> id.substring(0, id.length()-4)
@@ -104,7 +104,7 @@ public class DisconnectedPlayerHelper {
 		try {
 			NbtUtils.addCurrentDataVersion(nbt);
 			var uuid = player.id().toString();
-			Path path = ((AccessorPlayerSaveHandler) handler).getPlayerDir().toPath();
+			Path path = ((PlayerDataStorageAccessor) handler).getPlayerDir().toPath();
 			Path tmp = Files.createTempFile(path, uuid + "-", ".dat");
 			NbtIo.writeCompressed(nbt, tmp);
 			Path data = path.resolve(uuid + ".dat");
@@ -116,7 +116,7 @@ public class DisconnectedPlayerHelper {
 	}
 
 	private static Optional<CompoundTag> loadPlayerData(NameAndId player, String extension, PlayerDataStorage handler) {
-		File path = ((AccessorPlayerSaveHandler) handler).getPlayerDir();
+		File path = ((PlayerDataStorageAccessor) handler).getPlayerDir();
 		String uuid = player.id().toString();
 		File file = new File(path, uuid + extension);
 		if (file.exists() && file.isFile()) {
@@ -131,7 +131,7 @@ public class DisconnectedPlayerHelper {
 	}
 
 	private static void backupCorruptedPlayerData(NameAndId player, String extension, PlayerDataStorage handler) {
-		Path path = ((AccessorPlayerSaveHandler) handler).getPlayerDir().toPath();
+		Path path = ((PlayerDataStorageAccessor) handler).getPlayerDir().toPath();
 		String uuid = player.id().toString();
 		Path data = path.resolve(uuid + extension);
 		Path corrupted = path.resolve(uuid + "_corrupted_" + LocalDateTime.now().format(DATE_TIME_FORMATTER) + extension);
@@ -153,7 +153,7 @@ public class DisconnectedPlayerHelper {
 
 		return optional.or(() -> loadPlayerData(player, ".dat_old", handler)).map((nbt) -> {
 			int i = NbtUtils.getDataVersion(nbt, -1);
-			nbt = DataFixTypes.PLAYER.updateToCurrentVersion(((AccessorPlayerSaveHandler) handler).getFixerUpper(), nbt, i);
+			nbt = DataFixTypes.PLAYER.updateToCurrentVersion(((PlayerDataStorageAccessor) handler).getFixerUpper(), nbt, i);
 			return nbt;
 		});
 	}
@@ -282,7 +282,7 @@ public class DisconnectedPlayerHelper {
 		//Basically just Mojang's function in ServerPlayerEntity, but now it's static.
 		ServerLevel serverWorld = server.getLevel(respawn != null ? respawn.respawnData().dimension() : Level.OVERWORLD);
 		if (serverWorld != null && respawn != null) {
-			Optional<ServerPlayer.RespawnPosAngle> optional = AccessorServerPlayerEntity.callFindRespawnAndUseSpawnBlock(serverWorld, respawn, drainRespawnAnchor);
+			Optional<ServerPlayer.RespawnPosAngle> optional = ServerPlayerAccessor.callFindRespawnAndUseSpawnBlock(serverWorld, respawn, drainRespawnAnchor);
 			if (optional.isPresent()) {
 				ServerPlayer.RespawnPosAngle respawnPos = optional.get();
 				return new TeleportTransition(serverWorld, respawnPos.position(), Vec3.ZERO, respawnPos.yaw(), 0.0F, postDimensionTransition);

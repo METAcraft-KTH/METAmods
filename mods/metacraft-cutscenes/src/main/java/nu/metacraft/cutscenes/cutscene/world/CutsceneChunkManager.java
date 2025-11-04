@@ -20,10 +20,10 @@ import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.lighting.LayerLightSectionStorage;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.jetbrains.annotations.Nullable;
-import nu.metacraft.cutscenes.mixin.AccessorAbstractChunkHolder;
-import nu.metacraft.cutscenes.mixin.AccessorChunkHolder;
-import nu.metacraft.cutscenes.mixin.AccessorMinecraftServer;
-import nu.metacraft.cutscenes.mixin.AccessorServerChunkManager;
+import nu.metacraft.cutscenes.mixin.GenerationChunkHolderAccessor;
+import nu.metacraft.cutscenes.mixin.ChunkHolderAccessor;
+import nu.metacraft.cutscenes.mixin.MinecraftServerAccessor;
+import nu.metacraft.cutscenes.mixin.ServerChunkCacheAccessor;
 import nu.metacraft.cutscenes.util.helper.LightingHelper;
 
 import java.util.Optional;
@@ -45,10 +45,10 @@ public class CutsceneChunkManager extends ServerChunkCache {
 	) {
 		super(
 				cutsceneWorld.getActualWorld(),
-				((AccessorMinecraftServer) cutsceneWorld.getServer()).getStorageSource(),
+				((MinecraftServerAccessor) cutsceneWorld.getServer()).getStorageSource(),
 				cutsceneWorld.getServer().getFixerUpper(),
 				cutsceneWorld.getServer().getStructureManager(),
-				((AccessorMinecraftServer) cutsceneWorld.getServer()).getExecutor(),
+				((MinecraftServerAccessor) cutsceneWorld.getServer()).getExecutor(),
 				CutsceneWorld.createDummyChunkGenerator(cutsceneWorld.getActualWorld()),
 				cutsceneWorld.getServer().getPlayerList().getViewDistance(),
 				cutsceneWorld.getServer().getPlayerList().getSimulationDistance(),
@@ -59,27 +59,27 @@ public class CutsceneChunkManager extends ServerChunkCache {
 		this.cutsceneWorld = cutsceneWorld;
 		this.cutsceneChunkLoadingManager = new CutsceneChunkLoadingManager(
 				cutsceneWorld,
-				((AccessorMinecraftServer) cutsceneWorld.getServer()).getStorageSource(),
+				((MinecraftServerAccessor) cutsceneWorld.getServer()).getStorageSource(),
 				cutsceneWorld.getServer().getFixerUpper(),
 				cutsceneWorld.getServer().getStructureManager(),
-				((AccessorMinecraftServer) cutsceneWorld.getServer()).getExecutor(),
-				((AccessorServerChunkManager) this).getMainThreadExecutor(),
+				((MinecraftServerAccessor) cutsceneWorld.getServer()).getExecutor(),
+				((ServerChunkCacheAccessor) this).getMainThreadExecutor(),
 				this, CutsceneWorld.createDummyChunkGenerator(cutsceneWorld.getActualWorld()),
 				(pos, status) -> {}, persistentStateManagerFactory,
 				tickerManager,
 				cutsceneWorld.getServer().getPlayerList().getViewDistance(),
 				cutsceneWorld.getServer().forceSynchronousWrites()
 		);
-		((AccessorServerChunkManager) this).setChunkMap(
+		((ServerChunkCacheAccessor) this).setChunkMap(
 				cutsceneChunkLoadingManager
 		);
-		((AccessorServerChunkManager) this).setTicketStorage(
+		((ServerChunkCacheAccessor) this).setTicketStorage(
 				tickerManager
 		);
-		((AccessorServerChunkManager) this).setDistanceManager(
+		((ServerChunkCacheAccessor) this).setDistanceManager(
 				cutsceneChunkLoadingManager.getDistanceManager()
 		);
-		((AccessorServerChunkManager) this).setLightEngine(
+		((ServerChunkCacheAccessor) this).setLightEngine(
 				cutsceneChunkLoadingManager.getLightEngine()
 		);
 		this.cutsceneChunkLoadingManager.getDistanceManager().updateSimulationDistance(cutsceneWorld.getServer().getPlayerList().getSimulationDistance());
@@ -120,12 +120,12 @@ public class CutsceneChunkManager extends ServerChunkCache {
 			c.setLightCorrect(true);
 			c.registerTickContainerInLevel(cutsceneWorld);
 			var holder = getChunkHolder(x, z);
-			((AccessorChunkHolder) holder).setTickingChunkFuture(
+			((ChunkHolderAccessor) holder).setTickingChunkFuture(
 					CompletableFuture.completedFuture(ChunkResult.of(c))
 			);
-			((AccessorAbstractChunkHolder) holder).setHighestAllowedStatus(ChunkStatus.FULL);
-			((AccessorAbstractChunkHolder) holder).getStartedWork().set(ChunkStatus.FULL);
-			var statuses = ((AccessorAbstractChunkHolder) holder).getFutures();
+			((GenerationChunkHolderAccessor) holder).setHighestAllowedStatus(ChunkStatus.FULL);
+			((GenerationChunkHolderAccessor) holder).getStartedWork().set(ChunkStatus.FULL);
+			var statuses = ((GenerationChunkHolderAccessor) holder).getFutures();
 			for (int i = 0; i < statuses.length(); i++) {
 				statuses.set(i, CompletableFuture.completedFuture(ChunkResult.of(c)));
 			}

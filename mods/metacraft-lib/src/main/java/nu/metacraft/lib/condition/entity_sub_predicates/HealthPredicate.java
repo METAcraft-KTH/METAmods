@@ -10,7 +10,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import nu.metacraft.lib.mixin.AccessorItemEntity;
+import nu.metacraft.lib.mixin.ItemEntityAccessor;
 
 public class HealthPredicate implements EntitySubPredicate {
 
@@ -39,7 +39,7 @@ public class HealthPredicate implements EntitySubPredicate {
 		if (entity instanceof LivingEntity living) {
 			return fractionMode ? healthRange.matches(living.getHealth() / living.getMaxHealth()) : healthRange.matches(living.getHealth());
 		}
-		if (entity instanceof AccessorItemEntity item) {
+		if (entity instanceof ItemEntityAccessor item) {
 			return fractionMode ? healthRange.matches(item.getHealth() / 5.0f) : healthRange.matches(item.getHealth());
 		}
 		return false;

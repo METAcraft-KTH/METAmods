@@ -1,7 +1,7 @@
 package nu.metacraft.lib.condition;
 
 import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.mixin.AccessorLootContextTypes;
+import nu.metacraft.lib.mixin.LootContextParamSetsAccessor;
 
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -65,7 +65,7 @@ public class METAcraftContexTypes {
 		type.accept(builder);
 		ContextKeySet lootContextType = builder.build();
 		ResourceLocation identifier = METAcraftLib.getID(id);
-		ContextKeySet lootContextType2 = AccessorLootContextTypes.getMap().put(identifier, lootContextType);
+		ContextKeySet lootContextType2 = LootContextParamSetsAccessor.getMap().put(identifier, lootContextType);
 		if (lootContextType2 != null) {
 			throw new IllegalStateException("Loot table parameter set " + identifier + " is already registered");
 		}

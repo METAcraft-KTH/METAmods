@@ -1,9 +1,9 @@
 package nu.metacraft.portable_jukebox;
 
 import nu.metacraft.lib.util.EntityRef;
-import nu.metacraft.portable_jukebox.mixin.AccessorDoubleInventory;
-import nu.metacraft.portable_jukebox.mixin.AccessorEnderChestInventory;
-import nu.metacraft.portable_jukebox.mixin.AccessorSimpleInventory;
+import nu.metacraft.portable_jukebox.mixin.CompoundContainerAccessor;
+import nu.metacraft.portable_jukebox.mixin.PlayerEnderChestContainerAccessor;
+import nu.metacraft.portable_jukebox.mixin.SimpleContainerAccessor;
 
 import java.util.Optional;
 import net.minecraft.world.Container;
@@ -24,13 +24,13 @@ public class InventoryHelper {
 			case Inventory playerInv -> Optional.of(EntityRef.fromEntity(playerInv.player));
 			case BlockEntity blockEntity -> Optional.of(EntityRef.fromBlock(blockEntity));
 			case Entity entity -> Optional.of(EntityRef.fromEntity(entity));
-			case AccessorDoubleInventory doubleInv -> Optional.ofNullable(
+			case CompoundContainerAccessor doubleInv -> Optional.ofNullable(
 					getEntityFromInventory(doubleInv.getContainer1())
 			).orElse(
 					getEntityFromInventory(doubleInv.getContainer2())
 			);
-			case AccessorEnderChestInventory enderChest -> Optional.ofNullable(enderChest.getActiveChest()).map(EntityRef::fromBlock);
-			case AccessorSimpleInventory simple -> Optional.ofNullable(simple.getListeners()).flatMap(listeners -> listeners.stream().filter(
+			case PlayerEnderChestContainerAccessor enderChest -> Optional.ofNullable(enderChest.getActiveChest()).map(EntityRef::fromBlock);
+			case SimpleContainerAccessor simple -> Optional.ofNullable(simple.getListeners()).flatMap(listeners -> listeners.stream().filter(
 					listener -> listener instanceof Entity || listener instanceof BlockEntity
 			).map(listener -> {
 				if (listener instanceof Entity e) {

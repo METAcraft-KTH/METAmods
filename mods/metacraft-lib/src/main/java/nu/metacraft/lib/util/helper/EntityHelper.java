@@ -45,7 +45,7 @@ import nu.metacraft.lib.condition.METAcraftContexTypes;
 import nu.metacraft.lib.condition.conditions.NotInWall;
 import nu.metacraft.lib.condition.conditions.ValidateSpawnPredicate;
 import nu.metacraft.lib.condition.conditions.ValidateSpawnRestriction;
-import nu.metacraft.lib.mixin.AccessorTntEntity;
+import nu.metacraft.lib.mixin.PrimedTntAccessor;
 import nu.metacraft.lib.util.EntityTarget;
 import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
@@ -116,7 +116,7 @@ public class EntityHelper {
 		if (entity instanceof AreaEffectCloud cloud && owner instanceof LivingEntity living) {
 			cloud.setOwner(living);
 		}
-		if (entity instanceof AccessorTntEntity tnt && owner instanceof LivingEntity living) {
+		if (entity instanceof PrimedTntAccessor tnt && owner instanceof LivingEntity living) {
 			tnt.setOwner(EntityReference.of(living));
 		}
 		if (entity instanceof EntityTarget.CanSetOwner can) {

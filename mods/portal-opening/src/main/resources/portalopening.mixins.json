@@ -4,8 +4,8 @@
   "package": "se.metacraft.portalopening.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-	  "MixinEntity",
-	  "MixinWorld"
+	  "EntityMixin",
+	  "LevelMixin"
   ],
   "client": [
   ],

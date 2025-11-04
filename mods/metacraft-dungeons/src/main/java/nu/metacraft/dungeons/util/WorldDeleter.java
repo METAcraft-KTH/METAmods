@@ -16,7 +16,7 @@ import nu.metacraft.lib.util.helper.DisconnectedPlayerHelper;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import nu.metacraft.dungeons.METAcraftDungeons;
 import nu.metacraft.dungeons.extensions.ServerWorldExtension;
-import nu.metacraft.dungeons.mixin.AccessorMinecraftServer;
+import nu.metacraft.dungeons.mixin.MinecraftServerAccessor;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -47,7 +47,7 @@ public class WorldDeleter {
 					player.connection.disconnect(Component.literal("This dimension is being reset"));
 				}
 				handlePlayers.run();
-				((AccessorMinecraftServer) server).getLevels().remove(world.dimension());
+				((MinecraftServerAccessor) server).getLevels().remove(world.dimension());
 				ServerWorldEvents.UNLOAD.invoker().onWorldUnload(server, world);
 			} else {
 				shouldRestore = false;
@@ -59,7 +59,7 @@ public class WorldDeleter {
 				} catch (IOException ignored) {}
 				METAcraftDungeons.LOGGER.info("World unloaded, deleting files.");
 				deleteFiles(
-						((AccessorMinecraftServer) server).getStorageSource().getDimensionPath(world.dimension()),
+						((MinecraftServerAccessor) server).getStorageSource().getDimensionPath(world.dimension()),
 						filesToNotRemove
 				);
 				if (world.getServer().isShutdown()) {
@@ -68,8 +68,8 @@ public class WorldDeleter {
 				server.execute(() -> {
 					if (shouldRestore) {
 						var newWorld = new ServerLevel(
-								server, ((AccessorMinecraftServer) server).getExecutor(),
-								((AccessorMinecraftServer) server).getStorageSource(),
+								server, ((MinecraftServerAccessor) server).getExecutor(),
+								((MinecraftServerAccessor) server).getStorageSource(),
 								new DerivedLevelData(
 										server.getWorldData(), server.getWorldData().overworldData()
 								),
@@ -80,7 +80,7 @@ public class WorldDeleter {
 								BiomeManager.obfuscateSeed(server.getWorldData().worldGenOptions().seed()),
 								ImmutableList.of(), false, server.overworld().getRandomSequences()
 						);
-						((AccessorMinecraftServer) server).getLevels().put(
+						((MinecraftServerAccessor) server).getLevels().put(
 								world.dimension(),
 								newWorld
 						);

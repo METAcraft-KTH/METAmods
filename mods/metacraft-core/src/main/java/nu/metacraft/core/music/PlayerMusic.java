@@ -4,7 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.util.random.WeightedList;
-import nu.metacraft.core.mixin.AccessorPool;
+import nu.metacraft.core.mixin.WeightedListAccessor;
 import nu.metacraft.lib.util.METACodecs;
 import org.jetbrains.annotations.NotNull;
 
@@ -79,8 +79,8 @@ public record PlayerMusic(WeightedList<MusicEntry> music, int priority) implemen
 			if (this.priority != otherPriority) return false;
 			//noinspection DataFlowIssue
 			if (
-					((AccessorPool) (Object) this.music).getTotalWeight() !=
-					((AccessorPool) (Object) otherMusic).getTotalWeight()
+					((WeightedListAccessor) (Object) this.music).getTotalWeight() !=
+					((WeightedListAccessor) (Object) otherMusic).getTotalWeight()
 			) return false;
 			if (this.music.unwrap().size() != otherMusic.unwrap().size()) return false;
 			for (int i = 0; i < this.music.unwrap().size(); i++) {

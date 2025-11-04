@@ -21,7 +21,7 @@ import nu.metacraft.core.entity.entities.player_mob.PlayerMob;
 import nu.metacraft.core.entity.ai.METAcraftActivities;
 import nu.metacraft.core.entity.ai.METAcraftMemoryModules;
 import nu.metacraft.core.entity.ai.METAcraftSensorTypes;
-import nu.metacraft.core.mixin.AccessorEntityType;
+import nu.metacraft.core.mixin.EntityTypeAccessor;
 
 public class METAcraftEntities {
 
@@ -65,7 +65,7 @@ public class METAcraftEntities {
 		METAcraftMemoryModules.init();
 		METAcraftSensorTypes.init();
 
-		((AccessorEntityType) PLAYER).setDescriptionId(EntityType.PLAYER.getDescriptionId());
+		((EntityTypeAccessor) PLAYER).setDescriptionId(EntityType.PLAYER.getDescriptionId());
 	}
 
 	private static <T extends Entity> EntityType<T> register(String id, EntityType.Builder<T> builder) {

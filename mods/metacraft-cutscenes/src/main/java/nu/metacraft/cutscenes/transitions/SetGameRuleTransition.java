@@ -6,7 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import org.apache.commons.lang3.mutable.MutableObject;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
-import nu.metacraft.cutscenes.mixin.AccessorGameRulesRule;
+import nu.metacraft.cutscenes.mixin.GameRulesValueAccessor;
 import nu.metacraft.cutscenes.registry.TransitionConfigRegistry;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfig;
@@ -121,7 +121,7 @@ public class SetGameRuleTransition implements Transition {
 				public <T extends GameRules.Value<T>> void visit(GameRules.Key<T> key, GameRules.Type<T> type) {
 					if (key.getId().equals(GameRuleEntry.this.key)) {
 						var r = type.createRule();
-						((AccessorGameRulesRule) r).callDeserialize(value);
+						((GameRulesValueAccessor) r).callDeserialize(value);
 						rule.setValue(new GameRuleEntry.Parsed<>(key, r));
 					}
 				}

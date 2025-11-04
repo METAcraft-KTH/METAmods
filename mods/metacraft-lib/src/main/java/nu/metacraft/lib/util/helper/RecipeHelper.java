@@ -2,7 +2,7 @@ package nu.metacraft.lib.util.helper;
 
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.extensions.RecipeComponentCarryoverExtension;
-import nu.metacraft.lib.mixin.AccessorShapelessRecipe;
+import nu.metacraft.lib.mixin.ShapelessRecipeAccessor;
 
 import java.util.List;
 import java.util.function.Predicate;
@@ -34,7 +34,7 @@ public class RecipeHelper {
 	}
 
 	public static List<Ingredient> getIngredients(ShapelessRecipe recipe) {
-		return ((AccessorShapelessRecipe) recipe).getIngredients();
+		return ((ShapelessRecipeAccessor) recipe).getIngredients();
 	}
 
 }

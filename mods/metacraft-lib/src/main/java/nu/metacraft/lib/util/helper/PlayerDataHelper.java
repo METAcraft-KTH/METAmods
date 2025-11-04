@@ -25,10 +25,10 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.extensions.ServerPlayerEntityExtensions;
-import nu.metacraft.lib.mixin.AccessorPlayerAdvancementTracker;
-import nu.metacraft.lib.mixin.AccessorPlayerManager;
-import nu.metacraft.lib.mixin.AccessorServerPlayerEntity;
-import nu.metacraft.lib.mixin.AccessorStatHandler;
+import nu.metacraft.lib.mixin.PlayerAdvancementsAccessor;
+import nu.metacraft.lib.mixin.PlayerListAccessor;
+import nu.metacraft.lib.mixin.ServerPlayerAccessor;
+import nu.metacraft.lib.mixin.StatsCounterAccessor;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import nu.metacraft.lib.util.SeparateAdvancementTracker;
 import nu.metacraft.lib.util.SeparateStatHandler;
@@ -317,7 +317,7 @@ public class PlayerDataHelper {
 		var prevVehiclePitch = player.getRootVehicle().getXRot();
 		var prevVehicleVelocity = player.getRootVehicle().getDeltaMovement();
 
-		var gameMode = AccessorServerPlayerEntity.callReadPlayerMode(data, "playerGameType");
+		var gameMode = ServerPlayerAccessor.callReadPlayerMode(data, "playerGameType");
 		if (gameMode != null) {
 			player.setGameMode(gameMode);
 		}
@@ -386,20 +386,20 @@ public class PlayerDataHelper {
 			prevTracker.save();
 			prevTracker.stopListening();
 			var playerManager = player.level().getServer().getPlayerList();
-			((AccessorServerPlayerEntity) player).setAdvancements(
+			((ServerPlayerAccessor) player).setAdvancements(
 					new SeparateAdvancementTracker(
 							player.level().getServer().getFixerUpper(), playerManager,
 							player.level().getServer().getAdvancements(), player, type
 					)
 			);
-			((AccessorPlayerManager) playerManager).getAdvancements().put(
+			((PlayerListAccessor) playerManager).getAdvancements().put(
 					player.getUUID(), player.getAdvancements()
 			);
 			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(type);
 
 			if (copy) {
-				var progress = ((AccessorPlayerAdvancementTracker) prevTracker).getProgress();
-				var tracker = (AccessorPlayerAdvancementTracker) player.getAdvancements();
+				var progress = ((PlayerAdvancementsAccessor) prevTracker).getProgress();
+				var tracker = (PlayerAdvancementsAccessor) player.getAdvancements();
 				tracker.getProgress().putAll(progress);
 				progress.forEach((entry, p) -> {
 					tracker.callStartProgress(entry, p);
@@ -415,8 +415,8 @@ public class PlayerDataHelper {
 		if (player.getAdvancements() instanceof SeparateAdvancementTracker t) {
 			t.save();
 			t.stopListening();
-			((AccessorPlayerManager) playerManager).getAdvancements().remove(player.getUUID());
-			((AccessorServerPlayerEntity) player).setAdvancements(playerManager.getPlayerAdvancements(player));
+			((PlayerListAccessor) playerManager).getAdvancements().remove(player.getUUID());
+			((ServerPlayerAccessor) player).setAdvancements(playerManager.getPlayerAdvancements(player));
 			((ServerPlayerEntityExtensions) player).metacraft_lib$setAdvancementTrackerType(null);
 		}
 	}
@@ -425,14 +425,14 @@ public class PlayerDataHelper {
 		if (!(player.getStats() instanceof SeparateStatHandler h) || !h.getType().equals(type)) {
 			var prevHandler = player.getStats();
 			player.getStats().save();
-			((AccessorServerPlayerEntity) player).setStats(new SeparateStatHandler(player.level().getServer(), player, type));
-			((AccessorPlayerManager) player.level().getServer().getPlayerList()).getStats().put(
+			((ServerPlayerAccessor) player).setStats(new SeparateStatHandler(player.level().getServer(), player, type));
+			((PlayerListAccessor) player.level().getServer().getPlayerList()).getStats().put(
 					player.getUUID(), player.getStats()
 			);
 			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(type);
 
 			if (copy) {
-				for (var entry : ((AccessorStatHandler) prevHandler).getStats().object2IntEntrySet()) {
+				for (var entry : ((StatsCounterAccessor) prevHandler).getStats().object2IntEntrySet()) {
 					player.getStats().setValue(player, entry.getKey(), entry.getIntValue());
 				}
 			}
@@ -443,8 +443,8 @@ public class PlayerDataHelper {
 		var playerManager = player.level().getServer().getPlayerList();
 		if (player.getStats() instanceof SeparateStatHandler t) {
 			t.save();
-			((AccessorPlayerManager) playerManager).getStats().remove(player.getUUID());
-			((AccessorServerPlayerEntity) player).setStats(playerManager.getPlayerStats(player));
+			((PlayerListAccessor) playerManager).getStats().remove(player.getUUID());
+			((ServerPlayerAccessor) player).setStats(playerManager.getPlayerStats(player));
 			((ServerPlayerEntityExtensions) player).metacraft_lib$setStatHandlerType(null);
 		}
 	}

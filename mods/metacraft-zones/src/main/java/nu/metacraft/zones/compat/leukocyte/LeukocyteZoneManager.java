@@ -4,7 +4,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import nu.metacraft.zones.METAcraftZones;
 import nu.metacraft.zones.ZoneManager;
-import nu.metacraft.zones.compat.mixin.AccessorIndexedAuthorityMap;
+import nu.metacraft.zones.compat.mixin.IndexedAuthorityMapAccessor;
 import nu.metacraft.zones.zone.Zone;
 import xyz.nucleoid.leukocyte.Leukocyte;
 import xyz.nucleoid.leukocyte.authority.Authority;
@@ -48,7 +48,7 @@ public class LeukocyteZoneManager {
 
 	public static void updateZoneDimensions(MinecraftServer server, Zone zone) {
 		var leukocyte = Leukocyte.get(server);
-		if (leukocyte.getAuthorities() instanceof AccessorIndexedAuthorityMap map) {
+		if (leukocyte.getAuthorities() instanceof IndexedAuthorityMapAccessor map) {
 			var name = getAuthorityName(zone);
 			map.callRemoveFromDimension(name);
 			switch (leukocyte.getAuthorityByKey(name)) {

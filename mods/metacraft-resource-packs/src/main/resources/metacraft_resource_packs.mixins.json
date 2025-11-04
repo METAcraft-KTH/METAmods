@@ -4,10 +4,10 @@
 	"package": "nu.metacraft.resource_packs.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"AccessorNetworkUtils",
-		"MixinPlayerManager",
-		"MixinServerCommonNetworkHandler",
-		"MixinServerConfigurationNetworkHandler"
+		"HttpUtilAccessor",
+		"PlayerListMixin",
+		"ServerCommonPacketListenerImplMixin",
+		"ServerConfigurationPacketListenerImplMixin"
 	],
 	"client": [],
 	"injectors": {

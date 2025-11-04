@@ -16,7 +16,7 @@ import nu.metacraft.cutscenes.transitions.TransitionType;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfig;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfigType;
 import nu.metacraft.cutscenes.util.IntervalMap;
-import nu.metacraft.core.mixin.AccessorEntityNavigation;
+import nu.metacraft.core.mixin.PathNavigationAccessor;
 
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
@@ -72,7 +72,7 @@ public class PathFindTo implements Transition, TransitionConfig {
 	}
 
 	private Path findPath(Mob mob, Vec3 pos, boolean isFuzzy) {
-		return ((AccessorEntityNavigation) mob.getNavigation()).callCreatePath(
+		return ((PathNavigationAccessor) mob.getNavigation()).callCreatePath(
 				ImmutableSet.of(BlockPos.containing(pos)), searchRange, useHeadPos, isFuzzy ? fuzzyCompletionDistance : completionDistance
 		);
 	}

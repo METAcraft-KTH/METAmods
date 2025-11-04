@@ -65,7 +65,7 @@ public class HardcoreHelper {
 		));
 
 		world.removePlayerImmediately(player, Entity.RemovalReason.CHANGED_DIMENSION);
-		((AccessorEntity) player).callUnsetRemoved();
+		((EntityAccessor) player).callUnsetRemoved();
 		world.addRespawnedPlayer(player);
 		player.level().getServer().getPlayerList().sendPlayerPermissionLevel(player);
 		player.level().getServer().getPlayerList().sendLevelInfo(player, world);
@@ -92,7 +92,7 @@ public class HardcoreHelper {
 		boolean changed = false;
 		if (server.overworld().getLevelData() instanceof PrimaryLevelData properties) {
 			LevelSettings info = properties.getLevelSettings();
-			((AccessorLevelProperties) properties).setSettings(
+			((PrimaryLevelDataAccessor) properties).setSettings(
 					new LevelSettings(
 							info.levelName(), info.gameType(), hardcore,
 							info.difficulty(), info.allowCommands(),
@@ -101,11 +101,11 @@ public class HardcoreHelper {
 			);
 			changed = true;
 		}
-		if (server instanceof AccessorMinecraftDedicatedServer dedicated) {
+		if (server instanceof DedicatedServerAccessor dedicated) {
 			dedicated.getSettings().update(
 					p -> {
-						((AccessorServerPropertiesHandler) p).setHardcore(hardcore);
-						((AccessorAbstractPropertiesHandler) p).getProperties().setProperty(
+						((DedicatedServerPropertiesAccessor) p).setHardcore(hardcore);
+						((SettingsAccessor) p).getProperties().setProperty(
 								"hardcore", Boolean.toString(hardcore)
 						);
 						return p;

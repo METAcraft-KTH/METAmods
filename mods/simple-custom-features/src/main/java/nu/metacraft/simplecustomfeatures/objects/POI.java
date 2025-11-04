@@ -4,7 +4,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.utils.PolymerObject;
-import nu.metacraft.simplecustomfeatures.mixin.AccessorPointOfInterestTypes;
+import nu.metacraft.simplecustomfeatures.mixin.PoiTypesAccessor;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,7 +35,7 @@ public class POI implements BaseObject<PoiType> {
 	@Override
 	public DataResult<PoiType> createObject(ResourceKey<PoiType> id) {
 		for (var state : type.matchingStates()) {
-			if (AccessorPointOfInterestTypes.getStatesToTypeMap().containsKey(state)) {
+			if (PoiTypesAccessor.getStatesToTypeMap().containsKey(state)) {
 				return DataResult.error(() -> state.toString() + " is already assigned to another POI");
 			}
 		}
@@ -44,12 +44,12 @@ public class POI implements BaseObject<PoiType> {
 
 	@Override
 	public void onRegistrationSuccess(Holder.Reference<PoiType> entry) {
-		AccessorPointOfInterestTypes.callRegisterBlockStates(entry, entry.value().matchingStates());
+		PoiTypesAccessor.callRegisterBlockStates(entry, entry.value().matchingStates());
 	}
 
 	@Override
 	public void onUnregister(Holder<PoiType> entry) {
-		AccessorPointOfInterestTypes.getStatesToTypeMap().keySet().removeAll(entry.value().matchingStates());
+		PoiTypesAccessor.getStatesToTypeMap().keySet().removeAll(entry.value().matchingStates());
 	}
 
 	public static class PolymerPOI extends PoiType implements PolymerObject {

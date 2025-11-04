@@ -4,9 +4,9 @@
 	"package": "nu.metacraft.loot_containers.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"AccessorLootTable",
-		"MixinBlockEntity",
-		"MixinEntity"
+		"LootTableAccessor",
+		"BlockEntityMixin",
+		"EntityMixin"
 	],
 	"client": [],
 	"injectors": {

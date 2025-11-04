@@ -26,7 +26,7 @@ import net.minecraft.server.network.ServerPlayerConnection;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
-import nu.metacraft.lib.mixin.AccessorServerChunkLoadingManager;
+import nu.metacraft.lib.mixin.ChunkMapAccessor;
 import nu.metacraft.lib.util.METACodecs;
 
 import java.util.Arrays;
@@ -161,8 +161,8 @@ public class PlaySoundFromEntity {
 		if (!(entity.level() instanceof ServerLevel sw)) {
 			return 0;
 		}
-		var tracker = ((AccessorServerChunkLoadingManager) sw.getChunkSource().chunkMap).getEntityMap().get(entity.getId());
-		Set<ServerPlayer> inRangePlayers = ((AccessorServerChunkLoadingManager.EntityTracker) tracker).getSeenBy().stream().map(
+		var tracker = ((ChunkMapAccessor) sw.getChunkSource().chunkMap).getEntityMap().get(entity.getId());
+		Set<ServerPlayer> inRangePlayers = ((ChunkMapAccessor.TrackedEntity) tracker).getSeenBy().stream().map(
 				ServerPlayerConnection::getPlayer
 		).collect(Collectors.toSet());
 		Holder<SoundEvent> registryEntry = Holder.direct(SoundEvent.createVariableRangeEvent(sound));

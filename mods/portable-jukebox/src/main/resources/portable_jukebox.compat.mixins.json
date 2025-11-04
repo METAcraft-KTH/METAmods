@@ -5,7 +5,7 @@
 	"plugin": "nu.metacraft.portable_jukebox.compat.CompatMixins",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"MixinHopperHelper"
+		"HopperHelperMixin"
 	],
 	"client": [
 	],

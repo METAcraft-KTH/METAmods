@@ -29,7 +29,7 @@ import nu.metacraft.lib.util.EntityRef;
 import nu.metacraft.portable_jukebox.item.PortableJukeboxItem;
 import nu.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
 import nu.metacraft.portable_jukebox.gui.PortableJukeboxGui;
-import nu.metacraft.portable_jukebox.mixin.AccessorSkullBlock;
+import nu.metacraft.portable_jukebox.mixin.SkullBlockAccessor;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
@@ -55,7 +55,7 @@ public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerHead
 
 	@Override
 	protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
-		return AccessorSkullBlock.getShape();
+		return SkullBlockAccessor.getShape();
 	}
 
 	@Override

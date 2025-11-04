@@ -4,9 +4,9 @@
   "package": "nu.metacraft.saved_items.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-	  "MixinItemEntity",
-	  "MixinPlayerEntity",
-	  "MixinSchema1460"
+	  "ItemEntityMixin",
+	  "ServerPlayerMixin",
+	  "V1460Mixin"
   ],
   "client": [],
   "injectors": {

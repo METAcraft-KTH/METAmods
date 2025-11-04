@@ -8,7 +8,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.*;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -34,7 +33,7 @@ import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import nu.metacraft.lib.util.helper.EntityHelper;
 import nu.metacraft.lib.util.helper.ViewHelper;
 import nu.metacraft.simplecustomfeatures.Features;
-import nu.metacraft.simplecustomfeatures.mixin.AccessorNetherPortalBlock;
+import nu.metacraft.simplecustomfeatures.mixin.NetherPortalBlockAccessor;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.Comparator;
@@ -182,7 +181,7 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 			transition = TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET);
 		}
 
-		return AccessorNetherPortalBlock.callGetDimensionTransitionFromExit(entity, targetPos, portalShape, targetWorld, transition);
+		return NetherPortalBlockAccessor.callGetDimensionTransitionFromExit(entity, targetPos, portalShape, targetWorld, transition);
 	}
 
 	private Optional<BlockPos> findExistingPortal(ServerLevel targetWorld, BlockPos targetPos) {

@@ -28,7 +28,7 @@ import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 import net.minecraft.world.level.entity.Visibility;
 import net.minecraft.world.level.storage.TagValueOutput;
 import nu.metacraft.cutscenes.Cutscenes;
-import nu.metacraft.cutscenes.mixin.AccesorServerEntityManager;
+import nu.metacraft.cutscenes.mixin.PersistentEntitySectionManagerAccessor;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 
 import java.io.IOException;
@@ -354,8 +354,8 @@ public class CutsceneEntityManager {
 				}
 			}, null);
 
-			((AccesorServerEntityManager<Entity>) this).setSectionStorage(CutsceneEntityManager.this.cache);
-			((AccesorServerEntityManager<Entity>) this).setVisibleEntityStorage(CutsceneEntityManager.this.index);
+			((PersistentEntitySectionManagerAccessor<Entity>) this).setSectionStorage(CutsceneEntityManager.this.cache);
+			((PersistentEntitySectionManagerAccessor<Entity>) this).setVisibleEntityStorage(CutsceneEntityManager.this.index);
 		}
 
 		@Override

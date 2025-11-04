@@ -13,8 +13,8 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import nu.metacraft.core.extensions.EntityExtensions;
-import nu.metacraft.core.mixin.AccessorEntity;
-import nu.metacraft.core.mixin.AccessorLivingEntity;
+import nu.metacraft.core.mixin.EntityAccessor;
+import nu.metacraft.core.mixin.LivingEntityAccessor;
 import nu.metacraft.core.util.DisplayEntityData;
 import xyz.nucleoid.packettweaker.PacketContext;
 
@@ -149,7 +149,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		root.setDeltaMovement(root.getDeltaMovement().add(velocity));
 
 		if (player.getLastClientInput().jump()) {
-			float jumpStrength = ((AccessorLivingEntity) root).callGetJumpPower();
+			float jumpStrength = ((LivingEntityAccessor) root).callGetJumpPower();
 			if (jumpStrength > 1.0E-5F) {
 				Vec3 currentVelocity = root.getDeltaMovement();
 				root.setDeltaMovement(currentVelocity.x, Math.max(jumpStrength, currentVelocity.y) + 0.1, currentVelocity.z);
@@ -162,8 +162,8 @@ public class MovingBlock extends Entity implements PolymerEntity {
 
 
 		Vec3 motionVec = movement.add(root.getDeltaMovement());
-		motionVec = ((AccessorEntity) root).callMaybeBackOffFromEdge(motionVec, MoverType.SELF);
-		motionVec = ((AccessorEntity) root).callCollide(motionVec);
+		motionVec = ((EntityAccessor) root).callMaybeBackOffFromEdge(motionVec, MoverType.SELF);
+		motionVec = ((EntityAccessor) root).callCollide(motionVec);
 
 		boolean removeY = false;
 		if (movement.y() > 0 && root.getDeltaMovement().y <= 0) {

@@ -10,8 +10,8 @@ import com.mojang.brigadier.tree.CommandNode;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import org.apache.commons.lang3.mutable.MutableInt;
-import nu.metacraft.moderation.exile.mixin.AccessorStringRange;
-import nu.metacraft.moderation.exile.mixin.AccessorSuggestion;
+import nu.metacraft.moderation.exile.mixin.StringRangeAccessor;
+import nu.metacraft.moderation.exile.mixin.SuggestionAccessor;
 
 import static net.minecraft.commands.Commands.argument;
 
@@ -42,13 +42,13 @@ public class CommandUtil {
 				suggestions.getList().forEach(suggestion -> {
 					var newString = StringArgumentType.escapeIfRequired(suggestion.getText());
 					int offset = newString.length() - suggestion.getText().length();
-					((AccessorSuggestion) suggestion).setText(newString);
-					((AccessorStringRange) suggestion.getRange()).setStart(suggestion.getRange().getStart()+startPos);
-					((AccessorStringRange) suggestion.getRange()).setEnd(suggestion.getRange().getEnd()+startPos + offset);
+					((SuggestionAccessor) suggestion).setText(newString);
+					((StringRangeAccessor) suggestion.getRange()).setStart(suggestion.getRange().getStart()+startPos);
+					((StringRangeAccessor) suggestion.getRange()).setEnd(suggestion.getRange().getEnd()+startPos + offset);
 					totalOffset.setValue(Math.max(offset, totalOffset.getValue()));
 				});
-				((AccessorStringRange) suggestions.getRange()).setStart(suggestions.getRange().getStart()+startPos);
-				((AccessorStringRange) suggestions.getRange()).setEnd(suggestions.getRange().getEnd()+startPos + totalOffset.getValue());
+				((StringRangeAccessor) suggestions.getRange()).setStart(suggestions.getRange().getStart()+startPos);
+				((StringRangeAccessor) suggestions.getRange()).setEnd(suggestions.getRange().getEnd()+startPos + totalOffset.getValue());
 				return suggestions;
 			});
 		};

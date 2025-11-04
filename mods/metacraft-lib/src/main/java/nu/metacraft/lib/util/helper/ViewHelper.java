@@ -8,7 +8,7 @@ import net.minecraft.resources.RegistryOps;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.ValueInput;
 import org.jetbrains.annotations.NotNull;
-import nu.metacraft.lib.mixin.AccessorNbtReadView;
+import nu.metacraft.lib.mixin.TagValueInputAccessor;
 
 import java.util.Iterator;
 import java.util.Optional;
@@ -26,7 +26,7 @@ public class ViewHelper {
 
 	public static Dynamic<?> getDynamic(ValueInput view) {
 		if (view instanceof TagValueInput v) {
-			return new Dynamic<>(view.lookup().createSerializationContext(NbtOps.INSTANCE), ((AccessorNbtReadView) v).getInput());
+			return new Dynamic<>(view.lookup().createSerializationContext(NbtOps.INSTANCE), ((TagValueInputAccessor) v).getInput());
 		}
 		if (view instanceof ExtendedReadView v) {
 			return v.getData();

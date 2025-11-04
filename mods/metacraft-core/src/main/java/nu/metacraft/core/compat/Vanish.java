@@ -7,7 +7,7 @@ import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import nu.metacraft.core.mixin.AccessorPlayerListS2CPacket;
+import nu.metacraft.core.mixin.ClientboundPlayerInfoUpdatePacketAccessor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +33,7 @@ public class Vanish {
 			ServerPlayer prev = Arguments.PACKET_CONTEXT.get();
 			Arguments.PACKET_CONTEXT.set(listener.player);
 			var fixedPacket = new ClientboundPlayerInfoUpdatePacket(playerListPacket.actions(), List.of());
-			((AccessorPlayerListS2CPacket) fixedPacket).setEntries(playersToSendAnyway);
+			((ClientboundPlayerInfoUpdatePacketAccessor) fixedPacket).setEntries(playersToSendAnyway);
 			packetSender.accept(fixedPacket);
 			Arguments.PACKET_CONTEXT.set(prev);
 		}

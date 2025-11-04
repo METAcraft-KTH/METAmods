@@ -70,19 +70,19 @@ import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.core.mixin.AccessorPlayerLikeEntity;
+import nu.metacraft.core.mixin.AvatarAccessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.entity.PoseLockable;
 import nu.metacraft.core.entity.TridentUser;
 import nu.metacraft.core.entity.ai.METAcraftMemoryModules;
-import nu.metacraft.core.mixin.AccessorEntityNavigation;
-import nu.metacraft.core.mixin.AccessorMobEntity;
-import nu.metacraft.core.mixin.AccessorPlayerEntity;
+import nu.metacraft.core.mixin.PathNavigationAccessor;
+import nu.metacraft.core.mixin.MobAccessor;
+import nu.metacraft.core.mixin.PlayerAccessor;
 import nu.metacraft.core.util.helper.EntityAIHelper;
 import nu.metacraft.core.util.helper.ServerDefaultSkinHelper;
-import nu.metacraft.lib.mixin.AccessorServerChunkLoadingManager;
+import nu.metacraft.lib.mixin.ChunkMapAccessor;
 import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import xyz.nucleoid.packettweaker.PacketContext;
@@ -182,8 +182,8 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 	private void replaceNavigation(PathNavigation newNavigation) {
 		if (this.navigation == newNavigation) return;
 		if (navigation.getTargetPos() != null) {
-			var path = newNavigation.createPath(navigation.getTargetPos(), ((AccessorEntityNavigation) navigation).getReachRange());
-			var speed = ((AccessorEntityNavigation) navigation).getSpeedModifier();
+			var path = newNavigation.createPath(navigation.getTargetPos(), ((PathNavigationAccessor) navigation).getReachRange());
+			var speed = ((PathNavigationAccessor) navigation).getSpeedModifier();
 			newNavigation.moveTo(path, speed);
 		}
 		this.navigation.stop();
@@ -293,9 +293,9 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 			if (actualProfile != null) {
 				var manager = ((ServerChunkCache) this.level().getChunkSource()).chunkMap;
 				List<ServerPlayer> players = List.of();
-				var tracker = ((AccessorServerChunkLoadingManager) manager).getEntityMap().get(this.getId());
+				var tracker = ((ChunkMapAccessor) manager).getEntityMap().get(this.getId());
 				if (tracker != null) {
-					var listeners = ((AccessorServerChunkLoadingManager.EntityTracker) tracker).getSeenBy();
+					var listeners = ((ChunkMapAccessor.TrackedEntity) tracker).getSeenBy();
 					players = listeners.stream().map(ServerPlayerConnection::getPlayer).toList();
 					tracker.broadcastRemoved();
 					listeners.clear(); //Necessary because stopTracking does not clear listeners.
@@ -333,7 +333,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 
 	@Override
 	public EntityDimensions getDefaultDimensions(Pose pose) {
-		return AccessorPlayerLikeEntity.getPoseDimensions().getOrDefault(pose, AccessorPlayerLikeEntity.getStandingDimensions());
+		return AvatarAccessor.getPoseDimensions().getOrDefault(pose, AvatarAccessor.getStandingDimensions());
 	}
 
 	@Override
@@ -532,7 +532,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		leftShoulderNbt = entityNbt;
 		this.entityData.set(
 				LEFT_SHOULDER_ENTITY,
-				AccessorPlayerEntity.callConvertParrotVariant(AccessorPlayerEntity.callExtractParrotVariant(entityNbt))
+				PlayerAccessor.callConvertParrotVariant(PlayerAccessor.callExtractParrotVariant(entityNbt))
 		);
 	}
 
@@ -544,7 +544,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		rightShoulderNbt = entityNbt;
 		this.entityData.set(
 				RIGHT_SHOULDER_ENTITY,
-				AccessorPlayerEntity.callConvertParrotVariant(AccessorPlayerEntity.callExtractParrotVariant(entityNbt))
+				PlayerAccessor.callConvertParrotVariant(PlayerAccessor.callExtractParrotVariant(entityNbt))
 		);
 	}
 
@@ -795,18 +795,18 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		if (initial) {
 			data.add(
 				SynchedEntityData.DataValue.create(
-						AccessorPlayerLikeEntity.getModelParts(), entityData.get(PLAYER_MODEL_PARTS)
+						AvatarAccessor.getModelParts(), entityData.get(PLAYER_MODEL_PARTS)
 				)
 			);
 		}
 		for (int i = 0; i < data.size(); i++) {
 			replace(
-					data, i, AccessorMobEntity.getMobFlags(), AccessorPlayerLikeEntity.getMainArm(),
+					data, i, MobAccessor.getMobFlags(), AvatarAccessor.getMainArm(),
 					flags -> (byte) (isLeftHanded() ? HumanoidArm.LEFT.getId() : HumanoidArm.RIGHT.getId())
 			);
-			replace(data, i, PLAYER_MODEL_PARTS, AccessorPlayerLikeEntity.getModelParts());
-			replace(data, i, RIGHT_SHOULDER_ENTITY, AccessorPlayerEntity.getRightShoulderEntity());
-			replace(data, i, LEFT_SHOULDER_ENTITY, AccessorPlayerEntity.getLeftShoulderEntity());
+			replace(data, i, PLAYER_MODEL_PARTS, AvatarAccessor.getModelParts());
+			replace(data, i, RIGHT_SHOULDER_ENTITY, PlayerAccessor.getRightShoulderEntity());
+			replace(data, i, LEFT_SHOULDER_ENTITY, PlayerAccessor.getLeftShoulderEntity());
 		}
 	}
 

@@ -18,7 +18,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import nu.metacraft.simplecustomfeatures.RegistryHelper;
 import nu.metacraft.simplecustomfeatures.extension.ItemSettingsExtension;
-import nu.metacraft.simplecustomfeatures.mixin.AccessorItemSettings;
+import nu.metacraft.simplecustomfeatures.mixin.ItemPropertiesAccessor;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 
 import java.util.Optional;
@@ -56,7 +56,7 @@ public interface BaseItem extends BaseObject<Item> {
 							model = displayModel;
 						}
 						if (model != null) {
-							((AccessorItemSettings) settings).setModel(DependantName.fixed(model));
+							((ItemPropertiesAccessor) settings).setModel(DependantName.fixed(model));
 						}
 						var name = components.get(DataComponents.ITEM_NAME);
 						if (name != null) {

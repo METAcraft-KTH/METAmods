@@ -3,7 +3,7 @@ package nu.metacraft.relay.blocks.entity;
 import com.mojang.serialization.DataResult;
 import nu.metacraft.relay.blocks.RelayBlockEntities;
 import nu.metacraft.relay.items.RelayComponents;
-import nu.metacraft.relay.mixin.AccessorServerPlayerEntityRespawnPos;
+import nu.metacraft.relay.mixin.ServerPlayerRespawnPosAngleAccessor;
 import org.pcollections.HashTreePSet;
 
 import java.util.Set;
@@ -55,7 +55,7 @@ public class RelayBlockEntity extends BlockEntity {
 						return respawnPos.map(pos -> DataResult.success(
 								new TeleportTransition(
 										dim, pos, Vec3.ZERO,
-										AccessorServerPlayerEntityRespawnPos.callCalculateLookAtYaw(pos, t.pos()),
+										ServerPlayerRespawnPosAngleAccessor.callCalculateLookAtYaw(pos, t.pos()),
 										0, TeleportTransition.PLAY_PORTAL_SOUND
 								)
 						)).orElseGet(() -> DataResult.error(

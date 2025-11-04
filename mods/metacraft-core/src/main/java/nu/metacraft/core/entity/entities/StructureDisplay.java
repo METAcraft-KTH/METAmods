@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import nu.metacraft.core.util.DisplayEntityData;
-import nu.metacraft.lib.mixin.AccessorStructureTemplate;
+import nu.metacraft.lib.mixin.StructureTemplateAccessor;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.ArrayList;
@@ -123,8 +123,8 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		if (!lhs.getSize().equals(rhs.getSize())) {
 			return true;
 		}
-		var lhsLists = ((AccessorStructureTemplate) lhs).getPalettes();
-		var rhsLists = ((AccessorStructureTemplate) rhs).getPalettes();
+		var lhsLists = ((StructureTemplateAccessor) lhs).getPalettes();
+		var rhsLists = ((StructureTemplateAccessor) rhs).getPalettes();
 		if (lhsLists.size() != rhsLists.size()) {
 			return true;
 		}
@@ -175,7 +175,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		holder.destroy();
 		holder = new ElementHolder();
 
-		for (var list : ((AccessorStructureTemplate) structure).getPalettes()) {
+		for (var list : ((StructureTemplateAccessor) structure).getPalettes()) {
 			for (var l : list.blocks()) {
 				if (l.state().isAir() || l.state().getBlock() instanceof LiquidBlock) continue;
 				if (l.state().getBlock() instanceof SkullBlock skullBlock) {

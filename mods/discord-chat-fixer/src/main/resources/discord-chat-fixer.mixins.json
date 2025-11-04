@@ -4,7 +4,7 @@
 	"plugin": "nu.metacraft.discord_chat_fixer.DiscordMixinConfig",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"MixinMinecraftEventListener"
+		"MinecraftEventListenerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

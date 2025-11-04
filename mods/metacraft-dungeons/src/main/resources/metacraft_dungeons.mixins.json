@@ -4,12 +4,12 @@
 	"package": "nu.metacraft.dungeons.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"AccessorMinecraftServer",
-		"MixinChunkGenerating",
-		"MixinConfigManager",
-		"MixinServerChunkManager",
-		"MixinServerEntityManager",
-		"MixinServerWorld"
+		"MinecraftServerAccessor",
+		"ChunkStatusTasksMixin",
+		"ConfigManagerMixin",
+		"ServerChunkCacheMixin",
+		"PersistentEntitySectionManagerMixin",
+		"ServerLevelMixin"
 	],
 	"client": [
 	],

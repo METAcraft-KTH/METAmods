@@ -17,7 +17,7 @@ import nu.metacraft.cutscenes.transitions.Transition;
 import nu.metacraft.cutscenes.transitions.TransitionType;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfig;
 import nu.metacraft.cutscenes.transitions.config.TransitionConfigType;
-import nu.metacraft.core.mixin.AccessorEntityNavigation;
+import nu.metacraft.core.mixin.PathNavigationAccessor;
 
 import java.util.*;
 import net.minecraft.core.BlockPos;
@@ -61,7 +61,7 @@ public class MoveTo implements Transition {
 	}
 
 	private Path findPath(Mob mob, Config.PathTarget target, Vec3 pos) {
-		return ((AccessorEntityNavigation) mob.getNavigation()).callCreatePath(
+		return ((PathNavigationAccessor) mob.getNavigation()).callCreatePath(
 				ImmutableSet.of(BlockPos.containing(pos)), target.searchRange, target.useHeadPos, target.completionDistance
 		);
 	}

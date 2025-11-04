@@ -1,7 +1,7 @@
 package nu.metacraft.lib.util.helper;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import nu.metacraft.lib.mixin.AccessorServerChunkLoadingManager;
+import nu.metacraft.lib.mixin.ChunkMapAccessor;
 
 import java.util.Set;
 import net.minecraft.server.level.ChunkMap;
@@ -38,7 +38,7 @@ public class EntityTrackerHelper {
 	public static Int2ObjectMap<ChunkMap.TrackedEntity> getEntityTrackers(
 			ChunkMap manager
 	) {
-		return ((AccessorServerChunkLoadingManager) manager).getEntityMap();
+		return ((ChunkMapAccessor) manager).getEntityMap();
 	}
 
 	/**
@@ -49,7 +49,7 @@ public class EntityTrackerHelper {
 	 * @return The entity tracker entry.
 	 */
 	public static ServerEntity getEntry(ChunkMap.TrackedEntity entityTracker) {
-		return ((AccessorServerChunkLoadingManager.EntityTracker) entityTracker).getServerEntity();
+		return ((ChunkMapAccessor.TrackedEntity) entityTracker).getServerEntity();
 	}
 
 	/**
@@ -60,7 +60,7 @@ public class EntityTrackerHelper {
 	 * @return A set of all network listeners.
 	 */
 	public static Set<ServerPlayerConnection> getListeners(ChunkMap.TrackedEntity entityTracker) {
-		return ((AccessorServerChunkLoadingManager.EntityTracker) entityTracker).getSeenBy();
+		return ((ChunkMapAccessor.TrackedEntity) entityTracker).getSeenBy();
 	}
 
 }

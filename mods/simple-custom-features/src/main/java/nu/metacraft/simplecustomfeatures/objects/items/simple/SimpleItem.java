@@ -38,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Type;
 import nu.metacraft.simplecustomfeatures.Features;
 import nu.metacraft.simplecustomfeatures.FeaturesConfig;
-import nu.metacraft.simplecustomfeatures.mixin.AccessorItem;
+import nu.metacraft.simplecustomfeatures.mixin.ItemAccessor;
 import nu.metacraft.simplecustomfeatures.objects.ObjectRegistry;
 import nu.metacraft.simplecustomfeatures.objects.ObjectType;
 import nu.metacraft.simplecustomfeatures.objects.items.BaseItem;
@@ -251,7 +251,7 @@ public record SimpleItem(
 			for (var c : componentsToFix) {
 				setComponentFromChanges(builder, c, itemSettings.components());
 			}
-			((AccessorItem) item).setComponents(builder.build());
+			((ItemAccessor) item).setComponents(builder.build());
 		}
 		return item;
 	}

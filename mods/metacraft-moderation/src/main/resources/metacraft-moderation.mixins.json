@@ -3,8 +3,8 @@
   "package": "nu.metacraft.moderation.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-	  "MixinServerPlayerEntity",
-	  "MixinTameableEntity"
+	  "ServerPlayerMixin",
+	  "TamableAnimalMixin"
   ],
   "injectors": {
     "defaultRequire": 1

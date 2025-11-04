@@ -4,7 +4,7 @@
 	"package": "nu.metacraft.info_commands.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"MixinReloadCommand"
+		"ReloadCommandMixin"
 	],
 	"client": [
 	],
