@@ -102,6 +102,7 @@ public class ResourcePackServer implements AutoCloseable {
 	@Override
 	public void close() {
 		server.stop(0);
+		threadPool.close();
 	}
 
 	protected boolean verify(Map<String, List<String>> headers) {
