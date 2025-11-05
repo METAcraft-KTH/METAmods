@@ -60,7 +60,7 @@ public class ResourcePackServer implements AutoCloseable {
 			server.setExecutor(this.threadPool);
 			server.createContext("/", exchange -> {
 				sendResponse(
-						exchange.getRequestMethod().equals("GET") && verify(exchange.getRequestHeaders()),
+						exchange.getRequestMethod().equals("GET"),
 						exchange.getRequestURI().getPath().substring(1), exchange
 				);
 			});
@@ -124,7 +124,15 @@ public class ResourcePackServer implements AutoCloseable {
 		}
 	}
 
+	private static void send403(HttpExchange exchange) throws IOException {
+		exchange.sendResponseHeaders(403, -1);
+	}
+
 	protected void sendResponse(boolean success, String pack, HttpExchange exchange) throws IOException {
+		boolean verified = verify(exchange.getRequestHeaders());
+		if (!verified && !ResourcePackConfig.getConfig().allowManualDownloads()) {
+			success = false;
+		}
 		UUID packID = null;
 		try {
 			packID = UUID.fromString(pack);
@@ -139,8 +147,19 @@ public class ResourcePackServer implements AutoCloseable {
 			var p = packID;
 			try {
 				var file = mc.submit(() -> {
-					return ResourcePackConfig.getConfig().getResourcePack(p).getFile();
+					var packEntry = ResourcePackConfig.getConfig().getResourcePack(p);
+					if (packEntry == null) {
+						return null;
+					}
+					if (!verified && !packEntry.allowManualDownloads()) {
+						return null;
+					}
+					return packEntry.getFile();
 				}).get();
+				if (file == null) {
+					send403(exchange);
+					return;
+				}
 				try (var stream = new BufferedInputStream(new FileInputStream(file.toFile()))) {
 					data = stream.readAllBytes();
 				}
@@ -157,7 +176,7 @@ public class ResourcePackServer implements AutoCloseable {
 			exchange.getResponseBody().close();
 
 		} else {
-			exchange.sendResponseHeaders(403, -1);
+			send403(exchange);
 		}
 	}
 

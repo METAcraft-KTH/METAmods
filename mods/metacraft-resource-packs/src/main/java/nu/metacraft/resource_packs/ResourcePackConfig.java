@@ -1,6 +1,5 @@
 package nu.metacraft.resource_packs;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
@@ -25,6 +24,7 @@ import java.net.BindException;
 import java.net.UnknownHostException;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class ResourcePackConfig implements Modifiable, LoadAware {
@@ -47,6 +47,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 					Codec.STRING.optionalFieldOf("network_address").forGetter(c -> c.networkAddress),
 					Codec.intRange(0, 65535).fieldOf("port").forGetter(c -> c.port),
 					Codec.INT.fieldOf("max_connections").forGetter(c -> c.maxConnections),
+					Codec.BOOL.fieldOf("allow_manual_downloads").forGetter(c -> c.allowManualDownloads),
 					ResourcePackServer.SSLSettings.CODEC.optionalFieldOf("ssl").forGetter(c -> c.sslSettings)
 			).apply(instance, ResourcePackConfig::new)
 	);
@@ -71,6 +72,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	private final Optional<String> networkAddress;
 	private final int port;
 	private final int maxConnections;
+	private final boolean allowManualDownloads;
 	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	private final Optional<ResourcePackServer.SSLSettings> sslSettings;
 
@@ -79,15 +81,17 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 			Map<UUID, ResourcePack> resourcePacks,
 			boolean required, Optional<Component> prompt, String serverAddress,
 			Optional<String> networkAddress, int port, int maxConnections,
+			boolean allowManualDownloads,
 			Optional<ResourcePackServer.SSLSettings> sslSettings
 	) {
-		this.resourcePacks = resourcePacks instanceof ImmutableMap<UUID, ResourcePack> ? new HashMap<>(resourcePacks) : resourcePacks;
+		this.resourcePacks = new ConcurrentHashMap<>(resourcePacks);
 		this.required = required;
 		this.prompt = prompt;
 		this.serverAddress = serverAddress;
 		this.networkAddress = networkAddress;
 		this.port = port;
 		this.maxConnections = maxConnections;
+		this.allowManualDownloads = allowManualDownloads;
 		this.sslSettings = sslSettings;
 	}
 
@@ -96,7 +100,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 				new HashMap<>(), true,
 				Optional.empty(), "localhost",
 				Optional.empty(), 25585,
-				50, Optional.empty()
+				50, false, Optional.empty()
 		);
 	}
 
@@ -167,6 +171,10 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		return modified;
 	}
 
+	public boolean allowManualDownloads() {
+		return allowManualDownloads;
+	}
+
 	public ClientboundResourcePackPushPacket createEnablePacket(UUID uuid) {
 		var entry = getResourcePack(uuid);
 		if (entry == null) return null;
@@ -220,7 +228,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 						}
 
 						c.resourcePacks.put(uuid, new ResourcePack(
-								path, false, hash
+								path, false, Optional.empty(), hash
 						));
 						return true;
 					});
@@ -246,6 +254,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 		private Path file;
 		private final boolean global;
+		private final Optional<Boolean> allowManualDownloads;
 		private HashCode hash;
 
 		public static final Codec<ResourcePack> CODEC = RecordCodecBuilder.create(
@@ -257,17 +266,26 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 								return DataResult.error(e::getMessage);
 							}
 						}, Path::toString).fieldOf("file").forGetter(ResourcePack::getFile),
-						Codec.BOOL.fieldOf("global").forGetter(ResourcePack::isGlobal)
+						Codec.BOOL.fieldOf("global").forGetter(ResourcePack::isGlobal),
+						Codec.BOOL.optionalFieldOf("allow_manual_downloads").forGetter(pack -> pack.allowManualDownloads)
 				).apply(instance, ResourcePack::new)
 		);
 
-		public ResourcePack(Path file, boolean global) {
+		public ResourcePack(
+				Path file, boolean global,
+				@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<Boolean> allowManualDownloads
+		) {
 			this.file = file;
 			this.global = global;
+			this.allowManualDownloads = allowManualDownloads;
 		}
 
-		public ResourcePack(Path file, boolean global, HashCode hash) {
-			this(file, global);
+		public ResourcePack(
+				Path file, boolean global,
+				@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<Boolean> allowManualDownloads,
+				HashCode hash
+		) {
+			this(file, global, allowManualDownloads);
 			this.hash = hash;
 		}
 
@@ -289,6 +307,10 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 		public boolean isGlobal() {
 			return global;
+		}
+
+		public boolean allowManualDownloads() {
+			return allowManualDownloads.orElse(global);
 		}
 	}
 }
