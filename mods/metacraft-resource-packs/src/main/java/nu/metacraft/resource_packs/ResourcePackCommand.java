@@ -29,6 +29,8 @@ public class ResourcePackCommand {
 		);
 	};
 
+	private static final Component RELOADED = Component.literal("Reloaded resource packs");
+
 	public static void register(
 			CommandDispatcher<CommandSourceStack> dispatcher, HolderLookup.Provider lookup
 	) {
@@ -69,9 +71,16 @@ public class ResourcePackCommand {
 					)
 				).then(
 					literal("reload").executes(ctx -> {
-						ResourcePackConfig.reload();
+						ResourcePackConfig.reload(false);
+						ctx.getSource().sendSuccess(() -> RELOADED, true);
 						return 1;
-					})
+					}).then(
+						literal("soft").executes(ctx -> {
+							ResourcePackConfig.reload(true);
+							ctx.getSource().sendSuccess(() -> RELOADED, true);
+							return 1;
+						})
+					)
 				)
 		);
 	}

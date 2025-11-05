@@ -51,9 +51,9 @@ public class ResourcePackHelper {
 		return PlayerPackDataManager.getInstance(server).getFromPlayer(profile).hasPack(pack);
 	}
 
-	public static void resendResourcePacks(MinecraftServer server) {
+	public static void resendResourcePacks(MinecraftServer server, boolean sendPackets) {
 		var config = ResourcePackConfig.getConfig();
-		{ //Remove all removed resource packs from all players.
+		if (sendPackets) { //Remove all removed resource packs from all players.
 			List<Packet<? super ClientGamePacketListener>> removePackets = new ArrayList<>();
 			for (var pack : config.getRemovedPacks()) {
 				removePackets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
@@ -69,27 +69,31 @@ public class ResourcePackHelper {
 		var packManager = PlayerPackDataManager.getInstance(server);
 
 		//Remove all packs that were changed from global to non-global unless the player has it enabled.
-		for (var player : server.getPlayerList().getPlayers()) {
-			List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
-			for (var pack : config.getPrevGlobals()) {
-				if (!packManager.getFromPlayer(player.getGameProfile()).hasPack(pack)) {
-					packets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
+		if (sendPackets) {
+			for (var player : server.getPlayerList().getPlayers()) {
+				List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
+				for (var pack : config.getPrevGlobals()) {
+					if (!packManager.getFromPlayer(player.getGameProfile()).hasPack(pack)) {
+						packets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
+					}
 				}
-			}
-			if (!packets.isEmpty()) {
-				player.connection.send(new ClientboundBundlePacket(packets));
+				if (!packets.isEmpty()) {
+					player.connection.send(new ClientboundBundlePacket(packets));
+				}
 			}
 		}
 		//Send all updated global resource packs to the players.
-		for (var pack : config.getResourcePacks()) {
-			List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
-			if (pack.getValue().isGlobal() && (config.hasChanged(pack.getKey()) || config.isNowGlobal(pack.getKey()))) {
-				packets.add(config.createEnablePacket(pack.getKey()));
-			}
-			if (!packets.isEmpty()) {
-				var packet = new ClientboundBundlePacket(packets);
-				for (var player : server.getPlayerList().getPlayers()) {
-					player.connection.send(packet);
+		if (sendPackets) {
+			for (var pack : config.getResourcePacks()) {
+				List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
+				if (pack.getValue().isGlobal() && (config.hasChangedButStillExists(pack.getKey()) || config.isNowGlobal(pack.getKey()))) {
+					packets.add(config.createEnablePacket(pack.getKey()));
+				}
+				if (!packets.isEmpty()) {
+					var packet = new ClientboundBundlePacket(packets);
+					for (var player : server.getPlayerList().getPlayers()) {
+						player.connection.send(packet);
+					}
 				}
 			}
 		}
@@ -98,14 +102,14 @@ public class ResourcePackHelper {
 			List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
 			packManager.getFromPlayer(player.getGameProfile()).resourcePacks().forEach(pack -> {
 				if (ResourcePackConfig.getConfig().resourcePackExists(pack)) {
-					if (config.hasChanged(pack)) {
+					if (config.hasChangedButStillExists(pack) && sendPackets) {
 						packets.add(config.createEnablePacket(pack));
 					}
 					if (config.getResourcePack(pack).isGlobal()) {
 						packManager.update(player.getGameProfile(), data -> data.removePack(pack));
 					}
 				} else {
-					packets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
+					if (sendPackets) packets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
 					packManager.update(player.getGameProfile(), data -> data.removePack(pack));
 				}
 			});

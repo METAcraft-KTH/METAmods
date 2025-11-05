@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.server.MinecraftServer;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.resource_packs.mixin.HttpUtilAccessor;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ReloadCause;
@@ -31,6 +32,8 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 
 	@SuppressWarnings("deprecation")
 	private static final HashFunction SHA1 = Hashing.sha1();
+
+	public static final ReloadCause SOFT = ReloadCause.of(METAcraftLib.getID("soft"));
 
 	private static final Path configDir = FabricLoader.getInstance().getConfigDir().resolve(ResourcePacks.MODID);
 	public static final Path RESOURCE_PACK_DIR = configDir.resolve("resource-packs");
@@ -56,14 +59,15 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 			CODEC,
 			ResourcePackConfig::new
 	).setReloader((old, reloaded, cause) -> reloaded.get().map(c -> {
-		old.getResourcePacks().forEach(pack -> {
-			c.prevPacks.put(pack.getKey(), pack.getValue());
-		});
+		c.handleReload(old, cause == SOFT);
 		return c;
 	}).orElse(old)).build(configDir.resolve("config.json"));
 
 	private final Map<UUID, ResourcePack> resourcePacks;
-	private final Map<UUID, ResourcePack> prevPacks = new HashMap<>();
+	private final Set<UUID> removedPacks = new HashSet<>();
+	private final Set<UUID> modifiedPacks = new HashSet<>();
+	private final Set<UUID> prevGlobals = new HashSet<>();
+	private final Set<UUID> newGlobals = new HashSet<>();
 	private final boolean required;
 	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	private final Optional<Component> prompt;
@@ -108,8 +112,8 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		return CONFIG.get();
 	}
 
-	public static void reload() {
-		CONFIG.reload();
+	public static void reload(boolean soft) {
+		CONFIG.reload(soft ? SOFT : ReloadCause.DEFAULT);
 	}
 
 	public boolean resourcePackExists(UUID uuid) {
@@ -120,17 +124,63 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		return resourcePacks.get(uuid);
 	}
 
-	private boolean exists(UUID pack) {
-		return prevPacks.containsKey(pack) && resourcePacks.containsKey(pack);
+	private void onRemove(UUID uuid) {
+		removedPacks.add(uuid);
+		modifiedPacks.remove(uuid);
+		newGlobals.remove(uuid);
 	}
 
-	public boolean hasChanged(UUID pack) {
-		if (!prevPacks.containsKey(pack) && resourcePacks.containsKey(pack)) return true;
-		return exists(pack) && !Objects.equals(prevPacks.get(pack).getHash(), resourcePacks.get(pack).getHash());
+	private void onNewOrModified(UUID uuid) {
+		modifiedPacks.add(uuid);
+		removedPacks.remove(uuid);
+	}
+
+	private void onNewGlobal(UUID uuid) {
+		newGlobals.add(uuid);
+		prevGlobals.remove(uuid);
+	}
+
+	private void onNoLongerGlobal(UUID uuid) {
+		newGlobals.remove(uuid);
+		prevGlobals.add(uuid);
+	}
+
+	private void handleReload(ResourcePackConfig old, boolean soft) {
+		if (soft) {
+			modifiedPacks.addAll(old.modifiedPacks);
+			removedPacks.addAll(old.removedPacks);
+			newGlobals.addAll(old.newGlobals);
+			prevGlobals.addAll(old.prevGlobals);
+		}
+		resourcePacks.forEach((id, pack) -> {
+			if (!old.resourcePacks.containsKey(id) || !Objects.equals(old.getResourcePack(id).getHash(), pack.getHash())) {
+				onNewOrModified(id);
+			}
+			boolean oldGlobal = old.resourcePacks.containsKey(id) && old.resourcePacks.get(id).isGlobal();
+			boolean newGlobal = pack.isGlobal();
+			if (oldGlobal && !newGlobal) {
+				onNoLongerGlobal(id);
+			}
+			if (newGlobal && !oldGlobal) {
+				onNewGlobal(id);
+			}
+		});
+		old.resourcePacks.forEach((id, pack) -> {
+			if (!resourcePacks.containsKey(id)) {
+				if (pack.isGlobal()) {
+					onNoLongerGlobal(id);
+				}
+				onRemove(id);
+			}
+		});
+	}
+
+	public boolean hasChangedButStillExists(UUID pack) {
+		return modifiedPacks.contains(pack);
 	}
 
 	public boolean isNowGlobal(UUID pack) {
-		return exists(pack) && !prevPacks.get(pack).isGlobal() && resourcePacks.get(pack).isGlobal();
+		return newGlobals.contains(pack);
 	}
 
 	public Collection<Map.Entry<UUID, ResourcePack>> getResourcePacks() {
@@ -138,13 +188,11 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	}
 
 	public Iterable<UUID> getRemovedPacks() {
-		return prevPacks.keySet().stream().filter(resourcePack -> !resourcePacks.containsKey(resourcePack))::iterator;
+		return removedPacks::iterator;
 	}
 
 	public Iterable<UUID> getPrevGlobals() {
-		return prevPacks.entrySet().stream().filter(
-				pack -> resourcePacks.containsKey(pack.getKey()) && pack.getValue().isGlobal() && !resourcePacks.get(pack.getKey()).isGlobal()
-		).map(Map.Entry::getKey)::iterator;
+		return prevGlobals::iterator;
 	}
 
 	public String getServerAddress() {
@@ -239,9 +287,11 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 			ResourcePacks.LOGGER.error(e);
 		}
 
-		if (cause.isPresent()) {
-			ResourcePackServerManager.getServers().forEach(ResourcePackHelper::resendResourcePacks);
-		}
+		cause.ifPresent(reloadCause -> ResourcePackServerManager.getServers().forEach(
+				server -> {
+					ResourcePackHelper.resendResourcePacks(server, reloadCause != SOFT);
+				}
+		));
 	}
 
 	private Set<UUID> getGlobalPacks() {
