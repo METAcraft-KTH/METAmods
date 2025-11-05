@@ -54,7 +54,7 @@ public class DisconnectedPlayerHelper {
 	public static CompoundTag getPlayerData(MinecraftServer server, UUID uuid) {
 		var profile = getProfile(uuid, server);
 		PlayerDataStorage handler = ((MinecraftServerAccessor)server).getPlayerDataStorage();
-		return loadPlayerDataNoSideEffects(profile, handler).orElse(null);
+		return loadPlayerData(profile, handler, false).orElse(null);
 	}
 
 	/**
@@ -70,7 +70,7 @@ public class DisconnectedPlayerHelper {
 	) {
 		var profile = getProfile(uuid, server);
 		PlayerDataStorage handler = ((MinecraftServerAccessor)server).getPlayerDataStorage();
-		var nbt = loadPlayerData(profile, handler).orElse(null);
+		var nbt = loadPlayerData(profile, handler, true).orElse(null);
 		if (nbt != null) {
 			if (playerAction.test(nbt)) {
 				savePlayerData(profile, nbt, handler);
@@ -151,19 +151,9 @@ public class DisconnectedPlayerHelper {
 		}
 	}
 
-	private static Optional<CompoundTag> loadPlayerDataNoSideEffects(NameAndId player, PlayerDataStorage handler) {
+	private static Optional<CompoundTag> loadPlayerData(NameAndId player, PlayerDataStorage handler, boolean doBackups) {
 		Optional<CompoundTag> optional = loadPlayerData(player, ".dat", handler);
-
-		return optional.or(() -> loadPlayerData(player, ".dat_old", handler)).map((nbt) -> {
-			int i = NbtUtils.getDataVersion(nbt, -1);
-			nbt = DataFixTypes.PLAYER.updateToCurrentVersion(((PlayerDataStorageAccessor) handler).getFixerUpper(), nbt, i);
-			return nbt;
-		});
-	}
-
-	private static Optional<CompoundTag> loadPlayerData(NameAndId player, PlayerDataStorage handler) {
-		Optional<CompoundTag> optional = loadPlayerData(player, ".dat", handler);
-		if (optional.isEmpty()) {
+		if (optional.isEmpty() && doBackups) {
 			backupCorruptedPlayerData(player, ".dat", handler);
 		}
 
