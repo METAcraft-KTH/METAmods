@@ -10,6 +10,7 @@ import net.minecraft.server.network.config.ServerResourcePackConfigurationTask;
 import nu.metacraft.lib.util.helper.DisconnectedPlayerHelper;
 import nu.metacraft.resource_packs.EarlyPacksCallback;
 import nu.metacraft.resource_packs.PlayerPackData;
+import nu.metacraft.resource_packs.extension.ConnectionExtension;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,8 +20,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import nu.metacraft.resource_packs.ResourcePackConfig;
 
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -64,8 +64,12 @@ public abstract class ServerConfigurationPacketListenerImplMixin extends ServerC
 		var nonGlobals = config.getResourcePacks().stream().filter(
 				entry -> !entry.getValue().isGlobal() && packData.hasPack(entry.getKey())
 		).map(Map.Entry::getKey);
-		var packs = Stream.concat(globals, nonGlobals).collect(Collectors.toList());
-		EarlyPacksCallback.EVENT.invoker().addPacks(server, gameProfile, data, packs::add);
+		List<UUID> addedPacks = new ArrayList<>();
+		EarlyPacksCallback.EVENT.invoker().addPacks(server, gameProfile, data, addedPacks::add);
+		if (!addedPacks.isEmpty()) {
+			((ConnectionExtension) connection).metacraft$updateAddedPacks(packs -> packs.plusAll(addedPacks));
+		}
+		var packs = Stream.concat(globals, Stream.concat(nonGlobals, addedPacks.stream())).collect(Collectors.toSet());
 		if (!packs.isEmpty()) {
 			this.configurationTasks.add(new ConfigurationTask() {
 				@Override

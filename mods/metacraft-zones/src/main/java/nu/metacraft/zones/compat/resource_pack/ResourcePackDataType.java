@@ -3,15 +3,19 @@ package nu.metacraft.zones.compat.resource_pack;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.UuidArgument;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
+import nu.metacraft.lib.util.helper.DisconnectedPlayerHelper;
+import nu.metacraft.resource_packs.EarlyPacksCallback;
 import nu.metacraft.resource_packs.ResourcePackCommand;
 import nu.metacraft.zones.METAcraftZones;
+import nu.metacraft.zones.ZoneManager;
 import nu.metacraft.zones.util.ZoneCommandUtils;
 import nu.metacraft.zones.zone.data.ZoneDataRegistry;
 import nu.metacraft.zones.zone.data.ZoneDataType;
+import org.pcollections.HashTreePSet;
 
-import java.util.HashSet;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -22,11 +26,19 @@ public class ResourcePackDataType {
 
 	public static final ZoneDataType<ResourcePackData> RESOURCE_PACK = Registry.register(
 			ZoneDataRegistry.REGISTRY, METAcraftZones.getID("resource_pack"),
-			new ZoneDataType<>(ResourcePackData.CODEC, () -> new ResourcePackData(new HashSet<>()))
+			new ZoneDataType<>(ResourcePackData.CODEC, () -> new ResourcePackData(HashTreePSet.empty()))
 	);
 
 
 	public static void init() {
+		EarlyPacksCallback.EVENT.register((server, profile, playerData, resourcePackAdder) -> {
+			var pos = DisconnectedPlayerHelper.getPos(playerData);
+			var dim = DisconnectedPlayerHelper.getPlayerDim(playerData);
+			var zones = ZoneManager.getInstance(server).getZonesAt(dim, BlockPos.containing(pos),zone -> zone.get(RESOURCE_PACK).isPresent());
+			for (var zone : zones) {
+				zone.get(RESOURCE_PACK).orElseThrow().getPacks().forEach(resourcePackAdder);
+			}
+		});
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			dispatcher.register(
 				ZoneCommandUtils.zoneCommandRoot().then(

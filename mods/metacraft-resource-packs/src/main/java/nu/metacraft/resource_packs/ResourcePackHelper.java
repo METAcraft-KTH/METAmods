@@ -6,6 +6,7 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import nu.metacraft.resource_packs.extension.ServerPlayerExtension;
 
 import java.util.*;
 import java.util.function.UnaryOperator;
@@ -17,9 +18,7 @@ public class ResourcePackHelper {
 		var entry = config.getResourcePack(pack);
 		if (entry == null) return;
 		if (!entry.isGlobal()) {
-			if (persist) {
-				update(player, data -> data.addPack(pack));
-			}
+			update(player, data -> data.addPack(pack, persist));
 			player.connection.send(config.createEnablePacket(pack));
 		}
 	}

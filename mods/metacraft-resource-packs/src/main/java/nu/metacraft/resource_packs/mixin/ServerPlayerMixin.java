@@ -4,7 +4,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import nu.metacraft.resource_packs.PlayerPackData;
-import nu.metacraft.resource_packs.ServerPlayerExtension;
+import nu.metacraft.resource_packs.extension.ServerPlayerExtension;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;

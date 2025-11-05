@@ -4,7 +4,9 @@
 	"package": "nu.metacraft.resource_packs.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"ConnectionMixin",
 		"HttpUtilAccessor",
+		"PrepareSpawnTaskReadyMixin",
 		"ServerConfigurationPacketListenerImplMixin",
 		"ServerPlayerMixin"
 	],

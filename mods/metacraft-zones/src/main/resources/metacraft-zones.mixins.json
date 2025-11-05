@@ -3,12 +3,13 @@
 	"package": "nu.metacraft.zones.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"StringRangeAccessor",
-		"SuggestionAccessor",
 		"EntityMixin",
 		"FieldDecoderMixin",
 		"LocationPredicateMixin",
-		"NaturalSpawnerMixin"
+		"NaturalSpawnerMixin",
+		"PersistentEntitySectionManagerMixin",
+		"StringRangeAccessor",
+		"SuggestionAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

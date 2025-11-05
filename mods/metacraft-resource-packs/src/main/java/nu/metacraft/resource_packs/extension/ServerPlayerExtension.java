@@ -1,4 +1,6 @@
-package nu.metacraft.resource_packs;
+package nu.metacraft.resource_packs.extension;
+
+import nu.metacraft.resource_packs.PlayerPackData;
 
 import java.util.function.UnaryOperator;
 
