@@ -59,7 +59,7 @@ public class ResourcePackData extends ZoneDataEntityTracking {
 
 	private void enablePack(ServerPlayer p, UUID pack) {
 		if (!ResourcePackHelper.hasResourcePack(p, pack)) {
-			ResourcePackHelper.enableResourcePack(p, pack);
+			ResourcePackHelper.enableResourcePack(p, pack, false);
 		}
 	}
 

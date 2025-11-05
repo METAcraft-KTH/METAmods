@@ -7,6 +7,9 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.*;
 import net.minecraft.server.network.config.ServerResourcePackConfigurationTask;
+import nu.metacraft.lib.util.helper.DisconnectedPlayerHelper;
+import nu.metacraft.resource_packs.EarlyPacksCallback;
+import nu.metacraft.resource_packs.PlayerPackData;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -14,13 +17,13 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import nu.metacraft.resource_packs.PlayerPackDataManager;
 import nu.metacraft.resource_packs.ResourcePackConfig;
-import nu.metacraft.resource_packs.ResourcePackHelper;
 
 import java.util.Map;
 import java.util.Queue;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Mixin(ServerConfigurationPacketListenerImpl.class)
 public abstract class ServerConfigurationPacketListenerImplMixin extends ServerCommonPacketListenerImpl {
@@ -33,11 +36,6 @@ public abstract class ServerConfigurationPacketListenerImplMixin extends ServerC
 
 	public ServerConfigurationPacketListenerImplMixin(MinecraftServer server, Connection connection, CommonListenerCookie clientData) {
 		super(server, connection, clientData);
-	}
-
-	@Inject(method = "<init>", at = @At("RETURN"))
-	public void init(MinecraftServer minecraftServer, Connection clientConnection, CommonListenerCookie connectedClientData, CallbackInfo ci) {
-		PlayerPackDataManager.getInstance(minecraftServer).loadPlayer(gameProfile);
 	}
 
 	@WrapWithCondition(
@@ -58,9 +56,16 @@ public abstract class ServerConfigurationPacketListenerImplMixin extends ServerC
 	@Inject(method = "addOptionalTasks", at = @At("RETURN"))
 	public void sendPacket(CallbackInfo ci) {
 		var config = ResourcePackConfig.getConfig();
-		var packs = config.getResourcePacks().stream().filter(
-				entry -> ResourcePackHelper.hasResourcePack(server, gameProfile, entry.getKey(), entry.getValue())
-		).map(Map.Entry::getKey).toList();
+		var globals = config.getResourcePacks().stream().filter(
+				entry -> entry.getValue().isGlobal()
+		).map(Map.Entry::getKey);
+		var data = DisconnectedPlayerHelper.getPlayerData(server, gameProfile.id());
+		var packData = data.read(PlayerPackData.KEY, PlayerPackData.CODEC).orElse(PlayerPackData.EMPTY);
+		var nonGlobals = config.getResourcePacks().stream().filter(
+				entry -> !entry.getValue().isGlobal() && packData.hasPack(entry.getKey())
+		).map(Map.Entry::getKey);
+		var packs = Stream.concat(globals, nonGlobals).collect(Collectors.toList());
+		EarlyPacksCallback.EVENT.invoker().addPacks(server, gameProfile, data, packs::add);
 		if (!packs.isEmpty()) {
 			this.configurationTasks.add(new ConfigurationTask() {
 				@Override

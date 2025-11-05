@@ -51,6 +51,12 @@ public class DisconnectedPlayerHelper {
 		);
 	}
 
+	public static CompoundTag getPlayerData(MinecraftServer server, UUID uuid) {
+		var profile = getProfile(uuid, server);
+		PlayerDataStorage handler = ((MinecraftServerAccessor)server).getPlayerDataStorage();
+		return loadPlayerDataNoSideEffects(profile, handler).orElse(null);
+	}
+
 	/**
 	 * Allows direct modification of the player data for a specific player.
 	 * Can be used to modify players while they are offline.
@@ -143,6 +149,16 @@ public class DisconnectedPlayerHelper {
 			}
 
 		}
+	}
+
+	private static Optional<CompoundTag> loadPlayerDataNoSideEffects(NameAndId player, PlayerDataStorage handler) {
+		Optional<CompoundTag> optional = loadPlayerData(player, ".dat", handler);
+
+		return optional.or(() -> loadPlayerData(player, ".dat_old", handler)).map((nbt) -> {
+			int i = NbtUtils.getDataVersion(nbt, -1);
+			nbt = DataFixTypes.PLAYER.updateToCurrentVersion(((PlayerDataStorageAccessor) handler).getFixerUpper(), nbt, i);
+			return nbt;
+		});
 	}
 
 	private static Optional<CompoundTag> loadPlayerData(NameAndId player, PlayerDataStorage handler) {

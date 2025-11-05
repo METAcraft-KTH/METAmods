@@ -91,7 +91,7 @@ public class ResourcePackCommand {
 		for (var player : players) {
 			if (ResourcePackHelper.hasResourcePack(player, id) != enable) {
 				if (enable) {
-					ResourcePackHelper.enableResourcePack(player, id);
+					ResourcePackHelper.enableResourcePack(player, id, true);
 				} else {
 					ResourcePackHelper.disableResourcePack(player, id);
 				}

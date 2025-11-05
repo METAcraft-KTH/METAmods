@@ -54,7 +54,7 @@ public class SetResourcePackTransition implements Transition {
 	@Override
 	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		if (!ResourcePackHelper.hasResourcePack(player, config.resourcePack)) {
-			ResourcePackHelper.enableResourcePack(player, config.resourcePack);
+			ResourcePackHelper.enableResourcePack(player, config.resourcePack, false);
 			toggled = true;
 		}
 	}

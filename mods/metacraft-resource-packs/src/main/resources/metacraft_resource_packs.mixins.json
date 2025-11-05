@@ -5,9 +5,8 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"HttpUtilAccessor",
-		"PlayerListMixin",
-		"ServerCommonPacketListenerImplMixin",
-		"ServerConfigurationPacketListenerImplMixin"
+		"ServerConfigurationPacketListenerImplMixin",
+		"ServerPlayerMixin"
 	],
 	"client": [],
 	"injectors": {

@@ -1,7 +1,6 @@
 package nu.metacraft.resource_packs;
 
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import org.pcollections.HashTreePSet;
 import org.pcollections.PSet;
 import nu.metacraft.lib.util.METACodecs;
@@ -11,12 +10,12 @@ import net.minecraft.core.UUIDUtil;
 
 public record PlayerPackData(PSet<UUID> resourcePacks) {
 
-	public static final Codec<PlayerPackData> CODEC = RecordCodecBuilder.create(
-			instance -> instance.group(
-					METACodecs.createPCollectionCodec(
-							UUIDUtil.CODEC, (PSet<UUID>) HashTreePSet.<UUID>empty()
-					).fieldOf("resource_packs").forGetter(PlayerPackData::resourcePacks)
-			).apply(instance, PlayerPackData::new)
+	public static final String KEY = "metacraft:resource_packs";
+
+	public static final Codec<PlayerPackData> CODEC = METACodecs.createPCollectionCodec(
+			UUIDUtil.CODEC, (PSet<UUID>) HashTreePSet.<UUID>empty()
+	).xmap(
+			PlayerPackData::new, PlayerPackData::resourcePacks
 	);
 	public static final PlayerPackData EMPTY = new PlayerPackData(HashTreePSet.empty());
 

@@ -1,24 +1,25 @@
 package nu.metacraft.resource_packs;
 
-import com.mojang.authlib.GameProfile;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+
 import java.util.*;
+import java.util.function.UnaryOperator;
 
 public class ResourcePackHelper {
 
-	public static void enableResourcePack(ServerPlayer player, UUID pack) {
+	public static void enableResourcePack(ServerPlayer player, UUID pack, boolean persist) {
 		var config = ResourcePackConfig.getConfig();
 		var entry = config.getResourcePack(pack);
 		if (entry == null) return;
 		if (!entry.isGlobal()) {
-			PlayerPackDataManager.getInstance(player.level().getServer()).update(
-					player.getGameProfile(), data -> data.addPack(pack)
-			);
+			if (persist) {
+				update(player, data -> data.addPack(pack));
+			}
 			player.connection.send(config.createEnablePacket(pack));
 		}
 	}
@@ -28,27 +29,25 @@ public class ResourcePackHelper {
 		var entry = config.getResourcePack(pack);
 		if (entry == null) return;
 		if (!entry.isGlobal()) {
-			PlayerPackDataManager.getInstance(player.level().getServer()).update(
-					player.getGameProfile(), data -> data.removePack(pack)
-			);
+			update(player, data -> data.removePack(pack));
 			player.connection.send(new ClientboundResourcePackPopPacket(Optional.of(pack)));
 		}
 	}
 
-	public static boolean hasResourcePack(MinecraftServer server, GameProfile profile, UUID pack, ResourcePackConfig.ResourcePack packData) {
-		return packData.isGlobal() || playerHasPack(server, profile, pack);
-	}
-
 	public static boolean hasResourcePack(ServerPlayer player, UUID pack) {
-		return hasResourcePack(player.level().getServer(), player.getGameProfile(), pack);
+		return ResourcePackConfig.getConfig().getResourcePack(pack).isGlobal() || playerHasPack(player, pack);
 	}
 
-	public static boolean hasResourcePack(MinecraftServer server, GameProfile profile, UUID pack) {
-		return hasResourcePack(server, profile, pack, ResourcePackConfig.getConfig().getResourcePack(pack));
+	private static boolean playerHasPack(ServerPlayer player, UUID pack) {
+		return getData(player).hasPack(pack);
 	}
 
-	private static boolean playerHasPack(MinecraftServer server, GameProfile profile, UUID pack) {
-		return PlayerPackDataManager.getInstance(server).getFromPlayer(profile).hasPack(pack);
+	private static PlayerPackData getData(ServerPlayer player) {
+		return ((ServerPlayerExtension) player).metacraft$getPackData();
+	}
+
+	private static void update(ServerPlayer player, UnaryOperator<PlayerPackData> updater) {
+		((ServerPlayerExtension) player).metacraft$updatePackData(updater);
 	}
 
 	public static void resendResourcePacks(MinecraftServer server, boolean sendPackets) {
@@ -66,14 +65,12 @@ public class ResourcePackHelper {
 			}
 		}
 
-		var packManager = PlayerPackDataManager.getInstance(server);
-
 		//Remove all packs that were changed from global to non-global unless the player has it enabled.
 		if (sendPackets) {
 			for (var player : server.getPlayerList().getPlayers()) {
 				List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
 				for (var pack : config.getPrevGlobals()) {
-					if (!packManager.getFromPlayer(player.getGameProfile()).hasPack(pack)) {
+					if (!getData(player).hasPack(pack)) {
 						packets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
 					}
 				}
@@ -100,17 +97,17 @@ public class ResourcePackHelper {
 		//Send all updated player-specific resource packs to affected players.
 		for (var player : server.getPlayerList().getPlayers()) {
 			List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
-			packManager.getFromPlayer(player.getGameProfile()).resourcePacks().forEach(pack -> {
+			getData(player).resourcePacks().forEach(pack -> {
 				if (ResourcePackConfig.getConfig().resourcePackExists(pack)) {
 					if (config.hasChangedButStillExists(pack) && sendPackets) {
 						packets.add(config.createEnablePacket(pack));
 					}
 					if (config.getResourcePack(pack).isGlobal()) {
-						packManager.update(player.getGameProfile(), data -> data.removePack(pack));
+						update(player, data -> data.removePack(pack));
 					}
 				} else {
 					if (sendPackets) packets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
-					packManager.update(player.getGameProfile(), data -> data.removePack(pack));
+					update(player, data -> data.removePack(pack));
 				}
 			});
 			if (!packets.isEmpty()) {
