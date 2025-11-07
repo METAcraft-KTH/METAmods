@@ -32,8 +32,10 @@ public class ResourcePackDataType {
 
 	public static void init() {
 		EarlyPacksCallback.EVENT.register((server, profile, playerData, resourcePackAdder) -> {
-			var pos = DisconnectedPlayerHelper.getPos(playerData);
-			var dim = DisconnectedPlayerHelper.getPlayerDim(playerData);
+			if (playerData.isEmpty()) return;
+			var data = playerData.get();
+			var pos = DisconnectedPlayerHelper.getPos(data);
+			var dim = DisconnectedPlayerHelper.getPlayerDim(data);
 			var zones = ZoneManager.getInstance(server).getZonesAt(dim, BlockPos.containing(pos),zone -> zone.get(RESOURCE_PACK).isPresent());
 			for (var zone : zones) {
 				zone.get(RESOURCE_PACK).orElseThrow().getPacks().forEach(resourcePackAdder);

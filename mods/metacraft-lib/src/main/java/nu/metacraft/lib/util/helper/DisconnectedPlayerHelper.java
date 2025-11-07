@@ -51,10 +51,10 @@ public class DisconnectedPlayerHelper {
 		);
 	}
 
-	public static CompoundTag getPlayerData(MinecraftServer server, UUID uuid) {
+	public static Optional<CompoundTag> getPlayerData(MinecraftServer server, UUID uuid) {
 		var profile = getProfile(uuid, server);
 		PlayerDataStorage handler = ((MinecraftServerAccessor)server).getPlayerDataStorage();
-		return loadPlayerData(profile, handler, false).orElse(null);
+		return loadPlayerData(profile, handler, false);
 	}
 
 	/**

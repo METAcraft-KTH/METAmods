@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -20,6 +21,10 @@ public interface EarlyPacksCallback {
 			}
 	);
 
-	void addPacks(MinecraftServer server, GameProfile profile, CompoundTag playerData, Consumer<UUID> resourcePackAdder);
+	void addPacks(
+			MinecraftServer server, GameProfile profile,
+			@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<CompoundTag> playerData,
+			Consumer<UUID> resourcePackAdder
+	);
 
 }

@@ -60,7 +60,7 @@ public abstract class ServerConfigurationPacketListenerImplMixin extends ServerC
 				entry -> entry.getValue().isGlobal()
 		).map(Map.Entry::getKey);
 		var data = DisconnectedPlayerHelper.getPlayerData(server, gameProfile.id());
-		var packData = data.read(PlayerPackData.KEY, PlayerPackData.CODEC).orElse(PlayerPackData.EMPTY);
+		var packData = data.flatMap(d -> d.read(PlayerPackData.KEY, PlayerPackData.CODEC)).orElse(PlayerPackData.EMPTY);
 		var nonGlobals = config.getResourcePacks().stream().filter(
 				entry -> !entry.getValue().isGlobal() && packData.hasPack(entry.getKey())
 		).map(Map.Entry::getKey);
