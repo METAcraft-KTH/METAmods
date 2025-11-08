@@ -2,10 +2,8 @@ package nu.metacraft.core.entity.entities.player_mob;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.serialization.Dynamic;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
-import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.UUIDUtil;
@@ -14,16 +12,12 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.network.ServerPlayerConnection;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -70,7 +64,11 @@ import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.core.entity.entities.player_mob.renderer.FakePlayerRenderer;
+import nu.metacraft.core.entity.entities.player_mob.renderer.PlayerRenderer;
+import nu.metacraft.core.entity.entities.player_mob.renderer.PlayerRendererType;
 import nu.metacraft.core.mixin.AvatarAccessor;
+import nu.metacraft.core.util.SynchedDataHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.METAcraftCore;
@@ -79,48 +77,39 @@ import nu.metacraft.core.entity.TridentUser;
 import nu.metacraft.core.entity.ai.METAcraftMemoryModules;
 import nu.metacraft.core.mixin.PathNavigationAccessor;
 import nu.metacraft.core.mixin.MobAccessor;
-import nu.metacraft.core.mixin.PlayerAccessor;
 import nu.metacraft.core.util.helper.EntityAIHelper;
 import nu.metacraft.core.util.helper.ServerDefaultSkinHelper;
-import nu.metacraft.lib.mixin.ChunkMapAccessor;
 import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackMob, TridentUser, PoseLockable {
 
 	public static final double BASE_SPEED = 0.4;
 
 	protected static final EntityDataAccessor<Byte> PLAYER_MODEL_PARTS = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.BYTE);
-	protected static final EntityDataAccessor<OptionalInt> LEFT_SHOULDER_ENTITY = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.OPTIONAL_UNSIGNED_INT);
-	protected static final EntityDataAccessor<OptionalInt> RIGHT_SHOULDER_ENTITY = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.OPTIONAL_UNSIGNED_INT);
+	public static final EntityDataAccessor<OptionalInt> LEFT_SHOULDER_ENTITY = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.OPTIONAL_UNSIGNED_INT);
+	public static final EntityDataAccessor<OptionalInt> RIGHT_SHOULDER_ENTITY = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.OPTIONAL_UNSIGNED_INT);
+	public static final EntityDataAccessor<ResolvableProfile> PLAYER_SKIN = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.RESOLVABLE_PROFILE);
 
+	private static final String RENDERER = "renderer";
 	private static final String PROFILE = "profile";
 	private static final String VISIBLE_SKIN_PARTS = "visible_skin_parts";
 	private static final String SHOULDER_ENTITY_LEFT = "ShoulderEntityLeft";
 	private static final String SHOULDER_ENTITY_RIGHT = "ShoulderEntityRight";
 	private static final String CAN_WANDER = "can_wander";
-	private ResolvableProfile skinData;
-	private GameProfile actualProfile;
 
-	private static final int REMOVE_PLAYER_LIST_ENTRY_DELAY = 20;
-
-	private final List<SendPacketEntry> removePackets = new ArrayList<>();
-
-	private FakePlayer fakePlayer;
+	private PlayerRenderer renderer = new FakePlayerRenderer(this, getDefaultSkin());
 
 	private CompoundTag leftShoulderNbt = new CompoundTag();
 	private CompoundTag rightShoulderNbt = new CompoundTag();
 
 	private boolean canWander = getDefaultCanWander();
 
-	private boolean shouldRespawnClient = false;
 	private boolean lockPose = false;
 
 	private final WaterBoundPathNavigation waterNavigation = new WaterBoundPathNavigation(this, level()) {
@@ -158,6 +147,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		builder.define(PLAYER_MODEL_PARTS, getVisiblePartsByte(EnumSet.allOf(PlayerModelPart.class)));
 		builder.define(LEFT_SHOULDER_ENTITY, OptionalInt.empty());
 		builder.define(RIGHT_SHOULDER_ENTITY, OptionalInt.empty());
+		builder.define(PLAYER_SKIN, getDefaultSkin());
 	}
 
 	protected Brain.Provider<PlayerMob> brainProvider() {
@@ -288,33 +278,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 	public void tick() {
 		super.tick();
 		updatePose();
-
-		if (shouldRespawnClient) {
-			if (actualProfile != null) {
-				var manager = ((ServerChunkCache) this.level().getChunkSource()).chunkMap;
-				List<ServerPlayer> players = List.of();
-				var tracker = ((ChunkMapAccessor) manager).getEntityMap().get(this.getId());
-				if (tracker != null) {
-					var listeners = ((ChunkMapAccessor.TrackedEntity) tracker).getSeenBy();
-					players = listeners.stream().map(ServerPlayerConnection::getPlayer).toList();
-					tracker.broadcastRemoved();
-					listeners.clear(); //Necessary because stopTracking does not clear listeners.
-				}
-				removePlayerEntryFrom(removePackets.stream().map(SendPacketEntry::player));
-				removePackets.clear();
-				for (var p : players) {
-					schedulePlayerListEntryRemoval(p);
-				}
-				resetFakePlayer();
-				if (tracker != null) {
-					tracker.updatePlayers(players);
-				}
-			}
-			shouldRespawnClient = false;
-		} else if (!removePackets.isEmpty()) {
-			removePlayerEntryFrom(removePackets.stream().filter(p -> p.time < level().getGameTime()).map(SendPacketEntry::player));
-			removePackets.removeIf(p -> p.time < level().getGameTime());
-		}
+		renderer.tick();
 	}
 
 	protected boolean canChangeIntoPose(Pose pose) {
@@ -342,7 +306,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 	}
 
 	public ResolvableProfile getSkinData() {
-		return skinData;
+		return renderer.getSkinData();
 	}
 
 	@Override
@@ -404,7 +368,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 
 	@Override
 	public EntityType<?> getPolymerEntityType(PacketContext context) {
-		return EntityType.PLAYER;
+		return renderer.getPolymerEntityType(context);
 	}
 
 	@Override
@@ -530,10 +494,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 
 	public void setShoulderEntityLeft(CompoundTag entityNbt) {
 		leftShoulderNbt = entityNbt;
-		this.entityData.set(
-				LEFT_SHOULDER_ENTITY,
-				PlayerAccessor.callConvertParrotVariant(PlayerAccessor.callExtractParrotVariant(entityNbt))
-		);
+		renderer.onSetShoulderEntityLeft(entityNbt);
 	}
 
 	public CompoundTag getShoulderEntityRight() {
@@ -542,10 +503,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 
 	public void setShoulderEntityRight(CompoundTag entityNbt) {
 		rightShoulderNbt = entityNbt;
-		this.entityData.set(
-				RIGHT_SHOULDER_ENTITY,
-				PlayerAccessor.callConvertParrotVariant(PlayerAccessor.callExtractParrotVariant(entityNbt))
-		);
+		renderer.onSetShoulderEntityRight(entityNbt);
 	}
 
 	protected void dropShoulderEntities() {
@@ -596,23 +554,10 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		return ProjectileUtil.getMobArrow(this, arrow, damageModifier, shotFrom);
 	}
 
-	private void removePlayerEntryFrom(Stream<ServerPlayer> players) {
-		if (fakePlayer == null) return;
-		if (level().getServer().getPlayerList().getPlayer(fakePlayer.getGameProfile().id()) == null) {
-			players.forEach(player -> {
-				player.connection.send(new ClientboundPlayerInfoRemovePacket(List.of(fakePlayer.getGameProfile().id())));
-			});
-		}
-	}
-
 	@Override
 	public void startSeenByPlayer(ServerPlayer player) {
 		super.startSeenByPlayer(player);
-		schedulePlayerListEntryRemoval(player);
-	}
-
-	private void schedulePlayerListEntryRemoval(ServerPlayer player) {
-		removePackets.add(new SendPacketEntry(player, level().getGameTime()+REMOVE_PLAYER_LIST_ENTRY_DELAY));
+		renderer.startSeenByPlayer(player);
 	}
 
 	@Override
@@ -627,56 +572,15 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		return bl;
 	}
 
-	private GameProfile adaptProfile(GameProfile profile) {
-		var name = getName().getString();
-		if (!profile.id().equals(getUUID()) || !profile.name().equals(name)) {
-			if (name.length() > 16) {
-				name = name.substring(0, 16);
-			}
-			return new GameProfile(
-					getUUID(), name, new PropertyMap(profile.properties())
-			);
-		}
-		return profile;
-	}
-
-	private void respawnForClients() {
-		if (actualProfile == null) return;
-		shouldRespawnClient = true;
-	}
-
 	@Override
 	public void setCustomName(@Nullable Component name) {
-		boolean changed = !Objects.equals(this.getCustomName(), name);
+		var prev = this.getCustomName();
 		super.setCustomName(name);
-		if (changed && actualProfile != null) {
-			setSkin(actualProfile);
-		}
-	}
-
-	private void setSkin(GameProfile profile) {
-		if (profile.equals(actualProfile) && profile.properties().equals(actualProfile.properties())) return;
-		actualProfile = profile;
-		respawnForClients();
+		renderer.onSetCustomName(name, prev);
 	}
 
 	public void setSkin(ResolvableProfile profile) {
-		this.skinData = profile;
-		switch (profile) {
-			case ResolvableProfile.Static s -> setSkin(s.partialProfile());
-			case ResolvableProfile.Dynamic d -> {
-				var server = level().getServer();
-				d.resolveProfile(server.services().profileResolver()).thenAccept(p -> {
-					if (server.isRunning()) {
-						server.execute(() -> {
-							if (this.isAlive()) {
-								setSkin(p);
-							}
-						});
-					}
-				});
-			}
-		}
+		renderer.setSkin(profile);
 	}
 
 	public void addVisibleSkinPart(PlayerModelPart... parts) {
@@ -721,8 +625,9 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 	@Override
 	public void addAdditionalSaveData(ValueOutput nbt) {
 		super.addAdditionalSaveData(nbt);
-		if (skinData != null) {
-			nbt.store(PROFILE, ResolvableProfile.CODEC, skinData);
+		nbt.store(RENDERER, PlayerRendererType.CODEC, renderer.getType());
+		if (renderer.getSkinData() != null) {
+			nbt.store(PROFILE, ResolvableProfile.CODEC, renderer.getSkinData());
 		}
 		nbt.store(VISIBLE_SKIN_PARTS, METACodecs.MODEL_PART_SET_CODEC, getVisibleSkinParts());
 		if (!this.getShoulderEntityLeft().isEmpty()) {
@@ -736,6 +641,12 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 
 	@Override
 	public void readAdditionalSaveData(ValueInput nbt) {
+		var type = nbt.read(RENDERER, PlayerRendererType.CODEC).orElse(PlayerRendererType.FAKE_PLAYER);
+		if (type != renderer.getType()) {
+			renderer.reset();
+			renderer = type.createRenderer(this, getDefaultSkin());
+			renderer.reinitialize();
+		}
 		super.readAdditionalSaveData(nbt);
 		nbt.read(PROFILE, ResolvableProfile.CODEC).ifPresentOrElse(
 				this::setSkin,
@@ -747,14 +658,6 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		);
 		canWander = nbt.getBooleanOr(CAN_WANDER, true);
 		readShoulderEntities(nbt);
-	}
-
-	private Packet<?> createPlayerInitPacket() {
-		return ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(fakePlayer));
-	}
-
-	private void resetFakePlayer() {
-		fakePlayer = new FakePlayer((ServerLevel) level(), adaptProfile(actualProfile)) {};
 	}
 
 	protected ResolvableProfile getDefaultSkin() {
@@ -771,23 +674,15 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		return true;
 	}
 
-	private void initProfile() {
-		if (skinData == null) {
-			skinData = getDefaultSkin();
-		}
-		if (actualProfile == null) {
-			actualProfile = skinData.partialProfile();
-		}
-		if (shouldRespawnClient || fakePlayer == null) {
-			resetFakePlayer();
-			shouldRespawnClient = false;
-		}
+	@Override
+	public void onBeforeSpawnPacket(ServerPlayer player, Consumer<Packet<?>> packetConsumer) {
+		renderer.onBeforeSpawnPacket(player, packetConsumer);
 	}
 
 	@Override
-	public void onBeforeSpawnPacket(ServerPlayer player, Consumer<Packet<?>> packetConsumer) {
-		initProfile();
-		player.connection.send(createPlayerInitPacket());
+	public void onRemoval(Entity.RemovalReason reason) {
+		super.onRemoval(reason);
+		renderer.reset();
 	}
 
 	@Override
@@ -800,26 +695,13 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 			);
 		}
 		for (int i = 0; i < data.size(); i++) {
-			replace(
+			SynchedDataHelper.replace(
 					data, i, MobAccessor.getMobFlags(), AvatarAccessor.getMainArm(),
 					flags -> (byte) (isLeftHanded() ? HumanoidArm.LEFT.getId() : HumanoidArm.RIGHT.getId())
 			);
-			replace(data, i, PLAYER_MODEL_PARTS, AvatarAccessor.getModelParts());
-			replace(data, i, RIGHT_SHOULDER_ENTITY, PlayerAccessor.getRightShoulderEntity());
-			replace(data, i, LEFT_SHOULDER_ENTITY, PlayerAccessor.getLeftShoulderEntity());
+			SynchedDataHelper.replace(data, i, PLAYER_MODEL_PARTS, AvatarAccessor.getModelParts());
 		}
-	}
-
-	private static <T> void replace(List<SynchedEntityData.DataValue<?>> data, int current, EntityDataAccessor<? extends T> from, EntityDataAccessor<T> to) {
-		replace(data, current, from, to, t -> t);
-	}
-
-	private static <T, U> void replace(List<SynchedEntityData.DataValue<?>> data, int current, EntityDataAccessor<T> from, EntityDataAccessor<U> to, Function<T, U> converter) {
-		var existing = data.get(current);
-		if (existing.id() == from.id() && existing.serializer() == from.serializer()) {
-			data.remove(current);
-			data.add(current, SynchedEntityData.DataValue.create(to, converter.apply((T) existing.value())));
-		}
+		renderer.modifyRawTrackedData(data, player, initial);
 	}
 
 	@Override
@@ -862,15 +744,5 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 				super.tick();
 			}
 		}
-	}
-
-	public void removeAllPlayerEntries() {
-		if (actualProfile == null) return;
-		removePlayerEntryFrom(removePackets.stream().map(SendPacketEntry::player));
-		removePackets.clear();
-	}
-
-	public record SendPacketEntry(ServerPlayer player, long time) {
-
 	}
 }

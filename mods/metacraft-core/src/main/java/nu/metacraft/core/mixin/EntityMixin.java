@@ -8,7 +8,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import nu.metacraft.core.entity.entities.MovingBlock;
-import nu.metacraft.core.entity.entities.player_mob.PlayerMob;
 import nu.metacraft.core.extensions.EntityExtensions;
 import nu.metacraft.core.music.ManageableServerBossBar;
 import nu.metacraft.lib.util.helper.EntityTrackerHelper;
@@ -113,9 +112,6 @@ public abstract class EntityMixin implements EntityExtensions {
 
 	@Inject(method = "setRemoved", at = @At("HEAD"))
 	public void setRemoved(Entity.RemovalReason reason, CallbackInfo ci) {
-		if ((Object) this instanceof PlayerMob p) {
-			p.removeAllPlayerEntries();
-		}
 		if (bossBar != null) {
 			bossBar.onEntityRemoved((Entity) (Object) this, reason);
 		}
