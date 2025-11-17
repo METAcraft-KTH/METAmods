@@ -19,6 +19,9 @@
 	"entrypoints": {
 		"main": [
 			"nu.metacraft.season_5.METAcraftSeason5"
+		],
+		"fabric-datagen": [
+			"nu.metacraft.season_5.METAcraftS5Datagen"
 		]
 	},
 	"mixins": [
