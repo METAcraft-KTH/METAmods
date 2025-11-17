@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-season-5",
+	"version": "${version}",
+	"name": "METAcraft-Season-5",
+	"description": "Season 5 specific stuff.",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"nu.metacraft.season_5.METAcraftSeason5"
+		]
+	},
+	"mixins": [
+		"metacraft_season_5.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"fabric": "*",
+		"minecraft": "~${minecraft_version}",
+		"metacraft-core": "*"
+	}
+}

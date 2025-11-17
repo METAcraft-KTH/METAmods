@@ -1,0 +1,4 @@
+version = project.season_5_version
+
+addProjectDependency(":mods:metacraft-core")
+addPolymerDependency()
