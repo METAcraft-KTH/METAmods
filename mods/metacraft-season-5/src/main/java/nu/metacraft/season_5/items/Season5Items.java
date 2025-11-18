@@ -11,6 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.component.Consumable;
 import net.minecraft.world.item.component.ItemLore;
@@ -31,7 +32,7 @@ public class Season5Items {
 							Component.translatable("item.metacraft.bedrock_drill.desc.1").withStyle(LORE_STYLE),
 							Component.translatable("item.metacraft.bedrock_drill.desc.2", Component.keybind("key.use")).withStyle(LORE_STYLE)
 					))
-			).useCooldown(10)
+			).useCooldown(10).component(DataComponents.BREAK_SOUND, SoundEvents.ITEM_BREAK)
 	);
 
 	public static void init() {
