@@ -100,8 +100,8 @@ public class BedrockDrillItem extends Item implements PolymerItem {
 	@Override
 	public boolean releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
 		var pos = stack.remove(Season5Components.DRILL_POSITION);
-		if (level instanceof ServerLevel l && entity instanceof Player player && pos != null) {
-			var packet = new ClientboundBlockDestructionPacket(player.getId(), pos, 0);
+		if (!level.isClientSide() && entity instanceof Player player && pos != null) {
+			var packet = new ClientboundBlockDestructionPacket(player.getId(), pos, 10);
 			if (level.getChunkSource() instanceof ServerChunkCache cache) {
 				cache.sendToTrackingPlayersAndSelf(player, packet);
 			}

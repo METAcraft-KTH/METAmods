@@ -1,12 +1,14 @@
 package nu.metacraft.season_5.items;
 
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.Item;
@@ -21,9 +23,14 @@ import java.util.function.Function;
 
 public class Season5Items {
 
+	private static final Style LORE_STYLE = Style.EMPTY.applyFormat(ChatFormatting.GRAY).withItalic(false);
+
 	public static final Item BEDROCK_DRILL = register(
 			"bedrock_drill", BedrockDrillItem::new, new Item.Properties().stacksTo(16).component(
-					DataComponents.LORE, new ItemLore(List.of(Component.translatable("item.metacraft.bedrock_drill.desc")))
+					DataComponents.LORE, new ItemLore(List.of(
+							Component.translatable("item.metacraft.bedrock_drill.desc.1").withStyle(LORE_STYLE),
+							Component.translatable("item.metacraft.bedrock_drill.desc.2", Component.keybind("key.use")).withStyle(LORE_STYLE)
+					))
 			).useCooldown(10)
 	);
 
