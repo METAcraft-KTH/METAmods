@@ -4,6 +4,8 @@
 	"package": "nu.metacraft.season_5.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"AreaEffectCloudAccessor",
+		"BottleItemMixin",
 		"EndDragonFightMixin"
 	],
 	"client": [],
