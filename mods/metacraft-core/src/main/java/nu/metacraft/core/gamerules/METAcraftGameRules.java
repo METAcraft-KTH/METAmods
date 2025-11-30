@@ -10,6 +10,12 @@ public class METAcraftGameRules {
 			GameRulesAccessor.BooleanValue.callCreate(true)
 	);
 
+	public static final GameRules.Key<GameRules.BooleanValue> FIREWORK_BOOSTING = GameRulesAccessor.callRegister(
+			"fireworkBoostingEnabled", GameRules.Category.PLAYER,
+			GameRulesAccessor.BooleanValue.callCreate(true)
+	);
+
+
 	public static void init() {
 
 	}

@@ -23,6 +23,7 @@
 		"EntityMixin",
 		"EntityTypeAccessor",
 		"ExplosionDamageCalculatorMixin",
+		"FireworkRocketItemMixin",
 		"FlowingFluidMixin",
 		"GameRulesAccessor",
 		"GameRulesAccessor$BooleanValue",
