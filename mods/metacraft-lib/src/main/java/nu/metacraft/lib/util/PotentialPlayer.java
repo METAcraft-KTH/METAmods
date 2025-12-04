@@ -29,6 +29,8 @@ public sealed abstract class PotentialPlayer permits PotentialPlayer.Absent, Pot
 
 	public abstract Optional<ServerPlayer> getPlayer(MinecraftServer server);
 
+	public abstract Optional<UUID> getPlayerID();
+
 	public static PotentialPlayer get(ServerPlayer player) {
 		return new Present(player);
 	}
@@ -50,6 +52,11 @@ public sealed abstract class PotentialPlayer permits PotentialPlayer.Absent, Pot
 
 		@Override
 		public Optional<ServerPlayer> getPlayer(MinecraftServer server) {
+			return Optional.empty();
+		}
+
+		@Override
+		public Optional<UUID> getPlayerID() {
 			return Optional.empty();
 		}
 	}
@@ -78,6 +85,11 @@ public sealed abstract class PotentialPlayer permits PotentialPlayer.Absent, Pot
 				player = server.getPlayerList().getPlayer(uuid);
 			}
 			return Optional.ofNullable(player);
+		}
+
+		@Override
+		public Optional<UUID> getPlayerID() {
+			return Optional.of(uuid);
 		}
 	}
 
