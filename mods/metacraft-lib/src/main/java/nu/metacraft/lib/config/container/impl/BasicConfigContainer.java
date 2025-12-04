@@ -145,6 +145,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 		}
 		config = reloader.reload(config, this::loadFromFile, cause);
 		triggerLoad(Optional.of(cause));
+		onReload.accept(cause);
 	}
 
 	@Override

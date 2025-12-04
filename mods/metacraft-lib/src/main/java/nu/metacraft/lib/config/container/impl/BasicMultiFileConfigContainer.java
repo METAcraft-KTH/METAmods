@@ -121,6 +121,7 @@ public class BasicMultiFileConfigContainer<T> implements MultiFileConfigContaine
 				aware.afterLoad(Optional.of(reloadCause));
 			}
 		});
+		onReload.accept(reloadCause);
 	}
 
 	@Override
