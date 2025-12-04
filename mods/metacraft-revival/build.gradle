@@ -1,0 +1,5 @@
+version = project.revival_version
+
+addCoreDependencies()
+
+setupRunDatagen("metacraft-revival")
