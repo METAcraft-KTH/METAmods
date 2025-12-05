@@ -23,7 +23,7 @@ public class LocationPredicateMixin implements LocationPredicateAccess {
 	private Optional<String> zone = Optional.empty();
 
 	@Unique
-	private static final String ZONE = "zone";
+	private static final String ZONE = "metacraft:zone";
 
 	@Inject(
 		method = "matches",
