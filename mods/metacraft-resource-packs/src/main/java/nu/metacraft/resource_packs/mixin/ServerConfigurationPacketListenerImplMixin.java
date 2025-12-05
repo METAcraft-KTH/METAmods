@@ -69,13 +69,15 @@ public abstract class ServerConfigurationPacketListenerImplMixin extends ServerC
 		if (!addedPacks.isEmpty()) {
 			((ConnectionExtension) connection).metacraft$updateAddedPacks(packs -> packs.plusAll(addedPacks));
 		}
-		var packs = Stream.concat(globals, Stream.concat(nonGlobals, addedPacks.stream())).collect(Collectors.toSet());
+		var packs = Stream.concat(globals, Stream.concat(nonGlobals, addedPacks.stream())).map(
+				config::createEnablePacket
+		).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toSet());
 		if (!packs.isEmpty()) {
 			this.configurationTasks.add(new ConfigurationTask() {
 				@Override
 				public void start(Consumer<Packet<?>> sender) {
 					for (var pack : packs) {
-						config.createEnablePacket(pack).ifPresent(sender);
+						sender.accept(pack);
 					}
 				}
 
