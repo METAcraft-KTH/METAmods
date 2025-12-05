@@ -130,11 +130,6 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 	}
 
 	@Override
-	public void metacraft$setUnconscious(boolean unconscious) {
-		metacraft$unconscious = unconscious;
-	}
-
-	@Override
 	public Component metacraft$getDeathMessage() {
 		return metacraft$deathMessage;
 	}
@@ -152,6 +147,16 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 	@Override
 	public boolean metacraft$isRevivalMenuOpen() {
 		return metacraft$revivalMenuOpen;
+	}
+
+	@Override
+	public int metacraft$getTimeUntilDeath() {
+		return metacraft$timeUntilDeath;
+	}
+
+	@Override
+	public int metacraft$getTimeUntilRevival() {
+		return metacraft$timeUntilRevival;
 	}
 
 	@ModifyReturnValue(method = "mayInteract", at = @At("RETURN"))

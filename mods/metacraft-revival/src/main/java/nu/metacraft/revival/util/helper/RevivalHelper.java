@@ -22,7 +22,7 @@ public class RevivalHelper {
 		LootParams lootParams = new LootParams.Builder(player.level())
 				.withParameter(LootContextParams.ORIGIN, player.position())
 				.withOptionalParameter(LootContextParams.THIS_ENTITY, player)
-				.create(LootContextParamSets.COMMAND);
+				.create(LootContextParamSets.ADVANCEMENT_ENTITY);
 		LootContext lootContext = new LootContext.Builder(lootParams).create(Optional.empty());
 		lootContext.pushVisitedElement(LootContext.createVisitedEntry(condition.value()));
 		return condition.value().test(lootContext);

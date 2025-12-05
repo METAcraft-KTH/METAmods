@@ -7,8 +7,6 @@ public interface ServerPlayerExtension {
 
 	void metacraft$resetRevivalState();
 
-	void metacraft$setUnconscious(boolean unconscious);
-
 	void metacraft$setReviver(Player entity);
 
 	Player metacraft$getReviver();
@@ -18,6 +16,10 @@ public interface ServerPlayerExtension {
 	void metacraft$setRevivalMenuOpen(boolean open);
 
 	boolean metacraft$isRevivalMenuOpen();
+
+	int metacraft$getTimeUntilDeath();
+
+	int metacraft$getTimeUntilRevival();
 
 	Component metacraft$getDeathMessage();
 
