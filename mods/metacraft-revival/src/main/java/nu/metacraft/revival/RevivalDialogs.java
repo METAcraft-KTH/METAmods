@@ -137,8 +137,6 @@ public class RevivalDialogs {
 				),
 				status,
 				spacer,
-				spacer,
-				spacer,
 				spacer
 		);
 
@@ -150,8 +148,6 @@ public class RevivalDialogs {
 						) , 200
 				),
 				status,
-				spacer,
-				spacer,
 				spacer,
 				spacer
 		);
