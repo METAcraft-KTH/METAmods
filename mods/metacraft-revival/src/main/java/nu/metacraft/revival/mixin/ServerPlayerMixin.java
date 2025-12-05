@@ -232,7 +232,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		metacraft$resetRevivalState();
 
 		var effects = RevivalConfig.getConfig().reviveEffects();
-		setHealth(effects.health());
+		setHealth(effects.health().sample(random));
 		var ctx = createContext();
 		int currentAir = getAirSupply();
 		int targetAir = effects.air().clamp(ctx, currentAir);

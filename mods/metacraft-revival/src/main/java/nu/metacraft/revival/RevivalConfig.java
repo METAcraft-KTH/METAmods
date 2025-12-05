@@ -7,6 +7,8 @@ import net.minecraft.advancements.critereon.MinMaxBounds;
 import net.minecraft.core.Holder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ExtraCodecs;
+import net.minecraft.util.valueproviders.ConstantFloat;
+import net.minecraft.util.valueproviders.FloatProvider;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.level.storage.loot.IntRange;
@@ -37,7 +39,7 @@ public record RevivalConfig(
 	);
 
 	public record ReviveEffects(
-			float health,
+			FloatProvider health,
 			IntRange air,
 			IntRange hunger,
 			MinMaxBounds.Doubles saturation,
@@ -45,7 +47,7 @@ public record RevivalConfig(
 	) {
 		public static final Codec<ReviveEffects> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						ExtraCodecs.POSITIVE_FLOAT.fieldOf("health").forGetter(ReviveEffects::health),
+						FloatProvider.CODEC.fieldOf("health").forGetter(ReviveEffects::health),
 						IntRange.CODEC.fieldOf("air").forGetter(ReviveEffects::air),
 						IntRange.CODEC.fieldOf("hunger").forGetter(ReviveEffects::hunger),
 						MinMaxBounds.Doubles.CODEC.fieldOf("saturation").forGetter(ReviveEffects::saturation),
@@ -65,7 +67,7 @@ public record RevivalConfig(
 	private static final ServerAware<ConfigContainer<RevivalConfig>, WorldData> CONFIG = ConfigContainer.Builder.create(
 			CODEC, () -> new RevivalConfig(
 					Optional.of(2400), 200, new ReviveEffects(
-							1.0f, IntRange.lowerBound(10),
+							ConstantFloat.of(1.0f), IntRange.lowerBound(10),
 							IntRange.lowerBound(1), MinMaxBounds.Doubles.exactly(0.0),
 							List.of(
 									new MobEffectInstance(MobEffects.HUNGER, 30*20)
