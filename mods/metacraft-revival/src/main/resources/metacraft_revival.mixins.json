@@ -5,7 +5,9 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"EntityMixin",
+		"ExperienceOrbMixin",
 		"FoodDataMixin",
+		"ItemEntityMixin",
 		"LivingEntityMixin",
 		"PlayerMixin",
 		"ServerGamePacketListenerImplMixin",

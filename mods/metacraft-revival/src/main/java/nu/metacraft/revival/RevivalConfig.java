@@ -25,6 +25,8 @@ import java.util.Optional;
 public record RevivalConfig(
 		Optional<Integer> maxWaitTime,
 		int reviveDuration,
+		boolean itemPickup,
+		boolean xpPickup,
 		ReviveEffects reviveEffects,
 		ObjectStorage<Holder<LootItemCondition>> reviveCondition
 ) {
@@ -33,6 +35,8 @@ public record RevivalConfig(
 			instance -> instance.group(
 					ExtraCodecs.POSITIVE_INT.optionalFieldOf("max_wait_time").forGetter(RevivalConfig::maxWaitTime),
 					ExtraCodecs.NON_NEGATIVE_INT.fieldOf("revive_duration").forGetter(RevivalConfig::reviveDuration),
+					Codec.BOOL.fieldOf("item_pickup").forGetter(RevivalConfig::itemPickup),
+					Codec.BOOL.fieldOf("xp_pickup").forGetter(RevivalConfig::xpPickup),
 					ReviveEffects.CODEC.fieldOf("revive_effects").forGetter(RevivalConfig::reviveEffects),
 					ObjectStorage.createCodec(LootItemCondition.CODEC).fieldOf("revive_condition").forGetter(RevivalConfig::reviveCondition)
 			).apply(instance, RevivalConfig::new)
@@ -66,7 +70,7 @@ public record RevivalConfig(
 
 	private static final ServerAware<ConfigContainer<RevivalConfig>, WorldData> CONFIG = ConfigContainer.Builder.create(
 			CODEC, () -> new RevivalConfig(
-					Optional.of(2400), 200, new ReviveEffects(
+					Optional.of(2400), 200, false, false, new ReviveEffects(
 							ConstantFloat.of(1.0f), IntRange.lowerBound(10),
 							IntRange.lowerBound(1), MinMaxBounds.Doubles.exactly(0.0),
 							List.of(
