@@ -129,7 +129,7 @@ public class RevivalDatagen implements DataGeneratorEntrypoint {
 			registries.listRegistries().forEach(reg -> {
 				if (isDynamic(reg.key())) {
 					reg.listElements().forEach(e -> {
-						if (e.key().location().getNamespace().equals(METAcraftLib.NAMESPACE)) {
+						if (e.key().identifier().getNamespace().equals(METAcraftLib.NAMESPACE)) {
 							add(entries, e);
 						}
 					});

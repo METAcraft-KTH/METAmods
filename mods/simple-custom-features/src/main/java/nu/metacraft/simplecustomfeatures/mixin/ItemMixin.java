@@ -16,7 +16,7 @@ public class ItemMixin {
 		method = "<init>",
 		at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/world/item/Item$Properties;buildAndValidateComponents(Lnet/minecraft/network/chat/Component;Lnet/minecraft/resources/ResourceLocation;)Lnet/minecraft/core/component/DataComponentMap;"
+				target = "Lnet/minecraft/world/item/Item$Properties;buildAndValidateComponents(Lnet/minecraft/network/chat/Component;Lnet/minecraft/resources/Identifier;)Lnet/minecraft/core/component/DataComponentMap;"
 		),
 		index = 0
 	)

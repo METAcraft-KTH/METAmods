@@ -60,12 +60,12 @@ public class RelayBlockEntity extends BlockEntity {
 								)
 						)).orElseGet(() -> DataResult.error(
 								() -> "Target lodestone is obstructed (" +
-										target.target().map(p -> p.pos().toShortString() + ", " + p.dimension().location()).orElse("missingno") + ")"
+										target.target().map(p -> p.pos().toShortString() + ", " + p.dimension().identifier()).orElse("missingno") + ")"
 						));
 					}
 			).orElse(DataResult.error(
 					() -> "Target lodestone missing (" +
-							target.target().map(t -> t.pos().toShortString() + ", " + t.dimension().location()).orElse("missingno") + ")"
+							target.target().map(t -> t.pos().toShortString() + ", " + t.dimension().identifier()).orElse("missingno") + ")"
 			));
 		}
 		return DataResult.error(() -> "No Target");

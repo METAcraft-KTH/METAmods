@@ -8,7 +8,7 @@ import nu.metacraft.faster_minecarts.FasterMinecarts;
 import nu.metacraft.faster_minecarts.FasterMinecartsConfig;
 
 import java.util.Set;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 
 @Mixin(ServerConfigurationPacketListenerImpl.class)
@@ -21,7 +21,7 @@ public class ServerConfigurationPacketListenerImplMixin {
 				target = "Lnet/minecraft/network/protocol/configuration/ClientboundUpdateEnabledFeaturesPacket;<init>(Ljava/util/Set;)V"
 		)
 	)
-	public Set<ResourceLocation> sendConfigurations(Set<ResourceLocation> set) {
+	public Set<Identifier> sendConfigurations(Set<Identifier> set) {
 		if (!FasterMinecartsConfig.getConfig().experimentalMinecartMode().isEnabled()) {
 			return set;
 		}

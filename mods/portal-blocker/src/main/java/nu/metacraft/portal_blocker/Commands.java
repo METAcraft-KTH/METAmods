@@ -11,7 +11,7 @@ import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.portal_blocker.portal_type.PortalType;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
 import nu.metacraft.portal_blocker.zone.PortalZoneData;
@@ -170,7 +170,7 @@ public class Commands {
 		return result;
 	}
 
-	public static String getIDAsString(ResourceLocation id) {
+	public static String getIDAsString(Identifier id) {
 		if (id.getNamespace().equals("minecraft")) {
 			return id.getPath();
 		} else {

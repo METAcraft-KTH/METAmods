@@ -1,6 +1,7 @@
 package nu.metacraft.core.mixin;
 
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -9,7 +10,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -32,11 +33,11 @@ public abstract class PlayerMixin extends LivingEntity {
 		method = "dropEquipment",
 		at = @At(
 			value = "FIELD",
-			target = "Lnet/minecraft/world/level/GameRules;RULE_KEEPINVENTORY:Lnet/minecraft/world/level/GameRules$Key;"
+			target = "Lnet/minecraft/world/level/gamerules/GameRules;KEEP_INVENTORY:Lnet/minecraft/world/level/gamerules/GameRule;"
 		)
 	)
 	public void dropInventory(CallbackInfo ci) {
-		if (this.level().getServer().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) {
+		if (level() instanceof ServerLevel l && l.getGameRules().get(GameRules.KEEP_INVENTORY)) {
 			for (int i = 0; i < getInventory().getContainerSize(); ++i) {
 				ItemStack stack = getInventory().getItem(i);
 				if (stack.has(METAcraftComponents.ANTI_KEEP_INVENTORY)) {
@@ -51,12 +52,10 @@ public abstract class PlayerMixin extends LivingEntity {
 
 	@Inject(method = "hurtArmor", at = @At("HEAD"), cancellable = true)
 	public void noBreakArmor(DamageSource source, float amount, CallbackInfo ci) {
-		MinecraftServer server = level().getServer();
-		if (server == null) {
-			return;
-		}
-		if (!server.getGameRules().getRule(METAcraftGameRules.DO_ARMOR_DAMAGE).get()) {
-			ci.cancel();
+		if (level() instanceof ServerLevel l) {
+			if (!l.getGameRules().get(METAcraftGameRules.ARMOR_DAMAGE)) {
+				ci.cancel();
+			}
 		}
 	}
 }

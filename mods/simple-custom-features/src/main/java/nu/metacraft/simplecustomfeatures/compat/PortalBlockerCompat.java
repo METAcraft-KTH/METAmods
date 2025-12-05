@@ -5,7 +5,7 @@ import com.google.common.collect.Multimap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -39,8 +39,8 @@ public class PortalBlockerCompat {
 		return registries;
 	}
 
-	public static <T extends Block & Portal> Multimap<ResourceLocation, BaseObject<?>> addPortalType(
-			Multimap<ResourceLocation, BaseObject<?>> map, ResourceLocation id, T portal,
+	public static <T extends Block & Portal> Multimap<Identifier, BaseObject<?>> addPortalType(
+			Multimap<Identifier, BaseObject<?>> map, Identifier id, T portal,
 			PortalTypeData data
 	) {
 		var object = new BlockPortalType(Set.of(portal), data);

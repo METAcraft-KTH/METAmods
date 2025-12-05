@@ -2,7 +2,7 @@ package nu.metacraft.bundles.util;
 
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;

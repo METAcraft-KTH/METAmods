@@ -5,7 +5,7 @@ import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.crafting.Recipe;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.lib.METAcraftLib;
@@ -18,12 +18,12 @@ public interface RecipeLoad {
 	 * Runs before everything else. Useful for "rescuing" removed recipes.
 	 * Please don't remove recipes in this phase unless you have a very good reason.
 	 */
-	ResourceLocation PRE = METAcraftLib.getID("pre");
+	Identifier PRE = METAcraftLib.getID("pre");
 
 	/**
 	 * Runs after everything else, in case you want to take the modifications of other mods into account.
 	 */
-	ResourceLocation POST = METAcraftLib.getID("post");
+	Identifier POST = METAcraftLib.getID("post");
 
 	/**
 	 * Allows you to modify or downright replace recipes as they are loaded.

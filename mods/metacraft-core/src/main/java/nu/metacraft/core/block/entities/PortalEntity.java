@@ -501,7 +501,7 @@ public class PortalEntity extends BlockEntity {
 					)
 			).normalize();
 			entity.setDeltaMovement(vector);
-			entity.hasImpulse = true;
+			entity.needsSync = true;
 			entity.hurtMarked = true;
 			notifyLocked(entity.getSelfAndPassengers().filter(e -> e instanceof Player).map(p -> (Player) p));
 			if (pushedAway.isEmpty()) {

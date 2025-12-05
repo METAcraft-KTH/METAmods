@@ -8,7 +8,7 @@ import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementRequirements;
 import net.minecraft.advancements.AdvancementRewards;
 import net.minecraft.advancements.CriteriaTriggers;
-import net.minecraft.advancements.critereon.*;
+import net.minecraft.advancements.criterion.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
@@ -91,7 +91,7 @@ public class METAcraftS5Datagen implements DataGeneratorEntrypoint {
 									),
 									Season5Items.BEDROCK_DRILL.getDefaultInstance()
 							),
-							builder.build(wrench.location().withPrefix("recipes/" + RecipeCategory.TOOLS.getFolderName() + "/"))
+							builder.build(wrench.identifier().withPrefix("recipes/" + RecipeCategory.TOOLS.getFolderName() + "/"))
 					);
 				}
 			};

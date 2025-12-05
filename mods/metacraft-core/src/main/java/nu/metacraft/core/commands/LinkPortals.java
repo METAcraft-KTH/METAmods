@@ -116,7 +116,7 @@ public class LinkPortals {
 	}
 
 	private static String invalidPortal(ServerLevel world, BlockPos pos) {
-		return "No valid portal at " + pos.toShortString() + " in " + world.dimension().location();
+		return "No valid portal at " + pos.toShortString() + " in " + world.dimension().identifier();
 	}
 
 	private static PortalEntity getPortal(Level world, BlockPos pos) {
@@ -171,7 +171,7 @@ public class LinkPortals {
 
 	private static String tooManyPortals(Level world, List<PortalEntity> portals) {
 		return "Multiple portal cores present at " + TextHelper.combine(portals, LinkPortals::stringify)
-				+ " in " + world.dimension().location() + ". Please remove them to link the portals.";
+				+ " in " + world.dimension().identifier() + ". Please remove them to link the portals.";
 	}
 
 	private static int setFacing(CommandContext<CommandSourceStack> ctx, BlockPos pos, FrontAndTop orientation) {

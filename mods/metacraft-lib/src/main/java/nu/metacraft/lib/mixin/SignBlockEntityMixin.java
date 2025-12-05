@@ -3,7 +3,7 @@ package nu.metacraft.lib.mixin;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -22,11 +22,11 @@ public class SignBlockEntityMixin {
 			method = "executeClickCommandsIfPresent",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/server/MinecraftServer;handleCustomClickAction(Lnet/minecraft/resources/ResourceLocation;Ljava/util/Optional;)V"
+					target = "Lnet/minecraft/server/MinecraftServer;handleCustomClickAction(Lnet/minecraft/resources/Identifier;Ljava/util/Optional;)V"
 			)
 	)
 	public boolean executeClickCommandsIfPresent(
-			MinecraftServer instance, ResourceLocation id,
+			MinecraftServer instance, Identifier id,
 			@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<Tag> payload,
 			@Local(argsOnly = true) Player player
 	) {

@@ -31,7 +31,7 @@ import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.item.alchemy.PotionBrewing;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
@@ -57,6 +57,7 @@ import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.WorldData;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.DisplaySlot;
+import net.minecraft.world.scores.ScoreboardSaveData;
 import net.minecraft.world.scores.Team;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.Cutscenes;
@@ -206,7 +207,7 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 			scoreboard.addPlayerToTeam("", team);
 
 			if (cutscene.getCutscene().getScoreboardMode() != Cutscene.ScoreboardMode.SYNC) {
-				persistentStateManager.computeIfAbsent(ServerScoreboard.TYPE);
+				persistentStateManager.computeIfAbsent(ScoreboardSaveData.TYPE);
 			}
 		}
 	}
@@ -273,7 +274,7 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 		cutscene.sendToPlayers(
 				new ClientboundSetTimePacket(
 						getGameTime(), getDayTime(),
-						getGameRules().getBoolean(GameRules.RULE_DAYLIGHT)
+						getGameRules().get(GameRules.ADVANCE_TIME)
 				)
 		);
 	}
@@ -488,7 +489,7 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 				persistentStorage = new CompoundTag();
 			}
 			persistentStateManager = new CutsceneDimensionDataStorage(
-					new SavedData.Context(this), null,
+					null,
 					getServer().getFixerUpper(), registryAccess(), () -> persistentStorage
 			);
 		}

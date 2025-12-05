@@ -29,6 +29,7 @@ import nu.metacraft.cutscenes.util.InterpolationSetContainer;
 import nu.metacraft.cutscenes.util.Target;
 import nu.metacraft.core.util.InterpolationSet;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
+import org.joml.Vector3fc;
 
 import java.util.Arrays;
 import java.util.stream.DoubleStream;
@@ -152,10 +153,10 @@ public record SmoothEntityPathConfig(
 			);
 		}
 
-		public static void writeVec(Vector3f vec, DoubleList list) {
-			list.add(vec.x);
-			list.add(vec.y);
-			list.add(vec.z);
+		public static void writeVec(Vector3fc vec, DoubleList list) {
+			list.add(vec.x());
+			list.add(vec.y());
+			list.add(vec.z());
 		}
 
 		public static void writeAxisAngle(AxisAngle4f axisAngle, DoubleList list) {

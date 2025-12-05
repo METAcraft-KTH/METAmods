@@ -4,15 +4,15 @@ import nu.metacraft.lib.METAcraftLib;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class ReloadCause {
 
-	private static final Map<ResourceLocation, ReloadCause> INSTANCES = new ConcurrentHashMap<>();
+	private static final Map<Identifier, ReloadCause> INSTANCES = new ConcurrentHashMap<>();
 
-	private final ResourceLocation id;
+	private final Identifier id;
 
-	private ReloadCause(ResourceLocation id) {
+	private ReloadCause(Identifier id) {
 		this.id = id;
 	}
 
@@ -21,11 +21,11 @@ public class ReloadCause {
 	public static final ReloadCause AFTER_SERVER_RELOAD = ReloadCause.of(METAcraftLib.getID("after_server_reload"));
 	public static final ReloadCause REFRESH_CACHE_AFTER_MODIFY = ReloadCause.of(METAcraftLib.getID("refresh_cache_after_modify"));
 
-	public static ReloadCause of(ResourceLocation id) {
+	public static ReloadCause of(Identifier id) {
 		return INSTANCES.computeIfAbsent(id, ReloadCause::new);
 	}
 
-	public ResourceLocation getID() {
+	public Identifier getID() {
 		return id;
 	}
 }

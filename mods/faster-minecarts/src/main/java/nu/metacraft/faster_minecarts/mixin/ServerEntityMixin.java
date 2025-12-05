@@ -18,10 +18,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.protocol.game.ClientboundMoveMinecartPacket;
 import net.minecraft.server.level.ServerEntity;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.vehicle.AbstractMinecart;
-import net.minecraft.world.entity.vehicle.MinecartBehavior;
-import net.minecraft.world.entity.vehicle.NewMinecartBehavior;
-import net.minecraft.world.entity.vehicle.OldMinecartBehavior;
+import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.minecart.MinecartBehavior;
+import net.minecraft.world.entity.vehicle.minecart.NewMinecartBehavior;
+import net.minecraft.world.entity.vehicle.minecart.OldMinecartBehavior;
 import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.state.properties.RailShape;
 
@@ -42,7 +42,7 @@ public abstract class ServerEntityMixin {
 		method = "sendChanges",
 		at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/world/entity/vehicle/AbstractMinecart;getBehavior()Lnet/minecraft/world/entity/vehicle/MinecartBehavior;"
+				target = "Lnet/minecraft/world/entity/vehicle/minecart/AbstractMinecart;getBehavior()Lnet/minecraft/world/entity/vehicle/minecart/MinecartBehavior;"
 		)
 	)
 	public MinecartBehavior makeControllerNull(MinecartBehavior controller) {
@@ -135,7 +135,7 @@ public abstract class ServerEntityMixin {
 		method = "sendChanges",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/level/ServerEntity;handleMinecartPosRot(Lnet/minecraft/world/entity/vehicle/NewMinecartBehavior;BBZ)V"
+			target = "Lnet/minecraft/server/level/ServerEntity;handleMinecartPosRot(Lnet/minecraft/world/entity/vehicle/minecart/NewMinecartBehavior;BBZ)V"
 		)
 	)
 	public boolean skip(ServerEntity instance, NewMinecartBehavior controller, byte yaw, byte pitch, boolean changedAngles) {

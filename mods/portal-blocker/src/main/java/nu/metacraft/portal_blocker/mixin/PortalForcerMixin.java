@@ -13,7 +13,7 @@ import nu.metacraft.portal_blocker.PortalState;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
 
 import java.util.Optional;
-import net.minecraft.BlockUtil;
+import net.minecraft.util.BlockUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;

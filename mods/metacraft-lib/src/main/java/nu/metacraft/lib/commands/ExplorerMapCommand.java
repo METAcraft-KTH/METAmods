@@ -13,7 +13,7 @@ import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.commands.arguments.coordinates.ColumnPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -131,11 +131,11 @@ public class ExplorerMapCommand {
 	}
 
 	private static ArgumentBuilder<CommandSourceStack, ?> mapDecorationType(String name) {
-		return argument(name, ResourceLocationArgument.id()).suggests(MAP_DECORATION_TYPES);
+		return argument(name, IdentifierArgument.id()).suggests(MAP_DECORATION_TYPES);
 	}
 
 	private static Holder<MapDecorationType> getMapDecorationType(CommandContext<CommandSourceStack> ctx, String name) throws CommandSyntaxException {
-		var id = ResourceLocationArgument.getId(ctx, name);
+		var id = IdentifierArgument.getId(ctx, name);
 		return BuiltInRegistries.MAP_DECORATION_TYPE.get(id).orElseThrow(
 				() -> INVALID_MAP_DECORATION_TYPE.create(id)
 		);

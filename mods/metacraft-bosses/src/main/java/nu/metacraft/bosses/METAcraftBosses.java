@@ -1,7 +1,7 @@
 package nu.metacraft.bosses;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.lib.METAcraftLib;
@@ -23,7 +23,7 @@ public class METAcraftBosses implements ModInitializer {
 		BossSubPredicates.init();
 	}
 
-	public static ResourceLocation getID(String id) {
-		return ResourceLocation.fromNamespaceAndPath(NAMESPACE, id);
+	public static Identifier getID(String id) {
+		return Identifier.fromNamespaceAndPath(NAMESPACE, id);
 	}
 }

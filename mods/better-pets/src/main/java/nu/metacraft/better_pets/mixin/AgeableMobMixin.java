@@ -9,7 +9,7 @@ import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.animal.Parrot;
+import net.minecraft.world.entity.animal.parrot.Parrot;
 import net.minecraft.world.level.Level;
 import nu.metacraft.better_pets.AttributeModifiers;
 

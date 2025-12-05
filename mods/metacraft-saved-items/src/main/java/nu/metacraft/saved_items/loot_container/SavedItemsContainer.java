@@ -2,7 +2,7 @@ package nu.metacraft.saved_items.loot_container;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.advancements.criterion.ItemPredicate;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.valueproviders.ConstantInt;
 import org.jetbrains.annotations.Nullable;

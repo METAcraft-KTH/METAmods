@@ -10,7 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ColumnPos;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.level.Level;
@@ -97,7 +97,7 @@ public class ZoneRegistry {
 	private static <T extends ZoneType> ZoneTypeType<T> register(
 			String name, MapCodec<T> codec, ZoneCommandCreator commandCreator, Supplier<T> defaultValue
 	) {
-		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(name), new ZoneTypeType<>(codec, commandCreator, defaultValue));
+		return Registry.register(REGISTRY, Identifier.withDefaultNamespace(name), new ZoneTypeType<>(codec, commandCreator, defaultValue));
 	}
 
 	private static <T extends ZoneType> ZoneTypeType<T> register(

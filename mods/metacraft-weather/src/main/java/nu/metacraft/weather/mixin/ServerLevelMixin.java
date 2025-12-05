@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.valueproviders.IntProvider;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.storage.ServerLevelData;
 import nu.metacraft.weather.rainseason.RainSeasonState;
 
@@ -41,7 +41,7 @@ public abstract class ServerLevelMixin {
         if (!self.dimensionType().hasSkyLight()) {
             return;
         }
-        if (!self.getGameRules().getBoolean(GameRules.RULE_WEATHER_CYCLE)) {
+        if (!self.getGameRules().get(GameRules.ADVANCE_WEATHER)) {
             return;
         }
 

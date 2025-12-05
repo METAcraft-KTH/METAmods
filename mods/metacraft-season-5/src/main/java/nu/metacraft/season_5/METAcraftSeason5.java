@@ -1,7 +1,7 @@
 package nu.metacraft.season_5;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.season_5.items.Season5Items;
 
@@ -12,8 +12,8 @@ public class METAcraftSeason5 implements ModInitializer {
 		Season5Items.init();
 	}
 
-	public static ResourceLocation getID(String name) {
-		return ResourceLocation.fromNamespaceAndPath(METAcraftLib.NAMESPACE, name);
+	public static Identifier getID(String name) {
+		return Identifier.fromNamespaceAndPath(METAcraftLib.NAMESPACE, name);
 	}
 
 }

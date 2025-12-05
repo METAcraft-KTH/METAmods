@@ -6,13 +6,13 @@ import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 import java.util.HashSet;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 
 public interface BaseBlock extends BaseObject<Block> {
 
 	@Override
-	default void onRegistrationFail(ResourceLocation id, Block value) {
+	default void onRegistrationFail(Identifier id, Block value) {
 		RegistryHelper.removeIntrusiveEntry(BuiltInRegistries.BLOCK, value);
 	}
 

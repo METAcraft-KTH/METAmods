@@ -17,7 +17,7 @@ public class PlayerAdvancementsMixin {
 		method = "method_53637", //Lambda inside grantCriterion
 		at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/world/level/GameRules;getBoolean(Lnet/minecraft/world/level/GameRules$Key;)Z"
+				target = "Lnet/minecraft/advancements/DisplayInfo;shouldAnnounceChat()Z"
 		)
 	)
 	public boolean grantCriterion(boolean original) {

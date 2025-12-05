@@ -1,7 +1,7 @@
 package nu.metacraft.portable_jukebox;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.portable_jukebox.compat.CompatInit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,7 +23,7 @@ public class PortableJukebox implements ModInitializer {
 		CompatInit.init();
 	}
 
-	public static ResourceLocation getID(String id) {
-		return ResourceLocation.fromNamespaceAndPath(NAMESPACE, id);
+	public static Identifier getID(String id) {
+		return Identifier.fromNamespaceAndPath(NAMESPACE, id);
 	}
 }

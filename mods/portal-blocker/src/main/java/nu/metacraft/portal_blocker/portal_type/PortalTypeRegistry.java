@@ -4,7 +4,7 @@ import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Portal;
 import nu.metacraft.portal_blocker.PortalBlocker;
@@ -28,7 +28,7 @@ public class PortalTypeRegistry {
 
 	private static <T extends PortalType> T register(String name, T type) {
 		//Register the default ones under the minecraft namespace to simplify the command.
-		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(name), type);
+		return Registry.register(REGISTRY, Identifier.withDefaultNamespace(name), type);
 	}
 
 }

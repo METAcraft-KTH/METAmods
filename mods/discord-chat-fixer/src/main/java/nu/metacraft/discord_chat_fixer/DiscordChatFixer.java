@@ -5,7 +5,7 @@ import com.google.gson.JsonObject;
 import com.mojang.authlib.GameProfile;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.lib.compat.IsLoaded;
@@ -67,7 +67,7 @@ public class DiscordChatFixer implements ModInitializer {
 		return Optional.of(api.replace("{player_textures}", hash));
 	}
 
-	public static ResourceLocation getID(String name) {
-		return ResourceLocation.fromNamespaceAndPath(MODID, name);
+	public static Identifier getID(String name) {
+		return Identifier.fromNamespaceAndPath(MODID, name);
 	}
 }

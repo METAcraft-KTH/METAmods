@@ -25,7 +25,7 @@ import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.Registry;
 import net.minecraft.core.WritableRegistry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 
 @Mixin(MappedRegistry.class)
@@ -33,7 +33,7 @@ public abstract class MappedRegistryMixin<T> implements WritableRegistry<T>, Reg
 
 	@Shadow public abstract ResourceKey<? extends Registry<T>> key();
 
-	@Shadow public abstract boolean containsKey(ResourceLocation id);
+	@Shadow public abstract boolean containsKey(Identifier id);
 
 	@Shadow private boolean frozen;
 	@Shadow private @Nullable Map<T, Holder.Reference<T>> unregisteredIntrusiveHolders;
@@ -42,7 +42,7 @@ public abstract class MappedRegistryMixin<T> implements WritableRegistry<T>, Reg
 	@Shadow public abstract Optional<ResourceKey<T>> getResourceKey(T entry);
 
 	@Shadow @Final private Map<ResourceKey<T>, Holder.Reference<T>> byKey;
-	@Shadow @Final private Map<ResourceLocation, Holder.Reference<T>> byLocation;
+	@Shadow @Final private Map<Identifier, Holder.Reference<T>> byLocation;
 	@Shadow @Final private ObjectList<Holder.Reference<T>> byId;
 
 	@Shadow public abstract int getId(@Nullable T value);
@@ -50,7 +50,7 @@ public abstract class MappedRegistryMixin<T> implements WritableRegistry<T>, Reg
 	@Shadow @Final private Reference2IntMap<T> toId;
 	@Shadow @Final private Map<ResourceKey<T>, RegistrationInfo> registrationInfos;
 
-	@Shadow public abstract Optional<Holder.Reference<T>> get(ResourceLocation id);
+	@Shadow public abstract Optional<Holder.Reference<T>> get(Identifier id);
 
 	@Shadow public abstract Holder<T> wrapAsHolder(T value);
 
@@ -135,7 +135,7 @@ public abstract class MappedRegistryMixin<T> implements WritableRegistry<T>, Reg
 	public void simpleCustomFeatures$remove(T value) {
 		getResourceKey(value).ifPresent(key -> {
 			this.byKey.remove(key);
-			this.byLocation.remove(key.location());
+			this.byLocation.remove(key.identifier());
 			this.byValue.remove(value);
 			int id = getId(value);
 			this.byId.remove(id);

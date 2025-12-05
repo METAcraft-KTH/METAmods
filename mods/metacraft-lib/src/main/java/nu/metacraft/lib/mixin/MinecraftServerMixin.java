@@ -4,7 +4,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.gametest.framework.GameTestServer;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.custom_message.CustomMessageRegistry;
@@ -33,7 +33,7 @@ public abstract class MinecraftServerMixin {
 
 	@Inject(method = "handleCustomClickAction", at = @At("RETURN"))
 	public void handleCustomClickAction(
-			ResourceLocation id,
+			Identifier id,
 			@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<Tag> payload,
 			CallbackInfo ci
 	) {

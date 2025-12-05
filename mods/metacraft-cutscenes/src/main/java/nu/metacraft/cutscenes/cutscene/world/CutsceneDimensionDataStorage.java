@@ -27,16 +27,12 @@ public class CutsceneDimensionDataStorage extends DimensionDataStorage {
 	private final HolderLookup.Provider lookup;
 	private final Map<SavedDataType<?>, SavedData> loadedStates = Maps.newHashMap();
 
-	protected final SavedData.Context context;
-
 	public CutsceneDimensionDataStorage(
-			SavedData.Context context,
 			Path directory, DataFixer dataFixer,
 			HolderLookup.Provider registries,
 			Supplier<CompoundTag> storage
 	) {
-		super(context, directory, dataFixer, registries);
-		this.context = context;
+		super(directory, dataFixer, registries);
 		this.dataFixer = dataFixer;
 		this.storage = storage;
 		this.lookup = registries;
@@ -46,7 +42,7 @@ public class CutsceneDimensionDataStorage extends DimensionDataStorage {
 	public <T extends SavedData> T computeIfAbsent(SavedDataType<T> type) {
 		var result = get(type);
 		if (result == null) {
-			set(type, type.constructor().apply(context));
+			set(type, type.constructor().get());
 			return get(type);
 		}
 		return result;
@@ -56,7 +52,7 @@ public class CutsceneDimensionDataStorage extends DimensionDataStorage {
 	public <T extends SavedData> T get(SavedDataType<T> type) {
 		if (!loadedStates.containsKey(type) && storage.get().contains(type.id())) {
 			CompoundTag data = readTagFromDisk(type.id(), type.dataFixType(), SharedConstants.getCurrentVersion().dataVersion().version());
-			var loaded = type.codec().apply(context).parse(
+			var loaded = type.codec().parse(
 					lookup.createSerializationContext(NbtOps.INSTANCE), data.get("data")
 			).resultOrPartial(
 					(string) -> Cutscenes.LOGGER.error("Failed to parse saved data for '{}': {}", type, string)

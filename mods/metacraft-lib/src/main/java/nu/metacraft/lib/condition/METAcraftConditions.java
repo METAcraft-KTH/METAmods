@@ -1,7 +1,7 @@
 package nu.metacraft.lib.condition;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.advancements.critereon.EntitySubPredicate;
+import net.minecraft.advancements.criterion.EntitySubPredicate;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;

@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.random.WeightedList;
 import net.minecraft.util.valueproviders.IntProvider;
@@ -39,7 +39,7 @@ public record MobEntry(WeightedList<EntityEntry> mobs, IntProvider amountPerSpaw
 		});
 	}
 
-	public record EntityEntry(CompoundTag data, Optional<ResourceLocation> function, List<EntityEntry> leashedEntities) {
+	public record EntityEntry(CompoundTag data, Optional<Identifier> function, List<EntityEntry> leashedEntities) {
 		private static final Codec<CompoundTag> ENTITY_CODEC = CompoundTag.CODEC.flatXmap(nbt -> {
 			return nbt.read("id", EntityType.CODEC).map(type -> DataResult.success(nbt)).orElseGet(
 					() -> {
@@ -59,7 +59,7 @@ public record MobEntry(WeightedList<EntityEntry> mobs, IntProvider amountPerSpaw
 						RecordCodecBuilder.create(
 								instance -> instance.group(
 										ENTITY_CODEC.fieldOf("entity_data").forGetter(EntityEntry::data),
-										ResourceLocation.CODEC.optionalFieldOf("function").forGetter(EntityEntry::function),
+										Identifier.CODEC.optionalFieldOf("function").forGetter(EntityEntry::function),
 										entityEntryCodec.listOf().optionalFieldOf("leashed_entities", List.of()).forGetter(EntityEntry::leashedEntities)
 								).apply(instance, EntityEntry::new)
 						),

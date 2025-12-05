@@ -26,7 +26,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.goal.BreedGoal;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.animal.Parrot;
+import net.minecraft.world.entity.animal.parrot.Parrot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.ItemStack;
@@ -44,7 +44,7 @@ public abstract class ParrotMixin extends TamableAnimal {
 	@ModifyExpressionValue(
 			method = "mobInteract",
 			at = @At(
-					value = "INVOKE", target = "Lnet/minecraft/world/entity/animal/Parrot;isOwnedBy(Lnet/minecraft/world/entity/LivingEntity;)Z"
+					value = "INVOKE", target = "Lnet/minecraft/world/entity/animal/parrot/Parrot;isOwnedBy(Lnet/minecraft/world/entity/LivingEntity;)Z"
 			)
 	)
 	public boolean isTrusted(
@@ -129,7 +129,7 @@ public abstract class ParrotMixin extends TamableAnimal {
 		method = "mobInteract",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/entity/animal/Parrot;isFlying()Z"
+			target = "Lnet/minecraft/world/entity/animal/parrot/Parrot;isFlying()Z"
 		),
 		cancellable = true
 	)

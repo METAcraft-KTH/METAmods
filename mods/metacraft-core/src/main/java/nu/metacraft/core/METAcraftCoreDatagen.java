@@ -8,15 +8,15 @@ import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementRequirements;
 import net.minecraft.advancements.AdvancementRewards;
 import net.minecraft.advancements.CriteriaTriggers;
-import net.minecraft.advancements.critereon.PlayerTrigger;
-import net.minecraft.advancements.critereon.RecipeUnlockedTrigger;
+import net.minecraft.advancements.criterion.PlayerTrigger;
+import net.minecraft.advancements.criterion.RecipeUnlockedTrigger;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -48,7 +48,7 @@ public class METAcraftCoreDatagen implements DataGeneratorEntrypoint {
 				public void buildRecipes() {
 					var wrench = ResourceKey.create(
 							Registries.RECIPE,
-							ResourceLocation.fromNamespaceAndPath(METAcraftCore.MODID, "wrench")
+							Identifier.fromNamespaceAndPath(METAcraftCore.MODID, "wrench")
 					);
 					Advancement.Builder builder = recipeExporter.advancement().addCriterion(
 							"has_the_recipe", RecipeUnlockedTrigger.unlocked(wrench)
@@ -76,7 +76,7 @@ public class METAcraftCoreDatagen implements DataGeneratorEntrypoint {
 									),
 									METAcraftItems.WRENCH.getDefaultInstance()
 							),
-							builder.build(wrench.location().withPrefix("recipes/" + RecipeCategory.TOOLS.getFolderName() + "/"))
+							builder.build(wrench.identifier().withPrefix("recipes/" + RecipeCategory.TOOLS.getFolderName() + "/"))
 					);
 				}
 			};

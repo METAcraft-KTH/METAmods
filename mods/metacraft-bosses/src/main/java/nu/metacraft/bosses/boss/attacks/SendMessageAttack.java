@@ -7,6 +7,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.world.entity.Entity;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import nu.metacraft.bosses.METAcraftBosses;
@@ -31,7 +32,8 @@ public class SendMessageAttack extends InstantAttack {
 	public static Component parseText(Component text, BossContext<?> ctx, Entity sender, MutableBoolean errored) {
 		try {
 			return ComponentUtils.updateForEntity(
-					ctx.boss().createCommandSourceStackForNameResolution(ctx.getWorld()).withPermission(2), text, sender, 0
+					ctx.boss().createCommandSourceStackForNameResolution(ctx.getWorld()).withPermission(LevelBasedPermissionSet.GAMEMASTER),
+					text, sender, 0
 			);
 		} catch (CommandSyntaxException e) {
 			if (!errored.booleanValue()) {

@@ -4,7 +4,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
-import net.minecraft.world.entity.animal.Chicken;
+import net.minecraft.world.entity.animal.chicken.Chicken;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
@@ -39,7 +39,7 @@ public class CuccoRevengeGoal extends HurtByTargetGoal {
 				var chicken = EntityType.CHICKEN.create(mob.level(), EntitySpawnReason.REINFORCEMENT);
 				chicken.finalizeSpawn(
 						(ServerLevelAccessor) mob.level(),
-						mob.level().getCurrentDifficultyAt(mob.blockPosition()),
+						((ServerLevelAccessor) mob.level()).getCurrentDifficultyAt(mob.blockPosition()),
 						EntitySpawnReason.REINFORCEMENT, null
 				);
 				((ChickenExtensions) chicken).metacraft_lib$setCucco(true);

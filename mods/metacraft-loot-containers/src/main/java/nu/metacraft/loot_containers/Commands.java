@@ -15,7 +15,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.CompoundTagArgument;
 import net.minecraft.commands.arguments.EntityArgument;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.NbtOps;
@@ -306,15 +306,15 @@ public class Commands {
 	}
 
 	private static ArgumentBuilder<CommandSourceStack, ?> containerType(String name) {
-		return argument(name, ResourceLocationArgument.id()).suggests(CONTAINER_TYPE_SUGGESTIONS);
+		return argument(name, IdentifierArgument.id()).suggests(CONTAINER_TYPE_SUGGESTIONS);
 	}
 
 	private static ArgumentBuilder<CommandSourceStack, ?> containerEventType(String name) {
-		return argument(name, ResourceLocationArgument.id()).suggests(CONTAINER_EVENT_SUGGESTIONS);
+		return argument(name, IdentifierArgument.id()).suggests(CONTAINER_EVENT_SUGGESTIONS);
 	}
 
 	private static LootContainerType<?> getContainerType(CommandContext<CommandSourceStack> ctx, String name) throws CommandSyntaxException {
-		var id = ResourceLocationArgument.getId(ctx, name);
+		var id = IdentifierArgument.getId(ctx, name);
 		var type = LootContainerRegistry.REGISTRY.getValue(id);
 		if (type != null) {
 			return type;
@@ -324,7 +324,7 @@ public class Commands {
 	}
 
 	private static LootContainerEventType<?> getContainerEventType(CommandContext<CommandSourceStack> ctx, String name) throws CommandSyntaxException {
-		var id = ResourceLocationArgument.getId(ctx, name);
+		var id = IdentifierArgument.getId(ctx, name);
 		var type = LootContainerEventRegistry.REGISTRY.getValue(id);
 		if (type != null) {
 			return type;

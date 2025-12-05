@@ -5,7 +5,7 @@ import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.random.WeightedList;
@@ -284,7 +284,7 @@ public class EntityHelper {
 		}
 
 		public static <T extends Entity> CompoundTag createEntityNBTFrom(EntityType<T> type, CompoundTag data) {
-			ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(type);
+			Identifier id = BuiltInRegistries.ENTITY_TYPE.getKey(type);
 			data.putString("id", id.toString());
 			return data;
 		}

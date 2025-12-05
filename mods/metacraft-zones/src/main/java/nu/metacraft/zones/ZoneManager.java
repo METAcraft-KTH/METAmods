@@ -9,6 +9,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 import nu.metacraft.lib.compat.IsLoaded;
+import nu.metacraft.lib.util.SavedDataTypeCache;
 import nu.metacraft.zones.compat.leukocyte.LeukocyteZoneManager;
 import nu.metacraft.zones.zone.RealZone;
 import nu.metacraft.zones.zone.Zone;
@@ -25,7 +26,7 @@ public class ZoneManager extends SavedData {
 	private static boolean loading = false;
 
 	public static ZoneManager getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
 	}
 
 	public static Optional<ZoneManager> getInstanceNoStackOverflow(MinecraftServer server) {
@@ -35,9 +36,11 @@ public class ZoneManager extends SavedData {
 		return Optional.of(getInstance(server));
 	}
 
-	private static final SavedDataType<ZoneManager> TYPE = new SavedDataType<>(
-			"metacraft-zones", ctx -> createNew(ctx.levelOrThrow().getServer()),
-			ctx -> createCodec(ctx.levelOrThrow().getServer()), null
+	private static final SavedDataTypeCache.Type<ZoneManager> TYPE = new SavedDataTypeCache.Type<>(
+			level -> new SavedDataType<>(
+					"metacraft-zones", () -> createNew(level.getServer()),
+					createCodec(level.getServer()), null
+			)
 	);
 
 	private static Codec<ZoneManager> createCodec(MinecraftServer server) {

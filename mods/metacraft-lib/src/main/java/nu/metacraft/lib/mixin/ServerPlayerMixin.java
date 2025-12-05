@@ -29,7 +29,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
@@ -81,13 +81,13 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 
 
 	@Unique @Nullable
-	private ResourceLocation statHandler = null;
+	private Identifier statHandler = null;
 
 	@Unique @Nullable
-	private ResourceLocation advancementTracker = null;
+	private Identifier advancementTracker = null;
 
 	@Unique
-	private PMap<ResourceLocation, CompoundTag> dataMap = HashTreePMap.empty();
+	private PMap<Identifier, CompoundTag> dataMap = HashTreePMap.empty();
 
 	@Unique
 	private static final String CUSTOM_PLAYER_NAME = "CustomPlayerName";
@@ -96,8 +96,8 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 	private static final String CUSTOM_PLAYER_NAME_SHOW_IN_GUI = "CustomPlayerNameShowInGUI";
 
 	@Unique
-	private static final Codec<PMap<ResourceLocation, CompoundTag>> DATA_MAP_CODEC = Codec.unboundedMap(
-			ResourceLocation.CODEC, CompoundTag.CODEC
+	private static final Codec<PMap<Identifier, CompoundTag>> DATA_MAP_CODEC = Codec.unboundedMap(
+			Identifier.CODEC, CompoundTag.CODEC
 	).xmap(
 			HashTreePMap::from,
 			e -> e
@@ -129,8 +129,8 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		if (!dataMap.isEmpty() && readOrWriteDataMap) {
 			nbt.store(PlayerDataHelper.PLAYER_DATA_ELEMENT, DATA_MAP_CODEC, dataMap);
 		}
-		nbt.storeNullable(PlayerDataHelper.STAT_HANDLER, ResourceLocation.CODEC, statHandler);
-		nbt.storeNullable(PlayerDataHelper.ADVANCEMENT_TRACKER, ResourceLocation.CODEC, advancementTracker);
+		nbt.storeNullable(PlayerDataHelper.STAT_HANDLER, Identifier.CODEC, statHandler);
+		nbt.storeNullable(PlayerDataHelper.ADVANCEMENT_TRACKER, Identifier.CODEC, advancementTracker);
 		nbt.putBoolean(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS, announceAdvancements);
 		nbt.putBoolean(PlayerDataHelper.ANNOUNCE_DEATH, announceDeath);
 		nbt.putBoolean(PlayerDataHelper.ANNOUNCE_JOIN_LEAVE, announceJoinLeave);
@@ -150,13 +150,13 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 					d -> dataMap = d
 			);
 		}
-		statHandler = nbt.read(PlayerDataHelper.STAT_HANDLER, ResourceLocation.CODEC).orElse(null);
+		statHandler = nbt.read(PlayerDataHelper.STAT_HANDLER, Identifier.CODEC).orElse(null);
 		if (statHandler != null) {
 			PlayerDataHelper.setStatHandler((ServerPlayer) (Object) this, statHandler, false);
 		} else {
 			PlayerDataHelper.restoreStatHandler((ServerPlayer) (Object) this);
 		}
-		advancementTracker = nbt.read(PlayerDataHelper.ADVANCEMENT_TRACKER, ResourceLocation.CODEC).orElse(null);
+		advancementTracker = nbt.read(PlayerDataHelper.ADVANCEMENT_TRACKER, Identifier.CODEC).orElse(null);
 		if (advancementTracker != null) {
 			PlayerDataHelper.setAdvancementTracker((ServerPlayer) (Object) this, advancementTracker, false);
 		} else {
@@ -274,7 +274,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 
 
 	@Override
-	public void metacraft_lib$setPlayerData(ResourceLocation id, CompoundTag value) {
+	public void metacraft_lib$setPlayerData(Identifier id, CompoundTag value) {
 		if (value != null) {
 			dataMap = dataMap.plus(id, value);
 		} else {
@@ -283,7 +283,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 	}
 
 	@Override
-	public Optional<CompoundTag> metacraft_lib$getPlayerData(ResourceLocation id) {
+	public Optional<CompoundTag> metacraft_lib$getPlayerData(Identifier id) {
 		return Optional.ofNullable(dataMap.get(id));
 	}
 
@@ -307,12 +307,12 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 	}
 
 	@Override
-	public void metacraft_lib$setStatHandlerType(ResourceLocation type) {
+	public void metacraft_lib$setStatHandlerType(Identifier type) {
 		this.statHandler = type;
 	}
 
 	@Override
-	public void metacraft_lib$setAdvancementTrackerType(ResourceLocation type) {
+	public void metacraft_lib$setAdvancementTrackerType(Identifier type) {
 		this.advancementTracker = type;
 	}
 

@@ -6,10 +6,12 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 import nu.metacraft.lib.util.METACodecs;
+import nu.metacraft.lib.util.SavedDataTypeCache;
 import nu.metacraft.moderation.METAcraftModeration;
 
 import java.util.*;
@@ -21,7 +23,7 @@ public class ExileData extends SavedData {
 	private final Map<UUID, ExileDefinition> exiledPlayers = new HashMap<>();
 
 	public static ExileData getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
 	}
 
 	private static Codec<ExileData> createCodec(MinecraftServer server) {
@@ -45,9 +47,11 @@ public class ExileData extends SavedData {
 		);
 	}
 
-	private static final SavedDataType<ExileData> TYPE = new SavedDataType<>(
-			"metacraft-moderation-exile", ctx -> createNew(ctx.levelOrThrow().getServer()),
-			ctx -> createCodec(ctx.levelOrThrow().getServer()), null
+	private static final SavedDataTypeCache.Type<ExileData> TYPE = new SavedDataTypeCache.Type<>(
+			level -> new SavedDataType<>(
+					"metacraft-moderation-exile", () -> createNew(level.getServer()),
+					createCodec(level.getServer()), null
+			)
 	);
 
 	private static ExileData createNew(MinecraftServer server) {
@@ -119,11 +123,11 @@ public class ExileData extends SavedData {
 			var prevExileState = exiledPlayers.get(player);
 			if (prevExileState == null && exile != null) {
 				server.getCommands().performPrefixedCommand(
-						actualPlayer.createCommandSourceStack().withPermission(2).withSuppressedOutput(), exile.getExileCommand()
+						actualPlayer.createCommandSourceStack().withPermission(LevelBasedPermissionSet.GAMEMASTER).withSuppressedOutput(), exile.getExileCommand()
 				);
 			} else if (prevExileState != null && exile == null) {
 				server.getCommands().performPrefixedCommand(
-						actualPlayer.createCommandSourceStack().withPermission(2).withSuppressedOutput(), prevExileState.getPardonCommand()
+						actualPlayer.createCommandSourceStack().withPermission(LevelBasedPermissionSet.GAMEMASTER).withSuppressedOutput(), prevExileState.getPardonCommand()
 				);
 				prevExileState.onRemove((ServerPlayer & ExilePlayerData) actualPlayer);
 			}

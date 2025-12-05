@@ -5,7 +5,7 @@ import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.loot_containers.METAcraftLootContainers;
 import nu.metacraft.loot_containers.containers.events.LootContainerEventRegistry;
 
@@ -33,7 +33,7 @@ public class LootContainerRegistry {
 	}
 
 	private static <T extends LootContainer> LootContainerType<T> register(String key, LootContainerType<T> object) {
-		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(key), object);
+		return Registry.register(REGISTRY, Identifier.withDefaultNamespace(key), object);
 	}
 
 }

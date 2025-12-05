@@ -7,6 +7,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.permissions.Permissions;
 
 public class RainSeasonCommand {
 
@@ -14,7 +15,7 @@ public class RainSeasonCommand {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
             dispatcher.register(
                 Commands.literal("rainseason")
-                    .requires(ctx -> ctx.hasPermission(2))
+                    .requires(ctx -> ctx.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
                     .then(
                         Commands.literal("info")
                             .executes(RainSeasonCommand::info)

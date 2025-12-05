@@ -3,6 +3,7 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
@@ -89,7 +90,7 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 				entity != null ? entity.position() : entryPoint.map(TeleportTransition::position).orElse(Vec3.ZERO),
 				entity != null ? entity.getRotationVector() : entryPoint.map(target -> new Vec2(target.xRot(), target.yRot())).orElse(Vec2.ZERO),
 				runInRealWorld ? cutscene.getCutsceneWorld().getActualWorld() : cutscene.getCutsceneWorld(),
-				2, entity != null ? entity.getName().getString() : "Cutscene",
+				LevelBasedPermissionSet.GAMEMASTER, entity != null ? entity.getName().getString() : "Cutscene",
 				entity != null ? entity.getDisplayName() : Component.literal("Cutscene"),
 				cutscene.getServer(), entity
 		);

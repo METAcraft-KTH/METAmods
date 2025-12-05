@@ -11,7 +11,7 @@ import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.phys.Vec3;
@@ -52,12 +52,12 @@ public record SpawnParticleTransitionConfig(
 		return TransitionConfigRegistry.PARTICLE;
 	}
 
-	public record ParticleProvider(CompoundTag data, ResourceLocation storage, String path) {
+	public record ParticleProvider(CompoundTag data, Identifier storage, String path) {
 
 		public static final Codec<ParticleProvider> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
 						CompoundTag.CODEC.fieldOf("data").forGetter(ParticleProvider::data),
-						ResourceLocation.CODEC.fieldOf("storage").forGetter(ParticleProvider::storage),
+						Identifier.CODEC.fieldOf("storage").forGetter(ParticleProvider::storage),
 						Codec.STRING.optionalFieldOf("path", "").forGetter(ParticleProvider::path)
 				).apply(instance, ParticleProvider::new)
 		);

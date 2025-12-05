@@ -5,7 +5,7 @@ import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.rotation_ref.*;
 
@@ -29,7 +29,7 @@ public class RotationRefRegistry {
 	}
 
 	private static <T extends RotationRef> RotationRefType<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), new RotationRefType<>(codec));
+		return Registry.register(REGISTRY, Identifier.withDefaultNamespace(id), new RotationRefType<>(codec));
 	}
 
 

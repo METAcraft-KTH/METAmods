@@ -16,7 +16,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
@@ -44,8 +44,8 @@ public class RelayComponents {
 			"relay_valid_charge_item", builder -> builder.persistent(TagKey.hashedCodec(Registries.ITEM))
 	);
 
-	public static final DataComponentType<ResourceLocation> BLOCK_MODEL = register(
-			"block_model", builder -> builder.persistent(ResourceLocation.CODEC)
+	public static final DataComponentType<Identifier> BLOCK_MODEL = register(
+			"block_model", builder -> builder.persistent(Identifier.CODEC)
 	);
 
 	public static void init() {

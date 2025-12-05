@@ -14,7 +14,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
@@ -52,7 +52,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 
 	private final DisplayEntityData data = new DisplayEntityData();
 
-	private ResourceLocation structureID;
+	private Identifier structureID;
 	private StructureTemplate structure = new StructureTemplate();
 
 	public StructureDisplay(EntityType<?> type, Level world) {
@@ -71,7 +71,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 
 		var idString = nbt.getString(STRUCTURE);
 		if (idString.isPresent()) {
-			var id = ResourceLocation.tryParse(idString.get());
+			var id = Identifier.tryParse(idString.get());
 			if (id != null && level() instanceof ServerLevel sw) {
 				if (setFromStructure(sw.getStructureManager(), id)) {
 					shouldFixDisplays = false;
@@ -109,7 +109,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		}
 	}
 
-	public boolean setFromStructure(StructureTemplateManager manager, ResourceLocation id) {
+	public boolean setFromStructure(StructureTemplateManager manager, Identifier id) {
 		return manager.get(id).map(
 				structure -> {
 					var result = setFromStructure(structure);

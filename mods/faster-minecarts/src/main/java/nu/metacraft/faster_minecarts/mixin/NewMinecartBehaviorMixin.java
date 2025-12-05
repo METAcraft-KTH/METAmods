@@ -2,9 +2,9 @@ package nu.metacraft.faster_minecarts.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.world.entity.vehicle.AbstractMinecart;
-import net.minecraft.world.entity.vehicle.MinecartBehavior;
-import net.minecraft.world.entity.vehicle.NewMinecartBehavior;
+import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.minecart.MinecartBehavior;
+import net.minecraft.world.entity.vehicle.minecart.NewMinecartBehavior;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.faster_minecarts.*;
 import org.spongepowered.asm.mixin.Mixin;
@@ -45,7 +45,7 @@ public abstract class NewMinecartBehaviorMixin extends MinecartBehavior {
 		method = "stepAlongTrack",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/entity/vehicle/AbstractMinecart;move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V"
+			target = "Lnet/minecraft/world/entity/vehicle/minecart/AbstractMinecart;move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V"
 		),
 		index = 1
 	)

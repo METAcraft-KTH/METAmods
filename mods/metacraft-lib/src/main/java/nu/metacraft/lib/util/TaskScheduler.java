@@ -3,7 +3,7 @@ package nu.metacraft.lib.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Unit;
 import net.minecraft.world.level.timers.TimerCallback;
@@ -39,7 +39,7 @@ public interface TaskScheduler {
 	 * This event will not persist after a server reboot.
 	 * Is generally intended for unimportant events such as particle effects or if you know this function will be called again after the restart anyway.
 	 * Note, since each event is given a random UUID, it is possible (but unlikely) that your event will never execute because it was overwritten by another event.
-	 * If this worries you, use {@link TaskScheduler#schedule(MinecraftServer, ResourceLocation, TimerCallback, int)}
+	 * If this worries you, use {@link TaskScheduler#schedule(MinecraftServer, Identifier, TimerCallback, int)}
 	 * instead (with a {@link Throwaway}) and provide your own uniquely generated name.
 	 *
 	 * @param server The server to execute the task on.
@@ -60,7 +60,7 @@ public interface TaskScheduler {
 	/**
 	 * Schedules the given task to Mojang's scheduler.
 	 * Each callback type you wish to run should be registered with
-	 * {@link TaskScheduler#registerTaskType(ResourceLocation, MapCodec)}.
+	 * {@link TaskScheduler#registerTaskType(Identifier, MapCodec)}.
 	 *
 	 * @param server The server to execute the task on.
 	 * @param name The name of the task. Must be unique.
@@ -68,7 +68,7 @@ public interface TaskScheduler {
 	 * @param afterTicks How many ticks to wait before running the task.
 	 */
 	static void schedule(
-			MinecraftServer server, ResourceLocation name,
+			MinecraftServer server, Identifier name,
 			TimerCallback<MinecraftServer> toRun, int afterTicks
 	) {
 		server.getWorldData().overworldData().getScheduledEvents().schedule(
@@ -81,8 +81,8 @@ public interface TaskScheduler {
 	/**
 	 * Schedules the given task to Mojang's scheduler.
 	 * Each callback type you wish to run should be registered with
-	 * {@link TaskScheduler#registerTaskType(ResourceLocation, MapCodec)}.
-	 * Unlike {@link TaskScheduler#schedule(MinecraftServer, ResourceLocation, TimerCallback, int)},
+	 * {@link TaskScheduler#registerTaskType(Identifier, MapCodec)}.
+	 * Unlike {@link TaskScheduler#schedule(MinecraftServer, Identifier, TimerCallback, int)},
 	 * this function does not require a name. The name is instead fetched from the task directly.
 	 *
 	 * @param server The server to execute the task on.
@@ -117,7 +117,7 @@ public interface TaskScheduler {
 	 * @throws IllegalStateException If the codec is registry-dependent (i.e. utilizes any of the codecs shown above).
 	 */
 	static void registerTaskType(
-			ResourceLocation id,
+			Identifier id,
 			MapCodec<? extends TimerCallback<MinecraftServer>> codec
 	) {
 		List<String> trace = new ArrayList<>();

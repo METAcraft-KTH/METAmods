@@ -3,7 +3,7 @@ package nu.metacraft.core;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.core.status_effects.METAcraftEffects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -54,7 +54,7 @@ public class METAcraftCore implements ModInitializer {
 		PolymerItemUtilsAccessor.setComponentsToCopy(newComponents);
 	}
 
-	public static ResourceLocation getID(String id) {
-		return ResourceLocation.fromNamespaceAndPath(NAMESPACE, id);
+	public static Identifier getID(String id) {
+		return Identifier.fromNamespaceAndPath(NAMESPACE, id);
 	}
 }

@@ -15,7 +15,7 @@ import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.core.Direction;
 import net.minecraft.core.FrontAndTop;
 import net.minecraft.core.registries.BuiltInRegistries;

@@ -30,7 +30,7 @@ public class ServerGamePacketListenerImplMixin {
 
 	@ModifyExpressionValue(
 		method = "handleMoveVehicle",
-		at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerPlayer;hasClientLoaded()Z")
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;hasClientLoaded()Z")
 	)
 	public boolean onVehicleMove(boolean original) {
 		if (((ServerPlayerExtensions) player).metacraft_lib$isTeleportingOnVehicle()) {

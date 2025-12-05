@@ -4,7 +4,7 @@ import eu.pb4.polymer.core.api.block.PolymerHeadBlock;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -28,7 +28,7 @@ public class FixedPolymerHeadBlockItem extends BlockItem implements PolymerItem 
 	}
 
 	@Override
-	public ResourceLocation getPolymerItemModel(ItemStack stack, PacketContext context) {
+	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context) {
 		return null;
 	}
 

@@ -4,10 +4,10 @@ import com.google.gson.JsonObject;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer;
-import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.advancements.criterion.ItemPredicate;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -47,7 +47,7 @@ public class Recipes {
 					var remainderMapper = json.get(REMAINDER);
 					if (remainderMapper.isJsonPrimitive()) {
 						Optional.ofNullable(
-								ResourceLocation.tryParse(remainderMapper.getAsString())
+								Identifier.tryParse(remainderMapper.getAsString())
 						).map(BuiltInRegistries.ITEM::getValue).ifPresentOrElse(item -> {
 							recipeData.metacraft_lib$setRemainderFunction(stack -> new ItemStack(item));
 						}, () -> {

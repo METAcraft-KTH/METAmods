@@ -34,7 +34,7 @@ public class ServerGamePacketListenerImplMixin {
 		method = "shouldCheckPlayerMovement",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/server/level/ServerLevel;getGameRules()Lnet/minecraft/world/level/GameRules;"
+			target = "Lnet/minecraft/server/level/ServerLevel;getGameRules()Lnet/minecraft/world/level/gamerules/GameRules;"
 		),
 		cancellable = true
 	)

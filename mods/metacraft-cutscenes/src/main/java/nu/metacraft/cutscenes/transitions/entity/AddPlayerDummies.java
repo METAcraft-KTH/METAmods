@@ -5,8 +5,9 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.Entity;
@@ -59,7 +60,7 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 					RotationRefRegistry.CODEC.optionalFieldOf("rotation", DEFAULT_ROT).forGetter(t -> t.rotation),
 					Codec.BOOL.optionalFieldOf("include_remote_dim", false).forGetter(t -> t.includeDespiteRemoteDim),
 					AccurateSerializableNBT.CODEC.optionalFieldOf("nbt").forGetter(t -> t.nbt),
-					ResourceLocation.CODEC.optionalFieldOf("function").forGetter(t -> t.function),
+					Identifier.CODEC.optionalFieldOf("function").forGetter(t -> t.function),
 					Removal.CODEC.optionalFieldOf("removal", Removal.DISCARD).forGetter(t -> t.removal)
 			).apply(instance, AddPlayerDummies::new)
 	);
@@ -71,7 +72,7 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 	private final RotationRef rotation;
 	private final boolean includeDespiteRemoteDim;
 	private final Optional<AccurateSerializableNBT> nbt;
-	private final Optional<ResourceLocation> function;
+	private final Optional<Identifier> function;
 	private final Removal removal;
 
 	public static final AddPlayerDummies DEFAULT = new AddPlayerDummies(
@@ -81,7 +82,7 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 
 	public AddPlayerDummies(
 			List<String> ids, PositionRef position, RotationRef rotation, boolean includeDespiteRemoteDim,
-			Optional<AccurateSerializableNBT> nbt, Optional<ResourceLocation> function, Removal removal
+			Optional<AccurateSerializableNBT> nbt, Optional<Identifier> function, Removal removal
 	) {
 		this.ids = ids;
 		this.position = position;
@@ -129,7 +130,12 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 					function.flatMap(
 							function -> player.level().getServer().getFunctions().get(function)
 					).ifPresent(function -> {
-						player.level().getServer().getFunctions().execute(function, p.createCommandSourceStackForNameResolution(cutscene.getCutsceneWorld()).withPermission(2));
+						player.level().getServer().getFunctions().execute(
+								function,
+								p.createCommandSourceStackForNameResolution(
+										cutscene.getCutsceneWorld()
+								).withPermission(LevelBasedPermissionSet.GAMEMASTER)
+						);
 					});
 				}
 				cutscene.addEntity(idGetter.get(), e);

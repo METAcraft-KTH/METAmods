@@ -6,6 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.function.Predicate;
 import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 
 public class CommandToggleType implements PreferenceType<CommandToggleType.CommandData, Boolean, CommandToggleType.BoolPredicate> {
 
@@ -40,7 +41,7 @@ public class CommandToggleType implements PreferenceType<CommandToggleType.Comma
 
 	private void runCommand(ServerPlayer player, String command) {
 		player.level().getServer().getCommands().performPrefixedCommand(
-				player.createCommandSourceStack().withSuppressedOutput().withPermission(2),
+				player.createCommandSourceStack().withSuppressedOutput().withPermission(LevelBasedPermissionSet.GAMEMASTER),
 				command
 		);
 	}

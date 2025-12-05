@@ -9,7 +9,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.TraceableEntity;
-import net.minecraft.world.entity.animal.Parrot;
+import net.minecraft.world.entity.animal.parrot.Parrot;
 import nu.metacraft.better_pets.TameableExtension;
 
 @Mixin(LivingEntity.class)

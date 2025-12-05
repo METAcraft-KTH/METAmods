@@ -7,7 +7,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dialog.action.Action;
 import net.minecraft.world.entity.player.Player;
@@ -28,7 +28,7 @@ public class CustomMessageRegistry {
 
 	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	public static boolean handleAction(
-			ResourceLocation id, Optional<Tag> payload, MinecraftServer server, PotentialPlayer player
+			Identifier id, Optional<Tag> payload, MinecraftServer server, PotentialPlayer player
 	) {
 		return CustomMessageRegistry.REGISTRY.get(id).map(handler -> {
 			handler.value().handleMessage(payload, server, player);

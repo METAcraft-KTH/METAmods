@@ -4,8 +4,8 @@ import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.ChatFormatting;
-import net.minecraft.advancements.critereon.EntityPredicate;
-import net.minecraft.advancements.critereon.EntityTypePredicate;
+import net.minecraft.advancements.criterion.EntityPredicate;
+import net.minecraft.advancements.criterion.EntityTypePredicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -24,7 +24,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.item.FallingBlockEntity;
-import net.minecraft.world.entity.projectile.ThrownEnderpearl;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -42,12 +42,14 @@ import nu.metacraft.core.util.TeleportPredicate;
 import nu.metacraft.dungeons.METAcraftDungeons;
 import nu.metacraft.dungeons.Tags;
 import nu.metacraft.dungeons.compat.SquaremapCompat;
+import nu.metacraft.lib.util.SavedDataTypeCache;
 import nu.metacraft.lib.util.helper.DisconnectedPlayerHelper;
 import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.lib.time_getter.RegularTimeGetter;
 import nu.metacraft.lib.util.PositionFinder;
 import nu.metacraft.dungeons.util.WorldDeleter;
 import nu.metacraft.lib.util.helper.TeleportHelper;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -58,10 +60,16 @@ public class DungeonData extends SavedData {
 
 	private static final String key = METAcraftDungeons.MODID;
 
-	private static final SavedDataType<DungeonData> TYPE = new SavedDataType<>(
-			key, ctx -> create(ctx.levelOrThrow()),
-			ctx -> createCodec(ctx.levelOrThrow()), null
+	private static final SavedDataTypeCache.Type<DungeonData> TYPE = new SavedDataTypeCache.Type<>(
+			level -> new SavedDataType<>(
+					key, () -> create(level),
+					createCodec(level), null
+			)
 	);
+
+	private static SavedDataType<@NotNull DungeonData> getType(ServerLevel level) {
+		return SavedDataTypeCache.get(level, TYPE);
+	}
 
 	private static Codec<DungeonData> createCodec(ServerLevel world) {
 		return RecordCodecBuilder.create(
@@ -115,11 +123,11 @@ public class DungeonData extends SavedData {
 
 
 	public static DungeonData getInstance(ServerLevel world) {
-		return world.getDataStorage().computeIfAbsent(TYPE);
+		return world.getDataStorage().computeIfAbsent(getType(world));
 	}
 
 	public static Optional<DungeonData> getIfPresent(ServerLevel world) {
-		return Optional.ofNullable(world.getDataStorage().get(TYPE));
+		return Optional.ofNullable(world.getDataStorage().get(getType(world)));
 	}
 
 	private final ServerLevel world;
@@ -434,7 +442,7 @@ public class DungeonData extends SavedData {
 				for (var player : world.getServer().getPlayerList().getPlayers()) {
 					player.sendSystemMessage(Component.literal("The dungeon portal opens again").withStyle(style -> style.withColor(ChatFormatting.DARK_AQUA)));
 				}
-				METAcraftDungeons.LOGGER.info("Reset of " + world.dimension().location() + " completed.");
+				METAcraftDungeons.LOGGER.info("Reset of " + world.dimension().identifier() + " completed.");
 				for (var entrance : entrancesToReinitialize) {
 					var e = world.getServer().getLevel(entrance.dim).getBlockEntity(entrance.pos);
 					if (e instanceof PortalEntity p) {

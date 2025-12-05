@@ -8,6 +8,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.lib.util.SavedDataTypeCache;
+import org.jetbrains.annotations.NotNull;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 import nu.metacraft.cutscenes.CutsceneDataFixer;
@@ -27,12 +29,18 @@ public class MultiplayerCutsceneManager extends SavedData {
 	private static final Codec<Map<UUID, String>> PLAYER_TO_CUTSCENE = Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.STRING);
 	private static final Codec<Map<UUID, CutsceneInstance>> OFFLINE_PLAYERS = Codec.unboundedMap(UUIDUtil.STRING_CODEC, CutsceneInstance.CODEC);
 
-	private static final SavedDataType<MultiplayerCutsceneManager> TYPE = new SavedDataType<>(
-			"multiplayer-cutscene-manager",
-			ctx -> new MultiplayerCutsceneManager(ctx.levelOrThrow().getServer()),
-			ctx -> createCodec(ctx.levelOrThrow().getServer()),
-			CutsceneDataFixer.Types.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
+	private static final SavedDataTypeCache.Type<@NotNull MultiplayerCutsceneManager> TYPE = new SavedDataTypeCache.Type<>(
+			l -> new SavedDataType<>(
+					"multiplayer-cutscene-manager",
+					() -> new MultiplayerCutsceneManager(l.getServer()),
+					createCodec(l.getServer()),
+					CutsceneDataFixer.Types.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
+			)
 	);
+
+	private static SavedDataType<@NotNull MultiplayerCutsceneManager> getType(MinecraftServer server) {
+		return SavedDataTypeCache.get(server, TYPE);
+	}
 
 	private static Codec<MultiplayerCutsceneManager> createCodec(MinecraftServer server) {
 		return RecordCodecBuilder.create(
@@ -65,7 +73,7 @@ public class MultiplayerCutsceneManager extends SavedData {
 	}
 
 	public static MultiplayerCutsceneManager getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(getType(server));
 	}
 
 	private final MinecraftServer server;

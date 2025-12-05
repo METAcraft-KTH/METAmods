@@ -31,7 +31,7 @@ public class Events {
 					var tracker = original.get(DataComponents.LODESTONE_TRACKER);
 					if (tracker != null && tracker.target().isPresent()) {
 						var targetPos = tracker.target().get().pos().toShortString();
-						var targetDim = tracker.target().get().dimension().location().toString();
+						var targetDim = tracker.target().get().dimension().identifier().toString();
 						client.update(
 								DataComponents.LORE, ItemLore.EMPTY,
 								lore -> lore.withLineAdded(

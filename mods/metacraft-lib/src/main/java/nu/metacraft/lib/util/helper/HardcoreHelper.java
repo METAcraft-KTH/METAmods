@@ -18,7 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.phys.Vec3;
@@ -51,8 +51,8 @@ public class HardcoreHelper {
 						new ClientboundLoginPacket(
 								player.getId(), hardcore, server.levelKeys(),
 								server.getMaxPlayers(), manager.getViewDistance(), manager.getSimulationDistance(),
-								rules.getBoolean(GameRules.RULE_REDUCEDDEBUGINFO), !rules.getBoolean(GameRules.RULE_DO_IMMEDIATE_RESPAWN),
-								rules.getBoolean(GameRules.RULE_LIMITED_CRAFTING),
+								rules.get(GameRules.REDUCED_DEBUG_INFO), !rules.get(GameRules.IMMEDIATE_RESPAWN),
+								rules.get(GameRules.LIMITED_CRAFTING),
 								player.createCommonSpawnInfo(world), false
 						),
 						new ClientboundRespawnPacket(player.createCommonSpawnInfo(world), (byte) 3),

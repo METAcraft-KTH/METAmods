@@ -1,6 +1,6 @@
 package nu.metacraft.cutscenes;
 
-import net.minecraft.FileUtil;
+import net.minecraft.util.FileUtil;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
 import nu.metacraft.cutscenes.cutscene.Cutscene;

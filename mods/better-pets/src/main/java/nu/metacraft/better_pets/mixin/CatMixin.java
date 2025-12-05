@@ -6,7 +6,7 @@ import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.animal.Cat;
+import net.minecraft.world.entity.animal.feline.Cat;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,7 +18,7 @@ public class CatMixin {
 	@ModifyExpressionValue(
 		method = "mobInteract",
 		at = @At(
-			value = "INVOKE", target = "Lnet/minecraft/world/entity/animal/Cat;isOwnedBy(Lnet/minecraft/world/entity/LivingEntity;)Z"
+			value = "INVOKE", target = "Lnet/minecraft/world/entity/animal/feline/Cat;isOwnedBy(Lnet/minecraft/world/entity/LivingEntity;)Z"
 		)
 	)
 	public boolean isTrusted(

@@ -9,7 +9,7 @@ import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
@@ -48,7 +48,7 @@ public class ChunkAreaRegistry {
 	}
 
 	private static <T extends ChunkArea> MapCodec<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), codec);
+		return Registry.register(REGISTRY, Identifier.withDefaultNamespace(id), codec);
 	}
 
 

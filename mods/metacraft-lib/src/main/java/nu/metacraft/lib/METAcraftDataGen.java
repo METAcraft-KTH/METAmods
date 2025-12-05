@@ -8,7 +8,8 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRuleMap;
+import net.minecraft.world.level.gamerules.GameRules;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -31,8 +32,9 @@ public class METAcraftDataGen implements DataGeneratorEntrypoint {
 			entries.add(
 					ResourceKey.create(Registries.TEST_ENVIRONMENT, METAcraftLib.getID("default")),
 					new TestEnvironmentDefinition.SetGameRules(
-							List.of(new TestEnvironmentDefinition.SetGameRules.Entry<>(GameRules.RULE_DOMOBSPAWNING, false)),
-							List.of()
+							new GameRuleMap.Builder().set(
+									GameRules.SPAWN_MOBS, false
+							).build()
 					)
 			);
 		}

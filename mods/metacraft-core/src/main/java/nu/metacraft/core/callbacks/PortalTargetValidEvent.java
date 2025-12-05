@@ -3,7 +3,7 @@ package nu.metacraft.core.callbacks;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import nu.metacraft.core.METAcraftCore;
@@ -11,8 +11,8 @@ import nu.metacraft.core.block.entities.PortalEntity;
 
 public interface PortalTargetValidEvent {
 
-	ResourceLocation PRE = METAcraftCore.getID("pre");
-	ResourceLocation POST = METAcraftCore.getID("post");
+	Identifier PRE = METAcraftCore.getID("pre");
+	Identifier POST = METAcraftCore.getID("post");
 
 	Event<PortalTargetValidEvent> EVENT = EventFactory.createWithPhases(
 			PortalTargetValidEvent.class, callbacks -> (targetDim, targetPos, portal, teleporting, currentlyValid) -> {

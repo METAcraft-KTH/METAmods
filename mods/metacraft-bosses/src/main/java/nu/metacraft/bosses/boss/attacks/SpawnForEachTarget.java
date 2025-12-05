@@ -8,7 +8,7 @@ import nu.metacraft.lib.util.helper.EntityHelper;
 
 import java.util.List;
 import java.util.Optional;
-import net.minecraft.advancements.critereon.EntityPredicate;
+import net.minecraft.advancements.criterion.EntityPredicate;
 import net.minecraft.util.random.WeightedList;
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;

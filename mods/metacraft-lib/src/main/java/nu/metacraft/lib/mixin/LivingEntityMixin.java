@@ -20,7 +20,7 @@ import net.minecraft.world.entity.ai.behavior.StartAttacking;
 import net.minecraft.world.entity.ai.behavior.StopAttackingIfTargetInvalid;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.sensing.Sensor;
-import net.minecraft.world.entity.animal.Chicken;
+import net.minecraft.world.entity.animal.chicken.Chicken;
 import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;

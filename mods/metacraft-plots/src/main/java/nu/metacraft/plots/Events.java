@@ -8,7 +8,7 @@ public class Events {
 
 	public static void init() {
 		RecipeLoad.EVENT.register((id, json, recipe, registryLookup) -> {
-			if (id.location().equals(METAcraftPlots.getID("authorise_secondary_key")) && recipe instanceof CraftingRecipe crafting) {
+			if (id.identifier().equals(METAcraftPlots.getID("authorise_secondary_key")) && recipe instanceof CraftingRecipe crafting) {
 				return new AuthoriseSecondaryKeyRecipe(crafting);
 			}
 			return recipe;

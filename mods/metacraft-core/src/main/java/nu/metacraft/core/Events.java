@@ -62,7 +62,7 @@ public class Events {
 							var movement = targetPos.subtract(e.position());
 							e.setDeltaMovement(movement);
 						}
-						e.hasImpulse = true;
+						e.needsSync = true;
 					}
 				});
 			}

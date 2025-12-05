@@ -8,6 +8,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.lib.util.SavedDataTypeCache;
 import nu.metacraft.portal_blocker.portal_type.PortalType;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
 import nu.metacraft.portal_blocker.zone.PortalZoneData;
@@ -26,12 +27,14 @@ public class PortalBlockerSettings extends SavedData {
 	);
 
 	public static PortalBlockerSettings getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
 	}
 
-	private static final SavedDataType<PortalBlockerSettings> TYPE = new SavedDataType<>(
-			"portal-blocker", ctx -> createNew(ctx.levelOrThrow().getServer()),
-			ctx -> createCodec(ctx.levelOrThrow().getServer()), null
+	private static final SavedDataTypeCache.Type<PortalBlockerSettings> TYPE = new SavedDataTypeCache.Type<>(
+			level -> new SavedDataType<>(
+					"portal-blocker", () -> createNew(level.getServer()),
+					createCodec(level.getServer()), null
+			)
 	);
 
 	private static PortalBlockerSettings createNew(MinecraftServer server) {

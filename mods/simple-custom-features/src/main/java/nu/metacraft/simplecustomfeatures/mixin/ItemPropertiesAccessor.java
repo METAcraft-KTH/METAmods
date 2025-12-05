@@ -1,7 +1,7 @@
 package nu.metacraft.simplecustomfeatures.mixin;
 
 import net.minecraft.resources.DependantName;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
@@ -10,6 +10,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface ItemPropertiesAccessor {
 
 	@Accessor
-	void setModel(DependantName<Item, ResourceLocation> id);
+	void setModel(DependantName<Item, Identifier> id);
 
 }

@@ -3,7 +3,7 @@ package nu.metacraft.moderation.exile.rules;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.moderation.METAcraftModeration;
 
 public class ZoneRuleRegistry {
@@ -15,7 +15,7 @@ public class ZoneRuleRegistry {
 
 
 	private static <T extends ZoneRule> T register(String id, T value) {
-		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), value);
+		return Registry.register(REGISTRY, Identifier.withDefaultNamespace(id), value);
 	}
 
 	public static void init() {

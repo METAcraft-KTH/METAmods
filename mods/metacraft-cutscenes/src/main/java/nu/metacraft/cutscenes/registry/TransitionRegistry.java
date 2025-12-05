@@ -5,7 +5,7 @@ import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.transitions.*;
 import nu.metacraft.cutscenes.transitions.entity.*;
@@ -173,7 +173,7 @@ public class TransitionRegistry {
 	}
 
 	private static <T extends Transition> TransitionType<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), new TransitionType<>(codec));
+		return Registry.register(REGISTRY, Identifier.withDefaultNamespace(id), new TransitionType<>(codec));
 	}
 
 }

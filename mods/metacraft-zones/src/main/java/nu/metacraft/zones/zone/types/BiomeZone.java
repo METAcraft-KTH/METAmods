@@ -126,7 +126,7 @@ public class BiomeZone extends ZoneType {
 	@Override
 	public String toString() {
 		return "Biome[" + biome.map(entry -> entry.unwrap().map(
-				key -> key.location().toString(),
+				key -> key.identifier().toString(),
 				Object::toString
 		), tag -> tag.location().toString()) + "]";
 	}

@@ -9,7 +9,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.ExtraCodecs;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
@@ -37,15 +37,15 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 	private static final String ID = "id";
 	private static final String OBJECT = "object";
 
-	protected final ResourceLocation id;
+	protected final Identifier id;
 
-	public ObjectContainer(ResourceLocation id) {
+	public ObjectContainer(Identifier id) {
 		this.id = id;
 	}
 
 	public abstract DataResult<? extends ObjectType<?, ?>> getType();
 
-	public ResourceLocation getID() {
+	public Identifier getID() {
 		return id;
 	}
 
@@ -53,7 +53,7 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 
 		public static final Codec<Deferred> DEFERRED_CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						ResourceLocation.CODEC.fieldOf(ID).forGetter(o -> o.id),
+						Identifier.CODEC.fieldOf(ID).forGetter(o -> o.id),
 						ExtraCodecs.JAVA.fieldOf(OBJECT).forGetter(o -> o.rawObject)
 				).apply(instance, Deferred::new)
 		);
@@ -61,7 +61,7 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 		private final Object rawObject;
 		private Optional<Loaded<?>> partial;
 
-		public Deferred(ResourceLocation id, Object rawObject) {
+		public Deferred(Identifier id, Object rawObject) {
 			super(id);
 			this.rawObject = rawObject;
 			this.partial = BaseObject.REGISTRY_CODEC.parse(
@@ -78,7 +78,7 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 			if (rawObject instanceof Map<?,?> map) {
 				var type = map.get("type");
 				if (type instanceof String key) {
-					return Optional.ofNullable(ObjectRegistry.REGISTRY.getValue(ResourceLocation.tryParse(key))).map(
+					return Optional.ofNullable(ObjectRegistry.REGISTRY.getValue(Identifier.tryParse(key))).map(
 							DataResult::success
 					).orElse(DataResult.error(() -> parseErrorStart() + ", " + type + " is not a valid registered object type"));
 				} else {
@@ -122,21 +122,21 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 
 		public static final Codec<Loaded<?>> LOADED_CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						ResourceLocation.CODEC.fieldOf(ID).forGetter(o -> o.id),
+						Identifier.CODEC.fieldOf(ID).forGetter(o -> o.id),
 						BaseObject.REGISTRY_CODEC.fieldOf(OBJECT).forGetter(o -> o.object)
 				).apply(instance, Loaded::new)
 		);
 
 		private final BaseObject<T> object;
 		private T actualObject;
-		private final Multimap<ResourceLocation, Child<?>> children = HashMultimap.create();
+		private final Multimap<Identifier, Child<?>> children = HashMultimap.create();
 
-		public Loaded(ResourceLocation id, BaseObject<T> object) {
+		public Loaded(Identifier id, BaseObject<T> object) {
 			super(id);
 			this.object = object;
 		}
 
-		private static <T> void register(ResourceLocation id, BaseObject<T> baseObject, Consumer<T> onSuccess, @Nullable HolderLookup.Provider lookup) {
+		private static <T> void register(Identifier id, BaseObject<T> baseObject, Consumer<T> onSuccess, @Nullable HolderLookup.Provider lookup) {
 			var key = ResourceKey.create(baseObject.getType().getRegistry().key(), id);
 			baseObject.createObject(key, lookup).resultOrPartial(
 					message -> {
@@ -164,7 +164,7 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 			);
 		}
 
-		private <S> void registerChild(ResourceLocation id, BaseObject<S> baseObject, @Nullable HolderLookup.Provider lookup) {
+		private <S> void registerChild(Identifier id, BaseObject<S> baseObject, @Nullable HolderLookup.Provider lookup) {
 			register(id, baseObject, object -> {
 				children.put(id, new Child<>(baseObject, object));
 			}, lookup);
@@ -207,7 +207,7 @@ public abstract sealed class ObjectContainer permits ObjectContainer.Deferred, O
 			return actualObject;
 		}
 
-		public Multimap<ResourceLocation, Child<?>> getChildren() {
+		public Multimap<Identifier, Child<?>> getChildren() {
 			return children;
 		}
 

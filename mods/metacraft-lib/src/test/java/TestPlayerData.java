@@ -7,7 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.util.datafix.fixes.References;
 import net.minecraft.world.InteractionHand;
@@ -64,7 +64,7 @@ public class TestPlayerData {
 					pearlInWorld.setNoGravity(true);
 					pearlInWorld.setDeltaMovement(Vec3.ZERO);
 
-					final ResourceLocation temp = ResourceLocation.fromNamespaceAndPath("test", "test");
+					final Identifier temp = Identifier.fromNamespaceAndPath("test", "test");
 					PlayerDataHelper.saveCurrentPlayerData(player, temp);
 					PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
 					PlayerDataHelper.resetPlayerData(player);
@@ -105,7 +105,7 @@ public class TestPlayerData {
 					var player = TestHelper.addMockPlayer(ctx, test, id);
 					player.getInventory().setItem(5, new ItemStack(Items.DIAMOND));
 
-					final ResourceLocation temp = ResourceLocation.fromNamespaceAndPath("test", "test");
+					final Identifier temp = Identifier.fromNamespaceAndPath("test", "test");
 					PlayerDataHelper.saveCurrentPlayerData(player, temp);
 					PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
 					PlayerDataHelper.resetPlayerData(player);
@@ -154,7 +154,7 @@ public class TestPlayerData {
 						var oldPlayerData = TagParser.parseCompoundFully("{seenCredits: 0b, EnderItems: [], ShoulderEntityLeft: {}, ShoulderEntityRight: {}, Inventory: [], DataVersion: 3955}");
 						var version = NbtUtils.getDataVersion(oldPlayerData, 1343);
 
-						var id = ResourceLocation.fromNamespaceAndPath("test", "test");
+						var id = Identifier.fromNamespaceAndPath("test", "test");
 						CompoundTag dataMap = new CompoundTag();
 						dataMap.put(id.toString(), oldPlayerDataWithItem);
 						oldPlayerData.put(PlayerDataHelper.PLAYER_DATA_ELEMENT, dataMap);

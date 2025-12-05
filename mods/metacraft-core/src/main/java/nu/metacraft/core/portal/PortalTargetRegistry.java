@@ -5,7 +5,7 @@ import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.core.METAcraftCore;
 
 public class PortalTargetRegistry {
@@ -32,7 +32,7 @@ public class PortalTargetRegistry {
 
 
 	private static <T extends PortalTargetType<? extends PortalTarget>> T register(String id, T object) {
-		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), object);
+		return Registry.register(REGISTRY, Identifier.withDefaultNamespace(id), object);
 	}
 
 	public record PortalTargetType<T extends PortalTarget>(MapCodec<T> codec) {

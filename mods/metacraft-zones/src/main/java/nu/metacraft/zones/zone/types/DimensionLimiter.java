@@ -60,6 +60,6 @@ public class DimensionLimiter extends ZoneType {
 
 	@Override
 	public String toString() {
-		return "DimensionLimiter[dimension=" + dimension.location() + "]";
+		return "DimensionLimiter[dimension=" + dimension.identifier() + "]";
 	}
 }

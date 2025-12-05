@@ -18,7 +18,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.world.item.crafting.Recipe;
@@ -37,7 +37,7 @@ public class SimpleJsonResourceReloadListenerMixin {
 	)
 	private static <T> void load(
 			ResourceManager manager, FileToIdConverter finder, DynamicOps<JsonElement> ops, Codec<T> codec,
-			Map<ResourceLocation, T> results, CallbackInfo ci
+			Map<Identifier, T> results, CallbackInfo ci
 	) {
 		if (ops instanceof RegistryOpsAccessor r) {
 			var getter = r.getLookupProvider();
@@ -67,11 +67,11 @@ public class SimpleJsonResourceReloadListenerMixin {
 			)
 	)
 	private static Object load(
-			Map<ResourceLocation, ?> instance, Object key, Object value, Operation<Object> original
+			Map<Identifier, ?> instance, Object key, Object value, Operation<Object> original
 	) {
 		if (lookup.get() != null && value instanceof Recipe<?> r && element.get().isJsonObject()) {
 			var result = RecipeLoad.EVENT.invoker().modify(
-					ResourceKey.create(Registries.RECIPE, (ResourceLocation) key),
+					ResourceKey.create(Registries.RECIPE, (Identifier) key),
 					element.get().getAsJsonObject(), r, lookup.get()
 			);
 			if (result != null) {
@@ -90,7 +90,7 @@ public class SimpleJsonResourceReloadListenerMixin {
 	)
 	private static <T> void cleanup(
 			ResourceManager manager, FileToIdConverter finder, DynamicOps<JsonElement> ops,
-            Codec<T> codec, Map<ResourceLocation, T> results, CallbackInfo ci
+            Codec<T> codec, Map<Identifier, T> results, CallbackInfo ci
 	) {
 		lookup.remove();
 		element.remove();

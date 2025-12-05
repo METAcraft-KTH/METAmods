@@ -12,7 +12,7 @@ import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.DependantName;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -45,7 +45,7 @@ public interface BaseItem extends BaseObject<Item> {
 	);
 
 	record ItemSettings(DataComponentMap components, Optional<Holder<Item>> recipeRemainder) {
-		public DataResult<Item.Properties> makeSettings(ResourceKey<Item> key, ResourceLocation displayModel) {
+		public DataResult<Item.Properties> makeSettings(ResourceKey<Item> key, Identifier displayModel) {
 			return ItemStack.validateComponents(components).map(
 					success -> {
 						var settings = new Item.Properties();
@@ -73,7 +73,7 @@ public interface BaseItem extends BaseObject<Item> {
 	}
 
 	record ItemSettingsWithBaseItem(Holder<Item> baseItem, DataComponentPatch components, Optional<Holder<Item>> recipeRemainder) {
-		public DataResult<Item.Properties> makeSettings(ResourceKey<Item> key, ResourceLocation displayModel) {
+		public DataResult<Item.Properties> makeSettings(ResourceKey<Item> key, Identifier displayModel) {
 			var defaultComponents = DataComponentMap.builder();
 			for (var c : baseItem.value().components()) {
 				if (c.type() == DataComponents.ITEM_MODEL || c.type() == DataComponents.ITEM_NAME) {
@@ -87,16 +87,16 @@ public interface BaseItem extends BaseObject<Item> {
 		}
 	}
 
-	static ResourceLocation getModel(Item item) {
+	static Identifier getModel(Item item) {
 		return item.components().get(DataComponents.ITEM_MODEL);
 	}
 
-	static ResourceLocation getModel(Holder<Item> item) {
+	static Identifier getModel(Holder<Item> item) {
 		return getModel(item.value());
 	}
 
 	@Override
-	default void onRegistrationFail(ResourceLocation id, Item value) {
+	default void onRegistrationFail(Identifier id, Item value) {
 		RegistryHelper.removeIntrusiveEntry(BuiltInRegistries.ITEM, value);
 	}
 

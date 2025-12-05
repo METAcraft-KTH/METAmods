@@ -7,7 +7,7 @@ import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer;
 import net.minecraft.core.Holder;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -71,7 +71,7 @@ public record CustomDisplayIngredient(Ingredient base, List<ItemStack> display) 
 		);
 
 		@Override
-		public ResourceLocation getIdentifier() {
+		public Identifier getIdentifier() {
 			return METAcraftLib.getID("custom_display");
 		}
 

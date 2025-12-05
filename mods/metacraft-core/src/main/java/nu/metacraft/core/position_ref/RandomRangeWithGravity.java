@@ -9,8 +9,8 @@ import nu.metacraft.lib.util.METACodecs;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
-import net.minecraft.advancements.critereon.FluidPredicate;
-import net.minecraft.advancements.critereon.MinMaxBounds;
+import net.minecraft.advancements.criterion.FluidPredicate;
+import net.minecraft.advancements.criterion.MinMaxBounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;

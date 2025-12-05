@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.mojang.authlib.GameProfile;
 import com.mojang.serialization.Dynamic;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
@@ -46,13 +46,12 @@ import net.minecraft.world.entity.monster.CrossbowAttackMob;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.PlayerModelPart;
-import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.CrossbowItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ProjectileWeaponItem;
 import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
@@ -400,8 +399,9 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 	protected void updateNoActionTime() {}
 
 	@Override
-	public boolean canFireProjectileWeapon(ProjectileWeaponItem weapon) {
-		return weapon instanceof BowItem || weapon instanceof CrossbowItem;
+	public boolean canUseNonMeleeWeapon(ItemStack stack) {
+		var item = stack.getItem();
+		return item instanceof BowItem || item instanceof CrossbowItem;
 	}
 
 	@Override
@@ -697,7 +697,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		for (int i = 0; i < data.size(); i++) {
 			SynchedDataHelper.replace(
 					data, i, MobAccessor.getMobFlags(), AvatarAccessor.getMainArm(),
-					flags -> (byte) (isLeftHanded() ? HumanoidArm.LEFT.getId() : HumanoidArm.RIGHT.getId())
+					flags -> isLeftHanded() ? HumanoidArm.LEFT : HumanoidArm.RIGHT
 			);
 			SynchedDataHelper.replace(data, i, PLAYER_MODEL_PARTS, AvatarAccessor.getModelParts());
 		}

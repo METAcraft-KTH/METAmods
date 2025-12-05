@@ -9,13 +9,13 @@ import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 
 public class TrustPlayerSelector extends MultiplePlayerSelector {
-	public static final FontDescription MENU_FONT = new FontDescription.Resource(ResourceLocation.fromNamespaceAndPath("metacraft", "pet_gui"));
+	public static final FontDescription MENU_FONT = new FontDescription.Resource(Identifier.fromNamespaceAndPath("metacraft", "pet_gui"));
 
 	private final TameableExtension tameable;
 

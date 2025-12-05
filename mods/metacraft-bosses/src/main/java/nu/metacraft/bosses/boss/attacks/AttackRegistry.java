@@ -3,7 +3,7 @@ package nu.metacraft.bosses.boss.attacks;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.bosses.METAcraftBosses;
 import nu.metacraft.bosses.boss.attacks.target.*;
 
@@ -39,7 +39,7 @@ public class AttackRegistry {
 	}
 
 	private static AttackType register(String id, AttackType type) {
-		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), type);
+		return Registry.register(REGISTRY, Identifier.withDefaultNamespace(id), type);
 	}
 
 	public static class PTS {
@@ -74,7 +74,7 @@ public class AttackRegistry {
 		}
 
 		private static PositionTargetSelectorType register(String id, PositionTargetSelectorType type) {
-			return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), type);
+			return Registry.register(REGISTRY, Identifier.withDefaultNamespace(id), type);
 		}
 	}
 }

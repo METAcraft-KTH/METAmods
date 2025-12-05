@@ -8,9 +8,9 @@ import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.vehicle.AbstractMinecart;
-import net.minecraft.world.entity.vehicle.MinecartBehavior;
-import net.minecraft.world.entity.vehicle.OldMinecartBehavior;
+import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.minecart.MinecartBehavior;
+import net.minecraft.world.entity.vehicle.minecart.OldMinecartBehavior;
 import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.PoweredRailBlock;
@@ -70,7 +70,7 @@ public abstract class OldMinecartBehaviorMixin extends MinecartBehavior {
 		((MinecartExtensions) minecart).fasterMinecarts$setYawFixed();
 	}
 
-	@WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/vehicle/OldMinecartBehavior;moveAlongTrack(Lnet/minecraft/server/level/ServerLevel;)V"))
+	@WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/vehicle/minecart/OldMinecartBehavior;moveAlongTrack(Lnet/minecraft/server/level/ServerLevel;)V"))
 	public void moveMinecartsSeveralTimesPerTick(
 			OldMinecartBehavior instance, ServerLevel world, Operation<Void> moveOnRail,
 			@Share("shouldUseActivatorRail") LocalBooleanRef shouldUseActivatorRail
@@ -140,7 +140,7 @@ public abstract class OldMinecartBehaviorMixin extends MinecartBehavior {
 				}
 
 				if (railState.is(Blocks.ACTIVATOR_RAIL)) {
-					minecart.activateMinecart(railPos.getX(), railPos.getY(), railPos.getZ(), railState.getValue(PoweredRailBlock.POWERED));
+					minecart.activateMinecart(world, railPos.getX(), railPos.getY(), railPos.getZ(), railState.getValue(PoweredRailBlock.POWERED));
 				}
 			}
 

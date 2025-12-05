@@ -5,7 +5,7 @@ import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.ai.village.poi.PoiType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ToolMaterial;
@@ -35,7 +35,7 @@ public class ObjectRegistry {
 	public static final ObjectType<ArmorMaterialRegistry.MaterialObject, ArmorMaterial> ARMOR_MATERIAL = register("armor_material", ArmorMaterialRegistry.MaterialObject.CODEC, ArmorMaterialRegistry.REGISTRY);
 	public static final ObjectType<ToolMaterialRegistry.MaterialObject, ToolMaterial> TOOL_MATERIAL = register("tool_material", ToolMaterialRegistry.MaterialObject.CODEC, ToolMaterialRegistry.REGISTRY);
 
-	public static <T extends BaseObject<R>, R> ObjectType<T, R> register(ResourceLocation id, MapCodec<T> objectType, Registry<R> registry) {
+	public static <T extends BaseObject<R>, R> ObjectType<T, R> register(Identifier id, MapCodec<T> objectType, Registry<R> registry) {
 		return Registry.register(REGISTRY, id, new ObjectType<T, R>() {
 			@Override
 			public MapCodec<T> getCodec() {
@@ -50,7 +50,7 @@ public class ObjectRegistry {
 	}
 
 	private static <T extends BaseObject<R>, R> ObjectType<T, R> register(String id, MapCodec<T> objectType, Registry<R> registry) {
-		return register(ResourceLocation.withDefaultNamespace(id), objectType, registry);
+		return register(Identifier.withDefaultNamespace(id), objectType, registry);
 	}
 
 	public static void init() {

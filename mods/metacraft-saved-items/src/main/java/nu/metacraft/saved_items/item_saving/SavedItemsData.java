@@ -5,7 +5,7 @@ import com.google.common.collect.MultimapBuilder;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.advancements.criterion.ItemPredicate;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -13,7 +13,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.world.damagesource.DamageSource;
@@ -22,6 +22,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.lib.util.SavedDataTypeCache;
 import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.saved_items.SavedItemsConfig;
@@ -36,10 +37,12 @@ import java.util.stream.Stream;
 public class SavedItemsData extends SavedData {
 
 	public static final String ITEMS = "Items"; //Careful, this is used by a datafixer!
-	private static final SavedDataType<SavedItemsData> TYPE = new SavedDataType<>(
-			SavedItems.MODID, ctx -> create(ctx.levelOrThrow().getServer()),
-			ctx -> createCodec(ctx.levelOrThrow().getServer()),
-			SavedItemsDataFixer.Types.SAVED_DATA_SAVED_ITEMS
+	private static final SavedDataTypeCache.Type<SavedItemsData> TYPE = new SavedDataTypeCache.Type<>(
+			level -> new SavedDataType<>(
+					SavedItems.MODID, () -> create(level.getServer()),
+					createCodec(level.getServer()),
+					SavedItemsDataFixer.Types.SAVED_DATA_SAVED_ITEMS
+			)
 	);
 
 	private static final Codec<Multimap<Item, SavedItemEntry>> CODEC = METACodecs.unboundedMultimap(
@@ -56,7 +59,7 @@ public class SavedItemsData extends SavedData {
 	}
 
 	public static SavedItemsData getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
 	}
 
 	private final Multimap<Item, SavedItemEntry> items = MultimapBuilder.hashKeys().arrayListValues().build();
@@ -67,14 +70,14 @@ public class SavedItemsData extends SavedData {
 		this.server = server;
 	}
 
-	public static final SavedItemsConfig.SavingType DESPAWN_TYPE = SavedItemsConfig.SavingType.of(ResourceLocation.withDefaultNamespace("despawn"));
-	public static final SavedItemsConfig.SavingType ANY_DAMAGE = SavedItemsConfig.SavingType.of(ResourceLocation.withDefaultNamespace("any_damage"));
-	public static final SavedItemsConfig.SavingType ANY = SavedItemsConfig.SavingType.of(ResourceLocation.withDefaultNamespace("any"));
+	public static final SavedItemsConfig.SavingType DESPAWN_TYPE = SavedItemsConfig.SavingType.of(Identifier.withDefaultNamespace("despawn"));
+	public static final SavedItemsConfig.SavingType ANY_DAMAGE = SavedItemsConfig.SavingType.of(Identifier.withDefaultNamespace("any_damage"));
+	public static final SavedItemsConfig.SavingType ANY = SavedItemsConfig.SavingType.of(Identifier.withDefaultNamespace("any"));
 
 	public static SavedItemsConfig.SavingType getForDamageType(DamageSource source) {
 		return SavedItemsConfig.SavingType.of(
-				source.typeHolder().unwrapKey().map(ResourceKey::location).orElse(
-						ResourceLocation.fromNamespaceAndPath("error", "unable_to_determine_damage_type_id")
+				source.typeHolder().unwrapKey().map(ResourceKey::identifier).orElse(
+						Identifier.fromNamespaceAndPath("error", "unable_to_determine_damage_type_id")
 				)
 		);
 	}
@@ -100,7 +103,7 @@ public class SavedItemsData extends SavedData {
 			return registry.get(typeGroup.key().right().get()).map(
 					entryList -> entryList.stream().filter(
 							entry -> entry.unwrapKey().isPresent()
-					).map(entry -> SavedItemsConfig.SavingType.of(entry.unwrapKey().get().location()))
+					).map(entry -> SavedItemsConfig.SavingType.of(entry.unwrapKey().get().identifier()))
 			).orElse(Stream.empty());
 		} else {
 			return Stream.empty();

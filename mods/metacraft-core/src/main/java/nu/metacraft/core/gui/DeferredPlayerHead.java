@@ -4,7 +4,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTextures;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.GuiInterface;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;

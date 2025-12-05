@@ -1,6 +1,7 @@
 package nu.metacraft.core.mixin;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -24,7 +25,7 @@ public class FireworkRocketItemMixin {
 			cancellable = true
 	)
 	public void use(Level level, Player player, InteractionHand hand, CallbackInfoReturnable<InteractionResult> cir) {
-		if (!level.getServer().getGameRules().getBoolean(METAcraftGameRules.FIREWORK_BOOSTING)) {
+		if (level instanceof ServerLevel s && !s.getGameRules().get(METAcraftGameRules.FIREWORK_BOOSTING)) {
 			player.displayClientMessage(
 					Component.translatableWithFallback(
 							"message.metacraft.gamerule.firework_boosting_disabled",

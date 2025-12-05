@@ -5,9 +5,9 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.block.Portal;
 import nu.metacraft.portal_blocker.Commands;
@@ -39,7 +39,7 @@ public class PortalType {
 
 	public void onGlobalStateChange(MinecraftServer server, boolean newState, PortalState.BlockingType type) {}
 
-	public final ResourceLocation getID() {
+	public final Identifier getID() {
 		var id = PortalTypeRegistry.REGISTRY.getKey(this);
 		if (id != null) {
 			return id;
@@ -48,8 +48,8 @@ public class PortalType {
 		}
 	}
 
-	public static RequiredArgumentBuilder<CommandSourceStack, ResourceLocation> argument(String name) {
-		return net.minecraft.commands.Commands.argument(name, ResourceLocationArgument.id()).suggests((context, builder) -> {
+	public static RequiredArgumentBuilder<CommandSourceStack, Identifier> argument(String name) {
+		return net.minecraft.commands.Commands.argument(name, IdentifierArgument.id()).suggests((context, builder) -> {
 			PortalTypeRegistry.REGISTRY.forEach(value -> {
 				builder.suggest(Commands.getIDAsString(value.getID()));
 			});
@@ -58,7 +58,7 @@ public class PortalType {
 	}
 
 	public static PortalType getArgument(CommandContext<CommandSourceStack> context, String name) throws CommandSyntaxException {
-		var type = PortalTypeRegistry.REGISTRY.getValue(ResourceLocationArgument.getId(context, name));
+		var type = PortalTypeRegistry.REGISTRY.getValue(IdentifierArgument.getId(context, name));
 		if (type == null) {
 			throw INVALID_PORTAL.create();
 		}

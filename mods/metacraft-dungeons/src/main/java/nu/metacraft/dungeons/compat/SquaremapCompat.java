@@ -9,7 +9,7 @@ import xyz.jpenilla.squaremap.common.data.MapWorldInternal;
 public class SquaremapCompat {
 
 	public static void disableRenderer(ResourceKey<Level> dim) {
-		SquaremapProvider.get().getWorldIfEnabled(WorldIdentifier.parse(dim.location().toString())).ifPresent(world -> {
+		SquaremapProvider.get().getWorldIfEnabled(WorldIdentifier.parse(dim.identifier().toString())).ifPresent(world -> {
 			if (world instanceof MapWorldInternal internal) {
 				internal.renderManager().pauseRenders(true);
 				if (internal.renderManager().isRendering()) {

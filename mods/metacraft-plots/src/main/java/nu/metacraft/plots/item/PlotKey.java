@@ -6,7 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,9 +31,9 @@ import java.util.function.Consumer;
 
 public class PlotKey extends Item implements PolymerItem {
 
-	private final BiFunction<ItemStack, MinecraftServer, ResourceLocation> modelIdGetter;
+	private final BiFunction<ItemStack, MinecraftServer, Identifier> modelIdGetter;
 
-	public PlotKey(Item.Properties settings, BiFunction<ItemStack, MinecraftServer, ResourceLocation> modelIdGetter) {
+	public PlotKey(Item.Properties settings, BiFunction<ItemStack, MinecraftServer, Identifier> modelIdGetter) {
 		super(settings);
 		this.modelIdGetter = modelIdGetter;
 	}
@@ -207,7 +207,7 @@ public class PlotKey extends Item implements PolymerItem {
 	}
 
 	@Override
-	public ResourceLocation getPolymerItemModel(ItemStack itemStack, PacketContext ctx) {
+	public Identifier getPolymerItemModel(ItemStack itemStack, PacketContext ctx) {
 		return modelIdGetter.apply(itemStack, Optional.ofNullable(ctx.getPlayer()).map(player -> player.level().getServer()).orElse(null));
 	}
 

@@ -7,10 +7,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.vehicle.AbstractMinecart;
-import net.minecraft.world.entity.vehicle.MinecartBehavior;
-import net.minecraft.world.entity.vehicle.NewMinecartBehavior;
-import net.minecraft.world.entity.vehicle.OldMinecartBehavior;
+import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.minecart.MinecartBehavior;
+import net.minecraft.world.entity.vehicle.minecart.NewMinecartBehavior;
+import net.minecraft.world.entity.vehicle.minecart.OldMinecartBehavior;
 import net.minecraft.world.entity.vehicle.VehicleEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -185,7 +185,7 @@ public abstract class AbstractMinecartMixin extends VehicleEntity implements Min
 		},
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/entity/vehicle/AbstractMinecart;useExperimentalMovement(Lnet/minecraft/world/level/Level;)Z"
+			target = "Lnet/minecraft/world/entity/vehicle/minecart/AbstractMinecart;useExperimentalMovement(Lnet/minecraft/world/level/Level;)Z"
 		)
 	)
 	public boolean checkIfCart(boolean original) {
@@ -196,7 +196,7 @@ public abstract class AbstractMinecartMixin extends VehicleEntity implements Min
 		method = "createMinecart",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/entity/vehicle/AbstractMinecart;getBehavior()Lnet/minecraft/world/entity/vehicle/MinecartBehavior;"
+			target = "Lnet/minecraft/world/entity/vehicle/minecart/AbstractMinecart;getBehavior()Lnet/minecraft/world/entity/vehicle/minecart/MinecartBehavior;"
 		)
 	)
 	private static <T extends AbstractMinecart> void create(

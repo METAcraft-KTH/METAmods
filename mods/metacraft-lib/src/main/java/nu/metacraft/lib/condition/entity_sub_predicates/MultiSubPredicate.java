@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Function;
-import net.minecraft.advancements.critereon.EntitySubPredicate;
+import net.minecraft.advancements.criterion.EntitySubPredicate;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;

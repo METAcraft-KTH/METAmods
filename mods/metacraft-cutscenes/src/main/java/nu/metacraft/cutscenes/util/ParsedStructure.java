@@ -4,26 +4,26 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 public class ParsedStructure {
 
-	private final Either<ResourceLocation, SerialisedStructure> structure;
+	private final Either<Identifier, SerialisedStructure> structure;
 
 	public static final Codec<ParsedStructure> CODEC = Codec.either(
-			ResourceLocation.CODEC, SerialisedStructure.CODEC
+			Identifier.CODEC, SerialisedStructure.CODEC
 	).xmap(
 			ParsedStructure::new,
 			structure -> structure.structure
 	);
 
-	public ParsedStructure(Either<ResourceLocation, SerialisedStructure> structure) {
+	public ParsedStructure(Either<Identifier, SerialisedStructure> structure) {
 		this.structure = structure;
 	}
 
-	public ParsedStructure(ResourceLocation id) {
+	public ParsedStructure(Identifier id) {
 		this(Either.left(id));
 	}
 

@@ -2,8 +2,8 @@ package nu.metacraft.portal_blocker;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.gamerules.GameRules;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
@@ -24,7 +24,7 @@ public class PortalBlocker implements ModInitializer {
 			boolean netherBlocked = PortalBlockerSettings.getInstance(server).isPortalBlockedGlobally(
 					PortalTypeRegistry.NETHER, PortalState.BlockingType.TRAVEL
 			);
-			if (server.getGameRules().getBoolean(GameRules.RULE_ALLOW_NETHER) == netherBlocked) {
+			if (server.overworld().getGameRules().get(GameRules.ALLOW_ENTERING_NETHER_USING_PORTALS) == netherBlocked) {
 				instance.setPortalBlockedGlobally(
 						PortalTypeRegistry.NETHER, PortalState.BlockingType.TRAVEL,
 						!netherBlocked
@@ -34,7 +34,7 @@ public class PortalBlocker implements ModInitializer {
 		LOGGER.info("Loaded Portal-Blocker by Leddy231 and Acuadragon100");
 	}
 
-	public static ResourceLocation getID(String name) {
-		return ResourceLocation.fromNamespaceAndPath(MODID, name);
+	public static Identifier getID(String name) {
+		return Identifier.fromNamespaceAndPath(MODID, name);
 	}
 }

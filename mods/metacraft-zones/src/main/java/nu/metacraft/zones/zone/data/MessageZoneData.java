@@ -6,6 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.Optional;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.world.entity.Entity;
 
 public class MessageZoneData extends ZoneDataEntityTracking {
@@ -26,7 +27,7 @@ public class MessageZoneData extends ZoneDataEntityTracking {
 	}
 
 	private CommandSourceStack createFromPlayer(ServerPlayer player) {
-		return player.createCommandSourceStack().withPermission(2).withSuppressedOutput();
+		return player.createCommandSourceStack().withPermission(LevelBasedPermissionSet.GAMEMASTER).withSuppressedOutput();
 	}
 
 	@Override

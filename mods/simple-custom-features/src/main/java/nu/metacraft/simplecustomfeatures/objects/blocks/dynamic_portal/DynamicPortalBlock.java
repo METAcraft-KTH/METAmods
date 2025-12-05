@@ -1,10 +1,10 @@
 package nu.metacraft.simplecustomfeatures.objects.blocks.dynamic_portal;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
-import net.minecraft.BlockUtil;
+import net.minecraft.util.BlockUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -15,7 +15,7 @@ import net.minecraft.world.entity.SpawnPlacementTypes;
 import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.entity.ai.village.poi.PoiManager;
 import net.minecraft.world.entity.ai.village.poi.PoiRecord;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.Blocks;
@@ -50,7 +50,7 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 
 	@Override
 	protected void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-		if (world.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {
+		if (world.getGameRules().get(GameRules.SPAWN_MOBS)) {
 			var spawns = portal.getEntitySpawns().get(world.dimension());
 			if (spawns != null && random.nextDouble() <= spawns.spawnChance()) {
 				spawns.entities().getRandom(random).ifPresent(entityData -> {
@@ -141,7 +141,7 @@ public class DynamicPortalBlock extends NetherPortalBlock implements PolymerBloc
 		return getPortalTarget(entity, targetWorld, targetPos, pos);
 	}
 
-	private static void log(ResourceLocation id) {
+	private static void log(Identifier id) {
 		Features.LOGGER.error(
 				"{} is not a valid structure, portal generation cancelled.", id
 		);

@@ -1,5 +1,7 @@
 package nu.metacraft.core.mixin;
 
+import net.minecraft.world.entity.HumanoidArm;
+import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -13,12 +15,12 @@ import net.minecraft.world.entity.Pose;
 public interface AvatarAccessor {
 
 	@Accessor("DATA_PLAYER_MODE_CUSTOMISATION")
-	static EntityDataAccessor<Byte> getModelParts() {
+	static EntityDataAccessor<@NotNull Byte> getModelParts() {
 		throw new IllegalStateException("Mixin Error");
 	}
 
 	@Accessor("DATA_PLAYER_MAIN_HAND")
-	static EntityDataAccessor<Byte> getMainArm() {
+	static EntityDataAccessor<@NotNull HumanoidArm> getMainArm() {
 		throw new IllegalStateException("Mixin Error");
 	}
 

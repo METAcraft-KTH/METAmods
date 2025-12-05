@@ -2,7 +2,7 @@ package nu.metacraft.moderation.mixin;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -107,13 +107,13 @@ public abstract class ServerPlayerMixin extends Player implements ModerationPlay
 						state.updatePlayer((ServerPlayer) (Object) this);
 
 						//TODO Remove these before season 5, they are purely for backwards compatibility.
-						if (nbt.read(PlayerDataHelper.STAT_HANDLER, ResourceLocation.CODEC).isEmpty() && state.getDef().shouldHaveSeparatePlayerData()) {
+						if (nbt.read(PlayerDataHelper.STAT_HANDLER, Identifier.CODEC).isEmpty() && state.getDef().shouldHaveSeparatePlayerData()) {
 							PlayerDataHelper.setStatHandler((ServerPlayer) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
 						}
-						if (nbt.read(PlayerDataHelper.ADVANCEMENT_TRACKER, ResourceLocation.CODEC).isEmpty() && state.getDef().shouldHaveSeparatePlayerData()) {
+						if (nbt.read(PlayerDataHelper.ADVANCEMENT_TRACKER, Identifier.CODEC).isEmpty() && state.getDef().shouldHaveSeparatePlayerData()) {
 							PlayerDataHelper.setAdvancementTracker((ServerPlayer) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
 						}
-						if (nbt.read(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS, ResourceLocation.CODEC).isEmpty() && !state.getDef().announceAdvancements()) {
+						if (nbt.read(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS, Identifier.CODEC).isEmpty() && !state.getDef().announceAdvancements()) {
 							PlayerDataHelper.setAnnounceAdvancements((ServerPlayer) (Object) this, false);
 						}
 					}

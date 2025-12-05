@@ -1,6 +1,6 @@
 package nu.metacraft.simplecustomfeatures.mixin;
 
-import net.minecraft.BlockUtil;
+import net.minecraft.util.BlockUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;

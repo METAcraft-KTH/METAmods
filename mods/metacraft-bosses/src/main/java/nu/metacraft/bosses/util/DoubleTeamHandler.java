@@ -75,7 +75,8 @@ public record DoubleTeamHandler(
 		if (settings.initializeClone.orElse(settings.dataToApply.isEmpty())) {
 			if (clone instanceof Mob mob) {
 				mob.finalizeSpawn(
-						(ServerLevelAccessor) clone.level(), clone.level().getCurrentDifficultyAt(clone.blockPosition()),
+						(ServerLevelAccessor) clone.level(),
+						((ServerLevelAccessor) clone.level()).getCurrentDifficultyAt(clone.blockPosition()),
 						EntitySpawnReason.REINFORCEMENT, this
 				);
 			}

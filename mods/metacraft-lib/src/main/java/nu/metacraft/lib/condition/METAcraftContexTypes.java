@@ -5,7 +5,7 @@ import nu.metacraft.lib.mixin.LootContextParamSetsAccessor;
 
 import java.util.Optional;
 import java.util.function.Consumer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.context.ContextKeySet;
@@ -64,7 +64,7 @@ public class METAcraftContexTypes {
 		ContextKeySet.Builder builder = new ContextKeySet.Builder();
 		type.accept(builder);
 		ContextKeySet lootContextType = builder.build();
-		ResourceLocation identifier = METAcraftLib.getID(id);
+		Identifier identifier = METAcraftLib.getID(id);
 		ContextKeySet lootContextType2 = LootContextParamSetsAccessor.getMap().put(identifier, lootContextType);
 		if (lootContextType2 != null) {
 			throw new IllegalStateException("Loot table parameter set " + identifier + " is already registered");

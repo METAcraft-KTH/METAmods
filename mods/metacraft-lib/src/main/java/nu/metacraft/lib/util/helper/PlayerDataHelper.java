@@ -9,15 +9,12 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.datafix.fixes.References;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.level.storage.TagValueInput;
@@ -35,7 +32,6 @@ import nu.metacraft.lib.util.SeparateStatHandler;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.UnaryOperator;
 
 public class PlayerDataHelper {
 
@@ -67,20 +63,20 @@ public class PlayerDataHelper {
 	 * @param player The player to save data from.
 	 * @param id The id slot within that player to save to.
 	 */
-	public static void saveCurrentPlayerData(ServerPlayer player, ResourceLocation id) {
+	public static void saveCurrentPlayerData(ServerPlayer player, Identifier id) {
 		var ext = ext(player);
 		ext.metacraft_lib$setPlayerData(id, ext.metacraft_lib$savePlayerDataExceptDataMap());
 	}
 
-	public static void removePlayerData(ServerPlayer player, ResourceLocation id) {
+	public static void removePlayerData(ServerPlayer player, Identifier id) {
 		ext(player).metacraft_lib$setPlayerData(id, null);
 	}
 
-	public static Optional<CompoundTag> getPlayerData(ServerPlayer player, ResourceLocation id) {
+	public static Optional<CompoundTag> getPlayerData(ServerPlayer player, Identifier id) {
 		return ext(player).metacraft_lib$getPlayerData(id);
 	}
 
-	public static void setPlayerData(ServerPlayer player, ResourceLocation id, CompoundTag data) {
+	public static void setPlayerData(ServerPlayer player, Identifier id, CompoundTag data) {
 		ext(player).metacraft_lib$setPlayerData(id, data);
 	}
 
@@ -93,7 +89,7 @@ public class PlayerDataHelper {
 	 * @param includeFarawayEntities Whether to spawn any additional entities such as ender pearls stored in player data.
 	 */
 	public static void loadPlayerData(
-			ServerPlayer player, ResourceLocation id, boolean moveToDataPosition,
+			ServerPlayer player, Identifier id, boolean moveToDataPosition,
 			boolean includeVehicleAndPassengers, boolean includeFarawayEntities
 	) {
 		ext(player).metacraft_lib$getPlayerData(id).map(
@@ -126,7 +122,7 @@ public class PlayerDataHelper {
 
 	/**
 	 * Unloads all vehicles the player is riding if no other player is also riding them.
-	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayer, ResourceLocation)}
+	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayer, Identifier)}
 	 * they will be lost forever!
 	 * Also, make sure to run {@link PlayerDataHelper#detachPassengersBeforeSaving(ServerPlayer)}
 	 * before actually saving the data before running this function. Otherwise, you might get duplicate entities when loading!
@@ -144,7 +140,7 @@ public class PlayerDataHelper {
 
 	/**
 	 * Unloads all entities connected but not directly attached to players (basically just ender pearls).
-	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayer, ResourceLocation)}
+	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayer, Identifier)}
 	 * they will be lost forever!
 	 * @param player The player to remove vehicle from.
 	 */
@@ -155,7 +151,7 @@ public class PlayerDataHelper {
 
 	/**
 	 * Unloads all entities that should unload when a player disconnects (at least in vanilla).
-	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayer, ResourceLocation)}
+	 * WARNING: If they have not been saved using {@link PlayerDataHelper#saveCurrentPlayerData(ServerPlayer, Identifier)}
 	 * they will be lost forever!
 	 * Also, make sure to run {@link PlayerDataHelper#detachPassengersBeforeSaving(ServerPlayer)}
 	 * before actually saving the data before running this function. Otherwise, you might get duplicate entities when loading!
@@ -211,10 +207,10 @@ public class PlayerDataHelper {
 	 * @param entity The entity to modify.
 	 * @param nbt The data.
 	 * @param spawner A modifier to run for each entity loaded. If player is already in a world, this would likely include a spawnEntity call.
-	 * @see PlayerDataHelper#loadPassengers(LivingEntity, ValueInput, UnaryOperator)
-	 * @see PlayerDataHelper#loadRootVehicle(LivingEntity, ValueInput, UnaryOperator)
+	 * @see PlayerDataHelper#loadPassengers(LivingEntity, ValueInput, EntityProcessor)
+	 * @see PlayerDataHelper#loadRootVehicle(LivingEntity, ValueInput, EntityProcessor)
 	 */
-	public static void loadRootVehicleAndPassengers(LivingEntity entity, ValueInput nbt, UnaryOperator<Entity> spawner) {
+	public static void loadRootVehicleAndPassengers(LivingEntity entity, ValueInput nbt, EntityProcessor spawner) {
 		loadRootVehicle(entity, nbt, spawner);
 		loadPassengers(entity, nbt, spawner);
 	}
@@ -225,7 +221,7 @@ public class PlayerDataHelper {
 	 * @param nbt The data.
 	 * @param spawner A modifier to run for each entity loaded. If player is already in a world, this would likely include a spawnEntity call.
 	 */
-	public static void loadPassengers(LivingEntity entity, ValueInput nbt, UnaryOperator<Entity> spawner) {
+	public static void loadPassengers(LivingEntity entity, ValueInput nbt, EntityProcessor spawner) {
 		for (var e : nbt.childrenListOrEmpty(Entity.TAG_PASSENGERS)) {
 			Entity entity2 = EntityType.loadEntityRecursive(
 					e, entity.level(), EntitySpawnReason.LOAD, spawner
@@ -242,7 +238,7 @@ public class PlayerDataHelper {
 	 * @param data The data.
 	 * @param spawner A modifier to run for each entity loaded. If player is already in a world, this would likely include a spawnEntity call.
 	 */
-	public static void loadRootVehicle(LivingEntity player, ValueInput data, UnaryOperator<Entity> spawner) {
+	public static void loadRootVehicle(LivingEntity player, ValueInput data, EntityProcessor spawner) {
 		data.child("RootVehicle").ifPresent(vehicle -> {
 			var e = EntityType.loadEntityRecursive(vehicle.childOrEmpty("Entity"), player.level(), EntitySpawnReason.LOAD, spawner);
 			if (e != null) {
@@ -380,7 +376,7 @@ public class PlayerDataHelper {
 		return ((ServerPlayerExtensions) player).metacraft_lib$getAnnounceDeath();
 	}
 
-	public static void setAdvancementTracker(ServerPlayer player, ResourceLocation type, boolean copy) {
+	public static void setAdvancementTracker(ServerPlayer player, Identifier type, boolean copy) {
 		if (!(player.getAdvancements() instanceof SeparateAdvancementTracker h) || !h.getType().equals(type)) {
 			var prevTracker = player.getAdvancements();
 			prevTracker.save();
@@ -421,7 +417,7 @@ public class PlayerDataHelper {
 		}
 	}
 
-	public static void setStatHandler(ServerPlayer player, ResourceLocation type, boolean copy) {
+	public static void setStatHandler(ServerPlayer player, Identifier type, boolean copy) {
 		if (!(player.getStats() instanceof SeparateStatHandler h) || !h.getType().equals(type)) {
 			var prevHandler = player.getStats();
 			player.getStats().save();

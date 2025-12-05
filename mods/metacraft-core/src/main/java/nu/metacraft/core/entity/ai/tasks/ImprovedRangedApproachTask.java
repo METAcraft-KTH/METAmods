@@ -49,7 +49,7 @@ public class ImprovedRangedApproachTask {
 		if (range.isPresent()) {
 			return mob.closerThan(target, range.getAsInt() - rangedWeaponReachReduction);
 		}
-		if (mob.getMainHandItem().getItem() instanceof ProjectileWeaponItem rangedWeaponItem && mob.canFireProjectileWeapon(rangedWeaponItem)) {
+		if (mob.getMainHandItem().getItem() instanceof ProjectileWeaponItem rangedWeaponItem && mob.canUseNonMeleeWeapon(mob.getMainHandItem())) {
 			int i = rangedWeaponItem.getDefaultProjectileRange() - rangedWeaponReachReduction;
 			return mob.closerThan(target, i);
 		}

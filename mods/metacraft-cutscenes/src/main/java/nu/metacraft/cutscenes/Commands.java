@@ -115,7 +115,7 @@ public class Commands {
 			if (!scene.canAddPlayer(player)) {
 				player.sendSystemMessage(Component.literal(
 						"You were not added to cutscene " + name + " because you are not in " +
-								scene.getCutsceneWorld().getActualWorld().dimension().location()
+								scene.getCutsceneWorld().getActualWorld().dimension().identifier()
 				));
 				return false;
 			}

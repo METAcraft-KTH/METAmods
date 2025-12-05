@@ -13,7 +13,7 @@ public class MinecartComponents {
 
 	public static final DataComponentType<Boolean> SPEED_UPGRADE = register(
 			"speed_upgrade", builder -> builder.persistent(
-					Codec.withAlternative(Codec.BOOL, Codec.unit(Unit.INSTANCE), u -> true)
+					Codec.withAlternative(Codec.BOOL, Unit.CODEC, u -> true)
 			)
 	);
 

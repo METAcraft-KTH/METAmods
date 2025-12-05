@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.IntSupplier;
 import java.util.function.Predicate;
-import net.minecraft.advancements.critereon.EntityPredicate;
+import net.minecraft.advancements.criterion.EntityPredicate;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ExtraCodecs;

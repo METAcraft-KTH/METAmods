@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
-import net.minecraft.world.entity.animal.Parrot;
+import net.minecraft.world.entity.animal.parrot.Parrot;
 import net.minecraft.world.entity.player.Player;
 
 @Mixin(Player.class)

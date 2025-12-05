@@ -9,16 +9,16 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.advancements.critereon.DataComponentMatchers;
-import net.minecraft.advancements.critereon.EnchantmentPredicate;
-import net.minecraft.advancements.critereon.ItemPredicate;
-import net.minecraft.advancements.critereon.MinMaxBounds;
+import net.minecraft.advancements.criterion.DataComponentMatchers;
+import net.minecraft.advancements.criterion.EnchantmentPredicate;
+import net.minecraft.advancements.criterion.ItemPredicate;
+import net.minecraft.advancements.criterion.MinMaxBounds;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.predicates.DataComponentPredicates;
 import net.minecraft.core.component.predicates.EnchantmentsPredicate;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.valueproviders.ConstantFloat;
@@ -300,13 +300,13 @@ public class SavedItemsConfig implements Modifiable {
 
 	}
 
-	public record SavingType(Either<ResourceLocation, TagKey<DamageType>> key) {
+	public record SavingType(Either<Identifier, TagKey<DamageType>> key) {
 		public static final Codec<SavingType> CODEC = Codec.either(
-				ResourceLocation.CODEC, TagKey.hashedCodec(Registries.DAMAGE_TYPE)
+				Identifier.CODEC, TagKey.hashedCodec(Registries.DAMAGE_TYPE)
 		).xmap(
 				SavingType::new, SavingType::key
 		);
-		public static SavingType of(ResourceLocation id) {
+		public static SavingType of(Identifier id) {
 			return new SavingType(Either.left(id));
 		}
 
@@ -314,7 +314,7 @@ public class SavedItemsConfig implements Modifiable {
 			return new SavingType(Either.right(tag));
 		}
 
-		public ResourceLocation getValue() {
+		public Identifier getValue() {
 			return key.map(id -> id, TagKey::location);
 		}
 

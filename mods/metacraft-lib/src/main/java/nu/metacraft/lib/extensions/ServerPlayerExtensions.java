@@ -5,7 +5,7 @@ import nu.metacraft.lib.util.helper.CustomNameHelper;
 
 import java.util.Optional;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.storage.ValueInput;
 
@@ -31,18 +31,18 @@ public interface ServerPlayerExtensions {
 	String metacraft_lib$getCustomName();
 
 
-	void metacraft_lib$setPlayerData(ResourceLocation id, CompoundTag value);
+	void metacraft_lib$setPlayerData(Identifier id, CompoundTag value);
 
-	Optional<CompoundTag> metacraft_lib$getPlayerData(ResourceLocation id);
+	Optional<CompoundTag> metacraft_lib$getPlayerData(Identifier id);
 
 	CompoundTag metacraft_lib$savePlayerDataExceptDataMap();
 
 	void metacraft_lib$loadPlayerDataExceptDataMap(ValueInput data);
 
 
-	void metacraft_lib$setStatHandlerType(@Nullable ResourceLocation type);
+	void metacraft_lib$setStatHandlerType(@Nullable Identifier type);
 
-	void metacraft_lib$setAdvancementTrackerType(@Nullable ResourceLocation type);
+	void metacraft_lib$setAdvancementTrackerType(@Nullable Identifier type);
 
 	void metacraft_lib$setAnnounceAdvancements(boolean announceAdvancements);
 

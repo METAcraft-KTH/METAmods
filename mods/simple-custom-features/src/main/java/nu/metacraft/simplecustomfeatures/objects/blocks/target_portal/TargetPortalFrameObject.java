@@ -18,11 +18,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.advancements.criterion.ItemPredicate;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -43,7 +43,7 @@ public record TargetPortalFrameObject(BlockStateProvider portalBlock, ItemPredic
 
 
 	@Override
-	public Multimap<ResourceLocation, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
+	public Multimap<Identifier, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
 		return Multimaps.forMap(Map.of(
 				container.getID(), new BlockItemObject(
 						Items.END_PORTAL_FRAME.builtInRegistryHolder(),

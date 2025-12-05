@@ -8,7 +8,7 @@ import nu.metacraft.core.util.RefContext;
 import nu.metacraft.lib.util.METACodecs;
 
 import java.util.Optional;
-import net.minecraft.advancements.critereon.FluidPredicate;
+import net.minecraft.advancements.criterion.FluidPredicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.valueproviders.FloatProvider;

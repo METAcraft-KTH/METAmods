@@ -6,7 +6,6 @@ import eu.pb4.polymer.core.api.other.PolymerComponent;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.Unit;
 import nu.metacraft.core.METAcraftCore;
 
@@ -35,18 +34,18 @@ public class METAcraftComponents {
 	 * For this reason it is best not to rely on this component too much, and merely use it in addition to other means of removing the item stack.
 	 */
 	public static final DataComponentType<Unit> DELETED = register(
-			"deleted", builder -> builder.networkSynchronized(StreamCodec.unit(Unit.INSTANCE))
+			"deleted", builder -> builder.networkSynchronized(Unit.STREAM_CODEC)
 	);
 
 	/**
 	 * If this component exists on an item, it will be kept on death, as if keepInventory was enabled for that one item.
 	 */
 	public static final DataComponentType<Unit> SOULBOUND = register(
-			"soulbound", builder -> builder.persistent(Codec.unit(Unit.INSTANCE))
+			"soulbound", builder -> builder.persistent(Unit.CODEC)
 	);
 
 	public static final DataComponentType<Unit> ANTI_KEEP_INVENTORY = register(
-			"anti-keep-inventory", builder -> builder.persistent(Codec.unit(Unit.INSTANCE))
+			"anti-keep-inventory", builder -> builder.persistent(Unit.CODEC)
 	);
 
 

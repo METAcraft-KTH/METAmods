@@ -12,7 +12,7 @@ import nu.metacraft.zones.util.LocationPredicateAccess;
 
 import java.util.Optional;
 import java.util.stream.Stream;
-import net.minecraft.advancements.critereon.LocationPredicate;
+import net.minecraft.advancements.criterion.LocationPredicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 
@@ -29,7 +29,7 @@ public class LocationPredicateMixin implements LocationPredicateAccess {
 		method = "matches",
 		at = @At(
 			value = "FIELD",
-			target = "Lnet/minecraft/advancements/critereon/LocationPredicate;canSeeSky:Ljava/util/Optional;"
+			target = "Lnet/minecraft/advancements/criterion/LocationPredicate;canSeeSky:Ljava/util/Optional;"
 		),
 		cancellable = true
 	)

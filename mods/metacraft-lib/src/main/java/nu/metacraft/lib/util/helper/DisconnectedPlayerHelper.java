@@ -1,6 +1,6 @@
 package nu.metacraft.lib.util.helper;
 
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
@@ -33,7 +33,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,8 +41,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class DisconnectedPlayerHelper {
-
-	private static final DateTimeFormatter DATE_TIME_FORMATTER = FileNameDateFormatter.create();
 
 	private static NameAndId getProfile(UUID id, MinecraftServer server) {
 		return Optional.ofNullable(server.services().nameToIdCache()).flatMap(cache -> cache.get(id)).orElse(
@@ -140,7 +137,7 @@ public class DisconnectedPlayerHelper {
 		Path path = ((PlayerDataStorageAccessor) handler).getPlayerDir().toPath();
 		String uuid = player.id().toString();
 		Path data = path.resolve(uuid + extension);
-		Path corrupted = path.resolve(uuid + "_corrupted_" + LocalDateTime.now().format(DATE_TIME_FORMATTER) + extension);
+		Path corrupted = path.resolve(uuid + "_corrupted_" + LocalDateTime.now().format(FileNameDateFormatter.FORMATTER) + extension);
 		if (Files.isRegularFile(data)) {
 			try {
 				Files.copy(data, corrupted, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
@@ -188,7 +185,7 @@ public class DisconnectedPlayerHelper {
 	}
 
 	public static void setDim(CompoundTag nbt, ResourceKey<Level> dim) {
-		nbt.putString("Dimension", dim.location().toString());
+		nbt.putString("Dimension", dim.identifier().toString());
 	}
 
 	public static void modifyPassengersAndRootVehicle(CompoundTag player, Consumer<CompoundTag> nbtModifier) {

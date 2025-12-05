@@ -1,5 +1,6 @@
 package nu.metacraft.moderation.moderator_mode;
 
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import nu.metacraft.lib.util.helper.PlayerDataHelper;
@@ -10,7 +11,7 @@ import nu.metacraft.moderation.compat.Vanish;
 
 import java.util.*;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.level.storage.TagValueInput;
@@ -40,7 +41,7 @@ public class ModerationModeState {
 		return writeView.buildResult();
 	}
 
-	public static ResourceLocation getFromDef(ModeratorModeDefinition def) {
+	public static Identifier getFromDef(ModeratorModeDefinition def) {
 		return METAcraftModeration.getID(def.getName().toLowerCase(Locale.ROOT));
 	}
 
@@ -104,12 +105,12 @@ public class ModerationModeState {
 
 		prev.def.getExitCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().name())).ifPresent(exit -> {
 			player.level().getServer().getCommands().performPrefixedCommand(
-					player.createCommandSourceStack().withPermission(4), exit
+					player.createCommandSourceStack().withPermission(LevelBasedPermissionSet.OWNER), exit
 			);
 		});
 		def.getEnterCommand().map(command -> command.replaceAll("@s(?= |$)", player.getGameProfile().name())).ifPresent(enter -> {
 			player.level().getServer().getCommands().performPrefixedCommand(
-					player.createCommandSourceStack().withPermission(4), enter
+					player.createCommandSourceStack().withPermission(LevelBasedPermissionSet.OWNER), enter
 			);
 		});
 		updatePlayer(player);

@@ -1,7 +1,7 @@
 package nu.metacraft.revival;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.revival.predicate.METAcraftRevivalPredicates;
 import org.apache.logging.log4j.LogManager;
@@ -18,8 +18,8 @@ public class METAcraftRevival implements ModInitializer {
 		METAcraftRevivalPredicates.init();
 	}
 
-	public static ResourceLocation getID(String name) {
-		return ResourceLocation.fromNamespaceAndPath(METAcraftLib.NAMESPACE, name);
+	public static Identifier getID(String name) {
+		return Identifier.fromNamespaceAndPath(METAcraftLib.NAMESPACE, name);
 	}
 
 }

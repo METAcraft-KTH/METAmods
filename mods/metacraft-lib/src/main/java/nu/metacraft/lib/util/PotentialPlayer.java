@@ -46,7 +46,7 @@ public sealed abstract class PotentialPlayer permits PotentialPlayer.Absent, Pot
 	static final class Absent extends PotentialPlayer {
 
 		public static final Absent INSTANCE = new Absent();
-		public static final Codec<Absent> CODEC = Codec.unit(INSTANCE);
+		public static final Codec<Absent> CODEC = MapCodec.unitCodec(INSTANCE);
 
 		private Absent() {}
 

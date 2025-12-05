@@ -12,7 +12,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.GameProfileArgument;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.NameAndId;
@@ -44,7 +44,7 @@ public class ExileInit {
 	public static final SuggestionProvider<CommandSourceStack> ZONE_RULE_SUGGESTIONS = (ctx, suggestionsBuilder) -> {
 		return SharedSuggestionProvider.suggest(
 			ZoneRuleRegistry.REGISTRY.registryKeySet().stream().map(key -> {
-				var id = key.location();
+				var id = key.identifier();
 				if (id.getNamespace().equals("minecraft")) {
 					return id.getPath();
 				} else {
@@ -290,11 +290,11 @@ public class ExileInit {
 	}
 
 	static ArgumentBuilder<CommandSourceStack, ?> zoneRule(String arg) {
-		return argument(arg, ResourceLocationArgument.id()).suggests(ZONE_RULE_SUGGESTIONS);
+		return argument(arg, IdentifierArgument.id()).suggests(ZONE_RULE_SUGGESTIONS);
 	}
 
 	static ZoneRule getZoneRule(CommandContext<CommandSourceStack> ctx, String arg) throws CommandSyntaxException {
-		var rule = ZoneRuleRegistry.REGISTRY.getValue(ResourceLocationArgument.getId(ctx, arg));
+		var rule = ZoneRuleRegistry.REGISTRY.getValue(IdentifierArgument.getId(ctx, arg));
 		if (rule != null) {
 			return rule;
 		} else {

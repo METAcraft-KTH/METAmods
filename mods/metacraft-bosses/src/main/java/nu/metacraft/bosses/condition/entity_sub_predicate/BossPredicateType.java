@@ -11,9 +11,9 @@ import nu.metacraft.bosses.boss.attacks.AttackRegistry;
 import nu.metacraft.bosses.boss.attacks.AttackType;
 
 import java.util.List;
-import net.minecraft.advancements.critereon.EntityPredicate;
-import net.minecraft.advancements.critereon.EntitySubPredicate;
-import net.minecraft.advancements.critereon.MinMaxBounds;
+import net.minecraft.advancements.criterion.EntityPredicate;
+import net.minecraft.advancements.criterion.EntitySubPredicate;
+import net.minecraft.advancements.criterion.MinMaxBounds;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;

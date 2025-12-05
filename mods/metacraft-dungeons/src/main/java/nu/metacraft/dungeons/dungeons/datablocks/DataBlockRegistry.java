@@ -11,7 +11,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.dungeons.METAcraftDungeons;
 
 import java.io.IOException;
@@ -86,7 +86,7 @@ public class DataBlockRegistry {
 				return REGISTRY.byNameCodec().encodeStart(registryOps.withParent(JavaOps.INSTANCE), data.getType()).flatMap(
 						typeName -> {
 							String prefix;
-							if (typeName instanceof ResourceLocation id && id.getNamespace().equals("minecraft")) {
+							if (typeName instanceof Identifier id && id.getNamespace().equals("minecraft")) {
 								prefix = id.getPath();
 							} else {
 								prefix = typeName.toString();
@@ -111,7 +111,7 @@ public class DataBlockRegistry {
 	};
 
 	private static <T extends DataBlockType<? extends DataBlock>> T register(String id, T object) {
-		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), object);
+		return Registry.register(REGISTRY, Identifier.withDefaultNamespace(id), object);
 	}
 
 	public record DataBlockType<T extends DataBlock>(MapCodec<T> codec) {

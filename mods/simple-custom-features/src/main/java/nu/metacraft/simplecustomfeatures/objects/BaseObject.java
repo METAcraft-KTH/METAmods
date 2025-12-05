@@ -14,7 +14,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public interface BaseObject<R> {
 
@@ -34,7 +34,7 @@ public interface BaseObject<R> {
 		throw new IllegalStateException("createObject must be implemented, either with or without lookup!");
 	}
 
-	default Multimap<ResourceLocation, BaseObject<?>> createChildren(ObjectContainer.Loaded<R> container) {
+	default Multimap<Identifier, BaseObject<?>> createChildren(ObjectContainer.Loaded<R> container) {
 		return Multimaps.forMap(Map.of());
 	}
 
@@ -43,7 +43,7 @@ public interface BaseObject<R> {
 	}
 
 	default void onUnregister(Holder<R> entry) {}
-	default void onRegistrationFail(ResourceLocation id, R value) {}
+	default void onRegistrationFail(Identifier id, R value) {}
 	default void onRegistrationSuccess(Holder.Reference<R> entry) {}
 
 }

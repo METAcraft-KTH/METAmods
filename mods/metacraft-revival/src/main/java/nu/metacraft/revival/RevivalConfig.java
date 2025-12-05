@@ -3,7 +3,7 @@ package nu.metacraft.revival;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.advancements.critereon.MinMaxBounds;
+import net.minecraft.advancements.criterion.MinMaxBounds;
 import net.minecraft.core.Holder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ExtraCodecs;

@@ -22,7 +22,7 @@ import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -67,8 +67,8 @@ public class TargetPortalObject implements BaseBlock {
 	}
 
 	@Override
-	public Multimap<ResourceLocation, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
-		Multimap<ResourceLocation, BaseObject<?>> map = Multimaps.forMap(Map.of());
+	public Multimap<Identifier, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
+		Multimap<Identifier, BaseObject<?>> map = Multimaps.forMap(Map.of());
 		if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
 			map = PortalBlockerCompat.addPortalType(map, container.getID(), block, portalType);
 		}

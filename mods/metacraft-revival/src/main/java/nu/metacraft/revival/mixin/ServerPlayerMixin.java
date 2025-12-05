@@ -22,7 +22,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootParams;
@@ -379,7 +379,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		if (damageSource.is(RevivalTags.Damage.BYPASSES_REVIVAL)) return;
 		var p = (ServerPlayer) (Object) this;
 		if (RevivalHelper.hasRevival(p)) {
-			if (this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES)) {
+			if (this.level().getGameRules().get(GameRules.SHOW_DEATH_MESSAGES)) {
 				Component component = this.getCombatTracker().getDeathMessage();
 				metacraft$deathMessage = removeClickEvents(component);
 				Team team = this.getTeam();

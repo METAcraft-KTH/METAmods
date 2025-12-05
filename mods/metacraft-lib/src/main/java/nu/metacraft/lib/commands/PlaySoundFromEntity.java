@@ -14,12 +14,12 @@ import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.commands.synchronization.SuggestionProviders;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerPlayerConnection;
@@ -76,18 +76,18 @@ public class PlaySoundFromEntity {
 	) {
 		dispatcher.register(
 			literal("playsound-from-entity").requires(Permissions.require("metacraft.playsound-from-entity", 2)).then(
-				argument("sound", ResourceLocationArgument.id()).suggests(
+				argument("sound", IdentifierArgument.id()).suggests(
 						SuggestionProviders.cast(SuggestionProviders.AVAILABLE_SOUNDS)
 				).executes(
 					ctx -> playSound(
-							ctx, ResourceLocationArgument.getId(ctx, "sound"),
+							ctx, IdentifierArgument.getId(ctx, "sound"),
 							List.of(ctx.getSource().getPlayerOrException()),
 							ctx.getSource().getEntity()
 					)
 				).then(
 					category("category").executes(
 						ctx -> playSound(
-								ctx, ResourceLocationArgument.getId(ctx, "sound"),
+								ctx, IdentifierArgument.getId(ctx, "sound"),
 								List.of(ctx.getSource().getPlayerOrException()),
 								ctx.getSource().getEntity(),
 								getCategory(ctx, "category")
@@ -95,7 +95,7 @@ public class PlaySoundFromEntity {
 					).then(
 						argument("targets", EntityArgument.players()).executes(
 							ctx -> playSound(
-									ctx, ResourceLocationArgument.getId(ctx, "sound"),
+									ctx, IdentifierArgument.getId(ctx, "sound"),
 									EntityArgument.getPlayers(ctx, "targets"),
 									ctx.getSource().getEntity(),
 									getCategory(ctx, "category")
@@ -103,7 +103,7 @@ public class PlaySoundFromEntity {
 						).then(
 							argument("source_entity", EntityArgument.entity()).executes(
 								ctx -> playSound(
-										ctx, ResourceLocationArgument.getId(ctx, "sound"),
+										ctx, IdentifierArgument.getId(ctx, "sound"),
 										EntityArgument.getPlayers(ctx, "targets"),
 										EntityArgument.getEntity(ctx, "source_entity"),
 										getCategory(ctx, "category")
@@ -111,7 +111,7 @@ public class PlaySoundFromEntity {
 							).then(
 								argument("volume", FloatArgumentType.floatArg(0)).executes(
 									ctx -> playSound(
-											ctx, ResourceLocationArgument.getId(ctx, "sound"),
+											ctx, IdentifierArgument.getId(ctx, "sound"),
 											EntityArgument.getPlayers(ctx, "targets"),
 											EntityArgument.getEntity(ctx, "source_entity"),
 											getCategory(ctx, "category"),
@@ -120,7 +120,7 @@ public class PlaySoundFromEntity {
 								).then(
 									argument("pitch", FloatArgumentType.floatArg(0.5f, 2)).executes(
 										ctx -> playSound(
-												ctx, ResourceLocationArgument.getId(ctx, "sound"),
+												ctx, IdentifierArgument.getId(ctx, "sound"),
 												EntityArgument.getPlayers(ctx, "targets"),
 												EntityArgument.getEntity(ctx, "source_entity"),
 												getCategory(ctx, "category"),
@@ -138,25 +138,25 @@ public class PlaySoundFromEntity {
 	}
 
 	private static int playSound(
-			CommandContext<CommandSourceStack> ctx, ResourceLocation sound, Collection<ServerPlayer> targets, Entity entity
+			CommandContext<CommandSourceStack> ctx, Identifier sound, Collection<ServerPlayer> targets, Entity entity
 	) throws CommandSyntaxException {
 		return playSound(ctx, sound, targets, entity, SoundSource.MASTER);
 	}
 
 	private static int playSound(
-			CommandContext<CommandSourceStack> ctx, ResourceLocation sound, Collection<ServerPlayer> targets, Entity entity, SoundSource category
+			CommandContext<CommandSourceStack> ctx, Identifier sound, Collection<ServerPlayer> targets, Entity entity, SoundSource category
 	) throws CommandSyntaxException {
 		return playSound(ctx, sound, targets, entity, category, 1);
 	}
 
 	private static int playSound(
-			CommandContext<CommandSourceStack> ctx, ResourceLocation sound, Collection<ServerPlayer> targets, Entity entity, SoundSource category, float volume
+			CommandContext<CommandSourceStack> ctx, Identifier sound, Collection<ServerPlayer> targets, Entity entity, SoundSource category, float volume
 	) throws CommandSyntaxException {
 		return playSound(ctx, sound, targets, entity, category, volume, 1);
 	}
 
 	private static int playSound(
-			CommandContext<CommandSourceStack> ctx, ResourceLocation sound, Collection<ServerPlayer> targets, Entity entity, SoundSource category, float volume, float pitch
+			CommandContext<CommandSourceStack> ctx, Identifier sound, Collection<ServerPlayer> targets, Entity entity, SoundSource category, float volume, float pitch
 	) throws CommandSyntaxException {
 		if (!(entity.level() instanceof ServerLevel sw)) {
 			return 0;

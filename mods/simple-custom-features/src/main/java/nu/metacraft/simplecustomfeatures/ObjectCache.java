@@ -5,7 +5,7 @@ import com.google.common.collect.Table;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
 import nu.metacraft.lib.config.JsonHelper;
@@ -51,7 +51,7 @@ public class ObjectCache {
 	private boolean loaded = false;
 
 	//HashBasedTable uses linked hashmap in backend, which should preserve insertion order.
-	private final Table<ResourceKey<?>, ResourceLocation, ObjectContainer> objects = HashBasedTable.create();
+	private final Table<ResourceKey<?>, Identifier, ObjectContainer> objects = HashBasedTable.create();
 
 	private void setServer(MinecraftServer server) {
 		this.server = server;
@@ -98,7 +98,7 @@ public class ObjectCache {
 				Features.LOGGER.warn(
 						object.getID() + " of type " +
 						Optional.ofNullable(ObjectRegistry.REGISTRY.getKey(validObject.get().getObject().getType())).map(
-								ResourceLocation::toString
+								Identifier::toString
 						).orElse("error not registered") + " was removed from config. " +
 						"To avoid data loss, the latest version of the item will be re-registered."
 				);

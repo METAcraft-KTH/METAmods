@@ -22,14 +22,16 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.sounds.Music;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Marker;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.level.storage.ValueInput;
@@ -171,6 +173,15 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		removeMusicPoint();
 	}
 
+	@Unique
+	private void addPotentialMusic(Music musicEntry) {
+		if (potentiallyPlayingMusic.containsKey(musicEntry.sound())) {
+			potentiallyPlayingMusic.get(musicEntry.sound()).setValue(musicEntry.minDelay());
+		} else {
+			potentiallyPlayingMusic.put(musicEntry.sound(), new MutableInt(musicEntry.minDelay()));
+		}
+	}
+	
 	@Inject(method = "tick", at = @At("RETURN"))
 	public void tick(CallbackInfo ci) {
 		if (pointAttachment != null) {
@@ -186,17 +197,13 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 			removeMusicPoint();
 		}
 
-		level().getBiome(this.blockPosition()).value().getBackgroundMusic().ifPresent(music -> {
-			for (var musicEntry : music.unwrap()) {
-				if (potentiallyPlayingMusic.containsKey(musicEntry.value().event())) {
-					potentiallyPlayingMusic.get(musicEntry.value().event()).setValue(musicEntry.value().minDelay());
-				} else {
-					potentiallyPlayingMusic.put(musicEntry.value().event(), new MutableInt(musicEntry.value().minDelay()));
-				}
-			}
-		});
-		potentiallyPlayingMusic.keySet().removeIf(music -> {
-			return potentiallyPlayingMusic.get(music).decrementAndGet() <= 0;
+		var music = level().environmentAttributes().getValue(EnvironmentAttributes.BACKGROUND_MUSIC, position());
+		music.defaultMusic().ifPresent(this::addPotentialMusic);
+		music.creativeMusic().ifPresent(this::addPotentialMusic);
+		music.underwaterMusic().ifPresent(this::addPotentialMusic);
+		
+		potentiallyPlayingMusic.keySet().removeIf(m -> {
+			return potentiallyPlayingMusic.get(m).decrementAndGet() <= 0;
 		});
 
 		if (!shouldContinuePlayingMusic.test((ServerPlayer) (Object) this)) {
@@ -257,7 +264,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 			TaskScheduler.scheduleImmediately(level().getServer(), this::metacraft_core$resetMusicTimer);
 		}
 
-		if (!server.getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) {
+		if (!level().getGameRules().get(GameRules.KEEP_INVENTORY)) {
 			for (int i = 0; i < oldPlayer.getInventory().getContainerSize(); i++) {
 				var stack = oldPlayer.getInventory().getItem(i);
 				if (stack.has(METAcraftComponents.SOULBOUND)) {

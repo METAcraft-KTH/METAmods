@@ -127,12 +127,12 @@ subprojects {
     }
 
     processResources {
+		var mcversion = project.fabric_json_mc_version.isEmpty() ? project.minecraft_version : project.fabric_json_mc_version
         inputs.property "version", project.version
-        inputs.property "minecraft_version", project.minecraft_version
+        inputs.property "minecraft_version", mcversion
         inputs.property "loader_version", project.loader_version
         filteringCharset "UTF-8"
 
-        var mcversion = project.fabric_json_mc_version.isEmpty() ? project.minecraft_version : project.fabric_json_mc_version
         filesMatching("fabric.mod.json") {
             expand "version": project.version,
                     "minecraft_version": mcversion,
@@ -148,12 +148,14 @@ subprojects {
         minecraft "com.mojang:minecraft:${project.minecraft_version}"
 		mappings loom.layered() {
 			officialMojangMappings()
-			parchment("org.parchmentmc.data:parchment-$minecraft_version:$parchment_version@zip")
+			//parchment("org.parchmentmc.data:parchment-$minecraft_version:$parchment_version@zip")
 		}
         modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     }
 
     repositories {
+		mavenLocal()
+
         //Polymer
         maven { url 'https://maven.nucleoid.xyz' }
 

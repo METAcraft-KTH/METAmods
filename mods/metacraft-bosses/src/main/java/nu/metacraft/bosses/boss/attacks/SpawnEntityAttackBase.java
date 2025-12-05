@@ -1,14 +1,14 @@
 package nu.metacraft.bosses.boss.attacks;
 
 import com.mojang.serialization.JavaOps;
-import net.minecraft.advancements.critereon.EntityPredicate;
-import net.minecraft.advancements.critereon.EntityTypePredicate;
+import net.minecraft.advancements.criterion.EntityPredicate;
+import net.minecraft.advancements.criterion.EntityTypePredicate;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.random.WeightedList;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -70,7 +70,7 @@ public abstract class SpawnEntityAttackBase extends InstantAttack {
 	}
 
 	public static <T extends Entity> CompoundTag createEntityNBTFrom(EntityType<T> type, CompoundTag data) {
-		ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(type);
+		Identifier id = BuiltInRegistries.ENTITY_TYPE.getKey(type);
 		data.putString("id", id.toString());
 		return data;
 	}

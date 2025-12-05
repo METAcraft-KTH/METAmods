@@ -6,13 +6,13 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.Event;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import static net.minecraft.commands.Commands.literal;
 
 public class Commands {
 
-	private static final ResourceLocation afterDefault = ResourceLocation.parse("metacraftinfocommands:register-commands");
+	private static final Identifier afterDefault = Identifier.parse("metacraftinfocommands:register-commands");
 
 	public static void init() {
 		CommandRegistrationCallback.EVENT.addPhaseOrdering(Event.DEFAULT_PHASE, afterDefault);

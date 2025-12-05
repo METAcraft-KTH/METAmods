@@ -2,7 +2,7 @@ package nu.metacraft.portal_blocker.portal_type;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Portal;
 import nu.metacraft.portal_blocker.PortalState;
@@ -22,10 +22,9 @@ public class NetherPortalType extends PortalType {
 	@Override
 	public void onGlobalStateChange(MinecraftServer server, boolean netherBlocked, PortalState.BlockingType type) {
 		if (type == PortalState.BlockingType.TRAVEL) {
-			var allowPortals = server.getGameRules().getRule(GameRules.RULE_ALLOW_NETHER);
-			if (allowPortals.get() == netherBlocked) {
-				allowPortals.set(!netherBlocked, server);
-				server.onGameRuleChanged(GameRules.RULE_ALLOW_NETHER.getId(), allowPortals);
+			boolean allowPortals = server.overworld().getGameRules().get(GameRules.ALLOW_ENTERING_NETHER_USING_PORTALS);
+			if (allowPortals == netherBlocked) {
+				server.overworld().getGameRules().set(GameRules.ALLOW_ENTERING_NETHER_USING_PORTALS, !netherBlocked, server);
 			}
 		}
 	}

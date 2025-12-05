@@ -49,7 +49,7 @@ public abstract class ServerGamePacketListenerImplMixin {
 			method = "handlePlayerAction",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/server/level/ServerPlayer;hasClientLoaded()Z"
+					target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;hasClientLoaded()Z"
 			),
 			cancellable = true
 	)
@@ -69,7 +69,7 @@ public abstract class ServerGamePacketListenerImplMixin {
 			method = "handleUseItem",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/server/level/ServerPlayer;hasClientLoaded()Z"
+					target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;hasClientLoaded()Z"
 			),
 			cancellable = true
 	)
@@ -84,7 +84,7 @@ public abstract class ServerGamePacketListenerImplMixin {
 			method = "handleUseItemOn",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/server/level/ServerPlayer;hasClientLoaded()Z"
+					target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;hasClientLoaded()Z"
 			),
 			cancellable = true
 	)
@@ -100,7 +100,7 @@ public abstract class ServerGamePacketListenerImplMixin {
 			method = "handleInteract",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/server/level/ServerPlayer;hasClientLoaded()Z"
+					target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;hasClientLoaded()Z"
 			),
 			cancellable = true
 	)

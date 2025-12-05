@@ -5,7 +5,7 @@ import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.entity_ref.*;
 
@@ -29,7 +29,7 @@ public class EntityRefRegistry {
 	}
 
 	private static <T extends EntityRef> EntityRefType<T> register(String id, MapCodec<T> codec) {
-		return Registry.register(REGISTRY, ResourceLocation.withDefaultNamespace(id), new EntityRefType<>(codec));
+		return Registry.register(REGISTRY, Identifier.withDefaultNamespace(id), new EntityRefType<>(codec));
 	}
 
 

@@ -2,7 +2,7 @@ package nu.metacraft.zones;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.lib.compat.IsLoaded;
@@ -33,7 +33,7 @@ public class METAcraftZones implements ModInitializer {
 		LOGGER.info("Loaded METAcraft zones by Acuadragon100");
 	}
 
-	public static ResourceLocation getID(String name) {
-		return ResourceLocation.fromNamespaceAndPath(MODID, name);
+	public static Identifier getID(String name) {
+		return Identifier.fromNamespaceAndPath(MODID, name);
 	}
 }

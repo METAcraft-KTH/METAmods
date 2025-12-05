@@ -24,7 +24,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.item.Item;
@@ -90,13 +90,13 @@ public record SimpleItem(
 		private static <T, V> DataResult<Pair<Holder<? extends V>, T>> handleKey(Pair<? extends ResourceKey<? extends V>, T> key, RegistryOps<T> r) {
 			Optional<HolderGetter<V>> lookup = r.getter(key.getFirst().registryKey());
 			if (lookup.isEmpty()) {
-				return DataResult.error(() -> "Registry " + key.getFirst().registryKey().location() + " could not be found.");
+				return DataResult.error(() -> "Registry " + key.getFirst().registryKey().identifier() + " could not be found.");
 			}
 			var entry = lookup.get().get((ResourceKey<V>) key.getFirst());
 			return entry.<DataResult<Pair<Holder<? extends V>, T>>>map(
 					vReference -> DataResult.success(Pair.of(vReference, key.getSecond()))
 			).orElseGet(
-					() -> DataResult.error(() -> key.getFirst().location() + " was not present in " + key.getFirst().registryKey().location())
+					() -> DataResult.error(() -> key.getFirst().identifier() + " was not present in " + key.getFirst().registryKey().identifier())
 			);
 		}
 
@@ -125,7 +125,7 @@ public record SimpleItem(
 
 	private static final Codec<? extends List<?>> ARBITRARY_LIST_CODEC = ARBITRARY_CODEC.listOf();
 
-	private static ResourceKey<TypeObject> keyOf(ResourceLocation id) {
+	private static ResourceKey<TypeObject> keyOf(Identifier id) {
 		return ResourceKey.create(KEY, id);
 	}
 
@@ -145,15 +145,15 @@ public record SimpleItem(
 		addPrimitive(Long.class, Long.TYPE, "long", Codec.LONG);
 		addPrimitive(Float.class, Float.TYPE, "float", Codec.FLOAT);
 		addPrimitive(Double.class, Double.TYPE, "double", Codec.DOUBLE);
-		addSupportedArgumentType(Number.class, ResourceLocation.fromNamespaceAndPath("java", "number"), Codec.DOUBLE);
-		addSupportedArgumentType(String.class, ResourceLocation.fromNamespaceAndPath("java", "string"), Codec.STRING);
-		addSupportedArgumentType(ResourceLocation.class, ResourceLocation.withDefaultNamespace("identifier"), ResourceLocation.CODEC);
-		addSupportedArgumentType(ArmorType.class, ResourceLocation.withDefaultNamespace("equipment_type"), ArmorType.CODEC);
-		addSupportedArgumentType(Component.class, ResourceLocation.withDefaultNamespace("text"), ComponentSerialization.CODEC);
+		addSupportedArgumentType(Number.class, Identifier.fromNamespaceAndPath("java", "number"), Codec.DOUBLE);
+		addSupportedArgumentType(String.class, Identifier.fromNamespaceAndPath("java", "string"), Codec.STRING);
+		addSupportedArgumentType(Identifier.class, Identifier.withDefaultNamespace("identifier"), Identifier.CODEC);
+		addSupportedArgumentType(ArmorType.class, Identifier.withDefaultNamespace("equipment_type"), ArmorType.CODEC);
+		addSupportedArgumentType(Component.class, Identifier.withDefaultNamespace("text"), ComponentSerialization.CODEC);
 		BuiltInRegistries.REGISTRY.forEach(registry -> {
 			registry.listElements().forEach(entry -> {
 				if (!SUPPORTED_TYPES.containsKey(entry.value().getClass())) {
-					addSupportedArgumentType(entry.value().getClass(), registry.key().location(), registry.byNameCodec());
+					addSupportedArgumentType(entry.value().getClass(), registry.key().identifier(), registry.byNameCodec());
 				}
 			});
 			registry.getAny().ifPresent(entry -> {
@@ -161,18 +161,18 @@ public record SimpleItem(
 				while (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class) {
 					clazz = clazz.getSuperclass();
 					if (!SUPPORTED_TYPES.containsKey(clazz)) {
-						addSupportedArgumentType(clazz, registry.key().location(), registry.byNameCodec());
+						addSupportedArgumentType(clazz, registry.key().identifier(), registry.byNameCodec());
 					}
 				}
 			});
 		});
-		addSupportedArgumentType(ToolMaterial.class, ResourceLocation.withDefaultNamespace("tool_material"), ToolMaterialRegistry.CODEC);
-		addSupportedArgumentType(ArmorMaterial.class, ResourceLocation.withDefaultNamespace("armor_material"), ArmorMaterialRegistry.CODEC);
+		addSupportedArgumentType(ToolMaterial.class, Identifier.withDefaultNamespace("tool_material"), ToolMaterialRegistry.CODEC);
+		addSupportedArgumentType(ArmorMaterial.class, Identifier.withDefaultNamespace("armor_material"), ArmorMaterialRegistry.CODEC);
 
-		addSupportedArgumentType(TagKey.class, ResourceLocation.withDefaultNamespace("tag"), ARBITRARY_TAG_CODEC);
-		addSupportedArgumentType(ResourceKey.class, ResourceLocation.withDefaultNamespace("registry_key"), ARBITRARY_KEY_CODEC);
-		addSupportedArgumentType(Holder.class, ResourceLocation.withDefaultNamespace("registry_entry"), ARBITRARY_ENTRY_CODEC);
-		addSupportedArgumentType(List.class, ResourceLocation.fromNamespaceAndPath("java", "list"), ARBITRARY_LIST_CODEC);
+		addSupportedArgumentType(TagKey.class, Identifier.withDefaultNamespace("tag"), ARBITRARY_TAG_CODEC);
+		addSupportedArgumentType(ResourceKey.class, Identifier.withDefaultNamespace("registry_key"), ARBITRARY_KEY_CODEC);
+		addSupportedArgumentType(Holder.class, Identifier.withDefaultNamespace("registry_entry"), ARBITRARY_ENTRY_CODEC);
+		addSupportedArgumentType(List.class, Identifier.fromNamespaceAndPath("java", "list"), ARBITRARY_LIST_CODEC);
 	}
 
 	static final String SETTINGS_FIELD_NAME = "simple_custom_features$settings";
@@ -389,7 +389,7 @@ public record SimpleItem(
 	}
 
 	private static void addPrimitive(Class<?> clazz, Class<?> primitiveClass, String name, Codec<?> codec) {
-		var type = new TypeObject(codec, false, keyOf(ResourceLocation.fromNamespaceAndPath("java", name)));
+		var type = new TypeObject(codec, false, keyOf(Identifier.fromNamespaceAndPath("java", name)));
 		addSupportedArgumentType(clazz, type);
 		addSupportedArgumentType(primitiveClass, type);
 	}
@@ -399,11 +399,11 @@ public record SimpleItem(
 		NAMED_TYPES.put(object.name, object);
 	}
 
-	public static void addSupportedArgumentType(Class<?> clazz, ResourceLocation name, Codec<?> codec) {
+	public static void addSupportedArgumentType(Class<?> clazz, Identifier name, Codec<?> codec) {
 		addSupportedArgumentType(clazz, new TypeObject(codec, false, keyOf(name)));
 	}
 
-	public static void addRegistryLookupType(Class<?> clazz, ResourceLocation name, Codec<?> codec) {
+	public static void addRegistryLookupType(Class<?> clazz, Identifier name, Codec<?> codec) {
 		addSupportedArgumentType(clazz, new TypeObject(codec, true, keyOf(name)));
 	}
 }

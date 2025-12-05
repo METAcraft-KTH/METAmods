@@ -16,7 +16,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.CommandNode;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.ChatFormatting;
-import net.minecraft.advancements.critereon.EntityTypePredicate;
+import net.minecraft.advancements.criterion.EntityTypePredicate;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -266,11 +266,11 @@ public class ZoneManagementCommand {
 			ZoneCommandUtils.queryZoneMulti(literal("get"), zone -> {
 				return ImmutableList.of(
 					Component.literal("Name: " + zone.getName()),
-					Component.literal("Dimension: " + zone.getDim().location()),
+					Component.literal("Dimension: " + zone.getDim().identifier()),
 					Component.literal("Zone: " + zone.getZone()),
 					Component.literal("Priority: " + zone.getPriority()),
 					Component.literal("AdditionalDimensions: " + zone.getRemoteZones().stream().map(type -> {
-						return type.getDim().location().toString();
+						return type.getDim().identifier().toString();
 					}).collect(Collectors.joining(", "))),
 					Component.literal("Data: ").append(
 						join(zone.getAllData().stream().map(data -> Component.literal(" ").append(data.toText(zone.getWorld().registryAccess()))).iterator(), Component.literal(",\n"))
@@ -801,7 +801,7 @@ public class ZoneManagementCommand {
 						} else {
 							zone.addRemoteDimension(dim);
 							ctx.getSource().sendSuccess(() -> Component.literal(
-									"Added dimension " + dimKey.location() + " to " + zone.getName()
+									"Added dimension " + dimKey.identifier() + " to " + zone.getName()
 							), true);
 						}
 					} else {
@@ -813,7 +813,7 @@ public class ZoneManagementCommand {
 						} else if (zone.hasRemoteZone(dimKey)) {
 							zone.removeRemoteDimension(dim);
 							ctx.getSource().sendSuccess(() -> Component.literal(
-									"Removed dimension " + dimKey.location() + " from " + zone.getName()
+									"Removed dimension " + dimKey.identifier() + " from " + zone.getName()
 							), true);
 						} else {
 							ctx.getSource().sendSuccess(() -> Component.literal(
@@ -863,7 +863,7 @@ public class ZoneManagementCommand {
 			if(entry.value().commandCreator() != null) {
 				builder.then(
 						entry.value().commandCreator().createCommand(
-								literal(Commands.getIDAsString(entry.key().location())), registryAccess, zoneAdder
+								literal(Commands.getIDAsString(entry.key().identifier())), registryAccess, zoneAdder
 						)
 				);
 			}

@@ -8,7 +8,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.monster.RangedAttackMob;
-import net.minecraft.world.entity.projectile.ThrownTrident;
+import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
@@ -57,10 +57,10 @@ public interface TridentUser extends RangedAttackMob {
 
 	/**
 	 * Override this, set the 3 parameters in the entity data
-	 * and set {@link LivingEntity#USING_RIPTIDE_FLAG} to true.
-	 * @param riptideTicks The time to keep riptide active, put this in {@link LivingEntity#riptideTicks}.
-	 * @param riptideAttackDamage The damage riptide should deal, put this in {@link LivingEntity#riptideAttackDamage}.
-	 * @param riptideStack The item stack, put this in {@link LivingEntity#riptideStack}.
+	 * and set {@link LivingEntity#LIVING_ENTITY_FLAG_SPIN_ATTACK} to true.
+	 * @param riptideTicks The time to keep riptide active, put this in {@link LivingEntity#autoSpinAttackTicks}.
+	 * @param riptideAttackDamage The damage riptide should deal, put this in {@link LivingEntity#autoSpinAttackDmg}.
+	 * @param riptideStack The item stack, put this in {@link LivingEntity#autoSpinAttackItemStack}.
 	 */
 	void activateRiptide(int riptideTicks, float riptideAttackDamage, ItemStack riptideStack);
 

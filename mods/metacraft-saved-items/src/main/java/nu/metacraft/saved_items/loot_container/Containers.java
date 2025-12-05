@@ -1,6 +1,6 @@
 package nu.metacraft.saved_items.loot_container;
 
-import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.advancements.criterion.ItemPredicate;
 import net.minecraft.core.Registry;
 import nu.metacraft.loot_containers.containers.LootContainer;
 import nu.metacraft.loot_containers.containers.LootContainerRegistry;

@@ -13,9 +13,9 @@ import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementRequirements;
 import net.minecraft.advancements.AdvancementRewards;
 import net.minecraft.advancements.CriteriaTriggers;
-import net.minecraft.advancements.critereon.InventoryChangeTrigger;
-import net.minecraft.advancements.critereon.ItemPredicate;
-import net.minecraft.advancements.critereon.RecipeUnlockedTrigger;
+import net.minecraft.advancements.criterion.InventoryChangeTrigger;
+import net.minecraft.advancements.criterion.ItemPredicate;
+import net.minecraft.advancements.criterion.RecipeUnlockedTrigger;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
@@ -24,7 +24,7 @@ import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -61,7 +61,7 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 
 	public static final ResourceKey<Recipe<?>> RELAY_PROGRAM = ResourceKey.create(
 			Registries.RECIPE,
-			ResourceLocation.fromNamespaceAndPath(Relay.MODID, "relay_program")
+			Identifier.fromNamespaceAndPath(Relay.MODID, "relay_program")
 	);
 
 	@Override
@@ -219,7 +219,7 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 										Ingredient.of(RelayItems.RELAY)
 									)
 							),
-							builder.build(RELAY_PROGRAM.location().withPrefix("recipes/" + RecipeCategory.MISC.getFolderName() + "/"))
+							builder.build(RELAY_PROGRAM.identifier().withPrefix("recipes/" + RecipeCategory.MISC.getFolderName() + "/"))
 					);
 				}
 			};

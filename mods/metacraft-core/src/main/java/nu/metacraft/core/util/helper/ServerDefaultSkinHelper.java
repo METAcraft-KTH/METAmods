@@ -5,7 +5,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
 import java.util.UUID;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 
 /**
  * Server-side alternative to {@link net.minecraft.client.resources.DefaultPlayerSkin}

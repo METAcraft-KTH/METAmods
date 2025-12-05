@@ -8,17 +8,19 @@ import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.TracingExecutor;
-import net.minecraft.advancements.critereon.MinMaxBounds;
+import net.minecraft.advancements.criterion.MinMaxBounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
@@ -510,12 +512,12 @@ public record Dungeon(
 								var playersToNotify = d.playersToNotify;
 								for (var player : playersToNotify) {
 									player.displayClientMessage(Component.literal("The room you wanted to enter is now ready!"), true);
-									player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.BLOCKS, 10, 0.5f);
+									playNotifySound(player, SoundEvents.NOTE_BLOCK_CHIME, SoundSource.BLOCKS, 10, 0.5f);
 									TaskScheduler.scheduleThrowaway(portal.getLevel().getServer(), () -> {
-										player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.BLOCKS, 10, 0.75f);
+										playNotifySound(player, SoundEvents.NOTE_BLOCK_CHIME, SoundSource.BLOCKS, 10, 0.75f);
 									}, 10);
 									TaskScheduler.scheduleThrowaway(portal.getLevel().getServer(), () -> {
-										player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.BLOCKS, 10, 1);
+										playNotifySound(player, SoundEvents.NOTE_BLOCK_CHIME, SoundSource.BLOCKS, 10, 1);
 									}, 20);
 								}
 								d = d.clearPlayers().withPortalsToInitialize(portalsToInitialize.build());
@@ -525,6 +527,15 @@ public record Dungeon(
 					}).join();
 				},
 				DUNGEONS
+		);
+	}
+
+	private static void playNotifySound(ServerPlayer player, Holder<SoundEvent> sound, SoundSource source, float volume, float pitch) {
+		player.connection.send(
+				new ClientboundSoundPacket(
+						sound, source, player.getX(), player.getY(), player.getZ(),
+						volume, pitch, player.getRandom().nextLong()
+				)
 		);
 	}
 

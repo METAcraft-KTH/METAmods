@@ -48,7 +48,7 @@ public record CodecMessageHandler<T>(
 			Function<DynamicOps<Tag>, RegistryOps<Tag>> registryOpsWrapper
 	) {
 		return new ClickEvent.Custom(
-				handler.key().location(),
+				handler.key().identifier(),
 				handler.value().encode(value, registryOpsWrapper)
 		);
 	}

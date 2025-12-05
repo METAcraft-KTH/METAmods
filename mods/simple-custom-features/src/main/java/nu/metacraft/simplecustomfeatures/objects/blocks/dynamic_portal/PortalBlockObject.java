@@ -5,8 +5,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.advancements.critereon.BlockPredicate;
-import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.advancements.criterion.BlockPredicate;
+import net.minecraft.advancements.criterion.ItemPredicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -20,7 +20,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.random.WeightedList;
@@ -243,9 +243,9 @@ public class PortalBlockObject implements BaseBlock {
 	}
 
 	@Override
-	public Multimap<ResourceLocation, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
+	public Multimap<Identifier, BaseObject<?>> createChildren(ObjectContainer.Loaded<Block> container) {
 		poiKey = ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, container.getID());
-		Multimap<ResourceLocation, BaseObject<?>> map = Multimaps.forMap(Map.of(
+		Multimap<Identifier, BaseObject<?>> map = Multimaps.forMap(Map.of(
 				container.getID(), new POI(new POI.PolymerPOI(
 						ImmutableSet.copyOf(container.getActualObject().getStateDefinition().getPossibleStates()), 0, 1
 				))
@@ -347,10 +347,10 @@ public class PortalBlockObject implements BaseBlock {
 		}
 	}
 
-	public record StructureWithOffset(ResourceLocation id, BlockPos offset) {
+	public record StructureWithOffset(Identifier id, BlockPos offset) {
 		public static final Codec<StructureWithOffset> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						ResourceLocation.CODEC.fieldOf("id").forGetter(StructureWithOffset::id),
+						Identifier.CODEC.fieldOf("id").forGetter(StructureWithOffset::id),
 						BlockPos.CODEC.fieldOf("offset").forGetter(StructureWithOffset::offset)
 				).apply(instance, StructureWithOffset::new)
 		);

@@ -75,7 +75,7 @@ public class WorldDeleter {
 								),
 								world.dimension(),
 								server.registries().compositeAccess().lookupOrThrow(Registries.LEVEL_STEM)
-										.getValue(world.dimension().location()),
+										.getValue(world.dimension().identifier()),
 								server.getWorldData().isDebugWorld(),
 								BiomeManager.obfuscateSeed(server.getWorldData().worldGenOptions().seed()),
 								ImmutableList.of(), false, server.overworld().getRandomSequences()

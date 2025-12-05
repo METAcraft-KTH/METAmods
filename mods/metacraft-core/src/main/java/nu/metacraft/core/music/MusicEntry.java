@@ -16,7 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.JukeboxPlayable;
 import net.minecraft.world.item.JukeboxSong;
@@ -39,7 +39,7 @@ public record MusicEntry(
 										var lookup = l.get();
 										return lookup.get(k).map(
 												DataResult::success
-										).orElse(DataResult.error(() -> "Jukebox song with id " + k.location() + " did not exist"));
+										).orElse(DataResult.error(() -> "Jukebox song with id " + k.identifier() + " did not exist"));
 									}
 									return DataResult.error(() -> "Parsing this value requires RegistryOps.");
 								}
@@ -66,7 +66,7 @@ public record MusicEntry(
 	};
 
 	private static final Map<ResourceKey<SoundEvent>, Holder<SoundEvent>> cache = new HashMap<>();
-	public static final Codec<Holder<SoundEvent>> MUSIC_CODEC_WITH_CACHE = ResourceLocation.CODEC.xmap(
+	public static final Codec<Holder<SoundEvent>> MUSIC_CODEC_WITH_CACHE = Identifier.CODEC.xmap(
 			MusicEntry::getFromID, MusicEntry::getID
 	);
 
@@ -84,7 +84,7 @@ public record MusicEntry(
 
 	public static final MapCodec<MusicEntry> EASY_MAP_CODEC = METACodecs.withAlternative(MAP_CODEC, DISC_CODEC.fieldOf("song"));
 
-	public static Holder<SoundEvent> getFromID(ResourceLocation id) {
+	public static Holder<SoundEvent> getFromID(Identifier id) {
 		return getFromID(ResourceKey.create(Registries.SOUND_EVENT, id));
 	}
 
@@ -93,15 +93,15 @@ public record MusicEntry(
 				e -> (Holder<SoundEvent>) e
 		).orElseGet(() -> {
 			if (!cache.containsKey(key)) {
-				var newSound = Holder.direct(SoundEvent.createVariableRangeEvent(key.location()));
+				var newSound = Holder.direct(SoundEvent.createVariableRangeEvent(key.identifier()));
 				cache.put(key, newSound);
 			}
 			return cache.get(key);
 		});
 	}
 
-	public static ResourceLocation getID(Holder<SoundEvent> entry) {
-		return entry.unwrap().map(ResourceKey::location, SoundEvent::location);
+	public static Identifier getID(Holder<SoundEvent> entry) {
+		return entry.unwrap().map(ResourceKey::identifier, SoundEvent::location);
 	}
 
 	public Music getMusic(boolean intro) {

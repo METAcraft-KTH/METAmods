@@ -1,7 +1,7 @@
 package nu.metacraft.moderation;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.lib.compat.IsLoaded;
@@ -22,7 +22,7 @@ public class METAcraftModeration implements ModInitializer {
 		Commands.init();
 	}
 
-	public static ResourceLocation getID(String name) {
-		return ResourceLocation.fromNamespaceAndPath(MODID, name);
+	public static Identifier getID(String name) {
+		return Identifier.fromNamespaceAndPath(MODID, name);
 	}
 }
