@@ -11,18 +11,14 @@ public class DialogHelper {
 	}
 
 	public static QuickActionsCount getQuickActionsCount(HolderLookup.Provider lookup) {
-		var tags = lookup.get(Registries.DIALOG).orElseThrow().value().getTagOrEmpty(
+		int count = (int) lookup.lookupOrThrow(Registries.DIALOG).get(
 				DialogTags.QUICK_ACTIONS
-		).iterator();
-		QuickActionsCount count = QuickActionsCount.NONE;
-		if (tags.hasNext()) {
-			count = QuickActionsCount.SINGLE;
-			tags.next();
-		}
-		if (tags.hasNext()) {
-			count = QuickActionsCount.MULTIPLE;
-		}
-		return count;
+		).orElseThrow().stream().limit(2).count();
+		return switch (count) {
+			case 0 -> QuickActionsCount.NONE;
+			case 1 -> QuickActionsCount.SINGLE;
+			default -> QuickActionsCount.MULTIPLE;
+		};
 	}
 
 	public static boolean hasManyQuickActions(HolderLookup.Provider lookup) {

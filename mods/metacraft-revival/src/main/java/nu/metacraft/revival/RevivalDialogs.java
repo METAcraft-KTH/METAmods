@@ -68,7 +68,7 @@ public class RevivalDialogs {
 				"close",
 				(server, player) -> player.getPlayer(server).ifPresent(p -> {
 					((ServerPlayerExtension) p).metacraft$setRevivalMenuOpen(false);
-					var quickActions = DialogHelper.hasManyQuickActions(server.registryAccess()) ? Component.translatable(
+					var quickActions = !DialogHelper.hasManyQuickActions(server.registryAccess()) ? Component.translatable(
 							"dialog.metacraft.revival.reopen.info.quickactions", Component.keybind("key.quickActions")
 					) : Component.translatable(
 							"dialog.metacraft.revival.reopen.info.quickactions_multiple",
