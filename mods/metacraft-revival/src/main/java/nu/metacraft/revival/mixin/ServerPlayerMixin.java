@@ -4,6 +4,9 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentContents;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.common.ClientboundClearDialogPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -338,6 +341,34 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		}
 	}
 
+	@Unique
+	private Component removeClickEvents(Component text) {
+		ComponentContents contents;
+		if (text.getContents() instanceof TranslatableContents translatable) {
+			var newArgs = new Object[translatable.getArgs().length];
+			for (int i = 0; i < newArgs.length; i++) {
+				var arg = translatable.getArgs()[i];
+				if (arg instanceof Component c) {
+					newArgs[i] = removeClickEvents(c);
+				} else {
+					newArgs[i] = arg;
+				}
+			}
+			contents = new TranslatableContents(
+					translatable.getKey(), translatable.getFallback(), newArgs
+			);
+		} else {
+			contents = text.getContents();
+		}
+		var newComponent = MutableComponent.create(contents).withStyle(
+				text.getStyle().withClickEvent(null)
+		);
+		for (var sibling : text.getSiblings()) {
+			newComponent.append(removeClickEvents(sibling));
+		}
+		return newComponent;
+	}
+
 	@Inject(
 			method = "die",
 			at = @At("HEAD"),
@@ -350,7 +381,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		if (RevivalHelper.hasRevival(p)) {
 			if (this.level().getGameRules().getBoolean(GameRules.RULE_SHOWDEATHMESSAGES)) {
 				Component component = this.getCombatTracker().getDeathMessage();
-				metacraft$deathMessage = component;
+				metacraft$deathMessage = removeClickEvents(component);
 				Team team = this.getTeam();
 				if (team == null || team.getDeathMessageVisibility() == Team.Visibility.ALWAYS) {
 					this.server.getPlayerList().broadcastSystemMessage(component, false);
