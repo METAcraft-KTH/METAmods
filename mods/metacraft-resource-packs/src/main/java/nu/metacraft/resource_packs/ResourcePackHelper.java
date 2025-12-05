@@ -16,25 +16,26 @@ public class ResourcePackHelper {
 	public static void enableResourcePack(ServerPlayer player, UUID pack, boolean persist) {
 		var config = ResourcePackConfig.getConfig();
 		var entry = config.getResourcePack(pack);
-		if (entry == null) return;
-		if (!entry.isGlobal()) {
+		if (entry.isEmpty()) return;
+		if (!entry.get().isGlobal()) {
 			update(player, data -> data.addPack(pack, persist));
-			player.connection.send(config.createEnablePacket(pack));
+			config.createEnablePacket(pack).ifPresent(player.connection::send);
 		}
 	}
 
 	public static void disableResourcePack(ServerPlayer player, UUID pack) {
 		var config = ResourcePackConfig.getConfig();
 		var entry = config.getResourcePack(pack);
-		if (entry == null) return;
-		if (!entry.isGlobal()) {
+		if (entry.isEmpty()) return;
+		if (!entry.get().isGlobal()) {
 			update(player, data -> data.removePack(pack));
 			player.connection.send(new ClientboundResourcePackPopPacket(Optional.of(pack)));
 		}
 	}
 
 	public static boolean hasResourcePack(ServerPlayer player, UUID pack) {
-		return ResourcePackConfig.getConfig().getResourcePack(pack).isGlobal() || playerHasPack(player, pack);
+		return ResourcePackConfig.getConfig().getResourcePack(pack).map(ResourcePackConfig.ResourcePack::isGlobal).orElse(false) ||
+				playerHasPack(player, pack);
 	}
 
 	private static boolean playerHasPack(ServerPlayer player, UUID pack) {
@@ -83,7 +84,7 @@ public class ResourcePackHelper {
 			for (var pack : config.getResourcePacks()) {
 				List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
 				if (pack.getValue().isGlobal() && (config.hasChangedButStillExists(pack.getKey()) || config.isNowGlobal(pack.getKey()))) {
-					packets.add(config.createEnablePacket(pack.getKey()));
+					config.createEnablePacket(pack.getKey()).ifPresent(packets::add);
 				}
 				if (!packets.isEmpty()) {
 					var packet = new ClientboundBundlePacket(packets);
@@ -97,17 +98,17 @@ public class ResourcePackHelper {
 		for (var player : server.getPlayerList().getPlayers()) {
 			List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
 			getData(player).resourcePacks().forEach(pack -> {
-				if (ResourcePackConfig.getConfig().resourcePackExists(pack)) {
+				config.getResourcePack(pack).ifPresentOrElse(p -> {
 					if (config.hasChangedButStillExists(pack) && sendPackets) {
-						packets.add(config.createEnablePacket(pack));
+						config.createEnablePacket(pack).ifPresent(packets::add);
 					}
-					if (config.getResourcePack(pack).isGlobal()) {
+					if (p.isGlobal()) {
 						update(player, data -> data.removePack(pack));
 					}
-				} else {
+				}, () -> {
 					if (sendPackets) packets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
 					update(player, data -> data.removePack(pack));
-				}
+				});
 			});
 			if (!packets.isEmpty()) {
 				player.connection.send(new ClientboundBundlePacket(packets));

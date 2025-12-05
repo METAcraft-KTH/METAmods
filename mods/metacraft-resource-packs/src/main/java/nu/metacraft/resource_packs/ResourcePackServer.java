@@ -149,13 +149,13 @@ public class ResourcePackServer implements AutoCloseable {
 			try {
 				var file = mc.submit(() -> {
 					var packEntry = ResourcePackConfig.getConfig().getResourcePack(p);
-					if (packEntry == null) {
+					if (packEntry.isEmpty()) {
 						return null;
 					}
-					if (!verified && !packEntry.allowManualDownloads()) {
+					if (!verified && !packEntry.get().allowManualDownloads()) {
 						return null;
 					}
-					return packEntry.getFile();
+					return packEntry.get().getFile();
 				}).get();
 				if (file == null) {
 					send403(exchange);

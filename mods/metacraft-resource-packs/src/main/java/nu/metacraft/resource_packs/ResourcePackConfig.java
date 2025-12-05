@@ -120,8 +120,8 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		return resourcePacks.containsKey(uuid);
 	}
 
-	public ResourcePack getResourcePack(UUID uuid) {
-		return resourcePacks.get(uuid);
+	public Optional<ResourcePack> getResourcePack(UUID uuid) {
+		return Optional.ofNullable(resourcePacks.get(uuid));
 	}
 
 	private void onRemove(UUID uuid) {
@@ -153,7 +153,8 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 			prevGlobals.addAll(old.prevGlobals);
 		}
 		resourcePacks.forEach((id, pack) -> {
-			if (!old.resourcePacks.containsKey(id) || !Objects.equals(old.getResourcePack(id).getHash(), pack.getHash())) {
+			var p = old.getResourcePack(id);
+			if (p.isEmpty() || !Objects.equals(p.get().getHash(), pack.getHash())) {
 				onNewOrModified(id);
 			}
 			boolean oldGlobal = old.resourcePacks.containsKey(id) && old.resourcePacks.get(id).isGlobal();
@@ -223,14 +224,14 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 		return allowManualDownloads;
 	}
 
-	public ClientboundResourcePackPushPacket createEnablePacket(UUID uuid) {
-		var entry = getResourcePack(uuid);
-		if (entry == null) return null;
-		String protocol = sslSettings.isPresent() ? "https" : "http";
-		return new ClientboundResourcePackPushPacket(
-				uuid,  protocol + "://" + getServerAddress() + ":" + getPort()+ "/" + uuid.toString(),
-				entry.getHash().toString(), required, prompt
-		);
+	public Optional<ClientboundResourcePackPushPacket> createEnablePacket(UUID uuid) {
+		return getResourcePack(uuid).map(entry -> {
+			String protocol = sslSettings.isPresent() ? "https" : "http";
+			return new ClientboundResourcePackPushPacket(
+					uuid,  protocol + "://" + getServerAddress() + ":" + getPort()+ "/" + uuid.toString(),
+					entry.getHash().toString(), required, prompt
+			);
+		});
 	}
 
 	@Override

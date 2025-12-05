@@ -75,7 +75,7 @@ public abstract class ServerConfigurationPacketListenerImplMixin extends ServerC
 				@Override
 				public void start(Consumer<Packet<?>> sender) {
 					for (var pack : packs) {
-						sender.accept(config.createEnablePacket(pack));
+						config.createEnablePacket(pack).ifPresent(sender);
 					}
 				}
 

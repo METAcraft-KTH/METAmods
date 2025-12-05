@@ -42,7 +42,7 @@ public record PlayerPackData(PSet<UUID> resourcePacks, PSet<UUID> cachedPacks) {
 		var packs = resourcePacks;
 		for (var pack : resourcePacks) {
 			var entry = config.getResourcePack(pack);
-			if (entry == null || entry.isGlobal()) {
+			if (entry.isEmpty() || entry.get().isGlobal()) {
 				packs = packs.minus(pack);
 			}
 		}
