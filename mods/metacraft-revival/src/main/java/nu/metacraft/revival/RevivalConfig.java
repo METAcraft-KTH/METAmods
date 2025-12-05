@@ -68,7 +68,7 @@ public record RevivalConfig(
 							1.0f, IntRange.lowerBound(10),
 							IntRange.lowerBound(1), MinMaxBounds.Doubles.exactly(0.0),
 							List.of(
-									new MobEffectInstance(MobEffects.HUNGER)
+									new MobEffectInstance(MobEffects.HUNGER, 30*20)
 							)
 					),
 					ObjectStorage.fromValue(LootItemCondition.CODEC, getDefaultReviveCondition())
