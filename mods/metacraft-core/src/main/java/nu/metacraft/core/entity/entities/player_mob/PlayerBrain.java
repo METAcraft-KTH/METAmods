@@ -7,24 +7,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.Brain;
-import net.minecraft.world.entity.ai.behavior.BackUpIfTooClose;
-import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
-import net.minecraft.world.entity.ai.behavior.CrossbowAttack;
-import net.minecraft.world.entity.ai.behavior.DoNothing;
-import net.minecraft.world.entity.ai.behavior.EraseMemoryIf;
-import net.minecraft.world.entity.ai.behavior.InteractWithDoor;
-import net.minecraft.world.entity.ai.behavior.LookAtTargetSink;
-import net.minecraft.world.entity.ai.behavior.MeleeAttack;
-import net.minecraft.world.entity.ai.behavior.MoveToTargetSink;
-import net.minecraft.world.entity.ai.behavior.OneShot;
-import net.minecraft.world.entity.ai.behavior.RandomStroll;
-import net.minecraft.world.entity.ai.behavior.RunOne;
-import net.minecraft.world.entity.ai.behavior.SetWalkTargetFromLookTarget;
-import net.minecraft.world.entity.ai.behavior.StartAttacking;
-import net.minecraft.world.entity.ai.behavior.StartCelebratingIfTargetDead;
-import net.minecraft.world.entity.ai.behavior.StopAttackingIfTargetInvalid;
-import net.minecraft.world.entity.ai.behavior.StopBeingAngryIfTargetDead;
-import net.minecraft.world.entity.ai.behavior.Swim;
+import net.minecraft.world.entity.ai.behavior.*;
 import net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.sensing.Sensor;
@@ -59,7 +42,8 @@ public class PlayerBrain {
 			MemoryModuleType.ANGRY_AT, MemoryModuleType.UNIVERSAL_ANGER, MemoryModuleType.AVOID_TARGET,
 			MemoryModuleType.NEAREST_VISIBLE_NEMESIS, MemoryModuleType.RIDE_TARGET, MemoryModuleType.ATE_RECENTLY,
 			METAcraftMemoryModules.NEAREST_OXYGEN, METAcraftMemoryModules.MOVE_TARGET, METAcraftMemoryModules.RECOVERING_BREATH,
-			METAcraftMemoryModules.IS_SMART_SHOOTING
+			METAcraftMemoryModules.IS_SMART_SHOOTING, MemoryModuleType.SPEAR_FLEEING_TIME, MemoryModuleType.SPEAR_FLEEING_POSITION,
+			MemoryModuleType.SPEAR_CHARGE_POSITION, MemoryModuleType.SPEAR_ENGAGE_TIME, MemoryModuleType.SPEAR_STATUS
 	);
 
 	protected static Brain.Provider<PlayerMob> createBrainProfile() {
@@ -113,6 +97,9 @@ public class PlayerBrain {
 	private static void addFightActivities(PlayerMob player, Brain<PlayerMob> brain) {
 		brain.addActivityAndRemoveMemoryWhenStopped(Activity.FIGHT, 10, ImmutableList.of(
 				StopAttackingIfTargetInvalid.create((world, target) -> !PlayerBrain.isPreferredAttackTarget(world, player, target)),
+				new SpearApproach(1.0, 10.0F),
+				new SpearAttack(1.0, 1.0, 10.0F, 2.0F),
+				new SpearRetreat(1.0),
 				BehaviorBuilder.triggerIf(PlayerBrain::isHoldingCrossbow, BackUpIfTooClose.create(5, 0.75f)),
 				BehaviorBuilder.triggerIf(
 						PlayerBrain::allowSetMovePos,
