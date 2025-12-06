@@ -6,9 +6,11 @@ import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientboundMoveVehiclePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.commands.RotateCommand;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -80,6 +82,17 @@ public class FakePlayerRenderer implements PlayerRenderer {
 		} else if (!removePackets.isEmpty()) {
 			removePlayerEntryFrom(removePackets.stream().filter(p -> p.time < playerMob.level().getGameTime()).map(SendPacketEntry::player));
 			removePackets.removeIf(p -> p.time < playerMob.level().getGameTime());
+		}
+		if (playerMob.isPassenger() && !playerMob.level().isClientSide()) {
+			var vehicle = playerMob.getRootVehicle();
+			if (vehicle.getControllingPassenger() == playerMob) {
+				if (playerMob.getYRot() != vehicle.getYRot()) {
+					playerMob.setYRot(vehicle.getYRot());
+					if (!playerMob.getLookControl().isLookingAtTarget()) {
+						playerMob.setYHeadRot(vehicle.getYRot());
+					}
+				}
+			}
 		}
 	}
 
