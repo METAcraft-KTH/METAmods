@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.attribute.AttributeTypes;
 import net.minecraft.world.attribute.EnvironmentAttribute;
 import net.minecraft.world.level.Level;
+import nu.metacraft.core.environment_attributes.METAcraftAttributeTypes;
 import nu.metacraft.core.util.TeleportPredicate;
 import nu.metacraft.dungeons.METAcraftDungeons;
 import nu.metacraft.lib.time_getter.RegularTimeGetter;
@@ -22,19 +23,19 @@ public class DungeonAttributes {
 	);
 
 	public static final EnvironmentAttribute<@NotNull Integer> DUNGEON_WIDTH = register(
-			"dungeons/dungeon_width", EnvironmentAttribute.builder(DungeonAttributeTypes.INTEGER).defaultValue(256).notPositional()
+			"dungeons/dungeon_width", EnvironmentAttribute.builder(METAcraftAttributeTypes.INTEGER).defaultValue(256).notPositional()
 	);
 
 	public static final EnvironmentAttribute<@NotNull Double> MAX_RANGE_FROM_EXIT = register(
-			"dungeons/max_range_from_exit", EnvironmentAttribute.builder(DungeonAttributeTypes.DOUBLE).defaultValue(100.0).spatiallyInterpolated()
+			"dungeons/max_range_from_exit", EnvironmentAttribute.builder(METAcraftAttributeTypes.DOUBLE).defaultValue(100.0).spatiallyInterpolated()
 	);
 
 	public static final EnvironmentAttribute<@NotNull BlockPos> EXIT_POS = register(
-			"dungeons/exit_pos", EnvironmentAttribute.builder(DungeonAttributeTypes.BLOCK_POS).defaultValue(BlockPos.ZERO).spatiallyInterpolated()
+			"dungeons/exit_pos", EnvironmentAttribute.builder(METAcraftAttributeTypes.BLOCK_POS).defaultValue(BlockPos.ZERO).spatiallyInterpolated()
 	);
 
 	public static final EnvironmentAttribute<@NotNull ResourceKey<@NotNull Level>> EXIT_DIM = register(
-			"dungeons/exit_dim", EnvironmentAttribute.builder(DungeonAttributeTypes.DIMENSION).defaultValue(Level.OVERWORLD)
+			"dungeons/exit_dim", EnvironmentAttribute.builder(METAcraftAttributeTypes.DIMENSION).defaultValue(Level.OVERWORLD)
 	);
 
 	public static final EnvironmentAttribute<@NotNull List<@NotNull TeleportPredicate>> SHOULD_TELEPORT = register(
@@ -42,7 +43,7 @@ public class DungeonAttributes {
 	);
 
 	public static final EnvironmentAttribute<@NotNull Optional<RegularTimeGetter>> RESET_CHECKER = register(
-			"dungeons/reset_checker", EnvironmentAttribute.builder(DungeonAttributeTypes.REGULAR_TIME_GETTER).defaultValue(Optional.empty()).notPositional()
+			"dungeons/reset_checker", EnvironmentAttribute.builder(METAcraftAttributeTypes.REGULAR_TIME_GETTER).defaultValue(Optional.empty()).notPositional()
 	);
 
 

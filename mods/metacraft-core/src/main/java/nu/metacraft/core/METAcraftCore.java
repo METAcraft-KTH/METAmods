@@ -4,6 +4,7 @@ import net.fabricmc.api.ModInitializer;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
+import nu.metacraft.core.environment_attributes.METAcraftAttributeTypes;
 import nu.metacraft.core.status_effects.METAcraftEffects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,6 +42,7 @@ public class METAcraftCore implements ModInitializer {
 		METAcraftBlocks.init();
 		METAcraftEntities.init();
 		METAcraftItems.init();
+		METAcraftAttributeTypes.init();
 		Commands.init();
 		Events.init();
 		CompatInit.init();
