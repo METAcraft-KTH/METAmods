@@ -1,15 +1,11 @@
 package nu.metacraft.dungeons.dungeons;
 
-import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.ChatFormatting;
-import net.minecraft.advancements.criterion.EntityPredicate;
-import net.minecraft.advancements.criterion.EntityTypePredicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -20,7 +16,6 @@ import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.Mth;
 import net.minecraft.world.*;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.item.FallingBlockEntity;
@@ -33,6 +28,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.core.block.METAcraftBlocks;
 import nu.metacraft.core.block.entities.BlackHolePortalEntity;
 import nu.metacraft.core.block.entities.MusicBlockEntity;
@@ -42,10 +38,10 @@ import nu.metacraft.core.util.TeleportPredicate;
 import nu.metacraft.dungeons.METAcraftDungeons;
 import nu.metacraft.dungeons.Tags;
 import nu.metacraft.dungeons.compat.SquaremapCompat;
+import nu.metacraft.dungeons.environment_attributes.DungeonAttributes;
 import nu.metacraft.lib.util.SavedDataTypeCache;
 import nu.metacraft.lib.util.helper.DisconnectedPlayerHelper;
 import nu.metacraft.lib.compat.IsLoaded;
-import nu.metacraft.lib.time_getter.RegularTimeGetter;
 import nu.metacraft.lib.util.PositionFinder;
 import nu.metacraft.dungeons.util.WorldDeleter;
 import nu.metacraft.lib.util.helper.TeleportHelper;
@@ -75,37 +71,14 @@ public class DungeonData extends SavedData {
 		return RecordCodecBuilder.create(
 				instance -> instance.group(
 						Codec.LONG.fieldOf("index").forGetter(d -> d.index),
-						Codec.INT.fieldOf("width").forGetter(d -> d.dungeonWidth),
-						Level.RESOURCE_KEY_CODEC.optionalFieldOf("exit_dim", world.getServer().getRespawnData().dimension()).forGetter(d -> d.exitDim),
-						BlockPos.CODEC.fieldOf("exit_pos").orElse(world.getServer().getRespawnData().pos()).forGetter(d -> d.exitPos),
-						Codec.DOUBLE.fieldOf("max_range_from_exit_pos").forGetter(d -> d.maxRangeFromExitPos),
 						Codec.BOOL.fieldOf("clearing").forGetter(d -> d.clearing),
 						Codec.BOOL.fieldOf("resetting").forGetter(d -> d.resetting),
 						Codec.INT.fieldOf("time_since_reset").forGetter(d -> d.timeSinceReset),
 						EntranceEntry.LIST_CODEC.fieldOf("external_entrances").forGetter(d -> d.externalEntrances),
-						TeleportPredicate.LIST_CODEC.fieldOf("should_teleport").forGetter(d -> d.shouldTeleport),
-						RegularTimeGetter.REGISTRY_CODEC.optionalFieldOf("reset_getter").forGetter(d -> d.resetGetter),
 						ExtraCodecs.INSTANT_ISO8601.optionalFieldOf("next_reset").forGetter(d -> d.nextReset)
 				).apply(instance, DungeonData.create(world)::load)
 		);
 	}
-
-	private int dungeonWidth;
-	private ResourceKey<Level> exitDim;
-	private BlockPos exitPos;
-	private double maxRangeFromExitPos = 100;
-	private final List<TeleportPredicate> shouldTeleport = new ArrayList<>(
-			ImmutableList.of(
-					new TeleportPredicate(
-							EntityPredicate.Builder.entity().entityType(
-									EntityTypePredicate.of(
-											BuiltInRegistries.ENTITY_TYPE, EntityType.FALLING_BLOCK
-									)
-							).build(),
-							false
-					)
-			)
-	);
 
 
 	private long index = 0;
@@ -114,7 +87,6 @@ public class DungeonData extends SavedData {
 	private boolean clearingRestarted = false;
 	private int timeSinceReset = 0;
 	private final Set<EntranceEntry> externalEntrances = new HashSet<>();
-	private Optional<RegularTimeGetter> resetGetter = Optional.empty();
 	private Optional<Instant> nextReset = Optional.empty();
 
 	private boolean hasWarned = false;
@@ -122,26 +94,25 @@ public class DungeonData extends SavedData {
 	private final Set<MusicBlockEntity> knownMusicBlocks = new HashSet<>();
 
 
-	public static DungeonData getInstance(ServerLevel world) {
-		return world.getDataStorage().computeIfAbsent(getType(world));
-	}
-
 	public static Optional<DungeonData> getIfPresent(ServerLevel world) {
-		return Optional.ofNullable(world.getDataStorage().get(getType(world)));
+		return Optional.ofNullable(world.getDataStorage().get(getType(world))).or(() -> {
+			if (world.environmentAttributes().getDimensionValue(DungeonAttributes.DUNGEON)) {
+				return Optional.of(world.getDataStorage().computeIfAbsent(getType(world)));
+			} else {
+				return Optional.empty();
+			}
+		});
 	}
 
 	private final ServerLevel world;
 
 	private DungeonData(ServerLevel world) {
 		this.world = world;
-		dungeonWidth = world.getHeight();
-		exitDim = world.getServer().getRespawnData().dimension();
-		exitPos = world.getServer().getRespawnData().pos();
 		fixSquaremap();
 	}
 
 	public int getDungeonWidth() {
-		return dungeonWidth;
+		return world.environmentAttributes().getDimensionValue(DungeonAttributes.DUNGEON_WIDTH);
 	}
 
 	private static DungeonData create(ServerLevel world) {
@@ -149,22 +120,14 @@ public class DungeonData extends SavedData {
 	}
 
 	private DungeonData load(
-			long index, int width, ResourceKey<Level> exitDim, BlockPos exitPos,
-			double maxRangeFromExitPos, boolean clearing, boolean resetting, int timeSinceReset,
-			Set<EntranceEntry> externalEntrances, List<TeleportPredicate> shouldTeleport,
-			Optional<RegularTimeGetter> resetGetter, Optional<Instant> nextReset
+			long index, boolean clearing, boolean resetting, int timeSinceReset,
+			Set<EntranceEntry> externalEntrances, Optional<Instant> nextReset
 	) {
 		this.index = index;
-		this.dungeonWidth = width;
-		this.exitDim = exitDim;
-		this.exitPos = exitPos;
-		this.maxRangeFromExitPos = maxRangeFromExitPos;
 		this.clearing = clearing;
 		this.resetting = resetting;
 		this.timeSinceReset = timeSinceReset;
 		this.externalEntrances.addAll(externalEntrances);
-		this.shouldTeleport.addAll(shouldTeleport);
-		this.resetGetter = resetGetter;
 		this.nextReset = nextReset;
 
 		if (!this.resetting) {
@@ -184,13 +147,6 @@ public class DungeonData extends SavedData {
 		if (!clearing) {
 			clearingRestarted = false;
 		}
-		this.exitDim = data.exitDim;
-		this.exitPos = data.exitPos;
-		this.maxRangeFromExitPos = data.maxRangeFromExitPos;
-		this.dungeonWidth = data.dungeonWidth;
-		this.resetGetter = data.resetGetter;
-		this.shouldTeleport.clear();
-		this.shouldTeleport.addAll(data.shouldTeleport);
 		setDirty();
 	}
 
@@ -219,7 +175,10 @@ public class DungeonData extends SavedData {
 	}
 
 	private boolean shouldTeleport(Entity entity) {
-		return TeleportPredicate.shouldTeleport(shouldTeleport, world, entity);
+		return TeleportPredicate.shouldTeleport(
+				world.environmentAttributes().getValue(DungeonAttributes.SHOULD_TELEPORT, entity.position()),
+				world, entity
+		);
 	}
 
 	public void teleportOut(Entity entity) {
@@ -227,10 +186,10 @@ public class DungeonData extends SavedData {
 		if (!shouldTeleport(entity)) {
 			entity.kill(world);
 		}
-		var exitPos = getExitPos().getCenter();
+		var exitPos = getExitPos(entity.position()).getCenter();
 		entity.teleport(
 				new TeleportTransition(
-						world.getServer().getLevel(exitDim), exitPos, entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(),
+						getExitWorld(entity.position()), exitPos, entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(),
 						pet -> {
 							pet.fallDistance = 0;
 						}
@@ -322,6 +281,7 @@ public class DungeonData extends SavedData {
 					resetDimension();
 				}
 			}
+			var resetGetter = world.environmentAttributes().getDimensionValue(DungeonAttributes.RESET_CHECKER);
 			if (resetGetter.isPresent() && nextReset.isEmpty()) {
 				nextReset = Optional.of(resetGetter.get().getNextTime(Instant.now()));
 				setDirty();
@@ -382,7 +342,7 @@ public class DungeonData extends SavedData {
 						);
 					} while (world.getBlockState(pos).is(Tags.DUNGEON_RESET_UNBREAKABLE));
 					for (var position : positions) {
-						if (pos.closerThan(position, dungeonWidth)) {
+						if (pos.closerThan(position, getDungeonWidth())) {
 							continue playerLoop;
 						}
 					}
@@ -438,7 +398,7 @@ public class DungeonData extends SavedData {
 			world, () -> {
 				clearing = false;
 				resetting = false;
-				DungeonData.getInstance(world.getServer().getLevel(world.dimension())).copyFromPrevious(this);
+				DungeonData.getIfPresent(world.getServer().getLevel(world.dimension())).ifPresent(d -> d.copyFromPrevious(this));
 				for (var player : world.getServer().getPlayerList().getPlayers()) {
 					player.sendSystemMessage(Component.literal("The dungeon portal opens again").withStyle(style -> style.withColor(ChatFormatting.DARK_AQUA)));
 				}
@@ -451,28 +411,30 @@ public class DungeonData extends SavedData {
 				}
 			}, file -> file.endsWith(key + ".dat"),
 			player -> new TeleportTransition(
-					world.getServer().getLevel(exitDim),
-					getExitPos().getCenter(), DisconnectedPlayerHelper.getVelocity(player),
+					getExitWorld(DisconnectedPlayerHelper.getPos(player)),
+					getExitPos(DisconnectedPlayerHelper.getPos(player)).getCenter(), DisconnectedPlayerHelper.getVelocity(player),
 					DisconnectedPlayerHelper.getYaw(player), DisconnectedPlayerHelper.getPitch(player),
 					TeleportTransition.DO_NOTHING
 			)
 		);
 	}
 
-	public ServerLevel getExitWorld() {
+	public ServerLevel getExitWorld(Vec3 pos) {
+		var exitDim = world.environmentAttributes().getValue(DungeonAttributes.EXIT_DIM, pos);
 		ServerLevel targetWorld = world.getServer().getLevel(exitDim);
 		if (targetWorld == null) {
-			exitDim = Level.OVERWORLD;
 			targetWorld = world.getServer().overworld();
 			setDirty();
 		}
 		return targetWorld;
 	}
 
-	public BlockPos getExitPos() {
-		ServerLevel targetWorld = getExitWorld();
+	public BlockPos getExitPos(Vec3 pos) {
+		ServerLevel targetWorld = getExitWorld(pos);
 		BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
 		int tries = 0;
+		double maxRangeFromExitPos = world.environmentAttributes().getValue(DungeonAttributes.MAX_RANGE_FROM_EXIT, pos);
+		var exitPos = world.environmentAttributes().getValue(DungeonAttributes.EXIT_POS, pos);
 		while (true) {
 			int first = targetWorld.getRandom().nextInt(
 					Mth.floor(maxRangeFromExitPos*2)
@@ -534,13 +496,14 @@ public class DungeonData extends SavedData {
 		}
 		world.setBlockAndUpdate(pos, METAcraftBlocks.BLACK_HOLE_CORE.defaultBlockState());
 		var entity = ((BlackHolePortalEntity) world.getBlockEntity(pos));
-		entity.setAttractionRange(dungeonWidth/2.0);
-		entity.setTarget(FixedPortalTarget.create(exitDim, getExitPos()));
-		entity.setShouldTeleport(shouldTeleport);
+		entity.setAttractionRange(getDungeonWidth()/2.0);
+		var vecPos = Vec3.atCenterOf(pos);
+		entity.setTarget(FixedPortalTarget.create(getExitWorld(vecPos).dimension(), getExitPos(vecPos)));
+		entity.setShouldTeleport(world.environmentAttributes().getValue(DungeonAttributes.SHOULD_TELEPORT, pos));
 	}
 
 	public BlockPos getNextSpawnPos() {
-		var pos = PositionFinder.findPosAroundOrigin(index++, dungeonWidth+1);
+		var pos = PositionFinder.findPosAroundOrigin(index++, getDungeonWidth()+1);
 		setDirty();
 		if (!world.getWorldBorder().isWithinBounds(pos.x(), pos.z())) {
 			resetIndexCounter();

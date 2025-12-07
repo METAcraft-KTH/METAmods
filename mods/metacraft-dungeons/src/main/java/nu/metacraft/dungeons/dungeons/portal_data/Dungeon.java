@@ -244,8 +244,10 @@ public record Dungeon(
 										p.getTarget().getFixedTarget(p).ifPresent(
 											backTarget -> {
 												if (backTarget.dimension() == dungeonDimension) {
-													DungeonData.getInstance((ServerLevel) portal.getLevel()).addExternalEntrance(
-															t.dimension(), p.getBlockPos()
+													DungeonData.getIfPresent((ServerLevel) portal.getLevel()).ifPresent(
+															d -> d.addExternalEntrance(
+																	t.dimension(), p.getBlockPos()
+															)
 													);
 												}
 											}
@@ -481,7 +483,7 @@ public record Dungeon(
 
 					return portal.getLevel().getServer().submit(() -> {
 						ImmutableList.Builder<BlockPos> portalsToInitialize = new ImmutableList.Builder<>();
-						var data = DungeonData.getInstance(dungeons);
+						var data = DungeonData.getIfPresent(dungeons);
 						var dataBlockSets = MultiDataBlock.merge(multiBlockDataBlocks);
 
 						for (var dataBlock : lonelyDataBlocks) {
@@ -504,7 +506,7 @@ public record Dungeon(
 						}
 
 						if (dungeons.dimension() != portal.getLevel().dimension()) {
-							data.addExternalEntrance(portal.getLevel().dimension(), portal.getBlockPos());
+							data.ifPresent(d -> d.addExternalEntrance(portal.getLevel().dimension(), portal.getBlockPos()));
 						}
 
 						return (UnaryOperator<Dungeon>) d -> {
@@ -559,7 +561,15 @@ public record Dungeon(
 	) {
 		ServerLevel dungeons = getDungeonDimension(portal.getLevel().getServer());
 		if (dungeons != null) {
-			var dungeonData = DungeonData.getInstance(dungeons);
+			var dungeonDataOpt = DungeonData.getIfPresent(dungeons);
+			if (dungeonDataOpt.isEmpty()) {
+				METAcraftDungeons.LOGGER.warn(
+						"Entrance at {} tried to generate dungeon in non-dungeon dimension {}!",
+						portal.getBlockPos(), dungeons.dimension().identifier()
+				);
+				return;
+			}
+			var dungeonData = dungeonDataOpt.get();
 			if (dungeonData.isResetting()) {
 				METAcraftDungeons.LOGGER.warn("Entrance at " + portal.getBlockPos() + " tried to generate dungeon while resetting.");
 				return;

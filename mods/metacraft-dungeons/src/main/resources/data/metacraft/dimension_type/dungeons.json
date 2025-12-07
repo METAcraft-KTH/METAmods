@@ -29,7 +29,16 @@
 		"minecraft:visual/sky_light_color": "#000000",
 		"minecraft:visual/sky_light_factor": 0.0,
 		"minecraft:gameplay/piglins_zombify": false,
-		"minecraft:gameplay/can_start_raid": false
+		"minecraft:gameplay/can_start_raid": false,
+		"metacraft:dungeons/is_dungeon_dimension": true,
+		"metacraft:dungeons/should_teleport": [
+			{
+				"result": false,
+				"entity_predicate": {
+					"type": "falling_block"
+				}
+			}
+		]
 	},
 	"coordinate_scale": 0.25,
 	"has_fixed_time": true,

@@ -2,6 +2,8 @@ package nu.metacraft.dungeons;
 
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
+import nu.metacraft.dungeons.environment_attributes.DungeonAttributeTypes;
+import nu.metacraft.dungeons.environment_attributes.DungeonAttributes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.dungeons.block.DungeonsBlockEntities;
@@ -23,6 +25,8 @@ public class METAcraftDungeons implements ModInitializer {
 		DungeonTickets.init();
 		DungeonBlocks.init();
 		DungeonsBlockEntities.init();
+		DungeonAttributeTypes.init();
+		DungeonAttributes.init();
 		Commands.init();
 		Events.init();
 	}

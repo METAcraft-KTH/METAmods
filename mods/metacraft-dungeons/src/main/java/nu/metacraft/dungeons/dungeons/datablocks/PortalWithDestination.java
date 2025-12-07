@@ -107,8 +107,10 @@ public class PortalWithDestination extends DataBlock implements MultiDataBlock {
 								portal.setTarget(FixedPortalTarget.create(
 										parameters.dungeons.dimension(), chosenBlock.pos()
 								));
-								DungeonData.getInstance(parameters.dungeons).addExternalEntrance(
-										targetPortal.getLevel().dimension(), targetPortal.getBlockPos()
+								DungeonData.getIfPresent(parameters.dungeons).ifPresent(
+										d -> d.addExternalEntrance(
+												targetPortal.getLevel().dimension(), targetPortal.getBlockPos()
+										)
 								);
 							}
 							break;
