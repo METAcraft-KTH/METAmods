@@ -1,0 +1,105 @@
+package nu.metacraft.season_5;
+
+import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
+import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementRequirements;
+import net.minecraft.advancements.AdvancementRewards;
+import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.advancements.criterion.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.RecipeOutput;
+import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.CraftingBookCategory;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.ShapedRecipe;
+import net.minecraft.world.item.crafting.ShapedRecipePattern;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.loot.predicates.LocationCheck;
+import nu.metacraft.season_5.items.Season5Items;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+
+public class METAcraftS5Datagen implements DataGeneratorEntrypoint {
+	@Override
+	public void onInitializeDataGenerator(FabricDataGenerator fabricDataGenerator) {
+		var pack = fabricDataGenerator.createPack();
+		pack.addProvider(Recipes::new);
+	}
+
+	public static class Recipes extends FabricRecipeProvider {
+
+		public Recipes(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
+			super(output, registriesFuture);
+		}
+
+		@Override
+		protected @NotNull RecipeProvider createRecipeProvider(HolderLookup.Provider wrapperLookup, RecipeOutput recipeExporter) {
+			return new RecipeProvider(wrapperLookup, recipeExporter) {
+				@Override
+				public void buildRecipes() {
+					var wrench = ResourceKey.create(
+							Registries.RECIPE,
+							METAcraftSeason5.getID("bedrock_drill")
+					);
+					Advancement.Builder builder = recipeExporter.advancement().addCriterion(
+							"has_the_recipe", RecipeUnlockedTrigger.unlocked(wrench)
+					).rewards(AdvancementRewards.Builder.recipe(wrench)).requirements(
+							AdvancementRequirements.Strategy.OR
+					);
+					builder.addCriterion(
+							"trigger_above_roof",
+							CriteriaTriggers.TICK.createCriterion(new PlayerTrigger.TriggerInstance(
+								Optional.of(
+									ContextAwarePredicate.create(
+										new LocationCheck(
+											Optional.of(
+												LocationPredicate.Builder.inDimension(Level.NETHER).setY(
+														MinMaxBounds.Doubles.atLeast(128)
+												).build()
+											),
+											BlockPos.ZERO
+										)
+									)
+								)
+							))
+					);
+					recipeExporter.accept(
+							wrench,
+							new ShapedRecipe(
+									"misc",
+									CraftingBookCategory.EQUIPMENT,
+									ShapedRecipePattern.of(
+											Map.of(
+													'E', Ingredient.of(Items.END_CRYSTAL),
+													'O', Ingredient.of(Items.OBSIDIAN),
+													'P', Ingredient.of(Items.PISTON)
+											),
+											"E",
+											"P",
+											"O"
+									),
+									Season5Items.BEDROCK_DRILL.getDefaultInstance()
+							),
+							builder.build(wrench.identifier().withPrefix("recipes/" + RecipeCategory.TOOLS.getFolderName() + "/"))
+					);
+				}
+			};
+		}
+
+		@Override
+		public String getName() {
+			return "metacraft-core";
+		}
+	}
+}

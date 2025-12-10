@@ -1,14 +1,14 @@
 {
 	"required": true,
-	"package": "se.datasektionen.mc.metacraft_moderation.exile.mixin",
-	"plugin": "se.datasektionen.mc.metacraft_moderation.exile.ExileMixins",
+	"package": "nu.metacraft.moderation.exile.mixin",
+	"plugin": "nu.metacraft.moderation.exile.ExileMixins",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"AccessorStringRange",
-		"AccessorSuggestion",
-		"MixinEntity",
-		"MixinServerPlayerEntity",
-		"MixinServerPlayerInteractionManager"
+		"StringRangeAccessor",
+		"SuggestionAccessor",
+		"EntityMixin",
+		"ServerPlayerMixin",
+		"ServerPlayerGameModeMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

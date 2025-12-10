@@ -4,11 +4,9 @@ loom {
 	accessWidenerPath = file("src/main/resources/metacraft_cutscenes.accesswidener")
 }
 
-addProjectDependency(":mods:metacraft-core")
+addCoreDependencies()
 addProjectDependency(":mods:metacraft-resource-packs")
-addPolymerDependency()
 
 dependencies {
-	implementation(include('org.objenesis:objenesis:3.4'))
-	modCompileOnly("maven.modrinth:distanthorizons:2.3.2-b-1.21.4")
+	implementation(include("org.objenesis:objenesis:${project.objenesis_version}"))
 }

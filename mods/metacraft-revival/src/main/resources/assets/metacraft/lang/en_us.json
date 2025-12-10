@@ -1,0 +1,21 @@
+{
+	"dialog.metacraft.revival.revival": "Revival",
+	"dialog.metacraft.revival.reopen": "Reopen Revival",
+	"dialog.metacraft.revival.reopen.desc": "Please click the button below to open the revival GUI",
+	"dialog.metacraft.revival.reopen.reopen": "Open Revival GUI",
+	"dialog.metacraft.revival.not_dead": "You're not dead!",
+	"dialog.metacraft.revival.reopen.info": "Click this text (%s) to reopen the GUI",
+	"dialog.metacraft.revival.reopen.info.quickactions": "or press %s",
+	"dialog.metacraft.revival.reopen.info.quickactions_multiple": "or press %s and select %s",
+	"dialog.metacraft.revival.being_revived": "You're being revived!",
+	"dialog.metacraft.revival.die": "Accept Your Fate",
+	"dialog.metacraft.revival.close": "Access Chat",
+	"dialog.metacraft.revival.abort": "Revival aborted, leaving %s to die",
+	"dialog.metacraft.revival.time_until_death": "%s seconds left until you die",
+	"dialog.metacraft.revival.time_until_revival": "Waking up in %s seconds",
+	"dialog.metacraft.revival.success": "Successfully revived %s!",
+	"dialog.metacraft.revival.time_until_revival_other": "Reviving %s: %s seconds left",
+	"death.attack.metacraft.revival.accepted_fate": "%s accepted their fate",
+	"death.attack.metacraft.revival.accepted_fate.player": "%s accepted their fate after some convincing from %s",
+	"death.attack.metacraft.revival.accepted_fate.player.item": "%s accepted their fate after some convincing from %s using %s"
+}

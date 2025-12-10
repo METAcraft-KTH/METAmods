@@ -1,16 +1,16 @@
 {
 	"required": true,
-	"package": "se.datasektionen.mc.metacraft_plots.mixin",
+	"package": "nu.metacraft.plots.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"mixins": [
-		"AccessorGrindstoneScreenHandler",
-		"MixinAnvilScreenHandler",
-		"MixinForgingScreenHandler",
-		"MixinGrindstoneScreenHandler",
-		"MixinGrindstoneScreenHandler$InputSlot1",
-		"MixinGrindstoneScreenHandler$ResultSlot",
-		"MixinItemEntity",
-		"MixinProtectionExclusions"
+		"AnvilMenuMixin",
+		"GrindstoneMenuAccessor",
+		"GrindstoneMenuMixin",
+		"GrindstoneMenuMixin$InputSlot1",
+		"GrindstoneMenuMixin$ResultSlot",
+		"ItemCombinerMenuMixin",
+		"ItemEntityMixin",
+		"ProtectionExclusionsMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -18,7 +18,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.datasektionen.mc.loot_containers.METAcraftLootContainers"
+			"nu.metacraft.loot_containers.METAcraftLootContainers"
 		]
 	},
 	"mixins": [

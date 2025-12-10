@@ -29,12 +29,10 @@ jobs:
       - name: make gradle wrapper executable
         if: ${{ runner.os != 'Windows' }}
         run: chmod +x ./gradlew
-      - name: compile submodules so the dependency checking doesn't break on runDatagen
-        run: ./gradlew assemble
-      - name: datagen # Must be a separate step, otherwise it won't get included in the build.
+      - name: datagen
         run: ./gradlew runDatagen
       - name: build
-        run: ./gradlew build
+        run: ./gradlew build --info
       - name: capture build artifacts
         if: ${{ runner.os == 'Linux' && matrix.java == '21' }} # Only upload artifacts built from latest java on one OS
         uses: actions/upload-artifact@v4

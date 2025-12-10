@@ -1,17 +1,12 @@
 version = project.end_relay_version
 
-addProjectDependency(":mods:metacraft-core")
-addPolymerDependency()
+addCoreDependencies()
 
 loom {
 	accessWidenerPath = file("src/main/resources/metacraft_relay.accesswidener")
 }
 
-fabricApi {
-	configureDataGeneration{
-		modId = "metacraft-relay"
-	}
-}
+setupRunDatagen("metacraft-relay")
 
 dependencies {
 	modImplementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")

@@ -1,21 +1,22 @@
 {
 	"required": true,
-	"package": "se.datasektionen.mc.better_pets.mixin",
+	"package": "nu.metacraft.better_pets.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"MixinAnimalEntity",
-		"MixinAttackWithOwnerGoal",
-		"MixinCatEntity",
-		"MixinEndPortalBlock",
-		"MixinFollowOwnerGoal",
-		"MixinLivingEntity",
-		"MixinParrotEntity",
-		"MixinPassiveEntity",
-		"MixinServerPlayerEntity",
-		"MixinSitGoal",
-		"MixinTameableEntity",
-		"MixinTrackOwnerAttackerGoal",
-		"MixinWolfEntity"
+		"AnimalMixin",
+		"OwnerHurtTargetGoalMixin",
+		"CatMixin",
+		"EndPortalBlockMixin",
+		"EntityMixin",
+		"FollowOwnerGoalMixin",
+		"LivingEntityMixin",
+		"ParrotMixin",
+		"AgeableMobMixin",
+		"ServerPlayerMixin",
+		"SitWhenOrderedToGoalMixin",
+		"TamableAnimalMixin",
+		"OwnerHurtByTargetGoalMixin",
+		"WolfMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

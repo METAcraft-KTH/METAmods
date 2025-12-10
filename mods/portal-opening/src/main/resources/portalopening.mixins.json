@@ -1,11 +1,11 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "se.datasektionen.mc.portalopening.mixin",
+  "package": "se.metacraft.portalopening.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "MixinEntity",
-    "MixinWorld"
+	  "EntityMixin",
+	  "LevelMixin"
   ],
   "client": [
   ],

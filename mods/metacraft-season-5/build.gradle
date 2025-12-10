@@ -1,0 +1,5 @@
+version = project.season_5_version
+
+addCoreDependencies()
+
+setupRunDatagen("metacraft-season-5")

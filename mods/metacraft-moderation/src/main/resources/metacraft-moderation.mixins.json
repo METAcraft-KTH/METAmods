@@ -1,12 +1,10 @@
 {
   "required": true,
-  "package": "se.datasektionen.mc.metacraft_moderation.mixin",
+  "package": "nu.metacraft.moderation.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "AccessorPlayerManager",
-    "AccessorServerPlayerEntity",
-    "MixinServerPlayerEntity",
-    "MixinTameableEntity"
+	  "ServerPlayerMixin",
+	  "TamableAnimalMixin"
   ],
   "injectors": {
     "defaultRequire": 1

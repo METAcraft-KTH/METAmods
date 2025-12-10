@@ -1,20 +1,20 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "se.datasektionen.mc.faster_minecarts.mixin",
+	"package": "nu.metacraft.faster_minecarts.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"MixinAbstractMinecartEntity",
-		"MixinDefaultMinecartController",
-		"MixinEntityTrackerEntry",
-		"MixinExperimentalMinecartController",
-		"MixinFurnaceMinecart",
-		"MixinGameRules",
-		"MixinSchema1460",
-		"MixinServerConfigurationNetworkHandler",
-		"MixinShapeContext",
-		"MixinStorageMinecartEntity",
-		"MixinVehicleEntity"
+		"AbstractMinecartMixin",
+		"OldMinecartBehaviorMixin",
+		"ServerEntityMixin",
+		"NewMinecartBehaviorMixin",
+		"MinecartFurnaceMixin",
+		"GameRulesMixin",
+		"V1460Mixin",
+		"ServerConfigurationPacketListenerImplMixin",
+		"CollisionContextMixin",
+		"AbstractMinecartContainerMixin",
+		"VehicleEntityMixin"
 	],
 	"client": [
 	],

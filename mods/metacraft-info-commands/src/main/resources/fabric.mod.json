@@ -23,7 +23,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "se.datasektionen.mc.info_commands.Info"
+      "nu.metacraft.info_commands.Info"
     ]
   },
   "mixins": [

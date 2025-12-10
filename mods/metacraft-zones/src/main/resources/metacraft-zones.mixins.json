@@ -1,14 +1,15 @@
 {
 	"required": true,
-	"package": "se.datasektionen.mc.zones.mixin",
+	"package": "nu.metacraft.zones.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"AccessorStringRange",
-		"AccessorSuggestion",
-		"MixinEntity",
-		"MixinFieldDecoder",
-		"MixinLocationPredicate",
-		"MixinSpawnHelper"
+		"EntityMixin",
+		"FieldDecoderMixin",
+		"LocationPredicateMixin",
+		"NaturalSpawnerMixin",
+		"PersistentEntitySectionManagerMixin",
+		"StringRangeAccessor",
+		"SuggestionAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

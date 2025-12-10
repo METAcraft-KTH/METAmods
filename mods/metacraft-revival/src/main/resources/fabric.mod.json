@@ -1,0 +1,36 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-revival",
+	"version": "${version}",
+	"name": "METAcraft-Revival",
+	"description": "Player revive functionality",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"nu.metacraft.revival.METAcraftRevival"
+		],
+		"fabric-datagen": [
+			"nu.metacraft.revival.RevivalDatagen"
+		]
+	},
+	"mixins": [
+		"metacraft_revival.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"fabric": "*",
+		"minecraft": "~${minecraft_version}",
+		"metacraft-core": "*"
+	}
+}

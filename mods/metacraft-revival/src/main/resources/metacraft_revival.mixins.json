@@ -1,0 +1,21 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "nu.metacraft.revival.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"EntityMixin",
+		"ExperienceOrbMixin",
+		"FoodDataMixin",
+		"ItemEntityMixin",
+		"LivingEntityMixin",
+		"PlayerMixin",
+		"ServerGamePacketListenerImplMixin",
+		"ServerPlayerGameModeMixin",
+		"ServerPlayerMixin"
+	],
+	"client": [],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

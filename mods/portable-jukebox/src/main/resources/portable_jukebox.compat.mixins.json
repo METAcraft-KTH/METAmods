@@ -1,11 +1,11 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "se.datasektionen.mc.portable_jukebox.compat.mixin",
-	"plugin": "se.datasektionen.mc.portable_jukebox.compat.CompatMixins",
+	"package": "nu.metacraft.portable_jukebox.compat.mixin",
+	"plugin": "nu.metacraft.portable_jukebox.compat.CompatMixins",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"MixinHopperHelper"
+		"HopperHelperMixin"
 	],
 	"client": [
 	],

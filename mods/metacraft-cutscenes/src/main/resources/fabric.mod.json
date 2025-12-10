@@ -18,13 +18,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.datasektionen.mc.cutscenes.Cutscenes"
+			"nu.metacraft.cutscenes.Cutscenes"
 		],
 		"mm:early_risers": [
-			"se.datasektionen.mc.cutscenes.CutsceneEnums"
-		],
-		"metacraft:player_datafixer": [
-			"se.datasektionen.mc.cutscenes.PlayerDataFix"
+			"nu.metacraft.cutscenes.CutsceneEnums"
 		]
 	},
 	"mixins": [

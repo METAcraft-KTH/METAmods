@@ -1,0 +1,17 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "nu.metacraft.bosses.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"LivingEntityAccessor",
+		"OminousItemSpawnerAccessor",
+		"LivingEntityMixin",
+		"OminousItemSpawnerMixin"
+	],
+	"client": [
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

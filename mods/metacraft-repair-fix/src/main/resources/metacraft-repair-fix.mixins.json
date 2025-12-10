@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "nu.metacraft.repair_fix.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"AnvilMenuMixin"
+	],
+	"client": [
+		"AnvilScreenMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

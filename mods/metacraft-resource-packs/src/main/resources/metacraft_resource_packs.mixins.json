@@ -1,13 +1,14 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "se.datasektionen.mc.resource_packs.mixin",
+	"package": "nu.metacraft.resource_packs.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"AccessorNetworkUtils",
-		"MixinPlayerManager",
-		"MixinServerCommonNetworkHandler",
-		"MixinServerConfigurationNetworkHandler"
+		"ConnectionMixin",
+		"HttpUtilAccessor",
+		"PrepareSpawnTaskReadyMixin",
+		"ServerConfigurationPacketListenerImplMixin",
+		"ServerPlayerMixin"
 	],
 	"client": [],
 	"injectors": {

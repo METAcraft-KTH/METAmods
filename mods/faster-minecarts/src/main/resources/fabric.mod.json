@@ -21,13 +21,12 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "se.datasektionen.mc.faster_minecarts.FasterMinecarts"
+      "nu.metacraft.faster_minecarts.FasterMinecarts"
     ]
   },
   "mixins": [
     "fasterminecarts.mixins.json"
   ],
-  "accessWidener" : "fasterminecarts.accesswidener",
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",

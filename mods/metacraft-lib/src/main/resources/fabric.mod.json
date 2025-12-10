@@ -18,10 +18,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.datasektionen.mc.metacraft_lib.METAcraftLib"
+			"nu.metacraft.lib.METAcraftLib"
 		],
-		"metacraft:player_datafixer": [
-			"se.datasektionen.mc.metacraft_lib.PlayerDataFix"
+		"fabric-datagen": [
+			"nu.metacraft.lib.METAcraftDataGen"
 		]
 	},
 	"mixins": [

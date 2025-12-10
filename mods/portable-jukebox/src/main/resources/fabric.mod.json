@@ -19,7 +19,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.datasektionen.mc.portable_jukebox.PortableJukebox"
+			"nu.metacraft.portable_jukebox.PortableJukebox"
 		]
 	},
 	"mixins": [

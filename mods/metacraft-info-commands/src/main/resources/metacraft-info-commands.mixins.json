@@ -1,10 +1,10 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "se.datasektionen.mc.info_commands.mixin",
+	"package": "nu.metacraft.info_commands.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"MixinReloadCommand"
+		"ReloadCommandMixin"
 	],
 	"client": [
 	],

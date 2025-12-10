@@ -1,19 +1,17 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "se.datasektionen.mc.metacraft_dungeons.mixin",
+	"package": "nu.metacraft.dungeons.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"AccessorMinecraftServer",
-		"AccessorPlayerSaveHandler",
-		"MixinChunkGenerating",
-		"MixinConfigManager",
-		"MixinServerChunkManager",
-		"MixinServerEntityManager",
-		"MixinServerWorld"
+		"MinecraftServerAccessor",
+		"ChunkStatusTasksMixin",
+		"ConfigManagerMixin",
+		"ServerChunkCacheMixin",
+		"PersistentEntitySectionManagerMixin",
+		"ServerLevelMixin"
 	],
 	"client": [
-		"AccessorIntegratedPlayerManager"
 	],
 	"injectors": {
 		"defaultRequire": 1

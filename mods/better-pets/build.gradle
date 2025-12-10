@@ -1,4 +1,3 @@
 version = project.better_pets_version
 
-addProjectDependency(":mods:metacraft-core")
-addSGUIDependency()
+addCoreDependencies()

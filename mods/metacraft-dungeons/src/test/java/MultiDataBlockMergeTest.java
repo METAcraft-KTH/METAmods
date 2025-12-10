@@ -1,15 +1,15 @@
-import net.minecraft.util.math.BlockPos;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import se.datasektionen.mc.metacraft_core.METAcraftCore;
-import se.datasektionen.mc.metacraft_dungeons.METAcraftDungeons;
-import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.DataBlock;
-import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.MultiDataBlock;
-import se.datasektionen.mc.metacraft_dungeons.dungeons.datablocks.PortalDeeper;
-import se.datasektionen.mc.metacraft_lib.METAcraftLib;
-import se.datasektionen.mc.metacraft_lib.util.helper.TestHelper;
+import nu.metacraft.core.METAcraftCore;
+import nu.metacraft.dungeons.METAcraftDungeons;
+import nu.metacraft.dungeons.dungeons.datablocks.DataBlock;
+import nu.metacraft.dungeons.dungeons.datablocks.MultiDataBlock;
+import nu.metacraft.dungeons.dungeons.datablocks.PortalDeeper;
+import nu.metacraft.lib.METAcraftLib;
+import nu.metacraft.lib.util.helper.TestHelper;
 
 import java.util.*;
+import net.minecraft.core.BlockPos;
 
 public class MultiDataBlockMergeTest {
 
@@ -25,10 +25,10 @@ public class MultiDataBlockMergeTest {
 	@Test
 	void test() {
 		List<DataBlock.DataMultiBlockEntry<?>> blocks = new ArrayList<>();
-		for (var pos : BlockPos.iterateOutwards(new BlockPos(0, 0, 0), 32, 32, 32)) {
+		for (var pos : BlockPos.withinManhattan(new BlockPos(0, 0, 0), 32, 32, 32)) {
 			blocks.add(
 				new DataBlock.DataMultiBlockEntry<>(
-					pos.toImmutable(), null, new PortalDeeper(
+					pos.immutable(), null, new PortalDeeper(
 							Optional.empty(), Optional.empty(),
 						Optional.empty(), Optional.empty(),
 						Optional.empty(), Optional.empty()
@@ -36,10 +36,10 @@ public class MultiDataBlockMergeTest {
 				)
 			);
 		}
-		for (var pos : BlockPos.iterateOutwards(new BlockPos(1000, 0, 0), 32, 32, 32)) {
+		for (var pos : BlockPos.withinManhattan(new BlockPos(1000, 0, 0), 32, 32, 32)) {
 			blocks.add(
 				new DataBlock.DataMultiBlockEntry<>(
-					pos.toImmutable(), null, new PortalDeeper(
+					pos.immutable(), null, new PortalDeeper(
 							Optional.empty(), Optional.empty(),
 						Optional.empty(), Optional.empty(),
 						Optional.empty(), Optional.empty()

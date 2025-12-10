@@ -17,8 +17,12 @@ void migrate(const std::filesystem::path& p) {
 	}
 }
 
-
-int main() {
+void copyMigratedMappings() {
 	std::filesystem::path p = ".";
 	migrate(p);
+}
+
+
+int main() {
+	copyMigratedMappings();
 }

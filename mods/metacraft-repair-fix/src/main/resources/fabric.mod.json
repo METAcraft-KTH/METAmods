@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "metacraft-repair-fix",
+  "version": "${version}",
+
+  "name": "METAcraft Repair Fix",
+  "description": "Anvil rebalancing for the METAcraft server. Allows you to configure the maximum enchantment cost (or remove it), and whether anvils will lock enchanting at that cost or say no-expensive when above it. It also lets you configure if repairing should double the xp cost and which enchantments should be incompatible.",
+  "authors": [
+    "Acuadragon100"
+  ],
+  "contributors": [],
+  "contact": {
+    "sources": "${git_repo}",
+    "homepage": "${website}",
+    "issues": "${issues}"
+  },
+
+  "license": "Apache-2.0",
+  "icon": "assets/metacraft_repair_fix/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "nu.metacraft.repair_fix.RepairFix"
+    ]
+  },
+  "mixins": [
+	  "metacraft-repair-fix.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "~${minecraft_version}",
+    "metacraft-lib": "*"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}

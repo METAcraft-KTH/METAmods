@@ -18,10 +18,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.datasektionen.mc.saved_items.SavedItems"
+			"nu.metacraft.saved_items.SavedItems"
 		],
 		"mm:early_risers": [
-			"se.datasektionen.mc.saved_items.ItemSavingEnums"
+			"nu.metacraft.saved_items.ItemSavingEnums"
 		]
 	},
 	"mixins": [

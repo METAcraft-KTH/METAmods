@@ -1,12 +1,12 @@
 {
 	"required": true,
-	"package": "se.datasektionen.mc.zones.compat.mixin",
+	"package": "nu.metacraft.zones.compat.mixin",
 	"compatibilityLevel": "JAVA_21",
-	"plugin": "se.datasektionen.mc.zones.compat.MixinPlugin",
+	"plugin": "nu.metacraft.zones.compat.MixinPlugin",
 	"mixins": [
-		"AccessorIndexedAuthorityMap",
-		"MixinProtectCommand",
-		"MixinProtectionExclusions"
+		"IndexedAuthorityMapAccessor",
+		"ProtectCommandMixin",
+		"ProtectionExclusionsMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

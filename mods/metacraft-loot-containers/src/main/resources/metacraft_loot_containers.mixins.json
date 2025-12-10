@@ -1,12 +1,12 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "se.datasektionen.mc.loot_containers.mixin",
+	"package": "nu.metacraft.loot_containers.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"AccessorLootTable",
-		"MixinBlockEntity",
-		"MixinEntity"
+		"LootTableAccessor",
+		"BlockEntityMixin",
+		"EntityMixin"
 	],
 	"client": [],
 	"injectors": {
