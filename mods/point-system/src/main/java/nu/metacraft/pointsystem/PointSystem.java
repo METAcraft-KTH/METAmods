@@ -17,21 +17,19 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import net.minecraft.scoreboard.ScoreAccess;
-import net.minecraft.scoreboard.ScoreHolder;
-import net.minecraft.scoreboard.ScoreboardCriterion;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.ServerScoreboard;
-import net.minecraft.scoreboard.number.BlankNumberFormat;
-import net.minecraft.scoreboard.number.FixedNumberFormat;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.numbers.BlankFormat;
+import net.minecraft.network.chat.numbers.FixedFormat;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.UserCache;
+import net.minecraft.server.ServerScoreboard;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.NameAndId;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.ScoreAccess;
+import net.minecraft.world.scores.ScoreHolder;
+import net.minecraft.world.scores.criteria.ObjectiveCriteria;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -191,17 +189,17 @@ public class PointSystem {
         return computeTeamPoints(playerPoints);
     }
 
-    private ScoreboardObjective getOrCreateObjective(String name) {
+    private Objective getOrCreateObjective(String name) {
         ServerScoreboard scoreboard = this.server.getScoreboard();
-        ScoreboardObjective objective = scoreboard.getNullableObjective(name);
+        Objective objective = scoreboard.getObjective(name);
         if (objective != null) {
             return objective;
         }
         return scoreboard.addObjective(
             name,
-            ScoreboardCriterion.DUMMY,
-            Text.literal(name),
-            ScoreboardCriterion.RenderType.INTEGER,
+            ObjectiveCriteria.DUMMY,
+            Component.literal(name),
+            ObjectiveCriteria.RenderType.INTEGER,
             true,
             null
         );
@@ -245,78 +243,79 @@ public class PointSystem {
             teamNames.add(team.fullName());
         }
         this.playerTeams.put(playerUuid, teamIds);
-        ServerPlayerEntity player = this.server.getPlayerManager().getPlayer(playerUuid);
+        ServerPlayer player = this.server.getPlayerList().getPlayer(playerUuid);
         if (player != null) {
-            player.sendMessage(Text.empty()
-                .append(Text.literal("You selected ")
-                    .append(Text.literal(String.join(", ", teamNames)).styled(style -> style.withFormatting(Formatting.YELLOW))))
+            player.sendSystemMessage(Component.empty()
+                .append(Component.literal("You selected ")
+                    .append(Component.literal(String.join(", ", teamNames)).withStyle(style -> style.applyFormat(ChatFormatting.YELLOW))))
             );
         }
     }
 
     private void renderTeamPoints(Map<Integer, PointTeam> teams, Map<Integer, Integer> teamPoints, String objectiveName) {
         ServerScoreboard scoreboard = this.server.getScoreboard();
-        ScoreboardObjective objective = this.getOrCreateObjective(objectiveName);
+        Objective objective = this.getOrCreateObjective(objectiveName);
 
         for (Map.Entry<Integer, PointTeam> entry : teams.entrySet()) {
             PointTeam team = entry.getValue();
             int points = teamPoints.getOrDefault(team.id(), 0);
 
-            ScoreAccess score = scoreboard.getOrCreateScore(ScoreHolder.fromName(team.code()), objective);
-            score.setScore(points);
-            score.setDisplayText(Text.literal(team.shortName()));
+            ScoreAccess score = scoreboard.getOrCreatePlayerScore(ScoreHolder.forNameOnly(team.code()), objective);
+            score.set(points);
+            score.display(Component.literal(team.shortName()));
         }
     }
 
     private ScoreHolder getPlayerScoreHolder(UUID uuid) {
-        UserCache userCache = this.server.getUserCache();
-        ServerPlayerEntity player = this.server.getPlayerManager().getPlayer(uuid);
+        var userCache = this.server.services().nameToIdCache();
+        ServerPlayer player = this.server.getPlayerList().getPlayer(uuid);
         if (player != null) {
             return player;
         }
-        if (userCache != null) {
-            Optional<GameProfile> opt = userCache.getByUuid(uuid);
-            if (opt.isPresent()) {
-                return ScoreHolder.fromProfile(opt.get());
-            }
-        }
-        return ScoreHolder.fromName(uuid.toString()); // worst case
+	    Optional<NameAndId> opt = userCache.get(uuid);
+	    return opt.map(
+				nameAndId -> ScoreHolder.fromGameProfile(
+						new GameProfile(nameAndId.id(), nameAndId.name())
+				)
+	    ).orElseGet(
+				() -> ScoreHolder.forNameOnly(uuid.toString())
+	    );
     }
 
     private void renderPlayerPoints(PlayerPointStorage playerPoints, String objectiveName) {
         ServerScoreboard scoreboard = this.server.getScoreboard();
-        ScoreboardObjective objective = this.getOrCreateObjective(objectiveName);
+        Objective objective = this.getOrCreateObjective(objectiveName);
 
         for (Object2IntMap.Entry<UUID> entry : playerPoints.getData().object2IntEntrySet()) {
             UUID playerUuid = entry.getKey();
              int points = entry.getIntValue();
 
             ScoreHolder scoreHolder = getPlayerScoreHolder(playerUuid);
-            ScoreAccess score = scoreboard.getOrCreateScore(scoreHolder, objective);
-            score.setScore(points);
+            ScoreAccess score = scoreboard.getOrCreatePlayerScore(scoreHolder, objective);
+            score.set(points);
         }
     }
 
-    private void setScoreLine(int line, Text name, int points, ServerScoreboard scoreboard, ScoreboardObjective objective) {
-        ScoreHolder scoreHolder = ScoreHolder.fromName("LINE_" + line);
-        ScoreAccess score = scoreboard.getOrCreateScore(scoreHolder, objective);
-        score.setScore(100 - line);
-        score.setDisplayText(name);
-        MutableText numberText = Text.literal(String.valueOf(points)).styled(style -> style.withColor(Formatting.RED));
-        score.setNumberFormat(new FixedNumberFormat(numberText));
+    private void setScoreLine(int line, Component name, int points, ServerScoreboard scoreboard, Objective objective) {
+        ScoreHolder scoreHolder = ScoreHolder.forNameOnly("LINE_" + line);
+        ScoreAccess score = scoreboard.getOrCreatePlayerScore(scoreHolder, objective);
+        score.set(100 - line);
+        score.display(name);
+        MutableComponent numberText = Component.literal(String.valueOf(points)).withStyle(style -> style.withColor(ChatFormatting.RED));
+        score.numberFormatOverride(new FixedFormat(numberText));
     }
 
-    private void setTextLine(int line, Text text, ServerScoreboard scoreboard, ScoreboardObjective objective) {
-        ScoreHolder scoreHolder = ScoreHolder.fromName("LINE_" + line);
-        ScoreAccess score = scoreboard.getOrCreateScore(scoreHolder, objective);
-        score.setScore(100 - line);
-        score.setDisplayText(text);
-        score.setNumberFormat(BlankNumberFormat.INSTANCE);
+    private void setTextLine(int line, Component text, ServerScoreboard scoreboard, Objective objective) {
+        ScoreHolder scoreHolder = ScoreHolder.forNameOnly("LINE_" + line);
+        ScoreAccess score = scoreboard.getOrCreatePlayerScore(scoreHolder, objective);
+        score.set(100 - line);
+        score.display(text);
+        score.numberFormatOverride(BlankFormat.INSTANCE);
     }
 
     private void renderCombinedPoints(Map<Integer, PointTeam> teams, PlayerPointStorage playerPoints, Int2IntMap teamPoints, String objectiveName) {
         ServerScoreboard scoreboard = this.server.getScoreboard();
-        ScoreboardObjective objective = this.getOrCreateObjective(objectiveName);
+        Objective objective = this.getOrCreateObjective(objectiveName);
 
         setTextLine(0, this.config.universityScoreText, scoreboard, objective);
 
@@ -329,16 +328,16 @@ public class PointSystem {
         for (int i = 0; i < 5; i++) {
             int lineNr = i + 1;
             if (topTeams.size() <= i) {
-                setTextLine(lineNr, Text.empty(), scoreboard, objective);
+                setTextLine(lineNr, Component.empty(), scoreboard, objective);
                 continue;
             }
             int teamId = topTeams.get(i);
             PointTeam team = teams.get(teamId);
             int points = teamPoints.get(teamId);
-            setScoreLine(lineNr, Text.literal(team.shortName()), points, scoreboard, objective);
+            setScoreLine(lineNr, Component.literal(team.shortName()), points, scoreboard, objective);
         }
 
-        setTextLine(6, Text.empty(), scoreboard, objective);
+        setTextLine(6, Component.empty(), scoreboard, objective);
         setTextLine(7, this.config.topPlayersText, scoreboard, objective);
 
         List<UUID> topPlayers = playerPoints.getData().object2IntEntrySet()
@@ -350,13 +349,13 @@ public class PointSystem {
         for (int i = 0; i < 5; i++) {
             int lineNr = i + 8;
             if (topPlayers.size() <= i) {
-                setTextLine(lineNr, Text.empty(), scoreboard, objective);
+                setTextLine(lineNr, Component.empty(), scoreboard, objective);
                 continue;
             }
             UUID playerUuid = topPlayers.get(i);
             int points = playerPoints.getPoints(playerUuid);
             ScoreHolder scoreHolder = getPlayerScoreHolder(playerUuid);
-            setScoreLine(lineNr, scoreHolder.getStyledDisplayName(), points, scoreboard, objective);
+            setScoreLine(lineNr, scoreHolder.getFeedbackDisplayName(), points, scoreboard, objective);
         }
     }
 

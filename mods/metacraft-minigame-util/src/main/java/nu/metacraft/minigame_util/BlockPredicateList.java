@@ -2,13 +2,12 @@ package nu.metacraft.minigame_util;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.pattern.CachedBlockPosition;
-import net.minecraft.predicate.BlockPredicate;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.advancements.criterion.BlockPredicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.state.pattern.BlockInWorld;
 
 public class BlockPredicateList {
 
@@ -39,14 +38,14 @@ public class BlockPredicateList {
 		this.allowMode = allowMode;
 	}
 
-	public boolean test(ServerWorld world, BlockPos pos) {
-		if (!world.isPosLoaded(pos)) return false;
-		return test(new CachedBlockPosition(world, pos, false));
+	public boolean test(ServerLevel world, BlockPos pos) {
+		if (!world.isLoaded(pos)) return false;
+		return test(new BlockInWorld(world, pos, false));
 	}
 
-	public boolean test(CachedBlockPosition pos) {
+	public boolean test(BlockInWorld pos) {
 		for (var block : blocks) {
-			if (block.test(pos)) {
+			if (block.matches(pos)) {
 				return !allowMode;
 			}
 		}

@@ -1,6 +1,5 @@
 package nu.metacraft.pointsystem;
 
-import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -10,20 +9,20 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.command.argument.ScoreHolderArgumentType;
-import net.minecraft.entity.Entity;
-import net.minecraft.scoreboard.ReadableScoreboardScore;
-import net.minecraft.scoreboard.ScoreHolder;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.ServerScoreboard;
-import net.minecraft.scoreboard.Team;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.ScoreHolderArgument;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.UserCache;
-
+import net.minecraft.server.ServerScoreboard;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permissions;
+import net.minecraft.server.players.NameAndId;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.ReadOnlyScoreInfo;
+import net.minecraft.world.scores.ScoreHolder;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,22 +32,22 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public class PointSystemCommand {
-    public static final SimpleCommandExceptionType NO_POINT_SYSTEM = new SimpleCommandExceptionType(Text.literal("No point system found."));
-    private static final DynamicCommandExceptionType PLAYER_NOT_FOUND = new DynamicCommandExceptionType(playerName -> Text.literal("Player with name '" + playerName + "' not found."));
+    public static final SimpleCommandExceptionType NO_POINT_SYSTEM = new SimpleCommandExceptionType(Component.literal("No point system found."));
+    private static final DynamicCommandExceptionType PLAYER_NOT_FOUND = new DynamicCommandExceptionType(playerName -> Component.literal("Player with name '" + playerName + "' not found."));
     private final PointSystemMod mod;
 
     public PointSystemCommand(PointSystemMod mod) {
         this.mod = mod;
     }
 
-    public void register(CommandDispatcher<ServerCommandSource> dispatcher) {
+    public void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
             literal("pointsystem")
-                .requires(obj -> obj.hasPermissionLevel(2))
+                .requires(obj -> obj.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
                 .then(
                     literal("reload")
                         .executes(this::reload)
@@ -74,11 +73,11 @@ public class PointSystemCommand {
                 .then(
                     literal("addpoints")
                         .then(
-                            argument("player", ScoreHolderArgumentType.scoreHolder())
+                            argument("player", ScoreHolderArgument.scoreHolder())
                                 .then(
                                     argument("points", IntegerArgumentType.integer())
                                         .executes(ctx -> {
-                                            ScoreHolder player = ScoreHolderArgumentType.getScoreHolder(ctx, "player");
+                                            ScoreHolder player = ScoreHolderArgument.getName(ctx, "player");
                                             UUID playerUuid = getUuid(ctx, player);
                                             int points = IntegerArgumentType.getInteger(ctx, "points");
                                             int minigameId = getCurrentMinigameId(ctx);
@@ -87,7 +86,7 @@ public class PointSystemCommand {
                                         .then(
                                             argument("minigame_id", IntegerArgumentType.integer())
                                                 .executes(ctx -> {
-                                                    ScoreHolder player = ScoreHolderArgumentType.getScoreHolder(ctx, "player");
+                                                    ScoreHolder player = ScoreHolderArgument.getName(ctx, "player");
                                                     UUID playerUuid = getUuid(ctx, player);
                                                     int points = IntegerArgumentType.getInteger(ctx, "points");
                                                     int minigameId = IntegerArgumentType.getInteger(ctx, "minigame_id");
@@ -111,7 +110,7 @@ public class PointSystemCommand {
                             literal("list")
                                 .executes(ctx -> {
                                     PointSystem pointSystem = getPointSystem(ctx);
-                                    ctx.getSource().sendMessage(Text.literal("The following minigame ids are excluded: " + pointSystem.getExcludedMinigameIds()
+                                    ctx.getSource().sendSystemMessage(Component.literal("The following minigame ids are excluded: " + pointSystem.getExcludedMinigameIds()
                                         .intStream()
                                         .mapToObj(String::valueOf)
                                         .collect(Collectors.joining())
@@ -127,7 +126,7 @@ public class PointSystemCommand {
                                             int id = IntegerArgumentType.getInteger(ctx, "id");
                                             PointSystem pointSystem = getPointSystem(ctx);
                                             pointSystem.getExcludedMinigameIds().add(id);
-                                            ctx.getSource().sendFeedback(() -> Text.literal("Minigame id " + id +  " will now be excluded."), true);
+                                            ctx.getSource().sendSuccess(() -> Component.literal("Minigame id " + id +  " will now be excluded."), true);
                                             return 1;
                                         })
                                 )
@@ -140,7 +139,7 @@ public class PointSystemCommand {
                                             int id = IntegerArgumentType.getInteger(ctx, "id");
                                             PointSystem pointSystem = getPointSystem(ctx);
                                             pointSystem.getExcludedMinigameIds().remove(id);
-                                            ctx.getSource().sendFeedback(() -> Text.literal("Minigame id " + id +  " will no longer be excluded."), true);
+                                            ctx.getSource().sendSuccess(() -> Component.literal("Minigame id " + id +  " will no longer be excluded."), true);
                                             return 1;
                                         })
                                 )
@@ -182,11 +181,11 @@ public class PointSystemCommand {
                                 .then(
                                     literal("only")
                                         .then(
-                                            argument("player", ScoreHolderArgumentType.scoreHolder())
+                                            argument("player", ScoreHolderArgument.scoreHolder())
                                                 .then(
                                                     argument("teams", StringArgumentType.greedyString())
                                                         .executes(ctx -> {
-                                                            ScoreHolder player = ScoreHolderArgumentType.getScoreHolder(ctx, "player");
+                                                            ScoreHolder player = ScoreHolderArgument.getName(ctx, "player");
                                                             UUID playerUuid = getUuid(ctx, player);
                                                             String input = StringArgumentType.getString(ctx, "teams");
 
@@ -200,11 +199,11 @@ public class PointSystemCommand {
                 .then(
                     literal("join-scoreboard-teams-balanced")
                         .then(
-                            argument("players", EntityArgumentType.players())
+                            argument("players", EntityArgument.players())
                                 .then(
                                     argument("teams", StringArgumentType.greedyString())
                                         .executes(ctx -> {
-                                            Collection<ServerPlayerEntity> players = EntityArgumentType.getPlayers(ctx, "players");
+                                            Collection<ServerPlayer> players = EntityArgument.getPlayers(ctx, "players");
                                             String input = StringArgumentType.getString(ctx, "teams");
                                             return this.joinScoreboardTeamsBalanced(ctx, players, input);
                                         })
@@ -214,11 +213,11 @@ public class PointSystemCommand {
         );
     }
 
-    private UUID getUuid(CommandContext<ServerCommandSource> ctx, ScoreHolder player) throws CommandSyntaxException {
+    private UUID getUuid(CommandContext<CommandSourceStack> ctx, ScoreHolder player) throws CommandSyntaxException {
         if (player instanceof Entity entity) {
-            return entity.getUuid();
+            return entity.getUUID();
         }
-        String string = player.getNameForScoreboard();
+        String string = player.getScoreboardName();
         if (string.length() > 16) {
             try {
                 return UUID.fromString(string);
@@ -226,18 +225,15 @@ public class PointSystemCommand {
                 // continue
             }
         }
-        UserCache userCache = ctx.getSource().getServer().getUserCache();
-        if (userCache == null) {
-            throw PLAYER_NOT_FOUND.create(string);
-        }
-        Optional<GameProfile> profile = userCache.findByName(string);
+        var userCache = ctx.getSource().getServer().services().nameToIdCache();
+        Optional<NameAndId> profile = userCache.get(string);
         if (profile.isEmpty()) {
             throw PLAYER_NOT_FOUND.create(string);
         }
-        return profile.get().getId();
+        return profile.get().id();
     }
 
-    private PointSystem getPointSystem(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+    private PointSystem getPointSystem(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         PointSystem pointSystem = this.mod.getPointSystem(ctx.getSource().getServer());
         if (pointSystem != null) {
             return pointSystem;
@@ -245,103 +241,98 @@ public class PointSystemCommand {
         throw NO_POINT_SYSTEM.create();
     }
 
-    private int getCurrentMinigameId(CommandContext<ServerCommandSource> ctx) {
+    private int getCurrentMinigameId(CommandContext<CommandSourceStack> ctx) {
         MinecraftServer server = ctx.getSource().getServer();
         ServerScoreboard scoreboard = server.getScoreboard();
-        ScoreboardObjective objective = scoreboard.getNullableObjective("GLOBAL");
+        Objective objective = scoreboard.getObjective("GLOBAL");
         if (objective == null) {
             return -1;
         }
-        ScoreHolder scoreHolder = ScoreHolder.fromName("game.id");
-        ReadableScoreboardScore score = scoreboard.getScore(scoreHolder, objective);
+        ScoreHolder scoreHolder = ScoreHolder.forNameOnly("game.id");
+        ReadOnlyScoreInfo score = scoreboard.getPlayerScoreInfo(scoreHolder, objective);
         if (score == null) {
             return -1;
         }
-        return score.getScore();
+        return score.value();
     }
 
-    private CompletableFuture<Suggestions> suggestTeamType(CommandContext<ServerCommandSource> ctx, SuggestionsBuilder builder) {
+    private CompletableFuture<Suggestions> suggestTeamType(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
         builder.suggest("uni");
         builder.suggest("city");
         return builder.buildFuture();
     }
 
-    private int reload(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+    private int reload(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
-        ServerCommandSource source = ctx.getSource();
+        CommandSourceStack source = ctx.getSource();
         try {
             pointSystem.loadConfig();
-            source.sendFeedback(() -> Text.literal("Point system config reloaded."), true);
+            source.sendSuccess(() -> Component.literal("Point system config reloaded."), true);
         } catch (IOException e) {
-            source.sendError(Text.literal(e.getMessage()));
+            source.sendFailure(Component.literal(e.getMessage()));
             PointSystemMod.LOGGER.error("Failed to load config", e);
         }
         return 1;
     }
 
-    private int save(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+    private int save(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
-        ServerCommandSource source = ctx.getSource();
+        CommandSourceStack source = ctx.getSource();
         try {
             pointSystem.saveData();
-            source.sendFeedback(() -> Text.literal("Point system data saved."), true);
+            source.sendSuccess(() -> Component.literal("Point system data saved."), true);
         } catch (Throwable e) {
-            source.sendError(Text.literal(e.getMessage()));
+            source.sendFailure(Component.literal(e.getMessage()));
             PointSystemMod.LOGGER.error("Failed to save data", e);
         }
         return 1;
     }
 
-    private int load(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+    private int load(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
-        ServerCommandSource source = ctx.getSource();
+        CommandSourceStack source = ctx.getSource();
         try {
             pointSystem.loadData();
-            source.sendFeedback(() -> Text.literal("Point system data loaded from disk."), true);
+            source.sendSuccess(() -> Component.literal("Point system data loaded from disk."), true);
         } catch (Throwable e) {
-            source.sendError(Text.literal(e.getMessage()));
+            source.sendFailure(Component.literal(e.getMessage()));
             PointSystemMod.LOGGER.error("Failed to load data", e);
         }
         return 1;
     }
 
-    private int reset(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+    private int reset(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
-        ServerCommandSource source = ctx.getSource();
+        CommandSourceStack source = ctx.getSource();
         try {
             pointSystem.resetPoints();
-            source.sendFeedback(() -> Text.literal("Point system data loaded from disk."), true);
+            source.sendSuccess(() -> Component.literal("Point system data loaded from disk."), true);
         } catch (Throwable e) {
-            source.sendError(Text.literal(e.getMessage()));
+            source.sendFailure(Component.literal(e.getMessage()));
             PointSystemMod.LOGGER.error("Failed to load data", e);
         }
         return 1;
     }
 
-    private int addPoints(CommandContext<ServerCommandSource> ctx, UUID playerUuid, int points, int minigameId) throws CommandSyntaxException {
+    private int addPoints(CommandContext<CommandSourceStack> ctx, UUID playerUuid, int points, int minigameId) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
-        ServerCommandSource source = ctx.getSource();
+        CommandSourceStack source = ctx.getSource();
         pointSystem.addPoints(playerUuid, points, minigameId);
-        source.sendFeedback(() -> Text.literal("Added points"), false);
+        source.sendSuccess(() -> Component.literal("Added points"), false);
         return points;
     }
 
     private String displayUuid(UUID playerUuid, MinecraftServer server) {
-        UserCache userCache = server.getUserCache();
-        if (userCache != null) {
-            Optional<String> name = userCache.getByUuid(playerUuid).map(GameProfile::getName);
-            if (name.isPresent()) {
-                return name.get();
-            }
-        }
-        return playerUuid.toString();
+        var userCache = server.services().nameToIdCache();
+	    Optional<String> name = userCache.get(playerUuid).map(NameAndId::name);
+	    return name.orElseGet(playerUuid::toString);
     }
 
-    private int topPlayers(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+    private int topPlayers(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
-        ServerCommandSource source = ctx.getSource();
+        CommandSourceStack source = ctx.getSource();
         var players = pointSystem.getPlayerPoints();
-        source.sendMessage(Text.literal("Top 10:"));
+        source.sendSystemMessage(Component.literal("Top 10:"));
         MinecraftServer server = source.getServer();
         var entries = players.getData().object2IntEntrySet()
             .stream()
@@ -349,28 +340,28 @@ public class PointSystemCommand {
             .toList();
         for (Map.Entry<UUID, Integer> entry : entries) {
             String name = displayUuid(entry.getKey(), server);
-            ctx.getSource().sendMessage(Text.literal(name + ": " + entry.getValue()));
+            ctx.getSource().sendSystemMessage(Component.literal(name + ": " + entry.getValue()));
         }
         return 1;
     }
 
-    private int renderAll(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+    private int renderAll(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
-        ServerCommandSource source = ctx.getSource();
+        CommandSourceStack source = ctx.getSource();
         pointSystem.renderAll();
-        source.sendFeedback(() -> Text.literal("Rendering"), false);
+        source.sendSuccess(() -> Component.literal("Rendering"), false);
         return 1;
     }
 
-    private int addTeam(CommandContext<ServerCommandSource> ctx, String type, String code, String shortName, String fullName) throws CommandSyntaxException {
+    private int addTeam(CommandContext<CommandSourceStack> ctx, String type, String code, String shortName, String fullName) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
-        ServerCommandSource source = ctx.getSource();
+        CommandSourceStack source = ctx.getSource();
         pointSystem.addTeam(type, code, shortName, fullName);
-        source.sendFeedback(() -> Text.literal("Added team"), true);
+        source.sendSuccess(() -> Component.literal("Added team"), true);
         return 1;
     }
 
-    private int joinOnlyTeams(CommandContext<ServerCommandSource> ctx, UUID playerUuid, String input) throws CommandSyntaxException {
+    private int joinOnlyTeams(CommandContext<CommandSourceStack> ctx, UUID playerUuid, String input) throws CommandSyntaxException {
         String[] codes = input.split(" ");
 
         PointSystem pointSystem = getPointSystem(ctx);
@@ -378,25 +369,25 @@ public class PointSystemCommand {
         return 1;
     }
 
-    private int joinScoreboardTeamsBalanced(CommandContext<ServerCommandSource> ctx, Collection<ServerPlayerEntity> players, String input) throws CommandSyntaxException {
+    private int joinScoreboardTeamsBalanced(CommandContext<CommandSourceStack> ctx, Collection<ServerPlayer> players, String input) throws CommandSyntaxException {
         PointSystem pointSystem = getPointSystem(ctx);
         String[] teamNames = input.split(" ");
         MinecraftServer server = ctx.getSource().getServer();
         ServerScoreboard scoreboard = server.getScoreboard();
-        Team[] teams = Arrays.stream(teamNames).map(scoreboard::getTeam).toArray(Team[]::new);
+        PlayerTeam[] teams = Arrays.stream(teamNames).map(scoreboard::getPlayerTeam).toArray(PlayerTeam[]::new);
 
         PlayerPointStorage playerPoints = pointSystem.getPlayerPoints();
 
         var entries = players.stream()
-                .map(player -> Map.entry(player, playerPoints.getData().getOrDefault(player.getUuid(), 0)))
+                .map(player -> Map.entry(player, playerPoints.getData().getOrDefault(player.getUUID(), 0)))
                 .sorted((a, b) -> b.getValue() - a.getValue())
                 .toList();
 
         int i = 0;
-        for (Map.Entry<ServerPlayerEntity, Integer> entry : entries) {
-            ServerPlayerEntity player = entry.getKey();
-            Team team = teams[i % teams.length];
-            scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), team);
+        for (Map.Entry<ServerPlayer, Integer> entry : entries) {
+            ServerPlayer player = entry.getKey();
+            PlayerTeam team = teams[i % teams.length];
+            scoreboard.addPlayerToTeam(player.getScoreboardName(), team);
             i++;
         }
 

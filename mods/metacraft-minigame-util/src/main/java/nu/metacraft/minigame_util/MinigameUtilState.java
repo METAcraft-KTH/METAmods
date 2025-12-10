@@ -3,15 +3,14 @@ package nu.metacraft.minigame_util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.util.TriState;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
-
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import java.util.Optional;
 
-public class MinigameUtilState extends PersistentState {
+public class MinigameUtilState extends SavedData {
 
 	private static final String KEY = "metacraft-minigame-util";
 
@@ -23,7 +22,7 @@ public class MinigameUtilState extends PersistentState {
 		).apply(instance, MinigameUtilState::new)
 	);
 
-	private static final PersistentStateType<MinigameUtilState> TYPE = new PersistentStateType<>(
+	private static final SavedDataType<MinigameUtilState> TYPE = new SavedDataType<>(
 		KEY, MinigameUtilState::new, CODEC, null
 	);
 
@@ -34,15 +33,15 @@ public class MinigameUtilState extends PersistentState {
 	}
 
 	public static MinigameUtilState getInstance(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	public void setCanBreak(BlockPredicateList canBreak) {
 		this.canBreak = canBreak;
-		markDirty();
+		setDirty();
 	}
 
-	public TriState canBreak(ServerWorld world, BlockPos pos) {
+	public TriState canBreak(ServerLevel world, BlockPos pos) {
 		if (canBreak != null) {
 			return TriState.of(canBreak.test(world, pos));
 		} else {

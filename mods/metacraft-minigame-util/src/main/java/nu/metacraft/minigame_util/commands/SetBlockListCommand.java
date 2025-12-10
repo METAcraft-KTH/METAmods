@@ -2,33 +2,36 @@ package nu.metacraft.minigame_util.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.command.argument.NbtCompoundArgumentType;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.CompoundTagArgument;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.Permissions;
 import nu.metacraft.minigame_util.BlockPredicateList;
 import nu.metacraft.minigame_util.MinigameUtilState;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public class SetBlockListCommand {
 
 	private static final DynamicCommandExceptionType GENERIC = new DynamicCommandExceptionType(
-			s -> Text.literal((String) s)
+			s -> Component.literal((String) s)
 	);
 
 	public static void register(
-			CommandDispatcher<ServerCommandSource> dispatcher,
-			CommandRegistryAccess registryAccess
+			CommandDispatcher<CommandSourceStack> dispatcher,
+			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
-			literal("set-block-break-rules").requires(player -> player.hasPermissionLevel(2)).then(
-				argument("data", NbtCompoundArgumentType.nbtCompound()).executes(ctx -> {
-					var data = NbtCompoundArgumentType.getNbtCompound(ctx, "data");
+			literal("set-block-break-rules").requires(
+					player -> player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
+			).then(
+				argument("data", CompoundTagArgument.compoundTag()).executes(ctx -> {
+					var data = CompoundTagArgument.getCompoundTag(ctx, "data");
 					var list = BlockPredicateList.CODEC.parse(
-							ctx.getSource().getRegistryManager().getOps(NbtOps.INSTANCE),
+							ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE),
 							data
 					).getPartialOrThrow(GENERIC::create);
 					MinigameUtilState.getInstance(ctx.getSource().getServer()).setCanBreak(list);
