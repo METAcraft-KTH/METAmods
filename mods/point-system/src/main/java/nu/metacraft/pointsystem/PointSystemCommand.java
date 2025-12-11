@@ -263,15 +263,9 @@ public class PointSystemCommand {
 	}
 
 	private int reload(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-		PointSystem pointSystem = getPointSystem(ctx);
 		CommandSourceStack source = ctx.getSource();
-		try {
-			pointSystem.loadConfig();
-			source.sendSuccess(() -> Component.literal("Point system config reloaded."), true);
-		} catch (IOException e) {
-			source.sendFailure(Component.literal(e.getMessage()));
-			PointSystemMod.LOGGER.error("Failed to load config", e);
-		}
+		PointSystemConfig.reload();
+		source.sendSuccess(() -> Component.literal("Point system config reloaded."), true);
 		return 1;
 	}
 

@@ -57,7 +57,6 @@ public class PointSystem {
 	public static final String COMBINED_POINTS_MINIGAME_OBJECTIVE_PREFIX = "pointsystem_combined_points_minigame_";
 
 	private final MinecraftServer server;
-	private Config config;
 	private Int2ObjectMap<PlayerPointStorage> minigamePoints = new Int2ObjectOpenHashMap<>();
 	private Int2ObjectMap<PointTeam> teams = new Int2ObjectOpenHashMap<>();
 	private Map<UUID, IntSet> playerTeams = new HashMap<>();
@@ -73,12 +72,6 @@ public class PointSystem {
 
 	public IntSet getExcludedMinigameIds() {
 		return this.excludedMinigameIds;
-	}
-	public void loadConfig() throws IOException {
-		Path configFolder = Path.of("config/point-system/");
-		Files.createDirectories(configFolder);
-		Path configFilePath = configFolder.resolve("config.json");
-		this.config = new Config(configFilePath);
 	}
 
 	public void loadData() throws IOException {
@@ -317,7 +310,7 @@ public class PointSystem {
 		ServerScoreboard scoreboard = this.server.getScoreboard();
 		Objective objective = this.getOrCreateObjective(objectiveName);
 
-		setTextLine(0, this.config.universityScoreText, scoreboard, objective);
+		setTextLine(0, PointSystemConfig.getInstance().universityScoreText(), scoreboard, objective);
 
 		List<Integer> topTeams = teamPoints.int2IntEntrySet()
 			.stream()
@@ -338,7 +331,7 @@ public class PointSystem {
 		}
 
 		setTextLine(6, Component.empty(), scoreboard, objective);
-		setTextLine(7, this.config.topPlayersText, scoreboard, objective);
+		setTextLine(7, PointSystemConfig.getInstance().topPlayersText(), scoreboard, objective);
 
 		List<UUID> topPlayers = playerPoints.getData().object2IntEntrySet()
 			.stream()

@@ -20,9 +20,9 @@ public class PointSystemMod implements ModInitializer {
 			new ChangeUniversityCommand(this).register(dispatcher);
 		}));
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			PointSystemConfig.getInstance();
 			pointSystem = new PointSystem(server);
 			try {
-				pointSystem.loadConfig();
 				pointSystem.loadData();
 			} catch (IOException e) {
 				throw new RuntimeException("Failed to load config.", e);
