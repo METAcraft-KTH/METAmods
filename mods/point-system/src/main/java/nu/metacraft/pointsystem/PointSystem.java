@@ -144,7 +144,7 @@ public class PointSystem implements AutoCloseable {
 			try (
 					var statement = dbConnection.prepareStatement(
 							"create table if not exists " + PLAYER_TEAMS_TABLE + " (" +
-									PLAYER_ID + " " + getUUIDType() + "not null," +
+									PLAYER_ID + " " + getUUIDType() + " not null," +
 									TEAM_ID + " int not null," +
 									"constraint PK_" + PLAYER_TEAMS_TABLE + " primary key (" + PLAYER_ID + ", " + TEAM_ID + ")," +
 									"foreign key (" + TEAM_ID + ") references " + TEAMS_TABLE + "(" + TEAM_ID + ")" +
@@ -266,7 +266,7 @@ public class PointSystem implements AutoCloseable {
 							createUpsert(
 									"insert into " + POINTS_TABLE + " (" + PLAYER_ID + ", " + MINIGAME_ID + ", points) values (?, ?, ?)",
 									PLAYER_ID + ", " + MINIGAME_ID,
-									"update set points = points + ?"
+									"update set points = " + POINTS_TABLE + ".points + ?"
 							)
 					)
 			) {

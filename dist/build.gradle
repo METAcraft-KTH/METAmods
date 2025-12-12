@@ -17,6 +17,7 @@ addCoreDependencies()
 dependencies {
     implementation("org.objenesis:objenesis:${project.objenesis_version}")
 	implementation("org.xerial:sqlite-jdbc:$jdbc_sqlite_version")
+	implementation("org.postgresql:postgresql:$jdbc_postgresql_version")
 }
 
 // configure the maven publication
