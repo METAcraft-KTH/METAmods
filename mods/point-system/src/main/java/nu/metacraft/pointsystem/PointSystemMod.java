@@ -10,49 +10,49 @@ import org.slf4j.Logger;
 import java.io.IOException;
 
 public class PointSystemMod implements ModInitializer {
-    public static final Logger LOGGER = LogUtils.getLogger();
-    private PointSystem pointSystem;
+	public static final Logger LOGGER = LogUtils.getLogger();
+	private PointSystem pointSystem;
 
-    @Override
-    public void onInitialize() {
-        CommandRegistrationCallback.EVENT.register(((dispatcher, registryAccess, env) -> {
-            new PointSystemCommand(this).register(dispatcher);
-            new ChangeUniversityCommand(this).register(dispatcher);
-        }));
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            pointSystem = new PointSystem(server);
-            try {
-                pointSystem.loadConfig();
-                pointSystem.loadData();
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to load config.", e);
-            }
-        });
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-            if (pointSystem != null) {
-                try {
-                    pointSystem.saveData();
-                } catch (Throwable e) {
-                    LOGGER.error("Failed to save data", e);
-                }
-                pointSystem = null;
-            }
-        });
-        ServerLifecycleEvents.AFTER_SAVE.register((minecraftServer, flush, force) -> {
-            if (pointSystem != null) {
-                try {
-                    pointSystem.saveData();
-                } catch (Throwable e) {
-                    LOGGER.error("Failed to save data", e);
-                }
-            }
-        });
-    }
+	@Override
+	public void onInitialize() {
+		CommandRegistrationCallback.EVENT.register(((dispatcher, registryAccess, env) -> {
+			new PointSystemCommand(this).register(dispatcher);
+			new ChangeUniversityCommand(this).register(dispatcher);
+		}));
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			pointSystem = new PointSystem(server);
+			try {
+				pointSystem.loadConfig();
+				pointSystem.loadData();
+			} catch (IOException e) {
+				throw new RuntimeException("Failed to load config.", e);
+			}
+		});
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			if (pointSystem != null) {
+				try {
+					pointSystem.saveData();
+				} catch (Throwable e) {
+					LOGGER.error("Failed to save data", e);
+				}
+				pointSystem = null;
+			}
+		});
+		ServerLifecycleEvents.AFTER_SAVE.register((minecraftServer, flush, force) -> {
+			if (pointSystem != null) {
+				try {
+					pointSystem.saveData();
+				} catch (Throwable e) {
+					LOGGER.error("Failed to save data", e);
+				}
+			}
+		});
+	}
 
-    public PointSystem getPointSystem(MinecraftServer server) {
-        if (pointSystem != null && pointSystem.getServer() == server) {
-            return pointSystem;
-        }
-        return null;
-    }
+	public PointSystem getPointSystem(MinecraftServer server) {
+		if (pointSystem != null && pointSystem.getServer() == server) {
+			return pointSystem;
+		}
+		return null;
+	}
 }
