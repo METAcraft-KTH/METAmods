@@ -1,11 +1,5 @@
 package nu.metacraft.pointsystem;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.reflect.TypeToken;
 import com.mojang.authlib.GameProfile;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -15,9 +9,9 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
-import it.unimi.dsi.fastutil.ints.IntSets;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.ChatFormatting;
+import net.minecraft.TracingExecutor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.numbers.BlankFormat;
@@ -30,21 +24,14 @@ import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.ScoreAccess;
 import net.minecraft.world.scores.ScoreHolder;
 import net.minecraft.world.scores.criteria.ObjectiveCriteria;
-import org.jetbrains.annotations.Nullable;
+import nu.metacraft.pointsystem.mixin.UtilAccessor;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
-public class PointSystem {
+public class PointSystem implements AutoCloseable {
 	// https://open.kattis.com/info/ranklist#combinedscore
 	// We choose f=5 because they do the same.
 	public static final double F = 5;
@@ -56,130 +43,305 @@ public class PointSystem {
 	public static final String COMBINED_POINTS_OBJECTIVE = "pointsystem_combined_points";
 	public static final String COMBINED_POINTS_MINIGAME_OBJECTIVE_PREFIX = "pointsystem_combined_points_minigame_";
 
+	public static final String POINTS_TABLE = "points";
+	public static final String TEAMS_TABLE = "teams";
+	public static final String PLAYER_TEAMS_TABLE = "player_teams";
+	public static final String MINIGAMES_TABLE = "minigames";
+
+	public static final String PLAYER_ID = "player_id";
+	public static final String MINIGAME_ID = "minigame_id";
+	public static final String TEAM_ID = "team_id";
+
+	private static final String SQLITE = "SQLite JDBC";
+	private static final String POSTGRESQL = "PostgreSQL JDBC Driver";
+
+	private final TracingExecutor executor = UtilAccessor.callMakeExecutor("PointSystemDatabaseHandler");
+
+	private static final String POINTS_TEAM_JOIN = PLAYER_TEAMS_TABLE + " inner join " + POINTS_TABLE + " on " +
+			PLAYER_TEAMS_TABLE + "." + PLAYER_ID + " = " + POINTS_TABLE + "." + PLAYER_ID;
+
+	private static final String ONLY_NOT_EXCLUDED_CONDITION = "left outer join " + MINIGAMES_TABLE + " on " + MINIGAMES_TABLE + "." + MINIGAME_ID + " = " + POINTS_TABLE + "." + MINIGAME_ID +
+			" where excluded is null or excluded = false";
+
 	private final MinecraftServer server;
-	private Int2ObjectMap<PlayerPointStorage> minigamePoints = new Int2ObjectOpenHashMap<>();
-	private Int2ObjectMap<PointTeam> teams = new Int2ObjectOpenHashMap<>();
-	private Map<UUID, IntSet> playerTeams = new HashMap<>();
-	private IntSet excludedMinigameIds = new IntOpenHashSet();
+	private final Connection dbConnection;
+
+	private void setUUID(PreparedStatement statement, int index, UUID uuid) throws SQLException {
+		statement.setObject(index, uuid);
+	}
+
+	private UUID getUUID(ResultSet result, int column) throws SQLException {
+		return switch (result.getObject(column)) {
+			case UUID uuid -> uuid;
+			case String string -> {
+				try {
+					yield UUID.fromString(string);
+				} catch (IllegalArgumentException e) {
+					throw new SQLException(e);
+				}
+			}
+			default -> throw new SQLException(result.getObject(column) + " is not a UUID!");
+		};
+	}
+
+	private String getUUIDType() throws SQLException {
+		return switch (dbConnection.getMetaData().getDriverName()) {
+			case SQLITE -> "BLOB";
+			default -> "UUID";
+		};
+	}
+
+	private String createIntPrimaryKeyElement(String name) throws SQLException {
+		return switch (dbConnection.getMetaData().getDriverName()) {
+			case POSTGRESQL -> name + " serial primary key";
+			default -> name + " integer primary key";
+		};
+	}
 
 	public PointSystem(MinecraftServer server) {
 		this.server = server;
+		try {
+			this.dbConnection = DriverManager.getConnection(
+					PointSystemConfig.getInstance().dbURL(),
+					PointSystemConfig.getInstance().username(),
+					PointSystemConfig.getInstance().password()
+			);
+			try (
+					var statement = dbConnection.prepareStatement(
+							"create table if not exists " + MINIGAMES_TABLE + " (" +
+									MINIGAME_ID + " int primary key," +
+									"excluded bool not null" +
+							")"
+					)
+			) {
+				statement.execute();
+			}
+			try (
+					var statement = dbConnection.prepareStatement(
+							"create table if not exists " + POINTS_TABLE + " (" +
+									PLAYER_ID + " " + getUUIDType() + " not null," +
+									MINIGAME_ID + " int not null," +
+									"points int not null," +
+									"constraint PK_" + POINTS_TABLE + " primary key (" + PLAYER_ID + ", " + MINIGAME_ID + ")" +
+							")"
+					);
+			) {
+				statement.execute();
+			}
+			try (
+					var statement = dbConnection.prepareStatement(
+							"create table if not exists " + TEAMS_TABLE + " (" +
+									createIntPrimaryKeyElement(TEAM_ID) + "," +
+									"type varchar(255) not null," +
+									"code varchar(255) not null," +
+									"short_name varchar(255) not null," +
+									"full_name varchar(255) not null" +
+							")"
+					);
+			) {
+				statement.execute();
+			}
+			try (
+					var statement = dbConnection.prepareStatement(
+							"create table if not exists " + PLAYER_TEAMS_TABLE + " (" +
+									PLAYER_ID + " " + getUUIDType() + "not null," +
+									TEAM_ID + " int not null," +
+									"constraint PK_" + PLAYER_TEAMS_TABLE + " primary key (" + PLAYER_ID + ", " + TEAM_ID + ")," +
+									"foreign key (" + TEAM_ID + ") references " + TEAMS_TABLE + "(" + TEAM_ID + ")" +
+							")"
+					)
+			) {
+				statement.execute();
+			}
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public MinecraftServer getServer() {
 		return server;
 	}
 
-	public IntSet getExcludedMinigameIds() {
-		return this.excludedMinigameIds;
-	}
+	public CompletableFuture<IntSet> getExcludedMinigameIds() {
+		return CompletableFuture.supplyAsync(
+				() -> {
+					try (var statement = dbConnection.prepareStatement("select " + MINIGAME_ID + " from " + MINIGAMES_TABLE + " where excluded = true")) {
+						var result = statement.executeQuery();
+						IntSet set = new IntOpenHashSet();
+						while (result.next()) {
+							set.add(result.getInt(1));
+						}
+						return set;
+					} catch (SQLException e) {
+						throw new RuntimeException(e);
+					}
 
-	public void loadData() throws IOException {
-		Path path = Path.of("config/point-system/data.json");
-		if (Files.notExists(path)) {
-			return;
-		}
-		JsonElement jsonElement = JsonParser.parseReader(Files.newBufferedReader(path));
-		JsonObject json = jsonElement.getAsJsonObject();
-		Gson gson = new GsonBuilder()
-			.registerTypeAdapter(PlayerPointStorage.class, PlayerPointStorage.GSON_DESERIALIZER)
-			.create();
-		this.teams = new Int2ObjectOpenHashMap<>(
-			gson.fromJson(json.get("teams"), new TypeToken<Map<Integer, PointTeam>>() {})
-		);
-		this.playerTeams = gson.fromJson(json.get("playerTeams"), new TypeToken< Map<UUID, Set<Integer>>>() {})
-			.entrySet()
-			.stream()
-			.collect(Collectors.toMap(
-				Map.Entry::getKey,
-				entry -> new IntOpenHashSet(entry.getValue())
-			));
-		this.minigamePoints = new Int2ObjectOpenHashMap<>(
-			gson.fromJson(json.get("minigamePoints"), new TypeToken<Map<Integer, PlayerPointStorage>>() {})
-		);
-		this.excludedMinigameIds = new IntOpenHashSet(
-			gson.fromJson(json.get("excludedMinigameIds"), new TypeToken<Set<Integer>>() {})
+				}, executor
 		);
 	}
 
-	public void saveData() throws IOException {
-		Path path = Path.of("config/point-system/data.json");
-		Files.createDirectories(path.getParent());
-		Gson gson = new Gson();
-		JsonObject json = new JsonObject();
-		json.add("teams", gson.toJsonTree(this.teams));
-		json.add("playerTeams", gson.toJsonTree(this.playerTeams));
-		json.add("minigamePoints", gson.toJsonTree(this.minigamePoints));
-		json.add("excludedMinigameIds", gson.toJsonTree(this.excludedMinigameIds));
-		Files.writeString(path, gson.toJson(json));
+	public void addExcludedMinigame(int id) {
+		executor.execute(() -> {
+			try (
+					var statement = dbConnection.prepareStatement(
+							 createUpsert(
+									 "insert into " + MINIGAMES_TABLE + " (" + MINIGAME_ID + ", excluded) values (?, true)",
+									 MINIGAME_ID,
+									 "update set excluded = true"
+							 )
+					)
+			) {
+				statement.setInt(1, id);
+				statement.execute();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
+
+	public void removeExcludedMinigame(int id) {
+		executor.execute(() -> {
+			try (
+					var statement = dbConnection.prepareStatement(
+							"update " + MINIGAMES_TABLE + " set excluded = false where " + MINIGAME_ID + " = ?"
+					)
+			) {
+				statement.setInt(1, id);
+				statement.execute();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		});
 	}
 
 	public void resetPoints() {
-		this.minigamePoints.clear();
-	}
-
-	public PlayerPointStorage getPlayerPoints() {
-		PlayerPointStorage playerPoints = new PlayerPointStorage();
-		for (Int2ObjectMap.Entry<PlayerPointStorage> entry : this.minigamePoints.int2ObjectEntrySet()) {
-			int minigameId = entry.getIntKey();
-			if (this.excludedMinigameIds.contains(minigameId)) {
-				continue;
+		executor.execute(() -> {
+			try {
+				dbConnection.createStatement().execute("delete from " + POINTS_TABLE);
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
 			}
-			PlayerPointStorage storage = entry.getValue();
-			playerPoints.merge(storage);
-		}
-		return playerPoints;
+		});
 	}
 
-	public PlayerPointStorage getPlayerPointsByMinigame(int minigameId) {
-		return this.minigamePoints.get(minigameId);
+	private CompletableFuture<PlayerPointStorage> getPlayerPoints(String condition, SQLConsumer<PreparedStatement> valueCapture) {
+		return CompletableFuture.supplyAsync(() -> {
+			try (
+					var statement = dbConnection.prepareStatement(
+							"select player_id, points from " + POINTS_TABLE + " " + condition
+					)
+			) {
+				valueCapture.accept(statement);
+				var result = statement.executeQuery();
+				PlayerPointStorage storage = new PlayerPointStorage();
+				while (result.next()) {
+					storage.addPoints(getUUID(result, 1), result.getInt(2));
+				}
+				return storage;
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}, executor);
+	}
+
+	public CompletableFuture<PlayerPointStorage> getPlayerPoints() {
+		return getPlayerPoints(
+				ONLY_NOT_EXCLUDED_CONDITION,
+				s -> {}
+		);
+	}
+
+	public CompletableFuture<PlayerPointStorage> getPlayerPointsByMinigame(int minigameId) {
+		return getPlayerPoints(" where " + MINIGAME_ID + " = ?", s -> s.setInt(1, minigameId));
+	}
+
+	private String createUpsert(String insert, String conflict, String update) {
+		return insert + " on conflict (" + conflict +  ") do " + update;
 	}
 
 	public void addPoints(UUID playerUuid, int points, int minigameId) {
-		PlayerPointStorage storage = this.minigamePoints.computeIfAbsent(minigameId, (id) -> new PlayerPointStorage());
-		storage.addPoints(playerUuid, points);
-	}
-
-	public Int2IntMap computeTeamPoints(PlayerPointStorage playerPoints) {
-		Int2ObjectMap<IntList> allPointsByTeam = new Int2ObjectOpenHashMap<>();
-		for (Object2IntMap.Entry<UUID> entry : playerPoints.getData().object2IntEntrySet()) {
-			UUID playerUuid = entry.getKey();
-			int points = entry.getIntValue();
-			IntSet teamIds = this.playerTeams.getOrDefault(playerUuid, IntSets.emptySet());
-			for (int teamId : teamIds) {
-				IntList teamPoints = allPointsByTeam.computeIfAbsent(teamId, (id) -> new IntArrayList());
-				teamPoints.add(points);
+		executor.execute(() -> {
+			try (
+					var statement = dbConnection.prepareStatement(
+							createUpsert(
+									"insert into " + POINTS_TABLE + " (" + PLAYER_ID + ", " + MINIGAME_ID + ", points) values (?, ?, ?)",
+									PLAYER_ID + ", " + MINIGAME_ID,
+									"update set points = points + ?"
+							)
+					)
+			) {
+				setUUID(statement, 1, playerUuid);
+				statement.setInt(2, minigameId);
+				statement.setInt(3, points);
+				statement.setInt(4, points);
+				statement.execute();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
 			}
-		}
-		Int2IntMap teamPoints = new Int2IntOpenHashMap();
-		for (Int2ObjectMap.Entry<IntList> entry : allPointsByTeam.int2ObjectEntrySet()) {
-			int teamId = entry.getIntKey();
-			IntList points = entry.getValue();
-
-			// Sort biggest to lowest
-			points.sort((a, b) -> b - a);
-
-			double totalScore = 0;
-			for (int i = 0; i < points.size(); i++) {
-				int score = points.getInt(i);
-				double factor = Math.pow(1 - F_INV, i);
-				totalScore += factor * score;
-			}
-
-			double teamScore = F_INV * totalScore;
-			teamPoints.put(teamId, (int) teamScore);
-		}
-		return teamPoints;
+		});
 	}
 
-	public Int2IntMap getTeamPoints() {
-		PlayerPointStorage totalPlayerPoints = getPlayerPoints();
-		return computeTeamPoints(totalPlayerPoints);
+	@FunctionalInterface
+	public interface SQLConsumer<T> {
+		void accept(T var1) throws SQLException;
 	}
 
-	public Int2IntMap getTeamPointsByMinigame(int minigameId) {
-		PlayerPointStorage playerPoints = getPlayerPointsByMinigame(minigameId);
-		return computeTeamPoints(playerPoints);
+	public CompletableFuture<Int2IntMap> computeTeamPoints(
+			String condition, SQLConsumer<PreparedStatement> valueCapture
+	) {
+		return CompletableFuture.supplyAsync(
+			() -> {
+				try (
+						var statement = dbConnection.prepareStatement(
+								"select team_id, points from " + POINTS_TEAM_JOIN + " " + condition
+						)
+				) {
+					Int2ObjectMap<IntList> allPointsByTeam = new Int2ObjectOpenHashMap<>();
+
+					valueCapture.accept(statement);
+
+					var result = statement.executeQuery();
+					while (result.next()) {
+						int teamId = result.getInt(1);
+						int points = result.getInt(2);
+						IntList teamPoints = allPointsByTeam.computeIfAbsent(teamId, (id) -> new IntArrayList());
+						teamPoints.add(points);
+					}
+
+					Int2IntMap teamPoints = new Int2IntOpenHashMap();
+					for (Int2ObjectMap.Entry<IntList> entry : allPointsByTeam.int2ObjectEntrySet()) {
+						int teamId = entry.getIntKey();
+						IntList points = entry.getValue();
+
+						// Sort biggest to lowest
+						points.sort((a, b) -> b - a);
+
+						double totalScore = 0;
+						for (int i = 0; i < points.size(); i++) {
+							int score = points.getInt(i);
+							double factor = Math.pow(1 - F_INV, i);
+							totalScore += factor * score;
+						}
+
+						double teamScore = F_INV * totalScore;
+						teamPoints.put(teamId, (int) teamScore);
+					}
+					return teamPoints;
+				} catch (SQLException e) {
+					throw new RuntimeException(e);
+				}
+			}, executor
+		);
+	}
+
+	public CompletableFuture<Int2IntMap> getTeamPoints() {
+		return computeTeamPoints(ONLY_NOT_EXCLUDED_CONDITION, s -> {});
+	}
+
+	public CompletableFuture<Int2IntMap> getTeamPointsByMinigame(int minigameId) {
+		return computeTeamPoints(
+				"where " + MINIGAME_ID + " = ?", s -> s.setInt(1, minigameId)
+		);
 	}
 
 	private Objective getOrCreateObjective(String name) {
@@ -198,51 +360,117 @@ public class PointSystem {
 		);
 	}
 
-	private IntSet getMinigameIds() {
-		return this.minigamePoints.keySet();
-	}
-
-	private Map<Integer, PointTeam> getTeams() {
-		return this.teams;
-	}
-
-	@Nullable
-	private PointTeam getTeamByCode(String code) {
-		for (PointTeam team : this.teams.values()) {
-			if (team.code().equals(code)) {
-				return team;
+	private CompletableFuture<IntSet> getMinigameIds() {
+		return CompletableFuture.supplyAsync(() -> {
+			try (
+					var statement = dbConnection.prepareStatement(
+							"select distinct " + MINIGAME_ID + " from " + POINTS_TABLE
+					)
+			) {
+				IntSet minigameIds = new IntOpenHashSet();
+				var result = statement.executeQuery();
+				while (result.next()) {
+					minigameIds.add(result.getInt(1));
+				}
+				return minigameIds;
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
 			}
-		}
-		return null;
+		}, executor);
+	}
+
+	private CompletableFuture<Map<Integer, PointTeam>> getTeams() {
+		return CompletableFuture.supplyAsync(() -> {
+			try (
+					var statement = dbConnection.prepareStatement(
+							"select team_id, type, code, short_name, full_name from " + TEAMS_TABLE
+					)
+			) {
+				Map<Integer, PointTeam> teams = new HashMap<>();
+				var result = statement.executeQuery();
+				while (result.next()) {
+					var team = new PointTeam(
+							result.getInt(1), result.getString(2), result.getString(3),
+							result.getString(4), result.getString(5)
+					);
+					teams.put(team.id(), team);
+				}
+				return teams;
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}, executor);
 	}
 
 	public void addTeam(String type, String code, String shortName, String fullName) {
-		int teamId = 1;
-		while (this.teams.containsKey(teamId)) {
-			teamId++;
-		}
-		this.teams.put(teamId, new PointTeam(teamId, type, code, shortName, fullName));
+		executor.execute(() -> {
+			try (
+					var statement = dbConnection.prepareStatement(
+							"insert into " + TEAMS_TABLE + " (type, code, short_name, full_name) values (?, ?, ?, ?)"
+					)
+			) {
+				statement.setString(1, type);
+				statement.setString(2, code);
+				statement.setString(3, shortName);
+				statement.setString(4, fullName);
+				statement.execute();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		});
 	}
 
 	public void joinOnlyTeams(UUID playerUuid, String[] codes) {
-		List<String> teamNames = new ArrayList<>();
-		IntSet teamIds = new IntOpenHashSet(codes.length);
-		for (String code : codes) {
-			PointTeam team = getTeamByCode(code);
-			if (team == null) {
-				continue;
+		executor.execute(() -> {
+			try {
+				try (
+						var remove = dbConnection.prepareStatement(
+								"delete from " + PLAYER_TEAMS_TABLE + " where " + PLAYER_ID + "= ?"
+						)
+				) {
+					setUUID(remove, 1, playerUuid);
+					remove.execute();
+				}
+				try (
+						var add = dbConnection.prepareStatement(
+								"insert into " + PLAYER_TEAMS_TABLE + " (" + PLAYER_ID + ", " + TEAM_ID + ")" +
+										" select ?, " + TEAM_ID + " from " + TEAMS_TABLE + " where code = ?"
+						)
+				) {
+					setUUID(add, 1, playerUuid);
+					for (var code : codes) {
+						add.setString(2, code);
+						add.execute();
+					}
+				}
+
+				try (
+						var getNames = dbConnection.prepareStatement(
+								"select full_name from " + TEAMS_TABLE + " inner join " + PLAYER_TEAMS_TABLE + " on " +
+										TEAMS_TABLE + "." + TEAM_ID + "=" + PLAYER_TEAMS_TABLE + "." + TEAM_ID + " where " + PLAYER_ID + " = ?"
+						)
+				) {
+					setUUID(getNames, 1, playerUuid);
+					var result = getNames.executeQuery();
+					List<String> teamNames = new ArrayList<>();
+					while (result.next()) {
+						teamNames.add(result.getString(1));
+					}
+
+					server.execute(() -> {
+						ServerPlayer player = this.server.getPlayerList().getPlayer(playerUuid);
+						if (player != null) {
+							player.sendSystemMessage(Component.empty()
+									.append(Component.literal("You selected ")
+											.append(Component.literal(String.join(", ", teamNames)).withStyle(style -> style.applyFormat(ChatFormatting.YELLOW))))
+							);
+						}
+					});
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
 			}
-			teamIds.add(team.id());
-			teamNames.add(team.fullName());
-		}
-		this.playerTeams.put(playerUuid, teamIds);
-		ServerPlayer player = this.server.getPlayerList().getPlayer(playerUuid);
-		if (player != null) {
-			player.sendSystemMessage(Component.empty()
-				.append(Component.literal("You selected ")
-					.append(Component.literal(String.join(", ", teamNames)).withStyle(style -> style.applyFormat(ChatFormatting.YELLOW))))
-			);
-		}
+		});
 	}
 
 	private void renderTeamPoints(Map<Integer, PointTeam> teams, Map<Integer, Integer> teamPoints, String objectiveName) {
@@ -353,24 +581,39 @@ public class PointSystem {
 	}
 
 	public void renderAll() {
-		Map<Integer, PointTeam> teams = getTeams();
-		IntSet minigameIds = getMinigameIds();
+		getTeams().thenAccept(teams -> {
 
-		// Total points
-		Int2IntMap totalTeamPoints = getTeamPoints();
-		PlayerPointStorage totalPlayerPoints = getPlayerPoints();
-		renderTeamPoints(teams, totalTeamPoints, TEAM_POINTS_OBJECTIVE);
-		renderPlayerPoints(totalPlayerPoints, PLAYER_POINTS_OBJECTIVE);
-		renderCombinedPoints(teams, totalPlayerPoints, totalTeamPoints, COMBINED_POINTS_OBJECTIVE);
+			// Total points
+			getTeamPoints().thenAccept(totalTeamPoints -> {
+				getPlayerPoints().thenAccept(totalPlayerPoints -> {
+					server.execute(() -> {
+						renderTeamPoints(teams, totalTeamPoints, TEAM_POINTS_OBJECTIVE);
+						renderPlayerPoints(totalPlayerPoints, PLAYER_POINTS_OBJECTIVE);
+						renderCombinedPoints(teams, totalPlayerPoints, totalTeamPoints, COMBINED_POINTS_OBJECTIVE);
+					});
+				});
+			});
 
-		// Points per minigame
-		for (int minigameId : minigameIds) {
-			Int2IntMap teamPoints = getTeamPointsByMinigame(minigameId);
-			PlayerPointStorage playerPoints = getPlayerPointsByMinigame(minigameId);
+			// Points per minigame
+			getMinigameIds().thenAccept(minigameIds -> {
+				for (int minigameId : minigameIds) {
+					getTeamPointsByMinigame(minigameId).thenAccept(teamPoints -> {
+						getPlayerPointsByMinigame(minigameId).thenAccept(playerPoints -> {
+							server.execute(() -> {
+								renderTeamPoints(teams, teamPoints, TEAM_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
+								renderPlayerPoints(playerPoints, PLAYER_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
+								renderCombinedPoints(teams, playerPoints, teamPoints, COMBINED_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
+							});
+						});
+					});
+				}
+			});
+		});
+	}
 
-			renderTeamPoints(teams, teamPoints, TEAM_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
-			renderPlayerPoints(playerPoints, PLAYER_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
-			renderCombinedPoints(teams, playerPoints, teamPoints, COMBINED_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
-		}
+	@Override
+	public void close() throws Exception {
+		dbConnection.close();
+		executor.shutdownAndAwait(1, TimeUnit.SECONDS);
 	}
 }

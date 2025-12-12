@@ -23,7 +23,7 @@ import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.ReadOnlyScoreInfo;
 import net.minecraft.world.scores.ScoreHolder;
-import java.io.IOException;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -51,17 +51,6 @@ public class PointSystemCommand {
 				.then(
 					literal("reload")
 						.executes(this::reload)
-				)
-				.then(
-					literal("save")
-						.executes(this::save)
-				)
-				.then(
-					literal("load")
-						.then(
-							literal("i-confirm-that-this-is-dangerous")
-								.executes(this::load)
-						)
 				)
 				.then(
 					literal("reset")
@@ -110,11 +99,16 @@ public class PointSystemCommand {
 							literal("list")
 								.executes(ctx -> {
 									PointSystem pointSystem = getPointSystem(ctx);
-									ctx.getSource().sendSystemMessage(Component.literal("The following minigame ids are excluded: " + pointSystem.getExcludedMinigameIds()
-										.intStream()
-										.mapToObj(String::valueOf)
-										.collect(Collectors.joining())
-									));
+									pointSystem.getExcludedMinigameIds().thenAccept(excluded -> {
+										ctx.getSource().getServer().execute(() -> {
+											ctx.getSource().sendSystemMessage(Component.literal("The following minigame ids are excluded: " + excluded
+													.intStream()
+													.mapToObj(String::valueOf)
+													.collect(Collectors.joining())
+											));
+										});
+									});
+
 									return 1;
 								})
 						)
@@ -125,7 +119,7 @@ public class PointSystemCommand {
 										.executes(ctx -> {
 											int id = IntegerArgumentType.getInteger(ctx, "id");
 											PointSystem pointSystem = getPointSystem(ctx);
-											pointSystem.getExcludedMinigameIds().add(id);
+											pointSystem.addExcludedMinigame(id);
 											ctx.getSource().sendSuccess(() -> Component.literal("Minigame id " + id +  " will now be excluded."), true);
 											return 1;
 										})
@@ -138,7 +132,7 @@ public class PointSystemCommand {
 										.executes(ctx -> {
 											int id = IntegerArgumentType.getInteger(ctx, "id");
 											PointSystem pointSystem = getPointSystem(ctx);
-											pointSystem.getExcludedMinigameIds().remove(id);
+											pointSystem.removeExcludedMinigame(id);
 											ctx.getSource().sendSuccess(() -> Component.literal("Minigame id " + id +  " will no longer be excluded."), true);
 											return 1;
 										})
@@ -269,32 +263,6 @@ public class PointSystemCommand {
 		return 1;
 	}
 
-	private int save(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-		PointSystem pointSystem = getPointSystem(ctx);
-		CommandSourceStack source = ctx.getSource();
-		try {
-			pointSystem.saveData();
-			source.sendSuccess(() -> Component.literal("Point system data saved."), true);
-		} catch (Throwable e) {
-			source.sendFailure(Component.literal(e.getMessage()));
-			PointSystemMod.LOGGER.error("Failed to save data", e);
-		}
-		return 1;
-	}
-
-	private int load(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-		PointSystem pointSystem = getPointSystem(ctx);
-		CommandSourceStack source = ctx.getSource();
-		try {
-			pointSystem.loadData();
-			source.sendSuccess(() -> Component.literal("Point system data loaded from disk."), true);
-		} catch (Throwable e) {
-			source.sendFailure(Component.literal(e.getMessage()));
-			PointSystemMod.LOGGER.error("Failed to load data", e);
-		}
-		return 1;
-	}
-
 	private int reset(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		PointSystem pointSystem = getPointSystem(ctx);
 		CommandSourceStack source = ctx.getSource();
@@ -325,17 +293,21 @@ public class PointSystemCommand {
 	private int topPlayers(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		PointSystem pointSystem = getPointSystem(ctx);
 		CommandSourceStack source = ctx.getSource();
-		var players = pointSystem.getPlayerPoints();
-		source.sendSystemMessage(Component.literal("Top 10:"));
 		MinecraftServer server = source.getServer();
-		var entries = players.getData().object2IntEntrySet()
-			.stream()
-			.sorted((a, b) -> b.getIntValue() - a.getIntValue())
-			.toList();
-		for (Map.Entry<UUID, Integer> entry : entries) {
-			String name = displayUuid(entry.getKey(), server);
-			ctx.getSource().sendSystemMessage(Component.literal(name + ": " + entry.getValue()));
-		}
+		pointSystem.getPlayerPoints().thenAccept(players -> {
+			var entries = players.getData().object2IntEntrySet()
+					.stream()
+					.sorted((a, b) -> b.getIntValue() - a.getIntValue())
+					.toList();
+			server.execute(() -> {
+				source.sendSystemMessage(Component.literal("Top 10:"));
+				for (Map.Entry<UUID, Integer> entry : entries) {
+					String name = displayUuid(entry.getKey(), server);
+					ctx.getSource().sendSystemMessage(Component.literal(name + ": " + entry.getValue()));
+				}
+			});
+		});
+
 		return 1;
 	}
 
@@ -370,20 +342,22 @@ public class PointSystemCommand {
 		ServerScoreboard scoreboard = server.getScoreboard();
 		PlayerTeam[] teams = Arrays.stream(teamNames).map(scoreboard::getPlayerTeam).toArray(PlayerTeam[]::new);
 
-		PlayerPointStorage playerPoints = pointSystem.getPlayerPoints();
+		pointSystem.getPlayerPoints().thenAccept(playerPoints -> {
+			var entries = players.stream()
+					.map(player -> Map.entry(player, playerPoints.getData().getOrDefault(player.getUUID(), 0)))
+					.sorted((a, b) -> b.getValue() - a.getValue())
+					.toList();
 
-		var entries = players.stream()
-				.map(player -> Map.entry(player, playerPoints.getData().getOrDefault(player.getUUID(), 0)))
-				.sorted((a, b) -> b.getValue() - a.getValue())
-				.toList();
-
-		int i = 0;
-		for (Map.Entry<ServerPlayer, Integer> entry : entries) {
-			ServerPlayer player = entry.getKey();
-			PlayerTeam team = teams[i % teams.length];
-			scoreboard.addPlayerToTeam(player.getScoreboardName(), team);
-			i++;
-		}
+			server.execute(() -> {
+				int i = 0;
+				for (Map.Entry<ServerPlayer, Integer> entry : entries) {
+					ServerPlayer player = entry.getKey();
+					PlayerTeam team = teams[i % teams.length];
+					scoreboard.addPlayerToTeam(player.getScoreboardName(), team);
+					i++;
+				}
+			});
+		});
 
 		return players.size();
 	}

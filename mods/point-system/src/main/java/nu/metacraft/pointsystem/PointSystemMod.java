@@ -7,8 +7,6 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 
-import java.io.IOException;
-
 public class PointSystemMod implements ModInitializer {
 	public static final Logger LOGGER = LogUtils.getLogger();
 	private PointSystem pointSystem;
@@ -22,29 +20,15 @@ public class PointSystemMod implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			PointSystemConfig.getInstance();
 			pointSystem = new PointSystem(server);
-			try {
-				pointSystem.loadData();
-			} catch (IOException e) {
-				throw new RuntimeException("Failed to load config.", e);
-			}
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			if (pointSystem != null) {
 				try {
-					pointSystem.saveData();
+					pointSystem.close();
 				} catch (Throwable e) {
-					LOGGER.error("Failed to save data", e);
+					LOGGER.error("Failed to properly close database connection", e);
 				}
 				pointSystem = null;
-			}
-		});
-		ServerLifecycleEvents.AFTER_SAVE.register((minecraftServer, flush, force) -> {
-			if (pointSystem != null) {
-				try {
-					pointSystem.saveData();
-				} catch (Throwable e) {
-					LOGGER.error("Failed to save data", e);
-				}
 			}
 		});
 	}

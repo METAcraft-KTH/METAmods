@@ -17,7 +17,9 @@
       "nu.metacraft.pointsystem.PointSystemMod"
     ]
   },
-
+  "mixins": [
+	  "point_system_mixins.mixins.json"
+  ],
 
   "depends": {
     "fabricloader": ">=${loader_version}",
