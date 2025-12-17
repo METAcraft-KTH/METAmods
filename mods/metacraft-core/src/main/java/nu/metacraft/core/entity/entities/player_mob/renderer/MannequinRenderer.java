@@ -114,7 +114,7 @@ public class MannequinRenderer implements PlayerRenderer {
 
 	@Override
 	public void setSkin(ResolvableProfile profile) {
-		playerMob.getEntityData().set(PlayerMob.PLAYER_SKIN, profile);
+		playerMob.getEntityData().set(PlayerMob.PLAYER_SKIN, profile, true);
 	}
 
 	@Override
@@ -129,10 +129,15 @@ public class MannequinRenderer implements PlayerRenderer {
 
 	@Override
 	public void modifyRawTrackedData(List<SynchedEntityData.DataValue<?>> data, ServerPlayer player, boolean initial) {
-		if (initial && getDescription().isEmpty()) {
+		if (initial) {
 			data.add(
 					SynchedEntityData.DataValue.create(
-							MannequinAccessor.getDataDescription(), Optional.empty()
+							MannequinAccessor.getDataDescription(), getDescription()
+					)
+			);
+			data.add(
+					SynchedEntityData.DataValue.create(
+							MannequinAccessor.getDataProfile(), getSkinData()
 					)
 			);
 		}
