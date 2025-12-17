@@ -13,8 +13,7 @@ public class EntitySelectorMixin {
 
 	@ModifyExpressionValue(
 		method = {
-				"findEntities(Lnet/minecraft/commands/CommandSourceStack;)Ljava/util/List;",
-				"findPlayers"
+				"findEntities(Lnet/minecraft/commands/CommandSourceStack;)Ljava/util/List;"
 		},
 		at = @At(
 			value = "INVOKE",
