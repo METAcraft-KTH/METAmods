@@ -11,6 +11,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -94,6 +95,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 	public static final EntityDataAccessor<OptionalInt> LEFT_SHOULDER_ENTITY = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.OPTIONAL_UNSIGNED_INT);
 	public static final EntityDataAccessor<OptionalInt> RIGHT_SHOULDER_ENTITY = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.OPTIONAL_UNSIGNED_INT);
 	public static final EntityDataAccessor<ResolvableProfile> PLAYER_SKIN = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.RESOLVABLE_PROFILE);
+	public static final EntityDataAccessor<Optional<Component>> BELOW_NAME = SynchedEntityData.defineId(PlayerMob.class, EntityDataSerializers.OPTIONAL_COMPONENT);
 
 	private static final String RENDERER = "renderer";
 	private static final String PROFILE = "profile";
@@ -101,6 +103,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 	private static final String SHOULDER_ENTITY_LEFT = "ShoulderEntityLeft";
 	private static final String SHOULDER_ENTITY_RIGHT = "ShoulderEntityRight";
 	private static final String CAN_WANDER = "can_wander";
+	private static final String DESCRIPTION = "description";
 
 	private PlayerRenderer renderer = new FakePlayerRenderer(this, getDefaultSkin());
 
@@ -147,6 +150,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		builder.define(LEFT_SHOULDER_ENTITY, OptionalInt.empty());
 		builder.define(RIGHT_SHOULDER_ENTITY, OptionalInt.empty());
 		builder.define(PLAYER_SKIN, getDefaultSkin());
+		builder.define(BELOW_NAME, Optional.empty());
 	}
 
 	protected Brain.Provider<PlayerMob> brainProvider() {
@@ -622,6 +626,14 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		return partSet;
 	}
 
+	public void setDescription(@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<Component> description) {
+		renderer.setDescription(description);
+	}
+
+	public Optional<Component> getDescription() {
+		return renderer.getDescription();
+	}
+
 	@Override
 	public void addAdditionalSaveData(ValueOutput nbt) {
 		super.addAdditionalSaveData(nbt);
@@ -637,6 +649,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 			nbt.store(SHOULDER_ENTITY_RIGHT, CompoundTag.CODEC, this.getShoulderEntityRight().copy());
 		}
 		nbt.putBoolean(CAN_WANDER, canWander);
+		getDescription().ifPresent(desc -> nbt.store(DESCRIPTION, ComponentSerialization.CODEC, desc));
 	}
 
 	@Override
@@ -658,6 +671,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		);
 		canWander = nbt.getBooleanOr(CAN_WANDER, true);
 		readShoulderEntities(nbt);
+		setDescription(nbt.read(DESCRIPTION, ComponentSerialization.CODEC));
 	}
 
 	protected ResolvableProfile getDefaultSkin() {

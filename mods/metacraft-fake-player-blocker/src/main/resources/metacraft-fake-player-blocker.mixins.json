@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"package": "nu.metacraft.fake_player_blocker.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"CarpetPlayerCommandMixin",
+		"PuppetPlayerCommandMixin",
+		"ServerConfigurationPacketListenerImplMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

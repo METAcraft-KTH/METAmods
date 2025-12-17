@@ -129,7 +129,7 @@ public class MannequinRenderer implements PlayerRenderer {
 
 	@Override
 	public void modifyRawTrackedData(List<SynchedEntityData.DataValue<?>> data, ServerPlayer player, boolean initial) {
-		if (initial) {
+		if (initial && getDescription().isEmpty()) {
 			data.add(
 					SynchedEntityData.DataValue.create(
 							MannequinAccessor.getDataDescription(), Optional.empty()
@@ -138,6 +138,7 @@ public class MannequinRenderer implements PlayerRenderer {
 		}
 		for (int i = 0; i < data.size(); i++) {
 			SynchedDataHelper.replace(data, i, PlayerMob.PLAYER_SKIN, MannequinAccessor.getDataProfile());
+			SynchedDataHelper.replace(data, i, PlayerMob.BELOW_NAME, MannequinAccessor.getDataDescription());
 		}
 	}
 
@@ -162,5 +163,15 @@ public class MannequinRenderer implements PlayerRenderer {
 	@Override
 	public PlayerRendererType getType() {
 		return PlayerRendererType.MANNEQUIN;
+	}
+
+	@Override
+	public void setDescription(Optional<Component> description) {
+		playerMob.getEntityData().set(PlayerMob.BELOW_NAME, description);
+	}
+
+	@Override
+	public Optional<Component> getDescription() {
+		return playerMob.getEntityData().get(PlayerMob.BELOW_NAME);
 	}
 }
