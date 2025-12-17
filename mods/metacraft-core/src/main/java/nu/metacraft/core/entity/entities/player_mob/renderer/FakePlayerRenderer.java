@@ -6,18 +6,16 @@ import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientboundMoveVehiclePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.commands.RotateCommand;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerPlayerConnection;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.component.ResolvableProfile;
+import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.entity.entities.player_mob.PlayerMob;
 import nu.metacraft.core.mixin.PlayerAccessor;
 import nu.metacraft.core.util.SynchedDataHelper;
@@ -28,6 +26,7 @@ import xyz.nucleoid.packettweaker.PacketContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -193,6 +192,21 @@ public class FakePlayerRenderer implements PlayerRenderer {
 	@Override
 	public PlayerRendererType getType() {
 		return PlayerRendererType.FAKE_PLAYER;
+	}
+
+	@Override
+	public void setDescription(Optional<Component> description) {
+		if (description.isPresent()) {
+			METAcraftCore.LOGGER.warn(
+					"Failed to set description for metacraft:player with id {}, please switch to mannequin renderer or use scoreboards",
+					playerMob.getStringUUID()
+			);
+		}
+	}
+
+	@Override
+	public Optional<Component> getDescription() {
+		return Optional.empty();
 	}
 
 	private void removePlayerEntryFrom(Stream<ServerPlayer> players) {

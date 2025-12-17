@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public interface PlayerRenderer {
@@ -41,5 +42,9 @@ public interface PlayerRenderer {
 	void reinitialize();
 
 	PlayerRendererType getType();
+
+	void setDescription(@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<Component> description);
+
+	Optional<Component> getDescription();
 
 }
