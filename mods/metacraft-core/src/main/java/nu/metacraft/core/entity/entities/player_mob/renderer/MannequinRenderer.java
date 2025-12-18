@@ -114,7 +114,7 @@ public class MannequinRenderer implements PlayerRenderer {
 
 	@Override
 	public void setSkin(ResolvableProfile profile) {
-		playerMob.getEntityData().set(PlayerMob.PLAYER_SKIN, profile, true);
+		playerMob.getEntityData().set(PlayerMob.PLAYER_SKIN, profile);
 	}
 
 	@Override
