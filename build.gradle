@@ -1,5 +1,5 @@
 plugins {
-    id 'net.fabricmc.fabric-loom-remap' version '1.14-SNAPSHOT' apply false
+    id 'net.fabricmc.fabric-loom-remap' version "$loom_version" apply false
     id 'base'
 }
 
@@ -68,7 +68,7 @@ subprojects {
         addSGUIDependency()
         dependencies {
            modImplementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
-           implementation("org.apache.commons:commons-math3:3.6.1")
+           implementation("org.apache.commons:commons-math3:${project.apache_commons_math_version}")
         }
     }
 
