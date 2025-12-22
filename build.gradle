@@ -1,11 +1,24 @@
 plugins {
     id 'net.fabricmc.fabric-loom-remap' version "$loom_version" apply false
-    id 'base'
+	id("org.jetbrains.gradle.plugin.idea-ext") version "$idea_plugin_version"
+	id 'base'
 }
 
 def nonModSubProjects = [
         "mods"
 ]
+
+idea.project.settings {
+	runConfigurations {
+		"RunServer"(org.jetbrains.gradle.ext.Application) {
+			mainClass = "net.fabricmc.devlaunchinjector.Main"
+			moduleName = getProject().name + ".dist.main"
+			workingDirectory = "./run"
+			jvmArgs = "-Dfabric.dli.config=../dist/.gradle/loom-cache/launch.cfg -Dfabric.dli.env=server -Dfabric.dli.main=net.fabricmc.loader.impl.launch.knot.KnotServer"
+			programParameters = "nogui"
+		}
+	}
+}
 
 // For all modules that are fabric mods (all mods and dist)
 subprojects {

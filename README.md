@@ -11,7 +11,8 @@ Repository containing our dependent mods in one place, to make development easie
   - To set up the run configuration, you will need to run `./gradlew dist:configureLaunch`
   - Then, you can either:
     - Create a native run configuration for your IDE:
-      - IntelliJ: Use the provided RunServer xml file.
+      - IntelliJ: Gradle should generate a RunServer configuration for you and update it whenever you sync.
+        - Make sure to set the correct Java Version under Project Structure
     - Run `./gradlew dist:runServer`
 - In some cases you may wish to debug an individual module separately.
   - To do this, copy the run configuration and change the "METAmods.main" module to the "main" module of the submodule you want to work with.
