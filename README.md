@@ -9,6 +9,7 @@ Repository containing our dependent mods in one place, to make development easie
   - Then run `./gradlew build` to build the project.
 - The default run configurations will launch all mods at once.
   - To set up the run configuration, you will need to run `./gradlew dist:configureLaunch`
+  - You may also need to create a directory called `run` in the root of the repository.
   - Then, you can either:
     - Create a native run configuration for your IDE:
       - IntelliJ: Gradle should generate a RunServer configuration for you and update it whenever you sync.
@@ -22,7 +23,7 @@ Repository containing our dependent mods in one place, to make development easie
   - Mention your module with an include statement in the root-level "settings.gradle".
   - An easy way to create a new module is to copy an existing module.
     - Just be sure to update all values in fabric.mod.json.
-  - If you wish to put your module in a sub-directory, make sure to add the sub-directory to the "nonModSubProjects" variable in the root-level "build.gradle".
+  - If you wish to put your module in a subdirectory, make sure to add the subdirectory to the "nonModSubProjects" variable in the root-level "build.gradle".
   - By default, METAmods expects all mods to have the same mod id as their module name.
     - If you wish to diverge from this, you'll need to add an entry to the PROJECT_TO_MOD_ID map in the dist module.
     - This is used to prevent startup if some module was not loaded in order to prevent data in your test world from getting lost.
