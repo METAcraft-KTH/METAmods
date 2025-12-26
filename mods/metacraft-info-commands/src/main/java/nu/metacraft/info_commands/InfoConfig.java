@@ -1,6 +1,7 @@
 package nu.metacraft.info_commands;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,7 +15,7 @@ public record InfoConfig(Map<String, InfoNode> commands, boolean resendCommandTr
                          boolean enableResendCommandTreeCommand, int infoMessageIntervalTicks,
                          Component infoMessagePrefix, List<InfoMessage> infoMessages) {
 
-	public static final Codec<InfoConfig> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+	public static final MapCodec<InfoConfig> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.unboundedMap(Codec.STRING, InfoNode.CODEC).fieldOf("commands").forGetter(InfoConfig::commands),
 			Codec.BOOL.fieldOf("resendCommandTreeOnReload").forGetter(InfoConfig::resendCommandTreeOnReload),
 			Codec.BOOL.fieldOf("enableResendCommandTreeCommand").forGetter(InfoConfig::enableResendCommandTreeCommand),

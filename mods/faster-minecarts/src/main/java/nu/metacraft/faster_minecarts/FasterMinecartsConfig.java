@@ -1,13 +1,13 @@
 package nu.metacraft.faster_minecarts;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.advancements.criterion.BlockPredicate;
 import net.minecraft.advancements.criterion.EntityPredicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -18,12 +18,11 @@ import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.lib.config.ObjectStorage;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ServerAware;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -32,96 +31,31 @@ public class FasterMinecartsConfig {
 
 	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve(FasterMinecarts.NAMESPACE + ".json");
 
-	public static final Codec<FasterMinecartsConfig> CODEC = RecordCodecBuilder.create(
+	public static final MapCodec<FasterMinecartsConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codec.BOOL.fieldOf("global_faster_minecarts").forGetter(c -> c.globalFasterMinecarts),
 					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("max_minecart_speed").forGetter(c -> c.maxMinecartSpeed),
 					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("max_minecart_speed_underwater").forGetter(c -> c.maxMinecartSpeedUnderwater),
 					Codec.doubleRange(0, Double.MAX_VALUE).optionalFieldOf("dangerous_minecart_speed").forGetter(c -> c.dangerousMinecartSpeed),
 					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("damage_factor").forGetter(c -> c.damageFactor),
-					ExperimentalMinecartMode.CODEC.fieldOf("experimental_minecart_mode").forGetter(c -> c.experimentalMinecartMode),
-					ObjectStorage.createCodec(MinecartModifier.CODEC.listOf()).fieldOf("minecart_modifiers").forGetter(c -> c.minecartModifiers),
-					ObjectStorage.createCodec(EntityDamageList.CODEC).fieldOf("entity_damage_list").forGetter(c -> c.entityDamageList),
-					ObjectStorage.createCodec(BlockBooster.CODEC.listOf()).fieldOf("block_boosters").forGetter(c -> c.blockBoosters)
+					ExperimentalMinecartMode.CODEC.fieldOf("experimental_minecart_mode").forGetter(c -> c.experimentalMinecartMode)
 			).apply(instance, FasterMinecartsConfig::new)
 	);
 
-	private static final ServerAware<ConfigContainer<FasterMinecartsConfig>, Loaded> CONTAINER = ConfigContainer.Builder.create(
+	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<FasterMinecartsConfig, Loaded>>, Loaded> CONTAINER = ConfigContainer.Builder.create(
 			CODEC, FasterMinecartsConfig::createDefault
-	).buildRegistryAware(
-			configPath,
-			(config, server) -> new Loaded(
-					config, server.registryAccess()
-			)
-	);
+	).makeRegistryAware(Loaded.CODEC).setInitializer(Loaded::createDefault).build(configPath);
 
 	private static FasterMinecartsConfig createDefault() {
 		return new FasterMinecartsConfig(
 				false, 60, 45,
 				Optional.of(30 / 3.6 / 20), 2.16 * 20,
-				ExperimentalMinecartMode.EXPERIMENTAL,
-				ObjectStorage.fromValue(
-						MinecartModifier.CODEC.listOf(), List.of(
-								new MinecartModifier(EntityPredicate.Builder.entity().build(), Optional.empty(), Optional.of(0.8))
-						)
-				),
-				ObjectStorage.fromValue(
-						EntityDamageList.CODEC, new EntityDamageList(
-								List.of(
-										EntityPredicate.Builder.entity().of(
-												BuiltInRegistries.ENTITY_TYPE, EntityType.MINECART
-										).build(),
-										EntityPredicate.Builder.entity().of(
-												BuiltInRegistries.ENTITY_TYPE, EntityType.CHEST_MINECART
-										).build(),
-										EntityPredicate.Builder.entity().of(
-												BuiltInRegistries.ENTITY_TYPE, EntityType.COMMAND_BLOCK_MINECART
-										).build(),
-										EntityPredicate.Builder.entity().of(
-												BuiltInRegistries.ENTITY_TYPE, EntityType.FURNACE_MINECART
-										).build(),
-										EntityPredicate.Builder.entity().of(
-												BuiltInRegistries.ENTITY_TYPE, EntityType.HOPPER_MINECART
-										).build(),
-										EntityPredicate.Builder.entity().of(
-												BuiltInRegistries.ENTITY_TYPE, EntityType.TNT_MINECART
-										).build(),
-										EntityPredicate.Builder.entity().of(
-												BuiltInRegistries.ENTITY_TYPE, EntityType.SPAWNER_MINECART
-										).build(),
-										EntityPredicate.Builder.entity().of(
-												BuiltInRegistries.ENTITY_TYPE, EntityType.ITEM
-										).build(),
-										EntityPredicate.Builder.entity().of(
-												BuiltInRegistries.ENTITY_TYPE, EntityType.EXPERIENCE_ORB
-										).build(),
-										EntityPredicate.Builder.entity().vehicle(
-												EntityPredicate.Builder.entity().of(
-														BuiltInRegistries.ENTITY_TYPE, EntityType.MINECART
-												)
-										).build()
-								),
-								EntityDamageList.Mode.IGNORE
-						)
-				),
-				ObjectStorage.fromValue(
-						BlockBooster.CODEC.listOf(), List.of(
-								new BlockBooster(BlockPredicate.Builder.block().of(
-										BuiltInRegistries.BLOCK, Blocks.ICE
-								).build(), 5),
-								new BlockBooster(BlockPredicate.Builder.block().of(
-										BuiltInRegistries.BLOCK, Blocks.PACKED_ICE
-								).build(), 10),
-								new BlockBooster(BlockPredicate.Builder.block().of(
-										BuiltInRegistries.BLOCK, Blocks.BLUE_ICE
-								).build(), 20)
-						)
-				)
+				ExperimentalMinecartMode.EXPERIMENTAL
 		);
 	}
 
 	public static FasterMinecartsConfig getConfig() {
-		return CONTAINER.getContainer().get();
+		return CONTAINER.getContainer().get().staticValues();
 	}
 
 	public static FasterMinecartsConfig.Loaded getConfig(MinecraftServer server) {
@@ -140,19 +74,10 @@ public class FasterMinecartsConfig {
 
 	private final ExperimentalMinecartMode experimentalMinecartMode;
 
-	private final ObjectStorage<List<MinecartModifier>> minecartModifiers;
-
-	private final ObjectStorage<EntityDamageList> entityDamageList;
-
-	private final ObjectStorage<List<BlockBooster>> blockBoosters;
-
 	public FasterMinecartsConfig(
 			boolean globalFasterMinecarts, double maxMinecartSpeed,
 			double maxMinecartSpeedUnderwater, Optional<Double> dangerousMinecartSpeed,
-			double damageFactor, ExperimentalMinecartMode experimentalMinecartMode,
-			ObjectStorage<List<MinecartModifier>> minecartModifiers,
-			ObjectStorage<EntityDamageList> entityDamageList,
-			ObjectStorage<List<BlockBooster>> blockBoosters
+			double damageFactor, ExperimentalMinecartMode experimentalMinecartMode
 	) {
 		this.globalFasterMinecarts = globalFasterMinecarts;
 		this.maxMinecartSpeed = maxMinecartSpeed;
@@ -160,9 +85,6 @@ public class FasterMinecartsConfig {
 		this.dangerousMinecartSpeed = dangerousMinecartSpeed;
 		this.damageFactor = damageFactor;
 		this.experimentalMinecartMode = experimentalMinecartMode;
-		this.minecartModifiers = minecartModifiers;
-		this.entityDamageList = entityDamageList;
-		this.blockBoosters = blockBoosters;
 	}
 
 	public boolean globalFasterMinecarts() {
@@ -266,23 +188,78 @@ public class FasterMinecartsConfig {
 		}
 
 		@Override
-		public String getSerializedName() {
+		public @NotNull String getSerializedName() {
 			return name;
 		}
 	}
 
-	public static class Loaded {
+	public record Loaded(
+			List<MinecartModifier> minecartModifiers,
+			EntityDamageList entityDamageList,
+			List<BlockBooster> blockBoosters
+	) {
+		public static final MapCodec<Loaded> CODEC = RecordCodecBuilder.mapCodec(
+				instance -> instance.group(
+						MinecartModifier.CODEC.listOf().fieldOf("minecart_modifiers").forGetter(c -> c.minecartModifiers),
+						EntityDamageList.CODEC.fieldOf("entity_damage_list").forGetter(c -> c.entityDamageList),
+						BlockBooster.CODEC.listOf().fieldOf("block_boosters").forGetter(c -> c.blockBoosters)
+				).apply(instance, Loaded::new)
+		);
 
-		private final List<MinecartModifier> minecartModifiers;
-
-		private final EntityDamageList entityDamageList;
-
-		private final List<BlockBooster> blockBoosters;
-
-		public Loaded(FasterMinecartsConfig config, HolderLookup.Provider lookup) {
-			this.minecartModifiers = config.minecartModifiers.parse(lookup).resultOrPartial().orElse(new ArrayList<>());
-			this.entityDamageList = config.entityDamageList.parse(lookup).resultOrPartial().orElse(new EntityDamageList(new ArrayList<>(), EntityDamageList.Mode.IGNORE));
-			this.blockBoosters = config.blockBoosters.parse(lookup).resultOrPartial().orElse(new ArrayList<>());
+		public static Loaded createDefault() {
+			return new Loaded(
+					List.of(
+							new MinecartModifier(EntityPredicate.Builder.entity().build(), Optional.empty(), Optional.of(0.8))
+					),
+					new EntityDamageList(
+							List.of(
+									EntityPredicate.Builder.entity().of(
+											BuiltInRegistries.ENTITY_TYPE, EntityType.MINECART
+									).build(),
+									EntityPredicate.Builder.entity().of(
+											BuiltInRegistries.ENTITY_TYPE, EntityType.CHEST_MINECART
+									).build(),
+									EntityPredicate.Builder.entity().of(
+											BuiltInRegistries.ENTITY_TYPE, EntityType.COMMAND_BLOCK_MINECART
+									).build(),
+									EntityPredicate.Builder.entity().of(
+											BuiltInRegistries.ENTITY_TYPE, EntityType.FURNACE_MINECART
+									).build(),
+									EntityPredicate.Builder.entity().of(
+											BuiltInRegistries.ENTITY_TYPE, EntityType.HOPPER_MINECART
+									).build(),
+									EntityPredicate.Builder.entity().of(
+											BuiltInRegistries.ENTITY_TYPE, EntityType.TNT_MINECART
+									).build(),
+									EntityPredicate.Builder.entity().of(
+											BuiltInRegistries.ENTITY_TYPE, EntityType.SPAWNER_MINECART
+									).build(),
+									EntityPredicate.Builder.entity().of(
+											BuiltInRegistries.ENTITY_TYPE, EntityType.ITEM
+									).build(),
+									EntityPredicate.Builder.entity().of(
+											BuiltInRegistries.ENTITY_TYPE, EntityType.EXPERIENCE_ORB
+									).build(),
+									EntityPredicate.Builder.entity().vehicle(
+											EntityPredicate.Builder.entity().of(
+													BuiltInRegistries.ENTITY_TYPE, EntityType.MINECART
+											)
+									).build()
+							),
+							EntityDamageList.Mode.IGNORE
+					),
+					List.of(
+							new BlockBooster(BlockPredicate.Builder.block().of(
+									BuiltInRegistries.BLOCK, Blocks.ICE
+							).build(), 5),
+							new BlockBooster(BlockPredicate.Builder.block().of(
+									BuiltInRegistries.BLOCK, Blocks.PACKED_ICE
+							).build(), 10),
+							new BlockBooster(BlockPredicate.Builder.block().of(
+									BuiltInRegistries.BLOCK, Blocks.BLUE_ICE
+							).build(), 20)
+					)
+			);
 		}
 
 		public boolean shouldDamageEntity(Vec3 pos, Entity entity) {

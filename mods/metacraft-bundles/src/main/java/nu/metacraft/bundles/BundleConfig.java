@@ -1,13 +1,14 @@
 package nu.metacraft.bundles;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import nu.metacraft.lib.config.container.ConfigContainer;
 
 public record BundleConfig(boolean bundleRendering) {
 
-	public static final Codec<BundleConfig> CODEC = RecordCodecBuilder.create(
+	public static final MapCodec<BundleConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codec.BOOL.fieldOf("enable_bundle_rendering").forGetter(BundleConfig::bundleRendering)
 			).apply(instance, BundleConfig::new)
