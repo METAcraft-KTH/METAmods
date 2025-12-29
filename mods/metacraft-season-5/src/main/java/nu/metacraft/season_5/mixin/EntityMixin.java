@@ -1,5 +1,6 @@
 package nu.metacraft.season_5.mixin;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -41,15 +42,19 @@ public abstract class EntityMixin {
 	@Shadow
 	public abstract AABB getBoundingBox();
 
+	@Shadow
+	public abstract BlockPos adjustSpawnLocation(ServerLevel serverLevel, BlockPos blockPos);
+
 	@Unique
-	private Vec3 getPosInOverworld(ServerLevel overworld) {
-		double y = overworld.getMaxY() + 32;
+	private Vec3 getPosInRespawnDim(ServerLevel respawnDim) {
+		var target = this.adjustSpawnLocation(respawnDim, respawnDim.getRespawnData().pos()).getBottomCenter();
+		double y = respawnDim.getMaxY() + 32;
 		var entityBox = getBoundingBox().move(position.reverse());
-		var border = overworld.getWorldBorder();
+		var border = respawnDim.getWorldBorder();
 		return new Vec3(
-				Mth.clamp(position.x, border.getMinX() - entityBox.minX, border.getMaxX() - entityBox.maxX),
+				Mth.clamp(target.x, border.getMinX() - entityBox.minX, border.getMaxX() - entityBox.maxX),
 				y,
-				Mth.clamp(position.z, border.getMinZ() - entityBox.minZ, border.getMaxZ() - entityBox.maxZ)
+				Mth.clamp(target.z, border.getMinZ() - entityBox.minZ, border.getMaxZ() - entityBox.maxZ)
 		);
 	}
 
@@ -57,11 +62,11 @@ public abstract class EntityMixin {
 	public void tick(CallbackInfo ci) {
 		if (level instanceof ServerLevel sl && sl.getGameRules().get(S5GameRules.END_VOID_OVERWORLD_TELEPORT)) {
 			if (level.dimension() == Level.END && position.y < level.getMinY() - 32) {
-				var overworld = sl.getServer().getLevel(Level.OVERWORLD);
+				var respawnDim = sl.getServer().findRespawnDimension();
 				//noinspection ConstantValue
-				if (overworld == null || !METAcraftSeason5.shouldVoidTeleport((Entity) (Object) this)) return;
+				if (respawnDim == null || !METAcraftSeason5.shouldVoidTeleport((Entity) (Object) this)) return;
 				teleport(new TeleportTransition(
-						overworld, getPosInOverworld(overworld),
+						respawnDim, getPosInRespawnDim(respawnDim),
 						getDeltaMovement(), yRot, xRot, TeleportTransition.DO_NOTHING
 				));
 			}
