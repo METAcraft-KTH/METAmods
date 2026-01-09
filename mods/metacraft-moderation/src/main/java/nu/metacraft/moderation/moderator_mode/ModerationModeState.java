@@ -23,8 +23,8 @@ public class ModerationModeState {
 		new ModeratorModeDefinition("null", false, true, false, false)
 	);
 
-	private static final String DEF = "Definition";
-	private static final String PLAYER_NBT = "PlayerNBT";
+	private static final String DEF = "definition";
+	private static final String PLAYER_NBT = "player_data";
 
 	protected ModeratorModeDefinition def;
 	protected CompoundTag playerNBT;
@@ -132,10 +132,21 @@ public class ModerationModeState {
 	}
 
 	public void fromNBT(ModerationData data, CompoundTag nbt) {
-		this.playerNBT = nbt.getCompound(PLAYER_NBT).orElse(null);
-		var defName = nbt.getString(DEF).map(
-				name -> name.toLowerCase(Locale.ROOT)
-		);
+		if (nbt.contains(PLAYER_NBT)) {
+			this.playerNBT = nbt.getCompound(PLAYER_NBT).orElse(null);
+		} else {
+			this.playerNBT = nbt.getCompound("PlayerNBT").orElse(null);
+		}
+		Optional<String> defName;
+		if (nbt.contains(DEF)) {
+			defName = nbt.getString(DEF).map(
+					name -> name.toLowerCase(Locale.ROOT)
+			);
+		} else {
+			defName = nbt.getString("Definition").map(
+					name -> name.toLowerCase(Locale.ROOT)
+			);
+		}
 		def = defName.flatMap(
 				data::getDefinition
 		).orElseGet(() -> {

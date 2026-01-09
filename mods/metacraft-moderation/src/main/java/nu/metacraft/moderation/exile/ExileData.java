@@ -29,14 +29,14 @@ public class ExileData extends SavedData {
 	private static Codec<ExileData> createCodec(MinecraftServer server) {
 		return RecordCodecBuilder.create(
 				instance -> instance.group(
-						ExileDefinition.Serialized.CODEC.listOf().fieldOf("ExileDefinitions").forGetter(
+						ExileDefinition.Serialized.CODEC.listOf().fieldOf("exile_definitions").forGetter(
 								d -> d.exileDefinitions.values().stream().map(ExileDefinition::serialize).toList()
 						),
 						METACodecs.createListSerializedMap(
-								UUIDUtil.AUTHLIB_CODEC.fieldOf("Player"),
-								Codec.STRING.fieldOf("Exile"),
+								UUIDUtil.AUTHLIB_CODEC.fieldOf("player"),
+								Codec.STRING.fieldOf("exile"),
 								HashMap::new
-						).fieldOf("ExiledPlayers").forGetter(
+						).fieldOf("exiled_players").forGetter(
 								d -> d.exiledPlayers.entrySet().stream().map(
 										e -> Pair.of(e.getKey(), e.getValue().getName())
 								).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond))

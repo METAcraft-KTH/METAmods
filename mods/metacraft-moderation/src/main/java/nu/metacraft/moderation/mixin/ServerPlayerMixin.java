@@ -29,19 +29,20 @@ import java.util.Optional;
 @Mixin(ServerPlayer.class)
 public abstract class ServerPlayerMixin extends Player implements ModerationPlayerData {
 
-	@Shadow @Final public MinecraftServer server;
+	@Shadow @Final
+	private MinecraftServer server;
 
 	@Unique
-	private static final String METACRAFT_MODERATION = "METAcraft-Moderation";
+	private static final String METACRAFT_MODERATION = "metacraft-moderation";
 	@Unique
-	private static final String MODERATION_STATE = "ModerationState";
+	private static final String MODERATION_STATE = "state";
 
 	@Unique
-	private static final String MODERATOR_MODE_NBT_MAP = "ModeratorModeNBTMap";
+	private static final String MODERATOR_MODE_NBT_MAP = "player_data";
 
 
 	@Unique
-	private static final String DEFAULT_MODERATOR_MODE = "DefaultModeratorMode";
+	private static final String DEFAULT_MODERATOR_MODE = "default_mode";
 
 	@Unique
 	private Map<String, CompoundTag> savedNBT = new HashMap<>();
@@ -99,32 +100,40 @@ public abstract class ServerPlayerMixin extends Player implements ModerationPlay
 
 	@Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
 	public void fromNBT(ValueInput nbt, CallbackInfo ci) {
-		var moderationNBT = nbt.childOrEmpty(METACRAFT_MODERATION);
+		ValueInput moderationNBT;
+		if (nbt.contains(METACRAFT_MODERATION)) {
+			moderationNBT = nbt.childOrEmpty(METACRAFT_MODERATION);
+		} else {
+			moderationNBT = nbt.childOrEmpty("METAcraft-Moderation");
+		}
 		if (!skipSaveState) {
-			moderationNBT.read(MODERATION_STATE, CompoundTag.CODEC).ifPresent(
+			Optional<CompoundTag> stateData;
+			if (moderationNBT.contains(MODERATION_STATE)) {
+				stateData = moderationNBT.read(MODERATION_STATE, CompoundTag.CODEC);
+			} else {
+				stateData = moderationNBT.read("ModerationState", CompoundTag.CODEC);
+			}
+			stateData.ifPresent(
 					data -> {
 						state = ModerationModeState.createFromNBT(ModerationData.getInstance(server), data);
 						state.updatePlayer((ServerPlayer) (Object) this);
-
-						//TODO Remove these before season 5, they are purely for backwards compatibility.
-						if (nbt.read(PlayerDataHelper.STAT_HANDLER, Identifier.CODEC).isEmpty() && state.getDef().shouldHaveSeparatePlayerData()) {
-							PlayerDataHelper.setStatHandler((ServerPlayer) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
-						}
-						if (nbt.read(PlayerDataHelper.ADVANCEMENT_TRACKER, Identifier.CODEC).isEmpty() && state.getDef().shouldHaveSeparatePlayerData()) {
-							PlayerDataHelper.setAdvancementTracker((ServerPlayer) (Object) this, ModerationModeState.getFromDef(state.getDef()), false);
-						}
-						if (nbt.read(PlayerDataHelper.ANNOUNCE_ADVANCEMENTS, Identifier.CODEC).isEmpty() && !state.getDef().announceAdvancements()) {
-							PlayerDataHelper.setAnnounceAdvancements((ServerPlayer) (Object) this, false);
-						}
 					}
 			);
 		}
-		defaultModeratorMode = moderationNBT.getString(DEFAULT_MODERATOR_MODE).map(
+		defaultModeratorMode = moderationNBT.getString(DEFAULT_MODERATOR_MODE).or(
+				() -> moderationNBT.getString("DefaultModeratorMode")
+		).map(
 				mode -> mode.toLowerCase(Locale.ROOT)
 		).orElse(null);
 
 		if (!skipSaveState) {
-			moderationNBT.read(MODERATOR_MODE_NBT_MAP, CompoundTag.CODEC).ifPresent(moderatorModeNBTMap -> {
+			Optional<CompoundTag> nbtMap;
+			if (moderationNBT.contains(MODERATOR_MODE_NBT_MAP)) {
+				nbtMap = moderationNBT.read(MODERATOR_MODE_NBT_MAP, CompoundTag.CODEC);
+			} else {
+				nbtMap = moderationNBT.read("ModeratorModeNBTMap", CompoundTag.CODEC);
+			}
+			nbtMap.ifPresent(moderatorModeNBTMap -> {
 				savedNBT.clear();
 				for (String key : moderatorModeNBTMap.keySet()) {
 					moderatorModeNBTMap.getCompound(key).ifPresent(

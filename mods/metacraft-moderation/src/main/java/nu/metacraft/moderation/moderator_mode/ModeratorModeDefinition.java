@@ -5,21 +5,44 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
+import nu.metacraft.lib.util.METACodecs;
 
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class ModeratorModeDefinition {
 
-	public static final String NAME = "Name";
+	public static final String NAME = "name";
 
-	public static final MapCodec<ModeratorModeDefinition> CODEC = RecordCodecBuilder.mapCodec(
+	protected static final MapCodec<ModeratorModeDefinition> MODERN_CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codec.STRING.fieldOf(NAME).forGetter(ModeratorModeDefinition::getName),
+					Codec.BOOL.fieldOf("separate_player_data").forGetter(ModeratorModeDefinition::shouldHaveSeparatePlayerData),
+					Codec.STRING.optionalFieldOf("enter_command").forGetter(ModeratorModeDefinition::getEnterCommand),
+					Codec.STRING.optionalFieldOf("exit_command").forGetter(ModeratorModeDefinition::getExitCommand),
+					Codec.BOOL.optionalFieldOf("announce_advancements", true).forGetter(ModeratorModeDefinition::announceAdvancements),
+					Codec.BOOL.fieldOf("vanish").forGetter(d -> d.vanish),
+					Codec.BOOL.optionalFieldOf("followed_by_tamed_mobs", true).forGetter(d -> d.followedByTamedMobs)
+			).apply(instance, ModeratorModeDefinition::new)
+	);
+
+	private static final MapCodec<ModeratorModeDefinition> LEGACY_CODEC = RecordCodecBuilder.mapCodec(
+			instance -> instance.group(
+					Codec.STRING.fieldOf("Name").forGetter(ModeratorModeDefinition::getName),
 					Codec.BOOL.fieldOf("SeparatePlayerData").forGetter(ModeratorModeDefinition::shouldHaveSeparatePlayerData),
 					Codec.STRING.optionalFieldOf("EnterCommand").forGetter(ModeratorModeDefinition::getEnterCommand),
 					Codec.STRING.optionalFieldOf("ExitCommand").forGetter(ModeratorModeDefinition::getExitCommand),
 					Codec.BOOL.optionalFieldOf("AnnounceAdvancements", true).forGetter(ModeratorModeDefinition::announceAdvancements),
 					Codec.BOOL.fieldOf("Vanish").forGetter(d -> d.vanish),
-					Codec.BOOL.optionalFieldOf("PreventTamedMobFollow", false).forGetter(d -> d.preventTamedMobFollow)
-			).apply(instance, ModeratorModeDefinition::new)
+					Codec.BOOL.optionalFieldOf("PreventTamedMobFollow", false).forGetter(d -> !d.followedByTamedMobs)
+			).apply(
+					instance,
+					(name, data, enter, exit, adv, vanish, preventTame) -> new ModeratorModeDefinition(
+							name, data, enter, exit, adv, vanish, !preventTame
+					)
+			)
+	);
+
+	public static final MapCodec<ModeratorModeDefinition> CODEC = METACodecs.withAlternative(
+			MODERN_CODEC, LEGACY_CODEC
 	);
 
 	protected String name;
@@ -28,12 +51,12 @@ public class ModeratorModeDefinition {
 	protected boolean separatePlayerData;
 	protected boolean announceAdvancements;
 	protected boolean vanish;
-	protected boolean preventTamedMobFollow;
+	protected boolean followedByTamedMobs;
 
 	private Runnable markSave = () -> {};
 
 	public ModeratorModeDefinition(
-			String name, boolean separatePlayerData, Optional<String> enterCommand, Optional<String> exitCommand, boolean announceAdvancements, boolean vanish, boolean preventTamedMobFollow
+			String name, boolean separatePlayerData, Optional<String> enterCommand, Optional<String> exitCommand, boolean announceAdvancements, boolean vanish, boolean followedByTamedMobs
 	) {
 		this.name = name;
 		this.separatePlayerData = separatePlayerData;
@@ -41,13 +64,13 @@ public class ModeratorModeDefinition {
 		this.exitCommand = exitCommand;
 		this.announceAdvancements = announceAdvancements;
 		this.vanish = vanish;
-		this.preventTamedMobFollow = preventTamedMobFollow;
+		this.followedByTamedMobs = followedByTamedMobs;
 	}
 
 	public ModeratorModeDefinition(
-			String name, boolean separatePlayerData, boolean announceAdvancements, boolean vanish, boolean preventTamedMobFollow
+			String name, boolean separatePlayerData, boolean announceAdvancements, boolean vanish, boolean followedByTamedMobs
 	) {
-		this(name, separatePlayerData, Optional.empty(), Optional.empty(), announceAdvancements, vanish, preventTamedMobFollow);
+		this(name, separatePlayerData, Optional.empty(), Optional.empty(), announceAdvancements, vanish, followedByTamedMobs);
 	}
 
 	public void setSave(Runnable markSave) {
@@ -68,13 +91,13 @@ public class ModeratorModeDefinition {
 		markDirty();
 	}
 
-	public void setPreventTamedMobFollow(boolean preventTamedAnimalFollow) {
-		this.preventTamedMobFollow = preventTamedAnimalFollow;
+	public void setFollowedByTamedMobs(boolean preventTamedAnimalFollow) {
+		this.followedByTamedMobs = preventTamedAnimalFollow;
 		markDirty();
 	}
 
-	public boolean preventTamedMobFollow() {
-		return preventTamedMobFollow;
+	public boolean followedByTamedMobs() {
+		return followedByTamedMobs;
 	}
 
 	public void setEnterCommand(String enterCommand) {
@@ -116,7 +139,7 @@ public class ModeratorModeDefinition {
 		String builder = "Name: " + name + "\n" +
 				"SeparatePlayerData: " + separatePlayerData + "\n" +
 				"Vanish: " + vanish + "\n" +
-				"PreventTamedAnimalFollow: " + preventTamedMobFollow + "\n" +
+				"FollowedByTamedMobs: " + followedByTamedMobs + "\n" +
 				"EnterCommand: " + (enterCommand != null ? enterCommand : "None") + "\n" +
 				"ExitCommand: " + (exitCommand != null ? exitCommand : "None") + "\n";
 		return Component.literal(builder);

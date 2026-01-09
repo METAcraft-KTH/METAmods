@@ -91,13 +91,13 @@ public class Commands {
 						)
 					)
 				).then(
-					literal("set-prevent-tamed-mob-follow").then(
+					literal("set-tamed-mob-follow").then(
 						moderationDefinition("mod").then(
-							argument("prevent-follow", BoolArgumentType.bool()).executes(ctx -> {
+							argument("follow", BoolArgumentType.bool()).executes(ctx -> {
 								var def = getModerationDefinition(ctx, "mod");
-								var state = BoolArgumentType.getBool(ctx, "prevent-follow");
-								def.setPreventTamedMobFollow(state);
-								ctx.getSource().sendSuccess(() -> Component.literal("Set prevent-follow for " + def.getName() + " to " + state), true);
+								var state = BoolArgumentType.getBool(ctx, "follow");
+								def.setFollowedByTamedMobs(state);
+								ctx.getSource().sendSuccess(() -> Component.literal("Set follow for " + def.getName() + " to " + state), true);
 								return 1;
 							})
 						)
