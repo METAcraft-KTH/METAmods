@@ -77,7 +77,11 @@ public class ModerationModeState {
 				Optional.ofNullable(((ModerationPlayerData) player).METAcraft_Moderation$getSavedNBT().get(def.getName())).ifPresent(newNbt::merge);
 				var readView = TagValueInput.create(logging, player.registryAccess(), newNbt);
 				PlayerDataHelper.applyPlayerData(player, readView, false);
-				PlayerDataHelper.setAdvancementTracker(player, getFromDef(def), false);
+				if (def.grantAdvancements()) {
+					PlayerDataHelper.setAdvancementTracker(player, getFromDef(def), false);
+				} else {
+					PlayerDataHelper.removeAdvancementTracker(player);
+				}
 				PlayerDataHelper.setStatHandler(player, getFromDef(def), false);
 				if (!def.announceAdvancements) {
 					PlayerDataHelper.setAnnounceAdvancements(player, false);
@@ -93,6 +97,12 @@ public class ModerationModeState {
 
 			if (!prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
 				PlayerDataHelper.setAnnounceAdvancements(player, def.announceAdvancements);
+				if (def.grantAdvancements() && !prev.def.grantAdvancements()) {
+					PlayerDataHelper.restoreAdvancementTracker(player);
+				}
+				if (!def.grantAdvancements() && prev.def.grantAdvancements()) {
+					PlayerDataHelper.removeAdvancementTracker(player);
+				}
 			}
 
 			if (!applyVanishBeforeData) {

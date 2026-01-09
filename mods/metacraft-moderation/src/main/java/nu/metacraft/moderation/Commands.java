@@ -103,6 +103,30 @@ public class Commands {
 						)
 					)
 				).then(
+					literal("set-visible-to-entity-selectors").then(
+						moderationDefinition("mod").then(
+							argument("entity-selectors", BoolArgumentType.bool()).executes(ctx -> {
+								var def = getModerationDefinition(ctx, "mod");
+								var state = BoolArgumentType.getBool(ctx, "entity-selectors");
+								def.setVisibleToEntitySelectors(state);
+								ctx.getSource().sendSuccess(() -> Component.literal("Set entity-selectors for " + def.getName() + " to " + state), true);
+								return 1;
+							})
+						)
+					)
+				).then(
+					literal("set-grant-advancements").then(
+						moderationDefinition("mod").then(
+							argument("grant-advancements", BoolArgumentType.bool()).executes(ctx -> {
+								var def = getModerationDefinition(ctx, "mod");
+								var state = BoolArgumentType.getBool(ctx, "grant-advancements");
+								def.setGrantAdvancements(state);
+								ctx.getSource().sendSuccess(() -> Component.literal("Set grant-advancements for " + def.getName() + " to " + state), true);
+								return 1;
+							})
+						)
+					)
+				).then(
 					literal("set-separate-player-data").then(
 						moderationDefinition("mod").then(
 							argument("separate-player-data", BoolArgumentType.bool()).executes(ctx -> {

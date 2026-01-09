@@ -11,6 +11,7 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.datafix.fixes.References;
@@ -26,6 +27,8 @@ import nu.metacraft.lib.mixin.PlayerAdvancementsAccessor;
 import nu.metacraft.lib.mixin.PlayerListAccessor;
 import nu.metacraft.lib.mixin.ServerPlayerAccessor;
 import nu.metacraft.lib.mixin.StatsCounterAccessor;
+import nu.metacraft.lib.util.CustomAdvancementTracker;
+import nu.metacraft.lib.util.NoOpAdvancementTracker;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import nu.metacraft.lib.util.SeparateAdvancementTracker;
 import nu.metacraft.lib.util.SeparateStatHandler;
@@ -376,24 +379,19 @@ public class PlayerDataHelper {
 		return ((ServerPlayerExtensions) player).metacraft_lib$getAnnounceDeath();
 	}
 
-	public static void setAdvancementTracker(ServerPlayer player, Identifier type, boolean copy) {
-		if (!(player.getAdvancements() instanceof SeparateAdvancementTracker h) || !h.getType().equals(type)) {
+	private static <T extends PlayerAdvancements & CustomAdvancementTracker> void setAdvancementTracker(ServerPlayer player, T newTracker, boolean copy) {
+		if (!(player.getAdvancements() instanceof CustomAdvancementTracker h) || !h.getType().equals(newTracker.getType())) {
 			var prevTracker = player.getAdvancements();
 			prevTracker.save();
 			prevTracker.stopListening();
 			var playerManager = player.level().getServer().getPlayerList();
-			((ServerPlayerAccessor) player).setAdvancements(
-					new SeparateAdvancementTracker(
-							player.level().getServer().getFixerUpper(), playerManager,
-							player.level().getServer().getAdvancements(), player, type
-					)
-			);
+			((ServerPlayerAccessor) player).setAdvancements(newTracker);
 			((PlayerListAccessor) playerManager).getAdvancements().put(
 					player.getUUID(), player.getAdvancements()
 			);
-			((ServerPlayerExtensions) player).metacraft_lib$setAdvancementTrackerType(type);
+			((ServerPlayerExtensions) player).metacraft_lib$setAdvancementTrackerType(newTracker.getType());
 
-			if (copy) {
+			if (copy && newTracker.canReceiveCopy()) {
 				var progress = ((PlayerAdvancementsAccessor) prevTracker).getProgress();
 				var tracker = (PlayerAdvancementsAccessor) player.getAdvancements();
 				tracker.getProgress().putAll(progress);
@@ -406,11 +404,39 @@ public class PlayerDataHelper {
 		}
 	}
 
+	public static void removeAdvancementTracker(ServerPlayer player) {
+		var playerManager = player.level().getServer().getPlayerList();
+		setAdvancementTracker(
+				player,
+				new NoOpAdvancementTracker(
+						player.level().getServer().getFixerUpper(), playerManager,
+						player.level().getServer().getAdvancements(), player
+				),
+				false
+		);
+	}
+
+	public static void setAdvancementTracker(ServerPlayer player, Identifier type, boolean copy) {
+		var playerManager = player.level().getServer().getPlayerList();
+		if (type.equals(NoOpAdvancementTracker.TYPE)) {
+			removeAdvancementTracker(player);
+		} else {
+			setAdvancementTracker(
+					player,
+					new SeparateAdvancementTracker(
+							player.level().getServer().getFixerUpper(), playerManager,
+							player.level().getServer().getAdvancements(), player, type
+					),
+					copy
+			);
+		}
+	}
+
 	public static void restoreAdvancementTracker(ServerPlayer player) {
 		var playerManager = player.level().getServer().getPlayerList();
-		if (player.getAdvancements() instanceof SeparateAdvancementTracker t) {
-			t.save();
-			t.stopListening();
+		if (player.getAdvancements() instanceof CustomAdvancementTracker) {
+			player.getAdvancements().save();
+			player.getAdvancements().stopListening();
 			((PlayerListAccessor) playerManager).getAdvancements().remove(player.getUUID());
 			((ServerPlayerAccessor) player).setAdvancements(playerManager.getPlayerAdvancements(player));
 			((ServerPlayerExtensions) player).metacraft_lib$setAdvancementTrackerType(null);
