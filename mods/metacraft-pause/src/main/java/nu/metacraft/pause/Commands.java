@@ -25,7 +25,7 @@ public class Commands {
 				).executes(ctx -> {
 					var server = ctx.getSource().getServer();
 					var data = PauseData.getInstance(server);
-					if (data.isPaused()) {
+					if (data.isPaused() && !data.isResuming()) {
 						data.unpause(server, 5);
 					} else {
 						data.pause(server);

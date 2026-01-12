@@ -59,7 +59,9 @@ public class PauseData extends SavedData {
 	}
 
 	private void addTransientAttributeModifier(LivingEntity entity, Holder<Attribute> attribute, AttributeModifier modifier) {
-		updateAttribute(entity, attribute, instance -> instance.addTransientModifier(modifier));
+		updateAttribute(entity, attribute, instance -> {
+			instance.addOrUpdateTransientModifier(modifier);
+		});
 	}
 
 	private void removeAttributeModifier(LivingEntity entity, Holder<Attribute> attribute, Identifier id) {
