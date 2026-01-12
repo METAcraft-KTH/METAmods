@@ -74,6 +74,7 @@ public class PauseData extends SavedData {
 					new ClientboundSetSubtitleTextPacket(Component.literal(""))
 			)));
 			player.closeContainer();
+			player.stopSleeping();
 
 			var data = (PausePlayerData) player;
 			var beforePauseVelocity = data.metacraft_pause$getBeforePauseVelocity();

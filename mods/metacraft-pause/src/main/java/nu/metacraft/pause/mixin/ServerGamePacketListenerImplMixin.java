@@ -136,8 +136,25 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 	}
 
 	@Inject(
+			method = "handlePlayerCommand",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/server/level/ServerLevel;)V",
+					shift = At.Shift.AFTER
+			),
+			cancellable = true
+	)
+	public void handlePlayerCommand(ServerboundPlayerCommandPacket packet, CallbackInfo ci) {
+		if (isFrozen()) {
+			if (packet.getAction() == ServerboundPlayerCommandPacket.Action.START_FALL_FLYING && !player.isFallFlying()) {
+				player.stopFallFlying();
+			}
+			ci.cancel();
+		}
+	}
+
+	@Inject(
 		method = {
-				"handlePlayerCommand",
 				"handleInteract",
 				"handleClientCommand",
 				"handlePlayerInput",
@@ -152,7 +169,7 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 				shift = At.Shift.AFTER
 		),
 		cancellable = true,
-		require = 8
+		require = 7
 	)
 	public void ignoreOtherStuff(CallbackInfo ci) {
 		if (isFrozen()) {
