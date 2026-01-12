@@ -44,7 +44,7 @@ public class PauseData extends SavedData {
 	);
 
 	private static final SavedDataType<PauseData> TYPE = new SavedDataType<>(
-			"metacraft-moderation", PauseData::createNew, CODEC, null
+			"metacraft-pause", PauseData::createNew, CODEC, null
 	);
 
 	private static PauseData createNew() {
