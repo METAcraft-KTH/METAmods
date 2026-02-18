@@ -12,7 +12,7 @@ import net.minecraft.world.level.timers.TimerQueue;
 public class TimerQueueMixin<T> {
 
 	@ModifyExpressionValue(
-		method = "store",
+		method = "pack",
 		at = @At(
 				value = "INVOKE",
 				target = "Ljava/util/Queue;stream()Ljava/util/stream/Stream;"
@@ -21,7 +21,7 @@ public class TimerQueueMixin<T> {
 	public Stream<TimerQueue.Event<T>> serialize(
 			Stream<TimerQueue.Event<T>> original
 	) {
-		return original.filter(event -> !(event.callback instanceof Throwaway));
+		return original.filter(event -> !(event.callback() instanceof Throwaway));
 	}
 
 }

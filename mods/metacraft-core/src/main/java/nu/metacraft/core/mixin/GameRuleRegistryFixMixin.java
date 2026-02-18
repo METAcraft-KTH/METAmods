@@ -17,7 +17,7 @@ public abstract class GameRuleRegistryFixMixin {
 	}
 
 	@ModifyReturnValue(
-			method = "method_76071", // Lambda inside addRules,
+			method = "lambda$makeRule$9",
 			at = @At("RETURN")
 	)
 	private static Dynamic<?> addRules(Dynamic<?> original) {

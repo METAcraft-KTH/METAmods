@@ -14,12 +14,12 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
-public class DisplayEntityData {
+public class DisplayEntityDataContainer {
 
 	protected int interpolationDuration = 1;
 	protected int startInterpolation = -1;
 	protected int teleportDuration = 1;
-	protected Transformation transformation = Transformation.identity();
+	protected Transformation transformation = Transformation.IDENTITY;
 
 	protected Display.BillboardConstraints billboardMode = Display.BillboardConstraints.FIXED;
 	protected Brightness brightness = null;
@@ -70,7 +70,7 @@ public class DisplayEntityData {
 		startInterpolation = nbt.getIntOr(Display.TAG_TRANSFORMATION_START_INTERPOLATION, 0);
 		interpolationDuration = nbt.getIntOr(Display.TAG_TRANSFORMATION_INTERPOLATION_DURATION, 0);
 		teleportDuration = nbt.getIntOr(Display.TAG_POS_ROT_INTERPOLATION_DURATION, 0);
-		transformation = nbt.read(Display.TAG_TRANSFORMATION, Transformation.EXTENDED_CODEC).orElse(Transformation.identity());
+		transformation = nbt.read(Display.TAG_TRANSFORMATION, Transformation.EXTENDED_CODEC).orElse(Transformation.IDENTITY);
 		billboardMode = nbt.read(Display.TAG_BILLBOARD, Display.BillboardConstraints.CODEC).orElse(Display.BillboardConstraints.FIXED);
 		brightness = nbt.read(Display.TAG_BRIGHTNESS, Brightness.CODEC).orElse(null);
 		viewRange = nbt.getFloatOr(Display.TAG_VIEW_RANGE, 1);
@@ -98,7 +98,7 @@ public class DisplayEntityData {
 	}
 
 
-	public static class Item extends DisplayEntityData {
+	public static class Item extends DisplayEntityDataContainer {
 		protected static final String ITEM = "item";
 		protected static final String ITEM_DISPLAY = "item_display";
 
@@ -135,7 +135,7 @@ public class DisplayEntityData {
 		}
 	}
 
-	public static class Block extends DisplayEntityData {
+	public static class Block extends DisplayEntityDataContainer {
 
 		private BlockState state = Blocks.AIR.defaultBlockState();
 

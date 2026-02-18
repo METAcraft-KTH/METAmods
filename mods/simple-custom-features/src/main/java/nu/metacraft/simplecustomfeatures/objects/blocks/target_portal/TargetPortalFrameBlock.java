@@ -2,8 +2,10 @@ package nu.metacraft.simplecustomfeatures.objects.blocks.target_portal;
 
 import com.google.common.base.Predicates;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -23,7 +25,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import nu.metacraft.lib.compat.IsLoaded;
 import nu.metacraft.simplecustomfeatures.Features;
 import nu.metacraft.simplecustomfeatures.compat.PortalBlockerCompat;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 public class TargetPortalFrameBlock extends EndPortalFrameBlock implements PolymerBlock {
 
@@ -73,7 +74,7 @@ public class TargetPortalFrameBlock extends EndPortalFrameBlock implements Polym
 	protected InteractionResult useItemOn(
 			ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit
 	) {
-		if (!state.getValue(HAS_EYE) && frame.activator().test(stack)) {
+		if (!state.getValue(HAS_EYE) && frame.activator().test(stack) && world instanceof ServerLevel sl) {
 			if (IsLoaded.PORTAL_BLOCKER.isLoaded() && !world.isClientSide()) {
 				var reference = frame.portalReference();
 				if (reference.isPresent()) {
@@ -101,7 +102,7 @@ public class TargetPortalFrameBlock extends EndPortalFrameBlock implements Polym
 			if (portalResult != null) {
 				var bottom = portalResult.getFrontTopLeft().offset(-3, 0, -3);
 				for (var portalPos : BlockPos.betweenClosed(bottom, new BlockPos.MutableBlockPos().set(bottom).move(2, 0, 2))) {
-					world.setBlockAndUpdate(portalPos, frame.portalBlock().getState(world.getRandom(), portalPos));
+					world.setBlockAndUpdate(portalPos, frame.portalBlock().getState(sl, world.getRandom(), portalPos));
 				}
 				world.globalLevelEvent(LevelEvent.SOUND_END_PORTAL_SPAWN, bottom.offset(1, 0, 1), 0);
 			}

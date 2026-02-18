@@ -9,16 +9,11 @@ import net.bytebuddy.description.modifier.Visibility;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.matcher.ElementMatchers;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.DataComponentPatch;
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.component.PatchedDataComponentMap;
+import net.minecraft.core.component.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
@@ -29,19 +24,19 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ToolMaterial;
 import net.minecraft.world.item.equipment.ArmorMaterial;
 import net.minecraft.world.item.equipment.ArmorType;
 import net.minecraft.world.level.block.DispenserBlock;
+import nu.metacraft.simplecustomfeatures.RegistryHelper;
+import nu.metacraft.simplecustomfeatures.mixin.ItemStackAccessor;
 import org.jetbrains.annotations.Nullable;
-import org.objectweb.asm.Type;
 import nu.metacraft.simplecustomfeatures.Features;
 import nu.metacraft.simplecustomfeatures.FeaturesConfig;
-import nu.metacraft.simplecustomfeatures.mixin.ItemAccessor;
 import nu.metacraft.simplecustomfeatures.objects.ObjectRegistry;
 import nu.metacraft.simplecustomfeatures.objects.ObjectType;
 import nu.metacraft.simplecustomfeatures.objects.items.BaseItem;
+import org.jspecify.annotations.NonNull;
 
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Constructor;
@@ -180,7 +175,7 @@ public record SimpleItem(
 	public static final MapCodec<SimpleItem> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					ITEM_SETTINGS_WITH_BASE_ITEM_CODEC.forGetter(item -> item.itemSettings),
-					ItemStack.SINGLE_ITEM_CODEC.optionalFieldOf("disguise").forGetter(item -> item.disguise),
+					ItemStack.CODEC.optionalFieldOf("disguise").forGetter(item -> item.disguise),
 					ExtraCodecs.JAVA.listOf().optionalFieldOf("args", new ArrayList<>()).forGetter(item -> item.args)
 			).apply(instance, SimpleItem::new)
 	);
@@ -191,26 +186,12 @@ public record SimpleItem(
 	}
 
 	private static DynamicType.Builder<? extends Item> createItemBuilder(Class<? extends Item> baseClass) {
-		var mappingResolver = FabricLoader.getInstance().getMappingResolver();
 		return new ByteBuddy()
 				.subclass(baseClass).implement(PolymerItem.class).implement(CustomisedItem.class)
 				.defineField(SETTINGS_FIELD_NAME, SimpleItem.class, Visibility.PRIVATE)
 				.method(
-						ElementMatchers.isDeclaredBy(Item.class).and(
-								ElementMatchers.namedOneOf(
-										Arrays.stream(ItemProxy.class.getDeclaredMethods()).map(
-												method -> mappingResolver.mapMethodName(
-														"named", method.getDeclaringClass().getCanonicalName(),
-														method.getName(), Type.getMethodDescriptor(method)
-												)
-										).toArray(String[]::new)
-								)
-						).or(
-								ElementMatchers.isDeclaredBy(PolymerItem.class).or(ElementMatchers.isDeclaredBy(
-										CustomisedItem.class
-								)).and(ElementMatchers.namedOneOf(
-										Arrays.stream(ItemProxy.class.getDeclaredMethods()).map(Method::getName).toArray(String[]::new)
-								))
+						ElementMatchers.namedOneOf(
+								Arrays.stream(ItemProxy.class.getDeclaredMethods()).map(Method::getName).toArray(String[]::new)
 						)
 				).intercept(
 						MethodDelegation.to(ItemProxy.class)
@@ -234,25 +215,46 @@ public record SimpleItem(
 		return DataResult.error(() -> paramType + " is not a supported type.");
 	}
 
+	private static DataComponentGetter wrapBuilder(DataComponentMap.Builder builder) {
+		return new DataComponentGetter() {
+			@Override
+			public @Nullable <T> T get(@NonNull DataComponentType<? extends T> type) {
+				if (builder.contains(type)) {
+					return builder.getOrCreate(type, null);
+				} else {
+					return null;
+				}
+			}
+		};
+	}
+
 	private static <T> void setComponentFromChanges(DataComponentMap.Builder builder, DataComponentType<T> c, DataComponentPatch changes) {
-		builder.set(c, changes.get(c).orElse(null));
+		builder.set(c, changes.get(wrapBuilder(builder), c));
 	}
 
 	private Item fixItem(Item item) {
-		List<DataComponentType<?>> componentsToFix = new ArrayList<>();
-		for (var c : itemSettings.components().entrySet()) {
-			if (!Objects.equals(item.components().get(c.getKey()), c.getValue().orElse(null))) {
-				componentsToFix.add(c.getKey());
-			}
-		}
-		if (!componentsToFix.isEmpty()) {
-			var builder = DataComponentMap.builder();
-			builder.addAll(item.components());
-			for (var c : componentsToFix) {
-				setComponentFromChanges(builder, c, itemSettings.components());
-			}
-			((ItemAccessor) item).setComponents(builder.build());
-		}
+		RegistryHelper.addInitializer(
+				item,
+				(components, context, key) -> {
+					List<DataComponentType<?>> componentsToFix = new ArrayList<>();
+					var cGetter = wrapBuilder(components);
+					for (var c : itemSettings.components().entrySet()) {
+						if (!Objects.equals(cGetter.get(c.getKey()), c.getValue().orElse(null))) {
+							componentsToFix.add(c.getKey());
+						}
+					}
+					if (!componentsToFix.isEmpty()) {
+						for (var c : componentsToFix) {
+							setComponentFromChanges(components, c, itemSettings.components());
+						}
+					}
+
+					var result = ItemStackAccessor.callValidateComponents(components.build());
+					if (result.isError()) {
+						Features.LOGGER.error("Error initializing item \"{}\": {}", key.identifier(), result.error().get().message());
+					}
+				}
+		);
 		return item;
 	}
 
@@ -364,11 +366,6 @@ public record SimpleItem(
 
 	@Override
 	public DataResult<Item> createObject(ResourceKey<Item> id, @Nullable HolderLookup.Provider lookup) {
-		var components = PatchedDataComponentMap.fromPatch(itemSettings.baseItem().value().components(), this.itemSettings().components());
-		var result = ItemStack.validateComponents(components);
-		if (result.isError()) {
-			return result.map(e -> Items.AIR);
-		}
 		return itemSettings.makeSettings(
 				id, disguise.map(stack -> stack.get(DataComponents.ITEM_MODEL)).orElse(null)
 		).flatMap(settings -> this.createNewItem(settings, lookup));

@@ -56,10 +56,10 @@ public class RevivalDialogs {
 						RevivalHelper.openRevivalMenu(p);
 					} else {
 						p.closeContainer();
-						p.displayClientMessage(
+						p.sendOverlayMessage(
 								Component.translatableWithFallback(
 										"dialog.metacraft.revival.not_dead","You're not dead!"
-								), true
+								)
 						);
 					}
 				})

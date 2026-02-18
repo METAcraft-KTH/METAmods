@@ -23,7 +23,7 @@ public class LevelStorageAccessMixin {
 	@Shadow @Final private String levelId;
 
 	@WrapOperation(
-		method = "<init>",
+		method = "createLock",
 		at = @At(
 				value = "INVOKE",
 				target = "Lnet/minecraft/util/DirectoryLock;create(Ljava/nio/file/Path;)Lnet/minecraft/util/DirectoryLock;"

@@ -1,10 +1,10 @@
 package nu.metacraft.core.gui;
 
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
-import eu.pb4.sgui.api.elements.GuiElementBuilderInterface;
-import eu.pb4.sgui.api.elements.GuiElementInterface;
+import eu.pb4.sgui.api.elements.GuiElementBuilderCreator;
+import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.gui.AnvilInputGui;
-import eu.pb4.sgui.api.gui.GuiInterface;
+import eu.pb4.sgui.api.gui.GuiLike;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -15,12 +15,12 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-public class SearchButton implements GuiElementInterface {
+public class SearchButton implements GuiElement {
 
 	private String searchQuery = "";
 
 	private final Supplier<ItemStack> stackSupplier;
-	private final BiFunction<ItemStack, GuiInterface, ItemStack> updater;
+	private final BiFunction<ItemStack, GuiLike, ItemStack> updater;
 	private final BiFunction<ItemStack, String, ItemStack> searchQueryAppender;
 	private final Consumer<String> onUpdate;
 
@@ -48,7 +48,7 @@ public class SearchButton implements GuiElementInterface {
 
 	public SearchButton(
 			Supplier<ItemStack> stackSupplier,
-			BiFunction<ItemStack, GuiInterface, ItemStack> updater,
+			BiFunction<ItemStack, GuiLike, ItemStack> updater,
 			BiFunction<ItemStack, String, ItemStack> searchQueryAppender,
 			Consumer<String> onUpdate
 	) {
@@ -73,7 +73,7 @@ public class SearchButton implements GuiElementInterface {
 	}
 
 	@Override
-	public ItemStack getItemStackForDisplay(GuiInterface gui) {
+	public ItemStack getItemStackForDisplay(GuiLike gui) {
 		return searchQueryAppender.apply(updater.apply(getItemStack(), gui), searchQuery).copy();
 	}
 
@@ -93,14 +93,14 @@ public class SearchButton implements GuiElementInterface {
 	public static class SearchMenu extends AnvilInputGui {
 
 		private final Consumer<String> acceptor;
-		private final GuiInterface prev;
+		private final GuiLike prev;
 
-		private final GuiElementInterface closeButton;
+		private final GuiElement closeButton;
 
 		public SearchMenu(
 				ServerPlayer player, Consumer<String> acceptor,
-				GuiElementBuilderInterface<?> closeButton,
-				GuiInterface prev
+				GuiElementBuilderCreator<?> closeButton,
+				GuiLike prev
 		) {
 			super(player, true);
 			this.acceptor = acceptor;
@@ -114,7 +114,7 @@ public class SearchButton implements GuiElementInterface {
 			setSlot(2, this.closeButton);
 		}
 
-		@Override public void onClose() {
+		@Override public void onManualClose() {
 			prev.open();
 		}
 	}

@@ -1,5 +1,5 @@
 plugins {
-    id 'net.fabricmc.fabric-loom-remap' version "$loom_version" apply false
+    id 'net.fabricmc.fabric-loom' version "$loom_version" apply false
 	id("org.jetbrains.gradle.plugin.idea-ext") version "$idea_plugin_version"
 	id 'base'
 }
@@ -25,31 +25,26 @@ subprojects {
     if (nonModSubProjects.contains(it.name)) {
         return
     }
-    apply plugin: "net.fabricmc.fabric-loom-remap"
+    apply plugin: "net.fabricmc.fabric-loom"
 
     ext.initDist = { ->
         dependencies {
-            afterEvaluate {
-                rootProject.subprojects.each {
-                    if (nonModSubProjects.contains(it.name)) {
-                        return
-                    }
-                    if (it.name == "dist") {
-                        return
-                    }
-                    implementation(project(path: "${it.path}", configuration: "namedElements"))
-                    include(it)
+            rootProject.subprojects.each {
+                if (nonModSubProjects.contains(it.name)) {
+                    return
                 }
+                if (it.name == "dist") {
+                    return
+                }
+                implementation(project(path: "${it.path}"))
+                include(it)
             }
         }
     }
 
     ext.addProjectDependency = {dep ->
         dependencies {
-            implementation project(path: dep, configuration: "namedElements")
-        }
-        compileJava {
-            dependsOn dep + ":remapSourcesJar"
+            implementation project(path: dep)
         }
         test {
             dependsOn dep + ":test"
@@ -58,20 +53,20 @@ subprojects {
 
     ext.addLeukocyteDependency = { ->
         dependencies {
-            //It is slow to update so we usually want it set to modCompileOnly.
-            modCompileOnly("maven.modrinth:leukocyte:${project.leukocyte_version}")
+            //It is slow to update so we usually want it set to compileOnly.
+            compileOnly("maven.modrinth:leukocyte:${project.leukocyte_version}")
         }
     }
 
     ext.addSGUIDependency = { ->
         dependencies {
-            modImplementation("eu.pb4:sgui:${project.sgui_version}")
+            implementation("eu.pb4:sgui:${project.sgui_version}")
         }
     }
 
     ext.addPolymerDependency = { ->
         dependencies {
-            modImplementation("eu.pb4:polymer-core:${project.polymer_version}")
+            implementation("eu.pb4:polymer-core:${project.polymer_version}")
         }
     }
 
@@ -80,16 +75,16 @@ subprojects {
         addPolymerDependency()
         addSGUIDependency()
         dependencies {
-           modImplementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+           implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
            implementation("org.apache.commons:commons-math3:${project.apache_commons_math_version}")
         }
     }
 
     ext.addVanishDependency = { ->
         dependencies {
-            modCompileOnly "maven.modrinth:vanish:${project.vanish_version}"
-            modCompileOnly "eu.pb4:player-data-api:${project.player_data_api_version}" //Dependency for Vanish.
-            modCompileOnly("eu.pb4:placeholder-api:${project.placeholder_api_version}") //Dependency for Vanish.
+            compileOnly "maven.modrinth:vanish:${project.vanish_version}"
+            compileOnly "eu.pb4:player-data-api:${project.player_data_api_version}" //Dependency for Vanish.
+            compileOnly("eu.pb4:placeholder-api:${project.placeholder_api_version}") //Dependency for Vanish.
         }
     }
 
@@ -110,7 +105,7 @@ subprojects {
 
     group = project.maven_group
 
-    def targetJavaVersion = 21
+    def targetJavaVersion = 25
     tasks.withType(JavaCompile).configureEach {
         // ensure that the encoding is set to UTF-8, no matter what the system default is
         // this fixes some edge cases with special characters not displaying correctly
@@ -159,11 +154,7 @@ subprojects {
     dependencies {
         // To change the versions see the gradle.properties file
         minecraft "com.mojang:minecraft:${project.minecraft_version}"
-		mappings loom.layered() {
-			officialMojangMappings()
-			//parchment("org.parchmentmc.data:parchment-$minecraft_version:$parchment_version@zip")
-		}
-        modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+        implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     }
 
     repositories {
@@ -217,11 +208,13 @@ subprojects {
 
     dependencies {
         // Fabric API. This is technically optional, but you probably want it anyway.
-        modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+        implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-        modImplementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
+        implementation("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}") {
+			transitive = false
+		}
 
-        modImplementation("com.github.Chocohead:Fabric-ASM:${project.fabric_asm_version}")
+        implementation("com.github.Chocohead:Fabric-ASM:${project.fabric_asm_version}")
 
         testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
 

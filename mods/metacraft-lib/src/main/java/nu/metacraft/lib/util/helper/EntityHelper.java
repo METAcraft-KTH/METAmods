@@ -11,6 +11,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.util.random.WeightedList;
 import net.minecraft.util.valueproviders.ConstantInt;
 import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.util.valueproviders.IntProviders;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.entity.AreaEffectCloud;
@@ -269,8 +270,8 @@ public class EntityHelper {
 					instance -> instance.group(
 							LootItemCondition.DIRECT_CODEC.optionalFieldOf("condition").forGetter(SpawnRules::condition),
 							METACodecs.SPAWN_REASON_CODEC.optionalFieldOf("spawn_reason", EntitySpawnReason.MOB_SUMMONED).forGetter(SpawnRules::spawnReason),
-							IntProvider.CODEC.optionalFieldOf("horizontal_range", ConstantInt.of(0)).forGetter(SpawnRules::horizontalRange),
-							IntProvider.CODEC.optionalFieldOf("vertical_range", ConstantInt.of(0)).forGetter(SpawnRules::verticalRange)
+							IntProviders.CODEC.optionalFieldOf("horizontal_range", ConstantInt.of(0)).forGetter(SpawnRules::horizontalRange),
+							IntProviders.CODEC.optionalFieldOf("vertical_range", ConstantInt.of(0)).forGetter(SpawnRules::verticalRange)
 					).apply(instance, SpawnRules::new)
 			);
 		}

@@ -1,7 +1,7 @@
 package nu.metacraft.core.gui;
 
-import eu.pb4.sgui.api.elements.GuiElementBuilderInterface;
-import eu.pb4.sgui.api.elements.GuiElementInterface;
+import eu.pb4.sgui.api.elements.GuiElementBuilderCreator;
+import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.gui.layered.Layer;
 import it.unimi.dsi.fastutil.ints.Int2IntFunction;
 import java.util.List;
@@ -16,19 +16,19 @@ public class PagedLayer extends Layer {
 	private int page = 0;
 
 	private final int prevPageIndex, nextPageIndex;
-	private final GuiElementBuilderInterface<?> prevPageButton, nextPageButton;
-	private List<GuiElementInterface> elements;
+	private final GuiElementBuilderCreator<?> prevPageButton, nextPageButton;
+	private List<GuiElement> elements;
 	private final Int2IntFunction itemPlacer;
 	private final int maxElementsPerPage;
-	private final GuiElementInterface background;
+	private final GuiElement background;
 
 	private int numPages;
 
 	public PagedLayer(
 			int height, int width, int prevPageIndex, int nextPageIndex,
-			GuiElementBuilderInterface<?> prevPageButton, GuiElementBuilderInterface<?> nextPageButton,
+			GuiElementBuilderCreator<?> prevPageButton, GuiElementBuilderCreator<?> nextPageButton,
 			Int2IntFunction itemPlacer, int maxElementsPerPage,
-			GuiElementInterface background
+			GuiElement background
 	) {
 		super(height, width);
 		this.prevPageIndex = prevPageIndex;
@@ -42,8 +42,8 @@ public class PagedLayer extends Layer {
 
 	public PagedLayer(
 			int height, int width, int prevPageIndex, int nextPageIndex,
-			GuiElementBuilderInterface<?> prevPageButton, GuiElementBuilderInterface<?> nextPageButton,
-			GuiElementInterface background
+			GuiElementBuilderCreator<?> prevPageButton, GuiElementBuilderCreator<?> nextPageButton,
+			GuiElement background
 	) {
 		this(
 				height, width, prevPageIndex, nextPageIndex, prevPageButton, nextPageButton,
@@ -53,9 +53,9 @@ public class PagedLayer extends Layer {
 
 	public PagedLayer(
 			int height, int width,
-			GuiElementBuilderInterface<?> prevPageButton,
-			GuiElementBuilderInterface<?> nextPageButton,
-			GuiElementInterface background
+			GuiElementBuilderCreator<?> prevPageButton,
+			GuiElementBuilderCreator<?> nextPageButton,
+			GuiElement background
 	) {
 		this(
 				height, width, (height-1) * width, height * width - 1,
@@ -112,14 +112,10 @@ public class PagedLayer extends Layer {
 		clearSlots();
 		if (hasAnyPageButton()) {
 			if (hasPrevButton()) {
-				setSlot(prevPageIndex, prevPageButton.setCallback((index, type, action) -> {
-					prevPage();
-				}));
+				setSlot(prevPageIndex, prevPageButton.setCallback(this::prevPage));
 			}
 			if (hasNextButton()) {
-				setSlot(nextPageIndex, nextPageButton.setCallback((index, type, action) -> {
-					nextPage();
-				}));
+				setSlot(nextPageIndex, nextPageButton.setCallback(this::nextPage));
 			}
 		}
 		int pos = getStartElementIndex(page);
@@ -138,7 +134,7 @@ public class PagedLayer extends Layer {
 		}
 	}
 
-	public void setElements(List<GuiElementInterface> elements) {
+	public void setElements(List<GuiElement> elements) {
 		this.elements = elements;
 		fixPagesCount();
 		updateButtons();

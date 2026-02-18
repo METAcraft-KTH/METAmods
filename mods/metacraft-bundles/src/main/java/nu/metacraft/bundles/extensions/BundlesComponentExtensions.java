@@ -4,10 +4,10 @@ import org.apache.commons.lang3.math.Fraction;
 
 public interface BundlesComponentExtensions {
 
-	Fraction METAcraft_Fixes$getBundleSizeFactor();
+	Fraction metacraft_bundles$getBundleSizeFactor();
 
 	interface Internal extends BundlesComponentExtensions {
-		void METAcraft_Fixes$setBundleSizeFactor(Fraction factor);
+		void metacraft_bundles$setBundleSizeFactor(Fraction factor);
 	}
 
 }

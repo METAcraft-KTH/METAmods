@@ -11,7 +11,7 @@ import nu.metacraft.core.entity_ref.*;
 
 public class EntityRefRegistry {
 
-	public static final Registry<EntityRefType<?>> REGISTRY = FabricRegistryBuilder.<EntityRefType<?>>createSimple(
+	public static final Registry<EntityRefType<?>> REGISTRY = FabricRegistryBuilder.<EntityRefType<?>>create(
 			ResourceKey.createRegistryKey(METAcraftCore.getID("entity_ref"))
 	).buildAndRegister();
 

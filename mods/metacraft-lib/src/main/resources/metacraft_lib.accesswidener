@@ -1,4 +1,4 @@
-accessWidener	v2	named
+accessWidener	v2	official
 accessible	class	net/minecraft/server/level/ChunkMap$TrackedEntity
 mutable	field	net/minecraft/world/item/trading/MerchantOffer	maxUses	I
 accessible	class	net/minecraft/server/level/ServerPlayer$RespawnPosAngle

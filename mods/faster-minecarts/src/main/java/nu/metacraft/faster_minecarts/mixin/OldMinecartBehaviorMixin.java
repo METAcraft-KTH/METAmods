@@ -30,7 +30,7 @@ public abstract class OldMinecartBehaviorMixin extends MinecartBehavior {
 		super(minecart);
 	}
 
-	@ModifyExpressionValue(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;is(Lnet/minecraft/world/level/block/Block;)Z"))
+	@ModifyExpressionValue(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;is(Ljava/lang/Object;)Z"))
 	public boolean activatorRail(
 			boolean isOfBlock, @Share("shouldUseActivatorRail") LocalBooleanRef shouldUseActivatorRail
 	) {

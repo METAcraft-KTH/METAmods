@@ -7,10 +7,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.dungeons.dungeons.DungeonData;
-import xyz.jpenilla.squaremap.common.config.ConfigManager;
-import xyz.jpenilla.squaremap.common.config.WorldConfig;
+//import xyz.jpenilla.squaremap.common.config.ConfigManager;
+//import xyz.jpenilla.squaremap.common.config.WorldConfig;
 
-@Pseudo
+//FIXME Squaremap
+/*@Pseudo
 @Mixin(ConfigManager.class)
 public class ConfigManagerMixin {
 
@@ -22,4 +23,4 @@ public class ConfigManagerMixin {
 		return config;
 	}
 
-}
+}*/

@@ -1,6 +1,7 @@
 package nu.metacraft.core.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import net.minecraft.util.RandomSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -39,6 +40,9 @@ public abstract class EntityMixin implements EntityExtensions {
 
 	@Shadow
 	public abstract Level level();
+
+	@Shadow
+	public abstract RandomSource getRandom();
 
 	@Unique
 	private ManageableServerBossBar bossBar;
@@ -99,7 +103,7 @@ public abstract class EntityMixin implements EntityExtensions {
 	public void metacraft_lib$loadBossBar(ValueInput nbt) {
 		nbt.read(ManageableServerBossBar.BOSS_BAR, ManageableServerBossBar.BossBarData.CODEC).ifPresentOrElse(data -> {
 			if (this.bossBar == null) {
-				this.bossBar = ManageableServerBossBar.create();
+				this.bossBar = ManageableServerBossBar.create(getRandom());
 				this.bossBar.deserialize(data);
 				this.bossBar.updateFromEntity((Entity) (Object) this);
 				initialiseBossBar();

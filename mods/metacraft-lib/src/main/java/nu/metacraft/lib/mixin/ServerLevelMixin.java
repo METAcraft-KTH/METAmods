@@ -14,7 +14,7 @@ import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 import net.minecraft.world.level.entity.Visibility;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
-import net.minecraft.world.level.storage.DimensionDataStorage;
+import net.minecraft.world.level.storage.SavedDataStorage;
 import net.minecraft.world.level.storage.WritableLevelData;
 import nu.metacraft.lib.extensions.ServerLevelExtensions;
 import nu.metacraft.lib.util.SavedDataTypeCache;
@@ -34,22 +34,22 @@ public abstract class ServerLevelMixin extends Level implements ServerLevelExten
 	@Shadow @Final private PersistentEntitySectionManager<Entity> entityManager;
 
 	@Shadow
-	public abstract DimensionDataStorage getDataStorage();
+	public abstract SavedDataStorage getDataStorage();
 
 	protected ServerLevelMixin(WritableLevelData properties, ResourceKey<Level> registryRef, RegistryAccess registryManager, Holder<DimensionType> dimensionEntry, boolean isClient, boolean debugWorld, long seed, int maxChainedNeighborUpdates) {
 		super(properties, registryRef, registryManager, dimensionEntry, isClient, debugWorld, seed, maxChainedNeighborUpdates);
 	}
 
 	@ModifyExpressionValue(
-		method = "method_72271", //Inside loadChunks
+		method = "lambda$waitForEntities$0",
 		at = @At(
 				value = "INVOKE",
 				target = "Lnet/minecraft/server/level/ServerLevel;areEntitiesLoaded(J)Z"
 		)
 	)
-	public boolean onLoadChunks(boolean original, @Local ChunkPos chunkPos) {
+	public boolean onLoadChunks(boolean original, @Local(name = "chunk") ChunkPos chunk) {
 		if (!original) {
-			this.entityManager.updateChunkStatus(chunkPos, Visibility.TRACKED);
+			this.entityManager.updateChunkStatus(chunk, Visibility.TRACKED);
 		}
 		return original;
 	}

@@ -7,7 +7,7 @@ import net.minecraft.resources.Identifier;
 import nu.metacraft.moderation.METAcraftModeration;
 
 public class ZoneRuleRegistry {
-	public static final Registry<ZoneRule> REGISTRY = FabricRegistryBuilder.<ZoneRule>createSimple(
+	public static final Registry<ZoneRule> REGISTRY = FabricRegistryBuilder.<ZoneRule>create(
 			ResourceKey.createRegistryKey(METAcraftModeration.getID("zone_rule"))
 	).buildAndRegister();
 

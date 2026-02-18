@@ -1,8 +1,9 @@
 package nu.metacraft.core.block.blocks;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.minecraft.server.level.ServerPlayer;
 import nu.metacraft.core.block.entities.BlockEntityWithDisguise;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +18,7 @@ import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class DisguisedBlock extends BaseEntityBlock implements PolymerBlock, BlockWithDisguise {
 
@@ -39,12 +41,12 @@ public abstract class DisguisedBlock extends BaseEntityBlock implements PolymerB
 	}
 
 	@Override
-	public void onPolymerBlockSend(BlockState blockState, BlockPos.MutableBlockPos pos, PacketContext.NotNullWithPlayer context) {
-		getBlockEntity(context.getPlayer().level(), pos).ifPresent(disguised -> disguised.updateClient(context.getPlayer()));
+	public void onPolymerBlockSend(BlockState blockState, BlockPos.MutableBlockPos pos, ServerPlayer player) {
+		getBlockEntity(player.level(), pos).ifPresent(disguised -> disguised.updateClient(player));
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
+	public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext ctx) {
 		return Blocks.BARRIER.defaultBlockState();
 	}
 

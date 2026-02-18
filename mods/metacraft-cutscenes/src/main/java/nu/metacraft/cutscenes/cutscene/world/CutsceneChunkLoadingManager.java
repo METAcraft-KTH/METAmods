@@ -20,7 +20,7 @@ import net.minecraft.world.level.chunk.LightChunkGetter;
 import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 import net.minecraft.world.level.entity.ChunkStatusUpdateListener;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
-import net.minecraft.world.level.storage.DimensionDataStorage;
+import net.minecraft.world.level.storage.SavedDataStorage;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.mixin.ChunkMapAccessor;
@@ -44,7 +44,7 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 			Executor executor, BlockableEventLoop<Runnable> mainThreadExecutor,
 			LightChunkGetter chunkProvider, ChunkGenerator chunkGenerator,
 			ChunkStatusUpdateListener chunkStatusChangeListener,
-			Supplier<DimensionDataStorage> persistentStateManagerFactory,
+			Supplier<SavedDataStorage> persistentStateManagerFactory,
 			TicketStorage ticketManager,
 			int viewDistance, boolean dsync
 	) {
@@ -154,7 +154,7 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 		}
 
 		return cachedChunkHolders.computeIfAbsent(pos, i -> new ChunkHolder(
-				new ChunkPos(pos), ChunkLevel.byStatus(FullChunkStatus.ENTITY_TICKING),
+				ChunkPos.unpack(pos), ChunkLevel.byStatus(FullChunkStatus.ENTITY_TICKING),
 				cutsceneLevel, getLightEngine(),
 				(a, b, c, d) -> {},
 				(p, b) -> cutsceneLevel.players()

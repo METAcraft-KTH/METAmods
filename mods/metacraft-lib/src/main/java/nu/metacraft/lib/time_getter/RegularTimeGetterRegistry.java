@@ -7,7 +7,7 @@ import nu.metacraft.lib.METAcraftLib;
 
 public class RegularTimeGetterRegistry {
 
-	public static final Registry<RegularTimeGetterType<?>> REGISTRY = FabricRegistryBuilder.<RegularTimeGetterType<?>>createSimple(
+	public static final Registry<RegularTimeGetterType<?>> REGISTRY = FabricRegistryBuilder.<RegularTimeGetterType<?>>create(
 			ResourceKey.createRegistryKey(METAcraftLib.getID("regular_time_getter"))
 	).buildAndRegister();
 

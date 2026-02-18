@@ -47,9 +47,10 @@ public class ExileData extends SavedData {
 		);
 	}
 
+	//FIXME Datafixer
 	private static final SavedDataTypeCache.Type<ExileData> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
-					"metacraft-moderation-exile", () -> createNew(level.getServer()),
+					METAcraftModeration.getID("exile"), () -> createNew(level.getServer()),
 					createCodec(level.getServer()), null
 			)
 	);

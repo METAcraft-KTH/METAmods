@@ -12,7 +12,6 @@ import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 
 public class MatchesSpawnReason implements LootItemCondition {
 
@@ -32,7 +31,7 @@ public class MatchesSpawnReason implements LootItemCondition {
 	}
 
 	@Override
-	public LootItemConditionType getType() {
+	public MapCodec<? extends LootItemCondition> codec() {
 		return METAcraftConditions.MATCHES_SPAWN_REASON;
 	}
 

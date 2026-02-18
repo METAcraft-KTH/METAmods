@@ -43,8 +43,9 @@ public class PauseData extends SavedData {
 			).apply(instance, PauseData::new)
 	);
 
+	//FIXME Datafixer
 	private static final SavedDataType<PauseData> TYPE = new SavedDataType<>(
-			"metacraft-pause", PauseData::createNew, CODEC, null
+			METAcraftPause.getID("pause"), PauseData::createNew, CODEC, null
 	);
 
 	private static PauseData createNew() {

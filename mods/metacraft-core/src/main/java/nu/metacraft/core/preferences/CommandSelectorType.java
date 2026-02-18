@@ -3,7 +3,7 @@ package nu.metacraft.core.preferences;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import eu.pb4.sgui.api.elements.GuiElementInterface;
+import eu.pb4.sgui.api.elements.GuiElement;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import nu.metacraft.lib.util.DisplayItemData;
 
@@ -45,7 +45,7 @@ public class CommandSelectorType implements PreferenceType<CommandSelectorType.C
 		new SubMenu(
 				menu, player,
 				submenu -> {
-					List<GuiElementInterface> buttons = new ArrayList<>();
+					List<GuiElement> buttons = new ArrayList<>();
 					var value = data.get(definition);
 					for (int i = 0; i < def.commands.size(); i++) {
 						var command = def.commands.get(i);

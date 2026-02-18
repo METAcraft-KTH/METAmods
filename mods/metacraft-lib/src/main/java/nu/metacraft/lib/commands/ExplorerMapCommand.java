@@ -186,7 +186,7 @@ public class ExplorerMapCommand {
 					item.setTarget(player.getUUID());
 				}
 			}
-			player.displayClientMessage(Component.literal("If the map is empty, drop it on the ground and pick it up again."), true);
+			player.sendSystemMessage(Component.literal("If the map is empty, drop it on the ground and pick it up again."), true);
 		});
 
 		return 1;

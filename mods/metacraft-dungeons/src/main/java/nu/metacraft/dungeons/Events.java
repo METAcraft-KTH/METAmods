@@ -9,7 +9,7 @@ import nu.metacraft.dungeons.util.ChunkHelper;
 public class Events {
 
 	public static void init() {
-		ServerTickEvents.END_WORLD_TICK.register(world -> {
+		ServerTickEvents.END_LEVEL_TICK.register(world -> {
 			DungeonData.getIfPresent(world).ifPresent(DungeonData::tick);
 		});
 		ServerBlockEntityEvents.BLOCK_ENTITY_LOAD.register((blockEntity, world) -> {

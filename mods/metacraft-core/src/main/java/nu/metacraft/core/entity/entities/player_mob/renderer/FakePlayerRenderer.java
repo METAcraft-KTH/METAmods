@@ -3,6 +3,7 @@ package nu.metacraft.core.entity.entities.player_mob.renderer;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.PropertyMap;
 import net.fabricmc.fabric.api.entity.FakePlayer;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
@@ -21,7 +22,6 @@ import nu.metacraft.core.mixin.PlayerAccessor;
 import nu.metacraft.core.util.SynchedDataHelper;
 import nu.metacraft.lib.mixin.ChunkMapAccessor;
 import org.jetbrains.annotations.Nullable;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.ArrayList;
 import java.util.List;

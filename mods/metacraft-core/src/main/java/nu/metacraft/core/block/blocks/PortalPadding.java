@@ -1,8 +1,10 @@
 package nu.metacraft.core.block.blocks;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -19,7 +21,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.block.entities.PortalEntity;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
-import xyz.nucleoid.packettweaker.PacketContext;
+import org.jetbrains.annotations.Nullable;
 
 public class PortalPadding extends Block implements PolymerBlock {
 
@@ -46,28 +48,28 @@ public class PortalPadding extends Block implements PolymerBlock {
 		return super.useItemOn(stack, state, world, pos, player, hand, hit);
 	}
 
-	public static void sendDummyEndGateway(BlockPos pos, PacketContext.NotNullWithPlayer ctx) {
-		var lookup = ctx.getRegistryWrapperLookup();
+	public static void sendDummyEndGateway(BlockPos pos, ServerPlayer player) {
+		var lookup = player.registryAccess();
 		if (lookup != null) {
 			var tile = new TheEndGatewayBlockEntity(pos, Blocks.END_GATEWAY.defaultBlockState());
-			var nbt = tile.getUpdateTag(ctx.getPlayer().registryAccess());
+			var nbt = tile.getUpdateTag(player.registryAccess());
 			nbt.putLong("Age", 300);
 			try (var logging = LoggingErrorReporter.create(() -> "metacraft:PortalPadding#sendDummyEndGateway", METAcraftCore.LOGGER)) {
 				var readView = TagValueInput.create(logging, lookup, nbt);
 				tile.loadWithComponents(readView);
 			}
-			tile.setLevel(ctx.getPlayer().level());
-			ctx.getPlayer().connection.send(ClientboundBlockEntityDataPacket.create(tile));
+			tile.setLevel(player.level());
+			player.connection.send(ClientboundBlockEntityDataPacket.create(tile));
 		}
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
+	public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext ctx) {
 		return Blocks.END_GATEWAY.defaultBlockState();
 	}
 
 	@Override
-	public void onPolymerBlockSend(BlockState blockState, BlockPos.MutableBlockPos pos, PacketContext.NotNullWithPlayer ctx) {
-		sendDummyEndGateway(pos, ctx);
+	public void onPolymerBlockSend(BlockState blockState, BlockPos.MutableBlockPos pos, ServerPlayer player) {
+		sendDummyEndGateway(pos, player);
 	}
 }

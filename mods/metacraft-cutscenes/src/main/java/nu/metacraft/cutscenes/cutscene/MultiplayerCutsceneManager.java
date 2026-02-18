@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.lib.util.SavedDataTypeCache;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.HashTreePMap;
@@ -29,9 +30,10 @@ public class MultiplayerCutsceneManager extends SavedData {
 	private static final Codec<Map<UUID, String>> PLAYER_TO_CUTSCENE = Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.STRING);
 	private static final Codec<Map<UUID, CutsceneInstance>> OFFLINE_PLAYERS = Codec.unboundedMap(UUIDUtil.STRING_CODEC, CutsceneInstance.CODEC);
 
+	//FIXME Datafixer!
 	private static final SavedDataTypeCache.Type<@NotNull MultiplayerCutsceneManager> TYPE = new SavedDataTypeCache.Type<>(
 			l -> new SavedDataType<>(
-					"multiplayer-cutscene-manager",
+					Cutscenes.getID("multiplayer-cutscene-manager"),
 					() -> new MultiplayerCutsceneManager(l.getServer()),
 					createCodec(l.getServer()),
 					CutsceneDataFixer.Types.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER

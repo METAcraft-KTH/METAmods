@@ -43,7 +43,7 @@ public class GhastMixin {
 	}
 
 	@ModifyExpressionValue(
-			method = "method_18450",
+			method = "lambda$registerGoals$0",
 			at = @At(
 				value = "CONSTANT",
 				args = "doubleValue=4.0"

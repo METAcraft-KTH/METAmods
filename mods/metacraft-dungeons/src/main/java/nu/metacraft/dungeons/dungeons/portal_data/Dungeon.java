@@ -381,7 +381,7 @@ public record Dungeon(
 			StructureTemplateManager structureTemplateManager,
 			StructureManager structureAccessor
 	) {
-		var thisPos = new ChunkPos(portal.getBlockPos());
+		var thisPos = ChunkPos.containing(portal.getBlockPos());
 		((ServerLevel) portal.getLevel()).getChunkSource().addTicketWithRadius(DungeonTickets.DUNGEON_ENTRANCE, thisPos, 0);
 		return CompletableFuture.supplyAsync(
 				() -> {
@@ -393,8 +393,8 @@ public record Dungeon(
 					var box = structurePiecesCollector.getBoundingBox();
 					var minPos = new ChunkPos(SectionPos.blockToSectionCoord(box.minX()), SectionPos.blockToSectionCoord(box.minZ()));
 					var maxPos = new ChunkPos(SectionPos.blockToSectionCoord(box.maxX()), SectionPos.blockToSectionCoord(box.maxZ()));
-					var averagePos = new ChunkPos((minPos.x + maxPos.x) / 2, (minPos.z + maxPos.z) / 2);
-					int radius = Mth.ceil(Math.max(maxPos.x - minPos.x, maxPos.z - minPos.z)/2.0)+1;
+					var averagePos = new ChunkPos((minPos.x() + maxPos.x()) / 2, (minPos.z() + maxPos.z()) / 2);
+					int radius = Mth.ceil(Math.max(maxPos.x() - minPos.x(), maxPos.z() - minPos.z())/2.0)+1;
 
 					var randomSeed = context.random().nextLong();
 
@@ -513,7 +513,7 @@ public record Dungeon(
 							if (d.currentDungeon.isPresent()) {
 								var playersToNotify = d.playersToNotify;
 								for (var player : playersToNotify) {
-									player.displayClientMessage(Component.literal("The room you wanted to enter is now ready!"), true);
+									player.sendOverlayMessage(Component.literal("The room you wanted to enter is now ready!"));
 									playNotifySound(player, SoundEvents.NOTE_BLOCK_CHIME, SoundSource.BLOCKS, 10, 0.5f);
 									TaskScheduler.scheduleThrowaway(portal.getLevel().getServer(), () -> {
 										playNotifySound(player, SoundEvents.NOTE_BLOCK_CHIME, SoundSource.BLOCKS, 10, 0.75f);
@@ -587,7 +587,7 @@ public record Dungeon(
 			StructureManager structureAccessor = dungeons.structureManager();
 			Structure.GenerationContext context = new Structure.GenerationContext(
 					dungeons.registryAccess(), chunkGenerator, chunkGenerator.getBiomeSource(), dungeons.getChunkSource().randomState(), structureTemplateManager, dungeons.getRandom().nextLong(),
-					new ChunkPos(pos), dungeons, biome -> true
+					ChunkPos.containing(pos), dungeons, biome -> true
 			);
 			var result = JigsawPlacement.addPieces(
 					context, structurePool, Optional.empty(), maxSize, pos, false,

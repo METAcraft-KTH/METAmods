@@ -3,7 +3,7 @@ package nu.metacraft.dungeons.util;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLevelEvents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -22,7 +22,7 @@ public class ChunkHelper {
 	private static final Map<ServerLevel, Long2ObjectMap<Consumer<Optional<ChunkAccess>>>> whenChunkCompleteMap = new HashMap<>();
 
 	public static void whenChunkReady(ServerLevel world, ChunkPos pos, ChunkStatus status, Consumer<Optional<ChunkAccess>> chunkAction) {
-		var c = world.getChunk(pos.x, pos.z, status, false);
+		var c = world.getChunk(pos.x(), pos.z(), status, false);
 		if (c != null) {
 			chunkAction.accept(Optional.of(c));
 			return;
@@ -30,7 +30,7 @@ public class ChunkHelper {
 
 		lock.lock();
 		var worldMap = whenChunkCompleteMap.computeIfAbsent(world, w -> new Long2ObjectOpenHashMap<>());
-		long key = pos.toLong();
+		long key = pos.pack();
 		if (worldMap.containsKey(key)) {
 			worldMap.put(key, worldMap.get(key).andThen(chunkAction));
 		} else {
@@ -42,17 +42,17 @@ public class ChunkHelper {
 	public static void init() {
 		if (init) return;
 		init = true;
-		ServerChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
+		ServerChunkEvents.CHUNK_LOAD.register((world, chunk, generated) -> {
 			lock.lock();
 			if (whenChunkCompleteMap.containsKey(world)) {
 				var worldMap = whenChunkCompleteMap.get(world);
-				if (worldMap.containsKey(chunk.getPos().toLong())) {
-					worldMap.remove(chunk.getPos().toLong()).accept(Optional.of(chunk));
+				if (worldMap.containsKey(chunk.getPos().pack())) {
+					worldMap.remove(chunk.getPos().pack()).accept(Optional.of(chunk));
 				}
 			}
 			lock.unlock();
 		});
-		ServerWorldEvents.UNLOAD.register((server, world) -> {
+		ServerLevelEvents.UNLOAD.register((server, world) -> {
 			lock.lock();
 			var chunks = whenChunkCompleteMap.remove(world);
 			lock.unlock();

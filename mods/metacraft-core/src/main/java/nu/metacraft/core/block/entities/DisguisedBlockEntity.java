@@ -34,9 +34,9 @@ public class DisguisedBlockEntity extends BlockEntity implements BlockEntityWith
 			this.state = state;
 			setChanged();
 			if (level instanceof ServerLevel sw) {
-				var cPos = new ChunkPos(worldPosition);
+				var cPos = ChunkPos.containing(worldPosition);
 				var holder = ((ServerChunkCacheAccessor) sw.getChunkSource()).callGetVisibleChunkIfPresent(
-						cPos.toLong()
+						cPos.pack()
 				);
 				var players = ((ChunkHolderAccessor) holder).getPlayerProvider().getPlayers(
 						cPos, false

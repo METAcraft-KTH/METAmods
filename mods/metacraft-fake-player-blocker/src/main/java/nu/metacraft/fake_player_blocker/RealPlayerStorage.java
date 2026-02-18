@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.lib.METAcraftLib;
 
 import java.util.*;
 
@@ -18,8 +19,9 @@ public class RealPlayerStorage extends SavedData {
 			).apply(instance, RealPlayerStorage::new)
 	);
 
+	//FIXME Datafixer!!!!
 	private static final SavedDataType<RealPlayerStorage> TYPE = new SavedDataType<>(
-			"metacraft-real-player-storage",
+			METAcraftLib.getID("real-player-storage"),
 			RealPlayerStorage::new, RealPlayerStorage.CODEC,
 			null
 	);

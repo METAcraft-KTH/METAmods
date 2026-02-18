@@ -1,5 +1,6 @@
 package nu.metacraft.portable_jukebox.mixin;
 
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,7 +27,7 @@ public abstract class ItemFrameMixin {
 		)
 	)
 	public void interact(
-			Player player, InteractionHand hand, CallbackInfoReturnable<InteractionResult> cir
+			Player player, InteractionHand hand, Vec3 location, CallbackInfoReturnable<InteractionResult> cir
 	) {
 		PortableJukeboxEntity.transfer(
 				EntityRef.fromEntity(player),

@@ -21,7 +21,6 @@
 		"LivingEntityMixin",
 		"PlayerEnderChestContainerAccessor",
 		"ServerEntityMixin",
-		"SimpleContainerAccessor",
 		"SkullBlockAccessor",
 		"SlotMixin",
 		"V3818_3Mixin",

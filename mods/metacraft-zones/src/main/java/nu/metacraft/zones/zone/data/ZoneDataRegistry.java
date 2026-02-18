@@ -14,7 +14,7 @@ import java.util.Optional;
 
 public class ZoneDataRegistry {
 
-	public static final Registry<ZoneDataType<?>> REGISTRY = FabricRegistryBuilder.<ZoneDataType<?>>createSimple(
+	public static final Registry<ZoneDataType<?>> REGISTRY = FabricRegistryBuilder.<ZoneDataType<?>>create(
 			ResourceKey.createRegistryKey(METAcraftZones.getID("data_types"))
 	).buildAndRegister();
 

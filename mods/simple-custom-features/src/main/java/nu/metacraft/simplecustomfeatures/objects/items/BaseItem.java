@@ -4,24 +4,21 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Holder;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.DataComponentPatch;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.component.PatchedDataComponentMap;
-import net.minecraft.core.component.TypedDataComponent;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.*;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.DependantName;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import nu.metacraft.simplecustomfeatures.RegistryHelper;
 import nu.metacraft.simplecustomfeatures.extension.ItemPropertiesExtension;
 import nu.metacraft.simplecustomfeatures.mixin.ItemPropertiesAccessor;
+import nu.metacraft.simplecustomfeatures.mixin.ItemStackAccessor;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 
 import java.util.Optional;
+import java.util.function.Function;
 
 public interface BaseItem extends BaseObject<Item> {
 
@@ -45,24 +42,27 @@ public interface BaseItem extends BaseObject<Item> {
 	);
 
 	record ItemSettings(DataComponentMap components, Optional<Holder<Item>> recipeRemainder) {
-		public DataResult<Item.Properties> makeSettings(ResourceKey<Item> key, Identifier displayModel) {
-			return ItemStack.validateComponents(components).map(
+
+		public static void addInitializer(Item.Properties properties, DataComponentInitializers.Initializer<Item> extraInitializer) {
+			((ItemPropertiesAccessor) properties).setComponentInitializer(
+					((ItemPropertiesAccessor) properties).getComponentInitializer().andThen(extraInitializer)
+			);
+		}
+
+		public DataResult<Item.Properties> makeSettings(ResourceKey<Item> key, Function<HolderLookup.Provider, Identifier> displayModel) {
+			return ItemStackAccessor.callValidateComponents(components).map(
 					success -> {
 						var settings = new Item.Properties();
 						recipeRemainder.ifPresent(remainder -> settings.craftRemainder(remainder.value()));
-						components.forEach(component -> addComponent(settings, component));
-						var model = components.get(DataComponents.ITEM_MODEL);
-						if (model == null && displayModel != null) {
-							model = displayModel;
-						}
-						if (model != null) {
-							((ItemPropertiesAccessor) settings).setModel(DependantName.fixed(model));
-						}
-						var name = components.get(DataComponents.ITEM_NAME);
-						if (name != null) {
-							((ItemPropertiesExtension) settings).simple_custom_features$setCustomName(name);
-						}
-						return settings.setId(key);
+						addInitializer(settings, (comp, context, k) -> {
+							components.forEach(component -> addComponent(comp, component));
+							if (displayModel != null) {
+								comp.set(DataComponents.ITEM_MODEL, displayModel.apply(context));
+							}
+						});
+						((ItemPropertiesExtension) settings).simple_custom_features$setIsCustom(true);
+						settings.setId(key);
+						return settings;
 					}
 			);
 		}
@@ -73,36 +73,43 @@ public interface BaseItem extends BaseObject<Item> {
 	}
 
 	record ItemSettingsWithBaseItem(Holder<Item> baseItem, DataComponentPatch components, Optional<Holder<Item>> recipeRemainder) {
+
 		public DataResult<Item.Properties> makeSettings(ResourceKey<Item> key, Identifier displayModel) {
-			var defaultComponents = DataComponentMap.builder();
-			for (var c : baseItem.value().components()) {
-				if (c.type() == DataComponents.ITEM_MODEL || c.type() == DataComponents.ITEM_NAME) {
-					continue;
+			var settings = new Item.Properties();
+			recipeRemainder.ifPresent(remainder -> settings.craftRemainder(remainder.value()));
+
+			ItemSettings.addInitializer(settings, (comp, context, k) -> {
+				var defaultComponents = DataComponentMap.builder();
+				var baseItemComponents = RegistryHelper.getComponentsFor(baseItem.unwrapKey().orElseThrow(), baseItem.value(), context);
+				for (var c : baseItemComponents) {
+					if (c.type() == DataComponents.ITEM_NAME) continue;
+					addComponent(defaultComponents, c);
 				}
-				addComponent(defaultComponents, c);
-			}
-			return new ItemSettings(
-					PatchedDataComponentMap.fromPatch(defaultComponents.build(), components), recipeRemainder
-			).makeSettings(key, displayModel == null ? getModel(baseItem) : displayModel);
+				var allComponents = PatchedDataComponentMap.fromPatch(defaultComponents.build(), components);
+				for (var c : allComponents) {
+					addComponent(comp, c);
+				}
+				if (displayModel != null) {
+					comp.set(DataComponents.ITEM_MODEL, displayModel);
+				}
+			});
+			((ItemPropertiesExtension) settings).simple_custom_features$setIsCustom(true);
+			settings.setId(key);
+
+			return DataResult.success(settings);
 		}
-	}
-
-	static Identifier getModel(Item item) {
-		return item.components().get(DataComponents.ITEM_MODEL);
-	}
-
-	static Identifier getModel(Holder<Item> item) {
-		return getModel(item.value());
 	}
 
 	@Override
 	default void onRegistrationFail(Identifier id, Item value) {
 		RegistryHelper.removeIntrusiveEntry(BuiltInRegistries.ITEM, value);
+		RegistryHelper.removeComponentInitializer(value);
 	}
 
 	@Override
 	default void onUnregister(Holder<Item> entry) {
 		Item.BY_BLOCK.values().remove(entry.value());
+		RegistryHelper.removeComponentInitializer(entry.value());
 	}
 
 	@Override

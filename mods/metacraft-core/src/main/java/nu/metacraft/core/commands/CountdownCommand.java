@@ -33,7 +33,7 @@ public class CountdownCommand {
 	private static final DynamicCommandExceptionType INVALID_DATE
 		= new DynamicCommandExceptionType(dateString -> new LiteralMessage("The specified date '"+ dateString +"' is invalid, please use the format " + Countdown.DATE_FORMAT.toPattern()));
 	private static final SimpleCommandExceptionType NO_ITEM_DISPLAY
-		= new SimpleCommandExceptionType(new LiteralMessage("Please stand next to at least one text display with the tag \"countdown\"."));
+		= new SimpleCommandExceptionType(new LiteralMessage("Please stand next to at least one text displayItems with the tag \"countdown\"."));
 	private static final SimpleCommandExceptionType NO_COUNTDOWN
 		= new SimpleCommandExceptionType(new LiteralMessage("There is no countdown right now"));
 
@@ -63,7 +63,7 @@ public class CountdownCommand {
 									List<UUID> entityUuids = source.getLevel().getEntitiesOfClass(Display.TextDisplay.class, AABB.encapsulatingFullBlocks(
 											center.south(20).east(20).below(20),
 											center.north(20).west(20).above(20)
-										), entity -> entity.getTags().contains("countdown"))
+										), entity -> entity.entityTags().contains("countdown"))
 										.stream()
 										.map(Entity::getUUID)
 										.toList();
@@ -214,7 +214,7 @@ public class CountdownCommand {
 							List<UUID> entityUuids = context.getSource().getLevel().getEntitiesOfClass(Display.TextDisplay.class, AABB.encapsulatingFullBlocks(
 									center.south(20).east(20).below(20),
 									center.north(20).west(20).above(20)
-								), entity -> entity.getTags().contains("countdown"))
+								), entity -> entity.entityTags().contains("countdown"))
 								.stream()
 								.map(Entity::getUUID)
 								.toList();
@@ -222,7 +222,7 @@ public class CountdownCommand {
 							if (entityUuids.isEmpty()) throw NO_ITEM_DISPLAY.create();
 
 							countdown.updateEntityUuids(entityUuids);
-							context.getSource().sendSystemMessage(Component.literal("Updated countdown display entities, now using " + entityUuids.size() + " entities."));
+							context.getSource().sendSystemMessage(Component.literal("Updated countdown displayItems entities, now using " + entityUuids.size() + " entities."));
 							return 1;
 						})
 				)

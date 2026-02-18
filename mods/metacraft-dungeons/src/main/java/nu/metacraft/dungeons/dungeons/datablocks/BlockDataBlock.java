@@ -35,6 +35,6 @@ public class BlockDataBlock extends DataBlock {
 
 	@Override
 	public void processDataBlock(BlockPos pos, StructurePiece piece) {
-		parameters.dungeons.setBlockAndUpdate(pos, block.getState(parameters.dungeons.getRandom(), pos));
+		parameters.dungeons.setBlockAndUpdate(pos, block.getState(parameters.dungeons, parameters.dungeons.getRandom(), pos));
 	}
 }

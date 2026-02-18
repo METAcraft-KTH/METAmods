@@ -78,9 +78,9 @@ public abstract class AbstractMinecartMixin extends VehicleEntity implements Min
 	@Unique
 	private void updateTag() {
 		if (FasterMinecartsHelper.hasSuperSpeed((AbstractMinecart) (Object) this)) {
-			getTags().add(MINECART_TAG);
+			entityTags().add(MINECART_TAG);
 		} else {
-			getTags().remove(MINECART_TAG);
+			entityTags().remove(MINECART_TAG);
 		}
 	}
 

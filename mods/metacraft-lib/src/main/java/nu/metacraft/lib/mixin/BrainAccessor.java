@@ -1,5 +1,9 @@
 package nu.metacraft.lib.mixin;
 
+import com.mojang.datafixers.util.Pair;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.memory.MemorySlot;
+import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -13,5 +17,11 @@ import net.minecraft.world.entity.schedule.Activity;
 public interface BrainAccessor {
 	@Accessor
 	Map<Integer, Map<Activity, Set<BehaviorControl<?>>>> getAvailableBehaviorsByPriority();
+
+	@Accessor
+	Map<Activity, Set<Pair<MemoryModuleType<?>, MemoryStatus>>> getActivityRequirements();
+
+	@Accessor
+	Map<MemoryModuleType<?>, MemorySlot<?>> getMemories();
 
 }

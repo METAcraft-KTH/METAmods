@@ -1,9 +1,11 @@
 package nu.metacraft.simplecustomfeatures.objects.blocks.target_portal;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.InsideBlockEffectApplier;
 import net.minecraft.world.level.Level;
@@ -17,7 +19,6 @@ import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.Shapes;
 import nu.metacraft.lib.util.helper.TamedHelper;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 
@@ -83,9 +84,9 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 	}
 
 	@Override
-	public void onPolymerBlockSend(BlockState blockState, BlockPos.MutableBlockPos pos, PacketContext.NotNullWithPlayer ctx) {
+	public void onPolymerBlockSend(BlockState blockState, BlockPos.MutableBlockPos pos, ServerPlayer player) {
 		var blockEntity = new TheEndPortalBlockEntity(pos, Blocks.END_PORTAL.defaultBlockState());
-		blockEntity.setLevel(ctx.getPlayer().level());
-		ctx.getPlayer().connection.send(ClientboundBlockEntityDataPacket.create(blockEntity));
+		blockEntity.setLevel(player.level());
+		player.connection.send(ClientboundBlockEntityDataPacket.create(blockEntity));
 	}
 }

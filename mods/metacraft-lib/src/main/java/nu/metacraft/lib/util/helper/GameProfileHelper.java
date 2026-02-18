@@ -39,7 +39,7 @@ public class GameProfileHelper {
 	 * Returns the name for the given player, taking their custom name into account.
 	 * @param profile The game profile of the player.
 	 * @param server The server in question.
-	 * @return The name to display.
+	 * @return The name to displayItems.
 	 */
 	public static String getNameFromProfile(GameProfile profile, MinecraftServer server) {
 		return METAcraftData.getInstance(server).getName(profile);
@@ -67,7 +67,7 @@ public class GameProfileHelper {
 
 		/**
 		 * Set the name. Note that this will override the item name component.
-		 * @param name The name to display before 's Head as the item name.
+		 * @param name The name to displayItems before 's Head as the item name.
 		 * @return The builder.
 		 */
 		public StaticProfileComponentBuilder withName(String name) {

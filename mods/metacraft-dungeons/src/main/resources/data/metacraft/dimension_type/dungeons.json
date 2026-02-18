@@ -55,5 +55,6 @@
 		"min_inclusive": 0
 	},
 	"skybox": "none",
-	"timelines": "#minecraft:universal"
+	"timelines": "#minecraft:universal",
+	"has_ender_dragon_fight": false
 }

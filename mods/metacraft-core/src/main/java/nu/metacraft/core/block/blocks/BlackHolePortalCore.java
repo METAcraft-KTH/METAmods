@@ -1,6 +1,7 @@
 package nu.metacraft.core.block.blocks;
 
 import com.mojang.serialization.MapCodec;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -12,7 +13,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.block.METAcraftBlockEntities;
 import nu.metacraft.core.block.entities.BlackHolePortalEntity;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 public class BlackHolePortalCore extends PortalCore {
 
@@ -34,7 +34,7 @@ public class BlackHolePortalCore extends PortalCore {
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
+	public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext ctx) {
 		return Blocks.END_GATEWAY.defaultBlockState();
 	}
 

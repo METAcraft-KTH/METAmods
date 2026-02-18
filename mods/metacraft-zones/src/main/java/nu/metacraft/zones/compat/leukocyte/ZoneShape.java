@@ -13,7 +13,8 @@ import xyz.nucleoid.leukocyte.shape.ProtectionShape;
 import xyz.nucleoid.stimuli.EventSource;
 import xyz.nucleoid.stimuli.filter.EventFilter;
 
-public class ZoneShape implements ProtectionShape {
+//FIXME Leukocyte!
+/*public class ZoneShape implements ProtectionShape {
 
 	protected String name;
 	public static final MapCodec<ZoneShape> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -63,12 +64,12 @@ public class ZoneShape implements ProtectionShape {
 	}
 
 	@Override
-	public MutableComponent display() {
+	public MutableComponent displayItems() {
 		return Component.literal("Zone: " + name);
 	}
 
 	@Override
 	public MutableComponent displayShort() {
-		return display();
+		return displayItems();
 	}
-}
+}*/

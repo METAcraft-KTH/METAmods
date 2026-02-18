@@ -10,6 +10,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.valueproviders.ConstantFloat;
 import net.minecraft.util.valueproviders.FloatProvider;
+import net.minecraft.util.valueproviders.FloatProviders;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.level.storage.loot.IntRange;
@@ -50,7 +51,7 @@ public record RevivalConfig(
 	) {
 		public static final Codec<ReviveEffects> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						FloatProvider.CODEC.fieldOf("health").forGetter(ReviveEffects::health),
+						FloatProviders.CODEC.fieldOf("health").forGetter(ReviveEffects::health),
 						IntRange.CODEC.fieldOf("air").forGetter(ReviveEffects::air),
 						IntRange.CODEC.fieldOf("hunger").forGetter(ReviveEffects::hunger),
 						MinMaxBounds.Doubles.CODEC.fieldOf("saturation").forGetter(ReviveEffects::saturation),

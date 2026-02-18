@@ -1,6 +1,7 @@
 package nu.metacraft.lib.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import net.minecraft.world.item.ItemInstance;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,23 +19,23 @@ import net.minecraft.world.item.crafting.ShapedRecipe;
 public abstract class ShapedRecipeMixin implements RecipeComponentCarryoverExtension, RecipeRemainderExtension {
 
 	@Unique
-	private Predicate<ItemStack> checker;
+	private Predicate<ItemInstance> checker;
 
 	@Unique
 	private UnaryOperator<ItemStack> remainderFunction;
 
 	@Override
-	public void metacraft_lib$setComponentCarryOver(Predicate<ItemStack> checker) {
+	public void metacraft_lib$setComponentCarryOver(Predicate<ItemInstance> checker) {
 		this.checker = checker;
 	}
 
 	@Override
-	public Predicate<ItemStack> metacraft_lib$getComponentCarryOver() {
+	public Predicate<ItemInstance> metacraft_lib$getComponentCarryOver() {
 		return checker;
 	}
 
 	@ModifyReturnValue(
-			method = "assemble(Lnet/minecraft/world/item/crafting/CraftingInput;Lnet/minecraft/core/HolderLookup$Provider;)Lnet/minecraft/world/item/ItemStack;",
+			method = "assemble(Lnet/minecraft/world/item/crafting/CraftingInput;)Lnet/minecraft/world/item/ItemStack;",
 			at = @At("RETURN")
 	)
 	public ItemStack onCraft(ItemStack original, CraftingInput recipeInputInventory) {

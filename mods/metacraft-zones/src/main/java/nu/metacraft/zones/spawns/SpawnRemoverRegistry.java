@@ -16,7 +16,7 @@ import nu.metacraft.zones.METAcraftZones;
 
 public class SpawnRemoverRegistry {
 
-	public static final Registry<MapCodec<? extends SpawnRemover>> REGISTRY = FabricRegistryBuilder.<MapCodec<? extends SpawnRemover>>createSimple(
+	public static final Registry<MapCodec<? extends SpawnRemover>> REGISTRY = FabricRegistryBuilder.<MapCodec<? extends SpawnRemover>>create(
 			ResourceKey.createRegistryKey(METAcraftZones.getID("spawn_remover"))
 	).buildAndRegister();
 

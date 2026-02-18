@@ -20,7 +20,7 @@ import nu.metacraft.simplecustomfeatures.objects.ObjectType;
 public class ToolMaterialRegistry {
 
 	public static final ResourceKey<Registry<ToolMaterial>> KEY = ResourceKey.createRegistryKey(Features.getID("tool_material"));
-	public static final Registry<ToolMaterial> REGISTRY = FabricRegistryBuilder.createSimple(KEY).buildAndRegister();
+	public static final Registry<ToolMaterial> REGISTRY = FabricRegistryBuilder.create(KEY).buildAndRegister();
 
 	private static final Codec<ToolMaterial> INLINE_CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(

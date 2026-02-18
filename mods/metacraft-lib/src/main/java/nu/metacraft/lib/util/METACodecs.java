@@ -87,7 +87,7 @@ public class METACodecs {
 
 	public static final Codec<ChunkPos> CHUNK_POS_CODEC = Codec.INT_STREAM.comapFlatMap(
 			stream -> Util.fixedSize(stream, 2).map(values -> new ChunkPos(values[0], values[1])),
-			pos -> IntStream.of(pos.x, pos.z)
+			pos -> IntStream.of(pos.x(), pos.z())
 	).stable();
 
 	public static final Codec<EntitySpawnReason> SPAWN_REASON_CODEC = enumCodec(EntitySpawnReason.class, true);

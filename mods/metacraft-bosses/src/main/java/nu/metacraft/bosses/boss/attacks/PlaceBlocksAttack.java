@@ -44,7 +44,7 @@ public class PlaceBlocksAttack extends InstantAttack {
 			);
 		}
 		positions.forEach(pos -> {
-			ctx.getWorld().setBlockAndUpdate(pos, blocks.getState(ctx.random(), pos));
+			ctx.getWorld().setBlockAndUpdate(pos, blocks.getState(ctx.getWorld(), ctx.random(), pos));
 		});
 	}
 

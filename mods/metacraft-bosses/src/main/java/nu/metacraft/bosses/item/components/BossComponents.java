@@ -2,6 +2,7 @@ package nu.metacraft.bosses.item.components;
 
 import com.mojang.serialization.Codec;
 import eu.pb4.polymer.core.api.other.PolymerComponent;
+import net.minecraft.util.valueproviders.IntProviders;
 import nu.metacraft.lib.util.helper.EntityHelper;
 import nu.metacraft.bosses.METAcraftBosses;
 import nu.metacraft.bosses.util.DoubleTeamHandler;
@@ -24,7 +25,7 @@ public class BossComponents {
 	);
 
 	public static final DataComponentType<IntProvider> TRY_COUNT = register(
-			"try_count", builder -> builder.persistent(IntProvider.NON_NEGATIVE_CODEC)
+			"try_count", builder -> builder.persistent(IntProviders.NON_NEGATIVE_CODEC)
 	);
 
 	public static final DataComponentType<DoubleTeamHandler.Settings> DOUBLE_TEAM_SETTINGS = register(

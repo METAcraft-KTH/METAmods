@@ -13,7 +13,7 @@ public class Components {
 
 	//Careful, this is used by a datafixer!
 	public static final DataComponentType<ItemStack> PORTABLE_JUKEBOX = register(
-			"portable_jukebox", component -> component.persistent(ItemStack.SINGLE_ITEM_CODEC)
+			"portable_jukebox", component -> component.persistent(ItemStack.CODEC)
 	);
 
 	public static final DataComponentType<PortableJukeboxEntityEntry> PORTABLE_JUKEBOX_ENTITY = register(

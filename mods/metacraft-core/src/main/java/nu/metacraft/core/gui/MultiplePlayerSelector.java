@@ -1,9 +1,9 @@
 package nu.metacraft.core.gui;
 
 import com.mojang.authlib.GameProfile;
-import eu.pb4.sgui.api.GuiHelpers;
+import eu.pb4.sgui.api.SguiUtils;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
-import eu.pb4.sgui.api.elements.GuiElementInterface;
+import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
 import it.unimi.dsi.fastutil.objects.ReferenceSortedSets;
 import net.minecraft.core.component.DataComponentPatch;
@@ -28,7 +28,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 
 	private SearchButton button;
 
-	protected GuiElementInterface background = GuiElementBuilder.from(
+	protected GuiElement background = GuiElementBuilder.from(
 			new ItemStack(
 					Items.ORANGE_STAINED_GLASS_PANE.builtInRegistryHolder(), 1,
 					DataComponentPatch.builder().set(
@@ -66,7 +66,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 
 		setupBackground();
 
-		int width = GuiHelpers.getWidth(getType())/2;
+		int width = SguiUtils.getWidth(getType())/2;
 
 		selectedSide = new PagedLayer(
 				playerViewHeight(), width,
@@ -105,7 +105,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	}
 
 	protected int playerViewHeight() {
-		return Math.max(GuiHelpers.getHeight(getType())-1, 1);
+		return Math.max(SguiUtils.getHeight(getType())-1, 1);
 	}
 
 	protected int playerViewHeightOffset() {
@@ -116,7 +116,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 
 	protected abstract void onDeselected(GameProfile player);
 
-	private GuiElementInterface makeButton(GameProfile profile, GuiElementInterface.ClickCallback callback) {
+	private GuiElement makeButton(GameProfile profile, GuiElement.ClickCallback callback) {
 		return new DeferredPlayerHead(
 				profile, DataComponentPatch.builder().set(
 						DataComponents.ITEM_NAME, Component.literal(GameProfileHelper.getNameFromProfile(profile, getPlayer().level().getServer()))
@@ -127,7 +127,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 	protected void updateSearchButtonPosition() {
 		prevSearchButtonIndex = searchButtonIndex;
 		if (selectedPlayersSorted.size() + nonSelectedPlayersSorted.size() > selectedSide.getMaxElementsPerPage() + nonSelectedSide.getMaxElementsPerPage()) {
-			int width = GuiHelpers.getWidth(getType());
+			int width = SguiUtils.getWidth(getType());
 			searchButtonIndex = width/2;
 		} else {
 			searchButtonIndex = -1;
@@ -142,7 +142,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 		);
 	}
 
-	private List<GuiElementInterface> createButtons(
+	private List<GuiElement> createButtons(
 			Set<GameProfile> profiles, Comparator<GameProfile> customComparator,
 			Consumer<GameProfile> onClick
 	) {

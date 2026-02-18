@@ -4,12 +4,14 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.util.valueproviders.IntProviders;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -34,7 +36,6 @@ import nu.metacraft.bosses.METAcraftBosses;
 import nu.metacraft.bosses.boss.attacks.SpawnEntityAttackBase;
 import nu.metacraft.bosses.entity.BossEntities;
 import nu.metacraft.bosses.mixin.OminousItemSpawnerAccessor;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.Optional;
 
@@ -59,7 +60,7 @@ public class ItemSpawnerWithTarget extends OminousItemSpawner implements Polymer
 	}
 
 	private static CompoundTag setData(CompoundTag nbt, ItemStack stack, IntProvider delay, ProjectileOverride override, HolderLookup.Provider lookup) {
-		IntProvider.POSITIVE_CODEC.encodeStart(NbtOps.INSTANCE, delay).resultOrPartial(
+		IntProviders.POSITIVE_CODEC.encodeStart(NbtOps.INSTANCE, delay).resultOrPartial(
 				METAcraftBosses.LOGGER::error
 		).ifPresent(d -> nbt.put(SPAWN_DELAY, d));
 		if (!stack.isEmpty()) {
@@ -117,7 +118,7 @@ public class ItemSpawnerWithTarget extends OminousItemSpawner implements Polymer
 		projectileOverride = nbt.read(
 				PROJECTILE_OVERRIDE, ProjectileOverride.CODEC
 		).orElse(null);
-		nbt.read(SPAWN_DELAY, IntProvider.POSITIVE_CODEC).ifPresent(
+		nbt.read(SPAWN_DELAY, IntProviders.POSITIVE_CODEC).ifPresent(
 				range -> setSpawnItemsAfterTicks(range.sample(random))
 		);
 	}

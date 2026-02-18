@@ -2,7 +2,7 @@ package nu.metacraft.season_5;
 
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
-import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementRequirements;
@@ -16,11 +16,9 @@ import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.ShapedRecipe;
-import net.minecraft.world.item.crafting.ShapedRecipePattern;
+import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.loot.predicates.LocationCheck;
 import nu.metacraft.season_5.items.Season5Items;
@@ -39,7 +37,7 @@ public class METAcraftS5Datagen implements DataGeneratorEntrypoint {
 
 	public static class Recipes extends FabricRecipeProvider {
 
-		public Recipes(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
+		public Recipes(FabricPackOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
 			super(output, registriesFuture);
 		}
 
@@ -77,8 +75,8 @@ public class METAcraftS5Datagen implements DataGeneratorEntrypoint {
 					recipeExporter.accept(
 							wrench,
 							new ShapedRecipe(
-									"misc",
-									CraftingBookCategory.EQUIPMENT,
+									new Recipe.CommonInfo(true),
+									new CraftingRecipe.CraftingBookInfo(CraftingBookCategory.EQUIPMENT, "misc"),
 									ShapedRecipePattern.of(
 											Map.of(
 													'E', Ingredient.of(Items.END_CRYSTAL),
@@ -89,7 +87,7 @@ public class METAcraftS5Datagen implements DataGeneratorEntrypoint {
 											"P",
 											"O"
 									),
-									Season5Items.BEDROCK_DRILL.getDefaultInstance()
+									new ItemStackTemplate(Season5Items.BEDROCK_DRILL)
 							),
 							builder.build(wrench.identifier().withPrefix("recipes/" + RecipeCategory.TOOLS.getFolderName() + "/"))
 					);

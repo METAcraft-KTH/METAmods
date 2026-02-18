@@ -4,17 +4,21 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.item.PolymerItem;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import nu.metacraft.simplecustomfeatures.RegistryHelper;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 import nu.metacraft.simplecustomfeatures.objects.ObjectRegistry;
 import nu.metacraft.simplecustomfeatures.objects.ObjectType;
-import xyz.nucleoid.packettweaker.PacketContext;
+import org.jetbrains.annotations.Nullable;
 
 public class BlockItemObject implements BaseItem {
 
@@ -45,7 +49,10 @@ public class BlockItemObject implements BaseItem {
 
 	@Override
 	public DataResult<Item> createObject(ResourceKey<Item> id) {
-		return settings.makeSettings(id, BaseItem.getModel(displayItem)).map(
+		return settings.makeSettings(id, ctx -> {
+			var displayItemComponents = RegistryHelper.getComponentsFor(displayItem.unwrapKey().orElseThrow(), displayItem.value(), ctx);
+			return displayItemComponents.get(DataComponents.ITEM_MODEL);
+		}).map(
 				settings -> new CustomBlockItem(block, settings.useBlockDescriptionPrefix(), this)
 		);
 	}

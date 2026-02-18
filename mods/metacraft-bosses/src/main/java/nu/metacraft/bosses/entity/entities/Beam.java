@@ -5,6 +5,7 @@ import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
@@ -21,10 +22,9 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.core.util.DisplayEntityDataContainer;
 import org.joml.Matrix4f;
-import nu.metacraft.core.util.DisplayEntityData;
 import nu.metacraft.bosses.METAcraftBosses;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.Objects;
 import java.util.Set;
@@ -43,7 +43,7 @@ public class Beam extends Entity implements PolymerEntity {
 	private int offsetInterpolationTicks = -1;
 	private Vec3 currentOffset;
 
-	private final DisplayEntityData.Item data = new DisplayEntityData.Item();
+	private final DisplayEntityDataContainer.Item data = new DisplayEntityDataContainer.Item();
 	private float thickness = 0.5f;
 
 	public Beam(EntityType<?> type, Level world) {

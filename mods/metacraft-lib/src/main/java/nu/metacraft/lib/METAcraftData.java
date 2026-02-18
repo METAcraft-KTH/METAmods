@@ -23,8 +23,9 @@ public class METAcraftData extends SavedData {
 			).apply(instance, METAcraftData::new)
 	);
 
+	// FIXME Datafixer here!
 	private static final SavedDataType<METAcraftData> TYPE = new SavedDataType<>(
-			METAcraftLib.NAMESPACE + "-data", METAcraftData::new, CODEC, null
+			METAcraftLib.getID("data"), METAcraftData::new, CODEC, null
 	);
 
 	public METAcraftData(Map<UUID, String> nameCache) {

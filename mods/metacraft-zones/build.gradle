@@ -9,5 +9,5 @@ loom {
 }
 
 dependencies {
-	modCompileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
+	compileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
 }

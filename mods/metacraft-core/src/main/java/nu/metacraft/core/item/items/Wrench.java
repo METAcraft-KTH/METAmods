@@ -1,11 +1,11 @@
 package nu.metacraft.core.item.items;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.extensions.BlockEntityExtensions;
 import nu.metacraft.core.extensions.ServerPlayerExtensions;
 import nu.metacraft.core.util.helper.PlayerInventoryHelper;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 import net.minecraft.ChatFormatting;
@@ -125,8 +125,8 @@ public class Wrench extends Item implements PolymerItem {
 			if (entity != null) {
 				boolean newState = !((BlockEntityExtensions) entity).metacraft_core$isMovable();
 				((BlockEntityExtensions) entity).metacraft_core$setMovable(newState);
-				context.getPlayer().displayClientMessage(
-						getBlockText(newState), true
+				context.getPlayer().sendOverlayMessage(
+						getBlockText(newState)
 				);
 				var pos = Vec3.atCenterOf(context.getClickedPos());
 				if (newState) {
@@ -164,8 +164,8 @@ public class Wrench extends Item implements PolymerItem {
 		if (user.isShiftKeyDown() && world instanceof ServerLevel) {
 			var newState = !((ServerPlayerExtensions) user).metacraft_core$areBlocksPistonMovable();
 			((ServerPlayerExtensions) user).metacraft_core$setBlocksPistonMovable(newState);
-			user.displayClientMessage(
-					getPlayerText(newState), true
+			user.sendOverlayMessage(
+					getPlayerText(newState)
 			);
 			world.playSound(
 					null,
@@ -217,7 +217,11 @@ public class Wrench extends Item implements PolymerItem {
 
 	@Override
 	public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
-		var player = context.getPlayer();
+		var profile = context.get(PacketContext.GAME_PROFILE);
+		if (profile == null) return;
+		var server = context.get(PacketContext.SERVER_INSTANCE);
+		if (server == null) return;
+		var player = server.getPlayerList().getPlayer(profile.id());
 		if (player != null) {
 			tooltip.add(
 					getTooltipText(

@@ -102,13 +102,12 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 	@Unique
 	private void quitReviving() {
 		if (metacraft$reviver != null) {
-			metacraft$reviver.displayClientMessage(
+			metacraft$reviver.sendOverlayMessage(
 					Component.translatableWithFallback(
 							"dialog.metacraft.revival.abort",
 							"Revival aborted, leaving " + getDisplayName().getString() + " to die",
 							getDisplayName()
-					),
-					true
+					)
 			);
 		}
 		resetReviver();
@@ -208,7 +207,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		}
 
 		if (!metacraft$isRevivalMenuOpen()) {
-			displayClientMessage(metacraft$revivalStatus, true);
+			sendOverlayMessage(metacraft$revivalStatus);
 		}
 
 		if (!Objects.equals(prevMessage, metacraft$revivalStatus)) {
@@ -229,13 +228,12 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 
 	@Unique
 	private void revive() {
-		metacraft$reviver.displayClientMessage(
+		metacraft$reviver.sendOverlayMessage(
 				Component.translatableWithFallback(
 						"dialog.metacraft.revival.success",
 						"Successfully revived " + getDisplayName().getString() + "!",
 						getDisplayName()
-				),
-				true
+				)
 		);
 		metacraft$resetRevivalState();
 
@@ -315,12 +313,12 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 						metacraft$reviver, EntitySelector.CAN_BE_PICKED, metacraft$reviver.entityInteractionRange()
 				);
 				var seconds = getSeconds(metacraft$timeUntilRevival);
-				metacraft$reviver.displayClientMessage(
+				metacraft$reviver.sendOverlayMessage(
 						Component.translatableWithFallback(
 								"dialog.metacraft.revival.time_until_revival_other",
 								"Reviving " + getDisplayName().getString() + ": " + seconds + " seconds left",
 								getDisplayName(), seconds
-						), true
+						)
 				);
 				if (result.getType() == HitResult.Type.ENTITY) {
 					var entity = ((EntityHitResult) result).getEntity();

@@ -22,7 +22,7 @@ public class ProtectorateMenu extends SimpleGui {
 				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.pay", "Pay"
 				)
-			).setCallback((index, type, action) -> {
+			).setCallback(() -> {
 				this.close();
 				new ChooseProtectorateMenu(player, protectorate -> {
 					new PlotPaymentMenu(player, protectorate).open();
@@ -35,13 +35,12 @@ public class ProtectorateMenu extends SimpleGui {
 				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.deliver_head", "Deliver Head"
 				),
-				getPlayer().level().getServer(),
 				player.level().getServer().getPlayerList().getPlayers().stream().filter(
 						p -> !p.isSpectator() && !p.isCreative() &&
 								!p.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_MODERATOR) &&
 								!Permissions.check(p, "metacraft.zone.protectorates.hide_from_gui")
 				)
-			).setCallback((index, type, action) -> {
+			).setCallback(() -> {
 				this.close();
 				new DecrementMenu(player).open();
 			})

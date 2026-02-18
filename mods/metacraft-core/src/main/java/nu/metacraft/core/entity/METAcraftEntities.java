@@ -30,7 +30,7 @@ public class METAcraftEntities {
 			FabricEntityType.Builder.createMob(
 					PlayerMob::new, MobCategory.MISC, builder -> builder.defaultAttributes(
 							PlayerMob::createPlayerAttributes
-					).spawnRestriction(
+					).spawnPlacement(
 							SpawnPlacementTypes.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
 							Monster::checkAnyLightMonsterSpawnRules
 					)

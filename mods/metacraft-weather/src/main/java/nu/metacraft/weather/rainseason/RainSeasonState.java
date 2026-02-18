@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.weather.METAcraftWeather;
 
 public class RainSeasonState extends SavedData {
 
@@ -18,8 +19,9 @@ public class RainSeasonState extends SavedData {
             ).apply(instance, RainSeasonState::new)
     );
 
+    //FIXME Datafixer
     private static final SavedDataType<RainSeasonState> TYPE = new SavedDataType<>(
-            "rain-season", RainSeasonState::new, CODEC, null
+            METAcraftWeather.getId("rain-season"), RainSeasonState::new, CODEC, null
     );
 
     public static RainSeasonState get(ServerLevel world) {

@@ -10,6 +10,7 @@ import net.minecraft.server.Services;
 import net.minecraft.server.WorldStem;
 import net.minecraft.server.level.progress.LevelLoadListener;
 import net.minecraft.server.packs.repository.PackRepository;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,14 +19,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.lib.util.helper.TestHelper;
 
 import java.net.Proxy;
+import java.util.Optional;
 
 @Mixin(GameTestServer.class)
 public abstract class GameTestServerMixin extends MinecraftServer implements TestHelper.TestServerExtension {
 
 	@Shadow @Nullable private MultipleTestTracker testTracker;
 
-	public GameTestServerMixin(Thread serverThread, LevelStorageSource.LevelStorageAccess session, PackRepository dataPackManager, WorldStem saveLoader, Proxy proxy, DataFixer dataFixer, Services apiServices, LevelLoadListener chunkLoadProgress) {
-		super(serverThread, session, dataPackManager, saveLoader, proxy, dataFixer, apiServices, chunkLoadProgress);
+	public GameTestServerMixin(Thread serverThread, LevelStorageSource.LevelStorageAccess storageSource, PackRepository packRepository, WorldStem worldStem, Optional<GameRules> gameRules, Proxy proxy, DataFixer fixerUpper, Services services, LevelLoadListener levelLoadListener, boolean propagatesCrashes) {
+		super(serverThread, storageSource, packRepository, worldStem, gameRules, proxy, fixerUpper, services, levelLoadListener, propagatesCrashes);
 	}
 
 	@WrapOperation(

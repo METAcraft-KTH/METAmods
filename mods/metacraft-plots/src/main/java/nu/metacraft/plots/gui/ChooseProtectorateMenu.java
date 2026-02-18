@@ -71,21 +71,21 @@ public class ChooseProtectorateMenu extends LayeredGui {
 						"protectorate.metacraft.gui.choose.admin_page", "Admin Page"
 				)
 		).setCallback(
-				(index, type, action) -> setPageLayer(primary)
+				() -> setPageLayer(primary)
 		));
 		controller.setSlot(1, GuiElementBuilder.from(new ItemStack(Items.ACACIA_HANGING_SIGN)).setName(
 				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.choose.member_page", "Member Page"
 				)
 		).setCallback(
-				(index, type, action) -> setPageLayer(membership)
+				() -> setPageLayer(membership)
 		));
 		controller.setSlot(2, GuiElementBuilder.from(new ItemStack(Items.GRASS_BLOCK)).setName(
 				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.choose.other_page", "Other Page"
 				)
 		).setCallback(
-				(index, type, action) -> setPageLayer(others)
+				() -> setPageLayer(others)
 		));
 
 		controller.setSlot(5, GuiElementBuilder.from(new ItemStack(Items.BRICK)).setName(
@@ -93,7 +93,7 @@ public class ChooseProtectorateMenu extends LayeredGui {
 						"protectorate.metacraft.gui.choose.prev_page", "Previous Page"
 				)
 		).setCallback(
-				(index, type, action) -> setPageLayer(currentPage-1)
+				() -> setPageLayer(currentPage-1)
 		));
 
 		controller.setSlot(7, GuiElementBuilder.from(new ItemStack(Items.NETHER_BRICK)).setName(
@@ -101,7 +101,7 @@ public class ChooseProtectorateMenu extends LayeredGui {
 						"protectorate.metacraft.gui.choose.next_page", "Next Page"
 				)
 		).setCallback(
-				(index, type, action) -> setPageLayer(currentPage+1)
+				() -> setPageLayer(currentPage+1)
 		));
 
 		this.addLayer(controller, 0, 3);
@@ -111,7 +111,7 @@ public class ChooseProtectorateMenu extends LayeredGui {
 
 	public AnimatedGuiElementBuilder createIconFrom(PlayerOwnedProtectorate protectorate) {
 		return SGUIHelper.createGameProfileHeadIcon(
-				Component.literal(protectorate.getZone().getName()), getPlayer().level().getServer(),
+				Component.literal(protectorate.getZone().getName()),
 				protectorate.getOwners().stream().map(
 						owner -> getPlayer().level().getServer().services().nameToIdCache().get(owner).orElse(null)
 				).filter(Objects::nonNull).map(config -> new GameProfile(config.id(), config.name()))
@@ -152,7 +152,7 @@ public class ChooseProtectorateMenu extends LayeredGui {
 			int col = (i - pageStart) / perRow;
 			var protectorate = protectorates.get(i);
 			pageLayer.setSlot(rowIndex + col * pageLayer.getWidth(), createIconFrom(protectorate).setCallback(
-					(index, type, action) -> {
+					() -> {
 						if (onClick.test(protectorate)) {
 							close();
 						}

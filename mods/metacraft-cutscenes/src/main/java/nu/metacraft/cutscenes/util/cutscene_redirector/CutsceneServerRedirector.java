@@ -13,7 +13,6 @@ import org.objenesis.ObjenesisStd;
 import org.objenesis.instantiator.ObjectInstantiator;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
-import nu.metacraft.lib.util.IntermediaryNames;
 
 import java.lang.reflect.*;
 
@@ -102,9 +101,6 @@ public class CutsceneServerRedirector {
 		) throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
 			if (server.metacraft_cutscenes$getRealServer() == null) { //Handle functions running inside the constructor itself.
 				return superMethod.invoke(server, args);
-			}
-			if (srcMethod.getName().equals(IntermediaryNames.SERVER_GET_SCOREBOARD)) {
-				return getScoreboard(server);
 			}
 			var method = server.metacraft_cutscenes$getRealServer().getClass().getMethod(
 					srcMethod.getName(), srcMethod.getParameterTypes()

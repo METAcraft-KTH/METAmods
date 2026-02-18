@@ -96,8 +96,6 @@ public record FeaturesConfig(
 										DataComponentPatch.builder().set(
 												DataComponents.MAX_STACK_SIZE, 32
 										).set(
-												DataComponents.DAMAGE_RESISTANT, new DamageResistant(DamageTypeTags.IS_FIRE)
-										).set(
 												DataComponents.RARITY, Rarity.UNCOMMON
 										).set(
 												DataComponents.FOOD, Foods.ENCHANTED_GOLDEN_APPLE

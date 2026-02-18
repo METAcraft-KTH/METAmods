@@ -40,9 +40,7 @@ public class PortalProcessorMixin {
 					type, world.dimension(), PortalState.BlockingType.TRAVEL, entryPosition)
 			) {
 				if (entity instanceof ServerPlayer player) {
-					type.getTravelMessage().ifPresent(msg -> {
-						player.displayClientMessage(msg, true);
-					});
+					type.getTravelMessage().ifPresent(player::sendOverlayMessage);
 				}
 				cir.setReturnValue(false);
 			}

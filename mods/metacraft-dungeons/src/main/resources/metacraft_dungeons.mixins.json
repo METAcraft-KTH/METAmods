@@ -6,7 +6,6 @@
 	"mixins": [
 		"MinecraftServerAccessor",
 		"ChunkStatusTasksMixin",
-		"ConfigManagerMixin",
 		"ServerChunkCacheMixin",
 		"PersistentEntitySectionManagerMixin",
 		"ServerLevelMixin"

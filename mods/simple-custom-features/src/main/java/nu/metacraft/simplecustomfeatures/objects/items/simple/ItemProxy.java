@@ -7,9 +7,6 @@ import net.minecraft.world.item.ItemStack;
 import java.lang.reflect.Field;
 import java.util.concurrent.Callable;
 
-/**
- * Note, be careful when adding more functions here. The names used at runtime will be obfuscated and therefore might not match!
- */
 @SuppressWarnings("unused")
 public class ItemProxy {
 

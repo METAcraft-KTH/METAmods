@@ -2,7 +2,9 @@ package nu.metacraft.portable_jukebox.item;
 
 import eu.pb4.polymer.core.api.block.PolymerHeadBlock;
 import eu.pb4.polymer.core.api.item.PolymerItem;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BlockItem;
@@ -12,7 +14,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.block.Block;
 import nu.metacraft.lib.util.helper.GameProfileHelper;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 public class FixedPolymerHeadBlockItem extends BlockItem implements PolymerItem {
 	private final PolymerHeadBlock polymerBlock;
@@ -28,12 +29,13 @@ public class FixedPolymerHeadBlockItem extends BlockItem implements PolymerItem 
 	}
 
 	@Override
-	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context) {
+	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
 		return null;
 	}
 
-	public ItemStack getPolymerItemStack(ItemStack itemStack, TooltipFlag tooltipType, PacketContext context) {
-		ItemStack out = PolymerItem.super.getPolymerItemStack(itemStack, tooltipType, context);
+	@Override
+	public ItemStack getPolymerItemStack(ItemStack itemStack, TooltipFlag tooltipType, PacketContext context, HolderLookup.Provider lookup) {
+		ItemStack out = PolymerItem.super.getPolymerItemStack(itemStack, tooltipType, context, lookup);
 
 		out.set(
 				DataComponents.PROFILE,

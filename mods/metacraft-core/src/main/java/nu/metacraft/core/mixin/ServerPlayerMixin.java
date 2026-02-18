@@ -67,8 +67,6 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		super(world, profile);
 	}
 
-	@Shadow public abstract void displayClientMessage(Component message, boolean overlay);
-
 	@Shadow @Final
 	private MinecraftServer server;
 
@@ -222,7 +220,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		if (displayTimer > 0) {
 			if (currentEntry != null) {
 				currentEntry.credit().ifPresent(credit -> {
-					this.displayClientMessage(credit.text(), true);
+					this.sendOverlayMessage(credit.text());
 				});
 				displayTimer--;
 			} else {
@@ -387,7 +385,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 								).withColor(ChatFormatting.GREEN)
 						)
 				);
-				displayClientMessage(msg, false);
+				sendSystemMessage(msg);
 				connection.send(new ClientboundSetTitleTextPacket(Component.literal("Custom Music!!!!")));
 				connection.send(new ClientboundSetSubtitleTextPacket(Component.literal("See chat for details")));
 				seenMusicInfo = true;

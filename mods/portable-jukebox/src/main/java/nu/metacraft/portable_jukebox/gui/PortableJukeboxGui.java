@@ -35,7 +35,7 @@ public class PortableJukeboxGui extends LayeredGui {
 		));
 
 		Layer slot = new Layer(1, 1);
-		slot.setSlotRedirect(0, new Slot(this.portableJukebox, 0, 0, 0) {
+		slot.setSlot(0, new Slot(this.portableJukebox, 0, 0, 0) {
 			@Override
 			public boolean mayPlace(ItemStack stack) {
 				return stack.has(DataComponents.JUKEBOX_PLAYABLE);
@@ -53,7 +53,7 @@ public class PortableJukeboxGui extends LayeredGui {
 						DataComponents.ITEM_NAME, Component.literal("Play")
 					).build()
 				),
-				(index, type, action) -> {
+				() -> {
 					PortableJukeboxItem.play(portableJukebox, toPlayFrom);
 				}
 		);
@@ -64,7 +64,7 @@ public class PortableJukeboxGui extends LayeredGui {
 							DataComponents.ITEM_NAME, Component.literal("Stop")
 						).build()
 				),
-				(index, type, action) -> {
+				() -> {
 					PortableJukeboxItem.stop(portableJukebox, player.level());
 				}
 		);

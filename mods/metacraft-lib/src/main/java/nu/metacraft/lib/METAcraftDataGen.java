@@ -2,7 +2,7 @@ package nu.metacraft.lib;
 
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
-import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricDynamicRegistryProvider;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
@@ -10,7 +10,7 @@ import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.gamerules.GameRuleMap;
 import net.minecraft.world.level.gamerules.GameRules;
-import java.util.List;
+
 import java.util.concurrent.CompletableFuture;
 
 public class METAcraftDataGen implements DataGeneratorEntrypoint {
@@ -23,7 +23,7 @@ public class METAcraftDataGen implements DataGeneratorEntrypoint {
 
 	public static class TestProvider extends FabricDynamicRegistryProvider {
 
-		public TestProvider(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
+		public TestProvider(FabricPackOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
 			super(output, registriesFuture);
 		}
 

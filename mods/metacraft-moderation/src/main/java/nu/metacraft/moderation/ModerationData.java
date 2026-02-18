@@ -40,8 +40,9 @@ public class ModerationData extends SavedData {
 			).apply(instance, ModerationData::fromData)
 	);
 
+	//FIXME Datafixer
 	private static final SavedDataType<ModerationData> TYPE = new SavedDataType<>(
-			"metacraft-moderation", ModerationData::createNew, CODEC, null
+			METAcraftModeration.getID("moderation"), ModerationData::createNew, CODEC, null
 	);
 
 	public Optional<ModeratorModeDefinition> getDefinition(String name) {

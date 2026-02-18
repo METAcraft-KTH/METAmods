@@ -19,7 +19,7 @@ import java.io.StringWriter;
 
 public class DataBlockRegistry {
 
-	public static final Registry<DataBlockType<?>> REGISTRY = FabricRegistryBuilder.<DataBlockType<?>>createSimple(
+	public static final Registry<DataBlockType<?>> REGISTRY = FabricRegistryBuilder.<DataBlockType<?>>create(
 			ResourceKey.createRegistryKey(METAcraftDungeons.getID("data_block"))
 	).buildAndRegister();
 

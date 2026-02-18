@@ -26,7 +26,7 @@ public abstract class LivingEntityMixin extends Entity {
 		if (effect.getEffect() == METAcraftEffects.FIRE && this.fireImmune()) {
 			cir.setReturnValue(false);
 		}
-		if (effect.getEffect() == METAcraftEffects.FREEZE && this.getType().is(EntityTypeTags.FREEZE_IMMUNE_ENTITY_TYPES)) {
+		if (effect.getEffect() == METAcraftEffects.FREEZE && this.is(EntityTypeTags.FREEZE_IMMUNE_ENTITY_TYPES)) {
 			cir.setReturnValue(false);
 		}
 	}

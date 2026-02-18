@@ -25,7 +25,7 @@ import nu.metacraft.simplecustomfeatures.objects.ObjectType;
 public class ArmorMaterialRegistry {
 
 	public static final ResourceKey<Registry<ArmorMaterial>> KEY = ResourceKey.createRegistryKey(Features.getID("armor_material"));
-	public static final Registry<ArmorMaterial> REGISTRY = FabricRegistryBuilder.createSimple(KEY).buildAndRegister();
+	public static final Registry<ArmorMaterial> REGISTRY = FabricRegistryBuilder.create(KEY).buildAndRegister();
 
 	private static final Codec<ArmorMaterial> INLINE_CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(

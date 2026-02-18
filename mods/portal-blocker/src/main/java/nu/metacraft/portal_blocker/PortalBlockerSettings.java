@@ -30,9 +30,10 @@ public class PortalBlockerSettings extends SavedData {
 		return server.overworld().getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
 	}
 
+	//FIXME Datafixer
 	private static final SavedDataTypeCache.Type<PortalBlockerSettings> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
-					"portal-blocker", () -> createNew(level.getServer()),
+					PortalBlocker.getID("portals"), () -> createNew(level.getServer()),
 					createCodec(level.getServer()), null
 			)
 	);

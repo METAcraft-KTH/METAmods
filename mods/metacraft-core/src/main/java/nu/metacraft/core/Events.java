@@ -45,7 +45,7 @@ public class Events {
 			return InteractionResult.PASS;
 		});
 
-		ServerTickEvents.END_WORLD_TICK.register(world -> { //Needs to run outside the general entity tick loop to avoid desync.
+		ServerTickEvents.END_LEVEL_TICK.register(world -> { //Needs to run outside the general entity tick loop to avoid desync.
 			for (var e : world.getEntities(EntityTypeTest.forClass(MovingBlock.class), e -> e.getRootAnchor().isPresent())) {
 				e.getRootAnchor().ifPresent(anchor -> {
 					var targetPos = anchor.getTargetPos();

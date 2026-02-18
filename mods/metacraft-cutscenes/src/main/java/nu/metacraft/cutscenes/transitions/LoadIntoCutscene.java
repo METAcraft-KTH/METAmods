@@ -26,7 +26,7 @@ public class LoadIntoCutscene extends InstantTransition {
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		chunks.getPositions(cutscene.getCutsceneWorld().getActualWorld()).forEach(chunk -> {
-			cutscene.getCutsceneWorld().getChunk(chunk.x, chunk.z);
+			cutscene.getCutsceneWorld().getChunk(chunk.x(), chunk.z());
 		});
 	}
 

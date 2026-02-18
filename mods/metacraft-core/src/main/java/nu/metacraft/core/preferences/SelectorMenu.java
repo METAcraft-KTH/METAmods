@@ -1,6 +1,6 @@
 package nu.metacraft.core.preferences;
 
-import eu.pb4.sgui.api.GuiHelpers;
+import eu.pb4.sgui.api.SguiUtils;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
 import net.minecraft.server.level.ServerPlayer;
@@ -32,7 +32,7 @@ public class SelectorMenu extends LayeredGui {
 	public SelectorMenu(int size, ServerPlayer player) {
 		super(getSize(size), player, true);
 		pages = new PagedLayer(
-				GuiHelpers.getHeight(getType()), GuiHelpers.getWidth(getType()),
+				SguiUtils.getHeight(getType()), SguiUtils.getWidth(getType()),
 				GuiElementBuilder.from(new ItemStack(Items.OBSIDIAN)),
 				GuiElementBuilder.from(new ItemStack(Items.OBSIDIAN)),
 				GuiElementBuilder.from(ItemStack.EMPTY).build()

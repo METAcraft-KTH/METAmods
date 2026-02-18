@@ -103,7 +103,7 @@ public class PortalEntity extends BlockEntity {
 	}
 
 	private void notifyLocked(Stream<Player> players) {
-		players.forEach(p -> p.displayClientMessage(Component.literal("The portal is locked"), true));
+		players.forEach(p -> p.sendOverlayMessage(Component.literal("The portal is locked")));
 		level.playSound(null, worldPosition, SoundEvents.CHEST_LOCKED, SoundSource.BLOCKS);
 	}
 
@@ -121,7 +121,7 @@ public class PortalEntity extends BlockEntity {
 			player.setItemInHand(hand, useRemainder.convertIntoRemainder(stack, c, player.isCreative(), player::handleExtraItemsCreatedOnUse));
 		}
 		level.playSound(null, worldPosition, SoundEvents.VAULT_INSERT_ITEM, SoundSource.BLOCKS);
-		player.displayClientMessage(Component.literal("The portal is now unlocked!"), true);
+		player.sendOverlayMessage(Component.literal("The portal is now unlocked!"));
 		initializeTarget();
 	}
 
@@ -602,7 +602,7 @@ public class PortalEntity extends BlockEntity {
 						targetPos = getTarget(targetBox, dist, entity);
 						if (!targetDim.noCollision(centeredBox.move(targetPos))) {
 							if (entity instanceof ServerPlayer player) {
-								player.displayClientMessage(Component.literal("Could not deposit you safely on the other side"), true);
+								player.sendOverlayMessage(Component.literal("Could not deposit you safely on the other side"));
 							}
 							return entity;
 						}
@@ -626,7 +626,7 @@ public class PortalEntity extends BlockEntity {
 				newEntity = teleportNoFacing(entity, target);
 			}
 		} else if (entity instanceof ServerPlayer player) {
-			player.displayClientMessage(Component.literal(targetRes.error().map(DataResult.Error::message).orElse("missingno")), true);
+			player.sendOverlayMessage(Component.literal(targetRes.error().map(DataResult.Error::message).orElse("missingno")));
 		}
 		return newEntity;
 	}

@@ -3,7 +3,6 @@ package nu.metacraft.lib.condition.conditions;
 import com.mojang.serialization.MapCodec;
 import nu.metacraft.lib.condition.METAcraftConditions;
 import nu.metacraft.lib.condition.METAcraftContextParameters;
-
 import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.context.ContextKey;
@@ -11,7 +10,6 @@ import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.ValidationContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 
 public class BlockBelowCanSpawn implements LootItemCondition {
 
@@ -26,7 +24,7 @@ public class BlockBelowCanSpawn implements LootItemCondition {
 	private BlockBelowCanSpawn() {}
 
 	@Override
-	public LootItemConditionType getType() {
+	public MapCodec<? extends LootItemCondition> codec() {
 		return METAcraftConditions.BLOCK_BELOW_CAN_SPAWN;
 	}
 

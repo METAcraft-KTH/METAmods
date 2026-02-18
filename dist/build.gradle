@@ -12,8 +12,6 @@ base {
 
 initDist()
 
-addCoreDependencies()
-
 dependencies {
     implementation("org.objenesis:objenesis:${project.objenesis_version}")
 }

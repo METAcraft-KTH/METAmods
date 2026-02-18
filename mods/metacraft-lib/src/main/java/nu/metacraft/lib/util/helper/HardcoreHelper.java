@@ -94,9 +94,13 @@ public class HardcoreHelper {
 			LevelSettings info = properties.getLevelSettings();
 			((PrimaryLevelDataAccessor) properties).setSettings(
 					new LevelSettings(
-							info.levelName(), info.gameType(), hardcore,
-							info.difficulty(), info.allowCommands(),
-							info.gameRules(), info.getDataConfiguration()
+							info.levelName(), info.gameType(),
+							new LevelSettings.DifficultySettings(
+									info.difficultySettings().difficulty(),
+									hardcore,
+									info.difficultySettings().locked()
+							),
+							info.allowCommands(), info.dataConfiguration()
 					)
 			);
 			changed = true;

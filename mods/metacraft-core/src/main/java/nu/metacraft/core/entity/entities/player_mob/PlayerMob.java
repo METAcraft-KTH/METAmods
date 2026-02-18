@@ -2,8 +2,8 @@ package nu.metacraft.core.entity.entities.player_mob;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.authlib.GameProfile;
-import com.mojang.serialization.Dynamic;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.util.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.UUIDUtil;
@@ -64,7 +64,7 @@ import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.core.entity.entities.player_mob.renderer.FakePlayerRenderer;
+import nu.metacraft.core.entity.entities.player_mob.renderer.MannequinRenderer;
 import nu.metacraft.core.entity.entities.player_mob.renderer.PlayerRenderer;
 import nu.metacraft.core.entity.entities.player_mob.renderer.PlayerRendererType;
 import nu.metacraft.core.mixin.AvatarAccessor;
@@ -81,7 +81,7 @@ import nu.metacraft.core.util.helper.EntityAIHelper;
 import nu.metacraft.core.util.helper.ServerDefaultSkinHelper;
 import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
-import xyz.nucleoid.packettweaker.PacketContext;
+import org.jspecify.annotations.NonNull;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -105,7 +105,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 	private static final String CAN_WANDER = "can_wander";
 	private static final String DESCRIPTION = "description";
 
-	private PlayerRenderer renderer = new FakePlayerRenderer(this, getDefaultSkin());
+	private PlayerRenderer renderer = new MannequinRenderer(this);
 
 	private CompoundTag leftShoulderNbt = new CompoundTag();
 	private CompoundTag rightShoulderNbt = new CompoundTag();
@@ -151,10 +151,6 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		builder.define(RIGHT_SHOULDER_ENTITY, OptionalInt.empty());
 		builder.define(PLAYER_SKIN, getDefaultSkin());
 		builder.define(BELOW_NAME, Optional.empty());
-	}
-
-	protected Brain.Provider<PlayerMob> brainProvider() {
-		return PlayerBrain.createBrainProfile();
 	}
 
 	@Override
@@ -350,8 +346,8 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 	}
 
 	@Override
-	protected Brain<?> makeBrain(Dynamic<?> dynamic) {
-		return PlayerBrain.create(this, this.brainProvider().makeBrain(dynamic));
+	protected @NonNull Brain<?> makeBrain(Brain.@NonNull Packed packed) {
+		return PlayerBrain.createBrainProfile().makeBrain(this, packed);
 	}
 
 	@Override
@@ -654,7 +650,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 
 	@Override
 	public void readAdditionalSaveData(ValueInput nbt) {
-		var type = nbt.read(RENDERER, PlayerRendererType.CODEC).orElse(PlayerRendererType.FAKE_PLAYER);
+		var type = nbt.read(RENDERER, PlayerRendererType.CODEC).orElse(PlayerRendererType.MANNEQUIN);
 		if (type != renderer.getType()) {
 			renderer.reset();
 			renderer = type.createRenderer(this, getDefaultSkin());

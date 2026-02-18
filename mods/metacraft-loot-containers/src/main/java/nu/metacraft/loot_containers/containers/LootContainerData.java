@@ -29,9 +29,10 @@ import java.util.stream.Stream;
 
 public class LootContainerData extends SavedData {
 
+	//FIXME Datafixer
 	private static final SavedDataTypeCache.Type<LootContainerData> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
-					METAcraftLootContainers.MODID, () -> create(level.getServer()),
+					METAcraftLootContainers.getID("containers"), () -> create(level.getServer()),
 					createCodec(level.getServer()), null
 			)
 	);

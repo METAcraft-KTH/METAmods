@@ -74,8 +74,8 @@ public class TrackedEntity<T extends Entity> {
 			}
 			entity = filter.tryCast(world.getEntity(uuid));
 			if (entity == null) {
-				if (!world.areEntitiesLoaded(pos.toLong())) {
-					world.getChunk(pos.x, pos.z, ChunkStatus.FULL);
+				if (!world.areEntitiesLoaded(pos.pack())) {
+					world.getChunk(pos.x(), pos.z(), ChunkStatus.FULL);
 					return EntityResult.from(null, EntityResult.EntityState.CHUNK_NOT_LOADED);
 				}
 			}

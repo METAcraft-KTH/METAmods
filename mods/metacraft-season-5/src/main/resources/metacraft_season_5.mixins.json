@@ -6,7 +6,7 @@
 	"mixins": [
 		"AreaEffectCloudAccessor",
 		"BottleItemMixin",
-		"EndDragonFightMixin",
+		"EnderDragonFightMixin",
 		"EntityMixin"
 	],
 	"client": [],

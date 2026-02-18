@@ -10,6 +10,7 @@ import net.minecraft.commands.arguments.NbtTagArgument;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.ResolutionContext;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
 import nu.metacraft.player_specific_scoreboards.PlayerScoreboardExtension;
@@ -50,7 +51,9 @@ public class SetPlayerSidebarCommand {
 									NbtTagArgument.getNbtTag(ctx, "sidebar")
 							).getOrThrow(ARBITRARY::create);
 							for (var target : targets) {
-								((PlayerScoreboardExtension) target).metacraft$setScoreboard(scoreboard.resolve(ctx.getSource(), target));
+								((PlayerScoreboardExtension) target).metacraft$setScoreboard(scoreboard.resolve(
+										ResolutionContext.builder().withSource(ctx.getSource()).withEntityOverride(target).build()
+								));
 							}
 							sendFeedback(ctx, Component.literal("Successfully set scoreboard for "), targets);
 							return targets.size();

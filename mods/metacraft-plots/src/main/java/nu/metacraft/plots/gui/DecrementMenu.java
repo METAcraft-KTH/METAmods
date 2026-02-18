@@ -23,7 +23,7 @@ public class DecrementMenu extends PaymentMenu {
 				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.deliver_head.deliver", "Deliver"
 				)
-		).setCallback((index, type, action) -> {
+		).setCallback(() -> {
 			for (var zone : ZoneManager.getInstance(getPlayer().level().getServer()).getZones().getZones()) {
 				zone.get(PlotDataTypes.PLAYER_PROTECTORATE).ifPresent(protectorate -> {
 					for (int i = 0; i < inventory.getContainerSize(); i++) {

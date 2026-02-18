@@ -22,6 +22,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.valueproviders.ConstantFloat;
 import net.minecraft.util.valueproviders.FloatProvider;
+import net.minecraft.util.valueproviders.FloatProviders;
 import net.minecraft.util.valueproviders.UniformFloat;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.item.Items;
@@ -228,8 +229,8 @@ public class SavedItemsConfig implements Modifiable {
 				instance -> instance.group(
 						ItemPredicate.CODEC.fieldOf("predicate").forGetter(SavingEntry::predicate),
 						Codec.DOUBLE.fieldOf("probability").forGetter(SavingEntry::probability),
-						FloatProvider.CODEC.fieldOf("damageModifier").forGetter(SavingEntry::damageModifier),
-						FloatProvider.CODEC.fieldOf("countModifier").forGetter(SavingEntry::countModifier)
+						FloatProviders.CODEC.fieldOf("damageModifier").forGetter(SavingEntry::damageModifier),
+						FloatProviders.CODEC.fieldOf("countModifier").forGetter(SavingEntry::countModifier)
 				).apply(instance, SavingEntry::new)
 		);
 	}

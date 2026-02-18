@@ -35,8 +35,8 @@ public abstract class MobMixin extends LivingEntity {
 	@Inject(method = "<init>", at = @At("RETURN"))
 	protected void initGoals(CallbackInfo ci) {
 		if (level() != null && !level().isClientSide() && (Object) this instanceof PathfinderMob) {
-			BrainProviderAccessor profile = (BrainProviderAccessor) (Object) this.brainProvider();
-			if (profile.getMemoryTypes().isEmpty() && profile.getSensorTypes().isEmpty()) {
+			var brain = (BrainAccessor) this.brain;
+			if (brain.getMemories().isEmpty() && brain.getActivityRequirements().isEmpty()) {
 				this.goalSelector.addGoal(1, new HostileMobAttackGoal((PathfinderMob) (Object) this));
 				this.targetSelector.addGoal(1, new HostileMobTargetGoal((PathfinderMob) (Object) this));
 			}

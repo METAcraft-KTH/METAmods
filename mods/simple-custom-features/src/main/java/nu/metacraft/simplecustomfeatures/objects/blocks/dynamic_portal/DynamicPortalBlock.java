@@ -1,6 +1,7 @@
 package nu.metacraft.simplecustomfeatures.objects.blocks.dynamic_portal;
 
 import eu.pb4.polymer.core.api.block.PolymerBlock;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.util.BlockUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -34,7 +35,6 @@ import nu.metacraft.lib.util.helper.EntityHelper;
 import nu.metacraft.lib.util.helper.ViewHelper;
 import nu.metacraft.simplecustomfeatures.Features;
 import nu.metacraft.simplecustomfeatures.mixin.NetherPortalBlockAccessor;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.Comparator;
 import java.util.Optional;

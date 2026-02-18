@@ -10,6 +10,7 @@ import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.Unit;
 import net.minecraft.util.random.WeightedList;
+import net.minecraft.world.item.ItemInstance;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
 import java.time.Instant;
@@ -58,8 +59,8 @@ public record ExpiresComponent(Instant at, WeightedList<ItemStack> replacement) 
 		return Instant.now().isAfter(at);
 	}
 
-	public static Optional<ItemStack> applyDelete(ItemStack stack) {
-		return stack.has(METAcraftComponents.DELETED) ? Optional.empty() : Optional.of(stack);
+	public static <T extends ItemInstance> Optional<T> applyDelete(T stack) {
+		return stack.get(METAcraftComponents.DELETED) != null ? Optional.empty() : Optional.of(stack);
 	}
 
 	public static Optional<ItemStack> applyLoadTime(ItemStack stack) {

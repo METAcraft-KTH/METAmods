@@ -3,5 +3,6 @@ version = project.dungeons_version
 addCoreDependencies()
 
 dependencies {
-	modCompileOnly("maven.modrinth:squaremap:${project.squaremap_version}")
+	//FIXME Squaremap
+	//compileOnly("maven.modrinth:squaremap:${project.squaremap_version}")
 }

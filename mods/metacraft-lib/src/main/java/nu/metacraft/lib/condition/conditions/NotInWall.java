@@ -4,7 +4,6 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.ValidationContext;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 import nu.metacraft.lib.condition.METAcraftConditions;
 import nu.metacraft.lib.condition.METAcraftContextParameters;
 
@@ -21,7 +20,7 @@ public class NotInWall implements LootItemCondition {
 	private NotInWall() {}
 
 	@Override
-	public LootItemConditionType getType() {
+	public MapCodec<? extends LootItemCondition> codec() {
 		return METAcraftConditions.NOT_IN_WALL;
 	}
 

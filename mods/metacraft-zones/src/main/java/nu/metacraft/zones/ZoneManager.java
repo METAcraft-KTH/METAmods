@@ -36,9 +36,10 @@ public class ZoneManager extends SavedData {
 		return Optional.of(getInstance(server));
 	}
 
+	//FIXME Datafixer
 	private static final SavedDataTypeCache.Type<ZoneManager> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
-					"metacraft-zones", () -> createNew(level.getServer()),
+					METAcraftZones.getID("zones"), () -> createNew(level.getServer()),
 					createCodec(level.getServer()), null
 			)
 	);
