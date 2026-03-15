@@ -24,7 +24,7 @@ public record PlayerScoreboard(
 		Optional<NumberFormat> numberFormat, List<Entry> entries
 ) {
 
-	public static final String SCOREBOARD_ID = "#metacraft:player_scoreboard";
+	public static final String SCOREBOARD_ID = "#metacraft:player_sidebar";
 
 	public static final Codec<PlayerScoreboard> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(

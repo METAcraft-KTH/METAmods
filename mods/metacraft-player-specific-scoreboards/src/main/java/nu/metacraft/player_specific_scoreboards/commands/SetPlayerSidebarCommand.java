@@ -20,7 +20,7 @@ import java.util.Collection;
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
-public class SetPlayerScoreboardCommand {
+public class SetPlayerSidebarCommand {
 
 	private static final DynamicCommandExceptionType ARBITRARY = new DynamicCommandExceptionType(
 			v -> v::toString
@@ -40,14 +40,14 @@ public class SetPlayerScoreboardCommand {
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(
-			literal("player-scoreboard").requires(Permissions.require("metacraft.player_scoreboard", PermissionLevel.GAMEMASTERS)).then(
+			literal("player-sidebar").requires(Permissions.require("metacraft.player_scoreboard", PermissionLevel.GAMEMASTERS)).then(
 				literal("set").then(
 					argument("target", EntityArgument.players()).then(
-						argument("scoreboard", NbtTagArgument.nbtTag()).executes(ctx -> {
+						argument("sidebar", NbtTagArgument.nbtTag()).executes(ctx -> {
 							var targets = EntityArgument.getPlayers(ctx, "target");
 							var scoreboard = PlayerScoreboard.CODEC.parse(
 									ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE),
-									NbtTagArgument.getNbtTag(ctx, "scoreboard")
+									NbtTagArgument.getNbtTag(ctx, "sidebar")
 							).getOrThrow(ARBITRARY::create);
 							for (var target : targets) {
 								((PlayerScoreboardExtension) target).metacraft$setScoreboard(scoreboard.resolve(ctx.getSource(), target));

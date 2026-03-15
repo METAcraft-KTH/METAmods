@@ -28,7 +28,7 @@ import java.util.*;
 public abstract class ServerPlayerMixin extends Player implements PlayerScoreboardExtension {
 
 	@Unique
-	private static final String SCOREBOARD = "metacraft:player_scoreboard";
+	private static final String SCOREBOARD = "metacraft:player_sidebar";
 
 	@Shadow
 	public ServerGamePacketListenerImpl connection;
