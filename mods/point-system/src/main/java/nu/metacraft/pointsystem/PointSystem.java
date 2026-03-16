@@ -10,12 +10,14 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.ChatFormatting;
 import net.minecraft.TracingExecutor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.numbers.BlankFormat;
 import net.minecraft.network.chat.numbers.FixedFormat;
+import net.minecraft.network.chat.numbers.NumberFormat;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerScoreboard;
 import net.minecraft.server.level.ServerPlayer;
@@ -30,6 +32,9 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 import java.util.stream.Stream;
 
 public class PointSystem implements AutoCloseable {
@@ -552,68 +557,108 @@ public class PointSystem implements AutoCloseable {
 		updateAllPlayerScores();
 	}
 
-	private void setScoreLine(int line, Component name, int points, ServerScoreboard scoreboard, Objective objective) {
-		ScoreHolder scoreHolder = ScoreHolder.forNameOnly("LINE_" + line);
-		ScoreAccess score = scoreboard.getOrCreatePlayerScore(scoreHolder, objective);
-		score.set(100 - line);
-		score.display(name);
+
+
+	private void setScoreLine(int line, Component name, int points, LineWriter lineWriter) {
 		MutableComponent numberText = Component.literal(String.valueOf(points)).withStyle(style -> style.withColor(ChatFormatting.RED));
-		score.numberFormatOverride(new FixedFormat(numberText));
+		lineWriter.writeLine(line, name, new FixedFormat(numberText));
 	}
 
-	private void setTextLine(int line, Component text, ServerScoreboard scoreboard, Objective objective) {
-		ScoreHolder scoreHolder = ScoreHolder.forNameOnly("LINE_" + line);
-		ScoreAccess score = scoreboard.getOrCreatePlayerScore(scoreHolder, objective);
-		score.set(100 - line);
-		score.display(text);
-		score.numberFormatOverride(BlankFormat.INSTANCE);
+	private void setTextLine(int line, Component text, LineWriter lineWriter) {
+		lineWriter.writeLine(line, text, BlankFormat.INSTANCE);
+	}
+	private void renderCombinedPoints(
+			Map<Integer, PointTeam> teams, PlayerPointStorage playerPoints, Int2IntMap teamPoints, LineWriter lineWriter
+	) {
+		renderCombinedPoints(
+				teams, playerPoints, teamPoints, lineWriter,
+				(name, team) -> name,
+				team -> false,
+				(name, player) -> name,
+				player -> false
+		);
 	}
 
-	private void renderCombinedPoints(Map<Integer, PointTeam> teams, PlayerPointStorage playerPoints, Int2IntMap teamPoints, String objectiveName) {
-		ServerScoreboard scoreboard = this.server.getScoreboard();
-		Objective objective = this.getOrCreateObjective(objectiveName);
+	private <T> Stream<T> sort(Stream<T> stream, ToIntFunction<T> getIntValue) {
+		return stream.sorted((a, b) -> Integer.compare(getIntValue.applyAsInt(b), getIntValue.applyAsInt(a)));
+	}
 
-		setTextLine(0, PointSystemConfig.getInstance().universityScoreText(), scoreboard, objective);
+	private void renderCombinedPoints(
+			Map<Integer, PointTeam> teams, PlayerPointStorage playerPoints, Int2IntMap teamPoints, LineWriter lineWriter,
+			BiFunction<Component, PointTeam, Component> teamHighlighter, Predicate<PointTeam> teamToAlwaysInclude,
+			BiFunction<Component, UUID, Component> playerHighlighter, Predicate<UUID> playerToAlwaysInclude
+	) {
+		setTextLine(0, PointSystemConfig.getInstance().universityScoreText(), lineWriter);
 
-		List<Integer> topTeams = teamPoints.int2IntEntrySet()
-			.stream()
-			.sorted((a, b) -> Integer.compare(b.getIntValue(), a.getIntValue())) // Sort by points descending
-			.map(Map.Entry::getKey)
-			.toList();
+		Int2IntMap alwaysIncludedTeams = new Int2IntOpenHashMap();
+		Int2IntMap regularTeams = new Int2IntOpenHashMap();
+		for (var team : teams.entrySet()) {
+			if (!teamPoints.containsKey(team.getKey())) continue;
+			if (teamToAlwaysInclude.test(team.getValue())) {
+				alwaysIncludedTeams.put(team.getKey(), teamPoints.get(team.getKey()));
+			} else {
+				regularTeams.put(team.getKey(), teamPoints.get(team.getKey()));
+			}
+		}
+
+		IntList topTeams = IntArrayList.toList(
+				sort(
+						Stream.concat(
+								alwaysIncludedTeams.int2IntEntrySet().stream(),
+								sort(regularTeams.int2IntEntrySet().stream(), Int2IntMap.Entry::getIntValue).limit(5 - alwaysIncludedTeams.size())
+						),
+						Int2IntMap.Entry::getIntValue
+				).mapToInt(Int2IntMap.Entry::getIntKey)
+		);
 
 		for (int i = 0; i < 5; i++) {
 			int lineNr = i + 1;
 			if (topTeams.size() <= i) {
-				setTextLine(lineNr, Component.empty(), scoreboard, objective);
+				setTextLine(lineNr, Component.empty(), lineWriter);
 				continue;
 			}
-			int teamId = topTeams.get(i);
+			int teamId = topTeams.getInt(i);
 			PointTeam team = teams.get(teamId);
 			int points = teamPoints.get(teamId);
-			setScoreLine(lineNr, Component.literal(team.shortName()), points, scoreboard, objective);
+			setScoreLine(lineNr, teamHighlighter.apply(Component.literal(team.shortName()), team), points, lineWriter);
 		}
 
-		setTextLine(6, Component.empty(), scoreboard, objective);
-		setTextLine(7, PointSystemConfig.getInstance().topPlayersText(), scoreboard, objective);
+		setTextLine(6, Component.empty(), lineWriter);
+		setTextLine(7, PointSystemConfig.getInstance().topPlayersText(), lineWriter);
 
-		List<UUID> topPlayers = playerPoints.getData().object2IntEntrySet()
-			.stream()
-			.sorted((a, b) -> Integer.compare(b.getIntValue(), a.getIntValue())) // Sort by points descending
-			.map(Map.Entry::getKey)
-			.toList();
+		Object2IntMap<UUID> alwaysIncludedPlayers = new Object2IntOpenHashMap<>();
+		Object2IntMap<UUID> regularPlayers = new Object2IntOpenHashMap<>();
+
+		for (var player : playerPoints.getData().object2IntEntrySet()) {
+			if (playerToAlwaysInclude.test(player.getKey())) {
+				alwaysIncludedPlayers.put(player.getKey(), player.getIntValue());
+			} else {
+				regularPlayers.put(player.getKey(), player.getIntValue());
+			}
+		}
+
+		List<UUID> topPlayers = sort(
+				Stream.concat(
+						alwaysIncludedPlayers.object2IntEntrySet().stream(),
+						sort(
+								regularPlayers.object2IntEntrySet().stream(),
+								Object2IntMap.Entry::getIntValue
+						).limit(5 - alwaysIncludedPlayers.size())
+				),
+				Object2IntMap.Entry::getIntValue
+		).map(Map.Entry::getKey).toList();
 
 		for (int i = 0; i < 5; i++) {
 			int lineNr = i + 8;
 			if (topPlayers.size() <= i) {
-				setTextLine(lineNr, Component.empty(), scoreboard, objective);
+				setTextLine(lineNr, Component.empty(), lineWriter);
 				continue;
 			}
 			UUID playerUuid = topPlayers.get(i);
 			int points = playerPoints.getPoints(playerUuid);
 			ScoreHolder scoreHolder = getPlayerScoreHolder(playerUuid);
-			setScoreLine(lineNr, scoreHolder.getFeedbackDisplayName(), points, scoreboard, objective);
+			setScoreLine(lineNr, playerHighlighter.apply(scoreHolder.getFeedbackDisplayName(), playerUuid), points, lineWriter);
 		}
-		updateAllPlayerScores();
 	}
 
 	private void updateAllPlayerScores() {
@@ -622,13 +667,66 @@ public class PointSystem implements AutoCloseable {
 		}
 	}
 
-	private boolean matchesAnyTeam(List<PointTeam> teams, PlayerScoreEntry score) {
+	private boolean matchesAnyTeam(List<PointTeam> teams, String code) {
 		for (var team : teams) {
-			if (score.owner().equals(team.code()) || score.ownerName().getString().equals(team.shortName())) {
+			if (code.equals(team.code())) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	private static Component highLightPlayer(Component playerName) {
+		return playerName.copy().withStyle(style -> style.withBold(true).withColor(ChatFormatting.GREEN));
+	}
+
+	private static Component highLightTeam(Component teamName) {
+		return teamName.copy().withStyle(style -> style.withBold(true).withColor(ChatFormatting.AQUA));
+	}
+
+	private static int getMinigameIDFromScoreboardObjectiveName(String name) {
+		try {
+			return Integer.parseInt(name.substring(COMBINED_POINTS_MINIGAME_OBJECTIVE_PREFIX.length()));
+		} catch (NumberFormatException e) {
+			PointSystemMod.LOGGER.error(e.getMessage(), e);
+			return 0;
+		}
+	}
+
+	private void renderCombinedPointsForPlayer(
+			ServerPlayer player, PlayerPointStorage playerPoints, Int2IntMap teamPoints, Objective objective
+	) {
+		getTeamsForPlayer(player.getUUID()).thenAccept(playerTeams -> {
+			getTeams().thenAccept(teams -> {
+				server.execute(() -> {
+					var writer = new PlayerSpecificLineWriter();
+					renderCombinedPoints(
+							teams, playerPoints, teamPoints, writer,
+							(name, team) -> {
+								if (matchesAnyTeam(playerTeams, team.code())) {
+									return highLightTeam(name);
+								}
+								return name;
+							},
+							team -> matchesAnyTeam(playerTeams, team.code()),
+							(name, playerID) -> {
+								if (playerID.equals(player.getUUID())) {
+									return highLightPlayer(name);
+								}
+								return name;
+							},
+							playerID -> playerID.equals(player.getUUID())
+					);
+					PlayerScoreboards.setPlayerScoreboard(
+							player, new PlayerScoreboard(
+									objective.getDisplayName(),
+									Optional.ofNullable(objective.numberFormat()),
+									writer.getEntries()
+							)
+					);
+				});
+			});
+		});
 	}
 
 	public void updatePlayerScore(ServerPlayer player) {
@@ -637,19 +735,36 @@ public class PointSystem implements AutoCloseable {
 			var scoreboard = player.level().getScoreboard();
 			var sidebar = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
 			if (sidebar != null) {
+				if (sidebar.getName().equals(COMBINED_POINTS_OBJECTIVE)) {
+					getTeamPoints().thenAccept(totalTeamPoints -> {
+						getPlayerPoints().thenAccept(totalPlayerPoints -> {
+							renderCombinedPointsForPlayer(player, totalPlayerPoints, totalTeamPoints, sidebar);
+						});
+					});
+					return;
+				}
+				if (sidebar.getName().startsWith(COMBINED_POINTS_MINIGAME_OBJECTIVE_PREFIX)) {
+					int minigameId = getMinigameIDFromScoreboardObjectiveName(sidebar.getName());
+					getTeamPointsByMinigame(minigameId).thenAccept(teamPoints -> {
+						getPlayerPointsByMinigame(minigameId).thenAccept(playerPoints -> {
+							renderCombinedPointsForPlayer(player, playerPoints, teamPoints, sidebar);
+						});
+					});
+					return;
+				}
 				List<PlayerScoreboard.Entry> myEntries = new ArrayList<>();
 				List<PlayerScoreboard.Entry> otherEntries = new ArrayList<>();
 				getTeamsForPlayer(player.getUUID()).thenAccept(teams -> {
 					server.execute(() -> {
 						for (var score : scoreboard.listPlayerScores(sidebar)) {
-							if (score.owner().equals(player.getScoreboardName()) || score.ownerName().getString().equals(player.getDisplayName().getString())) {
+							if (score.owner().equals(player.getScoreboardName())) {
 								myEntries.add(new PlayerScoreboard.Entry(
-										score.ownerName().copy().withStyle(style -> style.withBold(true).withColor(ChatFormatting.GREEN)), Optional.of(score.owner()),
+										highLightPlayer(score.ownerName()), Optional.of(score.owner()),
 										score.value(), Optional.ofNullable(score.numberFormatOverride())
 								));
-							} else if (matchesAnyTeam(teams, score)) {
+							} else if (matchesAnyTeam(teams, score.owner())) {
 								myEntries.add(new PlayerScoreboard.Entry(
-										score.ownerName().copy().withStyle(style -> style.withBold(true).withColor(ChatFormatting.AQUA)), Optional.of(score.owner()),
+										highLightTeam(score.ownerName()), Optional.of(score.owner()),
 										score.value(), Optional.ofNullable(score.numberFormatOverride())
 								));
 							} else {
@@ -689,7 +804,7 @@ public class PointSystem implements AutoCloseable {
 					server.execute(() -> {
 						renderTeamPoints(teams, totalTeamPoints, TEAM_POINTS_OBJECTIVE);
 						renderPlayerPoints(totalPlayerPoints, PLAYER_POINTS_OBJECTIVE);
-						renderCombinedPoints(teams, totalPlayerPoints, totalTeamPoints, COMBINED_POINTS_OBJECTIVE);
+						renderCombinedPoints(teams, totalPlayerPoints, totalTeamPoints, ScoreboardLineWriter.create(server, COMBINED_POINTS_OBJECTIVE));
 					});
 				});
 			});
@@ -702,13 +817,47 @@ public class PointSystem implements AutoCloseable {
 							server.execute(() -> {
 								renderTeamPoints(teams, teamPoints, TEAM_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
 								renderPlayerPoints(playerPoints, PLAYER_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
-								renderCombinedPoints(teams, playerPoints, teamPoints, COMBINED_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId);
+								renderCombinedPoints(teams, playerPoints, teamPoints, ScoreboardLineWriter.create(server, COMBINED_POINTS_MINIGAME_OBJECTIVE_PREFIX + minigameId));
 							});
 						});
 					});
 				}
 			});
 		});
+	}
+
+	interface LineWriter {
+		void writeLine(int line, Component name, NumberFormat numberFormat);
+	}
+
+	public record ScoreboardLineWriter(ServerScoreboard scoreboard, Objective objective) implements LineWriter {
+
+		public static ScoreboardLineWriter create(MinecraftServer server, String objectiveName) {
+			return new ScoreboardLineWriter(server.getScoreboard(), server.getScoreboard().getObjective(objectiveName));
+		}
+
+		@Override
+		public void writeLine(int line, Component name, NumberFormat numberFormat) {
+			ScoreHolder scoreHolder = ScoreHolder.forNameOnly("LINE_" + line);
+			ScoreAccess score = scoreboard.getOrCreatePlayerScore(scoreHolder, objective);
+			score.set(100 - line);
+			score.display(name);
+			score.numberFormatOverride(numberFormat);
+		}
+	}
+
+	public static class PlayerSpecificLineWriter implements LineWriter {
+
+		private final List<PlayerScoreboard.Entry> entries = new ArrayList<>();
+
+		@Override
+		public void writeLine(int line, Component name, NumberFormat numberFormat) {
+			entries.add(new PlayerScoreboard.Entry(name, Optional.of("LINE_" + line), 100 - line, Optional.of(numberFormat)));
+		}
+
+		public List<PlayerScoreboard.Entry> getEntries() {
+			return entries;
+		}
 	}
 
 	@Override
