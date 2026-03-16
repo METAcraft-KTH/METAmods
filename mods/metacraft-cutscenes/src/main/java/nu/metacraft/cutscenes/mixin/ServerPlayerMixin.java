@@ -132,9 +132,6 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 	@Inject(method = "disconnect", at = @At("HEAD"))
 	public void onDisconnect(CallbackInfo ci) {
 		MultiplayerCutsceneManager.getInstance(level().getServer()).onPlayerLeave((ServerPlayer) (Object) this);
-		if (cutscene != null) {
-			cutscene.close();
-		}
 	}
 
 	@Inject(method = "readAdditionalSaveData", at = @At("RETURN"))

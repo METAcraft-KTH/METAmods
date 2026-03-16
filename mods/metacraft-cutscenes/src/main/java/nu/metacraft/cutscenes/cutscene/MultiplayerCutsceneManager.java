@@ -230,12 +230,6 @@ public class MultiplayerCutsceneManager extends SavedData {
 		}
 	}
 
-	public void onServerShutdown() {
-		for (var cutscene : activeCutscenes.values()) {
-			cutscene.close();
-		}
-	}
-
 	public void tick() {
 		activeCutscenes.forEach((name, scene) -> {
 			scene.tick();
