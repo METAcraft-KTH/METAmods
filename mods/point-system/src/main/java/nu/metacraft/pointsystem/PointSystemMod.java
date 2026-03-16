@@ -3,6 +3,7 @@ package nu.metacraft.pointsystem;
 import com.mojang.logging.LogUtils;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
@@ -30,6 +31,9 @@ public class PointSystemMod implements ModInitializer {
 				}
 				pointSystem = null;
 			}
+		});
+		ServerPlayerEvents.JOIN.register(player -> {
+			pointSystem.updatePlayerScore(player);
 		});
 	}
 

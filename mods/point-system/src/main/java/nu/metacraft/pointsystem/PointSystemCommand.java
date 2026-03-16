@@ -1,6 +1,7 @@
 package nu.metacraft.pointsystem;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -92,6 +93,12 @@ public class PointSystemCommand {
 				.then(
 					literal("renderAll")
 						.executes(this::renderAll)
+				).then(
+					literal("show-own-scores").then(
+						argument("value", BoolArgumentType.bool()).executes(
+								ctx -> showOwnScores(ctx, BoolArgumentType.getBool(ctx, "value"))
+						)
+					)
 				)
 				.then(
 					literal("excludedMinigameIds")
@@ -308,6 +315,12 @@ public class PointSystemCommand {
 			});
 		});
 
+		return 1;
+	}
+
+	private int showOwnScores(CommandContext<CommandSourceStack> ctx, boolean value) throws CommandSyntaxException {
+		PointSystem pointSystem = getPointSystem(ctx);
+		pointSystem.setShowOwnScores(value);
 		return 1;
 	}
 

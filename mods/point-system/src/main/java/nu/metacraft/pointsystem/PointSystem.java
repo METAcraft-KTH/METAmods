@@ -20,16 +20,17 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerScoreboard;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.NameAndId;
-import net.minecraft.world.scores.Objective;
-import net.minecraft.world.scores.ScoreAccess;
-import net.minecraft.world.scores.ScoreHolder;
+import net.minecraft.world.scores.*;
 import net.minecraft.world.scores.criteria.ObjectiveCriteria;
+import nu.metacraft.player_specific_scoreboards.PlayerScoreboards;
+import nu.metacraft.player_specific_scoreboards.util.PlayerScoreboard;
 import nu.metacraft.pointsystem.mixin.UtilAccessor;
 
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 public class PointSystem implements AutoCloseable {
 	// https://open.kattis.com/info/ranklist#combinedscore
@@ -65,6 +66,8 @@ public class PointSystem implements AutoCloseable {
 
 	private final MinecraftServer server;
 	private final Connection dbConnection;
+
+	private boolean showOwnScores = false;
 
 	private void setUUID(PreparedStatement statement, int index, UUID uuid) throws SQLException {
 		statement.setObject(index, uuid);
@@ -281,6 +284,10 @@ public class PointSystem implements AutoCloseable {
 		});
 	}
 
+	public void setShowOwnScores(boolean showOwnScores) {
+		this.showOwnScores = showOwnScores;
+	}
+
 	@FunctionalInterface
 	public interface SQLConsumer<T> {
 		void accept(T var1) throws SQLException;
@@ -373,6 +380,32 @@ public class PointSystem implements AutoCloseable {
 					minigameIds.add(result.getInt(1));
 				}
 				return minigameIds;
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}, executor);
+	}
+
+	private CompletableFuture<List<PointTeam>> getTeamsForPlayer(UUID playerID) {
+		return CompletableFuture.supplyAsync(() -> {
+			try (
+					var statement = dbConnection.prepareStatement(
+							"select " + TEAMS_TABLE + "." + TEAM_ID + ", type, code, short_name, full_name from " +
+								TEAMS_TABLE + " inner join " + PLAYER_TEAMS_TABLE + " on " +
+								PLAYER_TEAMS_TABLE + "." + TEAM_ID + " = " + TEAMS_TABLE + "." + TEAM_ID +
+								" where " + PLAYER_ID + " = ?"
+					)
+			) {
+				setUUID(statement, 1, playerID);
+				List<PointTeam> teams = new ArrayList<>();
+				var result = statement.executeQuery();
+				while (result.next()) {
+					teams.add(new PointTeam(
+							result.getInt(1), result.getString(2), result.getString(3),
+							result.getString(4), result.getString(5)
+					));
+				}
+				return teams;
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
@@ -485,6 +518,7 @@ public class PointSystem implements AutoCloseable {
 			score.set(points);
 			score.display(Component.literal(team.shortName()));
 		}
+		updateAllPlayerScores();
 	}
 
 	private ScoreHolder getPlayerScoreHolder(UUID uuid) {
@@ -515,6 +549,7 @@ public class PointSystem implements AutoCloseable {
 			ScoreAccess score = scoreboard.getOrCreatePlayerScore(scoreHolder, objective);
 			score.set(points);
 		}
+		updateAllPlayerScores();
 	}
 
 	private void setScoreLine(int line, Component name, int points, ServerScoreboard scoreboard, Objective objective) {
@@ -577,6 +612,71 @@ public class PointSystem implements AutoCloseable {
 			int points = playerPoints.getPoints(playerUuid);
 			ScoreHolder scoreHolder = getPlayerScoreHolder(playerUuid);
 			setScoreLine(lineNr, scoreHolder.getFeedbackDisplayName(), points, scoreboard, objective);
+		}
+		updateAllPlayerScores();
+	}
+
+	private void updateAllPlayerScores() {
+		for (var player : server.getPlayerList().getPlayers()) {
+			updatePlayerScore(player);
+		}
+	}
+
+	private boolean matchesAnyTeam(List<PointTeam> teams, PlayerScoreEntry score) {
+		for (var team : teams) {
+			if (score.owner().equals(team.code()) || score.ownerName().getString().equals(team.shortName())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public void updatePlayerScore(ServerPlayer player) {
+		if (player.getTags().contains("metacraft.has_another_player_sidebar")) return;
+		if (showOwnScores) {
+			var scoreboard = player.level().getScoreboard();
+			var sidebar = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
+			if (sidebar != null) {
+				List<PlayerScoreboard.Entry> myEntries = new ArrayList<>();
+				List<PlayerScoreboard.Entry> otherEntries = new ArrayList<>();
+				getTeamsForPlayer(player.getUUID()).thenAccept(teams -> {
+					server.execute(() -> {
+						for (var score : scoreboard.listPlayerScores(sidebar)) {
+							if (score.owner().equals(player.getScoreboardName()) || score.ownerName().getString().equals(player.getDisplayName().getString())) {
+								myEntries.add(new PlayerScoreboard.Entry(
+										score.ownerName().copy().withStyle(style -> style.withBold(true).withColor(ChatFormatting.GREEN)), Optional.of(score.owner()),
+										score.value(), Optional.ofNullable(score.numberFormatOverride())
+								));
+							} else if (matchesAnyTeam(teams, score)) {
+								myEntries.add(new PlayerScoreboard.Entry(
+										score.ownerName().copy().withStyle(style -> style.withBold(true).withColor(ChatFormatting.AQUA)), Optional.of(score.owner()),
+										score.value(), Optional.ofNullable(score.numberFormatOverride())
+								));
+							} else {
+								otherEntries.add(new PlayerScoreboard.Entry(
+										score.ownerName(), Optional.of(score.owner()),
+										score.value(), Optional.ofNullable(score.numberFormatOverride())
+								));
+							}
+						}
+						PlayerScoreboards.setPlayerScoreboard(
+								player,
+								new PlayerScoreboard(
+										sidebar.getDisplayName(), Optional.ofNullable(sidebar.numberFormat()),
+										Stream.concat(
+												myEntries.stream(),
+												otherEntries.stream().sorted(
+														Comparator.comparing(PlayerScoreboard.Entry::value)
+												).limit(15 - myEntries.size())
+										).toList()
+								)
+						);
+					});
+				});
+
+			} else {
+				PlayerScoreboards.clearPlayerScoreboard(player);
+			}
 		}
 	}
 
