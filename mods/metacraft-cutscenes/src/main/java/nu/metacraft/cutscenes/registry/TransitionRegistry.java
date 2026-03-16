@@ -20,10 +20,6 @@ public class TransitionRegistry {
 			Transition::getType, TransitionType::codec
 	);
 
-	public static final TransitionType<MovingTransition> MOVING_TRANSITION = register(
-			"moving", MovingTransition.CODEC
-	);
-
 	public static final TransitionType<SmoothCameraPathTransition> CAMERA_PATH = register(
 			"camera_path", SmoothCameraPathTransition.CODEC
 	);

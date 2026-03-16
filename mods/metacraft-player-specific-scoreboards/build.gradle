@@ -1,0 +1,3 @@
+version = project.player_specific_scoreboards_version
+
+addCoreDependencies()

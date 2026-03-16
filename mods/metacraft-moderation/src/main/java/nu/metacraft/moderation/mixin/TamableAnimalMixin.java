@@ -22,7 +22,7 @@ public class TamableAnimalMixin {
 		if (owner instanceof ModerationPlayerData player) {
 			if (
 					player.METAcraft_Moderation$getModerationMode().map(
-							mode -> mode.getDef().preventTamedMobFollow()
+							mode -> !mode.getDef().followedByTamedMobs()
 					).orElse(false)
 			) {
 				return true;

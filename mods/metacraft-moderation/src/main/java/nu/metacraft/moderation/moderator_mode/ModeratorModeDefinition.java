@@ -5,21 +5,46 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
+import nu.metacraft.lib.util.METACodecs;
 
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class ModeratorModeDefinition {
 
-	public static final String NAME = "Name";
+	public static final String NAME = "name";
 
-	public static final MapCodec<ModeratorModeDefinition> CODEC = RecordCodecBuilder.mapCodec(
+	protected static final MapCodec<ModeratorModeDefinition> MODERN_CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codec.STRING.fieldOf(NAME).forGetter(ModeratorModeDefinition::getName),
+					Codec.BOOL.fieldOf("separate_player_data").forGetter(ModeratorModeDefinition::shouldHaveSeparatePlayerData),
+					Codec.STRING.optionalFieldOf("enter_command").forGetter(ModeratorModeDefinition::getEnterCommand),
+					Codec.STRING.optionalFieldOf("exit_command").forGetter(ModeratorModeDefinition::getExitCommand),
+					Codec.BOOL.optionalFieldOf("announce_advancements", true).forGetter(ModeratorModeDefinition::announceAdvancements),
+					Codec.BOOL.fieldOf("vanish").forGetter(d -> d.vanish),
+					Codec.BOOL.optionalFieldOf("followed_by_tamed_mobs", true).forGetter(d -> d.followedByTamedMobs),
+					Codec.BOOL.optionalFieldOf("visible_to_entity_selectors", true).forGetter(d -> d.visibleToEntitySelectors),
+					Codec.BOOL.optionalFieldOf("grant_advancements", true).forGetter(d -> d.grantAdvancements)
+			).apply(instance, ModeratorModeDefinition::new)
+	);
+
+	private static final MapCodec<ModeratorModeDefinition> LEGACY_CODEC = RecordCodecBuilder.mapCodec(
+			instance -> instance.group(
+					Codec.STRING.fieldOf("Name").forGetter(ModeratorModeDefinition::getName),
 					Codec.BOOL.fieldOf("SeparatePlayerData").forGetter(ModeratorModeDefinition::shouldHaveSeparatePlayerData),
 					Codec.STRING.optionalFieldOf("EnterCommand").forGetter(ModeratorModeDefinition::getEnterCommand),
 					Codec.STRING.optionalFieldOf("ExitCommand").forGetter(ModeratorModeDefinition::getExitCommand),
 					Codec.BOOL.optionalFieldOf("AnnounceAdvancements", true).forGetter(ModeratorModeDefinition::announceAdvancements),
 					Codec.BOOL.fieldOf("Vanish").forGetter(d -> d.vanish),
-					Codec.BOOL.optionalFieldOf("PreventTamedMobFollow", false).forGetter(d -> d.preventTamedMobFollow)
-			).apply(instance, ModeratorModeDefinition::new)
+					Codec.BOOL.optionalFieldOf("PreventTamedMobFollow", false).forGetter(d -> !d.followedByTamedMobs)
+			).apply(
+					instance,
+					(name, data, enter, exit, adv, vanish, preventTame) -> new ModeratorModeDefinition(
+							name, data, enter, exit, adv, vanish, !preventTame, true, true
+					)
+			)
+	);
+
+	public static final MapCodec<ModeratorModeDefinition> CODEC = METACodecs.withAlternative(
+			MODERN_CODEC, LEGACY_CODEC
 	);
 
 	protected String name;
@@ -28,12 +53,17 @@ public class ModeratorModeDefinition {
 	protected boolean separatePlayerData;
 	protected boolean announceAdvancements;
 	protected boolean vanish;
-	protected boolean preventTamedMobFollow;
+	protected boolean followedByTamedMobs;
+	protected boolean visibleToEntitySelectors;
+	protected boolean grantAdvancements;
 
 	private Runnable markSave = () -> {};
 
 	public ModeratorModeDefinition(
-			String name, boolean separatePlayerData, Optional<String> enterCommand, Optional<String> exitCommand, boolean announceAdvancements, boolean vanish, boolean preventTamedMobFollow
+			String name, boolean separatePlayerData, Optional<String> enterCommand,
+			Optional<String> exitCommand, boolean announceAdvancements, boolean vanish,
+			boolean followedByTamedMobs, boolean visibleToEntitySelectors,
+			boolean grantAdvancements
 	) {
 		this.name = name;
 		this.separatePlayerData = separatePlayerData;
@@ -41,13 +71,15 @@ public class ModeratorModeDefinition {
 		this.exitCommand = exitCommand;
 		this.announceAdvancements = announceAdvancements;
 		this.vanish = vanish;
-		this.preventTamedMobFollow = preventTamedMobFollow;
+		this.followedByTamedMobs = followedByTamedMobs;
+		this.visibleToEntitySelectors = visibleToEntitySelectors;
+		this.grantAdvancements = grantAdvancements;
 	}
 
 	public ModeratorModeDefinition(
-			String name, boolean separatePlayerData, boolean announceAdvancements, boolean vanish, boolean preventTamedMobFollow
+			String name, boolean separatePlayerData, boolean announceAdvancements, boolean vanish, boolean followedByTamedMobs
 	) {
-		this(name, separatePlayerData, Optional.empty(), Optional.empty(), announceAdvancements, vanish, preventTamedMobFollow);
+		this(name, separatePlayerData, Optional.empty(), Optional.empty(), announceAdvancements, vanish, followedByTamedMobs, true, true);
 	}
 
 	public void setSave(Runnable markSave) {
@@ -55,7 +87,7 @@ public class ModeratorModeDefinition {
 	}
 
 	public ModeratorModeDefinition(String name) {
-		this(name, false, Optional.empty(), Optional.empty(), true, false, false);
+		this(name, false, Optional.empty(), Optional.empty(), true, false, false, true, true);
 	}
 
 	public void setVanish(boolean vanish) {
@@ -68,13 +100,13 @@ public class ModeratorModeDefinition {
 		markDirty();
 	}
 
-	public void setPreventTamedMobFollow(boolean preventTamedAnimalFollow) {
-		this.preventTamedMobFollow = preventTamedAnimalFollow;
+	public void setFollowedByTamedMobs(boolean preventTamedAnimalFollow) {
+		this.followedByTamedMobs = preventTamedAnimalFollow;
 		markDirty();
 	}
 
-	public boolean preventTamedMobFollow() {
-		return preventTamedMobFollow;
+	public boolean followedByTamedMobs() {
+		return followedByTamedMobs;
 	}
 
 	public void setEnterCommand(String enterCommand) {
@@ -89,6 +121,16 @@ public class ModeratorModeDefinition {
 
 	public void setAnnounceAdvancements(boolean announceAdvancements) {
 		this.announceAdvancements = announceAdvancements;
+		markDirty();
+	}
+
+	public void setVisibleToEntitySelectors(boolean visibleToEntitySelectors) {
+		this.visibleToEntitySelectors = visibleToEntitySelectors;
+		markDirty();
+	}
+
+	public void setGrantAdvancements(boolean grantAdvancements) {
+		this.grantAdvancements = grantAdvancements;
 		markDirty();
 	}
 
@@ -112,11 +154,19 @@ public class ModeratorModeDefinition {
 		return announceAdvancements;
 	}
 
+	public boolean visibleToEntitySelectors() {
+		return visibleToEntitySelectors;
+	}
+
+	public boolean grantAdvancements() {
+		return grantAdvancements;
+	}
+
 	public Component toText() {
 		String builder = "Name: " + name + "\n" +
 				"SeparatePlayerData: " + separatePlayerData + "\n" +
 				"Vanish: " + vanish + "\n" +
-				"PreventTamedAnimalFollow: " + preventTamedMobFollow + "\n" +
+				"FollowedByTamedMobs: " + followedByTamedMobs + "\n" +
 				"EnterCommand: " + (enterCommand != null ? enterCommand : "None") + "\n" +
 				"ExitCommand: " + (exitCommand != null ? exitCommand : "None") + "\n";
 		return Component.literal(builder);

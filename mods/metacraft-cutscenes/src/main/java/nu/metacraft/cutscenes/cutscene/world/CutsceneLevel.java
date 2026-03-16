@@ -205,10 +205,6 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 			var team = scoreboard.addPlayerTeam("metacraft_cutscenes_empty_player_holder");
 			team.setNameTagVisibility(Team.Visibility.NEVER);
 			scoreboard.addPlayerToTeam("", team);
-
-			if (cutscene.getCutscene().getScoreboardMode() != Cutscene.ScoreboardMode.SYNC) {
-				persistentStateManager.computeIfAbsent(ScoreboardSaveData.TYPE);
-			}
 		}
 	}
 
@@ -365,6 +361,14 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 		if (this.persistentStorage != null) {
 			persistentStateManager.saveAndReload();
 			this.persistentStorage.merge(data.persistentStateStorage());
+
+			if (cutscene.getCutscene().getScoreboardMode() != Cutscene.ScoreboardMode.SYNC) {
+				var scoreboardData = persistentStateManager.get(ScoreboardSaveData.TYPE);
+				//noinspection ConstantValue Not sure why IntelliJ seems to think this is never null because it very much can be...
+				if (scoreboardData != null) {
+					scoreboard.load(scoreboardData.getData());
+				}
+			}
 		}
 
 		var blocks = data.blocks().parse(world.registryAccess());
@@ -381,6 +385,9 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 	}
 
 	public CutsceneWorldData save() {
+		if (cutscene.getCutscene().getScoreboardMode() != Cutscene.ScoreboardMode.SYNC) {
+			scoreboard.storeToSaveDataIfDirty(persistentStateManager.computeIfAbsent(ScoreboardSaveData.TYPE));
+		}
 		persistentStateManager.saveAndJoin();
 		return new CutsceneWorldData(
 				entities.save(), saveAsStructure(), saveLevelProperties(), persistentStorage

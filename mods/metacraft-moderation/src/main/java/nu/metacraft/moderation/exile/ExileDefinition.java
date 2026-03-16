@@ -27,8 +27,8 @@ public class ExileDefinition {
 	public static final String NAME = "name";
 
 	protected final Multimap<RealZone, ZoneRule> zoneRules = HashMultimap.create();
-	protected String commandOnExile = "tellraw @s {\"text\":\"Exiled\"}"; //TODO Save this!
-	protected String commandOnPardon = "tellraw @s {\"text\":\"Pardoned\"}"; //TODO Save this!
+	protected String commandOnExile = "tellraw @s {\"text\":\"Exiled\"}";
+	protected String commandOnPardon = "tellraw @s {\"text\":\"Pardoned\"}";
 	protected String name;
 	private final MinecraftServer server;
 	private Runnable markNeedsSaving;
@@ -118,7 +118,7 @@ public class ExileDefinition {
 						)
 				).collect(Multimaps.toMultimap(
 						Pair::getFirst, Pair::getSecond, HashMultimap::create
-				)), name
+				)), name, commandOnExile, commandOnPardon
 		);
 	}
 
@@ -134,6 +134,8 @@ public class ExileDefinition {
 				);
 			}
 		}
+		this.commandOnExile = serialized.exileCommand;
+		this.commandOnPardon = serialized.pardonCommand;
 	}
 
 	public Component toText() {
@@ -166,7 +168,9 @@ public class ExileDefinition {
 
 	public record Serialized(
 			Multimap<String, ZoneRule> zoneRules,
-			String name
+			String name,
+			String exileCommand,
+			String pardonCommand
 	) {
 		public static final Codec<Serialized> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
@@ -174,7 +178,9 @@ public class ExileDefinition {
 								Codec.STRING, ZoneRuleRegistry.REGISTRY.byNameCodec(),
 								HashMultimap::create
 						).optionalFieldOf("zone_rules", HashMultimap.create()).forGetter(Serialized::zoneRules),
-						Codec.STRING.fieldOf(NAME).forGetter(Serialized::name)
+						Codec.STRING.fieldOf(NAME).forGetter(Serialized::name),
+						Codec.STRING.fieldOf("exile_command").forGetter(Serialized::exileCommand),
+						Codec.STRING.fieldOf("pardon_command").forGetter(Serialized::pardonCommand)
 				).apply(instance, Serialized::new)
 		);
 	}

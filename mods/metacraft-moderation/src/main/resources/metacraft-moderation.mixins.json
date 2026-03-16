@@ -1,12 +1,13 @@
 {
-  "required": true,
-  "package": "nu.metacraft.moderation.mixin",
-  "compatibilityLevel": "JAVA_21",
-  "mixins": [
-	  "ServerPlayerMixin",
-	  "TamableAnimalMixin"
-  ],
-  "injectors": {
-    "defaultRequire": 1
-  }
+	"required": true,
+	"package": "nu.metacraft.moderation.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"EntitySelectorMixin",
+		"ServerPlayerMixin",
+		"TamableAnimalMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
 }

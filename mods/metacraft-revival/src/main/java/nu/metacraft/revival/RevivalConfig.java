@@ -1,6 +1,7 @@
 package nu.metacraft.revival;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.advancements.criterion.MinMaxBounds;
@@ -15,9 +16,9 @@ import net.minecraft.world.level.storage.loot.IntRange;
 import net.minecraft.world.level.storage.loot.predicates.AllOfCondition;
 import net.minecraft.world.level.storage.loot.predicates.AnyOfCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import nu.metacraft.lib.config.ObjectStorage;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.container.ServerAware;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,18 +28,16 @@ public record RevivalConfig(
 		int reviveDuration,
 		boolean itemPickup,
 		boolean xpPickup,
-		ReviveEffects reviveEffects,
-		ObjectStorage<Holder<LootItemCondition>> reviveCondition
+		ReviveEffects reviveEffects
 ) {
 
-	public static final Codec<RevivalConfig> CODEC = RecordCodecBuilder.create(
+	public static final MapCodec<RevivalConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					ExtraCodecs.POSITIVE_INT.optionalFieldOf("max_wait_time").forGetter(RevivalConfig::maxWaitTime),
 					ExtraCodecs.NON_NEGATIVE_INT.fieldOf("revive_duration").forGetter(RevivalConfig::reviveDuration),
 					Codec.BOOL.fieldOf("item_pickup").forGetter(RevivalConfig::itemPickup),
 					Codec.BOOL.fieldOf("xp_pickup").forGetter(RevivalConfig::xpPickup),
-					ReviveEffects.CODEC.fieldOf("revive_effects").forGetter(RevivalConfig::reviveEffects),
-					ObjectStorage.createCodec(LootItemCondition.CODEC).fieldOf("revive_condition").forGetter(RevivalConfig::reviveCondition)
+					ReviveEffects.CODEC.fieldOf("revive_effects").forGetter(RevivalConfig::reviveEffects)
 			).apply(instance, RevivalConfig::new)
 	);
 
@@ -68,7 +67,7 @@ public record RevivalConfig(
 		}
 	}
 
-	private static final ServerAware<ConfigContainer<RevivalConfig>, WorldData> CONFIG = ConfigContainer.Builder.create(
+	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<RevivalConfig, WorldData>>, WorldData> CONFIG = ConfigContainer.Builder.create(
 			CODEC, () -> new RevivalConfig(
 					Optional.of(2400), 200, false, false, new ReviveEffects(
 							ConstantFloat.of(1.0f), IntRange.lowerBound(10),
@@ -76,24 +75,24 @@ public record RevivalConfig(
 							List.of(
 									new MobEffectInstance(MobEffects.HUNGER, 30*20)
 							)
-					),
-					ObjectStorage.fromValue(LootItemCondition.CODEC, getDefaultReviveCondition())
+					)
 			)
-	).reloadAfterServer().buildRegistryAware(
-			FabricLoader.getInstance().getConfigDir().resolve("metacraft-revival.json"),
-			(config, server) -> new WorldData(
-					config.reviveCondition.parse(server.reloadableRegistries().lookup()).resultOrPartial(
-							METAcraftRevival.LOGGER::error
-					).orElse(getDefaultReviveCondition())
-			)
+	).reloadAfterServer().makeRegistryAware(
+			WorldData.CODEC
+	).refreshOnReload().setInitializer(() -> new WorldData(getDefaultReviveCondition())).build(
+			FabricLoader.getInstance().getConfigDir().resolve("metacraft-revival.json")
 	);
 
-	public record WorldData(Holder<LootItemCondition> reviveCondition) {
-
+	public record WorldData(Holder<@NotNull LootItemCondition> reviveCondition) {
+		public static final MapCodec<WorldData> CODEC = RecordCodecBuilder.mapCodec(
+				instance -> instance.group(
+						LootItemCondition.CODEC.lenientOptionalFieldOf("revive_condition", getDefaultReviveCondition()).forGetter(WorldData::reviveCondition)
+				).apply(instance, WorldData::new)
+		);
 	}
 
 	public static RevivalConfig getConfig() {
-		return CONFIG.getContainer().get();
+		return CONFIG.getContainer().get().staticValues();
 	}
 
 	public static WorldData getConfig(MinecraftServer server) {

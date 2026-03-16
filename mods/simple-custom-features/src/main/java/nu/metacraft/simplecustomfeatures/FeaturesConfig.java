@@ -19,6 +19,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.component.Consumables;
 import net.minecraft.world.item.component.DamageResistant;
+import nu.metacraft.lib.config.ObjectStorage;
 import nu.metacraft.lib.config.container.MultiFileConfigContainer;
 import nu.metacraft.lib.config.container.ReloadCause;
 import nu.metacraft.lib.config.container.ServerAware;
@@ -119,8 +120,9 @@ public record FeaturesConfig(
 							}
 					)
 			),
-			(config, server) -> new WorldSpecificEntries(config.get().objects, server.registryAccess()),
-			(oldConfig, newConfig, cause) -> oldConfig
+			(config, server) -> DataResult.success(new WorldSpecificEntries(config.get().objects, server.registryAccess())),
+			(oldConfig, newConfig, cause) -> oldConfig,
+			() -> ObjectStorage.fromValue(MapCodec.unitCodec(WorldSpecificEntries.EMPTY), WorldSpecificEntries.EMPTY, false)
 	);
 
 	public FeaturesConfig(
@@ -194,6 +196,13 @@ public record FeaturesConfig(
 
 		private final Multimap<ResourceKey<? extends Registry<?>>, ObjectContainer.Loaded<?>> loadedObjects;
 		private final List<ObjectContainer.Loaded<?>> objectsRegistered;
+
+		public static final WorldSpecificEntries EMPTY = new WorldSpecificEntries();
+
+		private WorldSpecificEntries() {
+			this.objectsRegistered = new ArrayList<>();
+			this.loadedObjects = Multimaps.newMultimap(Map.of(), List::of);
+		}
 
 		protected WorldSpecificEntries(
 				Multimap<ResourceKey<? extends Registry<?>>, ObjectContainer> objectMap,

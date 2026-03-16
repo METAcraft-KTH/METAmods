@@ -1,0 +1,16 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "nu.metacraft.player_specific_scoreboards.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"PlayerListMixin",
+		"ServerCommonPacketListenerImplMixin",
+		"ServerPlayerMixin"
+	],
+	"client": [
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

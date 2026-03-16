@@ -23,8 +23,8 @@ public class ModerationModeState {
 		new ModeratorModeDefinition("null", false, true, false, false)
 	);
 
-	private static final String DEF = "Definition";
-	private static final String PLAYER_NBT = "PlayerNBT";
+	private static final String DEF = "definition";
+	private static final String PLAYER_NBT = "player_data";
 
 	protected ModeratorModeDefinition def;
 	protected CompoundTag playerNBT;
@@ -77,7 +77,11 @@ public class ModerationModeState {
 				Optional.ofNullable(((ModerationPlayerData) player).METAcraft_Moderation$getSavedNBT().get(def.getName())).ifPresent(newNbt::merge);
 				var readView = TagValueInput.create(logging, player.registryAccess(), newNbt);
 				PlayerDataHelper.applyPlayerData(player, readView, false);
-				PlayerDataHelper.setAdvancementTracker(player, getFromDef(def), false);
+				if (def.grantAdvancements()) {
+					PlayerDataHelper.setAdvancementTracker(player, getFromDef(def), false);
+				} else {
+					PlayerDataHelper.removeAdvancementTracker(player);
+				}
 				PlayerDataHelper.setStatHandler(player, getFromDef(def), false);
 				if (!def.announceAdvancements) {
 					PlayerDataHelper.setAnnounceAdvancements(player, false);
@@ -93,6 +97,12 @@ public class ModerationModeState {
 
 			if (!prev.def.shouldHaveSeparatePlayerData() && !def.shouldHaveSeparatePlayerData()) {
 				PlayerDataHelper.setAnnounceAdvancements(player, def.announceAdvancements);
+				if (def.grantAdvancements() && !prev.def.grantAdvancements()) {
+					PlayerDataHelper.restoreAdvancementTracker(player);
+				}
+				if (!def.grantAdvancements() && prev.def.grantAdvancements()) {
+					PlayerDataHelper.removeAdvancementTracker(player);
+				}
 			}
 
 			if (!applyVanishBeforeData) {
@@ -132,10 +142,21 @@ public class ModerationModeState {
 	}
 
 	public void fromNBT(ModerationData data, CompoundTag nbt) {
-		this.playerNBT = nbt.getCompound(PLAYER_NBT).orElse(null);
-		var defName = nbt.getString(DEF).map(
-				name -> name.toLowerCase(Locale.ROOT)
-		);
+		if (nbt.contains(PLAYER_NBT)) {
+			this.playerNBT = nbt.getCompound(PLAYER_NBT).orElse(null);
+		} else {
+			this.playerNBT = nbt.getCompound("PlayerNBT").orElse(null);
+		}
+		Optional<String> defName;
+		if (nbt.contains(DEF)) {
+			defName = nbt.getString(DEF).map(
+					name -> name.toLowerCase(Locale.ROOT)
+			);
+		} else {
+			defName = nbt.getString("Definition").map(
+					name -> name.toLowerCase(Locale.ROOT)
+			);
+		}
 		def = defName.flatMap(
 				data::getDefinition
 		).orElseGet(() -> {

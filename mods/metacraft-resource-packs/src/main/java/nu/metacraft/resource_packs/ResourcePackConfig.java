@@ -5,6 +5,7 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.UUIDUtil;
@@ -39,7 +40,7 @@ public class ResourcePackConfig implements Modifiable, LoadAware {
 	public static final Path RESOURCE_PACK_DIR = configDir.resolve("resource-packs");
 	public static final Path RP_UPDATE_DIR = RESOURCE_PACK_DIR.resolve("update");
 
-	public static final Codec<ResourcePackConfig> CODEC = RecordCodecBuilder.create(
+	public static final MapCodec<ResourcePackConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codec.unboundedMap(UUIDUtil.STRING_CODEC, ResourcePack.CODEC).fieldOf("resource_packs").forGetter(
 							c -> c.resourcePacks

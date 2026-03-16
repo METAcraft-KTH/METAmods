@@ -5,7 +5,6 @@ import com.google.common.collect.HashBiMap;
 import com.mojang.datafixers.DataFixer;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
@@ -37,7 +36,6 @@ import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.mixin.PlayerListAccessor;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneWorldData;
-import nu.metacraft.cutscenes.transitions.DeltaTickTransition;
 import nu.metacraft.cutscenes.transitions.HideOtherPlayersTransition;
 import nu.metacraft.cutscenes.util.IntervalMap;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
@@ -56,34 +54,12 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-public class CutsceneInstance implements AutoCloseable {
-
-	private static Timer timer;
+public class CutsceneInstance {
 
 	public static final String CUTSCENE = "cutscene"; //Careful, this is used by the datafixer!
 
 	public static final String PLAYER_ITEM = "player_item";
 	public static final String PLAYER_DUMMY_TAG = "metacraft_cutscenes.is_player_dummy";
-
-	public static void init() {
-		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			initTimer();
-		});
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-			removeTimer();
-		});
-	}
-
-	private static void initTimer() {
-		if (timer == null) {
-			timer = new Timer();
-		}
-	}
-
-	private static void removeTimer() {
-		timer.cancel();
-		timer = null;
-	}
 
 	private static final Codec<Map<UUID, CompoundTag>> SAVED_DATA_CODEC = Codec.unboundedMap(UUIDUtil.STRING_CODEC, CompoundTag.CODEC);
 
@@ -148,7 +124,6 @@ public class CutsceneInstance implements AutoCloseable {
 		this.savedPlayerData = new HashMap<>(savedPlayerData);
 		this.ended = ended;
 		this.dim = dim;
-		getTransitions().getIntervalsAt(getCurrentTime()).forEach(this::setupSmooth);
 	}
 
 	public CutsceneLevel getCutsceneWorld() {
@@ -510,38 +485,6 @@ public class CutsceneInstance implements AutoCloseable {
 		swapScoreboards(player, world.getScoreboard(), world.getActualWorld().getScoreboard());
 	}
 
-	private void setupSmooth(IntervalMap.Interval<Transition> interval) {
-		if (interval.getObject() instanceof DeltaTickTransition deltaTick) {
-			if (deltaTick.getTask() != null) return;
-			TimerTask task = new TimerTask() {
-
-				private long prev = -1;
-
-				@Override
-				public void run() {
-					var currentTime = System.currentTimeMillis();
-					if (shouldTick()) {
-						deltaTick.setProgress(deltaTick.getProgress() + (prev == -1 ? 0 : currentTime - prev));
-					}
-					float delta = Math.min((float) deltaTick.getProgress() / (interval.getLength() * 50), 1);
-					deltaTick.tickDelta(CutsceneInstance.this, interval, delta);
-					prev = currentTime;
-				}
-			};
-			deltaTick.setTask(task);
-			timer.schedule(task, 0, deltaTick.getInterval());
-		}
-	}
-
-	private void deactivateSmooth(IntervalMap.Interval<Transition> interval) {
-		if (interval.getObject() instanceof DeltaTickTransition deltaTick) {
-			var ticker = deltaTick.getTask();
-			if (ticker != null) {
-				ticker.cancel();
-			}
-		}
-	}
-
 	public void onEntityRemoved(Entity entity) {
 		var dummyToPlayer = playerDummies.inverse();
 		if (dummyToPlayer.containsKey(entity.getUUID())) {
@@ -579,11 +522,9 @@ public class CutsceneInstance implements AutoCloseable {
 					if (interval.getStart() == time) {
 						interval.getObject().activate(this, interval);
 						forAllPlayers(player -> interval.getObject().activate(player, this, interval));
-						setupSmooth(interval);
 					}
 					interval.getObject().tick(this, interval);
 					if (interval.getEnd() == time) {
-						deactivateSmooth(interval);
 						interval.getObject().deactivate(this, interval);
 						forAllPlayers(player -> interval.getObject().deactivate(player, this, interval));
 					}
@@ -626,17 +567,6 @@ public class CutsceneInstance implements AutoCloseable {
 
 	public boolean isEnded() {
 		return ended;
-	}
-
-	@Override
-	public void close() {
-		getTransitions().getIntervalsAt(getCurrentTime()).forEach(this::deactivateSmooth);
-	}
-
-	public record QueueEntry(ServerPlayer player, Operation operation) {
-		public enum Operation {
-			ADD, REMOVE
-		}
 	}
 
 	public interface RemoveHandler {

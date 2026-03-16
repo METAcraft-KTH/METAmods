@@ -12,6 +12,7 @@ public class Commands {
 			CustomNameCommand.register(dispatcher, registryAccess);
 			PlaySoundFromEntity.register(dispatcher, registryAccess);
 			PlayerDataCommand.register(dispatcher, registryAccess);
+			DataFixerCommands.register(dispatcher, registryAccess);
 		});
 	}
 

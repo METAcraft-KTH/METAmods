@@ -21,10 +21,6 @@ public class TransitionConfigRegistry {
 			TransitionConfig::getConfigType, TransitionConfigType::codec
 	);
 
-	public static final TransitionConfigType<MovingTransitionConfig> MOVING_TRANSITION_CONFIG = register(
-			"moving", MovingTransitionConfig.CODEC
-	);
-
 	public static final TransitionConfigType<SmoothCameraPathConfig> CAMERA_PATH = register(
 			"camera_path", SmoothCameraPathConfig.CODEC
 	);

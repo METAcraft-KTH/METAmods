@@ -22,12 +22,21 @@ public class ModerationData extends SavedData {
 		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
 	}
 
+	private static final Codec<Map<String, ModeratorModeDefinition>> DEF_MAP_CODEC = METACodecs.createListSerializedMap(
+			METACodecs.withAlternative(
+					Codec.STRING.fieldOf(ModeratorModeDefinition.NAME),
+					Codec.STRING.fieldOf("Name")
+			),
+			ModeratorModeDefinition.CODEC,
+			HashMap::new
+	);
+
 	private static final Codec<ModerationData> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-					METACodecs.createListSerializedMap(
-							Codec.STRING.fieldOf(ModeratorModeDefinition.NAME), ModeratorModeDefinition.CODEC,
-							HashMap::new
-					).fieldOf("Definitions").forGetter(d -> d.definitions)
+					METACodecs.withAlternative(
+							DEF_MAP_CODEC.fieldOf("definitions"),
+							DEF_MAP_CODEC.fieldOf("Definitions")
+					).forGetter(d -> d.definitions)
 			).apply(instance, ModerationData::fromData)
 	);
 

@@ -10,7 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.level.storage.LevelResource;
 
-public class SeparateAdvancementTracker extends PlayerAdvancements {
+public class SeparateAdvancementTracker extends PlayerAdvancements implements CustomAdvancementTracker {
 
 	private final Identifier type;
 
@@ -32,6 +32,7 @@ public class SeparateAdvancementTracker extends PlayerAdvancements {
 		this.type = type;
 	}
 
+	@Override
 	public Identifier getType() {
 		return type;
 	}

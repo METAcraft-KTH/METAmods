@@ -33,6 +33,7 @@
 		"MinecraftServerMixin",
 		"MobMixin",
 		"MonsterMixin",
+		"NbtPathAccessor",
 		"NewMinecartBehaviorMixin",
 		"OldMinecartBehaviorMixin",
 		"PlayerAdvancementsAccessor",

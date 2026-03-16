@@ -27,6 +27,7 @@ public class Commands {
 			TechnicalDifficultiesCommand.register(dispatcher, registryAccess);
 			CountdownCommand.register(dispatcher, registryAccess);
 			InhabitedTimeCommand.register(dispatcher, registryAccess);
+			TopOfflineScoresCommand.register(dispatcher, registryAccess);
 		});
 	}
 

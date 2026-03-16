@@ -5,7 +5,6 @@ import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.cutscenes.compat.CompatTransitions;
-import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.entity_ref.EntityRefs;
 import nu.metacraft.cutscenes.registry.ChunkAreaRegistry;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
@@ -21,7 +20,6 @@ public class Cutscenes implements ModInitializer {
 		ChunkAreaRegistry.init();
 		EntityRefs.init();
 		TransitionRegistry.init();
-		CutsceneInstance.init();
 		Commands.init();
 		Events.init();
 		CompatTransitions.init();

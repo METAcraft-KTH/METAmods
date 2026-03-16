@@ -1,6 +1,7 @@
 package nu.metacraft.loot_containers;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import nu.metacraft.loot_containers.containers.events.LootContainerEvent;
@@ -20,14 +21,18 @@ public class LootContainerConfig implements Modifiable {
 	private static final Path configPath = FabricLoader.getInstance().getConfigDir().resolve(METAcraftLootContainers.MODID + ".json");
 
 	//Lazy-initialized because otherwise LootContainerRegistry attempts to access config too early, resulting in null pointer exception (because the initConfig event applies while code is in static block).
-	public static final Codec<LootContainerConfig> CODEC = Codec.lazyInitialized(() -> RecordCodecBuilder.create(instance -> instance.group(
-			Codec.<LootContainerType<?>, LootContainer>dispatchedMap(
-					LootContainerRegistry.REGISTRY.byNameCodec(), key -> key.codec().codec()
+	public static final MapCodec<LootContainerConfig> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+			Codec.lazyInitialized(
+					() -> Codec.<LootContainerType<?>, LootContainer>dispatchedMap(
+							LootContainerRegistry.REGISTRY.byNameCodec(), key -> key.codec().codec()
+					)
 			).fieldOf("defaultContainerData").forGetter(config -> config.defaultContainerData),
-			Codec.<LootContainerEventType<?>, LootContainerEvent>dispatchedMap(
-					LootContainerEventRegistry.REGISTRY.byNameCodec(), key -> key.codec().codec()
+			Codec.lazyInitialized(
+					() -> Codec.<LootContainerEventType<?>, LootContainerEvent>dispatchedMap(
+							LootContainerEventRegistry.REGISTRY.byNameCodec(), key -> key.codec().codec()
+					)
 			).fieldOf("defaultEventData").forGetter(config -> config.defaultEventData)
-	).apply(instance, LootContainerConfig::new)));
+	).apply(instance, LootContainerConfig::new));
 
 	private static final ConfigContainer<LootContainerConfig> config = ConfigContainer.Builder.create(
 			CODEC, LootContainerConfig::new

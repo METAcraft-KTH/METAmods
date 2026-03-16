@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "metacraft-player-specific-scoreboards",
+  "version": "${version}",
+
+  "name": "METAcraft player-specific scoreboards",
+  "description": "Display certain values on the scoreboard per-player.",
+  "authors": [
+    "Acuadragon100"
+  ],
+  "contact": {
+    "sources": "${git_repo}",
+    "homepage": "${website}",
+    "issues": "${issues}"
+  },
+
+  "license": "Apache-2.0",
+  "icon": "assets/metacraft/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "nu.metacraft.player_specific_scoreboards.PlayerScoreboards"
+    ]
+  },
+  "mixins": [
+    "metacraft-player-specific-scoreboards.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "fabric": "*",
+    "metacraft-lib": "*"
+  }
+}
