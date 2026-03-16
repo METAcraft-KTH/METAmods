@@ -12,6 +12,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.commands.arguments.ScoreHolderArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -25,11 +26,7 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.ReadOnlyScoreInfo;
 import net.minecraft.world.scores.ScoreHolder;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -59,6 +56,39 @@ public class PointSystemCommand {
 							literal("i-confirm-that-this-is-dangerous-and-will-reset-all-points")
 								.executes(this::reset)
 						)
+				).then(
+					literal("reset-minigame").then(
+						argument("minigame", IntegerArgumentType.integer()).then(
+							literal("i-confirm-that-this-resets-all-points-for-given-minigame").executes(
+								ctx -> reset(
+									ctx, IntegerArgumentType.getInteger(ctx, "minigame")
+								)
+							)
+						)
+					)
+				).then(
+					literal("reset-player").then(
+						argument("player", GameProfileArgument.gameProfile()).then(
+							literal("i-confirm-that-given-players-will-lose-all-their-points").executes(
+								ctx -> reset(
+									ctx, GameProfileArgument.getGameProfiles(ctx, "player")
+								)
+							)
+						)
+					)
+				).then(
+					literal("reset-minigame-player").then(
+						argument("minigame", IntegerArgumentType.integer()).then(
+							argument("player", GameProfileArgument.gameProfile()).then(
+								literal("i-confirm-that-given-players-will-lose-all-their-points-for-given-minigame").executes(
+									ctx -> reset(
+										ctx, IntegerArgumentType.getInteger(ctx, "minigame"),
+										GameProfileArgument.getGameProfiles(ctx, "player")
+									)
+								)
+							)
+						)
+					)
 				)
 				.then(
 					literal("addpoints")
@@ -273,14 +303,40 @@ public class PointSystemCommand {
 	private int reset(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		PointSystem pointSystem = getPointSystem(ctx);
 		CommandSourceStack source = ctx.getSource();
-		try {
-			pointSystem.resetPoints();
-			source.sendSuccess(() -> Component.literal("Point system data loaded from disk."), true);
-		} catch (Throwable e) {
-			source.sendFailure(Component.literal(e.getMessage()));
-			PointSystemMod.LOGGER.error("Failed to load data", e);
-		}
+		pointSystem.resetPoints();
+		source.sendSuccess(() -> Component.literal("Deleted all points"), true);
 		return 1;
+	}
+
+	private int reset(CommandContext<CommandSourceStack> ctx, int minigame) throws CommandSyntaxException {
+		PointSystem pointSystem = getPointSystem(ctx);
+		CommandSourceStack source = ctx.getSource();
+		pointSystem.resetPoints(minigame);
+		source.sendSuccess(() -> Component.literal("Deleted all points from minigame " + minigame), true);
+		return 1;
+	}
+
+	private String getPlayer(Collection<NameAndId> players) {
+		if (players.size() == 1) {
+			return players.stream().findAny().get().name();
+		}
+		return players.size() + " players";
+	}
+
+	private int reset(CommandContext<CommandSourceStack> ctx, Collection<NameAndId> players) throws CommandSyntaxException {
+		PointSystem pointSystem = getPointSystem(ctx);
+		CommandSourceStack source = ctx.getSource();
+		pointSystem.resetPoints(players.stream().map(NameAndId::id).toList());
+		source.sendSuccess(() -> Component.literal("Deleted all points for " + getPlayer(players)), true);
+		return players.size();
+	}
+
+	private int reset(CommandContext<CommandSourceStack> ctx, int minigame, Collection<NameAndId> players) throws CommandSyntaxException {
+		PointSystem pointSystem = getPointSystem(ctx);
+		CommandSourceStack source = ctx.getSource();
+		pointSystem.resetPoints(minigame, players.stream().map(NameAndId::id).toList());
+		source.sendSuccess(() -> Component.literal("Deleted all points for " + getPlayer(players) + " from minigame " + minigame), true);
+		return players.size();
 	}
 
 	private int addPoints(CommandContext<CommandSourceStack> ctx, UUID playerUuid, int points, int minigameId) throws CommandSyntaxException {

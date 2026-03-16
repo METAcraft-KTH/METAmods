@@ -35,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class PointSystem implements AutoCloseable {
@@ -215,6 +217,60 @@ public class PointSystem implements AutoCloseable {
 					)
 			) {
 				statement.setInt(1, id);
+				statement.execute();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
+
+	public void resetPoints(int minigame) {
+		executor.execute(() -> {
+			try (
+					var statement = dbConnection.prepareStatement("delete from " + POINTS_TABLE + " where " + MINIGAME_ID + " = ?")
+			) {
+				statement.setInt(1, minigame);
+				statement.execute();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
+
+	private static String prepareList(int elements) {
+		return "(" + IntStream.range(0, elements).mapToObj(i -> "?").collect(Collectors.joining(",")) + ")";
+	}
+
+	public void resetPoints(Collection<UUID> players) {
+		if (players.isEmpty()) return;
+		executor.execute(() -> {
+			try (
+					var statement = dbConnection.prepareStatement("delete from " + POINTS_TABLE + " where " + PLAYER_ID + " in " + prepareList(players.size()))
+			) {
+				int index = 1;
+				for (var uuid : players) {
+					setUUID(statement, index, uuid);
+					index++;
+				}
+				statement.execute();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
+
+	public void resetPoints(int minigame, Collection<UUID> players) {
+		if (players.isEmpty()) return;
+		executor.execute(() -> {
+			try (
+					var statement = dbConnection.prepareStatement("delete from " + POINTS_TABLE + " where " + MINIGAME_ID + " = ? and " + PLAYER_ID + " in " + prepareList(players.size()))
+			) {
+				statement.setInt(1, minigame);
+				int index = 2;
+				for (var uuid : players) {
+					setUUID(statement, index, uuid);
+					index++;
+				}
 				statement.execute();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
