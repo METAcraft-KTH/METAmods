@@ -1,6 +1,7 @@
 package nu.metacraft.pointsystem;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
@@ -16,7 +17,7 @@ public record PointSystemConfig(
 		String password
 ) {
 
-	public static final Codec<PointSystemConfig> CODEC = RecordCodecBuilder.create(
+	public static final MapCodec<PointSystemConfig> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
 			ComponentSerialization.CODEC.fieldOf("university_score_text").forGetter(PointSystemConfig::universityScoreText),
 			ComponentSerialization.CODEC.fieldOf("top_players_text").forGetter(PointSystemConfig::topPlayersText),
