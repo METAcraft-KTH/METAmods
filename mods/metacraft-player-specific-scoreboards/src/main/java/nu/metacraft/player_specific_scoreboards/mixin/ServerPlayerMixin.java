@@ -3,7 +3,6 @@ package nu.metacraft.player_specific_scoreboards.mixin;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.entity.player.Player;
@@ -12,9 +11,9 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.scores.DisplaySlot;
 import net.minecraft.world.scores.Objective;
+import nu.metacraft.lib.util.helper.PlayerHelper;
 import nu.metacraft.player_specific_scoreboards.PlayerScoreboardExtension;
 import nu.metacraft.player_specific_scoreboards.util.PlayerScoreboard;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -32,9 +31,6 @@ public abstract class ServerPlayerMixin extends Player implements PlayerScoreboa
 
 	@Shadow
 	public ServerGamePacketListenerImpl connection;
-	@Shadow
-	@Final
-	private MinecraftServer server;
 	@Unique
 	private boolean existsClientside = false;
 	@Unique
@@ -103,7 +99,9 @@ public abstract class ServerPlayerMixin extends Player implements PlayerScoreboa
 			existsClientside = true;
 		} else {
 			if (objectivePacket != null) {
-				var displayObjective = this.server.getScoreboard().getDisplayObjective(DisplaySlot.SIDEBAR);
+				var displayObjective = PlayerHelper.getCurrentlyVisibleScoreboard(
+						(ServerPlayer) (Object) this
+				).getDisplayObjective(DisplaySlot.SIDEBAR);
 				if (displayObjective != null) {
 					List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
 					packets.add(objectivePacket);
