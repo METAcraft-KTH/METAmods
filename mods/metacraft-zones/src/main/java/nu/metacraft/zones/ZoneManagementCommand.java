@@ -39,6 +39,7 @@ import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import nu.metacraft.lib.util.StoredCondition;
 import nu.metacraft.zones.zone.types.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.zones.mixin.StringRangeAccessor;
@@ -80,6 +81,8 @@ public class ZoneManagementCommand {
 	};
 
 	private static final DynamicCommandExceptionType ENTITY_FAIL = new DynamicCommandExceptionType(id -> Component.literal(id + " is not a valid entity or entity tag!"));
+
+	private static final DynamicCommandExceptionType ANY = new DynamicCommandExceptionType(s -> Component.literal(s.toString()));
 
 	private static final Dynamic2CommandExceptionType CONTAINS_FAIL = new Dynamic2CommandExceptionType((pos, zone) -> Component.literal(pos + " is not inside " + zone));
 
@@ -501,6 +504,29 @@ public class ZoneManagementCommand {
 						);
 					})
 				)
+			)
+		).then(
+			literal("prevent-entry").then(
+					literal("clear").then(
+							zone().executes(ctx -> {
+								getZone(ctx).removeZoneData(ZoneDataRegistry.PREVENT_ENTRY);
+								return 1;
+							})
+					)
+			).then(
+					literal("set").then(
+							zone().then(
+									argument("data", CompoundTagArgument.compoundTag()).executes(ctx -> {
+										var data = CompoundTagArgument.getCompoundTag(ctx, "data");
+										var condition = StoredCondition.CODEC.parse(
+												ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE),
+												data
+										).getOrThrow(ANY::create);
+										getZone(ctx).getOrCreate(ZoneDataRegistry.PREVENT_ENTRY).setStoredCondition(condition);
+										return 1;
+									})
+							)
+					)
 			)
 		).then(
 			literal("spawnrules").then(

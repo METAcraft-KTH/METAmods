@@ -48,6 +48,9 @@ public abstract class EntityMixin implements EntityExtension {
 				}
 			});
 			currentZones.removeAll(removeZones);
+			for (var zone : currentZones) {
+				zone.tick((Entity) (Object) this);
+			}
 		}
 	}
 
