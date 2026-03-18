@@ -57,20 +57,20 @@ public class RegionZone extends ZoneType {
 
 	@Override
 	public boolean contains(BlockPos pos) {
-		return minX <= pos.getX() && maxX >= pos.getX() && minZ <= pos.getZ() && maxZ >= pos.getZ();
+		return minX <= pos.getX() && maxX + 1 >= pos.getX() && minZ <= pos.getZ() && maxZ + 1 >= pos.getZ();
 	}
 
 	@Override
 	public double getSize() {
-		return ((double) maxX - minX) * ((double) maxZ - minZ) * getZoneRef().getWorld().getHeight();
+		return ((double) maxX + 1 - minX) * ((double) maxZ + 1 - minZ) * getZoneRef().getWorld().getHeight();
 	}
 
 	@Override
 	public InwardVector getInwardVector(Vec3 pos) {
 		Vec3 northPivot = new Vec3(pos.x, pos.y, minZ);
-		Vec3 southPivot = new Vec3(pos.x, pos.y, maxZ);
+		Vec3 southPivot = new Vec3(pos.x, pos.y, maxZ+1);
 		Vec3 westPivot = new Vec3(minX, pos.y, pos.z);
-		Vec3 eastPivot = new Vec3(maxX, pos.y, pos.z);
+		Vec3 eastPivot = new Vec3(maxX+1, pos.y, pos.z);
 		return ZoneVectorHelper.getVectorForZoneFromPivots(
 				this::contains, pos, northPivot, southPivot, westPivot, eastPivot
 		);
