@@ -2,8 +2,13 @@ package nu.metacraft.zones.zone.data;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.TextComponentTagVisitor;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.world.entity.Entity;
@@ -53,5 +58,16 @@ public class PreventEntryData extends ZoneDataEntityTracking {
 			entity.setDeltaMovement(vector);
 			entity.hurtMarked = true;
 		}
+	}
+
+	@Override
+	public Component toText(HolderLookup.Provider lookup) {
+		return Component.literal(
+				this.getClass().getSimpleName()
+		).append(
+				CODEC.codec().encodeStart(lookup.createSerializationContext(NbtOps.INSTANCE), this).map(
+						data -> new TextComponentTagVisitor("").visit(data)
+				).resultOrPartial().orElse(Component.literal("ERROR").withStyle(ChatFormatting.RED))
+		);
 	}
 }

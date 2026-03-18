@@ -30,6 +30,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.TextComponentTagVisitor;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -509,7 +510,9 @@ public class ZoneManagementCommand {
 			literal("prevent-entry").then(
 					literal("clear").then(
 							zone().executes(ctx -> {
-								getZone(ctx).removeZoneData(ZoneDataRegistry.PREVENT_ENTRY);
+								var zone = getZone(ctx);
+								zone.removeZoneData(ZoneDataRegistry.PREVENT_ENTRY);
+								ctx.getSource().sendSuccess(() -> Component.literal("Removed zone entry condition from " + zone.getName()), true);
 								return 1;
 							})
 					)
@@ -522,7 +525,14 @@ public class ZoneManagementCommand {
 												ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE),
 												data
 										).getOrThrow(ANY::create);
-										getZone(ctx).getOrCreate(ZoneDataRegistry.PREVENT_ENTRY).setStoredCondition(condition);
+										var zone = getZone(ctx);
+										zone.getOrCreate(ZoneDataRegistry.PREVENT_ENTRY).setStoredCondition(condition);
+										ctx.getSource().sendSuccess(
+												() -> Component.literal(
+														"Set zone entry condition of " + zone.getName() + " to "
+												).append(new TextComponentTagVisitor("").visit(data)),
+												true
+										);
 										return 1;
 									})
 							)
