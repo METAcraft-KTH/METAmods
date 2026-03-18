@@ -8,6 +8,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.coordinates.ColumnPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ColumnPos;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
@@ -87,6 +88,13 @@ public class TriangleZone extends ZoneType {
 	@Override
 	public double getSize() {
 		return getArea() * getZoneRef().getWorld().getHeight();
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		double centerX = (double) pos1.x() + pos2.x() + pos3.x() / 3.0;
+		double centerZ = (double) pos1.z() + pos2.z() + pos3.z() / 3.0;
+		return InwardVector.createFrom(new Vec3(centerX, pos.y, centerZ), pos);
 	}
 
 	@Override

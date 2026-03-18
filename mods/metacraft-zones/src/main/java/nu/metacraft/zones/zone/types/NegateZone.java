@@ -5,6 +5,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.zones.util.ZoneCommandUtils;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.Zone;
@@ -53,6 +54,12 @@ public class NegateZone extends ZoneType {
 	@Override
 	public double getSize() {
 		return zone.getSize();
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		var vec = zone.getInwardVector(pos);
+		return new InwardVector(vec.vector().reverse(), vec.target());
 	}
 
 	@Override

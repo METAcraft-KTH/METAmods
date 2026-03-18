@@ -5,6 +5,7 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
@@ -57,6 +58,12 @@ public class CircleZone extends ZoneType {
 	@Override
 	public double getSize() {
 		return radius * radius * Math.PI * getZoneRef().getWorld().getHeight();
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		var centerPos = center.getCenter();
+		return InwardVector.createFrom(new Vec3(centerPos.x, pos.y, centerPos.z), pos);
 	}
 
 	@Override

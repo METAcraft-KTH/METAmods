@@ -8,7 +8,9 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.coordinates.ColumnPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ColumnPos;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.zones.ZoneManagementCommand;
+import nu.metacraft.zones.util.ZoneVectorHelper;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
 import static net.minecraft.commands.Commands.argument;
@@ -61,6 +63,17 @@ public class RegionZone extends ZoneType {
 	@Override
 	public double getSize() {
 		return ((double) maxX - minX) * ((double) maxZ - minZ) * getZoneRef().getWorld().getHeight();
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		Vec3 northPivot = new Vec3(pos.x, pos.y, minZ);
+		Vec3 southPivot = new Vec3(pos.x, pos.y, maxZ);
+		Vec3 westPivot = new Vec3(minX, pos.y, pos.z);
+		Vec3 eastPivot = new Vec3(maxX, pos.y, pos.z);
+		return ZoneVectorHelper.getVectorForZoneFromPivots(
+				this::contains, pos, northPivot, southPivot, westPivot, eastPivot
+		);
 	}
 
 	@Override

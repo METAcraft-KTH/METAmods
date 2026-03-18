@@ -1,6 +1,7 @@
 package nu.metacraft.zones.zone.types;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
 public class SphereZone extends CircleZone {
@@ -27,6 +28,11 @@ public class SphereZone extends CircleZone {
 	@Override
 	public ZoneRegistry.ZoneTypeType<? extends SphereZone> getType() {
 		return ZoneRegistry.sphere;
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		return InwardVector.createFrom(center.getCenter(), pos);
 	}
 
 	@Override
