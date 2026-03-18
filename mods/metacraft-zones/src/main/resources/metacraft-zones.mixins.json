@@ -8,6 +8,7 @@
 		"LocationPredicateMixin",
 		"NaturalSpawnerMixin",
 		"PersistentEntitySectionManagerMixin",
+		"ServerPlayerMixin",
 		"StringRangeAccessor",
 		"SuggestionAccessor"
 	],
