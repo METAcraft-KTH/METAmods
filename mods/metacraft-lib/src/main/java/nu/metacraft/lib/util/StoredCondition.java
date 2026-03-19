@@ -3,6 +3,7 @@ package nu.metacraft.lib.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.commands.CommandResultCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.FunctionInstantiationException;
@@ -10,7 +11,6 @@ import net.minecraft.commands.execution.ExecutionContext;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.util.StringRepresentable;
@@ -23,8 +23,10 @@ import net.minecraft.world.level.storage.loot.predicates.AnyOfCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import nu.metacraft.lib.METAcraftLib;
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.jspecify.annotations.NonNull;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface StoredCondition {
@@ -69,46 +71,70 @@ public interface StoredCondition {
 		public Type getType() {
 			return Type.PREDICATE;
 		}
+	}
 
-		public enum Variant implements StringRepresentable {
-			ALL("all"),
-			ANY("any");
+	enum Variant implements StringRepresentable {
+		ALL("all"),
+		ANY("any");
 
-			public static final Codec<Variant> CODEC = StringRepresentable.fromEnum(Variant::values);
+		public static final Codec<Variant> CODEC = StringRepresentable.fromEnum(Variant::values);
 
-			private final String name;
+		private final String name;
 
-			Variant(String name) {
-				this.name = name;
-			}
+		Variant(String name) {
+			this.name = name;
+		}
 
-			@Override
-			public @NonNull String getSerializedName() {
-				return name;
-			}
+		@Override
+		public @NonNull String getSerializedName() {
+			return name;
 		}
 	}
 
-	record FunctionCondition(Identifier function, Optional<CompoundTag> macroArgs) implements StoredCondition {
+	record FunctionCondition(FunctionOrTag function, List<CompoundTag> macroArgs, Variant variant) implements StoredCondition {
 
 		public static final MapCodec<FunctionCondition> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
-						Identifier.CODEC.fieldOf("function").forGetter(FunctionCondition::function),
-						CompoundTag.CODEC.optionalFieldOf("macro_args").forGetter(FunctionCondition::macroArgs)
+						FunctionOrTag.CODEC.fieldOf("function").forGetter(FunctionCondition::function),
+						METACodecs.collectionOrSingleCodec(
+								CompoundTag.CODEC, CompoundTag.CODEC.listOf(), List::of
+						).optionalFieldOf("macro_args", List.of()).forGetter(FunctionCondition::macroArgs),
+						Variant.CODEC.fieldOf("variant").forGetter(FunctionCondition::variant)
 				).apply(instance, FunctionCondition::new)
 		);
 
 		@Override
 		public boolean matches(CommandSourceStack source) {
-			MutableBoolean isSuccessful = new MutableBoolean(false);
-			source.getServer().getFunctions().get(function).ifPresent(function -> {
+			MutableBoolean isSuccessful = new MutableBoolean(
+					switch (variant) {
+						case ALL -> true;
+						case ANY -> false;
+					}
+			);
+			MutableInt index = new MutableInt(0);
+			CompoundTag lastTag = macroArgs.isEmpty() ? null : macroArgs.getLast();
+			function.getFunctions(source.getServer()).forEach(function -> {
 				try {
-					var actualFunction = function.instantiate(macroArgs.orElse(null), source.getServer().getFunctions().getDispatcher());
+					var actualFunction = function.instantiate(
+							macroArgs.size() > index.intValue() ? macroArgs.get(index.getAndIncrement()) : lastTag,
+							source.getServer().getFunctions().getDispatcher()
+					);
 					Commands.executeCommandInContext(
 							source,
 							ctx -> ExecutionContext.queueInitialFunctionCall(
-									ctx, actualFunction, source.withPermission(LevelBasedPermissionSet.GAMEMASTER),
-									(success, result) -> isSuccessful.setValue(result > 0)
+									ctx, actualFunction, source.withPermission(LevelBasedPermissionSet.GAMEMASTER).withCallback(
+											(success, result) -> {
+												switch (variant) {
+													case ANY -> {
+														if (result != 0) isSuccessful.setTrue();
+													}
+													case ALL -> {
+														if (result == 0) isSuccessful.setFalse();
+													}
+												}
+											}
+									),
+									CommandResultCallback.EMPTY // Not sure what this command result callback is actually used for, because it never seems to get called...
 							)
 					);
 				} catch (FunctionInstantiationException e) {

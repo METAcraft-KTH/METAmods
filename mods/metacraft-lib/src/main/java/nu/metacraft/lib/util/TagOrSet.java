@@ -2,11 +2,13 @@ package nu.metacraft.lib.util;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
+import net.minecraft.commands.arguments.ResourceOrTagKeyArgument;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
+import org.jspecify.annotations.NonNull;
 
 import java.util.HashSet;
 import java.util.Optional;
@@ -15,6 +17,12 @@ import java.util.Set;
 public record TagOrSet<T>(Either<Set<ResourceKey<T>>, TagKey<T>> elements) {
 
 	private static final TagOrSet<?> EMPTY = new TagOrSet<>(Either.left(Set.of()));
+
+	public static <T> TagOrSet<T> fromArgument(ResourceOrTagKeyArgument.Result<T> argument) {
+		return new TagOrSet<>(
+				argument.unwrap().mapLeft(Set::of)
+		);
+	}
 
 	@SuppressWarnings("unchecked")
 	public static <T> TagOrSet<T> empty() {
@@ -32,6 +40,11 @@ public record TagOrSet<T>(Either<Set<ResourceKey<T>>, TagKey<T>> elements) {
 		).xmap(
 				TagOrSet::new, e -> e.elements
 		);
+	}
+
+	@Override
+	public @NonNull String toString() {
+		return elements.map(l -> l.stream().map(ResourceKey::identifier).toList().toString(), r -> "#" + r.location());
 	}
 
 	public HolderSet<T> getElements(HolderLookup.Provider access) {
