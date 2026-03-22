@@ -15,14 +15,29 @@ public class ZoneVectorHelper {
 		return getVectorForZoneFromPivots(contains, pos, Arrays.stream(pivots));
 	}
 
+	private static Vec3 incrementYIfNecessary(Vec3 vector) {
+		if (vector.y > 0 && vector.y < 1) {
+			return vector.add(0, 1, 0).normalize();
+		}
+		return vector;
+	}
+
 	public static ZoneType.InwardVector getVectorForZoneFromPivots(Predicate<BlockPos> contains, Vec3 pos, Stream<Vec3> pivots) {
-		Vec3 nearest = pivots.min(
+		var pivotsSorted = pivots.sorted(
 				Comparator.comparingDouble(pivot -> pivot.distanceToSqr(pos))
-		).orElseThrow();
+		).toList();
+		Vec3 nearest = pivotsSorted.stream().filter(
+				p -> {
+					var bPos = BlockPos.containing(p);
+					return contains.test(bPos) || contains.test(bPos.north().west());
+				}
+		).findAny().orElseGet(
+				() -> pivotsSorted.stream().reduce(Vec3::add).map(v -> v.scale(1.0 / pivotsSorted.size())).orElseThrow()
+		);
 		if (contains.test(BlockPos.containing(pos))) {
-			return new ZoneType.InwardVector(pos.subtract(nearest).normalize(), nearest);
+			return new ZoneType.InwardVector(incrementYIfNecessary(pos.subtract(nearest).normalize()), nearest);
 		} else {
-			return new ZoneType.InwardVector(nearest.subtract(pos).normalize(), nearest);
+			return new ZoneType.InwardVector(incrementYIfNecessary(nearest.subtract(pos).normalize()), nearest);
 		}
 	}
 
