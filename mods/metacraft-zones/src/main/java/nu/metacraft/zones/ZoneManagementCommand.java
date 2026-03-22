@@ -22,23 +22,27 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.CompoundTagArgument;
 import net.minecraft.commands.arguments.DimensionArgument;
+import net.minecraft.commands.arguments.NbtTagArgument;
 import net.minecraft.commands.arguments.ResourceOrTagKeyArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.commands.arguments.item.FunctionArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.*;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.server.commands.FunctionCommand;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import nu.metacraft.lib.util.FunctionOrTag;
+import nu.metacraft.lib.util.StoredCondition;
+import nu.metacraft.lib.util.TagOrSet;
 import nu.metacraft.zones.zone.types.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.zones.mixin.StringRangeAccessor;
@@ -55,6 +59,7 @@ import nu.metacraft.zones.zone.data.ZoneDataRegistry;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -75,11 +80,21 @@ public class ZoneManagementCommand {
 			Component.literal("Invalid Spawn Group")
 	);
 
+	public static final SimpleCommandExceptionType INVALID_NBT = new SimpleCommandExceptionType(
+			Component.literal("Must be compound or list")
+	);
+
+	private static final DynamicCommandExceptionType PREDICATE_INVALID = new DynamicCommandExceptionType(
+			predicate -> Component.literal("Not a predicate: " + predicate)
+	);
+
 	public static final SuggestionProvider<CommandSourceStack> SUGGEST_SPAWN_GROUP = (ctx, builder) -> {
 		return SharedSuggestionProvider.suggest(StringRepresentable.keys(MobCategory.values()).keys(NbtOps.INSTANCE).map(Tag::toString), builder);
 	};
 
 	private static final DynamicCommandExceptionType ENTITY_FAIL = new DynamicCommandExceptionType(id -> Component.literal(id + " is not a valid entity or entity tag!"));
+
+	private static final DynamicCommandExceptionType ANY = new DynamicCommandExceptionType(s -> Component.literal(s.toString()));
 
 	private static final Dynamic2CommandExceptionType CONTAINS_FAIL = new Dynamic2CommandExceptionType((pos, zone) -> Component.literal(pos + " is not inside " + zone));
 
@@ -503,6 +518,65 @@ public class ZoneManagementCommand {
 				)
 			)
 		).then(
+			literal("prevent-entry").then(
+					literal("clear").then(
+							zone().executes(ctx -> {
+								var zone = getZone(ctx);
+								zone.removeZoneData(ZoneDataRegistry.PREVENT_ENTRY);
+								ctx.getSource().sendSuccess(() -> Component.literal("Removed zone entry condition from " + zone.getName()), true);
+								return 1;
+							})
+					)
+			).then(
+					literal("set").then(
+							zone().then(
+									literal("function").then(
+											forFunction(
+													argument("function", FunctionArgument.functions()).suggests(FunctionCommand.SUGGEST_FUNCTION),
+													(func, c) -> withVariant(
+															c, (variant, b) -> func.isPresent() ?
+																	b.executes(
+																			ctx -> {
+																				var function = FunctionOrTag.fromArgument(ctx, "function");
+																				return setEntryFunction(ctx, function, func.get().apply(ctx), variant);
+																			}
+																	) :
+																	b.executes(
+																			ctx -> {
+																				var function = FunctionOrTag.fromArgument(ctx, "function");
+																				return setEntryFunction(ctx, function, List.of(), variant);
+																			}
+																	)
+													)
+											)
+									)
+							).then(
+									literal("predicate").then(
+											withVariant(
+													argument("predicate", ResourceOrTagKeyArgument.resourceOrTagKey(Registries.PREDICATE)),
+													(variant, b) -> b.executes(ctx -> {
+														var predicate = ResourceOrTagKeyArgument.getResourceOrTagKey(ctx, "predicate", Registries.PREDICATE, PREDICATE_INVALID);
+														var set = TagOrSet.fromArgument(predicate);
+														return setEntryCondition(
+																ctx, new StoredCondition.PredicateCondition(set, variant),
+																Component.literal(variant.getSerializedName() + " " + set)
+														);
+													})
+											)
+									)
+							).then(
+									argument("data", CompoundTagArgument.compoundTag()).executes(ctx -> {
+										var data = CompoundTagArgument.getCompoundTag(ctx, "data");
+										var condition = StoredCondition.CODEC.parse(
+												ctx.getSource().registryAccess().createSerializationContext(NbtOps.INSTANCE),
+												data
+										).getOrThrow(ANY::create);
+										return setEntryCondition(ctx, condition, new TextComponentTagVisitor("").visit(data));
+									})
+							)
+					)
+			)
+		).then(
 			literal("spawnrules").then(
 				literal("add").then(
 					zone().then(
@@ -567,6 +641,63 @@ public class ZoneManagementCommand {
 				)
 			)
 		);
+	}
+
+	private static int setEntryFunction(
+			CommandContext<CommandSourceStack> ctx, FunctionOrTag function, List<CompoundTag> tags,
+			StoredCondition.Variant variant
+	) throws CommandSyntaxException {
+		return setEntryCondition(
+				ctx, new StoredCondition.FunctionCondition(function, tags, variant),
+				Component.literal(variant.getSerializedName() + " " + function)
+		);
+	}
+
+	private static List<CompoundTag> parseTagList(Tag tag) throws CommandSyntaxException {
+		return switch (tag) {
+			case CompoundTag c -> List.of(c);
+			case ListTag l -> l.compoundStream().toList();
+			default -> throw INVALID_NBT.create();
+		};
+	}
+
+	private static ArgumentBuilder<CommandSourceStack, ?> forFunction(
+			ArgumentBuilder<CommandSourceStack, ?> builder,
+			BiFunction<
+					Optional<FunctionForCommands<CommandContext<CommandSourceStack>, List<CompoundTag>>>,
+					ArgumentBuilder<CommandSourceStack, ?>, ArgumentBuilder<CommandSourceStack, ?>
+			> tagProvider
+	) {
+		return tagProvider.apply(Optional.empty(), builder).then(
+				tagProvider.apply(
+						Optional.of(ctx -> parseTagList(NbtTagArgument.getNbtTag(ctx, "macro_args"))),
+						argument("macro_args", NbtTagArgument.nbtTag())
+				)
+		);
+	}
+
+	private static ArgumentBuilder<CommandSourceStack, ?> withVariant(
+			ArgumentBuilder<CommandSourceStack, ?> builder,
+			BiFunction<StoredCondition.Variant, ArgumentBuilder<CommandSourceStack, ?>, ArgumentBuilder<CommandSourceStack, ?>> variantApplier
+	) {
+		return variantApplier.apply(StoredCondition.Variant.ANY, builder).then(
+				variantApplier.apply(StoredCondition.Variant.ALL, literal("all"))
+		);
+	}
+
+	private static int setEntryCondition(
+			CommandContext<CommandSourceStack> ctx, StoredCondition condition,
+			Component asText
+	) throws CommandSyntaxException {
+		var zone = getZone(ctx);
+		zone.getOrCreate(ZoneDataRegistry.PREVENT_ENTRY).setStoredCondition(condition);
+		ctx.getSource().sendSuccess(
+				() -> Component.literal(
+						"Set zone entry condition of " + zone.getName() + " to "
+				).append(asText),
+				true
+		);
+		return 1;
 	}
 
 	@FunctionalInterface

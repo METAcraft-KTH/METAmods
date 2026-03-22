@@ -9,6 +9,7 @@ import net.minecraft.commands.arguments.DimensionArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
@@ -46,6 +47,11 @@ public class DimensionLimiter extends ZoneType {
 	@Override
 	public double getSize() {
 		return Math.pow(getZoneRef().getWorld().getWorldBorder().getSize() * 2, 2) * getZoneRef().getWorld().getHeight();
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		return InwardVector.ZERO;
 	}
 
 	@Override

@@ -7,6 +7,7 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.Zone;
 import nu.metacraft.zones.zone.ZoneRegistry;
@@ -125,6 +126,13 @@ public class PolygonZone extends ZoneType {
 	@Override
 	public double getSize() {
 		return area * getZoneRef().getWorld().getHeight();
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		double centerX = positions.stream().mapToDouble(ColumnPos::x).sum() / positions.size();
+		double centerZ = positions.stream().mapToDouble(ColumnPos::z).sum() / positions.size();
+		return InwardVector.createFrom(new Vec3(centerX, pos.y, centerZ), pos);
 	}
 
 	@Override

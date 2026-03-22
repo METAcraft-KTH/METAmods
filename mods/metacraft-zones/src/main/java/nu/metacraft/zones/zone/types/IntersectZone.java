@@ -1,5 +1,6 @@
 package nu.metacraft.zones.zone.types;
 
+import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.stream.Streams;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
@@ -44,6 +45,25 @@ public class IntersectZone extends CombinedZone {
 	@Override
 	public ZoneType copy(List<ZoneType> zones) {
 		return new IntersectZone(zones);
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		List<InwardVector> vectors = zones.get().stream().map(zone -> zone.getInwardVector(pos)).filter(
+				vec -> vec.vector().length() > 0
+		).toList();
+		if (vectors.isEmpty()) return InwardVector.ZERO;
+		return vectors.stream().reduce(
+				(lhs, rhs) -> new InwardVector(
+						lhs.vector().add(rhs.vector()),
+						lhs.target().add(rhs.vector())
+				)
+		).map(
+				v -> new InwardVector(
+						v.vector().scale(1.0/vectors.size()).normalize(),
+						v.target().scale(1.0/vectors.size())
+				)
+		).orElseThrow();
 	}
 
 	@Override

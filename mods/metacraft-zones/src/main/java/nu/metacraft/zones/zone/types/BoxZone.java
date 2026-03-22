@@ -7,7 +7,9 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.zones.ZoneManagementCommand;
+import nu.metacraft.zones.util.ZoneVectorHelper;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
 import static net.minecraft.commands.Commands.argument;
@@ -49,6 +51,19 @@ public class BoxZone extends ZoneType {
 	@Override
 	public double getSize() {
 		return (double) box.getXSpan() * box.getYSpan() * box.getZSpan();
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		Vec3 northPivot = new Vec3(pos.x, pos.y, box.minZ());
+		Vec3 southPivot = new Vec3(pos.x, pos.y, box.maxZ()+1);
+		Vec3 westPivot = new Vec3(box.minX(), pos.y, pos.z);
+		Vec3 eastPivot = new Vec3(box.maxX()+1, pos.y, pos.z);
+		Vec3 bottomPivot = new Vec3(pos.x, box.minY(), pos.z);
+		Vec3 topPivot = new Vec3(pos.x, box.maxY()+1, pos.z);
+		return ZoneVectorHelper.getVectorForZoneFromPivots(
+				this::contains, pos, northPivot, southPivot, westPivot, eastPivot, bottomPivot, topPivot
+		);
 	}
 
 	@Override

@@ -4,6 +4,7 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.zones.METAcraftZones;
 import nu.metacraft.zones.util.ZoneCommandUtils;
 import nu.metacraft.zones.ZoneManagementCommand;
@@ -83,6 +84,11 @@ public class ZoneZone extends ZoneType {
 	@Override
 	public double getSize() {
 		return this.<Double>getZone().apply(zone -> zone.getZone().getSize()).orElse(size);
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		return this.<InwardVector>getZone().apply(zone -> zone.getZone().getInwardVector(pos)).orElse(InwardVector.ZERO);
 	}
 
 	@Override

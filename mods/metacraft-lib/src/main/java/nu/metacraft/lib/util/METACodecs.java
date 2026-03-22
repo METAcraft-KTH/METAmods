@@ -12,6 +12,7 @@ import nu.metacraft.lib.util.helper.OrientationHelper;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -135,6 +136,18 @@ public class METACodecs {
 		return Codec.mapEither(left, right).xmap(
 				Either::unwrap,
 				Either::left
+		);
+	}
+
+	public static <T, C extends Collection<T>> Codec<C> collectionOrSingleCodec(
+			Codec<T> elementCodec, Codec<C> collectionCodec, Function<T, C> singleElementCollectionCreator
+	) {
+		return Codec.either(elementCodec, collectionCodec).xmap(
+				either -> either.map(
+						singleElementCollectionCreator,
+						collection -> collection
+				),
+				collection -> collection.size() == 1 ? Either.left(collection.stream().findAny().get()) : Either.right(collection)
 		);
 	}
 

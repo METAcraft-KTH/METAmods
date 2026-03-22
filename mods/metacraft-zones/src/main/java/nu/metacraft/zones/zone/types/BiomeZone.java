@@ -16,8 +16,10 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.RegistryFileCodec;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import nu.metacraft.zones.util.ZoneCommandUtils;
 import nu.metacraft.zones.ZoneManagementCommand;
@@ -86,10 +88,7 @@ public class BiomeZone extends ZoneType {
 	@Override
 	public boolean contains(BlockPos pos) {
 		var actualBiome = getZoneRef().getWorld().getBiome(pos);
-		return biome.map(
-				biome -> actualBiome.unwrap().equals(biome.unwrap()),
-				actualBiome::is
-		);
+		return matchesBiome(actualBiome);
 	}
 
 	@Override
@@ -97,6 +96,29 @@ public class BiomeZone extends ZoneType {
 		double width = getZoneRef().getWorld().getWorldBorder().getSize();
 		int biomeCount = getZoneRef().getWorld().registryAccess().lookupOrThrow(Registries.BIOME).size();
 		return width * width * getZoneRef().getWorld().getHeight() / (biomeCount * biomeCount * biomeCount);
+	}
+
+	private boolean matchesBiome(Holder<Biome> foundBiome) {
+		return biome.map(
+				biome -> foundBiome.unwrap().equals(biome.unwrap()),
+				foundBiome::is
+		);
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		if (getZoneRef().getWorld() instanceof ServerLevel sl) {
+			var biomePos = sl.findClosestBiome3d(
+					this::matchesBiome,
+					BlockPos.containing(pos),
+					6400, 32, 64
+			);
+			if (biomePos != null) {
+				var vecPos = biomePos.getFirst().getCenter();
+				return InwardVector.createFrom(vecPos, pos);
+			}
+		}
+		return InwardVector.ZERO;
 	}
 
 	@Override

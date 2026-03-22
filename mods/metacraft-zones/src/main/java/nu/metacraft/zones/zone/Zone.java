@@ -47,6 +47,14 @@ public abstract class Zone implements Comparable<Zone> {
 		});
 	}
 
+	public void tick(Entity entity) {
+		getZoneDatas().forEach(data -> {
+			if (data instanceof ZoneDataEntityTracking tracking) {
+				tracking.tick(entity);
+			}
+		});
+	}
+
 	public void removeFromZone(Entity entity) {
 		getZoneDatas().forEach(data -> {
 			if (data instanceof ZoneDataEntityTracking tracking) {

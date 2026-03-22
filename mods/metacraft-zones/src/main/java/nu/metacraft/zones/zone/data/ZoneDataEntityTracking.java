@@ -8,6 +8,10 @@ public abstract class ZoneDataEntityTracking extends ZoneData {
 
 	}
 
+	public void tick(Entity entity) {
+
+	}
+
 	public void onLeave(Entity entity) {
 
 	}

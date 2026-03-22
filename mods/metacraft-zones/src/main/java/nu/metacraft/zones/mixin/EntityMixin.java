@@ -33,7 +33,7 @@ public abstract class EntityMixin implements EntityExtension {
 			at = @At("HEAD")
 	)
 	public void tick(CallbackInfo ci) {
-		if (!level.isClientSide() && this.tickCount % 100 == 0) {
+		if (!level.isClientSide()) {
 			Set<Zone> removeZones = new HashSet<>();
 			for (Zone currentZone : currentZones) {
 				if (!currentZone.isPosWithinZoneBoundsNoDimCheck(this.blockPosition())) {
@@ -48,6 +48,9 @@ public abstract class EntityMixin implements EntityExtension {
 				}
 			});
 			currentZones.removeAll(removeZones);
+			for (var zone : currentZones) {
+				zone.tick((Entity) (Object) this);
+			}
 		}
 	}
 

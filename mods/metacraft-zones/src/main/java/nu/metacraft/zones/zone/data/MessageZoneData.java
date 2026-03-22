@@ -5,9 +5,12 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.Optional;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.world.entity.Entity;
+import nu.metacraft.zones.PlayerZoneMessageExtension;
+import org.jetbrains.annotations.Nullable;
 
 public class MessageZoneData extends ZoneDataEntityTracking {
 
@@ -26,29 +29,39 @@ public class MessageZoneData extends ZoneDataEntityTracking {
 		this.leaveCommand = leaveCommand;
 	}
 
-	private CommandSourceStack createFromPlayer(ServerPlayer player) {
+	private static CommandSourceStack createFromPlayer(ServerPlayer player) {
 		return player.createCommandSourceStack().withPermission(LevelBasedPermissionSet.GAMEMASTER).withSuppressedOutput();
+	}
+
+	private boolean matches(@Nullable MessageEntry entry, MessageEntry.Type type) {
+		return entry != null && entry.type == type;
 	}
 
 	@Override
 	public void onEnter(Entity entity) {
-		if (entity instanceof ServerPlayer player) {
-			enterCommand.ifPresent(cmd -> {
-				player.level().getServer().getCommands().performPrefixedCommand(
-						createFromPlayer(player), cmd
+		if (enterCommand.isEmpty() && leaveCommand.isEmpty()) return;
+		if (entity instanceof PlayerZoneMessageExtension player) {
+			if (matches(player.metacraft$getZoneMessage(zone), MessageEntry.Type.EXIT)) {
+				player.metacraft$removeZoneMessage(zone);
+			} else {
+				player.metacraft$addZoneMessage(
+						zone, MessageEntry.create(entity.level().getServer(), 50, enterCommand, MessageEntry.Type.ENTRY)
 				);
-			});
+			}
 		}
 	}
 
 	@Override
 	public void onLeave(Entity entity) {
-		if (entity instanceof ServerPlayer player) {
-			leaveCommand.ifPresent(cmd -> {
-				player.level().getServer().getCommands().performPrefixedCommand(
-						createFromPlayer(player), cmd
+		if (enterCommand.isEmpty() && leaveCommand.isEmpty()) return;
+		if (entity instanceof PlayerZoneMessageExtension player) {
+			if (matches(player.metacraft$getZoneMessage(zone), MessageEntry.Type.ENTRY)) {
+				player.metacraft$removeZoneMessage(zone);
+			} else {
+				player.metacraft$addZoneMessage(
+						zone, MessageEntry.create(entity.level().getServer(), 50, leaveCommand, MessageEntry.Type.EXIT)
 				);
-			});
+			}
 		}
 	}
 
@@ -86,5 +99,28 @@ public class MessageZoneData extends ZoneDataEntityTracking {
 		});
 		text.replace(text.length()-1, text.length(), "]");
 		return text.toString();
+	}
+
+	public record MessageEntry(int time, Optional<String> command, Type type) {
+
+		public boolean tryRunCommand(ServerPlayer player) {
+			if (player.level().getServer().getTickCount() >= time) {
+				command.ifPresent(cmd -> {
+					player.level().getServer().getCommands().performPrefixedCommand(
+							createFromPlayer(player), cmd
+					);
+				});
+				return true;
+			}
+			return false;
+		}
+
+		public static MessageEntry create(MinecraftServer server, int delay, Optional<String> command, Type type) {
+			return new MessageEntry(server.getTickCount() + delay, command, type);
+		}
+
+		public enum Type {
+			ENTRY, EXIT
+		}
 	}
 }

@@ -4,6 +4,7 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.zones.ZoneManagementCommand;
 import nu.metacraft.zones.zone.ZoneRegistry;
 
@@ -29,6 +30,11 @@ public class EmptyZone extends ZoneType {
 	@Override
 	public double getSize() {
 		return 0;
+	}
+
+	@Override
+	public InwardVector getInwardVector(Vec3 pos) {
+		return InwardVector.ZERO;
 	}
 
 	@Override

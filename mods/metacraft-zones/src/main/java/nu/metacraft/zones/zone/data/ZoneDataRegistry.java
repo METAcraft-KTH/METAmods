@@ -3,6 +3,8 @@ package nu.metacraft.zones.zone.data;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
+import nu.metacraft.lib.util.StoredCondition;
+import nu.metacraft.lib.util.TagOrSet;
 import nu.metacraft.zones.METAcraftZones;
 import nu.metacraft.zones.spawns.SpawnRemoverRegistry;
 
@@ -25,6 +27,15 @@ public class ZoneDataRegistry {
 			REGISTRY, METAcraftZones.getID("spawn"),
 			new ZoneDataType<>(AdditionalSpawnsZoneData.CODEC, () -> new AdditionalSpawnsZoneData(new HashMap<>(), new ArrayList<>(), new ArrayList<>()))
 	);
+
+	public static final ZoneDataType<PreventEntryData> PREVENT_ENTRY = Registry.register(
+			REGISTRY, METAcraftZones.getID("prevent_entry"),
+			new ZoneDataType<>(
+					PreventEntryData.CODEC,
+					() -> new PreventEntryData(new StoredCondition.PredicateCondition(TagOrSet.empty(), StoredCondition.PredicateCondition.Variant.ANY))
+			)
+	);
+
 
 	public static void init() {
 		SpawnRemoverRegistry.init();
