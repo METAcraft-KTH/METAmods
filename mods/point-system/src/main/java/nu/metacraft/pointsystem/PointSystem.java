@@ -412,8 +412,8 @@ public class PointSystem implements AutoCloseable {
 		);
 	}
 
-	private Objective getOrCreateObjective(String name) {
-		ServerScoreboard scoreboard = this.server.getScoreboard();
+	private static Objective getOrCreateObjective(MinecraftServer server, String name) {
+		ServerScoreboard scoreboard = server.getScoreboard();
 		Objective objective = scoreboard.getObjective(name);
 		if (objective != null) {
 			return objective;
@@ -569,7 +569,7 @@ public class PointSystem implements AutoCloseable {
 
 	private void renderTeamPoints(Map<Integer, PointTeam> teams, Map<Integer, Integer> teamPoints, String objectiveName) {
 		ServerScoreboard scoreboard = this.server.getScoreboard();
-		Objective objective = this.getOrCreateObjective(objectiveName);
+		Objective objective = getOrCreateObjective(server, objectiveName);
 
 		for (Map.Entry<Integer, PointTeam> entry : teams.entrySet()) {
 			PointTeam team = entry.getValue();
@@ -600,7 +600,7 @@ public class PointSystem implements AutoCloseable {
 
 	private void renderPlayerPoints(PlayerPointStorage playerPoints, String objectiveName) {
 		ServerScoreboard scoreboard = this.server.getScoreboard();
-		Objective objective = this.getOrCreateObjective(objectiveName);
+		Objective objective = getOrCreateObjective(server, objectiveName);
 
 		for (Object2IntMap.Entry<UUID> entry : playerPoints.getData().object2IntEntrySet()) {
 			UUID playerUuid = entry.getKey();
@@ -889,7 +889,7 @@ public class PointSystem implements AutoCloseable {
 	public record ScoreboardLineWriter(ServerScoreboard scoreboard, Objective objective) implements LineWriter {
 
 		public static ScoreboardLineWriter create(MinecraftServer server, String objectiveName) {
-			return new ScoreboardLineWriter(server.getScoreboard(), server.getScoreboard().getObjective(objectiveName));
+			return new ScoreboardLineWriter(server.getScoreboard(), getOrCreateObjective(server, objectiveName));
 		}
 
 		@Override
