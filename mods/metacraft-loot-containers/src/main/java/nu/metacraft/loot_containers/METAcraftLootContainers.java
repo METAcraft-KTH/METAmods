@@ -1,6 +1,7 @@
 package nu.metacraft.loot_containers;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,7 +22,9 @@ public class METAcraftLootContainers implements ModInitializer {
 		LootContainerRegistry.init();
 		Commands.init();
 		Events.init();
-		LootContainerConfig.getConfig(); //Initialises Config.
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			LootContainerConfig.getConfig(); //Initialises Config.
+		});
 	}
 
 }
