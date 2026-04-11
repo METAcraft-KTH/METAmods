@@ -68,7 +68,7 @@ public class DimensionStorageFileFixMixin {
 	)
 	public List<Move> fixModdedDimensions(List<@NotNull Move> original) {
 		List<Move> list = new ArrayList<>(original);
-		list.add(FileFixOperations.move("rain-season.dat", "metacraft/rain-season.dat"));
+		list.add(FileFixOperations.move("rain-season.dat", "metacraft/rain_season.dat"));
 		return list;
 	}
 
