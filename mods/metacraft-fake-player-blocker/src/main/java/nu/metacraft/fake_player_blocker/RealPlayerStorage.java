@@ -19,15 +19,14 @@ public class RealPlayerStorage extends SavedData {
 			).apply(instance, RealPlayerStorage::new)
 	);
 
-	//FIXME Datafixer!!!!
 	private static final SavedDataType<RealPlayerStorage> TYPE = new SavedDataType<>(
-			METAcraftLib.getID("real-player-storage"),
+			METAcraftLib.getID("real_player_storage"),
 			RealPlayerStorage::new, RealPlayerStorage.CODEC,
 			null
 	);
 
 	public static RealPlayerStorage getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	private final Set<String> realUsernames;

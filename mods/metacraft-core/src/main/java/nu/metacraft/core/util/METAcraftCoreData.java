@@ -39,13 +39,12 @@ public class METAcraftCoreData extends SavedData {
 		this(Optional.empty(), Optional.empty());
 	}
 
-	//FIXME Datafixer!
 	private static final SavedDataType<METAcraftCoreData> TYPE = new SavedDataType<>(
-			METAcraftCore.getID("core-data"), METAcraftCoreData::new, CODEC, null
+			METAcraftCore.getID("core_data"), METAcraftCoreData::new, CODEC, null
 	);
 
 	public static METAcraftCoreData getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	@Nullable

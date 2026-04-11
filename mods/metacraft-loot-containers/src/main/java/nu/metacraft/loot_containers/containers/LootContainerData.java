@@ -15,6 +15,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.SavedDataTypeCache;
 import org.apache.logging.log4j.util.TriConsumer;
 import nu.metacraft.loot_containers.METAcraftLootContainers;
@@ -29,10 +30,9 @@ import java.util.stream.Stream;
 
 public class LootContainerData extends SavedData {
 
-	//FIXME Datafixer
 	private static final SavedDataTypeCache.Type<LootContainerData> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
-					METAcraftLootContainers.getID("containers"), () -> create(level.getServer()),
+					METAcraftLib.getID("loot_containers"), () -> create(level.getServer()),
 					createCodec(level.getServer()), null
 			)
 	);
@@ -54,7 +54,7 @@ public class LootContainerData extends SavedData {
 	}
 
 	public static LootContainerData getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
+		return server.getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
 	}
 
 	private final Map<String, LootContainers> containerGroups = new HashMap<>();

@@ -19,9 +19,8 @@ public class RainSeasonState extends SavedData {
             ).apply(instance, RainSeasonState::new)
     );
 
-    //FIXME Datafixer
     private static final SavedDataType<RainSeasonState> TYPE = new SavedDataType<>(
-            METAcraftWeather.getId("rain-season"), RainSeasonState::new, CODEC, null
+            METAcraftWeather.getId("rain_season"), RainSeasonState::new, CODEC, null
     );
 
     public static RainSeasonState get(ServerLevel world) {

@@ -3,6 +3,7 @@ package nu.metacraft.portal_blocker;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
@@ -27,13 +28,12 @@ public class PortalBlockerSettings extends SavedData {
 	);
 
 	public static PortalBlockerSettings getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
+		return server.getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
 	}
 
-	//FIXME Datafixer
 	private static final SavedDataTypeCache.Type<PortalBlockerSettings> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
-					PortalBlocker.getID("portals"), () -> createNew(level.getServer()),
+					Identifier.fromNamespaceAndPath(PortalBlocker.NAMESPACE, "portals"), () -> createNew(level.getServer()),
 					createCodec(level.getServer()), null
 			)
 	);

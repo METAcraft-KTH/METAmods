@@ -18,6 +18,7 @@
 		"CraftingRecipeMixin",
 		"DedicatedServerAccessor",
 		"DedicatedServerPropertiesAccessor",
+		"DimensionStorageFileFixMixin",
 		"EntityAccessor",
 		"EntityMixin",
 		"FabricRecipeProviderMixin",

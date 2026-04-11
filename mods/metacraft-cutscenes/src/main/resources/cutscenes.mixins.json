@@ -11,6 +11,7 @@
 		"ChunkMapMixin",
 		"ChunkMapMixin$TrackedEntity",
 		"CommandSourceStackMixin",
+		"DimensionStorageFileFixMixin",
 		"EntityMixin",
 		"EntitySelectorMixin",
 		"EntitySelectorOptionsMixin",

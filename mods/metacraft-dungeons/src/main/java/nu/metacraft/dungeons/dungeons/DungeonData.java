@@ -58,7 +58,6 @@ public class DungeonData extends SavedData {
 
 	private static final Identifier key = METAcraftDungeons.getID("dungeons");
 
-	//FIXME Datafixer
 	private static final SavedDataTypeCache.Type<DungeonData> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
 					key, () -> create(level),

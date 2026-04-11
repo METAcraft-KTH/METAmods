@@ -3,6 +3,7 @@
 	"package": "nu.metacraft.zones.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"DimensionStorageFileFixMixin",
 		"EntityMixin",
 		"FieldDecoderMixin",
 		"LocationPredicateMixin",

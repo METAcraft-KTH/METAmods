@@ -30,10 +30,9 @@ public class MultiplayerCutsceneManager extends SavedData {
 	private static final Codec<Map<UUID, String>> PLAYER_TO_CUTSCENE = Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.STRING);
 	private static final Codec<Map<UUID, CutsceneInstance>> OFFLINE_PLAYERS = Codec.unboundedMap(UUIDUtil.STRING_CODEC, CutsceneInstance.CODEC);
 
-	//FIXME Datafixer!
 	private static final SavedDataTypeCache.Type<@NotNull MultiplayerCutsceneManager> TYPE = new SavedDataTypeCache.Type<>(
 			l -> new SavedDataType<>(
-					Cutscenes.getID("multiplayer-cutscene-manager"),
+					Cutscenes.getID("multiplayer_cutscene_manager"),
 					() -> new MultiplayerCutsceneManager(l.getServer()),
 					createCodec(l.getServer()),
 					CutsceneDataFixer.Types.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
@@ -75,7 +74,7 @@ public class MultiplayerCutsceneManager extends SavedData {
 	}
 
 	public static MultiplayerCutsceneManager getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(getType(server));
+		return server.getDataStorage().computeIfAbsent(getType(server));
 	}
 
 	private final MinecraftServer server;

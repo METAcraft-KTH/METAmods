@@ -4,6 +4,7 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"CarpetPlayerCommandMixin",
+		"DimensionStorageFileFixMixin",
 		"PuppetPlayerCommandMixin",
 		"ServerConfigurationPacketListenerImplMixin"
 	],

@@ -23,7 +23,6 @@ public class METAcraftData extends SavedData {
 			).apply(instance, METAcraftData::new)
 	);
 
-	// FIXME Datafixer here!
 	private static final SavedDataType<METAcraftData> TYPE = new SavedDataType<>(
 			METAcraftLib.getID("data"), METAcraftData::new, CODEC, null
 	);
@@ -39,7 +38,7 @@ public class METAcraftData extends SavedData {
 	private final Map<UUID, String> nameCache;
 
 	public static METAcraftData getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	public void setName(UUID id, @Nullable String name) {

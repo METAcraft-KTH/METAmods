@@ -1,15 +1,16 @@
 {
-  "required": true,
-  "minVersion": "0.8",
-  "package": "nu.metacraft.saved_items.mixin",
-  "compatibilityLevel": "JAVA_21",
-  "mixins": [
-	  "ItemEntityMixin",
-	  "ServerPlayerMixin",
-	  "V1460Mixin"
-  ],
-  "client": [],
-  "injectors": {
-    "defaultRequire": 1
+	"required": true,
+	"minVersion": "0.8",
+	"package": "nu.metacraft.saved_items.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"DimensionStorageFileFixMixin",
+		"ItemEntityMixin",
+		"ServerPlayerMixin",
+		"V1460Mixin"
+	],
+	"client": [],
+	"injectors": {
+		"defaultRequire": 1
 	}
 }

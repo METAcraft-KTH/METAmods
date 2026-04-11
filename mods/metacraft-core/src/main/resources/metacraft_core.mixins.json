@@ -17,6 +17,7 @@
 		"ConversionTypeMixin",
 		"CustomBossEventMixin",
 		"CustomBossEventMixin$Packed",
+		"DimensionStorageFileFixMixin",
 		"EntityAccessor",
 		"EntityEquipmentMixin",
 		"EntityMixin",

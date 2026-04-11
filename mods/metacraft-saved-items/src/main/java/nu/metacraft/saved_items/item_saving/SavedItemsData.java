@@ -40,10 +40,9 @@ public class SavedItemsData extends SavedData {
 
 	public static final String ITEMS = "Items"; //Careful, this is used by a datafixer!
 
-	//FIXME Datafixer
 	private static final SavedDataTypeCache.Type<SavedItemsData> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
-					SavedItems.getID("storage"), () -> create(level.getServer()),
+					SavedItems.getID("saved_items"), () -> create(level.getServer()),
 					createCodec(level.getServer()),
 					SavedItemsDataFixer.Types.SAVED_DATA_SAVED_ITEMS
 			)
@@ -63,7 +62,7 @@ public class SavedItemsData extends SavedData {
 	}
 
 	public static SavedItemsData getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
+		return server.getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
 	}
 
 	private final Multimap<Item, SavedItemEntry> items = MultimapBuilder.hashKeys().arrayListValues().build();
