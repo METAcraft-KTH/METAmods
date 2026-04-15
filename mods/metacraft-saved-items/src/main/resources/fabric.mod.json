@@ -19,9 +19,6 @@
 	"entrypoints": {
 		"main": [
 			"nu.metacraft.saved_items.SavedItems"
-		],
-		"mm:early_risers": [
-			"nu.metacraft.saved_items.ItemSavingEnums"
 		]
 	},
 	"mixins": [
@@ -33,6 +30,7 @@
 		"fabric-api": "*",
 		"metacraft-lib": "*"
 	},
+	"accessWidener": "metacraft_saved_items.classtweaker",
 	"suggests": {
 		"metacraft-loot-containers": "*"
 	}

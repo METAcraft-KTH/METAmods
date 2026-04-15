@@ -15,6 +15,7 @@ import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -44,7 +45,7 @@ public class SavedItemsData extends SavedData {
 			level -> new SavedDataType<>(
 					SavedItems.getID("saved_items"), () -> create(level.getServer()),
 					createCodec(level.getServer()),
-					SavedItemsDataFixer.Types.SAVED_DATA_SAVED_ITEMS
+					DataFixTypes.METACRAFT_SAVED_DATA_SAVED_ITEMS
 			)
 	);
 

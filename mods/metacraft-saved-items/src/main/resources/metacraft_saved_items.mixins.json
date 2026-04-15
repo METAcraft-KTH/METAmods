@@ -4,6 +4,7 @@
 	"package": "nu.metacraft.saved_items.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"DataFixTypesMixin",
 		"DimensionStorageFileFixMixin",
 		"ItemEntityMixin",
 		"ServerPlayerMixin",

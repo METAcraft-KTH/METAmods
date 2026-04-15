@@ -6,6 +6,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 import nu.metacraft.cutscenes.Cutscenes;
@@ -35,7 +36,7 @@ public class MultiplayerCutsceneManager extends SavedData {
 					Cutscenes.getID("multiplayer_cutscene_manager"),
 					() -> new MultiplayerCutsceneManager(l.getServer()),
 					createCodec(l.getServer()),
-					CutsceneDataFixer.Types.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
+					DataFixTypes.METACRAFT_SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
 			)
 	);
 
