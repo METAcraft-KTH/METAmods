@@ -1,5 +1,4 @@
 classTweaker v2 official
-accessible class net/minecraft/server/level/ChunkMap$TrackedEntity
 accessible class net/minecraft/server/level/ServerChunkCache$MainThreadExecutor
 accessible class net/minecraft/server/level/ChunkMap$DistanceManager
 accessible method net/minecraft/world/clock/ServerClockManager <init> (Lnet/minecraft/world/clock/PackedClockStates;)V

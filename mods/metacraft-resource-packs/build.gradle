@@ -1,7 +1,3 @@
 version = project.resource_packs_version
 
-loom {
-	accessWidenerPath = file("src/main/resources/metacraft_resource_packs.classtweaker")
-}
-
 addPolymerDependency()
