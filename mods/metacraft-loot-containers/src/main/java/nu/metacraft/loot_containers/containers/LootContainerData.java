@@ -32,7 +32,7 @@ public class LootContainerData extends SavedData {
 
 	private static final SavedDataTypeCache.Type<LootContainerData> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
-					METAcraftLib.getID("loot_containers"), () -> create(level.getServer()),
+					METAcraftLootContainers.getID("loot_containers"), () -> create(level.getServer()),
 					createCodec(level.getServer()), null
 			)
 	);
