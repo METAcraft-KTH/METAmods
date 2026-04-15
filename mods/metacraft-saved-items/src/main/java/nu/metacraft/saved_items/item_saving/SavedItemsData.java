@@ -29,7 +29,6 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.saved_items.SavedItemsConfig;
 import nu.metacraft.saved_items.SavedItems;
-import nu.metacraft.saved_items.SavedItemsDataFixer;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
