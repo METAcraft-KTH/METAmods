@@ -27,16 +27,10 @@
 	"mixins": [
 		"metacraft_lib.mixins.json"
 	],
-	"accessWidener" : "metacraft_lib.accesswidener",
+	"accessWidener" : "metacraft_lib.classtweaker",
 	"depends": {
 		"fabricloader": ">=${loader_version}",
 		"fabric-api": "*",
 		"minecraft": "~${minecraft_version}"
-	},
-	"custom": {
-		"loom:injected_interfaces": {
-			"net/minecraft/sounds/SoundSource": ["net/minecraft/util/StringRepresentable"],
-			"net/minecraft/world/entity/player/PlayerModelPart": ["net/minecraft/util/StringRepresentable"]
-		}
 	}
 }

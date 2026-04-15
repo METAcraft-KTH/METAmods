@@ -1,7 +1,7 @@
 version = project.lib_version
 
 loom {
-	accessWidenerPath = file("src/main/resources/metacraft_lib.accesswidener")
+	accessWidenerPath = file("src/main/resources/metacraft_lib.classtweaker")
 }
 
 setupRunDatagen("metacraft-lib")

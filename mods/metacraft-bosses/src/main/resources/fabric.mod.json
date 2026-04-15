@@ -33,9 +33,5 @@
 		"minecraft": "~${minecraft_version}",
 		"metacraft-lib": "*"
 	},
-	"custom": {
-		"loom:injected_interfaces": {
-			"net/minecraft/world/entity/OminousItemSpawner": ["nu/metacraft/bosses/extensions/OminousItemSpawnerExtension"]
-		}
-	}
+	"accessWidener": "metacraft_bosses.classtweaker"
 }

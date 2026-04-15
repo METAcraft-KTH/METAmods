@@ -1,5 +1,9 @@
 version = project.bosses_version
 
+loom {
+	accessWidenerPath = file("src/main/resources/metacraft_bosses.classtweaker")
+}
+
 addCoreDependencies()
 
 setupRunDatagen("metacraft-bosses")

@@ -73,9 +73,7 @@ public class METACodecs {
 
 	public static final Codec<InteractionHand> HAND_CODEC = enumCodec(InteractionHand.class, true);
 
-	public static final Codec<PlayerModelPart> MODEL_PART_CODEC = StringRepresentable.fromEnum(PlayerModelPart::values);
-
-	public static final Codec<Set<PlayerModelPart>> MODEL_PART_SET_CODEC = MODEL_PART_CODEC.listOf().xmap(
+	public static final Codec<Set<PlayerModelPart>> MODEL_PART_SET_CODEC = PlayerModelPart.CODEC.listOf().xmap(
 			list -> list.isEmpty() ? Set.of() : EnumSet.copyOf(list), ArrayList::new
 	);
 

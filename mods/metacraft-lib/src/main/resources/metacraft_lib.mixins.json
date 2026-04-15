@@ -44,7 +44,6 @@
 		"PlayerListAccessor",
 		"PlayerListMixin",
 		"PlayerMixin",
-		"PlayerModelPartMixin",
 		"PrimaryLevelDataAccessor",
 		"PrimedTntAccessor",
 		"RecipeManagerMixin",
