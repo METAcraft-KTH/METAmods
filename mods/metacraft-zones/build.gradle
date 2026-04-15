@@ -5,7 +5,7 @@ addProjectDependency(":mods:metacraft-resource-packs")
 addLeukocyteDependency()
 
 loom {
-	accessWidenerPath = file("src/main/resources/metacraft_zones.accesswidener")
+	accessWidenerPath = file("src/main/resources/metacraft_zones.classtweaker")
 }
 
 dependencies {

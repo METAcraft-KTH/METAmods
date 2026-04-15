@@ -3,7 +3,7 @@ version = project.end_relay_version
 addCoreDependencies()
 
 loom {
-	accessWidenerPath = file("src/main/resources/metacraft_relay.accesswidener")
+	accessWidenerPath = file("src/main/resources/metacraft_relay.classtweaker")
 }
 
 setupRunDatagen("metacraft-relay")

@@ -1,7 +1,7 @@
 version = project.core_version
 
 loom {
-	accessWidenerPath = file("src/main/resources/metacraft_core.accesswidener")
+	accessWidenerPath = file("src/main/resources/metacraft_core.classtweaker")
 }
 
 addLeukocyteDependency()

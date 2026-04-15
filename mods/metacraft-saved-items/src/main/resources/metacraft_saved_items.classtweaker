@@ -1,2 +1,2 @@
-classTweaker	v2	official
-extend-enum	net/minecraft/util/datafix/DataFixTypes	METACRAFT_SAVED_DATA_SAVED_ITEMS
+classTweaker v2 official
+extend-enum net/minecraft/util/datafix/DataFixTypes METACRAFT_SAVED_DATA_SAVED_ITEMS

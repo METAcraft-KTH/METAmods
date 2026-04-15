@@ -1,7 +1,7 @@
 version = project.portable_jukebox_version
 
 loom {
-	accessWidenerPath = file("src/main/resources/portable_jukebox.accesswidener")
+	accessWidenerPath = file("src/main/resources/portable_jukebox.classtweaker")
 }
 
 addPolymerDependency()

@@ -21,7 +21,7 @@
 			"nu.metacraft.zones.METAcraftZones"
 		]
 	},
-	"accessWidener" : "metacraft_zones.accesswidener",
+	"accessWidener" : "metacraft_zones.classtweaker",
 	"mixins": [
 		"metacraft-zones.mixins.json",
 		"metacraft-zones.compat.mixins.json"
