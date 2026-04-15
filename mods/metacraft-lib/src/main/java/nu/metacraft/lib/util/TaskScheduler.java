@@ -28,10 +28,7 @@ public interface TaskScheduler {
 	 * @param toRun The task to execute.
 	 */
 	static void scheduleImmediately(MinecraftServer server, Runnable toRun) {
-		server.scheduleWithResult(future -> {
-			toRun.run();
-			future.complete(Unit.INSTANCE);
-		});
+		server.schedule(server.wrapRunnable(toRun));
 	}
 
 	/**
