@@ -36,10 +36,9 @@ public class LeukocyteZoneManager {
 
 	public static void onZoneAdd(MinecraftServer server, Zone zone) {
 		String name = getAuthorityName(zone);
-		//FIXME Leukocyte!
-		/*Leukocyte.get(server).addAuthority(Authority.create(name).addShape(
+		Leukocyte.get(server).addAuthority(Authority.create(name).addShape(
 				name, new ZoneShape(zone.getName())
-		));*/
+		));
 		fixProtectionExclusions(zone, Leukocyte.get(server).getAuthorityByKey(name));
 	}
 
@@ -68,8 +67,7 @@ public class LeukocyteZoneManager {
 	}
 
 	public static void init() {
-		//FIXME Leukocyte!
-		//ZoneShape.REGISTRY.register(METAcraftZones.MODID, ZoneShape.CODEC);
+		ZoneShape.REGISTRY.register(METAcraftZones.MODID, ZoneShape.CODEC);
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			var zones = ZoneManager.getInstance(server);
 			zones.fixLeukocyteLoading();

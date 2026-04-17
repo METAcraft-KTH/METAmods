@@ -54,7 +54,7 @@ subprojects {
     ext.addLeukocyteDependency = { ->
         dependencies {
             //It is slow to update so we usually want it set to compileOnly.
-            compileOnly("maven.modrinth:leukocyte:${project.leukocyte_version}")
+            compileOnly("com.github.Acuadragon100:leukocyte:${project.leukocyte_version}")
         }
     }
 
@@ -187,7 +187,7 @@ subprojects {
             url "https://maven.terraformersmc.com/"
         }
 
-        maven { url 'https://jitpack.io' } // Fabric ASM
+        maven { url 'https://jitpack.io' } // Leukocyte
     }
 }
 
