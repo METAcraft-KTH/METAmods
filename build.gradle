@@ -54,7 +54,7 @@ subprojects {
     ext.addLeukocyteDependency = { ->
         dependencies {
             //It is slow to update so we usually want it set to compileOnly.
-            compileOnly("com.github.Acuadragon100:leukocyte:${project.leukocyte_version}")
+            compileOnly("maven.modrinth:leukocyte:${project.leukocyte_version}")
         }
     }
 
