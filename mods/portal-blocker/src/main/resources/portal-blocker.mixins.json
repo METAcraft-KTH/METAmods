@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "nu.metacraft.portal_blocker.mixin",
-	"compatibilityLevel": "JAVA_21",
+	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"BaseFireBlockMixin",
 		"DimensionStorageFileFixMixin",
