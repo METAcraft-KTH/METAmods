@@ -327,7 +327,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 	}
 
 	@Unique
-	private static final Marker PASSTHROUGH = new Marker(EntityType.MARKER, null);
+	private final Marker passthrough = new Marker(EntityType.MARKER, level());
 
 	@Unique
 	private void playMusic(boolean stopOnRestart, boolean canBeLoop, long startTimeServerside) {
@@ -353,9 +353,9 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 			this.musicStartTime = actualTime + connection.latency();
 			this.musicLengthMillis = (int) Math.round(music.length() * 1000);
 			this.inIntro = playIntro && musicEntry.intro().isPresent();
-			PASSTHROUGH.setId(point.getEntityId());
+			passthrough.setId(point.getEntityId());
 			Packet<? super ClientGamePacketListener> packet = new ClientboundSoundEntityPacket(
-					music.music(), SoundSource.MUSIC, PASSTHROUGH, 1, music.pitch(), this.getRandom().nextLong()
+					music.music(), SoundSource.MUSIC, passthrough, 1, music.pitch(), this.getRandom().nextLong()
 			);
 			if (stopOnRestart) {
 				packet = new ClientboundBundlePacket(
