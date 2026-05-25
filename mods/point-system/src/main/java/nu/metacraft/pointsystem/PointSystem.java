@@ -786,7 +786,7 @@ public class PointSystem implements AutoCloseable {
 	}
 
 	public void updatePlayerScore(ServerPlayer player) {
-		if (player.getTags().contains("metacraft.has_another_player_sidebar")) return;
+		if (player.entityTags().contains("metacraft.has_another_player_sidebar")) return;
 		if (showOwnScores) {
 			var scoreboard = player.level().getScoreboard();
 			var sidebar = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);

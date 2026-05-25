@@ -4,15 +4,18 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.fabric.api.util.TriState;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.lib.METAcraftLib;
+
 import java.util.Optional;
 
 public class MinigameUtilState extends SavedData {
 
-	private static final String KEY = "metacraft-minigame-util";
+	private static final Identifier KEY = METAcraftLib.getID("minigame-util");
 
 	private BlockPredicateList canBreak;
 

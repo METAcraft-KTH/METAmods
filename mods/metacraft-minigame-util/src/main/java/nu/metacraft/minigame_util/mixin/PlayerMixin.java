@@ -23,7 +23,7 @@ public abstract class PlayerMixin extends LivingEntity {
 		at = @At("RETURN")
 	)
 	public boolean isBlockBreakingRestricted(boolean original, Level world, BlockPos pos) {
-		if (world instanceof ServerLevel sw && !getTags().contains("admin")) {
+		if (world instanceof ServerLevel sw && !entityTags().contains("admin")) {
 			return MinigameUtilState.getInstance(world.getServer()).canBreak(sw, pos).orElse(original);
 		}
 		return original;
