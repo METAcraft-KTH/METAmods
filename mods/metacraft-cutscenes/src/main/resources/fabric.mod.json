@@ -19,19 +19,16 @@
 	"entrypoints": {
 		"main": [
 			"nu.metacraft.cutscenes.Cutscenes"
-		],
-		"mm:early_risers": [
-			"nu.metacraft.cutscenes.CutsceneEnums"
 		]
 	},
 	"mixins": [
 		"cutscenes.mixins.json"
 	],
-	"accessWidener": "metacraft_cutscenes.accesswidener",
+	"accessWidener": "metacraft_cutscenes.classtweaker",
 	"depends": {
 		"fabricloader": ">=${loader_version}",
 		"minecraft": "~${minecraft_version}",
-		"fabric": "*",
+		"fabric-api": "*",
 		"metacraft-core": "*"
 	}
 }

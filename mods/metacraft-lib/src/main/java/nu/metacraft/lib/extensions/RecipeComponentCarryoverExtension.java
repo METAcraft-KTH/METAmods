@@ -1,13 +1,15 @@
 package nu.metacraft.lib.extensions;
 
 import java.util.function.Predicate;
+
+import net.minecraft.world.item.ItemInstance;
 import net.minecraft.world.item.ItemStack;
 
 public interface RecipeComponentCarryoverExtension {
 
-	void metacraft_lib$setComponentCarryOver(Predicate<ItemStack> checker);
+	void metacraft_lib$setComponentCarryOver(Predicate<ItemInstance> checker);
 
-	Predicate<ItemStack> metacraft_lib$getComponentCarryOver();
+	Predicate<ItemInstance> metacraft_lib$getComponentCarryOver();
 
 	default void metacraft_lib$onCraft(ItemStack resultStack, Iterable<ItemStack> allInputs) {
 		if (metacraft_lib$getComponentCarryOver() != null) {

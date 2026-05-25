@@ -1,3 +1,7 @@
 version = project.saved_items_version
 
+loom {
+	accessWidenerPath = file("src/main/resources/metacraft_saved_items.classtweaker")
+}
+
 addProjectDependency(":mods:metacraft-loot-containers")

@@ -1,5 +1,6 @@
 package nu.metacraft.lib.mixin;
 
+import net.minecraft.world.item.ItemStackTemplate;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -12,5 +13,8 @@ public interface ShapelessRecipeAccessor {
 
 	@Accessor
 	List<Ingredient> getIngredients();
+
+	@Accessor
+	ItemStackTemplate getResult();
 
 }

@@ -3,6 +3,8 @@ package nu.metacraft.bosses.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.util.valueproviders.FloatProviders;
+import net.minecraft.util.valueproviders.IntProviders;
 import nu.metacraft.core.entity.METAcraftEntities;
 import nu.metacraft.core.extensions.EntityExtensions;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
@@ -192,9 +194,9 @@ public record DoubleTeamHandler(
 	) {
 		public static final MapCodec<Settings> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-				IntProvider.POSITIVE_CODEC.fieldOf("delay").forGetter(Settings::delay),
+				IntProviders.POSITIVE_CODEC.fieldOf("delay").forGetter(Settings::delay),
 				Codec.INT.fieldOf("max_splits").forGetter(Settings::maxSplits),
-				FloatProvider.CODEC.fieldOf("distance").forGetter(Settings::distance),
+				FloatProviders.CODEC.fieldOf("distance").forGetter(Settings::distance),
 				Codec.DOUBLE.fieldOf("pass_to_clone_chance").forGetter(Settings::passToCloneChance),
 				CompoundTag.CODEC.optionalFieldOf("data_to_apply", new CompoundTag()).forGetter(Settings::dataToApply),
 				Codec.BOOL.optionalFieldOf("initialize_clone").forGetter(Settings::initializeClone)

@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -47,6 +48,7 @@ import nu.metacraft.dungeons.util.WorldDeleter;
 import nu.metacraft.lib.util.helper.TeleportHelper;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -54,7 +56,7 @@ import java.util.function.Consumer;
 
 public class DungeonData extends SavedData {
 
-	private static final String key = METAcraftDungeons.MODID;
+	private static final Identifier key = METAcraftDungeons.getID("dungeons");
 
 	private static final SavedDataTypeCache.Type<DungeonData> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
@@ -409,7 +411,7 @@ public class DungeonData extends SavedData {
 						p.initializeTarget();
 					}
 				}
-			}, file -> file.endsWith(key + ".dat"),
+			}, file -> file.endsWith(Path.of(key.getNamespace(), key.getPath() + ".dat")),
 			player -> new TeleportTransition(
 					getExitWorld(DisconnectedPlayerHelper.getPos(player)),
 					getExitPos(DisconnectedPlayerHelper.getPos(player)).getCenter(), DisconnectedPlayerHelper.getVelocity(player),
@@ -450,7 +452,7 @@ public class DungeonData extends SavedData {
 				target.setX(second + exitPos.getX());
 				target.setZ(first + exitPos.getZ());
 			}
-			var nbt = targetWorld.getChunkSource().chunkMap.read(new ChunkPos(target)).join();
+			var nbt = targetWorld.getChunkSource().chunkMap.read(ChunkPos.containing(target)).join();
 			if (nbt.isPresent() && tries++ < 1000) {
 				BlockPos.MutableBlockPos below = new BlockPos.MutableBlockPos();
 				below.set(target.getX(), target.getY()-1, target.getZ());

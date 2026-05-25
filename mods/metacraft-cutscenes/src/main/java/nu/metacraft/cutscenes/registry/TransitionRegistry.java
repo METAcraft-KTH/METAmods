@@ -12,7 +12,7 @@ import nu.metacraft.cutscenes.transitions.entity.*;
 
 public class TransitionRegistry {
 
-	public static final Registry<TransitionType<?>> REGISTRY = FabricRegistryBuilder.<TransitionType<?>>createSimple(
+	public static final Registry<TransitionType<?>> REGISTRY = FabricRegistryBuilder.<TransitionType<?>>create(
 			ResourceKey.createRegistryKey(Cutscenes.getID("transition"))
 	).buildAndRegister();
 

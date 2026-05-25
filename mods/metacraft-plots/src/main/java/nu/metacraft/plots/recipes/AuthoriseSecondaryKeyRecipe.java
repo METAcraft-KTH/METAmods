@@ -1,25 +1,26 @@
 package nu.metacraft.plots.recipes;
 
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingInput;
-import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.ShapelessRecipe;
+import nu.metacraft.lib.util.helper.RecipeHelper;
 import nu.metacraft.plots.item.PlotItems;
 import nu.metacraft.plots.item.PlotKey;
+import org.jspecify.annotations.NonNull;
 
 public class AuthoriseSecondaryKeyRecipe extends ShapelessRecipe {
-	public AuthoriseSecondaryKeyRecipe(CraftingRecipe recipe) {
+	public AuthoriseSecondaryKeyRecipe(ShapelessRecipe recipe) {
 		super(
-				recipe.group(), recipe.category(),
-				recipe.assemble(null, null),
-				recipe.placementInfo().ingredients()
+				RecipeHelper.getCommonInfo(recipe),
+				RecipeHelper.getBookInfo(recipe),
+				RecipeHelper.getResult(recipe),
+				RecipeHelper.getIngredients(recipe)
 		);
 	}
 
 	@Override
-	public ItemStack assemble(CraftingInput recipeInputInventory, HolderLookup.Provider lookup) {
+	public @NonNull ItemStack assemble(CraftingInput recipeInputInventory) {
 		var result = ItemStack.EMPTY;
 		String prevPlot = null;
 		String prevPlotFriendlyName = null;
@@ -33,7 +34,7 @@ public class AuthoriseSecondaryKeyRecipe extends ShapelessRecipe {
 			}
 		}
 		if (result.isEmpty()) {
-			result = super.assemble(recipeInputInventory, lookup);
+			result = super.assemble(recipeInputInventory);
 		}
 		if (prevPlot != null && prevPlotFriendlyName != null) {
 			PlotKey.addKeyToRevoke(result, prevPlotFriendlyName, prevPlot);
@@ -42,7 +43,7 @@ public class AuthoriseSecondaryKeyRecipe extends ShapelessRecipe {
 	}
 
 	@Override
-	public NonNullList<ItemStack> getRemainingItems(CraftingInput inventory) {
+	public @NonNull NonNullList<ItemStack> getRemainingItems(CraftingInput inventory) {
 		NonNullList<ItemStack> remainders = NonNullList.withSize(inventory.size(), ItemStack.EMPTY);
 		for (int i = 0; i < inventory.size(); i++) {
 			if (inventory.getItem(i).is(PlotItems.PLOT_MASTER_KEY)) {

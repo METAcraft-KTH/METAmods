@@ -27,10 +27,10 @@
 	"mixins": [
 		"metacraft_core.mixins.json"
 	],
-	"accessWidener" : "metacraft_core.accesswidener",
+	"accessWidener" : "metacraft_core.classtweaker",
 	"depends": {
 		"fabricloader": ">=${loader_version}",
-		"fabric": "*",
+		"fabric-api": "*",
 		"minecraft": "~${minecraft_version}",
 		"metacraft-lib": "*"
 	}

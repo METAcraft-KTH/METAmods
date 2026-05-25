@@ -1,7 +1,7 @@
 package nu.metacraft.bundles.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentInitializers;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
 import nu.metacraft.bundles.BundleComponents;
@@ -16,14 +16,15 @@ public class ItemMixin {
 	public static class Properties {
 
 		@ModifyReturnValue(
-			method = "buildAndValidateComponents",
+			method = "finalizeInitializer",
 			at = @At("RETURN")
 		)
-		public DataComponentMap getValidatedComponents(DataComponentMap components) {
-			if (components.has(BundleComponents.BUNDLE_SIZE_FACTOR) && components.has(DataComponents.BUNDLE_CONTENTS)) {
-				return BundleHelper.fixBundle(components);
-			}
-			return components;
+		public DataComponentInitializers.Initializer<Item> getValidatedComponents(DataComponentInitializers.Initializer<Item> original) {
+			return original.andThen((components, context, key) -> {
+				if (components.contains(BundleComponents.BUNDLE_SIZE_FACTOR) && components.contains(DataComponents.BUNDLE_CONTENTS)) {
+					BundleHelper.fixBundle(components);
+				}
+			});
 		}
 	}
 

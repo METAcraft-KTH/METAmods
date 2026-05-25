@@ -60,7 +60,7 @@ public class SimpleJsonResourceReloadListenerMixin {
 	}
 
 	@WrapOperation(
-			method = "method_63568", //in load
+			method = "lambda$scanDirectory$0",
 			at = @At(
 					value = "INVOKE",
 					target = "Ljava/util/Map;putIfAbsent(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"

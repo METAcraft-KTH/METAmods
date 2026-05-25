@@ -51,7 +51,7 @@ public class GrindstoneMenuMixin {
 	@Mixin(targets = "net.minecraft.world.inventory.GrindstoneMenu$4")
 	private static class ResultSlot {
 
-		@Shadow @Final GrindstoneMenu field_16780;
+		@Shadow @Final GrindstoneMenu this$0;
 
 		@ModifyArg(
 			method = "onTake",
@@ -61,7 +61,7 @@ public class GrindstoneMenuMixin {
 			)
 		)
 		public BiConsumer<Level, BlockPos> onTakeItemInsideContext(BiConsumer<Level, BlockPos> function) {
-			var grindstone = (GrindstoneMenuAccessor) field_16780;
+			var grindstone = (GrindstoneMenuAccessor) this$0;
 			var plotMasterKey = grindstone.getRepairSlots().getItem(0);
 			if (
 					plotMasterKey.is(PlotItems.PLOT_MASTER_KEY) &&

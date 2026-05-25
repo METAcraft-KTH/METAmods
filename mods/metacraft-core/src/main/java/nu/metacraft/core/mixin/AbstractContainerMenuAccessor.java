@@ -5,7 +5,7 @@ import net.minecraft.world.inventory.ContainerSynchronizer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(AbstractContainerMenu.class)
+@Mixin(AbstractContainerMenu.class) //TODO Move to metacraft-bundles
 public interface AbstractContainerMenuAccessor {
 
 	@Accessor

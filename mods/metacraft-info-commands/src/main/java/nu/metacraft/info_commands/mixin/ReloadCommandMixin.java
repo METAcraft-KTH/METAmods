@@ -13,8 +13,8 @@ import nu.metacraft.info_commands.Info;
 @Mixin(ReloadCommand.class)
 public class ReloadCommandMixin {
 
-	@Inject(method = "method_13530", at = @At("RETURN")) //Lambda in register
-	private static void method_13530Post(CommandContext<CommandSourceStack> context, CallbackInfoReturnable<Integer> cir) {
+	@Inject(method = "lambda$register$0", at = @At("RETURN")) //Lambda in register
+	private static void postReload(CommandContext<CommandSourceStack> context, CallbackInfoReturnable<Integer> cir) {
 		if (Info.getConfig().resendCommandTreeOnReload()) {
 			Helper.resendCommandTreeToAllPlayers(context.getSource().getServer().getPlayerList());
 		}

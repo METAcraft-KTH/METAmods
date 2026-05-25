@@ -1,6 +1,7 @@
 package nu.metacraft.bosses.item.boss_wands;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
@@ -18,7 +19,6 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import nu.metacraft.bosses.item.components.BossComponents;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 public class EvokerFangsWand extends Item implements PolymerItem {
 

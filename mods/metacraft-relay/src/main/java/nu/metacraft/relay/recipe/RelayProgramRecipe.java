@@ -1,6 +1,5 @@
 package nu.metacraft.relay.recipe;
 
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
@@ -10,19 +9,21 @@ import net.minecraft.world.level.Level;
 import nu.metacraft.relay.items.RelayComponents;
 import nu.metacraft.relay.items.RelayItems;
 import nu.metacraft.lib.util.helper.RecipeHelper;
+import org.jspecify.annotations.NonNull;
 
 public class RelayProgramRecipe extends ShapelessRecipe {
 
 	public RelayProgramRecipe(ShapelessRecipe recipe) {
 		super(
-				recipe.group(), recipe.category(),
-				recipe.assemble(null, null),
+				RecipeHelper.getCommonInfo(recipe),
+				RecipeHelper.getBookInfo(recipe),
+				RecipeHelper.getResult(recipe),
 				RecipeHelper.getIngredients(recipe)
 		);
 	}
 
 	@Override
-	public boolean matches(CraftingInput craftingRecipeInput, Level world) {
+	public boolean matches(@NonNull CraftingInput craftingRecipeInput, @NonNull Level world) {
 		int compass = getCompassSlot(craftingRecipeInput);
 		int relay = getRelaySlot(craftingRecipeInput);
 		if (compass == -1 || relay == -1) return false;
@@ -60,7 +61,7 @@ public class RelayProgramRecipe extends ShapelessRecipe {
 	}
 
 	@Override
-	public ItemStack assemble(CraftingInput recipeInputInventory, HolderLookup.Provider lookup) {
+	public @NonNull ItemStack assemble(@NonNull CraftingInput recipeInputInventory) {
 		int relay = getRelaySlot(recipeInputInventory);
 		int compass = getCompassSlot(recipeInputInventory);
 		if (relay == -1 || compass == -1) return ItemStack.EMPTY;
@@ -71,7 +72,7 @@ public class RelayProgramRecipe extends ShapelessRecipe {
 	}
 
 	@Override
-	public NonNullList<ItemStack> getRemainingItems(CraftingInput inventory) {
+	public @NonNull NonNullList<ItemStack> getRemainingItems(@NonNull CraftingInput inventory) {
 		int compass = getCompassSlot(inventory);
 		var remainders = super.getRemainingItems(inventory);
 		if (compass != -1) {

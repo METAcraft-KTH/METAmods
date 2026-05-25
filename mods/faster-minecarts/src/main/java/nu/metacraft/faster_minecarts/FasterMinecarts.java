@@ -14,6 +14,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.MinecartItem;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.item.crafting.ShapelessRecipe;
+import net.minecraft.world.item.crafting.display.RecipeDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.apache.logging.log4j.LogManager;
@@ -43,13 +45,17 @@ public class FasterMinecarts implements ModInitializer {
 		RecipeLoad.EVENT.register((id, json, recipe, registryLookup) -> {
 			if (recipe.getClass().equals(ShapedRecipe.class) || recipe.getClass().equals(ShapelessRecipe.class)) {
 				Predicate<Item> isMinecart = item -> item instanceof MinecartItem;
+				var recipeOutput = recipe.display().stream().map(RecipeDisplay::result).filter(
+						d -> d instanceof SlotDisplay.ItemStackSlotDisplay
+				).map(d -> ((SlotDisplay.ItemStackSlotDisplay) d).stack()).findFirst();
 				if (
-						isMinecart.test(recipe.assemble(null, registryLookup).getItem()) &&
+						recipeOutput.isPresent() &&
+						isMinecart.test(recipeOutput.get().item().value()) &&
 						recipe.placementInfo().ingredients().stream().anyMatch(
 								i -> i.items().map(Holder::value).anyMatch(isMinecart)
 						)
 				) {
-					RecipeHelper.addComponentCarryover(recipe, stack -> isMinecart.test(stack.getItem()), true);
+					RecipeHelper.addComponentCarryover(recipe, stack -> isMinecart.test(stack.typeHolder().value()), true);
 				}
 			}
 			return recipe;

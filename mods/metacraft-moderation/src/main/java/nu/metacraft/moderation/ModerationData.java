@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.moderation.moderator_mode.ModeratorModeDefinition;
 
@@ -19,7 +20,7 @@ public class ModerationData extends SavedData {
 	protected Map<String, ModeratorModeDefinition> definitions = new HashMap<>();
 
 	public static ModerationData getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	private static final Codec<Map<String, ModeratorModeDefinition>> DEF_MAP_CODEC = METACodecs.createListSerializedMap(
@@ -41,7 +42,7 @@ public class ModerationData extends SavedData {
 	);
 
 	private static final SavedDataType<ModerationData> TYPE = new SavedDataType<>(
-			"metacraft-moderation", ModerationData::createNew, CODEC, null
+			METAcraftLib.getID("moderation/data"), ModerationData::createNew, CODEC, null
 	);
 
 	public Optional<ModeratorModeDefinition> getDefinition(String name) {

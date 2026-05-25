@@ -48,8 +48,6 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		super(world, profile);
 	}
 
-	@Shadow public abstract void displayClientMessage(Component message, boolean overlay);
-
 
 	@Shadow protected abstract void completeUsingItem();
 

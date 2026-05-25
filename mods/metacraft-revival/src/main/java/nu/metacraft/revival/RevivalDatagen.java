@@ -3,9 +3,9 @@ package nu.metacraft.revival;
 import com.google.common.collect.ImmutableSet;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
-import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricDynamicRegistryProvider;
-import net.fabricmc.fabric.api.datagen.v1.provider.FabricTagProvider;
+import net.fabricmc.fabric.api.datagen.v1.provider.FabricTagsProvider;
 import net.fabricmc.fabric.api.event.registry.DynamicRegistries;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
@@ -111,7 +111,7 @@ public class RevivalDatagen implements DataGeneratorEntrypoint {
 		).build();
 
 		public DynamicProvider(
-				FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture
+				FabricPackOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture
 		) {
 			super(output, registriesFuture);
 		}
@@ -143,9 +143,9 @@ public class RevivalDatagen implements DataGeneratorEntrypoint {
 		}
 	}
 
-	public static class DialogsTags extends FabricTagProvider<Dialog> {
+	public static class DialogsTags extends FabricTagsProvider<Dialog> {
 
-		public DialogsTags(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
+		public DialogsTags(FabricPackOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
 			super(output, Registries.DIALOG, registriesFuture);
 		}
 
@@ -157,9 +157,9 @@ public class RevivalDatagen implements DataGeneratorEntrypoint {
 		}
 	}
 
-	public static class DamageTags extends FabricTagProvider<DamageType> {
+	public static class DamageTags extends FabricTagsProvider<DamageType> {
 
-		public DamageTags(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
+		public DamageTags(FabricPackOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
 			super(output, Registries.DAMAGE_TYPE, registriesFuture);
 		}
 

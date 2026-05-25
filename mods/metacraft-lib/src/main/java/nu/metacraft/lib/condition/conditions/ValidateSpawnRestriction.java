@@ -12,7 +12,6 @@ import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.ValidationContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 
 public class ValidateSpawnRestriction implements LootItemCondition {
 
@@ -27,7 +26,7 @@ public class ValidateSpawnRestriction implements LootItemCondition {
 	private ValidateSpawnRestriction() {}
 
 	@Override
-	public LootItemConditionType getType() {
+	public MapCodec<? extends LootItemCondition> codec() {
 		return METAcraftConditions.SPAWN_RESTRICTION;
 	}
 

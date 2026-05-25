@@ -1,14 +1,13 @@
 version = project.lib_version
 
 loom {
-	accessWidenerPath = file("src/main/resources/metacraft_lib.accesswidener")
+	accessWidenerPath = file("src/main/resources/metacraft_lib.classtweaker")
 }
 
 setupRunDatagen("metacraft-lib")
 
 dependencies {
 	include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
-	include("com.github.Chocohead:Fabric-ASM:${project.fabric_asm_version}")
 	include("org.pcollections:pcollections:${project.pcollections_version}")
 	include("net.bytebuddy:byte-buddy:${project.byte_buddy_version}")
 }

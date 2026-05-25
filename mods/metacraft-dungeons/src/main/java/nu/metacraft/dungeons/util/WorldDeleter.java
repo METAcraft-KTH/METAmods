@@ -1,7 +1,7 @@
 package nu.metacraft.dungeons.util;
 
 import com.google.common.collect.ImmutableList;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLevelEvents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -48,7 +48,7 @@ public class WorldDeleter {
 				}
 				handlePlayers.run();
 				((MinecraftServerAccessor) server).getLevels().remove(world.dimension());
-				ServerWorldEvents.UNLOAD.invoker().onWorldUnload(server, world);
+				ServerLevelEvents.UNLOAD.invoker().onLevelUnload(server, world);
 			} else {
 				shouldRestore = false;
 			}
@@ -77,14 +77,14 @@ public class WorldDeleter {
 								server.registries().compositeAccess().lookupOrThrow(Registries.LEVEL_STEM)
 										.getValue(world.dimension().identifier()),
 								server.getWorldData().isDebugWorld(),
-								BiomeManager.obfuscateSeed(server.getWorldData().worldGenOptions().seed()),
-								ImmutableList.of(), false, server.overworld().getRandomSequences()
+								BiomeManager.obfuscateSeed(server.getWorldGenSettings().options().seed()),
+								ImmutableList.of(), false
 						);
 						((MinecraftServerAccessor) server).getLevels().put(
 								world.dimension(),
 								newWorld
 						);
-						ServerWorldEvents.LOAD.invoker().onWorldLoad(server, newWorld);
+						ServerLevelEvents.LOAD.invoker().onLevelLoad(server, newWorld);
 						onCompleted.run();
 					} else {
 						onCompleted.run();

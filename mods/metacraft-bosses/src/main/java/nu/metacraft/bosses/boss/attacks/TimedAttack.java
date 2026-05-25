@@ -4,13 +4,14 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.util.valueproviders.IntProviders;
 
 public class TimedAttack implements Attack {
 
 	public static final MapCodec<TimedAttack> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codec.lazyInitialized(() -> Attack.REGISTRY_CODEC).fieldOf("attack").forGetter(a -> a.attack),
-					IntProvider.POSITIVE_CODEC.fieldOf("timeGetter").forGetter(a -> a.timeGetter),
+					IntProviders.POSITIVE_CODEC.fieldOf("timeGetter").forGetter(a -> a.timeGetter),
 					Codec.INT.fieldOf("time").orElse(0).forGetter(a -> a.time)
 			).apply(instance, TimedAttack::new)
 	);

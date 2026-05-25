@@ -3,6 +3,7 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.world.clock.WorldClocks;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.registry.TransitionConfigRegistry;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
@@ -25,7 +26,7 @@ public class SetTimeTransition extends InstantTransition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		cutscene.getCutsceneWorld().setDayTime(time);
+		cutscene.getCutsceneWorld().clockManager().setTotalTicks(cutscene.getServer().registryAccess().getOrThrow(WorldClocks.OVERWORLD), time);
 		cutscene.getCutsceneWorld().syncTime();
 	}
 

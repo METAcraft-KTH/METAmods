@@ -2,7 +2,7 @@ package nu.metacraft.core;
 
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
-import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementRequirements;
@@ -17,11 +17,9 @@ import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.ShapedRecipe;
-import net.minecraft.world.item.crafting.ShapedRecipePattern;
+import net.minecraft.world.item.crafting.*;
 import nu.metacraft.core.item.METAcraftItems;
 
 import java.util.Map;
@@ -37,7 +35,7 @@ public class METAcraftCoreDatagen implements DataGeneratorEntrypoint {
 
 	public static class Recipes extends FabricRecipeProvider {
 
-		public Recipes(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
+		public Recipes(FabricPackOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
 			super(output, registriesFuture);
 		}
 
@@ -64,8 +62,10 @@ public class METAcraftCoreDatagen implements DataGeneratorEntrypoint {
 					recipeExporter.accept(
 							wrench,
 							new ShapedRecipe(
-									"misc",
-									CraftingBookCategory.EQUIPMENT,
+									new Recipe.CommonInfo(true),
+									new CraftingRecipe.CraftingBookInfo(
+											CraftingBookCategory.EQUIPMENT,"misc"
+									),
 									ShapedRecipePattern.of(
 											Map.of(
 													'S', Ingredient.of(Items.STICK)
@@ -74,7 +74,7 @@ public class METAcraftCoreDatagen implements DataGeneratorEntrypoint {
 											" S ",
 											" S "
 									),
-									METAcraftItems.WRENCH.getDefaultInstance()
+									new ItemStackTemplate(METAcraftItems.WRENCH)
 							),
 							builder.build(wrench.identifier().withPrefix("recipes/" + RecipeCategory.TOOLS.getFolderName() + "/"))
 					);

@@ -2,13 +2,14 @@
 	"required": true,
 	"minVersion": "0.8",
 	"package": "nu.metacraft.dungeons.mixin",
-	"compatibilityLevel": "JAVA_21",
+	"compatibilityLevel": "JAVA_25",
 	"mixins": [
-		"MinecraftServerAccessor",
 		"ChunkStatusTasksMixin",
 		"ConfigManagerMixin",
-		"ServerChunkCacheMixin",
+		"DimensionStorageFileFixMixin",
+		"MinecraftServerAccessor",
 		"PersistentEntitySectionManagerMixin",
+		"ServerChunkCacheMixin",
 		"ServerLevelMixin"
 	],
 	"client": [

@@ -1,14 +1,15 @@
 package nu.metacraft.bundles.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
+import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.PatchedDataComponentMap;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.BundleContents;
-import net.minecraft.world.level.ItemLike;
 import nu.metacraft.bundles.util.BundleHelper;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
@@ -44,8 +45,8 @@ public class ItemStackMixin {
 		return value;
 	}
 
-	@Inject(method = "<init>(Lnet/minecraft/world/level/ItemLike;ILnet/minecraft/core/component/PatchedDataComponentMap;)V", at = @At("RETURN"))
-	public void init(ItemLike item, int count, PatchedDataComponentMap components, CallbackInfo ci) {
+	@Inject(method = "<init>(Lnet/minecraft/core/Holder;ILnet/minecraft/core/component/PatchedDataComponentMap;)V", at = @At("RETURN"))
+	public void init(Holder<Item> item, int count, PatchedDataComponentMap components, CallbackInfo ci) {
 		BundleHelper.fixBundle((ItemStack) (Object) this);
 	}
 

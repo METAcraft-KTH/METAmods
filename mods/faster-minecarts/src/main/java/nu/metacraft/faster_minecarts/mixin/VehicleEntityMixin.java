@@ -15,7 +15,8 @@ public class VehicleEntityMixin {
 			at = @At(
 					value = "INVOKE",
 					target = "Lnet/minecraft/world/item/ItemStack;set(Lnet/minecraft/core/component/DataComponentType;Ljava/lang/Object;)Ljava/lang/Object;"
-			)
+			),
+			name = "itemStack"
 	)
 	public ItemStack dropItems(ItemStack stack) {
 		if ((Object) this instanceof MinecartExtensions minecart) {

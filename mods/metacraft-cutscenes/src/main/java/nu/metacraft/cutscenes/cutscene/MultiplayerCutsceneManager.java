@@ -6,8 +6,10 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.lib.util.SavedDataTypeCache;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.HashTreePMap;
@@ -31,10 +33,10 @@ public class MultiplayerCutsceneManager extends SavedData {
 
 	private static final SavedDataTypeCache.Type<@NotNull MultiplayerCutsceneManager> TYPE = new SavedDataTypeCache.Type<>(
 			l -> new SavedDataType<>(
-					"multiplayer-cutscene-manager",
+					Cutscenes.getID("multiplayer_cutscene_manager"),
 					() -> new MultiplayerCutsceneManager(l.getServer()),
 					createCodec(l.getServer()),
-					CutsceneDataFixer.Types.SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
+					DataFixTypes.METACRAFT_SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
 			)
 	);
 
@@ -73,7 +75,7 @@ public class MultiplayerCutsceneManager extends SavedData {
 	}
 
 	public static MultiplayerCutsceneManager getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(getType(server));
+		return server.getDataStorage().computeIfAbsent(getType(server));
 	}
 
 	private final MinecraftServer server;

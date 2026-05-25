@@ -1,7 +1,7 @@
 version = project.core_version
 
 loom {
-	accessWidenerPath = file("src/main/resources/metacraft_core.accesswidener")
+	accessWidenerPath = file("src/main/resources/metacraft_core.classtweaker")
 }
 
 addLeukocyteDependency()
@@ -9,11 +9,11 @@ addLeukocyteDependency()
 setupRunDatagen("metacraft-core")
 
 dependencies {
-	modCompileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
+	compileOnly("xyz.nucleoid:stimuli:${project.stimuli_version}")
 	implementation(include("org.apache.commons:commons-math3:3.6.1"))
-	modImplementation include("eu.pb4:polymer-core:${project.polymer_version}")
-	modImplementation include("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
-	modImplementation include("eu.pb4:sgui:${project.sgui_version}")
+	implementation include("eu.pb4:polymer-core:${project.polymer_version}")
+	implementation include("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+	implementation include("eu.pb4:sgui:${project.sgui_version}")
 }
 
 addVanishDependency()

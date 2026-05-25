@@ -5,7 +5,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.sgui.api.elements.AnimatedGuiElementBuilder;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
-import eu.pb4.sgui.api.elements.GuiElementBuilderInterface;
+import eu.pb4.sgui.api.elements.GuiElementBuilderCreator;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -21,7 +21,7 @@ import java.util.function.Predicate;
 
 public interface PreferenceType<T, V, P extends Predicate<V>> {
 
-	Registry<PreferenceType<?, ?, ?>> REGISTRY = FabricRegistryBuilder.<PreferenceType<?, ?, ?>>createSimple(
+	Registry<PreferenceType<?, ?, ?>> REGISTRY = FabricRegistryBuilder.<PreferenceType<?, ?, ?>>create(
 			ResourceKey.createRegistryKey(METAcraftCore.getID("preference_type"))
 	).buildAndRegister();
 
@@ -66,7 +66,7 @@ public interface PreferenceType<T, V, P extends Predicate<V>> {
 			builder.setComponent(c, i.get(c));
 		}
 
-		public static GuiElementBuilderInterface<?> createBuilder(DisplayItemData items, ServerPlayer player) {
+		public static GuiElementBuilderCreator<?> createBuilder(DisplayItemData items, ServerPlayer player) {
 			var icon = items.getItems(player);
 			if (icon.size() == 1) {
 				return GuiElementBuilder.from(icon.getFirst());

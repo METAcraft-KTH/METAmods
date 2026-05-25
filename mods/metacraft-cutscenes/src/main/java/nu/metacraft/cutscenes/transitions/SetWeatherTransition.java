@@ -3,6 +3,8 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.util.valueproviders.IntProviders;
+import net.minecraft.world.level.saveddata.WeatherData;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.registry.TransitionConfigRegistry;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
@@ -20,7 +22,7 @@ public class SetWeatherTransition extends InstantTransition {
 	public static final MapCodec<SetWeatherTransition> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Weather.CODEC.fieldOf("weather").forGetter(t -> t.weather),
-					IntProvider.POSITIVE_CODEC.optionalFieldOf("duration").forGetter(t -> t.duration)
+					IntProviders.POSITIVE_CODEC.optionalFieldOf("duration").forGetter(t -> t.duration)
 			).apply(instance, SetWeatherTransition::new)
 	);
 
@@ -51,16 +53,27 @@ public class SetWeatherTransition extends InstantTransition {
 	public enum Weather implements StringRepresentable {
 		CLEAR(
 				"clear", ServerLevel.RAIN_DELAY,
-				(world, duration) -> world.setWeatherParameters(duration, 0, false, false)
+				(world, duration) -> setWeatherParameters(world.getWeatherData(), duration, 0, false, false)
 		),
 		RAIN(
 				"rain", ServerLevel.RAIN_DURATION,
-				(world, duration) -> world.setWeatherParameters(0, duration, true, false)
+				(world, duration) -> setWeatherParameters(world.getWeatherData(), 0, duration, true, false)
 		),
 		THUNDER(
 				"thunder", ServerLevel.THUNDER_DURATION,
-				(world, duration) -> world.setWeatherParameters(0, duration, true, true)
+				(world, duration) -> setWeatherParameters(world.getWeatherData(), 0, duration, true, true)
 		);
+
+		private static void setWeatherParameters(
+				WeatherData weatherData,
+				final int clearTime, final int rainTime, final boolean raining, final boolean thundering
+		) {
+			weatherData.setClearWeatherTime(clearTime);
+			weatherData.setRainTime(rainTime);
+			weatherData.setThunderTime(rainTime);
+			weatherData.setRaining(raining);
+			weatherData.setThundering(thundering);
+		}
 
 		public static final Codec<Weather> CODEC = StringRepresentable.fromEnum(Weather::values);
 

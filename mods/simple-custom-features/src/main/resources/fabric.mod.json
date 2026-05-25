@@ -33,11 +33,11 @@
   "mixins": [
 	  "simple-custom-features.mixins.json"
   ],
-  "accessWidener" : "simple-custom-features.accesswidener",
+  "accessWidener" : "simple-custom-features.classtweaker",
   "depends": {
     "fabricloader": ">=${loader_version}",
     "minecraft": "~${minecraft_version}",
-    "fabric": "*",
+    "fabric-api": "*",
     "metacraft-lib": "*",
     "polymer-core": "*"
   }

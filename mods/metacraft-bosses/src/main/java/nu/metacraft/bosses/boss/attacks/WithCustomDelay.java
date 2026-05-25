@@ -5,13 +5,14 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.OptionalInt;
 import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.util.valueproviders.IntProviders;
 
 public class WithCustomDelay extends InstantAttack {
 
 	public static final MapCodec<WithCustomDelay> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					Codec.lazyInitialized(() -> Attack.REGISTRY_CODEC).fieldOf("attack").forGetter(a -> a.attack),
-					IntProvider.NON_NEGATIVE_CODEC.fieldOf("delay").forGetter(a -> a.delay)
+					IntProviders.NON_NEGATIVE_CODEC.fieldOf("delay").forGetter(a -> a.delay)
 			).apply(instance, WithCustomDelay::new)
 	);
 

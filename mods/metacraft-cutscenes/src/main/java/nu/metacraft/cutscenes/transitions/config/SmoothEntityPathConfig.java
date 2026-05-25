@@ -63,7 +63,7 @@ public record SmoothEntityPathConfig(
 		public static final MapCodec<DisplayEntityTarget> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
 						Target.MAP_CODEC.forGetter(DisplayEntityTarget::target),
-						Transformation.CODEC.optionalFieldOf("transformation", Transformation.identity()).forGetter(DisplayEntityTarget::transformation),
+						Transformation.CODEC.optionalFieldOf("transformation", Transformation.IDENTITY).forGetter(DisplayEntityTarget::transformation),
 						Codec.FLOAT.optionalFieldOf("shadow_radius", 0.0f).forGetter(DisplayEntityTarget::shadowRadius),
 						Codec.FLOAT.optionalFieldOf("shadow_strength", 1.0f).forGetter(DisplayEntityTarget::shadowStrength),
 						Codec.INT.optionalFieldOf("background", Display.TextDisplay.INITIAL_BACKGROUND).forGetter(DisplayEntityTarget::background),
@@ -73,12 +73,12 @@ public record SmoothEntityPathConfig(
 
 		public static final DisplayEntityTarget DEFAULT = new SmoothEntityPathConfig.DisplayEntityTarget(
 				Target.DEFAULT,
-				Transformation.identity(),
+				Transformation.IDENTITY,
 				0, 0, Display.TextDisplay.INITIAL_BACKGROUND,  (byte) -1
 		);
 
 		public DisplayEntityTarget {
-			transformation.getScale(); //Initialize internal variables in transformation to prevent crash when serializing.
+			transformation.scale(); //Initialize internal variables in transformation to prevent crash when serializing.
 		}
 
 		private static final int TARGET_SIZE = 5;
@@ -95,7 +95,7 @@ public record SmoothEntityPathConfig(
 				entity.saveWithoutId(writeView);
 				data = writeView.buildResult();
 			}
-			var transformation = Transformation.identity();
+			var transformation = Transformation.IDENTITY;
 			if (data.contains(Display.TAG_TRANSFORMATION)) {
 				transformation = Transformation.EXTENDED_CODEC.parse(NbtOps.INSTANCE, data.get(Display.TAG_TRANSFORMATION)).resultOrPartial(
 						Cutscenes.LOGGER::error
@@ -167,10 +167,10 @@ public record SmoothEntityPathConfig(
 		}
 
 		public static void writeAffine(Transformation transformation, DoubleList list) {
-			writeVec(transformation.getTranslation(), list);
-			writeAxisAngle(transformation.getLeftRotation().get(new AxisAngle4f()), list);
-			writeVec(transformation.getScale(), list);
-			writeAxisAngle(transformation.getRightRotation().get(new AxisAngle4f()), list);
+			writeVec(transformation.translation(), list);
+			writeAxisAngle(transformation.leftRotation().get(new AxisAngle4f()), list);
+			writeVec(transformation.scale(), list);
+			writeAxisAngle(transformation.rightRotation().get(new AxisAngle4f()), list);
 		}
 
 		public static DisplayEntityTarget fromList(DoubleStream stream) {

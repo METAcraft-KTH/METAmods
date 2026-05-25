@@ -2,8 +2,8 @@ package nu.metacraft.core.gui;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTextures;
-import eu.pb4.sgui.api.elements.GuiElementInterface;
-import eu.pb4.sgui.api.gui.GuiInterface;
+import eu.pb4.sgui.api.elements.GuiElement;
+import eu.pb4.sgui.api.gui.GuiLike;
 import net.minecraft.util.Util;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
@@ -15,7 +15,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 /**
  * Creates a player head icon without causing lag spikes when loading the game profile.
  */
-public class DeferredPlayerHead implements GuiElementInterface {
+public class DeferredPlayerHead implements GuiElement {
 
 	private final GameProfile profile;
 	private final ItemStack head;
@@ -45,7 +45,7 @@ public class DeferredPlayerHead implements GuiElementInterface {
 	}
 
 	@Override
-	public ItemStack getItemStackForDisplay(GuiInterface gui) {
+	public ItemStack getItemStackForDisplay(GuiLike gui) {
 		if (gui.isOpen() && !initialized) {
 			initialized = true;
 			var apiServices = gui.getPlayer().level().getServer().services();
@@ -76,6 +76,6 @@ public class DeferredPlayerHead implements GuiElementInterface {
 				);
 			}
 		}
-		return GuiElementInterface.super.getItemStackForDisplay(gui);
+		return GuiElement.super.getItemStackForDisplay(gui);
 	}
 }

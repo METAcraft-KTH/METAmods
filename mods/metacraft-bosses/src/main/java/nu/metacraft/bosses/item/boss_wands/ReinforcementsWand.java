@@ -1,6 +1,7 @@
 package nu.metacraft.bosses.item.boss_wands;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.valueproviders.IntProvider;
@@ -14,7 +15,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import nu.metacraft.lib.util.helper.EntityHelper;
 import nu.metacraft.bosses.item.components.BossComponents;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 public class ReinforcementsWand extends Item implements PolymerItem {
 
@@ -41,7 +41,7 @@ public class ReinforcementsWand extends Item implements PolymerItem {
 			}
 			return InteractionResult.SUCCESS_SERVER.withoutItem();
 		} else {
-			user.displayClientMessage(Component.literal("This item has no spawns set!"), true);
+			user.sendOverlayMessage(Component.literal("This item has no spawns set!"));
 			return InteractionResult.FAIL;
 		}
 	}

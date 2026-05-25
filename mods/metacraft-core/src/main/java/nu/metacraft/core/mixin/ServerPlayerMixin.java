@@ -67,8 +67,6 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		super(world, profile);
 	}
 
-	@Shadow public abstract void displayClientMessage(Component message, boolean overlay);
-
 	@Shadow @Final
 	private MinecraftServer server;
 
@@ -222,7 +220,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		if (displayTimer > 0) {
 			if (currentEntry != null) {
 				currentEntry.credit().ifPresent(credit -> {
-					this.displayClientMessage(credit.text(), true);
+					this.sendOverlayMessage(credit.text());
 				});
 				displayTimer--;
 			} else {
@@ -329,7 +327,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 	}
 
 	@Unique
-	private static final Marker PASSTHROUGH = new Marker(EntityType.MARKER, null);
+	private final Marker passthrough = new Marker(EntityType.MARKER, level());
 
 	@Unique
 	private void playMusic(boolean stopOnRestart, boolean canBeLoop, long startTimeServerside) {
@@ -355,9 +353,9 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 			this.musicStartTime = actualTime + connection.latency();
 			this.musicLengthMillis = (int) Math.round(music.length() * 1000);
 			this.inIntro = playIntro && musicEntry.intro().isPresent();
-			PASSTHROUGH.setId(point.getEntityId());
+			passthrough.setId(point.getEntityId());
 			Packet<? super ClientGamePacketListener> packet = new ClientboundSoundEntityPacket(
-					music.music(), SoundSource.MUSIC, PASSTHROUGH, 1, music.pitch(), this.getRandom().nextLong()
+					music.music(), SoundSource.MUSIC, passthrough, 1, music.pitch(), this.getRandom().nextLong()
 			);
 			if (stopOnRestart) {
 				packet = new ClientboundBundlePacket(
@@ -387,7 +385,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 								).withColor(ChatFormatting.GREEN)
 						)
 				);
-				displayClientMessage(msg, false);
+				sendSystemMessage(msg);
 				connection.send(new ClientboundSetTitleTextPacket(Component.literal("Custom Music!!!!")));
 				connection.send(new ClientboundSetSubtitleTextPacket(Component.literal("See chat for details")));
 				seenMusicInfo = true;

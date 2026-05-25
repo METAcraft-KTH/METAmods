@@ -8,6 +8,7 @@ import eu.pb4.polymer.virtualentity.api.attachment.BlockAwareAttachment;
 import eu.pb4.polymer.virtualentity.api.attachment.BlockBoundAttachment;
 import eu.pb4.polymer.virtualentity.api.attachment.HolderAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -52,7 +53,6 @@ import nu.metacraft.relay.items.RelayComponents;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 import nu.metacraft.lib.util.TaskScheduler;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 import java.util.Optional;
@@ -118,7 +118,7 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState blockState, PacketContext packetContext) {
+	public BlockState getPolymerBlockState(BlockState blockState, @Nullable PacketContext packetContext) {
 		return Blocks.STONE.defaultBlockState();
 	}
 
@@ -183,9 +183,9 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 					return InteractionResult.SUCCESS_SERVER;
 				}
 				e.getTarget().resultOrPartial(
-						err -> player.displayClientMessage(Component.literal(err).withStyle(
+						err -> player.sendOverlayMessage(Component.literal(err).withStyle(
 								style -> style.applyFormat(ChatFormatting.RED)
-						), true)
+						))
 				).ifPresent(
 						target -> {
 							player.teleport(target);

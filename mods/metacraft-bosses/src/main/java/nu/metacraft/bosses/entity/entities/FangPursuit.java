@@ -1,6 +1,7 @@
 package nu.metacraft.bosses.entity.entities;
 
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -24,7 +25,6 @@ import nu.metacraft.lib.util.EntityTarget;
 import nu.metacraft.lib.util.helper.EntityHelper;
 import nu.metacraft.bosses.boss.attacks.SpawnEntityAttackBase;
 import nu.metacraft.bosses.entity.BossEntities;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.Map;
 import java.util.Optional;

@@ -28,10 +28,7 @@ public interface TaskScheduler {
 	 * @param toRun The task to execute.
 	 */
 	static void scheduleImmediately(MinecraftServer server, Runnable toRun) {
-		server.scheduleWithResult(future -> {
-			toRun.run();
-			future.complete(Unit.INSTANCE);
-		});
+		server.schedule(server.wrapRunnable(toRun));
 	}
 
 	/**
@@ -71,7 +68,7 @@ public interface TaskScheduler {
 			MinecraftServer server, Identifier name,
 			TimerCallback<MinecraftServer> toRun, int afterTicks
 	) {
-		server.getWorldData().overworldData().getScheduledEvents().schedule(
+		server.getScheduledEvents().schedule(
 				name.toString(),
 				afterTicks + server.overworld().getGameTime(),
 				toRun
@@ -94,7 +91,7 @@ public interface TaskScheduler {
 			MinecraftServer server,
 			T toRun, int afterTicks
 	) {
-		server.getWorldData().overworldData().getScheduledEvents().schedule(
+		server.getScheduledEvents().schedule(
 				toRun.getName(),
 				afterTicks + server.overworld().getGameTime(),
 				toRun
@@ -104,36 +101,13 @@ public interface TaskScheduler {
 	/**
 	 * Registers the given codec to Mojang's scheduler.
 	 * This allows events using that codec to be serialized and deserialized.
-	 * Note, Mojang's scheduler does not support {@link net.minecraft.resources.RegistryOps},
-	 * and therefore you need to wrap all codecs utilizing
-	 * {@link net.minecraft.resources.RegistryFixedCodec}
-	 * or {@link net.minecraft.resources.RegistryOps#retrieveElement(ResourceKey)},
-	 * or {@link net.minecraft.resources.RegistryOps#retrieveGetter(ResourceKey)}
-	 * in a {@link nu.metacraft.lib.config.ObjectStorage#createCodec(Codec)}.
-	 * Feel free to remove or bypass this function in the future if Mojang starts using RegistryOps for deserializing
-	 * the scheduler (or if the detection has too many false positives/negatives).
 	 * @param id The id of the event type.
 	 * @param codec The codec for the event type.
-	 * @throws IllegalStateException If the codec is registry-dependent (i.e. utilizes any of the codecs shown above).
 	 */
 	static void registerTaskType(
 			Identifier id,
 			MapCodec<? extends TimerCallback<MinecraftServer>> codec
 	) {
-		List<String> trace = new ArrayList<>();
-		if (RegistryDependentCodecHelper.isRegistryDependent(codec, trace::add)) {
-			StringBuilder builder = new StringBuilder();
-			builder.append("Registry dependent codec detected!\n");
-			builder.append("Mojang's scheduler does not support registry-dependent codecs.\n");
-			builder.append("Please wrap the problematic codecs inside an ObjectStorage-codec or replace it with a non-registry dependent codec.\n");
-			builder.append("If you believe a codec was falsely flagged as registry-dependent, you can exclude it from this check by calling:\n");
-			builder.append("RegistryDependentCodecHelper#markNotRegistryDependent\n");
-			builder.append("Trace: \n");
-			for (var t : trace) {
-				builder.append("  ").append(t).append("\n");
-			}
-			throw new IllegalArgumentException(builder.toString());
-		}
 		TimerCallbacks.SERVER_CALLBACKS.register(id, codec);
 	}
 

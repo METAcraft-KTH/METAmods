@@ -120,7 +120,7 @@ public class TestHelper {
 		);
 		var server = MinecraftServer.spin(thread -> GameTestServer.create(
 				thread, session, manager,
-				Optional.of(testNamespace + ":" + testsPath), false
+				Optional.of(testNamespace + ":" + testsPath), false, 1
 		));
 		server.getRunningThread().join();
 		assert ((TestServerExtension) server).metacraft$testPassed();
@@ -138,7 +138,7 @@ public class TestHelper {
 			Runnable additionalRegistrations,
 			Supplier<? extends ModInitializer>... modsToLoad
 	) {
-		StructureUtils.testStructuresDir = Path.of("./src/test/resources/structures");
+		StructureUtils.testStructuresSourceDir = Path.of("./src/test/resources/structures");
 		SharedConstants.IS_RUNNING_IN_IDE = true;
 		SharedConstants.tryDetectVersion();
 		Bootstrap.bootStrap();

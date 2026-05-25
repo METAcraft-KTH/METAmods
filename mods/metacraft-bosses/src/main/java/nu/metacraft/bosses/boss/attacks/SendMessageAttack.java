@@ -7,6 +7,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.network.chat.ResolutionContext;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.world.entity.Entity;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -31,9 +32,11 @@ public class SendMessageAttack extends InstantAttack {
 
 	public static Component parseText(Component text, BossContext<?> ctx, Entity sender, MutableBoolean errored) {
 		try {
-			return ComponentUtils.updateForEntity(
-					ctx.boss().createCommandSourceStackForNameResolution(ctx.getWorld()).withPermission(LevelBasedPermissionSet.GAMEMASTER),
-					text, sender, 0
+			return ComponentUtils.resolve(
+					ResolutionContext.builder().withSource(
+							ctx.boss().createCommandSourceStackForNameResolution(ctx.getWorld()).withPermission(LevelBasedPermissionSet.GAMEMASTER)
+					).withEntityOverride(sender).build(),
+					text
 			);
 		} catch (CommandSyntaxException e) {
 			if (!errored.booleanValue()) {
@@ -48,7 +51,7 @@ public class SendMessageAttack extends InstantAttack {
 	public void trigger(BossContext<?> ctx) {
 		MutableBoolean errored = new MutableBoolean(false);
 		ctx.boss().getPlayerTargets().forEach(player -> {
-			player.displayClientMessage(
+			player.sendSystemMessage(
 					parseText(text, ctx, player, errored),
 					actionbar
 			);

@@ -3,6 +3,7 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.util.valueproviders.IntProviders;
 import nu.metacraft.lib.condition.METAcraftContexTypes;
 import nu.metacraft.lib.util.helper.EntityHelper;
 
@@ -19,7 +20,7 @@ public class SpawnForEachTarget extends SpawnEntityAttackBase {
 			instance -> instance.group(
 					EntityHelper.SpawnEntry.POOL_CODEC.fieldOf("entities").forGetter(attack -> attack.entities),
 					EntityPredicate.CODEC.listOf().fieldOf("targets").forGetter(a -> a.targets),
-					IntProvider.NON_NEGATIVE_CODEC.fieldOf("countPerTarget").forGetter(a -> a.countPerTarget),
+					IntProviders.NON_NEGATIVE_CODEC.fieldOf("countPerTarget").forGetter(a -> a.countPerTarget),
 					Codec.BOOL.fieldOf("spawnAroundTarget").forGetter(a -> a.spawnAroundTarget),
 					LootItemCondition.DIRECT_CODEC.optionalFieldOf("targetSelectCondition").forGetter(a -> a.targetSelectCondition)
 			).apply(instance, SpawnForEachTarget::new)

@@ -10,6 +10,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemInstance;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.JukeboxSong;
 import net.minecraft.world.level.Level;
@@ -67,24 +68,24 @@ public class PortableJukeboxItem extends FixedPolymerHeadBlockItem {
 		});
 	}
 
-	public static Optional<ItemStack> getDiscFromJukebox(ItemStack stack) {
+	public static Optional<ItemStack> getDiscFromJukebox(ItemInstance stack) {
 		return Optional.ofNullable(stack.get(Components.PORTABLE_JUKEBOX));
 	}
 
-	public static Optional<Holder<JukeboxSong>> getSongFromJukebox(ItemStack stack, HolderLookup.Provider lookup) {
-		return getDiscFromJukebox(stack).flatMap(disc -> JukeboxSong.fromStack(lookup, disc));
+	public static Optional<Holder<JukeboxSong>> getSongFromJukebox(ItemInstance stack) {
+		return getDiscFromJukebox(stack).flatMap(JukeboxSong::fromStack);
 	}
 
-	public static int getComparatorOutput(ItemStack stack, HolderLookup.Provider lookup) {
-		return getSongFromJukebox(stack, lookup).map(song -> song.value().comparatorOutput()).orElse(0);
+	public static int getComparatorOutput(ItemStack stack) {
+		return getSongFromJukebox(stack).map(song -> song.value().comparatorOutput()).orElse(0);
 	}
 
 	public static void updateStackChange(EntityRef entity, ItemStack prevDisc, ItemStack stack) {
 		if (stack.has(Components.PORTABLE_JUKEBOX_ENTITY)) {
-			var currentSong = getSongFromJukebox(stack, entity.getRegistryManager());
+			var currentSong = getSongFromJukebox(stack);
 			if (
 					currentSong.isPresent() &&
-					!JukeboxSong.fromStack(entity.getRegistryManager(), prevDisc).equals(currentSong)
+					!JukeboxSong.fromStack(prevDisc).equals(currentSong)
 			) {
 				play(stack, entity);
 			}

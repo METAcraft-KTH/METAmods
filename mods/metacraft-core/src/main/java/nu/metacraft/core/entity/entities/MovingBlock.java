@@ -6,17 +6,17 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
+import eu.pb4.polymer.virtualentity.api.data.DisplayEntityData;
 import eu.pb4.polymer.virtualentity.api.elements.BlockDisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.EntityElement;
-import eu.pb4.polymer.virtualentity.api.tracker.DisplayTrackedData;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import nu.metacraft.core.extensions.EntityExtensions;
 import nu.metacraft.core.mixin.EntityAccessor;
 import nu.metacraft.core.mixin.LivingEntityAccessor;
-import nu.metacraft.core.util.DisplayEntityData;
-import xyz.nucleoid.packettweaker.PacketContext;
+import nu.metacraft.core.util.DisplayEntityDataContainer;
 
 import java.util.*;
 import net.minecraft.core.UUIDUtil;
@@ -52,7 +52,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 
 	private final ElementHolder holder = new ElementHolder();
 	private final BlockDisplayElement block;
-	private final DisplayEntityData.Block blockData = new DisplayEntityData.Block();
+	private final DisplayEntityDataContainer.Block blockData = new DisplayEntityDataContainer.Block();
 	private Optional<Float> slipperiness = Optional.empty();
 	private final EntityElement<Shulker> shulker;
 
@@ -104,7 +104,8 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		if (level() instanceof ServerLevel) {
 			this.move(MoverType.SELF, this.getDeltaMovement());
 			if (!initializedShulker) { //Shulker is usually not present when it first spawns, shows up after first movement.
-				shulker.entity().absSnapTo(this.getX(), this.getY(), this.getZ());
+				shulker.entity().setPosRaw(this.getX(), this.getY(), this.getZ());
+				shulker.entity().setInvisible(true);
 				initializedShulker = true;
 			}
 		}
@@ -239,7 +240,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 	public void modifyRawTrackedData(List<SynchedEntityData.DataValue<?>> data, ServerPlayer player, boolean initial) {
 		data.add(
 				SynchedEntityData.DataValue.create(
-						DisplayTrackedData.TELEPORTATION_DURATION, 1
+						DisplayEntityData.TELEPORTATION_DURATION, 1
 				)
 		);
 	}

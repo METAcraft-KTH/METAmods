@@ -1,5 +1,6 @@
 package nu.metacraft.weather.mixin;
 
+import net.minecraft.world.level.saveddata.WeatherData;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -15,10 +16,12 @@ import nu.metacraft.weather.rainseason.RainSeasonState;
 
 @Mixin(ServerLevel.class)
 public abstract class ServerLevelMixin {
-    @Shadow @Final private ServerLevelData serverLevelData;
 
     @Shadow @Final public static IntProvider RAIN_DURATION;
 
+
+    @Shadow
+    public abstract WeatherData getWeatherData();
 
     @Unique private int lastRainTime;
 
@@ -51,24 +54,24 @@ public abstract class ServerLevelMixin {
         //     System.out.println("THUNDER DEBUG. isThundering(): " + self.isThundering());
         // }
 
-        int clearWeatherTime = this.serverLevelData.getClearWeatherTime();
+        int clearWeatherTime = this.getWeatherData().getClearWeatherTime();
         if (clearWeatherTime > 0) {
             return;
         }
-        int rainTime = this.serverLevelData.getRainTime();
-        boolean raining = this.serverLevelData.isRaining();
+        int rainTime = this.getWeatherData().getRainTime();
+        boolean raining = this.getWeatherData().isRaining();
 
         if (rainTime > 0) {
             return;
         }
         if (raining) {
-            rainTime = RAIN_DURATION.sample(self.random);
+            rainTime = RAIN_DURATION.sample(self.getRandom());
             this.lastRainTime = rainTime;
             // System.out.println("Will now rain for " + rainTime + " ticks.");
         } else {
             if (this.lastRainTime == 0) {
                 // We had no previous rain time, just make a random value.
-                this.lastRainTime = RAIN_DURATION.sample(self.random);
+                this.lastRainTime = RAIN_DURATION.sample(self.getRandom());
             }
             //
             // We want the time rained divided by the total time
@@ -90,6 +93,6 @@ public abstract class ServerLevelMixin {
             }
             // System.out.println("Will now be clear for " + rainTime + " ticks since the last rain lasted for " + lastRainTime + " ticks.");
         }
-        this.serverLevelData.setRainTime(rainTime);
+        this.getWeatherData().setRainTime(rainTime);
     }
 }

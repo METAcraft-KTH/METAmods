@@ -3,6 +3,7 @@ package nu.metacraft.core.entity.entities.player_mob.renderer;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.EntityElement;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
@@ -21,7 +22,6 @@ import nu.metacraft.core.mixin.MannequinAccessor;
 import nu.metacraft.core.util.SynchedDataHelper;
 import nu.metacraft.lib.mixin.ChunkMapAccessor;
 import org.jetbrains.annotations.Nullable;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 import java.util.Optional;

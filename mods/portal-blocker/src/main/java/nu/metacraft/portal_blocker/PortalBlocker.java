@@ -13,6 +13,7 @@ public class PortalBlocker implements ModInitializer {
 	public static final Logger LOGGER = LogManager.getLogger("Portal-Blocker");
 
 	public static final String MODID = "portal-blocker";
+	public static final String NAMESPACE = "portal_blocker";
 
 	@Override
 	public void onInitialize() {

@@ -11,7 +11,7 @@ import nu.metacraft.core.rotation_ref.*;
 
 public class RotationRefRegistry {
 
-	public static final Registry<RotationRefType<?>> REGISTRY = FabricRegistryBuilder.<RotationRefType<?>>createSimple(
+	public static final Registry<RotationRefType<?>> REGISTRY = FabricRegistryBuilder.<RotationRefType<?>>create(
 			ResourceKey.createRegistryKey(METAcraftCore.getID("rotation_ref"))
 	).buildAndRegister();
 

@@ -13,7 +13,7 @@ import nu.metacraft.cutscenes.Cutscenes;
 
 public class TransitionConfigRegistry {
 
-	public static final Registry<TransitionConfigType<?>> REGISTRY = FabricRegistryBuilder.<TransitionConfigType<?>>createSimple(
+	public static final Registry<TransitionConfigType<?>> REGISTRY = FabricRegistryBuilder.<TransitionConfigType<?>>create(
 			ResourceKey.createRegistryKey(Cutscenes.getID("transition_config"))
 	).buildAndRegister();
 

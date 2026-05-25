@@ -17,7 +17,7 @@ import nu.metacraft.cutscenes.util.helper.CutsceneHelper;
 public class EntitySelectorOptionsMixin {
 
 	@WrapOperation(
-		method = "method_9937", //Lambda inside addPredicates inside "scores" inside register.
+		method = "lambda$bootStrap$50", //Lambda inside "scores" inside register.
 		at = @At(
 			value = "INVOKE",
 			target = "Lnet/minecraft/server/MinecraftServer;getScoreboard()Lnet/minecraft/server/ServerScoreboard;"

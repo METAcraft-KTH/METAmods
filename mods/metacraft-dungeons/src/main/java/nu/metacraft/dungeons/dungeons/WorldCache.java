@@ -1,7 +1,6 @@
 package nu.metacraft.dungeons.dungeons;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.particles.ParticleOptions;
@@ -190,11 +189,6 @@ public class WorldCache implements WorldGenLevel {
 	@Override
 	public void gameEvent(Holder<GameEvent> event, Vec3 emitterPos, GameEvent.Context emitter) {
 		world.gameEvent(event, emitterPos, emitter);
-	}
-
-	@Override
-	public float getShade(Direction direction, boolean shaded) {
-		return world.getShade(direction, shaded);
 	}
 
 	@Override

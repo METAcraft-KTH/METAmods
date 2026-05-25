@@ -3,6 +3,7 @@ package nu.metacraft.bosses.boss.attacks.target;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.util.valueproviders.FloatProviders;
 import nu.metacraft.bosses.boss.attacks.Attack;
 import nu.metacraft.bosses.boss.attacks.AttackRegistry;
 
@@ -16,7 +17,7 @@ public class MoveUp extends PositionTargetSelector {
 
 	public static final MapCodec<MoveUp> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					FloatProvider.codec(0, Float.MAX_VALUE).fieldOf("range").forGetter(m -> m.range),
+					FloatProviders.codec(0, Float.MAX_VALUE).fieldOf("range").forGetter(m -> m.range),
 					Codec.DOUBLE.fieldOf("maxDistAboveGround").forGetter(m -> m.maxDistAboveGround)
 			).apply(instance, MoveUp::new)
 	);

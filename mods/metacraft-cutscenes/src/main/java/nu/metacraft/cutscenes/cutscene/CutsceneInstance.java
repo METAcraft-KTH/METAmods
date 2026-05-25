@@ -285,7 +285,7 @@ public class CutsceneInstance {
 		var entity = entitySpawner.apply(getPlayerData(player.getUUID(), player.level().getServer().getFixerUpper()));
 		if (entity == null) return;
 		entity.getSelfAndPassengers().forEach(e -> {
-			e.getTags().add(PLAYER_DUMMY_TAG);
+			e.entityTags().add(PLAYER_DUMMY_TAG);
 			if (e instanceof PlayerMob) {
 				playerDummies.put(player.getUUID(), e.getUUID());
 			}
@@ -452,6 +452,9 @@ public class CutsceneInstance {
 		}
 
 		player.level().getServer().getPlayerList().sendAllPlayerInfo(player);
+		if (world != null) {
+			player.connection.send(world.getActualWorld().clockManager().createFullSyncPacket());
+		}
 	}
 
 	public void resetPlayers() {

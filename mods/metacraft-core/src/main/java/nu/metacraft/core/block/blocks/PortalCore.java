@@ -2,7 +2,9 @@ package nu.metacraft.core.block.blocks;
 
 import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -17,7 +19,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.block.entities.PortalEntity;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 public class PortalCore extends BaseEntityBlock implements PolymerBlock {
 
@@ -54,12 +55,12 @@ public class PortalCore extends BaseEntityBlock implements PolymerBlock {
 	}
 
 	@Override
-	public void onPolymerBlockSend(BlockState blockState, BlockPos.MutableBlockPos pos, PacketContext.NotNullWithPlayer ctx) {
-		PortalPadding.sendDummyEndGateway(pos, ctx);
+	public void onPolymerBlockSend(BlockState blockState, BlockPos.MutableBlockPos pos, ServerPlayer player) {
+		PortalPadding.sendDummyEndGateway(pos, player);
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
+	public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext ctx) {
 		return Blocks.END_GATEWAY.defaultBlockState();
 	}
 }

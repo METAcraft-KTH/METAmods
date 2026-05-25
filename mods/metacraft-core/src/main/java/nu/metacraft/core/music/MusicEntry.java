@@ -1,6 +1,5 @@
 package nu.metacraft.core.music;
 
-import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import nu.metacraft.lib.util.METACodecs;
@@ -14,56 +13,14 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
-import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.JukeboxPlayable;
-import net.minecraft.world.item.JukeboxSong;
 
 public record MusicEntry(
 		Music music, Optional<Music> intro, Optional<Credit> credit
 ) {
-
-	static final Codec<MusicEntry> DISC_CODEC = new Codec<>() {
-		@Override
-		public <T> DataResult<Pair<MusicEntry, T>> decode(DynamicOps<T> ops, T input) {
-			return JukeboxPlayable.CODEC.decode(ops, input).flatMap(
-					song -> {
-						DataResult<? extends Holder<JukeboxSong>> entry = song.getFirst().song().contents().map(
-								DataResult::success,
-								k -> {
-									if (ops instanceof RegistryOps<T> registryOps) {
-										var l = registryOps.getter(Registries.JUKEBOX_SONG);
-										if (l.isEmpty()) return DataResult.error(() -> "Cannot find jukebox song registry!");
-										var lookup = l.get();
-										return lookup.get(k).map(
-												DataResult::success
-										).orElse(DataResult.error(() -> "Jukebox song with id " + k.identifier() + " did not exist"));
-									}
-									return DataResult.error(() -> "Parsing this value requires RegistryOps.");
-								}
-						);
-						if (entry.error().isPresent()) return DataResult.error(entry.error().get().messageSupplier());
-						var actualEntry = entry.getOrThrow().value();
-						return DataResult.success(
-								Pair.of(
-										new MusicEntry(
-												new MusicEntry.Music(actualEntry.soundEvent(), actualEntry.lengthInSeconds(), 1, false),
-												Optional.empty(), Optional.of(new MusicEntry.Credit(actualEntry.description(), 1))
-										),
-										song.getSecond()
-								)
-						);
-					}
-			);
-		}
-
-		@Override
-		public <T> DataResult<T> encode(MusicEntry input, DynamicOps<T> ops, T prefix) {
-			return CODEC.encode(input, ops, prefix);
-		}
-	};
 
 	private static final Map<ResourceKey<SoundEvent>, Holder<SoundEvent>> cache = new HashMap<>();
 	public static final Codec<Holder<SoundEvent>> MUSIC_CODEC_WITH_CACHE = Identifier.CODEC.xmap(
@@ -79,6 +36,16 @@ public record MusicEntry(
 	);
 
 	private static final Codec<MusicEntry> CODEC = MAP_CODEC.codec();
+
+	static final Codec<MusicEntry> DISC_CODEC = Codec.of(
+			Codec.lazyInitialized(() -> CODEC),
+			JukeboxPlayable.CODEC.map(
+					playable -> new MusicEntry(
+							new MusicEntry.Music(playable.song().value().soundEvent(), playable.song().value().lengthInSeconds(), 1, false),
+							Optional.empty(), Optional.of(new MusicEntry.Credit(playable.song().value().description(), 1))
+					)
+			)
+	);
 
 	public static final Codec<MusicEntry> EASY_CODEC = Codec.withAlternative(CODEC, DISC_CODEC);
 

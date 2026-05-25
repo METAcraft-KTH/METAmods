@@ -11,7 +11,7 @@ import nu.metacraft.core.position_ref.*;
 
 public class PositionRefRegistry {
 
-	public static final Registry<PositionRefType<?>> REGISTRY = FabricRegistryBuilder.<PositionRefType<?>>createSimple(
+	public static final Registry<PositionRefType<?>> REGISTRY = FabricRegistryBuilder.<PositionRefType<?>>create(
 			ResourceKey.createRegistryKey(METAcraftCore.getID("position_ref"))
 	).buildAndRegister();
 

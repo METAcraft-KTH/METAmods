@@ -1,8 +1,0 @@
-accessWidener	v2	named
-accessible	class	net/minecraft/server/level/ChunkMap$TrackedEntity
-mutable	field	net/minecraft/world/item/trading/MerchantOffer	maxUses	I
-accessible	class	net/minecraft/server/level/ServerPlayer$RespawnPosAngle
-accessible	class	net/minecraft/world/item/component/ResolvableProfile$Partial
-accessible	method	net/minecraft/world/item/component/ResolvableProfile$Partial	<init>	(Ljava/util/Optional;Ljava/util/Optional;Lcom/mojang/authlib/properties/PropertyMap;)V
-accessible	method	net/minecraft/world/item/component/ResolvableProfile$Static	<init>	(Lcom/mojang/datafixers/util/Either;Lnet/minecraft/world/entity/player/PlayerSkin$Patch;)V
-accessible	class	net/minecraft/commands/arguments/NbtPathArgument$Node

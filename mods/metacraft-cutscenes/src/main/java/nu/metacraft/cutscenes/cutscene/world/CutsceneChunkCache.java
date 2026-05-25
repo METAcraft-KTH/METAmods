@@ -18,7 +18,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.lighting.LayerLightSectionStorage;
-import net.minecraft.world.level.storage.DimensionDataStorage;
+import net.minecraft.world.level.storage.SavedDataStorage;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.mixin.GenerationChunkHolderAccessor;
 import nu.metacraft.cutscenes.mixin.ChunkHolderAccessor;
@@ -41,7 +41,7 @@ public class CutsceneChunkCache extends ServerChunkCache {
 	private final CutsceneLevel cutsceneLevel;
 
 	public CutsceneChunkCache(
-			CutsceneLevel cutsceneLevel, Supplier<DimensionDataStorage> persistentStateManagerFactory
+			CutsceneLevel cutsceneLevel, Supplier<SavedDataStorage> persistentStateManagerFactory
 	) {
 		super(
 				cutsceneLevel.getActualWorld(),
@@ -92,21 +92,21 @@ public class CutsceneChunkCache extends ServerChunkCache {
 	}
 
 	private boolean isInCache(int x, int z) {
-		return cachedChunks.containsKey(ChunkPos.asLong(x, z));
+		return cachedChunks.containsKey(ChunkPos.pack(x, z));
 	}
 
 	private LevelChunk getFromCache(int x, int z) {
-		return cachedChunks.get(ChunkPos.asLong(x, z));
+		return cachedChunks.get(ChunkPos.pack(x, z));
 	}
 
 	public ChunkHolder getChunkHolder(int x, int z) {
 		return ((CutsceneChunkLoadingManager) chunkMap).getVisibleChunkIfPresent(
-				ChunkPos.asLong(x, z)
+				ChunkPos.pack(x, z)
 		);
 	}
 
 	@Override
-	public DimensionDataStorage getDataStorage() {
+	public SavedDataStorage getDataStorage() {
 		return cutsceneLevel.getDataStorage();
 	}
 
@@ -115,7 +115,7 @@ public class CutsceneChunkCache extends ServerChunkCache {
 	private ChunkAccess getCutsceneChunk(int x, int z, ChunkAccess chunk) {
 		if (chunk instanceof LevelChunk wc && !fetching) {
 			fetching = true; //Mob spawners may cause this function to be called recursively.
-			var c = cachedChunks.computeIfAbsent(ChunkPos.asLong(x, z), i -> new CutsceneChunk(wc, cutsceneLevel));
+			var c = cachedChunks.computeIfAbsent(ChunkPos.pack(x, z), i -> new CutsceneChunk(wc, cutsceneLevel));
 			c.setLoaded(true);
 			c.setLightCorrect(true);
 			c.registerTickContainerInLevel(cutsceneLevel);
@@ -218,7 +218,7 @@ public class CutsceneChunkCache extends ServerChunkCache {
 	public void tick(BooleanSupplier shouldKeepTicking, boolean tickChunks) {
 		if (tickChunks) {
 			cachedChunks.values().forEach(chunk -> {
-				getChunkHolder(chunk.getPos().x, chunk.getPos().z).broadcastChanges(chunk);
+				getChunkHolder(chunk.getPos().x(), chunk.getPos().z()).broadcastChanges(chunk);
 			});
 		}
 	}

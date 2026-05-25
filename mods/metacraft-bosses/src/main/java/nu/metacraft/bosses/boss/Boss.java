@@ -1,5 +1,6 @@
 package nu.metacraft.bosses.boss;
 
+import net.minecraft.util.Mth;
 import nu.metacraft.core.music.ManageableServerBossBar;
 import nu.metacraft.core.util.helper.BossBarHelper;
 
@@ -24,7 +25,12 @@ public interface Boss {
 
 	default ManageableServerBossBar getBossBar() {
 		return BossBarHelper.getBossBar((Entity) this).orElseGet(() -> {
-			var bossBar = new ManageableServerBossBar(getAsEntity().getDisplayName(), BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.PROGRESS);
+			var bossBar = new ManageableServerBossBar(
+					Mth.createInsecureUUID(((Entity) this).getRandom()),
+					getAsEntity().getDisplayName(),
+					BossEvent.BossBarColor.PURPLE,
+					BossEvent.BossBarOverlay.PROGRESS
+			);
 			BossBarHelper.setBossBar((Entity) this, bossBar);
 			return bossBar;
 		});

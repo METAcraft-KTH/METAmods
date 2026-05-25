@@ -1,12 +1,12 @@
 package nu.metacraft.core.status_effects;
 
-import eu.pb4.polymer.core.api.other.PolymerStatusEffect;
+import eu.pb4.polymer.core.api.other.PolymerMobEffect;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.LivingEntity;
 
-public class Freezing extends MobEffect implements PolymerStatusEffect {
+public class Freezing extends MobEffect implements PolymerMobEffect {
 	protected Freezing() {
 		super(MobEffectCategory.HARMFUL, 0x22e9ff);
 	}

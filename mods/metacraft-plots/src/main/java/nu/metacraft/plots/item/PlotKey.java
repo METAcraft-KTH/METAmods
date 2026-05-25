@@ -5,6 +5,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import it.unimi.dsi.fastutil.Pair;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -22,7 +24,6 @@ import nu.metacraft.plots.zone.PlotDataTypes;
 import nu.metacraft.plots.zone.PlotData;
 import nu.metacraft.zones.ZoneManager;
 import nu.metacraft.zones.zone.Zone;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 import java.util.Optional;
@@ -207,8 +208,8 @@ public class PlotKey extends Item implements PolymerItem {
 	}
 
 	@Override
-	public Identifier getPolymerItemModel(ItemStack itemStack, PacketContext ctx) {
-		return modelIdGetter.apply(itemStack, Optional.ofNullable(ctx.getPlayer()).map(player -> player.level().getServer()).orElse(null));
+	public Identifier getPolymerItemModel(ItemStack itemStack, PacketContext ctx, HolderLookup.Provider lookup) {
+		return modelIdGetter.apply(itemStack, ctx.get(PacketContext.SERVER_INSTANCE));
 	}
 
 	public record ZoneContainer(Zone zone, PlotData plotData) {}

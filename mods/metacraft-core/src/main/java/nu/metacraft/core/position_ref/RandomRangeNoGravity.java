@@ -3,6 +3,7 @@ package nu.metacraft.core.position_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.util.valueproviders.FloatProviders;
 import nu.metacraft.core.registry.PositionRefRegistry;
 import nu.metacraft.core.util.RefContext;
 import nu.metacraft.lib.util.METACodecs;
@@ -25,7 +26,7 @@ public record RandomRangeNoGravity(
 					Codec.lazyInitialized(() -> PositionRefRegistry.CODEC).fieldOf("center").forGetter(RandomRangeNoGravity::center),
 					METACodecs.BOX_CODEC.fieldOf("hitbox").forGetter(RandomRangeNoGravity::hitbox),
 					FluidPredicate.CODEC.optionalFieldOf("valid_fluids").forGetter(RandomRangeNoGravity::validFluids),
-					FloatProvider.codec(0, Float.MAX_VALUE).fieldOf("range").forGetter(RandomRangeNoGravity::range)
+					FloatProviders.codec(0, Float.MAX_VALUE).fieldOf("range").forGetter(RandomRangeNoGravity::range)
 			).apply(instance, RandomRangeNoGravity::new)
 	);
 

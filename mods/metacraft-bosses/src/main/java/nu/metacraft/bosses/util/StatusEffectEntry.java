@@ -8,6 +8,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.valueproviders.ConstantInt;
 import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.util.valueproviders.IntProviders;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 
@@ -22,8 +23,8 @@ public record StatusEffectEntry(
 	public static final MapCodec<StatusEffectEntry> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					MobEffect.CODEC.fieldOf("effect").forGetter(a -> a.effect),
-					IntProvider.CODEC.fieldOf("duration").forGetter(a -> a.duration),
-					IntProvider.codec(0, Byte.MAX_VALUE).optionalFieldOf("amplifier", ConstantInt.of(0)).forGetter(a -> a.amplifier),
+					IntProviders.CODEC.fieldOf("duration").forGetter(a -> a.duration),
+					IntProviders.codec(0, Byte.MAX_VALUE).optionalFieldOf("amplifier", ConstantInt.of(0)).forGetter(a -> a.amplifier),
 					Codec.BOOL.optionalFieldOf("ambient", false).forGetter(a -> a.ambient),
 					Codec.BOOL.optionalFieldOf("show_particles").forGetter(a -> a.showParticles),
 					Codec.BOOL.optionalFieldOf("show_icon").forGetter(a -> a.showIcon)

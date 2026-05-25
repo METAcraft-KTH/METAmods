@@ -24,7 +24,7 @@ public class EnderEyeItemMixin {
 				Player player = context.getPlayer();
 				if (player != null) {
 					PortalTypeRegistry.END.getCreationMessage().ifPresent(
-							msg -> player.displayClientMessage(msg, true)
+							msg -> player.sendOverlayMessage(msg)
 					);
 				}
 				info.setReturnValue(InteractionResult.FAIL);

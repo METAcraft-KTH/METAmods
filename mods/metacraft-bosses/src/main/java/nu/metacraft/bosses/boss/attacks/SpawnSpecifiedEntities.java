@@ -3,6 +3,8 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.util.valueproviders.FloatProviders;
+import net.minecraft.util.valueproviders.IntProviders;
 import nu.metacraft.lib.util.helper.EntityHelper;
 
 import java.util.List;
@@ -30,8 +32,8 @@ public class SpawnSpecifiedEntities extends SpawnEntityAttackBase {
 	public static final MapCodec<SpawnSpecifiedEntities> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					EntityHelper.SpawnEntry.POOL_CODEC.fieldOf("entities").forGetter(attack -> attack.entities),
-					IntProvider.NON_NEGATIVE_CODEC.fieldOf("toSpawn").forGetter(a -> a.toSpawn),
-					FloatProvider.CODEC.fieldOf("playerScaleFactor").forGetter(a -> a.targetScaleFactor),
+					IntProviders.NON_NEGATIVE_CODEC.fieldOf("toSpawn").forGetter(a -> a.toSpawn),
+					FloatProviders.CODEC.fieldOf("playerScaleFactor").forGetter(a -> a.targetScaleFactor),
 					EntityPredicate.CODEC.listOf().fieldOf("targets").forGetter(a -> a.targets),
 					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("maxDistanceToTarget").forGetter(a -> a.maxDistanceToTarget),
 					Codec.BOOL.fieldOf("mustSeeTarget").forGetter(a -> a.mustSeeTarget),
@@ -152,12 +154,6 @@ public class SpawnSpecifiedEntities extends SpawnEntityAttackBase {
 		public Predicate<Entity> getEntityPredicate(ServerLevel world, Vec3 pos) {
 			return entities.stream().reduce(
 					e -> false, (p1, p2) -> entity -> p1.test(entity) || p2.matches(world, pos, entity), Predicate::or
-			);
-		}
-
-		public Predicate<EntityType<?>> getTypePredicate() {
-			return entities.stream().map(e -> e.entityType().<Predicate<EntityType<?>>>map(t -> t::matches).orElse(e2 -> true)).reduce(
-					e -> false, Predicate::or, Predicate::or
 			);
 		}
 	}

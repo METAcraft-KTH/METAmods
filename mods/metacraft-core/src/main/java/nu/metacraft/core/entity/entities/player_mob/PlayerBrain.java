@@ -6,6 +6,7 @@ import com.mojang.datafixers.util.Pair;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.ActivityData;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.*;
 import net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;
@@ -22,6 +23,7 @@ import nu.metacraft.core.entity.ai.METAcraftSensorTypes;
 import nu.metacraft.core.entity.ai.tasks.*;
 import nu.metacraft.core.util.helper.TridentHelper;
 
+import java.util.List;
 import java.util.Optional;
 
 public class PlayerBrain {
@@ -46,39 +48,41 @@ public class PlayerBrain {
 			MemoryModuleType.SPEAR_CHARGE_POSITION, MemoryModuleType.SPEAR_ENGAGE_TIME, MemoryModuleType.SPEAR_STATUS
 	);
 
+	private static List<ActivityData<PlayerMob>> activities(PlayerMob playerMob) {
+		return List.of(
+				idle(),
+				core(),
+				fight(playerMob)
+		);
+	}
+
 	protected static Brain.Provider<PlayerMob> createBrainProfile() {
-		return Brain.provider(MEMORY_MODULE_TYPES, SENSOR_TYPES);
+		return Brain.provider(MEMORY_MODULE_TYPES, SENSOR_TYPES, PlayerBrain::activities);
 	}
 
-	protected static Brain<?> create(PlayerMob player, Brain<PlayerMob> brain) {
-		addIdleActivities(brain);
-		addCoreActivities(brain);
-		addFightActivities(player, brain);
-		brain.setCoreActivities(ImmutableSet.of(Activity.CORE));
-		brain.setDefaultActivity(Activity.IDLE);
-		brain.useDefaultActivity();
-		return brain;
+	protected static ActivityData<PlayerMob> idle() {
+		return ActivityData.create(
+				Activity.IDLE, 10, ImmutableList.of(
+						StartAttacking.create((world, e) -> true, PlayerBrain::getPreferredTarget), makeRandomWanderTask(),
+						GoToMoveTarget.create(METAcraftMemoryModules.MOVE_TARGET, 0.6f, 0),
+						EraseMemoryIf.create(PlayerBrain::hasReachedMoveTarget, METAcraftMemoryModules.MOVE_TARGET)
+				)
+		);
 	}
 
-	protected static void addIdleActivities(Brain<PlayerMob> brain) {
-		brain.addActivity(Activity.IDLE, 10, ImmutableList.of(
-				StartAttacking.create((world, e) -> true, PlayerBrain::getPreferredTarget), makeRandomWanderTask(),
-				GoToMoveTarget.create(METAcraftMemoryModules.MOVE_TARGET, 0.6f, 0),
-				EraseMemoryIf.create(PlayerBrain::hasReachedMoveTarget, METAcraftMemoryModules.MOVE_TARGET)
-		));
-	}
-
-	protected static void addCoreActivities(Brain<PlayerMob> brain) {
-		brain.addActivity(Activity.CORE, 0, ImmutableList.of(
-				new NeedToBreathe(1), new Swim<>(0.5f) {
-					@Override
-					protected boolean checkExtraStartConditions(ServerLevel serverWorld, Mob mobEntity) {
-						return super.checkExtraStartConditions(serverWorld, mobEntity) && !mobEntity.isSwimming();
-					}
-				},
-				new LookAtTargetSink(45, 90), new MoveToTargetSink(), InteractWithDoor.create(),
-				StartCelebratingIfTargetDead.create(0, (player, target) -> false), StopBeingAngryIfTargetDead.create()
-		));
+	protected static ActivityData<PlayerMob> core() {
+		return ActivityData.create(
+				Activity.CORE, 0, ImmutableList.of(
+						new NeedToBreathe(1), new Swim<>(0.5f) {
+							@Override
+							protected boolean checkExtraStartConditions(ServerLevel serverWorld, Mob mobEntity) {
+								return super.checkExtraStartConditions(serverWorld, mobEntity) && !mobEntity.isSwimming();
+							}
+						},
+						new LookAtTargetSink(45, 90), new MoveToTargetSink(), InteractWithDoor.create(),
+						StartCelebratingIfTargetDead.create(0, (player, target) -> false), StopBeingAngryIfTargetDead.create()
+				)
+		);
 	}
 
 	protected static boolean isSmartProjectileWeapon(ItemStack stack) {
@@ -94,23 +98,25 @@ public class PlayerBrain {
 		return !player.getBrain().hasMemoryValue(METAcraftMemoryModules.RECOVERING_BREATH) || !player.isUnderWater();
 	}
 	
-	private static void addFightActivities(PlayerMob player, Brain<PlayerMob> brain) {
-		brain.addActivityAndRemoveMemoryWhenStopped(Activity.FIGHT, 10, ImmutableList.of(
-				StopAttackingIfTargetInvalid.create((world, target) -> !PlayerBrain.isPreferredAttackTarget(world, player, target)),
-				new SpearApproach(1.0, 10.0F),
-				new SpearAttack(1.0, 1.0, 10.0F, 2.0F),
-				new SpearRetreat(1.0),
-				BehaviorBuilder.triggerIf(PlayerBrain::isHoldingCrossbow, BackUpIfTooClose.create(5, 0.75f)),
-				BehaviorBuilder.triggerIf(
-						PlayerBrain::allowSetMovePos,
-						(OneShot<Mob>) ImprovedRangedApproachTask.create(1.0f)
-				), BehaviorBuilder.triggerIf(
-						PlayerBrain::shouldAttackPhysical,
-						MeleeAttack.create(20)
-				), new CrossbowAttack<>(),
-				new SmartShootAttackTask<>(PlayerBrain::isSmartProjectileWeapon, 20),
-				new SmartStrafeAttackTask<>(1, 8)
-		), MemoryModuleType.ATTACK_TARGET);
+	private static ActivityData<PlayerMob> fight(PlayerMob player) {
+		return ActivityData.create(
+				Activity.FIGHT, 10, ImmutableList.of(
+						StopAttackingIfTargetInvalid.create((world, target) -> !PlayerBrain.isPreferredAttackTarget(world, player, target)),
+						new SpearApproach(1.0, 10.0F),
+						new SpearAttack(1.0, 1.0, 2.0F),
+						new SpearRetreat(1.0),
+						BehaviorBuilder.triggerIf(PlayerBrain::isHoldingCrossbow, BackUpIfTooClose.create(5, 0.75f)),
+						BehaviorBuilder.triggerIf(
+								PlayerBrain::allowSetMovePos,
+								(OneShot<Mob>) ImprovedRangedApproachTask.create(1.0f)
+						), BehaviorBuilder.triggerIf(
+								PlayerBrain::shouldAttackPhysical,
+								MeleeAttack.create(20)
+						), new CrossbowAttack<>(),
+						new SmartShootAttackTask<>(PlayerBrain::isSmartProjectileWeapon, 20),
+						new SmartStrafeAttackTask<>(1, 8)
+				), MemoryModuleType.ATTACK_TARGET
+		);
 	}
 
 	protected static boolean shouldAttackPhysical(PlayerMob player) {

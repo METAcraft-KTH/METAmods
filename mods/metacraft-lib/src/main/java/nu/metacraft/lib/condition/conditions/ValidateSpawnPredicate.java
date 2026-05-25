@@ -16,7 +16,6 @@ import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.ValidationContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 
 public class ValidateSpawnPredicate implements LootItemCondition {
 
@@ -33,7 +32,7 @@ public class ValidateSpawnPredicate implements LootItemCondition {
 	}
 
 	@Override
-	public LootItemConditionType getType() {
+	public MapCodec<? extends LootItemCondition> codec() {
 		return METAcraftConditions.SPAWN_PREDICATE;
 	}
 

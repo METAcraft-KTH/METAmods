@@ -13,25 +13,25 @@ import java.util.stream.Stream;
 public class SGUIHelper {
 
 	public static AnimatedGuiElementBuilder createPlayerHeadIcon(
-			Component name, MinecraftServer server, Stream<? extends Player> players
+			Component name, Stream<? extends Player> players
 	) {
-		return createGameProfileHeadIcon(name, server, players.map(Player::getGameProfile));
+		return createGameProfileHeadIcon(name, players.map(Player::getGameProfile));
 	}
 
 	public static AnimatedGuiElementBuilder createPlayerHeadIcon(
-			Component name, int interval, MinecraftServer server, Stream<? extends Player> players
+			Component name, int interval, Stream<? extends Player> players
 	) {
-		return createGameProfileHeadIcon(name, interval, server, players.map(Player::getGameProfile));
+		return createGameProfileHeadIcon(name, interval, players.map(Player::getGameProfile));
 	}
 
 	public static AnimatedGuiElementBuilder createGameProfileHeadIcon(
-			Component name, MinecraftServer server, Stream<GameProfile> players
+			Component name, Stream<GameProfile> players
 	) {
-		return createGameProfileHeadIcon(name, 30, server, players);
+		return createGameProfileHeadIcon(name, 30, players);
 	}
 
 	public static AnimatedGuiElementBuilder createGameProfileHeadIcon(
-			Component name, int interval, MinecraftServer server, Stream<GameProfile> players
+			Component name, int interval, Stream<GameProfile> players
 	) {
 		AnimatedGuiElementBuilder builder = new AnimatedGuiElementBuilder();
 		boolean foundPlayer = false;
@@ -39,7 +39,7 @@ public class SGUIHelper {
 		for (var player : (Iterable<GameProfile>) players::iterator) {
 			builder.setItem(Items.PLAYER_HEAD);
 			builder.setName(name);
-			builder.setSkullOwner(player, server);
+			builder.setProfile(player);
 			builder.saveItemStack();
 			foundPlayer = true;
 		}

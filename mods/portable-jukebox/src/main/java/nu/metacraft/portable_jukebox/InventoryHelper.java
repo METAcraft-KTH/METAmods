@@ -3,7 +3,6 @@ package nu.metacraft.portable_jukebox;
 import nu.metacraft.lib.util.EntityRef;
 import nu.metacraft.portable_jukebox.mixin.CompoundContainerAccessor;
 import nu.metacraft.portable_jukebox.mixin.PlayerEnderChestContainerAccessor;
-import nu.metacraft.portable_jukebox.mixin.SimpleContainerAccessor;
 
 import java.util.Optional;
 import net.minecraft.world.Container;
@@ -30,15 +29,6 @@ public class InventoryHelper {
 					getEntityFromInventory(doubleInv.getContainer2())
 			);
 			case PlayerEnderChestContainerAccessor enderChest -> Optional.ofNullable(enderChest.getActiveChest()).map(EntityRef::fromBlock);
-			case SimpleContainerAccessor simple -> Optional.ofNullable(simple.getListeners()).flatMap(listeners -> listeners.stream().filter(
-					listener -> listener instanceof Entity || listener instanceof BlockEntity
-			).map(listener -> {
-				if (listener instanceof Entity e) {
-					return EntityRef.fromEntity(e);
-				} else {
-					return EntityRef.fromBlock((BlockEntity) listener);
-				}
-			}).findAny());
 			case null, default -> Optional.empty();
 		};
 	}

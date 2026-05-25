@@ -2,6 +2,7 @@ package nu.metacraft.portable_jukebox.block;
 
 import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.core.api.block.PolymerHeadBlock;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -30,7 +31,6 @@ import nu.metacraft.portable_jukebox.item.PortableJukeboxItem;
 import nu.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
 import nu.metacraft.portable_jukebox.gui.PortableJukeboxGui;
 import nu.metacraft.portable_jukebox.mixin.SkullBlockAccessor;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 
@@ -119,7 +119,7 @@ public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerHead
 	protected int getAnalogOutputSignal(BlockState state, Level world, BlockPos pos, Direction direction) {
 		var blockEntity = world.getBlockEntity(pos);
 		if (blockEntity instanceof PortableJukeboxBlockEntity portable) {
-			return PortableJukeboxItem.getComparatorOutput(portable.getJukebox(), world.registryAccess());
+			return PortableJukeboxItem.getComparatorOutput(portable.getJukebox());
 		}
 		return 0;
 	}

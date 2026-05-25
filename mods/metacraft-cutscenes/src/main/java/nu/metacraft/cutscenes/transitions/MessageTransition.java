@@ -7,6 +7,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.network.chat.ResolutionContext;
 import net.minecraft.server.level.ServerPlayer;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.util.IntervalMap;
@@ -39,12 +40,18 @@ public class MessageTransition extends InstantTransition {
 
 	@Override
 	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		player.displayClientMessage(parseText(player, cutscene, message), overlay);
+		player.sendSystemMessage(parseText(player, cutscene, message), overlay);
 	}
 
 	public static Component parseText(ServerPlayer player, CutsceneInstance cutscene, Component text) {
 		try {
-			return ComponentUtils.updateForEntity(RunCommandTransition.getSource(cutscene, false, player, false), text, player, 0);
+			return ComponentUtils.resolve(
+					ResolutionContext.builder().withSource(
+							RunCommandTransition.getSource(cutscene, false, player, false)
+					).withEntityOverride(
+							player
+					).build(), text
+			);
 		} catch (CommandSyntaxException e) {
 			Cutscenes.LOGGER.error(e.getMessage());
 			return text;

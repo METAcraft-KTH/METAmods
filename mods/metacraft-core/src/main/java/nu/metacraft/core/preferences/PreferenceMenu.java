@@ -1,6 +1,6 @@
 package nu.metacraft.core.preferences;
 
-import eu.pb4.sgui.api.elements.GuiElementInterface;
+import eu.pb4.sgui.api.elements.GuiElement;
 import nu.metacraft.lib.util.DisplayItemData;
 
 import java.util.List;
@@ -25,7 +25,7 @@ public class PreferenceMenu extends SelectorMenu {
 
 	private final ServerPlayer player;
 
-	public <T, V, P extends Preference<? extends T, ? extends V, ?>> GuiElementInterface getGuiElement(
+	public <T, V, P extends Preference<? extends T, ? extends V, ?>> GuiElement getGuiElement(
 			ServerPlayer player, Holder<P> entry
 	) {
 		var icon = PreferenceData.downcast(entry).value().icons().stream().filter(
@@ -41,7 +41,7 @@ public class PreferenceMenu extends SelectorMenu {
 	}
 
 	public void refreshButtons() {
-		List<GuiElementInterface> buttons = getPreferences(player).map(
+		List<GuiElement> buttons = getPreferences(player).map(
 				pref -> getGuiElement(player, pref)
 		).toList();
 		pages.setElements(buttons);

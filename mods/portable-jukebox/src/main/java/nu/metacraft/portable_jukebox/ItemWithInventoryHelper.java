@@ -13,7 +13,7 @@ public class ItemWithInventoryHelper {
 
 	public static Stream<ItemStack> getRecursiveInventoryContents(ItemStack stack) {
 		if (stack.has(DataComponents.CONTAINER)) {
-			return stack.get(DataComponents.CONTAINER).nonEmptyStream().flatMap(
+			return stack.get(DataComponents.CONTAINER).nonEmptyItemCopyStream().flatMap(
 					content -> Stream.concat(Stream.of(content), ItemWithInventoryHelper.getRecursiveInventoryContents(content))
 			);
 		}

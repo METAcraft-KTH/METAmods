@@ -24,11 +24,10 @@
 	"mixins": [
 		"metacraft_resource_packs.mixins.json"
 	],
-	"accessWidener": "metacraft_resource_packs.accesswidener",
 	"depends": {
 		"fabricloader": ">=${loader_version}",
 		"minecraft": "~${minecraft_version}",
-		"fabric": "*",
+		"fabric-api": "*",
 		"metacraft-lib": "*"
 	}
 }

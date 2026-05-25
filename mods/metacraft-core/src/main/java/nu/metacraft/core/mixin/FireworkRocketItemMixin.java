@@ -26,11 +26,11 @@ public class FireworkRocketItemMixin {
 	)
 	public void use(Level level, Player player, InteractionHand hand, CallbackInfoReturnable<InteractionResult> cir) {
 		if (level instanceof ServerLevel s && !s.getGameRules().get(METAcraftGameRules.FIREWORK_BOOSTING)) {
-			player.displayClientMessage(
+			player.sendOverlayMessage(
 					Component.translatableWithFallback(
 							"message.metacraft.gamerule.firework_boosting_disabled",
 							"Firework boosting is disabled on this server"
-					), true
+					)
 			);
 			cir.setReturnValue(InteractionResult.FAIL);
 		}

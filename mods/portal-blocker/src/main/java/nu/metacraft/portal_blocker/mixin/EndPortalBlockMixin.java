@@ -35,9 +35,7 @@ public class EndPortalBlockMixin {
 					PortalTypeRegistry.END, world.dimension(), PortalState.BlockingType.TRAVEL, pos)
 			) {
 				if (entity instanceof ServerPlayer player) {
-					PortalTypeRegistry.END.getTravelMessage().ifPresent(message -> {
-						player.displayClientMessage(message, true);
-					});
+					PortalTypeRegistry.END.getTravelMessage().ifPresent(player::sendOverlayMessage);
 				}
 				ci.cancel();
 			}

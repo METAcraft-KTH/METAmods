@@ -5,6 +5,7 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
+import net.minecraft.core.particles.ParticleTypes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -136,6 +137,19 @@ public abstract class ParrotMixin extends TamableAnimal {
 	public void interactWhenTamed(Player player, InteractionHand hand, CallbackInfoReturnable<InteractionResult> cir) {
 		if (!player.level().isClientSide() && isTame() && (isOwnedBy(player) || ((TameableExtension) this).metaraft$isTrusted(player))) {
 			interactParrot(player, hand).ifPresent(cir::setReturnValue);
+		}
+	}
+
+	@Inject(method = "aiStep", at = @At("RETURN"))
+	public void showAgeUpParticle(CallbackInfo ci) {
+		if (level() instanceof ServerLevel sl) {
+			if (this.forcedAgeTimer > 0) {
+				if (this.forcedAgeTimer % 4 == 0) {
+					sl.sendParticles(ParticleTypes.HAPPY_VILLAGER, this.getRandomX(1.0F), this.getRandomY() + (double)0.5F, this.getRandomZ(1.0F), 1, 0.0F, 0.0F, 0.0F, 0);
+				}
+
+				--this.forcedAgeTimer;
+			}
 		}
 	}
 

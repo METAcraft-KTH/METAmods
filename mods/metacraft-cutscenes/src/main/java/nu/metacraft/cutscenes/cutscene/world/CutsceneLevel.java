@@ -6,7 +6,6 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.Vec3i;
@@ -18,20 +17,19 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
 import net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket;
-import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.server.ServerScoreboard;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.*;
+import net.minecraft.world.clock.ServerClockManager;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.item.alchemy.PotionBrewing;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
@@ -47,10 +45,10 @@ import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.WeatherData;
 import net.minecraft.world.level.saveddata.maps.MapId;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
-import net.minecraft.world.level.storage.DimensionDataStorage;
+import net.minecraft.world.level.storage.SavedDataStorage;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.level.storage.ServerLevelData;
 import net.minecraft.world.level.storage.TagValueOutput;
@@ -69,6 +67,7 @@ import nu.metacraft.cutscenes.mixin.ServerLevelAccessor;
 import nu.metacraft.cutscenes.util.SerialisedStructure;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import nu.metacraft.lib.util.helper.StructureTemplateHelper;
+import org.jspecify.annotations.NonNull;
 
 import java.util.*;
 import java.util.function.BooleanSupplier;
@@ -86,8 +85,9 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 
 	private final LevelEntityGetter<Entity> lookup;
 
-	private CutsceneDimensionDataStorage persistentStateManager;
+	private CutsceneSavedDataStorage persistentStateManager;
 	private CompoundTag persistentStorage = new CompoundTag();
+	private final CutsceneClockManager clockManager;
 
 	protected boolean loaded = false;
 
@@ -107,7 +107,7 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 						nbt
 				), p.getLevelSettings(),
 				p.isFlatWorld() ? PrimaryLevelData.SpecialWorldProperty.FLAT : (p.isDebugWorld() ? PrimaryLevelData.SpecialWorldProperty.DEBUG : PrimaryLevelData.SpecialWorldProperty.NONE),
-				p.worldGenOptions(), p.worldGenSettingsLifecycle()
+				p.worldGenSettingsLifecycle()
 		);
 	}
 
@@ -115,7 +115,7 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 			CutsceneWorldData data, ServerLevel world
 	) {
 		return data != null ? data.saveProperties() : world.getServer().getWorldData().createTag(
-				world.registryAccess(), null
+				null
 		);
 	}
 
@@ -137,7 +137,7 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 						world.registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE).wrapAsHolder(world.dimensionType()),
 						createDummyChunkGenerator(world)
 				),
-				world.isDebug(), world.getSeed(), List.of(), true, world.getRandomSequences()
+				world.isDebug(), world.getSeed(), List.of(), true
 		);
 		this.noSave = true;
 		this.cutscene = cutscene;
@@ -150,7 +150,19 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 		initScoreboard(data == null);
 		if (data != null) {
 			load(data);
+		} else {
+			var weatherData = this.getDataStorage().computeIfAbsent(WeatherData.TYPE);
+			weatherData.setRaining(world.getWeatherData().isRaining());
+			weatherData.setThundering(world.getWeatherData().isThundering());
+			weatherData.setRainTime(world.getWeatherData().getRainTime());
+			weatherData.setThunderTime(world.getWeatherData().getThunderTime());
+			weatherData.setClearWeatherTime(world.getWeatherData().getClearWeatherTime());
+			getDataStorage().computeIfAbsent(CutsceneClockManager.TYPE).copyFrom(
+					world.clockManager()
+			);
 		}
+		this.clockManager = getDataStorage().computeIfAbsent(CutsceneClockManager.TYPE);
+		clockManager.init(this);
 		loaded = true;
 	}
 
@@ -212,6 +224,11 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 		return cutscene;
 	}
 
+	@Override
+	public WeatherData getWeatherData() {
+		return this.getDataStorage().computeIfAbsent(WeatherData.TYPE);
+	}
+
 	public void transferFrom(CutsceneLevel prev) {
 		if (getActualWorld().isRaining() == isRaining()) {
 			createWeatherFixPacket(prev.isRaining(), isRaining(), rainLevel, thunderLevel).ifPresent(cutscene::sendToPlayers);
@@ -246,6 +263,12 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 	}
 
 	@Override
+	public @NonNull ServerClockManager clockManager() {
+		if (clockManager == null) return super.clockManager();
+		return clockManager;
+	}
+
+	@Override
 	public String toString() {
 		return "Cutscene[" + getServer().getWorldData().getLevelName() + "]";
 	}
@@ -255,11 +278,11 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 	}
 
 	public boolean isLightingInCache(ChunkPos pos) {
-		return getChunkSource().isLightingCached(pos.x, pos.z);
+		return getChunkSource().isLightingCached(pos.x(), pos.z());
 	}
 
 	public Optional<LevelChunk> getChunkFromCacheIfPresent(ChunkPos pos) {
-		return getChunkFromCacheIfPresent(pos.x, pos.z);
+		return getChunkFromCacheIfPresent(pos.x(), pos.z());
 	}
 
 	public Optional<LevelChunk> getChunkFromCacheIfPresent(int x, int z) {
@@ -268,10 +291,7 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 
 	public void syncTime() {
 		cutscene.sendToPlayers(
-				new ClientboundSetTimePacket(
-						getGameTime(), getDayTime(),
-						getGameRules().get(GameRules.ADVANCE_TIME)
-				)
+				clockManager().createFullSyncPacket()
 		);
 	}
 
@@ -281,6 +301,7 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 			syncTime();
 		}
 		entities.tick();
+		clockManager.tick();
 		super.tick(shouldKeepTicking);
 
 		getChunkSource().getLightEngine().tryScheduleUpdate();
@@ -318,7 +339,7 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 		this.players().remove(player);
 		entities.onRemovePlayer(player);
 		if (cutscene.getCutscene().shouldResendChunksBeforeNextCutscene() || getCutscene().skipNextCutscene(isLeavingCutscene)) {
-			sendBlocks(player, c -> world.getChunk(c.getPos().x, c.getPos().z, ChunkStatus.FULL, false));
+			sendBlocks(player, c -> world.getChunk(c.getPos().x(), c.getPos().z(), ChunkStatus.FULL, false));
 		}
 		getChunkSource().cutsceneChunkLoadingManager.removePlayer(player);
 		createWeatherFixPacket(
@@ -395,7 +416,7 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 	}
 
 	private CompoundTag saveLevelProperties() {
-		return ((WorldData) this.getLevelData()).createTag(registryAccess(), null);
+		return ((WorldData) this.getLevelData()).createTag(null);
 	}
 
 	private SerialisedStructure saveAsStructure() {
@@ -489,13 +510,13 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 	}
 
 	@Override
-	public DimensionDataStorage getDataStorage() {
+	public SavedDataStorage getDataStorage() {
 		//ChunkManager is not initialized when this is run for the first time, so we must create it here.
 		if (persistentStateManager == null) {
 			if (persistentStorage == null) {
 				persistentStorage = new CompoundTag();
 			}
-			persistentStateManager = new CutsceneDimensionDataStorage(
+			persistentStateManager = new CutsceneSavedDataStorage(
 					null,
 					getServer().getFixerUpper(), registryAccess(), () -> persistentStorage
 			);
@@ -607,11 +628,6 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 	@Override
 	public void gameEvent(Holder<GameEvent> event, Vec3 emitterPos, GameEvent.Context emitter) {
 		world.gameEvent(event, emitterPos, emitter);
-	}
-
-	@Override
-	public float getShade(Direction direction, boolean shaded) {
-		return world.getShade(direction, shaded);
 	}
 
 	@Override

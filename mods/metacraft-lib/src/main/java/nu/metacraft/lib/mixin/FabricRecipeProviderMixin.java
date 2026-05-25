@@ -20,7 +20,7 @@ import nu.metacraft.lib.event.RecipeDataGen;
 public class FabricRecipeProviderMixin {
 
 	@Shadow @Final
-	HolderLookup.Provider val$wrapperLookup;
+	HolderLookup.Provider val$registries;
 
 	@Inject(
 		method = "accept",
@@ -37,7 +37,7 @@ public class FabricRecipeProviderMixin {
 	) {
 		recipeJson.set(
 				RecipeDataGen.EVENT.invoker().modify(
-						recipeKey, recipeJson.get(), recipe, val$wrapperLookup
+						recipeKey, recipeJson.get(), recipe, val$registries
 				)
 		);
 	}

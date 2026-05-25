@@ -18,7 +18,7 @@ public class PlayerAdvancementsMixin {
 	@Shadow private ServerPlayer player;
 
 	@ModifyExpressionValue(
-		method = "method_53637", //Lambda inside grantCriterion
+		method = "lambda$award$0",
 		at = @At(
 				value = "INVOKE",
 				target = "Lnet/minecraft/advancements/DisplayInfo;shouldAnnounceChat()Z"

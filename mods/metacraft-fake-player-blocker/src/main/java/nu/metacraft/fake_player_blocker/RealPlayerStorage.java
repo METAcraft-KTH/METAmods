@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.lib.METAcraftLib;
 
 import java.util.*;
 
@@ -19,13 +20,13 @@ public class RealPlayerStorage extends SavedData {
 	);
 
 	private static final SavedDataType<RealPlayerStorage> TYPE = new SavedDataType<>(
-			"metacraft-real-player-storage",
+			METAcraftLib.getID("real_player_storage"),
 			RealPlayerStorage::new, RealPlayerStorage.CODEC,
 			null
 	);
 
 	public static RealPlayerStorage getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	private final Set<String> realUsernames;

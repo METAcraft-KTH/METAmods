@@ -15,8 +15,10 @@ import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
@@ -27,7 +29,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.saved_items.SavedItemsConfig;
 import nu.metacraft.saved_items.SavedItems;
-import nu.metacraft.saved_items.SavedItemsDataFixer;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.ToIntFunction;
@@ -37,11 +39,12 @@ import java.util.stream.Stream;
 public class SavedItemsData extends SavedData {
 
 	public static final String ITEMS = "Items"; //Careful, this is used by a datafixer!
+
 	private static final SavedDataTypeCache.Type<SavedItemsData> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
-					SavedItems.MODID, () -> create(level.getServer()),
+					SavedItems.getID("saved_items"), () -> create(level.getServer()),
 					createCodec(level.getServer()),
-					SavedItemsDataFixer.Types.SAVED_DATA_SAVED_ITEMS
+					DataFixTypes.METACRAFT_SAVED_DATA_SAVED_ITEMS
 			)
 	);
 
@@ -59,7 +62,7 @@ public class SavedItemsData extends SavedData {
 	}
 
 	public static SavedItemsData getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
+		return server.getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
 	}
 
 	private final Multimap<Item, SavedItemEntry> items = MultimapBuilder.hashKeys().arrayListValues().build();
@@ -156,15 +159,15 @@ public class SavedItemsData extends SavedData {
 			stack.set(DataComponents.LORE, lore);
 		}
 	}
-	private Optional<Component> getPlayerSource(ItemStack stack) {
-		if (stack.getEntityRepresentation() instanceof ItemEntityData data) {
+	private Optional<Component> getPlayerSource(@Nullable Entity holder) {
+		if (holder instanceof ItemEntityData data) {
 			return Optional.ofNullable(data.metacraft_saved_items$getSourcePlayerName());
 		} else {
 			return Optional.empty();
 		}
 	}
 
-	public boolean tryAddItem(SavedItemsConfig.SavingType category, ItemStack stack) {
+	public boolean tryAddItem(SavedItemsConfig.SavingType category, ItemStack stack, @Nullable Entity holder) {
 		var random = server.overworld().getRandom();
 		return SavedItemsConfig.getConfig().streamAllGroupsFromTypes(category, server).filter(
 				save ->
@@ -182,7 +185,7 @@ public class SavedItemsData extends SavedData {
 				return false;
 			}
 			if (newStack.has(DataComponents.CUSTOM_NAME)) {
-				getPlayerSource(stack).ifPresent(source -> {
+				getPlayerSource(holder).ifPresent(source -> {
 					tryAddPlayerSource(newStack, source);
 				});
 			}

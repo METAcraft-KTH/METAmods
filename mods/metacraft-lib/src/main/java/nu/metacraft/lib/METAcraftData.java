@@ -24,7 +24,7 @@ public class METAcraftData extends SavedData {
 	);
 
 	private static final SavedDataType<METAcraftData> TYPE = new SavedDataType<>(
-			METAcraftLib.NAMESPACE + "-data", METAcraftData::new, CODEC, null
+			METAcraftLib.getID("data"), METAcraftData::new, CODEC, null
 	);
 
 	public METAcraftData(Map<UUID, String> nameCache) {
@@ -38,7 +38,7 @@ public class METAcraftData extends SavedData {
 	private final Map<UUID, String> nameCache;
 
 	public static METAcraftData getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	public void setName(UUID id, @Nullable String name) {

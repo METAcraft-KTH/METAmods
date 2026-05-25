@@ -1,0 +1,2 @@
+classTweaker v2 official
+inject-interface net/minecraft/world/entity/OminousItemSpawner nu/metacraft/bosses/extensions/OminousItemSpawnerExtension

@@ -2,6 +2,7 @@ package nu.metacraft.core.block.blocks;
 
 import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -19,7 +20,6 @@ import net.minecraft.world.level.block.state.properties.EnumProperty;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.block.METAcraftBlockEntities;
 import nu.metacraft.core.block.entities.MusicBlockEntity;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 public class MusicBlock extends BaseEntityBlock implements PolymerBlock {
 
@@ -41,12 +41,18 @@ public class MusicBlock extends BaseEntityBlock implements PolymerBlock {
 	}
 
 	@Override
-	public BlockState getPolymerBlockState(BlockState state, PacketContext ctx) {
-		if (ctx.getPlayer() != null && ctx.getPlayer().isCreative()) {
-			return Blocks.TRIAL_SPAWNER.defaultBlockState();
-		} else {
-			return Blocks.AIR.defaultBlockState();
+	public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext ctx) {
+		if (ctx != null) {
+			var profile = ctx.get(PacketContext.GAME_PROFILE);
+			var server = ctx.get(PacketContext.SERVER_INSTANCE);
+			if (profile != null && server != null) {
+				var player = server.getPlayerList().getPlayer(profile.id());
+				if (player != null && player.isCreative()) {
+					return Blocks.TRIAL_SPAWNER.defaultBlockState();
+				}
+			}
 		}
+		return Blocks.AIR.defaultBlockState();
 	}
 
 	@Override

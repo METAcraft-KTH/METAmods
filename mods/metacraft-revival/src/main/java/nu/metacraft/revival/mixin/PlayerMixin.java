@@ -6,6 +6,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.revival.extension.ServerPlayerExtension;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -38,7 +39,7 @@ public abstract class PlayerMixin extends Avatar {
 
 	@Inject(method = "interactOn", at = @At("RETURN"), cancellable = true)
 	public void interactOn(
-			Entity entityToInteractOn, InteractionHand hand, CallbackInfoReturnable<InteractionResult> cir
+			Entity entity, InteractionHand hand, Vec3 location, CallbackInfoReturnable<InteractionResult> cir
 	) {
 		if (this instanceof ServerPlayerExtension ext && ext.metacraft$isUnconscious()) {
 			cir.setReturnValue(InteractionResult.FAIL);

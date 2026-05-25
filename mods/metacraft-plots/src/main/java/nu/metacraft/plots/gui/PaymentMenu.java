@@ -28,7 +28,7 @@ public abstract class PaymentMenu extends LayeredGui {
 				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.close", "Close"
 				)
-		).setCallback((index, type, action) -> {
+		).setCallback(() -> {
 			close();
 		});
 	}
@@ -37,7 +37,7 @@ public abstract class PaymentMenu extends LayeredGui {
 		super(MenuType.GENERIC_9x4, player, false);
 
 		for (int i = 0; i < input.getSize(); i++) {
-			input.setSlotRedirect(i, createSlot(i));
+			input.setSlot(i, createSlot(i));
 		}
 		this.addLayer(input, 0, 0);
 		Layer buttons = new Layer(1, 3);
@@ -47,8 +47,8 @@ public abstract class PaymentMenu extends LayeredGui {
 	}
 
 	@Override
-	public void onClose() {
-		super.onClose();
+	public void onManualClose() {
+		super.onManualClose();
 		if (getPlayer().isDeadOrDying() || getPlayer().hasDisconnected()) {
 			for (int i = 0; i < inventory.getContainerSize(); i++) {
 				getPlayer().drop(inventory.removeItemNoUpdate(i), false);

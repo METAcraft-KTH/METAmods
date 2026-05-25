@@ -11,11 +11,14 @@ import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ExtraCodecs;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Slime;
 import nu.metacraft.core.util.helper.BossBarHelper;
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -44,8 +47,8 @@ public class ManageableServerBossBar extends ServerBossEvent {
 
 	private final BossBarMusicHandler handler = new BossBarMusicHandler(this);
 
-	public ManageableServerBossBar(Component displayName, BossBarColor color, BossBarOverlay style) {
-		super(displayName, color, style);
+	public ManageableServerBossBar(UUID id, Component displayName, BossBarColor color, BossBarOverlay style) {
+		super(id, displayName, color, style);
 	}
 
 	public void setMusic(PlayerMusic music) {
@@ -124,8 +127,8 @@ public class ManageableServerBossBar extends ServerBossEvent {
 		return includePassengers;
 	}
 
-	public ManageableServerBossBar copy() {
-		var bossBar = new ManageableServerBossBar(getName(), getColor(), getOverlay());
+	public ManageableServerBossBar copy(@Nullable UUID id) {
+		var bossBar = new ManageableServerBossBar(id != null ? id : getId(), getName(), getColor(), getOverlay());
 		getMusic().ifPresent(bossBar::setMusic);
 		bossBar.setDarkenScreen(darkenScreen);
 		bossBar.setPlayBossMusic(playBossMusic);
@@ -138,9 +141,13 @@ public class ManageableServerBossBar extends ServerBossEvent {
 		bossBar.setVisible(isVisible());
 		return bossBar;
 	}
+
+	public static ManageableServerBossBar create(RandomSource random) {
+		return create(Mth.createInsecureUUID(random));
+	}
 	
-	public static ManageableServerBossBar create() {
-		return new ManageableServerBossBar(Component.empty(), BossBarColor.WHITE, BossBarOverlay.PROGRESS);
+	public static ManageableServerBossBar create(UUID id) {
+		return new ManageableServerBossBar(id, Component.empty(), BossBarColor.WHITE, BossBarOverlay.PROGRESS);
 	}
 
 	private boolean shouldExtendExtraHealth(Entity entity) {

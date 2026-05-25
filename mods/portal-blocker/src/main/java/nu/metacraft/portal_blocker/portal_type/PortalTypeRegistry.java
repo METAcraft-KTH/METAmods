@@ -11,7 +11,7 @@ import nu.metacraft.portal_blocker.PortalBlocker;
 
 public class PortalTypeRegistry {
 
-	public static final Registry<PortalType> REGISTRY = FabricRegistryBuilder.<PortalType>createSimple(
+	public static final Registry<PortalType> REGISTRY = FabricRegistryBuilder.<PortalType>create(
 			ResourceKey.createRegistryKey(PortalBlocker.getID("portal-type"))
 	).buildAndRegister();
 

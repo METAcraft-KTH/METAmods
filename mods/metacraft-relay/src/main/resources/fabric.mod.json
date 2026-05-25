@@ -24,13 +24,12 @@
 			"nu.metacraft.relay.RelayDatagen"
 		]
 	},
-	"accessWidener" : "metacraft_relay.accesswidener",
 	"mixins": [
 		"metacraft_relay.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=${loader_version}",
-		"fabric": "*",
+		"fabric-api": "*",
 		"minecraft": "~${minecraft_version}",
 		"metacraft-lib": "*",
 		"metacraft-core": "*"

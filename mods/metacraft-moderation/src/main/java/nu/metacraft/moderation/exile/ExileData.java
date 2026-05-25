@@ -10,6 +10,7 @@ import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.lib.util.SavedDataTypeCache;
 import nu.metacraft.moderation.METAcraftModeration;
@@ -23,7 +24,7 @@ public class ExileData extends SavedData {
 	private final Map<UUID, ExileDefinition> exiledPlayers = new HashMap<>();
 
 	public static ExileData getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
+		return server.getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
 	}
 
 	private static Codec<ExileData> createCodec(MinecraftServer server) {
@@ -49,7 +50,7 @@ public class ExileData extends SavedData {
 
 	private static final SavedDataTypeCache.Type<ExileData> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
-					"metacraft-moderation-exile", () -> createNew(level.getServer()),
+					METAcraftLib.getID("moderation/exile"), () -> createNew(level.getServer()),
 					createCodec(level.getServer()), null
 			)
 	);

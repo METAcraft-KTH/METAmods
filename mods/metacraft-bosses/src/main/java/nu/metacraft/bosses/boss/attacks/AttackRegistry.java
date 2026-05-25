@@ -9,7 +9,7 @@ import nu.metacraft.bosses.boss.attacks.target.*;
 
 public class AttackRegistry {
 
-	public static final Registry<AttackType> REGISTRY = FabricRegistryBuilder.<AttackType>createSimple(
+	public static final Registry<AttackType> REGISTRY = FabricRegistryBuilder.<AttackType>create(
 			ResourceKey.createRegistryKey(METAcraftBosses.getID("attacks"))
 	).buildAndRegister();
 
@@ -43,7 +43,7 @@ public class AttackRegistry {
 	}
 
 	public static class PTS {
-		public static final Registry<PositionTargetSelectorType> REGISTRY = FabricRegistryBuilder.<PositionTargetSelectorType>createSimple(
+		public static final Registry<PositionTargetSelectorType> REGISTRY = FabricRegistryBuilder.<PositionTargetSelectorType>create(
 				ResourceKey.createRegistryKey(METAcraftBosses.getID("attack_position_target_selectors"))
 		).buildAndRegister();
 

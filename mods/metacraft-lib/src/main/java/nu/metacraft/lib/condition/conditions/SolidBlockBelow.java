@@ -9,7 +9,6 @@ import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 
 public class SolidBlockBelow implements LootItemCondition {
 
@@ -24,7 +23,7 @@ public class SolidBlockBelow implements LootItemCondition {
 	private SolidBlockBelow() {}
 
 	@Override
-	public LootItemConditionType getType() {
+	public MapCodec<? extends LootItemCondition> codec() {
 		return METAcraftConditions.SOLID_BLOCK_BELOW;
 	}
 

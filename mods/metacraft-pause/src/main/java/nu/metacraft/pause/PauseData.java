@@ -34,7 +34,7 @@ public class PauseData extends SavedData {
 	private UnpauseTask unpauseTask = null;
 
 	public static PauseData getInstance(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.getDataStorage().computeIfAbsent(TYPE);
 	}
 
 	private static final Codec<PauseData> CODEC = RecordCodecBuilder.create(
@@ -44,7 +44,7 @@ public class PauseData extends SavedData {
 	);
 
 	private static final SavedDataType<PauseData> TYPE = new SavedDataType<>(
-			"metacraft-pause", PauseData::createNew, CODEC, null
+			METAcraftPause.getID("pause"), PauseData::createNew, CODEC, null
 	);
 
 	private static PauseData createNew() {

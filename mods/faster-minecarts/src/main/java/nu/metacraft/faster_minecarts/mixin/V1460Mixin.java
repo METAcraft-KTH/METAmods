@@ -20,13 +20,13 @@ public class V1460Mixin {
 
 	@ModifyExpressionValue(
 			method = {
-					"method_5246", //Chest minecart
-					"method_5234", //Command block minecart
-					"method_5252", //Furnace minecart
-					"method_5238", //Hopper minecart
-					"method_5263", //Minecart
-					"method_5262", //Spawner minecart
-					"method_5244"
+					"lambda$registerEntities$2", //Chest minecart
+					"lambda$registerEntities$3", //Command block minecart
+					"lambda$registerEntities$8", //Furnace minecart
+					"lambda$registerEntities$9", //Hopper minecart
+					"lambda$registerEntities$14", //Minecart
+					"lambda$registerEntities$18", //Spawner minecart
+					"lambda$registerEntities$20" //TNT minecart
 			},
 			expect = 7,
 			at = {

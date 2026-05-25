@@ -1,6 +1,7 @@
 package nu.metacraft.portable_jukebox.entity;
 
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.particles.ParticleTypes;
@@ -39,7 +40,6 @@ import nu.metacraft.portable_jukebox.item.components.Components;
 import nu.metacraft.portable_jukebox.item.components.PortableJukeboxConfiguration;
 import nu.metacraft.portable_jukebox.item.components.PortableJukeboxEntityEntry;
 import nu.metacraft.portable_jukebox.ItemWithInventoryHelper;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.*;
 
@@ -68,7 +68,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	}
 
 	private Optional<JukeboxSong> get() {
-		return PortableJukeboxItem.getSongFromJukebox(jukebox, registryAccess()).map(Holder::value);
+		return PortableJukeboxItem.getSongFromJukebox(jukebox).map(Holder::value);
 	}
 
 	private static final int MAX_COLOUR_INDEX = Arrays.stream(ChatFormatting.values()).mapToInt(ChatFormatting::getId).max().orElse(0);
@@ -80,10 +80,10 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 					this.getUUID()
 			));
 			for (var player : hearingPlayers) {
-				player.displayClientMessage(
+				player.sendOverlayMessage(
 						Component.translatable("record.nowPlaying", song.description()).withStyle(
 								style -> style.withColor(ChatFormatting.getById(player.getRandom().nextInt(MAX_COLOUR_INDEX+1)))
-						), true
+						)
 				);
 			}
 			var config = jukebox.getOrDefault(Components.PORTABLE_JUKEBOX_CONFIGURATION, PortableJukeboxConfiguration.DEFAULT);
@@ -169,7 +169,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	private static void transferSingle(EntityRef from, EntityRef to, ItemStack resultStack) {
 		PortableJukeboxEntityEntry.getWithoutInventories(resultStack).ifPresent(toTransfer -> {
 			var after = transferInternal(from, to, toTransfer);
-			var jukebox = ((ServerLevel) from.getWorld()).getEntity(toTransfer);
+			var jukebox = from.getWorld().getEntity(toTransfer);
 			if (jukebox instanceof PortableJukeboxEntity j) {
 				j.fixStack(resultStack);
 			}

@@ -9,6 +9,7 @@ import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.BlockDisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.DisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.Direction;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.Registries;
@@ -33,9 +34,8 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
-import nu.metacraft.core.util.DisplayEntityData;
+import nu.metacraft.core.util.DisplayEntityDataContainer;
 import nu.metacraft.lib.mixin.StructureTemplateAccessor;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +50,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 	private final List<Display> displays = new ArrayList<>();
 	private List<DisplayRider> riderSlots = new ArrayList<>();
 
-	private final DisplayEntityData data = new DisplayEntityData();
+	private final DisplayEntityDataContainer data = new DisplayEntityDataContainer();
 
 	private Identifier structureID;
 	private StructureTemplate structure = new StructureTemplate();
@@ -295,9 +295,9 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		Vector3d newOffset = new Vector3d(offset.x, offset.y, offset.z);
 		var transformation = new Transformation(
 				null,
-				entity.data.getTransformation().getLeftRotation(),
-				entity.data.getTransformation().getScale(),
-				entity.data.getTransformation().getRightRotation()
+				entity.data.getTransformation().leftRotation(),
+				entity.data.getTransformation().scale(),
+				entity.data.getTransformation().rightRotation()
 		);
 		mat.mul(transformation.getMatrix());
 		newOffset.mulPosition(mat);

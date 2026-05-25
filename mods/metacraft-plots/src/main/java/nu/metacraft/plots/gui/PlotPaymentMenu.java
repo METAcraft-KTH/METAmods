@@ -36,7 +36,7 @@ public class PlotPaymentMenu extends PaymentMenu {
 				Component.translatableWithFallback(
 						"protectorate.metacraft.gui.pay.pay", "Pay"
 				)
-		).setCallback((index, type, action) -> {
+		).setCallback(() -> {
 			for (int i = 0; i < inventory.getContainerSize(); i++) {
 				protectorate.applyIncrementItem(inventory.getItem(i));
 				if (inventory.getItem(i).isEmpty()) {

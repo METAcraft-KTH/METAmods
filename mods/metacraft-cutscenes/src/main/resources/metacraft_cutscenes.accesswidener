@@ -1,4 +1,0 @@
-accessWidener	v2	named
-accessible	class	net/minecraft/server/level/ChunkMap$TrackedEntity
-accessible	class	net/minecraft/server/level/ServerChunkCache$MainThreadExecutor
-accessible	class	net/minecraft/server/level/ChunkMap$DistanceManager

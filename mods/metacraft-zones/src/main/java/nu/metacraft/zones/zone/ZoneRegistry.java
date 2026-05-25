@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 
 public class ZoneRegistry {
 
-	public static final Registry<ZoneTypeType<?>> REGISTRY = FabricRegistryBuilder.<ZoneTypeType<?>>createSimple(
+	public static final Registry<ZoneTypeType<?>> REGISTRY = FabricRegistryBuilder.<ZoneTypeType<?>>create(
 			ResourceKey.createRegistryKey(METAcraftZones.getID("zones"))
 	).buildAndRegister();
 

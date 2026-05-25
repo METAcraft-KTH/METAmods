@@ -197,7 +197,7 @@ public abstract class NaturalSpawnerMixin {
 			if (zone.get(ZoneDataRegistry.SPAWN).isPresent()) {
 				var data = zone.get(ZoneDataRegistry.SPAWN).get();
 				var rule = data.getSpawnRules().find(
-						checkRule -> checkRule.type().matches(type)
+						checkRule -> checkRule.type().matches(type.builtInRegistryHolder())
 				);
 				if (rule.isPresent()) {
 					return rule.get().test(type, world, spawnReason, pos, random);

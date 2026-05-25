@@ -75,7 +75,7 @@ public class PortalShapeMixin {
 							center.south(6).east(6).below(6),
 							center.north(6).west(6).above(6)
 					), player -> true).forEach(player -> {
-						player.displayClientMessage(msg, true);
+						player.sendOverlayMessage(msg);
 					});
 				});
 				ci.cancel();
@@ -87,7 +87,7 @@ public class PortalShapeMixin {
 						center.south(6).east(6).below(6),
 						center.north(6).west(6).above(6)
 				), player -> true).forEach(player -> {
-					player.displayClientMessage(msg, true);
+					player.sendOverlayMessage(msg);
 				});
 				ci.cancel();
 			}

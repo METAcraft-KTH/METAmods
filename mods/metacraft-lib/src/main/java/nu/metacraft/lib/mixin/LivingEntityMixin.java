@@ -2,7 +2,7 @@ package nu.metacraft.lib.mixin;
 
 import com.google.common.collect.ImmutableList;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.fabricmc.loader.api.FabricLoader;
+import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
@@ -39,6 +39,7 @@ import nu.metacraft.lib.entity.EntityParameters;
 import nu.metacraft.lib.util.Particles;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends Entity implements LivingEntityExtensions {
@@ -103,14 +104,10 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityEx
 	}
 
 	@Unique
-	private static final String FORGET_ATTACK_TARGET_TASK = FabricLoader.getInstance().getMappingResolver().mapClassName(
-			"named", StopAttackingIfTargetInvalid.class.getName()
-	);
+	private static final String FORGET_ATTACK_TARGET_TASK = StopAttackingIfTargetInvalid.class.getName();
 
 	@Unique
-	private static final String UPDATE_ATTACK_TARGET_TASK = FabricLoader.getInstance().getMappingResolver().mapClassName(
-			"named", StartAttacking.class.getName()
-	);
+	private static final String UPDATE_ATTACK_TARGET_TASK = StartAttacking.class.getName();
 
 	@Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
 	public void fromNBT(ValueInput nbt, CallbackInfo ci) {
@@ -128,21 +125,34 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityEx
 					});
 				});
 			});
-			((Brain<? extends Mob>) this.brain).addActivity(
-					Activity.IDLE, 0,
-					ImmutableList.of(
+			var startAttacking = ImmutableList.of(
+					Pair.of(
+							0,
 							StartAttacking.create(LivingEntityMixin::getTarget)
 					)
 			);
-			((Brain<? extends Mob>) this.brain).addActivityAndRemoveMemoryWhenStopped(
-					Activity.FIGHT, 0,
+			((Brain<? extends Mob>) this.brain).addActivity(
+					Activity.IDLE, startAttacking,
+					Set.of(), Set.of()
+			);
+			((Brain<? extends Mob>) this.brain).addActivity(
+					Activity.FIGHT, startAttacking,
+					Set.of(), Set.of()
+			);
+			((Brain<? extends Mob>) this.brain).addActivity(
+					Activity.FIGHT,
 					ImmutableList.of(
-							StopAttackingIfTargetInvalid.create(
-									(world, entity) -> getTarget(world, (LivingEntity) (Object) this).filter(
-											target -> target == entity
-									).isEmpty()
+							Pair.of(
+									0,
+									StopAttackingIfTargetInvalid.create(
+											(world, entity) -> getTarget(world, (LivingEntity) (Object) this).filter(
+													target -> target == entity
+											).isEmpty()
+									)
 							)
-					), MemoryModuleType.ATTACK_TARGET
+					),
+					Set.of(),
+					Set.of(MemoryModuleType.ATTACK_TARGET)
 			);
 		}
 	}

@@ -8,21 +8,16 @@ import net.minecraft.advancements.criterion.ItemPredicate;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemInstance;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.CraftingInput;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.PlacementInfo;
-import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeBookCategories;
-import net.minecraft.world.item.crafting.RecipeBookCategory;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 import org.apache.commons.lang3.mutable.MutableObject;
 import nu.metacraft.lib.event.RecipeLoad;
 import nu.metacraft.lib.extensions.RecipeComponentCarryoverExtension;
 import nu.metacraft.lib.extensions.RecipeRemainderExtension;
 import nu.metacraft.lib.recipe.CustomDisplayIngredient;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -95,7 +90,7 @@ public class Recipes {
 					).parse(registryLookup.createSerializationContext(JsonOps.INSTANCE), json.get(COMPONENT_CARRYOVER)).resultOrPartial(
 							METAcraftLib.LOGGER::error
 					).map(either -> either.map(predicate -> predicate, predicateList -> {
-						Predicate<ItemStack> rootPredicate = stack -> false;
+						Predicate<ItemInstance> rootPredicate = stack -> false;
 						for (ItemPredicate predicate : predicateList) {
 							rootPredicate = rootPredicate.or(predicate);
 						}
@@ -121,32 +116,42 @@ public class Recipes {
 
 	public static final Recipe<?> DUMMY = new Recipe<CraftingInput>() {
 		@Override
-		public boolean matches(CraftingInput input, Level world) {
+		public boolean matches(CraftingInput input, @NonNull Level world) {
 			return false;
 		}
 
 		@Override
-		public ItemStack assemble(CraftingInput input, HolderLookup.Provider lookup) {
+		public @NonNull ItemStack assemble(CraftingInput input) {
 			return ItemStack.EMPTY;
 		}
 
 		@Override
-		public RecipeSerializer<? extends Recipe<CraftingInput>> getSerializer() {
-			return RecipeSerializer.SHAPELESS_RECIPE;
+		public boolean showNotification() {
+			return false;
 		}
 
 		@Override
-		public RecipeType<? extends Recipe<CraftingInput>> getType() {
+		public @NonNull String group() {
+			return "";
+		}
+
+		@Override
+		public @NonNull RecipeSerializer<? extends Recipe<CraftingInput>> getSerializer() {
+			return ShapelessRecipe.SERIALIZER;
+		}
+
+		@Override
+		public @NonNull RecipeType<? extends Recipe<CraftingInput>> getType() {
 			return RecipeType.CRAFTING;
 		}
 
 		@Override
-		public PlacementInfo placementInfo() {
+		public @NonNull PlacementInfo placementInfo() {
 			return PlacementInfo.NOT_PLACEABLE;
 		}
 
 		@Override
-		public RecipeBookCategory recipeBookCategory() {
+		public @NonNull RecipeBookCategory recipeBookCategory() {
 			return RecipeBookCategories.CRAFTING_MISC;
 		}
 	};

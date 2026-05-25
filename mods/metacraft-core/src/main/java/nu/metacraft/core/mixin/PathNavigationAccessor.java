@@ -12,7 +12,7 @@ import net.minecraft.world.level.pathfinder.Path;
 @Mixin(PathNavigation.class)
 public interface PathNavigationAccessor {
 
-	@Invoker
+	@Invoker //TODO Move to metacraft-cutscenes
 	Path callCreatePath(Set<BlockPos> positions, int range, boolean useHeadPos, int distance);
 
 	@Accessor

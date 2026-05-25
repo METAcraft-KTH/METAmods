@@ -9,6 +9,8 @@ import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.trading.ItemCost;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -17,10 +19,13 @@ import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.extensions.MerchantOfferExtensions;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.world.item.trading.MerchantOffer;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MerchantOffer.class)
 public class MerchantOfferMixin implements MerchantOfferExtensions {
@@ -30,9 +35,22 @@ public class MerchantOfferMixin implements MerchantOfferExtensions {
 	private int maxUses;
 
 	@Unique
-	private int maxUsesPerPlayer = -1;
+	private int maxUsesPerPlayer;
 	@Unique
-	private final Object2IntMap<UUID> usesPerPlayer = new Object2IntOpenHashMap<>(0);
+	private Object2IntMap<UUID> usesPerPlayer;
+
+	@Inject(
+			at = @At("RETURN"),
+			method = "<init>(Lnet/minecraft/world/item/trading/ItemCost;Ljava/util/Optional;Lnet/minecraft/world/item/ItemStack;IIZIIFI)V"
+	)
+	public void init(
+			ItemCost baseCostA, @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<ItemCost> costB,
+			ItemStack result, int _uses, int maxUses, boolean rewardExp, int specialPriceDiff, int demand,
+			float priceMultiplier, int xp, CallbackInfo ci
+	) {
+		this.maxUsesPerPlayer = -1;
+		this.usesPerPlayer = new Object2IntOpenHashMap<>(0);
+	}
 
 	@Unique
 	private static final Codec<Map<UUID, Integer>> USES_PER_PLAYER_CODEC = Codec.unboundedMap(UUIDUtil.AUTHLIB_CODEC, Codec.INT);

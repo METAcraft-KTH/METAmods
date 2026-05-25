@@ -4,9 +4,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import nu.metacraft.core.util.Interpolatable;
 import nu.metacraft.core.util.InterpolationSet;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.stream.DoubleStream;
 import net.minecraft.world.entity.EntityType;

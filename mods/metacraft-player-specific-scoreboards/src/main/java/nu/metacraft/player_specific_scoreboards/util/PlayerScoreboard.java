@@ -7,6 +7,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.chat.ComponentUtils;
+import net.minecraft.network.chat.ResolutionContext;
 import net.minecraft.network.chat.numbers.NumberFormat;
 import net.minecraft.network.chat.numbers.NumberFormatTypes;
 import net.minecraft.network.protocol.game.ClientboundSetScorePacket;
@@ -34,11 +35,13 @@ public record PlayerScoreboard(
 			).apply(instance, PlayerScoreboard::new)
 	);
 
-	public PlayerScoreboard resolve(@Nullable CommandSourceStack commandSourceStack, @Nullable Entity entity) throws CommandSyntaxException {
-		var newTitle = ComponentUtils.updateForEntity(commandSourceStack, title, entity, 0);
+	public PlayerScoreboard resolve(ResolutionContext ctx) throws CommandSyntaxException {
+		var newTitle = ComponentUtils.resolve(
+				ctx, title
+		);
 		List<Entry> newEntries = new ArrayList<>();
 		for (var entry : entries) {
-			newEntries.add(entry.resolve(commandSourceStack, entity));
+			newEntries.add(entry.resolve(ctx));
 		}
 		return new PlayerScoreboard(newTitle, numberFormat, newEntries);
 	}
@@ -61,8 +64,8 @@ public record PlayerScoreboard(
 			return new ClientboundSetScorePacket(getOwnerName(), SCOREBOARD_ID, value, Optional.of(name), format);
 		}
 
-		public Entry resolve(@Nullable CommandSourceStack commandSourceStack, @Nullable Entity entity) throws CommandSyntaxException {
-			var newName = ComponentUtils.updateForEntity(commandSourceStack, name, entity, 0);
+		public Entry resolve(ResolutionContext ctx) throws CommandSyntaxException {
+			var newName = ComponentUtils.resolve(ctx, name);
 			return new Entry(newName, ownerName, value, format);
 		}
 	}

@@ -13,7 +13,7 @@ import java.time.LocalTime;
 
 public class LootContainerEventRegistry {
 
-	public static final Registry<LootContainerEventType<?>> REGISTRY = FabricRegistryBuilder.<LootContainerEventType<?>>createSimple(
+	public static final Registry<LootContainerEventType<?>> REGISTRY = FabricRegistryBuilder.<LootContainerEventType<?>>create(
 			ResourceKey.createRegistryKey(METAcraftLootContainers.getID("loot_container_event"))
 	).buildAndRegister();
 

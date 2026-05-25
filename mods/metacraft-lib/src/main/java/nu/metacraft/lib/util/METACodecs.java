@@ -73,9 +73,7 @@ public class METACodecs {
 
 	public static final Codec<InteractionHand> HAND_CODEC = enumCodec(InteractionHand.class, true);
 
-	public static final Codec<PlayerModelPart> MODEL_PART_CODEC = StringRepresentable.fromEnum(PlayerModelPart::values);
-
-	public static final Codec<Set<PlayerModelPart>> MODEL_PART_SET_CODEC = MODEL_PART_CODEC.listOf().xmap(
+	public static final Codec<Set<PlayerModelPart>> MODEL_PART_SET_CODEC = PlayerModelPart.CODEC.listOf().xmap(
 			list -> list.isEmpty() ? Set.of() : EnumSet.copyOf(list), ArrayList::new
 	);
 
@@ -87,7 +85,7 @@ public class METACodecs {
 
 	public static final Codec<ChunkPos> CHUNK_POS_CODEC = Codec.INT_STREAM.comapFlatMap(
 			stream -> Util.fixedSize(stream, 2).map(values -> new ChunkPos(values[0], values[1])),
-			pos -> IntStream.of(pos.x, pos.z)
+			pos -> IntStream.of(pos.x(), pos.z())
 	).stable();
 
 	public static final Codec<EntitySpawnReason> SPAWN_REASON_CODEC = enumCodec(EntitySpawnReason.class, true);

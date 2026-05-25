@@ -10,7 +10,7 @@ import nu.metacraft.core.METAcraftCore;
 
 public class PortalTargetRegistry {
 
-	public static final Registry<PortalTargetType<?>> REGISTRY = FabricRegistryBuilder.<PortalTargetType<?>>createSimple(
+	public static final Registry<PortalTargetType<?>> REGISTRY = FabricRegistryBuilder.<PortalTargetType<?>>create(
 			ResourceKey.createRegistryKey(METAcraftCore.getID("portal_target"))
 	).buildAndRegister();
 

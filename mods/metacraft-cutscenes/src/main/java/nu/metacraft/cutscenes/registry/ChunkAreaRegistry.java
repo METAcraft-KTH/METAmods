@@ -21,12 +21,12 @@ import java.util.stream.Stream;
 
 public class ChunkAreaRegistry {
 
-	public static final Registry<MapCodec<? extends ChunkArea>> REGISTRY = FabricRegistryBuilder.<MapCodec<? extends ChunkArea>>createSimple(
+	public static final Registry<MapCodec<? extends ChunkArea>> REGISTRY = FabricRegistryBuilder.<MapCodec<? extends ChunkArea>>create(
 			ResourceKey.createRegistryKey(Cutscenes.getID("chunk_area"))
 	).buildAndRegister();
 
 	public static final Codec<ChunkPos> CHUNK_OR_BLOCK_POS_CODEC = Codec.withAlternative(
-			ChunkPos.CODEC, BlockPos.CODEC, ChunkPos::new
+			ChunkPos.CODEC, BlockPos.CODEC, ChunkPos::containing
 	);
 
 	protected static final Codec<ChunkArea> REGISTRY_CODEC = REGISTRY.byNameCodec().dispatch(

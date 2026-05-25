@@ -2,7 +2,14 @@ package nu.metacraft.cutscenes.cutscene.world;
 
 import java.util.HashSet;
 import java.util.Set;
+
+import eu.pb4.polymer.common.impl.CommonImplPacketKeys;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContextProvider;
+import net.fabricmc.fabric.impl.networking.context.PacketContextImpl;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -20,11 +27,25 @@ public class CutsceneChunk extends LevelChunk {
 	public CutsceneChunk(LevelChunk chunk, CutsceneLevel world) {
 		super(world, chunk.getPos());
 		this.world = world;
-		var data = new ClientboundLevelChunkPacketData(chunk);
-		this.replaceWithPacketData(data.getReadBuffer(), data.getHeightmaps(), data.getBlockEntitiesTagsConsumer(chunk.getPos().x, chunk.getPos().z));
-		this.setFullStatus(chunk::getFullStatus);
-		setLoaded(true);
-		registerAllBlockEntitiesAfterLevelLoad();
+		var ctx = new PacketContextImpl(new Connection(PacketFlow.CLIENTBOUND));
+		ctx.set(PacketContextImpl.REGISTRY_ACCESS, world.getServer().registryAccess());
+		ctx.set(PacketContextImpl.SERVER_INSTANCE, world.getServer());
+		ctx.set(CommonImplPacketKeys.HOLDER_LOOKUP, world.getServer().registryAccess());
+		PacketContext.runWithContext(
+				new PacketContextProvider() {
+					@Override
+					public PacketContext getPacketContext() {
+						return ctx;
+					}
+				},
+				() -> {
+					var data = new ClientboundLevelChunkPacketData(chunk);
+					this.replaceWithPacketData(data.getReadBuffer(), data.getHeightmaps(), data.getBlockEntitiesTagsConsumer(chunk.getPos().x(), chunk.getPos().z()));
+					this.setFullStatus(chunk::getFullStatus);
+					setLoaded(true);
+					registerAllBlockEntitiesAfterLevelLoad();
+				}
+		);
 	}
 
 	@Override

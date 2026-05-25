@@ -1,6 +1,6 @@
 package nu.metacraft.core.status_effects;
 
-import eu.pb4.polymer.core.api.other.PolymerStatusEffect;
+import eu.pb4.polymer.core.api.other.PolymerMobEffect;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.InstantenousMobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
@@ -8,7 +8,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import org.jetbrains.annotations.Nullable;
 
-public class ApplyFire extends InstantenousMobEffect implements PolymerStatusEffect {
+public class ApplyFire extends InstantenousMobEffect implements PolymerMobEffect {
 	public ApplyFire() {
 		super(MobEffectCategory.HARMFUL, 16750848);
 	}

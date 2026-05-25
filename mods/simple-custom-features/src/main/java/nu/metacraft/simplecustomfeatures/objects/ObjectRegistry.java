@@ -22,7 +22,7 @@ import nu.metacraft.simplecustomfeatures.objects.items.simple.ToolMaterialRegist
 
 public class ObjectRegistry {
 
-	public static final Registry<ObjectType<?, ?>> REGISTRY = FabricRegistryBuilder.<ObjectType<?, ?>>createSimple(
+	public static final Registry<ObjectType<?, ?>> REGISTRY = FabricRegistryBuilder.<ObjectType<?, ?>>create(
 			ResourceKey.createRegistryKey(Features.getID("object_types"))
 	).buildAndRegister();
 

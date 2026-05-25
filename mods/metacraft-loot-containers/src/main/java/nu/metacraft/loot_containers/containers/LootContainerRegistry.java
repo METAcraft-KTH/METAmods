@@ -11,7 +11,7 @@ import nu.metacraft.loot_containers.containers.events.LootContainerEventRegistry
 
 public class LootContainerRegistry {
 
-	public static final Registry<LootContainerType<?>> REGISTRY = FabricRegistryBuilder.<LootContainerType<?>>createSimple(
+	public static final Registry<LootContainerType<?>> REGISTRY = FabricRegistryBuilder.<LootContainerType<?>>create(
 			ResourceKey.createRegistryKey(METAcraftLootContainers.getID("loot_container_type"))
 	).buildAndRegister();
 

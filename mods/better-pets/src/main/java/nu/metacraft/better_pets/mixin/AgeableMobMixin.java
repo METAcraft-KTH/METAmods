@@ -1,5 +1,11 @@
 package nu.metacraft.better_pets.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
+import com.llamalad7.mixinextras.sugar.Local;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Mob;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -34,6 +40,41 @@ public abstract class AgeableMobMixin extends PathfinderMob {
 				scale.removeModifier(AttributeModifiers.BABY_PARROT.id());
 			}
 		}
+	}
+
+	@ModifyExpressionValue(
+			method = "makeAgeLockedParticle",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/world/level/Level;isClientSide()Z"
+			)
+	)
+	private static boolean makeAgeLockedParticleOnServerForParrots(
+			boolean original, @Local(argsOnly = true, name = "mob") Mob mob
+	) {
+		if (mob instanceof Parrot) {
+			return true;
+		}
+		return original;
+	}
+
+	@WrapWithCondition(
+			method = "makeAgeLockedParticle",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/world/level/Level;addParticle(Lnet/minecraft/core/particles/ParticleOptions;DDDDDD)V"
+			)
+	)
+	private static boolean sendAgeLockedParticleFromServerForParrots(
+			Level instance, ParticleOptions particle,
+			double x, double y, double z, double xd, double yd, double zd,
+			@Local(argsOnly = true, name = "mob") Mob mob
+	) {
+		if (mob instanceof Parrot && instance instanceof ServerLevel sl) {
+			sl.sendParticles(particle, x, y, z, 1, xd, yd, zd, 0);
+			return false;
+		}
+		return true;
 	}
 
 }

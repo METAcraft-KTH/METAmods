@@ -21,10 +21,7 @@ import nu.metacraft.moderation.ModerationData;
 import nu.metacraft.moderation.ModerationPlayerData;
 import nu.metacraft.moderation.moderator_mode.ModerationModeState;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Mixin(ServerPlayer.class)
 public abstract class ServerPlayerMixin extends Player implements ModerationPlayerData {
@@ -108,9 +105,14 @@ public abstract class ServerPlayerMixin extends Player implements ModerationPlay
 		}
 		if (!skipSaveState) {
 			Optional<CompoundTag> stateData;
-			if (moderationNBT.contains(MODERATION_STATE)) {
-				stateData = moderationNBT.read(MODERATION_STATE, CompoundTag.CODEC);
-			} else {
+			//TODO Remove this try-catch hack, only necessary because of bug in Fabric api.
+			try {
+				if (moderationNBT.contains(MODERATION_STATE)) {
+					stateData = moderationNBT.read(MODERATION_STATE, CompoundTag.CODEC);
+				} else {
+					stateData = moderationNBT.read("ModerationState", CompoundTag.CODEC);
+				}
+			} catch (NoSuchElementException e) {
 				stateData = moderationNBT.read("ModerationState", CompoundTag.CODEC);
 			}
 			stateData.ifPresent(
@@ -128,9 +130,14 @@ public abstract class ServerPlayerMixin extends Player implements ModerationPlay
 
 		if (!skipSaveState) {
 			Optional<CompoundTag> nbtMap;
-			if (moderationNBT.contains(MODERATOR_MODE_NBT_MAP)) {
-				nbtMap = moderationNBT.read(MODERATOR_MODE_NBT_MAP, CompoundTag.CODEC);
-			} else {
+			//TODO Remove this try-catch hack, only necessary because of bug in Fabric api.
+			try {
+				if (moderationNBT.contains(MODERATOR_MODE_NBT_MAP)) {
+					nbtMap = moderationNBT.read(MODERATOR_MODE_NBT_MAP, CompoundTag.CODEC);
+				} else {
+					nbtMap = moderationNBT.read("ModeratorModeNBTMap", CompoundTag.CODEC);
+				}
+			} catch (NoSuchElementException e) {
 				nbtMap = moderationNBT.read("ModeratorModeNBTMap", CompoundTag.CODEC);
 			}
 			nbtMap.ifPresent(moderatorModeNBTMap -> {

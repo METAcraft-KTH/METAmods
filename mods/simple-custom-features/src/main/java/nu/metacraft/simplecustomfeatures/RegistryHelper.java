@@ -1,9 +1,20 @@
 package nu.metacraft.simplecustomfeatures;
 
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentInitializers;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
+import nu.metacraft.simplecustomfeatures.extension.DataComponentInitializersExtension;
+import nu.metacraft.simplecustomfeatures.extension.InitializerEntryExtension;
+import nu.metacraft.simplecustomfeatures.mixin.DataComponentInitializersAccessor;
 import nu.metacraft.simplecustomfeatures.objects.BaseObject;
 import nu.metacraft.simplecustomfeatures.mixin.IdMapperAccessor;
 
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.UnaryOperator;
+
 import net.minecraft.core.IdMapper;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.Registry;
@@ -58,5 +69,48 @@ public class RegistryHelper {
 	 */
 	public static <T> void removeIntrusiveEntry(Registry<T> registry, T object) {
 		((RegistryExtensions<T>) registry).simpleCustomFeatures$removeIntrusiveEntry(object);
+	}
+
+	public static void removeComponentInitializer(Object object) {
+		((DataComponentInitializersExtension) BuiltInRegistries.DATA_COMPONENT_INITIALIZERS).simple_custom_features$removeInitializer(
+				object
+		);
+	}
+
+	public static <T> Optional<DataComponentInitializers.InitializerEntry<T>> getComponentInitializer(ResourceKey<T> key, T object) {
+		var initializers = ((DataComponentInitializersAccessor) BuiltInRegistries.DATA_COMPONENT_INITIALIZERS).getInitializers();
+		for (var initializer : initializers) {
+			//noinspection ConstantValue
+			if (initializer.key() == key && ((InitializerEntryExtension) (Object) initializer).simple_custom_features$getObject() == object) {
+				//noinspection unchecked
+				return Optional.of((DataComponentInitializers.InitializerEntry<T>) initializer);
+			}
+		}
+		return Optional.empty();
+	}
+
+	public static <T> void addInitializer(
+			T object, DataComponentInitializers.Initializer<T> initializerToAdd
+	) {
+		var initializers = ((DataComponentInitializersAccessor) BuiltInRegistries.DATA_COMPONENT_INITIALIZERS).getInitializers();
+		for (var initializer : initializers) {
+			if (((InitializerEntryExtension) (Object) initializer).simple_custom_features$getObject() == object) {
+				//noinspection unchecked
+				var actualInitializer = (DataComponentInitializers.InitializerEntry<T>) initializer;
+				var newInitializer = actualInitializer.initializer().andThen(initializerToAdd);
+				//noinspection DataFlowIssue
+				((DataComponentInitializersAccessor.InitializerEntry) (Object) actualInitializer).setInitializer(newInitializer);
+				break;
+			}
+		}
+	}
+
+	public static <T> DataComponentMap getComponentsFor(ResourceKey<T> key, T object, HolderLookup.Provider lookup) {
+		var initializer = RegistryHelper.getComponentInitializer(key, object);
+		var builder = DataComponentMap.builder();
+		initializer.orElseThrow().run(
+				builder, lookup
+		);
+		return builder.build();
 	}
 }
