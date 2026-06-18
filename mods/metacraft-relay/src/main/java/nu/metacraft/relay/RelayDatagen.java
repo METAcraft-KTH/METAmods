@@ -12,10 +12,10 @@ import net.fabricmc.fabric.api.recipe.v1.ingredient.DefaultCustomIngredients;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementRequirements;
 import net.minecraft.advancements.AdvancementRewards;
-import net.minecraft.advancements.CriteriaTriggers;
-import net.minecraft.advancements.criterion.InventoryChangeTrigger;
-import net.minecraft.advancements.criterion.ItemPredicate;
-import net.minecraft.advancements.criterion.RecipeUnlockedTrigger;
+import net.minecraft.advancements.predicates.ItemPredicate;
+import net.minecraft.advancements.triggers.CriteriaTriggers;
+import net.minecraft.advancements.triggers.InventoryChangeTrigger;
+import net.minecraft.advancements.triggers.RecipeUnlockedTrigger;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
@@ -23,6 +23,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.references.ItemIds;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
@@ -89,7 +90,7 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 
 		@Override
 		protected void addTags(HolderLookup.Provider wrapperLookup) {
-			valueLookupBuilder(BlockTags.MINEABLE_WITH_PICKAXE).add(RelayBlocks.RELAY);
+			builder(BlockTags.MINEABLE_WITH_PICKAXE).add(RelayBlocks.RELAY.key());
 		}
 	}
 
@@ -101,7 +102,7 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 
 		@Override
 		protected void addTags(HolderLookup.Provider wrapperLookup) {
-			valueLookupBuilder(RelayItems.RELAY_RECHARGE_ITEMS).add(Items.END_CRYSTAL);
+			builder(RelayItems.RELAY_RECHARGE_ITEMS).add(ItemIds.END_CRYSTAL);
 		}
 	}
 
@@ -130,7 +131,7 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 
 		@Override
 		public void generate() {
-			add(RelayBlocks.RELAY, this::endRelayDrop);
+			add(RelayBlocks.RELAY.value(), this::endRelayDrop);
 		}
 	}
 

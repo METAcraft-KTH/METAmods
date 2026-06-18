@@ -15,6 +15,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerPlayerConnection;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.item.component.ResolvableProfile;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.entity.entities.player_mob.PlayerMob;
@@ -166,7 +167,7 @@ public class FakePlayerRenderer implements PlayerRenderer {
 
 	@Override
 	public EntityType<?> getPolymerEntityType(PacketContext context) {
-		return EntityType.PLAYER;
+		return EntityTypes.PLAYER;
 	}
 
 	@Override

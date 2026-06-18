@@ -35,7 +35,7 @@
 			{
 				"result": false,
 				"entity_predicate": {
-					"type": "falling_block"
+					"entity_type": "falling_block"
 				}
 			}
 		]

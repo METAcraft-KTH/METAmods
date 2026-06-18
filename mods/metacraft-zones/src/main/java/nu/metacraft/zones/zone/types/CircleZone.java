@@ -62,7 +62,7 @@ public class CircleZone extends ZoneType {
 
 	@Override
 	public InwardVector getInwardVector(Vec3 pos) {
-		var centerPos = center.getCenter();
+		var centerPos = Vec3.atCenterOf(center);
 		return InwardVector.createFrom(new Vec3(centerPos.x, pos.y, centerPos.z), pos);
 	}
 

@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.minecraft.world.entity.EntityTypes;
 import nu.metacraft.core.util.Interpolatable;
 import nu.metacraft.core.util.InterpolationSet;
 
@@ -37,7 +38,7 @@ public class MovingMarker extends Marker implements PolymerEntity {
 
 	@Override
 	public EntityType<?> getPolymerEntityType(PacketContext context) {
-		return EntityType.MARKER;
+		return EntityTypes.MARKER;
 	}
 
 	@Override

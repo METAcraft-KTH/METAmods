@@ -29,6 +29,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Marker;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.gamerules.GameRules;
@@ -144,7 +145,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 			point = new GenericEntityElement() {
 				@Override
 				protected EntityType<? extends Entity> getEntityType() {
-					return EntityType.MARKER;
+					return EntityTypes.MARKER;
 				}
 			};
 			pointHolder.addElement(point);
@@ -327,7 +328,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 	}
 
 	@Unique
-	private final Marker passthrough = new Marker(EntityType.MARKER, level());
+	private final Marker passthrough = new Marker(EntityTypes.MARKER, level());
 
 	@Unique
 	private void playMusic(boolean stopOnRestart, boolean canBeLoop, long startTimeServerside) {

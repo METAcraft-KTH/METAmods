@@ -1,7 +1,8 @@
 package nu.metacraft.lib.condition;
 
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
-import net.minecraft.advancements.criterion.EntitySubPredicate;
+import net.minecraft.advancements.predicates.entity.EntitySubPredicate;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
@@ -45,7 +46,7 @@ public class METAcraftConditions {
 			register("is_moving", IsMovingPredicate.CODEC);
 		}
 
-		private static void register(String id, MapCodec<? extends EntitySubPredicate> codec) {
+		private static void register(String id, Codec<? extends EntitySubPredicate> codec) {
 			Registry.register(BuiltInRegistries.ENTITY_SUB_PREDICATE_TYPE, METAcraftLib.getID(id), codec);
 		}
 	}

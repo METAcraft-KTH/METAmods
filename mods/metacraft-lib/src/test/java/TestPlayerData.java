@@ -11,10 +11,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.util.datafix.fixes.References;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.storage.TagValueInput;
@@ -45,12 +42,12 @@ public class TestPlayerData {
 					player.getInventory().setItem(5, new ItemStack(Items.DIAMOND));
 					player.getEnderChestInventory().setItem(2, new ItemStack(Items.DIAMOND));
 
-					var boat = EntityType.ACACIA_BOAT.spawn(
+					var boat = EntityTypes.ACACIA_BOAT.spawn(
 							ctx.getLevel(), player.blockPosition(), EntitySpawnReason.LOAD
 					);
-					var pig = EntityType.PIG.spawn(ctx.getLevel(), player.blockPosition(), EntitySpawnReason.LOAD);
+					var pig = EntityTypes.PIG.spawn(ctx.getLevel(), player.blockPosition(), EntitySpawnReason.LOAD);
 					pig.startRiding(boat);
-					var boat2 = EntityType.ACACIA_BOAT.spawn(
+					var boat2 = EntityTypes.ACACIA_BOAT.spawn(
 							ctx.getLevel(), player.blockPosition(), EntitySpawnReason.LOAD
 					);
 					boat2.startRiding(boat);
@@ -130,7 +127,7 @@ public class TestPlayerData {
 
 					var player2 = TestHelper.addMockPlayer(ctx);
 
-					var boat = EntityType.ACACIA_BOAT.spawn(
+					var boat = EntityTypes.ACACIA_BOAT.spawn(
 							ctx.getLevel(), player.blockPosition(), EntitySpawnReason.LOAD
 					);
 

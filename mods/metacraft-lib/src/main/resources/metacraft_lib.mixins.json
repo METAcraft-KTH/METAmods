@@ -26,7 +26,6 @@
 		"GhastMixin",
 		"GiantEntityMixin",
 		"ItemEntityAccessor",
-		"LevelStorageSourceMixin",
 		"LivingEntityMixin",
 		"LootContextParamSetsAccessor",
 		"MerchantContainerMixin",

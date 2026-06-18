@@ -3,7 +3,8 @@ package nu.metacraft.core.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.List;
-import net.minecraft.advancements.criterion.EntityPredicate;
+
+import net.minecraft.advancements.predicates.entity.EntityPredicate;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 

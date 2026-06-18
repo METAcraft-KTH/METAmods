@@ -4,8 +4,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.advancements.criterion.BlockPredicate;
-import net.minecraft.advancements.criterion.EntityPredicate;
+import net.minecraft.advancements.predicates.BlockPredicate;
+import net.minecraft.advancements.predicates.entity.EntityPredicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -13,7 +13,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.Blocks;
@@ -214,35 +214,35 @@ public class FasterMinecartsConfig {
 					new EntityDamageList(
 							List.of(
 									EntityPredicate.Builder.entity().of(
-											BuiltInRegistries.ENTITY_TYPE, EntityType.MINECART
+											BuiltInRegistries.ENTITY_TYPE, EntityTypes.MINECART
 									).build(),
 									EntityPredicate.Builder.entity().of(
-											BuiltInRegistries.ENTITY_TYPE, EntityType.CHEST_MINECART
+											BuiltInRegistries.ENTITY_TYPE, EntityTypes.CHEST_MINECART
 									).build(),
 									EntityPredicate.Builder.entity().of(
-											BuiltInRegistries.ENTITY_TYPE, EntityType.COMMAND_BLOCK_MINECART
+											BuiltInRegistries.ENTITY_TYPE, EntityTypes.COMMAND_BLOCK_MINECART
 									).build(),
 									EntityPredicate.Builder.entity().of(
-											BuiltInRegistries.ENTITY_TYPE, EntityType.FURNACE_MINECART
+											BuiltInRegistries.ENTITY_TYPE, EntityTypes.FURNACE_MINECART
 									).build(),
 									EntityPredicate.Builder.entity().of(
-											BuiltInRegistries.ENTITY_TYPE, EntityType.HOPPER_MINECART
+											BuiltInRegistries.ENTITY_TYPE, EntityTypes.HOPPER_MINECART
 									).build(),
 									EntityPredicate.Builder.entity().of(
-											BuiltInRegistries.ENTITY_TYPE, EntityType.TNT_MINECART
+											BuiltInRegistries.ENTITY_TYPE, EntityTypes.TNT_MINECART
 									).build(),
 									EntityPredicate.Builder.entity().of(
-											BuiltInRegistries.ENTITY_TYPE, EntityType.SPAWNER_MINECART
+											BuiltInRegistries.ENTITY_TYPE, EntityTypes.SPAWNER_MINECART
 									).build(),
 									EntityPredicate.Builder.entity().of(
-											BuiltInRegistries.ENTITY_TYPE, EntityType.ITEM
+											BuiltInRegistries.ENTITY_TYPE, EntityTypes.ITEM
 									).build(),
 									EntityPredicate.Builder.entity().of(
-											BuiltInRegistries.ENTITY_TYPE, EntityType.EXPERIENCE_ORB
+											BuiltInRegistries.ENTITY_TYPE, EntityTypes.EXPERIENCE_ORB
 									).build(),
 									EntityPredicate.Builder.entity().vehicle(
 											EntityPredicate.Builder.entity().of(
-													BuiltInRegistries.ENTITY_TYPE, EntityType.MINECART
+													BuiltInRegistries.ENTITY_TYPE, EntityTypes.MINECART
 											)
 									).build()
 							),

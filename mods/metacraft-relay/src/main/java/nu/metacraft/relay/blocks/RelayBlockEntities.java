@@ -13,7 +13,7 @@ public class RelayBlockEntities {
 
 	public static final BlockEntityType<RelayBlockEntity> RELAY = register(
 			"relay", FabricBlockEntityTypeBuilder.create(
-					RelayBlockEntity::new, RelayBlocks.RELAY
+					RelayBlockEntity::new, RelayBlocks.RELAY.value()
 			).build()
 	);
 

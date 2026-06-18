@@ -19,6 +19,7 @@ import net.minecraft.world.Container;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
@@ -56,7 +57,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 
 	@Override
 	public EntityType<?> getPolymerEntityType(PacketContext ctx) {
-		return EntityType.MARKER;
+		return EntityTypes.MARKER;
 	}
 
 	public void setConnectedEntity(EntityRef entity) {
@@ -71,7 +72,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 		return PortableJukeboxItem.getSongFromJukebox(jukebox).map(Holder::value);
 	}
 
-	private static final int MAX_COLOUR_INDEX = Arrays.stream(ChatFormatting.values()).mapToInt(ChatFormatting::getId).max().orElse(0);
+	private static final int COLOUR_COUNT = ChatFormatting.OBFUSCATED.ordinal();
 
 	public void setJukebox(ItemStack jukebox) {
 		this.jukebox = jukebox;
@@ -82,7 +83,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 			for (var player : hearingPlayers) {
 				player.sendOverlayMessage(
 						Component.translatable("record.nowPlaying", song.description()).withStyle(
-								style -> style.withColor(ChatFormatting.getById(player.getRandom().nextInt(MAX_COLOUR_INDEX+1)))
+								style -> style.withColor(ChatFormatting.values()[player.getRandom().nextInt(COLOUR_COUNT)])
 						)
 				);
 			}

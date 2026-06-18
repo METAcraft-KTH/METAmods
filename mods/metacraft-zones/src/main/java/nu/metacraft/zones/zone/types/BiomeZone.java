@@ -114,7 +114,7 @@ public class BiomeZone extends ZoneType {
 					6400, 32, 64
 			);
 			if (biomePos != null) {
-				var vecPos = biomePos.getFirst().getCenter();
+				var vecPos = Vec3.atCenterOf(biomePos.getFirst());
 				return InwardVector.createFrom(vecPos, pos);
 			}
 		}

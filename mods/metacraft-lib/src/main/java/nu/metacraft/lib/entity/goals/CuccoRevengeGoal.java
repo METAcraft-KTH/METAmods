@@ -2,7 +2,7 @@ package nu.metacraft.lib.entity.goals;
 
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.animal.chicken.Chicken;
 import net.minecraft.world.level.ServerLevelAccessor;
@@ -36,7 +36,7 @@ public class CuccoRevengeGoal extends HurtByTargetGoal {
 			int toSpawn = minAttackers - mobs.size();
 			((ChickenExtensions) mob).metacraft_lib$setReinforcementCount(minAttackers - toSpawn);
 			for (int i = 0; i < toSpawn; i++) {
-				var chicken = EntityType.CHICKEN.create(mob.level(), EntitySpawnReason.REINFORCEMENT);
+				var chicken = EntityTypes.CHICKEN.create(mob.level(), EntitySpawnReason.REINFORCEMENT);
 				chicken.finalizeSpawn(
 						(ServerLevelAccessor) mob.level(),
 						((ServerLevelAccessor) mob.level()).getCurrentDifficultyAt(mob.blockPosition()),

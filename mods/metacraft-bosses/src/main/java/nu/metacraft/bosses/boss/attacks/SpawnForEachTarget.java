@@ -3,13 +3,13 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.advancements.predicates.entity.EntityPredicate;
 import net.minecraft.util.valueproviders.IntProviders;
 import nu.metacraft.lib.condition.METAcraftContexTypes;
 import nu.metacraft.lib.util.helper.EntityHelper;
 
 import java.util.List;
 import java.util.Optional;
-import net.minecraft.advancements.criterion.EntityPredicate;
 import net.minecraft.util.random.WeightedList;
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;

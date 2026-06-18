@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class ConversionTypeMixin {
 
 	@Inject(method = "convertCommon", at = @At("RETURN"))
-	public void copyData(Mob oldEntity, Mob newEntity, ConversionParams context, CallbackInfo ci) {
+	private static void copyData(Mob oldEntity, Mob newEntity, ConversionParams context, CallbackInfo ci) {
 		BossBarHelper.getBossBar(oldEntity).ifPresent(bar -> {
 			if (bar.isMainEntity(oldEntity)) {
 				bar.setMainEntity(newEntity);

@@ -26,16 +26,7 @@ import net.minecraft.tags.FluidTags;
 import net.minecraft.util.*;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityDimensions;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.HumanoidArm;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MoverType;
-import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -448,7 +439,12 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 				damage += itemStack.getItem().getAttackDamageBonus(target, this.autoSpinAttackDmg, damageSource);
 				if (target.hurtServer((ServerLevel) this.level(), damageSource, damage)) {
 					float k = this.getKnockback(target, damageSource);
-					target.knockback(k * 0.5f, Mth.sin(this.getYRot() * ((float)Math.PI / 180)), -Mth.cos(this.getYRot() * ((float)Math.PI / 180)));
+					target.knockback(
+							k * 0.5f,
+							Mth.sin(this.getYRot() * ((float)Math.PI / 180)),
+							-Mth.cos(this.getYRot() * ((float)Math.PI / 180)),
+							damageSource, damage
+					);
 					this.setDeltaMovement(this.getDeltaMovement().multiply(0.6, 1.0, 0.6));
 
 					if (target instanceof ServerPlayer && target.hurtMarked) {
@@ -480,7 +476,7 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		if (!this.level().isClientSide() && !entityNbt.isEmpty()) {
 			try (var logging = LoggingErrorReporter.create(() -> "metacraft:PlayerMob#dropShoulderEntity", METAcraftCore.LOGGER)) {
 				var readView = TagValueInput.create(logging, registryAccess(), entityNbt);
-				EntityType.create(readView, this.level(), EntitySpawnReason.LOAD).ifPresent(entity -> {
+				EntityType.create(readView, this.level(), new EntitySpawnRequest(EntitySpawnReason.LOAD, false)).ifPresent(entity -> {
 					entity.setPos(this.getX(), this.getY() + (double)0.7f, this.getZ());
 					((ServerLevel)this.level()).addWithUUID(entity);
 				});

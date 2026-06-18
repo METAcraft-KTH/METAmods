@@ -32,7 +32,7 @@ public class SphereZone extends CircleZone {
 
 	@Override
 	public InwardVector getInwardVector(Vec3 pos) {
-		return InwardVector.createFrom(center.getCenter(), pos);
+		return InwardVector.createFrom(Vec3.atCenterOf(center), pos);
 	}
 
 	@Override

@@ -2,6 +2,7 @@ package nu.metacraft.zones.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.mojang.serialization.*;
+import net.minecraft.advancements.predicates.LocationPredicate;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,7 +13,6 @@ import nu.metacraft.zones.util.LocationPredicateAccess;
 
 import java.util.Optional;
 import java.util.stream.Stream;
-import net.minecraft.advancements.criterion.LocationPredicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 
@@ -29,7 +29,7 @@ public class LocationPredicateMixin implements LocationPredicateAccess {
 		method = "matches",
 		at = @At(
 			value = "FIELD",
-			target = "Lnet/minecraft/advancements/criterion/LocationPredicate;canSeeSky:Ljava/util/Optional;"
+			target = "Lnet/minecraft/advancements/predicates/LocationPredicate;canSeeSky:Ljava/util/Optional;"
 		),
 		cancellable = true
 	)

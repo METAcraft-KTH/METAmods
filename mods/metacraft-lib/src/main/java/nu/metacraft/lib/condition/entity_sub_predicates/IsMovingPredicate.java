@@ -1,7 +1,8 @@
 package nu.metacraft.lib.condition.entity_sub_predicates;
 
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
-import net.minecraft.advancements.criterion.EntitySubPredicate;
+import net.minecraft.advancements.predicates.entity.EntitySubPredicate;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
@@ -12,18 +13,13 @@ public class IsMovingPredicate implements EntitySubPredicate {
 
 	private static final IsMovingPredicate INSTANCE = new IsMovingPredicate();
 
-	public static final MapCodec<IsMovingPredicate> CODEC = MapCodec.unit(INSTANCE);
+	public static final Codec<IsMovingPredicate> CODEC = MapCodec.unit(INSTANCE).codec();
 
 	public static IsMovingPredicate getInstance() {
 		return INSTANCE;
 	}
 
 	private IsMovingPredicate() {}
-
-	@Override
-	public MapCodec<? extends EntitySubPredicate> codec() {
-		return CODEC;
-	}
 
 	@Override
 	public boolean matches(Entity entity, ServerLevel world, @Nullable Vec3 pos) {

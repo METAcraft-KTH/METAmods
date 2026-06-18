@@ -148,7 +148,7 @@ public class TeleportHelper {
 	public static BlockPos getWorldSpawn(ServerLevel world) {
 		//Basically just Mojang's function in Entity, but now it's static.
 		BlockPos blockpos = world.getRespawnData().pos();
-		Vec3 vec3 = blockpos.getCenter();
+		Vec3 vec3 = Vec3.atCenterOf(blockpos);
 		int i = world.getChunkAt(blockpos).getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, blockpos.getX(), blockpos.getZ()) + 1;
 		return BlockPos.containing(vec3.x, i, vec3.z);
 	}
@@ -162,7 +162,7 @@ public class TeleportHelper {
 			respawnWorld = server.overworld();
 		}
 		return new TeleportTransition(
-				respawnWorld, getWorldSpawn(respawnWorld).getBottomCenter(),
+				respawnWorld, Vec3.atBottomCenterOf(getWorldSpawn(respawnWorld)),
 				Vec3.ZERO, respawnWorld.getRespawnData().yaw(), respawnWorld.getRespawnData().pitch(),
 				missingRespawnBlock, false,
 				Set.of(), postDimensionTransition

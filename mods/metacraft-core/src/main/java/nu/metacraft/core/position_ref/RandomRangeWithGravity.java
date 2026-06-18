@@ -3,6 +3,8 @@ package nu.metacraft.core.position_ref;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.advancements.predicates.FluidPredicate;
+import net.minecraft.advancements.predicates.MinMaxBounds;
 import net.minecraft.util.valueproviders.FloatProviders;
 import nu.metacraft.core.registry.PositionRefRegistry;
 import nu.metacraft.core.util.RefContext;
@@ -10,8 +12,6 @@ import nu.metacraft.lib.util.METACodecs;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
-import net.minecraft.advancements.criterion.FluidPredicate;
-import net.minecraft.advancements.criterion.MinMaxBounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;

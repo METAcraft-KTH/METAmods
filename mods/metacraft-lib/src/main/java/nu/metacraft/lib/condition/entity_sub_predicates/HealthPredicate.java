@@ -3,8 +3,8 @@ package nu.metacraft.lib.condition.entity_sub_predicates;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.advancements.criterion.EntitySubPredicate;
-import net.minecraft.advancements.criterion.MinMaxBounds;
+import net.minecraft.advancements.predicates.MinMaxBounds;
+import net.minecraft.advancements.predicates.entity.EntitySubPredicate;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -14,7 +14,7 @@ import nu.metacraft.lib.mixin.ItemEntityAccessor;
 
 public class HealthPredicate implements EntitySubPredicate {
 
-	public static final MapCodec<HealthPredicate> CODEC = RecordCodecBuilder.mapCodec(
+	public static final Codec<HealthPredicate> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
 					MinMaxBounds.Doubles.CODEC.fieldOf("health_range").forGetter(c -> c.healthRange),
 					Codec.BOOL.optionalFieldOf("fraction_mode", false).forGetter(c -> c.fractionMode)
@@ -27,11 +27,6 @@ public class HealthPredicate implements EntitySubPredicate {
 	public HealthPredicate(MinMaxBounds.Doubles healthRange, boolean fractionMode) {
 		this.healthRange = healthRange;
 		this.fractionMode = fractionMode;
-	}
-
-	@Override
-	public MapCodec<? extends EntitySubPredicate> codec() {
-		return CODEC;
 	}
 
 	@Override
