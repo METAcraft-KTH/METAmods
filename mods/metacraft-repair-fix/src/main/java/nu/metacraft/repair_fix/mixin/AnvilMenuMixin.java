@@ -49,6 +49,7 @@ public abstract class AnvilMenuMixin extends ItemCombinerMenu {
 			ItemStack stack, ItemStack ingredient, Operation<Boolean> op,
 			@Share("parse") LocalRef<Integer> parse
 	) {
+		if (player.level().isClientSide()) return op.call(stack, ingredient);
 		return RepairFixConfig.getConfig(player.level().getServer()).findRepairCount(stack, ingredient).stream().mapToObj(value -> {
 			parse.set(value);
 			return value > 0;
@@ -138,6 +139,7 @@ public abstract class AnvilMenuMixin extends ItemCombinerMenu {
 			Holder<Enchantment> first, Holder<Enchantment> second, Operation<Boolean> org,
 			@Share("additionalCost") LocalIntRef additionalCost
 	) {
+		if (player.level().isClientSide()) return org.call(first, second);
 		return RepairFixConfig.getConfig(player.level().getServer()).findCombineCost(first, second).stream().mapToObj(result -> {
 			additionalCost.set(result);
 			return true;
