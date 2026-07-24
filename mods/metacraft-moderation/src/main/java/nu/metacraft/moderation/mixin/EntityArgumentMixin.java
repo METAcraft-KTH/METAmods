@@ -15,8 +15,8 @@ public class EntityArgumentMixin implements EntitySelectorExtension {
 	private boolean metacraft$alwaysIncludeModerators = false;
 
 	@Override
-	public void metacraft$setAlwaysIncludeModerators(boolean canExcludeModerators) {
-		metacraft$alwaysIncludeModerators = canExcludeModerators;
+	public void metacraft$setAlwaysIncludeModerators(boolean alwaysIncludeModerators) {
+		metacraft$alwaysIncludeModerators = alwaysIncludeModerators;
 	}
 
 	@ModifyReturnValue(

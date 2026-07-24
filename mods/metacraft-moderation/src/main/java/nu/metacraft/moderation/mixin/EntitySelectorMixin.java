@@ -41,7 +41,7 @@ public class EntitySelectorMixin implements EntitySelectorExtension {
 	}
 
 	@Override
-	public void metacraft$setAlwaysIncludeModerators(boolean canExcludeModerators) {
-		this.metacraft$alwaysIncludeModerators = canExcludeModerators;
+	public void metacraft$setAlwaysIncludeModerators(boolean alwaysIncludeModerators) {
+		this.metacraft$alwaysIncludeModerators = alwaysIncludeModerators;
 	}
 }
