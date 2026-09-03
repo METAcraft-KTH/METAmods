@@ -37,10 +37,10 @@ public class ZoneManager extends SavedData {
 		return Optional.of(getInstance(server));
 	}
 
-	private static final SavedDataTypeCache.Type<ZoneManager> TYPE = new SavedDataTypeCache.Type<>(
-			level -> new SavedDataType<>(
-					METAcraftLib.getID("zones"), () -> createNew(level.getServer()),
-					createCodec(level.getServer()), null
+	private static final SavedDataTypeCache.Type<ZoneManager, MinecraftServer> TYPE = new SavedDataTypeCache.Type<>(
+			server -> new SavedDataType<>(
+					METAcraftLib.getID("zones"), () -> createNew(server),
+					createCodec(server), null
 			)
 	);
 

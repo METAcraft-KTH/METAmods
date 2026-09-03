@@ -58,7 +58,7 @@ public class DungeonData extends SavedData {
 
 	private static final Identifier key = METAcraftDungeons.getID("dungeons");
 
-	private static final SavedDataTypeCache.Type<DungeonData> TYPE = new SavedDataTypeCache.Type<>(
+	private static final SavedDataTypeCache.Type<DungeonData, ServerLevel> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
 					key, () -> create(level),
 					createCodec(level), null

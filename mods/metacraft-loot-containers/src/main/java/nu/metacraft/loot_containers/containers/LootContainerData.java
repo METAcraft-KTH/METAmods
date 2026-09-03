@@ -15,7 +15,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
-import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.SavedDataTypeCache;
 import org.apache.logging.log4j.util.TriConsumer;
 import nu.metacraft.loot_containers.METAcraftLootContainers;
@@ -30,10 +29,10 @@ import java.util.stream.Stream;
 
 public class LootContainerData extends SavedData {
 
-	private static final SavedDataTypeCache.Type<LootContainerData> TYPE = new SavedDataTypeCache.Type<>(
-			level -> new SavedDataType<>(
-					METAcraftLootContainers.getID("loot_containers"), () -> create(level.getServer()),
-					createCodec(level.getServer()), null
+	private static final SavedDataTypeCache.Type<LootContainerData, MinecraftServer> TYPE = new SavedDataTypeCache.Type<>(
+			server -> new SavedDataType<>(
+					METAcraftLootContainers.getID("loot_containers"), () -> create(server),
+					createCodec(server), null
 			)
 	);
 

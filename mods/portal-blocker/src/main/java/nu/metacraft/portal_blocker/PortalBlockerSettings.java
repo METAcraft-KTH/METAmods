@@ -31,10 +31,10 @@ public class PortalBlockerSettings extends SavedData {
 		return server.getDataStorage().computeIfAbsent(SavedDataTypeCache.get(server, TYPE));
 	}
 
-	private static final SavedDataTypeCache.Type<PortalBlockerSettings> TYPE = new SavedDataTypeCache.Type<>(
-			level -> new SavedDataType<>(
-					Identifier.fromNamespaceAndPath(PortalBlocker.NAMESPACE, "portals"), () -> createNew(level.getServer()),
-					createCodec(level.getServer()), null
+	private static final SavedDataTypeCache.Type<PortalBlockerSettings, MinecraftServer> TYPE = new SavedDataTypeCache.Type<>(
+			server -> new SavedDataType<>(
+					Identifier.fromNamespaceAndPath(PortalBlocker.NAMESPACE, "portals"), () -> createNew(server),
+					createCodec(server), null
 			)
 	);
 

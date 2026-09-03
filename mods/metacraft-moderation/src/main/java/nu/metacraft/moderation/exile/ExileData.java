@@ -48,10 +48,10 @@ public class ExileData extends SavedData {
 		);
 	}
 
-	private static final SavedDataTypeCache.Type<ExileData> TYPE = new SavedDataTypeCache.Type<>(
-			level -> new SavedDataType<>(
-					METAcraftLib.getID("moderation/exile"), () -> createNew(level.getServer()),
-					createCodec(level.getServer()), null
+	private static final SavedDataTypeCache.Type<ExileData, MinecraftServer> TYPE = new SavedDataTypeCache.Type<>(
+			server -> new SavedDataType<>(
+					METAcraftLib.getID("moderation/exile"), () -> createNew(server),
+					createCodec(server), null
 			)
 	);
 

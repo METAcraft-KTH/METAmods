@@ -40,7 +40,7 @@ public class PortalOpeningDimensionData extends SavedData {
 
 	private final CommandSourceStack source;
 
-	private static final SavedDataTypeCache.Type<PortalOpeningDimensionData> TYPE = new SavedDataTypeCache.Type<>(
+	private static final SavedDataTypeCache.Type<PortalOpeningDimensionData, ServerLevel> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
 					METAcraftLib.getID("portal-opening-manager"), () -> createNew(level),
 					createCodec(level), null

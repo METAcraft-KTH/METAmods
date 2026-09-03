@@ -40,10 +40,10 @@ public class SavedItemsData extends SavedData {
 
 	public static final String ITEMS = "Items"; //Careful, this is used by a datafixer!
 
-	private static final SavedDataTypeCache.Type<SavedItemsData> TYPE = new SavedDataTypeCache.Type<>(
-			level -> new SavedDataType<>(
-					SavedItems.getID("saved_items"), () -> create(level.getServer()),
-					createCodec(level.getServer()),
+	private static final SavedDataTypeCache.Type<SavedItemsData, MinecraftServer> TYPE = new SavedDataTypeCache.Type<>(
+			server -> new SavedDataType<>(
+					SavedItems.getID("saved_items"), () -> create(server),
+					createCodec(server),
 					DataFixTypes.METACRAFT_SAVED_DATA_SAVED_ITEMS
 			)
 	);
