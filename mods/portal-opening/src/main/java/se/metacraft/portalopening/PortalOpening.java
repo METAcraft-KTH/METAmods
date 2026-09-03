@@ -8,7 +8,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.random.WeightedList;
 import net.minecraft.util.valueproviders.ConstantInt;
 import net.minecraft.util.valueproviders.UniformInt;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,20 +25,20 @@ public class PortalOpening implements ModInitializer {
 			Config.CODEC, () -> {
 				var config = new Config();
 				CompoundTag piglin = new CompoundTag();
-				piglin.putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.PIGLIN).toString());
+				piglin.putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(EntityTypes.PIGLIN).toString());
 
 				config.getWaves().add(new Wave(new MobEntry(
 						WeightedList.of(MobEntry.EntityEntry.fromData(piglin)), ConstantInt.of(1), 0.5, Optional.of(ConstantInt.of(1))
 				)));
 
 				CompoundTag ghast = new CompoundTag();
-				ghast.putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.GHAST).toString());
+				ghast.putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(EntityTypes.GHAST).toString());
 
 				CompoundTag brute = new CompoundTag();
-				brute.putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.PIGLIN_BRUTE).toString());
+				brute.putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(EntityTypes.PIGLIN_BRUTE).toString());
 
 				CompoundTag hoglin = new CompoundTag();
-				hoglin.putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.HOGLIN).toString());
+				hoglin.putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(EntityTypes.HOGLIN).toString());
 
 				config.getWaves().add(new Wave(new MobEntry(new WeightedList.Builder<MobEntry.EntityEntry>().add(
 						MobEntry.EntityEntry.fromData(ghast), 2
@@ -56,7 +56,7 @@ public class PortalOpening implements ModInitializer {
 	public void onInitialize() {
 		Commands.init();
 		getConfig();
-		ServerTickEvents.END_WORLD_TICK.register(world -> {
+		ServerTickEvents.END_LEVEL_TICK.register(world -> {
 			PortalOpeningDimensionData.getInstance(world).tick();
 		});
 	}

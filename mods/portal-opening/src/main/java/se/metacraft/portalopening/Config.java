@@ -1,6 +1,7 @@
 package se.metacraft.portalopening;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import se.metacraft.portalopening.raid.Wave;
 
@@ -9,7 +10,7 @@ import java.util.List;
 
 public class Config {
 
-	public static final Codec<Config> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+	public static final MapCodec<Config> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.list(Wave.wave).fieldOf("waves").forGetter(Config::getWaves),
 			Codec.STRING.fieldOf("commandOnRaidEnd").forGetter(config -> config.commandOnRaidEnd)
 	).apply(instance, Config::new));

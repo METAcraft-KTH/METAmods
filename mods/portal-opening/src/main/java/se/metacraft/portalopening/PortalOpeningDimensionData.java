@@ -3,6 +3,9 @@ package se.metacraft.portalopening;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
+import nu.metacraft.lib.METAcraftLib;
+import nu.metacraft.lib.util.SavedDataTypeCache;
 import se.metacraft.portalopening.raid.Wave;
 import se.metacraft.portalopening.rifts.PortalRift;
 
@@ -37,9 +40,11 @@ public class PortalOpeningDimensionData extends SavedData {
 
 	private final CommandSourceStack source;
 
-	private static final SavedDataType<PortalOpeningDimensionData> TYPE = new SavedDataType<>(
-			"portal-opening-manager", ctx -> createNew(ctx.levelOrThrow()),
-			ctx -> createCodec(ctx.levelOrThrow()), null
+	private static final SavedDataTypeCache.Type<PortalOpeningDimensionData> TYPE = new SavedDataTypeCache.Type<>(
+			level -> new SavedDataType<>(
+					METAcraftLib.getID("portal-opening-manager"), () -> createNew(level),
+					createCodec(level), null
+			)
 	);
 
 	private PortalOpeningDimensionData(
@@ -80,7 +85,7 @@ public class PortalOpeningDimensionData extends SavedData {
 					public boolean shouldInformAdmins() {
 						return false;
 					}
-				}, Vec3.ZERO, Vec2.ZERO, world, 2, "PortalOpening",
+				}, Vec3.ZERO, Vec2.ZERO, world, LevelBasedPermissionSet.GAMEMASTER, "PortalOpening",
 				Component.literal("PortalOpening"), world.getServer(), null
 		);
 	}
@@ -104,7 +109,7 @@ public class PortalOpeningDimensionData extends SavedData {
 	}
 
 	public static PortalOpeningDimensionData getInstance(ServerLevel world) {
-		return world.getDataStorage().computeIfAbsent(TYPE);
+		return world.getDataStorage().computeIfAbsent(SavedDataTypeCache.get(world, TYPE));
 	}
 
 	public boolean createRift(BlockPos pos, int size, BlockState xAxisState, BlockState zAxisState, Direction.Axis axis) {

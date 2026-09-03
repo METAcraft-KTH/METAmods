@@ -3,6 +3,9 @@ package se.metacraft.portalopening.raid;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
+import net.minecraft.util.valueproviders.IntProviders;
+import net.minecraft.world.entity.*;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -14,19 +17,15 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.random.WeightedList;
 import net.minecraft.util.valueproviders.IntProvider;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.Leashable;
 
 public record MobEntry(WeightedList<EntityEntry> mobs, IntProvider amountPerSpawn, double probabilityToSpawnOtherRift, Optional<IntProvider> amountPerSpawnOtherRifts) {
 
 	private static final Codec<WeightedList<EntityEntry>> ENTITIES_WEIGHTED = WeightedList.codec(EntityEntry.CODEC);
 	public static final Codec<MobEntry> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			ENTITIES_WEIGHTED.fieldOf("mobs").forGetter(MobEntry::mobs),
-			IntProvider.NON_NEGATIVE_CODEC.fieldOf("amountPerSpawn").forGetter(MobEntry::amountPerSpawn),
+			IntProviders.NON_NEGATIVE_CODEC.fieldOf("amountPerSpawn").forGetter(MobEntry::amountPerSpawn),
 			Codec.DOUBLE.fieldOf("probabilityToSpawnOtherRift").orElse(1.0).forGetter(MobEntry::probabilityToSpawnOtherRift),
-			IntProvider.NON_NEGATIVE_CODEC.optionalFieldOf("amountPerSpawnOtherRifts").forGetter(MobEntry::amountPerSpawnOtherRifts)
+			IntProviders.NON_NEGATIVE_CODEC.optionalFieldOf("amountPerSpawnOtherRifts").forGetter(MobEntry::amountPerSpawnOtherRifts)
 	).apply(instance, MobEntry::new));
 
 	public void spawnMobsFromNBT(ServerLevel world, BlockPos pos) {
@@ -76,23 +75,27 @@ public record MobEntry(WeightedList<EntityEntry> mobs, IntProvider amountPerSpaw
 
 		@Nullable
 		public Entity spawnMobFromNBT(ServerLevel world, BlockPos pos, Consumer<Entity> entityModifier) {
-			if (data.size() == 0) {
+			if (data.isEmpty()) {
 				return null;
 			}
-			var spawnedEntity = EntityType.loadEntityRecursive(data, world, EntitySpawnReason.EVENT,entity -> {
-				entity.snapTo(pos, entity.getYRot(), entity.getXRot());
-				function.flatMap(
-						func -> world.getServer().getFunctions().get(func)
-				).ifPresent(function -> {
-					world.getServer().getFunctions().execute(
-							function, entity.createCommandSourceStackForNameResolution(world).withPermission(2)
-					);
-				});
-				entityModifier.accept(entity);
-				world.addFreshEntity(entity);
-				entity.setPortalCooldown();
-				return entity;
-			});
+			var spawnedEntity = EntityType.loadEntityRecursive(
+					data, world,
+					new EntitySpawnRequest(EntitySpawnReason.EVENT, false),
+					entity -> {
+						entity.snapTo(pos, entity.getYRot(), entity.getXRot());
+						function.flatMap(
+								func -> world.getServer().getFunctions().get(func)
+						).ifPresent(function -> {
+							world.getServer().getFunctions().execute(
+									function, entity.createCommandSourceStackForNameResolution(world).withPermission(LevelBasedPermissionSet.GAMEMASTER)
+							);
+						});
+						entityModifier.accept(entity);
+						world.addFreshEntity(entity);
+						entity.setPortalCooldown();
+						return entity;
+					}
+			);
 
 			for (var target : leashedEntities) {
 				var entity = target.spawnMobFromNBT(world, pos, entityModifier);
