@@ -38,7 +38,6 @@
 		"PlayerAccessor",
 		"PlayerListMixin",
 		"PlayerMixin",
-		"PolymerItemUtilsAccessor",
 		"ServerBossEventMixin",
 		"ServerChunkCacheAccessor",
 		"ServerCommonPacketListenerImplMixin",
