@@ -6,6 +6,7 @@ import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveTop;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.recipe.SewRecipe;
+import metacraft.ovvar.pack.Combos;
 import metacraft.ovvar.sewing.StandSewing;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ public class Ovvar implements ModInitializer {
         SewRecipe.init();
         OvveTop.init();
         StandSewing.init();
+        Combos.init();
         ModCommands.init();
 
         PolymerResourcePackUtils.addModAssets(MOD_ID);

@@ -25,6 +25,9 @@
       "metacraft.ovvar.datagen.OvvarDataGenerator"
     ]
   },
+  "mixins": [
+    "ovvar.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.19.2",
     "minecraft": ">=26.2 <26.3",

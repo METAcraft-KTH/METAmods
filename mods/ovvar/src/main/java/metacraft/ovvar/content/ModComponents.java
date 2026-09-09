@@ -15,7 +15,7 @@ import java.util.List;
 public final class ModComponents {
     private ModComponents() {}
 
-    /** {@code field=patch} entries sewn on the ovve (see Layout). Absent or empty = plain ovve. */
+    /** {@code spot.patch} placements sewn on the ovve, in sewing order (see Looks). Absent or empty = plain ovve. */
     public static final DataComponentType<List<String>> PATCHES = register("patches",
             DataComponentType.<List<String>>builder()
                     .persistent(Codec.STRING.listOf())

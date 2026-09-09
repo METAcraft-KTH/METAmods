@@ -85,18 +85,18 @@ public final class OvveTop {
      * swap (that click is the bundle's), the half's patch bits as the dye colour (hidden from the
      * tooltip), and no way to dye it at a cauldron or crafting table.
      */
-    static void dress(ItemStack client, Equippable base, ResourceKey<EquipmentAsset> asset, Piece piece, Map<String, String> shown) {
+    static void dress(ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad) {
         if (base == null) throw new IllegalStateException("garment lost its equippable component");
+        Looks.Look look = Looks.look(garment, piece);
         client.set(DataComponents.EQUIPPABLE, Equippable.builder(base.slot())
                 .setEquipSound(base.equipSound())
-                .setAsset(asset)
+                .setAsset(Looks.asset(chapter, piece, nercabbad, look.combo()))
                 .setDamageOnHurt(base.damageOnHurt())
                 .setSwappable(false)
                 .setDispensable(false)
                 .build());
-        int bits = Looks.dye(piece, shown);
-        if (bits != 0) {
-            client.set(DataComponents.DYED_COLOR, new DyedItemColor(bits));
+        if (look.dye() != 0) {
+            client.set(DataComponents.DYED_COLOR, new DyedItemColor(look.dye()));
             TooltipDisplay display = client.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
             client.set(DataComponents.TOOLTIP_DISPLAY, display.withHidden(DataComponents.DYED_COLOR, true));
         } else {

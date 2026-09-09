@@ -2,8 +2,9 @@ package metacraft.ovvar.recipe;
 
 import com.mojang.serialization.MapCodec;
 import metacraft.ovvar.Ovvar;
-import metacraft.ovvar.content.Layout;
 import metacraft.ovvar.content.Looks;
+import metacraft.ovvar.content.Placement;
+import metacraft.ovvar.content.Spot;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.PatchItem;
@@ -44,30 +45,22 @@ public final class SewRecipe implements SmithingRecipe {
         Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "sew"), SERIALIZER);
     }
 
-    /** The pinned field {@code patch} belongs to and that is still free on {@code ovve}, or null. */
-    public static Layout.Field pinnedFieldFor(ItemStack ovve, Patches.Patch patch) {
-        if (!(ovve.getItem() instanceof OvveItem)) return null;
-        Map<String, String> sewn = Looks.sewn(ovve);
-        for (Layout.Field f : Layout.all()) {
-            if (f.kind() == Layout.Kind.PINNED && f.accepts(patch.id()) && !sewn.containsKey(f.id())) return f;
-        }
-        return null;
+    /** Seat patches only: they have one place to go, so the table needs no aiming. */
+    public static boolean applies(ItemStack ovve, Patches.Patch patch) {
+        return ovve.getItem() instanceof OvveItem && patch.seat() && Looks.at(ovve, Spot.SEAT) == null;
     }
 
     @Override
     public boolean matches(SmithingRecipeInput input, Level level) {
         return input.template().isEmpty() && input.addition().getItem() instanceof PatchItem patch
-                && pinnedFieldFor(input.base(), patch.patch) != null;
+                && applies(input.base(), patch.patch);
     }
 
     @Override
     public ItemStack assemble(SmithingRecipeInput input) {
         ItemStack out = input.base().copyWithCount(1);
         Patches.Patch patch = ((PatchItem) input.addition().getItem()).patch;
-        Layout.Field field = pinnedFieldFor(out, patch);
-        Map<String, String> sewn = Looks.sewn(out);
-        sewn.put(field.id(), patch.id());
-        Looks.setSewn(out, sewn);
+        Looks.sew(out, new Placement(Spot.SEAT, patch.id()));
         return out;
     }
 

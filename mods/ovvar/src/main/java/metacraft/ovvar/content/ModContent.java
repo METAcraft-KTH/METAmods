@@ -75,7 +75,7 @@ public final class ModContent {
         for (Chapter chapter : Chapter.values()) {
             Identifier ovveId = ovveId(chapter);
             requireAsset("items/" + ovveId.getPath() + ".json", ovveId);
-            requireAsset("equipment/" + Looks.asset(chapter, Piece.BOTTOM, false).identifier().getPath() + ".json", ovveId);
+            requireAsset("equipment/" + Looks.assetPath(chapter, Piece.BOTTOM, false, "") + ".json", ovveId);
             OvveItem ovve = Registry.register(BuiltInRegistries.ITEM, ovveId, new OvveItem(Pockets.apply(clothing(chapter, Piece.BOTTOM, ArmorType.LEGGINGS)
                     .component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY))
                     .setId(ResourceKey.create(Registries.ITEM, ovveId)), chapter, ovveId));
@@ -84,7 +84,7 @@ public final class ModContent {
 
             Identifier topId = topId(chapter);
             requireAsset("items/" + topId.getPath() + ".json", topId);
-            requireAsset("equipment/" + Looks.asset(chapter, Piece.TOP, false).identifier().getPath() + ".json", topId);
+            requireAsset("equipment/" + Looks.assetPath(chapter, Piece.TOP, false, "") + ".json", topId);
             TOPS.put(chapter, Registry.register(BuiltInRegistries.ITEM, topId, new OvveTopItem(clothing(chapter, Piece.TOP, ArmorType.CHESTPLATE)
                     .setId(ResourceKey.create(Registries.ITEM, topId)), chapter, topId)));
         }
@@ -108,7 +108,7 @@ public final class ModContent {
         ArmorMaterial leather = ArmorMaterials.LEATHER;
         ArmorMaterial material = new ArmorMaterial(leather.durability(), leather.defense(), leather.enchantmentValue(),
                 leather.equipSound(), leather.toughness(), leather.knockbackResistance(), leather.repairIngredient(),
-                Looks.asset(chapter, piece, false));
+                Looks.asset(chapter, piece, false, ""));
         return new Item.Properties()
                 .stacksTo(1)
                 .attributes(material.createAttributes(type))

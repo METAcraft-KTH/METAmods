@@ -60,7 +60,7 @@ public final class OvveTopItem extends Item implements PolymerItem {
     @Override
     public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
         ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
-        OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), Looks.asset(chapter, Piece.TOP, false), Piece.TOP, Looks.shown(stack));
+        OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, chapter, Piece.TOP, false);
         return out;
     }
 }

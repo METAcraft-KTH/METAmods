@@ -5,12 +5,13 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import metacraft.ovvar.content.Chapter;
-import metacraft.ovvar.content.Layout;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModComponents;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.Patches;
+import metacraft.ovvar.content.Placement;
+import metacraft.ovvar.content.Spot;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -27,8 +28,6 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -36,11 +35,11 @@ import java.util.stream.Stream;
  * {@code /ovvar} (gamemasters):
  * <ul>
  *   <li>{@code give [player] <chapter> [patches]} — an ovve, top up, with the given patches:
- *       {@code all} (every field filled with its first patch), {@code none}, or {@code field=patch}
- *       entries separated by commas/spaces;</li>
+ *       {@code all} (every cell filled, cycling through the patches), {@code none}, or
+ *       {@code spot.patch} / bare patch ids (first free cell) separated by commas/spaces;</li>
  *   <li>{@code patches <patches>} — re-sew the ovve in your main hand;</li>
- *   <li>{@code showcase <chapter>} — a row of armour stands in front of you: top down, top up, each
- *       field alone, every field at once.</li>
+ *   <li>{@code showcase <chapter>} — a row of armour stands in front of you: top down, top up, one
+ *       per patch (on the chest), every cell filled.</li>
  * </ul>
  */
 public final class ModCommands {
@@ -81,7 +80,9 @@ public final class ModCommands {
     private static com.mojang.brigadier.builder.RequiredArgumentBuilder<CommandSourceStack, String> patchesArg() {
         return Commands.argument("patches", StringArgumentType.greedyString())
                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(Stream.concat(Stream.of("all", "none"),
-                        Layout.all().stream().flatMap(f -> f.patches().stream().map(p -> Looks.entry(f.id(), p)))), builder));
+                        Stream.concat(Patches.all().stream().map(Patches.Patch::id),
+                                Arrays.stream(Spot.values()).flatMap(spot -> Patches.all().stream().filter(p -> p.fits(spot))
+                                        .map(p -> new Placement(spot, p.id()).key())))), builder));
     }
 
     private static Chapter chapter(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
@@ -89,31 +90,39 @@ public final class ModCommands {
         return Arrays.stream(Chapter.values()).filter(c -> c.id.equals(name)).findFirst().orElseThrow(() -> UNKNOWN_CHAPTER.create(name));
     }
 
-    /** {@code all}, {@code none}, or {@code field=patch} entries; a bare patch id goes into the first field that takes it. */
-    private static Map<String, String> patches(String spec) throws CommandSyntaxException {
+    /** {@code all}, {@code none}, {@code spot.patch} entries, or bare patch ids (first free cell that takes it). */
+    private static List<Placement> patches(String spec) throws CommandSyntaxException {
         String s = spec.trim();
-        Map<String, String> out = new LinkedHashMap<>();
+        List<Placement> out = new ArrayList<>();
         if (s.isEmpty() || s.equals("none")) return out;
         if (s.equals("all")) {
-            for (Layout.Field f : Layout.all()) out.put(f.id(), f.patches().getFirst());
+            List<Patches.Patch> plain = Patches.all().stream().filter(p -> !p.seat()).toList();
+            int i = 0;
+            for (Spot spot : Spot.values()) {
+                if (spot == Spot.SEAT || Spot.SEAT_CELLS.contains(spot)) continue;
+                out.add(new Placement(spot, plain.get(i++ % plain.size()).id()));
+            }
+            Patches.all().stream().filter(Patches.Patch::seat).findFirst().ifPresent(p -> out.add(new Placement(Spot.SEAT, p.id())));
             return out;
         }
         for (String token : s.split("[,\\s]+")) {
-            int eq = token.indexOf('=');
-            String field = eq < 0 ? null : token.substring(0, eq), patch = eq < 0 ? token : token.substring(eq + 1);
-            if (!Patches.exists(patch)) throw UNKNOWN_PATCH.create(patch);
-            if (field == null) {
-                field = Layout.all().stream().filter(f -> f.accepts(patch) && !out.containsKey(f.id())).map(Layout.Field::id)
-                        .findFirst().orElseThrow(() -> UNKNOWN_PATCH.create(patch + " (no free field takes it)"));
-            } else if (!Layout.exists(field) || !Layout.get(field).accepts(patch)) {
-                throw UNKNOWN_PATCH.create(token);
+            if (Placement.isKey(token)) {
+                Placement p = Placement.parse(token);
+                out.removeIf(o -> o.spot() == p.spot() || p.spot().overlapping().contains(o.spot()));
+                out.add(p);
+                continue;
             }
-            out.put(field, patch);
+            if (!Patches.exists(token)) throw UNKNOWN_PATCH.create(token);
+            Patches.Patch patch = Patches.get(token);
+            Spot free = Arrays.stream(Spot.values()).filter(patch::fits)
+                    .filter(spot -> out.stream().noneMatch(o -> o.spot() == spot || spot.overlapping().contains(o.spot())))
+                    .findFirst().orElseThrow(() -> UNKNOWN_PATCH.create(token + " (no free cell takes it)"));
+            out.add(new Placement(free, token));
         }
         return out;
     }
 
-    private static ItemStack ovve(Chapter chapter, boolean topUp, Map<String, String> patches) {
+    private static ItemStack ovve(Chapter chapter, boolean topUp, List<Placement> patches) {
         ItemStack stack = new ItemStack(ModContent.ovve(chapter));
         OvveItem.setTopUp(stack, topUp && chapter.rollable || !chapter.rollable);
         Looks.setSewn(stack, patches);
@@ -122,7 +131,7 @@ public final class ModCommands {
 
     private static int give(CommandContext<CommandSourceStack> ctx, ServerPlayer player, String spec) throws CommandSyntaxException {
         Chapter chapter = chapter(ctx);
-        Map<String, String> patches = patches(spec);
+        List<Placement> patches = patches(spec);
         ItemStack stack = ovve(chapter, true, patches);
         if (!player.getInventory().add(stack)) player.drop(stack, false);
         ctx.getSource().sendSuccess(() -> Component.literal("Gave " + player.getName().getString() + " a " + chapter.name
@@ -134,9 +143,9 @@ public final class ModCommands {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         ItemStack held = player.getMainHandItem();
         if (!(held.getItem() instanceof OvveItem)) throw NOT_AN_OVVE.create(held.getItem().toString());
-        Map<String, String> patches = patches(StringArgumentType.getString(ctx, "patches"));
+        List<Placement> patches = patches(StringArgumentType.getString(ctx, "patches"));
         Looks.setSewn(held, patches);
-        ctx.getSource().sendSuccess(() -> Component.literal("Sewn: " + (patches.isEmpty() ? "nothing" : patches.toString())), false);
+        ctx.getSource().sendSuccess(() -> Component.literal("Sewn: " + (patches.isEmpty() ? "nothing" : Placement.combo(patches))), false);
         return 1;
     }
 
@@ -148,14 +157,14 @@ public final class ModCommands {
 
         List<ItemStack> looks = new ArrayList<>();
         List<String> labels = new ArrayList<>();
-        if (chapter.rollable) { looks.add(ovve(chapter, false, Map.of())); labels.add("top down"); }
-        looks.add(ovve(chapter, true, Map.of())); labels.add("top up");
-        for (Layout.Field f : Layout.all()) {
-            looks.add(ovve(chapter, true, Map.of(f.id(), f.patches().getFirst())));
-            labels.add(f.name() + ": " + Patches.get(f.patches().getFirst()).name());
+        if (chapter.rollable) { looks.add(ovve(chapter, false, List.of())); labels.add("top down"); }
+        looks.add(ovve(chapter, true, List.of())); labels.add("top up");
+        for (Patches.Patch p : Patches.all()) {
+            Spot spot = p.seat() ? Spot.SEAT : Spot.FRONT_TOP_RIGHT;
+            looks.add(ovve(chapter, true, List.of(new Placement(spot, p.id()))));
+            labels.add(p.name() + " (" + spot.label() + ")");
         }
-        Map<String, String> all = new LinkedHashMap<>();
-        for (Layout.Field f : Layout.all()) all.put(f.id(), f.patches().get(Math.min(f.patches().size() - 1, Layout.all().indexOf(f))));
+        List<Placement> all = patches("all");
         looks.add(ovve(chapter, true, all)); labels.add("all " + all.size());
 
         float yaw = player.getYRot();

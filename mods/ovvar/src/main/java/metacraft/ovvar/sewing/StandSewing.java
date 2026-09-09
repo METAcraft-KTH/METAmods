@@ -1,6 +1,6 @@
 package metacraft.ovvar.sewing;
 
-import metacraft.ovvar.content.Layout;
+import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveItem;
@@ -32,7 +32,7 @@ import java.util.UUID;
 
 /**
  * Sewing on an armour stand. Put the ovve on a stand, hold a patch, look at the stand: the patch
- * previews on the spot you're looking at (the nearest field on that face), right-click sews it.
+ * previews on the cell you're looking at, right-click sews it.
  * Empty hand on a sewn patch takes it back. The preview is a transient component on the stand's
  * ovve, so everyone sees it, and nothing is persisted until the click.
  *
@@ -54,8 +54,8 @@ public final class StandSewing {
             new Box("left leg", Piece.BOTTOM, Spot.Side.LEFT, -5, 1, -1, 13, -3, 3),
     };
 
-    /** What a player is currently previewing: stand, field and patch. */
-    private record Aim(UUID stand, Layout.Field field, String patch) {}
+    /** What a player is currently previewing: stand and placement. */
+    private record Aim(UUID stand, Placement placement) {}
     private static final Map<UUID, Aim> AIMS = new HashMap<>();
 
     public static void init() {
@@ -69,31 +69,38 @@ public final class StandSewing {
             ItemStack held = player.getMainHandItem();
             Hit aimed = aim(serverPlayer, stand);
             if (held.getItem() instanceof PatchItem patchItem) {
-                if (aimed == null || aimed.field == null || !aimed.field.accepts(patchItem.patch.id())) return InteractionResult.FAIL;
-                Map<String, String> sewn = Looks.sewn(ovve);
-                sewn.put(aimed.field.id(), patchItem.patch.id());
-                Looks.setSewn(ovve, sewn);
-                Looks.setPreview(ovve, null, null);
+                Spot spot = aimed == null ? null : spotFor(aimed.spot, patchItem.patch);
+                if (spot == null) return InteractionResult.FAIL;
+                Placement placement = new Placement(spot, patchItem.patch.id());
+                Looks.sew(ovve, placement);
+                Looks.setPreview(ovve, null);
                 AIMS.remove(player.getUUID());
                 if (!player.isCreative()) held.shrink(1);
                 celebrate((ServerLevel) level, aimed.where, true);
-                serverPlayer.sendOverlayMessage(Component.literal(patchItem.patch.name() + " sewn on the " + aimed.field.name()));
+                serverPlayer.sendOverlayMessage(Component.literal(patchItem.patch.name() + " sewn on the " + spot.label()));
                 return InteractionResult.SUCCESS;
             }
-            if (held.isEmpty() && aimed != null && aimed.field != null) {
-                String patch = Looks.sewn(ovve).get(aimed.field.id());
-                if (patch == null) return InteractionResult.PASS;
-                Map<String, String> sewn = Looks.sewn(ovve);
-                sewn.remove(aimed.field.id());
-                Looks.setSewn(ovve, sewn);
-                ItemStack back = new ItemStack(ModContent.patchItem(Patches.get(patch)));
+            if (held.isEmpty() && aimed != null && aimed.spot != null) {
+                Spot spot = aimed.spot;
+                Placement there = Looks.at(ovve, spot);
+                if (there == null && Spot.SEAT_CELLS.contains(spot)) { spot = Spot.SEAT; there = Looks.at(ovve, spot); }
+                if (there == null) return InteractionResult.PASS;
+                Looks.unpick(ovve, spot);
+                ItemStack back = new ItemStack(ModContent.patchItem(Patches.get(there.patch())));
                 if (!player.getInventory().add(back)) player.drop(back, false);
                 celebrate((ServerLevel) level, aimed.where, false);
-                serverPlayer.sendOverlayMessage(Component.literal(Patches.get(patch).name() + " unpicked"));
+                serverPlayer.sendOverlayMessage(Component.literal(Patches.get(there.patch()).name() + " unpicked"));
                 return InteractionResult.SUCCESS;
             }
             return InteractionResult.PASS;
         });
+    }
+
+    /** Where a patch lands when aimed at a cell: a seat patch aimed at either seat cell goes on the seat; else the cell, if it takes the patch. */
+    private static Spot spotFor(Spot aimed, Patches.Patch patch) {
+        if (aimed == null) return null;
+        if (patch.seat()) return Spot.SEAT_CELLS.contains(aimed) ? Spot.SEAT : null;
+        return patch.fits(aimed) ? aimed : null;
     }
 
     private static void celebrate(ServerLevel level, Vec3 where, boolean sewn) {
@@ -101,7 +108,7 @@ public final class StandSewing {
         level.playSound(null, where.x, where.y, where.z, SoundEvents.ARMOR_EQUIP_LEATHER, SoundSource.PLAYERS, 1.0f, sewn ? 1.2f : 0.8f);
     }
 
-    /** Every tick: a player holding a patch previews it on the stand spot they look at. */
+    /** Every tick: a player holding a patch previews it on the stand cell they look at. */
     private static void tick(MinecraftServer server) {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             Aim previous = AIMS.get(player.getUUID());
@@ -113,13 +120,15 @@ public final class StandSewing {
                     if (!(ovve.getItem() instanceof OvveItem)) continue;
                     Hit hit = aim(player, stand);
                     if (hit == null) continue;
-                    if (hit.field != null && hit.field.accepts(patchItem.patch.id())) {
-                        current = new Aim(stand.getUUID(), hit.field, patchItem.patch.id());
+                    Spot spot = spotFor(hit.spot, patchItem.patch);
+                    if (spot != null) {
+                        current = new Aim(stand.getUUID(), new Placement(spot, patchItem.patch.id()));
                         aimedOvve = ovve;
+                        if (server.getTickCount() % 10 == 0) player.sendOverlayMessage(Component.literal("→ " + spot.label()));
                     } else if (server.getTickCount() % 20 == 0) {
-                        player.sendOverlayMessage(Component.literal(hit.field == null
+                        player.sendOverlayMessage(Component.literal(hit.spot == null
                                 ? "Nothing goes on the " + hit.part
-                                : patchItem.patch.name() + " doesn't go on the " + hit.field.name()));
+                                : patchItem.patch.name() + " doesn't go on the " + hit.spot.label()));
                     }
                     break;
                 }
@@ -130,7 +139,7 @@ public final class StandSewing {
                 AIMS.remove(player.getUUID());
             }
             if (current != null && !current.equals(previous)) {
-                Looks.setPreview(aimedOvve, current.field.id(), current.patch);
+                Looks.setPreview(aimedOvve, current.placement);
                 AIMS.put(player.getUUID(), current);
             }
         }
@@ -139,16 +148,16 @@ public final class StandSewing {
     private static void clearPreview(net.minecraft.world.level.Level level, UUID standId) {
         if (level instanceof ServerLevel server && server.getEntity(standId) instanceof ArmorStand stand) {
             ItemStack ovve = stand.getItemBySlot(EquipmentSlot.LEGS);
-            if (ovve.getItem() instanceof OvveItem) Looks.setPreview(ovve, null, null);
+            if (ovve.getItem() instanceof OvveItem) Looks.setPreview(ovve, null);
         }
     }
 
     // ------------------------------------------------------------ aiming
 
-    /** @param field null when the aimed spot has no field */
-    private record Hit(String part, Layout.Field field, Vec3 where) {}
+    /** @param spot null when no patch goes on the aimed part of the face */
+    private record Hit(String part, Spot spot, Vec3 where) {}
 
-    /** Where the player's view ray meets the stand's model: the nearest field on that face, or null if it misses. */
+    /** Where the player's view ray meets the stand's model: the cell there, or null if the ray misses. */
     private static @Nullable Hit aim(ServerPlayer player, ArmorStand stand) {
         Vec3 eye = player.getEyePosition();
         Vec3 view = player.getViewVector(1.0f);
@@ -205,20 +214,7 @@ public final class StandSewing {
         int col = Math.max(0, Math.min(depth / 4 - 1, (int) Math.floor(along / 4)));
         int row = Math.max(0, Math.min(2, (int) Math.floor((bestBox.y2 - 1 - py) / 4)));
         int u = strip + col * 4, v = 20 + row * 4;
-
-        Layout.Field field = null;
-        int bestRowDistance = Integer.MAX_VALUE;
-        for (Layout.Field f : Layout.fields(bestBox.piece)) {
-            for (Spot cell : f.cells()) {
-                if (cell.side != bestBox.side || cell.u != u) continue;
-                int d = Math.abs(cell.v - v);
-                if (d < bestRowDistance) {
-                    bestRowDistance = d;
-                    field = f;
-                }
-            }
-        }
-        return new Hit(bestBox.part, field, where);
+        return new Hit(bestBox.part, Spot.at(bestBox.piece, u, v, bestBox.side), where);
     }
 
     /** Ray/box slab test: [t, axis, sign of the entered face's normal] or null. */

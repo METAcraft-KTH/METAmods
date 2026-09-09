@@ -87,13 +87,14 @@ public final class OvveItem extends BundleItem implements PolymerItem {
             tooltip.add(Component.literal("Sneak + right-click: " + (up ? "zip down" : "zip up")).withStyle(ChatFormatting.DARK_GRAY));
         }
         tooltip.add(Component.literal("Right-click: empty the pockets").withStyle(ChatFormatting.DARK_GRAY));
-        Map<String, String> sewn = Looks.sewn(stack);
+        List<Placement> sewn = Looks.sewn(stack);
         if (sewn.isEmpty()) {
             tooltip.add(Component.literal("No patches yet").withStyle(ChatFormatting.GRAY));
         } else {
             tooltip.add(Component.literal("Patches:").withStyle(ChatFormatting.GRAY));
-            sewn.forEach((field, patch) -> tooltip.add(Component.literal("  " + Patches.get(patch).name() + " — " + Layout.get(field).name())
-                    .withStyle(ChatFormatting.GRAY)));
+            for (Placement p : sewn) {
+                tooltip.add(Component.literal("  " + Patches.get(p.patch()).name() + " — " + p.spot().label()).withStyle(ChatFormatting.GRAY));
+            }
         }
         tooltip.add(Component.literal("Sew: put it on an armour stand, aim a patch at the spot, right-click").withStyle(ChatFormatting.DARK_GRAY));
     }
@@ -111,7 +112,7 @@ public final class OvveItem extends BundleItem implements PolymerItem {
     @Override
     public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
         ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
-        OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), Looks.bottom(stack), Piece.BOTTOM, Looks.shown(stack));
+        OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, chapter, Piece.BOTTOM, !topUp(stack));
         return out;
     }
 }

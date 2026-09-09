@@ -10,5 +10,5 @@ vec4 ovvar_vread(float x, float y) {
 // 1.0 on a patch layer of ours, else 0.0.
 float ovvar_patch_layer() {
     if (!all(equal(ovvar_vread(63.0, 15.0), vec4(255.0, 0.0, 255.0, 2.0)))) return 0.0;
-    return ovvar_vread(62.0, 15.0).g > 0.5 ? 1.0 : 0.0;
+    return ovvar_vread(62.0, 15.0).r > 0.5 ? 1.0 : 0.0;
 }

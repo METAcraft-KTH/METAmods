@@ -1,7 +1,8 @@
 package metacraft.ovvar.content;
 
 /**
- * A 4×4 texel cell on the garment, in the 64×32 armour layout. Left/right in sleeve and leg
+ * A 4×4 texel cell on the garment, in the 64×32 armour layout — anywhere a patch can go.
+ * APPEND ONLY: the preview bits carry a cell as its ordinal + 1. Left/right in sleeve and leg
  * names are the wearer's own; in chest and back names they are as seen by someone facing that
  * side. Sleeve and leg cells sit on the right limb's strips: the armour model draws the left limb
  * as a mirror image off the same strips, and the shader tells the two apart by the handedness
@@ -31,10 +32,12 @@ public enum Spot {
     LEG_FRONT_TOP_R(Piece.BOTTOM, 4, 20, Side.RIGHT), LEG_FRONT_MID_R(Piece.BOTTOM, 4, 24, Side.RIGHT), LEG_FRONT_LOW_R(Piece.BOTTOM, 4, 28, Side.RIGHT),
     LEG_FRONT_TOP_L(Piece.BOTTOM, 4, 20, Side.LEFT), LEG_FRONT_MID_L(Piece.BOTTOM, 4, 24, Side.LEFT), LEG_FRONT_LOW_L(Piece.BOTTOM, 4, 28, Side.LEFT),
     LEG_BACK_TOP_R(Piece.BOTTOM, 12, 20, Side.RIGHT), LEG_BACK_MID_R(Piece.BOTTOM, 12, 24, Side.RIGHT), LEG_BACK_LOW_R(Piece.BOTTOM, 12, 28, Side.RIGHT),
-    LEG_BACK_TOP_L(Piece.BOTTOM, 12, 20, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 24, Side.LEFT), LEG_BACK_LOW_L(Piece.BOTTOM, 12, 28, Side.LEFT);
+    LEG_BACK_TOP_L(Piece.BOTTOM, 12, 20, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 24, Side.LEFT), LEG_BACK_LOW_L(Piece.BOTTOM, 12, 28, Side.LEFT),
+    /** The seat: one 8×4 patch across the back of both legs (LEG_BACK_TOP_R + LEG_BACK_TOP_L). Only seat patches go here. */
+    SEAT(Piece.BOTTOM, 12, 20, Side.SEAT);
 
-    /** BODY = an unmirrored face; RIGHT/LEFT = the limb the cell is drawn on. Ordinal is what the shader reads. */
-    public enum Side { BODY, RIGHT, LEFT }
+    /** BODY = an unmirrored face; RIGHT/LEFT = the limb the cell is drawn on; SEAT = both legs. Ordinal is what the shader reads. */
+    public enum Side { BODY, RIGHT, LEFT, SEAT }
 
     public static final int SIZE = 4;
     /** How far up the mirror strip sits from the limb boxes. */
@@ -56,8 +59,44 @@ public enum Spot {
         this.side = side;
     }
 
+    /** The cells a seat patch covers, which a seat patch and a plain patch fight over. */
+    public static final java.util.List<Spot> SEAT_CELLS = java.util.List.of(LEG_BACK_TOP_R, LEG_BACK_TOP_L);
+
+    private static final java.util.Map<String, Spot> BY_KEY = new java.util.HashMap<>();
+
+    static {
+        for (Spot s : values()) BY_KEY.put(s.piece + "/" + s.u + "/" + s.v + "/" + s.side, s);
+    }
+
+    /** The cell at a strip position, or null if no patch goes there. */
+    public static Spot at(Piece piece, int u, int v, Side side) {
+        return BY_KEY.get(piece + "/" + u + "/" + v + "/" + side);
+    }
+
+    public String id() {
+        return name().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** Never null: an unknown spot id is a bug (a renamed cell, a typo in a command). */
+    public static Spot get(String id) {
+        for (Spot s : values()) if (s.id().equals(id)) return s;
+        throw new IllegalArgumentException("unknown spot '" + id + "'");
+    }
+
+    public static boolean exists(String id) {
+        for (Spot s : values()) if (s.id().equals(id)) return true;
+        return false;
+    }
+
+    /** Cells that overlap this one (a seat patch covers two leg cells). */
+    public java.util.List<Spot> overlapping() {
+        if (this == SEAT) return SEAT_CELLS;
+        return SEAT_CELLS.contains(this) ? java.util.List.of(SEAT) : java.util.List.of();
+    }
+
     /** "chest, top left" / "left sleeve, outer top" — for tooltips. */
     public String label() {
+        if (this == SEAT) return "seat";
         String n = name().toLowerCase(java.util.Locale.ROOT);
         String limb = side == Side.LEFT ? "left " : side == Side.RIGHT ? "right " : "";
         if (n.startsWith("front_")) return "chest, " + n.substring(6).replace('_', ' ');
