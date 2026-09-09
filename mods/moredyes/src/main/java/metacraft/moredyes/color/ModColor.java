@@ -1,6 +1,14 @@
 package metacraft.moredyes.color;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.level.material.MapColor;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * One colour from colors.json. Everything colour-specific in the mod derives from an instance of
@@ -17,6 +25,36 @@ import net.minecraft.world.level.material.MapColor;
  *                  fixed 64-entry map palette forces on us
  */
 public record ModColor(String id, String name, int rgb, int rampDark, int rampLight, MapColor mapColor) {
+
+    private static final Pattern ID = Pattern.compile("[a-z0-9_]+");
+
+    public static final Codec<ModColor> CODEC = RecordCodecBuilder.create(
+            instance -> instance.group(
+                    Codec.STRING.fieldOf("id").validate(
+                            id -> ID.matcher(id).matches() ? DataResult.success(id) : DataResult.error(() -> "id '" + id + "' must match [a-z0-9_]+")
+                    ).forGetter(ModColor::id),
+                    Codec.STRING.fieldOf("name").forGetter(ModColor::name),
+                    ExtraCodecs.STRING_RGB_COLOR.fieldOf("rgb").forGetter(ModColor::rgb),
+                    Ramp.CODEC.optionalFieldOf("ramp").forGetter(colour -> Optional.of(new Ramp(colour.rampDark(), colour.rampLight())))
+            ).apply(instance, ModColor::of)
+    );
+
+    public record Ramp(int rampDark, int rampLight) {
+        public static final Codec<Ramp> CODEC = ExtraCodecs.STRING_RGB_COLOR.listOf().comapFlatMap(
+                colours -> colours.size() == 2 ?
+                        DataResult.success(new Ramp(colours.get(0), colours.get(1))) :
+                        DataResult.error(() -> "\"ramp\" must be [dark, light]"),
+                ramp -> List.of(ramp.rampDark, ramp.rampLight)
+        );
+    }
+
+    public static ModColor of(String id, String name, int rgb, Optional<Ramp> ramp) {
+        return of(
+                id, name, rgb,
+                ramp.map(Ramp::rampDark).orElseGet(() -> deriveRamp(rgb, true)),
+                ramp.map(Ramp::rampLight).orElseGet(() -> deriveRamp(rgb, false))
+        );
+    }
 
     public static ModColor of(String id, String name, int rgb, int rampDark, int rampLight) {
         return new ModColor(id, name, rgb, rampDark, rampLight, nearestMapColor(rgb));

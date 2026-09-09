@@ -4,15 +4,15 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.JsonOps;
 import metacraft.moredyes.MoreDyes;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -22,8 +22,31 @@ import java.util.regex.Pattern;
  * loudly on anything malformed rather than guessing, per the mod's no-silent-fallback rule.
  */
 public final class ModColors {
-    private static final Pattern ID = Pattern.compile("[a-z0-9_]+");
     private static final Pattern HEX = Pattern.compile("#?[0-9a-fA-F]{6}");
+
+    public static final Codec<Map<String, ModColor>> COLOUR_MAP_CODEC = ModColor.CODEC.listOf().comapFlatMap(
+            colours -> {
+                Map<String, ModColor> colourMap = new HashMap<>();
+                StringBuilder error = new StringBuilder();
+                for (var colour : colours) {
+                    if (colourMap.containsKey(colour.id())) {
+                        String msg = "duplicate id " + colour.id();
+                        if (error.isEmpty()) {
+                            error.append(msg);
+                        } else {
+                            error.append("; ").append(msg);
+                        }
+                    }
+                    colourMap.put(colour.id(), colour);
+                }
+                if (error.isEmpty()) {
+                    return DataResult.success(colourMap);
+                } else {
+                    return DataResult.error(error::toString, colourMap);
+                }
+            },
+            colours -> colours.values().stream().toList()
+    );
 
     private static Map<String, ModColor> byId = Map.of();
     private static List<ModColor> all = List.of();
@@ -52,45 +75,17 @@ public final class ModColors {
                 throw new IllegalStateException("colors.json missing from the More Dyes jar");
             }
             JsonElement root = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            var map = COLOUR_MAP_CODEC.parse(JsonOps.INSTANCE, root).getOrThrow(
+                    err -> new IllegalStateException("colors.json: " + err)
+            );
+
             if (!root.isJsonArray()) {
                 throw new IllegalStateException("colors.json must be a JSON array");
-            }
-            JsonArray arr = root.getAsJsonArray();
-            Map<String, ModColor> map = new LinkedHashMap<>();
-            for (JsonElement el : arr) {
-                JsonObject o = el.getAsJsonObject();
-                String id = required(o, "id");
-                if (!ID.matcher(id).matches()) {
-                    throw new IllegalStateException("colors.json: id '" + id + "' must match [a-z0-9_]+");
-                }
-                if (map.containsKey(id)) {
-                    throw new IllegalStateException("colors.json: duplicate id '" + id + "'");
-                }
-                if (o.has("retired") && o.get("retired").getAsBoolean()) {
-                    MoreDyes.LOGGER.info("[{}] colour '{}' is retired; keeping its content registered for existing worlds",
-                            MoreDyes.MOD_ID, id);
-                }
-                String name = required(o, "name");
-                int rgb = hex(required(o, "rgb"), id + ".rgb");
-                // Texture ramp: optional; derived from the base colour (same rule as gen_assets.py) when absent.
-                int dark, light;
-                if (o.has("ramp")) {
-                    JsonArray ramp = o.getAsJsonArray("ramp");
-                    if (ramp == null || ramp.size() != 2) {
-                        throw new IllegalStateException("colors.json: '" + id + "' \"ramp\" must be [dark, light]");
-                    }
-                    dark = hex(ramp.get(0).getAsString(), id + ".ramp[0]");
-                    light = hex(ramp.get(1).getAsString(), id + ".ramp[1]");
-                } else {
-                    dark = ModColor.deriveRamp(rgb, true);
-                    light = ModColor.deriveRamp(rgb, false);
-                }
-                map.put(id, ModColor.of(id, name, rgb, dark, light));
             }
             if (map.isEmpty()) {
                 throw new IllegalStateException("colors.json defines no colours");
             }
-            byId = Collections.unmodifiableMap(map);
+            byId = map;
             all = List.copyOf(map.values());
             for (ModColor c : all) {
                 MoreDyes.LOGGER.info("[{}] colour {} #{} (map colour id {})", MoreDyes.MOD_ID, c.id(),
@@ -101,19 +96,5 @@ public final class ModColors {
         } catch (Exception e) {
             throw new IllegalStateException("Failed to read colors.json", e);
         }
-    }
-
-    private static String required(JsonObject o, String key) {
-        if (!o.has(key) || !o.get(key).isJsonPrimitive()) {
-            throw new IllegalStateException("colors.json: entry missing \"" + key + "\": " + o);
-        }
-        return o.get(key).getAsString();
-    }
-
-    private static int hex(String s, String what) {
-        if (!HEX.matcher(s).matches()) {
-            throw new IllegalStateException("colors.json: " + what + " must be #RRGGBB, got '" + s + "'");
-        }
-        return Integer.parseInt(s.startsWith("#") ? s.substring(1) : s, 16);
     }
 }
