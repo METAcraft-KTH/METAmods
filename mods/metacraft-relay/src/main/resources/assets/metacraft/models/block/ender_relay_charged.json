@@ -1,0 +1,8 @@
+{
+  "parent": "block/cube_bottom_top",
+  "textures": {
+    "bottom": "metacraft:block/ender_relay/relay_bottom",
+    "side": "metacraft:block/ender_relay/relay_side_charged",
+    "top": "metacraft:block/ender_relay/relay_top_charged"
+  }
+}

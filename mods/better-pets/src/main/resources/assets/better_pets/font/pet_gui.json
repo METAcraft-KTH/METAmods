@@ -1,0 +1,20 @@
+{
+    "providers": [
+        {
+            "type": "space",
+            "advances": {
+                "a": -8,
+                "c": -169
+            }
+        },
+        {
+            "type": "bitmap",
+            "file": "better_pets:gui/pet_gui/pet_gui.png",
+            "ascent": 13,
+            "height": 176,
+            "chars": [
+                "b"
+            ]
+        }
+    ]
+}

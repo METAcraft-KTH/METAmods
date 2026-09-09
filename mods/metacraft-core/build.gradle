@@ -14,6 +14,8 @@ dependencies {
 	implementation include("eu.pb4:polymer-core:${project.polymer_version}")
 	implementation include("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 	implementation include("eu.pb4:sgui:${project.sgui_version}")
+	implementation include("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+	implementation include("eu.pb4:polymer-autohost:${project.polymer_version}")
 }
 
 addVanishDependency()

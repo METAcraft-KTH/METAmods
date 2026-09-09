@@ -1,0 +1,10 @@
+{
+    "item.metacraft.wrench": "Skiftnyckel",
+    "item.metacraft.wrench.block.on": "Blocket kan nu flyttas med kolvar",
+    "item.metacraft.wrench.block.off": "Blocket kan inte längre flyttas med kolvar",
+    "item.metacraft.wrench.player.on": "Alla blockentiteter du placerar från och med nu går att flytta med kolvar",
+    "item.metacraft.wrench.player.off": "Inga blockentiteter du placerar från och med nu går att flytta med kolvar",
+    "item.metacraft.wrench.tooltip": "Standard: %s",
+    "item.metacraft.wrench.tooltip.on": "Flyttbara",
+    "item.metacraft.wrench.tooltip.off": "Icke Flyttbara"
+}
