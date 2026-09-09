@@ -59,6 +59,21 @@ public enum Spot {
         this.side = side;
     }
 
+    /** "chest, top left" / "left sleeve, outer top" — for tooltips. */
+    public String label() {
+        String n = name().toLowerCase(java.util.Locale.ROOT);
+        String limb = side == Side.LEFT ? "left " : side == Side.RIGHT ? "right " : "";
+        if (n.startsWith("front_")) return "chest, " + n.substring(6).replace('_', ' ');
+        if (n.startsWith("back_")) return "back, " + n.substring(5).replace('_', ' ');
+        String rest = n.replaceAll("_[lr]$", "");
+        if (rest.startsWith("sleeve_out_")) return limb + "sleeve, outer " + rest.substring(11);
+        if (rest.startsWith("sleeve_front_")) return limb + "sleeve, front " + rest.substring(13);
+        if (rest.startsWith("leg_out_")) return limb + "leg, outer " + rest.substring(8);
+        if (rest.startsWith("leg_front_")) return limb + "leg, front " + rest.substring(10);
+        if (rest.startsWith("leg_back_")) return limb + "leg, back " + rest.substring(9);
+        return n.replace('_', ' ');
+    }
+
     /** Where datagen actually draws the cell: left-limb cells go to the mirror strip. */
     public int drawV() {
         return side == Side.LEFT ? v - MIRROR_SHIFT : v;

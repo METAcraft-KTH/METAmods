@@ -2,6 +2,7 @@ package metacraft.ovvar.content;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -20,6 +21,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+
+import java.util.List;
 
 /**
  * A chapter's ovve: one item, worn in the legs slot, with pockets. It is a bundle with
@@ -72,6 +75,27 @@ public final class OvveItem extends BundleItem implements PolymerItem {
     @Override
     public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
         if (slot == EquipmentSlot.LEGS && entity instanceof LivingEntity wearer) OvveTop.sync(wearer, stack);
+    }
+
+    @Override
+    public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
+        boolean up = topUp(stack);
+        tooltip.add(Component.literal(up ? "Zipped up" : "Zipped down").withStyle(ChatFormatting.GRAY));
+        if (chapter.rollable) {
+            tooltip.add(Component.literal("Sneak + right-click: " + (up ? "zip down" : "zip up")).withStyle(ChatFormatting.DARK_GRAY));
+        }
+        tooltip.add(Component.literal("Right-click: empty the pockets").withStyle(ChatFormatting.DARK_GRAY));
+        List<String> patches = Looks.patches(stack);
+        if (patches.isEmpty()) {
+            tooltip.add(Component.literal("No patches yet").withStyle(ChatFormatting.GRAY));
+        } else {
+            tooltip.add(Component.literal("Patches:").withStyle(ChatFormatting.GRAY));
+            for (String id : patches) {
+                Patches.Patch patch = Patches.get(id);
+                tooltip.add(Component.literal("  " + patch.name() + " — " + patch.spot().label()).withStyle(ChatFormatting.GRAY));
+            }
+        }
+        tooltip.add(Component.literal("Smithing table: " + chapter.garmentWord() + " + patch to sew one on").withStyle(ChatFormatting.DARK_GRAY));
     }
 
     @Override

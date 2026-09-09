@@ -50,12 +50,13 @@ public final class GeneratedAssets implements DataProvider {
     /** The texel our core shader checks before treating a texture as ours: magenta at alpha 2. */
     private static final int MARKER_X = 63, MARKER_Y = 15, MARKER = 0x02FF00FF;
 
-    private final Path assets;
+    private final Path assets, data;
     private final List<CompletableFuture<?>> writes = new ArrayList<>();
     private CachedOutput out;
 
     public GeneratedAssets(FabricPackOutput output) {
         this.assets = output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve(MOD);
+        this.data = output.getOutputFolder(PackOutput.Target.DATA_PACK).resolve(MOD);
     }
 
     @Override
@@ -131,6 +132,8 @@ public final class GeneratedAssets implements DataProvider {
         JsonObject langJson = new JsonObject();
         lang.forEach(langJson::addProperty);
         json(assets.resolve("lang/en_us.json"), langJson);
+        // Sewing at the smithing table (SewRecipe): the one recipe, nothing to configure.
+        json(data.resolve("recipe/sew.json"), obj("type", MOD + ":sew"));
         return CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new));
     }
 

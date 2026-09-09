@@ -2,7 +2,9 @@ package metacraft.ovvar.content;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.network.chat.Component;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -13,6 +15,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
+
+import java.util.List;
 
 /**
  * The rolled-up top of an ovve: a companion stack the mod places in the chest slot while the
@@ -35,6 +39,12 @@ public final class OvveTopItem extends Item implements PolymerItem {
         if (slot != EquipmentSlot.CHEST || !(entity instanceof LivingEntity wearer) || !OvveTop.wantsTop(wearer.getItemBySlot(EquipmentSlot.LEGS))) {
             stack.setCount(0);
         }
+    }
+
+    @Override
+    public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
+        tooltip.add(Component.literal("The zipped-up top of your " + chapter.garmentWord()).withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.literal("Sneak + right-click the " + chapter.garmentWord() + " to zip it down").withStyle(ChatFormatting.DARK_GRAY));
     }
 
     @Override
