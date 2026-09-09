@@ -1,0 +1,37 @@
+package metacraft.ovvar.content;
+
+import com.mojang.serialization.Codec;
+import eu.pb4.polymer.core.api.other.PolymerComponent;
+import metacraft.ovvar.Ovvar;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.resources.Identifier;
+
+import java.util.List;
+
+/** Mod-owned item components, server-side only: Polymer hides the types from vanilla clients and strips them from stacks. */
+public final class ModComponents {
+    private ModComponents() {}
+
+    /** Patch ids sewn on a garment, in sewing order. Absent or empty = plain garment. */
+    public static final DataComponentType<List<String>> PATCHES = register("patches",
+            DataComponentType.<List<String>>builder()
+                    .persistent(Codec.STRING.listOf())
+                    .networkSynchronized(ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list())));
+
+    /** Whether the ovve's top is worn up (sleeves on) rather than hanging at the waist. Absent = down. */
+    public static final DataComponentType<Boolean> TOP_UP = register("top_up",
+            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
+
+    private static <T> DataComponentType<T> register(String name, DataComponentType.Builder<T> builder) {
+        return Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, name), builder.build());
+    }
+
+    public static void init() {
+        // Registered types land in a synced registry; without this Fabric's registry sync kicks
+        // vanilla clients ("requires Fabric Loader"). Polymer hides them and never sends them.
+        PolymerComponent.registerDataComponent(PATCHES, TOP_UP);
+    }
+}

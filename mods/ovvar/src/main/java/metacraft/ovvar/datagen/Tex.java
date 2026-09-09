@@ -1,0 +1,188 @@
+package metacraft.ovvar.datagen;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+/** ARGB texture with the few operations the generator needs. Immutable; every op returns a copy. */
+final class Tex {
+    final int width, height;
+    private final int[] argb;
+
+    private Tex(int width, int height, int[] argb) {
+        this.width = width;
+        this.height = height;
+        this.argb = argb;
+    }
+
+    static Tex blank(int width, int height) {
+        return new Tex(width, height, new int[width * height]);
+    }
+
+    static Tex read(InputStream in) {
+        try (in) {
+            BufferedImage img = ImageIO.read(in);
+            if (img == null) throw new IOException("not an image");
+            int w = img.getWidth(), h = img.getHeight();
+            int bands = img.getRaster().getNumBands();
+            int[] px;
+            if (bands <= 2 && img.getColorModel().getColorSpace().getType() == java.awt.color.ColorSpace.TYPE_GRAY) {
+                // Greyscale PNGs: getRGB would run the samples through ImageIO's linear grey colour
+                // space and shift them; take the raw 8-bit samples like every other PNG decoder does.
+                px = new int[w * h];
+                int[] s = new int[bands];
+                for (int y = 0; y < h; y++) {
+                    for (int x = 0; x < w; x++) {
+                        img.getRaster().getPixel(x, y, s);
+                        int v = s[0], a = bands == 2 ? s[1] : 255;
+                        px[y * w + x] = (a << 24) | (v << 16) | (v << 8) | v;
+                    }
+                }
+            } else {
+                px = img.getRGB(0, 0, w, h, null, 0, w);
+            }
+            return new Tex(w, h, px);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    byte[] png() {
+        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        img.setRGB(0, 0, width, height, argb, 0, width);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            ImageIO.write(img, "png", out);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return out.toByteArray();
+    }
+
+    static int a(int p) { return (p >>> 24) & 0xFF; }
+    static int r(int p) { return (p >>> 16) & 0xFF; }
+    static int g(int p) { return (p >>> 8) & 0xFF; }
+    static int b(int p) { return p & 0xFF; }
+    private static int clamp(int v) { return Math.max(0, Math.min(255, v)); }
+    private static int pack(int a, int r, int g, int b) { return (clamp(a) << 24) | (clamp(r) << 16) | (clamp(g) << 8) | clamp(b); }
+
+    int get(int x, int y) {
+        return argb[y * width + x];
+    }
+
+    /** Pixels of {@code src} at (sx, sy, w, h) copied onto a copy of this at (dx, dy); source alpha replaces, no blending. */
+    Tex blit(Tex src, int sx, int sy, int w, int h, int dx, int dy) {
+        if (sx + w > src.width || sy + h > src.height || dx + w > width || dy + h > height) {
+            throw new IllegalArgumentException("blit outside bounds: " + w + "x" + h + " from (" + sx + "," + sy + ") to (" + dx + "," + dy + ")");
+        }
+        int[] out = argb.clone();
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int p = src.argb[(sy + y) * src.width + sx + x];
+                if (a(p) > 0) out[(dy + y) * width + dx + x] = p;
+            }
+        }
+        return new Tex(width, height, out);
+    }
+
+    /** Copy with one texel replaced. */
+    Tex with(int x, int y, int argb) {
+        int[] out = this.argb.clone();
+        out[y * width + x] = argb;
+        return new Tex(width, height, out);
+    }
+
+    /** Copy with the rectangle (x, y, w, h) mirrored horizontally in place. */
+    Tex flipX(int x, int y, int w, int h) {
+        int[] out = argb.clone();
+        for (int yy = y; yy < y + h; yy++) {
+            for (int i = 0; i < w; i++) out[yy * width + x + i] = argb[yy * width + x + (w - 1 - i)];
+        }
+        return new Tex(width, height, out);
+    }
+
+    /** Copy with the whole image mirrored horizontally. */
+    Tex flipX() {
+        return flipX(0, 0, width, height);
+    }
+
+    /** {@code over} alpha-composited on top of this (same size). */
+    Tex composite(Tex over) {
+        if (over.width != width || over.height != height) throw new IllegalArgumentException("size mismatch");
+        int[] out = new int[argb.length];
+        for (int i = 0; i < argb.length; i++) {
+            int base = argb[i], top = over.argb[i];
+            double ta = a(top) / 255.0, ba = a(base) / 255.0;
+            double oa = ta + ba * (1 - ta);
+            if (oa == 0) { out[i] = 0; continue; }
+            int rr = (int) Math.round((r(top) * ta + r(base) * ba * (1 - ta)) / oa);
+            int gg = (int) Math.round((g(top) * ta + g(base) * ba * (1 - ta)) / oa);
+            int bb = (int) Math.round((b(top) * ta + b(base) * ba * (1 - ta)) / oa);
+            out[i] = pack((int) Math.round(oa * 255), rr, gg, bb);
+        }
+        return new Tex(width, height, out);
+    }
+
+    /**
+     * The website overlays mark "erase the skin here" with pure green. Armour has nothing to erase,
+     * so those pixels become transparent. Matched loosely: a colour-managed PNG can decode 00FF00 as 01FE00.
+     */
+    Tex withoutGreenKey() {
+        int[] out = new int[argb.length];
+        for (int i = 0; i < argb.length; i++) {
+            int p = argb[i];
+            boolean key = r(p) < 32 && g(p) > 223 && b(p) < 32 && a(p) > 127;
+            out[i] = key ? 0 : p;
+        }
+        return new Tex(width, height, out);
+    }
+
+    /** Nearest-neighbour upscale by an integer factor. */
+    Tex scale(int factor) {
+        int[] out = new int[argb.length * factor * factor];
+        int w = width * factor;
+        for (int y = 0; y < height * factor; y++) {
+            for (int x = 0; x < w; x++) out[y * w + x] = argb[(y / factor) * width + x / factor];
+        }
+        return new Tex(w, height * factor, out);
+    }
+
+    /**
+     * Replace the hue/saturation of every visible pixel with {@code target}'s, keeping this pixel's
+     * relative lightness. Turns the purple IT ovve into the silicon-blue one without repainting it.
+     */
+    Tex tinted(int target) {
+        float[] t = java.awt.Color.RGBtoHSB(r(target), g(target), b(target), null);
+        int[] out = new int[argb.length];
+        for (int i = 0; i < argb.length; i++) {
+            int p = argb[i];
+            if (a(p) == 0) continue;
+            float[] hsb = java.awt.Color.RGBtoHSB(r(p), g(p), b(p), null);
+            int rgb = java.awt.Color.HSBtoRGB(t[0], t[1] * hsb[1] / Math.max(0.01f, sat(target)), hsb[2]);
+            out[i] = (a(p) << 24) | (rgb & 0xFFFFFF);
+        }
+        return new Tex(width, height, out);
+    }
+
+    private static float sat(int p) {
+        return java.awt.Color.RGBtoHSB(r(p), g(p), b(p), null)[1];
+    }
+
+    /** Most frequent opaque colour, for deriving a chapter's colour from its overlay. */
+    int dominant() {
+        Map<Integer, Integer> counts = new HashMap<>();
+        for (int p : argb) if (a(p) == 255) counts.merge(p & 0xFFFFFF, 1, Integer::sum);
+        return counts.entrySet().stream().max(Map.Entry.comparingByValue())
+                .orElseThrow(() -> new IllegalStateException("no opaque pixels")).getKey();
+    }
+
+    boolean isEmpty() {
+        return Arrays.stream(argb).allMatch(p -> a(p) == 0);
+    }
+}

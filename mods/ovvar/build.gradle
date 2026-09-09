@@ -1,0 +1,23 @@
+// Ovvar — student overalls with sewn-on patches for vanilla clients (Polymer). See README.md in this module.
+version = project.ovvar_version
+
+// Every art-derived file (armour layers cut from the website overlays, one equipment definition per
+// patch combination, icons, lang) comes from src/main/resources/art via data generation: ./gradlew runDatagen.
+setupRunDatagen("ovvar")
+
+addPolymerDependency()
+addSGUIDependency()
+dependencies {
+    implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+    implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+}
+
+processResources {
+    doFirst {
+        def gen = file('src/main/generated/assets/ovvar/equipment')
+        def generating = gradle.startParameter.taskNames.any { it.endsWith('runDatagen') }
+        if (!generating && (!gen.isDirectory() || gen.list().length == 0)) {
+            throw new GradleException("Ovvar: generated assets missing — run './gradlew runDatagen' first.")
+        }
+    }
+}
