@@ -19,7 +19,9 @@ Patches are items (`ovvar:patch_<id>`) and go on any 4×4 cell of the ovve (`Spo
 face of the body, sleeves and legs, keeping off the collar, the belt, the hands and the cuffs —
 44 cells, plus the seat for the 8×4 chapter patch). Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows on the cell you aim at, the
-action bar names it, right-click sews it on. An empty hand on a sewn patch unpicks it. Seat
+action bar names it, right-click sews it on; sneak to aim at the far face of the part you look at
+(the inside of an arm or leg, the back). The aim follows the stand's pose, so pose the arms out
+to reach the inner faces and the body's sides. An empty hand on a sewn patch unpicks it. Seat
 patches also go on at the smithing table (ovve + patch, no template). No cap on the number of
 patches.
 
@@ -28,6 +30,7 @@ patches.
     /ovvar give [player] <chapter> [patches]   e.g. /ovvar give it all, /ovvar give data front_top_left.metacraft,seat.chapter
     /ovvar patches <patches>                   re-sew the ovve in your main hand (all / none / cell.patch, bare ids)
     /ovvar showcase <chapter>                  armour stands: top down, top up, each patch, every cell filled
+    /ovvar stands <chapter>                    three posed stands in a plain ovve, for testing the sewing aim
 
 ## Building
 
@@ -40,7 +43,9 @@ patches.
 
 `Start Server.command` runs an offline dev server on localhost with the pack auto-hosted;
 `Start Vanilla Client.command` launches a plain vanilla client that joins it. Give yourself an
-ovve with `/ovvar give data all` or from the Ovvar creative tab.
+ovve with `/ovvar give data all` or from the Ovvar creative tab. `Run Tests.command` runs the
+game tests (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
+sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping.
 
 ## Adding a chapter
 

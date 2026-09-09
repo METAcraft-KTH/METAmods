@@ -40,7 +40,8 @@ import java.util.stream.Stream;
  *       {@code down} anywhere gives it with the top rolled down;</li>
  *   <li>{@code patches <patches>} — re-sew the ovve in your main hand;</li>
  *   <li>{@code showcase <chapter>} — a row of armour stands in front of you: top down, top up, one
- *       per patch (on the chest), every cell filled.</li>
+ *       per patch (on the chest), every cell filled;</li>
+ *   <li>{@code stands <chapter>} — three posed stands wearing a plain ovve, for testing the sewing aim.</li>
  * </ul>
  */
 public final class ModCommands {
@@ -70,7 +71,9 @@ public final class ModCommands {
                         .then(Commands.literal("patches")
                                 .then(patchesArg().executes(ModCommands::resew)))
                         .then(Commands.literal("showcase")
-                                .then(chapterArg().executes(ModCommands::showcase)))));
+                                .then(chapterArg().executes(ModCommands::showcase)))
+                        .then(Commands.literal("stands")
+                                .then(chapterArg().executes(ModCommands::stands)))));
     }
 
     private static com.mojang.brigadier.builder.RequiredArgumentBuilder<CommandSourceStack, String> chapterArg() {
@@ -149,6 +152,44 @@ public final class ModCommands {
         Looks.setSewn(held, patches);
         ctx.getSource().sendSuccess(() -> Component.literal("Sewn: " + (patches.isEmpty() ? "nothing" : Placement.combo(patches))), false);
         return 1;
+    }
+
+    /**
+     * Sewing test rig: three stands in front of you wearing a plain ovve, top up — one at rest,
+     * one with the arms out and legs apart (every face reachable), one turned sideways. Hold a
+     * patch and aim; sneak for the far face.
+     */
+    private static int stands(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        Chapter chapter = chapter(ctx);
+        ServerLevel level = player.level();
+        float yaw = player.getYRot();
+        Vec3 forward = Vec3.directionFromRotation(0, yaw);
+        Vec3 right = new Vec3(-forward.z, 0, forward.x);
+        Vec3 origin = player.position().add(forward.scale(2.5));
+        Rotations[][] poses = {
+                {new Rotations(-10, 0, 10), new Rotations(-10, 0, -10), new Rotations(0, 0, 0), new Rotations(0, 0, 0)},
+                {new Rotations(-10, 0, 80), new Rotations(-10, 0, -80), new Rotations(0, 0, 25), new Rotations(0, 0, -25)},
+                {new Rotations(-10, 0, 10), new Rotations(-10, 0, -10), new Rotations(0, 0, 0), new Rotations(0, 0, 0)}};
+        String[] labels = {"at rest", "arms out, legs apart", "sideways"};
+        for (int i = 0; i < 3; i++) {
+            Vec3 pos = origin.add(right.scale(2.5 * (i - 1)));
+            ArmorStand stand = new ArmorStand(level, pos.x, Math.floor(pos.y), pos.z);
+            float facing = yaw + 180 + (i == 2 ? 90 : 0);
+            stand.setYRot(facing);
+            stand.setYBodyRot(facing);
+            stand.setShowArms(true);
+            stand.setRightArmPose(poses[i][0]);
+            stand.setLeftArmPose(poses[i][1]);
+            stand.setRightLegPose(poses[i][2]);
+            stand.setLeftLegPose(poses[i][3]);
+            stand.setItemSlot(EquipmentSlot.LEGS, ovve(chapter, true, List.of()));
+            stand.setCustomName(Component.literal(labels[i]));
+            stand.setCustomNameVisible(true);
+            level.addFreshEntity(stand);
+        }
+        ctx.getSource().sendSuccess(() -> Component.literal("Placed 3 sewing stands; hold a patch and aim, sneak for the far face"), false);
+        return 3;
     }
 
     /** Stands 2 blocks apart to the player's right, facing the player. */
