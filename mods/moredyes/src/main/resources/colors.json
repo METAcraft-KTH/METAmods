@@ -1,0 +1,14 @@
+[
+  {
+    "id": "cerise",
+    "name": "Cerise",
+    "rgb": "#EE2A7B",
+    "ramp": ["#8F0F44", "#FF7DB3"]
+  },
+  {
+    "id": "laserviolet",
+    "name": "Laserviolet",
+    "rgb": "#CC99FF",
+    "ramp": ["#7A4FC2", "#EBDCFF"]
+  }
+]
