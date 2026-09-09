@@ -16,8 +16,8 @@ slot) and hides the top until it comes off again. Leather-grade defence, no dura
 look is an equipment asset cut from the skin overlays on metacraft.se/style.
 
 Patches are items (`ovvar:patch_<id>`) and go on any 4×4 cell of the ovve (`Spot.java`: every
-face of the body, sleeves and legs except the bottom row of the arms — 58 cells, plus the seat
-for the 8×4 chapter patch). Sewing: put the ovve on
+face of the body, sleeves and legs, keeping off the collar, the belt, the hands and the cuffs —
+44 cells, plus the seat for the 8×4 chapter patch). Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows on the cell you aim at, the
 action bar names it, right-click sews it on. An empty hand on a sewn patch unpicks it. Seat
 patches also go on at the smithing table (ovve + patch, no template). No cap on the number of

@@ -1,8 +1,9 @@
 package metacraft.ovvar.content;
 
 /**
- * A 4×4 texel cell on the garment, in the 64×32 armour layout — every face of every box, except
- * the bottom row of the arms, which is drawn over the hands.
+ * A 4×4 texel cell on the garment, in the 64×32 armour layout — every face of every box, keeping
+ * off the collar and the belt (the body's top and bottom texel rows), the hands (the bottom row
+ * of the arms) and the cuffs (the bottom row of the legs).
  * Items store cells by name, so entries may be added or removed; the ordinal only travels in the
  * (transient) preview bits. Left/right in sleeve and leg
  * names are the wearer's own; in chest and back names they are as seen by someone facing that
@@ -15,15 +16,14 @@ package metacraft.ovvar.content;
  * | 48 inner | 52 back; leg 0 outer | 4 front | 8 inner | 12 back.
  */
 public enum Spot {
-    // top: chest and back, 2 columns × 3 rows each; the body's sides, 1 column × 3 rows each
-    FRONT_TOP_LEFT(Piece.TOP, 20, 20), FRONT_TOP_RIGHT(Piece.TOP, 24, 20),
-    FRONT_MID_LEFT(Piece.TOP, 20, 24), FRONT_MID_RIGHT(Piece.TOP, 24, 24),
-    FRONT_LOW_LEFT(Piece.TOP, 20, 28), FRONT_LOW_RIGHT(Piece.TOP, 24, 28),
-    BACK_TOP_LEFT(Piece.TOP, 32, 20), BACK_TOP_RIGHT(Piece.TOP, 36, 20),
-    BACK_MID_LEFT(Piece.TOP, 32, 24), BACK_MID_RIGHT(Piece.TOP, 36, 24),
-    BACK_LOW_LEFT(Piece.TOP, 32, 28), BACK_LOW_RIGHT(Piece.TOP, 36, 28),
-    SIDE_TOP_R(Piece.TOP, 16, 20), SIDE_MID_R(Piece.TOP, 16, 24), SIDE_LOW_R(Piece.TOP, 16, 28),
-    SIDE_TOP_L(Piece.TOP, 28, 20), SIDE_MID_L(Piece.TOP, 28, 24), SIDE_LOW_L(Piece.TOP, 28, 28),
+    // top: chest and back, 2 columns × 2 rows each; the body's sides, 1 column × 2 rows each. The rows
+    // sit at v 21 and 26: the body's top texel row is the collar and its bottom row the belt.
+    FRONT_TOP_LEFT(Piece.TOP, 20, 21), FRONT_TOP_RIGHT(Piece.TOP, 24, 21),
+    FRONT_LOW_LEFT(Piece.TOP, 20, 26), FRONT_LOW_RIGHT(Piece.TOP, 24, 26),
+    BACK_TOP_LEFT(Piece.TOP, 32, 21), BACK_TOP_RIGHT(Piece.TOP, 36, 21),
+    BACK_LOW_LEFT(Piece.TOP, 32, 26), BACK_LOW_RIGHT(Piece.TOP, 36, 26),
+    SIDE_TOP_R(Piece.TOP, 16, 21), SIDE_LOW_R(Piece.TOP, 16, 26),
+    SIDE_TOP_L(Piece.TOP, 28, 21), SIDE_LOW_L(Piece.TOP, 28, 26),
     // top: sleeves, all four faces, top and middle rows per arm (the bottom row is the hand)
     SLEEVE_OUT_TOP_R(Piece.TOP, 40, 20, Side.RIGHT), SLEEVE_OUT_MID_R(Piece.TOP, 40, 24, Side.RIGHT),
     SLEEVE_OUT_TOP_L(Piece.TOP, 40, 20, Side.LEFT), SLEEVE_OUT_MID_L(Piece.TOP, 40, 24, Side.LEFT),
@@ -33,15 +33,15 @@ public enum Spot {
     SLEEVE_IN_TOP_L(Piece.TOP, 48, 20, Side.LEFT), SLEEVE_IN_MID_L(Piece.TOP, 48, 24, Side.LEFT),
     SLEEVE_BACK_TOP_R(Piece.TOP, 52, 20, Side.RIGHT), SLEEVE_BACK_MID_R(Piece.TOP, 52, 24, Side.RIGHT),
     SLEEVE_BACK_TOP_L(Piece.TOP, 52, 20, Side.LEFT), SLEEVE_BACK_MID_L(Piece.TOP, 52, 24, Side.LEFT),
-    // bottom: legs, all four faces, 3 rows per leg
-    LEG_OUT_TOP_R(Piece.BOTTOM, 0, 20, Side.RIGHT), LEG_OUT_MID_R(Piece.BOTTOM, 0, 24, Side.RIGHT), LEG_OUT_LOW_R(Piece.BOTTOM, 0, 28, Side.RIGHT),
-    LEG_OUT_TOP_L(Piece.BOTTOM, 0, 20, Side.LEFT), LEG_OUT_MID_L(Piece.BOTTOM, 0, 24, Side.LEFT), LEG_OUT_LOW_L(Piece.BOTTOM, 0, 28, Side.LEFT),
-    LEG_FRONT_TOP_R(Piece.BOTTOM, 4, 20, Side.RIGHT), LEG_FRONT_MID_R(Piece.BOTTOM, 4, 24, Side.RIGHT), LEG_FRONT_LOW_R(Piece.BOTTOM, 4, 28, Side.RIGHT),
-    LEG_FRONT_TOP_L(Piece.BOTTOM, 4, 20, Side.LEFT), LEG_FRONT_MID_L(Piece.BOTTOM, 4, 24, Side.LEFT), LEG_FRONT_LOW_L(Piece.BOTTOM, 4, 28, Side.LEFT),
-    LEG_IN_TOP_R(Piece.BOTTOM, 8, 20, Side.RIGHT), LEG_IN_MID_R(Piece.BOTTOM, 8, 24, Side.RIGHT), LEG_IN_LOW_R(Piece.BOTTOM, 8, 28, Side.RIGHT),
-    LEG_IN_TOP_L(Piece.BOTTOM, 8, 20, Side.LEFT), LEG_IN_MID_L(Piece.BOTTOM, 8, 24, Side.LEFT), LEG_IN_LOW_L(Piece.BOTTOM, 8, 28, Side.LEFT),
-    LEG_BACK_TOP_R(Piece.BOTTOM, 12, 20, Side.RIGHT), LEG_BACK_MID_R(Piece.BOTTOM, 12, 24, Side.RIGHT), LEG_BACK_LOW_R(Piece.BOTTOM, 12, 28, Side.RIGHT),
-    LEG_BACK_TOP_L(Piece.BOTTOM, 12, 20, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 24, Side.LEFT), LEG_BACK_LOW_L(Piece.BOTTOM, 12, 28, Side.LEFT),
+    // bottom: legs, all four faces, top and middle rows per leg (the bottom row is the cuff, under boots)
+    LEG_OUT_TOP_R(Piece.BOTTOM, 0, 20, Side.RIGHT), LEG_OUT_MID_R(Piece.BOTTOM, 0, 24, Side.RIGHT),
+    LEG_OUT_TOP_L(Piece.BOTTOM, 0, 20, Side.LEFT), LEG_OUT_MID_L(Piece.BOTTOM, 0, 24, Side.LEFT),
+    LEG_FRONT_TOP_R(Piece.BOTTOM, 4, 20, Side.RIGHT), LEG_FRONT_MID_R(Piece.BOTTOM, 4, 24, Side.RIGHT),
+    LEG_FRONT_TOP_L(Piece.BOTTOM, 4, 20, Side.LEFT), LEG_FRONT_MID_L(Piece.BOTTOM, 4, 24, Side.LEFT),
+    LEG_IN_TOP_R(Piece.BOTTOM, 8, 20, Side.RIGHT), LEG_IN_MID_R(Piece.BOTTOM, 8, 24, Side.RIGHT),
+    LEG_IN_TOP_L(Piece.BOTTOM, 8, 20, Side.LEFT), LEG_IN_MID_L(Piece.BOTTOM, 8, 24, Side.LEFT),
+    LEG_BACK_TOP_R(Piece.BOTTOM, 12, 20, Side.RIGHT), LEG_BACK_MID_R(Piece.BOTTOM, 12, 24, Side.RIGHT),
+    LEG_BACK_TOP_L(Piece.BOTTOM, 12, 20, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 24, Side.LEFT),
     /** The seat: one 8×4 patch across the back of both legs (LEG_BACK_TOP_R + LEG_BACK_TOP_L). Only seat patches go here. */
     SEAT(Piece.BOTTOM, 12, 20, Side.SEAT);
 
@@ -71,15 +71,16 @@ public enum Spot {
     /** The cells a seat patch covers, which a seat patch and a plain patch fight over. */
     public static final java.util.List<Spot> SEAT_CELLS = java.util.List.of(LEG_BACK_TOP_R, LEG_BACK_TOP_L);
 
-    private static final java.util.Map<String, Spot> BY_KEY = new java.util.HashMap<>();
-
-    static {
-        for (Spot s : values()) BY_KEY.put(s.piece + "/" + s.u + "/" + s.v + "/" + s.side, s);
-    }
-
-    /** The cell at a strip position, or null if no patch goes there. */
-    public static Spot at(Piece piece, int u, int v, Side side) {
-        return BY_KEY.get(piece + "/" + u + "/" + v + "/" + side);
+    /** The cell nearest a strip position in its column (u, side), or null if the column has none. */
+    public static Spot nearest(Piece piece, int u, double v, Side side) {
+        Spot best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (Spot s : values()) {
+            if (s.piece != piece || s.u != u || s.side != side) continue;
+            double d = v < s.v ? s.v - v : v >= s.v + SIZE ? v - (s.v + SIZE) + 1 : 0;
+            if (d < bestDistance) { bestDistance = d; best = s; }
+        }
+        return best;
     }
 
     public String id() {

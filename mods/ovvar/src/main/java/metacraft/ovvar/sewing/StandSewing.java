@@ -212,9 +212,8 @@ public final class StandSewing {
             along = lx - xMin;
         }
         int col = Math.max(0, Math.min(depth / 4 - 1, (int) Math.floor(along / 4)));
-        int row = Math.max(0, Math.min(2, (int) Math.floor((bestBox.y2 - 1 - py) / 4)));
-        int u = strip + col * 4, v = 20 + row * 4;
-        return new Hit(bestBox.part, Spot.at(bestBox.piece, u, v, bestBox.side), where);
+        double v = 20 + Math.max(0, Math.min(11.999, bestBox.y2 - 1 - py));   // texel row down the 12-tall face
+        return new Hit(bestBox.part, Spot.nearest(bestBox.piece, strip + col * 4, v, bestBox.side), where);
     }
 
     /** Ray/box slab test: [t, axis, sign of the entered face's normal] or null. */
