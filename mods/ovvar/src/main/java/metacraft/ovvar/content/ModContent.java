@@ -76,8 +76,8 @@ public final class ModContent {
             Identifier ovveId = ovveId(chapter);
             requireAsset("items/" + ovveId.getPath() + ".json", ovveId);
             requireAsset("equipment/" + Looks.asset(chapter, Piece.BOTTOM, false, Looks.key(0)).identifier().getPath() + ".json", ovveId);
-            OvveItem ovve = Registry.register(BuiltInRegistries.ITEM, ovveId, new OvveItem(clothing(chapter, Piece.BOTTOM, ArmorType.LEGGINGS)
-                    .component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY)
+            OvveItem ovve = Registry.register(BuiltInRegistries.ITEM, ovveId, new OvveItem(Pockets.apply(clothing(chapter, Piece.BOTTOM, ArmorType.LEGGINGS)
+                    .component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY))
                     .setId(ResourceKey.create(Registries.ITEM, ovveId)), chapter, ovveId));
             OVVAR.put(chapter, ovve);
             ALL.add(ovve);

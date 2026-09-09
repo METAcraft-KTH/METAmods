@@ -22,9 +22,9 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
 /**
- * A chapter's ovve: one item, worn in the legs slot, with pockets. It is a plain vanilla bundle
- * (same capacity, so what the client predicts is what happens) that can also be filled while
- * worn, by clicking items onto the legs slot.
+ * A chapter's ovve: one item, worn in the legs slot, with pockets. It is a bundle with
+ * {@link Pockets#SIZE} times the room (through metacraft-bundles, which also shows the real fill
+ * level to vanilla clients) that can also be filled while worn, by clicking items onto the legs slot.
  *
  * Right click behaves as a bundle (hold to empty it); sneak + right click rolls the top up or
  * down. Neither equips it — drag it into the slot or shift-click. While the top is up the mod

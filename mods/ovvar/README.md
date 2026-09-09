@@ -55,7 +55,11 @@ alpha-2 texel at 63,15) it detects mirrored fragments from the handedness of the
 and samples the arm/leg boxes one strip up, in the otherwise unused top rows, where datagen puts
 the left-side art (base limbs mirrored face by face, left-spot patches flipped). Clients whose
 core shaders are replaced (Iris, OptiFine) never sample that strip and see the plain mirrored
-look — nothing breaks, sides just match.
+look — nothing breaks, sides just match. Shaderpack users who want the asymmetric look run
+`OvvarShaderPatcher.jar` (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource
+pack at `assets/ovvar/shaderpatcher/` and worth linking from the website): double-clicked, it
+writes a `+ovvar` copy of every pack in `.minecraft/shaderpacks` with the same remap added to the
+pack's own entity program. Tested on BSL v10 and Complementary Reimagined r5.
 
 ## How the look works
 
