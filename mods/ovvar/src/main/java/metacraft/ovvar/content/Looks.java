@@ -33,12 +33,38 @@ public final class Looks {
 
     // ---- sewn patches
 
-    /** field id → patch id, as sewn (no preview). */
+    /** field id → patch id, as sewn (no preview). Entries from before fields existed are placed on the fly. */
     public static Map<String, String> sewn(ItemStack stack) {
         Map<String, String> out = new LinkedHashMap<>();
         List<String> list = stack.get(ModComponents.PATCHES);
-        if (list != null) for (String entry : list) put(out, entry);
+        if (list == null) return out;
+        List<String> legacy = new ArrayList<>();
+        for (String entry : list) {
+            if (entry.indexOf('=') < 0) legacy.add(entry);
+            else put(out, entry);
+        }
+        for (String patch : legacy) {
+            // Before 0.2 the list held bare patch ids pinned by the catalogue; the first free field
+            // that takes the patch gets it, and a patch that no longer exists is dropped.
+            if (!Patches.exists(patch)) {
+                Ovvar.LOGGER.warn("[ovvar] dropping unknown legacy patch '{}' from {}", patch, stack);
+                continue;
+            }
+            Layout.all().stream().filter(f -> f.accepts(patch) && !out.containsKey(f.id())).findFirst()
+                    .ifPresentOrElse(f -> out.put(f.id(), patch),
+                            () -> Ovvar.LOGGER.warn("[ovvar] no free field for legacy patch '{}' on {}", patch, stack));
+        }
         return out;
+    }
+
+    /** Rewrites a pre-field patch list in the current format; true if it changed. */
+    public static boolean migrate(ItemStack stack) {
+        List<String> list = stack.get(ModComponents.PATCHES);
+        if (list == null || list.stream().allMatch(e -> e.indexOf('=') >= 0)) return false;
+        Map<String, String> sewn = sewn(stack);
+        setSewn(stack, sewn);
+        Ovvar.LOGGER.info("[ovvar] migrated legacy patches {} -> {}", list, sewn);
+        return true;
     }
 
     /** Sewn plus the preview, for display. */

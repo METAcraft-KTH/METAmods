@@ -75,6 +75,7 @@ public final class OvveItem extends BundleItem implements PolymerItem {
     /** Worn in the legs slot (player or armour stand): keep the companion top in step every tick. */
     @Override
     public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
+        Looks.migrate(stack);
         if (slot == EquipmentSlot.LEGS && entity instanceof LivingEntity wearer) OvveTop.sync(wearer, stack);
     }
 
