@@ -1,8 +1,8 @@
 package metacraft.ovvar.content;
 
 /**
- * A 4×4 texel cell on the garment, in the 64×32 armour layout — anywhere a patch can go. The
- * sleeves stop at the middle row: the bottom row of the arm boxes is drawn over the hands.
+ * A 4×4 texel cell on the garment, in the 64×32 armour layout — every face of every box, except
+ * the bottom row of the arms, which is drawn over the hands.
  * Items store cells by name, so entries may be added or removed; the ordinal only travels in the
  * (transient) preview bits. Left/right in sleeve and leg
  * names are the wearer's own; in chest and back names they are as seen by someone facing that
@@ -15,24 +15,31 @@ package metacraft.ovvar.content;
  * | 48 inner | 52 back; leg 0 outer | 4 front | 8 inner | 12 back.
  */
 public enum Spot {
-    // top: chest, 2 columns × 3 rows
+    // top: chest and back, 2 columns × 3 rows each; the body's sides, 1 column × 3 rows each
     FRONT_TOP_LEFT(Piece.TOP, 20, 20), FRONT_TOP_RIGHT(Piece.TOP, 24, 20),
     FRONT_MID_LEFT(Piece.TOP, 20, 24), FRONT_MID_RIGHT(Piece.TOP, 24, 24),
     FRONT_LOW_LEFT(Piece.TOP, 20, 28), FRONT_LOW_RIGHT(Piece.TOP, 24, 28),
-    // top: back, 2 × 3
     BACK_TOP_LEFT(Piece.TOP, 32, 20), BACK_TOP_RIGHT(Piece.TOP, 36, 20),
     BACK_MID_LEFT(Piece.TOP, 32, 24), BACK_MID_RIGHT(Piece.TOP, 36, 24),
     BACK_LOW_LEFT(Piece.TOP, 32, 28), BACK_LOW_RIGHT(Piece.TOP, 36, 28),
-    // top: sleeves, outer face and front face, top and middle rows per arm (the bottom row is the hand)
+    SIDE_TOP_R(Piece.TOP, 16, 20), SIDE_MID_R(Piece.TOP, 16, 24), SIDE_LOW_R(Piece.TOP, 16, 28),
+    SIDE_TOP_L(Piece.TOP, 28, 20), SIDE_MID_L(Piece.TOP, 28, 24), SIDE_LOW_L(Piece.TOP, 28, 28),
+    // top: sleeves, all four faces, top and middle rows per arm (the bottom row is the hand)
     SLEEVE_OUT_TOP_R(Piece.TOP, 40, 20, Side.RIGHT), SLEEVE_OUT_MID_R(Piece.TOP, 40, 24, Side.RIGHT),
     SLEEVE_OUT_TOP_L(Piece.TOP, 40, 20, Side.LEFT), SLEEVE_OUT_MID_L(Piece.TOP, 40, 24, Side.LEFT),
     SLEEVE_FRONT_TOP_R(Piece.TOP, 44, 20, Side.RIGHT), SLEEVE_FRONT_MID_R(Piece.TOP, 44, 24, Side.RIGHT),
     SLEEVE_FRONT_TOP_L(Piece.TOP, 44, 20, Side.LEFT), SLEEVE_FRONT_MID_L(Piece.TOP, 44, 24, Side.LEFT),
-    // bottom: legs, outer, front and back faces, 3 each per leg
+    SLEEVE_IN_TOP_R(Piece.TOP, 48, 20, Side.RIGHT), SLEEVE_IN_MID_R(Piece.TOP, 48, 24, Side.RIGHT),
+    SLEEVE_IN_TOP_L(Piece.TOP, 48, 20, Side.LEFT), SLEEVE_IN_MID_L(Piece.TOP, 48, 24, Side.LEFT),
+    SLEEVE_BACK_TOP_R(Piece.TOP, 52, 20, Side.RIGHT), SLEEVE_BACK_MID_R(Piece.TOP, 52, 24, Side.RIGHT),
+    SLEEVE_BACK_TOP_L(Piece.TOP, 52, 20, Side.LEFT), SLEEVE_BACK_MID_L(Piece.TOP, 52, 24, Side.LEFT),
+    // bottom: legs, all four faces, 3 rows per leg
     LEG_OUT_TOP_R(Piece.BOTTOM, 0, 20, Side.RIGHT), LEG_OUT_MID_R(Piece.BOTTOM, 0, 24, Side.RIGHT), LEG_OUT_LOW_R(Piece.BOTTOM, 0, 28, Side.RIGHT),
     LEG_OUT_TOP_L(Piece.BOTTOM, 0, 20, Side.LEFT), LEG_OUT_MID_L(Piece.BOTTOM, 0, 24, Side.LEFT), LEG_OUT_LOW_L(Piece.BOTTOM, 0, 28, Side.LEFT),
     LEG_FRONT_TOP_R(Piece.BOTTOM, 4, 20, Side.RIGHT), LEG_FRONT_MID_R(Piece.BOTTOM, 4, 24, Side.RIGHT), LEG_FRONT_LOW_R(Piece.BOTTOM, 4, 28, Side.RIGHT),
     LEG_FRONT_TOP_L(Piece.BOTTOM, 4, 20, Side.LEFT), LEG_FRONT_MID_L(Piece.BOTTOM, 4, 24, Side.LEFT), LEG_FRONT_LOW_L(Piece.BOTTOM, 4, 28, Side.LEFT),
+    LEG_IN_TOP_R(Piece.BOTTOM, 8, 20, Side.RIGHT), LEG_IN_MID_R(Piece.BOTTOM, 8, 24, Side.RIGHT), LEG_IN_LOW_R(Piece.BOTTOM, 8, 28, Side.RIGHT),
+    LEG_IN_TOP_L(Piece.BOTTOM, 8, 20, Side.LEFT), LEG_IN_MID_L(Piece.BOTTOM, 8, 24, Side.LEFT), LEG_IN_LOW_L(Piece.BOTTOM, 8, 28, Side.LEFT),
     LEG_BACK_TOP_R(Piece.BOTTOM, 12, 20, Side.RIGHT), LEG_BACK_MID_R(Piece.BOTTOM, 12, 24, Side.RIGHT), LEG_BACK_LOW_R(Piece.BOTTOM, 12, 28, Side.RIGHT),
     LEG_BACK_TOP_L(Piece.BOTTOM, 12, 20, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 24, Side.LEFT), LEG_BACK_LOW_L(Piece.BOTTOM, 12, 28, Side.LEFT),
     /** The seat: one 8×4 patch across the back of both legs (LEG_BACK_TOP_R + LEG_BACK_TOP_L). Only seat patches go here. */
@@ -104,11 +111,12 @@ public enum Spot {
         if (n.startsWith("front_")) return "chest, " + n.substring(6).replace('_', ' ');
         if (n.startsWith("back_")) return "back, " + n.substring(5).replace('_', ' ');
         String rest = n.replaceAll("_[lr]$", "");
-        if (rest.startsWith("sleeve_out_")) return limb + "sleeve, outer " + rest.substring(11);
-        if (rest.startsWith("sleeve_front_")) return limb + "sleeve, front " + rest.substring(13);
-        if (rest.startsWith("leg_out_")) return limb + "leg, outer " + rest.substring(8);
-        if (rest.startsWith("leg_front_")) return limb + "leg, front " + rest.substring(10);
-        if (rest.startsWith("leg_back_")) return limb + "leg, back " + rest.substring(9);
+        if (rest.startsWith("side_")) return (n.endsWith("_r") ? "right" : "left") + " side, " + rest.substring(5);
+        for (String face : new String[]{"out", "front", "in", "back"}) {
+            String word = face.equals("out") ? "outer" : face.equals("in") ? "inner" : face;
+            if (rest.startsWith("sleeve_" + face + "_")) return limb + "sleeve, " + word + " " + rest.substring(8 + face.length());
+            if (rest.startsWith("leg_" + face + "_")) return limb + "leg, " + word + " " + rest.substring(5 + face.length());
+        }
         return n.replace('_', ' ');
     }
 }
