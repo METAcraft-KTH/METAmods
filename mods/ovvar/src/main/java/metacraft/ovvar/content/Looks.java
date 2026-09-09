@@ -29,9 +29,10 @@ public final class Looks {
      * The instant channel: up to {@value #INSTANT} placements per half ride in the dye colour, as
      * the rank of their set among all sets of (cell, design) states — cells × {@value #INSTANT_DESIGNS}
      * designs, the first ones in the catalogue. Ranked combinations use the bits far better than
-     * fixed slots: three on the top (28 cells × 16 = 448 states, C(448,3) ≈ 15M) fit under 255³.
+     * fixed slots: three on the top (20 cells × 22 = 440 states, C(440,3) ≈ 14.1M) fit under 255³.
+     * The shader's binomials are exact up to 448 states; {@link #rank} checks the range.
      */
-    public static final int INSTANT = 3, INSTANT_DESIGNS = 16;
+    public static final int INSTANT = 3, INSTANT_DESIGNS = 22;
 
     /** Can this placement ride in the dye colour? (Its design must be among the first {@value #INSTANT_DESIGNS}.) */
     public static boolean instant(Placement p) {
@@ -153,6 +154,7 @@ public final class Looks {
     /** 1 + the rank of the set among k-sets of the half's states, after all smaller k (0 = empty set). */
     static int rank(Piece piece, List<Placement> set) {
         int m = Spot.cells(piece).size() * INSTANT_DESIGNS;
+        if (m > 448) throw new IllegalStateException("instant channel: " + m + " states; the shader's binomials are exact up to 448");
         int[] s = set.stream().mapToInt(Looks::state).sorted().toArray();
         if (s.length > INSTANT) throw new IllegalArgumentException("more than " + INSTANT + " instant placements");
         for (int i = 1; i < s.length; i++) if (s[i] == s[i - 1]) throw new IllegalArgumentException("duplicate placement");

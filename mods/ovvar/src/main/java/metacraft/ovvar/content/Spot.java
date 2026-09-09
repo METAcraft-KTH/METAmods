@@ -1,9 +1,9 @@
 package metacraft.ovvar.content;
 
 /**
- * A 4×4 texel cell on the garment, in the 64×32 armour layout — every face of every box, keeping
- * off the collar and the belt (the body's top and bottom texel rows), the hands (the bottom row
- * of the arms) and the cuffs (the bottom row of the legs).
+ * A 4×4 texel cell on the garment, in the 64×32 armour layout — the faces you see, keeping off
+ * the collar and the belt (the body's top and bottom texel rows), the hands (the bottom row of
+ * the arms), the cuffs (the bottom row of the legs), and the inner faces.
  * Items store cells by name, so entries may be added or removed; the ordinal only travels in the
  * (transient) preview bits. Left/right in sleeve and leg
  * names are the wearer's own; in chest and back names they are as seen by someone facing that
@@ -16,30 +16,25 @@ package metacraft.ovvar.content;
  * | 48 inner | 52 back; leg 0 outer | 4 front | 8 inner | 12 back.
  */
 public enum Spot {
-    // top: chest and back, 2 columns × 2 rows each; the body's sides, 1 column × 2 rows each. The rows
-    // sit at v 21 and 26: the body's top texel row is the collar and its bottom row the belt.
+    // top: chest and back, 2 columns × 2 rows each. The rows sit at v 21 and 26: the body's top
+    // texel row is the collar and its bottom row the belt. No cells on the body's sides, the inner
+    // arms or the inner legs: hidden most of the time, and their bits buy more instant designs.
     FRONT_TOP_LEFT(Piece.TOP, 20, 21), FRONT_TOP_RIGHT(Piece.TOP, 24, 21),
     FRONT_LOW_LEFT(Piece.TOP, 20, 26), FRONT_LOW_RIGHT(Piece.TOP, 24, 26),
     BACK_TOP_LEFT(Piece.TOP, 32, 21), BACK_TOP_RIGHT(Piece.TOP, 36, 21),
     BACK_LOW_LEFT(Piece.TOP, 32, 26), BACK_LOW_RIGHT(Piece.TOP, 36, 26),
-    SIDE_TOP_R(Piece.TOP, 16, 21), SIDE_LOW_R(Piece.TOP, 16, 26),
-    SIDE_TOP_L(Piece.TOP, 28, 21), SIDE_LOW_L(Piece.TOP, 28, 26),
-    // top: sleeves, all four faces, top and middle rows per arm (the bottom row is the hand)
+    // top: sleeves, outer, front and back faces, top and middle rows per arm (the bottom row is the hand)
     SLEEVE_OUT_TOP_R(Piece.TOP, 40, 20, Side.RIGHT), SLEEVE_OUT_MID_R(Piece.TOP, 40, 24, Side.RIGHT),
     SLEEVE_OUT_TOP_L(Piece.TOP, 40, 20, Side.LEFT), SLEEVE_OUT_MID_L(Piece.TOP, 40, 24, Side.LEFT),
     SLEEVE_FRONT_TOP_R(Piece.TOP, 44, 20, Side.RIGHT), SLEEVE_FRONT_MID_R(Piece.TOP, 44, 24, Side.RIGHT),
     SLEEVE_FRONT_TOP_L(Piece.TOP, 44, 20, Side.LEFT), SLEEVE_FRONT_MID_L(Piece.TOP, 44, 24, Side.LEFT),
-    SLEEVE_IN_TOP_R(Piece.TOP, 48, 20, Side.RIGHT), SLEEVE_IN_MID_R(Piece.TOP, 48, 24, Side.RIGHT),
-    SLEEVE_IN_TOP_L(Piece.TOP, 48, 20, Side.LEFT), SLEEVE_IN_MID_L(Piece.TOP, 48, 24, Side.LEFT),
     SLEEVE_BACK_TOP_R(Piece.TOP, 52, 20, Side.RIGHT), SLEEVE_BACK_MID_R(Piece.TOP, 52, 24, Side.RIGHT),
     SLEEVE_BACK_TOP_L(Piece.TOP, 52, 20, Side.LEFT), SLEEVE_BACK_MID_L(Piece.TOP, 52, 24, Side.LEFT),
-    // bottom: legs, all four faces, top and middle rows per leg (the bottom row is the cuff, under boots)
+    // bottom: legs, outer, front and back faces, top and middle rows per leg (the bottom row is the cuff, under boots)
     LEG_OUT_TOP_R(Piece.BOTTOM, 0, 20, Side.RIGHT), LEG_OUT_MID_R(Piece.BOTTOM, 0, 24, Side.RIGHT),
     LEG_OUT_TOP_L(Piece.BOTTOM, 0, 20, Side.LEFT), LEG_OUT_MID_L(Piece.BOTTOM, 0, 24, Side.LEFT),
     LEG_FRONT_TOP_R(Piece.BOTTOM, 4, 20, Side.RIGHT), LEG_FRONT_MID_R(Piece.BOTTOM, 4, 24, Side.RIGHT),
     LEG_FRONT_TOP_L(Piece.BOTTOM, 4, 20, Side.LEFT), LEG_FRONT_MID_L(Piece.BOTTOM, 4, 24, Side.LEFT),
-    LEG_IN_TOP_R(Piece.BOTTOM, 8, 20, Side.RIGHT), LEG_IN_MID_R(Piece.BOTTOM, 8, 24, Side.RIGHT),
-    LEG_IN_TOP_L(Piece.BOTTOM, 8, 20, Side.LEFT), LEG_IN_MID_L(Piece.BOTTOM, 8, 24, Side.LEFT),
     LEG_BACK_TOP_R(Piece.BOTTOM, 12, 20, Side.RIGHT), LEG_BACK_MID_R(Piece.BOTTOM, 12, 24, Side.RIGHT),
     LEG_BACK_TOP_L(Piece.BOTTOM, 12, 20, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 24, Side.LEFT),
     /** The seat: one 8×4 patch across the back of both legs (LEG_BACK_TOP_R + LEG_BACK_TOP_L). Only seat patches go here. */

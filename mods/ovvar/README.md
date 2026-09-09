@@ -16,12 +16,11 @@ slot) and hides the top until it comes off again. Leather-grade defence, no dura
 look is an equipment asset cut from the skin overlays on metacraft.se/style.
 
 Patches are items (`ovvar:patch_<id>`) and go on any 4×4 cell of the ovve (`Spot.java`: every
-face of the body, sleeves and legs, keeping off the collar, the belt, the hands and the cuffs —
-44 cells, plus the seat for the 8×4 chapter patch). Sewing: put the ovve on
+face you see of the body, sleeves and legs — not the inner faces — keeping off the collar, the
+belt, the hands and the cuffs: 32 cells, plus the seat for the 8×4 chapter patch). Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows on the cell you aim at, the
 action bar names it, right-click sews it on; sneak to aim at the far face of the part you look at
-(the inside of an arm or leg, the back). The aim follows the stand's pose, so pose the arms out
-to reach the inner faces and the body's sides. An empty hand on a sewn patch unpicks it. Seat
+(the back of the body, the back of an arm). The aim follows the stand's pose. An empty hand on a sewn patch unpicks it. Seat
 patches also go on at the smithing table (ovve + patch, no template). No cap on the number of
 patches.
 
@@ -58,9 +57,9 @@ armour layers, equipment definitions, icons and names are derived from that.
 
 One line in `Patches.java` (id, name; `true` for a seat patch) and a PNG at
 `src/main/resources/art/ovvar/patches/<id>.png` — 4×4, or 8×4 for a seat patch — then
-`runDatagen`. The first 16
+`runDatagen`. The first 22
 designs in the catalogue can ride in the dye colour (instant, previewable); later ones only go
-through the pack; the preview library holds 30 cells for those 16 — datagen fails loudly when
+through the pack; the preview library holds 30 cells for those 22 — datagen fails loudly when
 that runs out.
 
 ## How the look works
@@ -89,11 +88,11 @@ cut the other limb. The next three placements per half ride in the dye colour: a
 is only drawn when the item has a dye colour, and that colour reaches the shader as the vertex
 colour — the only per-item data an armour shader ever gets — so it carries the *rank* of the set
 of up to three (cell, design) placements among all such sets (packed as three base-255 digits so
-no byte is 0; ~15M states fit under 255³). The preview texture holds the art of the first 16
+no byte is 0; 20 cells × 22 designs, C(440,3) ≈ 14M states under 255³). The preview texture holds the art of the first 22
 designs plus cell and design tables; the pack's entity core shader
 (`assets/minecraft/shaders/core/entity.fsh` + `assets/ovvar/shaders/include/ovvar.glsl`) unranks
 the set and draws the art on the cells, lit white so the data colour never tints it. The
-placement being aimed at takes one of the three. Designs past the first 16 in the catalogue only
+placement being aimed at takes one of the three. Designs past the first 22 in the catalogue only
 go through the pack. The tooltip's "Dyed" and trim lines are hidden. Everything else is sampled
 exactly as vanilla. The overlay's body (16,16), right arm (40,16) and right leg (0,16) boxes are
 at the same coordinates in the armour layout, so datagen only copies boxes (with the skin's

@@ -25,10 +25,9 @@ public final class OvvarGameTests {
     private static final Rotations ARMS_OUT_R = new Rotations(0, 0, 60), ARMS_OUT_L = new Rotations(0, 0, -60);
     private static final Rotations LEGS_APART_R = new Rotations(0, 0, 25), LEGS_APART_L = new Rotations(0, 0, -25);
 
-    /** At rest the arms cover the body's sides and the legs each other's inner face: those cells are only reachable posed. */
     @GameTest
     public void aimEveryCellAtRest(GameTestHelper helper) {
-        aimEveryCell(helper, 0, REST, REST, REST, REST, spot -> !spot.id().startsWith("side_") && !spot.id().startsWith("leg_in_"));
+        aimEveryCell(helper, 0, REST, REST, REST, REST, spot -> true);
     }
 
     @GameTest
