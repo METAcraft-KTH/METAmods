@@ -517,8 +517,8 @@ public final class GeneratedAssets implements DataProvider {
         // Colour-independent sheep body: plain texture, models and item definitions, once.
         Tex sheepBody = Vanilla.texture("entity/sheep/sheep");
         Tex undercoat = Vanilla.texture("entity/sheep/sheep_wool_undercoat");
-        png(assets.resolve("textures/block/sheep/body.png"), sheepBody);
-        png(assets.resolve("textures/block/sheep/body_hurt.png"), sheepBody.hurt());
+        png("textures/block/sheep/body.png", sheepBody);
+        png("textures/block/sheep/body_hurt.png", sheepBody.hurt());
         SHARED_ITEM_MODELS.forEach((name, model) -> json(assets.resolve("models/item/" + name + ".json"), model));
         SHARED_ITEM_DEFS.forEach((name, model) -> json(assets.resolve("items/" + name + ".json"), itemDef(model)));
 
@@ -535,12 +535,12 @@ public final class GeneratedAssets implements DataProvider {
             int dark = color.rampDark(), light = color.rampLight();
             String dye = MOD + ":" + cid + "_dye";
 
-            sources.forEach((dest, img) -> png(assets.resolve("textures/" + dest.replace("{c}", cid) + ".png"), img.recolour(dark, light)));
+            sources.forEach((dest, img) -> png("textures/" + dest.replace("{c}", cid) + ".png", img.recolour(dark, light)));
             // sheared body: sheep.png with the tinted undercoat on top
             Tex sheared = sheepBody.composite(undercoat.recolour(dark, light));
-            png(assets.resolve("textures/block/sheep/" + cid + "_body_sheared.png"), sheared);
-            png(assets.resolve("textures/block/sheep/" + cid + "_body_sheared_hurt.png"), sheared.hurt());
-            png(assets.resolve("textures/block/sheep/" + cid + "_wool_hurt.png"), sources.get("block/sheep/{c}_wool").recolour(dark, light).hurt());
+            png("textures/block/sheep/" + cid + "_body_sheared.png", sheared);
+            png("textures/block/sheep/" + cid + "_body_sheared_hurt.png", sheared.hurt());
+            png("textures/block/sheep/" + cid + "_wool_hurt.png", sources.get("block/sheep/{c}_wool").recolour(dark, light).hurt());
             MODELS.forEach((name, model) -> json(assets.resolve("models/block/" + name.replace("{c}", cid) + ".json"), sub(model, cid)));
             ITEM_MODELS.forEach((name, model) -> json(assets.resolve("models/item/" + name.replace("{c}", cid) + ".json"), sub(model, cid)));
 
@@ -597,8 +597,14 @@ public final class GeneratedAssets implements DataProvider {
         writes.add(DataProvider.saveStable(out, element, path));
     }
 
-    private void png(Path path, Tex tex) {
-        bytes(path, tex.png());
+    private void png(String path, Tex tex) {
+        var existingAssets = assets.getParent().getParent().getParent().resolve(
+                "resources/assets/" + MoreDyes.MOD_ID + "/" + path
+        );
+        if (existingAssets.toFile().exists()) {
+            return;
+        }
+        bytes(assets.resolve(path), tex.png());
     }
 
     private void bytes(Path path, byte[] data) {
