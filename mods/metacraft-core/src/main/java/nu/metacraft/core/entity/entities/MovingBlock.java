@@ -10,6 +10,7 @@ import eu.pb4.polymer.virtualentity.api.data.DisplayEntityData;
 import eu.pb4.polymer.virtualentity.api.elements.BlockDisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.EntityElement;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.minecraft.world.entity.*;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -26,13 +27,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MoverType;
-import net.minecraft.world.entity.PositionMoveRotation;
-import net.minecraft.world.entity.Relative;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.animal.FlyingAnimal;
 import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
@@ -73,7 +68,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 		block.setTeleportDuration(1);
 		holder.addElement(block);
 		if (world instanceof ServerLevel sw) {
-			shulker = new EntityElement<>(EntityType.SHULKER, sw);
+			shulker = new EntityElement<>(EntityTypes.SHULKER, sw);
 			shulker.entity().setInvisible(true);
 			shulker.setInitialPosition(this.position());
 			holder.addPassengerElement(shulker);
@@ -136,15 +131,19 @@ public class MovingBlock extends Entity implements PolymerEntity {
 			sidewaysMovement *= f;
 		}
 
-		var slipperiness = this.slipperiness.orElse(blockData.getBlockState().getBlock().getFriction());
-
-		float g = slipperiness * 0.91F;
-		float h = root instanceof FlyingAnimal ? g : 0.98F;
-		root.setDeltaMovement(root.getDeltaMovement().x * (double)g, root.getDeltaMovement().y * (double)h, root.getDeltaMovement().z * (double)g);
+		float blockFriction = LivingEntityAccessor.callComputeModifiedFriction(
+						this.slipperiness.orElse(blockData.getBlockState().getBlock().getFriction()),
+				root instanceof LivingEntity living ? (float)living.getAttributeValue(Attributes.FRICTION_MODIFIER) : 1.0f
+		);
+		float entityAirDragModifier = root instanceof LivingEntity living ? (float)living.getAttributeValue(Attributes.AIR_DRAG_MODIFIER) : 0.98f;
+		float airDrag = LivingEntityAccessor.callComputeModifiedFriction(0.91F, entityAirDragModifier);
+		float friction = blockFriction * airDrag;
+		float verticalFriction = ((EntityAccessor) root).callOmnidirectionalAirMover() ? airDrag : LivingEntityAccessor.callComputeModifiedFriction(0.98F, entityAirDragModifier);
+		root.setDeltaMovement(root.getDeltaMovement().x * (double)friction, root.getDeltaMovement().y * (double)verticalFriction, root.getDeltaMovement().z * (double)friction);
 
 		var velocity = getInputVector(
 				new Vec3(sidewaysMovement, 0, forwardMovement),
-				player.getSpeed() * (0.21600002F / (slipperiness * slipperiness * slipperiness)),
+				player.getSpeed() * (0.21600002F / (blockFriction * blockFriction * blockFriction)),
 				player.getYRot()
 		);
 		root.setDeltaMovement(root.getDeltaMovement().add(velocity));
@@ -317,7 +316,7 @@ public class MovingBlock extends Entity implements PolymerEntity {
 
 	@Override
 	public EntityType<?> getPolymerEntityType(PacketContext packetContext) {
-		return EntityType.ITEM_DISPLAY;
+		return EntityTypes.ITEM_DISPLAY;
 	}
 
 	public record Anchor(UUID id, Vec3 offset) {

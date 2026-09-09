@@ -31,11 +31,11 @@ public class MultiplayerCutsceneManager extends SavedData {
 	private static final Codec<Map<UUID, String>> PLAYER_TO_CUTSCENE = Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.STRING);
 	private static final Codec<Map<UUID, CutsceneInstance>> OFFLINE_PLAYERS = Codec.unboundedMap(UUIDUtil.STRING_CODEC, CutsceneInstance.CODEC);
 
-	private static final SavedDataTypeCache.Type<@NotNull MultiplayerCutsceneManager> TYPE = new SavedDataTypeCache.Type<>(
-			l -> new SavedDataType<>(
+	private static final SavedDataTypeCache.Type<@NotNull MultiplayerCutsceneManager, MinecraftServer> TYPE = new SavedDataTypeCache.Type<>(
+			server -> new SavedDataType<>(
 					Cutscenes.getID("multiplayer_cutscene_manager"),
-					() -> new MultiplayerCutsceneManager(l.getServer()),
-					createCodec(l.getServer()),
+					() -> new MultiplayerCutsceneManager(server),
+					createCodec(server),
 					DataFixTypes.METACRAFT_SAVED_DATA_MULTIPLAYER_CUTSCENE_MANAGER
 			)
 	);

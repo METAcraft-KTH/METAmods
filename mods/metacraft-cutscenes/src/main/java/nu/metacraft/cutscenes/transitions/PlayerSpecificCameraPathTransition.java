@@ -6,6 +6,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import net.minecraft.world.entity.*;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
@@ -34,10 +35,6 @@ import java.util.UUID;
 import java.util.stream.DoubleStream;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ExtraCodecs;
-import net.minecraft.world.entity.Display;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.Vec2;
@@ -100,10 +97,10 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 
 	private void moveEntityToTarget(DynamicTarget target, Entity entity, ServerPlayer player, CutsceneInstance cutscene) {
 		var ctx = cutscene.createRefContext(player);
-		var pos = target.pos.get(ctx).orElse(player.position().subtract(0, EntityType.PLAYER.getDimensions().eyeHeight(), 0));
+		var pos = target.pos.get(ctx).orElse(player.position().subtract(0, EntityTypes.PLAYER.getDimensions().eyeHeight(), 0));
 		var facing = target.rot.get(ctx).orElse(player.getRotationVector());
 		entity.absSnapTo(
-				pos.x, pos.y + EntityType.PLAYER.getDimensions().eyeHeight(), pos.z, facing.y, facing.x
+				pos.x, pos.y + EntityTypes.PLAYER.getDimensions().eyeHeight(), pos.z, facing.y, facing.x
 		);
 	}
 
@@ -116,7 +113,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 					player.setCamera(marker);
 				}
 			}, () -> {
-				var display = EntityType.TEXT_DISPLAY.create(cutscene.getCutsceneWorld(), EntitySpawnReason.TRIGGERED);
+				var display = EntityTypes.TEXT_DISPLAY.create(cutscene.getCutsceneWorld(), EntitySpawnReason.TRIGGERED);
 				setLinearInterpolationDuration(display, config.interpolationDuration());
 				((EntityExtension) display).metacraft$setHasAccurateMovement(true);
 				var target = interpolationSets.get(player.getUUID()).interpolate(ctx, 0);

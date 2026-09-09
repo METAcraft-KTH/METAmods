@@ -53,7 +53,7 @@ public class HardcoreHelper {
 								server.getMaxPlayers(), manager.getViewDistance(), manager.getSimulationDistance(),
 								rules.get(GameRules.REDUCED_DEBUG_INFO), !rules.get(GameRules.IMMEDIATE_RESPAWN),
 								rules.get(GameRules.LIMITED_CRAFTING),
-								player.createCommonSpawnInfo(world), false
+								player.createCommonSpawnInfo(world), server.usesAuthentication(), false
 						),
 						new ClientboundRespawnPacket(player.createCommonSpawnInfo(world), (byte) 3),
 						new ClientboundSetDefaultSpawnPositionPacket(world.getRespawnData()),

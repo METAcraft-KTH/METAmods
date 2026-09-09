@@ -6,6 +6,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.entity.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -21,10 +22,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.AgeableMob;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.goal.BreedGoal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.parrot.Parrot;
@@ -74,9 +71,9 @@ public abstract class ParrotMixin extends TamableAnimal {
 		return original;
 	}
 
-	@ModifyReturnValue(method = "isBaby", at = @At("RETURN"))
+	@ModifyReturnValue(method = "canBeABaby", at = @At("RETURN"))
 	public boolean isBaby(boolean original) {
-		return super.isBaby();
+		return true;
 	}
 
 	@Inject(method = "canMate", at = @At("HEAD"), cancellable = true)
@@ -91,7 +88,7 @@ public abstract class ParrotMixin extends TamableAnimal {
 
 	@Inject(method = "getBreedOffspring", at = @At("HEAD"), cancellable = true)
 	public void createChild(ServerLevel world, AgeableMob entity, CallbackInfoReturnable<AgeableMob> cir) {
-		var baby = EntityType.PARROT.create(world, EntitySpawnReason.BREEDING);
+		var baby = EntityTypes.PARROT.create(world, EntitySpawnReason.BREEDING);
 		if (baby != null && entity instanceof Parrot otherParrot) {
 			if (this.getRandom().nextBoolean()) {
 				baby.setComponent(DataComponents.PARROT_VARIANT, this.getVariant());

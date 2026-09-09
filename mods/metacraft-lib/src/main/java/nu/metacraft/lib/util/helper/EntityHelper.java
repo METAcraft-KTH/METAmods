@@ -14,16 +14,7 @@ import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.util.valueproviders.IntProviders;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.DifficultyInstance;
-import net.minecraft.world.entity.AreaEffectCloud;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityReference;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EquipmentTable;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.SpawnGroupData;
-import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.Vex;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.EvokerFangs;
@@ -61,6 +52,10 @@ import java.util.function.Predicate;
 public class EntityHelper {
 
 	public static Optional<Entity> loadEntityWithPassengers(ValueInput nbt, Level world, EntitySpawnReason reason, BiFunction<Entity, ValueInput, Entity> entityProcessor) {
+		return loadEntityWithPassengers(nbt, world, new EntitySpawnRequest(reason, false), entityProcessor);
+	}
+
+	public static Optional<Entity> loadEntityWithPassengers(ValueInput nbt, Level world, EntitySpawnRequest reason, BiFunction<Entity, ValueInput, Entity> entityProcessor) {
 		return getEntityFromNBTSafely(nbt, world, reason).map(e -> entityProcessor.apply(e, nbt)).map(entity -> {
 			var passengers = nbt.childrenListOrEmpty(Entity.TAG_PASSENGERS);
 			for (var p : passengers) {
@@ -93,6 +88,10 @@ public class EntityHelper {
 	}
 
 	public static Optional<Entity> getEntityFromNBTSafely(ValueInput nbt, Level world, EntitySpawnReason reason) {
+		return getEntityFromNBTSafely(nbt, world, new EntitySpawnRequest(reason, false));
+	}
+
+	public static Optional<Entity> getEntityFromNBTSafely(ValueInput nbt, Level world, EntitySpawnRequest reason) {
 		try {
 			return EntityType.create(nbt, world, reason);
 		} catch (RuntimeException runtimeException) {

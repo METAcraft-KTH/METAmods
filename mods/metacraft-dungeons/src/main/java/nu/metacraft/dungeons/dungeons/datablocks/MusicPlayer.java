@@ -4,6 +4,7 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.core.block.METAcraftBlocks;
 import nu.metacraft.core.block.blocks.MusicBlock;
 import nu.metacraft.core.block.entities.MusicBlockEntity;
@@ -64,12 +65,12 @@ public class MusicPlayer extends DataBlock {
 				switch (type) {
 					case ROOM -> {
 						musicPlayer.setBoundingBox(
-							AABB.of(piece.getBoundingBox()).move(pos.getCenter().reverse())
+							AABB.of(piece.getBoundingBox()).move(Vec3.atCenterOf(pos).reverse())
 						);
 					}
 					case DUNGEON -> {
 						musicPlayer.setBoundingBox(
-								AABB.of(parameters.structureBounds).move(pos.getCenter().reverse())
+								AABB.of(parameters.structureBounds).move(Vec3.atCenterOf(pos).reverse())
 						);
 					}
 				}

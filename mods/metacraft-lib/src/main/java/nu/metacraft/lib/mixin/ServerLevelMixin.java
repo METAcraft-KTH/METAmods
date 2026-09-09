@@ -16,7 +16,7 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 import net.minecraft.world.level.storage.SavedDataStorage;
 import net.minecraft.world.level.storage.WritableLevelData;
-import nu.metacraft.lib.extensions.ServerLevelExtensions;
+import nu.metacraft.lib.extensions.ServerAndServerLevelExtensions;
 import nu.metacraft.lib.util.SavedDataTypeCache;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Final;
@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Mixin(ServerLevel.class)
-public abstract class ServerLevelMixin extends Level implements ServerLevelExtensions {
+public abstract class ServerLevelMixin extends Level implements ServerAndServerLevelExtensions<ServerLevel> {
 
 	@Shadow @Final private PersistentEntitySectionManager<Entity> entityManager;
 
@@ -55,11 +55,11 @@ public abstract class ServerLevelMixin extends Level implements ServerLevelExten
 	}
 
 	@Unique
-	private final Map<SavedDataTypeCache.Type<?>, SavedDataType<?>> typeMap = new HashMap<>();
+	private final Map<SavedDataTypeCache.Type<?, ServerLevel>, SavedDataType<?>> typeMap = new HashMap<>();
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T extends SavedData> SavedDataType<@NotNull T> metacraft$getSavedDataType(SavedDataTypeCache.Type<T> type) {
+	public <T extends SavedData> SavedDataType<@NotNull T> metacraft$getSavedDataType(SavedDataTypeCache.Type<T, ServerLevel> type) {
 		return (SavedDataType<@NotNull T>) typeMap.computeIfAbsent(
 				type, t -> t.createSavedDataType().apply((ServerLevel) (Object) this)
 		);

@@ -49,7 +49,7 @@ public class MusicBlockEntity extends BlockEntity {
 	}
 
 	private boolean shouldHearMusic(Player player) {
-		return player.distanceToSqr(worldPosition.getCenter()) <= Math.pow(range, 2) || getBoundingBoxTransformed().contains(player.position());
+		return player.distanceToSqr(Vec3.atCenterOf(worldPosition)) <= Math.pow(range, 2) || getBoundingBoxTransformed().contains(player.position());
 	}
 
 	private AABB getBoundingBoxTransformed() {
@@ -61,8 +61,8 @@ public class MusicBlockEntity extends BlockEntity {
 		}
 		var mirror = getBlockState().getValue(MusicBlock.MIRROR);
 		var rotation = getBlockState().getValue(MusicBlock.ROTATION);
-		Vec3 pos1 = new Vec3(boundingBox.minX, boundingBox.minY, boundingBox.minZ).add(worldPosition.getCenter());
-		Vec3 pos2 = new Vec3(boundingBox.maxX, boundingBox.maxY, boundingBox.maxZ).add(worldPosition.getCenter());
+		Vec3 pos1 = new Vec3(boundingBox.minX, boundingBox.minY, boundingBox.minZ).add(Vec3.atCenterOf(worldPosition));
+		Vec3 pos2 = new Vec3(boundingBox.maxX, boundingBox.maxY, boundingBox.maxZ).add(Vec3.atCenterOf(worldPosition));
 		cachedBox = new AABB(
 				StructureTemplate.transform(pos1, mirror, rotation, worldPosition),
 				StructureTemplate.transform(pos2, mirror, rotation, worldPosition)

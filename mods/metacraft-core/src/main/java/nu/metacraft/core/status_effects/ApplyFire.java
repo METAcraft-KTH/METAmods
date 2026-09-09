@@ -2,13 +2,13 @@ package nu.metacraft.core.status_effects;
 
 import eu.pb4.polymer.core.api.other.PolymerMobEffect;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.effect.InstantenousMobEffect;
+import net.minecraft.world.effect.InstantaneousMobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import org.jetbrains.annotations.Nullable;
 
-public class ApplyFire extends InstantenousMobEffect implements PolymerMobEffect {
+public class ApplyFire extends InstantaneousMobEffect implements PolymerMobEffect {
 	public ApplyFire() {
 		super(MobEffectCategory.HARMFUL, 16750848);
 	}
@@ -28,7 +28,7 @@ public class ApplyFire extends InstantenousMobEffect implements PolymerMobEffect
 	}
 
 	@Override
-	public void applyInstantenousEffect(ServerLevel world, @Nullable Entity effectEntity, @Nullable Entity attacker, LivingEntity target, int amplifier, double proximity) {
+	public void applyInstantaneousEffect(ServerLevel world, @Nullable Entity effectEntity, @Nullable Entity attacker, LivingEntity target, int amplifier, double proximity) {
 		if (!target.fireImmune()) {
 			appendFire(target, (int) Math.round(amplifier * proximity));
 			if (effectEntity != null && attacker instanceof LivingEntity livingAttacker) {

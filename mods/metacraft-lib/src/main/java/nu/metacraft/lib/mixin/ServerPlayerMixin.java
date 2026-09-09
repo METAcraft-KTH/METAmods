@@ -14,12 +14,10 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import nu.metacraft.lib.METAcraftData;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.extensions.ServerPlayerExtensions;
-import nu.metacraft.lib.extensions.MerchantOfferExtensions;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import nu.metacraft.lib.util.helper.EntityTrackerHelper;
 import nu.metacraft.lib.util.helper.PlayerDataHelper;
@@ -34,8 +32,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.trading.MerchantOffer;
-import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
@@ -192,37 +188,6 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 	)
 	public boolean shouldSendDeathMessage(PlayerList manager, Component message, boolean overlay) {
 		return PlayerDataHelper.getAnnounceDeath((ServerPlayer) (Object) this);
-	}
-
-	@ModifyVariable(method = "sendMerchantOffers", at = @At(value = "HEAD"), argsOnly = true)
-	public MerchantOffers modifyTradeOfferList(MerchantOffers tradeOfferList) {
-		Player playerEntity = (Player) this;
-		MerchantOffers newOffers = new MerchantOffers();
-		for (MerchantOffer offer : tradeOfferList) {
-			var ext = ((MerchantOfferExtensions) offer);
-			int maxUsesPerPlayer = ext.metacraft$getMaxUsesPerPlayer();
-			if (maxUsesPerPlayer == -1) {
-				newOffers.add(offer);
-				continue;
-			}
-			int playerUses = ext.metacraft$getUsesPerPlayer().getOrDefault(playerEntity.getUUID(), 0);
-			int globalUsesUntilDisabled = offer.getMaxUses() - offer.getUses();
-			int playerUsesUntilDisabled = maxUsesPerPlayer - playerUses;
-			if (globalUsesUntilDisabled <= playerUsesUntilDisabled) {
-				// The global max uses will be hit before the player one. So send the global one.
-				newOffers.add(offer);
-				continue;
-			}
-			// Otherwise modify the max uses and uses to be the per-player ones.
-			MerchantOffer copy = offer.copy();
-			var copyExt = ((MerchantOfferExtensions) copy);
-			copyExt.metacraft$setUses(playerUses);
-			copyExt.metacraft$setMaxUses(maxUsesPerPlayer);
-			copyExt.metacraft$setMaxUsesPerPlayer(maxUsesPerPlayer);
-			copyExt.metacraft$getUsesPerPlayer().putAll(ext.metacraft$getUsesPerPlayer());
-			newOffers.add(copy);
-		}
-		return newOffers;
 	}
 
 	@Override

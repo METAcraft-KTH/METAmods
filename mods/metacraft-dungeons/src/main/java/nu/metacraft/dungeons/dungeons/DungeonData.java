@@ -58,7 +58,7 @@ public class DungeonData extends SavedData {
 
 	private static final Identifier key = METAcraftDungeons.getID("dungeons");
 
-	private static final SavedDataTypeCache.Type<DungeonData> TYPE = new SavedDataTypeCache.Type<>(
+	private static final SavedDataTypeCache.Type<DungeonData, ServerLevel> TYPE = new SavedDataTypeCache.Type<>(
 			level -> new SavedDataType<>(
 					key, () -> create(level),
 					createCodec(level), null
@@ -188,7 +188,7 @@ public class DungeonData extends SavedData {
 		if (!shouldTeleport(entity)) {
 			entity.kill(world);
 		}
-		var exitPos = getExitPos(entity.position()).getCenter();
+		var exitPos = Vec3.atCenterOf(getExitPos(entity.position()));
 		entity.teleport(
 				new TeleportTransition(
 						getExitWorld(entity.position()), exitPos, entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(),
@@ -310,7 +310,7 @@ public class DungeonData extends SavedData {
 						if (world.getBlockState(pos).is(Tags.DUNGEON_RESET_UNBREAKABLE) || world.getBlockState(pos).isAir()) {
 							continue;
 						}
-						var centerPos = pos.getCenter();
+						var centerPos = Vec3.atCenterOf(pos);
 						world.sendParticles(
 								new BlockParticleOption(ParticleTypes.FALLING_DUST, world.getBlockState(pos)),
 								centerPos.x, centerPos.y-3, centerPos.z, 5,
@@ -414,7 +414,7 @@ public class DungeonData extends SavedData {
 			}, file -> file.endsWith(Path.of(key.getNamespace(), key.getPath() + ".dat")),
 			player -> new TeleportTransition(
 					getExitWorld(DisconnectedPlayerHelper.getPos(player)),
-					getExitPos(DisconnectedPlayerHelper.getPos(player)).getCenter(), DisconnectedPlayerHelper.getVelocity(player),
+					Vec3.atCenterOf(getExitPos(DisconnectedPlayerHelper.getPos(player))), DisconnectedPlayerHelper.getVelocity(player),
 					DisconnectedPlayerHelper.getYaw(player), DisconnectedPlayerHelper.getPitch(player),
 					TeleportTransition.DO_NOTHING
 			)

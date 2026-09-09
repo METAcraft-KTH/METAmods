@@ -132,7 +132,7 @@ public class PortalRift {
 		if (chosenAxis != null) {
 			this.axis = chosenAxis;
 		} else {
-			this.axis = world.random.nextBoolean() ? Direction.Axis.X : Direction.Axis.Z;
+			this.axis = world.getRandom().nextBoolean() ? Direction.Axis.X : Direction.Axis.Z;
 		}
 		offsets[0] = Direction.UP.getUnitVec3i();
 		offsets[1] = Direction.DOWN.getUnitVec3i();

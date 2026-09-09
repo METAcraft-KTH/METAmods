@@ -8,6 +8,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 import net.minecraft.world.level.material.MapColor;
+import nu.metacraft.lib.util.RegistrationPair;
 import nu.metacraft.relay.Relay;
 import nu.metacraft.relay.blocks.block.RelayBlock;
 
@@ -15,7 +16,7 @@ import java.util.function.Function;
 
 public class RelayBlocks {
 
-	public static final Block RELAY = register(
+	public static final RegistrationPair<Block> RELAY = register(
 			"relay", RelayBlock::new,
 			BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_BLACK).instrument(
 					NoteBlockInstrument.BASEDRUM
@@ -28,9 +29,9 @@ public class RelayBlocks {
 
 	}
 
-	private static Block register(String id, Function<BlockBehaviour.Properties, Block> creator, BlockBehaviour.Properties settings) {
+	private static RegistrationPair<Block> register(String id, Function<BlockBehaviour.Properties, Block> creator, BlockBehaviour.Properties settings) {
 		var key = ResourceKey.create(Registries.BLOCK, Relay.getID(id));
-		return Registry.register(BuiltInRegistries.BLOCK, key, creator.apply(settings.setId(key)));
+		return new RegistrationPair<>(key, Registry.register(BuiltInRegistries.BLOCK, key, creator.apply(settings.setId(key))));
 	}
 
 }

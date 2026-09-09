@@ -47,7 +47,7 @@ public abstract class EntityMixin {
 
 	@Unique
 	private Vec3 getPosInRespawnDim(ServerLevel respawnDim) {
-		var target = this.adjustSpawnLocation(respawnDim, respawnDim.getRespawnData().pos()).getBottomCenter();
+		var target = Vec3.atBottomCenterOf(this.adjustSpawnLocation(respawnDim, respawnDim.getRespawnData().pos()));
 		double y = respawnDim.getMaxY() + 32;
 		var entityBox = getBoundingBox().move(position.reverse());
 		var border = respawnDim.getWorldBorder();

@@ -3,10 +3,7 @@ package nu.metacraft.cutscenes.transitions;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Display;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import nu.metacraft.cutscenes.Cutscenes;
@@ -80,11 +77,11 @@ public class SmoothCameraPathTransition implements Transition {
 					player.setCamera(marker);
 				}
 			}, () -> {
-				var display = EntityType.TEXT_DISPLAY.create(cutscene.getCutsceneWorld(), EntitySpawnReason.TRIGGERED);
+				var display = EntityTypes.TEXT_DISPLAY.create(cutscene.getCutsceneWorld(), EntitySpawnReason.TRIGGERED);
 				setLinearInterpolationDuration(display, config.interpolationDuration());
 				var target = interpolationSet.interpolate(0);
 				display.absSnapTo(
-						target.pos().x, target.pos().y + EntityType.PLAYER.getDimensions().eyeHeight(), target.pos().z, target.yaw(), target.pitch()
+						target.pos().x, target.pos().y + EntityTypes.PLAYER.getDimensions().eyeHeight(), target.pos().z, target.yaw(), target.pitch()
 				);
 				((EntityExtension) display).metacraft$setHasAccurateMovement(true);
 				cutscene.addEntity(MARKER_ID, display);
@@ -102,7 +99,7 @@ public class SmoothCameraPathTransition implements Transition {
 		cutscene.getRootEntity(MARKER_ID).ifPresent(entity -> {
 			if ((cutscene.getCurrentTime() - interval.getStart()) % config.teleportInterval() == 0) {
 				entity.absSnapTo(
-						target.pos().x, target.pos().y + EntityType.PLAYER.getDimensions().eyeHeight(), target.pos().z, target.yaw(), target.pitch()
+						target.pos().x, target.pos().y + EntityTypes.PLAYER.getDimensions().eyeHeight(), target.pos().z, target.yaw(), target.pitch()
 				);
 			}
 		});

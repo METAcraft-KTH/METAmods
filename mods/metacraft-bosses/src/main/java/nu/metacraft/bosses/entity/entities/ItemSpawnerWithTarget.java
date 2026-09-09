@@ -13,11 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.util.valueproviders.IntProviders;
 import net.minecraft.util.valueproviders.UniformInt;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.OminousItemSpawner;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ProjectileItem;
@@ -143,7 +139,7 @@ public class ItemSpawnerWithTarget extends OminousItemSpawner implements Polymer
 
 	@Override
 	public EntityType<?> getPolymerEntityType(PacketContext ctx) {
-		return EntityType.OMINOUS_ITEM_SPAWNER;
+		return EntityTypes.OMINOUS_ITEM_SPAWNER;
 	}
 
 	public void setItem(ItemStack stack) {

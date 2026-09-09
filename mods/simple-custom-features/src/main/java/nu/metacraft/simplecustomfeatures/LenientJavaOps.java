@@ -135,10 +135,7 @@ public class LenientJavaOps implements DynamicOps<Object> {
 
 	@Override
 	public DataResult<Boolean> getBooleanValue(final Object input) {
-		if (input instanceof final Boolean value) {
-			return ops.getBooleanValue(value);
-		}
-		return DynamicOps.super.getBooleanValue(input);
+		return ops.getBooleanValue(input);
 	}
 
 	@Override

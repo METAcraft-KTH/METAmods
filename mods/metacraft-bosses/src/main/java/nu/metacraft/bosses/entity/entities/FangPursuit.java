@@ -9,11 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.projectile.EvokerFangs;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
@@ -134,7 +130,7 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 			}
 
 			if (this.distanceTo(entity) <= 0.5) {
-				var lightning = EntityType.LIGHTNING_BOLT.create(level(), EntitySpawnReason.TRIGGERED);
+				var lightning = EntityTypes.LIGHTNING_BOLT.create(level(), EntitySpawnReason.TRIGGERED);
 				lightning.snapTo(Vec3.atBottomCenterOf(entity.blockPosition()));
 				this.level().addFreshEntity(lightning);
 				spawnFangs(entity);
@@ -211,7 +207,7 @@ public class FangPursuit extends Entity implements EntityTarget.CanSetOwner, Ent
 
 	@Override
 	public EntityType<?> getPolymerEntityType(PacketContext ctx) {
-		return EntityType.MARKER;
+		return EntityTypes.MARKER;
 	}
 
 	@Nullable

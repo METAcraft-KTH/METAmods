@@ -3,6 +3,9 @@ package nu.metacraft.bosses.condition.entity_sub_predicate;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.advancements.predicates.MinMaxBounds;
+import net.minecraft.advancements.predicates.entity.EntityPredicate;
+import net.minecraft.advancements.predicates.entity.EntitySubPredicate;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.bosses.boss.AutoAttackingBoss;
 import nu.metacraft.bosses.boss.Boss;
@@ -11,9 +14,6 @@ import nu.metacraft.bosses.boss.attacks.AttackRegistry;
 import nu.metacraft.bosses.boss.attacks.AttackType;
 
 import java.util.List;
-import net.minecraft.advancements.criterion.EntityPredicate;
-import net.minecraft.advancements.criterion.EntitySubPredicate;
-import net.minecraft.advancements.criterion.MinMaxBounds;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -32,7 +32,7 @@ public record BossPredicateType(
 			ATTACK_TYPE_CODEC.listOf(), ATTACK_TYPE_CODEC, List::of
 	);
 
-	public static final MapCodec<BossPredicateType> CODEC = RecordCodecBuilder.mapCodec(
+	public static final Codec<BossPredicateType> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
 					EntityEntry.LIST_CODEC.optionalFieldOf("targets", List.of()).forGetter(BossPredicateType::targetCounts),
 					EntityEntry.LIST_CODEC.optionalFieldOf("allies", List.of()).forGetter(BossPredicateType::allyCounts),
@@ -40,11 +40,6 @@ public record BossPredicateType(
 					ATTACK_TYPE_LIST_CODEC.optionalFieldOf("inactive_attacks", List.of()).forGetter(BossPredicateType::inactiveAttacks)
 			).apply(instance, BossPredicateType::new)
 	);
-
-	@Override
-	public MapCodec<? extends EntitySubPredicate> codec() {
-		return BossSubPredicates.BOSS_PREDICATE;
-	}
 
 	private static ResourceKey<AttackType> getKey(Attack attack) {
 		return AttackRegistry.REGISTRY.getResourceKey(attack.getType()).orElseThrow();

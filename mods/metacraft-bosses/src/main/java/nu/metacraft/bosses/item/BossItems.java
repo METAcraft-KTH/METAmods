@@ -1,5 +1,6 @@
 package nu.metacraft.bosses.item;
 
+import net.minecraft.world.entity.EntityTypes;
 import nu.metacraft.lib.condition.conditions.NotInWall;
 import nu.metacraft.lib.condition.conditions.SolidBlockBelow;
 import nu.metacraft.lib.util.helper.EntityHelper;
@@ -22,7 +23,6 @@ import net.minecraft.util.random.WeightedList;
 import net.minecraft.util.valueproviders.ConstantInt;
 import net.minecraft.util.valueproviders.UniformFloat;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
@@ -46,25 +46,25 @@ public class BossItems {
 			).component(
 					BossComponents.SPAWNS, WeightedList.<EntityHelper.SpawnEntry>builder().add(
 							EntityHelper.SpawnEntry.createEntry(
-									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityType.ZOMBIE),
+									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityTypes.ZOMBIE),
 									Optional.of(AllOfCondition.allOf(List.of(NotInWall.getInstance(), SolidBlockBelow.getInstance()))),
 									EntitySpawnReason.REINFORCEMENT, 20, 10
 							)
 					).add(
 							EntityHelper.SpawnEntry.createEntry(
-									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityType.SKELETON),
+									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityTypes.SKELETON),
 									Optional.of(AllOfCondition.allOf(List.of(NotInWall.getInstance(), SolidBlockBelow.getInstance()))),
 									EntitySpawnReason.REINFORCEMENT, 20, 10
 							)
 					).add(
 							EntityHelper.SpawnEntry.createEntry(
-									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityType.CREEPER),
+									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityTypes.CREEPER),
 									Optional.of(AllOfCondition.allOf(List.of(NotInWall.getInstance(), SolidBlockBelow.getInstance()))),
 									EntitySpawnReason.REINFORCEMENT, 20, 10
 							)
 					).add(
 							EntityHelper.SpawnEntry.createEntry(
-									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityType.SPIDER),
+									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityTypes.SPIDER),
 									Optional.of(AllOfCondition.allOf(List.of(NotInWall.getInstance(), SolidBlockBelow.getInstance()))),
 									EntitySpawnReason.REINFORCEMENT,20, 10
 							)

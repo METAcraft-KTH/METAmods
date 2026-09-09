@@ -49,7 +49,7 @@ public class PortableJukeboxGui extends LayeredGui {
 		Layer buttons = new Layer(1, 2);
 		buttons.setSlot(
 				0, new ItemStack(
-					Items.GREEN_WOOL.builtInRegistryHolder(), 1, DataComponentPatch.builder().set(
+					Items.WOOL.green().builtInRegistryHolder(), 1, DataComponentPatch.builder().set(
 						DataComponents.ITEM_NAME, Component.literal("Play")
 					).build()
 				),
@@ -60,7 +60,7 @@ public class PortableJukeboxGui extends LayeredGui {
 		buttons.setSlot(
 				1,
 				new ItemStack(
-						Items.RED_WOOL.builtInRegistryHolder(), 1, DataComponentPatch.builder().set(
+						Items.WOOL.red().builtInRegistryHolder(), 1, DataComponentPatch.builder().set(
 							DataComponents.ITEM_NAME, Component.literal("Stop")
 						).build()
 				),
@@ -70,7 +70,7 @@ public class PortableJukeboxGui extends LayeredGui {
 		);
 
 		setBackground(new ItemStack(
-				Items.ORANGE_STAINED_GLASS_PANE.builtInRegistryHolder(), 1, DataComponentPatch.builder().set(
+				Items.STAINED_GLASS_PANE.orange().builtInRegistryHolder(), 1, DataComponentPatch.builder().set(
 						DataComponents.ITEM_NAME, Component.literal("")
 				).set(
 						DataComponents.TOOLTIP_DISPLAY, new TooltipDisplay(true, ReferenceSortedSets.emptySet())

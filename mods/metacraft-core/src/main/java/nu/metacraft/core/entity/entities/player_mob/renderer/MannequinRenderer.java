@@ -14,7 +14,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerPlayerConnection;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntitySpawnRequest;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.core.entity.entities.player_mob.PlayerMob;
@@ -67,7 +69,7 @@ public class MannequinRenderer implements PlayerRenderer {
 		if (entityNbt.isEmpty()) {
 			return null;
 		}
-		var entity = EntityType.loadEntityRecursive(entityNbt, playerMob.level(), EntitySpawnReason.LOAD, e -> e);
+		var entity = EntityType.loadEntityRecursive(entityNbt, playerMob.level(), new EntitySpawnRequest(EntitySpawnReason.LOAD, false), e -> e);
 		if (entity == null) return null;
 		entity.ejectPassengers();
 		var element = new EntityElement<>(entity, ((ServerLevel) playerMob.level()));
@@ -124,7 +126,7 @@ public class MannequinRenderer implements PlayerRenderer {
 
 	@Override
 	public EntityType<?> getPolymerEntityType(PacketContext context) {
-		return EntityType.MANNEQUIN;
+		return EntityTypes.MANNEQUIN;
 	}
 
 	@Override

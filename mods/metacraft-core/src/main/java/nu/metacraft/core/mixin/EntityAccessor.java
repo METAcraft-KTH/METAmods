@@ -13,4 +13,7 @@ public interface EntityAccessor {
 
 	@Invoker
 	Vec3 callMaybeBackOffFromEdge(Vec3 movement, MoverType type);
+
+	@Invoker
+	boolean callOmnidirectionalAirMover();
 }

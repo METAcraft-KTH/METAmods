@@ -30,7 +30,7 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 
 	protected GuiElement background = GuiElementBuilder.from(
 			new ItemStack(
-					Items.ORANGE_STAINED_GLASS_PANE.builtInRegistryHolder(), 1,
+					Items.STAINED_GLASS_PANE.orange().builtInRegistryHolder(), 1,
 					DataComponentPatch.builder().set(
 							DataComponents.TOOLTIP_DISPLAY, new TooltipDisplay(
 									true, ReferenceSortedSets.emptySet()
@@ -70,15 +70,15 @@ public abstract class MultiplePlayerSelector extends LayeredGui {
 
 		selectedSide = new PagedLayer(
 				playerViewHeight(), width,
-				GuiElementBuilder.from(new ItemStack(Items.RED_STAINED_GLASS_PANE)).setName(PagedLayer.PREV_PAGE),
-				GuiElementBuilder.from(new ItemStack(Items.GREEN_STAINED_GLASS_PANE)).setName(PagedLayer.NEXT_PAGE),
+				GuiElementBuilder.from(new ItemStack(Items.STAINED_GLASS_PANE.red())).setName(PagedLayer.PREV_PAGE),
+				GuiElementBuilder.from(new ItemStack(Items.STAINED_GLASS_PANE.green())).setName(PagedLayer.NEXT_PAGE),
 				GuiElementBuilder.from(new ItemStack(Items.AIR)).build()
 		);
 
 		nonSelectedSide = new PagedLayer(
 				playerViewHeight(), width,
-				GuiElementBuilder.from(new ItemStack(Items.RED_STAINED_GLASS_PANE)).setName(PagedLayer.PREV_PAGE),
-				GuiElementBuilder.from(new ItemStack(Items.GREEN_STAINED_GLASS_PANE)).setName(PagedLayer.NEXT_PAGE),
+				GuiElementBuilder.from(new ItemStack(Items.STAINED_GLASS_PANE.red())).setName(PagedLayer.PREV_PAGE),
+				GuiElementBuilder.from(new ItemStack(Items.STAINED_GLASS_PANE.green())).setName(PagedLayer.NEXT_PAGE),
 				GuiElementBuilder.from(new ItemStack(Items.AIR)).build()
 		);
 		addLayer(selectedSide, width + 1, playerViewHeightOffset());

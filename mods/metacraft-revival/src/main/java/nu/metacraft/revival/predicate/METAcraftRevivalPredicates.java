@@ -1,7 +1,7 @@
 package nu.metacraft.revival.predicate;
 
-import com.mojang.serialization.MapCodec;
-import net.minecraft.advancements.criterion.EntitySubPredicate;
+import com.mojang.serialization.Codec;
+import net.minecraft.advancements.predicates.entity.EntitySubPredicate;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import nu.metacraft.revival.METAcraftRevival;
@@ -12,7 +12,7 @@ public class METAcraftRevivalPredicates {
 		register("revival", RevivalPredicate.CODEC);
 	}
 
-	private static void register(String id, MapCodec<? extends EntitySubPredicate> codec) {
+	private static void register(String id, Codec<? extends EntitySubPredicate> codec) {
 		Registry.register(BuiltInRegistries.ENTITY_SUB_PREDICATE_TYPE, METAcraftRevival.getID(id), codec);
 	}
 

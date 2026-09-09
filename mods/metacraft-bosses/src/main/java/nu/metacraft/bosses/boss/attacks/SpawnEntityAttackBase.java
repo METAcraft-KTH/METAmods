@@ -1,8 +1,8 @@
 package nu.metacraft.bosses.boss.attacks;
 
 import com.mojang.serialization.JavaOps;
-import net.minecraft.advancements.criterion.EntityPredicate;
-import net.minecraft.advancements.criterion.EntityTypePredicate;
+import net.minecraft.advancements.predicates.entity.EntityPredicate;
+import net.minecraft.advancements.predicates.entity.EntityTypePredicate;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -15,6 +15,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.level.storage.loot.predicates.AllOfCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.phys.Vec3;
@@ -30,7 +31,7 @@ import java.util.function.*;
 
 public abstract class SpawnEntityAttackBase extends InstantAttack {
 
-	public static final EntityPredicate PLAYER_PREDICATE = EntityPredicate.Builder.entity().entityType(EntityTypePredicate.of(BuiltInRegistries.ENTITY_TYPE, EntityType.PLAYER)).build();
+	public static final EntityPredicate PLAYER_PREDICATE = EntityPredicate.Builder.entity().entityType(EntityTypePredicate.of(BuiltInRegistries.ENTITY_TYPE, EntityTypes.PLAYER)).build();
 
 	protected final WeightedList<EntityHelper.SpawnEntry> entities;
 

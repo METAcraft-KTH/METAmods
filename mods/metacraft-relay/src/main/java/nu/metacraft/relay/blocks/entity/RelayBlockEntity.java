@@ -1,6 +1,7 @@
 package nu.metacraft.relay.blocks.entity;
 
 import com.mojang.serialization.DataResult;
+import net.minecraft.world.entity.EntityTypes;
 import nu.metacraft.relay.blocks.RelayBlockEntities;
 import nu.metacraft.relay.items.RelayComponents;
 import nu.metacraft.relay.mixin.ServerPlayerRespawnPosAngleAccessor;
@@ -10,7 +11,6 @@ import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.RespawnAnchorBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -50,7 +50,7 @@ public class RelayBlockEntity extends BlockEntity {
 			return target.tick(dim).target().map(
 					t -> {
 						var respawnPos = RespawnAnchorBlock.findStandUpPosition(
-								EntityType.PLAYER, dim, t.pos()
+								EntityTypes.PLAYER, dim, t.pos()
 						);
 						return respawnPos.map(pos -> DataResult.success(
 								new TeleportTransition(

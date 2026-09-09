@@ -6,11 +6,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.entity.Avatar;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.SpawnPlacementTypes;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.levelgen.Heightmap;
 import nu.metacraft.core.METAcraftCore;
@@ -65,7 +61,7 @@ public class METAcraftEntities {
 		METAcraftMemoryModules.init();
 		METAcraftSensorTypes.init();
 
-		((EntityTypeAccessor) PLAYER).setDescriptionId(EntityType.PLAYER.getDescriptionId());
+		((EntityTypeAccessor) PLAYER).setDescriptionId(EntityTypes.PLAYER.getDescriptionId());
 	}
 
 	private static <T extends Entity> EntityType<T> register(String id, EntityType.Builder<T> builder) {

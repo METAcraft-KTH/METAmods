@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.entity.TheEndPortalBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.feature.EndPlatformFeature;
 import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.Shapes;
 import nu.metacraft.lib.util.helper.TamedHelper;
@@ -78,7 +79,7 @@ public class TargetPortalBlock extends EndPortalBlock implements PolymerBlock {
 		}
 
 		return new TeleportTransition(
-				targetWorld, targetPos.getBottomCenter(), entity.getDeltaMovement(),
+				targetWorld, Vec3.atBottomCenterOf(targetPos), entity.getDeltaMovement(),
 				targetAngle, entity.getXRot(), portalTransition
 		);
 	}

@@ -1,6 +1,7 @@
 import com.google.common.base.Suppliers;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.level.GameType;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,7 +27,6 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
 import net.minecraft.world.item.ItemStack;
@@ -348,7 +348,7 @@ public class CutsceneTests {
 		int slot = 5;
 		var start = player.position();
 		player.getInventory().add(slot, stack.copy());
-		var pig = EntityType.PIG.create(context.getLevel(), EntitySpawnReason.TRIGGERED);
+		var pig = EntityTypes.PIG.create(context.getLevel(), EntitySpawnReason.TRIGGERED);
 		pig.setItemSlot(EquipmentSlot.SADDLE, new ItemStack(Items.SADDLE));
 		pig.absSnapTo(start.x(), start.y(), start.z());
 		var pearl = new ThrownEnderpearl(player.level(), player, new ItemStack(Items.ENDER_PEARL));
