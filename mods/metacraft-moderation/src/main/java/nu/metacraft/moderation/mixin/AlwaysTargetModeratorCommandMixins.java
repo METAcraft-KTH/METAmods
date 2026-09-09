@@ -2,15 +2,13 @@ package nu.metacraft.moderation.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.commands.arguments.EntityArgument;
-import net.minecraft.server.commands.BossBarCommands;
-import net.minecraft.server.commands.PlaySoundCommand;
-import net.minecraft.server.commands.StopSoundCommand;
+import net.minecraft.server.commands.*;
 import nu.metacraft.lib.commands.PlaySoundFromEntity;
 import nu.metacraft.moderation.EntitySelectorExtension;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-@Mixin({PlaySoundFromEntity.class, BossBarCommands.class, StopSoundCommand.class})
+@Mixin({PlaySoundFromEntity.class, BossBarCommands.class, StopSoundCommand.class, TellRawCommand.class, TitleCommand.class})
 public class AlwaysTargetModeratorCommandMixins {
 
 	@ModifyExpressionValue(
