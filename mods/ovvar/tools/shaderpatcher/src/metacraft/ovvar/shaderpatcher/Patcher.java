@@ -40,8 +40,8 @@ import java.util.zip.ZipOutputStream;
  *       — in the file, in its includes, in macros — reads the global; the same for the vertex
  *       colour varying. At the top of main() the globals are set to the remapped coordinate and
  *       the un-dyed colour;</li>
- *   <li>vertex stage: a varying {@code ovvar_color} carries the raw vertex colour (the dye
- *       colour, which holds the patch bits) to the fragment stage.</li>
+ *   <li>vertex stage: varyings carry the raw vertex colour (the dye colour, which holds the
+ *       patch bits), position and normal to the fragment stage.</li>
  * </ul>
  * Nothing else in the pack is touched; originals are kept. Textures that are not Ovvar's are
  * sampled exactly as before.
@@ -276,6 +276,8 @@ public final class Patcher {
         // shadows at the top of main. Edits are applied back to front so indices stay valid.
         String helper = "\n// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in OvvarShaderPatcher.jar\n"
                 + uv.direction + " vec4 ovvar_color;\n"
+                + uv.direction + " vec3 ovvar_pos;\n"
+                + uv.direction + " vec3 ovvar_normal;\n"
                 + "#define OVVAR_SAMPLE(uv) " + sampleFn + "(" + samplerName + ", uv)\n"
                 + GLSL
                 + "// --- end Ovvar\n\n";
@@ -305,17 +307,22 @@ public final class Patcher {
         }
         Decl vuv = findVaryingNamed(vert, "out|varying", uv.name);
         String direction = vuv != null ? vuv.direction : uv.direction.equals("in") ? "out" : "varying";
-        String attribute = vert.contains("vaColor") ? "vaColor" : "gl_Color";
+        boolean core = vert.contains("vaColor") || vert.contains("vaPosition");
+        String colorAttr = core ? "vaColor" : "gl_Color", position = core ? "vaPosition" : "gl_Vertex.xyz", normal = core ? "vaNormal" : "gl_Normal";
         String newVert = vert.substring(0, vmain.start())
-                + "\n// --- Ovvar: the raw vertex colour (an ovve's dye colour holds its patch bits)\n"
-                + direction + " vec4 ovvar_color;\n\n"
+                + "\n// --- Ovvar: the raw vertex colour (an ovve's dye colour holds its patch bits), position and normal\n"
+                + direction + " vec4 ovvar_color;\n"
+                + direction + " vec3 ovvar_pos;\n"
+                + direction + " vec3 ovvar_normal;\n\n"
                 + vert.substring(vmain.start(), vmain.end())
-                + "\n    ovvar_color = " + attribute + ";\n"
+                + "\n    ovvar_color = " + colorAttr + ";\n"
+                + "    ovvar_pos = " + position + ";\n"
+                + "    ovvar_normal = " + normal + ";\n"
                 + vert.substring(vmain.end());
         String vertOut = vertSource.substring(0, vr[0]) + newVert + vertSource.substring(vr[1]);
 
         say("  " + fragPath + (unified ? "" : " + " + vertPath) + ": '" + uv.name + "' and '" + color.name
-                + "' shadowed, art via " + sampleFn + "(" + samplerName + "), colour from " + attribute);
+                + "' shadowed, art via " + sampleFn + "(" + samplerName + "), colour from " + colorAttr);
         return unified ? new String[]{vertOut, vertOut} : new String[]{fragOut, vertOut};
     }
 

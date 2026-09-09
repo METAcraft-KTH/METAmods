@@ -33,6 +33,8 @@ in vec4 overlayColor;
 
 in vec2 texCoord0;
 in vec4 ovvar_color;
+in vec3 ovvar_pos;
+in vec3 ovvar_normal;
 
 out vec4 fragColor;
 

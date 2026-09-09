@@ -47,6 +47,8 @@ out vec4 overlayColor;
 
 out vec2 texCoord0;
 out vec4 ovvar_color;
+out vec3 ovvar_pos;
+out vec3 ovvar_normal;
 
 uniform sampler2D Sampler0;
 #define OVVAR_SAMPLE(uv) texture(Sampler0, uv)
@@ -55,6 +57,8 @@ uniform sampler2D Sampler0;
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
     ovvar_color = Color;
+    ovvar_pos = Position;
+    ovvar_normal = Normal;
     vec4 ovvar_lit = mix(Color, vec4(1.0), ovvar_patch_layer());
 
     sphericalVertexDistance = fog_spherical_distance(Position);

@@ -36,7 +36,8 @@ import java.util.stream.Stream;
  * <ul>
  *   <li>{@code give [player] <chapter> [patches]} — an ovve, top up, with the given patches:
  *       {@code all} (every cell filled, cycling through the patches), {@code none}, or
- *       {@code spot.patch} / bare patch ids (first free cell) separated by commas/spaces;</li>
+ *       {@code spot.patch} / bare patch ids (first free cell) separated by commas/spaces; the word
+ *       {@code down} anywhere gives it with the top rolled down;</li>
  *   <li>{@code patches <patches>} — re-sew the ovve in your main hand;</li>
  *   <li>{@code showcase <chapter>} — a row of armour stands in front of you: top down, top up, one
  *       per patch (on the chest), every cell filled.</li>
@@ -92,7 +93,7 @@ public final class ModCommands {
 
     /** {@code all}, {@code none}, {@code spot.patch} entries, or bare patch ids (first free cell that takes it). */
     private static List<Placement> patches(String spec) throws CommandSyntaxException {
-        String s = spec.trim();
+        String s = spec.trim().replaceAll("^(none)?[,\\s]+|[,\\s]+$", "");
         List<Placement> out = new ArrayList<>();
         if (s.isEmpty() || s.equals("none")) return out;
         if (s.equals("all")) {
@@ -131,8 +132,9 @@ public final class ModCommands {
 
     private static int give(CommandContext<CommandSourceStack> ctx, ServerPlayer player, String spec) throws CommandSyntaxException {
         Chapter chapter = chapter(ctx);
-        List<Placement> patches = patches(spec);
-        ItemStack stack = ovve(chapter, true, patches);
+        boolean down = spec.matches("(?s).*\\bdown\\b.*");   // "down" anywhere in the spec: top rolled down
+        List<Placement> patches = patches(spec.replaceAll("\\bdown\\b", " "));
+        ItemStack stack = ovve(chapter, !down, patches);
         if (!player.getInventory().add(stack)) player.drop(stack, false);
         ctx.getSource().sendSuccess(() -> Component.literal("Gave " + player.getName().getString() + " a " + chapter.name
                 + " " + chapter.garmentWord() + " with " + patches.size() + " patch(es)"), true);

@@ -148,6 +148,7 @@ public final class Combos {
         if (BUILT.getOrDefault(generation, Set.of()).contains(key)) return;
         if (KNOWN.add(key)) dirty.set(true);
         if (player != null) REQUESTED_BY.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(player);
+        if (generating && building.contains(key)) return;   // the build under way has it
         deadline.accumulateAndGet(now() + (urgent ? URGENT_MS : LAZY_MS), Math::min);
     }
 
@@ -162,6 +163,7 @@ public final class Combos {
             return;
         }
         deadline.set(Long.MAX_VALUE);
+        if (BUILT.getOrDefault(generation, Set.of()).containsAll(KNOWN)) return;   // a request raced the last build
         generating = true;
         Ovvar.LOGGER.info("[ovvar] rebuilding the resource pack for {} new combination(s)",
                 KNOWN.size() - BUILT.getOrDefault(generation, Set.of()).size());

@@ -18,13 +18,17 @@
 //      texel at (63,14).
 //
 // Requires before inclusion: OVVAR_SAMPLE(uv) — the albedo sample of this program;
-// ovvar_color — the raw (unlit) vertex colour, vec4.
+// ovvar_color — the raw (unlit) vertex colour, vec4; ovvar_pos and ovvar_normal — the vertex
+// position and normal (any one space for both).
 
 vec4 ovvar_read(float x, float y) {
     return floor(OVVAR_SAMPLE(vec2((x + 0.5) / 64.0, (y + 0.5) / 32.0)) * 255.0 + 0.5);
 }
 
 const vec2 OVVAR_BLANK = vec2(63.5 / 64.0, 14.5 / 32.0);
+// Which sign of texture-over-geometry handedness the mirrored limbs have. Fixed by how the game
+// builds its vertex data (the same on every platform); calibrated once against a known garment.
+const bool OVVAR_MIRROR_SENSE = true;
 
 bool ovvar_marked() {
     return all(equal(ovvar_read(63.0, 15.0), vec4(255.0, 0.0, 255.0, 2.0)));
@@ -44,15 +48,19 @@ float ovvar_bits() {
 // The texture coordinate to sample instead of uv. Call with the program's original coordinate;
 // derivatives must be taken in uniform control flow, hence at the top.
 vec2 ovvar_uv(vec2 uv) {
+    // The model draws the left limbs as mirror images: their texture runs the other way round
+    // the face. Compare the handedness of the texture over the screen with the handedness of the
+    // geometry over the screen; the screen cancels out, leaving texture-over-geometry, which no
+    // framebuffer orientation or facing convention can change.
     vec2 du = dFdx(uv), dv = dFdy(uv);
     float det = du.x * dv.y - dv.x * du.y;
+    float geo = dot(cross(dFdx(ovvar_pos), dFdy(ovvar_pos)), ovvar_normal);
     if (!ovvar_marked()) return uv;
 
     vec4 kind = ovvar_read(62.0, 15.0);
     vec2 t = uv * vec2(64.0, 32.0);   // texel coordinates
     bool limb = t.y >= 16.0 && (t.x < 16.0 || (t.x >= 40.0 && t.x < 56.0));
-    // Unmirrored faces seen from outside map u left-to-right and v top-to-bottom on screen: det < 0.
-    bool mirrored = limb && ((det > 0.0) == gl_FrontFacing);
+    bool mirrored = limb && ((det > 0.0) == (geo > 0.0)) == OVVAR_MIRROR_SENSE;
 
     if (kind.r < 0.5) {
         // Base garment: the mirrored limb reads the strip above.

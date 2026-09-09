@@ -1,5 +1,6 @@
 package metacraft.ovvar.sewing;
 
+import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
@@ -141,6 +142,7 @@ public final class StandSewing {
             if (current != null && !current.equals(previous)) {
                 Looks.setPreview(aimedOvve, current.placement);
                 AIMS.put(player.getUUID(), current);
+                Ovvar.LOGGER.debug("[ovvar] {} aims {} at {}", player.getName().getString(), current.placement.patch(), current.placement.spot().id());
             }
         }
     }
@@ -197,7 +199,8 @@ public final class StandSewing {
         double lz = pz;
         double xMin = bestBox.side == Spot.Side.LEFT ? -bestBox.x2 : bestBox.x1;
         double xMax = bestBox.side == Spot.Side.LEFT ? -bestBox.x1 : bestBox.x2;
-        double sign = bestBox.side == Spot.Side.LEFT ? -bestSign : bestSign;
+        // Only the left/right axis mirrors; front stays front.
+        double sign = bestBox.side == Spot.Side.LEFT && bestAxis == 0 ? -bestSign : bestSign;
         if (bestAxis == 0 && sign > 0) {          // wearer's right face / outer: u runs back → front
             strip = base;
             along = lz - bestBox.z1;

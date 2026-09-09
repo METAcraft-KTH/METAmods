@@ -49,6 +49,11 @@ public final class GeneratedAssets implements DataProvider {
     private static final int[] BODY = {16, 16, 24, 16};
     private static final int[] RIGHT_ARM = {40, 16, 16, 16};
     private static final int[] RIGHT_LEG = {0, 16, 16, 16};
+    /** The skin's second layer for each, and the left limbs (base, second layer) — the website draws these in 3D. */
+    private static final int[] BODY_OUTER = {16, 32, 24, 16};
+    private static final int[] RIGHT_ARM_OUTER = {40, 32, 16, 16}, RIGHT_LEG_OUTER = {0, 32, 16, 16};
+    private static final int[] LEFT_ARM = {32, 48, 16, 16}, LEFT_ARM_OUTER = {48, 48, 16, 16};
+    private static final int[] LEFT_LEG = {16, 48, 16, 16}, LEFT_LEG_OUTER = {0, 48, 16, 16};
     /** The trousers' share of the body box: the bottom two texel rows of its side faces (the waistband). */
     private static final int[] WAIST = {16, 30, 24, 2};
     /** The texel our core shader checks before treating a texture as ours: magenta at alpha 2. */
@@ -147,14 +152,14 @@ public final class GeneratedAssets implements DataProvider {
             Tex top = Tex.blank(64, 32).blit(overlay, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1])
                     .blit(overlay, RIGHT_ARM[0], RIGHT_ARM[1], RIGHT_ARM[2], RIGHT_ARM[3], RIGHT_ARM[0], RIGHT_ARM[1]);
             require(!top.isEmpty(), chapter.overlay + ".png has an empty body or arm box");
-            layer(chapter, Piece.TOP, "top", marked(withMirror(top, RIGHT_ARM)));
+            layer(chapter, Piece.TOP, "top", marked(withLeft(top, RIGHT_ARM, overlay, LEFT_ARM)));
             equipment(chapter, Piece.TOP, false);
 
             // The bottom: legs and waistband, on the legs slot's layer; under the top when it's up.
             Tex bottom = Tex.blank(64, 32).blit(overlay, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
                     .blit(overlay, WAIST[0], WAIST[1], WAIST[2], WAIST[3], WAIST[0], WAIST[1]);
             require(!bottom.isEmpty(), chapter.overlay + ".png has an empty leg box");
-            layer(chapter, Piece.BOTTOM, "bottom", marked(withMirror(bottom, RIGHT_LEG)));
+            layer(chapter, Piece.BOTTOM, "bottom", marked(withLeft(bottom, RIGHT_LEG, overlay, LEFT_LEG)));
             equipment(chapter, Piece.BOTTOM, false);
 
             if (chapter.rollable) {
@@ -162,7 +167,7 @@ public final class GeneratedAssets implements DataProvider {
                 Tex rolled = overlay(chapter.nercabbadOverlay, chapter);
                 Tex nercabbad = Tex.blank(64, 32).blit(rolled, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
                         .blit(rolled, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1]);
-                layer(chapter, Piece.BOTTOM, "bottom_nercabbad", marked(withMirror(nercabbad, RIGHT_LEG)));
+                layer(chapter, Piece.BOTTOM, "bottom_nercabbad", marked(withLeft(nercabbad, RIGHT_LEG, rolled, LEFT_LEG)));
                 equipment(chapter, Piece.BOTTOM, true);
             }
 
@@ -231,16 +236,45 @@ public final class GeneratedAssets implements DataProvider {
     }
 
     /**
-     * A copy of a limb box one strip up, with every face mirrored in place: what the model shows
-     * on the left limb, drawn there so the shader-remapped left limb looks exactly like the right
-     * one until a left-side patch says otherwise. Box layout: top and bottom faces (4×4) at
-     * +4 and +8 on the first four rows, then four 4×12 side faces.
+     * The left limb's art one strip up from the right limb's box, with every face mirrored in
+     * place: the model draws the left limb as a mirror image off the right strips, and the shader
+     * sends those fragments here, so the art must be pre-mirrored to come out straight. The art is
+     * the skin's own left limb (flattened with its second layer); a skin without one gets a copy of
+     * the right limb. Box layout: top and bottom faces (4×4) at +4 and +8 on the first four rows,
+     * then four 4×12 side faces.
      */
-    private static Tex withMirror(Tex tex, int[] box) {
+    private static Tex withLeft(Tex tex, int[] box, Tex skin, int[] leftBox) {
         int x = box[0], y = box[1], my = y - Spot.MIRROR_SHIFT;
-        Tex out = tex.blit(tex, x, y, box[2], box[3], x, my);
+        Tex left = Tex.blank(64, 64).blit(skin, leftBox[0], leftBox[1], leftBox[2], leftBox[3], 0, 0);
+        Tex out;
+        if (left.isEmpty()) {
+            out = tex.blit(tex, x, y, box[2], box[3], x, my);
+        } else {
+            // The skin lays the left limb out for an unmirrored cube: its first side strip is the
+            // inner face and its third the outer, the other way round from the right limb's strips
+            // the model reads. Swap them so the outer art lands on the outer face.
+            out = tex.blit(skin, leftBox[0], leftBox[1], leftBox[2], leftBox[3], x, my)
+                    .blit(skin, leftBox[0] + 8, leftBox[1] + 4, 4, 12, x, my + 4)
+                    .blit(skin, leftBox[0], leftBox[1] + 4, 4, 12, x + 8, my + 4);
+        }
         out = out.flipX(x + 4, my, 4, 4).flipX(x + 8, my, 4, 4);
         for (int face = 0; face < 4; face++) out = out.flipX(x + face * 4, my + 4, 4, 12);
+        return out;
+    }
+
+    /**
+     * The website renders the skin's second layer as a raised 3D layer — belt folds, pockets, the
+     * hanging top of a rolled-down ovve. The armour model has one box per part, so that layer is
+     * painted onto the base boxes (and onto the left limbs' own boxes for {@link #withLeft}).
+     */
+    private static Tex flattened(Tex skin) {
+        Tex out = skin;
+        int[][][] pairs = {{BODY, BODY_OUTER}, {RIGHT_ARM, RIGHT_ARM_OUTER}, {RIGHT_LEG, RIGHT_LEG_OUTER}, {LEFT_ARM, LEFT_ARM_OUTER}, {LEFT_LEG, LEFT_LEG_OUTER}};
+        for (int[][] pair : pairs) {
+            int[] base = pair[0], outer = pair[1];
+            Tex over = Tex.blank(64, 64).blit(skin, outer[0], outer[1], outer[2], outer[3], base[0], base[1]);
+            out = out.composite(over);
+        }
         return out;
     }
 
@@ -252,7 +286,8 @@ public final class GeneratedAssets implements DataProvider {
         Tex tex = art(name);
         require(tex.width == 64 && tex.height == 64, name + ".png is not a 64×64 skin overlay");
         tex = tex.withoutGreenKey();
-        return chapter.tint == null ? tex : tex.tinted(chapter.tint);
+        tex = chapter.tint == null ? tex : tex.tinted(chapter.tint);
+        return flattened(tex);
     }
 
     private void layer(Chapter chapter, Piece piece, String name, Tex tex) {
