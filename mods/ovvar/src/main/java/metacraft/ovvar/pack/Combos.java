@@ -5,10 +5,11 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.datafixers.util.Pair;
+import eu.pb4.polymer.autohost.api.ResourcePackDataProvider;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import eu.pb4.polymer.resourcepack.impl.PolymerResourcePackMod;
 import metacraft.ovvar.Ovvar;
-import com.mojang.datafixers.util.Pair;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.OvveTopItem;
@@ -16,6 +17,8 @@ import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Placement;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -32,8 +35,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -41,37 +47,50 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * The combinations of patches the resource pack knows how to draw. Every combination ever
  * sewn is remembered in {@code <world>/ovvar/combos.json}; the pack is built with an equipment
- * definition for each (per chapter and rolled-down variant — tiny files), and rebuilt and
- * re-sent to everyone online when new ones appear. Rebuilds are batched: a combination the
- * preview bits can still show waits {@value #LAZY_MS} ms for company, one they can't is built
- * within {@value #URGENT_MS} ms. Until a client has the new pack the newest patches ride in
- * the dye colour (see {@link metacraft.ovvar.content.Looks#look}).
+ * definition for each (per chapter and rolled-down variant — tiny files) and rebuilt when new
+ * ones appear. Rebuilds are batched: a combination the preview bits can still show waits
+ * {@value #LAZY_MS} ms for company, one they can't is built within {@value #URGENT_MS} ms.
+ *
+ * Each build is a generation, and each player is on the generation they last loaded. A rebuilt
+ * pack is pushed only to players who need it: those the server is sending an ovve whose
+ * combination their generation lacks — i.e. the people close enough to see it. Everyone else
+ * keeps the pack they have; what they see is drawn from the combinations their generation holds
+ * plus the newest patches in the dye colour (see {@link metacraft.ovvar.content.Looks#look}).
  */
 public final class Combos {
     private Combos() {}
 
-    private static final long URGENT_MS = 2_000, LAZY_MS = 90_000;
+    private static final long URGENT_MS = 2_000, LAZY_MS = 90_000, PUSH_GAP_MS = 5_000;
     private static final double RESYNC_RANGE = 160;
     private static final String FILE = "ovvar/combos.json";
 
-    /** piece:combo keys. known = requested or loaded; built = in the pack the clients have. */
+    /** piece:combo keys. known = requested or loaded; BUILT = per generation, what that pack holds. */
     private static final Set<String> KNOWN = ConcurrentHashMap.newKeySet();
-    private static volatile Set<String> built = Set.of();
+    private static final Map<Integer, Set<String>> BUILT = new ConcurrentHashMap<>();
+    private static volatile int generation;
     private static volatile Set<String> building = Set.of();
     private static final AtomicLong deadline = new AtomicLong(Long.MAX_VALUE);
     private static final AtomicBoolean dirty = new AtomicBoolean();
     private static volatile boolean generating;
     private static MinecraftServer server;
 
+    /** Per player: the generation pushed to them, the one they confirmed loaded, who needs a push, when they last got one. */
+    private static final Map<UUID, Integer> PUSHED = new ConcurrentHashMap<>(), LOADED = new ConcurrentHashMap<>();
+    private static final Set<UUID> NEEDS_PUSH = ConcurrentHashMap.newKeySet();
+    private static final Map<UUID, Long> LAST_PUSH = new ConcurrentHashMap<>();
+    /** Who asked for a combination that is not built yet: they get the pack once it is. */
+    private static final Map<String, Set<UUID>> REQUESTED_BY = new ConcurrentHashMap<>();
+
     public static void init() {
         ServerLifecycleEvents.SERVER_STARTING.register(s -> {
             server = s;
             KNOWN.clear();
             KNOWN.addAll(load(file(s)));
-            built = Set.of();
+            BUILT.clear();
+            generation = 0;
             Ovvar.LOGGER.info("[ovvar] {} patch combination(s) known", KNOWN.size());
         });
-        ServerLifecycleEvents.SERVER_STOPPING.register(s -> save(s));
+        ServerLifecycleEvents.SERVER_STOPPING.register(Combos::save);
         PolymerResourcePackUtils.RESOURCE_PACK_CREATION_EVENT.register(builder -> {
             building = Set.copyOf(KNOWN);
             int files = 0;
@@ -89,11 +108,110 @@ public final class Combos {
             Ovvar.LOGGER.info("[ovvar] pack: {} combination(s), {} equipment file(s)", building.size(), files);
         });
         PolymerResourcePackUtils.RESOURCE_PACK_FINISHED_EVENT.register(result -> {
-            built = building;
-            generating = false;
-            if (!built.containsAll(KNOWN)) deadline.accumulateAndGet(now() + URGENT_MS, Math::min);
+            Set<String> snapshot = building;
+            server.execute(() -> built(snapshot));
+        });
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, s) -> {
+            // The pack they got while connecting is the current one.
+            UUID id = handler.player.getUUID();
+            PUSHED.put(id, generation);
+            LOADED.put(id, generation);
+        });
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, s) -> {
+            UUID id = handler.player.getUUID();
+            PUSHED.remove(id);
+            LOADED.remove(id);
+            NEEDS_PUSH.remove(id);
+            LAST_PUSH.remove(id);
         });
         ServerTickEvents.END_SERVER_TICK.register(Combos::tick);
+    }
+
+    // ---- what a player can draw
+
+    /** Does the pack a player has hold this combination? {@code player} null: the current pack. */
+    public static boolean isBuilt(Piece piece, String combo, UUID player) {
+        if (combo.isEmpty()) return true;
+        String key = key(piece, combo);
+        Set<String> current = BUILT.getOrDefault(generation, Set.of());
+        if (player == null) return current.contains(key);
+        Set<String> theirs = BUILT.getOrDefault(LOADED.getOrDefault(player, generation), current);
+        if (theirs.contains(key)) return true;
+        // They are looking at something their pack can't draw but the current one can: send it.
+        if (current.contains(key) && LOADED.getOrDefault(player, generation) < generation) NEEDS_PUSH.add(player);
+        return false;
+    }
+
+    /** Ask for a combination; safe from any thread (item packets are encoded off the server thread). */
+    public static void request(Piece piece, String combo, boolean urgent, UUID player) {
+        String key = key(piece, combo);
+        if (BUILT.getOrDefault(generation, Set.of()).contains(key)) return;
+        if (KNOWN.add(key)) dirty.set(true);
+        if (player != null) REQUESTED_BY.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(player);
+        deadline.accumulateAndGet(now() + (urgent ? URGENT_MS : LAZY_MS), Math::min);
+    }
+
+    // ---- building and pushing
+
+    private static void tick(MinecraftServer s) {
+        if (dirty.compareAndSet(true, false)) save(s);
+        pushWhereNeeded(s);
+        if (now() < deadline.get() || generating) return;
+        if (PolymerResourcePackMod.alreadyGeneration) {
+            deadline.set(now() + 1_000);   // someone else's build; ours follows
+            return;
+        }
+        deadline.set(Long.MAX_VALUE);
+        generating = true;
+        Ovvar.LOGGER.info("[ovvar] rebuilding the resource pack for {} new combination(s)",
+                KNOWN.size() - BUILT.getOrDefault(generation, Set.of()).size());
+        PolymerResourcePackMod.generateAndCall(s, false, message -> Ovvar.LOGGER.info("[ovvar] {}", message.getString()), result -> {});
+    }
+
+    /** A build finished (server thread): a new generation; players who asked for its combinations get it. */
+    private static void built(Set<String> combos) {
+        generation++;
+        BUILT.put(generation, combos);
+        generating = false;
+        int online = Integer.MAX_VALUE;
+        for (int g : LOADED.values()) online = Math.min(online, g);
+        for (int g : PUSHED.values()) online = Math.min(online, g);
+        int keep = online;
+        BUILT.keySet().removeIf(g -> g < keep && g < generation);
+        for (var e : REQUESTED_BY.entrySet()) {
+            if (combos.contains(e.getKey())) NEEDS_PUSH.addAll(e.getValue());
+        }
+        REQUESTED_BY.keySet().removeIf(combos::contains);
+        if (!combos.containsAll(KNOWN)) deadline.accumulateAndGet(now() + URGENT_MS, Math::min);
+        Ovvar.LOGGER.info("[ovvar] pack generation {}: {} combination(s); {} player(s) to update", generation, combos.size(), NEEDS_PUSH.size());
+    }
+
+    private static void pushWhereNeeded(MinecraftServer s) {
+        if (NEEDS_PUSH.isEmpty()) return;
+        for (UUID id : List.copyOf(NEEDS_PUSH)) {
+            ServerPlayer player = s.getPlayerList().getPlayer(id);
+            if (player == null || PUSHED.getOrDefault(id, 0) >= generation) {
+                NEEDS_PUSH.remove(id);
+                continue;
+            }
+            if (now() - LAST_PUSH.getOrDefault(id, 0L) < PUSH_GAP_MS) continue;
+            push(player);
+            NEEDS_PUSH.remove(id);
+        }
+    }
+
+    /** The same push Polymer's {@code /polymer generate-pack reload} does, for one player. */
+    private static void push(ServerPlayer player) {
+        var provider = ResourcePackDataProvider.getActive();
+        var context = player.connection.getPacketContext();
+        if (!provider.isReady(context)) return;
+        for (var info : provider.getProperties(context)) {
+            player.connection.send(new ClientboundResourcePackPushPacket(info.id(), info.url(), info.hash(),
+                    PolymerResourcePackUtils.isRequired(), Optional.empty()));
+        }
+        PUSHED.put(player.getUUID(), generation);
+        LAST_PUSH.put(player.getUUID(), now());
+        Ovvar.LOGGER.info("[ovvar] sent pack generation {} to {}", generation, player.getName().getString());
     }
 
     /**
@@ -102,6 +220,8 @@ public final class Combos {
      * only sent on change, and nothing changed server-side).
      */
     public static void packLoaded(ServerPlayer player) {
+        UUID id = player.getUUID();
+        LOADED.put(id, PUSHED.getOrDefault(id, generation));
         int sent = 0;
         for (LivingEntity entity : player.level().getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(RESYNC_RANGE))) {
             if (entity == player) continue;
@@ -116,32 +236,7 @@ public final class Combos {
         }
         player.containerMenu.sendAllDataToRemote();
         player.inventoryMenu.sendAllDataToRemote();
-        Ovvar.LOGGER.debug("[ovvar] {} loaded the pack; re-sent {} wearer(s)", player.getName().getString(), sent);
-    }
-
-    public static boolean isBuilt(Piece piece, String combo) {
-        return combo.isEmpty() || built.contains(key(piece, combo));
-    }
-
-    /** Ask for a combination; safe from any thread (item packets are encoded off the server thread). */
-    public static void request(Piece piece, String combo, boolean urgent) {
-        String key = key(piece, combo);
-        if (built.contains(key)) return;
-        if (KNOWN.add(key)) dirty.set(true);
-        deadline.accumulateAndGet(now() + (urgent ? URGENT_MS : LAZY_MS), Math::min);
-    }
-
-    private static void tick(MinecraftServer s) {
-        if (dirty.compareAndSet(true, false)) save(s);
-        if (now() < deadline.get() || generating) return;
-        if (PolymerResourcePackMod.alreadyGeneration) {
-            deadline.set(now() + 1_000);   // someone else's build; ours follows
-            return;
-        }
-        deadline.set(Long.MAX_VALUE);
-        generating = true;
-        Ovvar.LOGGER.info("[ovvar] rebuilding the resource pack for {} new combination(s)", KNOWN.size() - built.size());
-        s.getCommands().performPrefixedCommand(s.createCommandSourceStack().withSuppressedOutput(), "polymer generate-pack reload");
+        Ovvar.LOGGER.debug("[ovvar] {} loaded pack generation {}; re-sent {} wearer(s)", player.getName().getString(), LOADED.get(id), sent);
     }
 
     // ---- keys

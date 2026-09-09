@@ -11,6 +11,7 @@ import net.minecraft.world.item.equipment.EquipmentAssets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * What the client draws for a stack. The sewn patches live in {@code ovvar:patches} as
@@ -94,18 +95,19 @@ public final class Looks {
     /** One half as the client should see it: the asset combo the pack holds, and the dye bits for the rest. */
     public record Look(String combo, int dye) {}
 
-    public static Look look(ItemStack stack, Piece piece) {
+    /** @param player who the packet is for (their pack may be older than the current one), or null */
+    public static Look look(ItemStack stack, Piece piece, UUID player) {
         List<Placement> all = sewn(stack, piece);
         Placement preview = preview(stack);
         if (preview != null && preview.piece() != piece) preview = null;
 
         // The longest prefix (in sewing order) the pack already has; the rest rides in the dye bits.
         int baked = all.size();
-        while (baked > 0 && !Combos.isBuilt(piece, Placement.combo(all.subList(0, baked)))) baked--;
+        while (baked > 0 && !Combos.isBuilt(piece, Placement.combo(all.subList(0, baked)), player)) baked--;
         List<Placement> rest = new ArrayList<>(all.subList(baked, all.size()));
         int room = SLOTS - (preview == null ? 0 : 1);
         boolean urgent = rest.size() > room;
-        if (baked < all.size()) Combos.request(piece, Placement.combo(all), urgent);
+        if (baked < all.size()) Combos.request(piece, Placement.combo(all), urgent, player);
         List<Placement> slots = new ArrayList<>(rest.subList(Math.max(0, rest.size() - room), rest.size()));
         if (preview != null) slots.add(preview);
 

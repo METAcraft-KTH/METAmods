@@ -1,6 +1,8 @@
 package metacraft.ovvar.content;
 
+import com.mojang.authlib.GameProfile;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.component.DataComponents;
@@ -85,9 +87,10 @@ public final class OvveTop {
      * swap (that click is the bundle's), the half's patch bits as the dye colour (hidden from the
      * tooltip), and no way to dye it at a cauldron or crafting table.
      */
-    static void dress(ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad) {
+    static void dress(ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad, PacketContext context) {
         if (base == null) throw new IllegalStateException("garment lost its equippable component");
-        Looks.Look look = Looks.look(garment, piece);
+        GameProfile profile = context == null ? null : context.get(PacketContext.GAME_PROFILE);
+        Looks.Look look = Looks.look(garment, piece, profile == null ? null : profile.id());
         client.set(DataComponents.EQUIPPABLE, Equippable.builder(base.slot())
                 .setEquipSound(base.equipSound())
                 .setAsset(Looks.asset(chapter, piece, nercabbad, look.combo()))
