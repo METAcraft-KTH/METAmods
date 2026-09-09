@@ -71,6 +71,11 @@ public enum Spot {
     /** The cells a seat patch covers, which a seat patch and a plain patch fight over. */
     public static final java.util.List<Spot> SEAT_CELLS = java.util.List.of(LEG_BACK_TOP_R, LEG_BACK_TOP_L);
 
+    /** The cells of one half in a fixed order; a cell's index here is what the instant channel carries. */
+    public static java.util.List<Spot> cells(Piece piece) {
+        return java.util.Arrays.stream(values()).filter(s -> s.piece == piece).toList();
+    }
+
     /** The cell nearest a strip position in its column (u, side), or null if the column has none. */
     public static Spot nearest(Piece piece, int u, double v, Side side) {
         Spot best = null;

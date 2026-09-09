@@ -5,7 +5,11 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import metacraft.ovvar.pack.Trims;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -84,10 +88,12 @@ public final class OvveTop {
 
     /**
      * What a vanilla client is told about a garment half: our equipment asset, no right-click
-     * swap (that click is the bundle's), the half's patch bits as the dye colour (hidden from the
-     * tooltip), and no way to dye it at a cauldron or crafting table.
+     * swap (that click is the bundle's), the half's instant patches as the dye colour and its first
+     * patch as the armour trim (both hidden from the tooltip), and no way to dye it at a cauldron
+     * or crafting table.
      */
-    static void dress(ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad, PacketContext context) {
+    static void dress(ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad,
+                      PacketContext context, HolderLookup.Provider lookup) {
         if (base == null) throw new IllegalStateException("garment lost its equippable component");
         GameProfile profile = context == null ? null : context.get(PacketContext.GAME_PROFILE);
         Looks.Look look = Looks.look(garment, piece, profile == null ? null : profile.id());
@@ -98,12 +104,21 @@ public final class OvveTop {
                 .setSwappable(false)
                 .setDispensable(false)
                 .build());
+        TooltipDisplay display = client.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
         if (look.dye() != 0) {
             client.set(DataComponents.DYED_COLOR, new DyedItemColor(look.dye()));
-            TooltipDisplay display = client.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
-            client.set(DataComponents.TOOLTIP_DISPLAY, display.withHidden(DataComponents.DYED_COLOR, true));
+            display = display.withHidden(DataComponents.DYED_COLOR, true);
         } else {
             client.remove(DataComponents.DYED_COLOR);
         }
+        if (look.trim() != null) {
+            var pattern = lookup.lookupOrThrow(Registries.TRIM_PATTERN).getOrThrow(ResourceKey.create(Registries.TRIM_PATTERN, Trims.pattern(look.trim())));
+            var material = lookup.lookupOrThrow(Registries.TRIM_MATERIAL).getOrThrow(ResourceKey.create(Registries.TRIM_MATERIAL, Trims.material()));
+            client.set(DataComponents.TRIM, new ArmorTrim(material, pattern));
+            display = display.withHidden(DataComponents.TRIM, true);
+        } else {
+            client.remove(DataComponents.TRIM);
+        }
+        client.set(DataComponents.TOOLTIP_DISPLAY, display);
     }
 }

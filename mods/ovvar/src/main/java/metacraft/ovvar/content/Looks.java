@@ -2,6 +2,7 @@ package metacraft.ovvar.content;
 
 import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.pack.Combos;
+import metacraft.ovvar.pack.Trims;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
@@ -24,8 +25,18 @@ import java.util.UUID;
 public final class Looks {
     private Looks() {}
 
-    /** Preview slots in the dye colour: two of {@value #SLOT_BITS} bits (cell in 6, patch in 5). */
-    public static final int SLOTS = 2, SLOT_BITS = 11, CELL_BITS = 6;
+    /**
+     * The instant channel: up to {@value #INSTANT} placements per half ride in the dye colour, as
+     * the rank of their set among all sets of (cell, design) states — cells × {@value #INSTANT_DESIGNS}
+     * designs, the first ones in the catalogue. Ranked combinations use the bits far better than
+     * fixed slots: three on the top (28 cells × 16 = 448 states, C(448,3) ≈ 15M) fit under 255³.
+     */
+    public static final int INSTANT = 3, INSTANT_DESIGNS = 16;
+
+    /** Can this placement ride in the dye colour? (Its design must be among the first {@value #INSTANT_DESIGNS}.) */
+    public static boolean instant(Placement p) {
+        return Patches.code(p.patch()) <= INSTANT_DESIGNS;
+    }
 
     // ---- placements
 
@@ -92,33 +103,71 @@ public final class Looks {
 
     // ---- what the client gets
 
-    /** One half as the client should see it: the asset combo the pack holds, and the dye bits for the rest. */
-    public record Look(String combo, int dye) {}
+    /**
+     * One half as the client should see it: the placement worn as the armour trim (or null), the
+     * asset combo the pack holds, and the dye bits for the rest.
+     */
+    public record Look(Placement trim, String combo, int dye) {}
 
     /** @param player who the packet is for (their pack may be older than the current one), or null */
     public static Look look(ItemStack stack, Piece piece, UUID player) {
         List<Placement> all = sewn(stack, piece);
         Placement preview = preview(stack);
-        if (preview != null && preview.piece() != piece) preview = null;
+        if (preview != null && (preview.piece() != piece || !instant(preview))) preview = null;
 
-        // The longest prefix (in sewing order) the pack already has; the rest rides in the dye bits.
-        int baked = all.size();
-        while (baked > 0 && !Combos.isBuilt(piece, Placement.combo(all.subList(0, baked)), player)) baked--;
-        List<Placement> rest = new ArrayList<>(all.subList(baked, all.size()));
-        int room = SLOTS - (preview == null ? 0 : 1);
-        boolean urgent = rest.size() > room;
-        if (baked < all.size()) Combos.request(piece, Placement.combo(all), urgent, player);
-        List<Placement> slots = new ArrayList<>(rest.subList(Math.max(0, rest.size() - room), rest.size()));
-        if (preview != null) slots.add(preview);
+        // The first patch sewn on the half is worn as the trim — unless it is being aimed at, since the
+        // trim is drawn over everything and would hide the preview.
+        Placement trim = all.stream().filter(Trims::fits).findFirst().orElse(null);
+        if (trim != null && preview != null && (preview.spot() == trim.spot() || preview.spot().overlapping().contains(trim.spot()))) trim = null;
+        List<Placement> core = new ArrayList<>(all);
+        if (trim != null) core.remove(trim);
 
-        int bits = 0;
-        for (int i = 0; i < slots.size(); i++) {
-            Placement p = slots.get(i);
-            int cell = p.spot().ordinal() + 1, patch = Patches.code(p.patch());
-            if (cell >= 1 << CELL_BITS || patch >= 1 << (SLOT_BITS - CELL_BITS)) throw new IllegalStateException("preview slot cannot hold " + p);
-            bits |= (cell | patch << CELL_BITS) << (SLOT_BITS * i);
+        // The longest prefix (in sewing order) the pack already has; the rest rides in the dye bits
+        // if it fits there (few enough, designs the channel can name), else the pack must catch up.
+        int baked = core.size();
+        while (baked > 0 && !Combos.isBuilt(piece, Placement.combo(core.subList(0, baked)), player)) baked--;
+        List<Placement> rest = new ArrayList<>(core.subList(baked, core.size()));
+        int room = INSTANT - (preview == null ? 0 : 1);
+        boolean urgent = rest.size() > room || !rest.stream().allMatch(Looks::instant);
+        if (baked < core.size()) Combos.request(piece, Placement.combo(core), urgent, player);
+        List<Placement> shown = new ArrayList<>();
+        for (int i = rest.size() - 1; i >= 0 && shown.size() < room; i--) if (instant(rest.get(i))) shown.add(rest.get(i));
+        if (preview != null) {
+            Spot aimed = preview.spot();
+            shown.removeIf(p -> p.spot() == aimed || aimed.overlapping().contains(p.spot()));
+            shown.add(preview);
         }
-        return new Look(Placement.combo(all.subList(0, baked)), bits == 0 ? 0 : encode(bits));
+        return new Look(trim, Placement.combo(core.subList(0, baked)), shown.isEmpty() ? 0 : encode(rank(piece, shown)));
+    }
+
+    // ---- ranking the instant set (mirrored in ovvar.glsl)
+
+    /** A placement's state: cell index in its half × designs + design index. */
+    static int state(Placement p) {
+        int cell = Spot.cells(p.piece()).indexOf(p.spot());
+        int design = Patches.code(p.patch()) - 1;
+        if (cell < 0 || design < 0 || design >= INSTANT_DESIGNS) throw new IllegalArgumentException("not an instant placement: " + p);
+        return cell * INSTANT_DESIGNS + design;
+    }
+
+    /** 1 + the rank of the set among k-sets of the half's states, after all smaller k (0 = empty set). */
+    static int rank(Piece piece, List<Placement> set) {
+        int m = Spot.cells(piece).size() * INSTANT_DESIGNS;
+        int[] s = set.stream().mapToInt(Looks::state).sorted().toArray();
+        if (s.length > INSTANT) throw new IllegalArgumentException("more than " + INSTANT + " instant placements");
+        for (int i = 1; i < s.length; i++) if (s[i] == s[i - 1]) throw new IllegalArgumentException("duplicate placement");
+        long value = 0;
+        for (int k = 0; k < s.length; k++) value += choose(m, k);   // all sets smaller than this one's size
+        for (int i = 0; i < s.length; i++) value += choose(s[i], i + 1);  // combinadic
+        if (value >= 255L * 255 * 255) throw new IllegalStateException("instant channel overflow: " + value);
+        return (int) value;
+    }
+
+    static long choose(int n, int k) {
+        if (k < 0 || k > n) return 0;
+        long r = 1;
+        for (int i = 1; i <= k; i++) r = r * (n - k + i) / i;
+        return r;
     }
 
     // ---- assets

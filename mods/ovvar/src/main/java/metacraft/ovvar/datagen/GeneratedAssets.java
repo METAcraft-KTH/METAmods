@@ -10,8 +10,10 @@ import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Piece;
+import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Spot;
 import metacraft.ovvar.pack.EquipmentJson;
+import metacraft.ovvar.pack.Trims;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
@@ -117,26 +119,57 @@ public final class GeneratedAssets implements DataProvider {
             }
         }
 
+        // The trim channel: one trim pattern per (cell, plain patch). Limb cells are alpha-tagged
+        // with their side; the atlas source and an identity palette make the art come through as is.
+        List<String> trimTextures = new ArrayList<>();
+        for (Spot spot : Spot.values()) {
+            for (Patches.Patch patch : Patches.all()) {
+                if (!patch.fits(spot) || spot == Spot.SEAT) continue;
+                Placement placement = new Placement(spot, patch.id());
+                String name = Trims.patternName(placement);
+                Tex art = arts.get(patch.id());
+                Tex tex = Tex.blank(64, 32).blit(art, 0, 0, Spot.SIZE, Spot.SIZE, spot.u, spot.v);
+                if (spot.side == Spot.Side.LEFT) tex = tex.flipX(spot.u, spot.v, Spot.SIZE, Spot.SIZE).tagOpaque(Trims.ALPHA_LEFT);
+                if (spot.side == Spot.Side.RIGHT) tex = tex.tagOpaque(Trims.ALPHA_RIGHT);
+                png(assets.resolve("textures/trims/entity/" + spot.piece.layer + "/" + name + ".png"), tex);
+                trimTextures.add(MOD + ":trims/entity/" + spot.piece.layer + "/" + name);
+                json(data.resolve("trim_pattern/" + name + ".json"),
+                        obj("asset_id", MOD + ":" + name, "decal", false, "description", obj("text", patch.name() + " on the " + spot.label())));
+            }
+        }
+        json(data.resolve("trim_material/" + Trims.MATERIAL + ".json"), obj("asset_name", Trims.MATERIAL, "description", obj("text", "Patch")));
+        png(assets.resolve("textures/trims/color_palettes/" + Trims.MATERIAL + ".png"), Vanilla.texture("trims/color_palettes/trim_palette"));
+        json(assets.getParent().resolve("minecraft/atlases/armor_trims.json"), obj("sources", arr(obj(
+                "type", "minecraft:paletted_permutations",
+                "textures", arr(trimTextures.toArray()),
+                "palette_key", "minecraft:trims/color_palettes/trim_palette",
+                "permutations", obj(Trims.MATERIAL, MOD + ":trims/color_palettes/" + Trims.MATERIAL)))));
+        Ovvar.LOGGER.info("[{} datagen] {} trim patterns", MOD, trimTextures.size());
+
         // The preview layer per half: every patch's art in the library, the cell and patch tables,
         // marker kind 2. The shader draws what the dye colour's slots name.
         Map<String, int[]> library = new LinkedHashMap<>();
         int next = 0;
         for (Patches.Patch patch : Patches.all()) {
+            if (Patches.code(patch.id()) > Looks.INSTANT_DESIGNS) continue;   // never previewed: no library entry
             require(next + patch.cells() <= LIBRARY.size(), "the preview library is full (" + LIBRARY.size() + " cells); make it bigger");
             library.put(patch.id(), LIBRARY.get(next));
             next += patch.cells();
         }
         for (Piece piece : Piece.values()) {
-            Tex tex = Tex.blank(64, 32).with(MARKER_KIND_X, MARKER_Y, rgb(KIND_PREVIEW, 0, 0));
+            List<Spot> cells = Spot.cells(piece);
+            require(cells.size() <= 64 && Looks.INSTANT_DESIGNS <= 64, "the preview tables hold 64 cells and 64 designs");
+            Tex tex = Tex.blank(64, 32).with(MARKER_KIND_X, MARKER_Y, rgb(KIND_PREVIEW, cells.size(), Looks.INSTANT_DESIGNS));
             for (Patches.Patch patch : Patches.all()) {
-                Tex art = arts.get(patch.id());
                 int[] at = library.get(patch.id());
+                if (at == null) continue;
+                Tex art = arts.get(patch.id());
                 tex = tex.blit(art, 0, 0, art.width, art.height, at[0], at[1]);
-                int code = Patches.code(patch.id());
-                tex = tex.with(PATCH_TABLE_X + code / 16, code % 16, rgb(at[0], at[1], patch.cells()));
+                int design = Patches.code(patch.id()) - 1;
+                tex = tex.with(PATCH_TABLE_X + design / 16, design % 16, rgb(at[0], at[1], patch.cells()));
             }
-            for (Spot spot : Spot.values()) {
-                int index = spot.ordinal() + 1;
+            for (int index = 0; index < cells.size(); index++) {
+                Spot spot = cells.get(index);
                 tex = tex.with(CELL_TABLE_X + index / 16, index % 16, rgb(spot.u, spot.v, spot.side.ordinal()));
             }
             require(tex.get(BLANK_X, BLANK_Y) == 0, "the preview texture draws on the blank texel");
@@ -218,11 +251,11 @@ public final class GeneratedAssets implements DataProvider {
 
     // ---- the texel contract with ovvar.glsl
 
-    /** (62,15): R = kind, G = side for sided textures. Base textures have no kind texel (0). */
+    /** (62,15): R = kind; sided: G = side; preview: G = cells in the half, B = instant designs. Base textures have none (0). */
     private static final int MARKER_KIND_X = 62, KIND_SIDED = 1, KIND_PREVIEW = 2;
     /** Always transparent in a patch texture: what the shader draws where there is nothing. */
     private static final int BLANK_X = 63, BLANK_Y = 14;
-    /** Preview texture tables, column-major 16 tall: cell index → (u, v, side); patch code → (library x, y, cells). */
+    /** Preview texture tables, column-major 16 tall: cell index (in the half) → (u, v, side); design index → (library x, y, cells). */
     private static final int CELL_TABLE_X = 40, PATCH_TABLE_X = 44;
     /** Preview library: 4×4 cells in the head rows nothing else uses (not the tables, not the marker row). */
     private static final List<int[]> LIBRARY = library();

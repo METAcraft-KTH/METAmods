@@ -8,8 +8,10 @@ import java.util.stream.Collectors;
 /**
  * The patch catalogue: the art that can be sewn on. A plain patch is 4×4 and goes on any cell
  * ({@link Spot}); a seat patch is 8×4 and goes across the seat only. Adding a patch is one line
- * here plus its PNG at {@code art/ovvar/patches/<id>.png}, then {@code runDatagen}. Items store
- * patches by id, so the order is free; the index only travels in the (transient) preview bits.
+ * here plus its PNG at {@code art/ovvar/patches/<id>.png}, then {@code runDatagen}. The first
+ * {@value Looks#INSTANT_DESIGNS} can ride in the dye colour (sewn ones show at once, and they can
+ * be previewed); later ones always go through the pack. Items store patches by id, so the order
+ * is otherwise free.
  */
 public final class Patches {
     private Patches() {}
@@ -30,8 +32,6 @@ public final class Patches {
         }
     }
 
-    /** Most patches the preview bits can name (5 bits, 0 = none). */
-    public static final int MAX = 31;
 
     // Placeholder set for testing the system; real patch art replaces these one for one.
     private static final List<Patch> ALL = List.of(
@@ -48,10 +48,6 @@ public final class Patches {
 
     private static final Map<String, Patch> BY_ID = ALL.stream()
             .collect(Collectors.toMap(Patch::id, p -> p, (a, b) -> { throw new IllegalStateException("duplicate patch id " + a.id()); }, LinkedHashMap::new));
-
-    static {
-        if (ALL.size() > MAX) throw new IllegalStateException(ALL.size() + " patches; the preview bits can name " + MAX);
-    }
 
     public static List<Patch> all() {
         return ALL;

@@ -284,8 +284,8 @@ public final class Patcher {
         String assign = "\n    " + shadow(uv) + " = ovvar_raw_" + uv.name + "();\n"
                 + "    " + shadow(uv) + ".xy = ovvar_uv(" + shadow(uv) + ".xy);\n"
                 + "    " + shadow(color) + " = " + (color.type.equals("vec4")
-                        ? "ovvar_shade(ovvar_raw_" + color.name + "())"
-                        : "ovvar_shade(vec4(ovvar_raw_" + color.name + "(), 1.0)).rgb") + ";\n";
+                        ? "ovvar_shade(ovvar_raw_" + color.name + "(), " + shadow(uv) + ".xy)"
+                        : "ovvar_shade(vec4(ovvar_raw_" + color.name + "(), 1.0), " + shadow(uv) + ".xy).rgb") + ";\n";
         StringBuilder out = new StringBuilder(frag);
         out.insert(main.end(), assign);
         out.insert(main.start(), helper);

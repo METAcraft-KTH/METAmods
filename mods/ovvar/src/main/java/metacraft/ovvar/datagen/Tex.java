@@ -91,6 +91,13 @@ final class Tex {
         return new Tex(width, height, out);
     }
 
+    /** Copy with every fully opaque texel's alpha set to {@code alpha} (a tag the shader can read). */
+    Tex tagOpaque(int alpha) {
+        int[] out = this.argb.clone();
+        for (int i = 0; i < out.length; i++) if (a(out[i]) == 255) out[i] = pack(alpha, r(out[i]), g(out[i]), b(out[i]));
+        return new Tex(width, height, out);
+    }
+
     /** Copy with one texel replaced. */
     Tex with(int x, int y, int argb) {
         int[] out = this.argb.clone();
