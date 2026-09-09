@@ -1,19 +1,15 @@
 package metacraft.ovvar.content;
 
 /**
- * Where a patch sits: a 4×4 texel cell in the garment's 64×32 layer texture. Cells never overlap,
- * so patch layers can be drawn in any order. Left/right in chest and back names are as seen by
- * someone facing that side of the wearer; in sleeve and leg names they are the wearer's own
- * left and right limb.
+ * A 4×4 texel cell on the garment, in the 64×32 armour layout. Left/right in sleeve and leg
+ * names are the wearer's own; in chest and back names they are as seen by someone facing that
+ * side. Sleeve and leg cells sit on the right limb's strips: the armour model draws the left limb
+ * as a mirror image off the same strips, and the shader tells the two apart by the handedness
+ * of the texture mapping, so a LEFT cell is the same rectangle drawn only on mirrored fragments
+ * (with its art flipped back).
  *
- * The armour model draws the left arm and leg as mirror images of the right ones, off the same
- * texture strips. Our core shader (assets/minecraft/shaders/core/entity.fsh) makes mirrored
- * fragments sample the same box one strip up (v − 16), so {@link Side#LEFT} cells are the right
- * cells' coordinates shifted into the free top strip; datagen also flips their art horizontally,
- * since the model's mirroring flips it back.
- *
- * Box strips (64×32 armour layout, rows 20–32): body 16 right | 20 front | 28 left | 32 back;
- * arm 40 outer | 44 front | 48 inner | 52 back; leg 0 outer | 4 front | 8 inner | 12 back.
+ * Box strips (rows 20–32): body 16 right | 20 front | 28 left | 32 back; arm 40 outer | 44 front
+ * | 48 inner | 52 back; leg 0 outer | 4 front | 8 inner | 12 back.
  */
 public enum Spot {
     // top: chest, 2 columns × 3 rows
@@ -37,6 +33,7 @@ public enum Spot {
     LEG_BACK_TOP_R(Piece.BOTTOM, 12, 20, Side.RIGHT), LEG_BACK_MID_R(Piece.BOTTOM, 12, 24, Side.RIGHT), LEG_BACK_LOW_R(Piece.BOTTOM, 12, 28, Side.RIGHT),
     LEG_BACK_TOP_L(Piece.BOTTOM, 12, 20, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 24, Side.LEFT), LEG_BACK_LOW_L(Piece.BOTTOM, 12, 28, Side.LEFT);
 
+    /** BODY = an unmirrored face; RIGHT/LEFT = the limb the cell is drawn on. Ordinal is what the shader reads. */
     public enum Side { BODY, RIGHT, LEFT }
 
     public static final int SIZE = 4;
@@ -45,7 +42,7 @@ public enum Spot {
 
     public final Piece piece;
     public final Side side;
-    /** Cell origin in the standard layout (the right limb's strip for limb spots). */
+    /** Cell origin in the standard layout (the right limb's strip for limb cells). */
     public final int u, v;
 
     Spot(Piece piece, int u, int v) {
@@ -72,10 +69,5 @@ public enum Spot {
         if (rest.startsWith("leg_front_")) return limb + "leg, front " + rest.substring(10);
         if (rest.startsWith("leg_back_")) return limb + "leg, back " + rest.substring(9);
         return n.replace('_', ' ');
-    }
-
-    /** Where datagen actually draws the cell: left-limb cells go to the mirror strip. */
-    public int drawV() {
-        return side == Side.LEFT ? v - MIRROR_SHIFT : v;
     }
 }

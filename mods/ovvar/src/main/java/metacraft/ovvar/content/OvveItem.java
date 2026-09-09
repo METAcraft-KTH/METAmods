@@ -23,6 +23,7 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * A chapter's ovve: one item, worn in the legs slot, with pockets. It is a bundle with
@@ -85,17 +86,15 @@ public final class OvveItem extends BundleItem implements PolymerItem {
             tooltip.add(Component.literal("Sneak + right-click: " + (up ? "zip down" : "zip up")).withStyle(ChatFormatting.DARK_GRAY));
         }
         tooltip.add(Component.literal("Right-click: empty the pockets").withStyle(ChatFormatting.DARK_GRAY));
-        List<String> patches = Looks.patches(stack);
-        if (patches.isEmpty()) {
+        Map<String, String> sewn = Looks.sewn(stack);
+        if (sewn.isEmpty()) {
             tooltip.add(Component.literal("No patches yet").withStyle(ChatFormatting.GRAY));
         } else {
             tooltip.add(Component.literal("Patches:").withStyle(ChatFormatting.GRAY));
-            for (String id : patches) {
-                Patches.Patch patch = Patches.get(id);
-                tooltip.add(Component.literal("  " + patch.name() + " — " + patch.spot().label()).withStyle(ChatFormatting.GRAY));
-            }
+            sewn.forEach((field, patch) -> tooltip.add(Component.literal("  " + Patches.get(patch).name() + " — " + Layout.get(field).name())
+                    .withStyle(ChatFormatting.GRAY)));
         }
-        tooltip.add(Component.literal("Smithing table: " + chapter.garmentWord() + " + patch to sew one on").withStyle(ChatFormatting.DARK_GRAY));
+        tooltip.add(Component.literal("Sew: put it on an armour stand, aim a patch at the spot, right-click").withStyle(ChatFormatting.DARK_GRAY));
     }
 
     @Override
@@ -111,7 +110,7 @@ public final class OvveItem extends BundleItem implements PolymerItem {
     @Override
     public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
         ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
-        out.set(DataComponents.EQUIPPABLE, OvveTop.equippable(stack.get(DataComponents.EQUIPPABLE), Looks.bottom(stack)));
+        OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), Looks.bottom(stack), Piece.BOTTOM, Looks.shown(stack));
         return out;
     }
 }

@@ -15,11 +15,15 @@ import java.util.List;
 public final class ModComponents {
     private ModComponents() {}
 
-    /** Patch ids sewn on a garment, in sewing order. Absent or empty = plain garment. */
+    /** {@code field=patch} entries sewn on the ovve (see Layout). Absent or empty = plain ovve. */
     public static final DataComponentType<List<String>> PATCHES = register("patches",
             DataComponentType.<List<String>>builder()
                     .persistent(Codec.STRING.listOf())
                     .networkSynchronized(ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list())));
+
+    /** One {@code field=patch} being previewed on an armour stand while a player aims a patch at it. Never sewn. */
+    public static final DataComponentType<String> PREVIEW = register("preview",
+            DataComponentType.<String>builder().persistent(Codec.STRING).networkSynchronized(ByteBufCodecs.STRING_UTF8));
 
     /** Whether the ovve's top is worn up (sleeves on) rather than hanging at the waist. Absent = down. */
     public static final DataComponentType<Boolean> TOP_UP = register("top_up",
@@ -32,6 +36,6 @@ public final class ModComponents {
     public static void init() {
         // Registered types land in a synced registry; without this Fabric's registry sync kicks
         // vanilla clients ("requires Fabric Loader"). Polymer hides them and never sends them.
-        PolymerComponent.registerDataComponent(PATCHES, TOP_UP);
+        PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP);
     }
 }

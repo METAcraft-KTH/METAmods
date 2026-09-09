@@ -28,51 +28,44 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Patches Iris/OptiFine shaderpacks so Ovvar's left and right limb patches render differently.
+ * Patches Iris/OptiFine shaderpacks so Ovvar's overalls show their patches, and different ones
+ * on the left and right limbs.
  *
  * Ovvar (metacraft.se) ships a vanilla core-shader override that a shaderpack replaces wholesale,
- * so shaderpack users see mirrored limbs. This tool adds the same remap to the pack's own entity
- * program: on Ovvar's armour textures (marked by a magenta alpha-2 texel at 63,15 of a 64×32
- * texture) fragments of a mirrored limb sample the arm/leg boxes one strip up, where the
- * left-side art lives.
- *
- * How: the entity fragment program's texture-coordinate varying is renamed on both the vertex
- * and fragment side, and a plain global with the original name is declared in the fragment
- * program and assigned the remapped coordinate at the top of main(). Every use of the
- * coordinate — in the file, in its includes, in macros — then sees the remapped value, whatever
- * way the pack samples its textures. Nothing else in the pack is touched; originals are kept.
+ * so shaderpack users see plain overalls with mirrored limbs. This tool puts the same code
+ * (ovvar.glsl, bundled in this jar) into the pack's own entity program:
+ * <ul>
+ *   <li>fragment stage: right after the texture-coordinate varying's declaration, a global of
+ *       the same type is declared and the varying's name is {@code #define}d to it, so every use
+ *       — in the file, in its includes, in macros — reads the global; the same for the vertex
+ *       colour varying. At the top of main() the globals are set to the remapped coordinate and
+ *       the un-dyed colour;</li>
+ *   <li>vertex stage: a varying {@code ovvar_color} carries the raw vertex colour (the dye
+ *       colour, which holds the patch bits) to the fragment stage.</li>
+ * </ul>
+ * Nothing else in the pack is touched; originals are kept. Textures that are not Ovvar's are
+ * sampled exactly as before.
  *
  * Double-click: patches every pack in the Minecraft shaderpacks folder and shows a summary.
  * Command line: {@code java -jar OvvarShaderPatcher.jar [pack.zip|folder ...] [--dry-run]}.
  */
 public final class Patcher {
     private static final String SUFFIX = "+ovvar";
-    private static final String TAG = "ovvar_remap";
-
-    private static final String HELPER =
-            "\n// --- Ovvar: asymmetric limbs (metacraft.se). On Ovvar's armour textures (marker texel at 63,15)\n"
-            + "// the left arm and leg, the model's mirror images of the right ones, sample their boxes one\n"
-            + "// strip up, where the left-side art is drawn.\n"
-            + "vec2 ovvar_remap(vec2 uv) {\n"
-            + "    vec2 ovvar_du = dFdx(uv), ovvar_dv = dFdy(uv);\n"
-            + "    float ovvar_det = ovvar_du.x * ovvar_dv.y - ovvar_dv.x * ovvar_du.y;\n"
-            + "    vec4 ovvar_marker = %SAMPLE%(%SAMPLER%, vec2(63.5 / 64.0, 15.5 / 32.0));\n"
-            + "    if (any(greaterThan(abs(ovvar_marker - vec4(1.0, 0.0, 1.0, 2.0 / 255.0)), vec4(0.5 / 255.0)))) return uv;\n"
-            + "    bool ovvar_limb = uv.y >= 0.5 && (uv.x < 16.0 / 64.0 || (uv.x >= 40.0 / 64.0 && uv.x < 56.0 / 64.0));\n"
-            + "    if (!ovvar_limb) return uv;\n"
-            + "    bool ovvar_mirrored = (ovvar_det > 0.0) == gl_FrontFacing;\n"
-            + "    return ovvar_mirrored ? uv - vec2(0.0, 0.5) : uv;\n"
-            + "}\n"
-            + "// --- end Ovvar\n";
+    private static final String TAG = "ovvar_uv";
+    private static final String GLSL = readResource("/ovvar.glsl");
 
     /** Texture-coordinate varying names, most likely first. */
     private static final List<String> UV_NAMES = Arrays.asList(
             "texCoord", "texcoord", "uv", "TexCoord", "texCoords", "texcoords", "lmtexcoord", "vTexCoord", "coord");
+    /** Vertex-colour varying names, most likely first. */
+    private static final List<String> COLOR_NAMES = Arrays.asList(
+            "color", "glcolor", "glColor", "vColor", "vertexColor", "vcolor", "colour", "vertColor", "col", "tint", "tintColor");
     private static final String ALBEDO = "gtexture|texture|tex|gcolor";
 
     private static final Pattern FRAGMENT_MARKER = Pattern.compile("(?m)^\\s*#\\s*if(?:def)?\\s+.*\\b(FSH|FRAGMENT_SHADER|FRAGMENT)\\b");
     private static final Pattern VERTEX_MARKER = Pattern.compile("(?m)^\\s*#\\s*if(?:def)?\\s+.*\\b(VSH|VERTEX_SHADER|VERTEX)\\b");
     private static final Pattern INCLUDE = Pattern.compile("(?m)^\\s*#\\s*include\\s+\"([^\"]+)\"");
+    private static final Pattern VERSION = Pattern.compile("(?m)^\\s*#\\s*version\\s+(\\d+)");
     private static final Pattern SAMPLER_DECL = Pattern.compile("uniform\\s+sampler2D\\s+([^;]*)\\b(" + ALBEDO + ")\\b");
     private static final Pattern MAIN = Pattern.compile("(?m)^\\s*void\\s+main\\s*\\(\\s*\\)\\s*\\{");
     /** A varying declaration statement: qualifiers, type, comma-separated names. */
@@ -257,47 +250,99 @@ public final class Patcher {
             say("  " + fragPath + ": no albedo sampler (uniform sampler2D gtexture/texture/tex), not even in includes; skipped");
             return null;
         }
-        String sampleFn = frag.contains("texture2D(") ? "texture2D" : "texture";
+        String sampleFn = glslVersion(fragText) < 130 ? "texture2D" : "texture";
 
-        Decl uv = findUv(frag, "in|varying");
+        Decl uv = findVarying(frag, "in|varying", UV_NAMES, false, "texcoord");
         if (uv == null) {
             say("  " + fragPath + ": no texture-coordinate varying found; skipped");
             return null;
         }
-        Matcher main = MAIN.matcher(frag);
-        if (!main.find(uv.end)) {
-            say("  " + fragPath + ": no void main() after the varying; skipped");
+        Decl color = findVarying(frag, "in|varying", COLOR_NAMES, true, "col", "tint");
+        if (color == null) {
+            say("  " + fragPath + ": no vertex-colour varying (color/glcolor/vColor/tint...) found; skipped");
             return null;
         }
-        String shadow = "ovvar_v_" + uv.name;
+        if (!color.type.equals("vec4") && !color.type.equals("vec3")) {
+            say("  " + fragPath + ": vertex-colour varying '" + color.name + "' is a " + color.type + ", not vec3/vec4; skipped");
+            return null;
+        }
+        Matcher main = MAIN.matcher(frag);
+        if (!main.find(Math.max(uv.end, color.end))) {
+            say("  " + fragPath + ": no void main() after the varyings; skipped");
+            return null;
+        }
 
-        // Fragment: rename the varying, declare the global, remap at the top of main.
-        String helper = HELPER.replace("%SAMPLE%", sampleFn).replace("%SAMPLER%", samplerName);
-        String assign = "\n    " + uv.name + " = " + shadow + ";\n    " + uv.name + ".xy = ovvar_remap(" + shadow + ".xy);\n";
-        String newFrag = frag.substring(0, uv.start)
-                + frag.substring(uv.start, uv.end).replaceFirst("\\b" + uv.name + "\\b", shadow)
-                + "\n" + uv.type + " " + uv.name + "; // Ovvar: remapped copy of " + shadow + "\n"
-                + frag.substring(uv.end, main.start())
-                + helper
-                + frag.substring(main.start(), main.end()) + assign
-                + frag.substring(main.end());
-        String fragOut = fragText.substring(0, fr[0]) + newFrag + fragText.substring(fr[1]);
+        // Fragment: shadow both varyings, add the raw-colour varying and the shader code, set the
+        // shadows at the top of main. Edits are applied back to front so indices stay valid.
+        String helper = "\n// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in OvvarShaderPatcher.jar\n"
+                + uv.direction + " vec4 ovvar_color;\n"
+                + "#define OVVAR_SAMPLE(uv) " + sampleFn + "(" + samplerName + ", uv)\n"
+                + GLSL
+                + "// --- end Ovvar\n\n";
+        String assign = "\n    " + shadow(uv) + " = ovvar_raw_" + uv.name + "();\n"
+                + "    " + shadow(uv) + ".xy = ovvar_uv(" + shadow(uv) + ".xy);\n"
+                + "    " + shadow(color) + " = " + (color.type.equals("vec4")
+                        ? "ovvar_shade(ovvar_raw_" + color.name + "())"
+                        : "ovvar_shade(vec4(ovvar_raw_" + color.name + "(), 1.0)).rgb") + ";\n";
+        StringBuilder out = new StringBuilder(frag);
+        out.insert(main.end(), assign);
+        out.insert(main.start(), helper);
+        // The later declaration first.
+        Decl first = uv.end <= color.end ? uv : color, second = first == uv ? color : uv;
+        out.insert(second.end, shadowDecl(second));
+        out.insert(first.end, shadowDecl(first));
+        if (unified) out.append("\n#undef ").append(uv.name).append("\n#undef ").append(color.name).append("\n");
+        String fragOut = fragText.substring(0, fr[0]) + out + fragText.substring(fr[1]);
 
-        // Vertex: rename the declaration and every use.
+        // Vertex: pass the raw vertex colour along.
         String vertSource = unified ? fragOut : vertText;
         int[] vr = unified ? region(vertSource, VERTEX_MARKER, FRAGMENT_MARKER) : new int[]{0, vertSource.length()};
         String vert = vertSource.substring(vr[0], vr[1]);
-        Decl vuv = findUvNamed(vert, "out|varying", uv.name);
-        if (vuv == null) {
-            say("  " + fragPath + ": vertex side (" + vertPath + ") does not declare '" + uv.name + "'; skipped");
+        Matcher vmain = MAIN.matcher(vert);
+        if (!vmain.find()) {
+            say("  " + fragPath + ": vertex side (" + vertPath + ") has no void main(); skipped");
             return null;
         }
-        String newVert = vert.replaceAll("\\b" + uv.name + "\\b", shadow);
+        Decl vuv = findVaryingNamed(vert, "out|varying", uv.name);
+        String direction = vuv != null ? vuv.direction : uv.direction.equals("in") ? "out" : "varying";
+        String attribute = vert.contains("vaColor") ? "vaColor" : "gl_Color";
+        String newVert = vert.substring(0, vmain.start())
+                + "\n// --- Ovvar: the raw vertex colour (an ovve's dye colour holds its patch bits)\n"
+                + direction + " vec4 ovvar_color;\n\n"
+                + vert.substring(vmain.start(), vmain.end())
+                + "\n    ovvar_color = " + attribute + ";\n"
+                + vert.substring(vmain.end());
         String vertOut = vertSource.substring(0, vr[0]) + newVert + vertSource.substring(vr[1]);
 
-        say("  " + fragPath + (unified ? "" : " + " + vertPath) + ": '" + uv.name + "' remapped, marker via "
-                + sampleFn + "(" + samplerName + ")");
+        say("  " + fragPath + (unified ? "" : " + " + vertPath) + ": '" + uv.name + "' and '" + color.name
+                + "' shadowed, art via " + sampleFn + "(" + samplerName + "), colour from " + attribute);
         return unified ? new String[]{vertOut, vertOut} : new String[]{fragOut, vertOut};
+    }
+
+    private static String shadow(Decl d) {
+        return "ovvar_shadow_" + d.name;
+    }
+
+    /** A global standing in for the varying, a function still reading the real one, and the name switch. */
+    private static String shadowDecl(Decl d) {
+        return "\n" + d.type + " " + shadow(d) + "; // Ovvar: stands in for " + d.name + " from here on\n"
+                + d.type + " ovvar_raw_" + d.name + "() { return " + d.name + "; }\n"
+                + "#define " + d.name + " " + shadow(d) + "\n";
+    }
+
+    private static int glslVersion(String text) {
+        Matcher m = VERSION.matcher(text);
+        if (m.find()) return Integer.parseInt(m.group(1));
+        return text.contains("texture2D(") ? 120 : 330;
+    }
+
+    private static String readResource(String name) {
+        try (InputStream in = Patcher.class.getResourceAsStream(name)) {
+            if (in == null) throw new IllegalStateException(name + " is missing from the patcher jar");
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("cannot read " + name, e);
+        }
     }
 
     /** The albedo sampler's name, declared in the program or (Complementary) in something it includes. */
@@ -328,39 +373,42 @@ public final class Patcher {
 
     private static final class Decl {
         final int start, end;
-        final String type, name;
+        final String direction, type, name;
 
-        Decl(int start, int end, String type, String name) {
+        Decl(int start, int end, String direction, String type, String name) {
             this.start = start;
             this.end = end;
+            this.direction = direction;
             this.type = type;
             this.name = name;
         }
     }
 
-    /** The texture-coordinate varying: the best-ranked UV_NAMES entry among declarations, non-flat only. */
-    private static Decl findUv(String region, String direction) {
-        for (String candidate : UV_NAMES) {
-            Decl d = findUvNamed(region, direction, candidate);
+    /** The best-ranked named varying, else the first one whose name contains a hint (flat ones only if allowed). */
+    private static Decl findVarying(String region, String direction, List<String> names, boolean allowFlat, String... hints) {
+        for (String candidate : names) {
+            Decl d = findVaryingNamed(region, direction, candidate);
             if (d != null) return d;
         }
-        Matcher m = VARYING.matcher(region);
-        while (m.find()) {
-            if (m.group(1).contains("flat") || !m.group(2).matches(direction)) continue;
-            for (String n : m.group(4).split(",")) {
-                String name = n.trim();
-                if (name.toLowerCase(Locale.ROOT).contains("texcoord")) return new Decl(m.start(), m.end(), m.group(3), name);
+        for (String hint : hints) {
+            Matcher m = VARYING.matcher(region);
+            while (m.find()) {
+                if ((!allowFlat && m.group(1).contains("flat")) || !m.group(2).matches(direction)) continue;
+                for (String n : m.group(4).split(",")) {
+                    String name = n.trim();
+                    if (name.toLowerCase(Locale.ROOT).contains(hint)) return new Decl(m.start(), m.end(), m.group(2), m.group(3), name);
+                }
             }
         }
         return null;
     }
 
-    private static Decl findUvNamed(String region, String direction, String wanted) {
+    private static Decl findVaryingNamed(String region, String direction, String wanted) {
         Matcher m = VARYING.matcher(region);
         while (m.find()) {
             if (!m.group(2).matches(direction)) continue;
             for (String n : m.group(4).split(",")) {
-                if (n.trim().equals(wanted)) return new Decl(m.start(), m.end(), m.group(3), wanted);
+                if (n.trim().equals(wanted)) return new Decl(m.start(), m.end(), m.group(2), m.group(3), wanted);
             }
         }
         return null;

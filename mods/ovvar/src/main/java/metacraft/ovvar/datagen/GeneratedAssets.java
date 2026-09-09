@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.content.Chapter;
+import metacraft.ovvar.content.Layout;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.Patches;
@@ -34,7 +35,8 @@ import static metacraft.ovvar.datagen.J.obj;
  *   <li>armour layer textures cut out of the website's skin overlays (64×64 skin layout → 64×32 armour layout;
  *       the boxes the armour model reads — body (16,16), right arm (40,16), right leg (0,16) — sit at the same
  *       coordinates in both, and the left limbs are the model's mirrors of the right, so nothing moves),</li>
- *   <li>one equipment definition per look {@link Looks} can produce,</li>
+ *   <li>one equipment definition per garment half: the base and one dyeable layer per {@link Layout} field,
+ *       whose texture carries the marker row the shader reads and a library of the field's patch art,</li>
  *   <li>item definitions, models, icons and lang for every ovve, top and patch.</li>
  * </ul>
  */
@@ -73,25 +75,41 @@ public final class GeneratedAssets implements DataProvider {
         Tex icon = art("icon");
         require(icon.width == 16 && icon.height == 16, "icon.png is not 16×16");
 
-        // Patches: one layer texture per patch (its art at its spot, rest transparent), shared by every
-        // combination that includes it; an icon; an item.
-        Map<Patches.Patch, String> patchLayers = new LinkedHashMap<>();
+        // Patches: art, an icon, an item.
+        Map<String, Tex> arts = new LinkedHashMap<>();
         for (Patches.Patch patch : Patches.all()) {
             Tex art = art("patches/" + patch.id());
-            require(art.width == Spot.SIZE && art.height == Spot.SIZE, "patches/" + patch.id() + ".png is not " + Spot.SIZE + "×" + Spot.SIZE);
-            Spot spot = patch.spot();
-            String texture = "patch/" + patch.id();
-            Tex cell = spot.side == Spot.Side.LEFT ? art.flipX() : art;
-            png(assets.resolve("textures/entity/equipment/" + patch.piece().layer + "/" + texture + ".png"),
-                    marked(Tex.blank(64, 32).blit(cell, 0, 0, Spot.SIZE, Spot.SIZE, spot.u, spot.drawV())));
-            patchLayers.put(patch, texture);
-
+            require(art.height == Spot.SIZE && art.width % Spot.SIZE == 0 && art.width <= Spot.SIZE * Layout.MAX_CELLS,
+                    "patches/" + patch.id() + ".png must be " + Spot.SIZE + " tall and a multiple of " + Spot.SIZE + " wide");
+            arts.put(patch.id(), art);
             String name = ModContent.patchId(patch).getPath();
-            item(name, art.scale(16 / Spot.SIZE));
+            item(name, icon(art));
             lang.put("item." + MOD + "." + name, patch.name() + " patch");
         }
 
-        int definitions = 0;
+        // Fields: one dyeable layer texture each, shared by every chapter: the marker row telling
+        // the shader which bits and cells are its own, and a library of its patches' art.
+        for (Layout.Field field : Layout.all()) {
+            Tex tex = Tex.blank(64, 32)
+                    .with(Layout.MARKER_FIELD_X, Layout.MARKER_ROW, rgb(field.offset(), field.bits(), field.cells().size()));
+            for (int i = 0; i < field.cells().size(); i++) {
+                Spot cell = field.cells().get(i);
+                tex = tex.with(Layout.MARKER_CELLS_X - i, Layout.MARKER_ROW, rgb(cell.u, cell.v, cell.side.ordinal()));
+            }
+            int cells = field.cells().size();
+            for (int entry = 0; entry < field.patches().size(); entry++) {
+                Tex art = arts.get(field.patches().get(entry));
+                require(art.width == Spot.SIZE * cells, "patch " + field.patches().get(entry) + " is " + art.width / Spot.SIZE
+                        + " cell(s) wide but field " + field.id() + " has " + cells);
+                for (int c = 0; c < cells; c++) {
+                    int[] at = Layout.LIBRARY_CELLS.get(entry * cells + c);
+                    tex = tex.blit(art, c * Spot.SIZE, 0, Spot.SIZE, Spot.SIZE, at[0], at[1]);
+                }
+            }
+            require(tex.get(Layout.BLANK_X, Layout.BLANK_Y) == 0, "field " + field.id() + " draws on the blank texel");
+            png(assets.resolve("textures/entity/equipment/" + field.piece().layer + "/patch/" + field.id() + ".png"), marked(tex));
+        }
+
         for (Chapter chapter : Chapter.values()) {
             Tex overlay = overlay(chapter.overlay, chapter);
             int colour = overlay.dominant();
@@ -101,14 +119,14 @@ public final class GeneratedAssets implements DataProvider {
                     .blit(overlay, RIGHT_ARM[0], RIGHT_ARM[1], RIGHT_ARM[2], RIGHT_ARM[3], RIGHT_ARM[0], RIGHT_ARM[1]);
             require(!top.isEmpty(), chapter.overlay + ".png has an empty body or arm box");
             layer(chapter, Piece.TOP, "top", marked(withMirror(top, RIGHT_ARM)));
-            definitions += combinations(chapter, Piece.TOP, false, chapter.id + "/top", patchLayers);
+            equipment(Looks.asset(chapter, Piece.TOP, false), Piece.TOP, chapter.id + "/top");
 
             // The bottom: legs and waistband, on the legs slot's layer; under the top when it's up.
             Tex bottom = Tex.blank(64, 32).blit(overlay, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
                     .blit(overlay, WAIST[0], WAIST[1], WAIST[2], WAIST[3], WAIST[0], WAIST[1]);
             require(!bottom.isEmpty(), chapter.overlay + ".png has an empty leg box");
             layer(chapter, Piece.BOTTOM, "bottom", marked(withMirror(bottom, RIGHT_LEG)));
-            definitions += combinations(chapter, Piece.BOTTOM, false, chapter.id + "/bottom", patchLayers);
+            equipment(Looks.asset(chapter, Piece.BOTTOM, false), Piece.BOTTOM, chapter.id + "/bottom");
 
             if (chapter.rollable) {
                 // Rolled down: legs plus the top hanging at the waist, all on the legs slot's layer.
@@ -116,7 +134,7 @@ public final class GeneratedAssets implements DataProvider {
                 Tex nercabbad = Tex.blank(64, 32).blit(rolled, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
                         .blit(rolled, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1]);
                 layer(chapter, Piece.BOTTOM, "bottom_nercabbad", marked(withMirror(nercabbad, RIGHT_LEG)));
-                definitions += combinations(chapter, Piece.BOTTOM, true, chapter.id + "/bottom_nercabbad", patchLayers);
+                equipment(Looks.asset(chapter, Piece.BOTTOM, true), Piece.BOTTOM, chapter.id + "/bottom_nercabbad");
             }
 
             String ovve = ModContent.ovveId(chapter).getPath();
@@ -127,30 +145,35 @@ public final class GeneratedAssets implements DataProvider {
             lang.put("item." + MOD + "." + ovve, chapter.name + " " + chapter.garmentWord());
             lang.put("item." + MOD + "." + topItem, chapter.name + " " + chapter.garmentWord() + " (top)");
         }
-        Ovvar.LOGGER.info("[{} datagen] {} equipment definitions for {} patches", MOD, definitions, Patches.all().size());
+        Ovvar.LOGGER.info("[{} datagen] {} patches, {} fields, {} chapters", MOD, Patches.all().size(), Layout.all().size(), Chapter.values().length);
 
         JsonObject langJson = new JsonObject();
         lang.forEach(langJson::addProperty);
         json(assets.resolve("lang/en_us.json"), langJson);
-        // Sewing at the smithing table (SewRecipe): the one recipe, nothing to configure.
+        // Sewing pinned patches at the smithing table (SewRecipe): the one recipe, nothing to configure.
         json(data.resolve("recipe/sew.json"), obj("type", MOD + ":sew"));
         return CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new));
     }
 
-    /**
-     * One equipment definition per subset of the piece's patches: the base layer, then the layer of
-     * every patch whose bit is set, in catalogue order. Returns how many were written.
-     */
-    private int combinations(Chapter chapter, Piece piece, boolean nercabbad, String base, Map<Patches.Patch, String> patchLayers) {
-        List<Patches.Patch> catalogue = Patches.forPiece(piece);
-        long count = 1L << catalogue.size();
-        for (long bits = 0; bits < count; bits++) {
-            List<String> textures = new ArrayList<>();
-            textures.add(base);
-            for (Patches.Patch patch : Looks.patches(piece, bits)) textures.add(patchLayers.get(patch));
-            equipment(Looks.asset(chapter, piece, nercabbad, Looks.key(bits)), piece, textures);
+    private static int rgb(int r, int g, int b) {
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+
+    /** A patch's inventory icon: its art scaled to fill 16 px, centred. */
+    private static Tex icon(Tex art) {
+        int scale = Math.max(1, 16 / Math.max(art.width, art.height));
+        Tex big = art.scale(scale);
+        return Tex.blank(16, 16).blit(big, 0, 0, big.width, big.height, (16 - big.width) / 2, (16 - big.height) / 2);
+    }
+
+    /** The equipment definition of one half: the base, then every field's layer, dyeable so the dye bits reach it. */
+    private void equipment(net.minecraft.resources.ResourceKey<?> key, Piece piece, String base) {
+        List<Object> layers = new ArrayList<>();
+        layers.add(obj("texture", MOD + ":" + base));
+        for (Layout.Field field : Layout.fields(piece)) {
+            layers.add(obj("texture", MOD + ":patch/" + field.id(), "dyeable", obj()));
         }
-        return (int) count;
+        json(assets.resolve("equipment/" + key.identifier().getPath() + ".json"), obj("layers", obj(piece.layer, arr(layers.toArray()))));
     }
 
     /** Our textures carry the marker texel the core shader looks for (see Spot). */
@@ -185,11 +208,6 @@ public final class GeneratedAssets implements DataProvider {
 
     private void layer(Chapter chapter, Piece piece, String name, Tex tex) {
         png(assets.resolve("textures/entity/equipment/" + piece.layer + "/" + chapter.id + "/" + name + ".png"), tex);
-    }
-
-    private void equipment(net.minecraft.resources.ResourceKey<?> key, Piece piece, List<String> textures) {
-        Object[] layers = textures.stream().map(t -> obj("texture", MOD + ":" + t)).toArray();
-        json(assets.resolve("equipment/" + key.identifier().getPath() + ".json"), obj("layers", obj(piece.layer, arr(layers))));
     }
 
     /** Item definition, flat model and texture for one item. */

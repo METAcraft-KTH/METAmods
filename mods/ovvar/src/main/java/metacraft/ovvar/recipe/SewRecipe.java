@@ -2,6 +2,7 @@ package metacraft.ovvar.recipe;
 
 import com.mojang.serialization.MapCodec;
 import metacraft.ovvar.Ovvar;
+import metacraft.ovvar.content.Layout;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveItem;
@@ -23,16 +24,17 @@ import net.minecraft.world.item.crafting.SmithingRecipeInput;
 import net.minecraft.world.item.crafting.display.RecipeDisplay;
 import net.minecraft.world.level.Level;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
- * Sewing at the smithing table: an ovve in the base slot, a patch in the addition slot, nothing
- * in the template slot → the ovve with that patch on. Refused (no result) when the patch is
- * already on or its spot is taken. One JSON, {@code data/ovvar/recipe/sew.json}, of type
- * {@code ovvar:sew}; the menu is vanilla's, and vanilla clients see the result because the server
- * fills the result slot.
+ * Sewing pinned patches at the smithing table: an ovve in the base slot, a patch that is some
+ * field's pinned patch in the addition slot, nothing in the template slot → the ovve with it on.
+ * Refused (no result) when it is on already. Menu patches are placed on an armour stand instead
+ * ({@link metacraft.ovvar.sewing.StandSewing}). One JSON, {@code data/ovvar/recipe/sew.json}, of
+ * type {@code ovvar:sew}; the menu is vanilla's, and vanilla clients see the result because the
+ * server fills the result slot.
  */
 public final class SewRecipe implements SmithingRecipe {
     public static final MapCodec<SewRecipe> MAP_CODEC = MapCodec.unit(SewRecipe::new);
@@ -42,27 +44,30 @@ public final class SewRecipe implements SmithingRecipe {
         Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "sew"), SERIALIZER);
     }
 
-    /** Whether {@code patch} can go on {@code ovve} right now: not sewn yet, spot free. */
-    public static boolean fits(ItemStack ovve, Patches.Patch patch) {
-        if (!(ovve.getItem() instanceof OvveItem)) return false;
-        for (String id : Looks.patches(ovve)) {
-            Patches.Patch sewn = Patches.get(id);
-            if (sewn.id().equals(patch.id()) || sewn.spot() == patch.spot()) return false;
+    /** The pinned field {@code patch} belongs to and that is still free on {@code ovve}, or null. */
+    public static Layout.Field pinnedFieldFor(ItemStack ovve, Patches.Patch patch) {
+        if (!(ovve.getItem() instanceof OvveItem)) return null;
+        Map<String, String> sewn = Looks.sewn(ovve);
+        for (Layout.Field f : Layout.all()) {
+            if (f.kind() == Layout.Kind.PINNED && f.accepts(patch.id()) && !sewn.containsKey(f.id())) return f;
         }
-        return true;
+        return null;
     }
 
     @Override
     public boolean matches(SmithingRecipeInput input, Level level) {
-        return input.template().isEmpty() && input.addition().getItem() instanceof PatchItem patch && fits(input.base(), patch.patch);
+        return input.template().isEmpty() && input.addition().getItem() instanceof PatchItem patch
+                && pinnedFieldFor(input.base(), patch.patch) != null;
     }
 
     @Override
     public ItemStack assemble(SmithingRecipeInput input) {
         ItemStack out = input.base().copyWithCount(1);
-        List<String> patches = new ArrayList<>(Looks.patches(out));
-        patches.add(((PatchItem) input.addition().getItem()).patch.id());
-        Looks.setPatches(out, patches);
+        Patches.Patch patch = ((PatchItem) input.addition().getItem()).patch;
+        Layout.Field field = pinnedFieldFor(out, patch);
+        Map<String, String> sewn = Looks.sewn(out);
+        sewn.put(field.id(), patch.id());
+        Looks.setSewn(out, sewn);
         return out;
     }
 

@@ -27,6 +27,8 @@ tasks.withType(JavaCompile).configureEach {
 tasks.register('patcherJar', Jar) {
     from sourceSets.patcher.output
     from('tools/shaderpatcher/README.txt')
+    // The very shader code the vanilla override uses, so patched packs and vanilla never drift apart.
+    from('src/main/resources/assets/ovvar/shaders/include/ovvar.glsl')
     archiveFileName = 'OvvarShaderPatcher.jar'
     destinationDirectory = layout.buildDirectory.dir('patcher-resources/assets/ovvar/shaderpatcher')
     manifest { attributes 'Main-Class': 'metacraft.ovvar.shaderpatcher.Patcher' }

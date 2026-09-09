@@ -3,16 +3,20 @@ package metacraft.ovvar.content;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.equipment.EquipmentAsset;
 import net.minecraft.world.item.equipment.Equippable;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Keeps the chest slot in step with the ovve in the legs slot: a companion top while the ovve's
@@ -69,20 +73,34 @@ public final class OvveTop {
     private static ItemStack topFor(ItemStack ovve) {
         OvveItem item = (OvveItem) ovve.getItem();
         ItemStack top = new ItemStack(ModContent.top(item.chapter));
-        List<String> patches = Looks.patches(ovve);
-        if (!patches.isEmpty()) top.set(ModComponents.PATCHES, patches);
+        List<String> patches = ovve.get(ModComponents.PATCHES);
+        if (patches != null) top.set(ModComponents.PATCHES, patches);
+        String preview = ovve.get(ModComponents.PREVIEW);
+        if (preview != null) top.set(ModComponents.PREVIEW, preview);
         return top;
     }
 
-    /** The client-side equippable: the server item's, with our asset and no right-click swap (that click is the bundle's). */
-    static Equippable equippable(Equippable base, ResourceKey<EquipmentAsset> asset) {
+    /**
+     * What a vanilla client is told about a garment half: our equipment asset, no right-click
+     * swap (that click is the bundle's), the half's patch bits as the dye colour (hidden from the
+     * tooltip), and no way to dye it at a cauldron or crafting table.
+     */
+    static void dress(ItemStack client, Equippable base, ResourceKey<EquipmentAsset> asset, Piece piece, Map<String, String> shown) {
         if (base == null) throw new IllegalStateException("garment lost its equippable component");
-        return Equippable.builder(base.slot())
+        client.set(DataComponents.EQUIPPABLE, Equippable.builder(base.slot())
                 .setEquipSound(base.equipSound())
                 .setAsset(asset)
                 .setDamageOnHurt(base.damageOnHurt())
                 .setSwappable(false)
                 .setDispensable(false)
-                .build();
+                .build());
+        int bits = Looks.dye(piece, shown);
+        if (bits != 0) {
+            client.set(DataComponents.DYED_COLOR, new DyedItemColor(bits));
+            TooltipDisplay display = client.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
+            client.set(DataComponents.TOOLTIP_DISPLAY, display.withHidden(DataComponents.DYED_COLOR, true));
+        } else {
+            client.remove(DataComponents.DYED_COLOR);
+        }
     }
 }
