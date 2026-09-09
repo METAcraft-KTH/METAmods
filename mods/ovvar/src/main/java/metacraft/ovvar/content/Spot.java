@@ -1,8 +1,10 @@
 package metacraft.ovvar.content;
 
 /**
- * A 4×4 texel cell on the garment, in the 64×32 armour layout — anywhere a patch can go.
- * APPEND ONLY: the preview bits carry a cell as its ordinal + 1. Left/right in sleeve and leg
+ * A 4×4 texel cell on the garment, in the 64×32 armour layout — anywhere a patch can go. The
+ * sleeves stop at the middle row: the bottom row of the arm boxes is drawn over the hands.
+ * Items store cells by name, so entries may be added or removed; the ordinal only travels in the
+ * (transient) preview bits. Left/right in sleeve and leg
  * names are the wearer's own; in chest and back names they are as seen by someone facing that
  * side. Sleeve and leg cells sit on the right limb's strips: the armour model draws the left limb
  * as a mirror image off the same strips, and the shader tells the two apart by the handedness
@@ -21,11 +23,11 @@ public enum Spot {
     BACK_TOP_LEFT(Piece.TOP, 32, 20), BACK_TOP_RIGHT(Piece.TOP, 36, 20),
     BACK_MID_LEFT(Piece.TOP, 32, 24), BACK_MID_RIGHT(Piece.TOP, 36, 24),
     BACK_LOW_LEFT(Piece.TOP, 32, 28), BACK_LOW_RIGHT(Piece.TOP, 36, 28),
-    // top: sleeves, outer face and front face, 3 each per arm
-    SLEEVE_OUT_TOP_R(Piece.TOP, 40, 20, Side.RIGHT), SLEEVE_OUT_MID_R(Piece.TOP, 40, 24, Side.RIGHT), SLEEVE_OUT_LOW_R(Piece.TOP, 40, 28, Side.RIGHT),
-    SLEEVE_OUT_TOP_L(Piece.TOP, 40, 20, Side.LEFT), SLEEVE_OUT_MID_L(Piece.TOP, 40, 24, Side.LEFT), SLEEVE_OUT_LOW_L(Piece.TOP, 40, 28, Side.LEFT),
-    SLEEVE_FRONT_TOP_R(Piece.TOP, 44, 20, Side.RIGHT), SLEEVE_FRONT_MID_R(Piece.TOP, 44, 24, Side.RIGHT), SLEEVE_FRONT_LOW_R(Piece.TOP, 44, 28, Side.RIGHT),
-    SLEEVE_FRONT_TOP_L(Piece.TOP, 44, 20, Side.LEFT), SLEEVE_FRONT_MID_L(Piece.TOP, 44, 24, Side.LEFT), SLEEVE_FRONT_LOW_L(Piece.TOP, 44, 28, Side.LEFT),
+    // top: sleeves, outer face and front face, top and middle rows per arm (the bottom row is the hand)
+    SLEEVE_OUT_TOP_R(Piece.TOP, 40, 20, Side.RIGHT), SLEEVE_OUT_MID_R(Piece.TOP, 40, 24, Side.RIGHT),
+    SLEEVE_OUT_TOP_L(Piece.TOP, 40, 20, Side.LEFT), SLEEVE_OUT_MID_L(Piece.TOP, 40, 24, Side.LEFT),
+    SLEEVE_FRONT_TOP_R(Piece.TOP, 44, 20, Side.RIGHT), SLEEVE_FRONT_MID_R(Piece.TOP, 44, 24, Side.RIGHT),
+    SLEEVE_FRONT_TOP_L(Piece.TOP, 44, 20, Side.LEFT), SLEEVE_FRONT_MID_L(Piece.TOP, 44, 24, Side.LEFT),
     // bottom: legs, outer, front and back faces, 3 each per leg
     LEG_OUT_TOP_R(Piece.BOTTOM, 0, 20, Side.RIGHT), LEG_OUT_MID_R(Piece.BOTTOM, 0, 24, Side.RIGHT), LEG_OUT_LOW_R(Piece.BOTTOM, 0, 28, Side.RIGHT),
     LEG_OUT_TOP_L(Piece.BOTTOM, 0, 20, Side.LEFT), LEG_OUT_MID_L(Piece.BOTTOM, 0, 24, Side.LEFT), LEG_OUT_LOW_L(Piece.BOTTOM, 0, 28, Side.LEFT),

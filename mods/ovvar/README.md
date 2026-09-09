@@ -16,7 +16,7 @@ slot) and hides the top until it comes off again. Leather-grade defence, no dura
 look is an equipment asset cut from the skin overlays on metacraft.se/style.
 
 Patches are items (`ovvar:patch_<id>`) and go on any 4×4 cell of the ovve (`Spot.java`: chest,
-back, sleeves, legs — 42 cells, plus the seat for the 8×4 chapter patch). Sewing: put the ovve on
+back, sleeves (not the bottom row, that's the hands), legs — 38 cells, plus the seat for the 8×4 chapter patch). Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows on the cell you aim at, the
 action bar names it, right-click sews it on. An empty hand on a sewn patch unpicks it. Seat
 patches also go on at the smithing table (ovve + patch, no template). No cap on the number of
@@ -52,7 +52,7 @@ armour layers, equipment definitions, icons and names are derived from that.
 
 One line in `Patches.java` (id, name; `true` for a seat patch) and a PNG at
 `src/main/resources/art/ovvar/patches/<id>.png` — 4×4, or 8×4 for a seat patch — then
-`runDatagen`. Append to the catalogue: the preview slots carry a patch as its index. The preview
+`runDatagen`. The preview
 library holds 30 cells and the slots name up to 31 patches; datagen and start-up fail loudly
 when that runs out (then widen the slots or the library in `Looks`/`GeneratedAssets`/`ovvar.glsl`).
 

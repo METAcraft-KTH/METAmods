@@ -164,6 +164,9 @@ public final class Looks {
     private static void migrateEntry(String entry, List<Placement> out, ItemStack stack) {
         int eq = entry.indexOf('=');
         String patch = eq < 0 ? entry : entry.substring(eq + 1);
+        // A cell that no longer exists (spot.patch with an unknown spot): the patch moves to a free cell.
+        int dot = patch.indexOf('.');
+        if (dot > 0 && !Patches.exists(patch) && Patches.exists(patch.substring(dot + 1))) patch = patch.substring(dot + 1);
         if (!Patches.exists(patch)) {
             Ovvar.LOGGER.warn("[ovvar] dropping unknown legacy patch entry '{}' from {}", entry, stack);
             return;

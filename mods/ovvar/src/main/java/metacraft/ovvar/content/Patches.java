@@ -8,8 +8,8 @@ import java.util.stream.Collectors;
 /**
  * The patch catalogue: the art that can be sewn on. A plain patch is 4×4 and goes on any cell
  * ({@link Spot}); a seat patch is 8×4 and goes across the seat only. Adding a patch is one line
- * here plus its PNG at {@code art/ovvar/patches/<id>.png}, then {@code runDatagen}.
- * APPEND ONLY: the preview bits carry a patch as its index + 1.
+ * here plus its PNG at {@code art/ovvar/patches/<id>.png}, then {@code runDatagen}. Items store
+ * patches by id, so the order is free; the index only travels in the (transient) preview bits.
  */
 public final class Patches {
     private Patches() {}
