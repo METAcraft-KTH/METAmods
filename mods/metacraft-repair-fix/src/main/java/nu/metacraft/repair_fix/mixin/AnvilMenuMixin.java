@@ -155,16 +155,16 @@ public abstract class AnvilMenuMixin extends ItemCombinerMenu {
 		at = @At(
 			value = "JUMP", opcode = Opcodes.GOTO, ordinal = 0
 		),
-		ordinal = 0
+		name = "price"
 	)
 	public int addToCost( //Funnily enough, this mixin is in the right place. IntelliJ just doesn't agree.
-			int value, @Local(ordinal = 3) boolean flag3,
-			@Share("additionalCost") LocalIntRef additionalCost
+		int price, @Local(name = "compatible") boolean compatible,
+		@Share("additionalCost") LocalIntRef additionalCost
 	) {
-		if (flag3) {
-			value += additionalCost.get();
+		if (compatible) {
+			price += additionalCost.get();
 		}
-		return value;
+		return price;
 	}
 
 	@Inject(
