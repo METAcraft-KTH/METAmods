@@ -137,8 +137,8 @@ public final class SewingFont {
     static {
         for (Chapter chapter : Chapter.values()) CLOTH.put(chapter, glyph("cloth_" + chapter.id, PITCH, PITCH, 0, 0));
         for (Patches.Patch patch : Patches.all()) {
-            int cells = patch.cells(), top = overlayTop(Seam.patchY(cells));
-            PATCH.put(patch.id(), glyph("patch_" + patch.id(), Seam.patchWidth(cells), Seam.patchHeight(cells), top, top));
+            int top = overlayTop(Seam.patchY(patch));
+            PATCH.put(patch.id(), glyph("patch_" + patch.id(), Seam.patchWidth(patch), Seam.patchHeight(patch), top, top));
         }
         THREAD = overlay("thread", DOT, DOT);
         STITCH_IN = overlay("stitch_in", MARK, MARK);

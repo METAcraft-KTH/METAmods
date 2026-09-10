@@ -215,8 +215,7 @@ public final class SewingGame {
      * hole to come, and the needle on the next.
      */
     private static void onTheCloth(SewingFont.Label label, Game game, List<Seam.Hole> holes, Seam.Hole next) {
-        int cells = game.patch.cells();
-        label.at(SewingFont.patch(game.patch), overlayX(Seam.patchX(cells)), overlayTop(Seam.patchY(cells)));
+        label.at(SewingFont.patch(game.patch), overlayX(Seam.patchX(game.patch)), overlayTop(Seam.patchY(game.patch)));
         Seam seam = new Seam(game.patch, game.stitches);
         for (int i = 1; i <= Math.min(game.done, holes.size() - 1); i++) {
             thread(label, seam, holes.get(i - 1), holes.get(i), i % 2 == 1);

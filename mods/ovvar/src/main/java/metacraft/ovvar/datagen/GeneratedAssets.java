@@ -320,7 +320,7 @@ public final class GeneratedAssets implements DataProvider {
         JsonObject outlines = new JsonObject();
         for (Patches.Patch patch : Patches.all()) {
             Tex art = arts.get(patch.id());
-            textures.put(SewingFont.patch(patch).name(), art.scale(Seam.scale(patch.cells())));
+            textures.put(SewingFont.patch(patch).name(), art.scale(Seam.scale(patch)));
             JsonArray segments = new JsonArray();
             for (int[] s : outline(art, patch.id())) segments.add(J.nums(s[0], s[1], s[2], s[3], s[4], s[5]));
             outlines.add(patch.id(), segments);

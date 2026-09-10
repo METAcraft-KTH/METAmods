@@ -1,7 +1,6 @@
 package metacraft.ovvar.sewing;
 
 import metacraft.ovvar.content.Patches;
-import metacraft.ovvar.content.Spot;
 import net.minecraft.util.Mth;
 
 import java.util.ArrayList;
@@ -33,32 +32,33 @@ public record Seam(Patches.Patch patch, int stitches) {
 
     public static final Style STYLE = Style.WHIP;
 
-    /** Art px per texel: a 4×4 patch at 80 px, an 8×4 seat patch at 96×48. */
-    public static final int PLAIN_SCALE = 20, SEAT_SCALE = 12;
+    /** The patch's art is scaled up whole to fit this many px in either direction: an 8×8 at 96 px, a 16×8 seat at 96×48, a 12×12 at 96. */
+    public static final int PATCH_FIT = 96;
     /** How far outside and inside the edge the holes sit. */
     private static final int OUT = 4, IN = 4;
     /** A whip stitch's two holes are this far, along the edge, from the stitch's centre. */
     private static final int WHIP_HALF = 2;
 
-    public static int scale(int cells) {
-        return cells == 1 ? PLAIN_SCALE : SEAT_SCALE;
+    /** Picture px per art px: whole, the largest that fits {@link #PATCH_FIT}. */
+    public static int scale(Patches.Patch patch) {
+        return Math.max(1, Math.min(PATCH_FIT / patch.width(), PATCH_FIT / patch.height()));
     }
 
-    public static int patchWidth(int cells) {
-        return Spot.SIZE * cells * scale(cells);
+    public static int patchWidth(Patches.Patch patch) {
+        return patch.width() * scale(patch);
     }
 
-    public static int patchHeight(int cells) {
-        return Spot.SIZE * scale(cells);
+    public static int patchHeight(Patches.Patch patch) {
+        return patch.height() * scale(patch);
     }
 
     /** The patch's top-left on the picture: centred. */
-    public static int patchX(int cells) {
-        return (PICTURE_WIDTH - patchWidth(cells)) / 2;
+    public static int patchX(Patches.Patch patch) {
+        return (PICTURE_WIDTH - patchWidth(patch)) / 2;
     }
 
-    public static int patchY(int cells) {
-        return (PICTURE_HEIGHT - patchHeight(cells)) / 2;
+    public static int patchY(Patches.Patch patch) {
+        return (PICTURE_HEIGHT - patchHeight(patch)) / 2;
     }
 
     /** Where the needle comes from: the side of the edge that faces outward. */
@@ -82,7 +82,7 @@ public record Seam(Patches.Patch patch, int stitches) {
 
     public List<Hole> holes() {
         Outline outline = Outline.of(patch.id());
-        int cells = patch.cells(), scale = scale(cells), x0 = patchX(cells), y0 = patchY(cells);
+        int scale = scale(patch), x0 = patchX(patch), y0 = patchY(patch);
         int pairs = (stitches + 1) / 2;
         double pitch = outline.length() / pairs;
         double half = STYLE == Style.ZIGZAG ? pitch / 4 : Math.min(pitch / 4, (double) WHIP_HALF / scale);
@@ -109,7 +109,7 @@ public record Seam(Patches.Patch patch, int stitches) {
      */
     public List<int[]> alongTheEdge(Hole from, Hole to, int step) {
         Outline outline = Outline.of(patch.id());
-        int cells = patch.cells(), scale = scale(cells), x0 = patchX(cells), y0 = patchY(cells);
+        int scale = scale(patch), x0 = patchX(patch), y0 = patchY(patch);
         double start = from.along(), end = to.along();
         if (end < start) end += outline.length();
         List<int[]> points = new ArrayList<>();
