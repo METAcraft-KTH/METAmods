@@ -129,13 +129,16 @@ second layer painted on, and the left limbs from the skin's own left art).
 
 The client draws the feet slot with the whole leg boxes of the outer model (vanilla boot
 textures are just transparent above the ankle), with its own equipment asset and dye colour: 24
-more bits. So an ovve wearer's feet slot carries our legs preview layer too (`OvveFeet`): a
-companion cuffs item while the slot is empty (like the top: never a possession, deletes itself),
-or vanilla boots of a known material — chainmail, copper, iron, gold, diamond, netherite — which
-are marked with the wearer and shown to clients as "their layers plus ours", trim and glint kept
-(`equipment/feet/<material>.json`). The legs then take six instant patches instead of three.
-Leather boots use the dye colour for their own colour and other mods' boots have layers we
-don't know: over those the channel is off and the legs fall back to three. The boots pass is
+more bits. So an ovve wearer's feet slot carries our legs preview layer too (`OvveFeet`):
+vanilla boots of a known material — chainmail, copper, iron, gold, diamond, netherite — are
+marked with the wearer and shown to clients as "their layers plus ours", trim and glint kept
+(`equipment/feet/<material>.json`); an empty slot is shown to *other* players as virtual cuffs
+that exist only in their equipment packets, so the wearer's inventory stays empty there and
+boots go on as usual (their own client renders their body from that inventory, so they see up
+to three fewer of their own newest leg patches until the pack catches up). The legs then take
+six instant patches instead of three. Leather boots use the dye colour for their own colour and
+other mods' boots have layers we don't know: over those the channel is off and the legs fall
+back to three. The boots pass is
 inflated 1.0 where the leggings are 0.5, so the shader draws it on the leggings' pixel grid
 (squeezed in x and y) and the two layers' pixels line up.
 
@@ -153,12 +156,16 @@ The armour model draws a texel wider than it is tall: the box is inflated (1 on 
 layer, 0.5 on the leggings layer) but its texture is not, so a face n texels wide covers
 n + 2·inflate units while 12 rows cover 12 + 2·inflate — a sleeve texel is 1.5 × 1.167 units,
 a chest texel 1.25 × 1.167. Pixel art hates that, so the shader draws everything of ours on the
-box sides squeezed in x about the face's centre by height/width (`Spot.squeeze`, `ovvar.glsl`):
-garment and patches on one square grid, the garment's edge columns stretched into the margin
-that leaves, patches leaving it to the fabric. Each texture carries which layer it is for (the
-layer texel, two left of the marker: R = 2·inflate). The ghost preview is a vanilla-drawn trim,
-so datagen bakes the same squeeze into the trim textures, to the texel — good enough for a
-ghost, which is why sewn patches never ride as the trim.
+box sides with square pixels: each strip's texels are wrapped around the box at the square
+size, continuous across the corners — a patch hanging over a corner just bends round it — and
+the slack that leaves (the inflated box is wider than its texels) is taken up in the middle of
+the seam faces, the inner face of an arm or leg and both sides of the body, where the garment's
+centre column stretches and patches leave it to the fabric (`ovvar_wrap` in `ovvar.glsl`,
+`Spot.wrap` in Java). Anchor faces — a limb's outer face, the body's front and back — keep their
+art centred. Each texture carries which layer it is for (the layer texel, two left of the
+marker: R = 2·inflate). The ghost preview is a vanilla-drawn trim, so datagen bakes the same
+wrap into the trim textures, to the texel — good enough for a ghost, which is why sewn patches
+never ride as the trim.
 
 ## Asymmetric sleeves and legs
 

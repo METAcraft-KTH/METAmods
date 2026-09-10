@@ -54,31 +54,59 @@ public enum Spot {
         return piece == Piece.TOP ? 1.0 : 0.5;
     }
 
-    /** Start (skin texel) of the box face a cell is on: legs and arms four 4-wide faces, body right 4 | front 8 | left 4 | back 8. */
-    public static int faceStart(Spot spot) {
-        int u = spot.u;
-        if (u < 16 || u >= 40) return u / 4 * 4;
-        if (u < 20) return 16;
-        if (u < 28) return 20;
-        if (u < 32) return 28;
-        return 32;
-    }
-
-    public static int faceWidth(Spot spot) {
-        int start = faceStart(spot);
-        return start == 20 || start == 32 ? 8 : 4;   // the body's front and back
+    /** The pixel every layer on a part is drawn at, in model units (ovvar_pixel in ovvar.glsl). */
+    public static double pixel(int skinX, double inflate) {
+        return skinX < 16 ? 13.0 / 12 : (12 + 2 * inflate) / 12;
     }
 
     /**
-     * The armour model draws a texel wider than tall: the box is inflated, its texture is not,
-     * so a face n texels wide covers n + 2·inflate units and 12 rows cover 12 + 2·inflate. Art
-     * is squeezed in x by this about its face's centre to come out with square pixels — mirrored
-     * in ovvar.glsl, which does it per fragment for the garment and the patch layers; datagen
-     * bakes it into the trim textures vanilla draws.
+     * ovvar_wrap in ovvar.glsl, the same arithmetic: which strip-local texel column a side-row
+     * texel {@code skinX} (fractional, skin texels) shows once the strip is wrapped around the
+     * inflated box at {@link #pixel} units per texel, continuous across the corners, the slack in
+     * the middle of the seam faces. Negative in the slack. Datagen bakes the trim textures with
+     * it, since vanilla draws those.
      */
-    public static double squeeze(Spot spot) {
-        double i = inflate(spot.piece), n = faceWidth(spot);
-        return ((12 + 2 * i) / 12) / ((n + 2 * i) / n);
+    public static double wrap(double skinX, double inflate) {
+        double p = pixel((int) Math.floor(skinX), inflate), e = 2 * inflate;
+        boolean body = skinX >= 16 && skinX < 40;
+        double stripStart = skinX < 16 ? 0 : body ? 16 : 40;
+        double local = skinX - stripStart;
+        double n0 = 4, n1 = body ? 8 : 4, n2 = 4, n3 = body ? 8 : 4;
+        double s1 = n0, s2 = n0 + n1, s3 = n0 + n1 + n2, total = s3 + n3;
+        double W0 = n0 + e, W1 = n1 + e, W2 = n2 + e, W3 = n3 + e;
+        double U1 = W0, U2 = W0 + W1, U3 = W0 + W1 + W2, P = U3 + W3;
+        int k = local < s1 ? 0 : local < s2 ? 1 : local < s3 ? 2 : 3;
+        double sk = new double[]{0, s1, s2, s3}[k], nk = new double[]{n0, n1, n2, n3}[k];
+        double Uk = new double[]{0, U1, U2, U3}[k], Wk = new double[]{W0, W1, W2, W3}[k];
+        double u = Uk + (local - sk) * (Wk / nk);
+        double t1, t2, c;
+        if (body) {
+            double C1 = U1 + W1 / 2, T1 = s1 + n1 / 2, C3 = U3 + W3 / 2, T3 = s3 + n3 / 2;
+            if (k == 1) return T1 + (u - C1) / p;
+            if (k == 3) return T3 + (u - C3) / p;
+            if (k == 0) { t1 = T3 + (u + P - C3) / p - total; t2 = T1 + (u - C1) / p; c = n0 / 2; }
+            else { t1 = T1 + (u - C1) / p; t2 = T3 + (u - C3) / p; c = s2 + n2 / 2; }
+        } else {
+            double C = W0 / 2, T = n0 / 2;
+            if (k != 2) {
+                double du = u - C;
+                if (du >= P / 2) du -= P;
+                return Math.floorMod((int) Math.floor((T + du / p) * 1e6), (int) (total * 1e6)) / 1e6;   // the back face continues from the strip's end
+            }
+            t1 = T + (u - C) / p; t2 = T + (u - C - P) / p + total; c = s2 + n2 / 2;
+        }
+        if (t1 <= c) return t1;
+        if (t2 >= c) return t2;
+        return -1;
+    }
+
+    /** Start of the strip (skin texels) a cell's part draws: legs 0, body 16, arms 40. */
+    public static int stripStart(Spot spot) {
+        return spot.u < 16 ? 0 : spot.u < 40 ? 16 : 40;
+    }
+
+    public static int stripWidth(Spot spot) {
+        return spot.u >= 16 && spot.u < 40 ? 24 : 16;
     }
     /** How far up the mirror strip sits from the limb boxes. */
     public static final int MIRROR_SHIFT = 16;

@@ -152,16 +152,6 @@ final class Tex {
         return new Tex(width, height, out);
     }
 
-    /** Nearest-neighbour resample to {@code round(width × factor)} columns, same height. */
-    Tex squeezedX(double factor) {
-        int w = Math.max(1, (int) Math.round(width * factor));
-        int[] out = new int[w * height];
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < w; x++) out[y * w + x] = argb[y * width + Math.min(width - 1, (int) ((x + 0.5) * width / w))];
-        }
-        return new Tex(w, height, out);
-    }
-
     /** Nearest-neighbour upscale by an integer factor. */
     Tex scale(int factor) {
         int[] out = new int[argb.length * factor * factor];
