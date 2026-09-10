@@ -181,6 +181,24 @@ final class Tex {
         return java.awt.Color.RGBtoHSB(r(p), g(p), b(p), null)[1];
     }
 
+    /** Copy with every texel's HSB brightness multiplied by {@code factor} (clamped). */
+    Tex brightened(float factor) {
+        int[] out = new int[argb.length];
+        for (int i = 0; i < argb.length; i++) {
+            int p = argb[i];
+            if (a(p) == 0) continue;
+            float[] hsb = java.awt.Color.RGBtoHSB(r(p), g(p), b(p), null);
+            int rgb = java.awt.Color.HSBtoRGB(hsb[0], hsb[1], Math.min(1.0f, hsb[2] * factor));
+            out[i] = (a(p) << 24) | (rgb & 0xFFFFFF);
+        }
+        return new Tex(width, height, out);
+    }
+
+    /** HSB brightness of a colour, 0–1. */
+    static float brightness(int rgb) {
+        return java.awt.Color.RGBtoHSB(r(rgb), g(rgb), b(rgb), null)[2];
+    }
+
     /** Most frequent opaque colour, for deriving a chapter's colour from its overlay. */
     int dominant() {
         Map<Integer, Integer> counts = new HashMap<>();

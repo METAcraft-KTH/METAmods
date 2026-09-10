@@ -197,10 +197,23 @@ public final class GeneratedAssets implements DataProvider {
 
             if (chapter.rollable) {
                 // Rolled down: legs plus the top hanging at the waist, all on the legs slot's layer.
-                Tex rolled = overlay(chapter.nercabbadOverlay, chapter);
-                Tex nercabbad = Tex.blank(64, 32).blit(rolled, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
-                        .blit(rolled, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1]);
-                layer(chapter, Piece.BOTTOM, "bottom_nercabbad", marked(withLeft(nercabbad, RIGHT_LEG, rolled, LEFT_LEG)));
+                Tex nercabbad;
+                if (chapter.nercabbadArmour != null) {
+                    // A leggings texture drawn as such (PolymITer's), shifted to the chapter's colour — hue
+                    // and saturation from the website overlay's main colour, its own shading scaled to
+                    // that colour's brightness. No left-limb art, so the left leg mirrors the right.
+                    Tex armour = art(chapter.nercabbadArmour);
+                    require(armour.width == 64 && armour.height == 32, chapter.nercabbadArmour + ".png is not a 64×32 armour texture");
+                    require(armour.get(MARKER_X, MARKER_Y) == 0 && armour.get(MARKER_KIND_X, MARKER_Y) == 0, chapter.nercabbadArmour + ".png draws on the marker texels");
+                    armour = armour.tinted(colour).brightened(Tex.brightness(colour) / Tex.brightness(armour.dominant()));
+                    nercabbad = withLeft(armour, RIGHT_LEG, Tex.blank(64, 64), LEFT_LEG);
+                } else {
+                    Tex rolled = overlay(chapter.nercabbadOverlay, chapter);
+                    Tex cut = Tex.blank(64, 32).blit(rolled, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
+                            .blit(rolled, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1]);
+                    nercabbad = withLeft(cut, RIGHT_LEG, rolled, LEFT_LEG);
+                }
+                layer(chapter, Piece.BOTTOM, "bottom_nercabbad", marked(nercabbad));
                 equipment(chapter, Piece.BOTTOM, true);
             }
 

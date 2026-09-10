@@ -64,7 +64,11 @@ sewn on the last pull, nothing sewn after cutting the thread).
 Drop the chapter's 64×64 skin overlay (the same file the website uses; pure green = "erase the
 skin here") into `src/main/resources/art/ovvar/`, add a line to `Chapter.java` naming it and,
 optionally, its rolled-down (nercabbad) overlay and a tint colour, then `runDatagen`. The
-armour layers, equipment definitions, icons and names are derived from that.
+armour layers, equipment definitions, icons and names are derived from that. A chapter can
+instead name a ready-made 64×32 leggings texture for its rolled-down state (`nercabbadArmour`);
+it is shifted to the chapter's colour and used as it is. The `*_polymiter` chapters do this with
+PolymITer's hand-drawn ovve (`art/ovvar/polymiter/nercabbad.png`), there to compare the two
+styles in game — `/ovvar give data_polymiter down` next to `/ovvar give data down`.
 
 ## Adding a patch
 
