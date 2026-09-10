@@ -1,6 +1,7 @@
 package metacraft.ovvar.sewing;
 
 import metacraft.ovvar.Ovvar;
+import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
@@ -35,12 +36,13 @@ import java.util.UUID;
  * ovve, so everyone sees it, and nothing is persisted until the click.
  *
  * Aiming is {@link StandAim}: the look ray against the stand's posed armour model. Sneaking aims
- * at the far face of the part you look at (the inside of an arm or leg, the back).
+ * at the far face of the part you look at (the inside of an arm or leg, the back). With the
+ * stitching minigame on (config), the click opens {@link SewingGame} instead of sewing at once.
  */
 public final class StandSewing {
     private StandSewing() {}
 
-    private static final double REACH = 6.0;
+    static final double REACH = 6.0;
 
     private static StandAim.Hit aim(ServerPlayer player, ArmorStand stand) {
         return StandAim.aim(player.getEyePosition(), player.getViewVector(1.0f), stand, player.isShiftKeyDown(), REACH);
@@ -64,12 +66,11 @@ public final class StandSewing {
                 Spot spot = aimed == null ? null : spotFor(aimed.spot(), patchItem.patch);
                 if (spot == null) return InteractionResult.FAIL;
                 Placement placement = new Placement(spot, patchItem.patch.id());
-                Looks.sew(ovve, placement);
-                Looks.setPreview(ovve, null);
-                AIMS.remove(player.getUUID());
-                if (!player.isCreative()) held.shrink(1);
-                celebrate((ServerLevel) level, aimed.where(), true);
-                serverPlayer.sendOverlayMessage(Component.literal(patchItem.patch.name() + " sewn on the " + spot.label()));
+                if (OvvarConfig.get().sewingMinigame()) {
+                    SewingGame.start(serverPlayer, stand, placement, patchItem.patch);
+                } else {
+                    finish(serverPlayer, stand, placement, patchItem, aimed.where());
+                }
                 return InteractionResult.SUCCESS;
             }
             if (held.isEmpty() && aimed != null && aimed.spot() != null) {
@@ -86,6 +87,21 @@ public final class StandSewing {
             }
             return InteractionResult.PASS;
         });
+    }
+
+    /**
+     * Sews for real: the placement goes on the stand's ovve, the preview is dropped, one patch
+     * leaves the hand (outside creative), particles at {@code where}.
+     */
+    static void finish(ServerPlayer player, ArmorStand stand, Placement placement, PatchItem patchItem, Vec3 where) {
+        ItemStack ovve = stand.getItemBySlot(EquipmentSlot.LEGS);
+        if (!(ovve.getItem() instanceof OvveItem)) throw new IllegalStateException("[ovvar] finishing a seam on a stand without an ovve");
+        Looks.sew(ovve, placement);
+        Looks.setPreview(ovve, null);
+        AIMS.remove(player.getUUID());
+        if (!player.isCreative()) player.getMainHandItem().shrink(1);
+        celebrate((ServerLevel) player.level(), where, true);
+        player.sendOverlayMessage(Component.literal(patchItem.patch.name() + " sewn on the " + placement.spot().label()));
     }
 
     /** Where a patch lands when aimed at a cell: a seat patch aimed at either seat cell goes on the seat; else the cell, if it takes the patch. */

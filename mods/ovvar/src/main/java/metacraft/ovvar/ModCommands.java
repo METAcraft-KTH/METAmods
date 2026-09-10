@@ -1,5 +1,6 @@
 package metacraft.ovvar;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -41,7 +42,8 @@ import java.util.stream.Stream;
  *   <li>{@code patches <patches>} — re-sew the ovve in your main hand;</li>
  *   <li>{@code showcase <chapter>} — a row of armour stands in front of you: top down, top up, one
  *       per patch (on the chest), every cell filled;</li>
- *   <li>{@code stands <chapter>} — three posed stands wearing a plain ovve, for testing the sewing aim.</li>
+ *   <li>{@code stands <chapter>} — three posed stands wearing a plain ovve, for testing the sewing aim;</li>
+ *   <li>{@code minigame [on|off] [stitches]} — the stitching minigame setting, saved to config/ovvar.json.</li>
  * </ul>
  */
 public final class ModCommands {
@@ -73,7 +75,13 @@ public final class ModCommands {
                         .then(Commands.literal("showcase")
                                 .then(chapterArg().executes(ModCommands::showcase)))
                         .then(Commands.literal("stands")
-                                .then(chapterArg().executes(ModCommands::stands)))));
+                                .then(chapterArg().executes(ModCommands::stands)))
+                        .then(Commands.literal("minigame")
+                                .executes(ctx -> minigame(ctx, null, 0))
+                                .then(Commands.literal("on").executes(ctx -> minigame(ctx, true, 0))
+                                        .then(Commands.argument("stitches", IntegerArgumentType.integer(1, OvvarConfig.MAX_STITCHES))
+                                                .executes(ctx -> minigame(ctx, true, IntegerArgumentType.getInteger(ctx, "stitches")))))
+                                .then(Commands.literal("off").executes(ctx -> minigame(ctx, false, 0))))));
     }
 
     private static com.mojang.brigadier.builder.RequiredArgumentBuilder<CommandSourceStack, String> chapterArg() {
@@ -238,5 +246,16 @@ public final class ModCommands {
         int count = looks.size();
         ctx.getSource().sendSuccess(() -> Component.literal("Placed " + count + " " + chapter.name + " stands"), false);
         return count;
+    }
+
+    private static int minigame(CommandContext<CommandSourceStack> ctx, Boolean on, int stitches) {
+        OvvarConfig config = OvvarConfig.get();
+        if (on != null) {
+            config = new OvvarConfig(on, stitches > 0 ? stitches : config.stitches());
+            config.save();
+        }
+        OvvarConfig now = config;
+        ctx.getSource().sendSuccess(() -> Component.literal("Stitching minigame " + (now.sewingMinigame() ? "on, " + now.stitches() + " stitches" : "off")), true);
+        return 1;
     }
 }

@@ -7,7 +7,10 @@ Minecraft 26.2. Players need nothing but the auto-served resource pack.
 
 One ovve per chapter — Data (cerise), IT (purple), the older silicon-blue IT — and the Media
 frack. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
-emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. Right-click is the bundle's (hold to empty); sneak +
+emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. It
+holds twice a bundle through METAcraft's own bundle mod (`metacraft-bundles`, a hard dependency in
+METAmods; here `libs/metacraft-bundles-1.0.0.jar` is compiled against and the dev server runs
+without it, with vanilla-sized pockets). Right-click is the bundle's (hold to empty); sneak +
 right-click rolls the top up or down; neither equips it, so drag it in or shift-click. While the
 top is up and the chest slot is free the
 mod keeps a companion "top" there so the sleeves render; it is not a real item and deletes itself
@@ -24,12 +27,20 @@ action bar names it, right-click sews it on; sneak to aim at the far face of the
 patches also go on at the smithing table (ovve + patch, no template). No cap on the number of
 patches.
 
+With the stitching minigame on (`config/ovvar.json`: `sewing_minigame`, `stitches`; default on,
+6 stitches) the right-click opens a dialog instead: the seam runs down the middle of a two-column
+grid, one row per stitch, and the needle sits on alternate sides — click it back and forth across
+the seam. Each pull sounds at the stand, the last one sews the patch (`SewingGame`); Escape or
+"Cut the thread" abandons it, and the patch only leaves your hand when the seam is done. The
+dialog's clicks come back as custom click actions (`CustomClickMixin`).
+
 ## Debug commands (gamemasters)
 
     /ovvar give [player] <chapter> [patches]   e.g. /ovvar give it all, /ovvar give data front_top_left.metacraft,seat.chapter
     /ovvar patches <patches>                   re-sew the ovve in your main hand (all / none / cell.patch, bare ids)
     /ovvar showcase <chapter>                  armour stands: top down, top up, each patch, every cell filled
     /ovvar stands <chapter>                    three posed stands in a plain ovve, for testing the sewing aim
+    /ovvar minigame [on [stitches]|off]        the stitching minigame setting; saved to config/ovvar.json
 
 ## Building
 
@@ -44,7 +55,9 @@ patches.
 `Start Vanilla Client.command` launches a plain vanilla client that joins it. Give yourself an
 ovve with `/ovvar give data all` or from the Ovvar creative tab. `Run Tests.command` runs the
 game tests (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
-sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping.
+sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping; and
+the stitching minigame played through with the clicks its dialog sends (stale clicks ignored,
+sewn on the last pull, nothing sewn after cutting the thread).
 
 ## Adding a chapter
 

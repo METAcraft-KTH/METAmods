@@ -3,6 +3,7 @@
   "package": "metacraft.ovvar.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "CustomClickMixin",
     "ResourcePackResponseMixin"
   ],
   "injectors": {
