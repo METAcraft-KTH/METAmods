@@ -1,6 +1,7 @@
 package metacraft.ovvar.datagen;
 
 import com.google.common.hash.Hashing;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -15,6 +16,9 @@ import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Spot;
 import metacraft.ovvar.pack.EquipmentJson;
 import metacraft.ovvar.pack.Trims;
+import metacraft.ovvar.sewing.Outline;
+import metacraft.ovvar.sewing.Seam;
+import metacraft.ovvar.sewing.SewingFont;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
@@ -69,11 +73,12 @@ public final class GeneratedAssets implements DataProvider {
     /** The texel our core shader checks before treating a texture as ours: magenta at alpha 2. */
     private static final int MARKER_X = W - 1, MARKER_Y = H / 2 - 1, MARKER = 0x02FF00FF;
 
-    private final Path assets, data;
+    private final Path root, assets, data;
     private final List<CompletableFuture<?>> writes = new ArrayList<>();
     private CachedOutput out;
 
     public GeneratedAssets(FabricPackOutput output) {
+        this.root = output.getOutputFolder();
         this.assets = output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve(MOD);
         this.data = output.getOutputFolder(PackOutput.Target.DATA_PACK).resolve(MOD);
     }
@@ -214,9 +219,11 @@ public final class GeneratedAssets implements DataProvider {
         }
         Ovvar.LOGGER.info("[{} datagen] {} placement textures, {} patches in the preview library", MOD, placementTextures, library.size());
 
+        Map<Chapter, Integer> chapterColours = new LinkedHashMap<>();
         for (Chapter chapter : Chapter.values()) {
             Tex overlay = overlay(chapter.overlay, chapter);
             int colour = overlay.dominant();
+            chapterColours.put(chapter, colour);
 
             // The top: body and sleeves, on the chest slot's layer.
             Tex top = Tex.blank(64, 32).blit(overlay, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1])
@@ -266,6 +273,8 @@ public final class GeneratedAssets implements DataProvider {
         }
         Ovvar.LOGGER.info("[{} datagen] {} patches, {} cells, {} chapters", MOD, Patches.all().size(), Spot.values().length, Chapter.values().length);
 
+        sewingFont(chapterColours, arts);
+
         JsonObject langJson = new JsonObject();
         lang.forEach(langJson::addProperty);
         json(assets.resolve("lang/en_us.json"), langJson);
@@ -283,6 +292,126 @@ public final class GeneratedAssets implements DataProvider {
 
     private static int rgb(int r, int g, int b) {
         return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+
+    /** The exit band's text and the flat patch it sits on. */
+    private static final int BAND_TEXT = 0xFFE6D2D7, BAND_FLAT = 0xFF34282E;
+
+    /**
+     * The stitching dialog's font ({@link SewingFont}) and the outlines its seams follow
+     * ({@link Outline}). The art in {@code art/ovvar/sewing} is the raw material: the cloth tile
+     * is recoloured in every chapter's colour, the needle mirrored and turned for its four
+     * directions, each patch's art scaled up whole, and the exit band gets its text in the vanilla
+     * font. Each patch's outline is traced from its art's opaque texels.
+     */
+    private void sewingFont(Map<Chapter, Integer> chapterColours, Map<String, Tex> arts) {
+        Tex cloth = sewingArt("cloth", SewingFont.PITCH, SewingFont.PITCH);
+        Tex needle = sewingArt("needle", SewingFont.NEEDLE_LENGTH, SewingFont.NEEDLE_WIDTH);
+        Tex cross = sewingArt("cross", SewingFont.MARK, SewingFont.MARK);
+        Tex hole = sewingArt("hole", SewingFont.MARK, SewingFont.MARK);
+        Tex band = sewingArt("band", SewingFont.cellWidth(SewingFont.BAND), SewingFont.PITCH);
+
+        Map<String, Tex> textures = new LinkedHashMap<>();
+        for (Chapter chapter : Chapter.values()) {
+            textures.put(SewingFont.cloth(chapter).name(), cloth.colourised(chapterColours.get(chapter)));
+        }
+        JsonObject outlines = new JsonObject();
+        for (Patches.Patch patch : Patches.all()) {
+            Tex art = arts.get(patch.id());
+            textures.put(SewingFont.patch(patch).name(), art.scale(Seam.scale(patch.cells())));
+            JsonArray segments = new JsonArray();
+            for (int[] s : outline(art, patch.id())) segments.add(J.nums(s[0], s[1], s[2], s[3], s[4], s[5]));
+            outlines.add(patch.id(), segments);
+        }
+        textures.put(SewingFont.CROSS.name(), cross);
+        textures.put(SewingFont.HOLE.name(), hole);
+        textures.put(SewingFont.NEEDLE_R.name(), needle);
+        textures.put(SewingFont.NEEDLE_L.name(), needle.flipX());
+        Tex down = needle.rotated();
+        textures.put(SewingFont.NEEDLE_D.name(), down);
+        textures.put(SewingFont.NEEDLE_U.name(), down.flipY());
+        Tex ascii = Vanilla.texture("font/ascii");
+        String cut = "Cut the thread";
+        int textWidth = Tex.textWidth(ascii, cut), textX = (band.width - textWidth) / 2;
+        for (int y = 4; y <= 16; y++) band = band.line(textX - 3, y, textWidth + 6, BAND_FLAT);
+        textures.put(SewingFont.BAND_GLYPH.name(), band.stampText(ascii, cut, textX, (SewingFont.PITCH - 8) / 2, BAND_TEXT));
+
+        List<JsonObject> providers = new ArrayList<>();
+        for (SewingFont.Glyph glyph : SewingFont.glyphs()) {
+            Tex tex = textures.get(glyph.name());
+            require(tex != null, "no texture for sewing glyph " + glyph.name());
+            require(tex.width == glyph.width() && tex.height == glyph.height(),
+                    "sewing glyph " + glyph.name() + " is " + tex.width + "\u00d7" + tex.height + ", the font expects " + glyph.width() + "\u00d7" + glyph.height());
+            String file = MOD + ":" + SewingFont.TEXTURE_DIR + glyph.name() + ".png";
+            png(assets.resolve("textures/" + SewingFont.TEXTURE_DIR + glyph.name() + ".png"), tex.reachingRightEdge());
+            for (int top = glyph.minTop(); top <= glyph.maxTop(); top++) {
+                providers.add(obj("type", "bitmap", "file", file, "height", glyph.height(), "ascent", SewingFont.Glyph.ascent(top),
+                        "chars", arr(String.valueOf(glyph.at(top)))));
+            }
+        }
+        JsonObject advances = new JsonObject();
+        SewingFont.spaceAdvances().forEach((c, advance) -> advances.addProperty(String.valueOf(c), advance));
+        providers.add(obj("type", "space", "advances", advances));
+        json(assets.resolve("font/" + SewingFont.ID.getPath() + ".json"), obj("providers", arr(providers.toArray())));
+        json(root.resolve(Outline.RESOURCE.substring(1)), outlines);
+        Ovvar.LOGGER.info("[{} datagen] sewing font: {} glyphs, {} codepoints; {} outlines", MOD, textures.size(), providers.size() - 1, outlines.size());
+    }
+
+    private static Tex sewingArt(String name, int width, int height) {
+        Tex tex = art("sewing/" + name);
+        require(tex.width == width && tex.height == height, "sewing/" + name + ".png must be " + width + "\u00d7" + height);
+        return tex;
+    }
+
+    /**
+     * The outline of the art's opaque texels for {@link Outline}: unit segments
+     * {@code {x0, y0, x1, y1, nx, ny}} along the boundary, chained clockwise from the top-left
+     * corner, the normal pointing off the art. Each opaque texel contributes its sides that face
+     * a transparent texel or the edge; following them end to start closes the loops, and the
+     * longest loop is the outer edge (the art's holes, if any, are not sewn around).
+     */
+    static List<int[]> outline(Tex art, String name) {
+        List<int[]> edges = new ArrayList<>();
+        for (int y = 0; y < art.height; y++) {
+            for (int x = 0; x < art.width; x++) {
+                if (!opaque(art, x, y)) continue;
+                if (!opaque(art, x, y - 1)) edges.add(new int[]{x, y, x + 1, y, 0, -1});
+                if (!opaque(art, x + 1, y)) edges.add(new int[]{x + 1, y, x + 1, y + 1, 1, 0});
+                if (!opaque(art, x, y + 1)) edges.add(new int[]{x + 1, y + 1, x, y + 1, 0, 1});
+                if (!opaque(art, x - 1, y)) edges.add(new int[]{x, y + 1, x, y, -1, 0});
+            }
+        }
+        require(!edges.isEmpty(), "patches/" + name + ".png has no opaque texels to sew around");
+        List<int[]> best = List.of();
+        boolean[] used = new boolean[edges.size()];
+        for (int i = 0; i < edges.size(); i++) {
+            if (used[i]) continue;
+            List<int[]> loop = new ArrayList<>();
+            int current = i;
+            while (current >= 0) {
+                used[current] = true;
+                int[] e = edges.get(current);
+                loop.add(e);
+                current = -1;
+                for (int j = 0; j < edges.size(); j++) {
+                    int[] f = edges.get(j);
+                    if (!used[j] && f[0] == e[2] && f[1] == e[3]) { current = j; break; }
+                }
+            }
+            if (loop.size() > best.size()) best = loop;
+        }
+        int start = 0;
+        for (int i = 1; i < best.size(); i++) {
+            int[] a = best.get(i), b = best.get(start);
+            if (a[1] < b[1] || (a[1] == b[1] && a[0] < b[0])) start = i;
+        }
+        List<int[]> out = new ArrayList<>(best.subList(start, best.size()));
+        out.addAll(best.subList(0, start));
+        return out;
+    }
+
+    private static boolean opaque(Tex art, int x, int y) {
+        return x >= 0 && y >= 0 && x < art.width && y < art.height && Tex.a(art.get(x, y)) >= 128;
     }
 
     /** A patch's inventory icon: its art scaled to fill 16 px, centred. */

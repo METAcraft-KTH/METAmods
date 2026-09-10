@@ -81,7 +81,7 @@ public final class ModCommands {
                         .then(Commands.literal("minigame")
                                 .executes(ctx -> minigame(ctx, null, 0))
                                 .then(Commands.literal("on").executes(ctx -> minigame(ctx, true, 0))
-                                        .then(Commands.argument("stitches", IntegerArgumentType.integer(1, OvvarConfig.MAX_STITCHES))
+                                        .then(Commands.argument("stitches", IntegerArgumentType.integer(OvvarConfig.MIN_STITCHES, OvvarConfig.MAX_STITCHES))
                                                 .executes(ctx -> minigame(ctx, true, IntegerArgumentType.getInteger(ctx, "stitches")))))
                                 .then(Commands.literal("off").executes(ctx -> minigame(ctx, false, 0))))
                         .then(Commands.literal("aimlog")

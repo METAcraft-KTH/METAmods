@@ -121,6 +121,22 @@ final class Tex {
         return flipX(0, 0, width, height);
     }
 
+    /** Copy mirrored vertically. */
+    Tex flipY() {
+        int[] out = new int[argb.length];
+        for (int y = 0; y < height; y++) System.arraycopy(argb, (height - 1 - y) * width, out, y * width, width);
+        return new Tex(width, height, out);
+    }
+
+    /** Copy turned a quarter turn clockwise (something pointing right comes to point down). */
+    Tex rotated() {
+        int[] out = new int[argb.length];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) out[x * height + (height - 1 - y)] = argb[y * width + x];
+        }
+        return new Tex(height, width, out);
+    }
+
     /** {@code over} alpha-composited on top of this (same size). */
     Tex composite(Tex over) {
         if (over.width != width || over.height != height) throw new IllegalArgumentException("size mismatch");
@@ -223,5 +239,84 @@ final class Tex {
 
     boolean isEmpty() {
         return Arrays.stream(argb).allMatch(p -> a(p) == 0);
+    }
+
+    /** The rectangle (x, y, w, h) as its own texture. */
+    Tex crop(int x, int y, int w, int h) {
+        return blank(w, h).blit(this, x, y, w, h, 0, 0);
+    }
+
+    /**
+     * Every visible pixel takes {@code target}'s hue and saturation and keeps its own brightness:
+     * one piece of cloth in every chapter's colour. (Unlike {@link #tinted}, which scales
+     * saturation, this works on grey art too.)
+     */
+    Tex colourised(int target) {
+        float[] t = java.awt.Color.RGBtoHSB(r(target), g(target), b(target), null);
+        int[] out = new int[argb.length];
+        for (int i = 0; i < argb.length; i++) {
+            int p = argb[i];
+            if (a(p) == 0) continue;
+            float[] hsb = java.awt.Color.RGBtoHSB(r(p), g(p), b(p), null);
+            out[i] = (a(p) << 24) | (java.awt.Color.HSBtoRGB(t[0], t[1], hsb[2]) & 0xFFFFFF);
+        }
+        return new Tex(width, height, out);
+    }
+
+    /** Copy with a horizontal line of {@code argb} from (x, y), {@code length} px long. */
+    Tex line(int x, int y, int length, int argb) {
+        int[] out = this.argb.clone();
+        for (int i = 0; i < length; i++) out[y * width + x + i] = argb;
+        return new Tex(width, height, out);
+    }
+
+    /**
+     * A font glyph's advance is measured to its rightmost visible column, so a glyph must reach its
+     * right edge for the label arithmetic in SewingFont to hold. Copy with the bottom-right pixel
+     * made just barely visible if the last column is empty.
+     */
+    Tex reachingRightEdge() {
+        for (int y = 0; y < height; y++) if (a(get(width - 1, y)) != 0) return this;
+        return with(width - 1, height - 1, 0x01000000);
+    }
+
+    /**
+     * {@code text} stamped in the vanilla font ({@code ascii.png}: 16×16 cells of 8×8, cell = code
+     * point) at (x, y) in {@code argb}, with the usual shadow. Only ASCII; the width is what the
+     * client would measure. Returns the copy and its width via {@code widthOut[0]}.
+     */
+    Tex stampText(Tex ascii, String text, int x, int y, int argb) {
+        Tex out = this;
+        int shadow = 0xFF000000 | ((r(argb) / 4) << 16) | ((g(argb) / 4) << 8) | (b(argb) / 4);
+        for (int pass = 0; pass < 2; pass++) {
+            int cx = x + (pass == 0 ? 1 : 0), cy = y + (pass == 0 ? 1 : 0);
+            int colour = pass == 0 ? shadow : argb;
+            for (char c : text.toCharArray()) {
+                if (c == ' ') { cx += 4; continue; }
+                if (c < 0x20 || c > 0x7E) throw new IllegalArgumentException("stampText is ASCII only: " + text);
+                int gx = (c % 16) * 8, gy = (c / 16) * 8, glyphWidth = 0;
+                for (int yy = 0; yy < 8; yy++) {
+                    for (int xx = 0; xx < 8; xx++) {
+                        if (a(ascii.get(gx + xx, gy + yy)) == 0) continue;
+                        glyphWidth = Math.max(glyphWidth, xx + 1);
+                        if (cx + xx < width && cy + yy < height) out = out.with(cx + xx, cy + yy, colour);
+                    }
+                }
+                cx += glyphWidth + 1;
+            }
+        }
+        return out;
+    }
+
+    /** What {@link #stampText} advances by: the vanilla widths of {@code text}. */
+    static int textWidth(Tex ascii, String text) {
+        int w = 0;
+        for (char c : text.toCharArray()) {
+            if (c == ' ') { w += 4; continue; }
+            int gx = (c % 16) * 8, gy = (c / 16) * 8, glyphWidth = 0;
+            for (int yy = 0; yy < 8; yy++) for (int xx = 0; xx < 8; xx++) if (a(ascii.get(gx + xx, gy + yy)) != 0) glyphWidth = Math.max(glyphWidth, xx + 1);
+            w += glyphWidth + 1;
+        }
+        return w;
     }
 }

@@ -29,11 +29,28 @@ patches also go on at the smithing table (ovve + patch, no template). No cap on 
 patches.
 
 With the stitching minigame on (`config/ovvar.json`: `sewing_minigame`, `stitches`; default on,
-6 stitches) the right-click opens a dialog instead: the seam runs down the middle of a two-column
-grid, one row per stitch, and the needle sits on alternate sides — click it back and forth across
-the seam. Each pull sounds at the stand, the last one sews the patch (`SewingGame`); Escape or
-"Cut the thread" abandons it, and the patch only leaves your hand when the seam is done. The
-dialog's clicks come back as custom click actions (`CustomClickMixin`).
+6 stitches) the right-click opens a dialog instead: the patch lies on the ovve's cloth and the
+seam goes around its edge — the holes sit alternately just outside and just inside the edge, each
+a little further along, like a whip stitch, following the shape of the art (a heart is sewn
+around its lobes). The needle sits on the next hole, coming in over the edge; click where it is to
+pull it through. Each pull sounds at the stand, the last one sews the patch (`SewingGame`);
+Escape or the "Cut the thread" band abandons it, and the patch only leaves your hand when the
+seam is done. The dialog's clicks come back as custom click actions (`CustomClickMixin`).
+
+Every button in that dialog is a sprite. The picture is a 7×7 grid of 20 px buttons whose
+labels are glyphs of a bitmap font the pack carries (`SewingFont`,
+`assets/ovvar/font/sewing.json`): an opaque cloth tile a pixel larger than the button on every
+side hides the vanilla button and meets its neighbours across the grid gaps, and the last cell's
+label — buttons draw in grid order, so it comes out on top — also draws the patch, the stitches
+and the needle over the whole picture with negative-advance spaces. The cell under the needle
+carries the click. Datagen builds the glyph textures from `art/ovvar/sewing/`: `cloth.png`
+(22×22, recoloured in every chapter's colour), `needle.png` (26×9, pointing right; mirrored and
+turned for the other directions), `cross.png` and `hole.png` (7×7), `band.png` (154×22, the text
+is stamped on), plus each patch's art scaled up (4×4 at 20×, the seat patch at 12×). It also
+traces each patch's outline from its opaque texels into `ovvar/outlines.json` (`Outline`), which
+`Seam` spreads the holes along at runtime. Replace the PNGs and `runDatagen`; the
+`sewingLabelsFitTheirButtons` game test checks every label of every seam still measures what the
+client centres without scrolling. Mockups of the design are in `docs/mockups/sewing/`.
 
 ## Debug commands (gamemasters)
 

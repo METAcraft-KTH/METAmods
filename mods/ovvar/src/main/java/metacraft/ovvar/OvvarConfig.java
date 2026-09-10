@@ -26,10 +26,10 @@ import java.nio.file.Path;
  * @param pushCalmDistance     how far a player may have moved within that time and still count as calm
  */
 public record OvvarConfig(boolean sewingMinigame, int stitches, int pushAfterCalmSeconds, double pushCalmDistance) {
-    public static final int MAX_STITCHES = 16;
+    public static final int MIN_STITCHES = 1, MAX_STITCHES = 16;
     public static final Codec<OvvarConfig> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.BOOL.fieldOf("sewing_minigame").forGetter(OvvarConfig::sewingMinigame),
-            Codec.intRange(1, MAX_STITCHES).fieldOf("stitches").forGetter(OvvarConfig::stitches),
+            Codec.intRange(MIN_STITCHES, MAX_STITCHES).fieldOf("stitches").forGetter(OvvarConfig::stitches),
             Codec.intRange(0, 600).optionalFieldOf("push_after_calm_seconds", 20).forGetter(OvvarConfig::pushAfterCalmSeconds),
             Codec.doubleRange(0, 1000).optionalFieldOf("push_calm_distance", 8.0).forGetter(OvvarConfig::pushCalmDistance)
     ).apply(instance, OvvarConfig::new));

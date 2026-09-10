@@ -2,10 +2,12 @@ package metacraft.ovvar.sewing;
 
 import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.OvvarConfig;
+import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.PatchItem;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Placement;
+import metacraft.ovvar.content.Spot;
 import metacraft.ovvar.pack.Combos;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
@@ -29,6 +31,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.phys.Vec3;
@@ -41,15 +44,33 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static metacraft.ovvar.sewing.SewingFont.CELL;
+import static metacraft.ovvar.sewing.SewingFont.COLS;
+import static metacraft.ovvar.sewing.SewingFont.MARK;
+import static metacraft.ovvar.sewing.SewingFont.NEEDLE_LENGTH;
+import static metacraft.ovvar.sewing.SewingFont.NEEDLE_WIDTH;
+import static metacraft.ovvar.sewing.SewingFont.PICTURE_HEIGHT;
+import static metacraft.ovvar.sewing.SewingFont.PICTURE_WIDTH;
+import static metacraft.ovvar.sewing.SewingFont.ROWS;
+import static metacraft.ovvar.sewing.SewingFont.overlayTop;
+import static metacraft.ovvar.sewing.SewingFont.overlayX;
+
 /**
  * The stitching minigame ({@code sewing_minigame} in the config): instead of sewing in one click,
- * right-clicking the stand opens a dialog with the seam running down the middle of a two-column
- * grid, one row per stitch. The needle sits on alternate sides; you pull it through by clicking it,
- * so a patch is sewn by clicking back and forth across the seam. Each pull is a stitch sound at
- * the stand, and the last one sews the patch for real ({@link StandSewing#finish}). Escape or
- * "Cut the thread" abandons it; nothing is taken from the player until the seam is done.
+ * right-clicking the stand opens a dialog that draws the patch lying on the ovve's cloth and the
+ * seam going around its edge — the holes alternate just outside and just inside the edge, each a
+ * little further along, like a whip stitch ({@link Seam}). The needle sits on the next hole,
+ * coming in over the edge; you pull it through by clicking where it is. Each pull is a stitch
+ * sound at the stand, and the last one sews the patch for real ({@link StandSewing#finish}).
+ * Escape or the "Cut the thread" band abandons it; nothing is taken from the player until the
+ * seam is done.
  *
- * The clicks come back as custom click actions ({@code ovvar:pull}, {@code ovvar:cut}) through
+ * <p>Every button in the dialog is a sprite: the picture is a grid of cloth cells whose labels are
+ * glyphs of the {@link SewingFont}, hiding the vanilla buttons and meeting across the gaps; the
+ * last cell's label also draws everything that lies on the cloth. The cell under the needle is
+ * the one that carries the pull action.
+ *
+ * <p>The clicks come back as custom click actions ({@code ovvar:pull}, {@code ovvar:cut}) through
  * {@code CustomClickMixin}; a token per game keeps a stale dialog from stitching a new one.
  */
 public final class SewingGame {
@@ -57,15 +78,10 @@ public final class SewingGame {
 
     public static final Identifier PULL = Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "pull");
     public static final Identifier CUT = Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "cut");
-    private static final int BUTTON_WIDTH = 110;
 
-    private record Game(UUID stand, Placement placement, Patches.Patch patch, int token, int stitches, int done) {
+    private record Game(UUID stand, Chapter chapter, Placement placement, Patches.Patch patch, int token, int stitches, int done) {
         Game advanced() {
-            return new Game(stand, placement, patch, token, stitches, done + 1);
-        }
-
-        boolean needleOnLeft(int row) {
-            return row % 2 == 0;
+            return new Game(stand, chapter, placement, patch, token, stitches, done + 1);
         }
     }
 
@@ -73,7 +89,8 @@ public final class SewingGame {
 
     /** Opens the seam for a placement the player just aimed at. Replaces any game they had going. */
     public static void start(ServerPlayer player, ArmorStand stand, Placement placement, Patches.Patch patch) {
-        Game game = new Game(stand.getUUID(), placement, patch, ThreadLocalRandom.current().nextInt(), OvvarConfig.get().stitches(), 0);
+        Chapter chapter = stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem ovve ? ovve.chapter : Chapter.values()[0];
+        Game game = new Game(stand.getUUID(), chapter, placement, patch, ThreadLocalRandom.current().nextInt(), OvvarConfig.get().stitches(), 0);
         GAMES.put(player.getUUID(), game);
         show(player, game);
     }
@@ -159,38 +176,62 @@ public final class SewingGame {
         return game == null ? null : dialog(game);
     }
 
+    /** The dialog for any state of any seam, for the game tests; the pull payload carries token 0. */
+    public static Dialog dialog(Chapter chapter, Patches.Patch patch, Spot spot, int stitches, int done) {
+        return dialog(new Game(new UUID(0, 0), chapter, new Placement(spot, patch.id()), patch, 0, stitches, done));
+    }
+
     private static Dialog dialog(Game game) {
-        List<ActionButton> cells = new ArrayList<>(game.stitches * 2);
-        for (int row = 0; row < game.stitches; row++) {
-            boolean left = game.needleOnLeft(row);
-            ActionButton needleSide, otherSide;
-            if (row < game.done) {
-                needleSide = label(Component.literal("✕").withStyle(ChatFormatting.GOLD));
-                otherSide = label(Component.literal("┄").withStyle(ChatFormatting.DARK_GRAY));
-            } else if (row == game.done) {
-                Component text = Component.literal(left ? "» pull the thread" : "pull the thread «").withStyle(ChatFormatting.GREEN);
-                CompoundTag payload = pullPayload(game, row);
-                needleSide = new ActionButton(new CommonButtonData(text, Optional.of(Component.literal("Stitch " + (row + 1) + " of " + game.stitches)), BUTTON_WIDTH),
-                        Optional.of(new StaticAction(new ClickEvent.Custom(PULL, Optional.of(payload)))));
-                otherSide = label(Component.literal("·").withStyle(ChatFormatting.DARK_GRAY));
-            } else {
-                needleSide = label(Component.literal("·").withStyle(ChatFormatting.DARK_GRAY));
-                otherSide = label(Component.literal("·").withStyle(ChatFormatting.DARK_GRAY));
+        List<Seam.Hole> holes = new Seam(game.patch, game.stitches).holes();
+        Seam.Hole next = game.done < holes.size() ? holes.get(game.done) : null;
+        List<ActionButton> cells = new ArrayList<>(COLS * ROWS);
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                SewingFont.Label label = new SewingFont.Label(CELL).cell(SewingFont.cloth(game.chapter));
+                if (row == ROWS - 1 && col == COLS - 1) onTheCloth(label, game, holes, next);
+                if (next != null && next.col() == col && next.row() == row) {
+                    Component tooltip = Component.literal("Stitch " + (game.done + 1) + " of " + game.stitches);
+                    cells.add(new ActionButton(new CommonButtonData(label.component(), Optional.of(tooltip), CELL),
+                            Optional.of(new StaticAction(new ClickEvent.Custom(PULL, Optional.of(pullPayload(game, game.done)))))));
+                } else {
+                    cells.add(new ActionButton(new CommonButtonData(label.component(), CELL), Optional.empty()));
+                }
             }
-            cells.add(left ? needleSide : otherSide);
-            cells.add(left ? otherSide : needleSide);
         }
-        ActionButton cut = new ActionButton(new CommonButtonData(Component.literal("Cut the thread"), BUTTON_WIDTH * 2 + 10),
+        Component band = new SewingFont.Label(SewingFont.BAND).cell(SewingFont.BAND_GLYPH).component();
+        ActionButton cut = new ActionButton(new CommonButtonData(band, Optional.of(Component.literal("Cut the thread")), SewingFont.BAND),
                 Optional.of(new StaticAction(new ClickEvent.Custom(CUT, Optional.empty()))));
         Component title = Component.literal("Sewing on the " + game.patch.name());
         List<DialogBody> body = List.of(new PlainMessage(Component.literal(
-                "Pull the needle through from the side it is on, back and forth down the seam, on the " + game.placement.spot().label() + "."), 250));
+                "Whip-stitch it onto the " + game.placement.spot().label() + ": click the needle to pull it through."), 250));
         return new MultiActionDialog(
                 new CommonDialogData(title, Optional.of(title), true, false, DialogAction.NONE, body, List.of()),
-                cells, Optional.of(cut), 2);
+                cells, Optional.of(cut), COLS);
     }
 
-    private static ActionButton label(Component text) {
-        return new ActionButton(new CommonButtonData(text, BUTTON_WIDTH), Optional.empty());
+    /**
+     * Everything lying on the cloth, drawn by the last cell over the whole picture: the patch, a
+     * cross for every stitch pulled, a pinhole for every one to come, and the needle on the next.
+     */
+    private static void onTheCloth(SewingFont.Label label, Game game, List<Seam.Hole> holes, Seam.Hole next) {
+        int cells = game.patch.cells();
+        label.at(SewingFont.patch(game.patch), overlayX(Seam.patchX(cells)), overlayTop(Seam.patchY(cells)));
+        for (int i = 0; i < holes.size(); i++) {
+            Seam.Hole hole = holes.get(i);
+            label.at(i < game.done ? SewingFont.CROSS : SewingFont.HOLE, overlayX(hole.x() - MARK / 2), overlayTop(hole.y() - MARK / 2));
+        }
+        if (next == null) return;
+        int across = NEEDLE_WIDTH / 2, tail = NEEDLE_LENGTH - 1;
+        switch (next.from()) {
+            case LEFT -> needle(label, SewingFont.NEEDLE_R, next.x() - tail, next.y() - across);
+            case RIGHT -> needle(label, SewingFont.NEEDLE_L, next.x(), next.y() - across);
+            case ABOVE -> needle(label, SewingFont.NEEDLE_D, next.x() - across, next.y() - tail);
+            case BELOW -> needle(label, SewingFont.NEEDLE_U, next.x() - across, next.y());
+        }
+    }
+
+    /** The needle with its top-left at (x, y) on the picture, kept on the cloth. */
+    private static void needle(SewingFont.Label label, SewingFont.Glyph glyph, int x, int y) {
+        label.at(glyph, overlayX(Mth.clamp(x, 0, PICTURE_WIDTH - glyph.width())), overlayTop(Mth.clamp(y, 0, PICTURE_HEIGHT - glyph.height())));
     }
 }
