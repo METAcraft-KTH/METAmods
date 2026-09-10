@@ -294,8 +294,8 @@ public final class GeneratedAssets implements DataProvider {
         return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
-    /** The exit band's text and the flat patch it sits on. */
-    private static final int BAND_TEXT = 0xFFE6D2D7, BAND_FLAT = 0xFF34282E;
+    /** The exit band's text and the flat patch it sits on: dark on light cloth, so it does not read as a disabled button. */
+    private static final int BAND_TEXT = 0xFF3A2620, BAND_FLAT = 0xFFE0CFAC;
 
     /**
      * The stitching dialog's font ({@link SewingFont}) and the outlines its seams follow
@@ -307,7 +307,9 @@ public final class GeneratedAssets implements DataProvider {
     private void sewingFont(Map<Chapter, Integer> chapterColours, Map<String, Tex> arts) {
         Tex cloth = sewingArt("cloth", SewingFont.PITCH, SewingFont.PITCH);
         Tex needle = sewingArt("needle", SewingFont.NEEDLE_LENGTH, SewingFont.NEEDLE_WIDTH);
-        Tex cross = sewingArt("cross", SewingFont.MARK, SewingFont.MARK);
+        Tex thread = sewingArt("thread", SewingFont.DOT, SewingFont.DOT);
+        Tex stitchIn = sewingArt("stitch_in", SewingFont.MARK, SewingFont.MARK);
+        Tex stitchOut = sewingArt("stitch_out", SewingFont.MARK, SewingFont.MARK);
         Tex hole = sewingArt("hole", SewingFont.MARK, SewingFont.MARK);
         Tex band = sewingArt("band", SewingFont.cellWidth(SewingFont.BAND), SewingFont.PITCH);
 
@@ -323,7 +325,9 @@ public final class GeneratedAssets implements DataProvider {
             for (int[] s : outline(art, patch.id())) segments.add(J.nums(s[0], s[1], s[2], s[3], s[4], s[5]));
             outlines.add(patch.id(), segments);
         }
-        textures.put(SewingFont.CROSS.name(), cross);
+        textures.put(SewingFont.THREAD.name(), thread);
+        textures.put(SewingFont.STITCH_IN.name(), stitchIn);
+        textures.put(SewingFont.STITCH_OUT.name(), stitchOut);
         textures.put(SewingFont.HOLE.name(), hole);
         textures.put(SewingFont.NEEDLE_R.name(), needle);
         textures.put(SewingFont.NEEDLE_L.name(), needle.flipX());
@@ -334,7 +338,7 @@ public final class GeneratedAssets implements DataProvider {
         String cut = "Cut the thread";
         int textWidth = Tex.textWidth(ascii, cut), textX = (band.width - textWidth) / 2;
         for (int y = 4; y <= 16; y++) band = band.line(textX - 3, y, textWidth + 6, BAND_FLAT);
-        textures.put(SewingFont.BAND_GLYPH.name(), band.stampText(ascii, cut, textX, (SewingFont.PITCH - 8) / 2, BAND_TEXT));
+        textures.put(SewingFont.BAND_GLYPH.name(), band.stampText(ascii, cut, textX, (SewingFont.PITCH - 8) / 2, BAND_TEXT, false));
 
         List<JsonObject> providers = new ArrayList<>();
         for (SewingFont.Glyph glyph : SewingFont.glyphs()) {

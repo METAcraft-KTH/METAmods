@@ -290,10 +290,10 @@ final class Tex {
      * point) at (x, y) in {@code argb}, with the usual shadow. Only ASCII; the width is what the
      * client would measure. Returns the copy and its width via {@code widthOut[0]}.
      */
-    Tex stampText(Tex ascii, String text, int x, int y, int argb) {
+    Tex stampText(Tex ascii, String text, int x, int y, int argb, boolean shadowed) {
         Tex out = this;
         int shadow = 0xFF000000 | ((r(argb) / 4) << 16) | ((g(argb) / 4) << 8) | (b(argb) / 4);
-        for (int pass = 0; pass < 2; pass++) {
+        for (int pass = shadowed ? 0 : 1; pass < 2; pass++) {
             int cx = x + (pass == 0 ? 1 : 0), cy = y + (pass == 0 ? 1 : 0);
             int colour = pass == 0 ? shadow : argb;
             for (char c : text.toCharArray()) {

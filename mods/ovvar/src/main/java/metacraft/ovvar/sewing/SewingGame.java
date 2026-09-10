@@ -201,24 +201,29 @@ public final class SewingGame {
         Component band = new SewingFont.Label(SewingFont.BAND).cell(SewingFont.BAND_GLYPH).component();
         ActionButton cut = new ActionButton(new CommonButtonData(band, Optional.of(Component.literal("Cut the thread")), SewingFont.BAND),
                 Optional.of(new StaticAction(new ClickEvent.Custom(CUT, Optional.empty()))));
-        Component title = Component.literal("Sewing on the " + game.patch.name());
-        List<DialogBody> body = List.of(new PlainMessage(Component.literal(
-                "Whip-stitch it onto the " + game.placement.spot().label() + ": click the needle to pull it through."), 250));
+        Component title = Component.literal("Sewing the " + game.patch.name() + " on the " + game.placement.spot().label());
+        List<DialogBody> body = List.of(new PlainMessage(Component.literal("Click the needle to pull it through."), 250));
         return new MultiActionDialog(
                 new CommonDialogData(title, Optional.of(title), true, false, DialogAction.NONE, body, List.of()),
                 cells, Optional.of(cut), COLS);
     }
 
     /**
-     * Everything lying on the cloth, drawn by the last cell over the whole picture: the patch, a
-     * cross for every stitch pulled, a pinhole for every one to come, and the needle on the next.
+     * Everything lying on the cloth, drawn by the last cell over the whole picture: the patch, the
+     * thread between the holes pulled so far (solid where it lies on top, dashed where it runs
+     * under the cloth), a knot where it came out and a hole where it went in, a pinhole for every
+     * hole to come, and the needle on the next.
      */
     private static void onTheCloth(SewingFont.Label label, Game game, List<Seam.Hole> holes, Seam.Hole next) {
         int cells = game.patch.cells();
         label.at(SewingFont.patch(game.patch), overlayX(Seam.patchX(cells)), overlayTop(Seam.patchY(cells)));
+        Seam seam = new Seam(game.patch, game.stitches);
+        for (int i = 1; i <= Math.min(game.done, holes.size() - 1); i++) {
+            thread(label, seam, holes.get(i - 1), holes.get(i), i % 2 == 1);
+        }
         for (int i = 0; i < holes.size(); i++) {
             Seam.Hole hole = holes.get(i);
-            label.at(i < game.done ? SewingFont.CROSS : SewingFont.HOLE, overlayX(hole.x() - MARK / 2), overlayTop(hole.y() - MARK / 2));
+            label.centred(i >= game.done ? SewingFont.HOLE : hole.outside() ? SewingFont.STITCH_OUT : SewingFont.STITCH_IN, hole.x(), hole.y());
         }
         if (next == null) return;
         int across = NEEDLE_WIDTH / 2, tail = NEEDLE_LENGTH - 1;
@@ -227,6 +232,22 @@ public final class SewingGame {
             case RIGHT -> needle(label, SewingFont.NEEDLE_L, next.x(), next.y() - across);
             case ABOVE -> needle(label, SewingFont.NEEDLE_D, next.x() - across, next.y() - tail);
             case BELOW -> needle(label, SewingFont.NEEDLE_U, next.x() - across, next.y());
+        }
+    }
+
+    /**
+     * The thread from one hole to the next, a dot every other px: straight over the edge from the
+     * cloth into the patch ({@code overTheEdge}), else along the edge to the next stitch — on top
+     * in a zigzag seam, under the cloth (drawn dashed) in a whip-stitched one.
+     */
+    private static void thread(SewingFont.Label label, Seam seam, Seam.Hole from, Seam.Hole to, boolean overTheEdge) {
+        List<int[]> points = new ArrayList<>();
+        if (overTheEdge) Seam.line(points, from.x(), from.y(), to.x(), to.y(), 2);
+        else points = seam.alongTheEdge(from, to, 2);
+        boolean dashed = !overTheEdge && Seam.STYLE != Seam.Style.ZIGZAG;
+        for (int i = 1; i < points.size() - 1; i++) {
+            if (dashed && (i & 2) != 0) continue;
+            label.centred(SewingFont.THREAD, points.get(i)[0], points.get(i)[1]);
         }
     }
 

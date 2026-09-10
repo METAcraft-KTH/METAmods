@@ -123,14 +123,16 @@ public final class SewingFont {
         return glyph(name, width, height, overlayTop(0), Math.min(overlayTop(PICTURE_HEIGHT - height), ROW_ASCENT));
     }
 
-    /** Stitch marks: 7×7, centred on the hole. */
-    public static final int MARK = 7;
+    /** Stitch marks (the thread going in, coming out, a hole to come): 5×5, centred on the hole. */
+    public static final int MARK = 5;
+    /** A dot of thread: 3×3, centred; the thread between holes is a row of them. */
+    public static final int DOT = 3;
     /** The needle: 26 long, 9 across, the point on the hole. */
     public static final int NEEDLE_LENGTH = 26, NEEDLE_WIDTH = 9;
 
     private static final Map<Chapter, Glyph> CLOTH = new LinkedHashMap<>();
     private static final Map<String, Glyph> PATCH = new LinkedHashMap<>();
-    public static final Glyph CROSS, HOLE, NEEDLE_R, NEEDLE_L, NEEDLE_D, NEEDLE_U, BAND_GLYPH;
+    public static final Glyph THREAD, STITCH_IN, STITCH_OUT, HOLE, NEEDLE_R, NEEDLE_L, NEEDLE_D, NEEDLE_U, BAND_GLYPH;
 
     static {
         for (Chapter chapter : Chapter.values()) CLOTH.put(chapter, glyph("cloth_" + chapter.id, PITCH, PITCH, 0, 0));
@@ -138,7 +140,9 @@ public final class SewingFont {
             int cells = patch.cells(), top = overlayTop(Seam.patchY(cells));
             PATCH.put(patch.id(), glyph("patch_" + patch.id(), Seam.patchWidth(cells), Seam.patchHeight(cells), top, top));
         }
-        CROSS = overlay("cross", MARK, MARK);
+        THREAD = overlay("thread", DOT, DOT);
+        STITCH_IN = overlay("stitch_in", MARK, MARK);
+        STITCH_OUT = overlay("stitch_out", MARK, MARK);
         HOLE = overlay("hole", MARK, MARK);
         NEEDLE_R = overlay("needle_r", NEEDLE_LENGTH, NEEDLE_WIDTH);   // pointing right: the needle comes from the left
         NEEDLE_L = overlay("needle_l", NEEDLE_LENGTH, NEEDLE_WIDTH);
@@ -217,6 +221,13 @@ public final class SewingFont {
             text.append(move(x - pos)).append(glyph.at(top));
             pos = x + glyph.advance();
             return this;
+        }
+
+        /** An overlay with its centre at (x, y) on the picture, kept where the picture (and the glyph's ascents) allow. */
+        public Label centred(Glyph glyph, int x, int y) {
+            int left = Math.max(0, Math.min(PICTURE_WIDTH - glyph.width, x - glyph.width / 2));
+            int top = Math.max(glyph.minTop, Math.min(glyph.maxTop, overlayTop(y - glyph.height / 2)));
+            return at(glyph, overlayX(left), top);
         }
 
         public String build() {

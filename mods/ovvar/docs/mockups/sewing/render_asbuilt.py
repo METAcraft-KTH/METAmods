@@ -27,8 +27,9 @@ PITCH = CELL + GAP
 PICTURE_W, PICTURE_H = COLS * PITCH, ROWS * PITCH
 BAND = COLS * CELL + (COLS - 1) * GAP
 LABEL_INSET, OVERHANG = 2, 1
-MARK, NEEDLE_LENGTH, NEEDLE_WIDTH = 7, 26, 9
+MARK, NEEDLE_LENGTH, NEEDLE_WIDTH = 5, 26, 9
 OUT, IN = 4, 4
+WHIP_HALF = 2
 
 
 # ------------------------------------------------------------------ the font, as the client loads it
@@ -139,34 +140,90 @@ def patch_geometry(cells):
     return scale, w, h, (PICTURE_W - w) // 2, (PICTURE_H - h) // 2
 
 
-def holes(patch, cells, stitches):
+def holes(patch, cells, stitches, style='WHIP'):
     segs = OUTLINES[patch]
     scale, w, h, x0, y0 = patch_geometry(cells)
+    pairs = (stitches + 1) // 2
+    pitch = len(segs) / pairs
+    half = pitch / 4 if style == 'ZIGZAG' else min(pitch / 4, WHIP_HALF / scale)
     out = []
     for i in range(stitches):
-        d = len(segs) * (i + 0.5) / stitches
+        outside = i % 2 == 0
+        d = pitch * (i // 2 + 0.5) + (-half if outside else half)
         idx = int(math.floor(d)) % len(segs)
         f = d - math.floor(d)
         sx0, sy0, sx1, sy1, nx, ny = segs[idx]
         px, py = sx0 + (sx1 - sx0) * f, sy0 + (sy1 - sy0) * f
-        outside = i % 2 == 0
         shift = OUT if outside else -IN
         x = round(x0 + px * scale + nx * shift)
         y = round(y0 + py * scale + ny * shift)
         frm = ('LEFT' if nx < 0 else 'RIGHT') if abs(nx) >= abs(ny) else ('ABOVE' if ny < 0 else 'BELOW')
         m = MARK // 2
-        out.append((max(m, min(PICTURE_W - 1 - m, x)), max(m, min(PICTURE_H - 1 - m, y)), outside, frm))
+        out.append((max(m, min(PICTURE_W - 1 - m, x)), max(m, min(PICTURE_H - 2 - m, y)), outside, frm, d))
     return out
 
 
-def on_the_cloth(label, patch, cells, hs, done):
+def edge_point(segs, d, scale, x0, y0):
+    idx = int(math.floor(d)) % len(segs)
+    f = d - math.floor(d)
+    sx0, sy0, sx1, sy1, nx, ny = segs[idx]
+    return round(x0 + (sx0 + (sx1 - sx0) * f) * scale), round(y0 + (sy0 + (sy1 - sy0) * f) * scale)
+
+
+def line_points(pts, x0, y0, x1, y1, step):
+    steps = max(abs(x1 - x0), abs(y1 - y0))
+    for s in range(0, steps + 1, step):
+        pts.append((round(x0 + (x1 - x0) * s / max(1, steps)), round(y0 + (y1 - y0) * s / max(1, steps))))
+
+
+def along_the_edge(patch, cells, a, b, step):
+    segs = OUTLINES[patch]
+    scale, w, h, x0, y0 = patch_geometry(cells)
+    start, end = a[4], b[4]
+    if end < start:
+        end += len(segs)
+    pts = []
+    ea, eb = edge_point(segs, start, scale, x0, y0), edge_point(segs, end, scale, x0, y0)
+    line_points(pts, a[0], a[1], ea[0], ea[1], step)
+    d = start + step / scale
+    while d < end:
+        pts.append(edge_point(segs, d, scale, x0, y0))
+        d += step / scale
+    line_points(pts, eb[0], eb[1], b[0], b[1], step)
+    return pts
+
+
+def centred(label, name, x, y):
+    gw, gh = FONT_DATA.size(name)
+    left = max(0, min(PICTURE_W - gw, x - gw // 2))
+    tops = [t for t, _ in FONT_DATA.by_name[name]]
+    top = max(min(tops), min(max(tops), overlay_top(y - gh // 2)))
+    label.at(name, overlay_x(left), top)
+
+
+def thread(label, patch, cells, a, b, over_the_edge, style):
+    pts = []
+    if over_the_edge:
+        line_points(pts, a[0], a[1], b[0], b[1], 2)
+    else:
+        pts = along_the_edge(patch, cells, a, b, 2)
+    dashed = not over_the_edge and style != 'ZIGZAG'
+    for i in range(1, len(pts) - 1):
+        if dashed and i & 2:
+            continue
+        centred(label, 'thread', pts[i][0], pts[i][1])
+
+
+def on_the_cloth(label, patch, cells, hs, done, style='WHIP'):
     scale, w, h, x0, y0 = patch_geometry(cells)
     label.at('patch_' + patch, overlay_x(x0), overlay_top(y0))
-    for i, (x, y, _, _) in enumerate(hs):
-        label.at('cross' if i < done else 'hole', overlay_x(x - MARK // 2), overlay_top(y - MARK // 2))
+    for i in range(1, min(done, len(hs) - 1) + 1):
+        thread(label, patch, cells, hs[i - 1], hs[i], i % 2 == 1, style)
+    for i, (x, y, outside, _, _) in enumerate(hs):
+        centred(label, 'hole' if i >= done else ('stitch_out' if outside else 'stitch_in'), x, y)
     if done >= len(hs):
         return
-    x, y, _, frm = hs[done]
+    x, y, _, frm, _ = hs[done]
     across, tail = NEEDLE_WIDTH // 2, NEEDLE_LENGTH - 1
     name, gx, gy = {
         'LEFT': ('needle_r', x - tail, y - across),
@@ -180,12 +237,12 @@ def on_the_cloth(label, patch, cells, hs, done):
 
 # ------------------------------------------------------------------ the dialog
 
-def dialog(chapter, patch, cells, stitches, done, spot='front, top left', show_buttons=False):
+def dialog(chapter, patch, cells, stitches, done, spot='front, top left', show_buttons=False, style='WHIP'):
     img = screen(W, H)
     name = patch.title()
-    FONT.centred(img, f"Sewing on the {name}", W // 2, 10)
-    FONT.centred(img, f"Whip-stitch it onto the {spot}: click the needle to pull it through.", W // 2, 26)
-    hs = holes(patch, cells, stitches)
+    FONT.centred(img, f"Sewing the {name} on the {spot}", W // 2, 10)
+    FONT.centred(img, "Click the needle to pull it through.", W // 2, 26)
+    hs = holes(patch, cells, stitches, style)
     nxt = hs[done] if done < len(hs) else None
     grid_w = COLS * CELL + (COLS - 1) * GAP
     gx0, gy0 = W // 2 - grid_w // 2, 40
@@ -194,7 +251,7 @@ def dialog(chapter, patch, cells, stitches, done, spot='front, top left', show_b
             bx, by = gx0 + col * PITCH, gy0 + row * PITCH
             label = Label(CELL).cell('cloth_' + chapter)
             if row == ROWS - 1 and col == COLS - 1:
-                on_the_cloth(label, patch, cells, hs, done)
+                on_the_cloth(label, patch, cells, hs, done, style)
             text = label.build()
             width = FONT_DATA.width(text)
             assert width == CELL - 2 * LABEL_INSET, (width, row, col)
@@ -227,10 +284,12 @@ def save(img, name):
 
 
 def main():
-    save(strip([dialog('data', 'heart', 1, 6, 0), dialog('data', 'heart', 1, 6, 3), dialog('data', 'heart', 1, 6, 5)],
-               ["start", "3 of 6 pulled", "the last pull"]), "asbuilt_heart_data.png")
+    save(strip([dialog('data', 'heart', 1, 12, 0), dialog('data', 'heart', 1, 12, 7), dialog('data', 'heart', 1, 12, 11)],
+               ["start", "7 of 12 pulled", "the last pull"]), "asbuilt_heart_data.png")
     save(strip([dialog('it', 'star', 1, 12, 7), dialog('it_kisel', 'kth', 1, 16, 15), dialog('media', 'chapter', 2, 8, 4, spot='seat')],
                ["star, 12 stitches, 7 pulled (IT)", "KTH, 16 stitches, the last (kisel)", "seat patch, 8 stitches, 4 pulled (media)"]), "asbuilt_variants.png")
+    save(strip([dialog('data', 'heart', 1, 16, 15, style='WHIP'), dialog('data', 'heart', 1, 16, 15, style='ZIGZAG')],
+               ["Seam.Style.WHIP: bars over the edge, dashed runs under", "Seam.Style.ZIGZAG: every run on top"]), "asbuilt_styles.png")
     save(strip([dialog('data', 'heart', 1, 6, 3, show_buttons=True), dialog('data', 'heart', 1, 6, 3)],
                ["the 49 vanilla buttons underneath", "what the glyphs make of them"]), "asbuilt_under_the_hood.png")
 
