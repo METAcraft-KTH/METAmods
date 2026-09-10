@@ -8,6 +8,7 @@ import metacraft.ovvar.content.ModComponents;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.OvveTopItem;
+import metacraft.ovvar.content.PatchPieces;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Placement;
@@ -43,9 +44,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * ovve is taken off the stand and its taker's pack cannot show them all ({@link OvveItem}).
  *
  * The displays are Polymer virtual entities attached to the stand: nothing is saved, nothing
- * exists server-side, and they are gone the moment the ovve is. Each patch item has a second,
- * flat model for this (its art 1:1 on the sprite), scaled so one art pixel is one of the
- * fabric's square pixels; later-sewn patches sit a hair further out, so they overlap the earlier.
+ * exists server-side, and they are gone the moment the ovve is. Each patch item has flat models
+ * for this (pieces of its art 1:1 on the sprite, {@link PatchPieces}), scaled so one art pixel
+ * is one of the fabric's square pixels; a big patch is cut at the corners of its face and each
+ * piece laid on the face it hangs over — round the sides, and over the top of a sleeve or leg —
+ * so it bends round the box as the sewn one will. Later-sewn patches sit a hair further out, so
+ * they overlap the earlier.
  */
 public final class StandDisplays {
     private StandDisplays() {}
@@ -59,7 +63,7 @@ public final class StandDisplays {
         final ArmorStand stand;
         final ElementHolder holder = new ElementHolder();
         final List<Placement> placements = new ArrayList<>();
-        final List<ItemDisplayElement> elements = new ArrayList<>();
+        final List<Element> elements = new ArrayList<>();
         boolean topShown;
         int poseHash;
 
@@ -134,21 +138,25 @@ public final class StandDisplays {
         List<Placement> placements = shown(shown.stand, ovve, topShown);
         boolean rebuilt = false;
         if (!placements.equals(shown.placements) || topShown != shown.topShown) {
-            for (ItemDisplayElement element : shown.elements) shown.holder.removeElement(element);
+            for (Element element : shown.elements) shown.holder.removeElement(element.display);
             shown.elements.clear();
             shown.placements.clear();
             shown.placements.addAll(placements);
             shown.topShown = topShown;
-            for (Placement p : placements) {
-                ItemStack item = new ItemStack(ModContent.patchItem(Patches.get(p.patch())));
-                item.set(ModComponents.FLAT, true);
-                ItemDisplayElement element = new ItemDisplayElement(item);
-                element.setItemDisplayContext(ItemDisplayContext.NONE);
-                element.setInterpolationDuration(0);
-                element.setTeleportDuration(1);
-                element.setViewRange(0.6f);
-                shown.elements.add(element);
-                shown.holder.addElement(element);
+            for (int i = 0; i < placements.size(); i++) {
+                Placement p = placements.get(i);
+                Patches.Patch patch = Patches.get(p.patch());
+                for (PatchPieces.Piece piece : PatchPieces.of(p.spot(), patch)) {
+                    ItemStack item = new ItemStack(ModContent.patchItem(patch));
+                    item.set(ModComponents.FLAT, piece.key());
+                    ItemDisplayElement display = new ItemDisplayElement(item);
+                    display.setItemDisplayContext(ItemDisplayContext.NONE);
+                    display.setInterpolationDuration(0);
+                    display.setTeleportDuration(1);
+                    display.setViewRange(0.6f);
+                    shown.elements.add(new Element(display, p, patch, piece, i));
+                    shown.holder.addElement(display);
+                }
             }
             rebuilt = true;
         }
@@ -157,37 +165,65 @@ public final class StandDisplays {
         if (!rebuilt && poseHash == shown.poseHash) return;
         shown.poseHash = poseHash;
         Vec3 origin = shown.holder.getPos();
-        for (int i = 0; i < placements.size(); i++) place(shown.elements.get(i), placements.get(i), shown.stand, origin, i);
+        for (Element element : shown.elements) place(element, shown.stand, origin);
     }
 
-    /** Lay a display on its cell: centred on the cell, facing out along its normal, the art's up along the part. */
-    private static void place(ItemDisplayElement element, Placement placement, ArmorStand stand, Vec3 origin, int order) {
-        Spot spot = placement.spot();
-        StandAim.CellPoint at;
-        if (spot == Spot.SEAT) {
-            // Across both legs: between the two back cells, facing the way they do on average.
-            StandAim.CellPoint r = StandAim.cell(stand, Spot.LEG_BACK_TOP_R), l = StandAim.cell(stand, Spot.LEG_BACK_TOP_L);
-            at = new StandAim.CellPoint(r.centre().add(l.centre()).scale(0.5), r.normal().add(l.normal()).normalize(), r.up().add(l.up()).normalize());
-        } else {
-            at = StandAim.cell(stand, spot);
+    /** One sprite: a piece of a placement's art, and where in the sewing order it is (later ones lie on top). */
+    private record Element(ItemDisplayElement display, Placement placement, Patches.Patch patch, PatchPieces.Piece piece, int order) {}
+
+    /**
+     * Lay a piece on its plane. The whole art is centred on the cell, so every piece's sprite is
+     * the whole 16×16 with only its own pixels drawn, and placing it means putting the art's
+     * centre where it belongs on that plane: on the cell's face, at the cell; round a corner, on
+     * the neighbouring face's plane, continuing from the corner; over the top, on the part's top
+     * face. A box is convex, so each neighbouring plane follows from the face's own frame.
+     */
+    private static void place(Element element, ArmorStand stand, Vec3 origin) {
+        Spot spot = element.placement.spot();
+        PatchPieces.Piece piece = element.piece;
+        // The seat: one half on each leg's back face, centred on that cell like any patch.
+        if (spot == Spot.SEAT) spot = piece.x0() == 0 ? Spot.LEG_BACK_TOP_R : Spot.LEG_BACK_TOP_L;
+        StandAim.CellPoint at = StandAim.cell(stand, spot);
+        double inflate = Spot.inflate(spot.piece), a = Spot.pixel(spot.u, inflate) / 2;   // sixteenths per art pixel
+        float scale = (float) a;   // the sprite is 16 pixels to a block: one sprite pixel = a sixteenths at scale a
+        int w = element.patch.width(), h = element.patch.height(), n = PatchPieces.faceTexels(spot);
+        Vec3 normal = at.normal(), up = at.up(), right = up.cross(normal);
+        // The cell's centre relative to the face's centre, and the face's half extents (sixteenths).
+        double cellX = (PatchPieces.columnInFace(spot) + Spot.PX / 2.0 - n) * a, cellY = ((spot.v - 20) * 2 + Spot.PX / 2.0 - 12) * a;
+        double halfFace = (n + 2 * inflate) / 2, halfTop = (12 + 2 * inflate) / 2;
+        Vec3 centre, n2, u2, r2;
+        switch (piece.where()) {
+            case RIGHT -> {
+                Vec3 corner = at.centre().add(right.scale((halfFace - cellX) / 16));
+                r2 = normal.scale(-1); n2 = right; u2 = up;   // round the corner, "right" turns away from the face
+                centre = corner.add(r2.scale((piece.start() + (w / 2.0 - piece.x0()) * a) / 16));
+            }
+            case LEFT -> {
+                Vec3 corner = at.centre().subtract(right.scale((halfFace + cellX) / 16));
+                r2 = normal; n2 = right.scale(-1); u2 = up;
+                centre = corner.add(r2.scale(((w / 2.0 - piece.x1()) * a - piece.start()) / 16));
+            }
+            case TOP -> {
+                Vec3 corner = at.centre().add(up.scale((halfTop + cellY) / 16));
+                n2 = up; u2 = normal.scale(-1); r2 = right;   // over the shoulder, "up" turns inward across the top
+                centre = corner.add(normal.scale(((h / 2.0 - piece.y1()) * a - piece.start()) / 16));
+            }
+            default -> {
+                n2 = normal; u2 = up; r2 = right;
+                centre = at.centre();
+            }
         }
-        // One art pixel = the fabric's square pixel: Spot.pixel sixteenths per skin texel, two art
-        // pixels per texel. The sprite is 16 pixels to a block at scale 1.
-        float pixel = (float) Spot.pixel(spot.u, Spot.inflate(spot.piece));
-        float scale = pixel / 2;
-        Vec3 normal = at.normal(), up = at.up();
-        Vec3 right = up.cross(normal);
         // The item display turns its item 180° about y: the readable side faces the display's -z.
         Matrix3f basis = new Matrix3f(
-                new Vector3f((float) -right.x, (float) -right.y, (float) -right.z),
-                new Vector3f((float) up.x, (float) up.y, (float) up.z),
-                new Vector3f((float) -normal.x, (float) -normal.y, (float) -normal.z));
+                new Vector3f((float) -r2.x, (float) -r2.y, (float) -r2.z),
+                new Vector3f((float) u2.x, (float) u2.y, (float) u2.z),
+                new Vector3f((float) -n2.x, (float) -n2.y, (float) -n2.z));
         Quaternionf rotation = new Quaternionf().setFromNormalized(basis);
-        // Just off the fabric (the sprite slab is 1/16 thick), later patches a hair further out.
-        double lift = scale / 32 + 0.003 + 0.002 * order;
-        element.setOffset(at.centre().add(normal.scale(lift)).subtract(origin));
-        element.setLeftRotation(rotation);
-        element.setScale(new Vector3f(scale, scale, scale));
-        element.startInterpolationIfDirty();
+        // Just off the fabric (the sprite slab is 1/16 thick at scale 1), later patches a hair further out.
+        double lift = scale / 32 + 0.003 + 0.002 * element.order;
+        element.display.setOffset(centre.add(n2.scale(lift)).subtract(origin));
+        element.display.setLeftRotation(rotation);
+        element.display.setScale(new Vector3f(scale, scale, scale));
+        element.display.startInterpolationIfDirty();
     }
 }

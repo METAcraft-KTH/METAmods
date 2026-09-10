@@ -51,9 +51,9 @@ public final class ModComponents {
     public static final DataComponentType<Boolean> ON_STAND = register("on_stand",
             DataComponentType.<Boolean>builder().persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
 
-    /** On a patch item stack used as a display entity: the flat 1:1 model instead of the inventory icon. Never saved. */
-    public static final DataComponentType<Boolean> FLAT = register("flat",
-            DataComponentType.<Boolean>builder().networkSynchronized(ByteBufCodecs.BOOL));
+    /** On a patch item stack used as a display entity: which piece of the art ({@link PatchPieces.Piece#key}), flat 1:1, instead of the inventory icon. Never saved. */
+    public static final DataComponentType<String> FLAT = register("flat",
+            DataComponentType.<String>builder().networkSynchronized(ByteBufCodecs.STRING_UTF8));
 
     private static <T> DataComponentType<T> register(String name, DataComponentType.Builder<T> builder) {
         return Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, name), builder.build());
