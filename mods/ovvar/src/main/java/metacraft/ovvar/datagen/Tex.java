@@ -8,6 +8,8 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 
 /** ARGB texture with the few operations the generator needs. Immutable; every op returns a copy. */
@@ -197,6 +199,18 @@ final class Tex {
     /** HSB brightness of a colour, 0–1. */
     static float brightness(int rgb) {
         return java.awt.Color.RGBtoHSB(r(rgb), g(rgb), b(rgb), null)[2];
+    }
+
+    /** Every distinct fully opaque colour (ARGB, alpha 255), in first-seen order. */
+    List<Integer> opaqueColours() {
+        List<Integer> out = new ArrayList<>();
+        for (int p : argb) if (a(p) == 255 && !out.contains(p)) out.add(p);
+        return out;
+    }
+
+    /** {@code a} mixed towards {@code b} by {@code t} (0 = a, 1 = b), alpha from {@code a}. */
+    static int mix(int a, int b, double t) {
+        return pack(a(a), (int) Math.round(r(a) + (r(b) - r(a)) * t), (int) Math.round(g(a) + (g(b) - g(a)) * t), (int) Math.round(b(a) + (b(b) - b(a)) * t));
     }
 
     /** Most frequent opaque colour, for deriving a chapter's colour from its overlay. */

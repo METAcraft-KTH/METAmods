@@ -105,10 +105,10 @@ public final class Looks {
     // ---- what the client gets
 
     /**
-     * One half as the client should see it: the placement worn as the armour trim (or null), the
-     * asset combo the pack holds, and the dye bits for the rest.
+     * One half as the client should see it: the placement worn as the armour trim (or null) and
+     * whether it is the ghosted preview, the asset combo the pack holds, and the dye bits for the rest.
      */
-    public record Look(Placement trim, String combo, int dye) {}
+    public record Look(Placement trim, boolean ghost, String combo, int dye) {}
 
     /** @param player who the packet is for (their pack may be older than the current one), or null */
     public static Look look(ItemStack stack, Piece piece, UUID player) {
@@ -116,12 +116,19 @@ public final class Looks {
         Placement preview = preview(stack);
         if (preview != null && (preview.piece() != piece || !instant(preview))) preview = null;
 
-        // The first patch sewn on the half is worn as the trim — unless it is being aimed at, since the
-        // trim is drawn over everything and would hide the preview.
-        Placement trim = all.stream().filter(Trims::fits).findFirst().orElse(null);
-        if (trim != null && preview != null && (preview.spot() == trim.spot() || preview.spot().overlapping().contains(trim.spot()))) trim = null;
+        // A patch being aimed at is worn as the trim, in the ghost material (a seat patch cannot be a
+        // trim and previews solid in the dye bits instead); otherwise the first patch sewn on the half is.
+        Placement trim;
+        boolean ghost = preview != null && Trims.fits(preview);
+        if (ghost) {
+            trim = preview;
+            preview = null;
+        } else {
+            trim = all.stream().filter(Trims::fits).findFirst().orElse(null);
+            if (trim != null && preview != null && (preview.spot() == trim.spot() || preview.spot().overlapping().contains(trim.spot()))) trim = null;
+        }
         List<Placement> core = new ArrayList<>(all);
-        if (trim != null) core.remove(trim);
+        if (!ghost && trim != null) core.remove(trim);
 
         // The longest prefix (in sewing order) the pack already has; the rest rides in the dye bits
         // if it fits there (few enough, designs the channel can name), else the pack must catch up.
@@ -138,7 +145,7 @@ public final class Looks {
             shown.removeIf(p -> p.spot() == aimed || aimed.overlapping().contains(p.spot()));
             shown.add(preview);
         }
-        return new Look(trim, Placement.combo(core.subList(0, baked)), shown.isEmpty() ? 0 : encode(rank(piece, shown)));
+        return new Look(trim, ghost, Placement.combo(core.subList(0, baked)), shown.isEmpty() ? 0 : encode(rank(piece, shown)));
     }
 
     // ---- ranking the instant set (mirrored in ovvar.glsl)

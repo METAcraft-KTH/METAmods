@@ -21,8 +21,9 @@ look is an equipment asset cut from the skin overlays on metacraft.se/style.
 Patches are items (`ovvar:patch_<id>`) and go on any 4×4-texel cell of the ovve (`Spot.java`: every
 face you see of the body, sleeves and legs — not the inner faces — keeping off the collar, the
 belt, the hands and the cuffs: 32 cells, plus the seat for the 8×4 chapter patch). Sewing: put the ovve on
-an armour stand, hold a patch, look at the stand — the patch shows on the cell you aim at, the
-action bar names it, right-click sews it on; sneak to aim at the far face of the part you look at
+an armour stand, hold a patch, look at the stand — the patch shows washed out on the cell you aim
+at (the trim channel in a "ghost" material, so the preview costs no dye bits), the action bar
+names it, right-click sews it on; sneak to aim at the far face of the part you look at
 (the back of the body, the back of an arm). The aim follows the stand's pose. An empty hand on a sewn patch unpicks it. Seat
 patches also go on at the smithing table (ovve + patch, no template). No cap on the number of
 patches.
@@ -101,9 +102,11 @@ at once while the older ones sit in the pack.
 Two more channels carry patches without any pack change, so a normal ovve never causes a
 build. The first plain patch sewn on a half is worn as the item's *armour trim*: datagen makes
 one trim pattern per (cell, patch) — `data/ovvar/trim_pattern/`, textures under
-`textures/trims/entity/`, an identity palette and an `armor_trims` atlas source — and vanilla
-draws it. Limb cells are tagged in the texture's alpha (254 right, 253 left) so the shader can
-cut the other limb. The next three placements per half ride in the dye colour: a dyeable layer
+`textures/trims/entity/`, an `armor_trims` atlas source whose key palette is every colour any
+patch uses, and two materials: `patch` (identity) and `ghost` (washed out) — and vanilla draws
+it. While a patch is being aimed at, the preview is the trim in the ghost material and the sewn
+patches all go to the dye colour and the pack. Limb cells are tagged in the texture's alpha
+(254 right, 253 left) so the shader can cut the other limb. The next three placements per half ride in the dye colour: a dyeable layer
 is only drawn when the item has a dye colour, and that colour reaches the shader as the vertex
 colour — the only per-item data an armour shader ever gets — so it carries the *rank* of the set
 of up to three (cell, design) placements among all such sets (packed as three base-255 digits so

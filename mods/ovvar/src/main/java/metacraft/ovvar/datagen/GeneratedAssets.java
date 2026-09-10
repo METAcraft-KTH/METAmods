@@ -127,7 +127,7 @@ public final class GeneratedAssets implements DataProvider {
         }
 
         // The trim channel: one trim pattern per (cell, plain patch). Limb cells are alpha-tagged
-        // with their side; the atlas source and an identity palette make the art come through as is.
+        // with their side (the palette permutation keeps a texel's alpha).
         List<String> trimTextures = new ArrayList<>();
         for (Spot spot : Spot.values()) {
             for (Patches.Patch patch : Patches.all()) {
@@ -144,13 +144,28 @@ public final class GeneratedAssets implements DataProvider {
                         obj("asset_id", MOD + ":" + name, "decal", false, "description", obj("text", patch.name() + " on the " + spot.label())));
             }
         }
+        // Materials are colour permutations of a key palette, so the key is every colour any patch
+        // uses: "patch" maps each to itself, "ghost" (the preview) to a washed-out version.
+        List<Integer> colours = new ArrayList<>();
+        for (Tex art : arts.values()) for (int c : art.opaqueColours()) if (!colours.contains(c)) colours.add(c);
+        Tex key = Tex.blank(colours.size(), 1), patchPalette = key, ghostPalette = key;
+        for (int i = 0; i < colours.size(); i++) {
+            int c = colours.get(i);
+            key = key.with(i, 0, c);
+            patchPalette = patchPalette.with(i, 0, c);
+            ghostPalette = ghostPalette.with(i, 0, Tex.mix(c, 0xFFFFFFFF, 0.6));
+        }
+        String palettes = "textures/trims/color_palettes/";
+        png(assets.resolve(palettes + "key.png"), key);
+        png(assets.resolve(palettes + Trims.MATERIAL + ".png"), patchPalette);
+        png(assets.resolve(palettes + Trims.GHOST + ".png"), ghostPalette);
         json(data.resolve("trim_material/" + Trims.MATERIAL + ".json"), obj("asset_name", Trims.MATERIAL, "description", obj("text", "Patch")));
-        png(assets.resolve("textures/trims/color_palettes/" + Trims.MATERIAL + ".png"), Vanilla.texture("trims/color_palettes/trim_palette"));
+        json(data.resolve("trim_material/" + Trims.GHOST + ".json"), obj("asset_name", Trims.GHOST, "description", obj("text", "Patch (not sewn yet)")));
         json(assets.getParent().resolve("minecraft/atlases/armor_trims.json"), obj("sources", arr(obj(
                 "type", "minecraft:paletted_permutations",
                 "textures", arr(trimTextures.toArray()),
-                "palette_key", "minecraft:trims/color_palettes/trim_palette",
-                "permutations", obj(Trims.MATERIAL, MOD + ":trims/color_palettes/" + Trims.MATERIAL)))));
+                "palette_key", MOD + ":trims/color_palettes/key",
+                "permutations", obj(Trims.MATERIAL, MOD + ":trims/color_palettes/" + Trims.MATERIAL, Trims.GHOST, MOD + ":trims/color_palettes/" + Trims.GHOST)))));
         Ovvar.LOGGER.info("[{} datagen] {} trim patterns", MOD, trimTextures.size());
 
         // The preview layer per half: every patch's art in the library, the cell and patch tables,

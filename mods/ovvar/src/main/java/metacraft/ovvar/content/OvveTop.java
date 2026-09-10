@@ -113,7 +113,7 @@ public final class OvveTop {
         }
         if (look.trim() != null) {
             var pattern = lookup.lookupOrThrow(Registries.TRIM_PATTERN).getOrThrow(ResourceKey.create(Registries.TRIM_PATTERN, Trims.pattern(look.trim())));
-            var material = lookup.lookupOrThrow(Registries.TRIM_MATERIAL).getOrThrow(ResourceKey.create(Registries.TRIM_MATERIAL, Trims.material()));
+            var material = lookup.lookupOrThrow(Registries.TRIM_MATERIAL).getOrThrow(ResourceKey.create(Registries.TRIM_MATERIAL, Trims.material(look.ghost())));
             client.set(DataComponents.TRIM, new ArmorTrim(material, pattern));
             display = display.withHidden(DataComponents.TRIM, true);
         } else {
