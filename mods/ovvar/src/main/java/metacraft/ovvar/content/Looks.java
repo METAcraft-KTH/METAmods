@@ -34,9 +34,9 @@ public final class Looks {
      */
     public static final int INSTANT = 3, INSTANT_DESIGNS = 22;
 
-    /** Can this placement ride in the dye colour? (Its design must be among the first {@value #INSTANT_DESIGNS}.) */
+    /** Can this placement ride in the dye colour? (Its design must be among the first {@value #INSTANT_DESIGNS}, and cell-sized.) */
     public static boolean instant(Placement p) {
-        return Patches.code(p.patch()) <= INSTANT_DESIGNS;
+        return Patches.code(p.patch()) <= INSTANT_DESIGNS && !Patches.get(p.patch()).oversize();
     }
 
     // ---- placements
@@ -114,16 +114,18 @@ public final class Looks {
     public static Look look(ItemStack stack, Piece piece, UUID player) {
         List<Placement> all = sewn(stack, piece);
         Placement preview = preview(stack);
-        if (preview != null && (preview.piece() != piece || !instant(preview))) preview = null;
+        if (preview != null && preview.piece() != piece) preview = null;
 
-        // A patch being aimed at is worn as the trim, in the ghost material (a seat patch cannot be a
-        // trim and previews solid in the dye bits instead). Sewn patches never ride as the trim:
-        // vanilla draws trims, so their art is squeezed to square pixels texel by texel, which is
-        // fine for a ghost and not for the real thing.
+        // A patch being aimed at is worn as the trim, in the ghost material — any design, any size.
+        // A seat patch cannot be a trim and previews solid in the dye bits instead (if the channel
+        // can name it). Sewn patches never ride as the trim: vanilla draws trims, so their art is
+        // squeezed to square pixels texel by texel, fine for a ghost and not for the real thing.
         Placement trim = null;
         boolean ghost = preview != null && Trims.fits(preview);
         if (ghost) {
             trim = preview;
+            preview = null;
+        } else if (preview != null && !instant(preview)) {
             preview = null;
         }
         List<Placement> core = new ArrayList<>(all);

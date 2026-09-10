@@ -95,8 +95,8 @@ public final class GeneratedAssets implements DataProvider {
         Map<String, Tex> arts = new LinkedHashMap<>();
         for (Patches.Patch patch : Patches.all()) {
             Tex art = art("patches/" + patch.id());
-            require(art.height == Spot.PX && art.width == Spot.PX * patch.cells(),
-                    "patches/" + patch.id() + ".png must be " + (Spot.PX * patch.cells()) + "×" + Spot.PX + " (" + (patch.seat() ? "seat" : "plain") + " patch)");
+            require(art.width == patch.width() && art.height == patch.height(),
+                    "patches/" + patch.id() + ".png is " + art.width + "×" + art.height + ", the catalogue says " + patch.width() + "×" + patch.height());
             arts.put(patch.id(), art);
             String name = ModContent.patchId(patch).getPath();
             item(name, icon(art));
@@ -119,9 +119,10 @@ public final class GeneratedAssets implements DataProvider {
                     placementTextures += 2;
                     continue;
                 }
-                Tex tex = Tex.blank(W, H).blit(art, 0, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D);
-                if (spot.side == Spot.Side.LEFT) tex = tex.flipX(spot.u * D, spot.v * D, Spot.PX, Spot.PX);
-                png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(tex, spot.side, spot.piece));
+                // Centred on the cell, hanging over it if bigger, clipped to the part's side rows;
+                // a left cell's art is mirrored (the model mirrors the left limb).
+                Tex placed = placed(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + patch.offsetX(), 1.0);
+                png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(placed, spot.side, spot.piece));
                 placementTextures++;
             }
         }
@@ -135,11 +136,9 @@ public final class GeneratedAssets implements DataProvider {
                 if (!patch.fits(spot) || spot == Spot.SEAT) continue;
                 Placement placement = new Placement(spot, patch.id());
                 String name = Trims.patternName(placement);
-                double squeeze = Spot.squeeze(spot), faceCentre = (Spot.faceStart(spot) + Spot.faceWidth(spot) / 2.0) * D;
-                Tex art = arts.get(patch.id()).squeezedX(squeeze);
-                int x = (int) Math.round(faceCentre + (spot.u * D - faceCentre) * squeeze);
-                Tex tex = Tex.blank(W, H).blit(art, 0, 0, art.width, Spot.PX, x, spot.v * D);
-                if (spot.side == Spot.Side.LEFT) tex = tex.flipX(x, spot.v * D, art.width, Spot.PX).tagOpaque(Trims.ALPHA_LEFT);
+                Tex art = arts.get(patch.id());
+                Tex tex = placed(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + patch.offsetX(), Spot.squeeze(spot));
+                if (spot.side == Spot.Side.LEFT) tex = tex.tagOpaque(Trims.ALPHA_LEFT);
                 if (spot.side == Spot.Side.RIGHT) tex = tex.tagOpaque(Trims.ALPHA_RIGHT);
                 png(assets.resolve("textures/trims/entity/" + spot.piece.layer + "/" + name + ".png"), tex);
                 trimTextures.add(MOD + ":trims/entity/" + spot.piece.layer + "/" + name);
@@ -176,7 +175,7 @@ public final class GeneratedAssets implements DataProvider {
         Map<String, int[]> library = new LinkedHashMap<>();
         int next = 0;
         for (Patches.Patch patch : Patches.all()) {
-            if (Patches.code(patch.id()) > Looks.INSTANT_DESIGNS) continue;   // never previewed: no library entry
+            if (Patches.code(patch.id()) > Looks.INSTANT_DESIGNS || patch.oversize()) continue;   // never in the dye colour: no library entry
             require(next + patch.cells() <= LIBRARY.size(), "the preview library is full (" + LIBRARY.size() + " cells); make it bigger");
             library.put(patch.id(), LIBRARY.get(next));
             next += patch.cells();
@@ -284,6 +283,24 @@ public final class GeneratedAssets implements DataProvider {
         require(tex.width == W && tex.height == H, "a garment texture is " + tex.width + "×" + tex.height + ", not " + W + "×" + H);
         require(tex.get(MARKER_X, MARKER_Y) == 0 && tex.get(LAYER_X, MARKER_Y) == 0, "a garment texture draws on the marker texels");
         return tex.with(MARKER_X, MARKER_Y, MARKER).with(LAYER_X, MARKER_Y, rgb((int) Math.round(2 * Spot.inflate(piece)), 0, 0));
+    }
+
+    /**
+     * Art on a garment texture at texel column {@code x} (its top-left; the cell's row, centred
+     * vertically), squeezed by {@code squeeze} about the cell's face centre (1 = as it is), and
+     * clipped to the part's side rows — a big patch hangs over its neighbours, never off its part.
+     */
+    private static Tex placed(Spot spot, Tex art, int x, double squeeze) {
+        int y = spot.v * D + (Spot.PX - art.height) / 2;
+        if (squeeze != 1.0) {
+            double faceCentre = (Spot.faceStart(spot) + Spot.faceWidth(spot) / 2.0) * D;
+            x = (int) Math.round(faceCentre + (x - faceCentre) * squeeze);
+            art = art.squeezedX(squeeze);
+        }
+        int stripStart = (spot.u < 16 ? 0 : spot.u < 40 ? 16 : 40) * D, stripEnd = stripStart + (spot.u >= 16 && spot.u < 40 ? 24 : 16) * D;
+        int x0 = Math.max(x, stripStart), y0 = Math.max(y, 20 * D), x1 = Math.min(x + art.width, stripEnd), y1 = Math.min(y + art.height, 32 * D);
+        require(x1 > x0 && y1 > y0, "patch art lands entirely off the " + spot.id() + " cell's part");
+        return Tex.blank(W, H).blit(art, x0 - x, y0 - y, x1 - x0, y1 - y0, x0, y0);
     }
 
     /** A placement texture: drawn on one side of the model only (both, for body cells). */

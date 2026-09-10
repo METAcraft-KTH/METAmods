@@ -75,8 +75,12 @@ styles in game — `/ovvar give data_polymiter down` next to `/ovvar give data d
 ## Adding a patch
 
 One line in `Patches.java` (id, name; `true` for a seat patch) and a PNG at
-`src/main/resources/art/ovvar/patches/<id>.png` — 8×8, or 16×8 for a seat patch (garment and
-patch textures are the armour layout at twice the skin's resolution, `Spot.DETAIL`) — then
+`src/main/resources/art/ovvar/patches/<id>.png` — 8×8 for a cell-sized patch, 16×8 for a seat
+patch, or any even size up to 16×16 declared in the catalogue line: such a patch is centred on
+its cell and hangs over the neighbours, later-sewn on top (garment and patch textures are the
+armour layout at twice the skin's resolution, `Spot.DETAIL`). A patch that hangs over never
+rides in the dye colour (the preview library holds cell-sized art), so it shows after the pack
+build; its ghost preview is instant. Then
 `runDatagen`. The first 22
 designs in the catalogue can ride in the dye colour (instant, previewable); later ones only go
 through the pack; the preview library holds 30 cells for those 22 — datagen fails loudly when
