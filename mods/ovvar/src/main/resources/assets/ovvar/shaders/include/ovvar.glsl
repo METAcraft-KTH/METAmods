@@ -9,7 +9,8 @@
 //      limb's strips; on those fragments the shader samples one strip up, where the left-side art
 //      lives.
 //   1  a placement texture: one patch drawn on one cell, for one side (G: 0 body, 1 right limb,
-//      2 left limb). Fragments of the other limb read the blank texel.
+//      2 left limb) on one face of its strip (B: 0..3). Fragments of the other limb read the
+//      blank texel.
 //   2  the preview texture: every patch's art in a library (head rows), a cell table at x 40·D
 //      (index in the half → u, v, side, in texels; column-major, 16 tall) and a design table at
 //      x 44·D (design → library x, y, cells); G = cells in the half, B = designs. The garment's dye
@@ -85,11 +86,15 @@ float ovvar_max_c3(float r) {
 
 // The armour model draws a texel wider than it is tall: the box is inflated (1 for the chest
 // layer, 0.5 for the leggings layer) but its texture is not, so a face n texels wide covers
-// n + 2·inflate units and 12 rows cover 12 + 2·inflate. Everything of ours on the box sides —
-// the garment and the patches alike — is drawn squeezed in x about its face's centre by
-// height/width, so pixels come out square and the patch grid stays on the fabric's grid; the
-// garment's edge columns stretch into the margin that leaves; patches leave it to the fabric,
-// except one that continues round the corner, which stretches its edge column there too.
+// n + 2·inflate units and 12 rows cover 12 + 2·inflate. Everything of ours on the box sides is
+// drawn at a square pixel instead (ovvar_pixel), which leaves slack — 2·inflate units per face:
+//   the garment and the preview (many cells, one per face) centre each face's texels on the
+//   face, so the cells sit on the fabric's grid; the slack is the margin at each corner, where
+//   the garment stretches its edge column and the preview shows nothing;
+//   a placement (one patch, on one face) is drawn continuous round the box from that face —
+//   its texels centred, the neighbours' continuing past its edges at the same pixel, so a big
+//   patch hanging over a corner bends round it unbroken — and all the slack lands in the middle
+//   of the opposite face, which the patch never reaches.
 // Which layer a texture is for is in the layer texel, two left of the marker: R = 2·inflate.
 float ovvar_inflate() {
     return ovvar_read(OVVAR_MARKER.x - 2.0, OVVAR_MARKER.y).r * 0.5;
@@ -102,26 +107,40 @@ float ovvar_pixel(float skinX, float inflate) {
     return skinX < 16.0 ? 13.0 / 12.0 : (12.0 + 2.0 * inflate) / 12.0;
 }
 
-// Which texel column of its strip a side-row fragment shows. Each face's texels are drawn
-// centred on the face at ovvar_pixel units each, so a cell's art sits where the face's own
-// texels do; the face is wider than that (the box is inflated), and in its margin the column
-// returned continues past the face's edge — the neighbouring face's edge column, what lies
-// round the corner. faceStart/faceEnd: the face's own texels (strip-local), so the caller
-// knows a margin when it sees one. skinX in skin texels; returns the strip-local texel x,
-// not yet wrapped into the strip (the strip is a loop: total is its width, for the caller's mod).
-float ovvar_wrap(float skinX, float inflate, out float stripStart, out float total, out float faceStart, out float faceEnd) {
+// The strip a skin texel is on: its first texel and whether it is the body's (right 4 | front 8 |
+// left 4 | back 8; a limb's is outer 4 | front 4 | inner 4 | back 4).
+float ovvar_strip(float skinX, out bool body) {
+    body = skinX >= 16.0 && skinX < 40.0;
+    return skinX < 16.0 ? 0.0 : body ? 16.0 : 40.0;
+}
+
+// Face i (0..3) of a strip: its first texel, texel count and first unit round the box (e = 2·inflate).
+void ovvar_face(bool body, float i, float e, out float s, out float n, out float U) {
+    float n1 = body ? 8.0 : 4.0;
+    if (i < 0.5) { s = 0.0; n = 4.0; U = 0.0; }
+    else if (i < 1.5) { s = 4.0; n = n1; U = 4.0 + e; }
+    else if (i < 2.5) { s = 4.0 + n1; n = 4.0; U = 4.0 + n1 + 2.0 * e; }
+    else { s = 8.0 + n1; n = n1; U = 8.0 + n1 + 3.0 * e; }
+}
+
+// The face a strip-local texel x is on.
+float ovvar_face_of(bool body, float local) {
+    float n1 = body ? 8.0 : 4.0;
+    return local < 4.0 ? 0.0 : local < 4.0 + n1 ? 1.0 : local < 8.0 + n1 ? 2.0 : 3.0;
+}
+
+// Per-face centring (the garment, the preview): which strip-local texel column a side-row
+// fragment at skin texel skinX shows. Past the face's own texels (faceStart..faceEnd) is its
+// margin, where the column returned continues past the edge — the neighbouring face's edge
+// column, what lies round the corner — and is not yet wrapped into the strip (total wide).
+float ovvar_centred(float skinX, float inflate, out float stripStart, out float total, out float faceStart, out float faceEnd) {
     float p = ovvar_pixel(skinX, inflate), e = 2.0 * inflate;
-    bool body = skinX >= 16.0 && skinX < 40.0;
-    stripStart = skinX < 16.0 ? 0.0 : body ? 16.0 : 40.0;
+    bool body;
+    stripStart = ovvar_strip(skinX, body);
     float local = skinX - stripStart;
     total = body ? 24.0 : 16.0;
-    // The face: start and texel count (legs and arms: four 4-wide; body: right 4 | front 8 | left 4 | back 8).
-    float fs, n;
-    if (!body) { fs = floor(local / 4.0) * 4.0; n = 4.0; }
-    else if (local < 4.0) { fs = 0.0; n = 4.0; }
-    else if (local < 12.0) { fs = 4.0; n = 8.0; }
-    else if (local < 16.0) { fs = 12.0; n = 4.0; }
-    else { fs = 16.0; n = 8.0; }
+    float fs, n, U;
+    ovvar_face(body, ovvar_face_of(body, local), e, fs, n, U);
     faceStart = fs;
     faceEnd = fs + n;
     float c = fs + n * 0.5;
@@ -129,15 +148,43 @@ float ovvar_wrap(float skinX, float inflate, out float stripStart, out float tot
     return c + units / p;
 }
 
-// A fragment's texel x on the side rows → the texel x to draw there, wrapped round the strip;
-// edge: the nearest texel of the face's own (the fragment's own, unless it is in the margin);
-// margin: is it?
+// Continuous from an anchor face (a placement): which strip-local texel column a side-row
+// fragment at skin texel skinX shows, or -1.0 in the slack opposite the anchor.
+float ovvar_anchored(float skinX, float inflate, float anchor, out float stripStart) {
+    float p = ovvar_pixel(skinX, inflate), e = 2.0 * inflate;
+    bool body;
+    stripStart = ovvar_strip(skinX, body);
+    float local = skinX - stripStart;
+    float total = body ? 24.0 : 16.0, P = total + 4.0 * e;   // texels round, units round
+    float sk, nk, Uk;
+    ovvar_face(body, ovvar_face_of(body, local), e, sk, nk, Uk);
+    float u = Uk + (local - sk) * ((nk + e) / nk);   // where on the perimeter, in units
+    float sa, na, Ua;
+    ovvar_face(body, anchor, e, sa, na, Ua);
+    float C = Ua + (na + e) * 0.5, T = sa + na * 0.5;   // the anchor's centre, in units and texels
+    float du = u - C;
+    if (du >= P * 0.5) du -= P; else if (du < -P * 0.5) du += P;
+    float dt = du / p;
+    if (abs(dt) > total * 0.5) return -1.0;
+    return mod(T + dt, total);
+}
+
+// A fragment's texel x on the side rows → the texel x to draw there, per-face centred and
+// wrapped round the strip; edge: the nearest texel of the face's own (the fragment's own,
+// unless it is in the margin); margin: is it?
 float ovvar_squeezed(float tx, float inflate, out float edge, out bool margin) {
     float stripStart, total, faceStart, faceEnd;
-    float t = ovvar_wrap(tx / OVVAR_D, inflate, stripStart, total, faceStart, faceEnd);
+    float t = ovvar_centred(tx / OVVAR_D, inflate, stripStart, total, faceStart, faceEnd);
     margin = t < faceStart || t >= faceEnd;
     edge = (stripStart + clamp(t, faceStart + 0.5 / OVVAR_D, faceEnd - 0.5 / OVVAR_D)) * OVVAR_D;
     return (stripStart + mod(t, total)) * OVVAR_D;
+}
+
+// The same, continuous from the anchor face; -1.0 in the slack.
+float ovvar_squeezed_anchored(float tx, float inflate, float anchor) {
+    float stripStart;
+    float t = ovvar_anchored(tx / OVVAR_D, inflate, anchor, stripStart);
+    return t < 0.0 ? -1.0 : (stripStart + t) * OVVAR_D;
 }
 
 // The same in y, about the side rows' centre: only the boots pass on the legs needs it (its rows
@@ -146,41 +193,6 @@ float ovvar_squeezed_y(float tx, float ty, float inflate) {
     float sy = ovvar_pixel(tx / OVVAR_D, inflate) / ((12.0 + 2.0 * inflate) / 12.0);
     float c = 26.0 * OVVAR_D;
     return (ty - c) / sy + c;
-}
-
-// The preview texture's instant set, unranked by ovvar_uv from the dye colour: up to three
-// (cell × designs + design) states, in order.
-float ovvar_set[3];
-int ovvar_set_count = 0;
-
-// Where in the preview texture's library the fragment at squeezed texel t reads, or OVVAR_BLANK;
-// which of the set's placements it is comes back in `which` (−1 for none).
-vec2 ovvar_preview_at(float designs, vec2 t, bool limb, bool mirrored, out int which) {
-    which = -1;
-    for (int i = 0; i < 3; i++) {
-        if (i >= ovvar_set_count) break;
-        float cell = floor(ovvar_set[i] / designs), design = ovvar_set[i] - cell * designs;
-        vec4 ce = ovvar_read(40.0 * OVVAR_D + floor(cell / 16.0), mod(cell, 16.0));       // u, v, side (texels)
-        vec4 pe = ovvar_read(44.0 * OVVAR_D + floor(design / 16.0), mod(design, 16.0));   // library x, y, cells
-        vec2 local = t - ce.rg;
-        if (local.x < 0.0 || local.x >= OVVAR_CELL || local.y < 0.0 || local.y >= OVVAR_CELL) continue;
-        float side = ce.b;
-        float column = 0.0;   // which cell of the art
-        bool flip = false;
-        if (side < 0.5) { if (limb) continue; }
-        else if (side < 1.5) { if (!limb || mirrored) continue; }
-        else if (side < 2.5) { if (!limb || !mirrored) continue; flip = true; }
-        else { if (!limb) continue; if (mirrored) { column = 1.0; flip = true; } }   // seat: one half per leg
-        if (flip) local.x = OVVAR_CELL - local.x;   // the model mirrors the left limb; mirror back
-        which = i;
-        return (pe.rg + vec2(column * OVVAR_CELL, 0.0) + local) / OVVAR_TEX;
-    }
-    return OVVAR_BLANK;
-}
-
-// Does a patch layer show anything at this coordinate?
-bool ovvar_opaque(vec2 uv) {
-    return any(notEqual(uv, OVVAR_BLANK)) && OVVAR_SAMPLE(uv).a > 0.0;
 }
 
 // The texture coordinate to sample instead of uv. Call with the program's original coordinate;
@@ -206,62 +218,71 @@ vec2 ovvar_uv(vec2 uv) {
     bool mirrored = limb && ovvar_handed;
     bool sides = t.y >= 20.0 * OVVAR_D;   // the box sides, not the top and bottom faces
     float inflate = ovvar_inflate();
-    // Past the face's own texels is its margin (the inflation): the column continued round the
-    // corner is a, the face's own edge column aEdge.
-    float a = t.x, aEdge = t.x, ay = t.y;
-    bool margin = false;
-    if (sides) {
-        a = ovvar_squeezed(t.x, inflate, aEdge, margin);
-        ay = ovvar_squeezed_y(t.x, t.y, inflate);
-    }
+    float ay = sides ? ovvar_squeezed_y(t.x, t.y, inflate) : t.y;
     bool inFace = !sides || (ay >= 20.0 * OVVAR_D && ay < 32.0 * OVVAR_D);
 
+    if (kind.r > 0.5 && kind.r < 1.5) {
+        // Placement: hide it on the limb it is not for; continuous round the box from its face
+        // (the kind texel's B), nothing in the slack.
+        if (limb && ((kind.g > 0.5 && kind.g < 1.5 && mirrored) || (kind.g > 1.5 && !mirrored))) return OVVAR_BLANK;
+        if (!inFace) return OVVAR_BLANK;
+        float a = sides ? ovvar_squeezed_anchored(t.x, inflate, kind.b) : t.x;
+        if (a < 0.0) return OVVAR_BLANK;
+        return vec2(a, ay) / OVVAR_TEX;
+    }
+
+    // Per-face centred: past the face's own texels is its margin.
+    float a = t.x, aEdge = t.x;
+    bool margin = false;
+    if (sides) a = ovvar_squeezed(t.x, inflate, aEdge, margin);
+
     if (kind.r < 0.5) {
-        // Base garment: squeezed, the margin filled by the face's edge column (and row); the
-        // mirrored limb reads the strip above.
+        // Base garment: the margin filled by the face's edge column (and row); the mirrored limb
+        // reads the strip above.
         if (sides) ay = clamp(ay, 20.0 * OVVAR_D + 0.5, 32.0 * OVVAR_D - 0.5);
         return vec2(aEdge, ay) / OVVAR_TEX - vec2(0.0, mirrored ? 0.5 : 0.0);
     }
-    if (!inFace) return OVVAR_BLANK;
+    if (!inFace || margin) return OVVAR_BLANK;
+    t = vec2(a, ay);   // the preview is looked up in squeezed texels too
 
-    // A patch layer: what it shows at the continued column, and — in the margin — at the edge
-    // column, from the same placement.
-    vec2 here, edge;
-    if (kind.r < 1.5) {
-        // Placement: hide it on the limb it is not for.
-        if (limb && ((kind.g > 0.5 && kind.g < 1.5 && mirrored) || (kind.g > 1.5 && !mirrored))) return OVVAR_BLANK;
-        here = vec2(a, ay) / OVVAR_TEX;
-        edge = vec2(aEdge, ay) / OVVAR_TEX;
+    // Preview: unrank the instant set from the dye colour (see Looks.rank).
+    float designs = kind.b, m = kind.g * designs;
+    float v = ovvar_bits();
+    if (v < 0.5) return OVVAR_BLANK;
+    float s[3];
+    int count;
+    float base3 = 1.0 + m + ovvar_c2(m), base2 = 1.0 + m;
+    float r;
+    if (v >= base3) {
+        count = 3; r = v - base3;
+        s[2] = ovvar_max_c3(r); r -= ovvar_c3(s[2]);
+        s[1] = ovvar_max_c2(r); r -= ovvar_c2(s[1]);
+        s[0] = r;
+    } else if (v >= base2) {
+        count = 2; r = v - base2;
+        s[1] = ovvar_max_c2(r); r -= ovvar_c2(s[1]);
+        s[0] = r;
     } else {
-        // Preview: unrank the instant set from the dye colour (see Looks.rank), then look it up
-        // in squeezed texels too.
-        float designs = kind.b, m = kind.g * designs;
-        float v = ovvar_bits();
-        if (v < 0.5) return OVVAR_BLANK;
-        float base3 = 1.0 + m + ovvar_c2(m), base2 = 1.0 + m;
-        float r;
-        if (v >= base3) {
-            ovvar_set_count = 3; r = v - base3;
-            ovvar_set[2] = ovvar_max_c3(r); r -= ovvar_c3(ovvar_set[2]);
-            ovvar_set[1] = ovvar_max_c2(r); r -= ovvar_c2(ovvar_set[1]);
-            ovvar_set[0] = r;
-        } else if (v >= base2) {
-            ovvar_set_count = 2; r = v - base2;
-            ovvar_set[1] = ovvar_max_c2(r); r -= ovvar_c2(ovvar_set[1]);
-            ovvar_set[0] = r;
-        } else {
-            ovvar_set_count = 1; ovvar_set[0] = v - 1.0;
-        }
-        int hereWhich, edgeWhich = -1;
-        here = ovvar_preview_at(designs, vec2(a, ay), limb, mirrored, hereWhich);
-        edge = margin ? ovvar_preview_at(designs, vec2(aEdge, ay), limb, mirrored, edgeWhich) : here;
-        if (margin && hereWhich != edgeWhich) return OVVAR_BLANK;   // not one placement across the corner
+        count = 1; s[0] = v - 1.0;
     }
-    if (!margin) return here;
-    // The margin belongs to no texel, so a patch is left to the fabric there — unless it is one
-    // patch continuing round the corner (a big one hanging over), which shows its edge column
-    // stretched across the margin rather than a sliver of what lies round the corner, or a cut.
-    return ovvar_opaque(edge) && ovvar_opaque(here) ? edge : OVVAR_BLANK;
+    for (int i = 0; i < 3; i++) {
+        if (i >= count) break;
+        float cell = floor(s[i] / designs), design = s[i] - cell * designs;
+        vec4 ce = ovvar_read(40.0 * OVVAR_D + floor(cell / 16.0), mod(cell, 16.0));       // u, v, side (texels)
+        vec4 pe = ovvar_read(44.0 * OVVAR_D + floor(design / 16.0), mod(design, 16.0));   // library x, y, cells
+        vec2 local = t - ce.rg;
+        if (local.x < 0.0 || local.x >= OVVAR_CELL || local.y < 0.0 || local.y >= OVVAR_CELL) continue;
+        float side = ce.b;
+        float column = 0.0;   // which cell of the art
+        bool flip = false;
+        if (side < 0.5) { if (limb) continue; }
+        else if (side < 1.5) { if (!limb || mirrored) continue; }
+        else if (side < 2.5) { if (!limb || !mirrored) continue; flip = true; }
+        else { if (!limb) continue; if (mirrored) { column = 1.0; flip = true; } }   // seat: one half per leg
+        if (flip) local.x = OVVAR_CELL - local.x;   // the model mirrors the left limb; mirror back
+        return (pe.rg + vec2(column * OVVAR_CELL, 0.0) + local) / OVVAR_TEX;
+    }
+    return OVVAR_BLANK;
 }
 
 // Trim patches (drawn by the game from its trim atlas, so ovvar_uv cannot place them) carry their

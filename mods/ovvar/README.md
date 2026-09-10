@@ -179,14 +179,16 @@ The armour model draws a texel wider than it is tall: the box is inflated (1 on 
 layer, 0.5 on the leggings layer) but its texture is not, so a face n texels wide covers
 n + 2·inflate units while 12 rows cover 12 + 2·inflate — a sleeve texel is 1.5 × 1.167 units,
 a chest texel 1.25 × 1.167. Pixel art hates that, so the shader draws everything of ours on the
-box sides with square pixels: each face's texels centred on the face at the square size, so a
-cell's art sits where the face's own texels do. The face's margin (the inflated box is wider
-than its texels) belongs to no texel: the garment stretches its edge column across it, and a
-patch leaves it to the fabric — unless it is one patch continuing round the corner (a big one
-hanging over), which stretches its edge column across the margin too, so it is neither cut nor
-shown as a sliver of what lies round the corner. Two different patches meeting at a corner
-thus have a hairline of fabric between them, the same margin any patch has at a face's edge
-(`ovvar_wrap` and `ovvar_uv` in `ovvar.glsl`, `Spot.wrap` and `placedWrapped` in Java).
+box sides with square pixels, which leaves 2·inflate units of slack per face. The garment and
+the preview (many cells, one per face) centre each face's texels on the face, so the cells sit
+on the fabric's grid, and the slack is a margin at every corner: the garment stretches its
+edge column across it, the preview shows nothing there. A sewn patch's own texture holds one
+patch on one face, so it is drawn continuous round the box from that face instead — its
+texels centred, the neighbours' continuing past its edges at the same pixel — and all its
+slack lands in the middle of the opposite face, which the patch never reaches: a big patch
+hanging over a corner bends round it unbroken, and no corner ever shows a stretched, doubled
+or cut column (`ovvar_centred`, `ovvar_anchored` and `ovvar_uv` in `ovvar.glsl`,
+`Spot.anchored` and `placedWrapped` in Java; the face is in the kind texel's B).
 Each texture carries which layer it is for (the layer texel, two left of
 the marker: R = 2·inflate). The ghost preview is a vanilla-drawn trim, so datagen bakes the same
 mapping into the trim textures, to the texel — good enough for a ghost, which is why sewn

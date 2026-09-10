@@ -120,15 +120,15 @@ public final class GeneratedAssets implements DataProvider {
                 if (spot == Spot.SEAT) {
                     Tex r = Tex.blank(W, H).blit(art, 0, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D);
                     Tex l = Tex.blank(W, H).blit(art, Spot.PX, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D).flipX(spot.u * D, spot.v * D, Spot.PX, Spot.PX);
-                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_r.png"), sided(r, Spot.Side.RIGHT, spot.piece));
-                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_l.png"), sided(l, Spot.Side.LEFT, spot.piece));
+                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_r.png"), sided(r, spot, Spot.Side.RIGHT));
+                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_l.png"), sided(l, spot, Spot.Side.LEFT));
                     placementTextures += 2;
                     continue;
                 }
                 // Centred on the cell, hanging over it if bigger, clipped to the part's side rows;
                 // a left cell's art is mirrored (the model mirrors the left limb).
                 Tex placed = placed(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + patch.offsetX());
-                png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(placed, spot.side, spot.piece));
+                png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(placed, spot, spot.side));
                 placementTextures++;
             }
         }
@@ -469,36 +469,35 @@ public final class GeneratedAssets implements DataProvider {
 
     /**
      * The same, but as vanilla will draw it from a trim texture: the strip wrapped around the
-     * box the way the shader does ({@link Spot#wrap}), baked texel by texel — each column of the
-     * part's side rows shows the art column the shader would sample there. A face's margin
-     * (past its own texels) is left empty, unless the art continues round the corner there: then
-     * it shows the face's edge column, as ovvar_uv does.
+     * box the way the shader does for a placement ({@link Spot#anchored}), baked texel by texel
+     * — each column of the part's side rows shows the art column the shader would sample there.
      */
     private static Tex placedWrapped(Spot spot, Tex art, int x) {
         Tex flat = placed(spot, art, x);   // the art on the strip, wrapped round it
         int stripStart = Spot.stripStart(spot) * D, stripEnd = stripStart + Spot.stripWidth(spot) * D;
         double inflate = Spot.inflate(spot.piece);
+        int anchor = Spot.face(spot);
         Tex out = Tex.blank(W, H);
         for (int column = stripStart; column < stripEnd; column++) {
-            Spot.Wrapped w = Spot.wrap((column + 0.5) / D, inflate);
-            int here = w.texel(D), edge = w.edgeTexel(D);
+            double w = Spot.anchored((column + 0.5) / D, inflate, anchor);
+            if (w < 0) continue;
+            int texel = stripStart + (int) Math.floor(w * D);
             for (int row = 20 * D; row < 32 * D; row++) {
-                int p = flat.get(edge, row);
-                if (w.margin() && flat.get(here, row) == 0) p = 0;
+                int p = flat.get(texel, row);
                 if (p != 0) out = out.with(column, row, p);
             }
         }
         return out;
     }
 
-    /** A placement texture: drawn on one side of the model only (both, for body cells). */
-    private static Tex sided(Tex tex, Spot.Side side, Piece piece) {
-        return marked(tex.with(MARKER_KIND_X, MARKER_Y, rgb(KIND_SIDED, side.ordinal(), 0)), piece);
+    /** A placement texture: drawn on one side of the model only (both, for body cells), continuous round the box from the cell's face. */
+    private static Tex sided(Tex tex, Spot spot, Spot.Side side) {
+        return marked(tex.with(MARKER_KIND_X, MARKER_Y, rgb(KIND_SIDED, side.ordinal(), Spot.face(spot))), spot.piece);
     }
 
     // ---- the texel contract with ovvar.glsl
 
-    /** Left of the marker: R = kind; sided: G = side; preview: G = cells in the half, B = instant designs. Base textures have none (0). */
+    /** Left of the marker: R = kind; sided: G = side, B = the face of its strip; preview: G = cells in the half, B = instant designs. Base textures have none (0). */
     private static final int MARKER_KIND_X = W - 2, KIND_SIDED = 1, KIND_PREVIEW = 2;
     /** Two left of the marker: R = 2 × the model inflation of the layer the texture is for (the squeeze needs it). */
     private static final int LAYER_X = W - 3;
