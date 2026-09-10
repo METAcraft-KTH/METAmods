@@ -30,17 +30,13 @@ tasks.register('patcherJar', Jar) {
     // The very shader code the vanilla override uses, so patched packs and vanilla never drift apart.
     from('src/main/resources/assets/ovvar/shaders/include/ovvar.glsl')
     archiveFileName = 'OvvarShaderPatcher.jar'
-    destinationDirectory = layout.buildDirectory.dir('patcher-resources/assets/ovvar/shaderpatcher')
     manifest { attributes 'Main-Class': 'metacraft.ovvar.shaderpatcher.Patcher' }
 }
-tasks.register('patcherReadme', Copy) {
-    from 'tools/shaderpatcher/README.txt'
-    into layout.buildDirectory.dir('patcher-resources/assets/ovvar/shaderpatcher')
-}
-sourceSets.main.resources.srcDir layout.buildDirectory.dir('patcher-resources')
 
 processResources {
-    dependsOn 'patcherJar', 'patcherReadme'
+    // The jar and its README ride along in the mod's resources (an implicit dependency on patcherJar).
+    from(tasks.named('patcherJar')) { into 'assets/ovvar/shaderpatcher' }
+    from('tools/shaderpatcher/README.txt') { into 'assets/ovvar/shaderpatcher' }
     doFirst {
         def gen = file('src/main/generated/assets/ovvar/equipment')
         def generating = gradle.startParameter.taskNames.any { it.endsWith('runDatagen') }

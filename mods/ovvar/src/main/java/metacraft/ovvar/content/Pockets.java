@@ -15,25 +15,37 @@ import org.apache.commons.lang3.math.Fraction;
  * larger bundle usable at all — the vanilla client otherwise predicts "full" at 64.
  *
  * The component type is looked up by id rather than imported so this module compiles on its
- * own; in METAmods the mod is a hard dependency and load order is guaranteed by fabric.mod.json.
+ * own. Fabric Loader runs mod initialisers in mod-id order, not dependency order, and
+ * metacraft-bundles registers the component in a static initialiser of its component class, so
+ * that class is initialised here explicitly before the ovve is registered — the order the
+ * initialisers happen to run in then makes no difference (it differed between the server and
+ * data generation, which is how CI caught it).
  */
 final class Pockets {
     private Pockets() {}
 
     /** In vanilla bundles: 2 = 128 stackable items, or two stacks of 64. */
     static final Fraction SIZE = Fraction.getFraction(2, 1);
+    private static final String BUNDLES_MOD = "metacraft-bundles";
+    private static final String COMPONENTS_CLASS = "nu.metacraft.bundles.BundleComponents";
     private static final Identifier SIZE_FACTOR = Identifier.fromNamespaceAndPath("metacraft", "bundle_size_factor");
 
     @SuppressWarnings("unchecked")
     static Item.Properties apply(Item.Properties properties) {
+        if (!FabricLoader.getInstance().isModLoaded(BUNDLES_MOD)) {
+            Ovvar.LOGGER.warn("[{}] {} is not present: ovve pockets are vanilla-sized (dev only; METAmods always has it)", Ovvar.MOD_ID, BUNDLES_MOD);
+            return properties;
+        }
+        try {
+            Class.forName(COMPONENTS_CLASS, true, Pockets.class.getClassLoader());
+        } catch (ReflectiveOperationException | LinkageError e) {
+            throw new IllegalStateException("[" + Ovvar.MOD_ID + "] " + BUNDLES_MOD + " is loaded but " + COMPONENTS_CLASS
+                    + " could not be initialised — has the mod moved its component registration?", e);
+        }
         DataComponentType<?> type = BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(SIZE_FACTOR);
         if (type == null) {
-            if (FabricLoader.getInstance().isModLoaded("metacraft-bundles")) {
-                throw new IllegalStateException("[" + Ovvar.MOD_ID + "] metacraft-bundles is loaded but " + SIZE_FACTOR
-                        + " is not registered yet — ovvar must initialise after it (check fabric.mod.json depends)");
-            }
-            Ovvar.LOGGER.warn("[{}] metacraft-bundles is not present: ovve pockets are vanilla-sized (dev only; METAmods always has it)", Ovvar.MOD_ID);
-            return properties;
+            throw new IllegalStateException("[" + Ovvar.MOD_ID + "] " + BUNDLES_MOD + " is loaded but " + SIZE_FACTOR
+                    + " is not registered by " + COMPONENTS_CLASS + " any more");
         }
         return properties.component((DataComponentType<Fraction>) type, SIZE);
     }
