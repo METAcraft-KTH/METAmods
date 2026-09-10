@@ -10,7 +10,9 @@ import metacraft.ovvar.content.PatchItem;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Spot;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -35,7 +37,9 @@ import java.util.UUID;
  * Empty hand on a sewn patch takes it back. The preview is a transient component on the stand's
  * ovve, so everyone sees it, and nothing is persisted until the click.
  *
- * Aiming is {@link StandAim}: the look ray against the stand's posed armour model. Sneaking aims
+ * Aiming is {@link StandAim}: the look ray against the stand's posed armour model — our own ray,
+ * not the client's, which only knows the stand's narrow hitbox (clicks on the arms arrive as
+ * clicks on air or the block behind and are taken too). Sneaking aims
  * at the far face of the part you look at (the inside of an arm or leg, the back). With the
  * stitching minigame on (config), the click opens {@link SewingGame} instead of sewing at once.
  */
@@ -70,40 +74,74 @@ public final class StandSewing {
 
     public static void init() {
         ServerTickEvents.END_SERVER_TICK.register(StandSewing::tick);
+        // A stand's hitbox is its 0.5-wide body: the client only reports a click on an entity when
+        // its own ray hits that box, so a click on an arm sticking out of it arrives as a click on
+        // air or on the block behind. All three are taken; our ray decides what was aimed at.
         UseEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
             if (hand != InteractionHand.MAIN_HAND || !(player instanceof ServerPlayer serverPlayer) || !(entity instanceof ArmorStand stand)) {
                 return InteractionResult.PASS;
             }
-            ItemStack ovve = stand.getItemBySlot(EquipmentSlot.LEGS);
-            if (!(ovve.getItem() instanceof OvveItem)) return InteractionResult.PASS;
-            ItemStack held = player.getMainHandItem();
-            StandAim.Hit aimed = aim(serverPlayer, stand);
-            if (held.getItem() instanceof PatchItem patchItem) {
-                Spot spot = aimed == null ? null : spotFor(aimed.spot(), patchItem.patch);
-                logAim("click " + patchItem.patch.id(), serverPlayer, stand, aimed, spot);
-                if (spot == null) return InteractionResult.FAIL;
-                Placement placement = new Placement(spot, patchItem.patch.id());
-                if (OvvarConfig.get().sewingMinigame()) {
-                    SewingGame.start(serverPlayer, stand, placement, patchItem.patch);
-                } else {
-                    finish(serverPlayer, stand, placement, patchItem, aimed.where());
-                }
-                return InteractionResult.SUCCESS;
-            }
-            if (held.isEmpty() && aimed != null && aimed.spot() != null) {
-                Spot spot = aimed.spot();
-                Placement there = Looks.at(ovve, spot);
-                if (there == null && Spot.SEAT_CELLS.contains(spot)) { spot = Spot.SEAT; there = Looks.at(ovve, spot); }
-                if (there == null) return InteractionResult.PASS;
-                Looks.unpick(ovve, spot);
-                ItemStack back = new ItemStack(ModContent.patchItem(Patches.get(there.patch())));
-                if (!player.getInventory().add(back)) player.drop(back, false);
-                celebrate((ServerLevel) level, aimed.where(), false);
-                serverPlayer.sendOverlayMessage(Component.literal(Patches.get(there.patch()).name() + " unpicked"));
-                return InteractionResult.SUCCESS;
-            }
-            return InteractionResult.PASS;
+            if (!(stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem)) return InteractionResult.PASS;
+            return click(serverPlayer, stand, aim(serverPlayer, stand));
         });
+        UseItemCallback.EVENT.register((player, level, hand) -> {
+            if (hand != InteractionHand.MAIN_HAND || !(player instanceof ServerPlayer serverPlayer)) return InteractionResult.PASS;
+            return clickThrough(serverPlayer, REACH);
+        });
+        UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
+            if (hand != InteractionHand.MAIN_HAND || !(player instanceof ServerPlayer serverPlayer)) return InteractionResult.PASS;
+            return clickThrough(serverPlayer, player.getEyePosition().distanceTo(hit.getLocation()));
+        });
+    }
+
+    /** A click the client did not attribute to a stand: the nearest stand cell our ray meets within {@code maxDistance}, if any. */
+    private static InteractionResult clickThrough(ServerPlayer player, double maxDistance) {
+        ItemStack held = player.getMainHandItem();
+        if (!(held.getItem() instanceof PatchItem) && !held.isEmpty()) return InteractionResult.PASS;
+        ArmorStand best = null;
+        StandAim.Hit bestHit = null;
+        double bestDistance = maxDistance;
+        for (ArmorStand stand : player.level().getEntitiesOfClass(ArmorStand.class, player.getBoundingBox().inflate(REACH))) {
+            if (!(stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem)) continue;
+            StandAim.Hit hit = aim(player, stand);
+            if (hit == null) continue;
+            double distance = player.getEyePosition().distanceTo(hit.where());
+            if (distance < bestDistance) { best = stand; bestHit = hit; bestDistance = distance; }
+        }
+        if (best == null) return InteractionResult.PASS;
+        return click(player, best, bestHit);
+    }
+
+    /** A right-click on a stand wearing an ovve, aimed as given: sew the held patch, or unpick with an empty hand. */
+    private static InteractionResult click(ServerPlayer player, ArmorStand stand, StandAim.Hit aimed) {
+        ItemStack ovve = stand.getItemBySlot(EquipmentSlot.LEGS);
+        ItemStack held = player.getMainHandItem();
+        ServerLevel level = (ServerLevel) player.level();
+        if (held.getItem() instanceof PatchItem patchItem) {
+            Spot spot = aimed == null ? null : spotFor(aimed.spot(), patchItem.patch);
+            logAim("click " + patchItem.patch.id(), player, stand, aimed, spot);
+            if (spot == null) return InteractionResult.FAIL;
+            Placement placement = new Placement(spot, patchItem.patch.id());
+            if (OvvarConfig.get().sewingMinigame()) {
+                SewingGame.start(player, stand, placement, patchItem.patch);
+            } else {
+                finish(player, stand, placement, patchItem, aimed.where());
+            }
+            return InteractionResult.SUCCESS;
+        }
+        if (held.isEmpty() && aimed != null && aimed.spot() != null) {
+            Spot spot = aimed.spot();
+            Placement there = Looks.at(ovve, spot);
+            if (there == null && Spot.SEAT_CELLS.contains(spot)) { spot = Spot.SEAT; there = Looks.at(ovve, spot); }
+            if (there == null) return InteractionResult.PASS;
+            Looks.unpick(ovve, spot);
+            ItemStack back = new ItemStack(ModContent.patchItem(Patches.get(there.patch())));
+            if (!player.getInventory().add(back)) player.drop(back, false);
+            celebrate(level, aimed.where(), false);
+            player.sendOverlayMessage(Component.literal(Patches.get(there.patch()).name() + " unpicked"));
+            return InteractionResult.SUCCESS;
+        }
+        return InteractionResult.PASS;
     }
 
     /**
