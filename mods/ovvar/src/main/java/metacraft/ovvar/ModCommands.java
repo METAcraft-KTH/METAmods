@@ -8,6 +8,7 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.serialization.JavaOps;
 import metacraft.ovvar.content.*;
 import metacraft.ovvar.pack.Combos;
+import metacraft.ovvar.sewing.SewingGame;
 import metacraft.ovvar.sewing.StandSewing;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
@@ -87,6 +88,8 @@ public final class ModCommands {
 										.then(Commands.argument("stitches", IntegerArgumentType.integer(OvvarConfig.MIN_STITCHES, OvvarConfig.MAX_STITCHES))
 												.executes(ctx -> minigame(ctx, true, IntegerArgumentType.getInteger(ctx, "stitches")))))
 								.then(Commands.literal("off").executes(ctx -> minigame(ctx, false, 0))))
+						.then(Commands.literal("stitch").requires(GAMEMASTER)
+								.then(Commands.argument("placement", StringArgumentType.word()).executes(ModCommands::stitch)))
 						.then(Commands.literal("aimlog").requires(GAMEMASTER)
 								.then(Commands.literal("on").executes(ctx -> aimLog(ctx, true)))
 								.then(Commands.literal("off").executes(ctx -> aimLog(ctx, false))))));
@@ -162,6 +165,20 @@ public final class ModCommands {
 		if (!player.getInventory().add(stack)) player.drop(stack, false);
 		ctx.getSource().sendSuccess(() -> Component.literal("Gave " + player.getName().getString() + " a " + chapter.name
 				+ " " + chapter.garmentWord() + " with " + patches.size() + " patch(es)"), true);
+		return 1;
+	}
+
+	/** Opens the stitching dialog for a placement on the nearest stand wearing an ovve, aim or no aim — for looking at the dialog. */
+	private static int stitch(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		String key = StringArgumentType.getString(ctx, "placement");
+		if (!Placement.isKey(key)) throw UNKNOWN_PATCH.create(key + " (want cell.patch)");
+		Placement placement = Placement.parse(key);
+		ArmorStand stand = player.level().getEntitiesOfClass(ArmorStand.class, player.getBoundingBox().inflate(8)).stream()
+				.filter(s -> s.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem)
+				.min(java.util.Comparator.comparingDouble(s -> s.distanceToSqr(player))).orElse(null);
+		if (stand == null) throw NOT_AN_OVVE.create("no stand wearing one within 8 blocks");
+		SewingGame.start(player, stand, placement, placement.patch());
 		return 1;
 	}
 

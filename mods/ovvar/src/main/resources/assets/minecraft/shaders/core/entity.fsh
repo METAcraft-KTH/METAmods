@@ -42,7 +42,7 @@ out vec4 fragColor;
 #moj_import <ovvar:ovvar.glsl>
 
 void main() {
-	vec4 color = ovvar_sided(texture(Sampler0, ovvar_uv(texCoord0)));
+	vec4 color = texture(Sampler0, ovvar_uv(texCoord0));
 #ifdef ALPHA_CUTOUT
 	if (color.a < ALPHA_CUTOUT) {
 		discard;

@@ -197,8 +197,7 @@ float ovvar_squeezed_y(float tx, float ty, float inflate) {
 
 // The texture coordinate to sample instead of uv. Call with the program's original coordinate;
 // derivatives must be taken in uniform control flow, hence at the top.
-// Set by ovvar_uv: is this fragment on a mirrored (left) limb face? Meaningful on any texture,
-// ours or not — the trim atlas draw uses it through ovvar_sided.
+// Set by ovvar_uv: is this fragment on a mirrored (left) limb face?
 bool ovvar_handed = false;
 
 vec2 ovvar_uv(vec2 uv) {
@@ -298,20 +297,9 @@ vec2 ovvar_uv(vec2 uv) {
 	return OVVAR_BLANK;
 }
 
-// Trim patches (drawn by the game from its trim atlas, so ovvar_uv cannot place them) carry their
-// side in the texture's alpha: 254 = right limb only, 253 = left limb only. Call after ovvar_uv
-// with the sampled colour; the wrong limb's fragments come back with alpha 0 (cut out).
-vec4 ovvar_sided(vec4 sampled) {
-	float a = floor(sampled.a * 255.0 + 0.5);
-	if ((a == 254.0 && ovvar_handed) || (a == 253.0 && !ovvar_handed)) return vec4(sampled.rgb, 0.0);
-	return sampled;
-}
-
 // The vertex colour to shade with: on a patch texture of ours the dye colour is data, not paint,
-// so it is divided out of the lit colour (no byte of it is 0); on a trim patch the wrong limb's
-// fragments get alpha 0 so the program's alpha test drops them. uv: the coordinate being sampled.
+// so it is divided out of the lit colour (no byte of it is 0). uv: the coordinate being sampled.
 vec4 ovvar_shade(vec4 lit, vec2 uv) {
-	if (ovvar_sided(OVVAR_SAMPLE(uv)).a == 0.0 && OVVAR_SAMPLE(uv).a > 0.0) return vec4(lit.rgb, 0.0);
 	if (ovvar_patch_layer() < 0.5) return lit;
 	return vec4(lit.rgb / max(ovvar_color.rgb, vec3(1.0 / 255.0)), lit.a);
 }

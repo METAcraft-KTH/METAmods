@@ -23,9 +23,17 @@ public final class PatchItem extends Item implements PolymerItem {
 		this.id = id;
 	}
 
-	/** The other models of every patch: a piece of its art 1:1 on the 16×16 sprite, for display entities ({@link ModComponents#FLAT}). */
-	public static String flatModel(String itemName, PatchPieces.Piece piece) {
-		return itemName + "_flat_" + piece.key();
+	/**
+	 * The other models of every patch: a piece of its art 1:1 on the 16×16 sprite, for display
+	 * entities ({@link ModComponents#FLAT}), plain or ghosted (the preview of a patch not sewn yet).
+	 */
+	public static String flatModel(String itemName, PatchPieces.Piece piece, boolean ghost) {
+		return itemName + "_flat_" + flatKey(piece, ghost);
+	}
+
+	/** What {@link ModComponents#FLAT} carries for a piece. */
+	public static String flatKey(PatchPieces.Piece piece, boolean ghost) {
+		return (ghost ? "ghost_" : "") + piece.key();
 	}
 
 	@Override

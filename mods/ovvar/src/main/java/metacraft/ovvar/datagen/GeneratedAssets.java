@@ -17,7 +17,6 @@ import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Spot;
 import metacraft.ovvar.pack.EquipmentJson;
-import metacraft.ovvar.pack.Trims;
 import metacraft.ovvar.sewing.Outline;
 import metacraft.ovvar.sewing.Seam;
 import metacraft.ovvar.sewing.SewingFont;
@@ -117,7 +116,8 @@ public final class GeneratedAssets implements DataProvider {
 			for (PatchPieces.Piece piece : pieces.values()) {
 				int ox = (16 - art.width) / 2, oy = (16 - art.height) / 2;
 				Tex sprite = Tex.blank(16, 16).blit(art, piece.x0(), piece.y0(), piece.x1() - piece.x0(), piece.y1() - piece.y0(), ox + piece.x0(), oy + piece.y0());
-				sprite(PatchItem.flatModel(name, piece), sprite);
+				sprite(PatchItem.flatModel(name, piece, false), sprite);
+				sprite(PatchItem.flatModel(name, piece, true), ghosted(sprite));   // the preview: washed out, "not sewn yet"
 			}
 			lang.put("item." + MOD + "." + name, patch.name() + " patch");
 		}
@@ -145,49 +145,6 @@ public final class GeneratedAssets implements DataProvider {
 				placementTextures++;
 			}
 		}
-
-		// The trim channel (the ghost preview): one trim pattern per (cell, plain patch). Limb cells
-		// are alpha-tagged with their side (the palette permutation keeps a texel's alpha). Vanilla
-		// draws trims, so the squeeze to square pixels (ovvar.glsl) is baked in here, to the texel.
-		List<String> trimTextures = new ArrayList<>();
-		for (Spot spot : Spot.values()) {
-			for (Patches.Patch patch : Patches.all()) {
-				if (!patch.fits(spot) || spot == Spot.SEAT) continue;
-				Placement placement = new Placement(spot, patch);
-				String name = Trims.patternName(placement);
-				Tex art = arts.get(patch.id());
-				Tex tex = placedWrapped(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + patch.offsetX());
-				if (spot.side == Spot.Side.LEFT) tex = tex.tagOpaque(Trims.ALPHA_LEFT);
-				if (spot.side == Spot.Side.RIGHT) tex = tex.tagOpaque(Trims.ALPHA_RIGHT);
-				png(assets.resolve("textures/trims/entity/" + spot.piece.layer + "/" + name + ".png"), tex);
-				trimTextures.add(MOD + ":trims/entity/" + spot.piece.layer + "/" + name);
-				json(data.resolve("trim_pattern/" + name + ".json"),
-						obj("asset_id", MOD + ":" + name, "decal", false, "description", obj("text", patch.name() + " on the " + spot.label())));
-			}
-		}
-		// Materials are colour permutations of a key palette, so the key is every colour any patch
-		// uses: "patch" maps each to itself, "ghost" (the preview) to a washed-out version.
-		List<Integer> colours = new ArrayList<>();
-		for (Tex art : arts.values()) for (int c : art.opaqueColours()) if (!colours.contains(c)) colours.add(c);
-		Tex key = Tex.blank(colours.size(), 1), patchPalette = key, ghostPalette = key;
-		for (int i = 0; i < colours.size(); i++) {
-			int c = colours.get(i);
-			key = key.with(i, 0, c);
-			patchPalette = patchPalette.with(i, 0, c);
-			ghostPalette = ghostPalette.with(i, 0, Tex.mix(c, 0xFFFFFFFF, 0.6));
-		}
-		String palettes = "textures/trims/color_palettes/";
-		png(assets.resolve(palettes + "key.png"), key);
-		png(assets.resolve(palettes + Trims.MATERIAL + ".png"), patchPalette);
-		png(assets.resolve(palettes + Trims.GHOST + ".png"), ghostPalette);
-		json(data.resolve("trim_material/" + Trims.MATERIAL + ".json"), obj("asset_name", Trims.MATERIAL, "description", obj("text", "Patch")));
-		json(data.resolve("trim_material/" + Trims.GHOST + ".json"), obj("asset_name", Trims.GHOST, "description", obj("text", "Patch (not sewn yet)")));
-		json(assets.getParent().resolve("minecraft/atlases/armor_trims.json"), obj("sources", arr(obj(
-				"type", "minecraft:paletted_permutations",
-				"textures", arr(trimTextures.toArray()),
-				"palette_key", MOD + ":trims/color_palettes/key",
-				"permutations", obj(Trims.MATERIAL, MOD + ":trims/color_palettes/" + Trims.MATERIAL, Trims.GHOST, MOD + ":trims/color_palettes/" + Trims.GHOST)))));
-		Ovvar.LOGGER.info("[{} datagen] {} trim patterns", MOD, trimTextures.size());
 
 		// The preview layer per half: every instant design's art in the library (a block of cells
 		// its size), the cell and design tables, marker kind 2. The shader draws what the dye
@@ -481,29 +438,6 @@ public final class GeneratedAssets implements DataProvider {
 		return out;
 	}
 
-	/**
-	 * The same, but as vanilla will draw it from a trim texture: the strip wrapped around the
-	 * box the way the shader does for a placement ({@link Spot#anchored}), baked texel by texel
-	 * — each column of the part's side rows shows the art column the shader would sample there.
-	 */
-	private static Tex placedWrapped(Spot spot, Tex art, int x) {
-		Tex flat = placed(spot, art, x);   // the art on the strip, wrapped round it
-		int stripStart = Spot.stripStart(spot) * D, stripEnd = stripStart + Spot.stripWidth(spot) * D;
-		double inflate = Spot.inflate(spot.piece);
-		int anchor = Spot.face(spot);
-		Tex out = Tex.blank(W, H);
-		for (int column = stripStart; column < stripEnd; column++) {
-			double w = Spot.anchored((column + 0.5) / D, inflate, anchor);
-			if (w < 0) continue;
-			int texel = stripStart + (int) Math.floor(w * D);
-			for (int row = 20 * D; row < 32 * D; row++) {
-				int p = flat.get(texel, row);
-				if (p != 0) out = out.with(column, row, p);
-			}
-		}
-		return out;
-	}
-
 	/** A placement texture: drawn on one side of the model only (both, for body cells), continuous round the box from the cell's face. */
 	private static Tex sided(Tex tex, Spot spot, Spot.Side side) {
 		return marked(tex.with(MARKER_KIND_X, MARKER_Y, rgb(KIND_SIDED, side.ordinal(), Spot.face(spot))), spot.piece);
@@ -617,6 +551,20 @@ public final class GeneratedAssets implements DataProvider {
 				obj("parent", "minecraft:item/generated", "textures", obj("layer0", MOD + ":item/" + name)));
 		png(assets.resolve("textures/item/" + name + ".png"), texture);
 	}
+
+	/** The ghost of a sprite: every opaque pixel mixed {@value #GHOST_WHITE} to white — the preview of a patch not sewn yet. */
+	private static Tex ghosted(Tex sprite) {
+		Tex out = sprite;
+		for (int y = 0; y < sprite.height; y++) {
+			for (int x = 0; x < sprite.width; x++) {
+				int p = sprite.get(x, y);
+				if (p != 0) out = out.with(x, y, Tex.mix(p, 0xFFFFFFFF, GHOST_WHITE));
+			}
+		}
+		return out;
+	}
+
+	private static final double GHOST_WHITE = 0.6;
 
 	/**
 	 * An item whose model is one flat, unlit quad of the texture — no thickness, no sides — for

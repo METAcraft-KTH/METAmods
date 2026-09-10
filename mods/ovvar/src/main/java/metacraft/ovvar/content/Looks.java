@@ -2,7 +2,6 @@ package metacraft.ovvar.content;
 
 import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.pack.Combos;
-import metacraft.ovvar.pack.Trims;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
@@ -84,13 +83,13 @@ public final class Looks {
 	// ---- what the client gets
 
 	/**
-	 * One half as the client should see it: the placement worn as the armour trim (or null) and
-	 * whether it is the ghosted preview, the asset combo the pack holds, the dye bits for the rest,
-	 * and — legs only, when the wearer's feet slot carries our second channel — the dye bits of
-	 * the boots pass, three more. {@code complete}: is every sewn patch drawn this way, or does
-	 * this viewer need a newer pack to see them all?
+	 * One half as the client should see it: the asset combo the pack holds, the dye bits for the
+	 * rest, and — legs only, when the wearer's feet slot carries our second channel — the dye bits
+	 * of the boots pass, three more. {@code complete}: is every sewn patch drawn this way, or does
+	 * this viewer need a newer pack to see them all? (The preview of a patch being aimed at is a
+	 * display entity on the stand, never part of this.)
 	 */
-	public record Look(Placement trim, boolean ghost, Combos.Combo combo, int dye, int feetDye, boolean complete) {}
+	public record Look(Combos.Combo combo, int dye, int feetDye, boolean complete) {}
 
 	/** Does the wearer's feet slot carry the second channel for this ovve? (Set every tick by the wearer's sync.) */
 	public static boolean feetChannel(ItemStack stack) {
@@ -101,21 +100,6 @@ public final class Looks {
 	public static Look look(ItemStack stack, Piece piece, UUID player) {
 		// On an armour stand the patches are display entities (StandDisplays); the armour draws none.
 		var all = Boolean.TRUE.equals(stack.get(ModComponents.ON_STAND)) ? Optional.<SpotPlacements>empty() : sewn(stack, piece);
-		Placement preview = preview(stack);
-		if (preview != null && preview.piece() != piece) preview = null;
-
-		// A patch being aimed at is worn as the trim, in the ghost material — any design, any size.
-		// A seat patch cannot be a trim and previews solid in the dye bits instead (if the channel
-		// can name it). Sewn patches never ride as the trim: vanilla draws trims, so their art is
-		// squeezed to square pixels texel by texel, fine for a ghost and not for the real thing.
-		Placement trim = null;
-		boolean ghost = preview != null && Trims.fits(preview);
-		if (ghost) {
-			trim = preview;
-			preview = null;
-		} else if (preview != null && !instant(preview)) {
-			preview = null;
-		}
 		List<Placement> core = SpotPlacements.asPlacementList(all);
 
 		// The longest prefix (in sewing order) the pack already has; the rest rides in the dye bits
@@ -124,21 +108,16 @@ public final class Looks {
 		while (baked > 0 && !Combos.isBuilt(piece, Placement.combo(core.subList(0, baked)), player)) baked--;
 		List<Placement> rest = new ArrayList<>(core.subList(baked, core.size()));
 		boolean feet = piece == Piece.BOTTOM && feetChannel(stack);
-		int room = INSTANT * (feet ? 2 : 1) - (preview == null ? 0 : 1);
+		int room = INSTANT * (feet ? 2 : 1);
 		boolean urgent = rest.size() > room || !rest.stream().allMatch(Looks::instant);
 		if (baked < core.size()) Combos.request(piece, Placement.combo(core), urgent);
 		List<Placement> shown = new ArrayList<>();
 		for (int i = rest.size() - 1; i >= 0 && shown.size() < room; i--) if (instant(rest.get(i))) shown.add(rest.get(i));
 		boolean complete = shown.size() == rest.size();
-		if (preview != null) {
-			Spot aimed = preview.spot();
-			shown.removeIf(p -> p.spot() == aimed || aimed.overlapping().contains(p.spot()));
-			shown.add(preview);
-		}
 		// The first three ride in the garment's own dye colour, the next three in the boots'.
 		List<Placement> own = shown.subList(0, Math.min(INSTANT, shown.size()));
 		List<Placement> boots = shown.subList(own.size(), shown.size());
-		return new Look(trim, ghost, Placement.combo(core.subList(0, baked)),
+		return new Look(Placement.combo(core.subList(0, baked)),
 				own.isEmpty() ? 0 : encode(rank(piece, own)), boots.isEmpty() ? 0 : encode(rank(piece, boots)), complete);
 	}
 

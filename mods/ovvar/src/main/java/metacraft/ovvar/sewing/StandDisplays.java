@@ -40,7 +40,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * is one of the fabric's square pixels; a big patch is cut at the corners of its face and each
  * piece laid on the face it hangs over — round the sides, and over the top of a sleeve or leg —
  * so it bends round the box as the sewn one will. Later-sewn patches sit a hair further out, so
- * they overlap the earlier.
+ * they overlap the earlier; the patch being aimed at lies on top of all, washed out, until it is
+ * sewn — the whole preview, so the pack has no trim channel to carry.
  */
 public final class StandDisplays {
 	private StandDisplays() {}
@@ -56,6 +57,7 @@ public final class StandDisplays {
 		final List<Placement> placements = new ArrayList<>();
 		final List<Element> elements = new ArrayList<>();
 		boolean topShown;
+		Placement preview;
 		int poseHash;
 
 		Shown(ArmorStand stand) {
@@ -110,12 +112,17 @@ public final class StandDisplays {
 		return null;
 	}
 
-	/** The patches to show: all of the legs', and the top's while it is up and nothing else is worn over it. */
+	/**
+	 * The patches to show: all of the legs', and the top's while it is up and nothing else is
+	 * worn over it; last, ghosted, the one being aimed at ({@link ModComponents#PREVIEW}).
+	 */
 	private static List<Placement> shown(ArmorStand stand, ItemStack ovve, boolean topShown) {
 		List<Placement> out = new ArrayList<>();
 		for (Placement p : SpotPlacements.asPlacementList(Looks.sewn(ovve))) {
 			if (p.piece() == Piece.BOTTOM || topShown) out.add(p);
 		}
+		Placement preview = Looks.preview(ovve);
+		if (preview != null && (preview.piece() == Piece.BOTTOM || topShown)) out.add(preview);
 		return out;
 	}
 
@@ -127,19 +134,22 @@ public final class StandDisplays {
 	private static void update(Shown shown, ItemStack ovve) {
 		boolean topShown = topShown(shown.stand, ovve);
 		List<Placement> placements = shown(shown.stand, ovve, topShown);
+		Placement preview = Looks.preview(ovve);
 		boolean rebuilt = false;
-		if (!placements.equals(shown.placements) || topShown != shown.topShown) {
+		if (!placements.equals(shown.placements) || topShown != shown.topShown || !Objects.equals(preview, shown.preview)) {
 			for (Element element : shown.elements) shown.holder.removeElement(element.display);
 			shown.elements.clear();
 			shown.placements.clear();
 			shown.placements.addAll(placements);
 			shown.topShown = topShown;
+			shown.preview = preview;
 			for (int i = 0; i < placements.size(); i++) {
 				Placement p = placements.get(i);
 				Patches.Patch patch = p.patch();
+				boolean ghost = i == placements.size() - 1 && preview != null && p.equals(preview);
 				for (PatchPieces.Piece piece : PatchPieces.of(p.spot(), patch)) {
 					ItemStack item = new ItemStack(ModContent.patchItem(patch));
-					item.set(ModComponents.FLAT, piece.key());
+					item.set(ModComponents.FLAT, PatchItem.flatKey(piece, ghost));
 					ItemDisplayElement display = new ItemDisplayElement(item);
 					display.setItemDisplayContext(ItemDisplayContext.NONE);
 					display.setInterpolationDuration(0);
