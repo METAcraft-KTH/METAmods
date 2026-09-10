@@ -83,6 +83,15 @@ public final class SewingFont {
             return width + 1;
         }
 
+        /**
+         * The texture's (and the provider's) height: the client refuses an ascent above the
+         * height, so the art is padded below with transparent rows to the largest ascent it is
+         * drawn with. {@code height} stays the art's own height, for layout.
+         */
+        public int textureHeight() {
+            return Math.max(height, ascent(minTop));
+        }
+
         public char at(int top) {
             if (top < minTop || top > maxTop) throw new IllegalArgumentException(name + " cannot sit at y " + top);
             return (char) (first + (top - minTop));
@@ -109,9 +118,9 @@ public final class SewingFont {
         return g;
     }
 
-    /** An overlay of the given height, anywhere on the picture. */
+    /** An overlay of the given height, anywhere on the picture (down to where its ascent would go negative). */
     private static Glyph overlay(String name, int width, int height) {
-        return glyph(name, width, height, overlayTop(0), overlayTop(PICTURE_HEIGHT - height));
+        return glyph(name, width, height, overlayTop(0), Math.min(overlayTop(PICTURE_HEIGHT - height), ROW_ASCENT));
     }
 
     /** Stitch marks: 7×7, centred on the hole. */

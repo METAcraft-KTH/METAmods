@@ -65,8 +65,10 @@ class SewingFontData:
         raise KeyError(f'{name} has no variant at top {top}')
 
     def size(self, name):
+        """The art's size: the texture is padded below with transparent rows for the ascent rule."""
         img = self.glyphs[self.by_name[name][0][1]][0]
-        return img.size
+        bbox = img.getchannel('A').getbbox()
+        return img.width, (bbox[3] if bbox else img.height)
 
     def move(self, dx):
         out = ''

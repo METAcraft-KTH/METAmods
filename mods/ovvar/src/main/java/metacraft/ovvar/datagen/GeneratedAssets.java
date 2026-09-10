@@ -343,9 +343,12 @@ public final class GeneratedAssets implements DataProvider {
             require(tex.width == glyph.width() && tex.height == glyph.height(),
                     "sewing glyph " + glyph.name() + " is " + tex.width + "\u00d7" + tex.height + ", the font expects " + glyph.width() + "\u00d7" + glyph.height());
             String file = MOD + ":" + SewingFont.TEXTURE_DIR + glyph.name() + ".png";
-            png(assets.resolve("textures/" + SewingFont.TEXTURE_DIR + glyph.name() + ".png"), tex.reachingRightEdge());
+            // Padded below to the tallest ascent it is drawn with: the client rejects an ascent above the height.
+            png(assets.resolve("textures/" + SewingFont.TEXTURE_DIR + glyph.name() + ".png"), tex.padBottom(glyph.textureHeight()).reachingRightEdge());
             for (int top = glyph.minTop(); top <= glyph.maxTop(); top++) {
-                providers.add(obj("type", "bitmap", "file", file, "height", glyph.height(), "ascent", SewingFont.Glyph.ascent(top),
+                int ascent = SewingFont.Glyph.ascent(top);
+                require(ascent >= 0 && ascent <= glyph.textureHeight(), "sewing glyph " + glyph.name() + " at top " + top + " needs ascent " + ascent);
+                providers.add(obj("type", "bitmap", "file", file, "height", glyph.textureHeight(), "ascent", ascent,
                         "chars", arr(String.valueOf(glyph.at(top)))));
             }
         }

@@ -78,8 +78,9 @@ public record Seam(Patches.Patch patch, int stitches) {
             int x = (int) Math.round(x0 + p.x() * scale + p.nx() * shift);
             int y = (int) Math.round(y0 + p.y() * scale + p.ny() * shift);
             From from = Math.abs(p.nx()) >= Math.abs(p.ny()) ? (p.nx() < 0 ? From.LEFT : From.RIGHT) : (p.ny() < 0 ? From.ABOVE : From.BELOW);
+            // Marks stay on the picture, and off its last two rows, where a mark's glyph would need a negative ascent.
             int margin = SewingFont.MARK / 2;
-            holes.add(new Hole(Mth.clamp(x, margin, PICTURE_WIDTH - 1 - margin), Mth.clamp(y, margin, PICTURE_HEIGHT - 1 - margin), outside, from));
+            holes.add(new Hole(Mth.clamp(x, margin, PICTURE_WIDTH - 1 - margin), Mth.clamp(y, margin, PICTURE_HEIGHT - 2 - margin), outside, from));
         }
         return holes;
     }

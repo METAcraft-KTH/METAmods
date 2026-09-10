@@ -246,6 +246,11 @@ final class Tex {
         return blank(w, h).blit(this, x, y, w, h, 0, 0);
     }
 
+    /** This at the top of a texture {@code h} tall, transparent below (or this, if already that tall). */
+    Tex padBottom(int h) {
+        return h <= height ? this : blank(width, h).blit(this, 0, 0, width, height, 0, 0);
+    }
+
     /**
      * Every visible pixel takes {@code target}'s hue and saturation and keeps its own brightness:
      * one piece of cloth in every chapter's colour. (Unlike {@link #tinted}, which scales
