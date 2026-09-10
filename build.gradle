@@ -2,6 +2,7 @@ plugins {
     id 'net.fabricmc.fabric-loom' version "$loom_version" apply false
 	id("org.jetbrains.gradle.plugin.idea-ext") version "$idea_plugin_version"
 	id 'base'
+	id 'checkstyle'
 }
 
 def nonModSubProjects = [
@@ -26,6 +27,7 @@ subprojects {
         return
     }
     apply plugin: "net.fabricmc.fabric-loom"
+	apply plugin: "checkstyle"
 
     ext.initDist = { ->
         dependencies {
