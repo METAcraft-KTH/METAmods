@@ -13,6 +13,7 @@ import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Spot;
+import metacraft.ovvar.sewing.StandSewing;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -43,7 +44,8 @@ import java.util.stream.Stream;
  *   <li>{@code showcase <chapter>} — a row of armour stands in front of you: top down, top up, one
  *       per patch (on the chest), every cell filled;</li>
  *   <li>{@code stands <chapter>} — three posed stands wearing a plain ovve, for testing the sewing aim;</li>
- *   <li>{@code minigame [on|off] [stitches]} — the stitching minigame setting, saved to config/ovvar.json.</li>
+ *   <li>{@code minigame [on|off] [stitches]} — the stitching minigame setting, saved to config/ovvar.json;</li>
+ *   <li>{@code aimlog on|off} — log every click on a stand and every aim change with the numbers behind it (server log).</li>
  * </ul>
  */
 public final class ModCommands {
@@ -81,7 +83,10 @@ public final class ModCommands {
                                 .then(Commands.literal("on").executes(ctx -> minigame(ctx, true, 0))
                                         .then(Commands.argument("stitches", IntegerArgumentType.integer(1, OvvarConfig.MAX_STITCHES))
                                                 .executes(ctx -> minigame(ctx, true, IntegerArgumentType.getInteger(ctx, "stitches")))))
-                                .then(Commands.literal("off").executes(ctx -> minigame(ctx, false, 0))))));
+                                .then(Commands.literal("off").executes(ctx -> minigame(ctx, false, 0))))
+                        .then(Commands.literal("aimlog")
+                                .then(Commands.literal("on").executes(ctx -> aimLog(ctx, true)))
+                                .then(Commands.literal("off").executes(ctx -> aimLog(ctx, false))))));
     }
 
     private static com.mojang.brigadier.builder.RequiredArgumentBuilder<CommandSourceStack, String> chapterArg() {
@@ -256,6 +261,12 @@ public final class ModCommands {
         }
         OvvarConfig now = config;
         ctx.getSource().sendSuccess(() -> Component.literal("Stitching minigame " + (now.sewingMinigame() ? "on, " + now.stitches() + " stitches" : "off")), true);
+        return 1;
+    }
+
+    private static int aimLog(CommandContext<CommandSourceStack> ctx, boolean on) {
+        StandSewing.aimLog = on;
+        ctx.getSource().sendSuccess(() -> Component.literal("Aim log " + (on ? "on: see the server log" : "off")), true);
         return 1;
     }
 }

@@ -43,7 +43,11 @@ public enum Spot {
     /** BODY = an unmirrored face; RIGHT/LEFT = the limb the cell is drawn on; SEAT = both legs. Ordinal is what the shader reads. */
     public enum Side { BODY, RIGHT, LEFT, SEAT }
 
+    /** A cell's side in skin texels (the coordinates here). */
     public static final int SIZE = 4;
+    /** Texels per skin texel in the garment and patch textures (128×64): patch art is {@link #PX} square. */
+    public static final int DETAIL = 2;
+    public static final int PX = SIZE * DETAIL;
     /** How far up the mirror strip sits from the limb boxes. */
     public static final int MIRROR_SHIFT = 16;
 

@@ -35,7 +35,8 @@ import static metacraft.ovvar.datagen.J.obj;
  * Everything the client needs, derived from the art in {@code art/ovvar}:
  *
  * <ul>
- *   <li>armour layer textures cut out of the website's skin overlays (64×64 skin layout → 64×32 armour layout;
+ *   <li>armour layer textures cut out of the website's skin overlays (64×64 skin layout → 64×32 armour layout,
+ *       then doubled to 128×64 so patch art gets 8×8 texels per cell — {@link Spot#DETAIL};
  *       the boxes the armour model reads — body (16,16), right arm (40,16), right leg (0,16) — sit at the same
  *       coordinates in both, and the left limbs are the model's mirrors of the right, so nothing moves),</li>
  *   <li>one texture per (cell, patch) placement, drawn on one side of the model by the shader, and per half a
@@ -58,8 +59,14 @@ public final class GeneratedAssets implements DataProvider {
     private static final int[] LEFT_LEG = {16, 48, 16, 16}, LEFT_LEG_OUTER = {0, 48, 16, 16};
     /** The trousers' share of the body box: the bottom two texel rows of its side faces (the waistband). */
     private static final int[] WAIST = {16, 30, 24, 2};
+    /**
+     * Garment and patch textures are the armour layout at {@link Spot#DETAIL} texels per skin
+     * texel ({@code W}×{@code H}); base garments cut from the skins are upscaled to it, patch art
+     * is drawn at it. Every texel position the shader knows (marker, tables, library) scales with it.
+     */
+    private static final int D = Spot.DETAIL, W = 64 * D, H = 32 * D;
     /** The texel our core shader checks before treating a texture as ours: magenta at alpha 2. */
-    private static final int MARKER_X = 63, MARKER_Y = 15, MARKER = 0x02FF00FF;
+    private static final int MARKER_X = W - 1, MARKER_Y = H / 2 - 1, MARKER = 0x02FF00FF;
 
     private final Path assets, data;
     private final List<CompletableFuture<?>> writes = new ArrayList<>();
@@ -88,8 +95,8 @@ public final class GeneratedAssets implements DataProvider {
         Map<String, Tex> arts = new LinkedHashMap<>();
         for (Patches.Patch patch : Patches.all()) {
             Tex art = art("patches/" + patch.id());
-            require(art.height == Spot.SIZE && art.width == Spot.SIZE * patch.cells(),
-                    "patches/" + patch.id() + ".png must be " + (Spot.SIZE * patch.cells()) + "×" + Spot.SIZE + " (" + (patch.seat() ? "seat" : "plain") + " patch)");
+            require(art.height == Spot.PX && art.width == Spot.PX * patch.cells(),
+                    "patches/" + patch.id() + ".png must be " + (Spot.PX * patch.cells()) + "×" + Spot.PX + " (" + (patch.seat() ? "seat" : "plain") + " patch)");
             arts.put(patch.id(), art);
             String name = ModContent.patchId(patch).getPath();
             item(name, icon(art));
@@ -105,15 +112,15 @@ public final class GeneratedAssets implements DataProvider {
                 Tex art = arts.get(patch.id());
                 String dir = "textures/entity/equipment/" + spot.piece.layer + "/";
                 if (spot == Spot.SEAT) {
-                    Tex r = Tex.blank(64, 32).blit(art, 0, 0, Spot.SIZE, Spot.SIZE, spot.u, spot.v);
-                    Tex l = Tex.blank(64, 32).blit(art, Spot.SIZE, 0, Spot.SIZE, Spot.SIZE, spot.u, spot.v).flipX(spot.u, spot.v, Spot.SIZE, Spot.SIZE);
+                    Tex r = Tex.blank(W, H).blit(art, 0, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D);
+                    Tex l = Tex.blank(W, H).blit(art, Spot.PX, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D).flipX(spot.u * D, spot.v * D, Spot.PX, Spot.PX);
                     png(assets.resolve(dir + "patch/seat/" + patch.id() + "_r.png"), sided(r, Spot.Side.RIGHT));
                     png(assets.resolve(dir + "patch/seat/" + patch.id() + "_l.png"), sided(l, Spot.Side.LEFT));
                     placementTextures += 2;
                     continue;
                 }
-                Tex tex = Tex.blank(64, 32).blit(art, 0, 0, Spot.SIZE, Spot.SIZE, spot.u, spot.v);
-                if (spot.side == Spot.Side.LEFT) tex = tex.flipX(spot.u, spot.v, Spot.SIZE, Spot.SIZE);
+                Tex tex = Tex.blank(W, H).blit(art, 0, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D);
+                if (spot.side == Spot.Side.LEFT) tex = tex.flipX(spot.u * D, spot.v * D, Spot.PX, Spot.PX);
                 png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(tex, spot.side));
                 placementTextures++;
             }
@@ -128,8 +135,8 @@ public final class GeneratedAssets implements DataProvider {
                 Placement placement = new Placement(spot, patch.id());
                 String name = Trims.patternName(placement);
                 Tex art = arts.get(patch.id());
-                Tex tex = Tex.blank(64, 32).blit(art, 0, 0, Spot.SIZE, Spot.SIZE, spot.u, spot.v);
-                if (spot.side == Spot.Side.LEFT) tex = tex.flipX(spot.u, spot.v, Spot.SIZE, Spot.SIZE).tagOpaque(Trims.ALPHA_LEFT);
+                Tex tex = Tex.blank(W, H).blit(art, 0, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D);
+                if (spot.side == Spot.Side.LEFT) tex = tex.flipX(spot.u * D, spot.v * D, Spot.PX, Spot.PX).tagOpaque(Trims.ALPHA_LEFT);
                 if (spot.side == Spot.Side.RIGHT) tex = tex.tagOpaque(Trims.ALPHA_RIGHT);
                 png(assets.resolve("textures/trims/entity/" + spot.piece.layer + "/" + name + ".png"), tex);
                 trimTextures.add(MOD + ":trims/entity/" + spot.piece.layer + "/" + name);
@@ -158,19 +165,19 @@ public final class GeneratedAssets implements DataProvider {
         }
         for (Piece piece : Piece.values()) {
             List<Spot> cells = Spot.cells(piece);
-            require(cells.size() <= 64 && Looks.INSTANT_DESIGNS <= 64, "the preview tables hold 64 cells and 64 designs");
-            Tex tex = Tex.blank(64, 32).with(MARKER_KIND_X, MARKER_Y, rgb(KIND_PREVIEW, cells.size(), Looks.INSTANT_DESIGNS));
+            require(cells.size() <= TABLE_SIZE && Looks.INSTANT_DESIGNS <= TABLE_SIZE, "the preview tables hold " + TABLE_SIZE + " cells and designs");
+            Tex tex = Tex.blank(W, H).with(MARKER_KIND_X, MARKER_Y, rgb(KIND_PREVIEW, cells.size(), Looks.INSTANT_DESIGNS));
             for (Patches.Patch patch : Patches.all()) {
                 int[] at = library.get(patch.id());
                 if (at == null) continue;
                 Tex art = arts.get(patch.id());
-                tex = tex.blit(art, 0, 0, art.width, art.height, at[0], at[1]);
+                tex = tex.blit(art, 0, 0, art.width, art.height, at[0] * D, at[1] * D);
                 int design = Patches.code(patch.id()) - 1;
-                tex = tex.with(PATCH_TABLE_X + design / 16, design % 16, rgb(at[0], at[1], patch.cells()));
+                tex = tex.with(PATCH_TABLE_X + design / 16, design % 16, rgb(at[0] * D, at[1] * D, patch.cells()));
             }
             for (int index = 0; index < cells.size(); index++) {
                 Spot spot = cells.get(index);
-                tex = tex.with(CELL_TABLE_X + index / 16, index % 16, rgb(spot.u, spot.v, spot.side.ordinal()));
+                tex = tex.with(CELL_TABLE_X + index / 16, index % 16, rgb(spot.u * D, spot.v * D, spot.side.ordinal()));
             }
             require(tex.get(BLANK_X, BLANK_Y) == 0, "the preview texture draws on the blank texel");
             png(assets.resolve("textures/entity/equipment/" + piece.layer + "/" + EquipmentJson.previewTexture(piece) + ".png"), marked(tex));
@@ -185,14 +192,14 @@ public final class GeneratedAssets implements DataProvider {
             Tex top = Tex.blank(64, 32).blit(overlay, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1])
                     .blit(overlay, RIGHT_ARM[0], RIGHT_ARM[1], RIGHT_ARM[2], RIGHT_ARM[3], RIGHT_ARM[0], RIGHT_ARM[1]);
             require(!top.isEmpty(), chapter.overlay + ".png has an empty body or arm box");
-            layer(chapter, Piece.TOP, "top", marked(withLeft(top, RIGHT_ARM, overlay, LEFT_ARM)));
+            layer(chapter, Piece.TOP, "top", marked(withLeft(top, RIGHT_ARM, overlay, LEFT_ARM).scale(D)));
             equipment(chapter, Piece.TOP, false);
 
             // The bottom: legs and waistband, on the legs slot's layer; under the top when it's up.
             Tex bottom = Tex.blank(64, 32).blit(overlay, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
                     .blit(overlay, WAIST[0], WAIST[1], WAIST[2], WAIST[3], WAIST[0], WAIST[1]);
             require(!bottom.isEmpty(), chapter.overlay + ".png has an empty leg box");
-            layer(chapter, Piece.BOTTOM, "bottom", marked(withLeft(bottom, RIGHT_LEG, overlay, LEFT_LEG)));
+            layer(chapter, Piece.BOTTOM, "bottom", marked(withLeft(bottom, RIGHT_LEG, overlay, LEFT_LEG).scale(D)));
             equipment(chapter, Piece.BOTTOM, false);
 
             if (chapter.rollable) {
@@ -204,7 +211,6 @@ public final class GeneratedAssets implements DataProvider {
                     // that colour's brightness. No left-limb art, so the left leg mirrors the right.
                     Tex armour = art(chapter.nercabbadArmour);
                     require(armour.width == 64 && armour.height == 32, chapter.nercabbadArmour + ".png is not a 64×32 armour texture");
-                    require(armour.get(MARKER_X, MARKER_Y) == 0 && armour.get(MARKER_KIND_X, MARKER_Y) == 0, chapter.nercabbadArmour + ".png draws on the marker texels");
                     armour = armour.tinted(colour).brightened(Tex.brightness(colour) / Tex.brightness(armour.dominant()));
                     nercabbad = withLeft(armour, RIGHT_LEG, Tex.blank(64, 64), LEFT_LEG);
                 } else {
@@ -213,7 +219,7 @@ public final class GeneratedAssets implements DataProvider {
                             .blit(rolled, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1]);
                     nercabbad = withLeft(cut, RIGHT_LEG, rolled, LEFT_LEG);
                 }
-                layer(chapter, Piece.BOTTOM, "bottom_nercabbad", marked(nercabbad));
+                layer(chapter, Piece.BOTTOM, "bottom_nercabbad", marked(nercabbad.scale(D)));
                 equipment(chapter, Piece.BOTTOM, true);
             }
 
@@ -254,6 +260,8 @@ public final class GeneratedAssets implements DataProvider {
 
     /** Our textures carry the marker texel the core shader looks for (see ovvar.glsl). */
     private static Tex marked(Tex tex) {
+        require(tex.width == W && tex.height == H, "a garment texture is " + tex.width + "×" + tex.height + ", not " + W + "×" + H);
+        require(tex.get(MARKER_X, MARKER_Y) == 0, "a garment texture draws on the marker texel");
         return tex.with(MARKER_X, MARKER_Y, MARKER);
     }
 
@@ -264,13 +272,16 @@ public final class GeneratedAssets implements DataProvider {
 
     // ---- the texel contract with ovvar.glsl
 
-    /** (62,15): R = kind; sided: G = side; preview: G = cells in the half, B = instant designs. Base textures have none (0). */
-    private static final int MARKER_KIND_X = 62, KIND_SIDED = 1, KIND_PREVIEW = 2;
+    /** Left of the marker: R = kind; sided: G = side; preview: G = cells in the half, B = instant designs. Base textures have none (0). */
+    private static final int MARKER_KIND_X = W - 2, KIND_SIDED = 1, KIND_PREVIEW = 2;
     /** Always transparent in a patch texture: what the shader draws where there is nothing. */
-    private static final int BLANK_X = 63, BLANK_Y = 14;
-    /** Preview texture tables, column-major 16 tall: cell index (in the half) → (u, v, side); design index → (library x, y, cells). */
-    private static final int CELL_TABLE_X = 40, PATCH_TABLE_X = 44;
-    /** Preview library: 4×4 cells in the head rows nothing else uses (not the tables, not the marker row). */
+    private static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
+    /**
+     * Preview texture tables, column-major 16 tall, 4·D columns each: cell index (in the half) →
+     * (u, v, side); design index → (library x, y, cells) — positions in texels of this texture.
+     */
+    private static final int CELL_TABLE_X = 40 * D, PATCH_TABLE_X = 44 * D, TABLE_SIZE = 16 * 4 * D;
+    /** Preview library: cells in the head rows nothing else uses (not the tables, not the marker row), in skin texels. */
     private static final List<int[]> LIBRARY = library();
 
     private static List<int[]> library() {

@@ -44,8 +44,24 @@ public final class StandSewing {
 
     static final double REACH = 6.0;
 
+    /** {@code /ovvar aimlog}: every click on a stand with a patch, and every aim change, logged with the numbers behind it. */
+    public static boolean aimLog;
+
     private static StandAim.Hit aim(ServerPlayer player, ArmorStand stand) {
         return StandAim.aim(player.getEyePosition(), player.getViewVector(1.0f), stand, player.isShiftKeyDown(), REACH);
+    }
+
+    private static void logAim(String what, ServerPlayer player, ArmorStand stand, StandAim.Hit hit, Spot spot) {
+        if (!aimLog) return;
+        Ovvar.LOGGER.info("[ovvar aim] {} {} eye={} view={} sneak={} | stand {} yaw={} arms R{} L{} legs R{} L{} | hit={} -> {}",
+                player.getName().getString(), what, fmt(player.getEyePosition()), fmt(player.getViewVector(1.0f)), player.isShiftKeyDown(),
+                fmt(stand.position()), stand.yBodyRot, stand.getRightArmPose(), stand.getLeftArmPose(), stand.getRightLegPose(), stand.getLeftLegPose(),
+                hit == null ? "miss" : hit.part() + "/" + (hit.spot() == null ? "no cell" : hit.spot().id()) + "@" + fmt(hit.where()),
+                spot == null ? "nothing" : spot.id());
+    }
+
+    private static String fmt(Vec3 v) {
+        return String.format(java.util.Locale.ROOT, "(%.3f %.3f %.3f)", v.x, v.y, v.z);
     }
 
     /** What a player is currently previewing: stand and placement. */
@@ -64,6 +80,7 @@ public final class StandSewing {
             StandAim.Hit aimed = aim(serverPlayer, stand);
             if (held.getItem() instanceof PatchItem patchItem) {
                 Spot spot = aimed == null ? null : spotFor(aimed.spot(), patchItem.patch);
+                logAim("click " + patchItem.patch.id(), serverPlayer, stand, aimed, spot);
                 if (spot == null) return InteractionResult.FAIL;
                 Placement placement = new Placement(spot, patchItem.patch.id());
                 if (OvvarConfig.get().sewingMinigame()) {
@@ -122,11 +139,15 @@ public final class StandSewing {
             Aim previous = AIMS.get(player.getUUID());
             Aim current = null;
             ItemStack aimedOvve = null;
+            ArmorStand aimedStand = null;
+            StandAim.Hit lastHit = null;
             if (player.getMainHandItem().getItem() instanceof PatchItem patchItem) {
                 for (ArmorStand stand : player.level().getEntitiesOfClass(ArmorStand.class, player.getBoundingBox().inflate(REACH))) {
                     ItemStack ovve = stand.getItemBySlot(EquipmentSlot.LEGS);
                     if (!(ovve.getItem() instanceof OvveItem)) continue;
                     StandAim.Hit hit = aim(player, stand);
+                    aimedStand = stand;
+                    lastHit = hit;
                     if (hit == null) continue;
                     Spot spot = spotFor(hit.spot(), patchItem.patch);
                     if (spot != null) {
@@ -150,6 +171,9 @@ public final class StandSewing {
                 Looks.setPreview(aimedOvve, current.placement);
                 AIMS.put(player.getUUID(), current);
                 Ovvar.LOGGER.debug("[ovvar] {} aims {} at {}", player.getName().getString(), current.placement.patch(), current.placement.spot().id());
+            }
+            if (aimLog && (current == null) != (previous == null) && aimedStand != null) {
+                logAim(current == null ? "aim lost" : "aim", player, aimedStand, lastHit, current == null ? null : current.placement.spot());
             }
         }
     }

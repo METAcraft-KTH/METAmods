@@ -3,41 +3,51 @@
 // written against GLSL 120: no integer bit operations, no texelFetch — texels are read at their
 // centres with OVVAR_SAMPLE, and bit fields are pulled out with floating-point arithmetic.
 //
-// A texture of ours is 64×32 with a marker texel at (63,15): magenta, alpha 2/255. The texel at
-// (62,15) says what it is (R):
+// A texture of ours is the 64×32 armour layout at OVVAR_D texels per texel (128×64), with a
+// marker texel at (W−1, H/2−1): magenta, alpha 2/255. The texel left of it says what it is (R):
 //   0  a base garment texture. The model draws the left arm and leg as mirror images off the right
 //      limb's strips; on those fragments the shader samples one strip up, where the left-side art
 //      lives.
 //   1  a placement texture: one patch drawn on one cell, for one side (G: 0 body, 1 right limb,
 //      2 left limb). Fragments of the other limb read the blank texel.
-//   2  the preview texture: every patch's art in a library (head rows), a cell table at x 40–43
-//      (index in the half → u, v, side; column-major, 16 tall) and a design table at x 44–47
-//      (design → library x, y, cells); G = cells in the half, B = designs. The garment's dye
+//   2  the preview texture: every patch's art in a library (head rows), a cell table at x 40·D
+//      (index in the half → u, v, side, in texels; column-major, 16 tall) and a design table at
+//      x 44·D (design → library x, y, cells); G = cells in the half, B = designs. The garment's dye
 //      colour carries up to three placements as the rank of their set among all sets of
 //      (cell × designs + design) states, after all smaller sets (0 = none) — packed as three
 //      base-255 digits, each byte one more than its digit, so no byte is ever 0. Everything else
-//      reads the blank texel at (63,14).
+//      reads the blank texel at (W−1, H/2−2).
 //
 // Requires before inclusion: OVVAR_SAMPLE(uv) — the albedo sample of this program;
 // ovvar_color — the raw (unlit) vertex colour, vec4; ovvar_pos and ovvar_normal — the vertex
 // position and normal (any one space for both).
 
+// Texels per skin texel (Spot.DETAIL in the mod) and the texture size, cell size and fixed texels that follow.
+const float OVVAR_D = 2.0;
+const vec2 OVVAR_TEX = vec2(64.0, 32.0) * OVVAR_D;
+const float OVVAR_CELL = 4.0 * OVVAR_D;
+const vec2 OVVAR_MARKER = vec2(OVVAR_TEX.x - 1.0, OVVAR_TEX.y * 0.5 - 1.0);
+const vec2 OVVAR_BLANK = (OVVAR_MARKER + vec2(0.5, -0.5)) / OVVAR_TEX;
+
 vec4 ovvar_read(float x, float y) {
-    return floor(OVVAR_SAMPLE(vec2((x + 0.5) / 64.0, (y + 0.5) / 32.0)) * 255.0 + 0.5);
+    return floor(OVVAR_SAMPLE((vec2(x, y) + 0.5) / OVVAR_TEX) * 255.0 + 0.5);
 }
 
-const vec2 OVVAR_BLANK = vec2(63.5 / 64.0, 14.5 / 32.0);
 // Which sign of texture-over-geometry handedness the mirrored limbs have. Fixed by how the game
 // builds its vertex data (the same on every platform); calibrated once against a known garment.
 const bool OVVAR_MIRROR_SENSE = true;
 
 bool ovvar_marked() {
-    return all(equal(ovvar_read(63.0, 15.0), vec4(255.0, 0.0, 255.0, 2.0)));
+    return all(equal(ovvar_read(OVVAR_MARKER.x, OVVAR_MARKER.y), vec4(255.0, 0.0, 255.0, 2.0)));
+}
+
+vec4 ovvar_kind() {
+    return ovvar_read(OVVAR_MARKER.x - 1.0, OVVAR_MARKER.y);
 }
 
 // 1.0 on a patch texture of ours (placement or preview), else 0.0.
 float ovvar_patch_layer() {
-    return ovvar_marked() && ovvar_read(62.0, 15.0).r > 0.5 ? 1.0 : 0.0;
+    return ovvar_marked() && ovvar_kind().r > 0.5 ? 1.0 : 0.0;
 }
 
 // The patch bits carried by the raw vertex colour.
@@ -90,9 +100,9 @@ vec2 ovvar_uv(vec2 uv) {
     ovvar_handed = ((det > 0.0) == (geo > 0.0)) == OVVAR_MIRROR_SENSE;
     if (!ovvar_marked()) return uv;
 
-    vec4 kind = ovvar_read(62.0, 15.0);
-    vec2 t = uv * vec2(64.0, 32.0);   // texel coordinates
-    bool limb = t.y >= 16.0 && (t.x < 16.0 || (t.x >= 40.0 && t.x < 56.0));
+    vec4 kind = ovvar_kind();
+    vec2 t = uv * OVVAR_TEX;   // texel coordinates
+    bool limb = t.y >= 16.0 * OVVAR_D && (t.x < 16.0 * OVVAR_D || (t.x >= 40.0 * OVVAR_D && t.x < 56.0 * OVVAR_D));
     bool mirrored = limb && ovvar_handed;
 
     if (kind.r < 0.5) {
@@ -129,19 +139,19 @@ vec2 ovvar_uv(vec2 uv) {
     for (int i = 0; i < 3; i++) {
         if (i >= count) break;
         float cell = floor(s[i] / designs), design = s[i] - cell * designs;
-        vec4 ce = ovvar_read(40.0 + floor(cell / 16.0), mod(cell, 16.0));       // u, v, side
-        vec4 pe = ovvar_read(44.0 + floor(design / 16.0), mod(design, 16.0));   // library x, y, cells
+        vec4 ce = ovvar_read(40.0 * OVVAR_D + floor(cell / 16.0), mod(cell, 16.0));       // u, v, side (texels)
+        vec4 pe = ovvar_read(44.0 * OVVAR_D + floor(design / 16.0), mod(design, 16.0));   // library x, y, cells
         vec2 local = t - ce.rg;
-        if (local.x < 0.0 || local.x >= 4.0 || local.y < 0.0 || local.y >= 4.0) continue;
+        if (local.x < 0.0 || local.x >= OVVAR_CELL || local.y < 0.0 || local.y >= OVVAR_CELL) continue;
         float side = ce.b;
-        float column = 0.0;   // which 4×4 of the art
+        float column = 0.0;   // which cell of the art
         bool flip = false;
         if (side < 0.5) { if (limb) continue; }
         else if (side < 1.5) { if (!limb || mirrored) continue; }
         else if (side < 2.5) { if (!limb || !mirrored) continue; flip = true; }
         else { if (!limb) continue; if (mirrored) { column = 1.0; flip = true; } }   // seat: one half per leg
-        if (flip) local.x = 4.0 - local.x;   // the model mirrors the left limb; mirror back
-        return (pe.rg + vec2(column * 4.0, 0.0) + local) / vec2(64.0, 32.0);
+        if (flip) local.x = OVVAR_CELL - local.x;   // the model mirrors the left limb; mirror back
+        return (pe.rg + vec2(column * OVVAR_CELL, 0.0) + local) / OVVAR_TEX;
     }
     return OVVAR_BLANK;
 }

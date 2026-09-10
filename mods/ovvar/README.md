@@ -18,7 +18,7 @@ anywhere else. Real chest armour goes on over it as usual (right-click it, or sw
 slot) and hides the top until it comes off again. Leather-grade defence, no durability. The
 look is an equipment asset cut from the skin overlays on metacraft.se/style.
 
-Patches are items (`ovvar:patch_<id>`) and go on any 4×4 cell of the ovve (`Spot.java`: every
+Patches are items (`ovvar:patch_<id>`) and go on any 4×4-texel cell of the ovve (`Spot.java`: every
 face you see of the body, sleeves and legs — not the inner faces — keeping off the collar, the
 belt, the hands and the cuffs: 32 cells, plus the seat for the 8×4 chapter patch). Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows on the cell you aim at, the
@@ -41,6 +41,7 @@ dialog's clicks come back as custom click actions (`CustomClickMixin`).
     /ovvar showcase <chapter>                  armour stands: top down, top up, each patch, every cell filled
     /ovvar stands <chapter>                    three posed stands in a plain ovve, for testing the sewing aim
     /ovvar minigame [on [stitches]|off]        the stitching minigame setting; saved to config/ovvar.json
+    /ovvar aimlog on|off                       log every stand click and aim change with its numbers (server log)
 
 ## Building
 
@@ -73,7 +74,8 @@ styles in game — `/ovvar give data_polymiter down` next to `/ovvar give data d
 ## Adding a patch
 
 One line in `Patches.java` (id, name; `true` for a seat patch) and a PNG at
-`src/main/resources/art/ovvar/patches/<id>.png` — 4×4, or 8×4 for a seat patch — then
+`src/main/resources/art/ovvar/patches/<id>.png` — 8×8, or 16×8 for a seat patch (garment and
+patch textures are the armour layout at twice the skin's resolution, `Spot.DETAIL`) — then
 `runDatagen`. The first 22
 designs in the catalogue can ride in the dye colour (instant, previewable); later ones only go
 through the pack; the preview library holds 30 cells for those 22 — datagen fails loudly when
