@@ -179,11 +179,14 @@ layer, 0.5 on the leggings layer) but its texture is not, so a face n texels wid
 n + 2·inflate units while 12 rows cover 12 + 2·inflate — a sleeve texel is 1.5 × 1.167 units,
 a chest texel 1.25 × 1.167. Pixel art hates that, so the shader draws everything of ours on the
 box sides with square pixels: each face's texels centred on the face at the square size, so a
-cell's art sits where the face's own texels do, and the face's margin (the inflated box is
-wider than its texels) showing what continues past the face's edge — the neighbouring face's
-edge column, which is what lies round the corner — so a patch hanging over a corner is not cut;
-at most its edge pixel shows twice across the corner (`ovvar_wrap` in `ovvar.glsl`,
-`Spot.wrap` in Java). Each texture carries which layer it is for (the layer texel, two left of
+cell's art sits where the face's own texels do. The face's margin (the inflated box is wider
+than its texels) belongs to no texel: the garment stretches its edge column across it, and a
+patch leaves it to the fabric — unless it is one patch continuing round the corner (a big one
+hanging over), which stretches its edge column across the margin too, so it is neither cut nor
+shown as a sliver of what lies round the corner. Two different patches meeting at a corner
+thus have a hairline of fabric between them, the same margin any patch has at a face's edge
+(`ovvar_wrap` and `ovvar_uv` in `ovvar.glsl`, `Spot.wrap` and `placedWrapped` in Java).
+Each texture carries which layer it is for (the layer texel, two left of
 the marker: R = 2·inflate). The ghost preview is a vanilla-drawn trim, so datagen bakes the same
 mapping into the trim textures, to the texel — good enough for a ghost, which is why sewn
 patches never ride as the trim.

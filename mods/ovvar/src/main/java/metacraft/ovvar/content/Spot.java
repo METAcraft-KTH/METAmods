@@ -60,15 +60,26 @@ public enum Spot {
     }
 
     /**
-     * ovvar_wrap in ovvar.glsl, the same arithmetic: which strip-local texel column a side-row
-     * texel {@code skinX} (fractional, skin texels) shows — each face's texels centred on the
-     * face at {@link #pixel} units each, the face's margin showing what continues past its edge
-     * (round the corner). Datagen bakes the trim textures with it, since vanilla draws those.
+     * Where a side-row texel shows on its box (ovvar_wrap in ovvar.glsl): {@code column} is the
+     * strip-local texel column drawn there — each face's texels centred on the face at
+     * {@link #pixel} units each, continuing past the face's edge (round the corner) in the
+     * face's margin — and {@code faceStart}/{@code faceEnd} the face's own texels (strip-local),
+     * so a margin texel is one whose column falls outside them.
      */
-    public static double wrap(double skinX, double inflate) {
+    public record Wrapped(int stripStart, double faceStart, double faceEnd, double column) {
+        public boolean margin() {
+            return column < faceStart || column >= faceEnd;
+        }
+    }
+
+    /**
+     * The same arithmetic as ovvar_wrap in ovvar.glsl, for a side-row texel {@code skinX}
+     * (fractional, skin texels). Datagen bakes the trim textures with it, since vanilla draws those.
+     */
+    public static Wrapped wrap(double skinX, double inflate) {
         double p = pixel((int) Math.floor(skinX), inflate), e = 2 * inflate;
         boolean body = skinX >= 16 && skinX < 40;
-        double stripStart = skinX < 16 ? 0 : body ? 16 : 40;
+        int stripStart = skinX < 16 ? 0 : body ? 16 : 40;
         double local = skinX - stripStart, total = body ? 24 : 16;
         double fs, n;
         if (!body) { fs = Math.floor(local / 4) * 4; n = 4; }
@@ -79,7 +90,7 @@ public enum Spot {
         double c = fs + n / 2;
         double units = (local - c) * ((n + e) / n);
         double t = c + units / p;
-        return t - Math.floor(t / total) * total;
+        return new Wrapped(stripStart, fs, fs + n, t - Math.floor(t / total) * total);
     }
 
     /** Start of the strip (skin texels) a cell's part draws: legs 0, body 16, arms 40. */

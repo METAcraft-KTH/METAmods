@@ -460,7 +460,9 @@ public final class GeneratedAssets implements DataProvider {
     /**
      * The same, but as vanilla will draw it from a trim texture: the strip wrapped around the
      * box the way the shader does ({@link Spot#wrap}), baked texel by texel — each column of the
-     * part's side rows shows the art column the shader would sample there.
+     * part's side rows shows the art column the shader would sample there. A face's margin
+     * (past its own texels) is left empty, unless the art continues round the corner there: then
+     * it shows the face's edge column, as ovvar_uv does.
      */
     private static Tex placedWrapped(Spot spot, Tex art, int x) {
         int y = spot.v * D + (Spot.PX - art.height) / 2;
@@ -469,17 +471,23 @@ public final class GeneratedAssets implements DataProvider {
         Tex out = Tex.blank(W, H);
         boolean any = false;
         for (int column = stripStart; column < stripEnd; column++) {
-            double t = Spot.wrap((column + 0.5) / D, inflate);
-            if (t < 0) continue;
-            int ax = (int) Math.floor((Spot.stripStart(spot) + t) * D) - x;
-            if (ax < 0 || ax >= art.width) continue;
+            Spot.Wrapped w = Spot.wrap((column + 0.5) / D, inflate);
+            int here = (int) Math.floor((w.stripStart() + w.column()) * D) - x;   // the continued column's art x
+            int lo = (int) Math.round((w.stripStart() + w.faceStart()) * D) - x, hi = (int) Math.round((w.stripStart() + w.faceEnd()) * D) - 1 - x;
+            int edge = Math.max(lo, Math.min(hi, here));                            // the face's edge column's
             for (int row = Math.max(y, 20 * D); row < Math.min(y + art.height, 32 * D); row++) {
-                int p = art.get(ax, row - y);
+                int p = pixel(art, edge, row - y);
+                if (w.margin() && pixel(art, here, row - y) == 0) p = 0;
                 if (p != 0) { out = out.with(column, row, p); any = true; }
             }
         }
         require(any, "patch art lands entirely off the " + spot.id() + " cell's part");
         return out;
+    }
+
+    /** An art texel, 0 (transparent) outside the art. */
+    private static int pixel(Tex art, int x, int y) {
+        return x < 0 || x >= art.width || y < 0 || y >= art.height ? 0 : art.get(x, y);
     }
 
     /** A placement texture: drawn on one side of the model only (both, for body cells). */
