@@ -11,9 +11,10 @@
 //   1  a placement texture: one patch drawn on one cell, for one side (G: 0 body, 1 right limb,
 //      2 left limb) on one face of its strip (B: 0..3). Fragments of the other limb read the
 //      blank texel.
-//   2  the preview texture: every patch's art in a library (head rows), a cell table at x 40·D
-//      (index in the half → u, v, side, in texels; column-major, 16 tall) and a design table at
-//      x 44·D (design → library x, y, cells); G = cells in the half, B = designs. The garment's dye
+//   2  the preview texture: every instant design's art in a library (head rows), a cell table at
+//      x 40·D (index in the half → u, v, side, in texels; column-major, 16 tall) and a design
+//      table at x 44·D (design → library x, y, cells; 2·D columns further right: art width,
+//      height); G = cells in the half, B = designs. The garment's dye
 //      colour carries up to three placements as the rank of their set among all sets of
 //      (cell × designs + design) states, after all smaller sets (0 = none) — packed as three
 //      base-255 digits, each byte one more than its digit, so no byte is ever 0. Everything else
@@ -88,13 +89,12 @@ float ovvar_max_c3(float r) {
 // layer, 0.5 for the leggings layer) but its texture is not, so a face n texels wide covers
 // n + 2·inflate units and 12 rows cover 12 + 2·inflate. Everything of ours on the box sides is
 // drawn at a square pixel instead (ovvar_pixel), which leaves slack — 2·inflate units per face:
-//   the garment and the preview (many cells, one per face) centre each face's texels on the
-//   face, so the cells sit on the fabric's grid; the slack is the margin at each corner, where
-//   the garment stretches its edge column and the preview shows nothing;
-//   a placement (one patch, on one face) is drawn continuous round the box from that face —
-//   its texels centred, the neighbours' continuing past its edges at the same pixel, so a big
-//   patch hanging over a corner bends round it unbroken — and all the slack lands in the middle
-//   of the opposite face, which the patch never reaches.
+//   the garment centres each face's texels on the face, so the cells sit on the fabric's grid,
+//   and the slack is a margin at each corner where it stretches its edge column;
+//   a patch (a placement texture, or one the preview names) is drawn continuous round the box
+//   from the face of its cell — that face's texels centred, the neighbours' continuing past its
+//   edges at the same pixel, so a big patch hanging over a corner bends round it unbroken — and
+//   all its slack lands in the middle of the opposite face, which the patch never reaches.
 // Which layer a texture is for is in the layer texel, two left of the marker: R = 2·inflate.
 float ovvar_inflate() {
     return ovvar_read(OVVAR_MARKER.x - 2.0, OVVAR_MARKER.y).r * 0.5;
@@ -129,7 +129,7 @@ float ovvar_face_of(bool body, float local) {
     return local < 4.0 ? 0.0 : local < 4.0 + n1 ? 1.0 : local < 8.0 + n1 ? 2.0 : 3.0;
 }
 
-// Per-face centring (the garment, the preview): which strip-local texel column a side-row
+// Per-face centring (the garment): which strip-local texel column a side-row
 // fragment at skin texel skinX shows. Past the face's own texels (faceStart..faceEnd) is its
 // margin, where the column returned continues past the edge — the neighbouring face's edge
 // column, what lies round the corner — and is not yet wrapped into the strip (total wide).
@@ -231,19 +231,18 @@ vec2 ovvar_uv(vec2 uv) {
         return vec2(a, ay) / OVVAR_TEX;
     }
 
-    // Per-face centred: past the face's own texels is its margin.
-    float a = t.x, aEdge = t.x;
-    bool margin = false;
-    if (sides) a = ovvar_squeezed(t.x, inflate, aEdge, margin);
-
     if (kind.r < 0.5) {
-        // Base garment: the margin filled by the face's edge column (and row); the mirrored limb
-        // reads the strip above.
-        if (sides) ay = clamp(ay, 20.0 * OVVAR_D + 0.5, 32.0 * OVVAR_D - 0.5);
+        // Base garment: per-face centred, the margin filled by the face's edge column (and row);
+        // the mirrored limb reads the strip above.
+        float aEdge = t.x;
+        bool margin = false;
+        if (sides) {
+            ovvar_squeezed(t.x, inflate, aEdge, margin);
+            ay = clamp(ay, 20.0 * OVVAR_D + 0.5, 32.0 * OVVAR_D - 0.5);
+        }
         return vec2(aEdge, ay) / OVVAR_TEX - vec2(0.0, mirrored ? 0.5 : 0.0);
     }
-    if (!inFace || margin) return OVVAR_BLANK;
-    t = vec2(a, ay);   // the preview is looked up in squeezed texels too
+    if (!inFace) return OVVAR_BLANK;
 
     // Preview: unrank the instant set from the dye colour (see Looks.rank).
     float designs = kind.b, m = kind.g * designs;
@@ -265,13 +264,14 @@ vec2 ovvar_uv(vec2 uv) {
     } else {
         count = 1; s[0] = v - 1.0;
     }
+    bool body;
+    float stripStart = ovvar_strip(t.x / OVVAR_D, body), stripWidth = (body ? 24.0 : 16.0) * OVVAR_D;
     for (int i = 0; i < 3; i++) {
         if (i >= count) break;
         float cell = floor(s[i] / designs), design = s[i] - cell * designs;
-        vec4 ce = ovvar_read(40.0 * OVVAR_D + floor(cell / 16.0), mod(cell, 16.0));       // u, v, side (texels)
-        vec4 pe = ovvar_read(44.0 * OVVAR_D + floor(design / 16.0), mod(design, 16.0));   // library x, y, cells
-        vec2 local = t - ce.rg;
-        if (local.x < 0.0 || local.x >= OVVAR_CELL || local.y < 0.0 || local.y >= OVVAR_CELL) continue;
+        vec4 ce = ovvar_read(40.0 * OVVAR_D + floor(cell / 16.0), mod(cell, 16.0));                   // u, v, side (texels)
+        vec4 pe = ovvar_read(44.0 * OVVAR_D + floor(design / 16.0), mod(design, 16.0));               // library x, y, cells
+        vec4 sz = ovvar_read(44.0 * OVVAR_D + 2.0 * OVVAR_D + floor(design / 16.0), mod(design, 16.0)); // art width, height
         float side = ce.b;
         float column = 0.0;   // which cell of the art
         bool flip = false;
@@ -279,7 +279,20 @@ vec2 ovvar_uv(vec2 uv) {
         else if (side < 1.5) { if (!limb || mirrored) continue; }
         else if (side < 2.5) { if (!limb || !mirrored) continue; flip = true; }
         else { if (!limb) continue; if (mirrored) { column = 1.0; flip = true; } }   // seat: one half per leg
-        if (flip) local.x = OVVAR_CELL - local.x;   // the model mirrors the left limb; mirror back
+        // The art, centred on its cell (a seat patch: one cell per leg), looked up on the side
+        // rows through the mapping a placement of its face gets — continuous round the box, so
+        // a big patch bends round the corners here just as it will once the pack has it.
+        float w = side > 2.5 ? OVVAR_CELL : sz.r, h = side > 2.5 ? OVVAR_CELL : sz.g;
+        vec2 origin = ce.rg + vec2(side > 2.5 ? 0.0 : (OVVAR_CELL - w) * 0.5, (OVVAR_CELL - h) * 0.5);
+        float a = t.x;
+        if (sides) {
+            a = ovvar_squeezed_anchored(t.x, inflate, ovvar_face_of(body, ce.r / OVVAR_D - stripStart));
+            if (a < 0.0) continue;
+        }
+        vec2 local = vec2(a, ay) - origin;
+        if (local.x < 0.0) local.x += stripWidth; else if (local.x >= stripWidth) local.x -= stripWidth;   // art wrapped round the strip's end
+        if (local.x < 0.0 || local.x >= w || local.y < 0.0 || local.y >= h) continue;
+        if (flip) local.x = w - local.x;   // the model mirrors the left limb; mirror back
         return (pe.rg + vec2(column * OVVAR_CELL, 0.0) + local) / OVVAR_TEX;
     }
     return OVVAR_BLANK;

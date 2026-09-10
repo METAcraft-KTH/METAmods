@@ -65,6 +65,7 @@ client centres without scrolling. Mockups of the design are in `docs/mockups/sew
     /ovvar stands <chapter>                    three posed stands in a plain ovve, for testing the sewing aim
     /ovvar minigame [on [stitches]|off]        the stitching minigame setting; saved to config/ovvar.json
     /ovvar aimlog on|off                       log every stand click and aim change with its numbers (server log)
+    /ovvar reload                              (any player) the latest resource pack, now
 
 ## Building
 
@@ -101,13 +102,12 @@ One line in `Patches.java` (id, name; `true` for a seat patch) and a PNG at
 patch, or any even size up to 16×16 declared in the catalogue line: such a patch is centred on
 its cell and hangs over the neighbours, later-sewn on top, all the way round the part — past a
 limb's outer face lies its back face, the strip being a loop (garment and patch textures are the
-armour layout at twice the skin's resolution, `Spot.DETAIL`). A patch that hangs over never
-rides in the dye colour (the preview library holds cell-sized art), so it shows after the pack
-build; its ghost preview is instant. Then
-`runDatagen`. The first 22
+armour layout at twice the skin's resolution, `Spot.DETAIL`). A big patch rides in the dye
+colour like any other (the shader bends it round the corners from its own cell's face, as the
+pack will). Then `runDatagen`. The first 22
 designs in the catalogue can ride in the dye colour (instant, previewable); later ones only go
-through the pack; the preview library holds 30 cells for those 22 — datagen fails loudly when
-that runs out.
+through the pack; the preview library is the head rows of the texture (52 cells) and datagen
+fails loudly when that runs out.
 
 ## How the look works
 
@@ -139,7 +139,7 @@ is only drawn when the item has a dye colour, and that colour reaches the shader
 colour — the only per-item data an armour shader ever gets — so it carries the *rank* of the set
 of up to three (cell, design) placements among all such sets (packed as three base-255 digits so
 no byte is 0; 20 cells × 22 designs, C(440,3) ≈ 14M states under 255³). The preview texture holds the art of the first 22
-designs plus cell and design tables; the pack's entity core shader
+designs — any size, in a block of library cells — plus cell and design tables; the pack's entity core shader
 (`assets/minecraft/shaders/core/entity.fsh` + `assets/ovvar/shaders/include/ovvar.glsl`) unranks
 the set and draws the art on the cells, lit white so the data colour never tints it. The
 placement being aimed at takes one of the three. Designs past the first 22 in the catalogue only
@@ -165,13 +165,17 @@ back to three. The boots pass is
 inflated 1.0 where the leggings are 0.5, so the shader draws it on the leggings' pixel grid
 (squeezed in x and y) and the two layers' pixels line up.
 
-## Reloads wait for a calm moment
+## Reloads only when asked for
 
-A pushed pack is a loading screen, so a player gets one only after `push_after_calm_seconds`
-(config, default 20) without taking or dealing damage, sewing, or moving more than
-`push_calm_distance` blocks (default 8) — nobody loses a fight to a reload, and a sewing session
-ends in one reload rather than one every few patches. Until then they see what their pack plus
-the dye channels can show; nothing goes missing, the newest patches just wait.
+A pushed pack is a loading screen, so nobody gets one they did not cause. The pack is pushed to
+a player in exactly two cases: their own sewing (or `/ovvar give`, `/ovvar patches`) left a half
+with more new patches than the dye channels can show, in which case the pack is built at once
+and sent to them the moment it is ready — a sewing session is nowhere near a fight; or they ran
+`/ovvar reload` (any player), which sends the current pack, after a build if one is pending.
+Everyone else keeps the pack they have and sees what it holds plus the newest patches in the
+dye channels; a half with more new patches than that shows the older state to them until they
+reload or rejoin (a joining player gets the current pack). Every combination is still built in
+the background within 90 s so the pack is complete for whoever joins next.
 
 ## Square pixels
 

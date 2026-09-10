@@ -176,15 +176,15 @@ public final class GeneratedAssets implements DataProvider {
                 "permutations", obj(Trims.MATERIAL, MOD + ":trims/color_palettes/" + Trims.MATERIAL, Trims.GHOST, MOD + ":trims/color_palettes/" + Trims.GHOST)))));
         Ovvar.LOGGER.info("[{} datagen] {} trim patterns", MOD, trimTextures.size());
 
-        // The preview layer per half: every patch's art in the library, the cell and patch tables,
-        // marker kind 2. The shader draws what the dye colour's slots name.
+        // The preview layer per half: every instant design's art in the library (a block of cells
+        // its size), the cell and design tables, marker kind 2. The shader draws what the dye
+        // colour's slots name.
         Map<String, int[]> library = new LinkedHashMap<>();
-        int next = 0;
+        boolean[][] taken = new boolean[LIBRARY_COLUMNS][LIBRARY_ROWS];
         for (Patches.Patch patch : Patches.all()) {
-            if (Patches.code(patch.id()) > Looks.INSTANT_DESIGNS || patch.oversize()) continue;   // never in the dye colour: no library entry
-            require(next + patch.cells() <= LIBRARY.size(), "the preview library is full (" + LIBRARY.size() + " cells); make it bigger");
-            library.put(patch.id(), LIBRARY.get(next));
-            next += patch.cells();
+            if (Patches.code(patch.id()) > Looks.INSTANT_DESIGNS) continue;   // never in the dye colour: no library entry
+            int w = (patch.width() + Spot.PX - 1) / Spot.PX, h = (patch.height() + Spot.PX - 1) / Spot.PX;
+            library.put(patch.id(), libraryBlock(taken, w, h, patch.id()));
         }
         // The legs' preview is also drawn by the boots pass (the outer model, inflate 1), as the
         // second dye channel: the same texture with that layer's texel, in the humanoid folder.
@@ -203,6 +203,7 @@ public final class GeneratedAssets implements DataProvider {
                 tex = tex.blit(art, 0, 0, art.width, art.height, at[0] * D, at[1] * D);
                 int design = Patches.code(patch.id()) - 1;
                 tex = tex.with(PATCH_TABLE_X + design / 16, design % 16, rgb(at[0] * D, at[1] * D, patch.cells()));
+                tex = tex.with(PATCH_TABLE_X + TABLE_COLUMNS + design / 16, design % 16, rgb(art.width, art.height, 0));
             }
             for (int index = 0; index < cells.size(); index++) {
                 Spot spot = cells.get(index);
@@ -504,19 +505,35 @@ public final class GeneratedAssets implements DataProvider {
     /** Always transparent in a patch texture: what the shader draws where there is nothing. */
     private static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
     /**
-     * Preview texture tables, column-major 16 tall, 4·D columns each: cell index (in the half) →
-     * (u, v, side); design index → (library x, y, cells) — positions in texels of this texture.
+     * Preview texture tables, column-major 16 tall, {@value #TABLE_COLUMNS} columns each: cell
+     * index (in the half) → (u, v, side); design index → (library x, y, cells) and, {@value
+     * #TABLE_COLUMNS} columns further right, (art width, art height) — positions in texels of
+     * this texture.
      */
-    private static final int CELL_TABLE_X = 40 * D, PATCH_TABLE_X = 44 * D, TABLE_SIZE = 16 * 4 * D;
-    /** Preview library: cells in the head rows nothing else uses (not the tables, not the marker row), in skin texels. */
-    private static final List<int[]> LIBRARY = library();
+    private static final int CELL_TABLE_X = 40 * D, PATCH_TABLE_X = 44 * D, TABLE_COLUMNS = 2 * D, TABLE_SIZE = 16 * TABLE_COLUMNS;
+    /**
+     * Preview library: the head rows (skin texels 0..64 × 0..16) as a grid of cells, minus the
+     * tables' columns (40..48) and the cell holding the marker row's texels (60..64 × 12..16).
+     * A design takes a block of cells its art's size.
+     */
+    private static final int LIBRARY_COLUMNS = 16, LIBRARY_ROWS = 4;
 
-    private static List<int[]> library() {
-        List<int[]> out = new ArrayList<>();
-        for (int y = 0; y < 16; y += 4) for (int x = 16; x < 40; x += 4) out.add(new int[]{x, y});
-        for (int y = 0; y < 12; y += 4) { out.add(new int[]{56, y}); out.add(new int[]{60, y}); }
-        for (int y = 0; y < 16; y += 4) for (int x = 0; x < 16; x += 4) out.add(new int[]{x, y});
-        return List.copyOf(out);
+    private static boolean libraryFree(int cx, int cy) {
+        return !(cx >= 10 && cx < 12) && !(cx == 15 && cy == 3);
+    }
+
+    /** First-fit block of w×h cells in the library; returns its top-left in skin texels. */
+    private static int[] libraryBlock(boolean[][] taken, int w, int h, String id) {
+        for (int cy = 0; cy + h <= LIBRARY_ROWS; cy++) {
+            for (int cx = 0; cx + w <= LIBRARY_COLUMNS; cx++) {
+                boolean free = true;
+                for (int x = cx; x < cx + w && free; x++) for (int y = cy; y < cy + h; y++) if (taken[x][y] || !libraryFree(x, y)) { free = false; break; }
+                if (!free) continue;
+                for (int x = cx; x < cx + w; x++) for (int y = cy; y < cy + h; y++) taken[x][y] = true;
+                return new int[]{cx * Spot.SIZE, cy * Spot.SIZE};
+            }
+        }
+        throw new IllegalStateException("[" + MOD + " datagen] the preview library is full: no room for " + id + " (" + w + "×" + h + " cells)");
     }
 
     /**

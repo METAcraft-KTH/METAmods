@@ -5,6 +5,7 @@ import metacraft.ovvar.pack.Combos;
 import metacraft.ovvar.pack.Trims;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.equipment.EquipmentAsset;
 import net.minecraft.world.item.equipment.EquipmentAssets;
@@ -34,9 +35,9 @@ public final class Looks {
      */
     public static final int INSTANT = 3, INSTANT_DESIGNS = 22;
 
-    /** Can this placement ride in the dye colour? (Its design must be among the first {@value #INSTANT_DESIGNS}, and cell-sized.) */
+    /** Can this placement ride in the dye colour? (Its design must be among the first {@value #INSTANT_DESIGNS}.) */
     public static boolean instant(Placement p) {
-        return Patches.code(p.patch()) <= INSTANT_DESIGNS && !Patches.get(p.patch()).oversize();
+        return Patches.code(p.patch()) <= INSTANT_DESIGNS;
     }
 
     // ---- placements
@@ -108,9 +109,10 @@ public final class Looks {
      * One half as the client should see it: the placement worn as the armour trim (or null) and
      * whether it is the ghosted preview, the asset combo the pack holds, the dye bits for the rest,
      * and — legs only, when the wearer's feet slot carries our second channel — the dye bits of
-     * the boots pass, three more.
+     * the boots pass, three more. {@code complete}: is every sewn patch drawn this way, or does
+     * this viewer need a newer pack to see them all?
      */
-    public record Look(Placement trim, boolean ghost, String combo, int dye, int feetDye) {}
+    public record Look(Placement trim, boolean ghost, String combo, int dye, int feetDye, boolean complete) {}
 
     /** Does the wearer's feet slot carry the second channel for this ovve? (Set every tick by the wearer's sync.) */
     public static boolean feetChannel(ItemStack stack) {
@@ -145,9 +147,10 @@ public final class Looks {
         boolean feet = piece == Piece.BOTTOM && feetChannel(stack);
         int room = INSTANT * (feet ? 2 : 1) - (preview == null ? 0 : 1);
         boolean urgent = rest.size() > room || !rest.stream().allMatch(Looks::instant);
-        if (baked < core.size()) Combos.request(piece, Placement.combo(core), urgent, player);
+        if (baked < core.size()) Combos.request(piece, Placement.combo(core), urgent);
         List<Placement> shown = new ArrayList<>();
         for (int i = rest.size() - 1; i >= 0 && shown.size() < room; i--) if (instant(rest.get(i))) shown.add(rest.get(i));
+        boolean complete = shown.size() == rest.size();
         if (preview != null) {
             Spot aimed = preview.spot();
             shown.removeIf(p -> p.spot() == aimed || aimed.overlapping().contains(p.spot()));
@@ -157,7 +160,17 @@ public final class Looks {
         List<Placement> own = shown.subList(0, Math.min(INSTANT, shown.size()));
         List<Placement> boots = shown.subList(own.size(), shown.size());
         return new Look(trim, ghost, Placement.combo(core.subList(0, baked)),
-                own.isEmpty() ? 0 : encode(rank(piece, own)), boots.isEmpty() ? 0 : encode(rank(piece, boots)));
+                own.isEmpty() ? 0 : encode(rank(piece, own)), boots.isEmpty() ? 0 : encode(rank(piece, boots)), complete);
+    }
+
+    /**
+     * After a player changed what is sewn on an ovve (at a stand, or by command): any half they
+     * cannot be shown in full without a newer pack is claimed for them ({@link Combos#claim}).
+     */
+    public static void claimIfNeeded(ServerPlayer player, ItemStack stack) {
+        for (Piece piece : Piece.values()) {
+            if (!look(stack, piece, player.getUUID()).complete()) Combos.claim(player, piece, Placement.combo(sewn(stack, piece)));
+        }
     }
 
     // ---- ranking the instant set (mirrored in ovvar.glsl)

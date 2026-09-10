@@ -7,6 +7,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.Looks;
+import metacraft.ovvar.pack.Combos;
 import metacraft.ovvar.content.ModComponents;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveItem;
@@ -58,11 +59,15 @@ public final class ModCommands {
     private static final DynamicCommandExceptionType NOT_AN_OVVE =
             new DynamicCommandExceptionType(what -> Component.literal("Hold an ovve in your main hand, not " + what));
 
+    private static final java.util.function.Predicate<CommandSourceStack> GAMEMASTER =
+            source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions());
+
     public static void init() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 dispatcher.register(Commands.literal(Ovvar.MOD_ID)
-                        .requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
-                        .then(Commands.literal("give")
+                        // Anyone: the latest resource pack, now (the one reload that is asked for).
+                        .then(Commands.literal("reload").executes(ModCommands::reload))
+                        .then(Commands.literal("give").requires(GAMEMASTER)
                                 .then(chapterArg()
                                         .executes(ctx -> give(ctx, ctx.getSource().getPlayerOrException(), ""))
                                         .then(patchesArg().executes(ctx -> give(ctx, ctx.getSource().getPlayerOrException(),
@@ -72,19 +77,19 @@ public final class ModCommands {
                                                 .executes(ctx -> give(ctx, EntityArgument.getPlayer(ctx, "player"), ""))
                                                 .then(patchesArg().executes(ctx -> give(ctx, EntityArgument.getPlayer(ctx, "player"),
                                                         StringArgumentType.getString(ctx, "patches")))))))
-                        .then(Commands.literal("patches")
+                        .then(Commands.literal("patches").requires(GAMEMASTER)
                                 .then(patchesArg().executes(ModCommands::resew)))
-                        .then(Commands.literal("showcase")
+                        .then(Commands.literal("showcase").requires(GAMEMASTER)
                                 .then(chapterArg().executes(ModCommands::showcase)))
-                        .then(Commands.literal("stands")
+                        .then(Commands.literal("stands").requires(GAMEMASTER)
                                 .then(chapterArg().executes(ModCommands::stands)))
-                        .then(Commands.literal("minigame")
+                        .then(Commands.literal("minigame").requires(GAMEMASTER)
                                 .executes(ctx -> minigame(ctx, null, 0))
                                 .then(Commands.literal("on").executes(ctx -> minigame(ctx, true, 0))
                                         .then(Commands.argument("stitches", IntegerArgumentType.integer(OvvarConfig.MIN_STITCHES, OvvarConfig.MAX_STITCHES))
                                                 .executes(ctx -> minigame(ctx, true, IntegerArgumentType.getInteger(ctx, "stitches")))))
                                 .then(Commands.literal("off").executes(ctx -> minigame(ctx, false, 0))))
-                        .then(Commands.literal("aimlog")
+                        .then(Commands.literal("aimlog").requires(GAMEMASTER)
                                 .then(Commands.literal("on").executes(ctx -> aimLog(ctx, true)))
                                 .then(Commands.literal("off").executes(ctx -> aimLog(ctx, false))))));
     }
@@ -151,9 +156,17 @@ public final class ModCommands {
         boolean down = spec.matches("(?s).*\\bdown\\b.*");   // "down" anywhere in the spec: top rolled down
         List<Placement> patches = patches(spec.replaceAll("\\bdown\\b", " "));
         ItemStack stack = ovve(chapter, !down, patches);
+        Looks.claimIfNeeded(player, stack);   // before the inventory takes it (an emptied stack reads as bare)
         if (!player.getInventory().add(stack)) player.drop(stack, false);
         ctx.getSource().sendSuccess(() -> Component.literal("Gave " + player.getName().getString() + " a " + chapter.name
                 + " " + chapter.garmentWord() + " with " + patches.size() + " patch(es)"), true);
+        return 1;
+    }
+
+    private static int reload(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        String reply = Combos.reload(player);
+        ctx.getSource().sendSuccess(() -> Component.literal(reply), false);
         return 1;
     }
 
@@ -163,6 +176,7 @@ public final class ModCommands {
         if (!(held.getItem() instanceof OvveItem)) throw NOT_AN_OVVE.create(held.getItem().toString());
         List<Placement> patches = patches(StringArgumentType.getString(ctx, "patches"));
         Looks.setSewn(held, patches);
+        Looks.claimIfNeeded(player, held);
         ctx.getSource().sendSuccess(() -> Component.literal("Sewn: " + (patches.isEmpty() ? "nothing" : Placement.combo(patches))), false);
         return 1;
     }
@@ -256,7 +270,7 @@ public final class ModCommands {
     private static int minigame(CommandContext<CommandSourceStack> ctx, Boolean on, int stitches) {
         OvvarConfig config = OvvarConfig.get();
         if (on != null) {
-            config = new OvvarConfig(on, stitches > 0 ? stitches : config.stitches(), config.pushAfterCalmSeconds(), config.pushCalmDistance());
+            config = new OvvarConfig(on, stitches > 0 ? stitches : config.stitches());
             config.save();
         }
         OvvarConfig now = config;

@@ -10,7 +10,6 @@ import eu.pb4.polymer.autohost.api.ResourcePackDataProvider;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import eu.pb4.polymer.resourcepack.impl.PolymerResourcePackMod;
 import metacraft.ovvar.Ovvar;
-import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.OvveTopItem;
@@ -35,11 +34,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import net.minecraft.world.phys.Vec3;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,15 +51,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * ones appear. Rebuilds are batched: a combination the preview bits can still show waits
  * {@value #LAZY_MS} ms for company, one they can't is built within {@value #URGENT_MS} ms.
  *
- * Each build is a generation, and each player is on the generation they last loaded. A rebuilt
- * pack is pushed only to players who need it: those the server is sending an ovve whose
- * combination their generation lacks — i.e. the people close enough to see it. Everyone else
- * keeps the pack they have; what they see is drawn from the combinations their generation holds
- * plus the newest patches in the dye colour (see {@link metacraft.ovvar.content.Looks#look}).
- *
- * A push is a loading screen, so it waits for a calm moment ({@link Calm}): no fighting, no
- * sewing and no running about for the configured while — nobody loses a fight to a reload, and
- * a sewing session gets one reload at the end instead of one every few patches.
+ * Each build is a generation, and each player is on the generation they last loaded. A push is
+ * a loading screen, so nobody gets one they did not cause: the pack is pushed to a player only
+ * when their own sewing outgrew what the dye colour can show of it ({@link #claim}, at once when
+ * the build is done), or when they ask with {@code /ovvar reload}. Everyone else keeps the pack
+ * they have and sees what it holds plus the newest patches in the dye colour (see
+ * {@link metacraft.ovvar.content.Looks#look}); whoever joins gets the current pack.
  */
 public final class Combos {
     private Combos() {}
@@ -84,12 +75,14 @@ public final class Combos {
     private static volatile boolean generating;
     private static MinecraftServer server;
 
-    /** Per player: the generation pushed to them, the one they confirmed loaded, who needs a push, when they last got one. */
+    /** Per player: the generation pushed to them, the one they confirmed loaded, who is owed a push, when they last got one. */
     private static final Map<UUID, Integer> PUSHED = new ConcurrentHashMap<>(), LOADED = new ConcurrentHashMap<>();
     private static final Set<UUID> NEEDS_PUSH = ConcurrentHashMap.newKeySet();
     private static final Map<UUID, Long> LAST_PUSH = new ConcurrentHashMap<>();
-    /** Who asked for a combination that is not built yet: they get the pack once it is. */
-    private static final Map<String, Set<UUID>> REQUESTED_BY = new ConcurrentHashMap<>();
+    /** Who sewed a combination the pack does not hold yet and cannot be shown it otherwise: they get the pack once it is built. */
+    private static final Map<String, Set<UUID>> CLAIMED_BY = new ConcurrentHashMap<>();
+    /** Who asked to reload while a build was pending: they get the pack once it is built. */
+    private static final Set<UUID> RELOADING = ConcurrentHashMap.newKeySet();
 
     public static void init() {
         ServerLifecycleEvents.SERVER_STARTING.register(s -> {
@@ -133,6 +126,8 @@ public final class Combos {
             LOADED.remove(id);
             NEEDS_PUSH.remove(id);
             LAST_PUSH.remove(id);
+            RELOADING.remove(id);
+            for (Set<UUID> claimers : CLAIMED_BY.values()) claimers.remove(id);
         });
         ServerTickEvents.END_SERVER_TICK.register(Combos::tick);
     }
@@ -145,21 +140,48 @@ public final class Combos {
         String key = key(piece, combo);
         Set<String> current = BUILT.getOrDefault(generation, Set.of());
         if (player == null) return current.contains(key);
-        Set<String> theirs = BUILT.getOrDefault(LOADED.getOrDefault(player, generation), current);
-        if (theirs.contains(key)) return true;
-        // They are looking at something their pack can't draw but the current one can: send it.
-        if (current.contains(key) && LOADED.getOrDefault(player, generation) < generation) NEEDS_PUSH.add(player);
-        return false;
+        return BUILT.getOrDefault(LOADED.getOrDefault(player, generation), current).contains(key);
     }
 
     /** Ask for a combination; safe from any thread (item packets are encoded off the server thread). */
-    public static void request(Piece piece, String combo, boolean urgent, UUID player) {
+    public static void request(Piece piece, String combo, boolean urgent) {
         String key = key(piece, combo);
         if (BUILT.getOrDefault(generation, Set.of()).contains(key)) return;
         if (KNOWN.add(key)) dirty.set(true);
-        if (player != null) REQUESTED_BY.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(player);
         if (generating && building.contains(key)) return;   // the build under way has it
         deadline.accumulateAndGet(now() + (urgent ? URGENT_MS : LAZY_MS), Math::min);
+    }
+
+    /**
+     * A player sewed a half into a combination and cannot be shown all of it without the pack
+     * (server thread): they get the pack as soon as it holds the combination — now, if it
+     * already does — since a sewing session is nowhere near a fight.
+     */
+    public static void claim(ServerPlayer player, Piece piece, String combo) {
+        String key = key(piece, combo);
+        if (BUILT.getOrDefault(generation, Set.of()).contains(key)) {
+            if (LOADED.getOrDefault(player.getUUID(), 0) < generation) NEEDS_PUSH.add(player.getUUID());
+            return;
+        }
+        request(piece, combo, true);
+        CLAIMED_BY.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(player.getUUID());
+    }
+
+    /**
+     * {@code /ovvar reload}: the current pack to the player if theirs is older, after a build if
+     * one is pending. Returns what to tell them.
+     */
+    public static String reload(ServerPlayer player) {
+        UUID id = player.getUUID();
+        boolean pending = generating || !BUILT.getOrDefault(generation, Set.of()).containsAll(KNOWN);
+        if (pending) {
+            RELOADING.add(id);
+            deadline.accumulateAndGet(now(), Math::min);
+            return "Building the latest pack; it will be sent to you in a moment";
+        }
+        if (PUSHED.getOrDefault(id, 0) >= generation) return "You already have the latest pack";
+        NEEDS_PUSH.add(id);
+        return "Sending you the latest pack";
     }
 
     // ---- building and pushing
@@ -190,16 +212,20 @@ public final class Combos {
         for (int g : PUSHED.values()) online = Math.min(online, g);
         int keep = online;
         BUILT.keySet().removeIf(g -> g < keep && g < generation);
-        for (var e : REQUESTED_BY.entrySet()) {
+        for (var e : CLAIMED_BY.entrySet()) {
             if (combos.contains(e.getKey())) NEEDS_PUSH.addAll(e.getValue());
         }
-        REQUESTED_BY.keySet().removeIf(combos::contains);
-        if (!combos.containsAll(KNOWN)) deadline.accumulateAndGet(now() + URGENT_MS, Math::min);
+        CLAIMED_BY.keySet().removeIf(combos::contains);
+        if (combos.containsAll(KNOWN)) {
+            NEEDS_PUSH.addAll(RELOADING);
+            RELOADING.clear();
+        } else {
+            deadline.accumulateAndGet(now() + URGENT_MS, Math::min);
+        }
         Ovvar.LOGGER.info("[ovvar] pack generation {}: {} combination(s); {} player(s) to update", generation, combos.size(), NEEDS_PUSH.size());
     }
 
     private static void pushWhereNeeded(MinecraftServer s) {
-        Calm.tick(s);
         if (NEEDS_PUSH.isEmpty()) return;
         for (UUID id : List.copyOf(NEEDS_PUSH)) {
             ServerPlayer player = s.getPlayerList().getPlayer(id);
@@ -207,51 +233,9 @@ public final class Combos {
                 NEEDS_PUSH.remove(id);
                 continue;
             }
-            if (now() - LAST_PUSH.getOrDefault(id, 0L) < PUSH_GAP_MS || !Calm.isCalm(player)) continue;
+            if (now() - LAST_PUSH.getOrDefault(id, 0L) < PUSH_GAP_MS) continue;   // one reload at a time
             push(player);
             NEEDS_PUSH.remove(id);
-        }
-    }
-
-    /**
-     * When a player may be given a loading screen: no damage dealt or taken, no sewing, and no
-     * moving about (more than a few blocks from where they were) for {@code push_after_calm_seconds}.
-     */
-    public static final class Calm {
-        private Calm() {}
-
-        private record Sample(long at, Vec3 pos) {}
-        private static final Map<UUID, Deque<Sample>> TRAIL = new HashMap<>();
-        private static final Map<UUID, Long> LAST_SEWING = new ConcurrentHashMap<>();
-
-        /** Sewing (a click on a stand, a stitch) counts as busy. */
-        public static void sewing(ServerPlayer player) {
-            LAST_SEWING.put(player.getUUID(), now());
-        }
-
-        static void tick(MinecraftServer s) {
-            long window = OvvarConfig.get().pushAfterCalmSeconds() * 1000L, at = now();
-            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
-                Deque<Sample> trail = TRAIL.computeIfAbsent(player.getUUID(), id -> new ArrayDeque<>());
-                if (trail.isEmpty() || at - trail.peekLast().at >= 1000) trail.addLast(new Sample(at, player.position()));
-                while (!trail.isEmpty() && at - trail.peekFirst().at > window) trail.pollFirst();
-            }
-            TRAIL.keySet().removeIf(id -> s.getPlayerList().getPlayer(id) == null);
-            LAST_SEWING.keySet().removeIf(id -> s.getPlayerList().getPlayer(id) == null);
-        }
-
-        static boolean isCalm(ServerPlayer player) {
-            OvvarConfig config = OvvarConfig.get();
-            long window = config.pushAfterCalmSeconds() * 1000L, at = now();
-            int windowTicks = config.pushAfterCalmSeconds() * 20;
-            if (player.tickCount - player.getLastHurtByMobTimestamp() < windowTicks && player.getLastHurtByMobTimestamp() > 0) return false;
-            if (player.tickCount - player.getLastHurtMobTimestamp() < windowTicks && player.getLastHurtMobTimestamp() > 0) return false;
-            if (at - LAST_SEWING.getOrDefault(player.getUUID(), 0L) < window) return false;
-            Deque<Sample> trail = TRAIL.get(player.getUUID());
-            if (trail == null || trail.isEmpty() || at - trail.peekFirst().at < window - 1500) return false;   // not watched long enough yet
-            Vec3 here = player.position();
-            for (Sample sample : trail) if (sample.pos.distanceTo(here) > config.pushCalmDistance()) return false;
-            return true;
         }
     }
 
