@@ -110,7 +110,8 @@ one trim pattern per (cell, patch) — `data/ovvar/trim_pattern/`, textures unde
 patch uses, and two materials: `patch` (identity) and `ghost` (washed out) — and vanilla draws
 it. The trim carries only the preview of the patch being aimed at, in the ghost material; sewn
 patches go to the dye colour and the pack. Limb cells are tagged in the texture's alpha (254
-right, 253 left) so the shader can cut the other limb. Up to three placements per half ride in the dye colour: a dyeable layer
+right, 253 left) so the shader can cut the other limb. Up to three placements per half ride in the dye colour
+— six on the legs when the wearer's feet slot carries the second channel (below): a dyeable layer
 is only drawn when the item has a dye colour, and that colour reaches the shader as the vertex
 colour — the only per-item data an armour shader ever gets — so it carries the *rank* of the set
 of up to three (cell, design) placements among all such sets (packed as three base-255 digits so
@@ -123,6 +124,28 @@ go through the pack. The tooltip's "Dyed" and trim lines are hidden. Everything 
 exactly as vanilla. The overlay's body (16,16), right arm (40,16) and right leg (0,16) boxes are
 at the same coordinates in the armour layout, so datagen only copies boxes (with the skin's
 second layer painted on, and the left limbs from the skin's own left art).
+
+## The boots pass
+
+The client draws the feet slot with the whole leg boxes of the outer model (vanilla boot
+textures are just transparent above the ankle), with its own equipment asset and dye colour: 24
+more bits. So an ovve wearer's feet slot carries our legs preview layer too (`OvveFeet`): a
+companion cuffs item while the slot is empty (like the top: never a possession, deletes itself),
+or vanilla boots of a known material — chainmail, copper, iron, gold, diamond, netherite — which
+are marked with the wearer and shown to clients as "their layers plus ours", trim and glint kept
+(`equipment/feet/<material>.json`). The legs then take six instant patches instead of three.
+Leather boots use the dye colour for their own colour and other mods' boots have layers we
+don't know: over those the channel is off and the legs fall back to three. The boots pass is
+inflated 1.0 where the leggings are 0.5, so the shader draws it on the leggings' pixel grid
+(squeezed in x and y) and the two layers' pixels line up.
+
+## Reloads wait for a calm moment
+
+A pushed pack is a loading screen, so a player gets one only after `push_after_calm_seconds`
+(config, default 20) without taking or dealing damage, sewing, or moving more than
+`push_calm_distance` blocks (default 8) — nobody loses a fight to a reload, and a sewing session
+ends in one reload rather than one every few patches. Until then they see what their pack plus
+the dye channels can show; nothing goes missing, the newest patches just wait.
 
 ## Square pixels
 

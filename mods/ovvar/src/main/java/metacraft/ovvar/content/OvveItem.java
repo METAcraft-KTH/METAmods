@@ -76,7 +76,10 @@ public final class OvveItem extends BundleItem implements PolymerItem {
     @Override
     public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
         Looks.migrate(stack);
-        if (slot == EquipmentSlot.LEGS && entity instanceof LivingEntity wearer) OvveTop.sync(wearer, stack);
+        if (slot == EquipmentSlot.LEGS && entity instanceof LivingEntity wearer) {
+            OvveTop.sync(wearer, stack);
+            OvveFeet.sync(wearer, stack);
+        }
     }
 
     @Override

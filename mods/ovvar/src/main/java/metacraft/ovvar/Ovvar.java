@@ -3,6 +3,7 @@ package metacraft.ovvar;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.ModContent;
+import metacraft.ovvar.content.OvveFeet;
 import metacraft.ovvar.content.OvveTop;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.recipe.SewRecipe;
@@ -27,6 +28,7 @@ public class Ovvar implements ModInitializer {
         ModContent.register();
         SewRecipe.init();
         OvveTop.init();
+        OvveFeet.init();
         StandSewing.init();
         Combos.init();
         ModCommands.init();

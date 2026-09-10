@@ -6,6 +6,7 @@ import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.PatchItem;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Placement;
+import metacraft.ovvar.pack.Combos;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.particles.ParticleTypes;
@@ -102,6 +103,7 @@ public final class SewingGame {
             abandon(player, "The thread snapped: you put the " + game.patch.name() + " away");
             return true;
         }
+        Combos.Calm.sewing(player);
         Game next = game.advanced();
         Vec3 where = StandAim.cell(stand, game.placement.spot()).centre();
         ServerLevel level = (ServerLevel) player.level();

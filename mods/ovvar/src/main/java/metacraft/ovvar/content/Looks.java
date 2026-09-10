@@ -106,9 +106,16 @@ public final class Looks {
 
     /**
      * One half as the client should see it: the placement worn as the armour trim (or null) and
-     * whether it is the ghosted preview, the asset combo the pack holds, and the dye bits for the rest.
+     * whether it is the ghosted preview, the asset combo the pack holds, the dye bits for the rest,
+     * and — legs only, when the wearer's feet slot carries our second channel — the dye bits of
+     * the boots pass, three more.
      */
-    public record Look(Placement trim, boolean ghost, String combo, int dye) {}
+    public record Look(Placement trim, boolean ghost, String combo, int dye, int feetDye) {}
+
+    /** Does the wearer's feet slot carry the second channel for this ovve? (Set every tick by the wearer's sync.) */
+    public static boolean feetChannel(ItemStack stack) {
+        return Boolean.TRUE.equals(stack.get(ModComponents.FEET_CHANNEL));
+    }
 
     /** @param player who the packet is for (their pack may be older than the current one), or null */
     public static Look look(ItemStack stack, Piece piece, UUID player) {
@@ -135,7 +142,8 @@ public final class Looks {
         int baked = core.size();
         while (baked > 0 && !Combos.isBuilt(piece, Placement.combo(core.subList(0, baked)), player)) baked--;
         List<Placement> rest = new ArrayList<>(core.subList(baked, core.size()));
-        int room = INSTANT - (preview == null ? 0 : 1);
+        boolean feet = piece == Piece.BOTTOM && feetChannel(stack);
+        int room = INSTANT * (feet ? 2 : 1) - (preview == null ? 0 : 1);
         boolean urgent = rest.size() > room || !rest.stream().allMatch(Looks::instant);
         if (baked < core.size()) Combos.request(piece, Placement.combo(core), urgent, player);
         List<Placement> shown = new ArrayList<>();
@@ -145,7 +153,11 @@ public final class Looks {
             shown.removeIf(p -> p.spot() == aimed || aimed.overlapping().contains(p.spot()));
             shown.add(preview);
         }
-        return new Look(trim, ghost, Placement.combo(core.subList(0, baked)), shown.isEmpty() ? 0 : encode(rank(piece, shown)));
+        // The first three ride in the garment's own dye colour, the next three in the boots'.
+        List<Placement> own = shown.subList(0, Math.min(INSTANT, shown.size()));
+        List<Placement> boots = shown.subList(own.size(), shown.size());
+        return new Look(trim, ghost, Placement.combo(core.subList(0, baked)),
+                own.isEmpty() ? 0 : encode(rank(piece, own)), boots.isEmpty() ? 0 : encode(rank(piece, boots)));
     }
 
     // ---- ranking the instant set (mirrored in ovvar.glsl)

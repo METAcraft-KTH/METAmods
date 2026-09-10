@@ -10,6 +10,11 @@ import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Spot;
 
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.equipment.EquipmentAsset;
+import net.minecraft.world.item.equipment.EquipmentAssets;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +41,25 @@ public final class EquipmentJson {
 
     public static String previewTexture(Piece piece) {
         return "patch/preview_" + piece.id;
+    }
+
+    /** The legs' preview texture for the boots pass (the outer model: its own layer texel). */
+    public static final String FEET_PREVIEW = "patch/preview_feet";
+
+    /** The feet slot's asset over an ovve: a material's own humanoid layer (or none) plus our preview layer. */
+    public static ResourceKey<EquipmentAsset> feetAsset(String material) {
+        return ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "feet/" + material));
+    }
+
+    public static String feetJson(String material) {
+        JsonArray layers = new JsonArray();
+        if (!material.equals(metacraft.ovvar.content.OvveFeet.NONE)) layers.add(layer("minecraft:" + material, false));
+        layers.add(layer(Ovvar.MOD_ID + ":" + FEET_PREVIEW, true));
+        JsonObject byType = new JsonObject();
+        byType.add("humanoid", layers);
+        JsonObject root = new JsonObject();
+        root.add("layers", byType);
+        return new GsonBuilder().setPrettyPrinting().create().toJson(root);
     }
 
     public static String json(Chapter chapter, Piece piece, boolean nercabbad, List<Placement> placements) {

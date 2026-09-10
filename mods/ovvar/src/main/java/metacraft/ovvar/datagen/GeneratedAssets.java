@@ -8,6 +8,7 @@ import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
+import metacraft.ovvar.content.OvveFeet;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Placement;
@@ -180,8 +181,14 @@ public final class GeneratedAssets implements DataProvider {
             library.put(patch.id(), LIBRARY.get(next));
             next += patch.cells();
         }
-        for (Piece piece : Piece.values()) {
-            List<Spot> cells = Spot.cells(piece);
+        // The legs' preview is also drawn by the boots pass (the outer model, inflate 1), as the
+        // second dye channel: the same texture with that layer's texel, in the humanoid folder.
+        record PreviewTarget(Piece piece, String layer, String name, Piece inflateAs) {}
+        List<PreviewTarget> previews = new ArrayList<>();
+        for (Piece piece : Piece.values()) previews.add(new PreviewTarget(piece, piece.layer, EquipmentJson.previewTexture(piece), piece));
+        previews.add(new PreviewTarget(Piece.BOTTOM, Piece.TOP.layer, EquipmentJson.FEET_PREVIEW, Piece.TOP));
+        for (PreviewTarget target : previews) {
+            List<Spot> cells = Spot.cells(target.piece);
             require(cells.size() <= TABLE_SIZE && Looks.INSTANT_DESIGNS <= TABLE_SIZE, "the preview tables hold " + TABLE_SIZE + " cells and designs");
             Tex tex = Tex.blank(W, H).with(MARKER_KIND_X, MARKER_Y, rgb(KIND_PREVIEW, cells.size(), Looks.INSTANT_DESIGNS));
             for (Patches.Patch patch : Patches.all()) {
@@ -197,7 +204,13 @@ public final class GeneratedAssets implements DataProvider {
                 tex = tex.with(CELL_TABLE_X + index / 16, index % 16, rgb(spot.u * D, spot.v * D, spot.side.ordinal()));
             }
             require(tex.get(BLANK_X, BLANK_Y) == 0, "the preview texture draws on the blank texel");
-            png(assets.resolve("textures/entity/equipment/" + piece.layer + "/" + EquipmentJson.previewTexture(piece) + ".png"), marked(tex, piece));
+            png(assets.resolve("textures/entity/equipment/" + target.layer + "/" + target.name + ".png"), marked(tex, target.inflateAs));
+        }
+        for (String material : OvveFeet.MATERIALS) {
+            require(Vanilla.exists("assets/minecraft/textures/entity/equipment/humanoid/" + material + ".png"), "no vanilla equipment texture for " + material);
+        }
+        for (String material : concat(OvveFeet.NONE, OvveFeet.MATERIALS)) {
+            json(assets.resolve("equipment/feet/" + material + ".json"), JsonParser.parseString(EquipmentJson.feetJson(material)));
         }
         Ovvar.LOGGER.info("[{} datagen] {} placement textures, {} patches in the preview library", MOD, placementTextures, library.size());
 
@@ -245,8 +258,11 @@ public final class GeneratedAssets implements DataProvider {
             Tex tinted = icon.tinted(colour);
             item(ovve, tinted);
             item(topItem, Tex.blank(16, 16).blit(tinted, 0, 0, 16, 8, 0, 0));
+            String feetItem = ModContent.feetId(chapter).getPath();
+            item(feetItem, Tex.blank(16, 16).blit(tinted, 0, 12, 16, 4, 0, 12));
             lang.put("item." + MOD + "." + ovve, chapter.name + " " + chapter.garmentWord());
             lang.put("item." + MOD + "." + topItem, chapter.name + " " + chapter.garmentWord() + " (top)");
+            lang.put("item." + MOD + "." + feetItem, chapter.name + " " + chapter.garmentWord() + " (cuffs)");
         }
         Ovvar.LOGGER.info("[{} datagen] {} patches, {} cells, {} chapters", MOD, Patches.all().size(), Spot.values().length, Chapter.values().length);
 
@@ -256,6 +272,13 @@ public final class GeneratedAssets implements DataProvider {
         // Sewing pinned patches at the smithing table (SewRecipe): the one recipe, nothing to configure.
         json(data.resolve("recipe/sew.json"), obj("type", MOD + ":sew"));
         return CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new));
+    }
+
+    private static List<String> concat(String first, List<String> rest) {
+        List<String> out = new ArrayList<>();
+        out.add(first);
+        out.addAll(rest);
+        return out;
     }
 
     private static int rgb(int r, int g, int b) {

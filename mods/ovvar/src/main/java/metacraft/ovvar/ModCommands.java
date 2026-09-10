@@ -256,7 +256,7 @@ public final class ModCommands {
     private static int minigame(CommandContext<CommandSourceStack> ctx, Boolean on, int stitches) {
         OvvarConfig config = OvvarConfig.get();
         if (on != null) {
-            config = new OvvarConfig(on, stitches > 0 ? stitches : config.stitches());
+            config = new OvvarConfig(on, stitches > 0 ? stitches : config.stitches(), config.pushAfterCalmSeconds(), config.pushCalmDistance());
             config.save();
         }
         OvvarConfig now = config;

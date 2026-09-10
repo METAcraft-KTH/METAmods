@@ -5,11 +5,13 @@ import eu.pb4.polymer.core.api.other.PolymerComponent;
 import metacraft.ovvar.Ovvar;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.Identifier;
 
 import java.util.List;
+import java.util.UUID;
 
 /** Mod-owned item components, server-side only: Polymer hides the types from vanilla clients and strips them from stacks. */
 public final class ModComponents {
@@ -29,6 +31,18 @@ public final class ModComponents {
     public static final DataComponentType<Boolean> TOP_UP = register("top_up",
             DataComponentType.<Boolean>builder().persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
 
+    /**
+     * On an ovve worn by someone whose feet slot carries our second dye channel (a companion
+     * {@link OvveFeetItem}, or vanilla boots we wrap): the legs get three more instant patches.
+     * Never saved — the wearer's tick sets it.
+     */
+    public static final DataComponentType<Boolean> FEET_CHANNEL = register("feet_channel",
+            DataComponentType.<Boolean>builder().networkSynchronized(ByteBufCodecs.BOOL));
+
+    /** On vanilla boots worn over an ovve: the wearer, whose legs' patches the boots' dye colour carries. Never saved. */
+    public static final DataComponentType<UUID> WRAPPED = register("wrapped",
+            DataComponentType.<UUID>builder().networkSynchronized(UUIDUtil.STREAM_CODEC));
+
     private static <T> DataComponentType<T> register(String name, DataComponentType.Builder<T> builder) {
         return Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, name), builder.build());
     }
@@ -36,6 +50,6 @@ public final class ModComponents {
     public static void init() {
         // Registered types land in a synced registry; without this Fabric's registry sync kicks
         // vanilla clients ("requires Fabric Loader"). Polymer hides them and never sends them.
-        PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP);
+        PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED);
     }
 }

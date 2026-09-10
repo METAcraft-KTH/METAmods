@@ -105,8 +105,16 @@ vec2 ovvar_face(float skinX) {
     return vec2(40.0 + floor((skinX - 40.0) / 4.0) * 4.0, 4.0);
 }
 
-float ovvar_squeeze(float faceWidth, float inflate) {
-    return ((12.0 + 2.0 * inflate) / 12.0) / ((faceWidth + 2.0 * inflate) / faceWidth);
+// The pixel every layer on a part is drawn at, in model units: the legs take the leggings
+// layer's (inflate 0.5) so what the boots pass draws on them (inflate 1) lands on the same grid;
+// the body and arms take their own layer's.
+float ovvar_pixel(float skinX, float inflate) {
+    return skinX < 16.0 ? 13.0 / 12.0 : (12.0 + 2.0 * inflate) / 12.0;
+}
+
+// Scale in x that makes a face's texels come out ovvar_pixel wide.
+float ovvar_squeeze(float skinX, float faceWidth, float inflate) {
+    return ovvar_pixel(skinX, inflate) / ((faceWidth + 2.0 * inflate) / faceWidth);
 }
 
 // A fragment's texel x on the side rows → the texel x to draw there (its face's art squeezed
@@ -114,7 +122,15 @@ float ovvar_squeeze(float faceWidth, float inflate) {
 float ovvar_squeezed(float tx, float inflate) {
     vec2 f = ovvar_face(tx / OVVAR_D) * OVVAR_D;
     float c = f.x + f.y * 0.5;
-    return (tx - c) / ovvar_squeeze(f.y / OVVAR_D, inflate) + c;
+    return (tx - c) / ovvar_squeeze(tx / OVVAR_D, f.y / OVVAR_D, inflate) + c;
+}
+
+// The same in y, about the side rows' centre: only the boots pass on the legs needs it (its rows
+// are 14/12 tall, the leggings' 13/12).
+float ovvar_squeezed_y(float tx, float ty, float inflate) {
+    float sy = ovvar_pixel(tx / OVVAR_D, inflate) / ((12.0 + 2.0 * inflate) / 12.0);
+    float c = 26.0 * OVVAR_D;
+    return (ty - c) / sy + c;
 }
 
 bool ovvar_in_face(float a, float tx) {
@@ -146,7 +162,8 @@ vec2 ovvar_uv(vec2 uv) {
     bool sides = t.y >= 20.0 * OVVAR_D;   // the box sides, not the top and bottom faces
     float inflate = ovvar_inflate();
     float a = sides ? ovvar_squeezed(t.x, inflate) : t.x;
-    bool inFace = !sides || ovvar_in_face(a, t.x);
+    float ay = sides ? ovvar_squeezed_y(t.x, t.y, inflate) : t.y;
+    bool inFace = !sides || (ovvar_in_face(a, t.x) && ay >= 20.0 * OVVAR_D && ay < 32.0 * OVVAR_D);
 
     if (kind.r < 0.5) {
         // Base garment: squeezed, the margin filled by the face's edge column; the mirrored limb
@@ -154,18 +171,19 @@ vec2 ovvar_uv(vec2 uv) {
         if (sides && !inFace) {
             vec2 f = ovvar_face(t.x / OVVAR_D) * OVVAR_D;
             a = clamp(a, f.x + 0.5, f.x + f.y - 0.5);
+            ay = clamp(ay, 20.0 * OVVAR_D + 0.5, 32.0 * OVVAR_D - 0.5);
         }
-        return vec2(a / OVVAR_TEX.x, uv.y - (mirrored ? 0.5 : 0.0));
+        return vec2(a, ay) / OVVAR_TEX - vec2(0.0, mirrored ? 0.5 : 0.0);
     }
 
     if (kind.r < 1.5) {
         // Placement: hide it on the limb it is not for; squeezed, the margin left to the fabric.
         if (limb && ((kind.g > 0.5 && kind.g < 1.5 && mirrored) || (kind.g > 1.5 && !mirrored))) return OVVAR_BLANK;
         if (!inFace) return OVVAR_BLANK;
-        return vec2(a / OVVAR_TEX.x, uv.y);
+        return vec2(a, ay) / OVVAR_TEX;
     }
     if (!inFace) return OVVAR_BLANK;
-    t.x = a;   // the preview is looked up in squeezed texels too
+    t = vec2(a, ay);   // the preview is looked up in squeezed texels too
 
     // Preview: unrank the instant set from the dye colour (see Looks.rank).
     float designs = kind.b, m = kind.g * designs;

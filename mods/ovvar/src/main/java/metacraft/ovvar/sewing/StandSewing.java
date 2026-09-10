@@ -9,6 +9,7 @@ import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.PatchItem;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Spot;
+import metacraft.ovvar.pack.Combos;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -114,6 +115,7 @@ public final class StandSewing {
 
     /** A right-click on a stand wearing an ovve, aimed as given: sew the held patch, or unpick with an empty hand. */
     private static InteractionResult click(ServerPlayer player, ArmorStand stand, StandAim.Hit aimed) {
+        Combos.Calm.sewing(player);
         ItemStack ovve = stand.getItemBySlot(EquipmentSlot.LEGS);
         ItemStack held = player.getMainHandItem();
         ServerLevel level = (ServerLevel) player.level();

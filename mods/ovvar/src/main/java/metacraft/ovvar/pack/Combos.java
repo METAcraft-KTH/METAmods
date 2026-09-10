@@ -10,6 +10,7 @@ import eu.pb4.polymer.autohost.api.ResourcePackDataProvider;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import eu.pb4.polymer.resourcepack.impl.PolymerResourcePackMod;
 import metacraft.ovvar.Ovvar;
+import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.OvveItem;
 import metacraft.ovvar.content.OvveTopItem;
@@ -34,6 +35,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,6 +62,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * combination their generation lacks — i.e. the people close enough to see it. Everyone else
  * keeps the pack they have; what they see is drawn from the combinations their generation holds
  * plus the newest patches in the dye colour (see {@link metacraft.ovvar.content.Looks#look}).
+ *
+ * A push is a loading screen, so it waits for a calm moment ({@link Calm}): no fighting, no
+ * sewing and no running about for the configured while — nobody loses a fight to a reload, and
+ * a sewing session gets one reload at the end instead of one every few patches.
  */
 public final class Combos {
     private Combos() {}
@@ -189,6 +199,7 @@ public final class Combos {
     }
 
     private static void pushWhereNeeded(MinecraftServer s) {
+        Calm.tick(s);
         if (NEEDS_PUSH.isEmpty()) return;
         for (UUID id : List.copyOf(NEEDS_PUSH)) {
             ServerPlayer player = s.getPlayerList().getPlayer(id);
@@ -196,9 +207,51 @@ public final class Combos {
                 NEEDS_PUSH.remove(id);
                 continue;
             }
-            if (now() - LAST_PUSH.getOrDefault(id, 0L) < PUSH_GAP_MS) continue;
+            if (now() - LAST_PUSH.getOrDefault(id, 0L) < PUSH_GAP_MS || !Calm.isCalm(player)) continue;
             push(player);
             NEEDS_PUSH.remove(id);
+        }
+    }
+
+    /**
+     * When a player may be given a loading screen: no damage dealt or taken, no sewing, and no
+     * moving about (more than a few blocks from where they were) for {@code push_after_calm_seconds}.
+     */
+    public static final class Calm {
+        private Calm() {}
+
+        private record Sample(long at, Vec3 pos) {}
+        private static final Map<UUID, Deque<Sample>> TRAIL = new HashMap<>();
+        private static final Map<UUID, Long> LAST_SEWING = new ConcurrentHashMap<>();
+
+        /** Sewing (a click on a stand, a stitch) counts as busy. */
+        public static void sewing(ServerPlayer player) {
+            LAST_SEWING.put(player.getUUID(), now());
+        }
+
+        static void tick(MinecraftServer s) {
+            long window = OvvarConfig.get().pushAfterCalmSeconds() * 1000L, at = now();
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                Deque<Sample> trail = TRAIL.computeIfAbsent(player.getUUID(), id -> new ArrayDeque<>());
+                if (trail.isEmpty() || at - trail.peekLast().at >= 1000) trail.addLast(new Sample(at, player.position()));
+                while (!trail.isEmpty() && at - trail.peekFirst().at > window) trail.pollFirst();
+            }
+            TRAIL.keySet().removeIf(id -> s.getPlayerList().getPlayer(id) == null);
+            LAST_SEWING.keySet().removeIf(id -> s.getPlayerList().getPlayer(id) == null);
+        }
+
+        static boolean isCalm(ServerPlayer player) {
+            OvvarConfig config = OvvarConfig.get();
+            long window = config.pushAfterCalmSeconds() * 1000L, at = now();
+            int windowTicks = config.pushAfterCalmSeconds() * 20;
+            if (player.tickCount - player.getLastHurtByMobTimestamp() < windowTicks && player.getLastHurtByMobTimestamp() > 0) return false;
+            if (player.tickCount - player.getLastHurtMobTimestamp() < windowTicks && player.getLastHurtMobTimestamp() > 0) return false;
+            if (at - LAST_SEWING.getOrDefault(player.getUUID(), 0L) < window) return false;
+            Deque<Sample> trail = TRAIL.get(player.getUUID());
+            if (trail == null || trail.isEmpty() || at - trail.peekFirst().at < window - 1500) return false;   // not watched long enough yet
+            Vec3 here = player.position();
+            for (Sample sample : trail) if (sample.pos.distanceTo(here) > config.pushCalmDistance()) return false;
+            return true;
         }
     }
 

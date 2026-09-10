@@ -28,6 +28,10 @@ final class Vanilla {
         return in;
     }
 
+    static boolean exists(String path) {
+        return Vanilla.class.getResource("/" + path) != null;
+    }
+
     static byte[] bytes(String path) {
         try (InputStream in = open(path)) {
             return in.readAllBytes();

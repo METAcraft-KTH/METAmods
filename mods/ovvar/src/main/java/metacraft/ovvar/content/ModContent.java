@@ -1,5 +1,6 @@
 package metacraft.ovvar.content;
 
+import metacraft.ovvar.pack.EquipmentJson;
 import eu.pb4.polymer.core.api.item.PolymerCreativeModeTabUtils;
 import metacraft.ovvar.Ovvar;
 import net.minecraft.core.Registry;
@@ -10,6 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.BundleContents;
@@ -34,6 +36,7 @@ public final class ModContent {
 
     private static final Map<Chapter, OvveItem> OVVAR = new EnumMap<>(Chapter.class);
     private static final Map<Chapter, OvveTopItem> TOPS = new EnumMap<>(Chapter.class);
+    private static final Map<Chapter, OvveFeetItem> FEET = new EnumMap<>(Chapter.class);
     private static final Map<String, PatchItem> PATCH_ITEMS = new LinkedHashMap<>();
     /** What the creative tab and give commands hand out: ovvar and patches, never tops. */
     private static final List<Item> ALL = new ArrayList<>();
@@ -62,6 +65,14 @@ public final class ModContent {
         return TOPS.get(chapter);
     }
 
+    public static Identifier feetId(Chapter chapter) {
+        return id(chapter.itemName() + "_feet");
+    }
+
+    public static OvveFeetItem feet(Chapter chapter) {
+        return FEET.get(chapter);
+    }
+
     public static PatchItem patchItem(Patches.Patch patch) {
         return PATCH_ITEMS.get(patch.id());
     }
@@ -87,6 +98,12 @@ public final class ModContent {
             requireAsset("equipment/" + Looks.assetPath(chapter, Piece.TOP, false, "") + ".json", topId);
             TOPS.put(chapter, Registry.register(BuiltInRegistries.ITEM, topId, new OvveTopItem(clothing(chapter, Piece.TOP, ArmorType.CHESTPLATE)
                     .setId(ResourceKey.create(Registries.ITEM, topId)), chapter, topId)));
+
+            Identifier feetId = feetId(chapter);
+            requireAsset("items/" + feetId.getPath() + ".json", feetId);
+            requireAsset("equipment/feet/" + OvveFeet.NONE + ".json", feetId);
+            FEET.put(chapter, Registry.register(BuiltInRegistries.ITEM, feetId, new OvveFeetItem(cuffs(chapter)
+                    .setId(ResourceKey.create(Registries.ITEM, feetId)), chapter, feetId)));
         }
         for (Patches.Patch patch : Patches.all()) {
             Identifier itemId = patchId(patch);
@@ -115,6 +132,18 @@ public final class ModContent {
                 .component(DataComponents.EQUIPPABLE, Equippable.builder(type.getSlot())
                         .setEquipSound(material.equipSound())
                         .setAsset(material.assetId())
+                        .build());
+    }
+
+    /** The companion cuffs: no defence, no durability, just something equippable in the feet slot for the boots pass. */
+    private static Item.Properties cuffs(Chapter chapter) {
+        return new Item.Properties()
+                .stacksTo(1)
+                .component(DataComponents.EQUIPPABLE, Equippable.builder(EquipmentSlot.FEET)
+                        .setEquipSound(ArmorMaterials.LEATHER.equipSound())
+                        .setAsset(EquipmentJson.feetAsset(OvveFeet.NONE))
+                        .setSwappable(false)
+                        .setDispensable(false)
                         .build());
     }
 
