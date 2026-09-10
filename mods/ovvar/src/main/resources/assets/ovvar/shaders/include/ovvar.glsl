@@ -101,62 +101,35 @@ float ovvar_pixel(float skinX, float inflate) {
     return skinX < 16.0 ? 13.0 / 12.0 : (12.0 + 2.0 * inflate) / 12.0;
 }
 
-// Which texel column of its strip a side-row fragment shows. The strip's texels are wrapped
-// around the box at ovvar_pixel units each, continuous across the corners — a patch hanging
-// over a corner just bends round it — and the slack (the inflated box is wider than that) is
-// taken up in the middle of seam faces: the inner face of an arm or leg, both sides of the body.
-// Anchor faces (the outer face of a limb, the body's front and back) keep their art centred.
-// skinX in skin texels; returns the strip-local texel x, or -1.0 in the slack (nothing of ours).
+// Which texel column of its strip a side-row fragment shows. Each face's texels are drawn
+// centred on the face at ovvar_pixel units each, so a cell's art sits where the face's own
+// texels do; the face is wider than that (the box is inflated), and its margin shows the
+// texels that continue past the face's edge — the neighbouring face's edge column, which is
+// what lies round the corner — so a patch hanging over a corner is not cut, at most its edge
+// pixel shows twice across the corner. skinX in skin texels; returns the strip-local texel x.
 float ovvar_wrap(float skinX, float inflate, out float stripStart) {
     float p = ovvar_pixel(skinX, inflate), e = 2.0 * inflate;
     bool body = skinX >= 16.0 && skinX < 40.0;
     stripStart = skinX < 16.0 ? 0.0 : body ? 16.0 : 40.0;
     float local = skinX - stripStart;
-    // Faces 0..3 (legs and arms: outer, front, inner, back; body: right, front, left, back):
-    // texel counts n, texel starts s, unit widths W, unit starts U, the perimeter P.
-    float n0 = 4.0, n1 = body ? 8.0 : 4.0, n2 = 4.0, n3 = body ? 8.0 : 4.0;
-    float s1 = n0, s2 = n0 + n1, s3 = n0 + n1 + n2, total = s3 + n3;
-    float W0 = n0 + e, W1 = n1 + e, W2 = n2 + e, W3 = n3 + e;
-    float U1 = W0, U2 = W0 + W1, U3 = W0 + W1 + W2, P = U3 + W3;
-    int k = local < s1 ? 0 : local < s2 ? 1 : local < s3 ? 2 : 3;
-    float sk = k == 0 ? 0.0 : k == 1 ? s1 : k == 2 ? s2 : s3;
-    float nk = k == 0 ? n0 : k == 1 ? n1 : k == 2 ? n2 : n3;
-    float Uk = k == 0 ? 0.0 : k == 1 ? U1 : k == 2 ? U2 : U3;
-    float Wk = k == 0 ? W0 : k == 1 ? W1 : k == 2 ? W2 : W3;
-    float u = Uk + (local - sk) * (Wk / nk);   // where on the perimeter, in units
-    float t1, t2, c;   // the mapping continued from the anchor before, from the anchor after; the seam's centre texel
-    if (body) {
-        float C1 = U1 + W1 * 0.5, T1 = s1 + n1 * 0.5, C3 = U3 + W3 * 0.5, T3 = s3 + n3 * 0.5;
-        if (k == 1) return T1 + (u - C1) / p;
-        if (k == 3) return T3 + (u - C3) / p;
-        if (k == 0) { t1 = T3 + (u + P - C3) / p - total; t2 = T1 + (u - C1) / p; c = n0 * 0.5; }
-        else { t1 = T1 + (u - C1) / p; t2 = T3 + (u - C3) / p; c = s2 + n2 * 0.5; }
-    } else {
-        float C = W0 * 0.5, T = n0 * 0.5;
-        if (k != 2) {
-            float du = u - C;
-            if (du >= P * 0.5) du -= P;
-            return mod(T + du / p, total);   // the back face continues from the strip's end
-        }
-        t1 = T + (u - C) / p; t2 = T + (u - C - P) / p + total; c = s2 + n2 * 0.5;
-    }
-    if (t1 <= c) return t1;
-    if (t2 >= c) return t2;
-    return -1.0;
+    float total = body ? 24.0 : 16.0;
+    // The face: start and texel count (legs and arms: four 4-wide; body: right 4 | front 8 | left 4 | back 8).
+    float fs, n;
+    if (!body) { fs = floor(local / 4.0) * 4.0; n = 4.0; }
+    else if (local < 4.0) { fs = 0.0; n = 4.0; }
+    else if (local < 12.0) { fs = 4.0; n = 8.0; }
+    else if (local < 16.0) { fs = 12.0; n = 4.0; }
+    else { fs = 16.0; n = 8.0; }
+    float c = fs + n * 0.5;
+    float units = (local - c) * ((n + e) / n);   // from the face centre, in model units
+    return mod(c + units / p, total);
 }
 
-// A fragment's texel x on the side rows → the texel x to draw there, or -1.0 in the slack.
+// A fragment's texel x on the side rows → the texel x to draw there.
 float ovvar_squeezed(float tx, float inflate) {
     float stripStart;
     float t = ovvar_wrap(tx / OVVAR_D, inflate, stripStart);
-    return t < 0.0 ? -1.0 : (stripStart + t) * OVVAR_D;
-}
-
-// The seam texel a slack fragment of the garment shows (the seam face's centre column).
-float ovvar_seam(float tx) {
-    float skinX = tx / OVVAR_D;
-    float s = skinX < 16.0 ? 10.0 : skinX >= 40.0 ? 50.0 : skinX < 20.0 ? 18.0 : 30.0;
-    return (s) * OVVAR_D;
+    return (stripStart + t) * OVVAR_D;
 }
 
 // The same in y, about the side rows' centre: only the boots pass on the legs needs it (its rows
@@ -192,15 +165,12 @@ vec2 ovvar_uv(vec2 uv) {
     float inflate = ovvar_inflate();
     float a = sides ? ovvar_squeezed(t.x, inflate) : t.x;
     float ay = sides ? ovvar_squeezed_y(t.x, t.y, inflate) : t.y;
-    bool inFace = !sides || (a >= 0.0 && ay >= 20.0 * OVVAR_D && ay < 32.0 * OVVAR_D);
+    bool inFace = !sides || (ay >= 20.0 * OVVAR_D && ay < 32.0 * OVVAR_D);
 
     if (kind.r < 0.5) {
         // Base garment: squeezed, the margin filled by the face's edge column; the mirrored limb
         // reads the strip above.
-        if (sides && !inFace) {
-            if (a < 0.0) a = ovvar_seam(t.x);
-            ay = clamp(ay, 20.0 * OVVAR_D + 0.5, 32.0 * OVVAR_D - 0.5);
-        }
+        if (sides && !inFace) ay = clamp(ay, 20.0 * OVVAR_D + 0.5, 32.0 * OVVAR_D - 0.5);
         return vec2(a, ay) / OVVAR_TEX - vec2(0.0, mirrored ? 0.5 : 0.0);
     }
 

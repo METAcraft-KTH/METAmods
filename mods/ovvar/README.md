@@ -178,16 +178,15 @@ The armour model draws a texel wider than it is tall: the box is inflated (1 on 
 layer, 0.5 on the leggings layer) but its texture is not, so a face n texels wide covers
 n + 2·inflate units while 12 rows cover 12 + 2·inflate — a sleeve texel is 1.5 × 1.167 units,
 a chest texel 1.25 × 1.167. Pixel art hates that, so the shader draws everything of ours on the
-box sides with square pixels: each strip's texels are wrapped around the box at the square
-size, continuous across the corners — a patch hanging over a corner just bends round it — and
-the slack that leaves (the inflated box is wider than its texels) is taken up in the middle of
-the seam faces, the inner face of an arm or leg and both sides of the body, where the garment's
-centre column stretches and patches leave it to the fabric (`ovvar_wrap` in `ovvar.glsl`,
-`Spot.wrap` in Java). Anchor faces — a limb's outer face, the body's front and back — keep their
-art centred. Each texture carries which layer it is for (the layer texel, two left of the
-marker: R = 2·inflate). The ghost preview is a vanilla-drawn trim, so datagen bakes the same
-wrap into the trim textures, to the texel — good enough for a ghost, which is why sewn patches
-never ride as the trim.
+box sides with square pixels: each face's texels centred on the face at the square size, so a
+cell's art sits where the face's own texels do, and the face's margin (the inflated box is
+wider than its texels) showing what continues past the face's edge — the neighbouring face's
+edge column, which is what lies round the corner — so a patch hanging over a corner is not cut;
+at most its edge pixel shows twice across the corner (`ovvar_wrap` in `ovvar.glsl`,
+`Spot.wrap` in Java). Each texture carries which layer it is for (the layer texel, two left of
+the marker: R = 2·inflate). The ghost preview is a vanilla-drawn trim, so datagen bakes the same
+mapping into the trim textures, to the texel — good enough for a ghost, which is why sewn
+patches never ride as the trim.
 
 ## Asymmetric sleeves and legs
 
