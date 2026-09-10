@@ -9,47 +9,47 @@ import nu.metacraft.weather.METAcraftWeather;
 
 public class RainSeasonState extends SavedData {
 
-    private boolean isRainSeason;
-    private double rainPercentage = 0.5;
+	private boolean isRainSeason;
+	private double rainPercentage = 0.5;
 
-    public static final Codec<RainSeasonState> CODEC = RecordCodecBuilder.create(
-            instance -> instance.group(
-                    Codec.BOOL.fieldOf("isRainSeason").forGetter(RainSeasonState::isRainSeason),
-                    Codec.DOUBLE.fieldOf("rainPercentage").forGetter(RainSeasonState::getRainPercentage)
-            ).apply(instance, RainSeasonState::new)
-    );
+	public static final Codec<RainSeasonState> CODEC = RecordCodecBuilder.create(
+			instance -> instance.group(
+					Codec.BOOL.fieldOf("isRainSeason").forGetter(RainSeasonState::isRainSeason),
+					Codec.DOUBLE.fieldOf("rainPercentage").forGetter(RainSeasonState::getRainPercentage)
+			).apply(instance, RainSeasonState::new)
+	);
 
-    private static final SavedDataType<RainSeasonState> TYPE = new SavedDataType<>(
-            METAcraftWeather.getId("rain_season"), RainSeasonState::new, CODEC, null
-    );
+	private static final SavedDataType<RainSeasonState> TYPE = new SavedDataType<>(
+			METAcraftWeather.getId("rain_season"), RainSeasonState::new, CODEC, null
+	);
 
-    public static RainSeasonState get(ServerLevel world) {
-        return world.getDataStorage().computeIfAbsent(TYPE);
-    }
+	public static RainSeasonState get(ServerLevel world) {
+		return world.getDataStorage().computeIfAbsent(TYPE);
+	}
 
-    public RainSeasonState() {
-    }
+	public RainSeasonState() {
+	}
 
-    public RainSeasonState(boolean isRainSeason, double rainPercentage) {
-        this.isRainSeason = isRainSeason;
-        this.rainPercentage = rainPercentage;
-    }
+	public RainSeasonState(boolean isRainSeason, double rainPercentage) {
+		this.isRainSeason = isRainSeason;
+		this.rainPercentage = rainPercentage;
+	}
 
-    public boolean isRainSeason() {
-        return this.isRainSeason;
-    }
+	public boolean isRainSeason() {
+		return this.isRainSeason;
+	}
 
-    public double getRainPercentage() {
-        return this.rainPercentage;
-    }
+	public double getRainPercentage() {
+		return this.rainPercentage;
+	}
 
-    public void setIsRainSeason(boolean isRainSeason) {
-        this.isRainSeason = isRainSeason;
-        this.setDirty();
-    }
+	public void setIsRainSeason(boolean isRainSeason) {
+		this.isRainSeason = isRainSeason;
+		this.setDirty();
+	}
 
-    public void setRainPercentage(double rainPercentage) {
-        this.rainPercentage = rainPercentage;
-        this.setDirty();
-    }
+	public void setRainPercentage(double rainPercentage) {
+		this.rainPercentage = rainPercentage;
+		this.setDirty();
+	}
 }

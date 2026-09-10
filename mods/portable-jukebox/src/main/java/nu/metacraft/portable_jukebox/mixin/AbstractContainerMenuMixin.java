@@ -13,9 +13,9 @@ public class AbstractContainerMenuMixin {
 
 	@Inject(method = "setCarried", at = @At("HEAD"))
 	public void setCursorStack(ItemStack stack, CallbackInfo ci) {
-        PortableJukeboxEntity.transferInScreenHandlerFromUnknown(
+		PortableJukeboxEntity.transferInScreenHandlerFromUnknown(
 				stack, ((AbstractContainerMenu) (Object) this)
-        );
-    }
+		);
+	}
 
 }
