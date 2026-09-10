@@ -107,13 +107,14 @@ float ovvar_pixel(float skinX, float inflate) {
 // texels do; the face is wider than that (the box is inflated), and in its margin the column
 // returned continues past the face's edge — the neighbouring face's edge column, what lies
 // round the corner. faceStart/faceEnd: the face's own texels (strip-local), so the caller
-// knows a margin when it sees one. skinX in skin texels; returns the strip-local texel x.
-float ovvar_wrap(float skinX, float inflate, out float stripStart, out float faceStart, out float faceEnd) {
+// knows a margin when it sees one. skinX in skin texels; returns the strip-local texel x,
+// not yet wrapped into the strip (the strip is a loop: total is its width, for the caller's mod).
+float ovvar_wrap(float skinX, float inflate, out float stripStart, out float total, out float faceStart, out float faceEnd) {
     float p = ovvar_pixel(skinX, inflate), e = 2.0 * inflate;
     bool body = skinX >= 16.0 && skinX < 40.0;
     stripStart = skinX < 16.0 ? 0.0 : body ? 16.0 : 40.0;
     float local = skinX - stripStart;
-    float total = body ? 24.0 : 16.0;
+    total = body ? 24.0 : 16.0;
     // The face: start and texel count (legs and arms: four 4-wide; body: right 4 | front 8 | left 4 | back 8).
     float fs, n;
     if (!body) { fs = floor(local / 4.0) * 4.0; n = 4.0; }
@@ -125,16 +126,18 @@ float ovvar_wrap(float skinX, float inflate, out float stripStart, out float fac
     faceEnd = fs + n;
     float c = fs + n * 0.5;
     float units = (local - c) * ((n + e) / n);   // from the face centre, in model units
-    return mod(c + units / p, total);
+    return c + units / p;
 }
 
-// A fragment's texel x on the side rows → the texel x to draw there; lo/hi: the face's own texels.
-float ovvar_squeezed(float tx, float inflate, out float lo, out float hi) {
-    float stripStart, faceStart, faceEnd;
-    float t = ovvar_wrap(tx / OVVAR_D, inflate, stripStart, faceStart, faceEnd);
-    lo = (stripStart + faceStart) * OVVAR_D;
-    hi = (stripStart + faceEnd) * OVVAR_D;
-    return (stripStart + t) * OVVAR_D;
+// A fragment's texel x on the side rows → the texel x to draw there, wrapped round the strip;
+// edge: the nearest texel of the face's own (the fragment's own, unless it is in the margin);
+// margin: is it?
+float ovvar_squeezed(float tx, float inflate, out float edge, out bool margin) {
+    float stripStart, total, faceStart, faceEnd;
+    float t = ovvar_wrap(tx / OVVAR_D, inflate, stripStart, total, faceStart, faceEnd);
+    margin = t < faceStart || t >= faceEnd;
+    edge = (stripStart + clamp(t, faceStart + 0.5 / OVVAR_D, faceEnd - 0.5 / OVVAR_D)) * OVVAR_D;
+    return (stripStart + mod(t, total)) * OVVAR_D;
 }
 
 // The same in y, about the side rows' centre: only the boots pass on the legs needs it (its rows
@@ -203,15 +206,14 @@ vec2 ovvar_uv(vec2 uv) {
     bool mirrored = limb && ovvar_handed;
     bool sides = t.y >= 20.0 * OVVAR_D;   // the box sides, not the top and bottom faces
     float inflate = ovvar_inflate();
-    float a = t.x, lo = 0.0, hi = OVVAR_TEX.x, ay = t.y;
-    if (sides) {
-        a = ovvar_squeezed(t.x, inflate, lo, hi);
-        ay = ovvar_squeezed_y(t.x, t.y, inflate);
-    }
     // Past the face's own texels is its margin (the inflation): the column continued round the
     // corner is a, the face's own edge column aEdge.
-    bool margin = a < lo || a >= hi;
-    float aEdge = clamp(a, lo + 0.5, hi - 0.5);
+    float a = t.x, aEdge = t.x, ay = t.y;
+    bool margin = false;
+    if (sides) {
+        a = ovvar_squeezed(t.x, inflate, aEdge, margin);
+        ay = ovvar_squeezed_y(t.x, t.y, inflate);
+    }
     bool inFace = !sides || (ay >= 20.0 * OVVAR_D && ay < 32.0 * OVVAR_D);
 
     if (kind.r < 0.5) {

@@ -447,14 +447,24 @@ public final class GeneratedAssets implements DataProvider {
     /**
      * Art on a garment texture at texel column {@code x} (its top-left; the cell's row, centred
      * vertically), clipped to the part's side rows — a big patch hangs over its neighbours, never
-     * off its part.
+     * off its part. The part's strip is a loop round the box, so what hangs off either end of it
+     * comes round to the other end (past the outer face of a limb lies its back face).
      */
     private static Tex placed(Spot spot, Tex art, int x) {
         int y = spot.v * D + (Spot.PX - art.height) / 2;
-        int stripStart = Spot.stripStart(spot) * D, stripEnd = stripStart + Spot.stripWidth(spot) * D;
-        int x0 = Math.max(x, stripStart), y0 = Math.max(y, 20 * D), x1 = Math.min(x + art.width, stripEnd), y1 = Math.min(y + art.height, 32 * D);
-        require(x1 > x0 && y1 > y0, "patch art lands entirely off the " + spot.id() + " cell's part");
-        return Tex.blank(W, H).blit(art, x0 - x, y0 - y, x1 - x0, y1 - y0, x0, y0);
+        int stripStart = Spot.stripStart(spot) * D, stripWidth = Spot.stripWidth(spot) * D;
+        require(art.width <= stripWidth, "patch art is wider than the " + spot.id() + " cell's part");
+        Tex out = Tex.blank(W, H);
+        boolean any = false;
+        for (int ax = 0; ax < art.width; ax++) {
+            int column = stripStart + Math.floorMod(x + ax - stripStart, stripWidth);
+            for (int row = Math.max(y, 20 * D); row < Math.min(y + art.height, 32 * D); row++) {
+                int p = art.get(ax, row - y);
+                if (p != 0) { out = out.with(column, row, p); any = true; }
+            }
+        }
+        require(any, "patch art lands entirely off the " + spot.id() + " cell's part");
+        return out;
     }
 
     /**
@@ -465,29 +475,20 @@ public final class GeneratedAssets implements DataProvider {
      * it shows the face's edge column, as ovvar_uv does.
      */
     private static Tex placedWrapped(Spot spot, Tex art, int x) {
-        int y = spot.v * D + (Spot.PX - art.height) / 2;
+        Tex flat = placed(spot, art, x);   // the art on the strip, wrapped round it
         int stripStart = Spot.stripStart(spot) * D, stripEnd = stripStart + Spot.stripWidth(spot) * D;
         double inflate = Spot.inflate(spot.piece);
         Tex out = Tex.blank(W, H);
-        boolean any = false;
         for (int column = stripStart; column < stripEnd; column++) {
             Spot.Wrapped w = Spot.wrap((column + 0.5) / D, inflate);
-            int here = (int) Math.floor((w.stripStart() + w.column()) * D) - x;   // the continued column's art x
-            int lo = (int) Math.round((w.stripStart() + w.faceStart()) * D) - x, hi = (int) Math.round((w.stripStart() + w.faceEnd()) * D) - 1 - x;
-            int edge = Math.max(lo, Math.min(hi, here));                            // the face's edge column's
-            for (int row = Math.max(y, 20 * D); row < Math.min(y + art.height, 32 * D); row++) {
-                int p = pixel(art, edge, row - y);
-                if (w.margin() && pixel(art, here, row - y) == 0) p = 0;
-                if (p != 0) { out = out.with(column, row, p); any = true; }
+            int here = w.texel(D), edge = w.edgeTexel(D);
+            for (int row = 20 * D; row < 32 * D; row++) {
+                int p = flat.get(edge, row);
+                if (w.margin() && flat.get(here, row) == 0) p = 0;
+                if (p != 0) out = out.with(column, row, p);
             }
         }
-        require(any, "patch art lands entirely off the " + spot.id() + " cell's part");
         return out;
-    }
-
-    /** An art texel, 0 (transparent) outside the art. */
-    private static int pixel(Tex art, int x, int y) {
-        return x < 0 || x >= art.width || y < 0 || y >= art.height ? 0 : art.get(x, y);
     }
 
     /** A placement texture: drawn on one side of the model only (both, for body cells). */

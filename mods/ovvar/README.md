@@ -99,7 +99,8 @@ styles in game — `/ovvar give data_polymiter down` next to `/ovvar give data d
 One line in `Patches.java` (id, name; `true` for a seat patch) and a PNG at
 `src/main/resources/art/ovvar/patches/<id>.png` — 8×8 for a cell-sized patch, 16×8 for a seat
 patch, or any even size up to 16×16 declared in the catalogue line: such a patch is centred on
-its cell and hangs over the neighbours, later-sewn on top (garment and patch textures are the
+its cell and hangs over the neighbours, later-sewn on top, all the way round the part — past a
+limb's outer face lies its back face, the strip being a loop (garment and patch textures are the
 armour layout at twice the skin's resolution, `Spot.DETAIL`). A patch that hangs over never
 rides in the dye colour (the preview library holds cell-sized art), so it shows after the pack
 build; its ghost preview is instant. Then

@@ -66,9 +66,19 @@ public enum Spot {
      * face's margin — and {@code faceStart}/{@code faceEnd} the face's own texels (strip-local),
      * so a margin texel is one whose column falls outside them.
      */
-    public record Wrapped(int stripStart, double faceStart, double faceEnd, double column) {
+    public record Wrapped(int stripStart, int total, double faceStart, double faceEnd, double column) {
         public boolean margin() {
             return column < faceStart || column >= faceEnd;
+        }
+
+        /** The continued column, wrapped round the strip (a loop {@code total} texels round), as a texel x of the texture. */
+        public int texel(int detail) {
+            return (int) Math.floor((stripStart + column - Math.floor(column / total) * total) * detail);
+        }
+
+        /** The face's own texel nearest the continued column (its edge, in the margin), as a texel x of the texture. */
+        public int edgeTexel(int detail) {
+            return (int) Math.floor((stripStart + Math.max(faceStart, Math.min(faceEnd - 0.5 / detail, column))) * detail);
         }
     }
 
@@ -80,7 +90,8 @@ public enum Spot {
         double p = pixel((int) Math.floor(skinX), inflate), e = 2 * inflate;
         boolean body = skinX >= 16 && skinX < 40;
         int stripStart = skinX < 16 ? 0 : body ? 16 : 40;
-        double local = skinX - stripStart, total = body ? 24 : 16;
+        double local = skinX - stripStart;
+        int total = body ? 24 : 16;
         double fs, n;
         if (!body) { fs = Math.floor(local / 4) * 4; n = 4; }
         else if (local < 4) { fs = 0; n = 4; }
@@ -89,8 +100,7 @@ public enum Spot {
         else { fs = 16; n = 8; }
         double c = fs + n / 2;
         double units = (local - c) * ((n + e) / n);
-        double t = c + units / p;
-        return new Wrapped(stripStart, fs, fs + n, t - Math.floor(t / total) * total);
+        return new Wrapped(stripStart, total, fs, fs + n, c + units / p);
     }
 
     /** Start of the strip (skin texels) a cell's part draws: legs 0, body 16, arms 40. */
