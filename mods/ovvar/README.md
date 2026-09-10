@@ -100,13 +100,13 @@ first four patches on a half never need a build, and after that the newest three
 at once while the older ones sit in the pack.
 
 Two more channels carry patches without any pack change, so a normal ovve never causes a
-build. The first plain patch sewn on a half is worn as the item's *armour trim*: datagen makes
+build. The patch being aimed at is worn as the item's *armour trim*: datagen makes
 one trim pattern per (cell, patch) — `data/ovvar/trim_pattern/`, textures under
 `textures/trims/entity/`, an `armor_trims` atlas source whose key palette is every colour any
 patch uses, and two materials: `patch` (identity) and `ghost` (washed out) — and vanilla draws
-it. While a patch is being aimed at, the preview is the trim in the ghost material and the sewn
-patches all go to the dye colour and the pack. Limb cells are tagged in the texture's alpha
-(254 right, 253 left) so the shader can cut the other limb. The next three placements per half ride in the dye colour: a dyeable layer
+it. The trim carries only the preview of the patch being aimed at, in the ghost material; sewn
+patches go to the dye colour and the pack. Limb cells are tagged in the texture's alpha (254
+right, 253 left) so the shader can cut the other limb. Up to three placements per half ride in the dye colour: a dyeable layer
 is only drawn when the item has a dye colour, and that colour reaches the shader as the vertex
 colour — the only per-item data an armour shader ever gets — so it carries the *rank* of the set
 of up to three (cell, design) placements among all such sets (packed as three base-255 digits so
@@ -119,6 +119,19 @@ go through the pack. The tooltip's "Dyed" and trim lines are hidden. Everything 
 exactly as vanilla. The overlay's body (16,16), right arm (40,16) and right leg (0,16) boxes are
 at the same coordinates in the armour layout, so datagen only copies boxes (with the skin's
 second layer painted on, and the left limbs from the skin's own left art).
+
+## Square pixels
+
+The armour model draws a texel wider than it is tall: the box is inflated (1 on the chest
+layer, 0.5 on the leggings layer) but its texture is not, so a face n texels wide covers
+n + 2·inflate units while 12 rows cover 12 + 2·inflate — a sleeve texel is 1.5 × 1.167 units,
+a chest texel 1.25 × 1.167. Pixel art hates that, so the shader draws everything of ours on the
+box sides squeezed in x about the face's centre by height/width (`Spot.squeeze`, `ovvar.glsl`):
+garment and patches on one square grid, the garment's edge columns stretched into the margin
+that leaves, patches leaving it to the fabric. Each texture carries which layer it is for (the
+layer texel, two left of the marker: R = 2·inflate). The ghost preview is a vanilla-drawn trim,
+so datagen bakes the same squeeze into the trim textures, to the texel — good enough for a
+ghost, which is why sewn patches never ride as the trim.
 
 ## Asymmetric sleeves and legs
 

@@ -114,29 +114,32 @@ public final class GeneratedAssets implements DataProvider {
                 if (spot == Spot.SEAT) {
                     Tex r = Tex.blank(W, H).blit(art, 0, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D);
                     Tex l = Tex.blank(W, H).blit(art, Spot.PX, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D).flipX(spot.u * D, spot.v * D, Spot.PX, Spot.PX);
-                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_r.png"), sided(r, Spot.Side.RIGHT));
-                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_l.png"), sided(l, Spot.Side.LEFT));
+                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_r.png"), sided(r, Spot.Side.RIGHT, spot.piece));
+                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_l.png"), sided(l, Spot.Side.LEFT, spot.piece));
                     placementTextures += 2;
                     continue;
                 }
                 Tex tex = Tex.blank(W, H).blit(art, 0, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D);
                 if (spot.side == Spot.Side.LEFT) tex = tex.flipX(spot.u * D, spot.v * D, Spot.PX, Spot.PX);
-                png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(tex, spot.side));
+                png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(tex, spot.side, spot.piece));
                 placementTextures++;
             }
         }
 
-        // The trim channel: one trim pattern per (cell, plain patch). Limb cells are alpha-tagged
-        // with their side (the palette permutation keeps a texel's alpha).
+        // The trim channel (the ghost preview): one trim pattern per (cell, plain patch). Limb cells
+        // are alpha-tagged with their side (the palette permutation keeps a texel's alpha). Vanilla
+        // draws trims, so the squeeze to square pixels (ovvar.glsl) is baked in here, to the texel.
         List<String> trimTextures = new ArrayList<>();
         for (Spot spot : Spot.values()) {
             for (Patches.Patch patch : Patches.all()) {
                 if (!patch.fits(spot) || spot == Spot.SEAT) continue;
                 Placement placement = new Placement(spot, patch.id());
                 String name = Trims.patternName(placement);
-                Tex art = arts.get(patch.id());
-                Tex tex = Tex.blank(W, H).blit(art, 0, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D);
-                if (spot.side == Spot.Side.LEFT) tex = tex.flipX(spot.u * D, spot.v * D, Spot.PX, Spot.PX).tagOpaque(Trims.ALPHA_LEFT);
+                double squeeze = Spot.squeeze(spot), faceCentre = (Spot.faceStart(spot) + Spot.faceWidth(spot) / 2.0) * D;
+                Tex art = arts.get(patch.id()).squeezedX(squeeze);
+                int x = (int) Math.round(faceCentre + (spot.u * D - faceCentre) * squeeze);
+                Tex tex = Tex.blank(W, H).blit(art, 0, 0, art.width, Spot.PX, x, spot.v * D);
+                if (spot.side == Spot.Side.LEFT) tex = tex.flipX(x, spot.v * D, art.width, Spot.PX).tagOpaque(Trims.ALPHA_LEFT);
                 if (spot.side == Spot.Side.RIGHT) tex = tex.tagOpaque(Trims.ALPHA_RIGHT);
                 png(assets.resolve("textures/trims/entity/" + spot.piece.layer + "/" + name + ".png"), tex);
                 trimTextures.add(MOD + ":trims/entity/" + spot.piece.layer + "/" + name);
@@ -195,7 +198,7 @@ public final class GeneratedAssets implements DataProvider {
                 tex = tex.with(CELL_TABLE_X + index / 16, index % 16, rgb(spot.u * D, spot.v * D, spot.side.ordinal()));
             }
             require(tex.get(BLANK_X, BLANK_Y) == 0, "the preview texture draws on the blank texel");
-            png(assets.resolve("textures/entity/equipment/" + piece.layer + "/" + EquipmentJson.previewTexture(piece) + ".png"), marked(tex));
+            png(assets.resolve("textures/entity/equipment/" + piece.layer + "/" + EquipmentJson.previewTexture(piece) + ".png"), marked(tex, piece));
         }
         Ovvar.LOGGER.info("[{} datagen] {} placement textures, {} patches in the preview library", MOD, placementTextures, library.size());
 
@@ -207,14 +210,14 @@ public final class GeneratedAssets implements DataProvider {
             Tex top = Tex.blank(64, 32).blit(overlay, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1])
                     .blit(overlay, RIGHT_ARM[0], RIGHT_ARM[1], RIGHT_ARM[2], RIGHT_ARM[3], RIGHT_ARM[0], RIGHT_ARM[1]);
             require(!top.isEmpty(), chapter.overlay + ".png has an empty body or arm box");
-            layer(chapter, Piece.TOP, "top", marked(withLeft(top, RIGHT_ARM, overlay, LEFT_ARM).scale(D)));
+            layer(chapter, Piece.TOP, "top", withLeft(top, RIGHT_ARM, overlay, LEFT_ARM).scale(D));
             equipment(chapter, Piece.TOP, false);
 
             // The bottom: legs and waistband, on the legs slot's layer; under the top when it's up.
             Tex bottom = Tex.blank(64, 32).blit(overlay, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
                     .blit(overlay, WAIST[0], WAIST[1], WAIST[2], WAIST[3], WAIST[0], WAIST[1]);
             require(!bottom.isEmpty(), chapter.overlay + ".png has an empty leg box");
-            layer(chapter, Piece.BOTTOM, "bottom", marked(withLeft(bottom, RIGHT_LEG, overlay, LEFT_LEG).scale(D)));
+            layer(chapter, Piece.BOTTOM, "bottom", withLeft(bottom, RIGHT_LEG, overlay, LEFT_LEG).scale(D));
             equipment(chapter, Piece.BOTTOM, false);
 
             if (chapter.rollable) {
@@ -234,7 +237,7 @@ public final class GeneratedAssets implements DataProvider {
                             .blit(rolled, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1]);
                     nercabbad = withLeft(cut, RIGHT_LEG, rolled, LEFT_LEG);
                 }
-                layer(chapter, Piece.BOTTOM, "bottom_nercabbad", marked(nercabbad.scale(D)));
+                layer(chapter, Piece.BOTTOM, "bottom_nercabbad", nercabbad.scale(D));
                 equipment(chapter, Piece.BOTTOM, true);
             }
 
@@ -273,22 +276,27 @@ public final class GeneratedAssets implements DataProvider {
                 JsonParser.parseString(EquipmentJson.json(chapter, piece, nercabbad, List.of())));
     }
 
-    /** Our textures carry the marker texel the core shader looks for (see ovvar.glsl). */
-    private static Tex marked(Tex tex) {
+    /**
+     * Our textures carry the marker texel the core shader looks for and, two left of it, the
+     * layer texel: R = 2 × the armour model's inflation for the piece's layer (see ovvar.glsl).
+     */
+    private static Tex marked(Tex tex, Piece piece) {
         require(tex.width == W && tex.height == H, "a garment texture is " + tex.width + "×" + tex.height + ", not " + W + "×" + H);
-        require(tex.get(MARKER_X, MARKER_Y) == 0, "a garment texture draws on the marker texel");
-        return tex.with(MARKER_X, MARKER_Y, MARKER);
+        require(tex.get(MARKER_X, MARKER_Y) == 0 && tex.get(LAYER_X, MARKER_Y) == 0, "a garment texture draws on the marker texels");
+        return tex.with(MARKER_X, MARKER_Y, MARKER).with(LAYER_X, MARKER_Y, rgb((int) Math.round(2 * Spot.inflate(piece)), 0, 0));
     }
 
     /** A placement texture: drawn on one side of the model only (both, for body cells). */
-    private static Tex sided(Tex tex, Spot.Side side) {
-        return marked(tex.with(MARKER_KIND_X, MARKER_Y, rgb(KIND_SIDED, side.ordinal(), 0)));
+    private static Tex sided(Tex tex, Spot.Side side, Piece piece) {
+        return marked(tex.with(MARKER_KIND_X, MARKER_Y, rgb(KIND_SIDED, side.ordinal(), 0)), piece);
     }
 
     // ---- the texel contract with ovvar.glsl
 
     /** Left of the marker: R = kind; sided: G = side; preview: G = cells in the half, B = instant designs. Base textures have none (0). */
     private static final int MARKER_KIND_X = W - 2, KIND_SIDED = 1, KIND_PREVIEW = 2;
+    /** Two left of the marker: R = 2 × the model inflation of the layer the texture is for (the squeeze needs it). */
+    private static final int LAYER_X = W - 3;
     /** Always transparent in a patch texture: what the shader draws where there is nothing. */
     private static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
     /**
@@ -363,6 +371,7 @@ public final class GeneratedAssets implements DataProvider {
     }
 
     private void layer(Chapter chapter, Piece piece, String name, Tex tex) {
+        tex = marked(tex, piece);
         png(assets.resolve("textures/entity/equipment/" + piece.layer + "/" + chapter.id + "/" + name + ".png"), tex);
     }
 

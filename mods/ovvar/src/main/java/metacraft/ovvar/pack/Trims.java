@@ -8,14 +8,13 @@ import net.minecraft.resources.Identifier;
 
 /**
  * The trim channel: an item can wear one armour trim, and a trim is just a texture, so datagen
- * makes one trim pattern per (cell, plain patch) and the first patch sewn on a half rides as its
- * trim — drawn by vanilla, no bits, no pack build. Limb cells are tagged in the texture's alpha
- * ({@value #ALPHA_RIGHT} right, {@value #ALPHA_LEFT} left) so the shader hides the other limb.
- *
- * Two materials: {@value #MATERIAL} draws the art as it is, {@value #GHOST} draws it washed out —
- * the preview of a patch being aimed at wears the trim in that material, so it reads as "not
- * sewn yet" without spending a bit of the dye channel. Materials are colour permutations of a key
- * palette, so datagen's key palette is every colour any patch uses.
+ * makes one trim pattern per (cell, plain patch) — drawn by vanilla, no bits, no pack build. It
+ * carries the preview of the patch being aimed at, in the {@value #GHOST} material (washed out,
+ * so it reads as "not sewn yet"); {@value #MATERIAL} draws the art as it is. Materials are colour
+ * permutations of a key palette, so datagen's key palette is every colour any patch uses. Limb
+ * cells are tagged in the texture's alpha ({@value #ALPHA_RIGHT} right, {@value #ALPHA_LEFT} left)
+ * so the shader hides the other limb. Sewn patches do not ride here: vanilla cannot squeeze the
+ * art to square pixels the way the shader does (Spot.squeeze), only datagen can, texel by texel.
  */
 public final class Trims {
     private Trims() {}

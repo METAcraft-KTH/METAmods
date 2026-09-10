@@ -48,6 +48,38 @@ public enum Spot {
     /** Texels per skin texel in the garment and patch textures (128×64): patch art is {@link #PX} square. */
     public static final int DETAIL = 2;
     public static final int PX = SIZE * DETAIL;
+
+    /** The armour model's inflation for a piece's layer: 1 for the chest layer, 0.5 for the leggings layer. */
+    public static double inflate(Piece piece) {
+        return piece == Piece.TOP ? 1.0 : 0.5;
+    }
+
+    /** Start (skin texel) of the box face a cell is on: legs and arms four 4-wide faces, body right 4 | front 8 | left 4 | back 8. */
+    public static int faceStart(Spot spot) {
+        int u = spot.u;
+        if (u < 16 || u >= 40) return u / 4 * 4;
+        if (u < 20) return 16;
+        if (u < 28) return 20;
+        if (u < 32) return 28;
+        return 32;
+    }
+
+    public static int faceWidth(Spot spot) {
+        int start = faceStart(spot);
+        return start == 20 || start == 32 ? 8 : 4;   // the body's front and back
+    }
+
+    /**
+     * The armour model draws a texel wider than tall: the box is inflated, its texture is not,
+     * so a face n texels wide covers n + 2·inflate units and 12 rows cover 12 + 2·inflate. Art
+     * is squeezed in x by this about its face's centre to come out with square pixels — mirrored
+     * in ovvar.glsl, which does it per fragment for the garment and the patch layers; datagen
+     * bakes it into the trim textures vanilla draws.
+     */
+    public static double squeeze(Spot spot) {
+        double i = inflate(spot.piece), n = faceWidth(spot);
+        return ((12 + 2 * i) / 12) / ((n + 2 * i) / n);
+    }
     /** How far up the mirror strip sits from the limb boxes. */
     public static final int MIRROR_SHIFT = 16;
 

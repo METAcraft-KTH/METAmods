@@ -83,6 +83,45 @@ float ovvar_max_c3(float r) {
     return c;
 }
 
+// The armour model draws a texel wider than it is tall: the box is inflated (1 for the chest
+// layer, 0.5 for the leggings layer) but its texture is not, so a face n texels wide covers
+// n + 2·inflate units and 12 rows cover 12 + 2·inflate. Everything of ours on the box sides —
+// the garment and the patches alike — is drawn squeezed in x about its face's centre by
+// height/width, so pixels come out square and the patch grid stays on the fabric's grid; the
+// garment's edge columns stretch into the margin that leaves, patches leave it to the fabric.
+// Which layer a texture is for is in the layer texel, two left of the marker: R = 2·inflate.
+float ovvar_inflate() {
+    return ovvar_read(OVVAR_MARKER.x - 2.0, OVVAR_MARKER.y).r * 0.5;
+}
+
+// The face a column of the side rows belongs to, in skin texels: (start, width). Legs and arms
+// have four 4-wide faces; the body has right 4 | front 8 | left 4 | back 8.
+vec2 ovvar_face(float skinX) {
+    if (skinX < 16.0) return vec2(floor(skinX / 4.0) * 4.0, 4.0);
+    if (skinX < 20.0) return vec2(16.0, 4.0);
+    if (skinX < 28.0) return vec2(20.0, 8.0);
+    if (skinX < 32.0) return vec2(28.0, 4.0);
+    if (skinX < 40.0) return vec2(32.0, 8.0);
+    return vec2(40.0 + floor((skinX - 40.0) / 4.0) * 4.0, 4.0);
+}
+
+float ovvar_squeeze(float faceWidth, float inflate) {
+    return ((12.0 + 2.0 * inflate) / 12.0) / ((faceWidth + 2.0 * inflate) / faceWidth);
+}
+
+// A fragment's texel x on the side rows → the texel x to draw there (its face's art squeezed
+// about the face centre). Outside [face start, face end) the fragment is in the margin.
+float ovvar_squeezed(float tx, float inflate) {
+    vec2 f = ovvar_face(tx / OVVAR_D) * OVVAR_D;
+    float c = f.x + f.y * 0.5;
+    return (tx - c) / ovvar_squeeze(f.y / OVVAR_D, inflate) + c;
+}
+
+bool ovvar_in_face(float a, float tx) {
+    vec2 f = ovvar_face(tx / OVVAR_D) * OVVAR_D;
+    return a >= f.x && a < f.x + f.y;
+}
+
 // The texture coordinate to sample instead of uv. Call with the program's original coordinate;
 // derivatives must be taken in uniform control flow, hence at the top.
 // Set by ovvar_uv: is this fragment on a mirrored (left) limb face? Meaningful on any texture,
@@ -104,17 +143,29 @@ vec2 ovvar_uv(vec2 uv) {
     vec2 t = uv * OVVAR_TEX;   // texel coordinates
     bool limb = t.y >= 16.0 * OVVAR_D && (t.x < 16.0 * OVVAR_D || (t.x >= 40.0 * OVVAR_D && t.x < 56.0 * OVVAR_D));
     bool mirrored = limb && ovvar_handed;
+    bool sides = t.y >= 20.0 * OVVAR_D;   // the box sides, not the top and bottom faces
+    float inflate = ovvar_inflate();
+    float a = sides ? ovvar_squeezed(t.x, inflate) : t.x;
+    bool inFace = !sides || ovvar_in_face(a, t.x);
 
     if (kind.r < 0.5) {
-        // Base garment: the mirrored limb reads the strip above.
-        return mirrored ? uv - vec2(0.0, 0.5) : uv;
+        // Base garment: squeezed, the margin filled by the face's edge column; the mirrored limb
+        // reads the strip above.
+        if (sides && !inFace) {
+            vec2 f = ovvar_face(t.x / OVVAR_D) * OVVAR_D;
+            a = clamp(a, f.x + 0.5, f.x + f.y - 0.5);
+        }
+        return vec2(a / OVVAR_TEX.x, uv.y - (mirrored ? 0.5 : 0.0));
     }
 
     if (kind.r < 1.5) {
-        // Placement: hide it on the limb it is not for.
+        // Placement: hide it on the limb it is not for; squeezed, the margin left to the fabric.
         if (limb && ((kind.g > 0.5 && kind.g < 1.5 && mirrored) || (kind.g > 1.5 && !mirrored))) return OVVAR_BLANK;
-        return uv;
+        if (!inFace) return OVVAR_BLANK;
+        return vec2(a / OVVAR_TEX.x, uv.y);
     }
+    if (!inFace) return OVVAR_BLANK;
+    t.x = a;   // the preview is looked up in squeezed texels too
 
     // Preview: unrank the instant set from the dye colour (see Looks.rank).
     float designs = kind.b, m = kind.g * designs;

@@ -117,18 +117,16 @@ public final class Looks {
         if (preview != null && (preview.piece() != piece || !instant(preview))) preview = null;
 
         // A patch being aimed at is worn as the trim, in the ghost material (a seat patch cannot be a
-        // trim and previews solid in the dye bits instead); otherwise the first patch sewn on the half is.
-        Placement trim;
+        // trim and previews solid in the dye bits instead). Sewn patches never ride as the trim:
+        // vanilla draws trims, so their art is squeezed to square pixels texel by texel, which is
+        // fine for a ghost and not for the real thing.
+        Placement trim = null;
         boolean ghost = preview != null && Trims.fits(preview);
         if (ghost) {
             trim = preview;
             preview = null;
-        } else {
-            trim = all.stream().filter(Trims::fits).findFirst().orElse(null);
-            if (trim != null && preview != null && (preview.spot() == trim.spot() || preview.spot().overlapping().contains(trim.spot()))) trim = null;
         }
         List<Placement> core = new ArrayList<>(all);
-        if (!ghost && trim != null) core.remove(trim);
 
         // The longest prefix (in sewing order) the pack already has; the rest rides in the dye bits
         // if it fits there (few enough, designs the channel can name), else the pack must catch up.
