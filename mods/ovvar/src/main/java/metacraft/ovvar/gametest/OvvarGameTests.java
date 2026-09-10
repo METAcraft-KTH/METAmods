@@ -80,7 +80,7 @@ public final class OvvarGameTests {
         ServerPlayer player = sewer(helper, stand);
         Patches.Patch beer = Patches.get("beer");
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModContent.patchItem(beer), 3));
-        Placement placement = new Placement(Spot.FRONT_TOP_LEFT, beer.id());
+        Placement placement = new Placement(Spot.FRONT_TOP_LEFT, beer);
 
         SewingGame.start(player, stand, placement, beer);
         CompoundTag stale = SewingGame.nextPull(player);
@@ -164,7 +164,7 @@ public final class OvvarGameTests {
         ServerPlayer player = sewer(helper, stand);
         Patches.Patch beer = Patches.get("beer");
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModContent.patchItem(beer), 3));
-        SewingGame.start(player, stand, new Placement(Spot.BACK_TOP_RIGHT, beer.id()), beer);
+        SewingGame.start(player, stand, new Placement(Spot.BACK_TOP_RIGHT, beer), beer);
         SewingGame.click(player, SewingGame.PULL, Optional.of(SewingGame.nextPull(player)));
         SewingGame.click(player, SewingGame.CUT, Optional.empty());
         if (SewingGame.nextPull(player) != null) helper.fail("seam still open after cutting");

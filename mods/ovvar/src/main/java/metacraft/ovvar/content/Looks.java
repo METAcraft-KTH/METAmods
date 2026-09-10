@@ -8,11 +8,9 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.equipment.EquipmentAsset;
 import net.minecraft.world.item.equipment.EquipmentAssets;
+import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * What the client draws for a stack. The sewn patches live in {@code ovvar:patches} as
@@ -36,70 +34,50 @@ public final class Looks {
 
     /** Can this placement ride in the dye colour? (Its design must be among the first {@value #INSTANT_DESIGNS}, and cell-sized.) */
     public static boolean instant(Placement p) {
-        return Patches.code(p.patch()) <= INSTANT_DESIGNS && !Patches.get(p.patch()).oversize();
+        return Patches.code(p.patch()) <= INSTANT_DESIGNS && !p.patch().oversize();
     }
 
     // ---- placements
 
     /** All placements in sewing order (no preview). Pre-combo entries are placed on the fly. */
-    public static List<Placement> sewn(ItemStack stack) {
-        List<Placement> out = new ArrayList<>();
-        List<String> list = stack.get(ModComponents.PATCHES);
-        if (list == null) return out;
-        for (String entry : list) {
-            if (Placement.isKey(entry)) out.add(Placement.parse(entry));
-            else migrateEntry(entry, out, stack);
-        }
-        return out;
+    public static Optional<SpotPlacements> sewn(ItemStack stack) {
+        return Optional.ofNullable(stack.get(ModComponents.PATCHES));
     }
 
-    public static List<Placement> sewn(ItemStack stack, Piece piece) {
-        return sewn(stack).stream().filter(p -> p.piece() == piece).toList();
+    public static Optional<SpotPlacements> sewn(ItemStack stack, Piece piece) {
+        return sewn(stack).flatMap(placements -> placements.forPiece(piece));
     }
 
     /** Replace the sewn placements (order kept: it is the sewing order). */
-    public static void setSewn(ItemStack stack, List<Placement> placements) {
-        if (placements.isEmpty()) stack.remove(ModComponents.PATCHES);
-        else stack.set(ModComponents.PATCHES, placements.stream().map(Placement::key).toList());
+    public static void setSewn(ItemStack stack, @Nullable SpotPlacements placements) {
+        stack.set(ModComponents.PATCHES, placements);
     }
 
     /** Sew a patch on a spot, replacing whatever was there or overlapping it. */
     public static void sew(ItemStack stack, Placement placement) {
-        List<Placement> list = new ArrayList<>(sewn(stack));
-        list.removeIf(p -> p.spot() == placement.spot() || placement.spot().overlapping().contains(p.spot()));
-        list.add(placement);
-        setSewn(stack, list);
+        setSewn(stack, SpotPlacements.apply(sewn(stack), placement));
     }
 
     /** Unpick the patch on a spot; the patch id, or null if there was none. */
-    public static String unpick(ItemStack stack, Spot spot) {
-        List<Placement> list = new ArrayList<>(sewn(stack));
-        String patch = null;
-        for (Placement p : list) if (p.spot() == spot) patch = p.patch();
+    public static Patches.Patch unpick(ItemStack stack, Spot spot) {
+        var patches = sewn(stack);
+        Patches.Patch patch = patches.flatMap(p -> p.get(spot)).orElse(null);
         if (patch == null) return null;
-        list.removeIf(p -> p.spot() == spot);
-        setSewn(stack, list);
+        setSewn(stack, patches.get().remove(spot).orElse(null));
         return patch;
     }
 
     public static Placement at(ItemStack stack, Spot spot) {
-        for (Placement p : sewn(stack)) if (p.spot() == spot) return p;
-        return null;
+        return sewn(stack).flatMap(p -> p.getPlacement(spot)).orElse(null);
     }
 
     public static void setPreview(ItemStack stack, Placement placement) {
         if (placement == null) stack.remove(ModComponents.PREVIEW);
-        else stack.set(ModComponents.PREVIEW, placement.key());
+        else stack.set(ModComponents.PREVIEW, placement);
     }
 
     public static Placement preview(ItemStack stack) {
-        String key = stack.get(ModComponents.PREVIEW);
-        return key == null || !Placement.isKey(key) ? null : Placement.parse(key);
-    }
-
-    /** All patch ids on the stack (sewn), for tooltips and commands. */
-    public static List<String> patches(ItemStack stack) {
-        return sewn(stack).stream().map(Placement::patch).toList();
+        return stack.get(ModComponents.PREVIEW);
     }
 
     // ---- what the client gets
@@ -110,7 +88,7 @@ public final class Looks {
      * and — legs only, when the wearer's feet slot carries our second channel — the dye bits of
      * the boots pass, three more.
      */
-    public record Look(Placement trim, boolean ghost, String combo, int dye, int feetDye) {}
+    public record Look(Placement trim, boolean ghost, Combos.Combo combo, int dye, int feetDye) {}
 
     /** Does the wearer's feet slot carry the second channel for this ovve? (Set every tick by the wearer's sync.) */
     public static boolean feetChannel(ItemStack stack) {
@@ -119,7 +97,7 @@ public final class Looks {
 
     /** @param player who the packet is for (their pack may be older than the current one), or null */
     public static Look look(ItemStack stack, Piece piece, UUID player) {
-        List<Placement> all = sewn(stack, piece);
+        var all = sewn(stack, piece);
         Placement preview = preview(stack);
         if (preview != null && preview.piece() != piece) preview = null;
 
@@ -135,7 +113,7 @@ public final class Looks {
         } else if (preview != null && !instant(preview)) {
             preview = null;
         }
-        List<Placement> core = new ArrayList<>(all);
+        List<Placement> core = SpotPlacements.asPlacementList(all);
 
         // The longest prefix (in sewing order) the pack already has; the rest rides in the dye bits
         // if it fits there (few enough, designs the channel can name), else the pack must catch up.
@@ -212,66 +190,5 @@ public final class Looks {
         if (bits < 0 || bits >= 255 * 255 * 255) throw new IllegalArgumentException("bits out of range: " + bits);
         int b = bits % 255 + 1, g = bits / 255 % 255 + 1, r = bits / (255 * 255) + 1;
         return r << 16 | g << 8 | b;
-    }
-
-    static int decode(int dye) {
-        int r = (dye >> 16 & 0xFF) - 1, g = (dye >> 8 & 0xFF) - 1, b = (dye & 0xFF) - 1;
-        if (r < 0 || g < 0 || b < 0) throw new IllegalArgumentException("not an ovvar dye colour: " + Integer.toHexString(dye));
-        return r * 255 * 255 + g * 255 + b;
-    }
-
-    // ---- older formats
-
-    /** Before free placement the list held field ids ({@code chest_l=beer}) or, earlier, bare patch ids. */
-    private static final Map<String, Spot> LEGACY_FIELDS = Map.ofEntries(
-            Map.entry("chest_l", Spot.FRONT_TOP_RIGHT), Map.entry("chest_r", Spot.FRONT_TOP_LEFT),
-            Map.entry("back_l", Spot.BACK_TOP_LEFT), Map.entry("back_r", Spot.BACK_TOP_RIGHT),
-            Map.entry("sleeve_l", Spot.SLEEVE_OUT_TOP_L), Map.entry("sleeve_r", Spot.SLEEVE_OUT_TOP_R),
-            Map.entry("leg_l", Spot.LEG_OUT_TOP_L), Map.entry("leg_r", Spot.LEG_OUT_TOP_R),
-            Map.entry("leg_l_front", Spot.LEG_FRONT_TOP_L), Map.entry("leg_r_front", Spot.LEG_FRONT_TOP_R),
-            Map.entry("seat", Spot.SEAT));
-
-    private static void migrateEntry(String entry, List<Placement> out, ItemStack stack) {
-        int eq = entry.indexOf('=');
-        String patch = eq < 0 ? entry : entry.substring(eq + 1);
-        // A cell that no longer exists (spot.patch with an unknown spot): the patch moves to a free cell.
-        int dot = patch.indexOf('.');
-        if (dot > 0 && !Patches.exists(patch) && Patches.exists(patch.substring(dot + 1))) patch = patch.substring(dot + 1);
-        if (!Patches.exists(patch)) {
-            Ovvar.LOGGER.warn("[ovvar] dropping unknown legacy patch entry '{}' from {}", entry, stack);
-            return;
-        }
-        Patches.Patch p = Patches.get(patch);
-        Spot legacy = eq < 0 ? null : LEGACY_FIELDS.get(entry.substring(0, eq));
-        Spot spot = legacy;
-        if (legacy == null || !p.fits(legacy) || out.stream().anyMatch(o -> o.spot() == legacy)) {
-            // First free cell that takes it.
-            spot = null;
-            for (Spot s : Spot.values()) {
-                if (!p.fits(s)) continue;
-                Spot candidate = s;
-                if (out.stream().noneMatch(o -> o.spot() == candidate || candidate.overlapping().contains(o.spot()))) { spot = s; break; }
-            }
-        }
-        if (spot == null) {
-            Ovvar.LOGGER.warn("[ovvar] no free cell for legacy patch entry '{}' on {}", entry, stack);
-            return;
-        }
-        out.add(new Placement(spot, patch));
-    }
-
-    /** Rewrites an older patch list in the current format; true if it changed. */
-    public static boolean migrate(ItemStack stack) {
-        List<String> list = stack.get(ModComponents.PATCHES);
-        if (list == null || list.stream().allMatch(Placement::isKey)) return false;
-        List<Placement> sewn = sewn(stack);
-        setSewn(stack, sewn);
-        Ovvar.LOGGER.info("[ovvar] migrated legacy patches {} -> {}", list, sewn);
-        return true;
-    }
-
-    static OvveItem ovve(ItemStack stack) {
-        if (!(stack.getItem() instanceof OvveItem item)) throw new IllegalArgumentException("not an ovve: " + stack);
-        return item;
     }
 }

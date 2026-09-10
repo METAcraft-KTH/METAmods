@@ -140,7 +140,7 @@ public final class GeneratedAssets implements DataProvider {
         for (Spot spot : Spot.values()) {
             for (Patches.Patch patch : Patches.all()) {
                 if (!patch.fits(spot) || spot == Spot.SEAT) continue;
-                Placement placement = new Placement(spot, patch.id());
+                Placement placement = new Placement(spot, patch);
                 String name = Trims.patternName(placement);
                 Tex art = arts.get(patch.id());
                 Tex tex = placedWrapped(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + patch.offsetX());
@@ -181,7 +181,7 @@ public final class GeneratedAssets implements DataProvider {
         Map<String, int[]> library = new LinkedHashMap<>();
         int next = 0;
         for (Patches.Patch patch : Patches.all()) {
-            if (Patches.code(patch.id()) > Looks.INSTANT_DESIGNS || patch.oversize()) continue;   // never in the dye colour: no library entry
+            if (Patches.code(patch) > Looks.INSTANT_DESIGNS || patch.oversize()) continue;   // never in the dye colour: no library entry
             require(next + patch.cells() <= LIBRARY.size(), "the preview library is full (" + LIBRARY.size() + " cells); make it bigger");
             library.put(patch.id(), LIBRARY.get(next));
             next += patch.cells();
@@ -201,7 +201,7 @@ public final class GeneratedAssets implements DataProvider {
                 if (at == null) continue;
                 Tex art = arts.get(patch.id());
                 tex = tex.blit(art, 0, 0, art.width, art.height, at[0] * D, at[1] * D);
-                int design = Patches.code(patch.id()) - 1;
+                int design = Patches.code(patch) - 1;
                 tex = tex.with(PATCH_TABLE_X + design / 16, design % 16, rgb(at[0] * D, at[1] * D, patch.cells()));
             }
             for (int index = 0; index < cells.size(); index++) {

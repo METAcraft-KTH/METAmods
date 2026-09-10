@@ -60,7 +60,7 @@ public final class SewRecipe implements SmithingRecipe {
     public ItemStack assemble(SmithingRecipeInput input) {
         ItemStack out = input.base().copyWithCount(1);
         Patches.Patch patch = ((PatchItem) input.addition().getItem()).patch;
-        Looks.sew(out, new Placement(Spot.SEAT, patch.id()));
+        Looks.sew(out, new Placement(Spot.SEAT, patch));
         return out;
     }
 

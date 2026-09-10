@@ -18,18 +18,17 @@ public final class ModComponents {
     private ModComponents() {}
 
     /** {@code spot.patch} placements sewn on the ovve, in sewing order (see Looks). Absent or empty = plain ovve. */
-    public static final DataComponentType<List<String>> PATCHES = register("patches",
-            DataComponentType.<List<String>>builder()
-                    .persistent(Codec.STRING.listOf())
-                    .networkSynchronized(ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list())));
+    public static final DataComponentType<SpotPlacements> PATCHES = register("patches",
+            DataComponentType.<SpotPlacements>builder()
+                    .persistent(SpotPlacements.CODEC));
 
     /** One {@code field=patch} being previewed on an armour stand while a player aims a patch at it. Never sewn. */
-    public static final DataComponentType<String> PREVIEW = register("preview",
-            DataComponentType.<String>builder().persistent(Codec.STRING).networkSynchronized(ByteBufCodecs.STRING_UTF8));
+    public static final DataComponentType<Placement> PREVIEW = register("preview",
+            DataComponentType.<Placement>builder().persistent(Placement.CODEC));
 
     /** Whether the ovve's top is worn up (sleeves on) rather than hanging at the waist. Absent = down. */
     public static final DataComponentType<Boolean> TOP_UP = register("top_up",
-            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
+            DataComponentType.<Boolean>builder().persistent(Codec.BOOL));
 
     /**
      * On an ovve worn by someone whose feet slot carries our second dye channel (a companion

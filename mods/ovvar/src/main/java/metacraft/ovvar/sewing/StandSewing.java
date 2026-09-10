@@ -123,7 +123,7 @@ public final class StandSewing {
             Spot spot = aimed == null ? null : spotFor(aimed.spot(), patchItem.patch);
             logAim("click " + patchItem.patch.id(), player, stand, aimed, spot);
             if (spot == null) return InteractionResult.FAIL;
-            Placement placement = new Placement(spot, patchItem.patch.id());
+            Placement placement = new Placement(spot, patchItem.patch);
             if (OvvarConfig.get().sewingMinigame()) {
                 SewingGame.start(player, stand, placement, patchItem.patch);
             } else {
@@ -137,10 +137,10 @@ public final class StandSewing {
             if (there == null && Spot.SEAT_CELLS.contains(spot)) { spot = Spot.SEAT; there = Looks.at(ovve, spot); }
             if (there == null) return InteractionResult.PASS;
             Looks.unpick(ovve, spot);
-            ItemStack back = new ItemStack(ModContent.patchItem(Patches.get(there.patch())));
+            ItemStack back = new ItemStack(ModContent.patchItem(there.patch()));
             if (!player.getInventory().add(back)) player.drop(back, false);
             celebrate(level, aimed.where(), false);
-            player.sendOverlayMessage(Component.literal(Patches.get(there.patch()).name() + " unpicked"));
+            player.sendOverlayMessage(Component.literal(there.patch().name() + " unpicked"));
             return InteractionResult.SUCCESS;
         }
         return InteractionResult.PASS;
@@ -191,7 +191,7 @@ public final class StandSewing {
                     if (hit == null) continue;
                     Spot spot = spotFor(hit.spot(), patchItem.patch);
                     if (spot != null) {
-                        current = new Aim(stand.getUUID(), new Placement(spot, patchItem.patch.id()));
+                        current = new Aim(stand.getUUID(), new Placement(spot, patchItem.patch));
                         aimedOvve = ovve;
                         if (server.getTickCount() % 10 == 0) player.sendOverlayMessage(Component.literal("→ " + spot.label()));
                     } else if (server.getTickCount() % 20 == 0) {

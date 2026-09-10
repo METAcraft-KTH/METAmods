@@ -152,9 +152,9 @@ public final class OvveFeet {
     private static ItemStack cuffsFor(ItemStack ovve) {
         OvveItem item = (OvveItem) ovve.getItem();
         ItemStack cuffs = new ItemStack(ModContent.feet(item.chapter));
-        List<String> patches = ovve.get(ModComponents.PATCHES);
+        SpotPlacements patches = ovve.get(ModComponents.PATCHES);
         if (patches != null) cuffs.set(ModComponents.PATCHES, patches);
-        String preview = ovve.get(ModComponents.PREVIEW);
+        Placement preview = ovve.get(ModComponents.PREVIEW);
         if (preview != null) cuffs.set(ModComponents.PREVIEW, preview);
         cuffs.set(ModComponents.FEET_CHANNEL, true);
         return cuffs;

@@ -34,9 +34,9 @@ public final class EquipmentJson {
     /** Texture names (without namespace and layer folder) a placement is drawn with: one, or two for the seat. */
     public static List<String> textures(Placement placement) {
         if (placement.spot() == Spot.SEAT) {
-            return List.of("patch/seat/" + placement.patch() + "_r", "patch/seat/" + placement.patch() + "_l");
+            return List.of("patch/seat/" + placement.patch().id() + "_r", "patch/seat/" + placement.patch().id() + "_l");
         }
-        return List.of("patch/" + placement.spot().id() + "/" + placement.patch());
+        return List.of("patch/" + placement.spot().id() + "/" + placement.patch().id());
     }
 
     public static String previewTexture(Piece piece) {
@@ -67,7 +67,6 @@ public final class EquipmentJson {
         layers.add(layer(baseTexture(chapter, piece, nercabbad), false));
         for (Placement p : placements) {
             if (p.piece() != piece) throw new IllegalArgumentException(p + " is not on the " + piece);
-            Patches.get(p.patch());
             for (String t : textures(p)) layers.add(layer(Ovvar.MOD_ID + ":" + t, false));
         }
         layers.add(layer(Ovvar.MOD_ID + ":" + previewTexture(piece), true));
@@ -86,8 +85,8 @@ public final class EquipmentJson {
     }
 
     /** The pack path of a combination's definition. */
-    public static String packPath(Chapter chapter, Piece piece, boolean nercabbad, String combo) {
-        return "assets/" + Ovvar.MOD_ID + "/equipment/" + metacraft.ovvar.content.Looks.assetPath(chapter, piece, nercabbad, combo) + ".json";
+    public static String packPath(Chapter chapter, Piece piece, boolean nercabbad, Combos.Combo combo) {
+        return "assets/" + Ovvar.MOD_ID + "/equipment/" + metacraft.ovvar.content.Looks.assetPath(chapter, piece, nercabbad, combo.key()) + ".json";
     }
 
     /** All (chapter, nercabbad) variants a piece's combination needs. */

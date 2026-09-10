@@ -178,7 +178,7 @@ public final class SewingGame {
 
     /** The dialog for any state of any seam, for the game tests; the pull payload carries token 0. */
     public static Dialog dialog(Chapter chapter, Patches.Patch patch, Spot spot, int stitches, int done) {
-        return dialog(new Game(new UUID(0, 0), chapter, new Placement(spot, patch.id()), patch, 0, stitches, done));
+        return dialog(new Game(new UUID(0, 0), chapter, new Placement(spot, patch), patch, 0, stitches, done));
     }
 
     private static Dialog dialog(Game game) {

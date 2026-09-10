@@ -5,14 +5,8 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
-import metacraft.ovvar.content.Chapter;
-import metacraft.ovvar.content.Looks;
-import metacraft.ovvar.content.ModComponents;
-import metacraft.ovvar.content.ModContent;
-import metacraft.ovvar.content.OvveItem;
-import metacraft.ovvar.content.Patches;
-import metacraft.ovvar.content.Placement;
-import metacraft.ovvar.content.Spot;
+import com.mojang.serialization.JavaOps;
+import metacraft.ovvar.content.*;
 import metacraft.ovvar.sewing.StandSewing;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
@@ -27,6 +21,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,6 +50,9 @@ public final class ModCommands {
             new DynamicCommandExceptionType(name -> Component.literal("Unknown chapter '" + name + "'"));
     private static final DynamicCommandExceptionType UNKNOWN_PATCH =
             new DynamicCommandExceptionType(name -> Component.literal("Unknown patch '" + name + "'"));
+    private static final DynamicCommandExceptionType INVALID_PATCHES =
+            new DynamicCommandExceptionType(name -> Component.literal("Invalid patches: " + name));
+
     private static final DynamicCommandExceptionType NOT_AN_OVVE =
             new DynamicCommandExceptionType(what -> Component.literal("Hold an ovve in your main hand, not " + what));
 
@@ -99,7 +97,7 @@ public final class ModCommands {
                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(Stream.concat(Stream.of("all", "none"),
                         Stream.concat(Patches.all().stream().map(Patches.Patch::id),
                                 Arrays.stream(Spot.values()).flatMap(spot -> Patches.all().stream().filter(p -> p.fits(spot))
-                                        .map(p -> new Placement(spot, p.id()).key())))), builder));
+                                        .map(p -> new Placement(spot, p).key())))), builder));
     }
 
     private static Chapter chapter(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
@@ -117,9 +115,9 @@ public final class ModCommands {
             int i = 0;
             for (Spot spot : Spot.values()) {
                 if (spot == Spot.SEAT || Spot.SEAT_CELLS.contains(spot)) continue;
-                out.add(new Placement(spot, plain.get(i++ % plain.size()).id()));
+                out.add(new Placement(spot, plain.get(i++ % plain.size())));
             }
-            Patches.all().stream().filter(Patches.Patch::seat).findFirst().ifPresent(p -> out.add(new Placement(Spot.SEAT, p.id())));
+            Patches.all().stream().filter(Patches.Patch::seat).findFirst().ifPresent(p -> out.add(new Placement(Spot.SEAT, p)));
             return out;
         }
         for (String token : s.split("[,\\s]+")) {
@@ -134,15 +132,19 @@ public final class ModCommands {
             Spot free = Arrays.stream(Spot.values()).filter(patch::fits)
                     .filter(spot -> out.stream().noneMatch(o -> o.spot() == spot || spot.overlapping().contains(o.spot())))
                     .findFirst().orElseThrow(() -> UNKNOWN_PATCH.create(token + " (no free cell takes it)"));
-            out.add(new Placement(free, token));
+            out.add(new Placement(free, patch));
         }
         return out;
     }
 
-    private static ItemStack ovve(Chapter chapter, boolean topUp, List<Placement> patches) {
+    private static @Nullable SpotPlacements fromList(List<Placement> patches) throws CommandSyntaxException {
+        return patches.isEmpty() ? null : SpotPlacements.CODEC.parse(JavaOps.INSTANCE, patches).getOrThrow(INVALID_PATCHES::create);
+    }
+
+    private static ItemStack ovve(Chapter chapter, boolean topUp, List<Placement> patches) throws CommandSyntaxException {
         ItemStack stack = new ItemStack(ModContent.ovve(chapter));
         OvveItem.setTopUp(stack, topUp && chapter.rollable || !chapter.rollable);
-        Looks.setSewn(stack, patches);
+        Looks.setSewn(stack, fromList(patches));
         return stack;
     }
 
@@ -162,7 +164,7 @@ public final class ModCommands {
         ItemStack held = player.getMainHandItem();
         if (!(held.getItem() instanceof OvveItem)) throw NOT_AN_OVVE.create(held.getItem().toString());
         List<Placement> patches = patches(StringArgumentType.getString(ctx, "patches"));
-        Looks.setSewn(held, patches);
+        Looks.setSewn(held, fromList(patches));
         ctx.getSource().sendSuccess(() -> Component.literal("Sewn: " + (patches.isEmpty() ? "nothing" : Placement.combo(patches))), false);
         return 1;
     }
@@ -217,7 +219,7 @@ public final class ModCommands {
         looks.add(ovve(chapter, true, List.of())); labels.add("top up");
         for (Patches.Patch p : Patches.all()) {
             Spot spot = p.seat() ? Spot.SEAT : Spot.FRONT_TOP_RIGHT;
-            looks.add(ovve(chapter, true, List.of(new Placement(spot, p.id()))));
+            looks.add(ovve(chapter, true, List.of(new Placement(spot, p))));
             labels.add(p.name() + " (" + spot.label() + ")");
         }
         List<Placement> all = patches("all");
@@ -240,7 +242,7 @@ public final class ModCommands {
             if (OvveItem.topUp(ovve)) {
                 // The companion top is placed by hand so it shows before the first tick.
                 ItemStack top = new ItemStack(ModContent.top(chapter));
-                List<String> patches = ovve.get(ModComponents.PATCHES);
+                var patches = ovve.get(ModComponents.PATCHES);
                 if (patches != null) top.set(ModComponents.PATCHES, patches);
                 stand.setItemSlot(EquipmentSlot.CHEST, top);
             }
@@ -254,12 +256,10 @@ public final class ModCommands {
     }
 
     private static int minigame(CommandContext<CommandSourceStack> ctx, Boolean on, int stitches) {
-        OvvarConfig config = OvvarConfig.get();
         if (on != null) {
-            config = new OvvarConfig(on, stitches > 0 ? stitches : config.stitches(), config.pushAfterCalmSeconds(), config.pushCalmDistance());
-            config.save();
+            OvvarConfig.modify(config -> config.minigame(on, stitches));
         }
-        OvvarConfig now = config;
+        OvvarConfig now = OvvarConfig.get();
         ctx.getSource().sendSuccess(() -> Component.literal("Stitching minigame " + (now.sewingMinigame() ? "on, " + now.stitches() + " stitches" : "off")), true);
         return 1;
     }

@@ -24,7 +24,7 @@ public class Ovvar implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        OvvarConfig.load();
+        OvvarConfig.get();
         ModContent.register();
         SewRecipe.init();
         OvveTop.init();

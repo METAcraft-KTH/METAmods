@@ -79,9 +79,9 @@ public final class OvveTop {
     private static ItemStack topFor(ItemStack ovve) {
         OvveItem item = (OvveItem) ovve.getItem();
         ItemStack top = new ItemStack(ModContent.top(item.chapter));
-        List<String> patches = ovve.get(ModComponents.PATCHES);
+        SpotPlacements patches = ovve.get(ModComponents.PATCHES);
         if (patches != null) top.set(ModComponents.PATCHES, patches);
-        String preview = ovve.get(ModComponents.PREVIEW);
+        Placement preview = ovve.get(ModComponents.PREVIEW);
         if (preview != null) top.set(ModComponents.PREVIEW, preview);
         return top;
     }
@@ -92,14 +92,16 @@ public final class OvveTop {
      * patch as the armour trim (both hidden from the tooltip), and no way to dye it at a cauldron
      * or crafting table.
      */
-    static void dress(ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad,
-                      PacketContext context, HolderLookup.Provider lookup) {
+    static void dress(
+            ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad,
+            PacketContext context, HolderLookup.Provider lookup
+    ) {
         if (base == null) throw new IllegalStateException("garment lost its equippable component");
         GameProfile profile = context == null ? null : context.get(PacketContext.GAME_PROFILE);
         Looks.Look look = Looks.look(garment, piece, profile == null ? null : profile.id());
         client.set(DataComponents.EQUIPPABLE, Equippable.builder(base.slot())
                 .setEquipSound(base.equipSound())
-                .setAsset(Looks.asset(chapter, piece, nercabbad, look.combo()))
+                .setAsset(Looks.asset(chapter, piece, nercabbad, look.combo().key()))
                 .setDamageOnHurt(base.damageOnHurt())
                 .setSwappable(false)
                 .setDispensable(false)

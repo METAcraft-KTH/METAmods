@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.*;
 import eu.pb4.polymer.autohost.api.ResourcePackDataProvider;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import eu.pb4.polymer.resourcepack.impl.PolymerResourcePackMod;
@@ -32,20 +33,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import net.minecraft.world.phys.Vec3;
+import java.util.*;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.UUID;
+import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.NonNull;
+import org.pcollections.TreePVector;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -75,21 +68,25 @@ public final class Combos {
     private static final String FILE = "ovvar/combos.json";
 
     /** piece:combo keys. known = requested or loaded; BUILT = per generation, what that pack holds. */
-    private static final Set<String> KNOWN = ConcurrentHashMap.newKeySet();
-    private static final Map<Integer, Set<String>> BUILT = new ConcurrentHashMap<>();
+    private static final Set<KeyedCombo> KNOWN = ConcurrentHashMap.newKeySet();
+    private static final Map<Integer, Set<KeyedCombo>> BUILT = new ConcurrentHashMap<>();
     private static volatile int generation;
-    private static volatile Set<String> building = Set.of();
+    private static volatile Set<KeyedCombo> building = Set.of();
     private static final AtomicLong deadline = new AtomicLong(Long.MAX_VALUE);
     private static final AtomicBoolean dirty = new AtomicBoolean();
     private static volatile boolean generating;
     private static MinecraftServer server;
+
+    private static final Codec<List<KeyedCombo>> COMBOS_CONFIG_CODEC = KeyedCombo.KEY_CODEC.listOf().fieldOf(
+            "combos"
+    ).codec();
 
     /** Per player: the generation pushed to them, the one they confirmed loaded, who needs a push, when they last got one. */
     private static final Map<UUID, Integer> PUSHED = new ConcurrentHashMap<>(), LOADED = new ConcurrentHashMap<>();
     private static final Set<UUID> NEEDS_PUSH = ConcurrentHashMap.newKeySet();
     private static final Map<UUID, Long> LAST_PUSH = new ConcurrentHashMap<>();
     /** Who asked for a combination that is not built yet: they get the pack once it is. */
-    private static final Map<String, Set<UUID>> REQUESTED_BY = new ConcurrentHashMap<>();
+    private static final Map<KeyedCombo, Set<UUID>> REQUESTED_BY = new ConcurrentHashMap<>();
 
     public static void init() {
         ServerLifecycleEvents.SERVER_STARTING.register(s -> {
@@ -104,10 +101,10 @@ public final class Combos {
         PolymerResourcePackUtils.RESOURCE_PACK_CREATION_EVENT.register(builder -> {
             building = Set.copyOf(KNOWN);
             int files = 0;
-            for (String key : building) {
-                Piece piece = piece(key);
-                String combo = combo(key);
-                List<Placement> placements = Arrays.stream(combo.split("-")).map(Placement::parse).toList();
+            for (KeyedCombo key : building) {
+                Piece piece = key.piece();
+                Combo combo = key.combo();
+                List<Placement> placements = combo.placements();
                 for (Chapter chapter : Chapter.values()) {
                     for (boolean[] v : EquipmentJson.variants(chapter, piece)) {
                         builder.addStringData(EquipmentJson.packPath(chapter, piece, v[0], combo), EquipmentJson.json(chapter, piece, v[0], placements));
@@ -118,7 +115,7 @@ public final class Combos {
             Ovvar.LOGGER.info("[ovvar] pack: {} combination(s), {} equipment file(s)", building.size(), files);
         });
         PolymerResourcePackUtils.RESOURCE_PACK_FINISHED_EVENT.register(result -> {
-            Set<String> snapshot = building;
+            Set<KeyedCombo> snapshot = building;
             server.execute(() -> built(snapshot));
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, s) -> {
@@ -140,12 +137,12 @@ public final class Combos {
     // ---- what a player can draw
 
     /** Does the pack a player has hold this combination? {@code player} null: the current pack. */
-    public static boolean isBuilt(Piece piece, String combo, UUID player) {
+    public static boolean isBuilt(Piece piece, Combo combo, UUID player) {
         if (combo.isEmpty()) return true;
-        String key = key(piece, combo);
-        Set<String> current = BUILT.getOrDefault(generation, Set.of());
+        KeyedCombo key = key(piece, combo);
+        Set<KeyedCombo> current = BUILT.getOrDefault(generation, Set.of());
         if (player == null) return current.contains(key);
-        Set<String> theirs = BUILT.getOrDefault(LOADED.getOrDefault(player, generation), current);
+        Set<KeyedCombo> theirs = BUILT.getOrDefault(LOADED.getOrDefault(player, generation), current);
         if (theirs.contains(key)) return true;
         // They are looking at something their pack can't draw but the current one can: send it.
         if (current.contains(key) && LOADED.getOrDefault(player, generation) < generation) NEEDS_PUSH.add(player);
@@ -153,8 +150,8 @@ public final class Combos {
     }
 
     /** Ask for a combination; safe from any thread (item packets are encoded off the server thread). */
-    public static void request(Piece piece, String combo, boolean urgent, UUID player) {
-        String key = key(piece, combo);
+    public static void request(Piece piece, Combo combo, boolean urgent, UUID player) {
+        KeyedCombo key = key(piece, combo);
         if (BUILT.getOrDefault(generation, Set.of()).contains(key)) return;
         if (KNOWN.add(key)) dirty.set(true);
         if (player != null) REQUESTED_BY.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(player);
@@ -181,7 +178,7 @@ public final class Combos {
     }
 
     /** A build finished (server thread): a new generation; players who asked for its combinations get it. */
-    private static void built(Set<String> combos) {
+    private static void built(Set<KeyedCombo> combos) {
         generation++;
         BUILT.put(generation, combos);
         generating = false;
@@ -296,8 +293,8 @@ public final class Combos {
 
     // ---- keys
 
-    private static String key(Piece piece, String combo) {
-        return piece.id + ":" + combo;
+    private static KeyedCombo key(Piece piece, Combo combo) {
+        return new KeyedCombo(piece, combo);
     }
 
     private static Piece piece(String key) {
@@ -320,23 +317,11 @@ public final class Combos {
         return s.getWorldPath(LevelResource.ROOT).resolve(FILE);
     }
 
-    private static Set<String> load(Path path) {
+    private static Collection<KeyedCombo> load(Path path) {
         if (!Files.exists(path)) return Set.of();
         try {
             JsonObject root = JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8)).getAsJsonObject();
-            Set<String> out = new TreeSet<>();
-            for (var e : root.getAsJsonArray("combos")) {
-                String key = e.getAsString();
-                // Validate now: a combination that no longer parses (a removed patch) must not reach the pack.
-                try {
-                    piece(key);
-                    Arrays.stream(combo(key).split("-")).forEach(Placement::parse);
-                    out.add(key);
-                } catch (IllegalArgumentException | IllegalStateException ex) {
-                    Ovvar.LOGGER.warn("[ovvar] dropping combination {}: {}", key, ex.getMessage());
-                }
-            }
-            return out;
+            return COMBOS_CONFIG_CODEC.parse(JsonOps.INSTANCE, root).resultOrPartial(Ovvar.LOGGER::warn).orElse(List.of());
         } catch (IOException | RuntimeException e) {
             throw new IllegalStateException("cannot read " + path, e);
         }
@@ -346,16 +331,59 @@ public final class Combos {
         Path path = file(s);
         try {
             Files.createDirectories(path.getParent());
-            JsonArray arr = new JsonArray();
-            List<String> sorted = new ArrayList<>(KNOWN);
+            List<KeyedCombo> sorted = new ArrayList<>(KNOWN);
             Collections.sort(sorted);
-            sorted.forEach(arr::add);
-            JsonObject root = new JsonObject();
-            root.add("combos", arr);
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            Files.writeString(path, gson.toJson(root), StandardCharsets.UTF_8);
+            Files.writeString(path, gson.toJson(COMBOS_CONFIG_CODEC.encodeStart(JsonOps.INSTANCE, sorted).getOrThrow()), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new IllegalStateException("cannot write " + path, e);
+        }
+    }
+
+    public record Combo(List<Placement> placements) {
+
+        public static final Codec<Combo> KEY_CODEC = Codec.STRING.comapFlatMap(
+                key -> Arrays.stream(key.split("-")).map(placement -> Placement.CODEC.parse(JavaOps.INSTANCE, placement)).reduce(
+                        DataResult.success(TreePVector.<Placement>empty()),
+                        (lhs, rhs) -> lhs.flatMap(l -> rhs.map(l::plus)),
+                        (lhs, rhs) -> lhs.flatMap(l -> rhs.map(l::plusAll))
+                ).map(Combo::new),
+		        Combo::key
+        );
+
+        public String key() {
+            return String.join("-", placements.stream().sorted().map(Placement::key).toList());
+        }
+
+        public boolean isEmpty() {
+            return placements.isEmpty();
+        }
+    }
+
+    public record KeyedCombo(Piece piece, Combo combo) implements Comparable<KeyedCombo> {
+
+        public static final Codec<KeyedCombo> KEY_CODEC = Codec.STRING.comapFlatMap(
+                key -> {
+                    int colon = key.indexOf(":");
+                    if (colon < 0) {
+                        return DataResult.error(() -> "bad combo key " + key);
+                    }
+                    return Piece.CODEC.parse(JavaOps.INSTANCE, key.substring(0, colon)).flatMap(
+                            piece -> Combo.KEY_CODEC.parse(JavaOps.INSTANCE, key.substring(colon+1)).map(
+                                    combo -> new KeyedCombo(piece, combo)
+                            )
+                    );
+                },
+                KeyedCombo::key
+        );
+
+        public String key() {
+            return piece.id + ":" + combo.key();
+        }
+
+        @Override
+        public int compareTo(Combos.@NonNull KeyedCombo keyedCombo) {
+            return key().compareTo(keyedCombo.key());
         }
     }
 }

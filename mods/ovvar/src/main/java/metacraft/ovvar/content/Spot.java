@@ -1,5 +1,9 @@
 package metacraft.ovvar.content;
 
+import com.mojang.serialization.Codec;
+import net.minecraft.util.StringRepresentable;
+import org.jspecify.annotations.NonNull;
+
 /**
  * A 4×4 texel cell on the garment, in the 64×32 armour layout — the faces you see, keeping off
  * the collar and the belt (the body's top and bottom texel rows), the hands (the bottom row of
@@ -15,7 +19,7 @@ package metacraft.ovvar.content;
  * Box strips (rows 20–32): body 16 right | 20 front | 28 left | 32 back; arm 40 outer | 44 front
  * | 48 inner | 52 back; leg 0 outer | 4 front | 8 inner | 12 back.
  */
-public enum Spot {
+public enum Spot implements StringRepresentable {
     // top: chest and back, 2 columns × 2 rows each. The rows sit at v 21 and 26: the body's top
     // texel row is the collar and its bottom row the belt. No cells on the body's sides, the inner
     // arms or the inner legs: hidden most of the time, and their bits buy more instant designs.
@@ -39,6 +43,13 @@ public enum Spot {
     LEG_BACK_TOP_L(Piece.BOTTOM, 12, 20, Side.LEFT), LEG_BACK_MID_L(Piece.BOTTOM, 12, 24, Side.LEFT),
     /** The seat: one 8×4 patch across the back of both legs (LEG_BACK_TOP_R + LEG_BACK_TOP_L). Only seat patches go here. */
     SEAT(Piece.BOTTOM, 12, 20, Side.SEAT);
+
+    public static final Codec<Spot> CODEC = StringRepresentable.fromEnum(Spot::values);
+
+    @Override
+    public @NonNull String getSerializedName() {
+        return id();
+    }
 
     /** BODY = an unmirrored face; RIGHT/LEFT = the limb the cell is drawn on; SEAT = both legs. Ordinal is what the shader reads. */
     public enum Side { BODY, RIGHT, LEFT, SEAT }
@@ -149,17 +160,6 @@ public enum Spot {
 
     public String id() {
         return name().toLowerCase(java.util.Locale.ROOT);
-    }
-
-    /** Never null: an unknown spot id is a bug (a renamed cell, a typo in a command). */
-    public static Spot get(String id) {
-        for (Spot s : values()) if (s.id().equals(id)) return s;
-        throw new IllegalArgumentException("unknown spot '" + id + "'");
-    }
-
-    public static boolean exists(String id) {
-        for (Spot s : values()) if (s.id().equals(id)) return true;
-        return false;
     }
 
     /** Cells that overlap this one (a seat patch covers two leg cells). */

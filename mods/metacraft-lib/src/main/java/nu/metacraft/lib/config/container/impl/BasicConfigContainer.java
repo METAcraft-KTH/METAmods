@@ -164,6 +164,15 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 	}
 
 	@Override
+	public void replace(T newConfig) {
+		boolean modified = this.config != newConfig;
+		this.config = newConfig;
+		if (modified) {
+			save();
+		}
+	}
+
+	@Override
 	public void save() {
 		if (config == null) return;
 		JsonHelper.save(configPath, codec, config);

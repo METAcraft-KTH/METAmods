@@ -24,11 +24,11 @@ public final class Trims {
 
     /** Can this placement be worn as a trim? (Seat patches span two sided cells; a trim is one texture.) */
     public static boolean fits(Placement p) {
-        return !Patches.get(p.patch()).seat() && p.spot() != Spot.SEAT;
+        return !p.patch().seat() && p.spot() != Spot.SEAT;
     }
 
     public static String patternName(Placement p) {
-        return p.spot().id() + "_" + p.patch();
+        return p.spot().id() + "_" + p.patch().id();
     }
 
     public static Identifier pattern(Placement p) {

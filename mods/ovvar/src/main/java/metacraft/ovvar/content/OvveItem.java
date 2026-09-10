@@ -23,7 +23,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * A chapter's ovve: one item, worn in the legs slot, with pockets. It is a bundle with
@@ -75,7 +74,6 @@ public final class OvveItem extends BundleItem implements PolymerItem {
     /** Worn in the legs slot (player or armour stand): keep the companion top in step every tick. */
     @Override
     public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
-        Looks.migrate(stack);
         if (slot == EquipmentSlot.LEGS && entity instanceof LivingEntity wearer) {
             OvveTop.sync(wearer, stack);
             OvveFeet.sync(wearer, stack);
@@ -90,13 +88,13 @@ public final class OvveItem extends BundleItem implements PolymerItem {
             tooltip.add(Component.literal("Sneak + right-click: " + (up ? "zip down" : "zip up")).withStyle(ChatFormatting.DARK_GRAY));
         }
         tooltip.add(Component.literal("Right-click: empty the pockets").withStyle(ChatFormatting.DARK_GRAY));
-        List<Placement> sewn = Looks.sewn(stack);
+        var sewn = Looks.sewn(stack);
         if (sewn.isEmpty()) {
             tooltip.add(Component.literal("No patches yet").withStyle(ChatFormatting.GRAY));
         } else {
             tooltip.add(Component.literal("Patches:").withStyle(ChatFormatting.GRAY));
-            for (Placement p : sewn) {
-                tooltip.add(Component.literal("  " + Patches.get(p.patch()).name() + " — " + p.spot().label()).withStyle(ChatFormatting.GRAY));
+            for (Placement p : SpotPlacements.asPlacementList(sewn)) {
+                tooltip.add(Component.literal("  " + p.patch().name() + " — " + p.spot().label()).withStyle(ChatFormatting.GRAY));
             }
         }
         tooltip.add(Component.literal("Sew: put it on an armour stand, aim a patch at the spot, right-click").withStyle(ChatFormatting.DARK_GRAY));

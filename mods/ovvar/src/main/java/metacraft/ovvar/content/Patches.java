@@ -1,5 +1,9 @@
 package metacraft.ovvar.content;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.JavaOps;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,20 +93,30 @@ public final class Patches {
     private static final Map<String, Patch> BY_ID = ALL.stream()
             .collect(Collectors.toMap(Patch::id, p -> p, (a, b) -> { throw new IllegalStateException("duplicate patch id " + a.id()); }, LinkedHashMap::new));
 
+    public static final Codec<Patch> ID_CODEC = Codec.STRING.comapFlatMap(
+            id -> {
+                var patch = BY_ID.get(id);
+                if (patch != null) {
+                    return DataResult.success(patch);
+                } else {
+                    return DataResult.error(() -> "unknown patch '" + id + "'");
+                }
+            },
+            Patch::id
+    );
+
     public static List<Patch> all() {
         return ALL;
     }
 
     /** index + 1, what the preview bits carry. */
-    public static int code(String id) {
-        return ALL.indexOf(get(id)) + 1;
+    public static int code(Patch patch) {
+        return ALL.indexOf(patch) + 1;
     }
 
     /** Never null: an id that is not in the catalogue is a bug (a removed entry, a typo in a command), not a state. */
     public static Patch get(String id) {
-        Patch p = BY_ID.get(id);
-        if (p == null) throw new IllegalArgumentException("unknown patch '" + id + "'");
-        return p;
+        return ID_CODEC.parse(JavaOps.INSTANCE, id).getOrThrow(IllegalArgumentException::new);
     }
 
     public static boolean exists(String id) {

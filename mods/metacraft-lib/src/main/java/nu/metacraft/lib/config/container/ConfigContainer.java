@@ -21,6 +21,8 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 	 */
 	void modify(Predicate<T> modifier);
 
+	void replace(T newConfig);
+
 	class Builder<T> {
 
 		protected final MapCodec<T> codec;
