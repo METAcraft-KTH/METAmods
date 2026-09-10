@@ -31,7 +31,9 @@ patches. While the ovve is on a stand its patches are flat item displays laid on
 them there), so a sewing session needs no resource pack at all — the pack matters once the ovve
 is taken off and worn. A big patch is cut at the corners of its face (`PatchPieces`) and each
 piece laid on the face it hangs over — round the sides, and over the top of a sleeve — so it
-bends round the box on the stand too; datagen makes one flat item model per piece.
+bends round the box on the stand too; datagen makes one item model per piece — a single
+zero-thickness quad, so the displays are sprites, not slabs. The companion top and the virtual
+cuffs carry the same on-stand flag, so nothing draws the patches twice.
 
 With the stitching minigame on (`config/ovvar.json`: `sewing_minigame`, `stitches`; default on,
 6 stitches) the right-click opens a dialog instead: the patch lies on the ovve's cloth and the

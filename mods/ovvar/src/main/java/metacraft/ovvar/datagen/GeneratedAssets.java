@@ -117,7 +117,7 @@ public final class GeneratedAssets implements DataProvider {
             for (PatchPieces.Piece piece : pieces.values()) {
                 int ox = (16 - art.width) / 2, oy = (16 - art.height) / 2;
                 Tex sprite = Tex.blank(16, 16).blit(art, piece.x0(), piece.y0(), piece.x1() - piece.x0(), piece.y1() - piece.y0(), ox + piece.x0(), oy + piece.y0());
-                item(PatchItem.flatModel(name, piece), sprite);
+                sprite(PatchItem.flatModel(name, piece), sprite);
             }
             lang.put("item." + MOD + "." + name, patch.name() + " patch");
         }
@@ -615,6 +615,22 @@ public final class GeneratedAssets implements DataProvider {
         json(assets.resolve("items/" + name + ".json"), J.itemDef(MOD + ":item/" + name));
         json(assets.resolve("models/item/" + name + ".json"),
                 obj("parent", "minecraft:item/generated", "textures", obj("layer0", MOD + ":item/" + name)));
+        png(assets.resolve("textures/item/" + name + ".png"), texture);
+    }
+
+    /**
+     * An item whose model is one flat, unlit quad of the texture — no thickness, no sides — for
+     * the stand displays. The quad faces +z in model space; an item display turns it 180° about
+     * y, so the readable side faces the display's -z.
+     */
+    private void sprite(String name, Tex texture) {
+        require(texture.width == 16 && texture.height == 16, name + " sprite is not 16×16");
+        json(assets.resolve("items/" + name + ".json"), J.itemDef(MOD + ":item/" + name));
+        json(assets.resolve("models/item/" + name + ".json"), obj(
+                "textures", obj("0", MOD + ":item/" + name, "particle", MOD + ":item/" + name),
+                "elements", arr(obj(
+                        "from", arr(0, 0, 8), "to", arr(16, 16, 8), "shade", false,
+                        "faces", obj("south", obj("uv", arr(0, 0, 16, 16), "texture", "#0"))))));
         png(assets.resolve("textures/item/" + name + ".png"), texture);
     }
 

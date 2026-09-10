@@ -219,9 +219,18 @@ public final class StandDisplays {
                 new Vector3f((float) u2.x, (float) u2.y, (float) u2.z),
                 new Vector3f((float) -n2.x, (float) -n2.y, (float) -n2.z));
         Quaternionf rotation = new Quaternionf().setFromNormalized(basis);
-        // Just off the fabric (the sprite slab is 1/16 thick at scale 1), later patches a hair further out.
-        double lift = scale / 32 + 0.003 + 0.002 * element.order;
-        element.display.setOffset(centre.add(n2.scale(lift)).subtract(origin));
+        // Just off the fabric, later patches a hair further out. A piece round a corner is also
+        // pushed that far back towards the corner, so its lifted edge meets the face piece's
+        // lifted edge and no fabric shows in the seam.
+        double lift = 0.005 + 0.002 * element.order;
+        Vec3 pos = centre.add(n2.scale(lift));
+        switch (piece.where()) {
+            case RIGHT -> pos = pos.subtract(r2.scale(lift));
+            case LEFT -> pos = pos.add(r2.scale(lift));
+            case TOP -> pos = pos.subtract(u2.scale(lift));
+            default -> {}
+        }
+        element.display.setOffset(pos.subtract(origin));
         element.display.setLeftRotation(rotation);
         element.display.setScale(new Vector3f(scale, scale, scale));
         element.display.startInterpolationIfDirty();
