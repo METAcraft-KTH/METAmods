@@ -35,6 +35,7 @@
     "fabric-api": "*",
     "polymer-core": "*",
     "polymer-resource-pack": "*",
+    "polymer-virtual-entity": "*",
     "sgui": "*",
     "metacraft-bundles": "*"
   }

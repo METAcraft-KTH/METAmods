@@ -124,8 +124,8 @@ public final class StandAim {
 
     // ------------------------------------------------------------ the forward mapping
 
-    /** A cell's centre on the posed stand and the face's outward normal, in world space. */
-    public record CellPoint(Vec3 centre, Vec3 normal) {}
+    /** A cell's centre on the posed stand, the face's outward normal and its up (the art's), in world space. */
+    public record CellPoint(Vec3 centre, Vec3 normal, Vec3 up) {}
 
     public static CellPoint cell(ArmorStand stand, Spot spot) {
         Part part = PARTS.stream().filter(p -> p.piece == spot.piece && p.side == (spot == Spot.SEAT ? Spot.Side.RIGHT : spot.side)).findFirst()
@@ -147,7 +147,8 @@ public final class StandAim {
         Quaternionf rotation = part.rotation(stand);
         Vector3f local = new Vector3f((float) lx, (float) y, (float) lz).rotate(rotation).add(part.pivot);
         Vector3f n = normal.rotate(rotation);
-        return new CellPoint(toWorld(stand, local), toWorldDir(stand, n));
+        Vector3f up = new Vector3f(0, -1, 0).rotate(rotation);   // texture v runs down the part; the model is drawn y-flipped
+        return new CellPoint(toWorld(stand, local), toWorldDir(stand, n), toWorldDir(stand, up));
     }
 
     // ------------------------------------------------------------ model space

@@ -135,7 +135,6 @@ public final class StandSewing {
             if (there == null && Spot.SEAT_CELLS.contains(spot)) { spot = Spot.SEAT; there = Looks.at(ovve, spot); }
             if (there == null) return InteractionResult.PASS;
             Looks.unpick(ovve, spot);
-            Looks.claimIfNeeded(player, ovve);
             ItemStack back = new ItemStack(ModContent.patchItem(Patches.get(there.patch())));
             if (!player.getInventory().add(back)) player.drop(back, false);
             celebrate(level, aimed.where(), false);
@@ -154,7 +153,6 @@ public final class StandSewing {
         if (!(ovve.getItem() instanceof OvveItem)) throw new IllegalStateException("[ovvar] finishing a seam on a stand without an ovve");
         Looks.sew(ovve, placement);
         Looks.setPreview(ovve, null);
-        Looks.claimIfNeeded(player, ovve);
         AIMS.remove(player.getUUID());
         if (!player.isCreative()) player.getMainHandItem().shrink(1);
         celebrate((ServerLevel) player.level(), where, true);

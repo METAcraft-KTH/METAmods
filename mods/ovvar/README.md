@@ -26,7 +26,10 @@ at (the trim channel in a "ghost" material, so the preview costs no dye bits), t
 names it, right-click sews it on; sneak to aim at the far face of the part you look at
 (the back of the body, the back of an arm). The aim follows the stand's pose. An empty hand on a sewn patch unpicks it. Seat
 patches also go on at the smithing table (ovve + patch, no template). No cap on the number of
-patches.
+patches. While the ovve is on a stand its patches are flat item displays laid on their cells
+(`StandDisplays`, Polymer virtual entities following the stand's pose; the armour draws none of
+them there), so a sewing session needs no resource pack at all — the pack matters once the ovve
+is taken off and worn.
 
 With the stitching minigame on (`config/ovvar.json`: `sewing_minigame`, `stitches`; default on,
 6 stitches) the right-click opens a dialog instead: the patch lies on the ovve's cloth and the
@@ -167,15 +170,17 @@ inflated 1.0 where the leggings are 0.5, so the shader draws it on the leggings'
 
 ## Reloads only when asked for
 
-A pushed pack is a loading screen, so nobody gets one they did not cause. The pack is pushed to
-a player in exactly two cases: their own sewing (or `/ovvar give`, `/ovvar patches`) left a half
-with more new patches than the dye channels can show, in which case the pack is built at once
-and sent to them the moment it is ready — a sewing session is nowhere near a fight; or they ran
-`/ovvar reload` (any player), which sends the current pack, after a build if one is pending.
-Everyone else keeps the pack they have and sees what it holds plus the newest patches in the
-dye channels; a half with more new patches than that shows the older state to them until they
-reload or rejoin (a joining player gets the current pack). Every combination is still built in
-the background within 90 s so the pack is complete for whoever joins next.
+A pushed pack is a loading screen, so nobody gets one they did not cause. On an armour stand
+nothing needs the pack (the patches are display entities). The pack is pushed to a player in
+exactly two cases: an ovve came into their inventory — off a stand, `/ovvar give`, `/ovvar
+patches` — with more patches on a half than their pack plus the dye channels can show, in which
+case the pack is built at once and sent to them the moment it is ready (`Looks.claimIfNeeded`
+from `OvveItem.inventoryTick`); or they ran `/ovvar reload` (any player), which sends the
+current pack, after a build if one is pending. Everyone else keeps the pack they have and sees
+what it holds plus the newest patches in the dye channels; a half with more new patches than
+that shows the older state to them until they reload or rejoin (a joining player gets the
+current pack). Every combination is still built in the background within 90 s so the pack is
+complete for whoever joins next.
 
 ## Square pixels
 

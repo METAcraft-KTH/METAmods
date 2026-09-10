@@ -15,13 +15,17 @@ import java.util.List;
 /** A patch in the hand: a stackable item whose icon is its sewn-on art, shown to clients as paper. */
 public final class PatchItem extends Item implements PolymerItem {
     public final Patches.Patch patch;
-    private final Identifier id;
+    private final Identifier id, flatId;
 
     public PatchItem(Properties properties, Patches.Patch patch, Identifier id) {
         super(properties);
         this.patch = patch;
         this.id = id;
+        this.flatId = id.withSuffix(FLAT_SUFFIX);
     }
+
+    /** The second model of every patch: its art 1:1 on the 16×16 sprite, for display entities ({@link ModComponents#FLAT}). */
+    public static final String FLAT_SUFFIX = "_flat";
 
     @Override
     public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
@@ -37,6 +41,6 @@ public final class PatchItem extends Item implements PolymerItem {
 
     @Override
     public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
-        return id;
+        return Boolean.TRUE.equals(stack.get(ModComponents.FLAT)) ? flatId : id;
     }
 }

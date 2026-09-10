@@ -121,7 +121,8 @@ public final class Looks {
 
     /** @param player who the packet is for (their pack may be older than the current one), or null */
     public static Look look(ItemStack stack, Piece piece, UUID player) {
-        List<Placement> all = sewn(stack, piece);
+        // On an armour stand the patches are display entities (StandDisplays); the armour draws none.
+        List<Placement> all = Boolean.TRUE.equals(stack.get(ModComponents.ON_STAND)) ? List.of() : sewn(stack, piece);
         Placement preview = preview(stack);
         if (preview != null && preview.piece() != piece) preview = null;
 

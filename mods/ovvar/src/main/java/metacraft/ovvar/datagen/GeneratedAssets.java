@@ -10,6 +10,7 @@ import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveFeet;
+import metacraft.ovvar.content.PatchItem;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Placement;
@@ -106,6 +107,7 @@ public final class GeneratedAssets implements DataProvider {
             arts.put(patch.id(), art);
             String name = ModContent.patchId(patch).getPath();
             item(name, icon(art));
+            item(name + PatchItem.FLAT_SUFFIX, Tex.blank(16, 16).blit(art, 0, 0, art.width, art.height, (16 - art.width) / 2, (16 - art.height) / 2));
             lang.put("item." + MOD + "." + name, patch.name() + " patch");
         }
 
