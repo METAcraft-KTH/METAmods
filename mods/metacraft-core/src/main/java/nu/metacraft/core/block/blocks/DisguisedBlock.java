@@ -34,7 +34,7 @@ public abstract class DisguisedBlock extends BaseEntityBlock implements PolymerB
 		}
 		var disguised = getBlockEntity(world, pos);
 		if (disguised.isPresent()) {
-			state = disguised.get().getBlockState();
+			state = disguised.get().getDisplayedBlockState();
 		}
 		int toolModifier = player.hasCorrectToolForDrops(state) ? 30 : 100;
 		return player.getDestroySpeed(state) / hardness / toolModifier;
@@ -52,14 +52,14 @@ public abstract class DisguisedBlock extends BaseEntityBlock implements PolymerB
 
 	@Override
 	protected VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
-		return getBlockEntity(world, pos).map(disguised -> disguised.getBlockState().getShape(world, pos, context)).orElse(
+		return getBlockEntity(world, pos).map(disguised -> disguised.getDisplayedBlockState().getShape(world, pos, context)).orElse(
 				super.getShape(state, world, pos, context)
 		);
 	}
 
 	@Override
 	protected VoxelShape getCollisionShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
-		return getBlockEntity(world, pos).map(disguised -> disguised.getBlockState().getCollisionShape(world, pos, context)).orElse(
+		return getBlockEntity(world, pos).map(disguised -> disguised.getDisplayedBlockState().getCollisionShape(world, pos, context)).orElse(
 				super.getCollisionShape(state, world, pos, context)
 		);
 	}
@@ -77,7 +77,7 @@ public abstract class DisguisedBlock extends BaseEntityBlock implements PolymerB
 				entity -> entity instanceof BlockEntityWithDisguise
 		).map(
 				entity -> (BlockEntityWithDisguise) entity
-		).map(BlockEntityWithDisguise::getBlockState).filter(
+		).map(BlockEntityWithDisguise::getDisplayedBlockState).filter(
 				s -> !(s.getBlock() instanceof DisguisedBlock)
 		).map(
 				s -> s.getDrops(builder)

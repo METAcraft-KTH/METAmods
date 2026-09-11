@@ -20,7 +20,7 @@ public abstract class BlockStateBaseMixin {
 	public void getHardness(BlockGetter world, BlockPos pos, CallbackInfoReturnable<Float> cir) {
 		if (this.getBlock() instanceof BlockWithDisguise disguised) {
 			disguised.getBlockEntity(world, pos).ifPresent(entity -> {
-				cir.setReturnValue(entity.getBlockState().getDestroySpeed(world, pos));
+				cir.setReturnValue(entity.getDisplayedBlockState().getDestroySpeed(world, pos));
 			});
 		}
 	}

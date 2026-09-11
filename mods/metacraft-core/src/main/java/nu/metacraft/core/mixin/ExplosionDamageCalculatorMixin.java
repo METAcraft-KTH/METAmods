@@ -26,7 +26,7 @@ public class ExplosionDamageCalculatorMixin {
 	) {
 		if (blockState.getBlock() instanceof BlockWithDisguise disguised) {
 			return disguised.getBlockEntity(world, pos).map(
-					entity -> entity.getBlockState().getBlock().getExplosionResistance()
+					entity -> entity.getDisplayedBlockState().getBlock().getExplosionResistance()
 			).orElse(original);
 		}
 		return original;

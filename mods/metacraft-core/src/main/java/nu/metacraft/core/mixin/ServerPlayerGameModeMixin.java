@@ -27,7 +27,7 @@ public class ServerPlayerGameModeMixin {
 	public BlockState tryBreakBlock(BlockState actualState, @Local(argsOnly = true) BlockPos pos) {
 		if (actualState.getBlock() instanceof BlockWithDisguise disguised) {
 			return disguised.getBlockEntity(level, pos).map(
-					BlockEntityWithDisguise::getBlockState
+					BlockEntityWithDisguise::getDisplayedBlockState
 			).orElse(actualState);
 		}
 		return actualState;
