@@ -25,7 +25,7 @@ public class MultiDataBlockMergeTest {
 	@Test
 	void test() {
 		List<DataBlock.DataMultiBlockEntry<?>> blocks = new ArrayList<>();
-		for (var pos : BlockPos.withinManhattan(new BlockPos(0, 0, 0), 32, 32, 32)) {
+		for (var pos : BlockPos.withinManhattan(new BlockPos(0, 0, 0), 32)) {
 			blocks.add(
 				new DataBlock.DataMultiBlockEntry<>(
 					pos.immutable(), null, new PortalDeeper(
@@ -36,7 +36,7 @@ public class MultiDataBlockMergeTest {
 				)
 			);
 		}
-		for (var pos : BlockPos.withinManhattan(new BlockPos(1000, 0, 0), 32, 32, 32)) {
+		for (var pos : BlockPos.withinManhattan(new BlockPos(1000, 0, 0), 32)) {
 			blocks.add(
 				new DataBlock.DataMultiBlockEntry<>(
 					pos.immutable(), null, new PortalDeeper(
