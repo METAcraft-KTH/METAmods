@@ -23,6 +23,11 @@ public final class PatchItem extends Item implements PolymerItem {
         this.id = id;
     }
 
+    /** The other models of every patch: a piece of its art 1:1 on the 16×16 sprite, for display entities ({@link ModComponents#FLAT}). */
+    public static String flatModel(String itemName, PatchPieces.Piece piece) {
+        return itemName + "_flat_" + piece.key();
+    }
+
     @Override
     public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
         tooltip.add(Component.literal(patch.seat() ? "Goes across the seat" : "Goes anywhere on an ovve").withStyle(ChatFormatting.GRAY));
@@ -37,6 +42,7 @@ public final class PatchItem extends Item implements PolymerItem {
 
     @Override
     public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
-        return id;
+        String piece = stack.get(ModComponents.FLAT);
+        return piece == null ? id : id.withSuffix("_flat_" + piece);
     }
 }

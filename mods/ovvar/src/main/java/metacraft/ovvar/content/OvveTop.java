@@ -83,6 +83,7 @@ public final class OvveTop {
         if (patches != null) top.set(ModComponents.PATCHES, patches);
         Placement preview = ovve.get(ModComponents.PREVIEW);
         if (preview != null) top.set(ModComponents.PREVIEW, preview);
+        if (Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) top.set(ModComponents.ON_STAND, true);   // its patches are display entities too
         return top;
     }
 

@@ -10,6 +10,8 @@ import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
 import metacraft.ovvar.content.OvveFeet;
+import metacraft.ovvar.content.PatchItem;
+import metacraft.ovvar.content.PatchPieces;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Placement;
@@ -106,6 +108,17 @@ public final class GeneratedAssets implements DataProvider {
             arts.put(patch.id(), art);
             String name = ModContent.patchId(patch).getPath();
             item(name, icon(art));
+            // Flat pieces for the stand displays: the art 1:1 in the sprite's centre, one model per
+            // piece any cell cuts it into (the whole art included).
+            Map<String, PatchPieces.Piece> pieces = new LinkedHashMap<>();
+            for (Spot spot : Spot.values()) {
+                if (patch.fits(spot)) for (PatchPieces.Piece piece : PatchPieces.of(spot, patch)) pieces.putIfAbsent(piece.key(), piece);
+            }
+            for (PatchPieces.Piece piece : pieces.values()) {
+                int ox = (16 - art.width) / 2, oy = (16 - art.height) / 2;
+                Tex sprite = Tex.blank(16, 16).blit(art, piece.x0(), piece.y0(), piece.x1() - piece.x0(), piece.y1() - piece.y0(), ox + piece.x0(), oy + piece.y0());
+                sprite(PatchItem.flatModel(name, piece), sprite);
+            }
             lang.put("item." + MOD + "." + name, patch.name() + " patch");
         }
 
@@ -120,15 +133,15 @@ public final class GeneratedAssets implements DataProvider {
                 if (spot == Spot.SEAT) {
                     Tex r = Tex.blank(W, H).blit(art, 0, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D);
                     Tex l = Tex.blank(W, H).blit(art, Spot.PX, 0, Spot.PX, Spot.PX, spot.u * D, spot.v * D).flipX(spot.u * D, spot.v * D, Spot.PX, Spot.PX);
-                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_r.png"), sided(r, Spot.Side.RIGHT, spot.piece));
-                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_l.png"), sided(l, Spot.Side.LEFT, spot.piece));
+                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_r.png"), sided(r, spot, Spot.Side.RIGHT));
+                    png(assets.resolve(dir + "patch/seat/" + patch.id() + "_l.png"), sided(l, spot, Spot.Side.LEFT));
                     placementTextures += 2;
                     continue;
                 }
                 // Centred on the cell, hanging over it if bigger, clipped to the part's side rows;
                 // a left cell's art is mirrored (the model mirrors the left limb).
                 Tex placed = placed(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + patch.offsetX());
-                png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(placed, spot.side, spot.piece));
+                png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(placed, spot, spot.side));
                 placementTextures++;
             }
         }
@@ -176,15 +189,15 @@ public final class GeneratedAssets implements DataProvider {
                 "permutations", obj(Trims.MATERIAL, MOD + ":trims/color_palettes/" + Trims.MATERIAL, Trims.GHOST, MOD + ":trims/color_palettes/" + Trims.GHOST)))));
         Ovvar.LOGGER.info("[{} datagen] {} trim patterns", MOD, trimTextures.size());
 
-        // The preview layer per half: every patch's art in the library, the cell and patch tables,
-        // marker kind 2. The shader draws what the dye colour's slots name.
+        // The preview layer per half: every instant design's art in the library (a block of cells
+        // its size), the cell and design tables, marker kind 2. The shader draws what the dye
+        // colour's slots name.
         Map<String, int[]> library = new LinkedHashMap<>();
-        int next = 0;
+        boolean[][] taken = new boolean[LIBRARY_COLUMNS][LIBRARY_ROWS];
         for (Patches.Patch patch : Patches.all()) {
-            if (Patches.code(patch) > Looks.INSTANT_DESIGNS || patch.oversize()) continue;   // never in the dye colour: no library entry
-            require(next + patch.cells() <= LIBRARY.size(), "the preview library is full (" + LIBRARY.size() + " cells); make it bigger");
-            library.put(patch.id(), LIBRARY.get(next));
-            next += patch.cells();
+            if (Patches.code(patch) > Looks.INSTANT_DESIGNS) continue;   // never in the dye colour: no library entry
+            int w = (patch.width() + Spot.PX - 1) / Spot.PX, h = (patch.height() + Spot.PX - 1) / Spot.PX;
+            library.put(patch.id(), libraryBlock(taken, w, h, patch.id()));
         }
         // The legs' preview is also drawn by the boots pass (the outer model, inflate 1), as the
         // second dye channel: the same texture with that layer's texel, in the humanoid folder.
@@ -203,6 +216,7 @@ public final class GeneratedAssets implements DataProvider {
                 tex = tex.blit(art, 0, 0, art.width, art.height, at[0] * D, at[1] * D);
                 int design = Patches.code(patch) - 1;
                 tex = tex.with(PATCH_TABLE_X + design / 16, design % 16, rgb(at[0] * D, at[1] * D, patch.cells()));
+                tex = tex.with(PATCH_TABLE_X + TABLE_COLUMNS + design / 16, design % 16, rgb(art.width, art.height, 0));
             }
             for (int index = 0; index < cells.size(); index++) {
                 Spot spot = cells.get(index);
@@ -447,32 +461,17 @@ public final class GeneratedAssets implements DataProvider {
     /**
      * Art on a garment texture at texel column {@code x} (its top-left; the cell's row, centred
      * vertically), clipped to the part's side rows — a big patch hangs over its neighbours, never
-     * off its part.
+     * off its part. The part's strip is a loop round the box, so what hangs off either end of it
+     * comes round to the other end (past the outer face of a limb lies its back face).
      */
     private static Tex placed(Spot spot, Tex art, int x) {
         int y = spot.v * D + (Spot.PX - art.height) / 2;
-        int stripStart = Spot.stripStart(spot) * D, stripEnd = stripStart + Spot.stripWidth(spot) * D;
-        int x0 = Math.max(x, stripStart), y0 = Math.max(y, 20 * D), x1 = Math.min(x + art.width, stripEnd), y1 = Math.min(y + art.height, 32 * D);
-        require(x1 > x0 && y1 > y0, "patch art lands entirely off the " + spot.id() + " cell's part");
-        return Tex.blank(W, H).blit(art, x0 - x, y0 - y, x1 - x0, y1 - y0, x0, y0);
-    }
-
-    /**
-     * The same, but as vanilla will draw it from a trim texture: the strip wrapped around the
-     * box the way the shader does ({@link Spot#wrap}), baked texel by texel — each column of the
-     * part's side rows shows the art column the shader would sample there.
-     */
-    private static Tex placedWrapped(Spot spot, Tex art, int x) {
-        int y = spot.v * D + (Spot.PX - art.height) / 2;
-        int stripStart = Spot.stripStart(spot) * D, stripEnd = stripStart + Spot.stripWidth(spot) * D;
-        double inflate = Spot.inflate(spot.piece);
+        int stripStart = Spot.stripStart(spot) * D, stripWidth = Spot.stripWidth(spot) * D;
+        require(art.width <= stripWidth, "patch art is wider than the " + spot.id() + " cell's part");
         Tex out = Tex.blank(W, H);
         boolean any = false;
-        for (int column = stripStart; column < stripEnd; column++) {
-            double t = Spot.wrap((column + 0.5) / D, inflate);
-            if (t < 0) continue;
-            int ax = (int) Math.floor((Spot.stripStart(spot) + t) * D) - x;
-            if (ax < 0 || ax >= art.width) continue;
+        for (int ax = 0; ax < art.width; ax++) {
+            int column = stripStart + Math.floorMod(x + ax - stripStart, stripWidth);
             for (int row = Math.max(y, 20 * D); row < Math.min(y + art.height, 32 * D); row++) {
                 int p = art.get(ax, row - y);
                 if (p != 0) { out = out.with(column, row, p); any = true; }
@@ -482,33 +481,72 @@ public final class GeneratedAssets implements DataProvider {
         return out;
     }
 
-    /** A placement texture: drawn on one side of the model only (both, for body cells). */
-    private static Tex sided(Tex tex, Spot.Side side, Piece piece) {
-        return marked(tex.with(MARKER_KIND_X, MARKER_Y, rgb(KIND_SIDED, side.ordinal(), 0)), piece);
+    /**
+     * The same, but as vanilla will draw it from a trim texture: the strip wrapped around the
+     * box the way the shader does for a placement ({@link Spot#anchored}), baked texel by texel
+     * — each column of the part's side rows shows the art column the shader would sample there.
+     */
+    private static Tex placedWrapped(Spot spot, Tex art, int x) {
+        Tex flat = placed(spot, art, x);   // the art on the strip, wrapped round it
+        int stripStart = Spot.stripStart(spot) * D, stripEnd = stripStart + Spot.stripWidth(spot) * D;
+        double inflate = Spot.inflate(spot.piece);
+        int anchor = Spot.face(spot);
+        Tex out = Tex.blank(W, H);
+        for (int column = stripStart; column < stripEnd; column++) {
+            double w = Spot.anchored((column + 0.5) / D, inflate, anchor);
+            if (w < 0) continue;
+            int texel = stripStart + (int) Math.floor(w * D);
+            for (int row = 20 * D; row < 32 * D; row++) {
+                int p = flat.get(texel, row);
+                if (p != 0) out = out.with(column, row, p);
+            }
+        }
+        return out;
+    }
+
+    /** A placement texture: drawn on one side of the model only (both, for body cells), continuous round the box from the cell's face. */
+    private static Tex sided(Tex tex, Spot spot, Spot.Side side) {
+        return marked(tex.with(MARKER_KIND_X, MARKER_Y, rgb(KIND_SIDED, side.ordinal(), Spot.face(spot))), spot.piece);
     }
 
     // ---- the texel contract with ovvar.glsl
 
-    /** Left of the marker: R = kind; sided: G = side; preview: G = cells in the half, B = instant designs. Base textures have none (0). */
+    /** Left of the marker: R = kind; sided: G = side, B = the face of its strip; preview: G = cells in the half, B = instant designs. Base textures have none (0). */
     private static final int MARKER_KIND_X = W - 2, KIND_SIDED = 1, KIND_PREVIEW = 2;
     /** Two left of the marker: R = 2 × the model inflation of the layer the texture is for (the squeeze needs it). */
     private static final int LAYER_X = W - 3;
     /** Always transparent in a patch texture: what the shader draws where there is nothing. */
     private static final int BLANK_X = W - 1, BLANK_Y = H / 2 - 2;
     /**
-     * Preview texture tables, column-major 16 tall, 4·D columns each: cell index (in the half) →
-     * (u, v, side); design index → (library x, y, cells) — positions in texels of this texture.
+     * Preview texture tables, column-major 16 tall, {@value #TABLE_COLUMNS} columns each: cell
+     * index (in the half) → (u, v, side); design index → (library x, y, cells) and, {@value
+     * #TABLE_COLUMNS} columns further right, (art width, art height) — positions in texels of
+     * this texture.
      */
-    private static final int CELL_TABLE_X = 40 * D, PATCH_TABLE_X = 44 * D, TABLE_SIZE = 16 * 4 * D;
-    /** Preview library: cells in the head rows nothing else uses (not the tables, not the marker row), in skin texels. */
-    private static final List<int[]> LIBRARY = library();
+    private static final int CELL_TABLE_X = 40 * D, PATCH_TABLE_X = 44 * D, TABLE_COLUMNS = 2 * D, TABLE_SIZE = 16 * TABLE_COLUMNS;
+    /**
+     * Preview library: the head rows (skin texels 0..64 × 0..16) as a grid of cells, minus the
+     * tables' columns (40..48) and the cell holding the marker row's texels (60..64 × 12..16).
+     * A design takes a block of cells its art's size.
+     */
+    private static final int LIBRARY_COLUMNS = 16, LIBRARY_ROWS = 4;
 
-    private static List<int[]> library() {
-        List<int[]> out = new ArrayList<>();
-        for (int y = 0; y < 16; y += 4) for (int x = 16; x < 40; x += 4) out.add(new int[]{x, y});
-        for (int y = 0; y < 12; y += 4) { out.add(new int[]{56, y}); out.add(new int[]{60, y}); }
-        for (int y = 0; y < 16; y += 4) for (int x = 0; x < 16; x += 4) out.add(new int[]{x, y});
-        return List.copyOf(out);
+    private static boolean libraryFree(int cx, int cy) {
+        return !(cx >= 10 && cx < 12) && !(cx == 15 && cy == 3);
+    }
+
+    /** First-fit block of w×h cells in the library; returns its top-left in skin texels. */
+    private static int[] libraryBlock(boolean[][] taken, int w, int h, String id) {
+        for (int cy = 0; cy + h <= LIBRARY_ROWS; cy++) {
+            for (int cx = 0; cx + w <= LIBRARY_COLUMNS; cx++) {
+                boolean free = true;
+                for (int x = cx; x < cx + w && free; x++) for (int y = cy; y < cy + h; y++) if (taken[x][y] || !libraryFree(x, y)) { free = false; break; }
+                if (!free) continue;
+                for (int x = cx; x < cx + w; x++) for (int y = cy; y < cy + h; y++) taken[x][y] = true;
+                return new int[]{cx * Spot.SIZE, cy * Spot.SIZE};
+            }
+        }
+        throw new IllegalStateException("[" + MOD + " datagen] the preview library is full: no room for " + id + " (" + w + "×" + h + " cells)");
     }
 
     /**
@@ -577,6 +615,22 @@ public final class GeneratedAssets implements DataProvider {
         json(assets.resolve("items/" + name + ".json"), J.itemDef(MOD + ":item/" + name));
         json(assets.resolve("models/item/" + name + ".json"),
                 obj("parent", "minecraft:item/generated", "textures", obj("layer0", MOD + ":item/" + name)));
+        png(assets.resolve("textures/item/" + name + ".png"), texture);
+    }
+
+    /**
+     * An item whose model is one flat, unlit quad of the texture — no thickness, no sides — for
+     * the stand displays. The quad faces +z in model space; an item display turns it 180° about
+     * y, so the readable side faces the display's -z.
+     */
+    private void sprite(String name, Tex texture) {
+        require(texture.width == 16 && texture.height == 16, name + " sprite is not 16×16");
+        json(assets.resolve("items/" + name + ".json"), J.itemDef(MOD + ":item/" + name));
+        json(assets.resolve("models/item/" + name + ".json"), obj(
+                "textures", obj("0", MOD + ":item/" + name, "particle", MOD + ":item/" + name),
+                "elements", arr(obj(
+                        "from", arr(0, 0, 8), "to", arr(16, 16, 8), "shade", false,
+                        "faces", obj("south", obj("uv", arr(0, 0, 16, 16), "texture", "#0"))))));
         png(assets.resolve("textures/item/" + name + ".png"), texture);
     }
 

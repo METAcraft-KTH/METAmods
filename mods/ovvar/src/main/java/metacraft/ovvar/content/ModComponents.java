@@ -42,6 +42,18 @@ public final class ModComponents {
     public static final DataComponentType<UUID> WRAPPED = register("wrapped",
             DataComponentType.<UUID>builder().networkSynchronized(UUIDUtil.STREAM_CODEC));
 
+    /**
+     * On an ovve worn by an armour stand: its patches are shown as display entities on the stand
+     * ({@link metacraft.ovvar.sewing.StandDisplays}) and not drawn by the armour at all, so a
+     * sewing session needs neither the dye channels nor a pack. Cleared when a player picks it up.
+     */
+    public static final DataComponentType<Boolean> ON_STAND = register("on_stand",
+            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
+
+    /** On a patch item stack used as a display entity: which piece of the art ({@link PatchPieces.Piece#key}), flat 1:1, instead of the inventory icon. Never saved. */
+    public static final DataComponentType<String> FLAT = register("flat",
+            DataComponentType.<String>builder().networkSynchronized(ByteBufCodecs.STRING_UTF8));
+
     private static <T> DataComponentType<T> register(String name, DataComponentType.Builder<T> builder) {
         return Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, name), builder.build());
     }
@@ -49,6 +61,6 @@ public final class ModComponents {
     public static void init() {
         // Registered types land in a synced registry; without this Fabric's registry sync kicks
         // vanilla clients ("requires Fabric Loader"). Polymer hides them and never sends them.
-        PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED);
+        PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, ON_STAND, FLAT);
     }
 }

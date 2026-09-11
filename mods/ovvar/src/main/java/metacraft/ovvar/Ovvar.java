@@ -8,6 +8,7 @@ import metacraft.ovvar.content.OvveTop;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.recipe.SewRecipe;
 import metacraft.ovvar.pack.Combos;
+import metacraft.ovvar.sewing.StandDisplays;
 import metacraft.ovvar.sewing.StandSewing;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ public class Ovvar implements ModInitializer {
         OvveTop.init();
         OvveFeet.init();
         StandSewing.init();
+        StandDisplays.init();
         Combos.init();
         ModCommands.init();
 

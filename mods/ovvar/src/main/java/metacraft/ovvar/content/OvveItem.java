@@ -74,7 +74,13 @@ public final class OvveItem extends BundleItem implements PolymerItem {
     /** Worn in the legs slot (player or armour stand): keep the companion top in step every tick. */
     @Override
     public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
-        if (slot == EquipmentSlot.LEGS && entity instanceof LivingEntity wearer) {
+	    if (entity instanceof ServerPlayer player) {
+		    // Off a stand and into a player's hands: the armour draws the patches again, and if
+		    // this player's pack cannot show them all, this is the one reload a sewing session ends in.
+		    if (stack.has(ModComponents.ON_STAND)) stack.remove(ModComponents.ON_STAND);
+		    Looks.claimIfNeeded(player, stack);
+	    }
+		if (slot == EquipmentSlot.LEGS && entity instanceof LivingEntity wearer) {
             OvveTop.sync(wearer, stack);
             OvveFeet.sync(wearer, stack);
         }

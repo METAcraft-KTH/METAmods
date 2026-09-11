@@ -61,7 +61,7 @@ public final class Patches {
             return seat ? 2 : 1;
         }
 
-        /** Does the art hang over its cell? Such a patch never rides in the dye colour (the preview library holds cell-sized art). */
+        /** Does the art hang over its cell? */
         public boolean oversize() {
             return !seat && (width > Spot.PX || height > Spot.PX);
         }

@@ -12,6 +12,7 @@ addProjectDependency(":mods:metacraft-bundles")
 dependencies {
     implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
     implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+    implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 }
 
 // The shaderpack patcher: a double-clickable jar (Java 11+, no dependencies) built from

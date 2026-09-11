@@ -71,44 +71,39 @@ public enum Spot implements StringRepresentable {
     }
 
     /**
-     * ovvar_wrap in ovvar.glsl, the same arithmetic: which strip-local texel column a side-row
-     * texel {@code skinX} (fractional, skin texels) shows once the strip is wrapped around the
-     * inflated box at {@link #pixel} units per texel, continuous across the corners, the slack in
-     * the middle of the seam faces. Negative in the slack. Datagen bakes the trim textures with
-     * it, since vanilla draws those.
+     * The face of its strip a cell is on, 0..3: a limb's outer, front, inner, back; the body's
+     * right side, front, left side, back.
      */
-    public static double wrap(double skinX, double inflate) {
+    public static int face(Spot spot) {
+        int local = spot.u - stripStart(spot), n1 = stripWidth(spot) == 24 ? 8 : 4;
+        return local < 4 ? 0 : local < 4 + n1 ? 1 : local < 8 + n1 ? 2 : 3;
+    }
+
+    /**
+     * ovvar_anchored in ovvar.glsl, the same arithmetic: a placement is drawn continuous round
+     * the box from the face it is on — that face's texels centred on it, the neighbours'
+     * continuing past its edges at {@link #pixel} units each — with the slack of the inflated
+     * box in the middle of the opposite face. For a side-row texel {@code skinX} (fractional,
+     * skin texels): the strip-local texel column shown there, or -1 in the slack. Datagen bakes
+     * the trim textures with it, since vanilla draws those.
+     */
+    public static double anchored(double skinX, double inflate, int anchor) {
         double p = pixel((int) Math.floor(skinX), inflate), e = 2 * inflate;
         boolean body = skinX >= 16 && skinX < 40;
-        double stripStart = skinX < 16 ? 0 : body ? 16 : 40;
+        int stripStart = skinX < 16 ? 0 : body ? 16 : 40;
         double local = skinX - stripStart;
-        double n0 = 4, n1 = body ? 8 : 4, n2 = 4, n3 = body ? 8 : 4;
-        double s1 = n0, s2 = n0 + n1, s3 = n0 + n1 + n2, total = s3 + n3;
-        double W0 = n0 + e, W1 = n1 + e, W2 = n2 + e, W3 = n3 + e;
-        double U1 = W0, U2 = W0 + W1, U3 = W0 + W1 + W2, P = U3 + W3;
-        int k = local < s1 ? 0 : local < s2 ? 1 : local < s3 ? 2 : 3;
-        double sk = new double[]{0, s1, s2, s3}[k], nk = new double[]{n0, n1, n2, n3}[k];
-        double Uk = new double[]{0, U1, U2, U3}[k], Wk = new double[]{W0, W1, W2, W3}[k];
-        double u = Uk + (local - sk) * (Wk / nk);
-        double t1, t2, c;
-        if (body) {
-            double C1 = U1 + W1 / 2, T1 = s1 + n1 / 2, C3 = U3 + W3 / 2, T3 = s3 + n3 / 2;
-            if (k == 1) return T1 + (u - C1) / p;
-            if (k == 3) return T3 + (u - C3) / p;
-            if (k == 0) { t1 = T3 + (u + P - C3) / p - total; t2 = T1 + (u - C1) / p; c = n0 / 2; }
-            else { t1 = T1 + (u - C1) / p; t2 = T3 + (u - C3) / p; c = s2 + n2 / 2; }
-        } else {
-            double C = W0 / 2, T = n0 / 2;
-            if (k != 2) {
-                double du = u - C;
-                if (du >= P / 2) du -= P;
-                return Math.floorMod((int) Math.floor((T + du / p) * 1e6), (int) (total * 1e6)) / 1e6;   // the back face continues from the strip's end
-            }
-            t1 = T + (u - C) / p; t2 = T + (u - C - P) / p + total; c = s2 + n2 / 2;
-        }
-        if (t1 <= c) return t1;
-        if (t2 >= c) return t2;
-        return -1;
+        int n1 = body ? 8 : 4, total = 8 + 2 * n1;
+        double perimeter = total + 4 * e;
+        int k = local < 4 ? 0 : local < 4 + n1 ? 1 : local < 8 + n1 ? 2 : 3;
+        double[] s = {0, 4, 4 + n1, 8 + n1}, n = {4, n1, 4, n1}, U = {0, 4 + e, 4 + n1 + 2 * e, 8 + n1 + 3 * e};
+        double u = U[k] + (local - s[k]) * ((n[k] + e) / n[k]);
+        double c = U[anchor] + (n[anchor] + e) / 2, t = s[anchor] + n[anchor] / 2.0;
+        double du = u - c;
+        if (du >= perimeter / 2) du -= perimeter; else if (du < -perimeter / 2) du += perimeter;
+        double dt = du / p;
+        if (Math.abs(dt) > total / 2.0) return -1;
+        double w = t + dt;
+        return w - Math.floor(w / total) * total;
     }
 
     /** Start of the strip (skin texels) a cell's part draws: legs 0, body 16, arms 40. */

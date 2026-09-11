@@ -157,6 +157,7 @@ public final class OvveFeet {
         Placement preview = ovve.get(ModComponents.PREVIEW);
         if (preview != null) cuffs.set(ModComponents.PREVIEW, preview);
         cuffs.set(ModComponents.FEET_CHANNEL, true);
+        if (Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) cuffs.set(ModComponents.ON_STAND, true);
         return cuffs;
     }
 

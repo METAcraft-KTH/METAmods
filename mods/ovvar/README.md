@@ -26,7 +26,14 @@ at (the trim channel in a "ghost" material, so the preview costs no dye bits), t
 names it, right-click sews it on; sneak to aim at the far face of the part you look at
 (the back of the body, the back of an arm). The aim follows the stand's pose. An empty hand on a sewn patch unpicks it. Seat
 patches also go on at the smithing table (ovve + patch, no template). No cap on the number of
-patches.
+patches. While the ovve is on a stand its patches are flat item displays laid on their cells
+(`StandDisplays`, Polymer virtual entities following the stand's pose; the armour draws none of
+them there), so a sewing session needs no resource pack at all — the pack matters once the ovve
+is taken off and worn. A big patch is cut at the corners of its face (`PatchPieces`) and each
+piece laid on the face it hangs over — round the sides, and over the top of a sleeve — so it
+bends round the box on the stand too; datagen makes one item model per piece — a single
+zero-thickness quad, so the displays are sprites, not slabs. The companion top and the virtual
+cuffs carry the same on-stand flag, so nothing draws the patches twice.
 
 With the stitching minigame on (`config/ovvar.json`: `sewing_minigame`, `stitches`; default on,
 6 stitches) the right-click opens a dialog instead: the patch lies on the ovve's cloth and the
@@ -65,6 +72,7 @@ client centres without scrolling. Mockups of the design are in `docs/mockups/sew
     /ovvar stands <chapter>                    three posed stands in a plain ovve, for testing the sewing aim
     /ovvar minigame [on [stitches]|off]        the stitching minigame setting; saved to config/ovvar.json
     /ovvar aimlog on|off                       log every stand click and aim change with its numbers (server log)
+    /ovvar reload                              (any player) the latest resource pack, now
 
 ## Building
 
@@ -99,14 +107,14 @@ styles in game — `/ovvar give data_polymiter down` next to `/ovvar give data d
 One line in `Patches.java` (id, name; `true` for a seat patch) and a PNG at
 `src/main/resources/art/ovvar/patches/<id>.png` — 8×8 for a cell-sized patch, 16×8 for a seat
 patch, or any even size up to 16×16 declared in the catalogue line: such a patch is centred on
-its cell and hangs over the neighbours, later-sewn on top (garment and patch textures are the
-armour layout at twice the skin's resolution, `Spot.DETAIL`). A patch that hangs over never
-rides in the dye colour (the preview library holds cell-sized art), so it shows after the pack
-build; its ghost preview is instant. Then
-`runDatagen`. The first 22
+its cell and hangs over the neighbours, later-sewn on top, all the way round the part — past a
+limb's outer face lies its back face, the strip being a loop (garment and patch textures are the
+armour layout at twice the skin's resolution, `Spot.DETAIL`). A big patch rides in the dye
+colour like any other (the shader bends it round the corners from its own cell's face, as the
+pack will). Then `runDatagen`. The first 22
 designs in the catalogue can ride in the dye colour (instant, previewable); later ones only go
-through the pack; the preview library holds 30 cells for those 22 — datagen fails loudly when
-that runs out.
+through the pack; the preview library is the head rows of the texture (52 cells) and datagen
+fails loudly when that runs out.
 
 ## How the look works
 
@@ -138,7 +146,7 @@ is only drawn when the item has a dye colour, and that colour reaches the shader
 colour — the only per-item data an armour shader ever gets — so it carries the *rank* of the set
 of up to three (cell, design) placements among all such sets (packed as three base-255 digits so
 no byte is 0; 20 cells × 22 designs, C(440,3) ≈ 14M states under 255³). The preview texture holds the art of the first 22
-designs plus cell and design tables; the pack's entity core shader
+designs — any size, in a block of library cells — plus cell and design tables; the pack's entity core shader
 (`assets/minecraft/shaders/core/entity.fsh` + `assets/ovvar/shaders/include/ovvar.glsl`) unranks
 the set and draws the art on the cells, lit white so the data colour never tints it. The
 placement being aimed at takes one of the three. Designs past the first 22 in the catalogue only
@@ -164,13 +172,19 @@ back to three. The boots pass is
 inflated 1.0 where the leggings are 0.5, so the shader draws it on the leggings' pixel grid
 (squeezed in x and y) and the two layers' pixels line up.
 
-## Reloads wait for a calm moment
+## Reloads only when asked for
 
-A pushed pack is a loading screen, so a player gets one only after `push_after_calm_seconds`
-(config, default 20) without taking or dealing damage, sewing, or moving more than
-`push_calm_distance` blocks (default 8) — nobody loses a fight to a reload, and a sewing session
-ends in one reload rather than one every few patches. Until then they see what their pack plus
-the dye channels can show; nothing goes missing, the newest patches just wait.
+A pushed pack is a loading screen, so nobody gets one they did not cause. On an armour stand
+nothing needs the pack (the patches are display entities). The pack is pushed to a player in
+exactly two cases: an ovve came into their inventory — off a stand, `/ovvar give`, `/ovvar
+patches` — with more patches on a half than their pack plus the dye channels can show, in which
+case the pack is built at once and sent to them the moment it is ready (`Looks.claimIfNeeded`
+from `OvveItem.inventoryTick`); or they ran `/ovvar reload` (any player), which sends the
+current pack, after a build if one is pending. Everyone else keeps the pack they have and sees
+what it holds plus the newest patches in the dye channels; a half with more new patches than
+that shows the older state to them until they reload or rejoin (a joining player gets the
+current pack). Every combination is still built in the background within 90 s so the pack is
+complete for whoever joins next.
 
 ## Square pixels
 
@@ -178,16 +192,20 @@ The armour model draws a texel wider than it is tall: the box is inflated (1 on 
 layer, 0.5 on the leggings layer) but its texture is not, so a face n texels wide covers
 n + 2·inflate units while 12 rows cover 12 + 2·inflate — a sleeve texel is 1.5 × 1.167 units,
 a chest texel 1.25 × 1.167. Pixel art hates that, so the shader draws everything of ours on the
-box sides with square pixels: each strip's texels are wrapped around the box at the square
-size, continuous across the corners — a patch hanging over a corner just bends round it — and
-the slack that leaves (the inflated box is wider than its texels) is taken up in the middle of
-the seam faces, the inner face of an arm or leg and both sides of the body, where the garment's
-centre column stretches and patches leave it to the fabric (`ovvar_wrap` in `ovvar.glsl`,
-`Spot.wrap` in Java). Anchor faces — a limb's outer face, the body's front and back — keep their
-art centred. Each texture carries which layer it is for (the layer texel, two left of the
-marker: R = 2·inflate). The ghost preview is a vanilla-drawn trim, so datagen bakes the same
-wrap into the trim textures, to the texel — good enough for a ghost, which is why sewn patches
-never ride as the trim.
+box sides with square pixels, which leaves 2·inflate units of slack per face. The garment and
+the preview (many cells, one per face) centre each face's texels on the face, so the cells sit
+on the fabric's grid, and the slack is a margin at every corner: the garment stretches its
+edge column across it, the preview shows nothing there. A sewn patch's own texture holds one
+patch on one face, so it is drawn continuous round the box from that face instead — its
+texels centred, the neighbours' continuing past its edges at the same pixel — and all its
+slack lands in the middle of the opposite face, which the patch never reaches: a big patch
+hanging over a corner bends round it unbroken, and no corner ever shows a stretched, doubled
+or cut column (`ovvar_centred`, `ovvar_anchored` and `ovvar_uv` in `ovvar.glsl`,
+`Spot.anchored` and `placedWrapped` in Java; the face is in the kind texel's B).
+Each texture carries which layer it is for (the layer texel, two left of
+the marker: R = 2·inflate). The ghost preview is a vanilla-drawn trim, so datagen bakes the same
+mapping into the trim textures, to the texel — good enough for a ghost, which is why sewn
+patches never ride as the trim.
 
 ## Asymmetric sleeves and legs
 
