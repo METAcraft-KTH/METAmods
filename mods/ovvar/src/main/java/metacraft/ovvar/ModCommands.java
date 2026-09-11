@@ -143,7 +143,7 @@ public final class ModCommands {
     }
 
     private static @Nullable SpotPlacements fromList(List<Placement> patches) throws CommandSyntaxException {
-        return patches.isEmpty() ? null : SpotPlacements.CODEC.parse(JavaOps.INSTANCE, patches).getOrThrow(INVALID_PATCHES::create);
+        return patches.isEmpty() ? null : SpotPlacements.fromList(patches).getOrThrow(INVALID_PATCHES::create);
     }
 
     private static ItemStack ovve(Chapter chapter, boolean topUp, List<Placement> patches) throws CommandSyntaxException {

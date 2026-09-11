@@ -26,24 +26,26 @@ public record SpotPlacements(PMap<Spot, Patches.Patch> patchMap) {
 	}
 
 	public static final Codec<SpotPlacements> CODEC = ExtraCodecs.nonEmptyList(Placement.CODEC.listOf()).comapFlatMap(
-			placements -> {
-				PMap<Spot, Patches.Patch> patchMap = TreePMap.empty();
-				Set<Placement> overlapping = new HashSet<>();
-				for (var placement : placements) {
-					if (overrides(placement.spot(), patchMap)) {
-						overlapping.add(placement);
-					} else {
-						patchMap = patchMap.plus(placement.spot(), placement.patch());
-					}
-				}
-				if (overlapping.isEmpty()) {
-					return DataResult.success(new SpotPlacements(patchMap));
-				} else {
-					return DataResult.error(() -> "skipping overlapping patches: " + overlapping, new SpotPlacements(patchMap));
-				}
-			},
+			SpotPlacements::fromList,
 			SpotPlacements::asPlacementList
 	);
+
+	public static DataResult<SpotPlacements> fromList(List<Placement> placements) {
+		PMap<Spot, Patches.Patch> patchMap = TreePMap.empty();
+		Set<Placement> overlapping = new HashSet<>();
+		for (var placement : placements) {
+			if (overrides(placement.spot(), patchMap)) {
+				overlapping.add(placement);
+			} else {
+				patchMap = patchMap.plus(placement.spot(), placement.patch());
+			}
+		}
+		if (overlapping.isEmpty()) {
+			return DataResult.success(new SpotPlacements(patchMap));
+		} else {
+			return DataResult.error(() -> "skipping overlapping patches: " + overlapping, new SpotPlacements(patchMap));
+		}
+	}
 
 	public SpotPlacements {
 		if (patchMap.keySet().stream().anyMatch(spot -> overlaps(spot, patchMap))) {
