@@ -20,6 +20,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
@@ -56,8 +57,17 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
-		if (!player.isShiftKeyDown()) return super.use(level, player, hand);
 		ItemStack stack = player.getItemInHand(hand);
+		if (!player.isShiftKeyDown()) {
+			var bundleContents = stack.get(DataComponents.BUNDLE_CONTENTS);
+			if (bundleContents == null || bundleContents.isEmpty()) {
+				Equippable equippable = stack.get(DataComponents.EQUIPPABLE);
+				if (equippable != null && equippable.swappable()) {
+					return equippable.swapWithEquipmentSlot(stack, player);
+				}
+			}
+			return super.use(level, player, hand);
+		}
 		if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResult.SUCCESS;
 		if (!chapter.rollable) {
 			serverPlayer.sendOverlayMessage(Component.literal("A " + chapter.garmentWord() + " has nothing to roll down"));
