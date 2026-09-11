@@ -2,6 +2,7 @@ plugins {
     id 'net.fabricmc.fabric-loom' version "$loom_version" apply false
 	id("org.jetbrains.gradle.plugin.idea-ext") version "$idea_plugin_version"
 	id 'base'
+	id 'checkstyle'
 }
 
 def nonModSubProjects = [
@@ -26,6 +27,7 @@ subprojects {
         return
     }
     apply plugin: "net.fabricmc.fabric-loom"
+	apply plugin: "checkstyle"
 
     ext.initDist = { ->
         dependencies {
@@ -75,8 +77,10 @@ subprojects {
         addPolymerDependency()
         addSGUIDependency()
         dependencies {
-           implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
-           implementation("org.apache.commons:commons-math3:${project.apache_commons_math_version}")
+            implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+            implementation("org.apache.commons:commons-math3:${project.apache_commons_math_version}")
+            implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+            implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
         }
     }
 

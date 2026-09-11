@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import nu.metacraft.core.block.blocks.BlockWithDisguise;
 import nu.metacraft.core.mixin.ChunkHolderAccessor;
 import nu.metacraft.core.mixin.ServerChunkCacheAccessor;
 
@@ -25,11 +26,14 @@ public class DisguisedBlockEntity extends BlockEntity implements BlockEntityWith
 	}
 
 	@Override
-	public BlockState getBlockState() {
+	public BlockState getDisplayedBlockState() {
 		return state;
 	}
 
 	public void setBlockState(BlockState state) {
+		if (state.getBlock() instanceof BlockWithDisguise) {
+			state = Blocks.BARRIER.defaultBlockState();
+		}
 		if (this.state != state) {
 			this.state = state;
 			setChanged();

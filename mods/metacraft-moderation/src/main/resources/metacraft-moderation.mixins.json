@@ -3,7 +3,10 @@
 	"package": "nu.metacraft.moderation.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
+		"AlwaysTargetModeratorCommandMixins",
+		"EntityArgumentMixin",
 		"EntitySelectorMixin",
+		"PlaySoundCommandMixin",
 		"ServerPlayerMixin",
 		"TamableAnimalMixin"
 	],

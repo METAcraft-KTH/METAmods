@@ -37,7 +37,7 @@ public abstract class ServerCommonPacketListenerImplMixin {
 		if ((Object) this instanceof ServerGamePacketListenerImpl play && packet instanceof ClientboundBlockUpdatePacket blockUpdate) {
 			if (blockUpdate.getBlockState().getBlock() instanceof BlockWithDisguise disguised) {
 				disguised.getBlockEntity(play.player.level(), blockUpdate.getPos()).ifPresent(entity -> {
-					((ClientboundBlockUpdatePacketAccessor) blockUpdate).setBlockState(entity.getBlockState());
+					((ClientboundBlockUpdatePacketAccessor) blockUpdate).setBlockState(entity.getDisplayedBlockState());
 				});
 			}
 		}

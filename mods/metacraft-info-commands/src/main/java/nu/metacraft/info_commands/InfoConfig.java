@@ -11,9 +11,11 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 
-public record InfoConfig(Map<String, InfoNode> commands, boolean resendCommandTreeOnReload,
-                         boolean enableResendCommandTreeCommand, int infoMessageIntervalTicks,
-                         Component infoMessagePrefix, List<InfoMessage> infoMessages) {
+public record InfoConfig(
+	Map<String, InfoNode> commands, boolean resendCommandTreeOnReload,
+	boolean enableResendCommandTreeCommand, int infoMessageIntervalTicks,
+	Component infoMessagePrefix, List<InfoMessage> infoMessages
+) {
 
 	public static final MapCodec<InfoConfig> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.unboundedMap(Codec.STRING, InfoNode.CODEC).fieldOf("commands").forGetter(InfoConfig::commands),

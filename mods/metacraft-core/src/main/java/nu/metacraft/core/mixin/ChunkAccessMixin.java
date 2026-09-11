@@ -9,10 +9,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ChunkAccess.class)
 public class ChunkAccessMixin {
-    @Inject(method = "incrementInhabitedTime", at = @At("HEAD"), cancellable = true)
-    private void onIncreaseInhabitedTime(CallbackInfo ci) {
-        if (InhabitedTimeCommand.frozen) {
-            ci.cancel();
-        }
-    }
+	@Inject(method = "incrementInhabitedTime", at = @At("HEAD"), cancellable = true)
+	private void onIncreaseInhabitedTime(CallbackInfo ci) {
+		if (InhabitedTimeCommand.frozen) {
+			ci.cancel();
+		}
+	}
 }

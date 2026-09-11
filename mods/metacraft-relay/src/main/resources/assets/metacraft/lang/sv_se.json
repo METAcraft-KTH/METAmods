@@ -1,0 +1,7 @@
+{
+    "block.metacraft.relay": "Enderrelä",
+    "block.metacraft.relay.target": "Destination: %s i %s",
+    "block.metacraft.relay.no_target": "Ingen destination",
+    "block.metacraft.relay.no_target.1": "Kombinera mig med en magnetit-",
+    "block.metacraft.relay.no_target.2": "kompass i en arbetsbänk"
+}

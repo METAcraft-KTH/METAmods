@@ -88,11 +88,11 @@ public class PortableJukeboxGui extends LayeredGui {
 	}
 
 	@Override
-    public void onTick() {
+	public void onTick() {
 		if (portableJukebox.getJukebox().isEmpty()) {
 			close();
 			return;
 		}
-        super.onTick();
-    }
+		super.onTick();
+	}
 }

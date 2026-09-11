@@ -31,8 +31,10 @@ import net.minecraft.world.level.block.Portal;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
 
-public record TargetPortalFrameObject(Holder<BlockStateProvider> portalBlock, ItemPredicate activator,
-                                      Optional<Portal> portalReference) implements BaseBlock {
+public record TargetPortalFrameObject(
+	Holder<BlockStateProvider> portalBlock, ItemPredicate activator,
+	Optional<Portal> portalReference
+) implements BaseBlock {
 
 	public static final MapCodec<TargetPortalFrameObject> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
