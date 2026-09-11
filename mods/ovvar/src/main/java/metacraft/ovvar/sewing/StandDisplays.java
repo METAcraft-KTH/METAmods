@@ -37,9 +37,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * The displays are Polymer virtual entities attached to the stand: nothing is saved, nothing
  * exists server-side, and they are gone the moment the ovve is. Each patch item has flat models
  * for this (pieces of its art 1:1 on the sprite, {@link PatchPieces}), scaled so one art pixel
- * is one of the fabric's square pixels; a big patch is cut at the corners of its face and each
+ * is one of the fabric's square pixels. A big patch can be cut at the corners of its face and each
  * piece laid on the face it hangs over — round the sides, and over the top of a sleeve or leg —
- * so it bends round the box as the sewn one will. Later-sewn patches sit a hair further out, so
+ * so it bends round the box as the sewn one will; that is off for now
+ * ({@link PatchPieces#BEND_ROUND_CORNERS}), the whole art lies flat on the cell's face and the
+ * overhang sticks out past the corner. Later-sewn patches sit a hair further out, so
  * they overlap the earlier; the patch being aimed at lies on top of all, washed out, until it is
  * sewn — the whole preview, so the pack has no trim channel to carry.
  */

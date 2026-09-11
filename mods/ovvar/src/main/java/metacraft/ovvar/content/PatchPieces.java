@@ -17,6 +17,14 @@ import java.util.List;
 public final class PatchPieces {
 	private PatchPieces() {}
 
+	/**
+	 * Bend a patch round the corners of its face, or lay the whole art flat on the cell's face and
+	 * let the overhang stick out past the corner? Off for now: the cut pieces do not line up well
+	 * enough with the armour, worse the further a stand's limbs are posed from rest, and two
+	 * patches meeting round a sleeve's corner look broken.
+	 */
+	public static final boolean BEND_ROUND_CORNERS = false;
+
 	/** Which plane a piece lies on, relative to the cell's face. */
 	public enum Where { FACE, RIGHT, LEFT, TOP }
 
@@ -55,6 +63,7 @@ public final class PatchPieces {
 			// Half on each leg's back face; the halves are cut at the legs' inner corner, which the art never crosses.
 			return List.of(new Piece(Where.FACE, 0, w / 2, 0, h, 0), new Piece(Where.FACE, w / 2, w, 0, h, 0));
 		}
+		if (!BEND_ROUND_CORNERS) return List.of(new Piece(Where.FACE, 0, w, 0, h, 0));
 		double inflate = Spot.inflate(spot.piece), a = Spot.pixel(spot.u, inflate) / 2;   // sixteenths per art pixel
 		int n = faceTexels(spot);
 		double halfFace = (n + 2 * inflate) / 2, halfTop = (12 + 2 * inflate) / 2;

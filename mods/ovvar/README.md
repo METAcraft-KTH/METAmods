@@ -29,10 +29,12 @@ patches also go on at the smithing table (ovve + patch, no template). No cap on 
 patches. While the ovve is on a stand its patches are flat item displays laid on their cells
 (`StandDisplays`, Polymer virtual entities following the stand's pose; the armour draws none of
 them there), so a sewing session needs no resource pack at all — the pack matters once the ovve
-is taken off and worn. A big patch is cut at the corners of its face (`PatchPieces`) and each
-piece laid on the face it hangs over — round the sides, and over the top of a sleeve — so it
-bends round the box on the stand too; datagen makes one item model per piece — a single
-zero-thickness quad, so the displays are sprites, not slabs — and a ghosted twin of each (mixed
+is taken off and worn. A big patch lies flat on its cell's face, the overhang sticking out past
+the corner (`PatchPieces` can instead cut it at the corners and lay each piece on the face it
+hangs over, so it bends round the box on the stand too; that is off for now,
+`BEND_ROUND_CORNERS`, until the pieces line up with the armour on posed stands); datagen makes
+one item model per piece — a single zero-thickness quad, so the displays are sprites, not slabs
+— and a ghosted twin of each (mixed
 60 % to white), which is what the patch being aimed at is shown as, on top of everything, until
 it is sewn. That is the whole preview. The companion top and the virtual cuffs carry the same
 on-stand flag, so nothing draws the patches twice.
