@@ -16,20 +16,20 @@ import org.jspecify.annotations.Nullable;
  * the white bundle with our item definition (a copy of vanilla's, pointing at our textures).
  */
 public final class ModBundleItem extends BundleItem implements PolymerItem {
-    private final Identifier model;
+	private final Identifier model;
 
-    public ModBundleItem(Properties properties, Identifier id) {
-        super(properties);
-        this.model = id;
-    }
+	public ModBundleItem(Properties properties, Identifier id) {
+		super(properties);
+		this.model = id;
+	}
 
-    @Override
-    public Item getPolymerItem(ItemStack stack, PacketContext context) {
-        return Items.DYED_BUNDLE.white();
-    }
+	@Override
+	public Item getPolymerItem(ItemStack stack, PacketContext context) {
+		return Items.DYED_BUNDLE.white();
+	}
 
-    @Override
-    public @Nullable Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
-        return model;
-    }
+	@Override
+	public @Nullable Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+		return model;
+	}
 }

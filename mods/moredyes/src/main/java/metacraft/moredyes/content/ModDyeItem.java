@@ -24,37 +24,37 @@ import org.jspecify.annotations.Nullable;
  * The client is told it holds white dye with our item model, so it behaves like a dye in hand.
  */
 public final class ModDyeItem extends Item implements PolymerItem {
-    private final ModColor color;
-    private final Identifier model;
+	private final ModColor color;
+	private final Identifier model;
 
-    public ModDyeItem(Properties properties, ModColor color, Identifier id) {
-        super(properties);
-        this.color = color;
-        this.model = id;
-    }
+	public ModDyeItem(Properties properties, ModColor color, Identifier id) {
+		super(properties);
+		this.color = color;
+		this.model = id;
+	}
 
-    public ModColor color() {
-        return color;
-    }
+	public ModColor color() {
+		return color;
+	}
 
-    /** Right-click in the air with a banner/shield in the other hand: open the dye loom. */
-    @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        InteractionHand other = hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
-        if (!DyeLoomGui.canOpen(player.getItemInHand(other))) return InteractionResult.PASS;
-        if (player instanceof ServerPlayer serverPlayer) {
-            new DyeLoomGui(serverPlayer, color, hand).open();
-        }
-        return InteractionResult.SUCCESS;
-    }
+	/** Right-click in the air with a banner/shield in the other hand: open the dye loom. */
+	@Override
+	public InteractionResult use(Level level, Player player, InteractionHand hand) {
+		InteractionHand other = hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
+		if (!DyeLoomGui.canOpen(player.getItemInHand(other))) return InteractionResult.PASS;
+		if (player instanceof ServerPlayer serverPlayer) {
+			new DyeLoomGui(serverPlayer, color, hand).open();
+		}
+		return InteractionResult.SUCCESS;
+	}
 
-    @Override
-    public Item getPolymerItem(ItemStack stack, PacketContext context) {
-        return Items.DYE.white();
-    }
+	@Override
+	public Item getPolymerItem(ItemStack stack, PacketContext context) {
+		return Items.DYE.white();
+	}
 
-    @Override
-    public @Nullable Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
-        return model;
-    }
+	@Override
+	public @Nullable Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+		return model;
+	}
 }

@@ -18,21 +18,21 @@ import org.slf4j.LoggerFactory;
  * required because a client without it has nothing meaningful to show.
  */
 public class MoreDyes implements ModInitializer {
-    public static final String MOD_ID = "moredyes";
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+	public static final String MOD_ID = "moredyes";
+	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    @Override
-    public void onInitialize() {
-        ModColors.load();
-        ModContent.register();
-        ModRecipes.init();
-        SheepColors.init();
-        ModCommands.init();
-        BannerPatterns.init();
+	@Override
+	public void onInitialize() {
+		ModColors.load();
+		ModContent.register();
+		ModRecipes.init();
+		SheepColors.init();
+		ModCommands.init();
+		BannerPatterns.init();
 
-        PolymerResourcePackUtils.addModAssets(MOD_ID);
-        PolymerResourcePackUtils.markAsRequired();
+		PolymerResourcePackUtils.addModAssets(MOD_ID);
+		PolymerResourcePackUtils.markAsRequired();
 
-        LOGGER.info("[{}] registered {} colour(s)", MOD_ID, ModColors.all().size());
-    }
+		LOGGER.info("[{}] registered {} colour(s)", MOD_ID, ModColors.all().size());
+	}
 }

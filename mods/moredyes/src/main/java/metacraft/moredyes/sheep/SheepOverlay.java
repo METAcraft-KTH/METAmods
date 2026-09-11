@@ -20,37 +20,37 @@ import java.util.List;
  * whole sheep is drawn by {@link SheepWoolRig} instead. Hitbox, name tag and interactions stay.
  */
 public final class SheepOverlay implements PolymerEntity {
-    private static final int SHEARED_BIT = 16;
-    private static final int FLAGS_ID = 0;      // Entity.DATA_SHARED_FLAGS_ID
-    private static final byte INVISIBLE = 1 << 5; // Entity.FLAG_INVISIBLE
-    private final Sheep sheep;
+	private static final int SHEARED_BIT = 16;
+	private static final int FLAGS_ID = 0;	  // Entity.DATA_SHARED_FLAGS_ID
+	private static final byte INVISIBLE = 1 << 5; // Entity.FLAG_INVISIBLE
+	private final Sheep sheep;
 
-    public SheepOverlay(Sheep sheep) {
-        this.sheep = sheep;
-    }
+	public SheepOverlay(Sheep sheep) {
+		this.sheep = sheep;
+	}
 
-    @Override
-    public EntityType<?> getPolymerEntityType(PacketContext context) {
-        return EntityTypes.SHEEP;
-    }
+	@Override
+	public EntityType<?> getPolymerEntityType(PacketContext context) {
+		return EntityTypes.SHEEP;
+	}
 
-    @Override
-    public void modifyRawTrackedData(List<SynchedEntityData.DataValue<?>> data, ServerPlayer player, boolean initial) {
-        if (SheepColors.get(sheep) == null) return;
-        EntityDataAccessor<Byte> woolId = SheepAccessor.moredyes$woolId();
-        boolean sawFlags = false;
-        for (int i = 0; i < data.size(); i++) {
-            SynchedEntityData.DataValue<?> value = data.get(i);
-            if (value.id() == woolId.id() && value.value() instanceof Byte b) {
-                data.set(i, new SynchedEntityData.DataValue<>(value.id(), woolId.serializer(), (byte) (b | SHEARED_BIT)));
-            } else if (value.id() == FLAGS_ID && value.value() instanceof Byte b) {
-                data.set(i, new SynchedEntityData.DataValue<>(FLAGS_ID, EntityDataSerializers.BYTE, (byte) (b | INVISIBLE)));
-                sawFlags = true;
-            }
-        }
-        // Default flags (0) are omitted from the spawn data; add them so the sheep starts invisible.
-        if (initial && !sawFlags) {
-            data.add(new SynchedEntityData.DataValue<>(FLAGS_ID, EntityDataSerializers.BYTE, INVISIBLE));
-        }
-    }
+	@Override
+	public void modifyRawTrackedData(List<SynchedEntityData.DataValue<?>> data, ServerPlayer player, boolean initial) {
+		if (SheepColors.get(sheep) == null) return;
+		EntityDataAccessor<Byte> woolId = SheepAccessor.moredyes$woolId();
+		boolean sawFlags = false;
+		for (int i = 0; i < data.size(); i++) {
+			SynchedEntityData.DataValue<?> value = data.get(i);
+			if (value.id() == woolId.id() && value.value() instanceof Byte b) {
+				data.set(i, new SynchedEntityData.DataValue<>(value.id(), woolId.serializer(), (byte) (b | SHEARED_BIT)));
+			} else if (value.id() == FLAGS_ID && value.value() instanceof Byte b) {
+				data.set(i, new SynchedEntityData.DataValue<>(FLAGS_ID, EntityDataSerializers.BYTE, (byte) (b | INVISIBLE)));
+				sawFlags = true;
+			}
+		}
+		// Default flags (0) are omitted from the spawn data; add them so the sheep starts invisible.
+		if (initial && !sawFlags) {
+			data.add(new SynchedEntityData.DataValue<>(FLAGS_ID, EntityDataSerializers.BYTE, INVISIBLE));
+		}
+	}
 }

@@ -1,44 +1,44 @@
 {
-  "schemaVersion": 1,
-  "id": "moredyes",
-  "version": "${version}",
-  "name": "More Dyes",
-  "description": "Server-side dye colours (Cerise, Laserviolet, and whatever colors.json says next) for vanilla clients, via Polymer. Players only need the auto-served resource pack.",
-  "authors": [
-    "Edvin"
-  ],
-  "contact": {
-    "sources": "${git_repo}",
-    "homepage": "${website}",
-    "issues": "${issues}"
-  },
-  "license": "MIT",
-  "environment": "*",
-  "entrypoints": {
-    "main": [
-      "metacraft.moredyes.MoreDyes"
-    ],
-    "fabric-gametest": [
-      "metacraft.moredyes.gametest.MoreDyesGameTests"
-    ],
-    "fabric-datagen": [
-      "metacraft.moredyes.datagen.MoreDyesDataGenerator"
-    ]
-  },
-  "depends": {
-    "fabricloader": ">=0.19.2",
-    "minecraft": ">=26.2 <26.3",
-    "java": ">=25",
-    "fabric-api": "*",
-    "polymer-core": "*",
-    "polymer-blocks": "*",
-    "polymer-resource-pack": "*",
-    "polymer-virtual-entity": "*",
-    "polymer-sound-patcher": "*",
-    "sgui": "*"
-  },
-  "mixins": [
-    "moredyes.mixins.json"
-  ],
-  "accessWidener": "moredyes.accesswidener"
+	"schemaVersion": 1,
+	"id": "moredyes",
+	"version": "${version}",
+	"name": "More Dyes",
+	"description": "Server-side dye colours (Cerise, Laserviolet, and whatever colors.json says next) for vanilla clients, via Polymer. Players only need the auto-served resource pack.",
+	"authors": [
+		"Edvin"
+	],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"metacraft.moredyes.MoreDyes"
+		],
+		"fabric-gametest": [
+			"metacraft.moredyes.gametest.MoreDyesGameTests"
+		],
+		"fabric-datagen": [
+			"metacraft.moredyes.datagen.MoreDyesDataGenerator"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": ">=26.2 <26.3",
+		"java": ">=25",
+		"fabric-api": "*",
+		"polymer-core": "*",
+		"polymer-blocks": "*",
+		"polymer-resource-pack": "*",
+		"polymer-virtual-entity": "*",
+		"polymer-sound-patcher": "*",
+		"sgui": "*"
+	},
+	"mixins": [
+		"moredyes.mixins.json"
+	],
+	"accessWidener": "moredyes.accesswidener"
 }
