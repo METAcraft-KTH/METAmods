@@ -5,15 +5,14 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.serialization.DataResult;
+import net.minecraft.world.item.component.GrowableMutableContainer;
 import nu.metacraft.bundles.METAcraftBundles;
 import nu.metacraft.bundles.extensions.BundlesComponentExtensions;
 import nu.metacraft.bundles.util.BundleHelper;
 import org.apache.commons.lang3.math.Fraction;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
@@ -65,17 +64,37 @@ public abstract class BundleContentsMixin implements BundlesComponentExtensions.
 		return original && this.bundleSizeFactor.equals(BundleHelper.getStoredBundleSizeFactor(contents));
 	}
 
+	@ModifyExpressionValue(
+			method = {
+					"asMutable()Lnet/minecraft/world/item/component/BundleContents$Mutable;",
+					"copyWithContents(Ljava/util/stream/Stream;)Lnet/minecraft/world/item/component/BundleContents;"
+			},
+			at = {
+					@At(
+							value = "NEW",
+							target = "()Lnet/minecraft/world/item/component/BundleContents$Mutable;"
+					),
+					@At(
+							value = "NEW",
+							target = "(Ljava/util/List;Lorg/apache/commons/lang3/math/Fraction;I)Lnet/minecraft/world/item/component/BundleContents$Mutable;"
+					)
+			},
+			require = 3
+	)
+	private BundleContents.Mutable toMutable(BundleContents.Mutable original) {
+		((BundlesComponentExtensions.Internal) original).metacraft_bundles$setBundleSizeFactor(bundleSizeFactor);
+		return original;
+	}
+
 	@Mixin(BundleContents.Mutable.class)
-	public static abstract class Mutable implements Internal {
+	public static abstract class Mutable extends GrowableMutableContainer<BundleContents> implements Internal {
 		@Shadow private Fraction weight;
-		@Shadow @Final private List<ItemStack> items;
 
 		@Unique
 		private Fraction bundleSizeFactor;
 
-		@Inject(method = "<init>", at = @At("RETURN"))
-		public void init(BundleContents base, CallbackInfo ci) {
-			this.bundleSizeFactor = ((BundlesComponentExtensions) (Object) base).metacraft_bundles$getBundleSizeFactor();
+		public Mutable(List<ItemStack> items) {
+			super(items);
 		}
 
 		@ModifyExpressionValue(
@@ -118,7 +137,7 @@ public abstract class BundleContentsMixin implements BundlesComponentExtensions.
 		}
 
 		@ModifyExpressionValue(
-			method = "findStackIndex",
+			method = "findStackIndexWithinRange",
 			at = @At(
 				value = "INVOKE",
 				target = "Lnet/minecraft/world/item/ItemStack;isSameItemSameComponents(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemStack;)Z"

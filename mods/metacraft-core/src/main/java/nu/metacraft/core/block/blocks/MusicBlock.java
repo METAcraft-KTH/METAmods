@@ -1,6 +1,5 @@
 package nu.metacraft.core.block.blocks;
 
-import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
@@ -27,7 +26,6 @@ public class MusicBlock extends BaseEntityBlock implements PolymerBlock {
 	public static final EnumProperty<Mirror> MIRROR = EnumProperty.create("mirror", Mirror.class);
 
 
-	public static final MapCodec<MusicBlock> CODEC = simpleCodec(MusicBlock::new);
 	public MusicBlock(Properties settings) {
 		super(settings);
 		this.registerDefaultState(
@@ -90,11 +88,6 @@ public class MusicBlock extends BaseEntityBlock implements PolymerBlock {
 			}
 		}
 		return state;
-	}
-
-	@Override
-	protected MapCodec<? extends BaseEntityBlock> codec() {
-		return CODEC;
 	}
 
 	@Nullable

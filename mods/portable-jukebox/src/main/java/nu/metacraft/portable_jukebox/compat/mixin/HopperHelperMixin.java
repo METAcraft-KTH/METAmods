@@ -7,11 +7,13 @@ import net.minecraft.world.Container;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import nu.metacraft.portable_jukebox.entity.PortableJukeboxEntity;
 
+@Pseudo
 @Mixin(HopperHelper.class)
 public class HopperHelperMixin {
 

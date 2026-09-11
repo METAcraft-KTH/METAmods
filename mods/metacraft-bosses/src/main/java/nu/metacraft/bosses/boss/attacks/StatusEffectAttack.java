@@ -6,6 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.advancements.predicates.MobEffectsPredicate;
 import net.minecraft.advancements.predicates.entity.EntityPredicate;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.world.effect.MobEffect;
@@ -17,11 +18,10 @@ import net.minecraft.world.level.storage.loot.predicates.InvertedLootItemConditi
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemEntityPropertyCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition;
-import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
+import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProvider;
 import nu.metacraft.lib.condition.METAcraftContexTypes;
 import nu.metacraft.bosses.util.StatusEffectEntry;
 
-import java.util.List;
 import java.util.Optional;
 
 public class StatusEffectAttack extends InstantAttack {
@@ -43,28 +43,36 @@ public class StatusEffectAttack extends InstantAttack {
 	public static StatusEffectAttack create(
 			Holder<MobEffect> effect,
 			IntProvider duration, IntProvider amplifier,
-			EntityPredicate predicate, NumberProvider probability
+			EntityPredicate predicate, Holder<ContextFloatProvider> probability
 	) {
 		return new StatusEffectAttack(
 				StatusEffectEntry.create(effect, duration, amplifier),
 				AllOfCondition.allOf(
-						List.of(
-								new LootItemEntityPropertyCondition(
-										Optional.of(predicate),
-										LootContext.EntityTarget.THIS
+						HolderSet.direct(
+								Holder.direct(
+										new LootItemEntityPropertyCondition(
+												Optional.of(predicate),
+												LootContext.EntityTarget.THIS
+										)
 								),
-								new InvertedLootItemCondition(
-									new LootItemEntityPropertyCondition(
-										Optional.of(
-											EntityPredicate.Builder.entity().effects(
-													MobEffectsPredicate.Builder.effects().and(effect)
-											).build()
-										),
-										LootContext.EntityTarget.THIS
-									)
+								Holder.direct(
+										new InvertedLootItemCondition(
+												Holder.direct(
+														new LootItemEntityPropertyCondition(
+																Optional.of(
+																		EntityPredicate.Builder.entity().effects(
+																				MobEffectsPredicate.Builder.effects().and(effect)
+																		).build()
+																),
+																LootContext.EntityTarget.THIS
+														)
+												)
+										)
 								),
-								new LootItemRandomChanceCondition(
-										probability
+								Holder.direct(
+										new LootItemRandomChanceCondition(
+												probability
+										)
 								)
 						)
 				), true, false

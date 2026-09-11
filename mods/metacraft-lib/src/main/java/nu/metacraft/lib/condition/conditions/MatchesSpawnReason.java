@@ -37,7 +37,7 @@ public class MatchesSpawnReason implements LootItemCondition {
 
 	@Override
 	public boolean test(LootContext lootContext) {
-		var spawnReason = lootContext.getOptionalParameter(METAcraftContextParameters.SPAWN_REASON);
+		var spawnReason = lootContext.getOptional(METAcraftContextParameters.SPAWN_REASON);
 		if (spawnReason == null) {
 			return false;
 		}

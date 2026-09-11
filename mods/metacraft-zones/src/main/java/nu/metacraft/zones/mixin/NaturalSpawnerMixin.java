@@ -50,7 +50,7 @@ public abstract class NaturalSpawnerMixin {
 	@ModifyReturnValue(method = "mobsAt", at = @At("RETURN"))
 	private static WeightedList<MobSpawnSettings.SpawnerData> getSpawnEntryFromZone(
 			WeightedList<MobSpawnSettings.SpawnerData> original, ServerLevel world, StructureManager structureAccessor,
-			ChunkGenerator chunkGenerator, MobCategory spawnGroup, BlockPos pos, @Nullable Holder<Biome> biomeEntry
+			ChunkGenerator chunkGenerator, MobCategory spawnGroup, BlockPos pos
 	) {
 		return applySpawnsAndRemovers(original, world, pos, spawnGroup);
 	}
@@ -59,7 +59,7 @@ public abstract class NaturalSpawnerMixin {
 		method = "spawnMobsForChunkGeneration",
 		at = @At(
 			value = "INVOKE",
-			target = "Lnet/minecraft/world/level/biome/MobSpawnSettings;getMobs(Lnet/minecraft/world/entity/MobCategory;)Lnet/minecraft/util/random/WeightedList;"
+			target = "Lnet/minecraft/world/level/biome/MobSpawnSettings;getMobsToSpawn(Lnet/minecraft/world/entity/MobCategory;)Lnet/minecraft/util/random/WeightedList;"
 		)
 	)
 	private static WeightedList<MobSpawnSettings.SpawnerData> test(
@@ -136,8 +136,8 @@ public abstract class NaturalSpawnerMixin {
 			method = "spawnMobsForChunkGeneration"
 	)
 	private static void addNBTBeforeSpawnCheck(
-			ServerLevelAccessor world, Holder<Biome> biomeEntry, ChunkPos chunkPos, RandomSource random,
-			CallbackInfo ci, @Local MobSpawnSettings.SpawnerData spawnEntry, @Local Mob mob
+			ServerLevelAccessor level, BlockPos sourcePos, ChunkPos chunkPos, RandomSource random, CallbackInfo ci,
+			@Local MobSpawnSettings.SpawnerData spawnEntry, @Local Mob mob
 	) {
 		applyNBTBeforeSpawnCheck(spawnEntry, mob);
 	}

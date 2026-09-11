@@ -1,9 +1,9 @@
 import com.mojang.serialization.Codec;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.core.registries.codec.RegistryFixedCodec;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.ComponentSerialization;
-import net.minecraft.resources.RegistryFixedCodec;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;

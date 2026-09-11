@@ -105,7 +105,7 @@ public class PortalRift {
 		this.shouldSave = shouldSave;
 		assert axis != Direction.Axis.Y;
 		this.axis = axis;
-		var positions = BlockPos.withinManhattan(
+		var positions = BlockPos.withinBoxByManhattanDistance(
 				pos, axis == Direction.Axis.X ? maxSize : 0,
 				maxSize, axis == Direction.Axis.Z ? maxSize : 0
 		);

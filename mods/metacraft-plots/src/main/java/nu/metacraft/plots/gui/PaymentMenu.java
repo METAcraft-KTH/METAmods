@@ -5,6 +5,7 @@ import eu.pb4.sgui.api.gui.layered.Layer;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.MenuType;
@@ -51,11 +52,11 @@ public abstract class PaymentMenu extends LayeredGui {
 		super.onManualClose();
 		if (getPlayer().isDeadOrDying() || getPlayer().hasDisconnected()) {
 			for (int i = 0; i < inventory.getContainerSize(); i++) {
-				getPlayer().drop(inventory.removeItemNoUpdate(i), false);
+				getPlayer().drop(inventory.removeItemNoUpdate(i), false, Prediction.SERVER_ONLY);
 			}
 		} else {
 			for (int i = 0; i < inventory.getContainerSize(); i++) {
-				getPlayer().getInventory().placeItemBackInInventory(inventory.removeItemNoUpdate(i));
+				getPlayer().getInventory().placeItemBackInInventory(inventory.removeItemNoUpdate(i), Prediction.SERVER_ONLY);
 			}
 		}
 	}

@@ -14,7 +14,7 @@ import java.util.Map;
 public interface ServerClockManagerAccessor {
 
 	@Accessor
-	Map<Holder<WorldClock>, ServerClockManager.ClockInstance> getClocks();
+	Map<Holder<WorldClock>, ServerClockManager.ServerClockInstance> getClocks();
 
 	@Accessor
 	@Mutable

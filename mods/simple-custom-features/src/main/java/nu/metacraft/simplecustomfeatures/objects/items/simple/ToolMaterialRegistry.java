@@ -8,7 +8,7 @@ import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.RegistryFileCodec;
+import net.minecraft.core.registries.codec.RegistryFileCodec;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ToolMaterial;
@@ -33,7 +33,7 @@ public class ToolMaterialRegistry {
 			).apply(instance, ToolMaterial::new)
 	);
 
-	public static final Codec<Holder<ToolMaterial>> ENTRY_CODEC = RegistryFileCodec.create(KEY, INLINE_CODEC);
+	public static final Codec<Holder<ToolMaterial>> ENTRY_CODEC = RegistryFileCodec.create(KEY, INLINE_CODEC, true);
 	public static final Codec<ToolMaterial> CODEC = ENTRY_CODEC.xmap(Holder::value, REGISTRY::wrapAsHolder);
 
 

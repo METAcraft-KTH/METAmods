@@ -16,13 +16,14 @@ import net.minecraft.advancements.predicates.ItemPredicate;
 import net.minecraft.advancements.triggers.CriteriaTriggers;
 import net.minecraft.advancements.triggers.InventoryChangeTrigger;
 import net.minecraft.advancements.triggers.RecipeUnlockedTrigger;
+import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.RecipeCategory;
-import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.references.ItemIds;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
@@ -39,7 +40,7 @@ import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
 import net.minecraft.world.level.storage.loot.functions.CopyComponentsFunction;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
-import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
+import net.minecraft.world.level.storage.loot.providers.number.ints.ConstantValue;
 import nu.metacraft.relay.blocks.RelayBlocks;
 import nu.metacraft.relay.blocks.block.RelayBlock;
 import nu.metacraft.relay.items.RelayItems;
@@ -117,7 +118,7 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 					this.applyExplosionCondition(
 							drop,
 							LootPool.lootPool().setRolls(
-									ConstantValue.exactly(1.0F)
+									Holder.direct(new ConstantValue(1))
 							).add(
 									LootItem.lootTableItem(drop).apply(
 											CopyComponentsFunction.copyComponentsFromBlockEntity(
@@ -141,12 +142,12 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 		}
 
 		@Override
-		protected RecipeProvider createRecipeProvider(HolderLookup.Provider wrapperLookup, RecipeOutput recipeExporter) {
-			return new RecipeProvider(wrapperLookup, recipeExporter) {
+		protected RecipeProvider createRecipeProvider(HolderLookup.Provider registries, BootstrapContext<Recipe<?>> recipes, BootstrapContext<Advancement> advancements) {
+			return new RecipeProvider(recipes, advancements) {
 				@Override
 				public void buildRecipes() {
-					Advancement.Builder builder = recipeExporter.advancement().addCriterion(
-							"has_the_recipe", RecipeUnlockedTrigger.unlocked(RELAY_PROGRAM)
+					Advancement.Builder builder = output.advancement().addCriterion(
+							"has_the_recipe", RecipeUnlockedTrigger.unlocked(output.lookup(Registries.RECIPE).getOrThrow(RELAY_PROGRAM))
 					).rewards(AdvancementRewards.Builder.recipe(RELAY_PROGRAM)).requirements(
 							AdvancementRequirements.Strategy.OR
 					);
@@ -157,13 +158,13 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 									InventoryChangeTrigger.TriggerInstance.Slots.ANY,
 									List.of(
 											ItemPredicate.Builder.item().of(
-													wrapperLookup.lookupOrThrow(Registries.ITEM),
+													registries.lookupOrThrow(Registries.ITEM),
 													RelayItems.RELAY
 											).build()
 									)
 							))
 					);
-					recipeExporter.accept(
+					output.accept(
 							RELAY_PROGRAM,
 							new ShapelessRecipe(
 									new Recipe.CommonInfo(true),
@@ -183,27 +184,27 @@ public class RelayDatagen implements DataGeneratorEntrypoint {
 											).build()
 									),
 									List.of(
-										new CustomDisplayIngredient(
-												DefaultCustomIngredients.difference(
-														Ingredient.of(Items.COMPASS),
-														DefaultCustomIngredients.components(
-																Ingredient.of(Items.COMPASS),
-																components -> components.remove(DataComponents.LODESTONE_TRACKER)
-														)
-												),
-												List.of(
-														new ItemStackTemplate(
-																Items.COMPASS.builtInRegistryHolder(),
-																1,
-																DataComponentPatch.builder().set(
-																		DataComponents.LODESTONE_TRACKER, new LodestoneTracker(
-																				Optional.empty(), true
-																		)
-																).build()
-														)
-												)
-										).toVanilla(),
-										Ingredient.of(RelayItems.RELAY)
+											new CustomDisplayIngredient(
+													DefaultCustomIngredients.difference(
+															Ingredient.of(Items.COMPASS),
+															DefaultCustomIngredients.components(
+																	Ingredient.of(Items.COMPASS),
+																	components -> components.remove(DataComponents.LODESTONE_TRACKER)
+															)
+													),
+													List.of(
+															new ItemStackTemplate(
+																	Items.COMPASS.builtInRegistryHolder(),
+																	1,
+																	DataComponentPatch.builder().set(
+																			DataComponents.LODESTONE_TRACKER, new LodestoneTracker(
+																					Optional.empty(), true
+																			)
+																	).build()
+															)
+													)
+											).toVanilla(),
+											Ingredient.of(RelayItems.RELAY)
 									)
 							),
 							builder.build(RELAY_PROGRAM.identifier().withPrefix("recipes/" + RecipeCategory.MISC.getFolderName() + "/"))

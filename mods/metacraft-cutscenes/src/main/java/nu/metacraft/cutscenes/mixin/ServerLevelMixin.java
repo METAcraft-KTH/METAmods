@@ -7,21 +7,132 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.BiomeResolver;
+import net.minecraft.world.level.biome.BiomeSource;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.storage.WritableLevelData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
+import org.spongepowered.asm.mixin.injection.Slice;
 
 @Mixin(ServerLevel.class)
 public abstract class ServerLevelMixin extends Level {
 
 	protected ServerLevelMixin(WritableLevelData properties, ResourceKey<Level> registryRef, RegistryAccess registryManager, Holder<DimensionType> dimensionEntry, boolean isClient, boolean debugWorld, long seed, int maxChainedNeighborUpdates) {
 		super(properties, registryRef, registryManager, dimensionEntry, isClient, debugWorld, seed, maxChainedNeighborUpdates);
+	}
+
+	@WrapOperation(
+			method = "<init>",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/server/level/ServerLevel;getChunkSource()Lnet/minecraft/server/level/ServerChunkCache;"
+			),
+			slice = @Slice(
+					from = @At(
+							value = "INVOKE",
+							target = "Lnet/minecraft/server/level/ServerLevel;getChunkSource()Lnet/minecraft/server/level/ServerChunkCache;",
+							ordinal = 0
+					)
+			)
+	)
+	public ServerChunkCache passthrough(ServerLevel instance, Operation<ServerChunkCache> original) {
+		if ((Object) this instanceof CutsceneLevel) {
+			return null;
+		}
+		return original.call(instance);
+	}
+
+	@WrapOperation(
+			method = "<init>",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/server/level/ServerChunkCache;getGenerator()Lnet/minecraft/world/level/chunk/ChunkGenerator;"
+			),
+			slice = @Slice(
+					from = @At(
+							value = "INVOKE",
+							target = "Lnet/minecraft/server/level/ServerLevel;getChunkSource()Lnet/minecraft/server/level/ServerChunkCache;",
+							ordinal = 0
+					)
+			)
+	)
+	public ChunkGenerator passthrough2(ServerChunkCache instance, Operation<ChunkGenerator> original) {
+		if ((Object) this instanceof CutsceneLevel) {
+			return null;
+		}
+		return original.call(instance);
+	}
+
+	@WrapOperation(
+			method = "<init>",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/world/level/chunk/ChunkGenerator;getBiomeSource()Lnet/minecraft/world/level/biome/BiomeSource;"
+			),
+			slice = @Slice(
+					from = @At(
+							value = "INVOKE",
+							target = "Lnet/minecraft/server/level/ServerLevel;getChunkSource()Lnet/minecraft/server/level/ServerChunkCache;",
+							ordinal = 0
+					)
+			)
+	)
+	public BiomeSource passthrough3(ChunkGenerator instance, Operation<BiomeSource> original) {
+		if ((Object) this instanceof CutsceneLevel) {
+			return null;
+		}
+		return original.call(instance);
+	}
+
+	@WrapOperation(
+			method = "<init>",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/server/level/ServerChunkCache;randomState()Lnet/minecraft/world/level/levelgen/RandomState;"
+			),
+			slice = @Slice(
+					from = @At(
+							value = "INVOKE",
+							target = "Lnet/minecraft/server/level/ServerLevel;getChunkSource()Lnet/minecraft/server/level/ServerChunkCache;",
+							ordinal = 0
+					)
+			)
+	)
+	public RandomState passthrough4(ServerChunkCache instance, Operation<RandomState> original) {
+		if ((Object) this instanceof CutsceneLevel) {
+			return null;
+		}
+		return original.call(instance);
+	}
+
+	@WrapOperation(
+			method = "<init>",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/world/level/biome/BiomeSource;createUncachedResolver(Lnet/minecraft/world/level/levelgen/RandomState;)Lnet/minecraft/world/level/biome/BiomeResolver;"
+			),
+			slice = @Slice(
+					from = @At(
+							value = "INVOKE",
+							target = "Lnet/minecraft/server/level/ServerLevel;getChunkSource()Lnet/minecraft/server/level/ServerChunkCache;",
+							ordinal = 0
+					)
+			)
+	)
+	public BiomeResolver passthrough5(BiomeSource instance, RandomState randomState, Operation<BiomeResolver> original) {
+		if ((Object) this instanceof CutsceneLevel) {
+			return null;
+		}
+		return original.call(instance, randomState);
 	}
 
 	@WrapOperation(

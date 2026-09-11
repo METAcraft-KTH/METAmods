@@ -1,6 +1,5 @@
 package nu.metacraft.portable_jukebox.block;
 
-import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.core.api.block.PolymerHeadBlock;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
@@ -15,7 +14,6 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.EnderChestBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.redstone.Orientation;
@@ -36,15 +34,8 @@ import java.util.List;
 
 public class PortableJukeboxBlock extends BaseEntityBlock implements PolymerHeadBlock {
 
-	public static final MapCodec<PortableJukeboxBlock> CODEC = EnderChestBlock.simpleCodec(PortableJukeboxBlock::new);
-
 	public PortableJukeboxBlock(Properties settings) {
 		super(settings);
-	}
-
-	@Override
-	protected MapCodec<? extends BaseEntityBlock> codec() {
-		return CODEC;
 	}
 
 	@Override

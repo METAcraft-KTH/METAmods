@@ -32,7 +32,7 @@ public class IsNearGround implements LootItemCondition {
 
 	@Override
 	public boolean test(LootContext lootContext) {
-		var cPos = lootContext.getOptionalParameter(LootContextParams.ORIGIN);
+		var cPos = lootContext.getOptional(LootContextParams.ORIGIN);
 		if (cPos != null && lootContext.getLevel().getMinY() + 15 > cPos.y()) {
 			return true;
 		}

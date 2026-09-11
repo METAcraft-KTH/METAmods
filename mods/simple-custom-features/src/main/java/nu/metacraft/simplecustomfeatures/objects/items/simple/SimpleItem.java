@@ -238,9 +238,15 @@ public record SimpleItem(
 				(components, context, key) -> {
 					List<DataComponentType<?>> componentsToFix = new ArrayList<>();
 					var cGetter = wrapBuilder(components);
-					for (var c : itemSettings.components().entrySet()) {
-						if (!Objects.equals(cGetter.get(c.getKey()), c.getValue().orElse(null))) {
-							componentsToFix.add(c.getKey());
+					var split = itemSettings.components().split();
+					for (var c : split.added()) {
+						if (!Objects.equals(cGetter.get(c.type()), c.value())) {
+							componentsToFix.add(c.type());
+						}
+					}
+					for (var c : split.removed()) {
+						if (!Objects.equals(cGetter.get(c), null)) {
+							componentsToFix.add(c);
 						}
 					}
 					if (!componentsToFix.isEmpty()) {

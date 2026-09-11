@@ -94,7 +94,11 @@ public class CutsceneEntityManager {
 
 		public CutsceneTrackerEntry(ServerLevel world, Entity entity) {
 			super(
-					world, entity, entity.getType().updateInterval(), entity.getType().trackDeltas(),
+					world, entity,
+					entity.getType().hasUpdateInterval() ?
+							UpdateInterval.periodic(entity.getType().updateInterval()) :
+							UpdateInterval.NEVER,
+					entity.getType().trackDeltas(),
 					new Synchronizer() {
 						@Override
 						public void sendToTrackingPlayers(Packet<? super ClientGamePacketListener> packet) {

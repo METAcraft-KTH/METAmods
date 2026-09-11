@@ -33,7 +33,7 @@ public class HasSkyAccess implements LootItemCondition {
 
 	@Override
 	public boolean test(LootContext context) {
-		var pos = context.getOptionalParameter(LootContextParams.ORIGIN);
+		var pos = context.getOptional(LootContextParams.ORIGIN);
 		if (pos == null) return false;
 		return context.getLevel().getHeight(heightmap, Mth.floor(pos.x()), Mth.floor(pos.z())) <= pos.y();
 	}

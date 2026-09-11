@@ -13,7 +13,7 @@
  	 	},
  	 	"has_the_recipe": {
  	 	 	"conditions": {
- 	 	 	 	"recipe": "metacraft_plots:plot_key"
+ 	 	 	 	"recipes": "metacraft_plots:plot_key"
  	 	 	},
  	 	 	"trigger": "minecraft:recipe_unlocked"
  	 	}

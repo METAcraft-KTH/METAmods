@@ -29,7 +29,7 @@ public class SolidBlockBelow implements LootItemCondition {
 
 	@Override
 	public boolean test(LootContext lootContext) {
-		var origin = lootContext.getOptionalParameter(LootContextParams.ORIGIN);
+		var origin = lootContext.getOptional(LootContextParams.ORIGIN);
 		if (origin == null) return false;
 		var pos = BlockPos.containing(origin).below();
 		return !lootContext.getLevel().getBlockState(pos).getCollisionShape(lootContext.getLevel(), pos).isEmpty();

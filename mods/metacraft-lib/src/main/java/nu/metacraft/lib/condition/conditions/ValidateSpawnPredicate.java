@@ -38,9 +38,9 @@ public class ValidateSpawnPredicate implements LootItemCondition {
 
 	@Override
 	public boolean test(LootContext lootContext) {
-		var pos = lootContext.getOptionalParameter(LootContextParams.ORIGIN);
+		var pos = lootContext.getOptional(LootContextParams.ORIGIN);
 		if (pos == null) return false;
-		var spawnReason = lootContext.getOptionalParameter(METAcraftContextParameters.SPAWN_REASON);
+		var spawnReason = lootContext.getOptional(METAcraftContextParameters.SPAWN_REASON);
 		if (spawnReason == null && spawnReasonOverride.isEmpty()) {
 			return false;
 		}

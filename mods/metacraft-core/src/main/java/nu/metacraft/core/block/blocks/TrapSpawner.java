@@ -1,6 +1,5 @@
 package nu.metacraft.core.block.blocks;
 
-import com.mojang.serialization.MapCodec;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.block.entities.TrapSpawnerEntity;
 
@@ -13,7 +12,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -21,15 +19,8 @@ import net.minecraft.world.phys.HitResult;
 
 public class TrapSpawner extends DisguisedBlock {
 
-	public static final MapCodec<TrapSpawner> CODEC = TrapSpawner.simpleCodec(TrapSpawner::new);
-
 	public TrapSpawner(Properties settings) {
 		super(settings);
-	}
-
-	@Override
-	protected MapCodec<? extends BaseEntityBlock> codec() {
-		return CODEC;
 	}
 
 	@Override

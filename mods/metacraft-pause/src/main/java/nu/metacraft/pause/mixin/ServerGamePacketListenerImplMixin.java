@@ -61,7 +61,7 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 	}
 
 	@WrapOperation(
-			method = "handleMovePlayer",
+			method = "handlePlayerPositionChange",
 			at = @At(
 					value = "INVOKE",
 					target = "Lnet/minecraft/server/level/ServerPlayer;absSnapTo(DDDFF)V",
@@ -178,22 +178,21 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 	}
 
 	@Inject(
-			method = "handleMovePlayer",
+			method = "handlePlayerPositionChange",
 			at = @At(
 					value = "INVOKE",
 					target = "Lnet/minecraft/server/level/ServerPlayer;getBoundingBox()Lnet/minecraft/world/phys/AABB;"
 			),
 			cancellable = true
 	)
-	public void onPlayerMove(ServerboundMovePlayerPacket packet, CallbackInfo ci) {
+	public void onPlayerMove(
+			double requestedX, double requestedY, double requestedZ,
+			float requestedYRot, float requestedXRot, boolean isOnGround,
+			boolean horizontalCollision, CallbackInfo ci
+	) {
 		if (isFrozen()) {
 			clientIsFloating = false; // Prevent kicked for flying.
-			var yRot = packet.getYRot(player.getYRot());
-			var xRot = packet.getXRot(player.getXRot());
-			var x = packet.getX(player.getX());
-			var y = packet.getY(player.getY());
-			var z = packet.getZ(player.getZ());
-			if (x != player.getX() || y != player.getY() || z != player.getZ() || xRot != player.getXRot() || yRot != player.getYRot()) {
+			if (requestedX != player.getX() || requestedY != player.getY() || requestedZ != player.getZ() || requestedXRot != player.getXRot() || requestedYRot != player.getYRot()) {
 				this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot());
 			}
 			ci.cancel();
@@ -211,12 +210,7 @@ public abstract class ServerGamePacketListenerImplMixin extends ServerCommonPack
 	public void onVehicleMove(ServerboundMoveVehiclePacket packet, CallbackInfo ci) {
 		if (isFrozen()) {
 			clientVehicleIsFloating = false; // Prevent kicked for flying.
-			var yRot = packet.yRot();
-			var xRot = packet.xRot();
-			var x = packet.position().x;
-			var y = packet.position().y;
-			var z = packet.position().z;
-			if (x != player.getX() || y != player.getY() || z != player.getZ() || xRot != player.getXRot() || yRot != player.getYRot()) {
+			if (!packet.movingTo().is(player.position(), player.getYRot(), player.getXRot())) {
 				var vehicle = player.getRootVehicle();
 				send(new ClientboundBundlePacket(List.of(
 						ClientboundMoveVehiclePacket.fromEntity(vehicle),

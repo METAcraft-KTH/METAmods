@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.RegistryFileCodec;
+import net.minecraft.core.registries.codec.RegistryFileCodec;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -16,7 +16,7 @@ public class GiveAttributeAttack implements Attack {
 	public static final MapCodec<GiveAttributeAttack> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 					RegistryFileCodec.create(
-							Registries.ATTRIBUTE, BuiltInRegistries.ATTRIBUTE.byNameCodec()
+							Registries.ATTRIBUTE, BuiltInRegistries.ATTRIBUTE.byNameCodec(), false
 					).fieldOf("attribute").forGetter(a -> a.attribute),
 					AttributeModifier.CODEC.fieldOf("modifier").forGetter(a -> a.modifier)
 			).apply(instance, GiveAttributeAttack::new)

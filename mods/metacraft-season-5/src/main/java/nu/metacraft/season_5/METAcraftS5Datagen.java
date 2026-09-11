@@ -7,18 +7,18 @@ import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementRequirements;
 import net.minecraft.advancements.AdvancementRewards;
-import net.minecraft.advancements.predicates.ContextAwarePredicate;
 import net.minecraft.advancements.predicates.LocationPredicate;
 import net.minecraft.advancements.predicates.MinMaxBounds;
 import net.minecraft.advancements.triggers.CriteriaTriggers;
 import net.minecraft.advancements.triggers.PlayerTrigger;
 import net.minecraft.advancements.triggers.RecipeUnlockedTrigger;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.RecipeCategory;
-import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.data.worldgen.BootstrapContext;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
@@ -26,7 +26,6 @@ import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.loot.predicates.LocationCheck;
 import nu.metacraft.season_5.items.Season5Items;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 import java.util.Optional;
@@ -46,37 +45,37 @@ public class METAcraftS5Datagen implements DataGeneratorEntrypoint {
 		}
 
 		@Override
-		protected @NotNull RecipeProvider createRecipeProvider(HolderLookup.Provider wrapperLookup, RecipeOutput recipeExporter) {
-			return new RecipeProvider(wrapperLookup, recipeExporter) {
+		protected RecipeProvider createRecipeProvider(HolderLookup.Provider registries, BootstrapContext<Recipe<?>> recipes, BootstrapContext<Advancement> advancements) {
+			return new RecipeProvider(recipes, advancements) {
 				@Override
 				public void buildRecipes() {
 					var wrench = ResourceKey.create(
 							Registries.RECIPE,
 							METAcraftSeason5.getID("bedrock_drill")
 					);
-					Advancement.Builder builder = recipeExporter.advancement().addCriterion(
-							"has_the_recipe", RecipeUnlockedTrigger.unlocked(wrench)
+					Advancement.Builder builder = output.advancement().addCriterion(
+							"has_the_recipe", RecipeUnlockedTrigger.unlocked(output.lookup(Registries.RECIPE).getOrThrow(wrench))
 					).rewards(AdvancementRewards.Builder.recipe(wrench)).requirements(
 							AdvancementRequirements.Strategy.OR
 					);
 					builder.addCriterion(
 							"trigger_above_roof",
 							CriteriaTriggers.TICK.createCriterion(new PlayerTrigger.TriggerInstance(
-								Optional.of(
-									ContextAwarePredicate.create(
-										new LocationCheck(
-											Optional.of(
-												LocationPredicate.Builder.inDimension(Level.NETHER).setY(
-														MinMaxBounds.Doubles.atLeast(128)
-												).build()
-											),
-											BlockPos.ZERO
-										)
+									Optional.of(
+											Holder.direct(
+													new LocationCheck(
+															Optional.of(
+																	LocationPredicate.Builder.inDimension(Level.NETHER).setY(
+																			MinMaxBounds.Doubles.atLeast(128)
+																	).build()
+															),
+															BlockPos.ZERO
+													)
+											)
 									)
-								)
 							))
 					);
-					recipeExporter.accept(
+					output.accept(
 							wrench,
 							new ShapedRecipe(
 									new Recipe.CommonInfo(true),

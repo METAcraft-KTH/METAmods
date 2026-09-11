@@ -47,8 +47,6 @@ public class PreventEntryData extends ZoneDataEntityTracking {
 				entity.getRotationVector(),
 				(ServerLevel) entity.level(),
 				LevelBasedPermissionSet.GAMEMASTER,
-				entity.getName().getString(),
-				entity.getDisplayName(),
 				entity.level().getServer(),
 				entity
 		);
@@ -56,7 +54,7 @@ public class PreventEntryData extends ZoneDataEntityTracking {
 			var vector = getZone().getZone().getInwardVector(entity.position()).vector().reverse();
 			if (vector.length() == 0) return;
 			entity.setDeltaMovement(vector);
-			entity.hurtMarked = true;
+			entity.syncVelocity = true;
 		}
 	}
 

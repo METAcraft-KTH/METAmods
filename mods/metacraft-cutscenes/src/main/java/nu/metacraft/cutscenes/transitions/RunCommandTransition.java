@@ -59,45 +59,56 @@ public class RunCommandTransition implements Transition, TransitionConfig {
 			CutsceneInstance cutscene, boolean runInRealWorld, @Nullable Entity entity, boolean debug
 	) {
 		var entryPoint = entity == null ? cutscene.getCutscene().getEntryPoint(null, cutscene) : Optional.<TeleportTransition>empty();
-		var src = new CommandSourceStack(
-				new CommandSource() {
-					@Override
-					public void sendSystemMessage(Component message) {
-						if (debug) {
-							if (entity instanceof ServerPlayer p) {
-								p.sendSystemMessage(message);
-							} else {
-								cutscene.getPlayers().forEach(p -> p.sendSystemMessage(message));
-							}
-						}
+		var source = new CommandSource() {
+			@Override
+			public void sendSystemMessage(Component message) {
+				if (debug) {
+					if (entity instanceof ServerPlayer p) {
+						p.sendSystemMessage(message);
+					} else {
+						cutscene.getPlayers().forEach(p -> p.sendSystemMessage(message));
 					}
+				}
+			}
 
-					@Override
-					public boolean acceptsSuccess() {
-						return debug;
-					}
+			@Override
+			public boolean acceptsSuccess() {
+				return debug;
+			}
 
-					@Override
-					public boolean acceptsFailure() {
-						return debug;
-					}
+			@Override
+			public boolean acceptsFailure() {
+				return debug;
+			}
 
-					@Override
-					public boolean shouldInformAdmins() {
-						return false;
-					}
-				},
-				entity != null ? entity.position() : entryPoint.map(TeleportTransition::position).orElse(Vec3.ZERO),
-				entity != null ? entity.getRotationVector() : entryPoint.map(target -> new Vec2(target.xRot(), target.yRot())).orElse(Vec2.ZERO),
-				runInRealWorld ? cutscene.getCutsceneWorld().getActualWorld() : cutscene.getCutsceneWorld(),
-				LevelBasedPermissionSet.GAMEMASTER, entity != null ? entity.getName().getString() : "Cutscene",
-				entity != null ? entity.getDisplayName() : Component.literal("Cutscene"),
-				cutscene.getServer(), entity
-		);
-		if (!debug) {
-			return src.withSuppressedOutput();
+			@Override
+			public boolean shouldInformAdmins() {
+				return false;
+			}
+		};
+		CommandSourceStack stack;
+		if (entity != null) {
+			stack = new CommandSourceStack(
+					source, entity.position(), entity.getRotationVector(),
+					runInRealWorld ? cutscene.getCutsceneWorld().getActualWorld() : cutscene.getCutsceneWorld(),
+					LevelBasedPermissionSet.GAMEMASTER,
+					cutscene.getServer(), entity
+			);
+		} else {
+			stack = new CommandSourceStack(
+					source,
+					entryPoint.map(TeleportTransition::position).orElse(Vec3.ZERO),
+					entryPoint.map(target -> new Vec2(target.xRot(), target.yRot())).orElse(Vec2.ZERO),
+					runInRealWorld ? cutscene.getCutsceneWorld().getActualWorld() : cutscene.getCutsceneWorld(),
+					LevelBasedPermissionSet.GAMEMASTER, Component.literal("Cutscene"),
+					cutscene.getServer()
+			);
 		}
-		return src;
+
+		if (!debug) {
+			return stack.withSuppressedOutput();
+		}
+		return stack;
 	}
 
 	private static void execute(Commands manager, CommandSourceStack source, String command, boolean debug) {

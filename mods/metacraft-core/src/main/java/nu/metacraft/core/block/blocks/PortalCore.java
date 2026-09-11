@@ -1,6 +1,5 @@
 package nu.metacraft.core.block.blocks;
 
-import com.mojang.serialization.MapCodec;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
@@ -22,15 +21,9 @@ import nu.metacraft.core.block.entities.PortalEntity;
 
 public class PortalCore extends BaseEntityBlock implements PolymerBlock {
 
-	public static final MapCodec<PortalCore> CODEC = simpleCodec(PortalCore::new);
 
 	public PortalCore(Properties settings) {
 		super(settings);
-	}
-
-	@Override
-	protected MapCodec<? extends BaseEntityBlock> codec() {
-		return CODEC;
 	}
 
 	@Nullable

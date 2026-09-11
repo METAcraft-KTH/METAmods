@@ -21,6 +21,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ColumnPos;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.MapItem;
@@ -180,7 +181,7 @@ public class ExplorerMapCommand {
 			}
 			MapItemSavedData.addTargetDecoration(map, new BlockPos(pos.x(), 0, pos.z()), id, symbol);
 			if (!player.getInventory().add(map) && !map.isEmpty()) {
-				var item = player.drop(map, false, false);
+				var item = player.drop(map, false, Prediction.SERVER_ONLY);
 				if (item != null) {
 					item.setNoPickUpDelay();
 					item.setTarget(player.getUUID());

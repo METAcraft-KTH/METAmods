@@ -3,6 +3,7 @@ package se.metacraft.portalopening.mixin;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,9 +16,7 @@ import se.metacraft.portalopening.PortalOpeningDimensionData;
 import se.metacraft.portalopening.WorldData;
 
 @Mixin(Level.class)
-public abstract class LevelMixin implements WorldData {
-
-	@Shadow public abstract boolean setBlock(BlockPos pos, BlockState state, int flags);
+public abstract class LevelMixin implements LevelAccessor, WorldData {
 
 	@Unique
 	private boolean breakRifts = true;

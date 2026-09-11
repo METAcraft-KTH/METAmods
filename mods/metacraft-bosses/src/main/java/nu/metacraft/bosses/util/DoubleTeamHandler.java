@@ -3,8 +3,12 @@ package nu.metacraft.bosses.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.valueproviders.FloatProviders;
 import net.minecraft.util.valueproviders.IntProviders;
+import net.minecraft.world.level.block.Block;
 import nu.metacraft.core.entity.METAcraftEntities;
 import nu.metacraft.core.extensions.EntityExtensions;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
@@ -129,7 +133,7 @@ public record DoubleTeamHandler(
 
 		int upDist = Mth.ceil(settings.distance.sample(primary.getRandom()));
 		for (int i = 0; i < upDist; i++) {
-			if (!primary.level().getBlockState(pos).blocksMotion()) {
+			if (!primary.level().getBlockState(pos).is(BlockTags.ENTITIES_CAN_TELEPORT_TO)) {
 				if (i > 0) {
 					target = target.add(0, i, 0);
 				}
@@ -138,7 +142,7 @@ public record DoubleTeamHandler(
 			pos.move(Direction.UP);
 		}
 
-		primary.randomTeleport(target.x, target.y, target.z, false);
+		primary.randomTeleport(target.x, target.y, target.z, false, settings.unsafeTeleportTag);
 	}
 
 	public DoubleTeamHandler tick() {
@@ -190,8 +194,20 @@ public record DoubleTeamHandler(
 	public record Settings(
 			IntProvider delay, int maxSplits,
 			FloatProvider distance, double passToCloneChance,
-			CompoundTag dataToApply, Optional<Boolean> initializeClone
+			CompoundTag dataToApply, Optional<Boolean> initializeClone,
+			TagKey<Block> unsafeTeleportTag
 	) {
+
+		public Settings(
+				IntProvider delay, int maxSplits,
+				FloatProvider distance, double passToCloneChance,
+				CompoundTag dataToApply, Optional<Boolean> initializeClone
+		) {
+			this(delay, maxSplits, distance, passToCloneChance, dataToApply, initializeClone, DEFAULT_UNSAFE_TELEPORT_TAG);
+		}
+
+		public static final TagKey<Block> DEFAULT_UNSAFE_TELEPORT_TAG = BlockTags.DANGEROUS_FOR_TELEPORTATION;
+
 		public static final MapCodec<Settings> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
 				IntProviders.POSITIVE_CODEC.fieldOf("delay").forGetter(Settings::delay),
@@ -199,7 +215,8 @@ public record DoubleTeamHandler(
 				FloatProviders.CODEC.fieldOf("distance").forGetter(Settings::distance),
 				Codec.DOUBLE.fieldOf("pass_to_clone_chance").forGetter(Settings::passToCloneChance),
 				CompoundTag.CODEC.optionalFieldOf("data_to_apply", new CompoundTag()).forGetter(Settings::dataToApply),
-				Codec.BOOL.optionalFieldOf("initialize_clone").forGetter(Settings::initializeClone)
+				Codec.BOOL.optionalFieldOf("initialize_clone").forGetter(Settings::initializeClone),
+				TagKey.codec(Registries.BLOCK).optionalFieldOf("unsafe_teleport_tag", DEFAULT_UNSAFE_TELEPORT_TAG).forGetter(Settings::unsafeTeleportTag)
 			).apply(instance, Settings::new)
 		);
 	}

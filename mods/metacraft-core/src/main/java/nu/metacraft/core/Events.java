@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Relative;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.Vec3;
@@ -36,7 +37,7 @@ public class Events {
 					var offhand = player.getOffhandItem();
 					if (offhand.getItem() == METAcraftItems.WRENCH && Wrench.canUse(world, hitResult.getBlockPos())) {
 						if (offhand.useOn(new UseOnContext(world, player, hand, offhand, hitResult)).consumesAction()) {
-							player.swing(InteractionHand.OFF_HAND, true);
+							player.swing(InteractionHand.OFF_HAND, SwingAnimation.DEFAULT, true);
 						}
 						return InteractionResult.FAIL;
 					}

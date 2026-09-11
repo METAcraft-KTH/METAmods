@@ -217,10 +217,10 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 
 	public static Optional<EntityRef> fromContext(LootContext context) {
 		if (context.hasParameter(LootContextParams.THIS_ENTITY)) {
-			return Optional.of(EntityRef.fromEntity(context.getOptionalParameter(LootContextParams.THIS_ENTITY)));
+			return Optional.of(EntityRef.fromEntity(context.getOptional(LootContextParams.THIS_ENTITY)));
 		}
 		if (context.hasParameter(LootContextParams.BLOCK_ENTITY)) {
-			return Optional.of(EntityRef.fromBlock(context.getOptionalParameter(LootContextParams.BLOCK_ENTITY)));
+			return Optional.of(EntityRef.fromBlock(context.getOptional(LootContextParams.BLOCK_ENTITY)));
 		}
 		return Optional.empty();
 	}

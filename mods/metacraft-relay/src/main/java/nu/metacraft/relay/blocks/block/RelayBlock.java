@@ -59,7 +59,6 @@ import java.util.Optional;
 
 public class RelayBlock extends Block implements PolymerBlock, EntityBlock, BlockWithElementHolder {
 
-	public static final MapCodec<RelayBlock> CODEC = simpleCodec(RelayBlock::new);
 	public static final BooleanProperty CHARGED = BooleanProperty.create("charged");
 
 	public RelayBlock(Properties settings) {
@@ -97,11 +96,6 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 			@Nullable ElementHolder oldMovingElementHolder
 	) { //Piston fix. The piston moving block entity is not given the attachment properly, so we return null instead.
 		return null;
-	}
-
-	@Override
-	protected MapCodec<? extends Block> codec() {
-		return CODEC;
 	}
 
 	@Override

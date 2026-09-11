@@ -447,9 +447,9 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 					);
 					this.setDeltaMovement(this.getDeltaMovement().multiply(0.6, 1.0, 0.6));
 
-					if (target instanceof ServerPlayer && target.hurtMarked) {
+					if (target instanceof ServerPlayer && target.syncVelocity) {
 						((ServerPlayer)target).connection.send(new ClientboundSetEntityMotionPacket(target));
-						target.hurtMarked = false;
+						target.syncVelocity = false;
 						target.setDeltaMovement(oldVelocity);
 					}
 

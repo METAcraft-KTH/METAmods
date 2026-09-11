@@ -1,33 +1,32 @@
 package nu.metacraft.saved_items.mixin;
 
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
 import nu.metacraft.saved_items.item_saving.ItemEntityData;
+import org.spongepowered.asm.mixin.Shadow;
 
 @Mixin(ServerPlayer.class)
-public abstract class ServerPlayerMixin extends LivingEntity {
+public abstract class ServerPlayerMixin extends LivingEntityMixin {
 
-	protected ServerPlayerMixin(EntityType<? extends LivingEntity> entityType, Level world) {
-		super(entityType, world);
-	}
+	@Shadow
+	public abstract Level level();
 
-	@ModifyReturnValue(
-		method = "drop(Lnet/minecraft/world/item/ItemStack;ZZ)Lnet/minecraft/world/entity/item/ItemEntity;",
-		at = @At("RETURN")
-	)
-	public ItemEntity dropItem(ItemEntity original, ItemStack stack, boolean throwRandomly, boolean retainOwnership) {
-		if (original != null && !this.level().isClientSide() && this.isDeadOrDying()) {
-			((ItemEntityData) original).metacraft_saved_items$setDroppedByDeadPlayer((Player) (Object) this);
+	@Override
+	public @Nullable ItemEntity createItemStackToDrop(
+			ItemStack itemStack, boolean randomly, boolean thrownFromHand,
+			Operation<ItemEntity> original
+	) {
+		var entity = original.call(itemStack, randomly, thrownFromHand);
+		if (entity != null && !this.level().isClientSide() && this.isDeadOrDying()) {
+			((ItemEntityData) entity).metacraft_saved_items$setDroppedByDeadPlayer((Player) (Object) this);
 		}
-		return original;
+		return entity;
 	}
 
 }

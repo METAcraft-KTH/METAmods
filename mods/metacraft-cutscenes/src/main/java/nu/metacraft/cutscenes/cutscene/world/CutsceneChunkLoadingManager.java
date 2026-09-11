@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ThreadedLevelLightEngine;
 import net.minecraft.util.thread.BlockableEventLoop;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.UpdateInterval;
 import net.minecraft.world.entity.ai.village.poi.PoiManager;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.TicketStorage;
@@ -20,7 +21,6 @@ import net.minecraft.world.level.chunk.LightChunkGetter;
 import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 import net.minecraft.world.level.entity.ChunkStatusUpdateListener;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
-import net.minecraft.world.level.storage.SavedDataStorage;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.mixin.ChunkMapAccessor;
@@ -30,7 +30,6 @@ import nu.metacraft.lib.util.helper.EntityTrackerHelper;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.function.Supplier;
 
 public class CutsceneChunkLoadingManager extends ChunkMap {
 
@@ -44,11 +43,10 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 			Executor executor, BlockableEventLoop<Runnable> mainThreadExecutor,
 			LightChunkGetter chunkProvider, ChunkGenerator chunkGenerator,
 			ChunkStatusUpdateListener chunkStatusChangeListener,
-			Supplier<SavedDataStorage> persistentStateManagerFactory,
 			TicketStorage ticketManager,
 			int viewDistance, boolean dsync
 	) {
-		super(cutsceneLevel.getActualWorld(), session, dataFixer, structureTemplateManager, executor, mainThreadExecutor, chunkProvider, chunkGenerator, chunkStatusChangeListener, persistentStateManagerFactory, ticketManager, viewDistance, dsync);
+		super(cutsceneLevel.getActualWorld(), session, dataFixer, structureTemplateManager, executor, mainThreadExecutor, chunkProvider, chunkGenerator, chunkStatusChangeListener, ticketManager, viewDistance, dsync);
 		this.cutsceneLevel = cutsceneLevel;
 		((ChunkMapAccessor) this).setLightEngine(
 				new CutsceneLightEngine(
@@ -106,7 +104,7 @@ public class CutsceneChunkLoadingManager extends ChunkMap {
 	}
 
 	public void addEntity(Entity entity, ServerEntity entry) {
-		var e = new TrackedEntity(entity, 0, 0, false) {
+		var e = new TrackedEntity(entity, 0, UpdateInterval.NEVER, false) {
 
 			@Override
 			public void sendToTrackingPlayersAndSelf(Packet<? super ClientGamePacketListener> packet) {

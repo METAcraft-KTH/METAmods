@@ -18,7 +18,7 @@ public class ItemWithInventoryHelper {
 			);
 		}
 		if (stack.has(DataComponents.BUNDLE_CONTENTS)) {
-			return stack.get(DataComponents.BUNDLE_CONTENTS).itemCopyStream().flatMap(
+			return stack.get(DataComponents.BUNDLE_CONTENTS).itemCopies().flatMap(
 					content -> Stream.concat(Stream.of(content), ItemWithInventoryHelper.getRecursiveInventoryContents(content))
 			);
 		}

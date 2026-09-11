@@ -27,11 +27,11 @@ import net.minecraft.world.clock.ServerClockManager;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.flag.FeatureFlagSet;
-import net.minecraft.world.item.alchemy.PotionBrewing;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeResolver;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
@@ -142,7 +142,7 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 		this.noSave = true;
 		this.cutscene = cutscene;
 		this.world = world;
-		this.manager = new CutsceneChunkCache(this, this::getDataStorage);
+		this.manager = new CutsceneChunkCache(this);
 		((ServerLevelAccessor) this).setChunkSource(manager);
 		this.entities = new CutsceneEntityManager(this);
 		this.lookup = entities.getLookup();
@@ -577,11 +577,6 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 	}
 
 	@Override
-	public PotionBrewing potionBrewing() {
-		return world.potionBrewing();
-	}
-
-	@Override
 	public CutsceneChunkCache getChunkSource() {
 		return manager;
 	}
@@ -633,6 +628,11 @@ public class CutsceneLevel extends ServerLevel implements net.minecraft.world.le
 	@Override
 	public Holder<Biome> getUncachedNoiseBiome(int biomeX, int biomeY, int biomeZ) {
 		return world.getUncachedNoiseBiome(biomeX, biomeY, biomeZ);
+	}
+
+	@Override
+	public BiomeResolver uncachedBiomeResolver() {
+		return world.uncachedBiomeResolver();
 	}
 
 	@Override

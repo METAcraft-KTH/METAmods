@@ -1,5 +1,6 @@
 package nu.metacraft.zones.spawns;
 
+import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -10,6 +11,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.util.random.Weighted;
+import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.util.valueproviders.IntProviders;
+import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.biome.MobSpawnSettings;
@@ -44,11 +48,21 @@ public class BetterSpawnEntry extends MobSpawnSettings.SpawnerData {
 		}
 	};
 
+	private static final MapCodec<UniformInt> OLD_GROUP_SIZE = RecordCodecBuilder.mapCodec(instance -> instance.group(
+			Codec.INT.fieldOf("minGroupSize").forGetter(UniformInt::minInclusive),
+			Codec.INT.fieldOf("maxGroupSize").forGetter(UniformInt::maxInclusive)
+	).apply(instance, UniformInt::new));
+
+	private static final MapCodec<IntProvider> BACKWARDS_COMPATIBLE_COUNT_CODEC = Codec.mapEither(
+			IntProviders.CODEC.fieldOf("count"), OLD_GROUP_SIZE
+	).xmap(
+			either -> either.map(p -> p, p -> p), Either::left
+	);
+
 	protected static final MapCodec<BetterSpawnEntry> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			entityCodec.fieldOf("entity").forGetter(entry -> entry.nbt),
 			Codec.BOOL.fieldOf("shouldInitialise").forGetter(entry -> entry.shouldInitialise),
-			Codec.INT.fieldOf("minGroupSize").forGetter(MobSpawnSettings.SpawnerData::minCount),
-			Codec.INT.fieldOf("maxGroupSize").forGetter(MobSpawnSettings.SpawnerData::maxCount)
+			BACKWARDS_COMPATIBLE_COUNT_CODEC.forGetter(MobSpawnSettings.SpawnerData::count)
 	).apply(instance, BetterSpawnEntry::new));
 
 	public static final Codec<Weighted<BetterSpawnEntry>> WEIGHTED_CODEC = Weighted.codec(CODEC);
@@ -56,8 +70,8 @@ public class BetterSpawnEntry extends MobSpawnSettings.SpawnerData {
 	public final EntityEntry nbt;
 	public final boolean shouldInitialise;
 	
-	public BetterSpawnEntry(EntityEntry nbt, boolean shouldInitialise, int minGroupSize, int maxGroupSize) {
-		super(nbt.type, minGroupSize, maxGroupSize);
+	public BetterSpawnEntry(EntityEntry nbt, boolean shouldInitialise, IntProvider count) {
+		super(nbt.type, count);
 		this.nbt = nbt;
 		this.shouldInitialise = shouldInitialise;
 	}

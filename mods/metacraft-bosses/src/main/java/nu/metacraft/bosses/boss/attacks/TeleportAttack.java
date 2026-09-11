@@ -3,6 +3,10 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.block.Block;
 import nu.metacraft.bosses.boss.attacks.target.PositionTargetSelector;
 
 import java.util.Optional;
@@ -17,6 +21,7 @@ public class TeleportAttack extends InstantAttack {
 	private static final int PARTICLES = 50;
 	private static final float VOLUME = 1000;
 	private static final float PITCH = 1;
+	private static final TagKey<Block> UNSAFE_TELEPORT = BlockTags.DANGEROUS_FOR_TELEPORTATION;
 
 	public static final MapCodec<TeleportAttack> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
@@ -24,7 +29,8 @@ public class TeleportAttack extends InstantAttack {
 					Codec.lazyInitialized(() -> Attack.REGISTRY_CODEC).optionalFieldOf("onArrival").forGetter(a -> a.onArrival),
 					ExtraCodecs.NON_NEGATIVE_INT.optionalFieldOf("particle_count", PARTICLES).forGetter(a -> a.particleCount),
 					ExtraCodecs.NON_NEGATIVE_FLOAT.optionalFieldOf("volume", VOLUME).forGetter(a -> a.volume),
-					Codec.floatRange(0.5f, 2f).optionalFieldOf("pitch", PITCH).forGetter(a -> a.pitch)
+					Codec.floatRange(0.5f, 2f).optionalFieldOf("pitch", PITCH).forGetter(a -> a.pitch),
+					TagKey.codec(Registries.BLOCK).optionalFieldOf("unsafe_teleport_tag", UNSAFE_TELEPORT).forGetter(a -> a.unsafeTeleportTag)
 			).apply(instance, TeleportAttack::new)
 	);
 
@@ -33,20 +39,22 @@ public class TeleportAttack extends InstantAttack {
 	private final int particleCount;
 	private final float volume;
 	private final float pitch;
+	private final TagKey<Block> unsafeTeleportTag;
 
 	public TeleportAttack(
 			PositionTargetSelector selector, Optional<Attack> onArrival,
-			int particleCount, float volume, float pitch
+			int particleCount, float volume, float pitch, TagKey<Block> unsafeTeleportTag
 	) {
 		this.selector = selector;
 		this.onArrival = onArrival;
 		this.particleCount = particleCount;
 		this.volume = volume;
 		this.pitch = pitch;
+		this.unsafeTeleportTag = unsafeTeleportTag;
 	}
 
 	public TeleportAttack(PositionTargetSelector selector, Optional<Attack> onArrival) {
-		this(selector, onArrival, PARTICLES, VOLUME, PITCH);
+		this(selector, onArrival, PARTICLES, VOLUME, PITCH, UNSAFE_TELEPORT);
 	}
 
 	@Override
@@ -59,7 +67,7 @@ public class TeleportAttack extends InstantAttack {
 					ParticleTypes.PORTAL, srcCenter.x(), srcCenter.y(), srcCenter.z(), particleCount,
 					delta, delta, delta, size
 			);
-			ctx.boss().randomTeleport(target.x, target.y, target.z, false);
+			ctx.boss().randomTeleport(target.x, target.y, target.z, false, unsafeTeleportTag);
 			Vec3 targetCenter = ctx.boss().getBoundingBox().getCenter();
 			if (particleCount > 0) {
 				ctx.getWorld().players().forEach(player -> {

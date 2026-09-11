@@ -486,7 +486,7 @@ public class DungeonData extends SavedData {
 	}
 
 	private void addBlackHole(BlockPos pos) {
-		for (var spherePos : BlockPos.withinManhattan(pos, 15, 15, 15)) {
+		for (var spherePos : BlockPos.withinManhattan(pos, 15)) {
 			if (world.getBlockState(spherePos).is(Tags.DUNGEON_RESET_UNBREAKABLE)) continue;
 			if (spherePos.closerThan(pos, 5)) {
 				world.setBlockAndUpdate(spherePos, METAcraftBlocks.PORTAL_PADDING.defaultBlockState());

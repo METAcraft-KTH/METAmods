@@ -6,7 +6,7 @@ import net.minecraft.advancements.predicates.entity.EntityPredicate;
 import net.minecraft.advancements.predicates.entity.EntitySubPredicate;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.storage.loot.IntRange;
+import net.minecraft.world.level.storage.loot.IntRangePredicate;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
@@ -20,8 +20,8 @@ import java.util.Optional;
 public record RevivalPredicate(
 		Optional<Boolean> unconscious,
 		Optional<Boolean> menuOpen,
-		Optional<IntRange> timeUntilDeath,
-		Optional<IntRange> timeUntilRevival,
+		Optional<IntRangePredicate> timeUntilDeath,
+		Optional<IntRangePredicate> timeUntilRevival,
 		Optional<EntityPredicate> reviver
 ) implements EntitySubPredicate {
 
@@ -29,8 +29,8 @@ public record RevivalPredicate(
 			instance -> instance.group(
 					Codec.BOOL.optionalFieldOf("unconscious").forGetter(RevivalPredicate::unconscious),
 					Codec.BOOL.optionalFieldOf("menu_open").forGetter(RevivalPredicate::menuOpen),
-					IntRange.CODEC.optionalFieldOf("time_until_death").forGetter(RevivalPredicate::timeUntilDeath),
-					IntRange.CODEC.optionalFieldOf("time_until_revival").forGetter(RevivalPredicate::timeUntilRevival),
+					IntRangePredicate.CODEC.optionalFieldOf("time_until_death").forGetter(RevivalPredicate::timeUntilDeath),
+					IntRangePredicate.CODEC.optionalFieldOf("time_until_revival").forGetter(RevivalPredicate::timeUntilRevival),
 					EntityPredicate.CODEC.optionalFieldOf("reviver").forGetter(RevivalPredicate::reviver)
 			).apply(instance, RevivalPredicate::new)
 	);

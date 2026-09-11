@@ -33,6 +33,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.Structure;
@@ -583,10 +584,13 @@ public record Dungeon(
 			}
 			Holder.Reference<StructureTemplatePool> structurePool = poolRegistry.getOrThrow(jigsawPool);
 			ChunkGenerator chunkGenerator = dungeons.getChunkSource().getGenerator();
-			StructureTemplateManager structureTemplateManager = dungeons.getStructureManager();
+			StructureTemplateManager structureTemplateManager = dungeons.getStructureTemplateManager();
 			StructureManager structureAccessor = dungeons.structureManager();
+			var random = dungeons.getChunkSource().randomState();
 			Structure.GenerationContext context = new Structure.GenerationContext(
-					dungeons.registryAccess(), chunkGenerator, chunkGenerator.getBiomeSource(), dungeons.getChunkSource().randomState(), structureTemplateManager, dungeons.getRandom().nextLong(),
+					dungeons.registryAccess(), chunkGenerator, chunkGenerator.getBiomeSource(),
+					random.createClimateSampler(SamplerContext.EMPTY_UNCACHED),
+					random, structureTemplateManager, dungeons.getRandom().nextLong(),
 					ChunkPos.containing(pos), dungeons, biome -> true
 			);
 			var result = JigsawPlacement.addPieces(

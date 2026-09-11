@@ -39,8 +39,10 @@ public class CutsceneChunk extends LevelChunk {
 					}
 				},
 				() -> {
-					var data = new ClientboundLevelChunkPacketData(chunk);
-					this.replaceWithPacketData(data.getReadBuffer(), data.getHeightmaps(), data.getBlockEntitiesTagsConsumer(chunk.getPos().x(), chunk.getPos().z()));
+					this.replaceWithPacketData(
+							chunk.getPos().x(), chunk.getPos().z(),
+							new ClientboundLevelChunkPacketData(chunk)
+					);
 					this.setFullStatus(chunk::getFullStatus);
 					setLoaded(true);
 					registerAllBlockEntitiesAfterLevelLoad();

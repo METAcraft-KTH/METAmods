@@ -35,7 +35,7 @@ public class METAcraftBlocks {
 					-1.0f, 3600000.8f
 			).noLootTable().noOcclusion().isValidSpawn(
 					(state, world, pos, type) -> false
-			).noTerrainParticles().pushReaction(PushReaction.BLOCK)
+			).noTerrainParticles().pushReaction(PushReaction.IMMOVEABLE)
 	);
 
 	public static final Block TRAP_SPAWNER = register(

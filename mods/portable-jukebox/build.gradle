@@ -4,6 +4,6 @@ addPolymerDependency()
 addSGUIDependency()
 
 dependencies {
-	implementation("maven.modrinth:lithium:$lithium_version-fabric")
+	compileOnly("maven.modrinth:lithium:$lithium_version-fabric")
 	compileOnly("maven.modrinth:ledger:$ledger_version")
 }

@@ -8,7 +8,7 @@ import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.RegistryFileCodec;
+import net.minecraft.core.registries.codec.RegistryFileCodec;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.tags.TagKey;
@@ -43,7 +43,7 @@ public class ArmorMaterialRegistry {
 			).apply(instance, ArmorMaterial::new)
 	);
 
-	public static final Codec<Holder<ArmorMaterial>> ENTRY_CODEC = RegistryFileCodec.create(KEY, INLINE_CODEC);
+	public static final Codec<Holder<ArmorMaterial>> ENTRY_CODEC = RegistryFileCodec.create(KEY, INLINE_CODEC, true);
 	public static final Codec<ArmorMaterial> CODEC = ENTRY_CODEC.xmap(Holder::value, REGISTRY::wrapAsHolder);
 
 

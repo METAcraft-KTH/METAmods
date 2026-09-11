@@ -119,7 +119,7 @@ public class BedrockDrillItem extends Item implements PolymerItem {
 				level.destroyBlock(pos.get(), false);
 				stack.remove(Season5Components.DRILL_POSITION);
 				player.onEquippedItemBroken(
-						stack.getItem(),
+						stack,
 						player.getUsedItemHand() == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND
 				);
 				stack.consume(1, player);

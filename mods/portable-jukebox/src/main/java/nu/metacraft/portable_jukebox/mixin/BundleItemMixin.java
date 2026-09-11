@@ -24,7 +24,7 @@ public class BundleItemMixin {
 	public int onClicked(
 			int original, @Local(argsOnly = true) Slot slot, @Local(argsOnly = true) Player player, @Local BundleContents.Mutable builder
 	) {
-		var bundleStacks = ((BundleContentsMutableAccessor) builder).getItems();
+		var bundleStacks = ((SimpleMutableContainerAccessor) builder).getItems();
 		if (!bundleStacks.isEmpty()) {
 			PortableJukeboxEntity.transferToInventory(
 					EntityRef.fromEntity(player), bundleStacks.getFirst(), slot.container

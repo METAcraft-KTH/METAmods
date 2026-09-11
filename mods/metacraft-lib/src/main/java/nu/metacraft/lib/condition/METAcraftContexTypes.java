@@ -1,7 +1,8 @@
 package nu.metacraft.lib.condition;
 
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.mixin.LootContextParamSetsAccessor;
 
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -63,13 +64,7 @@ public class METAcraftContexTypes {
 	private static ContextKeySet register(String id, Consumer<ContextKeySet.Builder> type) {
 		ContextKeySet.Builder builder = new ContextKeySet.Builder();
 		type.accept(builder);
-		ContextKeySet lootContextType = builder.build();
-		Identifier identifier = METAcraftLib.getID(id);
-		ContextKeySet lootContextType2 = LootContextParamSetsAccessor.getMap().put(identifier, lootContextType);
-		if (lootContextType2 != null) {
-			throw new IllegalStateException("Loot table parameter set " + identifier + " is already registered");
-		}
-		return lootContextType;
+		return Registry.register(BuiltInRegistries.CONTEXT_KEY_SET, METAcraftLib.getID(id), builder.build());
 	}
 
 }

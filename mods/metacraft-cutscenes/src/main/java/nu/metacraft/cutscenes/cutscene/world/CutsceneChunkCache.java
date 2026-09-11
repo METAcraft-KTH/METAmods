@@ -41,19 +41,19 @@ public class CutsceneChunkCache extends ServerChunkCache {
 	private final CutsceneLevel cutsceneLevel;
 
 	public CutsceneChunkCache(
-			CutsceneLevel cutsceneLevel, Supplier<SavedDataStorage> persistentStateManagerFactory
+			CutsceneLevel cutsceneLevel
 	) {
 		super(
 				cutsceneLevel.getActualWorld(),
 				((MinecraftServerAccessor) cutsceneLevel.getServer()).getStorageSource(),
 				cutsceneLevel.getServer().getFixerUpper(),
-				cutsceneLevel.getServer().getStructureManager(),
+				cutsceneLevel.getServer().getStructureTemplateManager(),
 				((MinecraftServerAccessor) cutsceneLevel.getServer()).getExecutor(),
 				CutsceneLevel.createDummyChunkGenerator(cutsceneLevel.getActualWorld()),
 				cutsceneLevel.getServer().getPlayerList().getViewDistance(),
 				cutsceneLevel.getServer().getPlayerList().getSimulationDistance(),
 				cutsceneLevel.getServer().forceSynchronousWrites(),
-				(pos, status) -> {}, persistentStateManagerFactory
+				(pos, status) -> {}
 		);
 		var tickerManager = new TicketStorage();
 		this.cutsceneLevel = cutsceneLevel;
@@ -61,11 +61,11 @@ public class CutsceneChunkCache extends ServerChunkCache {
 				cutsceneLevel,
 				((MinecraftServerAccessor) cutsceneLevel.getServer()).getStorageSource(),
 				cutsceneLevel.getServer().getFixerUpper(),
-				cutsceneLevel.getServer().getStructureManager(),
+				cutsceneLevel.getServer().getStructureTemplateManager(),
 				((MinecraftServerAccessor) cutsceneLevel.getServer()).getExecutor(),
 				((ServerChunkCacheAccessor) this).getMainThreadExecutor(),
 				this, CutsceneLevel.createDummyChunkGenerator(cutsceneLevel.getActualWorld()),
-				(pos, status) -> {}, persistentStateManagerFactory,
+				(pos, status) -> {},
 				tickerManager,
 				cutsceneLevel.getServer().getPlayerList().getViewDistance(),
 				cutsceneLevel.getServer().forceSynchronousWrites()

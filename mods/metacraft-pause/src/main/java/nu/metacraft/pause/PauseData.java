@@ -131,7 +131,7 @@ public class PauseData extends SavedData {
 			if (beforePauseVelocity != null) {
 				data.metacraft_pause$setBeforePauseVelocity(null);
 				player.getRootVehicle().setDeltaMovement(beforePauseVelocity);
-				player.hurtMarked = true;
+				player.syncVelocity = true;
 			}
 		}
 	}

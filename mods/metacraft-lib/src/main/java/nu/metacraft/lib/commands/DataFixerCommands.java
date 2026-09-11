@@ -24,6 +24,8 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.commands.ArgProvider;
+import net.minecraft.server.commands.data.DataAccessor;
 import net.minecraft.server.commands.data.DataCommands;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.util.datafix.fixes.References;
@@ -93,7 +95,7 @@ public class DataFixerCommands {
 
 	private static int update(
 			CommandContext<CommandSourceStack> ctx,
-			DataCommands.DataProvider targetProvider, DataCommands.DataProvider sourceProvider,
+			ArgProvider<DataAccessor> targetProvider, ArgProvider<DataAccessor> sourceProvider,
 			DataManipulator targetManipulator,
 			NbtPathArgument.NbtPath targetPath, NbtPathArgument.NbtPath sourcePath,
 			IntList sourceDataVersions, DSL.TypeReference typeReference
@@ -122,7 +124,7 @@ public class DataFixerCommands {
 
 	private static int update(
 			CommandContext<CommandSourceStack> ctx,
-			DataCommands.DataProvider targetProvider, DataCommands.DataProvider sourceProvider,
+			ArgProvider<DataAccessor> targetProvider, ArgProvider<DataAccessor> sourceProvider,
 			DataManipulator targetManipulator,
 			NbtPathArgument.NbtPath targetPath, NbtPathArgument.NbtPath sourcePath,
 			NbtPathArgument.NbtPath versionPath, DSL.TypeReference typeReference

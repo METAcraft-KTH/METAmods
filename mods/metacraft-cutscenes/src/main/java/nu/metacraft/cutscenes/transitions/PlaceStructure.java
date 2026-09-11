@@ -88,7 +88,7 @@ public class PlaceStructure extends InstantTransition {
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		structure.get(cutscene.getServer().getStructureManager(), cutscene.getServer().registryAccess()).ifPresent(structure -> {
+		structure.get(cutscene.getServer().getStructureTemplateManager(), cutscene.getServer().registryAccess()).ifPresent(structure -> {
 			this.pos.get(cutscene.getRefContext()).ifPresent(exactPos -> {
 				var pos = BlockPos.containing(exactPos);
 				var random = seed.map(RandomSource::create).orElse(cutscene.getRandom());

@@ -57,12 +57,12 @@ public class ServerClockManagerMixin {
 			method = {"modifyClock", "lambda$createFullSyncPacket$0"},
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/world/clock/ServerClockManager$ClockInstance;packNetworkState(Lnet/minecraft/server/MinecraftServer;)Lnet/minecraft/world/clock/ClockNetworkState;"
+					target = "Lnet/minecraft/world/clock/ServerClockManager$ServerClockInstance;packNetworkState(Lnet/minecraft/server/MinecraftServer;)Lnet/minecraft/world/clock/ClockNetworkState;"
 			),
 			require = 2
 	)
 	public ClockNetworkState fixPacked(
-			ServerClockManager.ClockInstance instance, MinecraftServer server, Operation<ClockNetworkState> original
+			ServerClockManager.ServerClockInstance instance, MinecraftServer server, Operation<ClockNetworkState> original
 	) {
 		if ((Object) this instanceof CutsceneClockManager scene) {
 			boolean advanceTime = scene.getLevel().getGameRules().get(GameRules.ADVANCE_TIME);

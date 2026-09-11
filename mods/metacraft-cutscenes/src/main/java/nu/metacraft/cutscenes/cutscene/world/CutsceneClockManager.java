@@ -47,7 +47,7 @@ public class CutsceneClockManager extends ServerClockManager {
 	public void tick() {
 		boolean advanceTime = level.getGameRules().get(GameRules.ADVANCE_TIME);
 		if (advanceTime) {
-			((ServerClockManagerAccessor) this).getClocks().values().forEach(ClockInstance::tick);
+			((ServerClockManagerAccessor) this).getClocks().values().forEach(ServerClockInstance::tick);
 			this.setDirty();
 		}
 

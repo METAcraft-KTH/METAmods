@@ -3,7 +3,9 @@ package nu.metacraft.bosses.boss.attacks;
 import com.mojang.serialization.JavaOps;
 import net.minecraft.advancements.predicates.entity.EntityPredicate;
 import net.minecraft.advancements.predicates.entity.EntityTypePredicate;
+import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -122,9 +124,9 @@ public abstract class SpawnEntityAttackBase extends InstantAttack {
 	) {
 		return createEntry(
 				entity, initialize, preventDespawn, Optional.of(AllOfCondition.allOf(
-						List.of(
-								NotInWall.getInstance(), ValidateSpawnRestriction.getInstance(),
-								new ValidateSpawnPredicate(Optional.empty())
+						HolderSet.direct(
+								Holder.direct(NotInWall.getInstance()), Holder.direct(ValidateSpawnRestriction.getInstance()),
+								Holder.direct(new ValidateSpawnPredicate(Optional.empty()))
 						)
 				)), EntitySpawnReason.TRIAL_SPAWNER, horizontalRange, verticalRange
 		);

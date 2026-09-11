@@ -32,7 +32,7 @@ public class ValidateSpawnRestriction implements LootItemCondition {
 
 	@Override
 	public boolean test(LootContext lootContext) {
-		var pos = lootContext.getOptionalParameter(LootContextParams.ORIGIN);
+		var pos = lootContext.getOptional(LootContextParams.ORIGIN);
 		if (pos == null) return false;
 		return METAcraftContextParameters.getEntityType(lootContext).map(
 			entityType -> SpawnPlacements.isSpawnPositionOk(

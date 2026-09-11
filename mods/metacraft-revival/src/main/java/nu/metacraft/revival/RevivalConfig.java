@@ -13,7 +13,7 @@ import net.minecraft.util.valueproviders.FloatProvider;
 import net.minecraft.util.valueproviders.FloatProviders;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.level.storage.loot.IntRange;
+import net.minecraft.world.level.storage.loot.IntLimit;
 import net.minecraft.world.level.storage.loot.predicates.AllOfCondition;
 import net.minecraft.world.level.storage.loot.predicates.AnyOfCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
@@ -44,16 +44,16 @@ public record RevivalConfig(
 
 	public record ReviveEffects(
 			FloatProvider health,
-			IntRange air,
-			IntRange hunger,
+			IntLimit air,
+			IntLimit hunger,
 			MinMaxBounds.Doubles saturation,
 			List<MobEffectInstance> effects
 	) {
 		public static final Codec<ReviveEffects> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
 						FloatProviders.CODEC.fieldOf("health").forGetter(ReviveEffects::health),
-						IntRange.CODEC.fieldOf("air").forGetter(ReviveEffects::air),
-						IntRange.CODEC.fieldOf("hunger").forGetter(ReviveEffects::hunger),
+						IntLimit.CODEC.fieldOf("air").forGetter(ReviveEffects::air),
+						IntLimit.CODEC.fieldOf("hunger").forGetter(ReviveEffects::hunger),
 						MinMaxBounds.Doubles.CODEC.fieldOf("saturation").forGetter(ReviveEffects::saturation),
 						MobEffectInstance.CODEC.listOf().fieldOf("effects").forGetter(ReviveEffects::effects)
 				).apply(instance, ReviveEffects::new)
@@ -71,8 +71,8 @@ public record RevivalConfig(
 	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<RevivalConfig, WorldData>>, WorldData> CONFIG = ConfigContainer.Builder.create(
 			CODEC, () -> new RevivalConfig(
 					Optional.of(2400), 200, false, false, new ReviveEffects(
-							ConstantFloat.of(1.0f), IntRange.lowerBound(10),
-							IntRange.lowerBound(1), MinMaxBounds.Doubles.exactly(0.0),
+							ConstantFloat.of(1.0f), IntLimit.lowerBound(10),
+							IntLimit.lowerBound(1), MinMaxBounds.Doubles.exactly(0.0),
 							List.of(
 									new MobEffectInstance(MobEffects.HUNGER, 30*20)
 							)

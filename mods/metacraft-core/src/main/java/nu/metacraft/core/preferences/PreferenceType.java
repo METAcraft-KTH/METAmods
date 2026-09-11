@@ -74,8 +74,12 @@ public interface PreferenceType<T, V, P extends Predicate<V>> {
 				var animatedBuilder = new AnimatedGuiElementBuilder().setInterval(5).setRandom(true);
 				for (var i : icon) {
 					animatedBuilder.setItem(i.getItem());
-					for (var c : i.getComponentsPatch().entrySet()) {
-						set(animatedBuilder, c.getKey(), i);
+					var split = i.getComponentsPatch().split();
+					for (var c : split.added()) {
+						set(animatedBuilder, c.type(), i);
+					}
+					for (var c : split.removed()) {
+						set(animatedBuilder, c, i);
 					}
 					animatedBuilder.saveItemStack();
 				}

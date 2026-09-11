@@ -9,9 +9,9 @@ import net.minecraft.advancements.predicates.ItemPredicate;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderSet;
-import net.minecraft.core.RegistryCodecs;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.core.registries.codec.RegistryCodecs;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.StringRepresentable;
@@ -103,8 +103,8 @@ public final class RepairFixConfig {
 	public record EnchantmentEntry(HolderSet<Enchantment> first, HolderSet<Enchantment> second, int combineCost) {
 		public static final Codec<EnchantmentEntry> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						RegistryCodecs.homogeneousList(Registries.ENCHANTMENT).fieldOf("first").forGetter(EnchantmentEntry::first),
-						RegistryCodecs.homogeneousList(Registries.ENCHANTMENT).fieldOf("second").forGetter(EnchantmentEntry::second),
+						RegistryCodecs.holderSet(Registries.ENCHANTMENT).fieldOf("first").forGetter(EnchantmentEntry::first),
+						RegistryCodecs.holderSet(Registries.ENCHANTMENT).fieldOf("second").forGetter(EnchantmentEntry::second),
 						ExtraCodecs.NON_NEGATIVE_INT.fieldOf("cost").forGetter(EnchantmentEntry::combineCost)
 				).apply(instance, EnchantmentEntry::new)
 		);

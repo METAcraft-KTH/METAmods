@@ -5,6 +5,7 @@ import com.mojang.serialization.JavaOps;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.advancements.predicates.ItemPredicate;
 import net.minecraft.server.permissions.Permissions;
+import net.minecraft.util.Prediction;
 import net.minecraft.util.valueproviders.ConstantInt;
 import nu.metacraft.saved_items.item_saving.SavedItemsData;
 
@@ -28,7 +29,7 @@ public class Commands {
 											value, ConstantInt.of(2), ConstantInt.of(64), ItemPredicate.Builder.item().build()
 									).forEach(item -> {
 										if (!player.getInventory().add(item)) {
-											player.drop(item, false, false);
+											player.drop(item, false, Prediction.SERVER_ONLY);
 										}
 									});
 									return 1;

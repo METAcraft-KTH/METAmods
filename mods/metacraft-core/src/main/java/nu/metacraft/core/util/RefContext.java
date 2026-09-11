@@ -21,11 +21,15 @@ public record RefContext(Optional<Entity> entity, ServerLevel world, RandomSourc
 
 
 	public CommandSourceStack getCommandSource() {
-		return new CommandSourceStack(
+		var source = new CommandSourceStack(
 				CommandSource.NULL, Vec3.ZERO, Vec2.ZERO,
-				world, LevelBasedPermissionSet.GAMEMASTER, "RefContext", Component.literal("RefContext"),
-				world.getServer(), entity.orElse(null)
+				world, LevelBasedPermissionSet.GAMEMASTER, Component.literal("RefContext"),
+				world.getServer()
 		).withSuppressedOutput();
+		if (entity.isPresent()) {
+			source = source.withEntity(entity.get());
+		}
+		return source;
 	}
 
 }

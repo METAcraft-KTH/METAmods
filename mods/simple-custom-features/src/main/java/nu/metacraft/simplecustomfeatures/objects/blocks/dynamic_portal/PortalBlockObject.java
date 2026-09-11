@@ -165,7 +165,7 @@ public class PortalBlockObject implements BaseBlock {
 	}
 
 	public Optional<ValidStructureWithOffset> getPortalStructure(ServerLevel world) {
-		return portalStructure.map(structure -> structure.getStructure(world.getStructureManager())).orElseGet(
+		return portalStructure.map(structure -> structure.getStructure(world.getStructureTemplateManager())).orElseGet(
 				() -> {
 					if (defaultPortalStructureCache == null) {
 						defaultPortalStructureCache = ValidStructureWithOffset.createDefault(
@@ -182,7 +182,7 @@ public class PortalBlockObject implements BaseBlock {
 	}
 
 	public Optional<ValidStructureWithOffset> getPortalWithPlatformStructure(ServerLevel world) {
-		return portalWithPlatformStructure.map(structure -> structure.getStructure(world.getStructureManager())).orElseGet(
+		return portalWithPlatformStructure.map(structure -> structure.getStructure(world.getStructureTemplateManager())).orElseGet(
 				() -> {
 					if (portalWithPlatformStructureCache == null) {
 						portalWithPlatformStructureCache = getPortalStructure(world).map(

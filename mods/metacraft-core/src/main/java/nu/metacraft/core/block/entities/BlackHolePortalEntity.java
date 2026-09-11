@@ -67,7 +67,7 @@ public class BlackHolePortalEntity extends PortalEntity {
 					Math.pow((blackHole.attractionRange - dist) / blackHole.attractionRange, 2)
 			);
 			entity.push(motionVector);
-			entity.hurtMarked = true;
+			entity.syncVelocity = true;
 			entity.fallDistance = 0;
 		}
 	}

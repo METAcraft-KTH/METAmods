@@ -30,7 +30,7 @@ import net.minecraft.resources.RegistryOps;
  */
 public class ObjectStorage<T> {
 
-	private static final Supplier<HolderLookup.Provider> DEFAULT_LOOKUP = Suppliers.memoize(VanillaRegistries::createLookup);
+	private static final Supplier<HolderLookup.Provider> DEFAULT_LOOKUP = Suppliers.memoize(VanillaRegistries::createWorldLookup);
 
 	private final Object rawData;
 	private final Codec<T> codec;

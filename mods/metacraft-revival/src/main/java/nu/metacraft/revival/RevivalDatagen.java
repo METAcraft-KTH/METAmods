@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class RevivalDatagen implements DataGeneratorEntrypoint {
 	@Override
@@ -104,11 +105,9 @@ public class RevivalDatagen implements DataGeneratorEntrypoint {
 	// For some reason, Fabric won't include stuff added via buildRegistry in the data generation automatically.
 	public static class DynamicProvider extends FabricDynamicRegistryProvider {
 
-		private static final Set<ResourceKey<? extends Registry<?>>> DYNAMIC_REGISTRIES = new ImmutableSet.Builder<ResourceKey<? extends Registry<?>>>().addAll(
-				DynamicRegistries.getDynamicRegistries().stream().map(RegistryDataLoader.RegistryData::key).iterator()
-		).addAll(
-				RegistryDataLoader.DIMENSION_REGISTRIES.stream().map(RegistryDataLoader.RegistryData::key).iterator()
-		).build();
+		private static final Set<ResourceKey<? extends Registry<?>>> DYNAMIC_REGISTRIES = DynamicRegistries.getAllDynamicRegistries().stream().map(
+				RegistryDataLoader.RegistryData::key
+		).collect(Collectors.toSet());
 
 		public DynamicProvider(
 				FabricPackOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture

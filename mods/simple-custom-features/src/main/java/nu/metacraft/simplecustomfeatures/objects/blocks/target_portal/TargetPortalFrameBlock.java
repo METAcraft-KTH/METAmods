@@ -102,7 +102,7 @@ public class TargetPortalFrameBlock extends EndPortalFrameBlock implements Polym
 			if (portalResult != null) {
 				var bottom = portalResult.getFrontTopLeft().offset(-3, 0, -3);
 				for (var portalPos : BlockPos.betweenClosed(bottom, new BlockPos.MutableBlockPos().set(bottom).move(2, 0, 2))) {
-					world.setBlockAndUpdate(portalPos, frame.portalBlock().getState(sl, world.getRandom(), portalPos));
+					world.setBlockAndUpdate(portalPos, frame.portalBlock().value().getState(sl, world.getRandom(), portalPos));
 				}
 				world.globalLevelEvent(LevelEvent.SOUND_END_PORTAL_SPAWN, bottom.offset(1, 0, 1), 0);
 			}

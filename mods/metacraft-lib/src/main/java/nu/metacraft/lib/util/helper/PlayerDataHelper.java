@@ -326,7 +326,7 @@ public class PlayerDataHelper {
 		if (moveToDataPosition) {
 			world.ifPresentOrElse(w -> {
 				player.teleportTo(w, player.getX(), player.getY(), player.getZ(), Set.of(), player.getYRot(), player.getXRot(), false);
-				player.hurtMarked = true;
+				player.syncVelocity = true;
 			}, () -> {
 				player.teleport(player.findRespawnPositionAndUseSpawnBlock(true, TeleportTransition.DO_NOTHING));
 			});

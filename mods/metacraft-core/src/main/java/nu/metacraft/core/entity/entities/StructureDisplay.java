@@ -74,7 +74,7 @@ public class StructureDisplay extends Entity implements PolymerEntity {
 		if (idString.isPresent()) {
 			var id = Identifier.tryParse(idString.get());
 			if (id != null && level() instanceof ServerLevel sw) {
-				if (setFromStructure(sw.getStructureManager(), id)) {
+				if (setFromStructure(sw.getStructureTemplateManager(), id)) {
 					shouldFixDisplays = false;
 				}
 			}

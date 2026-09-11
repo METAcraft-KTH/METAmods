@@ -20,7 +20,7 @@ public class BundleContentsMutableMixin {
 	public void onAdd(
 			Slot slot, Player player, CallbackInfoReturnable<Integer> cir
 	) {
-		var bundleStacks = ((BundleContentsMutableAccessor) this).getItems();
+		var bundleStacks = ((SimpleMutableContainerAccessor) this).getItems();
 		if (!bundleStacks.isEmpty()) {
 			PortableJukeboxEntity.transferToInventory(
 					EntityRef.fromEntity(player), bundleStacks.getFirst(), slot.container

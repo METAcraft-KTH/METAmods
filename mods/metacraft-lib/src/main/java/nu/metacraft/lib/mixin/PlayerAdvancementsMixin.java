@@ -21,7 +21,7 @@ public class PlayerAdvancementsMixin {
 		method = "lambda$award$0",
 		at = @At(
 				value = "INVOKE",
-				target = "Lnet/minecraft/advancements/DisplayInfo;shouldAnnounceChat()Z"
+				target = "Lnet/minecraft/advancements/DisplayInfo;announceToChat()Z"
 		)
 	)
 	public boolean grantCriterion(boolean original) {

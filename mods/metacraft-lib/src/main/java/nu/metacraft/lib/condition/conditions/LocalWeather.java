@@ -37,7 +37,7 @@ public class LocalWeather implements LootItemCondition {
 
 	@Override
 	public boolean test(LootContext context) {
-		var pos = context.getOptionalParameter(LootContextParams.ORIGIN);
+		var pos = context.getOptional(LootContextParams.ORIGIN);
 		if (pos == null) return false;
 		return weather.isActive(context.getLevel(), BlockPos.containing(pos));
 	}

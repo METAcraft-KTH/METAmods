@@ -17,7 +17,7 @@ public class ServerGamePacketListenerImplMixin {
 	@Shadow public ServerPlayer player;
 
 	@ModifyExpressionValue(
-		method = "handleMovePlayer",
+		method = "handlePlayerPositionChange",
 		at = @At(
 			value = "INVOKE",
 			target = "Lnet/minecraft/server/level/ServerPlayer;isChangingDimension()Z"

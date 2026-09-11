@@ -11,8 +11,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.codec.RegistryFixedCodec;
 import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.resources.RegistryFixedCodec;
 import net.minecraft.server.dialog.Dialog;
 
 public class RegistryDependentCodecHelper {

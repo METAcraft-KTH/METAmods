@@ -30,7 +30,7 @@ public class BlockBelowCanSpawn implements LootItemCondition {
 
 	@Override
 	public boolean test(LootContext ctx) {
-		var pos = ctx.getOptionalParameter(LootContextParams.ORIGIN);
+		var pos = ctx.getOptional(LootContextParams.ORIGIN);
 		if (pos == null) return false;
 		return METAcraftContextParameters.getEntityType(ctx).map(
 				entityType -> {

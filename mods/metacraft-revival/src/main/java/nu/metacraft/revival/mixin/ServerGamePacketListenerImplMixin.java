@@ -75,7 +75,7 @@ public abstract class ServerGamePacketListenerImplMixin {
 	)
 	public void handleUseItem(ServerboundUseItemPacket packet, CallbackInfo ci) {
 		if (((ServerPlayerExtension) player).metacraft$isUnconscious()) {
-			PlayerInventoryHelper.syncHandStack(player, packet.getHand());
+			PlayerInventoryHelper.syncHandStack(player, packet.hand());
 			ci.cancel();
 		}
 	}
@@ -90,8 +90,8 @@ public abstract class ServerGamePacketListenerImplMixin {
 	)
 	public void handleUseItemOn(ServerboundUseItemOnPacket packet, CallbackInfo ci) {
 		if (((ServerPlayerExtension) player).metacraft$isUnconscious()) {
-			PlayerInventoryHelper.syncHandStack(player, packet.getHand());
-			resetBlock(packet.getHitResult().getBlockPos());
+			PlayerInventoryHelper.syncHandStack(player, packet.hand());
+			resetBlock(packet.hitResult().getBlockPos());
 			ci.cancel();
 		}
 	}

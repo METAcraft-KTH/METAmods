@@ -48,17 +48,17 @@ public class METAcraftContextParameters {
 
 	public static Optional<EntityType<?>> getEntityType(LootContext context) {
 		if (context.hasParameter(ENTITY_TYPE)) {
-			return Optional.ofNullable(context.getOptionalParameter(ENTITY_TYPE));
+			return Optional.ofNullable(context.getOptional(ENTITY_TYPE));
 		}
 		if (context.hasParameter(LootContextParams.THIS_ENTITY)) {
-			return Optional.ofNullable(context.getOptionalParameter(LootContextParams.THIS_ENTITY).getType());
+			return Optional.ofNullable(context.getOptional(LootContextParams.THIS_ENTITY).getType());
 		}
 		return Optional.empty();
 	}
 
 	public static Optional<AABB> getBoundingBox(LootContext context) {
 		if (context.hasParameter(BOUNDING_BOX)) {
-			return Optional.ofNullable(context.getOptionalParameter(BOUNDING_BOX));
+			return Optional.ofNullable(context.getOptional(BOUNDING_BOX));
 		}
 		return EntityRef.fromContext(context).map(EntityRef::getBoundingBox);
 	}

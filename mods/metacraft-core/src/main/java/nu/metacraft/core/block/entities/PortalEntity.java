@@ -502,7 +502,7 @@ public class PortalEntity extends BlockEntity {
 			).normalize();
 			entity.setDeltaMovement(vector);
 			entity.needsSync = true;
-			entity.hurtMarked = true;
+			entity.syncVelocity = true;
 			notifyLocked(entity.getSelfAndPassengers().filter(e -> e instanceof Player).map(p -> (Player) p));
 			if (pushedAway.isEmpty()) {
 				TaskScheduler.schedule(

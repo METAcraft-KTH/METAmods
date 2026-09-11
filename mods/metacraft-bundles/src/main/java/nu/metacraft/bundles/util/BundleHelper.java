@@ -78,7 +78,7 @@ public class BundleHelper {
 
 	private static BundleContents fixBundleInternal(BundleContents bundle, Fraction factor) {
 		return BundleHelper.setBundleSizeFactor(
-				new BundleContents.Mutable(bundle), factor
+				bundle.asMutable(), factor
 		).toImmutable();
 	}
 

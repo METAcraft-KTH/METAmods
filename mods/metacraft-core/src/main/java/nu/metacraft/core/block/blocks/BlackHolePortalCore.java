@@ -1,10 +1,8 @@
 package nu.metacraft.core.block.blocks;
 
-import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -16,15 +14,8 @@ import nu.metacraft.core.block.entities.BlackHolePortalEntity;
 
 public class BlackHolePortalCore extends PortalCore {
 
-	public static final MapCodec<BlackHolePortalCore> CODEC = simpleCodec(BlackHolePortalCore::new);
-
 	public BlackHolePortalCore(Properties settings) {
 		super(settings);
-	}
-
-	@Override
-	protected MapCodec<? extends BaseEntityBlock> codec() {
-		return CODEC;
 	}
 
 	@Nullable

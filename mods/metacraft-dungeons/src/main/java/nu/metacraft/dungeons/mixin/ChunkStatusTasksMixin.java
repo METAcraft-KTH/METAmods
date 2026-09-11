@@ -16,7 +16,7 @@ public class ChunkStatusTasksMixin {
 
 
 	@WrapOperation(
-		method = {"generateBiomes", "generateNoise"}, at = @At(
+		method = {"generateBiomes", "buildTerrain"}, at = @At(
 			value = "INVOKE",
 			target = "Lnet/minecraft/world/level/levelgen/blending/Blender;of(Lnet/minecraft/server/level/WorldGenRegion;)Lnet/minecraft/world/level/levelgen/blending/Blender;"
 		)
