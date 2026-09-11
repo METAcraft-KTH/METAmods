@@ -17,6 +17,7 @@ import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Placement;
 import metacraft.ovvar.content.Spot;
 import metacraft.ovvar.pack.EquipmentJson;
+import metacraft.ovvar.pack.Trims;
 import metacraft.ovvar.sewing.Outline;
 import metacraft.ovvar.sewing.Seam;
 import metacraft.ovvar.sewing.SewingFont;
@@ -145,6 +146,38 @@ public final class GeneratedAssets implements DataProvider {
 				placementTextures++;
 			}
 		}
+
+		// The trim channel: one trim pattern per (chest or back cell, patch), the top's fourth
+		// instant patch. Vanilla draws trims, so the squeeze to square pixels (ovvar.glsl) is
+		// baked in here, to the texel — tolerable on the 16-pixel-wide chest and back faces.
+		List<String> trimTextures = new ArrayList<>();
+		for (Spot spot : Spot.values()) {
+			for (Patches.Patch patch : Patches.all()) {
+				Placement placement = spot == Spot.SEAT || !patch.fits(spot) ? null : new Placement(spot, patch);
+				if (placement == null || !Trims.fits(placement)) continue;
+				String name = Trims.patternName(placement);
+				Tex tex = placedWrapped(spot, arts.get(patch.id()), spot.u * D + patch.offsetX());
+				png(assets.resolve("textures/trims/entity/" + spot.piece.layer + "/" + name + ".png"), tex);
+				trimTextures.add(MOD + ":trims/entity/" + spot.piece.layer + "/" + name);
+				json(data.resolve("trim_pattern/" + name + ".json"),
+						obj("asset_id", MOD + ":" + name, "decal", false, "description", obj("text", patch.name() + " on the " + spot.label())));
+			}
+		}
+		// The material is a colour permutation of a key palette onto itself, so the key is every colour any patch uses.
+		List<Integer> colours = new ArrayList<>();
+		for (Tex art : arts.values()) for (int c : art.opaqueColours()) if (!colours.contains(c)) colours.add(c);
+		Tex key = Tex.blank(colours.size(), 1);
+		for (int i = 0; i < colours.size(); i++) key = key.with(i, 0, colours.get(i));
+		String palettes = "textures/trims/color_palettes/";
+		png(assets.resolve(palettes + "key.png"), key);
+		png(assets.resolve(palettes + Trims.MATERIAL + ".png"), key);
+		json(data.resolve("trim_material/" + Trims.MATERIAL + ".json"), obj("asset_name", Trims.MATERIAL, "description", obj("text", "Patch")));
+		json(assets.getParent().resolve("minecraft/atlases/armor_trims.json"), obj("sources", arr(obj(
+				"type", "minecraft:paletted_permutations",
+				"textures", arr(trimTextures.toArray()),
+				"palette_key", MOD + ":trims/color_palettes/key",
+				"permutations", obj(Trims.MATERIAL, MOD + ":trims/color_palettes/" + Trims.MATERIAL)))));
+		Ovvar.LOGGER.info("[{} datagen] {} trim patterns", MOD, trimTextures.size());
 
 		// The preview layer per half: every instant design's art in the library (a block of cells
 		// its size), the cell and design tables, marker kind 2. The shader draws what the dye
@@ -437,6 +470,30 @@ public final class GeneratedAssets implements DataProvider {
 		require(any, "patch art lands entirely off the " + spot.id() + " cell's part");
 		return out;
 	}
+
+	/**
+	 *      * The same, but as vanilla will draw it from a trim texture: the strip wrapped around the
+	 * box the way the shader does for a placement ({@link Spot#anchored}), baked texel by texel
+	 * — each column of the part's side rows shows the art column the shader would sample there.
+	 */
+	private static Tex placedWrapped(Spot spot, Tex art, int x) {
+		Tex flat = placed(spot, art, x);   // the art on the strip, wrapped round it
+		int stripStart = Spot.stripStart(spot) * D, stripEnd = stripStart + Spot.stripWidth(spot) * D;
+		double inflate = Spot.inflate(spot.piece);
+		int anchor = Spot.face(spot);
+		Tex out = Tex.blank(W, H);
+		for (int column = stripStart; column < stripEnd; column++) {
+			double w = Spot.anchored((column + 0.5) / D, inflate, anchor);
+			if (w < 0) continue;
+			int texel = stripStart + (int) Math.floor(w * D);
+			for (int row = 20 * D; row < 32 * D; row++) {
+				int p = flat.get(texel, row);
+				if (p != 0) out = out.with(column, row, p);
+			}
+		}
+		return out;
+	}
+
 
 	/** A placement texture: drawn on one side of the model only (both, for body cells), continuous round the box from the cell's face. */
 	private static Tex sided(Tex tex, Spot spot, Spot.Side side) {

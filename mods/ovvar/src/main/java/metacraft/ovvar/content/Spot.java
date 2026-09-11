@@ -79,6 +79,34 @@ public enum Spot implements StringRepresentable {
 		return local < 4 ? 0 : local < 4 + n1 ? 1 : local < 8 + n1 ? 2 : 3;
 	}
 
+	/**
+	 *      * ovvar_anchored in ovvar.glsl, the same arithmetic: a placement is drawn continuous round
+	 * the box from the face it is on — that face's texels centred on it, the neighbours'
+	 * continuing past its edges at {@link #pixel} units each — with the slack of the inflated
+	 * box in the middle of the opposite face. For a side-row texel {@code skinX} (fractional,
+	 * skin texels): the strip-local texel column shown there, or -1 in the slack. Datagen bakes
+	 * the trim textures with it, since vanilla draws those.
+	 */
+	public static double anchored(double skinX, double inflate, int anchor) {
+		double p = pixel((int) Math.floor(skinX), inflate), e = 2 * inflate;
+		boolean body = skinX >= 16 && skinX < 40;
+		int stripStart = skinX < 16 ? 0 : body ? 16 : 40;
+		double local = skinX - stripStart;
+		int n1 = body ? 8 : 4, total = 8 + 2 * n1;
+		double perimeter = total + 4 * e;
+		int k = local < 4 ? 0 : local < 4 + n1 ? 1 : local < 8 + n1 ? 2 : 3;
+		double[] s = {0, 4, 4 + n1, 8 + n1}, n = {4, n1, 4, n1}, U = {0, 4 + e, 4 + n1 + 2 * e, 8 + n1 + 3 * e};
+		double u = U[k] + (local - s[k]) * ((n[k] + e) / n[k]);
+		double c = U[anchor] + (n[anchor] + e) / 2, t = s[anchor] + n[anchor] / 2.0;
+		double du = u - c;
+		if (du >= perimeter / 2) du -= perimeter; else if (du < -perimeter / 2) du += perimeter;
+		double dt = du / p;
+		if (Math.abs(dt) > total / 2.0) return -1;
+		double w = t + dt;
+		return w - Math.floor(w / total) * total;
+	}
+
+
 	/** Start of the strip (skin texels) a cell's part draws: legs 0, body 16, arms 40. */
 	public static int stripStart(Spot spot) {
 		return spot.u < 16 ? 0 : spot.u < 40 ? 16 : 40;

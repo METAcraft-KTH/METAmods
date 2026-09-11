@@ -34,8 +34,8 @@ piece laid on the face it hangs over — round the sides, and over the top of a 
 bends round the box on the stand too; datagen makes one item model per piece — a single
 zero-thickness quad, so the displays are sprites, not slabs — and a ghosted twin of each (mixed
 60 % to white), which is what the patch being aimed at is shown as, on top of everything, until
-it is sewn. That is the whole preview, so the pack carries no trim channel. The companion top
-and the virtual cuffs carry the same on-stand flag, so nothing draws the patches twice.
+it is sewn. That is the whole preview. The companion top and the virtual cuffs carry the same
+on-stand flag, so nothing draws the patches twice.
 
 With the stitching minigame on (`config/ovvar.json`: `sewing_minigame`, `stitches`; default on,
 6 stitches) the right-click opens a dialog instead: the patch lies on the ovve's cloth and the
@@ -134,7 +134,8 @@ every ovve it can see is sent again. Rebuilds are batched: a combination the dye
 still show waits a minute and a half for company; one it cannot is built within two seconds.
 
 The dye colour carries patches without any pack change. Up to three placements per half ride in it
-— six on the legs when the wearer's feet slot carries the second channel (below): a dyeable layer
+— six on the legs when the wearer's feet slot carries the second channel (below), four on the top
+when one of them is on the chest or the back (the trim, below): a dyeable layer
 is only drawn when the item has a dye colour, and that colour reaches the shader as the vertex
 colour — the only per-item data an armour shader ever gets — so it carries the *rank* of the set
 of up to three (cell, design) placements among all such sets (packed as three base-255 digits so
@@ -143,7 +144,19 @@ designs — any size, in a block of library cells — plus cell and design table
 (`assets/minecraft/shaders/core/entity.fsh` + `assets/ovvar/shaders/include/ovvar.glsl`) unranks
 the set and draws the art on the cells, lit white so the data colour never tints it. Designs
 past the first 22 in the catalogue only go through the pack. The tooltip's "Dyed" line is
-hidden; the ovve never wears an armour trim. Everything else is sampled
+hidden.
+
+The top has a fourth instant slot: the armour trim. The client draws a trim as one more layer
+whose texture is picked by the trim pattern, and the item's trim is per-item data like the dye
+colour, so datagen bakes every (body cell, design) pair as its own pattern
+(`textures/trims/entity/humanoid/<cell>_<design>.png`, the art anchored at the cell and bent round
+the corners the way the shader does; `trim_pattern/*.json`, one material `ovvar:patch` whose
+palette maps the patch's colours to themselves) and `OvveTop.dress` sets the newest placement
+that does not fit in the dye colour as the trim, if it is on one of the eight chest and back
+cells (`Trims.fits`; vanilla draws the trim, so the squeeze to square pixels is done texel by
+texel by datagen, which costs about a column in sixteen on the body's faces but two in eight on
+a sleeve — hence body only). Trims are material-tinted, so the palette is the identity and the
+art comes out as it is; the tooltip's trim line is hidden with the dye line. Everything else is sampled
 exactly as vanilla. The overlay's body (16,16), right arm (40,16) and right leg (0,16) boxes are
 at the same coordinates in the armour layout, so datagen only copies boxes (with the skin's
 second layer painted on, and the left limbs from the skin's own left art).
@@ -170,7 +183,7 @@ inflated 1.0 where the leggings are 0.5, so the shader draws it on the leggings'
 A pushed pack is a loading screen, so nobody gets one they did not cause. On an armour stand
 nothing needs the pack (the patches are display entities). The pack is pushed to a player in
 exactly two cases: an ovve came into their inventory — off a stand, `/ovvar give`, `/ovvar
-patches` — with more patches on a half than their pack plus the dye channels can show, in which
+patches` — with more patches on a half than their pack plus the dye channels (and the trim) can show, in which
 case the pack is built at once and sent to them the moment it is ready (`Looks.claimIfNeeded`
 from `OvveItem.inventoryTick`); or they ran `/ovvar reload` (any player), which sends the
 current pack, after a build if one is pending. Everyone else keeps the pack they have and sees

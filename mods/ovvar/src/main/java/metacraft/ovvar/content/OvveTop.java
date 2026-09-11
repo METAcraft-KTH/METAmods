@@ -11,6 +11,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.equipment.trim.ArmorTrim;
+import metacraft.ovvar.pack.Trims;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.component.TooltipDisplay;
@@ -85,8 +89,9 @@ public final class OvveTop {
 
 	/**
 	 * What a vanilla client is told about a garment half: our equipment asset, no right-click
-	 * swap (that click is the bundle's), the half's instant patches as the dye colour (hidden from
-	 * the tooltip), and no way to dye it at a cauldron or crafting table.
+	 * swap (that click is the bundle's), the half's instant patches as the dye colour and, on the
+	 * top, one more as the armour trim (both hidden from the tooltip), and no way to dye it at a
+	 * cauldron or crafting table.
 	 */
 	static void dress(
 			ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad,
@@ -109,7 +114,14 @@ public final class OvveTop {
 		} else {
 			client.remove(DataComponents.DYED_COLOR);
 		}
-		client.remove(DataComponents.TRIM);   // never worn as a trim: the preview is a display entity on the stand
+		if (look.trim() != null) {
+			var pattern = lookup.lookupOrThrow(Registries.TRIM_PATTERN).getOrThrow(ResourceKey.create(Registries.TRIM_PATTERN, Trims.pattern(look.trim())));
+			var material = lookup.lookupOrThrow(Registries.TRIM_MATERIAL).getOrThrow(ResourceKey.create(Registries.TRIM_MATERIAL, Trims.material()));
+			client.set(DataComponents.TRIM, new ArmorTrim(material, pattern));
+			display = display.withHidden(DataComponents.TRIM, true);
+		} else {
+			client.remove(DataComponents.TRIM);
+		}
 		client.set(DataComponents.TOOLTIP_DISPLAY, display);
 	}
 }

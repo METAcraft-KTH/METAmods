@@ -2,6 +2,7 @@ package metacraft.ovvar.content;
 
 import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.pack.Combos;
+import metacraft.ovvar.pack.Trims;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
@@ -85,11 +86,12 @@ public final class Looks {
 	/**
 	 * One half as the client should see it: the asset combo the pack holds, the dye bits for the
 	 * rest, and — legs only, when the wearer's feet slot carries our second channel — the dye bits
-	 * of the boots pass, three more. {@code complete}: is every sewn patch drawn this way, or does
-	 * this viewer need a newer pack to see them all? (The preview of a patch being aimed at is a
-	 * display entity on the stand, never part of this.)
+	 * of the boots pass, three more; on the top, one more placement worn as the armour trim (or
+	 * null), chest and back cells only ({@link Trims#fits}). {@code complete}: is every sewn patch
+	 * drawn this way, or does this viewer need a newer pack to see them all? (The preview of a
+	 * patch being aimed at is a display entity on the stand, never part of this.)
 	 */
-	public record Look(Combos.Combo combo, int dye, int feetDye, boolean complete) {}
+	public record Look(Combos.Combo combo, int dye, int feetDye, Placement trim, boolean complete) {}
 
 	/** Does the wearer's feet slot carry the second channel for this ovve? (Set every tick by the wearer's sync.) */
 	public static boolean feetChannel(ItemStack stack) {
@@ -109,16 +111,22 @@ public final class Looks {
 		List<Placement> rest = new ArrayList<>(core.subList(baked, core.size()));
 		boolean feet = piece == Piece.BOTTOM && feetChannel(stack);
 		int room = INSTANT * (feet ? 2 : 1);
-		boolean urgent = rest.size() > room || !rest.stream().allMatch(Looks::instant);
+		boolean urgent = rest.size() > room + (piece == Piece.TOP ? 1 : 0) || rest.stream().filter(p -> !instant(p)).count() > (piece == Piece.TOP ? 1 : 0);
 		if (baked < core.size()) Combos.request(piece, Placement.combo(core), urgent);
 		List<Placement> shown = new ArrayList<>();
 		for (int i = rest.size() - 1; i >= 0 && shown.size() < room; i--) if (instant(rest.get(i))) shown.add(rest.get(i));
-		boolean complete = shown.size() == rest.size();
+		// What the dye cannot take, the top's trim can, one placement, any design: the newest left over.
+		Placement trim = null;
+		for (int i = rest.size() - 1; i >= 0 && trim == null; i--) {
+			Placement p = rest.get(i);
+			if (!shown.contains(p) && Trims.fits(p)) trim = p;
+		}
+		boolean complete = shown.size() + (trim == null ? 0 : 1) == rest.size();
 		// The first three ride in the garment's own dye colour, the next three in the boots'.
 		List<Placement> own = shown.subList(0, Math.min(INSTANT, shown.size()));
 		List<Placement> boots = shown.subList(own.size(), shown.size());
 		return new Look(Placement.combo(core.subList(0, baked)),
-				own.isEmpty() ? 0 : encode(rank(piece, own)), boots.isEmpty() ? 0 : encode(rank(piece, boots)), complete);
+				own.isEmpty() ? 0 : encode(rank(piece, own)), boots.isEmpty() ? 0 : encode(rank(piece, boots)), trim, complete);
 	}
 
 	/**
