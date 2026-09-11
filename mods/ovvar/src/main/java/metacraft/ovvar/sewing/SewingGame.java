@@ -73,183 +73,183 @@ import static metacraft.ovvar.sewing.SewingFont.overlayX;
  * {@code CustomClickMixin}; a token per game keeps a stale dialog from stitching a new one.
  */
 public final class SewingGame {
-    private SewingGame() {}
+	private SewingGame() {}
 
-    public static final Identifier PULL = Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "pull");
-    public static final Identifier CUT = Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "cut");
+	public static final Identifier PULL = Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "pull");
+	public static final Identifier CUT = Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "cut");
 
-    private record Game(UUID stand, Chapter chapter, Placement placement, Patches.Patch patch, int token, int stitches, int done) {
-        Game advanced() {
-            return new Game(stand, chapter, placement, patch, token, stitches, done + 1);
-        }
-    }
+	private record Game(UUID stand, Chapter chapter, Placement placement, Patches.Patch patch, int token, int stitches, int done) {
+		Game advanced() {
+			return new Game(stand, chapter, placement, patch, token, stitches, done + 1);
+		}
+	}
 
-    private static final Map<UUID, Game> GAMES = new HashMap<>();
+	private static final Map<UUID, Game> GAMES = new HashMap<>();
 
-    /** Opens the seam for a placement the player just aimed at. Replaces any game they had going. */
-    public static void start(ServerPlayer player, ArmorStand stand, Placement placement, Patches.Patch patch) {
-        Chapter chapter = stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem ovve ? ovve.chapter : Chapter.values()[0];
-        Game game = new Game(stand.getUUID(), chapter, placement, patch, ThreadLocalRandom.current().nextInt(), OvvarConfig.get().stitches(), 0);
-        GAMES.put(player.getUUID(), game);
-        show(player, game);
-    }
+	/** Opens the seam for a placement the player just aimed at. Replaces any game they had going. */
+	public static void start(ServerPlayer player, ArmorStand stand, Placement placement, Patches.Patch patch) {
+		Chapter chapter = stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem ovve ? ovve.chapter : Chapter.values()[0];
+		Game game = new Game(stand.getUUID(), chapter, placement, patch, ThreadLocalRandom.current().nextInt(), OvvarConfig.get().stitches(), 0);
+		GAMES.put(player.getUUID(), game);
+		show(player, game);
+	}
 
-    /** A custom click from a dialog: true if it was one of ours. */
-    public static boolean click(ServerPlayer player, Identifier id, Optional<Tag> payload) {
-        if (id.equals(CUT)) {
-            if (GAMES.remove(player.getUUID()) != null) {
-                player.sendOverlayMessage(Component.literal("Thread cut"));
-            }
-            return true;
-        }
-        if (!id.equals(PULL)) return false;
-        Game game = GAMES.get(player.getUUID());
-        if (game == null) return true;
-        if (!(payload.orElse(null) instanceof CompoundTag tag)
-                || tag.getIntOr("token", 0) != game.token || tag.getIntOr("stitch", -1) != game.done) {
-            Ovvar.LOGGER.debug("[ovvar] {} sent a stale pull {}", player.getName().getString(), payload);
-            return true;   // a double click or an old dialog: the current one stays as it is
-        }
-        ArmorStand stand = standFor(player, game);
-        if (stand == null) {
-            abandon(player, "The thread snapped: the stand is out of reach");
-            return true;
-        }
-        if (!(player.getMainHandItem().getItem() instanceof PatchItem held) || held.patch != game.patch) {
-            abandon(player, "The thread snapped: you put the " + game.patch.name() + " away");
-            return true;
-        }
-        Game next = game.advanced();
-        Vec3 where = StandAim.cell(stand, game.placement.spot()).centre();
-        ServerLevel level = (ServerLevel) player.level();
-        level.playSound(null, where.x, where.y, where.z, SoundEvents.ARMOR_EQUIP_LEATHER, SoundSource.PLAYERS, 0.6f,
-                0.9f + 0.6f * next.done / next.stitches);
-        level.sendParticles(ParticleTypes.CRIT, where.x, where.y, where.z, 2, 0.05, 0.05, 0.05, 0.0);
-        if (next.done >= next.stitches) {
-            GAMES.remove(player.getUUID());
-            player.connection.send(ClientboundClearDialogPacket.INSTANCE);
-            StandSewing.finish(player, stand, game.placement, held, where);
-        } else {
-            GAMES.put(player.getUUID(), next);
-            show(player, next);
-        }
-        return true;
-    }
+	/** A custom click from a dialog: true if it was one of ours. */
+	public static boolean click(ServerPlayer player, Identifier id, Optional<Tag> payload) {
+		if (id.equals(CUT)) {
+			if (GAMES.remove(player.getUUID()) != null) {
+				player.sendOverlayMessage(Component.literal("Thread cut"));
+			}
+			return true;
+		}
+		if (!id.equals(PULL)) return false;
+		Game game = GAMES.get(player.getUUID());
+		if (game == null) return true;
+		if (!(payload.orElse(null) instanceof CompoundTag tag)
+				|| tag.getIntOr("token", 0) != game.token || tag.getIntOr("stitch", -1) != game.done) {
+			Ovvar.LOGGER.debug("[ovvar] {} sent a stale pull {}", player.getName().getString(), payload);
+			return true;   // a double click or an old dialog: the current one stays as it is
+		}
+		ArmorStand stand = standFor(player, game);
+		if (stand == null) {
+			abandon(player, "The thread snapped: the stand is out of reach");
+			return true;
+		}
+		if (!(player.getMainHandItem().getItem() instanceof PatchItem held) || held.patch != game.patch) {
+			abandon(player, "The thread snapped: you put the " + game.patch.name() + " away");
+			return true;
+		}
+		Game next = game.advanced();
+		Vec3 where = StandAim.cell(stand, game.placement.spot()).centre();
+		ServerLevel level = (ServerLevel) player.level();
+		level.playSound(null, where.x, where.y, where.z, SoundEvents.ARMOR_EQUIP_LEATHER, SoundSource.PLAYERS, 0.6f,
+				0.9f + 0.6f * next.done / next.stitches);
+		level.sendParticles(ParticleTypes.CRIT, where.x, where.y, where.z, 2, 0.05, 0.05, 0.05, 0.0);
+		if (next.done >= next.stitches) {
+			GAMES.remove(player.getUUID());
+			player.connection.send(ClientboundClearDialogPacket.INSTANCE);
+			StandSewing.finish(player, stand, game.placement, held, where);
+		} else {
+			GAMES.put(player.getUUID(), next);
+			show(player, next);
+		}
+		return true;
+	}
 
-    /** The payload the next needle button carries, or null with no seam open (what the game tests click with). */
-    public static CompoundTag nextPull(ServerPlayer player) {
-        Game game = GAMES.get(player.getUUID());
-        return game == null ? null : pullPayload(game, game.done);
-    }
+	/** The payload the next needle button carries, or null with no seam open (what the game tests click with). */
+	public static CompoundTag nextPull(ServerPlayer player) {
+		Game game = GAMES.get(player.getUUID());
+		return game == null ? null : pullPayload(game, game.done);
+	}
 
-    private static CompoundTag pullPayload(Game game, int stitch) {
-        CompoundTag payload = new CompoundTag();
-        payload.putInt("token", game.token);
-        payload.putInt("stitch", stitch);
-        return payload;
-    }
+	private static CompoundTag pullPayload(Game game, int stitch) {
+		CompoundTag payload = new CompoundTag();
+		payload.putInt("token", game.token);
+		payload.putInt("stitch", stitch);
+		return payload;
+	}
 
-    private static ArmorStand standFor(ServerPlayer player, Game game) {
-        if (!(player.level() instanceof ServerLevel level) || !(level.getEntity(game.stand) instanceof ArmorStand stand)) return null;
-        if (!(stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem)) return null;
-        if (player.getEyePosition().distanceTo(stand.position()) > StandSewing.REACH + 1) return null;
-        return stand;
-    }
+	private static ArmorStand standFor(ServerPlayer player, Game game) {
+		if (!(player.level() instanceof ServerLevel level) || !(level.getEntity(game.stand) instanceof ArmorStand stand)) return null;
+		if (!(stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem)) return null;
+		if (player.getEyePosition().distanceTo(stand.position()) > StandSewing.REACH + 1) return null;
+		return stand;
+	}
 
-    private static void abandon(ServerPlayer player, String why) {
-        GAMES.remove(player.getUUID());
-        player.connection.send(ClientboundClearDialogPacket.INSTANCE);
-        player.sendOverlayMessage(Component.literal(why).withStyle(ChatFormatting.RED));
-    }
+	private static void abandon(ServerPlayer player, String why) {
+		GAMES.remove(player.getUUID());
+		player.connection.send(ClientboundClearDialogPacket.INSTANCE);
+		player.sendOverlayMessage(Component.literal(why).withStyle(ChatFormatting.RED));
+	}
 
-    // ------------------------------------------------------------ the dialog
+	// ------------------------------------------------------------ the dialog
 
-    private static void show(ServerPlayer player, Game game) {
-        player.openDialog(Holder.direct(dialog(game)));
-    }
+	private static void show(ServerPlayer player, Game game) {
+		player.openDialog(Holder.direct(dialog(game)));
+	}
 
-    /** The dialog as the player currently sees it, or null with no seam open (the game tests check it encodes). */
-    public static Dialog dialog(ServerPlayer player) {
-        Game game = GAMES.get(player.getUUID());
-        return game == null ? null : dialog(game);
-    }
+	/** The dialog as the player currently sees it, or null with no seam open (the game tests check it encodes). */
+	public static Dialog dialog(ServerPlayer player) {
+		Game game = GAMES.get(player.getUUID());
+		return game == null ? null : dialog(game);
+	}
 
-    /** The dialog for any state of any seam, for the game tests; the pull payload carries token 0. */
-    public static Dialog dialog(Chapter chapter, Patches.Patch patch, Spot spot, int stitches, int done) {
-        return dialog(new Game(new UUID(0, 0), chapter, new Placement(spot, patch), patch, 0, stitches, done));
-    }
+	/** The dialog for any state of any seam, for the game tests; the pull payload carries token 0. */
+	public static Dialog dialog(Chapter chapter, Patches.Patch patch, Spot spot, int stitches, int done) {
+		return dialog(new Game(new UUID(0, 0), chapter, new Placement(spot, patch), patch, 0, stitches, done));
+	}
 
-    private static Dialog dialog(Game game) {
-        List<Seam.Hole> holes = new Seam(game.patch, game.stitches).holes();
-        Seam.Hole next = game.done < holes.size() ? holes.get(game.done) : null;
-        List<ActionButton> cells = new ArrayList<>(COLS * ROWS);
-        for (int row = 0; row < ROWS; row++) {
-            for (int col = 0; col < COLS; col++) {
-                SewingFont.Label label = new SewingFont.Label(CELL).cell(SewingFont.cloth(game.chapter));
-                if (row == ROWS - 1 && col == COLS - 1) onTheCloth(label, game, holes, next);
-                if (next != null && next.col() == col && next.row() == row) {
-                    Component tooltip = Component.literal("Stitch " + (game.done + 1) + " of " + game.stitches);
-                    cells.add(new ActionButton(new CommonButtonData(label.component(), Optional.of(tooltip), CELL),
-                            Optional.of(new StaticAction(new ClickEvent.Custom(PULL, Optional.of(pullPayload(game, game.done)))))));
-                } else {
-                    cells.add(new ActionButton(new CommonButtonData(label.component(), CELL), Optional.empty()));
-                }
-            }
-        }
-        Component band = new SewingFont.Label(SewingFont.BAND).cell(SewingFont.BAND_GLYPH).component();
-        ActionButton cut = new ActionButton(new CommonButtonData(band, Optional.of(Component.literal("Cut the thread")), SewingFont.BAND),
-                Optional.of(new StaticAction(new ClickEvent.Custom(CUT, Optional.empty()))));
-        Component title = Component.literal("Sewing the " + game.patch.name() + " on the " + game.placement.spot().label());
-        List<DialogBody> body = List.of(new PlainMessage(Component.literal("Click the needle to pull it through."), 250));
-        return new MultiActionDialog(
-                new CommonDialogData(title, Optional.of(title), true, false, DialogAction.NONE, body, List.of()),
-                cells, Optional.of(cut), COLS);
-    }
+	private static Dialog dialog(Game game) {
+		List<Seam.Hole> holes = new Seam(game.patch, game.stitches).holes();
+		Seam.Hole next = game.done < holes.size() ? holes.get(game.done) : null;
+		List<ActionButton> cells = new ArrayList<>(COLS * ROWS);
+		for (int row = 0; row < ROWS; row++) {
+			for (int col = 0; col < COLS; col++) {
+				SewingFont.Label label = new SewingFont.Label(CELL).cell(SewingFont.cloth(game.chapter));
+				if (row == ROWS - 1 && col == COLS - 1) onTheCloth(label, game, holes, next);
+				if (next != null && next.col() == col && next.row() == row) {
+					Component tooltip = Component.literal("Stitch " + (game.done + 1) + " of " + game.stitches);
+					cells.add(new ActionButton(new CommonButtonData(label.component(), Optional.of(tooltip), CELL),
+							Optional.of(new StaticAction(new ClickEvent.Custom(PULL, Optional.of(pullPayload(game, game.done)))))));
+				} else {
+					cells.add(new ActionButton(new CommonButtonData(label.component(), CELL), Optional.empty()));
+				}
+			}
+		}
+		Component band = new SewingFont.Label(SewingFont.BAND).cell(SewingFont.BAND_GLYPH).component();
+		ActionButton cut = new ActionButton(new CommonButtonData(band, Optional.of(Component.literal("Cut the thread")), SewingFont.BAND),
+				Optional.of(new StaticAction(new ClickEvent.Custom(CUT, Optional.empty()))));
+		Component title = Component.literal("Sewing the " + game.patch.name() + " on the " + game.placement.spot().label());
+		List<DialogBody> body = List.of(new PlainMessage(Component.literal("Click the needle to pull it through."), 250));
+		return new MultiActionDialog(
+				new CommonDialogData(title, Optional.of(title), true, false, DialogAction.NONE, body, List.of()),
+				cells, Optional.of(cut), COLS);
+	}
 
-    /**
-     * Everything lying on the cloth, drawn by the last cell over the whole picture: the patch, the
-     * thread between the holes pulled so far (solid where it lies on top, dashed where it runs
-     * under the cloth), a knot where it came out and a hole where it went in, a pinhole for every
-     * hole to come, and the needle on the next.
-     */
-    private static void onTheCloth(SewingFont.Label label, Game game, List<Seam.Hole> holes, Seam.Hole next) {
-        label.at(SewingFont.patch(game.patch), overlayX(Seam.patchX(game.patch)), overlayTop(Seam.patchY(game.patch)));
-        Seam seam = new Seam(game.patch, game.stitches);
-        for (int i = 1; i <= Math.min(game.done, holes.size() - 1); i++) {
-            thread(label, seam, holes.get(i - 1), holes.get(i), i % 2 == 1);
-        }
-        for (int i = 0; i < holes.size(); i++) {
-            Seam.Hole hole = holes.get(i);
-            label.centred(i >= game.done ? SewingFont.HOLE : hole.outside() ? SewingFont.STITCH_OUT : SewingFont.STITCH_IN, hole.x(), hole.y());
-        }
-        if (next == null) return;
-        int across = NEEDLE_WIDTH / 2, tail = NEEDLE_LENGTH - 1;
-        switch (next.from()) {
-            case LEFT -> needle(label, SewingFont.NEEDLE_R, next.x() - tail, next.y() - across);
-            case RIGHT -> needle(label, SewingFont.NEEDLE_L, next.x(), next.y() - across);
-            case ABOVE -> needle(label, SewingFont.NEEDLE_D, next.x() - across, next.y() - tail);
-            case BELOW -> needle(label, SewingFont.NEEDLE_U, next.x() - across, next.y());
-        }
-    }
+	/**
+	 * Everything lying on the cloth, drawn by the last cell over the whole picture: the patch, the
+	 * thread between the holes pulled so far (solid where it lies on top, dashed where it runs
+	 * under the cloth), a knot where it came out and a hole where it went in, a pinhole for every
+	 * hole to come, and the needle on the next.
+	 */
+	private static void onTheCloth(SewingFont.Label label, Game game, List<Seam.Hole> holes, Seam.Hole next) {
+		label.at(SewingFont.patch(game.patch), overlayX(Seam.patchX(game.patch)), overlayTop(Seam.patchY(game.patch)));
+		Seam seam = new Seam(game.patch, game.stitches);
+		for (int i = 1; i <= Math.min(game.done, holes.size() - 1); i++) {
+			thread(label, seam, holes.get(i - 1), holes.get(i), i % 2 == 1);
+		}
+		for (int i = 0; i < holes.size(); i++) {
+			Seam.Hole hole = holes.get(i);
+			label.centred(i >= game.done ? SewingFont.HOLE : hole.outside() ? SewingFont.STITCH_OUT : SewingFont.STITCH_IN, hole.x(), hole.y());
+		}
+		if (next == null) return;
+		int across = NEEDLE_WIDTH / 2, tail = NEEDLE_LENGTH - 1;
+		switch (next.from()) {
+			case LEFT -> needle(label, SewingFont.NEEDLE_R, next.x() - tail, next.y() - across);
+			case RIGHT -> needle(label, SewingFont.NEEDLE_L, next.x(), next.y() - across);
+			case ABOVE -> needle(label, SewingFont.NEEDLE_D, next.x() - across, next.y() - tail);
+			case BELOW -> needle(label, SewingFont.NEEDLE_U, next.x() - across, next.y());
+		}
+	}
 
-    /**
-     * The thread from one hole to the next, a dot every other px: straight over the edge from the
-     * cloth into the patch ({@code overTheEdge}), else along the edge to the next stitch — on top
-     * in a zigzag seam, under the cloth (drawn dashed) in a whip-stitched one.
-     */
-    private static void thread(SewingFont.Label label, Seam seam, Seam.Hole from, Seam.Hole to, boolean overTheEdge) {
-        List<int[]> points = new ArrayList<>();
-        if (overTheEdge) Seam.line(points, from.x(), from.y(), to.x(), to.y(), 2);
-        else points = seam.alongTheEdge(from, to, 2);
-        boolean dashed = !overTheEdge && Seam.STYLE != Seam.Style.ZIGZAG;
-        for (int i = 1; i < points.size() - 1; i++) {
-            if (dashed && (i & 2) != 0) continue;
-            label.centred(SewingFont.THREAD, points.get(i)[0], points.get(i)[1]);
-        }
-    }
+	/**
+	 * The thread from one hole to the next, a dot every other px: straight over the edge from the
+	 * cloth into the patch ({@code overTheEdge}), else along the edge to the next stitch — on top
+	 * in a zigzag seam, under the cloth (drawn dashed) in a whip-stitched one.
+	 */
+	private static void thread(SewingFont.Label label, Seam seam, Seam.Hole from, Seam.Hole to, boolean overTheEdge) {
+		List<int[]> points = new ArrayList<>();
+		if (overTheEdge) Seam.line(points, from.x(), from.y(), to.x(), to.y(), 2);
+		else points = seam.alongTheEdge(from, to, 2);
+		boolean dashed = !overTheEdge && Seam.STYLE != Seam.Style.ZIGZAG;
+		for (int i = 1; i < points.size() - 1; i++) {
+			if (dashed && (i & 2) != 0) continue;
+			label.centred(SewingFont.THREAD, points.get(i)[0], points.get(i)[1]);
+		}
+	}
 
-    /** The needle with its top-left at (x, y) on the picture, kept on the cloth. */
-    private static void needle(SewingFont.Label label, SewingFont.Glyph glyph, int x, int y) {
-        label.at(glyph, overlayX(Mth.clamp(x, 0, PICTURE_WIDTH - glyph.width())), overlayTop(Mth.clamp(y, 0, PICTURE_HEIGHT - glyph.height())));
-    }
+	/** The needle with its top-left at (x, y) on the picture, kept on the cloth. */
+	private static void needle(SewingFont.Label label, SewingFont.Glyph glyph, int x, int y) {
+		label.at(glyph, overlayX(Mth.clamp(x, 0, PICTURE_WIDTH - glyph.width())), overlayTop(Mth.clamp(y, 0, PICTURE_HEIGHT - glyph.height())));
+	}
 }

@@ -17,25 +17,25 @@ import net.minecraft.resources.Identifier;
  * art to square pixels the way the shader does (Spot.squeeze), only datagen can, texel by texel.
  */
 public final class Trims {
-    private Trims() {}
+	private Trims() {}
 
-    public static final String MATERIAL = "patch", GHOST = "ghost";
-    public static final int ALPHA_RIGHT = 254, ALPHA_LEFT = 253;
+	public static final String MATERIAL = "patch", GHOST = "ghost";
+	public static final int ALPHA_RIGHT = 254, ALPHA_LEFT = 253;
 
-    /** Can this placement be worn as a trim? (Seat patches span two sided cells; a trim is one texture.) */
-    public static boolean fits(Placement p) {
-        return !p.patch().seat() && p.spot() != Spot.SEAT;
-    }
+	/** Can this placement be worn as a trim? (Seat patches span two sided cells; a trim is one texture.) */
+	public static boolean fits(Placement p) {
+		return !p.patch().seat() && p.spot() != Spot.SEAT;
+	}
 
-    public static String patternName(Placement p) {
-        return p.spot().id() + "_" + p.patch().id();
-    }
+	public static String patternName(Placement p) {
+		return p.spot().id() + "_" + p.patch().id();
+	}
 
-    public static Identifier pattern(Placement p) {
-        return Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, patternName(p));
-    }
+	public static Identifier pattern(Placement p) {
+		return Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, patternName(p));
+	}
 
-    public static Identifier material(boolean ghost) {
-        return Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, ghost ? GHOST : MATERIAL);
-    }
+	public static Identifier material(boolean ghost) {
+		return Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, ghost ? GHOST : MATERIAL);
+	}
 }

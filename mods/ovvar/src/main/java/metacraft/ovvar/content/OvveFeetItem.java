@@ -23,39 +23,39 @@ import java.util.List;
  * is never in an inventory; should one ever get there it deletes itself.
  */
 public final class OvveFeetItem extends Item implements PolymerItem {
-    public final Chapter chapter;
-    private final Identifier id;
+	public final Chapter chapter;
+	private final Identifier id;
 
-    public OvveFeetItem(Properties properties, Chapter chapter, Identifier id) {
-        super(properties);
-        this.chapter = chapter;
-        this.id = id;
-    }
+	public OvveFeetItem(Properties properties, Chapter chapter, Identifier id) {
+		super(properties);
+		this.chapter = chapter;
+		this.id = id;
+	}
 
-    @Override
-    public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
-        stack.setCount(0);
-    }
+	@Override
+	public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
+		stack.setCount(0);
+	}
 
-    @Override
-    public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
-        tooltip.add(Component.literal("The cuffs of a " + chapter.garmentWord()).withStyle(ChatFormatting.GRAY));
-    }
+	@Override
+	public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
+		tooltip.add(Component.literal("The cuffs of a " + chapter.garmentWord()).withStyle(ChatFormatting.GRAY));
+	}
 
-    @Override
-    public Item getPolymerItem(ItemStack stack, PacketContext context) {
-        return Items.LEATHER_BOOTS;
-    }
+	@Override
+	public Item getPolymerItem(ItemStack stack, PacketContext context) {
+		return Items.LEATHER_BOOTS;
+	}
 
-    @Override
-    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
-        return id;
-    }
+	@Override
+	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+		return id;
+	}
 
-    @Override
-    public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
-        ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
-        OvveFeet.dress(out, stack, null, context);
-        return out;
-    }
+	@Override
+	public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
+		ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
+		OvveFeet.dress(out, stack, null, context);
+		return out;
+	}
 }

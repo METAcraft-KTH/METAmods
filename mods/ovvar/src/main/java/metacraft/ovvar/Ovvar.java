@@ -20,24 +20,24 @@ import org.slf4j.LoggerFactory;
  * is a leather piece wearing the wrong skin, which is exactly the kind of quiet wrongness we refuse.
  */
 public class Ovvar implements ModInitializer {
-    public static final String MOD_ID = "ovvar";
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+	public static final String MOD_ID = "ovvar";
+	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    @Override
-    public void onInitialize() {
-        OvvarConfig.get();
-        ModContent.register();
-        SewRecipe.init();
-        OvveTop.init();
-        OvveFeet.init();
-        StandSewing.init();
-        StandDisplays.init();
-        Combos.init();
-        ModCommands.init();
+	@Override
+	public void onInitialize() {
+		OvvarConfig.get();
+		ModContent.register();
+		SewRecipe.init();
+		OvveTop.init();
+		OvveFeet.init();
+		StandSewing.init();
+		StandDisplays.init();
+		Combos.init();
+		ModCommands.init();
 
-        PolymerResourcePackUtils.addModAssets(MOD_ID);
-        PolymerResourcePackUtils.markAsRequired();
+		PolymerResourcePackUtils.addModAssets(MOD_ID);
+		PolymerResourcePackUtils.markAsRequired();
 
-        LOGGER.info("[{}] {} chapter(s), {} patch(es)", MOD_ID, Chapter.values().length, Patches.all().size());
-    }
+		LOGGER.info("[{}] {} chapter(s), {} patch(es)", MOD_ID, Chapter.values().length, Patches.all().size());
+	}
 }

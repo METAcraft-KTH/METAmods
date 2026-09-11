@@ -10,39 +10,39 @@ addSGUIDependency()
 // Pockets: the ovve is a bundle whose capacity metacraft-bundles scales (metacraft:bundle_size_factor).
 addProjectDependency(":mods:metacraft-bundles")
 dependencies {
-    implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
-    implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
-    implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+	implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 }
 
 // The shaderpack patcher: a double-clickable jar (Java 11+, no dependencies) built from
 // tools/shaderpatcher and shipped inside the resource pack at assets/ovvar/shaderpatcher/.
 sourceSets {
-    patcher {
-        java.srcDir 'tools/shaderpatcher/src'
-    }
+	patcher {
+		java.srcDir 'tools/shaderpatcher/src'
+	}
 }
 tasks.withType(JavaCompile).configureEach {
-    if (it.name == 'compilePatcherJava') it.options.release = 11
+	if (it.name == 'compilePatcherJava') it.options.release = 11
 }
 tasks.register('patcherJar', Jar) {
-    from sourceSets.patcher.output
-    from('tools/shaderpatcher/README.txt')
-    // The very shader code the vanilla override uses, so patched packs and vanilla never drift apart.
-    from('src/main/resources/assets/ovvar/shaders/include/ovvar.glsl')
-    archiveFileName = 'OvvarShaderPatcher.jar'
-    manifest { attributes 'Main-Class': 'metacraft.ovvar.shaderpatcher.Patcher' }
+	from sourceSets.patcher.output
+	from('tools/shaderpatcher/README.txt')
+	// The very shader code the vanilla override uses, so patched packs and vanilla never drift apart.
+	from('src/main/resources/assets/ovvar/shaders/include/ovvar.glsl')
+	archiveFileName = 'OvvarShaderPatcher.jar'
+	manifest { attributes 'Main-Class': 'metacraft.ovvar.shaderpatcher.Patcher' }
 }
 
 processResources {
-    // The jar and its README ride along in the mod's resources (an implicit dependency on patcherJar).
-    from(tasks.named('patcherJar')) { into 'assets/ovvar/shaderpatcher' }
-    from('tools/shaderpatcher/README.txt') { into 'assets/ovvar/shaderpatcher' }
-    doFirst {
-        def gen = file('src/main/generated/assets/ovvar/equipment')
-        def generating = gradle.startParameter.taskNames.any { it.endsWith('runDatagen') }
-        if (!generating && (!gen.isDirectory() || gen.list().length == 0)) {
-            throw new GradleException("Ovvar: generated assets missing — run './gradlew runDatagen' first.")
-        }
-    }
+	// The jar and its README ride along in the mod's resources (an implicit dependency on patcherJar).
+	from(tasks.named('patcherJar')) { into 'assets/ovvar/shaderpatcher' }
+	from('tools/shaderpatcher/README.txt') { into 'assets/ovvar/shaderpatcher' }
+	doFirst {
+		def gen = file('src/main/generated/assets/ovvar/equipment')
+		def generating = gradle.startParameter.taskNames.any { it.endsWith('runDatagen') }
+		if (!generating && (!gen.isDirectory() || gen.list().length == 0)) {
+			throw new GradleException("Ovvar: generated assets missing — run './gradlew runDatagen' first.")
+		}
+	}
 }

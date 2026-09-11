@@ -17,12 +17,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(ServerCommonPacketListenerImpl.class)
 public abstract class CustomClickMixin {
-    @Inject(method = "handleCustomClickAction",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;handleCustomClickAction(Lnet/minecraft/resources/Identifier;Ljava/util/Optional;)V"),
-            cancellable = true)
-    private void ovvar$customClick(ServerboundCustomClickActionPacket packet, CallbackInfo ci) {
-        if ((Object) this instanceof ServerGamePacketListenerImpl game && SewingGame.click(game.player, packet.id(), packet.payload())) {
-            ci.cancel();
-        }
-    }
+	@Inject(method = "handleCustomClickAction",
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;handleCustomClickAction(Lnet/minecraft/resources/Identifier;Ljava/util/Optional;)V"),
+			cancellable = true)
+	private void ovvar$customClick(ServerboundCustomClickActionPacket packet, CallbackInfo ci) {
+		if ((Object) this instanceof ServerGamePacketListenerImpl game && SewingGame.click(game.player, packet.id(), packet.payload())) {
+			ci.cancel();
+		}
+	}
 }

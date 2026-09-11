@@ -55,36 +55,36 @@ uniform sampler2D Sampler0;
 #moj_import <ovvar:ovvar_vertex.glsl>
 
 void main() {
-    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
-    ovvar_color = Color;
-    ovvar_pos = Position;
-    ovvar_normal = Normal;
-    vec4 ovvar_lit = mix(Color, vec4(1.0), ovvar_patch_layer());
+	gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+	ovvar_color = Color;
+	ovvar_pos = Position;
+	ovvar_normal = Normal;
+	vec4 ovvar_lit = mix(Color, vec4(1.0), ovvar_patch_layer());
 
-    sphericalVertexDistance = fog_spherical_distance(Position);
-    cylindricalVertexDistance = fog_cylindrical_distance(Position);
+	sphericalVertexDistance = fog_spherical_distance(Position);
+	cylindricalVertexDistance = fog_cylindrical_distance(Position);
 
 #ifdef PER_FACE_LIGHTING
-    vec2 light = minecraft_compute_light(Light0_Direction, Light1_Direction, Normal);
-    vertexPerFaceColorBack = minecraft_mix_light_separate(-light, ovvar_lit);
-    vertexPerFaceColorFront = minecraft_mix_light_separate(light, ovvar_lit);
+	vec2 light = minecraft_compute_light(Light0_Direction, Light1_Direction, Normal);
+	vertexPerFaceColorBack = minecraft_mix_light_separate(-light, ovvar_lit);
+	vertexPerFaceColorFront = minecraft_mix_light_separate(light, ovvar_lit);
 #elif defined(NO_CARDINAL_LIGHTING)
-    vertexColor = ovvar_lit;
+	vertexColor = ovvar_lit;
 #else
-    vertexColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, ovvar_lit);
+	vertexColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, ovvar_lit);
 #endif
 
 #ifndef EMISSIVE
-    lightMapColor = sample_lightmap(Sampler2, UV2);
+	lightMapColor = sample_lightmap(Sampler2, UV2);
 #endif
 
 #ifndef NO_OVERLAY
-    overlayColor = texelFetch(Sampler1, UV1, 0);
+	overlayColor = texelFetch(Sampler1, UV1, 0);
 #endif
 
-    texCoord0 = UV0;
+	texCoord0 = UV0;
 
 #ifdef APPLY_TEXTURE_MATRIX
-    texCoord0 = (TextureMat * vec4(UV0, 0.0, 1.0)).xy;
+	texCoord0 = (TextureMat * vec4(UV0, 0.0, 1.0)).xy;
 #endif
 }

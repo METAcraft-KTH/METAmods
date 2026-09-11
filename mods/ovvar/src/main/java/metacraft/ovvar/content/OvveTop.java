@@ -30,98 +30,98 @@ import java.util.Map;
  * plus the edges the tick can't see: the stack on the cursor, a drop, and death.
  */
 public final class OvveTop {
-    private OvveTop() {}
+	private OvveTop() {}
 
-    public static void init() {
-        // A player who swaps a chestplate into the slot is holding the top on the cursor, where nothing ticks.
-        ServerTickEvents.END_SERVER_TICK.register(server -> {
-            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                if (player.containerMenu.getCarried().getItem() instanceof OvveTopItem) {
-                    player.containerMenu.setCarried(ItemStack.EMPTY);
-                    player.containerMenu.broadcastChanges();
-                }
-            }
-        });
-        // Dropped from the cursor it would become an item on the ground; it never gets that far.
-        ServerEntityEvents.ALLOW_LOAD.register((entity, level, reason, loadedFromDisk) ->
-                !(entity instanceof ItemEntity item && item.getItem().getItem() instanceof OvveTopItem));
-        // Clear it before the inventory is dropped; with keepInventory it stays and the tick re-checks it.
-        ServerPlayerEvents.ALLOW_DEATH.register((player, source, amount) -> {
-            if (player.getItemBySlot(EquipmentSlot.CHEST).getItem() instanceof OvveTopItem) {
-                player.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
-            }
-            return true;
-        });
-    }
+	public static void init() {
+		// A player who swaps a chestplate into the slot is holding the top on the cursor, where nothing ticks.
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+				if (player.containerMenu.getCarried().getItem() instanceof OvveTopItem) {
+					player.containerMenu.setCarried(ItemStack.EMPTY);
+					player.containerMenu.broadcastChanges();
+				}
+			}
+		});
+		// Dropped from the cursor it would become an item on the ground; it never gets that far.
+		ServerEntityEvents.ALLOW_LOAD.register((entity, level, reason, loadedFromDisk) ->
+				!(entity instanceof ItemEntity item && item.getItem().getItem() instanceof OvveTopItem));
+		// Clear it before the inventory is dropped; with keepInventory it stays and the tick re-checks it.
+		ServerPlayerEvents.ALLOW_DEATH.register((player, source, amount) -> {
+			if (player.getItemBySlot(EquipmentSlot.CHEST).getItem() instanceof OvveTopItem) {
+				player.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+			}
+			return true;
+		});
+	}
 
-    static boolean wantsTop(ItemStack legs) {
-        return legs.getItem() instanceof OvveItem && OvveItem.topUp(legs);
-    }
+	static boolean wantsTop(ItemStack legs) {
+		return legs.getItem() instanceof OvveItem && OvveItem.topUp(legs);
+	}
 
-    /** Called every tick for an ovve worn in the legs slot. */
-    static void sync(LivingEntity wearer, ItemStack ovve) {
-        ItemStack chest = wearer.getItemBySlot(EquipmentSlot.CHEST);
-        if (!OvveItem.topUp(ovve)) {
-            if (chest.getItem() instanceof OvveTopItem) wearer.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
-            return;
-        }
-        ItemStack want = topFor(ovve);
-        if (chest.isEmpty()) {
-            wearer.setItemSlot(EquipmentSlot.CHEST, want);
-        } else if (chest.getItem() instanceof OvveTopItem) {
-            if (!ItemStack.matches(chest, want)) wearer.setItemSlot(EquipmentSlot.CHEST, want);
-        }
-        // Anything else worn there is real armour over the ovve: the top stays up underneath, hidden the
-        // way a chestplate hides it (the armour model covers the same body and arms), and comes back
-        // when the armour comes off.
-    }
+	/** Called every tick for an ovve worn in the legs slot. */
+	static void sync(LivingEntity wearer, ItemStack ovve) {
+		ItemStack chest = wearer.getItemBySlot(EquipmentSlot.CHEST);
+		if (!OvveItem.topUp(ovve)) {
+			if (chest.getItem() instanceof OvveTopItem) wearer.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+			return;
+		}
+		ItemStack want = topFor(ovve);
+		if (chest.isEmpty()) {
+			wearer.setItemSlot(EquipmentSlot.CHEST, want);
+		} else if (chest.getItem() instanceof OvveTopItem) {
+			if (!ItemStack.matches(chest, want)) wearer.setItemSlot(EquipmentSlot.CHEST, want);
+		}
+		// Anything else worn there is real armour over the ovve: the top stays up underneath, hidden the
+		// way a chestplate hides it (the armour model covers the same body and arms), and comes back
+		// when the armour comes off.
+	}
 
-    private static ItemStack topFor(ItemStack ovve) {
-        OvveItem item = (OvveItem) ovve.getItem();
-        ItemStack top = new ItemStack(ModContent.top(item.chapter));
-        SpotPlacements patches = ovve.get(ModComponents.PATCHES);
-        if (patches != null) top.set(ModComponents.PATCHES, patches);
-        Placement preview = ovve.get(ModComponents.PREVIEW);
-        if (preview != null) top.set(ModComponents.PREVIEW, preview);
-        if (Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) top.set(ModComponents.ON_STAND, true);   // its patches are display entities too
-        return top;
-    }
+	private static ItemStack topFor(ItemStack ovve) {
+		OvveItem item = (OvveItem) ovve.getItem();
+		ItemStack top = new ItemStack(ModContent.top(item.chapter));
+		SpotPlacements patches = ovve.get(ModComponents.PATCHES);
+		if (patches != null) top.set(ModComponents.PATCHES, patches);
+		Placement preview = ovve.get(ModComponents.PREVIEW);
+		if (preview != null) top.set(ModComponents.PREVIEW, preview);
+		if (Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) top.set(ModComponents.ON_STAND, true);   // its patches are display entities too
+		return top;
+	}
 
-    /**
-     * What a vanilla client is told about a garment half: our equipment asset, no right-click
-     * swap (that click is the bundle's), the half's instant patches as the dye colour and its first
-     * patch as the armour trim (both hidden from the tooltip), and no way to dye it at a cauldron
-     * or crafting table.
-     */
-    static void dress(
-            ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad,
-            PacketContext context, HolderLookup.Provider lookup
-    ) {
-        if (base == null) throw new IllegalStateException("garment lost its equippable component");
-        GameProfile profile = context == null ? null : context.get(PacketContext.GAME_PROFILE);
-        Looks.Look look = Looks.look(garment, piece, profile == null ? null : profile.id());
-        client.set(DataComponents.EQUIPPABLE, Equippable.builder(base.slot())
-                .setEquipSound(base.equipSound())
-                .setAsset(Looks.asset(chapter, piece, nercabbad, look.combo().key()))
-                .setDamageOnHurt(base.damageOnHurt())
-                .setSwappable(false)
-                .setDispensable(false)
-                .build());
-        TooltipDisplay display = client.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
-        if (look.dye() != 0) {
-            client.set(DataComponents.DYED_COLOR, new DyedItemColor(look.dye()));
-            display = display.withHidden(DataComponents.DYED_COLOR, true);
-        } else {
-            client.remove(DataComponents.DYED_COLOR);
-        }
-        if (look.trim() != null) {
-            var pattern = lookup.lookupOrThrow(Registries.TRIM_PATTERN).getOrThrow(ResourceKey.create(Registries.TRIM_PATTERN, Trims.pattern(look.trim())));
-            var material = lookup.lookupOrThrow(Registries.TRIM_MATERIAL).getOrThrow(ResourceKey.create(Registries.TRIM_MATERIAL, Trims.material(look.ghost())));
-            client.set(DataComponents.TRIM, new ArmorTrim(material, pattern));
-            display = display.withHidden(DataComponents.TRIM, true);
-        } else {
-            client.remove(DataComponents.TRIM);
-        }
-        client.set(DataComponents.TOOLTIP_DISPLAY, display);
-    }
+	/**
+	 * What a vanilla client is told about a garment half: our equipment asset, no right-click
+	 * swap (that click is the bundle's), the half's instant patches as the dye colour and its first
+	 * patch as the armour trim (both hidden from the tooltip), and no way to dye it at a cauldron
+	 * or crafting table.
+	 */
+	static void dress(
+			ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad,
+			PacketContext context, HolderLookup.Provider lookup
+	) {
+		if (base == null) throw new IllegalStateException("garment lost its equippable component");
+		GameProfile profile = context == null ? null : context.get(PacketContext.GAME_PROFILE);
+		Looks.Look look = Looks.look(garment, piece, profile == null ? null : profile.id());
+		client.set(DataComponents.EQUIPPABLE, Equippable.builder(base.slot())
+				.setEquipSound(base.equipSound())
+				.setAsset(Looks.asset(chapter, piece, nercabbad, look.combo().key()))
+				.setDamageOnHurt(base.damageOnHurt())
+				.setSwappable(false)
+				.setDispensable(false)
+				.build());
+		TooltipDisplay display = client.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
+		if (look.dye() != 0) {
+			client.set(DataComponents.DYED_COLOR, new DyedItemColor(look.dye()));
+			display = display.withHidden(DataComponents.DYED_COLOR, true);
+		} else {
+			client.remove(DataComponents.DYED_COLOR);
+		}
+		if (look.trim() != null) {
+			var pattern = lookup.lookupOrThrow(Registries.TRIM_PATTERN).getOrThrow(ResourceKey.create(Registries.TRIM_PATTERN, Trims.pattern(look.trim())));
+			var material = lookup.lookupOrThrow(Registries.TRIM_MATERIAL).getOrThrow(ResourceKey.create(Registries.TRIM_MATERIAL, Trims.material(look.ghost())));
+			client.set(DataComponents.TRIM, new ArmorTrim(material, pattern));
+			display = display.withHidden(DataComponents.TRIM, true);
+		} else {
+			client.remove(DataComponents.TRIM);
+		}
+		client.set(DataComponents.TOOLTIP_DISPLAY, display);
+	}
 }

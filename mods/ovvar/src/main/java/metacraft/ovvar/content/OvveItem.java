@@ -36,90 +36,90 @@ import java.util.List;
  * bundle with our equipment asset, chosen per stack.
  */
 public final class OvveItem extends BundleItem implements PolymerItem {
-    public final Chapter chapter;
-    private final Identifier id;
+	public final Chapter chapter;
+	private final Identifier id;
 
-    public OvveItem(Properties properties, Chapter chapter, Identifier id) {
-        super(properties);
-        this.chapter = chapter;
-        this.id = id;
-    }
+	public OvveItem(Properties properties, Chapter chapter, Identifier id) {
+		super(properties);
+		this.chapter = chapter;
+		this.id = id;
+	}
 
-    public static boolean topUp(ItemStack ovve) {
-        return Boolean.TRUE.equals(ovve.get(ModComponents.TOP_UP));
-    }
+	public static boolean topUp(ItemStack ovve) {
+		return Boolean.TRUE.equals(ovve.get(ModComponents.TOP_UP));
+	}
 
-    public static void setTopUp(ItemStack ovve, boolean up) {
-        if (up) ovve.set(ModComponents.TOP_UP, true);
-        else ovve.remove(ModComponents.TOP_UP);
-    }
+	public static void setTopUp(ItemStack ovve, boolean up) {
+		if (up) ovve.set(ModComponents.TOP_UP, true);
+		else ovve.remove(ModComponents.TOP_UP);
+	}
 
-    @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        if (!player.isShiftKeyDown()) return super.use(level, player, hand);
-        ItemStack stack = player.getItemInHand(hand);
-        if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResult.SUCCESS;
-        if (!chapter.rollable) {
-            serverPlayer.sendOverlayMessage(Component.literal("A " + chapter.garmentWord() + " has nothing to roll down"));
-            return InteractionResult.FAIL;
-        }
-        boolean up = !topUp(stack);
-        setTopUp(stack, up);
-        serverPlayer.sendOverlayMessage(Component.literal(up ? "Top rolled up" : "Top rolled down"));
-        return InteractionResult.SUCCESS;
-    }
+	@Override
+	public InteractionResult use(Level level, Player player, InteractionHand hand) {
+		if (!player.isShiftKeyDown()) return super.use(level, player, hand);
+		ItemStack stack = player.getItemInHand(hand);
+		if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResult.SUCCESS;
+		if (!chapter.rollable) {
+			serverPlayer.sendOverlayMessage(Component.literal("A " + chapter.garmentWord() + " has nothing to roll down"));
+			return InteractionResult.FAIL;
+		}
+		boolean up = !topUp(stack);
+		setTopUp(stack, up);
+		serverPlayer.sendOverlayMessage(Component.literal(up ? "Top rolled up" : "Top rolled down"));
+		return InteractionResult.SUCCESS;
+	}
 
-    // ---- wearing
+	// ---- wearing
 
-    /** Worn in the legs slot (player or armour stand): keep the companion top in step every tick. */
-    @Override
-    public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
-	    if (entity instanceof ServerPlayer player) {
-		    // Off a stand and into a player's hands: the armour draws the patches again, and if
-		    // this player's pack cannot show them all, this is the one reload a sewing session ends in.
-		    if (stack.has(ModComponents.ON_STAND)) stack.remove(ModComponents.ON_STAND);
-		    Looks.claimIfNeeded(player, stack);
-	    }
+	/** Worn in the legs slot (player or armour stand): keep the companion top in step every tick. */
+	@Override
+	public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
+		if (entity instanceof ServerPlayer player) {
+			// Off a stand and into a player's hands: the armour draws the patches again, and if
+			// this player's pack cannot show them all, this is the one reload a sewing session ends in.
+			if (stack.has(ModComponents.ON_STAND)) stack.remove(ModComponents.ON_STAND);
+			Looks.claimIfNeeded(player, stack);
+		}
 		if (slot == EquipmentSlot.LEGS && entity instanceof LivingEntity wearer) {
-            OvveTop.sync(wearer, stack);
-            OvveFeet.sync(wearer, stack);
-        }
-    }
+			OvveTop.sync(wearer, stack);
+			OvveFeet.sync(wearer, stack);
+		}
+	}
 
-    @Override
-    public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
-        boolean up = topUp(stack);
-        tooltip.add(Component.literal(up ? "Zipped up" : "Zipped down").withStyle(ChatFormatting.GRAY));
-        if (chapter.rollable) {
-            tooltip.add(Component.literal("Sneak + right-click: " + (up ? "zip down" : "zip up")).withStyle(ChatFormatting.DARK_GRAY));
-        }
-        tooltip.add(Component.literal("Right-click: empty the pockets").withStyle(ChatFormatting.DARK_GRAY));
-        var sewn = Looks.sewn(stack);
-        if (sewn.isEmpty()) {
-            tooltip.add(Component.literal("No patches yet").withStyle(ChatFormatting.GRAY));
-        } else {
-            tooltip.add(Component.literal("Patches:").withStyle(ChatFormatting.GRAY));
-            for (Placement p : SpotPlacements.asPlacementList(sewn)) {
-                tooltip.add(Component.literal("  " + p.patch().name() + " — " + p.spot().label()).withStyle(ChatFormatting.GRAY));
-            }
-        }
-        tooltip.add(Component.literal("Sew: put it on an armour stand, aim a patch at the spot, right-click").withStyle(ChatFormatting.DARK_GRAY));
-    }
+	@Override
+	public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
+		boolean up = topUp(stack);
+		tooltip.add(Component.literal(up ? "Zipped up" : "Zipped down").withStyle(ChatFormatting.GRAY));
+		if (chapter.rollable) {
+			tooltip.add(Component.literal("Sneak + right-click: " + (up ? "zip down" : "zip up")).withStyle(ChatFormatting.DARK_GRAY));
+		}
+		tooltip.add(Component.literal("Right-click: empty the pockets").withStyle(ChatFormatting.DARK_GRAY));
+		var sewn = Looks.sewn(stack);
+		if (sewn.isEmpty()) {
+			tooltip.add(Component.literal("No patches yet").withStyle(ChatFormatting.GRAY));
+		} else {
+			tooltip.add(Component.literal("Patches:").withStyle(ChatFormatting.GRAY));
+			for (Placement p : SpotPlacements.asPlacementList(sewn)) {
+				tooltip.add(Component.literal("  " + p.patch().name() + " — " + p.spot().label()).withStyle(ChatFormatting.GRAY));
+			}
+		}
+		tooltip.add(Component.literal("Sew: put it on an armour stand, aim a patch at the spot, right-click").withStyle(ChatFormatting.DARK_GRAY));
+	}
 
-    @Override
-    public Item getPolymerItem(ItemStack stack, PacketContext context) {
-        return Items.BUNDLE;
-    }
+	@Override
+	public Item getPolymerItem(ItemStack stack, PacketContext context) {
+		return Items.BUNDLE;
+	}
 
-    @Override
-    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
-        return id;
-    }
+	@Override
+	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+		return id;
+	}
 
-    @Override
-    public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
-        ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
-        OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, chapter, Piece.BOTTOM, !topUp(stack), context, lookup);
-        return out;
-    }
+	@Override
+	public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
+		ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
+		OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, chapter, Piece.BOTTOM, !topUp(stack), context, lookup);
+		return out;
+	}
 }

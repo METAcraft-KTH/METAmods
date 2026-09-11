@@ -25,42 +25,42 @@ import java.util.List;
  * Real chest armour goes on over it as usual (right-click or swap in the inventory; the top yields).
  */
 public final class OvveTopItem extends Item implements PolymerItem {
-    public final Chapter chapter;
-    private final Identifier id;
+	public final Chapter chapter;
+	private final Identifier id;
 
-    public OvveTopItem(Properties properties, Chapter chapter, Identifier id) {
-        super(properties);
-        this.chapter = chapter;
-        this.id = id;
-    }
+	public OvveTopItem(Properties properties, Chapter chapter, Identifier id) {
+		super(properties);
+		this.chapter = chapter;
+		this.id = id;
+	}
 
-    @Override
-    public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
-        if (slot != EquipmentSlot.CHEST || !(entity instanceof LivingEntity wearer) || !OvveTop.wantsTop(wearer.getItemBySlot(EquipmentSlot.LEGS))) {
-            stack.setCount(0);
-        }
-    }
+	@Override
+	public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
+		if (slot != EquipmentSlot.CHEST || !(entity instanceof LivingEntity wearer) || !OvveTop.wantsTop(wearer.getItemBySlot(EquipmentSlot.LEGS))) {
+			stack.setCount(0);
+		}
+	}
 
-    @Override
-    public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
-        tooltip.add(Component.literal("The zipped-up top of your " + chapter.garmentWord()).withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.literal("Sneak + right-click the " + chapter.garmentWord() + " to zip it down").withStyle(ChatFormatting.DARK_GRAY));
-    }
+	@Override
+	public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
+		tooltip.add(Component.literal("The zipped-up top of your " + chapter.garmentWord()).withStyle(ChatFormatting.GRAY));
+		tooltip.add(Component.literal("Sneak + right-click the " + chapter.garmentWord() + " to zip it down").withStyle(ChatFormatting.DARK_GRAY));
+	}
 
-    @Override
-    public Item getPolymerItem(ItemStack stack, PacketContext context) {
-        return Items.LEATHER_CHESTPLATE;
-    }
+	@Override
+	public Item getPolymerItem(ItemStack stack, PacketContext context) {
+		return Items.LEATHER_CHESTPLATE;
+	}
 
-    @Override
-    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
-        return id;
-    }
+	@Override
+	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+		return id;
+	}
 
-    @Override
-    public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
-        ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
-        OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, chapter, Piece.TOP, false, context, lookup);
-        return out;
-    }
+	@Override
+	public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
+		ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
+		OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, chapter, Piece.TOP, false, context, lookup);
+		return out;
+	}
 }

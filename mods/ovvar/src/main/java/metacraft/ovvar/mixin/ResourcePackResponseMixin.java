@@ -15,11 +15,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(ServerCommonPacketListenerImpl.class)
 public abstract class ResourcePackResponseMixin {
-    @Inject(method = "handleResourcePackResponse", at = @At("TAIL"))
-    private void ovvar$packLoaded(ServerboundResourcePackPacket packet, CallbackInfo ci) {
-        if (packet.action() == ServerboundResourcePackPacket.Action.SUCCESSFULLY_LOADED
-                && (Object) this instanceof ServerGamePacketListenerImpl game) {
-            Combos.packLoaded(game.player);
-        }
-    }
+	@Inject(method = "handleResourcePackResponse", at = @At("TAIL"))
+	private void ovvar$packLoaded(ServerboundResourcePackPacket packet, CallbackInfo ci) {
+		if (packet.action() == ServerboundResourcePackPacket.Action.SUCCESSFULLY_LOADED
+				&& (Object) this instanceof ServerGamePacketListenerImpl game) {
+			Combos.packLoaded(game.player);
+		}
+	}
 }

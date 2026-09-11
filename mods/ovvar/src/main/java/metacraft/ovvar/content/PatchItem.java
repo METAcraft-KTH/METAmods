@@ -14,35 +14,35 @@ import java.util.List;
 
 /** A patch in the hand: a stackable item whose icon is its sewn-on art, shown to clients as paper. */
 public final class PatchItem extends Item implements PolymerItem {
-    public final Patches.Patch patch;
-    private final Identifier id;
+	public final Patches.Patch patch;
+	private final Identifier id;
 
-    public PatchItem(Properties properties, Patches.Patch patch, Identifier id) {
-        super(properties);
-        this.patch = patch;
-        this.id = id;
-    }
+	public PatchItem(Properties properties, Patches.Patch patch, Identifier id) {
+		super(properties);
+		this.patch = patch;
+		this.id = id;
+	}
 
-    /** The other models of every patch: a piece of its art 1:1 on the 16×16 sprite, for display entities ({@link ModComponents#FLAT}). */
-    public static String flatModel(String itemName, PatchPieces.Piece piece) {
-        return itemName + "_flat_" + piece.key();
-    }
+	/** The other models of every patch: a piece of its art 1:1 on the 16×16 sprite, for display entities ({@link ModComponents#FLAT}). */
+	public static String flatModel(String itemName, PatchPieces.Piece piece) {
+		return itemName + "_flat_" + piece.key();
+	}
 
-    @Override
-    public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
-        tooltip.add(Component.literal(patch.seat() ? "Goes across the seat" : "Goes anywhere on an ovve").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.literal("Aim it at an armour stand wearing an ovve, right-click to sew").withStyle(ChatFormatting.DARK_GRAY));
-        if (patch.seat()) tooltip.add(Component.literal("Or: smithing table, ovve + patch").withStyle(ChatFormatting.DARK_GRAY));
-    }
+	@Override
+	public void modifyClientTooltip(List<Component> tooltip, ItemStack stack, PacketContext context) {
+		tooltip.add(Component.literal(patch.seat() ? "Goes across the seat" : "Goes anywhere on an ovve").withStyle(ChatFormatting.GRAY));
+		tooltip.add(Component.literal("Aim it at an armour stand wearing an ovve, right-click to sew").withStyle(ChatFormatting.DARK_GRAY));
+		if (patch.seat()) tooltip.add(Component.literal("Or: smithing table, ovve + patch").withStyle(ChatFormatting.DARK_GRAY));
+	}
 
-    @Override
-    public Item getPolymerItem(ItemStack stack, PacketContext context) {
-        return Items.PAPER;
-    }
+	@Override
+	public Item getPolymerItem(ItemStack stack, PacketContext context) {
+		return Items.PAPER;
+	}
 
-    @Override
-    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
-        String piece = stack.get(ModComponents.FLAT);
-        return piece == null ? id : id.withSuffix("_flat_" + piece);
-    }
+	@Override
+	public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+		String piece = stack.get(ModComponents.FLAT);
+		return piece == null ? id : id.withSuffix("_flat_" + piece);
+	}
 }

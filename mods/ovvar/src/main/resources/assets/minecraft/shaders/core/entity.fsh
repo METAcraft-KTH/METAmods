@@ -42,34 +42,34 @@ out vec4 fragColor;
 #moj_import <ovvar:ovvar.glsl>
 
 void main() {
-    vec4 color = ovvar_sided(texture(Sampler0, ovvar_uv(texCoord0)));
+	vec4 color = ovvar_sided(texture(Sampler0, ovvar_uv(texCoord0)));
 #ifdef ALPHA_CUTOUT
-    if (color.a < ALPHA_CUTOUT) {
-        discard;
-    }
+	if (color.a < ALPHA_CUTOUT) {
+		discard;
+	}
 #endif
 
 #ifdef PER_FACE_LIGHTING
-    vec4 faceVertexColor = gl_FrontFacing ? vertexPerFaceColorFront : vertexPerFaceColorBack;
+	vec4 faceVertexColor = gl_FrontFacing ? vertexPerFaceColorFront : vertexPerFaceColorBack;
 #else
-    vec4 faceVertexColor = vertexColor;
+	vec4 faceVertexColor = vertexColor;
 #endif
 
 #ifdef DISSOLVE
-    if (faceVertexColor.a < texture(DissolveMaskSampler, texCoord0).a) {
-        discard;
-    }
-    // The dissolve effect entirely replaces translucency
-    faceVertexColor.a = 1.0;
+	if (faceVertexColor.a < texture(DissolveMaskSampler, texCoord0).a) {
+		discard;
+	}
+	// The dissolve effect entirely replaces translucency
+	faceVertexColor.a = 1.0;
 #endif
 
-    color *= faceVertexColor * ColorModulator;
+	color *= faceVertexColor * ColorModulator;
 #ifndef NO_OVERLAY
-    color.rgb = mix(overlayColor.rgb, color.rgb, overlayColor.a);
+	color.rgb = mix(overlayColor.rgb, color.rgb, overlayColor.a);
 #endif
 #ifndef EMISSIVE
-    color *= lightMapColor;
+	color *= lightMapColor;
 #endif
 
-    fragColor = apply_fog(color, sphericalVertexDistance, cylindricalVertexDistance, FogEnvironmentalStart, FogEnvironmentalEnd, FogRenderDistanceStart, FogRenderDistanceEnd, FogColor);
+	fragColor = apply_fog(color, sphericalVertexDistance, cylindricalVertexDistance, FogEnvironmentalStart, FogEnvironmentalEnd, FogRenderDistanceStart, FogRenderDistanceEnd, FogColor);
 }

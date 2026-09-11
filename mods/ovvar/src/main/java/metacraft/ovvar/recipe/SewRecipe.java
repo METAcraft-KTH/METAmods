@@ -38,79 +38,79 @@ import java.util.Optional;
  * server fills the result slot.
  */
 public final class SewRecipe implements SmithingRecipe {
-    public static final MapCodec<SewRecipe> MAP_CODEC = MapCodec.unit(SewRecipe::new);
-    public static final RecipeSerializer<SewRecipe> SERIALIZER = new RecipeSerializer<>(MAP_CODEC, StreamCodec.unit(new SewRecipe()));
+	public static final MapCodec<SewRecipe> MAP_CODEC = MapCodec.unit(SewRecipe::new);
+	public static final RecipeSerializer<SewRecipe> SERIALIZER = new RecipeSerializer<>(MAP_CODEC, StreamCodec.unit(new SewRecipe()));
 
-    public static void init() {
-        Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "sew"), SERIALIZER);
-    }
+	public static void init() {
+		Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "sew"), SERIALIZER);
+	}
 
-    /** Seat patches only: they have one place to go, so the table needs no aiming. */
-    public static boolean applies(ItemStack ovve, Patches.Patch patch) {
-        return ovve.getItem() instanceof OvveItem && patch.seat() && Looks.at(ovve, Spot.SEAT) == null;
-    }
+	/** Seat patches only: they have one place to go, so the table needs no aiming. */
+	public static boolean applies(ItemStack ovve, Patches.Patch patch) {
+		return ovve.getItem() instanceof OvveItem && patch.seat() && Looks.at(ovve, Spot.SEAT) == null;
+	}
 
-    @Override
-    public boolean matches(SmithingRecipeInput input, Level level) {
-        return input.template().isEmpty() && input.addition().getItem() instanceof PatchItem patch
-                && applies(input.base(), patch.patch);
-    }
+	@Override
+	public boolean matches(SmithingRecipeInput input, Level level) {
+		return input.template().isEmpty() && input.addition().getItem() instanceof PatchItem patch
+				&& applies(input.base(), patch.patch);
+	}
 
-    @Override
-    public ItemStack assemble(SmithingRecipeInput input) {
-        ItemStack out = input.base().copyWithCount(1);
-        Patches.Patch patch = ((PatchItem) input.addition().getItem()).patch;
-        Looks.sew(out, new Placement(Spot.SEAT, patch));
-        return out;
-    }
+	@Override
+	public ItemStack assemble(SmithingRecipeInput input) {
+		ItemStack out = input.base().copyWithCount(1);
+		Patches.Patch patch = ((PatchItem) input.addition().getItem()).patch;
+		Looks.sew(out, new Placement(Spot.SEAT, patch));
+		return out;
+	}
 
-    @Override
-    public Optional<Ingredient> templateIngredient() {
-        return Optional.empty();
-    }
+	@Override
+	public Optional<Ingredient> templateIngredient() {
+		return Optional.empty();
+	}
 
-    @Override
-    public Ingredient baseIngredient() {
-        return Ingredient.of(ModContent.items().stream().filter(i -> i instanceof OvveItem).map(i -> (Item) i));
-    }
+	@Override
+	public Ingredient baseIngredient() {
+		return Ingredient.of(ModContent.items().stream().filter(i -> i instanceof OvveItem).map(i -> (Item) i));
+	}
 
-    @Override
-    public Optional<Ingredient> additionIngredient() {
-        return Optional.of(Ingredient.of(ModContent.items().stream().filter(i -> i instanceof PatchItem).map(i -> (Item) i)));
-    }
+	@Override
+	public Optional<Ingredient> additionIngredient() {
+		return Optional.of(Ingredient.of(ModContent.items().stream().filter(i -> i instanceof PatchItem).map(i -> (Item) i)));
+	}
 
-    @Override
-    public RecipeSerializer<? extends SmithingRecipe> getSerializer() {
-        return SERIALIZER;
-    }
+	@Override
+	public RecipeSerializer<? extends SmithingRecipe> getSerializer() {
+		return SERIALIZER;
+	}
 
-    @Override
-    public boolean isSpecial() {
-        return true;
-    }
+	@Override
+	public boolean isSpecial() {
+		return true;
+	}
 
-    @Override
-    public boolean showNotification() {
-        return false;
-    }
+	@Override
+	public boolean showNotification() {
+		return false;
+	}
 
-    @Override
-    public String group() {
-        return "";
-    }
+	@Override
+	public String group() {
+		return "";
+	}
 
-    @Override
-    public PlacementInfo placementInfo() {
-        return PlacementInfo.NOT_PLACEABLE;
-    }
+	@Override
+	public PlacementInfo placementInfo() {
+		return PlacementInfo.NOT_PLACEABLE;
+	}
 
-    @Override
-    public List<RecipeDisplay> display() {
-        return List.of();
-    }
+	@Override
+	public List<RecipeDisplay> display() {
+		return List.of();
+	}
 
-    @Override
-    public RecipeBookCategory recipeBookCategory() {
-        return RecipeBookCategories.SMITHING;
-    }
+	@Override
+	public RecipeBookCategory recipeBookCategory() {
+		return RecipeBookCategories.SMITHING;
+	}
 }
