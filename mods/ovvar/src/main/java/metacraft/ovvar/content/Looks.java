@@ -54,9 +54,19 @@ public final class Looks {
 		stack.set(ModComponents.PATCHES, placements);
 	}
 
+	public static boolean canSew(ItemStack stack, Placement placement) {
+		return SpotPlacements.canApply(sewn(stack), placement);
+	}
+
 	/** Sew a patch on a spot, replacing whatever was there or overlapping it. */
-	public static void sew(ItemStack stack, Placement placement) {
-		setSewn(stack, SpotPlacements.apply(sewn(stack), placement));
+	public static boolean sew(ItemStack stack, Placement placement) {
+		var sewn = sewn(stack);
+		if (SpotPlacements.canApply(sewn, placement)) {
+			setSewn(stack, SpotPlacements.apply(sewn, placement));
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	/** Unpick the patch on a spot; the patch id, or null if there was none. */

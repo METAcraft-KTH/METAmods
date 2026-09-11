@@ -69,7 +69,7 @@ public record SpotPlacements(PMap<Spot, Patches.Patch> patchMap) {
 	public SpotPlacements apply(Placement placement) {
 		var newMap = patchMap;
 		for (var overlap : placement.spot().overlapping()) {
-			newMap = patchMap.minus(overlap);
+			newMap = newMap.minus(overlap);
 		}
 		return new SpotPlacements(newMap.plus(placement.spot(), placement.patch()));
 	}
@@ -78,6 +78,22 @@ public record SpotPlacements(PMap<Spot, Patches.Patch> patchMap) {
 		return placements.map(p -> p.apply(placement)).orElseGet(
 				() -> new SpotPlacements(TreePMap.singleton(placement.spot(), placement.patch()))
 		);
+	}
+
+	public boolean canApply(Placement placement) {
+		if (patchMap.containsKey(placement.spot())) {
+			return false;
+		}
+		for (var overlap : placement.spot().overlapping()) {
+			if (patchMap.containsKey(overlap)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public static boolean canApply(Optional<SpotPlacements> placements, Placement placement) {
+		return placements.map(p -> p.canApply(placement)).orElse(true);
 	}
 
 	public Optional<Patches.Patch> get(Spot spot) {
