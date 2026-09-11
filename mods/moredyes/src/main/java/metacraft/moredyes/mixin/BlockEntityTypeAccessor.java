@@ -10,10 +10,10 @@ import java.util.Set;
 
 @Mixin(BlockEntityType.class)
 public interface BlockEntityTypeAccessor {
-    @Accessor("validBlocks")
-    Set<Block> moredyes$validBlocks();
+	@Accessor("validBlocks")
+	Set<Block> moredyes$validBlocks();
 
-    @Mutable
-    @Accessor("validBlocks")
-    void moredyes$setValidBlocks(Set<Block> blocks);
+	@Mutable
+	@Accessor("validBlocks")
+	void moredyes$setValidBlocks(Set<Block> blocks);
 }

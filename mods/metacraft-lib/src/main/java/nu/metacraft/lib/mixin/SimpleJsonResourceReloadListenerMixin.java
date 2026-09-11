@@ -90,7 +90,7 @@ public class SimpleJsonResourceReloadListenerMixin {
 	)
 	private static <T> void cleanup(
 			ResourceManager manager, FileToIdConverter finder, DynamicOps<JsonElement> ops,
-            Codec<T> codec, Map<Identifier, T> results, CallbackInfo ci
+			Codec<T> codec, Map<Identifier, T> results, CallbackInfo ci
 	) {
 		lookup.remove();
 		element.remove();

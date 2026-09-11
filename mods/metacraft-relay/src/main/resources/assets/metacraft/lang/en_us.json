@@ -1,0 +1,7 @@
+{
+    "block.metacraft.relay": "Ender Relay",
+    "block.metacraft.relay.target": "Target: %s in %s",
+    "block.metacraft.relay.no_target": "No Target",
+    "block.metacraft.relay.no_target.1": "Combine me with a lodestone",
+    "block.metacraft.relay.no_target.2": "compass in a crafting grid"
+}

@@ -11,15 +11,15 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
  * themselves are emitted by gen_assets.py from vanilla's (same targets, our type).
  */
 public final class ModRecipes {
-    private ModRecipes() {}
+	private ModRecipes() {}
 
-    public static void init() {
-        register("crafting_dye", ModDyeRecipe.SERIALIZER);
-        register("crafting_special_firework_star", ModFireworkStarRecipe.SERIALIZER);
-        register("crafting_special_firework_star_fade", ModFireworkStarFadeRecipe.SERIALIZER);
-    }
+	public static void init() {
+		register("crafting_dye", ModDyeRecipe.SERIALIZER);
+		register("crafting_special_firework_star", ModFireworkStarRecipe.SERIALIZER);
+		register("crafting_special_firework_star_fade", ModFireworkStarFadeRecipe.SERIALIZER);
+	}
 
-    private static void register(String path, RecipeSerializer<?> serializer) {
-        Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, path), serializer);
-    }
+	private static void register(String path, RecipeSerializer<?> serializer) {
+		Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, path), serializer);
+	}
 }

@@ -21,14 +21,14 @@ import java.util.stream.Stream;
  */
 @Mixin(RegistryLoadTask.class)
 public abstract class RegistryLoadTaskMixin<T> {
-    @Shadow @Final protected RegistryDataLoader.RegistryData<T> data;
+	@Shadow @Final protected RegistryDataLoader.RegistryData<T> data;
 
-    @SuppressWarnings("unchecked")
-    @ModifyVariable(method = "registerElements", at = @At("HEAD"), argsOnly = true)
-    private Stream<RegistryLoadTask.PendingRegistration<T>> moredyes$deriveBannerPatterns(Stream<RegistryLoadTask.PendingRegistration<T>> stream) {
-        if (!data.key().identifier().equals(Registries.BANNER_PATTERN.identifier())) return stream;
-        List<RegistryLoadTask.PendingRegistration<BannerPattern>> loaded =
-                (List<RegistryLoadTask.PendingRegistration<BannerPattern>>) (List<?>) stream.toList();
-        return (Stream<RegistryLoadTask.PendingRegistration<T>>) (Stream<?>) BannerPatterns.derive(loaded).stream();
-    }
+	@SuppressWarnings("unchecked")
+	@ModifyVariable(method = "registerElements", at = @At("HEAD"), argsOnly = true)
+	private Stream<RegistryLoadTask.PendingRegistration<T>> moredyes$deriveBannerPatterns(Stream<RegistryLoadTask.PendingRegistration<T>> stream) {
+		if (!data.key().identifier().equals(Registries.BANNER_PATTERN.identifier())) return stream;
+		List<RegistryLoadTask.PendingRegistration<BannerPattern>> loaded =
+				(List<RegistryLoadTask.PendingRegistration<BannerPattern>>) (List<?>) stream.toList();
+		return (Stream<RegistryLoadTask.PendingRegistration<T>>) (Stream<?>) BannerPatterns.derive(loaded).stream();
+	}
 }

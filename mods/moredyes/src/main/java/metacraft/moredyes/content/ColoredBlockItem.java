@@ -16,22 +16,22 @@ import org.jspecify.annotations.Nullable;
  * {@code moredyes:items/<color>_<family>.json}, whose id equals this item's registry id.
  */
 public final class ColoredBlockItem extends BlockItem implements PolymerItem {
-    private final Item clientItem;
-    private final Identifier model;
+	private final Item clientItem;
+	private final Identifier model;
 
-    public ColoredBlockItem(Block block, Properties properties, Identifier id, Item clientItem) {
-        super(block, properties);
-        this.clientItem = clientItem;
-        this.model = id;
-    }
+	public ColoredBlockItem(Block block, Properties properties, Identifier id, Item clientItem) {
+		super(block, properties);
+		this.clientItem = clientItem;
+		this.model = id;
+	}
 
-    @Override
-    public Item getPolymerItem(ItemStack stack, PacketContext context) {
-        return clientItem;
-    }
+	@Override
+	public Item getPolymerItem(ItemStack stack, PacketContext context) {
+		return clientItem;
+	}
 
-    @Override
-    public @Nullable Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
-        return model;
-    }
+	@Override
+	public @Nullable Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+		return model;
+	}
 }

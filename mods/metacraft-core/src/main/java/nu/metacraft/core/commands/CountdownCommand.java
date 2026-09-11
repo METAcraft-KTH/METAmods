@@ -168,10 +168,10 @@ public class CountdownCommand {
 										.suggests((context, builder) -> {
 											Countdown countdown = getCountdownRequired(context);
 											for (Countdown.Action action : countdown.getActions()) {
-                                                if (action.name().startsWith(builder.getRemaining())) {
-                                                    builder.suggest(action.name());
-                                                }
-                                            }
+												if (action.name().startsWith(builder.getRemaining())) {
+													builder.suggest(action.name());
+												}
+											}
 											return builder.buildFuture();
 										})
 										.executes(context -> {

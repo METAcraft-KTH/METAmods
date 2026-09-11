@@ -100,32 +100,32 @@ public class PortalShapeMixin {
 
 	@Unique
 	private boolean outsideWorldBorderOnOtherSide(LevelAccessor worldAccess, BlockPos.MutableBlockPos center) {
-	    if (!(worldAccess instanceof Level world) || world.getServer() == null) {
-	        return false;
-	    }
+		if (!(worldAccess instanceof Level world) || world.getServer() == null) {
+			return false;
+		}
 
-	    ResourceKey<Level> currentDim = world.dimension();
-	    ResourceKey<Level> targetDim;
+		ResourceKey<Level> currentDim = world.dimension();
+		ResourceKey<Level> targetDim;
 
-	    if (currentDim == Level.OVERWORLD) {
-	        targetDim = Level.NETHER;
-	    } else if (currentDim == Level.NETHER) {
-	        targetDim = Level.OVERWORLD;
-	    } else {
-	        return false;
-	    }
+		if (currentDim == Level.OVERWORLD) {
+			targetDim = Level.NETHER;
+		} else if (currentDim == Level.NETHER) {
+			targetDim = Level.OVERWORLD;
+		} else {
+			return false;
+		}
 
-	    ServerLevel targetWorld = world.getServer().getLevel(targetDim);
-	    if (targetWorld == null) {
-	        return false;
-	    }
+		ServerLevel targetWorld = world.getServer().getLevel(targetDim);
+		if (targetWorld == null) {
+			return false;
+		}
 		double coordinateScale = DimensionType.getTeleportationScale(world.dimensionType(), targetWorld.dimensionType());
-	    WorldBorder targetBorder = targetWorld.getWorldBorder();
+		WorldBorder targetBorder = targetWorld.getWorldBorder();
 
-	    double targetX = center.getX() * coordinateScale;
-	    double targetZ = center.getZ() * coordinateScale;
+		double targetX = center.getX() * coordinateScale;
+		double targetZ = center.getZ() * coordinateScale;
 
-	    return !targetBorder.isWithinBounds(targetX, targetZ);
+		return !targetBorder.isWithinBounds(targetX, targetZ);
 	}
 
 }

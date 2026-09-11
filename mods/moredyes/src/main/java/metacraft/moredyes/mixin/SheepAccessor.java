@@ -7,11 +7,11 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(Sheep.class)
 public interface SheepAccessor {
-    @Accessor("DATA_WOOL_ID")
-    static EntityDataAccessor<Byte> moredyes$woolId() {
-        throw new AssertionError();
-    }
+	@Accessor("DATA_WOOL_ID")
+	static EntityDataAccessor<Byte> moredyes$woolId() {
+		throw new AssertionError();
+	}
 
-    @Accessor("eatAnimationTick")
-    int moredyes$eatAnimationTick();
+	@Accessor("eatAnimationTick")
+	int moredyes$eatAnimationTick();
 }

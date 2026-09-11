@@ -1,5 +1,6 @@
 package nu.metacraft.better_pets;
 
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
@@ -13,7 +14,8 @@ public class BetterPets implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-
+		PolymerResourcePackUtils.addModAssets(MODID);
+		PolymerResourcePackUtils.markAsRequired();
 	}
 
 	public static Identifier getID(String name) {

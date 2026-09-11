@@ -14,18 +14,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Mob.class)
 public abstract class MobMixin extends LivingEntity {
-    protected MobMixin() {
-        super(null, null);
-    }
+	protected MobMixin() {
+		super(null, null);
+	}
 
-    /** Death loot for a sheep in our colour comes from our per-colour tables (wool only if unshorn). */
-    @Inject(method = "dropFromLootTable(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;Z)V",
-            at = @At("HEAD"), cancellable = true)
-    private void moredyes$sheepLoot(ServerLevel level, DamageSource source, boolean playerKill, CallbackInfo ci) {
-        if (!((Object) this instanceof Sheep sheep)) return;
-        ModColor color = SheepColors.get(sheep);
-        if (color == null) return;
-        this.dropFromLootTable(level, source, playerKill, SheepColors.deathLootTable(color, sheep.isSheared()));
-        ci.cancel();
-    }
+	/** Death loot for a sheep in our colour comes from our per-colour tables (wool only if unshorn). */
+	@Inject(method = "dropFromLootTable(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;Z)V",
+			at = @At("HEAD"), cancellable = true)
+	private void moredyes$sheepLoot(ServerLevel level, DamageSource source, boolean playerKill, CallbackInfo ci) {
+		if (!((Object) this instanceof Sheep sheep)) return;
+		ModColor color = SheepColors.get(sheep);
+		if (color == null) return;
+		this.dropFromLootTable(level, source, playerKill, SheepColors.deathLootTable(color, sheep.isSheared()));
+		ci.cancel();
+	}
 }

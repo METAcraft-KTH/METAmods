@@ -201,7 +201,7 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 			var seconds = getSeconds(metacraft$timeUntilRevival);
 			metacraft$revivalStatus = Component.translatableWithFallback(
 					"dialog.metacraft.revival.time_until_revival",
-					 "Waking up in " + seconds + " seconds",
+					"Waking up in " + seconds + " seconds",
 					seconds
 			);
 		}
