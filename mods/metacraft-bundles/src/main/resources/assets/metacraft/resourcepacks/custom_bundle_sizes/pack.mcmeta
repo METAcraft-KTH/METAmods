@@ -1,7 +1,0 @@
-{
-  "pack": {
-    "pack_format": 64,
-    "description": {"text": "METAcraft" },
-    "supported_formats": [9, 99]
-  }
-}

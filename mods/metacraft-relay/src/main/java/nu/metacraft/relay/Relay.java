@@ -1,5 +1,6 @@
 package nu.metacraft.relay;
 
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import nu.metacraft.relay.blocks.RelayBlockEntities;
@@ -23,6 +24,9 @@ public class Relay implements ModInitializer {
 		RelayComponents.init();
 		RelayItems.init();
 		Events.init();
+
+		PolymerResourcePackUtils.addModAssets(MODID);
+		PolymerResourcePackUtils.markAsRequired();
 	}
 
 	public static Identifier getID(String id) {

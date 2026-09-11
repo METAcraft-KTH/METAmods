@@ -15,7 +15,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 
 public class TrustPlayerSelector extends MultiplePlayerSelector {
-	public static final FontDescription MENU_FONT = new FontDescription.Resource(Identifier.fromNamespaceAndPath("metacraft", "pet_gui"));
+	public static final FontDescription MENU_FONT = new FontDescription.Resource(Identifier.fromNamespaceAndPath("better_pets", "pet_gui"));
 
 	private final TameableExtension tameable;
 

@@ -1,5 +1,6 @@
 package nu.metacraft.core;
 
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import nu.metacraft.core.environment_attributes.METAcraftAttributeTypes;
@@ -44,6 +45,9 @@ public class METAcraftCore implements ModInitializer {
 		Events.init();
 		CompatInit.init();
 		MusicTimerTracker.init();
+
+		PolymerResourcePackUtils.addModAssets(MODID);
+		PolymerResourcePackUtils.markAsRequired();
 	}
 
 	public static Identifier getID(String id) {

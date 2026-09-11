@@ -155,16 +155,16 @@ public abstract class AnvilMenuMixin extends ItemCombinerMenu {
 		at = @At(
 			value = "JUMP", opcode = Opcodes.GOTO, ordinal = 0
 		),
-		ordinal = 0
+		name = "price"
 	)
 	public int addToCost( //Funnily enough, this mixin is in the right place. IntelliJ just doesn't agree.
-			int value, @Local(ordinal = 3) boolean flag3,
-			@Share("additionalCost") LocalIntRef additionalCost
+		int price, @Local(name = "compatible") boolean compatible,
+		@Share("additionalCost") LocalIntRef additionalCost
 	) {
-		if (flag3) {
-			value += additionalCost.get();
+		if (compatible) {
+			price += additionalCost.get();
 		}
-		return value;
+		return price;
 	}
 
 	@Inject(
@@ -181,26 +181,26 @@ public abstract class AnvilMenuMixin extends ItemCombinerMenu {
 		isAddingEnchantment.set(true);
 	}
 
-	@Redirect(
+	@WrapOperation(
 		method = "createResult",
 		at = @At(
 			value = "INVOKE",
 			target = "Lnet/minecraft/world/inventory/AnvilMenu;calculateIncreasedRepairCost(I)I"
 		)
 	)
-	public int preventPriceGrowth(int value, @Share("isAddingEnchantment") LocalBooleanRef isAddingEnchantment) {
-		value = switch (RepairFixConfig.getConfig().baseCostIncreaseMode()) {
-			case DEFAULT -> AnvilMenu.calculateIncreasedRepairCost(value);
+	public int preventPriceGrowth(int baseCost, Operation<Integer> original, @Share("isAddingEnchantment") LocalBooleanRef isAddingEnchantment) {
+		baseCost = switch (RepairFixConfig.getConfig().baseCostIncreaseMode()) {
+			case DEFAULT -> original.call(baseCost);
 			case ENCHANTING_ONLY -> {
 				if (isAddingEnchantment.get()) {
-					yield AnvilMenu.calculateIncreasedRepairCost(value);
+					yield original.call(baseCost);
 				} else {
-					yield value;
+					yield baseCost;
 				}
 			}
-			case NONE -> value;
+			case NONE -> baseCost;
 		};
-		return value;
+		return baseCost;
 	}
 
 }
