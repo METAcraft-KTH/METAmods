@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
+import net.fabricmc.fabric.api.tag.convention.v2.ConventionalItemTags;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -129,7 +130,7 @@ public final class StandSewing {
 			}
 			return InteractionResult.SUCCESS;
 		}
-		if (held.isEmpty() && aimed != null && aimed.spot() != null) {
+		if (held.is(ConventionalItemTags.SHEAR_TOOLS) && aimed != null && aimed.spot() != null) {
 			Spot spot = aimed.spot();
 			Placement there = Looks.at(ovve, spot);
 			if (there == null && Spot.SEAT_CELLS.contains(spot)) { spot = Spot.SEAT; there = Looks.at(ovve, spot); }
