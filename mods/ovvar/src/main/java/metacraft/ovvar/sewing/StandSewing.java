@@ -128,6 +128,7 @@ public final class StandSewing {
 			} else {
 				finish(player, stand, placement, patchItem, aimed.where());
 			}
+			player.swing(InteractionHand.MAIN_HAND, true);
 			return InteractionResult.SUCCESS;
 		}
 		if (held.is(ConventionalItemTags.SHEAR_TOOLS) && aimed != null && aimed.spot() != null) {
@@ -140,6 +141,7 @@ public final class StandSewing {
 			if (!player.getInventory().add(back)) player.drop(back, false);
 			celebrate(level, aimed.where(), false);
 			player.sendOverlayMessage(Component.literal(there.patch().name() + " unpicked"));
+			player.swing(InteractionHand.MAIN_HAND, true);
 			return InteractionResult.SUCCESS;
 		}
 		return InteractionResult.PASS;
