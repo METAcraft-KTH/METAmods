@@ -1,0 +1,4 @@
+accessWidener v2 official
+# Dynamic-registry loading: we append derived banner patterns to the pending registrations.
+accessible class net/minecraft/resources/RegistryLoadTask$PendingRegistration
+accessible method net/minecraft/resources/RegistryLoadTask$PendingRegistration <init> (Lnet/minecraft/resources/ResourceKey;Lcom/mojang/datafixers/util/Either;Lnet/minecraft/core/RegistrationInfo;)V

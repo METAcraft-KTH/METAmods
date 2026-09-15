@@ -1,0 +1,16 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "metacraft.moredyes.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"BlockEntityTypeAccessor",
+		"MobMixin",
+		"RegistryLoadTaskMixin",
+		"SheepAccessor",
+		"SheepMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
