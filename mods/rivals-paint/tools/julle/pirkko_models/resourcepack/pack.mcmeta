@@ -1,0 +1,13 @@
+{
+  "pack": {
+    "description": "Pirkko | 12-cube dyeable floor model",
+    "min_format": [
+      84,
+      0
+    ],
+    "max_format": [
+      88,
+      0
+    ]
+  }
+}

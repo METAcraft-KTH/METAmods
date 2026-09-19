@@ -1,0 +1,1808 @@
+{
+  "meta": {
+    "format_version": "5.0",
+    "model_format": "java_block",
+    "box_uv": false
+  },
+  "name": "Splat Slosher",
+  "model_identifier": "splat:slosher",
+  "visible_box": [
+    1,
+    1,
+    0
+  ],
+  "resolution": {
+    "width": 128,
+    "height": 128
+  },
+  "elements": [
+    {
+      "name": "Slosher_bucket_floor",
+      "type": "cube",
+      "uuid": "9759e3b4-b77f-5d9b-81ee-c8679094d16c",
+      "from": [
+        2,
+        0,
+        2
+      ],
+      "to": [
+        14,
+        1,
+        14
+      ],
+      "origin": [
+        8.0,
+        0.5,
+        8.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Slosher_front_wall",
+      "type": "cube",
+      "uuid": "863897e1-5327-5f70-afc7-4cebe345635f",
+      "from": [
+        2,
+        1,
+        2
+      ],
+      "to": [
+        14,
+        8,
+        4
+      ],
+      "origin": [
+        8.0,
+        4.5,
+        3.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            98,
+            126,
+            126
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Slosher_rear_wall",
+      "type": "cube",
+      "uuid": "dcc855ad-baae-5b3b-9ca4-bf9eb7c58b78",
+      "from": [
+        2,
+        1,
+        12
+      ],
+      "to": [
+        14,
+        8,
+        14
+      ],
+      "origin": [
+        8.0,
+        4.5,
+        13.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Slosher_left_wall",
+      "type": "cube",
+      "uuid": "a6509bd6-4361-5101-a95f-20dc5dc3595b",
+      "from": [
+        2,
+        1,
+        4
+      ],
+      "to": [
+        4,
+        8,
+        12
+      ],
+      "origin": [
+        3.0,
+        4.5,
+        8.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Slosher_right_wall",
+      "type": "cube",
+      "uuid": "d6f6b4bf-32ac-5045-8716-02a5ff68f7e9",
+      "from": [
+        12,
+        1,
+        4
+      ],
+      "to": [
+        14,
+        8,
+        12
+      ],
+      "origin": [
+        13.0,
+        4.5,
+        8.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Slosher_front_rim",
+      "type": "cube",
+      "uuid": "be17a94b-7979-59bc-9561-b03c83791040",
+      "from": [
+        2,
+        8,
+        2
+      ],
+      "to": [
+        14,
+        10,
+        4
+      ],
+      "origin": [
+        8.0,
+        9.0,
+        3.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Slosher_rear_rim",
+      "type": "cube",
+      "uuid": "79074db3-0b12-5691-ada6-f41870bcfc35",
+      "from": [
+        2,
+        8,
+        12
+      ],
+      "to": [
+        14,
+        10,
+        14
+      ],
+      "origin": [
+        8.0,
+        9.0,
+        13.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Slosher_left_rim",
+      "type": "cube",
+      "uuid": "5e601a1b-8ddf-5f30-a1dc-a3e5bc839833",
+      "from": [
+        2,
+        8,
+        4
+      ],
+      "to": [
+        4,
+        10,
+        12
+      ],
+      "origin": [
+        3.0,
+        9.0,
+        8.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Slosher_right_rim",
+      "type": "cube",
+      "uuid": "4e92f84d-8a4d-525b-b021-d56e99240003",
+      "from": [
+        12,
+        8,
+        4
+      ],
+      "to": [
+        14,
+        10,
+        12
+      ],
+      "origin": [
+        13.0,
+        9.0,
+        8.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "DYE_slosher_ink_pool",
+      "type": "cube",
+      "uuid": "0bede3e2-59fb-54ec-9329-c9af270fea6f",
+      "from": [
+        4,
+        1,
+        4
+      ],
+      "to": [
+        12,
+        7,
+        12
+      ],
+      "origin": [
+        8.0,
+        4.0,
+        8.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "DYE_slosher_front_spill",
+      "type": "cube",
+      "uuid": "5ab574eb-03e3-5530-a8f9-e7affdafc365",
+      "from": [
+        5,
+        5,
+        1
+      ],
+      "to": [
+        8,
+        9,
+        2
+      ],
+      "origin": [
+        6.5,
+        7.0,
+        1.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "DYE_slosher_front_drop",
+      "type": "cube",
+      "uuid": "652343a2-6a58-56a8-baaf-95c9d1effe2a",
+      "from": [
+        9,
+        3,
+        1
+      ],
+      "to": [
+        11,
+        6,
+        2
+      ],
+      "origin": [
+        10.0,
+        4.5,
+        1.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "Slosher_handle_left",
+      "type": "cube",
+      "uuid": "536683f4-d06b-521e-968b-1b2efcc25f67",
+      "from": [
+        2,
+        10,
+        8
+      ],
+      "to": [
+        3,
+        16,
+        10
+      ],
+      "origin": [
+        2.5,
+        13.0,
+        9.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Slosher_handle_right",
+      "type": "cube",
+      "uuid": "b4144ec1-067b-5f06-a3f5-5cf57a48b164",
+      "from": [
+        13,
+        10,
+        8
+      ],
+      "to": [
+        14,
+        16,
+        10
+      ],
+      "origin": [
+        13.5,
+        13.0,
+        9.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Slosher_Grip_crossbar",
+      "type": "cube",
+      "uuid": "bd96221a-46ef-5877-be2a-896a975c37f0",
+      "from": [
+        2,
+        16,
+        8
+      ],
+      "to": [
+        14,
+        18,
+        10
+      ],
+      "origin": [
+        8.0,
+        17.0,
+        9.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    }
+  ],
+  "textures": [
+    {
+      "name": "shooter_body.png",
+      "id": "0",
+      "uuid": "49b7ad2a-a0c1-52a4-be96-676c5b17845a",
+      "relative_path": "../textures/shooter_body.png",
+      "namespace": "splat",
+      "folder": "item",
+      "mode": "bitmap",
+      "width": 128,
+      "height": 128,
+      "uv_width": 128,
+      "uv_height": 128,
+      "particle": true,
+      "use_as_default": false,
+      "visible": true,
+      "internal": true,
+      "saved": true,
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACf0lEQVR4nO3csUrrcBSA8VRC1w4WJ10c1cXBwUVw0727rr6BSyc3fQPBQRBcikUHHQsuzi4+gg+RoXVSaCCYlIaT9Pt+070XvaeFz5MYyr9z+7kzSwJtb25Fjk8e7r9C57/f9UPnr4VOV7j09w/dbrfSN2ZZttQX4vyY+W4AOAOAMwC4v3uAZV/TqnJ+zHw3AJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAFxa4msW8t9n3Kp+Dt759cx3A8AZAJwBwNV2D1D3Nc75y5nvBoDr7B8eh54PcHZxHjk+GZwehM7f3TsJne8GgPN8APh8NwCcAcAZAJznA8DnuwHgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgPB8APt8NAGcAcAYA5/kA8PluALh08jYOfQG9Xi90/ngc+/77G+uh890AcI05HyBa9Pv3fACFMAA4A4BrzPkA0aLfv+cDKIQBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJznA8DnuwHgDADOAOA8HwA+3w0A17m8uZ5FvoCXx+fI8cnH5DV0/tP3Ueh8NwBcY84HoM+P4gaAq+23ANXrajD/szscTRf6f9wAcI05H4A+P4obAM57gJbJX/vz/171XsANAGcAcAYA5z1ASxRd+4u+ruy9gBsAzgDgDADOAFpqOJrOXefzfy/LAOAMAM4A4HwO0FL55wJlnxPkuQHgDADOAOAMoGWKft/3OYAW4vkAKzq/LDcAnM8BWiJ/fS+63vuZQFXi+QArOr8sNwDcD41Vvk15UXmbAAAAAElFTkSuQmCC"
+    },
+    {
+      "name": "shooter_ink_orange_preview.png",
+      "id": "1",
+      "uuid": "aae2bf87-9c9b-57c4-bee5-865bb57b3323",
+      "relative_path": "",
+      "namespace": "splat",
+      "folder": "item",
+      "mode": "bitmap",
+      "width": 128,
+      "height": 128,
+      "uv_width": 128,
+      "uv_height": 128,
+      "particle": false,
+      "use_as_default": false,
+      "visible": true,
+      "internal": true,
+      "saved": true,
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAADB0lEQVR4nO2dMW4TQRhGbccYBEIuIAUFBQeAmioHoKCg4AZcgUOk5wJUFAg6RIk4ASUSSNSUFBBkyYEKkqxk7461oy/j914Vx7a+LZ7+f3Y183v65vGtP5Mgd28eJOMnrz6fRPPfffsdzZ9F0yXO/N8fi9m06Iur03ELRzy/sBCt1qPGx/KtAHAUAI4CwPm/Bhi7p5YSzx+5p7eSbwWAowBwFACOAsBRADgKAEcB4CgAHAWAowBwFACOAsBRADgKAEcB4CgAHAWAowBwFADOfMBndmK13r7Hb3FQdg6gPH/7+6X78Ivze/Y4lp6DqJVvBYCjAHAUAE61NUDtHt+fH42v3uPHyrcCwJk+vLOIHsl5dv9GMn7y6N61aP6Dl9+j+VYAOGfzAQp7dt99finmZ/KtAHAUAI4CwDmbDzByTyvF/Ey+FQCOAsBRADgKAEcB4CgAHAWAowBwFACOAsBRADgKAEcB4CgAHAWAowBwFACOAsBRADj7Ox/gdPv7i8rqt5JvBYCjAHAUAM7+zgcIq91KvhUAzvz9k9vRC1hezTr49utJNP/wenaUiRUAzqWZD5CmdKbP2L91XLpm6LvPH4oVAI4CwFEAOJdmPkCasXt6eX4m1woARwHgKAAcBYCjAHAUAI4CwFEAOAoARwHgKAAcBYCjAHAUAI4CwFEAOAoARwHgKACcevMB0ufj0/MJGsm3AsBRADgKAKfefID0+fj0fIJG8q0AcOYvPv2MXsDrL7+i+R+eHkbzr8yW0XwrAJxz8wHKvrhaj3sh6fkE6fkAKawAcKrdBUhdnn/8ceH18dFuawkrAJxz8wGyF5KeT7AvPb0UKwAc1wCN0e393f+XrgWsAHAUAI4CwHEN0Aibev+mzw1dC1gB4CgAHAWAowCNcny0vNDnu6+HogBwFACOAsDxOUCjdJ8LDH1O0MUKAEcB4CgAHAVojE33+z4HkJ2oOB+g53x64T784vyePY6l5yBayx+KFQCOzwEaodvfN/V79wRKERXnA6TPx0fj4/lDsQLA+QtiX6NjGob7GQAAAABJRU5ErkJggg=="
+    }
+  ],
+  "groups": [
+    {
+      "name": "01 Hollow bucket",
+      "uuid": "8e7a4576-a803-55d4-aefb-6fcd9c377468",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    },
+    {
+      "name": "02 Pale bucket rim",
+      "uuid": "6039ca3e-7c41-53a8-8d30-9aec4f951909",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    },
+    {
+      "name": "03 Ink contents",
+      "uuid": "e07a2917-45b9-51eb-8edc-be140b8e45b8",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    },
+    {
+      "name": "04 Carry handle",
+      "uuid": "608c8f8c-7e72-55a9-8bd3-fac0e2874162",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    }
+  ],
+  "outliner": [
+    {
+      "uuid": "8e7a4576-a803-55d4-aefb-6fcd9c377468",
+      "isOpen": false,
+      "children": [
+        "9759e3b4-b77f-5d9b-81ee-c8679094d16c",
+        "863897e1-5327-5f70-afc7-4cebe345635f",
+        "dcc855ad-baae-5b3b-9ca4-bf9eb7c58b78",
+        "a6509bd6-4361-5101-a95f-20dc5dc3595b",
+        "d6f6b4bf-32ac-5045-8716-02a5ff68f7e9"
+      ]
+    },
+    {
+      "uuid": "6039ca3e-7c41-53a8-8d30-9aec4f951909",
+      "isOpen": false,
+      "children": [
+        "be17a94b-7979-59bc-9561-b03c83791040",
+        "79074db3-0b12-5691-ada6-f41870bcfc35",
+        "5e601a1b-8ddf-5f30-a1dc-a3e5bc839833",
+        "4e92f84d-8a4d-525b-b021-d56e99240003"
+      ]
+    },
+    {
+      "uuid": "e07a2917-45b9-51eb-8edc-be140b8e45b8",
+      "isOpen": false,
+      "children": [
+        "0bede3e2-59fb-54ec-9329-c9af270fea6f",
+        "5ab574eb-03e3-5530-a8f9-e7affdafc365",
+        "652343a2-6a58-56a8-baaf-95c9d1effe2a"
+      ]
+    },
+    {
+      "uuid": "608c8f8c-7e72-55a9-8bd3-fac0e2874162",
+      "isOpen": false,
+      "children": [
+        "536683f4-d06b-521e-968b-1b2efcc25f67",
+        "b4144ec1-067b-5f06-a3f5-5cf57a48b164",
+        "bd96221a-46ef-5877-be2a-896a975c37f0"
+      ]
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        -145,
+        0
+      ],
+      "translation": [
+        0,
+        -1,
+        0
+      ],
+      "scale": [
+        0.62,
+        0.62,
+        0.62
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        4,
+        0
+      ],
+      "scale": [
+        0.45,
+        0.45,
+        0.45
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        -1,
+        -1
+      ],
+      "scale": [
+        0.6,
+        0.6,
+        0.6
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        90,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0.75,
+        -3.75
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        90,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0.75,
+        -3.75
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        -15,
+        0
+      ],
+      "translation": [
+        -1,
+        1,
+        -3
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        15,
+        0
+      ],
+      "translation": [
+        -1,
+        1,
+        -3
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "head": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        7,
+        0
+      ],
+      "scale": [
+        0.6,
+        0.6,
+        0.6
+      ]
+    }
+  },
+  "gui_light": "side",
+  "ambientocclusion": true,
+  "credit": "Original cuboid fan model; Splatoon slosher inspired. Ink faces: tint index 0."
+}

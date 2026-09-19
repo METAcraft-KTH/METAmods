@@ -1,0 +1,2212 @@
+{
+  "meta": {
+    "format_version": "5.0",
+    "model_format": "java_block",
+    "box_uv": false
+  },
+  "name": "Splat Shooter",
+  "model_identifier": "splat:shooter",
+  "visible_box": [
+    1,
+    1,
+    0
+  ],
+  "resolution": {
+    "width": 128,
+    "height": 128
+  },
+  "elements": [
+    {
+      "name": "Lime_receiver_1",
+      "type": "cube",
+      "uuid": "c60eade8-7b72-565d-9d7a-e3a608d34a5c",
+      "from": [
+        6.0,
+        7.0,
+        1
+      ],
+      "to": [
+        10.0,
+        8.0,
+        14
+      ],
+      "origin": [
+        8.0,
+        7.5,
+        7.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": null,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Lime_receiver_2",
+      "type": "cube",
+      "uuid": "3f958553-34a7-52b3-a4b0-115c705d54f3",
+      "from": [
+        5.0,
+        8.0,
+        1
+      ],
+      "to": [
+        11.0,
+        12.0,
+        14
+      ],
+      "origin": [
+        8.0,
+        10.0,
+        7.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            98,
+            126,
+            126
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            98,
+            126,
+            126
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Lime_receiver_3",
+      "type": "cube",
+      "uuid": "c88ac74d-26d5-5774-bb8c-d0713f2e4b57",
+      "from": [
+        6.0,
+        12.0,
+        1
+      ],
+      "to": [
+        10.0,
+        13.0,
+        14
+      ],
+      "origin": [
+        8.0,
+        12.5,
+        7.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": null,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Rear_bumper",
+      "type": "cube",
+      "uuid": "c712b793-b332-5ffe-a947-cb20e6a89dce",
+      "from": [
+        5,
+        8,
+        14
+      ],
+      "to": [
+        11,
+        12,
+        15
+      ],
+      "origin": [
+        8.0,
+        10.0,
+        14.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Barrel_coupling",
+      "type": "cube",
+      "uuid": "214c4aec-fee0-5efc-b028-a8cf5ade98bf",
+      "from": [
+        5,
+        7,
+        0
+      ],
+      "to": [
+        11,
+        13,
+        1
+      ],
+      "origin": [
+        8.0,
+        10.0,
+        0.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Ink_barrel_sleeve",
+      "type": "cube",
+      "uuid": "5b426fb1-0629-5e19-b463-2511960d40f3",
+      "from": [
+        5,
+        7,
+        -2
+      ],
+      "to": [
+        11,
+        13,
+        0
+      ],
+      "origin": [
+        8.0,
+        10.0,
+        -1.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            34,
+            126,
+            62
+          ],
+          "texture": 0,
+          "tint": -1,
+          "rotation": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "Nozzle_top",
+      "type": "cube",
+      "uuid": "4c4d49a8-331b-59a9-95ab-eecfc80fe5de",
+      "from": [
+        5,
+        12,
+        -4
+      ],
+      "to": [
+        11,
+        13,
+        -2
+      ],
+      "origin": [
+        8.0,
+        12.5,
+        -3.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "Nozzle_bottom",
+      "type": "cube",
+      "uuid": "0b2d85b2-beb7-5854-b240-f3f2c4a5c902",
+      "from": [
+        5,
+        7,
+        -4
+      ],
+      "to": [
+        11,
+        8,
+        -2
+      ],
+      "origin": [
+        8.0,
+        7.5,
+        -3.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "Nozzle_left",
+      "type": "cube",
+      "uuid": "b0584154-08d3-5f99-84d4-c8c002d3d8e2",
+      "from": [
+        5,
+        8,
+        -4
+      ],
+      "to": [
+        6,
+        12,
+        -2
+      ],
+      "origin": [
+        5.5,
+        10.0,
+        -3.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "Nozzle_right",
+      "type": "cube",
+      "uuid": "b3b9ef7b-aada-5a7d-8866-1372c5e17e32",
+      "from": [
+        10,
+        8,
+        -4
+      ],
+      "to": [
+        11,
+        12,
+        -2
+      ],
+      "origin": [
+        10.5,
+        10.0,
+        -3.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "Ink_inside_bore",
+      "type": "cube",
+      "uuid": "8af724b4-ead4-5ef4-912c-755fc11d2e5a",
+      "from": [
+        7,
+        9,
+        -3
+      ],
+      "to": [
+        9,
+        11,
+        -2
+      ],
+      "origin": [
+        8.0,
+        10.0,
+        -2.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            66,
+            94,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            66,
+            66,
+            94,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            66,
+            66,
+            94,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            66,
+            66,
+            94,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            66,
+            66,
+            94,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            66,
+            66,
+            94,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "DYE_reservoir",
+      "type": "cube",
+      "uuid": "b9491b3c-f60d-51fa-8a0f-ce603f761851",
+      "from": [
+        5,
+        13,
+        10
+      ],
+      "to": [
+        11,
+        18,
+        17
+      ],
+      "origin": [
+        8.0,
+        15.5,
+        13.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "Tank_front_rim",
+      "type": "cube",
+      "uuid": "1097723a-c627-58df-aaa7-cd33d6aba9f2",
+      "from": [
+        5,
+        13,
+        9
+      ],
+      "to": [
+        11,
+        18,
+        10
+      ],
+      "origin": [
+        8.0,
+        15.5,
+        9.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Tank_rear_rim",
+      "type": "cube",
+      "uuid": "6f8f3c0f-21a7-5dec-b4a9-468e62adc555",
+      "from": [
+        5,
+        13,
+        17
+      ],
+      "to": [
+        11,
+        18,
+        18
+      ],
+      "origin": [
+        8.0,
+        15.5,
+        17.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Grip_core",
+      "type": "cube",
+      "uuid": "eef44ba3-7ddf-5882-9be8-871e75943146",
+      "from": [
+        6,
+        2,
+        11
+      ],
+      "to": [
+        10,
+        8,
+        14
+      ],
+      "origin": [
+        8,
+        8,
+        12.5
+      ],
+      "rotation": [
+        -22.5,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Grip_heel",
+      "type": "cube",
+      "uuid": "b0dda3f1-2be2-52ed-8cd4-b837f7d8b3a3",
+      "from": [
+        6,
+        1,
+        10
+      ],
+      "to": [
+        10,
+        2,
+        15
+      ],
+      "origin": [
+        8,
+        8,
+        12.5
+      ],
+      "rotation": [
+        -22.5,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Trigger_guard_bottom",
+      "type": "cube",
+      "uuid": "5b5d6d02-db53-55e5-a5a0-a439b3d70b4b",
+      "from": [
+        7,
+        4,
+        6
+      ],
+      "to": [
+        9,
+        5,
+        12
+      ],
+      "origin": [
+        8.0,
+        4.5,
+        9.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Trigger_guard_front",
+      "type": "cube",
+      "uuid": "6f7c5d1e-932a-5e52-9729-4d70c79a84b7",
+      "from": [
+        7,
+        5,
+        5
+      ],
+      "to": [
+        9,
+        8,
+        6
+      ],
+      "origin": [
+        8.0,
+        6.5,
+        5.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Trigger",
+      "type": "cube",
+      "uuid": "2fc5f6eb-9e6f-59f4-b710-76f3b91710cb",
+      "from": [
+        7,
+        6,
+        9
+      ],
+      "to": [
+        9,
+        8,
+        10
+      ],
+      "origin": [
+        8.0,
+        7.0,
+        9.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    }
+  ],
+  "textures": [
+    {
+      "name": "shooter_body.png",
+      "id": "0",
+      "uuid": "4ed4d8f2-e6de-5dc5-b760-14f2d0c0c529",
+      "relative_path": "../textures/shooter_body.png",
+      "namespace": "splat",
+      "folder": "item",
+      "mode": "bitmap",
+      "width": 128,
+      "height": 128,
+      "uv_width": 128,
+      "uv_height": 128,
+      "particle": true,
+      "use_as_default": false,
+      "visible": true,
+      "internal": true,
+      "saved": true,
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACf0lEQVR4nO3csUrrcBSA8VRC1w4WJ10c1cXBwUVw0727rr6BSyc3fQPBQRBcikUHHQsuzi4+gg+RoXVSaCCYlIaT9Pt+070XvaeFz5MYyr9z+7kzSwJtb25Fjk8e7r9C57/f9UPnr4VOV7j09w/dbrfSN2ZZttQX4vyY+W4AOAOAMwC4v3uAZV/TqnJ+zHw3AJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAFxa4msW8t9n3Kp+Dt759cx3A8AZAJwBwNV2D1D3Nc75y5nvBoDr7B8eh54PcHZxHjk+GZwehM7f3TsJne8GgPN8APh8NwCcAcAZAJznA8DnuwHgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgPB8APt8NAGcAcAYA5/kA8PluALh08jYOfQG9Xi90/ngc+/77G+uh890AcI05HyBa9Pv3fACFMAA4A4BrzPkA0aLfv+cDKIQBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJznA8DnuwHgDADOAOA8HwA+3w0A17m8uZ5FvoCXx+fI8cnH5DV0/tP3Ueh8NwBcY84HoM+P4gaAq+23ANXrajD/szscTRf6f9wAcI05H4A+P4obAM57gJbJX/vz/171XsANAGcAcAYA5z1ASxRd+4u+ruy9gBsAzgDgDADOAFpqOJrOXefzfy/LAOAMAM4A4HwO0FL55wJlnxPkuQHgDADOAOAMoGWKft/3OYAW4vkAKzq/LDcAnM8BWiJ/fS+63vuZQFXi+QArOr8sNwDcD41Vvk15UXmbAAAAAElFTkSuQmCC"
+    },
+    {
+      "name": "shooter_ink.png",
+      "id": "1",
+      "uuid": "56b44c73-55c6-5aa9-b50d-84ad4bb3d03e",
+      "relative_path": "../textures/shooter_ink.png",
+      "namespace": "splat",
+      "folder": "item",
+      "mode": "bitmap",
+      "width": 128,
+      "height": 128,
+      "uv_width": 128,
+      "uv_height": 128,
+      "particle": false,
+      "use_as_default": false,
+      "visible": true,
+      "internal": true,
+      "saved": true,
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACYklEQVR4nO3cMWrCcBiGcS3R1ckxV3D2DN7DK3iI7N7BQeImjp7LpZ1aMBCaiOFNfJ7f1Ja2n4WHL2mQ/7yu6+9ZUFmWyfGz0+kUnX+9XqPzv6LTFVf8frBcLnv94OPxeOsLcX5mvhsAzgDgDADu7x7g3de0vpyfme8GgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgCs6fM9L/nuPW9/3wTt/mPluADgDgDMAuMHuAYa+xjn/PfPdAHDz7XYbPR9gv98nx892u110/mazic53A8B5PgB8vhsAzgDgDADO8wHg890AcAYAZwBwBgBnAHAGAGcAcAYAZwBwBgBnAHAGAGcAcAYAZwBwBgBnAHAGAGcAcJ4PAJ/vBoAzADgDgPN8APh8NwBccbvdoi9gtVpF518ul+j89Xodne8GgBvN+QBp6b/f8wEUYQBwBgA3mvMB0tJ/v+cDKMIA4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOAMAM7zAeDz3QBwBgBnAHCeDwCf7waAK47HY/QFnM/n6Pz7/R6dv1gsovPdAHCjOR+APj/FDQA32H8BGtbhcHj6vKqql36PGwBuNOcD0OenuAHgvAeYmOa1v/n1vvcCbgA4A4AzADjvASai7drf9n1d7wXcAHAGAGcAcAYwUVVVPV3nm593ZQBwBgBnAHA+B5io5nOBrs8JmtwAcAYAZwBwBjAxbf/v+xxAL/F8gA+d35UbAM7nABPRvL63Xe99T6B68XyAD53flRsA7gdhGbj8LECXVQAAAABJRU5ErkJggg=="
+    }
+  ],
+  "groups": [
+    {
+      "name": "01 Shell",
+      "uuid": "91aa81e6-4fa1-5f0d-85b6-bfcea3428731",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    },
+    {
+      "name": "02 Nozzle",
+      "uuid": "fa8a4398-ef59-5c00-bfae-c4d52d815ab6",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    },
+    {
+      "name": "03 Ink reservoir",
+      "uuid": "863dfd9f-51c8-57b7-9f36-ffeedba658ab",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    },
+    {
+      "name": "04 Grip and trigger",
+      "uuid": "7c2f4324-f8ec-53d6-bc3e-5ce58b2172f1",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    }
+  ],
+  "outliner": [
+    {
+      "uuid": "91aa81e6-4fa1-5f0d-85b6-bfcea3428731",
+      "isOpen": false,
+      "children": [
+        "c60eade8-7b72-565d-9d7a-e3a608d34a5c",
+        "3f958553-34a7-52b3-a4b0-115c705d54f3",
+        "c88ac74d-26d5-5774-bb8c-d0713f2e4b57",
+        "c712b793-b332-5ffe-a947-cb20e6a89dce"
+      ]
+    },
+    {
+      "uuid": "fa8a4398-ef59-5c00-bfae-c4d52d815ab6",
+      "isOpen": false,
+      "children": [
+        "214c4aec-fee0-5efc-b028-a8cf5ade98bf",
+        "5b426fb1-0629-5e19-b463-2511960d40f3",
+        "4c4d49a8-331b-59a9-95ab-eecfc80fe5de",
+        "0b2d85b2-beb7-5854-b240-f3f2c4a5c902",
+        "b0584154-08d3-5f99-84d4-c8c002d3d8e2",
+        "b3b9ef7b-aada-5a7d-8866-1372c5e17e32",
+        "8af724b4-ead4-5ef4-912c-755fc11d2e5a"
+      ]
+    },
+    {
+      "uuid": "863dfd9f-51c8-57b7-9f36-ffeedba658ab",
+      "isOpen": false,
+      "children": [
+        "b9491b3c-f60d-51fa-8a0f-ce603f761851",
+        "1097723a-c627-58df-aaa7-cd33d6aba9f2",
+        "6f8f3c0f-21a7-5dec-b4a9-468e62adc555"
+      ]
+    },
+    {
+      "uuid": "7c2f4324-f8ec-53d6-bc3e-5ce58b2172f1",
+      "isOpen": false,
+      "children": [
+        "eef44ba3-7ddf-5882-9be8-871e75943146",
+        "b0dda3f1-2be2-52ed-8cd4-b837f7d8b3a3",
+        "5b5d6d02-db53-55e5-a5a0-a439b3d70b4b",
+        "6f7c5d1e-932a-5e52-9729-4d70c79a84b7",
+        "2fc5f6eb-9e6f-59f4-b710-76f3b91710cb"
+      ]
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        25,
+        -145,
+        0
+      ],
+      "translation": [
+        0,
+        -1,
+        0
+      ],
+      "scale": [
+        0.64,
+        0.64,
+        0.64
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        4,
+        0
+      ],
+      "scale": [
+        0.45,
+        0.45,
+        0.45
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "translation": [
+        0,
+        -1,
+        -1
+      ],
+      "scale": [
+        0.7,
+        0.7,
+        0.7
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        60,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        4.75,
+        1.75
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        60,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        4.75,
+        1.75
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        -8,
+        0
+      ],
+      "translation": [
+        0.5,
+        0,
+        -4
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        8,
+        0
+      ],
+      "translation": [
+        0.5,
+        0,
+        -4
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "head": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        7,
+        0
+      ],
+      "scale": [
+        0.6,
+        0.6,
+        0.6
+      ]
+    }
+  },
+  "gui_light": "side",
+  "ambientocclusion": true,
+  "credit": "Original cuboid fan model; Splatoon shooter inspired. Ink faces: tint index 0."
+}

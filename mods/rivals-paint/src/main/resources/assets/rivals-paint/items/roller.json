@@ -1,0 +1,37 @@
+{
+	"hand_animation_on_swap": false,
+	"model": {
+		"type": "minecraft:condition",
+		"property": "minecraft:using_item",
+		"on_true": {
+			"type": "minecraft:model",
+			"model": "rivals-paint:item/roller_rolling",
+			"tints": [
+				{
+					"type": "minecraft:dye",
+					"default": 16777215
+				},
+				{
+					"type": "minecraft:custom_model_data",
+					"index": 0,
+					"default": 3158064
+				}
+			]
+		},
+		"on_false": {
+			"type": "minecraft:model",
+			"model": "rivals-paint:item/roller",
+			"tints": [
+				{
+					"type": "minecraft:dye",
+					"default": 16777215
+				},
+				{
+					"type": "minecraft:custom_model_data",
+					"index": 0,
+					"default": 3158064
+				}
+			]
+		}
+	}
+}

@@ -1,0 +1,37 @@
+{
+    "item.totem.use": {
+        "replace": true,
+        "sounds": [],
+        "subititles": ""
+    },
+    "entity.generic.explode": {
+        "replace": true,
+        "sounds": [],
+        "subititles": ""
+    },
+    "entity.item_frame.add_item": {
+        "replace": true,
+        "sounds": [],
+        "subititles": ""
+    },
+    "entity.item_frame.break": {
+        "replace": true,
+        "sounds": [],
+        "subititles": ""
+    },
+    "entity.item_frame.place": {
+        "replace": true,
+        "sounds": [],
+        "subititles": ""
+    },
+    "entity.item_frame.remove_item": {
+        "replace": true,
+        "sounds": [],
+        "subititles": ""
+    },
+    "entity.item_frame.rotate_item": {
+        "replace": true,
+        "sounds": [],
+        "subititles": ""
+    }
+}

@@ -1,0 +1,543 @@
+package metacraft.ovvar;
+
+import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
+import com.mojang.serialization.JavaOps;
+import metacraft.ovvar.content.*;
+import metacraft.ovvar.pack.Combos;
+import metacraft.ovvar.sewing.SewingGame;
+import metacraft.ovvar.sewing.StandSewing;
+import metacraft.ovvar.sewing.WardrobeGui;
+import metacraft.ovvar.sewing.StashSession;
+import metacraft.ovvar.store.Stash;
+import metacraft.ovvar.store.Wardrobe;
+import metacraft.ovvar.store.Wardrobes;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.util.Prediction;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.GameProfileArgument;
+import net.minecraft.server.players.NameAndId;
+import net.minecraft.core.Rotations;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.decoration.Mannequin;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+/**
+ * {@code /ovvar} (gamemasters):
+ * <ul>
+ *   <li>{@code give [player] <chapter> [patches]} — an ovve, top up, with the given patches:
+ *	   {@code all} (every cell filled, cycling through the patches), {@code none}, or
+ *	   {@code spot.patch} / bare patch ids (first free cell) separated by commas/spaces; the word
+ *	   {@code down} anywhere gives it with the top rolled down;</li>
+ *   <li>{@code patches <patches>} — re-sew the ovve in your main hand;</li>
+ *   <li>{@code showcase <chapter> [mannequin]} — a row of displays in front of you: top down, top up,
+ *	   one per patch (on the chest), every cell filled; mannequins by default, {@code false} for armour stands;</li>
+ *   <li>{@code stands <chapter>} — three posed stands wearing a plain ovve, for testing the sewing aim;</li>
+ *   <li>{@code minigame [on|off] [stitches]} — the stitching minigame setting, saved to config/ovvar.json;</li>
+ *   <li>{@code aimlog on|off} — log every click on a stand and every aim change with the numbers behind it (server log);</li>
+ *   <li>{@code store status|show [player]|reload [player]|reconnect} — the wardrobe store: what it is and
+ *	   what is cached, one player's designs and stash, drop and refetch them, or reopen the backend from the config;</li>
+ *   <li>{@code patch give <targets> <patch> [count]} — a patch into the stash of every selected player (vanilla
+ *	   selectors), with the flourish and the explanation each.</li>
+ * </ul>
+ * And for everyone: {@code stash} opens the stash, {@code stash done} ends a sewing session, {@code stash deposit}
+ * puts every held patch in.
+ */
+public final class ModCommands {
+	private ModCommands() {}
+
+	private static final DynamicCommandExceptionType UNKNOWN_CHAPTER =
+			new DynamicCommandExceptionType(name -> Component.literal("Unknown chapter '" + name + "'"));
+	private static final DynamicCommandExceptionType UNKNOWN_PATCH =
+			new DynamicCommandExceptionType(name -> Component.literal("Unknown patch '" + name + "'"));
+	private static final DynamicCommandExceptionType INVALID_PATCHES =
+			new DynamicCommandExceptionType(name -> Component.literal("Invalid patches: " + name));
+
+	private static final DynamicCommandExceptionType NOT_AN_OVVE =
+			new DynamicCommandExceptionType(what -> Component.literal("Hold an ovve in your main hand, not " + what));
+
+	private static final java.util.function.Predicate<CommandSourceStack> GAMEMASTER =
+			source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions());
+
+	public static void init() {
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+				dispatcher.register(Commands.literal(Ovvar.MOD_ID)
+						// Anyone: the latest resource pack, now (the one reload that is asked for).
+						.then(Commands.literal("reload").executes(ModCommands::reload))
+						// Anyone: a look at somebody's ovve, theirs or their own, read-only.
+						.then(Commands.literal("look")
+								.executes(ctx -> {
+									ServerPlayer viewer = ctx.getSource().getPlayerOrException();
+									WardrobeGui.look(viewer, viewer.getUUID(), viewer.getName().getString());
+									return 1;
+								})
+								.then(Commands.argument("player", GameProfileArgument.gameProfile())
+										.executes(ModCommands::look)))
+						// Anyone: their stash.
+						.then(Commands.literal("stash")
+								.executes(ctx -> {
+									WardrobeGui.open(ctx.getSource().getPlayerOrException());
+									return 1;
+								})
+								.then(Commands.literal("done").executes(ctx -> {
+									ServerPlayer player = ctx.getSource().getPlayerOrException();
+									if (StashSession.of(player) == null) throw NOT_AN_OVVE.create("no sewing session to end");
+									StashSession.end(player, "Sewing session over");
+									return 1;
+								}))
+								.then(Commands.literal("deposit").executes(ctx -> {
+									ServerPlayer player = ctx.getSource().getPlayerOrException();
+									Stash.deposit(player, reply -> player.sendSystemMessage(Component.literal(reply)));
+									return 1;
+								})))
+						.then(Commands.literal("patch").requires(GAMEMASTER)
+								.then(Commands.literal("give")
+										.then(Commands.argument("targets", EntityArgument.players())
+												.then(Commands.argument("patch", StringArgumentType.word())
+														.suggests((ctx, builder) -> SharedSuggestionProvider.suggest(Patches.all().stream().map(Patches.Patch::id), builder))
+														.executes(ctx -> patchGive(ctx, 1))
+														.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
+																.executes(ctx -> patchGive(ctx, IntegerArgumentType.getInteger(ctx, "count"))))))))
+						.then(Commands.literal("give").requires(GAMEMASTER)
+								.then(chapterArg()
+										.executes(ctx -> give(ctx, ctx.getSource().getPlayerOrException(), ""))
+										.then(patchesArg().executes(ctx -> give(ctx, ctx.getSource().getPlayerOrException(),
+												StringArgumentType.getString(ctx, "patches")))))
+								.then(Commands.argument("player", EntityArgument.player())
+										.then(chapterArg()
+												.executes(ctx -> give(ctx, EntityArgument.getPlayer(ctx, "player"), ""))
+												.then(patchesArg().executes(ctx -> give(ctx, EntityArgument.getPlayer(ctx, "player"),
+														StringArgumentType.getString(ctx, "patches")))))))
+						.then(Commands.literal("patches").requires(GAMEMASTER)
+								.then(patchesArg().executes(ModCommands::resew)))
+						.then(Commands.literal("showcase").requires(GAMEMASTER)
+								.then(chapterArg().executes(ctx -> showcase(ctx, true))
+										.then(Commands.argument("mannequin", BoolArgumentType.bool())
+												.executes(ctx -> showcase(ctx, BoolArgumentType.getBool(ctx, "mannequin"))))))
+						.then(Commands.literal("stands").requires(GAMEMASTER)
+								.then(chapterArg().executes(ModCommands::stands)))
+						.then(Commands.literal("minigame").requires(GAMEMASTER)
+								.executes(ctx -> minigame(ctx, null, 0))
+								.then(Commands.literal("on").executes(ctx -> minigame(ctx, true, 0))
+										.then(Commands.argument("stitches", IntegerArgumentType.integer(OvvarConfig.MIN_STITCHES, OvvarConfig.MAX_STITCHES))
+												.executes(ctx -> minigame(ctx, true, IntegerArgumentType.getInteger(ctx, "stitches")))))
+								.then(Commands.literal("off").executes(ctx -> minigame(ctx, false, 0))))
+						.then(Commands.literal("stitch").requires(GAMEMASTER)
+								.then(Commands.argument("placement", StringArgumentType.word()).executes(ModCommands::stitch)))
+						.then(Commands.literal("aimlog").requires(GAMEMASTER)
+								.then(Commands.literal("on").executes(ctx -> aimLog(ctx, true)))
+								.then(Commands.literal("off").executes(ctx -> aimLog(ctx, false))))
+						.then(Commands.literal("store").requires(GAMEMASTER)
+								.then(Commands.literal("status").executes(ModCommands::storeStatus))
+								.then(Commands.literal("show")
+										.executes(ctx -> storeShow(ctx, ctx.getSource().getPlayerOrException()))
+										.then(Commands.argument("player", EntityArgument.player())
+												.executes(ctx -> storeShow(ctx, EntityArgument.getPlayer(ctx, "player")))))
+								.then(Commands.literal("reload")
+										.executes(ctx -> storeReload(ctx, ctx.getSource().getPlayerOrException()))
+										.then(Commands.argument("player", EntityArgument.player())
+												.executes(ctx -> storeReload(ctx, EntityArgument.getPlayer(ctx, "player")))))
+								.then(Commands.literal("reconnect").executes(ModCommands::storeReconnect)))));
+	}
+
+	private static com.mojang.brigadier.builder.RequiredArgumentBuilder<CommandSourceStack, String> chapterArg() {
+		return Commands.argument("chapter", StringArgumentType.word())
+				.suggests((ctx, builder) -> SharedSuggestionProvider.suggest(Arrays.stream(Chapter.values()).map(c -> c.id), builder));
+	}
+
+	private static com.mojang.brigadier.builder.RequiredArgumentBuilder<CommandSourceStack, String> patchesArg() {
+		return Commands.argument("patches", StringArgumentType.greedyString())
+				.suggests((ctx, builder) -> SharedSuggestionProvider.suggest(Stream.concat(Stream.of("all", "none"),
+						Stream.concat(Patches.all().stream().map(Patches.Patch::id),
+								Arrays.stream(Spot.values()).flatMap(spot -> Patches.all().stream().filter(p -> p.fits(spot))
+										.map(p -> new Placement(spot, p).key())))), builder));
+	}
+
+	private static Chapter chapter(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		String name = StringArgumentType.getString(ctx, "chapter");
+		return Arrays.stream(Chapter.values()).filter(c -> c.id.equals(name)).findFirst().orElseThrow(() -> UNKNOWN_CHAPTER.create(name));
+	}
+
+	/** {@code all}, {@code none}, {@code spot.patch} entries, or bare patch ids (first free cell that takes it). */
+	private static List<Placement> patches(String spec) throws CommandSyntaxException {
+		String s = spec.trim().replaceAll("^(none)?[,\\s]+|[,\\s]+$", "");
+		List<Placement> out = new ArrayList<>();
+		if (s.isEmpty() || s.equals("none")) return out;
+		if (s.equals("all")) {
+			List<Patches.Patch> plain = Patches.all().stream().filter(p -> !p.seat()).toList();
+			int i = 0;
+			for (Spot spot : Spot.values()) {
+				if (spot == Spot.SEAT || Spot.SEAT_CELLS.contains(spot)) continue;
+				// Cells that cover each other cannot both be filled: the big back cell covers the two
+				// back-top ones, which come first here and so win.
+				if (out.stream().anyMatch(o -> spot.overlapping().contains(o.spot()))) continue;
+				out.add(new Placement(spot, plain.get(i++ % plain.size())));
+			}
+			Patches.all().stream().filter(Patches.Patch::seat).findFirst().ifPresent(p -> out.add(new Placement(Spot.SEAT, p)));
+			return out;
+		}
+		for (String token : s.split("[,\\s]+")) {
+			if (Placement.isKey(token)) {
+				Placement p = Placement.parse(token);
+				out.removeIf(o -> o.spot() == p.spot() || p.spot().overlapping().contains(o.spot()));
+				out.add(p);
+				continue;
+			}
+			if (!Patches.exists(token)) throw UNKNOWN_PATCH.create(token);
+			Patches.Patch patch = Patches.get(token);
+			Spot free = Arrays.stream(Spot.values()).filter(patch::fits)
+					.filter(spot -> out.stream().noneMatch(o -> o.spot() == spot || spot.overlapping().contains(o.spot())))
+					.findFirst().orElseThrow(() -> UNKNOWN_PATCH.create(token + " (no free cell takes it)"));
+			out.add(new Placement(free, patch));
+		}
+		return out;
+	}
+
+	private static @Nullable SpotPlacements fromList(List<Placement> patches) throws CommandSyntaxException {
+		return patches.isEmpty() ? null : SpotPlacements.fromList(patches).getOrThrow(INVALID_PATCHES::create);
+	}
+
+	private static ItemStack ovve(Chapter chapter, boolean topUp, List<Placement> patches) throws CommandSyntaxException {
+		ItemStack stack = new ItemStack(ModContent.ovve(chapter));
+		OvveItem.setTopUp(stack, topUp && chapter.rollable || !chapter.rollable);
+		Looks.setSewn(stack, fromList(patches));
+		return stack;
+	}
+
+	private static int give(CommandContext<CommandSourceStack> ctx, ServerPlayer player, String spec) throws CommandSyntaxException {
+		Chapter chapter = chapter(ctx);
+		boolean down = spec.matches("(?s).*\\bdown\\b.*");   // "down" anywhere in the spec: top rolled down
+		List<Placement> patches = patches(spec.replaceAll("\\bdown\\b", " "));
+		String patchSpec = spec.replaceAll("\\bdown\\b", " ").trim();
+		ItemStack stack = ovve(chapter, !down, patches);
+		// Theirs. With patches named, those become their design for the chapter (replacing what the
+		// store had); with none, the ovve simply shows the design they already have.
+		OvveItem.setOwner(stack, player.getUUID());
+		if (!patchSpec.isEmpty()) {
+			SpotPlacements design = fromList(patches);
+			Wardrobes.update(player.getUUID(), w -> w.withDesign(chapter, design), outcome ->
+					ctx.getSource().sendSuccess(() -> Component.literal("Design of " + player.getName().getString() + " (" + chapter.id + "): " + describe(outcome)), false));
+		}
+		Looks.claimIfNeeded(player, stack);   // before the inventory takes it (an emptied stack reads as bare)
+		if (!player.getInventory().add(stack)) player.drop(stack, false, Prediction.SERVER_ONLY);
+		ctx.getSource().sendSuccess(() -> Component.literal("Gave " + player.getName().getString() + " a " + chapter.name
+				+ " " + chapter.garmentWord() + (patchSpec.isEmpty() ? " (their stored design)" : " with " + patches.size() + " patch(es)")), true);
+		return 1;
+	}
+
+	/** Opens the stitching dialog for a placement on the nearest stand wearing an ovve, aim or no aim — for looking at the dialog. */
+	private static int stitch(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		String key = StringArgumentType.getString(ctx, "placement");
+		if (!Placement.isKey(key)) throw UNKNOWN_PATCH.create(key + " (want cell.patch)");
+		Placement placement = Placement.parse(key);
+		ArmorStand stand = player.level().getEntitiesOfClass(ArmorStand.class, player.getBoundingBox().inflate(8)).stream()
+				.filter(s -> s.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem)
+				.min(java.util.Comparator.comparingDouble(s -> s.distanceToSqr(player))).orElse(null);
+		if (stand == null) throw NOT_AN_OVVE.create("no stand wearing one within 8 blocks");
+		SewingGame.start(player, stand, placement, placement.patch());
+		return 1;
+	}
+
+	private static int reload(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		String reply = Combos.reload(player);
+		ctx.getSource().sendSuccess(() -> Component.literal(reply), false);
+		return 1;
+	}
+
+	private static int resew(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		ItemStack held = player.getMainHandItem();
+		if (!(held.getItem() instanceof OvveItem)) throw NOT_AN_OVVE.create(held.getItem().toString());
+		List<Placement> patches = patches(StringArgumentType.getString(ctx, "patches"));
+		SpotPlacements design = fromList(patches);
+		UUID owner = OvveItem.owner(held);
+		if (owner != null && held.getItem() instanceof OvveItem item) {
+			// An owned ovve is a view of the design: change that, and the item follows on its tick.
+			Wardrobes.update(owner, w -> w.withDesign(item.chapter, design), outcome -> {
+				if (outcome == Wardrobes.Outcome.OK) {
+					OvveItem.refresh(held);
+					Looks.claimIfNeeded(player, held);
+				}
+				ctx.getSource().sendSuccess(() -> Component.literal("Design " + owner + "/" + item.chapter.id + ": " + describe(outcome)
+						+ (outcome == Wardrobes.Outcome.OK ? ", sewn: " + (patches.isEmpty() ? "nothing" : Placement.combo(patches)) : "")), false);
+			});
+			return 1;
+		}
+		Looks.setSewn(held, design);
+		Looks.claimIfNeeded(player, held);
+		ctx.getSource().sendSuccess(() -> Component.literal("Sewn (unowned ovve): " + (patches.isEmpty() ? "nothing" : Placement.combo(patches))), false);
+		return 1;
+	}
+
+	/**
+	 * Sewing test rig: three stands in front of you wearing a plain ovve, top up — one at rest,
+	 * one with the arms out and legs apart (every face reachable), one turned sideways. Hold a
+	 * patch and aim; sneak for the far face.
+	 */
+	private static int stands(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		Chapter chapter = chapter(ctx);
+		ServerLevel level = player.level();
+		float yaw = player.getYRot();
+		Vec3 forward = Vec3.directionFromRotation(0, yaw);
+		Vec3 right = new Vec3(-forward.z, 0, forward.x);
+		Vec3 origin = player.position().add(forward.scale(2.5));
+		Rotations[][] poses = {
+				{new Rotations(-10, 0, 10), new Rotations(-10, 0, -10), new Rotations(0, 0, 0), new Rotations(0, 0, 0)},
+				{new Rotations(-10, 0, 80), new Rotations(-10, 0, -80), new Rotations(0, 0, 25), new Rotations(0, 0, -25)},
+				{new Rotations(-10, 0, 10), new Rotations(-10, 0, -10), new Rotations(0, 0, 0), new Rotations(0, 0, 0)}};
+		String[] labels = {"at rest", "arms out, legs apart", "sideways"};
+		for (int i = 0; i < 3; i++) {
+			Vec3 pos = origin.add(right.scale(2.5 * (i - 1)));
+			ArmorStand stand = new ArmorStand(level, pos.x, Math.floor(pos.y), pos.z);
+			float facing = yaw + 180 + (i == 2 ? 90 : 0);
+			stand.setYRot(facing);
+			stand.setYBodyRot(facing);
+			stand.setShowArms(true);
+			stand.setRightArmPose(poses[i][0]);
+			stand.setLeftArmPose(poses[i][1]);
+			stand.setRightLegPose(poses[i][2]);
+			stand.setLeftLegPose(poses[i][3]);
+			stand.setItemSlot(EquipmentSlot.LEGS, ovve(chapter, true, List.of()));
+			stand.setCustomName(Component.literal(labels[i]));
+			stand.setCustomNameVisible(true);
+			level.addFreshEntity(stand);
+		}
+		ctx.getSource().sendSuccess(() -> Component.literal("Placed 3 sewing stands; hold a patch and aim, sneak for the far face"), false);
+		return 3;
+	}
+
+	/** Stands 2 blocks apart to the player's right, facing the player. */
+	private static int showcase(CommandContext<CommandSourceStack> ctx, boolean mannequin) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		Chapter chapter = chapter(ctx);
+		ServerLevel level = player.level();
+
+		List<ItemStack> looks = new ArrayList<>();
+		List<String> labels = new ArrayList<>();
+		if (chapter.rollable) { looks.add(ovve(chapter, false, List.of())); labels.add("top down"); }
+		looks.add(ovve(chapter, true, List.of())); labels.add("top up");
+		for (Patches.Patch p : Patches.all()) {
+			Spot spot = p.seat() ? Spot.SEAT : Spot.FRONT_TOP_RIGHT;
+			looks.add(ovve(chapter, true, List.of(new Placement(spot, p))));
+			labels.add(p.name() + " (" + spot.label() + ")");
+		}
+		List<Placement> all = patches("all");
+		looks.add(ovve(chapter, true, all)); labels.add("all " + all.size());
+
+		float yaw = player.getYRot();
+		Vec3 forward = Vec3.directionFromRotation(0, yaw);
+		Vec3 right = new Vec3(-forward.z, 0, forward.x);
+		Vec3 origin = player.position().add(forward.scale(3));
+		for (int i = 0; i < looks.size(); i++) {
+			Vec3 pos = origin.add(right.scale(2 * i - (looks.size() - 1)));
+			double y = Math.floor(pos.y);
+			ItemStack ovve = looks.get(i);
+			// The companion top is placed by hand so it shows before the first tick.
+			ItemStack top = null;
+			if (OvveItem.topUp(ovve)) {
+				top = new ItemStack(ModContent.top(chapter));
+				var patches = ovve.get(ModComponents.PATCHES);
+				if (patches != null) top.set(ModComponents.PATCHES, patches);
+			}
+
+			// A mannequin renders like a player, so the ovve and its patches show as worn; an armour
+			// stand uses a different model and misplaces them. Default on; pass false for stands.
+			Entity display;
+			if (mannequin) {
+				display = buildMannequin(level, pos, yaw, ovve, top);
+			} else {
+				ArmorStand stand = new ArmorStand(level, pos.x, y, pos.z);
+				stand.setYRot(yaw + 180);
+				stand.setYBodyRot(yaw + 180);
+				stand.setShowArms(true);
+				stand.setLeftArmPose(new Rotations(-10, 0, -10));
+				stand.setRightArmPose(new Rotations(-10, 0, 10));
+				stand.setItemSlot(EquipmentSlot.LEGS, ovve);
+				if (top != null) stand.setItemSlot(EquipmentSlot.CHEST, top);
+				display = stand;
+			}
+			display.setCustomName(Component.literal(labels.get(i)));
+			display.setCustomNameVisible(true);
+			level.addFreshEntity(display);
+		}
+		int count = looks.size();
+		String kind = mannequin ? "mannequins" : "stands";
+		ctx.getSource().sendSuccess(() -> Component.literal("Placed " + count + " " + chapter.name + " " + kind), false);
+		return count;
+	}
+
+	/** The companion top an ovve's item pass needs beside it (the top is up, and its patches), or null. */
+	private static @Nullable ItemStack companionTop(ItemStack ovve) {
+		if (!OvveItem.topUp(ovve) || !(ovve.getItem() instanceof OvveItem item)) return null;
+		ItemStack top = new ItemStack(ModContent.top(item.chapter));
+		var patches = ovve.get(ModComponents.PATCHES);
+		if (patches != null) top.set(ModComponents.PATCHES, patches);
+		return top;
+	}
+
+	/**
+	 * A mannequin at {@code pos} facing {@code yaw}'s owner, wearing {@code ovve} and its companion
+	 * {@code top} (nullable) -- not yet added to the level, so callers can tag or flag it first.
+	 * Shared by {@link #showcase} and {@link #spawnMannequinWearing} so there is one place that
+	 * knows how a mannequin wears an ovve.
+	 */
+	private static Mannequin buildMannequin(ServerLevel level, Vec3 pos, float yaw, ItemStack ovve, @Nullable ItemStack top) {
+		Mannequin m = new Mannequin(EntityTypes.MANNEQUIN, level);
+		m.setPos(pos.x, Math.floor(pos.y), pos.z);
+		m.setYRot(yaw + 180);
+		m.setYBodyRot(yaw + 180);
+		m.setYHeadRot(yaw + 180);
+		m.setItemSlot(EquipmentSlot.LEGS, ovve);
+		if (top != null) m.setItemSlot(EquipmentSlot.CHEST, top);
+		return m;
+	}
+
+	/**
+	 * A mannequin wearing {@code ovve} (and its companion top, if the top is up), {@code blocksInFront}
+	 * of {@code player} and facing them -- the single-display half of {@link #showcase}, reused by
+	 * the wardrobe screen's "show on mannequin" action ({@link metacraft.ovvar.sewing.WardrobeMannequin}),
+	 * which is the one that adds the lifecycle (one per player, a timeout, a leash range) a gamemaster
+	 * command does not need.
+	 */
+	public static Mannequin spawnMannequinWearing(ServerPlayer player, ItemStack ovve, double blocksInFront) {
+		ServerLevel level = player.level();
+		float yaw = player.getYRot();
+		Vec3 pos = player.position().add(Vec3.directionFromRotation(0, yaw).scale(blocksInFront));
+		Mannequin m = buildMannequin(level, pos, yaw, ovve, companionTop(ovve));
+		level.addFreshEntity(m);
+		return m;
+	}
+
+	private static int minigame(CommandContext<CommandSourceStack> ctx, Boolean on, int stitches) {
+		if (on != null) {
+			OvvarConfig.modify(config -> config.minigame(on, stitches));
+		}
+		OvvarConfig now = OvvarConfig.get();
+		ctx.getSource().sendSuccess(() -> Component.literal("Stitching minigame " + (now.sewingMinigame() ? "on, " + now.stitches() + " stitches" : "off")), true);
+		return 1;
+	}
+
+	private static String describe(Wardrobes.Outcome outcome) {
+		return switch (outcome) {
+			case OK -> "written";
+			case CONFLICT -> "conflict, the store had a newer version (refetching; run it again)";
+			case UNREACHABLE -> "the store is unreachable, nothing written";
+			case NOT_LOADED -> "not loaded yet (fetching; run it again)";
+			case REJECTED -> "did not apply";
+		};
+	}
+
+	/** {@code patch give <targets> <patch> [count]}: into each player's stash, with the flourish. */
+	private static int patchGive(CommandContext<CommandSourceStack> ctx, int count) throws CommandSyntaxException {
+		String id = StringArgumentType.getString(ctx, "patch");
+		if (!Patches.exists(id)) throw UNKNOWN_PATCH.create(id);
+		Patches.Patch patch = Patches.get(id);
+		var targets = EntityArgument.getPlayers(ctx, "targets");
+		for (ServerPlayer target : targets) {
+			Stash.grant(target, patch, count, outcome -> {
+				if (outcome != Wardrobes.Outcome.OK) {
+					ctx.getSource().sendFailure(Component.literal(target.getName().getString() + ": " + describe(outcome)));
+				}
+			});
+		}
+		int n = targets.size();
+		ctx.getSource().sendSuccess(() -> Component.literal(count + " × " + patch.name() + " to the stash of " + n + " player(s)"), true);
+		return n;
+	}
+
+	private static int storeStatus(CommandContext<CommandSourceStack> ctx) {
+		StringBuilder out = new StringBuilder(Wardrobes.status());
+		var config = OvvarConfig.get().stash();
+		out.append("\nthis server: ").append(config.minigameServer() ? "minigame (view-only)" : "survival (sewing allowed)")
+				.append(", banks patch items: ").append(config.banksOnPickup()).append(", withdraw: ").append(config.canWithdraw())
+				.append(", any stand: ").append(config.anyStand());
+		for (String s : StashSession.describeAll(ctx.getSource().getServer())) out.append("\nsession: ").append(s);
+		ctx.getSource().sendSuccess(() -> Component.literal(out.toString()), false);
+		return 1;
+	}
+
+	/**
+	 * {@code /ovvar look <player>}: their ovve, read-only. A wardrobe is a row in a store rather
+	 * than an inventory, so this works for a player who is not here — the name is resolved by the
+	 * server's own profile resolver, the same one {@code /whitelist add} uses, so an online-mode
+	 * server refuses a name nobody has and an offline-mode one resolves it to the offline UUID of
+	 * that name, which simply has no wardrobe to show.
+	 */
+	private static int look(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer viewer = ctx.getSource().getPlayerOrException();
+		Collection<NameAndId> named = GameProfileArgument.getGameProfiles(ctx, "player");
+		if (named.size() != 1) throw NOT_AN_OVVE.create(named.size() + " players; name just one");
+		NameAndId who = named.iterator().next();
+		WardrobeGui.look(viewer, who.id(), who.name());
+		return 1;
+	}
+
+	private static int storeShow(CommandContext<CommandSourceStack> ctx, ServerPlayer player) {
+		UUID id = player.getUUID();
+		if (!Wardrobes.loaded(id)) {
+			Wardrobes.fetch(id);
+			ctx.getSource().sendSuccess(() -> Component.literal(player.getName().getString() + ": wardrobe not loaded (fetching)"), false);
+			return 0;
+		}
+		Wardrobe wardrobe = Wardrobes.current(id);
+		StringBuilder out = new StringBuilder(player.getName().getString() + " (" + id + ") v" + wardrobe.version()
+				+ (Wardrobes.pending(id) ? " (writes queued)" : "") + (wardrobe.isEmpty() ? ": nothing" : ""));
+		for (Map.Entry<Chapter, SpotPlacements> entry : wardrobe.designs().entrySet()) {
+			List<Placement> list = entry.getValue().asPlacementList();
+			out.append("\n  ").append(entry.getKey().id).append(": ").append(list.isEmpty() ? "nothing" : Placement.combo(list));
+		}
+		if (!wardrobe.stash().isEmpty()) {
+			out.append("\n  stash:");
+			wardrobe.stash().forEach((patch, n) -> out.append(" ").append(patch).append("×").append(n));
+		}
+		ctx.getSource().sendSuccess(() -> Component.literal(out.toString()), false);
+		return wardrobe.designs().size();
+	}
+
+	private static int storeReload(CommandContext<CommandSourceStack> ctx, ServerPlayer player) {
+		Wardrobes.refresh(player.getUUID());
+		ctx.getSource().sendSuccess(() -> Component.literal("Refetching " + player.getName().getString() + "'s wardrobe"), false);
+		return 1;
+	}
+
+	private static int storeReconnect(CommandContext<CommandSourceStack> ctx) {
+		OvvarConfig.reload();
+		Motd.apply(ctx.getSource().getServer());   // server.name or the server's mode may have changed with it
+		Wardrobes.open(ctx.getSource().getServer(), OvvarConfig.get().designs());
+		for (ServerPlayer online : ctx.getSource().getServer().getPlayerList().getPlayers()) Wardrobes.fetch(online.getUUID());
+		ctx.getSource().sendSuccess(() -> Component.literal(Wardrobes.status()), true);
+		return 1;
+	}
+
+	private static int aimLog(CommandContext<CommandSourceStack> ctx, boolean on) {
+		StandSewing.aimLog = on;
+		ctx.getSource().sendSuccess(() -> Component.literal("Aim log " + (on ? "on: see the server log" : "off")), true);
+		return 1;
+	}
+}

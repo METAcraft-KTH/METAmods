@@ -1,0 +1,2212 @@
+{
+  "meta": {
+    "format_version": "5.0",
+    "model_format": "java_block",
+    "box_uv": false
+  },
+  "name": "Splat Charger",
+  "model_identifier": "splat:charger",
+  "visible_box": [
+    1,
+    1,
+    0
+  ],
+  "resolution": {
+    "width": 128,
+    "height": 128
+  },
+  "elements": [
+    {
+      "name": "Charger_receiver_1",
+      "type": "cube",
+      "uuid": "4cbd7a38-fe2f-5dfa-b78b-ceacfe70460d",
+      "from": [
+        6.0,
+        8.0,
+        3
+      ],
+      "to": [
+        10.0,
+        9.0,
+        14
+      ],
+      "origin": [
+        8.0,
+        8.5,
+        8.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": null,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Charger_receiver_2",
+      "type": "cube",
+      "uuid": "eef680fc-a9a4-5194-8df1-a44d8b1e6989",
+      "from": [
+        5.0,
+        9.0,
+        3
+      ],
+      "to": [
+        11.0,
+        11.0,
+        14
+      ],
+      "origin": [
+        8.0,
+        10.0,
+        8.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            98,
+            126,
+            126
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            98,
+            126,
+            126
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Charger_receiver_3",
+      "type": "cube",
+      "uuid": "2154525b-2544-5cb3-abcc-164a6ce7d905",
+      "from": [
+        6.0,
+        11.0,
+        3
+      ],
+      "to": [
+        10.0,
+        12.0,
+        14
+      ],
+      "origin": [
+        8.0,
+        11.5,
+        8.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": null,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Charger_rear_bumper",
+      "type": "cube",
+      "uuid": "8eb28be9-f94c-5180-98b8-1ae7b396144d",
+      "from": [
+        5,
+        9,
+        14
+      ],
+      "to": [
+        11,
+        11,
+        15
+      ],
+      "origin": [
+        8.0,
+        10.0,
+        14.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            2,
+            94,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Charger_long_barrel",
+      "type": "cube",
+      "uuid": "2a7795bd-5300-5323-91a4-f047cadec824",
+      "from": [
+        6,
+        9,
+        -11
+      ],
+      "to": [
+        10,
+        11,
+        3
+      ],
+      "origin": [
+        8.0,
+        10.0,
+        -4.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Charger_barrel_jacket",
+      "type": "cube",
+      "uuid": "51c805cb-4b5c-5efe-b96d-1ff5a77e0662",
+      "from": [
+        6,
+        8,
+        -4
+      ],
+      "to": [
+        10,
+        9,
+        3
+      ],
+      "origin": [
+        8.0,
+        8.5,
+        -0.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "DYE_charger_muzzle_top",
+      "type": "cube",
+      "uuid": "f67e9624-2d56-5d07-bb0a-e06bb8e47ab4",
+      "from": [
+        5,
+        12,
+        -14
+      ],
+      "to": [
+        11,
+        13,
+        -11
+      ],
+      "origin": [
+        8.0,
+        12.5,
+        -12.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "DYE_charger_muzzle_bottom",
+      "type": "cube",
+      "uuid": "0fb4aecb-a278-5f92-afda-471bffd97310",
+      "from": [
+        5,
+        7,
+        -14
+      ],
+      "to": [
+        11,
+        8,
+        -11
+      ],
+      "origin": [
+        8.0,
+        7.5,
+        -12.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "DYE_charger_muzzle_left",
+      "type": "cube",
+      "uuid": "ddae57c6-a7f5-51d0-b71d-86c2145c0ee6",
+      "from": [
+        5,
+        8,
+        -14
+      ],
+      "to": [
+        6,
+        12,
+        -11
+      ],
+      "origin": [
+        5.5,
+        10.0,
+        -12.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "DYE_charger_muzzle_right",
+      "type": "cube",
+      "uuid": "8aef2c86-7d4b-5df5-8f43-08958430bee1",
+      "from": [
+        10,
+        8,
+        -14
+      ],
+      "to": [
+        11,
+        12,
+        -11
+      ],
+      "origin": [
+        10.5,
+        10.0,
+        -12.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "Charger_recessed_bore",
+      "type": "cube",
+      "uuid": "028036a9-1119-540b-bf64-552adb426fa6",
+      "from": [
+        6,
+        8,
+        -12
+      ],
+      "to": [
+        10,
+        12,
+        -11
+      ],
+      "origin": [
+        8.0,
+        10.0,
+        -11.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "DYE_charger_reservoir",
+      "type": "cube",
+      "uuid": "78b77f87-22a1-57ab-bd32-44d026b960e3",
+      "from": [
+        6,
+        12,
+        7
+      ],
+      "to": [
+        10,
+        16,
+        13
+      ],
+      "origin": [
+        8.0,
+        14.0,
+        10.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "Charger_tank_front_rim",
+      "type": "cube",
+      "uuid": "8edecf02-5d68-543a-8807-a9b401f65f63",
+      "from": [
+        6,
+        12,
+        6
+      ],
+      "to": [
+        10,
+        16,
+        7
+      ],
+      "origin": [
+        8.0,
+        14.0,
+        6.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Charger_tank_rear_rim",
+      "type": "cube",
+      "uuid": "eed1b6d6-98ef-5ff1-862b-0497ef43ee99",
+      "from": [
+        6,
+        12,
+        13
+      ],
+      "to": [
+        10,
+        16,
+        14
+      ],
+      "origin": [
+        8.0,
+        14.0,
+        13.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Charger_Grip_core",
+      "type": "cube",
+      "uuid": "eb3c580c-ec9d-569e-ad4f-25659d7ab690",
+      "from": [
+        6,
+        2,
+        11
+      ],
+      "to": [
+        10,
+        8,
+        14
+      ],
+      "origin": [
+        8,
+        8,
+        12.5
+      ],
+      "rotation": [
+        -22.5,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Charger_Grip_heel",
+      "type": "cube",
+      "uuid": "9a832edb-c8cf-5796-b271-b414aaf39195",
+      "from": [
+        6,
+        1,
+        10
+      ],
+      "to": [
+        10,
+        2,
+        15
+      ],
+      "origin": [
+        8,
+        8,
+        12.5
+      ],
+      "rotation": [
+        -22.5,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Charger_trigger_guard_bottom",
+      "type": "cube",
+      "uuid": "d5b4bfef-12f3-5fa9-ae6a-3c0a64c57609",
+      "from": [
+        7,
+        4,
+        6
+      ],
+      "to": [
+        9,
+        5,
+        12
+      ],
+      "origin": [
+        8.0,
+        4.5,
+        9.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Charger_trigger_guard_front",
+      "type": "cube",
+      "uuid": "7918aa6c-81df-55db-9916-af73b5b57024",
+      "from": [
+        7,
+        5,
+        5
+      ],
+      "to": [
+        9,
+        8,
+        6
+      ],
+      "origin": [
+        8.0,
+        6.5,
+        5.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Charger_trigger",
+      "type": "cube",
+      "uuid": "2d863604-fe3b-5c78-86ca-661ac4bbbfd0",
+      "from": [
+        7,
+        6,
+        9
+      ],
+      "to": [
+        9,
+        8,
+        10
+      ],
+      "origin": [
+        8.0,
+        7.0,
+        9.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    }
+  ],
+  "textures": [
+    {
+      "name": "shooter_body.png",
+      "id": "0",
+      "uuid": "fe1f5b10-6be3-5095-8e2b-37944ae9bf9b",
+      "relative_path": "../textures/shooter_body.png",
+      "namespace": "splat",
+      "folder": "item",
+      "mode": "bitmap",
+      "width": 128,
+      "height": 128,
+      "uv_width": 128,
+      "uv_height": 128,
+      "particle": true,
+      "use_as_default": false,
+      "visible": true,
+      "internal": true,
+      "saved": true,
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACf0lEQVR4nO3csUrrcBSA8VRC1w4WJ10c1cXBwUVw0727rr6BSyc3fQPBQRBcikUHHQsuzi4+gg+RoXVSaCCYlIaT9Pt+070XvaeFz5MYyr9z+7kzSwJtb25Fjk8e7r9C57/f9UPnr4VOV7j09w/dbrfSN2ZZttQX4vyY+W4AOAOAMwC4v3uAZV/TqnJ+zHw3AJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAFxa4msW8t9n3Kp+Dt759cx3A8AZAJwBwNV2D1D3Nc75y5nvBoDr7B8eh54PcHZxHjk+GZwehM7f3TsJne8GgPN8APh8NwCcAcAZAJznA8DnuwHgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgPB8APt8NAGcAcAYA5/kA8PluALh08jYOfQG9Xi90/ngc+/77G+uh890AcI05HyBa9Pv3fACFMAA4A4BrzPkA0aLfv+cDKIQBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJznA8DnuwHgDADOAOA8HwA+3w0A17m8uZ5FvoCXx+fI8cnH5DV0/tP3Ueh8NwBcY84HoM+P4gaAq+23ANXrajD/szscTRf6f9wAcI05H4A+P4obAM57gJbJX/vz/171XsANAGcAcAYA5z1ASxRd+4u+ruy9gBsAzgDgDADOAFpqOJrOXefzfy/LAOAMAM4A4HwO0FL55wJlnxPkuQHgDADOAOAMoGWKft/3OYAW4vkAKzq/LDcAnM8BWiJ/fS+63vuZQFXi+QArOr8sNwDcD41Vvk15UXmbAAAAAElFTkSuQmCC"
+    },
+    {
+      "name": "shooter_ink.png",
+      "id": "1",
+      "uuid": "1c7cacac-e448-5d64-a4fe-f279f0f03328",
+      "relative_path": "../textures/shooter_ink.png",
+      "namespace": "splat",
+      "folder": "item",
+      "mode": "bitmap",
+      "width": 128,
+      "height": 128,
+      "uv_width": 128,
+      "uv_height": 128,
+      "particle": false,
+      "use_as_default": false,
+      "visible": true,
+      "internal": true,
+      "saved": true,
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACYklEQVR4nO3cMWrCcBiGcS3R1ckxV3D2DN7DK3iI7N7BQeImjp7LpZ1aMBCaiOFNfJ7f1Ja2n4WHL2mQ/7yu6+9ZUFmWyfGz0+kUnX+9XqPzv6LTFVf8frBcLnv94OPxeOsLcX5mvhsAzgDgDADu7x7g3de0vpyfme8GgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgCs6fM9L/nuPW9/3wTt/mPluADgDgDMAuMHuAYa+xjn/PfPdAHDz7XYbPR9gv98nx892u110/mazic53A8B5PgB8vhsAzgDgDADO8wHg890AcAYAZwBwBgBnAHAGAGcAcAYAZwBwBgBnAHAGAGcAcAYAZwBwBgBnAHAGAGcAcJ4PAJ/vBoAzADgDgPN8APh8NwBccbvdoi9gtVpF518ul+j89Xodne8GgBvN+QBp6b/f8wEUYQBwBgA3mvMB0tJ/v+cDKMIA4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOAMAM7zAeDz3QBwBgBnAHCeDwCf7waAK47HY/QFnM/n6Pz7/R6dv1gsovPdAHCjOR+APj/FDQA32H8BGtbhcHj6vKqql36PGwBuNOcD0OenuAHgvAeYmOa1v/n1vvcCbgA4A4AzADjvASai7drf9n1d7wXcAHAGAGcAcAYwUVVVPV3nm593ZQBwBgBnAHA+B5io5nOBrs8JmtwAcAYAZwBwBjAxbf/v+xxAL/F8gA+d35UbAM7nABPRvL63Xe99T6B68XyAD53flRsA7gdhGbj8LECXVQAAAABJRU5ErkJggg=="
+    }
+  ],
+  "groups": [
+    {
+      "name": "01 Charger body",
+      "uuid": "5f11822f-08b3-5f8e-8590-f6a94f19c267",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    },
+    {
+      "name": "02 Long barrel",
+      "uuid": "e4be84ee-c760-5e8e-b394-d1b8165a649c",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    },
+    {
+      "name": "03 Ink reservoir",
+      "uuid": "b23104f1-a250-526b-a343-3cb33d44d2a3",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    },
+    {
+      "name": "04 Grip and trigger",
+      "uuid": "a2d9405d-14f0-5286-b993-d2c407f01fb9",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    }
+  ],
+  "outliner": [
+    {
+      "uuid": "5f11822f-08b3-5f8e-8590-f6a94f19c267",
+      "isOpen": false,
+      "children": [
+        "4cbd7a38-fe2f-5dfa-b78b-ceacfe70460d",
+        "eef680fc-a9a4-5194-8df1-a44d8b1e6989",
+        "2154525b-2544-5cb3-abcc-164a6ce7d905",
+        "8eb28be9-f94c-5180-98b8-1ae7b396144d"
+      ]
+    },
+    {
+      "uuid": "e4be84ee-c760-5e8e-b394-d1b8165a649c",
+      "isOpen": false,
+      "children": [
+        "2a7795bd-5300-5323-91a4-f047cadec824",
+        "51c805cb-4b5c-5efe-b96d-1ff5a77e0662",
+        "f67e9624-2d56-5d07-bb0a-e06bb8e47ab4",
+        "0fb4aecb-a278-5f92-afda-471bffd97310",
+        "ddae57c6-a7f5-51d0-b71d-86c2145c0ee6",
+        "8aef2c86-7d4b-5df5-8f43-08958430bee1",
+        "028036a9-1119-540b-bf64-552adb426fa6"
+      ]
+    },
+    {
+      "uuid": "b23104f1-a250-526b-a343-3cb33d44d2a3",
+      "isOpen": false,
+      "children": [
+        "78b77f87-22a1-57ab-bd32-44d026b960e3",
+        "8edecf02-5d68-543a-8807-a9b401f65f63",
+        "eed1b6d6-98ef-5ff1-862b-0497ef43ee99"
+      ]
+    },
+    {
+      "uuid": "a2d9405d-14f0-5286-b993-d2c407f01fb9",
+      "isOpen": false,
+      "children": [
+        "eb3c580c-ec9d-569e-ad4f-25659d7ab690",
+        "9a832edb-c8cf-5796-b271-b414aaf39195",
+        "d5b4bfef-12f3-5fa9-ae6a-3c0a64c57609",
+        "7918aa6c-81df-55db-9916-af73b5b57024",
+        "2d863604-fe3b-5c78-86ca-661ac4bbbfd0"
+      ]
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        25,
+        -145,
+        0
+      ],
+      "translation": [
+        -1,
+        -1,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        4,
+        0
+      ],
+      "scale": [
+        0.38,
+        0.38,
+        0.38
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "translation": [
+        0,
+        -1,
+        -1
+      ],
+      "scale": [
+        0.7,
+        0.7,
+        0.7
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        60,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        4.75,
+        1.75
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        60,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        4.75,
+        1.75
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        -8,
+        0
+      ],
+      "translation": [
+        0.5,
+        0,
+        -4
+      ],
+      "scale": [
+        0.46,
+        0.46,
+        0.46
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        8,
+        0
+      ],
+      "translation": [
+        0.5,
+        0,
+        -4
+      ],
+      "scale": [
+        0.46,
+        0.46,
+        0.46
+      ]
+    },
+    "head": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        7,
+        0
+      ],
+      "scale": [
+        0.6,
+        0.6,
+        0.6
+      ]
+    }
+  },
+  "gui_light": "side",
+  "ambientocclusion": true,
+  "credit": "Original cuboid fan model; Splatoon charger inspired. Ink faces: tint index 0."
+}

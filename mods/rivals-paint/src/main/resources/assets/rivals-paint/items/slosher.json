@@ -1,0 +1,18 @@
+{
+	"hand_animation_on_swap": false,
+	"model": {
+		"type": "minecraft:model",
+		"model": "rivals-paint:item/slosher",
+		"tints": [
+			{
+				"type": "minecraft:dye",
+				"default": 16777215
+			},
+			{
+				"type": "minecraft:custom_model_data",
+				"index": 0,
+				"default": 3158064
+			}
+		]
+	}
+}

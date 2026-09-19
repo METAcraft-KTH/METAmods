@@ -1,0 +1,87 @@
+// Ovvar — student overalls with sewn-on patches for vanilla clients (Polymer). See README.md in this module.
+version = project.ovvar_version
+
+// Every art-derived file (armour layers cut from the website overlays, one equipment definition per
+// patch combination, icons, lang) comes from src/main/resources/art via data generation: ./gradlew runDatagen.
+setupRunDatagen("ovvar")
+// Client screenshot tests: a real client joins an in-process dedicated server and compares what it
+// sees. Source set src/gametest, task runClientGameTest (needs a display).
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "ovvar-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}
+
+addPolymerDependency()
+addSGUIDependency()
+// Pockets: the ovve is a bundle whose capacity metacraft-bundles scales (metacraft:bundle_size_factor).
+addProjectDependency(":mods:metacraft-bundles")
+dependencies {
+	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+	implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+	// The design store's JDBC drivers, bundled jar-in-jar (config designs.jdbc.url picks one).
+	implementation(include("org.mariadb.jdbc:mariadb-java-client:3.5.10"))
+	implementation(include("org.postgresql:postgresql:42.7.13"))
+	// Dev/test only: an in-memory database for the JDBC game test; not shipped.
+	runtimeOnly("com.h2database:h2:2.5.250")
+}
+
+// The shaderpack patcher: a double-clickable jar (Java 11+, no dependencies) built from
+// tools/shaderpatcher and shipped inside the resource pack at assets/ovvar/shaderpatcher/.
+sourceSets {
+	patcher {
+		java.srcDir 'tools/shaderpatcher/src'
+	}
+}
+tasks.withType(JavaCompile).configureEach {
+	if (it.name == 'compilePatcherJava') it.options.release = 11
+}
+tasks.register('patcherJar', Jar) {
+	from sourceSets.patcher.output
+	from('tools/shaderpatcher/README.txt')
+	// The very shader code the vanilla override uses, so patched packs and vanilla never drift apart.
+	from('src/main/resources/assets/ovvar/shaders/include/ovvar.glsl')
+	archiveFileName = 'OvvarShaderPatcher.jar'
+	manifest { attributes 'Main-Class': 'metacraft.ovvar.shaderpatcher.Patcher' }
+}
+
+// The game tests run inside a server: JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew
+// :mods:ovvar:runServer. A dev server already running here holds ./run's world lock, so -PrunDir=<dir>
+// (absolute or relative) sends a test run to a world of its own instead of asking for that one back.
+loom {
+	runs {
+		server {
+			runDir = project.findProperty('runDir') ?: 'run'
+		}
+	}
+}
+
+// A dev tool: the wardrobe screen composited to a PNG (WardrobeSheet), so the paper doll can be
+// looked at without starting a client. Needs runDatagen to have run (it reads the generated
+// equipment textures off the runtime classpath).
+tasks.register('wardrobeSheet', JavaExec) {
+	group = 'ovvar'
+	description = 'Writes the wardrobe screen (background + paper doll + slot markers) to -Psheet=<path>.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'metacraft.ovvar.pack.WardrobeSheet'
+	args = [project.findProperty('sheet') ?: '/tmp/wardrobe_v3_sheet.png', project.findProperty('chapter') ?: 'data', project.findProperty('sheetState') ?: 'sewn']
+}
+
+processResources {
+	// The jar and its README ride along in the mod's resources (an implicit dependency on patcherJar).
+	from(tasks.named('patcherJar')) { into 'assets/ovvar/shaderpatcher' }
+	from('tools/shaderpatcher/README.txt') { into 'assets/ovvar/shaderpatcher' }
+	doFirst {
+		def gen = file('src/main/generated/assets/ovvar/equipment')
+		def generating = gradle.startParameter.taskNames.any { it.endsWith('runDatagen') }
+		if (!generating && (!gen.isDirectory() || gen.list().length == 0)) {
+			throw new GradleException("Ovvar: generated assets missing — run './gradlew runDatagen' first.")
+		}
+	}
+}

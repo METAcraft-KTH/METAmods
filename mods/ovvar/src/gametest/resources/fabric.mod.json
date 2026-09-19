@@ -1,0 +1,21 @@
+{
+	"schemaVersion": 1,
+	"id": "ovvar-clienttest",
+	"version": "1.0.0",
+	"name": "Ovvar client tests",
+	"description": "Screenshot tests: a client sees what the server draws.",
+	"license": "Apache-2.0",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"metacraft.ovvar.clienttest.OvvarClientTests"
+		]
+	},
+	"mixins": [
+		"ovvar-clienttest.mixins.json"
+	],
+	"depends": {
+		"ovvar": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}

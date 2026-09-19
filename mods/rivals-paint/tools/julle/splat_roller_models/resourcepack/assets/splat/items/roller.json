@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "splat:item/roller",
+    "tints": [
+      {
+        "type": "minecraft:dye",
+        "default": 16740892
+      }
+    ]
+  }
+}

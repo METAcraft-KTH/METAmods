@@ -1,0 +1,74 @@
+{
+	"credit": "Original fan-made geometry by Julle (tools/julle/), Splatoon inspired; ink faces take tint index 0, the data LED tint index 1; rolling pose (held right click), display only",
+	"parent": "rivals-paint:item/roller",
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [
+				45,
+				0,
+				0
+			],
+			"translation": [
+				0,
+				10,
+				-3
+			],
+			"scale": [
+				1.0,
+				1.0,
+				1.0
+			]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [
+				45,
+				0,
+				0
+			],
+			"translation": [
+				0,
+				10,
+				-3
+			],
+			"scale": [
+				1.0,
+				1.0,
+				1.0
+			]
+		},
+		"firstperson_righthand": {
+			"rotation": [
+				-45,
+				-10,
+				-5
+			],
+			"translation": [
+				-5,
+				-3,
+				-9
+			],
+			"scale": [
+				0.58,
+				0.58,
+				0.58
+			]
+		},
+		"firstperson_lefthand": {
+			"rotation": [
+				-45,
+				10,
+				5
+			],
+			"translation": [
+				-5,
+				-3,
+				-9
+			],
+			"scale": [
+				0.58,
+				0.58,
+				0.58
+			]
+		}
+	}
+}

@@ -1,0 +1,168 @@
+# Ovvar Blockbench plugin — design
+
+2026-09-18. For Vlad (patch artist): draw a patch in Blockbench, sew it onto an ovve, and see it on
+a player model exactly as the game draws it, without running the game. Then export it into the
+repo ready to commit.
+
+## What it is
+
+Two artefacts, both in `mods/ovvar`:
+
+- **`tools/blockbench/ovvar.js`** — a Blockbench plugin (`variant: 'desktop'`; it reads the
+  checkout from disk). Loaded once through *File › Plugins › Load from file*, then pointed at a
+  METAmods checkout. Built by concatenating `tools/blockbench/src/*.js` (see *Files*), so the
+  composition code is plain functions that also run under Node for the tests.
+- **A datagen provider** (`datagen/BlockbenchManifest.java`) that writes
+  `src/main/generated/ovvar/blockbench/manifest.json` and a few PNGs beside it. Committed with the
+  rest of `generated/`, so CI's `runDatagen` catches a manifest that is out of step with
+  `Spot.java`/`Patches.java` the same way it catches stale textures today.
+
+The plugin never writes anything the mod reads except patch art (*Export*). Its design state
+(chapter, zip, placements) lives in the Blockbench project file.
+
+## How the game draws a patch (what "game-exact" means)
+
+From `datagen/GeneratedAssets` and `content/Spot`, which the plugin ports:
+
+- The armour model is one inflated box per part — top layer (body, arms) inflated 1.0, legs 0.5 —
+  reading the vanilla 64×32 armour layout at `Spot.DETAIL` = 2 (textures are 128×64). Left limbs
+  are drawn as mirror images off the *right* limb's strips; the mod paints the left limb's own art
+  onto a "mirror strip" `Spot.MIRROR_SHIFT` (16) rows above the box (`withLeft`), and the shader
+  picks strip by handedness.
+- Each placement is its own layer texture: the art centred on its cell (`placed`), wrapping round
+  the part's strip (past the outer face of a limb lies its back face), clipped to the side rows
+  `FACE_ROW..FACE_ROW+FACE_ROWS`. A cell on a box's *top* face (the shoulders) is clipped to the
+  face instead. The shader then squeezes the strip round the inflated box from the cell's face
+  (`Spot.anchored`) — `placedWrapped` bakes that squeeze column by column, which is what makes art
+  bend round corners — and draws it on one side only (`sided`: BODY, RIGHT, LEFT).
+- The seat is one patch cut in half: `_r` = the art's right half as drawn on the right leg, `_l` =
+  the left half flipped in x on the left leg (`Spot.seatHalf`, `seatColumn`).
+- Layers stack in `Spot.stacked` order (`EquipmentJson.layerTextures`): base garment, then the
+  placements, bigger cells under the smaller ones lying inside them (`Spot.layer`).
+- Which art a cell shows is `Patches.artFor(patch, spot)`: OVER (the drawn size), CLIPPED (largest
+  variant that fits an 8×8 shoulder), FILLED (largest that fits the 16×16 back cell). Sizes nobody
+  drew are generated from a 16×16 by `Tex.downscaled` (area-weighted majority vote, ties to the
+  rarer colour).
+
+## The manifest
+
+`generated/ovvar/blockbench/manifest.json`, `"version": 1`:
+
+```
+{ "version": 1,
+  "detail": 2, "faceRow": 20, "faceRows": 12, "topRow": 16, "mirrorShift": 16,
+  "inflate": {"top": 1.0, "bottom": 0.5},
+  "skinBoxes": {"body": [16,16,24,16], "rightArm": [40,16,16,16], "rightLeg": [0,16,16,16],
+                "leftArm": [32,48,16,16], "leftLeg": [16,48,16,16], "...Outer": ...},
+  "chapters": [{"id":"data","name":"Data","art":"data.png","nercabbad":"data-nercabbad.png","rollable":true}, ...],
+  "cells":   [{"id":"front_top_left","piece":"top","u":20,"v":21,"w":4,"h":4,"side":"body","top":false,"face":1,"layer":0}, ...],
+  "patches": [{"id":"itk","name":"ITK","seat":false,"w":12,"h":12,"artist":"Froosty11",
+               "arts":[{"file":"patches/itk.png","w":12,"h":12,"default":true},
+                       {"file":"patches/itk_16x16.png","w":16,"h":16},
+                       {"file":"patches/itk_8x8.png","w":8,"h":8}],
+               "fits":{"over":"patches/itk.png","clipped":"patches/itk_8x8.png","filled":"patches/itk_16x16.png"}}, ...],
+  "anchoredSamples": [[skinX, inflate, anchor, result], ... 512 of them],
+  "stackedOrder": "layer ascending, then sewing order"   // documents Spot.stacked; the test pins it
+}
+```
+
+Beside it: `art/<id>_<w>x<h>.png` for every *generated* variant (the ones not in the source tree),
+so the plugin can show today's catalogue without porting the scaler for it, and so the ported
+scaler has golden files.
+
+The PolymITer chapters are excluded (reference textures due for removal).
+
+## The plugin
+
+**Project.** *File › New › Ovvar* (a `ModelFormat` the plugin registers) or the sidebar's
+*Open checkout…*. It builds:
+
+- six armour cubes from `skinBoxes` and the inflate table, box-UV on a 64×32 grid with the project
+  texture size 128×64; the left arm and leg cubes `mirror_uv` and bound to texture **B**, the rest
+  to texture **A**;
+- textures A (`ovve_right`) and B (`ovve_left`), regenerated by `compose()` and never painted on;
+- one texture per catalogue art, named by its file (`patches/itk.png`), loaded from
+  `src/main/resources/art/ovvar/` (or `generated/ovvar/blockbench/art/` for generated sizes).
+
+**Sidebar panel (Vue).** Chapter, zipped up/down (disabled where `rollable` is false), a list of
+placements with *unpick*, and *sew*: cell picker (grouped by part, seat cells only take seat
+patches, `patch.fits` rules) + patch picker. Sewing onto the seat unpicks the two leg-back cells it
+covers and vice versa (`Spot.overlapping`); everything else may overlap. *New patch…* dialog: id
+(`[a-z0-9_]+`, unique), name, seat?, size (ordinary: even 6..16 both ways, default 12×12; seat:
+16 wide, 8..10 tall), artist. It adds a blank art texture and a catalogue entry in the project.
+*Add size…* adds a hand-drawn variant (8×8 / 12×12 / 16×16) for a patch.
+
+**compose(design) → `{top: {A, B}, bottom: {A, B}}`.** Pure, in `src/10-compose.js`, on `{w,h,data:Uint8Array}` images (the top and the legs are separate armour textures in the game, so four in all):
+
+1. base = the committed chapter layer texture (`generated/.../<chapter>/top.png`, `bottom.png`,
+   `_nercabbad` when zipped down). Loading it rather than re-cutting it avoids porting the HSB tint of `it_kisel`; the ported `flattened`/`withLeft` cut is kept only as a golden test.
+2. for each placement in stacked order: art = `fits[fit(cell)]` (or the scaler for a variant not
+   drawn), `placed` / for side cells `placedWrapped`, seat halves as above; blit onto A for BODY and
+   RIGHT, onto B for LEFT (seat: `_r`→A, `_l`→B).
+3. B additionally has the mirror strip (rows `v-mirrorShift`) copied down onto the limb rows, so a
+   mirrored cube reading the standard strip shows the left limb's own art.
+
+Runs on every `finished_edit` whose texture is a patch art, and on every panel change. Cost is a
+few 128×64 blits — milliseconds.
+
+**Export.** *Export to repo*: writes every patch the project added or changed to
+`src/main/resources/art/ovvar/patches/<id>.png` (+ `<id>_<w>x<h>.png` per hand-drawn variant),
+then a dialog with the `Patches.java` line(s) to paste (`new Patch("id", "Name", w, h).by("Vlad")`
+/ `Patch.seat("id", "Name", 16, h).by(...)`) and a reminder to run `./gradlew :mods:ovvar:runDatagen`.
+Never overwrites an existing file without a confirm.
+
+**Errors.** No checkout / no manifest → one message naming the path and `runDatagen`. Manifest
+version newer than the plugin → refuse with the version. Missing art file → magenta placeholder
+and a warning in the panel. `placed` landing entirely off the cell (the datagen `require`) → the
+placement is skipped with a warning, never a crash.
+
+## Files
+
+```
+mods/ovvar/tools/blockbench/
+  README.md            install, point at checkout, workflow, how to run the tests
+  build.sh             cat src/*.js > ovvar.js  (no npm, no deps)
+  ovvar.js             the built plugin (committed, so Vlad can grab one file)
+  src/00-manifest.js   load manifest + PNGs (Node: fs + a 60-line PNG decoder; Blockbench: Texture)
+  src/10-compose.js    placed, placedWrapped, anchored, withLeft, flattened, seat, stacked, downscale, compose
+  src/20-model.js      build the cubes/textures in a project
+  src/30-panel.js      sidebar, dialogs, export
+  src/90-plugin.js     Plugin.register, events, onunload cleanup
+  test.js              node test.js <checkout>  (Node's built-in test runner)
+mods/ovvar/src/main/java/metacraft/ovvar/datagen/BlockbenchManifest.java
+mods/ovvar/src/main/generated/ovvar/blockbench/{manifest.json, art/*.png}
+```
+
+## Tests
+
+`node mods/ovvar/tools/blockbench/test.js` against the checkout, no Blockbench:
+
+- **placement golden:** for every (cell, patch) that fits, `sided(placed(...))` minus the marker
+  texels equals the committed `textures/entity/equipment/<layer>/patch/<cell>/<patch>.png`
+  (seat: `_r`/`_l`). This is the whole of `placed`, `artFor` and the seat cut.
+- **anchored golden:** the 512 manifest samples, exact to 1e-9.
+- **wrapped golden:** for the seven top-piece body cells × patch (`Trims.fits`, 56 files), `placedWrapped` equals the committed
+  trim texture `textures/trims/entity/humanoid/<cell>_<patch>.png` (those are `placedWrapped` outputs). Limb wrapping has no golden; `anchored` is pinned by samples.
+- **scaler golden:** `downscaled(16×16 → 12, 8)` equals `generated/ovvar/blockbench/art/*.png` (only `it_8x8` exists today), plus a hand-built test of the tie rule.
+- **stacking:** a design with BACK_BIG + BACK_TOP_LEFT composes with the small one on top.
+- **left/right:** a LEFT sleeve placement changes B only; a RIGHT one A only.
+- Java side: a game test asserts the manifest's cell table equals `Spot.values()` field for
+  field, and its anchored samples match `Spot.anchored` (so a Java change cannot silently
+  invalidate the plugin's goldens).
+
+CI does not run Node; the plugin tests are run by hand and before each export of `ovvar.js`.
+
+## Out of scope
+
+An inner Steve/Alex body under the cloth (a later version), the instant channel (dye colour, preview library, trims as such), the wardrobe paper doll, armour
+over the ovve, animation/posing, submitting the plugin to the Blockbench store, and editing the
+chapter garments themselves (they are just displayed).
+
+## Open questions
+
+- Whether Blockbench's `mirror_uv` on a box-UV cube reproduces the armour model's left-limb
+  mirroring face for face (expected yes; task 1 of the plan verifies it against a screenshot
+  from `PromoShots` before anything else is built).
+- The scoped `require` for `fs` in current Blockbench (`getPluginScopedRequire`): the plugin
+  needs read access to the checkout and write access to `art/ovvar/patches/`. If the permission
+  prompt is per-path, the README documents it.

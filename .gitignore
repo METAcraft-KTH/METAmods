@@ -48,3 +48,12 @@ hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
+
+# ovvar / rivals dev runs
+run2/
+run-v6/
+run-vanilla/
+/_to_delete
+
+# claude code worktrees
+.claude/worktrees/

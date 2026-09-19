@@ -1,0 +1,12 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "rivals-paint:item/blob",
+		"tints": [
+			{
+				"type": "minecraft:dye",
+				"default": 16777215
+			}
+		]
+	}
+}

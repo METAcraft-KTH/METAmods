@@ -1,0 +1,1786 @@
+{
+  "meta": {
+    "format_version": "5.0",
+    "model_format": "java_block",
+    "box_uv": false
+  },
+  "name": "Splat Roller",
+  "model_identifier": "splat:roller",
+  "visible_box": [
+    1,
+    1,
+    0
+  ],
+  "resolution": {
+    "width": 128,
+    "height": 128
+  },
+  "elements": [
+    {
+      "name": "DYE_roller_surface_bottom",
+      "type": "cube",
+      "uuid": "c5807eeb-2959-521b-88ea-715f8385bed0",
+      "from": [
+        -9,
+        6,
+        -15
+      ],
+      "to": [
+        25,
+        7,
+        -7
+      ],
+      "origin": [
+        8.0,
+        6.5,
+        -11.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": null,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "DYE_roller_surface_middle",
+      "type": "cube",
+      "uuid": "f3e929af-3950-5dd2-98fa-3e9f50c89324",
+      "from": [
+        -9,
+        7,
+        -16
+      ],
+      "to": [
+        25,
+        15,
+        -6
+      ],
+      "origin": [
+        8.0,
+        11.0,
+        -11.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "DYE_roller_surface_top",
+      "type": "cube",
+      "uuid": "e8a16cb2-36e8-5156-89df-d3b708bf7339",
+      "from": [
+        -9,
+        15,
+        -15
+      ],
+      "to": [
+        25,
+        16,
+        -7
+      ],
+      "origin": [
+        8.0,
+        15.5,
+        -11.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "east": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "south": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "west": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "up": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": 1,
+          "rotation": 0,
+          "tint": 0
+        },
+        "down": {
+          "uv": [
+            2,
+            66,
+            30,
+            94
+          ],
+          "texture": null,
+          "rotation": 0,
+          "tint": 0
+        }
+      }
+    },
+    {
+      "name": "Roller_left_end_band_bottom",
+      "type": "cube",
+      "uuid": "f461ca45-c5f4-546f-a525-720be1cdd1f2",
+      "from": [
+        -10,
+        6,
+        -15
+      ],
+      "to": [
+        -9,
+        7,
+        -7
+      ],
+      "origin": [
+        -9.5,
+        6.5,
+        -11.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": null,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Roller_left_end_band_middle",
+      "type": "cube",
+      "uuid": "19633357-1c2b-5fc0-b28d-22c62dc88bdd",
+      "from": [
+        -10,
+        7,
+        -16
+      ],
+      "to": [
+        -9,
+        15,
+        -6
+      ],
+      "origin": [
+        -9.5,
+        11.0,
+        -11.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Roller_left_end_band_top",
+      "type": "cube",
+      "uuid": "42f70184-86e9-5d5a-a951-41c12a19e936",
+      "from": [
+        -10,
+        15,
+        -15
+      ],
+      "to": [
+        -9,
+        16,
+        -7
+      ],
+      "origin": [
+        -9.5,
+        15.5,
+        -11.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": null,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Roller_right_end_band_bottom",
+      "type": "cube",
+      "uuid": "8c925aca-bceb-5ee5-9445-eb4413f26af8",
+      "from": [
+        25,
+        6,
+        -15
+      ],
+      "to": [
+        26,
+        7,
+        -7
+      ],
+      "origin": [
+        25.5,
+        6.5,
+        -11.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": null,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Roller_right_end_band_middle",
+      "type": "cube",
+      "uuid": "77894ef7-0c73-55b2-a819-00f74a6a6eb1",
+      "from": [
+        25,
+        7,
+        -16
+      ],
+      "to": [
+        26,
+        15,
+        -6
+      ],
+      "origin": [
+        25.5,
+        11.0,
+        -11.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Roller_right_end_band_top",
+      "type": "cube",
+      "uuid": "014e1174-1efc-5e74-a35a-e3ba47142025",
+      "from": [
+        25,
+        15,
+        -15
+      ],
+      "to": [
+        26,
+        16,
+        -7
+      ],
+      "origin": [
+        25.5,
+        15.5,
+        -11.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            66,
+            34,
+            94,
+            62
+          ],
+          "texture": null,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Roller_left_fork",
+      "type": "cube",
+      "uuid": "236dbe10-2bc1-5968-92cc-7db5ed7cb6e9",
+      "from": [
+        -11,
+        10,
+        -11
+      ],
+      "to": [
+        -10,
+        12,
+        -4
+      ],
+      "origin": [
+        -10.5,
+        11.0,
+        -7.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Roller_right_fork",
+      "type": "cube",
+      "uuid": "2be4b1a3-2a8a-5b27-a27d-c8dc9ffdc76c",
+      "from": [
+        26,
+        10,
+        -11
+      ],
+      "to": [
+        27,
+        12,
+        -4
+      ],
+      "origin": [
+        26.5,
+        11.0,
+        -7.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Roller_frame_crossbar",
+      "type": "cube",
+      "uuid": "f0c01226-4dea-56e4-baa2-174b28fe0222",
+      "from": [
+        -11,
+        10,
+        -4
+      ],
+      "to": [
+        27,
+        12,
+        -2
+      ],
+      "origin": [
+        8.0,
+        11.0,
+        -3.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Roller_handle_shaft",
+      "type": "cube",
+      "uuid": "d008d731-4dfb-5803-b113-fb49a6154a47",
+      "from": [
+        7,
+        10,
+        -2
+      ],
+      "to": [
+        9,
+        12,
+        9
+      ],
+      "origin": [
+        8.0,
+        11.0,
+        3.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Roller_Grip_core",
+      "type": "cube",
+      "uuid": "43469f04-fe30-5210-b049-2a1e6cf665e2",
+      "from": [
+        7,
+        10,
+        9
+      ],
+      "to": [
+        9,
+        12,
+        16
+      ],
+      "origin": [
+        8.0,
+        11.0,
+        12.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            98,
+            2,
+            126,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    },
+    {
+      "name": "Roller_Grip_heel",
+      "type": "cube",
+      "uuid": "1e939837-f441-59e2-8d91-0f171c925afb",
+      "from": [
+        7,
+        10,
+        16
+      ],
+      "to": [
+        9,
+        12,
+        17
+      ],
+      "origin": [
+        8.0,
+        11.0,
+        16.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "box_uv": false,
+      "rescale": false,
+      "shade": true,
+      "visibility": true,
+      "export": true,
+      "autouv": 0,
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "east": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "south": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "west": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            30,
+            30
+          ],
+          "texture": 0,
+          "rotation": 0,
+          "tint": -1
+        }
+      }
+    }
+  ],
+  "textures": [
+    {
+      "name": "shooter_body.png",
+      "id": "0",
+      "uuid": "1ed20752-6432-5c43-8eec-5bb9109f4d75",
+      "relative_path": "../textures/shooter_body.png",
+      "namespace": "splat",
+      "folder": "item",
+      "mode": "bitmap",
+      "width": 128,
+      "height": 128,
+      "uv_width": 128,
+      "uv_height": 128,
+      "particle": true,
+      "use_as_default": false,
+      "visible": true,
+      "internal": true,
+      "saved": true,
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACf0lEQVR4nO3csUrrcBSA8VRC1w4WJ10c1cXBwUVw0727rr6BSyc3fQPBQRBcikUHHQsuzi4+gg+RoXVSaCCYlIaT9Pt+070XvaeFz5MYyr9z+7kzSwJtb25Fjk8e7r9C57/f9UPnr4VOV7j09w/dbrfSN2ZZttQX4vyY+W4AOAOAMwC4v3uAZV/TqnJ+zHw3AJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAFxa4msW8t9n3Kp+Dt759cx3A8AZAJwBwNV2D1D3Nc75y5nvBoDr7B8eh54PcHZxHjk+GZwehM7f3TsJne8GgPN8APh8NwCcAcAZAJznA8DnuwHgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgPB8APt8NAGcAcAYA5/kA8PluALh08jYOfQG9Xi90/ngc+/77G+uh890AcI05HyBa9Pv3fACFMAA4A4BrzPkA0aLfv+cDKIQBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJznA8DnuwHgDADOAOA8HwA+3w0A17m8uZ5FvoCXx+fI8cnH5DV0/tP3Ueh8NwBcY84HoM+P4gaAq+23ANXrajD/szscTRf6f9wAcI05H4A+P4obAM57gJbJX/vz/171XsANAGcAcAYA5z1ASxRd+4u+ruy9gBsAzgDgDADOAFpqOJrOXefzfy/LAOAMAM4A4HwO0FL55wJlnxPkuQHgDADOAOAMoGWKft/3OYAW4vkAKzq/LDcAnM8BWiJ/fS+63vuZQFXi+QArOr8sNwDcD41Vvk15UXmbAAAAAElFTkSuQmCC"
+    },
+    {
+      "name": "shooter_ink.png",
+      "id": "1",
+      "uuid": "bd239c74-df24-5895-855f-16ce7e2f71ea",
+      "relative_path": "../textures/shooter_ink.png",
+      "namespace": "splat",
+      "folder": "item",
+      "mode": "bitmap",
+      "width": 128,
+      "height": 128,
+      "uv_width": 128,
+      "uv_height": 128,
+      "particle": false,
+      "use_as_default": false,
+      "visible": true,
+      "internal": true,
+      "saved": true,
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACYklEQVR4nO3cMWrCcBiGcS3R1ckxV3D2DN7DK3iI7N7BQeImjp7LpZ1aMBCaiOFNfJ7f1Ja2n4WHL2mQ/7yu6+9ZUFmWyfGz0+kUnX+9XqPzv6LTFVf8frBcLnv94OPxeOsLcX5mvhsAzgDgDADu7x7g3de0vpyfme8GgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgCs6fM9L/nuPW9/3wTt/mPluADgDgDMAuMHuAYa+xjn/PfPdAHDz7XYbPR9gv98nx892u110/mazic53A8B5PgB8vhsAzgDgDADO8wHg890AcAYAZwBwBgBnAHAGAGcAcAYAZwBwBgBnAHAGAGcAcAYAZwBwBgBnAHAGAGcAcJ4PAJ/vBoAzADgDgPN8APh8NwBccbvdoi9gtVpF518ul+j89Xodne8GgBvN+QBp6b/f8wEUYQBwBgA3mvMB0tJ/v+cDKMIA4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOAMAM7zAeDz3QBwBgBnAHCeDwCf7waAK47HY/QFnM/n6Pz7/R6dv1gsovPdAHCjOR+APj/FDQA32H8BGtbhcHj6vKqql36PGwBuNOcD0OenuAHgvAeYmOa1v/n1vvcCbgA4A4AzADjvASai7drf9n1d7wXcAHAGAGcAcAYwUVVVPV3nm593ZQBwBgBnAHA+B5io5nOBrs8JmtwAcAYAZwBwBjAxbf/v+xxAL/F8gA+d35UbAM7nABPRvL63Xe99T6B68XyAD53flRsA7gdhGbj8LECXVQAAAABJRU5ErkJggg=="
+    }
+  ],
+  "groups": [
+    {
+      "name": "01 Dyeable roller",
+      "uuid": "2eb54f5a-7019-504d-af5f-87fef8f45bc0",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    },
+    {
+      "name": "02 Roller frame",
+      "uuid": "2e40b730-8c40-5529-8c5b-9b29a3a07adb",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    },
+    {
+      "name": "03 Handle",
+      "uuid": "a68374f0-da98-5f29-a8fb-0bd91310d5a0",
+      "origin": [
+        8,
+        8,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "export": true,
+      "isOpen": false
+    }
+  ],
+  "outliner": [
+    {
+      "uuid": "2eb54f5a-7019-504d-af5f-87fef8f45bc0",
+      "isOpen": false,
+      "children": [
+        "c5807eeb-2959-521b-88ea-715f8385bed0",
+        "f3e929af-3950-5dd2-98fa-3e9f50c89324",
+        "e8a16cb2-36e8-5156-89df-d3b708bf7339",
+        "f461ca45-c5f4-546f-a525-720be1cdd1f2",
+        "19633357-1c2b-5fc0-b28d-22c62dc88bdd",
+        "42f70184-86e9-5d5a-a951-41c12a19e936",
+        "8c925aca-bceb-5ee5-9445-eb4413f26af8",
+        "77894ef7-0c73-55b2-a819-00f74a6a6eb1",
+        "014e1174-1efc-5e74-a35a-e3ba47142025"
+      ]
+    },
+    {
+      "uuid": "2e40b730-8c40-5529-8c5b-9b29a3a07adb",
+      "isOpen": false,
+      "children": [
+        "236dbe10-2bc1-5968-92cc-7db5ed7cb6e9",
+        "2be4b1a3-2a8a-5b27-a27d-c8dc9ffdc76c",
+        "f0c01226-4dea-56e4-baa2-174b28fe0222"
+      ]
+    },
+    {
+      "uuid": "a68374f0-da98-5f29-a8fb-0bd91310d5a0",
+      "isOpen": false,
+      "children": [
+        "d008d731-4dfb-5803-b113-fb49a6154a47",
+        "43469f04-fe30-5210-b049-2a1e6cf665e2",
+        "1e939837-f441-59e2-8d91-0f171c925afb"
+      ]
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        35,
+        -145,
+        0
+      ],
+      "translation": [
+        0,
+        -1,
+        0
+      ],
+      "scale": [
+        0.36,
+        0.36,
+        0.36
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.3,
+        0.3,
+        0.3
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        -1,
+        -1
+      ],
+      "scale": [
+        0.36,
+        0.36,
+        0.36
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        90,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        1.9,
+        0.7
+      ],
+      "scale": [
+        0.8,
+        0.8,
+        0.8
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        90,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        1.9,
+        0.7
+      ],
+      "scale": [
+        0.8,
+        0.8,
+        0.8
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        -15,
+        -5
+      ],
+      "translation": [
+        -1,
+        -1,
+        -5
+      ],
+      "scale": [
+        0.43,
+        0.43,
+        0.43
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        15,
+        5
+      ],
+      "translation": [
+        -1,
+        -1,
+        -5
+      ],
+      "scale": [
+        0.43,
+        0.43,
+        0.43
+      ]
+    },
+    "head": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        7,
+        0
+      ],
+      "scale": [
+        0.6,
+        0.6,
+        0.6
+      ]
+    }
+  },
+  "gui_light": "side",
+  "ambientocclusion": true,
+  "credit": "Original cuboid fan model; Splatoon roller inspired. Ink faces: tint index 0."
+}

@@ -1,0 +1,289 @@
+package metacraft.ovvar.sewing;
+
+import eu.pb4.polymer.virtualentity.api.ElementHolder;
+import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
+import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
+import metacraft.ovvar.content.*;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix3f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * An ovve on an armour stand wears its patches as display entities, one flat item display per
+ * placement, laid on the cell it is sewn to and following the stand's pose. The armour itself
+ * draws none of them there ({@link ModComponents#ON_STAND}), so a sewing session needs neither
+ * the dye channels nor a rebuilt pack, however many patches go on: the one reload comes when the
+ * ovve is taken off the stand and its taker's pack cannot show them all ({@link OvveItem}).
+ *
+ * The displays are Polymer virtual entities attached to the stand: nothing is saved, nothing
+ * exists server-side, and they are gone the moment the ovve is. Each patch item has flat models
+ * for this (pieces of its art 1:1 on the sprite, {@link PatchPieces}), scaled so one art pixel
+ * is one of the fabric's square pixels. A big patch can be cut at the corners of its face and each
+ * piece laid on the face it hangs over — round the sides, and over the top of a sleeve or leg —
+ * so it bends round the box as the sewn one will; that is off for now
+ * ({@link PatchPieces#BEND_ROUND_CORNERS}), the whole art lies flat on the cell's face and the
+ * overhang sticks out past the corner. Later-sewn patches sit a hair further out, so
+ * they overlap the earlier; the patch being aimed at lies on top of all, washed out, until it is
+ * sewn — the whole preview, so the pack has no trim channel to carry.
+ *
+ * A shoulder's sprite lies flat on the arm box's own top face ({@link StandAim#cell} gives that
+ * plane, whose normal is world up on an unposed stand), the whole art as it is: a top face has no
+ * neighbouring face in the layout to bend an overhang onto, so the sewn patch is clipped to the
+ * face and the sprite simply sticks out past its edges.
+ */
+public final class StandDisplays {
+	private StandDisplays() {}
+
+	/** Stands wearing an ovve, by id: what they show, rebuilt when the patches change and moved when the pose does. */
+	private static final Map<UUID, Shown> SHOWN = new HashMap<>();
+	/** Stands that got or lost an ovve since the last tick (from any thread's point of view, the tick sorts it out). */
+	private static final Set<UUID> CHANGED = ConcurrentHashMap.newKeySet();
+
+	private static final class Shown {
+		final ArmorStand stand;
+		final ElementHolder holder = new ElementHolder();
+		final List<Placement> placements = new ArrayList<>();
+		final List<Element> elements = new ArrayList<>();
+		boolean topShown;
+		Placement preview;
+		int poseHash;
+
+		Shown(ArmorStand stand) {
+			this.stand = stand;
+			EntityAttachment.ofTicking(holder, stand);
+		}
+	}
+
+	public static void init() {
+		ServerEntityEvents.EQUIPMENT_CHANGE.register((entity, slot, previous, next) -> {
+			if (entity instanceof ArmorStand stand && (slot == EquipmentSlot.LEGS || slot == EquipmentSlot.CHEST)) CHANGED.add(stand.getUUID());
+		});
+		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+			if (entity instanceof ArmorStand stand && stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem) CHANGED.add(stand.getUUID());
+		});
+		ServerEntityEvents.ENTITY_UNLOAD.register((entity, level) -> {
+			if (entity instanceof ArmorStand) CHANGED.add(entity.getUUID());
+		});
+		ServerTickEvents.END_SERVER_TICK.register(StandDisplays::tick);
+	}
+
+	private static void tick(MinecraftServer server) {
+		for (UUID id : List.copyOf(CHANGED)) {
+			CHANGED.remove(id);
+			ArmorStand stand = findStand(server, id);
+			Shown shown = SHOWN.get(id);
+			boolean wears = stand != null && stand.getItemBySlot(EquipmentSlot.LEGS).getItem() instanceof OvveItem;
+			if (wears && shown == null) {
+				SHOWN.put(id, new Shown(stand));
+			} else if (!wears && shown != null) {
+				shown.holder.destroy();
+				SHOWN.remove(id);
+			}
+		}
+		for (Iterator<Shown> it = SHOWN.values().iterator(); it.hasNext(); ) {
+			Shown shown = it.next();
+			ItemStack ovve = shown.stand.getItemBySlot(EquipmentSlot.LEGS);
+			if (shown.stand.isRemoved() || !(ovve.getItem() instanceof OvveItem)) {
+				shown.holder.destroy();
+				it.remove();
+				continue;
+			}
+			if (!Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) ovve.set(ModComponents.ON_STAND, true);
+			update(shown, ovve);
+		}
+	}
+
+	/** Where a stand's sprites are right now, as the client is told (for the game tests). */
+	public record Sprite(Placement placement, Vec3 pos) {}
+
+	public static List<Sprite> sprites(ArmorStand stand) {
+		Shown shown = SHOWN.get(stand.getUUID());
+		if (shown == null) return List.of();
+		List<Sprite> out = new ArrayList<>();
+		for (Element element : shown.elements) out.add(new Sprite(element.placement, element.display.getCurrentPos()));
+		return out;
+	}
+
+	private static ArmorStand findStand(MinecraftServer server, UUID id) {
+		for (ServerLevel level : server.getAllLevels()) {
+			if (level.getEntity(id) instanceof ArmorStand stand) return stand;
+		}
+		return null;
+	}
+
+	/**
+	 * The patches to show: all of the legs', and the top's while it is up and nothing else is
+	 * worn over it; last, ghosted, the one being aimed at ({@link ModComponents#PREVIEW}).
+	 */
+	private static List<Placement> shown(ArmorStand stand, ItemStack ovve, boolean topShown) {
+		List<Placement> out = new ArrayList<>();
+		// In the stack's own order (Spot.layer): where two cells overlap, the sprite of the one on top
+		// is laid on last and so sits a hair further out (the lift below).
+		for (Placement p : Spot.stacked(SpotPlacements.asPlacementList(Looks.sewn(ovve)))) {
+			if (p.piece() == Piece.BOTTOM || topShown) out.add(p);
+		}
+		Placement preview = Looks.preview(ovve);
+		if (preview != null && (preview.piece() == Piece.BOTTOM || topShown)) out.add(preview);
+		return out;
+	}
+
+	private static boolean topShown(ArmorStand stand, ItemStack ovve) {
+		ItemStack chest = stand.getItemBySlot(EquipmentSlot.CHEST);
+		return OvveItem.topUp(ovve) && (chest.isEmpty() || chest.getItem() instanceof OvveTopItem);
+	}
+
+	private static void update(Shown shown, ItemStack ovve) {
+		boolean topShown = topShown(shown.stand, ovve);
+		List<Placement> placements = shown(shown.stand, ovve, topShown);
+		Placement preview = Looks.preview(ovve);
+		// Offsets are from the stand's own position, not the holder's: the holder copies it only
+		// on its next tick (the entity tracker's, before entities move), so while the stand moves
+		// the holder is a tick behind — offsets taken from it would leave every sprite displaced
+		// by the last step once the stand comes to rest.
+		Vec3 origin = shown.stand.position();
+		boolean rebuilt = false;
+		if (!placements.equals(shown.placements) || topShown != shown.topShown || !Objects.equals(preview, shown.preview)) {
+			for (Element element : shown.elements) shown.holder.removeElement(element.display);
+			shown.elements.clear();
+			shown.placements.clear();
+			shown.placements.addAll(placements);
+			shown.topShown = topShown;
+			shown.preview = preview;
+			for (int i = 0; i < placements.size(); i++) {
+				Placement p = placements.get(i);
+				Patches.Patch patch = p.patch();
+				// The PNG this cell shows: a patch may ship art at several sizes, and a sprite has to be
+				// the one the cloth under it is wearing (Patches.artFor).
+				Patches.Art art = Patches.artFor(patch, p.spot());
+				boolean ghost = i == placements.size() - 1 && preview != null && p.equals(preview);
+				for (PatchPieces.Piece piece : PatchPieces.of(p.spot(), art)) {
+					ItemStack item = new ItemStack(ModContent.patchItem(patch));
+					item.set(ModComponents.FLAT, PatchItem.flatKey(art, piece, ghost));
+					ItemDisplayElement display = new ItemDisplayElement(item);
+					display.setItemDisplayContext(ItemDisplayContext.NONE);
+					display.setInterpolationDuration(0);
+					display.setTeleportDuration(1);
+					display.setViewRange(0.6f);
+					Element element = new Element(display, p, art, piece, i);
+					// Laid on its cell before it joins the holder: the spawn packet then carries the
+					// right place. Added first, it would spawn at the stand's feet and glide to the
+					// cell over the teleport duration — every sprite, every time the aim moves.
+					place(element, shown.stand, origin);
+					shown.elements.add(element);
+					shown.holder.addElement(display);
+				}
+			}
+			rebuilt = true;
+		}
+		int poseHash = Objects.hash(shown.stand.position(), shown.stand.yBodyRot, shown.stand.getBodyPose(), shown.stand.getRightArmPose(),
+				shown.stand.getLeftArmPose(), shown.stand.getRightLegPose(), shown.stand.getLeftLegPose());
+		if (rebuilt) {
+			shown.poseHash = poseHash;
+			return;
+		}
+		if (poseHash == shown.poseHash) return;
+		shown.poseHash = poseHash;
+		for (Element element : shown.elements) place(element, shown.stand, origin);
+	}
+
+	/** One sprite: a piece of a placement's art, and where in the sewing order it is (later ones lie on top). */
+	private record Element(ItemDisplayElement display, Placement placement, Patches.Art art, PatchPieces.Piece piece, int order) {}
+
+	/**
+	 * Lay a piece on its plane. The whole art is centred on the cell, so every piece's sprite is
+	 * the whole 16×16 with only its own pixels drawn, and placing it means putting the art's
+	 * centre where it belongs on that plane: on the cell's face, at the cell; round a corner, on
+	 * the neighbouring face's plane, continuing from the corner; over the top, on the part's top
+	 * face. A box is convex, so each neighbouring plane follows from the face's own frame.
+	 */
+	private static void place(Element element, ArmorStand stand, Vec3 origin) {
+		Spot spot = element.placement.spot();
+		PatchPieces.Piece piece = element.piece;
+		StandAim.CellPoint at;
+		if (spot == Spot.SEAT && !PatchPieces.BEND_ROUND_CORNERS) {
+			// The seat flat: the whole art as one sprite, centred on the seam between the legs' back
+			// faces (the midpoint of the two cells), on their mean plane.
+			StandAim.CellPoint r = StandAim.cell(stand, Spot.LEG_BACK_TOP_R), l = StandAim.cell(stand, Spot.LEG_BACK_TOP_L);
+			at = new StandAim.CellPoint(r.centre().add(l.centre()).scale(0.5), r.normal().add(l.normal()).normalize(), r.up().add(l.up()).normalize());
+			spot = Spot.LEG_BACK_TOP_R;
+		} else {
+			// The seat bent: one half on each leg's back face, centred on that cell like any patch. The
+			// art is seen from behind, so its left half is the wearer's left leg.
+			if (spot == Spot.SEAT) spot = piece.x0() == 0 ? Spot.LEG_BACK_TOP_L : Spot.LEG_BACK_TOP_R;
+			at = StandAim.cell(stand, spot);
+		}
+		double inflate = Spot.inflate(spot.piece), a = Spot.pixel(spot.u, inflate) / 2;   // sixteenths per art pixel
+		float scale = (float) a;   // the sprite is 16 pixels to a block: one sprite pixel = a sixteenths at scale a
+		int w = element.art.width(), h = element.art.height(), n = PatchPieces.faceTexels(spot);
+		Vec3 normal = at.normal(), up = at.up(), right = up.cross(normal);
+		// The cell's centre relative to the face's centre, and the face's half extents (sixteenths).
+		// Measured down the face the cell is on: the box's side rows, or — for a shoulder — its top
+		// face, which is four rows, not twelve.
+		int rowStart = spot.top() ? Spot.TOP_ROW : Spot.FACE_ROW, rows = spot.top() ? Spot.TOP_ROWS : Spot.FACE_ROWS;
+		double cellX = (PatchPieces.columnInFace(spot) + spot.px() / 2.0 - n) * a,
+				cellY = ((spot.v - rowStart) * Spot.DETAIL + spot.pxHeight() / 2.0 - rows * Spot.DETAIL / 2.0) * a;
+		double halfFace = (n + 2 * inflate) / 2, halfTop = (rows + 2 * inflate) / 2;
+		Vec3 centre, n2, u2, r2;
+		switch (piece.where()) {
+			case RIGHT -> {
+				Vec3 corner = at.centre().add(right.scale((halfFace - cellX) / 16));
+				r2 = normal.scale(-1); n2 = right; u2 = up;   // round the corner, "right" turns away from the face
+				centre = corner.add(r2.scale((piece.start() + (w / 2.0 - piece.x0()) * a) / 16));
+			}
+			case LEFT -> {
+				Vec3 corner = at.centre().subtract(right.scale((halfFace + cellX) / 16));
+				r2 = normal; n2 = right.scale(-1); u2 = up;
+				centre = corner.add(r2.scale(((w / 2.0 - piece.x1()) * a - piece.start()) / 16));
+			}
+			case TOP -> {
+				Vec3 corner = at.centre().add(up.scale((halfTop + cellY) / 16));
+				n2 = up; u2 = normal.scale(-1); r2 = right;   // over the shoulder, "up" turns inward across the top
+				centre = corner.add(normal.scale(((h / 2.0 - piece.y1()) * a - piece.start()) / 16));
+			}
+			default -> {
+				n2 = normal; u2 = up; r2 = right;
+				centre = at.centre();
+			}
+		}
+		// The item display turns its item 180° about y: the readable side faces the display's -z.
+		Matrix3f basis = new Matrix3f(
+				new Vector3f((float) -r2.x, (float) -r2.y, (float) -r2.z),
+				new Vector3f((float) u2.x, (float) u2.y, (float) u2.z),
+				new Vector3f((float) -n2.x, (float) -n2.y, (float) -n2.z));
+		Quaternionf rotation = new Quaternionf().setFromNormalized(basis);
+		// Just off the fabric, later patches a hair further out. A piece round a corner is also
+		// pushed that far back towards the corner, so its lifted edge meets the face piece's
+		// lifted edge and no fabric shows in the seam.
+		double lift = 0.005 + 0.002 * element.order;
+		Vec3 pos = centre.add(n2.scale(lift));
+		switch (piece.where()) {
+			case RIGHT -> pos = pos.subtract(r2.scale(lift));
+			case LEFT -> pos = pos.add(r2.scale(lift));
+			case TOP -> pos = pos.subtract(u2.scale(lift));
+			default -> {}
+		}
+		element.display.setOffset(pos.subtract(origin));
+		element.display.setLeftRotation(rotation);
+		element.display.setScale(new Vector3f(scale, scale, scale));
+		element.display.startInterpolationIfDirty();
+	}
+}
