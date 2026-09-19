@@ -184,6 +184,9 @@ public final class BlockbenchManifestTests {
 		check(wrong, "manifest", "version", m.get("version").getAsInt(), BlockbenchManifest.VERSION);
 		check(wrong, "manifest", "absentMeansNull", m.get("absentMeansNull").getAsBoolean(), true);
 		check(wrong, "manifest", "detail", m.get("detail").getAsInt(), Spot.DETAIL);
+		check(wrong, "manifest", "artDetail", m.get("artDetail").getAsInt(), Spot.ART_DETAIL);
+		check(wrong, "manifest", "artScale", m.get("artScale").getAsInt(), Spot.ART_SCALE);
+		check(wrong, "manifest", "artPx", m.get("artPx").getAsInt(), Spot.ART_PX);
 		check(wrong, "manifest", "faceRow", m.get("faceRow").getAsInt(), Spot.FACE_ROW);
 		check(wrong, "manifest", "faceRows", m.get("faceRows").getAsInt(), Spot.FACE_ROWS);
 		check(wrong, "manifest", "topRow", m.get("topRow").getAsInt(), Spot.TOP_ROW);

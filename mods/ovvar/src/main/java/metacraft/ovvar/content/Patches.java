@@ -45,7 +45,7 @@ public final class Patches {
 	 * own size — on any other cell art this big hangs over its neighbours. Even sizes only, since
 	 * the art is centred in its cell.
 	 */
-	public static final int MAX_ART = Spot.BIG * Spot.DETAIL;
+	public static final int MAX_ART = Spot.BIG * Spot.ART_DETAIL;
 	/**
 	 * The tallest a seat patch may be: a texel of overhang above and below the seat's own row, which
 	 * keeps it clear of the waistband above and of the cuff under a boot below. A seat patch is
@@ -53,7 +53,7 @@ public final class Patches {
 	 * narrower one to be — but it may be this tall, centred on the cells the way oversize plain art
 	 * is centred on its own cell.
 	 */
-	public static final int SEAT_HEIGHT_MAX = Spot.PX + 2 * Spot.DETAIL;
+	public static final int SEAT_HEIGHT_MAX = Spot.ART_PX + 2 * Spot.ART_DETAIL;
 
 	/** A patch's inventory icon, and the size of the art that fills it without being scaled. */
 	public static final int ICON = 16;
@@ -64,14 +64,14 @@ public final class Patches {
 	 * bigger than this was drawn for the cell that is {@link #MAX_ART} square, not to hang off an
 	 * ordinary one, so a patch whose own size is over this shows a smaller art there instead.
 	 */
-	public static final int OVER_MAX = Spot.PX * 3 / 2;
+	public static final int OVER_MAX = Spot.ART_PX * 3 / 2;
 
 	/**
 	 * The sizes generated from a {@link #MAX_ART} px art when the patch ships no drawing of its own
 	 * at them: the two a {@link Fit} can ask for below {@link #MAX_ART} — {@link #OVER_MAX} square
-	 * for an ordinary cell and {@link Spot#PX} square for a cell the art is clipped to.
+	 * for an ordinary cell and {@link Spot#ART_PX} square for a cell the art is clipped to.
 	 */
-	public static final List<Integer> GENERATED_SIZES = List.of(OVER_MAX, Spot.PX);
+	public static final List<Integer> GENERATED_SIZES = List.of(OVER_MAX, Spot.ART_PX);
 
 	/**
 	 * One PNG of a patch's art: the default ({@code art/ovvar/patches/<id>.png}, the size the
@@ -120,7 +120,7 @@ public final class Patches {
 
 		/** Art width in cells, rounded up: what the preview library allocates a block of. */
 		public int cells() {
-			return (width + Spot.PX - 1) / Spot.PX;
+			return (width + Spot.ART_PX - 1) / Spot.ART_PX;
 		}
 
 		/**
@@ -129,16 +129,29 @@ public final class Patches {
 		 * cells wide — so this is asked of the cell the art is going on.
 		 */
 		public int offsetX(Spot spot) {
-			return (spot.px() - width) / 2;
+			return (spot.px() - width * Spot.ART_SCALE) / 2;
 		}
 
 		public int offsetY(Spot spot) {
-			return (spot.pxHeight() - height) / 2;
+			return (spot.pxHeight() - height * Spot.ART_SCALE) / 2;
 		}
 
-		/** Does the art hang over the cell it is on? */
+		/**
+		 * The same offsets in <em>art</em> pixels, for the callers that measure the art itself rather
+		 * than where it lands on a texture — cutting it into pieces, above all. The two differ once
+		 * {@link Spot#DETAIL} is finer than {@link Spot#ART_DETAIL}.
+		 */
+		public int artOffsetX(Spot spot) {
+			return (spot.artPx() - width) / 2;
+		}
+
+		public int artOffsetY(Spot spot) {
+			return (spot.artPxHeight() - height) / 2;
+		}
+
+		/** Does the art hang over the cell it is on? Asked in art pixels, where the art's own size is. */
 		public boolean oversize(Spot spot) {
-			return width > spot.px() || height > spot.pxHeight();
+			return width > spot.artPx() || height > spot.artPxHeight();
 		}
 
 		/** Does the art sit inside a {@code w}×{@code h} box whole, with nothing cut off? */
@@ -190,15 +203,15 @@ public final class Patches {
 
 	/**
 	 * @param id	 also the art file name and the item id suffix ({@code ovvar:patch_<id>})
-	 * @param width  art width in pixels ({@link Spot#PX} for a cell-sized patch; a seat patch is always 2 cells wide)
+	 * @param width  art width in pixels ({@link Spot#ART_PX} for a cell-sized patch; a seat patch is always 2 cells wide)
 	 * @param height art height in pixels
 	 * @param artist who drew the art, credited in the tooltip; null when nobody is named
 	 */
 	public record Patch(String id, String name, boolean seat, int width, int height, String artist) {
 		public Patch {
-			if (seat && (width != 2 * Spot.PX || height < Spot.PX || height > SEAT_HEIGHT_MAX)) {
-				throw new IllegalArgumentException(id + ": a seat patch is " + 2 * Spot.PX + " px wide and "
-						+ Spot.PX + "–" + SEAT_HEIGHT_MAX + " px tall, not " + width + "×" + height);
+			if (seat && (width != 2 * Spot.ART_PX || height < Spot.ART_PX || height > SEAT_HEIGHT_MAX)) {
+				throw new IllegalArgumentException(id + ": a seat patch is " + 2 * Spot.ART_PX + " px wide and "
+						+ Spot.ART_PX + "–" + SEAT_HEIGHT_MAX + " px tall, not " + width + "×" + height);
 			}
 			if (width < 2 || height < 2 || width > MAX_ART || height > MAX_ART || width % 2 != 0 || height % 2 != 0) {
 				throw new IllegalArgumentException(id + ": patch art must be an even size up to " + MAX_ART + "×" + MAX_ART + ", not " + width + "×" + height);
@@ -207,7 +220,7 @@ public final class Patches {
 
 		/** A cell-sized patch. */
 		public Patch(String id, String name) {
-			this(id, name, false, Spot.PX, Spot.PX);
+			this(id, name, false, Spot.ART_PX, Spot.ART_PX);
 		}
 
 		/** A patch bigger (or smaller) than its cell, centred on it. */
@@ -221,7 +234,7 @@ public final class Patches {
 
 		/** A seat patch exactly the two cells' size. */
 		public static Patch seat(String id, String name) {
-			return seat(id, name, 2 * Spot.PX, Spot.PX);
+			return seat(id, name, 2 * Spot.ART_PX, Spot.ART_PX);
 		}
 
 		/** A seat patch, which may be taller than the cells: it is centred on them and hangs over. */
@@ -267,7 +280,21 @@ public final class Patches {
 			new Patch("ticket_to_my_heart", "Ticket to my heart", 10, 6).by("Cactooz"),   // drawn 9×6, padded to an even width
 			new Patch("maid", "Maid dress", 12, 12).by("Mackan"),
 			// Taller than the seat's own row: a texel of the rails hangs onto the cloth below it.
-			Patch.seat("pung", "Pung", 16, 10)
+			Patch.seat("pung", "Pung", 16, 10),
+			// The set Vlad drew. The display names are placeholders; the ids are not, since a stored
+			// design names its patches by id. New entries go last, for the reason given above.
+			new Patch("in", "IN", 12, 12).by("Vlad"),
+			new Patch("in_gold", "IN (gold)", 16, 16).by("Vlad"),   // drawn only at 16x16: the 12 and the 8 are scaled from it
+			new Patch("nyckeln0x0", "Nyckeln 0x0", 12, 12).by("Vlad"),
+			new Patch("nyckeln0x1", "Nyckeln 0x1", 12, 12).by("Vlad"),
+			new Patch("nyckeln0x2", "Nyckeln 0x2", 12, 12).by("Vlad"),
+			new Patch("kommn", "KomMN", 12, 8).by("Vlad"),   // drawn 12x8 on a 12x12 canvas; also 8x6 and 16x10
+			// Måns's set, each drawn at 12, 8 and 16 so nothing is generated for them; Spiken, Släggan and the
+			// ticket got their 8 and 16 in the same batch. Display names are placeholders until somebody says
+			// otherwise; the ids are not. New entries go last, for the reason given above.
+			new Patch("jgs", "JGS", 12, 12),
+			new Patch("tmeit", "TMEIT", 12, 12),
+			new Patch("tmeit-marshal", "TMEIT Marshal", 12, 12)   // a resource id is [a-z0-9_.-], so the hyphen stays
 	);
 
 	private static final Map<String, Patch> BY_ID = ALL.stream()
@@ -367,8 +394,8 @@ public final class Patches {
 	 * each leg, so there is nowhere for a narrower one to be.
 	 */
 	private static void validate(Patch patch, Art art) {
-		if (patch.seat() && art.width() != 2 * Spot.PX) {
-			throw new IllegalArgumentException(art.file() + ": a seat patch's art is " + 2 * Spot.PX
+		if (patch.seat() && art.width() != 2 * Spot.ART_PX) {
+			throw new IllegalArgumentException(art.file() + ": a seat patch's art is " + 2 * Spot.ART_PX
 					+ " px wide, so a variant of it cannot be " + art.width() + " px wide");
 		}
 		if (patch.seat() && art.height() > SEAT_HEIGHT_MAX) {
@@ -406,7 +433,7 @@ public final class Patches {
 			// that laps no further than OVER_MAX over its cell is as drawn; art bigger than that was
 			// drawn to fill the big back cell, so an ordinary cell takes the largest one that laps.
 			case OVER -> patch.seat() || patch.art().fitsIn(OVER_MAX, OVER_MAX) ? patch.art() : largestIn(patch, OVER_MAX, OVER_MAX);
-			case CLIPPED -> largestIn(patch, Spot.PX, Spot.PX);
+			case CLIPPED -> largestIn(patch, Spot.ART_PX, Spot.ART_PX);
 			case FILLED -> largestIn(patch, MAX_ART, MAX_ART);
 		};
 	}

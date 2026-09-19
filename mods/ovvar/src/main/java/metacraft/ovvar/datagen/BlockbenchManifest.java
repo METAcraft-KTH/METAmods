@@ -43,7 +43,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class BlockbenchManifest implements DataProvider {
 	/** Bumped when the schema changes in a way an older plugin could not read; the plugin refuses a newer one. */
-	public static final int VERSION = 1;
+	public static final int VERSION = 2;
 	/** Under {@code src/main/generated}, beside {@code ovvar/outlines.json}; on the classpath at runtime. */
 	public static final String DIR = Ovvar.MOD_ID + "/blockbench/";
 	public static final String RESOURCE = "/" + DIR + "manifest.json";
@@ -96,6 +96,12 @@ public final class BlockbenchManifest implements DataProvider {
 		// reading a manifest some other writer made and should not guess at its nulls.
 		m.addProperty("absentMeansNull", true);
 		m.addProperty("detail", Spot.DETAIL);
+		// The art side of the two resolutions (Spot.ART_DETAIL): a patch PNG is drawn at artDetail px per
+		// skin texel and scaled up by artScale as it is laid on a texture, which is at detail. A plugin
+		// that composes art onto a texture without scaling it is composing at the wrong size.
+		m.addProperty("artDetail", Spot.ART_DETAIL);
+		m.addProperty("artScale", Spot.ART_SCALE);
+		m.addProperty("artPx", Spot.ART_PX);
 		m.addProperty("faceRow", Spot.FACE_ROW);
 		m.addProperty("faceRows", Spot.FACE_ROWS);
 		m.addProperty("topRow", Spot.TOP_ROW);

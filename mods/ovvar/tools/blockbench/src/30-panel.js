@@ -187,12 +187,12 @@ OVVAR.panel.newPatch = function () {
         condition: function (form) { return !form.seat; }},
       h: {label: 'Height', type: 'number', value: m.overMax, min: 6, max: m.maxArt, step: 2,
         condition: function (form) { return !form.seat; }},
-      seatHeight: {label: 'Height', type: 'number', value: m.px, min: m.px, max: m.seatHeightMax, step: 2,
+      seatHeight: {label: 'Height', type: 'number', value: m.artPx, min: m.artPx, max: m.seatHeightMax, step: 2,
         condition: function (form) { return !!form.seat; },
-        description: 'A seat patch is ' + 2 * m.px + ' px wide, across both cells.'}
+        description: 'A seat patch is ' + 2 * m.artPx + ' px wide, across both cells.'}
     },
     onConfirm: function (result) {
-      var w = result.seat ? 2 * m.px : result.w;
+      var w = result.seat ? 2 * m.artPx : result.w;
       var h = result.seat ? result.seatHeight : result.h;
       var asked = {id: result.id, name: result.name, artist: result.artist, seat: !!result.seat, w: w, h: h};
       var problems = OVVAR.panel.checkNewPatch(m, asked);
@@ -245,7 +245,7 @@ OVVAR.panel.checkNewPatch = function (m, result) {
   // seat height passes a check that only looks at the range and then fails datagen.
   if (h % 2 || (!result.seat && result.w % 2)) out.push('Patch art is an even size both ways.');
   if (result.seat) {
-    if (h < m.px || h > m.seatHeightMax) out.push('A seat patch is ' + m.px + '–' + m.seatHeightMax + ' px tall (and always ' + 2 * m.px + ' wide).');
+    if (h < m.artPx || h > m.seatHeightMax) out.push('A seat patch is ' + m.artPx + '–' + m.seatHeightMax + ' px tall (and always ' + 2 * m.artPx + ' wide).');
   } else {
     if (result.w < 6 || result.w > m.maxArt || h < 6 || h > m.maxArt) out.push('Patch art is 6–' + m.maxArt + ' px each way.');
   }
@@ -257,7 +257,7 @@ OVVAR.panel.addSize = function () {
   var patches = {};
   m.patches.forEach(function (p) { if (!p.seat) patches[p.id] = p.name; });
   var sizes = {};
-  sizes[m.px] = m.px + ' × ' + m.px + ' (a shoulder)';
+  sizes[m.artPx] = m.artPx + ' × ' + m.artPx + ' (a shoulder)';
   sizes[m.overMax] = m.overMax + ' × ' + m.overMax + ' (an ordinary cell)';
   sizes[m.maxArt] = m.maxArt + ' × ' + m.maxArt + ' (the big back cell)';
   new Dialog('ovvar_add_size', {
@@ -318,7 +318,7 @@ OVVAR.panel.refit = function (m, patch) {
   var own = patch.arts.filter(function (a) { return a['default']; })[0];
   patch.fits = {
     over: (patch.seat || (own.w <= m.overMax && own.h <= m.overMax)) ? own.file : largestIn(m.overMax, m.overMax),
-    clipped: largestIn(m.px, m.px),
+    clipped: largestIn(m.artPx, m.artPx),
     filled: largestIn(m.maxArt, m.maxArt)
   };
 };
@@ -355,7 +355,7 @@ OVVAR.panel.exportToRepo = function () {
       var by = p.artist ? '.by("' + p.artist + '")' : '';
       if (p.seat) return 'Patch.seat("' + p.id + '", "' + p.name + '", ' + p.w + ', ' + p.h + ')' + by + ',';
       // new Patch(id, name) is Spot.PX square -- a cell-sized patch; anything else says its size.
-      if (p.w === m.px && p.h === m.px) return 'new Patch("' + p.id + '", "' + p.name + '")' + by + ',';
+      if (p.w === m.artPx && p.h === m.artPx) return 'new Patch("' + p.id + '", "' + p.name + '")' + by + ',';
       return 'new Patch("' + p.id + '", "' + p.name + '", ' + p.w + ', ' + p.h + ')' + by + ',';
     });
     new Dialog('ovvar_exported', {

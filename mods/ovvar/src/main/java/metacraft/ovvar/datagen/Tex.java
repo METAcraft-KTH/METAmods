@@ -241,6 +241,29 @@ public final class Tex {
 	 * units of 1/(W·W'), so exact ties are exactly ties. At a factor of one half this is a plain 2×2
 	 * block majority.
 	 */
+	/**
+	 * Every pixel repeated {@code factor} times each way: how art drawn at
+	 * {@link metacraft.ovvar.content.Spot#ART_DETAIL} is put onto a texture drawn at the finer
+	 * {@link metacraft.ovvar.content.Spot#DETAIL}. Nearest-neighbour by
+	 * construction, so it invents no colour and keeps the art exactly as pixel art — a factor of one
+	 * returns the same pixels, which is what makes the two detail levels agreeing a no-op.
+	 */
+	public Tex scaledUp(int factor) {
+		if (factor < 1) throw new IllegalArgumentException("cannot scale up by " + factor);
+		if (factor == 1) return this;
+		Tex out = blank(width * factor, height * factor);
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int p = get(x, y);
+				if (p == 0) continue;
+				for (int dy = 0; dy < factor; dy++) {
+					for (int dx = 0; dx < factor; dx++) out = out.with(x * factor + dx, y * factor + dy, p);
+				}
+			}
+		}
+		return out;
+	}
+
 	public Tex downscaled(int w, int h) {
 		if (w <= 0 || h <= 0 || w > width || h > height) {
 			throw new IllegalArgumentException("cannot scale " + width + "x" + height + " down to " + w + "x" + h);

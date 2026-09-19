@@ -3,7 +3,7 @@
 // plugin: nothing of ours lands on window, and onunload has nothing global to clean up.
 var OVVAR = {};
 
-OVVAR.VERSION = 1;
+OVVAR.VERSION = 2;
 
 // ---- PNG, by hand
 //
@@ -229,6 +229,8 @@ OVVAR.loadManifest = function (io, checkout) {
     throw new Error('This manifest is version ' + m.version + '; this plugin understands version '
       + OVVAR.VERSION + '. Update the plugin (tools/blockbench/ovvar.js).');
   }
+  // Version 1 wrote one resolution: art and texture were the same size, so its art scales by 1.
+  if (m.artDetail === undefined) { m.artDetail = m.detail; m.artScale = 1; m.artPx = m.px; }
   m.checkout = checkout;
   m.cellById = {};
   for (var c = 0; c < m.cells.length; c++) m.cellById[m.cells[c].id] = m.cells[c];
@@ -478,19 +480,32 @@ OVVAR.compose.artFor = function (m, patch, cell) {
   return art;
 };
 
-/** Patches.Art.offsetX: the art centred in the cell, which is not always one cell wide. */
+/**
+ * Patches.Art.offsetX: the art centred in the cell, which is not always one cell wide. In texture
+ * pixels -- the art's own width is in art pixels and lands on the texture `artScale` times as wide.
+ */
 OVVAR.compose.offsetX = function (m, cell, art) {
-  return Math.trunc((cell.w * m.detail - art.w) / 2);
+  return Math.trunc((cell.w * m.detail - art.w * m.artScale) / 2);
 };
 
 /** Spot.seatHalf: where a seat patch's art is cut for one leg, in art pixels. */
 OVVAR.compose.seatHalf = function (m, side) {
-  return (side === 'left' ? 0 : 1) * m.px;
+  return (side === 'left' ? 0 : 1) * m.artPx;
 };
 
 /**
- * GeneratedAssets.placed: the art on a garment texture at texel column x (its top-left; the
- * cell's row, centred vertically), clipped to the part's side rows and wrapped round the part's
+ * Tex.scaledUp(Spot.ART_SCALE): art at the texture's resolution. A patch is drawn at `artDetail`
+ * px per skin texel and a texture is at `detail`, so every art is scaled up by the ratio on its
+ * way onto a texture -- `placed` and `placedWrapped` take art that has already been through this.
+ * The identity while the two agree, which is what a version 1 manifest says.
+ */
+OVVAR.compose.baked = function (m, art) {
+  return m.artScale === 1 ? art : OVVAR.tex.scale(art, m.artScale);
+};
+
+/**
+ * GeneratedAssets.placed: the art (at texture resolution: see `baked`) on a garment texture at
+ * texel column x (its top-left; the cell's row, centred vertically), clipped to the part's side rows and wrapped round the part's
  * strip -- past the outer face of a limb lies its back face. A cell on a box's top face (the
  * shoulders) is clipped to the face both ways instead, since the top face has no neighbour in
  * the layout to continue onto.
@@ -543,11 +558,11 @@ OVVAR.compose.placementArt = function (ctx, cell, patch, side) {
   if (cell.side === 'seat') {
     // The art is drawn as seen from behind, so its left half belongs on the wearer's LEFT leg;
     // that half is then flipped in x, because the model flips the left leg's texture back.
-    var half = OVVAR.tex.crop(art, OVVAR.compose.seatHalf(m, side), 0, m.px, art.h);
-    return {art: side === 'left' ? OVVAR.tex.flipX(half) : half, x: cell.u * m.detail};
+    var half = OVVAR.tex.crop(art, OVVAR.compose.seatHalf(m, side), 0, m.artPx, art.h);
+    return {art: OVVAR.compose.baked(m, side === 'left' ? OVVAR.tex.flipX(half) : half), x: cell.u * m.detail};
   }
   return {
-    art: cell.side === 'left' ? OVVAR.tex.flipX(art) : art,
+    art: OVVAR.compose.baked(m, cell.side === 'left' ? OVVAR.tex.flipX(art) : art),
     x: cell.u * m.detail + OVVAR.compose.offsetX(m, cell, entry)
   };
 };
@@ -1502,12 +1517,12 @@ OVVAR.panel.newPatch = function () {
         condition: function (form) { return !form.seat; }},
       h: {label: 'Height', type: 'number', value: m.overMax, min: 6, max: m.maxArt, step: 2,
         condition: function (form) { return !form.seat; }},
-      seatHeight: {label: 'Height', type: 'number', value: m.px, min: m.px, max: m.seatHeightMax, step: 2,
+      seatHeight: {label: 'Height', type: 'number', value: m.artPx, min: m.artPx, max: m.seatHeightMax, step: 2,
         condition: function (form) { return !!form.seat; },
-        description: 'A seat patch is ' + 2 * m.px + ' px wide, across both cells.'}
+        description: 'A seat patch is ' + 2 * m.artPx + ' px wide, across both cells.'}
     },
     onConfirm: function (result) {
-      var w = result.seat ? 2 * m.px : result.w;
+      var w = result.seat ? 2 * m.artPx : result.w;
       var h = result.seat ? result.seatHeight : result.h;
       var asked = {id: result.id, name: result.name, artist: result.artist, seat: !!result.seat, w: w, h: h};
       var problems = OVVAR.panel.checkNewPatch(m, asked);
@@ -1560,7 +1575,7 @@ OVVAR.panel.checkNewPatch = function (m, result) {
   // seat height passes a check that only looks at the range and then fails datagen.
   if (h % 2 || (!result.seat && result.w % 2)) out.push('Patch art is an even size both ways.');
   if (result.seat) {
-    if (h < m.px || h > m.seatHeightMax) out.push('A seat patch is ' + m.px + '–' + m.seatHeightMax + ' px tall (and always ' + 2 * m.px + ' wide).');
+    if (h < m.artPx || h > m.seatHeightMax) out.push('A seat patch is ' + m.artPx + '–' + m.seatHeightMax + ' px tall (and always ' + 2 * m.artPx + ' wide).');
   } else {
     if (result.w < 6 || result.w > m.maxArt || h < 6 || h > m.maxArt) out.push('Patch art is 6–' + m.maxArt + ' px each way.');
   }
@@ -1572,7 +1587,7 @@ OVVAR.panel.addSize = function () {
   var patches = {};
   m.patches.forEach(function (p) { if (!p.seat) patches[p.id] = p.name; });
   var sizes = {};
-  sizes[m.px] = m.px + ' × ' + m.px + ' (a shoulder)';
+  sizes[m.artPx] = m.artPx + ' × ' + m.artPx + ' (a shoulder)';
   sizes[m.overMax] = m.overMax + ' × ' + m.overMax + ' (an ordinary cell)';
   sizes[m.maxArt] = m.maxArt + ' × ' + m.maxArt + ' (the big back cell)';
   new Dialog('ovvar_add_size', {
@@ -1633,7 +1648,7 @@ OVVAR.panel.refit = function (m, patch) {
   var own = patch.arts.filter(function (a) { return a['default']; })[0];
   patch.fits = {
     over: (patch.seat || (own.w <= m.overMax && own.h <= m.overMax)) ? own.file : largestIn(m.overMax, m.overMax),
-    clipped: largestIn(m.px, m.px),
+    clipped: largestIn(m.artPx, m.artPx),
     filled: largestIn(m.maxArt, m.maxArt)
   };
 };
@@ -1670,7 +1685,7 @@ OVVAR.panel.exportToRepo = function () {
       var by = p.artist ? '.by("' + p.artist + '")' : '';
       if (p.seat) return 'Patch.seat("' + p.id + '", "' + p.name + '", ' + p.w + ', ' + p.h + ')' + by + ',';
       // new Patch(id, name) is Spot.PX square -- a cell-sized patch; anything else says its size.
-      if (p.w === m.px && p.h === m.px) return 'new Patch("' + p.id + '", "' + p.name + '")' + by + ',';
+      if (p.w === m.artPx && p.h === m.artPx) return 'new Patch("' + p.id + '", "' + p.name + '")' + by + ',';
       return 'new Patch("' + p.id + '", "' + p.name + '", ' + p.w + ', ' + p.h + ')' + by + ',';
     });
     new Dialog('ovvar_exported', {
