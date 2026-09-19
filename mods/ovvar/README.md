@@ -91,21 +91,21 @@ Cells come and go, and players' items and stored wardrobe rows name them by id, 
 log line — and keeps the rest of the design rather than failing the whole of it. (`BACK_LOW_LEFT`
 and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
 
-The catalogue (`Patches.java`) holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data, then
+The catalogue (`Patches.java`) holds ITK, METAcraft Rivals '26, IT and Data, then
 Spiken, Släggan, Ticket to my heart, the Maid dress and Pung, then Vlad's IN, IN (gold), the three
 Nyckeln keys and KomMN, and last Måns's JGS, TMEIT and TMEIT Marshal. ITK, IT, Data, Spiken, Släggan,
-the Maid dress and Måns's three are 12×12 and hang over their neighbours (except on the big back
+the Maid dress, the ticket and Måns's three are 12×12 and hang over their neighbours (except on the big back
 cell). Several are also drawn at more than one size: ITK ships `itk_8x8.png` (Kexana's original 8×8
 ITK, the art that shipped before the 12×12), so it lands whole on a shoulder instead of losing its
 edges, and `itk_16x16.png`; IT ships `it_16x16.png` (PolymITer's 16×16 IT sprite), so it fills the big
 back cell and is its own inventory icon at 1:1, and its 8×8 is scaled down from that 16×16 rather than
 drawn — see "art at more than one size" below; Spiken, Släggan, JGS, TMEIT and TMEIT Marshal each ship
-an 8×8 and a 16×16 beside their 12×12, and Ticket to my heart an 8×8, a 12×12 and a 16×16 beside its
-default. That default is 10×6, drawn 9×6 and padded with a transparent column, since the catalogue
-takes even sizes only;
+an 8×8 and a 16×16 beside their 12×12 — Ticket to my heart among them, now Måns's 12×12 redraw in
+place of Cactooz's 9×6 original;
 Rivals and Pung are the seat patches — Rivals is Data's cerise with a creeper against IT's laser
 violet with a VS, at the seat's own 16×8; Pung is 16×10, so its top and bottom rails hang over the
-seat's row onto the cloth — and Nyckeln'26 is Kexana's cell-sized 8×8. New entries go at the end of the list: a design's instant
+seat's row onto the cloth. (Kexana's Nyckeln'26, an 8×8 of the same key as Vlad's Nyckeln 0x2, is gone from the
+list; its id still reads as that patch, so an ovve sewn with it loads.) New entries go at the end of the list: a design's instant
 code is its position in it (see "the dye colour" below), so an entry inserted in the middle would
 repaint every patch already sewn. Släggan's file is `slaggan.png` — a resource id is `[a-z0-9_.-]`,
 so the ä lives in the display name only. Seat art is drawn as seen from behind, the only
@@ -827,7 +827,7 @@ MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla.
 
 ## Credits
 
-Patch art: Nyckeln'26 by Kexana, and the 8×8 ITK (`itk_8x8.png`, the original ITK patch, now the
+Patch art: the 8×8 ITK (`itk_8x8.png`, the original ITK patch, now the
 size variant a shoulder wears); ITK, METAcraft Rivals '26 and Data by Froosty11 (placeholders
 until redrawn); IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
 PolymITer set's, redrawn with a white logo, which the IT ovve's own overlay now carries too), with
