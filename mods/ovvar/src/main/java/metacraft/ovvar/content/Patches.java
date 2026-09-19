@@ -269,7 +269,6 @@ public final class Patches {
 
 	private static final List<Patch> ALL = List.of(
 			new Patch("itk", "ITK", 12, 12).by("Froosty11"),
-			new Patch("nyckeln", "Nyckeln'26").by("Kexana"),
 			Patch.seat("rivals", "METAcraft Rivals '26").by("Froosty11"),   // across the seat
 			new Patch("it", "IT", 12, 12).by("Cactooz"),
 			new Patch("data", "Data", 12, 12).by("Froosty11"),
@@ -277,7 +276,7 @@ public final class Patches {
 			// is its position here, so inserting one in the middle would repaint everything already sewn.
 			new Patch("spiken", "Spiken", 12, 12).by("Cactooz"),
 			new Patch("slaggan", "Släggan", 12, 12).by("Cactooz"),   // the file is slaggan.png: a resource id is [a-z0-9_.-]
-			new Patch("ticket_to_my_heart", "Ticket to my heart", 10, 6).by("Cactooz"),   // drawn 9×6, padded to an even width
+			new Patch("ticket_to_my_heart", "Ticket to my heart", 12, 12).by("Måns"),   // his 12×12 redraw replaced Cactooz's 9×6
 			new Patch("maid", "Maid dress", 12, 12).by("Mackan"),
 			// Taller than the seat's own row: a texel of the rails hangs onto the cloth below it.
 			Patch.seat("pung", "Pung", 16, 10),
@@ -302,7 +301,9 @@ public final class Patches {
 
 	public static final Codec<Patch> ID_CODEC = Codec.STRING.comapFlatMap(
 			id -> {
-				var patch = BY_ID.get(id);
+				// Nyckeln'26 was Kexana's 8×8 of the same key Vlad drew as nyckeln0x2; the entry went, the id
+				// stays readable so an ovve sewn with it still loads.
+				var patch = BY_ID.get(id.equals("nyckeln") ? "nyckeln0x2" : id);
 				if (patch != null) {
 					return DataResult.success(patch);
 				} else {

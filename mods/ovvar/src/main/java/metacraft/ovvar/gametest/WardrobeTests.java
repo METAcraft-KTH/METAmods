@@ -1820,10 +1820,13 @@ public final class WardrobeTests {
 	@GameTest
 	public void aTopFacePlacementSitsOnTheCellsOwnRows(GameTestHelper helper) {
 		int D = Spot.DETAIL;
-		Patches.Patch cellSized = Patches.all().stream().filter(p -> !p.seat() && p.width() == Spot.ART_PX && p.height() == Spot.ART_PX)
+		// A patch that lands on a shoulder at the cell's own size: one drawn cell-sized, or one that ships a
+		// cell-sized art beside its default (ITK's itk_8x8.png), which is what artFor picks for a clipped cell.
+		Patches.Patch cellSized = Patches.all().stream().filter(p -> !p.seat() && Patches.variants(p).stream()
+						.anyMatch(a -> !a.generated() && a.width() == Spot.ART_PX && a.height() == Spot.ART_PX))
 				.findFirst().orElse(null);
 		if (cellSized == null) {
-			helper.fail("no cell-sized patch in the catalogue, so nothing here can say where a cell's own rows are");
+			helper.fail("no patch with a cell-sized art in the catalogue, so nothing here can say where a cell's own rows are");
 			return;
 		}
 		int tops = 0;

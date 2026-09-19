@@ -420,10 +420,11 @@ public final class OvvarGameTests {
 		record Case(String patch, int base, int expected) {}
 		List<Case> cases = List.of(
 				new Case("itk", 6, 9),        // 12×12, 48 texels: 9 exactly
-				new Case("nyckeln", 6, 6),    // 8×8, 30 texels: 5.625 rounds up
+				new Case("nyckeln0x2", 6, 9),  // 12×12, 48 texels: 9 exactly (Nyckeln'26, the 8×8 this once checked, is gone)
 				new Case("rivals", 6, 9),     // the 16×8 seat patch, 48 texels: 9 exactly
 				new Case("itk", 12, 16),      // 18 capped at the dialog's most
-				new Case("nyckeln", 1, 1));   // never below one
+				new Case("nyckeln0x2", 1, 2),  // scales down with the base
+				new Case("nyckeln0x2", 0, OvvarConfig.MIN_STITCHES));   // never below the least the dialog allows
 		List<String> wrong = new ArrayList<>();
 		for (Case c : cases) {
 			int got = Seam.stitchesFor(Patches.get(c.patch), c.base);
