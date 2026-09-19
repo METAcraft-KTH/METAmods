@@ -1639,8 +1639,9 @@ public final class RivalsGameTests {
 
 	private static PlayerTeam team(GameTestHelper helper, PaintColor color) {
 		ServerScoreboard board = helper.getLevel().getScoreboard();
-		PlayerTeam team = board.getPlayerTeam(color.id);
-		return team != null ? team : board.addPlayerTeam(color.id);
+		// Under the configured name, so the tests follow teams.json the way a player's /team join does.
+		PlayerTeam team = board.getPlayerTeam(TeamNames.nameOf(color));
+		return team != null ? team : board.addPlayerTeam(TeamNames.nameOf(color));
 	}
 
 	/**
@@ -2226,20 +2227,20 @@ public final class RivalsGameTests {
 		PlayerTeam renamed = board.addPlayerTeam(renamedName);
 		PlayerTeam stranger = board.addPlayerTeam(strangerName);
 		try {
-			helper.assertValueEqual(TeamNames.nameOf(PaintColor.DATA), "data", "the default name is the side's own id");
-			helper.assertValueEqual(TeamNames.slotOf("it").orElse(null), PaintColor.IT, "and it reads back");
+			helper.assertValueEqual(TeamNames.nameOf(PaintColor.DATA), "main.data", "the default name is MAIN's team for the side");
+			helper.assertValueEqual(TeamNames.slotOf("main.it").orElse(null), PaintColor.IT, "and it reads back");
 			helper.assertTrue(TeamNames.slotOf(strangerName).isEmpty(), "a team of nobody's is nobody's");
 			helper.assertTrue(TeamNames.renamed().isEmpty(), "nothing is off its default");
 
 			helper.assertTrue(TeamNames.set(PaintColor.DATA, renamedName), "DATA is pointed elsewhere");
 			helper.assertValueEqual(TeamNames.nameOf(PaintColor.DATA), renamedName, "which is the name it now uses");
 			helper.assertValueEqual(TeamNames.slotOf(renamedName).orElse(null), PaintColor.DATA, "and it resolves");
-			helper.assertTrue(TeamNames.slotOf("data").isEmpty(), "while the old name is nobody's");
+			helper.assertTrue(TeamNames.slotOf("main.data").isEmpty(), "while the old name is nobody's");
 			helper.assertValueEqual(TeamNames.renamed(), List.of(PaintColor.DATA), "one side is off its default");
-			helper.assertValueEqual(TeamNames.nameList(), renamedName + ", it", "listed as " + TeamNames.nameList());
+			helper.assertValueEqual(TeamNames.nameList(), renamedName + ", main.it", "listed as " + TeamNames.nameList());
 			// Two sides may not share a name: a team cannot be both, and the lookup would have to guess.
 			helper.assertFalse(TeamNames.set(PaintColor.IT, renamedName), "IT cannot take DATA's team");
-			helper.assertValueEqual(TeamNames.nameOf(PaintColor.IT), "it", "so IT keeps its own");
+			helper.assertValueEqual(TeamNames.nameOf(PaintColor.IT), "main.it", "so IT keeps its own");
 			// And a real team under the configured name is DATA, while any other team is nobody's.
 			helper.assertValueEqual(PaintColor.byTeam(renamed).orElse(null), PaintColor.DATA,
 					"a team under the configured name is DATA");
@@ -5013,12 +5014,12 @@ public final class RivalsGameTests {
 	}
 
 	/**
-	 * Letting go of the scope is not a shot. The charger's two buttons are the scope (right, held) and
-	 * the trigger (left), so a release fires nothing, costs nothing and paints nothing — however long
-	 * the charge was held for.
+	 * Letting go of the scope is the shot. A vanilla client refuses to attack while it is using an item —
+	 * and the scope is a spyglass in use — so a scoped charger has no left click at all; the release is
+	 * the one gesture that always arrives, and it fires at whatever charge the hold built.
 	 */
 	@GameTest
-	public void chargerReleaseDoesNotFire(GameTestHelper helper) {
+	public void chargerFiresWhenTheScopeIsLetGo(GameTestHelper helper) {
 		stoneFloor(helper, 5);
 		Player player = gunner(helper);
 		ItemStack charger = new ItemStack(PaintWeapon.of(Weapon.CHARGER));
@@ -5029,14 +5030,12 @@ public final class RivalsGameTests {
 		player.setYRot(-90f); // look +X, down the floor
 		player.setXRot(0f);
 		player.startUsingItem(InteractionHand.MAIN_HAND);
-		boolean fired = PaintWeapon.of(Weapon.CHARGER).releaseUsing(charger, helper.getLevel(), player,
+		PaintWeapon.of(Weapon.CHARGER).releaseUsing(charger, helper.getLevel(), player,
 				Weapon.CHARGE_MAX_TICKS - Weapon.CHARGE_FULL_TICKS);
-		helper.assertTrue(!fired, "a release is not a shot");
-		helper.assertValueEqual(Ink.get(charger), Ink.MAX, "and costs nothing");
-		for (int x = 1; x <= 4; x++) {
-			helper.assertTrue(!isPaint(helper.getBlockState(new BlockPos(x, 2, 2)), PaintColor.DATA),
-					"nothing painted at x=" + x);
-		}
+		helper.assertTrue(Ink.get(charger) < Ink.MAX, "a full-charge release is a shot, and it costs ink: " + Ink.get(charger));
+		boolean painted = false;
+		for (int x = 1; x <= 4; x++) painted |= isPaint(helper.getBlockState(new BlockPos(x, 2, 2)), PaintColor.DATA);
+		helper.assertTrue(painted, "and the line landed on the floor in front of the player");
 		helper.succeed();
 	}
 

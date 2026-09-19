@@ -424,15 +424,25 @@ public final class PaintBall extends Snowball implements PolymerEntity {
 	 * which is what a viewer on no team sees.
 	 */
 	public static ItemStack blobModel(@Nullable PaintColor color) {
+		return blobModel(color, null);
+	}
+
+	/**
+	 * The same, as the bomb {@code special} flies as — {@code splat_bomb}, {@code burst_bomb} or
+	 * {@code curling_bomb}, three shapes a player can tell apart in the air: the fat blob with a wick that
+	 * waits, the small spiked one that goes off on touch, the flat puck that slides. Null is a plain shot.
+	 */
+	public static ItemStack blobModel(@Nullable PaintColor color, @Nullable Special special) {
 		ItemStack stack = new ItemStack(Items.STICK);
-		stack.set(DataComponents.ITEM_MODEL, Rivals.id("blob"));
+		stack.set(DataComponents.ITEM_MODEL, Rivals.id(special == null ? "blob" : special.id));
 		if (color != null) stack.set(DataComponents.DYED_COLOR, new DyedItemColor(color.rgb));
 		return stack;
 	}
 
 	/** The display that players actually see: a dyed blob model glued to this entity, gliding a tick behind. */
 	private void attachBlob() {
-		ItemStack stack = blobModel(color);
+		// Lazily, on the first tick, which is after special() has said what this ball is.
+		ItemStack stack = blobModel(color, isBomb() ? special : null);
 		ElementHolder holder = new ElementHolder();
 		ItemDisplayElement element = new ItemDisplayElement(stack);
 		element.setItemDisplayContext(ItemDisplayContext.FIXED);

@@ -125,6 +125,8 @@ public final class RivalsCommands {
 						.then(literal("score").requires(ADMIN).executes(ctx -> score(ctx.getSource())))
 						.then(literal("reset").requires(ADMIN).executes(ctx -> reset(ctx.getSource())))
 						.then(literal("reload").requires(ADMIN).executes(ctx -> reload(ctx.getSource())))
+						.then(literal("config").requires(ADMIN).executes(ctx -> config(ctx.getSource())))
+						.then(literal("help").requires(ADMIN).executes(ctx -> help(ctx.getSource())))
 						// Where each team starts: the sender's own stance, because a look direction is not
 						// something anybody wants to type as two numbers.
 						.then(literal("spawn").requires(ADMIN)
@@ -486,10 +488,10 @@ public final class RivalsCommands {
 	}
 
 	/**
-	 * Re-read the config files an arena builder edits between rounds: the unpaintable list, the team names
-	 * and how long a round MAIN starts runs. Not the weapon tuning — that is edited from inside the game
-	 * and written after every change,
-	 * so re-reading it would throw away what {@code /rivals tune} just set.
+	 * Re-read every file in {@code config/rivals-paint/}: the team names, the unpaintable list, how long a
+	 * round MAIN starts runs, and the weapon and special tuning. The tuning files are written after every
+	 * {@code /rivals tune}, so what is on disk is always what is in memory unless somebody edited the file
+	 * by hand — and then the file is what they meant.
 	 */
 	public static int reload(CommandSourceStack source) {
 		TeamNames.reload();
@@ -502,7 +504,54 @@ public final class RivalsCommands {
 		source.sendSuccess(() -> Component.literal("MAIN: a round started by " + MainPack.RUNNING_HOLDER + " in "
 				+ MainPack.STATE_OBJECTIVE + " runs " + minutes + " minute" + (minutes == 1 ? "" : "s") + ", from "
 				+ MainPack.configPath()), true);
+		WeaponTuning.load();
+		SpecialTuning.load();
+		source.sendSuccess(() -> Component.literal("Tuning re-read from " + WeaponTuning.configPath() + " and "
+				+ SpecialTuning.configPath() + " — /rivals tune shows what is off its default"), true);
 		return listed;
+	}
+
+	/** Every config file, where it is and what it holds right now: the answer to "how do I configure this". */
+	public static int config(CommandSourceStack source) {
+		List<String> lines = List.of(
+				"Rivals config — every file lives in config/rivals-paint/, is written with its own _help the first time "
+						+ "the server starts, and is re-read by /rivals reload:",
+				"  teams.json — which scoreboard team each side is. Now: " + TeamNames.describe()
+						+ " (default: main.data and main.it, MAIN's own teams; a server with no MAIN needs no change)",
+				"  main.json — how long a round MAIN's ?running flag starts runs. Now: " + MainPack.minutes() + " min",
+				"  unpaintable.json — blocks ink falls through, on top of the #" + Rivals.MOD_ID + ":unpaintable tag",
+				"  weapons.json / specials.json — every number a shot is made of; /rivals tune edits them in-game and "
+						+ "writes them back",
+				"Not files but saved with the arena (per level, /rivals arena|spawn|win-function|draw-function): the "
+						+ "bounds, the spawns and the functions that end a round — see /rivals help");
+		for (String line : lines) source.sendSuccess(() -> Component.literal(line), false);
+		return 1;
+	}
+
+	/** The whole setup, in order, for an operator who has never seen this mod. */
+	public static int help(CommandSourceStack source) {
+		List<String> lines = List.of(
+				"§6Rivals — setting up a game§r",
+				"§7Once per arena, standing in it:§r",
+				"  /rivals setup                     make the two teams if they are missing (" + TeamNames.nameList() + ")",
+				"  /rivals spawn set data|it         stand where that side starts, facing the way they should",
+				"  /rivals arena set <x y z> <x y z> the bounds; paint outside them is refused and a reset clears inside",
+				"  /rivals win-function set data main:api/end_game_data     what runs when DATA wins",
+				"  /rivals win-function set it main:api/end_game_it         what runs when IT wins",
+				"  /rivals draw-function set <function>                     what runs on a real draw",
+				"§7Per round, by hand:§r",
+				"  /team join " + TeamNames.nameOf(PaintColor.DATA) + " @s   (or " + TeamNames.nameOf(PaintColor.IT) + ")",
+				"  /rivals ready                     who is on which side, and armed",
+				"  /rivals match start 3 [force]     three minutes; force skips the readiness check",
+				"  /rivals match stop | status",
+				"§7Per round, under MAIN:§r nothing — MAIN sets ?running in splat.state to 1 and the mod starts a "
+						+ MainPack.minutes() + "-minute round in the first level with both spawns; when it ends the "
+						+ "winner's function runs and splat.stats.blocks / splat.stats.kills hold the numbers for the outro.",
+				"§7Files:§r /rivals config lists them; /rivals reload re-reads them; /rivals tune edits the weapons live.",
+				"§7Players:§r /rivals weapons and /rivals special pick a loadout; right click fires, the charger fires "
+						+ "when the scope is let go, F throws the special, sneaking on your own ink is squid form.");
+		for (String line : lines) source.sendSuccess(() -> Component.literal(line), false);
+		return 1;
 	}
 
 	/** Weapon ids, plus the {@code reset} that takes the whole lot back to the defaults. */

@@ -63,9 +63,10 @@ import java.util.UUID;
 
 /**
  * Every paint weapon, in one item class parameterised by a {@link Weapon}. Right click fires: it throws
- * paint in the colour of the holder's vanilla team, and no team means no shot. Left click is the second
- * trigger — the roller's flick and the charger's shot, the two gestures that belong to a weapon whose
- * right click is a hold — and <b>F</b>, the swap-hands key, is the special: the splat bomb. Clients
+ * paint in the colour of the holder's vanilla team, and no team means no shot. Left click is the roller's
+ * flick, the one second gesture that belongs to a weapon whose right click is a hold; the charger fires
+ * when the scope is <em>let go</em>, because a vanilla client refuses to attack while it is using an item,
+ * so a scoped charger has no left click at all. <b>F</b>, the swap-hands key, is the special: the splat bomb. Clients
  * see a stand-in vanilla item wearing our 3D model; the model's ink is dye-tinted, and each inventory
  * tick writes the holder's team colour into the server-side stack as that dye, so every viewer sees the
  * weapon in its holder's colour.
@@ -76,7 +77,7 @@ import java.util.UUID;
  * <caption>controls</caption>
  * <tr><th>weapon</th><th>right click</th><th>left click</th><th>F</th></tr>
  * <tr><td>shooter</td><td>hold to fire</td><td>—</td><td>splat bomb</td></tr>
- * <tr><td>charger</td><td>hold to scope/charge</td><td>fire the charge</td><td>— (no bomb)</td></tr>
+ * <tr><td>charger</td><td>hold to scope/charge, let go to fire</td><td>— (blocked by the scope)</td><td>— (no bomb)</td></tr>
  * <tr><td>slosher</td><td>slosh</td><td>—</td><td>splat bomb</td></tr>
  * <tr><td>roller</td><td>hold to roll</td><td>flick</td><td>splat bomb</td></tr>
  * </table>
@@ -366,7 +367,7 @@ public final class PaintWeapon extends Item implements PolymerItem {
 		if (ready.isEmpty()) return false;
 		PaintColor color = ready.get();
 		if (weapon == Weapon.CHARGER) {
-			actionBar(player, Component.literal("The charger carries no bomb — left click fires the line")
+			actionBar(player, Component.literal("The charger carries no bomb — hold right click, let go to fire")
 					.withStyle(ChatFormatting.GRAY));
 			return false;
 		}
@@ -628,14 +629,22 @@ public final class PaintWeapon extends Item implements PolymerItem {
 			Roll.stop(player);
 			return false;
 		}
-		// Letting go of the scope is not a shot: the trigger is the left click, so that the aim and the
-		// firing are two buttons rather than one gesture. A short scoped hold is the one case worth a
-		// word, because someone clicking this weapon the way the others are clicked sees nothing
-		// happen at all and reads it as broken.
-		if (weapon != Weapon.CHARGER) return false;
-		if (held < WeaponTuning.get(weapon).intValue(Param.CHARGE_MIN)) {
-			actionBar(player, Component.literal("Hold right click to aim, left click to fire").withStyle(ChatFormatting.GRAY));
+		// Letting go of the scope is the shot. It was the left click for a while — aim and fire as two
+		// buttons — but a vanilla client will not attack while it is using an item, and the scope is a
+		// spyglass in use, so a scoped charger had no left click at all and could never fire. The charge
+		// is what the hold built, read off the ticks here rather than off chargeOf, which asks the
+		// player whether they are using the item and gets a different answer depending on which side of
+		// stopUsingItem this is called from.
+		if (weapon != Weapon.CHARGER || !(level instanceof ServerLevel serverLevel)) return false;
+		WeaponTuning tuning = WeaponTuning.get(weapon);
+		float charge = Math.min(1.0f, held / (float) Math.max(1, tuning.intValue(Param.CHARGE_FULL)));
+		Optional<PaintColor> ready = ready(serverLevel, player, stack); // team, refill, squid
+		if (ready.isEmpty()) return false;
+		if (Ink.get(stack) < chargeCost(tuning, charge)) {
+			outOfInk(serverLevel, player, stack);
+			return false;
 		}
+		chargerShot(serverLevel, player, stack, charge, ready.get());
 		return false;
 	}
 

@@ -25,9 +25,9 @@ paint, which only a dedicated Rivals server wants.
 
 - Two sides, one colour each: **DATA** `#BD3754` and **IT** `#8A57BD`. A side *is* a plain vanilla
   scoreboard team, and which team is configurable — `config/rivals-paint/teams.json`,
-  `{"teams": {"data": "data", "it": "it"}}`, where the keys are the two colour slots and each value is the
-  scoreboard team name that slot uses. It defaults to the slot's own id, so out of the box the teams are
-  called `data` and `it` as before; a server that already runs teams of its own points a slot at one
+  `{"teams": {"data": "main.data", "it": "main.it"}}`, where the keys are the two colour slots and each value
+  is the scoreboard team name that slot uses. It defaults to `main.` plus the slot's id — the two teams the
+  MAIN datapack runs on the minigame server, so that server needs no file; any other server points a slot at one
   instead of keeping a second pair. `PaintColor.byTeam` — the single question anything here asks about a
   player's side — resolves through those names, `/rivals setup` creates any that do not exist and says
   which it made, and `/rivals reload` re-reads the file. Players join with `/team join <name>`.
@@ -163,7 +163,7 @@ paint, which only a dedicated Rivals server wants.
   | Weapon | Ink | Cadence | Damage | Shot | Splatcraft |
   |---|---|---|---|---|---|
   | shooter | 1 | 3 ticks (held) | 8, −0.34/tick from tick 3, floor 4 | one ball at 2.0 straight for 8 blocks, then 0.5 falling at 0.075; one bounce; 3×3 splat; spread 6° on the ground, 12° in the air | `splattershot.json` |
-  | charger | 2 → 18 | 20 ticks | 8 → 16 over a partial charge, **32 at a full one** | hold right click to aim (the spyglass scope; a full charge is 20 ticks), left click to fire a hitscan line of 9 → 24 blocks, stopped by the first block or player in it | `splat_charger.json` |
+  | charger | 2 → 18 | 20 ticks | 8 → 16 over a partial charge, **32 at a full one** | hold right click to aim (the spyglass scope; a full charge is 20 ticks), let go to fire a hitscan line of 9 → 24 blocks, stopped by the first block or player in it | `splat_charger.json` |
   | slosher | 7 | 12 ticks (click) | 7, flat | 2 pellets 8° apart, lobbed 15° up at 1.1 under gravity 0.06, 5×5 splat, no bounce | `slosher.json` |
   | roller | 9 a flick, 1 per 5 ticks rolling | 15 ticks after a flick | flick 30, −3.45/tick from tick 8, floor 7; roll 25 | **hold** right click to roll a 3-wide strip where you walk, with 8% more speed, no sprinting, and a head that runs over anyone in front once per 10 ticks — both only while you are actually moving, so a roller parked in a doorway is not a wall of damage, and paint thrown up where the head touches the ground; **left click** to flick 3 drops in a high arc | `splat_roller.json` |
 
@@ -820,13 +820,15 @@ paint, which only a dedicated Rivals server wants.
 
 ```
 /rivals setup            make the two teams (names from config/rivals-paint/teams.json)
-/team join data @s
+/team join main.data @s
 /rivals gun              shooter, the default
 /rivals gun slosher      or charger / roller
 /rivals kit              one of every weapon
 /rivals score
 /rivals reset
-/rivals reload           re-read teams.json, unpaintable.json and main.json
+/rivals reload           re-read every file in config/rivals-paint/ (teams, unpaintable, main, weapons, specials)
+/rivals config           what each config file is for and holds right now
+/rivals help             the whole setup, in order
 /rivals weapons          the weapon picker dialog (any player)
 /rivals weapons pick roller   what its buttons run
 /rivals spawn set data   where a team starts
@@ -840,10 +842,11 @@ paint, which only a dedicated Rivals server wants.
 ### Running a match
 
 The two sides are plain **vanilla scoreboard teams**. Which ones is set in
-`config/rivals-paint/teams.json` (`{"teams": {"data": "data", "it": "it"}}` — the keys are the two
+`config/rivals-paint/teams.json` (`{"teams": {"data": "main.data", "it": "main.it"}}` — the keys are the two
 colour slots, the values are the team names they use), written with its own `_help` the first time the
 server starts and re-read by `/rivals reload`. Point a slot at a team the server already runs, or leave the
-defaults and let `/rivals setup` make `data` and `it`. Players join a side with `/team join <name>`.
+defaults — MAIN's own `main.data` and `main.it` — and let `/rivals setup` make them if they are missing. Players
+join a side with `/team join <name>`.
 
 In order, once per arena:
 
@@ -858,7 +861,7 @@ In order, once per arena:
 Then, once per round:
 
 ```
-/team join data @s                     each player picks a side (or an operator assigns them)
+/team join main.data @s                     each player picks a side (or an operator assigns them)
 /rivals weapons                        each player, or right-click the weapon selector
 /rivals special                        and what F throws; the weapon picker's last button opens it too
 /rivals ready                          fails and names anybody on neither team
