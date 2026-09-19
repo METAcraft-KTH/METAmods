@@ -76,7 +76,8 @@ import java.util.function.Supplier;
  * <p><b>Frozen</b> means a −100 % {@code MOVEMENT_SPEED} modifier and a −100 % {@code JUMP_STRENGTH} one,
  * transient attribute modifiers by id exactly as the roller's speed bonus is, rather than potion effects:
  * they are exact, they do not show up in the client's effect list and they come off by id. Used for the
- * countdown, for the ten seconds after the whistle and for the three a respawn costs.
+ * countdown and for the three seconds a respawn costs; the ten seconds after the whistle are
+ * spectator instead.
  *
  * <p>Every transition wipes {@link InkOnScreen} and stops any {@link Roll} for everybody: ink on the
  * glass is health you lost in a round that is over, and a roll that survived a teleport is a player
@@ -198,7 +199,7 @@ public final class Match {
 	/**
 	 * Begin a match: check everybody is on one of the two sides (unless {@code force}), make sure both
 	 * teams exist, clear the arena's paint, hand out the weapon each player picked, teleport them to their
-	 * side's spawn in survival, freeze them and start the countdown.
+	 * side's spawn in adventure, freeze them and start the countdown.
 	 */
 	public static Result start(MinecraftServer server, ServerLevel level, Supplier<List<ServerPlayer>> players,
 			int minutes, boolean force, long now) {
@@ -282,7 +283,7 @@ public final class Match {
 
 	/**
 	 * Put one player into the match: their side's scoreboard team (which is what gives their paint a
-	 * colour), the weapon they picked, their side's spawn, survival. Also what a player who joins
+	 * colour), the weapon they picked, their side's spawn, adventure. Also what a player who joins
 	 * mid-match gets.
 	 */
 	public static void join(MinecraftServer server, ServerPlayer player, PaintColor color) {
@@ -292,8 +293,11 @@ public final class Match {
 		// where the board learns their name — see Stats.remember.
 		Stats.remember(player);
 		arm(player);
+		Ovves.dress(player, color);
 		place(player, color);
-		player.setGameMode(GameType.SURVIVAL);
+		// Adventure, in and out of a round: an arena is painted, not mined, and the lobby puts the same mode
+		// back, so nobody is ever handed survival by this mod.
+		player.setGameMode(GameType.ADVENTURE);
 		InkOnScreen.clear(player);
 		Roll.stop(player);
 	}
@@ -488,7 +492,9 @@ public final class Match {
 		// is a real draw, which the titles say and the arena's draw function answers.
 		if (winner == null) winner = Stats.sideWithMostKills(roster.get());
 		for (ServerPlayer player : roster.get()) {
-			freeze(player);
+			// The result is watched, not stood through: spectator for the celebration, and the lobby puts
+			// adventure back and sends everybody home.
+			player.setGameMode(GameType.SPECTATOR);
 			disarm(player);
 			InkOnScreen.clear(player);
 			Roll.stop(player);
@@ -585,6 +591,8 @@ public final class Match {
 			thaw(player);
 			InkOnScreen.clear(player);
 			Roll.stop(player);
+			player.setGameMode(GameType.ADVENTURE);
+			Lobby.sendHome(player);
 		}
 		Lobby.receiveAll(players);
 	}
@@ -609,6 +617,8 @@ public final class Match {
 		InkOnScreen.clear(player);
 		Roll.stop(player);
 		arm(player);
+		// Their inventory may have been dropped with them: the side's ovve back on, whatever they have.
+		PaintColor.byTeam(player.getTeam()).ifPresent(color -> Ovves.dress(player, color));
 		grace(player, now);
 		title(player, Component.literal("Respawning").withStyle(ChatFormatting.AQUA), Component.empty());
 	}

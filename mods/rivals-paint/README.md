@@ -372,7 +372,7 @@ paint, which only a dedicated Rivals server wants.
 
   `start` checks readiness (unless forced), makes sure both teams exist the way `/rivals setup` does, puts
   every player on a side into the match, clears the paint inside the arena, hands each player the weapon they
-  picked (the shooter if they never picked), teleports them to their team's spawn in survival, and
+  picked (the shooter if they never picked), teleports them to their team's spawn in adventure (always adventure — an arena is painted, not mined), and
   freezes them for the countdown: titles 5…1, a note under each, then **GO!**. Frozen is a −100 %
   `MOVEMENT_SPEED` modifier plus a −100 % `JUMP_STRENGTH` one — transient attribute modifiers by id,
   exactly as the roller's speed bonus is, so they are exact, they do not appear in the client's effect
@@ -382,18 +382,30 @@ paint, which only a dedicated Rivals server wants.
   selector in its own, and the weapon lock with them, since the lock is only ever "a paint weapon in slot
   0") and every Rivals boss bar — the timer and the score bars — comes off every screen, so a player is
   left with the inventory they walked in with. `/rivals kit` and `/rivals gun` still hand out items outside
-  a match, for testing an arena. Everybody freezes again, the paint is counted, and the winner is titled in their
+  a match, for testing an arena. Everybody is put in spectator, the paint is counted, and the winner is titled in their
   own colour — "DATA wins!", "IT wins!" or "Draw", with both percentages under it and in chat — while ten
   team-coloured rockets go up over three seconds at the winner's spawn. Ten seconds later it is the lobby
-  again. Every transition clears `InkOnScreen` and stops any `Roll` for everybody: ink on the glass is
+  again: adventure back on, and everybody teleported to the level's own respawn point (`Lobby.sendHome`). Every transition clears `InkOnScreen` and stops any `Roll` for everybody: ink on the glass is
   health lost in a round that is over, and a roll that survived a teleport is a player rolling on a spawn
   platform.
 
   **Dying** during PLAYING puts a player back on their own team's spawn (Fabric's `AFTER_RESPAWN`, which
   hands over the new entity — overriding the respawn position itself would also have to answer for the
   bed, the anchor and the end portal), frozen and invulnerable for three seconds with a "Respawning"
-  title and a clean screen, and re-armed. A player who **joins mid-match** gets the same treatment as a
-  respawn, so nobody loads into a firefight.
+  title and a clean screen, re-armed — and re-dressed: a round is played in the side's ovve, and a death may
+  have dropped it. A player who **joins mid-match** gets the same treatment as a respawn, so nobody loads
+  into a firefight.
+
+  **The ovve.** `Ovves` puts the side's ovve on a player's legs at every way into a round (start, mid-round
+  join, respawn): DATA wears the Data ovve; IT wears the silicon-blue IT ovve (PolymITer's kiselblå, which
+  counts as IT) if they own one, else the plain IT one. One they own is taken from their inventory first, a
+  fresh one owned by them is given otherwise, and whatever the legs held goes back in the inventory. Ovves
+  are ovvar's, so the whole thing is behind `FabricLoader.isModLoaded("ovvar")` (`OvvarBridge` is the only
+  class that names ovvar's types); without ovvar it is a no-op.
+
+  **Changing weapon mid-round** is done at your own spawn: `WeaponPicks.pickRefusal` refuses a pick — and
+  the selector refuses to open — during PLAYING further than `SWAP_RADIUS` (8 blocks) from the side's own
+  spawn. The lobby and the countdown are anywhere.
 
   The clock and the roster are both handed in: `Match.tick` takes the tick count and `start` takes a
   supplier of the players, defaulting to the online list. Nothing in `Match` reads `getTickCount()` on its

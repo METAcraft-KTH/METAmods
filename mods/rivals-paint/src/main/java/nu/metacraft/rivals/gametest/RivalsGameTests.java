@@ -595,7 +595,7 @@ public final class RivalsGameTests {
 			MultiActionDialog dialog = WeaponDialog.build(player);
 			helper.assertValueEqual(dialog.common().body().size(), 4, "one picture per weapon");
 			helper.assertValueEqual(dialog.actions().size(), 5, "one button per weapon, and one out to the special");
-			helper.assertValueEqual(dialog.columns(), 2, "two buttons to a row");
+			helper.assertValueEqual(dialog.columns(), 4, "the four weapons on one row");
 			int index = 0;
 			for (Weapon weapon : Weapon.values()) {
 				ItemBody picture = (ItemBody) dialog.common().body().get(index);
@@ -616,7 +616,7 @@ public final class RivalsGameTests {
 			// With no pick of their own the shooter is the one marked, since that is what a match hands out.
 			helper.assertValueEqual(WeaponChoice.DEFAULT, Weapon.SHOOTER, "the default is the shooter");
 			helper.assertTrue(((ItemBody) dialog.common().body().getFirst()).description().orElseThrow()
-					.contents().getString().contains("(current)"), "and it is the one marked current");
+					.contents().getString().contains("yours"), "and it is the one marked as theirs");
 			// The last button is the other half of a loadout: it says what F throws now and opens the picker.
 			ActionButton special = dialog.actions().getLast();
 			helper.assertValueEqual(buttonCommand(special), WeaponDialog.SPECIAL_COMMAND, "the last button opens the special picker");
@@ -1370,7 +1370,7 @@ public final class RivalsGameTests {
 
 			Match.tick(level.getServer(), playing + 60L * 20L);
 			helper.assertValueEqual(Match.state(), Match.State.ENDED, "time is up");
-			helper.assertTrue(Match.isFrozen(one), "everybody is frozen for the result");
+			helper.assertTrue(one.gameMode.getGameModeForPlayer() == GameType.SPECTATOR, "everybody watches the result as a spectator");
 			helper.assertTrue(!Match.finalCounts().isEmpty(), "and the paint was counted");
 			// A match that runs out of clock takes the kit back exactly as a stopped one does.
 			helper.assertValueEqual(paintWeapons(one) + selectors(one), 0, "one is carrying nothing of ours");
@@ -1497,7 +1497,7 @@ public final class RivalsGameTests {
 
 			helper.assertTrue(Match.stop(t + 400, helper.getLevel().getServer()), "stopped early");
 			helper.assertValueEqual(Match.state(), Match.State.ENDED, "which is the same ending");
-			helper.assertTrue(Match.isFrozen(player), "and the same freeze");
+			helper.assertTrue(player.gameMode.getGameModeForPlayer() == GameType.SPECTATOR, "and the same spectator seat");
 			// The whistle: no kit, no lock, no bars.
 			helper.assertValueEqual(paintWeapons(player), 0, "the weapon went back with the whistle");
 			helper.assertValueEqual(selectors(player), 0, "and so did the selector");

@@ -173,6 +173,11 @@ public final class WeaponSelector extends Item implements PolymerItem {
 	 */
 	public static void openPicker(ServerPlayer player) {
 		opens++;
+		String refusal = WeaponPicks.pickRefusal(player);
+		if (refusal != null) {
+			player.sendSystemMessage(Component.literal(refusal).withStyle(ChatFormatting.RED));
+			return;
+		}
 		WeaponDialog.open(player);
 		if (WeaponLock.locked(player)) WeaponLock.pin(player);
 	}

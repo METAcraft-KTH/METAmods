@@ -90,6 +90,16 @@ public final class Lobby {
 		return taken;
 	}
 
+	/** The level's own respawn point, whatever team they are on: where a round leaves everybody when it is over. */
+	public static void sendHome(ServerPlayer player) {
+		if (!(player.level() instanceof ServerLevel level)) return;
+		LevelData.RespawnData world = level.getRespawnData();
+		BlockPos at = world.pos();
+		player.teleportTo(level, at.getX() + 0.5, at.getY(), at.getZ() + 0.5,
+				java.util.Set.<Relative>of(), world.yaw(), world.pitch(), true);
+		InkOnScreen.clear(player);
+	}
+
 	/** Their own side's spawn if their scoreboard team is one of the two, the world spawn otherwise. */
 	public static void sendToSpawn(ServerPlayer player) {
 		if (!(player.level() instanceof ServerLevel level)) return;

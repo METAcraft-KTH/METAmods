@@ -25,6 +25,9 @@
 	"mixins": [
 		"rivals-paint.mixins.json"
 	],
+	"suggests": {
+		"ovvar": "*"
+	},
 	"depends": {
 		"fabricloader": ">=${loader_version}",
 		"minecraft": "~${minecraft_version}",

@@ -13,6 +13,7 @@ fabricApi {
 
 addPolymerDependency()
 dependencies {
+	// ovvar for the ovve a player wears in a round (Ovves / OvvarBridge); optional at runtime, see Ovves.
 	implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
 	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
@@ -21,3 +22,5 @@ dependencies {
 	// runtime path touches it, so it is not a fabric.mod.json dependency.
 	implementation("eu.pb4:polymer-blocks:${project.polymer_version}")
 }
+
+addProjectDependency(":mods:ovvar")

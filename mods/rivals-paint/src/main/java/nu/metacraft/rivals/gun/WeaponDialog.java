@@ -34,8 +34,8 @@ import java.util.Optional;
  * has never picked.
  */
 public final class WeaponDialog {
-	/** Two weapons a row: four pictures in a column each would not fit a screen. */
-	public static final int COLUMNS = 2;
+	/** Four buttons to a row: the four weapons side by side under their pictures, and the special on a row of its own. */
+	public static final int COLUMNS = 4;
 
 	private WeaponDialog() {}
 
@@ -66,11 +66,12 @@ public final class WeaponDialog {
 		for (Weapon weapon : Weapon.values()) {
 			boolean current = weapon == chosen;
 			ItemStack stack = PaintWeapon.withTankColor(new ItemStack(PaintWeapon.of(weapon)), team);
-			body.add(Dialogs.item(stack, Component.literal(weapon.displayName + (current ? " (current)" : ""))
-					.withStyle(current ? ChatFormatting.GOLD : ChatFormatting.WHITE)
+			body.add(Dialogs.item(stack, Component.literal((current ? "✔ " : "") + weapon.displayName + (current ? " — yours" : ""))
+					.withStyle(current ? ChatFormatting.GOLD : ChatFormatting.WHITE).withStyle(ChatFormatting.BOLD)
 					.append(Component.literal("\n" + WeaponPicks.blurb(weapon)).withStyle(ChatFormatting.GRAY))));
 			buttons.add(Dialogs.command(
-					Component.literal(weapon.displayName).withStyle(current ? ChatFormatting.GOLD : ChatFormatting.WHITE),
+					Component.literal(current ? "✔ " + weapon.displayName : "Take the " + weapon.displayName)
+							.withStyle(current ? ChatFormatting.GOLD : ChatFormatting.WHITE),
 					Component.literal(WeaponPicks.blurb(weapon)),
 					command(weapon)));
 		}
