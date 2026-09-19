@@ -84,9 +84,9 @@ public final class SpecialDialog {
 		return special.blurb + " — " + tuning.intValue(SpecialTuning.Param.INK) + " ink, " + wait + " s wait";
 	}
 
-	/** A special's picture: the blob it flies as, in the viewer's colour, named. */
+	/** A special's picture: the bomb it flies as, in the viewer's colour, named. */
 	public static ItemStack icon(Special special, @Nullable PaintColor color) {
-		ItemStack stack = PaintBall.blobModel(color);
+		ItemStack stack = PaintBall.blobModel(color, special);
 		stack.set(DataComponents.ITEM_NAME, Component.literal(special.displayName));
 		return stack;
 	}

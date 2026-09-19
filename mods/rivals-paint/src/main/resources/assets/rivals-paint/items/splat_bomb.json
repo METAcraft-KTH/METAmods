@@ -1,0 +1,12 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "rivals-paint:item/splat_bomb",
+		"tints": [
+			{
+				"type": "minecraft:dye",
+				"default": 16777215
+			}
+		]
+	}
+}

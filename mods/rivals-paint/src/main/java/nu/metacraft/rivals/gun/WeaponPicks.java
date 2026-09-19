@@ -2,6 +2,7 @@ package nu.metacraft.rivals.gun;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -9,6 +10,12 @@ import net.minecraft.util.Prediction;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import nu.metacraft.rivals.Arena;
+import nu.metacraft.rivals.Match;
+import nu.metacraft.rivals.PaintColor;
+import org.jspecify.annotations.Nullable;
+
+import java.util.Optional;
 
 /**
  * Taking a weapon: what a pick does to an inventory, and the line that describes each weapon.
@@ -20,6 +27,11 @@ import net.minecraft.world.item.ItemStack;
 public final class WeaponPicks {
 	/** Where the picked weapon goes: the first hotbar slot, so it is in hand a keypress later. */
 	public static final int GIVEN_SLOT = 0;
+	/**
+	 * How far from their own side's spawn a player may still change weapon during a round, in blocks. A
+	 * swap is a trip back to base, not a thing done behind cover in somebody else's half.
+	 */
+	public static final double SWAP_RADIUS = 8.0;
 
 	private WeaponPicks() {}
 
@@ -50,7 +62,26 @@ public final class WeaponPicks {
 	 * <p>Sweeping first matters — the point of picking is to be holding one weapon, not to be holding a
 	 * fourth — and the sweep is {@link #sweep}, which the lobby uses too.
 	 */
+	/**
+	 * Why this player may not change weapon where they stand, or null if they may: only during a live
+	 * round, and only when they are further than {@link #SWAP_RADIUS} from their own side's spawn. The
+	 * lobby and the countdown are anywhere.
+	 */
+	public static @Nullable String pickRefusal(ServerPlayer player) {
+		if (Match.state() != Match.State.PLAYING || !(player.level() instanceof ServerLevel level)) return null;
+		Optional<PaintColor> color = PaintColor.byTeam(player.getTeam());
+		if (color.isEmpty()) return null;
+		Optional<Arena.Spawn> spawn = Arena.of(level).spawn(color.get());
+		if (spawn.isEmpty() || player.position().distanceTo(spawn.get().pos()) <= SWAP_RADIUS) return null;
+		return "Weapons are changed at your own spawn — go back within " + (int) SWAP_RADIUS + " blocks of it";
+	}
+
 	public static ItemStack pick(ServerPlayer player, Weapon weapon) {
+		String refusal = pickRefusal(player);
+		if (refusal != null) {
+			player.sendSystemMessage(Component.literal(refusal).withStyle(ChatFormatting.RED));
+			return ItemStack.EMPTY;
+		}
 		WeaponChoice.of(player.level().getServer()).set(player, weapon);
 		sweep(player);
 		ItemStack given = PaintWeapon.withTankColor(new ItemStack(PaintWeapon.of(weapon)), player.getTeam());

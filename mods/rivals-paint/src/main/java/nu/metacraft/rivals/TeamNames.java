@@ -27,11 +27,11 @@ import java.util.Optional;
  * player on one is a plain {@code /team join}. The two are tied together by the team's <em>name</em>, and
  * the name is configurable, because a server that already runs teams called {@code red} and {@code blue}
  * (or {@code data-2026} and {@code it-2026}, or two house names) should not have to keep a second pair
- * called {@code data} and {@code it} beside them.
+ * called {@code main.data} and {@code main.it} beside them.
  *
  * <p>{@code config/rivals-paint/teams.json}:
  *
- * <pre>{"teams": {"data": "data", "it": "it"}}</pre>
+ * <pre>{"teams": {"data": "main.data", "it": "main.it"}}</pre>
  *
  * <p>The keys are the two colour slots and never change; the values are the scoreboard team names those
  * slots use, and default to the slot's own id, which is what the mod did before the file existed. Read on
@@ -42,8 +42,10 @@ import java.util.Optional;
  * asks this. Nothing else needs to know the names are configurable.
  */
 public final class TeamNames {
-	/** The configured name per slot. Absent means the slot's own id, which is the default. */
+	/** The configured name per slot. Absent means {@code main.} plus the slot's id, which is the default. */
 	private static final Map<PaintColor, String> NAMES = new EnumMap<>(PaintColor.class);
+	/** What a side's team is called when the file says nothing: MAIN's own {@code main.data} and {@code main.it}. */
+	public static final String DEFAULT_PREFIX = "main.";
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final String HELP = "Which vanilla scoreboard team each side of a match is. The keys are "
@@ -133,7 +135,7 @@ public final class TeamNames {
 
 	/** The scoreboard team name this side uses. */
 	public static String nameOf(PaintColor slot) {
-		return NAMES.getOrDefault(slot, slot.id);
+		return NAMES.getOrDefault(slot, DEFAULT_PREFIX + slot.id);
 	}
 
 	/** Which side a scoreboard team name is, if it is one of ours. */
@@ -158,11 +160,11 @@ public final class TeamNames {
 		return String.join(", ", parts);
 	}
 
-	/** The sides whose team name is not their own id. */
+	/** The sides whose team name is off the default. */
 	public static List<PaintColor> renamed() {
 		List<PaintColor> out = new ArrayList<>();
 		for (PaintColor slot : PaintColor.values()) {
-			if (!nameOf(slot).equals(slot.id)) out.add(slot);
+			if (!nameOf(slot).equals(DEFAULT_PREFIX + slot.id)) out.add(slot);
 		}
 		return out;
 	}
