@@ -5,7 +5,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import nu.metacraft.rivals.PaintColor;
@@ -19,11 +18,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * The client-state table (spec §2). A vanilla client can only be shown vanilla blockstates, and a
  * painted cell now needs to say which of its four in-plane neighbours are painted, so paint borrows
- * states from five donor blocks. Every state it borrows has to be <em>inert</em> on a vanilla client:
+ * states from eight donor blocks. Every state it borrows has to be <em>inert</em> on a vanilla client:
  * no collision, no light, no water, and no {@code animateTick} that emits anything. A pack can
  * repaint a borrowed state; it cannot make the client stop simulating it.
  *
@@ -32,9 +32,17 @@ import java.util.Set;
  * {@code TRIPWIRE_FLAT}) hands out tripwire states, so any mod calling
  * {@code PolymerBlockResourceUtils.requestBlock} is writing {@code minecraft/blockstates/tripwire.json}
  * too. On the minigame server, where moredyes' carpets sit in that pool next to Rivals, the two
- * overrides collided and every floor cell drew nothing at all. None of the five donors is in any
+ * overrides collided and every floor cell drew nothing at all. No donor is in any
  * {@code BlockModelType} pool, which is pinned by a game test that derives Polymer's pooled blocks
  * and asserts no donor is among them. A new donor has to clear the same test.
+ *
+ * <p><b>Redstone wire is not a donor either, and for the other reason a donor can fail: the map.</b>
+ * The pack override is the donor's whole blockstate file, so <em>every</em> block of that kind anybody
+ * places in the world draws as paint — and Paint Splat Town is built with redstone in it. Floors and
+ * ceilings used to take the 64 unpowered wire states, and the corner masks the stone button's 24; both
+ * now come from five wooden buttons instead, chosen for being the ones nobody builds with — the stone
+ * button went for the same reason the wire did. So the rule for a donor is three-sided: outside
+ * Polymer's pools, inert in every state it lends, and a block the arena's builders will never place.
  *
  * <p><b>What each donor can actually lend</b>, once the states that are not inert are struck out:
  *
@@ -45,17 +53,17 @@ import java.util.Set;
  *     {@code FluidState}, so the client draws a full block of water in the cell and predicts swimming
  *     in it. Nothing a pack can reach.</td></tr>
  * <tr><td>resin clump</td><td>64</td><td>nothing; it has no {@code waterlogged}</td></tr>
- * <tr><td>redstone wire</td><td>81</td><td>the 1215 states with {@code power != 0}:
- *     {@code RedstoneWireBlock.animateTick} sprinkles dust off every one of them</td></tr>
  * <tr><td>pale moss carpet</td><td>81</td><td>the 81 {@code base=true} states:
  *     {@code MossyCarpetBlock.getCollisionShape} returns a real box for those, so a client would stand
  *     a notch above the paint and disagree with the server about where the player is</td></tr>
- * <tr><td>stone button</td><td>24</td><td>nothing; no {@code animateTick} (a lever has one), no
- *     collision, and its {@code entityInside} is both server-side and a no-op for a stone button</td></tr>
+ * <tr><td>the crimson, warped, bamboo, pale oak and poplar buttons</td><td>24 each</td>
+ *     <td>nothing; a button has no {@code animateTick} (a lever has one), no collision and no
+ *     {@code waterlogged}, and {@code ButtonBlock.entityInside} returns on {@code isClientSide} before
+ *     it reads anything, so even the wooden ones an arrow can press are inert on a client</td></tr>
  * </table>
  *
- * <p>314 inert states against 306 paint states, so the table fits with eight unpowered wire states to
- * spare. <b>Which donor state stands for which paint state is chosen by donor, not by shape.</b>
+ * <p>329 inert states against 306 paint states, so the table fits with 23 button states to spare.
+ * <b>Which donor state stands for which paint state is chosen by donor, not by shape.</b>
  * Rivals is played in adventure mode, so the one thing a borrowed state's outline was ever good for —
  * the targeted-block highlight, which no pack can change — never appears, and a donor's shape costs
  * nothing:
@@ -67,11 +75,12 @@ import java.util.Set;
  *     because the pack replaces the whole blockstate file, so what the client draws is our quad and not
  *     vanilla's union of face slabs (that state's <em>shape</em> is empty, which in adventure mode
  *     nobody can see).</li>
- * <li><b>Floor and ceiling cells take unpowered redstone wire.</b> Attach {@link Direction#DOWN} and
- *     {@link Direction#UP}, 2 × 16 per colour = 64 of the 81 states at {@code power=0}.</li>
- * <li><b>Splat masks take the pale moss carpet, then the stone button, then the wire that is left.</b>
- *     A splat is the fallback for a cell painted on two or more faces — the join lines of an arena
- *     rather than its surfaces — and there are 114 of them: 81 carpet, 24 button, 9 wire.</li>
+ * <li><b>Floor and ceiling cells take the five button donors</b> — crimson, warped, bamboo, pale oak,
+ *     poplar, 24 states each — in that order. Attach {@link Direction#DOWN} and {@link Direction#UP},
+ *     2 × 16 per colour = 64 of the 120 they lend.</li>
+ * <li><b>Splat masks take the pale moss carpet, then the buttons' 56 leftovers.</b> A splat is the
+ *     fallback for a cell painted on two or more faces — the join lines of an arena rather than its
+ *     surfaces — and there are 114 of them: 81 carpet, 33 button, which leaves 23 unspent.</li>
  * </ol>
  *
  * <p>The allocation runs once, in a fixed order, and throws at class load rather than reuse a state,
@@ -80,9 +89,18 @@ import java.util.Set;
  * failure and not a report from a server. {@link #entry()} is the reverse map.
  */
 public final class PaintStates {
-	/** The donor blocks, all five of them outside every Polymer block pool. */
-	public static final List<Block> DONORS = List.of(Blocks.SCULK_VEIN, Blocks.RESIN_CLUMP,
-			Blocks.REDSTONE_WIRE, Blocks.PALE_MOSS_CARPET, Blocks.STONE_BUTTON);
+	/**
+	 * The five buttons floors and ceilings are dealt from, in the order they are spent, and whose leftovers
+	 * the corner masks take after the carpet. Deliberately the ones nobody builds with: see the class note
+	 * on why neither redstone wire nor the stone button is here any more.
+	 */
+	private static final List<Block> FLAT_DONORS = List.of(Blocks.CRIMSON_BUTTON, Blocks.WARPED_BUTTON,
+			Blocks.BAMBOO_BUTTON, Blocks.PALE_OAK_BUTTON, Blocks.POPLAR_BUTTON);
+
+	/** Every donor block, all of them outside every Polymer block pool. */
+	public static final List<Block> DONORS = Stream.concat(
+			Stream.of(Blocks.SCULK_VEIN, Blocks.RESIN_CLUMP, Blocks.PALE_MOSS_CARPET),
+			FLAT_DONORS.stream()).toList();
 	public static final int CONNECTED_PER_COLOR = 6 * 16;
 	/** Face masks with at least two faces set: every splat a cell can be, per colour. */
 	public static final int SPLAT_PER_COLOR = (1 << 6) - 1 - 6;
@@ -94,9 +112,9 @@ public final class PaintStates {
 	private static final List<Block> WALL_DONORS = List.of(Blocks.SCULK_VEIN, Blocks.RESIN_CLUMP);
 	/** Wall cells per colour: four attach directions of bit patterns. */
 	private static final int WALL_PER_COLOR = 4 * BITS;
-	/** Floor and ceiling cells per colour: what the wire pool has to cover before the splats get any. */
+	/** Floor and ceiling cells per colour: what the flat pool has to cover before the splats get any. */
 	private static final int FLAT_PER_COLOR = 2 * BITS;
-	/** The attach faces that are not walls, in the order they are handed wire states. */
+	/** The attach faces that are not walls, in the order they are handed flat-donor states. */
 	private static final List<Direction> FLAT_FACES = List.of(Direction.DOWN, Direction.UP);
 
 	/** The table, indexed {@code colour * PER_COLOR + local} exactly as {@link #entry} decodes it. */
@@ -108,20 +126,17 @@ public final class PaintStates {
 	// ---------------------------------------------------------------- inertness
 
 	/**
-	 * Whether a client can be shown this state and do nothing with it: one of ours, no water, no light,
-	 * no collision, and no {@code animateTick} that emits. The last is the one rule that cannot be read
-	 * off the state, so it is pinned per donor: redstone wire emits dust from every state with
-	 * {@code power != 0} and the other four donors have no {@code animateTick} at all (26.3 — a lever
-	 * would not qualify, and neither would a torch).
+	 * Whether a client can be shown this state and do nothing with it: one of ours, no water, no light
+	 * and no collision. {@code animateTick} is the one rule that cannot be read off a state, and since
+	 * redstone wire went there is no donor that has one at all (26.3 — a lever would not qualify, and
+	 * neither would a torch), so being a donor is the whole of that test.
 	 */
 	public static boolean inert(BlockState state) {
-		Block block = state.getBlock();
-		if (!DONORS.contains(block)) return false;
+		if (!DONORS.contains(state.getBlock())) return false;
 		if (state.hasProperty(BlockStateProperties.WATERLOGGED) && state.getValue(BlockStateProperties.WATERLOGGED)) return false;
 		if (!state.getFluidState().isEmpty()) return false;
 		if (state.getLightEmission() != 0) return false;
-		if (!state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty()) return false;
-		return block != Blocks.REDSTONE_WIRE || state.getValue(RedstoneWireBlock.POWER) == 0;
+		return state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty();
 	}
 
 	/** Every inert state of a donor, in registry order. */
@@ -135,6 +150,13 @@ public final class PaintStates {
 
 	private static Deque<BlockState> queue(Block donor) {
 		return new ArrayDeque<>(pool(donor));
+	}
+
+	/** One queue over several donors' pools, spent in the order they are listed. */
+	private static Deque<BlockState> queue(List<Block> donors) {
+		Deque<BlockState> out = new ArrayDeque<>();
+		for (Block donor : donors) out.addAll(pool(donor));
+		return out;
 	}
 
 	// ---------------------------------------------------------------- the allocator
@@ -157,22 +179,21 @@ public final class PaintStates {
 		// 2. Floors and ceilings, then 3. the splat masks. The colours are interleaved rather than
 		// filled one after the other, so a pool that runs out part way through the splats runs out for
 		// both teams at the same mask instead of for one of them only.
-		Deque<BlockState> wire = queue(Blocks.REDSTONE_WIRE);
-		require(wire.size() >= colors.length * FLAT_PER_COLOR, "redstone wire lends " + wire.size()
-				+ " unpowered states but the floors and ceilings need " + colors.length * FLAT_PER_COLOR);
+		Deque<BlockState> flats = queue(FLAT_DONORS);
+		require(flats.size() >= colors.length * FLAT_PER_COLOR, "the flat donors lend " + flats.size()
+				+ " states but the floors and ceilings need " + colors.length * FLAT_PER_COLOR);
 		for (Direction face : FLAT_FACES) {
 			for (int bits = 0; bits < BITS; bits++) {
-				for (PaintColor color : colors) table[index(color, face, bits)] = wire.remove();
+				for (PaintColor color : colors) table[index(color, face, bits)] = flats.remove();
 			}
 		}
 		Deque<BlockState> carpet = queue(Blocks.PALE_MOSS_CARPET);
-		Deque<BlockState> button = queue(Blocks.STONE_BUTTON);
-		require(carpet.size() + button.size() + wire.size() >= colors.length * SPLAT_PER_COLOR,
-				"the splat masks need " + colors.length * SPLAT_PER_COLOR + " states but the carpet, the button and "
-						+ "what the wire has left come to " + (carpet.size() + button.size() + wire.size()));
+		require(carpet.size() + flats.size() >= colors.length * SPLAT_PER_COLOR,
+				"the splat masks need " + colors.length * SPLAT_PER_COLOR + " states but the carpet and what the "
+						+ "buttons have left come to " + (carpet.size() + flats.size()));
 		for (int mask = 0; mask < SPLAT_PER_COLOR; mask++) {
 			for (PaintColor color : colors) {
-				table[color.ordinal() * PER_COLOR + CONNECTED_PER_COLOR + mask] = take(color, mask, carpet, button, wire);
+				table[color.ordinal() * PER_COLOR + CONNECTED_PER_COLOR + mask] = take(color, mask, carpet, flats);
 			}
 		}
 		List<BlockState> out = List.of(table);

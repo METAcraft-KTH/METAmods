@@ -228,7 +228,7 @@ public final class Roll {
 			BlockHitResult down = level.clip(new ClipContext(from, from.subtract(0, FLOOR_REACH, 0),
 					ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
 			if (down.getType() != HitResult.Type.BLOCK) continue;
-			if (Painter.paintFace(level, down.getBlockPos(), down.getDirection(), color)) painted++;
+			if (Painter.paintFace(level, down.getBlockPos(), down.getDirection(), color, player.getUUID())) painted++;
 		}
 		if (painted > 0) {
 			level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.SLIME_BLOCK_STEP,

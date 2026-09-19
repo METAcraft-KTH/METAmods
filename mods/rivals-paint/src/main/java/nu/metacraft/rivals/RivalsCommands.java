@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -11,7 +12,9 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.commands.arguments.item.FunctionArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.commands.FunctionCommand;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -23,6 +26,7 @@ import net.minecraft.util.Prediction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Team;
+import nu.metacraft.lib.util.FunctionOrTag;
 import nu.metacraft.rivals.gun.PaintWeapon;
 import nu.metacraft.rivals.gun.Special;
 import nu.metacraft.rivals.gun.SpecialDialog;
@@ -127,6 +131,17 @@ public final class RivalsCommands {
 								.then(literal("list").executes(ctx -> spawnList(ctx.getSource())))
 								.then(literal("set").then(argument("team", StringArgumentType.word()).suggests(TEAMS)
 										.executes(ctx -> spawnSet(ctx.getSource(), StringArgumentType.getString(ctx, "team"))))))
+						.then(literal("win-function").requires(ADMIN)
+							.then(literal("show").then(argument("team", StringArgumentType.word()).suggests(TEAMS)
+									.executes(ctx -> showFunction(ctx.getSource(), StringArgumentType.getString(ctx, "team")))))
+							.then(literal("set").then(argument("team", StringArgumentType.word()).suggests(TEAMS)
+								.then(argument("functions", FunctionArgument.functions()).suggests(FunctionCommand.SUGGEST_FUNCTION)
+									.executes(ctx -> setFunction(ctx.getSource(), StringArgumentType.getString(ctx, "team"), FunctionOrTag.fromArgument(ctx, "functions")))))))
+						.then(literal("draw-function").requires(ADMIN)
+							.then(literal("show").executes(ctx -> showFunction(ctx.getSource())))
+							.then(literal("set")
+								.then(argument("functions", FunctionArgument.functions()).suggests(FunctionCommand.SUGGEST_FUNCTION)
+									.executes(ctx -> setFunction(ctx.getSource(), FunctionOrTag.fromArgument(ctx, "functions"))))))
 						// Where the arena ends. While a box is set, paint outside it is refused and a reset
 						// clears only what is inside it.
 						.then(literal("arena").requires(ADMIN)
@@ -274,7 +289,7 @@ public final class RivalsCommands {
 	}
 
 	private static int matchStop(CommandSourceStack source) {
-		if (!Match.stop(source.getServer().getTickCount())) {
+		if (!Match.stop(source.getServer().getTickCount(), source.getServer())) {
 			source.sendFailure(Component.literal("No match is running").withStyle(ChatFormatting.RED));
 			return 0;
 		}
@@ -299,20 +314,65 @@ public final class RivalsCommands {
 	private static final SuggestionProvider<CommandSourceStack> TEAMS = (ctx, builder) ->
 			SharedSuggestionProvider.suggest(Stream.of(PaintColor.values()).map(color -> color.id), builder);
 
+	private static final DynamicCommandExceptionType INVALID_TEAM = new DynamicCommandExceptionType(
+		teamId -> Component.literal("No team called \"" + teamId + "\". Try one of: " + PaintColor.idList())
+			.withStyle(ChatFormatting.RED)
+	);
+
+	private static PaintColor getColour(String teamId) throws CommandSyntaxException {
+		return PaintColor.byId(teamId).orElseThrow(() -> INVALID_TEAM.create(teamId));
+	}
+
+	private static int setFunction(CommandSourceStack source, FunctionOrTag function) throws CommandSyntaxException {
+		Arena arena = Arena.of(source.getLevel());
+		arena.setDrawFunction(function);
+		source.sendSuccess(() -> Component.literal("Function set"), true);
+		return 1;
+	}
+
+	private static int showFunction(CommandSourceStack source) throws CommandSyntaxException {
+		Arena arena = Arena.of(source.getLevel());
+		return arena.getDrawFunction().map(function -> {
+			source.sendSuccess(() -> Component.literal("Draw function: " + function), true);
+			return 1;
+		}).orElseGet(() -> {
+			source.sendFailure(Component.literal("No draw function :("));
+			return 0;
+		});
+	}
+
+	private static int setFunction(CommandSourceStack source, String teamId, FunctionOrTag function) throws CommandSyntaxException {
+		var color = getColour(teamId);
+		Arena arena = Arena.of(source.getLevel());
+		arena.setWinFunction(color, function);
+		source.sendSuccess(() -> Component.literal(color.displayName + " win function set succesfully")
+			.withStyle(style -> style.withColor(color.teamColor.textColor())), true);
+		return 1;
+	}
+
+	private static int showFunction(CommandSourceStack source, String teamId) throws CommandSyntaxException {
+		var color = getColour(teamId);
+		Arena arena = Arena.of(source.getLevel());
+		return arena.getWinFunction(color).map(function -> {
+			source.sendSuccess(() -> Component.literal(color.displayName + " has win function: " + function)
+				.withStyle(style -> style.withColor(color.teamColor.textColor())), true);
+			return 1;
+		}).orElseGet(() -> {
+			source.sendFailure(Component.literal(color.displayName + " has no win function :(")
+				.withStyle(style -> style.withColor(color.teamColor.textColor())));
+			return 0;
+		});
+	}
+
 	/** Take the sender's position and look as a team's spawn. */
 	private static int spawnSet(CommandSourceStack source, String teamId) throws CommandSyntaxException {
-		Optional<PaintColor> color = PaintColor.byId(teamId);
-		if (color.isEmpty()) {
-			source.sendFailure(Component.literal("No team called \"" + teamId + "\". Try one of: " + PaintColor.idList())
-					.withStyle(ChatFormatting.RED));
-			return 0;
-		}
+		var color = getColour(teamId);
 		ServerPlayer player = source.getPlayerOrException();
 		Arena arena = Arena.of(source.getLevel());
-		arena.setSpawn(color.get(), player);
-		Arena.Spawn spawn = arena.spawn(color.get()).orElseThrow();
-		source.sendSuccess(() -> Component.literal(color.get().displayName + " starts here: " + spawn)
-				.withStyle(style -> style.withColor(color.get().teamColor.textColor())), true);
+		arena.setSpawn(color, player);
+		Arena.Spawn spawn = arena.spawn(color).orElseThrow();
+		source.sendSuccess(() -> Component.literal(color.displayName + " starts here: " + spawn)
+				.withStyle(style -> style.withColor(color.teamColor.textColor())), true);
 		return 1;
 	}
 
@@ -426,8 +486,9 @@ public final class RivalsCommands {
 	}
 
 	/**
-	 * Re-read the config files an arena builder edits between rounds: the unpaintable list and the team
-	 * names. Not the weapon tuning — that is edited from inside the game and written after every change,
+	 * Re-read the config files an arena builder edits between rounds: the unpaintable list, the team names
+	 * and how long a round MAIN starts runs. Not the weapon tuning — that is edited from inside the game
+	 * and written after every change,
 	 * so re-reading it would throw away what {@code /rivals tune} just set.
 	 */
 	public static int reload(CommandSourceStack source) {
@@ -437,6 +498,10 @@ public final class RivalsCommands {
 		int listed = Unpaintable.reload();
 		source.sendSuccess(() -> Component.literal("Unpaintable: the #" + Rivals.MOD_ID + ":unpaintable tag plus "
 				+ listed + " block" + (listed == 1 ? "" : "s") + " from " + Unpaintable.configPath()), true);
+		int minutes = MainPack.reload();
+		source.sendSuccess(() -> Component.literal("MAIN: a round started by " + MainPack.RUNNING_HOLDER + " in "
+				+ MainPack.STATE_OBJECTIVE + " runs " + minutes + " minute" + (minutes == 1 ? "" : "s") + ", from "
+				+ MainPack.configPath()), true);
 		return listed;
 	}
 

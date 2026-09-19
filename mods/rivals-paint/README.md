@@ -13,10 +13,12 @@ connected paint, the shader-drawn border). v6 added the two visual features desc
 non-full blocks as block displays of the real paint state, and ink on the screen from damage taken.
 v7 is Julle's four weapon models, the roller that replaces the sprayer, held-use fire, Splatoon 1's
 own numbers on a hundred-unit tank, an ink LED nobody can see, and screen ink drawn from four textures
-an artist can paint over.
+an artist can paint over. v8 is the seam to the MAIN datapack — the running flag it starts and stops
+rounds with, the per-side function that ends one, and the per-player board its outro reads — and the
+floors off redstone wire, because the arena is built with redstone on it.
 
 **Standalone.** This module is not bundled into the `dist` jar (root `build.gradle`, `standaloneMods`):
-its pack retextures sculk vein, resin clump, redstone wire, pale moss carpet and the stone button as
+its pack retextures sculk vein, resin clump, pale moss carpet and five wooden buttons as
 paint, which only a dedicated Rivals server wants.
 
 ## How it works
@@ -49,12 +51,19 @@ paint, which only a dedicated Rivals server wants.
   |---|---|---|
   | sculk vein | 64 | its 64 waterlogged states: a waterlogged state carries a water `FluidState`, so the client draws a full block of water in the cell and predicts swimming in it |
   | resin clump | 64 | nothing — it has no `waterlogged` |
-  | redstone wire | 81 | its 1215 states with `power != 0`: `RedstoneWireBlock.animateTick` sprinkles dust off every one of them |
   | pale moss carpet | 81 | its 81 `base=true` states: `MossyCarpetBlock.getCollisionShape` returns a real box for those, so a client would stand a notch above the paint and disagree with the server about where the player is |
-  | stone button | 24 | nothing — no `animateTick` (a lever has one), no collision, and its `entityInside` is both server-side and a no-op for a stone button |
+  | the crimson, warped, bamboo, pale oak and poplar buttons | 24 each | nothing — no `animateTick` (a lever has one), no collision, no `waterlogged`, and `ButtonBlock.entityInside` returns on `isClientSide` before it reads anything, so even the wooden ones an arrow can press are inert on a client |
 
-  314 inert states against 306 in use (153 per colour: 96 connected face×bits combinations, then 57
-  corner masks), so the table fits with eight unpowered wire states to spare.
+  329 inert states against 306 in use (153 per colour: 96 connected face×bits combinations, then 57
+  corner masks), so the table fits with 23 button states to spare.
+
+  **Why not redstone wire.** It held the floors and ceilings until the arena was built: the pack
+  override is the donor's *whole blockstate file*, so every block of that kind anybody places anywhere
+  in the world draws as paint — and Paint Splat Town has redstone on it. The 64 unpowered wire states
+  the floors used are now wooden buttons instead (crimson, warped, bamboo, pale oak, poplar: 24 each,
+  120 for the 64 the floors need and the 33 the corner masks take after the carpet), picked for being
+  the ones nobody builds with. The stone button, which held 24 of the corner masks, went the same way
+  and for the same reason. A game test asserts wire is not a donor, so it cannot come back by accident.
 
   **Why not tripwire.** A donor has to be a block *nobody else* hands out, because the pack override
   is a whole file: `assets/minecraft/blockstates/<donor>.json`, every state of the block mapped to a
@@ -63,7 +72,7 @@ paint, which only a dedicated Rivals server wants.
   writes that block's blockstate file itself. Tripwire is in that pool (`TRIPWIRE`, `TRIPWIRE_FLAT`),
   and moredyes' carpets sit in it: on the minigame server, which ships moredyes, Rivals and ovvar in
   one dist, the two overrides double-booked tripwire and **every floor cell drew nothing at all**
-  while wall paint carried on drawing. So tripwire is gone as a donor. None of the five is in any
+  while wall paint carried on drawing. So tripwire is gone as a donor. None of the eight is in any
   `BlockModelType` pool, which is pinned by a game test (`donorsAreOutsidePolymersBlockPools`) that
   reads Polymer's own pool table and asserts no donor is in it.
 
@@ -71,9 +80,11 @@ paint, which only a dedicated Rivals server wants.
   the test above will say so — (2) be inert in every state it lends, which `PaintStates.inert` decides
   and the start-up check enforces, (3) have no client-side behaviour a pack cannot silence (which
   rules out the climbables: a client predicts climbing from the block it *sees*, so a vine-backed cell
-  would stick players to walls), and (4) bring enough states that the cell kind it serves is covered
-  outright, since `PaintStates` throws at class load rather than reuse a state or run a pool dry. The
-  next one, if a cell kind grows, is another button: 24 states each and a dozen of them in vanilla.
+  would stick players to walls), (4) bring enough states that the cell kind it serves is covered
+  outright, since `PaintStates` throws at class load rather than reuse a state or run a pool dry, and
+  (5) **be a block the arena's builders will never place** — the redstone lesson above. The next one,
+  if a cell kind grows, is another button: 24 states each and nine still unspent in vanilla — a wooden
+  one, since the stone button is a block a map has.
 
   **Which donor state stands for which paint state** is chosen by donor, not by shape. Rivals is
   played in adventure mode, so the one thing a borrowed state's outline was ever good for — the
@@ -84,16 +95,17 @@ paint, which only a dedicated Rivals server wants.
     the 64 inert states one has, with none to spare. The all-faces-false state is usable because the
     pack replaces the whole blockstate file, so the client draws our quad rather than vanilla's union
     of face slabs; only that state's outline is empty, and nobody in adventure mode draws one;
-  - **floor and ceiling cells** take redstone wire at `power=0` — 64 of those 81 states;
+  - **floor and ceiling cells** take the five button donors — crimson, warped, bamboo, pale oak, poplar,
+    in that order — 64 of the 120 they lend;
   - **corner masks** (the `PaintBlock` splat, for a cell painted on two or more faces: the join lines
-    of an arena rather than its surfaces) take the pale moss carpet, then the stone button, then nine of
-    the 17 wire states the surfaces did not need — 81 + 24 + 9 = 114. The carpet and the button are spent
-    outright, which is why they are both in the table above and both pinned by a test.
+    of an arena rather than its surfaces) take the pale moss carpet, then 33 of the 56 button states the
+    floors did not need — 81 + 33 = 114. The carpet is spent outright, which is why it is pinned by a test.
 
   Glow lichen was considered and dropped — it lights every state that has a face, which would make
   paint glow; so was the lever, whose `animateTick` makes dust whenever it is powered. The v1 caveat
-  still applies, now for five blocks instead of one: real sculk veins, resin clumps, redstone dust,
-  pale moss carpet and stone buttons a player places in an arena render as paint too.
+  still applies, now for eight blocks instead of one: real sculk veins, resin clumps, pale moss carpet
+  and the five buttons a player places in an arena render as paint too — which is why the buttons are
+  the ones they are.
 - The roller sprays where its head touches: three crumbs at the contact point on every tick that paints,
   with a dust pillar every fourth for the ink pushed ahead of the drum. The point is the head's own — one
   `roll_reach` ahead of the feet along the flat look, on whatever floor the strip's own downward ray finds
@@ -387,6 +399,51 @@ paint, which only a dedicated Rivals server wants.
   supplier of the players, defaulting to the online list. Nothing in `Match` reads `getTickCount()` on its
   own, which is what lets the game tests walk the whole machine through inside a single tick — and they
   must, because the real `END_SERVER_TICK` hook drives the same singleton.
+- **The MAIN datapack** owns the minigame on the event server; this mod owns the playing of it.
+  `MainPack` is the whole seam, and it is three things:
+
+  **The running flag.** MAIN keeps a fake player `?running` in the objective `splat.state` — 0 while the
+  minigame is not active, 1 while it is, which is MAIN's own `?superstate main.state` being 3. Nothing
+  here ever writes it. It is read every ten ticks and only the *edges* do anything: 0 → 1 starts a round
+  and 1 → 0 stops whatever is running. Edges rather than levels, because a flag that is still 1 through
+  the ten seconds of fireworks must not read as "start another round"; and the first read of a server's
+  life only reads, so a restart with the flag already up neither starts nor stops anything — the mod has
+  no idea how much of that round has been played. A round the flag starts runs for
+  `config/rivals-paint/main.json`'s `minutes` (3 by default, re-read by `/rivals reload`) in the first
+  level with a spawn set for both sides, and is forced: MAIN decides who is playing, so a player on
+  neither side is left out rather than the whole round refused. An objective MAIN has not made reads as
+  0, which is exactly right — nobody is running the minigame.
+
+  **Ending the game.** MAIN never ends this minigame on its own, so the arena says how. Each side has a
+  **win function** and the arena a **draw function**, saved with the arena and set by an operator —
+  `/rivals win-function set data main:api/end_game_data`, `… set it main:api/end_game_it`,
+  `/rivals draw-function set <function>` (`show` prints either) — and `Match` runs the winner's when the
+  ten seconds of celebration are over and the lobby begins, so MAIN's outro starts after the fireworks.
+  Equal paint is broken on kills first; only a round level on both is a real draw, which the titles say
+  and the draw function answers. An operator's `/rivals match stop` ends the round the same way. The one
+  ending that runs nothing is the flag dropping: then MAIN is already ending the game, and telling it so
+  again would be MAIN answering itself. An arena with no function set simply runs none, which is what
+  lets this module be played on its own.
+
+  **The stats board.** `Stats` writes the two per-player numbers MAIN's outro sorts for its top five,
+  both plain dummy objectives it creates if MAIN's pack has not:
+
+  - `splat.stats.blocks` is *held* paint — how many faces of the final picture a player was the last to
+    paint. The painter records an owner per (cell, face) as it paints ([`PaintTally`](src/main/java/nu/metacraft/rivals/paint/PaintTally.java)
+    for blocks, the quad's own `owner` for display cells), an overpaint hands the face to whoever
+    painted over it, and a recolour that wipes a cell forgets every face it held. Written once, at the
+    whistle, off the same swept tally the percentages come from. So a player whose whole strip was
+    rolled over ends on nothing, which is what "who painted this arena" means when the arena is the
+    score;
+  - `splat.stats.kills` is live: one per kill, on the board the tick it happens, so the number is there
+    however the round ends. Only a player killing another player during a live match counts — the
+    enemy-ink drip is never lethal and friendly fire is refused by the weapons.
+
+  A round starts by emptying both objectives of *every* holder, so last round's top five cannot haunt
+  this one, and then giving each player on a side a zero of their own, so MAIN's sort sees the whole
+  roster rather than only whoever scored. Every way into a match goes through `Match.join`, which is
+  where the board learns a UUID's scoreboard name — without it a player who paints and then logs out
+  before the whistle has nothing to be written against.
 - **Readiness.** `/rivals ready` prints one line per online non-spectator player — name, side (or "no
   team"), the weapon they picked (or "none yet") — grouped by side with whoever is on neither last, and
   **fails**, naming them, if anybody is on neither. A player on neither side has no colour, cannot paint
@@ -513,8 +570,8 @@ paint, which only a dedicated Rivals server wants.
   quad with its (colour, bits) texture) or a mask model (a corner cell's quad-per-face, all on the
   all-connected texture); states paint doesn't use point at an empty model. The override replaces the
   donor's whole vanilla blockstate file, so those unused states render *nothing at all* — a
-  waterlogged sculk vein, a powered redstone dust, a pale moss carpet with a base — is invisible under
-  the pack, wiring and all.
+  waterlogged sculk vein, a pale moss carpet with a base, one of the 23 button states nothing was dealt
+  — is invisible under the pack.
   The display quads need no art of their own: they show a paint state, so they resolve to the same
   wrapper model and the same bit-carrying texture a painted cell does.
 - The pack also overrides `assets/minecraft/shaders/core/terrain.vsh`/`terrain.fsh` — the pair that
@@ -769,7 +826,7 @@ paint, which only a dedicated Rivals server wants.
 /rivals kit              one of every weapon
 /rivals score
 /rivals reset
-/rivals reload           re-read teams.json and unpaintable.json
+/rivals reload           re-read teams.json, unpaintable.json and main.json
 /rivals weapons          the weapon picker dialog (any player)
 /rivals weapons pick roller   what its buttons run
 /rivals spawn set data   where a team starts
@@ -813,6 +870,40 @@ Then, once per round:
 `match start` does the rest: both teams made if need be, a clean arena, everybody's chosen weapon, a
 teleport to their side's spawn, the countdown, the timer bar, the result and the fireworks, and the lobby
 ten seconds later.
+
+### Running it under MAIN
+
+On the event server nobody types `match start`: the MAIN datapack does it with a scoreboard flag, and
+the mod answers. Two objectives and two functions are the whole contract.
+
+```
+scoreboard objectives add splat.state dummy          MAIN's, and MAIN writes it
+scoreboard players set ?running splat.state 1        the minigame is on  (main.state == 3)
+scoreboard players set ?running splat.state 0        the minigame is off
+```
+
+The mod polls `?running` every ten ticks and acts on the edges: 1 starts a round, 0 stops one. It never
+writes the flag. When the round ends, the arena's win function for the winning side runs and MAIN takes
+it from there — so, once per arena:
+
+```
+/rivals win-function set data main:api/end_game_data
+/rivals win-function set it   main:api/end_game_it
+/rivals draw-function set     <whatever MAIN wants on a real draw>
+```
+
+A stop caused by the flag dropping runs nothing, because MAIN is already ending it. How long a
+flag-started round runs is `config/rivals-paint/main.json`:
+
+```json
+{"minutes": 3}
+```
+
+and the arena is whichever level has a spawn set for both sides, so the setup above is still the setup.
+For the outro, the mod writes **`splat.stats.blocks`** (how much of the final picture each player was the
+last to paint) and **`splat.stats.kills`** (one per kill, live) — both dummy objectives, made here if
+MAIN has not made them, emptied at the start of every round, with a zero for everybody playing so a top
+five sorts the whole roster.
 
 ### Tuning
 

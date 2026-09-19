@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Paint for faces a multiface block cannot sit on (stairs, slabs, fences, panes …): one flat quad per
@@ -60,6 +61,8 @@ public final class PaintDisplays {
 	 * that shape, so a surface that changes shape under them (a stair turned, a slab filled to a double
 	 * slab) leaves them wrong and they are dropped rather than moved. {@code bits} is the cell's current
 	 * connection nibble, shared by every quad in it — the neighbour test is per cell, not per box.
+	 * {@code owner} is who painted it last, for {@code splat.stats.blocks}; null for paint nobody can be
+	 * credited for (a test, a droplet whose shooter has gone).
 	 */
 	private static final class Painted {
 		private final PaintColor color;
@@ -68,10 +71,11 @@ public final class PaintDisplays {
 		private final BlockPos surface;
 		private final Direction face;
 		private final BlockState state;
+		private final @Nullable UUID owner;
 		private int bits;
 
 		private Painted(PaintColor color, ElementHolder holder, List<BlockDisplayElement> quads,
-				BlockPos surface, Direction face, BlockState state, int bits) {
+				BlockPos surface, Direction face, BlockState state, int bits, @Nullable UUID owner) {
 			this.color = color;
 			this.holder = holder;
 			this.quads = quads;
@@ -79,6 +83,7 @@ public final class PaintDisplays {
 			this.face = face;
 			this.state = state;
 			this.bits = bits;
+			this.owner = owner;
 		}
 	}
 
@@ -164,6 +169,21 @@ public final class PaintDisplays {
 	}
 
 	/**
+	 * Quads per <em>player</em>, counted as faces the way {@link #count} counts them — the quad half of
+	 * {@link PaintTally#countByPlayer}. No sweep and no pruning: {@code count} runs first at the whistle
+	 * and has already dropped whatever is dead. A cell nobody can be credited for is left out.
+	 */
+	public Map<UUID, Integer> countByPlayer(ServerLevel level) {
+		Map<UUID, Integer> counts = new HashMap<>();
+		for (Map.Entry<BlockPos, Painted> entry : cells.entrySet()) {
+			Painted painted = entry.getValue();
+			if (painted.owner == null || !alive(level, entry.getKey(), painted)) continue;
+			counts.merge(painted.owner, painted.quads.size(), Integer::sum);
+		}
+		return counts;
+	}
+
+	/**
 	 * Whether this cell still holds real paint. Polymer destroys every attachment in a chunk when the chunk
 	 * unloads, which nulls the holder's attachment and leaves the entry scoring for quads nobody can see; a
 	 * broken or replaced surface leaves the quads hanging in the air; and a block built into the cell buries
@@ -218,6 +238,11 @@ public final class PaintDisplays {
 	 * rebuilt, so a team can always repaint its own colour.
 	 */
 	public boolean paint(ServerLevel level, BlockPos surface, Direction face, PaintColor color) {
+		return paint(level, surface, face, color, null);
+	}
+
+	/** The same, crediting {@code owner} with the quads for {@code splat.stats.blocks}. */
+	public boolean paint(ServerLevel level, BlockPos surface, Direction face, PaintColor color, @Nullable UUID owner) {
 		// Same bounds rule as Painter.paintFace, and for the same reason: this is the other door into the
 		// same room, and a quad outside the arena is paint outside the arena.
 		if (!Arena.paintAllowed(level, surface)) return false;
@@ -255,7 +280,7 @@ public final class PaintDisplays {
 			quads.add(quad);
 		}
 		ChunkAttachment.of(holder, level, origin);
-		cells.put(cell, new Painted(color, holder, quads, surface.immutable(), face, state, bits));
+		cells.put(cell, new Painted(color, holder, quads, surface.immutable(), face, state, bits, owner));
 		// The neighbours gain a bit pointing back at this cell.
 		refreshAround(level, cell);
 		return true;

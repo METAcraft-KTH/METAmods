@@ -1,6 +1,7 @@
 package nu.metacraft.rivals.paint;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -12,6 +13,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import nu.metacraft.rivals.PaintColor;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -21,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Which cells the painter has painted, per level, and how many faces of each colour they hold now.
@@ -37,6 +40,13 @@ public final class PaintTally {
 	private static final Map<ResourceKey<Level>, PaintTally> TALLIES = new HashMap<>();
 
 	private final Set<BlockPos> cells = new HashSet<>();
+	/**
+	 * Who was the last to paint each face of each tracked cell, keyed by the face's <em>attach</em>
+	 * direction — the same index the cell's own face mask uses, so a face and its painter are the same
+	 * bit. Only the last painter is kept: a face is painted over, not shared, and {@code splat.stats.blocks}
+	 * is who holds the picture at the whistle rather than who has ever touched it.
+	 */
+	private final Map<BlockPos, Map<Direction, UUID>> owners = new HashMap<>();
 
 	public static PaintTally of(ServerLevel level) {
 		return TALLIES.computeIfAbsent(level.dimension(), key -> new PaintTally());
@@ -54,6 +64,65 @@ public final class PaintTally {
 
 	public int cells() {
 		return cells.size();
+	}
+
+	/**
+	 * Remember who painted the {@code attach} face of this cell. A null painter — a test, a bounce droplet
+	 * whose shooter has gone — forgets whoever held it instead, because a face nobody can be credited for
+	 * must not stay credited to the player it was painted over from.
+	 */
+	public void credit(BlockPos cell, Direction attach, @Nullable UUID painter) {
+		if (painter == null) {
+			Map<Direction, UUID> faces = owners.get(cell);
+			if (faces != null && faces.remove(attach) != null && faces.isEmpty()) owners.remove(cell);
+			return;
+		}
+		owners.computeIfAbsent(cell.immutable(), pos -> new EnumMap<>(Direction.class)).put(attach, painter);
+	}
+
+	/** Every face of this cell forgotten: what an overpaint that wipes the cell to one colour does. */
+	public void forget(BlockPos cell) {
+		owners.remove(cell);
+	}
+
+	/** Who holds the {@code attach} face of this cell, if anybody. For the tests. */
+	public @Nullable UUID ownerOf(BlockPos cell, Direction attach) {
+		Map<Direction, UUID> faces = owners.get(cell);
+		return faces == null ? null : faces.get(attach);
+	}
+
+	/**
+	 * Faces per <em>player</em> over the tracked cells and the level's quads: what each player was the
+	 * last to paint and still holds, which is {@code splat.stats.blocks} at the whistle. Colour does not
+	 * come into it — a face is held by whoever painted it, and they painted it their own colour.
+	 *
+	 * <p>Prunes as {@link #count} does, and on the same terms: a cell that holds no paint is dropped, and
+	 * so is a face the cell's mask no longer carries — that face was painted over, and its old painter
+	 * does not hold it any more.
+	 */
+	public Map<UUID, Integer> countByPlayer(ServerLevel level) {
+		Map<UUID, Integer> counts = new HashMap<>();
+		Iterator<BlockPos> it = cells.iterator();
+		while (it.hasNext()) {
+			BlockPos pos = it.next();
+			BlockState state = level.getBlockState(pos);
+			if (!(state.getBlock() instanceof Paint paint)) {
+				it.remove();
+				owners.remove(pos);
+				continue;
+			}
+			Map<Direction, UUID> faces = owners.get(pos);
+			if (faces == null) continue;
+			int mask = paint.faceMask(state);
+			faces.entrySet().removeIf(face -> (mask >> face.getKey().ordinal() & 1) == 0);
+			if (faces.isEmpty()) {
+				owners.remove(pos);
+				continue;
+			}
+			for (UUID painter : faces.values()) counts.merge(painter, 1, Integer::sum);
+		}
+		PaintDisplays.of(level).countByPlayer(level).forEach((painter, quads) -> counts.merge(painter, quads, Integer::sum));
+		return counts;
 	}
 
 	/**
@@ -181,6 +250,7 @@ public final class PaintTally {
 		}
 		removed += PaintDisplays.of(level).clear();
 		cells.clear();
+		owners.clear();
 		return removed;
 	}
 
@@ -198,6 +268,7 @@ public final class PaintTally {
 	public int reset(ServerLevel level, BoundingBox box) {
 		// The tracking is not the authority here, the sweep is; these cells are about to be air either way.
 		cells.removeIf(box::isInside);
+		owners.keySet().removeIf(box::isInside);
 		int removed = 0;
 		for (BlockPos pos : sweep(level, box)) {
 			// Removing a cell can take its neighbours with it (a connected face loses its support), so a
