@@ -566,7 +566,7 @@ public final class PaintBall extends Snowball implements PolymerEntity {
 			setNoGravity(false);
 			return true;
 		}
-		Painter.paintFace(level, down.getBlockPos(), down.getDirection(), color);
+		Painter.paintFace(level, down.getBlockPos(), down.getDirection(), color, Painter.ownerOf(this));
 		Painter.burst(level, Painter.crumbs(color), position(), CURL_PARTICLES, 0.15, 0.05, 0.15, 0.02);
 		setPos(getX(), down.getLocation().y + CURL_LIFT, getZ());
 		Vec3 v = getDeltaMovement();

@@ -47,8 +47,8 @@ public final class PatchPieces {
 	 */
 	public static int columnInFace(Spot spot) {
 		int faceStart = Spot.stripStart(spot) + faceStartLocal(spot), n = faceTexels(spot);
-		int fromStart = (spot.u - faceStart) * 2;
-		return spot.side == Spot.Side.LEFT ? 2 * n - fromStart - spot.px() : fromStart;   // the model mirrors the left limb
+		int fromStart = (spot.u - faceStart) * Spot.ART_DETAIL;
+		return spot.side == Spot.Side.LEFT ? Spot.ART_DETAIL * n - fromStart - spot.artPx() : fromStart;   // the model mirrors the left limb
 	}
 
 	private static int faceStartLocal(Spot spot) {
@@ -75,10 +75,10 @@ public final class PatchPieces {
 			// Half on each leg's back face; the halves are cut at the legs' inner corner, which the art never crosses.
 			return List.of(new Piece(Where.FACE, 0, w / 2, 0, h, 0), new Piece(Where.FACE, w / 2, w, 0, h, 0));
 		}
-		double inflate = Spot.inflate(spot.piece), a = Spot.pixel(spot.u, inflate) / 2;   // sixteenths per art pixel
+		double inflate = Spot.inflate(spot.piece), a = Spot.pixel(spot.u, inflate) / Spot.ART_DETAIL;   // sixteenths per art pixel
 		int n = faceTexels(spot);
 		double halfFace = (n + 2 * inflate) / 2, halfTop = (Spot.FACE_ROWS + 2 * inflate) / 2;
-		int ax0 = columnInFace(spot) + art.offsetX(spot), ay0 = (spot.v - Spot.FACE_ROW) * Spot.DETAIL + art.offsetY(spot);
+		int ax0 = columnInFace(spot) + art.artOffsetX(spot), ay0 = (spot.v - Spot.FACE_ROW) * Spot.ART_DETAIL + art.artOffsetY(spot);
 		// Column c's left edge and row r's top edge, in sixteenths from the face's centre.
 		int cL = 0, cR = w, rT = 0;
 		for (int c = 0; c < w; c++) {
@@ -86,7 +86,7 @@ public final class PatchPieces {
 			if (centre < -halfFace) cL = c + 1;
 			if (centre >= halfFace && cR == w) cR = c;
 		}
-		int halfRows = Spot.FACE_ROWS * Spot.DETAIL / 2;   // art pixels from the top of the side rows to their middle
+		int halfRows = Spot.FACE_ROWS * Spot.ART_DETAIL / 2;   // art pixels from the top of the side rows to their middle
 		for (int r = 0; r < h; r++) if ((ay0 + r - halfRows) * a + a / 2 < -halfTop) rT = r + 1;
 		List<Piece> out = new ArrayList<>();
 		out.add(new Piece(Where.FACE, cL, cR, rT, h, 0));

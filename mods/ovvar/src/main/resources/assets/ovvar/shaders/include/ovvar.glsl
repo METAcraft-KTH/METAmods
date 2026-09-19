@@ -3,7 +3,7 @@
 // written against GLSL 120: no integer bit operations, no texelFetch — texels are read at their
 // centres with OVVAR_SAMPLE, and bit fields are pulled out with floating-point arithmetic.
 //
-// A texture of ours is the 64×32 armour layout at OVVAR_D texels per texel (128×64), with a
+// A texture of ours is the 64×32 armour layout at OVVAR_D texels per texel (256×128), with a
 // marker texel at (W−1, H/2−1): magenta, alpha 2/255. The texel left of it says what it is (R):
 //   0  a base garment texture. The model draws the left arm and leg as mirror images off the right
 //	  limb's strips; on those fragments the shader samples one strip up, where the left-side art
@@ -31,7 +31,13 @@
 // position and normal (any one space for both).
 
 // Texels per skin texel (Spot.DETAIL in the mod) and the texture size, cell size and fixed texels that follow.
-const float OVVAR_D = 2.0;
+const float OVVAR_D = 4.0;
+// Art is drawn at Spot.ART_DETAIL and kept that way in the library -- storing it at OVVAR_D would
+// spend four times the head rows on the same picture, which is the whole reason the library has room
+// at all. So the art's own size (the design table's width and height) is in art pixels while the
+// cell, the fragment and everything else here is in texture pixels, and this is the ratio between
+// them: Spot.ART_SCALE. Scale art sizes up by it; divide by it to index the library.
+const float OVVAR_ART_SCALE = 2.0;
 const vec2 OVVAR_TEX = vec2(64.0, 32.0) * OVVAR_D;
 const float OVVAR_CELL = 4.0 * OVVAR_D;   // the default cell; a cell's own size comes from the cell table
 // The first of the box SIDE rows (Spot.FACE_ROW): above it are the boxes' top and bottom faces,
@@ -433,7 +439,9 @@ vec2 ovvar_uv(vec2 uv) {
 		float slot = design + fit * OVVAR_FIT_SLOTS;
 		vec4 pe = ovvar_read(OVVAR_TABLE_X + 2.0 * OVVAR_TABLE_COLUMNS + floor(slot / 16.0), mod(slot, 16.0));   // library x, y, cells
 		vec4 sz = ovvar_read(OVVAR_TABLE_X + 3.0 * OVVAR_TABLE_COLUMNS + floor(slot / 16.0), mod(slot, 16.0));   // art width, height
-		float w = side > 2.5 ? cw * 0.5 : sz.r, h = sz.g;
+		// In texture pixels, like the cell and the fragment: a seat half is half the cell whatever the
+		// art is, and any other art is its own size scaled up from the art pixels the table holds.
+		float w = side > 2.5 ? cw * 0.5 : sz.r * OVVAR_ART_SCALE, h = sz.g * OVVAR_ART_SCALE;
 		vec2 origin = ce.rg + vec2(side > 2.5 ? 0.0 : (cw - w) * 0.5, (ch - h) * 0.5);
 		float a = t.x;
 		if (sides) {
@@ -456,10 +464,16 @@ vec2 ovvar_uv(vec2 uv) {
 		// The dye colour is ONE layer, so a fragment can show one texel however many cells it is
 		// inside: the top cell's, unless that cell's art has painted nothing there, in which case the
 		// cell under it shows through — which is what the pack path's layers do of their own accord.
-		vec2 at = pe.rg + vec2(column * w, 0.0) + local;
+		// Back into art pixels to index the library, which holds the art at the size it was drawn:
+		// pe.rg is the block's corner in texture pixels, and the offset into it is the fragment's
+		// position within the art divided by the ratio. Flooring is what samples one art pixel rather
+		// than blending between two, so the art stays pixel art however far it is scaled up.
+		vec2 at = pe.rg + floor((vec2(column * w, 0.0) + local) / OVVAR_ART_SCALE);
 		if (ovvar_read(floor(at.x), floor(at.y)).a < 0.5) continue;
 		drawnLayer = cz.b;
-		drawn = at / OVVAR_TEX;
+		// The texel's centre, not its corner: `at` is a whole art pixel now that the library is
+		// indexed by one, and a coordinate exactly on the boundary is the neighbour's to round to.
+		drawn = (at + 0.5) / OVVAR_TEX;
 	}
 	if (drawnLayer >= 0.0) {
 		// Dev only: this fragment matched a cell and is about to be drawn from the library — say so

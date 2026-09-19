@@ -45,9 +45,13 @@ import java.util.Map;
  * the back view's cap is the front view's turned through 180°. {@link #angleOf} names the front
  * one, which is where a shoulder's tooltip goes; both views have a glyph for it.
  *
- * <p>Sizes: the source textures hold {@link Spot#DETAIL} texels per skin pixel and the doll is
- * drawn at {@value #PX} screen px per skin pixel, so every face is resampled ×1.5 (which keeps
- * every texel the patch art has, at the price of every other column being 2 px wide). The bare
+ * <p>Sizes: the source textures hold {@link Spot#DETAIL} texels per skin pixel, but every face is
+ * first dropped back to the art's own {@link Spot#ART_DETAIL} — lossless, since datagen scaled the
+ * art up by exactly that factor — and the doll is drawn at {@value #PX} screen px per skin pixel,
+ * so every face is resampled ×1.5 from art (which keeps every texel the patch art has, at the
+ * price of every other column being 2 px wide). Everything that measures where art lands on the
+ * doll therefore counts in art pixels, {@link #AD} per skin texel; {@link #D} is only for cutting
+ * a face out of the texture. The bare
  * doll is shaded — the viewer's right darker, either arm darker again, a seam at the waist — and
  * given a 1 px dark outline drawn on its own outermost pixels, so it reads as a figure and not as
  * a strip of faces; a patch layer takes the same shading, and keeps off the outline's own pixels so
@@ -82,6 +86,8 @@ public final class WardrobePreview {
 	// ---- the figure's geometry
 
 	private static final int D = Spot.DETAIL;
+	/** Art pixels per skin texel: the resolution every face is at once {@link #blit} has cut it out. */
+	private static final int AD = Spot.ART_DETAIL;
 	/** Every box's side faces, the rows every cell is on: skin rows 20-32, 12 px tall ({@link Spot#FACE_ROW}). */
 	private static final int FACE_ROW = Spot.FACE_ROW, FACE_ROWS = Spot.FACE_ROWS;
 	private static final int FACE_V = FACE_ROW * D, FACE_H = FACE_ROWS * D;
@@ -140,9 +146,9 @@ public final class WardrobePreview {
 			return cap ? Spot.TOP_ROWS : FACE_ROWS;
 		}
 
-		/** Source rows once a cap's pairs have been averaged, in texture px — what the resample reads. */
+		/** Source rows once a cap's pairs have been averaged, in art px — what the resample reads. */
 		int sourceRows() {
-			return rows() * D / (cap ? SQUASH : 1);
+			return rows() * AD / (cap ? SQUASH : 1);
 		}
 
 		/** How tall the part is drawn on the figure, in screen px. */
@@ -373,21 +379,23 @@ public final class WardrobePreview {
 		// Datagen pre-mirrors the art of a limb the model mirrors, and the doll mirrors that limb for
 		// the same reason — so the art is windowed in the mirrored order and put back afterwards.
 		Tex baked = part.mirror() ? piece.flipX() : piece;
-		int x = spot.u * D + chosen.offsetX(spot), y = spot.v * D + chosen.offsetY(spot);
-		int strip = Spot.stripStart(spot) * D, stripWidth = Spot.stripWidth(spot) * D;
-		int texels = part.w() * D, rows = part.rows() * D, sourceRows = part.sourceRows();
+		// All in art pixels: blit drops the face to art resolution before it resamples, so the art's
+		// pixels and the face's are 1:1 here, as they are on the texture scaled by ART_SCALE.
+		int x = spot.u * AD + chosen.artOffsetX(spot), y = spot.v * AD + chosen.artOffsetY(spot);
+		int strip = Spot.stripStart(spot) * AD, stripWidth = Spot.stripWidth(spot) * AD;
+		int texels = part.w() * AD, rows = part.rows() * AD, sourceRows = part.sourceRows();
 		Tex out = Tex.blank(baked.width, baked.height);
 		for (int ax = 0; ax < baked.width; ax++) {
 			// A side cell's overhang wraps round the part's strip and lands on the face next door; a
 			// top cell's is clipped to its face, which has no face next door in the layout.
-			int column = spot.top() ? x + ax - part.u() * D
-					: strip + Math.floorMod(x + ax - strip, stripWidth) - part.u() * D;
+			int column = spot.top() ? x + ax - part.u() * AD
+					: strip + Math.floorMod(x + ax - strip, stripWidth) - part.u() * AD;
 			if (column < 0 || column >= texels) continue;   // it landed on the face next door
 			int across = part.mirror() ? texels - 1 - column : column;   // in the order the figure reads
 			if (part.turned()) across = texels - 1 - across;
 			if (!drawnAcross(across, texels, part.widthPx())) continue;
 			for (int ay = 0; ay < baked.height; ay++) {
-				int row = y + ay - part.v() * D;
+				int row = y + ay - part.v() * AD;
 				if (row < 0 || row >= rows) continue;
 				int down = part.cap() ? row / SQUASH : row;   // a cap averages its rows in pairs
 				if (part.turned()) down = sourceRows - 1 - down;
@@ -415,7 +423,7 @@ public final class WardrobePreview {
 	 * there too and which {@link #mean} lets keep its colour.
 	 */
 	private static Tex averagedInPairs(Tex art, int y) {
-		int top = Spot.TOP_ROW * D;
+		int top = Spot.TOP_ROW * AD;   // y is in art pixels, as onThePart counts
 		int[] px = new int[art.width * art.height];
 		for (int ay = 0; ay < art.height; ay++) {
 			int mate = Math.floorMod(y + ay - top, SQUASH) == 0 ? ay + 1 : ay - 1;
@@ -594,6 +602,15 @@ public final class WardrobePreview {
 	/** One face of {@code layer}, mirrored if the model mirrors it, at screen size, onto the canvas. */
 	private static Tex blit(Tex canvas, Part part, Tex layer) {
 		Tex face = layer.crop(part.u() * D, part.v() * D, part.w() * D, part.rows() * D);
+		// Back to art resolution before anything else touches it. The doll is drawn at PX screen px
+		// per skin px, which is finer than the art but coarser than the texture once DETAIL is raised,
+		// and resampling straight from the texture would be a downscale that softens pixel art the
+		// doll is meant to show exactly. Dropping ART_SCALE first is lossless — everything on this
+		// layer was scaled up from art by precisely that factor, so each block is one flat colour —
+		// and it leaves the resample below the same ×1.5 upscale it has always been.
+		if (Spot.ART_SCALE > 1) {
+			face = face.downscaled(face.width / Spot.ART_SCALE, face.height / Spot.ART_SCALE);
+		}
 		if (part.mirror()) face = face.flipX();
 		if (part.cap()) face = squashed(face);
 		if (part.turned()) face = face.flipX().flipY();   // the same face from the opposite side

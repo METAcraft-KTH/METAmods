@@ -41,7 +41,10 @@ import static metacraft.ovvar.datagen.J.obj;
  *
  * <ul>
  *   <li>armour layer textures cut out of the website's skin overlays (64×64 skin layout → 64×32 armour layout,
- *	   then doubled to 128×64 so patch art gets 8×8 texels per cell — {@link Spot#DETAIL};
+ *	   then scaled to {@link Spot#DETAIL} texture pixels per skin texel, 256×128 — patch art is drawn at
+ *	   {@link Spot#ART_DETAIL} per skin texel, {@link Spot#ART_PX} square for a cell, and scaled up by
+ *	   {@link Spot#ART_SCALE} as it is baked onto a texture, so the texture has room in its head rows for
+ *	   a preview library the art itself does not grow into;
  *	   the boxes the armour model reads — body (16,16), right arm (40,16), right leg (0,16) — sit at the same
  *	   coordinates in both, and the left limbs are the model's mirrors of the right, so nothing moves),</li>
  *   <li>one texture per (cell, patch) placement, drawn on one side of the model by the shader, and per half a
@@ -207,9 +210,9 @@ public final class GeneratedAssets implements DataProvider {
 					// then placed like any other art — centred on the cell's row, so a seat patch taller
 					// than the row hangs onto the cloth below it, and clipped to the part's side rows.
 					for (Spot.Side side : new Spot.Side[]{Spot.Side.RIGHT, Spot.Side.LEFT}) {
-						Tex half = art.crop(Spot.seatHalf(side), 0, Spot.PX, art.height);
+						Tex half = art.crop(Spot.seatHalf(side), 0, Spot.ART_PX, art.height);
 						if (side == Spot.Side.LEFT) half = half.flipX();   // the model mirrors the left leg
-						Tex tex = placed(spot, half, spot.u * D);
+						Tex tex = placed(spot, half.scaledUp(Spot.ART_SCALE), spot.u * D);
 						String suffix = side == Spot.Side.LEFT ? "_l" : "_r";
 						files.png(assets.resolve(dir + "patch/seat/" + patch.id() + suffix + ".png"), sided(tex, spot, side));
 					}
@@ -218,7 +221,7 @@ public final class GeneratedAssets implements DataProvider {
 				}
 				// Centred on the cell, hanging over it if bigger, clipped to the part's side rows;
 				// a left cell's art is mirrored (the model mirrors the left limb).
-				Tex placed = placed(spot, spot.side == Spot.Side.LEFT ? art.flipX() : art, spot.u * D + variant.offsetX(spot));
+				Tex placed = placed(spot, (spot.side == Spot.Side.LEFT ? art.flipX() : art).scaledUp(Spot.ART_SCALE), spot.u * D + variant.offsetX(spot));
 				files.png(assets.resolve(dir + "patch/" + spot.id() + "/" + patch.id() + ".png"), sided(placed, spot, spot.side));
 				placementTextures++;
 			}
@@ -235,7 +238,7 @@ public final class GeneratedAssets implements DataProvider {
 				if (placement == null || !Trims.fits(placement)) continue;
 				String name = Trims.patternName(placement);
 				Patches.Art variant = Patches.artFor(patch, spot);
-				Tex tex = placedWrapped(spot, arts.get(variant), spot.u * D + variant.offsetX(spot));
+				Tex tex = placedWrapped(spot, arts.get(variant).scaledUp(Spot.ART_SCALE), spot.u * D + variant.offsetX(spot));
 				files.png(assets.resolve("textures/trims/entity/" + spot.piece.layer + "/" + name + ".png"), tex);
 				trimTextures.add(MOD + ":trims/entity/" + spot.piece.layer + "/" + name);
 				files.json(data.resolve("trim_pattern/" + name + ".json"),
@@ -268,7 +271,7 @@ public final class GeneratedAssets implements DataProvider {
 		// leaves the small arts' gaps scattered between the big ones, so a late 2×2 can find no hole
 		// even though the cells for it exist.
 		Map<Patches.Art, int[]> library = new LinkedHashMap<>();
-		boolean[][] taken = new boolean[LIBRARY_COLUMNS][LIBRARY_ROWS];
+		boolean[][] taken = new boolean[LIBRARY_W][LIBRARY_H];
 		List<Patches.Art> catalogue = new ArrayList<>();
 		for (Patches.Patch patch : Patches.all()) {
 			if (Patches.code(patch) > Looks.INSTANT_DESIGNS) continue;   // never in the dye colour: no library entry
@@ -277,9 +280,13 @@ public final class GeneratedAssets implements DataProvider {
 				if (!catalogue.contains(variant)) catalogue.add(variant);
 			}
 		}
-		catalogue.sort(Comparator.<Patches.Art>comparingInt(v -> v.cells() * ((v.height() + Spot.PX - 1) / Spot.PX)).reversed());
+		// Tallest first, then widest: the head rows are a short, wide strip with the tables cut out of
+		// them, so shelving by height packs it where sorting by area strands a 6-texel block in a
+		// 5-texel gap. At the sizes the catalogue reaches, that difference is the whole margin.
+		catalogue.sort(Comparator.<Patches.Art>comparingInt(v -> texels(v.height())).reversed()
+				.thenComparing(Comparator.<Patches.Art>comparingInt(v -> texels(v.width())).reversed()));
 		for (Patches.Art variant : catalogue) {
-			library.put(variant, libraryBlock(taken, variant.cells(), (variant.height() + Spot.PX - 1) / Spot.PX, variant.file()));
+			library.put(variant, libraryBlock(taken, texels(variant.width()), texels(variant.height()), variant.file()));
 		}
 		// The legs' preview is also drawn by the boots pass (the outer model, inflate 1), as the
 		// second dye channel: the same texture with that layer's texel, in the humanoid folder.
@@ -692,33 +699,48 @@ public final class GeneratedAssets implements DataProvider {
 	/** Design slots per {@link Patches.Fit} in the design tables: two of their columns. */
 	private static final int FIT_SLOTS = 32;
 	/**
-	 * Preview library: the head rows (skin texels 0..64 × 0..16) as a grid of cells, minus the
-	 * tables' columns (40..52) and the cell holding the marker row's texels (60..64 × 12..16).
-	 * A design takes a block of cells its art's size, one per art it can be drawn as.
+	 * Preview library: the head rows (skin texels 0..64 × 0..16), minus the tables (40..52 on the
+	 * rows they occupy) and the corner holding the marker row and the debug palette
+	 * (60..64 × 12..16). An art takes a block of its own size in skin texels, one per art a design
+	 * can be drawn as.
+	 *
+	 * <p>Packed by the texel, not by a 4-texel cell: a 12×12 art is 6×6 texels, and rounding that
+	 * up to a cell block cost it 8×8 -- 44% of the head rows went on rounding alone. Nothing
+	 * downstream depends on where a block starts: the design table carries the art position in
+	 * pixels and ovvar.glsl adds the fragment offset to it, so the grid was only ever the
+	 * allocator being tidy.
 	 */
-	private static final int LIBRARY_COLUMNS = 16, LIBRARY_ROWS = 4;
 
-	private static boolean libraryFree(int cx, int cy) {
-		int x0 = cx * Spot.SIZE * D, x1 = x0 + Spot.SIZE * D;   // the library cell's own texel columns
-		boolean tables = x1 > CELL_TABLE_X && x0 < PATCH_SIZE_TABLE_X + TABLE_COLUMNS;
-		return !tables && !(cx == 15 && cy == 3);
+	/** An art's size in skin texels: the library packs by the texel, and art is measured in pixels. */
+	private static int texels(int px) {
+		return (px + D - 1) / D;
+	}
+	private static final int LIBRARY_W = 64, LIBRARY_H = 16;
+	/** The corner the marker row and the debug palette sit in, reserved whole. */
+	private static final int LIBRARY_KEEP_X = LIBRARY_W - Spot.SIZE, LIBRARY_KEEP_Y = LIBRARY_H - Spot.SIZE;
+
+	private static boolean libraryFree(int x, int y) {
+		int x0 = x * D, x1 = x0 + D;   // the texel's own pixel columns
+		// The tables are 16 pixel rows tall, whatever their entry count: below those rows their
+		// columns are the library's like any other.
+		boolean tables = x1 > CELL_TABLE_X && x0 < PATCH_SIZE_TABLE_X + TABLE_COLUMNS && y * D < 16;
+		return !tables && !(x >= LIBRARY_KEEP_X && y >= LIBRARY_KEEP_Y);
 	}
 
-	/** First-fit block of w×h cells in the library; returns its top-left in skin texels. Callers should
-	 * allocate biggest blocks first so a big art's fit isn't fragmented away by smaller ones before it. */
+	/** First-fit block of w×h skin texels in the library; returns its top-left in skin texels. Callers
+	 * should allocate biggest blocks first so a big art's fit isn't fragmented away by smaller ones. */
 	private static int[] libraryBlock(boolean[][] taken, int w, int h, String id) {
-		for (int cy = 0; cy + h <= LIBRARY_ROWS; cy++) {
-			for (int cx = 0; cx + w <= LIBRARY_COLUMNS; cx++) {
+		for (int cy = 0; cy + h <= LIBRARY_H; cy++) {
+			for (int cx = 0; cx + w <= LIBRARY_W; cx++) {
 				boolean free = true;
 				for (int x = cx; x < cx + w && free; x++) for (int y = cy; y < cy + h; y++) if (taken[x][y] || !libraryFree(x, y)) { free = false; break; }
 				if (!free) continue;
 				for (int x = cx; x < cx + w; x++) for (int y = cy; y < cy + h; y++) taken[x][y] = true;
-				return new int[]{cx * Spot.SIZE, cy * Spot.SIZE};
+				return new int[]{cx, cy};
 			}
 		}
-		throw new IllegalStateException("[" + MOD + " datagen] the preview library is full: no room for " + id + " (" + w + "×" + h + " cells)");
+		throw new IllegalStateException("[" + MOD + " datagen] the preview library is full: no room for " + id + " (" + w + "×" + h + " texels)");
 	}
-
 	/**
 	 * The left limb's art one strip up from the right limb's box, with every face mirrored in
 	 * place: the model draws the left limb as a mirror image off the right strips, and the shader

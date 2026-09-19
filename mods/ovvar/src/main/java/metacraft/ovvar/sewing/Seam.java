@@ -43,11 +43,15 @@ public record Seam(Patches.Patch patch, int stitches) {
 
 	/**
 	 * How many holes a patch's seam gets: {@code base} (the config's count) is for a cell-sized
-	 * patch, whose outline is {@code 4 × PX} texels; a longer outline — a bigger patch, or an
+	 * patch, whose outline is {@code 4 × ART_PX} pixels; a longer outline — a bigger patch, or an
 	 * intricate edge — gets proportionally more, rounded, within the dialog's range.
+	 *
+	 * <p>Art pixels on both sides: the outline is traced from the patch's own PNG, so measuring it
+	 * against the texture's cell would rescale every seam in the game whenever the texture's detail
+	 * changed.
 	 */
 	public static int stitchesFor(Patches.Patch patch, int base) {
-		double cell = 4.0 * Spot.PX;
+		double cell = 4.0 * Spot.ART_PX;
 		return Mth.clamp((int) Math.round(base * Outline.of(patch.id()).length() / cell), OvvarConfig.MIN_STITCHES, OvvarConfig.MAX_STITCHES);
 	}
 

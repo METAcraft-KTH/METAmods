@@ -11,6 +11,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LiquidBlock;
@@ -27,6 +29,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Where a hit puts paint. The struck block is the surface; a full face takes a paint block in the cell
@@ -54,12 +57,18 @@ public final class Painter {
 	 * keeps a blob from reading as a square, so there are none to drop at radius 0.
 	 */
 	public static int splat(ServerLevel level, BlockPos struck, Direction face, PaintColor color, RandomSource random, int radius) {
+		return splat(level, struck, face, color, random, radius, (UUID) null);
+	}
+
+	/** The same, crediting {@code painter} with every face it covers. */
+	public static int splat(ServerLevel level, BlockPos struck, Direction face, PaintColor color,
+			RandomSource random, int radius, @Nullable UUID painter) {
 		int painted = 0;
 		for (int a = -radius; a <= radius; a++) {
 			for (int b = -radius; b <= radius; b++) {
 				boolean corner = radius > 0 && Math.abs(a) == radius && Math.abs(b) == radius;
 				if (corner && random.nextBoolean()) continue;
-				if (paintFace(level, offsetInPlane(struck, face.getAxis(), a, b), face, color)) painted++;
+				if (paintFace(level, offsetInPlane(struck, face.getAxis(), a, b), face, color, painter)) painted++;
 			}
 		}
 		return painted;
@@ -72,6 +81,17 @@ public final class Painter {
 			case X -> origin.offset(0, a, b);
 			case Z -> origin.offset(a, b, 0);
 		};
+	}
+
+	/**
+	 * Who to credit for paint thrown by {@code source}: the player themselves for a roller or a charger's
+	 * line, and the shooter for anything they fired, since a paint ball is the shot and not the shooter.
+	 * Null for paint with nobody behind it — a test, or a droplet whose shooter has since logged out.
+	 */
+	public static @Nullable UUID ownerOf(@Nullable Entity source) {
+		if (source instanceof Player player) return player.getUUID();
+		if (source instanceof Projectile shot && shot.getOwner() instanceof Player player) return player.getUUID();
+		return null;
 	}
 
 	/** Either paint block. */
@@ -98,6 +118,16 @@ public final class Painter {
 	 * changes on their own afterwards. Returns whether anything changed.
 	 */
 	public static boolean paintFace(ServerLevel level, BlockPos surface, Direction face, PaintColor color) {
+		return paintFace(level, surface, face, color, null);
+	}
+
+	/**
+	 * The same, crediting {@code painter} with the face for {@code splat.stats.blocks} — the last painter
+	 * of a face is the one who holds it. A recolour that wipes a cell forgets every face it held with it:
+	 * the paint those players had is gone, and so is the credit for it.
+	 */
+	public static boolean paintFace(ServerLevel level, BlockPos surface, Direction face, PaintColor color,
+			@Nullable UUID painter) {
 		// Outside the arena's bounds nothing is painted at all: a match is won on the arena's own faces, and
 		// a shot over the wall should not score. The test is on the surface rather than on the cell the paint
 		// goes in, so that the inner face of a wall standing on the box's own edge is still paintable.
@@ -105,15 +135,18 @@ public final class Painter {
 		BlockState surfaceState = level.getBlockState(surface);
 		if (!paintable(surfaceState)) return false;
 		if (!Block.isFaceFull(surfaceState.getCollisionShape(level, surface), face)) {
-			return PaintDisplays.of(level).paint(level, surface, face, color);
+			return PaintDisplays.of(level).paint(level, surface, face, color, painter);
 		}
 		BlockPos cell = surface.relative(face);
 		Direction attach = face.getOpposite();
 		int bit = 1 << attach.ordinal();
 		BlockState existing = level.getBlockState(cell);
 		BlockState next;
+		// A cell that is wiped rather than added to: whatever it held goes, and so does who held it.
+		boolean wiped = false;
 		if (existing.isAir() || (existing.getBlock() instanceof Paint other && other.color() != color)) {
 			next = connectedState(level, cell, attach, color);
+			wiped = true;
 		} else if (existing.getBlock() instanceof Paint same) {
 			int mask = same.faceMask(existing);
 			if ((mask & bit) != 0) return false;
@@ -122,7 +155,10 @@ public final class Painter {
 			return false;
 		}
 		if (!level.setBlock(cell, next, Block.UPDATE_ALL)) return false;
-		PaintTally.of(level).track(cell);
+		PaintTally tally = PaintTally.of(level);
+		tally.track(cell);
+		if (wiped) tally.forget(cell);
+		tally.credit(cell, attach, painter);
 		// Paint blocks re-border themselves through updateShape; display quads are not blocks and get no
 		// neighbour update, so the cell tells them itself.
 		PaintDisplays.of(level).refreshAround(level, cell);
@@ -246,6 +282,7 @@ public final class Painter {
 	 * at the far end. Returns how many cells changed.
 	 */
 	public static int line(ServerLevel level, Vec3 from, Vec3 to, PaintColor color, @Nullable Entity source) {
+		UUID painter = ownerOf(source);
 		BlockParticleOption dust = crumbs(color);
 		double length = from.distanceTo(to);
 		int steps = (int) Math.ceil(length / LINE_STEP);
@@ -260,7 +297,7 @@ public final class Painter {
 			last = here;
 			BlockHitResult down = level.clip(clipContext(at, at.subtract(0, LINE_DROP, 0), source));
 			if (down.getType() != HitResult.Type.BLOCK) continue;
-			if (paintFace(level, down.getBlockPos(), down.getDirection(), color)) changed++;
+			if (paintFace(level, down.getBlockPos(), down.getDirection(), color, painter)) changed++;
 		}
 		return changed;
 	}
@@ -307,7 +344,8 @@ public final class Painter {
 	/** The same, with the blob's {@link #splat(ServerLevel, BlockPos, Direction, PaintColor, RandomSource, int) radius}. */
 	public static int splash(ServerLevel level, Vec3 impact, BlockPos struck, Direction face, PaintColor color,
 			RandomSource random, int radius, @Nullable Entity source) {
-		int changed = splat(level, struck, face, color, random, radius);
+		UUID painter = ownerOf(source);
+		int changed = splat(level, struck, face, color, random, radius, painter);
 		Vec3 normal = Vec3.atLowerCornerOf(face.getUnitVec3i());
 		Vec3 from = impact.add(normal.scale(0.05));
 		// The burst is sized to the splat it goes with. A single-face droplet used to throw the same
@@ -327,7 +365,7 @@ public final class Painter {
 			Vec3 to = from.add(ray.scale(RAY_LENGTH));
 			BlockHitResult hit = level.clip(clipContext(from, to, source));
 			if (hit.getType() != HitResult.Type.BLOCK) continue;
-			if (paintFace(level, hit.getBlockPos(), hit.getDirection(), color)) changed++;
+			if (paintFace(level, hit.getBlockPos(), hit.getDirection(), color, painter)) changed++;
 			if (perRay == 0) continue;
 			Vec3 at = hit.getLocation();
 			burst(level, dust, at, perRay, 0.1, 0.1, 0.1, 0.01);

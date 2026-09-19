@@ -104,9 +104,31 @@ public enum Spot implements StringRepresentable {
 	public static final int TOP_ROW = FACE_ROW - SIZE, TOP_ROWS = SIZE;
 	/** {@link #face}'s answer for a cell on its box's top face, which is none of the four side faces. */
 	public static final int TOP_FACE = 4;
-	/** Texels per skin texel in the garment and patch textures (128×64): patch art is {@link #PX} square. */
-	public static final int DETAIL = 2;
+	/**
+	 * Texture pixels per skin texel in the garment and patch textures. This is the <em>texture</em>
+	 * side of the two resolutions: how finely everything datagen bakes is drawn, and the space the
+	 * shader addresses. {@link #PX} is a cell measured in it.
+	 */
+	public static final int DETAIL = 4;
+	/** A cell in texture pixels. */
 	public static final int PX = SIZE * DETAIL;
+	/**
+	 * Pixels per skin texel in a patch's own PNG — the <em>art</em> side, the one an artist draws to.
+	 * It is deliberately not {@link #DETAIL}: art stays the size it has always been drawn at (a cell
+	 * is {@link #ART_PX} square, the biggest art {@link Patches#MAX_ART}), so raising the texture's
+	 * detail buys room in the preview library instead of making every existing patch cover a quarter
+	 * of the cloth it used to. Where the two differ the art is scaled up as it is drawn: datagen does
+	 * it when baking, and the shader divides by the ratio when it reads the library
+	 * (ovvar.glsl, {@code OVVAR_ART_SCALE}).
+	 */
+	public static final int ART_DETAIL = 2;
+	/** A cell in art pixels: the size of a cell-sized patch's PNG. */
+	public static final int ART_PX = SIZE * ART_DETAIL;
+	/**
+	 * How much art is scaled up by as it is drawn into a texture of ours: 1 while the two detail
+	 * levels agree, so every path below is a no-op until {@link #DETAIL} is actually raised.
+	 */
+	public static final int ART_SCALE = DETAIL / ART_DETAIL;
 
 	/** The armour model's inflation for a piece's layer: 1 for the chest layer, 0.5 for the leggings layer. */
 	public static double inflate(Piece piece) {
@@ -198,6 +220,15 @@ public enum Spot implements StringRepresentable {
 		this.height = height;
 	}
 
+	/** The cell's width in art pixels ({@link #ART_DETAIL} per skin texel): {@value #ART_PX} for most. */
+	public int artPx() {
+		return width * ART_DETAIL;
+	}
+
+	public int artPxHeight() {
+		return height * ART_DETAIL;
+	}
+
 	/** The cell's width in texture pixels ({@link #DETAIL} per skin texel): {@value #PX} for most. */
 	public int px() {
 		return width * DETAIL;
@@ -255,7 +286,7 @@ public enum Spot implements StringRepresentable {
 
 	/** Where a seat patch's art is cut for one leg: the x its half starts at, in art pixels. */
 	public static int seatHalf(Side side) {
-		return seatColumn(side) * PX;
+		return seatColumn(side) * ART_PX;
 	}
 
 	/** The cells a seat patch covers, which a seat patch and a plain patch fight over. */

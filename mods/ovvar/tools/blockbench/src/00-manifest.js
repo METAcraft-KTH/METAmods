@@ -3,7 +3,7 @@
 // plugin: nothing of ours lands on window, and onunload has nothing global to clean up.
 var OVVAR = {};
 
-OVVAR.VERSION = 1;
+OVVAR.VERSION = 2;
 
 // ---- PNG, by hand
 //
@@ -229,6 +229,8 @@ OVVAR.loadManifest = function (io, checkout) {
     throw new Error('This manifest is version ' + m.version + '; this plugin understands version '
       + OVVAR.VERSION + '. Update the plugin (tools/blockbench/ovvar.js).');
   }
+  // Version 1 wrote one resolution: art and texture were the same size, so its art scales by 1.
+  if (m.artDetail === undefined) { m.artDetail = m.detail; m.artScale = 1; m.artPx = m.px; }
   m.checkout = checkout;
   m.cellById = {};
   for (var c = 0; c < m.cells.length; c++) m.cellById[m.cells[c].id] = m.cells[c];

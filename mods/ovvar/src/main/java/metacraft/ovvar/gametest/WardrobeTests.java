@@ -1438,7 +1438,7 @@ public final class WardrobeTests {
 	public void aTallSeatPatchKeepsTheRowsThatHangOverTheSeat(GameTestHelper helper) {
 		int tall = 0;
 		for (Patches.Patch patch : Patches.all()) {
-			if (!patch.seat() || patch.height() <= Spot.PX) continue;
+			if (!patch.seat() || patch.height() <= Spot.ART_PX) continue;
 			tall++;
 			Patches.Art chosen = Patches.artFor(patch, Spot.SEAT);
 			Tex art = patchArt(chosen);
@@ -1500,7 +1500,12 @@ public final class WardrobeTests {
 		String name = "patch/seat/" + patch.id() + (side == Spot.Side.LEFT ? "_l" : "_r");
 		Patches.Art art = Patches.artFor(patch, Spot.SEAT);
 		int x = Spot.SEAT.u * Spot.DETAIL, y = Spot.SEAT.v * Spot.DETAIL + art.offsetY(Spot.SEAT);
-		return generated(Piece.BOTTOM, name).crop(x, y, Spot.PX, art.height());
+		// The crop is in texture pixels — one leg's half of the seat, the art's own height scaled up.
+		// Handed back at art resolution so callers can hold it against the PNG they cut in half: the
+		// placement texture was scaled up from that art by exactly ART_SCALE, so scaling back down
+		// returns those very pixels rather than an approximation of them.
+		Tex cell = generated(Piece.BOTTOM, name).crop(x, y, Spot.PX, art.height() * Spot.ART_SCALE);
+		return Spot.ART_SCALE > 1 ? cell.downscaled(cell.width / Spot.ART_SCALE, cell.height / Spot.ART_SCALE) : cell;
 	}
 
 	/** A generated equipment layer texture, off the runtime classpath (datagen has to have run). */
@@ -1815,7 +1820,7 @@ public final class WardrobeTests {
 	@GameTest
 	public void aTopFacePlacementSitsOnTheCellsOwnRows(GameTestHelper helper) {
 		int D = Spot.DETAIL;
-		Patches.Patch cellSized = Patches.all().stream().filter(p -> !p.seat() && p.width() == Spot.PX && p.height() == Spot.PX)
+		Patches.Patch cellSized = Patches.all().stream().filter(p -> !p.seat() && p.width() == Spot.ART_PX && p.height() == Spot.ART_PX)
 				.findFirst().orElse(null);
 		if (cellSized == null) {
 			helper.fail("no cell-sized patch in the catalogue, so nothing here can say where a cell's own rows are");
@@ -1827,8 +1832,13 @@ public final class WardrobeTests {
 			tops++;
 			Tex tex = generated(spot.piece, "patch/" + spot.id() + "/" + cellSized.id());
 			int first = spot.v * D, last = first + spot.pxHeight() - 1;
-			if (first != 32 || last != 39) {
-				helper.fail(spot.id() + "'s rows are " + first + ".." + last + ", and the playtest's numbers were about 32..39");
+			// The playtest settled these as skin rows TOP_ROW..FACE_ROW (16..20, which were 32..39 in
+			// texture pixels back when a texel was two of them). Pinned in skin rows so the check keeps
+			// saying "the box's own top face" rather than a number that moves with Spot.DETAIL.
+			int wantFirst = Spot.TOP_ROW * D, wantLast = Spot.FACE_ROW * D - 1;
+			if (first != wantFirst || last != wantLast) {
+				helper.fail(spot.id() + "'s rows are " + first + ".." + last + ", wanted " + wantFirst + ".." + wantLast
+						+ " — skin rows " + Spot.TOP_ROW + ".." + Spot.FACE_ROW + ", the playtest's own");
 			}
 			for (int y = 0; y < tex.height; y++) {
 				int from = -1, to = -1;
@@ -2157,8 +2167,10 @@ public final class WardrobeTests {
 				// which is what the variants are for; one that does not is clipped, as before.
 				Patches.Art chosen = Patches.artFor(patch, spot);
 				Tex art = patchArt(chosen);
-				// The model mirrors the left limb, so its texture holds the art flipped in x.
-				Tex baked = spot.side == Spot.Side.LEFT ? art.flipX() : art;
+				// The model mirrors the left limb, so its texture holds the art flipped in x — and
+				// scaled up to the texture's own detail, which is how GeneratedAssets bakes it. Walking
+				// the scaled art keeps this a pixel-for-pixel comparison against the texture.
+				Tex baked = (spot.side == Spot.Side.LEFT ? art.flipX() : art).scaledUp(Spot.ART_SCALE);
 				Tex drawn = generated(Piece.TOP, "patch/" + spot.id() + "/" + patch.id());
 				int ox = x0 + chosen.offsetX(spot), oy = y0 + chosen.offsetY(spot);
 				// Every art pixel that falls on the face is there, as drawn (for that arm).
@@ -2191,7 +2203,9 @@ public final class WardrobeTests {
 					if (tell == null) {
 						continue;   // a symmetrical patch cannot tell a missing flip from a correct one
 					}
-					int tx = x0 + chosen.offsetX(spot) + art.width - 1 - tell[0], ty = oy + tell[1];
+						// Art pixels are blocks of ART_SCALE on the texture, so the mirrored pixel's own block
+					// starts this many texels in — the top-left texel of it is the one to read.
+					int tx = x0 + chosen.offsetX(spot) + (art.width - 1 - tell[0]) * Spot.ART_SCALE, ty = oy + tell[1] * Spot.ART_SCALE;
 					if (tx < x0 || tx >= x1 || ty < y0 || ty >= y1) continue;   // clipped away
 					if (drawn.get(tx, ty) != art.get(tell[0], tell[1])) {
 						helper.fail(patch.id() + " on " + spot.id() + ": art pixel (" + tell[0] + ", " + tell[1] + ") should be at texel ("
@@ -2436,8 +2450,8 @@ public final class WardrobeTests {
 	@GameTest
 	public void theBigBackCellHoldsTheBiggestArtWholeAndCentred(GameTestHelper helper) {
 		Spot spot = Spot.BACK_BIG;
-		if (spot.px() != Patches.MAX_ART || spot.pxHeight() != Patches.MAX_ART) {
-			helper.fail("the big back cell is " + spot.px() + "x" + spot.pxHeight() + " px, wanted " + Patches.MAX_ART + " square");
+		if (spot.artPx() != Patches.MAX_ART || spot.artPxHeight() != Patches.MAX_ART) {
+			helper.fail("the big back cell is " + spot.artPx() + "x" + spot.artPxHeight() + " art px, wanted " + Patches.MAX_ART + " square");
 		}
 		int D = Spot.DETAIL, faceStart = spot.u * D, faceEnd = (spot.u + spot.width) * D;
 		for (Patches.Patch patch : Patches.all()) {
@@ -2447,11 +2461,17 @@ public final class WardrobeTests {
 			Patches.Art chosen = Patches.artFor(patch, spot);
 			if (chosen.oversize(spot)) helper.fail(patch.id() + " hangs over the big back cell, which is " + Patches.MAX_ART + " square");
 			int x = faceStart + chosen.offsetX(spot), y = spot.v * D + chosen.offsetY(spot);
-			if (x < faceStart || x + chosen.width() > faceEnd) {
-				helper.fail(patch.id() + " on the big back cell runs from texel " + x + " to " + (x + chosen.width()) + ", off the back face (" + faceStart + ".." + faceEnd + ")");
+			// The art as the texture carries it: its own size scaled up by ART_SCALE, since x and y
+			// above are texture pixels.
+			int drawnW = chosen.width() * Spot.ART_SCALE, drawnH = chosen.height() * Spot.ART_SCALE;
+			if (x < faceStart || x + drawnW > faceEnd) {
+				helper.fail(patch.id() + " on the big back cell runs from texel " + x + " to " + (x + drawnW) + ", off the back face (" + faceStart + ".." + faceEnd + ")");
 			}
-			Tex art = patchArt(chosen);
-			Tex drawn = generated(Piece.TOP, "patch/" + spot.id() + "/" + patch.id()).crop(x, y, chosen.width(), chosen.height());
+			// Held against the art scaled up rather than the texture scaled down: scaling up is what
+			// datagen did, so this compares the very pixels it wrote. Going the other way would have to
+			// round-trip a transparent texel's colour, which the downscale is entitled not to keep.
+			Tex art = patchArt(chosen).scaledUp(Spot.ART_SCALE);
+			Tex drawn = generated(Piece.TOP, "patch/" + spot.id() + "/" + patch.id()).crop(x, y, drawnW, drawnH);
 			if (!same(drawn, art)) helper.fail(patch.id() + "'s big-back-cell texture is not its art, centred at (" + x + ", " + y + ")");
 		}
 		helper.succeed();
@@ -2832,7 +2852,7 @@ public final class WardrobeTests {
 				if (art.width() % 2 != 0 || art.height() % 2 != 0 || art.width() > Patches.MAX_ART || art.height() > Patches.MAX_ART) {
 					helper.fail(art.file() + " is " + art.width() + "x" + art.height() + ", which is not an even size up to " + Patches.MAX_ART);
 				}
-				if (patch.seat() && art.width() != 2 * Spot.PX) helper.fail(art.file() + " is a seat patch's art but " + art.width() + " px wide");
+				if (patch.seat() && art.width() != 2 * Spot.ART_PX) helper.fail(art.file() + " is a seat patch's art but " + art.width() + " px wide");
 				// A generated art ships no file at all — its pixels are its source's, scaled — so it is
 				// the source that has to be on the classpath.
 				String file = art.generated() ? art.source().resource() : art.resource();
@@ -2912,7 +2932,7 @@ public final class WardrobeTests {
 	public void theSmallSizesNobodyDrewAreScaledDownFromTheSixteenPixelArt(GameTestHelper helper) {
 		Patches.Patch it = Patches.get("it"), itk = Patches.get("itk");
 		Patches.Art small = Patches.artFor(it, Patches.Fit.CLIPPED);
-		if (!small.generated() || small.width() != Spot.PX || small.height() != Spot.PX) {
+		if (!small.generated() || small.width() != Spot.ART_PX || small.height() != Spot.ART_PX) {
 			helper.fail("a shoulder draws IT as " + small + ", wanted an 8x8 scaled down from its 16x16");
 		}
 		if (!small.file().equals("patches/it_8x8")) helper.fail("the generated art is called " + small.file() + ", not patches/it_8x8");
@@ -2930,9 +2950,9 @@ public final class WardrobeTests {
 			// what it is for
 		}
 		// The pixels every path gets: the source scaled, and nothing about the source touched.
-		if (!same(patchArt(small), patchArt(small.source()).downscaled(Spot.PX, Spot.PX))) {
+		if (!same(patchArt(small), patchArt(small.source()).downscaled(Spot.ART_PX, Spot.ART_PX))) {
 			helper.fail("IT's generated 8x8 is not its 16x16 downscaled" + java.util.Arrays.toString(
-					firstDifference(patchArt(small), patchArt(small.source()).downscaled(Spot.PX, Spot.PX))));
+					firstDifference(patchArt(small), patchArt(small.source()).downscaled(Spot.ART_PX, Spot.ART_PX))));
 		}
 		// A drawing wins: ITK is drawn at 8, 12 and 16, so it generates nothing at all.
 		for (Patches.Art art : itk.variants()) {
@@ -2957,7 +2977,7 @@ public final class WardrobeTests {
 			// point: no cell has to fall back to art that does not fit it any more.
 			if (sixteen && !patch.seat()) {
 				for (int size : Patches.GENERATED_SIZES) {
-					Patches.Art at = Patches.artFor(patch, size == Spot.PX ? Patches.Fit.CLIPPED : Patches.Fit.OVER);
+					Patches.Art at = Patches.artFor(patch, size == Spot.ART_PX ? Patches.Fit.CLIPPED : Patches.Fit.OVER);
 					if (at.width() > size || at.height() > size) helper.fail(patch.id() + " is drawn at 16 px but a " + size + " px place still shows " + at);
 				}
 			}
@@ -3115,8 +3135,8 @@ public final class WardrobeTests {
 			if (spot.top() && (spot.px() != Spot.PX || spot.pxHeight() != Spot.PX)) {
 				helper.fail(spot.id() + " is a clipped cell " + spot.px() + "x" + spot.pxHeight() + " px; the instant path's CLIPPED fit is one cell square");
 			}
-			if (big && (spot.px() != Patches.MAX_ART || spot.pxHeight() != Patches.MAX_ART)) {
-				helper.fail(spot.id() + " is a filled cell " + spot.px() + "x" + spot.pxHeight() + " px; the instant path's FILLED fit is " + Patches.MAX_ART + " square");
+			if (big && (spot.artPx() != Patches.MAX_ART || spot.artPxHeight() != Patches.MAX_ART)) {
+				helper.fail(spot.id() + " is a filled cell " + spot.artPx() + "x" + spot.artPxHeight() + " art px; the instant path's FILLED fit is " + Patches.MAX_ART + " square");
 			}
 			for (Patches.Patch patch : Patches.all()) {
 				if (patch.fits(spot) && !Patches.artFor(patch, spot).equals(Patches.artFor(patch, Patches.Fit.of(spot)))) {

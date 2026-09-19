@@ -84,11 +84,14 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.ScoreHolder;
 import net.minecraft.world.scores.Team;
 import net.minecraft.world.scores.TeamColor;
 import nu.metacraft.rivals.Arena;
 import nu.metacraft.rivals.Lobby;
+import nu.metacraft.rivals.MainPack;
 import nu.metacraft.rivals.Match;
+import nu.metacraft.rivals.Stats;
 import nu.metacraft.rivals.PaintColor;
 import nu.metacraft.rivals.OvveTeams;
 import nu.metacraft.rivals.PlayerTick;
@@ -146,6 +149,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 import nu.metacraft.rivals.pack.RivalsPack;
 import nu.metacraft.rivals.gun.Ink;
 import nu.metacraft.rivals.gun.InkHud;
@@ -158,8 +162,12 @@ import nu.metacraft.rivals.paint.PaintStates;
  * positions passed to the helper are relative to it.
  */
 public final class RivalsGameTests {
-	/** The donors the splat masks are dealt from, in the order {@code PaintStates} spends them. */
-	private static final List<Block> SPLAT_DONORS = List.of(Blocks.PALE_MOSS_CARPET, Blocks.STONE_BUTTON, Blocks.REDSTONE_WIRE);
+	/** The donors floors and ceilings are dealt from, in the order {@code PaintStates} spends them. */
+	private static final List<Block> FLAT_DONORS = List.of(Blocks.CRIMSON_BUTTON, Blocks.WARPED_BUTTON,
+			Blocks.BAMBOO_BUTTON, Blocks.PALE_OAK_BUTTON, Blocks.POPLAR_BUTTON);
+	/** The donors the splat masks are dealt from: the carpet, then the buttons' leftovers. */
+	private static final List<Block> SPLAT_DONORS = Stream.concat(
+			Stream.of(Blocks.PALE_MOSS_CARPET), FLAT_DONORS.stream()).toList();
 
 	@GameTest
 	public void modLoads(GameTestHelper helper) {
@@ -1174,9 +1182,15 @@ public final class RivalsGameTests {
 					"and the far one still holds its paint");
 		} finally {
 			arena.forget();
-			// Leave nothing painted behind for the tests that count faces.
+			// Leave nothing painted behind for the tests that count faces — inside this structure only. A
+			// level-wide reset here took every tracked paint block in the level with it, including the
+			// paint a ball in flight in another test had just put down, and that test then failed at random
+			// depending on how the batch happened to be laid out.
 			helper.setBlock(out.above(), Blocks.AIR);
-			tally.reset(helper.getLevel());
+			AABB bounds = helper.getBounds();
+			tally.reset(helper.getLevel(), BoundingBox.fromCorners(
+					BlockPos.containing(bounds.minX, bounds.minY, bounds.minZ),
+					BlockPos.containing(bounds.maxX, bounds.maxY, bounds.maxZ)));
 		}
 		helper.succeed();
 	}
@@ -1428,6 +1442,14 @@ public final class RivalsGameTests {
 	 * takes the whole kit back (the weapon in its slot, the selector in its own, the lock with them) and
 	 * takes every Rivals boss bar off every screen; the ticks that follow, in ENDED and then in the lobby,
 	 * must not put any of it back.
+	 *
+	 * <p>This is the <b>only</b> test that starts and stops a round, and it has to stay that way.
+	 * {@code Match} is one machine for the whole server and an {@code Arena} is one per level, so a second
+	 * test that drove a round would be fighting this one for both while the rest of the batch ticks beside
+	 * it — which is exactly what it did when MAIN's running flag was first tested by starting a real round:
+	 * paint balls in flight in other tests found their shooter teleported to this arena's spawn, and three
+	 * paint tests failed at random. {@link MainPack#edge} exists so that the flag's decision can be
+	 * asserted without any of that.
 	 */
 	@GameTest
 	public void matchStopEndsItEarly(GameTestHelper helper) {
@@ -1443,7 +1465,13 @@ public final class RivalsGameTests {
 			board.addPlayerToTeam(player.getScoreboardName(), team(helper, PaintColor.DATA));
 			arena.setSpawn(PaintColor.DATA, new Arena.Spawn(helper.absoluteVec(new Vec3(1.5, 2.0, 1.5)), 0f, 0f));
 			arena.setSpawn(PaintColor.IT, new Arena.Spawn(helper.absoluteVec(new Vec3(6.5, 2.0, 6.5)), 0f, 0f));
-			helper.assertFalse(Match.stop(t), "nothing to stop in the lobby");
+
+			// This arena is one MAIN could start a round in, which is the half of the flag's job that
+			// needs a level with spawns. The edges themselves are theRunningFlagReadsOnTheEdges.
+			helper.assertTrue(MainPack.arenaLevel(level.getServer()).isPresent(),
+					"a level with a spawn for both sides is an arena the running flag can play in");
+
+			helper.assertFalse(Match.stop(t, helper.getLevel().getServer()), "nothing to stop in the lobby");
 			helper.assertTrue(Match.start(level.getServer(), level, () -> players, 5, false, t).started(), "started");
 			Match.tick(level.getServer(), t + Match.COUNTDOWN_TICKS);
 			helper.assertValueEqual(Match.state(), Match.State.PLAYING, "playing");
@@ -1467,7 +1495,7 @@ public final class RivalsGameTests {
 			helper.assertTrue(ScoreBars.shows(player), "the score bar over the paint they put down is on them");
 			helper.assertTrue(Match.showsAnyBar(player), "and so is the timer");
 
-			helper.assertTrue(Match.stop(t + 400), "stopped early");
+			helper.assertTrue(Match.stop(t + 400, helper.getLevel().getServer()), "stopped early");
 			helper.assertValueEqual(Match.state(), Match.State.ENDED, "which is the same ending");
 			helper.assertTrue(Match.isFrozen(player), "and the same freeze");
 			// The whistle: no kit, no lock, no bars.
@@ -5247,9 +5275,10 @@ public final class RivalsGameTests {
 			helper.assertTrue(state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty(),
 					"no collision, so a client never stands a notch above the paint: " + state);
 			helper.assertTrue(state.getFluidState().isEmpty(), "no fluid, so the client draws no water in the cell: " + state);
-			if (state.getBlock() == Blocks.REDSTONE_WIRE) {
-				helper.assertValueEqual(state.getValue(RedstoneWireBlock.POWER), 0, "wire is only ever borrowed unpowered: " + state);
-			}
+			// A donor's whole blockstate file is overridden, so every block of that kind in the world draws
+			// as paint. Paint Splat Town is built with redstone in it, which is why wire is not a donor.
+			helper.assertFalse(state.getBlock() == Blocks.REDSTONE_WIRE,
+					"redstone wire is not a donor: the arena is built with it: " + state);
 			helper.assertValueEqual(state.getLightEmission(), 0, "unlit: " + state);
 			if (state.hasProperty(BlockStateProperties.WATERLOGGED)) {
 				helper.assertFalse(state.getValue(BlockStateProperties.WATERLOGGED), "never waterlogged: " + state);
@@ -5281,11 +5310,11 @@ public final class RivalsGameTests {
 	/**
 	 * Every cell kind comes from the donor that kind is for, and there are enough states to go round.
 	 * The outline does not come into it — Rivals is adventure mode, so the targeted-block highlight a
-	 * borrowed state's shape would draw never appears — but noise does: a redstone wire state with any
-	 * power sprinkles dust from {@code animateTick} that no resource pack can stop. So the floor, the
-	 * walls and the ceiling all land on states that are quiet, and only the splat masks — the fallback
-	 * for a cell painted on two or more faces, which is the join lines of an arena rather than its
-	 * surfaces — are allowed to spill onto powered wire.
+	 * borrowed state's shape would draw never appears. What does come into it is what else is in the
+	 * world: a donor's whole blockstate file is overridden, so every block of that kind anybody places
+	 * draws as paint. Redstone wire used to hold the floors and ceilings and is now no donor at all,
+	 * because Paint Splat Town is built with redstone in it; the four buttons that replaced it were
+	 * picked for being the ones nobody builds with.
 	 */
 	@GameTest
 	public void paintStatesComeFromTheirOwnDonor(GameTestHelper helper) {
@@ -5310,17 +5339,20 @@ public final class RivalsGameTests {
 			}
 		}
 		helper.assertValueEqual(walls.size(), colors * 4 * PaintArt.BITS, "wall states in use");
-		// Floors and ceilings: redstone wire at power 0, the only wire states whose animateTick returns.
+		// Floors and ceilings: the four flat donors, which are buttons nobody builds an arena out of.
+		Set<BlockState> flats = new HashSet<>();
 		for (PaintColor color : PaintColor.values()) {
 			for (Direction face : List.of(Direction.DOWN, Direction.UP)) {
 				for (int bits = 0; bits < PaintArt.BITS; bits++) {
 					BlockState state = PaintStates.connected(color, face, bits);
-					helper.assertValueEqual(state.getBlock(), Blocks.REDSTONE_WIRE, color + " " + face + " " + bits + " is a redstone wire state");
-					helper.assertValueEqual(state.getValue(RedstoneWireBlock.POWER), 0, "and unpowered, so it makes no dust: " + state);
+					helper.assertTrue(FLAT_DONORS.contains(state.getBlock()),
+							color + " " + face + " " + bits + " comes from a flat donor, not " + state);
+					helper.assertTrue(flats.add(state), "each floor cell has a state of its own: " + state);
 				}
 			}
 		}
-		// Splat masks: the pale moss carpet, then the stone button, then the wire the surfaces left.
+		helper.assertValueEqual(flats.size(), colors * 2 * PaintArt.BITS, "floor and ceiling states in use");
+		// Splat masks: the pale moss carpet, then whatever the buttons had left after the floors.
 		Set<BlockState> splats = new HashSet<>();
 		for (PaintColor color : PaintColor.values()) {
 			for (int mask = 1; mask < 64; mask++) {
@@ -5332,9 +5364,9 @@ public final class RivalsGameTests {
 			}
 		}
 		helper.assertValueEqual(splats.size(), colors * PaintStates.SPLAT_PER_COLOR, "splat states in use");
-		// The carpet and the button are spent outright — they are the only reason the splats fit at all,
-		// so if either stops lending what it lends now the table is short and says so at start-up.
-		for (Block donor : List.of(Blocks.PALE_MOSS_CARPET, Blocks.STONE_BUTTON)) {
+		// The carpet is spent outright — it is most of the reason the splats fit at all, so if it stops
+		// lending what it lends now the table is short and says so at start-up.
+		for (Block donor : List.of(Blocks.PALE_MOSS_CARPET)) {
 			int inert = 0;
 			int used = 0;
 			for (BlockState state : donor.getStateDefinition().getPossibleStates()) {
@@ -5396,10 +5428,15 @@ public final class RivalsGameTests {
 		helper.assertTrue(pooled.contains(Blocks.TRIPWIRE), "polymer-blocks still pools tripwire; read " + pooled.size() + " blocks");
 		helper.assertTrue(pooled.size() >= 20, "polymer's pools cover " + pooled.size() + " blocks, expected dozens");
 		helper.assertFalse(PaintStates.DONORS.contains(Blocks.TRIPWIRE), "tripwire is not a donor any more");
-		// The two donors the splats moved onto, called out by name: they are the newest, so they are the
-		// ones most likely to collide with a pool Polymer grows later.
+		// The donors the splats and then the floors moved onto, called out by name: they are the newest,
+		// so they are the ones most likely to collide with a pool Polymer grows later.
 		helper.assertFalse(pooled.contains(Blocks.PALE_MOSS_CARPET), "pale moss carpet is outside Polymer's pools");
-		helper.assertFalse(pooled.contains(Blocks.STONE_BUTTON), "stone button is outside Polymer's pools");
+		for (Block button : FLAT_DONORS) {
+			helper.assertFalse(pooled.contains(button),
+					BuiltInRegistries.BLOCK.getKey(button) + " is outside Polymer's pools");
+		}
+		helper.assertFalse(PaintStates.DONORS.contains(Blocks.REDSTONE_WIRE),
+				"redstone wire is not a donor any more: the arena is built with it");
 		for (Block donor : PaintStates.DONORS) {
 			helper.assertFalse(pooled.contains(donor),
 					BuiltInRegistries.BLOCK.getKey(donor) + " is in a Polymer block pool, so both packs would write its blockstate file");
@@ -5551,9 +5588,12 @@ public final class RivalsGameTests {
 		}
 		// And nothing for tripwire: that file belongs to whoever asked Polymer's pool for it.
 		helper.assertFalse(files.containsKey("assets/minecraft/blockstates/tripwire.json"), "the pack leaves tripwire.json alone");
-		for (String path : List.of("assets/minecraft/blockstates/pale_moss_carpet.json", "assets/minecraft/blockstates/stone_button.json")) {
+		for (Block donor : SPLAT_DONORS) {
+			String path = "assets/minecraft/blockstates/" + BuiltInRegistries.BLOCK.getKey(donor).getPath() + ".json";
 			helper.assertTrue(files.containsKey(path), "the splat donors get their own override: " + path);
 		}
+		helper.assertFalse(files.containsKey("assets/minecraft/blockstates/stone_button.json"),
+				"the stone button is not a donor any more: the arena has stone buttons on it");
 		helper.succeed();
 	}
 
@@ -5948,6 +5988,113 @@ public final class RivalsGameTests {
 			helper.assertValueEqual(WeaponTuning.get(Weapon.SHOOTER).value("kick"), (double) Weapon.SHOOTER.kickPitch,
 					"/rivals tune reset puts every weapon back");
 		});
+		helper.succeed();
+	}
+
+	// ---------------------------------------------------------------- the MAIN datapack
+
+	/** Set MAIN's running flag, the way MAIN's own functions do. */
+	private static void running(MinecraftServer server, int value) {
+		Stats.write(server, MainPack.STATE_OBJECTIVE, ScoreHolder.forNameOnly(MainPack.RUNNING_HOLDER), value);
+	}
+
+	/**
+	 * MAIN owns the minigame; this mod owns the playing of it. MAIN keeps {@code ?running} in
+	 * {@code splat.state} — 1 while its own {@code ?superstate main.state} is 3 — and the mod reads it and
+	 * acts on the <em>edges</em>: a flag that stays at 1 through the ten seconds of fireworks must not read
+	 * as "start another round", and the first read of a server's life only reads, so a restart with the
+	 * flag already up neither starts nor stops anything.
+	 *
+	 * <p>{@link MainPack#edge} rather than {@link MainPack#poll} deliberately: see
+	 * {@link #matchStopEndsItEarly} for why no second test may start a round. The flag is put back down on
+	 * the way out, because {@code MainPack}'s own poll keeps reading it every half second for the rest of
+	 * the batch.
+	 */
+	@GameTest
+	public void theRunningFlagReadsOnTheEdges(GameTestHelper helper) {
+		MinecraftServer server = helper.getLevel().getServer();
+		try {
+			// An objective MAIN has not made reads as 0: nobody is running the minigame, which is right.
+			MainPack.forget();
+			running(server, 0);
+			helper.assertValueEqual(MainPack.edge(server), MainPack.Edge.NONE, "the first read only reads");
+			helper.assertValueEqual(MainPack.lastFlag(), 0, "and it remembers what it read");
+			running(server, 1);
+			helper.assertValueEqual(MainPack.edge(server), MainPack.Edge.START, "0 → 1 starts a round");
+			// Still 1: the fireworks are not a reason to start another one.
+			helper.assertValueEqual(MainPack.edge(server), MainPack.Edge.NONE, "a flag that stays up means nothing more");
+			running(server, 0);
+			helper.assertValueEqual(MainPack.edge(server), MainPack.Edge.STOP, "1 → 0 blows the whistle");
+			helper.assertValueEqual(MainPack.edge(server), MainPack.Edge.NONE, "and a flag that stays down likewise");
+			// MAIN's contract is off/on, so anything that is not 0 is on rather than a third state.
+			running(server, 3);
+			helper.assertValueEqual(MainPack.edge(server), MainPack.Edge.START, "anything but 0 is running");
+			helper.assertValueEqual(MainPack.flag(server), 3, "read back as it was written, whatever it was");
+		} finally {
+			running(server, 0);
+			helper.getLevel().getScoreboard().resetSinglePlayerScore(
+					ScoreHolder.forNameOnly(MainPack.RUNNING_HOLDER),
+					Stats.objective(server, MainPack.STATE_OBJECTIVE));
+			MainPack.forget();
+		}
+		helper.succeed();
+	}
+
+	/**
+	 * The two numbers MAIN's outro reads. {@code splat.stats.blocks} is <em>held</em> paint — the faces a
+	 * player was the last to paint — so a cell painted over by the other side changes hands rather than
+	 * counting for both. {@code splat.stats.kills} goes on the board the tick the kill happens.
+	 */
+	@GameTest
+	public void theStatsBoardHoldsPaintAndKills(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		MinecraftServer server = level.getServer();
+		ServerScoreboard board = level.getScoreboard();
+		ServerPlayer mine = connected(mockServerPlayer(helper, GameType.SURVIVAL));
+		ServerPlayer theirs = connected(mockServerPlayer(helper, GameType.SURVIVAL));
+		BlockPos floor = new BlockPos(2, 1, 2);
+		BlockPos cell = floor.above();
+		try {
+			board.addPlayerToTeam(mine.getScoreboardName(), team(helper, PaintColor.DATA));
+			board.addPlayerToTeam(theirs.getScoreboardName(), team(helper, PaintColor.IT));
+			// The start of a round: an empty board, and a zero each, which is how MAIN's sort sees the
+			// whole roster — and how the board learns a UUID's name for the whistle.
+			Stats.startRound(server, List.of(mine, theirs));
+			helper.assertValueEqual(Stats.read(server, Stats.BLOCKS_OBJECTIVE, mine), 0, "everybody playing starts on zero");
+			helper.setBlock(floor, Blocks.STONE);
+			BlockPos surface = helper.absolutePos(floor);
+			PaintTally tally = PaintTally.of(level);
+			helper.assertTrue(Painter.paintFace(level, surface, Direction.UP, PaintColor.DATA, mine.getUUID()),
+					"a face painted, and credited");
+			helper.assertValueEqual(tally.countByPlayer(level).getOrDefault(mine.getUUID(), 0), 1, "one face held");
+			// Painted over by the other side: the face is theirs now, and nobody holds it twice.
+			helper.assertTrue(Painter.paintFace(level, surface, Direction.UP, PaintColor.IT, theirs.getUUID()),
+					"the other colour repaints it");
+			Map<UUID, Integer> held = tally.countByPlayer(level);
+			helper.assertValueEqual(held.getOrDefault(mine.getUUID(), 0), 0, "the first painter holds nothing now");
+			helper.assertValueEqual(held.getOrDefault(theirs.getUUID(), 0), 1, "whoever painted over it holds it");
+			// And onto the board, which is where MAIN reads it.
+			Stats.publish(server, level);
+			helper.assertValueEqual(Stats.read(server, Stats.BLOCKS_OBJECTIVE, theirs), 1, "held paint is on the board");
+			helper.assertValueEqual(Stats.read(server, Stats.BLOCKS_OBJECTIVE, mine), 0, "and the painter who lost it has none");
+			helper.assertValueEqual(Stats.credit(theirs), 1, "a kill is counted");
+			helper.assertValueEqual(Stats.read(server, Stats.KILLS_OBJECTIVE, theirs), 1, "on the board the same tick");
+			// And the kills are what breaks an equal-paint draw, so that MAIN is always told a side.
+			List<ServerPlayer> both = List.of(mine, theirs);
+			helper.assertValueEqual(Stats.sideWithMostKills(both), PaintColor.IT, "the side that killed more takes a draw");
+			Stats.credit(mine);
+			helper.assertTrue(Stats.sideWithMostKills(both) == null, "level on kills too is a real draw");
+		} finally {
+			helper.setBlock(cell, Blocks.AIR);
+			helper.setBlock(floor, Blocks.AIR);
+			PaintTally.of(level).count(level); // prunes the cell this test just took away
+			Stats.clearAll();
+			for (ServerPlayer player : List.of(mine, theirs)) {
+				board.resetSinglePlayerScore(player, Stats.objective(server, Stats.BLOCKS_OBJECTIVE));
+				board.resetSinglePlayerScore(player, Stats.objective(server, Stats.KILLS_OBJECTIVE));
+				board.removePlayerFromTeam(player.getScoreboardName());
+			}
+		}
 		helper.succeed();
 	}
 }

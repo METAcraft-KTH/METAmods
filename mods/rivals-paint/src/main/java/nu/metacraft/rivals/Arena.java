@@ -11,6 +11,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.lib.util.FunctionOrTag;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -58,30 +59,49 @@ public final class Arena extends SavedData {
 		}
 	}
 
+	public record TeamArenaData(Optional<Spawn> spawn, Optional<FunctionOrTag> onVictory) {
+		public static final TeamArenaData DEFAULT = new TeamArenaData(Optional.empty(), Optional.empty());
+
+		public static final Codec<TeamArenaData> CODEC = RecordCodecBuilder.create(
+			instance -> instance.group(
+				Spawn.CODEC.optionalFieldOf("spawn").forGetter(TeamArenaData::spawn),
+				FunctionOrTag.CODEC.optionalFieldOf("on_victory").forGetter(TeamArenaData::onVictory)
+			).apply(instance, TeamArenaData::new)
+		);
+
+		public TeamArenaData withSpawn(Spawn spawn) {
+			return new TeamArenaData(Optional.ofNullable(spawn), onVictory);
+		}
+
+		public TeamArenaData withVictoryFunction(FunctionOrTag onVictory) {
+			return new TeamArenaData(spawn, Optional.ofNullable(onVictory));
+		}
+	}
+
 	public static final Codec<Arena> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-			Codec.unboundedMap(Codec.STRING, Spawn.CODEC).fieldOf("spawns").forGetter(Arena::spawnsById),
-			BoundingBox.CODEC.optionalFieldOf("box").forGetter(arena -> Optional.ofNullable(arena.box))
+			Codec.unboundedMap(PaintColor.CODEC, TeamArenaData.CODEC).fieldOf("team_data").forGetter(arena -> arena.teamData),
+			BoundingBox.CODEC.optionalFieldOf("box").forGetter(arena -> Optional.ofNullable(arena.box)),
+			FunctionOrTag.CODEC.optionalFieldOf("draw_function").forGetter(arena -> arena.drawFunction)
 	).apply(instance, Arena::fromSaved));
 
 	private static final SavedDataType<Arena> TYPE = new SavedDataType<>(
 			Rivals.id("rivals_arena"), Arena::new, CODEC, null);
 
-	private final Map<PaintColor, Spawn> spawns = new EnumMap<>(PaintColor.class);
+	private final Map<PaintColor, TeamArenaData> teamData = new EnumMap<>(PaintColor.class);
 	private @Nullable BoundingBox box;
+	private Optional<FunctionOrTag> drawFunction = Optional.empty();
 
 	public Arena() {}
 
-	private static Arena fromSaved(Map<String, Spawn> spawns, Optional<BoundingBox> box) {
+	private static Arena fromSaved(
+		Map<PaintColor, TeamArenaData> teamData, Optional<BoundingBox> box,
+		Optional<FunctionOrTag> drawFunction
+	) {
 		Arena arena = new Arena();
-		spawns.forEach((id, spawn) -> PaintColor.byId(id).ifPresent(color -> arena.spawns.put(color, spawn)));
+		arena.teamData.putAll(teamData);
 		arena.box = box.orElse(null);
+		arena.drawFunction = drawFunction;
 		return arena;
-	}
-
-	private Map<String, Spawn> spawnsById() {
-		Map<String, Spawn> out = new HashMap<>();
-		spawns.forEach((color, spawn) -> out.put(color.id, spawn));
-		return out;
 	}
 
 	public static Arena of(ServerLevel level) {
@@ -89,7 +109,12 @@ public final class Arena extends SavedData {
 	}
 
 	public Optional<Spawn> spawn(PaintColor color) {
-		return Optional.ofNullable(spawns.get(color));
+		return teamData.getOrDefault(color, TeamArenaData.DEFAULT).spawn;
+	}
+
+	public Optional<FunctionOrTag> getWinFunction(PaintColor color) {
+		if (color == null) return drawFunction;
+		return teamData.getOrDefault(color, TeamArenaData.DEFAULT).onVictory;
 	}
 
 	/** Take this player's stance as the team's spawn. */
@@ -98,14 +123,28 @@ public final class Arena extends SavedData {
 	}
 
 	public void setSpawn(PaintColor color, Spawn spawn) {
-		spawns.put(color, spawn);
+		teamData.put(color, teamData.getOrDefault(color, TeamArenaData.DEFAULT).withSpawn(spawn));
+		setDirty();
+	}
+
+	public void setWinFunction(PaintColor color, FunctionOrTag function) {
+		teamData.put(color, teamData.getOrDefault(color, TeamArenaData.DEFAULT).withVictoryFunction(function));
+		setDirty();
+	}
+
+	public Optional<FunctionOrTag> getDrawFunction() {
+		return drawFunction;
+	}
+
+	public void setDrawFunction(FunctionOrTag function) {
+		this.drawFunction = Optional.ofNullable(function);
 		setDirty();
 	}
 
 	/** Is every team's spawn set? What a match start needs before it can teleport anybody. */
 	public boolean spawnsReady() {
 		for (PaintColor color : PaintColor.values()) {
-			if (!spawns.containsKey(color)) return false;
+			if (teamData.getOrDefault(color, TeamArenaData.DEFAULT).spawn.isEmpty()) return false;
 		}
 		return true;
 	}
@@ -141,7 +180,7 @@ public final class Arena extends SavedData {
 	}
 
 	public void forget() {
-		spawns.clear();
+		teamData.clear();
 		box = null;
 		setDirty();
 	}

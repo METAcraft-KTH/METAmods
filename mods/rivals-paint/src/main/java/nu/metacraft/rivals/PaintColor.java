@@ -1,8 +1,11 @@
 package nu.metacraft.rivals;
 
+import com.mojang.serialization.Codec;
+import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.TeamColor;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -16,11 +19,13 @@ import java.util.Optional;
  * of donors — so all a colour carries is how it looks to people: its ink, its team and its bar. The id
  * doubles as the vanilla team name.
  */
-public enum PaintColor {
+public enum PaintColor implements StringRepresentable {
 	/** The Data chapter's ovve, sampled from art/ovvar/data.png the way ovvar's mockups do. */
 	DATA("data", "DATA", 0xBD3754, TeamColor.RED, BossEvent.BossBarColor.RED),
 	/** The IT chapter's ovve, from art/ovvar/it.png. */
 	IT("it", "IT", 0x8A57BD, TeamColor.DARK_PURPLE, BossEvent.BossBarColor.PURPLE);
+
+	public static final Codec<PaintColor> CODEC = StringRepresentable.fromEnum(PaintColor::values);
 
 	public final String id;
 	public final String displayName;
@@ -58,5 +63,10 @@ public enum PaintColor {
 	 */
 	public static Optional<PaintColor> byTeam(@Nullable PlayerTeam team) {
 		return team == null ? Optional.empty() : TeamNames.slotOf(team.getName());
+	}
+
+	@Override
+	public @NonNull String getSerializedName() {
+		return id;
 	}
 }

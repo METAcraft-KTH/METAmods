@@ -231,7 +231,7 @@ public final class StandDisplays {
 			if (spot == Spot.SEAT) spot = piece.x0() == 0 ? Spot.LEG_BACK_TOP_L : Spot.LEG_BACK_TOP_R;
 			at = StandAim.cell(stand, spot);
 		}
-		double inflate = Spot.inflate(spot.piece), a = Spot.pixel(spot.u, inflate) / 2;   // sixteenths per art pixel
+		double inflate = Spot.inflate(spot.piece), a = Spot.pixel(spot.u, inflate) / Spot.ART_DETAIL;   // sixteenths per art pixel
 		float scale = (float) a;   // the sprite is 16 pixels to a block: one sprite pixel = a sixteenths at scale a
 		int w = element.art.width(), h = element.art.height(), n = PatchPieces.faceTexels(spot);
 		Vec3 normal = at.normal(), up = at.up(), right = up.cross(normal);
@@ -239,8 +239,8 @@ public final class StandDisplays {
 		// Measured down the face the cell is on: the box's side rows, or — for a shoulder — its top
 		// face, which is four rows, not twelve.
 		int rowStart = spot.top() ? Spot.TOP_ROW : Spot.FACE_ROW, rows = spot.top() ? Spot.TOP_ROWS : Spot.FACE_ROWS;
-		double cellX = (PatchPieces.columnInFace(spot) + spot.px() / 2.0 - n) * a,
-				cellY = ((spot.v - rowStart) * Spot.DETAIL + spot.pxHeight() / 2.0 - rows * Spot.DETAIL / 2.0) * a;
+		double cellX = (PatchPieces.columnInFace(spot) + spot.artPx() / 2.0 - n) * a,
+				cellY = ((spot.v - rowStart) * Spot.ART_DETAIL + spot.artPxHeight() / 2.0 - rows * Spot.ART_DETAIL / 2.0) * a;
 		double halfFace = (n + 2 * inflate) / 2, halfTop = (rows + 2 * inflate) / 2;
 		Vec3 centre, n2, u2, r2;
 		switch (piece.where()) {

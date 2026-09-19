@@ -91,15 +91,18 @@ Cells come and go, and players' items and stored wardrobe rows name them by id, 
 log line — and keeps the rest of the design rather than failing the whole of it. (`BACK_LOW_LEFT`
 and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
 
-The catalogue (`Patches.java`) holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data, and then
-Spiken, Släggan, Ticket to my heart, the Maid dress and Pung. ITK, IT, Data, Spiken, Släggan and the Maid
-dress are 12×12 and hang over their neighbours (except on the big back cell). Two of them are also
-drawn at more than one size: ITK ships `itk_8x8.png` (Kexana's original 8×8 ITK, the art that
-shipped before the 12×12), so it lands whole on a shoulder instead of losing its edges, and
-`itk_16x16.png`; IT ships `it_16x16.png` (PolymITer's 16×16 IT sprite), so it fills the big back
-cell and is its own inventory icon at 1:1, and its 8×8 is scaled down from that 16×16 rather than
-drawn — see "art at more than one size" below. Ticket to my heart is
-10×6, drawn 9×6 and padded with a transparent column, since the catalogue takes even sizes only;
+The catalogue (`Patches.java`) holds ITK, Nyckeln'26, METAcraft Rivals '26, IT and Data, then
+Spiken, Släggan, Ticket to my heart, the Maid dress and Pung, then Vlad's IN, IN (gold), the three
+Nyckeln keys and KomMN, and last Måns's JGS, TMEIT and TMEIT Marshal. ITK, IT, Data, Spiken, Släggan,
+the Maid dress and Måns's three are 12×12 and hang over their neighbours (except on the big back
+cell). Several are also drawn at more than one size: ITK ships `itk_8x8.png` (Kexana's original 8×8
+ITK, the art that shipped before the 12×12), so it lands whole on a shoulder instead of losing its
+edges, and `itk_16x16.png`; IT ships `it_16x16.png` (PolymITer's 16×16 IT sprite), so it fills the big
+back cell and is its own inventory icon at 1:1, and its 8×8 is scaled down from that 16×16 rather than
+drawn — see "art at more than one size" below; Spiken, Släggan, JGS, TMEIT and TMEIT Marshal each ship
+an 8×8 and a 16×16 beside their 12×12, and Ticket to my heart an 8×8, a 12×12 and a 16×16 beside its
+default. That default is 10×6, drawn 9×6 and padded with a transparent column, since the catalogue
+takes even sizes only;
 Rivals and Pung are the seat patches — Rivals is Data's cerise with a creeper against IT's laser
 violet with a VS, at the seat's own 16×8; Pung is 16×10, so its top and bottom rails hang over the
 seat's row onto the cloth — and Nyckeln'26 is Kexana's cell-sized 8×8. New entries go at the end of the list: a design's instant
@@ -314,9 +317,11 @@ in — which is the sleeve's own slot, the cap sitting on the sleeve's columns.
 The cells you cannot see from an angle simply have no glyph there. The wearer's left limbs are the
 mirror images the armour model draws — and a left cell's art is pre-mirrored in its own texture to
 suit — so every left limb is drawn flipped; the wearer's right is on the viewer's left from the front
-and on the viewer's right from behind, which is why the two swap ends. The source textures hold 2
-texels per skin px and the doll is drawn at 3 px per skin px, so each face is resampled ×1.5 (which
-keeps every texel the patch art has, at the price of every other column being 2 px wide), then: 1 px
+and on the viewer's right from behind, which is why the two swap ends. The source textures hold 4
+texels per skin px (`Spot.DETAIL`) but every face is first dropped back to the art's own 2 per skin
+px (`Spot.ART_DETAIL`; lossless, the texture being the art scaled up by exactly that), and the doll
+is drawn at 3 px per skin px, so each face is resampled ×1.5 from art (which keeps every texel the
+patch art has, at the price of every other column being 2 px wide), then: 1 px
 transparent gaps between the parts, the viewer's right 15 % towards black and either arm 12 % further
 (a limb is a box turning away from you), a seam at the waist, and a 1 px dark outline drawn *on* the
 silhouette's own outermost pixels so it costs no room. Without the gaps and the outline a front view
@@ -568,14 +573,17 @@ One line in `Patches.java` (id, name; `true` for a seat patch) and a PNG at
 `src/main/resources/art/ovvar/patches/<id>.png` — 8×8 for a cell-sized patch, 16×8 to 16×12 for a
 seat patch, or any even size up to 16×16 declared in the catalogue line: such a patch is centred on
 its cell and hangs over the neighbours, later-sewn on top, all the way round the part — past a
-limb's outer face lies its back face, the strip being a loop (garment and patch textures are the
-armour layout at twice the skin's resolution, `Spot.DETAIL`). A big patch rides in the dye
+limb's outer face lies its back face, the strip being a loop. Patch art is drawn at twice the skin's
+resolution (`Spot.ART_DETAIL`: a cell is 8×8 art px) while garment and patch textures are the armour
+layout at four times it (`Spot.DETAIL`), the art scaled up ×2 as datagen bakes it and the shader
+dividing by the same ratio (`OVVAR_ART_SCALE`) when it reads the library — so art stays the size it
+always was on the cloth, and the texture's head rows hold four times the library they did. A big patch rides in the dye
 colour like any other (the shader bends it round the corners from its own cell's face, as the
 pack will — except on a shoulder, where it is clipped to the top face instead). Then `runDatagen`.
 The first 21
 designs in the catalogue can ride in the dye colour (instant, previewable); later ones only go
-through the pack; the preview library is the head rows of the texture (51 cells of 4×4 skin texels) and datagen
-fails loudly when that runs out.
+through the pack; the preview library is the head rows of the texture (64×16 skin texels less the tables and
+the marker corner, packed by the texel, an art at its own size) and datagen fails loudly when that runs out.
 
 ### Art at more than one size
 
@@ -593,8 +601,8 @@ at 16×16 — as its catalogue size or as a variant — also gets the sizes a ce
 that, 12×12 and 8×8, scaled down from it; a drawing of that size always wins, and a seat patch
 never gets any (its width is the two cells', so a narrower one has nowhere to sit). So the artist's
 workflow is: **draw the 16×16, then draw again only the sizes the scaler gets wrong.** IT's 8×8 is
-the one generated art in today's catalogue — ITK is drawn at all three sizes, so it generates
-nothing.
+and IN (gold)'s 12×12 and 8×8 are the generated arts in today's catalogue — ITK, IN and the three
+Nyckeln keys are drawn at all three sizes, so they generate nothing.
 
 Nothing is written to the source tree: the generated `Patches.Art` carries the art it is scaled
 from, is named like a variant (`patches/it_8x8`, which is what datagen calls the textures and models

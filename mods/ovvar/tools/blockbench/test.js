@@ -61,11 +61,11 @@ test('png round-trip preserves RGB under alpha 0 (the canvas would not)', () => 
   assert.deepStrictEqual(Array.from(again.data), Array.from(im.data));
 });
 
-test('png decodes a 128x64 generated texture and a non-RGBA file', () => {
+test('png decodes a 256x128 generated texture and a non-RGBA file', () => {
   const big = io.decode(io.read(path.join(CHECKOUT,
     'mods/ovvar/src/main/generated/assets/ovvar/textures/entity/equipment/humanoid/data/top.png')));
-  assert.strictEqual(big.w, 128);
-  assert.strictEqual(big.h, 64);
+  assert.strictEqual(big.w, 256);   // 64x32 at Spot.DETAIL = 4
+  assert.strictEqual(big.h, 128);
   // bakparti.png is colour type 2 (RGB, no alpha): the decoder must fill alpha 255.
   const rgb = io.decode(io.read(path.join(CHECKOUT,
     'mods/ovvar/src/main/resources/art/ovvar/patches/bakparti.png')));
@@ -221,7 +221,7 @@ test('every committed placement texture is placed() + artFor()', () => {
       }
     }
   }
-  assert.strictEqual(checked, 268, 'expected 268 placement textures, walked ' + checked);
+  assert.strictEqual(checked, 466, 'expected 466 placement textures, walked ' + checked);
   assert.deepStrictEqual(bad, []);
 });
 
@@ -239,14 +239,14 @@ test('every committed trim texture is placedWrapped()', () => {
       const file = 'trims/entity/' + cell.layerFolder + '/' + cell.id + '_' + patch.id + '.png';
       const want = ctx.generated(file);
       const entry = OVVAR.compose.artFor(m, patch, cell);
-      const got = OVVAR.compose.placedWrapped(m, cell, ctx.art(entry.file),
+      const got = OVVAR.compose.placedWrapped(m, cell, OVVAR.compose.baked(m, ctx.art(entry.file)),
         cell.u * m.detail + OVVAR.compose.offsetX(m, cell, entry));
       const d = OVVAR.tex.diff(want, got, []);
       if (d.length) bad.push(file + ': ' + d.join('; '));
       checked++;
     }
   }
-  assert.strictEqual(checked, 56, 'expected 56 trim textures, walked ' + checked);
+  assert.strictEqual(checked, 98, 'expected 98 trim textures, walked ' + checked);
   assert.deepStrictEqual(bad, []);
 });
 
@@ -264,8 +264,9 @@ test('downscale reproduces every generated art PNG', () => {
       assert.deepStrictEqual(OVVAR.tex.diff(want, got, []), [], art.file + ' (from ' + art.source + ')');
     }
   }
-  // One today: `it` ships a 12x12 default and a 16x16 drawing, so only its 8x8 is scaled.
-  assert.deepStrictEqual(generated, ['patches/it_8x8.png']);
+  // `it` ships a 12x12 default and a 16x16 drawing, so only its 8x8 is scaled; `in_gold` is drawn
+  // at 16x16 alone, so both its smaller sizes are. Everything else is drawn at every size it shows.
+  assert.deepStrictEqual(generated.sort(), ['patches/in_gold_12x12.png', 'patches/in_gold_8x8.png', 'patches/it_8x8.png']);
 });
 
 test('downscale votes by area, breaks ties to the rarer colour, and keeps the source palette', () => {

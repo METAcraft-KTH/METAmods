@@ -49,6 +49,8 @@ public class Rivals implements ModInitializer {
 		ScoreBars.init();
 		Arena.init();
 		Match.init();
+		Stats.init();
+		MainPack.init();
 		Lobby.init();
 		Recoil.init();
 		InkHud.init();
