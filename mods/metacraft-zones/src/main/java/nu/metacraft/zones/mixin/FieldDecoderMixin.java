@@ -28,7 +28,7 @@ public class FieldDecoderMixin implements FieldDecoderData {
 		)
 	)
 	public <T> T get(T original, @Local MapLike<T> input) {
-		if (original == null) {
+		if (original == null && secondaryName != null) {
 			return input.get(secondaryName);
 		}
 		return original;

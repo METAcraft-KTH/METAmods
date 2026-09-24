@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.util.Unit;
 import nu.metacraft.lib.METAcraftLib;
+import nu.metacraft.lib.config.JanksonHelper;
 import nu.metacraft.lib.config.container.ConfigContainer;
 import nu.metacraft.lib.config.JsonHelper;
 import nu.metacraft.lib.config.extensions.Modifiable;
@@ -77,7 +78,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 	}
 
 	protected Optional<T> loadFromFile() {
-		return JsonHelper.load(configPath, codec);
+		return JanksonHelper.load(configPath, codec);
 	}
 
 	@Override
@@ -166,7 +167,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 	@Override
 	public void save() {
 		if (config == null) return;
-		JsonHelper.save(configPath, codec, config);
+		JanksonHelper.save(configPath, codec, config);
 	}
 
 	@Override
