@@ -4,6 +4,10 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntCollection;
+import it.unimi.dsi.fastutil.ints.IntComparator;
+import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.core.component.DataComponentExactPredicate;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -13,9 +17,11 @@ import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import nu.metacraft.lib.util.METACodecs;
+import nu.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public record Shop(
@@ -46,8 +52,28 @@ public record Shop(
 		return new Shop(shopType, offers, conditions);
 	}
 
+	private static <T> PVector<T> minusAll(PVector<T> v, IntCollection indices) {
+		IntList sortedList = new IntArrayList(indices);
+		sortedList.sort(IntComparator.comparing(i -> i).reversed()); // Indices change whenever we remove. If we remove from the back (i.e. largest index first) we won't have this issue.
+		for (int index : sortedList) {
+			v = v.minus(index);
+		}
+		return v;
+	}
+
+	public Shop removeSlots(IntCollection slots) {
+		var newOffers = minusAll(offers, slots);
+		if (newOffers == offers) return this;
+		var newConditions = PCollectionsHelper.collectToMap(
+			conditions.entrySet().stream(),
+			e -> ShopSlotRanges.extractSlots(e.getKey(), slots), Map.Entry::getValue,
+			OrderedPMap.empty()
+		);
+		return new Shop(shopType.removeSlots(slots), newOffers, newConditions);
+	}
+
 	public Shop removeSlot(int slot) {
-		return setOffers(offers.minus(slot));
+		return removeSlots(IntList.of(slot));
 	}
 
 	public Shop withNewOwner(LivingEntity user) {

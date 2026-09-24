@@ -3,6 +3,9 @@ package se.metacraft.playertrading.shop;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.ints.IntCollection;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
@@ -14,6 +17,7 @@ import net.minecraft.world.inventory.SlotRange;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import nu.metacraft.lib.util.METACodecs;
+import nu.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.OrderedPMap;
 import org.pcollections.PMap;
 import se.metacraft.playertrading.PlayerTrading;
@@ -34,6 +38,10 @@ public interface ShopType {
 	boolean canEditShop(ShopBlockEntity shop, LivingEntity entity);
 
 	default ShopType withNewOwner(LivingEntity user) {
+		return this;
+	}
+
+	default ShopType removeSlots(IntCollection slots) {
 		return this;
 	}
 
@@ -222,18 +230,33 @@ public interface ShopType {
 		}
 
 		@Override
+		public ShopType removeSlots(IntCollection slots) {
+			var newUsesRemaining = PCollectionsHelper.collectToMap(
+				usesRemaining.slots().entrySet().stream(),
+				e -> ShopSlotRanges.extractSlots(e.getKey(), slots), Map.Entry::getValue,
+				OrderedPMap.empty()
+			);
+			return withRemainder(newUsesRemaining);
+		}
+
+		@Override
 		public UseResult use(ShopBlockEntity shop, int slot) {
 			var first = usesRemaining().getSlotRanges(slot).stream().min(Comparator.comparing(SlotRange::size));
 			if (first.isPresent()) {
 				int newAmount = usesRemaining.slots().get(first.get())-1;
 				if (newAmount <= 0) {
 					var newRemainder = usesRemaining.slots().minus(first.get());
-					return UseResult.removeTrade(withRemainder(newRemainder), slot);
+					IntSet slotsRemoved = new IntOpenHashSet();
+					slotsRemoved.addAll(first.get().slots());
+					for (var r : newRemainder.keySet()) {
+						slotsRemoved.removeAll(r.slots());
+					}
+					return UseResult.removeTrade(withRemainder(newRemainder), slotsRemoved);
 				} else {
 					return UseResult.updated(withRemainder(usesRemaining.slots().plus(first.get(), newAmount)));
 				}
 			}
-			return UseResult.removeTrade(this, slot);
+			return UseResult.removeTrade(this, IntSet.of(slot));
 		}
 
 		@Override
@@ -252,14 +275,14 @@ public interface ShopType {
 		static Updated updated(ShopType shopType) {
 			return new Updated(shopType);
 		}
-		static RemoveTrade removeTrade(ShopType shopType, int slot) {
-			return new RemoveTrade(shopType, slot);
+		static RemoveTrade removeTrade(ShopType shopType, IntCollection removedSlots) {
+			return new RemoveTrade(shopType, removedSlots);
 		}
 
 		class Pass implements UseResult {
 			private Pass() {}
 		}
 		record Updated(ShopType type) implements UseResult {}
-		record RemoveTrade(ShopType type, int slot) implements UseResult {}
+		record RemoveTrade(ShopType type, IntCollection removedSlots) implements UseResult {}
 	}
 }

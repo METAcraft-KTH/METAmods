@@ -51,7 +51,7 @@ public class BuyFromShopGUI extends MerchantGui implements ShopBlockEntity.Updat
 	public void onAcceptTrade(ShopType shopType, int slot, List<ItemStack> extractedItems) {
 		switch (shopType.use(shop, slot)) {
 			case ShopType.UseResult.RemoveTrade removed -> {
-				shop.modifyShop(s -> s.withShopType(removed.type()).removeSlot(removed.slot()));
+				shop.modifyShop(s -> s.withShopType(removed.type()).removeSlots(removed.removedSlots()));
 				shop.getShop().ifPresent(shop -> {
 					if (shop.offers().isEmpty()) {
 						this.shop.destroy();

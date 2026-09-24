@@ -2,9 +2,7 @@ package se.metacraft.playertrading.shop;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import it.unimi.dsi.fastutil.ints.IntImmutableList;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.*;
 import net.minecraft.world.inventory.SlotRange;
 
 import java.util.ArrayList;
@@ -93,6 +91,40 @@ public class ShopSlotRanges {
 				return DataResult.error(error, list.get());
 			}
 		}
+	}
+
+	public static SlotRange extractSlots(SlotRange sourceSlots, IntCollection slotsToRemove) {
+		if (sourceSlots.getSerializedName().equals("*")) {
+			return sourceSlots;
+		}
+		IntStream slots = sourceSlots.slots().intStream();
+		for (int slot : slotsToRemove) {
+			slots = extractAndDecrement(slots, slot);
+		}
+		IntList newSlots = IntArrayList.toList(slots.sorted());
+		StringBuilder encoded = new StringBuilder();
+		int prev = -1;
+		boolean sequence = false;
+		for (int i : newSlots) {
+			if (prev == -1) {
+				encoded.append(i);
+			} else if (prev == i - 1) {
+				sequence = true;
+			} else {
+				if (sequence) {
+					encoded.append("-").append(prev);
+				}
+				encoded.append(",").append(i);
+				sequence = false;
+			}
+
+			prev = i;
+		}
+		return SlotRange.of(encoded.toString(), newSlots);
+	}
+
+	public static IntStream extractAndDecrement(IntStream slots, int toRemove) {
+		return slots.filter(slot -> slot != toRemove).map(slot -> slot > toRemove ? slot-1 : slot);
 	}
 
 }
