@@ -45,7 +45,7 @@ public class BuyFromShopGUI extends MerchantGui implements ShopBlockEntity.Updat
 	}
 
 	public boolean shouldAcceptTrade(ShopType shopType, int slot) {
-		return shop.getRemainingUses(slot) > 0;
+		return shop.getRemainingUses(slot) > 0 && shop.isTradeAllowed(player, slot);
 	}
 
 	public void onAcceptTrade(ShopType shopType, int slot, List<ItemStack> extractedItems) {
@@ -83,7 +83,7 @@ public class BuyFromShopGUI extends MerchantGui implements ShopBlockEntity.Updat
 	public MerchantOffer toOffer(Shop.SimpleOffer offer, int slot) {
 		return new MerchantOffer(
 			Shop.SimpleOffer.costOf(offer.price().left()), offer.price().right().map(Shop.SimpleOffer::costOf),
-			offer.result().create(), this.shop.getRemainingUses(slot), 0, 0
+			offer.result().create(), shop.isTradeAllowed(player, slot) ? this.shop.getRemainingUses(slot) : 0, 0, 0
 		) {
 			@Override
 			public boolean take(final @NonNull ItemStack buyA, final @NonNull ItemStack buyB) {

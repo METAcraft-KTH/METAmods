@@ -27,7 +27,7 @@ import java.util.Optional;
 public record Shop(
 	ShopType shopType,
 	PVector<SimpleOffer> offers,
-	PMap<SlotRange, ResourceKey<LootItemCondition>> conditions
+	SlotMap<ResourceKey<LootItemCondition>> conditions
 ) {
 
 	public static final String OFFERS = "offers";
@@ -36,15 +36,17 @@ public record Shop(
 		instance -> instance.group(
 			ShopType.CODEC.fieldOf("shop_type").forGetter(Shop::shopType),
 			METACodecs.createPCollectionCodec(SimpleOffer.CODEC, (PVector<SimpleOffer>) TreePVector.<SimpleOffer>empty()).fieldOf(OFFERS).forGetter(Shop::offers),
-			METACodecs.createPMapCodec(
-				ShopSlotRanges.CODEC, ResourceKey.codec(Registries.PREDICATE),
-				(PMap<SlotRange, ResourceKey<LootItemCondition>>) OrderedPMap.<SlotRange, ResourceKey<LootItemCondition>>empty()
+			SlotMap.codec(
+				METACodecs.createPMapCodec(
+					ShopSlotRanges.CODEC, ResourceKey.codec(Registries.PREDICATE),
+					OrderedPMap.empty()
+				)
 			).fieldOf("conditions").forGetter(Shop::conditions)
 		).apply(instance, Shop::new)
 	);
 
 	public static Shop create(ShopType shopType) {
-		return new Shop(shopType, TreePVector.empty(), OrderedPMap.empty());
+		return new Shop(shopType, TreePVector.empty(), SlotMap.of(OrderedPMap.empty()));
 	}
 
 	public Shop withShopType(ShopType shopType) {
@@ -65,11 +67,11 @@ public record Shop(
 		var newOffers = minusAll(offers, slots);
 		if (newOffers == offers) return this;
 		var newConditions = PCollectionsHelper.collectToMap(
-			conditions.entrySet().stream(),
+			conditions.slots().entrySet().stream(),
 			e -> ShopSlotRanges.extractSlots(e.getKey(), slots), Map.Entry::getValue,
 			OrderedPMap.empty()
 		);
-		return new Shop(shopType.removeSlots(slots), newOffers, newConditions);
+		return new Shop(shopType.removeSlots(slots), newOffers, SlotMap.of(newConditions));
 	}
 
 	public Shop removeSlot(int slot) {
@@ -85,15 +87,15 @@ public record Shop(
 	}
 
 	public Shop withCondition(SlotRange range, ResourceKey<LootItemCondition> condition) {
-		return withConditions(conditions.plus(range, condition));
+		return withConditions(conditions.slots().plus(range, condition));
 	}
 
 	public Shop withoutCondition(SlotRange range) {
-		return withConditions(conditions.minus(range));
+		return withConditions(conditions.slots().minus(range));
 	}
 
 	public Shop withConditions(PMap<SlotRange, ResourceKey<LootItemCondition>> conditions) {
-		return new Shop(shopType, offers, conditions);
+		return new Shop(shopType, offers, SlotMap.of(conditions));
 	}
 
 	public record SimpleOffer(

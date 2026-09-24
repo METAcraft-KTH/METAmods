@@ -1,5 +1,6 @@
 package se.metacraft.playertrading.block.entities;
 
+import com.google.common.base.Suppliers;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
@@ -9,7 +10,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Prediction;
 import net.minecraft.world.InteractionHand;
@@ -27,6 +30,9 @@ import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import nu.metacraft.lib.util.TaskScheduler;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -36,12 +42,14 @@ import se.metacraft.playertrading.block.TradingBlockEntities;
 import se.metacraft.playertrading.block.blocks.BaseShopBlock;
 import se.metacraft.playertrading.component.TradingComponents;
 import se.metacraft.playertrading.component.components.ShopKey;
+import se.metacraft.playertrading.criteria.ShopCriteriaTriggers;
 import se.metacraft.playertrading.item.TradingItems;
 import se.metacraft.playertrading.shop.gui.BuyFromShopGUI;
 import se.metacraft.playertrading.shop.gui.ConfigureShopGUI;
 import se.metacraft.playertrading.shop.Shop;
 
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 public class ShopBlockEntity extends BlockEntity {
@@ -136,6 +144,26 @@ public class ShopBlockEntity extends BlockEntity {
 		super.saveAdditional(output);
 		output.storeNullable(SHOP, Shop.CODEC, shop);
 		output.storeNullable(SHOP_KEY, ShopKey.CODEC, shopKey);
+	}
+
+	public boolean isTradeAllowed(LivingEntity entity, int slot) {
+		if (shop != null && entity.level() instanceof ServerLevel level) {
+			Supplier<LootContext> ctx = Suppliers.memoize(() -> new LootContext.Builder(
+				new LootParams.Builder(level)
+					.withParameter(LootContextParams.ORIGIN, entity.position())
+					.withParameter(LootContextParams.THIS_ENTITY, entity)
+					.withParameter(LootContextParams.BLOCK_STATE, getBlockState())
+					.withParameter(LootContextParams.BLOCK_ENTITY, this)
+					.create(ShopCriteriaTriggers.SHOP_CONTEXT)
+			).create(Optional.empty()));
+			var predicates = level.getServer().reloadableRegistries().lookup().lookupOrThrow(Registries.PREDICATE);
+			return shop.conditions().get(slot).map(predicates::get).allMatch(
+				condition -> condition.map(
+					lootItemConditionReference -> lootItemConditionReference.value().test(ctx.get())
+				).orElse(false)
+			);
+		}
+		return false;
 	}
 
 	public int getRemainingUses(int slot) {
