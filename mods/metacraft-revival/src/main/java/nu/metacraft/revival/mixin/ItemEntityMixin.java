@@ -22,7 +22,7 @@ public abstract class ItemEntityMixin extends Entity {
 	@Inject(method = "playerTouch", at = @At("HEAD"), cancellable = true)
 	public void playerTouch(Player player, CallbackInfo ci) {
 		if (player instanceof ServerPlayerExtension ext && ext.metacraft$isUnconscious()) {
-			if (!RevivalConfig.getConfig().xpPickup()) {
+			if (!RevivalConfig.getConfig().itemPickup()) {
 				ci.cancel();
 			}
 		}
