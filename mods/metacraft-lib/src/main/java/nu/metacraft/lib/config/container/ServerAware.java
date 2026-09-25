@@ -8,6 +8,8 @@ import net.minecraft.server.MinecraftServer;
 import nu.metacraft.lib.config.ObjectStorage;
 import nu.metacraft.lib.config.container.impl.ServerAwareWrapper;
 
+import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public interface ServerAware<C extends ConfigContainerBase<?>, S> {
@@ -17,17 +19,64 @@ public interface ServerAware<C extends ConfigContainerBase<?>, S> {
 	C getContainer();
 
 	static <C extends ConfigContainerBase<?>, S> ServerAware<C, S> wrap(
-			C container, Parser<C, S> serverParse,
-			ReloadFunction<S> cacheReloader, Supplier<ObjectStorage<S>> defaultInitializer
+		C container, Parser<C, S> serverParse,
+		ReloadFunction<S> cacheReloader, Supplier<ObjectStorage<S>> defaultInitializer
 	) {
-		return new ServerAwareWrapper<>(container, serverParse, cacheReloader, defaultInitializer);
+		return ServerAware.wrap(container, serverParse, cacheReloader, server -> defaultInitializer.get(), false);
 	}
 
-	record ConfigPair<T, S>(T staticValues, ObjectStorage<S> serverAwareValues) {
+	static <C extends ConfigContainerBase<?>, S> ServerAware<C, S> wrap(
+			C container, Parser<C, S> serverParse,
+			ReloadFunction<S> cacheReloader, Function<MinecraftServer, ObjectStorage<S>> defaultInitializer,
+			boolean forceInitializeOnStartup
+	) {
+		return new ServerAwareWrapper<>(container, serverParse, cacheReloader, defaultInitializer, forceInitializeOnStartup);
+	}
+
+	class ConfigPair<T, S> {
+
+		private final T staticValues;
+		private ObjectStorage<S> serverAwareValues;
+		private Function<MinecraftServer, ObjectStorage<S>> serverAwareValuesInitializer;
+
+		public ConfigPair(T staticValues, Function<MinecraftServer, ObjectStorage<S>> serverAwareValues) {
+			this.staticValues = staticValues;
+			this.serverAwareValuesInitializer = serverAwareValues;
+		}
+
+		public ConfigPair(T staticValues, ObjectStorage<S> serverAwareValues) {
+			this.staticValues = staticValues;
+			this.serverAwareValues = serverAwareValues;
+		}
+
+		public T staticValues() {
+			return staticValues;
+		}
+
+		public ObjectStorage<S> serverAwareValues(MinecraftServer server, ConfigContainerBase<?> container) {
+			if (serverAwareValues == null) {
+				serverAwareValues = serverAwareValuesInitializer.apply(server);
+				container.save();
+				serverAwareValuesInitializer = null;
+			}
+			return serverAwareValues;
+		}
+
+		public ObjectStorage<S> serverAwareValues() {
+			if (serverAwareValues == null) {
+				throw new IllegalStateException("Server aware values not initialized yet!");
+			}
+			return serverAwareValues;
+		}
+
 		public static <T, S> Codec<ConfigPair<T, S>> createCodec(MapCodec<T> codec, MapCodec<S> valueCodec, boolean refreshOnReload) {
 			return RecordCodecBuilder.create(instance -> instance.group(
 					codec.forGetter(ConfigPair::staticValues),
-					ObjectStorage.createCodec(valueCodec, refreshOnReload).forGetter(ConfigPair::serverAwareValues)
+					ObjectStorage.createCodec(valueCodec, refreshOnReload).forGetter(
+						pair -> pair.serverAwareValues != null ?
+							pair.serverAwareValues :
+							ObjectStorage.fromData(valueCodec.codec(), Map.of(), refreshOnReload)
+					)
 			).apply(instance, ConfigPair::new));
 		}
 	}

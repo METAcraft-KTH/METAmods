@@ -44,7 +44,7 @@ public class FasterMinecartsConfig {
 
 	private static final ServerAware<ConfigContainer<ServerAware.ConfigPair<FasterMinecartsConfig, Loaded>>, Loaded> CONTAINER = ConfigContainer.Builder.create(
 			CODEC, FasterMinecartsConfig::createDefault
-	).makeRegistryAware(Loaded.CODEC).setInitializer(Loaded::createDefault).build(configPath);
+	).makeRegistryAware(Loaded.CODEC).delayServerAwareInitializer().setInitializer(Loaded::createDefault).build(configPath);
 
 	private static FasterMinecartsConfig createDefault() {
 		return new FasterMinecartsConfig(

@@ -2,6 +2,7 @@ package nu.metacraft.lib.config.container;
 
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.server.MinecraftServer;
 import nu.metacraft.lib.config.ObjectStorage;
 import nu.metacraft.lib.config.container.impl.BasicConfigContainer;
 
@@ -118,14 +119,15 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 		public class RegistryAwareBuilder<S> {
 
 			private static final ServerAware.Parser<? extends ConfigContainer<ServerAware.ConfigPair<?, Object>>, Object> NON_RELOADABLE = (config, server) ->
-					config.get().serverAwareValues().parse(server.registryAccess());
+					config.get().serverAwareValues(server, config).parse(server.registryAccess());
 			private static final ServerAware.Parser<? extends ConfigContainer<ServerAware.ConfigPair<?, Object>>, Object> RELOADABLE = (config, server) ->
-					config.get().serverAwareValues().parse(server.reloadableRegistries().lookup());
+					config.get().serverAwareValues(server, config).parse(server.reloadableRegistries().lookup());
 
 			private final MapCodec<S> serverAwareCodec;
 			private ServerAware.Parser<ConfigContainer<ServerAware.ConfigPair<T, S>>, S> parser;
 			private boolean refreshOnReload = false;
-			private Supplier<ObjectStorage<S>> defaultRegistryAwareInitializer;
+			private Function<MinecraftServer, ObjectStorage<S>> defaultRegistryAwareInitializer;
+			private boolean delayedInitializer = false;
 			private ReloadFunction<S> cacheReloader = ReloadFunction.getDefault();
 
 			public RegistryAwareBuilder(MapCodec<S> codec) {
@@ -139,38 +141,53 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 
 			/**
 			 * Sets the default initializer manually.
-			 * Please run {@link RegistryAwareBuilder#refreshOnReload} first if desired.
+			 * Note that this will ignore teh value of {@link RegistryAwareBuilder#refreshOnReload}.
 			 * @param initializer The initializer.
 			 * @return The builder.
 			 */
 			public RegistryAwareBuilder<S> setInitializerManually(Supplier<ObjectStorage<S>> initializer) {
-				this.defaultRegistryAwareInitializer = initializer;
+				this.defaultRegistryAwareInitializer = server -> initializer.get();
 				return this;
 			}
 
 			/**
 			 * Sets the default initializer without registries.
-			 * Please run {@link RegistryAwareBuilder#refreshOnReload} first if desired.
 			 * @param initializer The initializer.
 			 * @return The builder.
 			 */
 			public RegistryAwareBuilder<S> setInitializer(Supplier<S> initializer) {
-				this.defaultRegistryAwareInitializer = () -> ObjectStorage.fromValue(
+				this.defaultRegistryAwareInitializer = server -> ObjectStorage.fromValue(
 						serverAwareCodec.codec(), initializer.get(), refreshOnReload
 				);
 				return this;
 			}
 
+			private HolderLookup.Provider getLookup(MinecraftServer server) {
+				if (refreshOnReload) {
+					return server.reloadableRegistries().lookup();
+				} else {
+					return server.registryAccess();
+				}
+			}
+
 			/**
 			 * Sets the default initializer using builtin registries.
-			 * Please run {@link RegistryAwareBuilder#refreshOnReload} first if desired.
 			 * @param initializer The initializer.
 			 * @return The builder.
 			 */
 			public RegistryAwareBuilder<S> setInitializer(Function<HolderLookup.Provider, S> initializer) {
-				this.defaultRegistryAwareInitializer = () -> ObjectStorage.fromValueWithDefaultOps(
-						serverAwareCodec.codec(), initializer, refreshOnReload
-				);
+				this.defaultRegistryAwareInitializer = server -> {
+					if (server != null) {
+						var lookup = getLookup(server);
+						return ObjectStorage.fromValue(
+							serverAwareCodec.codec(), initializer.apply(lookup), lookup, refreshOnReload
+						);
+					} else {
+						return ObjectStorage.fromValueWithDefaultOps(
+							serverAwareCodec.codec(), initializer, refreshOnReload
+						);
+					}
+				};
 				return this;
 			}
 
@@ -191,6 +208,16 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 			 */
 			public RegistryAwareBuilder<S> setReloader(ReloadFunction<S> cacheReloader) {
 				this.cacheReloader = cacheReloader;
+				return this;
+			}
+
+			/**
+			 * Delays the server-aware initializer creation, instead creating it when the server is started.
+			 * If you run this, the config may end up overwriting itself when loaded for the first time.
+			 * @return The builder.
+			 */
+			public RegistryAwareBuilder<S> delayServerAwareInitializer() {
+				this.delayedInitializer = true;
 				return this;
 			}
 
@@ -219,13 +246,21 @@ public interface ConfigContainer<T> extends ConfigContainerBase<T>, ConfigContai
 				return ServerAware.wrap(
 						new BasicConfigContainer<>(
 								ServerAware.ConfigPair.createCodec(codec, serverAwareCodec, refreshOnReload),
-								configPath, () -> new ServerAware.ConfigPair<>(
-										defaultConfigInitializer.get(), defaultRegistryAwareInitializer.get()
-								),
+								configPath, () -> {
+									if (delayedInitializer) {
+										return new ServerAware.ConfigPair<>(
+											defaultConfigInitializer.get(), defaultRegistryAwareInitializer
+										);
+									} else {
+										return new ServerAware.ConfigPair<>(
+											defaultConfigInitializer.get(), defaultRegistryAwareInitializer.apply(null)
+										);
+									}
+								},
 								reloadsBeforeServer, reloadsAfterServer,
 								ServerAware.wrapReload(reloader)
 						),
-						parser, cacheReloader, defaultRegistryAwareInitializer
+						parser, cacheReloader, defaultRegistryAwareInitializer, delayedInitializer
 				);
 			}
 		}
