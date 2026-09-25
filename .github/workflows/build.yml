@@ -1,73 +1,264 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
-
+# Builds and tests every push and pull request. Pushes to a branch in deploy/servers.json
+# deploy each of its servers' sets (deploy/<server>.txt); Run workflow rolls a server back
+# to a release. Staff guide: deploy/README.md.
 name: build
-on: [pull_request, push]
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+    inputs:
+      server:
+        description: Server to roll back
+        required: true
+        type: choice
+        options: [test, survival, event] # must match deploy/servers.json
+      release:
+        description: Release tag to deploy, e.g. deploy-test-20261001-abc1234
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  # The autodeploy.jar the e2e job runs: built from this repository and ref, or downloaded
+  # from AUTODEPLOY_JAR_URL when that repository variable is set.
+  AUTODEPLOY_REPO: ${{ vars.AUTODEPLOY_REPO || 'METAcraft-KTH/FabricModsUpdate' }}
+  AUTODEPLOY_REF: ${{ vars.AUTODEPLOY_REF || 'main' }}
+  AUTODEPLOY_JAR_URL: ${{ vars.AUTODEPLOY_JAR_URL }}
 
 jobs:
   build:
-    strategy:
-      matrix:
-        # Use these Java versions
-        java: [
-          25,    # Current Java LTS & minimum supported by Minecraft
-        ]
-        # only run on Linux
-        os: [ubuntu-24.04]
-    runs-on: ${{ matrix.os }}
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    outputs:
+      servers: ${{ steps.servers.outputs.servers }}
     steps:
-      - name: checkout repository
-        uses: actions/checkout@v2
-      - name: validate gradle wrapper
-        uses: gradle/actions/wrapper-validation@v3
-      - name: setup jdk ${{ matrix.java }}
-        uses: actions/setup-java@v1
+      - uses: actions/checkout@v4
+      - uses: gradle/actions/wrapper-validation@v4
+      - uses: actions/setup-java@v4
         with:
-          java-version: ${{ matrix.java }}
-      - name: make gradle wrapper executable
-        if: ${{ runner.os != 'Windows' }}
-        run: chmod +x ./gradlew
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+      - name: servers this branch deploys to
+        id: servers
+        env:
+          BRANCH: ${{ github.base_ref || github.ref_name }}
+        run: echo "servers=$(jq -c --arg b "$BRANCH" '.branches[$b] // []' deploy/servers.json)" >> "$GITHUB_OUTPUT"
       - name: datagen
         run: ./gradlew runDatagen
       - name: build
-        run: ./gradlew build --info
-      - name: capture build artifacts
-        if: ${{ runner.os == 'Linux' && matrix.java == '25' }} # Only upload artifacts built from latest java on one OS
-        uses: actions/upload-artifact@v4
+        run: ./gradlew build
+      - name: deploy tooling tests
+        run: ./gradlew -p buildSrc test
+      - name: build each server's set
+        run: |
+          for list in deploy/*.txt; do
+            ./gradlew deploySet -Pserver="$(basename "$list" .txt)"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deploy-sets
+          path: build/deploy/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
         with:
           name: Artifacts
           path: dist/build/libs/
-  deploy:
+
+  reproducible:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-24.04
-    needs: build
-    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/prod'
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+      - name: datagen
+        run: ./gradlew runDatagen
+      - run: .github/scripts/check-reproducible.sh test
+
+  e2e:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            25
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
       - uses: actions/download-artifact@v4
         with:
-          name: Artifacts
-      - run: ls -la
-      - run: rm *-sources.jar
-      - name: Deploy to test server
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
-        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/prod'
+          name: deploy-sets
+          path: build/deploy
+      - name: autodeploy.jar
+        id: autodeploy
+        env:
+          # FabricModsUpdate is private: cloning it needs a token that can read it. Without one
+          # (forks, pull requests from forks) the test is skipped with a notice.
+          AUTODEPLOY_REPO_TOKEN: ${{ secrets.AUTODEPLOY_REPO_TOKEN }}
+        run: |
+          if [ -n "$AUTODEPLOY_JAR_URL" ]; then
+            curl -fsSL -o build/e2e-autodeploy.jar "$AUTODEPLOY_JAR_URL"
+          else
+            # Outside this checkout: FabricModsUpdate has no settings.gradle, so inside it Gradle
+            # would take this repository's settings.gradle and fail.
+            src="$RUNNER_TEMP/autodeploy-src"
+            url="https://github.com/$AUTODEPLOY_REPO.git"
+            if [ -n "$AUTODEPLOY_REPO_TOKEN" ]; then
+              url="https://x-access-token:$AUTODEPLOY_REPO_TOKEN@github.com/$AUTODEPLOY_REPO.git"
+            fi
+            if ! GIT_TERMINAL_PROMPT=0 git clone --depth 1 --branch "$AUTODEPLOY_REF" "$url" "$src"; then
+              if [ -z "$AUTODEPLOY_REPO_TOKEN" ]; then
+                echo "::notice::e2e skipped: $AUTODEPLOY_REPO is not readable without the AUTODEPLOY_REPO_TOKEN secret"
+                echo "skip=true" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              exit 1
+            fi
+            (cd "$src" && JAVA_HOME="$JAVA_HOME_17_X64" ./gradlew --no-daemon --quiet shadowJar)
+            cp "$src/build/libs/autodeploy.jar" build/e2e-autodeploy.jar
+          fi
+      - if: steps.autodeploy.outputs.skip != 'true'
+        run: .github/scripts/e2e.sh build/e2e-autodeploy.jar
+
+  preview:
+    # What a merge would upload and remove, read from the real servers without writing.
+    needs: build
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && needs.build.outputs.servers != '[]'
+    continue-on-error: true
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        server: ${{ fromJSON(needs.build.outputs.servers) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          server: mc.datasektionen.se
-          port: 2022
-          username: github-actions.098974a0
-          password: ${{ secrets.AUTODEPLOY_PASSWORD }}
-          local_path: '*.jar'
-          remote_path: 'mods/update'
-          sftp_only: true
-      - name: Deploy to survival server
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
-        if: github.ref == 'refs/heads/prod'
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
         with:
-          server: mc.datasektionen.se
-          port: 2022
-          username: github-actions.604966da
-          password: ${{ secrets.AUTODEPLOY_PASSWORD }}
-          local_path: '*.jar'
-          remote_path: 'mods/update'
-          sftp_only: true
+          cache-read-only: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: deploy-sets
+          path: build/deploy
+      - name: dry run for ${{ matrix.server }}
+        env:
+          AUTODEPLOY_PASSWORD: ${{ secrets.AUTODEPLOY_PASSWORD }}
+          SERVER: ${{ matrix.server }}
+        run: ./gradlew deployServer -Pserver="$SERVER" -PdryRun=true
+
+  deploy:
+    needs: [build, e2e]
+    if: >-
+      github.event_name == 'push'
+      && github.ref_type == 'branch'
+      && needs.build.outputs.servers != '[]'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        server: ${{ fromJSON(needs.build.outputs.servers) }}
+    concurrency:
+      group: deploy-${{ matrix.server }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: deploy-sets
+          path: build/deploy
+      - name: is this push still the branch's newest
+        # The concurrency group runs deploys one at a time but not in order: an older push that
+        # gets its turn after a newer one must not deploy over it. `shell: bash` adds pipefail, so a
+        # failing ls-remote fails the job instead of reading as "not the newest".
+        id: head
+        shell: bash
+        run: |
+          head=$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)
+          if [ "$head" = "$GITHUB_SHA" ]; then
+            echo "newest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$GITHUB_REF_NAME is now at ${head:-nothing}, not $GITHUB_SHA; not deploying this older push"
+            echo "newest=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: deploy to ${{ matrix.server }}
+        if: steps.head.outputs.newest == 'true'
+        env:
+          AUTODEPLOY_PASSWORD: ${{ secrets.AUTODEPLOY_PASSWORD }}
+          SERVER: ${{ matrix.server }}
+        run: ./gradlew deployServer -Pserver="$SERVER" -PdeployDir="build/deploy/$SERVER"
+      - name: publish the release
+        if: steps.head.outputs.newest == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SERVER: ${{ matrix.server }}
+        run: |
+          tag="deploy-${SERVER}-$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d "$GITHUB_SHA")-${GITHUB_SHA::7}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "release $tag exists already (a re-run); not publishing it again"
+          else
+            gh release create "$tag" build/deploy/"$SERVER"/* --target "$GITHUB_SHA" --title "$tag" \
+              --notes-file "build/deploy/$SERVER.summary.md" --latest=false
+          fi
+
+  rollback:
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: deploy-${{ inputs.server }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gradle/actions/wrapper-validation@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+      - name: download ${{ inputs.release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SERVER: ${{ inputs.server }}
+          RELEASE: ${{ inputs.release }}
+        run: |
+          case "$RELEASE" in
+            "deploy-$SERVER-"*) ;;
+            *) echo "::error::$RELEASE is not a deploy of $SERVER (expected deploy-$SERVER-...)"; exit 1 ;;
+          esac
+          mkdir -p "build/deploy/$SERVER"
+          gh release download "$RELEASE" --dir "build/deploy/$SERVER" --pattern '*.jar' --pattern manifest.json
+      - name: deploy ${{ inputs.release }} to ${{ inputs.server }}
+        env:
+          AUTODEPLOY_PASSWORD: ${{ secrets.AUTODEPLOY_PASSWORD }}
+          SERVER: ${{ inputs.server }}
+        run: ./gradlew deployServer -Pserver="$SERVER" -PdeployDir="build/deploy/$SERVER"

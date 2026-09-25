@@ -21,6 +21,16 @@ idea.project.settings {
 	}
 }
 
+// Reproducible archives: a rebuild of unchanged source gives the same bytes, so a deploy
+// uploads only the jars that really changed (deploy/README.md). Loom's jar-in-jar nesting
+// writes its entries with a fixed timestamp and has no setting of its own.
+allprojects {
+	tasks.withType(AbstractArchiveTask).configureEach {
+		preserveFileTimestamps = false
+		reproducibleFileOrder = true
+	}
+}
+
 // For all modules that are fabric mods (all mods and dist)
 subprojects {
     if (nonModSubProjects.contains(it.name)) {
@@ -231,4 +241,59 @@ subprojects {
     test {
         useJUnitPlatform()
     }
+}
+
+// Deploying mods to the servers (deploy/README.md): deploySet builds one server's set,
+// deployServer uploads it. The logic and its tests live in buildSrc (nu.metacraft.deploy).
+def deploySet = tasks.register('deploySet', nu.metacraft.deploy.DeploySetTask) {
+    group = 'deploy'
+    description = 'Builds build/deploy/<server>/ (jars and manifest.json) from deploy/<server>.txt. Needs -Pserver=<name>.'
+}
+
+// Wired once every project is evaluated, so each mod's project dependencies are complete.
+gradle.projectsEvaluated {
+    deploySet.configure { task ->
+        def serverName = providers.gradleProperty('server').orNull
+        if (serverName == null) {
+            task.doFirst { throw new GradleException('deploySet needs -Pserver=<name>, for example -Pserver=test') }
+            return
+        }
+        def listFile = file("deploy/${serverName}.txt")
+        def list = nu.metacraft.deploy.DeployList.read(serverName, listFile.toPath())
+        def modProjects = project(':mods').subprojects
+        // Relies on addProjectDependency adding project dependencies to `implementation`.
+        Map<String, Set<String>> projectDeps = modProjects.collectEntries { p ->
+            [(p.name): p.configurations.getByName('implementation').dependencies
+                    .withType(ProjectDependency)
+                    .collect { it.path }
+                    .findAll { it.startsWith(':mods:') }
+                    .collect { project(it).name } as Set]
+        }
+        def selected = nu.metacraft.deploy.SetResolver.resolve(serverName, list.projects(), projectDeps)
+
+        task.server = serverName
+        task.listFile = listFile
+        task.outputDir = layout.buildDirectory.dir("deploy/${serverName}")
+        task.repoModIds = modProjects.collect {
+            nu.metacraft.deploy.ModInfo.readSourceId(it.file('src/main/resources/fabric.mod.json').toPath())
+        } as Set
+        selected.each { name ->
+            // net.fabricmc.fabric-loom (no remapping on 26.x) has no remapJar; the jar task is the mod.
+            def jar = project(":mods:${name}").tasks.named('jar')
+            task.dependsOn jar
+            task.projectJars.put(name, jar.flatMap { it.archiveFile }.map { it.asFile })
+        }
+    }
+}
+
+tasks.register('deployServer', nu.metacraft.deploy.DeployServerTask) {
+    group = 'deploy'
+    description = 'Uploads build/deploy/<server>/ to <server> (deploy/servers.json) over SFTP. Needs -Pserver=<name> and AUTODEPLOY_PASSWORD.'
+    def serverName = providers.gradleProperty('server')
+    server = serverName
+    deployDir = layout.projectDirectory.dir(providers.gradleProperty('deployDir')
+            .orElse(serverName.map { "build/deploy/${it}".toString() }))
+    serversFile = layout.projectDirectory.file(providers.gradleProperty('serversFile').orElse('deploy/servers.json'))
+    dryRun = providers.gradleProperty('dryRun').map { it.toBoolean() }.orElse(false)
+    summaryFile = layout.buildDirectory.file(serverName.map { "deploy/${it}.summary.md".toString() })
 }

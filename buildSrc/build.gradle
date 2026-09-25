@@ -1,0 +1,34 @@
+// Deploy tooling behind deploySet and deployServer (deploy/README.md).
+// Tests: ./gradlew -p buildSrc test
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation localGroovy()
+    implementation 'com.github.mwiede:jsch:2.27.3'
+
+    testImplementation platform('org.junit:junit-bom:5.13.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.apache.sshd:sshd-core:2.15.0'
+    testImplementation 'org.apache.sshd:sshd-sftp:2.15.0'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events 'failed'
+        exceptionFormat 'full'
+    }
+}
