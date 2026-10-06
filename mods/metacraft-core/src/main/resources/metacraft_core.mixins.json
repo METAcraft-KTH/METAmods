@@ -38,6 +38,7 @@
 		"PlayerAccessor",
 		"PlayerListMixin",
 		"PlayerMixin",
+		"PortalProcessorAccessor",
 		"ServerBossEventMixin",
 		"ServerChunkCacheAccessor",
 		"ServerCommonPacketListenerImplMixin",

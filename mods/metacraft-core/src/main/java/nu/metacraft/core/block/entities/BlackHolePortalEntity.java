@@ -8,6 +8,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.AABB;
@@ -36,10 +37,8 @@ public class BlackHolePortalEntity extends PortalEntity {
 	}
 
 	@Override
-	public void onCollision(BlockState state, Level world, BlockPos pos, Entity entity) {
-		TaskScheduler.scheduleImmediately(world.getServer(), () -> {
-			teleport(entity); //Black holes do not check portal cooldown since doing so could cause players to get stuck.
-		});
+	public TeleportTransition getPortalTarget(ServerLevel currentLevel, Entity entity, BlockPos entryPos) {
+		return teleport(entity);
 	}
 
 	public static void tick(Level world, BlockPos pos, BlockState state, BlackHolePortalEntity blackHole) {

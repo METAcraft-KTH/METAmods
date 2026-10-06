@@ -3,6 +3,7 @@ package nu.metacraft.core.block.blocks;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -13,13 +14,18 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Portal;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.BlockHitResult;
-import org.jetbrains.annotations.Nullable;
 import nu.metacraft.core.block.entities.PortalEntity;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
-public class PortalCore extends BaseEntityBlock implements PolymerBlock {
+import java.util.Optional;
+
+public class PortalCore extends BaseEntityBlock implements PolymerBlock, Portal, PortalEntity.ConnectedToPortalBlockEntity {
 
 
 	public PortalCore(Properties settings) {
@@ -33,18 +39,10 @@ public class PortalCore extends BaseEntityBlock implements PolymerBlock {
 	}
 
 	@Override
-	public void entityInside(BlockState state, Level world, BlockPos pos, Entity entity, InsideBlockEffectApplier handler, boolean bl) {
-		if (world.getBlockEntity(pos) instanceof PortalEntity portal) {
-			portal.onCollision(state, world, pos, entity);
-		}
-	}
-
-	@Override
 	protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-		if (world.getBlockEntity(pos) instanceof PortalEntity portal) {
-			return portal.interactWithItem(stack, state, world, pos, player, hand, hit);
-		}
-		return super.useItemOn(stack, state, world, pos, player, hand, hit);
+		return getPortal(world, pos).map(
+			portal ->  portal.interactWithItem(stack, state, world, pos, player, hand, hit)
+		).orElseGet(() -> super.useItemOn(stack, state, world, pos, player, hand, hit));
 	}
 
 	@Override
@@ -55,5 +53,32 @@ public class PortalCore extends BaseEntityBlock implements PolymerBlock {
 	@Override
 	public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext ctx) {
 		return Blocks.END_GATEWAY.defaultBlockState();
+	}
+
+	@Override
+	protected void entityInside(
+		final @NonNull BlockState state, final @NonNull Level level, final @NonNull BlockPos pos,
+		final @NonNull Entity entity, final @NonNull InsideBlockEffectApplier effectApplier, final boolean isPrecise
+	) {
+		getPortal(level, pos).ifPresent(
+			portal -> portal.entityInside(state, this, level, pos, entity, effectApplier, isPrecise)
+		);
+	}
+
+	@Override
+	public @Nullable TeleportTransition getPortalDestination(
+		@NonNull ServerLevel currentLevel, @NonNull Entity entity, @NonNull BlockPos portalEntryPos
+	) {
+		return getPortal(currentLevel, portalEntryPos).map(
+			p -> p.getPortalDestination(currentLevel, entity, portalEntryPos)
+		).orElse(null);
+	}
+
+	@Override
+	public Optional<PortalEntity> getPortal(Level level, BlockPos blockPos) {
+		if (level.getBlockEntity(blockPos) instanceof PortalEntity portal) {
+			return Optional.of(portal);
+		}
+		return Optional.empty();
 	}
 }
