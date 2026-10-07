@@ -3,6 +3,7 @@ package se.metacraft.config_gui;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -10,6 +11,8 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
+import nu.metacraft.lib.METAcraftLib;
 import se.metacraft.config.container.ConfigContainer;
 import se.metacraft.config.parser.CodecParser;
 import se.metacraft.config_gui.gui.value_editor.ConfirmScreen;
@@ -66,7 +69,7 @@ public class ConfigCommand {
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext buildContext) {
 		dispatcher.register(
-			literal("meta-config-screen").then(
+			literal("meta-config-screen").requires(PermissionPredicates.require(METAcraftLib.getID("config.screen"), PermissionLevel.ADMINS)).then(
 				argument("name", StringArgumentType.word()).suggests(SUGGEST_CONFIGS).executes(ctx -> {
 					String name = StringArgumentType.getString(ctx, "name");
 					var config = getContainers().filter(c -> c.name().orElseThrow().equals(name)).findAny();
