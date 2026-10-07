@@ -1,7 +1,16 @@
 package nu.metacraft.core.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.SoundType;
+import nu.metacraft.core.util.ServerSoundType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -43,6 +52,18 @@ public abstract class EntityMixin implements EntityExtensions {
 
 	@Shadow
 	public abstract RandomSource getRandom();
+
+	@Shadow
+	public abstract double getX();
+
+	@Shadow
+	public abstract double getY();
+
+	@Shadow
+	public abstract double getZ();
+
+	@Shadow
+	public abstract SoundSource getSoundSource();
 
 	@Unique
 	private ManageableServerBossBar bossBar;
@@ -226,6 +247,24 @@ public abstract class EntityMixin implements EntityExtensions {
 			}
 		}
 		return g;
+	}
+
+	@WrapOperation(
+		method = {"playCombinationStepSounds", "playMuffledStepSound", "playStepSound"},
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/world/entity/Entity;playSound(Lnet/minecraft/sounds/SoundEvent;FF)V"
+		)
+	)
+	protected void fixFalLSound(
+		Entity instance, SoundEvent sound, float volume, float pitch, Operation<Void> original,
+		@Local SoundType soundType
+	) {
+		if ((Object) this instanceof Player && soundType instanceof ServerSoundType) {
+			this.level().playSound(null, this.getX(), this.getY(), this.getZ(), sound, this.getSoundSource(), volume, pitch);
+		} else {
+			original.call(instance, sound, volume, pitch);
+		}
 	}
 
 }

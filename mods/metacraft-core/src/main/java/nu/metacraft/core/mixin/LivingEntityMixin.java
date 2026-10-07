@@ -1,16 +1,21 @@
 package nu.metacraft.core.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import nu.metacraft.core.block.blocks.PortalCore;
-import nu.metacraft.core.block.blocks.PortalPadding;
+import net.minecraft.world.level.block.SoundType;
 import nu.metacraft.core.block.entities.PortalEntity;
 import nu.metacraft.core.status_effects.METAcraftEffects;
+import nu.metacraft.core.util.ServerSoundType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -56,6 +61,24 @@ public abstract class LivingEntityMixin extends Entity {
 				ci.cancel();
 				return;
 			}
+		}
+	}
+
+	@WrapOperation(
+		method = "playBlockFallSound",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/world/entity/LivingEntity;playSound(Lnet/minecraft/sounds/SoundEvent;FF)V"
+		)
+	)
+	protected void fixFalLSound(
+		LivingEntity instance, SoundEvent soundEvent, float volume, float pitch, Operation<Void> original,
+		@Local(name = "soundType") SoundType soundType
+	) {
+		if ((Object) this instanceof Player && soundType instanceof ServerSoundType) {
+			this.level().playSound(null, this.getX(), this.getY(), this.getZ(), soundEvent, this.getSoundSource(), volume, pitch);
+		} else {
+			original.call(instance, soundEvent, volume, pitch);
 		}
 	}
 

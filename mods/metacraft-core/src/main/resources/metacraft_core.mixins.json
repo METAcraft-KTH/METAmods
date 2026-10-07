@@ -42,8 +42,12 @@
 		"ServerBossEventMixin",
 		"ServerChunkCacheAccessor",
 		"ServerCommonPacketListenerImplMixin",
+		"ServerLevelMixin",
 		"ServerPlayerGameModeMixin",
 		"ServerPlayerMixin",
+		"SnifferMixin",
+		"SoundPacketFixMixin",
+		"SoundTypeMixin",
 		"WeightedListAccessor",
 		"WitherBossAccessor"
 	],

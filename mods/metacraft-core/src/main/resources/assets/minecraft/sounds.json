@@ -1,0 +1,42 @@
+{
+	"block.wood.break": {
+		"replace": true,
+		"sounds": []
+	},
+	"block.wood.fall": {
+		"replace": true,
+		"sounds": []
+	},
+	"block.wood.hit": {
+		"replace": true,
+		"sounds": []
+	},
+	"block.wood.place": {
+		"replace": true,
+		"sounds": []
+	},
+	"block.wood.step": {
+		"replace": true,
+		"sounds": []
+	},
+	"block.stone.break": {
+		"replace": true,
+		"sounds": []
+	},
+	"block.stone.fall": {
+		"replace": true,
+		"sounds": []
+	},
+	"block.stone.hit": {
+		"replace": true,
+		"sounds": []
+	},
+	"block.stone.place": {
+		"replace": true,
+		"sounds": []
+	},
+	"block.stone.step": {
+		"replace": true,
+		"sounds": []
+	}
+}
