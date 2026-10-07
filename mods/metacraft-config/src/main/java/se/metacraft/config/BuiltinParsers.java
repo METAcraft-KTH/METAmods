@@ -475,6 +475,7 @@ public class BuiltinParsers {
 					field.setAccessible(true);
 					try {
 						var map = (Map<?, ?>) (Modifier.isStatic(field.getModifiers()) ? field.get(null) : field.get(param));
+						if (map == null) continue;
 						var entries = Entries.from(
 							map.entrySet().stream().filter(
 								e -> e.getKey() instanceof String && e.getValue() instanceof MapCodec<?>
