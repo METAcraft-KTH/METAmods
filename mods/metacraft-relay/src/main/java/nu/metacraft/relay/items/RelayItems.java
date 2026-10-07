@@ -3,6 +3,7 @@ package nu.metacraft.relay.items;
 import eu.pb4.polymer.core.api.item.PolymerBlockItem;
 import nu.metacraft.relay.Relay;
 import nu.metacraft.relay.blocks.RelayBlocks;
+import nu.metacraft.relay.blocks.block.RelayBlock;
 import org.pcollections.HashTreePMap;
 import org.pcollections.HashTreePSet;
 
@@ -20,15 +21,15 @@ import net.minecraft.world.level.Level;
 public class RelayItems {
 
 	public static final TagKey<Item> RELAY_RECHARGE_ITEMS = TagKey.create(
-			Registries.ITEM, Relay.getID("relay_recharge_items")
+		Registries.ITEM, Relay.getID("relay_recharge_items")
 	);
 
 	public static final Item RELAY = register(
-			"relay", settings -> new PolymerBlockItem(RelayBlocks.RELAY.value(), settings, Items.STONE, true),
-			new Item.Properties().useBlockDescriptionPrefix()
-					.component(RelayComponents.VALID_DIMENSIONS, HashTreePMap.singleton(Level.END, HashTreePSet.singleton(Level.END)))
-					.component(RelayComponents.VALID_CHARGE_ITEM, RELAY_RECHARGE_ITEMS)
-					.component(RelayComponents.BLOCK_MODEL, Relay.getID("relay"))
+		"relay", settings -> new PolymerBlockItem(RelayBlocks.RELAY.value(), settings, Items.STONE, true),
+		new Item.Properties().useBlockDescriptionPrefix()
+			.component(RelayComponents.VALID_DIMENSIONS, HashTreePMap.singleton(Level.END, HashTreePSet.singleton(Level.END)))
+			.component(RelayComponents.VALID_CHARGE_ITEM, RELAY_RECHARGE_ITEMS)
+			.component(RelayComponents.BLOCK_MODEL, RelayBlock.DEFAULT_MODEL)
 	);
 
 	public static void init() {

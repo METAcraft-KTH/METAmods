@@ -1,12 +1,16 @@
 package nu.metacraft.relay.blocks.entity;
 
 import com.mojang.serialization.DataResult;
+import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.world.entity.EntityTypes;
 import nu.metacraft.relay.blocks.RelayBlockEntities;
+import nu.metacraft.relay.blocks.block.RelayBlock;
 import nu.metacraft.relay.items.RelayComponents;
 import nu.metacraft.relay.mixin.ServerPlayerRespawnPosAngleAccessor;
+import org.jspecify.annotations.NonNull;
 import org.pcollections.HashTreePSet;
 
+import java.util.Objects;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
@@ -29,6 +33,17 @@ public class RelayBlockEntity extends BlockEntity {
 		this(RelayBlockEntities.RELAY, pos, state);
 	}
 
+	@Override
+	protected void applyImplicitComponents(final @NonNull DataComponentGetter components) {
+		if (level == null) return;
+		var blockModel = components.get(RelayComponents.BLOCK_MODEL);
+		if (!Objects.equals(blockModel, RelayBlock.DEFAULT_MODEL)) {
+			level.setBlock(getBlockPos(), getBlockState().setValue(RelayBlock.CUSTOM_MODEL, true), RelayBlock.UPDATE_CLIENTS);
+		} else {
+			level.setBlock(getBlockPos(), getBlockState().setValue(RelayBlock.CUSTOM_MODEL, false), RelayBlock.UPDATE_CLIENTS);
+		}
+	}
+
 	public DataResult<TeleportTransition> getTarget() {
 		var mappings = components().get(RelayComponents.VALID_DIMENSIONS);
 		Set<ResourceKey<Level>> validTargets;
@@ -48,24 +63,24 @@ public class RelayBlockEntity extends BlockEntity {
 			var dim = level.getServer().getLevel(target.target().get().dimension());
 			if (dim == null) return DataResult.error(() -> "Targeted dimension does not exist");
 			return target.tick(dim).target().map(
-					t -> {
-						var respawnPos = RespawnAnchorBlock.findStandUpPosition(
-								EntityTypes.PLAYER, dim, t.pos()
-						);
-						return respawnPos.map(pos -> DataResult.success(
-								new TeleportTransition(
-										dim, pos, Vec3.ZERO,
-										ServerPlayerRespawnPosAngleAccessor.callCalculateLookAtYaw(pos, t.pos()),
-										0, TeleportTransition.PLAY_PORTAL_SOUND
-								)
-						)).orElseGet(() -> DataResult.error(
-								() -> "Target lodestone is obstructed (" +
-										target.target().map(p -> p.pos().toShortString() + ", " + p.dimension().identifier()).orElse("missingno") + ")"
-						));
-					}
+				t -> {
+					var respawnPos = RespawnAnchorBlock.findStandUpPosition(
+						EntityTypes.PLAYER, dim, t.pos()
+					);
+					return respawnPos.map(pos -> DataResult.success(
+						new TeleportTransition(
+							dim, pos, Vec3.ZERO,
+							ServerPlayerRespawnPosAngleAccessor.callCalculateLookAtYaw(pos, t.pos()),
+							0, TeleportTransition.PLAY_PORTAL_SOUND
+						)
+					)).orElseGet(() -> DataResult.error(
+						() -> "Target lodestone is obstructed (" +
+							target.target().map(p -> p.pos().toShortString() + ", " + p.dimension().identifier()).orElse("missingno") + ")"
+					));
+				}
 			).orElse(DataResult.error(
-					() -> "Target lodestone missing (" +
-							target.target().map(t -> t.pos().toShortString() + ", " + t.dimension().identifier()).orElse("missingno") + ")"
+				() -> "Target lodestone missing (" +
+					target.target().map(t -> t.pos().toShortString() + ", " + t.dimension().identifier()).orElse("missingno") + ")"
 			));
 		}
 		return DataResult.error(() -> "No Target");

@@ -1,7 +1,9 @@
 package nu.metacraft.relay.blocks.block;
 
-import com.mojang.serialization.MapCodec;
-import eu.pb4.polymer.core.api.block.PolymerBlock;
+import eu.pb4.polymer.blocks.api.BlockModelType;
+import eu.pb4.polymer.blocks.api.PolymerBlockModel;
+import eu.pb4.polymer.blocks.api.PolymerBlockResourceUtils;
+import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
 import eu.pb4.polymer.virtualentity.api.BlockWithElementHolder;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.BlockAwareAttachment;
@@ -19,6 +21,7 @@ import net.minecraft.core.dispenser.DispenseItemBehavior;
 import net.minecraft.core.dispenser.OptionalDispenseItemBehavior;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -48,6 +51,7 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.relay.Relay;
 import nu.metacraft.relay.blocks.entity.RelayBlockEntity;
 import nu.metacraft.relay.items.RelayComponents;
 import org.jetbrains.annotations.Nullable;
@@ -57,43 +61,69 @@ import nu.metacraft.lib.util.TaskScheduler;
 import java.util.List;
 import java.util.Optional;
 
-public class RelayBlock extends Block implements PolymerBlock, EntityBlock, BlockWithElementHolder {
+public class RelayBlock extends Block implements PolymerTexturedBlock, EntityBlock, BlockWithElementHolder {
 
 	public static final BooleanProperty CHARGED = BooleanProperty.create("charged");
+	public static final BooleanProperty CUSTOM_MODEL = BooleanProperty.create("custom_model");
+
+	public static final Identifier DEFAULT_MODEL = Relay.getID("relay");
+
+	protected BlockState uncharged;
+	protected BlockState charged;
 
 	public RelayBlock(Properties settings) {
 		super(settings);
-		this.registerDefaultState(this.stateDefinition.any().setValue(CHARGED, false));
+		this.registerDefaultState(this.stateDefinition.any().setValue(CHARGED, false).setValue(CUSTOM_MODEL, false));
+		initStates();
+	}
+
+	protected void initStates() {
+		var path = Relay.getID("block/ender_relay");
+		uncharged = PolymerBlockResourceUtils.requestBlock(BlockModelType.FULL_BLOCK, PolymerBlockModel.of(path));
+		charged = PolymerBlockResourceUtils.requestBlock(BlockModelType.FULL_BLOCK, PolymerBlockModel.of(path.withSuffix("_charged")));
+	}
+
+	protected boolean needsVirtualEntity(BlockState state) {
+		if (charged == null || uncharged == null) return true;
+		return state.getValue(CUSTOM_MODEL);
 	}
 
 	@Override
 	public @Nullable ElementHolder createElementHolder(ServerLevel world, BlockPos pos, BlockState initialBlockState) {
+		if (!needsVirtualEntity(initialBlockState)) return null;
 		return new ModelHolder();
 	}
 
 	@Override
 	protected void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
 		super.onPlace(state, world, pos, oldState, notify);
-		//Piston fix.
-		//Attachment should have always been created at this point, but if it has not, we have the bug and fix it here.
-		//We must check even if notify is false, as when a block is "spat out" by the piston this will be false even though the attachment will be missing.
-		if (BlockBoundAttachment.get(world, pos) == null && world instanceof ServerLevel serverWorld) {
-			new BlockBoundAttachment(
+		if (needsVirtualEntity(state)) {
+			//Piston fix.
+			//Attachment should have always been created at this point, but if it has not, we have the bug and fix it here.
+			//We must check even if notify is false, as when a block is "spat out" by the piston this will be false even though the attachment will be missing.
+			if (BlockBoundAttachment.get(world, pos) == null && world instanceof ServerLevel serverWorld) {
+				new BlockBoundAttachment(
 					createElementHolder(serverWorld, pos, state),
 					world.getChunkAt(pos), state,
 					pos.immutable(),
 					Vec3.atCenterOf(pos).add(
-							getElementHolderOffset(serverWorld, pos, state)
+						getElementHolderOffset(serverWorld, pos, state)
 					),
 					tickElementHolder(serverWorld, pos, state)
-			);
+				);
+			}
+		} else {
+			var existing = BlockBoundAttachment.get(world, pos);
+			if (existing != null) {
+				existing.destroy();
+			}
 		}
 	}
 
 	@Override
 	public ElementHolder createMovingElementHolder(
-			ServerLevel world, BlockPos pos, BlockState initialBlockState,
-			@Nullable ElementHolder oldMovingElementHolder
+		ServerLevel world, BlockPos pos, BlockState initialBlockState,
+		@Nullable ElementHolder oldMovingElementHolder
 	) { //Piston fix. The piston moving block entity is not given the attachment properly, so we return null instead.
 		return null;
 	}
@@ -101,19 +131,20 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 	@Override
 	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
 		super.createBlockStateDefinition(builder);
-		builder.add(CHARGED);
+		builder.add(CHARGED, CUSTOM_MODEL);
 	}
 
 	public static MutableComponent getTargetText(String targetPos, String targetDim) {
 		return Component.translatableWithFallback(
-				"block.metacraft.relay.target", "Target: " + targetPos + " in " + targetDim,
-				targetPos, targetDim
+			"block.metacraft.relay.target", "Target: " + targetPos + " in " + targetDim,
+			targetPos, targetDim
 		).withStyle(style -> style.applyFormat(ChatFormatting.GREEN));
 	}
 
 	@Override
 	public BlockState getPolymerBlockState(BlockState blockState, @Nullable PacketContext packetContext) {
-		return Blocks.OBSIDIAN.defaultBlockState();
+		var state = blockState.getValue(CHARGED) ? charged : uncharged;
+		return state != null ? state : Blocks.OBSIDIAN.defaultBlockState();
 	}
 
 	@Override
@@ -159,8 +190,8 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 			@Override
 			public Optional<Float> getBlockExplosionResistance(Explosion explosion, BlockGetter world, BlockPos pos, BlockState blockState, FluidState fluidState) {
 				return pos.equals(explodedPos) && bl2
-						? Optional.of(Blocks.WATER.getExplosionResistance())
-						: super.getBlockExplosionResistance(explosion, world, pos, blockState, fluidState);
+					? Optional.of(Blocks.WATER.getExplosionResistance())
+					: super.getBlockExplosionResistance(explosion, world, pos, blockState, fluidState);
 			}
 		};
 		Vec3 vec3d = Vec3.atCenterOf(explodedPos);
@@ -177,14 +208,14 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 					return InteractionResult.SUCCESS_SERVER;
 				}
 				e.getTarget().resultOrPartial(
-						err -> player.sendOverlayMessage(Component.literal(err).withStyle(
-								style -> style.applyFormat(ChatFormatting.RED)
-						))
+					err -> player.sendOverlayMessage(Component.literal(err).withStyle(
+						style -> style.applyFormat(ChatFormatting.RED)
+					))
 				).ifPresent(
-						target -> {
-							player.teleport(target);
-							world.setBlockAndUpdate(pos, state.setValue(CHARGED, false));
-						}
+					target -> {
+						player.teleport(target);
+						world.setBlockAndUpdate(pos, state.setValue(CHARGED, false));
+					}
 				);
 				return InteractionResult.SUCCESS_SERVER;
 			}
@@ -209,8 +240,8 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 		world.setBlockAndUpdate(pos, state.setValue(CHARGED, true));
 		world.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(charger, state));
 		world.playSound(
-				null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-				SoundEvents.RESPAWN_ANCHOR_CHARGE, SoundSource.BLOCKS, 1.0F, 1.0F
+			null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+			SoundEvents.RESPAWN_ANCHOR_CHARGE, SoundSource.BLOCKS, 1.0F, 1.0F
 		);
 	}
 
@@ -285,18 +316,18 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 			var model = blockEntity.components().get(RelayComponents.BLOCK_MODEL);
 			if (model != null) {
 				return new ItemStack(
-						Items.BARRIER.builtInRegistryHolder(), 1,
-						DataComponentPatch.builder().set(
-								DataComponents.ITEM_MODEL, model
-						).set(
-								DataComponents.CUSTOM_MODEL_DATA,
-								new CustomModelData(
-										List.of(),
-										List.of(block.getBlockState().getValue(RelayBlock.CHARGED)),
-										List.of(),
-										List.of()
-								)
-						).build()
+					Items.BARRIER.builtInRegistryHolder(), 1,
+					DataComponentPatch.builder().set(
+						DataComponents.ITEM_MODEL, model
+					).set(
+						DataComponents.CUSTOM_MODEL_DATA,
+						new CustomModelData(
+							List.of(),
+							List.of(block.getBlockState().getValue(RelayBlock.CHARGED)),
+							List.of(),
+							List.of()
+						)
+					).build()
 				);
 			} else {
 				return ItemStack.EMPTY;
@@ -308,7 +339,7 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 			super.onAttachmentSet(attachment, oldAttachment);
 			if (attachment.getWorld() != null) {
 				TaskScheduler.scheduleImmediately(
-						attachment.getWorld().getServer(), this::updateItem
+					attachment.getWorld().getServer(), this::updateItem
 				);
 			}
 		}
