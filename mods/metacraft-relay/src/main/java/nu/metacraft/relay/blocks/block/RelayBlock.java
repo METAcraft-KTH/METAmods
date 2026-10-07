@@ -113,7 +113,7 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 
 	@Override
 	public BlockState getPolymerBlockState(BlockState blockState, @Nullable PacketContext packetContext) {
-		return Blocks.STONE.defaultBlockState();
+		return Blocks.OBSIDIAN.defaultBlockState();
 	}
 
 	@Override
@@ -260,7 +260,7 @@ public class RelayBlock extends Block implements PolymerBlock, EntityBlock, Bloc
 			display = new ItemDisplayElement();
 			addElement(display);
 			display.setBrightness(Brightness.FULL_BRIGHT);
-			display.setScale(new Vector3f(1.0004f));
+			display.setScale(new Vector3f(1.001f));
 		}
 
 		public void updateItem() {
