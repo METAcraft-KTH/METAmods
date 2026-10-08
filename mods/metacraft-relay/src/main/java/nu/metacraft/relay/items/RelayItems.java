@@ -25,7 +25,7 @@ public class RelayItems {
 	);
 
 	public static final Item RELAY = register(
-		"relay", settings -> new PolymerBlockItem(RelayBlocks.RELAY.value(), settings, Items.STONE, true),
+		"relay", settings -> new PolymerBlockItem(RelayBlocks.RELAY.value(), settings, Items.PALE_OAK_WOOD, true),
 		new Item.Properties().useBlockDescriptionPrefix()
 			.component(RelayComponents.VALID_DIMENSIONS, HashTreePMap.singleton(Level.END, HashTreePSet.singleton(Level.END)))
 			.component(RelayComponents.VALID_CHARGE_ITEM, RELAY_RECHARGE_ITEMS)

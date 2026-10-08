@@ -1,11 +1,13 @@
 package nu.metacraft.relay.blocks;
 
+import eu.pb4.polymer.soundpatcher.api.SoundPatcher;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 import net.minecraft.world.level.material.MapColor;
@@ -26,7 +28,8 @@ public class RelayBlocks {
 	);
 
 	public static void init() {
-
+		SoundPatcher.convertIntoServerSound(SoundType.WOOD);
+		SoundPatcher.convertIntoServerSound(SoundType.STONE.getBreakSound());
 	}
 
 	private static Holder.Reference<Block> register(String id, Function<BlockBehaviour.Properties, Block> creator, BlockBehaviour.Properties settings) {
