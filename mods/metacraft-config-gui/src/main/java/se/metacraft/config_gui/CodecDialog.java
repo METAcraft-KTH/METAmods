@@ -535,6 +535,10 @@ public class CodecDialog {
 		);
 	}
 
+	public static boolean isMapInlined(CodecDialog.Type type) {
+		return type.element().hasContainerType(ContainerType.DISPATCHED_EITHER) && type.fieldElement().nestedMetadata(MetadataKey.NAMED_FIELD).isEmpty();
+	}
+
 	public static <T> Pair<PMap<String, Type>, Optional<Comments>> getMapCodecTypes(
 		Codec<T> codec,HolderLookup.Provider lookup
 	) {
@@ -565,19 +569,38 @@ public class CodecDialog {
 		Map<Object, Object> currentRawValues = (Map<Object, Object>) codec.encodeStart(
 			ctx, value
 		).getOrThrow();
-		return PCollectionsHelper.collectToMap(
-			types.entrySet().stream().filter(
-				e -> e.getValue().getDefaultValue().isPresent() || currentRawValues.containsKey(e.getKey())
-			).map(
-				entry -> Pair.of(
-					entry.getKey(),
-					currentRawValues.containsKey(entry.getKey()) ?
-						entry.getValue().parseRaw(currentRawValues.get(entry.getKey()), lookup) :
+
+		PMap<String, Object> results = HashTreePMap.empty();
+
+		for (var entry : types.entrySet()) {
+			if (isMapInlined(entry.getValue())) {
+				var parsed = entry.getValue().parseRaw(currentRawValues, lookup);
+				if (parsed != null) {
+					results = results.plus(
+						entry.getKey(), parsed
+					);
+				} else if (entry.getValue().getDefaultValue().isPresent()) {
+					results = results.plus(
+						entry.getKey(), entry.getValue().getDefaultValue().get()
+					);
+				}
+			} else {
+				if (currentRawValues.containsKey(entry.getKey())) {
+					results = results.plus(
+						entry.getKey(),
+						entry.getValue().parseRaw(currentRawValues.get(entry.getKey()), lookup)
+					);
+				} else if (entry.getValue().getDefaultValue().isPresent()) {
+					results = results.plus(
+						entry.getKey(),
 						entry.getValue().getDefaultValue().get()
-				)
-			),
-			Pair::getFirst, Pair::getSecond
-		);
+					);
+				}
+			}
+
+		}
+
+		return results;
 	}
 
 	private static final int USE_DROPDOWN_THRESHOLD = 10;

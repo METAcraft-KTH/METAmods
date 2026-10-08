@@ -11,7 +11,6 @@ import net.minecraft.server.level.ServerPlayer;
 import nu.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
-import org.pcollections.TreePMap;
 import se.metacraft.config.parser.metadata.Comments;
 import se.metacraft.config_gui.ClickHandlerGUI;
 import se.metacraft.config_gui.CodecDialog;
@@ -93,12 +92,26 @@ public record MapCodecEditor<T>(
 		Map<String, Object> map = new HashMap<>();
 		var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
 		object.forEach((key, value) -> {
-			//noinspection unchecked
-			((Codec<Object>) types.get(key).element().codec()).encodeStart(
-				ctx, value
-			).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(result -> {
-				map.put(key, result);
-			});
+			var type = types.get(key);
+			if (CodecDialog.isMapInlined(type)) {
+				//noinspection unchecked
+				((Codec<Object>) type.fieldElement().codec()).encodeStart(
+					ctx, value
+				).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(result -> {
+					if (result instanceof Map<?,?> m) {
+						m.forEach((k, v) -> {
+							map.put((String) k, v);
+						});
+					}
+				});
+			} else {
+				//noinspection unchecked
+				((Codec<Object>) type.element().codec()).encodeStart(
+					ctx, value
+				).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(result -> {
+					map.put(key, result);
+				});
+			}
 		});
 		return codec.parse(ctx, map).resultOrPartial();
 	}
