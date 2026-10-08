@@ -6,11 +6,16 @@ import com.mojang.serialization.JavaOps;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.TextComponentTagVisitor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.dialog.ActionButton;
 import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.dialog.Input;
 import net.minecraft.server.dialog.body.DialogBody;
+import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
 import se.metacraft.config.parser.MetadataKey;
 import se.metacraft.config.parser.metadata.NamedField;
@@ -121,11 +126,27 @@ public record DispatchedEitherEditor<T>(
 		List<ActionButton> buttons = new ArrayList<>();
 		List<Input> inputs = new ArrayList<>();
 		List<DialogBody> body = new ArrayList<>();
+		var ctx = player.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+		prevValueType.encodeField(ctx, value).resultOrPartial(err -> {
+			body.add(new PlainMessage(
+				Component.literal("Error: ").append(Component.literal(err).withColor(TextColor.RED)), 300
+			));
+		}).ifPresent(result -> {
+			body.add(new PlainMessage(
+				Component.literal("Current Value: \n").append(
+					NbtUtils.toPrettyComponent(result)
+				), 300
+			));
+		});
 		CodecDialog.addInput(
-			keyField(), Component.literal(keyField()), keyType, key, player.registryAccess(), body, buttons, inputs, Optional.empty()
+			keyField(), Component.literal(keyField()), keyType, key, player.registryAccess(),
+			body, buttons, inputs, Optional.empty()
 		);
 		buttons.add(
-			CodecDialog.submenu(VALUE, player.registryAccess(), Component.literal("Values"), Optional.empty())
+			CodecDialog.submenu(
+				VALUE, player.registryAccess(),
+				Component.translatable("selectWorld.edit"), Optional.empty()
+			)
 		);
 		return CodecDialog.template(
 			body, inputs, buttons, player.registryAccess(), 1
