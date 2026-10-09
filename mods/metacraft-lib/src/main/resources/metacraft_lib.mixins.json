@@ -20,6 +20,7 @@
 		"FieldDecoderAccessor",
 		"GameTestServerMixin",
 		"ItemEntityAccessor",
+		"LivingEntityAccessor",
 		"MinecraftServerAccessor",
 		"MinecraftServerMixin",
 		"NbtPathAccessor",
@@ -51,6 +52,7 @@
 		"StatsCounterAccessor",
 		"StructureTemplateAccessor",
 		"StructureTemplateAccessor$Palette",
+		"SulfurCubeExploitsFixMixin",
 		"TagValueInputAccessor",
 		"TimerQueueMixin",
 		"ValidationContextAccessor"
