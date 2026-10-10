@@ -19,6 +19,10 @@ public record Entries(PSet<Entry> strings) implements Metadata {
 		return new Entries(PCollectionsHelper.collect(stream, EMPTY_SET));
 	}
 
+	public boolean isEmpty() {
+		return strings.isEmpty();
+	}
+
 	@Override
 	public MetadataKey<Entries> key() {
 		return MetadataKey.ENTRIES;

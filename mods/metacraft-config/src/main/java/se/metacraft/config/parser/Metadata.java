@@ -8,10 +8,6 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public interface Metadata {
-	default boolean isEmpty() {
-		return false;
-	}
-
 	MetadataKey<?> key();
 
 
