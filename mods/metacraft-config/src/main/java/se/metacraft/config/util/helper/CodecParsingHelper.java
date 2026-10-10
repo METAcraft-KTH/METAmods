@@ -2,6 +2,7 @@ package se.metacraft.config.util.helper;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.MapDecoder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import org.pcollections.PMap;
@@ -71,15 +72,17 @@ public class CodecParsingHelper {
 		return elements;
 	}
 
-	private static PVector<AbstractCodecResult> parseRecordCodecBuilder(
-		RecordCodecBuilderAccessor recordCodecBuilder, HolderLookup.Provider lookup
+	private static PVector<AbstractCodecResult> parseRecordCodecMapDecoder(
+		MapDecoder<?> decoder, HolderLookup.Provider lookup
 	) {
-		var decoder = recordCodecBuilder.getDecoder();
 		PVector<AbstractCodecResult> subMapCodecs = TreePVector.empty();
 		for (var field : decoder.getClass().getDeclaredFields()) {
 			field.setAccessible(true);
 			try {
 				var value = field.get(decoder);
+				if (value instanceof MapDecoder<?> nextDecoder) {
+					subMapCodecs = subMapCodecs.plusAll(parseRecordCodecMapDecoder(nextDecoder, lookup));
+				}
 				if (value instanceof RecordCodecBuilderAccessor subBuilder) {
 					if (subBuilder.getDecoder() instanceof MapCodec<?> subCodec) {
 						subMapCodecs = subMapCodecs.plusAll(parseFlattenedComponentsOrSelf(subCodec, lookup));
@@ -92,6 +95,12 @@ public class CodecParsingHelper {
 			}
 		}
 		return subMapCodecs;
+	}
+
+	private static PVector<AbstractCodecResult> parseRecordCodecBuilder(
+		RecordCodecBuilderAccessor recordCodecBuilder, HolderLookup.Provider lookup
+	) {
+		return parseRecordCodecMapDecoder(recordCodecBuilder.getDecoder(), lookup);
 	}
 
 	public static <T> MetadataMap metadataFromRegistry(HolderLookup.RegistryLookup<T> registry) {
