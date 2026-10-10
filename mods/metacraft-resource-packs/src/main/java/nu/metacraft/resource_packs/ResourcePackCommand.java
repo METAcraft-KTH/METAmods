@@ -71,12 +71,12 @@ public class ResourcePackCommand {
 					)
 				).then(
 					literal("reload").executes(ctx -> {
-						ResourcePackConfig.reload(false);
+						ResourcePackConfig.reload(false, ctx.getSource().getServer());
 						ctx.getSource().sendSuccess(() -> RELOADED, true);
 						return 1;
 					}).then(
 						literal("soft").executes(ctx -> {
-							ResourcePackConfig.reload(true);
+							ResourcePackConfig.reload(true, ctx.getSource().getServer());
 							ctx.getSource().sendSuccess(() -> RELOADED, true);
 							return 1;
 						})

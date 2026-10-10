@@ -52,68 +52,54 @@ public class ResourcePackHelper {
 
 	public static void resendResourcePacks(MinecraftServer server, boolean sendPackets) {
 		var config = ResourcePackConfig.getConfig();
-		if (sendPackets) { //Remove all removed resource packs from all players.
-			List<Packet<? super ClientGamePacketListener>> removePackets = new ArrayList<>();
-			for (var pack : config.getRemovedPacks()) {
-				removePackets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
-			}
-			if (!removePackets.isEmpty()) {
-				var firstRemovePacket = new ClientboundBundlePacket(removePackets);
-				for (var player : server.getPlayerList().getPlayers()) {
-					player.connection.send(firstRemovePacket);
-				}
-			}
-		}
 
-		//Remove all packs that were changed from global to non-global unless the player has it enabled.
-		if (sendPackets) {
+		config.getReloadState().ifPresent(reloadState -> {
+			//Send all updated player-specific resource packs to affected players.
 			for (var player : server.getPlayerList().getPlayers()) {
+				var playerData = getData(player);
 				List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
-				for (var pack : config.getPrevGlobals()) {
-					if (!getData(player).hasPack(pack)) {
-						packets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
+				for (var id : reloadState.toRemove()) {
+					if (playerData.resourcePacks().contains(id)) {
+						update(player, data -> data.removePack(id));
+					}
+					if (sendPackets) packets.add(new ClientboundResourcePackPopPacket(Optional.of(id)));
+				}
+
+				for (var id : reloadState.oldGlobals()) {
+					if (sendPackets && !playerData.resourcePacks().contains(id)) {
+						packets.add(new ClientboundResourcePackPopPacket(Optional.of(id)));
 					}
 				}
+
+				for (var id : reloadState.newGlobals()) {
+					if (sendPackets && !playerData.resourcePacks().contains(id)) {
+						config.createEnablePacket(id).ifPresent(packets::add);
+					}
+					update(player, data -> data.removePack(id));
+				}
+
+				for (var id : reloadState.toSubmit()) {
+					if (
+						sendPackets &&
+						!reloadState.newGlobals().contains(id) &&
+						(
+							playerData.resourcePacks().contains(id) ||
+							config.getResourcePack(id).map(ResourcePackConfig.ResourcePack::isGlobal).orElse(false)
+						)
+					) {
+						config.createEnablePacket(id).ifPresent(packets::add);
+					}
+				}
+
 				if (!packets.isEmpty()) {
 					player.connection.send(new ClientboundBundlePacket(packets));
 				}
 			}
-		}
-		//Send all updated global resource packs to the players.
-		if (sendPackets) {
-			for (var pack : config.getResourcePacks()) {
-				List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
-				if (pack.getValue().isGlobal() && (config.hasChangedButStillExists(pack.getKey()) || config.isNowGlobal(pack.getKey()))) {
-					config.createEnablePacket(pack.getKey()).ifPresent(packets::add);
-				}
-				if (!packets.isEmpty()) {
-					var packet = new ClientboundBundlePacket(packets);
-					for (var player : server.getPlayerList().getPlayers()) {
-						player.connection.send(packet);
-					}
-				}
+
+			if (sendPackets) {
+				ResourcePackConfig.clearReloadState();
 			}
-		}
-		//Send all updated player-specific resource packs to affected players.
-		for (var player : server.getPlayerList().getPlayers()) {
-			List<Packet<? super ClientGamePacketListener>> packets = new ArrayList<>();
-			getData(player).resourcePacks().forEach(pack -> {
-				config.getResourcePack(pack).ifPresentOrElse(p -> {
-					if (config.hasChangedButStillExists(pack) && sendPackets) {
-						config.createEnablePacket(pack).ifPresent(packets::add);
-					}
-					if (p.isGlobal()) {
-						update(player, data -> data.removePack(pack));
-					}
-				}, () -> {
-					if (sendPackets) packets.add(new ClientboundResourcePackPopPacket(Optional.of(pack)));
-					update(player, data -> data.removePack(pack));
-				});
-			});
-			if (!packets.isEmpty()) {
-				player.connection.send(new ClientboundBundlePacket(packets));
-			}
-		}
+		});
 	}
 
 }

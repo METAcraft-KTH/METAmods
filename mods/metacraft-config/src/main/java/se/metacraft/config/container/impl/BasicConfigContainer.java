@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.util.Unit;
 import nu.metacraft.lib.METAcraftLib;
+import se.metacraft.config.extensions.ModificationAware;
 import se.metacraft.config.util.helper.JanksonHelper;
 import se.metacraft.config.container.ConfigContainer;
 import nu.metacraft.lib.util.helper.JsonHelper;
@@ -151,12 +152,25 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 		onReload.accept(cause);
 	}
 
+	private <C extends ModificationAware<C>> T onModified(ModificationAware<C> oldConfig) {
+		if (config instanceof ModificationAware<?>) {
+			try {
+				//noinspection unchecked
+				return (T) ((ModificationAware<C>) config).onModified((C) oldConfig);
+			} catch (ClassCastException ignored) {}
+		}
+		return config;
+	}
+
 	@Override
 	public void modify(UnaryOperator<T> modifier) {
 		if (this.config != null) {
 			var prevConfig = config;
 			this.config = modifier.apply(config);
 			if (prevConfig != config) {
+				if (prevConfig instanceof ModificationAware<?> prev) {
+					config = onModified(prev);
+				}
 				save();
 			}
 		} else {

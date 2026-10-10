@@ -13,14 +13,17 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.server.MinecraftServer;
-import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.METACodecs;
 import nu.metacraft.resource_packs.mixin.HttpUtilAccessor;
+import org.jspecify.annotations.Nullable;
 import org.pcollections.HashTreePMap;
+import org.pcollections.HashTreePSet;
 import org.pcollections.PMap;
+import org.pcollections.PSet;
 import se.metacraft.config.container.ConfigContainer;
 import se.metacraft.config.container.ReloadCause;
 import se.metacraft.config.extensions.LoadAware;
+import se.metacraft.config.extensions.ModificationAware;
 import se.metacraft.config.extensions.ReloadAware;
 
 import java.io.File;
@@ -30,12 +33,10 @@ import java.net.UnknownHostException;
 import java.nio.file.*;
 import java.util.*;
 
-public class ResourcePackConfig implements LoadAware, ReloadAware {
+public class ResourcePackConfig implements LoadAware, ReloadAware, ModificationAware<ResourcePackConfig> {
 
 	@SuppressWarnings("deprecation")
 	private static final HashFunction SHA1 = Hashing.sha1();
-
-	public static final ReloadCause SOFT = ReloadCause.of(METAcraftLib.getID("soft"));
 
 	private static final Path configDir = FabricLoader.getInstance().getConfigDir().resolve(ResourcePacks.MODID);
 	public static final Path RESOURCE_PACK_DIR = configDir.resolve("resource-packs");
@@ -62,16 +63,11 @@ public class ResourcePackConfig implements LoadAware, ReloadAware {
 	private static final ConfigContainer<ResourcePackConfig> CONFIG = ConfigContainer.Builder.create(
 			CODEC,
 			ResourcePackConfig::new
-	).setReloader((old, reloaded, cause) -> reloaded.get().map(c -> {
-		c.handleReload(old, cause == SOFT);
-		return c;
-	}).orElse(old)).withPath(configDir.resolve("config.json5")).build("resource-packs");
+	).setReloader((old, reloaded, cause) -> reloaded.get().map(
+		c -> c.handleReload(old)
+	).orElse(old)).withPath(configDir.resolve("config.json5")).build("resource-packs");
 
 	private final PMap<UUID, ResourcePack> resourcePacks;
-	private final Set<UUID> removedPacks = new HashSet<>();
-	private final Set<UUID> modifiedPacks = new HashSet<>();
-	private final Set<UUID> prevGlobals = new HashSet<>();
-	private final Set<UUID> newGlobals = new HashSet<>();
 	private final boolean required;
 	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	private final Optional<Component> prompt;
@@ -83,6 +79,7 @@ public class ResourcePackConfig implements LoadAware, ReloadAware {
 	private final boolean allowManualDownloads;
 	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	private final Optional<ResourcePackServer.SSLSettings> sslSettings;
+	private final Optional<ReloadState> reloadState;
 
 	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 	public ResourcePackConfig(
@@ -90,7 +87,8 @@ public class ResourcePackConfig implements LoadAware, ReloadAware {
 			boolean required, Optional<Component> prompt, String serverAddress,
 			Optional<String> networkAddress, int port, int maxConnections,
 			boolean allowManualDownloads,
-			Optional<ResourcePackServer.SSLSettings> sslSettings
+			Optional<ResourcePackServer.SSLSettings> sslSettings,
+			Optional<ReloadState> reloadState
 	) {
 		this.resourcePacks = resourcePacks;
 		this.required = required;
@@ -101,6 +99,20 @@ public class ResourcePackConfig implements LoadAware, ReloadAware {
 		this.maxConnections = maxConnections;
 		this.allowManualDownloads = allowManualDownloads;
 		this.sslSettings = sslSettings;
+		this.reloadState = reloadState;
+	}
+
+	public ResourcePackConfig(
+		PMap<UUID, ResourcePack> resourcePacks,
+		boolean required, Optional<Component> prompt, String serverAddress,
+		Optional<String> networkAddress, int port, int maxConnections,
+		boolean allowManualDownloads,
+		Optional<ResourcePackServer.SSLSettings> sslSettings
+	) {
+		this(
+			resourcePacks, required, prompt, serverAddress, networkAddress, port, maxConnections,
+			allowManualDownloads, sslSettings, Optional.empty()
+		);
 	}
 
 	public ResourcePackConfig() {
@@ -112,19 +124,17 @@ public class ResourcePackConfig implements LoadAware, ReloadAware {
 		);
 	}
 
-	public void copyTransientFrom(ResourcePackConfig source) {
-		removedPacks.addAll(source.removedPacks);
-		modifiedPacks.addAll(source.modifiedPacks);
-		prevGlobals.addAll(source.prevGlobals);
-		newGlobals.addAll(source.newGlobals);
-	}
-
 	public static ResourcePackConfig getConfig() {
 		return CONFIG.get();
 	}
 
-	public static void reload(boolean soft) {
-		CONFIG.reload(soft ? SOFT : ReloadCause.DEFAULT);
+	public static void reload(boolean soft, MinecraftServer server) {
+		CONFIG.reload(ReloadCause.DEFAULT);
+		ResourcePackHelper.resendResourcePacks(server, !soft);
+	}
+
+	public Optional<ReloadState> getReloadState() {
+		return reloadState;
 	}
 
 	public boolean resourcePackExists(UUID uuid) {
@@ -135,76 +145,36 @@ public class ResourcePackConfig implements LoadAware, ReloadAware {
 		return Optional.ofNullable(resourcePacks.get(uuid));
 	}
 
-	private void onRemove(UUID uuid) {
-		removedPacks.add(uuid);
-		modifiedPacks.remove(uuid);
-		newGlobals.remove(uuid);
-	}
-
-	private void onNewOrModified(UUID uuid) {
-		modifiedPacks.add(uuid);
-		removedPacks.remove(uuid);
-	}
-
-	private void onNewGlobal(UUID uuid) {
-		newGlobals.add(uuid);
-		prevGlobals.remove(uuid);
-	}
-
-	private void onNoLongerGlobal(UUID uuid) {
-		newGlobals.remove(uuid);
-		prevGlobals.add(uuid);
-	}
-
-	private void handleReload(ResourcePackConfig old, boolean soft) {
-		if (soft) {
-			modifiedPacks.addAll(old.modifiedPacks);
-			removedPacks.addAll(old.removedPacks);
-			newGlobals.addAll(old.newGlobals);
-			prevGlobals.addAll(old.prevGlobals);
-		}
-		resourcePacks.forEach((id, pack) -> {
+	private ResourcePackConfig handleReload(@Nullable ResourcePackConfig old) {
+		if (old == null) return this;
+		ReloadState reloadState = old.reloadState.orElse(ReloadState.EMPTY);
+		for (var pack : resourcePacks.entrySet()) {
+			var id = pack.getKey();
 			var p = old.getResourcePack(id);
-			if (p.isEmpty() || !Objects.equals(p.get().getHash(), pack.getHash())) {
-				onNewOrModified(id);
+			if (p.isEmpty() || !Objects.equals(p.get().getHash(), pack.getValue().getHash())) {
+				reloadState = reloadState.onNewOrModified(id);
 			}
 			boolean oldGlobal = old.resourcePacks.containsKey(id) && old.resourcePacks.get(id).isGlobal();
-			boolean newGlobal = pack.isGlobal();
+			boolean newGlobal = pack.getValue().isGlobal();
 			if (oldGlobal && !newGlobal) {
-				onNoLongerGlobal(id);
+				reloadState = reloadState.onNoLongerGlobal(id);
 			}
 			if (newGlobal && !oldGlobal) {
-				onNewGlobal(id);
+				reloadState = reloadState.onNewGlobal(id);
 			}
-		});
-		old.resourcePacks.forEach((id, pack) -> {
+		}
+
+		for (var pack : old.resourcePacks.entrySet()) {
+			var id = pack.getKey();
 			if (!resourcePacks.containsKey(id)) {
-				if (pack.isGlobal()) {
-					onNoLongerGlobal(id);
-				}
-				onRemove(id);
+				reloadState = reloadState.onRemove(id);
 			}
-		});
-	}
-
-	public boolean hasChangedButStillExists(UUID pack) {
-		return modifiedPacks.contains(pack);
-	}
-
-	public boolean isNowGlobal(UUID pack) {
-		return newGlobals.contains(pack);
+		}
+		return withReloadState(reloadState.unlessEmpty());
 	}
 
 	public Collection<Map.Entry<UUID, ResourcePack>> getResourcePacks() {
 		return Collections.unmodifiableSet(resourcePacks.entrySet());
-	}
-
-	public Iterable<UUID> getRemovedPacks() {
-		return removedPacks::iterator;
-	}
-
-	public Iterable<UUID> getPrevGlobals() {
-		return prevGlobals::iterator;
 	}
 
 	public String getServerAddress() {
@@ -234,12 +204,22 @@ public class ResourcePackConfig implements LoadAware, ReloadAware {
 	}
 
 	public ResourcePackConfig withPack(UUID uuid, ResourcePack pack) {
-		var packs = new ResourcePackConfig(
+		return new ResourcePackConfig(
 			resourcePacks.plus(uuid, pack), required, prompt, serverAddress, networkAddress, port, maxConnections, allowManualDownloads, sslSettings
 		);
-		packs.copyTransientFrom(this);
-		return packs;
 	}
+
+	public static void clearReloadState() {
+		CONFIG.modify(c -> c.withReloadState(Optional.empty()));
+	}
+
+	public ResourcePackConfig withReloadState(Optional<ReloadState> reloadState) {
+		return new ResourcePackConfig(
+			resourcePacks, required, prompt, serverAddress, networkAddress, port, maxConnections,
+			allowManualDownloads, sslSettings, reloadState
+		);
+	}
+
 
 	private void movePacks() {
 		try {
@@ -260,6 +240,11 @@ public class ResourcePackConfig implements LoadAware, ReloadAware {
 	@Override
 	public void beforeReload(ReloadCause cause) {
 		movePacks();
+	}
+
+	@Override
+	public ResourcePackConfig onModified(ResourcePackConfig oldConfig) {
+		return handleReload(oldConfig);
 	}
 
 	@Override
@@ -307,12 +292,6 @@ public class ResourcePackConfig implements LoadAware, ReloadAware {
 		} catch (IOException e) {
 			ResourcePacks.LOGGER.error(e.getMessage(), e);
 		}
-
-		cause.ifPresent(reloadCause -> ResourcePackServerManager.getServers().forEach(
-				server -> {
-					ResourcePackHelper.resendResourcePacks(server, reloadCause != SOFT);
-				}
-		));
 	}
 
 	public static class ResourcePack {
@@ -383,6 +362,37 @@ public class ResourcePackConfig implements LoadAware, ReloadAware {
 
 		public boolean allowManualDownloads() {
 			return allowManualDownloads.orElse(global);
+		}
+	}
+
+	public record ReloadState(PSet<UUID> toSubmit, PSet<UUID> toRemove, PSet<UUID> oldGlobals, PSet<UUID> newGlobals) {
+		public static final ReloadState EMPTY = new ResourcePackConfig.ReloadState(
+			HashTreePSet.empty(), HashTreePSet.empty(), HashTreePSet.empty(), HashTreePSet.empty()
+		);
+
+		public ReloadState onRemove(UUID uuid) {
+			return new ReloadState(toSubmit.minus(uuid), toRemove.plus(uuid), newGlobals.minus(uuid), oldGlobals);
+		}
+
+		public ReloadState onNewOrModified(UUID uuid) {
+			return new ReloadState(toSubmit.plus(uuid), toRemove.minus(uuid), oldGlobals, newGlobals);
+		}
+
+		public ReloadState onNewGlobal(UUID uuid) {
+			return new ReloadState(toSubmit, toRemove, oldGlobals.minus(uuid), newGlobals.plus(uuid));
+		}
+
+		public ReloadState onNoLongerGlobal(UUID uuid) {
+			return new ReloadState(toSubmit, toRemove, oldGlobals.plus(uuid), newGlobals.minus(uuid));
+		}
+
+		public boolean isEmpty() {
+			return toSubmit.isEmpty() && toRemove.isEmpty() && oldGlobals.isEmpty() && newGlobals.isEmpty();
+		}
+
+		public Optional<ReloadState> unlessEmpty() {
+			if (isEmpty()) return Optional.empty();
+			return Optional.of(this);
 		}
 	}
 }

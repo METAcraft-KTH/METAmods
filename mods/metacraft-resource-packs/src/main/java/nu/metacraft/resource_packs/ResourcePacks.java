@@ -14,7 +14,6 @@ public class ResourcePacks implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		ResourcePackServerManager.init();
 		Commands.init();
 		var f = ResourcePackConfig.RESOURCE_PACK_DIR.toFile();
 		if (!f.exists()) {
