@@ -1,0 +1,32 @@
+# test (branch dev; prod deploys here too): survival's list plus the mods being tried on test.
+# One per line: a folder under mods/, or  external <mod-id> <url> sha256:<hex>
+# metacraft-lib, metacraft-core and metacraft-zones are added when a listed mod needs them.
+# How to change this: deploy/README.md
+better-pets
+discord-chat-fixer
+faster-minecarts
+metacraft-bosses
+metacraft-bundles
+metacraft-cutscenes
+metacraft-dungeons
+metacraft-fake-player-blocker
+metacraft-info-commands
+metacraft-loot-containers
+metacraft-moderation
+metacraft-pause
+metacraft-player-specific-scoreboards
+metacraft-plots
+metacraft-relay
+metacraft-repair-fix
+metacraft-resource-packs
+metacraft-revival
+metacraft-saved-items
+metacraft-season-5
+metacraft-weather
+portable-jukebox
+portal-blocker
+simple-custom-features
+# only on test
+metacraft-mob-modifiers
+metacraft-player-trading
+portal-opening
