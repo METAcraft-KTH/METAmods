@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "metacraft.ovvar.compat.danse.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"plugin": "metacraft.ovvar.compat.danse.DanseMixinPlugin",
+	"mixins": [
+		"GestureControllerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

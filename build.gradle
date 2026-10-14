@@ -220,6 +220,17 @@ subprojects {
 			}
 			filter { includeModule("Froosty11", "polydecorations") }
 		}
+		// Our danse fork (body layers for ovvar), from its GitHub releases: tag v<version>, jar <version>+26.3
+		exclusiveContent {
+			forRepository {
+				ivy {
+					url = "https://github.com/Froosty11/danse/releases/download/"
+					patternLayout { artifact "v[revision]/[module]-[revision]+26.3.[ext]" }
+					metadataSources { artifact() }
+				}
+			}
+			filter { includeModule("Froosty11", "danse") }
+		}
     }
 }
 
