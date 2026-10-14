@@ -6,6 +6,7 @@ import nu.metacraft.lib.scheduler.METAcraftScheduleTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import nu.metacraft.lib.condition.METAcraftConditions;
+import nu.metacraft.lib.custom_message.CustomMessageRegistry;
 import nu.metacraft.lib.time_getter.RegularTimeGetterRegistry;
 
 public class METAcraftLib implements ModInitializer {
@@ -21,6 +22,8 @@ public class METAcraftLib implements ModInitializer {
 		Commands.init();
 		Recipes.init();
 		METAcraftScheduleTypes.init();
+		// registered up front: left to the first click on a custom action, it lands after the registries froze
+		CustomMessageRegistry.init();
 	}
 
 	public static Identifier getID(String id) {
