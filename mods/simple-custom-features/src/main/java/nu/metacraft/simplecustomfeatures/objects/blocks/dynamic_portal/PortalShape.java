@@ -24,6 +24,8 @@ public class PortalShape {
 	private final Set<Direction> directions;
 
 	private boolean valid = false;
+	@org.jetbrains.annotations.Nullable
+	private Runnable claimedBy;
 
 	private final Queue<BlockPos> positionsToSearchNext = new ArrayListDeque<>();
 	private final Set<BlockPos> exploredPositions = new HashSet<>();
@@ -66,6 +68,10 @@ public class PortalShape {
 	}
 
 	public void activate(LevelAccessor world) {
+		if (claimedBy != null) {
+			claimedBy.run();
+			return;
+		}
 		var state = portal.defaultBlockState().setValue(NetherPortalBlock.AXIS, axis);
 		insidePortal.forEach(pos -> {
 			world.setBlock(pos, state, Block.UPDATE_ALL);
@@ -94,6 +100,13 @@ public class PortalShape {
 		}
 		if (insidePortal.size() < portal.getPortal().getMinArea()) {
 			return;
+		}
+		if (world instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+			claimedBy = DynamicPortalEvents.CLAIM.invoker().claim(serverLevel, portal, axis, Set.copyOf(insidePortal));
+			if (claimedBy != null) {
+				valid = true;
+				return;
+			}
 		}
 		if (IsLoaded.PORTAL_BLOCKER.isLoaded()) {
 			if (world instanceof Level w && !w.isClientSide()) {

@@ -1,0 +1,22 @@
+### Section: PageInfo
+title=Chained Ghast
+description=A ghast with a crewed deck hung under it, in large rifts from wave 5.
+category=metacraft:nether/mobs
+icon=minecraft:iron_chain
+order=1
+### EndSection: PageInfo
+### Header: Tells
+### Image: metacraft:beside/rifts/chained_ghast A ghast in a harness, with a wooden deck hung on chains about 6 blocks below it and four piglins on the deck. Large rifts send one in wave 5 and two in wave 7.<nl2>It floats no more than 20 blocks above the ground and goes after players below it.
+
+### Header: The crew
+Each piglin on the deck has a job. Shoot or hit them one at a time: kill one and its job stops.
+- <bold>The spear piglin</bold> stabs the ghast to make it shoot fireballs. Without it, no fireballs.
+- <bold>The Piglin Grenadier</bold> drops magma bombs on bombing runs. Without it, no runs.
+- <bold>The crossbow piglin</bold> shoots a bolt every 3 seconds at a player it can see within 24 blocks.
+- <bold>The drummer</bold> drums with every other drummer, and its big beat buffs the piglins on the deck and on the ground below. It can't knock you back from up there.
+
+### Header: Bombing runs
+The ghast dives until its deck is about 4 blocks above you, then flies straight across you while the Grenadier drops bombs. A ring of flame marks where each bomb will land, a second before it does. Then the ghast climbs back up, and waits 5 seconds before the next run.
+
+### Header: Weaknesses
+The deck is cover: the crew take only 60% of the damage, and arrows from below hit the wood. Shoot from the side, or hit them while the deck is low on a run. The ghast itself has only a ghast's health.<nl2>When the ghast dies, the crew still on board jump off and glide down with Slow Falling, then fight on foot.

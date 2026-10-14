@@ -1,0 +1,34 @@
+{
+	"type": "minecraft:entity",
+	"random_sequence": "nether_rifts:entities/captain",
+	"pools": [
+		{
+			"rolls": 1,
+			"condition": {"type": "minecraft:killed_by_player"},
+			"entries": [{
+				"type": "minecraft:item",
+				"name": "minecraft:piglin_head",
+				"modifier": [{"type": "minecraft:set_name", "name": "Piglin General", "target": "item_name"}]
+			}]
+		},
+		{
+			"rolls": 1,
+			"condition": {"type": "minecraft:killed_by_player"},
+			"entries": [{"type": "minecraft:item", "name": "minecraft:blaze_rod"}]
+		},
+		{
+			"rolls": 1,
+			"condition": {"type": "minecraft:all_of", "terms": [{"type": "minecraft:killed_by_player"}, {"type": "minecraft:random_chance", "chance": 0.25}]},
+			"entries": [{"type": "minecraft:item", "name": "minecraft:piglin_banner_pattern"}]
+		},
+		{
+			"rolls": 1,
+			"condition": {"type": "minecraft:killed_by_player"},
+			"entries": [{
+				"type": "minecraft:item",
+				"name": "minecraft:quartz",
+				"modifier": [{"type": "minecraft:set_count", "count": {"type": "minecraft:uniform", "min": 4, "max": 8}}]
+			}]
+		}
+	]
+}

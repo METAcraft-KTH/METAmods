@@ -81,6 +81,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.animal.cow.Cow;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Items;
@@ -142,6 +144,7 @@ public final class BookletRenders implements FabricClientGameTest {
 
 				server.runOnServer(mc -> build(mc.overworld()));
 				buildBrewing(server);
+				buildRifts(server);
 				// Mail in the mailboxes, so their flags are up.
 				for (BlockPos box : List.of(new BlockPos(50, -59, 20), new BlockPos(88, -59, 21))) {
 					server.runCommand("data merge block " + box.getX() + " " + box.getY() + " " + box.getZ()
@@ -306,7 +309,13 @@ public final class BookletRenders implements FabricClientGameTest {
 			new Scene("brewing/barrel", new BlockPos(30, -60, 28), new BlockPos(35, -57, 30), 70),
 			new Scene("brewing/barrel_frame", new BlockPos(52, -60, 28), new BlockPos(52, -57, 34), 70),
 			new Scene("brewing/drinks", new BlockPos(39, -60, 30), new BlockPos(43, -59, 30), 85),
-			new Scene("brewing/chapter_drinks", new BlockPos(46, -60, 30), new BlockPos(49, -59, 30), 90));
+			new Scene("brewing/chapter_drinks", new BlockPos(46, -60, 30), new BlockPos(49, -59, 30), 90),
+			new Scene("rifts/rift", new BlockPos(19, -61, 49), new BlockPos(24, -56, 51), 55),
+			new Scene("rifts/drummer", new BlockPos(29, -60, 49), new BlockPos(31, -58, 51), 80),
+			// the deck hangs about 6 blocks under the ghast: the box reaches down to it
+			new Scene("rifts/chained_ghast", new BlockPos(36, -60, 48), new BlockPos(45, -48, 57), 45),
+			new Scene("rifts/grenadier", new BlockPos(47, -60, 49), new BlockPos(49, -58, 51), 80),
+			new Scene("rifts/general", new BlockPos(51, -60, 49), new BlockPos(53, -57, 51), 80));
 
 	private static void build(ServerLevel level) {
 		// ---- ovvar
@@ -506,6 +515,68 @@ public final class BookletRenders implements FabricClientGameTest {
 		// shelves of drinks: Brewery's own, and the chapter drinks, in frames on a wall
 		shelf(server, 39, List.of("brewery:beer", "brewery:wine", "brewery:vodka", "brewery:mead", "brewery:cider"), List.of());
 		shelf(server, 46, List.of("kultur:alcohol", "kultur:spiken", "kultur:slaggan", "kultur:nyckeln"), List.of("kultur:spiken", "kultur:slaggan"));
+	}
+
+	/**
+	 * The Rifts chapter's scenes (nether-rifts, by id: this source set needs none of its classes): an obsidian frame
+	 * with a rift in it (lit once: the render squeezes the cracks of a rift lit twice into a red smear), and the rift
+	 * mobs, without the ground under them so they come out large. The mobs stand still (no AI) and
+	 * are tagged as nether-rifts' showcase mobs, so the Chained Ghast's crossbow piglin and drummer only stand there.
+	 * Hostile mobs go in peaceful, so the world is set to normal first; nothing spawns on its own (spawn-monsters is
+	 * off).
+	 */
+	private static void buildRifts(TestDedicatedServerContext server) {
+		server.runCommand("difficulty normal");
+		server.runOnServer(mc -> {
+			ServerLevel level = mc.overworld();
+			// a plain portal's frame, 4 wide and 5 tall, standing on blackstone
+			for (int x = 19; x <= 24; x++) for (int z = 49; z <= 51; z++) {
+				level.setBlockAndUpdate(new BlockPos(x, -61, z), Blocks.BLACKSTONE.defaultBlockState());
+			}
+			for (int x = 20; x <= 23; x++) for (int y = -60; y <= -56; y++) {
+				if (x == 20 || x == 23 || y == -60 || y == -56) {
+					level.setBlockAndUpdate(new BlockPos(x, y, 50), Blocks.OBSIDIAN.defaultBlockState());
+				}
+			}
+			riftMob(level, "war_drummer", 30.5, -60, 50.5);
+			riftMob(level, "war_ghast", 40.5, -53, 52.5);
+			riftMob(level, "ghast_bombardier", 48.5, -60, 50.5);
+			// the Piglin General as nether-rifts' roster sends it: a brute with a red banner on its head and a golden axe
+			Mob general = EntityTypes.PIGLIN_BRUTE.create(level, EntitySpawnReason.COMMAND);
+			still(level, general, 52.5, -60, 50.5);
+			general.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.BANNER.red()));
+			general.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.GOLDEN_AXE));
+			level.addFreshEntity(general);
+		});
+		server.runCommand("rifts form 21 -59 50");
+	}
+
+	/** A nether-rifts mob, spawned as {@code /summon} would (its kit), standing still. */
+	private static void riftMob(ServerLevel level, String id, double x, double y, double z) {
+		var type = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.fromNamespaceAndPath("nether_rifts", id));
+		if (!(type.create(level, EntitySpawnReason.COMMAND) instanceof Mob mob)) {
+			throw new AssertionError("no nether_rifts:" + id + " to render");
+		}
+		still(level, mob, x, y, z);
+		level.addFreshEntity(mob);
+	}
+
+	/**
+	 * Faces the camera, no AI, silent, never hurt, despawning or turning zombie, and tagged as a nether-rifts
+	 * showcase mob; then finalised as a summon is (a Chained Ghast's crew's kit).
+	 */
+	private static void still(ServerLevel level, Mob mob, double x, double y, double z) {
+		float yaw = 30;   // toward the camera, south-west
+		mob.snapTo(x, y, z, yaw, 0);
+		mob.setYHeadRot(yaw);
+		mob.setYBodyRot(yaw);
+		mob.setNoAi(true);
+		mob.setSilent(true);
+		mob.setPermanentlyInvulnerable(true);
+		mob.setPersistenceRequired();
+		mob.addTag("nether_rifts.showcase");
+		if (mob instanceof AbstractPiglin piglin) piglin.setImmuneToZombification(true);
+		mob.finalizeSpawn(level, level.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.COMMAND, null);
 	}
 
 	private static void floating(ServerLevel level, double x, double y, double z, ItemStack stack) {

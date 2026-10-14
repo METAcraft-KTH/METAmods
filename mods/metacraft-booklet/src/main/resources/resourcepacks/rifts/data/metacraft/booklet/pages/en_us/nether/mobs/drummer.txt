@@ -1,0 +1,20 @@
+### Section: PageInfo
+title=Piglin Drummer
+description=A piglin with a war drum. It leads every wave from the second one on.
+category=metacraft:nether/mobs
+icon=minecraft:note_block
+order=2
+### EndSection: PageInfo
+### Header: Tells
+### Image: metacraft:beside/rifts/drummer A piglin with a war drum. It never swings at you, and it keeps its distance while it drums.<nl2>You hear it before you see it. When it sees a player within 16 blocks, it lets out a war cry and drums a beat every half second.
+
+### Header: The big beat
+Every fourth beat it stops, raises its arms with a roar, and slams the drum in a ring of flame.
+- Piglins within 12 blocks get Speed and Strength for 6 seconds.
+- Players within 4 blocks take 2 hearts of damage and are thrown back.
+
+### Header: Weaknesses
+Every drummer keeps time with the world clock, so they all beat and slam together, and the beat never changes. Hit between slams, and step back when the arms go up. It has 30 health and can wear armour. Kill it first: no drummer, no buffs.
+
+### Header: In the nether
+Now and then a drummer walks with the nether's own piglins: about 3 in every 100 piglins that spawn there bring one. It drums when its piglins fight and buffs them. Like them, it may wear gold armour, its big beat spares players who wear gold, and it turns zombie in the overworld. Hit it and the piglins near it turn on you.<nl2>A rift's drummer never turns zombie, and gold never spares you from a rift raid.

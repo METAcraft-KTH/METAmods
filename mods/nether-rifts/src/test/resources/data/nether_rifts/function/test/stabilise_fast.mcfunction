@@ -1,0 +1,2 @@
+rifts stabilise
+riftstest fast

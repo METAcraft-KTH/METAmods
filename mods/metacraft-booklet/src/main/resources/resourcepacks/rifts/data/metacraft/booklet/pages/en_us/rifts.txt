@@ -1,0 +1,14 @@
+### Section: PageInfo
+title=Unstable Portals
+external_title=Unstable Portals
+description=Lit nether portals open rifts for now. Tear one open and the nether sends a raid.
+category=metacraft:nether
+icon=minecraft:crying_obsidian
+order=20
+### EndSection: PageInfo
+### Header: The realm is unstable
+For now a lit nether portal takes you nowhere. It opens a <bold>rift</bold>: a cracked, flickering tear in the frame, with the nether showing through.<nl>
+
+Light a rift twice more and it tears open. Piglins come through in waves, led by drummers and bombed from chained ghasts: a <pagelink 'metacraft:nether/piglin_raid'><u>Piglin Raid</u></pagelink>. Beat every wave and the rift pays out in gold and glowstone.
+
+### Category Entries: metacraft:rifts

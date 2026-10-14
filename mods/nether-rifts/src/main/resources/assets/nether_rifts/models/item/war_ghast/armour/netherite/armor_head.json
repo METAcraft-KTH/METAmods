@@ -1,0 +1,165 @@
+{
+	"textures": {
+		"0": "minecraft:entity/equipment/humanoid/netherite",
+		"particle": "minecraft:entity/equipment/humanoid/netherite"
+	},
+	"elements": [
+		{
+			"from": [
+				2.98,
+				6.98,
+				2.98
+			],
+			"to": [
+				13.02,
+				17.02,
+				13.02
+			],
+			"faces": {
+				"east": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						0.0,
+						4.0,
+						2.0,
+						8.0
+					]
+				},
+				"west": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						4.0,
+						4.0,
+						6.0,
+						8.0
+					]
+				},
+				"up": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						4.0,
+						4.0,
+						2.0,
+						0.0
+					]
+				},
+				"down": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						6.0,
+						0.0,
+						4.0,
+						4.0
+					]
+				},
+				"south": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						6.0,
+						4.0,
+						8.0,
+						8.0
+					]
+				},
+				"north": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						2.0,
+						4.0,
+						4.0,
+						8.0
+					]
+				}
+			}
+		},
+		{
+			"from": [
+				2.48,
+				6.48,
+				2.48
+			],
+			"to": [
+				13.52,
+				17.52,
+				13.52
+			],
+			"faces": {
+				"east": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						8.0,
+						4.0,
+						10.0,
+						8.0
+					]
+				},
+				"west": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						12.0,
+						4.0,
+						14.0,
+						8.0
+					]
+				},
+				"up": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						12.0,
+						4.0,
+						10.0,
+						0.0
+					]
+				},
+				"down": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						14.0,
+						0.0,
+						12.0,
+						4.0
+					]
+				},
+				"south": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						14.0,
+						4.0,
+						16.0,
+						8.0
+					]
+				},
+				"north": {
+					"texture": "#0",
+					"tintindex": 0,
+					"uv": [
+						10.0,
+						4.0,
+						12.0,
+						8.0
+					]
+				}
+			}
+		}
+	],
+	"display": {
+		"head": {
+			"rotation": [
+				0,
+				180,
+				0
+			]
+		}
+	}
+}

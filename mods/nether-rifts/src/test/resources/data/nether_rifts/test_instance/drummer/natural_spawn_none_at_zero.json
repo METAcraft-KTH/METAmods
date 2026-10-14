@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:drummer_never", "function": "nether_rifts:drummer/natural_spawn_none_at_zero", "max_ticks": 600, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

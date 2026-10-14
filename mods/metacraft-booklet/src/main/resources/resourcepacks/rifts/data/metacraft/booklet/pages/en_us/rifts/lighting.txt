@@ -1,0 +1,17 @@
+### Section: PageInfo
+title=Lighting a rift
+description=Light a rift three times to tear it open. Everyone near it is warned first.
+category=metacraft:rifts
+icon=minecraft:flint_and_steel
+order=1
+### EndSection: PageInfo
+### Header: Three lights
+- <bold>First light:</bold> light a nether portal frame in the overworld and a rift opens. Everyone within 32 blocks is warned in chat.
+- <bold>Second light:</bold> use <citem 'minecraft:flint_and_steel'> or a <citem 'minecraft:fire_charge'> on the rift or its frame. It strains, one light from tearing. Leave it for 5 minutes and it settles back.
+- <bold>Third light:</bold> it tears open. A horn sounds, and the first wave comes 10 seconds later.<nl>
+
+Break a frame block and a quiet rift fades.<nl>
+
+<gray>The realm can only take 4 torn rifts at once. A third light is refused until one closes.</gray><nl>
+
+What comes through after the third light: see <pagelink 'metacraft:nether/piglin_raid'><u>Piglin Raid</u></pagelink>.

@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:stabilised", "function": "nether_rifts:stabilise/crying_opens_after", "max_ticks": 20, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

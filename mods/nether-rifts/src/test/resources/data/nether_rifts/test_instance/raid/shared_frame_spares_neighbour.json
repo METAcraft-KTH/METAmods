@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:fast", "function": "nether_rifts:raid/shared_frame_spares_neighbour", "max_ticks": 300, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

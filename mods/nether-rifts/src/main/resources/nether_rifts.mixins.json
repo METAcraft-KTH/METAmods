@@ -1,0 +1,28 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "nu.metacraft.nether_rifts.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"BaseFireBlockMixin",
+		"CrafterBlockMixin",
+		"CraftingMenuMixin",
+		"EnchantmentHelperMixin",
+		"GhastShootFireballGoalMixin",
+		"HoglinAccessor",
+		"InteractionAccessor",
+		"LargeFireballMixin",
+		"MobAccessor",
+		"MobMixin",
+		"PiglinAiInvoker",
+		"PiglinAiMixin",
+		"PiglinMixin",
+		"PiglinSpecificSensorMixin",
+		"PortalShapeAccessor",
+		"ProjectileMixin"
+	],
+	"client": [],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

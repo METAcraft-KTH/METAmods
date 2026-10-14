@@ -1,0 +1,14 @@
+### Section: PageInfo
+title=Amplified Nether
+description=What the nether will be like when it opens.
+category=metacraft:nether
+icon=minecraft:crimson_nylium
+order=40
+### EndSection: PageInfo
+When the nether opens, it will not be the nether you know.
+
+- It is <bold>amplified</bold>: the ground climbs and drops far more steeply than before.
+- It has <bold>more biomes</bold> to find.
+- Its <bold>roof is closed</bold>: there is no getting up above the bedrock ceiling.<nl>
+
+<gray>It opens when the realm stabilises: see <pagelink 'metacraft:rifts/stabilising'><u>Stabilising</u></pagelink>.</gray>

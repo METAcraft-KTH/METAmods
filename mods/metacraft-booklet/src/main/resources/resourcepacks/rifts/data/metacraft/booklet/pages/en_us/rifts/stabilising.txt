@@ -1,0 +1,12 @@
+### Section: PageInfo
+title=Stabilising
+description=The realm will stabilise in time, and the nether will open.
+category=metacraft:rifts
+icon=minecraft:ender_eye
+order=2
+### EndSection: PageInfo
+### Header: The realm will stabilise in time
+While the realm is unstable, an <citem 'minecraft:ender_eye'> can't be crafted. When it steadies, waiting rifts turn into working nether portals, new portals light as normal, and raids still running finish as usual.
+
+### Header: Crying obsidian
+After that, a frame of <citem 'minecraft:crying_obsidian'> in the overworld opens a rift on purpose. Light it with flint and steel or a fire charge, and the three lights, sizes and spoils work as before. Any closed shape works, up to 21 blocks wide and tall.<nl2>Each crying-obsidian frame gives one raid, then crumbles away.

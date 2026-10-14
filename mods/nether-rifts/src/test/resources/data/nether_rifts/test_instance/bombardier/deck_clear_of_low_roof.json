@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:default", "function": "nether_rifts:bombardier/deck_clear_of_low_roof", "max_ticks": 340, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

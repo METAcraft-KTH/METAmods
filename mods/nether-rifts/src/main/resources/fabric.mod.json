@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "nether-rifts",
+	"version": "${version}",
+	"name": "Nether Rifts",
+	"description": "Until the realm is stabilised, nether portals open into rifts that raid the overworld.",
+	"authors": ["Froosty11"],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["nu.metacraft.nether_rifts.NetherRifts"]
+	},
+	"mixins": ["nether_rifts.mixins.json"],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"fabric-api": "*",
+		"minecraft": "~${minecraft_version}",
+		"metacraft-lib": "*",
+		"metacraft-config": "*",
+		"metacraft-core": "*",
+		"portal-blocker": "*",
+		"portal-opening": "*",
+		"bil": ">=2.0.5"
+	},
+	"recommends": {
+		"simple-custom-features": "*"
+	},
+	"suggests": {
+		"metacraft-booklet": "*"
+	}
+}

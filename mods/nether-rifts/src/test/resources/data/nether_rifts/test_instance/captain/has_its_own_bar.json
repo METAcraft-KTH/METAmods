@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:fast", "function": "nether_rifts:captain/has_its_own_bar", "max_ticks": 100, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

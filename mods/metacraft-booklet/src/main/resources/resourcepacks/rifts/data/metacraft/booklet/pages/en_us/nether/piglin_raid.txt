@@ -1,0 +1,44 @@
+### Section: PageInfo
+title=Piglin Raid
+description=A torn rift sends waves of piglins. Bigger rifts send longer raids, led by the Piglin General, and pay more.
+category=metacraft:nether
+icon=minecraft:piglin_head
+order=30
+### EndSection: PageInfo
+### Header: Sizes
+A rift's size is the number of blocks inside its frame. A plain portal is 6 blocks, so it is small.
+- <bold>Small</bold>, up to 20 blocks: 3 waves.
+- <bold>Medium</bold>, 21 to 60 blocks: 5 waves.
+- <bold>Large</bold>, 61 blocks or more: 7 waves. Chained ghasts come in waves 5 and 7, and the Piglin General in the last.
+
+### Header: The raid
+Everyone within 48 blocks takes part. Each player after the first brings a quarter more piglins and hoglins, up to twice as many. A boss bar counts down the wave; the next one comes when the last mob is dead. After 90 seconds, the stragglers glow.<nl2>Rift mobs that stray more than 64 blocks are pulled back to the rift. Gold won't help you: rift piglins attack players in gold armour and never barter.<nl2>If nobody stays within 48 blocks for 3 minutes, the rift collapses with no reward. Breaking a frame block collapses a raiding rift too.
+
+### Header: Who comes through
+Crossbow piglins, spear piglins and hoglins make up most of a wave. Later waves add ghasts with a piglin on board, striders with riders, and brutes with golden axes. From wave 2, a <pagelink 'metacraft:nether/mobs/drummer'><u>Piglin Drummer</u></pagelink> leads each wave. See <pagelink 'metacraft:nether/mobs'><u>New Mobs</u></pagelink> for the rest.
+
+### Header: The Piglin General
+### Image: metacraft:beside/rifts/general A piglin brute with a red banner on its head and a golden axe. It comes in the last wave of a large rift, with 100 health, twice a brute's. It has a red boss bar of its own.
+
+### Body:
+Killed by a player, it drops:
+- its head, a <citem 'minecraft:piglin_head'> named Piglin General;
+- a <citem 'minecraft:blaze_rod'>;
+- 4 to 8 <citem 'minecraft:quartz'>;
+- one time in four, a <citem 'minecraft:piglin_banner_pattern'>.
+
+### Header: Spoils
+Rift piglins only drop loot when a player kills them, and no rift mob drops its gear.
+- Piglins: up to 2 <citem 'minecraft:quartz'> and 3 gold nuggets, often <citem 'minecraft:glowstone_dust'>, sometimes <citem 'minecraft:nether_wart'>.
+- Brutes: the same, and always a <citem 'minecraft:blaze_rod'>.
+- Piglin Drummers: the same, and always a <citem 'minecraft:gold_ingot'>.
+- Hoglins, ghasts and striders: their usual drops.
+
+### Header: Winning
+Win the last wave and the rift bursts into gold ingots and glowstone dust:
+- <bold>Small:</bold> 3 to 5 gold, 4 to 8 glowstone.
+- <bold>Medium:</bold> 6 to 10 gold, 8 to 16 glowstone.
+- <bold>Large:</bold> 12 to 18 gold, 16 to 24 glowstone.
+
+### Header: The frame
+When a torn rift closes, won or lost, its obsidian frame turns to <citem 'minecraft:crying_obsidian'>. Keep it: see <pagelink 'metacraft:rifts/stabilising'><u>Stabilising</u></pagelink>.

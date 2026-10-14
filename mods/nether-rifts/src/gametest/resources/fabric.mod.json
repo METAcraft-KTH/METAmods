@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "nether-rifts-clienttest",
+	"version": "1.0.0",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": ["nu.metacraft.nether_rifts.clienttest.RiftClientTests", "nu.metacraft.nether_rifts.clienttest.PanoramaCapture"]
+	},
+	"mixins": ["nether-rifts-clienttest.mixins.json"],
+	"depends": {
+		"nether-rifts": "*",
+		"metacraft-qol": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}

@@ -1,0 +1,12 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "nether_rifts:item/war_ghast/armour/gold/armor_feet_left",
+		"tints": [
+			{
+				"type": "minecraft:dye",
+				"default": -1
+			}
+		]
+	}
+}

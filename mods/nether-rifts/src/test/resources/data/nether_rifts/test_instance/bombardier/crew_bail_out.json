@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:default", "function": "nether_rifts:bombardier/crew_bail_out", "max_ticks": 140, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:stabilised", "function": "nether_rifts:eye/table_unlocked", "max_ticks": 20, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

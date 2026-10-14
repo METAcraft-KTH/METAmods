@@ -1,0 +1,12 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "nether_rifts:item/war_ghast/armour/diamond/armor_legs",
+		"tints": [
+			{
+				"type": "minecraft:dye",
+				"default": -1
+			}
+		]
+	}
+}

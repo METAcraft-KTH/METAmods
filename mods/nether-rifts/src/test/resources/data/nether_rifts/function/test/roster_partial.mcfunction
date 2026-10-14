@@ -1,0 +1,1 @@
+riftstest roster_partial

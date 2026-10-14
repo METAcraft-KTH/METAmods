@@ -1,0 +1,12 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "nether_rifts:item/war_ghast/armour/chainmail/armor_chest",
+		"tints": [
+			{
+				"type": "minecraft:dye",
+				"default": -1
+			}
+		]
+	}
+}

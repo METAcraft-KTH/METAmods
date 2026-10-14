@@ -1,0 +1,938 @@
+{
+	"credit": "PLACEHOLDER for nether-rifts' Ghast Bombardier helmet (goggles only, matching the deck figure in war_ghast.bbmodel); to be replaced by an artist's model. Drawn on a piglin's head by the head display.",
+	"textures": {
+		"strap": "minecraft:block/brown_wool",
+		"lens": "minecraft:block/light_blue_stained_glass",
+		"rim": "minecraft:block/gold_block",
+		"particle": "minecraft:block/brown_wool"
+	},
+	"elements": [
+		{
+			"name": "goggle_strap",
+			"from": [
+				-0.4,
+				8.0,
+				1.2
+			],
+			"to": [
+				16.4,
+				11.2,
+				14.8
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						16,
+						3.2
+					],
+					"texture": "#strap"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						16,
+						3.2
+					],
+					"texture": "#strap"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						13.6,
+						3.2
+					],
+					"texture": "#strap"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						13.6,
+						3.2
+					],
+					"texture": "#strap"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						16,
+						13.6
+					],
+					"texture": "#strap"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						16,
+						13.6
+					],
+					"texture": "#strap"
+				}
+			}
+		},
+		{
+			"name": "goggle_bridge",
+			"from": [
+				6.88,
+				8.96,
+				0.72
+			],
+			"to": [
+				9.12,
+				10.24,
+				1.2
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						2.24,
+						1.28
+					],
+					"texture": "#rim"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						2.24,
+						1.28
+					],
+					"texture": "#rim"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						0.48,
+						1.28
+					],
+					"texture": "#rim"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						0.48,
+						1.28
+					],
+					"texture": "#rim"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						2.24,
+						0.48
+					],
+					"texture": "#rim"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						2.24,
+						0.48
+					],
+					"texture": "#rim"
+				}
+			}
+		},
+		{
+			"name": "lens_right",
+			"from": [
+				1.6,
+				8.0,
+				0.4
+			],
+			"to": [
+				6.4,
+				11.2,
+				1.2
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						4.8,
+						3.2
+					],
+					"texture": "#lens"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						4.8,
+						3.2
+					],
+					"texture": "#lens"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						0.8,
+						3.2
+					],
+					"texture": "#lens"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						0.8,
+						3.2
+					],
+					"texture": "#lens"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						4.8,
+						0.8
+					],
+					"texture": "#lens"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						4.8,
+						0.8
+					],
+					"texture": "#lens"
+				}
+			}
+		},
+		{
+			"name": "rim_right_top",
+			"from": [
+				1.04,
+				11.2,
+				0.56
+			],
+			"to": [
+				6.96,
+				11.76,
+				1.2
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.64
+					],
+					"texture": "#rim"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.64
+					],
+					"texture": "#rim"
+				}
+			}
+		},
+		{
+			"name": "rim_right_bottom",
+			"from": [
+				1.04,
+				7.44,
+				0.56
+			],
+			"to": [
+				6.96,
+				8.0,
+				1.2
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.64
+					],
+					"texture": "#rim"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.64
+					],
+					"texture": "#rim"
+				}
+			}
+		},
+		{
+			"name": "rim_right_a",
+			"from": [
+				6.4,
+				8.0,
+				0.56
+			],
+			"to": [
+				6.96,
+				11.2,
+				1.2
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						0.64
+					],
+					"texture": "#rim"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						0.64
+					],
+					"texture": "#rim"
+				}
+			}
+		},
+		{
+			"name": "rim_right_b",
+			"from": [
+				1.04,
+				8.0,
+				0.56
+			],
+			"to": [
+				1.6,
+				11.2,
+				1.2
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						0.64
+					],
+					"texture": "#rim"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						0.64
+					],
+					"texture": "#rim"
+				}
+			}
+		},
+		{
+			"name": "lens_left",
+			"from": [
+				9.6,
+				8.0,
+				0.4
+			],
+			"to": [
+				14.4,
+				11.2,
+				1.2
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						4.8,
+						3.2
+					],
+					"texture": "#lens"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						4.8,
+						3.2
+					],
+					"texture": "#lens"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						0.8,
+						3.2
+					],
+					"texture": "#lens"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						0.8,
+						3.2
+					],
+					"texture": "#lens"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						4.8,
+						0.8
+					],
+					"texture": "#lens"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						4.8,
+						0.8
+					],
+					"texture": "#lens"
+				}
+			}
+		},
+		{
+			"name": "rim_left_top",
+			"from": [
+				9.04,
+				11.2,
+				0.56
+			],
+			"to": [
+				14.96,
+				11.76,
+				1.2
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.64
+					],
+					"texture": "#rim"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.64
+					],
+					"texture": "#rim"
+				}
+			}
+		},
+		{
+			"name": "rim_left_bottom",
+			"from": [
+				9.04,
+				7.44,
+				0.56
+			],
+			"to": [
+				14.96,
+				8.0,
+				1.2
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						0.56
+					],
+					"texture": "#rim"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.64
+					],
+					"texture": "#rim"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						5.92,
+						0.64
+					],
+					"texture": "#rim"
+				}
+			}
+		},
+		{
+			"name": "rim_left_a",
+			"from": [
+				14.4,
+				8.0,
+				0.56
+			],
+			"to": [
+				14.96,
+				11.2,
+				1.2
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						0.64
+					],
+					"texture": "#rim"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						0.64
+					],
+					"texture": "#rim"
+				}
+			}
+		},
+		{
+			"name": "rim_left_b",
+			"from": [
+				9.04,
+				8.0,
+				0.56
+			],
+			"to": [
+				9.6,
+				11.2,
+				1.2
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						0.64,
+						3.2
+					],
+					"texture": "#rim"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						0.64
+					],
+					"texture": "#rim"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						0.56,
+						0.64
+					],
+					"texture": "#rim"
+				}
+			}
+		}
+	],
+	"display": {
+		"head": {
+			"rotation": [
+				0,
+				0,
+				0
+			],
+			"translation": [
+				0,
+				0,
+				0
+			],
+			"scale": [
+				1,
+				1,
+				1
+			]
+		},
+		"gui": {
+			"rotation": [
+				20,
+				200,
+				0
+			],
+			"translation": [
+				0,
+				-4,
+				0
+			],
+			"scale": [
+				1,
+				1,
+				1
+			]
+		},
+		"ground": {
+			"translation": [
+				0,
+				-2,
+				0
+			],
+			"scale": [
+				0.5,
+				0.5,
+				0.5
+			]
+		},
+		"fixed": {
+			"rotation": [
+				0,
+				180,
+				0
+			],
+			"translation": [
+				0,
+				-3,
+				0
+			],
+			"scale": [
+				0.8,
+				0.8,
+				0.8
+			]
+		},
+		"thirdperson_righthand": {
+			"rotation": [
+				75,
+				45,
+				0
+			],
+			"translation": [
+				0,
+				0,
+				0
+			],
+			"scale": [
+				0.375,
+				0.375,
+				0.375
+			]
+		},
+		"firstperson_righthand": {
+			"rotation": [
+				0,
+				45,
+				0
+			],
+			"translation": [
+				0,
+				-2,
+				0
+			],
+			"scale": [
+				0.4,
+				0.4,
+				0.4
+			]
+		}
+	}
+}

@@ -1,0 +1,68 @@
+version = project.nether_rifts_version
+
+addCoreDependencies()
+addConfigDependency()
+addProjectDependency(":mods:metacraft-zones")
+addProjectDependency(":mods:portal-blocker")
+addProjectDependency(":mods:portal-opening")
+addProjectDependency(":mods:simple-custom-features")
+
+// Client screenshot tests (src/gametest, runClientGameTest): a vanilla client joins an in-process server and looks at rifts.
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "nether-rifts-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}
+
+dependencies {
+	implementation include("eu.pb4:polymer-blocks:${project.polymer_version}")
+	implementation include("de.tomalbrc:blockbench-import-library:2.2.0+26.3-rc-3")
+	implementation include("eu.pb4:polymer-resource-pack-extras:${project.polymer_version}")
+	// The chat warning opens metacraft-booklet's Rifts chapter. metacraft-booklet ships Booklet,
+	// so nether-rifts only compiles against it, and links only when the guidebook is there.
+	compileOnly("eu.pb4:booklet:${project.booklet_version}")
+	testImplementation("eu.pb4:booklet:${project.booklet_version}")
+	// the void anchor in the same client run: the shared shader must draw both rifts
+	gametestRuntimeOnly project(":mods:metacraft-qol")
+}
+
+// The same client tests under a shaderpack: -Piris=<shaderpack .zip> adds Iris and Sodium to the test client and
+// turns that pack on. Iris replaces the vanilla item shader, so the rifts show whatever the pack does with them;
+// the test then logs what it measures instead of failing (RIFTS_SHADERPACK names the pack).
+if (project.hasProperty('iris')) {
+	def pack = file(project.property('iris'))
+	dependencies {
+		gametestRuntimeOnly("maven.modrinth:iris:1.11.7+26.3-fabric")
+		gametestRuntimeOnly("maven.modrinth:sodium:mc26.3-0.9.3-alpha.1-fabric")
+	}
+	tasks.named('runClientGameTest') {
+		def runDir = file('build/run/clientGameTest')
+		environment('RIFTS_SHADERPACK', pack.name)
+		doFirst {
+			delete fileTree("$runDir/shaderpacks")
+			project.copy { from pack; into "$runDir/shaderpacks" }
+			file("$runDir/config").mkdirs()
+			file("$runDir/config/iris.properties").text = "enableShaders=true\nshaderPack=${pack.name}\n"
+		}
+	}
+}
+
+// -PcapturePanorama -PpanoramaWorld=<region folder>: the client test run captures the nether panorama the rift shows
+// through its cracks into tools/panorama (PanoramaCapture) instead of taking the rift screenshots; -PpanoramaSpots
+// tries other camera spots. Then python3 tools/gen_panorama.py. The README says where the world comes from.
+tasks.matching { it.name == 'runClientGameTest' }.configureEach {
+	if (project.hasProperty('capturePanorama')) {
+		jvmArgs "-Dnether_rifts.capturePanorama=true", "-Dnether_rifts.panoramaDir=${file('tools/panorama')}"
+		if (project.hasProperty('panoramaWorld')) {
+			jvmArgs "-Dnether_rifts.panoramaWorld=${project.property('panoramaWorld')}"
+		}
+		if (project.hasProperty('panoramaSpots')) {
+			jvmArgs "-Dnether_rifts.panoramaSpots=${project.property('panoramaSpots')}"
+		}
+	}
+}
