@@ -1,0 +1,12 @@
+### Section: PageInfo
+title=Distilling
+description=Spirits are distilled in a brewing stand with nothing on top.
+category=metacraft:brewing
+icon=minecraft:brewing_stand
+order=2
+### EndSection: PageInfo
+### Image: metacraft:beside/brewing/distilling Vodka, rum, apple liquor and the chapter spirits come out of the cauldron as a mixture that needs distilling.
+
+- Fuel a <citem 'minecraft:brewing_stand'> with <citem 'minecraft:blaze_powder'>.
+- Put the mixtures in the bottle slots and leave the ingredient slot <bold>empty</bold>.
+- Wait for one run. A recipe that says "distil twice" wants a second.

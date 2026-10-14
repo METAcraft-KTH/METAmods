@@ -1,0 +1,30 @@
+{
+  "features": {
+    "canvas": true,
+    "mailbox": true,
+    "sign_post": true,
+    "rope": true,
+    "hammer": true,
+    "trowel": true,
+    "wall_lanterns": true,
+    "fence_leads": true,
+    "shelf": false,
+    "bench": false,
+    "table": false,
+    "tool_rack": false,
+    "stump": false,
+    "sleeping_bag": false,
+    "brazier": false,
+    "copper_campfire": false,
+    "globe": false,
+    "display_case": false,
+    "flower_pots": false,
+    "ghost_lights": false,
+    "trashcan": false,
+    "basket": false,
+    "cardboard_box": false,
+    "wind_chime": false,
+    "statues": false,
+    "tied_containers": false
+  }
+}

@@ -1,0 +1,22 @@
+### Section: PageInfo
+title=Sewing
+description=An armour stand, a patch in hand, aim and right-click. Shears unpick.
+category=metacraft:ovvar
+icon=minecraft:armor_stand
+order=3
+### EndSection: PageInfo
+### Header: On a stand
+### Image: metacraft:beside/ovvar/stand Put your ovve on an <citem 'minecraft:armor_stand'>.<nl2>Hold a patch and look at the stand: the patch shows <bold>washed-out</bold> where it will go, and the action bar names the spot.<nl2>Right-click to sew it on.
+
+<bold>Sneak</bold> to aim at the far side of the part you are looking at — the back of the body, the back of an arm. The aim follows the stand's pose, so a posed stand works too.
+
+### Header: The stitching
+Where the stitching minigame is on, the right-click opens the sewing instead: the patch lies on the cloth and the seam runs around its edge. The needle sits on the next hole — click it to pull the thread through. The last pull sews the patch on. Escape, or "Cut the thread", gives up; the patch only leaves your hand when the seam is done.
+
+### Header: Unpicking
+<citem 'minecraft:shears'> on a sewn patch take it off the ovve and hand it back to you.
+
+### Header: Taking the ovve back
+Click the stand's body or an arm with an <bold>empty hand</bold> and the whole ovve, patches and all, comes off into your hand. Clicking its legs does the same.
+
+Only the owner of an ovve can sew on it or unpick from it.

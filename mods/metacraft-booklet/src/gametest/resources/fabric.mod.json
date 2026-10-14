@@ -1,0 +1,24 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-booklet-clienttest",
+	"version": "1.0.0",
+	"name": "METAcraft Booklet client tests",
+	"description": "Screenshot tests: the guidebook as a vanilla client sees it.",
+	"license": "Apache-2.0",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"nu.metacraft.booklet.clienttest.BookletRenders",
+			"nu.metacraft.booklet.clienttest.GuideClientTests",
+			"nu.metacraft.booklet.clienttest.MoreDyesBannerClientTests",
+			"nu.metacraft.booklet.clienttest.MoreDyesLoomClientTests"
+		]
+	},
+	"mixins": [
+		"metacraft-booklet-clienttest.mixins.json"
+	],
+	"depends": {
+		"metacraft-booklet": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}

@@ -1,0 +1,14 @@
+### Section: PageInfo
+title=Silencing mobs
+description=Quieten a noisy mob with the muffler.
+category=metacraft:vanilla_plus
+icon=metacraft:muffler
+order=20
+### EndSection: PageInfo
+### Image: metacraft:beside/qol/muffler Right-click a mob with the muffler and it goes quiet. Right-click it again to undo it.<nl2>The muffler is never used up, and the mob keeps its name.
+
+### Header: Making one
+### Image: metacraft:beside/recipe/muffler Wool of any colour, an amethyst shard and string, in any order.
+
+### Header: With a name tag
+A name tag named "silence me" silences a mob too, and one named "unsilence me" undoes it. The name tag is used up, but the mob keeps its own name.

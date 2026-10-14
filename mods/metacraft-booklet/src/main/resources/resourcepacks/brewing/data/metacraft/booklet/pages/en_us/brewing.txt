@@ -1,0 +1,13 @@
+### Section: PageInfo
+title=Chapter Drinks
+external_title=Chapter Drinks
+description=Beer, wine, vodka and the chapters' drinks: cooked in a cauldron, distilled, aged in barrels.
+category=metacraft:student_culture
+icon=brewery:barrel_spigot
+order=10
+### EndSection: PageInfo
+### Image: metacraft:beside/brewing/barrel Drinks are brewed in three steps, and most need only one or two of them: <bold>cook</bold> the ingredients in a cauldron, <bold>distil</bold> the brew in a brewing stand, and <bold>age</bold> it in a barrel. The closer you keep to a drink's times, the better it comes out.
+
+### Category Entries: metacraft:brewing
+
+<gray>Brewery's own recipes are on <pagelink 'metacraft:brewing/drinks'><u>Drinks</u></pagelink>.</gray>

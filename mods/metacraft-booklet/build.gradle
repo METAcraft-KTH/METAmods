@@ -1,0 +1,85 @@
+// metacraft-booklet — the server's guidebook: Patbox's Booklet plus a chapter for each mod METAcraft
+// runs, each chapter a built-in datapack switched on only when its mod is loaded. See README.md.
+version = project.metacraft_booklet_version
+
+// Client screenshot test: a vanilla client opens every page and photographs it. Source set
+// src/gametest, task runClientGameTest (needs a display).
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "metacraft-booklet-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}
+
+addPolymerDependency()
+addConfigDependency()
+dependencies {
+	// Booklet itself, and the Polymer module it builds its page fonts with but does not bundle
+	// (without it the resource pack fails to build and a client never finishes joining).
+	implementation(include("eu.pb4:booklet:${project.booklet_version}"))
+	implementation(include("eu.pb4:polymer-resource-pack-extras:${project.polymer_version}"))
+	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+	// The reader's language, for wrapping text beside a picture (Booklet bundles it).
+	compileOnly("xyz.nucleoid:server-translations-api:${project.server_translations_version}")
+	// GuideTests renders the welcome page the way a player sees it (Booklet bundles it).
+	compileOnly("eu.pb4:placeholder-api:${project.placeholder_api_version}")
+
+	// Dev/test runtime only: the mods the book has chapters for, so the chapters load and their
+	// item icons resolve. None of them is a dependency of the shipped mod.
+	runtimeOnly(project(path: ":mods:ovvar"))
+	runtimeOnly(project(path: ":mods:metacraft-qol"))
+	runtimeOnly(project(path: ":mods:metacraft-kultur"))
+	runtimeOnly(project(path: ":mods:moredyes"))
+	runtimeOnly("maven.modrinth:brewery:${project.brewery_version}")
+	compileOnly("maven.modrinth:brewery:${project.brewery_version}")
+	runtimeOnly("Froosty11:polydecorations:${project.polydecorations_version}")
+	// PolyDecorations needs these Polymer modules; a real server has them from the Polymer bundle.
+	runtimeOnly("eu.pb4:polymer-blocks:${project.polymer_version}")
+}
+
+// The page images: BookletRenders (METACRAFT_BOOKLET_RENDER=1 ./gradlew :mods:metacraft-booklet:runClientGameTest)
+// builds each scene and renders it isometric with Patbox's Simple Image Renderer, a client-only tool.
+dependencies {
+	gametestCompileOnly("maven.modrinth:simple-image-renderer:${project.simple_image_renderer_version}")
+	gametestRuntimeOnly("maven.modrinth:simple-image-renderer:${project.simple_image_renderer_version}")
+	gametestCompileOnly("Froosty11:polydecorations:${project.polydecorations_version}")
+	gametestCompileOnly("eu.pb4:map-canvas-api:${project.map_canvas_api_version}")
+	// PolyDecorations' blocks, which the scenes place, are built on these
+	gametestCompileOnly("eu.pb4:factorytools:0.12.1+26.3")
+	gametestCompileOnly("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+	gametestCompileOnly("eu.pb4:polymer-blocks:${project.polymer_version}")
+	gametestCompileOnly(project(path: ":mods:ovvar"))
+	gametestCompileOnly(project(path: ":mods:metacraft-qol"))
+}
+
+// The game tests run inside a server: JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew
+// :mods:metacraft-booklet:runServer [-PrunDir=<dir>].
+loom {
+	runs {
+		server {
+			runDir = project.findProperty('runDir') ?: 'run'
+		}
+	}
+}
+
+// Dev runs switch PolyDecorations' features the way Season 6's server does: each run's config folder
+// gets Season 6's file before it starts (on a real server S6Defaults writes it on the first start).
+def runConfigDirs = [
+	runServer: "${project.findProperty('runDir') ?: 'run'}/config",
+	runClientGameTest: "build/run/clientGameTest/config",
+]
+tasks.matching { it.name in runConfigDirs.keySet() }.configureEach { task ->
+	def configDir = file(runConfigDirs[task.name])
+	task.doFirst {
+		project.copy {
+			from "src/main/resources/metacraft-booklet/polydecorations-s6.json"
+			into configDir
+			rename { "polydecorations.json" }
+		}
+	}
+}

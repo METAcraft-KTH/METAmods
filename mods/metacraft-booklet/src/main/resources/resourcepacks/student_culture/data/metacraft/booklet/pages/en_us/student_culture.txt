@@ -1,0 +1,11 @@
+### Section: PageInfo
+title=Student Culture Features
+external_title=Student Culture Features
+description=The chapters' traditions in the game: drinks, banners, ovvar and patches.
+category=booklet:main_page
+icon=minecraft:magenta_banner
+order=10
+### EndSection: PageInfo
+The chapters' traditions, brought into the game: their drinks, their banners, the ovve and its patches.
+
+### Category Entries: metacraft:student_culture

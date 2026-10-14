@@ -1,0 +1,13 @@
+{
+  "pack": {
+    "description": "PolyDecorations: only what METAcraft keeps, every other recipe off",
+    "min_format": [
+      121,
+      0
+    ],
+    "max_format": [
+      121,
+      0
+    ]
+  }
+}

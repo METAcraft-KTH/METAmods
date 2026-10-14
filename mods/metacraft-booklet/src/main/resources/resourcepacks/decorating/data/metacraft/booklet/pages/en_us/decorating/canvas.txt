@@ -1,0 +1,30 @@
+### Section: PageInfo
+title=Canvas
+description=Paint pixel art on a canvas and hang it up.
+category=metacraft:decorating
+icon=polydecorations:canvas
+order=1
+### EndSection: PageInfo
+### Image: metacraft:beside/decorating/canvas A canvas (<citem 'polydecorations:canvas'>) is a 16×16 picture you paint one pixel at a time, right where it hangs.<nl2>Hang several side by side and they paint as one picture, like these four.
+
+### Header: Making one
+### Image: metacraft:beside/recipe/canvas A <citem 'minecraft:paper'> in the middle, eight sticks round it.<nl2>Right-click any block face to hang it: on a wall, on the floor or on the ceiling.
+
+### Header: Painting
+Right-click the hanging canvas with:
+- any <bold>dye</bold> to paint that pixel its colour;
+- <citem 'minecraft:coal'> to make the pixel darker, <citem 'minecraft:bone_meal'> to make it lighter;
+- <citem 'minecraft:paper'> or a <citem 'minecraft:sponge'> to clear it.
+
+### Body:
+Hold a <citem 'minecraft:brush'> in your main hand and the dye or tool in your off hand to paint a 3×3 area at once. Canvases hung side by side, facing the same way, paint as one surface. Hit a canvas to take it down; the picture stays on the item.
+
+### Header: Finishing touches
+Craft the canvas together with:
+- <citem 'minecraft:honeycomb'> to <bold>wax</bold> it, so nobody can paint on it any more;
+- a <citem 'minecraft:glow_ink_sac'> to make it <bold>glow</bold>, an <citem 'minecraft:ink_sac'> to undo that;
+- <citem 'minecraft:shears'> to <bold>cut</bold> it, so cleared pixels are see-through, <citem 'minecraft:paper'> to undo that;
+- a dye to give it a background colour, a <citem 'minecraft:water_bucket'> to wash that out.
+
+### Header: Copying
+Craft a painted canvas with one or more empty canvases and you get a copy of the picture for each.

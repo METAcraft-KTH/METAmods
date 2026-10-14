@@ -1,0 +1,27 @@
+### Section: PageInfo
+title=Hammer and trowel
+description=Turn blocks without breaking them; lay blocks at random from your hotbar.
+category=metacraft:decorating
+icon=polydecorations:hammer
+order=6
+### EndSection: PageInfo
+### Header: Hammer
+### Image: metacraft:beside/recipe/hammer The <citem 'polydecorations:hammer'> turns blocks round without breaking them.
+
+Right-click or hit a placed block with it to turn it, without breaking it:
+- logs and other pillars: which way they lie;
+- slabs: top half or bottom half;
+- stairs: click the flat step to turn them, the full-width half to flip them upside down, the narrow half to change their corner shape;
+- trapdoors, fence gates and mailboxes: which way they face;
+- bamboo: its leaves;
+- sign posts: a sign 15° at a time.
+
+### Header: Trowel
+### Image: metacraft:beside/recipe/trowel The <citem 'polydecorations:trowel'> lays blocks for you, at random.
+
+### Image: metacraft:beside/decorating/trowel Right-click with it and it places a random block from your hotbar.<nl2>Put cobblestone, mossy cobblestone and gravel there and a path comes out looking worn in.
+
+### Body:
+Keep your off hand free of blocks: with a block there, the trowel does nothing.
+
+Both tools only work where you are allowed to build.

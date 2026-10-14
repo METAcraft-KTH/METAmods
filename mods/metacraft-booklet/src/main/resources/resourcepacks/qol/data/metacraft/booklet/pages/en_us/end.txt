@@ -1,0 +1,11 @@
+### Section: PageInfo
+title=End Changes
+external_title=End Changes
+description=The void anchor: a way back when you fall into the End's void.
+category=booklet:main_page
+icon=minecraft:end_stone
+order=40
+### EndSection: PageInfo
+### Image: metacraft:beside/qol/void_anchor The End gets one addition: the void anchor.<nl2>Fall off an island and it catches you, and you step out next to your anchor.
+
+### Category Entries: metacraft:end

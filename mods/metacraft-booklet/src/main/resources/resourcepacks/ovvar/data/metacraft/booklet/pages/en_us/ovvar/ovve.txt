@@ -1,0 +1,20 @@
+### Section: PageInfo
+title=The ovve
+description=One garment in the legs slot: wearing it, its pockets, its top.
+category=metacraft:ovvar
+icon=ovvar:data_ovve
+order=1
+### EndSection: PageInfo
+### Header: One garment, one item
+### Image: metacraft:beside/ovvar/chapters One ovve per chapter: <citem 'ovvar:data_ovve'> in cerise, <citem 'ovvar:it_ovve'> in purple, the older silicon-blue IT, and the <citem 'ovvar:media_frack'>.
+
+Each is a single item that goes in the <bold>legs</bold> slot: drag it in, or shift-click it. Right-clicking does not equip it (see pockets). It protects like leather and never wears out.
+
+### Header: The top
+Sneak and right-click the ovve to roll its top <bold>up</bold> or <bold>down</bold>. With the top up and nothing in your chest slot the sleeves show; a chestplate goes on over it as usual and hides the top until it comes off again. The top is not a separate item — it comes and goes with the ovve.
+
+### Header: Pockets
+The ovve is also a bundle. Click items onto it to fill it, in your inventory or straight onto the legs slot while you wear it; right-click and hold to empty it. It holds twice what a bundle does.
+
+### Header: Whose ovve it is
+An ovve becomes the property of the first player to pick it up. Somebody else's ovve will not go in your legs slot and nobody but you can sew on yours — so an ovve can be traded, but the design on it is its owner's. See <pagelink 'metacraft:ovvar/wardrobe'><u>Wardrobe</u></pagelink>.
