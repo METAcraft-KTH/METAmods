@@ -1,5 +1,6 @@
 package nu.metacraft.plots;
 
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
@@ -18,6 +19,9 @@ public class METAcraftPlots implements ModInitializer {
 		PlotDataTypes.init();
 		Commands.registerCommands();
 		Events.init();
+		// Item models, textures and lang go to clients in the Polymer resource pack.
+		PolymerResourcePackUtils.addModAssets("metacraft-plots");
+		PolymerResourcePackUtils.markAsRequired();
 	}
 
 	public static Identifier getID(String name) {

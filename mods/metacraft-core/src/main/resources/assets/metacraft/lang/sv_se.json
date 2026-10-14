@@ -6,5 +6,8 @@
     "item.metacraft.wrench.player.off": "Inga blockentiteter du placerar från och med nu går att flytta med kolvar",
     "item.metacraft.wrench.tooltip": "Standard: %s",
     "item.metacraft.wrench.tooltip.on": "Flyttbara",
-    "item.metacraft.wrench.tooltip.off": "Icke Flyttbara"
+    "item.metacraft.wrench.tooltip.off": "Icke Flyttbara",
+    "message.metacraft.gamerule.firework_boosting_disabled": "Fyrverkeriboost är avstängt på den här servern",
+    "item.metacraft.diamond_nugget": "Diamantklimp",
+    "block.metacraft.portal_padding": "Portalutfyllnad"
 }

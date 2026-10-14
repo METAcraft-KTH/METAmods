@@ -1,0 +1,22 @@
+{
+    "parent": "item/handheld",
+    "textures": {
+        "layer0": "metacraft:item/bedrock_drill"
+    },
+    "display": {
+        "thirdperson_righthand": {
+            "rotation": [-90, 0, 45],
+            "translation": [-3, -2, 0]
+        },
+        "firstperson_righthand": {
+            "rotation": [10, 110, -20]
+        },
+        "thirdperson_lefthand": {
+            "rotation": [-90, 0, -45],
+            "translation": [-3, -2, 0]
+        },
+        "firstperson_lefthand": {
+            "rotation": [10, -60, 20]
+        }
+    }
+}

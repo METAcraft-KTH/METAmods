@@ -1,0 +1,46 @@
+{
+  "augh": {
+    "sounds": [
+      {
+        "name": "metacraft:augh",
+        "stream": false 
+      }
+    ]
+  },
+  "discord": {
+    "sounds": [
+      {
+        "name": "metacraft:discord-call-sound",
+        "stream": true
+      }
+    ]
+  },
+  "frying_pan": {
+    "sounds": [
+      {
+        "name": "metacraft:frying_pan_1",
+        "stream": false
+      },
+      {
+        "name": "metacraft:frying_pan_2",
+        "stream": false
+      },
+      {
+        "name": "metacraft:frying_pan_3",
+        "stream": false
+      },
+      {
+        "name": "metacraft:frying_pan_4",
+        "stream": false
+      }
+    ]
+  },
+  "golden_pan": {
+    "sounds": [
+      {
+        "name": "metacraft:golden_pan",
+        "stream": false
+      }
+    ]
+  }
+}

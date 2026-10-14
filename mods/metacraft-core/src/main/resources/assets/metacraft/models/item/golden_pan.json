@@ -1,0 +1,7 @@
+{
+	"credit": "Created by Mickey Joe Alpha - http://YouTube.com/@MushirMickeyJoe",
+	"parent": "metacraft:item/frying_pan",
+	"textures": {
+		"particle": "metacraft:item/golden_pan"
+	}
+}

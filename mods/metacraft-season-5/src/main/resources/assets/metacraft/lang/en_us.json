@@ -1,0 +1,5 @@
+{
+	"item.metacraft.bedrock_drill": "Bedrock Drill",
+	"item.metacraft.bedrock_drill.desc.1": "Breaks a single block of ceiling bedrock in the Nether",
+	"item.metacraft.bedrock_drill.desc.2": "Hold %s to use"
+}

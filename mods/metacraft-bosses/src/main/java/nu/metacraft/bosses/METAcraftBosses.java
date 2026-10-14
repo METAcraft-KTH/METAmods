@@ -1,5 +1,6 @@
 package nu.metacraft.bosses;
 
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
@@ -17,6 +18,9 @@ public class METAcraftBosses implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		// Item models, textures and lang go to clients in the Polymer resource pack.
+		PolymerResourcePackUtils.addModAssets("metacraft-bosses");
+		PolymerResourcePackUtils.markAsRequired();
 		AttackRegistry.init();
 		BossItems.init();
 		BossEntities.init();

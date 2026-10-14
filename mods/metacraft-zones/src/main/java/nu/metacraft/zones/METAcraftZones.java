@@ -1,5 +1,6 @@
 package nu.metacraft.zones;
 
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.resources.Identifier;
@@ -30,6 +31,9 @@ public class METAcraftZones implements ModInitializer {
 			LeukocyteZoneManager.init();
 		}
 		CustomZoneDatas.init();
+		// Item models, textures and lang go to clients in the Polymer resource pack.
+		PolymerResourcePackUtils.addModAssets("metacraft-zones");
+		PolymerResourcePackUtils.markAsRequired();
 		LOGGER.info("Loaded METAcraft zones by Acuadragon100");
 	}
 

@@ -1,5 +1,6 @@
 package nu.metacraft.revival;
 
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import nu.metacraft.lib.METAcraftLib;
@@ -16,6 +17,9 @@ public class METAcraftRevival implements ModInitializer {
 		RevivalDialogs.init();
 		RevivalEvents.init();
 		METAcraftRevivalPredicates.init();
+		// Item models, textures and lang go to clients in the Polymer resource pack.
+		PolymerResourcePackUtils.addModAssets("metacraft-revival");
+		PolymerResourcePackUtils.markAsRequired();
 	}
 
 	public static Identifier getID(String name) {

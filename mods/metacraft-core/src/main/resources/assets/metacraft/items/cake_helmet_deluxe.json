@@ -1,0 +1,7 @@
+{
+    "model": {
+        "type": "model",
+        "model": "metacraft:item/cake_helmet_deluxe"
+    },
+	"oversized_in_gui": true
+}

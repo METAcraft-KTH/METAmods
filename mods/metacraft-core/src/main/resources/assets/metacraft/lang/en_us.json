@@ -6,5 +6,10 @@
     "item.metacraft.wrench.player.off": "All block entities you place will no longer be movable by pistons",
     "item.metacraft.wrench.tooltip": "Default: %s",
     "item.metacraft.wrench.tooltip.on": "Movable",
-    "item.metacraft.wrench.tooltip.off": "Not Movable"
+    "item.metacraft.wrench.tooltip.off": "Not Movable",
+    "message.metacraft.gamerule.firework_boosting_disabled": "Firework boosting is disabled on this server",
+    "item.metacraft.diamond_nugget": "Diamond Nugget",
+    "item.metacraft.frying_pan": "Frying Pan",
+    "item.metacraft.golden_pan": "Golden Pan",
+    "block.metacraft.portal_padding": "Portal Padding"
 }
