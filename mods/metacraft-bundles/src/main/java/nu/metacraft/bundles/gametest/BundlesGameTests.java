@@ -75,6 +75,20 @@ public final class BundlesGameTests {
 		helper.succeed();
 	}
 
+	/** Clicking a slot's stack onto a bundle (tryTransfer) asks how much fits by the scaled weight too. */
+	@GameTest
+	@SuppressWarnings("removal")
+	public void transferFromASlotUsesTheFactor(GameTestHelper helper) {
+		BundleContents.Mutable m = mutable(bundle(2));
+		m.tryInsert(new ItemStack(Items.DIAMOND, 64));
+		var slot = new net.minecraft.world.inventory.Slot(new net.minecraft.world.SimpleContainer(1), 0, 0, 0);
+		slot.set(new ItemStack(Items.DIAMOND, 64));
+		int moved = m.tryTransfer(slot, helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL));
+		if (moved != 64) helper.fail("a half-full ×2 bundle took " + moved + " of 64 diamonds from a slot");
+		if (!m.weight().equals(Fraction.ONE)) helper.fail("128 diamonds in a ×2 bundle is full, weight " + m.weight());
+		helper.succeed();
+	}
+
 	@GameTest
 	public void stacksNeverExceedTheirMaxSize(GameTestHelper helper) {
 		BundleContents.Mutable m = mutable(bundle(4));
