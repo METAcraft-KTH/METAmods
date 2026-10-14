@@ -213,7 +213,11 @@ public class RelayBlock extends Block implements PolymerTexturedBlock, EntityBlo
 					))
 				).ifPresent(
 					target -> {
+						world.playSound(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+							SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.BLOCKS, 1.0F, 1.0F);
 						player.teleport(target);
+						player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+							SoundEvents.PLAYER_TELEPORT, SoundSource.PLAYERS, 1.0F, 1.0F);
 						world.setBlockAndUpdate(pos, state.setValue(CHARGED, false));
 					}
 				);

@@ -19,6 +19,9 @@
 	"entrypoints": {
 		"main": [
 			"nu.metacraft.bundles.METAcraftBundles"
+		],
+		"fabric-gametest": [
+			"nu.metacraft.bundles.gametest.BundlesGameTests"
 		]
 	},
 	"mixins": [

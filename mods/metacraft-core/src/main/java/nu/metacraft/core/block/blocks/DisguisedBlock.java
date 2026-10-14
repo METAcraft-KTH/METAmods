@@ -8,9 +8,11 @@ import nu.metacraft.core.block.entities.BlockEntityWithDisguise;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -43,6 +45,22 @@ public abstract class DisguisedBlock extends BaseEntityBlock implements PolymerB
 	@Override
 	public BlockState getPolymerBlockState(BlockState state, @Nullable PacketContext ctx) {
 		return Blocks.BARRIER.defaultBlockState();
+	}
+
+	/** Breaks as what it looks like: the disguise's particles and sound for everyone else, not a barrier's. */
+	@Override
+	public void spawnDestroyByEntityParticles(Level level, Entity entity, BlockPos pos, BlockState state) {
+		super.spawnDestroyByEntityParticles(level, entity, pos, disguise(level, pos, state));
+	}
+
+	@Override
+	public void spawnDestroyParticles(Level level, BlockPos pos, BlockState state) {
+		super.spawnDestroyParticles(level, pos, disguise(level, pos, state));
+	}
+
+	private BlockState disguise(BlockGetter world, BlockPos pos, BlockState state) {
+		return getBlockEntity(world, pos).map(BlockEntityWithDisguise::getDisplayedBlockState)
+				.filter(s -> !(s.getBlock() instanceof DisguisedBlock)).orElse(state);
 	}
 
 	@Override
