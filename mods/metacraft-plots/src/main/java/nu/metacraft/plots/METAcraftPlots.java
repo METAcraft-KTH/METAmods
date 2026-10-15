@@ -11,6 +11,7 @@ import nu.metacraft.plots.zone.PlotDataTypes;
 public class METAcraftPlots implements ModInitializer {
 	public static final Logger LOGGER = LogManager.getLogger("METAcraft-Plots");
 
+	public static final String MODID = "metacraft-plots";
 	public static final String NAMESPACE = "metacraft_plots";
 
 	@Override
@@ -20,7 +21,7 @@ public class METAcraftPlots implements ModInitializer {
 		Commands.registerCommands();
 		Events.init();
 		// Item models, textures and lang go to clients in the Polymer resource pack.
-		PolymerResourcePackUtils.addModAssets("metacraft-plots");
+		PolymerResourcePackUtils.addModAssets(MODID);
 		PolymerResourcePackUtils.markAsRequired();
 	}
 

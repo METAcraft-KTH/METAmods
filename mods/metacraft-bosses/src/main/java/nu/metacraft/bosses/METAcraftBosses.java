@@ -14,12 +14,13 @@ import nu.metacraft.bosses.item.BossItems;
 public class METAcraftBosses implements ModInitializer {
 
 	public static final String NAMESPACE = METAcraftLib.NAMESPACE;
-	public static final Logger LOGGER = LogManager.getLogger("metacraft-season-4");
+	public static final String MODID = "metacraft-bosses";
+	public static final Logger LOGGER = LogManager.getLogger(MODID);
 
 	@Override
 	public void onInitialize() {
 		// Item models, textures and lang go to clients in the Polymer resource pack.
-		PolymerResourcePackUtils.addModAssets("metacraft-bosses");
+		PolymerResourcePackUtils.addModAssets(MODID);
 		PolymerResourcePackUtils.markAsRequired();
 		AttackRegistry.init();
 		BossItems.init();
