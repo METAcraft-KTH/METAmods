@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerCon
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import nu.metacraft.nether_rifts.mob.GrenadierSword;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
 import nu.metacraft.nether_rifts.mob.WarGhast;
 
@@ -391,16 +392,37 @@ public final class RiftClientTests implements FabricClientGameTest {
 				ctx.takeScreenshot(TestScreenshotOptions.of("showcase_ghasts").withSize(1920, 1080));
 				server.runCommand("rifts showcase clear");
 
-				// the Bombardier on foot: a vanilla piglin with a golden sword and the bombardier helmet (goggles over a leather
-				// cap, an item model from the mod's pack) on its head, from the front where the drummer stood. Only logged for
-				// now: the helmet is a placeholder, the lens count gives a later check its numbers.
+				// the Grenadier on foot: a vanilla piglin wearing the artist's goggles (an item model from the mod's pack, on its
+				// head by the model's head display) and his gloved right arm over its own, the golden sword in its hand; from
+				// the front and from its right. Then mid-throw: the arm with the bomb (as it swings, too), and let go. Only
+				// logged: the lens count gives a later check its numbers.
 				server.runCommand("summon nether_rifts:ghast_bombardier -20.5 -60 -12.5 {Rotation:[-90f,0f],NoAI:1b,PersistenceRequired:1b}");
-				server.runCommand("tp Tester -18.0 -58.6 -12.5 90 15");
+				String front = "tp Tester -18.0 -58.6 -12.5 90 15";
+				String side = "tp Tester -20.5 -58.6 -10.0 180 15";
+				server.runCommand(front);
 				conn.waitForClientboundPackets();
 				ctx.waitTicks(20);
 				var onFoot = read(ctx.takeScreenshot(TestScreenshotOptions.of("ghast_bombardier_on_foot").withSize(1920, 1080)));
 				int lenses = countAll(onFoot, (r, g, b) -> b > 160 && b > r + 50 && g > 100);
 				System.out.println("[nether-rifts-clienttest] bombardier on foot lens=" + lenses);
+				server.runCommand(side);
+				ctx.waitTicks(10);
+				ctx.takeScreenshot(TestScreenshotOptions.of("ghast_bombardier_on_foot_side").withSize(1920, 1080));
+				for (var at : GrenadierSword.Throw.values()) {
+					grenadierThrow(server, at);
+					server.runCommand(front);
+					ctx.waitTicks(10);
+					ctx.takeScreenshot(TestScreenshotOptions.of("ghast_bombardier_throw_" + at.name().toLowerCase(java.util.Locale.ROOT)).withSize(1920, 1080));
+					server.runCommand(side);
+					ctx.waitTicks(10);
+					ctx.takeScreenshot(TestScreenshotOptions.of("ghast_bombardier_throw_" + at.name().toLowerCase(java.util.Locale.ROOT) + "_side").withSize(1920, 1080));
+				}
+				grenadierThrow(server, GrenadierSword.Throw.BOMB);
+				server.runOnServer(s -> s.overworld().getEntities(RiftEntities.GHAST_BOMBARDIER, e -> true)
+						.forEach(b -> b.swing(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT)));
+				ctx.waitTicks(2);
+				ctx.takeScreenshot(TestScreenshotOptions.of("ghast_bombardier_throw_swing_side").withSize(1920, 1080));
+				grenadierThrow(server, null);
 				server.runCommand("kill @e[type=nether_rifts:ghast_bombardier]");
 				server.runCommand("difficulty peaceful");
 				server.runCommand("time set midnight");
@@ -766,6 +788,12 @@ public final class RiftClientTests implements FabricClientGameTest {
 		double yaw = Math.toDegrees(Math.atan2(-dx, dz));
 		double pitch = Math.toDegrees(-Math.atan2(dy, Math.hypot(dx, dz)));
 		return String.format(java.util.Locale.ROOT, "tp Tester %.3f %.3f %.3f %.2f %.2f", x, y - 1.62, z, yaw, pitch);
+	}
+
+	/** Sets where a throw is on the overworld's Grenadiers' swords (null: none, the sword shows). */
+	private static void grenadierThrow(TestDedicatedServerContext server, GrenadierSword.Throw at) {
+		server.runOnServer(s -> s.overworld().getEntities(RiftEntities.GHAST_BOMBARDIER, e -> true)
+				.forEach(b -> GrenadierSword.setThrow(b.getMainHandItem(), at)));
 	}
 
 	/** Sets the overworld's war ghasts charging a fireball (their shooting face) or not. */

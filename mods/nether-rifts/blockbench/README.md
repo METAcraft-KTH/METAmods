@@ -49,5 +49,6 @@ module's README says how each is brought in.
 | --- | --- | --- |
 | `war_ghast.bbmodel`, `war_ghast.png` | The Chained Ghast (2026-10-15): the crew in the deck, a bomb pile and a chain harness, the gear markers (`item_right`, `item_left`, `item_head`), and the animations idle, shoot, drop_bomb, dive, climb and crew_gone. The PNG is the latest texture (the file's own is a little older). | `tools/import_ghast.py` |
 | `bombardier_goggles.bbmodel`, `.png` | The Grenadier's goggles, worn on a piglin's head (in place of `bombardier_helmet.bbmodel`). | `tools/bbmodel_to_item.py` |
+| `bombardier_arm.bbmodel`, `.png` | The Grenadier's gloved right arm and sleeve, with the magma bomb in its fist, held over a piglin's arm. | `tools/bbmodel_to_item.py` |
 
 Earlier deliveries (the Piglin Drummer, the first Chained Ghast) came in before this folder and aren't kept.

@@ -1,0 +1,328 @@
+{
+	"textures": {
+		"0": "nether_rifts:item/bombardier_arm",
+		"particle": "nether_rifts:item/bombardier_arm"
+	},
+	"elements": [
+		{
+			"name": "right_arm",
+			"from": [
+				5.95,
+				0.95,
+				6.95
+			],
+			"to": [
+				10.05,
+				13.05,
+				11.05
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						2,
+						2,
+						4,
+						8
+					],
+					"texture": "#0"
+				},
+				"east": {
+					"uv": [
+						0,
+						2,
+						2,
+						8
+					],
+					"texture": "#0"
+				},
+				"south": {
+					"uv": [
+						6,
+						2,
+						8,
+						8
+					],
+					"texture": "#0"
+				},
+				"west": {
+					"uv": [
+						4,
+						2,
+						6,
+						8
+					],
+					"texture": "#0"
+				},
+				"up": {
+					"uv": [
+						4,
+						2,
+						2,
+						0
+					],
+					"texture": "#0"
+				},
+				"down": {
+					"uv": [
+						6,
+						0,
+						4,
+						2
+					],
+					"texture": "#0"
+				}
+			}
+		},
+		{
+			"name": "core",
+			"from": [
+				6,
+				1.5,
+				3
+			],
+			"to": [
+				10,
+				5.5,
+				7
+			],
+			"rotation": {
+				"angle": -45,
+				"axis": "x",
+				"origin": [
+					9,
+					2.5,
+					5
+				]
+			},
+			"faces": {
+				"north": {
+					"uv": [
+						10,
+						2,
+						12,
+						4
+					],
+					"texture": "#0"
+				},
+				"east": {
+					"uv": [
+						8,
+						2,
+						10,
+						4
+					],
+					"texture": "#0"
+				},
+				"south": {
+					"uv": [
+						14,
+						2,
+						16,
+						4
+					],
+					"texture": "#0"
+				},
+				"west": {
+					"uv": [
+						12,
+						2,
+						14,
+						4
+					],
+					"texture": "#0"
+				},
+				"up": {
+					"uv": [
+						12,
+						2,
+						10,
+						0
+					],
+					"texture": "#0"
+				},
+				"down": {
+					"uv": [
+						14,
+						0,
+						12,
+						2
+					],
+					"texture": "#0"
+				}
+			}
+		},
+		{
+			"name": "shell",
+			"from": [
+				5.5,
+				1,
+				2.5
+			],
+			"to": [
+				10.5,
+				6,
+				7.5
+			],
+			"rotation": {
+				"angle": -45,
+				"axis": "x",
+				"origin": [
+					9,
+					2.5,
+					5
+				]
+			},
+			"faces": {
+				"north": {
+					"uv": [
+						10,
+						6,
+						12,
+						8
+					],
+					"texture": "#0"
+				},
+				"east": {
+					"uv": [
+						8,
+						6,
+						10,
+						8
+					],
+					"texture": "#0"
+				},
+				"south": {
+					"uv": [
+						14,
+						6,
+						16,
+						8
+					],
+					"texture": "#0"
+				},
+				"west": {
+					"uv": [
+						12,
+						6,
+						14,
+						8
+					],
+					"texture": "#0"
+				},
+				"up": {
+					"uv": [
+						12,
+						6,
+						10,
+						4
+					],
+					"texture": "#0"
+				},
+				"down": {
+					"uv": [
+						14,
+						4,
+						12,
+						6
+					],
+					"texture": "#0"
+				}
+			}
+		},
+		{
+			"name": "right_sleeve",
+			"from": [
+				5.75,
+				0.75,
+				6.75
+			],
+			"to": [
+				10.25,
+				13.25,
+				11.25
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						2,
+						10,
+						4,
+						16
+					],
+					"texture": "#0"
+				},
+				"east": {
+					"uv": [
+						0,
+						10,
+						2,
+						16
+					],
+					"texture": "#0"
+				},
+				"south": {
+					"uv": [
+						6,
+						10,
+						8,
+						16
+					],
+					"texture": "#0"
+				},
+				"west": {
+					"uv": [
+						4,
+						10,
+						6,
+						16
+					],
+					"texture": "#0"
+				},
+				"up": {
+					"uv": [
+						4,
+						10,
+						2,
+						8
+					],
+					"texture": "#0"
+				},
+				"down": {
+					"uv": [
+						6,
+						8,
+						4,
+						10
+					],
+					"texture": "#0"
+				}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [
+				90,
+				0,
+				0
+			],
+			"translation": [
+				0,
+				-1,
+				6.25
+			]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [
+				90,
+				0,
+				0
+			],
+			"translation": [
+				0,
+				-1,
+				6.25
+			]
+		}
+	}
+}

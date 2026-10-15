@@ -19,7 +19,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
@@ -35,13 +34,15 @@ import org.jetbrains.annotations.Nullable;
 /**
  * A goggled piglin who drops magma bombs from a war ghast's deck (as a figure in the ghast's model; see
  * {@link WarGhast#dropBomb}). This is the mob it becomes when its ghast falls: it glides down and fights on foot.
- * Clients see a vanilla piglin (so it walks and swings as one) with a golden sword and the
- * {@link RiftItems#BOMBARDIER_HELMET} on its head.
+ * Clients see a vanilla piglin (so it walks and swings as one), right-handed, with the artist's goggles on its head
+ * ({@link RiftItems#BOMBARDIER_HELMET}) and his gloved right arm over its own, holding a golden sword (the
+ * {@link RiftItems#GRENADIER_SWORD}, a golden sword on the server).
  * <p>
  * Hand Bombs: with a player 4 to 12 blocks off in sight, every 80 ticks it stops, turns to them, swings its arm and
- * lobs a magma bomb onto the ground where they stand. The ground warning goes up as it lets go, and the bomb reaches
- * neither the ground nor the head of someone standing on it sooner than the configured warning time. It never
- * changes blocks and belongs to its rift, as the deck's bombs do.
+ * lobs a magma bomb onto the ground where they stand. Through that stop clients see the gloved arm without the sword,
+ * the bomb in its fist till it lets go ({@link GrenadierSword.Throw}). The ground warning goes up as it lets go, and the
+ * bomb reaches neither the ground nor the head of someone standing on it sooner than the configured warning time. It
+ * never changes blocks and belongs to its rift, as the deck's bombs do.
  * Up close it fights with the sword. The numbers are the defaults of the config's {@code mobs.bombardier} section.
  * <p>
  * Wherever it is, it never trades or picks things up, never turns zombie, ignores gold armour, and its kit never
@@ -92,18 +93,21 @@ public class GhastBombardier extends Piglin implements PolymerEntity {
 
 	/**
 	 * Its kit and its rules, set again whenever something might have changed them: spawning (a summon would give it a
-	 * crossbow and gold armour at random) and loading (a save from before the Bombardier was a piglin has none of it).
+	 * crossbow and gold armour at random, and one in twenty mobs is left-handed) and loading (a save from before the
+	 * Bombardier was a piglin has none of it, one from before the glove a plain golden sword). Right-handed: the glove
+	 * is a right arm.
 	 */
 	private void keepKit() {
 		if (!getItemBySlot(EquipmentSlot.HEAD).is(RiftItems.BOMBARDIER_HELMET)) {
 			setItemSlot(EquipmentSlot.HEAD, new ItemStack(RiftItems.BOMBARDIER_HELMET));
 		}
-		if (!getMainHandItem().is(Items.GOLDEN_SWORD)) {
-			setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.GOLDEN_SWORD));
+		if (!getMainHandItem().is(RiftItems.GRENADIER_SWORD)) {
+			setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(RiftItems.GRENADIER_SWORD));
 		}
 		for (var slot : EquipmentSlot.values()) {
 			setDropChance(slot, 0f);
 		}
+		setLeftHanded(false);
 		setCanPickUpLoot(false);
 		// synced as well as saved: a vanilla client shakes a piglin that isn't immune when it's out of the nether
 		setImmuneToZombification(true);
@@ -154,6 +158,7 @@ public class GhastBombardier extends Piglin implements PolymerEntity {
 			throwing = 0;
 			throwAt = target;
 			getNavigation().stop();
+			GrenadierSword.setThrow(getMainHandItem(), GrenadierSword.Throw.BOMB);
 		}
 	}
 
@@ -174,6 +179,7 @@ public class GhastBombardier extends Piglin implements PolymerEntity {
 			if (aim != null) {
 				throwBomb(level, aim);
 			}
+			GrenadierSword.setThrow(getMainHandItem(), GrenadierSword.Throw.THROWN);
 		}
 		if (++throwing >= THROW_STOP) {
 			endThrow();
@@ -183,6 +189,7 @@ public class GhastBombardier extends Piglin implements PolymerEntity {
 	private void endThrow() {
 		throwing = -1;
 		throwAt = null;
+		GrenadierSword.setThrow(getMainHandItem(), null);
 	}
 
 	/** The player it would throw at now: its target, in range and in sight, while it stands on the ground. */

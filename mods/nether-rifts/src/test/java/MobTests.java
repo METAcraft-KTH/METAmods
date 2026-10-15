@@ -157,7 +157,7 @@ public class MobTests {
 					ctx.assertTrue(names.has(type.getDescriptionId()), lang + " doesn't name " + type.getDescriptionId());
 				}
 				ctx.assertTrue(names.has(RiftBlocks.RIFT.getDescriptionId()), lang + " doesn't name " + RiftBlocks.RIFT.getDescriptionId());
-				for (var item : List.of(RiftItems.BOMBARDIER_HELMET, RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftItems.WAR_GHAST_SPAWN_EGG, RiftItems.GHAST_BOMBARDIER_SPAWN_EGG)) {
+				for (var item : List.of(RiftItems.BOMBARDIER_HELMET, RiftItems.GRENADIER_SWORD, RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftItems.WAR_GHAST_SPAWN_EGG, RiftItems.GHAST_BOMBARDIER_SPAWN_EGG)) {
 					ctx.assertTrue(names.has(item.getDescriptionId()), lang + " doesn't name " + item.getDescriptionId());
 				}
 			}

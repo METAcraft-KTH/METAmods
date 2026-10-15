@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The generated models load in BIL with the bones and animations the mobs play; the Grenadier's goggles are an item
- * model, with its texture.
+ * The generated models load in BIL with the bones and animations the mobs play; the Grenadier's goggles and gloved arm
+ * are item models, with their textures.
  */
 public class ModelTests {
 
@@ -57,6 +57,26 @@ public class ModelTests {
 		assertEquals("nether_rifts:item/bombardier_helmet", item.get("model").getAsString());
 		var model = itemModel("bombardier_helmet", "nether_rifts:item/bombardier_helmet", Set.of("strap", "left lens", "right lens"));
 		assertTrue(model.getAsJsonObject("display").has("head"), "the goggles have no head display");
+	}
+
+	/**
+	 * The Grenadier's sword: clients see a golden sword in his gloved right arm, a composite of vanilla's golden sword
+	 * and the artist's arm and sleeve; through a throw, the arm alone, with the magma bomb till it lets go. The arm's
+	 * models are placed over a piglin's arm by their third-person hand displays.
+	 */
+	@Test
+	public void grenadierSword() throws IOException {
+		var sword = json("/assets/nether_rifts/items/grenadier_sword.json").getAsJsonObject("model");
+		assertEquals("minecraft:composite", sword.get("type").getAsString());
+		var parts = sword.getAsJsonArray("models").asList().stream().map(m -> m.getAsJsonObject().get("model").getAsString()).toList();
+		assertEquals(List.of("minecraft:item/golden_sword", "nether_rifts:item/bombardier_arm"), parts);
+		assertEquals("nether_rifts:item/bombardier_arm_bomb", json("/assets/nether_rifts/items/grenadier_sword_bomb.json").getAsJsonObject("model").get("model").getAsString());
+		assertEquals("nether_rifts:item/bombardier_arm", json("/assets/nether_rifts/items/grenadier_sword_thrown.json").getAsJsonObject("model").get("model").getAsString());
+		var arm = itemModel("bombardier_arm", "nether_rifts:item/bombardier_arm", Set.of("right_arm", "right_sleeve"));
+		var bomb = itemModel("bombardier_arm_bomb", "nether_rifts:item/bombardier_arm", Set.of("right_arm", "right_sleeve", "core", "shell"));
+		for (var model : List.of(arm, bomb)) {
+			assertTrue(model.getAsJsonObject("display").has("thirdperson_righthand"), "the arm has no right-hand display");
+		}
 	}
 
 	/**
