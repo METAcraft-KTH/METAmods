@@ -59,5 +59,8 @@ public final class RiftItems {
 	 */
 	public static void init() {
 		CreativeTabNamespaces.add(NetherRifts.NAMESPACE);
+		// the Grenadier's kit, never handed out: in no tab
+		CreativeTabNamespaces.hide(BOMBARDIER_HELMET);
+		CreativeTabNamespaces.hide(GRENADIER_SWORD);
 	}
 }

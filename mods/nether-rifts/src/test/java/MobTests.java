@@ -139,6 +139,9 @@ public class MobTests {
 				// metacraft-core's Spawn Eggs creative tab gathers the eggs of every namespace opted in (RiftItems.init)
 				ctx.assertTrue(nu.metacraft.core.item.SpawnEggsCreativeTab.eggs().contains((Item) egg[0]), egg[0] + " isn't in the Spawn Eggs tab");
 			}
+			// the Grenadier's kit is hidden from the METAcraft tab
+			var tab = nu.metacraft.core.item.METAcraftCreativeTab.items();
+			ctx.assertFalse(tab.contains(RiftItems.BOMBARDIER_HELMET) || tab.contains(RiftItems.GRENADIER_SWORD), "the Grenadier's kit is in the METAcraft tab");
 			ctx.succeed();
 		});
 		NetherRiftsTests.register("mobs/names_translated", ctx -> {
