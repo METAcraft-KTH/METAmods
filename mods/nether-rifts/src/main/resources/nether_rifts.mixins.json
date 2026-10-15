@@ -4,6 +4,8 @@
 	"package": "nu.metacraft.nether_rifts.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
+		"AnimationComponentAccessor",
+		"AnimationPlayerAccessor",
 		"BaseFireBlockMixin",
 		"CrafterBlockMixin",
 		"CraftingMenuMixin",

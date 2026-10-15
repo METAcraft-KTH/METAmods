@@ -36,6 +36,8 @@ import java.util.List;
  * <li>{@code item_right}, {@code item_left}: inside the right / left arm bone, at the bottom-centre of the fist (the
  * middle of the arm's bottom face). The item is held 2 px in front of that, where vanilla holds it on its 4 px deep
  * arms. The main hand is on the right arm and the off hand on the left, the other way round for a left-handed mob.
+ * (A model may put them elsewhere: the Chained Ghast's artist put item_right in the spear piglin's left fist and
+ * item_left on the crossbow piglin's body.)
  * <li>{@code item_head}: inside the head bone, at the centre of the head (the middle of the head cube: 4 px above
  * the neck for an 8 px head). Vanilla draws head items (carved pumpkins, blocks, banners) about that point.
  * </ul>

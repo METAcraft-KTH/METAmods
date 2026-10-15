@@ -42,6 +42,8 @@ import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
+import nu.metacraft.nether_rifts.mixin.AnimationComponentAccessor;
+import nu.metacraft.nether_rifts.mixin.AnimationPlayerAccessor;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import nu.metacraft.nether_rifts.raid.Slot;
 import org.jetbrains.annotations.Nullable;
@@ -67,12 +69,17 @@ import java.util.Map;
  * crossbow piglin, no drumming without the drummer) and it doesn't jump when the ghast dies. The rest jump with
  * the health they had left.
  *
- * <p>Its gear shows on the crew ({@link HeldItems}, {@link ArmourPieces}): the main hand in the spear piglin's left
- * hand, the off hand in the crossbow piglin's right (the ghast is left-handed), the head slot on the Grenadier's head (worn armour on the spear
- * piglin's instead), and chest, legs and feet armour on the spear piglin. Every Chained Ghast gets a golden spear, a
- * crossbow and the Grenadier Goggles, none of which drop. The armour is for show on the ghast (no armour points,
- * toughness or enchantment effects), and protects the spear piglin's hitbox. The crew take the gear with them when
- * they jump.
+ * <p>Its gear shows on the crew ({@link HeldItems}, {@link ArmourPieces}) where the artist marked it: the main hand in
+ * the spear piglin's left fist ({@code item_right}: the ghast is right-handed), the off hand on the crossbow piglin's
+ * body ({@code item_left}), the head slot on the Grenadier's head (worn armour on the spear piglin's instead), and
+ * chest, legs and feet armour on the spear piglin. Every Chained Ghast gets a golden spear and a crossbow, neither of
+ * which drops; the Grenadier's goggles are modelled. The armour is for show on the ghast (no armour points, toughness
+ * or enchantment effects), and protects the spear piglin's hitbox. The crew take the gear with them when they jump.
+ *
+ * <p>Animations: idle always; {@link #SHOOT} as it charges a fireball (the spear piglin stabs it, and it fires at the
+ * animation's shot, its shooting face out), {@link #DIVE} and {@link #CLIMB} as a bombing run takes it down to the
+ * target and back up, and {@link #DROP_BOMB} while the Grenadier drops bombs. BIL shows only the top animation playing,
+ * on every bone, so tools/import_ghast.py gives each idle's tracks for the bones it doesn't move ({@link #play}).
  */
 public class WarGhast extends Ghast implements AnimatedEntity {
 
@@ -96,9 +103,25 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	/** It loads (and is heard loading) this long before it shoots: a second. */
 	public static final int CROSSBOW_LOAD_TICKS = 20;
 
-	/** The faces: one shows at a time. */
+	/** The faces: one shows at a time, by the animations (shoot swaps them; the rest keep the shooting face shrunk away). */
 	public static final String FACE = "face_sad";
 	public static final String SHOOTING_FACE = "face_shooting";
+
+	/** The model's animations. */
+	public static final String IDLE = "idle";
+	public static final String SHOOT = "shoot";
+	public static final String DIVE = "dive";
+	public static final String CLIMB = "climb";
+	public static final String DROP_BOMB = "drop_bomb";
+	/**
+	 * A frame of {@link #SHOOT} with its shooting face out (from 0.44 s to 0.88 s in): it fires about then, as vanilla's
+	 * goal fires 9 ticks after it starts charging. The showcase holds it.
+	 */
+	public static final int SHOT_FRAME = 12;
+	/** Which animation shows when they play together: the shot over a dive or climb, those over the bombing. */
+	private static final int SHOOT_PRIORITY = 20;
+	private static final int TURN_PRIORITY = 15;
+	private static final int BOMB_PRIORITY = 10;
 
 	/** The armour slots, worn for show only. */
 	private static final List<EquipmentSlot> ARMOUR = List.of(EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET);
@@ -109,8 +132,8 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	 */
 	public enum Crew {
 		DRUMMER("drummer_piglin"),
-		SPEAR("piglin1"),
-		CROSSBOW("piglin2"),
+		SPEAR("spear_piglin"),
+		CROSSBOW("crossbow_piglin"),
 		BOMBARDIER("bombardier");
 
 		public final String figure;
@@ -146,6 +169,8 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	private final Map<Crew, Integer> figureTint = new EnumMap<>(Crew.class);
 	private int tint = -1;
 	private int crossbowClock = 0;
+	/** When the Grenadier last dropped a bomb, in game time: {@link #DROP_BOMB} plays from a run's first bomb to its last. */
+	private long lastBomb = Long.MIN_VALUE;
 	/** The crew have jumped. */
 	private boolean crewGone = false;
 
@@ -179,7 +204,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 			crewBones.put(crew, bones);
 		}
 		EntityAttachment.ofTicking(this.holder, this);
-		this.holder.getAnimator().playAnimation("idle", 0, true);
+		this.holder.getAnimator().playAnimation(IDLE, 0, true);
 		showParts();
 		keepKit();
 	}
@@ -267,20 +292,10 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		return deck;
 	}
 
-	/**
-	 * Shows the face for what the ghast is doing and hides the crew that are gone. An invisible ghast keeps every bone
-	 * hidden (BIL hides them).
-	 */
+	/** Hides the crew that are gone. An invisible ghast keeps every bone hidden (BIL hides them). */
 	private void showParts() {
 		if (isInvisible()) {
 			return;
-		}
-		boolean shooting = isCharging();
-		var face = holder.getBone(FACE);
-		var shootingFace = holder.getBone(SHOOTING_FACE);
-		if (face != null && shootingFace != null) {
-			face.setInvisible(shooting);
-			shootingFace.setInvisible(!shooting);
 		}
 		crewBones.forEach((crew, bones) -> {
 			if (!hasCrew(crew)) {
@@ -289,19 +304,65 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		});
 	}
 
-	/** The ghast's shooting face, while vanilla's fireball goal charges a shot (half a second before it fires). */
+	/**
+	 * Vanilla's fireball goal charges a shot for 9 ticks before it fires: as it starts, {@link #SHOOT} plays, the spear
+	 * piglin stabbing the ghast till it fires (at the animation's {@link #SHOT_FRAME}, its shooting face out).
+	 */
 	@Override
 	public void setCharging(boolean charging) {
+		if (charging && !isCharging() && !level().isClientSide()) {
+			play(SHOOT);
+		}
 		super.setCharging(charging);
-		showParts();
+	}
+
+	/**
+	 * Plays one of the model's animations over idle: {@link #SHOOT}, {@link #DIVE}, {@link #CLIMB} (the shot shows over
+	 * the other two) or {@link #DROP_BOMB} (under all three). BIL shows only the top animation playing, on every bone, so
+	 * the import gives each idle's tracks for the bones it doesn't move itself. Shoot, dive and climb have idle's from its
+	 * start, so idle (and the bombing, in step with it) starts again with them: when one ends, idle carries on from where
+	 * it left the bones (which jump to idle's start as it begins). The bombing is idle throughout, the Grenadier's throw
+	 * in place of his arm, and starts where idle is.
+	 */
+	public void play(String animation) {
+		var animator = holder.getAnimator();
+		if (animation.equals(DROP_BOMB)) {
+			animator.playAnimation(DROP_BOMB, BOMB_PRIORITY, true);
+			inStep(DROP_BOMB);
+			return;
+		}
+		animator.setAnimationFrame(IDLE, 0);
+		inStep(DROP_BOMB);
+		animator.playAnimation(animation, animation.equals(SHOOT) ? SHOOT_PRIORITY : TURN_PRIORITY, true);
+		animator.setAnimationFrame(animation, 0);
+	}
+
+	/** Puts a playing animation as long as idle on idle's frame, so they go on in step. */
+	private void inStep(String animation) {
+		var players = ((AnimationComponentAccessor) holder.getAnimator()).netherRifts$players();
+		if (players.get(animation) instanceof AnimationPlayerAccessor player && players.get(IDLE) instanceof AnimationPlayerAccessor idle) {
+			player.netherRifts$setFrameCounter(idle.netherRifts$frameCounter());
+		}
+	}
+
+	/**
+	 * Holds {@link #SHOOT} on its {@link #SHOT_FRAME}, shooting face out (the showcase's ghast): call it every tick.
+	 */
+	public void holdShot() {
+		var animator = holder.getAnimator();
+		if (!animator.isPlaying(SHOOT)) {
+			play(SHOOT);
+		}
+		animator.setAnimationFrame(SHOOT, SHOT_FRAME);
 	}
 
 	/**
 	 * The kit every Chained Ghast has, in any slot left empty while the crew member who shows it is there: the golden
-	 * spear the rift's spear piglins carry, a crossbow and the Grenadier Goggles. Its gear never drops (the crew take
-	 * it), and it's left-handed: the main hand shows in the spear piglin's left fist ({@code item_left}), the off hand
-	 * in the crossbow piglin's right ({@code item_right}). Set again on spawning and loading (a save or
-	 * a summon without equipment has none).
+	 * spear the rift's spear piglins carry and a crossbow. Its gear never drops (the crew take it), and it's
+	 * right-handed, as the artist marked it: the main hand shows in the spear piglin's left fist ({@code item_right}),
+	 * the off hand on the crossbow piglin ({@code item_left}). The Grenadier's goggles are modelled now, so the ones an
+	 * older ghast wore come off (they'd show twice; they never dropped). Set again on spawning and loading (a save or a
+	 * summon without equipment has none).
 	 */
 	private void keepKit() {
 		if (hasCrew(Crew.SPEAR)) {
@@ -310,13 +371,13 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		if (hasCrew(Crew.CROSSBOW)) {
 			fill(EquipmentSlot.OFFHAND, Items.CROSSBOW);
 		}
-		if (hasCrew(Crew.BOMBARDIER)) {
-			fill(EquipmentSlot.HEAD, RiftItems.BOMBARDIER_HELMET);
+		if (getItemBySlot(EquipmentSlot.HEAD).is(RiftItems.BOMBARDIER_HELMET)) {
+			setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
 		}
 		for (var slot : EquipmentSlot.values()) {
 			setDropChance(slot, 0f);
 		}
-		setLeftHanded(true);
+		setLeftHanded(false);
 	}
 
 	private void fill(EquipmentSlot slot, Item item) {
@@ -424,14 +485,17 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	/**
 	 * The Grenadier throws a magma bomb off the deck, straight down onto the ground warning, lobbed up first if need
 	 * be: the warning shows at least the configured warning time (default {@link BurningPatches#WARN_TICKS}) before
-	 * the blast, where the bomb lands. Plays the model's {@code drop_bomb} animation, if it has one. Nothing without the
-	 * Grenadier.
+	 * the blast, where the bomb lands. The model's {@link #DROP_BOMB} plays from the first bomb of a run till a bomb
+	 * every {@code bomb_every} ticks stops coming ({@link #tick}). Nothing without the Grenadier.
 	 */
 	public void dropBomb(ServerLevel level) {
 		if (!hasCrew(Crew.BOMBARDIER)) {
 			return;
 		}
-		holder.getAnimator().playAnimation("drop_bomb", 10, true);
+		if (!holder.getAnimator().isPlaying(DROP_BOMB)) {
+			play(DROP_BOMB);
+		}
+		lastBomb = level.getGameTime();
 		var from = position().add(0, -DECK_DROP - 0.5, 0);
 		var ground = BurningPatches.groundBelow(level, from);
 		var bomb = new MagmaBomb(level, this);
@@ -497,7 +561,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 			if (figure == Crew.SPEAR) {
 				give(mob, EquipmentSlot.MAINHAND, take(EquipmentSlot.MAINHAND, Items.GOLDEN_SPEAR));
 				for (var slot : ARMOUR) {
-					// the goggles stay with the ghast's Grenadier, who has its own
+					// worn armour: anything else in the head slot was the Grenadier's to show
 					if (ArmourPieces.isWorn(getItemBySlot(slot), slot)) {
 						give(mob, slot, take(slot, null));
 					}
@@ -514,7 +578,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 			}
 			crew.add(jumpOff(mob, spot(figure)));
 		}
-		// what the crew didn't take (the goggles: the Grenadier has its own) goes with their figures
+		// what the crew didn't take (a head item the Grenadier showed: he has his own goggles) goes with their figures
 		for (var slot : EquipmentSlot.values()) {
 			setItemSlot(slot, ItemStack.EMPTY);
 		}
@@ -653,7 +717,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	/**
 	 * The crossbow piglin shoots a bolt every {@code crossbow_every} ticks (if 0, never) at the nearest player it can
 	 * see within {@link #CROSSBOW_RANGE} blocks, who can fight (not in creative or spectator), heard loading a second
-	 * before: from its right fist, as a piglin's crossbow shoots (its speed, aim and spread). The bolt is the hitbox's (its
+	 * before: from its crossbow (the off hand's marker), as a piglin's crossbow shoots (its speed, aim and spread). The bolt is the hitbox's (its
 	 * kill), and passes through the ghast, its crew and, for a rift's ghast, every rift mob (mixin/ProjectileMixin).
 	 * Plays the model's {@code crossbow_shoot} animation, if it has one.
 	 */
@@ -676,7 +740,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		if (target == null) {
 			return;
 		}
-		var from = toWorld(place(HeldItems.RIGHT, false));
+		var from = toWorld(place(HeldItems.LEFT, false));
 		var weapon = getOffhandItem().isEmpty() ? new ItemStack(Items.CROSSBOW) : getOffhandItem().copy();
 		var bolt = new Arrow(level, from.x, from.y, from.z, new ItemStack(Items.ARROW), weapon);
 		bolt.setOwner(hitbox);
@@ -771,8 +835,9 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 
 	/**
 	 * It flashes red while hurt ({@link RiftModels#hurtTint}), and a crew member's figure alone while its hitbox is. Its
-	 * hitboxes follow it, and the crossbow piglin shoots. The crew are part of the ghast; riders from an old config's
-	 * roster entry or a {@code /summon} with passengers would make a doubled crew, so they're sent away.
+	 * hitboxes follow it, and the crossbow piglin shoots. The Grenadier's bombing animation stops once his bombs do
+	 * (or he does). The crew are part of the ghast; riders from an old config's roster entry or a {@code /summon} with
+	 * passengers would make a doubled crew, so they're sent away.
 	 */
 	@Override
 	public void tick() {
@@ -780,6 +845,11 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		if (level() instanceof ServerLevel level) {
 			RiftModels.hurtTint(this, holder);
 			tintFigures();
+			var animator = holder.getAnimator();
+			if (animator.isPlaying(DROP_BOMB) && (!hasCrew(Crew.BOMBARDIER)
+					|| level.getGameTime() - lastBomb > NetherRiftsConfig.getInstance().mobs().bombardier().bombEvery())) {
+				animator.stopAnimation(DROP_BOMB);
+			}
 			if (isVehicle()) {
 				getPassengers().forEach(Entity::discard);
 			}

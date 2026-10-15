@@ -91,11 +91,78 @@ public class ModelTests {
 		for (var crew : WarGhast.Crew.values()) {
 			bones.addAll(Set.of(crew.figure, crew.figure + "_feet", crew.figure + "_facing"));
 		}
-		assertModel("war_ghast", bones, Set.of("idle"));
+		assertModel("war_ghast", bones, Set.of(WarGhast.IDLE, WarGhast.SHOOT, WarGhast.DIVE, WarGhast.CLIMB, WarGhast.DROP_BOMB));
 		var model = BbModelLoader.load(NetherRifts.getID("war_ghast"));
 		for (var node : model.nodeMap().values()) {
 			assertFalse(node.tag().isHead(), node.name() + " turns with the ghast's look");
 		}
+	}
+
+	/**
+	 * The import makes each animation but idle whole (BIL plays one at a time over every bone): shoot, dive, climb and
+	 * drop_bomb key every channel idle does, and a bone they don't move themselves (a tentacle, the drummer's arm) with
+	 * idle's very keys; drop_bomb is idle's length, so it goes in step with it. Shoot swaps the faces at its shot
+	 * ({@link WarGhast#SHOT_FRAME}); idle keeps the shooting face shrunk away.
+	 */
+	@Test
+	public void warGhastAnimationsOverIdle() throws IOException {
+		var file = json("/model/nether_rifts/war_ghast.bbmodel");
+		var animations = new java.util.HashMap<String, JsonObject>();
+		file.getAsJsonArray("animations").forEach(a -> animations.put(a.getAsJsonObject().get("name").getAsString(), a.getAsJsonObject().getAsJsonObject("animators")));
+		var idle = animations.get(WarGhast.IDLE);
+		for (var name : List.of(WarGhast.SHOOT, WarGhast.DIVE, WarGhast.CLIMB, WarGhast.DROP_BOMB)) {
+			var animation = animations.get(name);
+			for (var bone : idle.entrySet()) {
+				var mine = animation.getAsJsonObject(bone.getKey());
+				assertNotNull(mine, name + " has no keys for " + bone.getValue().getAsJsonObject().get("name"));
+				assertTrue(channels(mine).containsAll(channels(bone.getValue().getAsJsonObject())), name + " leaves channels of "
+					+ bone.getValue().getAsJsonObject().get("name") + " unkeyed");
+			}
+			for (var bone : idle.entrySet()) {
+				var boneName = bone.getValue().getAsJsonObject().get("name").getAsString();
+				if (boneName.equals("tentacle1") || boneName.equals("drummer_right_arm")) {
+					assertEquals(keys(bone.getValue().getAsJsonObject()), keys(animation.getAsJsonObject(bone.getKey())), name + " moves " + boneName + " otherwise than idle");
+				}
+			}
+		}
+		var model = BbModelLoader.load(NetherRifts.getID("war_ghast"));
+		var ids = new java.util.HashMap<String, java.util.UUID>();
+		model.nodeMap().values().forEach(node -> ids.put(node.name(), node.uuid()));
+		var idleFrames = model.animations().get(WarGhast.IDLE);
+		assertEquals(idleFrames.frames().length, model.animations().get(WarGhast.DROP_BOMB).frames().length, "the bombing isn't as long as idle");
+		var shoot = model.animations().get(WarGhast.SHOOT);
+		assertEquals(0, scale(idleFrames, 0, ids.get(WarGhast.SHOOTING_FACE)), 1e-4, "idle shows the shooting face");
+		assertEquals(1, scale(idleFrames, 0, ids.get(WarGhast.FACE)), 0.05, "idle hides the sad face");
+		assertEquals(0, scale(shoot, 0, ids.get(WarGhast.SHOOTING_FACE)), 1e-4, "shoot starts with the shooting face");
+		assertEquals(1, scale(shoot, WarGhast.SHOT_FRAME, ids.get(WarGhast.SHOOTING_FACE)), 0.05, "no shooting face at the shot");
+		assertEquals(0, scale(shoot, WarGhast.SHOT_FRAME, ids.get(WarGhast.FACE)), 1e-4, "the sad face shows at the shot");
+	}
+
+	private static Set<String> channels(JsonObject animator) {
+		var out = new java.util.HashSet<String>();
+		if (animator.has("keyframes")) {
+			animator.getAsJsonArray("keyframes").forEach(k -> out.add(k.getAsJsonObject().get("channel").getAsString()));
+		}
+		return out;
+	}
+
+	/** An animator's keys, without their ids, in order. */
+	private static List<String> keys(JsonObject animator) {
+		if (!animator.has("keyframes")) {
+			return List.of();
+		}
+		return animator.getAsJsonArray("keyframes").asList().stream().map(k -> {
+			var key = k.getAsJsonObject().deepCopy();
+			key.remove("uuid");
+			return key.toString();
+		}).sorted().toList();
+	}
+
+	/** A bone's scale (relative to its size at rest) in a frame of an animation. */
+	private static float scale(de.tomalbrc.bil.core.model.Animation animation, int frame, java.util.UUID bone) {
+		var model = BbModelLoader.load(NetherRifts.getID("war_ghast"));
+		float rest = model.defaultPose().get(bone).scale().x();
+		return animation.frames()[frame].poses().get(bone).scale().x() / rest;
 	}
 
 	/** WarGhast.DECK_DROP is how far the model's lowest cube (the deck's underside) hangs below the ghast's feet. */

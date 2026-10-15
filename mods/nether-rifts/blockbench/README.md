@@ -39,3 +39,14 @@ Reference renders are in `references/`, and the goggles concepts are in `concept
 
 Send back the `.bbmodel` files. For the helmet, also send File > Export > Block/Item Model (the JSON file) and its
 texture PNG.
+
+## Delivered
+
+What the artist sent back is kept in `delivered/`, as sent (the starters above stay as they were handed out). The
+module's README says how each is brought in.
+
+| File | What it is | Brought in by |
+| --- | --- | --- |
+| `war_ghast.bbmodel`, `war_ghast.png` | The Chained Ghast (2026-10-15): the crew in the deck, a bomb pile and a chain harness, the gear markers (`item_right`, `item_left`, `item_head`), and the animations idle, shoot, drop_bomb, dive, climb and crew_gone. The PNG is the latest texture (the file's own is a little older). | `tools/import_ghast.py` |
+
+Earlier deliveries (the Piglin Drummer, the first Chained Ghast) came in before this folder and aren't kept.

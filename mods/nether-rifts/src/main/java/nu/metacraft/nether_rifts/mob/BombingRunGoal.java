@@ -19,7 +19,8 @@ import java.util.EnumSet;
  * short of it: a ghast's move control won't fly at a point its body doesn't fit, and the deck hanging under it
  * must fit too. With no room for the ghast and its deck over the target at all, the run is given up until the
  * cooldown has passed. Only while the Grenadier is on the deck: killed there, no more runs. The numbers are the
- * defaults of the config's {@code mobs.bombardier} section.
+ * defaults of the config's {@code mobs.bombardier} section. The ghast plays its model's dive as the dive starts and its
+ * climb as the climb does ({@link WarGhast#play}); the Grenadier's bombing plays with his bombs ({@link WarGhast#dropBomb}).
  */
 public class BombingRunGoal extends Goal {
 
@@ -81,6 +82,9 @@ public class BombingRunGoal extends Goal {
 		ticks = 0;
 		// no room over the target (a low roof, a tunnel): give up, and try again after the cooldown
 		phase = runStart == null || runEnd == null ? null : Phase.DIVE;
+		if (phase == Phase.DIVE) {
+			ghast.play(WarGhast.DIVE);
+		}
 	}
 
 	@Override
@@ -115,6 +119,9 @@ public class BombingRunGoal extends Goal {
 					climbTo = clear(target.position().add(0, tuning.diveHeight() + WarGhast.DECK_DROP, 0),
 							target.position().add(0, tuning.climbHeight() + WarGhast.DECK_DROP, 0));
 					next(climbTo == null ? null : Phase.CLIMB);
+					if (phase == Phase.CLIMB) {
+						ghast.play(WarGhast.CLIMB);
+					}
 				}
 			}
 			case CLIMB -> {

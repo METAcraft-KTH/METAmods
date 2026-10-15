@@ -1,1 +1,0 @@
-{"type": "minecraft:function", "environment": "nether_rifts:default", "function": "nether_rifts:bombardier/faces_swap_when_charging", "max_ticks": 100, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

@@ -150,7 +150,7 @@ public final class Showcase {
 		var ghasts = new ArrayList<Mob>();
 		for (boolean charging : new boolean[] {false, true}) {
 			var ghast = create(level, RiftEntities.WAR_GHAST, charging ? "Chained Ghast: shooting face" : "Chained Ghast: idle, diamond armour");
-			// diamond on the spear piglin; the head slot keeps the Grenadier's goggles
+			// diamond on the spear piglin
 			set(ghast, EquipmentSlot.CHEST, Items.DIAMOND_CHESTPLATE);
 			set(ghast, EquipmentSlot.LEGS, Items.DIAMOND_LEGGINGS);
 			set(ghast, EquipmentSlot.FEET, Items.DIAMOND_BOOTS);
@@ -258,6 +258,9 @@ public final class Showcase {
 				boolean charging = ghast.entityTags().contains(CHARGING_TAG);
 				if (ghast.isCharging() != charging) {
 					ghast.setCharging(charging);
+				}
+				if (charging) {
+					ghast.holdShot();
 				}
 				continue;
 			}

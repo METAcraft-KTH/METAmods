@@ -14,16 +14,17 @@ rift's drummer ignores gold and never turns. No drummer barters or picks anythin
 wears as a piglin does (vanilla's piglin armour and textures in every vanilla material, leather dyed, enchanted pieces
 glinting; no trims), and a nether drummer may spawn in gold armour as piglins do (each piece 10% of the time). In Large waves 5 and
 later come chained ghasts: in a harness, a deck slung under them on chains with a crew of a Piglin Drummer, a Piglin
-Grenadier, a spear piglin and a crossbow piglin. Their gear shows on the crew (a golden spear in the spear piglin's
-left hand, a crossbow in the crossbow piglin's right, the Grenadier's goggles, and any armour on the spear piglin, for
-show only: it doesn't protect the ghast). A chained ghast floats with its deck clear of the ground and at most 20
+Grenadier (in goggles), a spear piglin and a crossbow piglin. Their gear shows on the crew (a golden spear in the
+spear piglin's left hand, a crossbow on the crossbow piglin, and any armour on the spear piglin, for show only: it
+doesn't protect the ghast). A chained ghast floats with its deck clear of the ground and at most 20
 blocks over it (`mobs.bombardier.max_float_height`), and goes after players below it. The crew can be shot or struck
 on the deck (each has its own health and a roomy hitbox; the deck's cover spares them 40% of the damage after armour,
 `mobs.bombardier.crew.damage_taken`; the spear piglin's armour protects it; the wooden deck turns arrows from below),
 and each one killed there takes its work with it: the spear piglin stabs the ghast into shooting fireballs, the
 Grenadier drops the bombs, the crossbow piglin shoots bolts at players it can see (every 3 seconds,
 `mobs.bombardier.crew.crossbow_every`), and the drummer drums in time with every Piglin Drummer, his War Beat
-reaching the piglins under the ghast. They make bombing runs, the Grenadier dropping magma bombs from the deck, each bomb's landing
+reaching the piglins under the ghast. Stabbed, the ghast lurches and shoots, its mouth open. They make bombing runs, the
+ghast pitching into the dive and back as it climbs out, the Grenadier dropping magma bombs from the deck, each bomb's landing
 spot marked on the ground a second before it hits; the bombs don't break blocks, or hurt rift mobs, armour stands
 or loot on the ground. When a chained ghast dies, the crew left on it jump off where they stood, with the health they had left, and glide
 down to fight on foot, the spear piglin wearing the ghast's armour: the Grenadier,
@@ -70,14 +71,16 @@ Screenshots: `./gradlew :mods:nether-rifts:runClientGameTest` (opens a window).
 
 The mob models in `src/main/resources/model/nether_rifts/`, the Piglin Drummer and the Chained Ghast with its crew,
 are by Millia, brought in by re-runnable imports that
-fit them to how BIL plays them. `python3 tools/import_drummer.py <artist's .bbmodel>` does the Piglin Drummer: adds
+fit them to how BIL plays them. The Chained Ghast's source files are in `blockbench/delivered/` (`blockbench/README.md`). `python3 tools/import_drummer.py <artist's .bbmodel>` does the Piglin Drummer: adds
 the gear markers and the armour pieces (vanilla's piglin armour cubes, in the bones they cover), and writes the
 armour's item models for each vanilla material (`assets/nether_rifts/{models/item,items}/war_drummer/armour/`) with an
 item-atlas file that lets them use vanilla's own armour textures; it reads the materials from the local Minecraft jar.
-`python3 tools/import_ghast.py <artist's .bbmodel>` does the Chained Ghast: puts the ghast's body on the entity's box
-(it prints the deck's drop, `WarGhast.DECK_DROP`), renames the crew's bones (BIL turns any bone named `head…` with
-the mob's look), folds the overlay layers into their parts, adds the markers the crew jump off at and the gear
-markers, and the spear piglin's armour (`…/war_ghast/armour/`); both share `tools/piglin_armour.py`.
+`python3 tools/import_ghast.py blockbench/delivered/war_ghast.bbmodel blockbench/delivered/war_ghast.png` does the
+Chained Ghast: takes the texture PNG, puts the ghast's body on the entity's box (it prints the deck's drop,
+`WarGhast.DECK_DROP`), renames the crew's bones (BIL turns any bone named `head…` with the mob's look), folds the overlay
+layers, the goggles and the bomb pile into their parts, adds the markers the crew jump off at (the artist marks where
+the gear goes), the spear piglin's armour (`…/war_ghast/armour/`), and gives each animation idle's tracks for the
+bones it doesn't move (BIL plays one animation at a time, over every bone); both share `tools/piglin_armour.py`.
 `tools/gen_models.py` builds placeholder models from vanilla geometry; none are in use now. The Grenadier on foot has no model of its own: clients see a
 vanilla piglin wearing the `nether_rifts:bombardier_helmet` item (a Polymer item, never dropped or craftable),
 whose item model `assets/nether_rifts/models/item/bombardier_helmet.json` is a placeholder of vanilla block

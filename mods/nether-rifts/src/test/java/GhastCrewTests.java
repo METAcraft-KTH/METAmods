@@ -147,8 +147,8 @@ public class GhastCrewTests {
 			});
 		});
 		NetherRiftsTests.register("ghast_crew/grenadier_killed", ctx -> {
-			// Killed on the deck, the Grenadier's figure goes with its goggles; the ghast makes no
-			// more bombing runs, though it has a target under it the whole time.
+			// Killed on the deck, the Grenadier's figure goes (goggles and all: they're modelled, the head slot stays
+			// empty); the ghast makes no more bombing runs, though it has a target under it the whole time.
 			BombardierTests.stoneFloor(ctx);
 			var bombs = new AtomicInteger();
 			ctx.onEachTick(() -> bombs.addAndGet(ctx.getEntities(RiftEntities.MAGMA_BOMB).size()));
@@ -164,7 +164,7 @@ public class GhastCrewTests {
 					hitbox.hurtServer(ctx.getLevel(), ctx.getLevel().damageSources().playerAttack(player), 1000f);
 					ctx.assertFalse(hitbox.isAlive(), "the Grenadier's hitbox lives");
 					ctx.assertFalse(ghast.hasCrew(Crew.BOMBARDIER), "the Grenadier is still on the deck");
-					ctx.assertTrue(ghast.getItemBySlot(EquipmentSlot.HEAD).isEmpty(), "the ghast still has the goggles");
+					ctx.assertTrue(ghast.getItemBySlot(EquipmentSlot.HEAD).isEmpty(), "the ghast's head slot holds " + ghast.getItemBySlot(EquipmentSlot.HEAD));
 					for (var bone : ghast.crewBones(Crew.BOMBARDIER)) {
 						ctx.assertTrue(BombardierTests.shown(bone).isEmpty(), bone.name() + " still shows");
 					}
@@ -174,7 +174,7 @@ public class GhastCrewTests {
 				var ghast = ctx.getEntities(RiftEntities.WAR_GHAST).getFirst();
 				ctx.assertTrue(bombs.get() == 0, "a bomb dropped with the Grenadier dead");
 				ctx.assertTrue(ghast.hitbox(Crew.BOMBARDIER) == null, "the Grenadier's hitbox came back");
-				ctx.assertTrue(ghast.getHolder().heldItems().display(HeldItems.Spot.HEAD).getItem().isEmpty(), "the goggles still show");
+				ctx.assertTrue(ghast.getHolder().heldItems().display(HeldItems.Spot.HEAD).getItem().isEmpty(), "a head item shows on the Grenadier's head");
 				StageTests.remove(ctx, player);
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);
@@ -241,7 +241,7 @@ public class GhastCrewTests {
 			});
 		});
 		NetherRiftsTests.register("ghast_crew/crossbow_bolts", ctx -> {
-			// The crossbow piglin shoots bolts at a player it can see in range: its hitbox's, from its left fist.
+			// The crossbow piglin shoots bolts at a player it can see in range: its hitbox's, from its crossbow.
 			// A second ghast, its crossbow piglin killed, shoots none.
 			BombardierTests.stoneFloor(ctx);
 			var player = StageTests.player(ctx);
