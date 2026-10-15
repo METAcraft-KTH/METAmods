@@ -40,7 +40,7 @@ rift that it woke one). The warning's `[Read more]` opens metacraft-booklet's Un
 nether-rifts only compiles against Booklet, and leaves the link out on a server without metacraft-booklet.
 
 Clients see a rift's blocks as a vanilla nether portal (swirl, particles, hum, and its overlay if you walk in;
-on the server they stay rift blocks and teleport nobody). Over it, metacraft-core's item shader draws glass
+on the server they stay rift blocks and teleport nobody). Over it, metacraft-shaders' item shader draws glass
 cracking as pixel art fixed to the world (16 pixels a block): hairlines, then a web, then holes through which a
 far-off nether fortress shows (a panorama captured in game, of Eskmorra: credits below) through a soft purple
 haze drifting like the portal's swirl, the portal reddening as the rift tears. Players whose core shaders are

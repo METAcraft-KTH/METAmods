@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
+import nu.metacraft.lib.CreativeTabNamespaces;
 import nu.metacraft.nether_rifts.NetherRifts;
 
 /** The rift mobs' own items, server-side (Polymer): the Bombardier's goggles and the mobs' spawn eggs. */
@@ -40,5 +41,6 @@ public final class RiftItems {
 	}
 
 	public static void init() {
+		CreativeTabNamespaces.add(NetherRifts.NAMESPACE);
 	}
 }

@@ -136,7 +136,7 @@ public class MobTests {
 					new Object[] {RiftItems.WAR_GHAST_SPAWN_EGG, RiftEntities.WAR_GHAST}, new Object[] {RiftItems.GHAST_BOMBARDIER_SPAWN_EGG, RiftEntities.GHAST_BOMBARDIER})) {
 				var type = SpawnEggItem.getType(new ItemStack((Item) egg[0]));
 				ctx.assertTrue(type == egg[1], egg[0] + " spawns " + type);
-				// metacraft-core's Spawn Eggs creative tab gathers every modded egg
+				// metacraft-core's Spawn Eggs creative tab gathers the eggs of every namespace opted in (RiftItems.init)
 				ctx.assertTrue(nu.metacraft.core.item.SpawnEggsCreativeTab.eggs().contains((Item) egg[0]), egg[0] + " isn't in the Spawn Eggs tab");
 			}
 			ctx.succeed();

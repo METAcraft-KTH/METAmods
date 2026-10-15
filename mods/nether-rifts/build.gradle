@@ -2,6 +2,8 @@ version = project.nether_rifts_version
 
 addCoreDependencies()
 addConfigDependency()
+// the rifts' item shader
+addProjectDependency(":mods:metacraft-shaders")
 addProjectDependency(":mods:metacraft-zones")
 addProjectDependency(":mods:portal-blocker")
 addProjectDependency(":mods:portal-opening")

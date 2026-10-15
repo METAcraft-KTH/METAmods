@@ -14,7 +14,7 @@ public class ShaderOwnershipTest {
 	private static final Path MODS = Path.of("..");
 
 	@Test
-	public void onlyCoreOverridesItemShaders() throws IOException {
+	public void onlyMetacraftShadersOverridesItemShaders() throws IOException {
 		try (var modules = Files.list(MODS)) {
 			List<String> owners = modules
 					.filter(m -> Files.exists(m.resolve("src/main/resources/assets/minecraft/shaders/core/item.fsh"))
@@ -22,17 +22,17 @@ public class ShaderOwnershipTest {
 					.map(m -> m.getFileName().toString())
 					.sorted()
 					.toList();
-			assertEquals(List.of("metacraft-core"), owners);
+			assertEquals(List.of("metacraft-shaders"), owners);
 		}
 	}
 
 	@Test
-	public void everyIncludeShipsWithCore() throws IOException {
-		var core = MODS.resolve("metacraft-core/src/main/resources/assets");
-		var fsh = Files.readString(core.resolve("minecraft/shaders/core/item.fsh"));
+	public void everyIncludeShipsWithTheShaders() throws IOException {
+		var shaders = MODS.resolve("metacraft-shaders/src/main/resources/assets");
+		var fsh = Files.readString(shaders.resolve("minecraft/shaders/core/item.fsh"));
 		for (var include : List.of("rift_common", "void_rift", "nether_rift")) {
 			assertTrue(fsh.contains("#include <metacraft:" + include + ".glsl>"), "item.fsh doesn't include " + include);
-			assertTrue(Files.exists(core.resolve("metacraft/shaders/include/" + include + ".glsl")), include + ".glsl is missing");
+			assertTrue(Files.exists(shaders.resolve("metacraft/shaders/include/" + include + ".glsl")), include + ".glsl is missing");
 		}
 	}
 }

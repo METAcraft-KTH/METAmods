@@ -10,7 +10,7 @@ works), lifts its shadows, posterises it lightly toward pixel art and lays the f
 	row 0: face 0 | face 1 | face 2
 	row 1: face 3 | face 4 | face 5
 
-Face order (the shader, nether_rift.glsl in metacraft-core, expects exactly this), each seen from the
+Face order (the shader, nether_rift.glsl in metacraft-shaders, expects exactly this), each seen from the
 camera with image right and image up as given:
 	0 looks south (+Z): right is -X, up is +Y
 	1 looks west  (-X): right is -Z, up is +Y
@@ -19,7 +19,7 @@ camera with image right and image up as given:
 	4 looks up    (+Y): right is -X, up is -Z
 	5 looks down  (-Y): right is -X, up is +Z
 
-Every pixel's alpha is FALLBACK_ALPHA. The shader reads the colour whatever the alpha (metacraft-core's item
+Every pixel's alpha is FALLBACK_ALPHA. The shader reads the colour whatever the alpha (metacraft-shaders' item
 shader skips the alpha cutout for nether rifts), and alpha strictly between 0 and 255 makes Minecraft draw the
 panel blended, which the glass's tint needs. A client whose core shaders are replaced (Iris, OptiFine, no
 patched pack) draws the raw sprite instead, and its alpha test throws all of it away: it sees the plain nether

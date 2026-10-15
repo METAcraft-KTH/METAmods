@@ -24,6 +24,7 @@
 		"metacraft-lib": "*",
 		"metacraft-config": "*",
 		"metacraft-core": "*",
+		"metacraft-shaders": "*",
 		"portal-blocker": "*",
 		"portal-opening": "*",
 		"bil": ">=2.0.5"

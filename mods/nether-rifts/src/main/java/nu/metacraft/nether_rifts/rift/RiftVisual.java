@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * A rift's cracks, over the nether portal clients see in its blocks: one item display per merged panel and one
  * thin strip per outline run, all paper with a rift model dyed with a shader marker (#FE, stage, part). Each
- * model has a face either side of the portal's slab, just clear of it; the shared item shader in metacraft-core
+ * model has a face either side of the portal's slab, just clear of it; the shared item shader in metacraft-shaders
  * draws them. A client whose core shaders are replaced sees the fallback sprites: the panel's is see-through
  * there, so it sees the plain portal with the edge strips round it.
  */
