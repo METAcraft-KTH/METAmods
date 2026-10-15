@@ -35,6 +35,7 @@
 		"polymer-core": "*",
 		"polymer-resource-pack": "*",
 		"booklet": "*",
+		"metacraft-lib": "*",
 		"metacraft-config": "*"
 	},
 	"suggests": {

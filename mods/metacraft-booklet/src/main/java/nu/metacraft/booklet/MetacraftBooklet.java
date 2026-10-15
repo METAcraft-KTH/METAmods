@@ -12,6 +12,7 @@ import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import nu.metacraft.lib.CreativeTabNamespaces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,13 +95,13 @@ public final class MetacraftBooklet implements ModInitializer {
 			// Student Culture Features (order: Chapter Drinks 10, Banner Patterns 20, Ovvar 40, Colors 50).
 			// 30 is kept for Pirkkos, Ripsquid's pirkko mod: its chapter goes in a pack of its own with
 			// category=metacraft:student_culture and order=30, a Hook here, and its mod id in this anyOf.
-			Hook.anyOf("student_culture", "ovvar", "brewery", "kultur", "moredyes"),
+			Hook.anyOf("student_culture", "ovvar", "brewery", "metacraft-kultur", "moredyes"),
 			new Hook("ovvar", "ovvar", false),
 			// Brewery's own book, rewritten as a chapter (its recipe is switched off here); the
 			// recipe pages are written by tools/brewing_recipes.py.
 			new Hook("brewery", "brewing", false),
-			new Hook(List.of("kultur", "brewery"), "brewing_kultur", false),
-			new Hook("kultur", "kultur", false),
+			new Hook(List.of("metacraft-kultur", "brewery"), "brewing_kultur", false),
+			new Hook("metacraft-kultur", "kultur", false),
 			new Hook("moredyes", "moredyes", false),
 
 			// Vanilla+ Features
@@ -112,6 +113,8 @@ public final class MetacraftBooklet implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		// Booklet's guidebook ("The Encyclopedia") has no tab of its own: list it in the METAcraft tab.
+		CreativeTabNamespaces.add("booklet");
 		ModContainer self = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow();
 		for (Hook hook : HOOKS) {
 			if (!hook.loaded()) continue;

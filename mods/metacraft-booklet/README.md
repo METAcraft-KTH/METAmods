@@ -42,11 +42,11 @@ none of them has no such section.
 | hook | on with | what it adds |
 | --- | --- | --- |
 | `welcome` | always | "Welcome to METAcraft", in place of Booklet's index "The Encyclopedia": the METAcraft logo, what METAcraft is about, a Discord link, then the sections |
-| `student_culture` | ovvar, brewery, kultur or moredyes | the Student Culture Features section page |
+| `student_culture` | ovvar, brewery, metacraft-kultur or moredyes | the Student Culture Features section page |
 | `ovvar` | ovvar | "Ovvar": the ovve, patches, sewing, wardrobe and stash |
 | `brewing` | brewery | "Chapter Drinks": Brewery's own book, rewritten (its recipe is switched off here): cooking, distilling, barrels, drinking, Brewery's drinks |
-| `brewing_kultur` | kultur and brewery | "IT's drinks": kultur's drinks, under Chapter Drinks |
-| `kultur` | kultur | "Banner Patterns": ITK, QMISK, TMEIT, and Pirkko behind its pattern item |
+| `brewing_kultur` | metacraft-kultur and brewery | "IT's drinks": kultur's drinks, under Chapter Drinks |
+| `kultur` | metacraft-kultur | "Banner Patterns": ITK, QMISK, TMEIT, and Pirkko behind its pattern item |
 | `moredyes` | moredyes | "Colors": Cerise and Laserviolet |
 | `vanilla_plus` | metacraft-qol or polydecorations | the Vanilla+ Features section page |
 | `qol` | metacraft-qol | "Void Anchor", "Silencing mobs" (the muffler), "Concrete Crafting" (the concrete cauldron), and the End Changes section page |
