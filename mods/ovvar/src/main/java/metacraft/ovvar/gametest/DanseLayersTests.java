@@ -5,6 +5,7 @@ import metacraft.ovvar.compat.danse.DanseHooks;
 import metacraft.ovvar.compat.danse.DanseLayers;
 import metacraft.ovvar.compat.danse.DanseModels;
 import metacraft.ovvar.content.*;
+import metacraft.ovvar.content.item.*;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTestHelper;

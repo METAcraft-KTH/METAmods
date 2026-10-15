@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * so it covers every inventory path — dragging it in, clicking it in, shift-clicking it (the quick
  * move only fills slots that may place it), a hopper or another mod using the slot — and
  * {@code canEquipWithDispenser} covers a dispenser aimed at a player. Right-clicking it is
- * {@link metacraft.ovvar.content.OvveItem#use}, which refuses there with a word in chat; anything
+ * {@link metacraft.ovvar.content.item.OvveItem#use}, which refuses there with a word in chat; anything
  * that skips all three ({@code /item replace}, {@code setItemSlot}) is caught by the wearer's next
  * tick, which takes it off again.
  *

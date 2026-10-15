@@ -1,4 +1,4 @@
-package metacraft.ovvar.content;
+package metacraft.ovvar.content.item;
 
 import com.mojang.authlib.GameProfile;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
@@ -18,6 +18,13 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import metacraft.ovvar.pack.Trims;
+import metacraft.ovvar.content.Chapter;
+import metacraft.ovvar.content.Looks;
+import metacraft.ovvar.content.ModComponents;
+import metacraft.ovvar.content.ModContent;
+import metacraft.ovvar.content.Piece;
+import metacraft.ovvar.content.Placement;
+import metacraft.ovvar.content.SpotPlacements;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;

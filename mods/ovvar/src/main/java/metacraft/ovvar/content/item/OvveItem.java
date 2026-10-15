@@ -1,4 +1,4 @@
-package metacraft.ovvar.content;
+package metacraft.ovvar.content.item;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import metacraft.ovvar.Ovvar;
@@ -6,6 +6,13 @@ import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.store.DesignStoreConfig;
 import metacraft.ovvar.store.Wardrobe;
 import metacraft.ovvar.store.Wardrobes;
+import metacraft.ovvar.content.Chapter;
+import metacraft.ovvar.content.Looks;
+import metacraft.ovvar.content.ModComponents;
+import metacraft.ovvar.content.Ownership;
+import metacraft.ovvar.content.Piece;
+import metacraft.ovvar.content.Placement;
+import metacraft.ovvar.content.SpotPlacements;
 import org.jspecify.annotations.Nullable;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.ChatFormatting;
@@ -40,8 +47,9 @@ import java.util.UUID;
  * A chapter's ovve: one item, worn in the legs slot, with pockets — or, for a chapter whose
  * {@link Chapter#slot} is the chest, its frack: the same item worn as a chestplate, which is its
  * own top (no companion, nothing to roll, no legs). It is a bundle with
- * {@link Pockets#SIZE} times the room (through metacraft-bundles, which also shows the real fill
- * level to vanilla clients) that can also be filled while worn, by clicking items onto the legs slot.
+ * {@link metacraft.ovvar.content.Pockets#SIZE} times the room (through metacraft-bundles, which
+ * also shows the real fill level to vanilla clients) that can also be filled while worn, by
+ * clicking items onto the legs slot.
  *
  * Right click behaves as a bundle (hold to empty it); sneak + right click rolls the top up or
  * down. Neither equips it — drag it into the slot or shift-click. While the top is up the mod

@@ -1,5 +1,6 @@
-package metacraft.ovvar.content;
+package metacraft.ovvar.content.item;
 
+import metacraft.ovvar.content.Chapter;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.ChatFormatting;

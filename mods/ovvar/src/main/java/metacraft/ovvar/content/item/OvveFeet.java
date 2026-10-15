@@ -1,10 +1,16 @@
-package metacraft.ovvar.content;
+package metacraft.ovvar.content.item;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import metacraft.ovvar.compat.danse.DanseHooks;
 import metacraft.ovvar.pack.EquipmentJson;
+import metacraft.ovvar.content.Looks;
+import metacraft.ovvar.content.ModComponents;
+import metacraft.ovvar.content.ModContent;
+import metacraft.ovvar.content.Piece;
+import metacraft.ovvar.content.Placement;
+import metacraft.ovvar.content.SpotPlacements;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;

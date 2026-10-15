@@ -1,7 +1,9 @@
-package metacraft.ovvar.content;
+package metacraft.ovvar.content.item;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import metacraft.ovvar.Ovvar;
+import metacraft.ovvar.content.Chapter;
+import metacraft.ovvar.content.Piece;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;

@@ -7,7 +7,7 @@ import eu.pb4.sgui.api.gui.SimpleGui;
 import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.ModContent;
-import metacraft.ovvar.content.OvveItem;
+import metacraft.ovvar.content.item.OvveItem;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Piece;
 import metacraft.ovvar.content.Placement;

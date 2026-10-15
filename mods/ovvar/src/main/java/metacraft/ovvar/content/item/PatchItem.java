@@ -1,7 +1,10 @@
-package metacraft.ovvar.content;
+package metacraft.ovvar.content.item;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import metacraft.ovvar.store.Stash;
+import metacraft.ovvar.content.ModComponents;
+import metacraft.ovvar.content.PatchPieces;
+import metacraft.ovvar.content.Patches;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;

@@ -2,6 +2,7 @@ package metacraft.ovvar.content;
 
 import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.store.DesignStoreConfig;
+import metacraft.ovvar.content.item.OvveItem;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.MinecraftServer;

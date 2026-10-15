@@ -5,7 +5,7 @@ import metacraft.ovvar.ServerConfig;
 import metacraft.ovvar.content.Chapter;
 import metacraft.ovvar.content.Looks;
 import metacraft.ovvar.content.ModContent;
-import metacraft.ovvar.content.OvveItem;
+import metacraft.ovvar.content.item.OvveItem;
 import metacraft.ovvar.content.Ownership;
 import metacraft.ovvar.content.Patches;
 import metacraft.ovvar.content.Placement;

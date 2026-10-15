@@ -3,6 +3,8 @@ package metacraft.ovvar.content;
 import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.pack.Combos;
 import metacraft.ovvar.pack.Trims;
+import metacraft.ovvar.content.item.OvveItem;
+import metacraft.ovvar.content.item.OvveTop;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;

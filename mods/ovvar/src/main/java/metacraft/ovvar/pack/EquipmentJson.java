@@ -72,7 +72,7 @@ public final class EquipmentJson {
 
 	public static String feetJson(String material) {
 		JsonArray layers = new JsonArray();
-		if (!material.equals(metacraft.ovvar.content.OvveFeet.NONE)) layers.add(layer("minecraft:" + material, false));
+		if (!material.equals(metacraft.ovvar.content.item.OvveFeet.NONE)) layers.add(layer("minecraft:" + material, false));
 		layers.add(layer(Ovvar.MOD_ID + ":" + FEET_PREVIEW, true));
 		JsonObject byType = new JsonObject();
 		byType.add("humanoid", layers);

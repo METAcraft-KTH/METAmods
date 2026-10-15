@@ -1,7 +1,7 @@
 package metacraft.ovvar.mixin;
 
 import metacraft.ovvar.content.ModComponents;
-import metacraft.ovvar.content.OvveTopItem;
+import metacraft.ovvar.content.item.OvveTopItem;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerInput;

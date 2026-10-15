@@ -1,6 +1,6 @@
 package metacraft.ovvar.compat.danse;
 
-import metacraft.ovvar.content.OvveFeet;
+import metacraft.ovvar.content.item.OvveFeet;
 import metacraft.ovvar.pack.Combos;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.level.ServerPlayer;

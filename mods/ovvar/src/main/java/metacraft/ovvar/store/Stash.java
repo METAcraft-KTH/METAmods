@@ -4,7 +4,7 @@ import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.OvvarConfig;
 import metacraft.ovvar.content.ModComponents;
 import metacraft.ovvar.content.ModContent;
-import metacraft.ovvar.content.PatchItem;
+import metacraft.ovvar.content.item.PatchItem;
 import metacraft.ovvar.content.Patches;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;

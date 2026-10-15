@@ -8,6 +8,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.serialization.JavaOps;
 import metacraft.ovvar.content.*;
+import metacraft.ovvar.content.item.*;
 import metacraft.ovvar.guide.Guide;
 import metacraft.ovvar.pack.Combos;
 import metacraft.ovvar.pack.ShaderPatcher;

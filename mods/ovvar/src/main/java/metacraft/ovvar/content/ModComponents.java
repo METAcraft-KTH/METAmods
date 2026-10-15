@@ -3,6 +3,7 @@ package metacraft.ovvar.content;
 import com.mojang.serialization.Codec;
 import eu.pb4.polymer.core.api.other.PolymerComponent;
 import metacraft.ovvar.Ovvar;
+import metacraft.ovvar.content.item.OvveFeetItem;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.UUIDUtil;
