@@ -181,7 +181,8 @@ public final class OvveTop {
 			ItemStack client, Equippable base, ItemStack garment, Chapter chapter, Piece piece, boolean nercabbad,
 			PacketContext context, HolderLookup.Provider lookup
 	) {
-		if (base == null) throw new IllegalStateException("garment lost its equippable component");
+		// Unwearable (/give ...[!minecraft:equippable] is legal): nothing to dress, the client gets it as is.
+		if (base == null) return;
 		GameProfile profile = context == null ? null : context.get(PacketContext.GAME_PROFILE);
 		Looks.Look look = Looks.look(garment, piece, profile == null ? null : profile.id());
 		client.set(DataComponents.EQUIPPABLE, Equippable.builder(base.slot())

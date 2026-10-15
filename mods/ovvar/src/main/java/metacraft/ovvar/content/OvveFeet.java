@@ -3,7 +3,6 @@ package metacraft.ovvar.content;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
-import metacraft.ovvar.Ovvar;
 import metacraft.ovvar.compat.danse.DanseHooks;
 import metacraft.ovvar.pack.EquipmentJson;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
@@ -209,10 +208,11 @@ public final class OvveFeet {
 	 * @param material a wrapped material, or null for the virtual cuffs
 	 */
 	static void dress(ItemStack client, ItemStack garment, String material, PacketContext context) {
+		Equippable base = client.get(DataComponents.EQUIPPABLE);
+		// Unwearable (/give ...[!minecraft:equippable] is legal): nothing to dress, the client gets it as is.
+		if (base == null) return;
 		GameProfile profile = context == null ? null : context.get(PacketContext.GAME_PROFILE);
 		Looks.Look look = Looks.look(garment, Piece.BOTTOM, profile == null ? null : profile.id());
-		Equippable base = client.get(DataComponents.EQUIPPABLE);
-		if (base == null) throw new IllegalStateException("[" + Ovvar.MOD_ID + "] feet stack lost its equippable component");
 		client.set(DataComponents.EQUIPPABLE, Equippable.builder(EquipmentSlot.FEET)
 				.setEquipSound(base.equipSound())
 				.setAsset(EquipmentJson.feetAsset(material == null ? NONE : material))

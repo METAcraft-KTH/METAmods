@@ -15,9 +15,11 @@ import metacraft.ovvar.sewing.SewingFont;
 import metacraft.ovvar.sewing.SewingGame;
 import metacraft.ovvar.sewing.StandAim;
 import metacraft.ovvar.sewing.StandDisplays;
+import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.Rotations;
 import net.minecraft.gametest.framework.GameTestHelper;
 import com.google.gson.JsonElement;
@@ -32,6 +34,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.decoration.ArmorStand;
@@ -467,6 +470,33 @@ public final class OvvarGameTests {
 			}
 			helper.succeed();
 		});
+	}
+
+	/**
+	 * {@code /give @s ovvar:data_ovve[!minecraft:equippable]} is a legal item: whatever of ours
+	 * lacks the component still reaches a client, as something that simply cannot be worn.
+	 */
+	@GameTest
+	public void anItemWithoutEquippableStillReachesClients(GameTestHelper helper) {
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		List<String> wrong = new ArrayList<>();
+		for (Chapter chapter : Chapter.values()) {
+			List<ItemStack> stacks = new ArrayList<>(List.of(new ItemStack(ModContent.ovve(chapter))));
+			if (ModContent.top(chapter) != null) stacks.add(new ItemStack(ModContent.top(chapter)));
+			if (ModContent.feet(chapter) != null) stacks.add(new ItemStack(ModContent.feet(chapter)));
+			for (ItemStack stack : stacks) {
+				stack.remove(DataComponents.EQUIPPABLE);
+				try {
+					ItemStack client = PolymerItemUtils.getPolymerItemStack(stack, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+					Equippable equippable = client.get(DataComponents.EQUIPPABLE);
+					if (equippable != null && equippable.swappable()) wrong.add(stack.getItem() + " can be swapped on at the client");
+				} catch (RuntimeException e) {
+					wrong.add(stack.getItem() + ": " + e);
+				}
+			}
+		}
+		if (!wrong.isEmpty()) helper.fail("without an equippable component: " + wrong);
+		helper.succeed();
 	}
 
 	private static ArmorStand stand(GameTestHelper helper, float yaw, Rotations rightArm, Rotations leftArm, Rotations rightLeg, Rotations leftLeg) {
