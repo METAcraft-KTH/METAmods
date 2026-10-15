@@ -43,7 +43,7 @@ import java.util.zip.ZipOutputStream;
  *   <li>vertex stage: varyings carry the raw vertex colour (the dye colour, which holds the
  *	   patch bits), position and normal to the fragment stage.</li>
  * </ul>
- * It does the same for metacraft-core's rifts (rift_common/void_rift/nether_rift.glsl, bundled
+ * It does the same for metacraft-shaders' rifts (rift_common/void_rift/nether_rift.glsl, bundled
  * too): see {@link #patchRifts}. Rifts also drop out of the pack's shadow pass, and
  * shaders.properties gains four custom uniforms. Nothing else in the pack is touched; originals
  * are kept. Textures that are not Ovvar's or a rift's are sampled exactly as before.
@@ -56,7 +56,7 @@ public final class Patcher {
 	private static final String TAG = "ovvar_uv";
 	private static final String GLSL = readResource("/ovvar.glsl");
 	private static final String RIFT_TAG = "metacraft_rift_sample";
-	/** The rifts' drawing, the very files metacraft-core's item shader includes. */
+	/** The rifts' drawing, the very files metacraft-shaders' item shader includes. */
 	private static final String RIFT_GLSL = readResource("/rift_common.glsl") + readResource("/void_rift.glsl") + readResource("/nether_rift.glsl");
 	/**
 	 * Iris custom uniforms under names no pack uses, so the rift code never redeclares the pack's own: time, screen
@@ -374,12 +374,12 @@ public final class Patcher {
 
 	/**
 	 * Metacraft's rifts (the void anchor's, nether rifts) are item-display quads whose vertex tint is a
-	 * marker; metacraft-core's item shader draws them in place of their sprite. A shaderpack draws item
+	 * marker; metacraft-shaders' item shader draws them in place of their sprite. A shaderpack draws item
 	 * displays with its entity program instead, so this puts the same code there: the vertex stage reads
 	 * the marker and the quad corner (gl_VertexID, as vanilla's gl_VertexIndex), and the program's first
 	 * albedo sample in main() goes through metacraft_rift_sample, which returns the rift's colour for a
 	 * rift and the plain sample for anything else. The pack then lights and fogs it like any albedo.
-	 * A nether rift's vertex also passes on where it is, as metacraft-core's item.vsh does: its position
+	 * A nether rift's vertex also passes on where it is, as metacraft-shaders' item.vsh does: its position
 	 * relative to the camera (the vertex position itself: entity vertices arrive camera-relative, in world
 	 * axes) for the view direction, and that plus the camera's fraction of a block for the world-fixed
 	 * pixel grid; the fragment adds the camera's whole blocks back as integers. The code needs GLSL 1.30
@@ -422,7 +422,7 @@ public final class Patcher {
 			return null;
 		}
 		String in = uv.direction;
-		String helper = "\n// --- Metacraft rifts (metacraft.se): the void anchor's and nether rifts, drawn as in metacraft-core's item shader\n"
+		String helper = "\n// --- Metacraft rifts (metacraft.se): the void anchor's and nether rifts, drawn as in metacraft-shaders' item shader\n"
 				+ in + " vec2 metacraft_rift_corner;\n"
 				+ in + " vec2 metacraft_rift_tex;\n"
 				+ in + " float metacraft_rift_flag;\n"

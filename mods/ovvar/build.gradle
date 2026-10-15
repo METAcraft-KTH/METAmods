@@ -69,8 +69,8 @@ tasks.register('patcherJar', Jar) {
 	from('tools/shaderpatcher/README.txt')
 	// The very shader code the vanilla override uses, so patched packs and vanilla never drift apart.
 	from('src/main/resources/assets/ovvar/shaders/include/ovvar.glsl')
-	// and metacraft-core's rifts, the code its item shader includes
-	from(project(':mods:metacraft-core').file('src/main/resources/assets/metacraft/shaders/include')) {
+	// and metacraft-shaders' rifts, the code its item shader includes
+	from(project(':mods:metacraft-shaders').file('src/main/resources/assets/metacraft/shaders/include')) {
 		include 'rift_common.glsl', 'void_rift.glsl', 'nether_rift.glsl'
 	}
 	archiveFileName = 'OvvarShaderPatcher.jar'
