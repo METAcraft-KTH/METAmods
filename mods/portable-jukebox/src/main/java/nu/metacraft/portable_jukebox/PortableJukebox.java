@@ -1,6 +1,5 @@
 package nu.metacraft.portable_jukebox;
 
-import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import nu.metacraft.portable_jukebox.compat.CompatInit;
@@ -22,9 +21,6 @@ public class PortableJukebox implements ModInitializer {
 		Blocks.init();
 		Entities.init();
 		CompatInit.init();
-		// Item models, textures and lang go to clients in the Polymer resource pack.
-		PolymerResourcePackUtils.addModAssets("portable-jukebox");
-		PolymerResourcePackUtils.markAsRequired();
 	}
 
 	public static Identifier getID(String id) {
