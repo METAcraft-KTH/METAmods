@@ -22,7 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The generated models load in BIL with the bones and animations the mobs play; the Bombardier's helmet is an item model. */
+/**
+ * The generated models load in BIL with the bones and animations the mobs play; the Grenadier's goggles are an item
+ * model, with its texture.
+ */
 public class ModelTests {
 
 	@BeforeAll
@@ -45,30 +48,41 @@ public class ModelTests {
 	}
 
 	/**
-	 * The Bombardier on foot is a vanilla piglin: its helmet is an item model in the mod's resource pack, of vanilla
-	 * block textures, drawn on the head by its head display. (Elements must keep within -16..32.)
+	 * The Grenadier on foot is a vanilla piglin: its goggles are the artist's, an item model in the mod's resource pack
+	 * (tools/bbmodel_to_item.py) on its own texture, drawn on the head by its head display.
 	 */
 	@Test
 	public void bombardierHelmet() throws IOException {
 		var item = json("/assets/nether_rifts/items/bombardier_helmet.json").getAsJsonObject("model");
 		assertEquals("nether_rifts:item/bombardier_helmet", item.get("model").getAsString());
-		var model = json("/assets/nether_rifts/models/item/bombardier_helmet.json");
-		assertTrue(model.getAsJsonObject("display").has("head"), "the helmet has no head display");
-		for (var texture : model.getAsJsonObject("textures").entrySet()) {
-			assertTrue(texture.getValue().getAsString().startsWith("minecraft:block/"), "texture " + texture);
+		var model = itemModel("bombardier_helmet", "nether_rifts:item/bombardier_helmet", Set.of("strap", "left lens", "right lens"));
+		assertTrue(model.getAsJsonObject("display").has("head"), "the goggles have no head display");
+	}
+
+	/**
+	 * An item model in the mod's pack, its elements those named (within the -16..32 models allow), on one texture of
+	 * the mod's, which exists.
+	 */
+	static JsonObject itemModel(String name, String texture, Set<String> elements) throws IOException {
+		var model = json("/assets/nether_rifts/models/item/" + name + ".json");
+		for (var t : model.getAsJsonObject("textures").entrySet()) {
+			assertEquals(texture, t.getValue().getAsString(), name + "'s texture " + t.getKey());
 		}
-		var elements = model.getAsJsonArray("elements");
+		try (var png = NetherRifts.class.getResourceAsStream("/assets/nether_rifts/textures/" + texture.split(":")[1] + ".png")) {
+			assertNotNull(png, "no texture " + texture);
+		}
 		var names = new java.util.HashSet<String>();
-		for (var element : elements) {
+		for (var element : model.getAsJsonArray("elements")) {
 			var e = element.getAsJsonObject();
 			names.add(e.get("name").getAsString());
 			for (var corner : List.of("from", "to")) {
 				for (var v : e.getAsJsonArray(corner)) {
-					assertTrue(v.getAsDouble() >= -16 && v.getAsDouble() <= 32, e.get("name") + " " + corner + " out of bounds");
+					assertTrue(v.getAsDouble() >= -16 && v.getAsDouble() <= 32, name + ": " + e.get("name") + " " + corner + " out of bounds");
 				}
 			}
 		}
-		assertTrue(names.containsAll(Set.of("goggle_bridge", "goggle_strap", "lens_left", "lens_right")), "helmet elements: " + names);
+		assertEquals(elements, names, name + "'s elements");
+		return model;
 	}
 
 	static JsonObject json(String path) throws IOException {
