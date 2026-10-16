@@ -71,7 +71,7 @@ public class RelayBlockEntity extends BlockEntity {
 						new TeleportTransition(
 							dim, pos, Vec3.ZERO,
 							ServerPlayerRespawnPosAngleAccessor.callCalculateLookAtYaw(pos, t.pos()),
-							0, TeleportTransition.PLAY_PORTAL_SOUND
+							0, TeleportTransition.DO_NOTHING
 						)
 					)).orElseGet(() -> DataResult.error(
 						() -> "Target lodestone is obstructed (" +
