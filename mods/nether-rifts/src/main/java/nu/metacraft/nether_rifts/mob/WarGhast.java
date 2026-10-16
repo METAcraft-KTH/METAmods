@@ -115,7 +115,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	public static final String DROP_BOMB = "drop_bomb";
 	/**
 	 * A frame of {@link #SHOOT} with its shooting face out (from 0.44 s to 0.88 s in): it fires about then, as vanilla's
-	 * goal fires 9 ticks after it starts charging. The showcase holds it.
+	 * goal fires 9 ticks after it starts charging.
 	 */
 	public static final int SHOT_FRAME = 12;
 	/** Which animation shows when they play together: the shot over a dive or climb, those over the bombing. */
@@ -345,16 +345,6 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		}
 	}
 
-	/**
-	 * Holds {@link #SHOOT} on its {@link #SHOT_FRAME}, shooting face out (the showcase's ghast): call it every tick.
-	 */
-	public void holdShot() {
-		var animator = holder.getAnimator();
-		if (!animator.isPlaying(SHOOT)) {
-			play(SHOOT);
-		}
-		animator.setAnimationFrame(SHOOT, SHOT_FRAME);
-	}
 
 	/**
 	 * The kit every Chained Ghast has, in any slot left empty while the crew member who shows it is there: the golden
@@ -846,7 +836,8 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 			RiftModels.hurtTint(this, holder);
 			tintFigures();
 			var animator = holder.getAnimator();
-			if (animator.isPlaying(DROP_BOMB) && (!hasCrew(Crew.BOMBARDIER)
+			// (a showcase ghast bombs on, though no bomb ever falls)
+			if (animator.isPlaying(DROP_BOMB) && !Showcase.isShowcase(this) && (!hasCrew(Crew.BOMBARDIER)
 					|| level.getGameTime() - lastBomb > NetherRiftsConfig.getInstance().mobs().bombardier().bombEvery())) {
 				animator.stopAnimation(DROP_BOMB);
 			}

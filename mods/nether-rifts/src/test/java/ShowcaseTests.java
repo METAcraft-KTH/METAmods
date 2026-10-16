@@ -4,6 +4,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.mob.GhastBombardier;
+import nu.metacraft.nether_rifts.mob.GrenadierSword;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
 import nu.metacraft.nether_rifts.mob.RiftModels;
 import nu.metacraft.nether_rifts.mob.Showcase;
@@ -23,7 +24,8 @@ public class ShowcaseTests {
 		NetherRiftsTests.register("showcase/lays_out_and_clears", ctx -> {
 			BombardierTests.stoneFloor(ctx);
 			var player = StageTests.player(ctx);
-			var origin = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(12, 1, 1)));
+			// on the room's centre line: the five ghasts, 5 apart and 4 wide, fill its 24 blocks exactly
+			var origin = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(12, 1, 1))).add(-0.5, 0, 0);
 			var server = ctx.getLevel().getServer();
 			var source = server.createCommandSourceStack().withLevel(ctx.getLevel()).withPosition(origin).withRotation(new Vec2(0, 0));
 			// twice: the second clears the first
@@ -32,10 +34,10 @@ public class ShowcaseTests {
 			var mobs = Showcase.live();
 			int animations = RiftModels.WAR_DRUMMER.animations().size();
 			ctx.assertTrue(count(mobs, WarDrummer.class) == animations + 9, "drummers: " + count(mobs, WarDrummer.class));
-			ctx.assertTrue(count(mobs, WarGhast.class) == 2, "ghasts: " + count(mobs, WarGhast.class));
-			ctx.assertTrue(count(mobs, GhastBombardier.class) == 1, "grenadiers: " + count(mobs, GhastBombardier.class));
+			ctx.assertTrue(count(mobs, WarGhast.class) == 5, "ghasts: " + count(mobs, WarGhast.class));
+			ctx.assertTrue(count(mobs, GhastBombardier.class) == 3, "grenadiers: " + count(mobs, GhastBombardier.class));
 			ctx.assertTrue(mobs.stream().filter(m -> m.getType() == EntityTypes.PIGLIN).count() == 1, "no vanilla piglin");
-			ctx.assertTrue(mobs.size() == animations + 13, "the showcase has " + mobs.size() + " mobs (run twice)");
+			ctx.assertTrue(mobs.size() == animations + 18, "the showcase has " + mobs.size() + " mobs (run twice)");
 			for (var animation : RiftModels.WAR_DRUMMER.animations().keySet()) {
 				ctx.assertTrue(mobs.stream().anyMatch(m -> animation.equals(Showcase.animation(m))), "no drummer for " + animation);
 			}
@@ -45,8 +47,19 @@ public class ShowcaseTests {
 				ctx.assertTrue(ctx.getBounds().contains(mob.position()), mob + " is out of the room at " + mob.position());
 			}
 			var ghasts = mobs.stream().filter(m -> m instanceof WarGhast).map(m -> (WarGhast) m).toList();
-			ctx.assertTrue(ghasts.stream().filter(WarGhast::isCharging).count() == 1, "not one ghast holds its shooting face");
-			ctx.assertTrue(ghasts.stream().allMatch(g -> g.fitsAt(g.position())), "a ghast's deck is in the ground");
+			for (var animation : List.of(WarGhast.IDLE, WarGhast.SHOOT, WarGhast.DIVE, WarGhast.CLIMB, WarGhast.DROP_BOMB)) {
+				ctx.assertTrue(ghasts.stream().filter(g -> animation.equals(Showcase.animation(g))).count() == 1, "not one ghast for " + animation);
+			}
+			// one Grenadier with his sword, one per stage of a throw, held there
+			var grenadiers = mobs.stream().filter(m -> m instanceof GhastBombardier).toList();
+			for (var stage : GrenadierSword.Throw.values()) {
+				ctx.assertTrue(grenadiers.stream().filter(g -> Showcase.throwStage(g) == stage
+						&& g.getMainHandItem().get(GrenadierSword.THROW) == stage).count() == 1, "not one Grenadier held at " + stage);
+			}
+			ctx.assertTrue(grenadiers.stream().filter(g -> Showcase.throwStage(g) == null && !g.getMainHandItem().has(GrenadierSword.THROW)).count() == 1,
+					"not one Grenadier just holding his sword");
+			ctx.assertTrue(ghasts.stream().allMatch(g -> g.fitsAt(g.position())), "a ghast's deck is in the ground: "
+					+ ghasts.stream().filter(g -> !g.fitsAt(g.position())).map(g -> g.getCustomName().getString() + " at " + g.position()).toList());
 
 			Map<Mob, Vec3> stood = new HashMap<>();
 			mobs.forEach(m -> stood.put(m, m.position()));
@@ -65,7 +78,8 @@ public class ShowcaseTests {
 				for (var mob : mobs) {
 					var animation = Showcase.animation(mob);
 					if (animation != null && !animation.equals("big_beat")) {
-						ctx.assertTrue(((WarDrummer) mob).getHolder().getAnimator().isPlaying(animation), mob.getCustomName().getString() + " doesn't play it");
+						var animator = mob instanceof WarDrummer drummer ? drummer.getHolder().getAnimator() : ((WarGhast) mob).getHolder().getAnimator();
+						ctx.assertTrue(animator.isPlaying(animation), mob.getCustomName().getString() + " doesn't play it");
 					}
 					mob.hurtServer(ctx.getLevel(), ctx.getLevel().damageSources().playerAttack(player), 10f);
 					ctx.assertTrue(mob.getHealth() == mob.getMaxHealth(), mob + " was hurt");

@@ -55,8 +55,9 @@ and how far the Grenadier throws on foot. Commands: `/rifts …`, permission `me
 
 To see the mobs' looks: `/rifts showcase` lays out, in rows in front of you and facing you, a Piglin Drummer per
 animation (each looping it), Piglin Drummers in every kind of armour with gear in hand or on the head, a Piglin
-Grenadier and a vanilla piglin in iron, and two Chained Ghasts behind them (kit and diamond armour, one holding its
-shooting face), each named. They stand still and silent, can't be hurt and never despawn. `/rifts showcase clear`
+Grenadier with his gloved sword and two held mid-throw (the bomb in his fist, then let go), a vanilla piglin in iron,
+and behind them a Chained Ghast per animation (idle, shoot, dive, climb, drop_bomb; each looping it, kit and diamond
+armour), each named. They stand still and silent, can't be hurt and never despawn. `/rifts showcase clear`
 takes them away; a new `/rifts showcase` replaces the last.
 
 Tests (game tests): `./gradlew :mods:nether-rifts:test` also runs the tests of the modules it depends on, and

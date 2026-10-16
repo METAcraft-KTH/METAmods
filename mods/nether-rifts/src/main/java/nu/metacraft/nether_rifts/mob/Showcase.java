@@ -33,9 +33,11 @@ import java.util.WeakHashMap;
 /**
  * {@code /rifts showcase}: the rift mobs' looks laid out for staff to look at, in rows in front of the player, facing
  * them: a Piglin Drummer per animation of its model (each looping just that one, as one animation poses the whole
- * model; one-shots start again after a short pause), a Piglin Grenadier and a vanilla piglin in iron to compare with;
- * then Piglin Drummers in each kind of armour with gear in hand or on the head (named after it); behind them, two
- * Chained Ghasts with their kit and diamond armour, one holding its shooting face. Names show what each is.
+ * model; one-shots start again after a short pause), Piglin Grenadiers with their gloved sword and held at each stage of
+ * a throw (the bomb in the fist, then let go), and a vanilla piglin in iron to compare with; then Piglin Drummers in each
+ * kind of armour with gear in hand or on the head (named after it); behind them, a Chained Ghast per animation of its
+ * model (as the drummers, each over idle as {@link WarGhast#play} plays it), with its kit and diamond armour. Names show
+ * what each is.
  *
  * <p>Showcase mobs stand still and silent (no AI, no sounds, no drumming, no bolts), never take damage or despawn,
  * belong to no rift, and are tagged {@link #TAG} so {@code /rifts showcase clear} (or a new showcase) takes them away.
@@ -43,19 +45,22 @@ import java.util.WeakHashMap;
 public final class Showcase {
 
 	public static final String TAG = "nether_rifts.showcase";
-	/** On a showcase drummer: the animation it loops. */
+	/** On a showcase drummer or ghast: the animation it loops. */
 	private static final String ANIMATION_TAG = TAG + ".animation.";
-	/** On a showcase ghast: it holds its shooting face. */
-	private static final String CHARGING_TAG = TAG + ".charging";
+	/** On a showcase Grenadier: the stage of a throw its sword is held at (not saved on the stack, so set again). */
+	private static final String THROW_TAG = TAG + ".throw.";
 
 	/** How long a one-shot animation rests before it plays again, in ticks. */
 	public static final int PAUSE = 20;
 	/** The order drummer animations are laid out in; others follow by name. */
 	private static final List<String> ORDER = List.of("idle", "walk", "beat", "big_beat", "warcry");
+	/** The Chained Ghast's animations, in the order they are laid out. */
+	private static final List<String> GHAST_ANIMATIONS = List.of(WarGhast.IDLE, WarGhast.SHOOT, WarGhast.DIVE, WarGhast.CLIMB,
+			WarGhast.DROP_BOMB);
 	/** Across a row, per mob (room for its name), and how far ahead each row is, in blocks. */
 	private static final double SPACING = 2.5;
 	private static final double ARMOUR_SPACING = 2.2;
-	private static final double GHAST_SPACING = 6;
+	private static final double GHAST_SPACING = 5;
 	public static final double FRONT = 5;
 	public static final double MIDDLE = 8;
 	public static final double BACK = 15;
@@ -118,6 +123,12 @@ public final class Showcase {
 			front.add(drummer);
 		}
 		front.add(create(level, RiftEntities.GHAST_BOMBARDIER, "Piglin Grenadier"));
+		for (var stage : GrenadierSword.Throw.values()) {
+			var grenadier = create(level, RiftEntities.GHAST_BOMBARDIER, stage == GrenadierSword.Throw.BOMB ? "Grenadier: bomb in hand" : "Grenadier: bomb thrown");
+			grenadier.addTag(THROW_TAG + stage.name());
+			GrenadierSword.setThrow(grenadier.getMainHandItem(), stage);
+			front.add(grenadier);
+		}
 		var piglin = create(level, EntityTypes.PIGLIN, "vanilla piglin: iron");
 		dress(piglin, ARMOUR.get(2));
 		front.add(piglin);
@@ -148,15 +159,13 @@ public final class Showcase {
 		spawned.addAll(armoured);
 
 		var ghasts = new ArrayList<Mob>();
-		for (boolean charging : new boolean[] {false, true}) {
-			var ghast = create(level, RiftEntities.WAR_GHAST, charging ? "Chained Ghast: shooting face" : "Chained Ghast: idle, diamond armour");
+		for (var animation : GHAST_ANIMATIONS) {
+			var ghast = create(level, RiftEntities.WAR_GHAST, "Chained Ghast: " + animation);
+			ghast.addTag(ANIMATION_TAG + animation);
 			// diamond on the spear piglin
 			set(ghast, EquipmentSlot.CHEST, Items.DIAMOND_CHESTPLATE);
 			set(ghast, EquipmentSlot.LEGS, Items.DIAMOND_LEGGINGS);
 			set(ghast, EquipmentSlot.FEET, Items.DIAMOND_BOOTS);
-			if (charging) {
-				ghast.addTag(CHARGING_TAG);
-			}
 			ghasts.add(ghast);
 		}
 		// its deck clear of the ground (it lifts itself clear, if need be, as it spawns)
@@ -166,7 +175,6 @@ public final class Showcase {
 		for (var mob : spawned) {
 			if (mob instanceof WarGhast ghast) {
 				ghast.finalizeSpawn(level, level.getCurrentDifficultyAt(ghast.blockPosition()), EntitySpawnReason.COMMAND, null);
-				ghast.setCharging(ghast.entityTags().contains(CHARGING_TAG));
 			}
 			level.addFreshEntity(mob);
 			LIVE.put(mob, 0L);
@@ -246,7 +254,10 @@ public final class Showcase {
 		return n;
 	}
 
-	/** Keeps each drummer on its animation (a one-shot again after {@link #PAUSE} ticks) and the shooting face held. */
+	/**
+	 * Keeps each drummer and ghast on its animation (a one-shot again after {@link #PAUSE} ticks) and each Grenadier's
+	 * sword at its throw.
+	 */
 	private static void tick(MinecraftServer server) {
 		List<Mob> mobs;
 		synchronized (LIVE) {
@@ -254,42 +265,52 @@ public final class Showcase {
 			mobs = List.copyOf(LIVE.keySet());
 		}
 		for (var mob : mobs) {
-			if (mob instanceof WarGhast ghast) {
-				boolean charging = ghast.entityTags().contains(CHARGING_TAG);
-				if (ghast.isCharging() != charging) {
-					ghast.setCharging(charging);
-				}
-				if (charging) {
-					ghast.holdShot();
+			if (mob instanceof GhastBombardier grenadier) {
+				var stage = throwStage(grenadier);
+				if (stage != null) {
+					GrenadierSword.setThrow(grenadier.getMainHandItem(), stage);
 				}
 				continue;
 			}
-			if (!(mob instanceof WarDrummer drummer)) {
-				continue;
-			}
-			var animation = animation(drummer);
+			var animation = animation(mob);
 			if (animation == null || animation.equals("idle")) {
 				continue;
 			}
-			var animator = drummer.getHolder().getAnimator();
-			if (animator.isPlaying(animation)) {
+			var animator = mob instanceof WarDrummer drummer ? drummer.getHolder().getAnimator()
+					: mob instanceof WarGhast ghast ? ghast.getHolder().getAnimator() : null;
+			if (animator == null || animator.isPlaying(animation)) {
 				continue;
 			}
 			long now = mob.level().getGameTime();
 			long due = LIVE.getOrDefault(mob, 0L);
 			if (due == 0L) {
 				// just ended (or never started): play it now the first time, after a pause from then on
-				due = drummer.tickCount < 5 ? now : now + PAUSE;
+				due = mob.tickCount < 5 ? now : now + PAUSE;
 				LIVE.put(mob, due);
 			}
 			if (now >= due) {
-				animator.playAnimation(animation, 10, true);
+				if (mob instanceof WarGhast ghast) {
+					ghast.play(animation);
+				} else {
+					animator.playAnimation(animation, 10, true);
+				}
 				LIVE.put(mob, 0L);
 			}
 		}
 	}
 
-	/** The animation a showcase drummer loops, or null for another mob. */
+	/** The stage of a throw a showcase Grenadier is held at, or null (holding its sword, or another mob). */
+	@Nullable
+	public static GrenadierSword.Throw throwStage(Mob mob) {
+		for (var tag : mob.entityTags()) {
+			if (tag.startsWith(THROW_TAG)) {
+				return GrenadierSword.Throw.valueOf(tag.substring(THROW_TAG.length()));
+			}
+		}
+		return null;
+	}
+
+	/** The animation a showcase drummer or ghast loops, or null for another mob. */
 	@Nullable
 	public static String animation(Mob mob) {
 		for (var tag : mob.entityTags()) {
