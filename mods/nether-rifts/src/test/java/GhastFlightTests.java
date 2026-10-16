@@ -117,7 +117,12 @@ public class GhastFlightTests {
 			var underSilent = ctx.spawn(EntityTypes.PIGLIN, new BlockPos(20, 1, 4));
 			under.setNoAi(true);
 			underSilent.setNoAi(true);
-			ctx.runAtTickTime(3, () -> silent.hitbox(Crew.DRUMMER).kill(ctx.getLevel()));
+			// the beat goes by the world's drum clock, so the silent ghast's drummer may beat before he's killed: what he
+			// gave by then goes with him
+			ctx.runAtTickTime(3, () -> {
+				silent.hitbox(Crew.DRUMMER).kill(ctx.getLevel());
+				underSilent.removeAllEffects();
+			});
 			// a whole drum cycle and then some
 			ctx.runAtTickTime(110, () -> {
 				ctx.assertTrue(under.hasEffect(MobEffects.STRENGTH) && under.hasEffect(MobEffects.SPEED), "the piglin under the drumming ghast has no War Beat");
