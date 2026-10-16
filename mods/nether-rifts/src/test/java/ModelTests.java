@@ -135,8 +135,9 @@ public class ModelTests {
 	/**
 	 * The import makes each animation but idle whole (BIL plays one at a time over every bone): shoot, dive, climb and
 	 * drop_bomb key every channel idle does, and a bone they don't move themselves (a tentacle, the drummer's arm) with
-	 * idle's very keys; drop_bomb is idle's length, so it goes in step with it. Shoot swaps the faces at its shot
-	 * ({@link WarGhast#SHOT_FRAME}); idle keeps the shooting face shrunk away.
+	 * idle's very keys; drop_bomb is idle's length, so it goes in step with it. No animation scales a face (the ghast
+	 * hides one and shows the other: BIL eased the artist's scale swap into a shrinking body), and the shot
+	 * ({@link WarGhast#SHOT_FRAME}) is while the shooting face shows.
 	 */
 	@Test
 	public void warGhastAnimationsOverIdle() throws IOException {
@@ -165,11 +166,16 @@ public class ModelTests {
 		var idleFrames = model.animations().get(WarGhast.IDLE);
 		assertEquals(idleFrames.frames().length, model.animations().get(WarGhast.DROP_BOMB).frames().length, "the bombing isn't as long as idle");
 		var shoot = model.animations().get(WarGhast.SHOOT);
-		assertEquals(0, scale(idleFrames, 0, ids.get(WarGhast.SHOOTING_FACE)), 1e-4, "idle shows the shooting face");
-		assertEquals(1, scale(idleFrames, 0, ids.get(WarGhast.FACE)), 0.05, "idle hides the sad face");
-		assertEquals(0, scale(shoot, 0, ids.get(WarGhast.SHOOTING_FACE)), 1e-4, "shoot starts with the shooting face");
-		assertEquals(1, scale(shoot, WarGhast.SHOT_FRAME, ids.get(WarGhast.SHOOTING_FACE)), 0.05, "no shooting face at the shot");
-		assertEquals(0, scale(shoot, WarGhast.SHOT_FRAME, ids.get(WarGhast.FACE)), 1e-4, "the sad face shows at the shot");
+		for (var name : List.of(WarGhast.IDLE, WarGhast.SHOOT, WarGhast.DIVE, WarGhast.CLIMB, WarGhast.DROP_BOMB)) {
+			var frames = model.animations().get(name);
+			for (int frame = 0; frame < frames.frames().length; frame++) {
+				for (var face : List.of(WarGhast.FACE, WarGhast.SHOOTING_FACE)) {
+					assertEquals(1, scale(frames, frame, ids.get(face)), 1e-4, name + " scales " + face + " at frame " + frame);
+				}
+			}
+		}
+		assertTrue(WarGhast.SHOOTING_FACE_FROM <= WarGhast.SHOT_FRAME && WarGhast.SHOT_FRAME < WarGhast.SHOOTING_FACE_UNTIL
+				&& WarGhast.SHOOTING_FACE_UNTIL <= shoot.frames().length, "the shot isn't while the shooting face shows");
 	}
 
 	private static Set<String> channels(JsonObject animator) {

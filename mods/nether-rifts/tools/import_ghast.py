@@ -78,6 +78,7 @@ ITEM_MARKERS = [("item_right", "spear_piglin", "left_arm", "bottom"), ("item_lef
 # spear_piglin wears the ghast's armour
 ARMOUR_BONES = {role: f"spear_piglin_{role}" for role in piglin_armour.ROLES}
 IDLE = "idle"
+SHOOT = "shoot"
 # Played on top of idle: made whole with idle's tracks
 ON_IDLE = ("shoot", "dive", "climb")
 # A short loop played over idle for a while: repeated over idle's length, with idle's tracks
@@ -295,6 +296,27 @@ def copied_keys(keys, anim, bone, channel):
 	return out
 
 
+def faces_by_code(d):
+	"""
+	Takes the faces' scale keys out of every animation and returns when the artist's shoot shows the shooting face, in
+	seconds (WarGhast.SHOOTING_FACE_FROM/UNTIL; the import prints them). The artist swaps the faces by scaling one to 0
+	and the other to 1, but BIL eases a bone's transform over a tick or two, so the whole body cube shrank away as the
+	other grew: WarGhast shows one face and hides the other instead, at once.
+	"""
+	shooting = group(d, "face_shooting")["uuid"]
+	keys = sorted((k["time"], float(str(k["data_points"][0]["x"]).strip())) for k in
+			animation(d, SHOOT)["animators"].get(shooting, {}).get("keyframes", []) if k["channel"] == "scale")
+	start = next((t for t, v in keys if v > 0.5), None)
+	end = next((t for t, v in keys if start is not None and t > start and v < 0.5), None)
+	assert start is not None and end is not None, f"shoot never shows the shooting face and hides it again: {keys}"
+	for a in d["animations"]:
+		for face in FACES:
+			an = a["animators"].get(group(d, face)["uuid"])
+			if an:
+				an["keyframes"] = [k for k in an.get("keyframes", []) if k["channel"] != "scale"]
+	return start, end
+
+
 def on_idle(d, name):
 	"""Gives an animation idle's tracks for the bones and channels it doesn't key itself."""
 	idle, a = animation(d, IDLE), animation(d, name)
@@ -353,6 +375,7 @@ def main(src, texture=None):
 	for old, new in RENAME.items():
 		if any(g["name"] == old for g in d["groups"]):
 			rename(d, group(d, old), new)
+	shot_face = faces_by_code(d)
 	for g in list(d["groups"]):
 		if OVERLAY.search(g["name"]):
 			merge(d, g["name"], drop_keys=True)
@@ -395,6 +418,7 @@ def main(src, texture=None):
 	bones = sum(1 for n in all_nodes(d["outliner"]) if cubes_of(n))
 	tentacles = sum(1 for g in d["groups"] if TENTACLE.match(g["name"]))
 	print("wrote", OUT, f"({bones} bones, {tentacles} tentacles); the lowest cube is", -bottom, "units under the feet: DECK_DROP =", -bottom / 16)
+	print(f"the shooting face shows {shot_face[0]} s to {shot_face[1]} s into shoot: WarGhast.SHOOTING_FACE_FROM/UNTIL")
 
 
 if __name__ == "__main__":

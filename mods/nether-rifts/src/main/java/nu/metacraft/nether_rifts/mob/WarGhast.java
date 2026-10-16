@@ -103,9 +103,16 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	/** It loads (and is heard loading) this long before it shoots: a second. */
 	public static final int CROSSBOW_LOAD_TICKS = 20;
 
-	/** The faces: one shows at a time, by the animations (shoot swaps them; the rest keep the shooting face shrunk away). */
+	/**
+	 * The faces: one shows at a time, swapped by hiding one and showing the other ({@link #showParts}). The artist's shoot
+	 * swaps them by scale, but BIL eases a bone's scale over a tick or two, so the whole body cube shrank as the other
+	 * grew; the import takes the faces' scale keys out.
+	 */
 	public static final String FACE = "face_sad";
 	public static final String SHOOTING_FACE = "face_shooting";
+	/** When {@link #SHOOT} shows the shooting face, in ticks into it: the artist's 0.44 s to 0.88 s (the import prints them). */
+	public static final int SHOOTING_FACE_FROM = 9;
+	public static final int SHOOTING_FACE_UNTIL = 18;
 
 	/** The model's animations. */
 	public static final String IDLE = "idle";
@@ -158,6 +165,10 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	private final HeldItems.Holder<WarGhast> holder;
 	/** Each figure's bones, under its group. */
 	private final Map<Crew, List<Bone<?>>> crewBones = new EnumMap<>(Crew.class);
+	private final List<Bone<?>> sadFace = new ArrayList<>();
+	private final List<Bone<?>> shootingFace = new ArrayList<>();
+	/** Whether the shooting face is the one showing. */
+	private boolean shootingFaceOut = false;
 	/** Killed on the deck. */
 	private final EnumSet<Crew> crewDead = EnumSet.noneOf(Crew.class);
 	/** The crew's health left (saved with the ghast; their hitboxes aren't); full when missing. */
@@ -202,6 +213,13 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 				}
 			}
 			crewBones.put(crew, bones);
+		}
+		for (var bone : holder.getBones()) {
+			if (inside(bone.node(), FACE)) {
+				sadFace.add(bone);
+			} else if (inside(bone.node(), SHOOTING_FACE)) {
+				shootingFace.add(bone);
+			}
 		}
 		EntityAttachment.ofTicking(this.holder, this);
 		this.holder.getAnimator().playAnimation(IDLE, 0, true);
@@ -292,7 +310,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		return deck;
 	}
 
-	/** Hides the crew that are gone. An invisible ghast keeps every bone hidden (BIL hides them). */
+	/** Hides the crew that are gone, and the face not showing. An invisible ghast keeps every bone hidden (BIL hides them). */
 	private void showParts() {
 		if (isInvisible()) {
 			return;
@@ -302,6 +320,30 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 				bones.forEach(bone -> bone.setInvisible(true));
 			}
 		});
+		sadFace.forEach(bone -> bone.setInvisible(shootingFaceOut));
+		shootingFace.forEach(bone -> bone.setInvisible(!shootingFaceOut));
+	}
+
+	/** Shows the shooting face while {@link #SHOOT} is between {@link #SHOOTING_FACE_FROM} and {@link #SHOOTING_FACE_UNTIL}. */
+	private void swapFaces() {
+		int at = frame(SHOOT);
+		boolean out = at >= SHOOTING_FACE_FROM && at < SHOOTING_FACE_UNTIL;
+		if (out != shootingFaceOut) {
+			shootingFaceOut = out;
+			showParts();
+		}
+	}
+
+	/** The frame (tick) a playing animation is on, or -1. BIL's player counts down to the animation's last frame. */
+	private int frame(String animation) {
+		if (!holder.getAnimator().isPlaying(animation)) {
+			return -1;
+		}
+		var players = ((AnimationComponentAccessor) holder.getAnimator()).netherRifts$players();
+		if (!(players.get(animation) instanceof AnimationPlayerAccessor player)) {
+			return -1;
+		}
+		return RiftModels.WAR_GHAST.animations().get(animation).frames().length - 1 - player.netherRifts$frameCounter();
 	}
 
 	/**
@@ -835,6 +877,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		if (level() instanceof ServerLevel level) {
 			RiftModels.hurtTint(this, holder);
 			tintFigures();
+			swapFaces();
 			var animator = holder.getAnimator();
 			// (a showcase ghast bombs on, though no bomb ever falls)
 			if (animator.isPlaying(DROP_BOMB) && !Showcase.isShowcase(this) && (!hasCrew(Crew.BOMBARDIER)

@@ -260,20 +260,29 @@ public class BombardierTests {
 			});
 		});
 		NetherRiftsTests.register("bombardier/animations_play", ctx -> {
-			// Idle always plays. Charging a fireball plays shoot, which swaps the faces at its shot (no bone is hidden for
-			// it). The first bomb of a run starts the Grenadier's bombing, which goes on while bombs come and stops after.
+			// Idle always plays. Charging a fireball plays shoot, and the shooting face shows in place of the sad one
+			// (hidden and shown, never scaled) from SHOOTING_FACE_FROM to SHOOTING_FACE_UNTIL ticks into it. The first bomb of a run starts the Grenadier's bombing, which goes on while bombs come and stops after.
 			// A bombing run's dive and climb play as it dives and climbs (bombardier/run_drops_bombs flies one).
 			stoneFloor(ctx);
 			var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(12, 9, 12));
 			ghast.setNoAi(true);
 			var holder = ghast.getHolder();
 			var animator = holder.getAnimator();
-			for (var face : List.of(WarGhast.FACE, WarGhast.SHOOTING_FACE)) {
-				ctx.assertFalse(shown(holder.getBone(face)).isEmpty(), face + " is hidden: the animations show the faces");
-			}
-			ghast.setCharging(true);
-			ctx.assertTrue(animator.isPlaying(WarGhast.SHOOT), "charging doesn't play shoot");
-			ghast.setCharging(false);
+			ctx.runAtTickTime(1, () -> {
+				ctx.assertFalse(shown(holder.getBone(WarGhast.FACE)).isEmpty(), "the sad face is hidden at rest");
+				ctx.assertTrue(shown(holder.getBone(WarGhast.SHOOTING_FACE)).isEmpty(), "the shooting face shows at rest");
+				ghast.setCharging(true);
+				ctx.assertTrue(animator.isPlaying(WarGhast.SHOOT), "charging doesn't play shoot");
+				ghast.setCharging(false);
+			});
+			ctx.runAtTickTime(2 + WarGhast.SHOOTING_FACE_FROM, () -> {
+				ctx.assertTrue(shown(holder.getBone(WarGhast.FACE)).isEmpty(), "the sad face shows at the shot");
+				ctx.assertFalse(shown(holder.getBone(WarGhast.SHOOTING_FACE)).isEmpty(), "no shooting face at the shot");
+			});
+			ctx.runAtTickTime(3 + WarGhast.SHOOTING_FACE_UNTIL, () -> {
+				ctx.assertFalse(shown(holder.getBone(WarGhast.FACE)).isEmpty(), "the sad face didn't come back");
+				ctx.assertTrue(shown(holder.getBone(WarGhast.SHOOTING_FACE)).isEmpty(), "the shooting face stayed");
+			});
 			ghast.dropBomb(ctx.getLevel());
 			ctx.assertTrue(animator.isPlaying(WarGhast.DROP_BOMB), "a bomb doesn't start the bombing");
 			int every = nu.metacraft.nether_rifts.NetherRiftsConfig.getInstance().mobs().bombardier().bombEvery();
