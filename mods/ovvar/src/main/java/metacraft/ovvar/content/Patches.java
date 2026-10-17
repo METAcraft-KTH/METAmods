@@ -293,7 +293,14 @@ public final class Patches {
 			// otherwise; the ids are not. New entries go last, for the reason given above.
 			new Patch("jgs", "JGS", 12, 12),
 			new Patch("tmeit", "TMEIT", 12, 12),
-			new Patch("tmeit-marshal", "TMEIT Marshal", 12, 12)   // a resource id is [a-z0-9_.-], so the hyphen stays
+			new Patch("tmeit-marshal", "TMEIT Marshal", 12, 12),   // a resource id is [a-z0-9_.-], so the hyphen stays
+			// Vlad's Data pack (ain-data-patch-pack), drawn at 12. New entries go last, for the reason given above.
+			new Patch("batata", "Batata", 12, 12).by("Vlad"),
+			new Patch("batato", "Batato", 12, 12).by("Vlad"),
+			new Patch("batatu", "Batatu", 12, 12).by("Vlad"),
+			new Patch("cerise", "Cerise", 12, 12).by("Vlad"),
+			new Patch("playboy-pikachu", "Playboy Pikachu", 12, 12).by("Vlad"),
+			new Patch("starkt", "Starkt", 12, 12).by("Vlad")
 	);
 
 	private static final Map<String, Patch> BY_ID = ALL.stream()
