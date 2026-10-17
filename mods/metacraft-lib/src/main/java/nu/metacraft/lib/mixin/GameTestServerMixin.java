@@ -47,7 +47,7 @@ public abstract class GameTestServerMixin extends MinecraftServer implements Tes
 
 	@Override
 	public boolean metacraft$testPassed() {
-		return testTracker != null && !testTracker.hasFailedRequired();
+		return testTracker != null && testTracker.isDone() && !testTracker.hasFailedRequired();
 	}
 
 }

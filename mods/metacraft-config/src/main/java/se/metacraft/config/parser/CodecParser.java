@@ -20,6 +20,9 @@ import java.util.function.Predicate;
 public class CodecParser {
 
 	public static AbstractCodecResult parse(MapCodec<?> codec, HolderLookup.@Nullable Provider lookup) {
+		// Null while CodecParseEvents is still being initialised: making its phases' ids can initialise
+		// Identifier, which builds vanilla codecs, which come back here (RecordCodecBuilderMixin).
+		if (CodecParseEvents.PARSE_MAP_CODEC == null) return MapCodecResult.createMapped(codec, Metadata.noMetadata(), AbstractCodecResult.EMPTY);
 		var eventBased = CodecParseEvents.PARSE_MAP_CODEC.invoker().parse(codec, lookup);
 		if (eventBased.isPresent()) return eventBased.get();
 		var nested = getNested(codec, lookup);
@@ -28,6 +31,7 @@ public class CodecParser {
 	}
 
 	public static AbstractCodecResult parse(Codec<?> codec, HolderLookup.@Nullable Provider lookup) {
+		if (CodecParseEvents.PARSE_CODEC == null) return CodecResult.createMapped(codec, Metadata.noMetadata(), AbstractCodecResult.EMPTY);   // see above
 		var eventBased = CodecParseEvents.PARSE_CODEC.invoker().parse(codec, lookup);
 		if (eventBased.isPresent()) return eventBased.get();
 		var nested = getNested(codec, lookup);

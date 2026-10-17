@@ -4,6 +4,7 @@ import eu.pb4.polymer.core.api.item.PolymerBlockItem;
 import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.block.METAcraftBlocks;
 import nu.metacraft.core.item.items.Wrench;
+import nu.metacraft.lib.CreativeTabNamespaces;
 
 import java.util.function.Function;
 import net.minecraft.core.Registry;
@@ -27,7 +28,7 @@ public class METAcraftItems {
 	);
 
 	public static void init() {
-
+		CreativeTabNamespaces.add(METAcraftCore.NAMESPACE);
 	}
 
 	private static Item register(String id, Function<Item.Properties, Item> creator, Item.Properties settings) {

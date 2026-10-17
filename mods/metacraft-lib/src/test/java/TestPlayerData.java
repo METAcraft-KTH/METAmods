@@ -30,7 +30,7 @@ import java.util.UUID;
 @ExtendWith(TestInit.class)
 public class TestPlayerData {
 
-	private static final String PLAYER_DATA_PREFIX = "player-data-test/";
+	private static final String PLAYER_DATA_PREFIX = TestInit.TEST_PREFIX + "player-data-test/";
 	private static final ProblemReporter.PathElement TEST = () -> "test";
 
 	public static void init() {
@@ -188,7 +188,8 @@ public class TestPlayerData {
 
 	@Test
 	public void testPlayerDataMap() throws IOException, ContentValidationException, InterruptedException {
-		TestHelper.runTestServer(METAcraftLib.NAMESPACE,PLAYER_DATA_PREFIX+"*");
+		// every lib game test (TestEntityLoading's too): one test server per JVM
+		TestHelper.runTestServer(METAcraftLib.NAMESPACE, TestInit.TEST_PREFIX + "*");
 	}
 
 }

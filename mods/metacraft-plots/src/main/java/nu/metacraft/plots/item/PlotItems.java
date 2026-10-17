@@ -8,6 +8,7 @@ import net.minecraft.util.Unit;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
 import nu.metacraft.core.item.components.METAcraftComponents;
+import nu.metacraft.lib.CreativeTabNamespaces;
 import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.plots.METAcraftPlots;
 
@@ -39,6 +40,7 @@ public class PlotItems {
 
 	public static void init() {
 		PlotComponents.init();
+		CreativeTabNamespaces.add(METAcraftPlots.NAMESPACE);
 	}
 
 	private static <T extends Item> T register(
