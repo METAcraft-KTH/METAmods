@@ -98,7 +98,7 @@ log line — and keeps the rest of the design rather than failing the whole of i
 and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
 
 The catalogue (`Patches.java`) holds ITK, METAcraft Rivals '26, IT and Data, then
-Spiken, Släggan, Ticket to my heart, the Maid dress and Pung, then Vlad's IN, IN (gold), the three
+Spiken, Släggan, Ticket to my heart, the Maid dress and Pung, then Ainrave's IN, IN (gold), the three
 Nyckeln keys and KomMN, and last Måns's JGS, TMEIT and TMEIT Marshal. ITK, IT, Data, Spiken, Släggan,
 the Maid dress, the ticket and Måns's three are 12×12 and hang over their neighbours (except on the big back
 cell). Several are also drawn at more than one size: ITK ships `itk_8x8.png` (Kexana's original 8×8
@@ -110,7 +110,7 @@ an 8×8 and a 16×16 beside their 12×12 — Ticket to my heart among them, now 
 place of Cactooz's 9×6 original;
 Rivals and Pung are the seat patches — Rivals is Data's cerise with a creeper against IT's laser
 violet with a VS, at the seat's own 16×8; Pung is 16×10, so its top and bottom rails hang over the
-seat's row onto the cloth. (Kexana's Nyckeln'26, an 8×8 of the same key as Vlad's Nyckeln 0x2, is gone from the
+seat's row onto the cloth. (Kexana's Nyckeln'26, an 8×8 of the same key as Ainrave's Nyckeln 0x2, is gone from the
 list; its id still reads as that patch, so an ovve sewn with it loads.) New entries go at the end of the list: a design's instant
 code is its position in it (see "the dye colour" below), so an entry inserted in the middle would
 repaint every patch already sewn. Släggan's file is `slaggan.png` — a resource id is `[a-z0-9_.-]`,

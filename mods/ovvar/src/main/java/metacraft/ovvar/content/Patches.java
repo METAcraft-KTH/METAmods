@@ -280,27 +280,27 @@ public final class Patches {
 			new Patch("maid", "Maid dress", 12, 12).by("Mackan"),
 			// Taller than the seat's own row: a texel of the rails hangs onto the cloth below it.
 			Patch.seat("pung", "Pung", 16, 10),
-			// The set Vlad drew. The display names are placeholders; the ids are not, since a stored
+			// The set Ainrave drew. The display names are placeholders; the ids are not, since a stored
 			// design names its patches by id. New entries go last, for the reason given above.
-			new Patch("in", "IN", 12, 12).by("Vlad"),
-			new Patch("in_gold", "IN (gold)", 16, 16).by("Vlad"),   // drawn only at 16x16: the 12 and the 8 are scaled from it
-			new Patch("nyckeln0x0", "Nyckeln 0x0", 12, 12).by("Vlad"),
-			new Patch("nyckeln0x1", "Nyckeln 0x1", 12, 12).by("Vlad"),
-			new Patch("nyckeln0x2", "Nyckeln 0x2", 12, 12).by("Vlad"),
-			new Patch("kommn", "KomMN", 12, 8).by("Vlad"),   // drawn 12x8 on a 12x12 canvas; also 8x6 and 16x10
+			new Patch("in", "IN", 12, 12).by("Ainrave"),
+			new Patch("in_gold", "IN (gold)", 16, 16).by("Ainrave"),   // drawn only at 16x16: the 12 and the 8 are scaled from it
+			new Patch("nyckeln0x0", "Nyckeln 0x0", 12, 12).by("Ainrave"),
+			new Patch("nyckeln0x1", "Nyckeln 0x1", 12, 12).by("Ainrave"),
+			new Patch("nyckeln0x2", "Nyckeln 0x2", 12, 12).by("Ainrave"),
+			new Patch("kommn", "KomMN", 12, 8).by("Ainrave"),   // drawn 12x8 on a 12x12 canvas; also 8x6 and 16x10
 			// Måns's set, each drawn at 12, 8 and 16 so nothing is generated for them; Spiken, Släggan and the
 			// ticket got their 8 and 16 in the same batch. Display names are placeholders until somebody says
 			// otherwise; the ids are not. New entries go last, for the reason given above.
 			new Patch("jgs", "JGS", 12, 12),
 			new Patch("tmeit", "TMEIT", 12, 12),
 			new Patch("tmeit-marshal", "TMEIT Marshal", 12, 12),   // a resource id is [a-z0-9_.-], so the hyphen stays
-			// Vlad's Data pack (ain-data-patch-pack), drawn at 12. New entries go last, for the reason given above.
-			new Patch("batata", "Batata", 12, 12).by("Vlad"),
-			new Patch("batato", "Batato", 12, 12).by("Vlad"),
-			new Patch("batatu", "Batatu", 12, 12).by("Vlad"),
-			new Patch("cerise", "Cerise", 12, 12).by("Vlad"),
-			new Patch("playboy-pikachu", "Playboy Pikachu", 12, 12).by("Vlad"),
-			new Patch("starkt", "Starkt", 12, 12).by("Vlad")
+			// Ainrave's Data pack (ain-data-patch-pack), drawn at 12. New entries go last, for the reason given above.
+			new Patch("batata", "Batata", 12, 12).by("Ainrave"),
+			new Patch("batato", "Batato", 12, 12).by("Ainrave"),
+			new Patch("batatu", "Batatu", 12, 12).by("Ainrave"),
+			new Patch("cerise", "Cerise", 12, 12).by("Ainrave"),
+			new Patch("playboy-pikachu", "Playboy Pikachu", 12, 12).by("Ainrave"),
+			new Patch("starkt", "Starkt", 12, 12).by("Ainrave")
 	);
 
 	private static final Map<String, Patch> BY_ID = ALL.stream()
@@ -308,7 +308,7 @@ public final class Patches {
 
 	public static final Codec<Patch> ID_CODEC = Codec.STRING.comapFlatMap(
 			id -> {
-				// Nyckeln'26 was Kexana's 8×8 of the same key Vlad drew as nyckeln0x2; the entry went, the id
+				// Nyckeln'26 was Kexana's 8×8 of the same key Ainrave drew as nyckeln0x2; the entry went, the id
 				// stays readable so an ovve sewn with it still loads.
 				var patch = BY_ID.get(id.equals("nyckeln") ? "nyckeln0x2" : id);
 				if (patch != null) {
