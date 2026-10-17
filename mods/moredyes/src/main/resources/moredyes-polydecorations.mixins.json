@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "metacraft.moredyes.compat.polydecorations.mixin",
+	"plugin": "metacraft.moredyes.compat.polydecorations.PolyDecorationsMixinPlugin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"CanvasEntityMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

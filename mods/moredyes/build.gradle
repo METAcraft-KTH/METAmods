@@ -1,0 +1,52 @@
+// More Dyes — server-side dye colours for vanilla clients (Polymer). See README.md in this module.
+version = project.moredyes_version
+
+loom {
+	accessWidenerPath = file('src/main/resources/moredyes.accesswidener')
+}
+
+// Every colour-derived file (recoloured textures, models, item definitions, lang, loot, recipes,
+// tags) comes from src/main/resources/colors.json via data generation: ./gradlew runDatagen.
+setupRunDatagen("moredyes")
+// Client screenshot test: a vanilla client joins an in-process dedicated server and looks at our
+// stairs and slabs close up, from 30 and from 100 blocks. Source set src/gametest, task
+// runClientGameTest (opens a window). The server-side game tests stay in the main source set.
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "moredyes-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}
+
+addPolymerDependency()
+addConfigDependency()
+dependencies {
+	implementation("eu.pb4:polymer-blocks:${project.polymer_version}")
+	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+	implementation("eu.pb4:polymer-resource-pack-extras:${project.polymer_version}")
+	implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+	implementation("eu.pb4:polymer-sound-patcher:${project.polymer_version}")
+	// PolyDecorations' canvas, which our dyes paint (compat.polydecorations): compile against it, and
+	// run with it in dev and the game tests. Never a dependency.
+	compileOnly("Froosty11:polydecorations:${project.polydecorations_version}")
+	compileOnly("eu.pb4:map-canvas-api:${project.map_canvas_api_version}")
+	runtimeOnly("Froosty11:polydecorations:${project.polydecorations_version}")
+}
+
+processResources {
+	// A texture drawn by hand (src/main/resources) wins over the recoloured one datagen made before
+	// it was drawn, until the next runDatagen drops that from src/main/generated.
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+	doFirst {
+		def gen = file('src/main/generated/assets/moredyes/models/block')
+		def generating = gradle.startParameter.taskNames.any { it.endsWith('runDatagen') }
+		if (!generating && (!gen.isDirectory() || gen.list().length == 0)) {
+			throw new GradleException("More Dyes: generated assets missing — run './gradlew runDatagen' first.")
+		}
+	}
+}

@@ -198,6 +198,18 @@ subprojects {
         }
 
         maven { url 'https://jitpack.io' } // Leukocyte
+
+		// Our PolyDecorations fork (per-feature config), from its GitHub releases
+		exclusiveContent {
+			forRepository {
+				ivy {
+					url = "https://github.com/Froosty11/PolyDecorations/releases/download/"
+					patternLayout { artifact "v[revision]/[module]-[revision].[ext]" }
+					metadataSources { artifact() }
+				}
+			}
+			filter { includeModule("Froosty11", "polydecorations") }
+		}
     }
 }
 

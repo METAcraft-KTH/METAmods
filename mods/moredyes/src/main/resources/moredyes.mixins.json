@@ -1,0 +1,25 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "metacraft.moredyes.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"BannerDuplicateRecipeMixin",
+		"BlockEntityTypeAccessor",
+		"CatAccessor",
+		"CauldronInteractionsMixin",
+		"CushionMixin",
+		"FlintAndSteelItemMixin",
+		"LoomBannerViewMixin",
+		"LoomMenuMixin",
+		"MobMixin",
+		"RegistryLoadTaskMixin",
+		"SheepAccessor",
+		"SheepMixin",
+		"SignBlockEntityMixin",
+		"WolfAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

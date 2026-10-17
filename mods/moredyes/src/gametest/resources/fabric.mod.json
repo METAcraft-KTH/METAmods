@@ -1,0 +1,21 @@
+{
+	"schemaVersion": 1,
+	"id": "moredyes-clienttest",
+	"version": "1.0.0",
+	"name": "More Dyes client tests",
+	"description": "Screenshot test: a vanilla client sees what the server draws.",
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"metacraft.moredyes.clienttest.MoreDyesClientTests"
+		]
+	},
+	"mixins": [
+		"moredyes-clienttest.mixins.json"
+	],
+	"depends": {
+		"moredyes": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}
