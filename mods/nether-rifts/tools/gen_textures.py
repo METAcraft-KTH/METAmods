@@ -1,7 +1,8 @@
 """Draws the nether rift's edge sprite and writes both rift parts' models and item definitions.
 The panel's sprite, rift_panel.png, is the nether panorama: tools/gen_panorama.py writes it.
+Also the bomb warning's ring (BurningPatches): its sprite, a flat item model lying face up, and its item definition.
 Run from the module: python3 tools/gen_textures.py"""
-import json, struct, zlib
+import json, math, struct, zlib
 from pathlib import Path
 
 ASSETS = Path(__file__).resolve().parent.parent / "src/main/resources/assets/nether_rifts"
@@ -44,8 +45,38 @@ def quad(texture, inward):
 		"elements": [{"from": [0, 0, near], "to": [16, 16, near], "faces": south},
 			{"from": [0, 0, far], "to": [16, 16, far], "faces": north}]}
 
+def ring():
+	"""32x32: a bright red-orange ring at the edge, a dark red rim inside it and a faint red wash over the middle,
+	so the ground under it still shows; edges eased by how much of each pixel is covered."""
+	px = []
+	for y in range(32):
+		for x in range(32):
+			d = math.hypot(x + 0.5 - 16, y + 0.5 - 16)
+			def cover(inner, outer):
+				return max(0.0, min(1.0, outer - d + 0.5) - max(0.0, min(1.0, inner - d + 0.5)))
+			band, rim, wash = cover(12.5, 15.5), cover(11.5, 12.5), cover(0, 11.5)
+			if band > 0:
+				px.append((255, 72, 24, int(255 * band)))
+			elif rim > 0:
+				px.append((150, 16, 8, int(220 * rim)))
+			elif wash > 0:
+				px.append((210, 32, 12, int(70 * wash)))
+			else:
+				px.append((0, 0, 0, 0))
+	return px
+
+def flat(texture):
+	"""A face-up square across the whole model at mid height, with no shading: an item display lays it on the ground."""
+	face = {"uv": [0, 0, 16, 16], "texture": "#0"}
+	return {"textures": {"0": f"nether_rifts:item/{texture}", "particle": f"nether_rifts:item/{texture}"},
+		"elements": [{"from": [0, 8, 0], "to": [16, 8, 16], "shade": False, "light_emission": 15,
+			"faces": {"up": face, "down": {**face, "uv": [0, 16, 16, 0]}}}]}
+
 def main():
 	png(ASSETS / "textures/item/rift_edge.png", 16, 16, edge())
+	png(ASSETS / "textures/item/bomb_warning.png", 32, 32, ring())
+	write_json(ASSETS / "models/item/bomb_warning.json", flat("bomb_warning"))
+	write_json(ASSETS / "items/bomb_warning.json", {"model": {"type": "minecraft:model", "model": "nether_rifts:item/bomb_warning"}})
 	for name, tint in (("rift_panel", BODY_TINT), ("rift_edge", EDGE_TINT)):
 		write_json(ASSETS / "models/item" / f"{name}.json", quad(name, name == "rift_panel"))
 		write_json(ASSETS / "items" / f"{name}.json", {"model": {"type": "minecraft:model",

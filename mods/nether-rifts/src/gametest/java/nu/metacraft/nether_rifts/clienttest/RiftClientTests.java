@@ -6,7 +6,9 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerCon
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.GrenadierSword;
+import nu.metacraft.nether_rifts.mob.MagmaBomb;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
 import nu.metacraft.nether_rifts.mob.WarGhast;
 
@@ -425,6 +427,52 @@ public final class RiftClientTests implements FabricClientGameTest {
 				grenadierThrow(server, null);
 				server.runCommand("kill @e[type=nether_rifts:ghast_bombardier]");
 				server.runCommand("difficulty peaceful");
+
+				// the Grenadier's magma bomb close up, held still in the air: the artist's bomb in 3D, not magma cream's
+				// flat sprite. Then a bomb's ground warning, from 7 blocks and from 20: the red ring as wide as the blast,
+				// and in it the shadow of the bomb (held over it), darkening as it would come down. By day, as a shadow
+				// takes the light it falls in.
+				server.runCommand("time set noon");
+				server.runCommand(tpLooking(-20.5, -58.4, -22.0, -20.5, -58.6, -24.5));
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(5);
+				hangBomb(server, -20.5, -58.6, -24.5);
+				ctx.waitTicks(10);
+				var bombShot = read(ctx.takeScreenshot(TestScreenshotOptions.of("magma_bomb_close").withSize(1920, 1080)));
+				// the flat sprite's cream yellow and the bomb's dark shell and glowing core differ; log what's there
+				System.out.println("[nether-rifts-clienttest] magma bomb close dark=" + count(bombShot, (r, g, b) -> r < 90 && g < 60 && b < 60)
+						+ " glow=" + count(bombShot, (r, g, b) -> r > 200 && g > 90 && g < 200 && b < 80));
+				server.runCommand("kill @e[type=nether_rifts:magma_bomb]");
+
+				server.runCommand(tpLooking(-20.5, -55.5, -29.0, -20.5, -59.6, -35.5));
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(10);
+				var bare = read(ctx.takeScreenshot(TestScreenshotOptions.of("bomb_warning_none").withSize(1920, 1080)));
+				warnUnder(server, -20.5, -35.5, 3.5);
+				ctx.waitTicks(6);
+				ctx.takeScreenshot(TestScreenshotOptions.of("bomb_warning_early").withSize(1920, 1080));
+				ctx.waitTicks(18);
+				var late = read(ctx.takeScreenshot(TestScreenshotOptions.of("bomb_warning_late").withSize(1920, 1080)));
+				Rgb ringRed = (r, g, b) -> r > 180 && g < 120 && b < 90 && r > g + 90;
+				int ring = countAll(late, ringRed) - countAll(bare, ringRed);
+				// the shadow: the grass in the ring darker than it was
+				int shaded = darker(bare, late, 30);
+				System.out.println("[nether-rifts-clienttest] bomb warning ring=" + ring + " shaded=" + shaded);
+				check(ring >= 3000, "the bomb warning's ring isn't drawn: " + ring + " red px");
+				check(shaded >= 3000, "the bomb's shadow isn't drawn: " + shaded + " px darker");
+				server.runCommand("kill @e[type=nether_rifts:magma_bomb]");
+				ctx.waitTicks(10);
+
+				server.runCommand(tpLooking(-20.5, -52.0, -16.0, -20.5, -59.6, -35.5));
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(10);
+				warnUnder(server, -20.5, -35.5, 3.5);
+				ctx.waitTicks(20);
+				var farWarning = read(ctx.takeScreenshot(TestScreenshotOptions.of("bomb_warning_far").withSize(1920, 1080)));
+				int farRing = countAll(farWarning, ringRed);
+				System.out.println("[nether-rifts-clienttest] bomb warning from 20 blocks ring=" + farRing);
+				check(farRing >= 500, "the bomb warning's ring can't be seen from 20 blocks: " + farRing + " red px");
+				server.runCommand("kill @e[type=nether_rifts:magma_bomb]");
 				server.runCommand("time set midnight");
 
 				// the void anchor's rift, same shader file
@@ -799,6 +847,40 @@ public final class RiftClientTests implements FabricClientGameTest {
 	/** Sets the overworld's war ghasts charging a fireball (their shooting face) or not. */
 	private static void charging(TestDedicatedServerContext server, boolean charging) {
 		server.runOnServer(s -> s.overworld().getEntities(RiftEntities.WAR_GHAST, e -> true).forEach(ghast -> ghast.setCharging(charging)));
+	}
+
+	/** A magma bomb held still in the air at (x, y, z) (no gravity, no speed), for a look at it. */
+	private static void hangBomb(TestDedicatedServerContext server, double x, double y, double z) {
+		server.runOnServer(s -> {
+			var bomb = new MagmaBomb(s.overworld(), null);
+			bomb.setNoGravity(true);
+			bomb.setPos(x, y, z);
+			bomb.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+			s.overworld().addFreshEntity(bomb);
+		});
+	}
+
+	/** A bomb's ground warning on the ground under (x, z), the bomb held {@code height} blocks over it. */
+	private static void warnUnder(TestDedicatedServerContext server, double x, double z, double height) {
+		server.runOnServer(s -> {
+			var ground = BurningPatches.groundBelow(s.overworld(), new net.minecraft.world.phys.Vec3(x, -50, z));
+			BurningPatches.warn(s.overworld(), ground, null);
+		});
+		hangBomb(server, x, -60 + height, z);
+	}
+
+	/** Pixels anywhere on screen that got darker from {@code a} to {@code b} by more than {@code step} (by their sum of channels / 3). */
+	private static int darker(BufferedImage a, BufferedImage b, int step) {
+		int n = 0;
+		for (int y = 0; y < a.getHeight(); y++) {
+			for (int x = 0; x < a.getWidth(); x++) {
+				int p = a.getRGB(x, y), q = b.getRGB(x, y);
+				int la = (((p >> 16) & 255) + ((p >> 8) & 255) + (p & 255)) / 3;
+				int lb = (((q >> 16) & 255) + ((q >> 8) & 255) + (q & 255)) / 3;
+				if (la - lb > step) n++;
+			}
+		}
+		return n;
 	}
 
 	/** A port nothing listens on, so runs in several checkouts at once don't collide. */

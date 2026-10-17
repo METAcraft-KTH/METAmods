@@ -138,18 +138,40 @@ public record NetherRiftsConfig(
 	}
 
 	/**
+	 * A bomb's ground warning: how long ahead it shows, whether it casts a shadow, and how wide it is (0: as wide as the
+	 * blast reaches, twice {@code bomb_power}). Its keys sit in the bombardier section with the others ({@code warn_...}).
+	 */
+	public record Warning(int ticks, boolean shadow, double radius) {
+		public static final Warning DEFAULT = new Warning(BurningPatches.WARN_TICKS, true, 0);
+		public static final MapCodec<Warning> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+				CommentCodec.comment(
+						Sections.section("warn_ticks", Codec.intRange(0, 200), DEFAULT.ticks()),
+						"The ground warning shows at least this many ticks before a bomb lands."
+				).forGetter(Warning::ticks),
+				CommentCodec.comment(
+						Sections.section("warn_shadow", Codec.BOOL, DEFAULT.shadow()),
+						"The warning shows a red ring on the ground and the bomb's shadow, darkening as it falls (else only embers)."
+				).forGetter(Warning::shadow),
+				CommentCodec.comment(
+						Sections.section("warn_radius", Codec.doubleRange(0, 16), DEFAULT.radius()),
+						"The warning's radius, in blocks; 0: as far as the blast reaches (twice bomb_power)."
+				).forGetter(Warning::radius)
+		).apply(i, Warning::new));
+	}
+
+	/**
 	 * The war ghast's bombing runs, and its Ghast Bombardier's magma bombs: dropped from the deck, and thrown by hand once
 	 * the ghast has fallen. Ticks (20 a second) and blocks.
 	 */
 	public record BombardierTuning(
 			double diveHeight, double climbHeight, double runLength, double bombRange, int bombEvery, int cooldown,
-			float bombPower, int warnTicks, int burnTicks, int playerFireTicks, double patchRadius,
+			float bombPower, Warning warning, int burnTicks, int playerFireTicks, double patchRadius,
 			int throwEvery, double throwMinRange, double throwRange, double maxFloatHeight, CrewTuning crew
 	) {
 		public static final BombardierTuning DEFAULT = new BombardierTuning(
 				BombingRunGoal.DIVE_HEIGHT, BombingRunGoal.CLIMB_HEIGHT, BombingRunGoal.RUN_LENGTH, BombingRunGoal.BOMB_RANGE,
 				BombingRunGoal.BOMB_EVERY, BombingRunGoal.COOLDOWN, MagmaBomb.POWER,
-				BurningPatches.WARN_TICKS, BurningPatches.BURN_TICKS, BurningPatches.PLAYER_FIRE_TICKS, BurningPatches.RADIUS,
+				Warning.DEFAULT, BurningPatches.BURN_TICKS, BurningPatches.PLAYER_FIRE_TICKS, BurningPatches.RADIUS,
 				GhastBombardier.THROW_EVERY, GhastBombardier.THROW_MIN_RANGE, GhastBombardier.THROW_RANGE, WarGhast.MAX_FLOAT_HEIGHT, CrewTuning.DEFAULT
 		);
 		public static final Codec<BombardierTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -181,10 +203,7 @@ public record NetherRiftsConfig(
 						Sections.section("bomb_power", Codec.floatRange(0, 10), DEFAULT.bombPower()),
 						"Explosion power of a bomb, which sets its damage and knockback (a creeper is 3). Bombs never change blocks."
 				).forGetter(BombardierTuning::bombPower),
-				CommentCodec.comment(
-						Sections.section("warn_ticks", Codec.intRange(0, 200), DEFAULT.warnTicks()),
-						"The ground warning shows at least this many ticks before a bomb lands."
-				).forGetter(BombardierTuning::warnTicks),
+				Warning.MAP_CODEC.forGetter(BombardierTuning::warning),
 				CommentCodec.comment(
 						Sections.section("burn_ticks", Codec.intRange(0, 72_000), DEFAULT.burnTicks()),
 						"How long a bomb's burning patch lasts, in ticks."
@@ -195,7 +214,7 @@ public record NetherRiftsConfig(
 				).forGetter(BombardierTuning::playerFireTicks),
 				CommentCodec.comment(
 						Sections.section("patch_radius", Codec.doubleRange(0, 16), DEFAULT.patchRadius()),
-						"The radius of a warning ring and a burning patch, in blocks."
+						"The radius of a burning patch, in blocks."
 				).forGetter(BombardierTuning::patchRadius),
 				CommentCodec.comment(
 						Sections.section("throw_every", Codec.intRange(1, 72_000), DEFAULT.throwEvery()),
@@ -218,6 +237,16 @@ public record NetherRiftsConfig(
 						"The crew on the deck."
 				).forGetter(BombardierTuning::crew)
 		).apply(i, BombardierTuning::new));
+
+		/** The warning's lead, in ticks. */
+		public int warnTicks() {
+			return warning.ticks();
+		}
+
+		/** How wide the warning is: the configured radius, else the blast's reach (an explosion's is twice its power). */
+		public double warnRadius() {
+			return warning.radius() > 0 ? warning.radius() : 2 * bombPower;
+		}
 	}
 
 	public record Mobs(DrummerTuning drummer, BombardierTuning bombardier) {

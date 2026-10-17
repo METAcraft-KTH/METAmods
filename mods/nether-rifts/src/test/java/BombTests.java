@@ -141,14 +141,70 @@ public class BombTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("bomb/drawn_as_the_bomb", ctx -> {
+			// Clients draw a thrown item from the stack in the projectile's data: every bomb's, dropped, thrown, summoned
+			// or loaded, has the 3D bomb's item model, not magma cream's flat sprite.
+			var thrown = new MagmaBomb(ctx.getLevel(), null);
+			var summoned = RiftEntities.MAGMA_BOMB.create(ctx.getLevel(), net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+			ctx.assertTrue(summoned != null, "no summoned bomb");
+			summoned.setItem(new ItemStack(Items.MAGMA_CREAM));
+			for (var bomb : java.util.List.of(thrown, summoned)) {
+				var stack = bomb.getItem();
+				ctx.assertTrue(stack.is(Items.MAGMA_CREAM), "a bomb carries " + stack);
+				ctx.assertTrue(MagmaBomb.MODEL.equals(stack.get(net.minecraft.core.component.DataComponents.ITEM_MODEL)),
+						"a bomb is drawn as " + stack.get(net.minecraft.core.component.DataComponents.ITEM_MODEL));
+			}
+			ctx.assertTrue(MagmaBomb.MODEL.equals(nu.metacraft.nether_rifts.NetherRifts.getID("magma_bomb")), "the bomb's model id");
+			ctx.succeed();
+		});
+		NetherRiftsTests.register("bomb/warning_ring_and_shadow", ctx -> {
+			// A warning puts up a ring and the bomb's shadow (one display) as wide as the blast reaches, the shadow
+			// darkening from the next tick till the bomb lands; it goes at the impact, or when the bomb's rift is cleared.
+			var level = ctx.getLevel();
+			var tuning = nu.metacraft.nether_rifts.NetherRiftsConfig.getInstance().mobs().bombardier();
+			var rift = java.util.UUID.randomUUID();
+			var here = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(8, 1, 8)));
+			var there = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(16, 1, 16)));
+			BurningPatches.warn(level, here, rift);
+			BurningPatches.warn(level, there, null);
+			var cleared = marker(ctx, here);
+			var landed = marker(ctx, there);
+			float blast = 2 * tuning.bombPower();
+			ctx.assertTrue(Math.abs(tuning.warnRadius() - blast) < 0.01, "the warning is " + tuning.warnRadius() + " wide, the blast " + blast);
+			for (var marker : java.util.List.of(cleared, landed)) {
+				ctx.assertTrue(marker.holder().getAttachment() != null, "the marker isn't in the world");
+				ctx.assertTrue(Math.abs(marker.ring().getShadowRadius() - blast) < 0.01, "the shadow is " + marker.ring().getShadowRadius() + " wide");
+				ctx.assertTrue(Math.abs(marker.ring().getScale().x() - 2 * blast) < 0.01, "the ring is " + marker.ring().getScale().x() + " across");
+				ctx.assertTrue(marker.ring().getShadowStrength() <= BurningPatches.SHADOW_FROM, "the shadow starts dark");
+			}
+			ctx.runAtTickTime(3, () -> {
+				ctx.assertTrue(landed.ring().getShadowStrength() == BurningPatches.SHADOW_TO && landed.ring().getInterpolationDuration() > 10,
+						"the shadow isn't darkening: " + landed.ring().getShadowStrength() + " over " + landed.ring().getInterpolationDuration());
+				BurningPatches.clear(level, rift);
+				ctx.assertTrue(cleared.holder().getAttachment() == null, "the cleared rift's warning still shows");
+				ctx.assertTrue(landed.holder().getAttachment() != null, "clearing a rift took another bomb's warning");
+			});
+			ctx.runAtTickTime(BurningPatches.WARN_TICKS + 2, () -> {
+				ctx.assertTrue(landed.holder().getAttachment() == null, "the warning still shows after the impact");
+				ctx.succeed();
+			});
+		});
 		NetherRiftsTests.register("bomb/warning_then_gone", ctx -> {
 			var at = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(12, 1, 12)));
 			BurningPatches.warn(ctx.getLevel(), at, null);
 			ctx.assertTrue(BurningPatches.active(ctx.getLevel()).stream().anyMatch(p -> p.warning() && p.at().equals(at)), "no warning recorded");
 			ctx.runAtTickTime(BurningPatches.WARN_TICKS + 2, () -> {
-				ctx.assertFalse(BurningPatches.active(ctx.getLevel()).stream().anyMatch(p -> p.at().equals(at)), "the warning outlived its 20 ticks");
+				ctx.assertFalse(BurningPatches.active(ctx.getLevel()).stream().anyMatch(p -> p.at().equals(at)), "the warning outlived its " + BurningPatches.WARN_TICKS + " ticks");
 				ctx.succeed();
 			});
 		});
+	}
+
+	/** The ring and shadow of the warning at {@code at}. */
+	static BurningPatches.Marker marker(net.minecraft.gametest.framework.GameTestHelper ctx, Vec3 at) {
+		var patch = BurningPatches.active(ctx.getLevel()).stream().filter(p -> p.warning() && p.at().equals(at)).findFirst().orElse(null);
+		ctx.assertTrue(patch != null, "no warning at " + at);
+		ctx.assertTrue(patch.marker() != null, "the warning at " + at + " has no ring or shadow");
+		return patch.marker();
 	}
 }

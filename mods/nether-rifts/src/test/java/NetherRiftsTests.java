@@ -167,7 +167,7 @@ public class NetherRiftsTests {
 		var b = NetherRiftsConfig.BombardierTuning.DEFAULT;
 		var c = NetherRiftsConfig.DEFAULT;
 		var bombardier = new NetherRiftsConfig.BombardierTuning(b.diveHeight(), b.climbHeight(), b.runLength(), b.bombRange(), b.bombEvery(),
-				b.cooldown(), b.bombPower(), b.warnTicks(), b.burnTicks(), b.playerFireTicks(), b.patchRadius(), b.throwEvery(), b.throwMinRange(),
+				b.cooldown(), b.bombPower(), b.warning(), b.burnTicks(), b.playerFireTicks(), b.patchRadius(), b.throwEvery(), b.throwMinRange(),
 				b.throwRange(), b.maxFloatHeight(), new NetherRiftsConfig.CrewTuning(every, b.crew().damageTaken(), b.crew().hitboxWidth(),
 				b.crew().hitboxHeight()));
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),

@@ -24,12 +24,14 @@ and each one killed there takes its work with it: the spear piglin stabs the gha
 Grenadier drops the bombs, the crossbow piglin shoots bolts at players it can see (every 3 seconds,
 `mobs.bombardier.crew.crossbow_every`), and the drummer drums all the time (heard as his sticks land, softly out of a fight) and slams the big beat in time with every Piglin Drummer, his War Beat
 reaching the piglins under the ghast. Stabbed, the ghast lurches and shoots, its mouth open. They make bombing runs, the
-ghast pitching into the dive and back as it climbs out, the Grenadier dropping magma bombs from the deck, each bomb's landing
-spot marked on the ground a second before it hits; the bombs don't break blocks, or hurt rift mobs, armour stands
+ghast pitching into the dive and back as it climbs out, the Grenadier dropping magma bombs from the deck (the artist's bomb, seen in 3D as it falls), each bomb's landing
+spot marked on the ground a second and a half before it hits (`mobs.bombardier.warn_ticks`): a red ring as wide as the blast
+reaches (`warn_radius`), lit so it shows from afar and in the dark, embers round it whatever a player's particle setting,
+and in it the bomb's shadow darkening as it comes down (`warn_shadow`); the bombs don't break blocks, or hurt rift mobs, armour stands
 or loot on the ground. When a chained ghast dies, the crew left on it jump off where they stood, with the health they had left, and glide
 down to fight on foot, the spear piglin wearing the ghast's armour: the Grenadier,
 a piglin in goggles with a golden sword in his gloved right hand, then stops every 4 seconds to put the sword away and lob
-a magma bomb by hand at a player 4 to 12 blocks off, the landing spot again marked a second ahead. The Piglin General, in a large raid's
+a magma bomb by hand at a player 4 to 12 blocks off, the landing spot again marked ahead. The Piglin General, in a large raid's
 last wave, gets its own red boss bar. Winning closes the rift and turns its obsidian frame to crying obsidian. While rift mode is on, eyes of ender can't be crafted.
 
 `/rifts stabilise` ends rift mode: waiting rifts become working portals and portal-blocker's nether locks
@@ -96,9 +98,13 @@ vanilla's golden sword and `models/item/bombardier_arm.json`; through a throw, `
 python3 tools/bbmodel_to_item.py blockbench/delivered/bombardier_goggles.bbmodel nether_rifts:item/bombardier_helmet src/main/resources/assets/nether_rifts/models/item/bombardier_helmet.json
 python3 tools/bbmodel_to_item.py blockbench/delivered/bombardier_arm.bbmodel nether_rifts:item/bombardier_arm src/main/resources/assets/nether_rifts/models/item/bombardier_arm.json right_arm right_sleeve
 python3 tools/bbmodel_to_item.py blockbench/delivered/bombardier_arm.bbmodel nether_rifts:item/bombardier_arm src/main/resources/assets/nether_rifts/models/item/bombardier_arm_bomb.json
+python3 tools/bbmodel_to_item.py blockbench/delivered/bombardier_arm.bbmodel nether_rifts:item/bombardier_arm src/main/resources/assets/nether_rifts/models/item/magma_bomb_cubes.json core shell --centre
 ```
 
-with the textures copied beside them (`textures/item/bombardier_helmet.png`, `textures/item/bombardier_arm.png`).
+with the textures copied beside them (`textures/item/bombardier_helmet.png`, `textures/item/bombardier_arm.png`). The last
+is the bomb alone, out of the arm and centred, that a magma bomb in flight is drawn as (`items/magma_bomb.json`; its
+`models/item/magma_bomb.json` gives it the sizes it is drawn at). `python3 tools/gen_textures.py` draws the bomb
+warning's ring (`bomb_warning`).
 
 The panorama looks into **Eskmorra - Nether Fortress** by Bluespartan, built by zombiespartan456 and shiiiner
 (2014), <https://www.planetminecraft.com/project/eskmorra---nether-fortress-download/>. Its terms, from that page:
