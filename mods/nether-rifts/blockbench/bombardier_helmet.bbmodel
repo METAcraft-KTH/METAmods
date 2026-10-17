@@ -1,0 +1,498 @@
+{
+	"meta": {
+		"format_version": "5.0",
+		"model_format": "java_block",
+		"box_uv": false
+	},
+	"name": "bombardier_helmet",
+	"parent": "",
+	"java_block_version": "1.21.11",
+	"ambientocclusion": true,
+	"front_gui_light": false,
+	"visible_box": [
+		1,
+		1,
+		0
+	],
+	"variable_placeholders": "",
+	"variable_placeholder_buttons": [],
+	"unhandled_root_fields": {},
+	"resolution": {
+		"width": 32,
+		"height": 32
+	},
+	"elements": [
+		{
+			"name": "strap",
+			"export": true,
+			"from": [
+				2.75,
+				8,
+				3.75
+			],
+			"to": [
+				13.25,
+				10,
+				12.25
+			],
+			"autouv": 0,
+			"origin": [
+				2.75,
+				8,
+				3.75
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						10,
+						2
+					],
+					"texture": 0
+				},
+				"east": {
+					"uv": [
+						10,
+						0,
+						18,
+						2
+					],
+					"texture": 0
+				},
+				"south": {
+					"uv": [
+						18,
+						0,
+						28,
+						2
+					],
+					"texture": 0
+				},
+				"west": {
+					"uv": [
+						0,
+						2,
+						8,
+						4
+					],
+					"texture": 0
+				},
+				"up": {
+					"uv": [
+						8,
+						2,
+						18,
+						10
+					],
+					"texture": 0
+				},
+				"down": {
+					"uv": [
+						18,
+						2,
+						28,
+						10
+					],
+					"texture": 0
+				}
+			},
+			"type": "cube",
+			"uuid": "4fc11049-b3ea-5460-8305-372873a4e760"
+		},
+		{
+			"name": "lens_right",
+			"export": true,
+			"from": [
+				9,
+				8,
+				3.25
+			],
+			"to": [
+				12,
+				10,
+				3.75
+			],
+			"autouv": 0,
+			"origin": [
+				9,
+				8,
+				3.25
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						28,
+						2,
+						31,
+						4
+					],
+					"texture": 0
+				},
+				"east": {
+					"uv": [
+						31,
+						2,
+						32,
+						4
+					],
+					"texture": 0
+				},
+				"south": {
+					"uv": [
+						0,
+						10,
+						3,
+						12
+					],
+					"texture": 0
+				},
+				"west": {
+					"uv": [
+						3,
+						10,
+						4,
+						12
+					],
+					"texture": 0
+				},
+				"up": {
+					"uv": [
+						4,
+						10,
+						7,
+						11
+					],
+					"texture": 0
+				},
+				"down": {
+					"uv": [
+						7,
+						10,
+						10,
+						11
+					],
+					"texture": 0
+				}
+			},
+			"type": "cube",
+			"uuid": "5f614d4d-6f2f-59fd-ae39-479a4a055b22"
+		},
+		{
+			"name": "lens_left",
+			"export": true,
+			"from": [
+				4,
+				8,
+				3.25
+			],
+			"to": [
+				7,
+				10,
+				3.75
+			],
+			"autouv": 0,
+			"origin": [
+				4,
+				8,
+				3.25
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						10,
+						10,
+						13,
+						12
+					],
+					"texture": 0
+				},
+				"east": {
+					"uv": [
+						13,
+						10,
+						14,
+						12
+					],
+					"texture": 0
+				},
+				"south": {
+					"uv": [
+						14,
+						10,
+						17,
+						12
+					],
+					"texture": 0
+				},
+				"west": {
+					"uv": [
+						17,
+						10,
+						18,
+						12
+					],
+					"texture": 0
+				},
+				"up": {
+					"uv": [
+						18,
+						10,
+						21,
+						11
+					],
+					"texture": 0
+				},
+				"down": {
+					"uv": [
+						21,
+						10,
+						24,
+						11
+					],
+					"texture": 0
+				}
+			},
+			"type": "cube",
+			"uuid": "fa13c228-ddeb-5efa-a358-073ba6e602a9"
+		},
+		{
+			"name": "bridge",
+			"export": true,
+			"from": [
+				7,
+				8.5,
+				3.5
+			],
+			"to": [
+				9,
+				9.5,
+				3.75
+			],
+			"autouv": 0,
+			"origin": [
+				7,
+				8.5,
+				3.5
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						24,
+						10,
+						26,
+						11
+					],
+					"texture": 0
+				},
+				"east": {
+					"uv": [
+						26,
+						10,
+						27,
+						11
+					],
+					"texture": 0
+				},
+				"south": {
+					"uv": [
+						27,
+						10,
+						29,
+						11
+					],
+					"texture": 0
+				},
+				"west": {
+					"uv": [
+						29,
+						10,
+						30,
+						11
+					],
+					"texture": 0
+				},
+				"up": {
+					"uv": [
+						30,
+						10,
+						32,
+						11
+					],
+					"texture": 0
+				},
+				"down": {
+					"uv": [
+						0,
+						12,
+						2,
+						13
+					],
+					"texture": 0
+				}
+			},
+			"type": "cube",
+			"uuid": "73ada48c-7928-5c6d-ba51-9e339abc73ef"
+		},
+		{
+			"name": "piglin_head_reference",
+			"export": false,
+			"from": [
+				3,
+				4,
+				4
+			],
+			"to": [
+				13,
+				12,
+				12
+			],
+			"autouv": 0,
+			"origin": [
+				3,
+				4,
+				4
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						2,
+						12,
+						4,
+						14
+					],
+					"texture": 0
+				},
+				"east": {
+					"uv": [
+						2,
+						12,
+						4,
+						14
+					],
+					"texture": 0
+				},
+				"south": {
+					"uv": [
+						2,
+						12,
+						4,
+						14
+					],
+					"texture": 0
+				},
+				"west": {
+					"uv": [
+						2,
+						12,
+						4,
+						14
+					],
+					"texture": 0
+				},
+				"up": {
+					"uv": [
+						2,
+						12,
+						4,
+						14
+					],
+					"texture": 0
+				},
+				"down": {
+					"uv": [
+						2,
+						12,
+						4,
+						14
+					],
+					"texture": 0
+				}
+			},
+			"type": "cube",
+			"uuid": "dd249d40-3dc8-5616-91b2-a16a753f7abc"
+		}
+	],
+	"groups": [
+		{
+			"name": "helmet",
+			"uuid": "6e39c59f-ce16-5dce-a4c9-43da02f5732b",
+			"export": true,
+			"origin": [
+				8,
+				8,
+				8
+			],
+			"rotation": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"name": "goggles",
+			"uuid": "844f2cca-62eb-5b3a-a6b3-36133ced7c3f",
+			"export": true,
+			"origin": [
+				8,
+				9,
+				4
+			],
+			"rotation": [
+				0,
+				0,
+				0
+			]
+		}
+	],
+	"outliner": [
+		{
+			"uuid": "6e39c59f-ce16-5dce-a4c9-43da02f5732b",
+			"isOpen": false,
+			"children": [
+				{
+					"uuid": "844f2cca-62eb-5b3a-a6b3-36133ced7c3f",
+					"isOpen": false,
+					"children": [
+						"4fc11049-b3ea-5460-8305-372873a4e760",
+						"5f614d4d-6f2f-59fd-ae39-479a4a055b22",
+						"fa13c228-ddeb-5efa-a358-073ba6e602a9",
+						"73ada48c-7928-5c6d-ba51-9e339abc73ef"
+					]
+				},
+				"dd249d40-3dc8-5616-91b2-a16a753f7abc"
+			]
+		}
+	],
+	"textures": [
+		{
+			"name": "bombardier_helmet.png",
+			"path": "",
+			"folder": "item",
+			"namespace": "nether_rifts",
+			"id": "0",
+			"width": 32,
+			"height": 32,
+			"uv_width": 32,
+			"uv_height": 32,
+			"particle": true,
+			"render_mode": "default",
+			"render_sides": "auto",
+			"frame_time": 1,
+			"visible": true,
+			"internal": true,
+			"saved": false,
+			"uuid": "12a67a31-668e-5a80-865d-5593f6478d55",
+			"source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC3UlEQVR42u1UW0tUURidn6DieJmLzqiZc1FT5yLpzJhTWWnTxX6DEFGP9RKJRRfQKZW0aEyhuz6FhV3IKMi0FJEgSDNRhOihyIqeglZ77XN2hBbR9NBD54OP9e1zzuy1vm/tPaaNxTZsLrWjrsSG+rIc1K/JwaYSOxpEvbU8Vybfr12VierVWahxWRASGHFly3W4KBvr3Ba5JkY9VlnzedRrFd9rz2s9Fomm5RETBA1luUKAHRRDwi1CBGuKoSgKooBQkUZKghqxGUmqCrNkbhDfM5UAJaJWrNcLISQnrhDAF6qTqsJMRARGdCJ2SlJuxo2Z3JDfhvTOVddeWxqK7WkSXdZUWbssKfDYtLokh+9S0Tm5gPaJeZwan0PzzRGYqJ5jDevEqg7rNQm2VTgQ0+0gxsSa9a5AHnb6nVKUW5BWONPhzzNLDBZkoFKkP9+MQH4Gyh3pUsj5uU9IvFxC7/xnHLk7vnIiy4Nj2+FzSpuYJCbpdp9D2sM6qgsgiRKg0CeQzynGZU35PeHyYHfsNFahdd8Y0MTwfDQKcq4pgN2x06BIn9Ms06+TUwSf05o/FkD/aQGJVPesiUzeFp52CuDY1RSIFMRk98FkJ6BZ4JAiOHJFriwg1opzQgvYqe+HriXq06AAHtCkBJBc2iAmoHz/fiBF0gKednrObgO6DdKSAs0WojsZC3gbKEL90TB5OyL6HVd/QvIKiiQJR80rKGsdKfCnAlpujSE+OiOzZWgMl958xcAS0PPqI/acvYKmjj40tffi5JNZ9Mx+QIe4xwevP0Tb42n5G+KBa7dx4fUXXH0L+ft9iQHs7rqIvYl+PO+PYOpyGMPdlRhqD2CsrxqDcT/mB6N4d68OprbRabSOvMDR4UlxLyd+OaJzM++lAGLzjUc4fOcpjj94hmP3p8AmTMnG6f1e9B0qxWJ3G2Y7TyS/0d/G4pk4Frpa/50AI4wwwggjjDDCiP82vgFZGguL8yAcoAAAAABJRU5ErkJggg=="
+		}
+	],
+	"display": {
+		"head": {
+			"scale": [
+				1.6,
+				1.6,
+				1.6
+			]
+		}
+	}
+}

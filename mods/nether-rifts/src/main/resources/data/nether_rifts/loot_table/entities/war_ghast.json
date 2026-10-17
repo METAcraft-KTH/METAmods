@@ -1,0 +1,10 @@
+{
+	"type": "minecraft:entity",
+	"random_sequence": "nether_rifts:entities/war_ghast",
+	"pools": [
+		{
+			"rolls": 1,
+			"entries": [{"type": "minecraft:loot_table", "value": "minecraft:entities/ghast"}]
+		}
+	]
+}

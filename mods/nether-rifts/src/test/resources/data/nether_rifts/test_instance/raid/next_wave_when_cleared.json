@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:fast", "function": "nether_rifts:raid/next_wave_when_cleared", "max_ticks": 60, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

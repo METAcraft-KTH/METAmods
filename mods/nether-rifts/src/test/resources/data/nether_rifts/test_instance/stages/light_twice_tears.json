@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:fast", "function": "nether_rifts:stages/light_twice_tears", "max_ticks": 20, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

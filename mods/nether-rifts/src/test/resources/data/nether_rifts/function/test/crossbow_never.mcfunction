@@ -1,0 +1,1 @@
+riftstest crossbow_never

@@ -1,0 +1,10 @@
+### Section: PageInfo
+title=New Mobs
+description=The Chained Ghast, the Piglin Drummer and the Piglin Grenadier.
+category=metacraft:nether
+icon=minecraft:piglin_spawn_egg
+order=10
+### EndSection: PageInfo
+Three new mobs come through the rifts with the raids. The drummer also walks with the nether's own piglins.
+
+### Category Entries: metacraft:nether/mobs

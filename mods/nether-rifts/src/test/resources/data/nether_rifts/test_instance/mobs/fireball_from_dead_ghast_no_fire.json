@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:default", "function": "nether_rifts:mobs/fireball_from_dead_ghast_no_fire", "max_ticks": 60, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

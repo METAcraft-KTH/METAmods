@@ -35,6 +35,7 @@ dependencies {
 	runtimeOnly(project(path: ":mods:metacraft-qol"))
 	runtimeOnly(project(path: ":mods:metacraft-kultur"))
 	runtimeOnly(project(path: ":mods:moredyes"))
+	runtimeOnly(project(path: ":mods:nether-rifts"))
 	runtimeOnly("maven.modrinth:brewery:${project.brewery_version}")
 	compileOnly("maven.modrinth:brewery:${project.brewery_version}")
 	runtimeOnly("Froosty11:polydecorations:${project.polydecorations_version}")

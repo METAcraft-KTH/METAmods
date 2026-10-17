@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:default", "function": "nether_rifts:eye/crafter_locked", "max_ticks": 30, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

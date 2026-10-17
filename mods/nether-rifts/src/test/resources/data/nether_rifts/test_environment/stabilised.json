@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "setup": "nether_rifts:test/stabilise", "teardown": "nether_rifts:test/destabilise"}

@@ -1,0 +1,10 @@
+{
+	"type": "minecraft:chest",
+	"random_sequence": "nether_rifts:victory/large",
+	"pools": [
+		{"rolls": 1, "entries": [{"type": "minecraft:item", "name": "minecraft:gold_ingot",
+			"modifier": [{"type": "minecraft:set_count", "count": {"type": "minecraft:uniform", "min": 12, "max": 18}}]}]},
+		{"rolls": 1, "entries": [{"type": "minecraft:item", "name": "minecraft:glowstone_dust",
+			"modifier": [{"type": "minecraft:set_count", "count": {"type": "minecraft:uniform", "min": 16, "max": 24}}]}]}
+	]
+}

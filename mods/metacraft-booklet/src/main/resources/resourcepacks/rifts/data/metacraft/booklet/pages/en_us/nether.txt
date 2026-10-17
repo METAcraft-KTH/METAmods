@@ -1,0 +1,11 @@
+### Section: PageInfo
+title=Nether Changes
+external_title=Nether Changes
+description=The nether is held back at first: for now portals open rifts, and rifts bring piglin raids.
+category=booklet:main_page
+icon=minecraft:netherrack
+order=30
+### EndSection: PageInfo
+### Image: metacraft:beside/rifts/rift The nether is held back at first. For now a lit nether portal opens a <bold>rift</bold> instead, and a torn rift brings a piglin raid.<nl2>The realm will stabilise in time, and the nether opens.
+
+### Category Entries: metacraft:nether

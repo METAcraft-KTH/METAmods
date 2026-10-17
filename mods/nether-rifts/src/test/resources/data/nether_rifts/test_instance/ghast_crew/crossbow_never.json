@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:crossbow_never", "function": "nether_rifts:ghast_crew/crossbow_never", "max_ticks": 140, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

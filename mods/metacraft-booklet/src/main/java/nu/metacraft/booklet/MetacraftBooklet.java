@@ -20,8 +20,8 @@ import java.util.List;
 
 /**
  * The server's guidebook. <a href="https://github.com/Patbox/booklet">Booklet</a> draws the book
- * (a dialog on a vanilla client); this mod supplies the pages, in sections: Student Culture
- * Features, Vanilla+ Features and End Changes. {@code /guide} opens Booklet's index,
+ * (a dialog on a vanilla client); this mod supplies the pages, in four sections: Student Culture
+ * Features, Vanilla+ Features, Nether Changes and End Changes. {@code /guide} opens Booklet's index,
  * {@code booklet:index}, which the always-on {@code welcome} pack replaces with "Welcome to METAcraft":
  * the server's idea, then the sections, every page in {@code booklet:main_page}.
  *
@@ -109,7 +109,10 @@ public final class MetacraftBooklet implements ModInitializer {
 			// also End Changes: the void anchor, in both sections
 			new Hook("metacraft-qol", "qol", false),
 			new Hook("polydecorations", "decorating", false),
-			new Hook("polydecorations", "polydecorations_s6", true));
+			new Hook("polydecorations", "polydecorations_s6", true),
+
+			// Nether Changes
+			new Hook("nether-rifts", "rifts", false));
 
 	@Override
 	public void onInitialize() {

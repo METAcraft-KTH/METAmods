@@ -1,0 +1,12 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "nether_rifts:item/rift_panel",
+		"tints": [
+			{
+				"type": "minecraft:dye",
+				"default": -66054
+			}
+		]
+	}
+}

@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "setup": "nether_rifts:test/crossbow_never", "teardown": "nether_rifts:test/default"}

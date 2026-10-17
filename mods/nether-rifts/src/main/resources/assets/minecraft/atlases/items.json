@@ -1,0 +1,14 @@
+{
+	"sources": [
+		{
+			"type": "minecraft:directory",
+			"source": "entity/equipment/humanoid",
+			"prefix": "entity/equipment/humanoid/"
+		},
+		{
+			"type": "minecraft:directory",
+			"source": "entity/equipment/humanoid_leggings",
+			"prefix": "entity/equipment/humanoid_leggings/"
+		}
+	]
+}

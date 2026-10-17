@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:default", "function": "nether_rifts:bomb/spares_rift_mobs", "max_ticks": 40, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

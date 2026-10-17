@@ -1,0 +1,3 @@
+# PanoramaCapture writes the six faces here; only the sprite tools/gen_panorama.py makes from them is committed
+panorama/
+__pycache__/

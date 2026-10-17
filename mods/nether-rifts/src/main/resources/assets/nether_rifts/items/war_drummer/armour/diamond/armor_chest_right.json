@@ -1,0 +1,12 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "nether_rifts:item/war_drummer/armour/diamond/armor_chest_right",
+		"tints": [
+			{
+				"type": "minecraft:dye",
+				"default": -1
+			}
+		]
+	}
+}

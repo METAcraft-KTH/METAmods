@@ -1,0 +1,76 @@
+{
+	"textures": {
+		"rift": "nether_rifts:item/rift_panel",
+		"particle": "nether_rifts:item/rift_panel"
+	},
+	"elements": [
+		{
+			"from": [
+				0,
+				0,
+				10.16
+			],
+			"to": [
+				16,
+				16,
+				10.16
+			],
+			"faces": {
+				"south": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#rift",
+					"tintindex": 0
+				},
+				"north": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#rift",
+					"tintindex": 0
+				}
+			}
+		},
+		{
+			"from": [
+				0,
+				0,
+				5.84
+			],
+			"to": [
+				16,
+				16,
+				5.84
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#rift",
+					"tintindex": 0
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#rift",
+					"tintindex": 0
+				}
+			}
+		}
+	]
+}

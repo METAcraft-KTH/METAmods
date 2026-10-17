@@ -55,7 +55,8 @@ public final class GuideTests {
 	 * there, so a renamed page would leave their link a button that does nothing.
 	 */
 	private static final Map<String, Identifier> OPENED_BY = Map.of(
-			"ovvar", Identifier.fromNamespaceAndPath("metacraft", "ovvar"));
+			"ovvar", Identifier.fromNamespaceAndPath("metacraft", "ovvar"),
+			"nether-rifts", Identifier.fromNamespaceAndPath("metacraft", "rifts"));
 
 	/** A page file of a loaded hook's pack: its text, and the hook that brings it. */
 	private record Page(String text, MetacraftBooklet.Hook hook) {}

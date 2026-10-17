@@ -20,6 +20,11 @@ Welcome to METAcraft            booklet:index (the welcome pack replaces Booklet
     Silencing mobs              metacraft:qol/silence_mobs
     Concrete Crafting           metacraft:qol/concrete_cauldron
     New Decor                   metacraft:decorating (Canvas, Mailboxes, Rope, Sign posts, Lanterns and leads, Hammer and trowel)
+  Nether Changes                metacraft:nether
+    New Mobs                    metacraft:nether/mobs (Chained Ghast, Piglin Drummer, Piglin Grenadier)
+    Unstable Portals            metacraft:rifts (Lighting a rift, Stabilising)
+    Piglin Raid                 metacraft:nether/piglin_raid (sizes, the raid, the Piglin General, spoils)
+    Amplified Nether            metacraft:nether/amplified
   End Changes                   metacraft:end
     Void Anchor                 the same page as under Vanilla+
 ```
@@ -29,7 +34,8 @@ with `### Category Entries:`; each entry is a page in that category with an `ord
 same again one level down. A page can be in more than one category (`category=a,b`): the Void Anchor is
 in Vanilla+ and End.
 
-One page id is opened by another mod and must stay: `metacraft:ovvar` (ovvar's `/ovvar guide`).
+Two page ids are opened by other mods and must stay: `metacraft:ovvar` (ovvar's `/ovvar guide`) and
+`metacraft:rifts` (the rift warning in chat, which lands on Unstable Portals).
 
 ## Packs are hooks
 
@@ -41,7 +47,7 @@ none of them has no such section.
 
 | hook | on with | what it adds |
 | --- | --- | --- |
-| `welcome` | always | "Welcome to METAcraft", in place of Booklet's index "The Encyclopedia": the METAcraft logo, what METAcraft is about, a Discord link, then the sections |
+| `welcome` | always | "Welcome to METAcraft", in place of Booklet's index "The Encyclopedia": what METAcraft is about, then the sections |
 | `student_culture` | ovvar, brewery, metacraft-kultur or moredyes | the Student Culture Features section page |
 | `ovvar` | ovvar | "Ovvar": the ovve, patches, sewing, wardrobe and stash |
 | `brewing` | brewery | "Chapter Drinks": Brewery's own book, rewritten (its recipe is switched off here): cooking, distilling, barrels, drinking, Brewery's drinks |
@@ -52,6 +58,10 @@ none of them has no such section.
 | `qol` | metacraft-qol | "Void Anchor", "Silencing mobs" (the muffler), "Concrete Crafting" (the concrete cauldron), and the End Changes section page |
 | `decorating` | polydecorations | "New Decor": canvas, mailboxes, rope, sign posts, lanterns and leads, hammer and trowel |
 | `polydecorations_s6` | polydecorations | turns off every PolyDecorations recipe except those of the things above |
+| `rifts` | nether-rifts | the Nether Changes section page and everything in it: New Mobs, Unstable Portals, Piglin Raid, Amplified Nether |
+
+Amplified Nether describes a datapack that is not built or deployed yet (an amplified nether, more
+biomes, no way above the roof), as what the nether will be like when it opens.
 
 A new mod's pages: a folder under `resourcepacks/` with a `pack.mcmeta` (data format 121 for 26.3) and its
 pages in `data/metacraft/booklet/pages/en_us/`, then one line in `HOOKS`. Its main page goes in its
