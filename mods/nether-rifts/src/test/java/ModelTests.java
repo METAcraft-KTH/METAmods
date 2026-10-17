@@ -80,6 +80,25 @@ public class ModelTests {
 	}
 
 	/**
+	 * The magma bomb in flight is the artist's bomb (out of the Grenadier's arm) on its own, its middle at the model's
+	 * middle, so a thrown bomb (drawn in the ground display, turned to the camera) is drawn round where it is.
+	 */
+	@Test
+	public void magmaBomb() throws IOException {
+		assertEquals("nether_rifts:item/magma_bomb", json("/assets/nether_rifts/items/magma_bomb.json").getAsJsonObject("model").get("model").getAsString());
+		var bomb = json("/assets/nether_rifts/models/item/magma_bomb.json");
+		assertEquals("nether_rifts:item/magma_bomb_cubes", bomb.get("parent").getAsString());
+		var ground = bomb.getAsJsonObject("display").getAsJsonObject("ground");
+		assertTrue(ground.getAsJsonArray("scale").get(0).getAsDouble() >= 1, "the bomb is drawn smaller than its model in flight");
+		var cubes = itemModel("magma_bomb_cubes", "nether_rifts:item/bombardier_arm", Set.of("core", "shell"));
+		var shell = cubes.getAsJsonArray("elements").asList().stream().map(e -> e.getAsJsonObject())
+				.filter(e -> e.get("name").getAsString().equals("shell")).findFirst().orElseThrow();
+		// the shell turns about x only, so its middle across is where it is drawn
+		double middle = (shell.getAsJsonArray("from").get(0).getAsDouble() + shell.getAsJsonArray("to").get(0).getAsDouble()) / 2;
+		assertEquals(8, middle, 0.01, "the bomb's middle across");
+	}
+
+	/**
 	 * An item model in the mod's pack, its elements those named (within the -16..32 models allow), on one texture of
 	 * the mod's, which exists.
 	 */

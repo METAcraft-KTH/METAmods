@@ -2,6 +2,8 @@ package nu.metacraft.nether_rifts.mob;
 
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -17,6 +19,7 @@ import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.nether_rifts.NetherRifts;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.raid.RiftMobs;
 import org.jetbrains.annotations.Nullable;
@@ -25,8 +28,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Dropped from a war ghast's deck by its Ghast Bombardier, or thrown by the Bombardier on foot. Clients see a thrown
- * magma cream (a snowball carrying that item).
+ * Dropped from a war ghast's deck by its Ghast Bombardier, or thrown by the Bombardier on foot. Clients see a snowball
+ * carrying a magma cream whose item model is {@code nether_rifts:magma_bomb}: the artist's bomb (the one in the
+ * Grenadier's fist), drawn in 3D where vanilla would draw the item's flat sprite.
  * On impact it blasts (damage and knockback, power 1.5) with ExplosionInteraction.NONE, so no block changes
  * and nothing is set alight, and leaves a burning patch for 2 s. The power is config ({@code mobs.bombardier.bomb_power}).
  */
@@ -65,8 +69,13 @@ public class MagmaBomb extends ThrowableItemProjectile implements PolymerEntity 
 		return !(entity instanceof LivingEntity) || entity instanceof ArmorStand || entity instanceof GhastPart || RiftMobs.isRiftMob(entity);
 	}
 
+	/** What clients draw a bomb as. */
+	public static final Identifier MODEL = NetherRifts.getID("magma_bomb");
+
 	public MagmaBomb(EntityType<? extends MagmaBomb> type, Level level) {
 		super(type, level);
+		// a summoned or loaded bomb, too
+		setItem(stack());
 	}
 
 	public MagmaBomb(ServerLevel level, @Nullable LivingEntity thrower) {
@@ -74,7 +83,24 @@ public class MagmaBomb extends ThrowableItemProjectile implements PolymerEntity 
 		if (thrower != null) {
 			setOwner(thrower);
 		}
-		setItem(new ItemStack(Items.MAGMA_CREAM));
+		setItem(stack());
+	}
+
+	/** A magma cream that clients draw as the bomb ({@link #MODEL}). */
+	public static ItemStack stack() {
+		var stack = new ItemStack(Items.MAGMA_CREAM);
+		stack.set(DataComponents.ITEM_MODEL, MODEL);
+		return stack;
+	}
+
+	/** Any item it's given (a save's, a summon's) is drawn as the bomb all the same. */
+	@Override
+	public void setItem(ItemStack stack) {
+		if (!MODEL.equals(stack.get(DataComponents.ITEM_MODEL))) {
+			stack = stack.copy();
+			stack.set(DataComponents.ITEM_MODEL, MODEL);
+		}
+		super.setItem(stack);
 	}
 
 	/** Ticks until a bomb let go {@code height} blocks above the ground, moving up at {@code vy}, hits it. */
