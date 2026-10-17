@@ -1,0 +1,20 @@
+### Section: PageInfo
+title=Cooking
+description=Ingredients in a water cauldron over heat, stirred with a stick, bottled.
+category=metacraft:brewing
+icon=minecraft:cauldron
+order=1
+### EndSection: PageInfo
+### Header: The cauldron
+### Image: metacraft:beside/brewing/cauldron A <citem 'minecraft:cauldron'> filled with water, standing on something hot: fire, <citem 'minecraft:lava_bucket'> or a lit <citem 'minecraft:campfire'>.
+
+### Header: Cooking
+- Throw the ingredients into the cauldron, all of them, in the amounts the recipe gives.
+- Right-click it with a <citem 'minecraft:stick'> to start cooking.
+- Wait out the cooking time. It keeps cooking while you are away.
+- Take the brew out with a <citem 'minecraft:glass_bottle'>: one bottle per level of water, three from a full cauldron.
+
+What comes out is the drink itself, or an <bold>ingredient mixture</bold> when the recipe still wants distilling or a barrel. Hover the bottle to see which.
+
+### Header: Getting it right
+The recipe decides the drink, the cooking time its quality. Too short or far too long and the drink is poor, or a failed brew. A poor drink is stronger than it looks.

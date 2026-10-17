@@ -1,0 +1,89 @@
+### Section: PageInfo
+title=Drinks
+description=Every drink Brewery knows: what goes in, how long, and where it ages.
+category=metacraft:brewing
+icon=minecraft:potion
+order=5
+### EndSection: PageInfo
+### Image: metacraft:beside/brewing/drinks Brewery's own drinks. Cook and age close to the times given for the best quality; far off and the drink comes out poor, or not at all.
+
+### Header: Apple Liquor
+- 12 × <citem 'minecraft:apple'>
+
+Cook for 16 min, then distil once, then age in acacia barrel for 3 h 20 min.
+
+### Header: Apple Mead
+- 3 × <citem 'minecraft:honey_bottle'>
+- 1 × <citem 'minecraft:apple'>
+
+Cook for 3 min, then age in any barrel for 1 h 20 min.
+
+### Header: Beer
+- 6 × <citem 'minecraft:wheat'>
+
+Cook for 8 min, then age in oak barrel for 1 h 10 min.
+
+### Header: Cherry Tea
+- 1 × <citem 'minecraft:cherry_leaves'>
+
+Cook for 5 min. No barrel. <gray>No alcohol.</gray>
+
+### Header: Chorus Brew
+- 16 × <citem 'minecraft:chorus_fruit'>
+
+Cook for 16 min, then age in warped barrel for 50 min. <gray>No alcohol.</gray>
+
+### Header: Cider
+- 14 × <citem 'minecraft:apple'>
+
+Cook for 7 min, then age in any barrel for 1 h 10 min.
+
+### Header: Dark Beer
+- 6 × <citem 'minecraft:wheat'>
+
+Cook for 8 min, then age in dark oak barrel for 2 h 40 min.
+
+### Header: Glow Wine
+- 5 × <citem 'minecraft:glow_berries'>
+
+Cook for 5 min, then age in any barrel for 10 h.
+
+### Header: Green Tea
+- 1 × <citem 'minecraft:jungle_leaves'>
+
+Cook for 5 min. No barrel. <gray>No alcohol.</gray>
+
+### Header: Mead
+- 3 × <citem 'minecraft:honey_bottle'>
+
+Cook for 3 min, then age in any barrel for 1 h 20 min.
+
+### Header: Rum
+- 18 × <citem 'minecraft:sugar'>
+
+Cook for 8 min, then distil once, then age in any barrel for 5 h 20 min.
+
+### Header: Tea
+- 1 × <citem 'minecraft:oak_leaves'>
+
+Cook for 5 min. No barrel. <gray>No alcohol.</gray>
+
+### Header: Vodka
+- 6 × <citem 'minecraft:potato'>
+
+Cook for 20 min, then distil once. No barrel.
+
+### Header: Wheat Beer
+- 6 × <citem 'minecraft:wheat'>
+
+Cook for 8 min, then age in birch barrel for 1 h 10 min.
+
+### Header: Whiskey
+- 10 × <citem 'minecraft:wheat'>
+
+Cook for 10 min, then age in dark oak barrel for 6 h.
+
+### Header: Wine
+- 5 × <citem 'minecraft:sweet_berries'>
+
+Cook for 5 min, then age in any barrel for 10 h.

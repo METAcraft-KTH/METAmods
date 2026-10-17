@@ -1,0 +1,32 @@
+### Section: PageInfo
+title=IT's drinks
+description=IT's drinks from PolymITer: Spiken, Släggan, Nyckeln and plain alcohol.
+category=metacraft:brewing
+icon=minecraft:sweet_berries
+order=6
+### EndSection: PageInfo
+### Image: metacraft:beside/brewing/chapter_drinks The chapters' own drinks, brewed the same way. Each one sends you fast or slow (Släggan: slow and strong, or fast and weak), harder the drunker you are, and past a point it blacks you out: you come to somewhere else with a headache, a little hurt and blind for a moment.
+
+### Header: Alcoholic Beverage
+- 4 × <citem 'minecraft:potato'>
+- 2 × <citem 'minecraft:sugar'>
+
+Cook for 10 min. No barrel.
+
+### Header: Nyckeln Patch Drink
+- 2 × <citem 'minecraft:apple'>
+- 1 × <citem 'minecraft:sugar'>
+
+Cook for 2 min. No barrel. <gray>No alcohol.</gray>
+
+### Header: Släggan Patch Drink
+- 4 × <citem 'minecraft:potato'>
+- 1 × <citem 'minecraft:suspicious_stew'>
+
+Cook for 8 min, then distil once. No barrel.
+
+### Header: Spiken Patch Drink
+- 4 × <citem 'minecraft:potato'>
+- 4 × <citem 'minecraft:sweet_berries'>
+
+Cook for 8 min, then distil once. No barrel.

@@ -1,0 +1,19 @@
+### Section: PageInfo
+title=Barrels
+description=Beer, wine, whiskey and cider age in a barrel you build from planks, stairs and fences.
+category=metacraft:brewing
+icon=minecraft:oak_stairs
+order=3
+### EndSection: PageInfo
+### Header: Building one
+### Image: metacraft:beside/brewing/barrel_frame A barrel lies on its side, 4 blocks long and 3 by 3 across, all of one wood: two end slices with two middle slices between them. The picture has an end slice on the left and a middle one on the right.
+
+- each slice across is round: <bold>stairs</bold> on the four corners, <bold>planks</bold> on the four sides;
+- the two end slices are filled in, with a plank in the middle; the two middle slices are hollow;
+- it stands on four <bold>fences</bold>, one under each bottom corner of the end slices.
+
+### Header: The spigot
+### Image: metacraft:beside/recipe/barrel_spigot A stick and a stone over any planks make a <citem 'brewery:barrel_spigot'>.<nl2>Place it on the middle plank of either end: the frame becomes one barrel, and the spigot is its door.
+
+### Header: Ageing
+Put the mixtures in through the spigot and wait. Ageing goes on in real time, a matter of hours for the best drinks, and keeps going while nobody is near. Some drinks want a particular wood; the recipe says which. Leave a drink in too long and it gets worse again.

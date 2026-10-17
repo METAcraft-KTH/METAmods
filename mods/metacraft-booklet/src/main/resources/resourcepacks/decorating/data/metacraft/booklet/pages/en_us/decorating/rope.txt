@@ -1,0 +1,19 @@
+### Section: PageInfo
+title=Rope
+description=Hang it from anything solid, stretch it across a gap, hang lanterns and signs from it.
+category=metacraft:decorating
+icon=polydecorations:rope
+order=3
+### EndSection: PageInfo
+### Image: metacraft:beside/decorating/rope Rope holds on to the side or underside of any solid block and reaches up to seven blocks from it: straight down, or across a gap.<nl2><citem 'minecraft:lantern'> and hanging signs hang from it.
+
+### Header: Making it
+### Image: metacraft:beside/recipe/rope Makes four.<nl2>A <citem 'minecraft:wheat'> and four <citem 'minecraft:string'>, anywhere in the grid.
+
+### Header: Placing it
+Right-click a block to start a rope. Right-click the rope again and the new piece goes on the bottom end of the line, however long it is: the quick way to let a rope down a shaft. <bold>Sneak</bold> to put it right where you clicked instead, to run it sideways.
+
+Rope more than seven pieces from anything solid falls down.
+
+### Header: Hanging things from it
+Place a lantern or a hanging sign on the underside of a rope and it hangs there, as it would from a block.

@@ -1,0 +1,20 @@
+### Section: PageInfo
+title=Mailboxes
+description=Leave things for someone, and get things left for you.
+category=metacraft:decorating
+icon=polydecorations:oak_mailbox
+order=2
+### EndSection: PageInfo
+### Image: metacraft:beside/decorating/mailbox A mailbox belongs to whoever places it. Other players leave things in it; only the owner takes them out.<nl2>The little flag goes up when there is mail.
+
+### Header: Making one
+### Image: metacraft:beside/recipe/mailbox Makes two.<nl2>Any wood works: the log and the slabs decide which mailbox you get.
+
+### Header: Sending
+Right-click someone else's mailbox to open your own compartment in it: six slots that only you and the owner see. Put things in and close it. Until the owner takes them, you can take them back out.
+
+### Header: Receiving
+Right-click your own mailbox to see a head for everyone who has left you something; hover over a head to see what. Click it to open that compartment and take the things out.
+
+### Body:
+Breaking a mailbox drops everything in it. The <pagelink 'metacraft:decorating/tools'><u>hammer</u></pagelink> turns it to face another way.

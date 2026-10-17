@@ -1,0 +1,46 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-booklet",
+	"version": "${version}",
+	"name": "METAcraft Booklet",
+	"description": "The server's guidebook: Booklet, with a chapter for each METAcraft mod that is installed.",
+	"authors": [
+		"Edvin"
+	],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft-booklet/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"nu.metacraft.booklet.MetacraftBooklet"
+		],
+		"fabric-gametest": [
+			"nu.metacraft.booklet.gametest.GuideTests",
+			"nu.metacraft.booklet.gametest.BrewingTests"
+		]
+	},
+	"mixins": [
+		"metacraft-booklet.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": ">=26.3-rc.1 <26.4",
+		"java": ">=25",
+		"fabric-api": "*",
+		"polymer-core": "*",
+		"polymer-resource-pack": "*",
+		"booklet": "*",
+		"metacraft-lib": "*",
+		"metacraft-config": "*"
+	},
+	"suggests": {
+		"ovvar": "*",
+		"polydecorations": "*",
+		"metacraft-kultur": "*"
+	}
+}

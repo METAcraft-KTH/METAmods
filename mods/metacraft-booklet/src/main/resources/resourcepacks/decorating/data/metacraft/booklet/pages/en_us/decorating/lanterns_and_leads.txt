@@ -1,0 +1,18 @@
+### Section: PageInfo
+title=Lanterns and leads
+description=Lanterns on walls, and leads tied from fence to fence.
+category=metacraft:decorating
+icon=minecraft:lantern
+order=5
+### EndSection: PageInfo
+### Header: Lanterns on walls
+### Image: metacraft:beside/decorating/lantern <bold>Sneak</bold> and right-click the side of a block with a lantern to hang it on the wall, on a bracket. Fences and walls take them too.<nl2>Every lantern works: plain, soul and copper.
+
+### Body:
+Where a lantern would have nothing to stand on or hang from, clicking the side of a block puts it on the wall even without sneaking.
+
+### Header: Leads between fences
+### Image: metacraft:beside/decorating/lead Right-click a fence with a <citem 'minecraft:lead'> to tie one end to it, then right-click another fence to tie the other end.<nl2>No animal needed: a washing line, a railing, a line for bunting.
+
+### Body:
+Hit either knot to take the lead down again.

@@ -1,0 +1,23 @@
+### Section: PageInfo
+title=Patches
+description=Where patches come from and where on the ovve they go.
+category=metacraft:ovvar
+icon=ovvar:patch_itk
+order=2
+### EndSection: PageInfo
+### Header: Earning them
+Patches are items, one per design: <citem 'ovvar:patch_itk'>, <citem 'ovvar:patch_it'>, <citem 'ovvar:patch_data'>, <citem 'ovvar:patch_spiken'> and the rest. You earn them at chapter events and in games; a patch you are given goes into your <bold>stash</bold> with a flourish and a line in chat, and waits there until you take it out. Hover a patch to see who drew it and where it may be sewn.
+
+### Header: Where they go
+### Image: metacraft:beside/ovvar/back A patch goes on any cell of the ovve you can see: the chest and back, the outer, front and back of the sleeves and legs, and the top of each shoulder.<nl2>Not on the collar, the belt, the hands or the cuffs.
+
+Bigger patches hang over their cell onto the cloth around it.
+
+Two places are special:
+- the <bold>big back</bold> cell is the whole back below the collar. The biggest patches fit it whole, and smaller ones may be sewn on top of it;
+- the <bold>seat</bold> takes one wide patch across the back of both legs, like <citem 'ovvar:patch_rivals'>.
+
+There is no limit to how many patches an ovve carries.
+
+### Header: One patch, one place
+A patch is either an item in the world, in your stash, or sewn on your ovve — never two of those at once. Unpick it and it comes back to you; sew it and it leaves your hand.

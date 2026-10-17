@@ -1,0 +1,16 @@
+### Section: PageInfo
+title=Drinking
+description=What alcohol does, how it wears off, and bread.
+category=metacraft:brewing
+icon=minecraft:bread
+order=4
+### EndSection: PageInfo
+Every alcoholic drink adds to how drunk you are, more for strong drinks and more again for poor ones. It wears off with time.
+
+- A little drunk, you get weak and slow.
+- More, and you stagger and the world spins.
+- Much more, and it gets dark and the alcohol starts to hurt. Stop there.
+
+<citem 'minecraft:bread'> sobers you up a bit, a <citem 'minecraft:milk_bucket'> a lot.
+
+<gray>The chapter drinks black you out before it gets that far.</gray>

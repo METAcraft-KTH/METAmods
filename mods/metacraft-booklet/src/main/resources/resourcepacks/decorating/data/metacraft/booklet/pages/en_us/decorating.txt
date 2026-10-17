@@ -1,0 +1,11 @@
+### Section: PageInfo
+title=New Decor
+external_title=New Decor
+description=Canvases, mailboxes, rope, sign posts, lanterns and leads, and two tools for building.
+category=metacraft:vanilla_plus
+icon=polydecorations:oak_mailbox
+order=40
+### EndSection: PageInfo
+### Image: metacraft:beside/decorating/corner A few extras for your builds, all in the look of the blocks you know: pictures you paint yourself, mail, rope, signposts, lanterns on walls.<nl2>Everything here is crafted in survival.
+
+### Category Entries: metacraft:decorating

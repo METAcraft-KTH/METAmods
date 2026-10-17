@@ -1,0 +1,11 @@
+### Section: PageInfo
+title=Vanilla+ Features
+external_title=Vanilla+ Features
+description=Small additions that could be vanilla: a way back from the void, quiet mobs, concrete by the stack, new decor.
+category=booklet:main_page
+icon=minecraft:crafting_table
+order=20
+### EndSection: PageInfo
+### Image: metacraft:beside/qol/rift Small things that save you a fall, a chore or a headache, and a few extras for your builds, all made to fit in with the blocks and items you know.<nl2>Everything here is crafted in survival.
+
+### Category Entries: metacraft:vanilla_plus

@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "nu.metacraft.booklet.mixin",
+	"plugin": "nu.metacraft.booklet.mixin.BookletMixinPlugin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"ImageBodyMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
