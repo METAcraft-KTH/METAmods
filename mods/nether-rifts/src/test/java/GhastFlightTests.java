@@ -8,6 +8,7 @@ import nu.metacraft.nether_rifts.mob.BurningPatches;
 import nu.metacraft.nether_rifts.mob.DeckFloatGoal;
 import nu.metacraft.nether_rifts.mob.HeldItems;
 import nu.metacraft.nether_rifts.mob.RiftEntities;
+import nu.metacraft.nether_rifts.mob.WarDrummer;
 import nu.metacraft.nether_rifts.mob.WarGhast;
 import nu.metacraft.nether_rifts.mob.WarGhast.Crew;
 
@@ -129,6 +130,49 @@ public class GhastFlightTests {
 				ctx.assertTrue(drumming.hitbox(Crew.SPEAR).hasEffect(MobEffects.STRENGTH), "the crew have no War Beat");
 				ctx.assertFalse(underSilent.hasEffect(MobEffects.STRENGTH), "a ghast without its drummer gave War Beat");
 				StageTests.remove(ctx, player);
+				ctx.killAllEntities();
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("ghast_flight/deck_drummer_beats_with_idle", ctx -> {
+			// The drummer on the deck drums all through the ghast's idle, so a beat is heard on each of his strikes there
+			// (frames 8 and 18 of every 20), a fight near or not; and when idle starts again (a shot, a dive or a
+			// climb), the beats start again with it: the next one 8 ticks on.
+			BombardierTests.stoneFloor(ctx);
+			var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(12, 9, 12));
+			ghast.setNoAi(true);
+			var strikes = new java.util.concurrent.CopyOnWriteArrayList<long[]>();
+			var wrong = new java.util.concurrent.CopyOnWriteArrayList<String>();
+			WarDrummer.StrikeListener listener = (level, x, y, z, volume) -> {
+				if (level != ctx.getLevel() || Math.hypot(x - ghast.getX(), z - ghast.getZ()) > 4) {
+					return;
+				}
+				int frame = ghast.frame(WarGhast.IDLE);
+				if (!WarDrummer.isStrike(frame)) {
+					wrong.add("a beat on idle's frame " + frame);
+				}
+				// (another test's player may come within the fight's range: either volume will do)
+				if (volume != WarDrummer.DECK_REST_VOLUME && volume != WarDrummer.DECK_BEAT_VOLUME) {
+					wrong.add("a beat at volume " + volume);
+				}
+				strikes.add(new long[] {level.getGameTime(), frame});
+			};
+			WarDrummer.STRIKE_LISTENERS.add(listener);
+			long[] restart = {-1};
+			ctx.runAtTickTime(45, () -> {
+				ghast.play(WarGhast.SHOOT);
+				restart[0] = ctx.getLevel().getGameTime();
+			});
+			ctx.runAtTickTime(90, () -> {
+				WarDrummer.STRIKE_LISTENERS.remove(listener);
+				var heard = DrummerTests.describe(strikes);
+				ctx.assertTrue(wrong.isEmpty(), String.join("; ", wrong) + " (" + heard + ")");
+				ctx.assertTrue(strikes.size() >= 7, "only " + strikes.size() + " beats in 90 ticks of idle: " + heard);
+				var after = strikes.stream().filter(s -> s[0] >= restart[0]).findFirst().orElse(null);
+				ctx.assertTrue(after != null, "no beat after idle started again: " + heard);
+				long gap = after[0] - restart[0];
+				ctx.assertTrue(gap >= WarDrummer.RIGHT_STRIKE - 1 && gap <= WarDrummer.RIGHT_STRIKE + 1,
+						"idle started again at " + restart[0] + ", but the next beat came " + gap + " ticks on: " + heard);
 				ctx.killAllEntities();
 				ctx.succeed();
 			});

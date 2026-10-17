@@ -222,7 +222,8 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 			}
 		}
 		EntityAttachment.ofTicking(this.holder, this);
-		this.holder.getAnimator().playAnimation(IDLE, 0, true);
+		// idle has the deck drummer's beat in it (the other animations carry idle's tracks for him, in step with it)
+		this.holder.getAnimator().playAnimation(IDLE, 0, true, this::idleFrame, player -> {});
 		showParts();
 		keepKit();
 	}
@@ -335,7 +336,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	}
 
 	/** The frame (tick) a playing animation is on, or -1. BIL's player counts down to the animation's last frame. */
-	private int frame(String animation) {
+	public int frame(String animation) {
 		if (!holder.getAnimator().isPlaying(animation)) {
 			return -1;
 		}
@@ -789,11 +790,28 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	}
 
 	/**
-	 * The drummer on the deck drums while the ghast is in a fight (it has a target, or a player who can fight is within
-	 * {@link #DRUM_RANGE} blocks), on the world's clock as every Piglin Drummer does, so they all keep time: a beat's
-	 * drum, the big beat's roar, then its slam. The slam is War Beat for its piglins (a rift ghast's rift piglins, a
-	 * summoned one's piglins of no rift) within reach of the deck or of the ground under the ghast, and for the crew; no
-	 * Shock Beat from up here. The model's idle has the drummer's beat already.
+	 * Each frame of idle: the drummer on the deck drums all the time in it (the model's idle beats the drummer's bar four
+	 * times over), so each of his strikes is heard as his stick lands ({@link WarDrummer#isStrike}), wherever idle is
+	 * (it starts again with a shot, a dive or a climb). Loud and far in a fight, soft out of one. Not for a showcase
+	 * ghast, nor once the drummer is gone.
+	 */
+	private void idleFrame(int frame) {
+		if (!WarDrummer.isStrike(frame) || !(level() instanceof ServerLevel level) || !isAlive() || !hasCrew(Crew.DRUMMER)
+				|| Showcase.isShowcase(this)) {
+			return;
+		}
+		var drummer = hitbox(Crew.DRUMMER);
+		var at = drummer != null ? drummer.position() : spot(Crew.DRUMMER).feet();
+		float volume = inFight(level) ? WarDrummer.DECK_BEAT_VOLUME : WarDrummer.DECK_REST_VOLUME;
+		WarDrummer.beatSound(level, at.x, at.y + 1, at.z, volume);
+	}
+
+	/**
+	 * In a fight (it has a target, or a player who can fight is within {@link #DRUM_RANGE} blocks), the drummer on the
+	 * deck keeps the big beat on the world's clock as every Piglin Drummer does, so they all slam together: its roar,
+	 * then its slam. The slam is War Beat for its piglins (a rift ghast's rift piglins, a summoned one's piglins of no
+	 * rift) within reach of the deck or of the ground under the ghast, and for the crew; no Shock Beat from up here. His
+	 * beats are idle's ({@link #idleFrame}).
 	 */
 	private void drum(ServerLevel level) {
 		var drummer = hitbox(Crew.DRUMMER);
@@ -802,13 +820,10 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		}
 		int at = WarDrummer.cycleAt(level.getGameTime());
 		int bigBeatStart = WarDrummer.bigBeatStart();
-		int beat = NetherRiftsConfig.getInstance().mobs().drummer().beatTicks();
 		double x = drummer.getX();
 		double y = drummer.getY() + 1;
 		double z = drummer.getZ();
-		if (at < bigBeatStart && at % beat == 0) {
-			WarDrummer.beatSound(level, x, y, z);
-		} else if (at == bigBeatStart) {
+		if (at == bigBeatStart) {
 			WarDrummer.bigBeatWindupSound(level, x, y, z);
 		} else if (at == bigBeatStart + WarDrummer.BIG_BEAT_SLAM_TICK) {
 			WarDrummer.slamSound(level, x, y, z);

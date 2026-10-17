@@ -83,6 +83,59 @@ public class DrummerTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("drummer/beats_on_strikes", ctx -> {
+			// Drumming, it is heard as each stick lands in its beat animation: frames 8 and 18 of each 1 s bar, so every
+			// 10 ticks, 8 ticks after a beat on the drum clock (or 9: the animation may take its first frame a tick
+			// later), only while the beat plays (not in the big beat), and loud enough to carry.
+			FormingTests.lightFrame(ctx, 2, 3);
+			var drummer = new java.util.concurrent.atomic.AtomicReference<WarDrummer>();
+			var strikes = new java.util.concurrent.CopyOnWriteArrayList<long[]>();
+			var offBeat = new java.util.concurrent.CopyOnWriteArrayList<String>();
+			WarDrummer.StrikeListener listener = (level, x, y, z, volume) -> {
+				var d = drummer.get();
+				if (d == null || level != ctx.getLevel() || Math.hypot(x - d.getX(), z - d.getZ()) > 0.5) {
+					return;
+				}
+				long now = level.getGameTime();
+				if (!d.getHolder().getAnimator().isPlaying("beat")) {
+					offBeat.add("a beat heard at " + now + " without the beat playing");
+				}
+				if (volume < 1) {
+					offBeat.add("a beat at volume " + volume);
+				}
+				strikes.add(new long[] {now, WarDrummer.cycleAt(now)});
+			};
+			WarDrummer.STRIKE_LISTENERS.add(listener);
+			ctx.runAtTickTime(3, () -> {
+				drummer.set((WarDrummer) RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.LEADER,
+						ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO).getFirst());
+				var near = ctx.absolutePos(new BlockPos(2, 1, 12));
+				StageTests.player(ctx).teleportTo(near.getX() + 0.5, near.getY(), near.getZ() + 0.5);
+			});
+			ctx.runAtTickTime(200, () -> {
+				WarDrummer.STRIKE_LISTENERS.remove(listener);
+				ctx.assertTrue(offBeat.isEmpty(), String.join("; ", offBeat));
+				ctx.assertTrue(strikes.size() >= 6, "only " + strikes.size() + " beats heard in 200 ticks of drumming");
+				long offset = Math.floorMod(strikes.getFirst()[1], 10);
+				ctx.assertTrue(offset == WarDrummer.RIGHT_STRIKE || offset == WarDrummer.RIGHT_STRIKE + 1,
+						"the first beat is heard " + offset + " ticks after a beat on the drum clock, not as the stick lands (8)");
+				int bigBeatStart = WarDrummer.bigBeatStart();
+				for (int i = 0; i < strikes.size(); i++) {
+					long[] strike = strikes.get(i);
+					ctx.assertTrue(Math.floorMod(strike[1], 10) == offset, "beats off the strikes' step: " + describe(strikes));
+					ctx.assertFalse(strike[1] >= bigBeatStart && strike[1] < bigBeatStart + WarDrummer.BIG_BEAT_TICKS,
+							"a beat heard in the big beat: " + describe(strikes));
+					if (i > 0) {
+						ctx.assertTrue((strike[0] - strikes.get(i - 1)[0]) % 10 == 0, "beats not 10 ticks apart: " + describe(strikes));
+					}
+				}
+				ctx.getLevel().players().stream().filter(p -> p.blockPosition().closerThan(ctx.absolutePos(new BlockPos(2, 1, 12)), 4)).toList()
+						.forEach(p -> StageTests.remove(ctx, p));
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
 		NetherRiftsTests.register("drummer/leads_waves", ctx -> {
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {
@@ -507,6 +560,15 @@ public class DrummerTests {
 	}
 
 	/** Where the nether spawn tests put piglins, from the box's centre. */
+	/** Beats heard, as (game time @ drum cycle tick). */
+	static String describe(List<long[]> strikes) {
+		var out = new StringBuilder();
+		for (var strike : strikes) {
+			out.append(strike[0]).append('@').append(strike[1]).append(' ');
+		}
+		return out.toString().trim();
+	}
+
 	private static final List<BlockPos> PIGLIN_SPOTS = List.of(
 			new BlockPos(-4, 0, -4), new BlockPos(0, 0, -4), new BlockPos(4, 0, -4),
 			new BlockPos(-4, 0, 4), new BlockPos(0, 0, 4), new BlockPos(4, 0, 4)

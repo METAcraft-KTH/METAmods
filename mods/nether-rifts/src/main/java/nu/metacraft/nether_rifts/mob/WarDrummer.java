@@ -65,8 +65,8 @@ import java.util.List;
  * or with one of its piglins that close fighting something (a player, or a hoglin on a hunt)
  * (a fight starts with a war cry, if it has been out of one for 10 s). Otherwise it idles,
  * and walks when it moves. BIL gives a .bbmodel's animations every bone, so the highest-priority one playing poses
- * the whole model: the {@code beat} (a 1 s loop of two strikes, so it lines up with the sound only at the default
- * {@code beat_ticks}) carries the walk's legs (merged in on import), so it marches as it drums;
+ * the whole model: the {@code beat} (a 1 s loop of two strikes, each heard as its stick lands: {@link #loop})
+ * carries the walk's legs (merged in on import), so it marches as it drums;
  * {@code big_beat} (2.8 s, the slam at 1.8 s) moves every bone, and {@code idle} is under them all.
  *
  * <p>It is a piglin to other piglins ({@link AbstractPiglin}): they count it among the grown piglins near them and
@@ -123,6 +123,28 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 	/** The big_beat animation's length, and the tick in it where both hands come down on the drum. */
 	public static final int BIG_BEAT_TICKS = 56;
 	public static final int BIG_BEAT_SLAM_TICK = 36;
+
+	/**
+	 * The beat animation is a 1 s bar ({@link #BAR} frames) of two strikes, and the Chained Ghast's idle drums the same
+	 * bar four times: the right stick comes down on the drum at 0.40 s (frame 8, where its fast drop from 0.28 s ends
+	 * and the stick wobbles) and the left at 0.92 s (frame 18; its drop from 0.76 s). A beat is heard on those frames.
+	 */
+	public static final int BAR = 20;
+	public static final int RIGHT_STRIKE = 8;
+	public static final int LEFT_STRIKE = 18;
+	/** How loud a beat is: on the ground, up on a Chained Ghast's deck (heard farther: it's well over the fight), and there out of a fight. */
+	public static final float GROUND_BEAT_VOLUME = 1.5f;
+	public static final float DECK_BEAT_VOLUME = 2.5f;
+	public static final float DECK_REST_VOLUME = 0.5f;
+
+	/** Hear every beat struck (tests); none in play. */
+	public static final List<StrikeListener> STRIKE_LISTENERS = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+	/** A beat struck: where, and how loud. */
+	@FunctionalInterface
+	public interface StrikeListener {
+		void struck(ServerLevel level, double x, double y, double z, float volume);
+	}
 
 	private final HeldItems.Holder<WarDrummer> holder;
 	private boolean walking = false;
@@ -338,7 +360,7 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 		if (at == bigBeatStart) {
 			// it stands its ground for the big beat: the windup is the tell
 			stopDrumming();
-			animator.playAnimation("big_beat", 10, true);
+			loop("big_beat");
 			bigBeatWindupSound(level, getX(), getY(), getZ());
 			inBigBeat = true;
 			return;
@@ -347,11 +369,38 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 			return;
 		}
 		if (!drumming) {
-			// the loops start on a beat, so their strikes stay on the tempo
-			animator.playAnimation("beat", 10, true);
+			// the loops start on a beat, so their strikes stay on the tempo; each strike is heard as the sticks land
+			loop("beat");
 			drumming = true;
 		}
-		beatSound(level, getX(), getY(), getZ());
+	}
+
+	/**
+	 * Plays one of the model's animations, with the drum heard where the sticks land: the beat's strikes
+	 * ({@link #isStrike}), and (for a showcase drummer, whose big beat is only a look) the big beat's slam. A drummer in a
+	 * fight slams on the drum clock instead ({@link #bigBeat}), its buffs with it.
+	 */
+	public void loop(String animation) {
+		var animator = holder.getAnimator();
+		switch (animation) {
+			case "beat" -> animator.playAnimation("beat", 10, true, frame -> {
+				if (isStrike(frame) && level() instanceof ServerLevel level) {
+					beatSound(level, getX(), getY() + 1, getZ(), GROUND_BEAT_VOLUME);
+				}
+			}, player -> {});
+			case "big_beat" -> animator.playAnimation("big_beat", 10, true, frame -> {
+				if (frame == BIG_BEAT_SLAM_TICK && Showcase.isShowcase(this) && level() instanceof ServerLevel level) {
+					slamSound(level, getX(), getY(), getZ());
+				}
+			}, player -> {});
+			default -> animator.playAnimation(animation, 10, true);
+		}
+	}
+
+	/** Whether a frame of the beat (or of the Chained Ghast's idle) is one where a stick lands on the drum. */
+	public static boolean isStrike(int frame) {
+		int inBar = Math.floorMod(frame, BAR);
+		return inBar == RIGHT_STRIKE || inBar == LEFT_STRIKE;
 	}
 
 	/** Where every drummer in the world is in its drum cycle at a game time: ticks into it. */
@@ -367,10 +416,18 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 		return (tuning.bigBeatEvery() - 1) * tuning.beatTicks();
 	}
 
-	/** A beat's drum, as the drummer strikes it. */
-	public static void beatSound(ServerLevel level, double x, double y, double z) {
-		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, 2.0f, 0.5f);
-		level.playSound(null, x, y, z, SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.0f, 0.6f);
+	/**
+	 * A beat's drum, as a stick lands: a bass drum pitched up to where it's heard (an octave down, as it
+	 * was, it was all but lost), a low snare for the stick's crack, and a ravager's step for the drum's body. A client plays no
+	 * sound louder than 1, so a volume over 1 only carries it farther (16 blocks a unit).
+	 */
+	public static void beatSound(ServerLevel level, double x, double y, double z, float volume) {
+		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_BASEDRUM, SoundSource.HOSTILE, volume, 0.8f);
+		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_SNARE, SoundSource.HOSTILE, volume * 0.7f, 0.6f);
+		level.playSound(null, x, y, z, SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, volume * 0.6f, 0.7f);
+		for (var listener : STRIKE_LISTENERS) {
+			listener.struck(level, x, y, z, volume);
+		}
 	}
 
 	/** The big beat's windup (an angry roar) and its slam. */

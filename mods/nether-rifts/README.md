@@ -4,7 +4,7 @@ While **rift mode** is on (a new world starts with it on), lighting a nether por
 flickering rift instead of a portal. Light it twice more and it tears open: a raid of nether mobs comes
 through in waves, built on vanilla raids (small / medium / large portals raid like easy / normal / hard).
 They drop a little quartz, gold, glowstone, nether wart and, from brutes, blaze rods. From wave 2 a Piglin
-Drummer leads each wave, marching and drumming a beat every half second while a player is within 16 blocks: every 4th, its War Beat gives rift piglins within
+Drummer leads each wave, marching and drumming a beat every half second (heard as each stick lands) while a player is within 16 blocks: every 4th, its War Beat gives rift piglins within
 12 blocks Speed and Strength, and its Shock Beat hurts players within 4 blocks and throws them back. Every
 drummer keeps the same beat (the world clock's), so several drum and slam together. Drummers also walk with the
 nether's own piglins: a piglin spawning naturally there brings one along 3% of the time (`mobs.drummer.natural_chance`).
@@ -22,7 +22,7 @@ on the deck (each has its own health and a roomy hitbox; the deck's cover spares
 `mobs.bombardier.crew.damage_taken`; the spear piglin's armour protects it; the wooden deck turns arrows from below),
 and each one killed there takes its work with it: the spear piglin stabs the ghast into shooting fireballs, the
 Grenadier drops the bombs, the crossbow piglin shoots bolts at players it can see (every 3 seconds,
-`mobs.bombardier.crew.crossbow_every`), and the drummer drums in time with every Piglin Drummer, his War Beat
+`mobs.bombardier.crew.crossbow_every`), and the drummer drums all the time (heard as his sticks land, softly out of a fight) and slams the big beat in time with every Piglin Drummer, his War Beat
 reaching the piglins under the ghast. Stabbed, the ghast lurches and shoots, its mouth open. They make bombing runs, the
 ghast pitching into the dive and back as it climbs out, the Grenadier dropping magma bombs from the deck, each bomb's landing
 spot marked on the ground a second before it hits; the bombs don't break blocks, or hurt rift mobs, armour stands

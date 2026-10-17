@@ -39,8 +39,10 @@ import java.util.WeakHashMap;
  * model (as the drummers, each over idle as {@link WarGhast#play} plays it), with its kit and diamond armour. Names show
  * what each is.
  *
- * <p>Showcase mobs stand still and silent (no AI, no sounds, no drumming, no bolts), never take damage or despawn,
+ * <p>Showcase mobs stand still and silent (no AI, no sounds of their own, no bolts), never take damage or despawn,
  * belong to no rift, and are tagged {@link #TAG} so {@code /rifts showcase clear} (or a new showcase) takes them away.
+ * Only the drum is heard: the drummers looping the beat and the big beat drum as their sticks land ({@link WarDrummer#loop});
+ * the ghasts' drummers keep quiet, or five decks would drum at once.
  */
 public final class Showcase {
 
@@ -291,6 +293,8 @@ public final class Showcase {
 			if (now >= due) {
 				if (mob instanceof WarGhast ghast) {
 					ghast.play(animation);
+				} else if (mob instanceof WarDrummer drummer) {
+					drummer.loop(animation);
 				} else {
 					animator.playAnimation(animation, 10, true);
 				}
