@@ -1,0 +1,52 @@
+{
+	"schemaVersion": 1,
+	"id": "ovvar",
+	"version": "${version}",
+	"name": "Ovvar",
+	"description": "Student overalls (ovvar) with sewn-on patches for vanilla clients, via Polymer. Players only need the auto-served resource pack.",
+	"authors": [
+		"Edvin"
+	],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"metacraft.ovvar.Ovvar"
+		],
+		"fabric-gametest": [
+			"metacraft.ovvar.gametest.DanseShellParityTests",
+			"metacraft.ovvar.gametest.DanseModelsTests",
+			"metacraft.ovvar.gametest.DanseLayersTests",
+			"metacraft.ovvar.gametest.DanseForkTests",
+			"metacraft.ovvar.gametest.OvvarGameTests",
+			"metacraft.ovvar.gametest.FrackTests",
+			"metacraft.ovvar.gametest.WardrobeTests",
+			"metacraft.ovvar.gametest.BlockbenchManifestTests"
+		],
+		"fabric-datagen": [
+			"metacraft.ovvar.datagen.OvvarDataGenerator"
+		]
+	},
+	"mixins": [
+		"ovvar.mixins.json",
+		"ovvar-danse.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": ">=26.3-rc.1 <26.4",
+		"java": ">=25",
+		"fabric-api": "*",
+		"metacraft-config": "*",
+		"polymer-core": "*",
+		"polymer-resource-pack": "*",
+		"polymer-virtual-entity": "*",
+		"sgui": "*",
+		"metacraft-bundles": "*",
+		"booklet": "*"
+	}
+}
