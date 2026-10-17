@@ -1,0 +1,19 @@
+{
+	"chapters": [
+		{
+			"id": "it",
+			"name": "IT",
+			"patterns": [
+				{ "id": "itk", "name": "ITK" },
+				{ "id": "qmisk", "name": "QMISK" },
+				{ "id": "tmeit", "name": "TMEIT" },
+				{ "id": "pirkko", "name": "Pirkko", "item": true }
+			],
+			"paintings": [
+				{ "id": "draken", "title": "The Guardian of Kistan", "author": "Emelie Stark", "width": 3, "height": 4 }
+			]
+		},
+		{ "id": "data", "name": "Data", "patterns": [], "paintings": [] },
+		{ "id": "media", "name": "Media", "patterns": [], "paintings": [] }
+	]
+}

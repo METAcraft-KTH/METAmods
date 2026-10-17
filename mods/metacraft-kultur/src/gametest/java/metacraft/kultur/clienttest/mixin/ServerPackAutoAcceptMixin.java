@@ -1,0 +1,19 @@
+package metacraft.kultur.clienttest.mixin;
+
+import net.minecraft.client.multiplayer.ServerData;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+/**
+ * The test client accepts every server's resource pack without the prompt: the connect step of
+ * the test API blocks until the world loads, and the pack prompt would block it first. Test source set only.
+ */
+@Mixin(ServerData.class)
+public abstract class ServerPackAutoAcceptMixin {
+	@Inject(method = "<init>", at = @At("RETURN"))
+	private void kultur$acceptPacks(CallbackInfo ci) {
+		((ServerData) (Object) this).setResourcePackStatus(ServerData.ServerPackStatus.ENABLED);
+	}
+}

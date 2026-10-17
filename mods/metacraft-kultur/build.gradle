@@ -1,0 +1,45 @@
+// Kultur — chapter culture (banner and shield patterns, paintings, drinks with or without Brewery) for vanilla clients (Polymer).
+// See README.md in this module.
+version = project.kultur_version
+
+// Every catalogue-derived file (banner patterns, painting variants, tags, textures, item model, lang)
+// comes from src/main/resources/kultur.json and art/kultur via data generation: ./gradlew runDatagen.
+setupRunDatagen("metacraft-kultur")
+// Client screenshot test: a real client joins an in-process dedicated server and screenshots a banner,
+// a shield, a painting and the drinks. Source set src/gametest, task runClientGameTest (needs a display);
+// -PkulturNoBrewery for the drinks Kultur brews itself.
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "kultur-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}
+
+addPolymerDependency()
+dependencies {
+	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+	// Patbox's Brewery brews the chapter drinks (data/kultur/brewery_drinks) when it is on the server; without
+	// it Kultur brews them itself (metacraft.kultur.drinks). Never a dependency. In the dev runtime so the game
+	// tests can drink Brewery's; -PkulturNoBrewery leaves it out, to run every test in the other mode.
+	compileOnly("maven.modrinth:brewery:${project.brewery_version}")
+	if (!project.hasProperty('kulturNoBrewery')) {
+		runtimeOnly("maven.modrinth:brewery:${project.brewery_version}")
+	}
+	gametestCompileOnly("maven.modrinth:brewery:${project.brewery_version}")
+	runtimeOnly("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+}
+
+processResources {
+	doFirst {
+		def gen = file('src/main/generated/data/kultur/banner_pattern')
+		def generating = gradle.startParameter.taskNames.any { it.endsWith('runDatagen') }
+		if (!generating && (!gen.isDirectory() || gen.list().length == 0)) {
+			throw new GradleException("Kultur: generated assets missing — run './gradlew runDatagen' first.")
+		}
+	}
+}
