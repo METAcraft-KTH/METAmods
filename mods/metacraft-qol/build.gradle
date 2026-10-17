@@ -1,0 +1,28 @@
+version = project.qol_version
+
+addCoreDependencies()
+addConfigDependency()
+// the rift's item shader
+addProjectDependency(":mods:metacraft-shaders")
+
+setupRunDatagen("metacraft-qol")
+
+// Client screenshot tests: a vanilla client joins an in-process server and looks at what the
+// features draw (so far the void anchor's rift), so the pack's shaders are judged by what a player sees. Source set src/gametest, task runClientGameTest
+// (opens a window).
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "qol-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}
+
+dependencies {
+	implementation include("eu.pb4:polymer-blocks:${project.polymer_version}")
+	// the config dialog, so a test can check it reads the qol config
+	testImplementation project(":mods:metacraft-config-gui")
+}

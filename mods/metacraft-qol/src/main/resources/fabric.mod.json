@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-qol",
+	"version": "${version}",
+	"name": "METAcraft-QoL",
+	"description": "Small quality-of-life features for Metacraft. So far: the void anchor, which catches you when you fall into the End void.",
+	"authors": [
+		"Froosty11"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"nu.metacraft.qol.Qol"
+		],
+		"fabric-datagen": [
+			"nu.metacraft.qol.QolDatagen"
+		]
+	},
+	"mixins": [
+		"metacraft_qol.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"fabric-api": "*",
+		"minecraft": "~${minecraft_version}",
+		"metacraft-lib": "*",
+		"metacraft-config": "*",
+		"metacraft-core": "*",
+		"metacraft-shaders": "*"
+	}
+}

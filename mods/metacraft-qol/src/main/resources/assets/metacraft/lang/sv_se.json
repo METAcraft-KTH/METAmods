@@ -1,0 +1,13 @@
+{
+	"block.metacraft.void_anchor": "Tomrumsankare",
+	"block.metacraft.void_anchor.bound": "Det här tomrumsankaret fångar dig om du faller",
+	"block.metacraft.void_anchor.not_in_end": "Tomrumsankare fungerar bara i End",
+	"block.metacraft.void_anchor.hint.empty": "Ditt tomrumsankare är tomt",
+	"block.metacraft.void_anchor.hint.gone": "Ditt tomrumsankare är borta",
+	"block.metacraft.void_anchor.hint.blocked": "Ditt tomrumsankare är blockerat",
+	"block.metacraft.void_anchor.disabled": "Tomrumsankare är avstängda på den här servern",
+	"qol.metacraft.silence_mobs.silenced": "Tystad",
+	"qol.metacraft.silence_mobs.unsilenced": "Inte längre tystad",
+	"item.metacraft.muffler": "Ljuddämpare",
+	"item.metacraft.muffler.lore": "Använd på ett djur eller monster för att tysta det, igen för att ångra"
+}

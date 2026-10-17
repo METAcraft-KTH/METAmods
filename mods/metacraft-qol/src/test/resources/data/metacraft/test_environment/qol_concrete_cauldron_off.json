@@ -1,0 +1,5 @@
+{
+	"type": "minecraft:function",
+	"setup": "metacraft:qol_test/concrete_cauldron_off",
+	"teardown": "metacraft:qol_test/concrete_cauldron_on"
+}

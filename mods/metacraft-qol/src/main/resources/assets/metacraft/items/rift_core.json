@@ -1,0 +1,12 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "metacraft:item/rift_core",
+		"tints": [
+			{
+				"type": "minecraft:constant",
+				"value": -65797
+			}
+		]
+	}
+}

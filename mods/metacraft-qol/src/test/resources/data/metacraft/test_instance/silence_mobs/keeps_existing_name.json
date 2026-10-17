@@ -1,0 +1,9 @@
+{
+	"type": "minecraft:function",
+	"environment": "metacraft:default",
+	"function": "metacraft:silence_mobs/keeps_existing_name",
+	"max_ticks": 20,
+	"required": true,
+	"setup_ticks": 1,
+	"structure": "metacraft:qol_room"
+}

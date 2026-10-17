@@ -1,0 +1,9 @@
+{
+	"type": "minecraft:function",
+	"environment": "metacraft:qol_void_anchor_off",
+	"function": "metacraft:void_anchor/off_use_does_nothing",
+	"max_ticks": 100,
+	"required": true,
+	"setup_ticks": 1,
+	"structure": "metacraft:qol_room"
+}

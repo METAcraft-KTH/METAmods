@@ -1,0 +1,21 @@
+{
+	"schemaVersion": 1,
+	"id": "qol-clienttest",
+	"version": "1.0.0",
+	"name": "METAcraft-QoL client tests",
+	"description": "Screenshot test: a client sees the rift the server opens.",
+	"license": "Apache-2.0",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"nu.metacraft.qol.clienttest.VoidAnchorClientTests"
+		]
+	},
+	"mixins": [
+		"qol-clienttest.mixins.json"
+	],
+	"depends": {
+		"metacraft-qol": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}

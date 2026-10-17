@@ -1,0 +1,13 @@
+{
+	"providers": [
+		{
+			"type": "bitmap",
+			"file": "metacraft:font/flash.png",
+			"ascent": 253,
+			"height": 512,
+			"chars": [
+				"\ue000"
+			]
+		}
+	]
+}

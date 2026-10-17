@@ -1,0 +1,9 @@
+{
+	"type": "minecraft:function",
+	"environment": "metacraft:default",
+	"function": "metacraft:void_anchor/flying_player_ignored",
+	"max_ticks": 100,
+	"required": true,
+	"setup_ticks": 1,
+	"structure": "metacraft:qol_room"
+}

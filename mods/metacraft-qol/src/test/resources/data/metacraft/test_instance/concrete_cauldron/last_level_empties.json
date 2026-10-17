@@ -1,0 +1,9 @@
+{
+	"type": "minecraft:function",
+	"environment": "metacraft:default",
+	"function": "metacraft:concrete_cauldron/last_level_empties",
+	"max_ticks": 30,
+	"required": true,
+	"setup_ticks": 1,
+	"structure": "metacraft:qol_room"
+}

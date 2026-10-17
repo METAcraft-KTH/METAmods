@@ -1,0 +1,9 @@
+{
+	"type": "minecraft:function",
+	"environment": "metacraft:default",
+	"function": "metacraft:silence_mobs/creative_keeps_tag",
+	"max_ticks": 20,
+	"required": true,
+	"setup_ticks": 1,
+	"structure": "metacraft:qol_room"
+}

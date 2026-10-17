@@ -1,0 +1,42 @@
+{
+	"textures": {
+		"core": "metacraft:item/rift_core",
+		"particle": "metacraft:item/rift_core"
+	},
+	"elements": [
+		{
+			"from": [
+				0,
+				0,
+				8
+			],
+			"to": [
+				16,
+				16,
+				8
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#core",
+					"tintindex": 0
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#core",
+					"tintindex": 0
+				}
+			}
+		}
+	]
+}
