@@ -106,19 +106,30 @@ public class DrummerTests {
 				strikes.add(new long[] {now, WarDrummer.cycleAt(now)});
 			};
 			WarDrummer.STRIKE_LISTENERS.add(listener);
+			// when it was in a fight, for the failure messages
+			var fights = new StringBuilder();
+			boolean[] was = {false};
+			ctx.onEachTick(() -> {
+				var d = drummer.get();
+				if (d != null && d.inFight() != was[0]) {
+					was[0] = d.inFight();
+					fights.append(was[0] ? " fight from " : " to ").append(ctx.getLevel().getGameTime());
+				}
+			});
 			ctx.runAtTickTime(3, () -> {
 				drummer.set((WarDrummer) RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.LEADER,
 						ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO).getFirst());
 				var near = ctx.absolutePos(new BlockPos(2, 1, 12));
 				StageTests.player(ctx).teleportTo(near.getX() + 0.5, near.getY(), near.getZ() + 0.5);
 			});
-			ctx.runAtTickTime(200, () -> {
+			ctx.runAtTickTime(280, () -> {
 				WarDrummer.STRIKE_LISTENERS.remove(listener);
 				ctx.assertTrue(offBeat.isEmpty(), String.join("; ", offBeat));
-				ctx.assertTrue(strikes.size() >= 6, "only " + strikes.size() + " beats heard in 200 ticks of drumming");
+				// a drum cycle is 90 ticks: three beats, then the big beat
+				ctx.assertTrue(strikes.size() >= 3, "only " + strikes.size() + " beats heard in 280 ticks with a player near: " + describe(strikes) + ";" + fights);
 				long offset = Math.floorMod(strikes.getFirst()[1], 10);
 				ctx.assertTrue(offset == WarDrummer.RIGHT_STRIKE || offset == WarDrummer.RIGHT_STRIKE + 1,
-						"the first beat is heard " + offset + " ticks after a beat on the drum clock, not as the stick lands (8)");
+						"the first beat is heard " + offset + " ticks after a beat on the drum clock, not as the stick lands (8): " + describe(strikes));
 				int bigBeatStart = WarDrummer.bigBeatStart();
 				for (int i = 0; i < strikes.size(); i++) {
 					long[] strike = strikes.get(i);

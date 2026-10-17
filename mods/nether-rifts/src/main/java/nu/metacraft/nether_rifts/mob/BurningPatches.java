@@ -57,9 +57,6 @@ public final class BurningPatches {
 	/** Embers round the warning's edge every this many ticks, about one a block. */
 	private static final int EMBERS_EVERY = 3;
 
-	/** The ring's look: paper drawn with the ring's item model (a flat face-up square of the ring sprite). */
-	private static final ItemStack RING = ring();
-
 	/** A warning's ring and shadow, while it shows: one display entity, and the tick it went up. */
 	public record Marker(ElementHolder holder, ItemDisplayElement ring, long from) {}
 
@@ -120,6 +117,7 @@ public final class BurningPatches {
 		PATCHES.computeIfAbsent(level, l -> new ArrayList<>()).add(patch);
 	}
 
+	/** The ring's look: paper drawn with the ring's item model (a flat face-up square of the ring sprite). */
 	private static ItemStack ring() {
 		var stack = new ItemStack(Items.PAPER);
 		stack.set(DataComponents.ITEM_MODEL, NetherRifts.getID("bomb_warning"));
@@ -132,7 +130,7 @@ public final class BurningPatches {
 	 * it) the shadow starts darkening, eased by the clients themselves till the bomb lands ({@link #tick}).
 	 */
 	private static Marker marker(ServerLevel level, Vec3 at, float radius) {
-		var ring = new ItemDisplayElement(RING.copy());
+		var ring = new ItemDisplayElement(ring());
 		ring.setItemDisplayContext(ItemDisplayContext.NONE);
 		ring.setBrightness(new Brightness(15, 15));
 		ring.setScale(new Vector3f(radius * 2, 1, radius * 2));
