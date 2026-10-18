@@ -124,7 +124,7 @@ public class GhastTacticsTests {
 		BombardierTests.stoneFloor(ctx);
 		var player = StageTests.player(ctx);
 		player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
-		player.getAbilities().invulnerable = true;
+		// not made invulnerable: a mob drops a target that can't be seen as an enemy; healed every tick instead
 		var spot = ctx.absolutePos(new BlockPos(12, 1, 18));
 		player.teleportTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5);
 		var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(8, 9, 6));
