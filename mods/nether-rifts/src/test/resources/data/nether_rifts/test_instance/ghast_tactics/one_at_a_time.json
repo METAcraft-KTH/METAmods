@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:tactics_fast", "function": "nether_rifts:ghast_tactics/one_at_a_time", "max_ticks": 760, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

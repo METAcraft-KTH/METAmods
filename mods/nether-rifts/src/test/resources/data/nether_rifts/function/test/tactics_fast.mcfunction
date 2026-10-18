@@ -1,0 +1,1 @@
+riftstest tactics_fast

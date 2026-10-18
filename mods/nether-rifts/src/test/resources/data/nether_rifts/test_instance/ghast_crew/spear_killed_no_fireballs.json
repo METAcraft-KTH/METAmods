@@ -1,1 +1,1 @@
-{"type": "minecraft:function", "environment": "nether_rifts:default", "function": "nether_rifts:ghast_crew/spear_killed_no_fireballs", "max_ticks": 100, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}
+{"type": "minecraft:function", "environment": "nether_rifts:default", "function": "nether_rifts:ghast_crew/spear_killed_no_fireballs", "max_ticks": 200, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

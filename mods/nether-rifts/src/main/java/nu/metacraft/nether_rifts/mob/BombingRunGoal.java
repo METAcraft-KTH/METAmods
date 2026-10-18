@@ -12,15 +12,16 @@ import org.jetbrains.annotations.Nullable;
 import java.util.EnumSet;
 
 /**
- * A war ghast picks its target and goes through four phases: dives till its deck is 4 blocks above the start of
- * a 20-block line across the target; runs along it while the Bombardier drops a bomb from the deck every 6 ticks
- * (when within 8 blocks of the target); climbs back till the deck is 14 above the target; waits 100 ticks. Low
- * over the line is its weak window. Where a wall, roof or the ground is in the way, the line and the climb stop
- * short of it: a ghast's move control won't fly at a point its body doesn't fit, and the deck hanging under it
- * must fit too. With no room for the ghast and its deck over the target at all, the run is given up until the
- * cooldown has passed. Only while the Grenadier is on the deck: killed there, no more runs. The numbers are the
- * defaults of the config's {@code mobs.bombardier} section. The ghast plays its model's dive as the dive starts and its
- * climb as the climb does ({@link WarGhast#play}); the Grenadier's bombing plays with his bombs ({@link WarGhast#dropBomb}).
+ * A war ghast's bombing run, when its tactics call one ({@link GhastTactics}, after the run's tell): it dives till its
+ * deck is 4 blocks above the start of a 20-block line across the target; runs along it while the Bombardier drops a
+ * bomb from the deck every 10 ticks (when within 8 blocks of the target), at most {@code max_bombs_per_run}; climbs
+ * back till the deck is 14 above the target, and the tactics take over again (a volley). Low over the line is its weak
+ * window. Where a wall, roof or the ground is in the way, the line and the climb stop short of it: a ghast's move
+ * control won't fly at a point its body doesn't fit, and the deck hanging under it must fit too. With no room for the
+ * ghast and its deck over the target at all, the run is given up. Only while the Grenadier is on the deck: killed
+ * there, the run stops. Each of the three gives up after {@code phase_timeout} ticks. The numbers are the defaults of
+ * the config's {@code mobs.bombardier} section. The ghast plays its model's climb as the climb starts ({@link
+ * WarGhast#play}; the dive played with the tell); the Grenadier's bombing plays with his bombs ({@link WarGhast#dropBomb}).
  */
 public class BombingRunGoal extends Goal {
 
@@ -29,9 +30,8 @@ public class BombingRunGoal extends Goal {
 	public static final double CLIMB_HEIGHT = 14;
 	public static final double RUN_LENGTH = 20;
 	public static final double BOMB_RANGE = 8;
-	public static final int BOMB_EVERY = 6;
-	public static final int COOLDOWN = 100;
-	private static final int PHASE_TIMEOUT = 120;
+	public static final int BOMB_EVERY = 10;
+	public static final int COOLDOWN = 300;
 
 	private enum Phase { DIVE, RUN, CLIMB }
 
@@ -41,8 +41,6 @@ public class BombingRunGoal extends Goal {
 	private Vec3 runEnd;
 	private Vec3 climbTo;
 	private LivingEntity target;
-	/** Game time, not a countdown: idle goals are only polled every other tick. */
-	private long cooldownUntil = 0;
 	private int ticks;
 
 	public BombingRunGoal(WarGhast ghast) {
@@ -50,18 +48,26 @@ public class BombingRunGoal extends Goal {
 		setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
 	}
 
+	/** When the tactics have called a run, with a target and the Grenadier on the deck. */
 	@Override
 	public boolean canUse() {
-		if (ghast.level().getGameTime() < cooldownUntil) {
-			return false;
-		}
 		var t = ghast.getTarget();
-		return t != null && t.isAlive() && ghast.distanceTo(t) < 48 && ghast.hasCrew(WarGhast.Crew.BOMBARDIER);
+		return ghast.tactics().phase() == GhastTactics.Phase.BOMBING_RUN && t != null && t.isAlive() && ghast.hasCrew(WarGhast.Crew.BOMBARDIER);
 	}
 
+	/** Through the climb; the Grenadier killed, the run itself stops. */
 	@Override
 	public boolean canContinueToUse() {
-		return phase != null && target != null && target.isAlive() && ghast.hasCrew(WarGhast.Crew.BOMBARDIER);
+		var tactics = ghast.tactics().phase();
+		return phase != null && target != null && target.isAlive() && (phase == Phase.CLIMB || ghast.hasCrew(WarGhast.Crew.BOMBARDIER))
+				&& (tactics == GhastTactics.Phase.BOMBING_RUN || tactics == GhastTactics.Phase.CLIMB);
+	}
+
+	/** Whether the ghast and its deck fit over the target at a run's height: room for a run. */
+	public static boolean roomOver(WarGhast ghast, LivingEntity target) {
+		var stack = ghast.stackBox().move(-ghast.getX(), -ghast.getY(), -ghast.getZ());
+		var above = target.position().add(0, tuning().diveHeight() + WarGhast.DECK_DROP, 0);
+		return ghast.level().noBlockCollision(ghast, stack.move(above));
 	}
 
 	@Override
@@ -80,18 +86,18 @@ public class BombingRunGoal extends Goal {
 		runStart = clear(above, above.subtract(across.scale(tuning.runLength() / 2)));
 		runEnd = clear(above, above.add(across.scale(tuning.runLength() / 2)));
 		ticks = 0;
-		// no room over the target (a low roof, a tunnel): give up, and try again after the cooldown
+		// no room over the target (a low roof, a tunnel): give up (stop() tells the tactics)
 		phase = runStart == null || runEnd == null ? null : Phase.DIVE;
-		if (phase == Phase.DIVE) {
-			ghast.play(WarGhast.DIVE);
-		}
 	}
 
+	/** Ended short of the climb's top (or given up), the tactics regroup; ended there, they have moved on already. */
 	@Override
 	public void stop() {
 		phase = null;
 		target = null;
-		cooldownUntil = ghast.level().getGameTime() + tuning().cooldown();
+		if (ghast.level() instanceof ServerLevel level) {
+			ghast.tactics().runStopped(level);
+		}
 	}
 
 	@Override
@@ -100,34 +106,44 @@ public class BombingRunGoal extends Goal {
 		if (phase == null) {
 			return;
 		}
+		if (!(ghast.level() instanceof ServerLevel level)) {
+			return;
+		}
 		ticks++;
+		var tuning = tuning();
+		int timeout = tuning.tactics().phaseTimeout();
+		var tactics = ghast.tactics();
 		switch (phase) {
 			case DIVE -> {
 				moveTo(runStart);
-				if (ghast.position().distanceTo(runStart) < 2 || ticks > PHASE_TIMEOUT) {
+				if (ghast.position().distanceTo(runStart) < 2 || ticks > timeout) {
 					next(Phase.RUN);
 				}
 			}
 			case RUN -> {
 				moveTo(runEnd);
-				var tuning = tuning();
 				if (ticks % tuning.bombEvery() == 0 && horizontalDistance(ghast.position(), target.position()) < tuning.bombRange()
-						&& ghast.level() instanceof ServerLevel level) {
+						&& tactics.allows(GhastTactics.Ability.BOMB)) {
 					ghast.dropBomb(level);
+					tactics.bombDropped();
 				}
-				if (ghast.position().distanceTo(runEnd) < 2 || ticks > PHASE_TIMEOUT) {
+				if (ghast.position().distanceTo(runEnd) < 2 || ticks > timeout) {
 					climbTo = clear(target.position().add(0, tuning.diveHeight() + WarGhast.DECK_DROP, 0),
 							target.position().add(0, tuning.climbHeight() + WarGhast.DECK_DROP, 0));
 					next(climbTo == null ? null : Phase.CLIMB);
+					tactics.climb(level);
 					if (phase == Phase.CLIMB) {
 						ghast.play(WarGhast.CLIMB);
+					} else {
+						tactics.climbed(level);
 					}
 				}
 			}
 			case CLIMB -> {
 				moveTo(climbTo);
-				if (ghast.position().distanceTo(climbTo) < 3 || ticks > PHASE_TIMEOUT) {
+				if (ghast.position().distanceTo(climbTo) < 3 || ticks > timeout) {
 					phase = null;
+					tactics.climbed(level);
 				}
 			}
 		}

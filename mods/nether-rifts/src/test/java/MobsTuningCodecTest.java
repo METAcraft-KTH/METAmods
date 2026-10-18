@@ -64,8 +64,19 @@ public class MobsTuningCodecTest {
 	public void defaultsAreTheSpecNumbers() {
 		var drummer = NetherRiftsConfig.DrummerTuning.DEFAULT;
 		assertEquals(new NetherRiftsConfig.DrummerTuning(10, 4, 12, 120, 4, 1.2, 4f, 0.03), drummer);
-		assertEquals(new NetherRiftsConfig.BombardierTuning(4, 14, 20, 8, 6, 100, 1.5f, new NetherRiftsConfig.Warning(30, true, 0), 40, 60, 1.5, 80, 4, 12, 20,
-				new NetherRiftsConfig.CrewTuning(60, 0.6, 1.0, 2.3)),
+		assertEquals(new NetherRiftsConfig.BombardierTuning(4, 14, 20, 8, 10, 300, 1.5f, new NetherRiftsConfig.Warning(30, true, 0), 40, 60, 1.5,
+				new NetherRiftsConfig.Throwing(80, 4, 12), 20,
+				new NetherRiftsConfig.CrewTuning(60, 0.6, 1.0, 2.3), new NetherRiftsConfig.TacticsTuning(20, 6, 2, 20, 60, 40, 200, true, 120)),
 				NetherRiftsConfig.BombardierTuning.DEFAULT);
+	}
+
+	/** The throw keys still sit flat in the bombardier section; the tactics are a section of their own. */
+	@Test
+	public void throwAndTacticsKeys() {
+		var bombardier = parse("{\"bombardier\": {\"throw_every\": 40, \"tactics\": {\"volley_size\": 3}}}").bombardier();
+		assertEquals(40, bombardier.throwEvery());
+		assertEquals(NetherRiftsConfig.Throwing.DEFAULT.range(), bombardier.throwRange());
+		assertEquals(3, bombardier.tactics().volleySize());
+		assertEquals(NetherRiftsConfig.TacticsTuning.DEFAULT.globalCooldown(), bombardier.tactics().globalCooldown());
 	}
 }

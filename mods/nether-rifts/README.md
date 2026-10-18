@@ -23,7 +23,15 @@ on the deck (each has its own health and a roomy hitbox; the deck's cover spares
 and each one killed there takes its work with it: the spear piglin stabs the ghast into shooting fireballs, the
 Grenadier drops the bombs, the crossbow piglin shoots bolts at players it can see (every 3 seconds,
 `mobs.bombardier.crew.crossbow_every`), and the drummer drums all the time (heard as his sticks land, softly out of a fight) and slams the big beat in time with every Piglin Drummer, his War Beat
-reaching the piglins under the ghast. Stabbed, the ghast lurches and shoots, its mouth open. They make bombing runs, the
+reaching the piglins under the ghast. Stabbed, the ghast lurches and shoots, its mouth open. A chained ghast makes one attack at a time
+(`mobs.bombardier.tactics`): cruising, only the crossbow piglin's bolts fly; then it wails, its drummer war-cries
+and it pitches into a bombing run (a second's tell, `telegraph_ticks`), makes the run (at most `max_bombs_per_run`
+bombs, no fireballs or bolts: low over its target, it is open to attack), climbs, shoots a volley of fireballs
+(`volley_size`, `volley_spacing` apart), and regroups (`regroup_ticks`, no attacks) before cruising again; a
+`global_cooldown` after that, the next attack may start, a run no sooner than `cooldown` after the last one ended and a
+volley `volley_cooldown` after the last. Without the Grenadier, or without room over the target for the ghast and its
+deck, it skips runs; without the spear piglin, or out of sight of its target, volleys; each step gives up after
+`phase_timeout`. They make bombing runs, the
 ghast pitching into the dive and back as it climbs out, the Grenadier dropping magma bombs from the deck (the artist's bomb, seen in 3D as it falls), each bomb's landing
 spot marked on the ground a second and a half before it hits (`mobs.bombardier.warn_ticks`): a red ring as wide as the blast
 reaches (`warn_radius`), lit so it shows from afar and in the dark, embers round it whatever a player's particle setting,

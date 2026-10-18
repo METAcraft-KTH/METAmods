@@ -160,19 +160,89 @@ public record NetherRiftsConfig(
 	}
 
 	/**
+	 * The Grenadier's throws on foot. Its keys sit in the bombardier section with the others ({@code throw_...}): a record
+	 * of its own only because a codec takes at most 16 fields.
+	 */
+	public record Throwing(int every, double minRange, double range) {
+		public static final Throwing DEFAULT = new Throwing(GhastBombardier.THROW_EVERY, GhastBombardier.THROW_MIN_RANGE, GhastBombardier.THROW_RANGE);
+		public static final MapCodec<Throwing> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+				CommentCodec.comment(
+						Sections.section("throw_every", Codec.intRange(1, 72_000), DEFAULT.every()),
+						"On foot (its chained ghast fallen), the Grenadier throws a bomb at most this often, in ticks."
+				).forGetter(Throwing::every),
+				CommentCodec.comment(
+						Sections.section("throw_min_range", Codec.doubleRange(0, 64), DEFAULT.minRange()),
+						"It throws at players at least this many blocks off; closer, it fights with its sword."
+				).forGetter(Throwing::minRange),
+				CommentCodec.comment(
+						Sections.section("throw_range", Codec.doubleRange(0, 64), DEFAULT.range()),
+						"It throws at players at most this many blocks off. A thrown bomb flies at least warn_ticks."
+				).forGetter(Throwing::range)
+		).apply(i, Throwing::new));
+	}
+
+	/**
+	 * How a Chained Ghast picks its attacks, one at a time ({@code GhastTactics}): it cruises (its crossbow piglin's bolts
+	 * only), telegraphs a bombing run, makes it, climbs, shoots a volley of fireballs, regroups, and cruises again.
+	 * Ticks (20 a second).
+	 */
+	public record TacticsTuning(int telegraphTicks, int maxBombsPerRun, int volleySize, int volleySpacing, int regroupTicks,
+			int globalCooldown, int volleyCooldown, boolean boltsInCruiseOnly, int phaseTimeout) {
+		public static final TacticsTuning DEFAULT = new TacticsTuning(20, 6, 2, 20, 60, 40, 200, true, 120);
+		public static final Codec<TacticsTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
+				CommentCodec.comment(
+						Sections.section("telegraph_ticks", Codec.intRange(0, 200), DEFAULT.telegraphTicks()),
+						"Before a bombing run the ghast wails, its drummer war-cries and it pitches into the dive for this long."
+				).forGetter(TacticsTuning::telegraphTicks),
+				CommentCodec.comment(
+						Sections.section("max_bombs_per_run", Codec.intRange(0, 100), DEFAULT.maxBombsPerRun()),
+						"The Grenadier drops at most this many bombs on a run."
+				).forGetter(TacticsTuning::maxBombsPerRun),
+				CommentCodec.comment(
+						Sections.section("volley_size", Codec.intRange(1, 10), DEFAULT.volleySize()),
+						"Fireballs in a volley, each charged (its shooting face, the spear piglin stabbing) and heard before it flies."
+				).forGetter(TacticsTuning::volleySize),
+				CommentCodec.comment(
+						Sections.section("volley_spacing", Codec.intRange(11, 200), DEFAULT.volleySpacing()),
+						"Ticks from one fireball's charge to the next's (a charge takes 10)."
+				).forGetter(TacticsTuning::volleySpacing),
+				CommentCodec.comment(
+						Sections.section("regroup_ticks", Codec.intRange(0, 1200), DEFAULT.regroupTicks()),
+						"After a run or a volley the ghast holds off this long, no attacks at all."
+				).forGetter(TacticsTuning::regroupTicks),
+				CommentCodec.comment(
+						Sections.section("global_cooldown", Codec.intRange(0, 1200), DEFAULT.globalCooldown()),
+						"And this long again, cruising, before its next run or volley."
+				).forGetter(TacticsTuning::globalCooldown),
+				CommentCodec.comment(
+						Sections.section("volley_cooldown", Codec.intRange(0, 72_000), DEFAULT.volleyCooldown()),
+						"Ticks from the end of a volley till the next can start (cooldown is the bombing run's)."
+				).forGetter(TacticsTuning::volleyCooldown),
+				CommentCodec.comment(
+						Sections.section("bolts_in_cruise_only", Codec.BOOL, DEFAULT.boltsInCruiseOnly()),
+						"The crossbow piglin shoots only while the ghast cruises or regroups (else at any time but a run or a volley)."
+				).forGetter(TacticsTuning::boltsInCruiseOnly),
+				CommentCodec.comment(
+						Sections.section("phase_timeout", Codec.intRange(20, 1200), DEFAULT.phaseTimeout()),
+						"A run's dive, its pass and its climb, and a volley, each give up after this many ticks."
+				).forGetter(TacticsTuning::phaseTimeout)
+		).apply(i, TacticsTuning::new));
+	}
+
+	/**
 	 * The war ghast's bombing runs, and its Ghast Bombardier's magma bombs: dropped from the deck, and thrown by hand once
 	 * the ghast has fallen. Ticks (20 a second) and blocks.
 	 */
 	public record BombardierTuning(
 			double diveHeight, double climbHeight, double runLength, double bombRange, int bombEvery, int cooldown,
 			float bombPower, Warning warning, int burnTicks, int playerFireTicks, double patchRadius,
-			int throwEvery, double throwMinRange, double throwRange, double maxFloatHeight, CrewTuning crew
+			Throwing throwing, double maxFloatHeight, CrewTuning crew, TacticsTuning tactics
 	) {
 		public static final BombardierTuning DEFAULT = new BombardierTuning(
 				BombingRunGoal.DIVE_HEIGHT, BombingRunGoal.CLIMB_HEIGHT, BombingRunGoal.RUN_LENGTH, BombingRunGoal.BOMB_RANGE,
 				BombingRunGoal.BOMB_EVERY, BombingRunGoal.COOLDOWN, MagmaBomb.POWER,
 				Warning.DEFAULT, BurningPatches.BURN_TICKS, BurningPatches.PLAYER_FIRE_TICKS, BurningPatches.RADIUS,
-				GhastBombardier.THROW_EVERY, GhastBombardier.THROW_MIN_RANGE, GhastBombardier.THROW_RANGE, WarGhast.MAX_FLOAT_HEIGHT, CrewTuning.DEFAULT
+				Throwing.DEFAULT, WarGhast.MAX_FLOAT_HEIGHT, CrewTuning.DEFAULT, TacticsTuning.DEFAULT
 		);
 		public static final Codec<BombardierTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
@@ -197,7 +267,7 @@ public record NetherRiftsConfig(
 				).forGetter(BombardierTuning::bombEvery),
 				CommentCodec.comment(
 						Sections.section("cooldown", Codec.intRange(0, 72_000), DEFAULT.cooldown()),
-						"Ticks between runs."
+						"Ticks from the end of a bombing run till the next can start."
 				).forGetter(BombardierTuning::cooldown),
 				CommentCodec.comment(
 						Sections.section("bomb_power", Codec.floatRange(0, 10), DEFAULT.bombPower()),
@@ -216,18 +286,7 @@ public record NetherRiftsConfig(
 						Sections.section("patch_radius", Codec.doubleRange(0, 16), DEFAULT.patchRadius()),
 						"The radius of a burning patch, in blocks."
 				).forGetter(BombardierTuning::patchRadius),
-				CommentCodec.comment(
-						Sections.section("throw_every", Codec.intRange(1, 72_000), DEFAULT.throwEvery()),
-						"On foot (its chained ghast fallen), the Grenadier throws a bomb at most this often, in ticks."
-				).forGetter(BombardierTuning::throwEvery),
-				CommentCodec.comment(
-						Sections.section("throw_min_range", Codec.doubleRange(0, 64), DEFAULT.throwMinRange()),
-						"It throws at players at least this many blocks off; closer, it fights with its sword."
-				).forGetter(BombardierTuning::throwMinRange),
-				CommentCodec.comment(
-						Sections.section("throw_range", Codec.doubleRange(0, 64), DEFAULT.throwRange()),
-						"It throws at players at most this many blocks off. A thrown bomb flies at least warn_ticks."
-				).forGetter(BombardierTuning::throwRange),
+				Throwing.MAP_CODEC.forGetter(BombardierTuning::throwing),
 				CommentCodec.comment(
 						Sections.section("max_float_height", Codec.doubleRange(1, 256), DEFAULT.maxFloatHeight()),
 						"Floating about, the ghast keeps at most this many blocks above the ground under it (a bombing run's climb may go higher)."
@@ -235,8 +294,34 @@ public record NetherRiftsConfig(
 				CommentCodec.comment(
 						Sections.section("crew", CrewTuning.CODEC, CrewTuning.DEFAULT),
 						"The crew on the deck."
-				).forGetter(BombardierTuning::crew)
+				).forGetter(BombardierTuning::crew),
+				CommentCodec.comment(
+						Sections.section("tactics", TacticsTuning.CODEC, TacticsTuning.DEFAULT),
+						"How the chained ghast takes its attacks in turn: cruise (bolts only), telegraph, bombing run, climb, fireball volley, regroup."
+				).forGetter(BombardierTuning::tactics)
 		).apply(i, BombardierTuning::new));
+
+		public BombardierTuning withCrew(CrewTuning crew) {
+			return new BombardierTuning(diveHeight, climbHeight, runLength, bombRange, bombEvery, cooldown, bombPower, warning, burnTicks,
+					playerFireTicks, patchRadius, throwing, maxFloatHeight, crew, tactics);
+		}
+
+		public BombardierTuning withTactics(int cooldown, TacticsTuning tactics) {
+			return new BombardierTuning(diveHeight, climbHeight, runLength, bombRange, bombEvery, cooldown, bombPower, warning, burnTicks,
+					playerFireTicks, patchRadius, throwing, maxFloatHeight, crew, tactics);
+		}
+
+		public int throwEvery() {
+			return throwing.every();
+		}
+
+		public double throwMinRange() {
+			return throwing.minRange();
+		}
+
+		public double throwRange() {
+			return throwing.range();
+		}
 
 		/** The warning's lead, in ticks. */
 		public int warnTicks() {

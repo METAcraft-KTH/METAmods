@@ -72,6 +72,7 @@ public class NetherRiftsTests {
 					BombardierTests.registerTests();
 					GhastCrewTests.registerTests();
 					GhastFlightTests.registerTests();
+					GhastTacticsTests.registerTests();
 					ShowcaseTests.registerTests();
 					CaptainTests.registerTests();
 					HeldItemsTests.registerTests();
@@ -149,6 +150,7 @@ public class NetherRiftsTests {
 						.then(preset("drummer_natural", () -> naturalChance(1)))
 						.then(preset("drummer_never", () -> naturalChance(0)))
 						.then(preset("crossbow_never", () -> crossbowEvery(0)))
+						.then(preset("tactics_fast", NetherRiftsTests::tacticsFast))
 		));
 	}
 
@@ -162,14 +164,22 @@ public class NetherRiftsTests {
 				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(drummer, c.mobs().bombardier()));
 	}
 
+	/** The Chained Ghast's tactics turned quicker (shorter cooldowns and rests, 3 bombs a run), so a test sees a few rounds. */
+	public static final NetherRiftsConfig.TacticsTuning TACTICS_FAST = new NetherRiftsConfig.TacticsTuning(20, 3, 2, 20, 30, 20, 100, true, 120);
+	public static final int RUN_COOLDOWN_FAST = 120;
+
+	static NetherRiftsConfig tacticsFast() {
+		var c = NetherRiftsConfig.DEFAULT;
+		var bombardier = NetherRiftsConfig.BombardierTuning.DEFAULT.withTactics(RUN_COOLDOWN_FAST, TACTICS_FAST);
+		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
+				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier));
+	}
+
 	/** The defaults, with the Chained Ghast's crossbow piglin shooting this often. */
 	private static NetherRiftsConfig crossbowEvery(int every) {
 		var b = NetherRiftsConfig.BombardierTuning.DEFAULT;
 		var c = NetherRiftsConfig.DEFAULT;
-		var bombardier = new NetherRiftsConfig.BombardierTuning(b.diveHeight(), b.climbHeight(), b.runLength(), b.bombRange(), b.bombEvery(),
-				b.cooldown(), b.bombPower(), b.warning(), b.burnTicks(), b.playerFireTicks(), b.patchRadius(), b.throwEvery(), b.throwMinRange(),
-				b.throwRange(), b.maxFloatHeight(), new NetherRiftsConfig.CrewTuning(every, b.crew().damageTaken(), b.crew().hitboxWidth(),
-				b.crew().hitboxHeight()));
+		var bombardier = b.withCrew(new NetherRiftsConfig.CrewTuning(every, b.crew().damageTaken(), b.crew().hitboxWidth(), b.crew().hitboxHeight()));
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
 				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier));
 	}

@@ -495,12 +495,17 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 
 	/** As a fight starts: a raid horn and an angry roar, and its war cry animation if the model has one. */
 	public void warCry(ServerLevel level) {
-		level.playSound(null, getX(), getY(), getZ(), SoundEvents.RAID_HORN, SoundSource.HOSTILE, 2.0f, 1.0f);
-		level.playSound(null, getX(), getY(), getZ(), SoundEvents.PIGLIN_BRUTE_ANGRY, SoundSource.HOSTILE, 2.0f, 0.8f);
+		warCrySound(level, getX(), getY(), getZ());
 		level.sendParticles(ParticleTypes.ANGRY_VILLAGER, getX(), getEyeY() + 0.5, getZ(), 5, 0.4, 0.2, 0.4, 0);
 		if (holder.getModel().animations().containsKey("warcry")) {
 			holder.getAnimator().playAnimation("warcry", 20, true);
 		}
+	}
+
+	/** A war cry's sound: a raid horn and a brute's roar. */
+	public static void warCrySound(ServerLevel level, double x, double y, double z) {
+		level.playSound(null, x, y, z, SoundEvents.RAID_HORN, SoundSource.HOSTILE, 2.0f, 1.0f);
+		level.playSound(null, x, y, z, SoundEvents.PIGLIN_BRUTE_ANGRY, SoundSource.HOSTILE, 2.0f, 0.8f);
 	}
 
 	private void stopDrumming() {

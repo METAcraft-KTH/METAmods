@@ -61,7 +61,8 @@ import java.util.Map;
  * itself no more than {@code max_float_height} over it, and goes after players below it. Its crew work it: the spear
  * piglin stabs it into shooting fireballs, the Grenadier drops magma bombs from the deck on bombing runs, the crossbow
  * piglin shoots bolts at players it can see, and the drummer drums in a fight, his War Beat reaching the piglins under
- * the ghast. When it dies the crew jump off as real mobs and glide down.
+ * the ghast. It makes one attack at a time ({@link GhastTactics}): bolts as it cruises, then a bombing run (told a second
+ * ahead), a climb and a volley of fireballs, then it regroups. When it dies the crew jump off as real mobs and glide down.
  *
  * <p>Each crew member has a hitbox of its own ({@link CrewHitbox}) where its figure stands, and the deck one that
  * projectiles glance off ({@link DeckHitbox}). A crew member killed on the deck is gone from the model with its gear,
@@ -184,6 +185,8 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	private long lastBomb = Long.MIN_VALUE;
 	/** The crew have jumped. */
 	private boolean crewGone = false;
+	/** Which attack it makes now (made after the goals: registerGoals runs before this class's fields are set). */
+	private final GhastTactics tactics = new GhastTactics(this);
 
 	public WarGhast(EntityType<? extends WarGhast> type, Level level) {
 		super(type, level);
@@ -231,6 +234,10 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	@Override
 	public HeldItems.Holder<WarGhast> getHolder() {
 		return holder;
+	}
+
+	public GhastTactics tactics() {
+		return tactics;
 	}
 
 	/**
@@ -295,7 +302,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		return !crewGone && !crewDead.contains(crew);
 	}
 
-	/** It shoots fireballs only while the spear piglin is there to stab it (mixin/GhastShootFireballGoalMixin). */
+	/** It shoots fireballs only while the spear piglin is there to stab it, in its tactics' volleys ({@link GhastTactics}). */
 	public boolean shoots() {
 		return hasCrew(Crew.SPEAR);
 	}
@@ -748,7 +755,8 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 	}
 
 	/**
-	 * The crossbow piglin shoots a bolt every {@code crossbow_every} ticks (if 0, never) at the nearest player it can
+	 * The crossbow piglin shoots a bolt every {@code crossbow_every} ticks (if 0, never; and only when its tactics allow
+ * bolts, {@link GhastTactics#allows}) at the nearest player it can
 	 * see within {@link #CROSSBOW_RANGE} blocks, who can fight (not in creative or spectator), heard loading a second
 	 * before: from its crossbow (the off hand's marker), as a piglin's crossbow shoots (its speed, aim and spread). The bolt is the hitbox's (its
 	 * kill), and passes through the ghast, its crew and, for a rift's ghast, every rift mob (mixin/ProjectileMixin).
@@ -759,6 +767,11 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 		var hitbox = hitbox(Crew.CROSSBOW);
 		if (every <= 0 || hitbox == null) {
 			crossbowClock = 0;
+			return;
+		}
+		if (!tactics.allows(GhastTactics.Ability.BOLT)) {
+			// held, not yet loading, till the ghast cruises or regroups again
+			crossbowClock = Math.min(crossbowClock, Math.max(0, every - CROSSBOW_LOAD_TICKS - 1));
 			return;
 		}
 		crossbowClock++;
@@ -907,6 +920,7 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 				updateParts(level);
 				// a showcase ghast's crew only stand there
 				if (!Showcase.isShowcase(this)) {
+					tactics.tick(level);
 					crossbow(level);
 					drum(level);
 				}

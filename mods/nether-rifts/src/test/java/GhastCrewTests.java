@@ -183,7 +183,7 @@ public class GhastCrewTests {
 		});
 		NetherRiftsTests.register("ghast_crew/spear_killed_no_fireballs", ctx -> {
 			// The spear piglin stabbing the ghast is what makes it shoot: with it, a ghast charges a fireball at a player
-			// it sees; with it killed, the ghast never does.
+			// it sees (its Grenadier killed, so a volley is its first attack, not a run); with it killed, the ghast never does.
 			BombardierTests.stoneFloor(ctx);
 			var player = StageTests.player(ctx);
 			var spot = ctx.absolutePos(new BlockPos(12, 1, 20));
@@ -204,8 +204,12 @@ public class GhastCrewTests {
 				}
 				unarmedCharged.compareAndSet(false, unarmed.isCharging());
 			});
-			ctx.runAtTickTime(3, () -> unarmed.hitbox(Crew.SPEAR).kill(ctx.getLevel()));
-			ctx.runAtTickTime(80, () -> {
+			ctx.runAtTickTime(3, () -> {
+				unarmed.hitbox(Crew.SPEAR).kill(ctx.getLevel());
+				armed.hitbox(Crew.BOMBARDIER).kill(ctx.getLevel());
+			});
+			// at worst a run's tell began before the Grenadier died: it regroups, then cruises a while
+			ctx.runAtTickTime(180, () -> {
 				ctx.assertFalse(unarmed.shoots(), "the ghast without its spear piglin would shoot");
 				ctx.assertTrue(charged.get(), "the ghast with its spear piglin never charged a fireball");
 				ctx.assertFalse(unarmedCharged.get(), "the ghast without its spear piglin charged a fireball");
