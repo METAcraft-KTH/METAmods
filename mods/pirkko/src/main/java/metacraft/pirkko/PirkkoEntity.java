@@ -63,7 +63,7 @@ public final class PirkkoEntity extends Monster implements PolymerEntity {
 								SpawnPlacementTypes.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
 								PirkkoEntity::canSpawn))
 						// Leave 26.2's allowedInPeaceful default enabled.
-						.sized(0.5F, 0.5F).eyeHeight(5.5F / 16)
+						.sized(0.6F, 0.6F).eyeHeight(0.6F * 5.5F / 8)
 						.clientTrackingRange(8).updateInterval(1).noLootTable().build(key));
 		PolymerEntityUtils.registerType(type);
 		BiomeModifications.addSpawn(BiomeSelectors.foundInOverworld(), MobCategory.MONSTER, type, 15, 1, 3);

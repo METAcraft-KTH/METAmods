@@ -39,6 +39,7 @@ public final class Pirkko implements ModInitializer {
 		PolymerResourcePackUtils.addModAssets("pirkko");
 		PolymerResourcePackUtils.markAsRequired();
 		FlowerPotCarrier.register();
+		PirkkoCommands.register();
 		for (var color : DyeColor.values()) {
 			register(Identifier.fromNamespaceAndPath("pirkko", "pirkko_" + color.getName()));
 		}

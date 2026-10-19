@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "metacraft.pirkko.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"SkullBlockEntityMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -50,7 +50,7 @@ riding Pirkkos never expire.
 /summon pirkko:pirkko ~ ~ ~ {Color:"cerise"}
 ```
 
-The mob uses a 0.5 × 0.5 × 0.5-block attack/collision box,
+The mob uses a 0.6 × 0.6 × 0.6-block attack/collision box,
 with the existing half-scale model. Its client representation is an invisible
 interaction box plus a Polymer item display; no client mod is required.
 
@@ -74,6 +74,17 @@ All variants have a flower pot's **6×6×6 model-pixel selection and movement
 collision box** (0.375 blocks per side), centered at the bottom of the block.
 The visible figure extends beyond this box; aim at its base to select or break it.
 There is no visible pot around the figure.
+
+## Shader-rendered figures (player heads)
+
+`/pirkko give <players> <variant>` gives a player head that the resource pack's entity shader draws as a
+ray-traced Pirkko figure. Variants: `pirkko_marker`, `marker_green`, `marker_cerise`,
+`marker_laserviolett` and `marker_rainbow`.
+
+Only the floor skin is stored and given out. When a head is placed on a wall, the server sends clients the
+matching `_wall` skin instead (in both block update packets and chunk data), so the figure stands with its
+feet on the wall and its front pointing away from it. The server-side block keeps the floor skin, so
+breaking it drops the normal item. Floor heads and all other player heads are sent unchanged.
 
 ## Installation and build
 
