@@ -7,8 +7,6 @@
 		"AnimationComponentAccessor",
 		"AnimationPlayerAccessor",
 		"BaseFireBlockMixin",
-		"CrafterBlockMixin",
-		"CraftingMenuMixin",
 		"EnchantmentHelperMixin",
 		"GhastShootFireballGoalMixin",
 		"HoglinAccessor",

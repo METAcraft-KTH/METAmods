@@ -58,7 +58,6 @@ public class NetherRiftsTests {
 				() -> {
 					registerTestCommands();
 					ModeTests.registerTests();
-					EyeLockTests.registerTests();
 					ShapeTests.registerTests();
 					FormingTests.registerTests();
 					StageTests.registerTests();
