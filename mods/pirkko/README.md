@@ -81,6 +81,11 @@ There is no visible pot around the figure.
 ray-traced Pirkko figure. Variants: `pirkko_marker`, `marker_green`, `marker_cerise`,
 `marker_laserviolett` and `marker_rainbow`.
 
+The shader code is `assets/pirkko/shaders/include/pirkko.glsl` in **metacraft-shaders**, whose
+`entity.{vsh,fsh}` is the pack's one entity shader: every mod's entity effect lives there, so they
+do not overwrite each other. It only touches 64×65 skins carrying the key texels; a Pirkko's skin is
+otherwise a Steve skin, so a client whose shaders are replaced (Iris, OptiFine) sees a Steve head.
+
 Only the floor skin is stored and given out. When a head is placed on a wall, the server sends clients the
 matching `_wall` skin instead (in both block update packets and chunk data), so the figure stands with its
 feet on the wall and its front pointing away from it. The server-side block keeps the floor skin, so
@@ -89,7 +94,7 @@ breaking it drops the normal item. Floor heads and all other player heads are se
 ## Installation and build
 
 Targets Minecraft 26.3 with Fabric and Java 25. Install the mod on the server
-with Fabric API and Polymer's core, virtual-entity, resource-pack, and autohost
+with Fabric API, metacraft-shaders, and Polymer's core, virtual-entity, resource-pack, and autohost
 modules. Dependency versions are defined in the root `gradle.properties`.
 The standalone jar does not bundle Polymer.
 

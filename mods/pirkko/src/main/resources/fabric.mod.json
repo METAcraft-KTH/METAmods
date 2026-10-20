@@ -29,6 +29,7 @@
     "fabric-api": "*",
     "polymer-core": "*",
     "polymer-virtual-entity": "*",
-    "polymer-resource-pack": "*"
+    "polymer-resource-pack": "*",
+    "metacraft-shaders": "*"
   }
 }

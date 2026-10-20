@@ -14,7 +14,8 @@ import net.fabricmc.api.ModInitializer;
  *   {@code assets/metacraft/shaders/include/{rift_common,void_rift,nether_rift}.glsl}): rifts, on items whose tint
  *   carries the rift markers (#FExxF9 to #FExxFD), which metacraft-qol's void anchor and nether-rifts emit;</li>
  *   <li>the entity shader ({@code assets/minecraft/shaders/core/entity.{vsh,fsh}}): ovvar's patches
- *   ({@code assets/ovvar/shaders/include/ovvar.glsl}) on its 256×128 garment textures.</li>
+ *   ({@code assets/ovvar/shaders/include/ovvar.glsl}) on its 256×128 garment textures, and pirkko's ray-traced
+ *   figures ({@code assets/pirkko/shaders/include/pirkko.glsl}) on its 64×65 player-head skins.</li>
  * </ul>
  */
 public class METAcraftShaders implements ModInitializer {

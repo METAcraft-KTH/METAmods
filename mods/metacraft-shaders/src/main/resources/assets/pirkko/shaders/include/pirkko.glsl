@@ -1,62 +1,15 @@
-#version 330
-#extension GL_ARB_separate_shader_objects : require
-
-#include <minecraft:globals.glsl>
-#include <minecraft:fog.glsl>
-#include <minecraft:dynamictransforms.glsl>
-#include <minecraft:oit.glsl>
-#if defined(PER_FACE_LIGHTING) || !defined(NO_CARDINAL_LIGHTING)
-#include <minecraft:light.glsl>
-#endif
-
-uniform sampler2D Sampler0;
-
-#ifdef DISSOLVE
-uniform sampler2D DissolveMaskSampler;
-#endif
-
-#ifdef GLINT
-uniform sampler2D GlintSampler;
-#endif
-
-layout(location = 0) in float sphericalVertexDistance;
-layout(location = 1) in float cylindricalVertexDistance;
-#ifdef PER_FACE_LIGHTING
-layout(location = 2) in vec4 vertexPerFaceColorBack;
-layout(location = 3) in vec4 vertexPerFaceColorFront;
-#else
-layout(location = 2) in vec4 vertexColor;
-#endif
-
-#ifndef EMISSIVE
-layout(location = 4) in vec4 lightMapColor;
-#endif
-
-#ifndef NO_OVERLAY
-layout(location = 5) in vec4 overlayColor;
-#endif
-
-layout(location = 6) in vec2 texCoord0;
-#ifdef GLINT
-layout(location = 7) in vec2 texCoordGlint;
-#endif
-
-layout(location = 8) in vec3 pirkkoViewPos;
-layout(location = 9) in vec3 pirkkoViewNormal;
-
-#ifndef OIT_ALPHA_ONLY
-layout(location = 0) out vec4 fragColor;
-#endif
-
-
-// ---------------------------------------------------------------------------
 // Pirkko: a player head whose skin has a magenta marker texel at (0,0) is drawn
 // as a ray-traced figure inside the head cube instead of as a textured cube.
 // Texel (1,0) carries the body colour; texel (3,0) = white selects the rainbow colour and
 // texel (4,0) = white marks a wall-mounted figure (the server picks that skin for wall heads),
 // which stands with its feet on the wall and the head's front pointing away from it.
 // Everything is solved in view space, where the camera sits at the origin.
-// ---------------------------------------------------------------------------
+//
+// Included by metacraft-shaders' entity.fsh, which calls pirkko_shade first thing in main().
+// Requires before inclusion: Sampler0, texCoord0, entityPos and entityNormal (the vertex position
+// and normal, in the space ModelViewMat takes to view space), GameTime (minecraft:globals.glsl),
+// ModelViewMat (minecraft:dynamictransforms.glsl) and, unless NO_CARDINAL_LIGHTING without
+// PER_FACE_LIGHTING, minecraft:light.glsl.
 const int PIRKKO_BOXES = 6;
 // The figure is modelled 6.5 px tall; scale it so it spans the full height of the hat-layer cube
 // (8.25 px above the block floor). The hat layer is drawn 8.5 px wide, so it hosts whatever pokes
@@ -88,6 +41,10 @@ bool pirkkoIsMarker(out vec3 bodyColor, out bool wall) {
 
 // Returns false when the ray misses the figure.
 bool pirkkoTrace(vec3 bodyColor, bool wall, out vec3 outColor, out vec3 normalS) {
+    // View space from the shared inputs: the transform is affine, so this is the interpolated
+    // view-space position and normal.
+    vec3 pirkkoViewPos = (ModelViewMat * vec4(entityPos, 1.0)).xyz;
+    vec3 pirkkoViewNormal = mat3(ModelViewMat) * entityNormal;
     vec2 texel = texCoord0 * 64.0; // the head model's UVs are always normalised to 64x64
     bool hat = texel.x >= 32.0;
     vec2 t = vec2(hat ? texel.x - 32.0 : texel.x, texel.y);
@@ -170,88 +127,22 @@ bool pirkkoTrace(vec3 bodyColor, bool wall, out vec3 outColor, out vec3 normalS)
     return true;
 }
 
-vec4 calculateFinalColor(vec4 color) {
-    #ifndef NO_OVERLAY
-    color.rgb = mix(overlayColor.rgb, color.rgb, overlayColor.a);
-    #endif
-
-    #ifndef EMISSIVE
-    color *= lightMapColor;
-    #endif
-
-    #ifdef GLINT
-    vec4 glintColor = GlintAlpha * texture(GlintSampler, texCoordGlint);
-    // Matches BlendFuntion.GLINT
-    color.rgb += glintColor.rgb * glintColor.rgb;
-    #endif
-
-    #ifdef OIT_ACCUMULATE
-    color = sampleColorForAccumulation(color);
-    vec4 fogColor = vec4(FogColor.rgb * color.a, FogColor.a);
-    #else
-    vec4 fogColor = FogColor;
-    #endif
-
-    return apply_fog(color, sphericalVertexDistance, cylindricalVertexDistance, FogEnvironmentalStart, FogEnvironmentalEnd, FogRenderDistanceStart, FogRenderDistanceEnd, fogColor);
-}
-
-void main() {
-    vec4 color = texture(Sampler0, texCoord0);
-
-    vec3 pirkkoBody;
-    bool pirkkoWall;
-    if (pirkkoIsMarker(pirkkoBody, pirkkoWall)) {
-        vec3 pirkkoColor;
-        vec3 pirkkoNormalS;
-        if (!pirkkoTrace(pirkkoBody, pirkkoWall, pirkkoColor, pirkkoNormalS)) {
-            discard;
-        }
-        #if defined(PER_FACE_LIGHTING) || !defined(NO_CARDINAL_LIGHTING)
-        vec4 lit = minecraft_mix_light(Light0_Direction, Light1_Direction, pirkkoNormalS, vec4(pirkkoColor, 1.0));
-        #else
-        vec4 lit = vec4(pirkkoColor, 1.0);
-        #endif
-        #ifdef OIT_ALPHA_ONLY
-        executeAlphaOnlyPhase(gl_FragCoord.z, 1.0);
-        #else
-        fragColor = calculateFinalColor(lit * ColorModulator);
-        #endif
-        return;
-    }
-
-    #ifdef OIT_ADDITIVE
-    color.a = min(0.99, color.a);
-    #endif
-
-    #ifdef ALPHA_CUTOUT
-    if (color.a < ALPHA_CUTOUT) {
+// A Pirkko head: true, and lit is the figure's colour lit by its own normal, which the caller
+// finishes the way vanilla finishes a colour; the fragments where the ray misses the figure are
+// discarded. Anything else: false (and of a texture that is not 64x65, only its size was read).
+bool pirkko_shade(out vec4 lit) {
+    vec3 body;
+    bool wall;
+    if (!pirkkoIsMarker(body, wall)) return false;
+    vec3 color;
+    vec3 normalS;
+    if (!pirkkoTrace(body, wall, color, normalS)) {
         discard;
     }
-    #endif
-
-    #ifdef PER_FACE_LIGHTING
-    vec4 faceVertexColor = gl_FrontFacing ? vertexPerFaceColorFront : vertexPerFaceColorBack;
+    #if defined(PER_FACE_LIGHTING) || !defined(NO_CARDINAL_LIGHTING)
+    lit = minecraft_mix_light(Light0_Direction, Light1_Direction, normalS, vec4(color, 1.0));
     #else
-    vec4 faceVertexColor = vertexColor;
+    lit = vec4(color, 1.0);
     #endif
-
-    #ifdef DISSOLVE
-    if (faceVertexColor.a < texture(DissolveMaskSampler, texCoord0).a) {
-        discard;
-    }
-    // The dissolve effect entirely replaces translucency
-    faceVertexColor.a = 1.0;
-    #endif
-
-    color *= faceVertexColor * ColorModulator;
-
-    #ifdef GLINT
-    color.a = max(color.a, GlintAlpha);
-    #endif
-
-    #ifdef OIT_ALPHA_ONLY
-    executeAlphaOnlyPhase(gl_FragCoord.z, color.a);
-    #else
-    fragColor = calculateFinalColor(color);
-    #endif
+    return true;
 }

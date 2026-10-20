@@ -6,19 +6,21 @@
 // namespace, and no other module ships a vanilla shader (the build fails if one does). An effect
 // only changes textures of its own — told apart by their size before any texel is read — and
 // everything else is drawn exactly as vanilla draws it:
-//   ovvar  patches on student overalls, and their left limbs un-mirrored (ovvar.glsl).
+//   pirkko  a 64×65 player-head skin with its key texels is a ray-traced figure (pirkko.glsl);
+//   ovvar   patches on student overalls, and their left limbs un-mirrored (ovvar.glsl).
 // Clients whose core shaders are replaced (Iris, OptiFine) get vanilla behaviour.
 //
 // Adding one: its include, one call in main() (an effect that replaces the whole fragment goes
 // before those that change what is sampled), and if it needs more than entityColor, entityPos and
 // entityNormal, a new input at location 11 or above in both stages.
 
-#ifdef GLINT
-#include <minecraft:globals.glsl>
-#endif
+#include <minecraft:globals.glsl>   // vanilla's only #ifdef GLINT; the rainbow Pirkko reads GameTime
 #include <minecraft:fog.glsl>
 #include <minecraft:dynamictransforms.glsl>
 #include <minecraft:oit.glsl>
+#if defined(PER_FACE_LIGHTING) || !defined(NO_CARDINAL_LIGHTING)
+#include <minecraft:light.glsl>   // a Pirkko is lit by its own normal
+#endif
 
 uniform sampler2D Sampler0;
 
@@ -61,6 +63,8 @@ layout(location = 10) in vec3 entityNormal;
 layout(location = 0) out vec4 fragColor;
 #endif
 
+#include <pirkko:pirkko.glsl>
+
 #define OVVAR_SAMPLE(uv) texture(Sampler0, uv)
 #define ovvar_color entityColor
 #define ovvar_pos entityPos
@@ -98,6 +102,17 @@ vec4 calculateFinalColor(vec4 color) {
 }
 
 void main() {
+    // Pirkko: a whole fragment of its own (or none, where the ray misses the figure).
+    vec4 pirkkoLit;
+    if (pirkko_shade(pirkkoLit)) {
+        #ifdef OIT_ALPHA_ONLY
+        executeAlphaOnlyPhase(gl_FragCoord.z, 1.0);
+        #else
+        fragColor = calculateFinalColor(pirkkoLit * ColorModulator);
+        #endif
+        return;
+    }
+
     // Ovvar: the coordinate to sample instead (derivatives inside: the size test is uniform).
     vec2 uv = ovvar_texture() ? ovvar_uv(texCoord0) : texCoord0;
     vec4 color = texture(Sampler0, uv);
