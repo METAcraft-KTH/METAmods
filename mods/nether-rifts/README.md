@@ -40,7 +40,9 @@ or loot on the ground. When a chained ghast dies, the crew left on it jump off w
 down to fight on foot, the spear piglin wearing the ghast's armour: the Grenadier,
 a piglin in goggles with a golden sword in his gloved right hand, then stops every 4 seconds to put the sword away and lob
 a magma bomb by hand at a player 4 to 12 blocks off, the landing spot again marked ahead. The Piglin General, in a large raid's
-last wave, gets its own red boss bar. Winning closes the rift and turns its obsidian frame to crying obsidian. While rift mode is on, eyes of ender can't be crafted.
+last wave (a brute half again as big, with 300 health and armour 16), gets its own red boss bar. A rift's striders keep
+the nether's heat: off lava they don't go cold and slow down, rain doesn't hurt them (water still does), and their
+crossbow piglins steer them. Winning closes the rift and turns its obsidian frame to crying obsidian. While rift mode is on, eyes of ender can't be crafted.
 
 `/rifts stabilise` ends rift mode: waiting rifts become working portals and portal-blocker's nether locks
 lift. After that a crying-obsidian frame, lit with flint and steel, opens a rift on purpose (and crumbles

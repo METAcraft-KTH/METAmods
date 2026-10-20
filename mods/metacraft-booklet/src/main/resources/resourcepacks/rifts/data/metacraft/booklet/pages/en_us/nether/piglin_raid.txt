@@ -18,7 +18,7 @@ Everyone within 48 blocks takes part. Each player after the first brings a quart
 Crossbow piglins, spear piglins and hoglins make up most of a wave. Later waves add ghasts with a piglin on board, striders with riders, and brutes with golden axes. From wave 2, a <pagelink 'metacraft:nether/mobs/drummer'><u>Piglin Drummer</u></pagelink> leads each wave. See <pagelink 'metacraft:nether/mobs'><u>New Mobs</u></pagelink> for the rest.
 
 ### Header: The Piglin General
-### Image: metacraft:beside/rifts/general A piglin brute with a red banner on its head and a golden axe. It comes in the last wave of a large rift, with 100 health, twice a brute's. It has a red boss bar of its own.
+### Image: metacraft:beside/rifts/general A piglin brute half again as big as one, with a red banner on its head and a golden axe. It comes in the last wave of a large rift, with 300 health, six times a brute's, and armour nearly a diamond set's. It has a red boss bar of its own.
 
 ### Body:
 Killed by a player, it drops:

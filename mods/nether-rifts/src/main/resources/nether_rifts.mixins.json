@@ -14,6 +14,7 @@
 		"HoglinAccessor",
 		"InteractionAccessor",
 		"LargeFireballMixin",
+		"LivingEntityMixin",
 		"MobAccessor",
 		"MobMixin",
 		"PiglinAiInvoker",
@@ -21,7 +22,8 @@
 		"PiglinMixin",
 		"PiglinSpecificSensorMixin",
 		"PortalShapeAccessor",
-		"ProjectileMixin"
+		"ProjectileMixin",
+		"StriderMixin"
 	],
 	"client": [],
 	"injectors": {

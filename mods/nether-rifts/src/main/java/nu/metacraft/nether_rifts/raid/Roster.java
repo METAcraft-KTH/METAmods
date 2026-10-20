@@ -29,11 +29,15 @@ public final class Roster {
 					"{id:\"minecraft:hoglin\",Passengers:[{id:\"minecraft:piglin\",IsBaby:1b}]}", 1
 			)),
 			Slot.HEAVY, one("{id:\"minecraft:ghast\",Passengers:[" + CROSSBOW_PIGLIN + "]}"),
-			Slot.SUPPORT, one("{id:\"minecraft:strider\",Passengers:[" + CROSSBOW_PIGLIN + "]}"),
+			// a rift's strider stays warm off lava (StriderMixin), and walks faster than a strider's 0.175 under its rider
+			Slot.SUPPORT, one("{id:\"minecraft:strider\",attributes:[{id:\"minecraft:movement_speed\",base:0.25d}],"
+					+ "Passengers:[" + CROSSBOW_PIGLIN + "]}"),
 			Slot.ELITE, one("{id:\"minecraft:piglin_brute\",equipment:{mainhand:{id:\"minecraft:golden_axe\",count:1}}}"),
 			Slot.LEADER, one("{id:\"nether_rifts:war_drummer\"}"),
-			Slot.CAPTAIN, one("{id:\"minecraft:piglin_brute\",CustomName:\"Piglin General\",Health:100f,"
-					+ "attributes:[{id:\"minecraft:max_health\",base:100d}],"
+			// half again a brute's size, six times its health (a wither's), and armour 16 (a diamond set's is 20)
+			Slot.CAPTAIN, one("{id:\"minecraft:piglin_brute\",CustomName:\"Piglin General\",Health:300f,"
+					+ "attributes:[{id:\"minecraft:max_health\",base:300d},{id:\"minecraft:scale\",base:1.5d},"
+					+ "{id:\"minecraft:armor\",base:16d},{id:\"minecraft:armor_toughness\",base:6d}],"
 					+ "equipment:{head:{id:\"minecraft:red_banner\",count:1},mainhand:{id:\"minecraft:golden_axe\",count:1}}}"),
 			Slot.BOMBARDIER, one("{id:\"nether_rifts:war_ghast\"}")
 	);

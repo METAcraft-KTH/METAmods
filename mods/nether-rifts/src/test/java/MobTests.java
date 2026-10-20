@@ -52,6 +52,41 @@ public class MobTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("mobs/rift_strider_stays_warm", ctx -> {
+			// Off lava in the overworld a strider goes cold and slows; a rift's doesn't, walks faster than one, and its
+			// crossbow piglin steers it.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.SUPPORT, ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO);
+				var strider = (net.minecraft.world.entity.monster.Strider) spawned.stream()
+						.filter(e -> e instanceof net.minecraft.world.entity.monster.Strider).findFirst()
+						.orElseThrow(() -> new AssertionError("no strider in " + spawned));
+				var plain = ctx.spawn(EntityTypes.STRIDER, new BlockPos(14, 1, 12));
+				ctx.runAfterDelay(5, () -> {
+					ctx.assertTrue(plain.isSuffocating(), "a plain strider off lava isn't cold: the test can't tell");
+					ctx.assertFalse(strider.isSuffocating(), "the rift's strider went cold off lava");
+					ctx.assertTrue(strider.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED) == 0.25,
+							"the rift's strider walks at " + strider.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED));
+					ctx.assertTrue(strider.getControllingPassenger() instanceof Piglin, "its rider doesn't steer it: " + strider.getControllingPassenger());
+					ctx.killAllEntities();
+					FormingTests.cleanUp(ctx);
+					ctx.succeed();
+				});
+			});
+		});
+		NetherRiftsTests.register("mobs/general_is_big_and_tough", ctx -> {
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var general = (net.minecraft.world.entity.LivingEntity) RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.CAPTAIN,
+						ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO).getFirst();
+				ctx.assertTrue(general.getMaxHealth() == 300 && general.getHealth() == 300, "the General has " + general.getHealth() + " / " + general.getMaxHealth());
+				ctx.assertTrue(general.getScale() == 1.5f, "the General is at scale " + general.getScale());
+				ctx.assertTrue(general.getArmorValue() == 16, "the General has armour " + general.getArmorValue());
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
 		NetherRiftsTests.register("mobs/ignore_gold_armour", ctx -> {
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {
