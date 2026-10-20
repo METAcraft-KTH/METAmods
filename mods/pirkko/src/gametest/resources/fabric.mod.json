@@ -1,0 +1,21 @@
+{
+	"schemaVersion": 1,
+	"id": "pirkko-clienttest",
+	"version": "1.0.0",
+	"name": "Pirkko client tests",
+	"description": "Screenshot tests: a client sees the shader-rendered Pirkkos.",
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"metacraft.pirkko.clienttest.PirkkoClientTests"
+		]
+	},
+	"mixins": [
+		"pirkko-clienttest.mixins.json"
+	],
+	"depends": {
+		"pirkko": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}

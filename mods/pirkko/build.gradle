@@ -1,5 +1,18 @@
 version = project.pirkko_version
 
+// Client screenshot tests: a real client joins an in-process dedicated server and checks what it
+// sees. Source set src/gametest, task runClientGameTest (needs a display).
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "pirkko-clienttest"
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = true
+        username = "Tester"
+    }
+}
+
 addPolymerDependency()
 dependencies {
     implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
