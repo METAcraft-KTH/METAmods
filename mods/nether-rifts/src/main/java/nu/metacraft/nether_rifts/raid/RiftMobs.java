@@ -2,22 +2,28 @@ package nu.metacraft.nether_rifts.raid;
 
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.PiglinBrute;
 import net.minecraft.world.entity.projectile.hurtingprojectile.LargeFireball;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.mob_modifiers.extensions.EntityExtensions;
 import nu.metacraft.nether_rifts.NetherRifts;
 import nu.metacraft.nether_rifts.NetherRiftsConfig;
 import nu.metacraft.nether_rifts.mixin.HoglinAccessor;
@@ -58,6 +64,16 @@ public final class RiftMobs {
 				}
 			}
 			return id == null || RiftData.get(level).byId(id).isPresent();
+		});
+		// A rift ghast's rider glides down when it dies, as a Chained Ghast's crew do, rather than die of the fall.
+		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+			if (entity instanceof Ghast && !(entity instanceof WarGhast) && isRiftMob(entity)) {
+				for (var rider : entity.getPassengers()) {
+					if (rider instanceof LivingEntity living) {
+						living.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, WarGhast.CREW_SLOW_FALL_TICKS, 0));
+					}
+				}
+			}
 		});
 	}
 
@@ -109,6 +125,8 @@ public final class RiftMobs {
 
 	static void apply(Entity entity, UUID rift, Slot slot) {
 		entity.setAttached(RIFT, rift);
+		// nobody traps a raid's mobs in a boat or a minecart
+		((EntityExtensions) entity).metacraft_lib$setPreventEnterVehicle(true);
 		if (slot == Slot.CAPTAIN && entity.getVehicle() == null) {
 			entity.addTag(CAPTAIN_TAG);
 		}

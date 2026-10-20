@@ -24,6 +24,7 @@
 		"metacraft-lib": "*",
 		"metacraft-config": "*",
 		"metacraft-core": "*",
+		"metacraft-mob-modifiers": "*",
 		"metacraft-shaders": "*",
 		"portal-blocker": "*",
 		"portal-opening": "*",

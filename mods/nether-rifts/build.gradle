@@ -4,6 +4,8 @@ addCoreDependencies()
 addConfigDependency()
 // the rifts' item shader
 addProjectDependency(":mods:metacraft-shaders")
+// IgnoreYCheck for the rift's ghasts, PreventEnterVehicle for every rift mob
+addProjectDependency(":mods:metacraft-mob-modifiers")
 addProjectDependency(":mods:metacraft-zones")
 addProjectDependency(":mods:portal-blocker")
 addProjectDependency(":mods:portal-opening")

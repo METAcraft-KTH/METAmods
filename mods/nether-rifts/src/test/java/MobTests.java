@@ -87,6 +87,41 @@ public class MobTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("mobs/rift_ghast_rider_glides_down", ctx -> {
+			// A rift ghast fires at players above and below it (IgnoreYCheck), and when it dies its piglin glides down.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.HEAVY, ctx.absolutePos(new BlockPos(12, 6, 12)), Vec3.ZERO);
+				var ghast = (Ghast) spawned.stream().filter(e -> e instanceof Ghast).findFirst().orElseThrow(() -> new AssertionError("no ghast in " + spawned));
+				var rider = (Piglin) spawned.stream().filter(e -> e instanceof Piglin).findFirst().orElseThrow(() -> new AssertionError("no rider in " + spawned));
+				var saved = net.minecraft.world.level.storage.TagValueOutput.createWithContext(net.minecraft.util.ProblemReporter.DISCARDING, ctx.getLevel().registryAccess());
+				ghast.saveWithoutId(saved);
+				ctx.assertTrue(saved.buildResult().getBooleanOr("IgnoreYCheck", false), "the rift's ghast keeps vanilla's 4-block y check");
+				ghast.kill(ctx.getLevel());
+				ctx.assertTrue(rider.hasEffect(net.minecraft.world.effect.MobEffects.SLOW_FALLING), "the ghast's rider won't glide down");
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("mobs/no_boat_traps", ctx -> {
+			// A rift mob won't stay in a boat (PreventEnterVehicle); a strider's rider still rides it.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var piglin = (Piglin) RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.RANGED, ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO).getFirst();
+				var strider = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.SUPPORT, ctx.absolutePos(new BlockPos(14, 1, 12)), Vec3.ZERO).stream()
+						.filter(e -> e instanceof net.minecraft.world.entity.monster.Strider).findFirst().orElseThrow();
+				var boat = ctx.spawn(EntityTypes.OAK_BOAT, new BlockPos(10, 1, 10));
+				ctx.assertTrue(piglin.startRiding(boat, true, false), "the piglin couldn't be put in the boat");
+				ctx.runAfterDelay(3, () -> {
+					ctx.assertTrue(piglin.getVehicle() == null, "the rift piglin stays in a boat");
+					ctx.assertTrue(!strider.getPassengers().isEmpty(), "the strider's rider got off");
+					ctx.killAllEntities();
+					FormingTests.cleanUp(ctx);
+					ctx.succeed();
+				});
+			});
+		});
 		NetherRiftsTests.register("mobs/ignore_gold_armour", ctx -> {
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {

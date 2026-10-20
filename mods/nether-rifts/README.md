@@ -42,7 +42,9 @@ a piglin in goggles with a golden sword in his gloved right hand, then stops eve
 a magma bomb by hand at a player 4 to 12 blocks off, the landing spot again marked ahead. The Piglin General, in a large raid's
 last wave (a brute half again as big, with 300 health and armour 16), gets its own red boss bar. A rift's striders keep
 the nether's heat: off lava they don't go cold and slow down, rain doesn't hurt them (water still does), and their
-crossbow piglins steer them. Winning closes the rift and turns its obsidian frame to crying obsidian.
+crossbow piglins steer them. A rift's ghasts fire at players above and below them, not only level with them, and
+their piglins glide down when they die. Rift mobs can't be trapped in boats or minecarts (both through
+metacraft-mob-modifiers). Winning closes the rift and turns its obsidian frame to crying obsidian.
 
 `/rifts stabilise` ends rift mode: waiting rifts become working portals and portal-blocker's nether locks
 lift. After that a crying-obsidian frame, lit with flint and steel, opens a rift on purpose (and crumbles

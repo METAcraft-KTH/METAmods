@@ -28,7 +28,8 @@ public final class Roster {
 					"{id:\"minecraft:hoglin\"}", 1,
 					"{id:\"minecraft:hoglin\",Passengers:[{id:\"minecraft:piglin\",IsBaby:1b}]}", 1
 			)),
-			Slot.HEAVY, one("{id:\"minecraft:ghast\",Passengers:[" + CROSSBOW_PIGLIN + "]}"),
+			// IgnoreYCheck (metacraft-mob-modifiers): it fires at players well above or below it, not only level with it
+			Slot.HEAVY, one("{id:\"minecraft:ghast\",IgnoreYCheck:1b,Passengers:[" + CROSSBOW_PIGLIN + "]}"),
 			// a rift's strider stays warm off lava (StriderMixin), and walks faster than a strider's 0.175 under its rider
 			Slot.SUPPORT, one("{id:\"minecraft:strider\",attributes:[{id:\"minecraft:movement_speed\",base:0.25d}],"
 					+ "Passengers:[" + CROSSBOW_PIGLIN + "]}"),
