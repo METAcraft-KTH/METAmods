@@ -11,9 +11,16 @@ import de.tomalbrc.bil.core.model.Model;
 import de.tomalbrc.bil.core.model.Node;
 import de.tomalbrc.bil.core.model.Pose;
 import de.tomalbrc.bil.util.Utils;
+import eu.pb4.polymer.virtualentity.api.data.InteractionEntityData;
 import eu.pb4.polymer.virtualentity.api.elements.DisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.HumanoidArm;
@@ -28,6 +35,7 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Shows what a BIL mob holds in its hands and wears on its head, as a vanilla mob does: BIL draws no equipment. The
@@ -256,15 +264,45 @@ public final class HeldItems {
 	 * A living entity holder that shows its mob's held items ({@link HeldItems}) and worn armour ({@link ArmourPieces});
 	 * use it in place of LivingEntityHolder. Polymer ticks it from the entity tracker, after every mob has ticked, so the
 	 * armour's colours come after the mob's hurt tint.
+	 *
+	 * <p>Clients hit the mob's {@link HitStandIn}, so the crosshair shows its attack indicator over it as over a vanilla
+	 * mob. BIL's interaction goes to them zero wide, never picked, but keeps its height: the bones ride on top of it, and
+	 * the mob's name shows over it.
 	 */
 	public static class Holder<T extends LivingEntity & AnimatedEntity> extends LivingEntityHolder<T> {
 
 		private final HeldItems heldItems = new HeldItems(this);
 		private final ArmourPieces armour = new ArmourPieces(this);
+		private final HitStandIn hitStandIn;
 
 		public Holder(T parent, Model model) {
 			super(parent, model);
 			setViewRange(this, parent.getType());
+			hitboxInteraction.setWidth(0);
+			hitStandIn = HitStandIn.attach(parent);
+		}
+
+		public HitStandIn hitStandIn() {
+			return hitStandIn;
+		}
+
+		// BIL sends the interaction the mob's size on both: it goes out zero wide again after
+
+		@Override
+		public void onDimensionsUpdated(EntityDimensions dimensions) {
+			super.onDimensionsUpdated(dimensions);
+			sendPacket(unpickable());
+			hitStandIn.resize(dimensions.height());
+		}
+
+		@Override
+		protected void startWatchingExtraPackets(ServerGamePacketListenerImpl player, Consumer<Packet<ClientGamePacketListener>> packetConsumer) {
+			super.startWatchingExtraPackets(player, packetConsumer);
+			packetConsumer.accept(unpickable());
+		}
+
+		private ClientboundSetEntityDataPacket unpickable() {
+			return new ClientboundSetEntityDataPacket(hitboxInteraction.getEntityId(), List.of(SynchedEntityData.DataValue.create(InteractionEntityData.WIDTH, 0f)));
 		}
 
 		public HeldItems heldItems() {

@@ -45,6 +45,9 @@ import java.util.Optional;
  *
  * <p>When it dies the figure goes from the model with the gear it showed, it drops the crew member's loot (in a rift,
  * its role's, as the mob would), and the ghast loses what it did ({@link WarGhast#crewDied}).
+ *
+ * <p>Clients hit its {@link HitStandIn} (an invisible piglin as tall as the box), so the crosshair shows its attack
+ * indicator over the figure as over a mob; the interaction they see it as is zero wide, never picked.
  */
 public class CrewHitbox extends LivingEntity implements PolymerEntity, GhastPart {
 
@@ -57,11 +60,13 @@ public class CrewHitbox extends LivingEntity implements PolymerEntity, GhastPart
 	private WarGhast ghast;
 	@Nullable
 	private WarGhast.Crew crew;
+	private final HitStandIn hitStandIn;
 
 	public CrewHitbox(EntityType<? extends CrewHitbox> type, Level level) {
 		super(type, level);
 		noPhysics = true;
 		setNoGravity(true);
+		hitStandIn = HitStandIn.attach(this);
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {
@@ -80,6 +85,7 @@ public class CrewHitbox extends LivingEntity implements PolymerEntity, GhastPart
 		getAttribute(Attributes.MAX_HEALTH).setBaseValue(maxHealth(crew));
 		setHealth(health);
 		refreshDimensions();
+		hitStandIn.resize(getBbHeight());
 	}
 
 	@Nullable
@@ -91,6 +97,10 @@ public class CrewHitbox extends LivingEntity implements PolymerEntity, GhastPart
 	@Nullable
 	public WarGhast.Crew crew() {
 		return crew;
+	}
+
+	public HitStandIn hitStandIn() {
+		return hitStandIn;
 	}
 
 	/** The configured size for a piglin, scaled to the crew member's mob as a piglin's is to its own. */
@@ -233,7 +243,7 @@ public class CrewHitbox extends LivingEntity implements PolymerEntity, GhastPart
 
 	@Override
 	public void modifyRawTrackedData(List<SynchedEntityData.DataValue<?>> data, ServerPlayer player, boolean initial) {
-		GhastPart.asInteraction(this, data, initial);
+		GhastPart.asInteraction(this, 0, data, initial);
 	}
 
 	/** An interaction wears nothing. */

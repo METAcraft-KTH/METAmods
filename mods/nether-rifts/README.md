@@ -93,7 +93,9 @@ Chained Ghast: takes the texture PNG, puts the ghast's body on the entity's box 
 layers, the goggles and the bomb pile into their parts, adds the markers the crew jump off at (the artist marks where
 the gear goes), the spear piglin's armour (`…/war_ghast/armour/`), and gives each animation idle's tracks for the
 bones it doesn't move (BIL plays one animation at a time, over every bone); both share `tools/piglin_armour.py`.
-`tools/gen_models.py` builds placeholder models from vanilla geometry; none are in use now. The Grenadier on foot has
+`tools/gen_models.py` builds placeholder models from vanilla geometry; none are in use now. What clients hit on a BIL
+mob or a crew member is an invisible piglin (a ghast for the Chained Ghast) as tall as its box (`HitStandIn`), so the
+crosshair shows its attack indicator as over a vanilla mob; the interaction BIL would have them hit goes to them zero wide. The Grenadier on foot has
 no model of its own: clients see a vanilla piglin wearing the `nether_rifts:bombardier_helmet` item and holding the
 `nether_rifts:grenadier_sword` (Polymer items, never dropped or craftable; the sword is a golden sword on the server),
 the first drawn on the head by its item model's `head` display (the artist's goggles), the second in the right hand as

@@ -89,6 +89,6 @@ public class DeckHitbox extends Entity implements PolymerEntity, GhastPart {
 
 	@Override
 	public void modifyRawTrackedData(List<SynchedEntityData.DataValue<?>> data, ServerPlayer player, boolean initial) {
-		GhastPart.asInteraction(this, data, initial);
+		GhastPart.asInteraction(this, getBbWidth(), data, initial);
 	}
 }

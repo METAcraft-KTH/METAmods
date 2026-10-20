@@ -524,6 +524,35 @@ public class DrummerTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("drummer/clients_hit_its_stand_in", ctx -> {
+			// Clients pick the drummer's stand-in, an invisible piglin of its size (so the crosshair shows its attack
+			// indicator), and a blow on it hurts the drummer. It burns when the drummer does, and goes as it dies.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var drummer = (WarDrummer) RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.LEADER, ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO).getFirst();
+				drummer.setNoAi(true);
+				var standIn = drummer.getHolder().hitStandIn();
+				ctx.assertTrue(standIn.standIn() != null && Math.abs(standIn.scale() - 1) < 1e-4, "the stand-in is at scale " + standIn.scale());
+				var player = StageTests.player(ctx);
+				player.connection.handleAcceptPlayerLoad(new ServerboundPlayerLoadedPacket());
+				player.teleportTo(drummer.getX() + 1.5, drummer.getY(), drummer.getZ());
+				standIn.standIn().getInteractionHandler(player).attack(player);
+				ctx.assertTrue(drummer.getHealth() < drummer.getMaxHealth(), "a blow on the stand-in didn't hurt the drummer");
+				drummer.igniteForSeconds(5);
+				ctx.runAfterDelay(2, () -> {
+					ctx.assertTrue((standIn.standIn().getSyncedData().get(eu.pb4.polymer.virtualentity.api.data.EntityData.FLAGS) & 1) != 0,
+							"the stand-in doesn't burn with the drummer");
+					drummer.kill(ctx.getLevel());
+					ctx.runAfterDelay(2, () -> {
+						ctx.assertTrue(standIn.standIn() == null, "the stand-in outlived the drummer");
+						StageTests.remove(ctx, player);
+						ctx.killAllEntities();
+						FormingTests.cleanUp(ctx);
+						ctx.succeed();
+					});
+				});
+			});
+		});
 		NetherRiftsTests.register("drummer/vanilla_clients_see_no_piglin_data", ctx -> {
 			// The drummer is a piglin on the server (its zombification flag is synced data) but a BIL model to
 			// clients: Polymer sends them a block display, and only data a block display has. Encoded as Polymer does
