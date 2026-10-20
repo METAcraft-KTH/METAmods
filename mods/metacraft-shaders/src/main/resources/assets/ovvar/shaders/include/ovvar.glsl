@@ -1,5 +1,5 @@
-// Ovvar: patches on student overalls, finished by the shader. Shared by the vanilla entity.fsh
-// override and (copied in by the shaderpack patcher) by shaderpacks' entity programs, so it is
+// Ovvar: patches on student overalls, finished by the shader. Shared by metacraft-shaders' vanilla
+// entity shader and (copied in by the shaderpack patcher) by shaderpacks' entity programs, so it is
 // written against GLSL 120: no integer bit operations, no texelFetch — texels are read at their
 // centres with OVVAR_SAMPLE, and bit fields are pulled out with floating-point arithmetic.
 //
@@ -28,7 +28,9 @@
 //
 // Requires before inclusion: OVVAR_SAMPLE(uv) — the albedo sample of this program;
 // ovvar_color — the raw (unlit) vertex colour, vec4; ovvar_pos and ovvar_normal — the vertex
-// position and normal (any one space for both).
+// position and normal (any one space for both). A vertex shader #defines OVVAR_VERTEX first: that
+// leaves out the fragment's part, ovvar_uv (screen-space derivatives) and ovvar_shade, and keeps
+// the constants and ovvar_patch_layer, so both stages read the very same texels.
 
 // Texels per skin texel (Spot.DETAIL in the mod) and the texture size, cell size and fixed texels that follow.
 const float OVVAR_D = 4.0;
@@ -311,6 +313,7 @@ float ovvar_squeezed_y(float tx, float ty, float inflate) {
 	return (ty - c) / sy + c;
 }
 
+#ifndef OVVAR_VERTEX
 // The texture coordinate to sample instead of uv. Call with the program's original coordinate;
 // derivatives must be taken in uniform control flow, hence at the top.
 // Set by ovvar_uv: is this fragment on a mirrored (left) limb face?
@@ -494,3 +497,4 @@ vec4 ovvar_shade(vec4 lit, vec2 uv) {
 	if (ovvar_patch_layer() < 0.5) return lit;
 	return vec4(lit.rgb / max(ovvar_color.rgb, vec3(1.0 / 255.0)), lit.a);
 }
+#endif

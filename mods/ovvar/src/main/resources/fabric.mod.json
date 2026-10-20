@@ -47,6 +47,7 @@
 		"polymer-virtual-entity": "*",
 		"sgui": "*",
 		"metacraft-bundles": "*",
+		"metacraft-shaders": "*",
 		"booklet": "*"
 	}
 }

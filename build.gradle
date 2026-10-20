@@ -167,6 +167,16 @@ subprojects {
                     "website": project.website,
                     "issues": project.issues
         }
+
+        // A resource pack holds one copy of each vanilla shader, and Polymer silently keeps the last
+        // mod's, so only metacraft-shaders overrides them: a mod's effect goes in there (see its entity.fsh).
+        // (An input, so that resources processed before this check existed are checked too.)
+        inputs.property "overrides_vanilla_shaders", project.name == "metacraft-shaders"
+        if (project.name != "metacraft-shaders") {
+            filesMatching("assets/minecraft/shaders/**") {
+                throw new GradleException("${project.name} ships ${it.path}: vanilla shaders are only overridden in metacraft-shaders, so that mods never overwrite each other's")
+            }
+        }
     }
 
     dependencies {

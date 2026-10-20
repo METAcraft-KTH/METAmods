@@ -700,8 +700,8 @@ today. The preview texture holds the art of the first 21
 designs — any size, in a block of library cells — plus cell and design tables (a cell's row
 carries its own size beside its position, since a cell is not one size any more, and its row says
 which kind of face it is on: a v above the side rows is a box's top face, where the shader does not
-squeeze and clips the art to the cell); the pack's entity core shader
-(`assets/minecraft/shaders/core/entity.fsh` + `assets/ovvar/shaders/include/ovvar.glsl`) unranks
+squeeze and clips the art to the cell); the pack's entity core shader (metacraft-shaders'
+`assets/minecraft/shaders/core/entity.fsh` + `assets/ovvar/shaders/include/ovvar.glsl`) unranks
 the set and draws the art on the cells, lit white so the data colour never tints it. Designs
 past the first 21 in the catalogue only go through the pack. The tooltip's "Dyed" line is
 hidden.

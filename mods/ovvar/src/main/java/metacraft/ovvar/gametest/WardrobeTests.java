@@ -35,6 +35,7 @@ import metacraft.ovvar.sewing.StashSession;
 import eu.pb4.sgui.api.elements.GuiElement;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.core.component.DataComponents;
@@ -1527,6 +1528,17 @@ public final class WardrobeTests {
 		}
 	}
 
+	/** A file of metacraft-shaders, whose entity shader is the pack's (vanilla's own is on the classpath as well). */
+	private static String shaderResource(String path) {
+		try {
+			Path file = FabricLoader.getInstance().getModContainer("metacraft-shaders").orElseThrow().findPath(path)
+					.orElseThrow(() -> new IOException("metacraft-shaders has no " + path));
+			return Files.readString(file);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
+
 	private static boolean same(Tex a, Tex b) {
 		if (a.width != b.width || a.height != b.height) return false;
 		for (int y = 0; y < a.height; y++) for (int x = 0; x < a.width; x++) if (a.get(x, y) != b.get(x, y)) return false;
@@ -1982,11 +1994,11 @@ public final class WardrobeTests {
 		if (!json.contains(EquipmentJson.previewTexture(Piece.TOP))) helper.fail("the preview layer is not in the asset: " + json);
 
 		// 3. The shaders: a patch layer is lit white, and the sampled colour is modulated once.
-		String vsh = resource("/assets/minecraft/shaders/core/entity.vsh");
+		String vsh = shaderResource("assets/minecraft/shaders/core/entity.vsh");
 		if (!vsh.contains("mix(Color, vec4(1.0), ovvar_patch_layer())")) {
 			helper.fail("entity.vsh no longer lights a patch layer as white, so the dye colour would tint the art");
 		}
-		String fsh = resource("/assets/minecraft/shaders/core/entity.fsh");
+		String fsh = shaderResource("assets/minecraft/shaders/core/entity.fsh");
 		List<String> modulations = new ArrayList<>();
 		for (String line : fsh.split("\n")) {
 			String code = line.contains("//") ? line.substring(0, line.indexOf("//")) : line;

@@ -1,10 +1,17 @@
 #version 330
 #extension GL_ARB_separate_shader_objects : require
 
-// Ovvar: vanilla's entity fragment shader (26.3) with the albedo sample routed through ovvar.glsl,
-// which draws patches on student overalls and un-mirrors their left limbs. Textures that are
-// not ours are sampled exactly as vanilla does; clients whose core shaders are replaced (Iris,
-// OptiFine) get vanilla behaviour and see the garments without patches.
+// metacraft-shaders: vanilla's entity fragment shader (26.3), plus every effect our mods draw on
+// entities. A pack holds one entity shader, so they all live here, each in an include of its own
+// namespace, and no other module ships a vanilla shader (the build fails if one does). An effect
+// only changes textures of its own — told apart by their size before any texel is read — and
+// everything else is drawn exactly as vanilla draws it:
+//   ovvar  patches on student overalls, and their left limbs un-mirrored (ovvar.glsl).
+// Clients whose core shaders are replaced (Iris, OptiFine) get vanilla behaviour.
+//
+// Adding one: its include, one call in main() (an effect that replaces the whole fragment goes
+// before those that change what is sampled), and if it needs more than entityColor, entityPos and
+// entityNormal, a new input at location 11 or above in both stages.
 
 #ifdef GLINT
 #include <minecraft:globals.glsl>
@@ -45,16 +52,25 @@ layout(location = 6) in vec2 texCoord0;
 layout(location = 7) in vec2 texCoordGlint;
 #endif
 
-layout(location = 8) in vec4 ovvar_color;
-layout(location = 9) in vec3 ovvar_pos;
-layout(location = 10) in vec3 ovvar_normal;
-
-#define OVVAR_SAMPLE(uv) texture(Sampler0, uv)
-#include <ovvar:ovvar.glsl>
+// From entity.vsh: the raw (unlit) vertex colour, and the vertex position and normal.
+layout(location = 8) in vec4 entityColor;
+layout(location = 9) in vec3 entityPos;
+layout(location = 10) in vec3 entityNormal;
 
 #ifndef OIT_ALPHA_ONLY
 layout(location = 0) out vec4 fragColor;
 #endif
+
+#define OVVAR_SAMPLE(uv) texture(Sampler0, uv)
+#define ovvar_color entityColor
+#define ovvar_pos entityPos
+#define ovvar_normal entityNormal
+#include <ovvar:ovvar.glsl>
+
+// Every ovvar texture is OVVAR_TEX in size; nothing else pays for its marker reads.
+bool ovvar_texture() {
+    return textureSize(Sampler0, 0) == ivec2(OVVAR_TEX);
+}
 
 vec4 calculateFinalColor(vec4 color) {
     #ifndef NO_OVERLAY
@@ -82,7 +98,9 @@ vec4 calculateFinalColor(vec4 color) {
 }
 
 void main() {
-    vec4 color = texture(Sampler0, ovvar_uv(texCoord0));
+    // Ovvar: the coordinate to sample instead (derivatives inside: the size test is uniform).
+    vec2 uv = ovvar_texture() ? ovvar_uv(texCoord0) : texCoord0;
+    vec4 color = texture(Sampler0, uv);
 
     #ifdef OIT_ADDITIVE
     color.a = min(0.99, color.a);

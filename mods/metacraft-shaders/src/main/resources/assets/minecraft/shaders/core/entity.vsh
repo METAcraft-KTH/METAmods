@@ -1,9 +1,9 @@
 #version 330
 #extension GL_ARB_separate_shader_objects : require
 
-// Ovvar: vanilla's entity vertex shader (26.3), plus: the raw vertex colour goes to entity.fsh
-// unlit (a garment's patch bits live in its dye colour), and patch layers are lit as white so
-// that colour never tints the art. See ovvar.glsl.
+// metacraft-shaders: vanilla's entity vertex shader (26.3), plus the inputs our mods' entity
+// effects need (see entity.fsh): the raw vertex colour, position and normal go to entity.fsh,
+// and an ovvar patch layer is lit as white, since its dye colour is data and must never tint the art.
 
 #if defined(PER_FACE_LIGHTING) || !defined(NO_CARDINAL_LIGHTING)
 #include <minecraft:light.glsl>
@@ -51,32 +51,44 @@ layout(location = 6) out vec2 texCoord0;
 layout(location = 7) out vec2 texCoordGlint;
 #endif
 
-layout(location = 8) out vec4 ovvar_color;
-layout(location = 9) out vec3 ovvar_pos;
-layout(location = 10) out vec3 ovvar_normal;
+// Shared by every effect in entity.fsh. A new one that needs more takes location 11 or above.
+layout(location = 8) out vec4 entityColor;
+layout(location = 9) out vec3 entityPos;
+layout(location = 10) out vec3 entityNormal;
 
 uniform sampler2D Sampler0;
+
+// Ovvar: only its constants and ovvar_patch_layer; the rest of ovvar.glsl is the fragment's.
+#define OVVAR_VERTEX
 #define OVVAR_SAMPLE(uv) texture(Sampler0, uv)
-#include <ovvar:ovvar_vertex.glsl>
+#define ovvar_color Color
+#define ovvar_pos Position
+#define ovvar_normal Normal
+#include <ovvar:ovvar.glsl>
+
+// Every ovvar texture is OVVAR_TEX in size; nothing else pays for its marker reads.
+bool ovvar_texture() {
+    return textureSize(Sampler0, 0) == ivec2(OVVAR_TEX);
+}
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
-    ovvar_color = Color;
-    ovvar_pos = Position;
-    ovvar_normal = Normal;
-    vec4 ovvar_lit = mix(Color, vec4(1.0), ovvar_patch_layer());
+    entityColor = Color;
+    entityPos = Position;
+    entityNormal = Normal;
+    vec4 litColor = ovvar_texture() ? mix(Color, vec4(1.0), ovvar_patch_layer()) : Color;
 
     sphericalVertexDistance = fog_spherical_distance(Position);
     cylindricalVertexDistance = fog_cylindrical_distance(Position);
 
 #ifdef PER_FACE_LIGHTING
     vec2 light = minecraft_compute_light(Light0_Direction, Light1_Direction, Normal);
-    vertexPerFaceColorBack = minecraft_mix_light_separate(-light, ovvar_lit);
-    vertexPerFaceColorFront = minecraft_mix_light_separate(light, ovvar_lit);
+    vertexPerFaceColorBack = minecraft_mix_light_separate(-light, litColor);
+    vertexPerFaceColorFront = minecraft_mix_light_separate(light, litColor);
 #elif defined(NO_CARDINAL_LIGHTING)
-    vertexColor = ovvar_lit;
+    vertexColor = litColor;
 #else
-    vertexColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, ovvar_lit);
+    vertexColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, litColor);
 #endif
 
 #if !defined(EMISSIVE) && !defined(OIT_ALPHA_ONLY)
