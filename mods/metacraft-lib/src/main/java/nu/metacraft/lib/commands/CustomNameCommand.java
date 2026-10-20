@@ -4,10 +4,12 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.PermissionLevel;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.helper.CustomNameHelper;
 
 import static net.minecraft.commands.Commands.argument;
@@ -20,7 +22,7 @@ public class CustomNameCommand {
 			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
-				literal("custom-name").requires(Permissions.require("metacraft.custom-name", 3)).then(
+				literal("custom-name").requires(PermissionPredicates.require(METAcraftLib.getID("custom-name"), PermissionLevel.ADMINS)).then(
 						literal("set").then(
 								argument("name", StringArgumentType.string()).executes(ctx -> {
 									return changeName(ctx, StringArgumentType.getString(ctx, "name"), true);

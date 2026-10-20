@@ -83,17 +83,14 @@ public class METACodecs {
 			OrientationHelper::fromDirection
 	);
 
-	public static final Codec<ChunkPos> CHUNK_POS_CODEC = Codec.INT_STREAM.comapFlatMap(
-			stream -> Util.fixedSize(stream, 2).map(values -> new ChunkPos(values[0], values[1])),
-			pos -> IntStream.of(pos.x(), pos.z())
-	).stable();
+	public static final Codec<ChunkPos> CHUNK_POS_CODEC = ChunkPos.CODEC;
 
 	public static final Codec<EntitySpawnReason> SPAWN_REASON_CODEC = enumCodec(EntitySpawnReason.class, true);
 
 
 	public static final Codec<SoundSource> SOUND_CATEGORY_CODEC = StringRepresentable.fromEnum(SoundSource::values);
 
-	public static final Codec<AABB> BOX_CODEC = Codec.DOUBLE.listOf().listOf().flatXmap(
+	public static final Codec<AABB> BOX_CODEC = Codec.DOUBLE.listOf(2, 2).listOf(3, 3).flatXmap(
 			positions -> {
 				if (positions.size() == 2) {
 					var pos1 = positions.get(0);

@@ -6,14 +6,16 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.world.entity.player.Player;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.plots.gui.ProtectorateMenu;
 import nu.metacraft.plots.item.PlotKey;
 import nu.metacraft.plots.zone.PlayerOwnedProtectorate;
@@ -46,7 +48,7 @@ public class Commands {
 	};
 
 	private static boolean canModifyOtherProtectorates(CommandSourceStack source) {
-		return Permissions.check(source, "metacraft.zone.protectorates.modify_members", 2);
+		return source.checkPermission(METAcraftLib.getID("zone.protectorates.modify_members"), PermissionLevel.GAMEMASTERS);
 	}
 
 	public static final SuggestionProvider<CommandSourceStack> PROTECTORATE_NAME_SUGGESTIONS_ANY = (ctx, suggestionsBuilder) ->
@@ -206,7 +208,7 @@ public class Commands {
 						)
 					).then(
 						literal("make-protectorate").requires(
-							Permissions.require("metacraft.zone.protectorates.create", 2)
+							PermissionPredicates.require(METAcraftLib.getID("zone.protectorates.create"), PermissionLevel.GAMEMASTERS)
 						).then(
 							ZoneCommandUtils.zone("zone").executes(ctx -> {
 								Zone zone = ZoneCommandUtils.getZone(ctx, "zone");
@@ -219,7 +221,7 @@ public class Commands {
 						)
 					).then(
 						literal("revoke-protectorate").requires(
-							Permissions.require("metacraft.zone.protectorates.remove", 2)
+							PermissionPredicates.require(METAcraftLib.getID("zone.protectorates.remove"), PermissionLevel.GAMEMASTERS)
 						).then(
 							literal("yes-im-sure").then(
 								literal("yes-im-really-sure").then(
@@ -520,7 +522,7 @@ public class Commands {
 			);
 			dispatcher.register(
 					literal("plots").requires(
-							Permissions.require("metacraft.zone.plots", 2)
+							PermissionPredicates.require(METAcraftLib.getID("zone.plots"), PermissionLevel.GAMEMASTERS)
 					).then(
 						literal("make-plot").then(
 							ZoneCommandUtils.zone("zone").executes(ctx -> {

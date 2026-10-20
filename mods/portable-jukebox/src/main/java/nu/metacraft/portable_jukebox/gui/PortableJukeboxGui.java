@@ -30,8 +30,8 @@ public class PortableJukeboxGui extends LayeredGui {
 
 		this.portableJukebox = new PortableJukeboxInventory(portableJukebox, onUpdate);
 
-		this.setTitle(Component.translatableWithFallback(
-				"portable_jukebox.gui", "Portable Jukebox"
+		this.setTitle(Component.translatable(
+				"portable_jukebox.gui"
 		));
 
 		Layer slot = new Layer(1, 1);

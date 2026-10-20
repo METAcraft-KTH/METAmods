@@ -1,6 +1,7 @@
 package nu.metacraft.cutscenes.transitions;
 
 import com.google.common.base.Suppliers;
+import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -158,6 +159,8 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 
 	public record DynamicTarget(PositionRef pos, RotationRef rot) implements Interpolatable<CutsceneContext> {
 
+		public static final int SIZE = 5;
+
 		public static final Int2ObjectMap<InterpolationSet.Adjuster> ADJUSTER = Target.ADJUSTER;
 
 		public static final MapCodec<DynamicTarget> MAP_CODEC = RecordCodecBuilder.mapCodec(
@@ -165,6 +168,17 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 						PositionRefRegistry.CODEC.fieldOf("pos").forGetter(t -> t.pos),
 						RotationRefRegistry.CODEC.fieldOf("rot").forGetter(t -> t.rot)
 				).apply(instance, DynamicTarget::new)
+		);
+
+		public static final MapCodec<DynamicTarget> OR_FIXED_CODEC = Codec.mapEither(
+			MAP_CODEC, Target.MAP_CODEC
+		).xmap(
+			either -> either.map(l -> l, r -> new DynamicTarget(new Fixed(r.pos()), new FixedRot(r.yaw(), r.pitch()))),
+			Either::left
+		);
+
+		public static final DynamicTarget DEFAULT = new DynamicTarget(
+			new Fixed(Vec3.ZERO), new FixedRot(0, 0)
 		);
 
 		public static final Codec<DynamicTarget> CODEC = MAP_CODEC.codec();
@@ -200,7 +214,7 @@ public class PlayerSpecificCameraPathTransition implements Transition {
 		@Override
 		public DoubleList getValues(@Nullable CutsceneContext ctx) {
 			if (ctx != null) {
-				var player = ctx.player();
+				var player = ctx.entity();
 				var cutscene = ctx.cutscene();
 				if (cutscene != null) {
 					var refCtx = ctx.getRefContext();

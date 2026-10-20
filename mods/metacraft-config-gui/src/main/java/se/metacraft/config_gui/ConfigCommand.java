@@ -43,7 +43,9 @@ public class ConfigCommand {
 			null,
 			gui -> {
 				if (gui instanceof ValueEditor<?> editor) {
-					var value = editor.getValue(lookup);
+					var value = editor.getValue(lookup).resultOrPartial(
+						err -> player.sendSystemMessage(Component.literal(err))
+					).flatMap(o -> o);
 					if (value.isEmpty()) return null;
 					config.modify(c -> {
 						try {

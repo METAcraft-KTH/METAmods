@@ -1,6 +1,7 @@
 package nu.metacraft.relay.items;
 
 import eu.pb4.polymer.core.api.item.PolymerBlockItem;
+import nu.metacraft.lib.CreativeTabNamespaces;
 import nu.metacraft.relay.Relay;
 import nu.metacraft.relay.blocks.RelayBlocks;
 import nu.metacraft.relay.blocks.block.RelayBlock;
@@ -33,7 +34,7 @@ public class RelayItems {
 	);
 
 	public static void init() {
-
+		CreativeTabNamespaces.add(Relay.NAMESPACE);
 	}
 
 	private static Item register(String id, Function<Item.Properties, Item> creator, Item.Properties settings) {

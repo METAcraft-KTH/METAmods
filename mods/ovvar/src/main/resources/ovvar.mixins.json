@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "metacraft.ovvar.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"CompanionCursorMixin",
+		"CustomClickMixin",
+		"ForeignOvveMixin",
+		"ResourcePackResponseMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -48,7 +48,10 @@ public abstract class ServerLevelMixin extends Level implements ServerAndServerL
 		)
 	)
 	public boolean onLoadChunks(boolean original, @Local(name = "chunk") ChunkPos chunk) {
-		if (!original) {
+		// Asks for the entities of a chunk nothing has loaded. A chunk that is already ticking, with its
+		// entities still being read, must stay ticking: set to TRACKED it stops ticking for good (the
+		// chunk's own status doesn't change again), and a game test on it never starts.
+		if (!original && !this.entityManager.isTicking(chunk)) {
 			this.entityManager.updateChunkStatus(chunk, Visibility.TRACKED);
 		}
 		return original;

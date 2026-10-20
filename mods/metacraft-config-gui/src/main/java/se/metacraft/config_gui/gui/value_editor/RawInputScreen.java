@@ -213,8 +213,8 @@ public interface RawInputScreen extends ClickHandlerGUI {
 		}
 
 		@Override
-		public Optional<T> getValue(HolderLookup.Provider lookup) {
-			return value;
+		public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
+			return DataResult.success(value);
 		}
 	}
 

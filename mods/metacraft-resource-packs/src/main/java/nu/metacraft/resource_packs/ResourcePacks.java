@@ -19,6 +19,7 @@ public class ResourcePacks implements ModInitializer {
 		if (!f.exists()) {
 			f.mkdirs();
 		}
+		ResourcePackServerManager.init();
 	}
 
 	public static Identifier getID(String id) {

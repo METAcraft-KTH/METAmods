@@ -2,7 +2,6 @@ package nu.metacraft.pause;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.*;
@@ -261,7 +260,7 @@ public class PauseData extends SavedData {
 	}
 
 	public static boolean shouldFreezeWhenPaused(ServerPlayer player) {
-		return !Permissions.check(player.createCommandSourceStack(), "metacraft.pause.can_move", PermissionLevel.ADMINS);
+		return !player.createCommandSourceStack().checkPermission(METAcraftPause.getID("pause.can_move"), PermissionLevel.ADMINS);
 	}
 
 }

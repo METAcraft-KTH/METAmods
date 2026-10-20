@@ -1,0 +1,9 @@
+{
+	"type": "minecraft:function",
+	"environment": "metacraft:default",
+	"function": "metacraft:void_anchor/wrong_item_does_not_charge",
+	"max_ticks": 30,
+	"required": true,
+	"setup_ticks": 1,
+	"structure": "metacraft:qol_room"
+}

@@ -2,13 +2,15 @@ package nu.metacraft.core.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.entity.Entity;
+import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.entity.entities.player_mob.PlayerMob;
 
 import java.util.Collection;
@@ -23,7 +25,7 @@ public class PlayerMobCommand {
 			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
-				literal("player-mob").requires(Permissions.require("metacraft.player-mob", 2)).then(
+				literal("player-mob").requires(PermissionPredicates.require(METAcraftCore.getID("player-mob"), PermissionLevel.GAMEMASTERS)).then(
 						literal("copy-skin-to").then(
 								argument("player-mobs", EntityArgument.entities()).executes(
 										ctx -> copySkinTo(

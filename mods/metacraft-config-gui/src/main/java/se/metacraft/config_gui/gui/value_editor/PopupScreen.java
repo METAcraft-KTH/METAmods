@@ -1,5 +1,6 @@
 package se.metacraft.config_gui.gui.value_editor;
 
+import com.mojang.serialization.DataResult;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.ClickEvent;
@@ -12,6 +13,7 @@ import net.minecraft.server.dialog.*;
 import net.minecraft.server.dialog.action.Action;
 import net.minecraft.server.dialog.action.StaticAction;
 import net.minecraft.server.dialog.body.DialogBody;
+import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
 import se.metacraft.config_gui.ClickHandlerGUI;
 import se.metacraft.config_gui.gui.value_editor.click.ClickHandler;
@@ -22,6 +24,7 @@ import se.metacraft.config_gui.gui.value_editor.click.handlers.Resubmit;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 public record PopupScreen(Component title, List<DialogBody> body, ParentInfo source) implements ClickHandlerGUI {
 
@@ -49,6 +52,24 @@ public record PopupScreen(Component title, List<DialogBody> body, ParentInfo sou
 						false
 					))
 				)
+			)
+		);
+	}
+
+	public static <T extends ClickHandlerGUI> ClickHandlerGUI dataResult(
+		DataResult<T> result, ClickHandlerGUI fallback
+	) {
+		return dataResult(result, g -> g, fallback);
+	}
+
+	public static <T> ClickHandlerGUI dataResult(
+		DataResult<T> result, Function<T, ClickHandlerGUI> onSuccess, ClickHandlerGUI fallback
+	) {
+		return result.mapOrElse(
+			onSuccess,
+			err -> new PopupScreen(
+				PopupScreen.FAILED, List.of(new PlainMessage(Component.literal(err.message()), PlainMessage.DEFAULT_WIDTH)),
+				new SimpleSubMenuParentInfo(err.partialValue().map(onSuccess).orElse(fallback))
 			)
 		);
 	}

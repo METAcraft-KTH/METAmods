@@ -7,13 +7,16 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.storage.TagValueOutput;
-import org.jetbrains.annotations.Nullable;
+import nu.metacraft.cutscenes.transitions.PlayerSpecificCameraPathTransition;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -31,64 +34,103 @@ import nu.metacraft.core.util.InterpolationSet;
 import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import org.joml.Vector3fc;
 
-import java.util.Arrays;
 import java.util.stream.DoubleStream;
 
 public record SmoothEntityPathConfig(
-		InterpolationSetContainer<DisplayEntityTarget> targets, int interpolationDuration, int teleportInterval,
+		InterpolationSetContainer<DynamicDisplayTarget> targets,
+		int interpolationDuration, int teleportInterval,
 		EntityRef entity
 ) implements TransitionConfig {
 
-	public static final MapCodec<InterpolationSetContainer<DisplayEntityTarget>> SMOOTH_PATH = InterpolationSetContainer.createCodec(
-			DisplayEntityTarget.CODEC, DisplayEntityTarget::fromList, DisplayEntityTarget.ADJUSTER
+	public static final MapCodec<InterpolationSetContainer<DynamicDisplayTarget>> SMOOTH_DYNAMIC_PATH = InterpolationSetContainer.createCodec(
+			DynamicDisplayTarget.MAP_CODEC, DynamicDisplayTarget::fromList, DynamicDisplayTarget.ADJUSTER
 	);
 
 	public static final MapCodec<SmoothEntityPathConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					SMOOTH_PATH.forGetter(c -> c.targets),
+					SMOOTH_DYNAMIC_PATH.forGetter(c -> c.targets),
 					ExtraCodecs.POSITIVE_INT.optionalFieldOf("linear_interpolation_duration", 20).forGetter(SmoothEntityPathConfig::interpolationDuration),
 					ExtraCodecs.POSITIVE_INT.optionalFieldOf("teleport_interval", 1).forGetter(SmoothEntityPathConfig::teleportInterval),
 					EntityRefRegistry.CODEC.fieldOf("entity").forGetter(SmoothEntityPathConfig::entity)
 			).apply(instance, SmoothEntityPathConfig::new)
 	);
 
-	public record DisplayEntityTarget(
-			Target target, Transformation transformation,
-			float shadowRadius, float shadowStrength,
-			int background, byte textOpacity //Only used on text displays.
+	public record DynamicDisplayTarget(
+		PlayerSpecificCameraPathTransition.DynamicTarget target, DisplayEntityProperties displayEntityProperties
 	) implements Interpolatable<CutsceneContext> {
+		public static final Int2ObjectMap<InterpolationSet.Adjuster> ADJUSTER = new Int2ObjectOpenHashMap<>();
 
-		public static final Int2ObjectMap<InterpolationSet.Adjuster> ADJUSTER = Target.ADJUSTER;
-
-		public static final MapCodec<DisplayEntityTarget> CODEC = RecordCodecBuilder.mapCodec(
-				instance -> instance.group(
-						Target.MAP_CODEC.forGetter(DisplayEntityTarget::target),
-						Transformation.CODEC.optionalFieldOf("transformation", Transformation.IDENTITY).forGetter(DisplayEntityTarget::transformation),
-						Codec.FLOAT.optionalFieldOf("shadow_radius", 0.0f).forGetter(DisplayEntityTarget::shadowRadius),
-						Codec.FLOAT.optionalFieldOf("shadow_strength", 1.0f).forGetter(DisplayEntityTarget::shadowStrength),
-						Codec.INT.optionalFieldOf("background", Display.TextDisplay.INITIAL_BACKGROUND).forGetter(DisplayEntityTarget::background),
-						Codec.BYTE.optionalFieldOf("text_opacity", (byte) -1).forGetter(DisplayEntityTarget::textOpacity)
-				).apply(instance, DisplayEntityTarget::new)
-		);
-
-		public static final DisplayEntityTarget DEFAULT = new SmoothEntityPathConfig.DisplayEntityTarget(
-				Target.DEFAULT,
-				Transformation.IDENTITY,
-				0, 0, Display.TextDisplay.INITIAL_BACKGROUND,  (byte) -1
-		);
-
-		public DisplayEntityTarget {
-			transformation.scale(); //Initialize internal variables in transformation to prevent crash when serializing.
+		static {
+			ADJUSTER.putAll(Target.ADJUSTER);
+			ADJUSTER.putAll(DisplayEntityProperties.adjuster(PlayerSpecificCameraPathTransition.DynamicTarget.SIZE));
 		}
 
-		private static final int TARGET_SIZE = 5;
-		private static final int TRANSFORMATION_START = TARGET_SIZE;
-		private static final int TRANSFORMATION_SIZE = 14;
-		private static final int VARS_POS = TARGET_SIZE + TRANSFORMATION_SIZE;
-		private static final int SIZE = TARGET_SIZE+ TRANSFORMATION_SIZE +4;
+		public static final MapCodec<DynamicDisplayTarget> MAP_CODEC = RecordCodecBuilder.mapCodec(
+			instance -> instance.group(
+				PlayerSpecificCameraPathTransition.DynamicTarget.OR_FIXED_CODEC.forGetter(DynamicDisplayTarget::target),
+				DisplayEntityProperties.CODEC.forGetter(DynamicDisplayTarget::displayEntityProperties)
+			).apply(instance, DynamicDisplayTarget::new)
+		);
+		public static final DynamicDisplayTarget DEFAULT = new DynamicDisplayTarget(
+			PlayerSpecificCameraPathTransition.DynamicTarget.DEFAULT, DisplayEntityProperties.DEFAULT
+		);
 
-		public static DisplayEntityTarget fromEntity(Entity entity) {
-			var target = Target.fromEntity(entity);
+		public static DynamicDisplayTarget fromList(DoubleStream stream) {
+			var list = DoubleArrayList.toList(stream.limit(PlayerSpecificCameraPathTransition.DynamicTarget.SIZE + DisplayEntityProperties.SIZE));
+			return new DynamicDisplayTarget(
+				PlayerSpecificCameraPathTransition.DynamicTarget.fromList(list.doubleStream()),
+				DisplayEntityProperties.fromList(
+					PlayerSpecificCameraPathTransition.DynamicTarget.SIZE,
+					list.doubleStream()
+				)
+			);
+		}
+
+		@Override
+		public DoubleList getValues(CutsceneContext context) {
+			var combined = new DoubleArrayList();
+			combined.addAll(target.getValues(context));
+			combined.addAll(displayEntityProperties.getValues());
+			return combined;
+		}
+
+		public static DynamicDisplayTarget fromEntity(Entity entity) {
+			return new DynamicDisplayTarget(
+				PlayerSpecificCameraPathTransition.DynamicTarget.fromEntity(entity),
+				DisplayEntityProperties.fromEntity(entity)
+			);
+		}
+	}
+
+	public record DisplayEntityProperties(
+		Transformation transformation,
+		float shadowRadius, float shadowStrength,
+		int background, byte textOpacity //Only used on text displays.
+	) {
+
+		public static Int2ObjectMap<InterpolationSet.Adjuster> adjuster(int start) {
+			return Int2ObjectMaps.singleton(
+				start + TRANSFORMATION_SIZE + 2,
+				elements -> DoubleArrayList.toList(elements.doubleStream().map(e -> e < 0 ? 256 + e : e))
+			);
+		}
+
+		public static final MapCodec<DisplayEntityProperties> CODEC = RecordCodecBuilder.mapCodec(
+			instance -> instance.group(
+				Transformation.CODEC.optionalFieldOf("transformation", Transformation.IDENTITY).forGetter(DisplayEntityProperties::transformation),
+				Codec.FLOAT.optionalFieldOf("shadow_radius", 0.0f).forGetter(DisplayEntityProperties::shadowRadius),
+				Codec.FLOAT.optionalFieldOf("shadow_strength", 1.0f).forGetter(DisplayEntityProperties::shadowStrength),
+				ExtraCodecs.STRING_ARGB_COLOR.optionalFieldOf("background", Display.TextDisplay.INITIAL_BACKGROUND).forGetter(DisplayEntityProperties::background),
+				Codec.BYTE.optionalFieldOf("text_opacity", (byte) -1).forGetter(DisplayEntityProperties::textOpacity)
+			).apply(instance, DisplayEntityProperties::new)
+		);
+
+		public static final DisplayEntityProperties DEFAULT = new SmoothEntityPathConfig.DisplayEntityProperties(
+			Transformation.IDENTITY,
+			0, 0, Display.TextDisplay.INITIAL_BACKGROUND,  (byte) -1
+		);
+
+		public static DisplayEntityProperties fromEntity(Entity entity) {
 			CompoundTag data;
 			try (var logging = LoggingErrorReporter.create(() -> "metacraft:SmoothEntityPathConfig#fromEntity", Cutscenes.LOGGER)) {
 				var writeView = TagValueOutput.createWithContext(logging, entity.registryAccess());
@@ -98,7 +140,7 @@ public record SmoothEntityPathConfig(
 			var transformation = Transformation.IDENTITY;
 			if (data.contains(Display.TAG_TRANSFORMATION)) {
 				transformation = Transformation.EXTENDED_CODEC.parse(NbtOps.INSTANCE, data.get(Display.TAG_TRANSFORMATION)).resultOrPartial(
-						Cutscenes.LOGGER::error
+					Cutscenes.LOGGER::error
 				).orElse(transformation);
 			}
 			float shadowRadius = 0;
@@ -119,37 +161,37 @@ public record SmoothEntityPathConfig(
 			if (data.contains("text_opacity")) {
 				textOpacity = data.getByteOr("text_opacity", (byte) -1);
 			}
-			return new DisplayEntityTarget(
-					target, transformation, shadowRadius, shadowStrength, background, textOpacity
+			return new DisplayEntityProperties(
+				transformation, shadowRadius, shadowStrength, background, textOpacity
 			);
 		}
 
 		public static Transformation readAffine(double[] array, int startPoint) {
 			Vector3f translation = new Vector3f(
-					(float) array[startPoint],
-					(float) array[startPoint+1],
-					(float) array[startPoint+2]
+				(float) array[startPoint],
+				(float) array[startPoint+1],
+				(float) array[startPoint+2]
 			);
 			AxisAngle4f leftRot = new AxisAngle4f(
-					(float) array[startPoint+3],
-					(float) array[startPoint+4],
-					(float) array[startPoint+5],
-					(float) array[startPoint+6]
+				(float) array[startPoint+3],
+				(float) array[startPoint+4],
+				(float) array[startPoint+5],
+				(float) array[startPoint+6]
 			);
 			Vector3f scale = new Vector3f(
-					(float) array[startPoint+7],
-					(float) array[startPoint+8],
-					(float) array[startPoint+9]
+				(float) array[startPoint+7],
+				(float) array[startPoint+8],
+				(float) array[startPoint+9]
 			);
 			AxisAngle4f rightRot = new AxisAngle4f(
-					(float) array[startPoint+10],
-					(float) array[startPoint+11],
-					(float) array[startPoint+12],
-					(float) array[startPoint+13]
+				(float) array[startPoint+10],
+				(float) array[startPoint+11],
+				(float) array[startPoint+12],
+				(float) array[startPoint+13]
 			);
 			return new Transformation(
-					translation, leftRot.get(new Quaternionf()),
-					scale, rightRot.get(new Quaternionf())
+				translation, leftRot.get(new Quaternionf()),
+				scale, rightRot.get(new Quaternionf())
 			);
 		}
 
@@ -173,35 +215,43 @@ public record SmoothEntityPathConfig(
 			writeAxisAngle(transformation.rightRotation().get(new AxisAngle4f()), list);
 		}
 
-		public static DisplayEntityTarget fromList(DoubleStream stream) {
-			var array = stream.limit(SIZE).toArray();
-			var target = Target.fromList(Arrays.stream(array));
-			var transformation = readAffine(array, TRANSFORMATION_START);
-
-			var shadowRadius = array[VARS_POS];
-			var shadowStrength = array[VARS_POS + 1];
-			var background = array[VARS_POS + 2];
-			var textOpacity = array[VARS_POS + 3];
-
-			return new DisplayEntityTarget(
-					target, transformation, (float) shadowRadius, (float) shadowStrength,
-					(int) Math.round(background), (byte) Math.round(textOpacity)
-			);
-		}
-
-		@Override
-		public DoubleList getValues(@Nullable CutsceneContext ctx) {
+		public DoubleList getValues() {
 			var list = new DoubleArrayList(SIZE);
-			list.addAll(target.getValues(ctx));
-
 			writeAffine(transformation, list);
 
 			list.add(shadowRadius);
 			list.add(shadowStrength);
-			list.add(background);
 			list.add(textOpacity);
+			list.add(ARGB.alpha(background));
+			list.add(ARGB.red(background));
+			list.add(ARGB.green(background));
+			list.add(ARGB.blue(background));
 
 			return list;
+		}
+
+		private static final int TRANSFORMATION_SIZE = 14;
+		private static final int SIZE = TRANSFORMATION_SIZE + 7;
+		private static final int VARS_POS = TRANSFORMATION_SIZE;
+
+		public static DisplayEntityProperties fromList(int start, DoubleStream stream) {
+			var array = stream.limit(start + SIZE).toArray();
+			var transformation = readAffine(array, start);
+
+			var shadowRadius = array[start + VARS_POS];
+			var shadowStrength = array[start + VARS_POS + 1];
+			var textOpacity = array[start + VARS_POS + 2];
+			var background = ARGB.color(
+				(int) Math.round(array[start + VARS_POS + 3]),
+				(int) Math.round(array[start + VARS_POS + 4]),
+				(int) Math.round(array[start + VARS_POS + 5]),
+				(int) Math.round(array[start + VARS_POS + 6])
+			);
+
+			return new DisplayEntityProperties(
+				transformation, (float) shadowRadius, (float) shadowStrength,
+				background, (byte) Math.clamp(Math.round(textOpacity), 0, 255)
+			);
 		}
 	}
 

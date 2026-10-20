@@ -3,12 +3,12 @@ package nu.metacraft.faster_minecarts;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.advancements.predicates.BlockPredicate;
 import net.minecraft.advancements.predicates.entity.EntityPredicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.StringRepresentable;
@@ -18,11 +18,13 @@ import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.lib.util.helper.TextHelper;
 import org.jetbrains.annotations.NotNull;
 import se.metacraft.config.container.ConfigContainer;
 import se.metacraft.config.container.ServerAware;
+import se.metacraft.config.util.CommentCodec;
 
-import java.nio.file.Path;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -31,12 +33,30 @@ public class FasterMinecartsConfig {
 
 	public static final MapCodec<FasterMinecartsConfig> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					Codec.BOOL.fieldOf("global_faster_minecarts").forGetter(c -> c.globalFasterMinecarts),
-					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("max_minecart_speed").forGetter(c -> c.maxMinecartSpeed),
-					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("max_minecart_speed_underwater").forGetter(c -> c.maxMinecartSpeedUnderwater),
-					Codec.doubleRange(0, Double.MAX_VALUE).optionalFieldOf("dangerous_minecart_speed").forGetter(c -> c.dangerousMinecartSpeed),
-					Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("damage_factor").forGetter(c -> c.damageFactor),
-					ExperimentalMinecartMode.CODEC.fieldOf("experimental_minecart_mode").forGetter(c -> c.experimentalMinecartMode)
+					CommentCodec.comment(
+						Codec.BOOL.fieldOf("global_faster_minecarts"),
+						Component.translatable("config.fasterminecarts.global_faster_minecarts")
+					).forGetter(c -> c.globalFasterMinecarts),
+					CommentCodec.comment(
+						Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("max_minecart_speed"),
+						Component.translatable("config.fasterminecarts.max_minecart_speed")
+					).forGetter(c -> c.maxMinecartSpeed),
+					CommentCodec.comment(
+						Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("max_minecart_speed_underwater"),
+						Component.translatable("config.fasterminecarts.max_minecart_speed_underwater")
+					).forGetter(c -> c.maxMinecartSpeedUnderwater),
+					CommentCodec.comment(
+						Codec.doubleRange(0, Double.MAX_VALUE).optionalFieldOf("dangerous_minecart_speed"),
+						Component.translatable("config.fasterminecarts.dangerous_minecart_speed")
+					).forGetter(c -> c.dangerousMinecartSpeed),
+					CommentCodec.comment(
+						Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("damage_factor"),
+						Component.translatable("config.fasterminecarts.damage_factor")
+					).forGetter(c -> c.damageFactor),
+					CommentCodec.comment(
+						ExperimentalMinecartMode.CODEC.fieldOf("experimental_minecart_mode"),
+						Component.translatable("config.fasterminecarts.experimental_minecart_mode")
+					).forGetter(c -> c.experimentalMinecartMode)
 			).apply(instance, FasterMinecartsConfig::new)
 	);
 
@@ -112,9 +132,21 @@ public class FasterMinecartsConfig {
 	public record MinecartModifier(EntityPredicate minecartPredicate, Optional<Double> topSpeedFactor, Optional<Double> poweredRailAccelerationFactor) {
 		public static final Codec<MinecartModifier> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						EntityPredicate.CODEC.fieldOf("predicate").forGetter(MinecartModifier::minecartPredicate),
-						Codec.doubleRange(0, Double.MAX_VALUE).optionalFieldOf("top_speed").forGetter(MinecartModifier::topSpeedFactor),
-						Codec.doubleRange(0, Double.MAX_VALUE).optionalFieldOf("powered_rail_acceleration_factor").forGetter(MinecartModifier::poweredRailAccelerationFactor)
+						CommentCodec.comment(
+							EntityPredicate.CODEC.fieldOf("predicate"),
+							Component.translatable(
+								"config.fasterminecarts.minecart_modifiers.predicate",
+								TextHelper.url(URI.create("https://minecraft.wiki/w/Advancement/Conditions/entity"))
+							)
+						).forGetter(MinecartModifier::minecartPredicate),
+						CommentCodec.comment(
+							Codec.doubleRange(0, Double.MAX_VALUE).optionalFieldOf("top_speed"),
+							Component.translatable("config.fasterminecarts.minecart_modifiers.top_speed")
+						).forGetter(MinecartModifier::topSpeedFactor),
+						CommentCodec.comment(
+							Codec.doubleRange(0, Double.MAX_VALUE).optionalFieldOf("powered_rail_acceleration_factor"),
+							Component.translatable("config.fasterminecarts.minecart_modifiers.powered_rail_acceleration_factor")
+						).forGetter(MinecartModifier::poweredRailAccelerationFactor)
 				).apply(instance, MinecartModifier::new)
 		);
 	}
@@ -123,8 +155,17 @@ public class FasterMinecartsConfig {
 
 		public static final Codec<EntityDamageList> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						EntityPredicate.CODEC.listOf().fieldOf("predicates").forGetter(EntityDamageList::predicates),
-						Mode.CODEC.fieldOf("mode").forGetter(EntityDamageList::mode)
+						CommentCodec.comment(
+							EntityPredicate.CODEC.listOf().fieldOf("predicates"),
+							Component.translatable(
+								"config.fasterminecarts.entity_damage_list.predicates",
+								TextHelper.url(URI.create("https://minecraft.wiki/w/Advancement/Conditions/entity"))
+							)
+						).forGetter(EntityDamageList::predicates),
+						CommentCodec.comment(
+							Mode.CODEC.fieldOf("mode"),
+							Component.translatable("config.fasterminecarts.entity_damage_list.mode")
+						).forGetter(EntityDamageList::mode)
 				).apply(instance, EntityDamageList::new)
 		);
 
@@ -161,8 +202,17 @@ public class FasterMinecartsConfig {
 	public record BlockBooster(BlockPredicate predicate, double topSpeedIncrease) {
 		public static final Codec<BlockBooster> CODEC = RecordCodecBuilder.create(
 				instance -> instance.group(
-						BlockPredicate.CODEC.fieldOf("predicate").forGetter(BlockBooster::predicate),
-						Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("top_speed_increase").forGetter(BlockBooster::topSpeedIncrease)
+						CommentCodec.comment(
+							BlockPredicate.CODEC.fieldOf("predicate"),
+							Component.translatable(
+								"config.fasterminecarts.block_boosters.predicate",
+								TextHelper.url(URI.create("https://minecraft.wiki/w/Advancement/Conditions/block"))
+							)
+						).forGetter(BlockBooster::predicate),
+						CommentCodec.comment(
+							Codec.doubleRange(0, Double.MAX_VALUE).fieldOf("top_speed_increase"),
+							Component.translatable("config.fasterminecarts.block_boosters.top_speed_increase")
+						).forGetter(BlockBooster::topSpeedIncrease)
 				).apply(instance, BlockBooster::new)
 		);
 	}
@@ -198,9 +248,18 @@ public class FasterMinecartsConfig {
 	) {
 		public static final MapCodec<Loaded> CODEC = RecordCodecBuilder.mapCodec(
 				instance -> instance.group(
-						MinecartModifier.CODEC.listOf().fieldOf("minecart_modifiers").forGetter(c -> c.minecartModifiers),
-						EntityDamageList.CODEC.fieldOf("entity_damage_list").forGetter(c -> c.entityDamageList),
-						BlockBooster.CODEC.listOf().fieldOf("block_boosters").forGetter(c -> c.blockBoosters)
+						CommentCodec.comment(
+							MinecartModifier.CODEC.listOf().fieldOf("minecart_modifiers"),
+							Component.translatable("config.fasterminecarts.minecart_modifiers")
+						).forGetter(c -> c.minecartModifiers),
+						CommentCodec.comment(
+							EntityDamageList.CODEC.fieldOf("entity_damage_list"),
+							Component.translatable("config.fasterminecarts.entity_damage_list")
+						).forGetter(c -> c.entityDamageList),
+						CommentCodec.comment(
+							BlockBooster.CODEC.listOf().fieldOf("block_boosters"),
+							Component.translatable("config.fasterminecarts.block_boosters")
+						).forGetter(c -> c.blockBoosters)
 				).apply(instance, Loaded::new)
 		);
 

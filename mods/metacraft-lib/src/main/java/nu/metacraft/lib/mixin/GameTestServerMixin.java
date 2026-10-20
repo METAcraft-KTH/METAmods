@@ -42,12 +42,16 @@ public abstract class GameTestServerMixin extends MinecraftServer implements Tes
 		)
 	)
 	private void onExit(int status, Operation<Void> original) {
-		this.getRunningThread().interrupt();
+		if (TestHelper.isJunit()) {
+			this.getRunningThread().interrupt();
+		} else {
+			original.call(status);
+		}
 	}
 
 	@Override
 	public boolean metacraft$testPassed() {
-		return testTracker != null && !testTracker.hasFailedRequired();
+		return testTracker != null && testTracker.isDone() && !testTracker.hasFailedRequired();
 	}
 
 }

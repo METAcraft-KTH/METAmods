@@ -1,8 +1,9 @@
 package nu.metacraft.dungeons;
 
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.PermissionLevel;
 import nu.metacraft.dungeons.dungeons.DungeonData;
 
 import static net.minecraft.commands.Commands.literal;
@@ -14,7 +15,7 @@ public class Commands {
 
 			dispatcher.register(
 				literal("reset-dimension").requires(
-						Permissions.require("metacraft.dungeons.reset_dimension", 4)
+						PermissionPredicates.require(METAcraftDungeons.getID("dungeons.reset_dimension"), PermissionLevel.OWNERS)
 				).then(literal("yes-im-sure").then(literal("yes-im-really-sure").then(
 						literal("just-do-it-already").executes(ctx -> {
 							DungeonData.getIfPresent(ctx.getSource().getLevel()).ifPresentOrElse(data -> {

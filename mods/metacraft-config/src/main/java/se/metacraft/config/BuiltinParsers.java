@@ -3,11 +3,17 @@ package se.metacraft.config;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.*;
-import net.minecraft.core.Holder;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.Registry;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.minecraft.core.*;
 import net.minecraft.core.registries.codec.RegistryFileCodec;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.levelgen.Xoroshiro128PlusPlus;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 import nu.metacraft.lib.METAcraftLib;
 import se.metacraft.config.comments.codecs.MapCodecWithComments;
 import nu.metacraft.lib.mixin.FieldDecoderAccessor;
@@ -28,6 +34,7 @@ import se.metacraft.config.util.event.EventWithPhases;
 import se.metacraft.config.util.helper.CodecInternalsHelper;
 import se.metacraft.config.util.helper.CodecParsingHelper;
 
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
 import java.util.Map;
 import java.util.Optional;
@@ -80,12 +87,12 @@ public class BuiltinParsers {
 				));
 			}
 		}
-		if (codec instanceof ListCodec<?> list) {
+		if (codec instanceof ListCodec<?>(Codec<?> elementCodec, int minSize, int maxSize)) {
 			return Optional.of(
 				CodecResult.createWithComponents(
 					codec,
-					Metadata.metadataMap(Container.simple(ContainerType.LIST)),
-					TreePVector.singleton(CodecParser.parse(list.elementCodec(), lookup))
+					Metadata.metadataMap(Container.simple(ContainerType.LIST), new Range(minSize, maxSize)),
+					TreePVector.singleton(CodecParser.parse(elementCodec, lookup))
 				)
 			);
 		}
@@ -298,6 +305,52 @@ public class BuiltinParsers {
 		return Optional.empty();
 	};
 
+	private static AbstractCodecResult sizelimited(Codec<?> codec, int limit, HolderLookup.Provider lookup) {
+		if (codec instanceof SimpleCodecAccessor simple) {
+			if ( // Codecs defined via xmap
+				simple.getDecoder() instanceof MappedDecoderAccessor mapped &&
+				mapped.getParent() instanceof Codec<?> parent
+			) {
+				return CodecResult.createMapped(
+					codec, MetadataMap.from(new Range(limit, limit)), CodecParser.parse(parent, lookup)
+				);
+			}
+		}
+		if (codec instanceof MappedCodecAccessor mapped) {
+			return CodecResult.createMapped(
+				codec, MetadataMap.from(new Range(limit, limit)), CodecParser.parse(mapped.getParent(), lookup)
+			);
+		}
+		throw new IllegalArgumentException(codec + "is not a simple mapped codec!");
+	}
+
+	// Util::fixedSize does not leave any trace for us to follow unfortunately, so we just put them in this map manually instead.
+	public static final Object2IntMap<Object> SIZE_LIMITED_CODECS = new Object2IntOpenHashMap<>();
+	static {
+		SIZE_LIMITED_CODECS.put(Vec3.CODEC, 3);
+		SIZE_LIMITED_CODECS.put(Rotations.CODEC, 3);
+		SIZE_LIMITED_CODECS.put(Vec2.CODEC, 2);
+		SIZE_LIMITED_CODECS.put(ExtraCodecs.VECTOR2F, 2);
+		SIZE_LIMITED_CODECS.put(ExtraCodecs.VECTOR3F, 3);
+		SIZE_LIMITED_CODECS.put(ExtraCodecs.VECTOR3I, 3);
+		SIZE_LIMITED_CODECS.put(ExtraCodecs.VECTOR4F, 4);
+		SIZE_LIMITED_CODECS.put(ExtraCodecs.QUATERNIONF, 4);
+		SIZE_LIMITED_CODECS.put(ExtraCodecs.MATRIX4F, 16);
+		SIZE_LIMITED_CODECS.put(Xoroshiro128PlusPlus.CODEC, 2);
+		SIZE_LIMITED_CODECS.put(BlockPos.CODEC, 3);
+		SIZE_LIMITED_CODECS.put(Vec3i.CODEC, 3);
+		SIZE_LIMITED_CODECS.put(UUIDUtil.CODEC, 4);
+		SIZE_LIMITED_CODECS.put(ChunkPos.CODEC, 2);
+		SIZE_LIMITED_CODECS.put(BoundingBox.CODEC, 6);
+	}
+
+	private static final CodecParseEvents.ParseCodec MINECRAFT_PRE_CODECS = (codec, lookup) -> {
+		if (SIZE_LIMITED_CODECS.containsKey(codec)) {
+			return Optional.of(sizelimited(codec, SIZE_LIMITED_CODECS.getInt(codec), lookup));
+		}
+		return Optional.empty();
+	};
+
 	private static final CodecParseEvents.ParseCodec MINECRAFT_CODECS = (codec, lookup) -> {
 		if (
 			codec instanceof StringRepresentableCodecAccessor stringRepresentable &&
@@ -339,23 +392,35 @@ public class BuiltinParsers {
 			);
 		}
 		if (codec instanceof RegistryFixedCodecAccessor fixed) {
-			var registry = lookup.lookup(fixed.getRegistryKey());
-			if (registry.isPresent()) {
+			if (lookup != null) {
+				var registry = lookup.lookup(fixed.getRegistryKey());
+				if (registry.isPresent()) {
+					return Optional.of(CodecResult.createWithComponents(
+						codec, CodecParsingHelper.metadataFromRegistry(registry.get()), TreePVector.empty())
+					);
+				}
+			} else {
 				return Optional.of(CodecResult.createWithComponents(
-					codec, CodecParsingHelper.metadataFromRegistry(registry.get()), TreePVector.empty())
+					codec, MetadataMap.from(new Remainder(TreePVector.singleton(fixed.getRegistryKey()))), TreePVector.empty())
 				);
 			}
 		}
 		if (codec instanceof RegistryFileCodecAccessor<?> file) {
-			var registry = lookup.lookup(file.getRegistryKey());
 			PVector<AbstractCodecResult> results = TreePVector.empty();
-			if (registry.isPresent()) {
-				results = results.plus(
-					CodecResult.createWithComponents(
-						removeInline(file),
-						CodecParsingHelper.metadataFromRegistry(registry.get()),
-						TreePVector.empty()
-					)
+			if (lookup != null) {
+				var registry = lookup.lookup(file.getRegistryKey());
+				if (registry.isPresent()) {
+					results = results.plus(
+						CodecResult.createWithComponents(
+							removeInline(file),
+							CodecParsingHelper.metadataFromRegistry(registry.get()),
+							TreePVector.empty()
+						)
+					);
+				}
+			} else if (!file.getAllowInline()) {
+				return Optional.of(CodecResult.createWithComponents(
+					codec, MetadataMap.from(new Remainder(TreePVector.singleton(file.getRegistryKey()))), TreePVector.empty())
 				);
 			}
 			if (file.getAllowInline()) {
@@ -401,7 +466,7 @@ public class BuiltinParsers {
 			return Optional.of(
 				MapCodecResult.createMapped(
 					codec,
-					Metadata.metadataMap(new Comments(comments.comments())),
+					comments.comments().isEmpty() ? MetadataMap.EMPTY : Metadata.metadataMap(new Comments(comments.comments())),
 					CodecParser.parse(comments.getCodec(), lookup)
 				)
 			);
@@ -410,12 +475,12 @@ public class BuiltinParsers {
 	};
 
 	public static final CodecParseEvents.ParseCodec ALL_CODECS = (codec, lookup) -> EventWithPhases.getOptionalResult(
-		new CodecParseEvents.ParseCodec[]{CODEC, MINECRAFT_CODECS},
+		new CodecParseEvents.ParseCodec[]{MINECRAFT_PRE_CODECS, CODEC, MINECRAFT_CODECS},
 		p -> p.parse(codec, lookup)
 	);
 
 	public static final CodecParseEvents.ParseMapCodec ALL_MAP_CODECS = (codec, lookup) -> EventWithPhases.getOptionalResult(
-		new CodecParseEvents.ParseMapCodec[]{MAP_CODEC, MINECRAFT_MAP_CODECS, CUSTOM},
+		new CodecParseEvents.ParseMapCodec[]{CUSTOM, MAP_CODEC, MINECRAFT_MAP_CODECS},
 		p -> p.parse(codec, lookup)
 	);
 
@@ -459,7 +524,7 @@ public class BuiltinParsers {
 		}
 
 		var list = parameters.stream().filter(
-			param -> CodecInternalsHelper.isCodecValidUncasted(underlying.codec(), param, lookup)
+			param -> CodecInternalsHelper.isCodecValidUncasted(underlying.codec(), param, lookup) || underlying.isContainerType(ContainerType.LIST)
 		).toList();
 		if (
 			list.size() == 2 &&
@@ -472,23 +537,25 @@ public class BuiltinParsers {
 		for (var param : parameters) {
 			for (var field : param.getClass().getDeclaredFields()) {
 				if (Map.class.isAssignableFrom(field.getType())) {
-					field.setAccessible(true);
 					try {
-						var map = (Map<?, ?>) (Modifier.isStatic(field.getModifiers()) ? field.get(null) : field.get(param));
-						if (map == null) continue;
-						var entries = Entries.from(
-							map.entrySet().stream().filter(
-								e -> e.getKey() instanceof String && e.getValue() instanceof MapCodec<?>
-							).map(
-								e -> new Entries.Entry((String) e.getKey(), e.getValue())
-							)
-						);
-						if (!entries.isEmpty()) {
-							metadata = metadata.plus(entries);
+						field.setAccessible(true);
+						try {
+							var map = (Map<?, ?>) (Modifier.isStatic(field.getModifiers()) ? field.get(null) : field.get(param));
+							if (map == null) continue;
+							var entries = Entries.from(
+								map.entrySet().stream().filter(
+									e -> e.getKey() instanceof String && e.getValue() instanceof MapCodec<?>
+								).map(
+									e -> new Entries.Entry((String) e.getKey(), e.getValue())
+								)
+							);
+							if (!entries.isEmpty()) {
+								metadata = metadata.plus(entries);
+							}
+						} catch (IllegalAccessException e) {
+							throw new RuntimeException(e);
 						}
-					} catch (IllegalAccessException e) {
-						throw new RuntimeException(e);
-					}
+					} catch (InaccessibleObjectException ignored) {}
 				}
 			}
 		}
@@ -500,7 +567,7 @@ public class BuiltinParsers {
 				var converted = CodecInternalsHelper.convert(underlying.codec(), nextLevel, value.value(), lookup);
 				newStrings = newStrings.minus(value);
 				if (converted.hasResultOrPartial()) {
-					newStrings = newStrings.plus(value.withValue(converted.getOrThrow()));
+					newStrings = newStrings.plus(value.withValue(converted.getPartialOrThrow()));
 				}
 			}
 			metadata = metadata.plus(
@@ -514,7 +581,7 @@ public class BuiltinParsers {
 			);
 			if (converted.hasResultOrPartial()) {
 				metadata = metadata.plus(
-					converted == defaultValue.get().value() ? defaultValue.get() : new DefaultValue(converted.getOrThrow())
+					converted == defaultValue.get().value() ? defaultValue.get() : new DefaultValue(converted.getPartialOrThrow())
 				);
 			}
 		}

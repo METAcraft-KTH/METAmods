@@ -1,6 +1,7 @@
 package se.metacraft.config;
 
 import com.mojang.serialization.*;
+import com.mojang.serialization.codecs.DispatchedMapCodec;
 import com.mojang.serialization.codecs.ListCodec;
 import com.mojang.serialization.codecs.SimpleMapCodec;
 import com.mojang.serialization.codecs.UnboundedMapCodec;
@@ -18,6 +19,7 @@ import net.minecraft.network.chat.contents.data.BlockDataSource;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.Mth;
 import net.minecraft.util.random.Weighted;
+import nu.metacraft.lib.util.helper.DataResultHelper;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 import org.pcollections.PVector;
@@ -157,24 +159,27 @@ public class BuiltinDefaults {
 			var k = CodecInternalsHelper.defaultValue(eitherDispatch.get().components().getFirst(), lookup);
 			var dispatchData = element.getContainerData(ContainerType.DISPATCHED_EITHER).orElseThrow();
 			return Optional.of(
-				k.flatMap(key -> compilerHack(key, dispatchData).flatMap(decoder -> {
-					if (decoder instanceof MapCodec<?> c) {
-						return CodecInternalsHelper.forceEncode(
-							eitherDispatch.get().components().getFirst().codec(), ctx, key
-						).map(
-							encoded -> {
-								//noinspection unchecked
-								return encoded instanceof Map<?, ?> ? result.plusAll((Map<String, ?>) encoded) : result;
-							}
-						).flatMap(
-							r -> appendElements(
-								CodecParser.parse(c, lookup),
-								r, ctx, lookup
-							)
-						);
-					}
-					return DataResult.error(() -> decoder + " is not a MapCodec");
-				})).setPartial(result)
+				DataResultHelper.withPartialIfError(
+					k.flatMap(key -> compilerHack(key, dispatchData).flatMap(decoder -> {
+						if (decoder instanceof MapCodec<?> c) {
+							return CodecInternalsHelper.forceEncode(
+								eitherDispatch.get().components().getFirst().codec(), ctx, key
+							).map(
+								encoded -> {
+									//noinspection unchecked
+									return encoded instanceof Map<?, ?> ? result.plusAll((Map<String, ?>) encoded) : result;
+								}
+							).flatMap(
+								r -> appendElements(
+									CodecParser.parse(c, lookup),
+									r, ctx, lookup
+								)
+							);
+						}
+						return DataResult.error(() -> decoder + " is not a MapCodec");
+					})),
+					result
+				)
 			);
 		}
 		return Optional.empty();
@@ -256,7 +261,7 @@ public class BuiltinDefaults {
 			var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
 			var list = CodecInternalsHelper.getUnderlyingCodec(simple, ListCodec.class, lookup);
 			if (list.isPresent()) {
-				int minSize = list.get().minSize();
+				int minSize = element.nestedMetadata(MetadataKey.RANGE).map(r -> r.min().intValue()).orElse(list.get().minSize());
 				if (minSize == 0) {
 					var parsed = simple.parse(ctx, List.of());
 					if (parsed.hasResultOrPartial()) return Optional.of(parsed);
@@ -266,9 +271,12 @@ public class BuiltinDefaults {
 				DataResult<PVector<Object>> returnList = DataResult.success(TreePVector.empty());
 				for (int i = 0; i < minSize; i++) {
 					returnList = returnList.flatMap(
-						prevList -> CodecInternalsHelper.defaultValue(type, lookup).flatMap(
-							v -> CodecInternalsHelper.forceEncode(type.codec(), ctx, v)
-						).map(prevList::plus).setPartial(prevList)
+						prevList -> DataResultHelper.withPartialIfError(
+							CodecInternalsHelper.defaultValue(type, lookup).flatMap(
+								v -> CodecInternalsHelper.forceEncode(type.codec(), ctx, v)
+							).map(prevList::plus),
+							prevList
+						)
 					);
 				}
 				return Optional.of(returnList.flatMap(r -> simple.parse(ctx, r)));
@@ -281,6 +289,13 @@ public class BuiltinDefaults {
 			);
 			if (map.isEmpty()) {
 				map = CodecInternalsHelper.getUnderlyingCodec(simple, SimpleMapCodec.class, lookup).map(
+					c -> tryParseMapCodec(
+						c, simple, ctx, CodecParser::parse, lookup
+					)
+				);
+			}
+			if (map.isEmpty()) {
+				map = CodecInternalsHelper.getUnderlyingCodec(simple, DispatchedMapCodec.class, lookup).map(
 					c -> tryParseMapCodec(
 						c, simple, ctx, CodecParser::parse, lookup
 					)

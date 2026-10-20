@@ -4,11 +4,13 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.helper.PlayerDataHelper;
 
 import java.util.function.BiConsumer;
@@ -24,7 +26,7 @@ public class PlayerDataCommand {
 			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
-			literal("player-data").requires(Permissions.require("metacraft.player-data", 2)).then(
+			literal("player-data").requires(PermissionPredicates.require(METAcraftLib.getID("player-data"), PermissionLevel.GAMEMASTERS)).then(
 				literal("set-announce-advancements").then(
 					argument("state", BoolArgumentType.bool()).executes(
 						ctx -> changeBool(

@@ -6,6 +6,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import nu.metacraft.lib.CreativeTabNamespaces;
 import se.metacraft.playertrading.PlayerTrading;
 import se.metacraft.playertrading.block.TradingBlocks;
 import se.metacraft.playertrading.component.TradingComponents;
@@ -52,7 +53,7 @@ public class TradingItems {
 	public static final Item SHOP_KEY = register("shop_key", ShopKey::new, new Item.Properties());
 
 	public static void init() {
-
+		CreativeTabNamespaces.add(PlayerTrading.NAMESPACE);
 	}
 
 	private static Item register(String id, Function<Item.Properties, Item> creator, Item.Properties settings) {

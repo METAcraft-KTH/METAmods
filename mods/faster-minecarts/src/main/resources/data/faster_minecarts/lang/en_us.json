@@ -1,0 +1,18 @@
+{
+	"config.fasterminecarts.global_faster_minecarts": "If true, all minecarts are considered fast and obey these configs by default. If false, all minecarts behave like vanilla minecarts by default.",
+	"config.fasterminecarts.max_minecart_speed": "The maximum speed minecarts can reach. Overrides the gamerule.",
+	"config.fasterminecarts.max_minecart_speed_underwater": "The maximum speed minecarts can reach when travelling underwater. Overrides the gamerule.",
+	"config.fasterminecarts.dangerous_minecart_speed": "If minecarts travel faster than this, they will damage mobs. Remove this entry entirely from the config to disable this feature.",
+	"config.fasterminecarts.damage_factor": "The factor that the speed is multiplied by to calculate how much damage the user should receive if dangerous_minecart_speed is enabled. Has no effect when dangerous_minecart_speed is undefined.",
+	"config.fasterminecarts.experimental_minecart_mode": "Controls how minecarts get more speed.\nlegacy: Hacks the old minecart mechanics to support faster speeds.\nexperimental: Force-enables experimental minecart physics even if disabled in feature flags. Minecarts that should not be affected will use normal minecraft physics serverside (the client will still see them as \"experimental\" minecarts, but this should not affect gameplay in a meaningful way).",
+	"config.fasterminecarts.minecart_modifiers": "List of modifiers that allows setting a custom speed and acceleration depending on each individual minecart.",
+	"config.fasterminecarts.minecart_modifiers.predicate": "An entity predicate for the given Minecart. Please see %s",
+	"config.fasterminecarts.minecart_modifiers.top_speed": "The maximum speed the minecart can reach.",
+	"config.fasterminecarts.minecart_modifiers.powered_rail_acceleration_factor": "Factor that the powered rail acceleration should be multiplied by.",
+	"config.fasterminecarts.entity_damage_list": "List of entities that can or cannot be damaged by the minecart when travelling above the dangerous_minecart_speed. Has no effect when dangerous_minecart_speed is undefined.",
+	"config.fasterminecarts.entity_damage_list.predicates": "A list of entity predicates that should match the condition of the list. Please see %s",
+	"config.fasterminecarts.entity_damage_list.mode": "How the predicates should be evaluated.\nonly: Only entries on this list will be damaged.\nignore: Entries on this list will not take damage, everything else will.",
+	"config.fasterminecarts.block_boosters": "List of booster blocks that make minecarts go faster when placed below the track.",
+	"config.fasterminecarts.block_boosters.predicate": "The block predicate describing the block this applies to. Please see %s",
+	"config.fasterminecarts.block_boosters.top_speed_increase": "How much the maximum speed is increased by."
+}

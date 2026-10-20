@@ -57,7 +57,7 @@ public record DispatchedEitherEditor<T>(
 	}
 
 	@Override
-	public Optional<T> getValue(HolderLookup.Provider lookup) {
+	public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
 		var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
 		return keyType.encodeField(ctx, key).flatMap(
 			keyResult -> prevValueType.encodeField(ctx, value).flatMap(
@@ -65,7 +65,7 @@ public record DispatchedEitherEditor<T>(
 					ctx, CodecInternalsHelper.mergeWithPrefix(valueResult, keyResult, ctx)
 				)
 			)
-		).resultOrPartial();
+		).map(Optional::of);
 	}
 
 	private String keyField() {
@@ -75,24 +75,28 @@ public record DispatchedEitherEditor<T>(
 	}
 
 	@Override
-	public ValueEditor<T> updateFromChild(HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position) {
+	public ClickHandlerGUI updateFromChild(HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position) {
 		if (position instanceof SubMenu.S(String s) && child instanceof ValueEditor<?> e) {
-			var newValue = e.getValue(lookup);
-			var keyField = keyField();
-			return newValue.map(object -> {
-				var newValueObject = s.equals(VALUE) ? object : (
-					s.equals(keyField) ?
-						valueTypeProvider.apply(object).flatMap(
-							v -> v.createEmpty(lookup)
-						).resultOrPartial().orElse(value) :
-						value
-				);
-				return new DispatchedEitherEditor<>(
-					keyType, s.equals(keyField) ? object : key,
-					valueTypeProvider, prevValueTypeFromCurrent(key, valueTypeProvider, prevValueType), newValueObject,
-					wrappingCodec, parent
-				);
-			}).orElse(this);
+			return PopupScreen.dataResult(
+				e.getValue(lookup).map(newValue -> {
+					var keyField = keyField();
+					return newValue.map(object -> {
+						var newValueObject = s.equals(VALUE) ? object : (
+							s.equals(keyField) ?
+								valueTypeProvider.apply(object).flatMap(
+									v -> v.createEmpty(lookup)
+								).resultOrPartial().orElse(value) :
+								value
+						);
+						return new DispatchedEitherEditor<>(
+							keyType, s.equals(keyField) ? object : key,
+							valueTypeProvider, prevValueTypeFromCurrent(key, valueTypeProvider, prevValueType), newValueObject,
+							wrappingCodec, parent
+						);
+					}).orElse(this);
+				}),
+				this
+			);
 		}
 		return this;
 	}

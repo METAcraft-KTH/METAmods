@@ -1,0 +1,21 @@
+{
+	"schemaVersion": 1,
+	"id": "kultur-clienttest",
+	"version": "1.0.0",
+	"name": "Kultur client tests",
+	"description": "Screenshot test: a client sees what the server draws.",
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"metacraft.kultur.clienttest.KulturClientTests"
+		]
+	},
+	"mixins": [
+		"kultur-clienttest.mixins.json"
+	],
+	"depends": {
+		"metacraft-kultur": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}

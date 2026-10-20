@@ -1,8 +1,9 @@
 package nu.metacraft.portable_jukebox;
 
 import nu.metacraft.lib.util.EntityRef;
+import nu.metacraft.portable_jukebox.ender_chest.EnderChestEntityRef;
+import nu.metacraft.portable_jukebox.ender_chest.PlayerEnderChestContainerExtension;
 import nu.metacraft.portable_jukebox.mixin.CompoundContainerAccessor;
-import nu.metacraft.portable_jukebox.mixin.PlayerEnderChestContainerAccessor;
 
 import java.util.Optional;
 import net.minecraft.world.Container;
@@ -28,7 +29,7 @@ public class InventoryHelper {
 			).orElse(
 					getEntityFromInventory(doubleInv.getContainer2())
 			);
-			case PlayerEnderChestContainerAccessor enderChest -> Optional.ofNullable(enderChest.getActiveChest()).map(EntityRef::fromBlock);
+			case PlayerEnderChestContainerExtension enderChest -> Optional.ofNullable(enderChest.metacraft$getPlayer()).map(EnderChestEntityRef::new);
 			case null, default -> Optional.empty();
 		};
 	}

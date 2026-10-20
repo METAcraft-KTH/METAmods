@@ -1,6 +1,7 @@
 package se.metacraft.config_gui.gui.value_editor;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JavaOps;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
@@ -48,9 +49,9 @@ public record SingleValueEditor<T>(
 	}
 
 	@Override
-	public Optional<T> getValue(HolderLookup.Provider lookup) {
+	public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
 		return codec.parse(
 			lookup.createSerializationContext(JavaOps.INSTANCE), value
-		).resultOrPartial();
+		).map(Optional::of);
 	}
 }

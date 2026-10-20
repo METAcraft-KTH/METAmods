@@ -1,0 +1,9 @@
+{
+	"type": "minecraft:function",
+	"environment": "metacraft:qol_silence_mobs_off",
+	"function": "metacraft:silence_mobs/off_muffler_does_nothing",
+	"max_ticks": 20,
+	"required": true,
+	"setup_ticks": 1,
+	"structure": "metacraft:qol_room"
+}

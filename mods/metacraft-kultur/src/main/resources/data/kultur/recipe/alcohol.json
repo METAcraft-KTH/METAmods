@@ -1,0 +1,31 @@
+{
+	"fabric:load_conditions": [
+		{
+			"condition": "fabric:not",
+			"value": {
+				"condition": "fabric:all_mods_loaded",
+				"values": [
+					"brewery"
+				]
+			}
+		}
+	],
+	"type": "minecraft:brewing",
+	"input": {
+		"item": "minecraft:potion",
+		"potion_contents": {
+			"potions": "minecraft:water"
+		}
+	},
+	"reagent": {
+		"item": "minecraft:potato"
+	},
+	"output": {
+		"id": "minecraft:potion",
+		"components": {
+			"minecraft:potion_contents": {
+				"potion": "kultur:alcohol"
+			}
+		}
+	}
+}

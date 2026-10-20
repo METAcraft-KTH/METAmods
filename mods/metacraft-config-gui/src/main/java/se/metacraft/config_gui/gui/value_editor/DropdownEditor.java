@@ -1,6 +1,7 @@
 package se.metacraft.config_gui.gui.value_editor;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
@@ -33,8 +34,8 @@ public record DropdownEditor<T>(
 	private static final String SEARCH_KEY = "search";
 
 	@Override
-	public Optional<T> getValue(HolderLookup.Provider lookup) {
-		return Optional.of(value);
+	public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
+		return DataResult.success(Optional.of(value));
 	}
 
 	private Component name(String key) {

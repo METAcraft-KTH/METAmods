@@ -1,0 +1,5 @@
+{
+	"type": "minecraft:function",
+	"setup": "metacraft:qol_test/silence_mobs_off",
+	"teardown": "metacraft:qol_test/silence_mobs_on"
+}

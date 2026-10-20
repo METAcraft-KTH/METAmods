@@ -1,5 +1,6 @@
 package nu.metacraft.portable_jukebox.item;
 
+import nu.metacraft.lib.CreativeTabNamespaces;
 import nu.metacraft.portable_jukebox.item.components.Components;
 import nu.metacraft.portable_jukebox.PortableJukebox;
 
@@ -19,6 +20,7 @@ public class Items {
 
 	public static void init() {
 		Components.init();
+		CreativeTabNamespaces.add(PortableJukebox.NAMESPACE);
 	}
 
 	private static <T extends Item> T register(String id, Function<Item.Properties, T> item, Item.Properties settings) {

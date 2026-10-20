@@ -1,5 +1,6 @@
 package nu.metacraft.season_5;
 
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
@@ -9,10 +10,15 @@ import nu.metacraft.season_5.items.Season5Items;
 
 public class METAcraftSeason5 implements ModInitializer {
 
+	public static final String MODID = "metacraft-season-5";
+
 	@Override
 	public void onInitialize() {
 		Season5Items.init();
 		S5GameRules.init();
+		// Item models, textures and lang go to clients in the Polymer resource pack.
+		PolymerResourcePackUtils.addModAssets(MODID);
+		PolymerResourcePackUtils.markAsRequired();
 	}
 
 	public static Identifier getID(String name) {

@@ -23,6 +23,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
@@ -65,6 +66,10 @@ public class RelayBlock extends Block implements PolymerTexturedBlock, EntityBlo
 
 	public static final BooleanProperty CHARGED = BooleanProperty.create("charged");
 	public static final BooleanProperty CUSTOM_MODEL = BooleanProperty.create("custom_model");
+
+	public static final SoundEvent PLAYER_TELEPORT_ARRIVE = new SoundEvent(
+		Relay.getID("entity.player.teleport.arrival"), Optional.empty()
+	);
 
 	public static final Identifier DEFAULT_MODEL = Relay.getID("relay");
 
@@ -213,7 +218,15 @@ public class RelayBlock extends Block implements PolymerTexturedBlock, EntityBlo
 					))
 				).ifPresent(
 					target -> {
+						world.playSound(
+							null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+							SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.BLOCKS, 1.0F, 1.0F
+						);
 						player.teleport(target);
+						player.level().playSound(
+							null, player.getX(), player.getY(), player.getZ(),
+							PLAYER_TELEPORT_ARRIVE, SoundSource.PLAYERS, 1.0F, 1.0F
+						);
 						world.setBlockAndUpdate(pos, state.setValue(CHARGED, false));
 					}
 				);

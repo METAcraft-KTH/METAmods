@@ -7,7 +7,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.serialization.*;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -18,8 +18,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.FrontAndTop;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.Level;
+import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.METAcraftCoreTags;
 import nu.metacraft.core.block.METAcraftBlocks;
 import nu.metacraft.core.block.entities.PortalEntity;
@@ -41,7 +43,7 @@ public class LinkPortals {
 			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
-				literal("portal-link").requires(Permissions.require("metacraft.portal-link", 2)).then(
+				literal("portal-link").requires(PermissionPredicates.require(METAcraftCore.getID("portal-link"), PermissionLevel.GAMEMASTERS)).then(
 						argument("source", BlockPosArgument.blockPos()).then(
 								argument("target", BlockPosArgument.blockPos()).executes(
 										ctx -> linkPortals(
@@ -75,7 +77,7 @@ public class LinkPortals {
 				)
 		);
 		dispatcher.register(
-				literal("portal-facing").requires(Permissions.require("metacraft.portal-link", 2)).then(
+				literal("portal-facing").requires(PermissionPredicates.require(METAcraftCore.getID("portal-link"), PermissionLevel.GAMEMASTERS)).then(
 						argument("pos", BlockPosArgument.blockPos()).then(
 								orientation("orientation").executes(
 										ctx -> setFacing(

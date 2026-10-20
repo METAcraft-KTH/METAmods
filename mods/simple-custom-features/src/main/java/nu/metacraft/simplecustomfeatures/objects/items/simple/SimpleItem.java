@@ -352,7 +352,7 @@ public record SimpleItem(
 			DataResult<Item> itemR = createItem(newClass, settings, lookup);
 
 			if (itemR.hasResultOrPartial()) {
-				var item = itemR.getOrThrow();
+				var item = itemR.getPartialOrThrow();
 				var field = item.getClass().getDeclaredField(SETTINGS_FIELD_NAME);
 				field.setAccessible(true);
 				field.set(item, this);

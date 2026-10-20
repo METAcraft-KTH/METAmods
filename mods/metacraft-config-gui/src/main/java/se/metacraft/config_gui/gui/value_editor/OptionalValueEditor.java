@@ -97,24 +97,25 @@ public record OptionalValueEditor<T>(
 	@Override
 	public ClickHandlerGUI updateFromChild(HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position) {
 		if (position == OptionalKey.INSTANCE && child instanceof ValueEditor<?> e) {
-			var v = e.getValue(lookup).orElse(null);
-			return new OptionalValueEditor<>(
-				v != null ? v : value, type,
-				codec, v != null, parent
+			return PopupScreen.dataResult(
+				e.getValue(lookup),
+				v -> new OptionalValueEditor<>(
+					v.map(o -> (Object) o).orElse(value), type,
+					codec, v.isPresent(), parent
+				),
+				this
 			);
 		}
 		return this;
 	}
 
 	@Override
-	public Optional<T> getValue(HolderLookup.Provider lookup) {
-		if (!present) return Optional.empty();
+	public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
+		if (!present) return DataResult.success(Optional.empty());
 		var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
-		return Optional.of(
-			codec.parse(
-				ctx, forceEncode(type.element().codec(), ctx, value).getOrThrow()
-			).getOrThrow()
-		);
+		return forceEncode(type.element().codec(), ctx, value).flatMap(
+			encoded -> codec.parse(ctx, encoded)
+		).map(Optional::of);
 	}
 
 	@Override

@@ -1,7 +1,6 @@
 package nu.metacraft.pause;
 
 import com.mojang.brigadier.CommandDispatcher;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.commands.CommandSourceStack;
@@ -21,7 +20,7 @@ public class Commands {
 	public static void registerModerationModeCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(
 				literal("pause").requires(
-					ctx -> Permissions.check(ctx, "metacraft.pause.can_toggle", PermissionLevel.ADMINS) || FabricLoader.getInstance().isDevelopmentEnvironment()
+					ctx -> ctx.checkPermission(METAcraftPause.getID("pause.can_toggle"), PermissionLevel.ADMINS) || FabricLoader.getInstance().isDevelopmentEnvironment()
 				).executes(ctx -> {
 					var server = ctx.getSource().getServer();
 					var data = PauseData.getInstance(server);

@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "metacraft.ovvar.clienttest.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"PolymerHelloMixin",
+		"ServerPackAutoAcceptMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

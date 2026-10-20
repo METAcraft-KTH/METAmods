@@ -1,0 +1,5 @@
+{
+	"type": "minecraft:function",
+	"setup": "metacraft:qol_test/void_anchor_off",
+	"teardown": "metacraft:qol_test/void_anchor_on"
+}

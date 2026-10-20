@@ -1,0 +1,16 @@
+{
+	"fabric:load_conditions": [
+		{
+			"condition": "fabric:not",
+			"value": {
+				"condition": "fabric:all_mods_loaded",
+				"values": [
+					"brewery"
+				]
+			}
+		}
+	],
+	"exhaustion": 0.1,
+	"message_id": "kultur.alcohol_poisoning",
+	"scaling": "always"
+}

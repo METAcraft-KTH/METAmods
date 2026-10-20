@@ -3,7 +3,7 @@ package nu.metacraft.resource_packs;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -11,6 +11,8 @@ import net.minecraft.commands.arguments.UuidArgument;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +38,7 @@ public class ResourcePackCommand {
 	) {
 		dispatcher.register(
 				literal("metacraft-resource-pack").requires(
-						Permissions.require("metacraft.resource-pack", 2)
+						PermissionPredicates.require(ResourcePacks.getID("resource-pack"), PermissionLevel.GAMEMASTERS)
 				).then(
 					literal("send").then(
 						argument("id", UuidArgument.uuid()).suggests(PACKS).executes(

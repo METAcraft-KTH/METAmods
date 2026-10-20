@@ -1,0 +1,14 @@
+{
+    "model": {
+        "type": "condition",
+        "property": "using_item",
+        "on_true": {
+            "type": "model",
+            "model": "metacraft:item/bedrock_drill_drilling"
+        },
+        "on_false":{
+            "type": "model",
+            "model": "metacraft:item/bedrock_drill"
+        }
+    }
+}

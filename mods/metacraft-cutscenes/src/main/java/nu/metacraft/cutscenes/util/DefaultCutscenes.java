@@ -27,6 +27,7 @@ public class DefaultCutscenes {
 						0, 300, new SpawnEntity(
 								List.of("zombie"),
 								new AtEntityRef(SelfRef.getInstance(), Vec3.ZERO, new Vec3(5, 0, 3), false),
+								Optional.empty(),
 								CompoundTag.CODEC.parse(JavaOps.INSTANCE, Map.of("id", "piglin")).getOrThrow(), Optional.empty(),
 								false
 						)
@@ -35,6 +36,7 @@ public class DefaultCutscenes {
 						0, 300, new SpawnEntity(
 								List.of("creeper"),
 								new AtEntityRef(SelfRef.getInstance(), Vec3.ZERO, new Vec3(-5, 0, 3), false),
+								Optional.empty(),
 								CompoundTag.CODEC.parse(JavaOps.INSTANCE, Map.of("id", "creeper")).getOrThrow(), Optional.empty(),
 								false
 						)

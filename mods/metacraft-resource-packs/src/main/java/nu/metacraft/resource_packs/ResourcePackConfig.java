@@ -162,6 +162,8 @@ public class ResourcePackConfig implements LoadAware, ReloadAware, ModificationA
 			if (newGlobal && !oldGlobal) {
 				reloadState = reloadState.onNewGlobal(id);
 			}
+
+			p.ifPresent(resourcePack -> pack.getValue().setHash(resourcePack.getHash()));
 		}
 
 		for (var pack : old.resourcePacks.entrySet()) {
@@ -206,6 +208,12 @@ public class ResourcePackConfig implements LoadAware, ReloadAware, ModificationA
 	public ResourcePackConfig withPack(UUID uuid, ResourcePack pack) {
 		return new ResourcePackConfig(
 			resourcePacks.plus(uuid, pack), required, prompt, serverAddress, networkAddress, port, maxConnections, allowManualDownloads, sslSettings
+		);
+	}
+
+	public ResourcePackConfig withoutPack(UUID uuid) {
+		return new ResourcePackConfig(
+			resourcePacks.minus(uuid), required, prompt, serverAddress, networkAddress, port, maxConnections, allowManualDownloads, sslSettings
 		);
 	}
 
@@ -267,17 +275,18 @@ public class ResourcePackConfig implements LoadAware, ReloadAware, ModificationA
 							);
 						}
 
-						for (var pack : c.resourcePacks.values()) {
+						for (var p : c.resourcePacks.entrySet()) {
+							var pack = p.getValue();
 							//Resource pack update.
 							if (pack.getFile().equals(path)) {
 								pack.setHash(hash);
 								return c;
 							}
-							//Try to follow renamed file (might cause mismatches).
-							if ((pack.getHash() == null || pack.getHash().equals(hash)) && !pack.getFile().toFile().exists()) {
+							//Try to follow renamed file.
+							if (pack.getHash().equals(hash) && !pack.getFile().toFile().exists()) {
 								var newPack = pack.withFile(path);
 								newPack.setHash(hash);
-								return c.withPack(uuid, newPack);
+								return c.withPack(p.getKey(), newPack);
 							}
 						}
 
@@ -287,6 +296,12 @@ public class ResourcePackConfig implements LoadAware, ReloadAware, ModificationA
 							)
 						);
 					});
+				}
+			}
+
+			for (var pack : CONFIG.get().resourcePacks.entrySet()) {
+				if (!pack.getValue().file.toFile().exists()) {
+					CONFIG.modify(config -> config.withoutPack(pack.getKey()));
 				}
 			}
 		} catch (IOException e) {

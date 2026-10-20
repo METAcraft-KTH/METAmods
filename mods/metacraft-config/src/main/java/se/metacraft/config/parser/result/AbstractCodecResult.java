@@ -5,8 +5,6 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.util.Unit;
-import org.pcollections.HashTreePMap;
-import org.pcollections.PMap;
 import org.pcollections.PVector;
 import org.pcollections.TreePVector;
 import se.metacraft.config.parser.Metadata;
@@ -72,6 +70,14 @@ public interface AbstractCodecResult {
 		if (meta.isPresent()) return meta;
 		if (underlying().isEmpty()) return Optional.empty();
 		return underlying().nestedMetadata(metadata);
+	}
+
+	default PVector<AbstractCodecResult> nestedComponents() {
+		if (underlying().isEmpty()) {
+			return components();
+		} else {
+			return underlying().nestedComponents();
+		}
 	}
 
 	Codec<?> codec();

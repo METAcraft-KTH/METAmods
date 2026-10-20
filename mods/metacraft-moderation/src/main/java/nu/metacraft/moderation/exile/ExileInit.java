@@ -7,15 +7,17 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import it.unimi.dsi.fastutil.ints.Int2ObjectFunction;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.server.players.NameAndId;
+import nu.metacraft.lib.METAcraftLib;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -68,8 +70,8 @@ public class ExileInit {
 		ZoneRuleRegistry.init();
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			dispatcher.register(
-				literal("exile").requires(Permissions.require("metacraft.exile", 3)).then(
-					literal("define").requires(Permissions.require("metacraft.exile.define", 3)).then(
+				literal("exile").requires(PermissionPredicates.require(METAcraftLib.getID("exile"), PermissionLevel.ADMINS)).then(
+					literal("define").requires(PermissionPredicates.require(METAcraftLib.getID("exile.define"), PermissionLevel.ADMINS)).then(
 						literal("new").then(
 							argument("name", StringArgumentType.string()).executes(ctx -> {
 								String name = StringArgumentType.getString(ctx,"name");

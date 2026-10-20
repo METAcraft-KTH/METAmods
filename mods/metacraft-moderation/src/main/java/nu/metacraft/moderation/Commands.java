@@ -8,11 +8,13 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.PermissionLevel;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.moderation.moderator_mode.ModeratorModeDefinition;
 
 import java.util.Locale;
@@ -42,8 +44,8 @@ public class Commands {
 
 	public static void registerModerationModeCommand(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(
-			literal("mod").requires(Permissions.require("metacraft.mod", 3)).then(
-				literal("define").requires(Permissions.require("metacraft.mod.define", 3)).then(
+			literal("mod").requires(PermissionPredicates.require(METAcraftLib.getID("mod"), PermissionLevel.ADMINS)).then(
+				literal("define").requires(PermissionPredicates.require(METAcraftLib.getID("mod.define"), PermissionLevel.ADMINS)).then(
 					literal("new").then(
 						argument("mod", StringArgumentType.string()).executes(ctx -> {
 							var name = StringArgumentType.getString(ctx, "mod").toLowerCase(Locale.ROOT);

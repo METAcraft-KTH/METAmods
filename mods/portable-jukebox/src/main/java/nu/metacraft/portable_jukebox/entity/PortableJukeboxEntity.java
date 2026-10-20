@@ -25,7 +25,6 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.JukeboxSong;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.EnderChestBlockEntity;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
@@ -252,15 +251,7 @@ public class PortableJukeboxEntity extends Entity implements PolymerEntity, Remo
 	}
 
 	private static EntityRef getFromInventory(Container inventory) {
-		return InventoryHelper.getEntityFromInventory(inventory).map(ref -> {
-			//Since ender chests store the items in some sort of player-specific dimension, it makes sense that the music
-			//would stop when you close the lid. Also, it would cause issues if it plays from a specific ender chest
-			//and the player picks it up at another ender chest.
-			if (ref.getBlock().isPresent() && ref.getBlock().get() instanceof EnderChestBlockEntity) {
-				return null;
-			}
-			return ref;
-		}).orElse(null);
+		return InventoryHelper.getEntityFromInventory(inventory).orElse(null);
 	}
 
 	public static void transferToInventory(EntityRef from, ItemStack stack, Container inventory) {

@@ -1,0 +1,5 @@
+version = project.shaders_version
+
+dependencies {
+	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+}

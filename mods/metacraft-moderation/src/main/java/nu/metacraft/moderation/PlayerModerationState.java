@@ -1,7 +1,8 @@
 package nu.metacraft.moderation;
 
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.moderation.moderator_mode.ModerationModeState;
 
 import java.util.Optional;
@@ -21,7 +22,7 @@ public class PlayerModerationState {
 	}
 
 	public static boolean canEnterModerationMode(ServerPlayer player, String mode) {
-		return Permissions.check(player.createCommandSourceStack(), "metacraft.mod." + mode, 3);
+		return player.createCommandSourceStack().checkPermission(METAcraftLib.getID("mod." + mode), PermissionLevel.ADMINS);
 	}
 
 	public static void removeModeratorMode(ServerPlayer player) {

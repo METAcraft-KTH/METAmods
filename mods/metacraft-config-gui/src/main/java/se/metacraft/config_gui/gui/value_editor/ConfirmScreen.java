@@ -1,5 +1,6 @@
 package se.metacraft.config_gui.gui.value_editor;
 
+import com.mojang.serialization.DataResult;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.ClickEvent;
@@ -122,8 +123,12 @@ public interface ConfirmScreen extends ClickHandlerGUI {
 		@Override
 		public ClickHandlerGUI updateFromChild(HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position) {
 			if (child instanceof ValueEditor<?> editor) {
-				return new Editor<>(
-					body, editor.getValue(lookup), onConfirm, parent
+				return PopupScreen.dataResult(
+					editor.getValue(lookup),
+					v -> new Editor<>(
+						body, v, onConfirm, parent
+					),
+					this
 				);
 			}
 			return this;
@@ -140,8 +145,8 @@ public interface ConfirmScreen extends ClickHandlerGUI {
 		}
 
 		@Override
-		public Optional<T> getValue(HolderLookup.Provider lookup) {
-			return value;
+		public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
+			return DataResult.success(value);
 		}
 	}
 }

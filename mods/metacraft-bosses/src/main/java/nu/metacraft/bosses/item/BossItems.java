@@ -3,6 +3,7 @@ package nu.metacraft.bosses.item;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.world.entity.EntityTypes;
+import nu.metacraft.lib.CreativeTabNamespaces;
 import nu.metacraft.lib.condition.conditions.NotInWall;
 import nu.metacraft.lib.condition.conditions.SolidBlockBelow;
 import nu.metacraft.lib.util.helper.EntityHelper;
@@ -90,6 +91,7 @@ public class BossItems {
 
 	public static void init() {
 		BossComponents.init();
+		CreativeTabNamespaces.add(METAcraftBosses.NAMESPACE);
 	}
 
 	private static Item register(

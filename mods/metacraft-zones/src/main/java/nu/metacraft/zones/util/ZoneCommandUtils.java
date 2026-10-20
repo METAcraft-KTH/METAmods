@@ -10,7 +10,7 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.serialization.DataResult;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.CompoundTagArgument;
@@ -19,6 +19,8 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.RegistryOps;
+import net.minecraft.server.permissions.PermissionLevel;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.zones.METAcraftZones;
 import nu.metacraft.zones.ZoneManager;
 import nu.metacraft.zones.zone.RealZone;
@@ -99,7 +101,7 @@ public class ZoneCommandUtils {
 	}
 
 	public static LiteralArgumentBuilder<CommandSourceStack> zoneCommandRoot() {
-		return literal("zone").requires(Permissions.require("metacraft.zone", 2));
+		return literal("zone").requires(PermissionPredicates.require(METAcraftLib.getID("zone"), PermissionLevel.GAMEMASTERS));
 	}
 
 }

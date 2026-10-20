@@ -1,5 +1,6 @@
 package se.metacraft.config_gui.gui.value_editor;
 
+import com.mojang.serialization.DataResult;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -14,7 +15,7 @@ import java.util.Optional;
 
 public interface ValueEditor<T> extends ClickHandlerGUI {
 
-	Optional<T> getValue(HolderLookup.Provider lookup);
+	DataResult<Optional<T>> getValue(HolderLookup.Provider lookup);
 
 	static MutableComponent highlight(Component text) {
 		return text.copy().withStyle(style -> style.withColor(TextColor.YELLOW).withUnderlined(true));

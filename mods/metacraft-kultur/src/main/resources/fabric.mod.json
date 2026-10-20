@@ -1,0 +1,45 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-kultur",
+	"version": "${version}",
+	"name": "Kultur",
+	"description": "Chapter culture for METAcraft: banner and shield patterns, paintings and the chapter drinks (through Patbox's Brewery when it is there, from the brewing stand when not) for vanilla clients, via Polymer. Players only need the auto-served resource pack.",
+	"authors": [
+		"Edvin"
+	],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"metacraft.kultur.Kultur"
+		],
+		"fabric-gametest": [
+			"metacraft.kultur.gametest.KulturGameTests",
+			"metacraft.kultur.gametest.KulturDrinkTests",
+			"metacraft.kultur.gametest.KulturVanillaDrinkTests"
+		],
+		"fabric-datagen": [
+			"metacraft.kultur.datagen.KulturDataGenerator"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": ">=26.3-rc.1 <26.4",
+		"java": ">=25",
+		"fabric-api": "*",
+		"polymer-core": "*",
+		"polymer-resource-pack": "*"
+	},
+	"suggests": {
+		"brewery": "*"
+	},
+	"mixins": [
+		"kultur.mixins.json",
+		"kultur-drinks.mixins.json"
+	]
+}

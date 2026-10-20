@@ -4,7 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.advancements.predicates.MinMaxBounds;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -24,6 +24,7 @@ import net.minecraft.world.level.storage.CommandStorage;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.ReadOnlyScoreInfo;
 import net.minecraft.world.scores.ScoreHolder;
+import nu.metacraft.core.METAcraftCore;
 
 import java.util.Comparator;
 import java.util.List;
@@ -35,7 +36,7 @@ public class TopOfflineScoresCommand {
 	) {
 		dispatcher.register(
 			Commands.literal("top-offline-scores")
-				.requires(Permissions.require("metacraft.top-offline-scores", PermissionLevel.GAMEMASTERS))
+				.requires(PermissionPredicates.require(METAcraftCore.getID("top-offline-scores"), PermissionLevel.GAMEMASTERS))
 				.then(
 					Commands.argument("objective", ObjectiveArgument.objective())
 						.then(

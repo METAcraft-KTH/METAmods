@@ -1,0 +1,12 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "metacraft:item/rift_0",
+		"tints": [
+			{
+				"type": "minecraft:dye",
+				"default": -65795
+			}
+		]
+	}
+}

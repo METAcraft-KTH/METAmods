@@ -1,16 +1,9 @@
 package se.metacraft.config.util.helper;
 
 import com.mojang.serialization.*;
-import com.mojang.serialization.codecs.ListCodec;
 import com.mojang.serialization.codecs.PrimitiveCodec;
-import com.mojang.serialization.codecs.SimpleMapCodec;
-import com.mojang.serialization.codecs.UnboundedMapCodec;
-import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.registries.codec.RegistryFileCodec;
-import net.minecraft.nbt.TagParser;
-import net.minecraft.util.Mth;
-import net.minecraft.util.random.Weighted;
+import org.jspecify.annotations.Nullable;
 import org.pcollections.*;
 import se.metacraft.config.event.CodecDefaultValueEvent;
 import se.metacraft.config.mixin.codec.*;
@@ -18,12 +11,10 @@ import se.metacraft.config.parser.CodecParser;
 import se.metacraft.config.parser.MetadataKey;
 import se.metacraft.config.parser.metadata.ContainerType;
 import se.metacraft.config.parser.metadata.DefaultValue;
-import se.metacraft.config.parser.metadata.Entries;
 import se.metacraft.config.parser.result.AbstractCodecResult;
 import se.metacraft.config.parser.result.CodecResult;
 
 import java.util.*;
-import java.util.function.BiFunction;
 
 public class CodecInternalsHelper {
 
@@ -81,9 +72,9 @@ public class CodecInternalsHelper {
 		}
 	}
 
-	public static <O> DataResult<O> convert(Encoder<?> encoder, Decoder<O> decoder, Object object, Object prefix, HolderLookup.Provider lookup) {
+	public static <O> DataResult<O> convert(Encoder<?> encoder, Decoder<O> decoder, Object object, Object prefix, HolderLookup.@Nullable Provider lookup) {
 		try {
-			var ops = lookup.createSerializationContext(JavaOps.INSTANCE);
+			var ops = lookup != null ? lookup.createSerializationContext(JavaOps.INSTANCE): JavaOps.INSTANCE;
 			return forceEncode(encoder, ops, object).flatMap(
 				v -> decoder.parse(ops, mergeWithPrefix(v, prefix, ops))
 			);
@@ -92,11 +83,11 @@ public class CodecInternalsHelper {
 		}
 	}
 
-	public static <O> DataResult<O> convert(Encoder<?> encoder, Decoder<O> decoder, Object object, HolderLookup.Provider lookup) {
+	public static <O> DataResult<O> convert(Encoder<?> encoder, Decoder<O> decoder, Object object, HolderLookup.@Nullable Provider lookup) {
 		return convert(encoder, decoder, object, null, lookup);
 	}
 
-	public static boolean isCodecValidUncasted(Codec<?> codec, Object object, HolderLookup.Provider lookup) {
+	public static boolean isCodecValidUncasted(Codec<?> codec, Object object, HolderLookup.@Nullable Provider lookup) {
 		return convert(codec, codec, object, lookup).isSuccess();
 	}
 
@@ -146,14 +137,14 @@ public class CodecInternalsHelper {
 			//noinspection unchecked
 			var result = ops.mergeToMap(value, (Map<Object, Object>) prefix);
 			if (result.hasResultOrPartial()) {
-				value = result.getOrThrow();
+				value = result.getPartialOrThrow();
 			}
 		}
 		if (prefix instanceof List<?>) {
 			//noinspection unchecked
 			var result = ops.mergeToList(value, (List<Object>) prefix);
 			if (result.hasResultOrPartial()) {
-				value = result.getOrThrow();
+				value = result.getPartialOrThrow();
 			}
 		}
 		return value;

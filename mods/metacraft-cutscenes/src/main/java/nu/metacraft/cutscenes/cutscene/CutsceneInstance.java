@@ -258,7 +258,7 @@ public class CutsceneInstance {
 
 	private Optional<net.minecraft.world.level.portal.TeleportTransition> getCurrentTarget(ServerPlayer player) {
 		var transitionTarget = getTransitions().getValuesAt(getCurrentTime()).map(
-				t -> t instanceof TeleportTransition tp ? tp.getTarget(this).filter(this::isValidTarget).orElse(null) : null
+				t -> t instanceof TeleportTransition tp ? tp.getTarget(player, this).filter(this::isValidTarget).orElse(null) : null
 		).filter(
 				Objects::nonNull
 		).findAny();

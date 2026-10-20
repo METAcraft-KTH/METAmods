@@ -13,9 +13,9 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
+public interface EntityRef {
 
-	public static final class E extends EntityRef {
+	public static final class E implements EntityRef {
 		private final Entity entity;
 
 		public E(Entity e) {
@@ -88,7 +88,7 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 		}
 	}
 
-	public static final class B extends EntityRef {
+	public static final class B implements EntityRef {
 		private final BlockEntity blockEntity;
 
 		public B(BlockEntity blockEntity) {
@@ -157,7 +157,7 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 		}
 	}
 
-	public RegistryAccess getRegistryManager() {
+	default RegistryAccess getRegistryManager() {
 		return getWorld().registryAccess();
 	}
 
@@ -171,11 +171,11 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 
 	public abstract AABB getBoundingBox();
 
-	public float getHeight() {
+	default float getHeight() {
 		return (float) getBoundingBox().getYsize();
 	}
 
-	public Vec3 getPos() {
+	default Vec3 getPos() {
 		return getBoundingBox().getBottomCenter();
 	}
 
@@ -183,11 +183,11 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 
 	public abstract Level getWorld();
 
-	public ServerLevel getServerWorld() {
+	default ServerLevel getServerWorld() {
 		return (ServerLevel) getWorld();
 	}
 
-	public boolean isReceivingRedstonePower() {
+	default boolean isReceivingRedstonePower() {
 		return getWorld().hasNeighborSignal(getBlockPos());
 	}
 
@@ -195,7 +195,7 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 
 	public abstract boolean isRemoved();
 
-	public void onUpdate() {}
+	default void onUpdate() {}
 
 	public abstract Optional<Entity> getEntity();
 
@@ -203,7 +203,7 @@ public abstract sealed class EntityRef permits EntityRef.E, EntityRef.B {
 
 	public abstract Object get();
 
-	public <T> Optional<T> getCasted(Class<T> clazz) {
+	default  <T> Optional<T> getCasted(Class<T> clazz) {
 		var object = get();
 		if (clazz.isInstance(object)) {
 			return Optional.of(clazz.cast(object));

@@ -23,9 +23,6 @@ public abstract class EntityMixin implements HasPortableJukebox {
 	@Override
 	public void portable_jukebox$addPortableJukebox(PortableJukeboxEntity entity) {
 		this.portableJukeboxes.add(entity);
-		if (entity != null) {
-			entity.setConnectedEntity(EntityRef.fromEntity((Entity) (Object) this));
-		}
 	}
 
 	@Override

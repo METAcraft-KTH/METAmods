@@ -7,11 +7,13 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.permissions.PermissionLevel;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.portal_blocker.portal_type.PortalType;
 import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
 import nu.metacraft.portal_blocker.zone.PortalZoneData;
@@ -34,7 +36,7 @@ public class Commands {
 	public static void registerCommands() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			LiteralArgumentBuilder<CommandSourceStack> rootBuilder = literal("portal-blocker")
-					.requires(Permissions.require("metacraft.portal-blocker", 2));
+					.requires(PermissionPredicates.require(METAcraftLib.getID("portal-blocker"), PermissionLevel.GAMEMASTERS));
 			registerSetGetGlobal(rootBuilder);
 			registerSetGetBlockOutsideBorder(rootBuilder);
 			ZoneManagementCommand.registerCommand(rootBuilder, registryAccess);

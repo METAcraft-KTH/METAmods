@@ -1,9 +1,0 @@
-{
-	"type": "minecraft:function",
-	"environment": "metacraft:default",
-	"function": "metacraft:player-data-test/save-and-load",
-	"max_ticks": 3,
-	"required": true,
-	"setup_ticks": 1,
-	"structure": "minecraft:empty"
-}

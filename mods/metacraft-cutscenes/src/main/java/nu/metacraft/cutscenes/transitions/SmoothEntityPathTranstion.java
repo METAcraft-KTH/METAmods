@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.phys.Vec2;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.CutsceneInstance;
 import nu.metacraft.cutscenes.registry.TransitionRegistry;
@@ -25,7 +26,7 @@ public class SmoothEntityPathTranstion implements Transition {
 	);
 
 	private final SmoothEntityPathConfig config;
-	private InterpolationSet<CutsceneContext, SmoothEntityPathConfig.DisplayEntityTarget> interpolationSet;
+	private InterpolationSet<CutsceneContext, SmoothEntityPathConfig.DynamicDisplayTarget> interpolationSet;
 
 	public SmoothEntityPathTranstion(SmoothEntityPathConfig config) {
 		this.config = config;
@@ -34,9 +35,9 @@ public class SmoothEntityPathTranstion implements Transition {
 	private void init(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		interpolationSet = config.targets().getTargets(interval);
 		var target = config.entity().get(cutscene.getRefContext()).findAny().map(
-				SmoothEntityPathConfig.DisplayEntityTarget::fromEntity
+			SmoothEntityPathConfig.DynamicDisplayTarget::fromEntity
 		).orElse(
-				SmoothEntityPathConfig.DisplayEntityTarget.DEFAULT
+			SmoothEntityPathConfig.DynamicDisplayTarget.DEFAULT
 		);
 		interpolationSet = interpolationSet.setStartIfNotPresent(target);
 		interpolationSet = interpolationSet.setEndIfNotPresent(target);
@@ -46,7 +47,7 @@ public class SmoothEntityPathTranstion implements Transition {
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		init(cutscene, interval);
 		config.entity().get(cutscene.getRefContext()).forEach(entity -> {
-			setData(entity, interpolationSet.interpolate(0), false);
+			setData(entity, interpolationSet.interpolate(new CutsceneContext(entity, cutscene), 0), false, cutscene);
 			setLinearInterpolationDuration(entity, config.interpolationDuration(), false);
 		});
 	}
@@ -66,27 +67,30 @@ public class SmoothEntityPathTranstion implements Transition {
 		}
 	}
 
-	private void setData(Entity display, SmoothEntityPathConfig.DisplayEntityTarget target, boolean interpolate) {
+	private void setData(
+		Entity display, SmoothEntityPathConfig.DynamicDisplayTarget target, boolean interpolate,
+		CutsceneInstance cutscene
+	) {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:SmoothEntityPathTransition#setData", Cutscenes.LOGGER)) {
 			var writeView = TagValueOutput.createWithContext(logging, display.registryAccess());
 			display.saveWithoutId(writeView);
 			var data = writeView.buildResult();
-			data.store(Display.TAG_TRANSFORMATION, Transformation.EXTENDED_CODEC, target.transformation());
-			data.putFloat(Display.TAG_SHADOW_RADIUS, target.shadowRadius());
-			data.putFloat(Display.TAG_SHADOW_STRENGTH, target.shadowStrength());
-			data.putInt("background", target.background());
-			data.putByte("text_opacity", target.textOpacity());
+			data.store(Display.TAG_TRANSFORMATION, Transformation.EXTENDED_CODEC, target.displayEntityProperties().transformation());
+			data.putFloat(Display.TAG_SHADOW_RADIUS, target.displayEntityProperties().shadowRadius());
+			data.putFloat(Display.TAG_SHADOW_STRENGTH, target.displayEntityProperties().shadowStrength());
+			data.putInt("background", target.displayEntityProperties().background());
+			data.putByte("text_opacity", target.displayEntityProperties().textOpacity());
 			if (interpolate) {
 				data.putInt(Display.TAG_TRANSFORMATION_START_INTERPOLATION, 0);
 			}
 			var readView = TagValueInput.create(logging, display.registryAccess(), data);
 			display.load(readView);
 		}
+		var pos = target.target().pos().get(cutscene.createRefContext(display)).orElse(display.position());
+		var rot = target.target().rot().get(cutscene.createRefContext(display)).orElseGet(() -> new Vec2(display.getXRot(), display.getYRot()));
 		display.absSnapTo(
-				target.target().pos().x,
-				target.target().pos().y,
-				target.target().pos().z,
-				target.target().yaw(), target.target().pitch()
+				pos.x, pos.y, pos.z,
+				rot.y, rot.x
 		);
 	}
 
@@ -106,10 +110,10 @@ public class SmoothEntityPathTranstion implements Transition {
 		}
 		if (cutscene.getCurrentTime() != interval.getStart()) {
 			double delta = ((double) currentTimeAdjusted - interval.getStart()) / interval.getLength();
-			var target = interpolationSet.interpolate(delta);
 			config.entity().get(cutscene.getRefContext()).forEach(entity -> {
+				var target = interpolationSet.interpolate(new CutsceneContext(entity, cutscene), delta);
 				if ((cutscene.getCurrentTime() - interval.getStart()) % config.teleportInterval() == 0) {
-					setData(entity, target, true);
+					setData(entity, target, true, cutscene);
 				}
 			});
 		}

@@ -2,12 +2,14 @@ package nu.metacraft.core.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import nu.metacraft.core.METAcraftCore;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
@@ -29,7 +31,7 @@ public class InhabitedTimeCommand {
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess) {
 		dispatcher.register(
 			literal("inhabitedtime")
-				.requires(Permissions.require("metacraft.inhabitedtime", 2))
+				.requires(PermissionPredicates.require(METAcraftCore.getID("inhabitedtime"), PermissionLevel.GAMEMASTERS))
 				.then(
 					literal("query")
 						.executes(ctx -> {

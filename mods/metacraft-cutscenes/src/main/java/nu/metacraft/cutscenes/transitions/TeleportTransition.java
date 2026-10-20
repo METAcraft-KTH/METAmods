@@ -5,7 +5,6 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import nu.metacraft.lib.util.SerializableTeleportTarget;
-import org.jetbrains.annotations.Nullable;
 import nu.metacraft.cutscenes.extension.EntityExtension;
 import nu.metacraft.core.position_ref.PositionRef;
 import nu.metacraft.core.registry.PositionRefRegistry;
@@ -23,35 +22,38 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.Nullable;
 
 public class TeleportTransition extends InstantTransition {
 
 	public static final MapCodec<TeleportTransition> CODEC = RecordCodecBuilder.mapCodec(
 			instance -> instance.group(
-					SerializableTeleportTarget.TELEPORT_TARGET_CODEC.forGetter(t -> t.teleportTarget)
+				SerializableTeleportTargetBoth.MAP_CODEC.forGetter(t -> t.teleportTarget)
 			).apply(instance, TeleportTransition::new)
 	);
 
-	private final SerializableTeleportTarget teleportTarget;
+	private final SerializableTeleportTargetBoth teleportTarget;
 
-	public TeleportTransition(SerializableTeleportTarget teleportTarget) {
+	public TeleportTransition(SerializableTeleportTargetBoth teleportTarget) {
 		this.teleportTarget = teleportTarget;
 	}
 
-	public Optional<net.minecraft.world.level.portal.TeleportTransition> getTarget(CutsceneInstance cutscene) {
-		return teleportTarget.getFixedOrLocal(cutscene.getServer(), cutscene.getCutsceneWorld().dimension());
+	public Optional<net.minecraft.world.level.portal.TeleportTransition> getTarget(
+		@Nullable ServerPlayer player, CutsceneInstance cutscene
+	) {
+		return teleportTarget.getTeleportTarget(player, cutscene);
 	}
 
 	@Override
 	public void activate(CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		getTarget(cutscene).ifPresent(
+		getTarget(null, cutscene).ifPresent(
 				target -> cutscene.setTargetWorld(target.newLevel())
 		);
 	}
 
 	@Override
 	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
-		getTarget(cutscene).ifPresent(
+		getTarget(player, cutscene).ifPresent(
 				target -> ((EntityExtension) player).metacraft$teleportInCutscene(target)
 		);
 	}
@@ -109,6 +111,11 @@ public class TeleportTransition extends InstantTransition {
 		public static final Codec<SerializableTeleportTargetBoth> CODEC = Codec.either(
 				SerializableTeleportTarget.TELEPORT_TARGET_CODEC.codec(),
 				SerializableTeleportTargetDynamic.TELEPORT_TARGET_CODEC.codec()
+		).xmap(SerializableTeleportTargetBoth::new, SerializableTeleportTargetBoth::target);
+
+		public static final MapCodec<SerializableTeleportTargetBoth> MAP_CODEC = Codec.mapEither(
+			SerializableTeleportTarget.TELEPORT_TARGET_CODEC,
+			SerializableTeleportTargetDynamic.TELEPORT_TARGET_CODEC
 		).xmap(SerializableTeleportTargetBoth::new, SerializableTeleportTargetBoth::target);
 
 		public Optional<net.minecraft.world.level.portal.TeleportTransition> getTeleportTarget(@Nullable ServerPlayer player, CutsceneInstance cutscene) {

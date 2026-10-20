@@ -1,0 +1,9 @@
+{
+	"type": "minecraft:function",
+	"environment": "metacraft:default",
+	"function": "metacraft:lib/entity-loading/waiting-keeps-ticking",
+	"max_ticks": 3,
+	"required": true,
+	"setup_ticks": 1,
+	"structure": "minecraft:empty"
+}

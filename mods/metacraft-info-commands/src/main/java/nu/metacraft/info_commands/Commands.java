@@ -1,12 +1,14 @@
 package nu.metacraft.info_commands;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.Event;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.permissions.PermissionLevel;
+import nu.metacraft.lib.METAcraftLib;
 
 import static net.minecraft.commands.Commands.literal;
 
@@ -26,7 +28,7 @@ public class Commands {
 			});
 			if (Info.getConfig().enableResendCommandTreeCommand()) {
 				dispatcher.register(literal("meta-info-resend-command-tree")
-						.requires(Permissions.require("metacraft.meta-info-resend-command-tree", 4))
+						.requires(PermissionPredicates.require(METAcraftLib.getID("meta-info-resend-command-tree"), PermissionLevel.OWNERS))
 						.executes(ctx -> {
 					Helper.resendCommandTreeToAllPlayers(ctx.getSource().getServer().getPlayerList());
 					ctx.getSource().sendSuccess(() -> Component.literal("Resent command tree to client."), true);

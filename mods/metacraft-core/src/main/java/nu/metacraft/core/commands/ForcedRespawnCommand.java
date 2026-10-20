@@ -2,15 +2,17 @@ package nu.metacraft.core.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.AngleArgument;
 import net.minecraft.commands.arguments.coordinates.Vec3Argument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.util.METAcraftCoreData;
 
 public class ForcedRespawnCommand {
@@ -26,7 +28,7 @@ public class ForcedRespawnCommand {
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(
 			Commands.literal("forced-respawn")
-				.requires(Permissions.require("metacraft.forced-respawn", 2))
+				.requires(PermissionPredicates.require(METAcraftCore.getID("forced-respawn"), PermissionLevel.GAMEMASTERS))
 				.executes(ctx -> {
 					CommandSourceStack source = ctx.getSource();
 					METAcraftCoreData data = METAcraftCoreData.getInstance(source.getServer());

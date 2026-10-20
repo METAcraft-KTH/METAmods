@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.fabricmc.fabric.api.event.Event;
 import net.minecraft.core.HolderLookup;
+import org.jspecify.annotations.Nullable;
 import org.pcollections.PVector;
 import se.metacraft.config.BuiltinParsers;
 import se.metacraft.config.parser.MetadataMap;
@@ -41,16 +42,16 @@ public class CodecParseEvents {
 		MetadataMap modify(
 			MetadataMap metadata,
 			Codec<?> nextLevel, AbstractCodecResult underlying,
-			PVector<Object> parameters, HolderLookup.Provider lookup
+			PVector<Object> parameters, HolderLookup.@Nullable Provider lookup
 		);
 	}
 
 	public interface ParseCodec {
-		Optional<AbstractCodecResult> parse(Codec<?> codec, HolderLookup.Provider lookup);
+		Optional<AbstractCodecResult> parse(Codec<?> codec, HolderLookup.@Nullable Provider lookup);
 	}
 
 	public interface ParseMapCodec {
-		Optional<AbstractCodecResult> parse(MapCodec<?> codec, HolderLookup.Provider lookup);
+		Optional<AbstractCodecResult> parse(MapCodec<?> codec, HolderLookup.@Nullable Provider lookup);
 	}
 
 }

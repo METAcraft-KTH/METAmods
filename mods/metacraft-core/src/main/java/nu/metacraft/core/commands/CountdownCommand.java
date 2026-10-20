@@ -8,16 +8,18 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.TimeArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
+import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.countdown.Countdown;
 import nu.metacraft.core.util.METAcraftCoreData;
 
@@ -40,7 +42,7 @@ public class CountdownCommand {
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess) {
 		dispatcher.register(
 			Commands.literal("countdown")
-				.requires(Permissions.require("metacraft.countdown", 2))
+				.requires(PermissionPredicates.require(METAcraftCore.getID("countdown"), PermissionLevel.GAMEMASTERS))
 				.then(
 					Commands.literal("init")
 						.then(

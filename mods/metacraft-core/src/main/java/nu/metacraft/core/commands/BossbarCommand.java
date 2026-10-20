@@ -1,13 +1,14 @@
 package nu.metacraft.core.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.CompoundTagArgument;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import nu.metacraft.core.METAcraftCore;
@@ -24,7 +25,7 @@ public class BossbarCommand {
 			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
-			literal("entity-bossbar").requires(Permissions.require("metacraft.entity-bossbar", 2)).then(
+			literal("entity-bossbar").requires(PermissionPredicates.require(METAcraftCore.getID("entity-bossbar"), PermissionLevel.ADMINS)).then(
 				argument("entity", EntityArgument.entity()).then(
 					argument("data", CompoundTagArgument.compoundTag()).executes(
 						ctx -> {

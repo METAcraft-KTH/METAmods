@@ -4,7 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.CompoundTagArgument;
@@ -14,6 +14,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
+import nu.metacraft.core.METAcraftCore;
 import nu.metacraft.core.music.PlayerMusic;
 import nu.metacraft.core.util.helper.MusicHelper;
 
@@ -38,7 +40,7 @@ public class PlayMusic {
 	) {
 		dispatcher.register(
 			literal("play-music").requires(
-					Permissions.require("metacraft.play-music", 2)
+					PermissionPredicates.require(METAcraftCore.getID("play-music"), PermissionLevel.GAMEMASTERS)
 			).then(
 				argument("music", CompoundTagArgument.compoundTag()).executes(
 						ctx -> playMusic(
@@ -89,7 +91,7 @@ public class PlayMusic {
 		);
 		dispatcher.register(
 			literal("stop-music").requires(
-					Permissions.require("metacraft.stop-music", 2)
+					PermissionPredicates.require(METAcraftCore.getID("stop-music"), PermissionLevel.GAMEMASTERS)
 			).executes(
 					ctx -> stopMusic(
 							ctx, Optional.empty(),

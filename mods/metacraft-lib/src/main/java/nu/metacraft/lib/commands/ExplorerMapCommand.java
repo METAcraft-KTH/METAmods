@@ -9,7 +9,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -21,12 +21,14 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ColumnPos;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.util.Prediction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.MapItem;
 import net.minecraft.world.level.saveddata.maps.MapDecorationType;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import nu.metacraft.lib.METAcraftLib;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
@@ -50,8 +52,8 @@ public class ExplorerMapCommand {
 			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
-				literal("explorer-map").requires(Permissions.require("metacraft.explorer-map", 2)).then(
-						literal("create").requires(Permissions.require("metacraft.explorer-map.create", 2)).then(
+				literal("explorer-map").requires(PermissionPredicates.require(METAcraftLib.getID("explorer-map"), PermissionLevel.GAMEMASTERS)).then(
+						literal("create").requires(PermissionPredicates.require(METAcraftLib.getID("explorer-map.create"), PermissionLevel.GAMEMASTERS)).then(
 								argument("target", ColumnPosArgument.columnPos()).then(
 										mapDecorationType("decoration").executes(ctx -> {
 											return createMap(

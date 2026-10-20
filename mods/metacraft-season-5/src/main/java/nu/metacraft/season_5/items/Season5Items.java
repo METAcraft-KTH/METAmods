@@ -15,6 +15,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.component.Consumable;
 import net.minecraft.world.item.component.ItemLore;
+import nu.metacraft.lib.CreativeTabNamespaces;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.season_5.METAcraftSeason5;
 import nu.metacraft.season_5.items.components.Season5Components;
 
@@ -37,6 +39,7 @@ public class Season5Items {
 
 	public static void init() {
 		Season5Components.init();
+		CreativeTabNamespaces.add(METAcraftLib.NAMESPACE);
 
 		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register((original, client, context) -> {
 			if (original.getItem() instanceof BedrockDrillItem drill) {

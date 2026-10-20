@@ -15,6 +15,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import se.metacraft.config.parser.CodecParser;
+import se.metacraft.config.parser.MetadataKey;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,9 +31,16 @@ public class RecordCodecBuilderMixin implements RecordCodecBuilderExtension {
 
 	@Inject(method = "<init>", at = @At("RETURN"))
 	public void init(Function<?, ?> getter, Function<?, ?> encoder, MapDecoder<?> decoder, CallbackInfo ci) {
-		if (comments.isEmpty() && decoder instanceof MapCodecWithComments<?> c) {
-			comments.putAll(c.comments());
-			if (comments.isEmpty()) {
+		if (comments.isEmpty()) {
+			if (decoder instanceof MapCodec<?> c) {
+				var type = CodecParser.parse(c, null);
+				if (type.nestedMetadata(MetadataKey.NAMED_FIELD).isEmpty()) {
+					type.nestedMetadata(MetadataKey.COMMENTS).ifPresent(comments -> {
+						this.comments.putAll(comments.comments());
+					});
+				}
+			}
+			if (decoder instanceof MapCodecWithComments<?> c) {
 				c.getSelfComment().ifPresent(comment -> {
 					var list = c.getCodec().keys(JavaOps.INSTANCE).filter(o -> o instanceof String).distinct().map(o -> (String) o).toList();
 					if (list.size() == 1) {

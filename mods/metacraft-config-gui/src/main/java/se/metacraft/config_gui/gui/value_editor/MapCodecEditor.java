@@ -1,6 +1,7 @@
 package se.metacraft.config_gui.gui.value_editor;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JavaOps;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
@@ -11,6 +12,7 @@ import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.dialog.body.DialogBody;
 import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
+import nu.metacraft.lib.util.helper.DataResultHelper;
 import nu.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
@@ -89,46 +91,65 @@ public record MapCodecEditor<T>(
 	}
 
 	@Override
-	public ValueEditor<T> updateFromChild(
+	public ClickHandlerGUI updateFromChild(
 		HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position
 	) {
 		if (position instanceof SubMenu.S(String s) && child instanceof ValueEditor<?> editor) {
-			return editor.getValue(lookup).map(
-				v -> withObject(object.plus(s, v))
-			).orElse(
-				withObject(object.minus(s))
+			return PopupScreen.dataResult(
+				editor.getValue(lookup).map(
+					opt -> opt.map(
+						v -> withObject(object.plus(s, v))
+					).orElse(
+						withObject(object.minus(s))
+					)
+				),
+				this
 			);
 		}
 		return this;
 	}
 
 	@Override
-	public Optional<T> getValue(HolderLookup.Provider lookup) {
-		Map<String, Object> map = new HashMap<>();
+	public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
+		DataResult<PMap<String, Object>> map = DataResult.success(HashTreePMap.empty());
 		var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
-		object.forEach((key, value) -> {
+		for (var entry : object.entrySet()) {
+			var key = entry.getKey();
+			var value = entry.getValue();
 			var type = types.get(key);
 			if (CodecDialog.isMapInlined(type)) {
 				//noinspection unchecked
-				((Codec<Object>) type.fieldElement().codec()).encodeStart(
-					ctx, value
-				).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(result -> {
-					if (result instanceof Map<?,?> m) {
-						m.forEach((k, v) -> {
-							map.put((String) k, v);
-						});
-					}
-				});
+				map = map.flatMap(
+					m -> DataResultHelper.withPartialIfError(
+						((Codec<Object>) type.fieldElement().codec()).encodeStart(
+							ctx, value
+						).map(result -> {
+							var modified = m;
+							if (result instanceof Map<?,?> encodedMap) {
+								for (var e : encodedMap.entrySet()) {
+									if (e.getKey() instanceof String s) {
+										modified = modified.plus(s, e.getValue());
+									}
+								}
+							}
+							return modified;
+						}),
+						m
+					)
+				);
 			} else {
 				//noinspection unchecked
-				((Codec<Object>) type.element().codec()).encodeStart(
-					ctx, value
-				).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(result -> {
-					map.put(key, result);
-				});
+				map = map.flatMap(
+					m -> DataResultHelper.withPartialIfError(
+						((Codec<Object>) type.element().codec()).encodeStart(
+							ctx, value
+						).map(result -> m.plus(key, result)),
+						m
+					)
+				);
 			}
-		});
-		return codec.parse(ctx, map).resultOrPartial();
+		}
+		return map.flatMap(m -> codec.parse(ctx, m).map(Optional::of));
 	}
 
 	@Override

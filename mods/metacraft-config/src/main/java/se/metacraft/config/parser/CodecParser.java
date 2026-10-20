@@ -3,6 +3,7 @@ package se.metacraft.config.parser;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.HolderLookup;
+import org.jspecify.annotations.Nullable;
 import org.pcollections.PVector;
 import org.pcollections.TreePVector;
 import se.metacraft.config.event.CodecParseEvents;
@@ -18,7 +19,10 @@ import java.util.function.Predicate;
 
 public class CodecParser {
 
-	public static AbstractCodecResult parse(MapCodec<?> codec, HolderLookup.Provider lookup) {
+	public static AbstractCodecResult parse(MapCodec<?> codec, HolderLookup.@Nullable Provider lookup) {
+		// Null while CodecParseEvents is still being initialised: making its phases' ids can initialise
+		// Identifier, which builds vanilla codecs, which come back here (RecordCodecBuilderMixin).
+		if (CodecParseEvents.PARSE_MAP_CODEC == null) return MapCodecResult.createMapped(codec, Metadata.noMetadata(), AbstractCodecResult.EMPTY);
 		var eventBased = CodecParseEvents.PARSE_MAP_CODEC.invoker().parse(codec, lookup);
 		if (eventBased.isPresent()) return eventBased.get();
 		var nested = getNested(codec, lookup);
@@ -26,7 +30,8 @@ public class CodecParser {
 		return MapCodecResult.createMapped(codec, Metadata.noMetadata(), AbstractCodecResult.EMPTY);
 	}
 
-	public static AbstractCodecResult parse(Codec<?> codec, HolderLookup.Provider lookup) {
+	public static AbstractCodecResult parse(Codec<?> codec, HolderLookup.@Nullable Provider lookup) {
+		if (CodecParseEvents.PARSE_CODEC == null) return CodecResult.createMapped(codec, Metadata.noMetadata(), AbstractCodecResult.EMPTY);   // see above
 		var eventBased = CodecParseEvents.PARSE_CODEC.invoker().parse(codec, lookup);
 		if (eventBased.isPresent()) return eventBased.get();
 		var nested = getNested(codec, lookup);
@@ -34,7 +39,7 @@ public class CodecParser {
 		return CodecResult.createMapped(codec, Metadata.noMetadata(), AbstractCodecResult.EMPTY);
 	}
 
-	private static Optional<AbstractCodecResult> getNested(Object object, HolderLookup.Provider lookup) {
+	private static Optional<AbstractCodecResult> getNested(Object object, HolderLookup.@Nullable Provider lookup) {
 		var nested = getNestedCodecs(object);
 		if (nested.size() == 1) {
 			var codec = nested.getFirst();
@@ -63,7 +68,7 @@ public class CodecParser {
 		return parameters;
 	}
 
-	private static PVector<Object> getNestedCodecs(Object object) {
+	public static PVector<Object> getNestedCodecs(Object object) {
 		return getNestedParameters(
 			object,
 			field -> isCodec(field.getType())

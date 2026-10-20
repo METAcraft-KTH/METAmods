@@ -1,0 +1,12 @@
+{
+	"branches": {
+		"dev": ["test"],
+		"prod": ["survival", "test"],
+		"minigame": ["event"]
+	},
+	"servers": {
+		"test": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.6a3d6c42"},
+		"survival": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.8b013000"},
+		"event": {"host": "pterodactyl.kth.it", "port": 3022, "user": "github-actions.a98edceb"}
+	}
+}

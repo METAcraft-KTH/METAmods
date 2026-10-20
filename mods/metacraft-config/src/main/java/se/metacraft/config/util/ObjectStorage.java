@@ -7,9 +7,7 @@ import com.mojang.serialization.*;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import nu.metacraft.lib.METAcraftLib;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -18,6 +16,13 @@ import java.util.stream.Stream;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.resources.RegistryOps;
+import se.metacraft.config.METAConfig;
+import se.metacraft.config.comments.codecs.MapCodecWithComments;
+import se.metacraft.config.comments.ops.OpsWithComments;
+import se.metacraft.config.parser.CodecParser;
+import se.metacraft.config.parser.MetadataKey;
+import se.metacraft.config.parser.metadata.ContainerType;
+import se.metacraft.config.parser.result.AbstractCodecResult;
 
 /**
  * Allows you to store objects in raw form and parse them at a later point.
@@ -131,6 +136,9 @@ public class ObjectStorage<T> {
 	 * @param <T> The type of the result.
 	 */
 	public static <T> Codec<ObjectStorage<T>> createCodec(Codec<T> codec, boolean refreshOnReload) {
+		if (codec instanceof MapCodec.MapCodecCodec<T>(MapCodec<T> c)) {
+			return createCodec(c, refreshOnReload).codec();
+		}
 		return new Codec<>() {
 			@Override
 			public <S> DataResult<Pair<ObjectStorage<T>, S>> decode(DynamicOps<S> ops, S input) {
@@ -159,7 +167,7 @@ public class ObjectStorage<T> {
 	 * @param <T> The type of the result.
 	 */
 	public static <T> MapCodec<ObjectStorage<T>> createCodec(MapCodec<T> codec, boolean refreshOnReload) {
-		return new MapCodec<>() {
+		MapCodec<ObjectStorage<T>> returnCodec = new MapCodec<>() {
 			@Override
 			public <S> RecordBuilder<S> encode(ObjectStorage<T> input, DynamicOps<S> ops, RecordBuilder<S> prefix) {
 				var data = input.getRawData(ops);
@@ -199,27 +207,146 @@ public class ObjectStorage<T> {
 				return "ObjectStorage[" + codec + "]";
 			}
 		};
+		var comments = CodecParser.parse(codec, null).nestedMetadata(MetadataKey.COMMENTS);
+		if (comments.isPresent()) {
+			return new MapCodecWithComments<>(returnCodec, comments.get().comments(), Optional.empty());
+		}
+		return returnCodec;
 	}
 
 	public <R> DataResult<R> getRawData(DynamicOps<R> ops) {
 		return getRawData(ops, ops.empty());
 	}
 
+	private static <R> R applyComments(AbstractCodecResult codec, DynamicOps<R> ops, R result) {
+		if (ops instanceof OpsWithComments<R> comments) {
+			var container = codec.nestedMetadata(MetadataKey.CONTAINER);
+			if (container.isPresent()) {
+				var containerCodec = codec.getContainer(container.get().type());
+				if (container.get().type() == ContainerType.RECORD) {
+					var map = ops.getMap(result);
+					if (map.isSuccess()) {
+						for (var component : codec.nestedComponents()) {
+							var name = component.nestedMetadata(MetadataKey.NAMED_FIELD);
+							if (name.isPresent()) {
+								var subValue = map.getOrThrow().get(name.get().name());
+								if (subValue == null) continue;
+								var withComments = applyComments(component, ops, subValue);
+								if (subValue != comments) {
+									result = ops.mergeToMap(
+										result, ops.createString(name.get().name()), withComments
+									).resultOrPartial(
+										METAConfig.LOGGER::error
+									).orElse(result);
+								}
+							}
+						}
+					}
+				}
+				if (container.get().type() == ContainerType.MAP) {
+					var map = ops.getMap(result);
+					if (map.isSuccess()) {
+						var value = codec.nestedComponents().getLast();
+						for (var entry : (Iterable<Pair<R, R>>) map.getOrThrow().entries()::iterator) {
+							var newValue = applyComments(value, ops, entry.getSecond());
+							if (newValue != entry.getSecond()) {
+								result = ops.mergeToMap(
+									result, entry.getFirst(), entry.getSecond()
+								).resultOrPartial(
+									METAConfig.LOGGER::error
+								).orElse(result);
+							}
+						}
+					}
+				}
+				if (container.get().type() == ContainerType.DISPATCHED_MAP) {
+					var map = ops.getMap(result);
+					if (map.isSuccess()) {
+						var type = codec.nestedComponents().getFirst();
+						var data = codec.getContainerData(ContainerType.DISPATCHED_MAP).orElseThrow();
+						for (var entry : (Iterable<Pair<R, R>>) map.getOrThrow().entries()::iterator) {
+							var parsed = type.codec().parse(ops, entry.getFirst()).resultOrPartial(
+								METAConfig.LOGGER::error
+							);
+							if (parsed.isEmpty()) continue;
+							var c = data.valueCodecFunction().apply(
+								parsed.get()
+							);
+							var newValue = applyComments(CodecParser.parse(c, null), ops, entry.getSecond());
+							if (newValue != entry.getSecond()) {
+								result = ops.mergeToMap(
+									result, entry.getFirst(), entry.getSecond()
+								).resultOrPartial(
+									METAConfig.LOGGER::error
+								).orElse(result);
+							}
+						}
+					}
+				}
+				if (container.get().type() == ContainerType.DISPATCHED_EITHER) {
+					var map = ops.getMap(result);
+					if (map.isSuccess()) {
+						var data = codec.getContainerData(ContainerType.DISPATCHED_EITHER).orElseThrow();
+						var key = containerCodec.orElse(codec).codec().parse(ops, result).flatMap(
+							k -> data.keyByValue().apply(k)
+						).resultOrPartial(METAConfig.LOGGER::error);
+						if (key.isPresent()) {
+							var decoder = data.decoderByKey().apply(key.get()).resultOrPartial(METAConfig.LOGGER::error);
+							if (decoder.isPresent() && decoder.get() instanceof MapCodec<?> c) {
+								var newValue = applyComments(CodecParser.parse(c, null), ops, result);
+								if (newValue != result) {
+									result = newValue;
+								}
+							}
+						}
+					}
+				}
+				if (container.get().type() == ContainerType.LIST) {
+					var list = ops.getStream(result);
+					if (list.isSuccess()) {
+						var type = codec.nestedComponents().getFirst();
+						List<R> newList = new ArrayList<>();
+						for (var entry : (Iterable<R>) list.getOrThrow()::iterator) {
+							var newValue = applyComments(type, ops, entry);
+							newList.add(newValue);
+						}
+						result = ops.createList(newList.stream());
+					}
+				}
+			}
+			var commentContainer = codec.nestedMetadata(MetadataKey.COMMENTS);
+			if (commentContainer.isPresent()) {
+				if (ops.getMap(result).isSuccess()) {
+					result = comments.metacraft$withComments(result, commentContainer.get().getMapFor(ops)).resultOrPartial(
+						METAConfig.LOGGER::error
+					).orElse(result);
+				}
+			}
+		}
+		return result;
+	}
+
 	public <R> DataResult<R> getRawData(DynamicOps<R> ops, R prefix) {
 		var result = JavaOps.INSTANCE.convertTo(ops, rawData);
 		var primitive = ops.mergeToPrimitive(prefix, result);
 		if (primitive.isSuccess()) {
-			return primitive;
+			return primitive.map(
+				r -> applyComments(CodecParser.parse(codec, null), ops, r)
+			);
 		}
 		var mapResult = ops.getMap(result).flatMap(
 				map -> ops.mergeToMap(prefix, map)
 		);
 		if (mapResult.isSuccess()) {
-			return mapResult;
+			return mapResult.map(
+				r -> applyComments(CodecParser.parse(codec, null), ops, r)
+			);
 		}
 		var listResult = ops.mergeToList(prefix, result);
 		if (listResult.isSuccess()) {
-			return listResult;
+			return listResult.map(
+				r -> applyComments(CodecParser.parse(codec, null), ops, r)
+			);
 		}
 		return primitive;
 	}

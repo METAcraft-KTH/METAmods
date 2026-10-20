@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import nu.metacraft.lib.CreativeTabNamespaces;
 import nu.metacraft.simplecustomfeatures.RegistryHelper;
 import nu.metacraft.simplecustomfeatures.extension.ItemPropertiesExtension;
 import nu.metacraft.simplecustomfeatures.mixin.ItemPropertiesAccessor;
@@ -114,6 +115,12 @@ public interface BaseItem extends BaseObject<Item> {
 
 	@Override
 	default void onRegistrationSuccess(Holder.Reference<Item> entry) {
+		//Custom items take their ids from the config, so their namespaces are only known here. A vanilla-namespaced item
+		//would list every vanilla item in the METAcraft tab, so that one is left out.
+		var namespace = entry.key().identifier().getNamespace();
+		if (!namespace.equals(Identifier.DEFAULT_NAMESPACE)) {
+			CreativeTabNamespaces.add(namespace);
+		}
 		if (entry.value() instanceof BlockItem blockItem) {
 			if (!Item.BY_BLOCK.containsKey(blockItem.getBlock())) {
 				blockItem.registerBlocks(Item.BY_BLOCK, entry.value());

@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "metacraft.kultur.compat.brewery.mixin",
+	"plugin": "metacraft.kultur.compat.brewery.KulturMixinPlugin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"BreweryEffectsMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

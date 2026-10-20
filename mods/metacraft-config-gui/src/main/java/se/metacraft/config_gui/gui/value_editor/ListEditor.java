@@ -1,6 +1,7 @@
 package se.metacraft.config_gui.gui.value_editor;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JavaOps;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
@@ -9,7 +10,9 @@ import net.minecraft.server.dialog.ActionButton;
 import net.minecraft.server.dialog.CommonButtonData;
 import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.level.ServerPlayer;
+import nu.metacraft.lib.util.helper.DataResultHelper;
 import org.pcollections.PVector;
+import org.pcollections.TreePVector;
 import se.metacraft.config_gui.ClickHandlerGUI;
 import se.metacraft.config_gui.CodecDialog;
 import se.metacraft.config_gui.ConfigGUI;
@@ -25,57 +28,73 @@ import se.metacraft.config_gui.gui.value_editor.trait.WithSubMenus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 public record ListEditor<T>(
 	PVector<Object> list,
-	CodecDialog.Type type,
+	CodecDialog.Type type, OptionalInt minSize, OptionalInt maxSize,
 	Codec<T> wrappingCodec, Optional<ValueEditor.ParentInfo> parent
 ) implements ValueEditor<T>, RemovableByIndex, WithSubMenus, MovableEntries {
 
-	public static <T> Optional<ClickHandlerGUI> create(T value, Codec<T> codec, HolderLookup.Provider lookup, Optional<ParentInfo> parent) {
+	public static <T> Optional<ClickHandlerGUI> create(
+		T value, Codec<T> codec, OptionalInt minSize, OptionalInt maxSize, HolderLookup.Provider lookup, Optional<ParentInfo> parent
+	) {
 		return CodecDialog.getEmptyListSubType(codec, lookup).map(
 			type -> new ListEditor<>(
 				CodecDialog.getListCodecElements(codec, value, lookup, type), type,
-				codec, parent
+				minSize, maxSize, codec, parent
 			)
 		);
 	}
 
 	@Override
-	public ValueEditor<T> updateFromChild(HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position) {
+	public ClickHandlerGUI updateFromChild(HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position) {
 		if (position instanceof SubMenu.I(int i) && child instanceof ValueEditor<?> e) {
 			if (i < 0) return this;
 			if (i > list.size()) return this;
-			if (i == list.size()) {
-				return new ListEditor<>(
-					e.getValue(lookup).map(list::plus).orElse(list),
-					type, wrappingCodec, parent
-				);
-			}
-			return new ListEditor<>(
-				e.getValue(lookup).map(v -> list.with(i, v)).orElseGet(() -> list.minus(i)),
-				type, wrappingCodec, parent
+			return PopupScreen.dataResult(
+				e.getValue(lookup),
+				opt -> {
+					if (i == list.size()) {
+						return new ListEditor<>(
+							opt.map(list::plus).orElse(list),
+							type, minSize, maxSize, wrappingCodec, parent
+						);
+					}
+					return new ListEditor<>(
+						opt.map(v -> list.with(i, v)).orElseGet(() -> list.minus(i)),
+						type, minSize, maxSize, wrappingCodec, parent
+					);
+				},
+				this
 			);
 		}
 		return this;
 	}
 
 	@Override
-	public Optional<T> getValue(HolderLookup.Provider lookup) {
-		List<Object> list = new ArrayList<>();
+	public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
+		DataResult<PVector<Object>> list = DataResult.success(TreePVector.empty());
 		var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
 		for (var element : this.list) {
 			//noinspection unchecked
-			((Codec<Object>) type.element().codec()).encodeStart(
-				ctx, element
-			).resultOrPartial(ConfigGUI.LOGGER::error).ifPresent(list::add);
+			list = list.flatMap(
+				l -> DataResultHelper.withPartialIfError(
+					((Codec<Object>) type.element().codec()).encodeStart(
+						ctx, element
+					).map(l::plus),
+					l
+				)
+			);
 		}
-		return wrappingCodec.parse(ctx, list).resultOrPartial();
+		return list.flatMap(l -> wrappingCodec.parse(ctx, l).map(Optional::of));
 	}
 
 	@Override
 	public Holder<Dialog> createDialog(ServerPlayer player) {
 		List<ActionButton> buttons = new ArrayList<>();
+
+		boolean hasRemoveButton = minSize.isEmpty() || minSize.getAsInt() < list.size();
 
 		for (int i = 0; i < list.size(); i++) {
 			var entry = list.get(i);
@@ -110,29 +129,33 @@ public record ListEditor<T>(
 			);
 
 			// Remove button
+			if (hasRemoveButton) {
+				buttons.add(
+					new ActionButton(
+						ValueEditor.removeButtonData(),
+						Optional.of(ConfirmScreen.click(
+							new RemoveIndex(i),
+							ValueEditor.removeMessage(ValueEditor.highlight(name)),
+							player.registryAccess()
+						))
+					)
+				);
+			}
+		}
+
+		if (maxSize.isEmpty() || maxSize.getAsInt() > list.size()) {
 			buttons.add(
 				new ActionButton(
-					ValueEditor.removeButtonData(),
-					Optional.of(ConfirmScreen.click(
-						new RemoveIndex(i),
-						ValueEditor.removeMessage(ValueEditor.highlight(name)),
-						player.registryAccess()
-					))
+					new CommonButtonData(
+						Component.translatable("mco.create.world"), 50
+					),
+					Optional.of(ClickHandler.click(player.registryAccess(), new SubMenu(list.size()), false))
 				)
 			);
 		}
 
-		buttons.add(
-			new ActionButton(
-				new CommonButtonData(
-					Component.translatable("mco.create.world"), 50
-				),
-				Optional.of(ClickHandler.click(player.registryAccess(), new SubMenu(list.size()), false))
-			)
-		);
-
 		return CodecDialog.template(
-			List.of(), List.of(), buttons, player.registryAccess(), 4
+			List.of(), List.of(), buttons, player.registryAccess(), hasRemoveButton ? 4 : 3
 		);
 	}
 
@@ -140,7 +163,7 @@ public record ListEditor<T>(
 	public DialogGUI remove(ServerPlayer player, int index) {
 		if (index < 0 || index >= list.size()) return this;
 		return new ListEditor<>(
-			list.minus(index), type, wrappingCodec, parent
+			list.minus(index), type, minSize, maxSize, wrappingCodec, parent
 		);
 	}
 
@@ -174,7 +197,7 @@ public record ListEditor<T>(
 			};
 			var entryAtTargetPos = list.get(targetSlot);
 			var newList = list.with(index, entryAtTargetPos).with(targetSlot, entryToMove);
-			return new ListEditor<>(newList, type, wrappingCodec, parent);
+			return new ListEditor<>(newList, type, minSize, maxSize, wrappingCodec, parent);
 		}
 		return this;
 	}

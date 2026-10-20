@@ -1,7 +1,7 @@
 package nu.metacraft.core.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -10,12 +10,14 @@ import net.minecraft.network.protocol.game.ClientboundClearTitlesPacket;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
+import net.minecraft.server.permissions.PermissionLevel;
+import nu.metacraft.core.METAcraftCore;
 
 public class TechnicalDifficultiesCommand {
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext registryAccess) {
 		dispatcher.register(
 			Commands.literal("td")
-				.requires(Permissions.require("metacraft.technical_difficulties", 2))
+				.requires(PermissionPredicates.require(METAcraftCore.getID("technical_difficulties"), PermissionLevel.GAMEMASTERS))
 				.then(
 					Commands.literal("title")
 						.executes(ctx -> {

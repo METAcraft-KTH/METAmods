@@ -1,5 +1,6 @@
 package se.metacraft.config_gui.mixin;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.Holder;
 import net.minecraft.network.protocol.common.ClientboundClearDialogPacket;
 import net.minecraft.network.protocol.game.ClientboundContainerClosePacket;
@@ -15,10 +16,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import se.metacraft.config_gui.DebugWarnings;
-import se.metacraft.config_gui.DialogGUI;
-import se.metacraft.config_gui.DialogGUIExtension;
-import se.metacraft.config_gui.ServerPlayerExtension;
+import se.metacraft.config_gui.*;
 import se.metacraft.config_gui.util.EditorGUIPreferences;
 
 import java.util.Optional;
@@ -74,7 +72,9 @@ public abstract class ServerPlayerMixin implements DialogGUIExtension, ServerPla
 			metacraft$closeGUI();
 		} else {
 			var dialog = gui.createDialog((ServerPlayer) (Object) this);
-			DebugWarnings.validateDialog(dialog);
+			if (FabricLoader.getInstance().isDevelopmentEnvironment() && DialogClientClosables.clientClosable(dialog)) {
+				throw new IllegalArgumentException("Dialog can be closed without notifying the server!");
+			}
 			openDialog(dialog);
 		}
 	}

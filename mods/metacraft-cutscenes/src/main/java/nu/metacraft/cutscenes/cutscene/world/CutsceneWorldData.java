@@ -32,7 +32,7 @@ public record CutsceneWorldData(
 
 		public void load(CutsceneLevel world) {
 			SpawnEntity.spawnEntities(
-					ids, data, Optional.empty(), world, Optional.of(false)
+					ids, data, Optional.empty(), Optional.empty(), world, Optional.of(false)
 			);
 		}
 	}

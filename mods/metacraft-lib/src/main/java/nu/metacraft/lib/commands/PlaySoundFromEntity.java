@@ -9,7 +9,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.serialization.*;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -23,9 +23,11 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerPlayerConnection;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.mixin.ChunkMapAccessor;
 import nu.metacraft.lib.util.METACodecs;
 
@@ -75,7 +77,7 @@ public class PlaySoundFromEntity {
 			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
-			literal("playsound-from-entity").requires(Permissions.require("metacraft.playsound-from-entity", 2)).then(
+			literal("playsound-from-entity").requires(PermissionPredicates.require(METAcraftLib.getID("playsound-from-entity"), PermissionLevel.GAMEMASTERS)).then(
 				argument("sound", IdentifierArgument.id()).suggests(
 						SuggestionProviders.cast(SuggestionProviders.AVAILABLE_SOUNDS)
 				).executes(

@@ -3,6 +3,9 @@ package nu.metacraft.cutscenes.transitions.entity;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.world.phys.Vec2;
+import nu.metacraft.core.registry.RotationRefRegistry;
+import nu.metacraft.core.rotation_ref.RotationRef;
 import org.apache.commons.lang3.mutable.MutableInt;
 import nu.metacraft.cutscenes.Cutscenes;
 import nu.metacraft.cutscenes.cutscene.world.CutsceneLevel;
@@ -39,6 +42,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 			instance -> instance.group(
 					ExtraCodecs.nonEmptyList(Codec.STRING.listOf()).fieldOf("ids").forGetter(t -> t.ids),
 					PositionRefRegistry.CODEC.fieldOf("position").forGetter(t -> t.position),
+					RotationRefRegistry.CODEC.optionalFieldOf("rotation").forGetter(t -> t.rotation),
 					AccurateSerializableNBT.CODEC.fieldOf("nbt").forGetter(t -> t.nbt),
 					Codec.BOOL.optionalFieldOf("initialize").forGetter(t -> t.initialize),
 					Codec.BOOL.optionalFieldOf("kill_after", false).forGetter(t -> t.killAfter)
@@ -47,24 +51,35 @@ public class SpawnEntity implements Transition, TransitionConfig {
 
 	private final List<String> ids;
 	private final PositionRef position;
+	private final Optional<RotationRef> rotation;
 	private final AccurateSerializableNBT nbt;
 	private final Optional<Boolean> initialize;
 	private final boolean killAfter;
 
-	public SpawnEntity(List<String> ids, PositionRef position, CompoundTag nbt, Optional<Boolean> initialize, boolean killAfter) {
-		this(ids, position, new AccurateSerializableNBT(new CompoundTag(), nbt), initialize, killAfter);
+	public SpawnEntity(List<String> ids, PositionRef position, Optional<RotationRef> rotation, CompoundTag nbt, Optional<Boolean> initialize, boolean killAfter) {
+		this(ids, position, rotation, new AccurateSerializableNBT(new CompoundTag(), nbt), initialize, killAfter);
 	}
 
-	public SpawnEntity(List<String> ids, PositionRef position, AccurateSerializableNBT nbt, Optional<Boolean> initialize, boolean killAfter) {
+	public SpawnEntity(List<String> ids, PositionRef position, Optional<RotationRef> rotation, AccurateSerializableNBT nbt, Optional<Boolean> initialize, boolean killAfter) {
 		this.ids = ids;
 		this.position = position;
+		this.rotation = rotation;
 		this.nbt = nbt;
 		this.initialize = initialize;
 		this.killAfter = killAfter;
 	}
 
+	private static void setRot(Entity entity, Vec2 rot) {
+		entity.setXRot(rot.x);
+		entity.setYRot(rot.y);
+		entity.setYHeadRot(rot.y);
+		entity.setYBodyRot(rot.y);
+		entity.setOldRot();
+	}
+
 	public static void spawnEntities(
-			List<String> ids, CompoundTag nbt, Optional<Vec3> pos, CutsceneLevel world, Optional<Boolean> initialize
+		List<String> ids, CompoundTag nbt, Optional<Vec3> pos, Optional<Vec2> rot,
+		CutsceneLevel world, Optional<Boolean> initialize
 	) {
 		MutableInt idIndex = new MutableInt(0);
 		Supplier<String> idGetter = () -> {
@@ -78,6 +93,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 			var readView = TagValueInput.create(logging, world.registryAccess(), nbt);
 			EntityHelper.loadEntityWithPassengers(readView, world, EntitySpawnReason.EVENT, (entity, data) -> {
 				pos.ifPresent(entity::setPos);
+				rot.ifPresent(r -> setRot(entity, r));
 				world.getEntityManager().addEntity(idGetter.get(), entity);
 				if (initialize.orElse(ViewHelper.getSize(data) <= 1)) {
 					EntityHelper.initializeEntity(
@@ -86,6 +102,7 @@ public class SpawnEntity implements Transition, TransitionConfig {
 							EntitySpawnReason.TRIGGERED, null
 					);
 					pos.ifPresent(entity::setPos);
+					rot.ifPresent(r -> setRot(entity, r));
 				}
 				return entity;
 			});
@@ -100,7 +117,10 @@ public class SpawnEntity implements Transition, TransitionConfig {
 				Cutscenes.LOGGER.warn("Warning, an entity with id " + id + " already exists. Your cutscene might behave unexpectedly!");
 			}
 		});
-		spawnEntities(ids, nbt.getMerged(), pos, cutscene.getCutsceneWorld(), initialize);
+		spawnEntities(
+			ids, nbt.getMerged(), pos, rotation.flatMap(r -> r.get(cutscene.getRefContext())),
+			cutscene.getCutsceneWorld(), initialize
+		);
 	}
 
 	@Override

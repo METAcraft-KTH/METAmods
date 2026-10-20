@@ -1,0 +1,158 @@
+{
+	"version": 4,
+	"name": {
+		"translate": "drinktype.kultur.slaggan",
+		"fallback": "Släggan Patch Drink"
+	},
+	"color": "#A0FFBC",
+	"visual": {
+		"resource_pack_model": "kultur:drink/slaggan"
+	},
+	"base_quality_value": "10",
+	"drinking_time": "clamp(1.6 * (7 / (max(quality, 0.1))), 1.6, 4.8)",
+	"alcoholic_value": "35",
+	"cooking_quality_multiplier": "smooth_value_minutes(8, 0.5, 8, age)",
+	"ingredients": [
+		{
+			"items": [
+				"minecraft:potato"
+			],
+			"count": 4
+		},
+		{
+			"items": [
+				"minecraft:suspicious_stew"
+			],
+			"count": 1,
+			"dropped_stack": {
+				"id": "minecraft:bowl"
+			}
+		}
+	],
+	"book_information": {
+		"best_cooking_time": 480.0,
+		"best_barrel_age": -1200.0
+	},
+	"effects": [
+		{
+			"type": "random",
+			"entries": [
+				{
+					"type": "delayed",
+					"delay": "0",
+					"entries": [
+						{
+							"type": "potion",
+							"effect": "minecraft:slowness",
+							"time": "60 + 14 * quality",
+							"value": "clamp(floor((userAlcoholLevel - 30) / 40), 0, 1)"
+						},
+						{
+							"type": "potion",
+							"effect": "minecraft:strength",
+							"time": "60 + 14 * quality",
+							"value": "floor((userAlcoholLevel - 60) / 1000)"
+						}
+					]
+				},
+				{
+					"type": "delayed",
+					"delay": "0",
+					"entries": [
+						{
+							"type": "potion",
+							"effect": "minecraft:slowness",
+							"time": "60 + 14 * quality",
+							"value": "clamp(floor((userAlcoholLevel - 30) / 40), 0, 1)"
+						},
+						{
+							"type": "potion",
+							"effect": "minecraft:strength",
+							"time": "60 + 14 * quality",
+							"value": "floor((userAlcoholLevel - 60) / 1000)"
+						}
+					]
+				},
+				{
+					"type": "delayed",
+					"delay": "0",
+					"entries": [
+						{
+							"type": "potion",
+							"effect": "minecraft:slowness",
+							"time": "60 + 14 * quality",
+							"value": "clamp(floor((userAlcoholLevel - 30) / 40), 0, 1)"
+						},
+						{
+							"type": "potion",
+							"effect": "minecraft:strength",
+							"time": "60 + 14 * quality",
+							"value": "floor((userAlcoholLevel - 60) / 1000)"
+						}
+					]
+				},
+				{
+					"type": "delayed",
+					"delay": "0",
+					"entries": [
+						{
+							"type": "potion",
+							"effect": "minecraft:speed",
+							"time": "60 + 14 * quality",
+							"value": "clamp(floor((userAlcoholLevel - 30) / 40), 0, 1)"
+						},
+						{
+							"type": "potion",
+							"effect": "minecraft:weakness",
+							"time": "60 + 14 * quality",
+							"value": "floor((userAlcoholLevel - 60) / 1000)"
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "random",
+			"apply_check": "userAlcoholLevel - 100",
+			"entries": [
+				{
+					"type": "teleport_random",
+					"distance": "500"
+				}
+			]
+		},
+		{
+			"type": "execute_command",
+			"apply_check": "userAlcoholLevel - 100",
+			"command": "effect clear @s"
+		},
+		{
+			"type": "execute_command",
+			"apply_check": "userAlcoholLevel - 100",
+			"command": "damage @s 4 brewery:alcohol_poisoning"
+		},
+		{
+			"type": "execute_command",
+			"apply_check": "userAlcoholLevel - 100",
+			"command": "title @s actionbar {text:\"You wake up with a splitting headache...\",color:\"#FF0F0F\",bold:true}"
+		},
+		{
+			"type": "potion",
+			"effect": "minecraft:blindness",
+			"time": "10",
+			"value": "floor((userAlcoholLevel - 100) / 1000)",
+			"show_icon": false
+		},
+		{
+			"type": "random",
+			"apply_check": "userAlcoholLevel - 100",
+			"entries": [
+				{
+					"type": "set_alcohol_level",
+					"value": "30"
+				}
+			]
+		}
+	],
+	"distillation_runs": 1
+}

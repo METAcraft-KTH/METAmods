@@ -2,13 +2,15 @@ package nu.metacraft.lib.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
+import nu.metacraft.lib.METAcraftLib;
 import nu.metacraft.lib.util.helper.HardcoreHelper;
 
 import java.util.Collection;
@@ -20,7 +22,7 @@ public class HardcoreSwitcherCommand {
 			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
-				Commands.literal("hardcore").requires(Permissions.require("metacraft.hardcore", 2)).then(
+				Commands.literal("hardcore").requires(PermissionPredicates.require(METAcraftLib.getID("hardcore"), PermissionLevel.GAMEMASTERS)).then(
 						Commands.argument("state", BoolArgumentType.bool()).executes(context -> {
 							boolean hardcore = BoolArgumentType.getBool(context, "state");
 							if (context.getSource().getServer().isHardcore() == hardcore) {
@@ -41,7 +43,7 @@ public class HardcoreSwitcherCommand {
 				)
 		);
 		dispatcher.register(
-				Commands.literal("fake-hardcore").requires(Permissions.require("metacraft.fake-hardcore", 2)).then(
+				Commands.literal("fake-hardcore").requires(PermissionPredicates.require(METAcraftLib.getID("fake-hardcore"), PermissionLevel.GAMEMASTERS)).then(
 						Commands.argument("state", BoolArgumentType.bool()).then(
 								Commands.argument("player", EntityArgument.entities()).executes(context -> {
 									boolean hardcore = BoolArgumentType.getBool(context, "state");

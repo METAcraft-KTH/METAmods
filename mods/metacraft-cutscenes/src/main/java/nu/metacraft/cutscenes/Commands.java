@@ -5,14 +5,15 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
 import nu.metacraft.cutscenes.cutscene.MultiplayerCutsceneManager;
 import nu.metacraft.cutscenes.util.helper.CutsceneHelper;
 
@@ -205,7 +206,7 @@ public class Commands {
 		var player = ctx.getSource().getPlayerOrException();
 		if (CutsceneHelper.isInMultiplayerCutscene(player)) {
 			var scene = CutsceneHelper.getCutscene(player).orElseThrow();
-			if (!scene.getCutscene().isSkippable() && !Permissions.check(ctx.getSource(), "metacraft.cutscenes.multiplayer.leave.non-skippable", 2)) {
+			if (!scene.getCutscene().isSkippable() && !ctx.getSource().checkPermission(Cutscenes.getID("cutscenes.multiplayer.leave.non-skippable"), PermissionLevel.GAMEMASTERS)) {
 				ctx.getSource().sendFailure(Component.literal("You can't leave unskippable cutscenes!"));
 				return 0;
 			}
@@ -229,7 +230,7 @@ public class Commands {
 			(dispatcher, registryAccess, environment) -> {
 				dispatcher.register(
 					literal("cutscene").then(
-						literal("play").requires(Permissions.require("metacraft.cutscenes.play", 2)).then(
+						literal("play").requires(PermissionPredicates.require(Cutscenes.getID("cutscenes.play"), PermissionLevel.GAMEMASTERS)).then(
 							argument("cutscene", StringArgumentType.word()).suggests(SUGGEST_CUTSCENES).executes(
 								ctx -> playCutscene(
 										ctx, StringArgumentType.getString(ctx, "cutscene"),
@@ -246,7 +247,7 @@ public class Commands {
 						)
 					).then(
 						literal("stop").requires(
-								Permissions.require("metacraft.cutscenes.stop", 2)
+							PermissionPredicates.require(Cutscenes.getID("cutscenes.stop"), PermissionLevel.GAMEMASTERS)
 						).executes(
 								ctx -> endCutscene(ctx, List.of(ctx.getSource().getPlayerOrException()))
 						).then(
@@ -256,7 +257,7 @@ public class Commands {
 						)
 					).then(
 						literal("skip").requires(
-								Permissions.require("metacraft.cutscenes.skip", 0)
+							PermissionPredicates.require(Cutscenes.getID("cutscenes.skip"), PermissionLevel.ALL)
 						).executes(ctx -> {
 							var player = ctx.getSource().getPlayerOrException();
 							var scene = CutsceneHelper.getCutscene(player);
@@ -280,7 +281,7 @@ public class Commands {
 							return 0;
 						})
 					).then(
-						literal("reload").requires(Permissions.require("metacraft.cutscenes.reload", 4)).executes(ctx -> {
+						literal("reload").requires(PermissionPredicates.require(Cutscenes.getID("cutscenes.reload"), PermissionLevel.OWNERS)).executes(ctx -> {
 							CutscenesConfig.reload(ctx.getSource().getServer());
 							ctx.getSource().sendSuccess(
 									() -> Component.literal(
@@ -291,7 +292,7 @@ public class Commands {
 						})
 					).then(
 						literal("multiplayer").then(
-							literal("setup").requires(Permissions.require("metacraft.cutscenes.multiplayer.setup", 2)).then(
+							literal("setup").requires(PermissionPredicates.require(Cutscenes.getID("cutscenes.multiplayer.setup"), PermissionLevel.GAMEMASTERS)).then(
 								argument("cutscene", StringArgumentType.word()).suggests(SUGGEST_CUTSCENES).then(
 									argument("name", StringArgumentType.word()).executes(
 										ctx -> playMultiplayerCutscene(
@@ -311,7 +312,7 @@ public class Commands {
 							)
 						).then(
 							literal("join").requires(
-									Permissions.require("metacraft.cutscenes.multiplayer.join", 0)
+								PermissionPredicates.require(Cutscenes.getID("cutscenes.multiplayer.join"), PermissionLevel.ALL)
 							).then(
 								argument("name", StringArgumentType.word()).suggests(SUGGEST_MULTIPLAYER_CUTSCENES).executes(
 										ctx -> joinMultiplayerCutscene(
@@ -320,7 +321,7 @@ public class Commands {
 										)
 								).then(
 									argument("players", EntityArgument.players()).requires(
-											Permissions.require("metacraft.cutscenes.multiplayer.join.others", 2)
+										PermissionPredicates.require(Cutscenes.getID("cutscenes.multiplayer.join.others"), PermissionLevel.GAMEMASTERS)
 									).executes(
 										ctx -> joinMultiplayerCutscene(
 												ctx, StringArgumentType.getString(ctx, "name"),
@@ -331,7 +332,7 @@ public class Commands {
 							)
 						).then(
 							literal("stop").requires(
-									Permissions.require("metacraft.cutscenes.multiplayer.stop", 2)
+								PermissionPredicates.require(Cutscenes.getID("cutscenes.multiplayer.stop"), PermissionLevel.GAMEMASTERS)
 							).then(
 								argument("name", StringArgumentType.string()).suggests(SUGGEST_MULTIPLAYER_CUTSCENES).executes(
 										ctx -> endMultiplayerCutscene(ctx, StringArgumentType.getString(ctx, "name"))
@@ -339,10 +340,10 @@ public class Commands {
 							)
 						).then(
 							literal("leave").requires(
-									Permissions.require("metacraft.cutscenes.multiplayer.leave", 0)
+								PermissionPredicates.require(Cutscenes.getID("cutscenes.multiplayer.leave"), PermissionLevel.ALL)
 							).executes(Commands::leaveCutscene).then(
 									argument("players", EntityArgument.players()).requires(
-											Permissions.require("metacraft.cutscenes.multiplayer.leave.others", 2)
+										PermissionPredicates.require(Cutscenes.getID("cutscenes.multiplayer.leave.others"), PermissionLevel.GAMEMASTERS)
 									).executes(ctx -> leaveCutscene(ctx, EntityArgument.getPlayers(ctx, "players")))
 							)
 						)

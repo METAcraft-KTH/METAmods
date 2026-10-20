@@ -1,0 +1,42 @@
+{
+	"textures": {
+		"rift": "metacraft:item/rift_4",
+		"particle": "metacraft:item/rift_4"
+	},
+	"elements": [
+		{
+			"from": [
+				0,
+				8,
+				0
+			],
+			"to": [
+				16,
+				8,
+				16
+			],
+			"faces": {
+				"up": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#rift",
+					"tintindex": 0
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#rift",
+					"tintindex": 0
+				}
+			}
+		}
+	]
+}

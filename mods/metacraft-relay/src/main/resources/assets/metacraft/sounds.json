@@ -1,0 +1,8 @@
+{
+	"entity.player.teleport.arrival": {
+		"sounds": [
+			"mob/endermen/portal"
+		],
+		"subtitle": "subtitles.entity.player.teleport"
+	}
+}

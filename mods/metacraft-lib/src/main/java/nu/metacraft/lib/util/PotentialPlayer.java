@@ -27,8 +27,18 @@ public sealed abstract class PotentialPlayer permits PotentialPlayer.Absent, Pot
 		);
 	}
 
+	/**
+	 * Returns the player this object references.
+	 * @param server The server to get the player from.
+	 * @return The player, or {@link Optional#empty()}.
+	 */
 	public abstract Optional<ServerPlayer> getPlayer(MinecraftServer server);
 
+	/**
+	 * Returns the UUID of the player this object references.
+	 * This will succeed even if the player is offline.
+	 * @return The player's UUID, or {@link Optional#empty()}.
+	 */
 	public abstract Optional<UUID> getPlayerID();
 
 	public static PotentialPlayer get(ServerPlayer player) {

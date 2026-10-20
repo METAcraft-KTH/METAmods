@@ -98,6 +98,12 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 
 	}
 
+	private static CompoundTag withID(CompoundTag tag, String id) {
+		var copy = tag.copy();
+		copy.putString("id", id);
+		return copy;
+	}
+
 	@Override
 	public void activate(ServerPlayer player, CutsceneInstance cutscene, IntervalMap.Interval<Transition> interval) {
 		var pos = position.get(cutscene.createRefContext(player));
@@ -124,7 +130,10 @@ public class AddPlayerDummies implements Transition, TransitionConfig {
 				if (e instanceof PlayerMob p) {
 					nbt.flatMap(
 							nbt -> ENTITY_DATA_CODEC.parse(
-									NbtOps.INSTANCE, nbt.getMerged()
+								NbtOps.INSTANCE, withID(
+									nbt.getMerged(),
+									e.getType().builtInRegistryHolder().key().identifier().toString()
+								)
 							).resultOrPartial(Cutscenes.LOGGER::error)
 					).ifPresent(d -> d.loadInto(p));
 					function.flatMap(

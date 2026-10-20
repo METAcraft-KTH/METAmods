@@ -3,7 +3,7 @@ package nu.metacraft.player_specific_scoreboards.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
-import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.NbtTagArgument;
@@ -14,6 +14,7 @@ import net.minecraft.network.chat.ResolutionContext;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
 import nu.metacraft.player_specific_scoreboards.PlayerScoreboardExtension;
+import nu.metacraft.player_specific_scoreboards.PlayerScoreboards;
 import nu.metacraft.player_specific_scoreboards.util.PlayerScoreboard;
 
 import java.util.Collection;
@@ -41,7 +42,7 @@ public class SetPlayerSidebarCommand {
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(
-			literal("player-sidebar").requires(Permissions.require("metacraft.player_scoreboard", PermissionLevel.GAMEMASTERS)).then(
+			literal("player-sidebar").requires(PermissionPredicates.require(PlayerScoreboards.getID("player_scoreboard"), PermissionLevel.GAMEMASTERS)).then(
 				literal("set").then(
 					argument("target", EntityArgument.players()).then(
 						argument("sidebar", NbtTagArgument.nbtTag()).executes(ctx -> {

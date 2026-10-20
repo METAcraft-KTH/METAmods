@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "metacraft.kultur.drinks.mixin",
+	"plugin": "metacraft.kultur.drinks.DrinksMixinPlugin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"ConsumableMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

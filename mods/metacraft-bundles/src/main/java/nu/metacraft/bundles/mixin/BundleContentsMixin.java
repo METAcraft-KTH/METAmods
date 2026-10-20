@@ -3,6 +3,8 @@ package nu.metacraft.bundles.mixin;
 import com.google.common.base.Suppliers;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.serialization.DataResult;
 import net.minecraft.world.item.component.GrowableMutableContainer;
@@ -98,7 +100,7 @@ public abstract class BundleContentsMixin implements BundlesComponentExtensions.
 		}
 
 		@ModifyExpressionValue(
-			method = {"getMaxAmountToAdd", "tryInsert(Lnet/minecraft/world/item/ItemStack;)I", "removeOne"},
+			method = {"tryInsert(Lnet/minecraft/world/item/ItemStack;)I", "tryTransfer"},
 			at = @At(
 				value = "INVOKE",
 				target = "Lnet/minecraft/world/item/component/BundleContents;getWeight(Lnet/minecraft/world/item/ItemInstance;)Lcom/mojang/serialization/DataResult;"
@@ -106,6 +108,39 @@ public abstract class BundleContentsMixin implements BundlesComponentExtensions.
 		)
 		public DataResult<Fraction> fixGetOccupancy(DataResult<Fraction> original) {
 			return original.flatMap(fraction -> BundleHelper.runSafeFractionOperation(() -> fraction.divideBy(bundleSizeFactor)));
+		}
+
+		/** What taking a stack out (or replacing one) frees: its weight in this bundle, scaled by the factor like the rest. */
+		@WrapOperation(
+			method = {"removeOne", "setItem"},
+			at = @At(
+				value = "INVOKE",
+				target = "Lnet/minecraft/world/item/component/BundleContents$Mutable;getStackedWeight(Lnet/minecraft/world/item/ItemStack;)Lorg/apache/commons/lang3/math/Fraction;"
+			),
+			require = 2
+		)
+		private Fraction scaleRemovedWeight(ItemStack stack, Operation<Fraction> original) {
+			return original.call(stack).divideBy(bundleSizeFactor);
+		}
+
+		/**
+		 * The weight after a stack is put in a slot: vanilla adds the stack's weight at factor 1 and refuses
+		 * past full; here its share is scaled by the factor, and full is still 1. One item asks vanilla whether
+		 * it can go in at all, and what it weighs.
+		 */
+		@WrapOperation(
+			method = {"setItem", "addSlotWithItem"},
+			at = @At(
+				value = "INVOKE",
+				target = "Lnet/minecraft/world/item/component/BundleContents$Mutable;getWeightWithAddedItems(Lorg/apache/commons/lang3/math/Fraction;Lnet/minecraft/world/item/ItemStack;)Lorg/apache/commons/lang3/math/Fraction;"
+			),
+			require = 2
+		)
+		private Fraction scaleAddedWeight(Fraction weight, ItemStack stack, Operation<Fraction> original) {
+			Fraction one = original.call(Fraction.ZERO, stack.copyWithCount(1));
+			if (one == null) return null;
+			Fraction total = weight.add(one.multiplyBy(Fraction.getFraction(stack.getCount(), 1)).divideBy(bundleSizeFactor));
+			return total.compareTo(Fraction.ONE) <= 0 ? total : null;
 		}
 
 		@ModifyReturnValue(method = "toImmutable", at = @At("RETURN"))

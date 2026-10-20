@@ -153,27 +153,28 @@ public record AlternativesEditor<T>(
 	}
 
 	@Override
-	public ValueEditor<T> updateFromChild(HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position) {
+	public ClickHandlerGUI updateFromChild(HolderLookup.Provider lookup, ClickHandlerGUI child, SubMenu.SubMenuKey position) {
 		if (position instanceof SubMenu.I(int i) && child instanceof ValueEditor<?> e) {
 			if (i < 0) return this;
 			if (i >= values.size()) return this;
-			var value = e.getValue(lookup);
-			return value.map(object -> new AlternativesEditor<>(
-				values.with(i, values.get(i).withValue(object)),
-				wrappingCodec, i, parent
-			)).orElse(this);
+			return PopupScreen.dataResult(
+				e.getValue(lookup),
+				value -> value.map(object -> new AlternativesEditor<>(
+					values.with(i, values.get(i).withValue(object)),
+					wrappingCodec, i, parent
+				)).orElse(this),
+				this
+			);
 		}
 		return this;
 	}
 
 	@Override
-	public Optional<T> getValue(HolderLookup.Provider lookup) {
+	public DataResult<Optional<T>> getValue(HolderLookup.Provider lookup) {
 		var ctx = lookup.createSerializationContext(JavaOps.INSTANCE);
-		return Optional.of(
-			wrappingCodec.parse(
-				ctx, forceEncode(values.get(currentCodec).codec(), ctx,values.get(currentCodec).value()).getOrThrow()
-			).getOrThrow()
-		);
+		return forceEncode(values.get(currentCodec).codec(), ctx,values.get(currentCodec).value()).flatMap(
+			encoded -> wrappingCodec.parse(ctx, encoded)
+		).map(Optional::of);
 	}
 
 	@Override
