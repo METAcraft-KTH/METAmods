@@ -20,6 +20,7 @@ import metacraft.ovvar.store.Stash;
 import metacraft.ovvar.store.Wardrobe;
 import metacraft.ovvar.store.Wardrobes;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.util.Prediction;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -33,8 +34,10 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -88,7 +91,7 @@ public final class ModCommands {
 			new DynamicCommandExceptionType(what -> Component.literal("Hold an ovve in your main hand, not " + what));
 
 	private static final java.util.function.Predicate<CommandSourceStack> GAMEMASTER =
-			source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions());
+			PermissionPredicates.require(Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "gamemaster"), PermissionLevel.GAMEMASTERS);
 
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->

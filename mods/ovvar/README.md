@@ -508,7 +508,7 @@ exactly its own defaults, so its `_help` is always there too.
 The file backend is fine for one server or a shared mount; a network of servers wants `jdbc`
 (MariaDB/MySQL and PostgreSQL drivers ship in the jar).
 
-## Debug commands (gamemasters)
+## Debug commands (gamemasters: permission `ovvar:gamemaster`, level 2)
 
     /ovvar give [player] <chapter> [patches]   their stored design; with patches (all / cell.patch / ids) those replace it
     /ovvar patches <patches>                   re-sew the ovve in your main hand (all / none / cell.patch, bare ids); owned: replaces the design
