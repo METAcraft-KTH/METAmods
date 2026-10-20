@@ -1,13 +1,15 @@
 package nu.metacraft.nether_rifts;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.phys.Vec3;
 import nu.metacraft.nether_rifts.mob.Showcase;
 import nu.metacraft.nether_rifts.raid.RiftRaid;
@@ -18,7 +20,7 @@ import java.util.Optional;
 /** {@code /rifts}: staff controls. Later tasks add subcommands to {@link #root()}. */
 public final class RiftsCommand {
 
-	public static final String PERMISSION = "metacraft.nether_rifts.admin";
+	public static final Identifier PERMISSION = NetherRifts.getID("rifts");
 
 	private RiftsCommand() {}
 
@@ -27,7 +29,7 @@ public final class RiftsCommand {
 	}
 
 	static LiteralArgumentBuilder<CommandSourceStack> root() {
-		return Commands.literal("rifts").requires(Permissions.require(PERMISSION, 2))
+		return Commands.literal("rifts").requires(PermissionPredicates.require(PERMISSION, PermissionLevel.GAMEMASTERS))
 				.then(Commands.literal("stabilise").executes(ctx -> {
 					Stabilisation.stabilise(ctx.getSource().getServer());
 					ctx.getSource().sendSuccess(() -> Component.literal("The realm steadies. Nether portals work again."), true);

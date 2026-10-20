@@ -63,7 +63,7 @@ into the pack (seen working in Complementary Reimagined and Unbound, BSL and Bli
 
 Config: `config/nether-rifts.json5`; its `mobs` section tunes the Piglin Drummer and the chained ghast's bombing (ranges,
 effect and fire durations, bomb power, the bombing run's heights, measured to the deck, and timing), and how often
-and how far the Grenadier throws on foot. Commands: `/rifts …`, permission `metacraft.nether_rifts.admin`.
+and how far the Grenadier throws on foot. Commands: `/rifts …`, permission `nether_rifts:rifts` (level 2).
 
 To see the mobs' looks: `/rifts showcase` lays out, in rows in front of you and facing you, a Piglin Drummer per
 animation (each looping it), Piglin Drummers in every kind of armour with gear in hand or on the head, a Piglin
