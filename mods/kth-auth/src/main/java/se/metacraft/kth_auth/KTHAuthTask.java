@@ -145,7 +145,7 @@ public class KTHAuthTask implements ConfigurationTask {
 			false,
 			false,
 			DialogAction.NONE,
-			List.of(new PlainMessage(Component.translatable("dialog.kth_auth.accept_gdpr.body", gdprLink()), 200)),
+			List.of(new PlainMessage(Component.translatable("dialog.kth_auth.accept_gdpr.body", gdprLink()), 250)),
 			List.of()
 		);
 		ActionButton acceptAction = new ActionButton(
@@ -240,7 +240,7 @@ public class KTHAuthTask implements ConfigurationTask {
 
 	private static Component link(MutableComponent text, String url) {
 		return text.withStyle(style -> style
-			.withColor(ChatFormatting.BLUE)
+			.withColor(ChatFormatting.AQUA)
 			.withUnderlined(true)
 			.withClickEvent(new ClickEvent.OpenUrl(URI.create(url))));
 	}
@@ -279,7 +279,7 @@ public class KTHAuthTask implements ConfigurationTask {
 			DialogAction.CLOSE,
 			List.of(
 				new PlainMessage(Component.translatable("dialog.kth_auth.no_kth_email.body",
-					Component.literal("/+1 " + this.getPlayerName()).withColor(TextColor.GRAY)), 250)
+					Component.literal("/+1 " + this.getPlayerName()).withColor(TextColor.GREEN)), 250)
 			),
 			List.of()
 		);
