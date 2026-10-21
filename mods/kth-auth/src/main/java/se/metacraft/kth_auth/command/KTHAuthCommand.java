@@ -142,9 +142,12 @@ public class KTHAuthCommand {
 		dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Stockholm"));
 		Date verifiedDate = new Date(details.verifiedAt());
 		Date acceptedGdprDate = details.acceptedGdprAt().isPresent() ? new Date(details.acceptedGdprAt().get()) : null;
+		Date lastLoginDate = details.lastLoginAt().isPresent() ? new Date(details.lastLoginAt().get()) : null;
 		text.append(Component.literal("    Verified at: " + dateFormat.format(verifiedDate)));
 		text.append(Component.literal("\n"));
 		text.append(Component.literal("    Accepted GDPR at: " + (acceptedGdprDate == null ? " Not accepted" : dateFormat.format(acceptedGdprDate))));
+		text.append(Component.literal("\n"));
+		text.append(Component.literal("    Last login: " + (lastLoginDate == null ? " Unknown" : dateFormat.format(lastLoginDate))));
 		text.append(Component.literal("\n"));
 
 		if (details.isPlusOne()) {
@@ -255,7 +258,7 @@ public class KTHAuthCommand {
 
 		ServerPlayer player = ctx.getSource().getServer().getPlayerList().getPlayer(playerUuid);
 		if (player != null) {
-			player.connection.disconnect(Component.literal("Please log in again to verify."));
+			player.connection.disconnect(Component.translatable("disconnect.kth_auth.unverified"));
 		}
 
 		ctx.getSource().sendSuccess(() -> Component.literal(playerUuid + " is no longer verified."), true);

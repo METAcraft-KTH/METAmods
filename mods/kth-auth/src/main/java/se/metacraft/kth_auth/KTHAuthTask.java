@@ -6,6 +6,8 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundClearDialogPacket;
 import net.minecraft.network.protocol.common.ClientboundPingPacket;
@@ -104,15 +106,15 @@ public class KTHAuthTask implements ConfigurationTask {
 
 	private void sendVerificationDialog() {
 		CommonDialogData dialogData = new CommonDialogData(
-			Component.literal("Welcome to METAcraft! - Verification"),
+			Component.translatable("dialog.kth_auth.verify.title"),
 			Optional.empty(),
 			false,
 			false,
 			DialogAction.CLOSE,
-			List.of(new PlainMessage(Component.literal("Enter your KTH email."), 200)),
+			List.of(new PlainMessage(Component.translatable("dialog.kth_auth.verify.body"), 200)),
 			List.of(new Input("email", new TextInput(
 				200,
-				Component.literal("KTH Email"),
+				Component.translatable("dialog.kth_auth.verify.email"),
 				true,
 				"kth-id@kth.se",
 				20,
@@ -120,11 +122,11 @@ public class KTHAuthTask implements ConfigurationTask {
 			)))
 		);
 		ActionButton nextAction = new ActionButton(
-			new CommonButtonData(Component.literal("Next"), 200),
+			new CommonButtonData(Component.translatable("dialog.kth_auth.verify.next"), 200),
 			Optional.of(new CustomAll(SUBMIT_EMAIL, Optional.empty()))
 		);
 		ActionButton noKthEmailAction = new ActionButton(
-			new CommonButtonData(Component.literal("I do not have a KTH Email"), 200),
+			new CommonButtonData(Component.translatable("dialog.kth_auth.verify.no_kth_email"), 200),
 			Optional.of(new CustomAll(NO_KTH_EMAIL, Optional.empty()))
 		);
 		ActionButton disconnectAction = new ActionButton(
@@ -138,18 +140,16 @@ public class KTHAuthTask implements ConfigurationTask {
 
 	public void sendAcceptGdprDialog() {
 		CommonDialogData dialogData = new CommonDialogData(
-			Component.literal("Accept GDPR Statement"),
+			Component.translatable("dialog.kth_auth.accept_gdpr.title"),
 			Optional.empty(),
 			false,
 			false,
 			DialogAction.NONE,
-			List.of(new PlainMessage(Component.literal("By clicking Accept, you agree to METAcraft's ")
-				.append(link("GDPR Statement", KTHAuth.GDPR_LINK))
-				.append("."), 200)),
+			List.of(new PlainMessage(Component.translatable("dialog.kth_auth.accept_gdpr.body", gdprLink()), 200)),
 			List.of()
 		);
 		ActionButton acceptAction = new ActionButton(
-			new CommonButtonData(Component.literal("Accept"), 200),
+			new CommonButtonData(Component.translatable("dialog.kth_auth.accept_gdpr.accept"), 200),
 			Optional.of(new CustomAll(ACCEPT_GDPR, Optional.empty()))
 		);
 		ActionButton disconnectAction = new ActionButton(
@@ -164,57 +164,47 @@ public class KTHAuthTask implements ConfigurationTask {
 	public void onEmailSubmitted(MinecraftServer server, String email) {
 		email = email.toLowerCase(Locale.ROOT);
 		if (!isKthEmail(email)) {
-			this.disconnect(Component.literal(
-				"Please enter a valid KTH email address."
-			));
+			this.disconnect(Component.translatable("disconnect.kth_auth.invalid_email"));
 			return;
 		}
 
 		if (this.code != null) {
-			this.disconnect(Component.literal(
-				"You have already submitted an email."
-			));
+			this.disconnect(Component.translatable("disconnect.kth_auth.email_already_submitted"));
 			return;
 		}
 
 		if (this.verifier.getVerificationDetails(this.getUUID()).isPresent()) {
-			this.disconnect(Component.literal(
-				"You are already verified!"
-			));
+			this.disconnect(Component.translatable("disconnect.kth_auth.already_verified"));
 			return;
 		}
 
 		if (this.verifier.getByEmail(email).size() >= Verifier.MAX_ACCOUNTS_PER_EMAIL) {
-			this.disconnect(Component.literal(
-				"This email has been used too many times. Please contact the moderation team on Discord."
-			));
+			this.disconnect(Component.translatable("disconnect.kth_auth.email_used_too_many_times"));
 			return;
 		}
 
 		this.code = this.verifier.createCode(this.getUUID(), this.getPlayerName(), email);
 		this.mailSender.sendMail(email, KTHAuth.EMAIL_SUBJECT, "<p>Verification code: " + code.verificationCode() + "</p>").exceptionallyAsync(ex -> {
 			KTHAuth.LOGGER.error("Failed to send verification email", ex);
-			this.disconnect(Component.literal("Failed to send email. Please try again or let us know on Discord."));
+			this.disconnect(Component.translatable("disconnect.kth_auth.failed_to_send_email"));
 			return null;
 		}, server); // Will run on server thread, so not async despite the method name.
 
 		CommonDialogData dialogData = new CommonDialogData(
-			Component.literal("Enter verification code"),
+			Component.translatable("dialog.kth_auth.code.title"),
 			Optional.empty(),
 			false,
 			false,
 			// Clicking links in the body also runs the after action, so CLOSE would dismiss the dialog
 			DialogAction.NONE,
 			List.of(
-				new PlainMessage(Component.literal("Check the inbox of " + email + " for your verification code: ")
-					.append(link("https://webmail.kth.se/", "https://webmail.kth.se/")), 200),
-				new PlainMessage(Component.literal("By clicking Submit, you agree to METAcraft's ")
-					.append(link("GDPR Statement", KTHAuth.GDPR_LINK))
-					.append("."), 200)
+				new PlainMessage(Component.translatable("dialog.kth_auth.code.check_inbox",
+					email, link(Component.literal("https://webmail.kth.se/"), "https://webmail.kth.se/")), 250),
+				new PlainMessage(Component.translatable("dialog.kth_auth.code.gdpr", gdprLink()), 200)
 			),
 			List.of(new Input("code", new TextInput(
 				200,
-				Component.literal("Verification Code"),
+				Component.translatable("dialog.kth_auth.code.code"),
 				true,
 				"",
 				20,
@@ -222,7 +212,7 @@ public class KTHAuthTask implements ConfigurationTask {
 			)))
 		);
 		ActionButton nextAction = new ActionButton(
-			new CommonButtonData(Component.literal("Submit"), 200),
+			new CommonButtonData(Component.translatable("dialog.kth_auth.code.submit"), 200),
 			Optional.of(new CustomAll(SUBMIT_CODE, Optional.empty()))
 		);
 		ActionButton disconnectAction = new ActionButton(
@@ -244,8 +234,12 @@ public class KTHAuthTask implements ConfigurationTask {
 		this.verifier.removeInProgressVerification(this);
 	}
 
-	private static Component link(String text, String url) {
-		return Component.literal(text).withStyle(style -> style
+	private static Component gdprLink() {
+		return link(Component.translatable("dialog.kth_auth.gdpr_statement"), KTHAuth.GDPR_LINK);
+	}
+
+	private static Component link(MutableComponent text, String url) {
+		return text.withStyle(style -> style
 			.withColor(ChatFormatting.BLUE)
 			.withUnderlined(true)
 			.withClickEvent(new ClickEvent.OpenUrl(URI.create(url))));
@@ -257,7 +251,7 @@ public class KTHAuthTask implements ConfigurationTask {
 
 	public void onCodeSubmitted(String code) {
 		if (this.code == null || !this.code.verificationCode().equals(code) || this.code.hasExpired()) {
-			this.disconnect(Component.literal("Invalid verification code. Please try again."));
+			this.disconnect(Component.translatable("disconnect.kth_auth.invalid_code"));
 			return;
 		}
 
@@ -272,19 +266,20 @@ public class KTHAuthTask implements ConfigurationTask {
 				this.verifier.acceptGdpr(details);
 				this.complete();
 			},
-			() -> this.disconnect(Component.literal("No verification details found. Please try again."))
+			() -> this.disconnect(Component.translatable("disconnect.kth_auth.no_verification_details"))
 		);
 	}
 
 	public void showNoKthEmailDialog() {
 		CommonDialogData dialogData = new CommonDialogData(
-			Component.literal("No KTH Email"),
+			Component.translatable("dialog.kth_auth.no_kth_email.title"),
 			Optional.empty(),
 			false,
 			false,
 			DialogAction.CLOSE,
 			List.of(
-				new PlainMessage(Component.literal("Please ask your friend who does have a KTH email to run the command /+1 " + this.getPlayerName()), 200)
+				new PlainMessage(Component.translatable("dialog.kth_auth.no_kth_email.body",
+					Component.literal("/+1 " + this.getPlayerName()).withColor(TextColor.GRAY)), 250)
 			),
 			List.of()
 		);

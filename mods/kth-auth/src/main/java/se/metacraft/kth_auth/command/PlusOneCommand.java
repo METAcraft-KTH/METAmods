@@ -42,7 +42,7 @@ public class PlusOneCommand {
 		ServerPlayer inviter = ctx.getSource().getPlayerOrException();
 
 		if (!this.verifier.isVerifiedByEmail(inviter.getUUID())) {
-			ctx.getSource().sendFailure(Component.literal("+1:s can not +1 other players."));
+			ctx.getSource().sendFailure(Component.translatable("command.kth_auth.plus_one.not_verified_by_email"));
 			return 0;
 		}
 
@@ -52,24 +52,18 @@ public class PlusOneCommand {
 			.findAny();
 
 		if (toInvite.isEmpty()) {
-			ctx.getSource().sendFailure(Component.literal(
-				name + " must be on the server to verify them as a +1"
-			));
+			ctx.getSource().sendFailure(Component.translatable("command.kth_auth.plus_one.not_on_server", name));
 			return 0;
 		}
 
 		if (this.verifier.getVerificationDetails(toInvite.get().getUUID()).isPresent()) {
-			ctx.getSource().sendFailure(Component.literal(
-				name + " is already verified."
-			));
+			ctx.getSource().sendFailure(Component.translatable("command.kth_auth.plus_one.already_verified", name));
 			return 0;
 		}
 
 		this.verifier.verifyPlusOne(toInvite.get().getUUID(), toInvite.get().getPlayerName(), inviter.getUUID(), inviter.getPlainTextName());
 
-		ctx.getSource().sendSuccess(() -> Component.literal(
-			"Verified " + toInvite.get().getPlayerName() + " as a +1"
-		), true);
+		ctx.getSource().sendSuccess(() -> Component.translatable("command.kth_auth.plus_one.success", toInvite.get().getPlayerName()), true);
 
 		return 1;
 	}
