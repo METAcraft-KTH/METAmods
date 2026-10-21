@@ -9,6 +9,8 @@ import org.pcollections.PCollection;
 import org.pcollections.PMap;
 import nu.metacraft.lib.util.helper.OrientationHelper;
 
+import java.net.URI;
+import java.net.URL;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
@@ -125,6 +127,17 @@ public class METACodecs {
 				positions.add(pos2);
 				return DataResult.success(positions);
 			}
+	);
+
+	public static final Codec<URL> URL_CODEC = Codec.STRING.flatXmap(
+			str -> {
+				try {
+					return DataResult.success(URI.create(str).toURL());
+				} catch (Exception e) {
+					return DataResult.error(e::getMessage);
+				}
+			},
+			url -> DataResult.success(url.toString())
 	);
 
 	public static <T> MapCodec<T> withAlternative(MapCodec<T> left, MapCodec<T> right) {

@@ -1,0 +1,4 @@
+version = project.kth_auth_version
+
+addCoreDependencies()
+addConfigDependency()
