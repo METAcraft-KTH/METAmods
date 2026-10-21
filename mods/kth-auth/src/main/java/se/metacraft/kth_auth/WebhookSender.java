@@ -48,7 +48,7 @@ public class WebhookSender {
 			KTHAuth.LOGGER.info("Webhook URL is not configured, skipping sending message.");
 			return;
 		}
-		HttpURLConnection conn = (HttpURLConnection) this.config.webhookUrl().get().openConnection();
+		HttpURLConnection conn = (HttpURLConnection) this.config.webhookUrl().get().toURL().openConnection();
 		conn.setRequestMethod("POST");
 		conn.setRequestProperty("Content-Type", "application/json");
 		conn.setRequestProperty("User-Agent", KTHAuth.USER_AGENT);

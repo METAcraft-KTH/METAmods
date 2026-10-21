@@ -54,7 +54,7 @@ public class MailSender {
 			KTHAuth.LOGGER.info("{}", html);
 			return;
 		}
-		HttpURLConnection conn = (HttpURLConnection) this.config.spamUrl().openConnection();
+		HttpURLConnection conn = (HttpURLConnection) this.config.spamUrl().toURL().openConnection();
 		conn.setRequestMethod("POST");
 		conn.setRequestProperty("Content-Type", "application/json");
 		conn.setRequestProperty("User-Agent", KTHAuth.USER_AGENT);
