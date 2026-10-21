@@ -8,6 +8,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundClearDialogPacket;
+import net.minecraft.network.protocol.common.ClientboundPingPacket;
 import net.minecraft.network.protocol.common.ClientboundShowDialogPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -44,6 +45,7 @@ public class KTHAuthTask implements ConfigurationTask {
 	public static final Identifier ACCEPT_GDPR = Identifier.fromNamespaceAndPath(KTHAuth.NAMESPACE, "verify/accept_gdpr");
 	public static final Identifier NO_KTH_EMAIL = Identifier.fromNamespaceAndPath(KTHAuth.NAMESPACE, "verify/no_kth_email");
 	public static final Pattern KTH_EMAIL_REGEX = Pattern.compile("^[a-zA-Z0-9]+@kth[.]se$");
+	public static final int DISCONNECT_PING_ID = 1837641381; // Magic value that disconnects clients on pong.
 
 	public record EmailData(String email) {
 		public static final Codec<EmailData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -236,7 +238,9 @@ public class KTHAuthTask implements ConfigurationTask {
 	public void disconnect(Component reason) {
 		// Clear dialog first to ensure the client can see the disconnected screen.
 		this.listener.send(ClientboundClearDialogPacket.INSTANCE);
-		this.listener.disconnect(reason);
+		// Send a ping and wait for pong to ensure the dialog is cleared before disconnecting.
+		((PendingDisconnect) this.listener).kth_auth$disconnectOnPong(reason);
+		this.listener.send(new ClientboundPingPacket(DISCONNECT_PING_ID));
 		this.verifier.removeInProgressVerification(this);
 	}
 

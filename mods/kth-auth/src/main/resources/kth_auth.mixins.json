@@ -4,6 +4,7 @@
 	"package": "se.metacraft.kth_auth.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
+		"ServerCommonPacketListenerImplMixin"
 	],
 	"client": [
 	],
