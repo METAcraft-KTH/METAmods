@@ -26,7 +26,7 @@ ASSETS = MODULE / "src/main/resources/assets/metacraft"
 SIZE = {"ovvar/chapters": (150, 110), "ovvar/stand": (150, 120), "decorating/canvas": (130, 110),
         "decorating/corner": (150, 110), "decorating/rope": (150, 110), "decorating/lantern": (130, 100),
         "decorating/lead": (150, 80), "decorating/trowel": (110, 100),
-        "qol/rift": (140, 120), "qol/concrete": (120, 100), "qol/muffler": (150, 100),
+        "qol/rift": (140, 120), "qol/concrete": (120, 100), "qol/echo_fork": (150, 100),
         "brewing/barrel": (140, 110), "brewing/barrel_frame": (130, 110), "brewing/distilling": (110, 110), "brewing/drinks": (150, 80),
         "brewing/chapter_drinks": (150, 80)}
 DEFAULT_SIZE = (100, 120)

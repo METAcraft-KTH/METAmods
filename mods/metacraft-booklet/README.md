@@ -49,7 +49,7 @@ none of them has no such section.
 | `kultur` | metacraft-kultur | "Banner Patterns": ITK, QMISK, TMEIT, and Pirkko behind its pattern item |
 | `moredyes` | moredyes | "Colors": Cerise and Laserviolet |
 | `vanilla_plus` | metacraft-qol or polydecorations | the Vanilla+ Features section page |
-| `qol` | metacraft-qol | "Void Anchor", "Silencing mobs" (the muffler), "Concrete Crafting" (the concrete cauldron), and the End Changes section page |
+| `qol` | metacraft-qol | "Void Anchor", "Silencing mobs" (the echo fork), "Concrete Crafting" (the concrete cauldron), and the End Changes section page |
 | `decorating` | polydecorations | "New Decor": canvas, mailboxes, rope, sign posts, lanterns and leads, hammer and trowel |
 | `polydecorations_s6` | polydecorations | turns off every PolyDecorations recipe except those of the things above |
 

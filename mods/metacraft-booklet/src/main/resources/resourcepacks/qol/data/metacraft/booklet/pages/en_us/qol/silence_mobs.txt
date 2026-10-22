@@ -1,14 +1,14 @@
 ### Section: PageInfo
 title=Silencing mobs
-description=Quieten a noisy mob with the muffler.
+description=Quieten a noisy mob with the echo fork.
 category=metacraft:vanilla_plus
-icon=metacraft:muffler
+icon=metacraft:echo_fork
 order=20
 ### EndSection: PageInfo
-### Image: metacraft:beside/qol/muffler Right-click a mob with the muffler and it goes quiet. Right-click it again to undo it.<nl2>The muffler is never used up, and the mob keeps its name.
+### Image: metacraft:beside/qol/echo_fork Right-click a mob with the echo fork and it goes quiet. Right-click it again to undo it.<nl2>The echo fork is never used up, and the mob keeps its name.
 
 ### Header: Making one
-### Image: metacraft:beside/recipe/muffler Wool of any colour, an amethyst shard and string, in any order.
+### Image: metacraft:beside/recipe/echo_fork Two sculk over an echo shard over an iron ingot, shaped like a tuning fork.
 
 ### Header: With a name tag
 A name tag named "silence me" silences a mob too, and one named "unsilence me" undoes it. The name tag is used up, but the mob keeps its own name.

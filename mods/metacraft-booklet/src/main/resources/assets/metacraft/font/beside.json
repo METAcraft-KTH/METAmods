@@ -413,7 +413,7 @@
   },
   {
    "type": "bitmap",
-   "file": "metacraft:font/beside/qol/muffler.png",
+   "file": "metacraft:font/beside/qol/echo_fork.png",
    "height": 9,
    "ascent": 7,
    "chars": [
@@ -531,7 +531,7 @@
   },
   {
    "type": "bitmap",
-   "file": "metacraft:font/beside/recipe/muffler.png",
+   "file": "metacraft:font/beside/recipe/echo_fork.png",
    "height": 9,
    "ascent": 7,
    "chars": [

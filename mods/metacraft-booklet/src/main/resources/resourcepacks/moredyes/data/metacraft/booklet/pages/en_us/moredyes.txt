@@ -9,7 +9,7 @@ order=50
 Two colours vanilla does not have: <citem 'moredyes:cerise_dye'> and <citem 'moredyes:laserviolet_dye'>. They work like any dye, on almost everything a dye works on.
 
 ### Header: Finding them
-A <bold>sniffer</bold> digging in grass or dirt sometimes turns up a <citem 'moredyes:cerise_torchflower'> or a <citem 'moredyes:laserviolet_torchflower'>, as often as its own torchflower seeds and pitcher pods. One flower makes one dye; plant the rest. Sniffers hatch from a <citem 'minecraft:sniffer_egg'>, found in the suspicious sand of warm ocean ruins.
+A <bold>sniffer</bold> digging in grass or dirt sometimes turns up a <citem 'moredyes:cerise_flower'> or a <citem 'moredyes:laserviolet_flower'>, as often as its own torchflower seeds and pitcher pods. One flower makes one dye; plant or pot the rest. Sniffers hatch from a <citem 'minecraft:sniffer_egg'>, found in the suspicious sand of warm ocean ruins.
 
 ### Header: What they colour
 - Wool, carpet, beds, candles, banners and shields

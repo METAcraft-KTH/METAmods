@@ -242,7 +242,7 @@ public final class BookletRenders implements FabricClientGameTest {
 		RECIPES.put("trowel", List.of("", "", "", "iron_nugget", "iron_ingot", "", "stick", "iron_nugget", ""));
 		RECIPES.put("void_anchor", List.of("crying_obsidian", "crying_obsidian", "crying_obsidian",
 				"ender_eye", "ender_eye", "ender_eye", "crying_obsidian", "crying_obsidian", "crying_obsidian"));
-		RECIPES.put("muffler", List.of("", "", "", "white_wool", "amethyst_shard", "string", "", "", ""));
+		RECIPES.put("echo_fork", List.of("sculk", "", "sculk", "", "echo_shard", "", "", "iron_ingot", ""));
 		RECIPES.put("barrel_spigot", List.of("stick", "stone", "", "oak_planks", "", "", "", "", ""));
 	}
 
@@ -300,7 +300,7 @@ public final class BookletRenders implements FabricClientGameTest {
 			new Scene("qol/void_anchor", new BlockPos(99, -61, 19), new BlockPos(101, -60, 21), 80),
 			new Scene("qol/rift", new BlockPos(104, -60, 18), new BlockPos(109, -54, 23), 55),
 			new Scene("qol/concrete", new BlockPos(111, -60, 19), new BlockPos(113, -58, 21), 80),
-			new Scene("qol/muffler", new BlockPos(117, -60, 20), new BlockPos(120, -58, 21), 75),
+			new Scene("qol/echo_fork", new BlockPos(117, -60, 20), new BlockPos(120, -58, 21), 75),
 			new Scene("brewing/cauldron", new BlockPos(20, -60, 28), new BlockPos(22, -57, 30), 80),
 			new Scene("brewing/distilling", new BlockPos(25, -60, 28), new BlockPos(27, -59, 30), 90),
 			new Scene("brewing/barrel", new BlockPos(30, -60, 28), new BlockPos(35, -57, 30), 70),
@@ -456,7 +456,7 @@ public final class BookletRenders implements FabricClientGameTest {
 		made.setNeverPickUp();
 		level.addFreshEntity(made);
 
-		// a muffler swung at a cow
+		// an echo fork swung at a cow
 		Cow cow = EntityTypes.COW.create(level, EntitySpawnReason.COMMAND);
 		cow.snapTo(117.8, -60, 20.5, -90, 0);
 		cow.setYHeadRot(-90); cow.setYBodyRot(-90);
@@ -466,7 +466,7 @@ public final class BookletRenders implements FabricClientGameTest {
 		muffling.setPos(120.0, -60, 20.5);
 		muffling.setYRot(90); muffling.setYBodyRot(90); muffling.setYHeadRot(90);
 		muffling.setXRot(20);
-		muffling.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(SilenceMobs.MUFFLER));
+		muffling.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(SilenceMobs.ECHO_FORK));
 		level.addFreshEntity(muffling);
 		MID_SWING.add(muffling.getUUID());
 	}
