@@ -1,21 +1,23 @@
 # Builds and tests every push and pull request. Pushes to a branch in deploy/servers.json
-# deploy each of its servers' sets (deploy/<server>.txt); Run workflow rolls a server back
-# to a release. Staff guide: deploy/README.md. The end-to-end test against autodeploy is run by
+# deploy each of its servers' sets (deploy/<server>.txt) and publish a release of each; dev is
+# deployed by hand instead (Run workflow, no release), and pushes to it run nothing. Run workflow
+# with a release rolls a server back to it. Staff guide: deploy/README.md. The end-to-end test against autodeploy is run by
 # hand (.github/scripts/e2e.sh): autodeploy's repository is private.
 name: build
 on:
   pull_request:
   push:
+    branches-ignore: [dev]   # deployed by hand: Run workflow on dev, no release
   workflow_dispatch:
     inputs:
       server:
-        description: Server to roll back
+        description: Server to deploy or roll back
         required: true
         type: choice
         options: [test, survival, event] # must match deploy/servers.json
       release:
-        description: Release tag to deploy, e.g. deploy-test-20261001-abc1234
-        required: true
+        description: Release tag to roll back to, e.g. deploy-test-20261001-abc1234; empty builds this branch and deploys it
+        required: false
         type: string
 
 permissions:
@@ -23,7 +25,7 @@ permissions:
 
 jobs:
   build:
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' || inputs.release == ''
     runs-on: ubuntu-24.04
     outputs:
       servers: ${{ steps.servers.outputs.servers }}
@@ -41,7 +43,17 @@ jobs:
         id: servers
         env:
           BRANCH: ${{ github.base_ref || github.ref_name }}
-        run: echo "servers=$(jq -c --arg b "$BRANCH" '.branches[$b] // []' deploy/servers.json)" >> "$GITHUB_OUTPUT"
+          SERVER: ${{ inputs.server }}
+        run: |
+          servers=$(jq -c --arg b "$BRANCH" '.branches[$b] // []' deploy/servers.json)
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            # A deploy by hand: the one server chosen, which must be one this branch deploys to.
+            servers=$(jq -c --arg s "$SERVER" 'map(select(. == $s))' <<< "$servers")
+            if [ "$servers" = "[]" ]; then
+              echo "::error::$BRANCH does not deploy to $SERVER (deploy/servers.json)"; exit 1
+            fi
+          fi
+          echo "servers=$servers" >> "$GITHUB_OUTPUT"
       - name: datagen
         run: ./gradlew runDatagen
       - name: build
@@ -114,7 +126,7 @@ jobs:
   deploy:
     needs: build
     if: >-
-      github.event_name == 'push'
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       && github.ref_type == 'branch'
       && needs.build.outputs.servers != '[]'
     runs-on: ubuntu-24.04
@@ -159,7 +171,8 @@ jobs:
           SERVER: ${{ matrix.server }}
         run: ./gradlew deployServer -Pserver="$SERVER" -PdeployDir="build/deploy/$SERVER"
       - name: publish the release
-        if: steps.head.outputs.newest == 'true'
+        # Only what a push deploys is kept; a deploy by hand (dev's) is never rolled back to.
+        if: steps.head.outputs.newest == 'true' && github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -176,6 +189,7 @@ jobs:
   rollback:
     if: >-
       github.event_name == 'workflow_dispatch'
+      && inputs.release != ''
       && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-24.04
     concurrency:

@@ -1,6 +1,6 @@
 # Deploying mods to the servers
 
-Every server gets the METAmods modules on its list, each as its own jar. A push uploads only the jars
+Every server gets the METAmods modules on its list, each as its own jar. A deploy uploads only the jars
 that changed and deletes mods that were taken off the list. Changes take effect at the server's next
 restart.
 
@@ -14,9 +14,13 @@ them (see [What the pipeline doesn't touch](#what-the-pipeline-doesnt-touch)).
 
 | Branch     | Servers          |
 |------------|------------------|
-| `dev`      | test             |
+| `dev`      | test, by hand    |
 | `prod`     | survival, test   |
 | `minigame` | event            |
+
+A push to `prod` or `minigame` deploys. `dev` is deployed by hand: a push to it runs nothing, and
+Actions → the build workflow → **Run workflow** on `dev`, server `test`, `release` left empty, builds
+and tests it and deploys it to test. (That works on any branch, for one server it deploys to.)
 
 Pushing to any other branch, or opening a PR, builds and tests but deploys nothing. Every run keeps
 the built sets as the `deploy-sets` artifact, and a PR's run shows (job **preview**) exactly what
@@ -29,7 +33,7 @@ merging it *would* upload to and remove from each server of the target branch.
    ```
    faster-minecarts
    ```
-3. Push. The next restart of that server loads it.
+3. Push (on `dev`, then deploy it by hand). The next restart of that server loads it.
 
 You never list `metacraft-lib`, `metacraft-core`, `metacraft-zones` or `metacraft-config`: anything a
 listed mod depends on is added for you. If a mod needs another of our mods that isn't on the list, the
@@ -81,8 +85,9 @@ Every deploy run has a summary (the run's page on GitHub → Summary) with, per 
 - **removed**: mods deleted at the next restart;
 - **unchanged**: everything else.
 
-It also publishes a release, `deploy-<server>-<date>-<commit>`, with that server's exact jars. Releases
-are kept forever.
+A deploy from a push also publishes a release, `deploy-<server>-<date>-<commit>`, with that server's
+exact jars. Releases are kept forever. A deploy by hand (`dev`'s) publishes none: nobody rolls back
+to a `dev` build.
 
 Deploys to one server run one at a time. If several pushes queue up for the same server, the newest one
 wins: a queued deploy or rollback that a newer one replaces is cancelled, and a push that is no longer
