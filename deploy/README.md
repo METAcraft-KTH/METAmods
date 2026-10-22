@@ -81,9 +81,8 @@ Every deploy run has a summary (the run's page on GitHub → Summary) with, per 
 - **removed**: mods deleted at the next restart;
 - **unchanged**: everything else.
 
-A deploy from any branch but `dev` also publishes a release, `deploy-<server>-<date>-<commit>`, with
-that server's exact jars. Releases are kept forever. `dev`'s deploys publish none: nobody rolls back to
-a `dev` build.
+A deploy to any server but test also publishes a release, `deploy-<server>-<date>-<commit>`, with that
+server's exact jars. Releases are kept forever. The test server gets none: it is never rolled back.
 
 Deploys to one server run one at a time. If several pushes queue up for the same server, the newest one
 wins: a queued deploy or rollback that a newer one replaces is cancelled, and a push that is no longer

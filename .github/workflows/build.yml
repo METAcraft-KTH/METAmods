@@ -1,6 +1,6 @@
 # Builds and tests every push and pull request. Pushes to a branch in deploy/servers.json
-# deploy each of its servers' sets (deploy/<server>.txt) and, except from dev, publish a release
-# of each; Run workflow rolls a server back to a release. Staff guide: deploy/README.md. The
+# deploy each of its servers' sets (deploy/<server>.txt) and publish a release of each but the
+# test server's; Run workflow rolls a server back to a release. Staff guide: deploy/README.md. The
 # end-to-end test against autodeploy is run by hand (.github/scripts/e2e.sh): autodeploy's
 # repository is private.
 name: build
@@ -13,9 +13,9 @@ on:
         description: Server to roll back
         required: true
         type: choice
-        options: [test, survival, event] # must match deploy/servers.json
+        options: [survival, event] # deploy/servers.json's servers but test, which keeps no releases
       release:
-        description: Release tag to deploy, e.g. deploy-test-20261001-abc1234
+        description: Release tag to deploy, e.g. deploy-survival-20261001-abc1234
         required: true
         type: string
 
@@ -160,10 +160,8 @@ jobs:
           SERVER: ${{ matrix.server }}
         run: ./gradlew deployServer -Pserver="$SERVER" -PdeployDir="build/deploy/$SERVER"
       - name: publish the release
-        # Not for dev (the default branch): nobody rolls back to a dev build.
-        if: >-
-          steps.head.outputs.newest == 'true'
-          && github.ref != format('refs/heads/{0}', github.event.repository.default_branch)
+        # Not for the test server: it is never rolled back.
+        if: steps.head.outputs.newest == 'true' && matrix.server != 'test'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
