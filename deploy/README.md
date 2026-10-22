@@ -113,8 +113,8 @@ Gradle build to configure.
 - **"unknown project <name>"**: a typo, or the mod isn't in `settings.gradle`.
 - **"sha256 mismatch for <url>"**: the external jar isn't the one you pinned. Check the URL, and update
   the hash only if you meant to change the jar.
-- **"a list may not contain metacraft"**: that's the old all-in-one bundle. Every deploy deletes it,
-  and it is never listed.
+- **"a list may not contain metacraft"**: that's the old all-in-one bundle. A server's first deploy
+  deletes it, and it is never listed.
 
 ## What the pipeline doesn't touch
 
@@ -122,7 +122,8 @@ The deploy only adds, replaces and removes the mods it deployed itself. It keeps
 id, in `mods/metacraft-deploy.json` on each server. Every other mod stays as it is, for example Fabric
 API or Polymer put in `mods/` by hand: the deploy never uploads over it, never lists it for removal and
 never deletes it. The one exception is `metacraft`, the old all-in-one bundle of our modules, which the
-separate jars replace: every deploy lists it for removal.
+separate jars replace: a server's first deploy lists it for removal. A deploy with nothing to remove
+writes no `remove.txt`.
 
 The deploy stages its uploads in `mods/update`, where autodeploy picks them up at the restart. A jar
 there that isn't in the set being deployed is deleted only if it is one of the deploy's own mods (an

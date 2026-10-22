@@ -83,11 +83,14 @@ public final class Deployer {
 		unchanged.removeAll(upload);
 
 		// Removals still pending from deploys the server has not restarted for stay listed. The
-		// bundle is always listed: an old workflow may have uploaded it again since the first deploy.
-		SortedSet<String> pendingRemovals = remote.read(REMOVE_FILE).map(Deployer::ids).orElseGet(TreeSet::new);
+		// bundle is listed on the first deploy, the switch from it to the set.
+		Optional<byte[]> pendingFile = remote.read(REMOVE_FILE);
+		SortedSet<String> pendingRemovals = pendingFile.map(Deployer::ids).orElseGet(TreeSet::new);
 		SortedSet<String> remove = new TreeSet<>(diff.remove());
 		remove.addAll(pendingRemovals);
-		remove.add(DeployList.BUNDLE_ID);
+		if (first) {
+			remove.add(DeployList.BUNDLE_ID);
+		}
 		remove.removeAll(now.entries().keySet());
 
 		// A jar in mods/update that isn't in this set is an earlier deploy's upload that no restart
@@ -141,16 +144,15 @@ public final class Deployer {
 				String file = now.entries().get(id).file();
 				remote.upload(UPDATE_DIR + "/" + file, deployDir.resolve(file));
 			}
-			remote.write(REMOVE_FILE, (String.join("\n", remove) + "\n").getBytes(StandardCharsets.UTF_8));
+			if (!remove.isEmpty()) {
+				remote.write(REMOVE_FILE, (String.join("\n", remove) + "\n").getBytes(StandardCharsets.UTF_8));
+			} else if (pendingFile.isPresent()) {
+				remote.delete(REMOVE_FILE);   // its removals were all re-added
+			}
 			remote.write(REMOTE_MANIFEST, now.toJson().getBytes(StandardCharsets.UTF_8));
 		}
-		// The summary names the bundle only on the first deploy; later it is just a precaution.
-		SortedSet<String> reportRemoved = new TreeSet<>(remove);
-		if (!first) {
-			reportRemoved.remove(DeployList.BUNDLE_ID);
-		}
 		return new Report(server, first, dryRun, Collections.unmodifiableSortedSet(upload),
-				Collections.unmodifiableSortedSet(reportRemoved), Collections.unmodifiableSortedSet(unchanged), now);
+				Collections.unmodifiableSortedSet(remove), Collections.unmodifiableSortedSet(unchanged), now);
 	}
 
 	private static void checkAutodeploy(String server, RemoteFiles remote) throws IOException {

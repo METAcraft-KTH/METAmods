@@ -160,8 +160,8 @@ class DeployerTest {
 		Path set = set("s", mods("a", "1", "b", "1"));
 		alreadyDeployed(set);
 		Deployer.Report report = Deployer.deploy("test", set, remote, false);
-		assertEquals(List.of(REMOVE_FILE, REMOTE_MANIFEST), remote.writes);
-		assertEquals("metacraft\n", remote.text(REMOVE_FILE));
+		assertEquals(List.of(REMOTE_MANIFEST), remote.writes);
+		assertFalse(remote.files.containsKey(REMOVE_FILE), "nothing to remove, so no remove.txt");
 		assertEquals(Set.of("a", "b"), report.unchanged());
 		assertEquals(Set.of(), report.removed());
 		assertEquals(Set.of(), report.uploaded());
@@ -179,16 +179,16 @@ class DeployerTest {
 	void aModTakenOffTheListGoesInRemoveTxt() throws IOException {
 		alreadyDeployed(set("old", mods("a", "1", "b", "1")));
 		Deployer.Report report = Deployer.deploy("test", set("new", mods("a", "1")), remote, false);
-		assertEquals("b\nmetacraft\n", remote.text(REMOVE_FILE));
+		assertEquals("b\n", remote.text(REMOVE_FILE));
 		assertEquals(Set.of("b"), report.removed());
 	}
 
 	@Test
 	void secondDeployBeforeRestartKeepsPendingRemovals() throws IOException {
 		alreadyDeployed(set("old", mods("a", "1", "b", "1")));
-		remote.put(REMOVE_FILE, "metacraft\n");
+		remote.put(REMOVE_FILE, "c\n");
 		Deployer.deploy("test", set("new", mods("a", "1")), remote, false);
-		assertEquals("b\nmetacraft\n", remote.text(REMOVE_FILE));
+		assertEquals("b\nc\n", remote.text(REMOVE_FILE));
 	}
 
 	@Test
@@ -196,7 +196,7 @@ class DeployerTest {
 		alreadyDeployed(set("old", mods("a", "1")));
 		remote.put(REMOVE_FILE, "b\n");
 		Deployer.deploy("test", set("new", mods("a", "1", "b", "1")), remote, false);
-		assertEquals("metacraft\n", remote.text(REMOVE_FILE));
+		assertFalse(remote.files.containsKey(REMOVE_FILE), "b is back, so its pending removal is gone");
 		assertEquals(Set.of("b-1.jar"), remote.jarsIn(UPDATE_DIR));
 	}
 
@@ -207,7 +207,7 @@ class DeployerTest {
 		remote.files.put(UPDATE_DIR + "/c-1.jar", modJar("c", "1"));
 		Deployer.deploy("test", set("new", mods("a", "1", "b", "3")), remote, false);
 		assertEquals(Set.of("b-3.jar"), remote.jarsIn(UPDATE_DIR));
-		assertEquals("c\nmetacraft\n", remote.text(REMOVE_FILE));
+		assertEquals("c\n", remote.text(REMOVE_FILE));
 	}
 
 	@Test
@@ -221,7 +221,7 @@ class DeployerTest {
 
 		Deployer.Report report = Deployer.deploy("test", set("m3", mods("b", "3")), remote, false);
 		assertEquals(Set.of("b-3.jar"), remote.jarsIn(UPDATE_DIR));
-		assertEquals("c\nmetacraft\n", remote.text(REMOVE_FILE), "c, new in the interrupted deploy, is still ours to remove");
+		assertEquals("c\n", remote.text(REMOVE_FILE), "c, new in the interrupted deploy, is still ours to remove");
 		assertEquals(Set.of("c"), report.removed());
 	}
 
@@ -256,7 +256,7 @@ class DeployerTest {
 		remote.put(UPDATE_DIR + "/notes.jar", "not a mod");
 		Deployer.Report report = Deployer.deploy("test", set, remote, false);
 		assertEquals(Set.of("notes.jar", "polymer-1.jar"), remote.jarsIn(UPDATE_DIR));
-		assertEquals("b\nmetacraft\n", remote.text(REMOVE_FILE), "only ids this deploy manages are removed");
+		assertEquals("b\n", remote.text(REMOVE_FILE), "only ids this deploy manages are removed");
 		assertEquals(Set.of("b"), report.removed());
 	}
 
@@ -303,9 +303,9 @@ class DeployerTest {
 		installed(m1);
 		// Deploy 2 changes b; b.jar keeps its name. The connection drops before the manifest is written.
 		Path m2 = sameNamesSet("m2", mods("a", "1", "b", "2"));
-		remote.failOnWrite = remote.writes.size() + 4; // interim manifest, b.jar, remove.txt, then the manifest
+		remote.failOnWrite = remote.writes.size() + 3; // interim manifest, b.jar, then the manifest
 		assertThrows(IOException.class, () -> Deployer.deploy("test", m2, remote, false));
-		assertEquals(List.of(REMOTE_MANIFEST, UPDATE_DIR + "/b.jar", REMOVE_FILE), remote.writes);
+		assertEquals(List.of(REMOTE_MANIFEST, UPDATE_DIR + "/b.jar"), remote.writes);
 		restart();
 		assertArrayEquals(bytes(m2, "b.jar"), remote.files.get("mods/b.jar"), "the restart installed b 2");
 
@@ -364,19 +364,19 @@ class DeployerTest {
 		assertFalse(remote.files.containsKey(REMOVE_FILE), "interrupted before remove.txt");
 
 		Deployer.Report report = Deployer.deploy("test", m2, remote, false);
-		assertEquals("b\nmetacraft\n", remote.text(REMOVE_FILE));
+		assertEquals("b\n", remote.text(REMOVE_FILE));
 		assertEquals(Set.of("b"), report.removed());
 		assertEquals(Set.of("c"), report.uploaded());
 	}
 
 	@Test
-	void everyDeployRemovesTheBundle() throws IOException {
+	void onlyTheFirstDeployRemovesTheBundle() throws IOException {
 		Path set = set("s", mods("a", "1"));
 		alreadyDeployed(set);
 		Deployer.Report report = Deployer.deploy("test", set, remote, false);
 		assertFalse(report.firstDeploy());
-		assertEquals("metacraft\n", remote.text(REMOVE_FILE), "a bundle an old workflow uploaded is deleted too");
-		assertEquals(Set.of(), report.removed(), "the summary mentions the bundle on the first deploy only");
+		assertFalse(remote.files.containsKey(REMOVE_FILE), "the bundle went with the first deploy");
+		assertEquals(Set.of(), report.removed());
 	}
 
 	@Test
