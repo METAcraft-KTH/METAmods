@@ -186,7 +186,11 @@ subprojects {
 			url = 'https://maven.parchmentmc.org'
 		}
 
-		maven { url = "https://maven.bawnorton.com/releases" } // MixinSquared
+		// MixinSquared only, so the other dependencies never wait on this repo
+		maven {
+			url = "https://maven.bawnorton.com/releases"
+			content { includeGroupByRegex "com\\.github\\.bawnorton(\\..*)?" }
+		}
 
         //Leukocyte
         exclusiveContent {
@@ -209,15 +213,16 @@ subprojects {
 
         maven { url 'https://jitpack.io' } // Leukocyte
 
-		// Blockbench Import Library (nether-rifts' mob models)
-		maven {
-			url "https://maven.tomalbrc.de"
-			content { includeGroup "de.tomalbrc" }
+		// Blockbench Import Library (nether-rifts' mob models), asked for only here: an earlier repo
+		// that is down would otherwise fail the build before Gradle reaches this one
+		exclusiveContent {
+			forRepository { maven { url "https://maven.tomalbrc.de" } }
+			filter { includeGroup "de.tomalbrc" }
 		}
 		// BIL's molang-compiler dependency
-		maven {
-			url "https://maven.blamejared.com"
-			content { includeGroup "gg.moonflower" }
+		exclusiveContent {
+			forRepository { maven { url "https://maven.blamejared.com" } }
+			filter { includeGroup "gg.moonflower" }
 		}
 
 		// Our PolyDecorations fork (per-feature config), from its GitHub releases
