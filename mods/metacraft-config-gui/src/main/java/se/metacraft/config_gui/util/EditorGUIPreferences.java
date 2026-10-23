@@ -6,7 +6,7 @@ import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
-import nu.metacraft.lib.util.METACodecs;
+import se.metacraft.lib.util.METACodecs;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 import se.metacraft.config_gui.ConfigGUI;

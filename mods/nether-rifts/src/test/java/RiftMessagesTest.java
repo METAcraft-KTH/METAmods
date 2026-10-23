@@ -4,8 +4,8 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.Bootstrap;
-import nu.metacraft.nether_rifts.RiftGuide;
-import nu.metacraft.nether_rifts.RiftMessages;
+import se.metacraft.nether_rifts.RiftGuide;
+import se.metacraft.nether_rifts.RiftMessages;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

@@ -1,0 +1,37 @@
+package se.metacraft.portable_jukebox;
+
+import se.metacraft.lib.util.EntityRef;
+import se.metacraft.portable_jukebox.ender_chest.EnderChestEntityRef;
+import se.metacraft.portable_jukebox.ender_chest.PlayerEnderChestContainerExtension;
+import se.metacraft.portable_jukebox.mixin.CompoundContainerAccessor;
+
+import java.util.Optional;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+
+public class InventoryHelper {
+
+	public static Optional<Level> getWorldFromInventory(Container inventory) {
+		var ref = getEntityFromInventory(inventory);
+		return ref.map(EntityRef::getWorld);
+	}
+
+	public static Optional<EntityRef> getEntityFromInventory(Container inventory) {
+		return switch (inventory) {
+			case Inventory playerInv -> Optional.of(EntityRef.fromEntity(playerInv.player));
+			case BlockEntity blockEntity -> Optional.of(EntityRef.fromBlock(blockEntity));
+			case Entity entity -> Optional.of(EntityRef.fromEntity(entity));
+			case CompoundContainerAccessor doubleInv -> Optional.ofNullable(
+					getEntityFromInventory(doubleInv.getContainer1())
+			).orElse(
+					getEntityFromInventory(doubleInv.getContainer2())
+			);
+			case PlayerEnderChestContainerExtension enderChest -> Optional.ofNullable(enderChest.metacraft$getPlayer()).map(EnderChestEntityRef::new);
+			case null, default -> Optional.empty();
+		};
+	}
+
+}

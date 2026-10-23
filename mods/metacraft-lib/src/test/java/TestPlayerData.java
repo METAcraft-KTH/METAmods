@@ -18,10 +18,10 @@ import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.validation.ContentValidationException;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
-import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.util.error_reporters.LoggingErrorReporter;
-import nu.metacraft.lib.util.helper.PlayerDataHelper;
-import nu.metacraft.lib.util.helper.TestHelper;
+import se.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.util.error_reporters.LoggingErrorReporter;
+import se.metacraft.lib.util.helper.PlayerDataHelper;
+import se.metacraft.lib.util.helper.TestHelper;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.IOException;

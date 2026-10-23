@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "nu.metacraft.pause.mixin",
+	"package": "se.metacraft.pause.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"DimensionStorageFileFixMixin",

@@ -8,15 +8,15 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.nether_rifts.mob.BurningPatches;
-import nu.metacraft.nether_rifts.mob.MagmaBomb;
-import nu.metacraft.nether_rifts.mob.WarGhast;
-import nu.metacraft.nether_rifts.raid.RiftMobs;
-import nu.metacraft.nether_rifts.raid.RiftRaid;
-import nu.metacraft.nether_rifts.raid.Slot;
-import nu.metacraft.nether_rifts.rift.Rift;
-import nu.metacraft.nether_rifts.rift.RiftData;
-import nu.metacraft.nether_rifts.rift.Stage;
+import se.metacraft.nether_rifts.mob.BurningPatches;
+import se.metacraft.nether_rifts.mob.MagmaBomb;
+import se.metacraft.nether_rifts.mob.WarGhast;
+import se.metacraft.nether_rifts.raid.RiftMobs;
+import se.metacraft.nether_rifts.raid.RiftRaid;
+import se.metacraft.nether_rifts.raid.Slot;
+import se.metacraft.nether_rifts.rift.Rift;
+import se.metacraft.nether_rifts.rift.RiftData;
+import se.metacraft.nether_rifts.rift.Stage;
 
 import java.util.List;
 

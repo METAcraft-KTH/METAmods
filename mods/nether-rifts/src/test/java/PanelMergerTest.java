@@ -1,5 +1,5 @@
-import nu.metacraft.nether_rifts.rift.PanelMerger;
-import nu.metacraft.nether_rifts.rift.PanelMerger.Cell;
+import se.metacraft.nether_rifts.rift.PanelMerger;
+import se.metacraft.nether_rifts.rift.PanelMerger.Cell;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;

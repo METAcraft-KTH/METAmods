@@ -10,8 +10,8 @@ import net.minecraft.server.dialog.action.Action;
 import net.minecraft.server.dialog.action.CustomAll;
 import net.minecraft.server.dialog.action.StaticAction;
 import net.minecraft.server.level.ServerPlayer;
-import nu.metacraft.lib.custom_message.CustomMessageHandler;
-import nu.metacraft.lib.util.PotentialPlayer;
+import se.metacraft.lib.custom_message.CustomMessageHandler;
+import se.metacraft.lib.util.PotentialPlayer;
 import se.metacraft.config_gui.DialogGUI;
 import se.metacraft.config_gui.DialogGUIExtension;
 

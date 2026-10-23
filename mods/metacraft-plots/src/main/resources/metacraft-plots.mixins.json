@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "nu.metacraft.plots.mixin",
+	"package": "se.metacraft.plots.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"AnvilMenuMixin",

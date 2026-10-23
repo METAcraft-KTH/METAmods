@@ -2,9 +2,9 @@ import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
-import nu.metacraft.qol.QolConfig;
-import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
-import nu.metacraft.qol.void_anchor.rift.RiftStyle;
+import se.metacraft.qol.QolConfig;
+import se.metacraft.qol.void_anchor.VoidAnchorConfig;
+import se.metacraft.qol.void_anchor.rift.RiftStyle;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

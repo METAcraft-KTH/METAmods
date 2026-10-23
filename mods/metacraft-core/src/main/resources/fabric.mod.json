@@ -18,10 +18,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.core.METAcraftCore"
+			"se.metacraft.core.METAcraftCore"
 		],
 		"fabric-datagen": [
-			"nu.metacraft.core.METAcraftCoreDatagen"
+			"se.metacraft.core.METAcraftCoreDatagen"
 		]
 	},
 	"mixins": [

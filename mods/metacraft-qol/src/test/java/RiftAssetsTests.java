@@ -1,4 +1,4 @@
-import nu.metacraft.qol.void_anchor.rift.Rift;
+import se.metacraft.qol.void_anchor.rift.Rift;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;

@@ -8,8 +8,8 @@
 	"environment": "client",
 	"entrypoints": {
 		"fabric-client-gametest": [
-			"metacraft.moredyes.clienttest.MoreDyesClientTests",
-			"metacraft.moredyes.clienttest.RgbClientTests"
+			"se.metacraft.moredyes.clienttest.MoreDyesClientTests",
+			"se.metacraft.moredyes.clienttest.RgbClientTests"
 		]
 	},
 	"mixins": [

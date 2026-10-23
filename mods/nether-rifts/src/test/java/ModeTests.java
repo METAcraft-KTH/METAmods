@@ -1,9 +1,9 @@
 import net.minecraft.gametest.framework.GameTestHelper;
-import nu.metacraft.nether_rifts.RiftWorldState;
-import nu.metacraft.nether_rifts.Stabilisation;
-import nu.metacraft.portal_blocker.PortalBlockerSettings;
-import nu.metacraft.portal_blocker.PortalState;
-import nu.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
+import se.metacraft.nether_rifts.RiftWorldState;
+import se.metacraft.nether_rifts.Stabilisation;
+import se.metacraft.portal_blocker.PortalBlockerSettings;
+import se.metacraft.portal_blocker.PortalState;
+import se.metacraft.portal_blocker.portal_type.PortalTypeRegistry;
 
 public class ModeTests {
 

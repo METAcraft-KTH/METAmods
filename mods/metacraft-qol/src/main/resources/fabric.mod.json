@@ -17,10 +17,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.qol.Qol"
+			"se.metacraft.qol.Qol"
 		],
 		"fabric-datagen": [
-			"nu.metacraft.qol.QolDatagen"
+			"se.metacraft.qol.QolDatagen"
 		]
 	},
 	"mixins": [

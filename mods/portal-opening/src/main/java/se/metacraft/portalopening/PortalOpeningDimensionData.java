@@ -4,8 +4,8 @@ import com.google.common.collect.ImmutableSet;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
-import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.util.SavedDataTypeCache;
+import se.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.util.SavedDataTypeCache;
 import se.metacraft.portalopening.raid.Wave;
 import se.metacraft.portalopening.rifts.PortalRift;
 

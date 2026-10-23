@@ -14,7 +14,7 @@ import net.minecraft.server.dialog.body.DialogBody;
 import net.minecraft.server.dialog.body.ItemBody;
 import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.util.Unit;
-import nu.metacraft.lib.custom_message.CustomMessageRegistry;
+import se.metacraft.lib.custom_message.CustomMessageRegistry;
 
 import java.util.List;
 import java.util.Optional;

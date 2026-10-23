@@ -18,7 +18,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.better_pets.BetterPets"
+			"se.metacraft.better_pets.BetterPets"
 		]
 	},
 	"mixins": [

@@ -4,8 +4,8 @@ import de.tomalbrc.bil.core.model.Node;
 import de.tomalbrc.bil.file.loader.BbModelLoader;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
-import nu.metacraft.nether_rifts.NetherRifts;
-import nu.metacraft.nether_rifts.mob.WarGhast;
+import se.metacraft.nether_rifts.NetherRifts;
+import se.metacraft.nether_rifts.mob.WarGhast;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

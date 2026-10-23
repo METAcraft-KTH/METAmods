@@ -1,20 +1,19 @@
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.projectile.arrow.Arrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantments;
-import nu.metacraft.nether_rifts.mob.CrewHitbox;
-import nu.metacraft.nether_rifts.mob.HeldItems;
-import nu.metacraft.nether_rifts.mob.RiftEntities;
-import nu.metacraft.nether_rifts.mob.RiftModels;
-import nu.metacraft.nether_rifts.mob.WarDrummer;
-import nu.metacraft.nether_rifts.mob.WarGhast;
-import nu.metacraft.nether_rifts.mob.WarGhast.Crew;
+import se.metacraft.nether_rifts.mob.CrewHitbox;
+import se.metacraft.nether_rifts.mob.HeldItems;
+import se.metacraft.nether_rifts.mob.RiftEntities;
+import se.metacraft.nether_rifts.mob.RiftModels;
+import se.metacraft.nether_rifts.mob.WarDrummer;
+import se.metacraft.nether_rifts.mob.WarGhast;
+import se.metacraft.nether_rifts.mob.WarGhast.Crew;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;

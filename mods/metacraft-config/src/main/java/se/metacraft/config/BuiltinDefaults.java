@@ -19,7 +19,7 @@ import net.minecraft.network.chat.contents.data.BlockDataSource;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.Mth;
 import net.minecraft.util.random.Weighted;
-import nu.metacraft.lib.util.helper.DataResultHelper;
+import se.metacraft.lib.util.helper.DataResultHelper;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 import org.pcollections.PVector;

@@ -1,6 +1,6 @@
 package metacraft.kultur;
 
-import metacraft.kultur.datagen.Masks;
+import se.metacraft.kultur.datagen.Masks;
 import org.junit.jupiter.api.Test;
 
 import java.awt.image.BufferedImage;

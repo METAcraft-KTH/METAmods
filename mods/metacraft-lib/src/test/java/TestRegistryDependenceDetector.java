@@ -7,7 +7,7 @@ import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import nu.metacraft.lib.util.helper.RegistryDependentCodecHelper;
+import se.metacraft.lib.util.helper.RegistryDependentCodecHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 

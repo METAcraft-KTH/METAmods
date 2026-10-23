@@ -1,8 +1,8 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "nu.metacraft.portable_jukebox.compat.mixin",
-	"plugin": "nu.metacraft.portable_jukebox.compat.CompatMixins",
+	"package": "se.metacraft.portable_jukebox.compat.mixin",
+	"plugin": "se.metacraft.portable_jukebox.compat.CompatMixins",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"HopperHelperMixin"

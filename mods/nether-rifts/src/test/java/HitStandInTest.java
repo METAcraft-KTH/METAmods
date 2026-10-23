@@ -1,8 +1,8 @@
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.entity.EntityTypes;
-import nu.metacraft.nether_rifts.mob.CrewHitbox;
-import nu.metacraft.nether_rifts.mob.HitStandIn;
+import se.metacraft.nether_rifts.mob.CrewHitbox;
+import se.metacraft.nether_rifts.mob.HitStandIn;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

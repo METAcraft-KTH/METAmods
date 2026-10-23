@@ -1,0 +1,107 @@
+package se.metacraft.bosses.item;
+
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
+import net.minecraft.world.entity.EntityTypes;
+import se.metacraft.lib.CreativeTabNamespaces;
+import se.metacraft.lib.condition.conditions.NotInWall;
+import se.metacraft.lib.condition.conditions.SolidBlockBelow;
+import se.metacraft.lib.util.helper.EntityHelper;
+import se.metacraft.bosses.METAcraftBosses;
+import se.metacraft.bosses.item.boss_wands.DoubleTeamWand;
+import se.metacraft.bosses.item.boss_wands.EvokerFangsWand;
+import se.metacraft.bosses.item.boss_wands.ReinforcementsWand;
+import se.metacraft.bosses.item.components.BossComponents;
+import se.metacraft.bosses.util.DoubleTeamHandler;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.random.WeightedList;
+import net.minecraft.util.valueproviders.ConstantInt;
+import net.minecraft.util.valueproviders.UniformFloat;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.storage.loot.predicates.AllOfCondition;
+
+public class BossItems {
+
+	public static final Item EVOKER_FANGS_WAND = register(
+			"evoker_fangs_wand",
+			EvokerFangsWand::new,
+			new Item.Properties().fireResistant().stacksTo(1).rarity(Rarity.EPIC).component(
+					BossComponents.MAX_RANGE, 64.0
+			)
+	);
+
+	public static final Item SPAWN_REINFORCEMENTS_WAND = register(
+			"spawn_reinforcements_wand",
+			ReinforcementsWand::new,
+			new Item.Properties().fireResistant().stacksTo(1).rarity(Rarity.EPIC).component(
+					BossComponents.TRY_COUNT, ReinforcementsWand.DEFAULT_TRY_COUNT
+			).component(
+					BossComponents.SPAWNS, WeightedList.<EntityHelper.SpawnEntry>builder().add(
+							EntityHelper.SpawnEntry.createEntry(
+									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityTypes.ZOMBIE),
+									Optional.of(AllOfCondition.allOf(HolderSet.direct(Holder.direct(NotInWall.getInstance()), Holder.direct(SolidBlockBelow.getInstance())))),
+									EntitySpawnReason.REINFORCEMENT, 20, 10
+							)
+					).add(
+							EntityHelper.SpawnEntry.createEntry(
+									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityTypes.SKELETON),
+									Optional.of(AllOfCondition.allOf(HolderSet.direct(Holder.direct(NotInWall.getInstance()), Holder.direct(SolidBlockBelow.getInstance())))),
+									EntitySpawnReason.REINFORCEMENT, 20, 10
+							)
+					).add(
+							EntityHelper.SpawnEntry.createEntry(
+									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityTypes.CREEPER),
+									Optional.of(AllOfCondition.allOf(HolderSet.direct(Holder.direct(NotInWall.getInstance()), Holder.direct(SolidBlockBelow.getInstance())))),
+									EntitySpawnReason.REINFORCEMENT, 20, 10
+							)
+					).add(
+							EntityHelper.SpawnEntry.createEntry(
+									EntityHelper.SpawnEntry.createEntityNBTFrom(EntityTypes.SPIDER),
+									Optional.of(AllOfCondition.allOf(HolderSet.direct(Holder.direct(NotInWall.getInstance()), Holder.direct(SolidBlockBelow.getInstance())))),
+									EntitySpawnReason.REINFORCEMENT,20, 10
+							)
+					).build()
+			)
+	);
+
+	public static final Item DOUBLE_TEAM_WAND = register(
+			"double_team_wand",
+			DoubleTeamWand::new,
+			new Item.Properties().fireResistant().stacksTo(1).rarity(Rarity.EPIC).component(
+					BossComponents.DOUBLE_TEAM_SETTINGS, new DoubleTeamHandler.Settings(
+							ConstantInt.of(5), 10,
+							UniformFloat.of(5, 10), 0.25,
+							EntityHelper.SpawnEntry.createNBTFromMap(
+									Map.of("Hostile", true)
+							),
+							Optional.of(true)
+					)
+			)
+	);
+
+	public static void init() {
+		BossComponents.init();
+		CreativeTabNamespaces.add(METAcraftBosses.NAMESPACE);
+	}
+
+	private static Item register(
+			String id, Function<Item.Properties, Item> item, Item.Properties settings
+	) {
+		var key = ResourceKey.create(Registries.ITEM, METAcraftBosses.getID(id));
+		if (item instanceof BlockItem b) {
+			Item.BY_BLOCK.put(b.getBlock(), b);
+		}
+		return Registry.register(BuiltInRegistries.ITEM, key, item.apply(settings.setId(key)));
+	}
+
+}

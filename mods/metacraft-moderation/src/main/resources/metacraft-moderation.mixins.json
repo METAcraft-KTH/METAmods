@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "nu.metacraft.moderation.mixin",
+	"package": "se.metacraft.moderation.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"AlwaysTargetModeratorCommandMixins",

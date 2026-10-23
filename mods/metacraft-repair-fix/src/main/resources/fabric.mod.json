@@ -21,7 +21,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.repair_fix.RepairFix"
+			"se.metacraft.repair_fix.RepairFix"
 		]
 	},
 	"mixins": [

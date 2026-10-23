@@ -8,14 +8,16 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.Bootstrap;
-import nu.metacraft.core.METAcraftCore;
-import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.util.helper.TestHelper;
-import nu.metacraft.nether_rifts.NetherRifts;
-import nu.metacraft.nether_rifts.NetherRiftsConfig;
-import nu.metacraft.portal_blocker.PortalBlocker;
-import nu.metacraft.simplecustomfeatures.Features;
-import nu.metacraft.zones.METAcraftZones;
+import se.metacraft.core.METAcraftCore;
+import se.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.util.helper.TestHelper;
+import se.metacraft.nether_rifts.NetherRifts;
+import se.metacraft.nether_rifts.NetherRiftsConfig;
+import se.metacraft.portal_blocker.PortalBlocker;
+import se.metacraft.simplecustomfeatures.Features;
+import se.metacraft.nether_rifts.raid.Roster;
+import se.metacraft.nether_rifts.raid.Slot;
+import se.metacraft.zones.METAcraftZones;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import se.metacraft.portalopening.PortalOpening;
@@ -132,8 +134,8 @@ public class NetherRiftsTests {
 								java.util.List.of(NetherRifts.getID("test_blob_portal")), FAST.roster(), FAST.mobs()
 						)))
 						.then(preset("roster_partial", () -> {
-							var roster = new java.util.HashMap<>(nu.metacraft.nether_rifts.raid.Roster.DEFAULT);
-							roster.remove(nu.metacraft.nether_rifts.raid.Slot.HEAVY);
+							var roster = new java.util.HashMap<>(Roster.DEFAULT);
+							roster.remove(Slot.HEAVY);
 							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
 									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
 									FAST.scfNetherPortalTypes(), roster, FAST.mobs());

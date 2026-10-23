@@ -4,9 +4,9 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.portal.PortalShape;
-import nu.metacraft.nether_rifts.NetherRiftsConfig;
-import nu.metacraft.nether_rifts.rift.RiftShape;
-import nu.metacraft.nether_rifts.rift.Tier;
+import se.metacraft.nether_rifts.NetherRiftsConfig;
+import se.metacraft.nether_rifts.rift.RiftShape;
+import se.metacraft.nether_rifts.rift.Tier;
 
 public class ShapeTests {
 

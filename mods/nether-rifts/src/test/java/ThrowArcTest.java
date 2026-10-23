@@ -1,8 +1,8 @@
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.nether_rifts.mob.GhastBombardier;
-import nu.metacraft.nether_rifts.mob.MagmaBomb;
+import se.metacraft.nether_rifts.mob.GhastBombardier;
+import se.metacraft.nether_rifts.mob.MagmaBomb;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

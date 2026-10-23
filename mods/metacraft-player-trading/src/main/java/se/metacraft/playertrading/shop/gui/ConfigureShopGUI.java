@@ -13,7 +13,7 @@ import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
-import nu.metacraft.lib.util.helper.PCollectionsHelper;
+import se.metacraft.lib.util.helper.PCollectionsHelper;
 import se.metacraft.playertrading.PlayerTrading;
 import se.metacraft.playertrading.block.entities.ShopBlockEntity;
 import se.metacraft.playertrading.shop.Shop;

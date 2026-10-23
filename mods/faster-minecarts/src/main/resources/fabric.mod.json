@@ -21,7 +21,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.faster_minecarts.FasterMinecarts"
+			"se.metacraft.faster_minecarts.FasterMinecarts"
 		]
 	},
 	"mixins": [

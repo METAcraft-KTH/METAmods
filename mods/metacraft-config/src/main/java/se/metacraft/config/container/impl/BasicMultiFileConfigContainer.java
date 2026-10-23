@@ -5,7 +5,7 @@ import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
-import nu.metacraft.lib.util.helper.JsonHelper;
+import se.metacraft.lib.util.helper.JsonHelper;
 import se.metacraft.config.container.MultiFileConfigContainer;
 import se.metacraft.config.container.ReloadCause;
 import se.metacraft.config.container.ReloadFunction;

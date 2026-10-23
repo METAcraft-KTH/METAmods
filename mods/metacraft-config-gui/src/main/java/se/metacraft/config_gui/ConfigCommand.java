@@ -12,7 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
-import nu.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.METAcraftLib;
 import se.metacraft.config.container.ConfigContainer;
 import se.metacraft.config.parser.CodecParser;
 import se.metacraft.config_gui.gui.value_editor.ConfirmScreen;

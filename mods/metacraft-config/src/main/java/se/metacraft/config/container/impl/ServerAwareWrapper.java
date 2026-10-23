@@ -3,7 +3,7 @@ package se.metacraft.config.container.impl;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Unit;
-import nu.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.METAcraftLib;
 import se.metacraft.config.util.ObjectStorage;
 import se.metacraft.config.container.ConfigContainerBase;
 import se.metacraft.config.container.ReloadCause;

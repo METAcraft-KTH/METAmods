@@ -1,6 +1,6 @@
 package se.metacraft.config.container;
 
-import nu.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.METAcraftLib;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

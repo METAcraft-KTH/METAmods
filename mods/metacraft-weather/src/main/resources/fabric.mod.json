@@ -18,7 +18,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.weather.METAcraftWeather"
+			"se.metacraft.weather.METAcraftWeather"
 		]
 	},
 	"mixins": [

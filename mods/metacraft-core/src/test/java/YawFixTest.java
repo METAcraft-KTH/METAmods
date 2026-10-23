@@ -1,10 +1,10 @@
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import nu.metacraft.core.METAcraftCore;
-import nu.metacraft.core.util.InterpolationSet;
-import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.util.helper.TestHelper;
+import se.metacraft.core.METAcraftCore;
+import se.metacraft.core.util.InterpolationSet;
+import se.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.util.helper.TestHelper;
 
 public class YawFixTest {
 

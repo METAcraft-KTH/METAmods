@@ -1,10 +1,10 @@
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
-import nu.metacraft.nether_rifts.RiftWorldState;
-import nu.metacraft.nether_rifts.Stabilisation;
-import nu.metacraft.nether_rifts.rift.Rift;
-import nu.metacraft.nether_rifts.rift.Stage;
+import se.metacraft.nether_rifts.RiftWorldState;
+import se.metacraft.nether_rifts.Stabilisation;
+import se.metacraft.nether_rifts.rift.Rift;
+import se.metacraft.nether_rifts.rift.Stage;
 
 public class StabiliseTests {
 

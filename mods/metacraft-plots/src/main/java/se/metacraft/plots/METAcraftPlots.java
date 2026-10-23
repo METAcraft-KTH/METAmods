@@ -1,0 +1,31 @@
+package se.metacraft.plots;
+
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
+import net.fabricmc.api.ModInitializer;
+import net.minecraft.resources.Identifier;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import se.metacraft.plots.item.PlotItems;
+import se.metacraft.plots.zone.PlotDataTypes;
+
+public class METAcraftPlots implements ModInitializer {
+	public static final Logger LOGGER = LogManager.getLogger("METAcraft-Plots");
+
+	public static final String MODID = "metacraft-plots";
+	public static final String NAMESPACE = "metacraft_plots";
+
+	@Override
+	public void onInitialize() {
+		PlotItems.init();
+		PlotDataTypes.init();
+		Commands.registerCommands();
+		Events.init();
+		// Item models, textures and lang go to clients in the Polymer resource pack.
+		PolymerResourcePackUtils.addModAssets(MODID);
+		PolymerResourcePackUtils.markAsRequired();
+	}
+
+	public static Identifier getID(String name) {
+		return Identifier.fromNamespaceAndPath(NAMESPACE, name);
+	}
+}

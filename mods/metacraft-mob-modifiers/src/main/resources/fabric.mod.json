@@ -18,7 +18,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.mob_modifiers.METAcraftMobModifiers"
+			"se.metacraft.mob_modifiers.METAcraftMobModifiers"
 		]
 	},
 	"mixins": [

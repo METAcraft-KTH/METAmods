@@ -7,7 +7,7 @@ import blue.endless.jankson.api.SyntaxError;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DynamicOps;
 import net.minecraft.core.HolderLookup;
-import nu.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.METAcraftLib;
 import se.metacraft.config.util.JanksonOps;
 
 import java.io.*;

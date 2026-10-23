@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "nu.metacraft.fake_player_blocker.mixin",
+	"package": "se.metacraft.fake_player_blocker.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"CarpetPlayerCommandMixin",

@@ -18,7 +18,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.CheckMods"
+			"se.metacraft.CheckMods"
 		]
 	},
 	"mixins": [],

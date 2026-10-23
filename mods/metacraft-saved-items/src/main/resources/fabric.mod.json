@@ -18,7 +18,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.saved_items.SavedItems"
+			"se.metacraft.saved_items.SavedItems"
 		]
 	},
 	"mixins": [

@@ -1,9 +1,12 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "nu.metacraft.nether_rifts.clienttest.mixin",
+	"package": "se.metacraft.nether_rifts.clienttest.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [],
-	"client": ["PolymerHelloMixin", "ServerPackAutoAcceptMixin"],
+	"client": [
+		"PolymerHelloMixin",
+		"ServerPackAutoAcceptMixin"
+	],
 	"injectors": {"defaultRequire": 1}
 }

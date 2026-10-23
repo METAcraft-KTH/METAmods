@@ -24,11 +24,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.lib.util.helper.TestHelper;
-import nu.metacraft.qol.void_anchor.AnchorBinding;
-import nu.metacraft.qol.void_anchor.VoidAnchorConfig;
-import nu.metacraft.qol.void_anchor.VoidAnchorBlocks;
-import nu.metacraft.qol.void_anchor.rift.RiftTracker;
+import se.metacraft.lib.util.helper.TestHelper;
+import se.metacraft.qol.void_anchor.AnchorBinding;
+import se.metacraft.qol.void_anchor.VoidAnchorConfig;
+import se.metacraft.qol.void_anchor.VoidAnchorBlocks;
+import se.metacraft.qol.void_anchor.rift.RiftTracker;
 
 import java.util.Arrays;
 import java.util.UUID;

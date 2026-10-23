@@ -18,7 +18,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.zones.METAcraftZones"
+			"se.metacraft.zones.METAcraftZones"
 		]
 	},
 	"accessWidener" : "metacraft_zones.classtweaker",

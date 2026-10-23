@@ -16,13 +16,13 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"metacraft.moredyes.MoreDyes"
+			"se.metacraft.moredyes.MoreDyes"
 		],
 		"fabric-gametest": [
-			"metacraft.moredyes.gametest.MoreDyesGameTests"
+			"se.metacraft.moredyes.gametest.MoreDyesGameTests"
 		],
 		"fabric-datagen": [
-			"metacraft.moredyes.datagen.MoreDyesDataGenerator"
+			"se.metacraft.moredyes.datagen.MoreDyesDataGenerator"
 		]
 	},
 	"depends": {

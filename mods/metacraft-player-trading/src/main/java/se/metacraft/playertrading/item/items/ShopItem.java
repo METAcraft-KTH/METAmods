@@ -18,7 +18,7 @@ import net.minecraft.world.item.StandingAndWallBlockItem;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
-import nu.metacraft.lib.util.helper.GameProfileHelper;
+import se.metacraft.lib.util.helper.GameProfileHelper;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import se.metacraft.playertrading.block.blocks.BaseShopBlock;

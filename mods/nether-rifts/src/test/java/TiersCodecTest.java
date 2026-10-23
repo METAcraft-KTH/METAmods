@@ -1,6 +1,6 @@
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
-import nu.metacraft.nether_rifts.NetherRiftsConfig;
+import se.metacraft.nether_rifts.NetherRiftsConfig;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
