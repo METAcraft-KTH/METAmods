@@ -32,4 +32,5 @@ simple-custom-features
 metacraft-config-gui
 metacraft-mob-modifiers
 metacraft-player-trading
+ovvar
 portal-opening
