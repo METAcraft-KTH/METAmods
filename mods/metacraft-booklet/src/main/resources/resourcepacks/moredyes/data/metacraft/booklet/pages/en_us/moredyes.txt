@@ -1,15 +1,15 @@
 ### Section: PageInfo
 title=Colors
 external_title=Colors
-description=Cerise and Laserviolet: where the dyes come from and everything they colour.
+description=Cerise, Laserviolet and RGB: where the dyes come from and everything they colour.
 category=metacraft:student_culture
 icon=moredyes:cerise_dye
 order=50
 ### EndSection: PageInfo
-Two colours vanilla does not have: <citem 'moredyes:cerise_dye'> and <citem 'moredyes:laserviolet_dye'>. They work like any dye, on almost everything a dye works on.
+Three colours vanilla does not have: <citem 'moredyes:cerise_dye'>, <citem 'moredyes:laserviolet_dye'> and <citem 'moredyes:rgb_dye'>. They work like any dye, on almost everything a dye works on. RGB never holds still: what you dye with it cycles through the rainbow.
 
 ### Header: Finding them
-A <bold>sniffer</bold> digging in grass or dirt sometimes turns up a <citem 'moredyes:cerise_flower'> or a <citem 'moredyes:laserviolet_flower'>, as often as its own torchflower seeds and pitcher pods. One flower makes one dye; plant or pot the rest. Sniffers hatch from a <citem 'minecraft:sniffer_egg'>, found in the suspicious sand of warm ocean ruins.
+A <bold>sniffer</bold> digging in grass or dirt sometimes turns up a <citem 'moredyes:cerise_flower'>, a <citem 'moredyes:laserviolet_flower'> or a <citem 'moredyes:rgb_flower'>, each as often as its own torchflower seeds and pitcher pods. One flower makes one dye; plant or pot the rest. Sniffers hatch from a <citem 'minecraft:sniffer_egg'>, found in the suspicious sand of warm ocean ruins.
 
 ### Header: What they colour
 - Wool, carpet, beds, candles, banners and shields
@@ -17,13 +17,18 @@ A <bold>sniffer</bold> digging in grass or dirt sometimes turns up a <citem 'mor
 - Stained glass and panes, shulker boxes, bundles
 - Wool and concrete stairs and slabs, cushions
 - A happy ghast's harness, a llama's carpet
-- Sheep: use the dye on one
-- Leather and wolf armour and firework stars, mixed with other dyes as usual
+- Sheep: use the dye on one, shear it for wool in the colour; two of a colour have lambs in it
+- Leather armour, leather horse armour, wolf armour and firework stars, mixed with other dyes as usual
 - Sign text, in exactly the colour; editing the sign keeps it
 - A canvas, in the nearest colour a canvas has
 - A pet's collar, in the nearest vanilla colour
 
-### Header: Banners and shields
-Six <citem 'moredyes:cerise_wool'> over a stick make a <bold>Cerise Banner</bold>, the way six white wool make a white one; six <citem 'moredyes:laserviolet_wool'> make a Laserviolet one. At a <citem 'minecraft:loom'> it takes six patterns on top of its colour, like any banner; with five on it, the loom's banner slot shows it in the nearest vanilla colour, and the banner that comes out is still Cerise or Laserviolet. It decorates a shield and copies onto a plain white banner. A cauldron washes its patterns off, but not its colour.
+<gray>A beacon beam goes through this stained glass uncoloured.</gray>
 
-Both dyes go in a <citem 'minecraft:loom'> like any dye, on any banner: pick a pattern and it comes out in Cerise or Laserviolet. The pattern buttons name the nearest vanilla colour, and the preview can show that colour for a moment. Patterns that need a pattern item need it in the loom, as usual.
+### Header: RGB
+Blocks, banners and dyed armour in RGB cycle through the rainbow. Dye armour with RGB on its own: mixed with other dyes it won't take, and a plain dye on RGB armour replaces it. A happy ghast's harness and a llama's carpet wear red, green and blue stripes, and a canvas gets confetti in all its colours. Where a colour can't move, RGB is red: fireworks, sign text and maps.
+
+### Header: Banners and shields
+Six <citem 'moredyes:cerise_wool'> over a stick make a <bold>Cerise Banner</bold>, the way six white wool make a white one; six <citem 'moredyes:laserviolet_wool'> or <citem 'moredyes:rgb_wool'> make a Laserviolet or RGB one. At a <citem 'minecraft:loom'> it takes six patterns on top of its colour, like any banner; with five on it, the loom's banner slot shows it in the nearest vanilla colour, and the banner that comes out is still its own colour. It decorates a shield and copies onto a plain white banner. A cauldron washes its patterns off, but not its colour.
+
+All three dyes go in a <citem 'minecraft:loom'> like any dye, on any banner: pick a pattern and it comes out in that colour. The pattern buttons name the nearest vanilla colour, and the preview can show that colour for a moment. Patterns that need a pattern item need it in the loom, as usual.

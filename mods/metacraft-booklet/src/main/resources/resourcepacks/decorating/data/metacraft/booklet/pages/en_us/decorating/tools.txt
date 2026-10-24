@@ -22,6 +22,6 @@ Right-click or hit a placed block with it to turn it, without breaking it:
 ### Image: metacraft:beside/decorating/trowel Right-click with it and it places a random block from your hotbar.<nl2>Put cobblestone, mossy cobblestone and gravel there and a path comes out looking worn in.
 
 ### Body:
-Keep your off hand free of blocks: with a block there, the trowel does nothing.
+Every hotbar slot with a block in it is as likely as the next, so put a block in more slots to get more of it. Keep your off hand free of blocks: with a block there, the trowel does nothing.
 
 Both tools only work where you are allowed to build.

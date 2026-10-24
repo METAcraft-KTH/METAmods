@@ -5,7 +5,7 @@ category=metacraft:brewing
 icon=minecraft:sweet_berries
 order=6
 ### EndSection: PageInfo
-### Image: metacraft:beside/brewing/chapter_drinks The chapters' own drinks, brewed the same way. Each one sends you fast or slow (Släggan: slow and strong, or fast and weak), harder the drunker you are, and past a point it blacks you out: you come to somewhere else with a headache, a little hurt and blind for a moment.
+### Image: metacraft:beside/brewing/chapter_drinks The chapters' own drinks, brewed the same way. Each alcoholic one sends you fast or slow (Släggan: slow and strong, or fast and weak), harder the drunker you are, and past a point it blacks you out: you come to somewhere else with a headache, a little hurt and blind for a moment.
 
 ### Header: Alcoholic Beverage
 - 4 × <citem 'minecraft:potato'>

@@ -16,8 +16,10 @@ Right-click it with an end crystal to add a charge, up to four; the lights on it
 ### Header: Binding to it
 Right-click it with an empty hand. You are bound to one anchor at a time, so binding another moves you over. Friends can bind to the same anchor and share its charges.
 
+An empty anchor binds you too, but tells you it needs charging: it catches nobody until it has a charge. Unlike a respawn anchor, it never explodes and never sets your spawn.
+
 ### Header: Falling
-### Image: metacraft:beside/qol/rift Drop below the bottom of the End and you stop in mid-air, looking down, while space cracks open under you. You sink into the crack, everything goes white, and you step out of a crack on top of your anchor. The anchor loses a charge.<nl2>Gliding with an elytra? It folds when the crack catches you.
+### Image: metacraft:beside/qol/rift Drop below the bottom of the End and you stop in mid-air, looking down, while space cracks open under you. You sink into the crack, everything goes white, and you are standing beside your anchor, a crack open on top of it. The anchor loses a charge.<nl2>Gliding with an elytra? It folds when the crack catches you.
 
 ### Body:
 If your anchor is empty, broken or blocked in, you are told so as you fall, and you fall the way you would without one.

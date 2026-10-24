@@ -12,7 +12,7 @@ order=40
 Four pages, four steps:
 ### Category Entries: metacraft:ovvar
 
-Short version: wear the ovve, put it on an armour stand, hold a patch, look where it should go and
-right-click. Shears take a patch off again. <pagelink 'metacraft:ovvar/sewing'><u>Sewing</u></pagelink> has the details.
+Short version: craft or find a patch, put your ovve on an armour stand, hold the patch, look where it should go and
+right-click. Shears take a patch off again. <pagelink 'metacraft:ovvar/patches'><u>Patches</u></pagelink> says where to get them, <pagelink 'metacraft:ovvar/sewing'><u>Sewing</u></pagelink> has the details.
 
-<gray>Commands for everyone: <yellow>/ovvar stash</yellow> opens your wardrobe, <yellow>/ovvar look</yellow> shows an ovve, <yellow>/ovvar reload</yellow> fetches the latest resource pack, and <yellow>/guide</yellow> opens this book.</gray>
+<gray>Commands for everyone: <yellow>/ovvar stash</yellow> opens your wardrobe, <yellow>/ovvar look</yellow> shows an ovve, <yellow>/ovvar reload</yellow> fetches the latest resource pack when somebody's patches look out of date, <yellow>/ovvar shaders</yellow> helps if you play with a shaderpack, and <yellow>/guide</yellow> opens this book.</gray>

@@ -7,7 +7,7 @@ icon=minecraft:crying_obsidian
 order=20
 ### EndSection: PageInfo
 ### Header: The realm is unstable
-For now a lit nether portal takes you nowhere. It opens a <bold>rift</bold>: a cracked, flickering tear in the frame, with the nether showing through.<nl>
+For now a lit nether portal takes you nowhere. It opens a <bold>rift</bold>: the portal flickers but will not hold, and fine cracks run across it. Light it again and they spread; tear it open and the nether shows through the holes.<nl>
 
 Light a rift twice more and it tears open. Piglins come through in waves, led by drummers and bombed from chained ghasts: a <pagelink 'metacraft:nether/piglin_raid'><u>Piglin Raid</u></pagelink>. Beat every wave and the rift pays out in gold and glowstone.
 
