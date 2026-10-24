@@ -379,4 +379,21 @@ public final class GuideTests {
 		}
 		helper.succeed();
 	}
+
+	/** The Recipes page names Polydex commands a player can type: each of them parses for a player who is not an operator. */
+	@GameTest
+	public void theRecipesPageCommandsExist(GameTestHelper helper) {
+		if (!FabricLoader.getInstance().isModLoaded("polydex")) { helper.succeed(); return; }
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		var source = player.createCommandSourceStack();
+		var dispatcher = helper.getLevel().getServer().getCommands().getDispatcher();
+		for (String command : List.of("polydex", "polydex search patch",
+				"polydex hover style polydex:sidebar", "polydex hover style polydex:bossbar", "polydex hover style polydex:disabled")) {
+			var parse = dispatcher.parse(command, source);
+			if (parse.getReader().canRead() || !parse.getExceptions().isEmpty() || parse.getContext().getCommand() == null) {
+				helper.fail("/" + command + " does not parse for a player: " + parse.getExceptions());
+			}
+		}
+		helper.succeed();
+	}
 }

@@ -106,11 +106,17 @@ public final class MetacraftBooklet implements ModInitializer {
 			new Hook("moredyes", "moredyes", false),
 
 			// Vanilla+ Features
-			Hook.anyOf("vanilla_plus", "metacraft-qol", "polydecorations"),
+			// (order: Recipes 5, Void Anchor 10, Silencing mobs 20, Concrete Crafting 30, New Decor 40, Player Shops 50, Gestures 60)
+			Hook.anyOf("vanilla_plus", "metacraft-qol", "polydecorations", "metacraft-player-trading", "danse", "polydex"),
 			// also End Changes: the void anchor, in both sections
 			new Hook("metacraft-qol", "qol", false),
 			new Hook("polydecorations", "decorating", false),
 			new Hook("polydecorations", "polydecorations_s6", true),
+			new Hook("metacraft-player-trading", "trading", false),
+			// Patbox's recipe viewer: how to look recipes up with /polydex
+			new Hook("polydex", "recipes", false),
+			// danse: our fork's /gesture
+			new Hook("danse", "gestures", false),
 
 			// Nether Changes
 			new Hook("nether-rifts", "rifts", false));
