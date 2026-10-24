@@ -40,7 +40,7 @@ def rainbow_icon():
 
 def write(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2)+'\n')
+    path.write_text(json.dumps(data, indent="\t")+'\n')
 
 palette = {'laserviolett':'#CC99FF', 'cerise':'#E83D84'}
 palette.update(json.loads((SOURCE/'dye-colors.json').read_text()))

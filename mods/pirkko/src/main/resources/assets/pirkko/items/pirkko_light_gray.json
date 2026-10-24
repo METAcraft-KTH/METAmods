@@ -1,6 +1,6 @@
 {
-  "model": {
-    "type": "minecraft:model",
-    "model": "pirkko:block/pirkko_light_gray"
-  }
+	"model": {
+		"type": "minecraft:model",
+		"model": "pirkko:block/pirkko_light_gray"
+	}
 }

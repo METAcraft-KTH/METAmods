@@ -1,19 +1,19 @@
 {
-  "model": {
-    "type": "minecraft:select",
-    "property": "minecraft:display_context",
-    "cases": [
-      {
-        "when": "fixed",
-        "model": {
-          "type": "minecraft:model",
-          "model": "pirkko:item/frame_red"
-        }
-      }
-    ],
-    "fallback": {
-      "type": "minecraft:model",
-      "model": "pirkko:item/head_red"
-    }
-  }
+	"model": {
+		"type": "minecraft:select",
+		"property": "minecraft:display_context",
+		"cases": [
+			{
+				"when": "fixed",
+				"model": {
+					"type": "minecraft:model",
+					"model": "pirkko:item/frame_red"
+				}
+			}
+		],
+		"fallback": {
+			"type": "minecraft:model",
+			"model": "pirkko:item/head_red"
+		}
+	}
 }

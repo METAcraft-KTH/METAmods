@@ -1,6 +1,6 @@
 {
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "pirkko:item/head_black"
-  }
+	"parent": "minecraft:item/generated",
+	"textures": {
+		"layer0": "pirkko:item/head_black"
+	}
 }
