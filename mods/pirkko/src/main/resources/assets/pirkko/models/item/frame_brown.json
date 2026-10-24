@@ -1,0 +1,22 @@
+{
+  "parent": "pirkko:block/pirkko_brown",
+  "display": {
+    "fixed": {
+      "rotation": [
+        -90,
+        90,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        -8
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    }
+  }
+}
