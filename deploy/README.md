@@ -53,6 +53,10 @@ Only for a mod that one of our modules directly depends on but doesn't embed (ja
 module and the mod it needs reach the server together. It is not a way to manage the server's other
 mods: those are added through the Pterodactyl panel, and the lists don't name them.
 
+The test server is the exception: `test.txt` also pins its own mods from outside the repo (worldgen,
+performance, the Season 6 picks), so test runs the same set as the planned Season 6 server. Fabric API
+and datapacks are still added by hand there.
+
 ```
 external some-library https://github.com/someone/some-library/releases/download/v1.4.0/some-library-1.4.0.jar sha256:3f2a…
 ```
