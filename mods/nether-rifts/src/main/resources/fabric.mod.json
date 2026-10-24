@@ -14,7 +14,9 @@
 	"license": "Apache-2.0",
 	"environment": "*",
 	"entrypoints": {
-		"main": ["nu.metacraft.nether_rifts.NetherRifts"]
+		"main": [
+			"se.metacraft.nether_rifts.NetherRifts"
+		]
 	},
 	"mixins": ["nether_rifts.mixins.json"],
 	"depends": {

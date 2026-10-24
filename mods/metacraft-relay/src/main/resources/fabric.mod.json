@@ -18,10 +18,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.relay.Relay"
+			"se.metacraft.relay.Relay"
 		],
 		"fabric-datagen": [
-			"nu.metacraft.relay.RelayDatagen"
+			"se.metacraft.relay.RelayDatagen"
 		]
 	},
 	"mixins": [

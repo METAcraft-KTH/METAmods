@@ -1,6 +1,6 @@
-import nu.metacraft.nether_rifts.raid.Slot;
-import nu.metacraft.nether_rifts.raid.WaveTable;
-import nu.metacraft.nether_rifts.rift.Tier;
+import se.metacraft.nether_rifts.raid.Slot;
+import se.metacraft.nether_rifts.raid.WaveTable;
+import se.metacraft.nether_rifts.rift.Tier;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumMap;

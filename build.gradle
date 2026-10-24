@@ -1,3 +1,9 @@
+import se.metacraft.deploy.DeployList
+import se.metacraft.deploy.DeployServerTask
+import se.metacraft.deploy.DeploySetTask
+import se.metacraft.deploy.ModInfo
+import se.metacraft.deploy.SetResolver
+
 plugins {
     id 'net.fabricmc.fabric-loom' version "$loom_version" apply false
 	id("org.jetbrains.gradle.plugin.idea-ext") version "$idea_plugin_version"
@@ -284,7 +290,7 @@ subprojects {
 
 // Deploying mods to the servers (deploy/README.md): deploySet builds one server's set,
 // deployServer uploads it. The logic and its tests live in buildSrc (nu.metacraft.deploy).
-def deploySet = tasks.register('deploySet', nu.metacraft.deploy.DeploySetTask) {
+def deploySet = tasks.register('deploySet', DeploySetTask) {
     group = 'deploy'
     description = 'Builds build/deploy/<server>/ (jars and manifest.json) from deploy/<server>.txt. Needs -Pserver=<name>.'
 }
@@ -298,7 +304,7 @@ gradle.projectsEvaluated {
             return
         }
         def listFile = file("deploy/${serverName}.txt")
-        def list = nu.metacraft.deploy.DeployList.read(serverName, listFile.toPath())
+        def list = DeployList.read(serverName, listFile.toPath())
         def modProjects = project(':mods').subprojects
         // Relies on addProjectDependency adding project dependencies to `implementation`.
         Map<String, Set<String>> projectDeps = modProjects.collectEntries { p ->
@@ -308,13 +314,13 @@ gradle.projectsEvaluated {
                     .findAll { it.startsWith(':mods:') }
                     .collect { project(it).name } as Set]
         }
-        def selected = nu.metacraft.deploy.SetResolver.resolve(serverName, list.projects(), projectDeps)
+        def selected = SetResolver.resolve(serverName, list.projects(), projectDeps)
 
         task.server = serverName
         task.listFile = listFile
         task.outputDir = layout.buildDirectory.dir("deploy/${serverName}")
         task.repoModIds = modProjects.collect {
-            nu.metacraft.deploy.ModInfo.readSourceId(it.file('src/main/resources/fabric.mod.json').toPath())
+            ModInfo.readSourceId(it.file('src/main/resources/fabric.mod.json').toPath())
         } as Set
         selected.each { name ->
             // net.fabricmc.fabric-loom (no remapping on 26.x) has no remapJar; the jar task is the mod.
@@ -325,7 +331,7 @@ gradle.projectsEvaluated {
     }
 }
 
-tasks.register('deployServer', nu.metacraft.deploy.DeployServerTask) {
+tasks.register('deployServer', DeployServerTask) {
     group = 'deploy'
     description = 'Uploads build/deploy/<server>/ to <server> (deploy/servers.json) over SFTP. Needs -Pserver=<name> and AUTODEPLOY_PASSWORD.'
     def serverName = providers.gradleProperty('server')

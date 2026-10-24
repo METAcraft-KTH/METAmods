@@ -1,6 +1,6 @@
 package se.metacraft.config.parser;
 
-import nu.metacraft.lib.util.helper.PCollectionsHelper;
+import se.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
 

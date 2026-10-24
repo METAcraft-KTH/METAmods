@@ -16,8 +16,8 @@ import net.minecraft.world.inventory.SlotRange;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import nu.metacraft.lib.util.METACodecs;
-import nu.metacraft.lib.util.helper.PCollectionsHelper;
+import se.metacraft.lib.util.METACodecs;
+import se.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.*;
 
 import java.util.List;

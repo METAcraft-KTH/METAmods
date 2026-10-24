@@ -1,0 +1,41 @@
+package se.metacraft.cutscenes.mixin;
+
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import net.minecraft.server.level.ServerEntity;
+import net.minecraft.world.entity.Entity;
+import org.objectweb.asm.Opcodes;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Slice;
+import se.metacraft.cutscenes.extension.EntityExtension;
+
+@Mixin(ServerEntity.class)
+public class ServerEntityMixin {
+
+	@Shadow @Final private Entity entity;
+
+	@ModifyExpressionValue(
+			method = "createMovePacket",
+			at = @At(
+					value = "FIELD",
+					target = "Lnet/minecraft/server/level/ServerEntity;wasRiding:Z",
+					ordinal = 0,
+					opcode = Opcodes.GETFIELD
+			),
+			slice = @Slice(
+					from = @At(
+							value = "INVOKE",
+							target = "Lnet/minecraft/network/protocol/game/VecDeltaCodec;encodeX(Lnet/minecraft/world/phys/Vec3;)J"
+					)
+			)
+	)
+	public boolean shouldMoveAccurately(boolean original) {
+		if (entity instanceof EntityExtension e && e.metacraft$hasAccurateMovement()) {
+			return false;
+		}
+		return original;
+	}
+
+}

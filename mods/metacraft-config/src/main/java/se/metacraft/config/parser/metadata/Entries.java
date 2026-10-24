@@ -2,7 +2,7 @@ package se.metacraft.config.parser.metadata;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.core.HolderLookup;
-import nu.metacraft.lib.util.helper.PCollectionsHelper;
+import se.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.PSet;
 import org.pcollections.TreePSet;
 import se.metacraft.config.parser.Metadata;

@@ -1,5 +1,5 @@
 import org.junit.jupiter.api.Test;
-import nu.metacraft.lib.util.PositionFinder;
+import se.metacraft.lib.util.PositionFinder;
 
 import java.util.HashSet;
 import java.util.Set;

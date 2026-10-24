@@ -21,13 +21,13 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-		"nu.metacraft.simplecustomfeatures.Features"
+			"se.metacraft.simplecustomfeatures.Features"
 		],
 		"client": [
-		"nu.metacraft.simplecustomfeatures.Features"
+			"se.metacraft.simplecustomfeatures.Features"
 		],
 		"server": [
-		"nu.metacraft.simplecustomfeatures.Features"
+			"se.metacraft.simplecustomfeatures.Features"
 		]
 	},
 	"mixins": [

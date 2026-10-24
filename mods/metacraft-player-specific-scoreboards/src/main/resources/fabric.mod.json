@@ -20,7 +20,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.player_specific_scoreboards.PlayerScoreboards"
+			"se.metacraft.player_specific_scoreboards.PlayerScoreboards"
 		]
 	},
 	"mixins": [

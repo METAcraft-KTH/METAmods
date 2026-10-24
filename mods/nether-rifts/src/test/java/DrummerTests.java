@@ -9,7 +9,6 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
-import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
@@ -19,7 +18,6 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.item.ItemStack;
@@ -30,15 +28,13 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.nether_rifts.mob.GhastBombardier;
-import nu.metacraft.nether_rifts.mob.RiftEntities;
-import nu.metacraft.nether_rifts.mob.WarDrummer;
-import nu.metacraft.nether_rifts.raid.RiftMobs;
-import nu.metacraft.nether_rifts.raid.Slot;
+import se.metacraft.nether_rifts.mob.RiftEntities;
+import se.metacraft.nether_rifts.mob.WarDrummer;
+import se.metacraft.nether_rifts.raid.RiftMobs;
+import se.metacraft.nether_rifts.raid.Slot;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class DrummerTests {
 

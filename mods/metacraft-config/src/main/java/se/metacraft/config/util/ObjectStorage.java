@@ -5,7 +5,7 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.datafixers.util.Unit;
 import com.mojang.serialization.*;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import nu.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.METAcraftLib;
 
 import java.util.*;
 import java.util.function.Function;

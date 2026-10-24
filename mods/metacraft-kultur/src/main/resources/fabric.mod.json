@@ -16,15 +16,15 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"metacraft.kultur.Kultur"
+			"se.metacraft.kultur.Kultur"
 		],
 		"fabric-gametest": [
-			"metacraft.kultur.gametest.KulturGameTests",
-			"metacraft.kultur.gametest.KulturDrinkTests",
-			"metacraft.kultur.gametest.KulturVanillaDrinkTests"
+			"se.metacraft.kultur.gametest.KulturGameTests",
+			"se.metacraft.kultur.gametest.KulturDrinkTests",
+			"se.metacraft.kultur.gametest.KulturVanillaDrinkTests"
 		],
 		"fabric-datagen": [
-			"metacraft.kultur.datagen.KulturDataGenerator"
+			"se.metacraft.kultur.datagen.KulturDataGenerator"
 		]
 	},
 	"depends": {

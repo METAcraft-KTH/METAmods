@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "nu.metacraft.booklet.clienttest.mixin",
+	"package": "se.metacraft.booklet.clienttest.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
 		"MidSwingMixin",

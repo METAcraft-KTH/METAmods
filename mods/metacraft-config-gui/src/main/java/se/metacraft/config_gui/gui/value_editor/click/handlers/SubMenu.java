@@ -11,7 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
-import nu.metacraft.lib.util.helper.PCollectionsHelper;
+import se.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.TreePMap;
 import se.metacraft.config.parser.CodecParser;
 import se.metacraft.config.parser.MetadataKey;

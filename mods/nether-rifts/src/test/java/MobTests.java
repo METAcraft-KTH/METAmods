@@ -22,12 +22,14 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.nether_rifts.NetherRifts;
-import nu.metacraft.nether_rifts.mob.RiftEntities;
-import nu.metacraft.nether_rifts.mob.RiftItems;
-import nu.metacraft.nether_rifts.raid.RiftMobs;
-import nu.metacraft.nether_rifts.raid.Slot;
-import nu.metacraft.nether_rifts.rift.RiftBlocks;
+import se.metacraft.nether_rifts.NetherRifts;
+import se.metacraft.nether_rifts.mob.RiftEntities;
+import se.metacraft.nether_rifts.mob.RiftItems;
+import se.metacraft.nether_rifts.raid.RiftMobs;
+import se.metacraft.nether_rifts.raid.Slot;
+import se.metacraft.nether_rifts.rift.RiftBlocks;
+import se.metacraft.core.item.METAcraftCreativeTab;
+import se.metacraft.core.item.SpawnEggsCreativeTab;
 
 public class MobTests {
 
@@ -207,10 +209,10 @@ public class MobTests {
 				var type = SpawnEggItem.getType(new ItemStack((Item) egg[0]));
 				ctx.assertTrue(type == egg[1], egg[0] + " spawns " + type);
 				// metacraft-core's Spawn Eggs creative tab gathers the eggs of every namespace opted in (RiftItems.init)
-				ctx.assertTrue(nu.metacraft.core.item.SpawnEggsCreativeTab.eggs().contains((Item) egg[0]), egg[0] + " isn't in the Spawn Eggs tab");
+				ctx.assertTrue(SpawnEggsCreativeTab.eggs().contains((Item) egg[0]), egg[0] + " isn't in the Spawn Eggs tab");
 			}
 			// the Grenadier's kit is hidden from the METAcraft tab
-			var tab = nu.metacraft.core.item.METAcraftCreativeTab.items();
+			var tab = METAcraftCreativeTab.items();
 			ctx.assertFalse(tab.contains(RiftItems.BOMBARDIER_HELMET) || tab.contains(RiftItems.GRENADIER_SWORD), "the Grenadier's kit is in the METAcraft tab");
 			ctx.succeed();
 		});

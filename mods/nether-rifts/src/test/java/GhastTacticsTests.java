@@ -6,12 +6,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.entity.projectile.hurtingprojectile.LargeFireball;
-import nu.metacraft.nether_rifts.mob.GhastTactics;
-import nu.metacraft.nether_rifts.mob.GhastTactics.Phase;
-import nu.metacraft.nether_rifts.mob.MagmaBomb;
-import nu.metacraft.nether_rifts.mob.RiftEntities;
-import nu.metacraft.nether_rifts.mob.WarGhast;
-import nu.metacraft.nether_rifts.mob.WarGhast.Crew;
+import se.metacraft.nether_rifts.mob.GhastTactics;
+import se.metacraft.nether_rifts.mob.GhastTactics.Phase;
+import se.metacraft.nether_rifts.mob.MagmaBomb;
+import se.metacraft.nether_rifts.mob.RiftEntities;
+import se.metacraft.nether_rifts.mob.WarGhast;
+import se.metacraft.nether_rifts.mob.WarGhast.Crew;
 
 import java.util.EnumSet;
 import java.util.List;

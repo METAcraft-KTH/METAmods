@@ -8,8 +8,8 @@
 	"environment": "client",
 	"entrypoints": {
 		"fabric-client-gametest": [
-			"metacraft.ovvar.clienttest.OvvarDanseClientTests",
-			"metacraft.ovvar.clienttest.OvvarClientTests"
+			"se.metacraft.ovvar.clienttest.OvvarDanseClientTests",
+			"se.metacraft.ovvar.clienttest.OvvarClientTests"
 		]
 	},
 	"mixins": [

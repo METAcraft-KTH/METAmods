@@ -6,10 +6,8 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.NetherPortalBlock;
-import nu.metacraft.nether_rifts.rift.RiftBlocks;
-import nu.metacraft.nether_rifts.rift.RiftData;
-import nu.metacraft.nether_rifts.rift.Stage;
-import nu.metacraft.nether_rifts.rift.Tier;
+import se.metacraft.nether_rifts.raid.RiftRaid;
+import se.metacraft.nether_rifts.rift.*;
 
 public class FormingTests {
 
@@ -199,11 +197,11 @@ public class FormingTests {
 	}
 
 	/** The one rift inside this test's room (tests in a batch share the level and its RiftData). */
-	static nu.metacraft.nether_rifts.rift.Rift riftIn(GameTestHelper ctx) {
+	static Rift riftIn(GameTestHelper ctx) {
 		return riftsIn(ctx).stream().findFirst().orElseThrow(() -> new AssertionError("no rift in this test's room"));
 	}
 
-	static java.util.List<nu.metacraft.nether_rifts.rift.Rift> riftsIn(GameTestHelper ctx) {
+	static java.util.List<Rift> riftsIn(GameTestHelper ctx) {
 		return RiftData.get(ctx.getLevel()).all().stream().filter(r -> ctx.getBounds().contains(r.centre())).toList();
 	}
 
@@ -213,7 +211,7 @@ public class FormingTests {
 		for (var rift : data.all()) {
 			if (ctx.getBounds().contains(rift.centre())) {
 				if (rift.stage().raiding()) {
-					nu.metacraft.nether_rifts.raid.RiftRaid.end(ctx.getLevel(), rift, data, true);
+					RiftRaid.end(ctx.getLevel(), rift, data, true);
 				} else {
 					rift.fade(ctx.getLevel(), data);
 				}

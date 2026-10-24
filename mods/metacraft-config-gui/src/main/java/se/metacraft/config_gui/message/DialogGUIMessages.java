@@ -2,9 +2,9 @@ package se.metacraft.config_gui.message;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
-import nu.metacraft.lib.custom_message.CustomMessageHandler;
-import nu.metacraft.lib.custom_message.CustomMessageRegistry;
-import nu.metacraft.lib.custom_message.SimpleMessageHandler;
+import se.metacraft.lib.custom_message.CustomMessageHandler;
+import se.metacraft.lib.custom_message.CustomMessageRegistry;
+import se.metacraft.lib.custom_message.SimpleMessageHandler;
 import se.metacraft.config_gui.ConfigGUI;
 
 public class DialogGUIMessages {

@@ -6,7 +6,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
-import nu.metacraft.lib.CreativeTabNamespaces;
+import se.metacraft.lib.CreativeTabNamespaces;
 import se.metacraft.playertrading.PlayerTrading;
 import se.metacraft.playertrading.block.TradingBlocks;
 import se.metacraft.playertrading.component.TradingComponents;

@@ -16,21 +16,21 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"metacraft.ovvar.Ovvar"
+			"se.metacraft.ovvar.Ovvar"
 		],
 		"fabric-gametest": [
-			"metacraft.ovvar.gametest.DanseShellParityTests",
-			"metacraft.ovvar.gametest.DanseModelsTests",
-			"metacraft.ovvar.gametest.DanseLayersTests",
-			"metacraft.ovvar.gametest.DanseForkTests",
-			"metacraft.ovvar.gametest.OvvarGameTests",
-			"metacraft.ovvar.gametest.ComboPackTests",
-			"metacraft.ovvar.gametest.FrackTests",
-			"metacraft.ovvar.gametest.WardrobeTests",
-			"metacraft.ovvar.gametest.BlockbenchManifestTests"
+			"se.metacraft.ovvar.gametest.DanseShellParityTests",
+			"se.metacraft.ovvar.gametest.DanseModelsTests",
+			"se.metacraft.ovvar.gametest.DanseLayersTests",
+			"se.metacraft.ovvar.gametest.DanseForkTests",
+			"se.metacraft.ovvar.gametest.OvvarGameTests",
+			"se.metacraft.ovvar.gametest.ComboPackTests",
+			"se.metacraft.ovvar.gametest.FrackTests",
+			"se.metacraft.ovvar.gametest.WardrobeTests",
+			"se.metacraft.ovvar.gametest.BlockbenchManifestTests"
 		],
 		"fabric-datagen": [
-			"metacraft.ovvar.datagen.OvvarDataGenerator"
+			"se.metacraft.ovvar.datagen.OvvarDataGenerator"
 		]
 	},
 	"mixins": [

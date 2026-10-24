@@ -2,7 +2,7 @@ package se.metacraft.config;
 
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
-import nu.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.METAcraftLib;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

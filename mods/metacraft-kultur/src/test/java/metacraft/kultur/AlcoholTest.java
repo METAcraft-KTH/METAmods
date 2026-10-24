@@ -1,6 +1,6 @@
 package metacraft.kultur;
 
-import metacraft.kultur.drinks.Alcohol;
+import se.metacraft.kultur.drinks.Alcohol;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

@@ -9,8 +9,9 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.lib.util.helper.TestHelper;
-import nu.metacraft.nether_rifts.rift.Stage;
+import se.metacraft.lib.util.helper.TestHelper;
+import se.metacraft.nether_rifts.rift.RiftData;
+import se.metacraft.nether_rifts.rift.Stage;
 
 public class StageTests {
 
@@ -143,7 +144,7 @@ public class StageTests {
 	}
 
 	static Stage stageAt(GameTestHelper ctx, BlockPos relative) {
-		return nu.metacraft.nether_rifts.rift.RiftData.get(ctx.getLevel()).at(ctx.absolutePos(relative)).orElseThrow().stage();
+		return RiftData.get(ctx.getLevel()).at(ctx.absolutePos(relative)).orElseThrow().stage();
 	}
 
 	static ServerPlayer player(GameTestHelper ctx) {

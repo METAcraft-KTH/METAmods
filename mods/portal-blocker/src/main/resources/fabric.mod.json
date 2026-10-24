@@ -19,7 +19,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.portal_blocker.PortalBlocker"
+			"se.metacraft.portal_blocker.PortalBlocker"
 		]
 	},
 	"mixins": [

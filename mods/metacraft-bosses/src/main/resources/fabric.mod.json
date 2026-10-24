@@ -18,10 +18,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.bosses.METAcraftBosses"
+			"se.metacraft.bosses.METAcraftBosses"
 		],
 		"fabric-datagen": [
-			"nu.metacraft.bosses.METAcraftBossDatagen"
+			"se.metacraft.bosses.METAcraftBossDatagen"
 		]
 	},
 	"mixins": [

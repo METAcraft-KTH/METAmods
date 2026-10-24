@@ -1,5 +1,5 @@
-import nu.metacraft.lib.METAcraftLib;
-import nu.metacraft.lib.util.helper.TestHelper;
+import se.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.util.helper.TestHelper;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 

@@ -18,7 +18,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.moderation.METAcraftModeration"
+			"se.metacraft.moderation.METAcraftModeration"
 		]
 	},
 	"mixins": [

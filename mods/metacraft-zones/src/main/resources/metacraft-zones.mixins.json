@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "nu.metacraft.zones.mixin",
+	"package": "se.metacraft.zones.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"DimensionStorageFileFixMixin",

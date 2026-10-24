@@ -4,7 +4,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resources.Identifier;
-import nu.metacraft.lib.METAcraftLib;
+import se.metacraft.lib.METAcraftLib;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import se.metacraft.config_gui.gui.value_editor.RawInputScreen;

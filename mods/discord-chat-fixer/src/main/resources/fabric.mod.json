@@ -18,7 +18,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.discord_chat_fixer.DiscordChatFixer"
+			"se.metacraft.discord_chat_fixer.DiscordChatFixer"
 		]
 	},
 	"mixins": [

@@ -22,9 +22,9 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import nu.metacraft.lib.util.helper.TestHelper;
-import nu.metacraft.qol.Qol;
-import nu.metacraft.qol.silence_mobs.SilenceMobs;
+import se.metacraft.lib.util.helper.TestHelper;
+import se.metacraft.qol.Qol;
+import se.metacraft.qol.silence_mobs.SilenceMobs;
 
 import java.util.Objects;
 import java.util.function.Consumer;

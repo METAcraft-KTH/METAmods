@@ -9,12 +9,12 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.DyedItemColor;
-import nu.metacraft.nether_rifts.NetherRifts;
-import nu.metacraft.nether_rifts.mob.ArmourPieces;
-import nu.metacraft.nether_rifts.mob.HeldItems;
-import nu.metacraft.nether_rifts.mob.RiftEntities;
-import nu.metacraft.nether_rifts.mob.RiftModels;
-import nu.metacraft.nether_rifts.mob.WarDrummer;
+import se.metacraft.nether_rifts.NetherRifts;
+import se.metacraft.nether_rifts.mob.ArmourPieces;
+import se.metacraft.nether_rifts.mob.HeldItems;
+import se.metacraft.nether_rifts.mob.RiftEntities;
+import se.metacraft.nether_rifts.mob.RiftModels;
+import se.metacraft.nether_rifts.mob.WarDrummer;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

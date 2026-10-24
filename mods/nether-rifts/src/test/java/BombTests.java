@@ -8,11 +8,13 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.phys.Vec3;
-import nu.metacraft.nether_rifts.mob.BurningPatches;
-import nu.metacraft.nether_rifts.mob.MagmaBomb;
-import nu.metacraft.nether_rifts.mob.RiftEntities;
-import nu.metacraft.nether_rifts.raid.RiftMobs;
-import nu.metacraft.nether_rifts.raid.Slot;
+import se.metacraft.nether_rifts.NetherRifts;
+import se.metacraft.nether_rifts.NetherRiftsConfig;
+import se.metacraft.nether_rifts.mob.BurningPatches;
+import se.metacraft.nether_rifts.mob.MagmaBomb;
+import se.metacraft.nether_rifts.mob.RiftEntities;
+import se.metacraft.nether_rifts.raid.RiftMobs;
+import se.metacraft.nether_rifts.raid.Slot;
 
 public class BombTests {
 
@@ -154,14 +156,14 @@ public class BombTests {
 				ctx.assertTrue(MagmaBomb.MODEL.equals(stack.get(net.minecraft.core.component.DataComponents.ITEM_MODEL)),
 						"a bomb is drawn as " + stack.get(net.minecraft.core.component.DataComponents.ITEM_MODEL));
 			}
-			ctx.assertTrue(MagmaBomb.MODEL.equals(nu.metacraft.nether_rifts.NetherRifts.getID("magma_bomb")), "the bomb's model id");
+			ctx.assertTrue(MagmaBomb.MODEL.equals(NetherRifts.getID("magma_bomb")), "the bomb's model id");
 			ctx.succeed();
 		});
 		NetherRiftsTests.register("bomb/warning_ring_and_shadow", ctx -> {
 			// A warning puts up a ring and the bomb's shadow (one display) as wide as the blast reaches, the shadow
 			// darkening from the next tick till the bomb lands; it goes at the impact, or when the bomb's rift is cleared.
 			var level = ctx.getLevel();
-			var tuning = nu.metacraft.nether_rifts.NetherRiftsConfig.getInstance().mobs().bombardier();
+			var tuning = NetherRiftsConfig.getInstance().mobs().bombardier();
 			var rift = java.util.UUID.randomUUID();
 			var here = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(8, 1, 8)));
 			var there = Vec3.atBottomCenterOf(ctx.absolutePos(new BlockPos(16, 1, 16)));

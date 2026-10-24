@@ -1,7 +1,7 @@
 package metacraft.kultur;
 
 import com.google.gson.JsonParser;
-import metacraft.kultur.catalogue.Catalogue;
+import se.metacraft.kultur.catalogue.Catalogue;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

@@ -17,11 +17,11 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.booklet.MetacraftBooklet"
+			"se.metacraft.booklet.MetacraftBooklet"
 		],
 		"fabric-gametest": [
-			"nu.metacraft.booklet.gametest.GuideTests",
-			"nu.metacraft.booklet.gametest.BrewingTests"
+			"se.metacraft.booklet.gametest.GuideTests",
+			"se.metacraft.booklet.gametest.BrewingTests"
 		]
 	},
 	"mixins": [

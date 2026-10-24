@@ -1,9 +1,9 @@
 import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.Blocks;
-import nu.metacraft.nether_rifts.raid.RiftMobs;
-import nu.metacraft.nether_rifts.raid.RiftRaid;
-import nu.metacraft.nether_rifts.rift.Stage;
+import se.metacraft.nether_rifts.raid.RiftMobs;
+import se.metacraft.nether_rifts.raid.RiftRaid;
+import se.metacraft.nether_rifts.rift.Stage;
 
 public class CaptainTests {
 

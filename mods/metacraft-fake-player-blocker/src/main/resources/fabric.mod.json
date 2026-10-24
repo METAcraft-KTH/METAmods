@@ -18,7 +18,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"nu.metacraft.fake_player_blocker.FakePlayerBlocker"
+			"se.metacraft.fake_player_blocker.FakePlayerBlocker"
 		]
 	},
 	"mixins": [

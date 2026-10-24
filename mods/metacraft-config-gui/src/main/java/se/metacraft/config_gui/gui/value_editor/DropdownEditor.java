@@ -12,7 +12,7 @@ import net.minecraft.server.dialog.Dialog;
 import net.minecraft.server.dialog.Input;
 import net.minecraft.server.dialog.input.TextInput;
 import net.minecraft.server.level.ServerPlayer;
-import nu.metacraft.lib.util.helper.PCollectionsHelper;
+import se.metacraft.lib.util.helper.PCollectionsHelper;
 import org.pcollections.TreePSet;
 import se.metacraft.config_gui.CodecDialog;
 import se.metacraft.config_gui.DialogGUI;

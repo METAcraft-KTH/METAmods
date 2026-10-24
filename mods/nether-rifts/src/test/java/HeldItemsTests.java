@@ -7,12 +7,10 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import nu.metacraft.nether_rifts.NetherRifts;
-import nu.metacraft.nether_rifts.mob.HeldItems;
-import nu.metacraft.nether_rifts.mob.RiftEntities;
+import se.metacraft.nether_rifts.NetherRifts;
+import se.metacraft.nether_rifts.mob.HeldItems;
+import se.metacraft.nether_rifts.mob.RiftEntities;
 import org.joml.Vector3f;
-
-import java.util.List;
 
 /** {@link HeldItems} on a live mob: nothing without markers, and items on the markers of a model that has them. */
 public class HeldItemsTests {
