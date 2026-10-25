@@ -5,6 +5,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.resources.Identifier;
 import se.metacraft.lib.compat.IsLoaded;
+import se.metacraft.nether_rifts.compat.JukeboxCompat;
 import se.metacraft.nether_rifts.compat.ScfCompat;
 import se.metacraft.nether_rifts.mob.BurningPatches;
 import se.metacraft.nether_rifts.mob.RiftEntities;
@@ -36,6 +37,7 @@ public class NetherRifts implements ModInitializer {
 		RiftMobs.init();
 		Showcase.init();
 		new IsLoaded("simple-custom-features").ifLoaded(() -> ScfCompat.init());
+		new IsLoaded("portable-jukebox").ifLoaded(() -> JukeboxCompat.init());
 		ServerTickEvents.END_LEVEL_TICK.register(level -> RiftData.get(level).tick(level));
 		RiftsCommand.init();
 

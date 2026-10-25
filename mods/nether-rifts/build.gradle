@@ -10,6 +10,7 @@ addProjectDependency(":mods:metacraft-zones")
 addProjectDependency(":mods:portal-blocker")
 addProjectDependency(":mods:portal-opening")
 addProjectDependency(":mods:simple-custom-features")
+addProjectDependency(":mods:portable-jukebox")
 
 // Client screenshot tests (src/gametest, runClientGameTest): a vanilla client joins an in-process server and looks at rifts.
 fabricApi {

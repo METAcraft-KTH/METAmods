@@ -13,6 +13,7 @@ import se.metacraft.lib.METAcraftLib;
 import se.metacraft.lib.util.helper.TestHelper;
 import se.metacraft.nether_rifts.NetherRifts;
 import se.metacraft.nether_rifts.NetherRiftsConfig;
+import se.metacraft.portable_jukebox.PortableJukebox;
 import se.metacraft.portal_blocker.PortalBlocker;
 import se.metacraft.simplecustomfeatures.Features;
 import se.metacraft.nether_rifts.raid.Roster;
@@ -80,7 +81,7 @@ public class NetherRiftsTests {
 					ArmourTests.registerTests();
 				},
 				METAcraftLib::new, METAcraftCore::new, METAcraftZones::new, PortalBlocker::new,
-				PortalOpening::new, Features::new, de.tomalbrc.bil.BIL::new, NetherRifts::new
+				PortalOpening::new, Features::new, de.tomalbrc.bil.BIL::new, NetherRifts::new, PortableJukebox::new
 		);
 	}
 
