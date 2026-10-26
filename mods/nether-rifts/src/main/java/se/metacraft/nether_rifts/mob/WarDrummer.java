@@ -14,6 +14,7 @@ import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -26,12 +27,14 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.AvoidEntityGoal;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.sensing.SensorType;
 import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinAi;
@@ -44,6 +47,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.phys.Vec3;
 import se.metacraft.nether_rifts.NetherRiftsConfig;
 import se.metacraft.nether_rifts.mixin.PiglinAiInvoker;
 import se.metacraft.nether_rifts.raid.RiftMobs;
@@ -77,6 +81,10 @@ import java.util.List;
  * fight, and its Shock Beat spares them) and turns zombie in the overworld as they do; a rift's drummer keeps the
  * rift's rules ({@link RiftMobs}): every player is a foe, and it never turns.
  *
+ * <p>It can ride a hoglin (the Piglin General's guard brings one so): the hoglin steers and charges, and the drummer only
+ * drums and beats from its back, as on foot, with none of its walking goals and no walk ({@link #updateControlFlags}),
+ * sitting where an adult piglin would ({@link #HOGLIN_SEAT}).
+ *
  * <p>It shows the armour it wears ({@link ArmourPieces}). A nether drummer may spawn in gold armour, as a piglin does:
  * each piece at {@link #GOLD_ARMOUR_CHANCE}, enchanted as a mob's armour is. A rift's drummer comes as the rift sends it.
  */
@@ -106,8 +114,9 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 
 	/**
 	 * Memory only: what other piglins tell it (anger) and what it needs to tell them in turn (its piglins near). No
-	 * behaviours, so the brain never moves it; the goals do. The attack target is never set: a piglin's target comes
-	 * from its brain, and the drummer has none.
+	 * behaviours, so the brain never moves it; the goals do. Nothing of its own sets the attack target (a piglin's
+	 * target comes from its brain); only the Piglin General, setting his guard on a player ({@link PiglinGeneral#provoke}),
+	 * which marks it as fighting to other drummers.
 	 */
 	private static final Brain.Provider<WarDrummer> BRAIN = Brain.provider(
 			List.of(MemoryModuleType.ATTACK_TARGET, MemoryModuleType.ANGRY_AT, MemoryModuleType.UNIVERSAL_ANGER),
@@ -136,6 +145,12 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 	public static final float GROUND_BEAT_VOLUME = 1.5f;
 	public static final float DECK_BEAT_VOLUME = 2.5f;
 	public static final float DECK_REST_VOLUME = 0.5f;
+
+	/**
+	 * Riding a hoglin it sits as low as an adult piglin (a piglin's riding offset): its own type has none, which would
+	 * stand it on the hoglin's back.
+	 */
+	public static final Vec3 HOGLIN_SEAT = new Vec3(0, 0.7, 0);
 
 	/** Hear every beat struck (tests); none in play. */
 	public static final List<StrikeListener> STRIKE_LISTENERS = new java.util.concurrent.CopyOnWriteArrayList<>();
@@ -306,6 +321,30 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 	}
 
 	/**
+	 * Riding, its walking goals (keeping away from players, strolling) and its jumps wait; it still looks about. Vanilla
+	 * sets these flags every few ticks, so getting on or off takes effect within them.
+	 */
+	@Override
+	protected void updateControlFlags() {
+		super.updateControlFlags();
+		if (isPassenger()) {
+			goalSelector.setControlFlag(Goal.Flag.MOVE, false);
+			goalSelector.setControlFlag(Goal.Flag.JUMP, false);
+		}
+	}
+
+	/** It never steers what it rides: a hoglin carrying it goes its own way, after its own target. */
+	@Override
+	public boolean canControlVehicle() {
+		return false;
+	}
+
+	@Override
+	public Vec3 getVehicleAttachmentPoint(Entity vehicle) {
+		return vehicle instanceof Hoglin ? HOGLIN_SEAT : super.getVehicleAttachmentPoint(vehicle);
+	}
+
+	/**
 	 * The tempo comes from the world clock, not the drummer's own count, so every drummer in a world beats on the
 	 * same ticks and they all slam together. A cycle is {@code bigBeatEvery - 1} beats, then the big beat, rounded
 	 * up to whole beats.
@@ -319,8 +358,8 @@ public class WarDrummer extends AbstractPiglin implements AnimatedEntity {
 			return;
 		}
 		var animator = holder.getAnimator();
-		// moved since the last AI step (this tick's own move comes after it)
-		boolean moving = Mth.lengthSquared(getX() - lastX, getZ() - lastZ) > WALKING * WALKING;
+		// moved since the last AI step (this tick's own move comes after it); carried, it doesn't walk
+		boolean moving = !isPassenger() && Mth.lengthSquared(getX() - lastX, getZ() - lastZ) > WALKING * WALKING;
 		lastX = getX();
 		lastZ = getZ();
 		if (moving != walking) {

@@ -16,6 +16,7 @@ import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -27,6 +28,7 @@ import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import net.minecraft.world.entity.ai.sensing.SensorType;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
@@ -42,12 +44,22 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import se.metacraft.nether_rifts.NetherRiftsConfig;
 import se.metacraft.nether_rifts.mixin.PiglinAiInvoker;
+import se.metacraft.nether_rifts.raid.RiftMobs;
+import se.metacraft.nether_rifts.raid.RiftRaid;
+import se.metacraft.nether_rifts.rift.RiftData;
+import se.metacraft.nether_rifts.rift.Stage;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * The Piglin General, the Rift Captain: the artist's model at {@link #MODEL_SCALE}× (a box 1.3 across and 3.3 tall),
@@ -55,7 +67,9 @@ import java.util.List;
  * fight, else the nearest player who can fight within {@link #TARGET_RANGE} blocks. His moves (the swing, the spin, the
  * roar) are chosen one at a time by his {@link GeneralTactics}, and played through {@link #play} over his idle and walk;
  * during one he stands still, but for the spin's drift. Spinning, he turns projectiles back ({@link #REFLECTION});
- * dizzy, he takes more damage. Like a wither, he never despawns for distance.
+ * dizzy, he takes more damage. As his health first drops below each of the config's {@code roar_at} shares he roars,
+ * and a rift's General calls his guard through it ({@code RiftRaid.spawnGuard}) at the players who hurt him
+ * ({@link #attackers}). Like a wither, he never despawns for distance.
  *
  * <p>He is a piglin to other piglins ({@link AbstractPiglin}), as the War Drummer is: they share their anger with him,
  * and when he is hit they turn on the attacker. His brain only remembers, with no behaviours, so he never hunts,
@@ -78,6 +92,8 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	public static final double REFLECT_RANGE = 64;
 	/** The death animation's length (2.76 s): his body stays this long, where vanilla's goes after 20 ticks. */
 	public static final int DEATH_TICKS = 56;
+	/** How long a mob he sets on someone stays angry at them, in ticks: a piglin's own anger (vanilla's 30 s). */
+	public static final int ANGER_TICKS = 600;
 
 	/** Memory only, as the drummer's: anger from other piglins, his piglins near, and the target he walks after. */
 	private static final Brain.Provider<PiglinGeneral> BRAIN = Brain.provider(
@@ -93,6 +109,10 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	/** The move animation playing (one {@link #play} started), or null; while one plays, his walk and idle wait. */
 	@Nullable
 	private String move;
+	/** The players who have hurt him while he lives, first first; not saved. */
+	private final Set<UUID> attackers = new LinkedHashSet<>();
+	/** How many of his {@code roar_at} thresholds he has roared for (queued counts): saved, so a restart doesn't give them back. */
+	private int roarsUsed = 0;
 
 	public PiglinGeneral(EntityType<? extends PiglinGeneral> type, Level level) {
 		super(type, level);
@@ -159,6 +179,50 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	/** A projectile hit him at this game time: his spin may come early. */
 	public void noteProjectileHit(long gameTime) {
 		tactics.noteProjectileHit(gameTime);
+	}
+
+	/** The players who have hurt him while he lives, in the order they first did. */
+	public Set<UUID> attackers() {
+		return Collections.unmodifiableSet(attackers);
+	}
+
+	/** How many roars he has had (or has queued) of his {@code roar_at} thresholds. */
+	public int roarsUsed() {
+		return roarsUsed;
+	}
+
+	/**
+	 * Halfway through a roar ({@link GeneralTactics#ROAR_SPAWN_TICK}): if he is alive and his rift is raiding, his guard
+	 * comes through it. A General of no rift (a spawn egg's, a summoned one) or whose rift is gone calls nobody.
+	 */
+	public void callGuard(ServerLevel level) {
+		if (!isAlive()) {
+			return;
+		}
+		RiftMobs.riftOf(this).flatMap(id -> RiftData.get(level).byId(id))
+				.filter(rift -> rift.stage() == Stage.RAID)
+				.ifPresent(rift -> RiftRaid.spawnGuard(level, rift, this));
+	}
+
+	/**
+	 * Sets a mob on {@code target} so that it sticks: as its brain's attack target and its anger (for
+	 * {@link #ANGER_TICKS}), where its brain has those memories (a piglin's drops a target it isn't angry at), and as its
+	 * goals' target; a mount's riders too.
+	 */
+	public static void provoke(Mob mob, LivingEntity target) {
+		var brain = mob.getBrain();
+		if (brain.checkMemory(MemoryModuleType.ATTACK_TARGET, MemoryStatus.REGISTERED)) {
+			brain.setMemory(MemoryModuleType.ATTACK_TARGET, target);
+		}
+		if (brain.checkMemory(MemoryModuleType.ANGRY_AT, MemoryStatus.REGISTERED)) {
+			brain.setMemoryWithExpiry(MemoryModuleType.ANGRY_AT, target.getUUID(), ANGER_TICKS);
+		}
+		mob.setTarget(target);
+		for (var rider : mob.getPassengers()) {
+			if (rider instanceof Mob riding) {
+				provoke(riding, target);
+			}
+		}
 	}
 
 	/** His tuning: the config's {@code mobs.general}. */
@@ -253,14 +317,23 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	}
 
 	@Override
+	protected void addAdditionalSaveData(ValueOutput output) {
+		super.addAdditionalSaveData(output);
+		output.putInt("roars_used", roarsUsed);
+	}
+
+	@Override
 	protected void readAdditionalSaveData(ValueInput input) {
 		super.readAdditionalSaveData(input);
 		setCanPickUpLoot(false);
+		roarsUsed = input.getIntOr("roars_used", 0);
 	}
 
 	/**
 	 * Dizzy, he takes {@code dizzy_damage_taken} times the damage; a projectile's hit brings his spin on early. Hit by
-	 * anything but a piglin, he gets angry at the attacker and calls his piglins in, as a piglin does.
+	 * anything but a piglin, he gets angry at the attacker and calls his piglins in, as a piglin does. A player who hurts
+	 * him is one of his {@link #attackers}. Left alive below roar thresholds he hasn't roared for, he roars for each
+	 * ({@link #queueRoars}).
 	 */
 	@Override
 	public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
@@ -274,7 +347,26 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 		if (hurt && source.getEntity() instanceof LivingEntity attacker && !(attacker instanceof AbstractPiglin)) {
 			PiglinAiInvoker.netherRifts$maybeRetaliate(level, this, attacker);
 		}
+		if (hurt && source.getEntity() instanceof Player player) {
+			attackers.add(player.getUUID());
+		}
+		if (!isDeadOrDying()) {
+			queueRoars();
+		}
 		return hurt;
+	}
+
+	/**
+	 * A roar for each {@code roar_at} threshold (highest first) his health is now below and he hasn't roared for: one
+	 * hit across two queues two, played back to back.
+	 */
+	private void queueRoars() {
+		var at = tuning().roar().at().stream().sorted(Comparator.reverseOrder()).toList();
+		float share = getHealth() / getMaxHealth();
+		while (roarsUsed < at.size() && share < at.get(roarsUsed)) {
+			roarsUsed++;
+			tactics.queueRoar();
+		}
 	}
 
 	/** Spinning, he turns every projectile that reaches him back ({@link #REFLECTION}); else as any entity. */

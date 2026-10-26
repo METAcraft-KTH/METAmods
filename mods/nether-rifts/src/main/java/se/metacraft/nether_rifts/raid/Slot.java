@@ -3,7 +3,7 @@ package se.metacraft.nether_rifts.raid;
 import com.mojang.serialization.Codec;
 import net.minecraft.util.StringRepresentable;
 
-/** A place in a wave, named after the vanilla raider whose numbers it takes. */
+/** A place in a wave, named after the vanilla raider whose numbers it takes; the last few are our own. */
 public enum Slot implements StringRepresentable {
 	/** Pillager: crossbow piglins. */
 	RANGED("ranged"),
@@ -20,7 +20,11 @@ public enum Slot implements StringRepresentable {
 	/** The Rift Captain: the last wave of a large raid. */
 	CAPTAIN("captain"),
 	/** Replaces HEAVY in a large raid's waves 5 and later: a Chained Ghast, its deck crewed by a Piglin Drummer, a Piglin Grenadier and two piglins. */
-	BOMBARDIER("bombardier");
+	BOMBARDIER("bombardier"),
+	/** The Piglin General's guard, also for waves: a Piglin Grenadier on foot. */
+	GRENADIER("grenadier"),
+	/** The Piglin General's guard, also for waves: a Piglin Drummer riding a hoglin. */
+	MOUNTED_DRUMMER("mounted_drummer");
 
 	public static final Codec<Slot> CODEC = StringRepresentable.fromEnum(Slot::values);
 

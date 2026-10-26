@@ -37,7 +37,10 @@ public final class Roster {
 			Slot.LEADER, one("{id:\"nether_rifts:war_drummer\"}"),
 			// his stats come from the config's mobs.general
 			Slot.CAPTAIN, one("{id:\"nether_rifts:piglin_general\"}"),
-			Slot.BOMBARDIER, one("{id:\"nether_rifts:war_ghast\"}")
+			Slot.BOMBARDIER, one("{id:\"nether_rifts:war_ghast\"}"),
+			// the General's guard: the Grenadier on foot, and a drummer drumming from a hoglin's back (the hoglin steers)
+			Slot.GRENADIER, one("{id:\"nether_rifts:ghast_bombardier\"}"),
+			Slot.MOUNTED_DRUMMER, one("{id:\"minecraft:hoglin\",Passengers:[{id:\"nether_rifts:war_drummer\"}]}")
 	);
 
 	private Roster() {}

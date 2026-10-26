@@ -1,4 +1,24 @@
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.monster.Ghast;
+import net.minecraft.world.entity.monster.Strider;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
+import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.entity.monster.piglin.PiglinBrute;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import org.jetbrains.annotations.Nullable;
+import se.metacraft.nether_rifts.mob.GhastBombardier;
+import se.metacraft.nether_rifts.mob.WarDrummer;
+import se.metacraft.nether_rifts.raid.RiftMobs;
+import se.metacraft.nether_rifts.raid.RiftRaid;
+import se.metacraft.nether_rifts.raid.Slot;
+import se.metacraft.nether_rifts.rift.Rift;
+import se.metacraft.nether_rifts.rift.Stage;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
@@ -26,11 +46,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** The Piglin General's fight: one move at a time, his mace swing's arc, and his spin and the dizzy after it. */
+/** The Piglin General's fight: one move at a time, his mace swing's arc, his spin and the dizzy after it, and his roars and guard. */
 public class GeneralTests {
 
 	/** Where he stands in the room, and how far his pen's walls are from him: room for a shooter 8 blocks off. */
@@ -301,6 +324,377 @@ public class GeneralTests {
 				ctx.assertTrue(shooter.getHealth() == shooter.getMaxHealth(), "the shooter was hurt: " + shooter.getHealth());
 			}, shooter));
 		});
+		NetherRiftsTests.register("general/roar_at_thresholds", ctx -> {
+			// A Large raid's General, the rest of wave 7 gone. Hurt by a participant below two thirds, he roars, and half a
+			// wave of his guard comes through the rift at that participant: ranged, melee and elite halved (Large's last
+			// wave's 2, 5 and 2, before the bonus rolls), a Grenadier and a Drummer on a hoglin, and no ghast or strider.
+			// Below a third he roars again; there are only two. (Callbacks schedule nothing: the test's own schedule can't
+			// take more while it runs one.)
+			var inside = ShapeTests.frame(ctx, 10, 10, Blocks.OBSIDIAN);
+			ctx.setBlock(inside, Blocks.FIRE);
+			penRoom(ctx);
+			var player = heldParticipant(ctx);
+			Runnable done = () -> riftCleanUp(ctx, player);
+			var level = ctx.getLevel();
+			var riftRef = new AtomicReference<Rift>();
+			var generalRef = new AtomicReference<PiglinGeneral>();
+			var before = new HashSet<Entity>();
+			var sizeBefore = new AtomicInteger();
+			// the guard's targets, as they first come; and whether he roars after the last hit
+			var targets = new AtomicReference<String>();
+			var roaredAgain = new AtomicBoolean(false);
+			var lastHit = new AtomicBoolean(false);
+			ctx.onEachTick(() -> {
+				var rift = riftRef.get();
+				if (rift != null && targets.get() == null && rift.waveSize > sizeBefore.get()) {
+					targets.set(misTargeted(RiftRaid.aliveMobs(level, rift), before, player));
+				}
+				if (lastHit.get() && generalRef.get().tactics().move() == Move.ROAR) {
+					roaredAgain.set(true);
+				}
+			});
+			int firstHit = 3;
+			int secondHit = firstHit + GeneralTactics.ROAR_TICKS + 6;
+			int thirdHit = secondHit + GeneralTactics.ROAR_TICKS + 5;
+			ctx.runAtTickTime(firstHit, () -> guarded(done, () -> {
+				var rift = FormingTests.riftIn(ctx);
+				rift.tear(level);
+				rift.setStage(level, Stage.RAID);
+				RiftRaid.startWave(level, rift, 7);
+				var general = (PiglinGeneral) RiftRaid.aliveMobs(level, rift).stream().filter(e -> e instanceof PiglinGeneral).findFirst()
+						.orElseThrow(() -> new AssertionError("no General in Large wave 7"));
+				RiftRaid.aliveMobs(level, rift).stream().filter(e -> e != general).forEach(e -> e.discard());
+				before.add(general);
+				sizeBefore.set(rift.waveSize);
+				generalRef.set(general);
+				riftRef.set(rift);
+				hurtTo(ctx, general, player, 0.6);
+			}));
+			ctx.runAtTickTime(firstHit + GeneralTactics.ROAR_TICKS + 5, () -> guarded(done, () -> {
+				var rift = riftRef.get();
+				var general = generalRef.get();
+				var guard = added(RiftRaid.aliveMobs(level, rift), before);
+				ctx.assertTrue(general.roarsUsed() == 1, "below two thirds he has roared " + general.roarsUsed() + " times");
+				ctx.assertTrue("".equals(targets.get()), "the guard isn't all at the participant: " + targets.get());
+				ctx.assertTrue(rift.waveSize == sizeBefore.get() + guard.size(), "the wave grew from " + sizeBefore.get() + " to " + rift.waveSize + " with " + guard.size() + " come");
+				var roots = guard.stream().filter(e -> e.getVehicle() == null).toList();
+				long ranged = count(roots, e -> e instanceof Piglin p && !(e instanceof GhastBombardier) && p.getMainHandItem().is(Items.CROSSBOW));
+				long melee = count(roots, e -> e instanceof Piglin p && !(e instanceof GhastBombardier) && p.getMainHandItem().is(Items.GOLDEN_SPEAR)
+						|| e instanceof Hoglin h && h.getPassengers().stream().noneMatch(r -> r instanceof WarDrummer));
+				long elite = count(roots, e -> e instanceof PiglinBrute);
+				String all = describe(guard);
+				ctx.assertTrue(ranged >= 1 && melee >= 2 && elite >= 1, "the guard brought ranged " + ranged + ", melee " + melee + ", elite " + elite + ": " + all);
+				ctx.assertTrue(count(guard, e -> e instanceof GhastBombardier) == 1, "not one Grenadier: " + all);
+				var drummers = guard.stream().filter(e -> e instanceof WarDrummer).toList();
+				ctx.assertTrue(drummers.size() == 1 && drummers.getFirst().getVehicle() instanceof Hoglin, "not one Drummer on a hoglin: " + all);
+				ctx.assertTrue(count(guard, e -> e instanceof Ghast || e instanceof Strider) == 0, "ghasts or striders came: " + all);
+			}));
+			ctx.runAtTickTime(secondHit, () -> guarded(done, () -> {
+				var rift = riftRef.get();
+				before.addAll(RiftRaid.aliveMobs(level, rift));
+				sizeBefore.set(rift.waveSize);
+				hurtTo(ctx, generalRef.get(), player, 0.3);
+			}));
+			ctx.runAtTickTime(thirdHit, () -> guarded(done, () -> {
+				var rift = riftRef.get();
+				var general = generalRef.get();
+				var guard = added(RiftRaid.aliveMobs(level, rift), before);
+				ctx.assertTrue(general.roarsUsed() == 2, "below a third he has roared " + general.roarsUsed() + " times");
+				ctx.assertTrue(!guard.isEmpty() && rift.waveSize == sizeBefore.get() + guard.size(),
+						"the second roar brought " + guard.size() + "; the wave grew from " + sizeBefore.get() + " to " + rift.waveSize);
+				hurtTo(ctx, general, player, 0.1);
+				lastHit.set(true);
+			}));
+			ctx.runAtTickTime(thirdHit + GeneralTactics.ROAR_TICKS, () -> {
+				try {
+					ctx.assertTrue(!roaredAgain.get() && generalRef.get().roarsUsed() == 2, "at a tenth he roared a third time");
+				} finally {
+					done.run();
+				}
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("general/big_hit_queues_two_roars", ctx -> {
+			// One hit from full to a quarter crosses both thresholds: two roars, back to back.
+			var general = general(ctx);
+			var starts = new ArrayList<Long>();
+			ctx.onEachTick(() -> {
+				if (general.tactics().move() == Move.ROAR && general.tactics().moveTicks() == 0) {
+					starts.add(ctx.getTick());
+				}
+			});
+			hurtTo(ctx, general, null, 0.25);
+			ctx.runAfterDelay(2 * GeneralTactics.ROAR_TICKS + 10, () -> finish(ctx, () -> {
+				ctx.assertTrue(general.roarsUsed() == 2, "he has roared " + general.roarsUsed() + " times");
+				ctx.assertTrue(starts.size() == 2 && starts.get(1) - starts.get(0) == GeneralTactics.ROAR_TICKS,
+						"the roars started at ticks " + starts + ", not " + GeneralTactics.ROAR_TICKS + " apart");
+				ctx.assertTrue(general.tactics().move() != Move.ROAR, "he still roars: " + general.tactics().moveTicks() + " ticks in");
+			}));
+		});
+		NetherRiftsTests.register("general/roar_without_rift", ctx -> {
+			// A General of no rift (a spawn egg's), hurt to a half, roars and nothing comes; nor for one whose rift is gone.
+			var general = general(ctx);
+			var player = player(ctx, general, -3);
+			player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 400, 4));
+			var room = general.getBoundingBox().inflate(PEN);
+			var roared = new AtomicInteger();
+			ctx.onEachTick(() -> {
+				if (general.tactics().move() == Move.ROAR && general.tactics().moveTicks() == 0) {
+					roared.incrementAndGet();
+				}
+			});
+			hurtTo(ctx, general, player, 0.5);
+			ctx.runAfterDelay(GeneralTactics.ROAR_TICKS + 5, () -> guarded(() -> {
+				StageTests.remove(ctx, player);
+				cleanUp(ctx);
+			}, () -> {
+				var about = ctx.getLevel().getEntitiesOfClass(LivingEntity.class, room, e -> e != general && e != player);
+				ctx.assertTrue(roared.get() == 1, "he roared " + roared.get() + " times");
+				ctx.assertTrue(about.isEmpty(), "his roar brought " + about);
+				// as if the rift he came through had collapsed
+				general.setAttached(RiftMobs.RIFT, UUID.randomUUID());
+				hurtTo(ctx, general, player, 0.3);
+			}));
+			ctx.runAfterDelay(2 * GeneralTactics.ROAR_TICKS + 10, () -> finish(ctx, () -> {
+				var about = ctx.getLevel().getEntitiesOfClass(LivingEntity.class, room, e -> e != general && e != player);
+				ctx.assertTrue(roared.get() == 2, "of a rift that's gone, he roared " + (roared.get() - 1) + " times");
+				ctx.assertTrue(about.isEmpty(), "his roar of a rift that's gone brought " + about);
+			}, player));
+		});
+		NetherRiftsTests.register("general/roars_survive_reload", ctx -> {
+			// He roared once, then the server restarted: his roars used come back from his save, so going on below two
+			// thirds he doesn't roar again; his move starts over at the chase.
+			var general = general(ctx);
+			hurtTo(ctx, general, null, 0.6);
+			var registries = ctx.getLevel().registryAccess();
+			var saved = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, registries);
+			general.saveWithoutId(saved);
+			var tag = saved.buildResult();
+			var reloaded = RiftEntities.PIGLIN_GENERAL.create(ctx.getLevel(), EntitySpawnReason.LOAD);
+			reloaded.load(TagValueInput.create(ProblemReporter.DISCARDING, registries, tag));
+			reloaded.setUUID(UUID.randomUUID());
+			general.discard();
+			ctx.getLevel().addFreshEntity(reloaded);
+			var moveThen = reloaded.tactics().move();
+			var hit = new AtomicBoolean(false);
+			var roared = new AtomicBoolean(false);
+			ctx.onEachTick(() -> {
+				if (hit.get() && reloaded.tactics().move() == Move.ROAR) {
+					roared.set(true);
+				}
+			});
+			ctx.runAfterDelay(1, () -> {
+				reloaded.setHealth(0.65f * reloaded.getMaxHealth());
+				hurtTo(ctx, reloaded, null, 0.55);
+				hit.set(true);
+			});
+			ctx.runAfterDelay(GeneralTactics.ROAR_TICKS, () -> finish(ctx, () -> {
+				ctx.assertTrue(tag.getIntOr("roars_used", -1) == 1, "his save holds roars_used " + tag.getIntOr("roars_used", -1));
+				ctx.assertTrue(reloaded.roarsUsed() == 1, "reloaded, he has roared " + reloaded.roarsUsed() + " times");
+				ctx.assertTrue(moveThen == Move.CHASE, "reloaded, he is in " + moveThen);
+				ctx.assertTrue(!roared.get(), "reloaded at 0.65 and hurt to 0.55, he roared again");
+			}));
+		});
+		NetherRiftsTests.register("general/guard_falls_back_to_nearest", ctx -> {
+			// A General nobody has hurt yet (or one whose attackers went with a restart) sends his guard at the participant
+			// nearest him, every one of them.
+			FormingTests.lightFrame(ctx, 2, 3);
+			penRoom(ctx);
+			var near = StageTests.player(ctx);
+			var far = StageTests.player(ctx);
+			for (var player : List.of(near, far)) {
+				DrummerTests.ready(player);
+				player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, MobEffectInstance.INFINITE_DURATION, 4));
+			}
+			ctx.runAtTickTime(3, () -> {
+				var level = ctx.getLevel();
+				var rift = FormingTests.riftIn(ctx);
+				rift.tear(level);
+				rift.setStage(level, Stage.RAID);
+				var at = ctx.absolutePos(new BlockPos(12, 1, 14));
+				var general = RiftEntities.PIGLIN_GENERAL.create(level, EntitySpawnReason.SPAWN_ITEM_USE);
+				general.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
+				level.addFreshEntity(general);
+				near.teleportTo(at.getX() + 0.5, at.getY(), at.getZ() + 3.5);
+				far.teleportTo(at.getX() + 0.5, at.getY(), at.getZ() - 6.5);
+				try {
+					ctx.assertTrue(general.attackers().isEmpty(), "nobody hurt him, yet he has attackers: " + general.attackers());
+					var guard = RiftRaid.spawnGuard(level, rift, general);
+					ctx.assertTrue(!guard.isEmpty(), "no guard came");
+					var wrong = misTargeted(guard, Set.of(), near);
+					ctx.assertTrue(wrong.isEmpty(), "the guard isn't all at the participant nearest him: " + wrong);
+				} finally {
+					StageTests.remove(ctx, far);
+					riftCleanUp(ctx, near);
+				}
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("general/mounted_drummer_drums", ctx -> {
+			// A rift's Drummer on a hoglin (the General's guard) with a player 6 blocks off: through one drum cycle it stays
+			// on, never walks, drums, and its big beat buffs a rift piglin near. It sits where an adult piglin would.
+			FormingTests.lightFrame(ctx, 2, 3);
+			penRoom(ctx);
+			var player = StageTests.player(ctx);
+			DrummerTests.ready(player);
+			player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, MobEffectInstance.INFINITE_DURATION, 4));
+			var drummer = new AtomicReference<WarDrummer>();
+			var hoglin = new AtomicReference<Hoglin>();
+			var piglin = new AtomicReference<Piglin>();
+			var strikes = new AtomicInteger();
+			var walked = new AtomicBoolean(false);
+			var seat = new AtomicReference<Double>();
+			WarDrummer.StrikeListener listener = (level, x, y, z, volume) -> {
+				var d = drummer.get();
+				if (d != null && level == ctx.getLevel() && Math.hypot(x - d.getX(), z - d.getZ()) < 0.5) {
+					strikes.incrementAndGet();
+				}
+			};
+			ctx.onEachTick(() -> {
+				var d = drummer.get();
+				if (d == null) {
+					return;
+				}
+				if (d.getHolder().getAnimator().isPlaying("walk")) {
+					walked.set(true);
+				}
+				if (seat.get() == null && d.getVehicle() == hoglin.get()) {
+					seat.set(d.getY() - hoglin.get().getY());
+				}
+			});
+			int cycle = WarDrummer.bigBeatStart() + Mth.positiveCeilDiv(WarDrummer.BIG_BEAT_TICKS, WarDrummer.BEAT_TICKS) * WarDrummer.BEAT_TICKS;
+			// it comes 5 ticks before a cycle starts, so one cycle has its beats and its big beat
+			int comes = 3 + Math.floorMod(-WarDrummer.cycleAt(ctx.getLevel().getGameTime() + 3) - 5, cycle);
+			ctx.runAtTickTime(comes, () -> {
+				var level = ctx.getLevel();
+				var rift = FormingTests.riftIn(ctx);
+				var spawned = RiftRaid.spawnOne(level, rift, Slot.MOUNTED_DRUMMER);
+				hoglin.set((Hoglin) spawned.stream().filter(e -> e instanceof Hoglin).findFirst().orElseThrow(() -> new AssertionError("no hoglin in " + spawned)));
+				var h = hoglin.get();
+				player.teleportTo(h.getX() + 6, h.getY(), h.getZ());
+				var near = (Piglin) RiftMobs.spawn(level, rift.id(), Slot.RANGED, BlockPos.containing(h.getX() + 3, h.getY(), h.getZ()), Vec3.ZERO).getFirst();
+				near.setNoAi(true);
+				piglin.set(near);
+				WarDrummer.STRIKE_LISTENERS.add(listener);
+				drummer.set((WarDrummer) spawned.stream().filter(e -> e instanceof WarDrummer).findFirst().orElseThrow(() -> new AssertionError("no drummer in " + spawned)));
+			});
+			ctx.runAtTickTime(comes + 5 + cycle, () -> {
+				WarDrummer.STRIKE_LISTENERS.remove(listener);
+				try {
+					var d = drummer.get();
+					ctx.assertTrue(d.isPassenger() && d.getVehicle() == hoglin.get(), "the drummer got off: it rides " + d.getVehicle());
+					ctx.assertTrue(!walked.get(), "the drummer walked on the hoglin's back");
+					ctx.assertTrue(strikes.get() > 0, "no beat heard in a drum cycle; in a fight: " + d.inFight());
+					ctx.assertTrue(piglin.get().hasEffect(MobEffects.STRENGTH), "the rift piglin " + piglin.get().distanceTo(d) + " blocks off has no Strength");
+					ctx.assertTrue(seat.get() != null && Math.abs(seat.get() - DRUMMER_SEAT) < 0.05,
+							"the drummer sits " + seat.get() + " over the hoglin's feet, not " + DRUMMER_SEAT);
+				} finally {
+					riftCleanUp(ctx, player);
+				}
+				ctx.succeed();
+			});
+		});
+	}
+
+	/** Where a drummer's feet are over a hoglin's, riding it: where an adult piglin's would be. */
+	private static final double DRUMMER_SEAT = 1.49375 - 0.7;
+
+	/**
+	 * A participant two blocks in front of a raid's rift who can't be hurt but is still someone to fight (a player who
+	 * can't be hurt is no mob's target), held where they stand so no knockback takes them out of the raid.
+	 */
+	static ServerPlayer heldParticipant(GameTestHelper ctx) {
+		var player = StageTests.player(ctx);
+		DrummerTests.ready(player);
+		player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, MobEffectInstance.INFINITE_DURATION, 4));
+		var spot = ctx.absolutePos(new BlockPos(2, 1, 8));
+		ctx.onEachTick(() -> {
+			player.teleportTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5);
+			player.setDeltaMovement(Vec3.ZERO);
+		});
+		return player;
+	}
+
+	/**
+	 * Hurts him from where he is to this share of his health, his armour aside, as {@code by}'s attack (or a plain
+	 * one), from the chase: a roar it queues starts on his next tick.
+	 */
+	static void hurtTo(GameTestHelper ctx, PiglinGeneral general, @Nullable ServerPlayer by, double share) {
+		general.getAttribute(Attributes.ARMOR).setBaseValue(0);
+		general.getAttribute(Attributes.ARMOR_TOUGHNESS).setBaseValue(0);
+		general.damageCooldownTime = 0;
+		general.tactics().start(Move.CHASE);
+		var sources = ctx.getLevel().damageSources();
+		general.hurtServer(ctx.getLevel(), by != null ? sources.playerAttack(by) : sources.generic(), general.getHealth() - (float) (share * general.getMaxHealth()));
+	}
+
+	/** Runs a step; if it fails, cleans up first. */
+	static void guarded(Runnable cleanUp, Runnable step) {
+		try {
+			step.run();
+		} catch (Throwable t) {
+			cleanUp.run();
+			throw t;
+		}
+	}
+
+	static List<Entity> added(List<? extends Entity> alive, Set<Entity> before) {
+		return alive.stream().filter(e -> !before.contains(e)).map(e -> (Entity) e).toList();
+	}
+
+	/** The new roots (and what they carry) whose target isn't the player, nor their rider's; "" when all are at them. */
+	static String misTargeted(List<? extends Entity> alive, Set<Entity> before, ServerPlayer player) {
+		return added(alive, before).stream()
+				.filter(e -> e.getVehicle() == null && e instanceof Mob)
+				.filter(e -> ((Mob) e).getTarget() != player && e.getPassengers().stream().noneMatch(r -> r instanceof Mob m && m.getTarget() == player))
+				.map(e -> e.getType().toShortString() + " at " + ((Mob) e).getTarget())
+				.collect(Collectors.joining(", "));
+	}
+
+	static long count(List<Entity> entities, Predicate<Entity> which) {
+		return entities.stream().filter(which).count();
+	}
+
+	static String describe(List<Entity> entities) {
+		return entities.stream().map(e -> e.getType().toShortString() + (e instanceof Mob m ? "(" + m.getMainHandItem().getItem() + ")" : ""))
+				.collect(Collectors.joining(", "));
+	}
+
+	/** Barriers round the room, 4 high (a raid's mobs stay in it, away from the neighbouring tests), where nothing stands. */
+	static void penRoom(GameTestHelper ctx) {
+		for (var pos : roomEdge()) {
+			if (ctx.getBlockState(pos).isAir()) {
+				ctx.setBlock(pos, Blocks.BARRIER);
+			}
+		}
+	}
+
+	private static List<BlockPos> roomEdge() {
+		var edge = new ArrayList<BlockPos>();
+		for (int a = 0; a < ROOM; a++) {
+			for (int y = 1; y <= 4; y++) {
+				edge.add(new BlockPos(a, y, 0));
+				edge.add(new BlockPos(a, y, ROOM - 1));
+				edge.add(new BlockPos(0, y, a));
+				edge.add(new BlockPos(ROOM - 1, y, a));
+			}
+		}
+		return edge;
+	}
+
+	/** The rift room's size across. */
+	private static final int ROOM = 24;
+
+	/** A raid test's end: its player gone, its rift ended, its mobs and the room's barriers gone. */
+	static void riftCleanUp(GameTestHelper ctx, ServerPlayer player) {
+		StageTests.remove(ctx, player);
+		FormingTests.cleanUp(ctx);
+		ctx.killAllEntities();
+		for (var pos : roomEdge()) {
+			if (ctx.getBlockState(pos).is(Blocks.BARRIER)) {
+				ctx.setBlock(pos, Blocks.AIR);
+			}
+		}
 	}
 
 	/** A General of no rift at the room's centre, facing south (yaw 0), in a barrier pen so he can't walk after a neighbouring test's player. */

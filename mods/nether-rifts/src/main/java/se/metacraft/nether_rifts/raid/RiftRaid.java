@@ -18,6 +18,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.level.ChunkPos;
@@ -33,6 +34,7 @@ import se.metacraft.nether_rifts.NetherRifts;
 import se.metacraft.nether_rifts.NetherRiftsConfig;
 import se.metacraft.nether_rifts.RiftMessages;
 import se.metacraft.nether_rifts.mob.BurningPatches;
+import se.metacraft.nether_rifts.mob.PiglinGeneral;
 import se.metacraft.nether_rifts.mob.RiftEntities;
 import se.metacraft.nether_rifts.mob.WarGhast;
 import se.metacraft.nether_rifts.rift.Rift;
@@ -42,6 +44,7 @@ import se.metacraft.nether_rifts.rift.Tier;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
@@ -159,6 +162,54 @@ public final class RiftRaid {
 		rift.setWave(wave, spawned);
 		bossBar(rift).setName(waveName(rift));
 		bossBar(rift).setProgress(1f);
+	}
+
+	/** The General's guard's troops: these slots of the large tier's last wave, a share of each. */
+	private static final List<Slot> GUARD_TROOPS = List.of(Slot.RANGED, Slot.MELEE, Slot.ELITE);
+
+	/**
+	 * The Piglin General's roar: his guard comes through the rift as a wave's mobs do, and joins the wave (its size grows
+	 * by them, so the bar stays within full and empty). His guard is {@code guard_fraction} of the large tier's last
+	 * wave's ranged, melee and elite as it would come for the players taking part now (rounded down; at least one ranged
+	 * and one melee), with {@code guard_grenadiers} Grenadiers and {@code guard_drummers} Drummers on hoglins. Each
+	 * comes at one of the players who hurt him, in turn ({@link PiglinGeneral#attackers}, those still taking part), or
+	 * with none of them about at the participant nearest him; with no participant, at nobody. Returns every entity
+	 * spawned (mounts and their riders).
+	 */
+	public static List<Entity> spawnGuard(ServerLevel level, Rift rift, PiglinGeneral general) {
+		var config = NetherRiftsConfig.getInstance();
+		var roar = general.tuning().roar();
+		var players = participants(level, rift);
+		var wave = WaveTable.counts(config, Tier.LARGE, config.waveCount(Tier.LARGE), Math.max(1, players.size()),
+				level.getRandom()::nextInt, config.trooperScalingPerPlayer(), config.trooperScalingCap());
+		var guard = new EnumMap<Slot, Integer>(Slot.class);
+		for (var slot : GUARD_TROOPS) {
+			int count = (int) Math.floor(wave.get(slot) * roar.guardFraction());
+			guard.put(slot, slot.trooper() ? Math.max(1, count) : count);
+		}
+		guard.put(Slot.GRENADIER, roar.guardGrenadiers());
+		guard.put(Slot.MOUNTED_DRUMMER, roar.guardDrummers());
+		var spawned = new ArrayList<Entity>();
+		var roots = new ArrayList<Mob>();
+		guard.forEach((slot, count) -> {
+			for (int i = 0; i < count; i++) {
+				var one = spawnOne(level, rift, slot);
+				if (!one.isEmpty() && one.getFirst().getRootVehicle() instanceof Mob root) {
+					roots.add(root);
+				}
+				spawned.addAll(one);
+			}
+		});
+		rift.waveSize += spawned.size();
+		// players logged off or gone elsewhere aren't found, or aren't taking part
+		List<? extends LivingEntity> foes = general.attackers().stream().map(level::getPlayerByUUID).filter(players::contains).toList();
+		if (foes.isEmpty()) {
+			foes = players.stream().min(Comparator.comparingDouble(general::distanceToSqr)).stream().toList();
+		}
+		for (int i = 0; i < roots.size() && !foes.isEmpty(); i++) {
+			PiglinGeneral.provoke(roots.get(i), foes.get(i % foes.size()));
+		}
+		return spawned;
 	}
 
 	private static Component waveName(Rift rift) {

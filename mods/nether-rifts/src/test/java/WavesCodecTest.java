@@ -55,6 +55,12 @@ public class WavesCodecTest {
 	}
 
 	@Test
+	public void aWaveMayBringTheGeneralsGuard() {
+		var waves = parse("{\"small\": [{\"ranged\": 2, \"grenadier\": 1, \"mounted_drummer\": 1}]}").getOrThrow();
+		assertEquals(List.of(Map.of(Slot.RANGED, 2, Slot.GRENADIER, 1, Slot.MOUNTED_DRUMMER, 1)), waves.small());
+	}
+
+	@Test
 	public void unknownSlotsAreRejected() {
 		assertTrue(parse("{\"small\": [{\"dragon\": 1}]}").isError());
 	}

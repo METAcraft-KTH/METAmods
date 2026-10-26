@@ -17,7 +17,8 @@ import org.jetbrains.annotations.Nullable;
  * the spin, which drifts him toward his target by his velocity. From the
  * chase he starts, in this order:
  * <ol>
- * <li>a queued {@link Move#ROAR} ({@link #queueRoar}), even with no target;</li>
+ * <li>a queued {@link Move#ROAR} ({@link #queueRoar}), even with no target: he stands and roars, and halfway through
+ * his guard comes ({@link PiglinGeneral#callGuard});</li>
  * <li>the spin's {@link Move#WINDUP}, if his target is within {@code spin_range} and {@code spin_cooldown} has passed
  * since the last spin ended (or since he came), or only {@code spin_early_cooldown} if a projectile hit him in the last
  * {@code spin_early_window} ticks ({@link #noteProjectileHit}); the windup leads into the {@link Move#SPIN}, and the
@@ -119,6 +120,12 @@ public final class GeneralTactics {
 				general.setDeltaMovement(0, general.getDeltaMovement().y, 0);
 				general.play("dizzy");
 			}
+			case ROAR -> {
+				general.setDeltaMovement(0, general.getDeltaMovement().y, 0);
+				general.play("roar");
+				// loud and low: heard across the arena (16 blocks a unit of volume)
+				general.playSound(SoundEvents.PIGLIN_BRUTE_ANGRY, 4f, 0.6f);
+			}
 			default -> {}
 		}
 	}
@@ -148,7 +155,7 @@ public final class GeneralTactics {
 			case WINDUP -> windup(level);
 			case SPIN -> spin(level);
 			case DIZZY -> dizzy(level);
-			case ROAR -> endAfter(ROAR_TICKS);
+			case ROAR -> roar(level);
 		}
 		if (move == Move.CHASE) {
 			chase(level);
@@ -271,6 +278,20 @@ public final class GeneralTactics {
 			}
 		}
 		endAfter(general.tuning().dizzyTicks());
+	}
+
+	/**
+	 * The roar ({@code roar}, once): he stands as he is, and at {@link #ROAR_SPAWN_TICK} calls his guard (nobody comes
+	 * for a General of no rift); at {@link #ROAR_TICKS} he goes back to the chase. Dying, he gets no further
+	 * ({@link #tick}), so a roar cut short calls nobody.
+	 */
+	private void roar(ServerLevel level) {
+		face(facing);
+		general.setDeltaMovement(0, general.getDeltaMovement().y, 0);
+		if (moveTicks == ROAR_SPAWN_TICK) {
+			general.callGuard(level);
+		}
+		endAfter(ROAR_TICKS);
 	}
 
 	/** Within this many blocks of his centre, across. */
