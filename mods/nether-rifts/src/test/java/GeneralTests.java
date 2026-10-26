@@ -375,7 +375,10 @@ public class GeneralTests {
 				var general = generalRef.get();
 				var guard = added(RiftRaid.aliveMobs(level, rift), before);
 				ctx.assertTrue(general.roarsUsed() == 1, "below two thirds he has roared " + general.roarsUsed() + " times");
-				ctx.assertTrue("".equals(targets.get()), "the guard isn't all at the participant: " + targets.get());
+				ctx.assertTrue("".equals(targets.get()), "the guard isn't all at the participant as it comes: " + targets.get());
+				// and still, its brains having ticked a while since: the anger sticks, a mount's as well as its rider's
+				var still = misTargeted(RiftRaid.aliveMobs(level, rift), before, player);
+				ctx.assertTrue(still.isEmpty(), "the guard isn't all at the participant some " + (GeneralTactics.ROAR_TICKS - GeneralTactics.ROAR_SPAWN_TICK) + " ticks after it came: " + still);
 				ctx.assertTrue(rift.waveSize == sizeBefore.get() + guard.size(), "the wave grew from " + sizeBefore.get() + " to " + rift.waveSize + " with " + guard.size() + " come");
 				var roots = guard.stream().filter(e -> e.getVehicle() == null).toList();
 				long ranged = count(roots, e -> e instanceof Piglin p && !(e instanceof GhastBombardier) && p.getMainHandItem().is(Items.CROSSBOW));
@@ -402,6 +405,8 @@ public class GeneralTests {
 				ctx.assertTrue(general.roarsUsed() == 2, "below a third he has roared " + general.roarsUsed() + " times");
 				ctx.assertTrue(!guard.isEmpty() && rift.waveSize == sizeBefore.get() + guard.size(),
 						"the second roar brought " + guard.size() + "; the wave grew from " + sizeBefore.get() + " to " + rift.waveSize);
+				var still = misTargeted(RiftRaid.aliveMobs(level, rift), before, player);
+				ctx.assertTrue(still.isEmpty(), "the second guard isn't all at the participant some " + (GeneralTactics.ROAR_TICKS - GeneralTactics.ROAR_SPAWN_TICK) + " ticks after it came: " + still);
 				hurtTo(ctx, general, player, 0.1);
 				lastHit.set(true);
 			}));
@@ -642,12 +647,12 @@ public class GeneralTests {
 		return alive.stream().filter(e -> !before.contains(e)).map(e -> (Entity) e).toList();
 	}
 
-	/** The new roots (and what they carry) whose target isn't the player, nor their rider's; "" when all are at them. */
+	/** The new mobs, mounts and riders alike, whose target isn't the player; "" when all are at them. */
 	static String misTargeted(List<? extends Entity> alive, Set<Entity> before, ServerPlayer player) {
 		return added(alive, before).stream()
-				.filter(e -> e.getVehicle() == null && e instanceof Mob)
-				.filter(e -> ((Mob) e).getTarget() != player && e.getPassengers().stream().noneMatch(r -> r instanceof Mob m && m.getTarget() == player))
-				.map(e -> e.getType().toShortString() + " at " + ((Mob) e).getTarget())
+				.filter(e -> e instanceof Mob mob && mob.getTarget() != player)
+				.map(e -> e.getType().toShortString() + (e.getVehicle() != null ? " riding " + e.getVehicle().getType().toShortString() : "")
+						+ " at " + ((Mob) e).getTarget())
 				.collect(Collectors.joining(", "));
 	}
 
