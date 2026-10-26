@@ -18,29 +18,34 @@ import java.util.Optional;
 public final class Roster {
 
 	private static final String CROSSBOW_PIGLIN = "{id:\"minecraft:piglin\",equipment:{mainhand:{id:\"minecraft:crossbow\",count:1}}}";
+	private static final String SPEAR_PIGLIN = "{id:\"minecraft:piglin\",equipment:{mainhand:{id:\"minecraft:golden_spear\",count:1}}}";
+	/** A drummer drumming from a hoglin's back (the hoglin steers). */
+	private static final String DRUMMER_ON_HOGLIN = "{id:\"minecraft:hoglin\",Passengers:[{id:\"nether_rifts:war_drummer\"}]}";
 
 	public static final Codec<Map<Slot, MobEntry>> CODEC = Codec.unboundedMap(Slot.CODEC, MobEntry.CODEC);
 
 	public static final Map<Slot, MobEntry> DEFAULT = Map.of(
 			Slot.RANGED, one(CROSSBOW_PIGLIN),
 			Slot.MELEE, weighted(Map.of(
-					"{id:\"minecraft:piglin\",equipment:{mainhand:{id:\"minecraft:golden_spear\",count:1}}}", 4,
+					SPEAR_PIGLIN, 4,
 					"{id:\"minecraft:hoglin\"}", 1,
 					"{id:\"minecraft:hoglin\",Passengers:[{id:\"minecraft:piglin\",IsBaby:1b}]}", 1
 			)),
 			// IgnoreYCheck (metacraft-mob-modifiers): it fires at players well above or below it, not only level with it
-			Slot.HEAVY, one("{id:\"minecraft:ghast\",IgnoreYCheck:1b,Passengers:[" + CROSSBOW_PIGLIN + "]}"),
-			// a rift's strider stays warm off lava (StriderMixin), and walks faster than a strider's 0.175 under its rider
-			Slot.SUPPORT, one("{id:\"minecraft:strider\",attributes:[{id:\"minecraft:movement_speed\",base:0.25d}],"
-					+ "Passengers:[" + CROSSBOW_PIGLIN + "]}"),
+			Slot.HEAVY, one("{id:\"minecraft:ghast\",IgnoreYCheck:1b}"),
+			// a spear piglin steers its hoglin; a drummer only drums, and the hoglin goes its own way
+			Slot.SUPPORT, weighted(Map.of(
+					"{id:\"minecraft:hoglin\",Passengers:[" + SPEAR_PIGLIN + "]}", 2,
+					DRUMMER_ON_HOGLIN, 1
+			)),
 			Slot.ELITE, one("{id:\"minecraft:piglin_brute\",equipment:{mainhand:{id:\"minecraft:golden_axe\",count:1}}}"),
 			Slot.LEADER, one("{id:\"nether_rifts:war_drummer\"}"),
 			// his stats come from the config's mobs.general
 			Slot.CAPTAIN, one("{id:\"nether_rifts:piglin_general\"}"),
 			Slot.BOMBARDIER, one("{id:\"nether_rifts:war_ghast\"}"),
-			// the General's guard: the Grenadier on foot, and a drummer drumming from a hoglin's back (the hoglin steers)
+			// the General's guard: the Grenadier on foot, and a drummer on a hoglin
 			Slot.GRENADIER, one("{id:\"nether_rifts:ghast_bombardier\"}"),
-			Slot.MOUNTED_DRUMMER, one("{id:\"minecraft:hoglin\",Passengers:[{id:\"nether_rifts:war_drummer\"}]}")
+			Slot.MOUNTED_DRUMMER, one(DRUMMER_ON_HOGLIN)
 	);
 
 	private Roster() {}

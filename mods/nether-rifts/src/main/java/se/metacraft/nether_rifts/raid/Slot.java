@@ -9,9 +9,9 @@ public enum Slot implements StringRepresentable {
 	RANGED("ranged"),
 	/** Vindicator: spear piglins and hoglins. */
 	MELEE("melee"),
-	/** Ravager: ghasts with a rider. */
+	/** Ravager: ghasts, without a rider. */
 	HEAVY("heavy"),
-	/** Witch: striders with a rider. */
+	/** Witch: hoglins ridden by a spear piglin or a Piglin Drummer. */
 	SUPPORT("support"),
 	/** Evoker: piglin brutes. */
 	ELITE("elite"),

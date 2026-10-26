@@ -62,10 +62,11 @@ hoglin steers and charges, and the Drummer drums and gives its beats from the sa
 the raid, so they count toward the wave and must die for it to be won, and each comes at one of the players who have hurt
 him, in turn, or at the player nearest him if none of those is still taking part (none has hurt him, or they've left);
 creative players are passed over. A General with no rift (summoned, or his rift gone) fights the
-nearest player and his roars call nobody. A rift's striders keep
-the nether's heat: off lava they don't go cold and slow down, rain doesn't hurt them (water still does), and their
-crossbow piglins steer them. A rift's ghasts fire at players above and below them, not only level with them, and
-their piglins glide down when they die. Rift mobs can't be trapped in boats or minecarts (both through
+nearest player and his roars call nobody. A rift's ghasts come riderless and
+fire at players above and below them, not only level with them. Its support slot brings hoglins ridden by a spear piglin,
+who steers, or by a Piglin Drummer, who only drums. (For a configured roster that gives them riders or striders: a ghast's
+riders glide down when it dies, a rift's striders keep the nether's heat, with no cold or slowing off lava and no harm from
+rain, and a piglin on one steers it.) Rift mobs can't be trapped in boats or minecarts (both through
 metacraft-mob-modifiers). Winning closes the rift and turns its obsidian frame to crying obsidian.
 
 `/rifts stabilise` ends rift mode: waiting rifts become working portals and portal-blocker's nether locks

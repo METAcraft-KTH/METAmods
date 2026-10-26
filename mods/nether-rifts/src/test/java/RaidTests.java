@@ -236,7 +236,7 @@ public class RaidTests {
 				var alive = RiftRaid.aliveMobs(ctx.getLevel(), rift);
 				ctx.assertFalse(alive.isEmpty(), "wave 1 brought nobody");
 				assertClear(ctx, alive, "wave 1");
-				// A ghast and its rider come through the same way.
+				// A ghast comes through the same way.
 				var heavy = RiftRaid.spawnOne(ctx.getLevel(), rift, Slot.HEAVY);
 				ctx.assertFalse(heavy.isEmpty(), "no ghast spawned");
 				assertClear(ctx, heavy, "the ghast");
