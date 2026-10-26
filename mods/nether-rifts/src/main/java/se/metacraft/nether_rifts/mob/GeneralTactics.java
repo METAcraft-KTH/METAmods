@@ -48,7 +48,8 @@ public final class GeneralTactics {
 	public static final double SPIN_KNOCKBACK = 1.0;
 	/**
 	 * What a mob walking at movement speed {@code s} covers a tick on ordinary ground is about this times {@code s²}
-	 * (vanilla's walk: a zombie's 0.23 is 2.3 blocks a second); the spin drifts at what {@code spin_speed} would walk.
+	 * (vanilla's walk: a zombie's 0.23 is 2.3 blocks a second); the spin drifts at what {@code spin_speed} would walk
+	 * (0.33: 4.8 blocks a second, about 1.2 times his walk at 0.3).
 	 */
 	private static final double WALK_PACE = 2.2;
 	/** The roar ({@code roar}, 2 s), and the tick his reinforcements come at. */

@@ -430,7 +430,7 @@ public record NetherRiftsConfig(
 		/** The spin: a whirlwind that hurts players round him, turns projectiles back, and leaves him dizzy. */
 		public record Spin(float damage, double radius, int minTicks, int maxTicks, int cooldown, int earlyCooldown, int earlyWindow,
 				double range, double speed) {
-			public static final Spin DEFAULT = new Spin(6, 3.5, 60, 100, 240, 120, 60, 10, 0.36);
+			public static final Spin DEFAULT = new Spin(6, 3.5, 60, 100, 240, 120, 60, 10, 0.33);
 			public static final MapCodec<Spin> MAP_CODEC = RecordCodecBuilder.<Spin>mapCodec(i -> i.group(
 					CommentCodec.comment(
 							Sections.section("spin_damage", Codec.floatRange(0, 100), DEFAULT.damage()),
@@ -466,7 +466,7 @@ public record NetherRiftsConfig(
 					).forGetter(Spin::range),
 					CommentCodec.comment(
 							Sections.section("spin_speed", Codec.doubleRange(0, 1), DEFAULT.speed()),
-							"How fast he drifts toward his target while spinning (his walk is speed)."
+							"How fast he drifts toward his target while spinning, as a walking speed like speed. Pace goes with its square: 0.33 against a speed of 0.3 is about 1.2 times his walk (4.8 blocks a second against 4)."
 					).forGetter(Spin::speed)
 			).apply(i, Spin::new)).validate(Spin::check);
 

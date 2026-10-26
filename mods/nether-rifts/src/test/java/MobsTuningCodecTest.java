@@ -89,7 +89,7 @@ public class MobsTuningCodecTest {
 	public void generalDefaultsAreTheSpecNumbers() {
 		assertEquals(new NetherRiftsConfig.GeneralTuning(300, 16, 6, 0.3,
 				new NetherRiftsConfig.GeneralTuning.Swing(10, 4.5, 120, 4, 20),
-				new NetherRiftsConfig.GeneralTuning.Spin(6, 3.5, 60, 100, 240, 120, 60, 10, 0.36),
+				new NetherRiftsConfig.GeneralTuning.Spin(6, 3.5, 60, 100, 240, 120, 60, 10, 0.33),
 				60, 1.5,
 				new NetherRiftsConfig.GeneralTuning.Roar(java.util.List.of(0.6667, 0.3333), 0.5, 1, 1)),
 				NetherRiftsConfig.GeneralTuning.DEFAULT);

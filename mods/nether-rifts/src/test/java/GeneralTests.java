@@ -46,9 +46,10 @@ public class GeneralTests {
 			var front = player(ctx, general, 3);
 			var back = player(ctx, general, -3);
 			general.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, front);
-			holdNormal(ctx);
 			general.tactics().start(Move.SWING);
 			ctx.assertTrue(general.tactics().move() == Move.SWING, "the swing didn't start: " + general.tactics().move());
+			// held only once nothing before finish can fail, so the hold is always let go
+			holdNormal(ctx);
 			ctx.runAfterDelay(GeneralTactics.SWING_HIT_TICK + 1, () -> finish(ctx, () -> {
 				ctx.assertTrue(front.getHealth() < front.getMaxHealth(), "the swing missed the player in front of him");
 				ctx.assertTrue(front.getHealth() <= 10.5f, "the player in front has " + front.getHealth() + " of 20 left, on " + ctx.getLevel().getDifficulty());
@@ -124,8 +125,8 @@ public class GeneralTests {
 			// The same arrow, shot while he chases, hurts him.
 			var general = general(ctx);
 			var shooter = player(ctx, general, SHOT);
-			holdNormal(ctx);
 			ctx.assertTrue(general.tactics().move() == Move.CHASE, "he isn't chasing: " + general.tactics().move());
+			holdNormal(ctx);
 			shoot(ctx, general, shooter);
 			ctx.runAfterDelay(10, () -> finish(ctx, () -> {
 				ctx.assertTrue(general.getHealth() < general.getMaxHealth(), "the arrow didn't hurt him; he is " + general.tactics().move());
@@ -274,16 +275,17 @@ public class GeneralTests {
 			var shooter = player(ctx, general, SHOT);
 			holdNormal(ctx);
 			general.tactics().start(Move.SPIN);
+			// the checks along the way are kept for finish, which lets go of the difficulty whatever they find
+			var spinningAlive = new AtomicBoolean(false);
+			var afterDeath = new AtomicReference<String>("not looked at");
 			ctx.runAfterDelay(5, () -> {
-				ctx.assertTrue(general.spinning(), "he isn't spinning in SPIN");
+				spinningAlive.set(general.spinning());
 				general.hurtServer(ctx.getLevel(), ctx.getLevel().damageSources().genericKill(), Float.MAX_VALUE);
 			});
 			var back = new AtomicBoolean(false);
 			var arrow = new AtomicReference<Arrow>();
 			ctx.runAfterDelay(6, () -> {
-				ctx.assertTrue(!general.spinning(), "he still spins, dead");
-				ctx.assertTrue(general.tactics().move() == Move.CHASE, "dead, his move is " + general.tactics().move());
-				ctx.assertTrue(general.move() == null, "dead, his move animation " + general.move() + " plays on");
+				afterDeath.set("spinning " + general.spinning() + ", move " + general.tactics().move() + ", animation " + general.move());
 				arrow.set(shoot(ctx, general, shooter));
 			});
 			ctx.onEachTick(() -> {
@@ -293,6 +295,8 @@ public class GeneralTests {
 				}
 			});
 			ctx.runAfterDelay(20, () -> finish(ctx, () -> {
+				ctx.assertTrue(spinningAlive.get(), "he wasn't spinning in SPIN");
+				ctx.assertTrue(afterDeath.get().equals("spinning false, move CHASE, animation null"), "dead, he is " + afterDeath.get());
 				ctx.assertTrue(!back.get(), "the arrow at his body turned back");
 				ctx.assertTrue(shooter.getHealth() == shooter.getMaxHealth(), "the shooter was hurt: " + shooter.getHealth());
 			}, shooter));
