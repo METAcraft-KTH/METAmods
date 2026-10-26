@@ -269,10 +269,10 @@ public final class Patches {
 
 
 	private static final List<Patch> ALL = List.of(
-			new Patch("itk", "ITK", 12, 12).by("Froosty11"),
-			Patch.seat("rivals", "METAcraft Rivals '26").by("Froosty11"),   // across the seat
+			new Patch("itk", "ITK", 12, 12),
+			Patch.seat("rivals", "METAcraft Rivals '26"),   // across the seat
 			new Patch("it", "IT", 12, 12).by("Cactooz"),
-			new Patch("data", "Data", 12, 12).by("Froosty11"),
+			new Patch("data", "Data", 12, 12),
 			// Hugo/Cactooz's set, and Mackan's maid dress. New entries go last: a design's instant code
 			// is its position here, so inserting one in the middle would repaint everything already sewn.
 			new Patch("spiken", "Spiken", 12, 12).by("Cactooz"),
@@ -301,7 +301,14 @@ public final class Patches {
 			new Patch("batatu", "Batatu", 12, 12).by("Ainrave"),
 			new Patch("cerise", "Cerise", 12, 12).by("Ainrave"),
 			new Patch("playboy-pikachu", "Playboy Pikachu", 12, 12).by("Ainrave"),
-			new Patch("starkt", "Starkt", 12, 12).by("Ainrave")
+			new Patch("starkt", "Starkt", 12, 12).by("Ainrave"),
+			// Millia's set, each drawn at 12 and 16. Display names are placeholders; the ids are not. New entries go last.
+			new Patch("data_neko", "Data Neko", 12, 12).by("Millia"),
+			new Patch("kth", "KTH", 12, 12).by("Millia"),
+			new Patch("media_neko", "Media Neko", 12, 12).by("Millia"),
+			new Patch("medieteknik", "Medieteknik", 12, 12).by("Millia"),
+			new Patch("metacraft", "METAcraft", 12, 12).by("Millia"),
+			new Patch("metacrew", "METAcrew", 12, 12).by("Millia")
 	);
 
 	private static final Map<String, Patch> BY_ID = ALL.stream()

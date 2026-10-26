@@ -37,17 +37,18 @@ public final class PatchAcquiringTests {
 		helper.succeed();
 	}
 
-	/** IT and Data take More Dyes' Laserviolet and Cerise, so their recipes load only beside it. */
+	/** IT, Data and Medieteknik take More Dyes' Laserviolet, Cerise and RGB, so their recipes load only beside it. */
 	@GameTest
 	public void itAndDataNeedMoreDyes(GameTestHelper helper) {
 		boolean moreDyes = FabricLoader.getInstance().isModLoaded("moredyes");
-		for (String id : List.of("it", "data")) {
+		for (String id : List.of("it", "data", "medieteknik")) {
 			var key = ResourceKey.create(Registries.RECIPE, ModContent.patchId(Patches.get(id)));
 			helper.assertValueEqual(helper.getLevel().getServer().getRecipeManager().byKey(key).isPresent(), moreDyes, id + "'s recipe loaded");
 		}
 		if (moreDyes) {
 			helper.assertValueEqual(craft(helper, plus(dye("laserviolet"))).getItem(), patch("it"), "laserviolet dye in a cross of string");
 			helper.assertValueEqual(craft(helper, plus(dye("cerise"))).getItem(), patch("data"), "cerise dye in a cross of string");
+			helper.assertValueEqual(craft(helper, plus(dye("rgb"))).getItem(), patch("medieteknik"), "rgb dye in a cross of string");
 		}
 		helper.succeed();
 	}
@@ -86,7 +87,7 @@ public final class PatchAcquiringTests {
 		}
 		helper.assertTrue(found.size() > 1, "4000 dungeon chests held only these patches: " + found);
 		for (String id : PatchLoot.NON_LOOT) helper.assertFalse(found.contains(id), "a dungeon chest held " + id + ", which is not loot");
-		for (String id : List.of("rivals", "tmeit-marshal")) {
+		for (String id : List.of("rivals", "tmeit-marshal", "metacrew", "medieteknik")) {
 			helper.assertFalse(PatchLoot.looted().stream().anyMatch(patch -> patch.id().equals(id)), id + " is loot");
 		}
 		helper.succeed();
