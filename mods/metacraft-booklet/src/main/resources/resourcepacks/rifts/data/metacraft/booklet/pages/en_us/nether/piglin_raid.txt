@@ -15,7 +15,11 @@ A rift's size is the number of blocks inside its frame. A plain portal is 6 bloc
 Everyone within 48 blocks takes part. Each player after the first brings a quarter more piglins and hoglins, up to twice as many. A boss bar counts down the wave; the next one comes when the last mob is dead. After 90 seconds, the stragglers glow.<nl2>Rift mobs that stray more than 64 blocks are pulled back to the rift. Gold won't help you: rift piglins attack players in gold armour and never barter.<nl2>If nobody stays within 48 blocks for 3 minutes, the rift collapses with no reward. Breaking a frame block collapses a raiding rift too.
 
 ### Header: Who comes through
-Crossbow piglins, spear piglins and hoglins make up most of a wave. Later waves add ghasts with a piglin on board, striders with riders, and brutes with golden axes. From wave 2, a <pagelink 'metacraft:nether/mobs/drummer'><u>Piglin Drummer</u></pagelink> leads each wave. See <pagelink 'metacraft:nether/mobs'><u>New Mobs</u></pagelink> for the rest.
+Crossbow piglins, spear piglins and hoglins make up most of a wave. Later waves add ghasts with a crossbow piglin on board, striders with crossbow piglins riding them, and brutes with golden axes. From wave 2, a <pagelink 'metacraft:nether/mobs/drummer'><u>Piglin Drummer</u></pagelink> leads each wave. See <pagelink 'metacraft:nether/mobs'><u>New Mobs</u></pagelink> for the rest.<nl2>Rift mobs bring the nether with them:
+- A rift ghast shoots at players above and below it, not only level with it. When it dies, its rider glides down.
+- A rift strider stays warm off lava, so it never slows down, and rain doesn't hurt it. Water still does.
+- No rift piglin or hoglin turns zombie in the overworld.
+- You can't trap rift mobs in boats or minecarts.
 
 ### Header: The Piglin General
 ### Image: metacraft:beside/rifts/general A piglin brute half again as big as one, with a red banner on its head and a golden axe. It comes in the last wave of a large rift, with 300 health, six times a brute's, and armour nearly a diamond set's. It has a red boss bar of its own.

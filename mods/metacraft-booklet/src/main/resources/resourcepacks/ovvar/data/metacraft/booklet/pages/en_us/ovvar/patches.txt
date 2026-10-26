@@ -5,8 +5,16 @@ category=metacraft:ovvar
 icon=ovvar:patch_itk
 order=2
 ### EndSection: PageInfo
-### Header: Earning them
-Patches are items, one per design: <citem 'ovvar:patch_itk'>, <citem 'ovvar:patch_it'>, <citem 'ovvar:patch_data'>, <citem 'ovvar:patch_spiken'> and the rest. You earn them at chapter events and in games; a patch you are given goes into your <bold>stash</bold> with a flourish and a line in chat, and waits there until you take it out. Hover a patch to see who drew it and where it may be sewn.
+### Header: Getting them
+Patches are items, one per design: <citem 'ovvar:patch_itk'>, <citem 'ovvar:patch_it'>, <citem 'ovvar:patch_data'>, <citem 'ovvar:patch_spiken'> and the rest. Hover a patch to see who drew it and where it may be sewn.
+
+### Image: metacraft:beside/recipe/patch_itk <bold>Crafted.</bold> The chapters' own patches are a dye in the middle of the crafting grid with a <citem 'minecraft:string'> on each of its four sides:<nl><citem 'minecraft:lime_dye'> makes <citem 'ovvar:patch_itk'>;<nl><bold>Laserviolet</bold> dye makes <citem 'ovvar:patch_it'>;<nl><bold>Cerise</bold> dye makes <citem 'ovvar:patch_data'>
+
+### Image: metacraft:beside/recipe/patch_in Laserviolet and Cerise are the two new colours on the Colors page. An IT patch crafted with a <citem 'minecraft:experience_bottle'> becomes <citem 'ovvar:patch_in'>.
+
+<bold>Found.</bold> Every other patch is treasure: a chest in any structure — a village house, a dungeon, a mineshaft, a shipwreck, a temple and the rest — has about a one in twenty chance of holding one. Not the bonus chest at spawn.
+
+<bold>Given.</bold> <citem 'ovvar:patch_rivals'> comes only from the Rivals event, and <citem 'ovvar:patch_tmeit-marshal'> only to TMEIT's marshals: nobody crafts or finds those two. A patch you are given goes into your <bold>stash</bold> with a flourish and a line in chat, and waits there until you take it out.
 
 ### Header: Where they go
 ### Image: metacraft:beside/ovvar/back A patch goes on any cell of the ovve you can see: the chest and back, the outer, front and back of the sleeves and legs, and the top of each shoulder.<nl2>Not on the collar, the belt, the hands or the cuffs.
@@ -15,7 +23,9 @@ Bigger patches hang over their cell onto the cloth around it.
 
 Two places are special:
 - the <bold>big back</bold> cell is the whole back below the collar. The biggest patches fit it whole, and smaller ones may be sewn on top of it;
-- the <bold>seat</bold> takes one wide patch across the back of both legs, like <citem 'ovvar:patch_rivals'>.
+- the <bold>seat</bold> takes one wide patch across the back of both legs, like <citem 'ovvar:patch_rivals'> or <citem 'ovvar:patch_pung'>. Sew the seat or the backs of the legs, not both.
+
+On the <citem 'ovvar:media_frack'> only the coat takes patches: no legs, no seat.
 
 There is no limit to how many patches an ovve carries.
 

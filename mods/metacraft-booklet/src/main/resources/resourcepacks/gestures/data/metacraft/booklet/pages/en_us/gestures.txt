@@ -1,0 +1,9 @@
+### Section: PageInfo
+title=Gestures
+external_title=Gestures
+description=Wave, dab, facepalm: /gesture plays a gesture that everyone around you sees.
+category=metacraft:vanilla_plus
+icon=minecraft:player_head
+order=60
+### EndSection: PageInfo
+Type <bold>/gesture</bold> to open the gestures menu, and pick one. Your character plays it for everyone near you, and you watch from outside, as they see it. Some gestures play a song.<nl2>You have to stand on the ground to start one. It ends by itself, or sneak to stop it early.<nl2>The menu is also in your Quick Actions.

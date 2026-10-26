@@ -7,8 +7,11 @@ order=20
 ### EndSection: PageInfo
 ### Image: metacraft:beside/qol/echo_fork Right-click a mob with the echo fork and it goes quiet. Right-click it again to undo it.<nl2>The echo fork is never used up, and the mob keeps its name.
 
+### Body:
+It works on villagers and horses too, without opening their trades or getting on.
+
 ### Header: Making one
 ### Image: metacraft:beside/recipe/echo_fork Two sculk over an echo shard over an iron ingot, shaped like a tuning fork.
 
 ### Header: With a name tag
-A name tag named "silence me" silences a mob too, and one named "unsilence me" undoes it. The name tag is used up, but the mob keeps its own name.
+A name tag named "silence me" silences a mob too, and one named "unsilence me" undoes it. Capitals and underscores don't matter: "Silence_Me" works. The name tag is used up, but the mob keeps its own name.

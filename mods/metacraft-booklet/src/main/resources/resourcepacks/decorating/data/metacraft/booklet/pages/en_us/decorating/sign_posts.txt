@@ -5,18 +5,18 @@ category=metacraft:decorating
 icon=polydecorations:oak_sign_post
 order=4
 ### EndSection: PageInfo
-### Image: metacraft:beside/decorating/sign_post A sign post is an arrow-shaped sign on a fence or wall: point the way to your base, the shop, the portal.<nl2>Each post takes two, one above the other.
+### Image: metacraft:beside/decorating/sign_post A sign post is an arrow-shaped sign on a wooden fence or a wall: point the way to your base, the shop, the portal.<nl2>Each post takes two, one above the other.
 
 ### Header: Making them
 ### Image: metacraft:beside/recipe/sign_post Makes two.<nl2>Any wood works: the planks decide which.
 
 ### Header: Putting one up
-Right-click the upper or lower half of a fence or wall with a sign post. The sign turns to face you, in steps of 15°, and the sign editor opens: one line of text.
+Right-click the upper or lower half of a wooden fence or a wall with a sign post. The sign turns to face you, in steps of 15°, and the sign editor opens: one line of text.
 
 ### Header: Changing it
 Stand in front of the sign and:
 - right-click it to edit the text;
-- use a dye, a <citem 'minecraft:glow_ink_sac'> or <citem 'minecraft:honeycomb'> as on any sign;
+- use a dye, a <citem 'minecraft:glow_ink_sac'> or <citem 'minecraft:honeycomb'> as on any sign (once waxed, it can't be changed any more);
 - <bold>sneak</bold> and right-click with an empty hand to point the arrow the other way;
 - right-click with an axe to take the sign back off.
 

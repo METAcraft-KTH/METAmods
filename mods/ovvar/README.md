@@ -99,7 +99,8 @@ and `BACK_LOW_RIGHT` are what went when `BACK_BIG` arrived.)
 
 The catalogue (`Patches.java`) holds ITK, METAcraft Rivals '26, IT and Data, then
 Spiken, Släggan, Ticket to my heart, the Maid dress and Pung, then Ainrave's IN, IN (gold), the three
-Nyckeln keys and KomMN, and last Måns's JGS, TMEIT and TMEIT Marshal. ITK, IT, Data, Spiken, Släggan,
+Nyckeln keys and KomMN, then Måns's JGS, TMEIT and TMEIT Marshal, Ainrave's Data pack, and last
+Millia's Data Neko, KTH, Media Neko, Medieteknik, METAcraft and METAcrew (each also at 16×16). ITK, IT, Data, Spiken, Släggan,
 the Maid dress, the ticket and Måns's three are 12×12 and hang over their neighbours (except on the big back
 cell). Several are also drawn at more than one size: ITK ships `itk_8x8.png` (Kexana's original 8×8
 ITK, the art that shipped before the 12×12), so it lands whole on a shoulder instead of losing its
@@ -121,6 +122,19 @@ goes on the wearer's left leg, which is the leg at the viewer's left from behind
 so each of the three paths that draw a seat has to mirror its half back — the pack's `_l` texture
 is pre-flipped, the shader flips the fragment, and the paper doll flips the part. Both player
 paths are pinned to the art itself by `seatHalvesSitOnTheLegTheArtWasDrawnFor`, never to the cut.
+
+**Getting patches.** The chapters' own patches are crafted (`data/ovvar/recipe`): a dye with string
+on its four sides makes IT (Laserviolet), Data (Cerise), Medieteknik (RGB) or ITK (lime), and IT with
+a bottle of experience makes IN. Laserviolet, Cerise and RGB are More Dyes' (`moredyes`), so those
+three recipes load only beside it (`fabric:load_conditions`). METAcraft Rivals '26 (the Rivals
+event's), TMEIT Marshal (TMEIT's marshals') and METAcrew (the staff's) are only ever given: no recipe,
+no chest. Every other patch turns up in structure
+chests (`PatchLoot`): vanilla's `chests/*` tables but the spawn bonus chest, and all of
+Structory's when it is installed, each get a pool with a 5 % chance of one patch, even odds among
+them. It is added to the tables as they load, not shipped as copies of them, so a datapack's or
+another mod's changes to a chest stay. Which is which is two lists in `PatchLoot`,
+`LOOT` and `NON_LOOT` (crafted or given); a new patch goes in one of them, or the server won't start.
+
 Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows washed out on the cell you aim
 at (a ghosted sprite, see below), the action bar
@@ -931,11 +945,10 @@ sprite; so do MakeUp Ultra Fast's, though its program is patched. Photon and Sol
 ## Credits
 
 Patch art: the 8×8 ITK (`itk_8x8.png`, the original ITK patch, now the
-size variant a shoulder wears); ITK, METAcraft Rivals '26 and Data by Froosty11 (placeholders
-until redrawn); IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
+size variant a shoulder wears); ITK, METAcraft Rivals '26 and Data uncredited for now; IT, Spiken, Släggan and Ticket to my heart by Cactooz (the IT patch was the
 PolymITer set's, redrawn with a white logo, which the IT ovve's own overlay now carries too), with
 PolymITer's own 16×16 IT sprite as that patch's 16 px art (`it_16x16.png`); the
-Maid dress by Mackan; Pung is a redraw of a shop patch, nobody credited. The ovve garment art is
+Maid dress by Mackan; Data Neko, KTH, Media Neko, Medieteknik, METAcraft and METAcrew by Millia; Pung is a redraw of a shop patch, nobody credited. The ovve garment art is
 original to this mod, cut from the chapter skin
 overlays on metacraft.se/style.
 

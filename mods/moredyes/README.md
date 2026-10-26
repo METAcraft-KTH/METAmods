@@ -63,7 +63,7 @@ Keep about 24 frames (vanilla blends linearly in RGB, so far-apart hues go muddy
 colour for what cannot animate: fireworks and the map. The worn happy ghast harness and llama carpet
 are drawn from no atlas, so they hold one frame cut into horizontal bands of the animation's optional
 `"stripes"` colours (three keyframes sampled evenly when absent; RGB sets red, green, blue), and a canvas paints it as random pixels from its frames.
-A hand-drawn texture of an animated colour stands still (the RGBouquet).
+A hand-drawn texture of an animated colour stands still (the RGBouquet, the RGB dye and glazed terracotta).
 
 What limits how many colours fit is Polymer's donor-state budget, and `Looks` decides once at
 startup, per family, whether the colour count fits the visible-donor pools ("donor" look: our

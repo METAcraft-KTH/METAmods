@@ -47,6 +47,8 @@ public class PortableJukeboxDatagen implements DataGeneratorEntrypoint {
 		private static final int VOLUME_RESOLUTION = 5;
 		private static final int PITCH_RESOLUTION = 20;
 
+		public static final ResourceKey<LootTable> PIGLIN_JUKEBOX_DROP = key("piglin_drop");
+
 		private final Map<ResourceKey<LootTable>, LootTable.Builder> map = new HashMap<>();
 
 		private final Supplier<HolderLookup.Provider> lookup;
@@ -137,11 +139,15 @@ public class PortableJukeboxDatagen implements DataGeneratorEntrypoint {
 				)
 			);
 			table.withPool(pool);
-			add("piglin_drop", table);
+			add(PIGLIN_JUKEBOX_DROP, table);
 		}
 
-		private void add(String name, LootTable.Builder lootTable) {
-			map.put(ResourceKey.create(Registries.LOOT_TABLE, PortableJukebox.getID(name)), lootTable);
+		private static ResourceKey<LootTable> key(String name) {
+			return ResourceKey.create(Registries.LOOT_TABLE, PortableJukebox.getID(name));
+		}
+
+		private void add(ResourceKey<LootTable> key, LootTable.Builder lootTable) {
+			map.put(key, lootTable);
 		}
 
 		@Override

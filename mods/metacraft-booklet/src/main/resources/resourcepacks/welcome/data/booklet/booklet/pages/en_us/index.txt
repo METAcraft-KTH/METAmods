@@ -8,9 +8,9 @@ book_color=#c46bff
 You play METAcraft on a vanilla client: there is nothing to install. The server sends its own resource pack when you join.<nl>
 
 What it adds follows a few ideas:
-- <bold>Student culture:</bold> the chapters' traditions, brought into the game. Their drinks, their banners, the ovve and its patches.
+- <bold>Student culture:</bold> the chapters' traditions, brought into the game. Their drinks, their banners, their colours, the ovve and its patches.
 - <bold>Vanilla+:</bold> additions that feel like they could be vanilla, and fit in with the blocks and items you know.
-- <bold>The Nether</bold> is held back at first. You earn it through rifts and the raids they bring.
+- <bold>The Nether</bold> is held back at first. For now its portals open rifts, and the rifts bring piglin raids.
 - <bold>The End</bold> gets the void anchor, a way back when you fall into the void.
 ### Align: center
 <url 'https://discord.com/invite/MttUbkmeyD'><u>Join our Discord</u></url>

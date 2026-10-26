@@ -1,0 +1,11 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "misc",
+	"ingredients": [
+		"ovvar:patch_it",
+		"minecraft:experience_bottle"
+	],
+	"result": {
+		"id": "ovvar:patch_in"
+	}
+}

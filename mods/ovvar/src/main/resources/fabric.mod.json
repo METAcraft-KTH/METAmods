@@ -27,7 +27,8 @@
 			"se.metacraft.ovvar.gametest.ComboPackTests",
 			"se.metacraft.ovvar.gametest.FrackTests",
 			"se.metacraft.ovvar.gametest.WardrobeTests",
-			"se.metacraft.ovvar.gametest.BlockbenchManifestTests"
+			"se.metacraft.ovvar.gametest.BlockbenchManifestTests",
+			"se.metacraft.ovvar.gametest.PatchAcquiringTests"
 		],
 		"fabric-datagen": [
 			"se.metacraft.ovvar.datagen.OvvarDataGenerator"

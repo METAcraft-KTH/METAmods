@@ -1,0 +1,16 @@
+### Section: PageInfo
+title=Recipes
+description=Look up how anything is made, and what it is used for: /polydex.
+category=metacraft:vanilla_plus
+icon=minecraft:knowledge_book
+order=5
+### EndSection: PageInfo
+### Header: Looking things up
+Type <bold>/polydex</bold> to open a list of every item on the server, ours included. Click an item to see how it is made; right-click it to see what it is used in. The recipes show the real ingredients, laid out the way you put them in a crafting table, a furnace or a stonecutter.
+
+To find something by name: <bold>/polydex search</bold> and a word, like <bold>/polydex search patch</bold>.
+
+Some things are not made at a crafting table, and Polydex can't show them: sewing a patch on an ovve, brewing in a cauldron, or concrete in a cauldron. Those are in this book.
+
+### Header: What you're looking at
+Polydex also shows the name of the block or creature you are looking at, and which mod it comes from, at the top of the screen. To change where it shows, or turn it off: <bold>/polydex hover style</bold> with <bold>polydex:sidebar</bold>, <bold>polydex:bossbar</bold> or <bold>polydex:disabled</bold>.

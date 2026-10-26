@@ -168,7 +168,7 @@ public final class WardrobeFont {
 	private static final int DARK_INK = 0xFF2B1F19, LIGHT_INK = 0xFFF6EBD2;
 	private static final int DARK_SHADOW = 0x99F6EBD2, LIGHT_SHADOW = 0x99000000;
 
-	private static final List<String> NO_PATCHES_LINES = List.of("NO PATCHES YET", "EARN THEM AT", "CHAPTER EVENTS");
+	private static final List<String> NO_PATCHES_LINES = List.of("NO PATCHES YET", "CRAFT ONE OR", "LOOT A CHEST");
 	private static final List<String> NOTHING_SEWN_LINES = List.of("NOTHING SEWN YET", "TAKE A PATCH TO", "A SEWING STAND");
 
 	/**

@@ -44,6 +44,10 @@
 			"rolls": 1,
 			"condition": {"type": "minecraft:killed_by_player"},
 			"entries": [{"type": "minecraft:item", "name": "minecraft:gold_ingot"}]
+		},
+		{
+			"rolls": 1,
+			"entries": [{"type": "minecraft:loot_table", "value": "nether_rifts:entities/war_drummer"}]
 		}
 	]
 }

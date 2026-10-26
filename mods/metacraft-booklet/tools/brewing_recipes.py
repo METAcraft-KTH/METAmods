@@ -109,7 +109,7 @@ def main():
     write(os.path.join(PACKS, "brewing_kultur/data/metacraft/booklet/pages/en_us/brewing/chapter_drinks.txt"), page(
         "IT's drinks", "IT's drinks from PolymITer: Spiken, Släggan, Nyckeln and plain alcohol.",
         "minecraft:sweet_berries", 6, "chapter_drinks",
-        "The chapters' own drinks, brewed the same way. Each one sends you fast or slow (Släggan: slow "
+        "The chapters' own drinks, brewed the same way. Each alcoholic one sends you fast or slow (Släggan: slow "
         "and strong, or fast and weak), harder the drunker you are, and past a point it blacks you out: "
         "you come to somewhere else with a headache, a little hurt and blind for a moment.",
         [recipe(name, drink, names) for name, drink in kultur]))

@@ -14,11 +14,12 @@ What you have sewn on, and the patches you own but have not sewn — your <bold>
 Anything this server does not allow is greyed out, with the reason when you hover it.
 
 - <bold>Left-click</bold> a patch to take one out as an item: sew it on any stand wearing your ovve, or trade it.
-- The <bold>chest</bold> button puts every patch item you carry back into the stash.
+- <bold>Put held patches in</bold>, the second button on the bottom row, puts every patch item you carry back into the stash.
+- <bold>See it in 3D</bold> stands a mannequin in front of you for a minute, wearing the ovve you have on, to walk round.
 - Where private sewing sessions are on, <bold>right-click</bold> a patch instead: a stand wearing your ovve appears in front of you, your hotbar gets the patch and a pair of shears, and you sew straight from the stash. Walk away, or run <yellow>/ovvar stash done</yellow>, and it is over.
 
 ### Header: Minigame servers
 On a minigame server the wardrobe is look-only: nothing is sewn there, and any patch that lands in your inventory is banked into your stash at once, so nothing is lost to a wiped inventory. Take it to a survival server to sew.
 
 ### Header: Looking at others
-<yellow>/ovvar look</yellow> followed by a name shows somebody's ovve as they have it, whether they are online or not. Their stash stays theirs.
+<yellow>/ovvar look</yellow> followed by a name shows somebody's ovve as they have it, whether they are online or not; on its own it shows yours. Their stash stays theirs.

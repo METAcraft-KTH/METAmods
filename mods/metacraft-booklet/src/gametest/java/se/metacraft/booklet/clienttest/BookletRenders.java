@@ -145,6 +145,7 @@ public final class BookletRenders implements FabricClientGameTest {
 				server.runOnServer(mc -> build(mc.overworld()));
 				buildBrewing(server);
 				buildRifts(server);
+				buildKulturAndColours(server);
 				// Mail in the mailboxes, so their flags are up.
 				for (BlockPos box : List.of(new BlockPos(50, -59, 20), new BlockPos(88, -59, 21))) {
 					server.runCommand("data merge block " + box.getX() + " " + box.getY() + " " + box.getZ()
@@ -233,7 +234,7 @@ public final class BookletRenders implements FabricClientGameTest {
 
 	/**
 	 * The crafting recipes the pages show, each as the nine slots of a crafting table, left to right
-	 * and top to bottom ({@code ""} for an empty slot).
+	 * and top to bottom ({@code ""} for an empty slot; an id without a namespace is vanilla's).
 	 */
 	private static final Map<String, List<String>> RECIPES = new LinkedHashMap<>();
 	static {
@@ -247,6 +248,15 @@ public final class BookletRenders implements FabricClientGameTest {
 				"ender_eye", "ender_eye", "ender_eye", "crying_obsidian", "crying_obsidian", "crying_obsidian"));
 		RECIPES.put("echo_fork", List.of("sculk", "", "sculk", "", "echo_shard", "", "", "iron_ingot", ""));
 		RECIPES.put("barrel_spigot", List.of("stick", "stone", "", "oak_planks", "", "", "", "", ""));
+		// ovvar's chapter patches: a dye in a plus of string (IT's and Data's dyes are moredyes'), and IN from IT
+		RECIPES.put("patch_itk", List.of("", "string", "", "string", "lime_dye", "string", "", "string", ""));
+		RECIPES.put("patch_it", List.of("", "string", "", "string", "moredyes:laserviolet_dye", "string", "", "string", ""));
+		RECIPES.put("patch_data", List.of("", "string", "", "string", "moredyes:cerise_dye", "string", "", "string", ""));
+		RECIPES.put("patch_in", List.of("", "", "", "ovvar:patch_it", "experience_bottle", "", "", "", ""));
+		// moredyes: a flower into its dye, and a banner in its colour from its wool
+		RECIPES.put("cerise_dye", List.of("", "", "", "", "moredyes:cerise_flower", "", "", "", ""));
+		RECIPES.put("cerise_banner", List.of("moredyes:cerise_wool", "moredyes:cerise_wool", "moredyes:cerise_wool",
+				"moredyes:cerise_wool", "moredyes:cerise_wool", "moredyes:cerise_wool", "", "stick", ""));
 	}
 
 	/**
@@ -265,7 +275,7 @@ public final class BookletRenders implements FabricClientGameTest {
 			CraftingMenu menu = (CraftingMenu) tester.containerMenu;
 			for (int i = 0; i < 9; i++) {
 				if (grid.get(i).isEmpty()) continue;
-				menu.getInputGridSlots().get(i).set(new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(grid.get(i)))));
+				menu.getInputGridSlots().get(i).set(new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.parse(grid.get(i)))));
 			}
 			menu.broadcastChanges();
 		});
@@ -290,24 +300,24 @@ public final class BookletRenders implements FabricClientGameTest {
 	private static final List<Scene> SCENES = List.of(
 			new Scene("ovvar/hero", new BlockPos(20, -60, 20), new BlockPos(20, -58, 20), 60),
 			new Scene("ovvar/back", new BlockPos(24, -60, 20), new BlockPos(24, -58, 20), 60),
-			new Scene("ovvar/chapters", new BlockPos(28, -60, 20), new BlockPos(34, -58, 20), 70),
-			new Scene("ovvar/stand", new BlockPos(40, -60, 20), new BlockPos(40, -58, 22), 75),
+			new Scene("ovvar/chapters", new BlockPos(28, -60, 20), new BlockPos(34, -58, 20), 64),
+			new Scene("ovvar/stand", new BlockPos(40, -60, 20), new BlockPos(40, -58, 22), 64),
 			new Scene("decorating/canvas", new BlockPos(42, -60, 20), new BlockPos(45, -58, 22), 70),
 			new Scene("decorating/corner", new BlockPos(86, -60, 20), new BlockPos(89, -58, 21), 70),
-			new Scene("decorating/mailbox", new BlockPos(50, -60, 20), new BlockPos(50, -59, 20), 90),
-			new Scene("decorating/rope", new BlockPos(54, -60, 20), new BlockPos(58, -57, 20), 70),
-			new Scene("decorating/sign_post", new BlockPos(62, -60, 20), new BlockPos(62, -59, 20), 90),
-			new Scene("decorating/lantern", new BlockPos(66, -60, 20), new BlockPos(68, -59, 21), 80),
+			new Scene("decorating/mailbox", new BlockPos(50, -60, 20), new BlockPos(50, -59, 20), 56),
+			new Scene("decorating/rope", new BlockPos(54, -60, 20), new BlockPos(58, -57, 20), 58),
+			new Scene("decorating/sign_post", new BlockPos(62, -60, 20), new BlockPos(62, -59, 20), 70),
+			new Scene("decorating/lantern", new BlockPos(66, -60, 20), new BlockPos(68, -59, 21), 70),
 			new Scene("decorating/lead", new BlockPos(72, -60, 20), new BlockPos(76, -59, 20), 70),
 			new Scene("decorating/trowel", new BlockPos(80, -61, 17), new BlockPos(81, -61, 21), 70),
 			new Scene("qol/void_anchor", new BlockPos(99, -61, 19), new BlockPos(101, -60, 21), 80),
 			new Scene("qol/rift", new BlockPos(104, -60, 18), new BlockPos(109, -54, 23), 55),
-			new Scene("qol/concrete", new BlockPos(111, -60, 19), new BlockPos(113, -58, 21), 80),
+			new Scene("qol/concrete", new BlockPos(111, -60, 19), new BlockPos(113, -58, 21), 66),
 			new Scene("qol/echo_fork", new BlockPos(117, -60, 20), new BlockPos(120, -58, 21), 75),
 			new Scene("brewing/cauldron", new BlockPos(20, -60, 28), new BlockPos(22, -57, 30), 80),
 			new Scene("brewing/distilling", new BlockPos(25, -60, 28), new BlockPos(27, -59, 30), 90),
 			new Scene("brewing/barrel", new BlockPos(30, -60, 28), new BlockPos(35, -57, 30), 70),
-			new Scene("brewing/barrel_frame", new BlockPos(52, -60, 28), new BlockPos(52, -57, 34), 70),
+			new Scene("brewing/barrel_frame", new BlockPos(52, -60, 28), new BlockPos(52, -57, 34), 64),
 			new Scene("brewing/drinks", new BlockPos(39, -60, 30), new BlockPos(43, -59, 30), 85),
 			new Scene("brewing/chapter_drinks", new BlockPos(46, -60, 30), new BlockPos(49, -59, 30), 90),
 			new Scene("rifts/rift", new BlockPos(19, -61, 49), new BlockPos(24, -56, 51), 55),
@@ -315,7 +325,10 @@ public final class BookletRenders implements FabricClientGameTest {
 			// the deck hangs about 6 blocks under the ghast: the box reaches down to it
 			new Scene("rifts/chained_ghast", new BlockPos(36, -60, 48), new BlockPos(45, -48, 57), 45),
 			new Scene("rifts/grenadier", new BlockPos(47, -60, 49), new BlockPos(49, -58, 51), 80),
-			new Scene("rifts/general", new BlockPos(51, -60, 49), new BlockPos(53, -57, 51), 80));
+			new Scene("rifts/general", new BlockPos(51, -60, 49), new BlockPos(53, -57, 51), 80),
+			new Scene("rifts/crying_frame", new BlockPos(55, -61, 49), new BlockPos(62, -56, 51), 55),
+			new Scene("kultur/banners", new BlockPos(20, -60, 70), new BlockPos(28, -56, 71), 55),
+			new Scene("moredyes/colors", new BlockPos(36, -60, 70), new BlockPos(40, -58, 71), 60));
 
 	private static void build(ServerLevel level) {
 		// ---- ovvar
@@ -510,8 +523,8 @@ public final class BookletRenders implements FabricClientGameTest {
 			slice(level, 52, 28, true);
 			slice(level, 52, 32, false);
 		});
-		// the spigot on the middle plank of the east end, facing into the barrel
-		server.runCommand("setblock 35 -58 29 brewery:barrel_spigot[facing=west]");
+		// the spigot on the middle plank of the west end (the end in view), facing into the barrel
+		server.runCommand("setblock 30 -58 29 brewery:barrel_spigot[facing=east]");
 		// shelves of drinks: Brewery's own, and the chapter drinks, in frames on a wall
 		shelf(server, 39, List.of("brewery:beer", "brewery:wine", "brewery:vodka", "brewery:mead", "brewery:cider"), List.of());
 		shelf(server, 46, List.of("kultur:alcohol", "kultur:spiken", "kultur:slaggan", "kultur:nyckeln"), List.of("kultur:spiken", "kultur:slaggan"));
@@ -520,7 +533,8 @@ public final class BookletRenders implements FabricClientGameTest {
 	/**
 	 * The Rifts chapter's scenes (nether-rifts, by id: this source set needs none of its classes): an obsidian frame
 	 * with a rift in it (lit once: the render squeezes the cracks of a rift lit twice into a red smear), and the rift
-	 * mobs, without the ground under them so they come out large. The mobs stand still (no AI) and
+	 * mobs, without the ground under them so they come out large; and an empty crying-obsidian frame of a rounded
+	 * shape, for Stabilising (it opens nothing while rift mode is on). The mobs stand still (no AI) and
 	 * are tagged as nether-rifts' showcase mobs, so the Chained Ghast's crossbow piglin and drummer only stand there.
 	 * Hostile mobs go in peaceful, so the world is set to normal first; nothing spawns on its own (spawn-monsters is
 	 * off).
@@ -547,8 +561,48 @@ public final class BookletRenders implements FabricClientGameTest {
 			general.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.BANNER.red()));
 			general.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.GOLDEN_AXE));
 			level.addFreshEntity(general);
+			// Stabilising's crying-obsidian frame: any closed shape, so a rounded one (12 blocks inside) on blackstone
+			Set<BlockPos> inside = new java.util.HashSet<>();
+			for (int x = 58; x <= 59; x++) for (int y = -60; y <= -57; y++) inside.add(new BlockPos(x, y, 50));
+			for (int x = 57; x <= 60; x += 3) for (int y = -59; y <= -58; y++) inside.add(new BlockPos(x, y, 50));
+			for (int x = 55; x <= 62; x++) for (int z = 49; z <= 51; z++) {
+				level.setBlockAndUpdate(new BlockPos(x, -61, z), Blocks.BLACKSTONE.defaultBlockState());
+			}
+			for (BlockPos in : inside) for (Direction side : new Direction[] {Direction.UP, Direction.DOWN, Direction.EAST, Direction.WEST}) {
+				BlockPos at = in.relative(side);
+				if (!inside.contains(at)) level.setBlockAndUpdate(at, Blocks.CRYING_OBSIDIAN.defaultBlockState());
+			}
 		});
 		server.runCommand("rifts form 21 -59 50");
+	}
+
+	/**
+	 * Banner Patterns' and Colors' scenes, by command (this source set needs neither kultur's nor moredyes'
+	 * classes): a wall with IT's painting and a wall banner of each chapter pattern; and per colour a block
+	 * of its wool with a banner in the colour on it, its flower in front.
+	 */
+	private static void buildKulturAndColours(TestDedicatedServerContext server) {
+		// facing is a 2D id (0 south, 1 west, 2 north, 3 east). The painting is 3×4: its block is the middle column, second row up, and it takes x 21-23, y -60 to -57
+		server.runCommand("fill 20 -60 70 28 -56 70 minecraft:spruce_planks");
+		server.runCommand("summon minecraft:painting 22.5 -58.5 71.5 {facing:0b,variant:\"kultur:draken\"}");
+		List<String> banners = List.of(
+				"black_wall_banner[facing=south]{patterns:[{pattern:\"kultur:itk\",color:\"lime\"}]}",
+				"white_wall_banner[facing=south]{patterns:[{pattern:\"kultur:qmisk\",color:\"blue\"}]}",
+				"red_wall_banner[facing=south]{patterns:[{pattern:\"kultur:tmeit\",color:\"white\"}]}",
+				"purple_wall_banner[facing=south]{patterns:[{pattern:\"kultur:pirkko\",color:\"white\"}]}");
+		for (int i = 0; i < banners.size(); i++) {
+			server.runCommand("setblock " + (25 + i) + " -57 71 minecraft:" + banners.get(i));
+		}
+		List<String> colours = List.of("cerise", "laserviolet", "rgb");
+		for (int i = 0; i < colours.size(); i++) {
+			String colour = colours.get(i);
+			int x = 36 + 2 * i;
+			server.runCommand("setblock " + x + " -60 70 moredyes:" + colour + "_wool");
+			// rotation 2 faces the camera, south-west
+			server.runCommand("setblock " + x + " -59 70 minecraft:white_banner[rotation=2]{patterns:[{pattern:\"moredyes:"
+					+ colour + "/minecraft/base\",color:\"white\"}]}");
+			server.runCommand("setblock " + x + " -60 71 moredyes:" + colour + "_flower");
+		}
 	}
 
 	/** A nether-rifts mob, spawned as {@code /summon} would (its kit), standing still. */
@@ -609,16 +663,18 @@ public final class BookletRenders implements FabricClientGameTest {
 	}
 
 	/**
-	 * A shelf of drinks from x0: a row of dark oak slabs with a bottle standing on each (resting item
-	 * entities; the image renderer draws those, not item frames).
+	 * A shelf of drinks from x0: a row of dark oak slabs with a bottle standing on each (item displays
+	 * turned to the camera: a dropped item spins, and is caught edge-on as often as not; the image
+	 * renderer draws entities, not item frames).
 	 */
 	private static void shelf(TestDedicatedServerContext server, int x0, List<String> drinks, List<String> distilled) {
 		int x1 = x0 + drinks.size() - 1;
 		server.runCommand("fill " + x0 + " -60 30 " + x1 + " -60 30 minecraft:dark_oak_slab");
 		for (int i = 0; i < drinks.size(); i++) {
 			String type = drinks.get(i);
-			server.runCommand("summon minecraft:item " + (x0 + i + 0.5) + " -59.5 30.5 {NoGravity:1b,PickupDelay:32767,Age:-32768,"
-					+ "Item:{id:\"brewery:drink_bottle\",count:1,components:{\"brewery:brew_data\":{type:\"" + type + "\",quality:10.0d,"
+			// yaw 45 faces the camera, south-west; "ground" is how a dropped item is drawn, its middle a quarter block up
+			server.runCommand("summon minecraft:item_display " + (x0 + i + 0.5) + " -59.25 30.5 {Rotation:[45f,0f],item_display:\"ground\","
+					+ "item:{id:\"brewery:drink_bottle\",count:1,components:{\"brewery:brew_data\":{type:\"" + type + "\",quality:10.0d,"
 					+ "distillation_runs:" + (distilled.contains(type) ? 1 : 0) + "}}}}");
 		}
 	}

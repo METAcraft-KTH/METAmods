@@ -80,6 +80,7 @@ external servux https://cdn.modrinth.com/data/zQhsx8KF/versions/azA4UG3T/servux-
 external leavesbegone https://cdn.modrinth.com/data/AVq17PqV/versions/Ttuy044k/leavesbegone-v26.3.0-mc26.3.x%2Bfabric.jar sha256:4d84b84527e0a1761bf95f449d381e60d8f0958adde3a3b56503039a27dbaace
 external appleskin https://cdn.modrinth.com/data/EsAfCjCV/versions/PHjDtQay/appleskin-fabric-mc26.3-3.0.10.jar sha256:cb05087c39f0d860611aa1fae7cf63560214d1b71378a7c903c18dc370b5c3ce
 external fabric-api https://cdn.modrinth.com/data/P7dR8mSH/versions/EQKgpeKu/fabric-api-0.165.0%2B26.3.jar sha256:18442e2ad466d6ef41c37dbb4cb68495e6ca6658b1f1ee9be76143d155ef2c88
+external plan https://cdn.modrinth.com/data/wJQfHhxh/versions/cYAfbS0u/PlanFabric-5.9-build-3705.jar sha256:1cac0e6f200359274b9ab5bfe1ecc8ed35837a6067b5fd95bb1feed1c77f45f4
 
 # Season 6 community picks (the "METAcraft Season 6 mods list" doc)
 external filament https://cdn.modrinth.com/data/yANxwqSX/versions/66G6ixmY/filament-1.8.5-hotfix.1%2B26.3.jar sha256:ab85427044d9c4036988fe652de364861ec445151d3ad9e03a1750f64a1cfea0

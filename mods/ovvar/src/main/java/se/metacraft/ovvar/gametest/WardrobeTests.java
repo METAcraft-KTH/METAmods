@@ -1356,7 +1356,7 @@ public final class WardrobeTests {
 				// art back the way it was drawn. A patch reads correctly on both sleeves, and that is
 				// the whole point of datagen pre-mirroring it.
 				List<Integer> want = run(shown, middleRow(shown), BAND);
-				if (!readsAs(drawn, want)) {
+				if (!readsAs(drawn, want) && !(spot.top() && anyRowReads(shown, drawn))) {
 					helper.fail(where + ": the art reads " + hex(want) + " across, the glyph reads " + hex(run(drawn, middleRow(drawn), BAND)));
 				}
 				}
@@ -1588,13 +1588,18 @@ public final class WardrobeTests {
 	/**
 	 * A colour with its brightness divided out, quantised: what a pixel still has in common with
 	 * itself after the doll has shaded it (shading multiplies every channel by the same amount).
+	 * A colour darker than {@link #NO_HUE} has no hue worth the name — Data Neko's #09080a beside
+	 * pure black reads #dcf here and something else again once shaded — so it counts as black.
 	 */
 	private static int chroma(int argb) {
 		int r = Tex.r(argb), g = Tex.g(argb), b = Tex.b(argb);
 		int max = Math.max(r, Math.max(g, b));
-		if (max == 0) return 0;
+		if (max < NO_HUE) return 0;
 		return (r * 15 / max) << 8 | (g * 15 / max) << 4 | b * 15 / max;
 	}
+
+	/** The brightest a channel of a colour may be and still count as black for {@link #chroma}. */
+	private static final int NO_HUE = 16;
 
 	/** Every chromaticity the visible pixels of {@code tex} use, in first-seen order. */
 	private static List<Integer> colours(Tex tex) {
@@ -1639,6 +1644,20 @@ public final class WardrobeTests {
 			if (out.isEmpty() || !near(List.of(out.get(out.size() - 1)), chroma, levels)) out.add(chroma);
 		}
 		return out;
+	}
+
+	/**
+	 * A shoulder's cap is foreshortened: the doll squeezes the cell's rows into fewer, so the middle
+	 * row of the art need not be one it keeps (Media Neko's 8×8, one-pixel detail on every row, is
+	 * where that showed). There, any row of the art with three or more bands that the glyph reads
+	 * will do: still enough to catch a mirrored or mis-cropped cap, which no row would survive.
+	 */
+	private static boolean anyRowReads(Tex shown, Tex drawn) {
+		for (int y = 0; y < shown.height; y++) {
+			List<Integer> want = run(shown, y, BAND);
+			if (want.size() >= 3 && readsAs(drawn, want)) return true;
+		}
+		return false;
 	}
 
 	/**

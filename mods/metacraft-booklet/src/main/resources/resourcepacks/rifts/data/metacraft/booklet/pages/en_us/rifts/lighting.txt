@@ -7,8 +7,8 @@ order=1
 ### EndSection: PageInfo
 ### Header: Three lights
 - <bold>First light:</bold> light a nether portal frame in the overworld and a rift opens. Everyone within 32 blocks is warned in chat.
-- <bold>Second light:</bold> use <citem 'minecraft:flint_and_steel'> or a <citem 'minecraft:fire_charge'> on the rift or its frame. It strains, one light from tearing. Leave it for 5 minutes and it settles back.
-- <bold>Third light:</bold> it tears open. A horn sounds, and the first wave comes 10 seconds later.<nl>
+- <bold>Second light:</bold> use <citem 'minecraft:flint_and_steel'> or a <citem 'minecraft:fire_charge'> on the rift or its frame. It strains and its cracks spread, one light from tearing. Leave it for 5 minutes and it settles back.
+- <bold>Third light:</bold> it tears open, reddening, with the nether showing through. A horn sounds, and the first wave comes 10 seconds later.<nl>
 
 Break a frame block and a quiet rift fades.<nl>
 

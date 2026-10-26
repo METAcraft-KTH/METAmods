@@ -1,0 +1,16 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "misc",
+	"pattern": [
+		" S ",
+		"SDS",
+		" S "
+	],
+	"key": {
+		"S": "minecraft:string",
+		"D": "minecraft:lime_dye"
+	},
+	"result": {
+		"id": "ovvar:patch_itk"
+	}
+}

@@ -21,9 +21,9 @@ pattern item in the loom, as a white one does.
 
 ## The drinks
 
-PolymITer's four IT drinks come two ways, depending on whether
-[Patbox's Brewery](https://modrinth.com/mod/brewery) is on the server. Kultur never depends on it; it
-looks once, at start-up, and only one of the two is ever active.
+PolymITer's four IT drinks are made with [Patbox's Brewery](https://modrinth.com/mod/brewery), and only
+with it: without Brewery on the server there is no way to make them. Kultur never depends on it; it
+looks once, at start-up, and only one of the two modes below is ever active.
 
 ### With Brewery
 
@@ -58,14 +58,18 @@ loaded, and can go when Brewery fixes it.
 
 ### Without Brewery
 
-Kultur brews them itself (`metacraft.kultur.drinks`), PolymITer's way: in a brewing stand.
+Kultur registers the drinks itself (`metacraft.kultur.drinks`), but **nothing makes them**: no
+brewing-stand recipe and no crafting recipe. Season 6 brings the drinks with Brewery, at an event;
+until then they exist only through `/give` and the creative tab. (PolymITer brewed them in a brewing
+stand — water bottle + potato, then sweet berries or suspicious stew — and crafted Nyckeln from an
+apple and a water bottle. Those recipes are gone; the alcohol values below are what the drinks carry.)
 
-| drink | made by | alcohol |
-| --- | --- | --- |
-| Alcoholic Beverage | brewing stand: water bottle + potato | 20 |
-| Spiken Patch Drink | brewing stand: Alcoholic Beverage + sweet berries | 30 |
-| Släggan Patch Drink | brewing stand: Alcoholic Beverage + suspicious stew | 35 |
-| Nyckeln Patch Drink | crafting: apple + water bottle | 0 |
+| drink | alcohol |
+| --- | --- |
+| Alcoholic Beverage | 20 |
+| Spiken Patch Drink | 30 |
+| Släggan Patch Drink | 35 |
+| Nyckeln Patch Drink | 0 |
 
 Drinking one puts its alcohol on your meter, Brewery's: it adds the drink's value (and never leaves
 you below it), drains about 14 a minute, and comes down 3 for a slice of bread and 10 for a bucket of
@@ -104,7 +108,7 @@ than replace them. Vanilla's own Luck (a creative-only potion) shows as Inebriat
 the bottles, and arrows tipped in a lingering one, from the potion: Kultur's lang has
 `item.minecraft.{potion,splash_potion,lingering_potion,tipped_arrow}.effect.kultur_<drink>`.
 
-None of this registers with Brewery on the server: no potions, recipes (`fabric:load_conditions`),
+None of this registers with Brewery on the server: no potions,
 effect, damage type, pack files, tick handler or mixin (`DrinksMixinPlugin`, the inverse of
 `KulturMixinPlugin`).
 
@@ -155,7 +159,7 @@ folder `art/kultur/<chapter>/`.
   patterns behind their item, every asset in the jar, the pack's Inebriated. The dev runtime has
   Brewery, so this also runs `KulturDrinkTests`; `KulturVanillaDrinkTests` passes at once.
 - The same with `-PkulturNoBrewery` — the dev runtime without Brewery, so `KulturVanillaDrinkTests`
-  runs (recipes, the meter, every step, the blackout, sobering) and `KulturDrinkTests` passes at
+  runs (no recipe makes a drink, the meter, every step, the blackout, sobering) and `KulturDrinkTests` passes at
   once. Run both.
 - `./gradlew :mods:metacraft-kultur:runClientGameTest` — a real client joins a test server and
   screenshots a banner, a shield and the painting, and the drinks, into

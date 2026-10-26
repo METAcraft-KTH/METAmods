@@ -16,10 +16,13 @@ Welcome to METAcraft            booklet:index (the welcome pack replaces Booklet
     Ovvar                       metacraft:ovvar (The ovve, Patches, Sewing, Wardrobe and stash)
     Colors                      metacraft:moredyes
   Vanilla+ Features             metacraft:vanilla_plus
+    Recipes                     metacraft:recipes (Polydex: /polydex, search, the hover bar)
     Void Anchor                 metacraft:qol/void_anchor
     Silencing mobs              metacraft:qol/silence_mobs
     Concrete Crafting           metacraft:qol/concrete_cauldron
     New Decor                   metacraft:decorating (Canvas, Mailboxes, Rope, Sign posts, Lanterns and leads, Hammer and trowel)
+    Player Shops                metacraft:trading
+    Gestures                    metacraft:gestures
   Nether Changes                metacraft:nether
     New Mobs                    metacraft:nether/mobs (Chained Ghast, Piglin Drummer, Piglin Grenadier)
     Unstable Portals            metacraft:rifts (Lighting a rift, Stabilising)
@@ -52,12 +55,15 @@ none of them has no such section.
 | `ovvar` | ovvar | "Ovvar": the ovve, patches, sewing, wardrobe and stash |
 | `brewing` | brewery | "Chapter Drinks": Brewery's own book, rewritten (its recipe is switched off here): cooking, distilling, barrels, drinking, Brewery's drinks |
 | `brewing_kultur` | metacraft-kultur and brewery | "IT's drinks": kultur's drinks, under Chapter Drinks |
-| `kultur` | metacraft-kultur | "Banner Patterns": ITK, QMISK, TMEIT, and Pirkko behind its pattern item |
-| `moredyes` | moredyes | "Colors": Cerise and Laserviolet |
-| `vanilla_plus` | metacraft-qol or polydecorations | the Vanilla+ Features section page |
+| `kultur` | metacraft-kultur | "Banner Patterns": ITK, QMISK, TMEIT, Pirkko behind its pattern item, and the painting |
+| `moredyes` | moredyes | "Colors": Cerise, Laserviolet and RGB |
+| `vanilla_plus` | metacraft-qol, polydecorations, metacraft-player-trading, danse or polydex | the Vanilla+ Features section page |
 | `qol` | metacraft-qol | "Void Anchor", "Silencing mobs" (the echo fork), "Concrete Crafting" (the concrete cauldron), and the End Changes section page |
 | `decorating` | polydecorations | "New Decor": canvas, mailboxes, rope, sign posts, lanterns and leads, hammer and trowel |
 | `polydecorations_s6` | polydecorations | turns off every PolyDecorations recipe except those of the things above |
+| `recipes` | polydex | "Recipes": looking recipes up with Patbox's [Polydex](https://modrinth.com/mod/polydex), and its hover bar |
+| `trading` | metacraft-player-trading | "Player Shops": the shop on a barrel |
+| `gestures` | danse | "Gestures": `/gesture` (our Danse fork) |
 | `rifts` | nether-rifts | the Nether Changes section page and everything in it: New Mobs, Unstable Portals, Piglin Raid, Amplified Nether |
 
 Amplified Nether describes a datapack that is not built or deployed yet (an amplified nether, more
@@ -143,11 +149,12 @@ question mark in the same style. It applies to every server dialog, not only the
     JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:metacraft-booklet:runServer -PrunDir=/tmp/mcb
     ./gradlew :mods:metacraft-booklet:runClientGameTest
 
-The dev runtime loads ovvar (run its `runDatagen` first) and the PolyDecorations fork with Season 6's
-features, so every chapter is on.
+The dev runtime loads ovvar (run its `runDatagen` first, and kultur's, moredyes', qol's and player trading's),
+Danse through ovvar, player trading, Polydex and the PolyDecorations fork with Season 6's features, so every
+chapter is on.
 `GuideTests` checks every page loads with a title, description and icon, is reachable from the index
 (and stays reachable whichever of the mods are missing), names only pages and items that exist, that
 `/guide` opens on the welcome page (with the logo, the Discord link and every section) and every section
-lists at least one page, and that PolyDecorations is down to the recipes we keep.
+lists at least one page, that PolyDecorations is down to the recipes we keep, and that the Polydex commands the Recipes page names exist.
 `GuideClientTests` opens every page on a vanilla client in a 1080p window and photographs it, and again
 scrolled down (`*_more.png`), into `build/run/clientGameTest/screenshots/`.

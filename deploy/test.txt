@@ -104,3 +104,6 @@ external luckperms https://cdn.modrinth.com/data/Vebnzrzj/versions/DzQPkkXY/Luck
 # Patbox's Universal Graves: a grave holds your items where you died (config/universal-graves/config.json
 # by hand: no death compass, no grave for lava or void deaths so those lose everything)
 external universal-graves https://cdn.modrinth.com/data/yn9u3ypm/versions/r9hY06vQ/graves-3.13.0%2B26.3.jar sha256:8df3f188e1511ebf69ffc720059b3508bedff1bd2e87f13057989c096b3ed33b
+
+# Patbox's recipe viewer (/polydex); the booklet's Recipes page points to it
+external polydex https://cdn.modrinth.com/data/m5NB7FJE/versions/hUejnkI9/polydex-1.11.0%2B26.3-rc-1.jar sha256:73065baf2493f24b44893b0c34ea658c0cb0100f11fc12e75629c44e179592cf

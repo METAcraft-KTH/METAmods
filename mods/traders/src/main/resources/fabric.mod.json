@@ -1,0 +1,39 @@
+{
+	"schemaVersion": 1,
+	"id": "traders",
+	"version": "${version}",
+	"name": "Traders",
+	"description": "A villager-like trader that sells items from a config file, for vanilla clients through Polymer.",
+	"authors": [
+		"ripSquid"
+	],
+	"contributors": [
+		"HeyLlama_"
+	],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.metacraft.traders.Traders"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=25",
+		"fabric-api": "*",
+		"metacraft-config": "*",
+		"polymer-core": "*",
+		"polymer-virtual-entity": "*",
+		"polymer-resource-pack": "*",
+		"bil": ">=2.0.5"
+	},
+	"recommends": {
+		"ovvar": "*"
+	}
+}

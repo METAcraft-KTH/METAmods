@@ -1,0 +1,26 @@
+version = project.traders_version
+
+addPolymerDependency()
+addConfigDependency()
+
+dependencies {
+	implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+	// The trader's model is a Blockbench model played by BIL, the way nether-rifts' mobs are.
+	implementation include("de.tomalbrc:blockbench-import-library:2.2.0+26.3-rc-3")
+	implementation include("eu.pb4:polymer-resource-pack-extras:${project.polymer_version}")
+}
+
+// Client screenshot tests (src/gametest, runClientGameTest): a vanilla client joins an in-process server,
+// walks up to a trader, opens its trade screen and buys something.
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "traders-clienttest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		username = "Tester"
+	}
+}

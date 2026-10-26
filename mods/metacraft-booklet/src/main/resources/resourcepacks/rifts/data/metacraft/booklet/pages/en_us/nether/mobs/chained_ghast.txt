@@ -12,11 +12,18 @@ order=1
 Each piglin on the deck has a job. Shoot or hit them one at a time: kill one and its job stops.
 - <bold>The spear piglin</bold> stabs the ghast to make it shoot fireballs. Without it, no fireballs.
 - <bold>The Piglin Grenadier</bold> drops magma bombs on bombing runs. Without it, no runs.
-- <bold>The crossbow piglin</bold> shoots a bolt every 3 seconds at a player it can see within 24 blocks.
+- <bold>The crossbow piglin</bold> shoots a bolt every 3 seconds at a player it can see within 24 blocks. You hear it load a second before.
 - <bold>The drummer</bold> drums with every other drummer, and its big beat buffs the piglins on the deck and on the ground below. It can't knock you back from up there.
 
-### Header: Bombing runs
-The ghast dives until its deck is about 4 blocks above you, then flies straight across you while the Grenadier drops bombs. A ring of flame marks where each bomb will land, a second before it does. Then the ghast climbs back up, and waits 5 seconds before the next run.
+### Header: One attack at a time
+It makes one attack at a time, so you can see each one coming.
+- <bold>Cruising:</bold> it floats about, and only the crossbow piglin shoots.
+- <bold>The warning:</bold> the ghast wails, its drummer lets out a war cry, and it tips into a dive. A second later the bombing run starts.
+- <bold>The run:</bold> it dives until its deck is about 4 blocks above you, then flies straight across you while the Grenadier drops up to 6 bombs. A red ring marks where each bomb will land, a second and a half before it does. No fireballs or bolts now.
+- <bold>The climb:</bold> it climbs back up and, if it can see you, shoots two fireballs, each after a ghast's cry.
+- <bold>Regrouping:</bold> it holds off for 3 seconds, then cruises again. The next run comes at least 15 seconds after the last.<nl>
+
+Without the Grenadier, or with no room above you for the ghast and its deck, it skips the runs and only shoots fireballs, at most every 10 seconds.
 
 ### Header: Weaknesses
-The deck is cover: the crew take only 60% of the damage, and arrows from below hit the wood. Shoot from the side, or hit them while the deck is low on a run. The ghast itself has only a ghast's health.<nl2>When the ghast dies, the crew still on board jump off and glide down with Slow Falling, then fight on foot.
+The deck is cover: the crew take only 60% of the damage, and arrows from below hit the wood. Shoot from the side, or hit them while the deck is low on a run: that is when it is open to attack. The ghast itself has only a ghast's health.<nl2>When the ghast dies, the crew still on board jump off with the health they had left, glide down with Slow Falling, and fight on foot.

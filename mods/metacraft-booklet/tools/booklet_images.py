@@ -30,7 +30,8 @@ SIZE = {"ovvar/chapters": (150, 110), "ovvar/stand": (150, 120), "decorating/can
         "brewing/barrel": (140, 110), "brewing/barrel_frame": (130, 110), "brewing/distilling": (110, 110), "brewing/drinks": (150, 80),
         "brewing/chapter_drinks": (150, 80),
         "rifts/rift": (140, 120), "rifts/drummer": (100, 120), "rifts/chained_ghast": (130, 140),
-        "rifts/grenadier": (100, 120), "rifts/general": (100, 120)}
+        "rifts/grenadier": (100, 120), "rifts/general": (100, 120), "rifts/crying_frame": (120, 110),
+        "moredyes/colors": (150, 100), "kultur/banners": (130, 100)}
 DEFAULT_SIZE = (100, 120)
 AS_IS = {"ovvar/stash"}   # and every recipe/*
 SCALE, TILE_W, TILE_H = 4, 16, 9          # UI px per tile

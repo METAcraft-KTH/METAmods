@@ -36,9 +36,12 @@ dependencies {
 	runtimeOnly(project(path: ":mods:metacraft-kultur"))
 	runtimeOnly(project(path: ":mods:moredyes"))
 	runtimeOnly(project(path: ":mods:nether-rifts"))
+	runtimeOnly(project(path: ":mods:metacraft-player-trading"))
 	runtimeOnly("maven.modrinth:brewery:${project.brewery_version}")
 	compileOnly("maven.modrinth:brewery:${project.brewery_version}")
 	runtimeOnly("Froosty11:polydecorations:${project.polydecorations_version}")
+	// The recipe viewer the Recipes page is about.
+	runtimeOnly("maven.modrinth:polydex:${project.polydex_version}")
 	// PolyDecorations needs these Polymer modules; a real server has them from the Polymer bundle.
 	runtimeOnly("eu.pb4:polymer-blocks:${project.polymer_version}")
 }

@@ -1,0 +1,5 @@
+{
+	"type": "minecraft:entity",
+	"pools": [],
+	"random_sequence": "nether_rifts:entities/war_drummer"
+}
