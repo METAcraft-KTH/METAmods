@@ -10,6 +10,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.BaseFireBlock;
 import net.minecraft.world.level.portal.PortalShape;
+import se.metacraft.nether_rifts.compat.ConfnPortalCompat;
 import se.metacraft.nether_rifts.rift.RiftForming;
 import se.metacraft.nether_rifts.rift.RiftShape;
 import se.metacraft.portal_blocker.PortalBlockerSettings;
@@ -37,8 +38,12 @@ public abstract class BaseFireBlockMixin {
 			var s = (PortalShapeAccessor) shape;
 			var positions = new ArrayList<BlockPos>();
 			var bottomLeft = s.netherRifts$bottomLeft();
-			for (var pos : BlockPos.betweenClosed(bottomLeft, bottomLeft.relative(Direction.UP, s.netherRifts$height() - 1).relative(s.netherRifts$rightDir(), s.netherRifts$width() - 1))) {
-				positions.add(pos.immutable());
+			if (bottomLeft != null) {
+				for (var pos : BlockPos.betweenClosed(bottomLeft, bottomLeft.relative(Direction.UP, s.netherRifts$height() - 1).relative(s.netherRifts$rightDir(), s.netherRifts$width() - 1))) {
+					positions.add(pos.immutable());
+				}
+			} else {
+				positions.addAll(ConfnPortalCompat.getBlocks(shape));
 			}
 			boolean blocked = PortalBlockerSettings.getInstance(serverLevel.getServer()).isPortalBlocked(
 					PortalTypeRegistry.NETHER, serverLevel.dimension(), PortalState.BlockingType.ACTIVATION, positions
