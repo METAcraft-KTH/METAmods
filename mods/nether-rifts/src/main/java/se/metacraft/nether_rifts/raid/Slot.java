@@ -15,9 +15,9 @@ public enum Slot implements StringRepresentable {
 	SUPPORT("support"),
 	/** Evoker: piglin brutes. */
 	ELITE("elite"),
-	/** Vanilla's per-wave raid leader: one from wave 2. */
+	/** Vanilla's per-wave raid leader: a Piglin Drummer. The default waves bring one from wave 2. */
 	LEADER("leader"),
-	/** The Rift Captain: the last wave of a large raid. */
+	/** The wave's Captain, with its own boss bar: the Piglin General. Off by default; a wave that lists it brings him. */
 	CAPTAIN("captain"),
 	/** Replaces HEAVY in a large raid's waves 5 and later: a Chained Ghast, its deck crewed by a Piglin Drummer, a Piglin Grenadier and two piglins. */
 	BOMBARDIER("bombardier"),

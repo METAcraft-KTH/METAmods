@@ -57,7 +57,7 @@ public final class Rift {
 	public int clearedTicks;
 	@Nullable private RiftVisual visual;
 	@Nullable ServerBossEvent bossBar;
-	/** The Rift Captain's own bar; not saved, RiftRaid recreates it from the tagged Captain. */
+	/** The Captain's own bar (the {@code captain} slot's mob, the Piglin General by default); not saved, RiftRaid recreates it from the tagged Captain. */
 	@Nullable ServerBossEvent captainBar;
 
 	private Rift(UUID id, RiftShape shape, boolean crying, Tier tier, Stage stage, int stageTicks,

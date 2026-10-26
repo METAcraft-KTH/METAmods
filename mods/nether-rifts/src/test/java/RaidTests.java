@@ -124,13 +124,23 @@ public class RaidTests {
 				RiftRaid.startWave(ctx.getLevel(), rift, 6);
 				ctx.assertTrue(rift.tier() == Tier.LARGE, "a 10x10 rift is " + rift.tier());
 				var waves = NetherRiftsTests.FAST.waves();
+				// the shortened list is put back, pass or fail: the rest of the fast batch runs on FAST
 				NetherRiftsTests.writeConfig(NetherRiftsTests.withWaves(NetherRiftsTests.FAST,
 						new NetherRiftsConfig.Waves(waves.small(), waves.medium(), waves.large().subList(0, 5))));
-				killAll(ctx, rift, player);
+				try {
+					killAll(ctx, rift, player);
+				} catch (Throwable t) {
+					NetherRiftsTests.writeConfig(NetherRiftsTests.FAST);
+					throw t;
+				}
 				ctx.runAfterDelay(5, () -> {
-					ctx.assertTrue(FormingTests.riftsIn(ctx).isEmpty(), "the raid went on past the shortened list: wave " + rift.wave());
-					ctx.assertTrue(names.contains("Rift Raid: Wave 6/7"), "the bar named " + names);
-					ctx.assertTrue(names.stream().noneMatch(n -> n.contains("6/5") || n.contains("Wave 7")), "the bar named " + names);
+					try {
+						ctx.assertTrue(FormingTests.riftsIn(ctx).isEmpty(), "the raid went on past the shortened list: wave " + rift.wave());
+						ctx.assertTrue(names.contains("Rift Raid: Wave 6/7"), "the bar named " + names);
+						ctx.assertTrue(names.stream().noneMatch(n -> n.contains("6/5") || n.contains("Wave 7")), "the bar named " + names);
+					} finally {
+						NetherRiftsTests.writeConfig(NetherRiftsTests.FAST);
+					}
 					finish(ctx, player);
 				});
 			});

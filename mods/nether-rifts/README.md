@@ -45,7 +45,7 @@ despawns for being far from players: `mobs.general`) is off until a wave lists `
 that wave, and gets its own red boss bar. A player who kills him gets a blaze rod, 4 to 8 quartz and, a quarter of the
 time, a piglin banner pattern (his loot isn't settled yet; he drops no head). He fights one move at a time, each told
 before it lands. He walks slowly after the nearest player and, when one is within 4 blocks in front of him, swings his
-mace: he twists back for about two thirds of a second, then hits every player within 4.5 blocks and a 120 degree arc in
+mace: he twists back and, about 0.9 seconds after he starts, hits every player within 4.5 blocks and a 120 degree arc in
 front of him for 10 damage and a hard shove, so stepping back or round behind him dodges it. Every 12 seconds (6, if
 something hit him with a projectile in the last 3) and with a player within 10 blocks, he crouches with his arms out for
 a second, a rising wind telling it, and then spins for 3 to 5 seconds, drifting after his target a little faster than he walks.
@@ -57,10 +57,11 @@ trident, a fishing hook and an ender pearl stay their thrower's. After a spin he
 turning or attacking, and takes half again as much damage. The first time his health falls below two thirds and below a
 third he roars (a hit across both queues two, played back to back), standing still for two seconds, and halfway through
 his rift sends his guard through it: half of the large tier's last wave's ranged, melee and elite mobs (rounded down,
-but at least one crossbow and one melee piglin), a Piglin Grenadier on foot and a Piglin Drummer riding a hoglin (the
+but at least one crossbow piglin and one melee mob), a Piglin Grenadier on foot and a Piglin Drummer riding a hoglin (the
 hoglin steers and charges, and the Drummer drums and gives its beats from the saddle), no ghasts or striders. They belong to
 the raid, so they count toward the wave and must die for it to be won, and each comes at one of the players who have hurt
-him, in turn, or at the player nearest him if none has. A General with no rift (summoned, or his rift gone) fights the
+him, in turn, or at the player nearest him if none of those is still taking part (none has hurt him, or they've left);
+creative players are passed over. A General with no rift (summoned, or his rift gone) fights the
 nearest player and his roars call nobody. A rift's striders keep
 the nether's heat: off lava they don't go cold and slow down, rain doesn't hurt them (water still does), and their
 crossbow piglins steer them. A rift's ghasts fire at players above and below them, not only level with them, and
@@ -96,8 +97,9 @@ each), a wave being how many of each slot it brings (`ranged`, `melee`, `heavy`,
 and the General's guard's `grenadier` and `mounted_drummer`, a Drummer on a hoglin, which `roster` also sets; a slot left
 out counts 0); a tier left out keeps the vanilla table. The Piglin General is off by default: add `captain: 1` to a large
 wave (the last) to bring him in. `tiers.medium_max: 441` holds back large rifts.
-`/rifts reload` takes effect from the next wave; if it shortens a running raid's list, the raid ends with victory after
-its current wave. Commands: `/rifts …`, permission `nether_rifts:rifts` (level 2).
+`/rifts reload` takes the new `waves` from the next wave; if it shortens a running raid's list, the raid ends with victory
+after its current wave. The General's move numbers in `mobs.general` apply at once, his health, armour and speed to
+Generals that come after. Commands: `/rifts …`, permission `nether_rifts:rifts` (level 2).
 
 To see the mobs' looks: `/rifts showcase` lays out, in rows in front of you and facing you, a Piglin Drummer per
 animation (each looping it), Piglin Drummers in every kind of armour with gear in hand or on the head, a Piglin

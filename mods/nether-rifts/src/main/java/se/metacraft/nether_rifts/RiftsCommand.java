@@ -79,8 +79,10 @@ public final class RiftsCommand {
 					for (var level : ctx.getSource().getServer().getAllLevels()) {
 						for (var rift : RiftData.get(level).all()) {
 							n++;
+							// a reload may have shortened the list under a running raid, as the bar's name allows for
+							int waves = NetherRiftsConfig.getInstance().waveCount(rift.tier());
 							var line = level.dimension().identifier() + " " + rift.shape().centreBlock().toShortString() + " " + rift.stage().getSerializedName()
-									+ " " + rift.tier().getSerializedName() + (rift.stage() == Stage.RAID ? " wave " + rift.wave() + "/" + NetherRiftsConfig.getInstance().waveCount(rift.tier()) : "");
+									+ " " + rift.tier().getSerializedName() + (rift.stage() == Stage.RAID ? " wave " + Math.min(rift.wave(), waves) + "/" + waves : "");
 							ctx.getSource().sendSuccess(() -> Component.literal(line), false);
 						}
 					}

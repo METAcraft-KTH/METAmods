@@ -48,7 +48,7 @@ public final class RiftMobs {
 			NetherRifts.getID("rift"), builder -> builder.persistent(UUIDUtil.CODEC)
 	);
 
-	/** Entity tag on the Rift Captain's root mob; tags are saved with the mob, so its boss bar survives a restart. */
+	/** Entity tag on the Captain's root mob (the {@code captain} slot's); tags are saved with the mob, so its boss bar survives a restart. */
 	public static final String CAPTAIN_TAG = "nether_rifts.captain";
 
 	private RiftMobs() {}
