@@ -300,11 +300,11 @@ public final class GeneratedAssets implements DataProvider {
 				"south", face(nums(7, 0, 9, 16), E, "south"),
 				"west", face(nums(7, 0, 0, 16), P, null), "east", face(nums(0, 0, 7, 16), P, null))));
 		arms.put('e', obj("from", nums(9, 0, 7), "to", nums(16, 16, 9), "faces", obj(
-				"down", face(nums(9, 7, 16, 9), E, null), "up", face(nums(9, 7, 16, 9), E, null),
+				"down", paneRotatedEdge(E, 270), "up", paneRotatedEdge(E, 90),
 				"east", face(nums(7, 0, 9, 16), E, "east"),
 				"north", face(nums(16, 0, 9, 16), P, null), "south", face(nums(9, 0, 16, 16), P, null))));
 		arms.put('w', obj("from", nums(0, 0, 7), "to", nums(7, 16, 9), "faces", obj(
-				"down", face(nums(0, 7, 7, 9), E, null), "up", face(nums(0, 7, 7, 9), E, null),
+				"down", paneRotatedEdge(E, 270), "up", paneRotatedEdge(E, 90),
 				"west", face(nums(7, 0, 9, 16), E, "west"),
 				"north", face(nums(7, 0, 0, 16), P, null), "south", face(nums(0, 0, 7, 16), P, null))));
 		// the post's side faces when nothing is attached on that side (vanilla's "noside" parts)
@@ -331,6 +331,12 @@ public final class GeneratedAssets implements DataProvider {
 					"elements", arr(elements.toArray())));
 		}
 		return out;
+	}
+
+	private static JsonObject paneRotatedEdge(String texture, int rotation) {
+		// Rotating the arm around Y rotates its UVs too, not the sprite: its only visible
+		// pixels are the vertical strip at u=7..9. Up and down have opposite winding.
+		return obj("uv", nums(7, 0, 9, 7), "texture", texture, "rotation", rotation);
 	}
 
 	private static JsonObject face(JsonElement uv, String texture, String cullface) {
