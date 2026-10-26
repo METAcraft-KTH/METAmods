@@ -9,7 +9,6 @@ Reference renders are in `references/`, and the goggles concepts are in `concept
 | --- | --- | --- |
 | `war_drummer.bbmodel` | The War Drummer, a piglin with a war drum at its belly. The blockout is the current placeholder, without drumsticks: it beats the drum by hand. | Remodel and animate. `head_banner` (the black snout banner) may go; we haven't decided. |
 | `war_ghast.bbmodel` | The war ghast: a ghast with a wooden deck hung under it on four chains, and a crew of three piglins on the deck. | Remodel and animate. Model the chain harness in `harness` (chains round the ghast, crossing to a ring on top). Extra crew (a drummer, torch bearers) go in `crew_extra`. `crew_gone` is already filled in: keep it. |
-| `rift_captain.bbmodel` | The Rift Captain, a new boss: a 4-block-tall piglin general with a netherite longsword, after the movie's General Chungus. | New mob: model and animate. The blockout is a vanilla brute at 2x with a placeholder sword. |
 | `bombardier_helmet.bbmodel` | The Ghast Bombardier's goggles, worn on a piglin's head. A Java Block/Item model. | Item: model and texture. No animations. |
 
 ## Rules

@@ -31,9 +31,6 @@ ANIMATIONS = {
 		"big_beat_windup": (0.5, "once"), "big_beat": (0.5, "once"), "death": (1.0, "hold")},
 	"war_ghast": {"idle": (3.0, "loop"), "shoot": (1.0, "once"), "drop_bomb": (0.3, "once"), "dive": (1.0, "hold"),
 		"climb": (1.0, "hold"), "crew_gone": (0.1, "loop")},
-	"rift_captain": {"idle": (3.0, "loop"), "walk": (1.6, "loop"), "attack": (1.2, "once"),
-		"spin_windup": (1.0, "once"), "spin": (0.5, "loop"), "dizzy": (1.0, "loop"), "slam": (1.5, "once"),
-		"roar": (2.0, "once"), "death": (2.0, "hold")},
 	"bombardier_helmet": {},
 }
 
@@ -234,29 +231,6 @@ def war_ghast():
 	write_entity(m)
 
 
-# Vanilla's piglin brute model is 2 blocks to the top of its head; the captain, a General Chungus of a brute, stands 4.
-CAPTAIN_SCALE = 2.0
-
-
-def rift_captain():
-	"""A new boss: the vanilla piglin (brute texture) at 2x, a placeholder netherite longsword held forward in its right
-	fist. The look to model is the movie's piglin general (netherite helm with a gold streak, a gold snout on the chest,
-	rope-bound arms, a skull belt buckle)."""
-	m = gm.Model("rift_captain")
-	s = CAPTAIN_SCALE
-	gm.import_java_entity(m, "piglin.json", (0, 0), scale=s, skip={"leftItem"}, rename=PIGLIN_BONES,
-		texture="entity/piglin/piglin_brute.png",
-		parents={"head": "body", "arm_right": "body", "arm_left": "body"})
-	# the longsword in the right fist, pointing forward: a gold grip and guard, a netherite blade about 2.5 blocks long
-	hand = (6 * s, 13.5 * s, 0)
-	m.group("sword", hand, parent="arm_right")
-	hx, hy = hand[0], hand[1]
-	m.cube("sword", "grip", (hx - 1, hy - 1, -2), (hx + 1, hy + 1, 6), "gold_block")
-	m.cube("sword", "guard", (hx - 1, hy - 4, -4), (hx + 1, hy + 4, -2), "gold_block")
-	m.cube("sword", "blade", (hx - 0.5, hy - 2, -44), (hx + 0.5, hy + 2, -4), "netherite_block")
-	write_entity(m)
-
-
 # The helmet's flat colours (gen_models paints materials it has no block texture for from its PALETTE).
 HELMET_COLOURS = {"strap": (74, 48, 30), "lens": (150, 212, 232), "brass": (214, 170, 64),
 	"head_reference": (226, 150, 140)}
@@ -291,7 +265,7 @@ def bombardier_helmet():
 		"display": {"head": {"scale": [1.6, 1.6, 1.6]}}}, m.name)
 
 
-STARTERS = [war_drummer, war_ghast, rift_captain, bombardier_helmet]
+STARTERS = [war_drummer, war_ghast, bombardier_helmet]
 
 # The bone trees the starters must have: {bone: {child bones}} with the roots under None.
 TREES = {
@@ -305,8 +279,6 @@ TREES = {
 		"crossbow_left_head": {"crossbow_left_ear_left", "crossbow_left_ear_right"},
 		"crew_crossbow_right": {"crossbow_right_head", "crossbow_right_arms"},
 		"crossbow_right_head": {"crossbow_right_ear_left", "crossbow_right_ear_right"}},
-	"rift_captain": {None: {"body", "leg_left", "leg_right"}, "body": {"head", "arm_left", "arm_right"},
-		"head": {"ear_left", "ear_right"}, "arm_right": {"sword"}},
 	"bombardier_helmet": {None: {"helmet"}, "helmet": {"goggles"}},
 }
 BONE_NAME = re.compile(r"[a-z][a-z0-9]*(_[a-z0-9]+)*")

@@ -88,9 +88,9 @@ metacraft-lib's fail in a fresh checkout until its data is generated, so run
 
 Screenshots: `./gradlew :mods:nether-rifts:runClientGameTest` (opens a window).
 
-The mob models in `src/main/resources/model/nether_rifts/`, the Piglin Drummer and the Chained Ghast with its crew,
-and the Grenadier's goggles and glove, are by Millia, brought in by re-runnable imports that
-fit them to how BIL (or the item model format) plays them. The Chained Ghast's, goggles' and glove's source files are in
+The mob models in `src/main/resources/model/nether_rifts/`, the Piglin Drummer, the Chained Ghast with its crew,
+the Piglin General, and the Grenadier's goggles and glove, are by Millia, brought in by re-runnable imports that
+fit them to how BIL (or the item model format) plays them. The Chained Ghast's, Piglin General's, goggles' and glove's source files are in
 `blockbench/delivered/` (`blockbench/README.md`). `python3 tools/import_drummer.py <artist's .bbmodel>` does the Piglin Drummer: adds
 the gear markers and the armour pieces (vanilla's piglin armour cubes, in the bones they cover), and writes the
 armour's item models for each vanilla material (`assets/nether_rifts/{models/item,items}/war_drummer/armour/`) with an
@@ -101,6 +101,10 @@ Chained Ghast: takes the texture PNG, puts the ghast's body on the entity's box 
 layers, the goggles and the bomb pile into their parts, adds the markers the crew jump off at (the artist marks where
 the gear goes), the spear piglin's armour (`…/war_ghast/armour/`), and gives each animation idle's tracks for the
 bones it doesn't move (BIL plays one animation at a time, over every bone); both share `tools/piglin_armour.py`.
+`python3 -I tools/import_general.py blockbench/delivered/piglin_general.bbmodel src/main/resources/model/nether_rifts/piglin_general.bbmodel`
+does the Piglin General: scales the geometry 1.5x (`PiglinGeneral.MODEL_SCALE`), drops the artist's reference pose, gives
+each animation idle's first pose for the bones it doesn't key, and splits the root's 0 to 360 degree turns in `spin` and
+`dizzy` into quarter turns (BIL's quaternions read a full turn as none).
 `tools/gen_models.py` builds placeholder models from vanilla geometry; none are in use now. What clients hit on a BIL
 mob or a crew member is an invisible piglin (a ghast for the Chained Ghast) as tall as its box (`HitStandIn`), so the
 crosshair shows its attack indicator as over a vanilla mob; the interaction BIL would have them hit goes to them zero wide. The Grenadier on foot has

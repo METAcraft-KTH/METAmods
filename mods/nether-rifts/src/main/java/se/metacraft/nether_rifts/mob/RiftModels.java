@@ -11,9 +11,9 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 
 /**
- * The rift mobs' Blockbench models (the artist's, brought into /model/nether_rifts/ by tools/import_drummer.py and
- * tools/import_ghast.py), loaded once: BIL doesn't cache models, and they must exist before Polymer builds the
- * resource pack.
+ * The rift mobs' Blockbench models (the artist's, brought into /model/nether_rifts/ by tools/import_drummer.py,
+ * tools/import_ghast.py and tools/import_general.py), loaded once: BIL doesn't cache models, and they must exist
+ * before Polymer builds the resource pack.
  */
 public final class RiftModels {
 
@@ -22,6 +22,7 @@ public final class RiftModels {
 
 	public static final Model WAR_DRUMMER = load("war_drummer");
 	public static final Model WAR_GHAST = load("war_ghast");
+	public static final Model PIGLIN_GENERAL = load("piglin_general");
 
 	/**
 	 * The red a mob flashes while hurt or dying. Vanilla tints its own models; BIL's bones are item displays it

@@ -47,6 +47,79 @@ public class ModelTests {
 			Set.of("idle", "walk", "beat", "big_beat"));
 	}
 
+	static final Set<String> GENERAL_BONES = Set.of("general", "body", "torso", "jacket", "front_curtain", "back_curtain", "head", "left_ear",
+		"right_ear", "helmet", "right_arm", "mace", "left_arm", "flagpole", "flag", "left_leg", "right_leg");
+
+	/**
+	 * The artist's Piglin General, as tools/import_general.py brings it in at 1.5x: BIL plays one animation over every
+	 * bone, so each animation keys them all; his spin turns the root bone in steps BIL's quaternions can follow; and he
+	 * stands as tall as a boss should, the flag aside.
+	 */
+	@Test
+	public void piglinGeneral() throws IOException {
+		var animations = Set.of("idle", "walk", "attack", "spin_windup", "spin", "dizzy", "roar", "death");
+		assertModel("piglin_general", GENERAL_BONES, animations);
+		var file = json("/model/nether_rifts/piglin_general.bbmodel");
+		var groups = new java.util.HashMap<String, String>();
+		file.getAsJsonArray("groups").forEach(g -> groups.put(g.getAsJsonObject().get("uuid").getAsString(), g.getAsJsonObject().get("name").getAsString()));
+		assertEquals(GENERAL_BONES, new java.util.HashSet<>(groups.values()), "the model's bones");
+		var seen = new java.util.HashSet<String>();
+		for (var element : file.getAsJsonArray("animations")) {
+			var animation = element.getAsJsonObject();
+			var name = animation.get("name").getAsString();
+			seen.add(name);
+			var keyed = new java.util.HashSet<String>();
+			animation.getAsJsonObject("animators").entrySet().forEach(e -> {
+				if (channels(e.getValue().getAsJsonObject()).size() > 0) {
+					keyed.add(groups.get(e.getKey()));
+				}
+			});
+			assertEquals(GENERAL_BONES, keyed, name + " leaves bones unkeyed");
+			if (name.equals("spin") || name.equals("dizzy")) {
+				var root = groups.entrySet().stream().filter(g -> g.getValue().equals("general")).findFirst().orElseThrow().getKey();
+				var turn = animation.getAsJsonObject("animators").getAsJsonObject(root).getAsJsonArray("keyframes").asList().stream()
+					.map(k -> k.getAsJsonObject()).filter(k -> k.get("channel").getAsString().equals("rotation")).toList();
+				if (name.equals("spin")) {
+					assertTrue(turn.size() >= 4, "spin turns the General in " + turn.size() + " keys");
+				}
+				double last = 0;
+				for (var key : turn) {
+					double y = key.getAsJsonArray("data_points").get(0).getAsJsonObject().get("y").getAsDouble();
+					assertTrue(Math.abs(y - last) <= 90 + 1e-6, name + " turns " + (y - last) + " degrees between keys");
+					last = y;
+				}
+				assertEquals(360, last, 1e-6, name + " ends a full turn");
+			}
+		}
+		assertEquals(animations, seen, "the model's animations");
+		// his height: the highest cube top, but for the flagpole's (the flag stands above him)
+		var flag = new java.util.HashSet<String>();
+		var flagpole = groups.entrySet().stream().filter(g -> g.getValue().equals("flagpole")).findFirst().orElseThrow().getKey();
+		collectSubtreeCubes(file.getAsJsonArray("outliner"), flagpole, false, flag);
+		double top = 0;
+		for (var element : file.getAsJsonArray("elements")) {
+			var e = element.getAsJsonObject();
+			if (!flag.contains(e.get("uuid").getAsString())) {
+				top = Math.max(top, e.getAsJsonArray("to").get(1).getAsDouble());
+			}
+		}
+		assertTrue(top / 16 >= 3.2 && top / 16 <= 3.4, "the General is " + top / 16 + " blocks tall");
+	}
+
+	/** The cube uuids in the outliner group {@code uuid} and all it holds. */
+	private static void collectSubtreeCubes(com.google.gson.JsonArray nodes, String uuid, boolean in, java.util.Set<String> out) {
+		for (var n : nodes) {
+			if (n.isJsonPrimitive()) {
+				if (in) {
+					out.add(n.getAsString());
+				}
+			} else {
+				var o = n.getAsJsonObject();
+				collectSubtreeCubes(o.getAsJsonArray("children"), uuid, in || o.get("uuid").getAsString().equals(uuid), out);
+			}
+		}
+	}
+
 	/**
 	 * The Grenadier on foot is a vanilla piglin: its goggles are the artist's, an item model in the mod's resource pack
 	 * (tools/bbmodel_to_item.py) on its own texture, drawn on the head by its head display.
