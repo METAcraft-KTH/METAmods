@@ -8,12 +8,9 @@ order=2
 ### Header: Getting them
 Patches are items, one per design: <citem 'ovvar:patch_itk'>, <citem 'ovvar:patch_it'>, <citem 'ovvar:patch_data'>, <citem 'ovvar:patch_spiken'> and the rest. Hover a patch to see who drew it and where it may be sewn.
 
-<bold>Crafted.</bold> The chapters' own patches are a dye in the middle of the crafting grid with a <citem 'minecraft:string'> on each of its four sides:
-- <citem 'minecraft:lime_dye'> makes <citem 'ovvar:patch_itk'>;
-- <bold>Laserviolet</bold> dye makes <citem 'ovvar:patch_it'>;
-- <bold>Cerise</bold> dye makes <citem 'ovvar:patch_data'>.
+### Image: metacraft:beside/recipe/patch_itk <bold>Crafted.</bold> The chapters' own patches are a dye in the middle of the crafting grid with a <citem 'minecraft:string'> on each of its four sides:<nl><citem 'minecraft:lime_dye'> makes <citem 'ovvar:patch_itk'>;<nl><bold>Laserviolet</bold> dye makes <citem 'ovvar:patch_it'>;<nl><bold>Cerise</bold> dye makes <citem 'ovvar:patch_data'>
 
-Laserviolet and Cerise are the two new colours on the Colors page. An IT patch crafted with a <citem 'minecraft:experience_bottle'> becomes <citem 'ovvar:patch_in'>.
+### Image: metacraft:beside/recipe/patch_in Laserviolet and Cerise are the two new colours on the Colors page. An IT patch crafted with a <citem 'minecraft:experience_bottle'> becomes <citem 'ovvar:patch_in'>.
 
 <bold>Found.</bold> Every other patch is treasure: a chest in any structure — a village house, a dungeon, a mineshaft, a shipwreck, a temple and the rest — has about a one in twenty chance of holding one. Not the bonus chest at spawn.
 

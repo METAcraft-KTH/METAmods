@@ -5,7 +5,7 @@ category=metacraft:student_culture
 icon=minecraft:loom
 order=20
 ### EndSection: PageInfo
-The chapters' own patterns go on banners the way vanilla's do: in a <citem 'minecraft:loom'>, in any dye colour, Cerise, Laserviolet and RGB included. Craft the banner onto a shield and the shield shows it too.
+### Image: metacraft:beside/kultur/banners The chapters' own patterns go on banners the way vanilla's do: in a <citem 'minecraft:loom'>, in any dye colour, Cerise, Laserviolet and RGB included. Craft the banner onto a shield and the shield shows it too.
 
 ### Header: In any loom
 <bold>ITK</bold>, <bold>QMISK</bold> and <bold>TMEIT</bold> need no pattern item. Put a banner and a dye in any loom and pick them from the list.
