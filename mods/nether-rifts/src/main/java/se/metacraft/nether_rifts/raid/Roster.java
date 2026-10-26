@@ -41,7 +41,7 @@ public final class Roster {
 			Slot.ELITE, one("{id:\"minecraft:piglin_brute\",equipment:{mainhand:{id:\"minecraft:golden_axe\",count:1}}}"),
 			Slot.LEADER, one("{id:\"nether_rifts:war_drummer\"}"),
 			// his stats come from the config's mobs.general
-			Slot.CAPTAIN, one("{id:\"nether_rifts:piglin_general\"}"),
+			Slot.CAPTAIN, one("{id:\"nether_rifts:piglin_general\",BossBar:{color:red,music:{music:\"minecraft:music_disc.pigstep\",length:137,credit:\"Pigstep - Lena Raine\"}}}"),
 			Slot.BOMBARDIER, one("{id:\"nether_rifts:war_ghast\"}"),
 			// the General's guard: the Grenadier on foot, and a drummer on a hoglin
 			Slot.GRENADIER, one("{id:\"nether_rifts:ghast_bombardier\"}"),

@@ -190,7 +190,6 @@ public class MobTests {
 				ctx.assertTrue(general.getMaxHealth() == 300 && general.getHealth() == 300, "the General has " + general.getHealth() + " / " + general.getMaxHealth());
 				ctx.assertTrue(general.getArmorValue() == 16, "the General has armour " + general.getArmorValue());
 				ctx.assertTrue(Math.abs(general.getBbHeight() - 3.3f) < 0.05f, "the General is " + general.getBbHeight() + " tall");
-				ctx.assertTrue(general.entityTags().contains(RiftMobs.CAPTAIN_TAG), "the General isn't tagged the Captain");
 				ctx.assertTrue(general.isImmuneToZombification(), "the General can turn zombie");
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);

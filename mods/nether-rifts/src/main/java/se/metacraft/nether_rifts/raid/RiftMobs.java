@@ -50,9 +50,6 @@ public final class RiftMobs {
 			NetherRifts.getID("rift"), builder -> builder.persistent(UUIDUtil.CODEC)
 	);
 
-	/** Entity tag on the Captain's root mob (the {@code captain} slot's); tags are saved with the mob, so its boss bar survives a restart. */
-	public static final String CAPTAIN_TAG = "nether_rifts.captain";
-
 	private RiftMobs() {}
 
 	public static void init() {
@@ -154,9 +151,6 @@ public final class RiftMobs {
 		entity.setAttached(RIFT, rift);
 		// nobody traps a raid's mobs in a boat or a minecart
 		((EntityExtensions) entity).metacraft_lib$setPreventEnterVehicle(true);
-		if (slot == Slot.CAPTAIN && entity.getVehicle() == null) {
-			entity.addTag(CAPTAIN_TAG);
-		}
 		if (entity instanceof Mob mob) {
 			mob.setPersistenceRequired();
 			mob.setCanPickUpLoot(false);

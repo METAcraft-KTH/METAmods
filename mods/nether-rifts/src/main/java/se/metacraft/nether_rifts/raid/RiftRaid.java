@@ -95,34 +95,8 @@ public final class RiftRaid {
 		if (level.getGameTime() % 20 == 0) {
 			tether(level, rift, alive, config.ranges().tether());
 		}
-		updateCaptainBar(level, rift, alive, players);
 		bar.setProgress(rift.waveSize == 0 ? 0f : Mth.clamp(alive.size() / (float) rift.waveSize, 0f, 1f));
 		advanceIfCleared(level, rift, data, alive, () -> surroundingsLoaded(level, rift, config.ranges().tether()));
-	}
-
-	/** The Captain's own red bar, shown to the participants while the tagged Captain lives. */
-	private static void updateCaptainBar(ServerLevel level, Rift rift, List<LivingEntity> alive, List<ServerPlayer> players) {
-		var captain = alive.stream().filter(e -> e.entityTags().contains(RiftMobs.CAPTAIN_TAG)).findFirst();
-		var bar = rift.captainBar();
-		if (captain.isEmpty()) {
-			if (bar != null) {
-				bar.removeAllPlayers();
-				rift.setCaptainBar(null);
-			}
-			return;
-		}
-		if (bar == null) {
-			bar = new ServerBossEvent(Mth.createInsecureUUID(RandomSource.create()), captain.get().getDisplayName(),
-					BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.PROGRESS);
-			rift.setCaptainBar(bar);
-		}
-		bar.setProgress(Mth.clamp(captain.get().getHealth() / captain.get().getMaxHealth(), 0f, 1f));
-		for (var shown : List.copyOf(bar.getPlayers())) {
-			if (!players.contains(shown)) {
-				bar.removePlayer(shown);
-			}
-		}
-		players.forEach(bar::addPlayer);
 	}
 
 	/**
@@ -417,10 +391,6 @@ public final class RiftRaid {
 		}
 		if (rift.bossBar() != null) {
 			rift.bossBar().removeAllPlayers();
-		}
-		if (rift.captainBar() != null) {
-			rift.captainBar().removeAllPlayers();
-			rift.setCaptainBar(null);
 		}
 		rift.destroyVisual();
 		data.remove(rift);
