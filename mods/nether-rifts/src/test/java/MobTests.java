@@ -110,6 +110,8 @@ public class MobTests {
 			var at = ctx.absolutePos(new BlockPos(12, 1, 12));
 			general.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
 			general.finalizeSpawn(ctx.getLevel(), ctx.getLevel().getCurrentDifficultyAt(at), net.minecraft.world.entity.EntitySpawnReason.SPAWN_ITEM_USE, null);
+			// no player of this test is near him: a monster with only far players (other tests', over 128 blocks off) despawns
+			general.setPersistenceRequired();
 			ctx.getLevel().addFreshEntity(general);
 			ctx.assertFalse(RiftMobs.isRiftMob(general), "a summoned General belongs to a rift: the test proves nothing");
 			ctx.assertTrue(general.isImmuneToZombification(), "a summoned General can turn zombie");

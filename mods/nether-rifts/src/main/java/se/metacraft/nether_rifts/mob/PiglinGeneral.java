@@ -46,7 +46,8 @@ import java.util.List;
  * The Piglin General, the Rift Captain: the artist's model at {@link #MODEL_SCALE}× (a box 1.3 across and 3.3 tall),
  * with the config's {@code mobs.general} stats. He walks after his target: his brain's attack target while it is one to
  * fight, else the nearest player who can fight within {@link #TARGET_RANGE} blocks. His moves (the swing, the spin, the
- * roar) are played through {@link #play}, one at a time, over his idle and walk.
+ * roar) are chosen one at a time by his {@link GeneralTactics}, and played through {@link #play} over his idle and walk;
+ * during one he stands still.
  *
  * <p>He is a piglin to other piglins ({@link AbstractPiglin}), as the War Drummer is: they share their anger with him,
  * and when he is hit they turn on the attacker. His brain only remembers, with no behaviours, so he never hunts,
@@ -76,6 +77,7 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	);
 
 	private final HeldItems.Holder<PiglinGeneral> holder;
+	private final GeneralTactics tactics = new GeneralTactics(this);
 	private boolean walking = false;
 	private double lastX, lastZ;
 	/** The move animation playing (one {@link #play} started), or null; while one plays, his walk and idle wait. */
@@ -127,6 +129,11 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 		if (instance != null) {
 			instance.setBaseValue(value);
 		}
+	}
+
+	/** His fight: the move he is in, one at a time. */
+	public GeneralTactics tactics() {
+		return tactics;
 	}
 
 	/** His tuning: the config's {@code mobs.general}. */
@@ -241,6 +248,7 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	public void die(DamageSource source) {
 		super.die(source);
 		if (!level().isClientSide()) {
+			tactics.stop();
 			stopMove();
 			holder.getAnimator().stopAnimation("walk");
 			walking = false;
@@ -289,6 +297,7 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	@Override
 	protected void registerGoals() {
 		goalSelector.addGoal(0, new FloatGoal(this));
+		goalSelector.addGoal(1, new HoldGoal(this));
 		goalSelector.addGoal(2, new ChaseGoal(this));
 		goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.8));
 		goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 12.0f));
@@ -304,6 +313,7 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 			return;
 		}
 		pickTarget(level);
+		tactics.tick(level);
 		// moved since the last AI step (this tick's own move comes after it)
 		boolean moving = Mth.lengthSquared(getX() - lastX, getZ() - lastZ) > WALKING * WALKING;
 		lastX = getX();
@@ -353,7 +363,7 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 		@Override
 		public boolean canUse() {
 			var target = general.getTarget();
-			return target != null && target.isAlive();
+			return target != null && target.isAlive() && general.tactics.move() == GeneralTactics.Move.CHASE;
 		}
 
 		@Override
@@ -374,7 +384,8 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 		@Override
 		public void tick() {
 			var target = general.getTarget();
-			if (target == null) {
+			// a move started since the goals last chose: he stands, and the hold takes over
+			if (target == null || general.tactics.move() != GeneralTactics.Move.CHASE) {
 				return;
 			}
 			general.getLookControl().setLookAt(target, 30f, 30f);
@@ -382,6 +393,30 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 				repath = REPATH_EVERY;
 				general.getNavigation().moveTo(target, 1.0);
 			}
+		}
+	}
+
+	/**
+	 * In any move but the chase he stands where he is: no walking, strolling or looking about. Which way he faces is
+	 * the move's ({@link GeneralTactics}).
+	 */
+	private static final class HoldGoal extends Goal {
+
+		private final PiglinGeneral general;
+
+		HoldGoal(PiglinGeneral general) {
+			this.general = general;
+			setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK, Flag.JUMP));
+		}
+
+		@Override
+		public boolean canUse() {
+			return general.tactics.move() != GeneralTactics.Move.CHASE;
+		}
+
+		@Override
+		public void start() {
+			general.getNavigation().stop();
 		}
 	}
 }
