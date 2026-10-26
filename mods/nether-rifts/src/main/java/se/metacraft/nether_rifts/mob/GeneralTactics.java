@@ -96,6 +96,19 @@ public final class GeneralTactics {
 	}
 
 	/**
+	 * Roars still to bring his guard: those queued, and one playing that hasn't reached {@link #ROAR_SPAWN_TICK}. Saved,
+	 * as a loaded General starts over at the chase ({@link #setRoarsQueued}).
+	 */
+	public int roarsPending() {
+		return roarsQueued + (move == Move.ROAR && moveTicks < ROAR_SPAWN_TICK ? 1 : 0);
+	}
+
+	/** These many roars queued, in place of any queued now (a loaded General's {@link #roarsPending}). */
+	public void setRoarsQueued(int roars) {
+		roarsQueued = Math.max(0, roars);
+	}
+
+	/**
 	 * Starts this move now, over the one playing (the tactics' own choice, and tests'). The chase ends any move
 	 * animation still playing; every other move stops his walking.
 	 */

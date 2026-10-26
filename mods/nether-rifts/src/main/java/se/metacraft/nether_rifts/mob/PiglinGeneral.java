@@ -111,7 +111,7 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	private String move;
 	/** The players who have hurt him while he lives, first first; not saved. */
 	private final Set<UUID> attackers = new LinkedHashSet<>();
-	/** How many of his {@code roar_at} thresholds he has roared for (queued counts): saved, so a restart doesn't give them back. */
+	/** How many of his {@code roar_at} thresholds he has roared for (queued counts): saved, so a restart doesn't give them back; those still to play are saved too (roars_queued). */
 	private int roarsUsed = 0;
 
 	public PiglinGeneral(EntityType<? extends PiglinGeneral> type, Level level) {
@@ -320,6 +320,8 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	protected void addAdditionalSaveData(ValueOutput output) {
 		super.addAdditionalSaveData(output);
 		output.putInt("roars_used", roarsUsed);
+		// counted in roars_used as they queued: unsaved, a restart before they play would lose their guard
+		output.putInt("roars_queued", tactics.roarsPending());
 	}
 
 	@Override
@@ -327,6 +329,7 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 		super.readAdditionalSaveData(input);
 		setCanPickUpLoot(false);
 		roarsUsed = input.getIntOr("roars_used", 0);
+		tactics.setRoarsQueued(Math.min(input.getIntOr("roars_queued", 0), roarsUsed));
 	}
 
 	/**

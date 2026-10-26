@@ -1,4 +1,5 @@
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.Entity;
@@ -35,6 +36,7 @@ import net.minecraft.world.entity.projectile.arrow.Arrow;
 import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import se.metacraft.nether_rifts.mob.GeneralTactics;
@@ -500,6 +502,37 @@ public class GeneralTests {
 				ctx.assertTrue(!roared.get(), "reloaded at 0.65 and hurt to 0.55, he roared again");
 			}));
 		});
+		NetherRiftsTests.register("general/queued_roar_survives_reload", ctx -> {
+			// Hurt below two thirds as he spins, his roar waits on the spin and the dizzy; saved dizzy, it's still to play
+			// when he's loaded, and he roars it. Saved again mid-roar before his guard comes, it's still to play.
+			var general = general(ctx);
+			hurtTo(ctx, general, null, 0.6);
+			general.tactics().start(Move.DIZZY);
+			var tag = saved(ctx, general);
+			var reloaded = RiftEntities.PIGLIN_GENERAL.create(ctx.getLevel(), EntitySpawnReason.LOAD);
+			reloaded.load(TagValueInput.create(ProblemReporter.DISCARDING, ctx.getLevel().registryAccess(), tag));
+			reloaded.setUUID(UUID.randomUUID());
+			general.discard();
+			ctx.getLevel().addFreshEntity(reloaded);
+			var roared = new AtomicBoolean(false);
+			var midRoar = new AtomicInteger(-1);
+			ctx.onEachTick(() -> {
+				var tactics = reloaded.tactics();
+				if (tactics.move() == Move.ROAR) {
+					roared.set(true);
+					if (midRoar.get() < 0 && tactics.moveTicks() > 0 && tactics.moveTicks() < GeneralTactics.ROAR_SPAWN_TICK) {
+						midRoar.set(saved(ctx, reloaded).getIntOr("roars_queued", -1));
+					}
+				}
+			});
+			ctx.runAfterDelay(GeneralTactics.ROAR_TICKS + 5, () -> finish(ctx, () -> {
+				ctx.assertTrue(tag.getIntOr("roars_queued", -1) == 1, "saved dizzy, his save holds roars_queued " + tag.getIntOr("roars_queued", -1));
+				ctx.assertTrue(roared.get(), "reloaded with a roar to play, he never roared");
+				ctx.assertTrue(midRoar.get() == 1, "saved mid-roar before his guard, his save holds roars_queued " + midRoar.get());
+				ctx.assertTrue(reloaded.roarsUsed() == 1, "reloaded, he has roared " + reloaded.roarsUsed() + " times");
+				ctx.assertTrue(reloaded.tactics().roarsPending() == 0, "he still has " + reloaded.tactics().roarsPending() + " roars to play");
+			}));
+		});
 		NetherRiftsTests.register("general/guard_falls_back_to_nearest", ctx -> {
 			// A General nobody has hurt yet (or one whose attackers went with a restart) sends his guard at the participant
 			// nearest him, every one of them.
@@ -531,6 +564,41 @@ public class GeneralTests {
 				} finally {
 					StageTests.remove(ctx, far);
 					riftCleanUp(ctx, near);
+				}
+				ctx.succeed();
+			});
+		});
+		NetherRiftsTests.register("general/guard_skips_creative", ctx -> {
+			// A creative player who hurt him and stands nearest him gets none of his guard: it all comes at the survival
+			// player farther off.
+			FormingTests.lightFrame(ctx, 2, 3);
+			penRoom(ctx);
+			var creative = StageTests.player(ctx);
+			var survival = StageTests.player(ctx);
+			DrummerTests.ready(survival);
+			survival.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, MobEffectInstance.INFINITE_DURATION, 4));
+			creative.setGameMode(GameType.CREATIVE);
+			ctx.runAtTickTime(3, () -> {
+				var level = ctx.getLevel();
+				var rift = FormingTests.riftIn(ctx);
+				rift.tear(level);
+				rift.setStage(level, Stage.RAID);
+				var at = ctx.absolutePos(new BlockPos(12, 1, 14));
+				var general = RiftEntities.PIGLIN_GENERAL.create(level, EntitySpawnReason.SPAWN_ITEM_USE);
+				general.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
+				level.addFreshEntity(general);
+				creative.teleportTo(at.getX() + 0.5, at.getY(), at.getZ() + 3.5);
+				survival.teleportTo(at.getX() + 0.5, at.getY(), at.getZ() - 6.5);
+				try {
+					general.hurtServer(level, level.damageSources().playerAttack(creative), 1f);
+					ctx.assertTrue(general.attackers().contains(creative.getUUID()), "the creative player's hit didn't count: " + general.attackers());
+					var guard = RiftRaid.spawnGuard(level, rift, general);
+					ctx.assertTrue(!guard.isEmpty(), "no guard came");
+					var wrong = misTargeted(guard, Set.of(), survival);
+					ctx.assertTrue(wrong.isEmpty(), "the guard isn't all at the survival player: " + wrong);
+				} finally {
+					StageTests.remove(ctx, creative);
+					riftCleanUp(ctx, survival);
 				}
 				ctx.succeed();
 			});
@@ -631,6 +699,13 @@ public class GeneralTests {
 		general.tactics().start(Move.CHASE);
 		var sources = ctx.getLevel().damageSources();
 		general.hurtServer(ctx.getLevel(), by != null ? sources.playerAttack(by) : sources.generic(), general.getHealth() - (float) (share * general.getMaxHealth()));
+	}
+
+	/** His save, as a chunk's would hold him. */
+	static CompoundTag saved(GameTestHelper ctx, PiglinGeneral general) {
+		var output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, ctx.getLevel().registryAccess());
+		general.saveWithoutId(output);
+		return output.buildResult();
 	}
 
 	/** Runs a step; if it fails, cleans up first. */

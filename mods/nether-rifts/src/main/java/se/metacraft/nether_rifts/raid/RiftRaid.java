@@ -17,6 +17,7 @@ import net.minecraft.world.BossEvent;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -173,7 +174,8 @@ public final class RiftRaid {
 	 * wave's ranged, melee and elite as it would come for the players taking part now (rounded down; at least one ranged
 	 * and one melee), with {@code guard_grenadiers} Grenadiers and {@code guard_drummers} Drummers on hoglins. Each
 	 * comes at one of the players who hurt him, in turn ({@link PiglinGeneral#attackers}, those still taking part), or
-	 * with none of them about at the participant nearest him; with no participant, at nobody. Returns every entity
+	 * with none of them about at the participant nearest him; with no participant, at nobody. Creative players are
+	 * passed over (they count toward the guard's size, as toward a wave's). Returns every entity
 	 * spawned (mounts and their riders).
 	 */
 	public static List<Entity> spawnGuard(ServerLevel level, Rift rift, PiglinGeneral general) {
@@ -201,10 +203,11 @@ public final class RiftRaid {
 			}
 		});
 		rift.waveSize += spawned.size();
-		// players logged off or gone elsewhere aren't found, or aren't taking part
-		List<? extends LivingEntity> foes = general.attackers().stream().map(level::getPlayerByUUID).filter(players::contains).toList();
+		// players logged off or gone elsewhere aren't found, or aren't taking part; creative players are no mob's to fight
+		var fightable = players.stream().filter(EntitySelector.NO_CREATIVE_OR_SPECTATOR).toList();
+		List<? extends LivingEntity> foes = general.attackers().stream().map(level::getPlayerByUUID).filter(fightable::contains).toList();
 		if (foes.isEmpty()) {
-			foes = players.stream().min(Comparator.comparingDouble(general::distanceToSqr)).stream().toList();
+			foes = fightable.stream().min(Comparator.comparingDouble(general::distanceToSqr)).stream().toList();
 		}
 		for (int i = 0; i < roots.size() && !foes.isEmpty(); i++) {
 			PiglinGeneral.provoke(roots.get(i), foes.get(i % foes.size()));

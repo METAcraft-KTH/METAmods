@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:default", "function": "nether_rifts:general/queued_roar_survives_reload", "max_ticks": 80, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}
