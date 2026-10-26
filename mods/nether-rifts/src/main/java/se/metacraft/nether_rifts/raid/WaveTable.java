@@ -10,7 +10,8 @@ import java.util.function.IntUnaryOperator;
 /**
  * How many of each slot a wave brings: the config's base counts ({@code waves}; the defaults are vanilla 26.3's raid
  * table, Raid$RaiderType) plus vanilla's bonus rolls (Raid.getPotentialBonusSpawns) with the tier standing in for
- * difficulty and no bonus wave, and our troopers-per-player scaling.
+ * difficulty and no bonus wave, and our scaling with the players taking part: troopers from the second player on,
+ * heavy, support and elite mobs past {@code elite_scaling_from}.
  */
 public final class WaveTable {
 
@@ -22,19 +23,23 @@ public final class WaveTable {
 		if (wave < 1 || wave > waves.size()) {
 			return none();
 		}
-		return counts(waves.get(wave - 1), tier, wave, participants, nextInt, perPlayer, cap);
+		double elite = scale(participants, config.eliteScalingFrom(), config.eliteScalingPerPlayer(), config.eliteScalingCap());
+		return counts(waves.get(wave - 1), tier, wave, nextInt, scale(participants, 1, perPlayer, cap), elite);
 	}
 
-	public static EnumMap<Slot, Integer> counts(Map<Slot, Integer> base, Tier tier, int wave, int participants, IntUnaryOperator nextInt, double perPlayer, double cap) {
+	/** The base counts with the bonus rolls, troopers times {@code trooperScale} and heavy, support and elite times {@code eliteScale}. */
+	public static EnumMap<Slot, Integer> counts(Map<Slot, Integer> base, Tier tier, int wave, IntUnaryOperator nextInt, double trooperScale, double eliteScale) {
 		var counts = none();
 		base.forEach(counts::put);
-		double scale = Math.min(cap, 1.0 + perPlayer * Math.max(0, participants - 1));
 		counts.merge(Slot.RANGED, trooperBonus(tier, nextInt), Integer::sum);
 		counts.merge(Slot.MELEE, trooperBonus(tier, nextInt), Integer::sum);
 		counts.merge(Slot.SUPPORT, supportBonus(tier, wave, nextInt), Integer::sum);
+		// after the bonus rolls, so a support bonus grows with the rest
 		for (var slot : Slot.values()) {
 			if (slot.trooper()) {
-				counts.compute(slot, (k, count) -> scaled(count, scale));
+				counts.compute(slot, (k, count) -> scaled(count, trooperScale));
+			} else if (slot.scalesPastThreshold()) {
+				counts.compute(slot, (k, count) -> scaled(count, eliteScale));
 			}
 		}
 		return counts;
@@ -46,6 +51,11 @@ public final class WaveTable {
 			counts.put(slot, 0);
 		}
 		return counts;
+	}
+
+	/** One, plus {@code perPlayer} for each player past {@code from}, at most {@code cap}. */
+	private static double scale(int participants, int from, double perPlayer, double cap) {
+		return Math.min(cap, 1.0 + perPlayer * Math.max(0, participants - from));
 	}
 
 	private static int scaled(int count, double scale) {

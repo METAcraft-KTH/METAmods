@@ -50,7 +50,7 @@ public class NetherRiftsTests {
 				NetherRiftsConfig.Tiers.DEFAULT,
 				new NetherRiftsConfig.Timers(40, 20, 100, 60),
 				new NetherRiftsConfig.Ranges(10, 10, 16),
-				100, 0.25, 2.0,
+				100, 0.25, 2.0, 4, 0.25, 2.0,
 				NetherRiftsConfig.DEFAULT.frameCollapse(), NetherRiftsConfig.DEFAULT.scfNetherPortalTypes(),
 				NetherRiftsConfig.DEFAULT.roster(), NetherRiftsConfig.Waves.DEFAULT, NetherRiftsConfig.DEFAULT.mobs()
 		);
@@ -163,27 +163,28 @@ public class NetherRiftsTests {
 						.then(preset("default", () -> NetherRiftsConfig.DEFAULT))
 						.then(preset("cap_one", () -> new NetherRiftsConfig(
 								FAST.tiers(), FAST.timers(), FAST.ranges(), 1, FAST.trooperScalingPerPlayer(),
-								FAST.trooperScalingCap(), FAST.frameCollapse(), FAST.scfNetherPortalTypes(), FAST.roster(), FAST.waves(), FAST.mobs()
+								FAST.trooperScalingCap(), FAST.eliteScalingFrom(), FAST.eliteScalingPerPlayer(), FAST.eliteScalingCap(),
+								FAST.frameCollapse(), FAST.scfNetherPortalTypes(), FAST.roster(), FAST.waves(), FAST.mobs()
 						)))
 						.then(preset("scf", () -> new NetherRiftsConfig(
 								FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(), FAST.trooperScalingPerPlayer(),
-								FAST.trooperScalingCap(), FAST.frameCollapse(),
-								java.util.List.of(NetherRifts.getID("test_blob_portal")), FAST.roster(), FAST.waves(), FAST.mobs()
+								FAST.trooperScalingCap(), FAST.eliteScalingFrom(), FAST.eliteScalingPerPlayer(), FAST.eliteScalingCap(),
+								FAST.frameCollapse(), java.util.List.of(NetherRifts.getID("test_blob_portal")), FAST.roster(), FAST.waves(), FAST.mobs()
 						)))
 						.then(preset("roster_partial", () -> {
 							var roster = new java.util.HashMap<>(Roster.DEFAULT);
 							roster.remove(Slot.HEAVY);
 							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
-									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
-									FAST.scfNetherPortalTypes(), roster, FAST.waves(), FAST.mobs());
+									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.eliteScalingFrom(), FAST.eliteScalingPerPlayer(), FAST.eliteScalingCap(),
+									FAST.frameCollapse(), FAST.scfNetherPortalTypes(), roster, FAST.waves(), FAST.mobs());
 						}))
 						.then(preset("drummer_short", () -> {
 							var d = NetherRiftsConfig.DrummerTuning.DEFAULT;
 							var drummer = new NetherRiftsConfig.DrummerTuning(d.beatTicks(), d.bigBeatEvery(), 6, d.buffTicks(), d.shockRange(), d.shockStrength(),
 									d.shockDamage(), d.naturalChance());
 							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
-									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
-									FAST.scfNetherPortalTypes(), FAST.roster(), FAST.waves(), new NetherRiftsConfig.Mobs(drummer, FAST.mobs().bombardier(), FAST.mobs().general()));
+									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.eliteScalingFrom(), FAST.eliteScalingPerPlayer(), FAST.eliteScalingCap(),
+									FAST.frameCollapse(), FAST.scfNetherPortalTypes(), FAST.roster(), FAST.waves(), new NetherRiftsConfig.Mobs(drummer, FAST.mobs().bombardier(), FAST.mobs().general()));
 						}))
 						.then(preset("drummer_natural", () -> naturalChance(1)))
 						.then(preset("drummer_never", () -> naturalChance(0)))
@@ -200,6 +201,7 @@ public class NetherRiftsTests {
 		var drummer = new NetherRiftsConfig.DrummerTuning(d.beatTicks(), d.bigBeatEvery(), d.buffRange(), d.buffTicks(), d.shockRange(),
 				d.shockStrength(), d.shockDamage(), chance);
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
+				c.eliteScalingFrom(), c.eliteScalingPerPlayer(), c.eliteScalingCap(),
 				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), c.waves(), new NetherRiftsConfig.Mobs(drummer, c.mobs().bombardier(), c.mobs().general()));
 	}
 
@@ -215,6 +217,7 @@ public class NetherRiftsTests {
 	/** The config with these waves instead. */
 	static NetherRiftsConfig withWaves(NetherRiftsConfig c, NetherRiftsConfig.Waves waves) {
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
+				c.eliteScalingFrom(), c.eliteScalingPerPlayer(), c.eliteScalingCap(),
 				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), waves, c.mobs());
 	}
 
@@ -226,6 +229,7 @@ public class NetherRiftsTests {
 		var c = NetherRiftsConfig.DEFAULT;
 		var bombardier = NetherRiftsConfig.BombardierTuning.DEFAULT.withTactics(RUN_COOLDOWN_FAST, TACTICS_FAST);
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
+				c.eliteScalingFrom(), c.eliteScalingPerPlayer(), c.eliteScalingCap(),
 				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), c.waves(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier, c.mobs().general()));
 	}
 
@@ -235,6 +239,7 @@ public class NetherRiftsTests {
 		var c = NetherRiftsConfig.DEFAULT;
 		var bombardier = b.withCrew(new NetherRiftsConfig.CrewTuning(every, b.crew().damageTaken(), b.crew().hitboxWidth(), b.crew().hitboxHeight()));
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
+				c.eliteScalingFrom(), c.eliteScalingPerPlayer(), c.eliteScalingCap(),
 				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), c.waves(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier, c.mobs().general()));
 	}
 

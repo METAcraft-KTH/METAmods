@@ -34,6 +34,7 @@ import java.util.Optional;
 public record NetherRiftsConfig(
 		Tiers tiers, Timers timers, Ranges ranges, int activeRaidCap,
 		double trooperScalingPerPlayer, double trooperScalingCap,
+		int eliteScalingFrom, double eliteScalingPerPlayer, double eliteScalingCap,
 		Map<Block, Block> frameCollapse, List<Identifier> scfNetherPortalTypes,
 		Map<Slot, MobEntry> roster, Waves waves, Mobs mobs
 ) {
@@ -551,7 +552,7 @@ public record NetherRiftsConfig(
 	}
 
 	public static final NetherRiftsConfig DEFAULT = new NetherRiftsConfig(
-			Tiers.DEFAULT, Timers.DEFAULT, Ranges.DEFAULT, 4, 0.25, 2.0,
+			Tiers.DEFAULT, Timers.DEFAULT, Ranges.DEFAULT, 4, 0.25, 2.0, 4, 0.25, 2.0,
 			Map.of(Blocks.OBSIDIAN, Blocks.CRYING_OBSIDIAN), List.of(), Roster.DEFAULT, Waves.DEFAULT, Mobs.DEFAULT
 	);
 
@@ -585,6 +586,18 @@ public record NetherRiftsConfig(
 					"Troopers never grow past this many times the vanilla count."
 			).forGetter(NetherRiftsConfig::trooperScalingCap),
 			CommentCodec.comment(
+					Codec.intRange(0, 100).optionalFieldOf("elite_scaling_from", 4),
+					"Heavy, support and elite mobs grow only with more players than this."
+			).forGetter(NetherRiftsConfig::eliteScalingFrom),
+			CommentCodec.comment(
+					Codec.doubleRange(0, 10).optionalFieldOf("elite_scaling_per_player", 0.25),
+					"Each player past elite_scaling_from adds this share of heavy, support and elite mobs to a wave."
+			).forGetter(NetherRiftsConfig::eliteScalingPerPlayer),
+			CommentCodec.comment(
+					Codec.doubleRange(1, 10).optionalFieldOf("elite_scaling_cap", 2.0),
+					"Heavy, support and elite mobs never grow past this many times the wave's count."
+			).forGetter(NetherRiftsConfig::eliteScalingCap),
+			CommentCodec.comment(
 					BLOCK_MAP.optionalFieldOf("frame_collapse", Map.of(Blocks.OBSIDIAN, Blocks.CRYING_OBSIDIAN)),
 					"What each frame block becomes when its rift closes. Unlisted blocks become air; crying-obsidian rifts always leave air."
 			).forGetter(NetherRiftsConfig::frameCollapse),
@@ -598,7 +611,7 @@ public record NetherRiftsConfig(
 			).forGetter(NetherRiftsConfig::roster),
 			CommentCodec.comment(
 					Sections.section("waves", Waves.CODEC, Waves.DEFAULT),
-					"Each tier's waves, in order: how many of each slot a wave brings (unlisted slots: 0). Players past the first add troopers (ranged, melee) as trooper_scaling_* says; Large waves 5+ send chained ghasts for heavy. The Piglin General is off: add captain: 1 to a large wave (the last) to bring him in."
+					"Each tier's waves, in order: how many of each slot a wave brings (unlisted slots: 0). Players past the first add troopers (ranged, melee) as trooper_scaling_* says, and players past elite_scaling_from add heavy, support and elite as elite_scaling_* says; Large waves 5+ send chained ghasts for heavy. The Piglin General is off: add captain: 1 to a large wave (the last) to bring him in."
 			).forGetter(NetherRiftsConfig::waves),
 			CommentCodec.comment(
 					Sections.section("mobs", Mobs.CODEC, Mobs.DEFAULT),

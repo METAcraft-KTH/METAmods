@@ -96,7 +96,10 @@ shot and the `spin_early_window` that counts, `spin_range`, and `spin_speed`, ho
 wave, `guard_grenadiers` and `guard_drummers`). Its `waves` section lists each tier's waves (`small`, `medium`, `large`; 1 to 20
 each), a wave being how many of each slot it brings (`ranged`, `melee`, `heavy`, `support`, `elite`, `leader`, `captain`,
 and the General's guard's `grenadier` and `mounted_drummer`, a Drummer on a hoglin, which `roster` also sets; a slot left
-out counts 0); a tier left out keeps the vanilla table. The Piglin General is off by default: add `captain: 1` to a large
+out counts 0); a tier left out keeps the vanilla table. Each player taking part past the first adds a quarter more
+troopers (ranged and melee) to a wave, up to twice as many (`trooper_scaling_per_player`, `trooper_scaling_cap`); heavy,
+support and elite mobs grow the same way only from the fifth player on (`elite_scaling_from`, `elite_scaling_per_player`,
+`elite_scaling_cap`), so a large raid's later waves bring more Chained Ghasts too. The Piglin General is off by default: add `captain: 1` to a large
 wave (the last) to bring him in. `tiers.medium_max: 441` holds back large rifts.
 `/rifts reload` takes the new `waves` from the next wave; if it shortens a running raid's list, the raid ends with victory
 after its current wave. The General's move numbers in `mobs.general` apply at once, his health, armour and speed to

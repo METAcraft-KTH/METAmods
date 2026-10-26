@@ -34,9 +34,18 @@ public enum Slot implements StringRepresentable {
 		this.name = name;
 	}
 
-	/** Troopers grow with the number of players taking part; nothing else does. */
+	/** Troopers grow with every player taking part past the first ({@code trooper_scaling_*}). */
 	public boolean trooper() {
 		return this == RANGED || this == MELEE;
+	}
+
+	/**
+	 * Heavy, support and elite mobs grow only with more players than {@code elite_scaling_from}, so a small group's raid
+	 * stays as it was. The Chained Ghasts that take heavy's place in large waves 5+ grow with it; the leader, the Captain
+	 * and the grenadier and mounted drummer slots never do.
+	 */
+	public boolean scalesPastThreshold() {
+		return this == HEAVY || this == SUPPORT || this == ELITE;
 	}
 
 	@Override
