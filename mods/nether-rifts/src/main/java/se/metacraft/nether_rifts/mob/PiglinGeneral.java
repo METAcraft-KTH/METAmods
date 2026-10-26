@@ -10,6 +10,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -30,6 +32,11 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.PiglinArmPose;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.FishingHook;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.entity.projectile.ProjectileDeflection;
+import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
@@ -47,7 +54,8 @@ import java.util.List;
  * with the config's {@code mobs.general} stats. He walks after his target: his brain's attack target while it is one to
  * fight, else the nearest player who can fight within {@link #TARGET_RANGE} blocks. His moves (the swing, the spin, the
  * roar) are chosen one at a time by his {@link GeneralTactics}, and played through {@link #play} over his idle and walk;
- * during one he stands still.
+ * during one he stands still, but for the spin's drift. Spinning, he turns projectiles back ({@link #REFLECTION});
+ * dizzy, he takes more damage. Like a wither, he never despawns for distance.
  *
  * <p>He is a piglin to other piglins ({@link AbstractPiglin}), as the War Drummer is: they share their anger with him,
  * and when he is hit they turn on the attacker. His brain only remembers, with no behaviours, so he never hunts,
@@ -66,6 +74,8 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	/** His moves play over his walk (5) and idle (0); his death over them all. */
 	private static final int MOVE_PRIORITY = 10;
 	private static final int DEATH_PRIORITY = 20;
+	/** A projectile he turns back goes back at its shooter this far off at most; past it, back the way it came. */
+	public static final double REFLECT_RANGE = 64;
 	/** The death animation's length (2.76 s): his body stays this long, where vanilla's goes after 20 ticks. */
 	public static final int DEATH_TICKS = 56;
 
@@ -134,6 +144,21 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	/** His fight: the move he is in, one at a time. */
 	public GeneralTactics tactics() {
 		return tactics;
+	}
+
+	/** Whether he is spinning ({@link GeneralTactics.Move#SPIN}): projectiles turn back off him. Never once he is dying. */
+	public boolean spinning() {
+		return !isDeadOrDying() && tactics.move() == GeneralTactics.Move.SPIN;
+	}
+
+	/** Whether he is dizzy after a spin ({@link GeneralTactics.Move#DIZZY}): he takes more damage. */
+	public boolean dizzy() {
+		return !isDeadOrDying() && tactics.move() == GeneralTactics.Move.DIZZY;
+	}
+
+	/** A projectile hit him at this game time: his spin may come early. */
+	public void noteProjectileHit(long gameTime) {
+		tactics.noteProjectileHit(gameTime);
 	}
 
 	/** His tuning: the config's {@code mobs.general}. */
@@ -233,14 +258,63 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 		setCanPickUpLoot(false);
 	}
 
-	/** Hit by anything but a piglin, he gets angry at the attacker and calls his piglins in, as a piglin does. */
+	/**
+	 * Dizzy, he takes {@code dizzy_damage_taken} times the damage; a projectile's hit brings his spin on early. Hit by
+	 * anything but a piglin, he gets angry at the attacker and calls his piglins in, as a piglin does.
+	 */
 	@Override
 	public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+		if (dizzy()) {
+			damage *= (float) tuning().dizzyDamageTaken();
+		}
+		if (source.getDirectEntity() instanceof Projectile) {
+			noteProjectileHit(level.getGameTime());
+		}
 		boolean hurt = super.hurtServer(level, source, damage);
 		if (hurt && source.getEntity() instanceof LivingEntity attacker && !(attacker instanceof AbstractPiglin)) {
 			PiglinAiInvoker.netherRifts$maybeRetaliate(level, this, attacker);
 		}
 		return hurt;
+	}
+
+	/** Spinning, he turns every projectile that reaches him back ({@link #REFLECTION}); else as any entity. */
+	@Override
+	public ProjectileDeflection deflection(Projectile projectile) {
+		return spinning() ? REFLECTION : super.deflection(projectile);
+	}
+
+	/**
+	 * Who owns a projectile he turned back, from its shooter's: he does, so its hit is his, except where a projectile's
+	 * owner is more than who it hurts. A trident stays its thrower's, to pick up or come back by loyalty; a fishing hook
+	 * its rod's; an ender pearl its thrower's, as it would carry its owner, him, to where it lands.
+	 */
+	@Nullable
+	public EntityReference<Entity> ownerOfReflected(Projectile projectile, @Nullable EntityReference<Entity> shooter) {
+		return projectile instanceof ThrownTrident || projectile instanceof FishingHook || projectile instanceof ThrownEnderpearl
+				? shooter
+				: EntityReference.of(this);
+	}
+
+	/**
+	 * The spin's deflection: the projectile goes back at its shooter's eyes, at the speed it came, if the shooter is
+	 * alive in its level within {@link #REFLECT_RANGE} blocks; else (a dispenser's, a shooter gone, dead or elsewhere)
+	 * straight back the way it came. Its new owner is {@link #ownerOfReflected}'s (ProjectileReflectionMixin, as
+	 * vanilla puts the old one back after a deflection), and it passes through him after.
+	 */
+	public static final ProjectileDeflection REFLECTION = (projectile, general, random, power) -> {
+		var velocity = projectile.getDeltaMovement();
+		var back = projectile.getOwner() instanceof LivingEntity shooter && shooter != general && shooter.isAlive()
+				&& shooter.level() == projectile.level() && shooter.distanceToSqr(projectile) <= REFLECT_RANGE * REFLECT_RANGE
+				? shooter.getEyePosition().subtract(projectile.position()).normalize().scale(velocity.length())
+				: velocity.reverse();
+		projectile.setDeltaMovement(back);
+		projectile.needsSync = true;
+	};
+
+	/** He never despawns for being far from players, as a wither doesn't. */
+	@Override
+	public boolean removeWhenFarAway(double distSqr) {
+		return false;
 	}
 
 	/** His move stops and he falls: {@code death} holds its last pose till his body goes ({@link #DEATH_TICKS}). */

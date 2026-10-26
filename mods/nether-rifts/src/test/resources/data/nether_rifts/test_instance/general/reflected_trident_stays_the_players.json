@@ -1,0 +1,1 @@
+{"type": "minecraft:function", "environment": "nether_rifts:default", "function": "nether_rifts:general/reflected_trident_stays_the_players", "max_ticks": 70, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

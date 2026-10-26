@@ -21,6 +21,7 @@
 		"PiglinSpecificSensorMixin",
 		"PortalShapeAccessor",
 		"ProjectileMixin",
+		"ProjectileReflectionMixin",
 		"StriderMixin"
 	],
 	"client": [],
