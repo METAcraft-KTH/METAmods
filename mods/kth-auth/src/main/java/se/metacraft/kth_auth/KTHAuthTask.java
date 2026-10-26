@@ -100,6 +100,7 @@ public class KTHAuthTask implements ConfigurationTask {
 	}
 
 	public void complete() {
+		this.listener.send(ClientboundClearDialogPacket.INSTANCE);
 		this.listener.completeTask(TYPE);
 		this.verifier.removeInProgressVerification(this);
 	}
@@ -260,7 +261,6 @@ public class KTHAuthTask implements ConfigurationTask {
 	}
 
 	public void onGdprAccepted() {
-		this.listener.send(ClientboundClearDialogPacket.INSTANCE);
 		this.verifier.getVerificationDetails(this.listener.getOwner().id()).ifPresentOrElse(
 			details -> {
 				this.verifier.acceptGdpr(details);
