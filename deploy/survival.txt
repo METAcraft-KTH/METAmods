@@ -42,7 +42,7 @@ traders
 external leukocyte-plus https://github.com/METAcraft-KTH/LeukocytePlus/releases/download/26.3-1.0.0/leukocyte-plus-1.0.0.jar sha256:05ad7649d73485e6d17e418407fce5fad3a407a94f924bd7b57e8bd589b24ed9
 
 #edvin forks
-external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.7/danse-2.6.0-metacraft.7%2B26.3.jar sha256:e5da4a3768dbba924042b9aba297ad2f150429598697c15c925500a4f3b06ba7
+external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.8/danse-2.6.0-metacraft.8%2B26.3.jar sha256:de3f030aaf75b42cd70306bd7a78bc3225e865fb06acf77fef803670aec1179b
 external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3-rc-1.metacraft.1/polydecorations-0.13.1%2B26.3-rc-1.metacraft.1.jar sha256:88dbe74460314a473e375a4fff4a73bc61042c91cc896fb3b8d6e589f3c1e311
 
 #METAcraft forks
