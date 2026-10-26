@@ -34,16 +34,6 @@ dependencies {
 	runtimeOnly("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
 }
 
-// The drink recipes without Brewery are an off-by-default datapack on a real server (Kultur.VANILLA_DRINKS);
-// the dev runs turn it on, so KulturVanillaDrinkTests and the client test have them.
-loom {
-	runs {
-		configureEach {
-			vmArg "-Dkultur.vanillaDrinks=true"
-		}
-	}
-}
-
 processResources {
 	doFirst {
 		def gen = file('src/main/generated/data/kultur/banner_pattern')

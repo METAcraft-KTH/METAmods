@@ -293,35 +293,33 @@ public final class KulturVanillaDrinkTests {
 		helper.succeed();
 	}
 
-	// --- The drinks: recipes, drinking, the blackout, sobering ---
+	// --- The drinks: no way to make them, drinking, the blackout, sobering ---
 
-	/** Each brewing recipe makes its drink and nothing else does; water and a potato is no other recipe. */
+	/**
+	 * Without Brewery nothing makes a drink: Season 6 brings them with Brewery, at an event. PolymITer's
+	 * brewing-stand recipes (water + potato, then sweet berries or suspicious stew) brew nothing.
+	 */
 	@GameTest
-	public void eachBrewingRecipeMakesItsDrink(GameTestHelper helper) {
+	public void noBrewingRecipeMakesADrink(GameTestHelper helper) {
 		if (!vanilla(helper)) return;
 		ItemStack water = PotionContents.createItemStack(Items.POTION, Potions.WATER);
 		ItemStack awkward = PotionContents.createItemStack(Items.POTION, Potions.AWKWARD);
 		ItemStack alcohol = DrinkPotions.bottle(DrinkKind.ALCOHOL);
 		List<String> wrong = new ArrayList<>();
-		brews(helper, wrong, water, Items.POTATO, DrinkKind.ALCOHOL);
-		brews(helper, wrong, alcohol, Items.SWEET_BERRIES, DrinkKind.SPIKEN);
-		brews(helper, wrong, alcohol, Items.SUSPICIOUS_STEW, DrinkKind.SLAGGAN);
+		brews(helper, wrong, water, Items.POTATO, null);
+		brews(helper, wrong, alcohol, Items.SWEET_BERRIES, null);
+		brews(helper, wrong, alcohol, Items.SUSPICIOUS_STEW, null);
 		brews(helper, wrong, awkward, Items.POTATO, null);
-		brews(helper, wrong, water, Items.SWEET_BERRIES, null);
-		brews(helper, wrong, awkward, Items.SUSPICIOUS_STEW, null);
-		brews(helper, wrong, alcohol, Items.POTATO, null);
 		if (!wrong.isEmpty()) helper.fail(String.join("; ", wrong));
 		helper.succeed();
 	}
 
-	/** PolymITer's Nyckeln took any potion, so a Potion of Healing made one; it takes a water bottle only. */
+	/** Nor does a crafting table: PolymITer's apple and water bottle make no Nyckeln. */
 	@GameTest
-	public void nyckelnCraftsOnlyFromWater(GameTestHelper helper) {
+	public void nyckelnCannotBeCrafted(GameTestHelper helper) {
 		if (!vanilla(helper)) return;
 		ItemStack fromWater = craft(helper, new ItemStack(Items.APPLE), PotionContents.createItemStack(Items.POTION, Potions.WATER));
-		helper.assertTrue(fromWater.is(KulturDrinks.NYCKELN), "apple and a water bottle craft " + fromWater + ", not Nyckeln");
-		ItemStack fromHealing = craft(helper, new ItemStack(Items.APPLE), PotionContents.createItemStack(Items.POTION, Potions.HEALING));
-		helper.assertFalse(fromHealing.is(KulturDrinks.NYCKELN), "apple and a Potion of Healing craft Nyckeln");
+		helper.assertFalse(fromWater.is(KulturDrinks.NYCKELN), "apple and a water bottle craft Nyckeln");
 		helper.succeed();
 	}
 
@@ -642,19 +640,5 @@ public final class KulturVanillaDrinkTests {
 			Drunkenness.set(player, 0);
 			player.removeAllEffects();
 		}
-	}
-
-	/** The drink recipes are a datapack the server can have off (Season 6 brings them at an event), not part of the mod's own data. */
-	@GameTest
-	public void theRecipesAreAPackThatCanBeOff(GameTestHelper helper) {
-		if (!KulturDrinks.active()) { helper.succeed(); return; }
-		var packs = helper.getLevel().getServer().getPackRepository();
-		var pack = packs.getAvailablePacks().stream().filter(p -> p.getId().contains(se.metacraft.kultur.Kultur.VANILLA_DRINKS.getPath())).findFirst();
-		if (pack.isEmpty()) {
-			helper.fail("no " + se.metacraft.kultur.Kultur.VANILLA_DRINKS + " datapack among " + packs.getAvailableIds());
-			return;
-		}
-		if (pack.get().isRequired()) helper.fail(pack.get().getId() + " is required, so it could never be off");
-		helper.succeed();
 	}
 }

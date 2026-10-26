@@ -17,8 +17,8 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.Consumables;
 
 /**
- * The chapter drinks when Brewery is not on the server: PolymITer's brewing-stand recipes, and
- * Brewery's drunkenness (the meter, its steps, the stagger, the blackout) done here instead. With
+ * The chapter drinks when Brewery is not on the server: the drinks as items, with no way to make
+ * them (Season 6 brings them with Brewery, at an event), and Brewery's drunkenness (the meter, its steps, the stagger, the blackout) done here instead. With
  * Brewery on the server none of this registers and Brewery brews the drinks from
  * {@code data/kultur/brewery_drinks}, as before.
  */

@@ -21,9 +21,9 @@ import java.util.Map;
  * The three brewed drinks as potions, as PolymITer had them: registered {@code Potion}s a brewing
  * stand and a vanilla client both handle (Polymer hides them from the client's registry). They carry
  * no effects of their own; drinking one is what does it ({@link DrinkEffects}), so a splash or
- * lingering bottle of one does nothing to anybody. The recipes are data, 26.3's brewing recipes:
- * {@code resourcepacks/vanilla_drinks/data/kultur/recipe/alcohol.json} and its siblings, loaded only
- * without Brewery, and only once that pack is on ({@link se.metacraft.kultur.Kultur#VANILLA_DRINKS}).
+ * lingering bottle of one does nothing to anybody. Nothing brews or crafts them: without Brewery
+ * there is no way to make the drinks (Season 6 brings them with Brewery, at an event), only
+ * {@code /give} and the creative tab.
  *
  * <p>On a client each bottle is PolymITer's model, {@link DrinkKind#model()}, with the drink's name.
  */
