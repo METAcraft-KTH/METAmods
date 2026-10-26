@@ -126,12 +126,13 @@ paths are pinned to the art itself by `seatHalvesSitOnTheLegTheArtWasDrawnFor`, 
 on its four sides makes IT (Laserviolet), Data (Cerise) or ITK (lime), and IT with a bottle of
 experience makes IN. Laserviolet and Cerise are More Dyes' (`moredyes`), so IT's and Data's
 recipes load only beside it (`fabric:load_conditions`). METAcraft Rivals '26 (the Rivals event's) and
-TMEIT Marshal (TMEIT's marshals') are only ever given (`PatchLoot.EXCLUSIVE`): no recipe, no chest. Every other patch turns up in structure
+TMEIT Marshal (TMEIT's marshals') are only ever given: no recipe, no chest. Every other patch turns up in structure
 chests (`PatchLoot`): vanilla's `chests/*` tables but the spawn bonus chest, and all of
 Structory's when it is installed, each get a pool with a 5 % chance of one patch, even odds among
 them. It is added to the tables as they load, not shipped as copies of them, so a datapack's or
-another mod's changes to a chest stay. A new patch is loot unless it is added to
-`PatchLoot.CRAFTED` with a recipe, or to `PatchLoot.EXCLUSIVE`.
+another mod's changes to a chest stay. Which is which is two lists in `PatchLoot`,
+`LOOT` and `NON_LOOT` (crafted or given); a new patch goes in one of them, or the server won't start.
+
 Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows washed out on the cell you aim
 at (a ghosted sprite, see below), the action bar

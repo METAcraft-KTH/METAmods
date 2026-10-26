@@ -62,9 +62,12 @@ public final class PatchAcquiringTests {
 	}
 
 	@GameTest
-	public void everyCraftedAndExclusivePatchIsInTheCatalogue(GameTestHelper helper) {
-		for (String id : PatchLoot.CRAFTED) helper.assertTrue(Patches.exists(id), "no patch '" + id + "'");
-		for (String id : PatchLoot.EXCLUSIVE) helper.assertTrue(Patches.exists(id), "no patch '" + id + "'");
+	public void everyPatchIsLootOrNotLootAndNothingElse(GameTestHelper helper) {
+		for (Patches.Patch patch : Patches.all()) {
+			helper.assertTrue(PatchLoot.LOOT.contains(patch.id()) != PatchLoot.NON_LOOT.contains(patch.id()), patch.id() + " is not in exactly one of LOOT and NON_LOOT");
+		}
+		for (String id : PatchLoot.NON_LOOT) helper.assertTrue(Patches.exists(id), "no patch '" + id + "'");
+		for (String id : PatchLoot.LOOT) helper.assertTrue(Patches.exists(id), "no patch '" + id + "'");
 		helper.succeed();
 	}
 
@@ -82,8 +85,7 @@ public final class PatchAcquiringTests {
 			});
 		}
 		helper.assertTrue(found.size() > 1, "4000 dungeon chests held only these patches: " + found);
-		for (String id : PatchLoot.CRAFTED) helper.assertFalse(found.contains(id), "a dungeon chest held the craftable " + id);
-		for (String id : PatchLoot.EXCLUSIVE) helper.assertFalse(found.contains(id), "a dungeon chest held the exclusive " + id);
+		for (String id : PatchLoot.NON_LOOT) helper.assertFalse(found.contains(id), "a dungeon chest held " + id + ", which is not loot");
 		for (String id : List.of("rivals", "tmeit-marshal")) {
 			helper.assertFalse(PatchLoot.looted().stream().anyMatch(patch -> patch.id().equals(id)), id + " is loot");
 		}
