@@ -643,4 +643,18 @@ public final class KulturVanillaDrinkTests {
 			player.removeAllEffects();
 		}
 	}
+
+	/** The drink recipes are a datapack the server can have off (Season 6 brings them at an event), not part of the mod's own data. */
+	@GameTest
+	public void theRecipesAreAPackThatCanBeOff(GameTestHelper helper) {
+		if (!KulturDrinks.active()) { helper.succeed(); return; }
+		var packs = helper.getLevel().getServer().getPackRepository();
+		var pack = packs.getAvailablePacks().stream().filter(p -> p.getId().contains(se.metacraft.kultur.Kultur.VANILLA_DRINKS.getPath())).findFirst();
+		if (pack.isEmpty()) {
+			helper.fail("no " + se.metacraft.kultur.Kultur.VANILLA_DRINKS + " datapack among " + packs.getAvailableIds());
+			return;
+		}
+		if (pack.get().isRequired()) helper.fail(pack.get().getId() + " is required, so it could never be off");
+		helper.succeed();
+	}
 }

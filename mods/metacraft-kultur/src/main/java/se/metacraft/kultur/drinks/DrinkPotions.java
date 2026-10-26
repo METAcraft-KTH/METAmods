@@ -22,7 +22,8 @@ import java.util.Map;
  * stand and a vanilla client both handle (Polymer hides them from the client's registry). They carry
  * no effects of their own; drinking one is what does it ({@link DrinkEffects}), so a splash or
  * lingering bottle of one does nothing to anybody. The recipes are data, 26.3's brewing recipes:
- * {@code data/kultur/recipe/alcohol.json} and its siblings, loaded only without Brewery.
+ * {@code resourcepacks/vanilla_drinks/data/kultur/recipe/alcohol.json} and its siblings, loaded only
+ * without Brewery, and only once that pack is on ({@link se.metacraft.kultur.Kultur#VANILLA_DRINKS}).
  *
  * <p>On a client each bottle is PolymITer's model, {@link DrinkKind#model()}, with the drink's name.
  */

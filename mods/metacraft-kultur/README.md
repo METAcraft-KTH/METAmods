@@ -60,6 +60,12 @@ loaded, and can go when Brewery fixes it.
 
 Kultur brews them itself (`metacraft.kultur.drinks`), PolymITer's way: in a brewing stand.
 
+**Off for now.** The recipes below are a built-in datapack, `kultur:vanilla_drinks`, that is off until
+somebody turns it on: Season 6 brings the drinks at an event. `/datapack enable "kultur:vanilla_drinks"`
+turns them on for good (the world remembers it); `-Dkultur.vanillaDrinks=true` makes it on from the
+start, which the dev runs do. The drinks, their effects and drunkenness are registered either way:
+only making them waits. With Brewery on the server none of this applies.
+
 | drink | made by | alcohol |
 | --- | --- | --- |
 | Alcoholic Beverage | brewing stand: water bottle + potato | 20 |
@@ -154,8 +160,8 @@ folder `art/kultur/<chapter>/`.
   server game tests (`KulturGameTests`): every catalogue entry in its registry and tag, gated
   patterns behind their item, every asset in the jar, the pack's Inebriated. The dev runtime has
   Brewery, so this also runs `KulturDrinkTests`; `KulturVanillaDrinkTests` passes at once.
-- The same with `-PkulturNoBrewery` — the dev runtime without Brewery, so `KulturVanillaDrinkTests`
-  runs (recipes, the meter, every step, the blackout, sobering) and `KulturDrinkTests` passes at
+- The same with `-PkulturNoBrewery` — the dev runtime without Brewery (and the drink recipes on, as
+  every dev run has them), so `KulturVanillaDrinkTests` runs (recipes, the meter, every step, the blackout, sobering) and `KulturDrinkTests` passes at
   once. Run both.
 - `./gradlew :mods:metacraft-kultur:runClientGameTest` — a real client joins a test server and
   screenshots a banner, a shield and the painting, and the drinks, into
