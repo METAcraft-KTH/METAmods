@@ -421,6 +421,76 @@ public class GeneralTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("general/own_raid_spares_him", ctx -> {
+			// His own raid can't hurt him: a crossbow piglin of his rift, blow or bolt, neither hurts him nor brings his
+			// spin on early nor makes him roar, though he stands just above two thirds of his health.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var level = ctx.getLevel();
+				var rift = FormingTests.riftIn(ctx);
+				var general = (PiglinGeneral) RiftMobs.spawn(level, rift.id(), Slot.CAPTAIN, ctx.absolutePos(CENTRE), Vec3.ZERO).getFirst();
+				general.setNoAi(true);
+				var piglin = (Piglin) RiftMobs.spawn(level, rift.id(), Slot.RANGED, ctx.absolutePos(CENTRE.offset(0, 0, 8)), Vec3.ZERO).getFirst();
+				piglin.setNoAi(true);
+				general.getAttribute(Attributes.ARMOR).setBaseValue(0);
+				general.getAttribute(Attributes.ARMOR_TOUGHNESS).setBaseValue(0);
+				general.setHealth(0.7f * general.getMaxHealth());
+				float health = general.getHealth();
+				var sources = level.damageSources();
+				var probe = new Arrow(level, piglin, new ItemStack(Items.ARROW), null);
+				ctx.assertFalse(general.hurtServer(level, sources.mobAttack(piglin), 0.5f * general.getMaxHealth()), "his rift's piglin's blow hurt him");
+				ctx.assertFalse(general.hurtServer(level, sources.arrow(probe, piglin), 0.5f * general.getMaxHealth()), "his rift's piglin's bolt hurt him");
+				var bolt = new Arrow(level, piglin, new ItemStack(Items.ARROW), null);
+				bolt.setPos(general.getX(), chest(general), general.getZ() + 4);
+				aim(bolt, general);
+				level.addFreshEntity(bolt);
+				ctx.runAfterDelay(10, () -> {
+					try {
+						ctx.assertTrue(general.getHealth() == health, "he went from " + health + " to " + general.getHealth());
+						ctx.assertTrue(general.tactics().lastProjectileHit() == Long.MIN_VALUE, "a shot from his rift counts toward his early spin");
+						ctx.assertTrue(general.roarsUsed() == 0 && general.tactics().roarsPending() == 0, "he roared or has a roar queued");
+						ctx.assertTrue(bolt.getZ() < general.getZ(), "the bolt didn't fly on past him: it is at " + bolt.position());
+					} finally {
+						ctx.killAllEntities();
+						FormingTests.cleanUp(ctx);
+					}
+					ctx.succeed();
+				});
+			});
+		});
+		NetherRiftsTests.register("general/reflection_passes_his_guard", ctx -> {
+			// An arrow he turns back mid-spin is his, so it flies through one of his guard, stepped into its way, and hits the shooter.
+			var general = general(ctx);
+			var shooter = player(ctx, general, SHOT);
+			holdNormal(ctx);
+			var side = UUID.randomUUID();
+			// of one rift: tagged once in the level, as a rift that doesn't exist would keep them out at load
+			general.setAttached(RiftMobs.RIFT, side);
+			var guard = ctx.spawn(net.minecraft.world.entity.EntityTypes.PIGLIN, CENTRE.offset(3, 0, 4));
+			guard.setNoAi(true);
+			guard.setAttached(RiftMobs.RIFT, side);
+			general.tactics().start(Move.SPIN);
+			var arrow = shoot(ctx, general, shooter);
+			var stepped = new AtomicBoolean(false);
+			var firstHurt = new AtomicReference<DamageSource>();
+			ctx.onEachTick(() -> {
+				// out of the way of the arrow coming in; into it once it's his
+				if (!stepped.get() && arrow.getOwner() == general) {
+					guard.teleportTo(general.getX(), general.getY(), general.getZ() + SHOT - 2);
+					stepped.set(true);
+				}
+				if (firstHurt.get() == null && shooter.getHealth() < shooter.getMaxHealth()) {
+					firstHurt.set(shooter.getLastDamageSource());
+				}
+			});
+			ctx.runAfterDelay(30, () -> finish(ctx, () -> {
+				ctx.assertTrue(stepped.get(), "the arrow never became his; it is at " + arrow.position());
+				ctx.assertTrue(guard.getHealth() == guard.getMaxHealth(), "his arrow hurt his guard: " + guard.getHealth());
+				var source = firstHurt.get();
+				ctx.assertTrue(source != null && source.getDirectEntity() == arrow && source.getEntity() == general,
+						"the shooter wasn't hit by his arrow; it is at " + arrow.position() + ", first hurt by " + (source == null ? null : source.getDirectEntity()));
+			}, shooter));
+		});
 		NetherRiftsTests.register("general/big_hit_queues_two_roars", ctx -> {
 			// One hit from full to a quarter crosses both thresholds: two roars, back to back.
 			var general = general(ctx);

@@ -67,7 +67,9 @@ fire at players above and below them, not only level with them. Its support slot
 who steers, or by a Piglin Drummer, who only drums. (For a configured roster that gives them riders or striders: a ghast's
 riders glide down when it dies, a rift's striders keep the nether's heat, with no cold or slowing off lava and no harm from
 rain, and a piglin on one steers it.) Rift mobs can't be trapped in boats or minecarts (both through
-metacraft-mob-modifiers). Winning closes the rift and turns its obsidian frame to crying obsidian.
+metacraft-mob-modifiers). A rift's mobs never hurt each other, and their shots fly through their own side (what the
+General turns back is his, so it flies through his raid's mobs too). Winning closes the rift and turns its obsidian
+frame to crying obsidian.
 
 `/rifts stabilise` ends rift mode: waiting rifts become working portals and portal-blocker's nether locks
 lift. After that a crying-obsidian frame, lit with flint and steel, opens a rift on purpose (and crumbles

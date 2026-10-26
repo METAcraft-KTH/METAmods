@@ -9,6 +9,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -29,6 +30,7 @@ import se.metacraft.nether_rifts.NetherRiftsConfig;
 import se.metacraft.nether_rifts.mixin.HoglinAccessor;
 import se.metacraft.nether_rifts.mixin.MobAccessor;
 import se.metacraft.nether_rifts.mob.GhastBombardier;
+import se.metacraft.nether_rifts.mob.GhastPart;
 import se.metacraft.nether_rifts.mob.PiglinGeneral;
 import se.metacraft.nether_rifts.mob.WarDrummer;
 import se.metacraft.nether_rifts.mob.WarGhast;
@@ -84,6 +86,30 @@ public final class RiftMobs {
 
 	public static boolean isRiftMob(@Nullable Entity entity) {
 		return entity != null && entity.hasAttached(RIFT);
+	}
+
+	/** The rift an entity fights for: its own, or a Chained Ghast's deck's or crew member's, its ghast's (they aren't tagged). */
+	public static Optional<UUID> sideOf(@Nullable Entity entity) {
+		if (entity instanceof GhastPart part) {
+			entity = part.ghast();
+		}
+		return entity == null ? Optional.empty() : riftOf(entity);
+	}
+
+	/** Both fight for the same rift; false when either is of none. */
+	public static boolean sameRift(@Nullable Entity a, @Nullable Entity b) {
+		var side = sideOf(a);
+		return side.isPresent() && side.equals(sideOf(b));
+	}
+
+	/**
+	 * A hit on the victim from its own side, which never lands: a rift's mobs never hurt each other. The attacker is the
+	 * source's (a projectile's owner); only with none left (a shooter gone) its fireball or bomb, marked with its rift.
+	 * A rift ghast's fireball a player hit back is the player's, so it still hurts the ghast.
+	 */
+	public static boolean spares(Entity victim, DamageSource source) {
+		var attacker = source.getEntity() != null ? source.getEntity() : source.getDirectEntity();
+		return sameRift(victim, attacker);
 	}
 
 	/**

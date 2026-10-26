@@ -484,6 +484,91 @@ public class MobTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("mobs/rift_mobs_spare_each_other", ctx -> {
+			// A rift's mobs can't hurt each other, so none turns on another: a crossbow piglin's blow on its rift's hoglin,
+			// and the hoglin's back, do nothing.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var level = ctx.getLevel();
+				var rift = FormingTests.riftIn(ctx);
+				var piglin = (Piglin) RiftMobs.spawn(level, rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO).getFirst();
+				var hoglin = (Hoglin) spawnConfigured(ctx, rift.id(), Slot.MELEE, "{id:\"minecraft:hoglin\"}", ctx.absolutePos(new BlockPos(14, 1, 12))).getFirst();
+				var sources = level.damageSources();
+				ctx.assertFalse(hoglin.hurtServer(level, sources.mobAttack(piglin), 4), "the piglin's blow hurt its rift's hoglin");
+				ctx.assertFalse(piglin.hurtServer(level, sources.mobAttack(hoglin), 4), "the hoglin's blow hurt its rift's piglin");
+				ctx.assertTrue(hoglin.getHealth() == hoglin.getMaxHealth(), "the hoglin is at " + hoglin.getHealth());
+				ctx.assertTrue(piglin.getHealth() == piglin.getMaxHealth(), "the piglin is at " + piglin.getHealth());
+				ctx.assertTrue(hoglin.getLastHurtByMob() == null && piglin.getLastHurtByMob() == null, "one of them counts the other as its attacker");
+				ctx.runAfterDelay(40, () -> {
+					ctx.assertTrue(hoglin.getTarget() != piglin && !hoglin.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, piglin),
+							"the hoglin turned on the piglin");
+					ctx.assertTrue(piglin.getTarget() != hoglin && !piglin.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, hoglin),
+							"the piglin turned on the hoglin");
+					ctx.assertFalse(piglin.getBrain().isMemoryValue(MemoryModuleType.AVOID_TARGET, hoglin), "the piglin is fleeing the hoglin");
+					ctx.killAllEntities();
+					FormingTests.cleanUp(ctx);
+					ctx.succeed();
+				});
+			});
+		});
+		NetherRiftsTests.register("mobs/rift_bolt_flies_through_own_side", ctx -> {
+			// A rift piglin's bolt, shot through its rift's hoglin at a player behind it, flies through the hoglin and hits the player.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var level = ctx.getLevel();
+				var rift = FormingTests.riftIn(ctx);
+				var player = StageTests.player(ctx);
+				DrummerTests.ready(player);
+				var spot = ctx.absolutePos(new BlockPos(12, 1, 20));
+				player.teleportTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5);
+				var piglin = (Piglin) RiftMobs.spawn(level, rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(12, 1, 9)), Vec3.ZERO).getFirst();
+				piglin.setNoAi(true);
+				// still, so it stays in the bolt's way and goes for nobody
+				var hoglin = (Hoglin) spawnConfigured(ctx, rift.id(), Slot.MELEE, "{id:\"minecraft:hoglin\",NoAI:1b}", ctx.absolutePos(new BlockPos(12, 1, 15))).getFirst();
+				var bolt = new net.minecraft.world.entity.projectile.arrow.Arrow(level, piglin, new ItemStack(Items.ARROW), null);
+				var from = ctx.absolutePos(new BlockPos(12, 1, 11));
+				bolt.setPos(from.getX() + 0.5, from.getY() + 0.9, from.getZ() + 0.5);
+				bolt.shoot(0, 0, 1, 3.0f, 0f);
+				level.addFreshEntity(bolt);
+				ctx.runAfterDelay(10, () -> {
+					try {
+						ctx.assertTrue(hoglin.getHealth() == hoglin.getMaxHealth(), "the bolt hurt its rift's hoglin: " + hoglin.getHealth());
+						var source = player.getLastDamageSource();
+						ctx.assertTrue(source != null && source.getDirectEntity() == bolt, "the bolt didn't hit the player: it is at " + bolt.position()
+								+ "; the player was last hurt by " + (source == null ? null : source.getDirectEntity()));
+					} finally {
+						StageTests.remove(ctx, player);
+						ctx.killAllEntities();
+						FormingTests.cleanUp(ctx);
+					}
+					ctx.succeed();
+				});
+			});
+		});
+		NetherRiftsTests.register("mobs/other_rift_still_hurts", ctx -> {
+			// Sparing is within one rift: a rift piglin's blow still hurts the nether's own hoglin and another rift's.
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var level = ctx.getLevel();
+				var rift = FormingTests.riftIn(ctx);
+				var piglin = (Piglin) RiftMobs.spawn(level, rift.id(), Slot.RANGED, ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO).getFirst();
+				piglin.setNoAi(true);
+				var stranger = ctx.spawn(EntityTypes.HOGLIN, new BlockPos(14, 1, 10));
+				stranger.setNoAi(true);
+				var other = spawnConfigured(ctx, rift.id(), Slot.MELEE, "{id:\"minecraft:hoglin\",NoAI:1b}", ctx.absolutePos(new BlockPos(14, 1, 14))).getFirst();
+				// another rift's: tagged once in the level, as a rift that doesn't exist would keep it out at load
+				other.setAttached(RiftMobs.RIFT, UUID.randomUUID());
+				var sources = level.damageSources();
+				ctx.assertTrue(stranger.hurtServer(level, sources.mobAttack(piglin), 4), "the piglin's blow didn't hurt a hoglin of no rift");
+				ctx.assertTrue(stranger.getHealth() < stranger.getMaxHealth(), "the hoglin of no rift is at full health");
+				var otherHoglin = (Hoglin) other;
+				ctx.assertTrue(otherHoglin.hurtServer(level, sources.mobAttack(piglin), 4), "the piglin's blow didn't hurt another rift's hoglin");
+				ctx.assertTrue(otherHoglin.getHealth() < otherHoglin.getMaxHealth(), "another rift's hoglin is at full health");
+				ctx.killAllEntities();
+				FormingTests.cleanUp(ctx);
+				ctx.succeed();
+			});
+		});
 		NetherRiftsTests.register("mobs/no_bartering", ctx -> {
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {

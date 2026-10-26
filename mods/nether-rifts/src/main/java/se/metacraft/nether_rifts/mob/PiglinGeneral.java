@@ -336,10 +336,14 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	 * Dizzy, he takes {@code dizzy_damage_taken} times the damage; a projectile's hit brings his spin on early. Hit by
 	 * anything but a piglin, he gets angry at the attacker and calls his piglins in, as a piglin does. A player who hurts
 	 * him is one of his {@link #attackers}. Left alive below roar thresholds he hasn't roared for, he roars for each
-	 * ({@link #queueRoars}).
+	 * ({@link #queueRoars}). His own raid's hits never land, nor count toward any of that.
 	 */
 	@Override
 	public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+		// before the rest: LivingEntityMixin's check comes only with super's
+		if (RiftMobs.spares(this, source)) {
+			return false;
+		}
 		if (dizzy()) {
 			damage *= (float) tuning().dizzyDamageTaken();
 		}

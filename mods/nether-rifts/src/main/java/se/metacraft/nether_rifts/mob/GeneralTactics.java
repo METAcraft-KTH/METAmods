@@ -90,6 +90,11 @@ public final class GeneralTactics {
 		projectileHit = gameTime;
 	}
 
+	/** The game time a projectile last hit him; {@link Long#MIN_VALUE} if none has. */
+	public long lastProjectileHit() {
+		return projectileHit;
+	}
+
 	/** A roar, to start when the move playing ends (or at once, chasing). Two queued play back to back. */
 	public void queueRoar() {
 		roarsQueued++;
