@@ -3,10 +3,12 @@
 	"entity.nether_rifts.war_drummer": "Piglintrummis",
 	"entity.nether_rifts.war_ghast": "Kedjad ghast",
 	"entity.nether_rifts.ghast_bombardier": "Piglingranatkastare",
+	"entity.nether_rifts.piglin_general": "Piglingeneral",
 	"item.nether_rifts.bombardier_helmet": "Granatkastarglasögon",
 	"item.nether_rifts.grenadier_sword": "Granatkastarens guldsvärd",
 	"entity.nether_rifts.magma_bomb": "Magmabomb",
 	"item.nether_rifts.war_drummer_spawn_egg": "Framkallningsägg för piglintrummis",
 	"item.nether_rifts.war_ghast_spawn_egg": "Framkallningsägg för kedjad ghast",
-	"item.nether_rifts.ghast_bombardier_spawn_egg": "Framkallningsägg för piglingranatkastare"
+	"item.nether_rifts.ghast_bombardier_spawn_egg": "Framkallningsägg för piglingranatkastare",
+	"item.nether_rifts.piglin_general_spawn_egg": "Piglingeneral-spawnägg"
 }

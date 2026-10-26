@@ -40,7 +40,7 @@ or loot on the ground. When a chained ghast dies, the crew left on it jump off w
 down to fight on foot, the spear piglin wearing the ghast's armour: the Grenadier,
 a piglin in goggles with a golden sword in his gloved right hand, then stops every 4 seconds to put the sword away and lob
 a magma bomb by hand at a player 4 to 12 blocks off, the landing spot again marked ahead. The Piglin General, in a large raid's
-last wave (a brute half again as big, with 300 health and armour 16), gets its own red boss bar. A rift's striders keep
+last wave (his own mob, 3.3 blocks tall, with 300 health and armour 16: `mobs.general`), gets its own red boss bar. A rift's striders keep
 the nether's heat: off lava they don't go cold and slow down, rain doesn't hurt them (water still does), and their
 crossbow piglins steer them. A rift's ghasts fire at players above and below them, not only level with them, and
 their piglins glide down when they die. Rift mobs can't be trapped in boats or minecarts (both through

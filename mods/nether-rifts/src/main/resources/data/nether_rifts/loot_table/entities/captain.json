@@ -5,15 +5,6 @@
 		{
 			"rolls": 1,
 			"condition": {"type": "minecraft:killed_by_player"},
-			"entries": [{
-				"type": "minecraft:item",
-				"name": "minecraft:piglin_head",
-				"modifier": [{"type": "minecraft:set_name", "name": "Piglin General", "target": "item_name"}]
-			}]
-		},
-		{
-			"rolls": 1,
-			"condition": {"type": "minecraft:killed_by_player"},
 			"entries": [{"type": "minecraft:item", "name": "minecraft:blaze_rod"}]
 		},
 		{

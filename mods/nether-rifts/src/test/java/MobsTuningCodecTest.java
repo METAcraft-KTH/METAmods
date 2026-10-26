@@ -70,6 +70,38 @@ public class MobsTuningCodecTest {
 				NetherRiftsConfig.BombardierTuning.DEFAULT);
 	}
 
+	/** The General's keys sit flat in his section, his swing's, spin's and roar's among them; one set keeps the rest at their defaults. */
+	@Test
+	public void generalKeys() {
+		var general = parse("{\"general\": {\"swing_damage\": 12}}").general();
+		var d = NetherRiftsConfig.GeneralTuning.DEFAULT;
+		assertEquals(new NetherRiftsConfig.GeneralTuning(d.health(), d.armour(), d.toughness(), d.speed(),
+				new NetherRiftsConfig.GeneralTuning.Swing(12, d.swing().reach(), d.swing().arc(), d.swing().startRange(), d.swing().cooldown()),
+				d.spin(), d.dizzyTicks(), d.dizzyDamageTaken(), d.roar()), general);
+		var json = NetherRiftsConfig.Mobs.CODEC.encodeStart(JsonOps.INSTANCE, NetherRiftsConfig.Mobs.DEFAULT).getOrThrow()
+				.getAsJsonObject().getAsJsonObject("general");
+		for (var key : java.util.List.of("health", "swing_damage", "spin_radius", "dizzy_ticks", "roar_at", "guard_drummers")) {
+			org.junit.jupiter.api.Assertions.assertTrue(json.has(key), "no " + key + " in " + json);
+		}
+	}
+
+	@Test
+	public void generalDefaultsAreTheSpecNumbers() {
+		assertEquals(new NetherRiftsConfig.GeneralTuning(300, 16, 6, 0.3,
+				new NetherRiftsConfig.GeneralTuning.Swing(10, 4.5, 120, 4, 20),
+				new NetherRiftsConfig.GeneralTuning.Spin(6, 3.5, 60, 100, 240, 120, 60, 10, 0.36),
+				60, 1.5,
+				new NetherRiftsConfig.GeneralTuning.Roar(java.util.List.of(0.6667, 0.3333), 0.5, 1, 1)),
+				NetherRiftsConfig.GeneralTuning.DEFAULT);
+	}
+
+	/** A spin can't be set shorter at most than at least. */
+	@Test
+	public void spinTicksInOrder() {
+		org.junit.jupiter.api.Assertions.assertTrue(NetherRiftsConfig.Mobs.CODEC.parse(JsonOps.INSTANCE,
+				JsonParser.parseString("{\"general\": {\"spin_min_ticks\": 80, \"spin_max_ticks\": 40}}")).isError());
+	}
+
 	/** The throw keys still sit flat in the bombardier section; the tactics are a section of their own. */
 	@Test
 	public void throwAndTacticsKeys() {

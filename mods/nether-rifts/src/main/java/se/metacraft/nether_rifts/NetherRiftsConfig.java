@@ -392,8 +392,148 @@ public record NetherRiftsConfig(
 		}
 	}
 
-	public record Mobs(DrummerTuning drummer, BombardierTuning bombardier) {
-		public static final Mobs DEFAULT = new Mobs(DrummerTuning.DEFAULT, BombardierTuning.DEFAULT);
+	/**
+	 * The Piglin General, the Captain: his stats, and his moves one at a time (a mace swing, a spin that ends dizzy, and a
+	 * roar for reinforcements). Ticks (20 a second), blocks and degrees. Each move's keys sit flat in the general section
+	 * ({@code swing_...}, {@code spin_...}): its own record only because a codec takes at most 16 fields.
+	 */
+	public record GeneralTuning(double health, double armour, double toughness, double speed, Swing swing, Spin spin,
+			int dizzyTicks, double dizzyDamageTaken, Roar roar) {
+
+		/** The mace swing, his melee: a wide arc in front of him. */
+		public record Swing(float damage, double reach, double arc, double startRange, int cooldown) {
+			public static final Swing DEFAULT = new Swing(10, 4.5, 120, 4, 20);
+			public static final MapCodec<Swing> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+					CommentCodec.comment(
+							Sections.section("swing_damage", Codec.floatRange(0, 100), DEFAULT.damage()),
+							"The swing's damage to each player it reaches (2 = one heart)."
+					).forGetter(Swing::damage),
+					CommentCodec.comment(
+							Sections.section("swing_reach", Codec.doubleRange(0, 16), DEFAULT.reach()),
+							"It reaches players this many blocks from him."
+					).forGetter(Swing::reach),
+					CommentCodec.comment(
+							Sections.section("swing_arc", Codec.doubleRange(0, 360), DEFAULT.arc()),
+							"The arc in front of him it sweeps, in degrees."
+					).forGetter(Swing::arc),
+					CommentCodec.comment(
+							Sections.section("swing_start_range", Codec.doubleRange(0, 16), DEFAULT.startRange()),
+							"He swings at a target this many blocks off or closer."
+					).forGetter(Swing::startRange),
+					CommentCodec.comment(
+							Sections.section("swing_cooldown", Codec.intRange(0, 1200), DEFAULT.cooldown()),
+							"Ticks from the end of a swing till the next can start."
+					).forGetter(Swing::cooldown)
+			).apply(i, Swing::new));
+		}
+
+		/** The spin: a whirlwind that hurts players round him, turns projectiles back, and leaves him dizzy. */
+		public record Spin(float damage, double radius, int minTicks, int maxTicks, int cooldown, int earlyCooldown, int earlyWindow,
+				double range, double speed) {
+			public static final Spin DEFAULT = new Spin(6, 3.5, 60, 100, 240, 120, 60, 10, 0.36);
+			public static final MapCodec<Spin> MAP_CODEC = RecordCodecBuilder.<Spin>mapCodec(i -> i.group(
+					CommentCodec.comment(
+							Sections.section("spin_damage", Codec.floatRange(0, 100), DEFAULT.damage()),
+							"Each turn of the spin hurts every player within spin_radius this much (2 = one heart)."
+					).forGetter(Spin::damage),
+					CommentCodec.comment(
+							Sections.section("spin_radius", Codec.doubleRange(0, 16), DEFAULT.radius()),
+							"The spin reaches players this many blocks from his centre."
+					).forGetter(Spin::radius),
+					CommentCodec.comment(
+							Sections.section("spin_min_ticks", Codec.intRange(1, 1200), DEFAULT.minTicks()),
+							"A spin lasts at least this many ticks (after its windup)."
+					).forGetter(Spin::minTicks),
+					CommentCodec.comment(
+							Sections.section("spin_max_ticks", Codec.intRange(1, 1200), DEFAULT.maxTicks()),
+							"And at most this many."
+					).forGetter(Spin::maxTicks),
+					CommentCodec.comment(
+							Sections.section("spin_cooldown", Codec.intRange(0, 72_000), DEFAULT.cooldown()),
+							"Ticks from the end of a spin till the next can start."
+					).forGetter(Spin::cooldown),
+					CommentCodec.comment(
+							Sections.section("spin_early_cooldown", Codec.intRange(0, 72_000), DEFAULT.earlyCooldown()),
+							"Shot at, he may spin again this soon instead."
+					).forGetter(Spin::earlyCooldown),
+					CommentCodec.comment(
+							Sections.section("spin_early_window", Codec.intRange(0, 1200), DEFAULT.earlyWindow()),
+							"Shot at means a projectile hit him within this many ticks."
+					).forGetter(Spin::earlyWindow),
+					CommentCodec.comment(
+							Sections.section("spin_range", Codec.doubleRange(0, 64), DEFAULT.range()),
+							"He spins at a target this many blocks off or closer."
+					).forGetter(Spin::range),
+					CommentCodec.comment(
+							Sections.section("spin_speed", Codec.doubleRange(0, 1), DEFAULT.speed()),
+							"How fast he drifts toward his target while spinning (his walk is speed)."
+					).forGetter(Spin::speed)
+			).apply(i, Spin::new)).validate(Spin::check);
+
+			private static DataResult<Spin> check(Spin spin) {
+				return spin.minTicks() <= spin.maxTicks()
+						? DataResult.success(spin)
+						: DataResult.error(() -> "general: spin_min_ticks (" + spin.minTicks() + ") must not be above spin_max_ticks (" + spin.maxTicks() + ")");
+			}
+		}
+
+		/** The roar: at each health threshold he stops and calls in a guard of the rift's mobs. */
+		public record Roar(List<Double> at, double guardFraction, int guardGrenadiers, int guardDrummers) {
+			public static final Roar DEFAULT = new Roar(List.of(0.6667, 0.3333), 0.5, 1, 1);
+			public static final MapCodec<Roar> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+					CommentCodec.comment(
+							Sections.section("roar_at", Codec.doubleRange(0, 1).listOf(), DEFAULT.at()),
+							"He roars once as his health first drops below each of these shares of his maximum."
+					).forGetter(Roar::at),
+					CommentCodec.comment(
+							Sections.section("guard_fraction", Codec.doubleRange(0, 1), DEFAULT.guardFraction()),
+							"A roar calls in his guard: this share of the large tier's last wave's ranged, melee and elite (at least one ranged and one melee)."
+					).forGetter(Roar::guardFraction),
+					CommentCodec.comment(
+							Sections.section("guard_grenadiers", Codec.intRange(0, 10), DEFAULT.guardGrenadiers()),
+							"And this many Piglin Grenadiers on foot."
+					).forGetter(Roar::guardGrenadiers),
+					CommentCodec.comment(
+							Sections.section("guard_drummers", Codec.intRange(0, 10), DEFAULT.guardDrummers()),
+							"And this many Piglin Drummers."
+					).forGetter(Roar::guardDrummers)
+			).apply(i, Roar::new));
+		}
+
+		public static final GeneralTuning DEFAULT = new GeneralTuning(300, 16, 6, 0.3, Swing.DEFAULT, Spin.DEFAULT, 60, 1.5, Roar.DEFAULT);
+		public static final Codec<GeneralTuning> CODEC = RecordCodecBuilder.create(i -> i.group(
+				CommentCodec.comment(
+						Sections.section("health", Codec.doubleRange(1, 1024), DEFAULT.health()),
+						"His health (a wither has 300)."
+				).forGetter(GeneralTuning::health),
+				CommentCodec.comment(
+						Sections.section("armour", Codec.doubleRange(0, 30), DEFAULT.armour()),
+						"His armour (a diamond set is 20)."
+				).forGetter(GeneralTuning::armour),
+				CommentCodec.comment(
+						Sections.section("toughness", Codec.doubleRange(0, 20), DEFAULT.toughness()),
+						"His armour toughness (a diamond set is 8)."
+				).forGetter(GeneralTuning::toughness),
+				CommentCodec.comment(
+						Sections.section("speed", Codec.doubleRange(0, 1), DEFAULT.speed()),
+						"His walking speed (a piglin brute's is 0.35)."
+				).forGetter(GeneralTuning::speed),
+				Swing.MAP_CODEC.forGetter(GeneralTuning::swing),
+				Spin.MAP_CODEC.forGetter(GeneralTuning::spin),
+				CommentCodec.comment(
+						Sections.section("dizzy_ticks", Codec.intRange(0, 1200), DEFAULT.dizzyTicks()),
+						"After a spin he stands dizzy this many ticks: he doesn't move, turn or attack."
+				).forGetter(GeneralTuning::dizzyTicks),
+				CommentCodec.comment(
+						Sections.section("dizzy_damage_taken", Codec.doubleRange(0, 10), DEFAULT.dizzyDamageTaken()),
+						"Dizzy, he takes this many times the damage (1.5: half again as much)."
+				).forGetter(GeneralTuning::dizzyDamageTaken),
+				Roar.MAP_CODEC.forGetter(GeneralTuning::roar)
+		).apply(i, GeneralTuning::new));
+	}
+
+	public record Mobs(DrummerTuning drummer, BombardierTuning bombardier, GeneralTuning general) {
+		public static final Mobs DEFAULT = new Mobs(DrummerTuning.DEFAULT, BombardierTuning.DEFAULT, GeneralTuning.DEFAULT);
 		public static final Codec<Mobs> CODEC = RecordCodecBuilder.create(i -> i.group(
 				CommentCodec.comment(
 						Sections.section("drummer", DrummerTuning.CODEC, DrummerTuning.DEFAULT),
@@ -402,7 +542,11 @@ public record NetherRiftsConfig(
 				CommentCodec.comment(
 						Sections.section("bombardier", BombardierTuning.CODEC, BombardierTuning.DEFAULT),
 						"Chained ghasts, crewed by a Piglin Drummer, a Piglin Grenadier and two piglins, in Large waves 5 and later; the Grenadier's bombs, from the deck and by hand."
-				).forGetter(Mobs::bombardier)
+				).forGetter(Mobs::bombardier),
+				CommentCodec.comment(
+						Sections.section("general", GeneralTuning.CODEC, GeneralTuning.DEFAULT),
+						"The Piglin General, the Captain (off by default: see waves): his stats, his mace swing, his spin and the dizzy after it, and his roars."
+				).forGetter(Mobs::general)
 		).apply(i, Mobs::new));
 	}
 
@@ -458,7 +602,7 @@ public record NetherRiftsConfig(
 			).forGetter(NetherRiftsConfig::waves),
 			CommentCodec.comment(
 					Sections.section("mobs", Mobs.CODEC, Mobs.DEFAULT),
-					"Tuning for the Piglin Drummer and the Piglin Grenadier. Any value left out keeps its default."
+					"Tuning for the Piglin Drummer, the Piglin Grenadier and the Piglin General. Any value left out keeps its default."
 			).forGetter(NetherRiftsConfig::mobs)
 	).apply(i, NetherRiftsConfig::new));
 

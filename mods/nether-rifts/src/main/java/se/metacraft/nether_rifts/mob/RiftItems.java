@@ -45,6 +45,7 @@ public final class RiftItems {
 	public static final Item WAR_DRUMMER_SPAWN_EGG = spawnEgg("war_drummer_spawn_egg", RiftEntities.WAR_DRUMMER, Items.PIGLIN_BRUTE_SPAWN_EGG);
 	public static final Item WAR_GHAST_SPAWN_EGG = spawnEgg("war_ghast_spawn_egg", RiftEntities.WAR_GHAST, Items.GHAST_SPAWN_EGG);
 	public static final Item GHAST_BOMBARDIER_SPAWN_EGG = spawnEgg("ghast_bombardier_spawn_egg", RiftEntities.GHAST_BOMBARDIER, Items.PIGLIN_SPAWN_EGG);
+	public static final Item PIGLIN_GENERAL_SPAWN_EGG = spawnEgg("piglin_general_spawn_egg", RiftEntities.PIGLIN_GENERAL, Items.PIGLIN_BRUTE_SPAWN_EGG);
 
 	private RiftItems() {}
 

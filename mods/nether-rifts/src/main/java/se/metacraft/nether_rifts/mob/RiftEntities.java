@@ -21,6 +21,11 @@ public final class RiftEntities {
 			EntityType.Builder.of(WarDrummer::new, MobCategory.MONSTER).sized(0.6f, 1.95f).clientTrackingRange(10),
 			WarDrummer.createAttributes());
 
+	/** The artist's model at 1.5x ({@link PiglinGeneral#MODEL_SCALE}): his head is 3.3 blocks up. */
+	public static final EntityType<PiglinGeneral> PIGLIN_GENERAL = living("piglin_general",
+			EntityType.Builder.of(PiglinGeneral::new, MobCategory.MONSTER).sized(1.3f, 3.3f).eyeHeight(2.9f).clientTrackingRange(10),
+			PiglinGeneral.createAttributes());
+
 	/** A vanilla ghast's box and eye height; its deck hangs below the box (see {@link WarGhast#stackBox}). */
 	public static final EntityType<WarGhast> WAR_GHAST = living("war_ghast",
 			EntityType.Builder.of(WarGhast::new, MobCategory.MONSTER).sized(4.0f, 4.0f).eyeHeight(2.6f)

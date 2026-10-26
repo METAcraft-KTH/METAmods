@@ -23,6 +23,7 @@ import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import se.metacraft.nether_rifts.NetherRifts;
+import se.metacraft.nether_rifts.mob.PiglinGeneral;
 import se.metacraft.nether_rifts.mob.RiftEntities;
 import se.metacraft.nether_rifts.mob.RiftItems;
 import se.metacraft.nether_rifts.raid.RiftMobs;
@@ -79,11 +80,15 @@ public class MobTests {
 		NetherRiftsTests.register("mobs/general_is_big_and_tough", ctx -> {
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {
-				var general = (net.minecraft.world.entity.LivingEntity) RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.CAPTAIN,
+				var spawned = RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.CAPTAIN,
 						ctx.absolutePos(new BlockPos(10, 1, 12)), Vec3.ZERO).getFirst();
+				ctx.assertTrue(spawned instanceof PiglinGeneral, "the Captain's slot spawned " + spawned);
+				var general = (PiglinGeneral) spawned;
 				ctx.assertTrue(general.getMaxHealth() == 300 && general.getHealth() == 300, "the General has " + general.getHealth() + " / " + general.getMaxHealth());
-				ctx.assertTrue(general.getScale() == 1.5f, "the General is at scale " + general.getScale());
 				ctx.assertTrue(general.getArmorValue() == 16, "the General has armour " + general.getArmorValue());
+				ctx.assertTrue(Math.abs(general.getBbHeight() - 3.3f) < 0.05f, "the General is " + general.getBbHeight() + " tall");
+				ctx.assertTrue(general.entityTags().contains(RiftMobs.CAPTAIN_TAG), "the General isn't tagged the Captain");
+				ctx.assertTrue(general.isImmuneToZombification(), "the General can turn zombie");
 				ctx.killAllEntities();
 				FormingTests.cleanUp(ctx);
 				ctx.succeed();
@@ -205,7 +210,8 @@ public class MobTests {
 		});
 		NetherRiftsTests.register("mobs/spawn_eggs", ctx -> {
 			for (var egg : List.of(new Object[] {RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftEntities.WAR_DRUMMER},
-					new Object[] {RiftItems.WAR_GHAST_SPAWN_EGG, RiftEntities.WAR_GHAST}, new Object[] {RiftItems.GHAST_BOMBARDIER_SPAWN_EGG, RiftEntities.GHAST_BOMBARDIER})) {
+					new Object[] {RiftItems.WAR_GHAST_SPAWN_EGG, RiftEntities.WAR_GHAST}, new Object[] {RiftItems.GHAST_BOMBARDIER_SPAWN_EGG, RiftEntities.GHAST_BOMBARDIER},
+					new Object[] {RiftItems.PIGLIN_GENERAL_SPAWN_EGG, RiftEntities.PIGLIN_GENERAL})) {
 				var type = SpawnEggItem.getType(new ItemStack((Item) egg[0]));
 				ctx.assertTrue(type == egg[1], egg[0] + " spawns " + type);
 				// metacraft-core's Spawn Eggs creative tab gathers the eggs of every namespace opted in (RiftItems.init)
@@ -228,11 +234,12 @@ public class MobTests {
 				} catch (IOException e) {
 					throw new UncheckedIOException(e);
 				}
-				for (var type : List.of(RiftEntities.WAR_DRUMMER, RiftEntities.WAR_GHAST, RiftEntities.GHAST_BOMBARDIER, RiftEntities.MAGMA_BOMB)) {
+				for (var type : List.of(RiftEntities.WAR_DRUMMER, RiftEntities.WAR_GHAST, RiftEntities.GHAST_BOMBARDIER, RiftEntities.MAGMA_BOMB, RiftEntities.PIGLIN_GENERAL)) {
 					ctx.assertTrue(names.has(type.getDescriptionId()), lang + " doesn't name " + type.getDescriptionId());
 				}
 				ctx.assertTrue(names.has(RiftBlocks.RIFT.getDescriptionId()), lang + " doesn't name " + RiftBlocks.RIFT.getDescriptionId());
-				for (var item : List.of(RiftItems.BOMBARDIER_HELMET, RiftItems.GRENADIER_SWORD, RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftItems.WAR_GHAST_SPAWN_EGG, RiftItems.GHAST_BOMBARDIER_SPAWN_EGG)) {
+				for (var item : List.of(RiftItems.BOMBARDIER_HELMET, RiftItems.GRENADIER_SWORD, RiftItems.WAR_DRUMMER_SPAWN_EGG, RiftItems.WAR_GHAST_SPAWN_EGG, RiftItems.GHAST_BOMBARDIER_SPAWN_EGG,
+						RiftItems.PIGLIN_GENERAL_SPAWN_EGG)) {
 					ctx.assertTrue(names.has(item.getDescriptionId()), lang + " doesn't name " + item.getDescriptionId());
 				}
 			}

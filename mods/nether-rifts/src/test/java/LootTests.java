@@ -1,5 +1,4 @@
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceKey;
@@ -10,6 +9,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.phys.Vec3;
 import se.metacraft.nether_rifts.NetherRifts;
+import se.metacraft.nether_rifts.mob.PiglinGeneral;
 import se.metacraft.nether_rifts.mob.RiftEntities;
 import se.metacraft.nether_rifts.mob.WarGhast;
 import se.metacraft.nether_rifts.raid.RiftMobs;
@@ -28,12 +28,27 @@ public class LootTests {
 				ctx.assertTrue(ctx.getEntities(EntityTypes.ITEM).isEmpty(), "troopers not killed by a player dropped items")));
 		NetherRiftsTests.register("loot/elite_blaze_rod", ctx -> killMany(ctx, Slot.ELITE, true, () ->
 				ctx.assertTrue(count(ctx, Items.BLAZE_ROD) >= 10, "brutes dropped " + count(ctx, Items.BLAZE_ROD) + " blaze rods, expected one each")));
-		NetherRiftsTests.register("loot/captain_head", ctx -> killMany(ctx, Slot.CAPTAIN, true, () -> {
-			var head = ctx.getEntities(EntityTypes.ITEM).stream().filter(i -> i.getItem().is(Items.PIGLIN_HEAD)).findFirst();
-			ctx.assertTrue(head.isPresent(), "no Piglin General head");
-			ctx.assertTrue(head.get().getItem().get(DataComponents.ITEM_NAME).getString().equals("Piglin General"),
-					"the head is called " + head.get().getItem().get(DataComponents.ITEM_NAME));
-		}));
+		NetherRiftsTests.register("loot/captain_drops", ctx -> {
+			// the General killed by a player: his blaze rod and quartz, and no head (the stand-in brute's was a Piglin General head)
+			FormingTests.lightFrame(ctx, 2, 3);
+			ctx.runAtTickTime(3, () -> {
+				var player = StageTests.player(ctx);
+				var general = (LivingEntity) RiftMobs.spawn(ctx.getLevel(), FormingTests.riftIn(ctx).id(), Slot.CAPTAIN,
+						ctx.absolutePos(new BlockPos(12, 1, 12)), Vec3.ZERO).getFirst();
+				ctx.assertTrue(general instanceof PiglinGeneral, "the Captain's slot spawned " + general);
+				general.hurtServer(ctx.getLevel(), ctx.getLevel().damageSources().playerAttack(player), 1000f);
+				ctx.runAfterDelay(5, () -> {
+					ctx.assertTrue(count(ctx, Items.PIGLIN_HEAD) == 0, "the General dropped a head");
+					ctx.assertTrue(count(ctx, Items.BLAZE_ROD) == 1, "the General dropped " + count(ctx, Items.BLAZE_ROD) + " blaze rods");
+					int quartz = count(ctx, Items.QUARTZ);
+					ctx.assertTrue(quartz >= 4 && quartz <= 8, "the General dropped " + quartz + " quartz");
+					StageTests.remove(ctx, player);
+					ctx.killAllEntities();
+					FormingTests.cleanUp(ctx);
+					ctx.succeed();
+				});
+			});
+		});
 		NetherRiftsTests.register("loot/war_ghast_drops_ghast_loot", ctx -> {
 			FormingTests.lightFrame(ctx, 2, 3);
 			ctx.runAtTickTime(3, () -> {

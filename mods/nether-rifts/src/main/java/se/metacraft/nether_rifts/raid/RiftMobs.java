@@ -29,6 +29,7 @@ import se.metacraft.nether_rifts.NetherRiftsConfig;
 import se.metacraft.nether_rifts.mixin.HoglinAccessor;
 import se.metacraft.nether_rifts.mixin.MobAccessor;
 import se.metacraft.nether_rifts.mob.GhastBombardier;
+import se.metacraft.nether_rifts.mob.PiglinGeneral;
 import se.metacraft.nether_rifts.mob.WarDrummer;
 import se.metacraft.nether_rifts.mob.WarGhast;
 import se.metacraft.nether_rifts.rift.RiftData;
@@ -149,7 +150,7 @@ public final class RiftMobs {
 	}
 
 	/**
-	 * The drummer, the Bombardier (piglins both, so they are checked first), piglins and brutes drop rift loot by role; war ghasts drop a vanilla ghast's
+	 * The drummer, the Bombardier, the General (piglins all, so they are checked first), piglins and brutes drop rift loot by role; war ghasts drop a vanilla ghast's
 	 * (a summoned one gets the same from its own table, {@code entities/war_ghast}); ghasts, hoglins and striders
 	 * keep their own.
 	 */
@@ -164,8 +165,11 @@ public final class RiftMobs {
 		if (mob instanceof GhastBombardier) {
 			return Optional.of(ResourceKey.create(Registries.LOOT_TABLE, NetherRifts.getID("entities/trooper")));
 		}
+		if (mob instanceof PiglinGeneral) {
+			return Optional.of(ResourceKey.create(Registries.LOOT_TABLE, NetherRifts.getID("entities/captain")));
+		}
 		if (mob instanceof PiglinBrute) {
-			role = slot == Slot.CAPTAIN ? "captain" : "elite";
+			role = "elite";
 		} else if (mob instanceof AbstractPiglin) {
 			role = slot == Slot.LEADER ? "leader" : "trooper";
 		} else {

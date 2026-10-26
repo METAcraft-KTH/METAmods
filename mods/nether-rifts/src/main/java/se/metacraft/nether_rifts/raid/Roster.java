@@ -35,11 +35,8 @@ public final class Roster {
 					+ "Passengers:[" + CROSSBOW_PIGLIN + "]}"),
 			Slot.ELITE, one("{id:\"minecraft:piglin_brute\",equipment:{mainhand:{id:\"minecraft:golden_axe\",count:1}}}"),
 			Slot.LEADER, one("{id:\"nether_rifts:war_drummer\"}"),
-			// half again a brute's size, six times its health (a wither's), and armour 16 (a diamond set's is 20)
-			Slot.CAPTAIN, one("{id:\"minecraft:piglin_brute\",CustomName:\"Piglin General\",Health:300f,"
-					+ "attributes:[{id:\"minecraft:max_health\",base:300d},{id:\"minecraft:scale\",base:1.5d},"
-					+ "{id:\"minecraft:armor\",base:16d},{id:\"minecraft:armor_toughness\",base:6d}],"
-					+ "equipment:{head:{id:\"minecraft:red_banner\",count:1},mainhand:{id:\"minecraft:golden_axe\",count:1}}}"),
+			// his stats come from the config's mobs.general
+			Slot.CAPTAIN, one("{id:\"nether_rifts:piglin_general\"}"),
 			Slot.BOMBARDIER, one("{id:\"nether_rifts:war_ghast\"}")
 	);
 
