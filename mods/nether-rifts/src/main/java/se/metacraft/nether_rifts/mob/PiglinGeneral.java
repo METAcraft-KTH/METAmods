@@ -479,7 +479,10 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 			return;
 		}
 		pickTarget(level);
-		tactics.tick(level);
+		// a showcase General only poses (Showcase plays his animations)
+		if (!Showcase.isShowcase(this)) {
+			tactics.tick(level);
+		}
 		// moved since the last AI step (this tick's own move comes after it)
 		boolean moving = Mth.lengthSquared(getX() - lastX, getZ() - lastZ) > WALKING * WALKING;
 		lastX = getX();

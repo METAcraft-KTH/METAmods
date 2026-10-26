@@ -1,10 +1,12 @@
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import se.metacraft.nether_rifts.mob.GhastBombardier;
 import se.metacraft.nether_rifts.mob.GrenadierSword;
+import se.metacraft.nether_rifts.mob.PiglinGeneral;
 import se.metacraft.nether_rifts.mob.RiftEntities;
 import se.metacraft.nether_rifts.mob.RiftModels;
 import se.metacraft.nether_rifts.mob.Showcase;
@@ -33,11 +35,24 @@ public class ShowcaseTests {
 			server.getCommands().performPrefixedCommand(source, "rifts showcase");
 			var mobs = Showcase.live();
 			int animations = RiftModels.WAR_DRUMMER.animations().size();
-			ctx.assertTrue(count(mobs, WarDrummer.class) == animations + 9, "drummers: " + count(mobs, WarDrummer.class));
+			// the General's own animations but his death, one General each
+			var generalAnimations = RiftModels.PIGLIN_GENERAL.animations().keySet().stream().filter(a -> !a.equals("death")).toList();
+			ctx.assertTrue(generalAnimations.size() == 7, "the General's animations: " + generalAnimations);
+			// the armour row's nine, one per animation, and one riding a hoglin at the end of the General's row
+			ctx.assertTrue(count(mobs, WarDrummer.class) == animations + 10, "drummers: " + count(mobs, WarDrummer.class));
+			ctx.assertTrue(count(mobs, PiglinGeneral.class) == generalAnimations.size(), "generals: " + count(mobs, PiglinGeneral.class));
+			ctx.assertTrue(count(mobs, Hoglin.class) == 1, "hoglins: " + count(mobs, Hoglin.class));
 			ctx.assertTrue(count(mobs, WarGhast.class) == 5, "ghasts: " + count(mobs, WarGhast.class));
 			ctx.assertTrue(count(mobs, GhastBombardier.class) == 3, "grenadiers: " + count(mobs, GhastBombardier.class));
 			ctx.assertTrue(mobs.stream().filter(m -> m.getType() == EntityTypes.PIGLIN).count() == 1, "no vanilla piglin");
-			ctx.assertTrue(mobs.size() == animations + 18, "the showcase has " + mobs.size() + " mobs (run twice)");
+			ctx.assertTrue(mobs.size() == animations + 27, "the showcase has " + mobs.size() + " mobs (run twice)");
+			for (var animation : generalAnimations) {
+				ctx.assertTrue(mobs.stream().anyMatch(m -> m instanceof PiglinGeneral && animation.equals(Showcase.animation(m))
+						&& m.getCustomName().getString().equals("General: " + animation)), "no General for " + animation);
+			}
+			var mount = mobs.stream().filter(m -> m instanceof Hoglin).findFirst().orElseThrow();
+			var rider = mobs.stream().filter(m -> m instanceof WarDrummer && m.getVehicle() == mount).map(m -> (WarDrummer) m).findFirst().orElse(null);
+			ctx.assertTrue(rider != null && "beat".equals(Showcase.animation(rider)), "no Drummer beating on the hoglin");
 			for (var animation : RiftModels.WAR_DRUMMER.animations().keySet()) {
 				ctx.assertTrue(mobs.stream().anyMatch(m -> animation.equals(Showcase.animation(m))), "no drummer for " + animation);
 			}
@@ -78,7 +93,8 @@ public class ShowcaseTests {
 				for (var mob : mobs) {
 					var animation = Showcase.animation(mob);
 					if (animation != null && !animation.equals("big_beat")) {
-						var animator = mob instanceof WarDrummer drummer ? drummer.getHolder().getAnimator() : ((WarGhast) mob).getHolder().getAnimator();
+						var animator = mob instanceof WarDrummer drummer ? drummer.getHolder().getAnimator()
+								: mob instanceof PiglinGeneral general ? general.getHolder().getAnimator() : ((WarGhast) mob).getHolder().getAnimator();
 						ctx.assertTrue(animator.isPlaying(animation), mob.getCustomName().getString() + " doesn't play it");
 					}
 					mob.hurtServer(ctx.getLevel(), ctx.getLevel().damageSources().playerAttack(player), 10f);

@@ -35,9 +35,10 @@ import java.util.WeakHashMap;
  * them: a Piglin Drummer per animation of its model (each looping just that one, as one animation poses the whole
  * model; one-shots start again after a short pause), Piglin Grenadiers with their gloved sword and held at each stage of
  * a throw (the bomb in the fist, then let go), and a vanilla piglin in iron to compare with; then Piglin Drummers in each
- * kind of armour with gear in hand or on the head (named after it); behind them, a Chained Ghast per animation of its
- * model (as the drummers, each over idle as {@link WarGhast#play} plays it), with its kit and diamond armour. Names show
- * what each is.
+ * kind of armour with gear in hand or on the head (named after it); behind them, a Piglin General per animation of his
+ * model but his death (each looping it as {@link PiglinGeneral#play} plays it, running none of his fight), with a Drummer
+ * beating on a hoglin's back at the end of the row; then a Chained Ghast per animation of its model (as the drummers, each
+ * over idle as {@link WarGhast#play} plays it), with its kit and diamond armour. Names show what each is.
  *
  * <p>Showcase mobs stand still and silent (no AI, no sounds of their own, no bolts), never take damage or despawn,
  * belong to no rift, and are tagged {@link #TAG} so {@code /rifts showcase clear} (or a new showcase) takes them away.
@@ -47,7 +48,7 @@ import java.util.WeakHashMap;
 public final class Showcase {
 
 	public static final String TAG = "nether_rifts.showcase";
-	/** On a showcase drummer or ghast: the animation it loops. */
+	/** On a showcase drummer, General or ghast: the animation it loops. */
 	private static final String ANIMATION_TAG = TAG + ".animation.";
 	/** On a showcase Grenadier: the stage of a throw its sword is held at (not saved on the stack, so set again). */
 	private static final String THROW_TAG = TAG + ".throw.";
@@ -56,15 +57,21 @@ public final class Showcase {
 	public static final int PAUSE = 20;
 	/** The order drummer animations are laid out in; others follow by name. */
 	private static final List<String> ORDER = List.of("idle", "walk", "beat", "big_beat", "warcry");
+	/** The order the General's animations are laid out in (his death isn't); others follow by name. */
+	private static final List<String> GENERAL_ORDER = List.of("idle", "walk", "attack", "spin_windup", "spin", "dizzy", "roar");
 	/** The Chained Ghast's animations, in the order they are laid out. */
 	private static final List<String> GHAST_ANIMATIONS = List.of(WarGhast.IDLE, WarGhast.SHOOT, WarGhast.DIVE, WarGhast.CLIMB,
 			WarGhast.DROP_BOMB);
 	/** Across a row, per mob (room for its name), and how far ahead each row is, in blocks. */
 	private static final double SPACING = 2.5;
 	private static final double ARMOUR_SPACING = 2.2;
+	/** The General's row has eight (seven Generals and a drummer's hoglin): this wide, they still fit the game test's 24-block room. */
+	private static final double GENERAL_SPACING = 3.3;
 	private static final double GHAST_SPACING = 5;
 	public static final double FRONT = 5;
 	public static final double MIDDLE = 8;
+	/** The Generals' row, between the armour and the ghasts. */
+	public static final double GENERALS = 11;
 	public static final double BACK = 15;
 	/** The ground under a spot is looked for from this far over the player's feet. */
 	private static final double HEADROOM = 3;
@@ -104,7 +111,7 @@ public final class Showcase {
 
 	/**
 	 * Clears any showcase, then lays a new one out in front of {@code at}, looking along {@code yaw}: rows {@link #FRONT},
-	 * {@link #MIDDLE} and (the ghasts) {@link #BACK} blocks ahead. Returns what it spawned.
+	 * {@link #MIDDLE}, {@link #GENERALS} and (the ghasts) {@link #BACK} blocks ahead. Returns what it spawned.
 	 */
 	public static List<Mob> spawn(ServerLevel level, Vec3 at, float yaw) {
 		clear(level.getServer());
@@ -160,6 +167,30 @@ public final class Showcase {
 		place(level, armoured, at.add(ahead.scale(MIDDLE)), right, ARMOUR_SPACING, facing, 0);
 		spawned.addAll(armoured);
 
+		var generals = new ArrayList<Mob>();
+		var generalAnimations = new ArrayList<>(RiftModels.PIGLIN_GENERAL.animations().keySet());
+		generalAnimations.remove("death");
+		generalAnimations.sort((a, b) -> {
+			int i = GENERAL_ORDER.indexOf(a), j = GENERAL_ORDER.indexOf(b);
+			return i >= 0 && j >= 0 ? Integer.compare(i, j) : i >= 0 ? -1 : j >= 0 ? 1 : a.compareTo(b);
+		});
+		for (var animation : generalAnimations) {
+			var general = create(level, RiftEntities.PIGLIN_GENERAL, "General: " + animation);
+			general.addTag(ANIMATION_TAG + animation);
+			generals.add(general);
+		}
+		// a Drummer beating on a hoglin's back, as the General's guard brings one, at the end of the row; the hoglin stands
+		// still and silent like the rest, and the rider is put on it once both are in the world
+		var hoglin = create(level, EntityTypes.HOGLIN, "Hoglin");
+		hoglin.setImmuneToZombification(true);
+		var rider = create(level, RiftEntities.WAR_DRUMMER, "Drummer: beat, riding a hoglin");
+		rider.addTag(ANIMATION_TAG + "beat");
+		generals.add(hoglin);
+		place(level, generals, at.add(ahead.scale(GENERALS)), right, GENERAL_SPACING, facing, 0);
+		spawned.addAll(generals);
+		rider.snapTo(hoglin.getX(), hoglin.getY(), hoglin.getZ(), facing, 0);
+		spawned.add(rider);
+
 		var ghasts = new ArrayList<Mob>();
 		for (var animation : GHAST_ANIMATIONS) {
 			var ghast = create(level, RiftEntities.WAR_GHAST, "Chained Ghast: " + animation);
@@ -180,6 +211,11 @@ public final class Showcase {
 			}
 			level.addFreshEntity(mob);
 			LIVE.put(mob, 0L);
+		}
+		if (rider.startRiding(hoglin, true, false)) {
+			hoglin.positionRider(rider);
+			rider.setYBodyRot(facing);
+			rider.setYHeadRot(facing);
 		}
 		return spawned;
 	}
@@ -257,7 +293,7 @@ public final class Showcase {
 	}
 
 	/**
-	 * Keeps each drummer and ghast on its animation (a one-shot again after {@link #PAUSE} ticks) and each Grenadier's
+	 * Keeps each drummer, General and ghast on its animation (a one-shot again after {@link #PAUSE} ticks) and each Grenadier's
 	 * sword at its throw.
 	 */
 	private static void tick(MinecraftServer server) {
@@ -279,6 +315,7 @@ public final class Showcase {
 				continue;
 			}
 			var animator = mob instanceof WarDrummer drummer ? drummer.getHolder().getAnimator()
+					: mob instanceof PiglinGeneral general ? general.getHolder().getAnimator()
 					: mob instanceof WarGhast ghast ? ghast.getHolder().getAnimator() : null;
 			if (animator == null || animator.isPlaying(animation)) {
 				continue;
@@ -293,6 +330,8 @@ public final class Showcase {
 			if (now >= due) {
 				if (mob instanceof WarGhast ghast) {
 					ghast.play(animation);
+				} else if (mob instanceof PiglinGeneral general) {
+					general.play(animation);
 				} else if (mob instanceof WarDrummer drummer) {
 					drummer.loop(animation);
 				} else {
@@ -314,7 +353,7 @@ public final class Showcase {
 		return null;
 	}
 
-	/** The animation a showcase drummer or ghast loops, or null for another mob. */
+	/** The animation a showcase drummer, General or ghast loops, or null for another mob. */
 	@Nullable
 	public static String animation(Mob mob) {
 		for (var tag : mob.entityTags()) {

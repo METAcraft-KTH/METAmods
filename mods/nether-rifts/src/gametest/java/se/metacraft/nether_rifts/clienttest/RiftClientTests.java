@@ -392,6 +392,24 @@ public final class RiftClientTests implements FabricClientGameTest {
 				server.runCommand(tpLooking(0.5, -55.0, 33.0, 0.5, -56.0, 55.5));
 				ctx.waitTicks(15);
 				ctx.takeScreenshot(TestScreenshotOptions.of("showcase_ghasts").withSize(1920, 1080));
+				// the Piglin General's row, 11 blocks ahead of the showcase (z 51.5): a General per animation but his death (idle,
+				// walk, attack, spin_windup, spin, dizzy, roar), 3.3 apart from x 12.05 across to -7.75, then a Drummer beating
+				// on a hoglin at x -11.05. The whole row first, looking down over the armour row; then three of his poses held
+				// on one frame each (BIL plays 20 frames a second, and the spin is a blur otherwise) at the spin General, and
+				// the Drummer's seat on the hoglin up close (its place was only set by numbers).
+				server.runCommand(tpLooking(0.5, -50.0, 35.5, 0.5, -57.5, 51.5));
+				ctx.waitTicks(15);
+				ctx.takeScreenshot(TestScreenshotOptions.of("showcase_generals").withSize(1920, 1080));
+				server.runCommand(tpLooking(-1.15, -57.2, 44.5, -1.15, -58.2, 51.5));
+				for (var pose : new String[][] {{"spin", "3"}, {"spin_windup", "15"}, {"attack", "17"}}) {
+					AnimationHold.hold(server, RiftEntities.PIGLIN_GENERAL, pose[0], Integer.parseInt(pose[1]));
+					ctx.waitTicks(5);
+					ctx.takeScreenshot(TestScreenshotOptions.of("showcase_general_" + pose[0]).withSize(1920, 1080));
+				}
+				AnimationHold.release(server);
+				server.runCommand(tpLooking(-8.0, -57.4, 46.5, -11.05, -59.0, 51.5));
+				ctx.waitTicks(15);
+				ctx.takeScreenshot(TestScreenshotOptions.of("showcase_general_mounted_drummer").withSize(1920, 1080));
 				server.runCommand("rifts showcase clear");
 
 				// the Grenadier on foot: a vanilla piglin wearing the artist's goggles (an item model from the mod's pack, on its
