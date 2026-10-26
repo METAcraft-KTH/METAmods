@@ -26,10 +26,11 @@ public class NetherRifts implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		NetherRiftsConfig.getInstance();
 		RiftModels.init();
 		RiftItems.init();
 		RiftEntities.init();
+		// after the entities: the roster's entity ids are checked against the registry as the config loads
+		NetherRiftsConfig.getInstance();
 		BurningPatches.init();
 		RiftBlocks.init();
 		Ignition.init();

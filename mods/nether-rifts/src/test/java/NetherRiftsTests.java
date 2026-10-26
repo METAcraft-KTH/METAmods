@@ -31,23 +31,46 @@ import java.util.function.Supplier;
 /** Every nether-rifts game test, on one test server (registries freeze after the first init). */
 public class NetherRiftsTests {
 
-	/** FAST names blocks, so the registries must be bootstrapped before this class's other statics run. */
+	/** The registries must be bootstrapped before {@link #init} writes the roster file with the roster's codec. */
 	static {
 		SharedConstants.tryDetectVersion();
 		Bootstrap.bootStrap();
 	}
 
-	/** Short timers and ranges, so raids finish inside a test and neighbouring tests' players don't take part. */
-	public static final NetherRiftsConfig FAST = new NetherRiftsConfig(
-			NetherRiftsConfig.Tiers.DEFAULT,
-			new NetherRiftsConfig.Timers(40, 20, 100, 60),
-			new NetherRiftsConfig.Ranges(10, 10, 16),
-			100, 0.25, 2.0,
-			NetherRiftsConfig.DEFAULT.frameCollapse(), NetherRiftsConfig.DEFAULT.scfNetherPortalTypes(),
-			NetherRiftsConfig.DEFAULT.roster(), NetherRiftsConfig.Waves.DEFAULT, NetherRiftsConfig.DEFAULT.mobs()
-	);
+	/**
+	 * Short timers and ranges, so raids finish inside a test and neighbouring tests' players don't take part. Set once
+	 * the mods are initialised, before any test registers: building the config's codec checks the default roster's
+	 * entity ids (metacraft-config), so the config class mustn't load before the mod's entities are registered.
+	 */
+	public static NetherRiftsConfig FAST;
+
+	private static NetherRiftsConfig fast() {
+		return new NetherRiftsConfig(
+				NetherRiftsConfig.Tiers.DEFAULT,
+				new NetherRiftsConfig.Timers(40, 20, 100, 60),
+				new NetherRiftsConfig.Ranges(10, 10, 16),
+				100, 0.25, 2.0,
+				NetherRiftsConfig.DEFAULT.frameCollapse(), NetherRiftsConfig.DEFAULT.scfNetherPortalTypes(),
+				NetherRiftsConfig.DEFAULT.roster(), NetherRiftsConfig.Waves.DEFAULT, NetherRiftsConfig.DEFAULT.mobs()
+		);
+	}
 
 	private static boolean initialised = false;
+
+	/** The config as the mod loaded it in its own init, from {@link #writeRosterAtInit}'s file. */
+	private static NetherRiftsConfig loadedAtInit;
+
+	/**
+	 * A config file of only a roster, with the Piglin General in the elite slot: one of the mod's own mobs where the
+	 * default is a vanilla one, so it's seen whether the entry survives the config's load during the mod's init.
+	 * Written with the roster's codec alone, which leaves the config class unloaded.
+	 */
+	private static void writeRosterAtInit() {
+		var roster = Roster.CODEC.encodeStart(JsonOps.INSTANCE, java.util.Map.of(Slot.ELITE, Roster.DEFAULT.get(Slot.CAPTAIN))).getOrThrow();
+		var json = new com.google.gson.JsonObject();
+		json.add("roster", roster);
+		writeConfigFile(json.toString());
+	}
 
 	@BeforeAll
 	public static synchronized void init() {
@@ -56,8 +79,11 @@ public class NetherRiftsTests {
 		}
 		initialised = true;
 		writeScfPortal();
+		// written, not loaded: the mod's init loads it
+		writeRosterAtInit();
 		TestHelper.init(
 				() -> {
+					FAST = fast();
 					registerTestCommands();
 					ModeTests.registerTests();
 					ShapeTests.registerTests();
@@ -83,6 +109,9 @@ public class NetherRiftsTests {
 				METAcraftLib::new, METAcraftCore::new, METAcraftZones::new, PortalBlocker::new,
 				PortalOpening::new, Features::new, de.tomalbrc.bil.BIL::new, NetherRifts::new
 		);
+		loadedAtInit = NetherRiftsConfig.getInstance();
+		// the tests start from the defaults; each one's environment sets its own
+		writeConfig(NetherRiftsConfig.DEFAULT);
 	}
 
 	public static void register(String path, Consumer<GameTestHelper> test) {
@@ -109,14 +138,20 @@ public class NetherRiftsTests {
 	}
 
 	public static void writeConfig(NetherRiftsConfig config) {
-		var json = NetherRiftsConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, config).getOrThrow();
+		writeConfigFile(NetherRiftsConfig.CODEC.codec().encodeStart(JsonOps.INSTANCE, config).getOrThrow().toString());
+		NetherRiftsConfig.reload();
+	}
+
+	/** Rewrites the real config file, without reloading it. */
+	private static void writeConfigFile(String json) {
+		// the config class's path, without loading the class (see FAST)
+		var path = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve(NetherRifts.MODID + ".json5");
 		try {
-			Files.createDirectories(NetherRiftsConfig.PATH.getParent());
-			Files.writeString(NetherRiftsConfig.PATH, json.toString());
+			Files.createDirectories(path.getParent());
+			Files.writeString(path, json);
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}
-		NetherRiftsConfig.reload();
 	}
 
 	/** {@code riftstest <preset>}: rewrites the real config file and reloads it. Test environments call it. */
@@ -207,6 +242,16 @@ public class NetherRiftsTests {
 			writeConfig(config.get());
 			return 1;
 		});
+	}
+
+	/** A roster naming the mod's own mobs loads with them, though the config loads in the mod's init. */
+	@Test
+	public void rosterOfOwnMobsLoadsAtInit() {
+		var ids = loadedAtInit.rosterEntry(Slot.ELITE).mobs().unwrap().stream()
+				.map(weighted -> weighted.value().data().getStringOr("id", ""))
+				.toList();
+		org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("nether_rifts:piglin_general"), ids,
+				"the elite slot as the mod's init loaded it");
 	}
 
 	@Test
