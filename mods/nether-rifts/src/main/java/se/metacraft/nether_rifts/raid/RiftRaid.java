@@ -138,7 +138,7 @@ public final class RiftRaid {
 			return;
 		}
 		rift.clearedTicks = 0;
-		if (rift.wave() >= rift.tier().waves()) {
+		if (rift.wave() >= NetherRiftsConfig.getInstance().waveCount(rift.tier())) {
 			victory(level, rift, data);
 		} else {
 			startWave(level, rift, rift.wave() + 1);
@@ -148,7 +148,7 @@ public final class RiftRaid {
 	public static void startWave(ServerLevel level, Rift rift, int wave) {
 		var config = NetherRiftsConfig.getInstance();
 		int players = Math.max(1, participants(level, rift).size());
-		var counts = WaveTable.counts(rift.tier(), wave, players, level.getRandom()::nextInt, config.trooperScalingPerPlayer(), config.trooperScalingCap());
+		var counts = WaveTable.counts(config, rift.tier(), wave, players, level.getRandom()::nextInt, config.trooperScalingPerPlayer(), config.trooperScalingCap());
 		int spawned = 0;
 		for (var entry : counts.entrySet()) {
 			var spawnSlot = entry.getKey() == Slot.HEAVY && rift.tier() == Tier.LARGE && wave >= 5 ? Slot.BOMBARDIER : entry.getKey();
@@ -162,7 +162,9 @@ public final class RiftRaid {
 	}
 
 	private static Component waveName(Rift rift) {
-		return Component.literal("Rift Raid: Wave " + rift.wave() + "/" + rift.tier().waves());
+		int count = NetherRiftsConfig.getInstance().waveCount(rift.tier());
+		// a reload may have shortened the list under a running raid
+		return Component.literal("Rift Raid: Wave " + Math.min(rift.wave(), count) + "/" + count);
 	}
 
 	/**

@@ -65,7 +65,11 @@ into the pack (seen working in Complementary Reimagined and Unbound, BSL and Bli
 
 Config: `config/nether-rifts.json5`; its `mobs` section tunes the Piglin Drummer and the chained ghast's bombing (ranges,
 effect and fire durations, bomb power, the bombing run's heights, measured to the deck, and timing), and how often
-and how far the Grenadier throws on foot. Commands: `/rifts …`, permission `nether_rifts:rifts` (level 2).
+and how far the Grenadier throws on foot. Its `waves` section lists each tier's waves (`small`, `medium`, `large`; 1 to 20
+each), a wave being how many of each slot it brings; a tier left out keeps the vanilla table. The Piglin General is off
+by default: add `captain: 1` to a large wave (the last) to bring him in. `tiers.medium_max: 441` holds back large rifts.
+`/rifts reload` takes effect from the next wave; if it shortens a running raid's list, the raid ends with victory after
+its current wave. Commands: `/rifts …`, permission `nether_rifts:rifts` (level 2).
 
 To see the mobs' looks: `/rifts showcase` lays out, in rows in front of you and facing you, a Piglin Drummer per
 animation (each looping it), Piglin Drummers in every kind of armour with gear in hand or on the head, a Piglin

@@ -44,7 +44,7 @@ public class NetherRiftsTests {
 			new NetherRiftsConfig.Ranges(10, 10, 16),
 			100, 0.25, 2.0,
 			NetherRiftsConfig.DEFAULT.frameCollapse(), NetherRiftsConfig.DEFAULT.scfNetherPortalTypes(),
-			NetherRiftsConfig.DEFAULT.roster(), NetherRiftsConfig.DEFAULT.mobs()
+			NetherRiftsConfig.DEFAULT.roster(), NetherRiftsConfig.Waves.DEFAULT, NetherRiftsConfig.DEFAULT.mobs()
 	);
 
 	private static boolean initialised = false;
@@ -126,19 +126,19 @@ public class NetherRiftsTests {
 						.then(preset("default", () -> NetherRiftsConfig.DEFAULT))
 						.then(preset("cap_one", () -> new NetherRiftsConfig(
 								FAST.tiers(), FAST.timers(), FAST.ranges(), 1, FAST.trooperScalingPerPlayer(),
-								FAST.trooperScalingCap(), FAST.frameCollapse(), FAST.scfNetherPortalTypes(), FAST.roster(), FAST.mobs()
+								FAST.trooperScalingCap(), FAST.frameCollapse(), FAST.scfNetherPortalTypes(), FAST.roster(), FAST.waves(), FAST.mobs()
 						)))
 						.then(preset("scf", () -> new NetherRiftsConfig(
 								FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(), FAST.trooperScalingPerPlayer(),
 								FAST.trooperScalingCap(), FAST.frameCollapse(),
-								java.util.List.of(NetherRifts.getID("test_blob_portal")), FAST.roster(), FAST.mobs()
+								java.util.List.of(NetherRifts.getID("test_blob_portal")), FAST.roster(), FAST.waves(), FAST.mobs()
 						)))
 						.then(preset("roster_partial", () -> {
 							var roster = new java.util.HashMap<>(Roster.DEFAULT);
 							roster.remove(Slot.HEAVY);
 							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
 									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
-									FAST.scfNetherPortalTypes(), roster, FAST.mobs());
+									FAST.scfNetherPortalTypes(), roster, FAST.waves(), FAST.mobs());
 						}))
 						.then(preset("drummer_short", () -> {
 							var d = NetherRiftsConfig.DrummerTuning.DEFAULT;
@@ -146,12 +146,13 @@ public class NetherRiftsTests {
 									d.shockDamage(), d.naturalChance());
 							return new NetherRiftsConfig(FAST.tiers(), FAST.timers(), FAST.ranges(), FAST.activeRaidCap(),
 									FAST.trooperScalingPerPlayer(), FAST.trooperScalingCap(), FAST.frameCollapse(),
-									FAST.scfNetherPortalTypes(), FAST.roster(), new NetherRiftsConfig.Mobs(drummer, FAST.mobs().bombardier()));
+									FAST.scfNetherPortalTypes(), FAST.roster(), FAST.waves(), new NetherRiftsConfig.Mobs(drummer, FAST.mobs().bombardier()));
 						}))
 						.then(preset("drummer_natural", () -> naturalChance(1)))
 						.then(preset("drummer_never", () -> naturalChance(0)))
 						.then(preset("crossbow_never", () -> crossbowEvery(0)))
 						.then(preset("tactics_fast", NetherRiftsTests::tacticsFast))
+						.then(preset("captain_on", NetherRiftsTests::captainOn))
 		));
 	}
 
@@ -162,7 +163,22 @@ public class NetherRiftsTests {
 		var drummer = new NetherRiftsConfig.DrummerTuning(d.beatTicks(), d.bigBeatEvery(), d.buffRange(), d.buffTicks(), d.shockRange(),
 				d.shockStrength(), d.shockDamage(), chance);
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
-				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(drummer, c.mobs().bombardier()));
+				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), c.waves(), new NetherRiftsConfig.Mobs(drummer, c.mobs().bombardier()));
+	}
+
+	/** FAST, with the Piglin General in the last large wave. */
+	static NetherRiftsConfig captainOn() {
+		var large = new java.util.ArrayList<>(FAST.waves().large());
+		var last = new java.util.HashMap<>(large.getLast());
+		last.put(Slot.CAPTAIN, 1);
+		large.set(large.size() - 1, last);
+		return withWaves(FAST, new NetherRiftsConfig.Waves(FAST.waves().small(), FAST.waves().medium(), large));
+	}
+
+	/** The config with these waves instead. */
+	static NetherRiftsConfig withWaves(NetherRiftsConfig c, NetherRiftsConfig.Waves waves) {
+		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
+				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), waves, c.mobs());
 	}
 
 	/** The Chained Ghast's tactics turned quicker (shorter cooldowns and rests, 3 bombs a run), so a test sees a few rounds. */
@@ -173,7 +189,7 @@ public class NetherRiftsTests {
 		var c = NetherRiftsConfig.DEFAULT;
 		var bombardier = NetherRiftsConfig.BombardierTuning.DEFAULT.withTactics(RUN_COOLDOWN_FAST, TACTICS_FAST);
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
-				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier));
+				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), c.waves(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier));
 	}
 
 	/** The defaults, with the Chained Ghast's crossbow piglin shooting this often. */
@@ -182,7 +198,7 @@ public class NetherRiftsTests {
 		var c = NetherRiftsConfig.DEFAULT;
 		var bombardier = b.withCrew(new NetherRiftsConfig.CrewTuning(every, b.crew().damageTaken(), b.crew().hitboxWidth(), b.crew().hitboxHeight()));
 		return new NetherRiftsConfig(c.tiers(), c.timers(), c.ranges(), c.activeRaidCap(), c.trooperScalingPerPlayer(), c.trooperScalingCap(),
-				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier));
+				c.frameCollapse(), c.scfNetherPortalTypes(), c.roster(), c.waves(), new NetherRiftsConfig.Mobs(c.mobs().drummer(), bombardier));
 	}
 
 	private static LiteralArgumentBuilder<CommandSourceStack> preset(String name, Supplier<NetherRiftsConfig> config) {

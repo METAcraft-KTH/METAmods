@@ -80,7 +80,7 @@ public final class RiftsCommand {
 						for (var rift : RiftData.get(level).all()) {
 							n++;
 							var line = level.dimension().identifier() + " " + rift.shape().centreBlock().toShortString() + " " + rift.stage().getSerializedName()
-									+ " " + rift.tier().getSerializedName() + (rift.stage() == Stage.RAID ? " wave " + rift.wave() + "/" + rift.tier().waves() : "");
+									+ " " + rift.tier().getSerializedName() + (rift.stage() == Stage.RAID ? " wave " + rift.wave() + "/" + NetherRiftsConfig.getInstance().waveCount(rift.tier()) : "");
 							ctx.getSource().sendSuccess(() -> Component.literal(line), false);
 						}
 					}

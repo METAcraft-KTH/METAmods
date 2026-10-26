@@ -1,1 +1,1 @@
-{"type": "minecraft:function", "environment": "nether_rifts:default", "function": "nether_rifts:mobs/general_is_big_and_tough", "max_ticks": 20, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}
+{"type": "minecraft:function", "environment": "nether_rifts:captain_on", "function": "nether_rifts:mobs/general_is_big_and_tough", "max_ticks": 20, "required": true, "setup_ticks": 1, "structure": "nether_rifts:rift_room"}

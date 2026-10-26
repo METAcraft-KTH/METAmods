@@ -18,11 +18,14 @@ import se.metacraft.nether_rifts.mob.WarDrummer;
 import se.metacraft.nether_rifts.mob.WarGhast;
 import se.metacraft.nether_rifts.raid.Roster;
 import se.metacraft.nether_rifts.raid.Slot;
+import se.metacraft.nether_rifts.rift.Tier;
 import se.metacraft.config.container.ConfigContainer;
 import se.metacraft.config.util.CommentCodec;
 import se.metacraft.portalopening.raid.MobEntry;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,7 +35,7 @@ public record NetherRiftsConfig(
 		Tiers tiers, Timers timers, Ranges ranges, int activeRaidCap,
 		double trooperScalingPerPlayer, double trooperScalingCap,
 		Map<Block, Block> frameCollapse, List<Identifier> scfNetherPortalTypes,
-		Map<Slot, MobEntry> roster, Mobs mobs
+		Map<Slot, MobEntry> roster, Waves waves, Mobs mobs
 ) {
 
 	public record Tiers(int smallMax, int mediumMax) {
@@ -334,6 +337,61 @@ public record NetherRiftsConfig(
 		}
 	}
 
+	/**
+	 * Each tier's waves, in order: how many of each slot a wave brings (a slot left out brings none). The defaults are
+	 * vanilla 26.3's raid table, the same first waves for every tier, with a leader from wave 2. No captain: the General
+	 * comes only where a wave lists him.
+	 */
+	public record Waves(List<Map<Slot, Integer>> small, List<Map<Slot, Integer>> medium, List<Map<Slot, Integer>> large) {
+		/** At most this many waves a tier. */
+		public static final int MAX_WAVES = 20;
+
+		/** Vanilla's rows, wave 1 first: ranged, melee, heavy, support, elite. */
+		private static final int[][] VANILLA = {
+				{4, 0, 0, 0, 0}, {3, 2, 0, 0, 0}, {3, 0, 1, 0, 0}, {4, 1, 0, 3, 0}, {4, 4, 1, 0, 1}, {4, 2, 0, 0, 1}, {2, 5, 2, 1, 2}
+		};
+		private static final Slot[] ROW = {Slot.RANGED, Slot.MELEE, Slot.HEAVY, Slot.SUPPORT, Slot.ELITE};
+
+		public static final Waves DEFAULT = new Waves(vanilla(3), vanilla(5), vanilla(7));
+
+		private static List<Map<Slot, Integer>> vanilla(int waves) {
+			var list = new ArrayList<Map<Slot, Integer>>();
+			for (int wave = 1; wave <= waves; wave++) {
+				var counts = new EnumMap<Slot, Integer>(Slot.class);
+				for (int i = 0; i < ROW.length; i++) {
+					if (VANILLA[wave - 1][i] > 0) {
+						counts.put(ROW[i], VANILLA[wave - 1][i]);
+					}
+				}
+				if (wave >= 2) {
+					counts.put(Slot.LEADER, 1);
+				}
+				list.add(counts);
+			}
+			return List.copyOf(list);
+		}
+
+		private static Codec<List<Map<Slot, Integer>>> tier(String name) {
+			return Codec.unboundedMap(Slot.CODEC, Codec.intRange(0, 100)).listOf().validate(list -> list.isEmpty() || list.size() > MAX_WAVES
+					? DataResult.error(() -> "waves: " + name + " must have 1 to " + MAX_WAVES + " waves, not " + list.size())
+					: DataResult.success(list));
+		}
+
+		public static final Codec<Waves> CODEC = RecordCodecBuilder.create(i -> i.group(
+				Sections.section("small", tier("small"), DEFAULT.small()).forGetter(Waves::small),
+				Sections.section("medium", tier("medium"), DEFAULT.medium()).forGetter(Waves::medium),
+				Sections.section("large", tier("large"), DEFAULT.large()).forGetter(Waves::large)
+		).apply(i, Waves::new));
+
+		public List<Map<Slot, Integer>> of(Tier tier) {
+			return switch (tier) {
+				case SMALL -> small;
+				case MEDIUM -> medium;
+				case LARGE -> large;
+			};
+		}
+	}
+
 	public record Mobs(DrummerTuning drummer, BombardierTuning bombardier) {
 		public static final Mobs DEFAULT = new Mobs(DrummerTuning.DEFAULT, BombardierTuning.DEFAULT);
 		public static final Codec<Mobs> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -350,7 +408,7 @@ public record NetherRiftsConfig(
 
 	public static final NetherRiftsConfig DEFAULT = new NetherRiftsConfig(
 			Tiers.DEFAULT, Timers.DEFAULT, Ranges.DEFAULT, 4, 0.25, 2.0,
-			Map.of(Blocks.OBSIDIAN, Blocks.CRYING_OBSIDIAN), List.of(), Roster.DEFAULT, Mobs.DEFAULT
+			Map.of(Blocks.OBSIDIAN, Blocks.CRYING_OBSIDIAN), List.of(), Roster.DEFAULT, Waves.DEFAULT, Mobs.DEFAULT
 	);
 
 	private static final Codec<Map<Block, Block>> BLOCK_MAP = Codec.unboundedMap(
@@ -360,7 +418,7 @@ public record NetherRiftsConfig(
 	public static final MapCodec<NetherRiftsConfig> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
 			CommentCodec.comment(
 					Sections.section("tiers", Tiers.CODEC, Tiers.DEFAULT),
-					"Rift blocks up to small_max make a small raid (3 waves), up to medium_max a medium one (5), more a large one (7)."
+					"Rift blocks up to small_max make a small raid, up to medium_max a medium one, more a large one; how many waves each has comes from waves."
 			).forGetter(NetherRiftsConfig::tiers),
 			CommentCodec.comment(
 					Sections.section("timers", Timers.CODEC, Timers.DEFAULT),
@@ -395,6 +453,10 @@ public record NetherRiftsConfig(
 					"What each wave slot spawns: portal-opening mob entries (weighted entity NBT)."
 			).forGetter(NetherRiftsConfig::roster),
 			CommentCodec.comment(
+					Sections.section("waves", Waves.CODEC, Waves.DEFAULT),
+					"Each tier's waves, in order: how many of each slot a wave brings (unlisted slots: 0). Players past the first add troopers (ranged, melee) as trooper_scaling_* says; Large waves 5+ send chained ghasts for heavy. The Piglin General is off: add captain: 1 to a large wave (the last) to bring him in."
+			).forGetter(NetherRiftsConfig::waves),
+			CommentCodec.comment(
 					Sections.section("mobs", Mobs.CODEC, Mobs.DEFAULT),
 					"Tuning for the Piglin Drummer and the Piglin Grenadier. Any value left out keeps its default."
 			).forGetter(NetherRiftsConfig::mobs)
@@ -404,6 +466,11 @@ public record NetherRiftsConfig(
 	public MobEntry rosterEntry(Slot slot) {
 		var entry = roster.get(slot);
 		return entry != null ? entry : Roster.DEFAULT.get(slot);
+	}
+
+	/** How many waves a tier's raid has. */
+	public int waveCount(Tier tier) {
+		return waves.of(tier).size();
 	}
 
 	public static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve(NetherRifts.MODID + ".json5");

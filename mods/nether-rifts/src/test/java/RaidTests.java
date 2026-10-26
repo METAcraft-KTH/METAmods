@@ -8,6 +8,7 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
+import se.metacraft.nether_rifts.NetherRiftsConfig;
 import se.metacraft.nether_rifts.mob.BurningPatches;
 import se.metacraft.nether_rifts.mob.MagmaBomb;
 import se.metacraft.nether_rifts.mob.WarGhast;
@@ -17,6 +18,7 @@ import se.metacraft.nether_rifts.raid.Slot;
 import se.metacraft.nether_rifts.rift.Rift;
 import se.metacraft.nether_rifts.rift.RiftData;
 import se.metacraft.nether_rifts.rift.Stage;
+import se.metacraft.nether_rifts.rift.Tier;
 
 import java.util.List;
 
@@ -99,6 +101,37 @@ public class RaidTests {
 					ctx.assertItemEntityPresent(Items.GOLD_INGOT);
 					StageTests.remove(ctx, player);
 					ctx.killAllEntities();
+				});
+			});
+		});
+		NetherRiftsTests.register("raid/shrunk_tier_ends", ctx -> {
+			// /rifts reload cuts Large to 5 waves while a raid is on wave 6: it ends after that wave, and the bar never reads 6/5
+			var inside = ShapeTests.frame(ctx, 10, 10, Blocks.OBSIDIAN);
+			ctx.setBlock(inside, Blocks.FIRE);
+			var rifts = new Rift[1];
+			var names = new java.util.ArrayList<String>();
+			ctx.onEachTick(() -> {
+				if (rifts[0] != null && rifts[0].bossBar() != null) {
+					names.add(rifts[0].bossBar().getName().getString());
+				}
+			});
+			ctx.runAtTickTime(3, () -> {
+				var rift = FormingTests.riftIn(ctx);
+				rifts[0] = rift;
+				var player = participant(ctx);
+				rift.tear(ctx.getLevel());
+				rift.setStage(ctx.getLevel(), Stage.RAID);
+				RiftRaid.startWave(ctx.getLevel(), rift, 6);
+				ctx.assertTrue(rift.tier() == Tier.LARGE, "a 10x10 rift is " + rift.tier());
+				var waves = NetherRiftsTests.FAST.waves();
+				NetherRiftsTests.writeConfig(NetherRiftsTests.withWaves(NetherRiftsTests.FAST,
+						new NetherRiftsConfig.Waves(waves.small(), waves.medium(), waves.large().subList(0, 5))));
+				killAll(ctx, rift, player);
+				ctx.runAfterDelay(5, () -> {
+					ctx.assertTrue(FormingTests.riftsIn(ctx).isEmpty(), "the raid went on past the shortened list: wave " + rift.wave());
+					ctx.assertTrue(names.contains("Rift Raid: Wave 6/7"), "the bar named " + names);
+					ctx.assertTrue(names.stream().noneMatch(n -> n.contains("6/5") || n.contains("Wave 7")), "the bar named " + names);
+					finish(ctx, player);
 				});
 			});
 		});
