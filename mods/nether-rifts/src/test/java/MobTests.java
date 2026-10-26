@@ -94,6 +94,36 @@ public class MobTests {
 				ctx.succeed();
 			});
 		});
+		NetherRiftsTests.register("mobs/general_never_turns_zombie", ctx -> {
+			// A General of no rift (spawn egg, /summon) stays himself in the overworld, where a piglin turns zombie after 300 ticks.
+			// penned in, so he can't walk after a neighbouring test's player out of the room
+			for (int dx = -2; dx <= 2; dx++) {
+				for (int dz = -2; dz <= 2; dz++) {
+					if (Math.abs(dx) == 2 || Math.abs(dz) == 2) {
+						for (int y = 1; y <= 4; y++) {
+							ctx.setBlock(new BlockPos(12 + dx, y, 12 + dz), Blocks.BARRIER);
+						}
+					}
+				}
+			}
+			var general = RiftEntities.PIGLIN_GENERAL.create(ctx.getLevel(), net.minecraft.world.entity.EntitySpawnReason.SPAWN_ITEM_USE);
+			var at = ctx.absolutePos(new BlockPos(12, 1, 12));
+			general.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
+			general.finalizeSpawn(ctx.getLevel(), ctx.getLevel().getCurrentDifficultyAt(at), net.minecraft.world.entity.EntitySpawnReason.SPAWN_ITEM_USE, null);
+			ctx.getLevel().addFreshEntity(general);
+			ctx.assertFalse(RiftMobs.isRiftMob(general), "a summoned General belongs to a rift: the test proves nothing");
+			ctx.assertTrue(general.isImmuneToZombification(), "a summoned General can turn zombie");
+			ctx.runAtTickTime(330, () -> {
+				ctx.assertTrue(ctx.getEntities(EntityTypes.ZOMBIFIED_PIGLIN).isEmpty(), "the summoned General turned zombie");
+				ctx.assertTrue(general.isAlive() && !general.isRemoved(), "the summoned General is gone: " + general.getRemovalReason()
+						+ ", health " + general.getHealth() + ", difficulty " + ctx.getLevel().getDifficulty() + ", at " + general.blockPosition().toShortString());
+				ctx.killAllEntities();
+				for (var pos : BlockPos.betweenClosed(new BlockPos(10, 1, 10), new BlockPos(14, 4, 14))) {
+					ctx.setBlock(pos, Blocks.AIR);
+				}
+				ctx.succeed();
+			});
+		});
 		NetherRiftsTests.register("mobs/rift_ghast_rider_glides_down", ctx -> {
 			// A rift ghast fires at players above and below it (IgnoreYCheck), and when it dies its piglin glides down.
 			FormingTests.lightFrame(ctx, 2, 3);

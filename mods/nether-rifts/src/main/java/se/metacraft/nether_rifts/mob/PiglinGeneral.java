@@ -50,7 +50,8 @@ import java.util.List;
  *
  * <p>He is a piglin to other piglins ({@link AbstractPiglin}), as the War Drummer is: they share their anger with him,
  * and when he is hit they turn on the attacker. His brain only remembers, with no behaviours, so he never hunts,
- * admires, barters, dances or picks anything up. A rift's General keeps the rift's rules ({@code RiftMobs}).
+ * admires, barters, dances or picks anything up, and he never turns zombie. A rift's General keeps the rift's rules
+ * ({@code RiftMobs}).
  */
 public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 
@@ -87,6 +88,7 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 		EntityAttachment.ofTicking(this.holder, this);
 		this.holder.getAnimator().playAnimation("idle", 0, true);
 		setCanPickUpLoot(false);
+		setImmuneToZombification(true);
 		getNavigation().setCanOpenDoors(false);
 		// a rift spawns him from NBT, which skips finalizeSpawn; a saved General's own stats load over these
 		applyTuning();
@@ -185,10 +187,10 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 		return (Brain<PiglinGeneral>) super.getBrain();
 	}
 
-	/** Public, for the tests: a rift's General never turns zombie. */
+	/** He never turns zombie, wherever he came from (a rift, a spawn egg, /summon), whatever a save says. */
 	@Override
 	public boolean isImmuneToZombification() {
-		return super.isImmuneToZombification();
+		return true;
 	}
 
 	@Override
@@ -296,7 +298,7 @@ public class PiglinGeneral extends AbstractPiglin implements AnimatedEntity {
 	@Override
 	protected void customServerAiStep(ServerLevel level) {
 		getBrain().tick(level, this);
-		// turns zombie here, out of the nether (not a rift's General)
+		// a piglin turns zombie here, out of the nether; he never does (isImmuneToZombification)
 		super.customServerAiStep(level);
 		if (isRemoved()) {
 			return;
