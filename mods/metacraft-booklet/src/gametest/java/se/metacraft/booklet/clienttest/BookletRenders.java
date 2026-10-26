@@ -300,24 +300,24 @@ public final class BookletRenders implements FabricClientGameTest {
 	private static final List<Scene> SCENES = List.of(
 			new Scene("ovvar/hero", new BlockPos(20, -60, 20), new BlockPos(20, -58, 20), 60),
 			new Scene("ovvar/back", new BlockPos(24, -60, 20), new BlockPos(24, -58, 20), 60),
-			new Scene("ovvar/chapters", new BlockPos(28, -60, 20), new BlockPos(34, -58, 20), 70),
-			new Scene("ovvar/stand", new BlockPos(40, -60, 20), new BlockPos(40, -58, 22), 75),
+			new Scene("ovvar/chapters", new BlockPos(28, -60, 20), new BlockPos(34, -58, 20), 64),
+			new Scene("ovvar/stand", new BlockPos(40, -60, 20), new BlockPos(40, -58, 22), 64),
 			new Scene("decorating/canvas", new BlockPos(42, -60, 20), new BlockPos(45, -58, 22), 70),
 			new Scene("decorating/corner", new BlockPos(86, -60, 20), new BlockPos(89, -58, 21), 70),
-			new Scene("decorating/mailbox", new BlockPos(50, -60, 20), new BlockPos(50, -59, 20), 75),
-			new Scene("decorating/rope", new BlockPos(54, -60, 20), new BlockPos(58, -57, 20), 70),
-			new Scene("decorating/sign_post", new BlockPos(62, -60, 20), new BlockPos(62, -59, 20), 90),
-			new Scene("decorating/lantern", new BlockPos(66, -60, 20), new BlockPos(68, -59, 21), 80),
+			new Scene("decorating/mailbox", new BlockPos(50, -60, 20), new BlockPos(50, -59, 20), 56),
+			new Scene("decorating/rope", new BlockPos(54, -60, 20), new BlockPos(58, -57, 20), 58),
+			new Scene("decorating/sign_post", new BlockPos(62, -60, 20), new BlockPos(62, -59, 20), 70),
+			new Scene("decorating/lantern", new BlockPos(66, -60, 20), new BlockPos(68, -59, 21), 70),
 			new Scene("decorating/lead", new BlockPos(72, -60, 20), new BlockPos(76, -59, 20), 70),
 			new Scene("decorating/trowel", new BlockPos(80, -61, 17), new BlockPos(81, -61, 21), 70),
 			new Scene("qol/void_anchor", new BlockPos(99, -61, 19), new BlockPos(101, -60, 21), 80),
 			new Scene("qol/rift", new BlockPos(104, -60, 18), new BlockPos(109, -54, 23), 55),
-			new Scene("qol/concrete", new BlockPos(111, -60, 19), new BlockPos(113, -58, 21), 80),
+			new Scene("qol/concrete", new BlockPos(111, -60, 19), new BlockPos(113, -58, 21), 66),
 			new Scene("qol/echo_fork", new BlockPos(117, -60, 20), new BlockPos(120, -58, 21), 75),
 			new Scene("brewing/cauldron", new BlockPos(20, -60, 28), new BlockPos(22, -57, 30), 80),
 			new Scene("brewing/distilling", new BlockPos(25, -60, 28), new BlockPos(27, -59, 30), 90),
 			new Scene("brewing/barrel", new BlockPos(30, -60, 28), new BlockPos(35, -57, 30), 70),
-			new Scene("brewing/barrel_frame", new BlockPos(52, -60, 28), new BlockPos(52, -57, 34), 70),
+			new Scene("brewing/barrel_frame", new BlockPos(52, -60, 28), new BlockPos(52, -57, 34), 64),
 			new Scene("brewing/drinks", new BlockPos(39, -60, 30), new BlockPos(43, -59, 30), 85),
 			new Scene("brewing/chapter_drinks", new BlockPos(46, -60, 30), new BlockPos(49, -59, 30), 90),
 			new Scene("rifts/rift", new BlockPos(19, -61, 49), new BlockPos(24, -56, 51), 55),
@@ -328,7 +328,7 @@ public final class BookletRenders implements FabricClientGameTest {
 			new Scene("rifts/general", new BlockPos(51, -60, 49), new BlockPos(53, -57, 51), 80),
 			new Scene("rifts/crying_frame", new BlockPos(55, -61, 49), new BlockPos(62, -56, 51), 55),
 			new Scene("kultur/banners", new BlockPos(20, -60, 70), new BlockPos(28, -56, 71), 55),
-			new Scene("moredyes/colors", new BlockPos(36, -60, 70), new BlockPos(40, -58, 71), 80));
+			new Scene("moredyes/colors", new BlockPos(36, -60, 70), new BlockPos(40, -58, 71), 60));
 
 	private static void build(ServerLevel level) {
 		// ---- ovvar
@@ -582,9 +582,9 @@ public final class BookletRenders implements FabricClientGameTest {
 	 * of its wool with a banner in the colour on it, its flower in front.
 	 */
 	private static void buildKulturAndColours(TestDedicatedServerContext server) {
-		// the painting is 3×4: its block is the middle column, second row up, and it takes x 21-23, y -60 to -57
+		// facing is a 2D id (0 south, 1 west, 2 north, 3 east). The painting is 3×4: its block is the middle column, second row up, and it takes x 21-23, y -60 to -57
 		server.runCommand("fill 20 -60 70 28 -56 70 minecraft:spruce_planks");
-		server.runCommand("summon minecraft:painting 22.5 -58.5 71.5 {facing:3b,variant:\"kultur:draken\"}");
+		server.runCommand("summon minecraft:painting 22.5 -58.5 71.5 {facing:0b,variant:\"kultur:draken\"}");
 		List<String> banners = List.of(
 				"black_wall_banner[facing=south]{patterns:[{pattern:\"kultur:itk\",color:\"lime\"}]}",
 				"white_wall_banner[facing=south]{patterns:[{pattern:\"kultur:qmisk\",color:\"blue\"}]}",
@@ -663,16 +663,18 @@ public final class BookletRenders implements FabricClientGameTest {
 	}
 
 	/**
-	 * A shelf of drinks from x0: a row of dark oak slabs with a bottle standing on each (resting item
-	 * entities; the image renderer draws those, not item frames).
+	 * A shelf of drinks from x0: a row of dark oak slabs with a bottle standing on each (item displays
+	 * turned to the camera: a dropped item spins, and is caught edge-on as often as not; the image
+	 * renderer draws entities, not item frames).
 	 */
 	private static void shelf(TestDedicatedServerContext server, int x0, List<String> drinks, List<String> distilled) {
 		int x1 = x0 + drinks.size() - 1;
 		server.runCommand("fill " + x0 + " -60 30 " + x1 + " -60 30 minecraft:dark_oak_slab");
 		for (int i = 0; i < drinks.size(); i++) {
 			String type = drinks.get(i);
-			server.runCommand("summon minecraft:item " + (x0 + i + 0.5) + " -59.5 30.5 {NoGravity:1b,PickupDelay:32767,Age:-32768,"
-					+ "Item:{id:\"brewery:drink_bottle\",count:1,components:{\"brewery:brew_data\":{type:\"" + type + "\",quality:10.0d,"
+			// yaw 45 faces the camera, south-west; "ground" is how a dropped item is drawn, its middle a quarter block up
+			server.runCommand("summon minecraft:item_display " + (x0 + i + 0.5) + " -59.25 30.5 {Rotation:[45f,0f],item_display:\"ground\","
+					+ "item:{id:\"brewery:drink_bottle\",count:1,components:{\"brewery:brew_data\":{type:\"" + type + "\",quality:10.0d,"
 					+ "distillation_runs:" + (distilled.contains(type) ? 1 : 0) + "}}}}");
 		}
 	}
