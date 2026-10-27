@@ -70,6 +70,27 @@ public class GhastCrewTests {
 				});
 			});
 		});
+		NetherRiftsTests.register("ghast_crew/burns_on_its_stand_in", ctx -> {
+			// A burning crew member's flames show on its stand-in. Its interaction never burns to clients: they draw
+			// flames over a zero-wide entity without end (a crash).
+			var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(12, 8, 12));
+			ghast.setNoAi(true);
+			ctx.runAtTickTime(5, () -> {
+				var hitbox = ghast.hitbox(Crew.DRUMMER);
+				hitbox.igniteForSeconds(5);
+				ctx.runAfterDelay(2, () -> {
+					var flags = eu.pb4.polymer.virtualentity.api.data.EntityData.FLAGS;
+					var data = new java.util.ArrayList<net.minecraft.network.syncher.SynchedEntityData.DataValue<?>>(
+							java.util.Objects.requireNonNullElse(hitbox.getEntityData().getNonDefaultValues(), java.util.List.of()));
+					ctx.assertTrue(data.stream().anyMatch(v -> v.id() == flags.id() && ((Byte) v.value() & 1) != 0), "the drummer's hitbox doesn't burn");
+					hitbox.modifyRawTrackedData(data, null, false);
+					ctx.assertTrue(data.stream().anyMatch(v -> v.id() == flags.id() && ((Byte) v.value() & 1) == 0), "clients see the drummer's hitbox burn: " + data);
+					ctx.assertTrue((hitbox.hitStandIn().standIn().getSyncedData().get(flags) & 1) != 0, "the stand-in doesn't burn with the drummer");
+					ctx.killAllEntities();
+					ctx.succeed();
+				});
+			});
+		});
 		NetherRiftsTests.register("ghast_crew/arrow_hurts_crew_not_ghast", ctx -> {
 			// An arrow at the crossbow piglin hurts its hitbox, not the ghast; its figure alone flashes red.
 			var ghast = ctx.spawn(RiftEntities.WAR_GHAST, new BlockPos(12, 8, 12));

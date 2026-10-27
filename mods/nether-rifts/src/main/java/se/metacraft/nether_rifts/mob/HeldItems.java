@@ -301,6 +301,14 @@ public final class HeldItems {
 			packetConsumer.accept(unpickable());
 		}
 
+		/**
+		 * BIL sets its zero-wide interaction alight, and a client draws flames over a zero-wide entity without end
+		 * (a crash): the stand-in burns instead.
+		 */
+		@Override
+		protected void updateOnFire(boolean onFire) {
+		}
+
 		private ClientboundSetEntityDataPacket unpickable() {
 			return new ClientboundSetEntityDataPacket(hitboxInteraction.getEntityId(), List.of(SynchedEntityData.DataValue.create(InteractionEntityData.WIDTH, 0f)));
 		}

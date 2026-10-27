@@ -319,6 +319,22 @@ public final class RiftClientTests implements FabricClientGameTest {
 					}
 				}
 
+				// the crew burning (a Fire Aspect blow, a Flame arrow): the flames show on their stand-ins, never on the
+				// zero-wide interactions clients see the crew as, which a client would draw flames over without end
+				server.runCommand("weather clear");
+				server.runOnServer(s -> s.overworld().getEntities(RiftEntities.CREW_HITBOX, e -> true).forEach(hitbox -> hitbox.igniteForSeconds(60)));
+				String[][] burning = {
+						{"war_ghast_crew_burning_front", tpLooking(-36.0, -55.6, 0.5, -40.5, -56.6, 0.5)},
+						{"war_ghast_crew_burning_side", tpLooking(-40.5, -55.6, 5.0, -40.5, -56.6, 0.5)},
+						{"war_ghast_crew_burning_back", tpLooking(-45.0, -55.6, 0.5, -40.5, -56.6, 0.5)},
+						{"war_ghast_crew_burning_far", tpLooking(-26.5, -51.6, 0.5, -40.5, -54.6, 0.5)}};
+				for (var shot : burning) {
+					server.runCommand(shot[1]);
+					ctx.waitTicks(15);
+					ctx.takeScreenshot(TestScreenshotOptions.of(shot[0]).withSize(1920, 1080));
+				}
+				server.runOnServer(s -> s.overworld().getEntities(RiftEntities.CREW_HITBOX, e -> true).forEach(hitbox -> hitbox.clearFire()));
+
 				// the artist's animations, each held on a frame, from the front close-up: over each, the crew and tentacles
 				// keep idle's places (the import gives every animation idle's tracks)
 				server.runCommand(tpLooking(-34.5, -55.0, 0.5, -40.5, -56.0, 0.5));

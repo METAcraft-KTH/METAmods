@@ -1,5 +1,6 @@
 package se.metacraft.nether_rifts.mob;
 
+import eu.pb4.polymer.virtualentity.api.data.EntityData;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.entity.Entity;
 import se.metacraft.nether_rifts.mixin.InteractionAccessor;
@@ -22,9 +23,16 @@ public interface GhastPart {
 	/**
 	 * The tracked data an interaction this wide and as tall as the part gets: the base entity's (its flags: fire and so
 	 * on) and the interaction's width and height. The part's own data would be read as the interaction's, so it doesn't go.
+	 * A zero-wide one never burns: a client draws flames over a zero-wide entity without end (a crash), so its
+	 * {@link HitStandIn} burns instead.
 	 */
 	static void asInteraction(Entity part, float width, List<SynchedEntityData.DataValue<?>> data, boolean initial) {
 		data.removeIf(value -> value.id() >= InteractionAccessor.netherRifts$width().id());
+		if (width == 0) {
+			data.replaceAll(value -> value.id() == EntityData.FLAGS.id() && value.value() instanceof Byte flags
+					? SynchedEntityData.DataValue.create(EntityData.FLAGS, (byte) (flags & ~(1 << EntityData.ON_FIRE_FLAG_INDEX)))
+					: value);
+		}
 		if (initial) {
 			data.add(SynchedEntityData.DataValue.create(InteractionAccessor.netherRifts$width(), width));
 			data.add(SynchedEntityData.DataValue.create(InteractionAccessor.netherRifts$height(), part.getBbHeight()));
