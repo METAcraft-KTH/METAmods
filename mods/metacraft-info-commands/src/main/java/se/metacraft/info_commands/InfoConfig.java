@@ -13,14 +13,14 @@ import net.minecraft.network.chat.ComponentSerialization;
 import se.metacraft.config.util.CommentCodec;
 
 public record InfoConfig(
-	Map<String, InfoNode> commands, boolean resendCommandTreeOnReload,
-	boolean enableResendCommandTreeCommand, int infoMessageIntervalTicks,
-	Component infoMessagePrefix, List<InfoMessage> infoMessages
+		Map<String, CommandActionNode> commands, boolean resendCommandTreeOnReload,
+		boolean enableResendCommandTreeCommand, int infoMessageIntervalTicks,
+		Component infoMessagePrefix, List<InfoMessage> infoMessages
 ) {
 
 	public static final MapCodec<InfoConfig> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			CommentCodec.comment(
-				Codec.unboundedMap(Codec.STRING, InfoNode.CODEC),
+				Codec.unboundedMap(Codec.STRING, CommandActionNode.CODEC),
 				"All commands to add, see example commands for more info."
 			).fieldOf("commands").forGetter(InfoConfig::commands),
 			CommentCodec.comment(

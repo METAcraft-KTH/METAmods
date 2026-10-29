@@ -38,11 +38,8 @@ public class Commands {
 		});
 	}
 
-	private static LiteralArgumentBuilder<CommandSourceStack> addNode(String name, InfoNode node) {
-		var command = literal(name).executes(ctx -> {
-			ctx.getSource().sendSuccess(node::message, false);
-			return 1;
-		});
+	private static LiteralArgumentBuilder<CommandSourceStack> addNode(String name, CommandActionNode node) {
+		var command = literal(name).executes(node.action()::run);
 		node.subCommands().forEach((commandName, subNode) -> {
 			command.then(addNode(commandName, subNode));
 		});
