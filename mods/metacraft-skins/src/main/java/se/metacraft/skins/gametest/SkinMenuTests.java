@@ -56,7 +56,7 @@ public final class SkinMenuTests {
 			// Sorted by Kind (sword before helmet); the Dormant skin isn't listed.
 			assertThat(name(player, 0).equals("Candy Sword") && name(player, 1).equals("Crown") && slot(player, 2).isEmpty(),
 					"listed " + name(player, 0) + ", " + name(player, 1) + ", " + name(player, 2));
-			assertThat(lore(player, 0).equals(List.of("Fits any sword", "On kill: heals 2 hearts", "Sweet.", "Unapplied", "Click to apply or remove")),
+			assertThat(lore(player, 0).equals(List.of("Fits any sword", "Obtainable", "On kill: heals 2 hearts", "Sweet.", "Unapplied", "Click to apply or remove")),
 					"the skin's tooltip: " + lore(player, 0));
 			assertThat("skins:candy_sword_test".equals(String.valueOf(slot(player, 0).get(DataComponents.ITEM_MODEL))), "the icon isn't the Look");
 			assertThat(!slot(player, PREVIOUS_PAGE).is(Items.ARROW) && !slot(player, NEXT_PAGE).is(Items.ARROW), "page arrows with one page");
@@ -185,7 +185,7 @@ public final class SkinMenuTests {
 
 			ItemStack theirs = slot(player, FIRST_ITEM);
 			assertThat("skins:frost".equals(String.valueOf(theirs.get(DataComponents.ITEM_MODEL))), "their skinned sword shows " + theirs.get(DataComponents.ITEM_MODEL));
-			assertThat(lore(player, FIRST_ITEM).containsAll(List.of("Skin: Frost Blade", "Owned by " + player.getGameProfile().name(), "Hotbar slot 1")),
+			assertThat(lore(player, FIRST_ITEM).containsAll(List.of("Obtainable", "Owned by " + player.getGameProfile().name(), "Hotbar slot 1")),
 					"their skinned sword reads " + lore(player, FIRST_ITEM));
 			ItemStack lent = slot(player, FIRST_ITEM + 1);
 			assertThat("minecraft:iron_sword".equals(String.valueOf(lent.get(DataComponents.ITEM_MODEL))), "the lent sword shows " + lent.get(DataComponents.ITEM_MODEL));
@@ -276,10 +276,10 @@ public final class SkinMenuTests {
 			player.getInventory().clearContent();
 			fx.skins.grant(player.nameAndId(), "cowboy_hat_test");
 			SkinMenu.open(player, fx.skins);
-			assertThat(lore(player, 0).equals(List.of("Fits leather helmets", "Dye the helmet to recolour it", "Unapplied", "Click to apply or remove")),
+			assertThat(lore(player, 0).equals(List.of("Fits leather helmets", "Dye the helmet to recolour it", "Obtainable", "Unapplied", "Click to apply or remove")),
 					"the hat's tooltip: " + lore(player, 0));
 			click(player, 0);
-			assertThat(lore(player, PREVIEW).equals(List.of("Fits leather helmets", "Dye the helmet to recolour it", "Unapplied")),
+			assertThat(lore(player, PREVIEW).equals(List.of("Fits leather helmets", "Dye the helmet to recolour it", "Obtainable", "Unapplied")),
 					"the preview's tooltip: " + lore(player, PREVIEW));
 		} finally {
 			helper.getLevel().getServer().getPlayerList().remove(player);
@@ -341,6 +341,39 @@ public final class SkinMenuTests {
 				"A skin is on one item at a time.")), "the book reads " + lore(player, BOOK));
 		click(player, BOOK);
 		assertThat(title(player).equals("Your Skins"), "clicking the book left " + title(player));
+		helper.succeed();
+	}
+
+	/**
+	 * "All Skins" ({@code /itemskins list}): every skin, owned or not, sorted by Kind, each with its
+	 * Look, coloured name and release; a Dormant one last, as a barrier saying why; clicking does nothing.
+	 */
+	@GameTest
+	public void allSkinsShowsEverySkin(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().skin("crown_test", "helmet", "Crown", null).skin("candy_sword_test", "sword", "Candy Sword", "Sweet.")
+				.lookOnly("hat", "hat")
+				.file("crown_test", "skin.json5", "{ name: \"&6&lCrown\", kind: \"helmet\", released: \"2026/10/31\", obtainable: false,"
+						+ " look: { model: \"crown_test.json\" } }");
+		fx.reload();
+		SkinFixtures.Listening player = SkinFixtures.join(helper);
+		try {
+			fx.skins.grant(player.nameAndId(), "crown_test");
+			SkinMenu.openAll(player, fx.skins);
+			assertThat(title(player).equals("All Skins") && rows(player) == 6, "the menu is " + title(player) + " with " + rows(player) + " rows");
+			assertThat(name(player, 0).equals("Candy Sword") && name(player, 1).equals("Crown") && name(player, 2).equals("hat") && slot(player, 3).isEmpty(),
+					"listed " + name(player, 0) + ", " + name(player, 1) + ", " + name(player, 2));
+			assertThat(lore(player, 0).equals(List.of("Fits any sword", "Obtainable", "Sweet.")), "the sword's tooltip: " + lore(player, 0));
+			assertThat(lore(player, 1).equals(List.of("Fits any helmet", "Released: 2026/10/31 - Unobtainable")), "the crown's tooltip: " + lore(player, 1));
+			assertThat(slot(player, 1).getHoverName().getSiblings().getFirst().getStyle().isBold(), "the crown's name isn't bold");
+			assertThat("skins:crown_test".equals(String.valueOf(slot(player, 1).get(DataComponents.ITEM_MODEL))), "the crown's icon isn't the Look");
+			assertThat(slot(player, 2).is(Items.BARRIER) && lore(player, 2).getFirst().startsWith("Dormant: ") && lore(player, 2).getFirst().contains("unknown kind"),
+					"the Dormant hat: " + lore(player, 2));
+			assertThat(name(player, BOOK).equals("How skins work"), "row 6 has no book: " + name(player, BOOK));
+			click(player, 1);
+			assertThat(title(player).equals("All Skins"), "clicking a skin opened " + title(player));
+		} finally {
+			helper.getLevel().getServer().getPlayerList().remove(player);
+		}
 		helper.succeed();
 	}
 

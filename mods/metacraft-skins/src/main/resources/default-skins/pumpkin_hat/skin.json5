@@ -1,5 +1,8 @@
 {
-	name: "Pumpkin Hat",
+	name: "&lPumpkin Hat",
+	gradient: { colors: ["#FF6A00", "#FFB347"], mirror: true },
+	released: "2026/10/28",
+	obtainable: true,
 	kind: "helmet",
 	look: { model: "pumpkin_hat.json" },
 }

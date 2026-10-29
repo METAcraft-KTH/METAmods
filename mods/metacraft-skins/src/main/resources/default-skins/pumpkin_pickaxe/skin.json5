@@ -1,5 +1,8 @@
 {
-	name: "Pumpkin Pickaxe",
+	name: "&lPumpkin Pickaxe",
+	gradient: { colors: ["#FF6A00", "#FFA94D", "#7CB342"] },
+	released: "2026/10/28",
+	obtainable: true,
 	kind: "pickaxe",
 	look: { model: "pumpkin_pickaxe.json" },
 }

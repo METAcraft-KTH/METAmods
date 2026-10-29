@@ -86,7 +86,7 @@ public final class ViewTests {
 				assertThat(model(client).equals(Identifier.parse("minecraft:diamond_sword")), "with " + with + ", the Away sword shows " + model(client));
 				List<Component> lore = lore(client);
 				assertLine(lore.getLast(), away, ChatFormatting.GRAY);
-				assertThat(lore.stream().noneMatch(l -> l.getString().startsWith("Skin: ") || l.getString().startsWith("Owned by") || l.getString().equals("Sweet.")),
+				assertThat(lore.stream().noneMatch(l -> l.getString().equals("Obtainable") || l.getString().startsWith("Owned by") || l.getString().equals("Sweet.")),
 						"the Away sword keeps the tooltip block: " + text(lore));
 			}
 		}
@@ -95,7 +95,7 @@ public final class ViewTests {
 		for (UUID with : Arrays.asList(owner.getUUID(), someoneElse.getUUID())) {
 			ItemStack stale = view(helper, fx, skinned, someoneElse, with);
 			assertThat(model(stale).equals(Identifier.parse("minecraft:diamond_sword")), "a removed skin's item still shows " + model(stale));
-			assertThat(lore(stale).stream().noneMatch(l -> l.getString().startsWith("Skin: ") || l.getString().contains("only works for")),
+			assertThat(lore(stale).stream().noneMatch(l -> l.getString().equals("Obtainable") || l.getString().contains("only works for")),
 					"a removed skin's item still says so: " + text(lore(stale)));
 		}
 		helper.succeed();
@@ -267,7 +267,8 @@ public final class ViewTests {
 		SkinFixtures fx = SkinFixtures.create().perky("candy_sword_test", "sword", "Candy Sword", "Sweet, and sharp.", """
 				[ { trigger: "held", effects: [ { type: "potion", effect: "minecraft:speed", level: 2 },
 				{ type: "attribute", attribute: "minecraft:attack_damage", amount: 0.1, operation: "add_multiplied_base" } ] } ]""")
-				.skin("plain", "axe", "Plain Axe", null);
+				.skin("plain", "axe", "Plain Axe", null)
+				.file("plain", "skin.json5", "{ name: \"&c&lPlain &#00FF00Axe\", kind: \"axe\", released: \"2026/10/31\", obtainable: false, look: { model: \"plain.json\" } }");
 		fx.reload();
 		ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
 		sword.enchant(helper.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.SHARPNESS), 2);
@@ -284,7 +285,7 @@ public final class ViewTests {
 		List<Component> lore = lore(client);
 		assertThat(lore.size() > 4, "vanilla's lines (the enchantment, the attack damage) are missing: " + text(lore));
 		List<Component> block = lore.subList(lore.size() - 4, lore.size());
-		assertLine(block.get(0), "Skin: Candy Sword", ChatFormatting.GOLD);
+		assertRelease(block.get(0), "Obtainable", ChatFormatting.GREEN);
 		assertLine(block.get(1), "While held: Speed II and +10% Attack Damage", ChatFormatting.BLUE);
 		assertLine(block.get(2), "Sweet, and sharp.", ChatFormatting.GRAY);
 		assertLine(block.get(3), "Owned by " + name, ChatFormatting.GRAY);
@@ -294,10 +295,16 @@ public final class ViewTests {
 
 		ItemStack axe = view(helper, fx, owner.getInventory().getItem(1), viewer, owner.getUUID());
 		List<Component> axeLore = lore(axe);
-		assertLine(axeLore.get(axeLore.size() - 2), "Skin: Plain Axe", ChatFormatting.GOLD);
+		assertRelease(axeLore.get(axeLore.size() - 2), "Released: 2026/10/31 - Unobtainable", ChatFormatting.RED);
 		assertLine(axeLore.getLast(), "Owned by " + name, ChatFormatting.GRAY);
 		assertThat(!Boolean.TRUE.equals(axe.get(DataComponents.ENCHANTMENT_GLINT_OVERRIDE)), "a skin gave the axe a glint");
-		assertThat(axe.getHoverName().getString().equals(Items.IRON_AXE.getName(axe).getString()), "the axe's name became " + axe.getHoverName().getString());
+		// Named after the skin, in its colours, as an item_name: not a custom name, which an anvil would rename the item to.
+		assertThat(axe.getHoverName().getString().equals("Plain Axe") && !axe.has(DataComponents.CUSTOM_NAME), "the axe is named " + axe.getHoverName().getString());
+		List<Component> words = axe.getHoverName().getSiblings();
+		assertThat(words.size() == 2 && words.get(0).getStyle().isBold() && Objects.equals(words.get(0).getStyle().getColor(), TextColor.fromLegacyFormat(ChatFormatting.RED))
+						&& !words.get(1).getStyle().isBold() && Objects.equals(words.get(1).getStyle().getColor(), TextColor.fromRgb(0x00FF00))
+						&& !axe.getHoverName().getStyle().isItalic(),
+				"the axe's name is styled " + words.stream().map(Component::getStyle).toList());
 		helper.succeed();
 	}
 
@@ -347,6 +354,14 @@ public final class ViewTests {
 
 	private static List<String> text(List<Component> lines) {
 		return lines.stream().map(Component::getString).toList();
+	}
+
+	/** The release line: its text, ending in the obtainability's colour, and not italic. */
+	private static void assertRelease(Component line, String text, ChatFormatting colour) {
+		assertThat(line.getString().equals(text), "expected \"" + text + "\", got \"" + line.getString() + "\"");
+		assertThat(Objects.equals(line.getSiblings().getLast().getStyle().getColor(), TextColor.fromLegacyFormat(colour)),
+				"\"" + text + "\" ends coloured " + line.getSiblings().getLast().getStyle().getColor());
+		assertThat(!line.getStyle().isItalic(), "\"" + text + "\" is italic");
 	}
 
 	private static void assertLine(Component line, String text, ChatFormatting colour) {

@@ -1,5 +1,8 @@
 {
-	name: "Dark Plague Mask",
+	name: "&lDark Plague Mask",
+	gradient: { colors: ["#A89BB5", "#5B3A7A"] },
+	released: "2026/10/28",
+	obtainable: true,
 	kind: "helmet",
 	look: { model: "plague_mask_dark.json" },
 }

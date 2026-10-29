@@ -442,8 +442,8 @@ public final class Skins {
 		if (marker == null || standing(stack, marker) != Standing.LIVE) return Optional.empty();
 		SkinFolder.Loaded loaded = skins.get(marker.skin()).loaded().orElseThrow();
 		Optional<String> ownerName = ownership.read(marker.owner()) instanceof DataResult.Success(var record, _) ? record.name() : Optional.empty();
-		return Optional.of(new LiveSkin(loaded.id(), loaded.name(), loaded.kind(), loaded.dyeable(), loaded.description(), inEffect(loaded.perks()),
-				marker.owner(), ownerName.orElse(marker.owner().toString())));
+		return Optional.of(new LiveSkin(loaded.id(), loaded.name(), loaded.title(), loaded.kind(), loaded.dyeable(), loaded.description(), loaded.release(),
+				inEffect(loaded.perks()), marker.owner(), ownerName.orElse(marker.owner().toString())));
 	}
 
 	/** What a marker on an item amounts to now. */
@@ -622,8 +622,9 @@ public final class Skins {
 	 *   <li><b>Working</b> (live, and with its Owner): dressed in the skin's Look and tooltip block. The
 	 *       Look is {@code item_model} {@code skins:<id>}; a hat is also equippable on the head with no
 	 *       equipment asset, so the client draws the Look there (the server's item, with its armour and
-	 *       abilities, is untouched). The tooltip block follows vanilla's lines: "Skin: <Skin>" (gold),
-	 *       the Perk lines, the description (gray), "Owned by <player>" (gray).</li>
+	 *       abilities, is untouched). The item is named after the skin, in the name's colours ({@link SkinName}),
+	 *       unless the player renamed it. The tooltip block follows vanilla's lines: "Released: <date> - Obtainable"
+	 *       ({@link Release}), the Perk lines, the description (gray), "Owned by <player>" (gray).</li>
 	 *   <li><b>Away</b> (live, with anyone else or no one): plain, with one gray line in place of the
 	 *       tooltip block, "<Skin> skin, only works for <Owner>".</li>
 	 *   <li>A plain, stale, Dormant or no longer fitting item comes back as it was.</li>
@@ -631,7 +632,7 @@ public final class Skins {
 	 * A Skinned Item other than leather shows its colour only while it's working with a Dyeable Hat's
 	 * Look: in every other case (Away, stale, Dormant, no longer fitting, no longer dyeable) its copy
 	 * loses {@code dyed_color} and vanilla's "Dyed" line (Polymer's lore copy of it). Leather shows its
-	 * dye, as vanilla does. The name and glint are left alone.
+	 * dye, as vanilla does. The glint is left alone, and so is a name the player gave the item.
 	 */
 	public ItemStack clientView(ItemStack stack, ItemStack client, @Nullable UUID with) {
 		Optional<LiveSkin> live = liveSkin(stack);
@@ -652,8 +653,10 @@ public final class Skins {
 					: new Equippable(EquipmentSlot.HEAD, worn.equipSound(), Optional.empty(), worn.cameraOverlay(), worn.allowedEntities(),
 							worn.dispensable(), worn.swappable(), worn.damageOnHurt(), worn.equipOnInteract(), worn.canBeSheared(), worn.shearingSound()));
 		}
+		// item_name, not custom_name: a name the player gave the item still wins, and an anvil doesn't take the skin's name for a rename.
+		client.set(DataComponents.ITEM_NAME, skin.title());
 		List<Component> lines = new ArrayList<>(client.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines());
-		lines.add(plain("Skin: " + skin.name(), ChatFormatting.GOLD));
+		lines.add(skin.release().line());
 		lines.addAll(PerkLines.of(skin.perks()));
 		skin.description().ifPresent(d -> lines.add(plain(d, ChatFormatting.GRAY)));
 		lines.add(plain("Owned by " + skin.ownerName(), ChatFormatting.GRAY));
@@ -806,9 +809,9 @@ public final class Skins {
 	}
 
 	private SkinSummary summary(Entry e) {
-		return new SkinSummary(e.id(), e.loaded().map(SkinFolder.Loaded::name), e.kind(), e.loaded().flatMap(SkinFolder.Loaded::materials),
-				e.loaded().map(SkinFolder.Loaded::dyeable).orElse(false),
-				e.loaded().flatMap(SkinFolder.Loaded::description),
+		return new SkinSummary(e.id(), e.loaded().map(SkinFolder.Loaded::name), e.loaded().map(SkinFolder.Loaded::title), e.kind(),
+				e.loaded().flatMap(SkinFolder.Loaded::materials), e.loaded().map(SkinFolder.Loaded::dyeable).orElse(false),
+				e.loaded().flatMap(SkinFolder.Loaded::description), e.loaded().map(SkinFolder.Loaded::release),
 				e.loaded().map(l -> inEffect(l.perks())).orElse(List.of()), e.dormantReason());
 	}
 

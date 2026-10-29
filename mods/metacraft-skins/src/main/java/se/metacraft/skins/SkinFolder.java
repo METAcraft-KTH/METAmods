@@ -9,6 +9,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import se.metacraft.config.util.JanksonOps;
+import net.minecraft.network.chat.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -56,10 +57,10 @@ public final class SkinFolder {
 	/**
 	 * A skin that loaded: what later tickets need of its definition, and its files in the pack by
 	 * path. {@code materials} is the Materials it's limited to, in vanilla order; empty if it fits every one.
-	 * {@code dyeable}: it's a Dyeable Hat.
+	 * {@code dyeable}: it's a Dyeable Hat. {@code name} is the name without its formatting codes, {@code title} the name with them.
 	 */
-	record Loaded(String id, String name, Kind kind, Optional<List<Material>> materials, boolean dyeable, Optional<String> description, List<Perk> perks,
-				Map<String, byte[]> files) {
+	record Loaded(String id, String name, Component title, Kind kind, Optional<List<Material>> materials, boolean dyeable, Optional<String> description,
+				Release release, List<Perk> perks, Map<String, byte[]> files) {
 		Fit fit() {
 			return new Fit(kind, materials);
 		}
@@ -110,7 +111,8 @@ public final class SkinFolder {
 			modelIds.put(slot.getKey(), model(folder, id, kind, slot.getKey(), slot.getValue(), dyeable, definitionFile, files, modelIds, warnings));
 		}
 		files.put("assets/" + NAMESPACE + "/items/" + id + ".json", itemDefinition(kind, modelIds).getBytes(StandardCharsets.UTF_8));
-		return new Loaded(id, definition.name(), kind, definition.materials(), dyeable, definition.description(), definition.perks(), files);
+		return new Loaded(id, SkinName.plain(definition.name()), SkinName.styled(definition.name(), definition.gradient()), kind, definition.materials(), dyeable,
+				definition.description(), definition.release(), definition.perks(), files);
 	}
 
 	/**

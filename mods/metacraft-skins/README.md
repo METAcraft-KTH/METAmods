@@ -95,8 +95,11 @@ Drop the export in as it is, then run `/itemskins reload`. The mod cleans it up 
 
 ```json5
 {
-	name: "Emerald Pick",               // plain text, shown on tokens, menus and items
+	name: "&lEmerald Pick",             // shown on tokens, menus and items; formatting codes allowed
+	gradient: { colors: ["#1E8449", "#7DFFB0"], mirror: true },   // optional: colours the name
 	kind: "pickaxe",                    // the Kind it fits, below
+	released: "2026/10/31",             // optional: shown as "Released: 2026/10/31"
+	obtainable: false,                  // optional: "Obtainable" (default) or "Unobtainable"
 	// materials: ["diamond", "netherite"],   // optional: only these Materials of the Kind
 	look: { model: "emerald_pick.json" },
 	description: "Mined from a creeper's dream.",   // optional: one gray line
@@ -106,14 +109,40 @@ Drop the export in as it is, then run `/itemskins reload`. The mod cleans it up 
 
 | field | |
 | --- | --- |
-| `name` | required, plain text |
+| `name` | required; may use Minecraft's formatting codes, below |
+| `gradient` | optional: `{ colors: ["#RRGGBB", ...], mirror: true }` colours the name, below; `mirror` is optional |
 | `kind` | required: `sword`, `axe`, `pickaxe`, `shovel`, `hoe`, `mace`, `spear`, `helmet`, `chestplate`, `leggings`, `boots` or `elytra` |
 | `materials` | optional: a list of one or more of the Kind's Materials, below; leave it out to fit every Material |
 | `look` | required: `{ model: "<file>.json" }`, except a spear, which takes `{ icon: "<file>.json", in_hand: "<file>.json" }`. A helmet may add `dyeable: true` to be a Dyeable Hat, below (`false` is the same as leaving it out) |
 | `description` | optional, one line |
+| `released` | optional: the date the skin came out, written `"2026/10/31"` (year/month/day) |
+| `obtainable` | optional: `true` (the default) or `false`, whether players can still get the skin |
 | `perks` | optional; leave it out for a Look-only skin |
 
 Any other field rejects the skin. The files `look` names must be `.json` files in the skin's folder.
+
+**Names.** A name takes Minecraft's formatting codes, with `&` or `§`: `&0`–`&9` and `&a`–`&f` for
+the 16 colours, `&l` bold, `&o` italic, `&n` underlined, `&m` strikethrough, `&k` obfuscated, `&r` to
+reset, and `&#RRGGBB` for any colour (`&#FF8C00` is pumpkin orange). As in vanilla, a colour clears the
+formats before it, so put the colour first: `&6&lCowboy Hat` is bold gold, `&l&6Cowboy Hat` only gold.
+Text before any colour is yellow. An `&` that isn't followed by a code is just text (`Salt & Pepper`),
+but `R&D` would read `&D` as a colour. Chat messages, menu titles and `/itemskins info` use the name
+without its codes. A name must have some text besides its codes.
+
+**Gradients.** `gradient` colours the name letter by letter through its `colors`, two or more, left
+to right: the first colour on the first letter, the last on the last. List them the other way round to
+run right to left. With `mirror: true` they run to the middle and back, so the first colour is on both
+ends and the last in the middle. A name with a gradient keeps its formats (`&lCowboy Hat` is bold) but
+may not have colour codes, since the gradient colours every letter. Every shipped skin has one:
+
+```json5
+	name: "&lCowboy Hat",
+	gradient: { colors: ["#8B5A2B", "#F0C27B"], mirror: true },   // leather brown to tan and back
+```
+
+**Release.** Skinned Items and the menus show `released` and `obtainable` as one line,
+"Released: 2026/10/31 - Obtainable" (Unobtainable in red). Without `released` the line is just
+"Obtainable" or "Unobtainable". Change either and `/itemskins reload`: every item shows the new line.
 
 **Kinds.** A Kind is one family of items: a `sword` skin fits any sword, wood to netherite, unless
 `materials` limits it. Membership is the vanilla item tag (`#minecraft:swords`, `#minecraft:head_armor`
@@ -324,6 +353,10 @@ file and the reason, shown to whoever ran `/itemskins reload`, and listed by `/i
 
 - broken json5, or an unknown field anywhere;
 - a missing `name`, `kind` or `look`, an unknown Kind, or the wrong `look` shape for the Kind;
+- a `name` that is only formatting codes, a `released` that isn't a year/month/day date, or an
+  `obtainable` that isn't `true` or `false`;
+- a `gradient` with fewer than two colours, a colour not written `#RRGGBB`, a field other than
+  `colors` and `mirror`, or colour codes in the name it colours;
 - `dyeable` on a skin that isn't a helmet (a spear's look too), a `dyeable` that isn't `true` or
   `false`, or `dyeable: true` on a model that marks no Tint faces in its own `elements` (ones only in a
   `parent` don't count);
@@ -407,7 +440,10 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids tab
   game yet).
 - **`info`** shows what a player owns, with claim dates (UTC) and each skin's state: Applied, Unapplied,
   Applied in another world, or Dormant. It can't say which item carries a skin. A damaged file says so.
-- **`list`** shows every skin folder with its Kind and, for a Dormant skin, why it didn't load:
+- **`list`** run by a player opens **All Skins**: the Skin Menu, but with every skin on the server, owned
+  or not, each with its Look, release line, Perks and description. Dormant skins come last, as barriers
+  saying why they didn't load. Nothing in it can be clicked. Run from the console, `list` instead
+  shows every skin folder in chat with its Kind and, for a Dormant skin, why it didn't load:
   `candy_sword (sword)`. A skin limited to Materials lists them after its Kind, in the order of the
   Materials table: `crown (helmet: leather, turtle)`. A Dyeable Hat says so last:
   `cowboy_hat (helmet: leather, dyeable)`, or `cowboy_hat (helmet, dyeable)` with no Materials.
@@ -527,7 +563,9 @@ Rules that answer most support questions:
   Unapplied for its Owner the next time the server tidies their items (opening the Skin Menu does).
   **Crafting-grid repair** makes a new item, so the skin is lost;
   the Owner applies it again.
-- **Tooltips.** A Skinned Item shows, after its own lines, "Skin: <Skin>" (gold), the Perk lines, and
+- **Tooltips.** A Skinned Item is named after its skin, in the name's colours, unless the player
+  renamed it (an anvil name wins, and an anvil never renames the item to the skin's name). After its
+  own lines it shows the release line ("Released: <date> - Obtainable"), the Perk lines, the description, and
   "Owned by <player>" (the last known name of an offline Owner). An Away item shows one gray line in
   their place: "<Skin> skin, only works for <Owner>", as in "Candy Sword skin, only works for Alice".
 - **Tokens** stack to 64, can be traded and dropped, and are paper to recipes, villagers and workstations,

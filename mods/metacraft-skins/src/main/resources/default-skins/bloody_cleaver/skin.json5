@@ -1,5 +1,8 @@
 {
-	name: "Bloody Cleaver",
+	name: "&lBloody Cleaver",
+	gradient: { colors: ["#8B0000", "#D10000", "#FF5C5C"] },
+	released: "2026/10/28",
+	obtainable: true,
 	kind: "sword",
 	look: { model: "bloody_cleaver.json" },
 }

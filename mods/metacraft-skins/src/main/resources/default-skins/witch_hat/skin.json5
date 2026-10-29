@@ -1,5 +1,8 @@
 {
-	name: "Witch Hat",
+	name: "&lWitch Hat",
+	gradient: { colors: ["#7B2FBE", "#3FBF3F"] },
+	released: "2026/10/28",
+	obtainable: true,
 	kind: "helmet",
 	look: { model: "witch_hat.json" },
 }

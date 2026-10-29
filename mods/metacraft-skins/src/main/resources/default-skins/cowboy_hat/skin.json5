@@ -1,5 +1,8 @@
 {
-	name: "Cowboy Hat",
+	name: "&lCowboy Hat",
+	gradient: { colors: ["#8B5A2B", "#F0C27B"], mirror: true },
+	released: "2026/10/28",
+	obtainable: true,
 	kind: "helmet",
 	look: { model: "cowboy_hat.json", dyeable: true },
 }

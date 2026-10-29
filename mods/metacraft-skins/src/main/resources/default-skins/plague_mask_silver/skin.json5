@@ -1,5 +1,8 @@
 {
-	name: "Silver Plague Mask",
+	name: "&lSilver Plague Mask",
+	gradient: { colors: ["#9DA9B4", "#FFFFFF"], mirror: true },
+	released: "2026/10/28",
+	obtainable: true,
 	kind: "helmet",
 	look: { model: "plague_mask_silver.json" },
 }

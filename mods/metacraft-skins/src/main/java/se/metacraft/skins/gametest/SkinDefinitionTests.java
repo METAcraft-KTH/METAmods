@@ -3,14 +3,21 @@ package se.metacraft.skins.gametest;
 import se.metacraft.skins.DefaultSkins;
 import se.metacraft.skins.Kind;
 import se.metacraft.skins.ReloadReport;
+import se.metacraft.skins.Release;
+import se.metacraft.skins.SkinName;
 import se.metacraft.skins.SkinSummary;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.minecraft.ChatFormatting;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -284,6 +291,93 @@ public final class SkinDefinitionTests {
 
 	private static boolean warned(ReloadReport report, String slot, boolean prominent) {
 		return report.warnings().stream().anyMatch(w -> w.skinId().equals("santa_hat_test") && w.prominent() == prominent && w.message().contains("\"" + slot + "\""));
+	}
+
+	/**
+	 * A name's formatting codes colour it and are gone from its plain name; {@code released} and
+	 * {@code obtainable} are read, and a skin that leaves them out is obtainable, with no date.
+	 */
+	@GameTest
+	public void namesReleasesAndObtainabilityAreRead(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().lookOnly("plain", "sword").lookOnly("fancy", "helmet")
+				.file("fancy", "skin.json5", "{ name: \"&6&lFancy §r& &#00ff00Hat\", kind: \"helmet\", released: \"2026/10/31\", obtainable: false,"
+						+ " look: { model: \"fancy.json\" } }");
+		ReloadReport report = fx.reload();
+		assertThat(report.rejections().isEmpty(), "rejected: " + report);
+		SkinSummary fancy = fx.skins.skin("fancy").orElseThrow();
+		assertThat(fancy.displayName().equals("Fancy & Hat"), "the plain name is " + fancy.displayName());
+		// Bold gold; reset to the yellow base, where "& " isn't a code; then green, any colour by its hex.
+		List<Style> styles = fancy.styledName().getSiblings().stream().map(Component::getStyle).toList();
+		assertThat(styles.size() == 3 && styles.get(0).isBold() && colour(styles.get(0), TextColor.fromLegacyFormat(ChatFormatting.GOLD))
+						&& !styles.get(1).isBold() && colour(styles.get(1), TextColor.fromLegacyFormat(ChatFormatting.YELLOW))
+						&& colour(styles.get(2), TextColor.fromRgb(0x00FF00)) && !fancy.styledName().getStyle().isItalic(),
+				"the name is styled " + styles);
+		assertThat(fancy.release().equals(Optional.of(new Release(Optional.of(LocalDate.of(2026, 10, 31)), false))), "fancy's release: " + fancy.release());
+		assertThat(fancy.release().get().line().getString().equals("Released: 2026/10/31 - Unobtainable"), "fancy's line: " + fancy.release().get().line().getString());
+		SkinSummary plain = fx.skins.skin("plain").orElseThrow();
+		assertThat(plain.release().equals(Optional.of(new Release(Optional.empty(), true))), "plain's release: " + plain.release());
+		assertThat(plain.release().get().line().getString().equals("Obtainable"), "plain's line: " + plain.release().get().line().getString());
+		// As in vanilla, a colour clears the formats before it.
+		assertThat(!SkinName.styled("&l&6Gold").getSiblings().getFirst().getStyle().isBold(), "a colour kept the bold before it");
+		helper.succeed();
+	}
+
+	/**
+	 * A gradient colours the name letter by letter, first colour to last; mirrored, it runs to the
+	 * middle and back. The name's formats (here bold) stay.
+	 */
+	@GameTest
+	public void aGradientColoursTheNameLetterByLetter(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().lookOnly("faded", "sword").lookOnly("mirrored", "sword")
+				.file("faded", "skin.json5", "{ name: \"&lAbc\", gradient: { colors: [\"#000000\", \"#FFFFFF\"] }, kind: \"sword\", look: { model: \"faded.json\" } }")
+				.file("mirrored", "skin.json5", "{ name: \"Abcde\", gradient: { colors: [\"#000000\", \"#FFFFFF\"], mirror: true }, kind: \"sword\","
+						+ " look: { model: \"mirrored.json\" } }");
+		ReloadReport report = fx.reload();
+		assertThat(report.rejections().isEmpty(), "rejected: " + report);
+		List<Style> faded = fx.skins.skin("faded").orElseThrow().styledName().getSiblings().stream().map(Component::getStyle).toList();
+		assertThat(faded.size() == 3 && faded.stream().allMatch(Style::isBold) && colours(faded).equals(List.of(0x000000, 0x808080, 0xFFFFFF)),
+				"the faded name is styled " + faded);
+		List<Style> mirrored = fx.skins.skin("mirrored").orElseThrow().styledName().getSiblings().stream().map(Component::getStyle).toList();
+		assertThat(colours(mirrored).equals(List.of(0x000000, 0x808080, 0xFFFFFF, 0x808080, 0x000000)), "the mirrored name is styled " + mirrored);
+		assertThat(fx.skins.skin("mirrored").orElseThrow().displayName().equals("Abcde"), "the plain name is " + fx.skins.skin("mirrored").get().displayName());
+		helper.succeed();
+	}
+
+	@GameTest
+	public void aBadGradientIsRejected(GameTestHelper helper) {
+		SkinFixtures fx = withHealthyNeighbour().lookOnly("coded", "sword").lookOnly("one", "sword").lookOnly("hex", "sword").lookOnly("extra", "sword")
+				.file("coded", "skin.json5", "{ name: \"&6Coded\", gradient: { colors: [\"#000000\", \"#FFFFFF\"] }, kind: \"sword\", look: { model: \"coded.json\" } }")
+				.file("one", "skin.json5", "{ name: \"One\", gradient: { colors: [\"#000000\"] }, kind: \"sword\", look: { model: \"one.json\" } }")
+				.file("hex", "skin.json5", "{ name: \"Hex\", gradient: { colors: [\"#000000\", \"orange\"] }, kind: \"sword\", look: { model: \"hex.json\" } }")
+				.file("extra", "skin.json5", "{ name: \"Extra\", gradient: { colors: [\"#000000\", \"#FFFFFF\"], reverse: true }, kind: \"sword\","
+						+ " look: { model: \"extra.json\" } }");
+		ReloadReport report = fx.reload();
+		assertRejected(report, "coded", "skin.json5", "takes no colour codes");
+		assertRejected(report, "one", "skin.json5", "two colours or more");
+		assertRejected(report, "hex", "skin.json5", "gradient.colors[1]: must be a colour written \"#RRGGBB\"");
+		assertRejected(report, "extra", "skin.json5", "unknown field \"reverse\"");
+		helper.succeed();
+	}
+
+	private static List<Integer> colours(List<Style> styles) {
+		return styles.stream().map(s -> s.getColor() == null ? -1 : s.getColor().getValue()).toList();
+	}
+
+	@GameTest
+	public void aBadNameReleaseOrObtainableIsRejected(GameTestHelper helper) {
+		SkinFixtures fx = withHealthyNeighbour().lookOnly("date", "sword").lookOnly("yes", "sword").lookOnly("codes", "sword")
+				.file("date", "skin.json5", "{ name: \"Date\", kind: \"sword\", released: \"2026-10-31\", look: { model: \"date.json\" } }")
+				.file("yes", "skin.json5", "{ name: \"Yes\", kind: \"sword\", obtainable: \"yes\", look: { model: \"yes.json\" } }")
+				.file("codes", "skin.json5", "{ name: \"&6&l\", kind: \"sword\", look: { model: \"codes.json\" } }");
+		ReloadReport report = fx.reload();
+		assertRejected(report, "date", "skin.json5", "\"released\" must be a date");
+		assertRejected(report, "yes", "skin.json5", "\"obtainable\" must be true or false");
+		assertRejected(report, "codes", "skin.json5", "besides its formatting codes");
+		helper.succeed();
+	}
+
+	private static boolean colour(Style style, TextColor colour) {
+		return colour.equals(style.getColor());
 	}
 
 	/** A skin that loads, next to the broken one: a rejection must never take the others down. */

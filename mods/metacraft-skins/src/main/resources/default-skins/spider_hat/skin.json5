@@ -1,5 +1,8 @@
 {
-	name: "Spider Hat",
+	name: "&lSpider Hat",
+	gradient: { colors: ["#555555", "#E0201B"], mirror: true },
+	released: "2026/10/28",
+	obtainable: true,
 	kind: "helmet",
 	look: { model: "spider_hat.json" },
 }

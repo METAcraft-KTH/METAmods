@@ -402,8 +402,9 @@ public final class SkinsCommandTests {
 				assertThat(Identifier.parse("skins:candy_cane_test").equals(received.get(DataComponents.ITEM_MODEL)), "the sword reached a player with the Look "
 						+ received.get(DataComponents.ITEM_MODEL));
 				List<String> lore = lore(received);
-				assertThat(lore.contains("Skin: candy_cane_test skin") && lore.getLast().equals("Owned by " + owner.getGameProfile().name()),
+				assertThat(lore.contains("Obtainable") && lore.getLast().equals("Owned by " + owner.getGameProfile().name()),
 						"the sword reached a player with the lore " + lore);
+				assertThat(received.getHoverName().getString().equals("candy_cane_test skin"), "the sword reached a player named " + received.getHoverName().getString());
 				assertThat(!received.has(SkinMarker.TYPE), "the hidden marker reached a client as a component");
 			}
 			viewer.connection.send(new ClientboundContainerSetSlotPacket(0, 0, 36, sword));

@@ -28,7 +28,8 @@ import java.util.Optional;
 
 /**
  * The Skin Menu ({@code /itemskins}): two chest screens, built with sgui, that only ever call the
- * {@link Skins} module. The player's own inventory below stays visible but locked on both.
+ * {@link Skins} module, and a third for {@code /itemskins list}. The player's own inventory below
+ * stays visible but locked on all of them.
  * <ul>
  *   <li><b>"Your Skins"</b> (6 rows): rows 1–5 the player's owned, non-Dormant skins, 45 a page,
  *       sorted by Kind, each shown with its Look and glinting while applied; row 6 the page
@@ -40,7 +41,11 @@ import java.util.Optional;
  *       is and what clicking it does. With more
  *       than one page, arrows either side of the preview turn them. Clicking an item applies the
  *       skin and goes back to "Your Skins".</li>
+ *   <li><b>"All Skins"</b> ({@code /itemskins list}): "Your Skins", but with every skin on the server,
+ *       owned or not, and nothing to click; Dormant skins come last, as barriers saying why.</li>
  * </ul>
+ * Every skin is shown with its Look, named in its colours ({@link se.metacraft.skins.SkinName}), and
+ * says when it was released and whether it's obtainable ({@link se.metacraft.skins.Release}).
  */
 public final class SkinMenu {
 	private SkinMenu() {}
@@ -105,6 +110,42 @@ public final class SkinMenu {
 		if (page < pages - 1) gui.setSlot(NEXT_PAGE, arrow("Next page", () -> yourSkins(player, skins, page + 1)));
 		gui.setSlot(BOOK, book());
 		gui.open();
+	}
+
+	/** Opens "All Skins" on its first page: every skin on the server, owned or not. */
+	public static void openAll(ServerPlayer player, Skins skins) {
+		allSkins(player, skins, 0);
+	}
+
+	private static void allSkins(ServerPlayer player, Skins skins, int requestedPage) {
+		List<SkinSummary> all = new ArrayList<>(skins.allSkins());
+		all.sort(Comparator.comparing((SkinSummary s) -> s.dormant() || s.kind().isEmpty())
+				.thenComparing(s -> s.kind().map(Enum::ordinal).orElse(Integer.MAX_VALUE))
+				.thenComparing(SkinSummary::displayName).thenComparing(SkinSummary::id));
+		int pages = Math.max(1, (all.size() + PER_PAGE - 1) / PER_PAGE);
+		int page = Math.clamp(requestedPage, 0, pages - 1);
+
+		SimpleGui gui = locked(MenuType.GENERIC_9x6, player);
+		gui.setTitle(Component.literal("All Skins" + (pages > 1 ? " (" + (page + 1) + "/" + pages + ")" : "")));
+		List<SkinSummary> shown = all.subList(page * PER_PAGE, Math.min(all.size(), (page + 1) * PER_PAGE));
+		for (int i = 0; i < shown.size(); i++) {
+			SkinSummary skin = shown.get(i);
+			gui.setSlot(i, skin.dormant() || skin.fit().isEmpty() ? dormant(skin) : look(skin, skin.fit().get()).build());
+		}
+		if (all.isEmpty()) {
+			gui.setSlot(MIDDLE, new GuiElementBuilder(Items.PAPER).setName(Component.literal("There are no skins on this server yet")).build());
+		}
+		for (int i = PER_PAGE; i < PER_PAGE + 9; i++) gui.setSlot(i, filler());
+		if (page > 0) gui.setSlot(PREVIOUS_PAGE, arrow("Previous page", () -> allSkins(player, skins, page - 1)));
+		if (page < pages - 1) gui.setSlot(NEXT_PAGE, arrow("Next page", () -> allSkins(player, skins, page + 1)));
+		gui.setSlot(BOOK, book());
+		gui.open();
+	}
+
+	/** A Dormant skin in "All Skins": it has no Look to show, so a barrier with its id and why it didn't load. */
+	private static eu.pb4.sgui.api.elements.GuiElement dormant(SkinSummary skin) {
+		return new GuiElementBuilder(Items.BARRIER).setName(Component.literal(skin.id()).withStyle(ChatFormatting.GRAY))
+				.addLoreLine(Component.literal("Dormant: " + skin.dormantReason().orElse("its Kind is unknown")).withStyle(ChatFormatting.RED)).build();
 	}
 
 	/** "How skins work": sums skins up in its tooltip. */
@@ -201,15 +242,25 @@ public final class SkinMenu {
 		yourSkins(player, skins, fromPage);
 	}
 
-	/** A skin shown with its Look: a vanilla item it fits ({@link Fit#icon()}) wearing the skin's item model, its own tooltip hidden. */
-	private static GuiElementBuilder icon(Listed skin) {
-		GuiElementBuilder icon = GuiElementBuilder.from(new ItemStack(skin.fit().icon()))
-				.model(Identifier.fromNamespaceAndPath(SkinFolder.NAMESPACE, skin.skin().id()))
-				.setName(Component.literal(skin.skin().displayName()).withStyle(ChatFormatting.YELLOW))
+	/**
+	 * A skin shown with its Look: a vanilla item it fits ({@link Fit#icon()}) wearing the skin's item model, its own tooltip hidden,
+	 * named in the skin's colours, then what it fits, its release, Perks and description.
+	 */
+	private static GuiElementBuilder look(SkinSummary skin, Fit fit) {
+		GuiElementBuilder icon = GuiElementBuilder.from(new ItemStack(fit.icon()))
+				.model(Identifier.fromNamespaceAndPath(SkinFolder.NAMESPACE, skin.id()))
+				.setName(skin.styledName())
 				.hideDefaultTooltip();
-		skin.fit().lore(skin.skin().dyeable()).forEach(icon::addLoreLine);
-		PerkLines.of(skin.skin().perks()).forEach(icon::addLoreLine);
-		skin.skin().description().ifPresent(d -> icon.addLoreLine(Component.literal(d).withStyle(ChatFormatting.GRAY)));
+		fit.lore(skin.dyeable()).forEach(icon::addLoreLine);
+		skin.release().ifPresent(r -> icon.addLoreLine(r.line()));
+		PerkLines.of(skin.perks()).forEach(icon::addLoreLine);
+		skin.description().ifPresent(d -> icon.addLoreLine(Component.literal(d).withStyle(ChatFormatting.GRAY)));
+		return icon;
+	}
+
+	/** An owned skin: its {@link #look}, then whether it's applied (glinting while it is). */
+	private static GuiElementBuilder icon(Listed skin) {
+		GuiElementBuilder icon = look(skin.skin(), skin.fit());
 		icon.addLoreLine(skin.applied() ? Component.literal("✔ Applied to an item").withStyle(ChatFormatting.GREEN)
 				: Component.literal("Unapplied").withStyle(ChatFormatting.GRAY));
 		return icon.glow(skin.applied());

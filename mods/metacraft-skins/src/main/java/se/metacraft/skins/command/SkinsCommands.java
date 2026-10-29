@@ -46,7 +46,8 @@ import java.util.stream.Collectors;
  * subcommands so far:
  * <ul>
  *   <li>{@code /itemskins} alone ({@code metacraft-skins:menu}, everyone): opens the player's Skin Menu;</li>
- *   <li>{@code list} ({@code metacraft-skins:list}, gamemasters): every skin, its Kind, any Materials it's limited to and whether
+ *   <li>{@code list} ({@code metacraft-skins:list}, gamemasters): for a player, opens "All Skins", the Skin Menu with every
+ *       skin on the server; anywhere else (the console), every skin in chat, its Kind, any Materials it's limited to and whether
  *       it's a Dyeable Hat ({@code cowboy_hat (helmet: leather, dyeable)}), and why a Dormant one failed;</li>
  *   <li>{@code reload} ({@code metacraft-skins:reload}, admins): re-read the skins and settings and rebuild the pack;
  *       a changed pack is pushed to everyone online, and a reload that took a Look away sends everyone online their items
@@ -129,6 +130,11 @@ public final class SkinsCommands {
 	private static int list(CommandContext<CommandSourceStack> ctx, Skins skins) {
 		List<SkinSummary> all = skins.allSkins();
 		CommandSourceStack source = ctx.getSource();
+		ServerPlayer player = source.getPlayer();
+		if (player != null) {
+			SkinMenu.openAll(player, skins);
+			return all.size();
+		}
 		long dormant = all.stream().filter(SkinSummary::dormant).count();
 		source.sendSuccess(() -> Component.literal(all.size() + " skin" + (all.size() == 1 ? "" : "s") + " (" + dormant + " Dormant) in "
 				+ skins.skinsFolder()).withStyle(ChatFormatting.GOLD), false);

@@ -122,9 +122,10 @@ public final class ClaimMenu {
 	private static GuiElement icon(SkinSummary skin, Fit fit, boolean owned) {
 		GuiElementBuilder icon = GuiElementBuilder.from(new ItemStack(fit.icon()))
 				.model(Identifier.fromNamespaceAndPath(SkinFolder.NAMESPACE, skin.id()))
-				.setName(Component.literal(skin.displayName()).withStyle(ChatFormatting.YELLOW))
+				.setName(skin.styledName())
 				.hideDefaultTooltip();
 		fit.lore(skin.dyeable()).forEach(icon::addLoreLine);
+		skin.release().ifPresent(r -> icon.addLoreLine(r.line()));
 		PerkLines.of(skin.perks()).forEach(icon::addLoreLine);
 		skin.description().ifPresent(d -> icon.addLoreLine(Component.literal(d).withStyle(ChatFormatting.GRAY)));
 		icon.addLoreLine(owned ? Component.literal("Already yours").withStyle(ChatFormatting.RED)

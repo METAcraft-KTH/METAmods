@@ -1,7 +1,8 @@
 // A test skin that ships with metacraft-skins. Delete this folder to remove it for good.
 {
-	name: "Test Block Hat",
+	name: "&lTest Block Hat",
+	gradient: { colors: ["#76FF03", "#00BFA5"] },
+	obtainable: false,
 	kind: "helmet",
-	description: "A test skin. Dye it like leather.",
 	look: { model: "testblockhat.json", dyeable: true },
 }

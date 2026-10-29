@@ -50,7 +50,7 @@ public final class ClaimMenuTests {
 							"cancel pane " + slot + ": " + item + " " + name(player, slot) + " " + lore(player, slot));
 				} else if (slot == SKIN) {
 					assertThat("skins:crown_test".equals(String.valueOf(item.get(DataComponents.ITEM_MODEL))) && name(player, slot).equals("Crown"), "the skin in the centre: " + item);
-					assertThat(lore(player, slot).equals(List.of("Fits any helmet", "While worn: +2 max hearts", "Fit for a king.", "Claim to own this skin")),
+					assertThat(lore(player, slot).equals(List.of("Fits any helmet", "Obtainable", "While worn: +2 max hearts", "Fit for a king.", "Claim to own this skin")),
 							"the skin's tooltip: " + lore(player, slot));
 				} else {
 					assertThat(item.is(Items.STAINED_GLASS_PANE.black()), "slot " + slot + " isn't filler: " + item);
@@ -155,7 +155,7 @@ public final class ClaimMenuTests {
 			player.getInventory().clearContent();
 			player.getInventory().setItem(0, SkinToken.of("cowboy_hat_test", 1));
 			ClaimMenu.open(player, fx.skins, player.getInventory().getItem(0));
-			assertThat(lore(player, SKIN).equals(List.of("Fits any helmet", "Dye the helmet to recolour it", "Claim to own this skin")),
+			assertThat(lore(player, SKIN).equals(List.of("Fits any helmet", "Dye the helmet to recolour it", "Obtainable", "Claim to own this skin")),
 					"the skin's tooltip: " + lore(player, SKIN));
 		} finally {
 			helper.getLevel().getServer().getPlayerList().remove(player);

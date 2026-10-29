@@ -9,14 +9,14 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- * The test skins that ship in the jar ({@code default-skins/}: testblockhat and test_cap, both
- * Dyeable Hats), copied into the skins folder the first time a server starts without one. After
- * that the folder is the admin's: a deleted test skin stays deleted.
+ * The skins that ship in the jar ({@code default-skins/}: a starter set and two test hats),
+ * copied into the skins folder the first time a server starts without one. After that the folder
+ * is the admin's: a deleted shipped skin stays deleted.
  */
 public final class DefaultSkins {
 	private DefaultSkins() {}
 
-	/** Copies the test skins into {@code skinsFolder} if it doesn't exist yet; returns whether it did. */
+	/** Copies the shipped skins into {@code skinsFolder} if it doesn't exist yet; returns whether it did. */
 	public static boolean installIfMissing(Path skinsFolder) {
 		if (Files.exists(skinsFolder)) return false;
 		Optional<Path> bundled = FabricLoader.getInstance().getModContainer(MetacraftSkins.MOD_ID).flatMap(mod -> mod.findPath("default-skins"));
@@ -31,10 +31,10 @@ public final class DefaultSkins {
 				if (Files.isDirectory(file)) Files.createDirectories(target);
 				else Files.copy(file, target);
 			}
-			MetacraftSkins.LOGGER.info("[{}] put the test skins in {}; delete their folders to remove them", MetacraftSkins.MOD_ID, skinsFolder);
+			MetacraftSkins.LOGGER.info("[{}] put the shipped skins in {}; delete their folders to remove them", MetacraftSkins.MOD_ID, skinsFolder);
 			return true;
 		} catch (IOException e) {
-			MetacraftSkins.LOGGER.error("[{}] could not put the test skins in {}", MetacraftSkins.MOD_ID, skinsFolder, e);
+			MetacraftSkins.LOGGER.error("[{}] could not put the shipped skins in {}", MetacraftSkins.MOD_ID, skinsFolder, e);
 			return false;
 		}
 	}
