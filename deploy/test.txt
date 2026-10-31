@@ -17,6 +17,7 @@ metacraft-info-commands
 metacraft-loot-containers
 metacraft-moderation
 metacraft-pause
+metacraft-player-bosses
 metacraft-player-specific-scoreboards
 metacraft-relay
 metacraft-repair-fix
