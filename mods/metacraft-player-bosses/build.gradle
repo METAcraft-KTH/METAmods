@@ -1,0 +1,7 @@
+version = project.player_bosses_version
+
+addCoreDependencies()
+
+addConfigDependency()
+addProjectDependency(":mods:metacraft-bosses")
+addProjectDependency(":mods:metacraft-cutscenes")

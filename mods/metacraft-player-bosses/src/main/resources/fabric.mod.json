@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-player-bosses",
+	"version": "${version}",
+	"name": "METAcraft-Core",
+	"description": "Bosses",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.metacraft.player_bosses.PlayerBosses"
+		]
+	},
+	"mixins": [
+		"metacraft_player_bosses.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"fabric-api": "*",
+		"minecraft": "~${minecraft_version}",
+		"metacraft-lib": "*"
+	}
+}

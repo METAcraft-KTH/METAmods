@@ -1,0 +1,17 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "se.metacraft.player_bosses.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"EnderDragonFightMixin",
+		"LivingEntityMixin",
+		"PlayerAccessor",
+		"ServerPlayerMixin"
+	],
+	"client": [
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
