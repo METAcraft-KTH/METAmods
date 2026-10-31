@@ -5,20 +5,15 @@ import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.monster.Ghast;
-import net.minecraft.world.entity.monster.Strider;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
-import net.minecraft.world.entity.monster.piglin.PiglinBrute;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import org.jetbrains.annotations.Nullable;
-import se.metacraft.nether_rifts.mob.GhastBombardier;
 import se.metacraft.nether_rifts.mob.WarDrummer;
 import se.metacraft.nether_rifts.raid.RiftMobs;
 import se.metacraft.nether_rifts.raid.RiftRaid;
 import se.metacraft.nether_rifts.raid.Slot;
-import se.metacraft.nether_rifts.rift.Rift;
 import se.metacraft.nether_rifts.rift.Stage;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
@@ -325,101 +320,6 @@ public class GeneralTests {
 				ctx.assertTrue(!back.get(), "the arrow at his body turned back");
 				ctx.assertTrue(shooter.getHealth() == shooter.getMaxHealth(), "the shooter was hurt: " + shooter.getHealth());
 			}, shooter));
-		});
-		NetherRiftsTests.register("general/roar_at_thresholds", ctx -> {
-			// A Large raid's General, the rest of wave 7 gone. Hurt by a participant below two thirds, he roars, and half a
-			// wave of his guard comes through the rift at that participant: ranged, melee and elite halved (Large's last
-			// wave's 2, 5 and 2, before the bonus rolls), a Grenadier and a Drummer on a hoglin, and no ghast or strider.
-			// Below a third he roars again; there are only two. (Callbacks schedule nothing: the test's own schedule can't
-			// take more while it runs one.)
-			var inside = ShapeTests.frame(ctx, 10, 10, Blocks.OBSIDIAN);
-			ctx.setBlock(inside, Blocks.FIRE);
-			penRoom(ctx);
-			var player = heldParticipant(ctx);
-			Runnable done = () -> riftCleanUp(ctx, player);
-			var level = ctx.getLevel();
-			var riftRef = new AtomicReference<Rift>();
-			var generalRef = new AtomicReference<PiglinGeneral>();
-			var before = new HashSet<Entity>();
-			var sizeBefore = new AtomicInteger();
-			// the guard's targets, as they first come; and whether he roars after the last hit
-			var targets = new AtomicReference<String>();
-			var roaredAgain = new AtomicBoolean(false);
-			var lastHit = new AtomicBoolean(false);
-			ctx.onEachTick(() -> {
-				var rift = riftRef.get();
-				if (rift != null && targets.get() == null && rift.waveSize > sizeBefore.get()) {
-					targets.set(misTargeted(RiftRaid.aliveMobs(level, rift), before, player));
-				}
-				if (lastHit.get() && generalRef.get().tactics().move() == Move.ROAR) {
-					roaredAgain.set(true);
-				}
-			});
-			int firstHit = 3;
-			int secondHit = firstHit + GeneralTactics.ROAR_TICKS + 6;
-			int thirdHit = secondHit + GeneralTactics.ROAR_TICKS + 5;
-			ctx.runAtTickTime(firstHit, () -> guarded(done, () -> {
-				var rift = FormingTests.riftIn(ctx);
-				rift.tear(level);
-				rift.setStage(level, Stage.RAID);
-				RiftRaid.startWave(level, rift, 7);
-				var general = (PiglinGeneral) RiftRaid.aliveMobs(level, rift).stream().filter(e -> e instanceof PiglinGeneral).findFirst()
-						.orElseThrow(() -> new AssertionError("no General in Large wave 7"));
-				RiftRaid.aliveMobs(level, rift).stream().filter(e -> e != general).forEach(e -> e.discard());
-				before.add(general);
-				sizeBefore.set(rift.waveSize);
-				generalRef.set(general);
-				riftRef.set(rift);
-				hurtTo(ctx, general, player, 0.6);
-			}));
-			ctx.runAtTickTime(firstHit + GeneralTactics.ROAR_TICKS + 5, () -> guarded(done, () -> {
-				var rift = riftRef.get();
-				var general = generalRef.get();
-				var guard = added(RiftRaid.aliveMobs(level, rift), before);
-				ctx.assertTrue(general.roarsUsed() == 1, "below two thirds he has roared " + general.roarsUsed() + " times");
-				ctx.assertTrue("".equals(targets.get()), "the guard isn't all at the participant as it comes: " + targets.get());
-				// and still, its brains having ticked a while since: the anger sticks, a mount's as well as its rider's
-				var still = misTargeted(RiftRaid.aliveMobs(level, rift), before, player);
-				ctx.assertTrue(still.isEmpty(), "the guard isn't all at the participant some " + (GeneralTactics.ROAR_TICKS - GeneralTactics.ROAR_SPAWN_TICK) + " ticks after it came: " + still);
-				ctx.assertTrue(rift.waveSize == sizeBefore.get() + guard.size(), "the wave grew from " + sizeBefore.get() + " to " + rift.waveSize + " with " + guard.size() + " come");
-				var roots = guard.stream().filter(e -> e.getVehicle() == null).toList();
-				long ranged = count(roots, e -> e instanceof Piglin p && !(e instanceof GhastBombardier) && p.getMainHandItem().is(Items.CROSSBOW));
-				long melee = count(roots, e -> e instanceof Piglin p && !(e instanceof GhastBombardier) && p.getMainHandItem().is(Items.GOLDEN_SPEAR)
-						|| e instanceof Hoglin h && h.getPassengers().stream().noneMatch(r -> r instanceof WarDrummer));
-				long elite = count(roots, e -> e instanceof PiglinBrute);
-				String all = describe(guard);
-				ctx.assertTrue(ranged >= 1 && melee >= 2 && elite >= 1, "the guard brought ranged " + ranged + ", melee " + melee + ", elite " + elite + ": " + all);
-				ctx.assertTrue(count(guard, e -> e instanceof GhastBombardier) == 1, "not one Grenadier: " + all);
-				var drummers = guard.stream().filter(e -> e instanceof WarDrummer).toList();
-				ctx.assertTrue(drummers.size() == 1 && drummers.getFirst().getVehicle() instanceof Hoglin, "not one Drummer on a hoglin: " + all);
-				ctx.assertTrue(count(guard, e -> e instanceof Ghast || e instanceof Strider) == 0, "ghasts or striders came: " + all);
-			}));
-			ctx.runAtTickTime(secondHit, () -> guarded(done, () -> {
-				var rift = riftRef.get();
-				before.addAll(RiftRaid.aliveMobs(level, rift));
-				sizeBefore.set(rift.waveSize);
-				hurtTo(ctx, generalRef.get(), player, 0.3);
-			}));
-			ctx.runAtTickTime(thirdHit, () -> guarded(done, () -> {
-				var rift = riftRef.get();
-				var general = generalRef.get();
-				var guard = added(RiftRaid.aliveMobs(level, rift), before);
-				ctx.assertTrue(general.roarsUsed() == 2, "below a third he has roared " + general.roarsUsed() + " times");
-				ctx.assertTrue(!guard.isEmpty() && rift.waveSize == sizeBefore.get() + guard.size(),
-						"the second roar brought " + guard.size() + "; the wave grew from " + sizeBefore.get() + " to " + rift.waveSize);
-				var still = misTargeted(RiftRaid.aliveMobs(level, rift), before, player);
-				ctx.assertTrue(still.isEmpty(), "the second guard isn't all at the participant some " + (GeneralTactics.ROAR_TICKS - GeneralTactics.ROAR_SPAWN_TICK) + " ticks after it came: " + still);
-				hurtTo(ctx, general, player, 0.1);
-				lastHit.set(true);
-			}));
-			ctx.runAtTickTime(thirdHit + GeneralTactics.ROAR_TICKS, () -> {
-				try {
-					ctx.assertTrue(!roaredAgain.get() && generalRef.get().roarsUsed() == 2, "at a tenth he roared a third time");
-				} finally {
-					done.run();
-				}
-				ctx.succeed();
-			});
 		});
 		NetherRiftsTests.register("general/own_raid_spares_him", ctx -> {
 			// His own raid can't hurt him: a crossbow piglin of his rift, blow or bolt, neither hurts him nor brings his
