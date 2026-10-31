@@ -60,7 +60,7 @@ import java.util.stream.IntStream;
 
 public class PlayerBossState extends SavedData {
 
-	private static final String CAN_BE_BOSS = "metacraft.end_player_boss.can_be_boss";
+	private static final String CAN_BE_BOSS = "metacraft.boss_player.can_be_boss";
 
 	private static final Codec<PSet<UUID>> UUID_SET = METACodecs.createPCollectionCodec(
 		UUIDUtil.LENIENT_CODEC, HashTreePSet.empty()
@@ -83,9 +83,9 @@ public class PlayerBossState extends SavedData {
 
 	private static final Identifier BOSS_DATA_BACKUP = PlayerBosses.getID("player_data_backup_before_boss");
 
-	private static final String BOSS_TEAM = "metacraft.end_player_boss.team";
+	private static final String BOSS_TEAM = "metacraft.boss_player.team";
 
-	private static final Identifier ADVANCEMENT_STAT_STORAGE = PlayerBosses.getID("end-boss");
+	private static final Identifier ADVANCEMENT_STAT_STORAGE = PlayerBosses.getID("player-boss");
 
 	private ConfigContainer<PlayerBossConfig> config;
 
@@ -637,7 +637,7 @@ public class PlayerBossState extends SavedData {
 		if (config == null) {
 			config = PlayerBossConfig.CONFIG_BUILDER.withPath(
 				WorldHelper.getSession(world.getServer()).getDimensionPath(world.dimension()).resolve(
-					"boss-player.json"
+					"boss-player.json5"
 				)
 			).disableConfigScreen().build(
 				"boss-player",
