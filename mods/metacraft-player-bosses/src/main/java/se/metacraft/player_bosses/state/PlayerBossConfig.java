@@ -6,6 +6,7 @@ import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.predicates.ItemPredicate;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
@@ -15,9 +16,11 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.Unit;
 import net.minecraft.util.random.WeightedList;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -30,6 +33,7 @@ import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.ChunkPos;
 import org.pcollections.*;
 import se.metacraft.bosses.item.BossItems;
 import se.metacraft.config.container.ConfigContainer;
@@ -37,7 +41,11 @@ import se.metacraft.config.util.CommentCodec;
 import se.metacraft.core.item.components.ExpiresComponent;
 import se.metacraft.core.item.components.METAcraftComponents;
 import se.metacraft.core.music.PlayerMusic;
+import se.metacraft.core.position_ref.PositionRef;
+import se.metacraft.core.registry.PositionRefRegistry;
+import se.metacraft.core.util.RefContext;
 import se.metacraft.lib.util.METACodecs;
+import se.metacraft.lib.util.helper.EntityHelper;
 import se.metacraft.lib.util.helper.PCollectionsHelper;
 import se.metacraft.player_bosses.PlayerBosses;
 
@@ -62,7 +70,8 @@ public record PlayerBossConfig(
 	Optional<PlayerMusic> musicForBoss,
 	PSet<String> tagsToRemove,
 	Optional<String> bossDefeatedCommand,
-	Optional<String> bossInitCommand
+	Optional<String> bossInitCommand,
+	Optional<MinibossMinions> minions
 ) {
 
 	private static boolean isValidSlot(EquipmentSlot slot) {
@@ -170,7 +179,8 @@ public record PlayerBossConfig(
 			CommentCodec.comment(
 				Codec.STRING.optionalFieldOf("boss_init_command"),
 				"Command to run when the boss is spawned with the init command."
-			).forGetter(PlayerBossConfig::bossInitCommand)
+			).forGetter(PlayerBossConfig::bossInitCommand),
+			MinibossMinions.CODEC.optionalFieldOf("minions").forGetter(PlayerBossConfig::minions)
 		).apply(instance, PlayerBossConfig::new)
 	);
 
@@ -520,7 +530,8 @@ public record PlayerBossConfig(
 			),
 			Optional.empty(),
 			HashTreePSet.empty(),
-			Optional.empty(), Optional.empty()
+			Optional.empty(), Optional.empty(),
+			Optional.empty()
 		)
 	).reloadAfterServer();
 
@@ -636,6 +647,52 @@ public record PlayerBossConfig(
 				copyComponent(source, newStack, type, registries);
 			}
 			return newStack;
+		}
+	}
+
+	public record MinibossMinions(
+		List<MinibossMinion> minions,
+		Optional<String> onMinionDeathCommand
+	) {
+
+		public static final Codec<MinibossMinions> CODEC = RecordCodecBuilder.create(
+			instance -> instance.group(
+				MinibossMinion.CODEC.listOf().fieldOf("minions").forGetter(MinibossMinions::minions),
+				Codec.STRING.optionalFieldOf("on_minion_death_command").forGetter(MinibossMinions::onMinionDeathCommand)
+			).apply(instance, MinibossMinions::new)
+		);
+
+		public List<Entity> spawnMinions(ServerLevel level, Entity boss) {
+			List<Entity> list = new ArrayList<>();
+			for (var minion : minions) {
+				minion.spawnEntity(level, boss).ifPresent(list::add);
+			}
+			return list;
+		}
+	}
+
+	public record MinibossMinion(
+		PositionRef position,
+		EntityHelper.SpawnEntry entity
+	) {
+		public static final Codec<MinibossMinion> CODEC = RecordCodecBuilder.create(
+			instance -> instance.group(
+				PositionRefRegistry.CODEC.fieldOf("position").forGetter(MinibossMinion::position),
+				EntityHelper.SpawnEntry.CODEC.fieldOf("entity").forGetter(MinibossMinion::entity)
+			).apply(instance, MinibossMinion::new)
+		);
+
+		public Optional<Entity> spawnEntity(ServerLevel level, Entity boss) {
+			var pos = position.get(
+				new RefContext(Optional.of(boss), level, boss.getRandom())
+			).orElse(boss.position());
+			var bPos = BlockPos.containing(pos);
+			level.getChunk(bPos);
+			level.waitForEntities(ChunkPos.containing(bPos), 0);
+			return EntityHelper.spawnEntity(
+				entity, e -> true, e -> true, pos,
+				level, boss.getRandom(), boss
+			);
 		}
 	}
 

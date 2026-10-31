@@ -125,12 +125,12 @@ public class EntityHelper {
 		}
 	}
 
-	public static void spawnEntity(
+	public static Optional<Entity> spawnEntity(
 			SpawnEntry data, Predicate<EntityType<?>> canSpawnCheck1,
 			Predicate<Entity> canSpawnCheck2, Vec3 around, ServerLevel world, RandomSource random,
 			@Nullable Entity owner
 	) {
-		spawnEntity(data, canSpawnCheck1, canSpawnCheck2, around, world, random, owner, e -> Optional.empty());
+		return spawnEntity(data, canSpawnCheck1, canSpawnCheck2, around, world, random, owner, e -> Optional.empty());
 	}
 
 	public static Vec3 findPos(
@@ -144,7 +144,7 @@ public class EntityHelper {
 		return new Vec3(x, y, z);
 	}
 
-	public static void spawnEntity(
+	public static Optional<Entity> spawnEntity(
 			SpawnEntry data,
 			Predicate<EntityType<?>> canSpawnCheck1, Predicate<Entity> canSpawnCheck2,
 			Vec3 around, ServerLevel world, RandomSource random,
@@ -152,11 +152,11 @@ public class EntityHelper {
 	) {
 		try (var logging = LoggingErrorReporter.create(() -> "metacraft:EntityHelper#spawnEntity", METAcraftLib.LOGGER)) {
 			var view = TagValueInput.create(logging, world.registryAccess(), data.entity());
-			EntityType.by(view).ifPresent(type -> {
-				if (!canSpawnCheck1.test(type)) return;
+			return EntityType.by(view).flatMap(type -> {
+				if (!canSpawnCheck1.test(type)) return Optional.empty();
 				var pos = findPos(world, random, type, data.spawnRules, around);
 				if (canSpawn(world, random, type, data.spawnRules().condition(), data.spawnRules.spawnReason(), pos.x(), pos.y(), pos.z())) {
-					EntityHelper.loadEntityWithPassengers(view, world, data.spawnRules().spawnReason(), (e, nbt) -> {
+					return EntityHelper.loadEntityWithPassengers(view, world, data.spawnRules().spawnReason(), (e, nbt) -> {
 						if (owner != null) {
 							EntityHelper.setOwner(e, owner);
 						}
@@ -188,11 +188,13 @@ public class EntityHelper {
 							}
 						}
 						return e;
-					}).ifPresent(entity -> {
-						if (!canSpawnCheck2.test(entity)) return;
+					}).map(entity -> {
+						if (!canSpawnCheck2.test(entity)) return null;
 						world.tryAddFreshEntityWithPassengers(entity);
+						return entity;
 					});
 				}
+				return Optional.empty();
 			});
 		}
 	}

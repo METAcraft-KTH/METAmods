@@ -15,6 +15,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.LevelBasedPermissionSet;
@@ -50,6 +51,8 @@ import se.metacraft.core.util.helper.MusicHelper;
 import se.metacraft.core.util.helper.PlayerInventoryHelper;
 import se.metacraft.cutscenes.util.helper.CutsceneHelper;
 import se.metacraft.lib.util.METACodecs;
+import se.metacraft.lib.util.TrackedEntity;
+import se.metacraft.lib.util.helper.PCollectionsHelper;
 import se.metacraft.lib.util.helper.PlayerDataHelper;
 import se.metacraft.lib.util.helper.WorldHelper;
 import se.metacraft.player_bosses.PlayerBosses;
@@ -73,7 +76,11 @@ public class PlayerBossState extends SavedData {
 			UUID_SET.optionalFieldOf("old_bosses_to_reset", HashTreePSet.empty()).forGetter(d -> d.oldBossesToReset),
 			Codec.INT.optionalFieldOf("lives_remaining", 3).forGetter(d -> d.livesRemaining),
 			Codec.STRING.optionalFieldOf("boss_prev_team").forGetter(d -> d.bossPrevTeam),
-			Vec3.CODEC.optionalFieldOf("player_spawn_pos").forGetter(d -> d.playerSpawnPos)
+			Vec3.CODEC.optionalFieldOf("player_spawn_pos").forGetter(d -> d.playerSpawnPos),
+			METACodecs.createPCollectionCodec(
+				TrackedEntity.ENTITY_CODEC,
+				(PSet<TrackedEntity<Entity>>) HashTreePSet.<TrackedEntity<Entity>>empty()
+			).optionalFieldOf("minions", HashTreePSet.empty()).forGetter(d -> d.minions)
 		).apply(instance, PlayerBossState::new)
 	);
 
@@ -97,18 +104,22 @@ public class PlayerBossState extends SavedData {
 	private ManageableServerBossBar cachedBossBar = null;
 	private int livesRemaining = 3;
 	private Optional<Vec3> playerSpawnPos;
+	private PSet<TrackedEntity<Entity>> minions;
 
 	private Vec3 particlePos;
 	private int particleTime = -1;
 
 	public PlayerBossState() {
-		this(Optional.empty(), Optional.empty(), HashTreePSet.empty(), 3, Optional.empty(), Optional.empty());
+		this(
+			Optional.empty(), Optional.empty(), HashTreePSet.empty(), 3,
+			Optional.empty(), Optional.empty(), HashTreePSet.empty()
+		);
 	}
 
 	public PlayerBossState(
 		Optional<UUID> currentBoss, Optional<ManageableServerBossBar.BossBarData> bossbar,
 		PSet<UUID> oldBossesToReset, int livesRemaining,
-		Optional<String> bossPrevTeam, Optional<Vec3> playerSpawnPos
+		Optional<String> bossPrevTeam, Optional<Vec3> playerSpawnPos, PSet<TrackedEntity<Entity>> minions
 	) {
 		this.currentBossID = currentBoss;
 		this.bossbar = bossbar;
@@ -116,6 +127,7 @@ public class PlayerBossState extends SavedData {
 		this.livesRemaining = livesRemaining;
 		this.bossPrevTeam = bossPrevTeam;
 		this.playerSpawnPos = playerSpawnPos;
+		this.minions = minions;
 	}
 
 	public static Optional<PlayerBossState> getInstance(ServerLevel world) {
@@ -140,7 +152,8 @@ public class PlayerBossState extends SavedData {
 		setDirty();
 	}
 
-	private void beforeChangingBoss() {
+	private void beforeChangingBoss(MinecraftServer server) {
+		removeMinions(server);
 		if (currentBossID.isPresent()) {
 			oldBossesToReset = oldBossesToReset.plus(currentBossID.get());
 			setDirty();
@@ -148,7 +161,7 @@ public class PlayerBossState extends SavedData {
 	}
 
 	private void triggerEnd(ServerLevel world) {
-		beforeChangingBoss();
+		beforeChangingBoss(world.getServer());
 		currentBoss = null;
 		currentBossID = Optional.empty();
 		setDirty();
@@ -179,7 +192,7 @@ public class PlayerBossState extends SavedData {
 				setDirty();
 			}
 		}
-		beforeChangingBoss();
+		beforeChangingBoss(player.level().getServer());
 
 		currentBoss = player;
 		currentBossID = Optional.of(player.getUUID());
@@ -398,9 +411,13 @@ public class PlayerBossState extends SavedData {
 			insertStack(i, player.getInventory(), itemsToInsert.get(i));
 		}
 
+	}
 
-
-
+	private void removeMinions(MinecraftServer server) {
+		for (var minion : minions) {
+			minion.getEntity(server, true).ifPresent(Entity::discard);
+		}
+		minions = HashTreePSet.empty();
 	}
 
 	private void prepareBoss(ServerPlayer player) {
@@ -446,6 +463,27 @@ public class PlayerBossState extends SavedData {
 				player.createCommandSourceStack().withSuppressedOutput().withPermission(LevelBasedPermissionSet.GAMEMASTER), command
 			);
 		});
+
+		var scoreboard = player.level().getScoreboard();
+		var bossName = currentBoss.getScoreboardName();
+		var bossTeam = scoreboard.getPlayerTeam(BOSS_TEAM);
+		var currentTeam = scoreboard.getPlayersTeam(bossName);
+		if (currentTeam != bossTeam) {
+			scoreboard.addPlayerToTeam(bossName, bossTeam);
+			if (currentTeam != null) {
+				bossPrevTeam = Optional.of(currentTeam.getName());
+				setDirty();
+			}
+		}
+
+		config.get().minions().ifPresent(
+			minions -> this.minions = PCollectionsHelper.collect(
+				minions.spawnMinions(player.level(), player).stream().flatMap(
+					Entity::getSelfAndPassengers
+				).map(TrackedEntity::new),
+				HashTreePSet.empty()
+			)
+		);
 	}
 
 	public void switchToBoss(ServerPlayer player) {
@@ -602,18 +640,6 @@ public class PlayerBossState extends SavedData {
 			}
 		});
 
-		var scoreboard = world.getScoreboard();
-		var bossName = currentBoss.getScoreboardName();
-		var bossTeam = scoreboard.getPlayerTeam(BOSS_TEAM);
-		var currentTeam = scoreboard.getPlayersTeam(bossName);
-		if (currentTeam != bossTeam) {
-			scoreboard.addPlayerToTeam(bossName, bossTeam);
-			if (currentTeam != null) {
-				bossPrevTeam = Optional.of(currentTeam.getName());
-				setDirty();
-			}
-		}
-
 		for (var player : world.players()) {
 			if (player != currentBoss && player.distanceTo(currentBoss) > config.get().maxDistanceFromBoss()) {
 				player.teleport(getNearBoss(currentBoss.level(), player));
@@ -646,7 +672,31 @@ public class PlayerBossState extends SavedData {
 		}
 	}
 
+	private void onMinionDeath(ServerLevel world) {
+		config.get().minions().flatMap(PlayerBossConfig.MinibossMinions::onMinionDeathCommand).ifPresent(command -> {
+			var source = world.getServer().getFunctions()
+				.getGameLoopSender().withLevel(world).withPosition(
+					particlePos != null ? particlePos : playerSpawnPos.orElse(Vec3.ZERO)
+				);
+			world.getServer().getCommands().performPrefixedCommand(source, command);
+		});
+	}
+
 	public void tick(ServerLevel world) {
+		for (var minion : minions) {
+			minion.tick();
+			minion.getEntity(world.getServer(), true).ifPresentOrElse(entity -> {
+				if (entity.getRemovalReason() != null && entity.getRemovalReason().shouldDestroy()) {
+					onMinionDeath(world);
+					minions = minions.minus(minion);
+					setDirty();
+				}
+			}, () -> {
+				onMinionDeath(world);
+				minions = minions.minus(minion);
+				setDirty();
+			});
+		}
 		initConfig(world);
 		trackBoss(world);
 		if (currentBoss != null) {

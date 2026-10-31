@@ -12,6 +12,7 @@ import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 public class TrackedEntity<T extends Entity> {
 
@@ -67,6 +68,10 @@ public class TrackedEntity<T extends Entity> {
 	}
 
 	public EntityResult<T> getEntity(MinecraftServer server) {
+		return getEntity(server, false);
+	}
+
+	public EntityResult<T> getEntity(MinecraftServer server, boolean waitForChunkToLoad) {
 		if (entity == null || entity.isRemoved()) {
 			var world = server.getLevel(dim);
 			if (world == null) {
@@ -76,7 +81,12 @@ public class TrackedEntity<T extends Entity> {
 			if (entity == null) {
 				if (!world.areEntitiesLoaded(pos.pack())) {
 					world.getChunk(pos.x(), pos.z(), ChunkStatus.FULL);
-					return EntityResult.from(null, EntityResult.EntityState.CHUNK_NOT_LOADED);
+					if (waitForChunkToLoad) {
+						world.waitForEntities(pos, 0);
+						entity = filter.tryCast(world.getEntity(uuid));
+					} else {
+						return EntityResult.from(null, EntityResult.EntityState.CHUNK_NOT_LOADED);
+					}
 				}
 			}
 		}
@@ -114,6 +124,20 @@ public class TrackedEntity<T extends Entity> {
 
 		public boolean isPresent() {
 			return entity != null;
+		}
+
+		public void ifPresent(Consumer<T> action) {
+			if (entity != null) {
+				action.accept(entity);
+			}
+		}
+
+		public void ifPresentOrElse(Consumer<T> action, Runnable orElse) {
+			if (entity != null) {
+				action.accept(entity);
+			} else {
+				orElse.run();
+			}
 		}
 
 		public enum EntityState {
