@@ -33,6 +33,7 @@ import net.minecraft.world.item.enchantment.Enchantments;
 import org.pcollections.*;
 import se.metacraft.bosses.item.BossItems;
 import se.metacraft.config.container.ConfigContainer;
+import se.metacraft.config.util.CommentCodec;
 import se.metacraft.core.item.components.ExpiresComponent;
 import se.metacraft.core.item.components.METAcraftComponents;
 import se.metacraft.core.music.PlayerMusic;
@@ -97,25 +98,79 @@ public record PlayerBossConfig(
 
 	public static final MapCodec<PlayerBossConfig> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
-			Codec.DOUBLE.fieldOf("health_percent").forGetter(PlayerBossConfig::healthPercent),
-			METACodecs.createListSerializedPMap(
-				Codec.INT.fieldOf("life"),
-				Codec.DOUBLE.fieldOf("percent"),
-				HashTreePMap.empty()
-			).optionalFieldOf("health_percent_per_life", HashTreePMap.empty()).forGetter(PlayerBossConfig::healthPercentOverrides),
-			Codec.INT.fieldOf("boss_lives").forGetter(PlayerBossConfig::bossLives),
-			Codec.DOUBLE.fieldOf("max_distance_from_boss").forGetter(PlayerBossConfig::maxDistanceFromBoss),
-			Codec.DOUBLE.fieldOf("max_distance_from_spawn").forGetter(PlayerBossConfig::maxDistanceFromSpawn),
-			Codec.DOUBLE.fieldOf("min_spawn_distance").forGetter(PlayerBossConfig::minSpawnDist),
-			Codec.DOUBLE.fieldOf("max_spawn_distance").forGetter(PlayerBossConfig::maxSpawnDist),
-			Codec.simpleMap(PLAYER_SLOT_CODEC, ItemEntry.CODEC, VALID_SLOTS).codec().optionalFieldOf("equipment", Map.of()).forGetter(PlayerBossConfig::equipment),
-			ITEM_CODEC.fieldOf("items").forGetter(PlayerBossConfig::items),
-			DataComponentMap.CODEC.fieldOf("components_to_apply").forGetter(PlayerBossConfig::componentsToApply),
-			Codec.unboundedMap(Attribute.CODEC, AttributeModifier.CODEC.listOf()).fieldOf("attribute_modifiers").forGetter(PlayerBossConfig::attributeModifiers),
-			PlayerMusic.EASY_CODEC.optionalFieldOf("music_for_boss").forGetter(PlayerBossConfig::musicForBoss),
-			TAGS_CODEC.fieldOf("tags_to_remove").forGetter(PlayerBossConfig::tagsToRemove),
-			Codec.STRING.optionalFieldOf("boss_defeated_command").forGetter(PlayerBossConfig::bossDefeatedCommand),
-			Codec.STRING.optionalFieldOf("boss_init_command").forGetter(PlayerBossConfig::bossInitCommand)
+			CommentCodec.comment(
+				Codec.DOUBLE.fieldOf("health_percent"),
+				"How much remaining health the boss should have at maximum before it tries to migrate to another player if it has more than 1 life remaining. Specified as a decimal percentage, so 0.1 is 10% health for example."
+			).forGetter(PlayerBossConfig::healthPercent),
+			CommentCodec.comment(
+				METACodecs.createListSerializedPMap(
+					CommentCodec.comment(
+						Codec.INT.fieldOf("life"),
+						"The exact number of lives remaining when this override should be used."
+					),
+					CommentCodec.comment(
+						Codec.DOUBLE.fieldOf("percent"),
+						"How much remaining health the boss should have at maximum before it tries to migrate."
+					),
+					HashTreePMap.empty()
+				).optionalFieldOf("health_percent_per_life", HashTreePMap.empty()),
+				"Allows overriding the health_percent value for each amount of remaining lives."
+			).forGetter(PlayerBossConfig::healthPercentOverrides),
+			CommentCodec.comment(
+				Codec.INT.fieldOf("boss_lives"),
+				"How many lives the boss has. If this is more than 1 will try to migrate to other nearby players when below health_percent."
+			).forGetter(PlayerBossConfig::bossLives),
+			CommentCodec.comment(
+				Codec.DOUBLE.fieldOf("max_distance_from_boss"),
+				"How far away players can be from the boss before they are forcefully teleported to it. Only players in the same dimension as the boss are teleported."
+			).forGetter(PlayerBossConfig::maxDistanceFromBoss),
+			CommentCodec.comment(
+				Codec.DOUBLE.fieldOf("max_distance_from_spawn"),
+				"How far away from the boss home position the boss can go before it is forcefully teleported back."
+			).forGetter(PlayerBossConfig::maxDistanceFromSpawn),
+			CommentCodec.comment(
+				Codec.DOUBLE.fieldOf("min_spawn_distance"),
+				"The minimum distance away from the boss where the fighting players will spawn when they die."
+			).forGetter(PlayerBossConfig::minSpawnDist),
+			CommentCodec.comment(
+				Codec.DOUBLE.fieldOf("max_spawn_distance"),
+				"The maximum distance away from the boss where the fighting players will spawn when they die."
+			).forGetter(PlayerBossConfig::maxSpawnDist),
+			CommentCodec.comment(
+				Codec.simpleMap(PLAYER_SLOT_CODEC, ItemEntry.CODEC, VALID_SLOTS).codec().optionalFieldOf("equipment", Map.of()),
+				"The equipment to apply to the player (e.g. armor and offhand items). Valid keys are " +
+					Arrays.stream(EquipmentSlot.values()).map(
+						EquipmentSlot::getSerializedName
+					).collect(Collectors.joining(", "))
+			).forGetter(PlayerBossConfig::equipment),
+			CommentCodec.comment(
+				ITEM_CODEC.fieldOf("items"),
+				"The items to insert in the boss inventory."
+			).forGetter(PlayerBossConfig::items),
+			CommentCodec.comment(
+				DataComponentMap.CODEC.fieldOf("components_to_apply"),
+				"Map of components to apply to all items. Please see https://minecraft.wiki/w/Data_component_format"
+			).forGetter(PlayerBossConfig::componentsToApply),
+			CommentCodec.comment(
+				Codec.unboundedMap(Attribute.CODEC, AttributeModifier.CODEC.listOf()).fieldOf("attribute_modifiers"),
+				"Map of attribute modifiers to apply to the boss. Keys are valid attributes and the values are a list of modifiers for the attribute. Modifiers use the same format as https://minecraft.wiki/w/Entity_format"
+			).forGetter(PlayerBossConfig::attributeModifiers),
+			CommentCodec.comment(
+				PlayerMusic.EASY_CODEC.optionalFieldOf("music_for_boss"),
+				"The music that the boss should hear."
+			).forGetter(PlayerBossConfig::musicForBoss),
+			CommentCodec.comment(
+				TAGS_CODEC.fieldOf("tags_to_remove"),
+				"Entity tags that should be removed from the boss when the fight starts."
+			).forGetter(PlayerBossConfig::tagsToRemove),
+			CommentCodec.comment(
+				Codec.STRING.optionalFieldOf("boss_defeated_command"),
+				"Command to execute when the boss is defeated. Only runs when the boss has no lives remaining."
+			).forGetter(PlayerBossConfig::bossDefeatedCommand),
+			CommentCodec.comment(
+				Codec.STRING.optionalFieldOf("boss_init_command"),
+				"Command to run when the boss is spawned with the init command."
+			).forGetter(PlayerBossConfig::bossInitCommand)
 		).apply(instance, PlayerBossConfig::new)
 	);
 
@@ -478,9 +533,18 @@ public record PlayerBossConfig(
 	) {
 		public static final Codec<ItemEntry> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-				ItemStack.CODEC.fieldOf("item").forGetter(ItemEntry::item),
-				DataComponentType.CODEC.listOf().optionalFieldOf("components_to_copy", List.of()).forGetter(ItemEntry::componentsToCopy),
-				ItemPredicate.CODEC.optionalFieldOf("to_copy_from").forGetter(ItemEntry::toCopyFrom)
+				CommentCodec.comment(
+					ItemStack.CODEC.fieldOf("item"),
+					"The item stack, see https://minecraft.wiki/w/Data_component_format#Item_format"
+				).forGetter(ItemEntry::item),
+				CommentCodec.comment(
+					DataComponentType.CODEC.listOf().optionalFieldOf("components_to_copy", List.of()),
+					"Components to copy from matching items in the player's inventory. Please see https://minecraft.wiki/w/Data_component_format#List_of_components"
+				).forGetter(ItemEntry::componentsToCopy),
+				CommentCodec.comment(
+					ItemPredicate.CODEC.optionalFieldOf("to_copy_from"),
+					"Items to copy components from, please see https://minecraft.wiki/w/Advancement/Conditions/item"
+				).forGetter(ItemEntry::toCopyFrom)
 			).apply(instance, ItemEntry::new)
 		);
 
