@@ -104,7 +104,7 @@ paths are pinned to the art itself by `seatHalvesSitOnTheLegTheArtWasDrawnFor`, 
 on its four sides makes IT (Laserviolet), Data (Cerise), Medieteknik (RGB) or ITK (lime), and IT with
 a bottle of experience makes IN. Laserviolet, Cerise and RGB are More Dyes' (`moredyes`), so those
 three recipes load only beside it (`fabric:load_conditions`). METAcraft Rivals '26 (the Rivals
-event's), TMEIT Marshal (TMEIT's marshals') and METAcrew (the staff's) are only ever given: no recipe,
+event's), TMEIT Marshal (TMEIT's marshals'), METAcrew (the staff's) and KomMN are only ever given: no recipe,
 no chest. Every other patch turns up in structure
 chests (`PatchLoot`): vanilla's `chests/*` tables but the spawn bonus chest, and all of
 Structory's when it is installed, each get a pool with a 5 % chance of one patch, even odds among
