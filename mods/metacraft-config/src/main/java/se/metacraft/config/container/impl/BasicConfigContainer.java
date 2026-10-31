@@ -217,7 +217,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 		@Override
 		public void save() {
 			if (config == null) return;
-			JsonHelper.save(configPath, codec, config, lookupSupplier.get());
+			JanksonHelper.save(configPath, codec, config, lookupSupplier.get());
 		}
 
 		@Override

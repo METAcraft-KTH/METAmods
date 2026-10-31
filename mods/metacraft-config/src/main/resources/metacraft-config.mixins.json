@@ -7,6 +7,8 @@
 		"JsonObjectMixin",
 		"TranslatableContentsAccessor",
 		"codec.CodecMixin",
+		"codec.DelegatingOpsMixin",
+		"codec.DelegatingOpsMixin$DelegateRecordBuilderMixin",
 		"codec.EitherMapCodecAccessor",
 		"codec.KeyDispatchCodecAccessor",
 		"codec.MapCodecMixin",
