@@ -18,7 +18,8 @@
 		"MonsterMixin",
 		"NewMinecartBehaviorMixin",
 		"OldMinecartBehaviorMixin",
-		"ServerPlayerMixin"
+		"ServerPlayerMixin",
+		"WitherMixin"
 	],
 	"client": [
 	],
