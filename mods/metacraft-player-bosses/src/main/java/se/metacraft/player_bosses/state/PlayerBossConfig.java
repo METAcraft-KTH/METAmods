@@ -64,6 +64,7 @@ public record PlayerBossConfig(
 	PSet<String> tagsToRemove,
 	Optional<String> bossDefeatedCommand,
 	Optional<String> bossInitCommand,
+	Optional<String> onAttackingBossCommand,
 	Optional<MinibossMinions> minions
 ) {
 
@@ -136,6 +137,10 @@ public record PlayerBossConfig(
 				Codec.STRING.optionalFieldOf("boss_init_command"),
 				"Command to run when the boss is spawned with the init command."
 			).forGetter(PlayerBossConfig::bossInitCommand),
+			CommentCodec.comment(
+				Codec.STRING.optionalFieldOf("on_attacking_boss_command"),
+				"Command to run when the boss is attacked. Runs on the entity attacking the boss."
+			).forGetter(PlayerBossConfig::onAttackingBossCommand),
 			MinibossMinions.CODEC.optionalFieldOf("minions").forGetter(PlayerBossConfig::minions)
 		).apply(instance, PlayerBossConfig::new)
 	);
@@ -489,7 +494,7 @@ public record PlayerBossConfig(
 			Optional.empty(),
 			HashTreePSet.empty(),
 			Optional.empty(), Optional.empty(),
-			Optional.empty()
+			Optional.empty(), Optional.empty()
 		)
 	).reloadAfterServer();
 
