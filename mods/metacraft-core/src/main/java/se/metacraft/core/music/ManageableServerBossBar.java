@@ -35,7 +35,7 @@ public class ManageableServerBossBar extends ServerBossEvent {
 	private UUID mainUUID;
 	private final Map<UUID, Entity> includedEntities = new HashMap<>();
 	private final Set<UUID> includedEntityIDs = new LinkedHashSet<>();
-	private final Map<ServerPlayer, MutableInt> playerAddedCounts = new HashMap<>();
+	private final Map<UUID, MutableInt> playerAddedCounts = new HashMap<>();
 	private boolean loaded = false;
 
 	private long lastTick = -1;
@@ -70,18 +70,18 @@ public class ManageableServerBossBar extends ServerBossEvent {
 	}
 
 	public void addPlayer(ServerPlayer player) {
-		MutableInt count = playerAddedCounts.computeIfAbsent(player, k -> new MutableInt(0));
-		if (count.getValue() == 0) onAddedForReal(player);
+		MutableInt count = playerAddedCounts.computeIfAbsent(player.getUUID(), k -> new MutableInt(0));
+		if (count.intValue() == 0) onAddedForReal(player);
 		count.increment();
 	}
 
 	public void removePlayer(ServerPlayer player) {
-		MutableInt count = playerAddedCounts.get(player);
+		MutableInt count = playerAddedCounts.get(player.getUUID());
 		if (count != null) {
 			count.decrement();
 		}
-		if (count == null || count.getValue() <= 0) {
-			playerAddedCounts.remove(player);
+		if (count == null || count.intValue() <= 0) {
+			playerAddedCounts.remove(player.getUUID());
 			onRemovedForReal(player);
 		}
 	}
