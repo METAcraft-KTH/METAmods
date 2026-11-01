@@ -1,6 +1,7 @@
 package se.metacraft.mob_modifiers.mixin;
 
 import com.google.common.collect.ImmutableList;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.Holder;
@@ -25,6 +26,8 @@ import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import org.objectweb.asm.Opcodes;
+import org.spongepowered.asm.mixin.injection.Slice;
 import se.metacraft.mob_modifiers.util.Particles;
 import se.metacraft.mob_modifiers.METAcraftMobModifiers;
 import org.jetbrains.annotations.Nullable;
@@ -60,12 +63,45 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityEx
 
 	@Shadow public abstract @Nullable AttributeInstance getAttribute(Holder<Attribute> attribute);
 
+	@Shadow public int damageCooldownTime;
 	@Unique
 	private boolean isHostile;
 
 	@Unique
 	private boolean hasAngerParticles;
 
+	@Unique
+	private boolean damageCooldown = true;
+
+	@Inject(method = "<init>", at = @At("RETURN"))
+	public void init(EntityType<?> type, Level level, CallbackInfo ci) {
+		this.damageCooldown = true;
+	}
+
+	@ModifyExpressionValue(
+		method = "hurtServer",
+		at = @At(
+			value = "CONSTANT",
+			args = "intValue=20"
+		),
+		slice = @Slice(
+			from = @At(
+				value = "FIELD",
+				target = "Lnet/minecraft/world/entity/LivingEntity;lastHurt:F",
+				opcode = Opcodes.PUTFIELD,
+				ordinal = 1
+			),
+			to = @At(
+				value = "FIELD",
+				target = "Lnet/minecraft/world/entity/LivingEntity;damageCooldownTime:I",
+				opcode = Opcodes.PUTFIELD
+			)
+		)
+	)
+	public int hurtServer(int original) {
+		if (!damageCooldown) return damageCooldownTime;
+		return original;
+	}
 
 	@Inject(method = "die", at = @At("RETURN"))
 	public void onDeath(DamageSource damageSource, CallbackInfo ci) {
@@ -100,6 +136,7 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityEx
 	@Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
 	public void toNBT(ValueOutput nbt, CallbackInfo ci) {
 		nbt.putBoolean(EntityParameters.IS_HOSTILE, isHostile);
+		nbt.putBoolean(EntityParameters.DAMAGE_COOLDOWN, damageCooldown);
 		nbt.putBoolean(HAS_ANGER_PARTICLES, hasAngerParticles);
 	}
 
@@ -113,6 +150,7 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityEx
 	public void fromNBT(ValueInput nbt, CallbackInfo ci) {
 		isHostile = nbt.getBooleanOr(EntityParameters.IS_HOSTILE, false);
 		hasAngerParticles = nbt.getBooleanOr(HAS_ANGER_PARTICLES, false);
+		damageCooldown = nbt.getBooleanOr(EntityParameters.DAMAGE_COOLDOWN, true);
 		if (nbt.getBooleanOr(ANGRY, false)) {
 			isHostile = true;
 			hasAngerParticles = true;

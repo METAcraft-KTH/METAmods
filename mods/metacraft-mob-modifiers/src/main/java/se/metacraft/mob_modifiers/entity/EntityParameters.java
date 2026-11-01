@@ -10,4 +10,6 @@ public class EntityParameters {
 
 	public static final String HIDE_UUID_TOOLTIP = "metacraft:hide_uuid_tooltip";
 
+	public static final String DAMAGE_COOLDOWN = "metacraft:damage_cooldown";
+
 }
