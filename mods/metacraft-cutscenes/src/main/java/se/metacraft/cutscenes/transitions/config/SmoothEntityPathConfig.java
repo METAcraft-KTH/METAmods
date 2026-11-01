@@ -100,6 +100,12 @@ public record SmoothEntityPathConfig(
 				DisplayEntityProperties.fromEntity(entity)
 			);
 		}
+
+		@Override
+		public boolean isDynamic() {
+			return target.isDynamic();
+		}
+
 	}
 
 	public record DisplayEntityProperties(
