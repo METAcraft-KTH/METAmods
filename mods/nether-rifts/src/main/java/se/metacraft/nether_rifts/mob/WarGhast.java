@@ -616,6 +616,10 @@ public class WarGhast extends Ghast implements AnimatedEntity {
 				// War Beat's buff, and whatever else was on it
 				hitbox.getActiveEffects().forEach(effect -> mob.addEffect(new MobEffectInstance(effect)));
 			}
+			mob.entityTags().addAll(entityTags()); // Copy all entity tags from the ghast.
+			if (mob instanceof AbstractPiglin piglin) {
+				piglin.setImmuneToZombification(true); // We don't want them to zombiefy, that wouldn't make any sense since the ones on the ghast will never zombiefy.
+			}
 			crew.add(jumpOff(mob, spot(figure)));
 		}
 		// what the crew didn't take (a head item the Grenadier showed: he has his own goggles) goes with their figures
