@@ -25,7 +25,7 @@ public class BossbarCommand {
 			CommandBuildContext registryAccess
 	) {
 		dispatcher.register(
-			literal("entity-bossbar").requires(PermissionPredicates.require(METAcraftCore.getID("entity-bossbar"), PermissionLevel.ADMINS)).then(
+			literal("entity-bossbar").requires(PermissionPredicates.require(METAcraftCore.getID("entity-bossbar"), PermissionLevel.GAMEMASTERS)).then(
 				argument("entity", EntityArgument.entity()).then(
 					argument("data", CompoundTagArgument.compoundTag()).executes(
 						ctx -> {
