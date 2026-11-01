@@ -571,7 +571,7 @@ public class PlayerBossState extends SavedData {
 				y = world.getMinY() + world.getHeight()/2;
 			}
 
-			for (int i = 1; i < world.getHeight()/2; i++) {
+			for (int i = 1; i < maxRange; i++) {
 				int upY = y + i;
 				if (isSafeSpawn(world, entity, box.move(x, upY, z), blockPos.setY(upY-1)) && upY <= world.getMaxY()) {
 					return new Vec3(x, upY, z);
