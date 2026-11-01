@@ -319,6 +319,8 @@ public class PlayerDataHelper {
 		var gameMode = ServerPlayerAccessor.callReadPlayerMode(data, "playerGameType");
 		if (gameMode != null) {
 			player.setGameMode(gameMode);
+		} else {
+			player.setGameMode(player.level().getServer().getDefaultGameType());
 		}
 
 		ext(player).metacraft_lib$loadPlayerDataExceptDataMap(data);
