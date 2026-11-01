@@ -10,7 +10,7 @@ fabricApi {
 	configureTests {
 		createSourceSet = true
 		modId = "ovvar-clienttest"
-		enableGameTests = false
+		enableGameTests = true
 		enableClientGameTests = true
 		eula = true
 		username = "Tester"
@@ -59,6 +59,7 @@ dependencies {
 	// The client gesture test starts a gesture through Danse's own controller rather than its
 	// command, so a failure inside Danse surfaces as a stack trace instead of a swallowed chat line.
 	gametestCompileOnly danseJar
+	gametestRuntimeOnly "me.lucko:fabric-permissions-api:0.7.0" // Needed currently otherwise gametest fails with ClassNotFoundException.
 }
 
 // The shaderpack patcher: a double-clickable jar (Java 11+, no dependencies) built from
