@@ -10,6 +10,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
+import net.minecraft.world.entity.Entity;
 import se.metacraft.lib.METAcraftLib;
 import se.metacraft.lib.util.helper.PlayerDataHelper;
 
@@ -55,6 +56,19 @@ public class PlayerDataCommand {
 								PlayerDataHelper::setAnnounceJoinLeave,
 								BoolArgumentType.getBool(ctx, "state"),
 								"announce-join-leave"
+						)
+					)
+				)
+			).then(
+				literal("set-invulnerable").requires(
+					PermissionPredicates.require(METAcraftLib.getID("player-data.invulnerable"), PermissionLevel.GAMEMASTERS)
+				).then(
+					argument("state", BoolArgumentType.bool()).executes(
+						ctx -> changeBool(
+							ctx, Entity::isPermanentlyInvulnerable,
+							Entity::setPermanentlyInvulnerable,
+							BoolArgumentType.getBool(ctx, "state"),
+							"invulnerable"
 						)
 					)
 				)
