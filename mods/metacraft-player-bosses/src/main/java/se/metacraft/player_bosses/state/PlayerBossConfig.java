@@ -54,15 +54,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-
 public record PlayerBossConfig(
-	double healthPercent,
-	PMap<Integer, Double> healthPercentOverrides,
-	int bossLives,
-	double maxDistanceFromBoss,
-	double maxDistanceFromSpawn,
-	double minSpawnDist,
-	double maxSpawnDist,
+	PropertyContainer properties,
 	Map<EquipmentSlot, ItemEntry> equipment,
 	PVector<ItemEntry> items,
 	DataComponentMap componentsToApply,
@@ -107,44 +100,7 @@ public record PlayerBossConfig(
 
 	public static final MapCodec<PlayerBossConfig> CODEC = RecordCodecBuilder.mapCodec(
 		instance -> instance.group(
-			CommentCodec.comment(
-				Codec.DOUBLE.fieldOf("health_percent"),
-				"How much remaining health the boss should have at maximum before it tries to migrate to another player if it has more than 1 life remaining. Specified as a decimal percentage, so 0.1 is 10% health for example."
-			).forGetter(PlayerBossConfig::healthPercent),
-			CommentCodec.comment(
-				METACodecs.createListSerializedPMap(
-					CommentCodec.comment(
-						Codec.INT.fieldOf("life"),
-						"The exact number of lives remaining when this override should be used."
-					),
-					CommentCodec.comment(
-						Codec.DOUBLE.fieldOf("percent"),
-						"How much remaining health the boss should have at maximum before it tries to migrate."
-					),
-					HashTreePMap.empty()
-				).optionalFieldOf("health_percent_per_life", HashTreePMap.empty()),
-				"Allows overriding the health_percent value for each amount of remaining lives."
-			).forGetter(PlayerBossConfig::healthPercentOverrides),
-			CommentCodec.comment(
-				Codec.INT.fieldOf("boss_lives"),
-				"How many lives the boss has. If this is more than 1 will try to migrate to other nearby players when below health_percent."
-			).forGetter(PlayerBossConfig::bossLives),
-			CommentCodec.comment(
-				Codec.DOUBLE.fieldOf("max_distance_from_boss"),
-				"How far away players can be from the boss before they are forcefully teleported to it. Only players in the same dimension as the boss are teleported."
-			).forGetter(PlayerBossConfig::maxDistanceFromBoss),
-			CommentCodec.comment(
-				Codec.DOUBLE.fieldOf("max_distance_from_spawn"),
-				"How far away from the boss home position the boss can go before it is forcefully teleported back."
-			).forGetter(PlayerBossConfig::maxDistanceFromSpawn),
-			CommentCodec.comment(
-				Codec.DOUBLE.fieldOf("min_spawn_distance"),
-				"The minimum distance away from the boss where the fighting players will spawn when they die."
-			).forGetter(PlayerBossConfig::minSpawnDist),
-			CommentCodec.comment(
-				Codec.DOUBLE.fieldOf("max_spawn_distance"),
-				"The maximum distance away from the boss where the fighting players will spawn when they die."
-			).forGetter(PlayerBossConfig::maxSpawnDist),
+			PropertyContainer.CODEC.forGetter(PlayerBossConfig::properties),
 			CommentCodec.comment(
 				Codec.simpleMap(PLAYER_SLOT_CODEC, ItemEntry.CODEC, VALID_SLOTS).codec().optionalFieldOf("equipment", Map.of()),
 				"The equipment to apply to the player (e.g. armor and offhand items). Valid keys are " +
@@ -188,8 +144,10 @@ public record PlayerBossConfig(
 		CODEC, null
 	).registryAvailableConfigInitializer(
 		lookup -> new PlayerBossConfig(
-			0.025, HashTreePMap.singleton(1, 0.0), 1, 256,
-			512, 5, 15,
+			new PropertyContainer(
+				0.025, HashTreePMap.singleton(1, 0.0), 1, 256,
+				512, 5, 15, true
+			),
 			Map.of(
 				EquipmentSlot.HEAD, new ItemEntry(
 					new ItemStack(
@@ -536,7 +494,7 @@ public record PlayerBossConfig(
 	).reloadAfterServer();
 
 	public double getHealthPercent(int livesRemaining) {
-		return healthPercentOverrides.getOrDefault(livesRemaining, healthPercent);
+		return properties().healthPercentOverrides.getOrDefault(livesRemaining, properties.healthPercent);
 	}
 
 	public record ItemEntry(
@@ -694,6 +652,61 @@ public record PlayerBossConfig(
 				level, boss.getRandom(), boss
 			);
 		}
+	}
+
+	public record PropertyContainer(
+		double healthPercent,
+		PMap<Integer, Double> healthPercentOverrides,
+		int bossLives,
+		double maxDistanceFromBoss,
+		double maxDistanceFromSpawn,
+		double minSpawnDist,
+		double maxSpawnDist,
+		boolean keepItemsOnStart
+	) {
+		public static final MapCodec<PropertyContainer> CODEC = RecordCodecBuilder.mapCodec(
+			instance -> instance.group(
+				CommentCodec.comment(
+					Codec.DOUBLE.fieldOf("health_percent"),
+					"How much remaining health the boss should have at maximum before it tries to migrate to another player if it has more than 1 life remaining. Specified as a decimal percentage, so 0.1 is 10% health for example."
+				).forGetter(PropertyContainer::healthPercent),
+				CommentCodec.comment(
+					METACodecs.createListSerializedPMap(
+						CommentCodec.comment(
+							Codec.INT.fieldOf("life"),
+							"The exact number of lives remaining when this override should be used."
+						),
+						CommentCodec.comment(
+							Codec.DOUBLE.fieldOf("percent"),
+							"How much remaining health the boss should have at maximum before it tries to migrate."
+						),
+						HashTreePMap.empty()
+					).optionalFieldOf("health_percent_per_life", HashTreePMap.empty()),
+					"Allows overriding the health_percent value for each amount of remaining lives."
+				).forGetter(PropertyContainer::healthPercentOverrides),
+				CommentCodec.comment(
+					Codec.INT.fieldOf("boss_lives"),
+					"How many lives the boss has. If this is more than 1 will try to migrate to other nearby players when below health_percent."
+				).forGetter(PropertyContainer::bossLives),
+				CommentCodec.comment(
+					Codec.DOUBLE.fieldOf("max_distance_from_boss"),
+					"How far away players can be from the boss before they are forcefully teleported to it. Only players in the same dimension as the boss are teleported."
+				).forGetter(PropertyContainer::maxDistanceFromBoss),
+				CommentCodec.comment(
+					Codec.DOUBLE.fieldOf("max_distance_from_spawn"),
+					"How far away from the boss home position the boss can go before it is forcefully teleported back."
+				).forGetter(PropertyContainer::maxDistanceFromSpawn),
+				CommentCodec.comment(
+					Codec.DOUBLE.fieldOf("min_spawn_distance"),
+					"The minimum distance away from the boss where the fighting players will spawn when they die."
+				).forGetter(PropertyContainer::minSpawnDist),
+				CommentCodec.comment(
+					Codec.DOUBLE.fieldOf("max_spawn_distance"),
+					"The maximum distance away from the boss where the fighting players will spawn when they die."
+				).forGetter(PropertyContainer::maxSpawnDist),
+				Codec.BOOL.optionalFieldOf("keep_items_on_start", true).forGetter(PropertyContainer::keepItemsOnStart)
+			).apply(instance, PropertyContainer::new)
+		);
 	}
 
 }

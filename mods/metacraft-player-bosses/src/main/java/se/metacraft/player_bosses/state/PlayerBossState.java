@@ -143,7 +143,7 @@ public class PlayerBossState extends SavedData {
 
 	private void reset(ServerLevel world) {
 		initConfig(world);
-		livesRemaining = config.get().bossLives();
+		livesRemaining = config.get().properties().bossLives();
 		setDirty();
 	}
 
@@ -425,6 +425,9 @@ public class PlayerBossState extends SavedData {
 		PlayerDataHelper.detachPassengersBeforeSaving(player);
 		PlayerDataHelper.saveCurrentPlayerData(player, BOSS_DATA_BACKUP);
 		PlayerDataHelper.unloadAllPlayerConnectedEntities(player);
+		if (!getConfig().properties().keepItemsOnStart()) {
+			PlayerDataHelper.resetPlayerData(player);
+		}
 		PlayerDataHelper.getPlayerData(player, BOSS_DATA_BACKUP).ifPresent(data -> {
 			data.remove(ManageableServerBossBar.BOSS_BAR);
 		});
@@ -543,8 +546,8 @@ public class PlayerBossState extends SavedData {
 	}
 
 	private Vec3 getPosAroundPos(ServerLevel world, Entity entity, Vec3 pos) {
-		double maxRange = config.get().maxSpawnDist();
-		double minRange = config.get().minSpawnDist();
+		double maxRange = config.get().properties().maxSpawnDist();
+		double minRange = config.get().properties().minSpawnDist();
 
 		var box = entity.getDimensions(Pose.STANDING).makeBoundingBox(Vec3.ZERO);
 
@@ -641,11 +644,11 @@ public class PlayerBossState extends SavedData {
 		});
 
 		for (var player : world.players()) {
-			if (player != currentBoss && player.distanceTo(currentBoss) > config.get().maxDistanceFromBoss()) {
+			if (player != currentBoss && player.distanceTo(currentBoss) > config.get().properties().maxDistanceFromBoss()) {
 				player.teleport(getNearBoss(currentBoss.level(), player));
 			}
 		}
-		if (currentBoss.position().distanceTo(playerSpawnPos.orElse(null)) > config.get().maxDistanceFromSpawn() || currentBoss.level() != world) {
+		if (currentBoss.position().distanceTo(playerSpawnPos.orElse(null)) > config.get().properties().maxDistanceFromSpawn() || currentBoss.level() != world) {
 			currentBoss.teleport(getPlayerSpawnPoint(world, currentBoss));
 		}
 		if (currentBoss.getY() < world.getMinY()) {

@@ -25,7 +25,7 @@ public class EnderDragonFightMixin {
 	@Inject(method = "respawnDragon(Ljava/util/List;)V", at = @At("HEAD"), cancellable = true)
 	public void respawnDragon(List<EndCrystal> crystals, CallbackInfo ci) {
 		PlayerBossState.getInstance(level).ifPresent(state -> {
-			double dist = Math.pow(state.getConfig().maxDistanceFromSpawn(), 2);
+			double dist = Math.pow(state.getConfig().properties().maxDistanceFromSpawn(), 2);
 			if (state.hasBoss() && state.getPlayerSpawnPos().distanceToSqr(origin.getX(), origin.getY(), origin.getZ()) <= dist) {
 				crystals.forEach(c -> {
 					level.explode(c, c.getX(), c.getY(), c.getZ(), 6.0F, Level.ExplosionInteraction.NONE);
