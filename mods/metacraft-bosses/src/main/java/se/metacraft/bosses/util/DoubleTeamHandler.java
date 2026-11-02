@@ -10,6 +10,7 @@ import net.minecraft.util.valueproviders.FloatProviders;
 import net.minecraft.util.valueproviders.IntProviders;
 import net.minecraft.world.level.block.Block;
 import se.metacraft.core.entity.METAcraftEntities;
+import se.metacraft.core.entity.entities.player_mob.renderer.PlayerRendererType;
 import se.metacraft.core.extensions.EntityExtensions;
 import se.metacraft.lib.util.error_reporters.LoggingErrorReporter;
 import se.metacraft.bosses.METAcraftBosses;
@@ -106,6 +107,7 @@ public record DoubleTeamHandler(
 			if (primary instanceof Player) {
 				var player = METAcraftEntities.PLAYER.create(primary.level(), EntitySpawnReason.REINFORCEMENT);
 				player.copyFromPlayerData(data);
+				player.setRenderer(PlayerRendererType.FAKE_PLAYER);
 				setCloneData(player, logging);
 				return player;
 			} else {

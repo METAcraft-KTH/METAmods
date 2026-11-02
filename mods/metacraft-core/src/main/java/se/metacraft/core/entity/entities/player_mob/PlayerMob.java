@@ -644,14 +644,18 @@ public class PlayerMob extends Monster implements PolymerEntity, CrossbowAttackM
 		getDescription().ifPresent(desc -> nbt.store(DESCRIPTION, ComponentSerialization.CODEC, desc));
 	}
 
-	@Override
-	public void readAdditionalSaveData(ValueInput nbt) {
-		var type = nbt.read(RENDERER, PlayerRendererType.CODEC).orElse(PlayerRendererType.MANNEQUIN);
+	public void setRenderer(PlayerRendererType type) {
 		if (type != renderer.getType()) {
 			renderer.reset();
 			renderer = type.createRenderer(this, getDefaultSkin());
 			renderer.reinitialize();
 		}
+	}
+
+	@Override
+	public void readAdditionalSaveData(ValueInput nbt) {
+		var type = nbt.read(RENDERER, PlayerRendererType.CODEC).orElse(PlayerRendererType.MANNEQUIN);
+		setRenderer(type);
 		super.readAdditionalSaveData(nbt);
 		nbt.read(PROFILE, ResolvableProfile.CODEC).ifPresentOrElse(
 				this::setSkin,
