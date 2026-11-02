@@ -1,6 +1,7 @@
 package se.metacraft.cutscenes.mixin;
 
 import com.mojang.authlib.GameProfile;
+import net.minecraft.server.level.ServerLevel;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -31,6 +32,9 @@ import net.minecraft.world.level.storage.ValueOutput;
 public abstract class ServerPlayerMixin extends Player implements ServerPlayerExtensions {
 
 	@Shadow public ServerGamePacketListenerImpl connection;
+
+	@Shadow public abstract ServerLevel level();
+
 	@Unique
 	private CutsceneInstance cutscene;
 
@@ -155,6 +159,15 @@ public abstract class ServerPlayerMixin extends Player implements ServerPlayerEx
 		if (cutscene != null) {
 			cutscene.removePlayer(oldPlayer, false);
 			cutscene.addPlayer((ServerPlayer) (Object) this);
+		}
+		if (level().getServer() != null) {
+			var multiplayer = MultiplayerCutsceneManager.getInstance(level().getServer());
+			multiplayer.getCutsceneFromPlayer(oldPlayer).ifPresent(
+				scene -> {
+					scene.removePlayer(oldPlayer, false);
+					scene.addPlayer((ServerPlayer) (Object) this);
+				}
+			);
 		}
 	}
 }
