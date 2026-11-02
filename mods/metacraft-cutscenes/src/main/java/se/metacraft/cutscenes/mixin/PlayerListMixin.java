@@ -15,6 +15,7 @@ import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.TeleportTransition;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -32,6 +33,28 @@ public class PlayerListMixin {
 	@Inject(method = "placeNewPlayer", at = @At("RETURN"))
 	public void onPlayerConnect(Connection connection, ServerPlayer player, CommonListenerCookie clientData, CallbackInfo ci) {
 		MultiplayerCutsceneManager.getInstance(server).onPlayerJoin(player);
+	}
+
+	@ModifyExpressionValue(
+		method = "respawn",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/server/level/ServerPlayer;findRespawnPositionAndUseSpawnBlock(ZLnet/minecraft/world/level/portal/TeleportTransition$PostTeleportTransition;)Lnet/minecraft/world/level/portal/TeleportTransition;"
+		)
+	)
+	public TeleportTransition respawn(
+		TeleportTransition original, @Local(argsOnly = true, name = "serverPlayer") ServerPlayer serverPlayer
+	) {
+		var cutscene = CutsceneHelper.getCutscene(serverPlayer);
+		if (cutscene.isPresent()) {
+			var target = cutscene.get().getCurrentTarget(serverPlayer);
+			if (target.isPresent()) {
+				return target.get();
+			} else {
+				CutsceneHelper.forceOutOfCutscene(serverPlayer);
+			}
+		}
+		return original;
 	}
 
 	@ModifyExpressionValue(
