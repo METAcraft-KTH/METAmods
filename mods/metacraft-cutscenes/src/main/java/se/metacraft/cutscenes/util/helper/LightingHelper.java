@@ -27,8 +27,4 @@ public class LightingHelper {
 		return getLightStorage(getSkyLightProvider(provider));
 	}
 
-	public static BlockLightSectionStorage getBlockLightStorage(LevelLightEngine provider) {
-		return getLightStorage(getBlockLightProvider(provider));
-	}
-
 }
