@@ -61,11 +61,13 @@ public abstract class ServerPlayerMixin extends Player {
 			);
 		}
 		PlayerBossState.getInstance(level).ifPresent(state -> {
-			state.getConfig().onAttackingBossCommand().ifPresent(command -> {
-				level.getServer().getCommands().performPrefixedCommand(
-					commandSourceStack, command
-				);
-			});
+			if (state.isBoss((ServerPlayer) (Object) this)) {
+				state.getConfig().onAttackingBossCommand().ifPresent(command -> {
+					level.getServer().getCommands().performPrefixedCommand(
+						commandSourceStack, command
+					);
+				});
+			}
 		});
 	}
 
