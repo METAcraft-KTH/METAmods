@@ -194,7 +194,7 @@ subprojects {
 
 		// MixinSquared only, so the other dependencies never wait on this repo
 		maven {
-			url = "https://maven.enjarai.dev/mirrors"
+			url = "https://maven.bawnorton.com/releases"
 			content { includeGroupByRegex "com\\.github\\.bawnorton(\\..*)?" }
 		}
 
