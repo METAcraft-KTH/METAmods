@@ -67,7 +67,7 @@ public class CutsceneChunk extends LevelChunk {
 
 	@Override
 	public BlockState setBlockState(BlockPos pos, BlockState state, int flags) {
-		changedBlocks.add(pos);
+		changedBlocks.add(pos.immutable());
 		return super.setBlockState(pos, state, flags);
 	}
 
@@ -79,7 +79,7 @@ public class CutsceneChunk extends LevelChunk {
 
 	@Override
 	public void removeBlockEntity(BlockPos pos) {
-		changedBlocks.add(pos);
+		changedBlocks.add(pos.immutable());
 		super.removeBlockEntity(pos);
 	}
 
