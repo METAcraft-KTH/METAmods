@@ -14,4 +14,7 @@ public interface ChunkHolderAccessor {
 	@Accessor
 	void setTickingChunkFuture(CompletableFuture<ChunkResult<LevelChunk>> tickingFuture);
 
+	@Accessor
+	void setFullChunkFuture(CompletableFuture<ChunkResult<LevelChunk>> tickingFuture);
+
 }

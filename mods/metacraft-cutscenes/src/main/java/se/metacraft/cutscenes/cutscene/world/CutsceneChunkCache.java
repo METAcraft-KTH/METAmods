@@ -122,6 +122,10 @@ public class CutsceneChunkCache extends ServerChunkCache {
 			((ChunkHolderAccessor) holder).setTickingChunkFuture(
 					CompletableFuture.completedFuture(ChunkResult.of(c))
 			);
+			// Needed by C2ME.
+			((ChunkHolderAccessor) holder).setFullChunkFuture(
+				CompletableFuture.completedFuture(ChunkResult.of(c))
+			);
 			((GenerationChunkHolderAccessor) holder).setHighestAllowedStatus(ChunkStatus.FULL);
 			((GenerationChunkHolderAccessor) holder).getStartedWork().set(ChunkStatus.FULL);
 			var statuses = ((GenerationChunkHolderAccessor) holder).getFutures();
