@@ -1,17 +1,24 @@
 package se.metacraft.core.mixin;
 
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import com.bawnorton.mixinsquared.TargetHandler;
+import com.llamalad7.mixinextras.expression.Definition;
+import com.llamalad7.mixinextras.expression.Expression;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.sugar.Local;
+import com.moulberry.mixinconstraints.annotations.IfModLoaded;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.piston.PistonBaseBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import se.metacraft.core.extensions.BlockEntityExtensions;
 
-@Mixin(PistonBaseBlock.class)
+@Mixin(value = PistonBaseBlock.class, priority = 1500)
 public class PistonBaseBlockMixin {
 
 	@Inject(method = "isPushable", at = @At("HEAD"), cancellable = true)
@@ -25,6 +32,17 @@ public class PistonBaseBlockMixin {
 				cir.setReturnValue(false);
 			}
 		}
+	}
+
+	@Definition(id = "blockState", local = @Local(type = BlockState.class))
+	@Definition(id = "getBlock", method = "Lnet/minecraft/world/level/block/state/BlockState;getBlock()Lnet/minecraft/world/level/block/Block;")
+	@Definition(id = "GRINDSTONE", field = "Lnet/minecraft/world/level/block/Blocks;GRINDSTONE:Lnet/minecraft/world/level/block/Block;")
+	@Expression("blockState.getBlock() == GRINDSTONE")
+	@TargetHandler(name = "moveGrindstones", mixin = "carpet.mixins.PistonBaseBlock_movableBEMixin")
+	@IfModLoaded("carpet")
+	@ModifyExpressionValue(method = "@MixinSquared:Handler", at = @At("MIXINEXTRAS:EXPRESSION"))
+	private static boolean fixGrindstoneErroneouslyPushable(boolean original) {
+		return false;
 	}
 
 }

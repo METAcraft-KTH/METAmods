@@ -3,6 +3,7 @@
 	"minVersion": "0.8",
 	"package": "se.metacraft.core.mixin",
 	"compatibilityLevel": "JAVA_25",
+	"plugin": "com.moulberry.mixinconstraints.ConstraintsMixinPlugin",
 	"mixins": [
 		"AbstractContainerMenuAccessor",
 		"AvatarAccessor",
@@ -51,5 +52,6 @@
 	],
 	"injectors": {
 		"defaultRequire": 1
-	}
+	},
+	"mixinextras": {"minVersion": "0.5.5"}
 }
