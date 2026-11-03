@@ -5,6 +5,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -57,11 +58,14 @@ public abstract class BlockEntityMixin implements BlockEntityExtensions {
 		}
 	}
 
-	@ModifyReturnValue(method = {"saveWithoutMetadata(Lnet/minecraft/core/HolderLookup$Provider;)Lnet/minecraft/nbt/CompoundTag;", "saveCustomOnly(Lnet/minecraft/core/HolderLookup$Provider;)Lnet/minecraft/nbt/CompoundTag;"}, at = @At("RETURN"))
-	public CompoundTag writeNBT(
-			CompoundTag nbt
-	) {
-		nbt.putBoolean(IS_MOVABLE, isMovable);
-		return nbt;
+	@Inject(
+		method = {
+			"saveWithoutMetadata(Lnet/minecraft/world/level/storage/ValueOutput;)V",
+			"saveCustomOnly(Lnet/minecraft/world/level/storage/ValueOutput;)V"
+		},
+		at = @At("RETURN")
+	)
+	public void writeNBT(ValueOutput output, CallbackInfo ci) {
+		output.putBoolean(IS_MOVABLE, isMovable);
 	}
 }
