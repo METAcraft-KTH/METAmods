@@ -400,6 +400,8 @@ is the box's id, for good**: it's stored in every box item, like a skin id. It m
 		{ skin: "pumpkin_hat", weight: 20 },
 		{ skin: "witch_hat", weight: 20 },
 		{ skin: "spider_hat", weight: 20 },
+		{ skin: "cowboy_hat", weight: 20 },
+		{ skin: "crusader_helmet", weight: 20 },
 		{ skin: "plague_mask", weight: 15 },
 		{ skin: "pumpkin_pickaxe", weight: 10 },
 		{ skin: "plague_mask_silver", weight: 7 },
@@ -453,10 +455,11 @@ a deleted box stays deleted. If you deleted some of its skins, those entries are
 ### The item
 
 The item is `metacraft-skins:skin_box`, with the box's id in its `metacraft-skins:box` component. To
-clients it's a vault, or the ominous vault for an ominous box, named in the box's colours. Its tooltip
-has the description, each usable skin with its chance, highest first ("Pumpkin Hat 20%"), and "Right-click
-to open". A box with no usable skins says "Every skin in this box is unavailable." instead. Boxes stack
-to 64 (only with the same box), and can be traded and dropped like tokens. They never place as a block,
+clients it's a vault, or the ominous vault for an ominous box, named in the box's colours and followed
+by "(Right-click to open)" in gray. Its tooltip has the description, then each usable skin with its
+chance, highest first ("Pumpkin Hat 20%"). A box with no usable skins says "Every skin in this box is
+unavailable." instead. Boxes don't stack: each is an item of its own. They can be traded and dropped
+like tokens. They never place as a block,
 open a chest or fill a frame, and recipes, villagers, workstations and dispensers don't take them for vaults.
 
 ### Rolling
@@ -562,9 +565,9 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
   `metacraft-skins:skin_token` with the skin's id in its `metacraft-skins:token` component, so
   `/give @s metacraft-skins:skin_token[metacraft-skins:token="crown"]` should make one too (not tried in
   game yet).
-- **`givebox`** gives 1 to 64 Skin Boxes (default 1) to online players, as `give` gives tokens: what
-  doesn't fit drops at their feet, you get a confirmation, and the players get no message. Only boxes
-  that loaded tab-complete; an unknown id and a Dormant box are refused (the Dormant one with its
+- **`givebox`** gives 1 to 64 Skin Boxes (default 1) to online players, as `give` gives tokens. Boxes
+  don't stack, so each takes a slot of its own; what doesn't fit drops at their feet. You get a
+  confirmation; the players get no message. Only boxes that loaded tab-complete; an unknown id and a Dormant box are refused (the Dormant one with its
   reason). The item is `metacraft-skins:skin_box` with the box's id in its `metacraft-skins:box`
   component, so `/give @s metacraft-skins:skin_box[metacraft-skins:box="halloween"]` makes one too.
 - **`info`** shows what a player owns, with claim dates (UTC) and each skin's state: Applied, Unapplied,
@@ -577,7 +580,7 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
   Materials table: `crown (helmet: leather, turtle)`. A Dyeable Hat says so last:
   `cowboy_hat (helmet: leather, dyeable)`, or `cowboy_hat (helmet, dyeable)` with no Materials.
   After the skins it lists every Skin Box file, sorted by id, with how many skins it lists and how
-  many it left out: `halloween (8 skins)`, `halloween (8 skins, 1 left out)`, or for a Dormant box
+  many it left out: `halloween (10 skins)`, `halloween (10 skins, 1 left out)`, or for a Dormant box
   `halloween Dormant: <reason>`.
 - **`grant`** makes a player own a skin without a token. Refused if they already own it, or the skin is
   unknown or Dormant. An online player gets the claim message.
@@ -707,11 +710,11 @@ Rules that answer most support questions:
   own lines it shows the release line ("Released: <date> - Obtainable"), the Perk lines, the description, and
   "Owned by <player>" (the last known name of an offline Owner). An Away item shows one gray line in
   their place: "<Skin> skin, only works for <Owner>", as in "Candy Sword skin, only works for Alice".
-- **Tokens** come from `/itemskins give`, Extract and Skin Boxes. They stack to 64, can be traded and dropped, and are paper to recipes, villagers and workstations,
-  none of which accept them. A token for a skin the viewer already owns says so and is kept when
+- **Tokens** come from `/itemskins give`, Extract and Skin Boxes. They stack to 64, can be traded and
+  dropped, and are paper to recipes, villagers and workstations, none of which accept them. A token for a skin the viewer already owns says so and is kept when
   right-clicked. A Claim is a right-click with the token in the main hand, on air, a block or an entity;
   it never opens a chest or fills a frame. A token in the offhand does nothing.
-- **Skin Boxes** stack to 64 (only with the same box), can be traded and dropped, and are vaults to
+- **Skin Boxes** don't stack (each is an item of its own), can be traded and dropped, and are vaults to
   clients (an ominous vault for an ominous box) but nothing to recipes, villagers, workstations and
   dispensers. A box never places as a block, opens a chest or fills a frame: a right-click with it in the
   main hand, on air, a block or an entity, opens it and does nothing else. A box in the offhand does

@@ -555,15 +555,17 @@ public final class Skins {
 	// ---- Skin Boxes
 
 	/**
-	 * Gives each player {@code count} boxes ({@code /itemskins givebox}); what doesn't fit in an
-	 * inventory drops at that player's feet, for them only to pick up ({@link Hand}). Refused, giving
-	 * nothing, for an unknown or Dormant box.
+	 * Gives each player {@code count} boxes ({@code /itemskins givebox}), each an item of its own
+	 * (boxes don't stack); those that don't fit in an inventory drop at that player's feet, for them
+	 * only to pick up ({@link Hand}). Refused, giving nothing, for an unknown or Dormant box.
 	 */
 	public BoxResult giveBoxes(List<ServerPlayer> players, String boxId, int count) {
 		BoxSummary box = boxes.get(boxId);
 		if (box == null) return BoxResult.UNKNOWN_BOX;
 		if (box.dormant()) return BoxResult.DORMANT_BOX;
-		for (ServerPlayer player : players) Hand.give(player, SkinBox.of(boxId, count));
+		for (ServerPlayer player : players) {
+			for (int i = 0; i < count; i++) Hand.give(player, SkinBox.of(boxId, 1));
+		}
 		return BoxResult.DONE;
 	}
 
@@ -595,9 +597,9 @@ public final class Skins {
 	/**
 	 * What a viewer is sent of a Skin Box: Polymer's client copy ({@code client}, a vault) drawn as
 	 * the plain vault or, for an ominous box, the ominous one, with no glint, named in the box's
-	 * colours, with the lore: its description (gray), one line per usable skin, highest chance first
-	 * ("Pumpkin Hat 20%": the skin's name in its colours, the chance in gray), or "Every skin in this
-	 * box is unavailable." for a box with none, then a blank line and "Right-click to open". A box whose
+	 * colours followed by " (Right-click to open)" in gray, with the lore: its description (gray), one
+	 * line per usable skin, highest chance first ("Pumpkin Hat 20%": the skin's name in its colours, the
+	 * chance in gray), or "Every skin in this box is unavailable." for a box with none. A box whose
 	 * file is Dormant, gone or never was reads "Unknown Skin Box: <id>", as a plain vault.
 	 */
 	public ItemStack boxView(ItemStack box, ItemStack client) {
@@ -618,9 +620,8 @@ public final class Skins {
 			lines.add(Component.empty().append(name).append(plain(" " + entry.chance(), ChatFormatting.GRAY)));
 		}
 		if (summary.entries().isEmpty()) lines.add(plain("Every skin in this box is unavailable.", ChatFormatting.GRAY));
-		lines.add(Component.empty());
-		lines.add(plain("Right-click to open", ChatFormatting.GRAY));
-		client.set(DataComponents.ITEM_NAME, summary.styledName());
+		// Siblings of an empty root, so the hint doesn't take on the name's colours and formats.
+		client.set(DataComponents.ITEM_NAME, Component.empty().append(summary.styledName()).append(plain(" (Right-click to open)", ChatFormatting.GRAY)));
 		client.set(DataComponents.LORE, new ItemLore(lines));
 		return client;
 	}

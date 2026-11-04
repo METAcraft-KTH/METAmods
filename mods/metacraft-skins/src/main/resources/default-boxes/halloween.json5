@@ -6,6 +6,8 @@
 		{ skin: "pumpkin_hat", weight: 20 },
 		{ skin: "witch_hat", weight: 20 },
 		{ skin: "spider_hat", weight: 20 },
+		{ skin: "cowboy_hat", weight: 20 },
+		{ skin: "crusader_helmet", weight: 20 },
 		{ skin: "plague_mask", weight: 15 },
 		{ skin: "pumpkin_pickaxe", weight: 10 },
 		{ skin: "plague_mask_silver", weight: 7 },

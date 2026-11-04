@@ -60,12 +60,13 @@ public final class RollMenuTests {
 		SkinFixtures fx = SkinFixtures.create().skin("a", "sword").skin("b", "sword").box("ab.json5", AB);
 		fx.file("b", "skin.json5", "{ name: \"B\", kind: \"nope\" }");
 		fx.reload();
-		ServerPlayer player = ApplyTests.carrying(helper, SkinBox.of("ab", 3));
-		for (int left = 2; left >= 0; left--) {
+		ServerPlayer player = ApplyTests.carrying(helper, SkinBox.of("ab", 1), SkinBox.of("ab", 1), SkinBox.of("ab", 1));
+		for (int slot = 0; slot < 3; slot++) {
+			player.getInventory().setSelectedSlot(slot);
 			Skins.Rolled rolled = fx.skins.roll(player, "ab");
 			assertThat(rolled.result() == BoxResult.DONE && rolled.skin().equals(Optional.of("a")), "the roll: " + rolled);
 			assertThat(rolled.entries().stream().map(BoxSummary.Entry::skin).toList().equals(List.of("a")), "rolled from " + rolled.entries());
-			assertThat(player.getMainHandItem().getCount() == left, "the roll left " + player.getMainHandItem());
+			assertThat(player.getMainHandItem().isEmpty() && boxes(player) == 2 - slot, "the roll left " + player.getMainHandItem() + " and " + boxes(player) + " boxes");
 		}
 		helper.succeed();
 	}
@@ -161,8 +162,8 @@ public final class RollMenuTests {
 				}
 			}
 			player.connection.handleContainerClose(new ServerboundContainerClosePacket(player.containerMenu.containerId));
-			assertThat(player.getMainHandItem().getCount() == 2 && tokens(player).isEmpty() && player.heard.stream().noneMatch(l -> l.startsWith("You rolled")),
-					"leaving before Roll: " + player.getMainHandItem() + ", " + tokens(player) + ", " + player.heard);
+			assertThat(boxes(player) == 2 && tokens(player).isEmpty() && player.heard.stream().noneMatch(l -> l.startsWith("You rolled")),
+					"leaving before Roll: " + boxes(player) + " boxes, " + tokens(player) + ", " + player.heard);
 		} finally {
 			leave(helper, player);
 		}
@@ -202,7 +203,7 @@ public final class RollMenuTests {
 		player.connection.handleContainerClick(new ServerboundContainerClickPacket(menu.containerId, menu.getStateId(), (short) BOTTOM, (byte) 0,
 				ContainerInput.PICKUP_ALL, Int2ObjectMaps.emptyMap(), HashedStack.EMPTY));
 		SkinMenuTests.click(player, BOTTOM);
-		assertThat(player.getMainHandItem().getCount() == 2, "Roll left " + player.getMainHandItem());
+		assertThat(player.getMainHandItem().isEmpty() && boxes(player) == 2, "Roll left " + player.getMainHandItem() + " and " + boxes(player) + " boxes");
 		assertThat(slot(player, BOTTOM).is(Items.STAINED_GLASS_PANE.orange()) && name(player, BOTTOM).equals("▲"), "the bottom marker while rolling: " + name(player, BOTTOM));
 		ticking(helper, player);
 		helper.runAfterDelay(Reel.TICKS + 5, () -> {
@@ -235,7 +236,7 @@ public final class RollMenuTests {
 
 				// It stays open, offers no Roll, and closing it gives nothing more.
 				SkinMenuTests.click(player, BOTTOM);
-				assertThat(SkinMenuTests.title(player).equals("AB") && player.getMainHandItem().getCount() == 2, "the landed menu rolled again or closed");
+				assertThat(SkinMenuTests.title(player).equals("AB") && boxes(player) == 2, "the landed menu rolled again or closed");
 				player.closeContainer();
 				assertThat(tokens(player).equals(tokens) && tokens.getFirst().getCount() == 1, "closing the landed menu gave " + tokens(player));
 			} finally {
@@ -387,13 +388,13 @@ public final class RollMenuTests {
 		assertThat(lore(player, slot).equals(List.of(name.equals("Alpha") ? "75% chance" : "25% chance")), "reel slot " + slot + ": " + lore(player, slot));
 	}
 
-	/** A player who joined and arrived, in survival, holding {@code count} of box {@code boxId} in the main hand. */
+	/** A player who joined and arrived, in survival, with {@code count} boxes {@code boxId} in the first hotbar slots, the first in the main hand. */
 	private static SkinFixtures.Listening holding(GameTestHelper helper, String boxId, int count) {
 		SkinFixtures.Listening player = SkinFixtures.join(helper);
 		player.getInventory().clearContent();
 		player.setGameMode(GameType.SURVIVAL);
 		player.arrive(helper.absoluteVec(new Vec3(2.5, 1, 2.5)));
-		player.getInventory().setItem(0, SkinBox.of(boxId, count));
+		for (int slot = 0; slot < count; slot++) player.getInventory().setItem(slot, SkinBox.of(boxId, 1));
 		player.heard.clear();
 		player.actionBar.clear();
 		return player;
@@ -406,6 +407,15 @@ public final class RollMenuTests {
 
 	private static void leave(GameTestHelper helper, ServerPlayer player) {
 		if (!player.hasDisconnected()) helper.getLevel().getServer().getPlayerList().remove(player);
+	}
+
+	/** How many Skin Boxes the player carries. */
+	private static int boxes(ServerPlayer player) {
+		int boxes = 0;
+		for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+			if (SkinBox.boxOf(player.getInventory().getItem(i)).isPresent()) boxes += player.getInventory().getItem(i).getCount();
+		}
+		return boxes;
 	}
 
 	private static List<ItemStack> tokens(ServerPlayer player) {

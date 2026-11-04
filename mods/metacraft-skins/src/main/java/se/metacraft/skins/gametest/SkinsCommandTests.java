@@ -564,15 +564,17 @@ public final class SkinsCommandTests {
 			player.arrive(helper.absoluteVec(new Vec3(2.5, 1, 2.5)));
 			String name = player.getGameProfile().name();
 			List<String> gave = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins givebox " + name + " treats 3");
-			assertThat(SkinBox.boxOf(player.getMainHandItem()).equals(Optional.of("treats")) && player.getMainHandItem().getCount() == 3,
-					"givebox gave " + player.getMainHandItem() + ": " + gave);
+			for (int slot = 0; slot < 3; slot++) {
+				assertThat(SkinBox.boxOf(player.getInventory().getItem(slot)).equals(Optional.of("treats")) && player.getInventory().getItem(slot).getCount() == 1,
+						"givebox gave " + player.getInventory().getItem(slot) + " in slot " + slot + ": " + gave);
+			}
 			assertThat(gave.contains("Gave 3 Skin Boxes: Treats to " + name + "."), "givebox confirmed " + gave);
 			List<String> dormant = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins givebox " + name + " broken");
 			assertThat(dormant.contains("broken is Dormant, so it can't be given: missing field \"skins\"."), "giving a Dormant box: " + dormant);
 			List<String> unknown = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins givebox " + name + " nowhere");
 			assertThat(unknown.contains("There's no Skin Box nowhere. /itemskins list shows them all."), "giving an unknown box: " + unknown);
 			run(server, LevelBasedPermissionSet.MODERATOR, "itemskins givebox " + name + " treats");
-			assertThat(player.getMainHandItem().getCount() == 3 && player.getInventory().getItem(1).isEmpty(), "a refused givebox gave " + player.getInventory().getItem(1));
+			assertThat(player.getInventory().getItem(3).isEmpty(), "a refused givebox gave " + player.getInventory().getItem(3));
 			List<String> suggested = suggestions(server, "itemskins givebox " + name + " ");
 			assertThat(suggested.equals(List.of("treats")), "givebox suggests " + suggested);
 

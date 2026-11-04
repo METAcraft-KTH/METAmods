@@ -33,7 +33,7 @@ public final class BoxItemTests {
 	private static final String SPOOKY = "{ name: \"&lSpooky Box\", description: \"Only in October.\", ominous: true,"
 			+ " skins: [ { skin: \"cleaver\", weight: 1 }, { skin: \"pumpkin_hat\", weight: 3 }, { skin: \"nowhere\", weight: 5 } ] }";
 
-	/** A vault to clients (an ominous one for an ominous box), named in its colours, listing its skins and chances highest first. */
+	/** A vault to clients (an ominous one for an ominous box), named in its colours with "(Right-click to open)", listing its skins and chances highest first. */
 	@GameTest
 	public void aBoxIsAVaultListingItsSkinsAndChances(GameTestHelper helper) {
 		SkinFixtures fx = SkinFixtures.create().skin("pumpkin_hat", "helmet", "Pumpkin Hat", null).skin("cleaver", "sword", "&cCleaver", null)
@@ -47,22 +47,23 @@ public final class BoxItemTests {
 		assertThat(spooky.is(Items.VAULT), "a client gets " + spooky);
 		assertThat(SkinBox.OMINOUS_MODEL.equals(spooky.get(DataComponents.ITEM_MODEL)), "an ominous box is drawn as " + spooky.get(DataComponents.ITEM_MODEL));
 		assertThat(!spooky.hasFoil(), "a box glints");
-		assertThat(spooky.getHoverName().getString().equals("Spooky Box") && spooky.getHoverName().getSiblings().getFirst().getStyle().isBold(),
-				"the box is named " + spooky.getHoverName());
+		Component name = spooky.getHoverName();
+		assertThat(name.getString().equals("Spooky Box (Right-click to open)") && name.getSiblings().getFirst().getSiblings().getFirst().getStyle().isBold(),
+				"the box is named " + name);
+		assertColour(name.getSiblings().getLast(), ChatFormatting.GRAY);
 		List<Component> lore = lore(spooky);
-		assertThat(text(lore).equals(List.of("Only in October.", "Pumpkin Hat 75%", "Cleaver 25%", "", "Right-click to open")), "the box's tooltip: " + text(lore));
+		assertThat(text(lore).equals(List.of("Only in October.", "Pumpkin Hat 75%", "Cleaver 25%")), "the box's tooltip: " + text(lore));
 		assertColour(lore.get(0), ChatFormatting.GRAY);
-		assertColour(lore.get(4), ChatFormatting.GRAY);
 		// The skin's name in its colours, then its chance in gray.
 		assertThat(Objects.equals(lore.get(2).getSiblings().getFirst().getSiblings().getFirst().getStyle().getColor(), TextColor.fromLegacyFormat(ChatFormatting.RED))
 				&& Objects.equals(lore.get(2).getSiblings().getLast().getStyle().getColor(), TextColor.fromLegacyFormat(ChatFormatting.GRAY)), "the cleaver's line: " + lore.get(2));
 
 		ItemStack plain = view(helper, fx, SkinBox.of("plain", 1), viewer);
 		assertThat(Identifier.parse("minecraft:vault").equals(plain.get(DataComponents.ITEM_MODEL)), "a plain box is drawn as " + plain.get(DataComponents.ITEM_MODEL));
-		assertThat(text(lore(plain)).equals(List.of("Cleaver 100%", "", "Right-click to open")), "the plain box's tooltip: " + text(lore(plain)));
+		assertThat(text(lore(plain)).equals(List.of("Cleaver 100%")), "the plain box's tooltip: " + text(lore(plain)));
 
 		ItemStack gone = view(helper, fx, SkinBox.of("gone", 1), viewer);
-		assertThat(text(lore(gone)).equals(List.of("Every skin in this box is unavailable.", "", "Right-click to open")), "an empty box's tooltip: " + text(lore(gone)));
+		assertThat(text(lore(gone)).equals(List.of("Every skin in this box is unavailable.")), "an empty box's tooltip: " + text(lore(gone)));
 		helper.succeed();
 	}
 
@@ -81,18 +82,19 @@ public final class BoxItemTests {
 		}
 		fx.box("broken.json5", "{ name: \"Broken\", ominous: true, skins: [ { skin: \"cleaver\", weight: 1 } ] }");
 		fx.reload();
-		assertThat(view(helper, fx, SkinBox.of("broken", 1), viewer).getHoverName().getString().equals("Broken"), "the fixed box is still unknown");
+		assertThat(view(helper, fx, SkinBox.of("broken", 1), viewer).getHoverName().getString().equals("Broken (Right-click to open)"), "the fixed box is still unknown");
 		helper.succeed();
 	}
 
-	/** Boxes stack to 64, only with the same box; nothing that takes a vault takes one; the server calls it "Skin Box". */
+	/** Boxes don't stack, on the server or as clients see them; nothing that takes a vault takes one; the server calls it "Skin Box". */
 	@GameTest
-	public void boxesStackByBoxAndAreNoVaultToTheServer(GameTestHelper helper) {
+	public void boxesDontStackAndAreNoVaultToTheServer(GameTestHelper helper) {
 		ItemStack box = SkinBox.of("spooky", 1);
-		assertThat(box.getMaxStackSize() == 64, "a box stacks to " + box.getMaxStackSize());
+		assertThat(box.getMaxStackSize() == 1, "a box stacks to " + box.getMaxStackSize());
 		assertThat(SkinBox.boxOf(box).equals(Optional.of("spooky")), "the box is " + SkinBox.boxOf(box));
-		assertThat(ItemStack.isSameItemSameComponents(box, SkinBox.of("spooky", 1)), "two spooky boxes don't stack");
-		assertThat(!ItemStack.isSameItemSameComponents(box, SkinBox.of("winter", 1)), "different boxes stack");
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		ItemStack client = PolymerItemUtils.getPolymerItemStack(box, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+		assertThat(Integer.valueOf(1).equals(client.get(DataComponents.MAX_STACK_SIZE)), "a client stacks it to " + client.get(DataComponents.MAX_STACK_SIZE));
 		assertThat(!box.is(Items.VAULT) && !new ItemCost(Items.VAULT, 1).test(box), "the server takes a box for a vault");
 		assertThat(box.getHoverName().getString().equals("Skin Box"), "the server calls a box " + box.getHoverName().getString());
 		helper.succeed();
@@ -119,20 +121,23 @@ public final class BoxItemTests {
 		SkinFixtures fx = SkinFixtures.create().skin("cleaver", "sword").box("spooky.json5", SPOOKY).box("broken.json5", "{ name: \"Broken\" }");
 		fx.reload();
 		ServerPlayer full = ExtractTests.full(helper);
-		full.getInventory().setItem(0, SkinBox.of("spooky", 60));
 		ServerPlayer empty = ApplyTests.carrying(helper);
 
+		// Each box is an item of its own: ten boxes fill ten slots, or drop as ten items.
 		assertThat(fx.skins.giveBoxes(List.of(full, empty), "spooky", 10) == BoxResult.DONE, "the boxes weren't given");
-		assertThat(full.getInventory().getItem(0).getCount() == 64, "the stack was topped up to " + full.getInventory().getItem(0).getCount());
-		ItemStack given = empty.getInventory().getItem(0);
-		assertThat(SkinBox.boxOf(given).equals(Optional.of("spooky")) && given.getCount() == 10, "the second player got " + given);
-		List<? extends ItemEntity> dropped = helper.getLevel().getEntities(EntityTypes.ITEM, e -> SkinBox.boxOf(e.getItem()).isPresent());
-		assertThat(dropped.size() == 1 && dropped.getFirst().getItem().getCount() == 6 && dropped.getFirst().distanceTo(full) < 2, "dropped " + dropped);
+		for (int slot = 0; slot < 10; slot++) {
+			ItemStack given = empty.getInventory().getItem(slot);
+			assertThat(SkinBox.boxOf(given).equals(Optional.of("spooky")) && given.getCount() == 1, "the second player got " + given + " in slot " + slot);
+		}
+		assertThat(empty.getInventory().getItem(10).isEmpty(), "the second player got more than ten boxes");
+		List<? extends ItemEntity> dropped = helper.getLevel().getEntities(EntityTypes.ITEM, e -> SkinBox.boxOf(e.getItem()).isPresent() && e.distanceTo(full) < 2);
+		assertThat(dropped.size() == 10 && dropped.stream().allMatch(e -> e.getItem().getCount() == 1), "dropped " + dropped);
 		dropped.forEach(ItemEntity::discard);
+		ItemStack given = empty.getInventory().getItem(0);
 
 		assertThat(fx.skins.giveBoxes(List.of(empty), "broken", 1) == BoxResult.DORMANT_BOX, "a Dormant box was given");
 		assertThat(fx.skins.giveBoxes(List.of(empty), "nowhere", 1) == BoxResult.UNKNOWN_BOX, "an unknown box was given");
-		assertThat(empty.getInventory().getItem(1).isEmpty() && given.getCount() == 10, "a refused give gave something");
+		assertThat(empty.getInventory().getItem(10).isEmpty() && given.getCount() == 1, "a refused give gave something");
 		helper.succeed();
 	}
 

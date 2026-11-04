@@ -26,7 +26,8 @@ import java.util.Optional;
 /**
  * The Skin Box, {@code metacraft-skins:skin_box}: a real server item, as the Skin Token is, so
  * recipes, villager trades, workstations and dispensers never take it for the vault clients are
- * shown, and a plain item rather than a block item, so the server never places it. It stores only
+ * shown, and a plain item rather than a block item, so the server never places it. Boxes don't
+ * stack: each is an item of its own. It stores only
  * its box's id, in a hidden component; its name, look and lore are written every time it's sent
  * ({@link Skins#boxView}), so a box always describes its file as it is now.
  */
@@ -42,7 +43,7 @@ public final class SkinBox extends Item implements PolymerItem {
 			Identifier.fromNamespaceAndPath(MetacraftSkins.MOD_ID, "box"), DataComponentType.<String>builder().persistent(Codec.STRING).build());
 
 	public static final SkinBox ITEM = Registry.register(BuiltInRegistries.ITEM, ID,
-			new SkinBox(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, ID)).stacksTo(64)));
+			new SkinBox(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, ID)).stacksTo(1)));
 
 	private SkinBox(Item.Properties properties) {
 		super(properties);
@@ -53,7 +54,7 @@ public final class SkinBox extends Item implements PolymerItem {
 		PolymerComponent.registerDataComponent(BOX);
 	}
 
-	/** {@code count} boxes of the box with this id. */
+	/** A stack of {@code count} boxes of the box with this id (one is all a slot holds). */
 	public static ItemStack of(String boxId, int count) {
 		ItemStack stack = new ItemStack(ITEM, count);
 		stack.set(BOX, boxId);
