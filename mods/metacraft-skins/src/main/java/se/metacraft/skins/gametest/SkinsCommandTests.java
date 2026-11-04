@@ -126,6 +126,7 @@ public final class SkinsCommandTests {
 			ownershipCommands(helper, fx);
 			skinMenuAndSkinnedItemsReachPlayers(helper, fx);
 			tokensAndClaims(helper, fx);
+			extractCommand(helper, fx);
 
 			// Below the defaults: a gamemaster can't reload, a moderator can't list.
 			fx.lookOnly("poop_hat_test", "helmet");
@@ -515,6 +516,42 @@ public final class SkinsCommandTests {
 	}
 
 	/**
+	 * {@code /itemskins extract}, as a player without any permission: it tab-completes exactly the
+	 * skins they own and opens the Extract screen; a refusal says why and opens nothing; the console
+	 * can't extract.
+	 */
+	private static void extractCommand(GameTestHelper helper, SkinFixtures fx) {
+		MinecraftServer server = helper.getLevel().getServer();
+		SkinFixtures.Listening player = SkinFixtures.join(helper);
+		try {
+			player.getInventory().clearContent();
+			player.getInventory().setItem(0, new ItemStack(Items.DIAMOND_SWORD));
+			fx.skins.grant(player.nameAndId(), "candy_cane_test");
+			List<String> suggested = suggestions(player.createCommandSourceStack(), "itemskins extract ");
+			assertThat(suggested.equals(List.of("candy_cane_test")), "extract suggests " + suggested);
+
+			server.getCommands().performPrefixedCommand(player.createCommandSourceStack(), "itemskins extract hat");
+			assertThat(player.heard.getLast().equals("You can't extract hat right now, so nothing changed.") && player.containerMenu == player.inventoryMenu,
+					"extracting a skin they don't own: " + player.heard + ", " + SkinMenuTests.title(player));
+			fx.skins.apply(player, "candy_cane_test", ItemLocation.hotbar(0));
+			server.getCommands().performPrefixedCommand(player.createCommandSourceStack(), "itemskins extract candy_cane_test");
+			assertThat(player.heard.getLast().equals("candy_cane_test skin is on an item. Remove it in the Skin Menu (/itemskins) first, then extract it.")
+					&& player.containerMenu == player.inventoryMenu, "extracting an applied skin: " + player.heard + ", " + SkinMenuTests.title(player));
+
+			fx.skins.remove(player.nameAndId(), "candy_cane_test");
+			server.getCommands().performPrefixedCommand(player.createCommandSourceStack(), "itemskins extract candy_cane_test");
+			assertThat(SkinMenuTests.title(player).equals("Extract candy_cane_test skin?"), "/itemskins extract opened " + SkinMenuTests.title(player));
+			assertThat(fx.skins.ownedSkins(player.getUUID()).owns("candy_cane_test"), "opening the screen extracted the skin");
+			player.closeContainer();
+
+			List<String> console = run(server, LevelBasedPermissionSet.ADMIN, "itemskins extract candy_cane_test");
+			assertThat(console.contains("Only a player can extract a skin"), "the console extracting: " + console);
+		} finally {
+			server.getPlayerList().remove(player);
+		}
+	}
+
+	/**
 	 * The stack as a vanilla client decodes it from an inventory slot packet sent to {@code viewer}:
 	 * the packet encoded by the game protocol's codec in the viewer's packet context, as their encoder would.
 	 */
@@ -526,8 +563,11 @@ public final class SkinsCommandTests {
 	}
 
 	private static List<String> suggestions(MinecraftServer server, String command) {
-		CommandSourceStack source = server.createCommandSourceStack().withPermission(LevelBasedPermissionSet.ADMIN);
-		var dispatcher = server.getCommands().getDispatcher();
+		return suggestions(server.createCommandSourceStack().withPermission(LevelBasedPermissionSet.ADMIN), command);
+	}
+
+	private static List<String> suggestions(CommandSourceStack source, String command) {
+		var dispatcher = source.getServer().getCommands().getDispatcher();
 		return dispatcher.getCompletionSuggestions(dispatcher.parse(command, source)).join().getList().stream().map(Suggestion::getText).toList();
 	}
 

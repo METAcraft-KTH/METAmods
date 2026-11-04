@@ -153,7 +153,8 @@ public final class SkinMenu {
 		return new GuiElementBuilder(Items.BOOK).setName(Component.literal("How skins work"))
 				.addLoreLine(Component.literal("Claim a Skin Token to own a skin.").withStyle(ChatFormatting.GRAY))
 				.addLoreLine(Component.literal("Click a skin to put it on one item.").withStyle(ChatFormatting.GRAY))
-				.addLoreLine(Component.literal("A skin is on one item at a time.").withStyle(ChatFormatting.GRAY)).build();
+				.addLoreLine(Component.literal("A skin is on one item at a time.").withStyle(ChatFormatting.GRAY))
+				.addLoreLine(Component.literal("/itemskins extract turns a skin back into its token.").withStyle(ChatFormatting.GRAY)).build();
 	}
 
 	/** "Apply: <skin>" on page {@code requestedPage} of its items; {@code fromPage} is the page of "Your Skins" to go back to. */

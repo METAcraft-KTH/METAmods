@@ -17,6 +17,7 @@ import se.metacraft.skins.SkinSummary;
 import se.metacraft.skins.item.SkinToken;
 import se.metacraft.skins.Skins;
 import se.metacraft.skins.pack.PackDelivery;
+import se.metacraft.skins.ui.ExtractMenu;
 import se.metacraft.skins.ui.Feedback;
 import se.metacraft.skins.ui.SkinMenu;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -56,7 +57,9 @@ import java.util.stream.Collectors;
  *       1 to 64 of them; what doesn't fit drops at the player's feet;</li>
  *   <li>{@code info <player>} ({@code metacraft-skins:info}, gamemasters): what a player owns, with claim dates and states;</li>
  *   <li>{@code grant <player> <skin>} and {@code revoke <player> <skin>} ({@code metacraft-skins:grant}/{@code revoke},
- *       admins): make a player own a skin without a token, or take it away. An online player is told.</li>
+ *       admins): make a player own a skin without a token, or take it away. An online player is told;</li>
+ *   <li>{@code extract <skin>} ({@code metacraft-skins:extract}, everyone, players only): turn a skin the player owns back
+ *       into its Skin Token, after the Extract screen; tab-completes their own skins. Refused while the skin is on an item.</li>
  * </ul>
  * {@code <player>} may be offline: a name is looked up in the server's user cache, as {@code /whitelist} does.
  */
@@ -67,6 +70,8 @@ public final class SkinsCommands {
 			new SimpleCommandExceptionType(Component.literal("Skins haven't loaded yet"));
 	private static final SimpleCommandExceptionType ONE_PLAYER =
 			new SimpleCommandExceptionType(Component.literal("Name just one player"));
+	private static final SimpleCommandExceptionType ONLY_A_PLAYER =
+			new SimpleCommandExceptionType(Component.literal("Only a player can extract a skin"));
 	private static final SimpleCommandExceptionType NO_MENU =
 			new SimpleCommandExceptionType(Component.literal("You don't have permission to use the Skin Menu"));
 	private static final Predicate<CommandSourceStack> MENU = PermissionPredicates.require(MetacraftSkins.getID("menu"), PermissionLevel.ALL);
@@ -97,7 +102,10 @@ public final class SkinsCommands {
 						.then(Commands.literal("revoke").requires(PermissionPredicates.require(MetacraftSkins.getID("revoke"), PermissionLevel.ADMINS))
 								.then(Commands.argument("player", GameProfileArgument.gameProfile())
 										.then(Commands.argument("skin", StringArgumentType.word()).suggests(skinIds(skins, true))
-												.executes(ctx -> revoke(ctx, get(skins))))))));
+												.executes(ctx -> revoke(ctx, get(skins))))))
+							.then(Commands.literal("extract").requires(PermissionPredicates.require(MetacraftSkins.getID("extract"), PermissionLevel.ALL))
+									.then(Commands.argument("skin", StringArgumentType.word()).suggests(ownedSkinIds(skins))
+											.executes(ctx -> extract(ctx, get(skins)))))));
 	}
 
 	/** Every skin's id; with {@code dormantToo} false, only the ones that loaded (a Dormant skin can't be granted). */
@@ -106,6 +114,16 @@ public final class SkinsCommands {
 			Skins current = skins.get();
 			if (current == null) return builder.buildFuture();
 			return SharedSuggestionProvider.suggest(current.allSkins().stream().filter(s -> dormantToo || !s.dormant()).map(SkinSummary::id), builder);
+		};
+	}
+
+	/** The ids of every skin the player running the command owns, Applied and Dormant ones too; nothing for the console. */
+	private static SuggestionProvider<CommandSourceStack> ownedSkinIds(Supplier<Skins> skins) {
+		return (ctx, builder) -> {
+			Skins current = skins.get();
+			ServerPlayer player = ctx.getSource().getPlayer();
+			if (current == null || player == null) return builder.buildFuture();
+			return SharedSuggestionProvider.suggest(current.ownedSkins(player.getUUID()).skins().stream().map(OwnedSkin::id), builder);
 		};
 	}
 
@@ -227,6 +245,20 @@ public final class SkinsCommands {
 		String why = Feedback.whyNot(result, id, new Feedback.Audience.Admin(player.name(), skins.skin(id).flatMap(SkinSummary::dormantReason)));
 		ctx.getSource().sendFailure(Component.literal(why));
 		return 0;
+	}
+
+	/** Checks the Extract could go ahead, and opens the Extract screen; a refusal opens nothing and says why. */
+	private static int extract(CommandContext<CommandSourceStack> ctx, Skins skins) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayer();
+		if (player == null) throw ONLY_A_PLAYER.create();
+		String id = StringArgumentType.getString(ctx, "skin");
+		OwnershipChange result = skins.extractable(player, id);
+		if (result != OwnershipChange.DONE) {
+			Feedback.failed(player, ExtractMenu.whyNot(result, id, skins.skin(id).map(SkinSummary::displayName).orElse(id)));
+			return 0;
+		}
+		ExtractMenu.open(player, skins, id);
+		return 1;
 	}
 
 	private static int reload(CommandContext<CommandSourceStack> ctx, Skins skins) {

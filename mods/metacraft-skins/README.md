@@ -9,7 +9,8 @@ skin on any item of its **Kind** they carry, which makes it a **Skinned Item**. 
 Blockbench model sent in the skins resource pack) and may have **Perks**, small effects for its Owner
 while they hold or wear the item. A skin works only while its item is with its Owner; anywhere else the
 item is **Away**, drawn plain. Each skin is on one item at a time: applying it elsewhere makes the old
-item plain again, wherever it is.
+item plain again, wherever it is. An Owner who no longer wants a skin can **Extract** it
+(`/itemskins extract <skin>`), which turns it back into its Skin Token to trade or give away.
 
 This README is the admin guide. Players get a short summary from the "How skins work" book in the Skin
 Menu.
@@ -424,6 +425,7 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids tab
 | Command | Node | Default |
 | --- | --- | --- |
 | `/itemskins` | `metacraft-skins:menu` | everyone |
+| `/itemskins extract <skin>` | `metacraft-skins:extract` | everyone |
 | `/itemskins give <targets> <skin> [count]` | `metacraft-skins:give` | gamemasters |
 | `/itemskins info <player>` | `metacraft-skins:info` | gamemasters |
 | `/itemskins list` | `metacraft-skins:list` | gamemasters |
@@ -432,6 +434,13 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids tab
 | `/itemskins reload` | `metacraft-skins:reload` | admins |
 
 - **`/itemskins`** opens the player's Skin Menu.
+- **`extract`** turns a skin the player owns back into its Skin Token, after a confirm screen that shows
+  the token; nothing changes until they press Extract. Players only; it tab-completes their own skins.
+  It's refused while the skin is on an item in this world, working or Away ("Remove it in the Skin Menu
+  first"), for a Dormant skin, and for a skin they don't own. A skin applied in another world can be
+  extracted, and its item there is plain for good. Unobtainable and granted skins extract like any other.
+  The token goes into their inventory, or drops at their feet for them alone if it's full. Whoever
+  Claims it later gets a fresh claim date.
 - **`give`** gives 1 to 64 Skin Tokens (default 1) to online players. What doesn't fit drops at their feet,
   except for a player in creative, who loses the overflow as with vanilla `/give`. Unknown and Dormant
   ids are refused. You get a confirmation; the players get no message. The item is
@@ -456,8 +465,8 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids tab
   user cache first, then (in online mode) Mojang.
 - There is no force-remove: only the Owner takes a skin off an item. Use `revoke` to take the skin away.
 
-Tokens can come from anywhere that hands out items (a shop, a crate plugin); `/itemskins give` is the only
-source this mod has.
+Tokens can come from anywhere that hands out items (a shop, a crate plugin). This mod's own sources are
+`/itemskins give` and Extract.
 
 ## Dormant skins and permanent ids
 
@@ -497,8 +506,9 @@ Owners keep the skin and can apply it to an item of the new Kind.
 
 - It's the only record of who owns what. The name is the last one seen, for display only; identity is the
   UUID. An Unapplied skin has no `application` (older files' `"application": null` reads the same).
-- **Saved at once** on every Claim, apply, remove, grant and revoke. A Claim saves first and only then
-  uses up the token, so a failed save keeps the token.
+- **Saved at once** on every Claim, apply, remove, grant, revoke and Extract. A Claim saves first and only then
+  uses up the token, so a failed save keeps the token. An Extract saves first and only then gives the
+  token, so a failed save keeps the skin and gives nothing.
 - **The running server wins.** A file is read the first time its player is needed and kept in memory
   after that, and every change writes it whole. Edit files only while the server is stopped.
 - **Damaged files are never overwritten.** A file that doesn't parse, or has a field this mod doesn't
@@ -568,7 +578,7 @@ Rules that answer most support questions:
   own lines it shows the release line ("Released: <date> - Obtainable"), the Perk lines, the description, and
   "Owned by <player>" (the last known name of an offline Owner). An Away item shows one gray line in
   their place: "<Skin> skin, only works for <Owner>", as in "Candy Sword skin, only works for Alice".
-- **Tokens** stack to 64, can be traded and dropped, and are paper to recipes, villagers and workstations,
+- **Tokens** come from `/itemskins give` and Extract. They stack to 64, can be traded and dropped, and are paper to recipes, villagers and workstations,
   none of which accept them. A token for a skin the viewer already owns says so and is kept when
   right-clicked. A Claim is a right-click with the token in the main hand, on air, a block or an entity;
   it never opens a chest or fills a frame. A token in the offhand does nothing.

@@ -14,7 +14,6 @@ import net.minecraft.world.Container;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemInstance;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
@@ -75,6 +74,9 @@ import java.util.stream.Stream;
  * step with what each player holds and wears. Event Perks fire as the server reports each event
  * ({@link #hit}, {@link #killed}, {@link #brokeBlock}, {@link #hurt}), read from the live skin at that
  * moment. Tokens, menus and Skinned Items list them with {@link PerkLines}.
+ *
+ * <p>A skin changes hands only as a Skin Token: a Claim ({@link #claim}) turns a token into ownership,
+ * and Extract ({@link #extract}) turns an owned, Unapplied skin back into its token, saving first.
  */
 public final class Skins {
 	/** The skins pack's id on clients: the same for every build, so a push replaces the one before. */
@@ -386,18 +388,40 @@ public final class Skins {
 		Entry skin = skins.get(skinId);
 		if (skin == null) return OwnershipChange.UNKNOWN_SKIN;
 		if (skin.loaded().isEmpty()) return OwnershipChange.DORMANT_SKIN;
-		for (ServerPlayer player : players) {
-			ItemStack tokens = SkinToken.of(skinId, count);
-			boolean added = player.getInventory().add(tokens);
-			if (added && tokens.isEmpty()) continue;
-			// As vanilla's /give drops what doesn't fit.
-			ItemEntity drop = player.createItemStackToDrop(tokens, false, false);
-			if (drop == null) continue;
-			drop.setNoPickUpDelay();
-			drop.setTarget(player.getUUID());
-			drop.level().addFreshEntity(drop);
-		}
+		for (ServerPlayer player : players) Hand.give(player, SkinToken.of(skinId, count));
 		return OwnershipChange.DONE;
+	}
+
+	/** What an Extract did, and whether its token had to be dropped at the player's feet (their inventory was full). */
+	public record Extracted(OwnershipChange result, boolean dropped) {}
+
+	/**
+	 * Extract: turns a skin the player owns back into its Skin Token. Their record of the skin is
+	 * deleted and their file written, and only then is one token handed to them ({@link Hand}), so a
+	 * failed save keeps the skin and gives nothing. Refused, changing nothing, if they don't own it,
+	 * it's Dormant, it's on an item in this world (working or Away: the Owner removes it first), or
+	 * their file is damaged or can't be saved. A skin applied in another world can be extracted; its
+	 * item there is plain for good. Telling the player is the caller's job.
+	 */
+	public synchronized Extracted extract(ServerPlayer player, String skinId) {
+		OwnershipChange result = changing(player.getUUID(), record -> extractRefusal(record, skinId)
+				.orElseGet(() -> save(record.without(skinId).named(player.getGameProfile().name()))));
+		if (result != OwnershipChange.DONE) return new Extracted(result, false);
+		return new Extracted(result, Hand.give(player, SkinToken.of(skinId, 1)));
+	}
+
+	/** Would {@link #extract} go ahead now? {@code DONE} if so, or why not, with nothing saved or given. */
+	public synchronized OwnershipChange extractable(ServerPlayer player, String skinId) {
+		return changing(player.getUUID(), record -> extractRefusal(record, skinId).orElse(OwnershipChange.DONE));
+	}
+
+	private Optional<OwnershipChange> extractRefusal(OwnershipStore.PlayerRecord record, String skinId) {
+		OwnershipStore.Owned owned = record.skins().get(skinId);
+		if (owned == null) return Optional.of(OwnershipChange.NOT_OWNED);
+		Entry skin = skins.get(skinId);
+		if (skin == null || skin.dormantReason().isPresent()) return Optional.of(OwnershipChange.DORMANT_SKIN);
+		if (appliedHere(skinId, owned).isPresent()) return Optional.of(OwnershipChange.STILL_APPLIED);
+		return Optional.empty();
 	}
 
 	/**

@@ -41,8 +41,16 @@ public final class Feedback {
 		tell(player, Component.literal(skinName + " removed. The item it was on is plain again.").withStyle(ChatFormatting.YELLOW));
 	}
 
-	public static void cancelled(ServerPlayer player) {
-		tell(player, Component.literal("Claim cancelled. You keep the token.").withStyle(ChatFormatting.GRAY));
+	/** A confirm screen cancelled: "<action> cancelled. You keep <kept>." ("Claim", "the token"; "Extract", "the skin"). */
+	public static void cancelled(ServerPlayer player, String action, String kept) {
+		tell(player, Component.literal(action + " cancelled. You keep " + kept + ".").withStyle(ChatFormatting.GRAY));
+	}
+
+	/** An Extract: the token is in their inventory, or at their feet ({@code dropped}) when it was full. */
+	public static void extracted(ServerPlayer player, String skinName, boolean dropped) {
+		tell(player, Component.literal("You extracted " + skinName + ". Its Skin Token is " + (dropped ? "at your feet: your inventory is full." : "in your inventory."))
+				.withStyle(ChatFormatting.GOLD));
+		sound(player, SoundEvents.ITEM_PICKUP);
 	}
 
 	/** The claim menu opening: the client shows nothing of a right-click with a token on its own. */
@@ -63,7 +71,7 @@ public final class Feedback {
 	}
 
 	/**
-	 * Why a grant, revoke, remove or Claim was refused (anything but {@code DONE}), worded for
+	 * Why a grant, revoke, remove, Claim or Extract was refused (anything but {@code DONE}), worded for
 	 * {@code to}. {@code skin} is the skin as they know it: its name for a player, its id for an admin.
 	 */
 	public static String whyNot(OwnershipChange result, String skin, Audience to) {
@@ -72,6 +80,7 @@ public final class Feedback {
 				case ALREADY_OWNED -> "You already own " + skin + ".";
 				case NOT_OWNED, UNKNOWN_SKIN, DORMANT_SKIN -> "You can't " + verb + " " + skin + " right now, so " + unchanged + ".";
 				case NOT_APPLIED -> skin + " is on no item.";
+				case STILL_APPLIED -> skin + " is on an item. Remove it in the Skin Menu (/itemskins) first, then extract it.";
 				case NO_TOKEN -> "That token isn't in your inventory any more.";
 				case DAMAGED_FILE -> "Your skins file is damaged, so " + unchanged + ". Ask an admin to fix it.";
 				case SAVE_FAILED -> "Your skins couldn't be saved, so " + unchanged + ". Try again later.";
@@ -85,7 +94,7 @@ public final class Feedback {
 				case DORMANT_SKIN -> skin + " is Dormant: " + dormantReason.orElse("its definition didn't load") + ".";
 				case DAMAGED_FILE -> player + "'s skins file is damaged and is never overwritten; fix it first. /itemskins info " + player + " says what's wrong.";
 				case SAVE_FAILED -> "Couldn't save " + player + "'s skins file, so nothing changed. The server log says why.";
-				case DONE, NO_TOKEN -> throw new IllegalArgumentException("not an admin's refusal: " + result);
+				case DONE, NO_TOKEN, STILL_APPLIED -> throw new IllegalArgumentException("not an admin's refusal: " + result);
 			};
 		};
 	}

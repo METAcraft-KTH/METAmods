@@ -98,7 +98,7 @@ public final class ClaimMenu {
 		for (int slot : CANCEL) {
 			gui.setSlot(slot, pane(Items.STAINED_GLASS_PANE.red(), Component.literal("✖ Cancel").withStyle(ChatFormatting.RED), "You keep the token", () -> {
 				gui.close();
-				Feedback.cancelled(player);
+				Feedback.cancelled(player, "Claim", "the token");
 			}));
 		}
 		gui.setSlot(SKIN, icon(skin, skin.fit().orElseThrow(), owned));
