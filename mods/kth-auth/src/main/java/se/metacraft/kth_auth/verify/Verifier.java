@@ -11,12 +11,14 @@ import org.jetbrains.annotations.NotNull;
 import se.metacraft.kth_auth.KTHAuth;
 import se.metacraft.kth_auth.KTHAuthTask;
 import se.metacraft.kth_auth.WebhookSender;
+import se.metacraft.lib.util.helper.JsonHelper;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * An object that keeps track of verified players and handles verification of
@@ -45,12 +48,14 @@ public class Verifier {
 	 */
 	public static final int MAX_ACCOUNTS_PER_EMAIL = 3;
 	private static final Codec<List<VerificationDetails>> DATA_CODEC = VerificationDetails.CODEC.codec().listOf();
+	private static final Codec<List<BannedEmail>> BANNED_DATA_CODEC = BannedEmail.CODEC.listOf();
 
 	private final Path dataDirectory;
 	private final WebhookSender webhookSender;
 	private final SecureRandom random = new SecureRandom();
 	private final Map<UUID, KTHAuthTask> inProgressVerifications = new HashMap<>();
 	private final Map<UUID, VerificationDetails> verifiedPlayers = new HashMap<>();
+	private final Map<String, BannedEmail> bannedEmails = new HashMap<>();
 	private boolean dirty = false;
 	private long disabledUntil = 0;
 
@@ -69,12 +74,24 @@ public class Verifier {
 		return this.dataDirectory.resolve("verified_players.json");
 	}
 
+	private Path getBannedFile() {
+		return this.dataDirectory.resolve("banned_players.json");
+	}
+
 	/**
 	 * Load verified players from disk.
 	 *
 	 * @throws IOException If an I/O error occurs.
 	 */
 	private void load() throws IOException {
+		var banned = getBannedFile();
+		if (Files.exists(banned)) {
+			JsonHelper.load(banned, BANNED_DATA_CODEC).ifPresent(bannedEmails -> {
+				for (var email : bannedEmails) {
+					this.bannedEmails.put(email.email(), email);
+				}
+			});
+		}
 		Path path = this.getDataFile();
 		if (Files.notExists(path)) {
 			return;
@@ -117,6 +134,11 @@ public class Verifier {
 			writer.setIndent("\t");
 			Streams.write(json, writer);
 		}
+
+		JsonHelper.save(
+			getBannedFile(), BANNED_DATA_CODEC, List.copyOf(this.bannedEmails.values())
+		);
+
 		this.dirty = false;
 	}
 
@@ -236,10 +258,10 @@ public class Verifier {
 	}
 
 	/**
-	 * Temporarily disable verification until the specified time. Players currently
+	 * Temporarily disable verification until the specified until. Players currently
 	 * in the Limbo are let through.
 	 *
-	 * @param disabledUntil The time in milliseconds when verification is enabled again.
+	 * @param disabledUntil The until in milliseconds when verification is enabled again.
 	 */
 	public void disableUntil(long disabledUntil) {
 		this.disabledUntil = disabledUntil;
@@ -324,6 +346,12 @@ public class Verifier {
 			.toList();
 	}
 
+	public Collection<VerificationDetails> getPlusOnes(String email) {
+		return getByEmail(email).stream().flatMap(
+			details -> getPlusOnes(details.playerUuid()).stream()
+		).toList();
+	}
+
 	/**
 	 * Get a collection of all players that have been verified by the specified email.
 	 *
@@ -344,6 +372,18 @@ public class Verifier {
 	 */
 	public Collection<VerificationDetails> getAllVerifiedPlayers() {
 		return Collections.unmodifiableCollection(this.verifiedPlayers.values());
+	}
+
+	public Optional<BannedEmail> getBan(String email) {
+		return Optional.ofNullable(bannedEmails.get(email));
+	}
+
+	public boolean isBannedEmail(String email) {
+		return bannedEmails.containsKey(email);
+	}
+
+	public Collection<String> getBannedEmails() {
+		return Collections.unmodifiableCollection(bannedEmails.keySet());
 	}
 
 	/**
@@ -374,6 +414,27 @@ public class Verifier {
 			details.playerUuid(), details.email(), details.verifiedAt(), details.plusOneBy(), details.acceptedGdprAt(), Optional.of(now)
 		);
 		this.verifiedPlayers.put(details.playerUuid(), newDetails);
+		this.dirty = true;
+	}
+
+	public void ban(
+		String email, @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<Instant> until,
+		@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<String> reason
+	) {
+		bannedEmails.put(
+			email, new BannedEmail(email, until, reason)
+		);
+		var usersToUnverify = getByEmail(email).stream().flatMap(
+			user -> Stream.concat(Stream.of(user), getPlusOnes(user.playerUuid()).stream())
+		).map(VerificationDetails::playerUuid).toList();
+		for (var user : usersToUnverify) {
+			unVerify(user);
+		}
+		this.dirty = true;
+	}
+
+	public void unban(String email) {
+		bannedEmails.remove(email);
 		this.dirty = true;
 	}
 }
