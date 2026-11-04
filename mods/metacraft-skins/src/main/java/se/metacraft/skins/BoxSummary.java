@@ -2,6 +2,7 @@ package se.metacraft.skins;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.RandomSource;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -39,6 +40,16 @@ public record BoxSummary(String id, Optional<String> name, Optional<Component> t
 	/** How many skins the file lists, usable or left out. */
 	public int listed() {
 		return entries.size() + leftOut.size();
+	}
+
+	/** One skin drawn from {@code entries} (at least one) by weight: each skin's chance is its weight in their total. */
+	public static String draw(List<Entry> entries, RandomSource random) {
+		int r = random.nextInt(entries.stream().mapToInt(Entry::weight).sum());
+		for (Entry entry : entries) {
+			r -= entry.weight();
+			if (r < 0) return entry.skin();
+		}
+		throw new IllegalArgumentException("nothing to draw from: " + entries);
 	}
 
 	/**

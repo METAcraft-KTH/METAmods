@@ -3,6 +3,7 @@ package se.metacraft.skins.ui;
 import se.metacraft.skins.ApplyResult;
 import se.metacraft.skins.OwnershipChange;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
@@ -51,6 +52,12 @@ public final class Feedback {
 		tell(player, Component.literal("You extracted " + skinName + ". Its Skin Token is " + (dropped ? "at your feet: your inventory is full." : "in your inventory."))
 				.withStyle(ChatFormatting.GOLD));
 		sound(player, SoundEvents.ITEM_PICKUP);
+	}
+
+	/** A Roll settled: "You rolled <Skin>!", in chat only. */
+	public static void rolled(ServerPlayer player, Component skinName) {
+		player.sendSystemMessage(Component.literal("You rolled ").withStyle(ChatFormatting.GOLD).append(skinName)
+				.append(Component.literal("!").withStyle(ChatFormatting.GOLD)));
 	}
 
 	/** The claim menu opening: the client shows nothing of a right-click with a token on its own. */
@@ -126,7 +133,12 @@ public final class Feedback {
 	}
 
 	private static void sound(ServerPlayer player, SoundEvent sound) {
-		player.connection.send(new ClientboundSoundPacket(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(sound), SoundSource.MASTER,
-				player.getX(), player.getY(), player.getZ(), 1.0f, 1.0f, player.getRandom().nextLong()));
+		sound(player, BuiltInRegistries.SOUND_EVENT.wrapAsHolder(sound), 1.0f, 1.0f);
+	}
+
+	/** A sound only this player hears, at their position. */
+	static void sound(ServerPlayer player, Holder<SoundEvent> sound, float volume, float pitch) {
+		player.connection.send(new ClientboundSoundPacket(sound, SoundSource.MASTER, player.getX(), player.getY(), player.getZ(), volume, pitch,
+				player.getRandom().nextLong()));
 	}
 }

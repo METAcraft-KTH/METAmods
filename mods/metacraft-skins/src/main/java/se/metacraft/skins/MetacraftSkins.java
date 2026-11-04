@@ -6,8 +6,10 @@ import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 import se.metacraft.skins.pack.PackDelivery;
 import se.metacraft.skins.ui.RightClick;
+import se.metacraft.skins.ui.RollMenu;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -33,7 +35,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * metacraft-skins: claimable item skins for vanilla clients. This class only wires adapters to
- * the server's {@link Skins}, which is loaded from the server root when the server starts.
+ * the server's {@link Skins}, which is loaded from the server root when the server starts. A player
+ * leaving ({@code ServerPlayerEvents.LEAVE}, before they're saved) settles any Roll still spinning.
  */
 public final class MetacraftSkins implements ModInitializer {
 	public static final String MOD_ID = "metacraft-skins";
@@ -95,6 +98,8 @@ public final class MetacraftSkins implements ModInitializer {
 			// Fired before the tool takes its wear, so a tool that breaks on this block still counts.
 			if (current != null && player instanceof ServerPlayer breaker) current.brokeBlock(breaker, pos);
 		});
+		// Before PlayerList.remove saves a leaving player (disconnect, server stop): a Roll still spinning gives its token now.
+		ServerPlayerEvents.LEAVE.register(RollMenu::left);
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			Skins current = skins;
 			if (current != null) current.left(handler.player);

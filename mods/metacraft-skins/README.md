@@ -486,7 +486,7 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
 - There is no force-remove: only the Owner takes a skin off an item. Use `revoke` to take the skin away.
 
 Tokens can come from anywhere that hands out items (a shop, a crate plugin). This mod's own sources are
-`/itemskins give` and Extract.
+`/itemskins give`, Extract and Skin Boxes.
 
 ## Dormant skins and permanent ids
 
@@ -598,7 +598,7 @@ Rules that answer most support questions:
   own lines it shows the release line ("Released: <date> - Obtainable"), the Perk lines, the description, and
   "Owned by <player>" (the last known name of an offline Owner). An Away item shows one gray line in
   their place: "<Skin> skin, only works for <Owner>", as in "Candy Sword skin, only works for Alice".
-- **Tokens** come from `/itemskins give` and Extract. They stack to 64, can be traded and dropped, and are paper to recipes, villagers and workstations,
+- **Tokens** come from `/itemskins give`, Extract and Skin Boxes. They stack to 64, can be traded and dropped, and are paper to recipes, villagers and workstations,
   none of which accept them. A token for a skin the viewer already owns says so and is kept when
   right-clicked. A Claim is a right-click with the token in the main hand, on air, a block or an entity;
   it never opens a chest or fills a frame. A token in the offhand does nothing.

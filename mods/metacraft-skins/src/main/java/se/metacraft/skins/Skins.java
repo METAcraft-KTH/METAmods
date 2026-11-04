@@ -566,6 +566,31 @@ public final class Skins {
 		return BoxResult.DONE;
 	}
 
+	/** What a Roll did: refused (and why), or the skin it landed on and the usable entries it was drawn from. */
+	public record Rolled(BoxResult result, Optional<String> skin, List<BoxSummary.Entry> entries) {
+		static Rolled refused(BoxResult why) {
+			return new Rolled(why, Optional.empty(), List.of());
+		}
+	}
+
+	/**
+	 * Pressing Roll in the Roll menu of box {@code boxId}: checks the box as it's loaded now, in this
+	 * order, that the player's main hand still holds a box with this id ({@code BOX_GONE}), that the
+	 * box isn't Dormant or unknown ({@code DORMANT_BOX}) and that it has a usable skin
+	 * ({@code NOTHING_TO_ROLL}). Then it uses up one box from the main hand (in creative too) and draws
+	 * the result by weight from the usable skins. The result is chosen here, once: the token is the
+	 * menu's to give. Server thread only.
+	 */
+	public Rolled roll(ServerPlayer player, String boxId) {
+		ItemStack hand = player.getMainHandItem();
+		if (!SkinBox.boxOf(hand).equals(Optional.of(boxId))) return Rolled.refused(BoxResult.BOX_GONE);
+		BoxSummary box = boxes.get(boxId);
+		if (box == null || box.dormant()) return Rolled.refused(BoxResult.DORMANT_BOX);
+		if (box.entries().isEmpty()) return Rolled.refused(BoxResult.NOTHING_TO_ROLL);
+		hand.shrink(1);
+		return new Rolled(BoxResult.DONE, Optional.of(BoxSummary.draw(box.entries(), player.getRandom())), box.entries());
+	}
+
 	/**
 	 * What a viewer is sent of a Skin Box: Polymer's client copy ({@code client}, a vault) drawn as
 	 * the plain vault or, for an ominous box, the ominous one, with no glint, named in the box's

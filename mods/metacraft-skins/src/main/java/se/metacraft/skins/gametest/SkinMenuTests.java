@@ -338,7 +338,7 @@ public final class SkinMenuTests {
 		ServerPlayer player = helper.makeMockServerPlayerInLevel();
 		SkinMenu.open(player, fx.skins);
 		assertThat(lore(player, BOOK).equals(List.of("Claim a Skin Token to own a skin.", "Click a skin to put it on one item.",
-				"A skin is on one item at a time.", "/itemskins extract turns a skin back into its token.")), "the book reads " + lore(player, BOOK));
+				"A skin is on one item at a time.", "/itemskins extract turns a skin back into its token.", "Open a Skin Box to roll for a token.")), "the book reads " + lore(player, BOOK));
 		click(player, BOOK);
 		assertThat(title(player).equals("Your Skins"), "clicking the book left " + title(player));
 		helper.succeed();

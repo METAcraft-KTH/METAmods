@@ -31,7 +31,8 @@ import java.util.UUID;
  * the paper clients are shown. It stores only its skin's id, in a hidden component; its name and
  * lore are written for each viewer every time it's sent ({@link Skins#tokenView}), so a token
  * always describes the skin as it is now. Every token wears the one shared token model. Tokens come
- * from {@code /itemskins give} and from Extract ({@link Skins#extract}), which turns an owned skin back into one.
+ * from {@code /itemskins give}, from Extract ({@link Skins#extract}), which turns an owned skin back into one, and
+ * from Skin Boxes (the Roll menu).
  */
 public final class SkinToken extends Item implements PolymerItem {
 	public static final Identifier ID = Identifier.fromNamespaceAndPath(MetacraftSkins.MOD_ID, "skin_token");

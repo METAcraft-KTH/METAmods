@@ -40,14 +40,8 @@ public final class RightClick {
 		quiet(player);
 		player.swing(InteractionHand.MAIN_HAND, held.getInteractAnimation(), true);
 		if (token) ClaimMenu.open(player, skins, held);
-		else openBox(player, skins, held);
+		else RollMenu.open(player, skins, SkinBox.boxOf(held).orElse(""));
 		return InteractionResult.CONSUME;
-	}
-
-	/** A box whose file is Dormant, gone or never was is refused; any other opens nothing yet. */
-	private static void openBox(ServerPlayer player, Skins skins, ItemStack box) {
-		boolean openable = SkinBox.boxOf(box).flatMap(skins::box).filter(b -> !b.dormant()).isPresent();
-		if (!openable) Feedback.failed(player, "This Skin Box can't be opened right now.");
 	}
 
 	private static boolean isOpen(ServerPlayer player) {

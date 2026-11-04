@@ -35,7 +35,8 @@
 			"se.metacraft.skins.gametest.ClickTests",
 			"se.metacraft.skins.gametest.ExtractTests",
 			"se.metacraft.skins.gametest.BoxFileTests",
-			"se.metacraft.skins.gametest.BoxItemTests"
+			"se.metacraft.skins.gametest.BoxItemTests",
+			"se.metacraft.skins.gametest.RollMenuTests"
 		]
 	},
 	"mixins": [

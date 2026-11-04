@@ -154,7 +154,8 @@ public final class SkinMenu {
 				.addLoreLine(Component.literal("Claim a Skin Token to own a skin.").withStyle(ChatFormatting.GRAY))
 				.addLoreLine(Component.literal("Click a skin to put it on one item.").withStyle(ChatFormatting.GRAY))
 				.addLoreLine(Component.literal("A skin is on one item at a time.").withStyle(ChatFormatting.GRAY))
-				.addLoreLine(Component.literal("/itemskins extract turns a skin back into its token.").withStyle(ChatFormatting.GRAY)).build();
+				.addLoreLine(Component.literal("/itemskins extract turns a skin back into its token.").withStyle(ChatFormatting.GRAY))
+				.addLoreLine(Component.literal("Open a Skin Box to roll for a token.").withStyle(ChatFormatting.GRAY)).build();
 	}
 
 	/** "Apply: <skin>" on page {@code requestedPage} of its items; {@code fromPage} is the page of "Your Skins" to go back to. */
@@ -248,15 +249,26 @@ public final class SkinMenu {
 	 * named in the skin's colours, then what it fits, its release, Perks and description.
 	 */
 	private static GuiElementBuilder look(SkinSummary skin, Fit fit) {
-		GuiElementBuilder icon = GuiElementBuilder.from(new ItemStack(fit.icon()))
+		GuiElementBuilder icon = lookOnly(skin, fit);
+		lookLines(skin, fit).forEach(icon::addLoreLine);
+		return icon;
+	}
+
+	/** A skin's Look, with no lore: a vanilla item it fits wearing the skin's item model, its own tooltip hidden, named in the skin's colours. */
+	static GuiElementBuilder lookOnly(SkinSummary skin, Fit fit) {
+		return GuiElementBuilder.from(new ItemStack(fit.icon()))
 				.model(Identifier.fromNamespaceAndPath(SkinFolder.NAMESPACE, skin.id()))
 				.setName(skin.styledName())
 				.hideDefaultTooltip();
-		fit.lore(skin.dyeable()).forEach(icon::addLoreLine);
-		skin.release().ifPresent(r -> icon.addLoreLine(r.line()));
-		PerkLines.of(skin.perks()).forEach(icon::addLoreLine);
-		skin.description().ifPresent(d -> icon.addLoreLine(Component.literal(d).withStyle(ChatFormatting.GRAY)));
-		return icon;
+	}
+
+	/** The lines under a skin's name wherever menus show its Look: what it fits (with the dye hint), its release, Perks and description. */
+	static List<Component> lookLines(SkinSummary skin, Fit fit) {
+		List<Component> lines = new ArrayList<>(fit.lore(skin.dyeable()));
+		skin.release().ifPresent(r -> lines.add(r.line()));
+		lines.addAll(PerkLines.of(skin.perks()));
+		skin.description().ifPresent(d -> lines.add(Component.literal(d).withStyle(ChatFormatting.GRAY)));
+		return lines;
 	}
 
 	/** An owned skin: its {@link #look}, then whether it's applied (glinting while it is). */

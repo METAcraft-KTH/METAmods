@@ -549,9 +549,9 @@ public final class SkinsCommandTests {
 
 	/**
 	 * {@code /itemskins givebox} through the dispatcher, and real right-clicks with a box, as packets:
-	 * a box in the main hand at a chest or an item frame does only the box's thing (the chest stays
-	 * shut, the frame empty, no vault is placed) with a swing; the offhand and a spectator do nothing;
-	 * a Dormant box is refused once per click. The boxes are deleted again after.
+	 * a box in the main hand at a chest or an item frame opens its Roll menu and does nothing else (the
+	 * chest stays shut, the frame empty, no vault is placed) with a swing; the offhand and a spectator
+	 * do nothing; a Dormant box is refused once per click. The boxes are deleted again after.
 	 */
 	private static void boxesInPlay(GameTestHelper helper, SkinFixtures fx) {
 		MinecraftServer server = helper.getLevel().getServer();
@@ -587,26 +587,27 @@ public final class SkinsCommandTests {
 		SkinFixtures.Listening offhand = boxHolder(helper, null);
 		SkinFixtures.Listening spectator = boxHolder(helper, "broken");
 		try {
-			// A chest clicked with a box: it stays shut, no vault is placed on it, and the arm swings.
+			// A chest clicked with a box: the Roll menu, not the chest; no vault is placed on it, and the arm swings.
 			BlockPos chest = helper.absolutePos(new BlockPos(3, 1, 3));
 			helper.getLevel().setBlockAndUpdate(chest, Blocks.CHEST.defaultBlockState());
 			blocks.sent(Object.class);
 			blocks.tickEnd();
 			blocks.connection.handleUseItemOn(new ServerboundUseItemOnPacket(InteractionHand.MAIN_HAND,
 					new BlockHitResult(Vec3.atCenterOf(chest).add(0, 0.5, 0), Direction.UP, chest, false), 1));
-			assertThat(blocks.containerMenu == blocks.inventoryMenu, "a chest clicked with a box opened " + blocks.containerMenu);
+			assertThat(SkinMenuTests.title(blocks).equals("Treats"), "a chest clicked with a box opened " + blocks.containerMenu);
 			assertThat(helper.getLevel().getBlockState(chest.above()).isAir() && blocks.getMainHandItem().getCount() == 1, "a box was placed on the chest");
 			List<Object> sent = blocks.sent(Object.class);
 			assertThat(sent.stream().anyMatch(p -> p instanceof ClientboundSwingAnimationPacket a && a.entityId() == blocks.getId()), "the arm didn't swing: " + sent);
 
-			// An item frame clicked with a box stays empty.
+			// An item frame clicked with a box: the Roll menu, and the frame stays empty.
 			BlockPos wall = helper.absolutePos(new BlockPos(1, 1, 1));
 			helper.getLevel().setBlockAndUpdate(wall, Blocks.STONE.defaultBlockState());
 			ItemFrame frame = new ItemFrame(helper.getLevel(), wall.above(), Direction.UP);
 			helper.getLevel().addFreshEntity(frame);
 			entities.tickEnd();
 			entities.connection.handleInteract(new ServerboundInteractPacket(frame.getId(), InteractionHand.MAIN_HAND, Vec3.ZERO, false));
-			assertThat(frame.getItem().isEmpty() && entities.getMainHandItem().getCount() == 1, "the box went into the item frame");
+			assertThat(SkinMenuTests.title(entities).equals("Treats") && frame.getItem().isEmpty() && entities.getMainHandItem().getCount() == 1,
+					"an item frame clicked with a box: " + SkinMenuTests.title(entities) + ", the frame holds " + frame.getItem());
 			frame.discard();
 
 			// A Dormant box: one click (a main hand use, then an offhand one, then a held button's repeat) is refused once.
