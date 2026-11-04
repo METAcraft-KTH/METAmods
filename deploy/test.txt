@@ -88,6 +88,7 @@ external fabric-api https://cdn.modrinth.com/data/P7dR8mSH/versions/EQKgpeKu/fab
 external plan https://cdn.modrinth.com/data/wJQfHhxh/versions/cYAfbS0u/PlanFabric-5.9-build-3705.jar sha256:1cac0e6f200359274b9ab5bfe1ecc8ed35837a6067b5fd95bb1feed1c77f45f4
 external unplugged_afk https://cdn.modrinth.com/data/VlR3taCz/versions/zxEWidsQ/unplugged_afk-v0.2.6-mc26.3.jar sha256:89b104ad2ce176541fc86e99918d298f8695e7224ec4bcf90ce9e0c2151d0531
 external banhammer https://cdn.modrinth.com/data/Wpqg0ciI/versions/1BJyGiA7/banhammer-0.19.0%2B26.3.jar sha256:5048f6116d9e9c7bab6d9c039c90138b2fbfe6d9f77bf6dc89c59bf03653813d
+external invsee https://cdn.modrinth.com/data/javU3y9N/versions/FU0X6jCW/invsee-fabric-26.3-1.2.2.jar sha256:3ca7e405ecda4d6e3db47862de2e633dad656e18916f3616dd82453017ba96c1
 
 # Season 6 community picks (the "METAcraft Season 6 mods list" doc)
 external filament https://cdn.modrinth.com/data/yANxwqSX/versions/66G6ixmY/filament-1.8.5-hotfix.1%2B26.3.jar sha256:ab85427044d9c4036988fe652de364861ec445151d3ad9e03a1750f64a1cfea0
