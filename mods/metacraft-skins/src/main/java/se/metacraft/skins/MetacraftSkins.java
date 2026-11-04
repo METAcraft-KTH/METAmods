@@ -114,7 +114,6 @@ public final class MetacraftSkins implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> skins = null);
 		PackDelivery.init(MetacraftSkins::skins);
 		SkinsCommands.init(MetacraftSkins::skins);
-		se.metacraft.skins.ui.RollMenuPrototype.init();   // PROTOTYPE, prototype/roll-menu branch only
 	}
 
 	private static InteractionResult rightClick(Player player, InteractionHand hand) {
