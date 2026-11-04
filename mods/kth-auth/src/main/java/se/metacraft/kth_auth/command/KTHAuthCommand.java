@@ -1,14 +1,19 @@
 package se.metacraft.kth_auth.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.fabricmc.fabric.api.permission.v1.PermissionPredicates;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
@@ -17,23 +22,24 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
+import net.minecraft.server.players.NameAndId;
 import se.metacraft.kth_auth.KTHAuth;
+import se.metacraft.kth_auth.verify.BannedEmail;
 import se.metacraft.kth_auth.verify.VerificationDetails;
 import se.metacraft.kth_auth.verify.Verifier;
 
 import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.TimeZone;
-import java.util.UUID;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.Period;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAmount;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * The {@code /kth-auth} command for METAcraft moderators.
@@ -45,11 +51,117 @@ public class KTHAuthCommand {
 		this.verifier = verifier;
 	}
 
+	private static ArgumentType<?> untilArgument() {
+		return StringArgumentType.string(); // string instead of word to support åäö
+	}
+
+	private static final DynamicCommandExceptionType INVALID_UNIT = new DynamicCommandExceptionType(
+		unit -> () -> "Invalid unit: " + unit
+	);
+
+	private static final DynamicCommandExceptionType NO_UNIT = new DynamicCommandExceptionType(
+		time -> () -> time + " ... canaries??? Please specify a unit of time (e.g. seconds, hours or days)"
+	);
+
+	private static final SimpleCommandExceptionType NO_NUMBER = new SimpleCommandExceptionType(
+		() -> "No number provided"
+	);
+
+	private static final Map<String, InstantProvider> TIME_UNITS = new HashMap<>();
+
+	static {
+		InstantProvider seconds = Duration::ofSeconds;
+		TIME_UNITS.put("s", seconds);
+		TIME_UNITS.put("second", seconds);
+		TIME_UNITS.put("seconds", seconds);
+		TIME_UNITS.put("sekund", seconds);
+		TIME_UNITS.put("sekunder", seconds);
+		InstantProvider minutes = Duration::ofMinutes;
+		TIME_UNITS.put("m", minutes);
+		TIME_UNITS.put("minute", minutes);
+		TIME_UNITS.put("minutes", minutes);
+		TIME_UNITS.put("minuter", minutes);
+		TIME_UNITS.put("minut", minutes);
+		InstantProvider hours = Duration::ofHours;
+		TIME_UNITS.put("h", hours);
+		TIME_UNITS.put("hour", hours);
+		TIME_UNITS.put("hours", hours);
+		TIME_UNITS.put("timmar", hours);
+		TIME_UNITS.put("timme", hours);
+		InstantProvider days = Duration::ofDays;
+		TIME_UNITS.put("d", days);
+		TIME_UNITS.put("day", days);
+		TIME_UNITS.put("days", days);
+		TIME_UNITS.put("dagar", days);
+		TIME_UNITS.put("dag", days);
+		IntInstantProvider weeks = Period::ofWeeks;
+		TIME_UNITS.put("w", weeks);
+		TIME_UNITS.put("week", weeks);
+		TIME_UNITS.put("weeks", weeks);
+		TIME_UNITS.put("vecka", weeks);
+		TIME_UNITS.put("veckor", weeks);
+		IntInstantProvider months = time -> Period.ofDays(30 * time);
+		TIME_UNITS.put("mo", months);
+		TIME_UNITS.put("må", months);
+		TIME_UNITS.put("month", months);
+		TIME_UNITS.put("months", months);
+		TIME_UNITS.put("månad", months);
+		TIME_UNITS.put("månader", months);
+		IntInstantProvider years = time -> Period.ofDays(365 * time);
+		TIME_UNITS.put("y", years);
+		TIME_UNITS.put("å", years);
+		TIME_UNITS.put("years", years);
+		TIME_UNITS.put("year", years);
+		TIME_UNITS.put("år", years);
+	}
+
+	@FunctionalInterface
+	public interface InstantProvider {
+		TemporalAmount get(long time);
+	}
+
+	@FunctionalInterface
+	public interface IntInstantProvider extends InstantProvider {
+
+		@Override
+		default TemporalAmount get(long time) {
+			return get((int) time);
+		}
+
+		TemporalAmount get(int time);
+	}
+
+	private static Instant getUntil(
+		CommandContext<?> ctx, String name
+	) throws CommandSyntaxException {
+		var param = StringArgumentType.getString(ctx, name).replace(" ", "");
+		try {
+			return Instant.parse(param);
+		} catch (DateTimeParseException ignored) {}
+
+		var onlySuffix = param.replaceAll("[0-9]", "");
+		if (onlySuffix.isEmpty()) {
+			throw NO_UNIT.create(param);
+		}
+		var onlyNumber = param.replaceAll("[^0-9]", "");
+		var unit = TIME_UNITS.get(onlySuffix);
+		if (unit == null) {
+			throw INVALID_UNIT.create(onlySuffix);
+		}
+		long time;
+		try {
+			time = Long.parseLong(onlyNumber);
+		} catch (NumberFormatException err) {
+			throw NO_NUMBER.create();
+		}
+		return Instant.now().plus(unit.get(time));
+	}
+
 	public void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(
 			LiteralArgumentBuilder.<CommandSourceStack>literal("kth-auth")
 				.requires(PermissionPredicates.require(
-					Identifier.fromNamespaceAndPath(KTHAuth.NAMESPACE, "kth-auth"), PermissionLevel.GAMEMASTERS
+					Identifier.fromNamespaceAndPath(KTHAuth.NAMESPACE, "kth-auth"), PermissionLevel.ADMINS
 				))
 				.then(
 					Commands.literal("info")
@@ -75,6 +187,55 @@ public class KTHAuthCommand {
 									if (playerUuid == null) return 0;
 									return this.unVerify(ctx, playerUuid);
 								})
+						)
+				)
+				.then(
+					Commands.literal("ban")
+						.then(
+							Commands.argument("kth-account", StringArgumentType.string())
+								.suggests(this::suggestUnbannedKTHAccounts)
+								.then(
+									Commands.argument("reason", StringArgumentType.greedyString())
+										.executes(ctx -> this.ban(
+											ctx, StringArgumentType.getString(ctx, "kth-account"),
+											Optional.empty(),
+											Optional.of(StringArgumentType.getString(ctx, "reason"))
+										))
+								)
+								.executes(ctx -> this.ban(
+									ctx, StringArgumentType.getString(ctx, "kth-account"),
+									Optional.empty(), Optional.empty()
+								))
+						)
+				)
+				.then(
+					Commands.literal("tempban")
+						.then(
+							Commands.argument("kth-account", StringArgumentType.string())
+								.suggests(this::suggestUnbannedKTHAccounts)
+								.then(
+									Commands.argument("duration", untilArgument())
+										.then(
+											Commands.argument("reason", StringArgumentType.greedyString())
+												.executes(ctx -> this.ban(
+													ctx, StringArgumentType.getString(ctx, "kth-account"),
+													Optional.of(getUntil(ctx, "duration")),
+													Optional.of(StringArgumentType.getString(ctx, "reason"))
+												))
+										)
+										.executes(ctx -> this.ban(
+											ctx, StringArgumentType.getString(ctx, "kth-account"),
+											Optional.of(getUntil(ctx, "duration")), Optional.empty()
+										))
+								)
+						)
+				)
+				.then(
+					Commands.literal("unban")
+						.then(
+							Commands.argument("kth-account", StringArgumentType.greedyString())
+								.suggests(this::suggestBannedKTHAccounts)
+								.executes(ctx -> this.unban(ctx, StringArgumentType.getString(ctx, "kth-account")))
 						)
 				)
 				.then(
@@ -207,6 +368,23 @@ public class KTHAuthCommand {
 		return builder.buildFuture();
 	}
 
+	private CompletableFuture<Suggestions> suggestUnbannedKTHAccounts(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
+		return SharedSuggestionProvider.suggest(
+			this.verifier.getAllVerifiedPlayers()
+				.stream()
+				.filter(d -> d.email().isPresent() && !verifier.isBannedEmail(d.email().get()))
+				.map(d -> "\"" + d.email().get() + "\"").distinct(),
+			builder
+		);
+	}
+
+	private CompletableFuture<Suggestions> suggestBannedKTHAccounts(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder) {
+		return SharedSuggestionProvider.suggest(
+			this.verifier.getBannedEmails(),
+			builder
+		);
+	}
+
 	private void suggest(SuggestionsBuilder builder, String str) {
 		if (str.toLowerCase(Locale.ROOT).startsWith(builder.getRemainingLowerCase())) {
 			builder.suggest(str);
@@ -264,5 +442,95 @@ public class KTHAuthCommand {
 		ctx.getSource().sendSuccess(() -> Component.literal(playerUuid + " is no longer verified."), true);
 
 		return 1;
+	}
+
+	public static String name(CommandContext<CommandSourceStack> ctx, UUID uuid) {
+		return ctx.getSource().getServer().services().nameToIdCache().get(uuid).map(NameAndId::name).orElseGet(uuid::toString);
+	}
+
+	private int ban(
+		CommandContext<CommandSourceStack> ctx, String email,
+		@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<Instant> until,
+		@SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<String> reason
+	) {
+		var ban = verifier.getBan(email);
+		if (ban.isPresent()) {
+			if (ban.get().reason().equals(reason) && ban.get().until().equals(until)) {
+				ctx.getSource().sendFailure(Component.literal(
+					email + " is already banned!"
+				));
+				return 0;
+			} else {
+				verifier.ban(email, until, reason);
+				ctx.getSource().sendSuccess(
+					() -> Component.literal(
+						"Changed " + email + "'s ban to "
+					).append(
+						BannedEmail.until(until)
+					).append(BannedEmail.reason(reason)),
+					true
+				);
+				return 1;
+			}
+		} else {
+			var plusOnes = verifier.getPlusOnes(email);
+			var users = verifier.getByEmail(email);
+			verifier.ban(email, until, reason);
+			var players = ctx.getSource().getServer().getPlayerList();
+			for (var user : users) {
+				var player = players.getPlayer(user.playerUuid());
+				if (player != null) {
+					player.connection.disconnect(
+						Component.translatable("disconnect.kth_auth.banned_email",
+						BannedEmail.until(until), BannedEmail.reason(reason))
+					);
+				}
+			}
+			for (var user : plusOnes) {
+				var player = players.getPlayer(user.playerUuid());
+				if (player != null) {
+					player.connection.disconnect(
+						Component.translatable(
+							"disconnect.kth_auth.banned_plus_one",
+							BannedEmail.until(until), BannedEmail.reason(reason)
+						)
+					);
+				}
+			}
+			ctx.getSource().sendSuccess(
+				() -> Component.literal("Banned " + email + " ").append(
+					BannedEmail.until(until)
+				).append(BannedEmail.reason(reason)).append("!"),
+				true
+			);
+			if (!plusOnes.isEmpty()) {
+				ctx.getSource().sendSuccess(
+					() -> Component.literal(
+						"The following +1's will need to be re-verified by someone else to join: " +
+							plusOnes.stream().map(
+								plusOne -> name(ctx, plusOne.playerUuid())
+							).collect(Collectors.joining(", "))
+					),
+					true
+				);
+			}
+			return 1;
+		}
+	}
+
+	private int unban(CommandContext<CommandSourceStack> ctx, String email) {
+		if (verifier.isBannedEmail(email)) {
+			this.verifier.unban(email);
+			ctx.getSource().sendSuccess(
+				() -> Component.literal(email + " is no longer banned."),
+				true
+			);
+			return 1;
+		} else {
+			ctx.getSource().sendFailure(Component.literal(
+				email + " is not banned!"
+			));
+			return 0;
+		}
 	}
 }

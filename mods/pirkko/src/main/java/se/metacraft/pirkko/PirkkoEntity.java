@@ -34,6 +34,7 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.storage.ValueInput;
@@ -74,7 +75,10 @@ public final class PirkkoEntity extends Monster implements PolymerEntity {
 						.sized(10F / 16, 14F / 16).eyeHeight(14F / 16 * 5.5F / 8)
 						.clientTrackingRange(8).updateInterval(1).noLootTable().build(key));
 		PolymerEntityUtils.registerType(type);
-		BiomeModifications.addSpawn(BiomeSelectors.foundInOverworld(), MobCategory.MONSTER, type, 15, 1, 3);
+		// Like vanilla monsters, stay out of the deep dark (warden territory) and the monster-free mushroom fields.
+		BiomeModifications.addSpawn(BiomeSelectors.foundInOverworld()
+				.and(BiomeSelectors.excludeByKey(Biomes.DEEP_DARK, Biomes.MUSHROOM_FIELDS)),
+				MobCategory.MONSTER, type, 15, 1, 3);
 	}
 
 	private static AttributeSupplier.Builder attributes() {
