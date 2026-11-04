@@ -10,7 +10,9 @@ Blockbench model sent in the skins resource pack) and may have **Perks**, small 
 while they hold or wear the item. A skin works only while its item is with its Owner; anywhere else the
 item is **Away**, drawn plain. Each skin is on one item at a time: applying it elsewhere makes the old
 item plain again, wherever it is. An Owner who no longer wants a skin can **Extract** it
-(`/itemskins extract <skin>`), which turns it back into its Skin Token to trade or give away.
+(`/itemskins extract <skin>`), which turns it back into its Skin Token to trade or give away. A **Skin
+Box** is an item a player opens to **Roll** for a Skin Token, drawn by chance from the skins the box
+lists; the Halloween Skin Box ships first.
 
 This README is the admin guide. Players get a short summary from the "How skins work" book in the Skin
 Menu.
@@ -19,6 +21,7 @@ Menu.
 - [Files](#files)
 - [Writing a skin](#writing-a-skin)
 - [Perks](#perks)
+- [Skin Boxes](#skin-boxes)
 - [Reloading and the pack](#reloading-and-the-pack)
 - [Settings](#settings)
 - [Commands and permissions](#commands-and-permissions)
@@ -375,6 +378,106 @@ file and the reason, shown to whoever ran `/itemskins reload`, and listed by `/i
 - a texture reference with no matching `.png`;
 - a folder with no `skin.json5`, or a folder name with characters an id can't hold.
 
+## Skin Boxes
+
+A **Skin Box** is an item that a player opens to **Roll** for a Skin Token: a reel of the box's skins
+spins and lands on one, and the player gets that skin's token. A box gives a token, never ownership:
+Claiming, trading and Extracting work on that token as on any other. Gamemasters hand boxes out with
+`/itemskins givebox`.
+
+### The box file
+
+Each box is one file, `config/metacraft-skins/boxes/<box-id>.json5`. **The file name (without `.json5`)
+is the box's id, for good**: it's stored in every box item, like a skin id. It may only hold `a-z`, `0-9`,
+`_`, `-` and `.`.
+
+```json5
+{
+	name: "&lHalloween Skin Box",
+	gradient: { colors: ["#FF6A00", "#7B2FBE"], mirror: true },
+	ominous: true,
+	skins: [
+		{ skin: "pumpkin_hat", weight: 20 },
+		{ skin: "witch_hat", weight: 20 },
+		{ skin: "spider_hat", weight: 20 },
+		{ skin: "plague_mask", weight: 15 },
+		{ skin: "pumpkin_pickaxe", weight: 10 },
+		{ skin: "plague_mask_silver", weight: 7 },
+		{ skin: "bloody_cleaver", weight: 5 },
+		{ skin: "plague_mask_dark", weight: 3 },
+	],
+}
+```
+
+| Field | |
+| --- | --- |
+| `name` | Required. The same rules as a skin's `name`: `&` codes, and some text besides them. |
+| `gradient` | Optional. The same as a skin's `{ colors: [...], mirror: true }`; it forbids colour codes in the name. |
+| `description` | Optional. One gray line in the box's tooltip. |
+| `ominous` | Optional. `true` draws the box as the ominous vault; `false` or left out, the plain vault. |
+| `skins` | Required. At least one `{ skin: "<skin id>", weight: <n> }`. |
+
+There's no `released` or `obtainable`: a retired box is one you stop giving out.
+
+**Weights and chances.** A weight is a whole number from 1 to 1,000,000. A skin's chance is its weight
+divided by the total weight of the box's usable skins (below), so weights that add up to 100 are the
+percentages. Players see chances rounded to one decimal place without a trailing `.0` (`20%`, `7.5%`,
+`0.3%`), and anything below 0.05% as `<0.1%`; rounded figures needn't add up to 100. Skins are listed
+highest chance first, ties in file order.
+
+### What rejects a box, and what only warns
+
+A box is **rejected** (Dormant, while the others load as usual) for: broken json5; an unknown field,
+inside an entry too; a missing `name` or `skins`, an empty `skins` list, or an entry without `skin` or
+`weight`; a weight that isn't a whole number from 1 to 1,000,000; the same skin listed twice; an
+`ominous` that isn't `true` or `false`; a name that's only formatting codes, or a `gradient` error (in
+the same words as for skins); a file name an id can't hold. Each rejection is logged with its file,
+shown to whoever ran `/itemskins reload`, and listed by console `/itemskins list`.
+
+A skin the box lists that's **unknown or Dormant** only warns: it's left out of the draw, the tooltip and
+the reel, and the other skins' chances grow. That's worked out against the skins of the same reload. A
+box whose skins are all left out still loads and opens, but can't be rolled.
+
+Files in `boxes/` that don't end in `.json5`, and folders, are ignored with a warning. Names starting
+with `.` are skipped quietly.
+
+**Dormant boxes** follow the skins' rule (see [Dormant skins and permanent ids](#dormant-skins-and-permanent-ids)):
+a box whose file is missing or fails to load is Dormant. Its items stay where they are, read "Unknown
+Skin Box: <id>" and can't be opened, and `givebox` refuses it; nothing is deleted. Fix the file (or put
+it back) and run `/itemskins reload`, and every copy comes back. A made-up id behaves the same.
+
+**The Halloween Skin Box** ships with the mod. It's put in `boxes/` the first time the server starts
+without that folder (an existing server gets it on its first start with this version), and never again:
+a deleted box stays deleted. If you deleted some of its skins, those entries are left out with a warning.
+
+### The item
+
+The item is `metacraft-skins:skin_box`, with the box's id in its `metacraft-skins:box` component. To
+clients it's a vault, or the ominous vault for an ominous box, named in the box's colours. Its tooltip
+has the description, each usable skin with its chance, highest first ("Pumpkin Hat 20%"), and "Right-click
+to open". A box with no usable skins says "Every skin in this box is unavailable." instead. Boxes stack
+to 64 (only with the same box), and can be traded and dropped like tokens. They never place as a block,
+open a chest or fill a frame, and recipes, villagers, workstations and dispensers don't take them for vaults.
+
+### Rolling
+
+Right-clicking a box in the main hand (on air, a block or an entity) opens the **Roll menu**; the offhand
+does nothing. The middle row previews nine skins of the box, drawn by weight, each with its chance.
+
+- **Leaving before Roll is free.**
+- **Roll uses up one box** (in creative too). The reel spins for five seconds, slowing down, with a rising
+  click per step, and lands on a skin in the centre with a chime. The player gets that skin's token, in
+  their inventory or at their feet if it's full, and reads "You rolled <Skin>!". Nobody else is told.
+- **No rerolls.** The menu stays open on the landed reel until it's closed; every Roll needs its own box.
+- **Closing mid-spin gives the token at once**, however the menu closes: Escape, another menu, a portal,
+  disconnecting, or the server stopping (the token is in the inventory when the player comes back).
+- **Dying mid-spin drops the token at the death spot**, even with `keepInventory` on.
+- **A server crash mid-spin loses the box**: it was used up at the press, and there's no record of the Roll.
+- **Refusals keep the box.** Roll is refused if the box has left the player's main hand (the menu closes),
+  if the box became Dormant, or if it has nothing left to roll (the menu stays open).
+- The result is chosen at the press, so a reload during the spin never changes it: a skin that went
+  Dormant mid-spin is given all the same, and its token reads "Unknown skin token" until it's back.
+
 ## Reloading and the pack
 
 Skins are read at server start and by `/itemskins reload`, and never by vanilla `/reload`, so reloading data
@@ -400,7 +503,7 @@ packs never pushes a resource pack by surprise. `/itemskins reload`:
 The pack is built the same way every time, so the same skins give the same SHA-1. Only Looks are in
 it: **editing a skin's name, description or Perks changes every token and Skinned Item at once, and
 doesn't change the pack**, so nobody downloads anything, and nor does editing its `materials`.
-Skin Boxes never change the pack either.
+Skin Boxes never change the pack either: the ominous vault's item definition is always in it.
 Adding, removing or changing a model or texture does, and so does turning `dyeable` on or off. So you
 choose when players see a loading screen: batch Look changes into one reload.
 
@@ -501,6 +604,10 @@ deleted:
 Fix the definition (or put the folder back) and run `/itemskins reload`, and everything comes back
 unchanged.
 
+Skin Boxes follow the same rule: a box whose file is missing or broken is Dormant, its items read
+"Unknown Skin Box: <id>" and can't be opened, and fixing the file brings every copy back (see
+[Skin Boxes](#skin-boxes)). Box ids are permanent too: renaming a box file makes the old id Dormant.
+
 **Ids are permanent.** The folder name is the id stored in every player file, token and Skinned Item.
 Renaming a folder doesn't rename a skin: it makes the old id Dormant for everyone and adds a new skin
 nobody owns. There is no rename or alias; change `name` instead, which is free.
@@ -528,7 +635,8 @@ Owners keep the skin and can apply it to an item of the new Kind.
   UUID. An Unapplied skin has no `application` (older files' `"application": null` reads the same).
 - **Saved at once** on every Claim, apply, remove, grant, revoke and Extract. A Claim saves first and only then
   uses up the token, so a failed save keeps the token. An Extract saves first and only then gives the
-  token, so a failed save keeps the skin and gives nothing.
+  token, so a failed save keeps the skin and gives nothing. A Roll never touches the ownership file: it
+  gives a token.
 - **The running server wins.** A file is read the first time its player is needed and kept in memory
   after that, and every change writes it whole. Edit files only while the server is stopped.
 - **Damaged files are never overwritten.** A file that doesn't parse, or has a field this mod doesn't
@@ -543,10 +651,11 @@ UUIDs.
 
 ## Moving servers
 
-With the server **stopped**, copy two folders to the new server:
+With the server **stopped**, copy these folders to the new server:
 
 - `skins-data/` (who owns what);
-- `config/metacraft-skins/skins/` (the definitions; and `config/metacraft-skins.json5` for the settings).
+- `config/metacraft-skins/skins/` (the definitions; and `config/metacraft-skins.json5` for the settings),
+  and `config/metacraft-skins/boxes/` (the Skin Boxes) next to it.
 
 Copying the world as well keeps every application: skins stay on their items. A fresh world shows every
 skin Unapplied, ready to apply again.

@@ -78,7 +78,8 @@ import java.util.stream.Stream;
  * ({@link #hit}, {@link #killed}, {@link #brokeBlock}, {@link #hurt}), read from the live skin at that
  * moment. Tokens, menus and Skinned Items list them with {@link PerkLines}.
  *
- * <p>A Skin Box item stores only its box's id; {@link #boxView} draws it from the box file as it is now.
+ * <p>A Skin Box item stores only its box's id; {@link #boxView} draws it from the box file as it is now,
+ * and a Roll ({@link #roll}) uses one up and draws a skin, whose token the Roll menu gives.
  *
  * <p>A skin changes hands only as a Skin Token: a Claim ({@link #claim}) turns a token into ownership,
  * and Extract ({@link #extract}) turns an owned, Unapplied skin back into its token, saving first.
