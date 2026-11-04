@@ -467,7 +467,7 @@ public class KTHAuthCommand {
 						"Changed " + email + "'s ban to "
 					).append(
 						BannedEmail.until(until)
-					).append(" ").append(BannedEmail.reason(reason)),
+					).append(BannedEmail.reason(reason)),
 					true
 				);
 				return 1;
@@ -500,18 +500,20 @@ public class KTHAuthCommand {
 			ctx.getSource().sendSuccess(
 				() -> Component.literal("Banned " + email + " ").append(
 					BannedEmail.until(until)
-				).append(" ").append(BannedEmail.reason(reason)).append("!"),
+				).append(BannedEmail.reason(reason)).append("!"),
 				true
 			);
-			ctx.getSource().sendSuccess(
-				() -> Component.literal(
-					"The following +1's will need to be re-verified by someone else to join: " +
-					plusOnes.stream().map(
-						plusOne -> name(ctx, plusOne.playerUuid())
-					).collect(Collectors.joining(", "))
-				),
-				true
-			);
+			if (!plusOnes.isEmpty()) {
+				ctx.getSource().sendSuccess(
+					() -> Component.literal(
+						"The following +1's will need to be re-verified by someone else to join: " +
+							plusOnes.stream().map(
+								plusOne -> name(ctx, plusOne.playerUuid())
+							).collect(Collectors.joining(", "))
+					),
+					true
+				);
+			}
 			return 1;
 		}
 	}
@@ -520,7 +522,7 @@ public class KTHAuthCommand {
 		if (verifier.isBannedEmail(email)) {
 			this.verifier.unban(email);
 			ctx.getSource().sendSuccess(
-				() -> Component.literal(email + " may now verify themselves again."),
+				() -> Component.literal(email + " is no longer banned."),
 				true
 			);
 			return 1;
