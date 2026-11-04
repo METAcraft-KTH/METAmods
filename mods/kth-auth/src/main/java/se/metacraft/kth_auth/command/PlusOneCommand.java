@@ -56,9 +56,12 @@ public class PlusOneCommand {
 			return 0;
 		}
 
-		if (this.verifier.getVerificationDetails(toInvite.get().getUUID()).isPresent()) {
-			ctx.getSource().sendFailure(Component.translatable("command.kth_auth.plus_one.already_verified", name));
-			return 0;
+		var details = this.verifier.getVerificationDetails(toInvite.get().getUUID());
+		if (details.isPresent()) {
+			if (details.get().email().isPresent() || !verifier.isBannedEmail(verifier.getVerifyingEmail(toInvite.get().getUUID()))) {
+				ctx.getSource().sendFailure(Component.translatable("command.kth_auth.plus_one.already_verified", name));
+				return 0;
+			}
 		}
 
 		this.verifier.verifyPlusOne(toInvite.get().getUUID(), toInvite.get().getPlayerName(), inviter.getUUID(), inviter.getPlainTextName());

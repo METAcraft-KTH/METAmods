@@ -81,13 +81,16 @@ public class KTHAuth implements ModInitializer {
 			UUID uuid = listener.getOwner().id();
 			Optional<VerificationDetails> details = verifier.getVerificationDetails(uuid);
 			if (details.isPresent() && details.get().hasAcceptedGdpr()) {
-				if (details.get().email().isPresent()) {
-					if (verifier.isBanned(details.get().email().get(), listener::disconnect)) {
-						return;
-					}
+				if (
+					details.get().email().isPresent() &&
+					verifier.isBanned(details.get().email().get(), listener::disconnect)
+				) {
+					return;
 				}
-				verifier.touch(details.get());
-				return;
+				if (details.get().email().isPresent() || !verifier.isBannedEmail(verifier.getVerifyingEmail(uuid))) {
+					verifier.touch(details.get());
+					return;
+				}
 			}
 			KTHAuthTask task = new KTHAuthTask(verifier, mailSender, listener);
 			verifier.addInProgressVerification(uuid, task);

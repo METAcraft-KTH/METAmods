@@ -505,7 +505,7 @@ public class KTHAuthCommand {
 			);
 			ctx.getSource().sendSuccess(
 				() -> Component.literal(
-					"The following +1's were unverified: " +
+					"The following +1's will need to be re-verified by someone else to join: " +
 					plusOnes.stream().map(
 						plusOne -> name(ctx, plusOne.playerUuid())
 					).collect(Collectors.joining(", "))

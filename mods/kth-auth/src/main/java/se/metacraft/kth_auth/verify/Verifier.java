@@ -1,5 +1,6 @@
 package se.metacraft.kth_auth.verify;
 
+import com.google.common.collect.Sets;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
@@ -9,6 +10,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
+import org.pcollections.HashTreePSet;
+import org.pcollections.PSet;
 import se.metacraft.kth_auth.KTHAuth;
 import se.metacraft.kth_auth.KTHAuthTask;
 import se.metacraft.kth_auth.WebhookSender;
@@ -20,14 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HexFormat;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -335,6 +331,12 @@ public class Verifier {
 		return Collections.unmodifiableCollection(this.inProgressVerifications.values());
 	}
 
+	private Stream<VerificationDetails> getPlusOnesStream(UUID inviterUuid) {
+		return this.verifiedPlayers.values()
+			.stream()
+			.filter(d -> inviterUuid.equals(d.plusOneBy().orElse(null)));
+	}
+
 	/**
 	 * Get a collection of all player that the inviter has invited as +1.
 	 *
@@ -342,15 +344,21 @@ public class Verifier {
 	 * @return The collection.
 	 */
 	public Collection<VerificationDetails> getPlusOnes(UUID inviterUuid) {
-		return this.verifiedPlayers.values()
-			.stream()
-			.filter(d -> inviterUuid.equals(d.plusOneBy().orElse(null)))
-			.toList();
+		return getPlusOnesStream(inviterUuid).toList();
+	}
+
+	private Stream<VerificationDetails> getPlusOnesRecursively(UUID inviterUuid, Set<UUID> alreadyFound) {
+		var plusOnes = getPlusOnesStream(inviterUuid).map(VerificationDetails::playerUuid).filter(
+			id -> !alreadyFound.contains(id)
+		).collect(Collectors.toSet());
+		return plusOnes.stream().flatMap(
+			e -> Stream.concat(getPlusOnesStream(inviterUuid), getPlusOnesRecursively(e, Sets.union(alreadyFound, plusOnes)))
+		);
 	}
 
 	public Collection<VerificationDetails> getPlusOnes(String email) {
 		return getByEmail(email).stream().flatMap(
-			details -> getPlusOnes(details.playerUuid()).stream()
+			details -> getPlusOnesRecursively(details.playerUuid(), Set.of())
 		).toList();
 	}
 
@@ -405,6 +413,20 @@ public class Verifier {
 		this.dirty = true;
 	}
 
+	public String getVerifyingEmail(UUID user) {
+		return getVerifyingEmail(user, HashTreePSet.empty());
+	}
+
+	private String getVerifyingEmail(UUID user, PSet<UUID> checked) {
+		if (checked.contains(user)) return "missingno@kth.se";
+		var player = verifiedPlayers.get(user);
+		if (player.email().isPresent()) return player.email().get();
+		if (player.plusOneBy().isPresent()) {
+			return getVerifyingEmail(player.plusOneBy().get(), checked.plus(user));
+		}
+		throw new IllegalStateException("Huh, how can we have an account with without both email and plus one data?");
+	}
+
 	public boolean isBanned(String email, Consumer<Component> disconnect) {
 		var ban = getBan(email);
 		if (ban.isPresent()) {
@@ -445,12 +467,6 @@ public class Verifier {
 		bannedEmails.put(
 			email, new BannedEmail(email, until, reason)
 		);
-		var usersToUnverify = getByEmail(email).stream().flatMap(
-			user -> getPlusOnes(user.playerUuid()).stream()
-		).map(VerificationDetails::playerUuid).toList();
-		for (var user : usersToUnverify) {
-			unVerify(user);
-		}
 		this.dirty = true;
 	}
 
