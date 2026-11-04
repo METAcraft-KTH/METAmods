@@ -11,7 +11,9 @@
 		{ skin: "plague_mask", weight: 15 },
 		{ skin: "pumpkin_pickaxe", weight: 10 },
 		{ skin: "plague_mask_silver", weight: 7 },
+		{ skin: "ruined_crown", weight: 7 },
 		{ skin: "bloody_cleaver", weight: 5 },
 		{ skin: "plague_mask_dark", weight: 3 },
+		{ skin: "blood_katana", weight: 3 },
 	],
 }

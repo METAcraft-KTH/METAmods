@@ -33,8 +33,9 @@ public final class BoxFileTests {
 				"the shipped box against the shipped skins: " + report.boxes());
 		BoxSummary halloween = fx.skins.box("halloween").orElseThrow();
 		assertThat(halloween.name().equals(Optional.of("Halloween Skin Box")) && halloween.ominous(), "the Halloween box: " + halloween);
-		assertThat(chances(halloween).equals(List.of("pumpkin_hat 14.3%", "witch_hat 14.3%", "spider_hat 14.3%", "cowboy_hat 14.3%", "crusader_helmet 14.3%",
-				"plague_mask 10.7%", "pumpkin_pickaxe 7.1%", "plague_mask_silver 5%", "bloody_cleaver 3.6%", "plague_mask_dark 2.1%")), "its chances: " + chances(halloween));
+		assertThat(chances(halloween).equals(List.of("pumpkin_hat 13.3%", "witch_hat 13.3%", "spider_hat 13.3%", "cowboy_hat 13.3%", "crusader_helmet 13.3%",
+				"plague_mask 10%", "pumpkin_pickaxe 6.7%", "plague_mask_silver 4.7%", "ruined_crown 4.7%", "bloody_cleaver 3.3%", "plague_mask_dark 2%",
+				"blood_katana 2%")), "its chances: " + chances(halloween));
 
 		try {
 			Files.delete(folder.resolve("halloween.json5"));

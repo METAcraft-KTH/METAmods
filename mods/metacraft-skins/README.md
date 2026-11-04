@@ -65,8 +65,8 @@ Each skin is a folder the admin adds, as below. The mod ships a starter set of L
 them in `config/metacraft-skins/skins/` the first time the server starts without that folder:
 
 - helmets: `cowboy_hat`, `crusader_helmet`, `plague_mask`, `plague_mask_dark`, `plague_mask_silver`,
-  `pumpkin_hat`, `spider_hat`, `witch_hat`, and the test skins `testblockhat` and `test_cap`;
-- `pumpkin_pickaxe` (a pickaxe) and `bloody_cleaver` (a sword).
+  `pumpkin_hat`, `ruined_crown`, `spider_hat`, `witch_hat`, and the test skins `testblockhat` and `test_cap`;
+- `pumpkin_pickaxe` (a pickaxe), and `bloody_cleaver` and `blood_katana` (swords).
 
 Each fits every Material of its Kind. `cowboy_hat` and the two test skins are Dyeable Hats. After that
 first start the folder is yours: delete a skin's folder and it stays gone. The Skin Token's own model and texture ship in the jar and go into the pack on their own.
@@ -405,8 +405,10 @@ is the box's id, for good**: it's stored in every box item, like a skin id. It m
 		{ skin: "plague_mask", weight: 15 },
 		{ skin: "pumpkin_pickaxe", weight: 10 },
 		{ skin: "plague_mask_silver", weight: 7 },
+		{ skin: "ruined_crown", weight: 7 },
 		{ skin: "bloody_cleaver", weight: 5 },
 		{ skin: "plague_mask_dark", weight: 3 },
+		{ skin: "blood_katana", weight: 3 },
 	],
 }
 ```
@@ -580,7 +582,7 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
   Materials table: `crown (helmet: leather, turtle)`. A Dyeable Hat says so last:
   `cowboy_hat (helmet: leather, dyeable)`, or `cowboy_hat (helmet, dyeable)` with no Materials.
   After the skins it lists every Skin Box file, sorted by id, with how many skins it lists and how
-  many it left out: `halloween (10 skins)`, `halloween (10 skins, 1 left out)`, or for a Dormant box
+  many it left out: `halloween (12 skins)`, `halloween (12 skins, 1 left out)`, or for a Dormant box
   `halloween Dormant: <reason>`.
 - **`grant`** makes a player own a skin without a token. Refused if they already own it, or the skin is
   unknown or Dormant. An online player gets the claim message.

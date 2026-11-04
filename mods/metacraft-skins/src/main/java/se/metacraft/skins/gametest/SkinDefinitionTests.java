@@ -43,7 +43,8 @@ public final class SkinDefinitionTests {
 				Map.entry("cowboy_hat", Kind.HELMET), Map.entry("crusader_helmet", Kind.HELMET), Map.entry("plague_mask", Kind.HELMET),
 				Map.entry("plague_mask_dark", Kind.HELMET), Map.entry("plague_mask_silver", Kind.HELMET), Map.entry("pumpkin_hat", Kind.HELMET),
 				Map.entry("spider_hat", Kind.HELMET), Map.entry("witch_hat", Kind.HELMET),
-				Map.entry("pumpkin_pickaxe", Kind.PICKAXE), Map.entry("bloody_cleaver", Kind.SWORD));
+				Map.entry("ruined_crown", Kind.HELMET), Map.entry("pumpkin_pickaxe", Kind.PICKAXE), Map.entry("bloody_cleaver", Kind.SWORD),
+				Map.entry("blood_katana", Kind.SWORD));
 		Set<String> dyeable = Set.of("testblockhat", "test_cap", "cowboy_hat");
 		SkinFixtures fx = SkinFixtures.create();
 		Path folder = fx.skins.skinsFolder();
