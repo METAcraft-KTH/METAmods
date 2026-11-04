@@ -7,6 +7,7 @@ import com.google.gson.internal.Streams;
 import com.google.gson.stream.JsonWriter;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import se.metacraft.kth_auth.KTHAuth;
 import se.metacraft.kth_auth.KTHAuthTask;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -403,6 +405,25 @@ public class Verifier {
 		this.dirty = true;
 	}
 
+	public boolean isBanned(String email, Consumer<Component> disconnect) {
+		var ban = getBan(email);
+		if (ban.isPresent()) {
+			if (ban.get().stillBanned()) {
+				disconnect.accept(
+					Component.translatable(
+						"disconnect.kth_auth.banned_email",
+						BannedEmail.until(ban.get().until()),
+						BannedEmail.reason(ban.get().reason())
+					)
+				);
+				return true;
+			} else {
+				this.unban(email);
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Update the last login timestamp for a verified player.
 	 *
@@ -425,7 +446,7 @@ public class Verifier {
 			email, new BannedEmail(email, until, reason)
 		);
 		var usersToUnverify = getByEmail(email).stream().flatMap(
-			user -> Stream.concat(Stream.of(user), getPlusOnes(user.playerUuid()).stream())
+			user -> getPlusOnes(user.playerUuid()).stream()
 		).map(VerificationDetails::playerUuid).toList();
 		for (var user : usersToUnverify) {
 			unVerify(user);

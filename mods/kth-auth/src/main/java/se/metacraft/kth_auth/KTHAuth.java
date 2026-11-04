@@ -81,6 +81,11 @@ public class KTHAuth implements ModInitializer {
 			UUID uuid = listener.getOwner().id();
 			Optional<VerificationDetails> details = verifier.getVerificationDetails(uuid);
 			if (details.isPresent() && details.get().hasAcceptedGdpr()) {
+				if (details.get().email().isPresent()) {
+					if (verifier.isBanned(details.get().email().get(), listener::disconnect)) {
+						return;
+					}
+				}
 				verifier.touch(details.get());
 				return;
 			}

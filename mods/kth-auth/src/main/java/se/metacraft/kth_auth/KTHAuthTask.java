@@ -27,7 +27,6 @@ import net.minecraft.server.dialog.input.TextInput;
 import net.minecraft.server.network.ConfigurationTask;
 import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 import org.jetbrains.annotations.NotNull;
-import se.metacraft.kth_auth.verify.BannedEmail;
 import se.metacraft.kth_auth.verify.PendingVerification;
 import se.metacraft.kth_auth.verify.VerificationDetails;
 import se.metacraft.kth_auth.verify.Verifier;
@@ -180,18 +179,8 @@ public class KTHAuthTask implements ConfigurationTask {
 			return;
 		}
 
-		var ban = this.verifier.getBan(email);
-		if (ban.isPresent()) {
-			if (ban.get().stillBanned()) {
-				this.disconnect(Component.translatable(
-					"disconnect.kth_auth.banned_email",
-					BannedEmail.until(ban.get().until()),
-					BannedEmail.reason(ban.get().reason())
-				));
-				return;
-			} else {
-				this.verifier.unban(email);
-			}
+		if (this.verifier.isBanned(email, this::disconnect)) {
+			return;
 		}
 
 		if (this.verifier.getByEmail(email).size() >= Verifier.MAX_ACCOUNTS_PER_EMAIL) {
