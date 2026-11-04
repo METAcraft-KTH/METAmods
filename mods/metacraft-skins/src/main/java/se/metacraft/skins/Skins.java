@@ -426,7 +426,7 @@ public final class Skins {
 
 	/**
 	 * What {@code viewer} is sent of a token: Polymer's client copy ({@code client}) named
-	 * "Skin Token: <Skin>" (gold, no glint), with the lore "Fits any <Kind>" (or "Fits leather and turtle helmets"), for a Dyeable
+	 * "Skin Token: <Skin>" (no glint): "Skin Token: " in bold gold, then the skin's name in its own colours and gradient, with the lore "Fits any <Kind>" (or "Fits leather and turtle helmets"), for a Dyeable
 	 * Hat "Dye the helmet to recolour it", the Perk lines, the description, a
 	 * blank line and "Right-click to claim", or, for a viewer who owns the skin, "✔ You already own
 	 * this skin — trade it away". A token for an unknown or Dormant skin reads "Unknown skin token: <id>".
@@ -447,7 +447,10 @@ public final class Skins {
 		loaded.description().ifPresent(d -> lines.add(plain(d, ChatFormatting.GRAY)));
 		lines.add(Component.empty());
 		lines.add(plain(owned ? "✔ You already own this skin — trade it away" : "Right-click to claim", ChatFormatting.GRAY));
-		client.set(DataComponents.ITEM_NAME, plain("Skin Token: " + loaded.name(), ChatFormatting.GOLD));
+		// Siblings of an empty root, so the skin's name doesn't take on the prefix's bold and gold.
+		client.set(DataComponents.ITEM_NAME, Component.empty()
+				.append(Component.literal("Skin Token: ").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GOLD).withBold(true)))
+				.append(loaded.title()));
 		client.set(DataComponents.LORE, new ItemLore(lines));
 		return client;
 	}
