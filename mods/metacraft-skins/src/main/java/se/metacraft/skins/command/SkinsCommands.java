@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
  * subcommands so far:
  * <ul>
  *   <li>{@code /itemskins} alone ({@code metacraft-skins:menu}, everyone): opens the player's Skin Menu;</li>
- *   <li>{@code list} ({@code metacraft-skins:list}, gamemasters): for a player, opens "All Skins", the Skin Menu with every
+ *   <li>{@code list} ({@code metacraft-skins:list}, everyone): for a player, opens "All Skins", the Skin Menu with every
  *       skin on the server; anywhere else (the console), every skin in chat, its Kind, any Materials it's limited to and whether
  *       it's a Dyeable Hat ({@code cowboy_hat (helmet: leather, dyeable)}), and why a Dormant one failed; then every Skin Box
  *       ({@code halloween (10 skins, 1 left out)}), and why a Dormant one failed;</li>
@@ -87,7 +87,7 @@ public final class SkinsCommands {
 				Commands.literal("itemskins")
 						// Not a requires on the root, which would hide every subcommand from a player denied the menu.
 						.executes(ctx -> menu(ctx, get(skins)))
-						.then(Commands.literal("list").requires(PermissionPredicates.require(MetacraftSkins.getID("list"), PermissionLevel.GAMEMASTERS))
+						.then(Commands.literal("list").requires(PermissionPredicates.require(MetacraftSkins.getID("list"), PermissionLevel.ALL))
 								.executes(ctx -> list(ctx, get(skins))))
 						.then(Commands.literal("reload").requires(PermissionPredicates.require(MetacraftSkins.getID("reload"), PermissionLevel.ADMINS))
 								.executes(ctx -> reload(ctx, get(skins))))

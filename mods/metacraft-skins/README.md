@@ -543,10 +543,10 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
 | --- | --- | --- |
 | `/itemskins` | `metacraft-skins:menu` | everyone |
 | `/itemskins extract <skin>` | `metacraft-skins:extract` | everyone |
+| `/itemskins list` | `metacraft-skins:list` | everyone |
 | `/itemskins give <targets> <skin> [count]` | `metacraft-skins:give` | gamemasters |
 | `/itemskins givebox <targets> <box> [count]` | `metacraft-skins:givebox` | gamemasters |
 | `/itemskins info <player>` | `metacraft-skins:info` | gamemasters |
-| `/itemskins list` | `metacraft-skins:list` | gamemasters |
 | `/itemskins grant <player> <skin>` | `metacraft-skins:grant` | admins |
 | `/itemskins revoke <player> <skin>` | `metacraft-skins:revoke` | admins |
 | `/itemskins reload` | `metacraft-skins:reload` | admins |

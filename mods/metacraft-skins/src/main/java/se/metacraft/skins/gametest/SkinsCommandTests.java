@@ -134,12 +134,19 @@ public final class SkinsCommandTests {
 			boxReloadAndList(server, fx);
 			boxesInPlay(helper, fx);
 
-			// Below the defaults: a gamemaster can't reload, a moderator can't list.
+			// Below the defaults: a gamemaster can't reload. Anyone can list, and a player with no permissions gets All Skins.
 			fx.lookOnly("poop_hat_test", "helmet");
 			run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins reload");
 			assertThat(fx.skins.allSkins().size() == 2, "a gamemaster reloaded the skins");
-			List<String> refused = run(server, LevelBasedPermissionSet.MODERATOR, "itemskins list");
-			assertThat(refused.stream().noneMatch(l -> l.contains("candy_cane_test")), "a moderator got the list: " + refused);
+			List<String> anyone = run(server, LevelBasedPermissionSet.ALL, "itemskins list");
+			assertThat(anyone.stream().anyMatch(l -> l.contains("candy_cane_test")), "the list without permissions: " + anyone);
+			SkinFixtures.Listening lister = SkinFixtures.join(helper);
+			try {
+				server.getCommands().performPrefixedCommand(lister.createCommandSourceStack(), "itemskins list");
+				assertThat(SkinMenuTests.title(lister).equals("All Skins"), "a player's /itemskins list opened " + SkinMenuTests.title(lister));
+			} finally {
+				server.getPlayerList().remove(lister);
+			}
 			redrawn = new Redrawn(helper, fx);
 			worn = new WornPerk(helper, fx);
 			realEventsFireTheirPerks(helper, fx);
