@@ -16,6 +16,8 @@
 	"dialog.kth_auth.no_kth_email.title": "Ingen KTH-mejladress",
 	"dialog.kth_auth.no_kth_email.body": "Be en kompis som har en KTH-mejladress att köra kommandot %s",
 	"disconnect.kth_auth.invalid_email": "Ange en giltig KTH-mejladress.",
+	"disconnect.kth_auth.banned_email": "Du har blivit bannad %s%s!",
+	"disconnect.kth_auth.banned_plus_one": "Den som +1ade dig har blivit bannad %s%s!",
 	"disconnect.kth_auth.email_already_submitted": "Du har redan angett en mejladress.",
 	"disconnect.kth_auth.already_verified": "Du är redan verifierad!",
 	"disconnect.kth_auth.email_used_too_many_times": "Den här mejladressen har använts för många gånger. Kontakta moderatorerna på Discord.",
@@ -26,5 +28,9 @@
 	"command.kth_auth.plus_one.not_verified_by_email": "+1:or kan inte +1:a andra spelare.",
 	"command.kth_auth.plus_one.not_on_server": "%s måste vara på servern för att du ska kunna verifiera dem som +1",
 	"command.kth_auth.plus_one.already_verified": "%s är redan verifierad.",
-	"command.kth_auth.plus_one.success": "Verifierade %s som +1"
+	"command.kth_auth.plus_one.success": "Verifierade %s som +1",
+	"message.kth_auth.banned_until": "till %s",
+	"message.kth_auth.banned_permanently": "permanent",
+	"message.kth_auth.banned_reason": "för %s"
+
 }

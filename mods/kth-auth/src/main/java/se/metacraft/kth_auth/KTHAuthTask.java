@@ -179,6 +179,10 @@ public class KTHAuthTask implements ConfigurationTask {
 			return;
 		}
 
+		if (this.verifier.isBanned(email, this::disconnect)) {
+			return;
+		}
+
 		if (this.verifier.getByEmail(email).size() >= Verifier.MAX_ACCOUNTS_PER_EMAIL) {
 			this.disconnect(Component.translatable("disconnect.kth_auth.email_used_too_many_times"));
 			return;
