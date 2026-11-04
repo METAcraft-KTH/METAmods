@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import se.metacraft.skins.BoxResult;
 import se.metacraft.skins.BoxSummary;
 import se.metacraft.skins.DrawingCheck;
 import se.metacraft.skins.Material;
@@ -44,7 +45,7 @@ import java.util.stream.Collectors;
 
 /**
  * {@code /itemskins}: one permission node per command (Fabric's Permission API, so LuckPerms can
- * delegate each), with a vanilla level to fall back on. Skin ids tab-complete everywhere. The
+ * delegate each), with a vanilla level to fall back on. Skin ids and box ids tab-complete everywhere. The
  * subcommands so far:
  * <ul>
  *   <li>{@code /itemskins} alone ({@code metacraft-skins:menu}, everyone): opens the player's Skin Menu;</li>
@@ -61,7 +62,9 @@ import java.util.stream.Collectors;
  *   <li>{@code grant <player> <skin>} and {@code revoke <player> <skin>} ({@code metacraft-skins:grant}/{@code revoke},
  *       admins): make a player own a skin without a token, or take it away. An online player is told;</li>
  *   <li>{@code extract <skin>} ({@code metacraft-skins:extract}, everyone, players only): turn a skin the player owns back
- *       into its Skin Token, after the Extract screen; tab-completes their own skins. Refused while the skin is on an item.</li>
+ *       into its Skin Token, after the Extract screen; tab-completes their own skins. Refused while the skin is on an item;</li>
+ *   <li>{@code givebox <targets> <box> [count]} ({@code metacraft-skins:givebox}, gamemasters): Skin Boxes for online players,
+ *       1 to 64 of them, as {@code give} hands out tokens; box ids tab-complete, loaded boxes only.</li>
  * </ul>
  * {@code <player>} may be offline: a name is looked up in the server's user cache, as {@code /whitelist} does.
  */
@@ -107,7 +110,13 @@ public final class SkinsCommands {
 												.executes(ctx -> revoke(ctx, get(skins))))))
 							.then(Commands.literal("extract").requires(PermissionPredicates.require(MetacraftSkins.getID("extract"), PermissionLevel.ALL))
 									.then(Commands.argument("skin", StringArgumentType.word()).suggests(ownedSkinIds(skins))
-											.executes(ctx -> extract(ctx, get(skins)))))));
+											.executes(ctx -> extract(ctx, get(skins)))))
+							.then(Commands.literal("givebox").requires(PermissionPredicates.require(MetacraftSkins.getID("givebox"), PermissionLevel.GAMEMASTERS))
+									.then(Commands.argument("targets", EntityArgument.players())
+											.then(Commands.argument("box", StringArgumentType.word()).suggests(boxIds(skins))
+													.executes(ctx -> givebox(ctx, get(skins), 1))
+													.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
+															.executes(ctx -> givebox(ctx, get(skins), IntegerArgumentType.getInteger(ctx, "count")))))))));
 	}
 
 	/** Every skin's id; with {@code dormantToo} false, only the ones that loaded (a Dormant skin can't be granted). */
@@ -116,6 +125,15 @@ public final class SkinsCommands {
 			Skins current = skins.get();
 			if (current == null) return builder.buildFuture();
 			return SharedSuggestionProvider.suggest(current.allSkins().stream().filter(s -> dormantToo || !s.dormant()).map(SkinSummary::id), builder);
+		};
+	}
+
+	/** Every Skin Box's id that loaded (a Dormant box can't be given). */
+	private static SuggestionProvider<CommandSourceStack> boxIds(Supplier<Skins> skins) {
+		return (ctx, builder) -> {
+			Skins current = skins.get();
+			if (current == null) return builder.buildFuture();
+			return SharedSuggestionProvider.suggest(current.boxes().stream().filter(b -> !b.dormant()).map(BoxSummary::id), builder);
 		};
 	}
 
@@ -220,6 +238,21 @@ public final class SkinsCommands {
 		String name = skins.skin(id).map(SkinSummary::displayName).orElse(id);
 		String to = targets.size() == 1 ? targets.getFirst().getGameProfile().name() : targets.size() + " players";
 		ctx.getSource().sendSuccess(() -> Component.literal("Gave " + count + " Skin Token" + (count == 1 ? "" : "s") + ": " + name + " to " + to + "."), true);
+		return targets.size();
+	}
+
+	private static int givebox(CommandContext<CommandSourceStack> ctx, Skins skins, int count) throws CommandSyntaxException {
+		List<ServerPlayer> targets = List.copyOf(EntityArgument.getPlayers(ctx, "targets"));
+		String id = StringArgumentType.getString(ctx, "box");
+		BoxResult result = skins.giveBoxes(targets, id, count);
+		if (result != BoxResult.DONE) {
+			ctx.getSource().sendFailure(Component.literal(result == BoxResult.UNKNOWN_BOX ? "There's no Skin Box " + id + ". /itemskins list shows them all."
+					: id + " is Dormant, so it can't be given: " + skins.box(id).flatMap(BoxSummary::dormantReason).orElse("its file didn't load") + "."));
+			return 0;
+		}
+		String name = skins.box(id).map(BoxSummary::displayName).orElse(id);
+		String to = targets.size() == 1 ? targets.getFirst().getGameProfile().name() : targets.size() + " players";
+		ctx.getSource().sendSuccess(() -> Component.literal("Gave " + count + " Skin Box" + (count == 1 ? "" : "es") + ": " + name + " to " + to + "."), true);
 		return targets.size();
 	}
 

@@ -431,13 +431,14 @@ is a syntax error. The error is logged (by metacraft-lib) and the settings stay 
 ## Commands and permissions
 
 One permission node per command, through Fabric's Permission API (so LuckPerms can grant each), with a
-vanilla level to fall back on when no permissions mod is installed. Skin ids tab-complete.
+vanilla level to fall back on when no permissions mod is installed. Skin ids and box ids tab-complete.
 
 | Command | Node | Default |
 | --- | --- | --- |
 | `/itemskins` | `metacraft-skins:menu` | everyone |
 | `/itemskins extract <skin>` | `metacraft-skins:extract` | everyone |
 | `/itemskins give <targets> <skin> [count]` | `metacraft-skins:give` | gamemasters |
+| `/itemskins givebox <targets> <box> [count]` | `metacraft-skins:givebox` | gamemasters |
 | `/itemskins info <player>` | `metacraft-skins:info` | gamemasters |
 | `/itemskins list` | `metacraft-skins:list` | gamemasters |
 | `/itemskins grant <player> <skin>` | `metacraft-skins:grant` | admins |
@@ -458,6 +459,11 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids tab
   `metacraft-skins:skin_token` with the skin's id in its `metacraft-skins:token` component, so
   `/give @s metacraft-skins:skin_token[metacraft-skins:token="crown"]` should make one too (not tried in
   game yet).
+- **`givebox`** gives 1 to 64 Skin Boxes (default 1) to online players, as `give` gives tokens: what
+  doesn't fit drops at their feet, you get a confirmation, and the players get no message. Only boxes
+  that loaded tab-complete; an unknown id and a Dormant box are refused (the Dormant one with its
+  reason). The item is `metacraft-skins:skin_box` with the box's id in its `metacraft-skins:box`
+  component, so `/give @s metacraft-skins:skin_box[metacraft-skins:box="halloween"]` makes one too.
 - **`info`** shows what a player owns, with claim dates (UTC) and each skin's state: Applied, Unapplied,
   Applied in another world, or Dormant. It can't say which item carries a skin. A damaged file says so.
 - **`list`** run by a player opens **All Skins**: the Skin Menu, but with every skin on the server, owned
@@ -596,6 +602,13 @@ Rules that answer most support questions:
   none of which accept them. A token for a skin the viewer already owns says so and is kept when
   right-clicked. A Claim is a right-click with the token in the main hand, on air, a block or an entity;
   it never opens a chest or fills a frame. A token in the offhand does nothing.
+- **Skin Boxes** stack to 64 (only with the same box), can be traded and dropped, and are vaults to
+  clients (an ominous vault for an ominous box) but nothing to recipes, villagers, workstations and
+  dispensers. A box never places as a block, opens a chest or fills a frame: a right-click with it in the
+  main hand, on air, a block or an entity, opens it and does nothing else. A box in the offhand does
+  nothing. Its tooltip lists its skins and their chances, highest first. A box whose file is Dormant
+  or gone reads "Unknown Skin Box: <id>" and can't be opened, but stays where it is: fix the file and
+  every copy comes back.
 
 ## Development
 

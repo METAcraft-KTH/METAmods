@@ -2,9 +2,10 @@ package se.metacraft.skins;
 
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import se.metacraft.skins.command.SkinsCommands;
+import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 import se.metacraft.skins.pack.PackDelivery;
-import se.metacraft.skins.ui.ClaimMenu;
+import se.metacraft.skins.ui.RightClick;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.Event;
@@ -48,6 +49,7 @@ public final class MetacraftSkins implements ModInitializer {
 	public void onInitialize() {
 		SkinMarker.init();
 		SkinToken.init();
+		SkinBox.init();
 		DyeSkinnedItemRecipe.init();
 		// Every stack carrying the (Polymer-hidden) marker, vanilla items included, is rebuilt for
 		// each viewer by Polymer; the live skin's Look and tooltip block go on that copy only. It runs
@@ -59,7 +61,7 @@ public final class MetacraftSkins implements ModInitializer {
 			Skins current = skins;
 			return current == null ? client : DrawingCheck.draw(current, original, client, context);
 		});
-		// A right-click with a token in the main hand, on air, a block or an entity, is a Claim.
+		// A right-click with a token or a box in the main hand, on air, a block or an entity, opens its menu.
 		UseItemCallback.EVENT.register((player, level, hand) -> rightClick(player, hand));
 		UseBlockCallback.EVENT.register((player, level, hand, hit) -> rightClick(player, hand));
 		UseEntityCallback.EVENT.register((player, level, hand, entity, hit) -> rightClick(player, hand));
@@ -100,6 +102,7 @@ public final class MetacraftSkins implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
 			Skins loaded = Skins.at(server.getServerDirectory(), server.getWorldPath(LevelResource.ROOT));
 			DefaultSkins.installIfMissing(loaded.skinsFolder());
+			DefaultSkins.installBoxesIfMissing(loaded.boxesFolder());
 			try {
 				loaded.reload();   // logs every rejection; a broken skin never stops the server
 			} catch (RuntimeException e) {
@@ -111,11 +114,12 @@ public final class MetacraftSkins implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> skins = null);
 		PackDelivery.init(MetacraftSkins::skins);
 		SkinsCommands.init(MetacraftSkins::skins);
+		se.metacraft.skins.ui.RollMenuPrototype.init();   // PROTOTYPE, prototype/roll-menu branch only
 	}
 
 	private static InteractionResult rightClick(Player player, InteractionHand hand) {
 		Skins current = skins;
-		return current != null && player instanceof ServerPlayer server ? ClaimMenu.rightClick(server, current, hand) : InteractionResult.PASS;
+		return current != null && player instanceof ServerPlayer server ? RightClick.handle(server, current, hand) : InteractionResult.PASS;
 	}
 
 	/**

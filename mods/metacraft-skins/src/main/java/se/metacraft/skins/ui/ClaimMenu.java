@@ -1,9 +1,7 @@
 package se.metacraft.skins.ui;
 
-import eu.pb4.sgui.api.containerwrappers.SlotBasedWrapperMenu;
 import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
-import eu.pb4.sgui.api.gui.SimpleGui;
 import se.metacraft.skins.Fit;
 import se.metacraft.skins.OwnershipChange;
 import se.metacraft.skins.PerkLines;
@@ -15,19 +13,14 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-import java.util.Map;
 import java.util.Optional;
-import java.util.WeakHashMap;
 
 /**
  * The Claim: right-clicking a Skin Token in the main hand (on air, a block or an entity) opens
- * "Claim &lt;Skin&gt;?", a 3-row chest built with sgui. Its middle row holds two green claim panes, the
+ * "Claim &lt;Skin&gt;?" ({@link RightClick}), a 3-row chest built with sgui. Its middle row holds two green claim panes, the
  * skin with its Look and Kind, and two red cancel panes; everything else is filler. For a skin the
  * player already owns the claim panes are gray, the title is "Already owned", and the token stays
  * theirs to trade. Only ever calls the {@link Skins} module; the player's own inventory is locked.
@@ -37,39 +30,7 @@ public final class ClaimMenu {
 
 	static final int[] CLAIM = {10, 11}, CANCEL = {15, 16};
 	static final int SKIN = 13;
-	/**
-	 * One click can arrive as two packets (use-on-block or interact, then use-item), and a held
-	 * button repeats every 4 ticks: no new Claim starts this soon after one opened or closed.
-	 */
-	private static final int QUIET_TICKS = 10;
-	/** The server tick each player's last claim menu opened or closed (server thread only). */
-	private static final Map<ServerPlayer, Integer> LAST = new WeakHashMap<>();
 	private static final Feedback.Audience CLAIMING = new Feedback.Audience.Owner("claim", "you keep the token");
-
-	/**
-	 * A right-click, from the use-item, use-block and use-entity events. With a token in the main
-	 * hand it's a Claim and nothing else: vanilla's own action (opening a chest, filling an item
-	 * frame, the offhand item's use) is cancelled, the arm swings, a page turns, and the claim
-	 * menu opens, once per click however many packets it arrives as. Anything else is left to vanilla.
-	 */
-	public static InteractionResult rightClick(ServerPlayer player, Skins skins, InteractionHand hand) {
-		ItemStack token = player.getMainHandItem();
-		if (!token.is(SkinToken.ITEM) || player.isSpectator()) return InteractionResult.PASS;
-		if (hand != InteractionHand.MAIN_HAND || isOpen(player) || recently(player)) return InteractionResult.FAIL;
-		LAST.put(player, player.level().getServer().getTickCount());
-		player.swing(InteractionHand.MAIN_HAND, token.getInteractAnimation(), true);
-		open(player, skins, token);
-		return InteractionResult.CONSUME;
-	}
-
-	private static boolean isOpen(ServerPlayer player) {
-		return player.containerMenu instanceof SlotBasedWrapperMenu menu && menu.getBackingGui() instanceof Gui;
-	}
-
-	private static boolean recently(ServerPlayer player) {
-		Integer last = LAST.get(player);
-		return last != null && player.level().getServer().getTickCount() - last < QUIET_TICKS;
-	}
 
 	/** Opens the claim menu for this token, the very stack a Claim then uses one of; a token whose skin is unknown or Dormant is refused instead. */
 	public static void open(ServerPlayer player, Skins skins, ItemStack token) {
@@ -141,25 +102,10 @@ public final class ClaimMenu {
 		return new GuiElementBuilder(Items.STAINED_GLASS_PANE.black()).setName(Component.literal(" ")).hideTooltip().build();
 	}
 
-	/** The claim chest; closing it starts the quiet time, so a still-held button doesn't reopen it at once. */
-	private static final class Gui extends SimpleGui {
+	/** The claim chest ({@link RightClick.Menu}: closing it starts the quiet time). */
+	private static final class Gui extends RightClick.Menu {
 		Gui(ServerPlayer player) {
-			super(MenuType.GENERIC_9x3, player, false);
-			setLockPlayerInventory(true);
-		}
-
-		@Override
-		public void onManualClose() {
-			closed();
-		}
-
-		@Override
-		public void onPlayerClose(boolean success) {
-			closed();
-		}
-
-		private void closed() {
-			LAST.put(getPlayer(), getPlayer().level().getServer().getTickCount());
+			super(player);
 		}
 	}
 }

@@ -3,6 +3,7 @@ package se.metacraft.skins;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
+import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
@@ -39,9 +40,11 @@ final class PackBuilder {
 	private static final LocalDateTime ENTRY_TIME = LocalDateTime.of(1980, 1, 1, 0, 0);
 
 	/**
-	 * The shared Skin Token's files, from the jar's {@code skin-token/}. Its model sits outside
-	 * {@code models/item/} and its texture right in {@code textures/item/}, paths no skin's can take
-	 * (a skin's are always under its own id).
+	 * The files every build carries: the shared Skin Token's, from the jar's {@code skin-token/} (its
+	 * model sits outside {@code models/item/} and its texture right in {@code textures/item/}), and the
+	 * ominous vault's item definition for ominous Skin Boxes, which reuses vanilla's block model. All
+	 * at paths no skin's can take (a skin's are always under its own id), and always there, so a box's
+	 * {@code ominous} never changes the pack.
 	 */
 	private static final Map<String, byte[]> TOKEN_FILES = tokenFiles();
 
@@ -78,6 +81,8 @@ final class PackBuilder {
 		// The model's textures already name skins:item/skin_token.
 		files.put("assets/" + namespace + "/models/token/skin_token.json", bundled("skin-token/skin_token.json"));
 		files.put("assets/" + namespace + "/textures/item/skin_token.png", bundled("skin-token/skin_token.png"));
+		String ominous = "{ \"model\": { \"type\": \"minecraft:model\", \"model\": \"minecraft:block/vault_ominous\" } }";
+		files.put("assets/" + SkinBox.OMINOUS_MODEL.getNamespace() + "/items/" + SkinBox.OMINOUS_MODEL.getPath() + ".json", ominous.getBytes(StandardCharsets.UTF_8));
 		return files;
 	}
 

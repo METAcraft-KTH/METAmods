@@ -9,6 +9,7 @@ import io.netty.buffer.Unpooled;
 import se.metacraft.skins.ItemLocation;
 import se.metacraft.skins.MetacraftSkins;
 import se.metacraft.skins.SkinMarker;
+import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 import se.metacraft.skins.Skins;
 import se.metacraft.skins.SkinsPack;
@@ -131,6 +132,7 @@ public final class SkinsCommandTests {
 			tokensAndClaims(helper, fx);
 			extractCommand(helper, fx);
 			boxReloadAndList(server, fx);
+			boxesInPlay(helper, fx);
 
 			// Below the defaults: a gamemaster can't reload, a moderator can't list.
 			fx.lookOnly("poop_hat_test", "helmet");
@@ -520,11 +522,6 @@ public final class SkinsCommandTests {
 	}
 
 	/**
-	 * {@code /itemskins extract}, as a player without any permission: it tab-completes exactly the
-	 * skins they own and opens the Extract screen; a refusal says why and opens nothing; the console
-	 * can't extract.
-	 */
-	/**
 	 * Skin Boxes in {@code /itemskins reload}'s reply (a line of counts, each rejection, each warning)
 	 * and in the console's {@code /itemskins list}, after the skins. The boxes are deleted again after.
 	 */
@@ -550,6 +547,113 @@ public final class SkinsCommandTests {
 		assertThat(none.getLast().equals("0 Skin Boxes (0 Dormant) in " + fx.skins.boxesFolder()), "the list with no boxes: " + none);
 	}
 
+	/**
+	 * {@code /itemskins givebox} through the dispatcher, and real right-clicks with a box, as packets:
+	 * a box in the main hand at a chest or an item frame does only the box's thing (the chest stays
+	 * shut, the frame empty, no vault is placed) with a swing; the offhand and a spectator do nothing;
+	 * a Dormant box is refused once per click. The boxes are deleted again after.
+	 */
+	private static void boxesInPlay(GameTestHelper helper, SkinFixtures fx) {
+		MinecraftServer server = helper.getLevel().getServer();
+		fx.box("treats.json5", "{ name: \"Treats\", skins: [ { skin: \"candy_cane_test\", weight: 1 } ] }").box("broken.json5", "{ name: \"Broken\" }");
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins reload");
+		SkinFixtures.Listening player = SkinFixtures.join(helper);
+		try {
+			player.getInventory().clearContent();
+			player.setGameMode(GameType.SURVIVAL);
+			player.arrive(helper.absoluteVec(new Vec3(2.5, 1, 2.5)));
+			String name = player.getGameProfile().name();
+			List<String> gave = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins givebox " + name + " treats 3");
+			assertThat(SkinBox.boxOf(player.getMainHandItem()).equals(Optional.of("treats")) && player.getMainHandItem().getCount() == 3,
+					"givebox gave " + player.getMainHandItem() + ": " + gave);
+			assertThat(gave.contains("Gave 3 Skin Boxes: Treats to " + name + "."), "givebox confirmed " + gave);
+			List<String> dormant = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins givebox " + name + " broken");
+			assertThat(dormant.contains("broken is Dormant, so it can't be given: missing field \"skins\"."), "giving a Dormant box: " + dormant);
+			List<String> unknown = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins givebox " + name + " nowhere");
+			assertThat(unknown.contains("There's no Skin Box nowhere. /itemskins list shows them all."), "giving an unknown box: " + unknown);
+			run(server, LevelBasedPermissionSet.MODERATOR, "itemskins givebox " + name + " treats");
+			assertThat(player.getMainHandItem().getCount() == 3 && player.getInventory().getItem(1).isEmpty(), "a refused givebox gave " + player.getInventory().getItem(1));
+			List<String> suggested = suggestions(server, "itemskins givebox " + name + " ");
+			assertThat(suggested.equals(List.of("treats")), "givebox suggests " + suggested);
+
+		} finally {
+			server.getPlayerList().remove(player);
+		}
+
+		// One player per click: the quiet time after a click counts server ticks, which don't pass here.
+		SkinFixtures.Listening blocks = boxHolder(helper, "treats");
+		SkinFixtures.Listening entities = boxHolder(helper, "treats");
+		SkinFixtures.Listening dormant = boxHolder(helper, "broken");
+		SkinFixtures.Listening offhand = boxHolder(helper, null);
+		SkinFixtures.Listening spectator = boxHolder(helper, "broken");
+		try {
+			// A chest clicked with a box: it stays shut, no vault is placed on it, and the arm swings.
+			BlockPos chest = helper.absolutePos(new BlockPos(3, 1, 3));
+			helper.getLevel().setBlockAndUpdate(chest, Blocks.CHEST.defaultBlockState());
+			blocks.sent(Object.class);
+			blocks.tickEnd();
+			blocks.connection.handleUseItemOn(new ServerboundUseItemOnPacket(InteractionHand.MAIN_HAND,
+					new BlockHitResult(Vec3.atCenterOf(chest).add(0, 0.5, 0), Direction.UP, chest, false), 1));
+			assertThat(blocks.containerMenu == blocks.inventoryMenu, "a chest clicked with a box opened " + blocks.containerMenu);
+			assertThat(helper.getLevel().getBlockState(chest.above()).isAir() && blocks.getMainHandItem().getCount() == 1, "a box was placed on the chest");
+			List<Object> sent = blocks.sent(Object.class);
+			assertThat(sent.stream().anyMatch(p -> p instanceof ClientboundSwingAnimationPacket a && a.entityId() == blocks.getId()), "the arm didn't swing: " + sent);
+
+			// An item frame clicked with a box stays empty.
+			BlockPos wall = helper.absolutePos(new BlockPos(1, 1, 1));
+			helper.getLevel().setBlockAndUpdate(wall, Blocks.STONE.defaultBlockState());
+			ItemFrame frame = new ItemFrame(helper.getLevel(), wall.above(), Direction.UP);
+			helper.getLevel().addFreshEntity(frame);
+			entities.tickEnd();
+			entities.connection.handleInteract(new ServerboundInteractPacket(frame.getId(), InteractionHand.MAIN_HAND, Vec3.ZERO, false));
+			assertThat(frame.getItem().isEmpty() && entities.getMainHandItem().getCount() == 1, "the box went into the item frame");
+			frame.discard();
+
+			// A Dormant box: one click (a main hand use, then an offhand one, then a held button's repeat) is refused once.
+			dormant.tickEnd();
+			dormant.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 1, 0, 0));
+			dormant.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.OFF_HAND, 2, 0, 0));
+			dormant.tickEnd();
+			dormant.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 3, 0, 0));
+			assertThat(dormant.actionBar.equals(List.of("This Skin Box can't be opened right now.")), "a Dormant box: " + dormant.actionBar);
+
+			// A box in the offhand does nothing, and nor does a spectator's.
+			offhand.setItemSlot(EquipmentSlot.OFFHAND, SkinBox.of("broken", 1));
+			offhand.tickEnd();
+			offhand.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.OFF_HAND, 1, 0, 0));
+			assertThat(offhand.actionBar.isEmpty(), "a box in the offhand: " + offhand.actionBar);
+			spectator.setGameMode(GameType.SPECTATOR);
+			spectator.tickEnd();
+			spectator.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 1, 0, 0));
+			assertThat(spectator.actionBar.isEmpty(), "a spectator's box: " + spectator.actionBar);
+		} finally {
+			for (ServerPlayer p : List.of(blocks, entities, dormant, offhand, spectator)) server.getPlayerList().remove(p);
+		}
+		try {
+			for (String file : List.of("treats.json5", "broken.json5")) Files.delete(fx.skins.boxesFolder().resolve(file));
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins reload");
+	}
+
+	/** A player who has joined and arrived, in survival, holding one box ({@code boxId}, or nothing) in the main hand. */
+	private static SkinFixtures.Listening boxHolder(GameTestHelper helper, String boxId) {
+		SkinFixtures.Listening player = SkinFixtures.join(helper);
+		player.getInventory().clearContent();
+		player.setGameMode(GameType.SURVIVAL);
+		player.arrive(helper.absoluteVec(new Vec3(2.5, 1, 2.5)));
+		if (boxId != null) player.getInventory().setItem(0, SkinBox.of(boxId, 1));
+		player.heard.clear();
+		player.actionBar.clear();
+		return player;
+	}
+
+	/**
+	 * {@code /itemskins extract}, as a player without any permission: it tab-completes exactly the
+	 * skins they own and opens the Extract screen; a refusal says why and opens nothing; the console
+	 * can't extract.
+	 */
 	private static void extractCommand(GameTestHelper helper, SkinFixtures fx) {
 		MinecraftServer server = helper.getLevel().getServer();
 		SkinFixtures.Listening player = SkinFixtures.join(helper);

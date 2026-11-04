@@ -25,6 +25,7 @@ import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 import se.metacraft.config.container.ConfigContainer;
+import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 
 import java.io.IOException;
@@ -76,6 +77,8 @@ import java.util.stream.Stream;
  * step with what each player holds and wears. Event Perks fire as the server reports each event
  * ({@link #hit}, {@link #killed}, {@link #brokeBlock}, {@link #hurt}), read from the live skin at that
  * moment. Tokens, menus and Skinned Items list them with {@link PerkLines}.
+ *
+ * <p>A Skin Box item stores only its box's id; {@link #boxView} draws it from the box file as it is now.
  *
  * <p>A skin changes hands only as a Skin Token: a Claim ({@link #claim}) turns a token into ownership,
  * and Extract ({@link #extract}) turns an owned, Unapplied skin back into its token, saving first.
@@ -544,6 +547,54 @@ public final class Skins {
 		client.set(DataComponents.ITEM_NAME, Component.empty()
 				.append(Component.literal("Skin Token: ").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GOLD).withBold(true)))
 				.append(loaded.title()));
+		client.set(DataComponents.LORE, new ItemLore(lines));
+		return client;
+	}
+
+	// ---- Skin Boxes
+
+	/**
+	 * Gives each player {@code count} boxes ({@code /itemskins givebox}); what doesn't fit in an
+	 * inventory drops at that player's feet, for them only to pick up ({@link Hand}). Refused, giving
+	 * nothing, for an unknown or Dormant box.
+	 */
+	public BoxResult giveBoxes(List<ServerPlayer> players, String boxId, int count) {
+		BoxSummary box = boxes.get(boxId);
+		if (box == null) return BoxResult.UNKNOWN_BOX;
+		if (box.dormant()) return BoxResult.DORMANT_BOX;
+		for (ServerPlayer player : players) Hand.give(player, SkinBox.of(boxId, count));
+		return BoxResult.DONE;
+	}
+
+	/**
+	 * What a viewer is sent of a Skin Box: Polymer's client copy ({@code client}, a vault) drawn as
+	 * the plain vault or, for an ominous box, the ominous one, with no glint, named in the box's
+	 * colours, with the lore: its description (gray), one line per usable skin, highest chance first
+	 * ("Pumpkin Hat 20%": the skin's name in its colours, the chance in gray), or "Every skin in this
+	 * box is unavailable." for a box with none, then a blank line and "Right-click to open". A box whose
+	 * file is Dormant, gone or never was reads "Unknown Skin Box: <id>", as a plain vault.
+	 */
+	public ItemStack boxView(ItemStack box, ItemStack client) {
+		String id = SkinBox.boxOf(box).orElse("");
+		BoxSummary summary = boxes.get(id);
+		client.remove(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
+		client.set(DataComponents.ITEM_MODEL, summary != null && !summary.dormant() && summary.ominous() ? SkinBox.OMINOUS_MODEL : SkinBox.PLAIN_MODEL);
+		if (summary == null || summary.dormant()) {
+			client.set(DataComponents.ITEM_NAME, plain("Unknown Skin Box: " + id, ChatFormatting.GRAY));
+			client.set(DataComponents.LORE, new ItemLore(List.of(plain("It isn't on this server.", ChatFormatting.DARK_GRAY))));
+			return client;
+		}
+		List<Component> lines = new ArrayList<>();
+		summary.description().ifPresent(d -> lines.add(plain(d, ChatFormatting.GRAY)));
+		for (BoxSummary.Entry entry : summary.entries()) {
+			Component name = Optional.ofNullable(skins.get(entry.skin())).flatMap(Entry::loaded).map(SkinFolder.Loaded::title)
+					.orElseGet(() -> SkinName.styled(entry.skin()));
+			lines.add(Component.empty().append(name).append(plain(" " + entry.chance(), ChatFormatting.GRAY)));
+		}
+		if (summary.entries().isEmpty()) lines.add(plain("Every skin in this box is unavailable.", ChatFormatting.GRAY));
+		lines.add(Component.empty());
+		lines.add(plain("Right-click to open", ChatFormatting.GRAY));
+		client.set(DataComponents.ITEM_NAME, summary.styledName());
 		client.set(DataComponents.LORE, new ItemLore(lines));
 		return client;
 	}
