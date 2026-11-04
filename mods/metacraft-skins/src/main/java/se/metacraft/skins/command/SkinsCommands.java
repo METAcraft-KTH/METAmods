@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import se.metacraft.skins.BoxSummary;
 import se.metacraft.skins.DrawingCheck;
 import se.metacraft.skins.Material;
 import se.metacraft.skins.MetacraftSkins;
@@ -49,8 +50,9 @@ import java.util.stream.Collectors;
  *   <li>{@code /itemskins} alone ({@code metacraft-skins:menu}, everyone): opens the player's Skin Menu;</li>
  *   <li>{@code list} ({@code metacraft-skins:list}, gamemasters): for a player, opens "All Skins", the Skin Menu with every
  *       skin on the server; anywhere else (the console), every skin in chat, its Kind, any Materials it's limited to and whether
- *       it's a Dyeable Hat ({@code cowboy_hat (helmet: leather, dyeable)}), and why a Dormant one failed;</li>
- *   <li>{@code reload} ({@code metacraft-skins:reload}, admins): re-read the skins and settings and rebuild the pack;
+ *       it's a Dyeable Hat ({@code cowboy_hat (helmet: leather, dyeable)}), and why a Dormant one failed; then every Skin Box
+ *       ({@code halloween (8 skins, 1 left out)}), and why a Dormant one failed;</li>
+ *   <li>{@code reload} ({@code metacraft-skins:reload}, admins): re-read the skins, settings and Skin Boxes and rebuild the pack;
  *       a changed pack is pushed to everyone online, and a reload that took a Look away sends everyone online their items
  *       again. Vanilla {@code /reload} never touches skins;</li>
  *   <li>{@code give <targets> <skin> [count]} ({@code metacraft-skins:give}, gamemasters): Skin Tokens for online players,
@@ -163,6 +165,20 @@ public final class SkinsCommands {
 							+ (skin.dyeable() ? ", dyeable" : "") + ")")
 							.withStyle(ChatFormatting.GRAY));
 			skin.dormantReason().ifPresent(reason -> line.append(Component.literal(" Dormant: " + reason).withStyle(ChatFormatting.RED)));
+			source.sendSuccess(() -> line, false);
+		}
+		List<BoxSummary> boxes = skins.boxes();
+		long dormantBoxes = boxes.stream().filter(BoxSummary::dormant).count();
+		source.sendSuccess(() -> Component.literal(boxes.size() + " Skin Box" + (boxes.size() == 1 ? "" : "es") + " (" + dormantBoxes + " Dormant) in "
+				+ skins.boxesFolder()).withStyle(ChatFormatting.GOLD), false);
+		for (BoxSummary box : boxes) {
+			var line = Component.literal(box.id()).withStyle(box.dormant() ? ChatFormatting.GRAY : ChatFormatting.WHITE);
+			if (box.dormant()) {
+				line.append(Component.literal(" Dormant: " + box.dormantReason().get()).withStyle(ChatFormatting.RED));
+			} else {
+				line.append(Component.literal(" (" + box.listed() + " skin" + (box.listed() == 1 ? "" : "s")
+						+ (box.leftOut().isEmpty() ? "" : ", " + box.leftOut().size() + " left out") + ")").withStyle(ChatFormatting.GRAY));
+			}
 			source.sendSuccess(() -> line, false);
 		}
 		return all.size();
@@ -278,6 +294,15 @@ public final class SkinsCommands {
 		for (ReloadReport.Warning w : report.warnings()) {
 			source.sendSuccess(() -> Component.literal(w.skinId() + ": " + w.message() + " (" + w.file().getFileName() + ")")
 					.withStyle(w.prominent() ? ChatFormatting.YELLOW : ChatFormatting.GRAY), false);
+		}
+		ReloadReport.Boxes boxes = report.boxes();
+		source.sendSuccess(() -> Component.literal("Skin Boxes: " + boxes.loaded().size() + " loaded, " + boxes.rejections().size() + " Dormant.")
+				.withStyle(ChatFormatting.GOLD), false);
+		for (ReloadReport.BoxRejection r : boxes.rejections()) {
+			source.sendFailure(Component.literal(r.boxId() + " is Dormant: " + r.reason() + " (" + r.file().getFileName() + ")"));
+		}
+		for (ReloadReport.BoxWarning w : boxes.warnings()) {
+			source.sendSuccess(() -> Component.literal(w.message()).withStyle(ChatFormatting.GRAY), false);
 		}
 		return loaded;
 	}

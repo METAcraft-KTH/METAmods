@@ -58,10 +58,13 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -127,6 +130,7 @@ public final class SkinsCommandTests {
 			skinMenuAndSkinnedItemsReachPlayers(helper, fx);
 			tokensAndClaims(helper, fx);
 			extractCommand(helper, fx);
+			boxReloadAndList(server, fx);
 
 			// Below the defaults: a gamemaster can't reload, a moderator can't list.
 			fx.lookOnly("poop_hat_test", "helmet");
@@ -520,6 +524,32 @@ public final class SkinsCommandTests {
 	 * skins they own and opens the Extract screen; a refusal says why and opens nothing; the console
 	 * can't extract.
 	 */
+	/**
+	 * Skin Boxes in {@code /itemskins reload}'s reply (a line of counts, each rejection, each warning)
+	 * and in the console's {@code /itemskins list}, after the skins. The boxes are deleted again after.
+	 */
+	private static void boxReloadAndList(MinecraftServer server, SkinFixtures fx) {
+		fx.box("treats.json5", "{ name: \"Treats\", skins: [ { skin: \"candy_cane_test\", weight: 3 }, { skin: \"hat\", weight: 1 } ] }")
+				.box("broken.json5", "{ name: \"Broken\" }")
+				.box("notes.txt", "a list of ideas");
+		List<String> reload = run(server, LevelBasedPermissionSet.ADMIN, "itemskins reload");
+		assertThat(reload.contains("Skin Boxes: 1 loaded, 1 Dormant.") && reload.contains("broken is Dormant: missing field \"skins\" (broken.json5)")
+				&& reload.contains("treats: hat is Dormant, left out") && reload.contains("boxes/notes.txt isn't a .json5 file, ignored"),
+				"the reload reply: " + reload);
+		List<String> list = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins list");
+		int header = list.indexOf("2 Skin Boxes (1 Dormant) in " + fx.skins.boxesFolder());
+		assertThat(header > 0 && list.subList(header + 1, list.size()).equals(List.of("broken Dormant: missing field \"skins\"", "treats (2 skins, 1 left out)")),
+				"the list: " + list);
+		try {
+			for (String file : List.of("treats.json5", "broken.json5", "notes.txt")) Files.delete(fx.skins.boxesFolder().resolve(file));
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins reload");
+		List<String> none = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins list");
+		assertThat(none.getLast().equals("0 Skin Boxes (0 Dormant) in " + fx.skins.boxesFolder()), "the list with no boxes: " + none);
+	}
+
 	private static void extractCommand(GameTestHelper helper, SkinFixtures fx) {
 		MinecraftServer server = helper.getLevel().getServer();
 		SkinFixtures.Listening player = SkinFixtures.join(helper);

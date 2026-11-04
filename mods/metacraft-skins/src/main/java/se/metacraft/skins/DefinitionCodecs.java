@@ -8,6 +8,8 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import com.mojang.serialization.codecs.KeyDispatchCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.network.chat.TextColor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +20,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
- * Building blocks for the codecs of {@code skin.json5} ({@link SkinDefinition}, {@link PerkCodecs}),
- * whose errors are the reason an admin reads when a skin is rejected. A value's error says where
+ * Building blocks for the codecs of {@code skin.json5} ({@link SkinDefinition}, {@link PerkCodecs})
+ * and of Skin Box files ({@link BoxFile}), whose errors are the reason an admin reads when a skin or
+ * box is rejected. A value's error says where
  * it is, as {@code perks[0].effects[1].level: starts at 1}; a missing field's says which.
  */
 final class DefinitionCodecs {
@@ -33,6 +36,35 @@ final class DefinitionCodecs {
 	static final Codec<Long> WHOLE = NUMBER.comapFlatMap(
 			d -> d == Math.rint(d) ? DataResult.success(d.longValue()) : DataResult.error(() -> "must be a whole number"), Long::doubleValue);
 	static final Codec<String> TEXT = text("must be a non-empty string");
+
+	/** A top-level field's text: a non-empty string, or "field \"<key>\" must be a non-empty string". */
+	static Codec<String> topText(String key) {
+		return text("field \"" + key + "\" must be a non-empty string");
+	}
+
+	/** {@code name} (of a skin or a Skin Box), with Minecraft's formatting codes ({@link SkinName}): some text besides its codes. */
+	static final Codec<String> NAME = topText("name").validate(name -> SkinName.plain(name).isBlank()
+			? DataResult.error(() -> "field \"name\" must have some text besides its formatting codes") : DataResult.success(name));
+	/** One colour of a gradient: {@code "#FF8C00"}. */
+	private static final Codec<TextColor> COLOUR = text("must be a colour written \"#RRGGBB\"").comapFlatMap(
+			colour -> colour.matches("#[0-9a-fA-F]{6}") ? DataResult.success(TextColor.fromRgb(Integer.parseInt(colour.substring(1), 16)))
+					: DataResult.error(() -> "must be a colour written \"#RRGGBB\", not \"" + colour + "\""),
+			colour -> String.format("#%06X", colour.getValue()));
+	/** {@code gradient}: {@code { colors: ["#FF8C00", "#FFD700"], mirror: true }}, two colours or more; {@code mirror} is optional. */
+	static final Codec<SkinName.Gradient> GRADIENT = object(StrictCodec.of(RecordCodecBuilder.<SkinName.Gradient>mapCodec(i -> i.group(
+			rawField("colors", list("colors", COLOUR, "\"colors\" must be a list of colours, as [\"#FF8C00\", \"#FFD700\"]"), "missing field \"colors\"")
+					.forGetter(SkinName.Gradient::colours),
+			orElse(optionalField("mirror", withError(Codec.BOOL, "must be true or false")), false).forGetter(SkinName.Gradient::mirror)
+	).apply(i, SkinName.Gradient::new))).validate(g -> g.colours().size() < 2
+			? DataResult.error(() -> "\"colors\" needs two colours or more") : DataResult.success(g)),
+			"must be an object: { colors: [\"#FF8C00\", \"#FFD700\"], mirror: true }");
+
+	/** {@code definition}, unless its name has a colour code while a gradient colours it. */
+	static <D> DataResult<D> nameFitsGradient(D definition, String name, Optional<SkinName.Gradient> gradient) {
+		return gradient.isPresent() && SkinName.hasColourCode(name)
+				? DataResult.error(() -> "a name with a \"gradient\" takes no colour codes, only formats such as &l: the gradient colours it")
+				: DataResult.success(definition);
+	}
 
 	/** A non-empty string; anything else is {@code error}. */
 	static Codec<String> text(String error) {

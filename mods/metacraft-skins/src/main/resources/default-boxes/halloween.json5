@@ -1,0 +1,15 @@
+{
+	name: "&lHalloween Skin Box",
+	gradient: { colors: ["#FF6A00", "#7B2FBE"], mirror: true },
+	ominous: true,
+	skins: [
+		{ skin: "pumpkin_hat", weight: 20 },
+		{ skin: "witch_hat", weight: 20 },
+		{ skin: "spider_hat", weight: 20 },
+		{ skin: "plague_mask", weight: 15 },
+		{ skin: "pumpkin_pickaxe", weight: 10 },
+		{ skin: "plague_mask_silver", weight: 7 },
+		{ skin: "bloody_cleaver", weight: 5 },
+		{ skin: "plague_mask_dark", weight: 3 },
+	],
+}

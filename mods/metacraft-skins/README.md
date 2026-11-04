@@ -53,6 +53,7 @@ Everything is under the server's root folder:
 config/
   metacraft-skins.json5            the settings
   metacraft-skins/skins/<skin-id>/  one folder per skin: skin.json5 and its Blockbench export
+  metacraft-skins/boxes/<box-id>.json5  one file per Skin Box
 skins-data/players/<uuid>.json     who owns what, one file per player
 world/metacraft-skins.json         the world's stamp (see "Ownership data")
 ```
@@ -66,6 +67,10 @@ them in `config/metacraft-skins/skins/` the first time the server starts without
 
 Each fits every Material of its Kind. `cowboy_hat` and the two test skins are Dyeable Hats. After that
 first start the folder is yours: delete a skin's folder and it stays gone. The Skin Token's own model and texture ship in the jar and go into the pack on their own.
+
+The mod also ships the Halloween Skin Box, `halloween.json5`, and puts it in `config/metacraft-skins/boxes/`
+the first time the server starts without that folder (an existing server gets it on its first start
+with this version). After that the folder is yours too: a deleted box stays deleted.
 
 ## Writing a skin
 
@@ -375,7 +380,8 @@ file and the reason, shown to whoever ran `/itemskins reload`, and listed by `/i
 Skins are read at server start and by `/itemskins reload`, and never by vanilla `/reload`, so reloading data
 packs never pushes a resource pack by surprise. `/itemskins reload`:
 
-1. re-reads every skin folder and the settings file;
+1. re-reads every skin folder and the settings file, then every Skin Box file in `boxes/` (against the
+   skins it just read, so a box and its skins never disagree);
 2. rebuilds the skins pack;
 3. if the pack changed, sends it to everyone online (each gets a short loading screen), and otherwise
    sends nothing;
@@ -386,10 +392,15 @@ packs never pushes a resource pack by surprise. `/itemskins reload`:
    whether the pack changed (with the start of its SHA-1). Besides the display transforms (see
    [Writing a skin](#writing-a-skin)), a model that marks Tint faces on a skin that isn't dyeable gets a
    minor warning: "<model> marks Tint faces but the skin isn't dyeable; they keep their painted colours".
+   Then one line for the boxes, "Skin Boxes: <n> loaded, <m> Dormant.", each Dormant box and why
+   ("halloween is Dormant: <reason> (halloween.json5)"), and each warning: a skin a box left out
+   ("halloween: spider_hat is Dormant, left out"; "halloween: spider_hat isn't a skin on this server,
+   left out") and each file in `boxes/` that was ignored ("boxes/notes.txt isn't a .json5 file, ignored").
 
 The pack is built the same way every time, so the same skins give the same SHA-1. Only Looks are in
 it: **editing a skin's name, description or Perks changes every token and Skinned Item at once, and
 doesn't change the pack**, so nobody downloads anything, and nor does editing its `materials`.
+Skin Boxes never change the pack either.
 Adding, removing or changing a model or texture does, and so does turning `dyeable` on or off. So you
 choose when players see a loading screen: batch Look changes into one reload.
 
@@ -456,6 +467,9 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids tab
   `candy_sword (sword)`. A skin limited to Materials lists them after its Kind, in the order of the
   Materials table: `crown (helmet: leather, turtle)`. A Dyeable Hat says so last:
   `cowboy_hat (helmet: leather, dyeable)`, or `cowboy_hat (helmet, dyeable)` with no Materials.
+  After the skins it lists every Skin Box file, sorted by id, with how many skins it lists and how
+  many it left out: `halloween (8 skins)`, `halloween (8 skins, 1 left out)`, or for a Dormant box
+  `halloween Dormant: <reason>`.
 - **`grant`** makes a player own a skin without a token. Refused if they already own it, or the skin is
   unknown or Dormant. An online player gets the claim message.
 - **`revoke`** takes a skin away, Dormant ones too. The item carrying it is plain for good, as in
