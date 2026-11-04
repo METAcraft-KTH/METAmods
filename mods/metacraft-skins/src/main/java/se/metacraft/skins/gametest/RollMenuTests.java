@@ -60,7 +60,7 @@ public final class RollMenuTests {
 		SkinFixtures fx = SkinFixtures.create().skin("a", "sword").skin("b", "sword").box("ab.json5", AB);
 		fx.file("b", "skin.json5", "{ name: \"B\", kind: \"nope\" }");
 		fx.reload();
-		ServerPlayer player = ApplyTests.carrying(helper, SkinBox.of("ab", 1), SkinBox.of("ab", 1), SkinBox.of("ab", 1));
+		ServerPlayer player = ApplyTests.carrying(helper, SkinBox.of("ab"), SkinBox.of("ab"), SkinBox.of("ab"));
 		for (int slot = 0; slot < 3; slot++) {
 			player.getInventory().setSelectedSlot(slot);
 			Skins.Rolled rolled = fx.skins.roll(player, "ab");
@@ -76,11 +76,11 @@ public final class RollMenuTests {
 	public void aRollThatCantGoAheadKeepsTheBox(GameTestHelper helper) {
 		SkinFixtures fx = SkinFixtures.create().skin("a", "sword").skin("b", "sword").box("ab.json5", AB);
 		fx.reload();
-		ServerPlayer player = ApplyTests.carrying(helper, new ItemStack(Items.DIAMOND), SkinBox.of("ab", 1));
+		ServerPlayer player = ApplyTests.carrying(helper, new ItemStack(Items.DIAMOND), SkinBox.of("ab"));
 		assertRefused(fx, player, "ab", BoxResult.BOX_GONE);   // it's in their inventory, not their hand
-		player.getInventory().setItem(0, SkinBox.of("other", 1));
+		player.getInventory().setItem(0, SkinBox.of("other"));
 		assertRefused(fx, player, "ab", BoxResult.BOX_GONE);
-		player.getInventory().setItem(0, SkinBox.of("ab", 1));
+		player.getInventory().setItem(0, SkinBox.of("ab"));
 
 		fx.file("a", "skin.json5", "{ name: \"A\", kind: \"nope\" }").file("b", "skin.json5", "{ name: \"B\", kind: \"nope\" }");
 		fx.reload();
@@ -89,7 +89,7 @@ public final class RollMenuTests {
 		fx.reload();
 		assertRefused(fx, player, "ab", BoxResult.DORMANT_BOX);
 		assertRefused(fx, player, "nowhere", BoxResult.BOX_GONE);
-		player.getInventory().setItem(0, SkinBox.of("nowhere", 1));
+		player.getInventory().setItem(0, SkinBox.of("nowhere"));
 		assertRefused(fx, player, "nowhere", BoxResult.DORMANT_BOX);
 		helper.succeed();
 	}
@@ -104,6 +104,19 @@ public final class RollMenuTests {
 		int a = 0;
 		for (int i = 0; i < 4000; i++) if (BoxSummary.draw(entries, random).equals("a")) a++;
 		assertThat(a > 2850 && a < 3150, "\"a\" came up " + a + " times in 4000, not about 3000");
+		helper.succeed();
+	}
+
+	/** A box as heavy as the rules allow (thousands of skins at weight 1,000,000) still draws: the weights add up past an int. */
+	@GameTest
+	public void theHeaviestBoxStillDraws(GameTestHelper helper) {
+		List<BoxSummary.Entry> entries = new ArrayList<>();
+		for (int i = 0; i < 3000; i++) entries.add(new BoxSummary.Entry("s" + i, 1_000_000, "<0.1%"));
+		RandomSource random = RandomSource.create(1);
+		for (int i = 0; i < 100; i++) {
+			String drawn = BoxSummary.draw(entries, random);
+			assertThat(drawn.matches("s\\d+"), "drew " + drawn);
+		}
 		helper.succeed();
 	}
 
@@ -180,7 +193,11 @@ public final class RollMenuTests {
 			for (int slot = REEL; slot < REEL + 9; slot++) assertThat(slot(player, slot).is(Items.STAINED_GLASS_PANE.gray()), "reel slot " + slot + ": " + slot(player, slot));
 			assertThat(slot(player, BOTTOM).is(Items.BARRIER) && name(player, BOTTOM).equals("Nothing to roll")
 					&& lore(player, BOTTOM).equals(List.of("Every skin in this box is unavailable. Your box is kept.")), "the barrier: " + name(player, BOTTOM) + " " + lore(player, BOTTOM));
+			// A double-click is two clicks, the second a pickup-all: it's refused once.
+			AbstractContainerMenu menu = player.containerMenu;
 			SkinMenuTests.click(player, BOTTOM);
+			player.connection.handleContainerClick(new ServerboundContainerClickPacket(menu.containerId, menu.getStateId(), (short) BOTTOM, (byte) 0,
+					ContainerInput.PICKUP_ALL, Int2ObjectMaps.emptyMap(), HashedStack.EMPTY));
 			assertThat(player.actionBar.equals(List.of("This box has nothing to roll. Your box is kept.")), "the player was told " + player.actionBar);
 			assertThat(player.getMainHandItem().getCount() == 1 && SkinMenuTests.title(player).equals("Gone"), "the barrier used the box or closed the menu");
 		} finally {
@@ -394,7 +411,7 @@ public final class RollMenuTests {
 		player.getInventory().clearContent();
 		player.setGameMode(GameType.SURVIVAL);
 		player.arrive(helper.absoluteVec(new Vec3(2.5, 1, 2.5)));
-		for (int slot = 0; slot < count; slot++) player.getInventory().setItem(slot, SkinBox.of(boxId, 1));
+		for (int slot = 0; slot < count; slot++) player.getInventory().setItem(slot, SkinBox.of(boxId));
 		player.heard.clear();
 		player.actionBar.clear();
 		return player;

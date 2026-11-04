@@ -12,7 +12,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
@@ -37,16 +36,15 @@ public final class ExtractMenu {
 	/** Opens the screen for one of the player's skins; the command checks first that it could be extracted ({@link Skins#extractable}). */
 	public static void open(ServerPlayer player, Skins skins, String skinId) {
 		String name = skins.skin(skinId).map(SkinSummary::displayName).orElse(skinId);
-		SimpleGui gui = new SimpleGui(MenuType.GENERIC_9x3, player, false);
-		gui.setLockPlayerInventory(true);
+		SimpleGui gui = SkinMenu.locked(MenuType.GENERIC_9x3, player);
 		gui.setTitle(Component.literal("Extract " + name + "?"));
-		for (int slot = 0; slot < gui.getSize(); slot++) gui.setSlot(slot, filler());
+		for (int slot = 0; slot < gui.getSize(); slot++) gui.setSlot(slot, Panes.filler(Items.STAINED_GLASS_PANE.black()));
 		for (int slot : EXTRACT) {
-			gui.setSlot(slot, pane(Items.STAINED_GLASS_PANE.lime(), Component.literal("✔ Extract " + name).withStyle(ChatFormatting.GREEN),
+			gui.setSlot(slot, Panes.button(Items.STAINED_GLASS_PANE.lime(), Component.literal("✔ Extract " + name).withStyle(ChatFormatting.GREEN),
 					"You get its Skin Token back", () -> extract(player, skins, gui, skinId, name)));
 		}
 		for (int slot : CANCEL) {
-			gui.setSlot(slot, pane(Items.STAINED_GLASS_PANE.red(), Component.literal("✖ Cancel").withStyle(ChatFormatting.RED), "You keep the skin", () -> {
+			gui.setSlot(slot, Panes.button(Items.STAINED_GLASS_PANE.red(), Component.literal("✖ Cancel").withStyle(ChatFormatting.RED), "You keep the skin", () -> {
 				if (!gui.isOpen()) return;
 				gui.close();
 				Feedback.cancelled(player, "Extract", "the skin");
@@ -86,11 +84,4 @@ public final class ExtractMenu {
 		return GuiElementBuilder.from(shown).build();
 	}
 
-	private static GuiElement pane(Item item, Component name, String lore, Runnable click) {
-		return new GuiElementBuilder(item).setName(name).addLoreLine(Component.literal(lore).withStyle(ChatFormatting.GRAY)).setCallback(click).build();
-	}
-
-	private static GuiElement filler() {
-		return new GuiElementBuilder(Items.STAINED_GLASS_PANE.black()).setName(Component.literal(" ")).hideTooltip().build();
-	}
 }

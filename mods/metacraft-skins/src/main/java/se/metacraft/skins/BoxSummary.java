@@ -42,9 +42,13 @@ public record BoxSummary(String id, Optional<String> name, Optional<Component> t
 		return entries.size() + leftOut.size();
 	}
 
-	/** One skin drawn from {@code entries} (at least one) by weight: each skin's chance is its weight in their total. */
+	/**
+	 * One skin drawn from {@code entries} (at least one) by weight: each skin's chance is its weight in
+	 * their total. The total can pass an int (thousands of skins at the largest weight).
+	 */
 	public static String draw(List<Entry> entries, RandomSource random) {
-		int r = random.nextInt(entries.stream().mapToInt(Entry::weight).sum());
+		long total = entries.stream().mapToLong(Entry::weight).sum();
+		long r = total <= Integer.MAX_VALUE ? random.nextInt((int) total) : Math.floorMod(random.nextLong(), total);
 		for (Entry entry : entries) {
 			r -= entry.weight();
 			if (r < 0) return entry.skin();

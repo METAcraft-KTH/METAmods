@@ -590,12 +590,23 @@ public final class SkinsCommandTests {
 		}
 
 		// One player per click: the quiet time after a click counts server ticks, which don't pass here.
+		SkinFixtures.Listening air = boxHolder(helper, "treats");
 		SkinFixtures.Listening blocks = boxHolder(helper, "treats");
 		SkinFixtures.Listening entities = boxHolder(helper, "treats");
 		SkinFixtures.Listening dormant = boxHolder(helper, "broken");
 		SkinFixtures.Listening offhand = boxHolder(helper, null);
 		SkinFixtures.Listening spectator = boxHolder(helper, "broken");
 		try {
+			// Air: one click arrives as a main hand use and then an offhand one, and a held button repeats; the Roll menu opens once.
+			air.sent(Object.class);
+			air.tickEnd();
+			air.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 1, 0, 0));
+			air.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.OFF_HAND, 2, 0, 0));
+			air.tickEnd();
+			air.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 3, 0, 0));
+			assertThat(SkinMenuTests.title(air).equals("Treats") && air.sent(ClientboundOpenScreenPacket.class).size() == 1,
+					"a right-click on air opened " + SkinMenuTests.title(air));
+
 			// A chest clicked with a box: the Roll menu, not the chest; no vault is placed on it, and the arm swings.
 			BlockPos chest = helper.absolutePos(new BlockPos(3, 1, 3));
 			helper.getLevel().setBlockAndUpdate(chest, Blocks.CHEST.defaultBlockState());
@@ -628,7 +639,7 @@ public final class SkinsCommandTests {
 			assertThat(dormant.actionBar.equals(List.of("This Skin Box can't be opened right now.")), "a Dormant box: " + dormant.actionBar);
 
 			// A box in the offhand does nothing, and nor does a spectator's.
-			offhand.setItemSlot(EquipmentSlot.OFFHAND, SkinBox.of("broken", 1));
+			offhand.setItemSlot(EquipmentSlot.OFFHAND, SkinBox.of("broken"));
 			offhand.tickEnd();
 			offhand.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.OFF_HAND, 1, 0, 0));
 			assertThat(offhand.actionBar.isEmpty(), "a box in the offhand: " + offhand.actionBar);
@@ -637,7 +648,7 @@ public final class SkinsCommandTests {
 			spectator.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 1, 0, 0));
 			assertThat(spectator.actionBar.isEmpty(), "a spectator's box: " + spectator.actionBar);
 		} finally {
-			for (ServerPlayer p : List.of(blocks, entities, dormant, offhand, spectator)) server.getPlayerList().remove(p);
+			for (ServerPlayer p : List.of(air, blocks, entities, dormant, offhand, spectator)) server.getPlayerList().remove(p);
 		}
 		try {
 			for (String file : List.of("treats.json5", "broken.json5")) Files.delete(fx.skins.boxesFolder().resolve(file));
@@ -653,7 +664,7 @@ public final class SkinsCommandTests {
 		player.getInventory().clearContent();
 		player.setGameMode(GameType.SURVIVAL);
 		player.arrive(helper.absoluteVec(new Vec3(2.5, 1, 2.5)));
-		if (boxId != null) player.getInventory().setItem(0, SkinBox.of(boxId, 1));
+		if (boxId != null) player.getInventory().setItem(0, SkinBox.of(boxId));
 		player.heard.clear();
 		player.actionBar.clear();
 		return player;

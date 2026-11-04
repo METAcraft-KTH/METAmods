@@ -228,7 +228,7 @@ public final class Skins {
 			String id = BoxFile.id(file);
 			try {
 				BoxFile.Loaded box = BoxFile.load(file);
-				next.put(id, usable(box, file, skinsNow, warnings));
+				next.put(id, loadedBox(box, file, skinsNow, warnings));
 				loaded.add(id);
 			} catch (SkinFolder.Rejected e) {
 				next.put(id, dormantBox(id, e.getMessage()));
@@ -248,7 +248,7 @@ public final class Skins {
 	}
 
 	/** A box that loaded, its skins sorted into the usable ones (with their chances, highest first) and the ones left out. */
-	private static BoxSummary usable(BoxFile.Loaded box, Path file, Map<String, Entry> skinsNow, List<ReloadReport.BoxWarning> warnings) {
+	private static BoxSummary loadedBox(BoxFile.Loaded box, Path file, Map<String, Entry> skinsNow, List<ReloadReport.BoxWarning> warnings) {
 		List<BoxFile.Entry> usable = new ArrayList<>();
 		List<String> leftOut = new ArrayList<>();
 		for (BoxFile.Entry entry : box.skins()) {
@@ -564,7 +564,7 @@ public final class Skins {
 		if (box == null) return BoxResult.UNKNOWN_BOX;
 		if (box.dormant()) return BoxResult.DORMANT_BOX;
 		for (ServerPlayer player : players) {
-			for (int i = 0; i < count; i++) Hand.give(player, SkinBox.of(boxId, 1));
+			for (int i = 0; i < count; i++) Hand.give(player, SkinBox.of(boxId));
 		}
 		return BoxResult.DONE;
 	}
@@ -615,9 +615,7 @@ public final class Skins {
 		List<Component> lines = new ArrayList<>();
 		summary.description().ifPresent(d -> lines.add(plain(d, ChatFormatting.GRAY)));
 		for (BoxSummary.Entry entry : summary.entries()) {
-			Component name = Optional.ofNullable(skins.get(entry.skin())).flatMap(Entry::loaded).map(SkinFolder.Loaded::title)
-					.orElseGet(() -> SkinName.styled(entry.skin()));
-			lines.add(Component.empty().append(name).append(plain(" " + entry.chance(), ChatFormatting.GRAY)));
+			lines.add(Component.empty().append(styledName(entry.skin())).append(plain(" " + entry.chance(), ChatFormatting.GRAY)));
 		}
 		if (summary.entries().isEmpty()) lines.add(plain("Every skin in this box is unavailable.", ChatFormatting.GRAY));
 		// Siblings of an empty root, so the hint doesn't take on the name's colours and formats.
@@ -999,6 +997,11 @@ public final class Skins {
 	/** Every skin folder, sorted by id: its Kind and, if Dormant, why. */
 	public List<SkinSummary> allSkins() {
 		return skins.values().stream().map(this::summary).toList();
+	}
+
+	/** A skin's name in its colours, as menus and messages show it; the id, yellow, while it's Dormant or unknown. */
+	public Component styledName(String skinId) {
+		return skin(skinId).map(SkinSummary::styledName).orElseGet(() -> SkinName.styled(skinId));
 	}
 
 	/** One skin folder by id; empty if there's none (an owned skin whose folder is gone is Dormant all the same). */

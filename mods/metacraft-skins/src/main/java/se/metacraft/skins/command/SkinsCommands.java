@@ -137,7 +137,7 @@ public final class SkinsCommands {
 		};
 	}
 
-	/** The ids of every skin the player running the command owns, Applied and Dormant ones too; nothing for the console. */
+	/** The ids of every skin the player running the command owns, those on an item and Dormant ones too (refused with a reason); nothing for the console. */
 	private static SuggestionProvider<CommandSourceStack> ownedSkinIds(Supplier<Skins> skins) {
 		return (ctx, builder) -> {
 			Skins current = skins.get();
@@ -246,8 +246,7 @@ public final class SkinsCommands {
 		String id = StringArgumentType.getString(ctx, "box");
 		BoxResult result = skins.giveBoxes(targets, id, count);
 		if (result != BoxResult.DONE) {
-			ctx.getSource().sendFailure(Component.literal(result == BoxResult.UNKNOWN_BOX ? "There's no Skin Box " + id + ". /itemskins list shows them all."
-					: id + " is Dormant, so it can't be given: " + skins.box(id).flatMap(BoxSummary::dormantReason).orElse("its file didn't load") + "."));
+			ctx.getSource().sendFailure(Component.literal(Feedback.whyNotGiven(result, id, skins.box(id).flatMap(BoxSummary::dormantReason))));
 			return 0;
 		}
 		String name = skins.box(id).map(BoxSummary::displayName).orElse(id);

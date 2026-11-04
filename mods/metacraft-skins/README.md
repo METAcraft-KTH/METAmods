@@ -382,7 +382,7 @@ file and the reason, shown to whoever ran `/itemskins reload`, and listed by `/i
 
 A **Skin Box** is an item that a player opens to **Roll** for a Skin Token: a reel of the box's skins
 spins and lands on one, and the player gets that skin's token. A box gives a token, never ownership:
-Claiming, trading and Extracting work on that token as on any other. Gamemasters hand boxes out with
+the token is Claimed and traded like any other, and its Owner can Extract the skin again later. Gamemasters hand boxes out with
 `/itemskins givebox`.
 
 ### The box file

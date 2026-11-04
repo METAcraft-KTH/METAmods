@@ -1,12 +1,13 @@
 package se.metacraft.skins.ui;
 
+import eu.pb4.sgui.api.ClickType;
 import eu.pb4.sgui.api.SguiUtils;
 import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
+import se.metacraft.skins.BoxResult;
 import se.metacraft.skins.BoxSummary;
 import se.metacraft.skins.Hand;
 import se.metacraft.skins.MetacraftSkins;
-import se.metacraft.skins.SkinName;
 import se.metacraft.skins.SkinSummary;
 import se.metacraft.skins.Skins;
 import se.metacraft.skins.item.SkinToken;
@@ -45,14 +46,12 @@ public final class RollMenu {
 
 	static final int TOP = 4, REEL = 9, BOTTOM = 22;
 	private static final int[] SCHEDULE = Reel.schedule();
-	private static final String CANT_OPEN = "This Skin Box can't be opened right now.";
-	private static final String NOTHING_TO_ROLL = "This box has nothing to roll. Your box is kept.";
 
 	/** Opens the Roll menu of box {@code boxId}; a Dormant or unknown box is refused instead. */
 	public static void open(ServerPlayer player, Skins skins, String boxId) {
 		Optional<BoxSummary> box = skins.box(boxId).filter(b -> !b.dormant());
 		if (box.isEmpty()) {
-			Feedback.failed(player, CANT_OPEN);
+			Feedback.failed(player, Feedback.whyNot(BoxResult.DORMANT_BOX));
 			return;
 		}
 		new Gui(player, skins, box.get()).open();
@@ -89,12 +88,15 @@ public final class RollMenu {
 			this.skins = skins;
 			this.boxId = box.id();
 			setTitle(box.styledName());
-			for (int slot = 0; slot < getSize(); slot++) setSlot(slot, filler());
+			for (int slot = 0; slot < getSize(); slot++) setSlot(slot, Panes.filler(Items.STAINED_GLASS_PANE.gray()));
 			setSlot(TOP, marker(Items.STAINED_GLASS_PANE.orange(), Component.literal("▼").withStyle(ChatFormatting.GOLD)));
 			if (box.entries().isEmpty()) {
 				setSlot(BOTTOM, new GuiElementBuilder(Items.BARRIER).setName(Component.literal("Nothing to roll").withStyle(ChatFormatting.RED))
 						.addLoreLine(Component.literal("Every skin in this box is unavailable. Your box is kept.").withStyle(ChatFormatting.GRAY))
-						.setCallback(() -> Feedback.failed(player, NOTHING_TO_ROLL)).build());
+						// A double-click's second click (sgui calls back for it too) says nothing more.
+						.setCallback((ClickType type) -> {
+							if (type != ClickType.MOUSE_DOUBLE_CLICK) Feedback.failed(player, Feedback.whyNot(BoxResult.NOTHING_TO_ROLL));
+						}).build());
 				return;
 			}
 			Map<String, String> chances = chances(box.entries());
@@ -113,21 +115,10 @@ public final class RollMenu {
 			if (state != State.READY) return;
 			ServerPlayer player = getPlayer();
 			Skins.Rolled rolled = skins.roll(player, boxId);
-			switch (rolled.result()) {
-				case BOX_GONE -> {
-					Feedback.failed(player, "Your Skin Box is gone.");
-					close();
-					return;
-				}
-				case DORMANT_BOX, UNKNOWN_BOX -> {
-					Feedback.failed(player, CANT_OPEN);
-					return;
-				}
-				case NOTHING_TO_ROLL -> {
-					Feedback.failed(player, NOTHING_TO_ROLL);
-					return;
-				}
-				case DONE -> { }
+			if (rolled.result() != BoxResult.DONE) {
+				Feedback.failed(player, Feedback.whyNot(rolled.result()));
+				if (rolled.result() == BoxResult.BOX_GONE) close();
+				return;
 			}
 			result = rolled.skin().orElseThrow();
 			Map<String, String> chances = chances(rolled.entries());
@@ -159,7 +150,7 @@ public final class RollMenu {
 
 		private void land() {
 			state = State.LANDED;
-			Component name = name(result);
+			Component name = skins.styledName(result);
 			setSlot(REEL + Reel.CENTRE, landed());
 			setSlot(TOP, marker(Items.STAINED_GLASS_PANE.lime(), Component.literal("▼ ").withStyle(ChatFormatting.GREEN).append(name)));
 			setSlot(BOTTOM, marker(Items.STAINED_GLASS_PANE.lime(), Component.literal("▲ ").withStyle(ChatFormatting.GREEN).append(name)));
@@ -190,7 +181,7 @@ public final class RollMenu {
 			} else {
 				Hand.give(player, token);
 			}
-			Feedback.rolled(player, name(result));
+			Feedback.rolled(player, skins.styledName(result));
 		}
 
 		/** Escape, another menu opening over it, a dimension change, a code close(), and the late close after death or disconnect. */
@@ -223,18 +214,19 @@ public final class RollMenu {
 		/** The landed result, glinting: its chance, then what it fits, its release, its Perks and its description, as the Skin Menu shows them. */
 		private GuiElement landed() {
 			GuiElementBuilder icon = look(result).addLoreLine(Component.literal(resultChance + " chance").withStyle(ChatFormatting.GRAY));
-			skins.skin(result).filter(s -> !s.dormant() && s.fit().isPresent()).ifPresent(s -> SkinMenu.lookLines(s, s.fit().get()).forEach(icon::addLoreLine));
+			shown(result).ifPresent(s -> SkinMenu.lookLines(s, s.fit().get()).forEach(icon::addLoreLine));
 			return icon.glow(true).build();
 		}
 
 		/** A skin's Look, or (one gone Dormant or unknown since the box was read) a paper named by its id. */
 		private GuiElementBuilder look(String skinId) {
-			return skins.skin(skinId).filter(s -> !s.dormant() && s.fit().isPresent()).map(s -> SkinMenu.lookOnly(s, s.fit().get()))
+			return shown(skinId).map(s -> SkinMenu.lookOnly(s, s.fit().get()))
 					.orElseGet(() -> new GuiElementBuilder(Items.PAPER).setName(Component.literal(skinId).withStyle(ChatFormatting.GRAY)));
 		}
 
-		private Component name(String skinId) {
-			return skins.skin(skinId).map(SkinSummary::styledName).orElseGet(() -> SkinName.styled(skinId));
+		/** The skin, if it can be shown with its Look: loaded, with a Kind. */
+		private Optional<SkinSummary> shown(String skinId) {
+			return skins.skin(skinId).filter(s -> !s.dormant() && s.fit().isPresent());
 		}
 	}
 
@@ -247,7 +239,4 @@ public final class RollMenu {
 		return new GuiElementBuilder(pane).setName(name).build();
 	}
 
-	private static GuiElement filler() {
-		return new GuiElementBuilder(Items.STAINED_GLASS_PANE.gray()).setName(Component.literal(" ")).hideTooltip().build();
-	}
 }

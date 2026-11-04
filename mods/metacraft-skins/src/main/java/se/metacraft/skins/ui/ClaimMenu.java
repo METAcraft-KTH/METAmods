@@ -46,18 +46,18 @@ public final class ClaimMenu {
 
 		Gui gui = new Gui(player);
 		gui.setTitle(Component.literal(owned ? "Already owned" : "Claim " + name + "?"));
-		for (int slot = 0; slot < gui.getSize(); slot++) gui.setSlot(slot, filler());
+		for (int slot = 0; slot < gui.getSize(); slot++) gui.setSlot(slot, Panes.filler(Items.STAINED_GLASS_PANE.black()));
 		for (int slot : CLAIM) {
 			if (owned) {
-				gui.setSlot(slot, pane(Items.STAINED_GLASS_PANE.gray(), Component.literal("You already own " + name).withStyle(ChatFormatting.GRAY),
+				gui.setSlot(slot, Panes.button(Items.STAINED_GLASS_PANE.gray(), Component.literal("You already own " + name).withStyle(ChatFormatting.GRAY),
 						"Keep the token to trade it", () -> Feedback.failed(player, Feedback.whyNot(OwnershipChange.ALREADY_OWNED, name, CLAIMING))));
 			} else {
-				gui.setSlot(slot, pane(Items.STAINED_GLASS_PANE.lime(), Component.literal("✔ Claim " + name).withStyle(ChatFormatting.GREEN),
+				gui.setSlot(slot, Panes.button(Items.STAINED_GLASS_PANE.lime(), Component.literal("✔ Claim " + name).withStyle(ChatFormatting.GREEN),
 						"The token is used up", () -> claim(player, skins, gui, token, name)));
 			}
 		}
 		for (int slot : CANCEL) {
-			gui.setSlot(slot, pane(Items.STAINED_GLASS_PANE.red(), Component.literal("✖ Cancel").withStyle(ChatFormatting.RED), "You keep the token", () -> {
+			gui.setSlot(slot, Panes.button(Items.STAINED_GLASS_PANE.red(), Component.literal("✖ Cancel").withStyle(ChatFormatting.RED), "You keep the token", () -> {
 				gui.close();
 				Feedback.cancelled(player, "Claim", "the token");
 			}));
@@ -92,14 +92,6 @@ public final class ClaimMenu {
 		icon.addLoreLine(owned ? Component.literal("Already yours").withStyle(ChatFormatting.RED)
 				: Component.literal("Claim to own this skin").withStyle(ChatFormatting.YELLOW));
 		return icon.build();
-	}
-
-	private static GuiElement pane(net.minecraft.world.item.Item item, Component name, String lore, Runnable click) {
-		return new GuiElementBuilder(item).setName(name).addLoreLine(Component.literal(lore).withStyle(ChatFormatting.GRAY)).setCallback(click).build();
-	}
-
-	private static GuiElement filler() {
-		return new GuiElementBuilder(Items.STAINED_GLASS_PANE.black()).setName(Component.literal(" ")).hideTooltip().build();
 	}
 
 	/** The claim chest ({@link RightClick.Menu}: closing it starts the quiet time). */

@@ -22,8 +22,8 @@ import java.util.stream.Stream;
 /**
  * Building blocks for the codecs of {@code skin.json5} ({@link SkinDefinition}, {@link PerkCodecs})
  * and of Skin Box files ({@link BoxFile}), whose errors are the reason an admin reads when a skin or
- * box is rejected. A value's error says where
- * it is, as {@code perks[0].effects[1].level: starts at 1}; a missing field's says which.
+ * box is rejected. A value's error says where it is, as {@code perks[0].effects[1].level: starts at 1};
+ * a missing field's says which.
  */
 final class DefinitionCodecs {
 	private DefinitionCodecs() {}

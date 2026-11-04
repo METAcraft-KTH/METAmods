@@ -54,9 +54,9 @@ public final class SkinBox extends Item implements PolymerItem {
 		PolymerComponent.registerDataComponent(BOX);
 	}
 
-	/** A stack of {@code count} boxes of the box with this id (one is all a slot holds). */
-	public static ItemStack of(String boxId, int count) {
-		ItemStack stack = new ItemStack(ITEM, count);
+	/** One box of the box with this id. */
+	public static ItemStack of(String boxId) {
+		ItemStack stack = new ItemStack(ITEM);
 		stack.set(BOX, boxId);
 		return stack;
 	}

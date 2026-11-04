@@ -1,6 +1,7 @@
 package se.metacraft.skins.ui;
 
 import se.metacraft.skins.ApplyResult;
+import se.metacraft.skins.BoxResult;
 import se.metacraft.skins.OwnershipChange;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
@@ -103,6 +104,25 @@ public final class Feedback {
 				case SAVE_FAILED -> "Couldn't save " + player + "'s skins file, so nothing changed. The server log says why.";
 				case DONE, NO_TOKEN, STILL_APPLIED -> throw new IllegalArgumentException("not an admin's refusal: " + result);
 			};
+		};
+	}
+
+	/** Why a Roll, or opening a box, was refused (anything but {@code DONE}), told to the player holding the box. */
+	public static String whyNot(BoxResult result) {
+		return switch (result) {
+			case BOX_GONE -> "Your Skin Box is gone.";
+			case DORMANT_BOX, UNKNOWN_BOX -> "This Skin Box can't be opened right now.";
+			case NOTHING_TO_ROLL -> "This box has nothing to roll. Your box is kept.";
+			case DONE -> throw new IllegalArgumentException("not a refusal: " + result);
+		};
+	}
+
+	/** Why {@code /itemskins givebox} was refused, told to the admin; {@code dormantReason} is why the box is Dormant, if it is. */
+	public static String whyNotGiven(BoxResult result, String box, Optional<String> dormantReason) {
+		return switch (result) {
+			case UNKNOWN_BOX -> "There's no Skin Box " + box + ". /itemskins list shows them all.";
+			case DORMANT_BOX -> box + " is Dormant, so it can't be given: " + dormantReason.orElse("its file didn't load") + ".";
+			case DONE, BOX_GONE, NOTHING_TO_ROLL -> throw new IllegalArgumentException("not a give's refusal: " + result);
 		};
 	}
 

@@ -16,6 +16,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.trading.ItemCost;
 
 import java.util.List;
@@ -43,7 +44,7 @@ public final class BoxItemTests {
 		fx.reload();
 		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
 
-		ItemStack spooky = view(helper, fx, SkinBox.of("spooky", 1), viewer);
+		ItemStack spooky = view(helper, fx, SkinBox.of("spooky"), viewer);
 		assertThat(spooky.is(Items.VAULT), "a client gets " + spooky);
 		assertThat(SkinBox.OMINOUS_MODEL.equals(spooky.get(DataComponents.ITEM_MODEL)), "an ominous box is drawn as " + spooky.get(DataComponents.ITEM_MODEL));
 		assertThat(!spooky.hasFoil(), "a box glints");
@@ -58,11 +59,11 @@ public final class BoxItemTests {
 		assertThat(Objects.equals(lore.get(2).getSiblings().getFirst().getSiblings().getFirst().getStyle().getColor(), TextColor.fromLegacyFormat(ChatFormatting.RED))
 				&& Objects.equals(lore.get(2).getSiblings().getLast().getStyle().getColor(), TextColor.fromLegacyFormat(ChatFormatting.GRAY)), "the cleaver's line: " + lore.get(2));
 
-		ItemStack plain = view(helper, fx, SkinBox.of("plain", 1), viewer);
+		ItemStack plain = view(helper, fx, SkinBox.of("plain"), viewer);
 		assertThat(Identifier.parse("minecraft:vault").equals(plain.get(DataComponents.ITEM_MODEL)), "a plain box is drawn as " + plain.get(DataComponents.ITEM_MODEL));
 		assertThat(text(lore(plain)).equals(List.of("Cleaver 100%")), "the plain box's tooltip: " + text(lore(plain)));
 
-		ItemStack gone = view(helper, fx, SkinBox.of("gone", 1), viewer);
+		ItemStack gone = view(helper, fx, SkinBox.of("gone"), viewer);
 		assertThat(text(lore(gone)).equals(List.of("Every skin in this box is unavailable.")), "an empty box's tooltip: " + text(lore(gone)));
 		helper.succeed();
 	}
@@ -74,7 +75,7 @@ public final class BoxItemTests {
 		fx.reload();
 		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
 		for (String id : List.of("broken", "made_up")) {
-			ItemStack client = view(helper, fx, SkinBox.of(id, 1), viewer);
+			ItemStack client = view(helper, fx, SkinBox.of(id), viewer);
 			assertThat(client.getHoverName().getString().equals("Unknown Skin Box: " + id) && text(lore(client)).equals(List.of("It isn't on this server.")),
 					id + " reads " + client.getHoverName().getString() + " " + text(lore(client)));
 			assertThat(Identifier.parse("minecraft:vault").equals(client.get(DataComponents.ITEM_MODEL)), id + " is drawn as " + client.get(DataComponents.ITEM_MODEL));
@@ -82,20 +83,22 @@ public final class BoxItemTests {
 		}
 		fx.box("broken.json5", "{ name: \"Broken\", ominous: true, skins: [ { skin: \"cleaver\", weight: 1 } ] }");
 		fx.reload();
-		assertThat(view(helper, fx, SkinBox.of("broken", 1), viewer).getHoverName().getString().equals("Broken (Right-click to open)"), "the fixed box is still unknown");
+		assertThat(view(helper, fx, SkinBox.of("broken"), viewer).getHoverName().getString().equals("Broken (Right-click to open)"), "the fixed box is still unknown");
 		helper.succeed();
 	}
 
 	/** Boxes don't stack, on the server or as clients see them; nothing that takes a vault takes one; the server calls it "Skin Box". */
 	@GameTest
 	public void boxesDontStackAndAreNoVaultToTheServer(GameTestHelper helper) {
-		ItemStack box = SkinBox.of("spooky", 1);
+		ItemStack box = SkinBox.of("spooky");
 		assertThat(box.getMaxStackSize() == 1, "a box stacks to " + box.getMaxStackSize());
 		assertThat(SkinBox.boxOf(box).equals(Optional.of("spooky")), "the box is " + SkinBox.boxOf(box));
 		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
 		ItemStack client = PolymerItemUtils.getPolymerItemStack(box, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
 		assertThat(Integer.valueOf(1).equals(client.get(DataComponents.MAX_STACK_SIZE)), "a client stacks it to " + client.get(DataComponents.MAX_STACK_SIZE));
-		assertThat(!box.is(Items.VAULT) && !new ItemCost(Items.VAULT, 1).test(box), "the server takes a box for a vault");
+		// Recipes and villagers match what they take by item: one asking for a vault never takes a box.
+		assertThat(!box.is(Items.VAULT) && !Ingredient.of(Items.VAULT).test(box), "a recipe takes a box for a vault");
+		assertThat(!new ItemCost(Items.VAULT, 1).test(box), "a villager takes a box for a vault");
 		assertThat(box.getHoverName().getString().equals("Skin Box"), "the server calls a box " + box.getHoverName().getString());
 		helper.succeed();
 	}

@@ -279,7 +279,8 @@ public final class SkinMenu {
 		return icon.glow(skin.applied());
 	}
 
-	private static SimpleGui locked(MenuType<?> type, ServerPlayer player) {
+	/** A chest menu that only ever reacts to its own buttons: the player's own inventory is locked. */
+	static SimpleGui locked(MenuType<?> type, ServerPlayer player) {
 		SimpleGui gui = new SimpleGui(type, player, false);
 		gui.setLockPlayerInventory(true);
 		return gui;
