@@ -39,24 +39,6 @@ public record DoubleTeamHandler(
 		int time, int spawnsSoFar
 ) implements SpawnGroupData {
 
-	public static Codec<DoubleTeamHandler> getCodec(LivingEntity owner) {
-		return getMapCodec(owner).codec();
-	}
-
-	public static MapCodec<DoubleTeamHandler> getMapCodec(LivingEntity owner) {
-		return RecordCodecBuilder.mapCodec(
-			instance -> instance.group(
-				Settings.CODEC.forGetter(DoubleTeamHandler::settings),
-				Codec.INT.fieldOf("time").forGetter(DoubleTeamHandler::time),
-				Codec.INT.fieldOf("splits_so_far").forGetter(DoubleTeamHandler::spawnsSoFar)
-			).apply(instance,
-				(settings, time, splitsSoFar) -> new DoubleTeamHandler(
-						owner, settings, time, splitsSoFar
-				)
-			)
-		);
-	}
-
 	public DoubleTeamHandler(
 			LivingEntity primary, IntProvider delay, int maxSpawns, FloatProvider dist, double handoverChance
 	) {
@@ -191,6 +173,29 @@ public record DoubleTeamHandler(
 
 	public DoubleTeamHandler nextSpawnFor(LivingEntity entity) {
 		return new DoubleTeamHandler(entity, settings,  getNextTick(), spawnsSoFar+1);
+	}
+
+	public Packed pack() {
+		return new Packed(settings, time, spawnsSoFar);
+	}
+
+	public static DoubleTeamHandler unpack(LivingEntity primary, Packed packed) {
+		return new DoubleTeamHandler(primary, packed.settings, packed.time, packed.spawnsSoFar);
+	}
+
+	public record Packed(
+		Settings settings,
+		int time, int spawnsSoFar
+	) {
+		public static final Codec<Packed> CODEC = RecordCodecBuilder.create(
+			instance -> instance.group(
+				Settings.CODEC.forGetter(Packed::settings),
+				Codec.INT.fieldOf("time").forGetter(Packed::time),
+				Codec.INT.fieldOf("splits_so_far").forGetter(Packed::spawnsSoFar)
+			).apply(instance,
+				Packed::new
+			)
+		);
 	}
 
 	public record Settings(

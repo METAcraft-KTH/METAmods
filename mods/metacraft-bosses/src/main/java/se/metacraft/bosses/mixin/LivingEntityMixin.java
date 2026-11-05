@@ -118,8 +118,8 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityEx
 	public void save(ValueOutput nbt, CallbackInfo ci) {
 		nbt.putBoolean(PHANTOM_ENTITY, phantomEntity);
 		nbt.storeNullable(
-				DOUBLE_TEAM_DATA, DoubleTeamHandler.getCodec((LivingEntity) (Object) this),
-				doubleTeamHandler
+			DOUBLE_TEAM_DATA, DoubleTeamHandler.Packed.CODEC,
+			doubleTeamHandler != null ? doubleTeamHandler.pack() : null
 		);
 		nbt.storeNullable(
 				SOULBOUND_ENTITY, TrackedEntity.ENTITY_CODEC,
@@ -130,9 +130,10 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityEx
 	@Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
 	public void load(ValueInput nbt, CallbackInfo ci) {
 		phantomEntity = nbt.getBooleanOr(PHANTOM_ENTITY, false);
+		//noinspection ConstantValue IntelliJ being IntelliJ
 		doubleTeamHandler = nbt.read(
-				DOUBLE_TEAM_DATA, DoubleTeamHandler.getCodec(((LivingEntity) (Object) this))
-		).orElse(null);
+				DOUBLE_TEAM_DATA, DoubleTeamHandler.Packed.CODEC
+		).map(packed -> DoubleTeamHandler.unpack((LivingEntity) (Object) this, packed)).orElse(null);
 		soulboundEntity = nbt.read(
 				SOULBOUND_ENTITY, TrackedEntity.ENTITY_CODEC
 		).orElse(null);
