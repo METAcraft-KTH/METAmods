@@ -26,7 +26,7 @@ public final class PatchLoot {
 	/** The patches structure chests hold. */
 	public static final Set<String> LOOT = Set.of(
 			"spiken", "slaggan", "ticket_to_my_heart", "maid", "pung",
-			"in_gold", "nyckeln0x0", "nyckeln0x1", "nyckeln0x2", "kommn",
+			"in_gold", "nyckeln0x0", "nyckeln0x1", "nyckeln0x2",
 			"jgs", "tmeit",
 			"batata", "batato", "batatu", "cerise", "playboy-pikachu", "starkt",
 			"data_neko", "kth", "media_neko", "metacraft");
@@ -35,8 +35,8 @@ public final class PatchLoot {
 	public static final Set<String> NON_LOOT = Set.of(
 			// crafted: data/ovvar/recipe/patch_<id>.json
 			"it", "data", "itk", "in", "medieteknik",
-			// given: the Rivals event's own, TMEIT's marshals' and the staff's
-			"rivals", "tmeit-marshal", "metacrew");
+			// given: the Rivals event's own, TMEIT's marshals' and the staff's, and KomMN's
+			"rivals", "tmeit-marshal", "metacrew", "kommn");
 
 	/** How likely a chest is to hold a patch; which one is even odds among {@link #looted}. */
 	public static final float CHANCE = 0.05f;
