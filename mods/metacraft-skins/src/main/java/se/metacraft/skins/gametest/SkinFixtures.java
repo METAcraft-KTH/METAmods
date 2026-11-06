@@ -198,6 +198,17 @@ final class SkinFixtures {
 		}
 	}
 
+	/** A Skin Box file, {@code config/metacraft-skins/boxes/<name>}, as an admin writes it (name usually {@code <id>.json5}). */
+	SkinFixtures box(String name, String json5) {
+		try {
+			Files.createDirectories(skins.boxesFolder());
+			Files.writeString(skins.boxesFolder().resolve(name), json5, StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+		return this;
+	}
+
 	/** Writes the server-wide settings file, {@code config/metacraft-skins.json5}. */
 	SkinFixtures settings(String json5) {
 		try {

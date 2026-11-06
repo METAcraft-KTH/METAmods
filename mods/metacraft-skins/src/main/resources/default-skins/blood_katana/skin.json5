@@ -1,0 +1,8 @@
+{
+	name: "&lBlood Katana",
+	gradient: { colors: ["#8A0303", "#000000"], mirror: true },
+	released: "2026/11/04",
+	obtainable: true,
+	kind: "sword",
+	look: { model: "blood_katana.json" },
+}

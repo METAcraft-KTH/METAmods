@@ -14,7 +14,6 @@ import net.minecraft.world.Container;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemInstance;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
@@ -26,6 +25,7 @@ import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 import se.metacraft.config.container.ConfigContainer;
+import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 
 import java.io.IOException;
@@ -37,6 +37,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -52,11 +53,12 @@ import java.util.stream.Stream;
  * ({@link #at}), so each game test can give it a temporary directory:
  * <ul>
  *   <li>{@code config/metacraft-skins/skins/<id>/}: one folder per skin, {@code skin.json5} plus its Blockbench export;</li>
+ *   <li>{@code config/metacraft-skins/boxes/<id>.json5}: one file per Skin Box ({@link BoxFile}), its skins and their weights;</li>
  *   <li>{@code config/metacraft-skins.json5}: the server-wide settings;</li>
  *   <li>{@code skins-data/players/<uuid>.json}: who owns what, one file per player ({@link OwnershipStore}).</li>
  * </ul>
  * The world folder (its marker stamps applications, {@link WorldMarker}) is given separately.
- * Skins are read only on {@link #reload()}: at server start and on {@code /itemskins reload}. Player
+ * Skins and Skin Boxes are read only on {@link #reload()}: at server start and on {@code /itemskins reload}. Player
  * files are read the first time each player is needed and written on every change.
  *
  * <p>A Skinned Item stores only its {@link SkinMarker}. Whether it shows a Look is decided every
@@ -75,6 +77,12 @@ import java.util.stream.Stream;
  * step with what each player holds and wears. Event Perks fire as the server reports each event
  * ({@link #hit}, {@link #killed}, {@link #brokeBlock}, {@link #hurt}), read from the live skin at that
  * moment. Tokens, menus and Skinned Items list them with {@link PerkLines}.
+ *
+ * <p>A Skin Box item stores only its box's id; {@link #boxView} draws it from the box file as it is now,
+ * and a Roll ({@link #roll}) uses one up and draws a skin, whose token the Roll menu gives.
+ *
+ * <p>A skin changes hands only as a Skin Token: a Claim ({@link #claim}) turns a token into ownership,
+ * and Extract ({@link #extract}) turns an owned, Unapplied skin back into its token, saving first.
  */
 public final class Skins {
 	/** The skins pack's id on clients: the same for every build, so a push replaces the one before. */
@@ -84,6 +92,7 @@ public final class Skins {
 
 	private final Path root;
 	private final Path skinsFolder;
+	private final Path boxesFolder;
 	private final ConfigContainer<SkinsSettings> settings;
 	private final OwnershipStore ownership;
 	private final Path world;
@@ -91,6 +100,8 @@ public final class Skins {
 
 	/** Every skin folder by id, loaded or Dormant; replaced whole by each reload. */
 	private volatile Map<String, Entry> skins = Map.of();
+	/** Every Skin Box file by id, loaded or Dormant, read against the skins of the same reload; replaced whole by each reload. */
+	private volatile Map<String, BoxSummary> boxes = Map.of();
 	/** Newest first; guarded by itself (served from the pack server's threads). */
 	private final Deque<SkinsPack> builds = new ArrayDeque<>();
 	/** What held and worn Perks this keeps up on each player. */
@@ -105,6 +116,7 @@ public final class Skins {
 		this.world = world;
 		this.ownership = new OwnershipStore(root.resolve("skins-data").resolve("players"));
 		this.skinsFolder = root.resolve("config").resolve(MetacraftSkins.MOD_ID).resolve("skins");
+		this.boxesFolder = root.resolve("config").resolve(MetacraftSkins.MOD_ID).resolve("boxes");
 		this.settings = SkinsSettings.container(root.resolve("config").resolve(MetacraftSkins.MOD_ID + ".json5"));
 	}
 
@@ -125,12 +137,18 @@ public final class Skins {
 		return skinsFolder;
 	}
 
+	/** {@code config/metacraft-skins/boxes/}: one {@code <id>.json5} per Skin Box. */
+	public Path boxesFolder() {
+		return boxesFolder;
+	}
+
 	// ---- actions
 
 	/**
-	 * Re-reads every skin folder and the settings file, then rebuilds the pack. A broken skin is
-	 * set aside as Dormant with its reason and never stops the others; each rejection and warning
-	 * is logged with its file. Pushing a changed pack to players, and sending them their items again
+	 * Re-reads every skin folder and the settings file, then rebuilds the pack, then re-reads every
+	 * Skin Box file against the skins just read. A broken skin or box is set aside as Dormant with its
+	 * reason and never stops the others; each rejection and warning is logged with its file. Boxes
+	 * never change the pack. Pushing a changed pack to players, and sending them their items again
 	 * after a reload that {@linkplain ReloadReport#lookTakenAway() took a Look away}, is the caller's job.
 	 */
 	public synchronized ReloadReport reload() {
@@ -182,7 +200,88 @@ public final class Skins {
 		dropKindChangedApplications();
 		MetacraftSkins.LOGGER.info("[{}] {} skin(s) loaded, {} Dormant; pack {}{}", MetacraftSkins.MOD_ID, loaded.size(), rejections.size(),
 				pack.sha1(), changed ? " (changed)" : "");
-		return new ReloadReport(List.copyOf(loaded), List.copyOf(rejections), List.copyOf(warnings), pack.sha1(), changed, lookTakenAway);
+		ReloadReport.Boxes boxReport = reloadBoxes(next);
+		return new ReloadReport(List.copyOf(loaded), List.copyOf(rejections), List.copyOf(warnings), pack.sha1(), changed, lookTakenAway, boxReport);
+	}
+
+	/**
+	 * Reads every file in {@code boxes/}: each {@code <id>.json5} is a box, loaded or Dormant; any other
+	 * file and any folder is ignored with a warning, and a name starting with {@code .} is skipped.
+	 * A skin a box lists that isn't loaded in {@code skinsNow} (unknown or Dormant) is left out with a
+	 * warning, and the other skins' chances grow.
+	 */
+	private ReloadReport.Boxes reloadBoxes(Map<String, Entry> skinsNow) {
+		Map<String, BoxSummary> next = new TreeMap<>();
+		List<String> loaded = new ArrayList<>();
+		List<ReloadReport.BoxRejection> rejections = new ArrayList<>();
+		List<ReloadReport.BoxWarning> warnings = new ArrayList<>();
+		for (Path file : boxFiles()) {
+			String name = file.getFileName().toString();
+			if (Files.isDirectory(file)) {
+				warnings.add(new ReloadReport.BoxWarning(file, "boxes/" + name + "/ is a folder, ignored"));
+				continue;
+			}
+			if (!name.endsWith(BoxFile.SUFFIX)) {
+				warnings.add(new ReloadReport.BoxWarning(file, "boxes/" + name + " isn't a " + BoxFile.SUFFIX + " file, ignored"));
+				continue;
+			}
+			String id = BoxFile.id(file);
+			try {
+				BoxFile.Loaded box = BoxFile.load(file);
+				next.put(id, loadedBox(box, file, skinsNow, warnings));
+				loaded.add(id);
+			} catch (SkinFolder.Rejected e) {
+				next.put(id, dormantBox(id, e.getMessage()));
+				rejections.add(new ReloadReport.BoxRejection(id, e.file, e.getMessage()));
+			} catch (RuntimeException e) {
+				// As for skins: a bug of ours makes the box Dormant, and never stops the server.
+				MetacraftSkins.LOGGER.error("[{}] unexpected error loading Skin Box {}", MetacraftSkins.MOD_ID, id, e);
+				next.put(id, dormantBox(id, "internal error: " + e));
+				rejections.add(new ReloadReport.BoxRejection(id, file, "internal error: " + e));
+			}
+		}
+		for (var r : rejections) MetacraftSkins.LOGGER.warn("[{}] Skin Box {} is Dormant: {}: {}", MetacraftSkins.MOD_ID, r.boxId(), r.file(), r.reason());
+		for (var w : warnings) MetacraftSkins.LOGGER.warn("[{}] Skin Boxes: {} ({})", MetacraftSkins.MOD_ID, w.message(), w.file());
+		boxes = next;
+		MetacraftSkins.LOGGER.info("[{}] {} Skin Box(es) loaded, {} Dormant", MetacraftSkins.MOD_ID, loaded.size(), rejections.size());
+		return new ReloadReport.Boxes(List.copyOf(loaded), List.copyOf(rejections), List.copyOf(warnings));
+	}
+
+	/** A box that loaded, its skins sorted into the usable ones (with their chances, highest first) and the ones left out. */
+	private static BoxSummary loadedBox(BoxFile.Loaded box, Path file, Map<String, Entry> skinsNow, List<ReloadReport.BoxWarning> warnings) {
+		List<BoxFile.Entry> usable = new ArrayList<>();
+		List<String> leftOut = new ArrayList<>();
+		for (BoxFile.Entry entry : box.skins()) {
+			Entry skin = skinsNow.get(entry.skin());
+			if (skin != null && skin.loaded().isPresent()) {
+				usable.add(entry);
+				continue;
+			}
+			leftOut.add(entry.skin());
+			warnings.add(new ReloadReport.BoxWarning(file, box.id() + ": " + entry.skin()
+					+ (skin == null ? " isn't a skin on this server, left out" : " is Dormant, left out")));
+		}
+		long total = usable.stream().mapToLong(BoxFile.Entry::weight).sum();
+		List<BoxSummary.Entry> entries = usable.stream()
+				.sorted(Comparator.comparingInt(BoxFile.Entry::weight).reversed())   // a stable sort: ties stay in file order
+				.map(e -> new BoxSummary.Entry(e.skin(), e.weight(), BoxSummary.chance(e.weight(), total))).toList();
+		return new BoxSummary(box.id(), Optional.of(box.name()), Optional.of(box.title()), box.description(), box.ominous(), entries, List.copyOf(leftOut),
+				Optional.empty());
+	}
+
+	private static BoxSummary dormantBox(String id, String reason) {
+		return new BoxSummary(id, Optional.empty(), Optional.empty(), Optional.empty(), false, List.of(), List.of(), Optional.of(reason));
+	}
+
+	/** Everything in {@code boxes/} but names starting with {@code .}, sorted. */
+	private List<Path> boxFiles() {
+		if (!Files.isDirectory(boxesFolder)) return List.of();
+		try (Stream<Path> children = Files.list(boxesFolder)) {
+			return children.filter(p -> !p.getFileName().toString().startsWith(".")).sorted().toList();
+		} catch (IOException e) {
+			MetacraftSkins.LOGGER.error("[{}] cannot list {}", MetacraftSkins.MOD_ID, boxesFolder, e);
+			return List.of();
+		}
 	}
 
 	/**
@@ -386,23 +485,45 @@ public final class Skins {
 		Entry skin = skins.get(skinId);
 		if (skin == null) return OwnershipChange.UNKNOWN_SKIN;
 		if (skin.loaded().isEmpty()) return OwnershipChange.DORMANT_SKIN;
-		for (ServerPlayer player : players) {
-			ItemStack tokens = SkinToken.of(skinId, count);
-			boolean added = player.getInventory().add(tokens);
-			if (added && tokens.isEmpty()) continue;
-			// As vanilla's /give drops what doesn't fit.
-			ItemEntity drop = player.createItemStackToDrop(tokens, false, false);
-			if (drop == null) continue;
-			drop.setNoPickUpDelay();
-			drop.setTarget(player.getUUID());
-			drop.level().addFreshEntity(drop);
-		}
+		for (ServerPlayer player : players) Hand.give(player, SkinToken.of(skinId, count));
 		return OwnershipChange.DONE;
+	}
+
+	/** What an Extract did, and whether its token had to be dropped at the player's feet (their inventory was full). */
+	public record Extracted(OwnershipChange result, boolean dropped) {}
+
+	/**
+	 * Extract: turns a skin the player owns back into its Skin Token. Their record of the skin is
+	 * deleted and their file written, and only then is one token handed to them ({@link Hand}), so a
+	 * failed save keeps the skin and gives nothing. Refused, changing nothing, if they don't own it,
+	 * it's Dormant, it's on an item in this world (working or Away: the Owner removes it first), or
+	 * their file is damaged or can't be saved. A skin applied in another world can be extracted; its
+	 * item there is plain for good. Telling the player is the caller's job.
+	 */
+	public synchronized Extracted extract(ServerPlayer player, String skinId) {
+		OwnershipChange result = changing(player.getUUID(), record -> extractRefusal(record, skinId)
+				.orElseGet(() -> save(record.without(skinId).named(player.getGameProfile().name()))));
+		if (result != OwnershipChange.DONE) return new Extracted(result, false);
+		return new Extracted(result, Hand.give(player, SkinToken.of(skinId, 1)));
+	}
+
+	/** Would {@link #extract} go ahead now? {@code DONE} if so, or why not, with nothing saved or given. */
+	public synchronized OwnershipChange extractable(ServerPlayer player, String skinId) {
+		return changing(player.getUUID(), record -> extractRefusal(record, skinId).orElse(OwnershipChange.DONE));
+	}
+
+	private Optional<OwnershipChange> extractRefusal(OwnershipStore.PlayerRecord record, String skinId) {
+		OwnershipStore.Owned owned = record.skins().get(skinId);
+		if (owned == null) return Optional.of(OwnershipChange.NOT_OWNED);
+		Entry skin = skins.get(skinId);
+		if (skin == null || skin.dormantReason().isPresent()) return Optional.of(OwnershipChange.DORMANT_SKIN);
+		if (appliedHere(skinId, owned).isPresent()) return Optional.of(OwnershipChange.STILL_APPLIED);
+		return Optional.empty();
 	}
 
 	/**
 	 * What {@code viewer} is sent of a token: Polymer's client copy ({@code client}) named
-	 * "Skin Token: <Skin>" (gold, no glint), with the lore "Fits any <Kind>" (or "Fits leather and turtle helmets"), for a Dyeable
+	 * "Skin Token: <Skin>" (no glint): "Skin Token: " in bold gold, then the skin's name in its own colours and gradient, with the lore "Fits any <Kind>" (or "Fits leather and turtle helmets"), for a Dyeable
 	 * Hat "Dye the helmet to recolour it", the Perk lines, the description, a
 	 * blank line and "Right-click to claim", or, for a viewer who owns the skin, "✔ You already own
 	 * this skin — trade it away". A token for an unknown or Dormant skin reads "Unknown skin token: <id>".
@@ -423,7 +544,82 @@ public final class Skins {
 		loaded.description().ifPresent(d -> lines.add(plain(d, ChatFormatting.GRAY)));
 		lines.add(Component.empty());
 		lines.add(plain(owned ? "✔ You already own this skin — trade it away" : "Right-click to claim", ChatFormatting.GRAY));
-		client.set(DataComponents.ITEM_NAME, plain("Skin Token: " + loaded.name(), ChatFormatting.GOLD));
+		// Siblings of an empty root, so the skin's name doesn't take on the prefix's bold and gold.
+		client.set(DataComponents.ITEM_NAME, Component.empty()
+				.append(Component.literal("Skin Token: ").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GOLD).withBold(true)))
+				.append(loaded.title()));
+		client.set(DataComponents.LORE, new ItemLore(lines));
+		return client;
+	}
+
+	// ---- Skin Boxes
+
+	/**
+	 * Gives each player {@code count} boxes ({@code /itemskins givebox}), each an item of its own
+	 * (boxes don't stack); those that don't fit in an inventory drop at that player's feet, for them
+	 * only to pick up ({@link Hand}). Refused, giving nothing, for an unknown or Dormant box.
+	 */
+	public BoxResult giveBoxes(List<ServerPlayer> players, String boxId, int count) {
+		BoxSummary box = boxes.get(boxId);
+		if (box == null) return BoxResult.UNKNOWN_BOX;
+		if (box.dormant()) return BoxResult.DORMANT_BOX;
+		for (ServerPlayer player : players) {
+			for (int i = 0; i < count; i++) Hand.give(player, SkinBox.of(boxId));
+		}
+		return BoxResult.DONE;
+	}
+
+	/** What a Roll did: refused (and why), or the skin it landed on and the usable entries it was drawn from. */
+	public record Rolled(BoxResult result, Optional<String> skin, List<BoxSummary.Entry> entries) {
+		static Rolled refused(BoxResult why) {
+			return new Rolled(why, Optional.empty(), List.of());
+		}
+	}
+
+	/**
+	 * Pressing Roll in the Roll menu of box {@code boxId}: checks the box as it's loaded now, in this
+	 * order, that the player's main hand still holds a box with this id ({@code BOX_GONE}), that the
+	 * box isn't Dormant or unknown ({@code DORMANT_BOX}) and that it has a usable skin
+	 * ({@code NOTHING_TO_ROLL}). Then it uses up one box from the main hand (in creative too) and draws
+	 * the result by weight from the usable skins. The result is chosen here, once: the token is the
+	 * menu's to give. Server thread only.
+	 */
+	public Rolled roll(ServerPlayer player, String boxId) {
+		ItemStack hand = player.getMainHandItem();
+		if (!SkinBox.boxOf(hand).equals(Optional.of(boxId))) return Rolled.refused(BoxResult.BOX_GONE);
+		BoxSummary box = boxes.get(boxId);
+		if (box == null || box.dormant()) return Rolled.refused(BoxResult.DORMANT_BOX);
+		if (box.entries().isEmpty()) return Rolled.refused(BoxResult.NOTHING_TO_ROLL);
+		hand.shrink(1);
+		return new Rolled(BoxResult.DONE, Optional.of(BoxSummary.draw(box.entries(), player.getRandom())), box.entries());
+	}
+
+	/**
+	 * What a viewer is sent of a Skin Box: Polymer's client copy ({@code client}, a vault) drawn as
+	 * the plain vault or, for an ominous box, the ominous one, with no glint, named in the box's
+	 * colours followed by " (Right-click to open)" in gray, with the lore: its description (gray), one
+	 * line per usable skin, highest chance first ("Pumpkin Hat 20%": the skin's name in its colours, the
+	 * chance in gray), or "Every skin in this box is unavailable." for a box with none. A box whose
+	 * file is Dormant, gone or never was reads "Unknown Skin Box: <id>", as a plain vault.
+	 */
+	public ItemStack boxView(ItemStack box, ItemStack client) {
+		String id = SkinBox.boxOf(box).orElse("");
+		BoxSummary summary = boxes.get(id);
+		client.remove(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
+		client.set(DataComponents.ITEM_MODEL, summary != null && !summary.dormant() && summary.ominous() ? SkinBox.OMINOUS_MODEL : SkinBox.PLAIN_MODEL);
+		if (summary == null || summary.dormant()) {
+			client.set(DataComponents.ITEM_NAME, plain("Unknown Skin Box: " + id, ChatFormatting.GRAY));
+			client.set(DataComponents.LORE, new ItemLore(List.of(plain("It isn't on this server.", ChatFormatting.DARK_GRAY))));
+			return client;
+		}
+		List<Component> lines = new ArrayList<>();
+		summary.description().ifPresent(d -> lines.add(plain(d, ChatFormatting.GRAY)));
+		for (BoxSummary.Entry entry : summary.entries()) {
+			lines.add(Component.empty().append(styledName(entry.skin())).append(plain(" " + entry.chance(), ChatFormatting.GRAY)));
+		}
+		if (summary.entries().isEmpty()) lines.add(plain("Every skin in this box is unavailable.", ChatFormatting.GRAY));
+		// Siblings of an empty root, so the hint doesn't take on the name's colours and formats.
+		client.set(DataComponents.ITEM_NAME, Component.empty().append(summary.styledName()).append(plain(" (Right-click to open)", ChatFormatting.GRAY)));
 		client.set(DataComponents.LORE, new ItemLore(lines));
 		return client;
 	}
@@ -803,6 +999,11 @@ public final class Skins {
 		return skins.values().stream().map(this::summary).toList();
 	}
 
+	/** A skin's name in its colours, as menus and messages show it; the id, yellow, while it's Dormant or unknown. */
+	public Component styledName(String skinId) {
+		return skin(skinId).map(SkinSummary::styledName).orElseGet(() -> SkinName.styled(skinId));
+	}
+
 	/** One skin folder by id; empty if there's none (an owned skin whose folder is gone is Dormant all the same). */
 	public Optional<SkinSummary> skin(String id) {
 		return Optional.ofNullable(skins.get(id)).map(this::summary);
@@ -813,6 +1014,16 @@ public final class Skins {
 				e.loaded().flatMap(SkinFolder.Loaded::materials), e.loaded().map(SkinFolder.Loaded::dyeable).orElse(false),
 				e.loaded().flatMap(SkinFolder.Loaded::description), e.loaded().map(SkinFolder.Loaded::release),
 				e.loaded().map(l -> inEffect(l.perks())).orElse(List.of()), e.dormantReason());
+	}
+
+	/** Every Skin Box file, loaded or Dormant, sorted by id. */
+	public List<BoxSummary> boxes() {
+		return List.copyOf(boxes.values());
+	}
+
+	/** One Skin Box by id; empty if there's no such file (an unknown box behaves as a Dormant one). */
+	public Optional<BoxSummary> box(String id) {
+		return Optional.ofNullable(boxes.get(id));
 	}
 
 	public SkinsSettings settings() {
