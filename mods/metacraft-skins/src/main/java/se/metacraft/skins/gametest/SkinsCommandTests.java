@@ -80,7 +80,7 @@ import static se.metacraft.skins.gametest.SkinFixtures.assertThat;
 /**
  * Wiring only, against the server's own Skins pointed at a temporary root for the test:
  * {@code /itemskins list} and {@code /itemskins reload} run through the server's command dispatcher and
- * are refused below their default permission levels, and the pack reload built downloads from
+ * are refused below their default permission levels (admins, both), and a player has no {@code extract}, and the pack reload built downloads from
  * metacraft-resource-packs' pack server at the address players are pushed; {@code /itemskins grant},
  * {@code revoke} and {@code info} work on online and offline players, tell an online one, and
  * tab-complete skin ids; {@code /itemskins} opens the Skin Menu; a Skinned Item, a vanilla diamond
@@ -111,14 +111,14 @@ public final class SkinsCommandTests {
 			assertThat(reload.stream().anyMatch(l -> l.contains("hat") && l.contains("unknown kind")), "reload did not report the rejection: " + reload);
 			pack = fx.skins.pack().orElseThrow(() -> SkinFixtures.fail("reload built no pack"));
 
-			List<String> list = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins list");
+			List<String> list = run(server, LevelBasedPermissionSet.ADMIN, "itemskins list");
 			assertThat(list.stream().anyMatch(l -> l.contains("candy_cane_test") && l.contains("sword")), "list lacks candy_cane_test: " + list);
 			assertThat(list.stream().anyMatch(l -> l.contains("hat") && l.contains("Dormant") && l.contains("unknown kind")), "list lacks the Dormant hat: " + list);
 			// A limited skin's Materials follow its Kind, in vanilla order whatever skin.json5's order; an unlimited one is unchanged.
 			fx.limited("cap_list_test", "helmet", "[\"turtle\", \"leather\"]");
 			fx.dyeableHat("dyed_cap_list_test", "[\"leather\"]").dyeableHat("dyed_hat_list_test");
 			run(server, LevelBasedPermissionSet.ADMIN, "itemskins reload");
-			List<String> limited = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins list");
+			List<String> limited = run(server, LevelBasedPermissionSet.ADMIN, "itemskins list");
 			assertThat(limited.contains("cap_list_test (helmet: leather, turtle)") && limited.contains("candy_cane_test (sword)"), "the list with Materials: " + limited);
 			// A Dyeable Hat says so, after its Materials if it has any. (One reload for all three, and back: only the last few builds stay downloadable.)
 			assertThat(limited.contains("dyed_cap_list_test (helmet: leather, dyeable)") && limited.contains("dyed_hat_list_test (helmet, dyeable)"),
@@ -130,20 +130,20 @@ public final class SkinsCommandTests {
 			ownershipCommands(helper, fx);
 			skinMenuAndSkinnedItemsReachPlayers(helper, fx);
 			tokensAndClaims(helper, fx);
-			extractCommand(helper, fx);
+			extractAndListAreNotPlayerCommands(helper);
 			boxReloadAndList(server, fx);
 			boxesInPlay(helper, fx);
 
-			// Below the defaults: a gamemaster can't reload. Anyone can list, and a player with no permissions gets All Skins.
+			// Below the defaults: a gamemaster can't reload or list. An admin player running list gets All Skins.
 			fx.lookOnly("poop_hat_test", "helmet");
 			run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins reload");
 			assertThat(fx.skins.allSkins().size() == 2, "a gamemaster reloaded the skins");
-			List<String> anyone = run(server, LevelBasedPermissionSet.ALL, "itemskins list");
-			assertThat(anyone.stream().anyMatch(l -> l.contains("candy_cane_test")), "the list without permissions: " + anyone);
+			List<String> gamemaster = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins list");
+			assertThat(gamemaster.stream().noneMatch(l -> l.contains("candy_cane_test")), "a gamemaster listed the skins: " + gamemaster);
 			SkinFixtures.Listening lister = SkinFixtures.join(helper);
 			try {
-				server.getCommands().performPrefixedCommand(lister.createCommandSourceStack(), "itemskins list");
-				assertThat(SkinMenuTests.title(lister).equals("All Skins"), "a player's /itemskins list opened " + SkinMenuTests.title(lister));
+				server.getCommands().performPrefixedCommand(lister.createCommandSourceStack().withPermission(LevelBasedPermissionSet.ADMIN), "itemskins list");
+				assertThat(SkinMenuTests.title(lister).equals("All Skins"), "an admin's /itemskins list opened " + SkinMenuTests.title(lister));
 			} finally {
 				server.getPlayerList().remove(lister);
 			}
@@ -540,7 +540,7 @@ public final class SkinsCommandTests {
 		assertThat(reload.contains("Skin Boxes: 1 loaded, 1 Dormant.") && reload.contains("broken is Dormant: missing field \"skins\" (broken.json5)")
 				&& reload.contains("treats: hat is Dormant, left out") && reload.contains("boxes/notes.txt isn't a .json5 file, ignored"),
 				"the reload reply: " + reload);
-		List<String> list = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins list");
+		List<String> list = run(server, LevelBasedPermissionSet.ADMIN, "itemskins list");
 		int header = list.indexOf("2 Skin Boxes (1 Dormant) in " + fx.skins.boxesFolder());
 		assertThat(header > 0 && list.subList(header + 1, list.size()).equals(List.of("broken Dormant: missing field \"skins\"", "treats (2 skins, 1 left out)")),
 				"the list: " + list);
@@ -550,7 +550,7 @@ public final class SkinsCommandTests {
 			throw new UncheckedIOException(e);
 		}
 		run(server, LevelBasedPermissionSet.ADMIN, "itemskins reload");
-		List<String> none = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins list");
+		List<String> none = run(server, LevelBasedPermissionSet.ADMIN, "itemskins list");
 		assertThat(none.getLast().equals("0 Skin Boxes (0 Dormant) in " + fx.skins.boxesFolder()), "the list with no boxes: " + none);
 	}
 
@@ -671,39 +671,18 @@ public final class SkinsCommandTests {
 	}
 
 	/**
-	 * {@code /itemskins extract}, as a player without any permission: it tab-completes exactly the
-	 * skins they own and opens the Extract screen; a refusal says why and opens nothing; the console
-	 * can't extract.
+	 * There's no {@code extract} for anyone (the Skin Menu's Extract button replaced it), and
+	 * {@code list} is for admins only. Read off the command tree, since tab-completion doesn't
+	 * check permissions and test players are operators.
 	 */
-	private static void extractCommand(GameTestHelper helper, SkinFixtures fx) {
+	private static void extractAndListAreNotPlayerCommands(GameTestHelper helper) {
 		MinecraftServer server = helper.getLevel().getServer();
-		SkinFixtures.Listening player = SkinFixtures.join(helper);
-		try {
-			player.getInventory().clearContent();
-			player.getInventory().setItem(0, new ItemStack(Items.DIAMOND_SWORD));
-			fx.skins.grant(player.nameAndId(), "candy_cane_test");
-			List<String> suggested = suggestions(player.createCommandSourceStack(), "itemskins extract ");
-			assertThat(suggested.equals(List.of("candy_cane_test")), "extract suggests " + suggested);
-
-			server.getCommands().performPrefixedCommand(player.createCommandSourceStack(), "itemskins extract hat");
-			assertThat(player.heard.getLast().equals("You can't extract hat right now, so nothing changed.") && player.containerMenu == player.inventoryMenu,
-					"extracting a skin they don't own: " + player.heard + ", " + SkinMenuTests.title(player));
-			fx.skins.apply(player, "candy_cane_test", ItemLocation.hotbar(0));
-			server.getCommands().performPrefixedCommand(player.createCommandSourceStack(), "itemskins extract candy_cane_test");
-			assertThat(player.heard.getLast().equals("candy_cane_test skin is on an item. Remove it in the Skin Menu (/itemskins) first, then extract it.")
-					&& player.containerMenu == player.inventoryMenu, "extracting an applied skin: " + player.heard + ", " + SkinMenuTests.title(player));
-
-			fx.skins.remove(player.nameAndId(), "candy_cane_test");
-			server.getCommands().performPrefixedCommand(player.createCommandSourceStack(), "itemskins extract candy_cane_test");
-			assertThat(SkinMenuTests.title(player).equals("Extract candy_cane_test skin?"), "/itemskins extract opened " + SkinMenuTests.title(player));
-			assertThat(fx.skins.ownedSkins(player.getUUID()).owns("candy_cane_test"), "opening the screen extracted the skin");
-			player.closeContainer();
-
-			List<String> console = run(server, LevelBasedPermissionSet.ADMIN, "itemskins extract candy_cane_test");
-			assertThat(console.contains("Only a player can extract a skin"), "the console extracting: " + console);
-		} finally {
-			server.getPlayerList().remove(player);
-		}
+		var itemskins = server.getCommands().getDispatcher().getRoot().getChild("itemskins");
+		assertThat(itemskins.getChild("extract") == null, "/itemskins extract is still a command");
+		var list = itemskins.getChild("list");
+		assertThat(!list.canUse(server.createCommandSourceStack().withPermission(LevelBasedPermissionSet.ALL))
+				&& !list.canUse(server.createCommandSourceStack().withPermission(LevelBasedPermissionSet.GAMEMASTER))
+				&& list.canUse(server.createCommandSourceStack().withPermission(LevelBasedPermissionSet.ADMIN)), "/itemskins list isn't for admins only");
 	}
 
 	/**

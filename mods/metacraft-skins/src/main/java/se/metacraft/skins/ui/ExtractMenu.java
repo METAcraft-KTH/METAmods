@@ -20,11 +20,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The Extract screen, opened by {@code /itemskins extract <skin>}: "Extract &lt;Skin&gt;?", a 3-row chest
- * built like the claim menu. Its middle row holds two green extract panes, the Skin Token the Owner
- * would get, and two red cancel panes; everything else is filler. Nothing changes until Extract is
- * pressed, which checks again ({@link Skins#extract}). Only ever calls the {@link Skins} module; the
- * player's own inventory is locked.
+ * The Extract screen, opened from the Skin Menu's "Extract: choose a skin": "Extract &lt;Skin&gt;?", a
+ * 3-row chest built like the claim menu. Its middle row holds two green extract panes, the Skin Token
+ * the Owner would get, and two red cancel panes; everything else is filler. Nothing changes until
+ * Extract is pressed, which checks again ({@link Skins#extract}). Cancel and Extract, done or refused,
+ * both go back to where it was opened from; Escape just closes it. Only ever calls the {@link Skins}
+ * module; the player's own inventory is locked.
  */
 public final class ExtractMenu {
 	private ExtractMenu() {}
@@ -33,21 +34,25 @@ public final class ExtractMenu {
 	static final int TOKEN = 13;
 	private static final Feedback.Audience EXTRACTING = new Feedback.Audience.Owner("extract", "nothing changed");
 
-	/** Opens the screen for one of the player's skins; the command checks first that it could be extracted ({@link Skins#extractable}). */
-	public static void open(ServerPlayer player, Skins skins, String skinId) {
+	/**
+	 * Opens the screen for one of the player's skins; the caller checks first that it could be extracted
+	 * ({@link Skins#extractable}). {@code back} reopens the screen it was opened from, after Cancel or Extract.
+	 */
+	public static void open(ServerPlayer player, Skins skins, String skinId, Runnable back) {
 		String name = skins.skin(skinId).map(SkinSummary::displayName).orElse(skinId);
 		SimpleGui gui = SkinMenu.locked(MenuType.GENERIC_9x3, player);
 		gui.setTitle(Component.literal("Extract " + name + "?"));
 		for (int slot = 0; slot < gui.getSize(); slot++) gui.setSlot(slot, Panes.filler(Items.STAINED_GLASS_PANE.black()));
 		for (int slot : EXTRACT) {
 			gui.setSlot(slot, Panes.button(Items.STAINED_GLASS_PANE.lime(), Component.literal("✔ Extract " + name).withStyle(ChatFormatting.GREEN),
-					"You get its Skin Token back", () -> extract(player, skins, gui, skinId, name)));
+					"You get its Skin Token back", () -> extract(player, skins, gui, skinId, name, back)));
 		}
 		for (int slot : CANCEL) {
 			gui.setSlot(slot, Panes.button(Items.STAINED_GLASS_PANE.red(), Component.literal("✖ Cancel").withStyle(ChatFormatting.RED), "You keep the skin", () -> {
 				if (!gui.isOpen()) return;
 				gui.close();
 				Feedback.cancelled(player, "Extract", "the skin");
+				back.run();
 			}));
 		}
 		gui.setSlot(TOKEN, token(skins, skinId));
@@ -55,22 +60,23 @@ public final class ExtractMenu {
 		Feedback.pageTurn(player);
 	}
 
-	/** Wording a refusal: the skin by the id they typed, except when it's on an item (then by its name). */
-	public static String whyNot(OwnershipChange result, String skinId, String name) {
-		return Feedback.whyNot(result, result == OwnershipChange.STILL_APPLIED ? name : skinId, EXTRACTING);
+	/** Wording a refusal, the skin by its name. */
+	public static String whyNot(OwnershipChange result, String name) {
+		return Feedback.whyNot(result, name, EXTRACTING);
 	}
 
-	private static void extract(ServerPlayer player, Skins skins, SimpleGui gui, String skinId, String name) {
+	private static void extract(ServerPlayer player, Skins skins, SimpleGui gui, String skinId, String name, Runnable back) {
 		// sgui calls back for every click kind, a double-click's second click too: only the first, which closes the screen, counts.
 		if (!gui.isOpen()) return;
 		gui.close();
 		Skins.Extracted extracted = skins.extract(player, skinId);
 		if (extracted.result() != OwnershipChange.DONE) {
-			Feedback.failed(player, whyNot(extracted.result(), skinId, name));
-			return;
+			Feedback.failed(player, whyNot(extracted.result(), name));
+		} else {
+			Feedback.extracted(player, name, extracted.dropped());
+			SkinToken.resend(player);   // their other tokens for it no longer say it's owned
 		}
-		Feedback.extracted(player, name, extracted.dropped());
-		SkinToken.resend(player);   // their other tokens for it no longer say it's owned
+		back.run();
 	}
 
 	/** The token they'd get, named and described as a non-Owner reads it, with what Extract is for in place of "Right-click to claim". */

@@ -6,6 +6,7 @@ import se.metacraft.skins.OwnershipChange;
 import se.metacraft.skins.Skins;
 import se.metacraft.skins.item.SkinToken;
 import se.metacraft.skins.ui.ExtractMenu;
+import se.metacraft.skins.ui.SkinMenu;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.component.DataComponents;
@@ -184,7 +185,7 @@ public final class ExtractTests {
 		try {
 			player.getInventory().clearContent();
 			fx.skins.grant(player.nameAndId(), "crown_test");
-			ExtractMenu.open(player, fx.skins, "crown_test");
+			ExtractMenu.open(player, fx.skins, "crown_test", () -> SkinMenu.open(player, fx.skins));
 
 			assertThat(SkinMenuTests.title(player).equals("Extract Crown?"), "the screen is " + SkinMenuTests.title(player));
 			assertThat(player.containerMenu.slots.size() == 27 + 36, "the screen isn't 3 rows");
@@ -207,23 +208,23 @@ public final class ExtractTests {
 			}
 
 			SkinMenuTests.click(player, 16);
-			assertThat(player.containerMenu == player.inventoryMenu, "cancel left " + SkinMenuTests.title(player) + " open");
+			assertThat(SkinMenuTests.title(player).equals("Your Skins"), "cancel went to " + SkinMenuTests.title(player));
 			assertThat(player.heard.getLast().equals("Extract cancelled. You keep the skin."), "cancelling: " + player.heard);
 			assertThat(fx.skins.ownedSkins(player.getUUID()).owns("crown_test") && player.getInventory().isEmpty(), "cancelling extracted the skin");
 
-			ExtractMenu.open(player, fx.skins, "crown_test");
+			ExtractMenu.open(player, fx.skins, "crown_test", () -> SkinMenu.open(player, fx.skins));
 			int heard = player.heard.size();
 			player.connection.handleContainerClose(new ServerboundContainerClosePacket(player.containerMenu.containerId));
 			assertThat(player.heard.size() == heard && fx.skins.ownedSkins(player.getUUID()).owns("crown_test"), "Escape: " + player.heard);
 
 			// A double-click arrives as two clicks, the second a pickup-all: it extracts once.
-			ExtractMenu.open(player, fx.skins, "crown_test");
+			ExtractMenu.open(player, fx.skins, "crown_test", () -> SkinMenu.open(player, fx.skins));
 			AbstractContainerMenu screen = player.containerMenu;
 			player.sent(Object.class);
 			SkinMenuTests.click(player, 10);
 			player.connection.handleContainerClick(new ServerboundContainerClickPacket(screen.containerId, screen.getStateId(), (short) 10, (byte) 0,
 					ContainerInput.PICKUP_ALL, Int2ObjectMaps.emptyMap(), HashedStack.EMPTY));
-			assertThat(player.containerMenu == player.inventoryMenu, "extracting left " + SkinMenuTests.title(player) + " open");
+			assertThat(SkinMenuTests.title(player).equals("Your Skins"), "extracting went to " + SkinMenuTests.title(player));
 			assertThat(!fx.skins.ownedSkins(player.getUUID()).owns("crown_test"), "Extract didn't extract");
 			ItemStack token = player.getInventory().getItem(0);
 			assertThat(SkinToken.skinOf(token).equals(Optional.of("crown_test")) && token.getCount() == 1 && player.getInventory().getItem(1).isEmpty(),
@@ -245,11 +246,11 @@ public final class ExtractTests {
 		try {
 			player.getInventory().clearContent();
 			fx.skins.grant(player.nameAndId(), "crown_test");
-			ExtractMenu.open(player, fx.skins, "crown_test");
+			ExtractMenu.open(player, fx.skins, "crown_test", () -> SkinMenu.open(player, fx.skins));
 			fx.skins.revoke(player.nameAndId(), "crown_test");
 			SkinMenuTests.click(player, 11);
-			assertThat(player.containerMenu == player.inventoryMenu, "a refused extract left " + SkinMenuTests.title(player) + " open");
-			assertThat(player.heard.getLast().equals("You can't extract crown_test right now, so nothing changed."), "the player was told " + player.heard);
+			assertThat(SkinMenuTests.title(player).equals("Your Skins"), "a refused extract went to " + SkinMenuTests.title(player));
+			assertThat(player.heard.getLast().equals("You can't extract Crown right now, so nothing changed."), "the player was told " + player.heard);
 			assertThat(player.getInventory().isEmpty(), "a refused extract gave " + player.getInventory().getItem(0));
 
 			fx.skins.grant(player.nameAndId(), "crown_test");
@@ -257,7 +258,7 @@ public final class ExtractTests {
 			player.setGameMode(GameType.SURVIVAL);
 			for (int slot = 0; slot < 36; slot++) player.getInventory().setItem(slot, new ItemStack(Items.DIRT, 64));
 			player.getInventory().setItem(Inventory.SLOT_OFFHAND, new ItemStack(Items.DIRT, 64));
-			ExtractMenu.open(player, fx.skins, "crown_test");
+			ExtractMenu.open(player, fx.skins, "crown_test", () -> SkinMenu.open(player, fx.skins));
 			SkinMenuTests.click(player, 10);
 			assertThat(player.heard.getLast().equals("You extracted Crown. Its Skin Token is at your feet: your inventory is full."), "the player was told " + player.heard);
 			helper.getLevel().getEntities(EntityTypes.ITEM, e -> SkinToken.skinOf(e.getItem()).isPresent()).forEach(ItemEntity::discard);

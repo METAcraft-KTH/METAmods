@@ -5,12 +5,13 @@ need nothing but the resource pack the server sends them.
 
 An admin hands out **Skin Tokens**. A player right-clicks one and confirms, which **Claims** the skin:
 they become its **Owner**, and the token is used up. `/itemskins` opens the **Skin Menu**, where they put the
-skin on any item of its **Kind** they carry, which makes it a **Skinned Item**. A skin has a **Look** (a
+skin on any item of its **Kind** they carry, which makes it a **Skinned Item**. The Skin Menu lists every
+skin on the server: theirs with its Look, the rest as a grey dye named **???** until they own it. A skin has a **Look** (a
 Blockbench model sent in the skins resource pack) and may have **Perks**, small effects for its Owner
 while they hold or wear the item. A skin works only while its item is with its Owner; anywhere else the
 item is **Away**, drawn plain. Each skin is on one item at a time: applying it elsewhere makes the old
 item plain again, wherever it is. An Owner who no longer wants a skin can **Extract** it
-(`/itemskins extract <skin>`), which turns it back into its Skin Token to trade or give away. A **Skin
+(the Extract button in the Skin Menu), which turns it back into its Skin Token to trade or give away. A **Skin
 Box** is an item a player opens to **Roll** for a Skin Token, drawn by chance from the skins the box
 lists; the Halloween Skin Box ships first.
 
@@ -152,6 +153,8 @@ may not have colour codes, since the gradient colours every letter. Every shippe
 **Release.** Skinned Items and the menus show `released` and `obtainable` as one line,
 "Released: 2026/10/31 - Obtainable" (Unobtainable in red). Without `released` the line is just
 "Obtainable" or "Unobtainable". Change either and `/itemskins reload`: every item shows the new line.
+`released` also sets the order of the Skin Menu: oldest first, then by name, with undated skins last.
+Give each new skin a later date than the ones before it and it lands after them, moving none.
 
 **Kinds.** A Kind is one family of items: a `sword` skin fits any sword, wood to netherite, unless
 `materials` limits it. Membership is the vanilla item tag (`#minecraft:swords`, `#minecraft:head_armor`
@@ -544,8 +547,7 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
 | Command | Node | Default |
 | --- | --- | --- |
 | `/itemskins` | `metacraft-skins:menu` | everyone |
-| `/itemskins extract <skin>` | `metacraft-skins:extract` | everyone |
-| `/itemskins list` | `metacraft-skins:list` | everyone |
+| `/itemskins list` | `metacraft-skins:list` | admins |
 | `/itemskins give <targets> <skin> [count]` | `metacraft-skins:give` | gamemasters |
 | `/itemskins givebox <targets> <box> [count]` | `metacraft-skins:givebox` | gamemasters |
 | `/itemskins info <player>` | `metacraft-skins:info` | gamemasters |
@@ -553,14 +555,14 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
 | `/itemskins revoke <player> <skin>` | `metacraft-skins:revoke` | admins |
 | `/itemskins reload` | `metacraft-skins:reload` | admins |
 
-- **`/itemskins`** opens the player's Skin Menu.
-- **`extract`** turns a skin the player owns back into its Skin Token, after a confirm screen that shows
-  the token; nothing changes until they press Extract. Players only; it tab-completes their own skins.
-  It's refused while the skin is on an item in this world, working or Away ("Remove it in the Skin Menu
-  first"), for a Dormant skin, and for a skin they don't own. A skin applied in another world can be
-  extracted, and its item there is plain for good. Unobtainable and granted skins extract like any other.
-  The token goes into their inventory, or drops at their feet for them alone if it's full. Whoever
-  Claims it later gets a fresh claim date.
+- **`/itemskins`** opens the player's Skin Menu. Its **Extract** button, next to the book, turns a skin
+  the player owns back into its Skin Token: they pick one of their skins, then a confirm screen shows
+  the token; nothing changes until they press Extract, and Cancel or Extract goes back to the Skin
+  Menu. A skin on an item in this world, working or Away, says "Remove it from its item first" and
+  can't be picked. A skin applied in another world can be extracted, and its item there is plain for
+  good. Unobtainable and granted skins extract like any other. The token goes into their inventory,
+  or drops at their feet for them alone if it's full. Whoever Claims it later gets a fresh claim date.
+  There is no extract command.
 - **`give`** gives 1 to 64 Skin Tokens (default 1) to online players. What doesn't fit drops at their feet,
   except for a player in creative, who loses the overflow as with vanilla `/give`. Unknown and Dormant
   ids are refused. You get a confirmation; the players get no message. The item is

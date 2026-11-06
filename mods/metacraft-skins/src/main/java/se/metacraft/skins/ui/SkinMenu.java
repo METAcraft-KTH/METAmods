@@ -9,10 +9,12 @@ import se.metacraft.skins.OwnedSkin;
 import se.metacraft.skins.OwnershipChange;
 import se.metacraft.skins.PerkLines;
 import se.metacraft.skins.PlayerSkins;
+import se.metacraft.skins.Release;
 import se.metacraft.skins.SkinFolder;
 import se.metacraft.skins.SkinMarker;
 import se.metacraft.skins.SkinSummary;
 import se.metacraft.skins.Skins;
+import se.metacraft.skins.item.SkinToken;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -21,9 +23,12 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -31,18 +36,23 @@ import java.util.Optional;
  * {@link Skins} module, and a third for {@code /itemskins list}. The player's own inventory below
  * stays visible but locked on all of them.
  * <ul>
- *   <li><b>"Your Skins"</b> (6 rows): rows 1–5 the player's owned, non-Dormant skins, 45 a page,
- *       sorted by Kind, each shown with its Look and glinting while applied; row 6 the page
- *       arrows (only with more than one page) and the "How skins work" book, which sums skins up
- *       in its tooltip.</li>
+ *   <li><b>"Your Skins"</b> (6 rows): rows 1–5 every skin on the server that loaded, 45 a page, in
+ *       {@link #ORDER}. The player's own are shown with their Look, glinting while applied; the
+ *       rest are a light grey dye named "???" that does nothing when clicked. Row 6 holds the page
+ *       arrows (only with more than one page), the "How skins work" book, which sums skins up in
+ *       its tooltip, and the Extract button.</li>
  *   <li><b>"Apply: &lt;skin&gt;"</b> (4 rows), opened by clicking a skin: Back, a preview and, while
  *       the skin is applied, Remove along row 1; below, every item on the player the skin fits,
  *       hotbar to offhand, 27 a page, each shown as their own inventory shows it and saying where it
  *       is and what clicking it does. With more
  *       than one page, arrows either side of the preview turn them. Clicking an item applies the
  *       skin and goes back to "Your Skins".</li>
- *   <li><b>"All Skins"</b> ({@code /itemskins list}): "Your Skins", but with every skin on the server,
- *       owned or not, and nothing to click; Dormant skins come last, as barriers saying why.</li>
+ *   <li><b>"Extract: choose a skin"</b> (6 rows), opened by the Extract button: the player's own
+ *       skins, laid out and paged as in "Your Skins", with Back in row 6. Clicking a skin opens the
+ *       {@link ExtractMenu} for it; a skin on an item says to remove it first and does nothing.
+ *       The Extract screen's Cancel, and a finished Extract, come back to "Your Skins".</li>
+ *   <li><b>"All Skins"</b> ({@code /itemskins list}): "Your Skins", but with every skin's Look, owned
+ *       or not, and nothing to click; Dormant skins come last, as barriers saying why.</li>
  * </ul>
  * Every skin is shown with its Look, named in its colours ({@link se.metacraft.skins.SkinName}), and
  * says when it was released and whether it's obtainable ({@link se.metacraft.skins.Release}).
@@ -51,8 +61,8 @@ public final class SkinMenu {
 	private SkinMenu() {}
 
 	static final int PER_PAGE = 45;
-	/** "Your Skins": row 6. */
-	static final int PREVIOUS_PAGE = 45, BOOK = 49, NEXT_PAGE = 53;
+	/** "Your Skins": row 6. "Extract: choose a skin" has its Back where the book is. */
+	static final int PREVIOUS_PAGE = 45, BOOK = 49, EXTRACT = 50, NEXT_PAGE = 53;
 	/** "Apply: <skin>": row 1, then the items from row 2 on. */
 	static final int BACK = 0, PREVIOUS_ITEMS = 3, PREVIEW = 4, NEXT_ITEMS = 5, REMOVE = 8, FIRST_ITEM = 9, MIDDLE = 22, ITEMS_PER_PAGE = 27;
 	/** How a refused Remove is worded. */
@@ -67,21 +77,28 @@ public final class SkinMenu {
 		yourSkins(player, skins, 0);
 	}
 
-	/** One owned skin as the menu lists it. */
-	private record Listed(OwnedSkin owned, SkinSummary skin, Fit fit) {
+	/**
+	 * The one order the menus list skins in: by {@code released}, oldest first, then by name and id;
+	 * skins without a date last. A skin released later lands after every skin already shown, so
+	 * adding one never moves the others.
+	 */
+	static final Comparator<SkinSummary> ORDER = Comparator.comparing((SkinSummary s) -> s.release().flatMap(Release::released).orElse(LocalDate.MAX))
+			.thenComparing(SkinSummary::displayName).thenComparing(SkinSummary::id);
+
+	/** One loaded skin as "Your Skins" lists it, with the player's ownership of it if they own it. */
+	private record Listed(SkinSummary skin, Fit fit, Optional<OwnedSkin> owned) {
 		boolean applied() {
-			return owned.state() == OwnedSkin.State.APPLIED;
+			return owned.filter(o -> o.state() == OwnedSkin.State.APPLIED).isPresent();
 		}
 	}
 
+	/** Every loaded skin in {@link #ORDER}; owned ones carry their ownership. A damaged file lists nothing. */
 	private static List<Listed> listed(Skins skins, PlayerSkins owned) {
-		List<Listed> listed = new ArrayList<>();
-		for (OwnedSkin skin : owned.skins()) {
-			if (skin.state() == OwnedSkin.State.DORMANT) continue;
-			skins.skin(skin.id()).filter(s -> !s.dormant() && s.kind().isPresent()).ifPresent(s -> listed.add(new Listed(skin, s, s.fit().orElseThrow())));
-		}
-		listed.sort(Comparator.comparing((Listed l) -> l.fit().kind().ordinal()).thenComparing(l -> l.skin().displayName()).thenComparing(l -> l.skin().id()));
-		return listed;
+		if (owned.damage().isPresent()) return List.of();
+		Map<String, OwnedSkin> byId = new HashMap<>();
+		for (OwnedSkin skin : owned.skins()) if (skin.state() != OwnedSkin.State.DORMANT) byId.put(skin.id(), skin);
+		return skins.allSkins().stream().filter(s -> !s.dormant() && s.fit().isPresent()).sorted(ORDER)
+				.map(s -> new Listed(s, s.fit().get(), Optional.ofNullable(byId.get(s.id())))).toList();
 	}
 
 	private static void yourSkins(ServerPlayer player, Skins skins, int requestedPage) {
@@ -95,21 +112,78 @@ public final class SkinMenu {
 		List<Listed> shown = listed.subList(page * PER_PAGE, Math.min(listed.size(), (page + 1) * PER_PAGE));
 		for (int i = 0; i < shown.size(); i++) {
 			Listed skin = shown.get(i);
+			if (skin.owned().isEmpty()) {
+				gui.setSlot(i, notOwned());
+				continue;
+			}
 			gui.setSlot(i, icon(skin).addLoreLine(Component.literal("Click to apply or remove").withStyle(ChatFormatting.DARK_GRAY))
 					.setCallback(() -> applyScreen(player, skins, skin.skin().id(), page, 0)).build());
 		}
 		if (owned.damage().isPresent()) {
-			gui.setSlot(MIDDLE, new GuiElementBuilder(Items.BARRIER).setName(Component.literal("Your skins can't be shown").withStyle(ChatFormatting.RED))
-					.addLoreLine(Component.literal("Your skins file is damaged. Ask an admin to fix it.").withStyle(ChatFormatting.GRAY)).build());
+			gui.setSlot(MIDDLE, damaged());
 		} else if (listed.isEmpty()) {
-			gui.setSlot(MIDDLE, new GuiElementBuilder(Items.PAPER).setName(Component.literal("You don't own any skins yet"))
-					.addLoreLine(Component.literal("Claim a Skin Token to own one.").withStyle(ChatFormatting.GRAY)).build());
+			gui.setSlot(MIDDLE, new GuiElementBuilder(Items.PAPER).setName(Component.literal("There are no skins on this server yet")).build());
 		}
 		for (int i = PER_PAGE; i < PER_PAGE + 9; i++) gui.setSlot(i, filler());
 		if (page > 0) gui.setSlot(PREVIOUS_PAGE, arrow("Previous page", () -> yourSkins(player, skins, page - 1)));
 		if (page < pages - 1) gui.setSlot(NEXT_PAGE, arrow("Next page", () -> yourSkins(player, skins, page + 1)));
 		gui.setSlot(BOOK, book());
+		gui.setSlot(EXTRACT, new GuiElementBuilder(Items.PAPER).model(SkinToken.MODEL).setName(Component.literal("Extract a skin").withStyle(ChatFormatting.GOLD))
+				.addLoreLine(Component.literal("Turn a skin you own back into").withStyle(ChatFormatting.GRAY))
+				.addLoreLine(Component.literal("its Skin Token, to trade or give away").withStyle(ChatFormatting.GRAY))
+				.setCallback(() -> extractScreen(player, skins, page, 0)).build());
 		gui.open();
+	}
+
+	/**
+	 * "Extract: choose a skin" on page {@code requestedPage}: the player's own skins, each saying
+	 * whether it can be extracted ({@link Skins#extractable}); {@code fromPage} is the page of "Your Skins" to go back to.
+	 */
+	private static void extractScreen(ServerPlayer player, Skins skins, int fromPage, int requestedPage) {
+		PlayerSkins owned = skins.ownedSkins(player.getUUID());
+		List<Listed> mine = listed(skins, owned).stream().filter(l -> l.owned().isPresent()).toList();
+		int pages = Math.max(1, (mine.size() + PER_PAGE - 1) / PER_PAGE);
+		int page = Math.clamp(requestedPage, 0, pages - 1);
+
+		SimpleGui gui = locked(MenuType.GENERIC_9x6, player);
+		gui.setTitle(Component.literal("Extract: choose a skin" + (pages > 1 ? " (" + (page + 1) + "/" + pages + ")" : "")));
+		List<Listed> shown = mine.subList(page * PER_PAGE, Math.min(mine.size(), (page + 1) * PER_PAGE));
+		for (int i = 0; i < shown.size(); i++) {
+			Listed skin = shown.get(i);
+			String id = skin.skin().id();
+			OwnershipChange extractable = skins.extractable(player, id);
+			GuiElementBuilder icon = icon(skin);
+			if (extractable == OwnershipChange.DONE) {
+				icon.addLoreLine(Component.literal("Click to extract").withStyle(ChatFormatting.YELLOW)).setCallback(() -> confirmExtract(player, skins, id, fromPage, page));
+			} else {
+				icon.addLoreLine(Component.literal(extractable == OwnershipChange.STILL_APPLIED ? "Remove it from its item first" : "Can't be extracted right now")
+						.withStyle(ChatFormatting.RED));
+			}
+			gui.setSlot(i, icon.build());
+		}
+		if (owned.damage().isPresent()) {
+			gui.setSlot(MIDDLE, damaged());
+		} else if (mine.isEmpty()) {
+			gui.setSlot(MIDDLE, new GuiElementBuilder(Items.PAPER).setName(Component.literal("You don't own any skins yet"))
+					.addLoreLine(Component.literal("Claim a Skin Token to own one.").withStyle(ChatFormatting.GRAY)).build());
+		}
+		for (int i = PER_PAGE; i < PER_PAGE + 9; i++) gui.setSlot(i, filler());
+		if (page > 0) gui.setSlot(PREVIOUS_PAGE, arrow("Previous page", () -> extractScreen(player, skins, fromPage, page - 1)));
+		if (page < pages - 1) gui.setSlot(NEXT_PAGE, arrow("Next page", () -> extractScreen(player, skins, fromPage, page + 1)));
+		gui.setSlot(BOOK, arrow("Back to your skins", () -> yourSkins(player, skins, fromPage)));
+		gui.open();
+	}
+
+	/** A skin clicked in "Extract: choose a skin": checked again, then its Extract screen, which comes back to "Your Skins". */
+	private static void confirmExtract(ServerPlayer player, Skins skins, String skinId, int fromPage, int extractPage) {
+		OwnershipChange extractable = skins.extractable(player, skinId);
+		if (extractable != OwnershipChange.DONE) {
+			// Applied, revoked or gone Dormant since the list was drawn.
+			Feedback.failed(player, ExtractMenu.whyNot(extractable, skins.skin(skinId).map(SkinSummary::displayName).orElse(skinId)));
+			extractScreen(player, skins, fromPage, extractPage);
+			return;
+		}
+		ExtractMenu.open(player, skins, skinId, () -> yourSkins(player, skins, fromPage));
 	}
 
 	/** Opens "All Skins" on its first page: every skin on the server, owned or not. */
@@ -119,9 +193,7 @@ public final class SkinMenu {
 
 	private static void allSkins(ServerPlayer player, Skins skins, int requestedPage) {
 		List<SkinSummary> all = new ArrayList<>(skins.allSkins());
-		all.sort(Comparator.comparing((SkinSummary s) -> s.dormant() || s.kind().isEmpty())
-				.thenComparing(s -> s.kind().map(Enum::ordinal).orElse(Integer.MAX_VALUE))
-				.thenComparing(SkinSummary::displayName).thenComparing(SkinSummary::id));
+		all.sort(Comparator.comparing((SkinSummary s) -> s.dormant() || s.kind().isEmpty()).thenComparing(ORDER));
 		int pages = Math.max(1, (all.size() + PER_PAGE - 1) / PER_PAGE);
 		int page = Math.clamp(requestedPage, 0, pages - 1);
 
@@ -142,6 +214,18 @@ public final class SkinMenu {
 		gui.open();
 	}
 
+	/** In place of the skins, while the player's skins file is damaged. */
+	private static eu.pb4.sgui.api.elements.GuiElement damaged() {
+		return new GuiElementBuilder(Items.BARRIER).setName(Component.literal("Your skins can't be shown").withStyle(ChatFormatting.RED))
+				.addLoreLine(Component.literal("Your skins file is damaged. Ask an admin to fix it.").withStyle(ChatFormatting.GRAY)).build();
+	}
+
+	/** A skin the player doesn't own, in "Your Skins": a light grey dye named "???", giving nothing away. */
+	private static eu.pb4.sgui.api.elements.GuiElement notOwned() {
+		return new GuiElementBuilder(Items.DYE.lightGray()).setName(Component.literal("???").withStyle(ChatFormatting.BOLD))
+				.addLoreLine(Component.literal("Not owned yet").withStyle(ChatFormatting.GRAY)).hideDefaultTooltip().build();
+	}
+
 	/** A Dormant skin in "All Skins": it has no Look to show, so a barrier with its id and why it didn't load. */
 	private static eu.pb4.sgui.api.elements.GuiElement dormant(SkinSummary skin) {
 		return new GuiElementBuilder(Items.BARRIER).setName(Component.literal(skin.id()).withStyle(ChatFormatting.GRAY))
@@ -154,13 +238,14 @@ public final class SkinMenu {
 				.addLoreLine(Component.literal("Claim a Skin Token to own a skin.").withStyle(ChatFormatting.GRAY))
 				.addLoreLine(Component.literal("Click a skin to put it on one item.").withStyle(ChatFormatting.GRAY))
 				.addLoreLine(Component.literal("A skin is on one item at a time.").withStyle(ChatFormatting.GRAY))
-				.addLoreLine(Component.literal("/itemskins extract turns a skin back into its token.").withStyle(ChatFormatting.GRAY))
+				.addLoreLine(Component.literal("Extract turns a skin back into its token.").withStyle(ChatFormatting.GRAY))
 				.addLoreLine(Component.literal("Open a Skin Box to roll for a token.").withStyle(ChatFormatting.GRAY)).build();
 	}
 
 	/** "Apply: <skin>" on page {@code requestedPage} of its items; {@code fromPage} is the page of "Your Skins" to go back to. */
 	private static void applyScreen(ServerPlayer player, Skins skins, String skinId, int fromPage, int requestedPage) {
-		Optional<Listed> found = listed(skins, skins.ownedSkins(player.getUUID())).stream().filter(l -> l.skin().id().equals(skinId)).findFirst();
+		Optional<Listed> found = listed(skins, skins.ownedSkins(player.getUUID())).stream()
+				.filter(l -> l.owned().isPresent() && l.skin().id().equals(skinId)).findFirst();
 		if (found.isEmpty()) {
 			// Revoked, gone Dormant or a damaged file since the list was drawn.
 			Feedback.failed(player, "That skin isn't yours to apply right now.");

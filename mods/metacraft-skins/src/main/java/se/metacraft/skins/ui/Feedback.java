@@ -88,7 +88,7 @@ public final class Feedback {
 				case ALREADY_OWNED -> "You already own " + skin + ".";
 				case NOT_OWNED, UNKNOWN_SKIN, DORMANT_SKIN -> "You can't " + verb + " " + skin + " right now, so " + unchanged + ".";
 				case NOT_APPLIED -> skin + " is on no item.";
-				case STILL_APPLIED -> skin + " is on an item. Remove it in the Skin Menu (/itemskins) first, then extract it.";
+				case STILL_APPLIED -> skin + " is on an item. Remove it from its item first, then extract it.";
 				case NO_TOKEN -> "That token isn't in your inventory any more.";
 				case DAMAGED_FILE -> "Your skins file is damaged, so " + unchanged + ". Ask an admin to fix it.";
 				case SAVE_FAILED -> "Your skins couldn't be saved, so " + unchanged + ". Try again later.";
