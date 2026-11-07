@@ -1,0 +1,5 @@
+version = project.bluemap_fixer_version
+
+dependencies {
+	compileOnly("maven.modrinth:bluemap:${project.bluemap_version}-fabric")
+}

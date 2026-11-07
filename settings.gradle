@@ -10,6 +10,7 @@ pluginManagement {
 
 include "dist"
 include "mods:better-pets"
+include "mods:bluemap-fixer"
 include "mods:discord-chat-fixer"
 include "mods:faster-minecarts"
 include "mods:metacraft-booklet"

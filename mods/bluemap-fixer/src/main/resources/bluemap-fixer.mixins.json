@@ -1,0 +1,9 @@
+{
+	"required": true,
+	"package": "se.metacraft.bluemap_fixer.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
