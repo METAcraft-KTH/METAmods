@@ -418,7 +418,7 @@ public class Verifier {
 	}
 
 	private String getVerifyingEmail(UUID user, PSet<UUID> checked) {
-		if (checked.contains(user)) return "missingno@kth.se";
+		if (checked.contains(user)) return "missingno";
 		var player = verifiedPlayers.get(user);
 		if (player.email().isPresent()) return player.email().get();
 		if (player.plusOneBy().isPresent()) {
