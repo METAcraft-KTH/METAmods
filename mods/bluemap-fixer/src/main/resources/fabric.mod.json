@@ -2,8 +2,8 @@
 	"schemaVersion": 1,
 	"id": "bluemap-fixer",
 	"version": "${version}",
-	"name": "Discord-Chat-Fixer",
-	"description": "Fixes issues with Discord-MC-Chat",
+	"name": "Bluemap Fixer",
+	"description": "Fixes issues with Bluemap",
 	"authors": [
 		"Acuadragon100"
 	],
