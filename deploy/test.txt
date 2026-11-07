@@ -7,6 +7,7 @@
 # How to change this: deploy/README.md
 better-pets
 discord-chat-fixer
+metacraft-fake-players
 faster-minecarts
 kth-auth
 metacraft-bosses

@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"id": "metacraft-fake-players",
+	"version": "${version}",
+	"name": "METAcraft-Fake-Players",
+	"description": "Replays a recorded 15 minute snippet of real player movement with Carpet fake players, for performance testing (e.g. with spark). Needs Carpet.",
+	"authors": [
+		"Acuadragon100"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/metacraft-fake-players/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.metacraft.fake_players.METAcraftFakePlayers"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric-api": "*",
+		"metacraft-lib": "*"
+	},
+	"suggests": {
+		"carpet": "*"
+	}
+}
