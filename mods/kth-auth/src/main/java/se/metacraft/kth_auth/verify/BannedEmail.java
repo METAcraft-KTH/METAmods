@@ -13,14 +13,24 @@ import java.util.Optional;
 public record BannedEmail(
 	String email,
 	Optional<Instant> until,
-	Optional<String> reason
+	Optional<String> reason,
+	Instant bannedAt
 ) {
+
+	public BannedEmail(
+		String email,
+		Optional<Instant> until,
+		Optional<String> reason
+	) {
+		this(email, until, reason, Instant.now());
+	}
 
 	public static final Codec<BannedEmail> CODEC = RecordCodecBuilder.create(
 		instance -> instance.group(
 			Codec.STRING.fieldOf("email").forGetter(BannedEmail::email),
 			ExtraCodecs.INSTANT_ISO8601.optionalFieldOf("until").forGetter(BannedEmail::until),
-			Codec.STRING.optionalFieldOf("reason").forGetter(BannedEmail::reason)
+			Codec.STRING.optionalFieldOf("reason").forGetter(BannedEmail::reason),
+			ExtraCodecs.INSTANT_ISO8601.fieldOf("banned_at").forGetter(BannedEmail::bannedAt)
 		).apply(instance, BannedEmail::new)
 	);
 
