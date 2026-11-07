@@ -21,6 +21,9 @@
 			"se.metacraft.fake_players.METAcraftFakePlayers"
 		]
 	},
+	"mixins": [
+		"metacraft-fake-players.mixins.json"
+	],
 	"depends": {
 		"fabricloader": ">=${loader_version}",
 		"minecraft": "~${minecraft_version}",

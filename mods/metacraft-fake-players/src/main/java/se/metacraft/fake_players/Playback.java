@@ -14,6 +14,8 @@ import java.util.Map;
  * bot is teleported to each ~5 second sample, which is good enough to load and unload chunks like real players do.
  */
 public final class Playback {
+	/** Prefix of the fake player names. Also lets the bots skip Carpet's Mojang name lookup. */
+	public static final String NAME_PREFIX = "bot_fake_";
 	private static Playback current;
 
 	private final int offsetX;
@@ -80,7 +82,7 @@ public final class Playback {
 	}
 
 	private static String name(int id) {
-		return "bot_fake_" + id;
+		return NAME_PREFIX + id;
 	}
 
 	private static void run(MinecraftServer server, String command) {
