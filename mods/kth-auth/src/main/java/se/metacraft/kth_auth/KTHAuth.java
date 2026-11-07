@@ -75,9 +75,6 @@ public class KTHAuth implements ModInitializer {
 		);
 
 		ServerConfigurationConnectionEvents.BEFORE_CONFIGURE.register((listener, _) -> {
-			if (verifier.isDisabled()) {
-				return;
-			}
 			UUID uuid = listener.getOwner().id();
 			Optional<VerificationDetails> details = verifier.getVerificationDetails(uuid);
 			if (details.isPresent() && details.get().hasAcceptedGdpr()) {
@@ -91,6 +88,9 @@ public class KTHAuth implements ModInitializer {
 					verifier.touch(details.get());
 					return;
 				}
+			}
+			if (verifier.isDisabled()) {
+				return;
 			}
 			KTHAuthTask task = new KTHAuthTask(verifier, mailSender, listener);
 			verifier.addInProgressVerification(uuid, task);
