@@ -1,47 +1,62 @@
 package se.metacraft.fake_players;
 
-import com.mojang.authlib.GameProfile;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.network.CommonListenerCookie;
-import net.minecraft.server.network.config.PrepareSpawnTask;
-import net.minecraft.server.players.NameAndId;
+import net.minecraft.server.dedicated.DedicatedServer;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 
-/** Replays {@link Track} with fake players. Only one replay can run at a time. */
+/**
+ * Replays {@link Track} with Carpet's fake players, using nothing but commands: {@code /player <bot> spawn},
+ * {@code /tp} and {@code /player <bot> kill}. The replay follows the wall clock, like real player clients do: a lagging
+ * server does not slow the bots down, they just skip ahead to where they should be. Positions are not interpolated: a
+ * bot is teleported to each ~5 second sample, which is good enough to load and unload chunks like real players do.
+ */
 public final class Playback {
 	private static Playback current;
 
 	private final int offsetX;
 	private final int offsetZ;
-	private final double speed;
-	private long ticks;
+	/** The server's pause-when-empty-seconds before the replay, restored on stop. An idle server stops ticking. */
+	private final int previousPause;
+	private long startNanos = System.nanoTime();
+	private int lastSecond = -1;
 	private int loops;
-	private final Map<Integer, ServerPlayer> online = new HashMap<>();
-	private final double[] sample = new double[4];
+	/** Segment id to the sample index its bot was last moved to. */
+	private final Map<Integer, Integer> online = new HashMap<>();
 
-	private Playback(int offsetX, int offsetZ, double speed) {
+	private Playback(MinecraftServer server, int offsetX, int offsetZ) {
 		this.offsetX = offsetX;
 		this.offsetZ = offsetZ;
-		this.speed = speed;
+		if (server instanceof DedicatedServer dedicated) {
+			// With nobody online the server would pause itself and the replay would never start.
+			previousPause = dedicated.pauseWhenEmptySeconds();
+			dedicated.setPauseWhenEmptySeconds(-1);
+		} else {
+			previousPause = -1;
+		}
 	}
 
 	public static boolean isRunning() {
 		return current != null;
 	}
 
-	public static void start(int offsetX, int offsetZ, double speed) {
-		current = new Playback(offsetX, offsetZ, speed);
+	/** Whether Carpet's {@code /player} command is installed. */
+	public static boolean hasCarpet(MinecraftServer server) {
+		return server.getCommands().getDispatcher().getRoot().getChild("player") != null;
+	}
+
+	public static void start(MinecraftServer server, int offsetX, int offsetZ) {
+		current = new Playback(server, offsetX, offsetZ);
 	}
 
 	public static void stop(MinecraftServer server) {
 		if (current != null) {
 			current.removeAll(server);
+			if (server instanceof DedicatedServer dedicated) {
+				dedicated.setPauseWhenEmptySeconds(current.previousPause);
+			}
 			current = null;
 		}
 	}
@@ -52,9 +67,9 @@ public final class Playback {
 		}
 		var track = Track.get();
 		return String.format(
-				"Replaying %d fake player sessions: %.0fs / %.0fs (loop %d), %d online, offset %d,%d, speed x%.2f.",
-				track.segments.size(), current.time(), track.length, current.loops + 1,
-				current.online.size(), current.offsetX, current.offsetZ, current.speed
+				"Replaying %d fake player sessions: %ds / %ds (loop %d), %d online, offset %d,%d.",
+				track.segments.size(), current.elapsedSeconds(), track.length, current.loops + 1,
+				current.online.size(), current.offsetX, current.offsetZ
 		);
 	}
 
@@ -64,71 +79,65 @@ public final class Playback {
 		}
 	}
 
-	private double time() {
-		return ticks * speed / 20.0;
+	private static String name(int id) {
+		return "bot_fake_" + id;
+	}
+
+	private static void run(MinecraftServer server, String command) {
+		server.getCommands().performPrefixedCommand(server.createCommandSourceStack().withSuppressedOutput(), command);
+	}
+
+	private int elapsedSeconds() {
+		return (int) ((System.nanoTime() - startNanos) / 1_000_000_000L);
 	}
 
 	private void doTick(MinecraftServer server) {
+		int second = elapsedSeconds();
+		if (second != lastSecond) {
+			lastSecond = second;
+			step(server, second);
+		}
+	}
+
+	private void step(MinecraftServer server, int time) {
 		var track = Track.get();
-		double time = time();
 		if (time > track.length) {
 			removeAll(server);
 			loops++;
-			ticks = 0;
+			startNanos = System.nanoTime();
+			lastSecond = 0;
 			time = 0;
 		}
-		ticks++;
 		for (var segment : track.segments) {
-			var player = online.get(segment.id);
-			if (time < segment.startTime() || time > segment.endTime()) {
-				if (player != null) {
+			int index = time > segment.endTime() ? -1 : segment.indexAt(time);
+			var last = online.get(segment.id);
+			if (index < 0) {
+				if (last != null) {
 					online.remove(segment.id);
-					server.getPlayerList().remove(player);
+					run(server, "player " + name(segment.id) + " kill");
 				}
-				continue;
+			} else if (last == null) {
+				online.put(segment.id, index);
+				run(server, String.format(
+						Locale.ROOT, "player %s spawn at %d %d %d facing %.1f 0 in minecraft:overworld in creative",
+						name(segment.id), segment.x(index) + offsetX, segment.y(index), segment.z(index) + offsetZ,
+						segment.yaw(index)
+				));
+			} else if (last != index) {
+				online.put(segment.id, index);
+				run(server, String.format(
+						Locale.ROOT, "tp %s %d %d %d %.1f 0",
+						name(segment.id), segment.x(index) + offsetX, segment.y(index), segment.z(index) + offsetZ,
+						segment.yaw(index)
+				));
 			}
-			segment.sample(time, sample);
-			if (player == null) {
-				player = spawn(server, segment.id);
-				online.put(segment.id, player);
-			}
-			move(player, segment);
 		}
-	}
-
-	private void move(ServerPlayer player, Track.Segment segment) {
-		float yaw = (float) sample[3];
-		if (sample[3] == 0 && sample[0] == player.getX() && sample[2] == player.getZ()) {
-			yaw = player.getYRot();
-		}
-		player.snapTo(sample[0] + offsetX, sample[1], sample[2] + offsetZ, yaw, 0);
-		player.setYHeadRot(yaw);
-		player.setOnGround(true);
-		player.level().getChunkSource().move(player);
-		// Fake players have no packet listener ticking them, so run the per-tick player logic here.
-		player.doTick();
-	}
-
-	private ServerPlayer spawn(MinecraftServer server, int id) {
-		String name = "bot_fake_" + id;
-		UUID uuid = UUID.nameUUIDFromBytes(("metacraft-fake-players:" + id).getBytes(StandardCharsets.UTF_8));
-		var cookie = CommonListenerCookie.createInitial(new GameProfile(uuid, name), false);
-		var task = new PrepareSpawnTask(server, new NameAndId(uuid, name));
-		task.start(p -> {});
-		server.managedBlock(task::tick); // Wait for the spawn point to be found.
-		var player = task.spawnPlayer(new FakeConnection(), cookie);
-		player.setPermanentlyInvulnerable(true);
-		return player;
 	}
 
 	private void removeAll(MinecraftServer server) {
-		for (var player : online.values()) {
-			server.getPlayerList().remove(player);
+		for (var id : online.keySet()) {
+			run(server, "player " + name(id) + " kill");
 		}
 		online.clear();
-	}
-
-	static Component describe() {
-		return Component.literal(status());
 	}
 }

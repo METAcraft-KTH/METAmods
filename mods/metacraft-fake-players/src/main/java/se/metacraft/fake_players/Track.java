@@ -9,23 +9,20 @@ import java.util.List;
 
 /**
  * A recorded snippet of real player movement, embedded in the jar as {@code data/metacraft-fake-players/track.txt}.
- * Each {@link Segment} is one continuous online session of one (anonymised) player.
- * Positions are sampled every ~5 seconds and interpolated by {@link Segment#sample}.
+ * Each {@link Segment} is one continuous online session of one (anonymised) player, sampled every ~5 seconds.
  */
 public final class Track {
 	public static final String RESOURCE = "/data/metacraft-fake-players/track.txt";
-	/** Jumps larger than this between two samples are teleports and are not interpolated. */
-	private static final double TELEPORT_DISTANCE = 64;
 
 	private static Track instance;
 
 	public final List<Segment> segments;
 	/** Length of the snippet in seconds. */
-	public final double length;
+	public final int length;
 
 	private Track(List<Segment> segments) {
 		this.segments = segments;
-		double length = 0;
+		int length = 0;
 		for (var s : segments) {
 			length = Math.max(length, s.endTime());
 		}
@@ -50,7 +47,7 @@ public final class Track {
 		}
 		var segments = new ArrayList<Segment>();
 		try (var reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-			Segment.Builder current = null;
+			Segment current = null;
 			String line;
 			while ((line = reader.readLine()) != null) {
 				if (line.isBlank() || line.startsWith("#")) {
@@ -58,10 +55,8 @@ public final class Track {
 				}
 				var parts = line.trim().split(" ");
 				if (parts[0].equals("S")) {
-					if (current != null) {
-						segments.add(current.build());
-					}
-					current = new Segment.Builder(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+					current = new Segment(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+					segments.add(current);
 				} else if (current != null) {
 					current.add(
 							Integer.parseInt(parts[0]), Integer.parseInt(parts[1]),
@@ -69,95 +64,67 @@ public final class Track {
 					);
 				}
 			}
-			if (current != null) {
-				segments.add(current.build());
-			}
 		}
 		return new Track(List.copyOf(segments));
 	}
 
+	/** One online session: the sample points {t, x, y, z}, with t in seconds into the snippet. */
 	public static final class Segment {
 		public final int id;
-		private final double[] t;
-		private final double[] x;
-		private final double[] y;
-		private final double[] z;
+		private final int start;
+		private final List<int[]> points = new ArrayList<>();
 
-		private Segment(int id, double[] t, double[] x, double[] y, double[] z) {
+		private Segment(int id, int start) {
 			this.id = id;
-			this.t = t;
-			this.x = x;
-			this.y = y;
-			this.z = z;
+			this.start = start;
 		}
 
-		public double startTime() {
-			return t[0];
+		/** The first line is absolute (dt 0), every later line is a delta from the previous point. */
+		private void add(int x, int y, int z, int dt) {
+			if (points.isEmpty()) {
+				points.add(new int[]{start, x, y, z});
+			} else {
+				var p = points.getLast();
+				points.add(new int[]{p[0] + dt, p[1] + x, p[2] + y, p[3] + z});
+			}
 		}
 
-		public double endTime() {
-			return t[t.length - 1];
+		public int endTime() {
+			return points.getLast()[0];
 		}
 
-		/** Writes {x, y, z, yawDegrees} for time {@code time} (seconds since the snippet start) into {@code out}. */
-		public void sample(double time, double[] out) {
-			int i = 0;
-			// Segments are tiny (<= 180 samples) so a linear scan per tick is fine.
-			while (i < t.length - 2 && t[i + 1] <= time) {
+		public int x(int index) {
+			return points.get(index)[1];
+		}
+
+		public int y(int index) {
+			return points.get(index)[2];
+		}
+
+		public int z(int index) {
+			return points.get(index)[3];
+		}
+
+		/** Index of the latest sample at or before {@code time}, or -1 if the session has not started. */
+		public int indexAt(int time) {
+			int i = -1;
+			while (i + 1 < points.size() && points.get(i + 1)[0] <= time) {
 				i++;
 			}
-			int j = Math.min(i + 1, t.length - 1);
-			double dx = x[j] - x[i];
-			double dz = z[j] - z[i];
-			double f = 0;
-			if (j != i && Math.sqrt(dx * dx + dz * dz) <= TELEPORT_DISTANCE) {
-				f = Math.clamp((time - t[i]) / (t[j] - t[i]), 0.0, 1.0);
-			} else if (j != i && time >= t[j]) {
-				f = 1;
-			}
-			out[0] = x[i] + dx * f + 0.5;
-			out[1] = y[i] + (y[j] - y[i]) * f;
-			out[2] = z[i] + dz * f + 0.5;
-			if (dx * dx + dz * dz > 0.25 && Math.sqrt(dx * dx + dz * dz) <= TELEPORT_DISTANCE) {
-				out[3] = Math.toDegrees(Math.atan2(-dx, dz));
-			}
+			return i;
 		}
 
-		private static final class Builder {
-			private final int id;
-			private final int start;
-			private final List<double[]> points = new ArrayList<>();
-
-			private Builder(int id, int start) {
-				this.id = id;
-				this.start = start;
+		/** Yaw (degrees) facing from sample {@code index - 1} to {@code index}, or 0 for the first/standing still. */
+		public float yaw(int index) {
+			if (index <= 0) {
+				return 0;
 			}
-
-			/** Every line but the first is a delta from the previous point; the first is absolute with dt 0. */
-			private void add(int x, int y, int z, int dt) {
-				if (points.isEmpty()) {
-					points.add(new double[]{start, x, y, z});
-				} else {
-					var p = points.getLast();
-					points.add(new double[]{p[0] + dt, p[1] + x, p[2] + y, p[3] + z});
-				}
+			double dx = x(index) - x(index - 1);
+			double dz = z(index) - z(index - 1);
+			if (dx * dx + dz * dz < 1) {
+				return 0;
 			}
-
-			private Segment build() {
-				int n = points.size();
-				var t = new double[n];
-				var x = new double[n];
-				var y = new double[n];
-				var z = new double[n];
-				for (int i = 0; i < n; i++) {
-					var p = points.get(i);
-					t[i] = p[0];
-					x[i] = p[1];
-					y[i] = p[2];
-					z[i] = p[3];
-				}
-				return new Segment(id, t, x, y, z);
-			}
+			return (float) Math.toDegrees(Math.atan2(-dx, dz));
 		}
 	}
 }

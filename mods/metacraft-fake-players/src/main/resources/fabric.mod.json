@@ -3,7 +3,7 @@
 	"id": "metacraft-fake-players",
 	"version": "${version}",
 	"name": "METAcraft-Fake-Players",
-	"description": "Replays a recorded 15 minute snippet of real player movement with fake players, for performance testing (e.g. with spark).",
+	"description": "Replays a recorded 15 minute snippet of real player movement with Carpet fake players, for performance testing (e.g. with spark). Needs Carpet.",
 	"authors": [
 		"Acuadragon100"
 	],
@@ -27,5 +27,7 @@
 		"fabric-api": "*",
 		"metacraft-lib": "*"
 	},
-	"suggests": {}
+	"suggests": {
+		"carpet": "*"
+	}
 }

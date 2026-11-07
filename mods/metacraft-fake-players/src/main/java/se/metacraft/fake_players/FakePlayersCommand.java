@@ -1,7 +1,6 @@
 package se.metacraft.fake_players;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.loader.api.FabricLoader;
@@ -24,23 +23,15 @@ public final class FakePlayersCommand {
 								|| FabricLoader.getInstance().isDevelopmentEnvironment()
 				).then(
 						literal("start")
-								.executes(ctx -> start(ctx, 0, 0, 1))
+								.executes(ctx -> start(ctx, 0, 0))
 								.then(
 										argument("offsetX", IntegerArgumentType.integer())
 												.then(
 														argument("offsetZ", IntegerArgumentType.integer())
 																.executes(ctx -> start(
 																		ctx, IntegerArgumentType.getInteger(ctx, "offsetX"),
-																		IntegerArgumentType.getInteger(ctx, "offsetZ"), 1
+																		IntegerArgumentType.getInteger(ctx, "offsetZ")
 																))
-																.then(
-																		argument("speed", DoubleArgumentType.doubleArg(0.1, 20))
-																				.executes(ctx -> start(
-																						ctx, IntegerArgumentType.getInteger(ctx, "offsetX"),
-																						IntegerArgumentType.getInteger(ctx, "offsetZ"),
-																						DoubleArgumentType.getDouble(ctx, "speed")
-																				))
-																)
 												)
 								)
 				).then(
@@ -51,19 +42,23 @@ public final class FakePlayersCommand {
 						})
 				).then(
 						literal("status").executes(ctx -> {
-							ctx.getSource().sendSuccess(Playback::describe, false);
+							ctx.getSource().sendSuccess(() -> Component.literal(Playback.status()), false);
 							return 1;
 						})
 				)
 		);
 	}
 
-	private static int start(CommandContext<CommandSourceStack> ctx, int offsetX, int offsetZ, double speed) {
+	private static int start(CommandContext<CommandSourceStack> ctx, int offsetX, int offsetZ) {
+		if (!Playback.hasCarpet(ctx.getSource().getServer())) {
+			ctx.getSource().sendFailure(Component.literal("Carpet is required (it provides the /player command)."));
+			return 0;
+		}
 		if (Playback.isRunning()) {
 			ctx.getSource().sendFailure(Component.literal("A replay is already running. Use /fakeplayers stop first."));
 			return 0;
 		}
-		Playback.start(offsetX, offsetZ, speed);
+		Playback.start(ctx.getSource().getServer(), offsetX, offsetZ);
 		ctx.getSource().sendSuccess(
 				() -> Component.literal("Started the fake player replay. It loops until /fakeplayers stop."), true
 		);
