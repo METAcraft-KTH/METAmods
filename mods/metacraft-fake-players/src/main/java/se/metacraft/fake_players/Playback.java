@@ -3,45 +3,44 @@ package se.metacraft.fake_players;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
- * Replays {@link Track} with Carpet's fake players, using nothing but commands: {@code /player <bot> spawn},
- * {@code /tp} and {@code /player <bot> kill}. The replay follows the wall clock, like real player clients do: a lagging
+ * Replays a {@link Scenario} with Carpet's fake players, using nothing but commands: {@code /player <bot> spawn},
+ * {@code /tp} and {@code /player <bot> kill}. A replay follows the wall clock, like real player clients do: a lagging
  * server does not slow the bots down, they just skip ahead to where they should be. Positions are not interpolated: a
  * bot is teleported to each ~5 second sample, which is good enough to load and unload chunks like real players do.
+ * Several replays (of the same or different scenarios) can run at once; each is a numbered run.
  */
 public final class Playback {
 	/** Prefix of the fake player names. Also lets the bots skip Carpet's Mojang name lookup. */
 	public static final String NAME_PREFIX = "bot_fake_";
-	private static Playback current;
+	private static final int MAX_RUNS = 99;
 
+	private static final Map<Integer, Playback> RUNS = new TreeMap<>();
+	/** The server's pause-when-empty-seconds before the first run. An idle server stops ticking. */
+	private static int previousPause = -1;
+
+	private final int id;
+	private final Scenario scenario;
 	private final int offsetX;
 	private final int offsetZ;
-	/** The server's pause-when-empty-seconds before the replay, restored on stop. An idle server stops ticking. */
-	private final int previousPause;
 	private long startNanos = System.nanoTime();
 	private int lastSecond = -1;
 	private int loops;
-	/** Segment id to the sample index its bot was last moved to. */
+	/** Session id to the sample index its bot was last moved to. */
 	private final Map<Integer, Integer> online = new HashMap<>();
 
-	private Playback(MinecraftServer server, int offsetX, int offsetZ) {
+	private Playback(int id, Scenario scenario, int offsetX, int offsetZ) {
+		this.id = id;
+		this.scenario = scenario;
 		this.offsetX = offsetX;
 		this.offsetZ = offsetZ;
-		if (server instanceof DedicatedServer dedicated) {
-			// With nobody online the server would pause itself and the replay would never start.
-			previousPause = dedicated.pauseWhenEmptySeconds();
-			dedicated.setPauseWhenEmptySeconds(-1);
-		} else {
-			previousPause = -1;
-		}
-	}
-
-	public static boolean isRunning() {
-		return current != null;
 	}
 
 	/** Whether Carpet's {@code /player} command is installed. */
@@ -49,40 +48,69 @@ public final class Playback {
 		return server.getCommands().getDispatcher().getRoot().getChild("player") != null;
 	}
 
-	public static void start(MinecraftServer server, int offsetX, int offsetZ) {
-		current = new Playback(server, offsetX, offsetZ);
+	/** Starts a run and returns its number. */
+	public static int start(MinecraftServer server, Scenario scenario, int offsetX, int offsetZ) {
+		int id = 1;
+		while (RUNS.containsKey(id)) {
+			id++;
+		}
+		if (id > MAX_RUNS) {
+			throw new IllegalStateException("Too many replays running");
+		}
+		if (RUNS.isEmpty() && server instanceof DedicatedServer dedicated) {
+			// With nobody online the server would pause itself and the replay would never start.
+			previousPause = dedicated.pauseWhenEmptySeconds();
+			dedicated.setPauseWhenEmptySeconds(-1);
+		}
+		RUNS.put(id, new Playback(id, scenario, offsetX, offsetZ));
+		return id;
 	}
 
-	public static void stop(MinecraftServer server) {
-		if (current != null) {
-			current.removeAll(server);
-			if (server instanceof DedicatedServer dedicated) {
-				dedicated.setPauseWhenEmptySeconds(current.previousPause);
-			}
-			current = null;
+	public static boolean stop(MinecraftServer server, int id) {
+		var run = RUNS.remove(id);
+		if (run == null) {
+			return false;
+		}
+		run.removeAll(server);
+		restorePause(server);
+		return true;
+	}
+
+	/** Stops every run and returns how many there were. */
+	public static int stopAll(MinecraftServer server) {
+		int count = RUNS.size();
+		RUNS.values().forEach(run -> run.removeAll(server));
+		RUNS.clear();
+		restorePause(server);
+		return count;
+	}
+
+	private static void restorePause(MinecraftServer server) {
+		if (RUNS.isEmpty() && server instanceof DedicatedServer dedicated) {
+			dedicated.setPauseWhenEmptySeconds(previousPause);
 		}
 	}
 
-	public static String status() {
-		if (current == null) {
-			return "No replay is running.";
+	public static List<String> status() {
+		var lines = new ArrayList<String>();
+		for (var run : RUNS.values()) {
+			lines.add(String.format(
+					Locale.ROOT, "#%d %s: %ds / %ds (loop %d), %d of %d sessions online, offset %d,%d",
+					run.id, run.scenario.name, run.elapsedSeconds(), run.scenario.length, run.loops + 1,
+					run.online.size(), run.scenario.sessions.size(), run.offsetX, run.offsetZ
+			));
 		}
-		var track = Track.get();
-		return String.format(
-				"Replaying %d fake player sessions: %ds / %ds (loop %d), %d online, offset %d,%d.",
-				track.segments.size(), current.elapsedSeconds(), track.length, current.loops + 1,
-				current.online.size(), current.offsetX, current.offsetZ
-		);
+		return lines;
 	}
 
 	public static void tick(MinecraftServer server) {
-		if (current != null) {
-			current.doTick(server);
+		for (var run : RUNS.values()) {
+			run.doTick(server);
 		}
 	}
 
-	private static String name(int id) {
-		return NAME_PREFIX + id;
+	private String name(int session) {
+		return NAME_PREFIX + id + "_" + session;
 	}
 
 	private static void run(MinecraftServer server, String command) {
@@ -102,43 +130,42 @@ public final class Playback {
 	}
 
 	private void step(MinecraftServer server, int time) {
-		var track = Track.get();
-		if (time > track.length) {
+		if (time > scenario.length) {
 			removeAll(server);
 			loops++;
 			startNanos = System.nanoTime();
 			lastSecond = 0;
 			time = 0;
 		}
-		for (var segment : track.segments) {
-			int index = time > segment.endTime() ? -1 : segment.indexAt(time);
-			var last = online.get(segment.id);
+		for (var session : scenario.sessions) {
+			int index = time > session.endTime() ? -1 : session.indexAt(time);
+			var last = online.get(session.id());
 			if (index < 0) {
 				if (last != null) {
-					online.remove(segment.id);
-					run(server, "player " + name(segment.id) + " kill");
+					online.remove(session.id());
+					run(server, "player " + name(session.id()) + " kill");
 				}
 			} else if (last == null) {
-				online.put(segment.id, index);
+				online.put(session.id(), index);
+				var p = session.points().get(index);
 				run(server, String.format(
-						Locale.ROOT, "player %s spawn at %d %d %d facing %.1f 0 in minecraft:overworld in creative",
-						name(segment.id), segment.x(index) + offsetX, segment.y(index), segment.z(index) + offsetZ,
-						segment.yaw(index)
+						Locale.ROOT, "player %s spawn at %d %d %d facing %.1f 0 in %s in creative",
+						name(session.id()), p.x() + offsetX, p.y(), p.z() + offsetZ, session.yaw(index), p.dimension()
 				));
 			} else if (last != index) {
-				online.put(segment.id, index);
+				online.put(session.id(), index);
+				var p = session.points().get(index);
 				run(server, String.format(
-						Locale.ROOT, "tp %s %d %d %d %.1f 0",
-						name(segment.id), segment.x(index) + offsetX, segment.y(index), segment.z(index) + offsetZ,
-						segment.yaw(index)
+						Locale.ROOT, "execute in %s run tp %s %d %d %d %.1f 0",
+						p.dimension(), name(session.id()), p.x() + offsetX, p.y(), p.z() + offsetZ, session.yaw(index)
 				));
 			}
 		}
 	}
 
 	private void removeAll(MinecraftServer server) {
-		for (var id : online.keySet()) {
-			run(server, "player " + name(id) + " kill");
+		for (var session : online.keySet()) {
+			run(server, "player " + name(session) + " kill");
 		}
 		online.clear();
 	}

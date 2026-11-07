@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class METAcraftFakePlayers implements ModInitializer {
+	public static final String MOD_ID = "metacraft-fake-players";
 	public static final Logger LOGGER = LogManager.getLogger("METAcraft-Fake-Players");
 
 	@Override
@@ -16,6 +17,6 @@ public class METAcraftFakePlayers implements ModInitializer {
 				(dispatcher, registryAccess, environment) -> FakePlayersCommand.register(dispatcher)
 		);
 		ServerTickEvents.END_SERVER_TICK.register(Playback::tick);
-		ServerLifecycleEvents.SERVER_STOPPING.register(server -> Playback.stop(server));
+		ServerLifecycleEvents.SERVER_STOPPING.register(Playback::stopAll);
 	}
 }
