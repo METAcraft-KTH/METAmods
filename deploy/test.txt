@@ -10,6 +10,7 @@ discord-chat-fixer
 metacraft-fake-players
 faster-minecarts
 kth-auth
+bluemap-fixer
 metacraft-bosses
 metacraft-bundles
 metacraft-cutscenes

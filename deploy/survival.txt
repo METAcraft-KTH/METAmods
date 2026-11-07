@@ -8,6 +8,7 @@ better-pets
 discord-chat-fixer
 faster-minecarts
 kth-auth
+bluemap-fixer
 metacraft-bosses
 metacraft-bundles
 metacraft-cutscenes
