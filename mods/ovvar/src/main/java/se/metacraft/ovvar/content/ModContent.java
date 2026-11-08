@@ -23,6 +23,7 @@ import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.item.equipment.ArmorMaterial;
 import net.minecraft.world.item.equipment.ArmorMaterials;
 import net.minecraft.world.item.equipment.ArmorType;
+import net.minecraft.world.item.enchantment.Enchantable;
 import net.minecraft.world.item.equipment.Equippable;
 
 import java.util.ArrayList;
@@ -137,6 +138,7 @@ public final class ModContent {
 		return new Item.Properties()
 				.stacksTo(1)
 				.attributes(material.createAttributes(type))
+				.component(DataComponents.ENCHANTABLE, new Enchantable(material.enchantmentValue()))
 				.component(DataComponents.EQUIPPABLE, Equippable.builder(type.getSlot())
 						.setEquipSound(material.equipSound())
 						.setAsset(material.assetId())
