@@ -33,8 +33,9 @@ import static se.metacraft.skins.DefinitionCodecs.withError;
 
 /**
  * Reads one Skin Box file, {@code boxes/<id>.json5}: its name (with formatting codes, and the
- * gradient that may colour it, as a skin's), description, whether it's drawn as the ominous vault,
- * and its skins with their weights, in file order. Read as strictly as {@code skin.json5}: anything
+ * gradient that may colour it, as a skin's), description, and its skins with their weights, in
+ * file order. {@code ominous} is still read (true or false), so files from when it drew a box as the
+ * ominous vault still load, and ignored: every box looks the same. Read as strictly as {@code skin.json5}: anything
  * wrong rejects the box with the reason, in the same words. Whether each skin is on the server is
  * the reload's to say ({@link Skins#reload}).
  */
@@ -52,9 +53,9 @@ final class BoxFile {
 	record Entry(String skin, int weight) {}
 
 	/** A box file that loaded. {@code name} is the name without its formatting codes, {@code title} the name with them. */
-	record Loaded(String id, String name, Component title, Optional<String> description, boolean ominous, List<Entry> skins) {}
+	record Loaded(String id, String name, Component title, Optional<String> description, List<Entry> skins) {}
 
-	private record Definition(String name, Optional<SkinName.Gradient> gradient, Optional<String> description, boolean ominous, List<Entry> skins) {}
+	private record Definition(String name, Optional<SkinName.Gradient> gradient, Optional<String> description, Optional<Boolean> ominous, List<Entry> skins) {}
 
 	private static final String WEIGHTS = "must be a whole number from 1 to 1,000,000";
 	private static final Codec<Integer> WEIGHT = withError(WHOLE, WEIGHTS).comapFlatMap(
@@ -75,9 +76,9 @@ final class BoxFile {
 			rawField("name", NAME, "missing field \"name\"").forGetter(Definition::name),
 			optionalField("gradient", GRADIENT).forGetter(Definition::gradient),
 			optionalRawField("description", topText("description")).forGetter(Definition::description),
-			optionalRawField("ominous", withError(Codec.BOOL, "field \"ominous\" must be true or false")).forGetter(d -> Optional.of(d.ominous())),
+			optionalRawField("ominous", withError(Codec.BOOL, "field \"ominous\" must be true or false")).forGetter(Definition::ominous),
 			rawField("skins", SKINS, "missing field \"skins\"").forGetter(Definition::skins)
-	).apply(i, (name, gradient, description, ominous, skins) -> new Definition(name, gradient, description, ominous.orElse(false), skins)))
+	).apply(i, Definition::new))
 			.validate(d -> nameFitsGradient(d, d.name(), d.gradient())));
 
 	/** The box id a file in {@code boxes/} stands for: its name without {@code .json5}. */
@@ -99,6 +100,6 @@ final class BoxFile {
 		}
 		if (json == null) throw new SkinFolder.Rejected(file, "broken json5: not an object");
 		Definition box = CODEC.parse(JanksonOps.INSTANCE, json).getOrThrow(reason -> new SkinFolder.Rejected(file, reason));
-		return new Loaded(id, SkinName.plain(box.name()), SkinName.styled(box.name(), box.gradient()), box.description(), box.ominous(), box.skins());
+		return new Loaded(id, SkinName.plain(box.name()), SkinName.styled(box.name(), box.gradient()), box.description(), box.skins());
 	}
 }

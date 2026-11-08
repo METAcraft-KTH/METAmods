@@ -1,5 +1,7 @@
 package se.metacraft.skins.gametest;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import se.metacraft.skins.BoxResult;
 import se.metacraft.skins.item.SkinBox;
@@ -9,12 +11,12 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomModelData;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.trading.ItemCost;
@@ -27,16 +29,18 @@ import static se.metacraft.skins.gametest.SkinFixtures.assertThat;
 
 /**
  * The Skin Box item through the Skins module: what clients are shown of it, how it stacks, the
- * ominous vault's file in the pack, and giving boxes. The right-click and {@code /itemskins givebox}
+ * mark it carries and the model the pack draws it with, and giving boxes. The right-click and {@code /itemskins givebox}
  * that drive it are SkinsCommandTests'.
  */
 public final class BoxItemTests {
 	private static final String SPOOKY = "{ name: \"&lSpooky Box\", description: \"Only in October.\", ominous: true,"
 			+ " skins: [ { skin: \"cleaver\", weight: 1 }, { skin: \"pumpkin_hat\", weight: 3 }, { skin: \"nowhere\", weight: 5 } ] }";
 
-	/** A vault to clients (an ominous one for an ominous box), named in its colours with "(Right-click to open)", listing its skins and chances highest first. */
+	/**
+	 * A vault to clients, marked as a box (an old file's {@code ominous} changes nothing), named in its colours with "(Right-click to open)", listing its skins and chances highest first.
+	 */
 	@GameTest
-	public void aBoxIsAVaultListingItsSkinsAndChances(GameTestHelper helper) {
+	public void aBoxIsAMarkedVaultListingItsSkinsAndChances(GameTestHelper helper) {
 		SkinFixtures fx = SkinFixtures.create().skin("pumpkin_hat", "helmet", "Pumpkin Hat", null).skin("cleaver", "sword", "&cCleaver", null)
 				.box("spooky.json5", SPOOKY)
 				.box("plain.json5", "{ name: \"Plain\", skins: [ { skin: \"cleaver\", weight: 1 } ] }")
@@ -46,7 +50,7 @@ public final class BoxItemTests {
 
 		ItemStack spooky = view(helper, fx, SkinBox.of("spooky"), viewer);
 		assertThat(spooky.is(Items.VAULT), "a client gets " + spooky);
-		assertThat(SkinBox.OMINOUS_MODEL.equals(spooky.get(DataComponents.ITEM_MODEL)), "an ominous box is drawn as " + spooky.get(DataComponents.ITEM_MODEL));
+		assertDrawnAsBox(spooky, "a box once ominous");
 		assertThat(!spooky.hasFoil(), "a box glints");
 		Component name = spooky.getHoverName();
 		assertThat(name.getString().equals("Spooky Box (Right-click to open)") && name.getSiblings().getFirst().getSiblings().getFirst().getStyle().isBold(),
@@ -60,7 +64,7 @@ public final class BoxItemTests {
 				&& Objects.equals(lore.get(2).getSiblings().getLast().getStyle().getColor(), TextColor.fromLegacyFormat(ChatFormatting.GRAY)), "the cleaver's line: " + lore.get(2));
 
 		ItemStack plain = view(helper, fx, SkinBox.of("plain"), viewer);
-		assertThat(Identifier.parse("minecraft:vault").equals(plain.get(DataComponents.ITEM_MODEL)), "a plain box is drawn as " + plain.get(DataComponents.ITEM_MODEL));
+		assertDrawnAsBox(plain, "a plain box");
 		assertThat(text(lore(plain)).equals(List.of("Cleaver 100%")), "the plain box's tooltip: " + text(lore(plain)));
 
 		ItemStack gone = view(helper, fx, SkinBox.of("gone"), viewer);
@@ -68,7 +72,7 @@ public final class BoxItemTests {
 		helper.succeed();
 	}
 
-	/** A Dormant box, and one whose id the server has never heard of, read "Unknown Skin Box" as a plain vault; fixed, they come back. */
+	/** A Dormant box, and one whose id the server has never heard of, read "Unknown Skin Box", still marked as a box; fixed, they come back. */
 	@GameTest
 	public void aDormantOrUnknownBoxReadsUnknown(GameTestHelper helper) {
 		SkinFixtures fx = SkinFixtures.create().skin("cleaver", "sword").box("broken.json5", "{ name: \"Broken\", ominous: true }");
@@ -78,7 +82,7 @@ public final class BoxItemTests {
 			ItemStack client = view(helper, fx, SkinBox.of(id), viewer);
 			assertThat(client.getHoverName().getString().equals("Unknown Skin Box: " + id) && text(lore(client)).equals(List.of("It isn't on this server.")),
 					id + " reads " + client.getHoverName().getString() + " " + text(lore(client)));
-			assertThat(Identifier.parse("minecraft:vault").equals(client.get(DataComponents.ITEM_MODEL)), id + " is drawn as " + client.get(DataComponents.ITEM_MODEL));
+			assertDrawnAsBox(client, id);
 			assertColour(lore(client).getFirst(), ChatFormatting.DARK_GRAY);
 		}
 		fx.box("broken.json5", "{ name: \"Broken\", ominous: true, skins: [ { skin: \"cleaver\", weight: 1 } ] }");
@@ -103,20 +107,37 @@ public final class BoxItemTests {
 		helper.succeed();
 	}
 
-	/** The ominous vault's item definition is always in the pack, so making a box ominous never changes the pack. */
+	/**
+	 * The pack always has the box's model, with its texture, and vanilla's vault item definition
+	 * overridden to draw a vault marked as a box with it and any other vault as the vault; so a box
+	 * file never changes the pack.
+	 */
 	@GameTest
-	public void theOminousVaultIsAlwaysInThePack(GameTestHelper helper) {
+	public void theBoxsModelIsAlwaysInThePack(GameTestHelper helper) {
 		SkinFixtures fx = SkinFixtures.create().skin("cleaver", "sword").box("plain.json5", "{ name: \"Plain\", skins: [ { skin: \"cleaver\", weight: 1 } ] }");
 		fx.reload();
 		var files = SkinFixtures.unzip(fx.pack().zip());
-		assertThat(SkinFixtures.text(files, "assets/skins/items/box/ominous_vault.json").replace(" ", "")
-				.equals("{\"model\":{\"type\":\"minecraft:model\",\"model\":\"minecraft:block/vault_ominous\"}}"),
-				"the ominous vault: " + SkinFixtures.text(files, "assets/skins/items/box/ominous_vault.json"));
+		JsonObject vault = JsonParser.parseString(SkinFixtures.text(files, "assets/minecraft/items/vault.json")).getAsJsonObject().getAsJsonObject("model");
+		JsonObject box = vault.getAsJsonArray("cases").get(0).getAsJsonObject();
+		assertThat(vault.get("property").getAsString().equals("minecraft:custom_model_data") && box.get("when").getAsString().equals(SkinBox.LOOK)
+				&& box.getAsJsonObject("model").get("model").getAsString().equals("skins:box/skin_box")
+				&& vault.getAsJsonObject("fallback").get("model").getAsString().equals("minecraft:block/vault"), "the vault's item definition: " + vault);
+		JsonObject model = JsonParser.parseString(SkinFixtures.text(files, "assets/skins/models/box/skin_box.json")).getAsJsonObject();
+		assertThat(model.getAsJsonObject("textures").get("0").getAsString().equals("skins:item/skin_box") && model.getAsJsonArray("elements").size() > 0,
+				"the box's model: " + model.get("textures"));
+		assertThat(files.containsKey("assets/skins/textures/item/skin_box.png"), "the pack has no box texture");
 		String before = fx.pack().sha1();
-		fx.box("plain.json5", "{ name: \"Plain\", ominous: true, skins: [ { skin: \"cleaver\", weight: 1 } ] }");
+		fx.box("other.json5", "{ name: \"Other\", ominous: true, skins: [ { skin: \"cleaver\", weight: 1 } ] }");
 		var report = fx.reload();
-		assertThat(fx.pack().sha1().equals(before) && !report.changed(), "making the box ominous changed the pack");
+		assertThat(fx.pack().sha1().equals(before) && !report.changed(), "adding a box changed the pack");
 		helper.succeed();
+	}
+
+	/** A vault as clients have it, marked as a Skin Box. */
+	private static void assertDrawnAsBox(ItemStack client, String what) {
+		assertThat(client.is(Items.VAULT) && SkinBox.MODEL.equals(client.get(DataComponents.ITEM_MODEL))
+				&& client.getOrDefault(DataComponents.CUSTOM_MODEL_DATA, CustomModelData.EMPTY).strings().equals(List.of(SkinBox.LOOK)),
+				what + " is drawn as " + client.get(DataComponents.ITEM_MODEL) + ", " + client.get(DataComponents.CUSTOM_MODEL_DATA));
 	}
 
 	@GameTest

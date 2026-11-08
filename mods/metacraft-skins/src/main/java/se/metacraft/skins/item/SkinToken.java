@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import se.metacraft.skins.MetacraftSkins;
 import se.metacraft.skins.SkinFolder;
 import se.metacraft.skins.Skins;
+import se.metacraft.skins.ui.RightClick;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import eu.pb4.polymer.core.api.other.PolymerComponent;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
@@ -15,11 +16,16 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.Level;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
@@ -100,6 +106,18 @@ public final class SkinToken extends Item implements PolymerItem {
 	@Override
 	public Component getName(ItemStack stack) {
 		return Component.literal("Skin Token");
+	}
+
+	/** A right-click with it in the main hand, on air, opens the token's claim menu ({@link RightClick}). */
+	@Override
+	public InteractionResult use(Level level, Player player, InteractionHand hand) {
+		return RightClick.open(player, hand);
+	}
+
+	/** A right-click with it in the main hand on a block that does nothing with it opens the token's claim menu. */
+	@Override
+	public InteractionResult useOn(UseOnContext context) {
+		return RightClick.open(context.getPlayer(), context.getHand());
 	}
 
 	@Override

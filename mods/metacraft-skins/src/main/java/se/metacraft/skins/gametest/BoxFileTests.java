@@ -32,7 +32,7 @@ public final class BoxFileTests {
 		assertThat(report.boxes().loaded().equals(List.of("halloween")) && report.boxes().rejections().isEmpty() && report.boxes().warnings().isEmpty(),
 				"the shipped box against the shipped skins: " + report.boxes());
 		BoxSummary halloween = fx.skins.box("halloween").orElseThrow();
-		assertThat(halloween.name().equals(Optional.of("Halloween Skin Box")) && halloween.ominous(), "the Halloween box: " + halloween);
+		assertThat(halloween.name().equals(Optional.of("Halloween Skin Box")), "the Halloween box: " + halloween);
 		assertThat(chances(halloween).equals(List.of("pumpkin_hat 13.3%", "witch_hat 13.3%", "spider_hat 13.3%", "cowboy_hat 13.3%", "crusader_helmet 13.3%",
 				"plague_mask 10%", "pumpkin_pickaxe 6.7%", "plague_mask_silver 4.7%", "ruined_crown 4.7%", "bloody_cleaver 3.3%", "plague_mask_dark 2%",
 				"blood_katana 2%")), "its chances: " + chances(halloween));
@@ -66,7 +66,7 @@ public final class BoxFileTests {
 		BoxSummary box = fx.skins.box("spooky").orElseThrow(() -> SkinFixtures.fail("no box spooky: " + fx.skins.boxes()));
 		assertThat(box.name().equals(Optional.of("Spooky Box")) && box.title().map(t -> t.getString()).equals(Optional.of("Spooky Box")),
 				"named " + box.name() + ", " + box.title());
-		assertThat(box.description().equals(Optional.of("Only in October.")) && box.ominous() && !box.dormant() && box.leftOut().isEmpty(), "the box: " + box);
+		assertThat(box.description().equals(Optional.of("Only in October.")) && !box.dormant() && box.leftOut().isEmpty(), "the box: " + box);
 		assertThat(chances(box).equals(List.of("pumpkin_hat 75%", "cleaver 25%")), "its chances: " + chances(box));
 		assertThat(fx.skins.boxes().equals(List.of(box)), "every box: " + fx.skins.boxes());
 		helper.succeed();

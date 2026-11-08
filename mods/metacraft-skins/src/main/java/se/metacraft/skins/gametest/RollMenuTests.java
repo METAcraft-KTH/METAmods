@@ -168,7 +168,8 @@ public final class RollMenuTests {
 				} else if (slot == TOP) {
 					assertThat(item.is(Items.STAINED_GLASS_PANE.orange()) && name(player, slot).equals("▼"), "the top marker: " + item + " " + name(player, slot));
 				} else if (slot == BOTTOM) {
-					assertThat(item.is(Items.VAULT) && name(player, slot).equals("Roll") && lore(player, slot).equals(List.of("Uses up the box")),
+					assertThat(item.is(Items.VAULT) && item.has(DataComponents.CUSTOM_MODEL_DATA)
+							&& item.get(DataComponents.CUSTOM_MODEL_DATA).strings().equals(List.of(SkinBox.LOOK)) && name(player, slot).equals("Roll") && lore(player, slot).equals(List.of("Uses up the box")),
 							"the Roll button: " + item + " " + name(player, slot) + " " + lore(player, slot));
 				} else {
 					assertThat(item.is(Items.STAINED_GLASS_PANE.gray()), "slot " + slot + " isn't filler: " + item);

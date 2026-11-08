@@ -10,6 +10,7 @@ import se.metacraft.skins.Hand;
 import se.metacraft.skins.MetacraftSkins;
 import se.metacraft.skins.SkinSummary;
 import se.metacraft.skins.Skins;
+import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -106,7 +107,7 @@ public final class RollMenu {
 				previewShown.add(reelSkin(skin, chances.get(skin)));
 				setSlot(REEL + i, previewShown.getLast());
 			}
-			setSlot(BOTTOM, new GuiElementBuilder(Items.VAULT).setName(Component.literal("Roll").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
+			setSlot(BOTTOM, GuiElementBuilder.from(SkinBox.drawnAsBox(new ItemStack(Items.VAULT))).setName(Component.literal("Roll").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
 					.addLoreLine(Component.literal("Uses up the box").withStyle(ChatFormatting.GRAY)).setCallback(this::roll).build());
 		}
 

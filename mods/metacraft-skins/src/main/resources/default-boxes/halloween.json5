@@ -1,7 +1,6 @@
 {
 	name: "&lHalloween Skin Box",
 	gradient: { colors: ["#FF6A00", "#7B2FBE"], mirror: true },
-	ominous: true,
 	skins: [
 		{ skin: "pumpkin_hat", weight: 20 },
 		{ skin: "witch_hat", weight: 20 },

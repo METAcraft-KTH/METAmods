@@ -398,7 +398,6 @@ is the box's id, for good**: it's stored in every box item, like a skin id. It m
 {
 	name: "&lHalloween Skin Box",
 	gradient: { colors: ["#FF6A00", "#7B2FBE"], mirror: true },
-	ominous: true,
 	skins: [
 		{ skin: "pumpkin_hat", weight: 20 },
 		{ skin: "witch_hat", weight: 20 },
@@ -421,7 +420,7 @@ is the box's id, for good**: it's stored in every box item, like a skin id. It m
 | `name` | Required. The same rules as a skin's `name`: `&` codes, and some text besides them. |
 | `gradient` | Optional. The same as a skin's `{ colors: [...], mirror: true }`; it forbids colour codes in the name. |
 | `description` | Optional. One gray line in the box's tooltip. |
-| `ominous` | Optional. `true` draws the box as the ominous vault; `false` or left out, the plain vault. |
+| `ominous` | No longer used: every box looks the same. Still read (`true` or `false`), so older files load. |
 | `skins` | Required. At least one `{ skin: "<skin id>", weight: <n> }`. |
 
 There's no `released` or `obtainable`: a retired box is one you stop giving out.
@@ -460,17 +459,19 @@ a deleted box stays deleted. If you deleted some of its skins, those entries are
 ### The item
 
 The item is `metacraft-skins:skin_box`, with the box's id in its `metacraft-skins:box` component. To
-clients it's a vault, or the ominous vault for an ominous box, named in the box's colours and followed
-by "(Right-click to open)" in gray. Its tooltip has the description, then each usable skin with its
+clients it's a vault, marked as a box by the custom model data string `metacraft-skins:skin_box`,
+named in the box's colours and followed by "(Right-click to open)" in gray. The skins pack overrides
+vanilla's `minecraft:items/vault.json` to draw a marked vault with the box's own model (from the jar's
+`skin-box/`), and every other vault as a vault; a player without the pack sees a vault. Its tooltip has the description, then each usable skin with its
 chance, highest first ("Pumpkin Hat 20%"). A box with no usable skins says "Every skin in this box is
 unavailable." instead. Boxes don't stack: each is an item of its own. They can be traded and dropped
 like tokens. They never place as a block,
-open a chest or fill a frame, and recipes, villagers, workstations and dispensers don't take them for vaults.
+and recipes, villagers, workstations and dispensers don't take them for vaults.
 
 ### Rolling
 
-Right-clicking a box in the main hand (on air, a block or an entity) opens the **Roll menu**; the offhand
-does nothing. The middle row previews nine skins of the box, drawn by weight, each with its chance.
+Right-clicking a box in the main hand on air, or on a block that does nothing with it, opens the
+**Roll menu**; the offhand does nothing. The middle row previews nine skins of the box, drawn by weight, each with its chance.
 
 - **Leaving before Roll is free.**
 - **Roll uses up one box** (in creative too). The reel spins for five seconds, slowing down, with a rising
@@ -511,7 +512,7 @@ packs never pushes a resource pack by surprise. `/itemskins reload`:
 The pack is built the same way every time, so the same skins give the same SHA-1. Only Looks are in
 it: **editing a skin's name, description or Perks changes every token and Skinned Item at once, and
 doesn't change the pack**, so nobody downloads anything, and nor does editing its `materials`.
-Skin Boxes never change the pack either: the ominous vault's item definition is always in it.
+Skin Boxes never change the pack either: the box's model is always in it.
 Adding, removing or changing a model or texture does, and so does turning `dyeable` on or off. So you
 choose when players see a loading screen: batch Look changes into one reload.
 
@@ -716,13 +717,15 @@ Rules that answer most support questions:
   their place: "<Skin> skin, only works for <Owner>", as in "Candy Sword skin, only works for Alice".
 - **Tokens** come from `/itemskins give`, Extract and Skin Boxes. They stack to 64, can be traded and
   dropped, and are paper to recipes, villagers and workstations, none of which accept them. A token for a skin the viewer already owns says so and is kept when
-  right-clicked. A Claim is a right-click with the token in the main hand, on air, a block or an entity;
-  it never opens a chest or fills a frame. A token in the offhand does nothing.
+  right-clicked. A Claim starts with a right-click with the token in the main hand, on air or on a block that does
+  nothing with it. A block or an entity has its say first, as with any item: a chest opens, an item
+  frame takes the token (sneak to skip the block). A token in the offhand does nothing, and the offhand
+  isn't used along with one in the main hand.
 - **Skin Boxes** don't stack (each is an item of its own), can be traded and dropped, and are vaults to
-  clients (an ominous vault for an ominous box) but nothing to recipes, villagers, workstations and
-  dispensers. A box never places as a block, opens a chest or fills a frame: a right-click with it in the
-  main hand, on air, a block or an entity, opens it and does nothing else. A box in the offhand does
-  nothing. Its tooltip lists its skins and their chances, highest first. A box whose file is Dormant
+  clients but nothing to recipes, villagers, workstations and
+  dispensers. A box never places as a block. A right-click with it in the main hand, on air or on a
+  block that does nothing with it, opens it; a block or an entity has its say first, as for tokens. A box
+  in the offhand does nothing, and the offhand isn't used along with one in the main hand. Its tooltip lists its skins and their chances, highest first. A box whose file is Dormant
   or gone reads "Unknown Skin Box: <id>" and can't be opened, but stays where it is: fix the file and
   every copy comes back.
 

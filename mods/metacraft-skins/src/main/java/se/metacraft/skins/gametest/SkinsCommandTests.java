@@ -36,7 +36,6 @@ import net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket;
 import net.minecraft.network.protocol.game.GameProtocols;
 import net.minecraft.network.protocol.game.ServerboundChunkBatchReceivedPacket;
 import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
-import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
 import net.minecraft.resources.Identifier;
@@ -50,7 +49,6 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.pig.Pig;
-import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
@@ -439,18 +437,17 @@ public final class SkinsCommandTests {
 	/**
 	 * {@code /itemskins give} through the dispatcher; a token reaching its holder as paper with their
 	 * own text; and real right-clicks, as packets through the player's connection: the main hand on
-	 * air opens the claim menu once however many packets the click arrives as; the offhand opens
-	 * nothing; a chest or an item frame clicked with a token opens the claim menu instead of doing
-	 * what it would, with a swing and a page turn. A grant re-sends the player's inventory.
+	 * air opens the claim menu once however many packets the click arrives as, and the offhand item
+	 * isn't used with it; the offhand opens nothing; a block clicked with a token opens the claim
+	 * menu, with a swing and a page turn. A grant re-sends the player's inventory.
 	 */
 	private static void tokensAndClaims(GameTestHelper helper, SkinFixtures fx) {
 		MinecraftServer server = helper.getLevel().getServer();
 		SkinFixtures.Listening air = SkinFixtures.join(helper);
 		SkinFixtures.Listening offhand = SkinFixtures.join(helper);
 		SkinFixtures.Listening blocks = SkinFixtures.join(helper);
-		SkinFixtures.Listening entities = SkinFixtures.join(helper);
 		try {
-			for (SkinFixtures.Listening player : List.of(air, offhand, blocks, entities)) {
+			for (SkinFixtures.Listening player : List.of(air, offhand, blocks)) {
 				player.getInventory().clearContent();
 				player.setGameMode(GameType.SURVIVAL);
 				player.arrive(helper.absoluteVec(new Vec3(2.5, 1, 2.5)));
@@ -492,39 +489,27 @@ public final class SkinsCommandTests {
 			offhand.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.OFF_HAND, 1, 0, 0));
 			assertThat(offhand.containerMenu == offhand.inventoryMenu, "a token in the offhand opened " + SkinMenuTests.title(offhand));
 
-			// A chest clicked with a token: the claim menu, not the chest, with a swing and a page turn.
-			BlockPos chest = helper.absolutePos(new BlockPos(3, 1, 3));
-			helper.getLevel().setBlockAndUpdate(chest, Blocks.CHEST.defaultBlockState());
+			// A block clicked with a token: the claim menu, with a swing and a page turn.
+			BlockPos stone = helper.absolutePos(new BlockPos(3, 1, 3));
+			helper.getLevel().setBlockAndUpdate(stone, Blocks.STONE.defaultBlockState());
 			blocks.getInventory().setItem(0, SkinToken.of("candy_cane_test", 1));
 			blocks.sent(Object.class);
 			blocks.tickEnd();
 			blocks.connection.handleUseItemOn(new ServerboundUseItemOnPacket(InteractionHand.MAIN_HAND,
-					new BlockHitResult(Vec3.atCenterOf(chest).add(0, 0.5, 0), Direction.UP, chest, false), 1));
-			assertThat(SkinMenuTests.title(blocks).equals("Claim candy_cane_test skin?"), "a chest clicked with a token opened " + blocks.containerMenu);
+					new BlockHitResult(Vec3.atCenterOf(stone).add(0, 0.5, 0), Direction.UP, stone, false), 1));
+			assertThat(SkinMenuTests.title(blocks).equals("Claim candy_cane_test skin?"), "a block clicked with a token opened " + blocks.containerMenu);
 			List<Object> sent = blocks.sent(Object.class);
 			assertThat(sent.stream().anyMatch(p -> p instanceof ClientboundSwingAnimationPacket a && a.entityId() == blocks.getId() && a.hand() == InteractionHand.MAIN_HAND), "the arm didn't swing: " + sent);
 			assertThat(sent.stream().anyMatch(p -> p instanceof ClientboundSoundPacket s && s.getSound().value().equals(SoundEvents.BOOK_PAGE_TURN)),
 					"no page turned: " + sent);
 			blocks.connection.handleContainerClose(new ServerboundContainerClosePacket(blocks.containerMenu.containerId));
 
-			// An item frame clicked with a token: the claim menu, and the frame stays empty.
-			BlockPos wall = helper.absolutePos(new BlockPos(1, 1, 1));
-			helper.getLevel().setBlockAndUpdate(wall, Blocks.STONE.defaultBlockState());
-			ItemFrame frame = new ItemFrame(helper.getLevel(), wall.above(), Direction.UP);
-			helper.getLevel().addFreshEntity(frame);
-			entities.getInventory().setItem(0, SkinToken.of("candy_cane_test", 1));
-			entities.tickEnd();
-			entities.connection.handleInteract(new ServerboundInteractPacket(frame.getId(), InteractionHand.MAIN_HAND, Vec3.ZERO, false));
-			assertThat(SkinMenuTests.title(entities).equals("Claim candy_cane_test skin?"), "an item frame clicked with a token opened " + entities.containerMenu);
-			assertThat(frame.getItem().isEmpty() && entities.getMainHandItem().getCount() == 1, "the token went into the item frame");
-			frame.discard();
-
 			// A grant re-sends the inventory, so tokens for the skin say it's owned.
 			blocks.sent(Object.class);
 			run(server, LevelBasedPermissionSet.ADMIN, "itemskins grant " + blocks.getGameProfile().name() + " candy_cane_test");
 			assertThat(blocks.sent(ClientboundContainerSetContentPacket.class).stream().anyMatch(p -> p.containerId() == 0), "a grant didn't re-send the inventory");
 		} finally {
-			for (ServerPlayer player : List.of(air, offhand, blocks, entities)) server.getPlayerList().remove(player);
+			for (ServerPlayer player : List.of(air, offhand, blocks)) server.getPlayerList().remove(player);
 		}
 	}
 
@@ -556,9 +541,8 @@ public final class SkinsCommandTests {
 
 	/**
 	 * {@code /itemskins givebox} through the dispatcher, and real right-clicks with a box, as packets:
-	 * a box in the main hand at a chest or an item frame opens its Roll menu and does nothing else (the
-	 * chest stays shut, the frame empty, no vault is placed) with a swing; the offhand and a spectator
-	 * do nothing; a Dormant box is refused once per click. The boxes are deleted again after.
+	 * a box in the main hand on air or a block opens its Roll menu with a swing, and no vault is
+	 * placed; the offhand and a spectator do nothing; a Dormant box is refused once per click. The boxes are deleted again after.
 	 */
 	private static void boxesInPlay(GameTestHelper helper, SkinFixtures fx) {
 		MinecraftServer server = helper.getLevel().getServer();
@@ -592,7 +576,6 @@ public final class SkinsCommandTests {
 		// One player per click: the quiet time after a click counts server ticks, which don't pass here.
 		SkinFixtures.Listening air = boxHolder(helper, "treats");
 		SkinFixtures.Listening blocks = boxHolder(helper, "treats");
-		SkinFixtures.Listening entities = boxHolder(helper, "treats");
 		SkinFixtures.Listening dormant = boxHolder(helper, "broken");
 		SkinFixtures.Listening offhand = boxHolder(helper, null);
 		SkinFixtures.Listening spectator = boxHolder(helper, "broken");
@@ -607,28 +590,17 @@ public final class SkinsCommandTests {
 			assertThat(SkinMenuTests.title(air).equals("Treats") && air.sent(ClientboundOpenScreenPacket.class).size() == 1,
 					"a right-click on air opened " + SkinMenuTests.title(air));
 
-			// A chest clicked with a box: the Roll menu, not the chest; no vault is placed on it, and the arm swings.
-			BlockPos chest = helper.absolutePos(new BlockPos(3, 1, 3));
-			helper.getLevel().setBlockAndUpdate(chest, Blocks.CHEST.defaultBlockState());
+			// A block clicked with a box: the Roll menu; no vault is placed on it, and the arm swings.
+			BlockPos stone = helper.absolutePos(new BlockPos(3, 1, 3));
+			helper.getLevel().setBlockAndUpdate(stone, Blocks.STONE.defaultBlockState());
 			blocks.sent(Object.class);
 			blocks.tickEnd();
 			blocks.connection.handleUseItemOn(new ServerboundUseItemOnPacket(InteractionHand.MAIN_HAND,
-					new BlockHitResult(Vec3.atCenterOf(chest).add(0, 0.5, 0), Direction.UP, chest, false), 1));
-			assertThat(SkinMenuTests.title(blocks).equals("Treats"), "a chest clicked with a box opened " + blocks.containerMenu);
-			assertThat(helper.getLevel().getBlockState(chest.above()).isAir() && blocks.getMainHandItem().getCount() == 1, "a box was placed on the chest");
+					new BlockHitResult(Vec3.atCenterOf(stone).add(0, 0.5, 0), Direction.UP, stone, false), 1));
+			assertThat(SkinMenuTests.title(blocks).equals("Treats"), "a block clicked with a box opened " + blocks.containerMenu);
+			assertThat(helper.getLevel().getBlockState(stone.above()).isAir() && blocks.getMainHandItem().getCount() == 1, "a box was placed on the block");
 			List<Object> sent = blocks.sent(Object.class);
 			assertThat(sent.stream().anyMatch(p -> p instanceof ClientboundSwingAnimationPacket a && a.entityId() == blocks.getId()), "the arm didn't swing: " + sent);
-
-			// An item frame clicked with a box: the Roll menu, and the frame stays empty.
-			BlockPos wall = helper.absolutePos(new BlockPos(1, 1, 1));
-			helper.getLevel().setBlockAndUpdate(wall, Blocks.STONE.defaultBlockState());
-			ItemFrame frame = new ItemFrame(helper.getLevel(), wall.above(), Direction.UP);
-			helper.getLevel().addFreshEntity(frame);
-			entities.tickEnd();
-			entities.connection.handleInteract(new ServerboundInteractPacket(frame.getId(), InteractionHand.MAIN_HAND, Vec3.ZERO, false));
-			assertThat(SkinMenuTests.title(entities).equals("Treats") && frame.getItem().isEmpty() && entities.getMainHandItem().getCount() == 1,
-					"an item frame clicked with a box: " + SkinMenuTests.title(entities) + ", the frame holds " + frame.getItem());
-			frame.discard();
 
 			// A Dormant box: one click (a main hand use, then an offhand one, then a held button's repeat) is refused once.
 			dormant.tickEnd();
@@ -648,7 +620,7 @@ public final class SkinsCommandTests {
 			spectator.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 1, 0, 0));
 			assertThat(spectator.actionBar.isEmpty(), "a spectator's box: " + spectator.actionBar);
 		} finally {
-			for (ServerPlayer p : List.of(air, blocks, entities, dormant, offhand, spectator)) server.getPlayerList().remove(p);
+			for (ServerPlayer p : List.of(air, blocks, dormant, offhand, spectator)) server.getPlayerList().remove(p);
 		}
 		try {
 			for (String file : List.of("treats.json5", "broken.json5")) Files.delete(fx.skins.boxesFolder().resolve(file));

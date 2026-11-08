@@ -22,12 +22,9 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.damagesource.DamageTypes;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.storage.LevelResource;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -64,10 +61,10 @@ public final class MetacraftSkins implements ModInitializer {
 			Skins current = skins;
 			return current == null ? client : DrawingCheck.draw(current, original, client, context);
 		});
-		// A right-click with a token or a box in the main hand, on air, a block or an entity, opens its menu.
-		UseItemCallback.EVENT.register((player, level, hand) -> rightClick(player, hand));
-		UseBlockCallback.EVENT.register((player, level, hand, hit) -> rightClick(player, hand));
-		UseEntityCallback.EVENT.register((player, level, hand, entity, hit) -> rightClick(player, hand));
+		// A token or a box opens its menu from its own use and useOn; these keep the offhand out of that click.
+		UseItemCallback.EVENT.register((player, level, hand) -> RightClick.guardOffhand(player, hand));
+		UseBlockCallback.EVENT.register((player, level, hand, hit) -> RightClick.guardOffhand(player, hand));
+		UseEntityCallback.EVENT.register((player, level, hand, entity, hit) -> RightClick.guardOffhand(player, hand));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			Skins current = skins;
 			if (current != null) current.seen(handler.player.nameAndId());
@@ -119,11 +116,6 @@ public final class MetacraftSkins implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> skins = null);
 		PackDelivery.init(MetacraftSkins::skins);
 		SkinsCommands.init(MetacraftSkins::skins);
-	}
-
-	private static InteractionResult rightClick(Player player, InteractionHand hand) {
-		Skins current = skins;
-		return current != null && player instanceof ServerPlayer server ? RightClick.handle(server, current, hand) : InteractionResult.PASS;
 	}
 
 	/**

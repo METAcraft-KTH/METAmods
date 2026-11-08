@@ -40,16 +40,17 @@ final class PackBuilder {
 	private static final LocalDateTime ENTRY_TIME = LocalDateTime.of(1980, 1, 1, 0, 0);
 
 	/**
-	 * The files every build carries: the shared Skin Token's, from the jar's {@code skin-token/} (its
-	 * model sits outside {@code models/item/} and its texture right in {@code textures/item/}), and the
-	 * ominous vault's item definition for ominous Skin Boxes, which reuses vanilla's block model. All
-	 * at paths no skin's can take (a skin's are always under its own id), and always there, so a box's
-	 * {@code ominous} never changes the pack.
+	 * The files every build carries: the shared Skin Token's, from the jar's {@code skin-token/}, and
+	 * the Skin Box's, from {@code skin-box/} (each model sits outside {@code models/item/} and each
+	 * texture right in {@code textures/item/}), with vanilla's vault item definition overridden to draw
+	 * a vault marked as a box ({@link SkinBox#LOOK}) with the box's model and any other vault as the
+	 * vault. At paths no skin's can take (a skin's are always under its own id), and always there, so no
+	 * box file ever changes the pack.
 	 */
-	private static final Map<String, byte[]> TOKEN_FILES = tokenFiles();
+	private static final Map<String, byte[]> FIXED_FILES = fixedFiles();
 
 	static SkinsPack build(Collection<SkinFolder.Loaded> skins) {
-		Map<String, byte[]> files = new TreeMap<>(TOKEN_FILES);
+		Map<String, byte[]> files = new TreeMap<>(FIXED_FILES);
 		files.put("pack.mcmeta", mcmeta().getBytes(StandardCharsets.UTF_8));
 		for (SkinFolder.Loaded skin : skins) files.putAll(skin.files());
 
@@ -73,7 +74,7 @@ final class PackBuilder {
 		}
 	}
 
-	private static Map<String, byte[]> tokenFiles() {
+	private static Map<String, byte[]> fixedFiles() {
 		String namespace = SkinToken.MODEL.getNamespace();
 		String model = "{ \"model\": { \"type\": \"minecraft:model\", \"model\": \"" + namespace + ":token/skin_token\" } }";
 		Map<String, byte[]> files = new TreeMap<>();
@@ -81,8 +82,13 @@ final class PackBuilder {
 		// The model's textures already name skins:item/skin_token.
 		files.put("assets/" + namespace + "/models/token/skin_token.json", bundled("skin-token/skin_token.json"));
 		files.put("assets/" + namespace + "/textures/item/skin_token.png", bundled("skin-token/skin_token.png"));
-		String ominous = "{ \"model\": { \"type\": \"minecraft:model\", \"model\": \"minecraft:block/vault_ominous\" } }";
-		files.put("assets/" + SkinBox.OMINOUS_MODEL.getNamespace() + "/items/" + SkinBox.OMINOUS_MODEL.getPath() + ".json", ominous.getBytes(StandardCharsets.UTF_8));
+		// The box's model names skins:item/skin_box.
+		files.put("assets/" + SkinBox.BOX_MODEL.getNamespace() + "/models/" + SkinBox.BOX_MODEL.getPath() + ".json", bundled("skin-box/skin_box.json"));
+		files.put("assets/" + SkinBox.BOX_MODEL.getNamespace() + "/textures/item/skin_box.png", bundled("skin-box/skin_box.png"));
+		String vault = "{ \"model\": { \"type\": \"minecraft:select\", \"property\": \"minecraft:custom_model_data\", \"index\": 0,"
+				+ " \"cases\": [ { \"when\": \"" + SkinBox.LOOK + "\", \"model\": { \"type\": \"minecraft:model\", \"model\": \"" + SkinBox.BOX_MODEL + "\" } } ],"
+				+ " \"fallback\": { \"type\": \"minecraft:model\", \"model\": \"minecraft:block/vault\" } } }";
+		files.put("assets/minecraft/items/vault.json", vault.getBytes(StandardCharsets.UTF_8));
 		return files;
 	}
 

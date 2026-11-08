@@ -11,13 +11,13 @@ import java.util.Optional;
 
 /**
  * One Skin Box file as the server has it since the last reload: its id, its name ({@code name}
- * without formatting codes, {@code title} with them and its gradient), description and whether it's
- * drawn as the ominous vault (once it loads), and, for a Dormant box, why it didn't load.
+ * without formatting codes, {@code title} with them and its gradient) and description (once it
+ * loads), and, for a Dormant box, why it didn't load.
  * {@code entries} are its usable skins (loaded on the server when the box was read), highest chance
  * first, ties in file order; {@code leftOut} the ids of the skins it lists that are unknown or
  * Dormant, in file order.
  */
-public record BoxSummary(String id, Optional<String> name, Optional<Component> title, Optional<String> description, boolean ominous,
+public record BoxSummary(String id, Optional<String> name, Optional<Component> title, Optional<String> description,
 		List<Entry> entries, List<String> leftOut, Optional<String> dormantReason) {
 
 	/** A usable skin of the box, its weight and its chance worded for players ({@link #chance(long, long)}). */

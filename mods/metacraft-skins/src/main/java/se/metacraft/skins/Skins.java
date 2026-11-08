@@ -265,12 +265,12 @@ public final class Skins {
 		List<BoxSummary.Entry> entries = usable.stream()
 				.sorted(Comparator.comparingInt(BoxFile.Entry::weight).reversed())   // a stable sort: ties stay in file order
 				.map(e -> new BoxSummary.Entry(e.skin(), e.weight(), BoxSummary.chance(e.weight(), total))).toList();
-		return new BoxSummary(box.id(), Optional.of(box.name()), Optional.of(box.title()), box.description(), box.ominous(), entries, List.copyOf(leftOut),
+		return new BoxSummary(box.id(), Optional.of(box.name()), Optional.of(box.title()), box.description(), entries, List.copyOf(leftOut),
 				Optional.empty());
 	}
 
 	private static BoxSummary dormantBox(String id, String reason) {
-		return new BoxSummary(id, Optional.empty(), Optional.empty(), Optional.empty(), false, List.of(), List.of(), Optional.of(reason));
+		return new BoxSummary(id, Optional.empty(), Optional.empty(), Optional.empty(), List.of(), List.of(), Optional.of(reason));
 	}
 
 	/** Everything in {@code boxes/} but names starting with {@code .}, sorted. */
@@ -595,18 +595,17 @@ public final class Skins {
 	}
 
 	/**
-	 * What a viewer is sent of a Skin Box: Polymer's client copy ({@code client}, a vault) drawn as
-	 * the plain vault or, for an ominous box, the ominous one, with no glint, named in the box's
-	 * colours followed by " (Right-click to open)" in gray, with the lore: its description (gray), one
+	 * What a viewer is sent of a Skin Box: Polymer's client copy ({@code client}, a vault marked as a
+	 * box by {@link SkinBox#drawnAsBox}) with no glint, named in the box's colours followed by
+	 * " (Right-click to open)" in gray, with the lore: its description (gray), one
 	 * line per usable skin, highest chance first ("Pumpkin Hat 20%": the skin's name in its colours, the
 	 * chance in gray), or "Every skin in this box is unavailable." for a box with none. A box whose
-	 * file is Dormant, gone or never was reads "Unknown Skin Box: <id>", as a plain vault.
+	 * file is Dormant, gone or never was reads "Unknown Skin Box: <id>".
 	 */
 	public ItemStack boxView(ItemStack box, ItemStack client) {
 		String id = SkinBox.boxOf(box).orElse("");
 		BoxSummary summary = boxes.get(id);
 		client.remove(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
-		client.set(DataComponents.ITEM_MODEL, summary != null && !summary.dormant() && summary.ominous() ? SkinBox.OMINOUS_MODEL : SkinBox.PLAIN_MODEL);
 		if (summary == null || summary.dormant()) {
 			client.set(DataComponents.ITEM_NAME, plain("Unknown Skin Box: " + id, ChatFormatting.GRAY));
 			client.set(DataComponents.LORE, new ItemLore(List.of(plain("It isn't on this server.", ChatFormatting.DARK_GRAY))));
