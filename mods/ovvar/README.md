@@ -491,15 +491,7 @@ pure white, so the stitching reads the same on every chapter.
     session_seconds          idle time before a session ends (default 300)
     explain_in_chat          the stash explanation when a patch is earned (default true)
 
-`config/ovvar.json` → `server` (what this server calls itself):
-
-    name                     this server's name (default "METAcraft"; no longer used for the MOTD)
-
-ovvar leaves the MOTD alone: it is whatever `server.properties` says. Every key above is optional in
-the file: the defaults are the ones documented here, and a key only needs
-writing to change it.
-
-Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `server` and
+Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash` and
 `designs.jdbc` blocks carry their own `_help` object (rewritten every save, so edits to it do not
 stick) with a `_about` line and one entry per key, the same text as above; open the file itself if
 you would rather read the help there than here. Every block is always written, even one that is
