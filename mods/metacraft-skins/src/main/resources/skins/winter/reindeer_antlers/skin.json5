@@ -1,0 +1,8 @@
+{
+	name: "&lReindeer Antlers",
+	gradient: { colors: ["#7B4B2A", "#C49A6C"], mirror: true },
+	released: "2026/11/09",
+	obtainable: false,
+	kind: "helmet",
+	look: { model: "reindeer_antlers.json" },
+}

@@ -1,0 +1,8 @@
+{
+	name: "&lPlunderer's Bandana",
+	gradient: { colors: ["#B22222", "#F5F5F5"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "plunderers_bandana.json" },
+}

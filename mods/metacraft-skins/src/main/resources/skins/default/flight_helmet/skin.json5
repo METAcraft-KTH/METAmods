@@ -1,0 +1,8 @@
+{
+	name: "&lFlight Helmet",
+	gradient: { colors: ["#6B4226", "#B5A642"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "flight_helmet.json" },
+}

@@ -89,7 +89,13 @@ public final class TokenTests {
 		fx.skins.grant(owner.nameAndId(), "crown_test");
 
 		ItemStack crown = view(helper, fx, SkinToken.of("crown_test", 3), other);
-		assertLine(crown.get(DataComponents.ITEM_NAME), "Skin Token: Crown", ChatFormatting.GOLD);
+		Component tokenName = Objects.requireNonNull(crown.get(DataComponents.ITEM_NAME));
+		assertThat(tokenName.getString().equals("Skin Token: Crown") && tokenName.getSiblings().size() == 2, "the token is named " + tokenName);
+		Component prefix = tokenName.getSiblings().get(0);
+		assertLine(prefix, "Skin Token: ", ChatFormatting.GOLD);
+		assertThat(prefix.getStyle().isBold(), "\"Skin Token: \" isn't bold");
+		assertThat(tokenName.getSiblings().get(1).equals(fx.skins.skin("crown_test").orElseThrow().styledName()),
+				"the skin's part of the name isn't its own: " + tokenName);
 		assertThat(!Boolean.TRUE.equals(crown.get(DataComponents.ENCHANTMENT_GLINT_OVERRIDE)), "a token glints");
 		List<Component> lore = lore(crown);
 		assertThat(text(lore).equals(List.of("Fits any helmet", "While worn: +2 max hearts", "Fit for a king.", "", "Right-click to claim")),

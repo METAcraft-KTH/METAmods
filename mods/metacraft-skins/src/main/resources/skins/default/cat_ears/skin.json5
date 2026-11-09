@@ -1,0 +1,8 @@
+{
+	name: "&lCat Ears",
+	gradient: { colors: ["#3A3A3A", "#FFB6C1"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "cat_ears.json" },
+}

@@ -9,6 +9,7 @@ import io.netty.buffer.Unpooled;
 import se.metacraft.skins.ItemLocation;
 import se.metacraft.skins.MetacraftSkins;
 import se.metacraft.skins.SkinMarker;
+import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 import se.metacraft.skins.Skins;
 import se.metacraft.skins.SkinsPack;
@@ -35,7 +36,6 @@ import net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket;
 import net.minecraft.network.protocol.game.GameProtocols;
 import net.minecraft.network.protocol.game.ServerboundChunkBatchReceivedPacket;
 import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
-import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
 import net.minecraft.resources.Identifier;
@@ -49,7 +49,6 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.pig.Pig;
-import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
@@ -58,10 +57,13 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -76,7 +78,7 @@ import static se.metacraft.skins.gametest.SkinFixtures.assertThat;
 /**
  * Wiring only, against the server's own Skins pointed at a temporary root for the test:
  * {@code /itemskins list} and {@code /itemskins reload} run through the server's command dispatcher and
- * are refused below their default permission levels, and the pack reload built downloads from
+ * are refused below their default permission levels (admins, both), and a player has no {@code extract}, and the pack reload built downloads from
  * metacraft-resource-packs' pack server at the address players are pushed; {@code /itemskins grant},
  * {@code revoke} and {@code info} work on online and offline players, tell an online one, and
  * tab-complete skin ids; {@code /itemskins} opens the Skin Menu; a Skinned Item, a vanilla diamond
@@ -107,14 +109,14 @@ public final class SkinsCommandTests {
 			assertThat(reload.stream().anyMatch(l -> l.contains("hat") && l.contains("unknown kind")), "reload did not report the rejection: " + reload);
 			pack = fx.skins.pack().orElseThrow(() -> SkinFixtures.fail("reload built no pack"));
 
-			List<String> list = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins list");
+			List<String> list = run(server, LevelBasedPermissionSet.ADMIN, "itemskins list");
 			assertThat(list.stream().anyMatch(l -> l.contains("candy_cane_test") && l.contains("sword")), "list lacks candy_cane_test: " + list);
 			assertThat(list.stream().anyMatch(l -> l.contains("hat") && l.contains("Dormant") && l.contains("unknown kind")), "list lacks the Dormant hat: " + list);
 			// A limited skin's Materials follow its Kind, in vanilla order whatever skin.json5's order; an unlimited one is unchanged.
 			fx.limited("cap_list_test", "helmet", "[\"turtle\", \"leather\"]");
 			fx.dyeableHat("dyed_cap_list_test", "[\"leather\"]").dyeableHat("dyed_hat_list_test");
 			run(server, LevelBasedPermissionSet.ADMIN, "itemskins reload");
-			List<String> limited = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins list");
+			List<String> limited = run(server, LevelBasedPermissionSet.ADMIN, "itemskins list");
 			assertThat(limited.contains("cap_list_test (helmet: leather, turtle)") && limited.contains("candy_cane_test (sword)"), "the list with Materials: " + limited);
 			// A Dyeable Hat says so, after its Materials if it has any. (One reload for all three, and back: only the last few builds stay downloadable.)
 			assertThat(limited.contains("dyed_cap_list_test (helmet: leather, dyeable)") && limited.contains("dyed_hat_list_test (helmet, dyeable)"),
@@ -126,13 +128,23 @@ public final class SkinsCommandTests {
 			ownershipCommands(helper, fx);
 			skinMenuAndSkinnedItemsReachPlayers(helper, fx);
 			tokensAndClaims(helper, fx);
+			extractAndListAreNotPlayerCommands(helper);
+			boxReloadAndList(server, fx);
+			boxesInPlay(helper, fx);
 
-			// Below the defaults: a gamemaster can't reload, a moderator can't list.
+			// Below the defaults: a gamemaster can't reload or list. An admin player running list gets All Skins.
 			fx.lookOnly("poop_hat_test", "helmet");
 			run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins reload");
 			assertThat(fx.skins.allSkins().size() == 2, "a gamemaster reloaded the skins");
-			List<String> refused = run(server, LevelBasedPermissionSet.MODERATOR, "itemskins list");
-			assertThat(refused.stream().noneMatch(l -> l.contains("candy_cane_test")), "a moderator got the list: " + refused);
+			List<String> gamemaster = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins list");
+			assertThat(gamemaster.stream().noneMatch(l -> l.contains("candy_cane_test")), "a gamemaster listed the skins: " + gamemaster);
+			SkinFixtures.Listening lister = SkinFixtures.join(helper);
+			try {
+				server.getCommands().performPrefixedCommand(lister.createCommandSourceStack().withPermission(LevelBasedPermissionSet.ADMIN), "itemskins list");
+				assertThat(SkinMenuTests.title(lister).equals("All Skins"), "an admin's /itemskins list opened " + SkinMenuTests.title(lister));
+			} finally {
+				server.getPlayerList().remove(lister);
+			}
 			redrawn = new Redrawn(helper, fx);
 			worn = new WornPerk(helper, fx);
 			realEventsFireTheirPerks(helper, fx);
@@ -425,18 +437,17 @@ public final class SkinsCommandTests {
 	/**
 	 * {@code /itemskins give} through the dispatcher; a token reaching its holder as paper with their
 	 * own text; and real right-clicks, as packets through the player's connection: the main hand on
-	 * air opens the claim menu once however many packets the click arrives as; the offhand opens
-	 * nothing; a chest or an item frame clicked with a token opens the claim menu instead of doing
-	 * what it would, with a swing and a page turn. A grant re-sends the player's inventory.
+	 * air opens the claim menu once however many packets the click arrives as, and the offhand item
+	 * isn't used with it; the offhand opens nothing; a block clicked with a token opens the claim
+	 * menu, with a swing and a page turn. A grant re-sends the player's inventory.
 	 */
 	private static void tokensAndClaims(GameTestHelper helper, SkinFixtures fx) {
 		MinecraftServer server = helper.getLevel().getServer();
 		SkinFixtures.Listening air = SkinFixtures.join(helper);
 		SkinFixtures.Listening offhand = SkinFixtures.join(helper);
 		SkinFixtures.Listening blocks = SkinFixtures.join(helper);
-		SkinFixtures.Listening entities = SkinFixtures.join(helper);
 		try {
-			for (SkinFixtures.Listening player : List.of(air, offhand, blocks, entities)) {
+			for (SkinFixtures.Listening player : List.of(air, offhand, blocks)) {
 				player.getInventory().clearContent();
 				player.setGameMode(GameType.SURVIVAL);
 				player.arrive(helper.absoluteVec(new Vec3(2.5, 1, 2.5)));
@@ -478,40 +489,172 @@ public final class SkinsCommandTests {
 			offhand.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.OFF_HAND, 1, 0, 0));
 			assertThat(offhand.containerMenu == offhand.inventoryMenu, "a token in the offhand opened " + SkinMenuTests.title(offhand));
 
-			// A chest clicked with a token: the claim menu, not the chest, with a swing and a page turn.
-			BlockPos chest = helper.absolutePos(new BlockPos(3, 1, 3));
-			helper.getLevel().setBlockAndUpdate(chest, Blocks.CHEST.defaultBlockState());
+			// A block clicked with a token: the claim menu, with a swing and a page turn.
+			BlockPos stone = helper.absolutePos(new BlockPos(3, 1, 3));
+			helper.getLevel().setBlockAndUpdate(stone, Blocks.STONE.defaultBlockState());
 			blocks.getInventory().setItem(0, SkinToken.of("candy_cane_test", 1));
 			blocks.sent(Object.class);
 			blocks.tickEnd();
 			blocks.connection.handleUseItemOn(new ServerboundUseItemOnPacket(InteractionHand.MAIN_HAND,
-					new BlockHitResult(Vec3.atCenterOf(chest).add(0, 0.5, 0), Direction.UP, chest, false), 1));
-			assertThat(SkinMenuTests.title(blocks).equals("Claim candy_cane_test skin?"), "a chest clicked with a token opened " + blocks.containerMenu);
+					new BlockHitResult(Vec3.atCenterOf(stone).add(0, 0.5, 0), Direction.UP, stone, false), 1));
+			assertThat(SkinMenuTests.title(blocks).equals("Claim candy_cane_test skin?"), "a block clicked with a token opened " + blocks.containerMenu);
 			List<Object> sent = blocks.sent(Object.class);
 			assertThat(sent.stream().anyMatch(p -> p instanceof ClientboundSwingAnimationPacket a && a.entityId() == blocks.getId() && a.hand() == InteractionHand.MAIN_HAND), "the arm didn't swing: " + sent);
 			assertThat(sent.stream().anyMatch(p -> p instanceof ClientboundSoundPacket s && s.getSound().value().equals(SoundEvents.BOOK_PAGE_TURN)),
 					"no page turned: " + sent);
 			blocks.connection.handleContainerClose(new ServerboundContainerClosePacket(blocks.containerMenu.containerId));
 
-			// An item frame clicked with a token: the claim menu, and the frame stays empty.
-			BlockPos wall = helper.absolutePos(new BlockPos(1, 1, 1));
-			helper.getLevel().setBlockAndUpdate(wall, Blocks.STONE.defaultBlockState());
-			ItemFrame frame = new ItemFrame(helper.getLevel(), wall.above(), Direction.UP);
-			helper.getLevel().addFreshEntity(frame);
-			entities.getInventory().setItem(0, SkinToken.of("candy_cane_test", 1));
-			entities.tickEnd();
-			entities.connection.handleInteract(new ServerboundInteractPacket(frame.getId(), InteractionHand.MAIN_HAND, Vec3.ZERO, false));
-			assertThat(SkinMenuTests.title(entities).equals("Claim candy_cane_test skin?"), "an item frame clicked with a token opened " + entities.containerMenu);
-			assertThat(frame.getItem().isEmpty() && entities.getMainHandItem().getCount() == 1, "the token went into the item frame");
-			frame.discard();
-
 			// A grant re-sends the inventory, so tokens for the skin say it's owned.
 			blocks.sent(Object.class);
 			run(server, LevelBasedPermissionSet.ADMIN, "itemskins grant " + blocks.getGameProfile().name() + " candy_cane_test");
 			assertThat(blocks.sent(ClientboundContainerSetContentPacket.class).stream().anyMatch(p -> p.containerId() == 0), "a grant didn't re-send the inventory");
 		} finally {
-			for (ServerPlayer player : List.of(air, offhand, blocks, entities)) server.getPlayerList().remove(player);
+			for (ServerPlayer player : List.of(air, offhand, blocks)) server.getPlayerList().remove(player);
 		}
+	}
+
+	/**
+	 * Skin Boxes in {@code /itemskins reload}'s reply (a line of counts, each rejection, each warning)
+	 * and in the console's {@code /itemskins list}, after the skins. The boxes are deleted again after.
+	 */
+	private static void boxReloadAndList(MinecraftServer server, SkinFixtures fx) {
+		fx.box("treats.json5", "{ name: \"Treats\", skins: [ { skin: \"candy_cane_test\", weight: 3 }, { skin: \"hat\", weight: 1 } ] }")
+				.box("broken.json5", "{ name: \"Broken\" }")
+				.box("notes.txt", "a list of ideas");
+		List<String> reload = run(server, LevelBasedPermissionSet.ADMIN, "itemskins reload");
+		assertThat(reload.contains("Skin Boxes: 1 loaded, 1 Dormant.") && reload.contains("broken is Dormant: missing field \"skins\" (broken.json5)")
+				&& reload.contains("treats: hat is Dormant, left out") && reload.contains("boxes/notes.txt isn't a .json5 file, ignored"),
+				"the reload reply: " + reload);
+		List<String> list = run(server, LevelBasedPermissionSet.ADMIN, "itemskins list");
+		int header = list.indexOf("2 Skin Boxes (1 Dormant) in " + fx.skins.boxesFolder());
+		assertThat(header > 0 && list.subList(header + 1, list.size()).equals(List.of("broken Dormant: missing field \"skins\"", "treats (2 skins, 1 left out)")),
+				"the list: " + list);
+		try {
+			for (String file : List.of("treats.json5", "broken.json5", "notes.txt")) Files.delete(fx.skins.boxesFolder().resolve(file));
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins reload");
+		List<String> none = run(server, LevelBasedPermissionSet.ADMIN, "itemskins list");
+		assertThat(none.getLast().equals("0 Skin Boxes (0 Dormant) in " + fx.skins.boxesFolder()), "the list with no boxes: " + none);
+	}
+
+	/**
+	 * {@code /itemskins givebox} through the dispatcher, and real right-clicks with a box, as packets:
+	 * a box in the main hand on air or a block opens its Roll menu with a swing, and no vault is
+	 * placed; the offhand and a spectator do nothing; a Dormant box is refused once per click. The boxes are deleted again after.
+	 */
+	private static void boxesInPlay(GameTestHelper helper, SkinFixtures fx) {
+		MinecraftServer server = helper.getLevel().getServer();
+		fx.box("treats.json5", "{ name: \"Treats\", skins: [ { skin: \"candy_cane_test\", weight: 1 } ] }").box("broken.json5", "{ name: \"Broken\" }");
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins reload");
+		SkinFixtures.Listening player = SkinFixtures.join(helper);
+		try {
+			player.getInventory().clearContent();
+			player.setGameMode(GameType.SURVIVAL);
+			player.arrive(helper.absoluteVec(new Vec3(2.5, 1, 2.5)));
+			String name = player.getGameProfile().name();
+			List<String> gave = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins givebox " + name + " treats 3");
+			for (int slot = 0; slot < 3; slot++) {
+				assertThat(SkinBox.boxOf(player.getInventory().getItem(slot)).equals(Optional.of("treats")) && player.getInventory().getItem(slot).getCount() == 1,
+						"givebox gave " + player.getInventory().getItem(slot) + " in slot " + slot + ": " + gave);
+			}
+			assertThat(gave.contains("Gave 3 Skin Boxes: Treats to " + name + "."), "givebox confirmed " + gave);
+			List<String> dormant = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins givebox " + name + " broken");
+			assertThat(dormant.contains("broken is Dormant, so it can't be given: missing field \"skins\"."), "giving a Dormant box: " + dormant);
+			List<String> unknown = run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins givebox " + name + " nowhere");
+			assertThat(unknown.contains("There's no Skin Box nowhere. /itemskins list shows them all."), "giving an unknown box: " + unknown);
+			run(server, LevelBasedPermissionSet.MODERATOR, "itemskins givebox " + name + " treats");
+			assertThat(player.getInventory().getItem(3).isEmpty(), "a refused givebox gave " + player.getInventory().getItem(3));
+			List<String> suggested = suggestions(server, "itemskins givebox " + name + " ");
+			assertThat(suggested.equals(List.of("treats")), "givebox suggests " + suggested);
+
+		} finally {
+			server.getPlayerList().remove(player);
+		}
+
+		// One player per click: the quiet time after a click counts server ticks, which don't pass here.
+		SkinFixtures.Listening air = boxHolder(helper, "treats");
+		SkinFixtures.Listening blocks = boxHolder(helper, "treats");
+		SkinFixtures.Listening dormant = boxHolder(helper, "broken");
+		SkinFixtures.Listening offhand = boxHolder(helper, null);
+		SkinFixtures.Listening spectator = boxHolder(helper, "broken");
+		try {
+			// Air: one click arrives as a main hand use and then an offhand one, and a held button repeats; the Roll menu opens once.
+			air.sent(Object.class);
+			air.tickEnd();
+			air.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 1, 0, 0));
+			air.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.OFF_HAND, 2, 0, 0));
+			air.tickEnd();
+			air.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 3, 0, 0));
+			assertThat(SkinMenuTests.title(air).equals("Treats") && air.sent(ClientboundOpenScreenPacket.class).size() == 1,
+					"a right-click on air opened " + SkinMenuTests.title(air));
+
+			// A block clicked with a box: the Roll menu; no vault is placed on it, and the arm swings.
+			BlockPos stone = helper.absolutePos(new BlockPos(3, 1, 3));
+			helper.getLevel().setBlockAndUpdate(stone, Blocks.STONE.defaultBlockState());
+			blocks.sent(Object.class);
+			blocks.tickEnd();
+			blocks.connection.handleUseItemOn(new ServerboundUseItemOnPacket(InteractionHand.MAIN_HAND,
+					new BlockHitResult(Vec3.atCenterOf(stone).add(0, 0.5, 0), Direction.UP, stone, false), 1));
+			assertThat(SkinMenuTests.title(blocks).equals("Treats"), "a block clicked with a box opened " + blocks.containerMenu);
+			assertThat(helper.getLevel().getBlockState(stone.above()).isAir() && blocks.getMainHandItem().getCount() == 1, "a box was placed on the block");
+			List<Object> sent = blocks.sent(Object.class);
+			assertThat(sent.stream().anyMatch(p -> p instanceof ClientboundSwingAnimationPacket a && a.entityId() == blocks.getId()), "the arm didn't swing: " + sent);
+
+			// A Dormant box: one click (a main hand use, then an offhand one, then a held button's repeat) is refused once.
+			dormant.tickEnd();
+			dormant.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 1, 0, 0));
+			dormant.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.OFF_HAND, 2, 0, 0));
+			dormant.tickEnd();
+			dormant.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 3, 0, 0));
+			assertThat(dormant.actionBar.equals(List.of("This Skin Box can't be opened right now.")), "a Dormant box: " + dormant.actionBar);
+
+			// A box in the offhand does nothing, and nor does a spectator's.
+			offhand.setItemSlot(EquipmentSlot.OFFHAND, SkinBox.of("broken"));
+			offhand.tickEnd();
+			offhand.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.OFF_HAND, 1, 0, 0));
+			assertThat(offhand.actionBar.isEmpty(), "a box in the offhand: " + offhand.actionBar);
+			spectator.setGameMode(GameType.SPECTATOR);
+			spectator.tickEnd();
+			spectator.connection.handleUseItem(new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 1, 0, 0));
+			assertThat(spectator.actionBar.isEmpty(), "a spectator's box: " + spectator.actionBar);
+		} finally {
+			for (ServerPlayer p : List.of(air, blocks, dormant, offhand, spectator)) server.getPlayerList().remove(p);
+		}
+		try {
+			for (String file : List.of("treats.json5", "broken.json5")) Files.delete(fx.skins.boxesFolder().resolve(file));
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins reload");
+	}
+
+	/** A player who has joined and arrived, in survival, holding one box ({@code boxId}, or nothing) in the main hand. */
+	private static SkinFixtures.Listening boxHolder(GameTestHelper helper, String boxId) {
+		SkinFixtures.Listening player = SkinFixtures.join(helper);
+		player.getInventory().clearContent();
+		player.setGameMode(GameType.SURVIVAL);
+		player.arrive(helper.absoluteVec(new Vec3(2.5, 1, 2.5)));
+		if (boxId != null) player.getInventory().setItem(0, SkinBox.of(boxId));
+		player.heard.clear();
+		player.actionBar.clear();
+		return player;
+	}
+
+	/**
+	 * There's no {@code extract} for anyone (the Skin Menu's Extract button replaced it), and
+	 * {@code list} is for admins only. Read off the command tree, since tab-completion doesn't
+	 * check permissions and test players are operators.
+	 */
+	private static void extractAndListAreNotPlayerCommands(GameTestHelper helper) {
+		MinecraftServer server = helper.getLevel().getServer();
+		var itemskins = server.getCommands().getDispatcher().getRoot().getChild("itemskins");
+		assertThat(itemskins.getChild("extract") == null, "/itemskins extract is still a command");
+		var list = itemskins.getChild("list");
+		assertThat(!list.canUse(server.createCommandSourceStack().withPermission(LevelBasedPermissionSet.ALL))
+				&& !list.canUse(server.createCommandSourceStack().withPermission(LevelBasedPermissionSet.GAMEMASTER))
+				&& list.canUse(server.createCommandSourceStack().withPermission(LevelBasedPermissionSet.ADMIN)), "/itemskins list isn't for admins only");
 	}
 
 	/**
@@ -526,8 +669,11 @@ public final class SkinsCommandTests {
 	}
 
 	private static List<String> suggestions(MinecraftServer server, String command) {
-		CommandSourceStack source = server.createCommandSourceStack().withPermission(LevelBasedPermissionSet.ADMIN);
-		var dispatcher = server.getCommands().getDispatcher();
+		return suggestions(server.createCommandSourceStack().withPermission(LevelBasedPermissionSet.ADMIN), command);
+	}
+
+	private static List<String> suggestions(CommandSourceStack source, String command) {
+		var dispatcher = source.getServer().getCommands().getDispatcher();
 		return dispatcher.getCompletionSuggestions(dispatcher.parse(command, source)).join().getList().stream().map(Suggestion::getText).toList();
 	}
 

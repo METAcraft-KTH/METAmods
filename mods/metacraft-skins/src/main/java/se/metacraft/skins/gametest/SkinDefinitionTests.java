@@ -33,26 +33,42 @@ import static se.metacraft.skins.gametest.SkinFixtures.assertThat;
 public final class SkinDefinitionTests {
 
 	/**
-	 * The skins that ship in the jar go into a new server's skins folder and load, each with its
-	 * Kind, fitting every Material of it, and dyeable where it should be; once the folder is there,
-	 * a deleted one stays deleted.
+	 * The skins that ship in the jar, from every group, go right into a new server's skins folder and load, each with its
+	 * Kind, fitting every Material of it, dyeable where it should be, and Unobtainable where it should be (the
+	 * Winter Wonderland skins and the two test hats); once the folder is there, a deleted one stays deleted.
 	 */
 	@GameTest
 	public void theShippedSkinsLoadOnce(GameTestHelper helper) {
 		Map<String, Kind> kinds = Map.ofEntries(Map.entry("testblockhat", Kind.HELMET), Map.entry("test_cap", Kind.HELMET),
-				Map.entry("cowboy_hat", Kind.HELMET), Map.entry("crusader_helmet", Kind.HELMET), Map.entry("plague_mask", Kind.HELMET),
-				Map.entry("plague_mask_dark", Kind.HELMET), Map.entry("plague_mask_silver", Kind.HELMET), Map.entry("pumpkin_hat", Kind.HELMET),
-				Map.entry("spider_hat", Kind.HELMET), Map.entry("witch_hat", Kind.HELMET),
-				Map.entry("pumpkin_pickaxe", Kind.PICKAXE), Map.entry("bloody_cleaver", Kind.SWORD));
-		Set<String> dyeable = Set.of("testblockhat", "test_cap", "cowboy_hat");
+				// The MCC hats.
+				Map.entry("cowboy_hat", Kind.HELMET), Map.entry("witch_hat", Kind.HELMET),
+				Map.entry("banana_hat_peeled", Kind.HELMET), Map.entry("cat_ears", Kind.HELMET), Map.entry("fishing_hat", Kind.HELMET),
+				Map.entry("flight_helmet", Kind.HELMET), Map.entry("hard_hat", Kind.HELMET), Map.entry("headphones_gaming", Kind.HELMET),
+				Map.entry("knight_helmet", Kind.HELMET), Map.entry("leaf_crown", Kind.HELMET), Map.entry("mobster_hat", Kind.HELMET),
+				Map.entry("pirate_hat", Kind.HELMET), Map.entry("plunderers_bandana", Kind.HELMET), Map.entry("propeller_hat", Kind.HELMET),
+				Map.entry("safari_hat", Kind.HELMET), Map.entry("sensei", Kind.HELMET), Map.entry("shades_cool", Kind.HELMET),
+				Map.entry("spartan", Kind.HELMET), Map.entry("sun_hat_bow", Kind.HELMET), Map.entry("sun_visor", Kind.HELMET),
+				Map.entry("traffic_cone_roadworks", Kind.HELMET), Map.entry("trucker_hat", Kind.HELMET),
+				// Winter Wonderland.
+				Map.entry("candy_cane_pickaxe", Kind.PICKAXE), Map.entry("candy_sword", Kind.SWORD), Map.entry("icicle_blade", Kind.SWORD),
+				Map.entry("jingle_bell_mace", Kind.MACE), Map.entry("christmas_tree_hat", Kind.HELMET), Map.entry("frozen_head", Kind.HELMET),
+				Map.entry("gift_box_head", Kind.HELMET), Map.entry("gingerbread_head", Kind.HELMET), Map.entry("hot_cocoa_mug", Kind.HELMET),
+				Map.entry("lucia_crown", Kind.HELMET), Map.entry("nutcracker_shako", Kind.HELMET), Map.entry("penguin_hat", Kind.HELMET),
+				Map.entry("polar_bear_hat", Kind.HELMET), Map.entry("reindeer_antlers", Kind.HELMET), Map.entry("santa_hat", Kind.HELMET),
+				Map.entry("snow_globe", Kind.HELMET), Map.entry("snowed_in", Kind.HELMET), Map.entry("trapper_hat", Kind.HELMET),
+				Map.entry("yeti_head", Kind.HELMET));
+		Set<String> dyeable = Set.of("testblockhat", "test_cap");
+		Set<String> unobtainable = Set.of("testblockhat", "test_cap", "candy_cane_pickaxe", "candy_sword", "icicle_blade", "jingle_bell_mace", "christmas_tree_hat", "frozen_head",
+				"gift_box_head", "gingerbread_head", "hot_cocoa_mug", "lucia_crown", "nutcracker_shako", "penguin_hat", "polar_bear_hat", "reindeer_antlers",
+				"santa_hat", "snow_globe", "snowed_in", "trapper_hat", "yeti_head");
 		SkinFixtures fx = SkinFixtures.create();
 		Path folder = fx.skins.skinsFolder();
 		assertThat(DefaultSkins.installIfMissing(folder), "the shipped skins weren't put in " + folder);
 		ReloadReport report = fx.reload();
 		assertThat(Set.copyOf(report.loaded()).equals(kinds.keySet()) && report.rejections().isEmpty(), "the shipped skins: " + report);
 		for (SkinSummary skin : fx.skins.allSkins()) {
-			assertThat(skin.kind().equals(Optional.of(kinds.get(skin.id()))) && skin.materials().isEmpty() && skin.dyeable() == dyeable.contains(skin.id()),
-					skin.id() + " loaded as " + skin);
+			assertThat(skin.kind().equals(Optional.of(kinds.get(skin.id()))) && skin.materials().isEmpty() && skin.dyeable() == dyeable.contains(skin.id())
+					&& skin.release().map(Release::obtainable).orElse(true) != unobtainable.contains(skin.id()), skin.id() + " loaded as " + skin);
 		}
 
 		try (var files = Files.walk(folder.resolve("testblockhat"))) {

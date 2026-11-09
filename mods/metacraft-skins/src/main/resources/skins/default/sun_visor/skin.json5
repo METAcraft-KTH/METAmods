@@ -1,0 +1,8 @@
+{
+	name: "&lSun Visor",
+	gradient: { colors: ["#FFFFFF", "#29B6F6"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "sun_visor.json" },
+}

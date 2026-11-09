@@ -1,0 +1,8 @@
+{
+	name: "&lTrapper Hat",
+	gradient: { colors: ["#6B4226", "#D9C3A5"], mirror: true },
+	released: "2026/11/09",
+	obtainable: false,
+	kind: "helmet",
+	look: { model: "trapper_hat.json" },
+}

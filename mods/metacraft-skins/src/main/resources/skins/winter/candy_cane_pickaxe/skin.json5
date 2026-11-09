@@ -1,0 +1,8 @@
+{
+	name: "&lCandy Cane Pickaxe",
+	gradient: { colors: ["#E0262F", "#FFFFFF"], mirror: true },
+	released: "2026/11/09",
+	obtainable: false,
+	kind: "pickaxe",
+	look: { model: "candy_cane_pickaxe.json" },
+}

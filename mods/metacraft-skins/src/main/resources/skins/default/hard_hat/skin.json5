@@ -1,0 +1,8 @@
+{
+	name: "&lHard Hat",
+	gradient: { colors: ["#FFC300", "#FF8C00"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "hard_hat.json" },
+}

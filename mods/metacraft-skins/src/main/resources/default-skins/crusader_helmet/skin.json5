@@ -1,8 +1,0 @@
-{
-	name: "&lCrusader Helmet",
-	gradient: { colors: ["#D9D9D9", "#C8102E"], mirror: true },
-	released: "2026/10/28",
-	obtainable: true,
-	kind: "helmet",
-	look: { model: "crusader_helmet.json" },
-}

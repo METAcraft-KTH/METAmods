@@ -8,7 +8,6 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.network.chat.TextColor;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -21,14 +20,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static se.metacraft.skins.DefinitionCodecs.GRADIENT;
+import static se.metacraft.skins.DefinitionCodecs.NAME;
 import static se.metacraft.skins.DefinitionCodecs.dispatch;
-import static se.metacraft.skins.DefinitionCodecs.list;
-import static se.metacraft.skins.DefinitionCodecs.object;
+import static se.metacraft.skins.DefinitionCodecs.nameFitsGradient;
 import static se.metacraft.skins.DefinitionCodecs.optionalField;
 import static se.metacraft.skins.DefinitionCodecs.orElse;
 import static se.metacraft.skins.DefinitionCodecs.optionalRawField;
 import static se.metacraft.skins.DefinitionCodecs.rawField;
 import static se.metacraft.skins.DefinitionCodecs.text;
+import static se.metacraft.skins.DefinitionCodecs.topText;
 import static se.metacraft.skins.DefinitionCodecs.withError;
 
 /**
@@ -68,14 +69,9 @@ record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind ki
 				rawField("look", look(kind), lookShape(kind) + ", and look is missing or not an object").forGetter(SkinDefinition::look)
 		).apply(i, (name, gradient, materials, description, released, obtainable, perks, look) ->
 				new SkinDefinition(name, gradient, kind, materials, description, new Release(released, obtainable.orElse(true)), perks, look)))
-				.validate(d -> d.gradient().isPresent() && SkinName.hasColourCode(d.name())
-						? DataResult.error(() -> "a name with a \"gradient\" takes no colour codes, only formats such as &l: the gradient colours it")
-						: DataResult.success(d)), "kind");
+				.validate(d -> nameFitsGradient(d, d.name(), d.gradient())), "kind");
 	}
 
-	/** {@code name}: some text besides its formatting codes. */
-	private static final Codec<String> NAME = topText("name").validate(name -> SkinName.plain(name).isBlank()
-			? DataResult.error(() -> "field \"name\" must have some text besides its formatting codes") : DataResult.success(name));
 	/** {@code released}: a date, as {@code "2026/10/31"}. */
 	private static final Codec<LocalDate> RELEASED = topText("released").comapFlatMap(date -> {
 		try {
@@ -85,23 +81,6 @@ record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind ki
 		}
 	}, Release.DATE::format);
 	private static final Codec<Boolean> OBTAINABLE = withError(Codec.BOOL, "field \"obtainable\" must be true or false");
-	/** One colour of a gradient: {@code "#FF8C00"}. */
-	private static final Codec<TextColor> COLOUR = text("must be a colour written \"#RRGGBB\"").comapFlatMap(
-			colour -> colour.matches("#[0-9a-fA-F]{6}") ? DataResult.success(TextColor.fromRgb(Integer.parseInt(colour.substring(1), 16)))
-					: DataResult.error(() -> "must be a colour written \"#RRGGBB\", not \"" + colour + "\""),
-			colour -> String.format("#%06X", colour.getValue()));
-	/** {@code gradient}: {@code { colors: ["#FF8C00", "#FFD700"], mirror: true }}, two colours or more; {@code mirror} is optional. */
-	private static final Codec<SkinName.Gradient> GRADIENT = object(StrictCodec.of(RecordCodecBuilder.<SkinName.Gradient>mapCodec(i -> i.group(
-			rawField("colors", list("colors", COLOUR, "\"colors\" must be a list of colours, as [\"#FF8C00\", \"#FFD700\"]"), "missing field \"colors\"")
-					.forGetter(SkinName.Gradient::colours),
-			orElse(optionalField("mirror", withError(Codec.BOOL, "must be true or false")), false).forGetter(SkinName.Gradient::mirror)
-	).apply(i, SkinName.Gradient::new))).validate(g -> g.colours().size() < 2
-			? DataResult.error(() -> "\"colors\" needs two colours or more") : DataResult.success(g)),
-			"must be an object: { colors: [\"#FF8C00\", \"#FFD700\"], mirror: true }");
-
-	private static Codec<String> topText(String key) {
-		return text("field \"" + key + "\" must be a non-empty string");
-	}
 
 	/**
 	 * {@code materials}: one or more of the Materials the Kind comes in, each once, returned in

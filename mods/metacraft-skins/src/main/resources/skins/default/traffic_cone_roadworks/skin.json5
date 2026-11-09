@@ -1,0 +1,8 @@
+{
+	name: "&lRoadworks Traffic Cone",
+	gradient: { colors: ["#FF6F00", "#FFFFFF"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "traffic_cone_roadworks.json" },
+}

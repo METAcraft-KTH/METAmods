@@ -1,0 +1,8 @@
+{
+	name: "&lPeeled Banana Hat",
+	gradient: { colors: ["#FFE135", "#FFF8C6"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "banana_hat_peeled.json" },
+}

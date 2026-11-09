@@ -5,11 +5,15 @@ need nothing but the resource pack the server sends them.
 
 An admin hands out **Skin Tokens**. A player right-clicks one and confirms, which **Claims** the skin:
 they become its **Owner**, and the token is used up. `/itemskins` opens the **Skin Menu**, where they put the
-skin on any item of its **Kind** they carry, which makes it a **Skinned Item**. A skin has a **Look** (a
+skin on any item of its **Kind** they carry, which makes it a **Skinned Item**. The Skin Menu lists every
+skin on the server: theirs with its Look, the rest as a grey dye named **???** until they own it. A skin has a **Look** (a
 Blockbench model sent in the skins resource pack) and may have **Perks**, small effects for its Owner
 while they hold or wear the item. A skin works only while its item is with its Owner; anywhere else the
 item is **Away**, drawn plain. Each skin is on one item at a time: applying it elsewhere makes the old
-item plain again, wherever it is.
+item plain again, wherever it is. An Owner who no longer wants a skin can **Extract** it
+(the Extract button in the Skin Menu), which turns it back into its Skin Token to trade or give away. A **Skin
+Box** is an item a player opens to **Roll** for a Skin Token, drawn by chance from the skins the box
+lists; the Origins and Winter Skin Boxes ship with the mod.
 
 This README is the admin guide. Players get a short summary from the "How skins work" book in the Skin
 Menu.
@@ -18,6 +22,7 @@ Menu.
 - [Files](#files)
 - [Writing a skin](#writing-a-skin)
 - [Perks](#perks)
+- [Skin Boxes](#skin-boxes)
 - [Reloading and the pack](#reloading-and-the-pack)
 - [Settings](#settings)
 - [Commands and permissions](#commands-and-permissions)
@@ -52,19 +57,32 @@ Everything is under the server's root folder:
 config/
   metacraft-skins.json5            the settings
   metacraft-skins/skins/<skin-id>/  one folder per skin: skin.json5 and its Blockbench export
+  metacraft-skins/boxes/<box-id>.json5  one file per Skin Box
 skins-data/players/<uuid>.json     who owns what, one file per player
 world/metacraft-skins.json         the world's stamp (see "Ownership data")
 ```
 
 Each skin is a folder the admin adds, as below. The mod ships a starter set of Look-only skins and puts
-them in `config/metacraft-skins/skins/` the first time the server starts without that folder:
+them in `config/metacraft-skins/skins/` the first time the server starts without that folder. In the jar
+they're sorted into groups, `skins/default/` and `skins/winter/`, but every skin lands right in the
+skins folder, so a skin id may only be in one group:
 
-- helmets: `cowboy_hat`, `crusader_helmet`, `plague_mask`, `plague_mask_dark`, `plague_mask_silver`,
-  `pumpkin_hat`, `spider_hat`, `witch_hat`, and the test skins `testblockhat` and `test_cap`;
-- `pumpkin_pickaxe` (a pickaxe) and `bloody_cleaver` (a sword).
+- `default`: the test skins `testblockhat` and `test_cap`, and the MCC hats
+  `banana_hat_peeled`, `cat_ears`, `cowboy_hat`, `fishing_hat`, `flight_helmet`, `hard_hat`,
+  `headphones_gaming`, `knight_helmet`, `leaf_crown`, `mobster_hat`, `pirate_hat`, `plunderers_bandana`,
+  `propeller_hat`, `safari_hat`, `sensei`, `shades_cool`, `spartan`, `sun_hat_bow`, `sun_visor`,
+  `traffic_cone_roadworks`, `trucker_hat` and `witch_hat`;
+- `winter`, Winter Wonderland, all Unobtainable: the helmets `christmas_tree_hat`, `frozen_head`, `gift_box_head`,
+  `gingerbread_head`, `hot_cocoa_mug`, `lucia_crown`, `nutcracker_shako`, `penguin_hat`, `polar_bear_hat`,
+  `reindeer_antlers`, `santa_hat`, `snow_globe`, `snowed_in`, `trapper_hat` and `yeti_head`,
+  `candy_cane_pickaxe` (a pickaxe), `candy_sword` and `icicle_blade` (swords), and `jingle_bell_mace` (a mace).
 
-Each fits every Material of its Kind. `cowboy_hat` and the two test skins are Dyeable Hats. After that
+Each fits every Material of its Kind. The two test skins are Dyeable Hats. After that
 first start the folder is yours: delete a skin's folder and it stays gone. The Skin Token's own model and texture ship in the jar and go into the pack on their own.
+
+The mod also ships two Skin Boxes, the jar's `lootboxes/origins.json5` (every MCC hat) and
+`lootboxes/winter.json5` (every Winter Wonderland skin), and puts them in `config/metacraft-skins/boxes/`
+the first time the server starts without that folder. After that the folder is yours too: a deleted box stays deleted.
 
 ## Writing a skin
 
@@ -143,6 +161,8 @@ may not have colour codes, since the gradient colours every letter. Every shippe
 **Release.** Skinned Items and the menus show `released` and `obtainable` as one line,
 "Released: 2026/10/31 - Obtainable" (Unobtainable in red). Without `released` the line is just
 "Obtainable" or "Unobtainable". Change either and `/itemskins reload`: every item shows the new line.
+`released` also sets the order of the Skin Menu: oldest first, then by name, with undated skins last.
+Give each new skin a later date than the ones before it and it lands after them, moving none.
 
 **Kinds.** A Kind is one family of items: a `sword` skin fits any sword, wood to netherite, unless
 `materials` limits it. Membership is the vanilla item tag (`#minecraft:swords`, `#minecraft:head_armor`
@@ -369,12 +389,113 @@ file and the reason, shown to whoever ran `/itemskins reload`, and listed by `/i
 - a texture reference with no matching `.png`;
 - a folder with no `skin.json5`, or a folder name with characters an id can't hold.
 
+## Skin Boxes
+
+A **Skin Box** is an item that a player opens to **Roll** for a Skin Token: a reel of the box's skins
+spins and lands on one, and the player gets that skin's token. A box gives a token, never ownership:
+the token is Claimed and traded like any other, and its Owner can Extract the skin again later. Gamemasters hand boxes out with
+`/itemskins givebox`.
+
+### The box file
+
+Each box is one file, `config/metacraft-skins/boxes/<box-id>.json5`. **The file name (without `.json5`)
+is the box's id, for good**: it's stored in every box item, like a skin id. It may only hold `a-z`, `0-9`,
+`_`, `-` and `.`.
+
+```json5
+{
+	name: "&lWinter Skin Box",
+	gradient: { colors: ["#E8FBFF", "#5AB4E6"], mirror: true },
+	description: "Only while the snow lasts.",   // optional
+	skins: [
+		{ skin: "santa_hat", weight: 20 },
+		{ skin: "penguin_hat", weight: 20 },
+		{ skin: "icicle_blade", weight: 3 },
+	],
+}
+```
+
+| Field | |
+| --- | --- |
+| `name` | Required. The same rules as a skin's `name`: `&` codes, and some text besides them. |
+| `gradient` | Optional. The same as a skin's `{ colors: [...], mirror: true }`; it forbids colour codes in the name. |
+| `description` | Optional. One gray line in the box's tooltip. |
+| `ominous` | No longer used: every box looks the same. Still read (`true` or `false`), so older files load. |
+| `skins` | Required. At least one `{ skin: "<skin id>", weight: <n> }`. |
+
+There's no `released` or `obtainable`: a retired box is one you stop giving out.
+
+**Weights and chances.** A weight is a whole number from 1 to 1,000,000. A skin's chance is its weight
+divided by the total weight of the box's usable skins (below), so weights that add up to 100 are the
+percentages. Players see chances rounded to one decimal place without a trailing `.0` (`20%`, `7.5%`,
+`0.3%`), and anything below 0.05% as `<0.1%`; rounded figures needn't add up to 100. Skins are listed
+highest chance first, ties in file order.
+
+### What rejects a box, and what only warns
+
+A box is **rejected** (Dormant, while the others load as usual) for: broken json5; an unknown field,
+inside an entry too; a missing `name` or `skins`, an empty `skins` list, or an entry without `skin` or
+`weight`; a weight that isn't a whole number from 1 to 1,000,000; the same skin listed twice; an
+`ominous` that isn't `true` or `false`; a name that's only formatting codes, or a `gradient` error (in
+the same words as for skins); a file name an id can't hold. Each rejection is logged with its file,
+shown to whoever ran `/itemskins reload`, and listed by console `/itemskins list`.
+
+A skin the box lists that's **unknown or Dormant** only warns: it's left out of the draw, the tooltip and
+the reel, and the other skins' chances grow. That's worked out against the skins of the same reload. A
+box whose skins are all left out still loads and opens, but can't be rolled.
+
+Files in `boxes/` that don't end in `.json5`, and folders, are ignored with a warning. Names starting
+with `.` are skipped quietly.
+
+**Dormant boxes** follow the skins' rule (see [Dormant skins and permanent ids](#dormant-skins-and-permanent-ids)):
+a box whose file is missing or fails to load is Dormant. Its items stay where they are, read "Unknown
+Skin Box: <id>" and can't be opened, and `givebox` refuses it; nothing is deleted. Fix the file (or put
+it back) and run `/itemskins reload`, and every copy comes back. A made-up id behaves the same.
+
+**The Origins and Winter Skin Boxes** ship with the mod. The Origins box sorts its hats into three
+rarities, by weight: common 10, uncommon 5 (half as likely) and rare 2 (a fifth as likely). Every
+Winter skin has weight 1, all equally likely. They're put in `boxes/` the first time the server starts without that folder, and
+never again: a deleted box stays deleted. If you deleted some of its skins, those entries are left out with a warning.
+
+### The item
+
+The item is `metacraft-skins:skin_box`, with the box's id in its `metacraft-skins:box` component. To
+clients it's a vault, marked as a box by the custom model data string `metacraft-skins:skin_box`,
+named in the box's colours and followed by "(Right-Click)" in gray. The skins pack overrides
+vanilla's `minecraft:items/vault.json` to draw a marked vault with the box's own model (from the jar's
+`skin-box/`), and every other vault as a vault; a player without the pack sees a vault. Its tooltip has the description, a blank line, "**Random Loot** (1 item)",
+then a line per usable skin, highest chance first: "* 1x" in white and the skin's name in its colours
+("* 1x Santa Hat"). A box with no usable skins says "Every skin in this box is unavailable." instead.
+The chances themselves are shown in the Roll menu. Boxes don't stack: each is an item of its own. They can be traded and dropped
+like tokens. They never place as a block,
+and recipes, villagers, workstations and dispensers don't take them for vaults.
+
+### Rolling
+
+Right-clicking a box in the main hand on air, or on a block that does nothing with it, opens the
+**Roll menu**; the offhand does nothing. The middle row previews nine skins of the box, drawn by weight, each with its chance.
+
+- **Leaving before Roll is free.**
+- **Roll uses up one box** (in creative too). The reel spins for five seconds, slowing down, with a rising
+  click per step, and lands on a skin in the centre with a chime. The player gets that skin's token, in
+  their inventory or at their feet if it's full, and reads "You rolled <Skin>!". Nobody else is told.
+- **No rerolls.** The menu stays open on the landed reel until it's closed; every Roll needs its own box.
+- **Closing mid-spin gives the token at once**, however the menu closes: Escape, another menu, a portal,
+  disconnecting, or the server stopping (the token is in the inventory when the player comes back).
+- **Dying mid-spin drops the token at the death spot**, even with `keepInventory` on.
+- **A server crash mid-spin loses the box**: it was used up at the press, and there's no record of the Roll.
+- **Refusals keep the box.** Roll is refused if the box has left the player's main hand (the menu closes),
+  if the box became Dormant, or if it has nothing left to roll (the menu stays open).
+- The result is chosen at the press, so a reload during the spin never changes it: a skin that went
+  Dormant mid-spin is given all the same, and its token reads "Unknown skin token" until it's back.
+
 ## Reloading and the pack
 
 Skins are read at server start and by `/itemskins reload`, and never by vanilla `/reload`, so reloading data
 packs never pushes a resource pack by surprise. `/itemskins reload`:
 
-1. re-reads every skin folder and the settings file;
+1. re-reads every skin folder and the settings file, then every Skin Box file in `boxes/` (against the
+   skins it just read, so a box and its skins never disagree);
 2. rebuilds the skins pack;
 3. if the pack changed, sends it to everyone online (each gets a short loading screen), and otherwise
    sends nothing;
@@ -385,10 +506,15 @@ packs never pushes a resource pack by surprise. `/itemskins reload`:
    whether the pack changed (with the start of its SHA-1). Besides the display transforms (see
    [Writing a skin](#writing-a-skin)), a model that marks Tint faces on a skin that isn't dyeable gets a
    minor warning: "<model> marks Tint faces but the skin isn't dyeable; they keep their painted colours".
+   Then one line for the boxes, "Skin Boxes: <n> loaded, <m> Dormant.", each Dormant box and why
+   ("origins is Dormant: <reason> (origins.json5)"), and each warning: a skin a box left out
+   ("origins: cat_ears is Dormant, left out"; "origins: cat_ears isn't a skin on this server,
+   left out") and each file in `boxes/` that was ignored ("boxes/notes.txt isn't a .json5 file, ignored").
 
 The pack is built the same way every time, so the same skins give the same SHA-1. Only Looks are in
 it: **editing a skin's name, description or Perks changes every token and Skinned Item at once, and
 doesn't change the pack**, so nobody downloads anything, and nor does editing its `materials`.
+Skin Boxes never change the pack either: the box's model is always in it.
 Adding, removing or changing a model or texture does, and so does turning `dyeable` on or off. So you
 choose when players see a loading screen: batch Look changes into one reload.
 
@@ -419,25 +545,38 @@ is a syntax error. The error is logged (by metacraft-lib) and the settings stay 
 ## Commands and permissions
 
 One permission node per command, through Fabric's Permission API (so LuckPerms can grant each), with a
-vanilla level to fall back on when no permissions mod is installed. Skin ids tab-complete.
+vanilla level to fall back on when no permissions mod is installed. Skin ids and box ids tab-complete.
 
 | Command | Node | Default |
 | --- | --- | --- |
 | `/itemskins` | `metacraft-skins:menu` | everyone |
+| `/itemskins list` | `metacraft-skins:list` | admins |
 | `/itemskins give <targets> <skin> [count]` | `metacraft-skins:give` | gamemasters |
+| `/itemskins givebox <targets> <box> [count]` | `metacraft-skins:givebox` | gamemasters |
 | `/itemskins info <player>` | `metacraft-skins:info` | gamemasters |
-| `/itemskins list` | `metacraft-skins:list` | gamemasters |
 | `/itemskins grant <player> <skin>` | `metacraft-skins:grant` | admins |
 | `/itemskins revoke <player> <skin>` | `metacraft-skins:revoke` | admins |
 | `/itemskins reload` | `metacraft-skins:reload` | admins |
 
-- **`/itemskins`** opens the player's Skin Menu.
+- **`/itemskins`** opens the player's Skin Menu. Its **Extract** button, next to the book, turns a skin
+  the player owns back into its Skin Token: they pick one of their skins, then a confirm screen shows
+  the token; nothing changes until they press Extract, and Cancel or Extract goes back to the Skin
+  Menu. A skin on an item in this world, working or Away, says "Remove it from its item first" and
+  can't be picked. A skin applied in another world can be extracted, and its item there is plain for
+  good. Unobtainable and granted skins extract like any other. The token goes into their inventory,
+  or drops at their feet for them alone if it's full. Whoever Claims it later gets a fresh claim date.
+  There is no extract command.
 - **`give`** gives 1 to 64 Skin Tokens (default 1) to online players. What doesn't fit drops at their feet,
   except for a player in creative, who loses the overflow as with vanilla `/give`. Unknown and Dormant
   ids are refused. You get a confirmation; the players get no message. The item is
   `metacraft-skins:skin_token` with the skin's id in its `metacraft-skins:token` component, so
   `/give @s metacraft-skins:skin_token[metacraft-skins:token="crown"]` should make one too (not tried in
   game yet).
+- **`givebox`** gives 1 to 64 Skin Boxes (default 1) to online players, as `give` gives tokens. Boxes
+  don't stack, so each takes a slot of its own; what doesn't fit drops at their feet. You get a
+  confirmation; the players get no message. Only boxes that loaded tab-complete; an unknown id and a Dormant box are refused (the Dormant one with its
+  reason). The item is `metacraft-skins:skin_box` with the box's id in its `metacraft-skins:box`
+  component, so `/give @s metacraft-skins:skin_box[metacraft-skins:box="origins"]` makes one too.
 - **`info`** shows what a player owns, with claim dates (UTC) and each skin's state: Applied, Unapplied,
   Applied in another world, or Dormant. It can't say which item carries a skin. A damaged file says so.
 - **`list`** run by a player opens **All Skins**: the Skin Menu, but with every skin on the server, owned
@@ -447,6 +586,9 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids tab
   `candy_sword (sword)`. A skin limited to Materials lists them after its Kind, in the order of the
   Materials table: `crown (helmet: leather, turtle)`. A Dyeable Hat says so last:
   `cowboy_hat (helmet: leather, dyeable)`, or `cowboy_hat (helmet, dyeable)` with no Materials.
+  After the skins it lists every Skin Box file, sorted by id, with how many skins it lists and how
+  many it left out: `origins (22 skins)`, `origins (22 skins, 1 left out)`, or for a Dormant box
+  `origins Dormant: <reason>`.
 - **`grant`** makes a player own a skin without a token. Refused if they already own it, or the skin is
   unknown or Dormant. An online player gets the claim message.
 - **`revoke`** takes a skin away, Dormant ones too. The item carrying it is plain for good, as in
@@ -456,8 +598,8 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids tab
   user cache first, then (in online mode) Mojang.
 - There is no force-remove: only the Owner takes a skin off an item. Use `revoke` to take the skin away.
 
-Tokens can come from anywhere that hands out items (a shop, a crate plugin); `/itemskins give` is the only
-source this mod has.
+Tokens can come from anywhere that hands out items (a shop, a crate plugin). This mod's own sources are
+`/itemskins give`, Extract and Skin Boxes.
 
 ## Dormant skins and permanent ids
 
@@ -471,6 +613,10 @@ deleted:
 
 Fix the definition (or put the folder back) and run `/itemskins reload`, and everything comes back
 unchanged.
+
+Skin Boxes follow the same rule: a box whose file is missing or broken is Dormant, its items read
+"Unknown Skin Box: <id>" and can't be opened, and fixing the file brings every copy back (see
+[Skin Boxes](#skin-boxes)). Box ids are permanent too: renaming a box file makes the old id Dormant.
 
 **Ids are permanent.** The folder name is the id stored in every player file, token and Skinned Item.
 Renaming a folder doesn't rename a skin: it makes the old id Dormant for everyone and adds a new skin
@@ -497,8 +643,10 @@ Owners keep the skin and can apply it to an item of the new Kind.
 
 - It's the only record of who owns what. The name is the last one seen, for display only; identity is the
   UUID. An Unapplied skin has no `application` (older files' `"application": null` reads the same).
-- **Saved at once** on every Claim, apply, remove, grant and revoke. A Claim saves first and only then
-  uses up the token, so a failed save keeps the token.
+- **Saved at once** on every Claim, apply, remove, grant, revoke and Extract. A Claim saves first and only then
+  uses up the token, so a failed save keeps the token. An Extract saves first and only then gives the
+  token, so a failed save keeps the skin and gives nothing. A Roll never touches the ownership file: it
+  gives a token.
 - **The running server wins.** A file is read the first time its player is needed and kept in memory
   after that, and every change writes it whole. Edit files only while the server is stopped.
 - **Damaged files are never overwritten.** A file that doesn't parse, or has a field this mod doesn't
@@ -513,10 +661,11 @@ UUIDs.
 
 ## Moving servers
 
-With the server **stopped**, copy two folders to the new server:
+With the server **stopped**, copy these folders to the new server:
 
 - `skins-data/` (who owns what);
-- `config/metacraft-skins/skins/` (the definitions; and `config/metacraft-skins.json5` for the settings).
+- `config/metacraft-skins/skins/` (the definitions; and `config/metacraft-skins.json5` for the settings),
+  and `config/metacraft-skins/boxes/` (the Skin Boxes) next to it.
 
 Copying the world as well keeps every application: skins stay on their items. A fresh world shows every
 skin Unapplied, ready to apply again.
@@ -568,10 +717,19 @@ Rules that answer most support questions:
   own lines it shows the release line ("Released: <date> - Obtainable"), the Perk lines, the description, and
   "Owned by <player>" (the last known name of an offline Owner). An Away item shows one gray line in
   their place: "<Skin> skin, only works for <Owner>", as in "Candy Sword skin, only works for Alice".
-- **Tokens** stack to 64, can be traded and dropped, and are paper to recipes, villagers and workstations,
-  none of which accept them. A token for a skin the viewer already owns says so and is kept when
-  right-clicked. A Claim is a right-click with the token in the main hand, on air, a block or an entity;
-  it never opens a chest or fills a frame. A token in the offhand does nothing.
+- **Tokens** come from `/itemskins give`, Extract and Skin Boxes. They stack to 64, can be traded and
+  dropped, and are paper to recipes, villagers and workstations, none of which accept them. A token for a skin the viewer already owns says so and is kept when
+  right-clicked. A Claim starts with a right-click with the token in the main hand, on air or on a block that does
+  nothing with it. A block or an entity has its say first, as with any item: a chest opens, an item
+  frame takes the token (sneak to skip the block). A token in the offhand does nothing, and the offhand
+  isn't used along with one in the main hand.
+- **Skin Boxes** don't stack (each is an item of its own), can be traded and dropped, and are vaults to
+  clients but nothing to recipes, villagers, workstations and
+  dispensers. A box never places as a block. A right-click with it in the main hand, on air or on a
+  block that does nothing with it, opens it; a block or an entity has its say first, as for tokens. A box
+  in the offhand does nothing, and the offhand isn't used along with one in the main hand. Its tooltip lists its skins, highest chance first. A box whose file is Dormant
+  or gone reads "Unknown Skin Box: <id>" and can't be opened, but stays where it is: fix the file and
+  every copy comes back.
 
 ## Development
 

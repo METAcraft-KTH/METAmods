@@ -1,0 +1,8 @@
+{
+	name: "&lMobster Hat",
+	gradient: { colors: ["#2B2B2B", "#8C8C8C"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "mobster_hat.json" },
+}
