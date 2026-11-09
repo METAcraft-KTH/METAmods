@@ -87,7 +87,7 @@ import static se.metacraft.skins.gametest.SkinFixtures.assertThat;
  * {@code /itemskins give} hands out Skin Tokens, which a real right-click claims; a reload that takes a
  * Look away re-sends players' items, and only such a reload does; and the server keeps
  * a worn Perk up on its own, ending it soon after the item comes off; and a real melee hit, kill,
- * block break and hurt fire their event Perks. One test, because it swaps
+ * block break and hurt fire their event Perks; and {@code /itemskins spawnchance} shows and sets the Mob Hat chance. One test, because it swaps
  * the server's Skins. The rules behind it are SkinDefinitionTests', SkinsPackTests',
  * OwnershipTests', ApplyTests', ViewTests', TokenTests' and PerkTests'.
  */
@@ -132,6 +132,7 @@ public final class SkinsCommandTests {
 			extractAndListAreNotPlayerCommands(helper);
 			boxReloadAndList(server, fx);
 			boxesInPlay(helper, fx);
+			spawnChance(server, fx);
 
 			// Below the defaults: a gamemaster can't reload or list. An admin player running list gets All Skins.
 			fx.lookOnly("poop_hat_test", "helmet");
@@ -569,6 +570,24 @@ public final class SkinsCommandTests {
 		} finally {
 			for (ServerPlayer player : List.of(air, offhand, blocks)) server.getPlayerList().remove(player);
 		}
+	}
+
+	/**
+	 * {@code /itemskins spawnchance} shows the Mob Hat chance, and with a percent sets it at once and
+	 * saves it; it's for admins only, and a percent outside 0 to 100 is refused. Set back to 0.2% after.
+	 */
+	private static void spawnChance(MinecraftServer server, SkinFixtures fx) {
+		List<String> shown = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance");
+		assertThat(shown.equals(List.of("Mob Hat chance: 0.2% at local difficulty 0, falling to none at 6.75. Set it with /itemskins spawnchance <percent>.")),
+				"spawnchance showed " + shown);
+		List<String> set = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance 1.5");
+		assertThat(set.equals(List.of("Mob Hat chance set to 1.5% (was 0.2%) at local difficulty 0, for mobs spawning from now on. Saved in metacraft-skins.json5."))
+				&& fx.skins.settings().mobHatChance() == 1.5, "spawnchance 1.5 answered " + set + ", the setting " + fx.skins.settings());
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance 101");
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance -1");
+		run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins spawnchance 50");
+		assertThat(fx.skins.settings().mobHatChance() == 1.5, "a refused spawnchance set it to " + fx.skins.settings().mobHatChance());
+		fx.skins.setMobHatChance(0.2);
 	}
 
 	/**

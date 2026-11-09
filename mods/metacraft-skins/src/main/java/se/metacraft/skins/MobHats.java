@@ -17,10 +17,11 @@ import java.util.Set;
 /**
  * Mob Hats: now and then one of {@link #MOBS} spawns wearing a random hat from the Skin Box
  * {@link #HATS_FROM}, and when it dies it drops a {@link #DROPS} box, never the hat. The chance is
- * {@link #BASE_CHANCE} at local difficulty 0, falling in a straight line to nothing at
- * {@link #NO_HATS_AT}. Every spawn counts, spawners and farms included. A hat is for good: the mob
- * never swaps it for an item it picks up, and like any helmet it keeps a zombie or skeleton from
- * burning in daylight. Change who, which boxes and how often with the constants below. The mod's
+ * the {@code mob-hat-chance} setting ({@link SkinsSettings}, set in game with {@code /itemskins spawnchance})
+ * at local difficulty 0, falling in a straight line to nothing at {@link #NO_HATS_AT}. Every spawn
+ * counts, spawners and farms included. A hat is for good: the mob never swaps it for an item it picks
+ * up, and like any helmet it keeps a zombie or skeleton from burning in daylight. Change who and which
+ * boxes with the constants below. The mod's
  * mixins on {@code Mob.finalizeSpawn}, {@code Mob.canReplaceCurrentItem} and
  * {@code LivingEntity.dropAllDeathLoot} call in here or check {@link #wearsHat}.
  */
@@ -34,22 +35,26 @@ public final class MobHats {
 	public static final String HATS_FROM = "classic";
 	/** The Skin Box (its id) a hat-wearing mob drops when it dies. */
 	public static final String DROPS = "classic";
-	/** The chance of a hat at local difficulty 0: 0.2%. */
-	public static final double BASE_CHANCE = 0.002;
 	/** The local difficulty where the chance reaches 0: vanilla's highest. */
 	public static final float NO_HATS_AT = 6.75f;
 
 	private MobHats() {}
 
-	/** The chance a mob spawning at this local difficulty wears a hat: {@link #BASE_CHANCE}, falling linearly to 0 at {@link #NO_HATS_AT}. */
-	public static double chance(float localDifficulty) {
-		return BASE_CHANCE * Math.clamp(1 - localDifficulty / NO_HATS_AT, 0.0, 1.0);
+	/**
+	 * The chance (0 to 1) a mob spawning at this local difficulty wears a hat: {@code basePercent}
+	 * percent at 0, falling linearly to 0 at {@link #NO_HATS_AT}.
+	 */
+	public static double chance(double basePercent, float localDifficulty) {
+		return basePercent / 100 * Math.clamp(1 - localDifficulty / NO_HATS_AT, 0.0, 1.0);
 	}
 
-	/** A mob has spawned (any way: naturally, from a spawner or egg, by command): one of {@link #MOBS} puts on a hat by {@link #chance}. */
+	/**
+	 * A mob has spawned (any way: naturally, from a spawner or egg, by command): one of {@link #MOBS}
+	 * puts on a hat by {@link #chance}, from the {@code mob-hat-chance} setting as it is now.
+	 */
 	public static void spawned(Skins skins, Mob mob, DifficultyInstance difficulty) {
 		if (!MOBS.contains(mob.getType())) return;
-		if (mob.getRandom().nextDouble() >= chance(difficulty.getEffectiveDifficulty())) return;
+		if (mob.getRandom().nextDouble() >= chance(skins.settings().mobHatChance(), difficulty.getEffectiveDifficulty())) return;
 		putOnHat(skins, mob);
 	}
 

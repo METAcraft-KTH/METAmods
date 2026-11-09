@@ -7,6 +7,8 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
@@ -18,9 +20,11 @@ import net.minecraft.world.item.equipment.Equippable;
 import se.metacraft.skins.MetacraftSkins;
 import se.metacraft.skins.MobHats;
 import se.metacraft.skins.Skins;
+import se.metacraft.skins.SkinsSettings;
 import se.metacraft.skins.item.MobHat;
 import se.metacraft.skins.item.SkinBox;
 
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -28,8 +32,8 @@ import java.util.Set;
 import static se.metacraft.skins.gametest.SkinFixtures.assertThat;
 
 /**
- * Mob Hats ({@link MobHats}): the chance by local difficulty, which hats a mob can wear, what a
- * hat-wearing mob drops, and what clients are sent of the hat.
+ * Mob Hats ({@link MobHats}): the chance by local difficulty, the {@code mob-hat-chance} setting
+ * behind it, which hats a mob can wear, what a hat-wearing mob drops, and what clients are sent of the hat.
  */
 public final class MobHatTests {
 	/** Hats in the box, and a sword that isn't one. */
@@ -39,13 +43,53 @@ public final class MobHatTests {
 						+ " { skin: \"cleaver\", weight: 5 }, { skin: \"nowhere\", weight: 1 } ] }");
 	}
 
-	/** 0.2% at local difficulty 0, half that halfway, none at 6.75 or above. */
+	/** The base percent at local difficulty 0, half that halfway, none at 6.75 or above. */
 	@GameTest
 	public void theChanceFallsInAStraightLineWithLocalDifficulty(GameTestHelper helper) {
-		assertThat(MobHats.chance(0) == 0.002, "at 0: " + MobHats.chance(0));
-		assertThat(Math.abs(MobHats.chance(3.375f) - 0.001) < 1e-9, "at 3.375: " + MobHats.chance(3.375f));
-		assertThat(Math.abs(MobHats.chance(1.5f) - 0.002 * (1 - 1.5 / 6.75)) < 1e-9, "at 1.5: " + MobHats.chance(1.5f));
-		assertThat(MobHats.chance(6.75f) == 0 && MobHats.chance(7) == 0, "at the top: " + MobHats.chance(6.75f) + ", " + MobHats.chance(7));
+		assertThat(MobHats.chance(0.2, 0) == 0.002, "at 0: " + MobHats.chance(0.2, 0));
+		assertThat(Math.abs(MobHats.chance(0.2, 3.375f) - 0.001) < 1e-9, "at 3.375: " + MobHats.chance(0.2, 3.375f));
+		assertThat(Math.abs(MobHats.chance(0.2, 1.5f) - 0.002 * (1 - 1.5 / 6.75)) < 1e-9, "at 1.5: " + MobHats.chance(0.2, 1.5f));
+		assertThat(MobHats.chance(0.2, 6.75f) == 0 && MobHats.chance(0.2, 7) == 0, "at the top: " + MobHats.chance(0.2, 6.75f) + ", " + MobHats.chance(0.2, 7));
+		assertThat(MobHats.chance(100, 0) == 1 && MobHats.chance(0, 0) == 0, "at 100% and 0%: " + MobHats.chance(100, 0) + ", " + MobHats.chance(0, 0));
+		helper.succeed();
+	}
+
+	/**
+	 * {@code mob-hat-chance} is 0.2% by default. Setting it takes at once, keeps the other settings,
+	 * and is written to the file, so a reload reads it back; a value outside 0 to 100 in the file is
+	 * logged and the default, 0.2%, applies.
+	 */
+	@GameTest
+	public void theChanceIsASettingThatSaves(GameTestHelper helper) throws Exception {
+		SkinFixtures fx = classicBox().settings("{ \"perks-enabled\": false }");
+		fx.reload();
+		assertThat(fx.skins.settings().mobHatChance() == SkinsSettings.MOB_HAT_CHANCE && SkinsSettings.MOB_HAT_CHANCE == 0.2,
+				"the default: " + fx.skins.settings());
+		double before = fx.skins.setMobHatChance(5);
+		assertThat(before == 0.2 && fx.skins.settings().mobHatChance() == 5 && !fx.skins.settings().perksEnabled(), "after setting 5%: " + fx.skins.settings());
+		String file = Files.readString(fx.skins.settingsFile());
+		assertThat(file.contains("mob-hat-chance") && file.contains("5"), "the file: " + file);
+		fx.reload();
+		assertThat(fx.skins.settings().mobHatChance() == 5 && !fx.skins.settings().perksEnabled(), "after a reload: " + fx.skins.settings());
+		fx.settings("{ \"mob-hat-chance\": 150 }").reload();
+		assertThat(fx.skins.settings().mobHatChance() == SkinsSettings.MOB_HAT_CHANCE, "after 150% in the file: " + fx.skins.settings());
+		helper.succeed();
+	}
+
+	/** A spawning mob puts on a hat by the setting as it is now: always at 100%, never at 0% (local difficulty 0). */
+	@GameTest
+	public void aSpawningMobUsesTheChanceSetNow(GameTestHelper helper) {
+		SkinFixtures fx = classicBox();
+		fx.reload();
+		DifficultyInstance peaceful = new DifficultyInstance(Difficulty.PEACEFUL, 0, 0, 0);
+		Zombie zombie = helper.spawnWithNoFreeWill(EntityTypes.ZOMBIE, new BlockPos(1, 2, 1));
+		zombie.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+		fx.skins.setMobHatChance(0);
+		MobHats.spawned(fx.skins, zombie, peaceful);
+		assertThat(!MobHats.wearsHat(zombie), "a hat at 0%");
+		fx.skins.setMobHatChance(100);
+		MobHats.spawned(fx.skins, zombie, peaceful);
+		assertThat(MobHats.wearsHat(zombie), "no hat at 100%");
 		helper.succeed();
 	}
 

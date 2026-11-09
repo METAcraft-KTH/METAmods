@@ -1,5 +1,6 @@
 package se.metacraft.skins.command;
 
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -11,6 +12,7 @@ import se.metacraft.skins.BoxSummary;
 import se.metacraft.skins.DrawingCheck;
 import se.metacraft.skins.Material;
 import se.metacraft.skins.MetacraftSkins;
+import se.metacraft.skins.MobHats;
 import se.metacraft.skins.OwnedSkin;
 import se.metacraft.skins.OwnershipChange;
 import se.metacraft.skins.PlayerSkins;
@@ -34,10 +36,13 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.server.players.NameAndId;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -68,7 +73,9 @@ import java.util.stream.Collectors;
  *   <li>{@code <player>} ({@code metacraft-skins:view}, admins): opens that player's Skin Menu as they'd see it, to look
  *       at only;</li>
  *   <li>{@code givebox <targets> <box> [count]} ({@code metacraft-skins:givebox}, gamemasters): Skin Boxes for online players,
- *       1 to 64 of them, as {@code give} hands out tokens; box ids tab-complete, loaded boxes only.</li>
+ *       1 to 64 of them, as {@code give} hands out tokens; box ids tab-complete, loaded boxes only;</li>
+ *   <li>{@code spawnchance [percent]} ({@code metacraft-skins:spawnchance}, admins): shows the Mob Hat chance at local difficulty 0,
+ *       or sets it (0 to 100) at once and saves it as {@code mob-hat-chance} in the settings file. No reload or restart needed.</li>
  * </ul>
  * Extract has no command: players use the Extract button in the Skin Menu.
  * {@code <player>} may be offline: a name is looked up in the server's user cache, as {@code /whitelist} does.
@@ -85,6 +92,7 @@ public final class SkinsCommands {
 	private static final Predicate<CommandSourceStack> MENU = PermissionPredicates.require(MetacraftSkins.getID("menu"), PermissionLevel.ALL);
 	private static final Predicate<CommandSourceStack> GRANT = PermissionPredicates.require(MetacraftSkins.getID("grant"), PermissionLevel.ADMINS);
 	private static final Predicate<CommandSourceStack> REVOKE = PermissionPredicates.require(MetacraftSkins.getID("revoke"), PermissionLevel.ADMINS);
+	private static final DecimalFormat PERCENT = new DecimalFormat("0.####", DecimalFormatSymbols.getInstance(Locale.ROOT));
 	private static final DateTimeFormatter CLAIM_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'").withZone(ZoneOffset.UTC);
 
 	public static void init(Supplier<Skins> skins) {
@@ -128,7 +136,11 @@ public final class SkinsCommands {
 											.then(Commands.argument("box", StringArgumentType.word()).suggests(boxIds(skins))
 													.executes(ctx -> givebox(ctx, get(skins), 1))
 													.then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
-															.executes(ctx -> givebox(ctx, get(skins), IntegerArgumentType.getInteger(ctx, "count")))))))));
+															.executes(ctx -> givebox(ctx, get(skins), IntegerArgumentType.getInteger(ctx, "count")))))))
+							.then(Commands.literal("spawnchance").requires(PermissionPredicates.require(MetacraftSkins.getID("spawnchance"), PermissionLevel.ADMINS))
+									.executes(ctx -> spawnChance(ctx, get(skins)))
+									.then(Commands.argument("percent", DoubleArgumentType.doubleArg(0, 100))
+											.executes(ctx -> setSpawnChance(ctx, get(skins), DoubleArgumentType.getDouble(ctx, "percent")))))));
 	}
 
 	/** Every skin's id; with {@code dormantToo} false, only the ones that loaded (a Dormant skin can't be granted). */
@@ -272,6 +284,20 @@ public final class SkinsCommands {
 		String to = targets.size() == 1 ? targets.getFirst().getGameProfile().name() : targets.size() + " players";
 		ctx.getSource().sendSuccess(() -> Component.literal("Gave " + count + " Skin Box" + (count == 1 ? "" : "es") + ": " + name + " to " + to + "."), true);
 		return targets.size();
+	}
+
+	private static int spawnChance(CommandContext<CommandSourceStack> ctx, Skins skins) {
+		double percent = skins.settings().mobHatChance();
+		ctx.getSource().sendSuccess(() -> Component.literal("Mob Hat chance: " + PERCENT.format(percent) + "% at local difficulty 0, falling to none at "
+				+ PERCENT.format(MobHats.NO_HATS_AT) + ". Set it with /itemskins spawnchance <percent>."), false);
+		return 1;
+	}
+
+	private static int setSpawnChance(CommandContext<CommandSourceStack> ctx, Skins skins, double percent) {
+		double before = skins.setMobHatChance(percent);
+		ctx.getSource().sendSuccess(() -> Component.literal("Mob Hat chance set to " + PERCENT.format(percent) + "% (was " + PERCENT.format(before)
+				+ "%) at local difficulty 0, for mobs spawning from now on. Saved in " + skins.settingsFile().getFileName() + "."), true);
+		return 1;
 	}
 
 	private static int grant(CommandContext<CommandSourceStack> ctx, Skins skins) throws CommandSyntaxException {

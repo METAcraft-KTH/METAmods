@@ -546,8 +546,8 @@ done). The pack is required exactly when the server's packs are (`PolymerResourc
 
 ## Settings
 
-`config/metacraft-skins.json5`. metacraft-config writes it on first start with both keys commented out
-(so the defaults, both on, apply); write a key with a value to change it. `/itemskins reload` re-reads it;
+`config/metacraft-skins.json5`. metacraft-config writes it on first start with every key commented out
+(so the defaults apply); write a key with a value to change it. `/itemskins reload` re-reads it;
 vanilla `/reload` doesn't.
 
 ```json5
@@ -555,9 +555,17 @@ vanilla `/reload` doesn't.
 	// Whether Perks that hit a target (on hit, on kill, when hurt) affect players too. Off: mobs only.
 	"perks-affect-players": true,
 	// Off turns every Perk off; Looks keep working.
-	"perks-enabled": true
+	"perks-enabled": true,
+	// The chance, in percent (0 to 100), that a zombie, husk, zombie villager, skeleton, stray, bogged, parched or creeper
+	// spawns wearing a Classic hat, at local difficulty 0. It falls in a straight line to none at local difficulty 6.75.
+	"mob-hat-chance": 0.2
 }
 ```
+
+`mob-hat-chance` can also be set in game, with `/itemskins spawnchance <percent>`: it takes at once for
+mobs spawning from then on, and is written to this file, so it stays after a restart. Writing the file
+this way rewrites the whole file from the settings in use. A `mob-hat-chance` outside 0 to 100 in the
+file is logged (by metacraft-lib) and the default, 0.2%, applies.
 
 **Quote the keys.** They contain `-`, which json5 doesn't allow in a bare key: `{ perks-enabled: false }`
 is a syntax error. The error is logged (by metacraft-lib) and the settings stay as they were.
@@ -580,6 +588,7 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
 | `/itemskins revokeall <player>` | `metacraft-skins:revoke` | admins |
 | `/itemskins <player>` | `metacraft-skins:view` | admins |
 | `/itemskins reload` | `metacraft-skins:reload` | admins |
+| `/itemskins spawnchance [percent]` | `metacraft-skins:spawnchance` | admins |
 
 - **`/itemskins`** opens the player's Skin Menu. It lists skins by the Skin Box they come from, boxes in
   id order (`classic`, then `winter`; a skin in two boxes goes with the first), then the skins in no box;
@@ -632,6 +641,10 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
   for looking at only: nothing can be clicked, there's no Extract button, and their items aren't tidied.
   A player head where the book is says whose skins they are and how many they own. A subcommand's name
   always wins, so a player named `list` can't be looked at this way.
+- **`spawnchance`** alone shows the Mob Hat chance: the percent a zombie, skeleton or creeper (and their kin)
+  spawning at local difficulty 0 wears a Classic hat. With a percent from 0 to 100
+  (`/itemskins spawnchance 0.5`), it sets it: mobs spawning from then on use it, with no reload or
+  restart, and it's saved as `mob-hat-chance` in [Settings](#settings). 0 turns Mob Hats off.
 - `info`, `grant`, `grantall`, `revoke`, `revokeall` and `/itemskins <player>` take offline players by name, looked up as `/whitelist` does: the server's
   user cache first, then (in online mode) Mojang.
 - There is no force-remove: only the Owner takes a skin off an item. Use `revoke` to take the skin away.

@@ -117,7 +117,7 @@ public final class Skins {
 		this.ownership = new OwnershipStore(root.resolve("skins-data").resolve("players"));
 		this.skinsFolder = root.resolve("config").resolve(MetacraftSkins.MOD_ID).resolve("skins");
 		this.boxesFolder = root.resolve("config").resolve(MetacraftSkins.MOD_ID).resolve("boxes");
-		this.settings = SkinsSettings.container(root.resolve("config").resolve(MetacraftSkins.MOD_ID + ".json5"));
+		this.settings = SkinsSettings.container(settingsFile());
 	}
 
 	/**
@@ -1163,6 +1163,21 @@ public final class Skins {
 	public SkinsSettings settings() {
 		SkinsSettings s = settings.get();
 		return s != null ? s : SkinsSettings.DEFAULTS;
+	}
+
+	/**
+	 * Sets {@code mob-hat-chance} (percent, 0 to 100) and writes the settings file, keeping the other
+	 * settings as they are now. Mobs spawning from now on use it; no reload needed. Returns the chance before.
+	 */
+	public double setMobHatChance(double percent) {
+		double before = settings().mobHatChance();
+		settings.modify(s -> s.withMobHatChance(percent));
+		return before;
+	}
+
+	/** The settings file, {@code config/metacraft-skins.json5}. */
+	public Path settingsFile() {
+		return root.resolve("config").resolve(MetacraftSkins.MOD_ID + ".json5");
 	}
 
 	/** The newest build of the skins pack; empty before the first {@link #reload()}. */
