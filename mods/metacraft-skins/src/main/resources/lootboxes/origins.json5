@@ -1,0 +1,31 @@
+{
+	name: "&lOrigins Skin Box",
+	gradient: { colors: ["#FFD54A", "#FF8C00"], mirror: true },
+	skins: [
+		// Common.
+		{ skin: "fishing_hat", weight: 10 },
+		{ skin: "headphones_gaming", weight: 10 },
+		{ skin: "leaf_crown", weight: 10 },
+		{ skin: "mobster_hat", weight: 10 },
+		{ skin: "plunderers_bandana", weight: 10 },
+		{ skin: "safari_hat", weight: 10 },
+		{ skin: "sensei", weight: 10 },
+		{ skin: "sun_hat_bow", weight: 10 },
+		{ skin: "sun_visor", weight: 10 },
+		{ skin: "trucker_hat", weight: 10 },
+		// Uncommon: half as likely as a common hat.
+		{ skin: "banana_hat_peeled", weight: 5 },
+		{ skin: "cowboy_hat", weight: 5 },
+		{ skin: "flight_helmet", weight: 5 },
+		{ skin: "hard_hat", weight: 5 },
+		{ skin: "pirate_hat", weight: 5 },
+		{ skin: "witch_hat", weight: 5 },
+		// Rare: a fifth as likely as a common hat.
+		{ skin: "cat_ears", weight: 2 },
+		{ skin: "knight_helmet", weight: 2 },
+		{ skin: "propeller_hat", weight: 2 },
+		{ skin: "shades_cool", weight: 2 },
+		{ skin: "spartan", weight: 2 },
+		{ skin: "traffic_cone_roadworks", weight: 2 },
+	],
+}

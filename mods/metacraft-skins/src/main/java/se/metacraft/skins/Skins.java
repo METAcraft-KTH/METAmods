@@ -597,10 +597,11 @@ public final class Skins {
 	/**
 	 * What a viewer is sent of a Skin Box: Polymer's client copy ({@code client}, a vault marked as a
 	 * box by {@link SkinBox#drawnAsBox}) with no glint, named in the box's colours followed by
-	 * " (Right-click to open)" in gray, with the lore: its description (gray), one
-	 * line per usable skin, highest chance first ("Pumpkin Hat 20%": the skin's name in its colours, the
-	 * chance in gray), or "Every skin in this box is unavailable." for a box with none. A box whose
-	 * file is Dormant, gone or never was reads "Unknown Skin Box: <id>".
+	 * " (Right-Click)" in gray, with the lore: its description (gray), a blank line, "Random
+	 * Loot" (white, bold) and " (1 item)" (gray), then one line per usable skin, highest chance first
+	 * ("* 1x " in white, then the skin's name in its colours), or "Every skin in this box is
+	 * unavailable." for a box with none. The chances are the Roll menu's to show. A box whose file is
+	 * Dormant, gone or never was reads "Unknown Skin Box: <id>".
 	 */
 	public ItemStack boxView(ItemStack box, ItemStack client) {
 		String id = SkinBox.boxOf(box).orElse("");
@@ -613,12 +614,16 @@ public final class Skins {
 		}
 		List<Component> lines = new ArrayList<>();
 		summary.description().ifPresent(d -> lines.add(plain(d, ChatFormatting.GRAY)));
+		lines.add(Component.empty());
+		// Siblings of an empty root throughout, so no part takes on another's colour or bold.
+		lines.add(Component.empty().append(Component.literal("Random Loot").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.WHITE).withBold(true)))
+				.append(plain(" (1 item)", ChatFormatting.GRAY)));
 		for (BoxSummary.Entry entry : summary.entries()) {
-			lines.add(Component.empty().append(styledName(entry.skin())).append(plain(" " + entry.chance(), ChatFormatting.GRAY)));
+			lines.add(Component.empty().append(plain("* 1x ", ChatFormatting.WHITE)).append(styledName(entry.skin())));
 		}
 		if (summary.entries().isEmpty()) lines.add(plain("Every skin in this box is unavailable.", ChatFormatting.GRAY));
 		// Siblings of an empty root, so the hint doesn't take on the name's colours and formats.
-		client.set(DataComponents.ITEM_NAME, Component.empty().append(summary.styledName()).append(plain(" (Right-click to open)", ChatFormatting.GRAY)));
+		client.set(DataComponents.ITEM_NAME, Component.empty().append(summary.styledName()).append(plain(" (Right-Click)", ChatFormatting.GRAY)));
 		client.set(DataComponents.LORE, new ItemLore(lines));
 		return client;
 	}

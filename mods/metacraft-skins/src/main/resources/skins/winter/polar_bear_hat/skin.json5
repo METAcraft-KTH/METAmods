@@ -1,0 +1,8 @@
+{
+	name: "&lPolar Bear Hat",
+	gradient: { colors: ["#FFFFFF", "#BFD7EA"], mirror: true },
+	released: "2026/11/09",
+	obtainable: false,
+	kind: "helmet",
+	look: { model: "polar_bear_hat.json" },
+}

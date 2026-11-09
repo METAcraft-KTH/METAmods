@@ -10,35 +10,54 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static se.metacraft.skins.gametest.SkinFixtures.assertThat;
 
 /**
  * Skin Box files, {@code config/metacraft-skins/boxes/<id>.json5}, read by {@code Skins.reload()}:
  * what loads, what rejects a box (it goes Dormant) and what only warns, how chances are worded, and
- * the shipped Halloween Skin Box.
+ * the shipped Origins and Winter Skin Boxes.
  */
 public final class BoxFileTests {
 	/** The shipped boxes are put in only when there's no boxes folder; after that it's the admin's, and a deleted box stays deleted. */
 	@GameTest
-	public void theShippedHalloweenBoxIsPutInOnce(GameTestHelper helper) {
+	public void theShippedBoxesArePutInOnce(GameTestHelper helper) {
 		SkinFixtures fx = SkinFixtures.create();
 		Path folder = fx.skins.boxesFolder();
 		assertThat(DefaultSkins.installIfMissing(fx.skins.skinsFolder()) && DefaultSkins.installBoxesIfMissing(folder), "the shipped skins and boxes weren't put in");
-		assertThat(files(folder).equals(List.of("halloween.json5")), "the boxes folder holds " + files(folder));
+		assertThat(files(folder).equals(List.of("origins.json5", "winter.json5")), "the boxes folder holds " + files(folder));
 		ReloadReport report = fx.reload();
-		assertThat(report.boxes().loaded().equals(List.of("halloween")) && report.boxes().rejections().isEmpty() && report.boxes().warnings().isEmpty(),
-				"the shipped box against the shipped skins: " + report.boxes());
-		BoxSummary halloween = fx.skins.box("halloween").orElseThrow();
-		assertThat(halloween.name().equals(Optional.of("Halloween Skin Box")), "the Halloween box: " + halloween);
-		assertThat(chances(halloween).equals(List.of("pumpkin_hat 13.3%", "witch_hat 13.3%", "spider_hat 13.3%", "cowboy_hat 13.3%", "crusader_helmet 13.3%",
-				"plague_mask 10%", "pumpkin_pickaxe 6.7%", "plague_mask_silver 4.7%", "ruined_crown 4.7%", "bloody_cleaver 3.3%", "plague_mask_dark 2%",
-				"blood_katana 2%")), "its chances: " + chances(halloween));
+		assertThat(Set.copyOf(report.boxes().loaded()).equals(Set.of("origins", "winter")) && report.boxes().rejections().isEmpty()
+				&& report.boxes().warnings().isEmpty(), "the shipped boxes against the shipped skins: " + report.boxes());
+		// Every MCC hat in the Origins box, by rarity: common 10, uncommon 5, rare 2.
+		List<String> common = List.of("fishing_hat", "headphones_gaming", "leaf_crown", "mobster_hat", "plunderers_bandana", "safari_hat",
+				"sensei", "sun_hat_bow", "sun_visor", "trucker_hat");
+		List<String> uncommon = List.of("banana_hat_peeled", "cowboy_hat", "flight_helmet", "hard_hat", "pirate_hat", "witch_hat");
+		List<String> rare = List.of("cat_ears", "knight_helmet", "propeller_hat", "shades_cool", "spartan", "traffic_cone_roadworks");
+		long total = common.size() * 10L + uncommon.size() * 5L + rare.size() * 2L;
+		List<String> origins = new ArrayList<>();
+		for (String hat : common) origins.add(hat + " " + BoxSummary.chance(10, total));
+		for (String hat : uncommon) origins.add(hat + " " + BoxSummary.chance(5, total));
+		for (String hat : rare) origins.add(hat + " " + BoxSummary.chance(2, total));
+		BoxSummary originsBox = fx.skins.box("origins").orElseThrow();
+		assertThat(originsBox.name().equals(Optional.of("Origins Skin Box")) && chances(originsBox).equals(origins), "the Origins box: " + chances(originsBox));
+		// Every Winter Wonderland skin in the Winter box, each as likely as the next.
+		List<String> winter = List.of("candy_cane_pickaxe", "candy_sword", "christmas_tree_hat", "frozen_head", "gift_box_head",
+				"gingerbread_head", "hot_cocoa_mug", "icicle_blade", "jingle_bell_mace", "lucia_crown", "nutcracker_shako",
+				"penguin_hat", "polar_bear_hat", "reindeer_antlers", "santa_hat", "snow_globe", "snowed_in", "trapper_hat",
+				"yeti_head");
+		BoxSummary winterBox = fx.skins.box("winter").orElseThrow();
+		String chance = BoxSummary.chance(1, winter.size());
+		assertThat(winterBox.name().equals(Optional.of("Winter Skin Box")) && chances(winterBox).equals(winter.stream().map(skin -> skin + " " + chance).toList()),
+				"the Winter box: " + chances(winterBox));
 
 		try {
-			Files.delete(folder.resolve("halloween.json5"));
+			Files.delete(folder.resolve("origins.json5"));
+			Files.delete(folder.resolve("winter.json5"));
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}

@@ -37,7 +37,8 @@ public final class BoxItemTests {
 			+ " skins: [ { skin: \"cleaver\", weight: 1 }, { skin: \"pumpkin_hat\", weight: 3 }, { skin: \"nowhere\", weight: 5 } ] }";
 
 	/**
-	 * A vault to clients, marked as a box (an old file's {@code ominous} changes nothing), named in its colours with "(Right-click to open)", listing its skins and chances highest first.
+	 * A vault to clients, marked as a box (an old file's {@code ominous} changes nothing), named in its colours with "(Right-Click)":
+	 * its description, a blank line, "Random Loot (1 item)", then "* 1x" and each skin, highest chance first.
 	 */
 	@GameTest
 	public void aBoxIsAMarkedVaultListingItsSkinsAndChances(GameTestHelper helper) {
@@ -53,22 +54,30 @@ public final class BoxItemTests {
 		assertDrawnAsBox(spooky, "a box once ominous");
 		assertThat(!spooky.hasFoil(), "a box glints");
 		Component name = spooky.getHoverName();
-		assertThat(name.getString().equals("Spooky Box (Right-click to open)") && name.getSiblings().getFirst().getSiblings().getFirst().getStyle().isBold(),
+		assertThat(name.getString().equals("Spooky Box (Right-Click)") && name.getSiblings().getFirst().getSiblings().getFirst().getStyle().isBold(),
 				"the box is named " + name);
 		assertColour(name.getSiblings().getLast(), ChatFormatting.GRAY);
 		List<Component> lore = lore(spooky);
-		assertThat(text(lore).equals(List.of("Only in October.", "Pumpkin Hat 75%", "Cleaver 25%")), "the box's tooltip: " + text(lore));
+		assertThat(text(lore).equals(List.of("Only in October.", "", "Random Loot (1 item)", "* 1x Pumpkin Hat", "* 1x Cleaver")), "the box's tooltip: " + text(lore));
 		assertColour(lore.get(0), ChatFormatting.GRAY);
-		// The skin's name in its colours, then its chance in gray.
-		assertThat(Objects.equals(lore.get(2).getSiblings().getFirst().getSiblings().getFirst().getStyle().getColor(), TextColor.fromLegacyFormat(ChatFormatting.RED))
-				&& Objects.equals(lore.get(2).getSiblings().getLast().getStyle().getColor(), TextColor.fromLegacyFormat(ChatFormatting.GRAY)), "the cleaver's line: " + lore.get(2));
+		// "Random Loot" white and bold, " (1 item)" gray and not bold.
+		Component loot = lore.get(2);
+		assertColour(loot.getSiblings().getFirst(), ChatFormatting.WHITE);
+		assertColour(loot.getSiblings().getLast(), ChatFormatting.GRAY);
+		assertThat(loot.getSiblings().getFirst().getStyle().isBold() && !loot.getSiblings().getLast().getStyle().isBold(), "the loot line: " + loot);
+		// "* 1x " white and not bold, then the skin's name in its colours.
+		Component cleaver = lore.get(4);
+		assertColour(cleaver.getSiblings().getFirst(), ChatFormatting.WHITE);
+		assertThat(!cleaver.getSiblings().getFirst().getStyle().isBold()
+				&& Objects.equals(cleaver.getSiblings().getLast().getSiblings().getFirst().getStyle().getColor(), TextColor.fromLegacyFormat(ChatFormatting.RED)),
+				"the cleaver's line: " + cleaver);
 
 		ItemStack plain = view(helper, fx, SkinBox.of("plain"), viewer);
 		assertDrawnAsBox(plain, "a plain box");
-		assertThat(text(lore(plain)).equals(List.of("Cleaver 100%")), "the plain box's tooltip: " + text(lore(plain)));
+		assertThat(text(lore(plain)).equals(List.of("", "Random Loot (1 item)", "* 1x Cleaver")), "the plain box's tooltip: " + text(lore(plain)));
 
 		ItemStack gone = view(helper, fx, SkinBox.of("gone"), viewer);
-		assertThat(text(lore(gone)).equals(List.of("Every skin in this box is unavailable.")), "an empty box's tooltip: " + text(lore(gone)));
+		assertThat(text(lore(gone)).equals(List.of("", "Random Loot (1 item)", "Every skin in this box is unavailable.")), "an empty box's tooltip: " + text(lore(gone)));
 		helper.succeed();
 	}
 
@@ -87,7 +96,7 @@ public final class BoxItemTests {
 		}
 		fx.box("broken.json5", "{ name: \"Broken\", ominous: true, skins: [ { skin: \"cleaver\", weight: 1 } ] }");
 		fx.reload();
-		assertThat(view(helper, fx, SkinBox.of("broken"), viewer).getHoverName().getString().equals("Broken (Right-click to open)"), "the fixed box is still unknown");
+		assertThat(view(helper, fx, SkinBox.of("broken"), viewer).getHoverName().getString().equals("Broken (Right-Click)"), "the fixed box is still unknown");
 		helper.succeed();
 	}
 

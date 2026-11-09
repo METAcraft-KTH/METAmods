@@ -1,0 +1,8 @@
+{
+	name: "&lFrozen Head",
+	gradient: { colors: ["#BFEFFF", "#5AB4E6"], mirror: true },
+	released: "2026/11/09",
+	obtainable: false,
+	kind: "helmet",
+	look: { model: "frozen_head.json" },
+}

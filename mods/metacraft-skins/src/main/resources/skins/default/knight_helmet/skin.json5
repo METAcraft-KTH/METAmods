@@ -1,0 +1,8 @@
+{
+	name: "&lKnight Helmet",
+	gradient: { colors: ["#9EA7AD", "#E5E8EA"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "knight_helmet.json" },
+}

@@ -1,0 +1,8 @@
+{
+	name: "&lGaming Headphones",
+	gradient: { colors: ["#00E5FF", "#B026FF"] },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "headphones_gaming.json" },
+}

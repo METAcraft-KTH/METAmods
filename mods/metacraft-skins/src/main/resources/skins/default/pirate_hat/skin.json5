@@ -1,0 +1,8 @@
+{
+	name: "&lPirate Hat",
+	gradient: { colors: ["#1A1A1A", "#D4AF37"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "pirate_hat.json" },
+}

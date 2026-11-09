@@ -1,8 +1,0 @@
-{
-	name: "&lRuined Crown",
-	gradient: { colors: ["#B22222", "#7A7A7A"], mirror: true },
-	released: "2026/11/04",
-	obtainable: true,
-	kind: "helmet",
-	look: { model: "ruined_crown.json" },
-}

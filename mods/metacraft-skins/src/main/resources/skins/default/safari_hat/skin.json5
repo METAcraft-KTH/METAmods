@@ -1,0 +1,8 @@
+{
+	name: "&lSafari Hat",
+	gradient: { colors: ["#C2A878", "#6B8E23"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "safari_hat.json" },
+}

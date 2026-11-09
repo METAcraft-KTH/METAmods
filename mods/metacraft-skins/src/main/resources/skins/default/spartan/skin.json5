@@ -1,0 +1,8 @@
+{
+	name: "&lSpartan Helmet",
+	gradient: { colors: ["#B8860B", "#B22222"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "spartan.json" },
+}

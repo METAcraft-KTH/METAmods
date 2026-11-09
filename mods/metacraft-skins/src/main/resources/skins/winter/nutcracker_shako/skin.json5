@@ -1,0 +1,8 @@
+{
+	name: "&lNutcracker Shako",
+	gradient: { colors: ["#B71C1C", "#FFD54A", "#1A1A1A"] },
+	released: "2026/11/09",
+	obtainable: false,
+	kind: "helmet",
+	look: { model: "nutcracker_shako.json" },
+}

@@ -1,0 +1,8 @@
+{
+	name: "&lCool Shades",
+	gradient: { colors: ["#1A1A1A", "#00BFFF"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "shades_cool.json" },
+}

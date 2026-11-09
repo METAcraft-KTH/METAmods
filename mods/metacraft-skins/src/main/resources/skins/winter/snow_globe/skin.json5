@@ -1,0 +1,8 @@
+{
+	name: "&lSnow Globe",
+	gradient: { colors: ["#A8E6FF", "#FFFFFF", "#4FA3D9"] },
+	released: "2026/11/09",
+	obtainable: false,
+	kind: "helmet",
+	look: { model: "snow_globe.json" },
+}

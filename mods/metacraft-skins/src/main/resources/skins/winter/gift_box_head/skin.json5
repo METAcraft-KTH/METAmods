@@ -1,0 +1,8 @@
+{
+	name: "&lGift Box Head",
+	gradient: { colors: ["#D62828", "#FFD54A"], mirror: true },
+	released: "2026/11/09",
+	obtainable: false,
+	kind: "helmet",
+	look: { model: "gift_box_head.json" },
+}

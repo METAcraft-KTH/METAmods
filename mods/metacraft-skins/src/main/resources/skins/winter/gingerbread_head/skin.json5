@@ -1,0 +1,8 @@
+{
+	name: "&lGingerbread Head",
+	gradient: { colors: ["#8B4A1C", "#E0A060"], mirror: true },
+	released: "2026/11/09",
+	obtainable: false,
+	kind: "helmet",
+	look: { model: "gingerbread_head.json" },
+}

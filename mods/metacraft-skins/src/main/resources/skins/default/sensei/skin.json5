@@ -1,0 +1,8 @@
+{
+	name: "&lSensei",
+	gradient: { colors: ["#C62828", "#F5E6C8"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "sensei.json" },
+}

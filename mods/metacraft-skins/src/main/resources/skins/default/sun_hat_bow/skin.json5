@@ -1,0 +1,8 @@
+{
+	name: "&lSun Hat",
+	gradient: { colors: ["#F5DEB3", "#FF69B4"], mirror: true },
+	released: "2026/11/09",
+	obtainable: true,
+	kind: "helmet",
+	look: { model: "sun_hat_bow.json" },
+}

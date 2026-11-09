@@ -1,0 +1,8 @@
+{
+	name: "&lPenguin Hat",
+	gradient: { colors: ["#1C1C1C", "#FFFFFF", "#FFA726"] },
+	released: "2026/11/09",
+	obtainable: false,
+	kind: "helmet",
+	look: { model: "penguin_hat.json" },
+}
