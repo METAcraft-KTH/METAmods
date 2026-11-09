@@ -7,12 +7,15 @@ import se.metacraft.moredyes.MoreDyes;
 import se.metacraft.moredyes.color.ModColor;
 import se.metacraft.moredyes.mixin.SheepAccessor;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Brightness;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.LightLayer;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -43,6 +46,7 @@ public final class SheepWoolRig extends ElementHolder {
 	private final ItemDisplayElement[] wool = new ItemDisplayElement[6];
 	private ModColor lastColor;
 	private boolean lastSheared = true, lastAlive, lastHurt;
+	private Brightness lastBrightness;
 
 	private double lastX, lastZ;
 	private float walkSpeed, walkPos;
@@ -97,6 +101,7 @@ public final class SheepWoolRig extends ElementHolder {
 			lastHurt = hurt;
 		}
 		if (!alive) return;
+		light();
 
 		// Walk animation, as LivingEntity.calculateEntityAnimation does client-side.
 		double dx = sheep.getX() - lastX, dz = sheep.getZ() - lastZ;
@@ -138,6 +143,29 @@ public final class SheepWoolRig extends ElementHolder {
 			place(body[i], yawQ, scale, partScale, p[0], py, p[2], rots[i]);
 			if (!sheared) place(wool[i], yawQ, scale, partScale, p[0], py, p[2], rots[i]);
 		}
+	}
+
+	/**
+	 * Lights every part the way vanilla lights the sheep itself. A display entity is otherwise lit by
+	 * the block at its own position, the sheep's feet, which on soul sand or mud (shorter than a block, opaque) is
+	 * inside the block: light 0, and the whole sheep renders black.
+	 */
+	private void light() {
+		BlockPos probe = BlockPos.containing(sheep.getLightProbePosition(1.0F));
+		var level = sheep.level();
+		Brightness b = new Brightness(sheep.isOnFire() ? 15 : level.getBrightness(LightLayer.BLOCK, probe),
+				level.getBrightness(LightLayer.SKY, probe));
+		if (b.equals(lastBrightness)) return;
+		lastBrightness = b;
+		for (int i = 0; i < 6; i++) {
+			body[i].setBrightness(b);
+			wool[i].setBrightness(b);
+		}
+	}
+
+	/** The light the parts are drawn with, for tests. */
+	public Brightness brightness() {
+		return lastBrightness;
 	}
 
 	/** Position a part whose vanilla model pivot is (px, py, pz), with the given local rotation. */
