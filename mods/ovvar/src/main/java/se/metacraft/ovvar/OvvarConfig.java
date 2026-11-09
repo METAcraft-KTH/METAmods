@@ -18,7 +18,7 @@ import java.util.function.UnaryOperator;
  * @param sewingMinigame sew on a stand through the stitching dialog ({@link SewingGame})
  *					   instead of in one click
  * @param stitches	   how many stitches a cell-sized patch takes in the minigame; a longer outline
- *					   takes proportionally more ({@link metacraft.ovvar.sewing.Seam#stitchesFor})
+ *					   takes proportionally more ({@link Seam#stitchesFor})
  * @param designs	    where the players' wardrobes live and what sewing does without it ({@link DesignStoreConfig})
  * @param stash		  this server's role, and the rules for taking patches out of the stash ({@link StashConfig})
  */
