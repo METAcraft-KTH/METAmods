@@ -676,6 +676,7 @@ public final class MoreDyesGameTests {
 	public void sheepColourSurvivesReload(GameTestHelper helper) {
 		floor(helper);
 		Sheep sheep = helper.spawnWithNoFreeWill(EntityTypes.SHEEP, new BlockPos(4, 1, 4));
+		sheep.setColor(DyeColor.BLACK); // dyed from a vanilla colour, as players do
 		SheepColors.set(sheep, first());
 		var registries = helper.getLevel().registryAccess();
 		var out = net.minecraft.world.level.storage.TagValueOutput.createWithContext(net.minecraft.util.ProblemReporter.DISCARDING, registries);
