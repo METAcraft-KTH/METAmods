@@ -93,6 +93,11 @@ public final class SheepColors {
 		sheep.setInvisible(invisible);
 	}
 
+	/** The wool rig drawing this sheep, if any; for tests. */
+	public static @Nullable SheepWoolRig rig(Sheep sheep) {
+		return RIGS.get(sheep);
+	}
+
 	public static void ensureRig(Sheep sheep) {
 		if (sheep.level().isClientSide() || get(sheep) == null) return;
 		RIGS.computeIfAbsent(sheep, s -> {

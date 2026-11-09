@@ -688,6 +688,31 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
+	/**
+	 * A dyed sheep standing on soul sand (or mud) is lit like the sheep, not like its feet: the feet are
+	 * inside that light-blocking block (light 0), which drew the whole rig black.
+	 */
+	@GameTest(maxTicks = 100)
+	public void sheepRigLitOnSoulSand(GameTestHelper helper) {
+		floor(helper);
+		BlockPos ground = new BlockPos(4, 1, 4);
+		helper.setBlock(ground, Blocks.SOUL_SAND);
+		Sheep sheep = helper.spawnWithNoFreeWill(EntityTypes.SHEEP, ground.above());
+		SheepColors.set(sheep, first());
+		helper.succeedWhen(() -> {
+			var rig = SheepColors.rig(sheep);
+			helper.assertTrue(rig != null && rig.brightness() != null, "rig not lit yet");
+			BlockPos probe = BlockPos.containing(sheep.getLightProbePosition(1.0F));
+			var level = helper.getLevel();
+			helper.assertTrue(level.getBrightness(net.minecraft.world.level.LightLayer.SKY, probe) > 0, "test spot has no sky light");
+			BlockPos feet = BlockPos.containing(sheep.position());
+			helper.assertValueEqual(feet, helper.absolutePos(ground), "feet inside the soul sand");
+			helper.assertValueEqual(level.getBrightness(net.minecraft.world.level.LightLayer.SKY, feet), 0, "sky light at the feet");
+			helper.assertValueEqual(rig.brightness().sky(), level.getBrightness(net.minecraft.world.level.LightLayer.SKY, probe), "rig sky light");
+			helper.assertValueEqual(rig.brightness().block(), level.getBrightness(net.minecraft.world.level.LightLayer.BLOCK, probe), "rig block light");
+		});
+	}
+
 	/** Death loot: our wool plus mutton, never white wool. */
 	@GameTest(maxTicks = 100)
 	public void sheepDeathLoot(GameTestHelper helper) {
