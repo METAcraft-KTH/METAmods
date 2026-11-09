@@ -41,9 +41,6 @@ public final class SheepColors {
 			.persistent(Codec.STRING)
 			.buildAndRegister(Identifier.fromNamespaceAndPath(MoreDyes.MOD_ID, "sheep_color"));
 
-	/** Set while we call setColor(WHITE) ourselves, so the reset hook ignores it. */
-	static boolean settingOurselves;
-
 	private static final Map<Sheep, SheepWoolRig> RIGS = new WeakHashMap<>();
 
 	private SheepColors() {}
@@ -61,20 +58,21 @@ public final class SheepColors {
 	}
 
 	public static void set(Sheep sheep, ModColor color) {
-		settingOurselves = true;
-		try {
-			sheep.setColor(DyeColor.WHITE);
-		} finally {
-			settingOurselves = false;
-		}
+		sheep.setColor(DyeColor.WHITE);
 		sheep.setAttached(COLOR, color.id());
 		resendWoolData(sheep);
 		ensureRig(sheep);
 	}
 
-	/** Called from the setColor mixin: vanilla changed the colour, so ours no longer applies. */
-	public static void onVanillaColorSet(Sheep sheep) {
-		if (settingOurselves || sheep.level().isClientSide()) return;
+	/**
+	 * Called from the setColor mixin: vanilla changed the colour, so ours no longer applies. White is
+	 * left alone: it is what we force the vanilla colour to, and loading a saved sheep sets it again
+	 * (Fabric reads attachments before {@code readAdditionalSaveData}, which calls setColor), so
+	 * clearing on white wiped every dyed sheep on chunk reload. A white vanilla dye can't reach a
+	 * sheep that is already white, so nothing real is lost.
+	 */
+	public static void onVanillaColorSet(Sheep sheep, DyeColor color) {
+		if (color == DyeColor.WHITE || sheep.level().isClientSide()) return;
 		if (sheep.removeAttached(COLOR) != null) {
 			resendWoolData(sheep);
 			SheepWoolRig rig = RIGS.remove(sheep);

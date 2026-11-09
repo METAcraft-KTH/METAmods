@@ -668,6 +668,25 @@ public final class MoreDyesGameTests {
 		helper.succeed();
 	}
 
+	/**
+	 * A dyed sheep keeps its colour through save and load, as on chunk unload. Fabric reads
+	 * attachments before Sheep.readAdditionalSaveData, whose setColor(WHITE) used to clear ours.
+	 */
+	@GameTest
+	public void sheepColourSurvivesReload(GameTestHelper helper) {
+		floor(helper);
+		Sheep sheep = helper.spawnWithNoFreeWill(EntityTypes.SHEEP, new BlockPos(4, 1, 4));
+		SheepColors.set(sheep, first());
+		var registries = helper.getLevel().registryAccess();
+		var out = net.minecraft.world.level.storage.TagValueOutput.createWithContext(net.minecraft.util.ProblemReporter.DISCARDING, registries);
+		sheep.saveWithoutId(out);
+		Sheep loaded = EntityTypes.SHEEP.create(helper.getLevel(), net.minecraft.world.entity.EntitySpawnReason.LOAD);
+		loaded.load(net.minecraft.world.level.storage.TagValueInput.create(net.minecraft.util.ProblemReporter.DISCARDING, registries, out.buildResult()));
+		helper.assertValueEqual(SheepColors.get(loaded), first(), "colour after reload");
+		helper.assertValueEqual(loaded.getColor(), DyeColor.WHITE, "vanilla colour after reload");
+		helper.succeed();
+	}
+
 	/** Death loot: our wool plus mutton, never white wool. */
 	@GameTest(maxTicks = 100)
 	public void sheepDeathLoot(GameTestHelper helper) {

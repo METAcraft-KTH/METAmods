@@ -33,10 +33,10 @@ public abstract class SheepMixin {
 		ci.cancel();
 	}
 
-	/** Vanilla changed the colour (dye, command, spawn): ours no longer applies. */
+	/** Vanilla changed the colour (dye, command, spawn): ours no longer applies, unless it is white. */
 	@Inject(method = "setColor", at = @At("TAIL"))
 	private void moredyes$onSetColor(DyeColor color, CallbackInfo ci) {
-		SheepColors.onVanillaColorSet((Sheep) (Object) this);
+		SheepColors.onVanillaColorSet((Sheep) (Object) this, color);
 	}
 
 	/**
