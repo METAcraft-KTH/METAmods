@@ -2,6 +2,7 @@ package se.metacraft.skins;
 
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import se.metacraft.skins.command.SkinsCommands;
+import se.metacraft.skins.item.MobHat;
 import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 import se.metacraft.skins.pack.PackDelivery;
@@ -50,6 +51,7 @@ public final class MetacraftSkins implements ModInitializer {
 		SkinMarker.init();
 		SkinToken.init();
 		SkinBox.init();
+		MobHat.init();
 		DyeSkinnedItemRecipe.init();
 		// Every stack carrying the (Polymer-hidden) marker, vanilla items included, is rebuilt for
 		// each viewer by Polymer; the live skin's Look and tooltip block go on that copy only. It runs
