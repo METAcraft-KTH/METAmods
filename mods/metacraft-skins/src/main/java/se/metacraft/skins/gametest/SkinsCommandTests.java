@@ -70,6 +70,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -86,7 +87,7 @@ import static se.metacraft.skins.gametest.SkinFixtures.assertThat;
  * {@code /itemskins give} hands out Skin Tokens, which a real right-click claims; a reload that takes a
  * Look away re-sends players' items, and only such a reload does; and the server keeps
  * a worn Perk up on its own, ending it soon after the item comes off; and a real melee hit, kill,
- * block break and hurt fire their event Perks. One test, because it swaps
+ * block break and hurt fire their event Perks; and {@code /itemskins spawnchance} shows and sets the Mob Hat chance. One test, because it swaps
  * the server's Skins. The rules behind it are SkinDefinitionTests', SkinsPackTests',
  * OwnershipTests', ApplyTests', ViewTests', TokenTests' and PerkTests'.
  */
@@ -131,6 +132,7 @@ public final class SkinsCommandTests {
 			extractAndListAreNotPlayerCommands(helper);
 			boxReloadAndList(server, fx);
 			boxesInPlay(helper, fx);
+			spawnChance(server, fx);
 
 			// Below the defaults: a gamemaster can't reload or list. An admin player running list gets All Skins.
 			fx.lookOnly("poop_hat_test", "helmet");
@@ -370,10 +372,67 @@ public final class SkinsCommandTests {
 			server.getPlayerList().remove(online);
 		}
 
-		for (String command : List.of("itemskins grant " + offline + " ", "itemskins revoke " + offline + " c")) {
-			List<String> suggested = suggestions(server, command);
-			assertThat(suggested.contains("candy_cane_test"), "\"" + command + "\" suggests " + suggested);
+		List<String> grantable = suggestions(server, "itemskins grant " + offline + " ");
+		assertThat(grantable.contains("candy_cane_test"), "grant suggests " + grantable);
+		// revoke suggests only what the player owns: nothing, now.
+		List<String> revocable = suggestions(server, "itemskins revoke " + offline + " c");
+		assertThat(revocable.isEmpty(), "revoke suggests " + revocable + " for a player who owns nothing");
+	}
+
+	/**
+	 * {@code grantall} grants every skin that loaded and the player doesn't own, Dormant ones left out;
+	 * {@code revokeall} takes every skin away; both say so when there's nothing to do. {@code revoke}
+	 * suggests only the skins the named player owns, and nothing for a name it doesn't know. An admin's
+	 * {@code /itemskins <player>} opens that player's Skin Menu to look at; anyone else's opens nothing.
+	 */
+	@GameTest
+	public void grantAllRevokeAllAndAnotherPlayersMenu(GameTestHelper helper) {
+		MinecraftServer server = helper.getLevel().getServer();
+		SkinFixtures fx = SkinFixtures.create().lookOnly("candy_cane_test", "sword").skin("crown_test", "helmet").lookOnly("hat", "hat");
+		fx.reload();
+		Skins previous = MetacraftSkins.use(fx.skins);
+		String offline = "skins" + (int) (Math.random() * 1_000_000);
+		UUID offlineId = UUID.randomUUID();
+		server.services().nameToIdCache().add(new NameAndId(offlineId, offline));
+		SkinFixtures.Listening admin = SkinFixtures.join(helper);
+		try {
+			List<String> granted = run(server, LevelBasedPermissionSet.ADMIN, "itemskins grantall " + offline);
+			assertThat(fx.skins.ownedSkins(offlineId).owns("candy_cane_test") && fx.skins.ownedSkins(offlineId).owns("crown_test")
+					&& !fx.skins.ownedSkins(offlineId).owns("hat"), "grantall granted " + fx.skins.ownedSkins(offlineId).skins());
+			assertThat(granted.stream().anyMatch(l -> l.contains("Granted 2 skins")), "grantall said " + granted);
+			List<String> again = run(server, LevelBasedPermissionSet.ADMIN, "itemskins grantall " + offline);
+			assertThat(again.stream().anyMatch(l -> l.contains("already owns every skin")), "grantall again said " + again);
+			run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins revokeall " + offline);
+			assertThat(fx.skins.ownedSkins(offlineId).skins().size() == 2, "a gamemaster revoked every skin");
+
+			List<String> revocable = suggestions(server, "itemskins revoke " + offline + " ");
+			assertThat(Set.copyOf(revocable).equals(Set.of("candy_cane_test", "crown_test")), "revoke suggests " + revocable);
+			List<String> unknown = suggestions(server, "itemskins revoke nobody_by_that_name ");
+			assertThat(unknown.isEmpty(), "revoke suggests " + unknown + " for a name it doesn't know");
+
+			// Another player's menu: theirs to look at, one owned skin and one "???".
+			fx.skins.revoke(new NameAndId(offlineId, offline), "candy_cane_test");
+			server.getCommands().performPrefixedCommand(admin.createCommandSourceStack(), "itemskins " + offline);
+			assertThat(!SkinMenuTests.title(admin).startsWith(offline), "a player without the view permission opened " + SkinMenuTests.title(admin));
+			server.getCommands().performPrefixedCommand(admin.createCommandSourceStack().withPermission(LevelBasedPermissionSet.ADMIN), "itemskins " + offline);
+			assertThat(SkinMenuTests.title(admin).equals(offline + "'s Skins"), "the admin's view opened " + SkinMenuTests.title(admin));
+			List<String> shown = List.of(admin.containerMenu.getSlot(0).getItem().getHoverName().getString(),
+					admin.containerMenu.getSlot(1).getItem().getHoverName().getString());
+			assertThat(shown.contains("???") && shown.contains("crown_test skin"), "the view shows " + shown);
+			SkinMenuTests.click(admin, 0);
+			SkinMenuTests.click(admin, 1);
+			assertThat(SkinMenuTests.title(admin).equals(offline + "'s Skins"), "clicking a skin in the view opened " + SkinMenuTests.title(admin));
+
+			List<String> revoked = run(server, LevelBasedPermissionSet.ADMIN, "itemskins revokeall " + offline);
+			assertThat(fx.skins.ownedSkins(offlineId).skins().isEmpty() && revoked.stream().anyMatch(l -> l.contains("Revoked " + offline + "'s only skin")),
+					"revokeall left " + fx.skins.ownedSkins(offlineId).skins() + " and said " + revoked);
+			List<String> nothing = run(server, LevelBasedPermissionSet.ADMIN, "itemskins revokeall " + offline);
+			assertThat(nothing.stream().anyMatch(l -> l.contains("owns no skins")), "revokeall again said " + nothing);
+		} finally {
+			MetacraftSkins.use(previous);
+			server.getPlayerList().remove(admin);
 		}
+		helper.succeed();
 	}
 
 	/**
@@ -511,6 +570,24 @@ public final class SkinsCommandTests {
 		} finally {
 			for (ServerPlayer player : List.of(air, offhand, blocks)) server.getPlayerList().remove(player);
 		}
+	}
+
+	/**
+	 * {@code /itemskins spawnchance} shows the Mob Hat chance, and with a percent sets it at once and
+	 * saves it; it's for admins only, and a percent outside 0 to 100 is refused. Set back to 0.2% after.
+	 */
+	private static void spawnChance(MinecraftServer server, SkinFixtures fx) {
+		List<String> shown = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance");
+		assertThat(shown.equals(List.of("Mob Hat chance: 0.2% at local difficulty 0, falling to none at 6.75. Set it with /itemskins spawnchance <percent>.")),
+				"spawnchance showed " + shown);
+		List<String> set = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance 1.5");
+		assertThat(set.equals(List.of("Mob Hat chance set to 1.5% (was 0.2%) at local difficulty 0, for mobs spawning from now on. Saved in metacraft-skins.json5."))
+				&& fx.skins.settings().mobHatChance() == 1.5, "spawnchance 1.5 answered " + set + ", the setting " + fx.skins.settings());
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance 101");
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance -1");
+		run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins spawnchance 50");
+		assertThat(fx.skins.settings().mobHatChance() == 1.5, "a refused spawnchance set it to " + fx.skins.settings().mobHatChance());
+		fx.skins.setMobHatChance(0.2);
 	}
 
 	/**

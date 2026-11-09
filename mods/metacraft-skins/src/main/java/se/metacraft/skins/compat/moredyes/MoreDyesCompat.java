@@ -54,4 +54,14 @@ public final class MoreDyesCompat implements DyeSkinnedItemRecipe.Dyes {
 				dyes.stream().map(DyeStacks::armorRgb).toList()));
 		helmet.remove(AnimatedArmor.ANIMATED_DYE);
 	}
+
+	@Override
+	public Optional<String> animated(ItemStack helmet) {
+		return Optional.ofNullable(helmet.get(AnimatedArmor.ANIMATED_DYE));
+	}
+
+	@Override
+	public void animated(ItemStack helmet, Optional<String> colour) {
+		colour.ifPresentOrElse(id -> helmet.set(AnimatedArmor.ANIMATED_DYE, id), () -> helmet.remove(AnimatedArmor.ANIMATED_DYE));
+	}
 }

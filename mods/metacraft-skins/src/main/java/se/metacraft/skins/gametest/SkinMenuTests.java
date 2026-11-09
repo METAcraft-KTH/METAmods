@@ -20,6 +20,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.component.ItemLore;
 
 import java.util.List;
@@ -34,7 +35,7 @@ import static se.metacraft.skins.gametest.SkinFixtures.assertThat;
  */
 public final class SkinMenuTests {
 	static final int FIRST_ITEM = 9;
-	private static final int PREVIEW = 4, REMOVE = 8, MIDDLE = 22, PREVIOUS_PAGE = 45, BOOK = 49, EXTRACT = 50, NEXT_PAGE = 53;
+	private static final int PREVIEW = 4, CLEAR_TINT = 7, REMOVE = 8, MIDDLE = 22, PREVIOUS_PAGE = 45, BOOK = 49, EXTRACT = 50, NEXT_PAGE = 53;
 	/** "Apply: <skin>"'s page arrows, either side of the preview. */
 	private static final int APPLY_PREVIOUS_PAGE = 3, APPLY_NEXT_PAGE = 5;
 
@@ -311,9 +312,12 @@ public final class SkinMenuTests {
 		SkinMenu.open(player, fx.skins);
 
 		// Zebra Hat (2026/10/01), Apple Hat (2026/11/01), then the undated Candy Sword and Crown; the Dormant hat isn't listed.
+		// Apple Hat is unobtainable: a grey dye rather than a light grey one, saying so.
 		for (int i = 0; i < 3; i++) {
-			assertThat(slot(player, i).is(Items.DYE.lightGray()) && name(player, i).equals("???") && boldName(player, i)
-					&& lore(player, i).equals(List.of("Not owned yet")), "slot " + i + " is " + slot(player, i) + " " + name(player, i) + " " + lore(player, i));
+			boolean obtainable = i != 1;
+			assertThat(slot(player, i).is(obtainable ? Items.DYE.lightGray() : Items.DYE.gray()) && name(player, i).equals("???") && boldName(player, i)
+					&& lore(player, i).equals(List.of(obtainable ? "Not owned yet" : "Unobtainable")),
+					"slot " + i + " is " + slot(player, i) + " " + name(player, i) + " " + lore(player, i));
 		}
 		assertThat(name(player, 3).equals("Crown") && "skins:crown_test".equals(String.valueOf(slot(player, 3).get(DataComponents.ITEM_MODEL))),
 				"the owned skin is " + name(player, 3));
@@ -326,6 +330,59 @@ public final class SkinMenuTests {
 		SkinMenu.open(player, fx.skins);
 		assertThat(name(player, 0).equals("Zebra Hat") && name(player, 1).equals("???") && name(player, 2).equals("Candy Sword") && name(player, 3).equals("Crown"),
 				"after claiming: " + name(player, 0) + ", " + name(player, 1) + ", " + name(player, 2) + ", " + name(player, 3));
+		helper.succeed();
+	}
+
+	/**
+	 * Skins are listed by the Skin Box they're in, boxes in id order (a skin in two boxes goes with the
+	 * first), then the skins in no box; by name within each. "All Skins" lists them the same way.
+	 */
+	@GameTest
+	public void skinsAreListedByTheirSkinBox(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().skin("a_loose", "helmet", "Aardvark Hat", null).skin("z_classic", "helmet", "Zebra Hat", null)
+				.skin("m_classic", "helmet", "Moose Hat", null).skin("b_winter", "helmet", "Bear Hat", null).skin("both", "helmet", "Yak Hat", null)
+				.box("classic.json5", "{ name: \"Classic\", skins: [ { skin: \"z_classic\", weight: 1 }, { skin: \"m_classic\", weight: 9 } ] }")
+				.box("winter.json5", "{ name: \"Winter\", skins: [ { skin: \"b_winter\", weight: 1 }, { skin: \"both\", weight: 1 } ] }")
+				.box("another.json5", "{ name: \"Another\", skins: [ { skin: \"both\", weight: 1 } ] }");
+		fx.reload();
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		for (String skin : List.of("a_loose", "z_classic", "m_classic", "b_winter", "both")) fx.skins.grant(player.nameAndId(), skin);
+		List<String> expected = List.of("Yak Hat", "Moose Hat", "Zebra Hat", "Bear Hat", "Aardvark Hat");
+		SkinMenu.open(player, fx.skins);
+		List<String> listed = java.util.stream.IntStream.range(0, 5).mapToObj(i -> name(player, i)).toList();
+		assertThat(listed.equals(expected), "Your Skins lists " + listed);
+		SkinMenu.openAll(player, fx.skins);
+		List<String> all = java.util.stream.IntStream.range(0, 5).mapToObj(i -> name(player, i)).toList();
+		assertThat(all.equals(expected), "All Skins lists " + all);
+		helper.succeed();
+	}
+
+	/**
+	 * A Dyeable Hat with a saved tint shows in it, and its Apply screen has Clear tint, which puts it
+	 * back in its starting colour (the button goes); a hat with no tint has no button.
+	 */
+	@GameTest
+	public void clearTintIsOnTheApplyScreenOfATintedHat(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().dyeableHat("cowboy_hat_test");
+		fx.reload();
+		SkinFixtures.Listening player = SkinFixtures.join(helper);
+		try {
+			player.getInventory().clearContent();
+			player.getInventory().setItem(0, new ItemStack(Items.DIAMOND_HELMET));
+			fx.skins.grant(player.nameAndId(), "cowboy_hat_test");
+			fx.skins.apply(player, "cowboy_hat_test", ItemLocation.hotbar(0));
+			player.getInventory().getItem(0).set(DataComponents.DYED_COLOR, new DyedItemColor(0xB02E26));
+			SkinMenu.open(player, fx.skins);   // the tidy saves the tint
+			assertThat(new DyedItemColor(0xB02E26).equals(slot(player, 0).get(DataComponents.DYED_COLOR)), "the icon isn't tinted: " + slot(player, 0).getComponentsPatch());
+			click(player, 0);
+			assertThat(name(player, CLEAR_TINT).equals("Clear tint") && lore(player, CLEAR_TINT).getFirst().equals("Tint: #B02E26"),
+					"slot 7: " + name(player, CLEAR_TINT) + " " + lore(player, CLEAR_TINT));
+			click(player, CLEAR_TINT);
+			assertThat(!player.getInventory().getItem(0).has(DataComponents.DYED_COLOR), "the helmet kept its colour");
+			assertThat(title(player).startsWith("Apply: ") && slot(player, CLEAR_TINT).is(Items.STAINED_GLASS_PANE.gray()), "after clearing, slot 7 is " + slot(player, CLEAR_TINT));
+		} finally {
+			helper.getLevel().getServer().getPlayerList().remove(player);
+		}
 		helper.succeed();
 	}
 

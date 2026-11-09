@@ -4,5 +4,5 @@
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",
-	look: { model: "witch_hat.json" },
+	look: { model: "witch_hat.json", dyeable: true, color: "#7B2FBE" },
 }

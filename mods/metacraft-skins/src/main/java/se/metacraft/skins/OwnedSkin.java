@@ -1,9 +1,10 @@
 package se.metacraft.skins;
 
 import java.time.Instant;
+import java.util.Optional;
 
-/** One skin a player owns, as {@code /itemskins info} shows it: its id, when it was claimed (or granted), and its state. */
-public record OwnedSkin(String id, Instant claimed, State state) {
+/** One skin a player owns, as {@code /itemskins info} shows it: its id, when it was claimed (or granted), its state, and a Dyeable Hat's saved {@link Tint}. */
+public record OwnedSkin(String id, Instant claimed, State state, Optional<Tint> tint) {
 	public enum State {
 		/** On an item in this world. */
 		APPLIED("Applied"),

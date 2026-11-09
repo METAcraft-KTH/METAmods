@@ -4,5 +4,5 @@
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",
-	look: { model: "mobster_hat.json" },
+	look: { model: "mobster_hat.json", dyeable: true, color: "#2B2B2B" },
 }

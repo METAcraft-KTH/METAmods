@@ -1,5 +1,5 @@
 {
-	name: "&lOrigins Skin Box",
+	name: "&lClassic Hats Box",
 	gradient: { colors: ["#FFD54A", "#FF8C00"], mirror: true },
 	skins: [
 		// Common.

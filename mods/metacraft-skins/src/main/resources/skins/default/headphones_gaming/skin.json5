@@ -4,5 +4,5 @@
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",
-	look: { model: "headphones_gaming.json" },
+	look: { model: "headphones_gaming.json", dyeable: true, color: "#00E5FF" },
 }

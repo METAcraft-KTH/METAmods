@@ -45,7 +45,7 @@ record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind ki
 	 * The Look: the model file of each slot ({@code model}, or a spear's {@code icon} and
 	 * {@code in_hand}, in that order), and whether it's a Dyeable Hat.
 	 */
-	record Look(Map<String, String> models, boolean dyeable) {}
+	record Look(Map<String, String> models, boolean dyeable, Optional<Integer> color) {}
 
 	/** Unknown Material names that are vanilla's item-name adjectives for a known one. */
 	private static final Map<String, String> MATERIAL_HINTS = Map.of("wooden", "wood", "golden", "gold");
@@ -114,8 +114,9 @@ record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind ki
 	}
 
 	/**
-	 * {@code look}: the Kind's model slots, each naming a file, and {@code dyeable} (true or false,
-	 * and only on a helmet skin; leaving it out is false).
+	 * {@code look}: the Kind's model slots, each naming a file, {@code dyeable} (true or false,
+	 * and only on a helmet skin; leaving it out is false) and {@code color} (a Dyeable Hat's colour
+	 * until it's dyed, {@code "#RRGGBB"}; leaving it out shows its painted colours).
 	 */
 	private static Codec<Look> look(Kind kind) {
 		List<String> slots = kind.isSpear() ? List.of("icon", "in_hand") : List.of("model");
@@ -125,7 +126,7 @@ record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind ki
 				Optional<MapLike<T>> look = ops.getMap(input).result();
 				if (look.isEmpty()) return DataResult.error(() -> lookShape(kind) + ", and look is missing or not an object");
 				List<String> keys = look.get().entries().flatMap(e -> ops.getStringValue(e.getFirst()).result().stream()).toList();
-				if (!keys.stream().filter(k -> !k.equals("dyeable")).collect(Collectors.toSet()).equals(Set.copyOf(slots))) {
+				if (!keys.stream().filter(k -> !k.equals("dyeable") && !k.equals("color")).collect(Collectors.toSet()).equals(Set.copyOf(slots))) {
 					return DataResult.error(() -> lookShape(kind) + ", not look: { " + String.join(", ", keys) + " }");
 				}
 				boolean dyeable = false;
@@ -138,13 +139,21 @@ record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind ki
 					if (value.isEmpty()) return DataResult.error(() -> "\"dyeable\" must be true or false");
 					dyeable = value.get();
 				}
+				Optional<Integer> color = Optional.empty();
+				T writtenColor = look.get().get("color");
+				if (writtenColor != null) {
+					if (!dyeable) return DataResult.error(() -> "\"color\" is a Dyeable Hat's colour until it's dyed, so it needs \"dyeable\": true");
+					Optional<String> hex = ops.getStringValue(writtenColor).result().filter(c -> c.matches("#[0-9a-fA-F]{6}"));
+					if (hex.isEmpty()) return DataResult.error(() -> "\"color\" must be a colour written \"#RRGGBB\"");
+					color = Optional.of(Integer.parseInt(hex.get().substring(1), 16));
+				}
 				Map<String, String> models = new LinkedHashMap<>();
 				for (String slot : slots) {
 					DataResult<String> file = topText(slot).parse(ops, Optional.ofNullable(look.get().get(slot)).orElse(ops.empty()));
 					if (file instanceof DataResult.Error<String> error) return DataResult.error(error.messageSupplier());
 					models.put(slot, file.getOrThrow());
 				}
-				return DataResult.success(Pair.of(new Look(Collections.unmodifiableMap(models), dyeable), ops.empty()));
+				return DataResult.success(Pair.of(new Look(Collections.unmodifiableMap(models), dyeable, color), ops.empty()));
 			}
 
 			@Override
@@ -152,6 +161,7 @@ record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind ki
 				RecordBuilder<T> map = ops.mapBuilder();
 				look.models().forEach((slot, file) -> map.add(slot, ops.createString(file)));
 				if (look.dyeable()) map.add("dyeable", ops.createBoolean(true));
+				look.color().ifPresent(c -> map.add("color", ops.createString(String.format("#%06X", c))));
 				return map.build(prefix);
 			}
 		};

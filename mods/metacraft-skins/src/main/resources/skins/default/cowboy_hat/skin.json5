@@ -4,5 +4,5 @@
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",
-	look: { model: "cowboy_hat.json" },
+	look: { model: "cowboy_hat.json", dyeable: true, color: "#8B5A2B" },
 }

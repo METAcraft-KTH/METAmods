@@ -4,9 +4,11 @@ import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import se.metacraft.skins.DrawingCheck;
 import se.metacraft.skins.ItemLocation;
 import se.metacraft.skins.MetacraftSkins;
+import se.metacraft.skins.OwnedSkin;
 import se.metacraft.skins.OwnershipChange;
 import se.metacraft.skins.SkinMarker;
 import se.metacraft.skins.Skins;
+import se.metacraft.skins.Tint;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -21,6 +23,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
@@ -326,10 +329,90 @@ public final class DyeingTests {
 		ItemStack crowned = owner.getInventory().getItem(3);
 		assertThat(!crowned.has(DataComponents.DYED_COLOR), "the crown took the hat's colour: " + crowned.get(DataComponents.DYED_COLOR));
 
+		// Another Dyeable Hat brings its own tint (none saved: its starting colour); the red is saved on the hat it replaced.
 		assertThat(fx.skins.apply(owner, "other_hat_test", ItemLocation.hotbar(4)).applied(), "the other hat wasn't applied over the hat");
 		ItemStack swapped = owner.getInventory().getItem(4);
-		assertThat(RED.equals(swapped.get(DataComponents.DYED_COLOR)), "swapping hats lost the colour: " + swapped.get(DataComponents.DYED_COLOR));
+		assertThat(!swapped.has(DataComponents.DYED_COLOR), "the other hat took the replaced hat's colour: " + swapped.get(DataComponents.DYED_COLOR));
+		assertThat(tint(fx, owner, "swapped_hat_test").equals(Optional.of(new Tint(RED.rgb(), Optional.empty()))),
+				"the replaced hat's tint: " + tint(fx, owner, "swapped_hat_test"));
 		helper.succeed();
+	}
+
+	/**
+	 * A Dyeable Hat's colour is saved as its tint (when the Owner's items are tidied, before an apply,
+	 * and every tick for the helmet they wear) and comes back on whatever helmet the hat is applied to
+	 * next, a moved hat's newest colour included. Washed, it saves no tint.
+	 */
+	@GameTest
+	public void aDyeableHatsTintIsSavedAndComesBack(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().dyeableHat("cowboy_hat_test");
+		fx.reload();
+		ServerPlayer owner = ApplyTests.carrying(helper, new ItemStack(Items.DIAMOND_HELMET), new ItemStack(Items.IRON_HELMET));
+		dyedHat(fx, owner, "cowboy_hat_test", 0);
+		fx.skins.tidy(owner);
+		Tint red = new Tint(RED.rgb(), Optional.empty());
+		assertThat(tint(fx, owner, "cowboy_hat_test").equals(Optional.of(red)), "after a tidy the tint is " + tint(fx, owner, "cowboy_hat_test"));
+
+		// Removed, the helmet goes plain; the tint stays, and the next apply brings it back.
+		fx.skins.remove(owner.nameAndId(), "cowboy_hat_test");
+		fx.skins.tidy(owner);
+		assertThat(!owner.getInventory().getItem(0).has(DataComponents.DYED_COLOR), "the helmet the hat left kept its colour");
+		assertThat(fx.skins.apply(owner, "cowboy_hat_test", ItemLocation.hotbar(1)).applied(), "the hat wasn't applied again");
+		assertThat(RED.equals(owner.getInventory().getItem(1).get(DataComponents.DYED_COLOR)), "the hat came back as " + owner.getInventory().getItem(1).getComponentsPatch());
+
+		// Dyed again and moved straight to another helmet: the apply saves the new colour first.
+		DyedItemColor blue = new DyedItemColor(0x3C44AA);
+		owner.getInventory().getItem(1).set(DataComponents.DYED_COLOR, blue);
+		assertThat(fx.skins.apply(owner, "cowboy_hat_test", ItemLocation.hotbar(0)).applied(), "the hat wasn't moved");
+		assertThat(blue.equals(owner.getInventory().getItem(0).get(DataComponents.DYED_COLOR)), "the moved hat is " + owner.getInventory().getItem(0).getComponentsPatch());
+
+		// Worn and dyed green: the tick saves it.
+		ItemStack worn = owner.getInventory().getItem(0).copy();
+		owner.getInventory().setItem(0, ItemStack.EMPTY);
+		owner.setItemSlot(EquipmentSlot.HEAD, worn);
+		worn.set(DataComponents.DYED_COLOR, new DyedItemColor(0x5E7C16));
+		fx.skins.rememberWornTint(owner);
+		assertThat(tint(fx, owner, "cowboy_hat_test").equals(Optional.of(new Tint(0x5E7C16, Optional.empty()))), "the worn hat's tint is " + tint(fx, owner, "cowboy_hat_test"));
+
+		// Washed: no tint.
+		worn.remove(DataComponents.DYED_COLOR);
+		fx.skins.rememberWornTint(owner);
+		assertThat(tint(fx, owner, "cowboy_hat_test").isEmpty(), "a washed hat kept the tint " + tint(fx, owner, "cowboy_hat_test"));
+		helper.succeed();
+	}
+
+	/**
+	 * Clear tint takes the saved tint off, and the colour off the hat's helmet: refused while that
+	 * helmet isn't with the Owner (it would keep the colour), allowed while the hat is on no item.
+	 */
+	@GameTest
+	public void clearingATintPutsTheHatBackInItsStartingColour(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().dyeableHat("cowboy_hat_test").dyeableHat("spare_hat_test");
+		fx.reload();
+		ServerPlayer owner = ApplyTests.carrying(helper, new ItemStack(Items.DIAMOND_HELMET), new ItemStack(Items.DIAMOND_HELMET));
+		ItemStack hat = dyedHat(fx, owner, "cowboy_hat_test", 0);
+		fx.skins.tidy(owner);
+		assertThat(fx.skins.clearTint(owner, "cowboy_hat_test") == OwnershipChange.DONE, "the tint wasn't cleared");
+		assertThat(tint(fx, owner, "cowboy_hat_test").isEmpty() && !hat.has(DataComponents.DYED_COLOR), "after clearing: " + hat.getComponentsPatch());
+
+		// Away (here: out of their inventory), refused, the tint kept.
+		hat.set(DataComponents.DYED_COLOR, RED);
+		fx.skins.tidy(owner);
+		owner.getInventory().setItem(0, ItemStack.EMPTY);
+		assertThat(fx.skins.clearTint(owner, "cowboy_hat_test") == OwnershipChange.ITEM_AWAY, "cleared with the helmet away");
+		assertThat(tint(fx, owner, "cowboy_hat_test").isPresent() && hat.has(DataComponents.DYED_COLOR), "a refused clear changed " + hat.getComponentsPatch());
+
+		// On no item: cleared from the save alone.
+		fx.skins.remove(owner.nameAndId(), "cowboy_hat_test");
+		assertThat(fx.skins.clearTint(owner, "cowboy_hat_test") == OwnershipChange.DONE && tint(fx, owner, "cowboy_hat_test").isEmpty(),
+				"an unapplied hat's tint: " + tint(fx, owner, "cowboy_hat_test"));
+		assertThat(fx.skins.clearTint(owner, "nobodys_hat") == OwnershipChange.NOT_OWNED, "cleared a skin they don't own");
+		helper.succeed();
+	}
+
+	/** The owner's saved tint of a skin. */
+	private static Optional<Tint> tint(SkinFixtures fx, ServerPlayer owner, String skin) {
+		return fx.skins.ownedSkins(owner.getUUID()).skins().stream().filter(s -> s.id().equals(skin)).findFirst().flatMap(OwnedSkin::tint);
 	}
 
 	/**

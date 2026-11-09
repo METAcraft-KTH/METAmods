@@ -23,7 +23,7 @@ public record ReloadReport(List<String> loaded, List<Rejection> rejections, List
 	/** A box set aside as Dormant: its file and the reason, in words for an admin. */
 	public record BoxRejection(String boxId, Path file, String reason) {}
 
-	/** One warning line as an admin reads it ("origins: cat_ears is Dormant, left out"), and the file it's about. */
+	/** One warning line as an admin reads it ("classic: cat_ears is Dormant, left out"), and the file it's about. */
 	public record BoxWarning(Path file, String message) {}
 
 	/** A skin set aside as Dormant: the file at fault and the reason, in words for an admin. */

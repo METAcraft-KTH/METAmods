@@ -117,7 +117,7 @@ public final class Skins {
 		this.ownership = new OwnershipStore(root.resolve("skins-data").resolve("players"));
 		this.skinsFolder = root.resolve("config").resolve(MetacraftSkins.MOD_ID).resolve("skins");
 		this.boxesFolder = root.resolve("config").resolve(MetacraftSkins.MOD_ID).resolve("boxes");
-		this.settings = SkinsSettings.container(root.resolve("config").resolve(MetacraftSkins.MOD_ID + ".json5"));
+		this.settings = SkinsSettings.container(settingsFile());
 	}
 
 	/**
@@ -317,7 +317,7 @@ public final class Skins {
 		if (skin == null) return OwnershipChange.UNKNOWN_SKIN;
 		if (skin.dormantReason().isPresent()) return OwnershipChange.DORMANT_SKIN;
 		return changing(profile.id(), record -> record.skins().containsKey(skinId) ? OwnershipChange.ALREADY_OWNED
-				: save(record.with(skinId, new OwnershipStore.Owned(Instant.now().truncatedTo(ChronoUnit.SECONDS), Optional.empty())).named(profile.name())));
+				: save(record.with(skinId, new OwnershipStore.Owned(Instant.now().truncatedTo(ChronoUnit.SECONDS), Optional.empty(), Optional.empty())).named(profile.name())));
 	}
 
 	/**
@@ -331,6 +331,57 @@ public final class Skins {
 				: save(record.without(skinId).named(profile.name())));
 	}
 
+	/** What a grant or revoke of every skin did: refused (and why), or done, with the skins it changed (none if there was nothing to do). */
+	public record AllChanged(OwnershipChange result, List<String> skins) {}
+
+	/**
+	 * Makes the player own every skin that loaded and they don't own yet, unobtainable ones too, as
+	 * {@link #grant} does, in one save. Refused, changing nothing, if their file is damaged or can't be
+	 * saved. Telling an online player is the caller's job.
+	 */
+	public synchronized AllChanged grantAll(NameAndId profile) {
+		if (!(ownership.read(profile.id()) instanceof DataResult.Success(var record, _))) return new AllChanged(OwnershipChange.DAMAGED_FILE, List.of());
+		Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+		List<String> granted = new ArrayList<>();
+		OwnershipStore.PlayerRecord next = record;
+		for (Entry skin : skins.values()) {
+			if (skin.loaded().isEmpty() || record.skins().containsKey(skin.id())) continue;
+			next = next.with(skin.id(), new OwnershipStore.Owned(now, Optional.empty(), Optional.empty()));
+			granted.add(skin.id());
+		}
+		if (granted.isEmpty()) return new AllChanged(OwnershipChange.DONE, List.of());
+		OwnershipChange saved = save(next.named(profile.name()));
+		return new AllChanged(saved, saved == OwnershipChange.DONE ? List.copyOf(granted) : List.of());
+	}
+
+	/**
+	 * Takes every skin the player owns away, Dormant ones too, as {@link #revoke} does, in one save.
+	 * Refused, changing nothing, if their file is damaged or can't be saved. Telling an online player,
+	 * and tidying their items ({@link #tidy}), is the caller's job.
+	 */
+	public synchronized AllChanged revokeAll(NameAndId profile) {
+		if (!(ownership.read(profile.id()) instanceof DataResult.Success(var record, _))) return new AllChanged(OwnershipChange.DAMAGED_FILE, List.of());
+		List<String> revoked = List.copyOf(record.skins().keySet());
+		if (revoked.isEmpty()) return new AllChanged(OwnershipChange.DONE, List.of());
+		OwnershipStore.PlayerRecord next = record;
+		for (String skinId : revoked) next = next.without(skinId);
+		OwnershipChange saved = save(next.named(profile.name()));
+		return new AllChanged(saved, saved == OwnershipChange.DONE ? revoked : List.of());
+	}
+
+	/**
+	 * The player whose ownership file last saw them by this name (any case), if one did: for tab
+	 * completion, which mustn't look names up online. Damaged files are skipped.
+	 */
+	public synchronized Optional<UUID> ownerNamed(String name) {
+		for (UUID player : ownership.players()) {
+			if (ownership.read(player) instanceof DataResult.Success(var record, _) && record.name().filter(n -> n.equalsIgnoreCase(name)).isPresent()) {
+				return Optional.of(player);
+			}
+		}
+		return Optional.empty();
+	}
+
 	/** A change to the player's record, made by {@code change}; refused, the file left alone, if it's damaged. */
 	private OwnershipChange changing(UUID player, Function<OwnershipStore.PlayerRecord, OwnershipChange> change) {
 		return ownership.read(player).mapOrElse(change, damaged -> OwnershipChange.DAMAGED_FILE);
@@ -342,8 +393,10 @@ public final class Skins {
 	 * skin is plain from now on, and the player's own items are tidied ({@link #tidy}). A skin
 	 * already on the item (theirs or another player's, live or Dormant) is replaced, and becomes
 	 * Unapplied for its Owner, who keeps owning it; if that Owner's file is damaged, it's left alone
-	 * (and logged). A skin that isn't a Dyeable Hat takes the colour off any item but leather (the
-	 * colour rule, {@link #tidy}). Refused, changing nothing, if the skin is unknown or Dormant, they
+	 * (and logged). A Dyeable Hat comes in its saved {@link Tint} (the colour its Owner last had it
+	 * in, remembered first from the items they carry), or with none in its starting colour: it takes
+	 * the colour off any item but leather. A skin that isn't a Dyeable Hat takes the colour off any
+	 * item but leather too (the colour rule, {@link #tidy}). Refused, changing nothing, if the skin is unknown or Dormant, they
 	 * don't own it, nothing that {@linkplain #fits fits} is there (Material included), it already
 	 * carries this application, or their file is damaged or can't be saved.
 	 */
@@ -353,6 +406,7 @@ public final class Skins {
 		if (skin.loaded().isEmpty()) return ApplyResult.refused(ApplyResult.Outcome.DORMANT_SKIN);
 		SkinFolder.Loaded loaded = skin.loaded().get();
 		Kind kind = loaded.kind();
+		rememberTints(player);   // the colour on whatever this apply moves the skin off, or replaces
 		if (!(ownership.read(player.getUUID()) instanceof DataResult.Success(var record, _))) {
 			return ApplyResult.refused(ApplyResult.Outcome.DAMAGED_FILE);
 		}
@@ -365,7 +419,7 @@ public final class Skins {
 		if (current.filter(c -> c.is(player.getUUID(), skinId)).isPresent()) return ApplyResult.refused(ApplyResult.Outcome.ALREADY_APPLIED);
 
 		UUID application = UUID.randomUUID();
-		OwnershipStore.PlayerRecord next = record.with(skinId, new OwnershipStore.Owned(owned.claimed(),
+		OwnershipStore.PlayerRecord next = record.with(skinId, owned.withApplication(
 				Optional.of(new OwnershipStore.Application(application, worldStamp(), Optional.of(kind))))).named(player.getGameProfile().name());
 		// Replacing one of their own other skins: it's Unapplied in the same save.
 		boolean replacingTheirOwn = current.filter(c -> c.ownedBy(player.getUUID())).isPresent();
@@ -373,7 +427,13 @@ public final class Skins {
 		if (save(next) != OwnershipChange.DONE) return ApplyResult.refused(ApplyResult.Outcome.SAVE_FAILED);
 		if (current.isPresent() && !replacingTheirOwn) unapplyReplaced(current.get().marker());
 		item.set(SkinMarker.TYPE, new SkinMarker(skinId, player.getUUID(), application));
-		if (!loaded.dyeable() && !Material.leather(item)) item.remove(DataComponents.DYED_COLOR);
+		if (loaded.dyeable()) {
+			// The hat comes back in its saved tint; with none, its starting colour (leather keeps its own dye).
+			if (owned.tint().isPresent()) owned.tint().get().putOn(item);
+			else if (!Material.leather(item)) Tint.takeOff(item);
+		} else if (!Material.leather(item)) {
+			item.remove(DataComponents.DYED_COLOR);
+		}
 		tidy(player);   // the skin's old item, if they have it
 		return new ApplyResult(ApplyResult.Outcome.APPLIED, current.map(Displaced::name));
 	}
@@ -423,7 +483,7 @@ public final class Skins {
 
 	private static OwnershipStore.PlayerRecord unapplied(OwnershipStore.PlayerRecord record, String skinId) {
 		OwnershipStore.Owned owned = record.skins().get(skinId);
-		return record.with(skinId, new OwnershipStore.Owned(owned.claimed(), Optional.empty()));
+		return record.with(skinId, owned.withApplication(Optional.empty()));
 	}
 
 	/**
@@ -723,10 +783,80 @@ public final class Skins {
 	 * anywhere else keeps a stale marker, which is never shown or used. Vanilla then re-sends whatever
 	 * changed to the Owner and to anyone who sees them. Called by {@link #apply} itself, by the callers
 	 * of {@link #remove} and {@link #revoke} while the Owner is online, and as the Skin Menu opens.
+	 * First it saves the colour of the Owner's Dyeable Hats on items with them ({@link #rememberTints}).
 	 * Returns how many items it reverted. Server thread only.
 	 */
 	public synchronized int tidy(ServerPlayer owner) {
+		rememberTints(owner);
 		return tidy(owner.getInventory()) + tidy(owner.getEnderChestInventory()) + tidy(owner.containerMenu.getCarried());
+	}
+
+	// ---- Tints
+
+	/** The items with a player: their inventory (worn armour and offhand included), ender chest and cursor; not what's inside a shulker box or bundle. */
+	private static List<ItemStack> withThem(ServerPlayer player) {
+		List<ItemStack> items = new ArrayList<>();
+		for (Container container : List.of(player.getInventory(), player.getEnderChestInventory())) {
+			for (int slot = 0; slot < container.getContainerSize(); slot++) items.add(container.getItem(slot));
+		}
+		items.add(player.containerMenu.getCarried());
+		return items;
+	}
+
+	/** Is this item carrying {@code owner}'s live Dyeable Hat? */
+	private boolean theirLiveHat(ItemStack item, UUID owner) {
+		SkinMarker marker = item.get(SkinMarker.TYPE);
+		return marker != null && marker.owner().equals(owner) && standing(item, marker) == Standing.LIVE
+				&& skins.get(marker.skin()).loaded().orElseThrow().dyeable();
+	}
+
+	/**
+	 * Saves the colour of each of the player's Dyeable Hats that's on an item with them as the hat's
+	 * {@link Tint}, so it comes back when the hat is applied again: an undyed (or washed) helmet saves
+	 * none. Called as their items are tidied, before an apply, and every tick for the helmet they wear
+	 * ({@link #rememberWornTint}). Server thread only.
+	 */
+	private void rememberTints(ServerPlayer owner) {
+		remember(owner, withThem(owner));
+	}
+
+	/** {@link #rememberTints}, for the helmet the player wears only: cheap enough for every tick. Server thread only. */
+	public synchronized void rememberWornTint(ServerPlayer owner) {
+		remember(owner, List.of(owner.getItemBySlot(EquipmentSlot.HEAD)));
+	}
+
+	private void remember(ServerPlayer owner, List<ItemStack> items) {
+		if (!(ownership.read(owner.getUUID()) instanceof DataResult.Success(var record, _))) return;
+		OwnershipStore.PlayerRecord next = record;
+		for (ItemStack item : items) {
+			if (!theirLiveHat(item, owner.getUUID())) continue;
+			String skinId = item.get(SkinMarker.TYPE).skin();
+			OwnershipStore.Owned owned = next.skins().get(skinId);
+			Optional<Tint> tint = Tint.on(item);
+			if (owned != null && !owned.tint().equals(tint)) next = next.with(skinId, owned.withTint(tint));
+		}
+		if (next != record) save(next);
+	}
+
+	/**
+	 * Clears the Owner's saved tint of a Dyeable Hat ("Clear tint" in the Skin Menu): it's back in its
+	 * starting colour, and so is the item it's on. Refused, changing nothing, if they don't own it,
+	 * it's on an item that isn't with them ({@code ITEM_AWAY}: that item would keep the colour), or
+	 * their file is damaged or can't be saved. Server thread only.
+	 */
+	public synchronized OwnershipChange clearTint(ServerPlayer player, String skinId) {
+		if (!(ownership.read(player.getUUID()) instanceof DataResult.Success(var record, _))) return OwnershipChange.DAMAGED_FILE;
+		OwnershipStore.Owned owned = record.skins().get(skinId);
+		if (owned == null) return OwnershipChange.NOT_OWNED;
+		Optional<ItemStack> item = withThem(player).stream()
+				.filter(i -> theirLiveHat(i, player.getUUID()) && i.get(SkinMarker.TYPE).skin().equals(skinId)).findFirst();
+		if (appliedHere(skinId, owned).isPresent() && item.isEmpty()) return OwnershipChange.ITEM_AWAY;
+		if (owned.tint().isPresent()) {
+			OwnershipChange saved = save(record.with(skinId, owned.withTint(Optional.empty())));
+			if (saved != OwnershipChange.DONE) return saved;
+		}
+		item.ifPresent(Tint::takeOff);
+		return OwnershipChange.DONE;
 	}
 
 	private int tidy(Container container) {
@@ -981,7 +1111,7 @@ public final class Skins {
 	public synchronized PlayerSkins ownedSkins(UUID player) {
 		return ownership.read(player).mapOrElse(
 				record -> new PlayerSkins(player, record.name(), record.skins().entrySet().stream()
-						.map(e -> new OwnedSkin(e.getKey(), e.getValue().claimed(), state(e.getKey(), e.getValue()))).toList(), Optional.empty()),
+						.map(e -> new OwnedSkin(e.getKey(), e.getValue().claimed(), state(e.getKey(), e.getValue()), e.getValue().tint())).toList(), Optional.empty()),
 				damaged -> new PlayerSkins(player, Optional.empty(), List.of(), Optional.of(damaged.message())));
 	}
 
@@ -1033,6 +1163,21 @@ public final class Skins {
 	public SkinsSettings settings() {
 		SkinsSettings s = settings.get();
 		return s != null ? s : SkinsSettings.DEFAULTS;
+	}
+
+	/**
+	 * Sets {@code mob-hat-chance} (percent, 0 to 100) and writes the settings file, keeping the other
+	 * settings as they are now. Mobs spawning from now on use it; no reload needed. Returns the chance before.
+	 */
+	public double setMobHatChance(double percent) {
+		double before = settings().mobHatChance();
+		settings.modify(s -> s.withMobHatChance(percent));
+		return before;
+	}
+
+	/** The settings file, {@code config/metacraft-skins.json5}. */
+	public Path settingsFile() {
+		return root.resolve("config").resolve(MetacraftSkins.MOD_ID + ".json5");
 	}
 
 	/** The newest build of the skins pack; empty before the first {@link #reload()}. */

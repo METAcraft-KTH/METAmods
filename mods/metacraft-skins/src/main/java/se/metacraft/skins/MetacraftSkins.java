@@ -2,6 +2,7 @@ package se.metacraft.skins;
 
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import se.metacraft.skins.command.SkinsCommands;
+import se.metacraft.skins.item.MobHat;
 import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 import se.metacraft.skins.pack.PackDelivery;
@@ -50,6 +51,7 @@ public final class MetacraftSkins implements ModInitializer {
 		SkinMarker.init();
 		SkinToken.init();
 		SkinBox.init();
+		MobHat.init();
 		DyeSkinnedItemRecipe.init();
 		// Every stack carrying the (Polymer-hidden) marker, vanilla items included, is rebuilt for
 		// each viewer by Polymer; the live skin's Look and tooltip block go on that copy only. It runs
@@ -69,10 +71,14 @@ public final class MetacraftSkins implements ModInitializer {
 			Skins current = skins;
 			if (current != null) current.seen(handler.player.nameAndId());
 		});
-		// Held and worn Perks follow what each player holds and wears, tick by tick.
+		// Held and worn Perks follow what each player holds and wears, tick by tick, and a worn Dyeable Hat's colour is saved as its tint.
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			Skins current = skins;
-			if (current != null) for (ServerPlayer player : server.getPlayerList().getPlayers()) current.updateLastingPerks(player);
+			if (current == null) return;
+			for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+				current.updateLastingPerks(player);
+				current.rememberWornTint(player);
+			}
 		});
 		// Event Perks: a melee hit (the killing blow too) and kill with the main-hand item, a block
 		// broken with it, and any damage to a wearer. Skins decides what fires, and for whom.

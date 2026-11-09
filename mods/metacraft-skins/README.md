@@ -6,14 +6,15 @@ need nothing but the resource pack the server sends them.
 An admin hands out **Skin Tokens**. A player right-clicks one and confirms, which **Claims** the skin:
 they become its **Owner**, and the token is used up. `/itemskins` opens the **Skin Menu**, where they put the
 skin on any item of its **Kind** they carry, which makes it a **Skinned Item**. The Skin Menu lists every
-skin on the server: theirs with its Look, the rest as a grey dye named **???** until they own it. A skin has a **Look** (a
+skin on the server, grouped by the Skin Box it comes from: theirs with its Look, the rest as a grey dye named **???** until
+they own it (a darker grey one saying "Unobtainable" for a skin players can't get any more). A skin has a **Look** (a
 Blockbench model sent in the skins resource pack) and may have **Perks**, small effects for its Owner
 while they hold or wear the item. A skin works only while its item is with its Owner; anywhere else the
 item is **Away**, drawn plain. Each skin is on one item at a time: applying it elsewhere makes the old
 item plain again, wherever it is. An Owner who no longer wants a skin can **Extract** it
 (the Extract button in the Skin Menu), which turns it back into its Skin Token to trade or give away. A **Skin
 Box** is an item a player opens to **Roll** for a Skin Token, drawn by chance from the skins the box
-lists; the Origins and Winter Skin Boxes ship with the mod.
+lists; the Classic Hats Box and the Winter Skin Box ship with the mod.
 
 This README is the admin guide. Players get a short summary from the "How skins work" book in the Skin
 Menu.
@@ -77,10 +78,14 @@ skins folder, so a skin id may only be in one group:
   `reindeer_antlers`, `santa_hat`, `snow_globe`, `snowed_in`, `trapper_hat` and `yeti_head`,
   `candy_cane_pickaxe` (a pickaxe), `candy_sword` and `icicle_blade` (swords), and `jingle_bell_mace` (a mace).
 
-Each fits every Material of its Kind. The two test skins are Dyeable Hats. After that
+Each fits every Material of its Kind. The two test skins are Dyeable Hats, and so are the MCC hats with
+Tint faces: `cat_ears`, `cowboy_hat`, `fishing_hat`, `flight_helmet`, `headphones_gaming`, `knight_helmet`,
+`mobster_hat`, `pirate_hat`, `plunderers_bandana`, `safari_hat`, `shades_cool`, `spartan`, `sun_hat_bow`,
+`sun_visor`, `traffic_cone_roadworks`, `trucker_hat` and `witch_hat`. Their Tint faces are painted near
+white, so each has a starting `color`, taken from its name's gradient (the traffic cone's is orange). After that
 first start the folder is yours: delete a skin's folder and it stays gone. The Skin Token's own model and texture ship in the jar and go into the pack on their own.
 
-The mod also ships two Skin Boxes, the jar's `lootboxes/origins.json5` (every MCC hat) and
+The mod also ships two Skin Boxes, the jar's `lootboxes/classic.json5` (the Classic Hats Box, every MCC hat) and
 `lootboxes/winter.json5` (every Winter Wonderland skin), and puts them in `config/metacraft-skins/boxes/`
 the first time the server starts without that folder. After that the folder is yours too: a deleted box stays deleted.
 
@@ -131,7 +136,7 @@ Drop the export in as it is, then run `/itemskins reload`. The mod cleans it up 
 | `gradient` | optional: `{ colors: ["#RRGGBB", ...], mirror: true }` colours the name, below; `mirror` is optional |
 | `kind` | required: `sword`, `axe`, `pickaxe`, `shovel`, `hoe`, `mace`, `spear`, `helmet`, `chestplate`, `leggings`, `boots` or `elytra` |
 | `materials` | optional: a list of one or more of the Kind's Materials, below; leave it out to fit every Material |
-| `look` | required: `{ model: "<file>.json" }`, except a spear, which takes `{ icon: "<file>.json", in_hand: "<file>.json" }`. A helmet may add `dyeable: true` to be a Dyeable Hat, below (`false` is the same as leaving it out) |
+| `look` | required: `{ model: "<file>.json" }`, except a spear, which takes `{ icon: "<file>.json", in_hand: "<file>.json" }`. A helmet may add `dyeable: true` to be a Dyeable Hat, below (`false` is the same as leaving it out), and a Dyeable Hat may add `color: "#RRGGBB"`, its colour until it's dyed |
 | `description` | optional, one line |
 | `released` | optional: the date the skin came out, written `"2026/10/31"` (year/month/day) |
 | `obtainable` | optional: `true` (the default) or `false`, whether players can still get the skin |
@@ -215,7 +220,10 @@ The item's own name (an anvil rename too) and its enchantment glint are never to
 that should take the colour (the felt of a hat, say, but not its band), then set
 `look: { model: "cowboy_hat.json", dyeable: true }`. There is nothing else to paint:
 
-- undyed, the hat shows its natural colours, exactly as exported;
+- undyed, the hat shows its natural colours, exactly as exported. With a `color`
+  (`look: { model: "cowboy_hat.json", dyeable: true, color: "#8B5A2B" }`) its Tinted Parts are that colour
+  instead, everywhere it's shown (tokens and menus too): use it for Tint faces painted white or grey, made
+  to be coloured. `color` without `dyeable: true`, or one not written `"#RRGGBB"`, rejects the skin;
 - dyed, its Tinted Parts take the helmet's colour wherever the hat is drawn (inventories, hands, the
   ground, frames, the wearer's head), and every other face keeps its painted colours;
 - players dye it as they dye leather armour, on any helmet the skin fits (leather, chainmail, copper,
@@ -233,13 +241,23 @@ washing, the mod adds the seven other vanilla helmets to `#minecraft:cauldron_ca
 so another mod's helmets keep their own cauldron behaviour). A modded helmet carrying a Dyeable Hat with
 no `materials` dyes, but washes only if its own mod adds it to that tag.
 
+**Saved tints.** A Dyeable Hat's colour is saved on the Owner's skin, its **tint**, so it isn't lost
+when the hat comes off: applied again, to any helmet, the hat comes back in it. The server saves the
+colour of an Owner's hat that's on an item with them whenever it tidies their items (as the Skin Menu
+opens), before every apply, and every tick for the helmet they wear. A washed (or never dyed) hat saves
+no tint. In the Skin Menu, an owned Dyeable Hat shows in its tint, and its Apply screen has **Clear
+tint** (a water bucket, showing the tint), which puts the hat back in its starting colour: its natural
+colours or its `color`, on its item too. Clear tint is refused while the hat is on an item that isn't
+with its Owner (lent out, in a chest), which would keep the colour; bring it back first. Extracting or
+revoking a skin forgets its tint.
+
 A helmet other than leather keeps a colour only while it carries a Dyeable Hat. When the hat leaves it
 (removed, moved to another item, revoked, overwritten by a skin that isn't dyeable, or `dyeable` turned
 off), the colour goes with it, when the server tidies the Owner's items (see
-[How items behave](#how-items-behave)); applying the hat again later shows its natural colours.
-Swapping one Dyeable Hat for another keeps the colour, and a leather helmet always keeps its dye, as in
-vanilla. Away, a dyed hat other than leather is drawn as a plain helmet, without its colour or its
-"Dyed" line.
+[How items behave](#how-items-behave)), and the hat's tint keeps it. Applying a Dyeable Hat puts its
+tint on the helmet, a leather one too; a hat with no tint takes the colour off any helmet but leather,
+which keeps its dye, as in vanilla. Away, a dyed hat other than leather is drawn as a plain helmet,
+without its colour or its "Dyed" line.
 
 The mod makes the dyed version itself. It writes a grey copy of every texture a Tint face uses, at
 `skins:item/<skin-id>/dyed/<name>` (an animated texture's `.mcmeta` goes along), shading each pixel
@@ -249,8 +267,10 @@ Tint faces use the grey copies, so a texture that tinted and untinted faces shar
 untinted ones. The item definition shows your model until the helmet has a colour, and the dyed model
 from then on. A Tint face is any face with a `"tintindex"` of 0 or more, in the model's own `elements`
 (Tint faces that are only in a `parent` don't count). Without `dyeable`, such faces keep their painted
-colours, and the reload warns about them. Tokens, the Claim screen and the Skin Menu show the natural
-colours, with "Dye the helmet to recolour it" under "Fits …".
+colours, and the reload warns about them. Tokens, the Claim screen and the Skin Menu show the starting
+colour (the natural colours, or the `color`), with "Dye the helmet to recolour it" under "Fits …"; the
+Owner's own hats in the Skin Menu show their saved tint. With a `color`, the item definition is always
+the dyed model, its tint defaulting to that colour.
 
 ## Perks
 
@@ -452,7 +472,7 @@ a box whose file is missing or fails to load is Dormant. Its items stay where th
 Skin Box: <id>" and can't be opened, and `givebox` refuses it; nothing is deleted. Fix the file (or put
 it back) and run `/itemskins reload`, and every copy comes back. A made-up id behaves the same.
 
-**The Origins and Winter Skin Boxes** ship with the mod. The Origins box sorts its hats into three
+**The Classic Hats Box and the Winter Skin Box** ship with the mod. The Classic Hats Box sorts its hats into three
 rarities, by weight: common 10, uncommon 5 (half as likely) and rare 2 (a fifth as likely). Every
 Winter skin has weight 1, all equally likely. They're put in `boxes/` the first time the server starts without that folder, and
 never again: a deleted box stays deleted. If you deleted some of its skins, those entries are left out with a warning.
@@ -507,8 +527,8 @@ packs never pushes a resource pack by surprise. `/itemskins reload`:
    [Writing a skin](#writing-a-skin)), a model that marks Tint faces on a skin that isn't dyeable gets a
    minor warning: "<model> marks Tint faces but the skin isn't dyeable; they keep their painted colours".
    Then one line for the boxes, "Skin Boxes: <n> loaded, <m> Dormant.", each Dormant box and why
-   ("origins is Dormant: <reason> (origins.json5)"), and each warning: a skin a box left out
-   ("origins: cat_ears is Dormant, left out"; "origins: cat_ears isn't a skin on this server,
+   ("classic is Dormant: <reason> (classic.json5)"), and each warning: a skin a box left out
+   ("classic: cat_ears is Dormant, left out"; "classic: cat_ears isn't a skin on this server,
    left out") and each file in `boxes/` that was ignored ("boxes/notes.txt isn't a .json5 file, ignored").
 
 The pack is built the same way every time, so the same skins give the same SHA-1. Only Looks are in
@@ -526,8 +546,8 @@ done). The pack is required exactly when the server's packs are (`PolymerResourc
 
 ## Settings
 
-`config/metacraft-skins.json5`. metacraft-config writes it on first start with both keys commented out
-(so the defaults, both on, apply); write a key with a value to change it. `/itemskins reload` re-reads it;
+`config/metacraft-skins.json5`. metacraft-config writes it on first start with every key commented out
+(so the defaults apply); write a key with a value to change it. `/itemskins reload` re-reads it;
 vanilla `/reload` doesn't.
 
 ```json5
@@ -535,9 +555,17 @@ vanilla `/reload` doesn't.
 	// Whether Perks that hit a target (on hit, on kill, when hurt) affect players too. Off: mobs only.
 	"perks-affect-players": true,
 	// Off turns every Perk off; Looks keep working.
-	"perks-enabled": true
+	"perks-enabled": true,
+	// The chance, in percent (0 to 100), that a zombie, husk, zombie villager, skeleton, stray, bogged, parched or creeper
+	// spawns wearing a Classic hat, at local difficulty 0. It falls in a straight line to none at local difficulty 6.75.
+	"mob-hat-chance": 0.2
 }
 ```
+
+`mob-hat-chance` can also be set in game, with `/itemskins spawnchance <percent>`: it takes at once for
+mobs spawning from then on, and is written to this file, so it stays after a restart. Writing the file
+this way rewrites the whole file from the settings in use. A `mob-hat-chance` outside 0 to 100 in the
+file is logged (by metacraft-lib) and the default, 0.2%, applies.
 
 **Quote the keys.** They contain `-`, which json5 doesn't allow in a bare key: `{ perks-enabled: false }`
 is a syntax error. The error is logged (by metacraft-lib) and the settings stay as they were.
@@ -555,10 +583,17 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
 | `/itemskins givebox <targets> <box> [count]` | `metacraft-skins:givebox` | gamemasters |
 | `/itemskins info <player>` | `metacraft-skins:info` | gamemasters |
 | `/itemskins grant <player> <skin>` | `metacraft-skins:grant` | admins |
+| `/itemskins grantall <player>` | `metacraft-skins:grant` | admins |
 | `/itemskins revoke <player> <skin>` | `metacraft-skins:revoke` | admins |
+| `/itemskins revokeall <player>` | `metacraft-skins:revoke` | admins |
+| `/itemskins <player>` | `metacraft-skins:view` | admins |
 | `/itemskins reload` | `metacraft-skins:reload` | admins |
+| `/itemskins spawnchance [percent]` | `metacraft-skins:spawnchance` | admins |
 
-- **`/itemskins`** opens the player's Skin Menu. Its **Extract** button, next to the book, turns a skin
+- **`/itemskins`** opens the player's Skin Menu. It lists skins by the Skin Box they come from, boxes in
+  id order (`classic`, then `winter`; a skin in two boxes goes with the first), then the skins in no box;
+  within each, by release date and name. A skin the player doesn't own is a light grey dye, "Not owned
+  yet", or a grey one, "Unobtainable", for an unobtainable skin. Its **Extract** button, next to the book, turns a skin
   the player owns back into its Skin Token: they pick one of their skins, then a confirm screen shows
   the token; nothing changes until they press Extract, and Cancel or Extract goes back to the Skin
   Menu. A skin on an item in this world, working or Away, says "Remove it from its item first" and
@@ -576,25 +611,41 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
   don't stack, so each takes a slot of its own; what doesn't fit drops at their feet. You get a
   confirmation; the players get no message. Only boxes that loaded tab-complete; an unknown id and a Dormant box are refused (the Dormant one with its
   reason). The item is `metacraft-skins:skin_box` with the box's id in its `metacraft-skins:box`
-  component, so `/give @s metacraft-skins:skin_box[metacraft-skins:box="origins"]` makes one too.
+  component, so `/give @s metacraft-skins:skin_box[metacraft-skins:box="classic"]` makes one too.
 - **`info`** shows what a player owns, with claim dates (UTC) and each skin's state: Applied, Unapplied,
   Applied in another world, or Dormant. It can't say which item carries a skin. A damaged file says so.
 - **`list`** run by a player opens **All Skins**: the Skin Menu, but with every skin on the server, owned
-  or not, each with its Look, release line, Perks and description. Dormant skins come last, as barriers
+  or not, each with its Look, release line, Perks and description, in the Skin Menu's order. Dormant skins come last, as barriers
   saying why they didn't load. Nothing in it can be clicked. Run from the console, `list` instead
   shows every skin folder in chat with its Kind and, for a Dormant skin, why it didn't load:
   `candy_sword (sword)`. A skin limited to Materials lists them after its Kind, in the order of the
   Materials table: `crown (helmet: leather, turtle)`. A Dyeable Hat says so last:
   `cowboy_hat (helmet: leather, dyeable)`, or `cowboy_hat (helmet, dyeable)` with no Materials.
   After the skins it lists every Skin Box file, sorted by id, with how many skins it lists and how
-  many it left out: `origins (22 skins)`, `origins (22 skins, 1 left out)`, or for a Dormant box
-  `origins Dormant: <reason>`.
+  many it left out: `classic (22 skins)`, `classic (22 skins, 1 left out)`, or for a Dormant box
+  `classic Dormant: <reason>`.
 - **`grant`** makes a player own a skin without a token. Refused if they already own it, or the skin is
   unknown or Dormant. An online player gets the claim message.
-- **`revoke`** takes a skin away, Dormant ones too. The item carrying it is plain for good, as in
+- **`grantall`** grants every skin that loaded and the player doesn't own yet, unobtainable ones too, in
+  one save. An online player gets one message with the count. A player who owns every skin already is
+  told so, and nothing changes.
+- **`revoke`** takes a skin away, Dormant ones too. Its skin suggestions are only the skins that player
+  owns: the name is looked up among online players, then in the ownership files (by the last name each
+  file saw), never online; a selector or a name neither knows suggests nothing. The item carrying it is plain for good, as in
   [How items behave](#how-items-behave): an online player's own items are tidied at once, and the item
   anywhere else is drawn plain. An online player is told "<Skin> was removed from your skins by an admin."
-- `info`, `grant` and `revoke` take offline players by name, looked up as `/whitelist` does: the server's
+- **`revokeall`** takes every skin a player owns away, Dormant ones too, in one save, as `revoke` does
+  for one: an online player's own items are tidied at once, and they get one message with the count.
+- **`/itemskins <player>`** opens that player's Skin Menu for you, as they'd see it, online or not:
+  their skins with Look, tint and whether they're applied, the rest as **???**, in the same order. It's
+  for looking at only: nothing can be clicked, there's no Extract button, and their items aren't tidied.
+  A player head where the book is says whose skins they are and how many they own. A subcommand's name
+  always wins, so a player named `list` can't be looked at this way.
+- **`spawnchance`** alone shows the Mob Hat chance: the percent a zombie, skeleton or creeper (and their kin)
+  spawning at local difficulty 0 wears a Classic hat. With a percent from 0 to 100
+  (`/itemskins spawnchance 0.5`), it sets it: mobs spawning from then on use it, with no reload or
+  restart, and it's saved as `mob-hat-chance` in [Settings](#settings). 0 turns Mob Hats off.
+- `info`, `grant`, `grantall`, `revoke`, `revokeall` and `/itemskins <player>` take offline players by name, looked up as `/whitelist` does: the server's
   user cache first, then (in online mode) Mojang.
 - There is no force-remove: only the Owner takes a skin off an item. Use `revoke` to take the skin away.
 
@@ -636,13 +687,15 @@ Owners keep the skin and can apply it to an item of the new Kind.
   "name": "Alice",
   "skins": {
     "candy_sword": { "claimed": "2026-10-24T10:00:00Z", "application": { "id": "…", "world": "…", "kind": "sword" } },
-    "crown": { "claimed": "2026-10-24T10:05:00Z" }
+    "crown": { "claimed": "2026-10-24T10:05:00Z", "tint": { "color": "#B02E26" } }
   }
 }
 ```
 
 - It's the only record of who owns what. The name is the last one seen, for display only; identity is the
-  UUID. An Unapplied skin has no `application` (older files' `"application": null` reads the same).
+  UUID. An Unapplied skin has no `application` (older files' `"application": null` reads the same). A
+  Dyeable Hat's saved tint is its `tint` (see **Saved tints** in [Writing a skin](#writing-a-skin)), with
+  `"animated": "<id>"` beside `color` for an animated moredyes colour.
 - **Saved at once** on every Claim, apply, remove, grant, revoke and Extract. A Claim saves first and only then
   uses up the token, so a failed save keeps the token. An Extract saves first and only then gives the
   token, so a failed save keeps the skin and gives nothing. A Roll never touches the ownership file: it

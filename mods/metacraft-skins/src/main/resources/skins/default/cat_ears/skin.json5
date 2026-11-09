@@ -4,5 +4,5 @@
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",
-	look: { model: "cat_ears.json" },
+	look: { model: "cat_ears.json", dyeable: true, color: "#3A3A3A" },
 }

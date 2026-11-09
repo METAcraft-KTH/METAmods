@@ -4,5 +4,5 @@
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",
-	look: { model: "shades_cool.json" },
+	look: { model: "shades_cool.json", dyeable: true, color: "#00BFFF" },
 }
