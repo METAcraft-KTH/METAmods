@@ -37,6 +37,7 @@ metacraft-booklet
 metacraft-kultur
 moredyes
 metacraft-qol
+metacraft-skins
 pirkko
 traders
 
