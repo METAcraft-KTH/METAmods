@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 /**
  * What ships in the jar: the skins, in groups ({@code skins/default/}: the starter set, the MCC hats
  * and two test hats; {@code skins/winter/}: Winter Wonderland), and the Skin Boxes ({@code lootboxes/}:
- * the Origins Skin Box, of the MCC hats, and the Winter Skin Box), each copied into its folder the first time a server starts without that
+ * the Classic Hats Box, of the MCC hats, and the Winter Skin Box), each copied into its folder the first time a server starts without that
  * folder. The groups only sort the jar: every skin lands right in the skins folder, so no two groups
  * may hold the same skin id. After that the folder is the admin's: a deleted shipped skin or box stays
  * deleted.

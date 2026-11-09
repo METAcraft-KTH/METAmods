@@ -13,7 +13,7 @@ item is **Away**, drawn plain. Each skin is on one item at a time: applying it e
 item plain again, wherever it is. An Owner who no longer wants a skin can **Extract** it
 (the Extract button in the Skin Menu), which turns it back into its Skin Token to trade or give away. A **Skin
 Box** is an item a player opens to **Roll** for a Skin Token, drawn by chance from the skins the box
-lists; the Origins and Winter Skin Boxes ship with the mod.
+lists; the Classic Hats Box and the Winter Skin Box ship with the mod.
 
 This README is the admin guide. Players get a short summary from the "How skins work" book in the Skin
 Menu.
@@ -80,7 +80,7 @@ skins folder, so a skin id may only be in one group:
 Each fits every Material of its Kind. The two test skins are Dyeable Hats. After that
 first start the folder is yours: delete a skin's folder and it stays gone. The Skin Token's own model and texture ship in the jar and go into the pack on their own.
 
-The mod also ships two Skin Boxes, the jar's `lootboxes/origins.json5` (every MCC hat) and
+The mod also ships two Skin Boxes, the jar's `lootboxes/classic.json5` (the Classic Hats Box, every MCC hat) and
 `lootboxes/winter.json5` (every Winter Wonderland skin), and puts them in `config/metacraft-skins/boxes/`
 the first time the server starts without that folder. After that the folder is yours too: a deleted box stays deleted.
 
@@ -452,7 +452,7 @@ a box whose file is missing or fails to load is Dormant. Its items stay where th
 Skin Box: <id>" and can't be opened, and `givebox` refuses it; nothing is deleted. Fix the file (or put
 it back) and run `/itemskins reload`, and every copy comes back. A made-up id behaves the same.
 
-**The Origins and Winter Skin Boxes** ship with the mod. The Origins box sorts its hats into three
+**The Classic Hats Box and the Winter Skin Box** ship with the mod. The Classic Hats Box sorts its hats into three
 rarities, by weight: common 10, uncommon 5 (half as likely) and rare 2 (a fifth as likely). Every
 Winter skin has weight 1, all equally likely. They're put in `boxes/` the first time the server starts without that folder, and
 never again: a deleted box stays deleted. If you deleted some of its skins, those entries are left out with a warning.
@@ -507,8 +507,8 @@ packs never pushes a resource pack by surprise. `/itemskins reload`:
    [Writing a skin](#writing-a-skin)), a model that marks Tint faces on a skin that isn't dyeable gets a
    minor warning: "<model> marks Tint faces but the skin isn't dyeable; they keep their painted colours".
    Then one line for the boxes, "Skin Boxes: <n> loaded, <m> Dormant.", each Dormant box and why
-   ("origins is Dormant: <reason> (origins.json5)"), and each warning: a skin a box left out
-   ("origins: cat_ears is Dormant, left out"; "origins: cat_ears isn't a skin on this server,
+   ("classic is Dormant: <reason> (classic.json5)"), and each warning: a skin a box left out
+   ("classic: cat_ears is Dormant, left out"; "classic: cat_ears isn't a skin on this server,
    left out") and each file in `boxes/` that was ignored ("boxes/notes.txt isn't a .json5 file, ignored").
 
 The pack is built the same way every time, so the same skins give the same SHA-1. Only Looks are in
@@ -576,7 +576,7 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
   don't stack, so each takes a slot of its own; what doesn't fit drops at their feet. You get a
   confirmation; the players get no message. Only boxes that loaded tab-complete; an unknown id and a Dormant box are refused (the Dormant one with its
   reason). The item is `metacraft-skins:skin_box` with the box's id in its `metacraft-skins:box`
-  component, so `/give @s metacraft-skins:skin_box[metacraft-skins:box="origins"]` makes one too.
+  component, so `/give @s metacraft-skins:skin_box[metacraft-skins:box="classic"]` makes one too.
 - **`info`** shows what a player owns, with claim dates (UTC) and each skin's state: Applied, Unapplied,
   Applied in another world, or Dormant. It can't say which item carries a skin. A damaged file says so.
 - **`list`** run by a player opens **All Skins**: the Skin Menu, but with every skin on the server, owned
@@ -587,8 +587,8 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
   Materials table: `crown (helmet: leather, turtle)`. A Dyeable Hat says so last:
   `cowboy_hat (helmet: leather, dyeable)`, or `cowboy_hat (helmet, dyeable)` with no Materials.
   After the skins it lists every Skin Box file, sorted by id, with how many skins it lists and how
-  many it left out: `origins (22 skins)`, `origins (22 skins, 1 left out)`, or for a Dormant box
-  `origins Dormant: <reason>`.
+  many it left out: `classic (22 skins)`, `classic (22 skins, 1 left out)`, or for a Dormant box
+  `classic Dormant: <reason>`.
 - **`grant`** makes a player own a skin without a token. Refused if they already own it, or the skin is
   unknown or Dormant. An online player gets the claim message.
 - **`revoke`** takes a skin away, Dormant ones too. The item carrying it is plain for good, as in

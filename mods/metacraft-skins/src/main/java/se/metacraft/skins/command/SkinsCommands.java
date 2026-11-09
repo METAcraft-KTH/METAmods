@@ -51,7 +51,7 @@ import java.util.stream.Collectors;
  *   <li>{@code list} ({@code metacraft-skins:list}, admins): for a player, opens "All Skins", the Skin Menu with every
  *       skin on the server; anywhere else (the console), every skin in chat, its Kind, any Materials it's limited to and whether
  *       it's a Dyeable Hat ({@code cowboy_hat (helmet: leather, dyeable)}), and why a Dormant one failed; then every Skin Box
- *       ({@code origins (22 skins, 1 left out)}), and why a Dormant one failed;</li>
+ *       ({@code classic (22 skins, 1 left out)}), and why a Dormant one failed;</li>
  *   <li>{@code reload} ({@code metacraft-skins:reload}, admins): re-read the skins, settings and Skin Boxes and rebuild the pack;
  *       a changed pack is pushed to everyone online, and a reload that took a Look away sends everyone online their items
  *       again. Vanilla {@code /reload} never touches skins;</li>
