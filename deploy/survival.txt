@@ -90,6 +90,10 @@ external unplugged_afk https://cdn.modrinth.com/data/VlR3taCz/versions/zxEWidsQ/
 external banhammer https://cdn.modrinth.com/data/Wpqg0ciI/versions/1BJyGiA7/banhammer-0.19.0%2B26.3.jar sha256:5048f6116d9e9c7bab6d9c039c90138b2fbfe6d9f77bf6dc89c59bf03653813d
 external invsee https://cdn.modrinth.com/data/javU3y9N/versions/FU0X6jCW/invsee-fabric-26.3-1.2.2.jar sha256:3ca7e405ecda4d6e3db47862de2e633dad656e18916f3616dd82453017ba96c1
 
+external async https://cdn.modrinth.com/data/vEC2jm6I/versions/gcduhoHv/async-fabric-0.2.5%2Balpha-26.3.jar sha256:684e4e80b3a077e453cee79695f65ed2222a5d14cacc3b99820c8df79734771b
+external tt20 https://cdn.modrinth.com/data/YS3ZignI/versions/4v41bQe4/tt20-0.8.5%2Bmc26.3-fabric.jar sha256:20a7baf3d125724c7dedded5210e8d38bbd3b68ac8cf7c3b61185c14b7194ddd
+external servercore https://cdn.modrinth.com/data/4WWQxlQP/versions/LCG1Bm84/servercore-fabric-1.5.20%2B26.3.jar sha256:62fba7c2c7915b73f68af9cfa3a616473dd58865dc5c213b46ddd678b1aa9065
+
 # Season 6 community picks (the "METAcraft Season 6 mods list" doc)
 external filament https://cdn.modrinth.com/data/yANxwqSX/versions/66G6ixmY/filament-1.8.5-hotfix.1%2B26.3.jar sha256:ab85427044d9c4036988fe652de364861ec445151d3ad9e03a1750f64a1cfea0
 # Planked Chests: a chest per wood type, a Filament datapack in its "as a mod" jar
