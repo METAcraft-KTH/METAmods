@@ -19,6 +19,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Dyeing a Dyeable Hat on any helmet but leather, in the crafting grid, as vanilla dyes leather
@@ -35,8 +36,10 @@ public final class DyeSkinnedItemRecipe extends CustomRecipe {
 	/** Do moredyes' colours dye too? Only with moredyes installed; otherwise only vanilla's dyes do. */
 	public static final boolean MOREDYES_COLOURS = FabricLoader.getInstance().isModLoaded("moredyes");
 
+	/** The dyes in use: moredyes' with moredyes installed, vanilla's otherwise. */
 	// MoreDyesCompat is only loaded (and moredyes' types only linked) when moredyes is installed.
-	private static final DyeSkinnedItemRecipe INSTANCE = new DyeSkinnedItemRecipe(MOREDYES_COLOURS ? MoreDyesCompat.INSTANCE : Dyes.VANILLA);
+	public static final Dyes DYES = MOREDYES_COLOURS ? MoreDyesCompat.INSTANCE : Dyes.VANILLA;
+	private static final DyeSkinnedItemRecipe INSTANCE = new DyeSkinnedItemRecipe(DYES);
 	public static final RecipeSerializer<DyeSkinnedItemRecipe> SERIALIZER = new RecipeSerializer<>(MapCodec.unit(INSTANCE), StreamCodec.unit(INSTANCE));
 
 	/**
@@ -67,6 +70,14 @@ public final class DyeSkinnedItemRecipe extends CustomRecipe {
 
 		/** Colours {@code helmet} (the result, a copy, with its old colour if it had one) with these dyes. */
 		void dye(ItemStack helmet, List<ItemStack> dyes);
+
+		/** The animated colour a dyed helmet is marked with, if this dye mod has such colours ({@link Tint}). */
+		default Optional<String> animated(ItemStack helmet) {
+			return Optional.empty();
+		}
+
+		/** Marks a dyed helmet with an animated colour, or (empty) takes the mark off. */
+		default void animated(ItemStack helmet, Optional<String> colour) {}
 	}
 
 	private final Dyes dyes;

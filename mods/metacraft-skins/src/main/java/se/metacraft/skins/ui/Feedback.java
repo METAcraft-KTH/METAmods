@@ -29,6 +29,19 @@ public final class Feedback {
 		sound(player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE);
 	}
 
+	/** An admin's grant of every skin: "✨ An admin gave you 12 skins! Open /itemskins to apply them." */
+	public static void grantedAll(ServerPlayer player, int count) {
+		tell(player, Component.literal("✨ An admin gave you " + count + " skin" + (count == 1 ? "" : "s") + "! Open /itemskins to apply "
+				+ (count == 1 ? "it" : "them") + ".").withStyle(ChatFormatting.GOLD));
+		sound(player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE);
+	}
+
+	/** An admin's revoke of every skin: "All 12 of your skins were removed by an admin." */
+	public static void revokedAllByAdmin(ServerPlayer player, int count) {
+		tell(player, Component.literal((count == 1 ? "Your only skin was" : "All " + count + " of your skins were") + " removed by an admin.")
+				.withStyle(ChatFormatting.YELLOW));
+	}
+
 	public static void revokedByAdmin(ServerPlayer player, String skinName) {
 		tell(player, Component.literal(skinName + " was removed from your skins by an admin.").withStyle(ChatFormatting.YELLOW));
 	}
@@ -41,6 +54,11 @@ public final class Feedback {
 
 	public static void removed(ServerPlayer player, String skinName) {
 		tell(player, Component.literal(skinName + " removed. The item it was on is plain again.").withStyle(ChatFormatting.YELLOW));
+	}
+
+	/** A Dyeable Hat's saved tint cleared: "<Skin>'s tint cleared. It's back in its starting colour." */
+	public static void tintCleared(ServerPlayer player, String skinName) {
+		tell(player, Component.literal(skinName + "'s tint cleared. It's back in its starting colour.").withStyle(ChatFormatting.YELLOW));
 	}
 
 	/** A confirm screen cancelled: "<action> cancelled. You keep <kept>." ("Claim", "the token"; "Extract", "the skin"). */
@@ -90,6 +108,7 @@ public final class Feedback {
 				case NOT_APPLIED -> skin + " is on no item.";
 				case STILL_APPLIED -> skin + " is on an item. Remove it from its item first, then extract it.";
 				case NO_TOKEN -> "That token isn't in your inventory any more.";
+				case ITEM_AWAY -> skin + " is on an item you don't have with you. Bring it back first; " + unchanged + ".";
 				case DAMAGED_FILE -> "Your skins file is damaged, so " + unchanged + ". Ask an admin to fix it.";
 				case SAVE_FAILED -> "Your skins couldn't be saved, so " + unchanged + ". Try again later.";
 				case DONE -> throw new IllegalArgumentException("not a refusal: " + result);
@@ -102,7 +121,7 @@ public final class Feedback {
 				case DORMANT_SKIN -> skin + " is Dormant: " + dormantReason.orElse("its definition didn't load") + ".";
 				case DAMAGED_FILE -> player + "'s skins file is damaged and is never overwritten; fix it first. /itemskins info " + player + " says what's wrong.";
 				case SAVE_FAILED -> "Couldn't save " + player + "'s skins file, so nothing changed. The server log says why.";
-				case DONE, NO_TOKEN, STILL_APPLIED -> throw new IllegalArgumentException("not an admin's refusal: " + result);
+				case DONE, NO_TOKEN, STILL_APPLIED, ITEM_AWAY -> throw new IllegalArgumentException("not an admin's refusal: " + result);
 			};
 		};
 	}

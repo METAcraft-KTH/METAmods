@@ -36,7 +36,7 @@ import java.util.stream.Stream;
  * <pre>{@code
  * { "uuid": "…", "name": "Alice",
  *   "skins": { "candy_sword": { "claimed": "2026-10-24T10:00:00Z", "application": { "id": "…", "world": "…", "kind": "sword" } },
- *              "crown": { "claimed": "…" } } }
+ *              "crown": { "claimed": "…", "tint": { "color": "#4F7942" } } } }
  * }</pre>
  * <ul>
  *   <li><b>The running server's copy wins.</b> A file is read once, the first time its player is
@@ -66,12 +66,21 @@ final class OwnershipStore {
 		).apply(instance, Application::new)));
 	}
 
-	/** An owned skin; Unapplied without an {@code application}. */
-	record Owned(Instant claimed, Optional<Application> application) {
+	/** An owned skin; Unapplied without an {@code application}. A Dyeable Hat's {@code tint} is the colour it comes back in when applied. */
+	record Owned(Instant claimed, Optional<Application> application, Optional<Tint> tint) {
 		static final Codec<Owned> CODEC = StrictCodec.of(RecordCodecBuilder.mapCodec(instance -> instance.group(
 				ExtraCodecs.INSTANT_ISO8601.fieldOf("claimed").forGetter(Owned::claimed),
-				Application.CODEC.optionalFieldOf("application").forGetter(Owned::application)
+				Application.CODEC.optionalFieldOf("application").forGetter(Owned::application),
+				Tint.CODEC.optionalFieldOf("tint").forGetter(Owned::tint)
 		).apply(instance, Owned::new)));
+
+		Owned withApplication(Optional<Application> next) {
+			return new Owned(claimed, next, tint);
+		}
+
+		Owned withTint(Optional<Tint> next) {
+			return new Owned(claimed, application, next);
+		}
 	}
 
 	/** A player's record; {@code skins} is sorted by id. */

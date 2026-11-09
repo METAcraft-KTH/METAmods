@@ -4,5 +4,5 @@
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",
-	look: { model: "trucker_hat.json" },
+	look: { model: "trucker_hat.json", dyeable: true, color: "#1565C0" },
 }

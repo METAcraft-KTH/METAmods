@@ -229,6 +229,21 @@ public final class SkinsPackTests {
 		helper.succeed();
 	}
 
+	/** A Dyeable Hat with a {@code color} is always its dyed model, in that colour until the helmet is dyed. */
+	@GameTest
+	public void aDyeableHatWithAColorStartsInIt(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().tintedHat("green_hat_test", "{ model: \"green_hat_test.json\", dyeable: true, color: \"#4F7942\" }");
+		ReloadReport report = fx.reload();
+		assertThat(report.loaded().equals(List.of("green_hat_test")) && report.warnings().isEmpty(), "the hat: " + report);
+		Map<String, byte[]> files = unzip(fx.pack().zip());
+		assertThat(json(files, "assets/skins/items/green_hat_test.json").equals(JsonParser.parseString("""
+				{ "model": { "type": "minecraft:model", "model": "skins:item/green_hat_test/dyed/green_hat_test",
+					"tints": [ { "type": "minecraft:dye", "default": %d } ] } }""".formatted(0xFF4F7942))),
+				"the item definition: " + text(files, "assets/skins/items/green_hat_test.json"));
+		assertThat(fx.skins.skin("green_hat_test").map(s -> s.dyeable()).orElse(false), "the hat isn't dyeable");
+		helper.succeed();
+	}
+
 	/**
 	 * Each grey copy maps a pixel's brightness around one light grey: 205 + (lum(pixel) − lum(average)) × 1.25,
 	 * clamped, with its alpha kept, where the average is of every visible pixel of all the hat's tinted

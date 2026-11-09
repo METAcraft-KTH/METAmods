@@ -110,7 +110,7 @@ public final class SkinFolder {
 		for (var slot : definition.look().models().entrySet()) {
 			modelIds.put(slot.getKey(), model(folder, id, kind, slot.getKey(), slot.getValue(), dyeable, definitionFile, files, modelIds, warnings));
 		}
-		files.put("assets/" + NAMESPACE + "/items/" + id + ".json", itemDefinition(kind, modelIds).getBytes(StandardCharsets.UTF_8));
+		files.put("assets/" + NAMESPACE + "/items/" + id + ".json", itemDefinition(kind, modelIds, definition.look().color()).getBytes(StandardCharsets.UTF_8));
 		return new Loaded(id, SkinName.plain(definition.name()), SkinName.styled(definition.name(), definition.gradient()), kind, definition.materials(), dyeable,
 				definition.description(), definition.release(), definition.perks(), files);
 	}
@@ -311,9 +311,10 @@ public final class SkinFolder {
 	/**
 	 * The item model definition at {@code assets/skins/items/<id>.json}. A spear's switches on display
 	 * context, as vanilla's does; a Dyeable Hat's on whether the helmet is dyed, the dyed model taking
-	 * the dye (vanilla's wolf armour works the same way).
+	 * the dye (vanilla's wolf armour works the same way). A Dyeable Hat with a {@code color} is always
+	 * the dyed model, in that colour until the helmet is dyed.
 	 */
-	private static String itemDefinition(Kind kind, Map<String, String> models) {
+	private static String itemDefinition(Kind kind, Map<String, String> models, Optional<Integer> color) {
 		var root = new com.google.gson.JsonObject();
 		if (kind.isSpear()) {
 			var select = new com.google.gson.JsonObject();
@@ -330,25 +331,32 @@ public final class SkinFolder {
 			select.add("fallback", plainModel(models.get("in_hand")));
 			root.add("model", select);
 			root.addProperty("swap_animation_scale", SPEAR_SWAP_ANIMATION_SCALE);
+		} else if (models.containsKey("dyed") && color.isPresent()) {
+			root.add("model", dyedModel(models.get("dyed"), 0xFF000000 | color.get()));
 		} else if (models.containsKey("dyed")) {
 			var condition = new com.google.gson.JsonObject();
 			condition.addProperty("type", "minecraft:condition");
 			condition.addProperty("property", "minecraft:has_component");
 			condition.addProperty("component", "minecraft:dyed_color");
 			condition.add("on_false", plainModel(models.get("model")));
-			var dyed = plainModel(models.get("dyed"));
-			var dye = new com.google.gson.JsonObject();
-			dye.addProperty("type", "minecraft:dye");
-			dye.addProperty("default", -1);   // never used: on_true is only drawn with a colour
-			JsonArray tints = new JsonArray();
-			tints.add(dye);
-			dyed.add("tints", tints);
-			condition.add("on_true", dyed);
+			condition.add("on_true", dyedModel(models.get("dyed"), -1));   // the default is never used: on_true is only drawn with a colour
 			root.add("model", condition);
 		} else {
 			root.add("model", plainModel(models.get("model")));
 		}
 		return GSON.toJson(root);
+	}
+
+	/** The dyed model, tinted with the helmet's dye, or {@code defaultArgb} while it has none. */
+	private static com.google.gson.JsonObject dyedModel(String model, int defaultArgb) {
+		var dyed = plainModel(model);
+		var dye = new com.google.gson.JsonObject();
+		dye.addProperty("type", "minecraft:dye");
+		dye.addProperty("default", defaultArgb);
+		JsonArray tints = new JsonArray();
+		tints.add(dye);
+		dyed.add("tints", tints);
+		return dyed;
 	}
 
 	private static com.google.gson.JsonObject plainModel(String model) {

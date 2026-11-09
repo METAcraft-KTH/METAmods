@@ -4,5 +4,5 @@
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",
-	look: { model: "fishing_hat.json" },
+	look: { model: "fishing_hat.json", dyeable: true, color: "#4F7942" },
 }

@@ -4,5 +4,5 @@
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",
-	look: { model: "plunderers_bandana.json" },
+	look: { model: "plunderers_bandana.json", dyeable: true, color: "#B22222" },
 }

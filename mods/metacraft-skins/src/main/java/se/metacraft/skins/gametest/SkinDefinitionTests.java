@@ -57,7 +57,9 @@ public final class SkinDefinitionTests {
 				Map.entry("polar_bear_hat", Kind.HELMET), Map.entry("reindeer_antlers", Kind.HELMET), Map.entry("santa_hat", Kind.HELMET),
 				Map.entry("snow_globe", Kind.HELMET), Map.entry("snowed_in", Kind.HELMET), Map.entry("trapper_hat", Kind.HELMET),
 				Map.entry("yeti_head", Kind.HELMET));
-		Set<String> dyeable = Set.of("testblockhat", "test_cap");
+		Set<String> dyeable = Set.of("testblockhat", "test_cap", "cat_ears", "cowboy_hat", "fishing_hat", "flight_helmet", "headphones_gaming",
+				"knight_helmet", "mobster_hat", "pirate_hat", "plunderers_bandana", "safari_hat", "shades_cool", "spartan", "sun_hat_bow", "sun_visor",
+				"traffic_cone_roadworks", "trucker_hat", "witch_hat");
 		Set<String> unobtainable = Set.of("testblockhat", "test_cap", "candy_cane_pickaxe", "candy_sword", "icicle_blade", "jingle_bell_mace", "christmas_tree_hat", "frozen_head",
 				"gift_box_head", "gingerbread_head", "hot_cocoa_mug", "lucia_crown", "nutcracker_shako", "penguin_hat", "polar_bear_hat", "reindeer_antlers",
 				"santa_hat", "snow_globe", "snowed_in", "trapper_hat", "yeti_head");
@@ -267,6 +269,16 @@ public final class SkinDefinitionTests {
 		assertRejected(report, "dyed_spear", "skin.json5", "\"dyeable\" is only for helmet skins (Dyeable Hats), not a spear");
 		assertRejected(report, "yes_hat", "skin.json5", "\"dyeable\" must be true or false");
 		assertThat(report.loaded().contains("off_hat"), "dyeable: false is the same as leaving it out, but: " + report);
+
+		// color: only on a Dyeable Hat, and only "#RRGGBB".
+		SkinFixtures colours = withHealthyNeighbour()
+				.tintedHat("plain_coloured", "{ model: \"plain_coloured.json\", color: \"#FF0000\" }")
+				.tintedHat("named_colour", "{ model: \"named_colour.json\", dyeable: true, color: \"red\" }")
+				.tintedHat("good_colour", "{ model: \"good_colour.json\", dyeable: true, color: \"#4f7942\" }");
+		ReloadReport coloured = colours.reload();
+		assertRejected(coloured, "plain_coloured", "skin.json5", "\"color\" is a Dyeable Hat's colour until it's dyed, so it needs \"dyeable\": true");
+		assertRejected(coloured, "named_colour", "skin.json5", "\"color\" must be a colour written \"#RRGGBB\"");
+		assertThat(coloured.loaded().contains("good_colour"), "a lower-case colour: " + coloured);
 		helper.succeed();
 	}
 

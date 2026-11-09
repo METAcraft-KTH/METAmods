@@ -3,6 +3,7 @@ package se.metacraft.skins.ui;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.SimpleGui;
 import se.metacraft.skins.ApplyResult;
+import se.metacraft.skins.BoxSummary;
 import se.metacraft.skins.Candidate;
 import se.metacraft.skins.Fit;
 import se.metacraft.skins.OwnedSkin;
@@ -14,14 +15,18 @@ import se.metacraft.skins.SkinFolder;
 import se.metacraft.skins.SkinMarker;
 import se.metacraft.skins.SkinSummary;
 import se.metacraft.skins.Skins;
+import se.metacraft.skins.Tint;
 import se.metacraft.skins.item.SkinToken;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.NameAndId;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.DyedItemColor;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -37,12 +42,13 @@ import java.util.Optional;
  * stays visible but locked on all of them.
  * <ul>
  *   <li><b>"Your Skins"</b> (6 rows): rows 1–5 every skin on the server that loaded, 45 a page, in
- *       {@link #ORDER}. The player's own are shown with their Look, glinting while applied; the
- *       rest are a light grey dye named "???" that does nothing when clicked. Row 6 holds the page
+ *       the menus' {@linkplain #order order} (by Skin Box). The player's own are shown with their Look,
+ *       glinting while applied; the rest are a dye named "???" that does nothing when clicked, light
+ *       grey ("Not owned yet") or, for an unobtainable skin, grey ("Unobtainable"). Row 6 holds the page
  *       arrows (only with more than one page), the "How skins work" book, which sums skins up in
  *       its tooltip, and the Extract button.</li>
- *   <li><b>"Apply: &lt;skin&gt;"</b> (4 rows), opened by clicking a skin: Back, a preview and, while
- *       the skin is applied, Remove along row 1; below, every item on the player the skin fits,
+ *   <li><b>"Apply: &lt;skin&gt;"</b> (4 rows), opened by clicking a skin: Back, a preview, Clear tint
+ *       for a Dyeable Hat with a saved tint and, while the skin is applied, Remove along row 1; below, every item on the player the skin fits,
  *       hotbar to offhand, 27 a page, each shown as their own inventory shows it and saying where it
  *       is and what clicking it does. With more
  *       than one page, arrows either side of the preview turn them. Clicking an item applies the
@@ -51,6 +57,8 @@ import java.util.Optional;
  *       skins, laid out and paged as in "Your Skins", with Back in row 6. Clicking a skin opens the
  *       {@link ExtractMenu} for it; a skin on an item says to remove it first and does nothing.
  *       The Extract screen's Cancel, and a finished Extract, come back to "Your Skins".</li>
+ *   <li><b>"&lt;Name&gt;'s Skins"</b> ({@code /itemskins <player>}, admins): another player's "Your Skins", to look
+ *       at only ({@link #openFor}).</li>
  *   <li><b>"All Skins"</b> ({@code /itemskins list}): "Your Skins", but with every skin's Look, owned
  *       or not, and nothing to click; Dormant skins come last, as barriers saying why.</li>
  * </ul>
@@ -64,9 +72,11 @@ public final class SkinMenu {
 	/** "Your Skins": row 6. "Extract: choose a skin" has its Back where the book is. */
 	static final int PREVIOUS_PAGE = 45, BOOK = 49, EXTRACT = 50, NEXT_PAGE = 53;
 	/** "Apply: <skin>": row 1, then the items from row 2 on. */
-	static final int BACK = 0, PREVIOUS_ITEMS = 3, PREVIEW = 4, NEXT_ITEMS = 5, REMOVE = 8, FIRST_ITEM = 9, MIDDLE = 22, ITEMS_PER_PAGE = 27;
+	static final int BACK = 0, PREVIOUS_ITEMS = 3, PREVIEW = 4, NEXT_ITEMS = 5, CLEAR_TINT = 7, REMOVE = 8, FIRST_ITEM = 9, MIDDLE = 22, ITEMS_PER_PAGE = 27;
 	/** How a refused Remove is worded. */
 	private static final Feedback.Audience REMOVING = new Feedback.Audience.Owner("remove", "nothing changed");
+	/** How a refused Clear tint is worded. */
+	private static final Feedback.Audience CLEARING = new Feedback.Audience.Owner("clear the tint of", "the tint stays");
 
 	/**
 	 * Opens "Your Skins" on its first page, once the player's own items are tidied ({@link Skins#tidy}):
@@ -77,27 +87,42 @@ public final class SkinMenu {
 		yourSkins(player, skins, 0);
 	}
 
-	/**
-	 * The one order the menus list skins in: by {@code released}, oldest first, then by name and id;
-	 * skins without a date last. A skin released later lands after every skin already shown, so
-	 * adding one never moves the others.
-	 */
-	static final Comparator<SkinSummary> ORDER = Comparator.comparing((SkinSummary s) -> s.release().flatMap(Release::released).orElse(LocalDate.MAX))
+	/** Within a box: by {@code released}, oldest first, then by name and id; skins without a date last. */
+	private static final Comparator<SkinSummary> BY_RELEASE = Comparator.comparing((SkinSummary s) -> s.release().flatMap(Release::released).orElse(LocalDate.MAX))
 			.thenComparing(SkinSummary::displayName).thenComparing(SkinSummary::id);
+
+	/**
+	 * The one order the menus list skins in: by the Skin Box they're in, boxes in id order (so the
+	 * Classic Hats Box's skins, then the Winter Skin Box's), a skin in two boxes going with the first;
+	 * then the skins in no box. Within each, {@link #BY_RELEASE}.
+	 */
+	static Comparator<SkinSummary> order(Skins skins) {
+		Map<String, Integer> box = new HashMap<>();
+		List<BoxSummary> boxes = skins.boxes();
+		for (int i = 0; i < boxes.size(); i++) {
+			for (BoxSummary.Entry entry : boxes.get(i).entries()) box.putIfAbsent(entry.skin(), i);
+		}
+		return Comparator.comparingInt((SkinSummary s) -> box.getOrDefault(s.id(), Integer.MAX_VALUE)).thenComparing(BY_RELEASE);
+	}
 
 	/** One loaded skin as "Your Skins" lists it, with the player's ownership of it if they own it. */
 	private record Listed(SkinSummary skin, Fit fit, Optional<OwnedSkin> owned) {
 		boolean applied() {
 			return owned.filter(o -> o.state() == OwnedSkin.State.APPLIED).isPresent();
 		}
+
+		/** A Dyeable Hat's saved tint. */
+		Optional<Tint> tint() {
+			return skin.dyeable() ? owned.flatMap(OwnedSkin::tint) : Optional.empty();
+		}
 	}
 
-	/** Every loaded skin in {@link #ORDER}; owned ones carry their ownership. A damaged file lists nothing. */
+	/** Every loaded skin in the menus' {@linkplain #order order}; owned ones carry their ownership. A damaged file lists nothing. */
 	private static List<Listed> listed(Skins skins, PlayerSkins owned) {
 		if (owned.damage().isPresent()) return List.of();
 		Map<String, OwnedSkin> byId = new HashMap<>();
 		for (OwnedSkin skin : owned.skins()) if (skin.state() != OwnedSkin.State.DORMANT) byId.put(skin.id(), skin);
-		return skins.allSkins().stream().filter(s -> !s.dormant() && s.fit().isPresent()).sorted(ORDER)
+		return skins.allSkins().stream().filter(s -> !s.dormant() && s.fit().isPresent()).sorted(order(skins))
 				.map(s -> new Listed(s, s.fit().get(), Optional.ofNullable(byId.get(s.id())))).toList();
 	}
 
@@ -113,7 +138,7 @@ public final class SkinMenu {
 		for (int i = 0; i < shown.size(); i++) {
 			Listed skin = shown.get(i);
 			if (skin.owned().isEmpty()) {
-				gui.setSlot(i, notOwned());
+				gui.setSlot(i, notOwned(skin.skin()));
 				continue;
 			}
 			gui.setSlot(i, icon(skin).addLoreLine(Component.literal("Click to apply or remove").withStyle(ChatFormatting.DARK_GRAY))
@@ -186,6 +211,45 @@ public final class SkinMenu {
 		ExtractMenu.open(player, skins, skinId, () -> yourSkins(player, skins, fromPage));
 	}
 
+	/**
+	 * Opens "&lt;Name&gt;'s Skins" for an admin ({@code /itemskins <player>}): another player's "Your Skins"
+	 * as they'd see it, online or not, to look at only. Their own skins show with their Look, tint
+	 * and whether they're applied, the rest as "???"; nothing can be clicked, there's no Extract
+	 * button, and their items aren't tidied. The book's place says whose skins they are and how many.
+	 */
+	public static void openFor(ServerPlayer viewer, Skins skins, NameAndId whose) {
+		othersSkins(viewer, skins, whose, 0);
+	}
+
+	private static void othersSkins(ServerPlayer viewer, Skins skins, NameAndId whose, int requestedPage) {
+		PlayerSkins owned = skins.ownedSkins(whose.id());
+		List<Listed> listed = listed(skins, owned);
+		int pages = Math.max(1, (listed.size() + PER_PAGE - 1) / PER_PAGE);
+		int page = Math.clamp(requestedPage, 0, pages - 1);
+
+		SimpleGui gui = locked(MenuType.GENERIC_9x6, viewer);
+		gui.setTitle(Component.literal(whose.name() + "'s Skins" + (pages > 1 ? " (" + (page + 1) + "/" + pages + ")" : "")));
+		List<Listed> shown = listed.subList(page * PER_PAGE, Math.min(listed.size(), (page + 1) * PER_PAGE));
+		for (int i = 0; i < shown.size(); i++) {
+			Listed skin = shown.get(i);
+			gui.setSlot(i, skin.owned().isEmpty() ? notOwned(skin.skin()) : icon(skin).build());
+		}
+		if (owned.damage().isPresent()) {
+			gui.setSlot(MIDDLE, new GuiElementBuilder(Items.BARRIER).setName(Component.literal(whose.name() + "'s skins can't be shown").withStyle(ChatFormatting.RED))
+					.addLoreLine(Component.literal("Their skins file is damaged: /itemskins info " + whose.name()).withStyle(ChatFormatting.GRAY)).build());
+		} else if (listed.isEmpty()) {
+			gui.setSlot(MIDDLE, new GuiElementBuilder(Items.PAPER).setName(Component.literal("There are no skins on this server yet")).build());
+		}
+		for (int i = PER_PAGE; i < PER_PAGE + 9; i++) gui.setSlot(i, filler());
+		if (page > 0) gui.setSlot(PREVIOUS_PAGE, arrow("Previous page", () -> othersSkins(viewer, skins, whose, page - 1)));
+		if (page < pages - 1) gui.setSlot(NEXT_PAGE, arrow("Next page", () -> othersSkins(viewer, skins, whose, page + 1)));
+		long ownedCount = listed.stream().filter(l -> l.owned().isPresent()).count();
+		gui.setSlot(BOOK, new GuiElementBuilder(Items.PLAYER_HEAD).setName(Component.literal(whose.name() + "'s skins"))
+				.addLoreLine(Component.literal("Owns " + ownedCount + " of " + listed.size() + " skins").withStyle(ChatFormatting.GRAY))
+				.addLoreLine(Component.literal("For looking at only").withStyle(ChatFormatting.DARK_GRAY)).build());
+		gui.open();
+	}
+
 	/** Opens "All Skins" on its first page: every skin on the server, owned or not. */
 	public static void openAll(ServerPlayer player, Skins skins) {
 		allSkins(player, skins, 0);
@@ -193,7 +257,7 @@ public final class SkinMenu {
 
 	private static void allSkins(ServerPlayer player, Skins skins, int requestedPage) {
 		List<SkinSummary> all = new ArrayList<>(skins.allSkins());
-		all.sort(Comparator.comparing((SkinSummary s) -> s.dormant() || s.kind().isEmpty()).thenComparing(ORDER));
+		all.sort(Comparator.comparing((SkinSummary s) -> s.dormant() || s.kind().isEmpty()).thenComparing(order(skins)));
 		int pages = Math.max(1, (all.size() + PER_PAGE - 1) / PER_PAGE);
 		int page = Math.clamp(requestedPage, 0, pages - 1);
 
@@ -220,10 +284,15 @@ public final class SkinMenu {
 				.addLoreLine(Component.literal("Your skins file is damaged. Ask an admin to fix it.").withStyle(ChatFormatting.GRAY)).build();
 	}
 
-	/** A skin the player doesn't own, in "Your Skins": a light grey dye named "???", giving nothing away. */
-	private static eu.pb4.sgui.api.elements.GuiElement notOwned() {
-		return new GuiElementBuilder(Items.DYE.lightGray()).setName(Component.literal("???").withStyle(ChatFormatting.BOLD))
-				.addLoreLine(Component.literal("Not owned yet").withStyle(ChatFormatting.GRAY)).hideDefaultTooltip().build();
+	/**
+	 * A skin the player doesn't own, in "Your Skins", named "???", giving nothing else away: a light
+	 * grey dye, "Not owned yet"; or, for an unobtainable one, a grey dye, "Unobtainable".
+	 */
+	private static eu.pb4.sgui.api.elements.GuiElement notOwned(SkinSummary skin) {
+		boolean obtainable = skin.release().map(Release::obtainable).orElse(true);
+		return new GuiElementBuilder(obtainable ? Items.DYE.lightGray() : Items.DYE.gray()).setName(Component.literal("???").withStyle(ChatFormatting.BOLD))
+				.addLoreLine(obtainable ? Component.literal("Not owned yet").withStyle(ChatFormatting.GRAY) : Component.literal("Unobtainable").withStyle(ChatFormatting.RED))
+				.hideDefaultTooltip().build();
 	}
 
 	/** A Dormant skin in "All Skins": it has no Look to show, so a barrier with its id and why it didn't load. */
@@ -265,6 +334,14 @@ public final class SkinMenu {
 		gui.setSlot(BACK, new GuiElementBuilder(Items.ARROW).setName(Component.literal("Back to your skins"))
 				.setCallback(() -> yourSkins(player, skins, fromPage)).build());
 		gui.setSlot(PREVIEW, icon(skin).build());
+		Optional<Tint> tint = skin.tint();
+		if (tint.isPresent()) {
+			gui.setSlot(CLEAR_TINT, new GuiElementBuilder(Items.WATER_BUCKET).setName(Component.literal("Clear tint"))
+					.addLoreLine(Component.literal("Tint: ").withStyle(ChatFormatting.GRAY).append(Component.literal(tint.get().hex())
+							.withStyle(s -> s.withColor(tint.get().rgb()))))
+					.addLoreLine(Component.literal("Puts " + name + " back in its starting colour").withStyle(ChatFormatting.GRAY))
+					.setCallback(() -> clearTint(player, skins, skinId, name, fromPage)).build());
+		}
 		if (skin.applied()) {
 			gui.setSlot(REMOVE, new GuiElementBuilder(Items.GRINDSTONE).setName(Component.literal("Remove " + name))
 					.addLoreLine(Component.literal("Takes it off its item, wherever that is").withStyle(ChatFormatting.GRAY))
@@ -318,6 +395,16 @@ public final class SkinMenu {
 		applyScreen(player, skins, skinId, fromPage, itemsPage);
 	}
 
+	private static void clearTint(ServerPlayer player, Skins skins, String skinId, String name, int fromPage) {
+		OwnershipChange result = skins.clearTint(player, skinId);
+		if (result == OwnershipChange.DONE) {
+			Feedback.tintCleared(player, name);
+		} else {
+			Feedback.failed(player, Feedback.whyNot(result, name, CLEARING));
+		}
+		applyScreen(player, skins, skinId, fromPage, 0);
+	}
+
 	private static void remove(ServerPlayer player, Skins skins, String skinId, String name, int fromPage) {
 		OwnershipChange result = skins.remove(player.nameAndId(), skinId);
 		if (result == OwnershipChange.DONE) {
@@ -356,9 +443,10 @@ public final class SkinMenu {
 		return lines;
 	}
 
-	/** An owned skin: its {@link #look}, then whether it's applied (glinting while it is). */
+	/** An owned skin: its {@link #look} (a Dyeable Hat in its saved tint), then whether it's applied (glinting while it is). */
 	private static GuiElementBuilder icon(Listed skin) {
 		GuiElementBuilder icon = look(skin.skin(), skin.fit());
+		skin.tint().ifPresent(tint -> icon.setComponent(DataComponents.DYED_COLOR, new DyedItemColor(tint.rgb())));
 		icon.addLoreLine(skin.applied() ? Component.literal("✔ Applied to an item").withStyle(ChatFormatting.GREEN)
 				: Component.literal("Unapplied").withStyle(ChatFormatting.GRAY));
 		return icon.glow(skin.applied());

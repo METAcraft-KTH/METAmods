@@ -25,8 +25,11 @@ import java.util.Set;
  * {@code LivingEntity.dropAllDeathLoot} call in here or check {@link #wearsHat}.
  */
 public final class MobHats {
-	/** The mobs that can spawn wearing a hat. Exact types: a husk, stray, bogged or zombie villager is a mob of its own. */
-	public static final Set<EntityType<?>> MOBS = Set.of(EntityTypes.ZOMBIE, EntityTypes.SKELETON, EntityTypes.CREEPER);
+	/** The mobs that can spawn wearing a hat. Exact types: a drowned or wither skeleton, say, is a mob of its own and isn't listed. */
+	public static final Set<EntityType<?>> MOBS = Set.of(
+			EntityTypes.ZOMBIE, EntityTypes.HUSK, EntityTypes.ZOMBIE_VILLAGER,
+			EntityTypes.SKELETON, EntityTypes.STRAY, EntityTypes.BOGGED, EntityTypes.PARCHED,
+			EntityTypes.CREEPER);
 	/** The Skin Box (its id, its file name) the hats come from: each of its hats as likely as the next, its weights ignored. */
 	public static final String HATS_FROM = "classic";
 	/** The Skin Box (its id) a hat-wearing mob drops when it dies. */
@@ -80,7 +83,7 @@ public final class MobHats {
 	 * baby too, unless the {@code mobDrops} game rule is off or the box is unknown or Dormant.
 	 */
 	public static void died(Skins skins, LivingEntity entity, ServerLevel level) {
-		if (!wearsHat(entity) || !level.getGameRules().get(GameRules.MOB_DROPS)) return;
+		if (!wearsHat(entity) || !Boolean.TRUE.equals(level.getGameRules().get(GameRules.MOB_DROPS))) return;
 		if (skins.box(DROPS).filter(box -> !box.dormant()).isEmpty()) return;
 		entity.spawnAtLocation(level, SkinBox.of(DROPS));
 	}

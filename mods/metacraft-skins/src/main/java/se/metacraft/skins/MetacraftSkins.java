@@ -71,10 +71,14 @@ public final class MetacraftSkins implements ModInitializer {
 			Skins current = skins;
 			if (current != null) current.seen(handler.player.nameAndId());
 		});
-		// Held and worn Perks follow what each player holds and wears, tick by tick.
+		// Held and worn Perks follow what each player holds and wears, tick by tick, and a worn Dyeable Hat's colour is saved as its tint.
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			Skins current = skins;
-			if (current != null) for (ServerPlayer player : server.getPlayerList().getPlayers()) current.updateLastingPerks(player);
+			if (current == null) return;
+			for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+				current.updateLastingPerks(player);
+				current.rememberWornTint(player);
+			}
 		});
 		// Event Perks: a melee hit (the killing blow too) and kill with the main-hand item, a block
 		// broken with it, and any damage to a wearer. Skins decides what fires, and for whom.

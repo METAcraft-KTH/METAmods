@@ -38,6 +38,8 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -59,7 +61,12 @@ import java.util.stream.Collectors;
  *       1 to 64 of them; what doesn't fit drops at the player's feet;</li>
  *   <li>{@code info <player>} ({@code metacraft-skins:info}, gamemasters): what a player owns, with claim dates and states;</li>
  *   <li>{@code grant <player> <skin>} and {@code revoke <player> <skin>} ({@code metacraft-skins:grant}/{@code revoke},
- *       admins): make a player own a skin without a token, or take it away. An online player is told;</li>
+ *       admins): make a player own a skin without a token, or take it away. An online player is told. {@code revoke}
+ *       suggests only the skins the player owns;</li>
+ *   <li>{@code grantall <player>} and {@code revokeall <player>} (the same nodes): every skin that loaded and the player
+ *       doesn't own, or every skin they own, in one go;</li>
+ *   <li>{@code <player>} ({@code metacraft-skins:view}, admins): opens that player's Skin Menu as they'd see it, to look
+ *       at only;</li>
  *   <li>{@code givebox <targets> <box> [count]} ({@code metacraft-skins:givebox}, gamemasters): Skin Boxes for online players,
  *       1 to 64 of them, as {@code give} hands out tokens; box ids tab-complete, loaded boxes only.</li>
  * </ul>
@@ -76,6 +83,8 @@ public final class SkinsCommands {
 	private static final SimpleCommandExceptionType NO_MENU =
 			new SimpleCommandExceptionType(Component.literal("You don't have permission to use the Skin Menu"));
 	private static final Predicate<CommandSourceStack> MENU = PermissionPredicates.require(MetacraftSkins.getID("menu"), PermissionLevel.ALL);
+	private static final Predicate<CommandSourceStack> GRANT = PermissionPredicates.require(MetacraftSkins.getID("grant"), PermissionLevel.ADMINS);
+	private static final Predicate<CommandSourceStack> REVOKE = PermissionPredicates.require(MetacraftSkins.getID("revoke"), PermissionLevel.ADMINS);
 	private static final DateTimeFormatter CLAIM_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'").withZone(ZoneOffset.UTC);
 
 	public static void init(Supplier<Skins> skins) {
@@ -96,14 +105,24 @@ public final class SkinsCommands {
 						.then(Commands.literal("info").requires(PermissionPredicates.require(MetacraftSkins.getID("info"), PermissionLevel.GAMEMASTERS))
 								.then(Commands.argument("player", GameProfileArgument.gameProfile())
 										.executes(ctx -> info(ctx, get(skins)))))
-						.then(Commands.literal("grant").requires(PermissionPredicates.require(MetacraftSkins.getID("grant"), PermissionLevel.ADMINS))
+						.then(Commands.literal("grant").requires(GRANT)
 								.then(Commands.argument("player", GameProfileArgument.gameProfile())
 										.then(Commands.argument("skin", StringArgumentType.word()).suggests(skinIds(skins, false))
 												.executes(ctx -> grant(ctx, get(skins))))))
-						.then(Commands.literal("revoke").requires(PermissionPredicates.require(MetacraftSkins.getID("revoke"), PermissionLevel.ADMINS))
+						.then(Commands.literal("revoke").requires(REVOKE)
 								.then(Commands.argument("player", GameProfileArgument.gameProfile())
-										.then(Commands.argument("skin", StringArgumentType.word()).suggests(skinIds(skins, true))
+										.then(Commands.argument("skin", StringArgumentType.word()).suggests(ownedSkinIds(skins))
 												.executes(ctx -> revoke(ctx, get(skins))))))
+						.then(Commands.literal("grantall").requires(GRANT)
+								.then(Commands.argument("player", GameProfileArgument.gameProfile())
+										.executes(ctx -> grantAll(ctx, get(skins)))))
+						.then(Commands.literal("revokeall").requires(REVOKE)
+								.then(Commands.argument("player", GameProfileArgument.gameProfile())
+										.executes(ctx -> revokeAll(ctx, get(skins)))))
+						// Another player's Skin Menu. A subcommand's name always wins over a player of that name.
+						.then(Commands.argument("player", GameProfileArgument.gameProfile())
+								.requires(PermissionPredicates.require(MetacraftSkins.getID("view"), PermissionLevel.ADMINS))
+								.executes(ctx -> view(ctx, get(skins))))
 							.then(Commands.literal("givebox").requires(PermissionPredicates.require(MetacraftSkins.getID("givebox"), PermissionLevel.GAMEMASTERS))
 									.then(Commands.argument("targets", EntityArgument.players())
 											.then(Commands.argument("box", StringArgumentType.word()).suggests(boxIds(skins))
@@ -118,6 +137,23 @@ public final class SkinsCommands {
 			Skins current = skins.get();
 			if (current == null) return builder.buildFuture();
 			return SharedSuggestionProvider.suggest(current.allSkins().stream().filter(s -> dormantToo || !s.dormant()).map(SkinSummary::id), builder);
+		};
+	}
+
+	/**
+	 * The ids of the skins the player named in the {@code player} argument owns, Dormant ones too.
+	 * The name is looked up among online players, then in the ownership files, never online; a
+	 * selector or a name neither knows suggests nothing.
+	 */
+	private static SuggestionProvider<CommandSourceStack> ownedSkinIds(Supplier<Skins> skins) {
+		return (ctx, builder) -> {
+			Skins current = skins.get();
+			if (current == null) return builder.buildFuture();
+			String name = ctx.getNodes().stream().filter(n -> n.getNode().getName().equals("player")).findFirst()
+					.map(n -> n.getRange().get(ctx.getInput())).orElse("");
+			ServerPlayer online = ctx.getSource().getServer().getPlayerList().getPlayerByName(name);
+			Optional<UUID> player = online != null ? Optional.of(online.getUUID()) : current.ownerNamed(name);
+			return SharedSuggestionProvider.suggest(player.stream().flatMap(id -> current.ownedSkins(id).skins().stream()).map(OwnedSkin::id), builder);
 		};
 	}
 
@@ -269,6 +305,52 @@ public final class SkinsCommands {
 		ctx.getSource().sendSuccess(() -> Component.literal("Revoked " + name + " (" + id + ") from " + player.name()
 				+ (online == null ? " (offline). The item it was on is drawn plain wherever it is."
 						: ". Their own items were tidied, and the item anywhere else is drawn plain.")), true);
+		return 1;
+	}
+
+	private static int grantAll(CommandContext<CommandSourceStack> ctx, Skins skins) throws CommandSyntaxException {
+		NameAndId player = onePlayer(ctx);
+		Skins.AllChanged result = skins.grantAll(player);
+		if (result.result() != OwnershipChange.DONE) return refused(ctx, skins, player, "every skin", result.result());
+		int count = result.skins().size();
+		if (count == 0) {
+			ctx.getSource().sendFailure(Component.literal(player.name() + " already owns every skin."));
+			return 0;
+		}
+		ServerPlayer online = ctx.getSource().getServer().getPlayerList().getPlayer(player.id());
+		if (online != null) {
+			Feedback.grantedAll(online, count);
+			SkinToken.resend(online);   // their tokens now say they're owned
+		}
+		ctx.getSource().sendSuccess(() -> Component.literal("Granted " + count + " skin" + (count == 1 ? "" : "s") + " to " + player.name()
+				+ (online == null ? " (offline)" : "") + ": they own every skin now."), true);
+		return count;
+	}
+
+	private static int revokeAll(CommandContext<CommandSourceStack> ctx, Skins skins) throws CommandSyntaxException {
+		NameAndId player = onePlayer(ctx);
+		Skins.AllChanged result = skins.revokeAll(player);
+		if (result.result() != OwnershipChange.DONE) return refused(ctx, skins, player, "every skin", result.result());
+		int count = result.skins().size();
+		if (count == 0) {
+			ctx.getSource().sendFailure(Component.literal(player.name() + " owns no skins."));
+			return 0;
+		}
+		ServerPlayer online = ctx.getSource().getServer().getPlayerList().getPlayer(player.id());
+		if (online != null) {
+			skins.tidy(online);   // the items they were on, if they have them
+			Feedback.revokedAllByAdmin(online, count);
+			SkinToken.resend(online);
+		}
+		ctx.getSource().sendSuccess(() -> Component.literal((count == 1 ? "Revoked " + player.name() + "'s only skin" : "Revoked all " + count + " of " + player.name() + "'s skins")
+				+ (online == null ? " (offline). The items they were on are drawn plain wherever they are."
+						: ". Their own items were tidied, and the items anywhere else are drawn plain.")), true);
+		return count;
+	}
+
+	private static int view(CommandContext<CommandSourceStack> ctx, Skins skins) throws CommandSyntaxException {
+		ServerPlayer viewer = ctx.getSource().getPlayerOrException();
+		SkinMenu.openFor(viewer, skins, onePlayer(ctx));
 		return 1;
 	}
 
