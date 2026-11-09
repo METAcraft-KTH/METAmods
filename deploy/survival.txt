@@ -46,7 +46,7 @@ external leukocyte-plus https://github.com/METAcraft-KTH/LeukocytePlus/releases/
 
 #edvin forks
 external danse https://github.com/Froosty11/danse/releases/download/v2.6.0-metacraft.9/danse-2.6.0-metacraft.9%2B26.3.jar sha256:919f6c1449d8cf80ea3b9b38b596baae670a2d5f58e214623efcffa4a8cfa2f2
-external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3-rc-1.metacraft.1/polydecorations-0.13.1%2B26.3-rc-1.metacraft.1.jar sha256:88dbe74460314a473e375a4fff4a73bc61042c91cc896fb3b8d6e589f3c1e311
+external polydecorations https://github.com/Froosty11/PolyDecorations/releases/download/v0.13.1%2B26.3.metacraft.2/polydecorations-0.13.1+26.3.metacraft.2.jar sha256:d05cf8c798f931ae15d1909fbb6ff719489eb376adf17ba56b038f67106ed317
 
 #METAcraft forks
 external confnportal https://github.com/METAcraft-KTH/Configurable-Nether-Portals-Mod/releases/download/1.1.1-26.3/confnportal-1.1.1.jar sha256:4faf4835523092454ee1b4f86b14eeca1e18e0c99e579b8a1b39a0f06006cb36
