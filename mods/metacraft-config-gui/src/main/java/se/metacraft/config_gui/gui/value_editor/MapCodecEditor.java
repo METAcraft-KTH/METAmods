@@ -64,9 +64,10 @@ public record MapCodecEditor<T>(
 		MapCodecEditor<T> toReturn = this;
 		List<String> errors = new ArrayList<>();
 		for (var key : types.keySet()) {
-			if (tag.contains(CodecDialog.encodeInputKey(key))) {
+			String nbtKey = CodecDialog.encodeInputKey(key);
+			if (tag.contains(nbtKey)) {
 				var type = types.get(key);
-				var result = type.parse(player.registryAccess(), tag.get(CodecDialog.encodeInputKey(key))).ifError(
+				var result = type.parse(player.registryAccess(), tag.get(nbtKey)).ifError(
 					err -> errors.add(err.message())
 				).resultOrPartial();
 				if (result.isPresent()) {
