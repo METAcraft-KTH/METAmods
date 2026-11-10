@@ -679,6 +679,22 @@ public class CodecDialog {
 		}
 	}
 
+	private static final String PREFIX = "__CHAR_BEGIN__";
+	private static final String SUFFIX = "__CHAR_END__";
+
+	public static String encodeInputKey(String key) {
+		StringBuilder result = new StringBuilder();
+		for (int i = 0; i < key.length(); i++) {
+			char c = key.charAt(i);
+			if (!Character.isLetterOrDigit(c) && c != '_') {
+				result.append(PREFIX).append((int) c).append(SUFFIX);
+			} else {
+				result.append(c);
+			}
+		}
+		return result.toString();
+	}
+
 	public static void addInput(
 		String key, Component label, Type type, Object value,
 		HolderLookup.Provider registries,
@@ -716,7 +732,7 @@ public class CodecDialog {
 						type.element().nestedMetadata(MetadataKey.REMAINDER).orElse(null),
 						value, registries, preferences
 					).ifPresentOrElse(input -> {
-						inputs.add(new Input(key, input));
+						inputs.add(new Input(encodeInputKey(key), input));
 						addBodyComment(label, tooltip, body);
 					}, () -> {
 						buttons.add(submenu(key, registries, label, tooltip));
