@@ -97,7 +97,7 @@ public record ListEditor<T>(
 
 		for (int i = 0; i < list.size(); i++) {
 			var entry = list.get(i);
-			var name = Component.literal(entry.toString());
+			var name = CodecDialog.getGUIFriendlyName(entry, type, player.registryAccess());
 			buttons.add(
 				new ActionButton(
 					new CommonButtonData(

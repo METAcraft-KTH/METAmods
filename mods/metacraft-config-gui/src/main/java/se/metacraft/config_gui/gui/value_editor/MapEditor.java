@@ -199,8 +199,10 @@ public record MapEditor<T>(
 		map.entrySet().stream().sorted(
 			Comparator.comparing(e -> e.getKey().toString())
 		).forEach(entry -> {
-			var keyName = Component.literal(entry.getKey().toString());
-			var valueName = Component.literal(entry.getValue().toString());
+			var keyName = CodecDialog.getGUIFriendlyName(entry.getKey(), keyType, player.registryAccess());
+			var valueName = CodecDialog.getGUIFriendlyName(
+				entry.getValue(), valueTypeGetter.apply(entry.getKey()), player.registryAccess()
+			);
 
 			var encodedKey = forceEncode(
 				keyType.element().codec(),

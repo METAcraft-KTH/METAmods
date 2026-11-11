@@ -7,6 +7,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -52,6 +53,7 @@ import se.metacraft.config_gui.mixin.IntegerPropertyAccessor;
 import se.metacraft.config_gui.util.EditorGUIPreferences;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -339,19 +341,6 @@ public class CodecDialog {
 				).apply(instance, Sub::new)
 			);
 		}
-	}
-
-	public static Component getGUIFriendlyName(Object object) {
-		if (object instanceof Holder.Reference<?> holder) {
-			return Component.literal(holder.key().identifier().toString());
-		}
-		if (object instanceof Holder.Direct<?> direct) {
-			return Component.literal(direct.value().toString());
-		}
-		if (object == null) {
-			return Component.translatable("item.minecraft.bundle.empty");
-		}
-		return Component.literal(Objects.toString(object));
 	}
 
 	public static void test(ServerPlayer sp) {
@@ -719,7 +708,7 @@ public class CodecDialog {
 					buttons.add(submenu(key, registries, label.copy().append(": " + selectedValueName), tooltip));
 					addBodyCommentIfClickable(label, tooltip, body);
 				} else if (type.optional()) {
-					buttons.add(submenu(key, registries, label.copy().append(": ").append(CodecDialog.getGUIFriendlyName(value)), tooltip));
+					buttons.add(submenu(key, registries, label.copy().append(": ").append(CodecDialog.getGUIFriendlyName(value, type, registries)), tooltip));
 					addBodyCommentIfClickable(label, tooltip, body);
 				} else if (type.element().nestedMetadata(MetadataKey.CONTAINER).isPresent()) {
 					buttons.add(submenu(key, registries, label, tooltip));
@@ -746,6 +735,78 @@ public class CodecDialog {
 	private static final ObjectInfo ACCESSIBILITY_ICON = new AtlasSprite(
 		Identifier.parse("gui"), Identifier.parse("icon/accessibility")
 	);
+
+	private static final Map<Class<?>, Map<CachedMethodOverride, Boolean>> CACHED_METHOD_OVERRIDES = new ConcurrentHashMap<>();
+	private record CachedMethodOverride(Class<?> superClass, String name, Class<?>[] args) {}
+
+	private static boolean checkHasMethodOverride(
+		Class<?> targetClass, CachedMethodOverride override
+	) {
+		if (targetClass == null) return false;
+		if (targetClass == override.superClass) return false;
+		try {
+			var method = targetClass.getDeclaredMethod(override.name, override.args);
+			return method.getDeclaringClass() != override.superClass;
+		} catch (NoSuchMethodException e) {
+			return hasMethodOverride(targetClass.getSuperclass(), override) ||
+				Arrays.stream(targetClass.getInterfaces()).anyMatch(iface -> hasMethodOverride(iface, override));
+		}
+	}
+
+	private static boolean hasMethodOverride(
+		Class<?> targetClass, CachedMethodOverride override
+	) {
+		if (CACHED_METHOD_OVERRIDES.containsKey(targetClass) && CACHED_METHOD_OVERRIDES.get(targetClass).containsKey(override)) {
+			return CACHED_METHOD_OVERRIDES.get(targetClass).get(override);
+		}
+		var result = checkHasMethodOverride(targetClass, override);
+		CACHED_METHOD_OVERRIDES.computeIfAbsent(targetClass, k -> new ConcurrentHashMap<>()).put(override, result);
+		return result;
+	}
+
+	private static boolean hasMethodOverride(
+		Class<?> targetClass, Class<?> superClass, String name, Class<?>... args
+	) {
+		return hasMethodOverride(targetClass, new CachedMethodOverride(superClass, name, args));
+	}
+
+	private static final Map<Object, Identifier> KNOWN_IDENTIFIERS = new WeakHashMap<>();
+
+	static {
+		BuiltInRegistries.REGISTRY.forEach(registry -> {
+			for (var value : registry.entrySet()) {
+				KNOWN_IDENTIFIERS.put(value.getValue(), value.getKey().identifier());
+			}
+		});
+	}
+
+	public static Component getGUIFriendlyName(Object object, Type type, HolderLookup.Provider lookup) {
+		if (object instanceof Holder.Reference<?> holder) {
+			return Component.literal(holder.key().identifier().toString());
+		}
+
+		if (object instanceof Holder.Direct<?> direct) {
+			object = direct.value();
+		}
+
+		if (KNOWN_IDENTIFIERS.containsKey(object)) {
+			return Component.literal(KNOWN_IDENTIFIERS.get(object).toString());
+		}
+
+		if (object == null) {
+			return Component.translatable("item.minecraft.bundle.empty");
+		}
+
+		if (!object.getClass().isRecord() && hasMethodOverride(object.getClass(), Object.class, "toString")) {
+			return Component.literal(object.toString());
+		} else {
+			var nbt = type.encode(lookup.createSerializationContext(NbtOps.INSTANCE), object).resultOrPartial();
+			var o = object;
+			return nbt.map(NbtUtils::toPrettyComponent).orElseGet(
+				() -> Component.literal(o.toString())
+			);
+		}
+	}
 
 	public static <T> Holder<Dialog> createDialog(
 		Map<String, Object> object,
