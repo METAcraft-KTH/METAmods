@@ -1,0 +1,32 @@
+{
+	"schemaVersion": 1,
+	"id": "trample-rules",
+	"version": "${version}",
+	"name": "Trample Rules",
+	"description": "Adds gamerules that control whether players and mobs trample farmland.",
+	"authors": [
+		"METAcraft"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/trample_rules/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.metacraft.trample_rules.TrampleRules"
+		]
+	},
+	"mixins": [
+		"trample-rules.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"fabric-api": "*"
+	}
+}
