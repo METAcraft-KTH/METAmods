@@ -1,6 +1,5 @@
 {
-	name: "&lPeeled Banana Hat",
-	gradient: { colors: ["#FFE135", "#FFF8C6"], mirror: true },
+	name: "&a&lPeeled Banana Hat",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

@@ -1,6 +1,5 @@
 {
-	name: "&lLeaf Crown",
-	gradient: { colors: ["#2E7D32", "#9CCC65"], mirror: true },
+	name: "&f&lLeaf Crown",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

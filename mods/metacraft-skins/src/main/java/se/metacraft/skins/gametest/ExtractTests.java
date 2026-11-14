@@ -90,12 +90,14 @@ public final class ExtractTests {
 
 	/** Every refusal changes nothing: the skin stays owned (as it was), and no token is given. */
 	@GameTest
-	public void anAppliedDormantOrUnownedSkinIsRefused(GameTestHelper helper) {
-		SkinFixtures fx = SkinFixtures.create().skin("crown_test", "helmet").skin("broken", "sword").skin("free", "sword");
+	public void anAppliedDormantUnownedOrUnextractableSkinIsRefused(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().skin("crown_test", "helmet").skin("broken", "sword").skin("free", "sword").skin("kept", "sword")
+				.file("kept", "skin.json5", "{ name: \"Kept\", kind: \"sword\", extractable: false, look: { model: \"kept.json\" } }");
 		fx.reload();
 		ServerPlayer player = ApplyTests.carrying(helper, new ItemStack(Items.IRON_HELMET));
 		fx.skins.grant(player.nameAndId(), "crown_test");
 		fx.skins.grant(player.nameAndId(), "broken");
+		fx.skins.grant(player.nameAndId(), "kept");
 		assertThat(fx.skins.apply(player, "crown_test", ItemLocation.hotbar(0)).applied(), "the apply was refused");
 		fx.file("broken", "skin.json5", "{ name: \"Broken\", kind: \"nope\" }");
 		fx.reload();
@@ -107,10 +109,13 @@ public final class ExtractTests {
 		assertThat(fx.skins.ownedSkins(player.getUUID()).skins().stream().anyMatch(s -> s.id().equals("crown_test") && s.state() == OwnedSkin.State.APPLIED),
 				"a refused extract unapplied it: " + fx.skins.ownedSkins(player.getUUID()));
 		assertRefused(fx, player, "broken", OwnershipChange.DORMANT_SKIN);
+		assertRefused(fx, player, "kept", OwnershipChange.NOT_EXTRACTABLE);
+		assertThat(ExtractMenu.whyNot(OwnershipChange.NOT_EXTRACTABLE, "Kept").equals("Kept can't be extracted into a token."),
+				"the player is told " + ExtractMenu.whyNot(OwnershipChange.NOT_EXTRACTABLE, "Kept"));
 		assertRefused(fx, player, "free", OwnershipChange.NOT_OWNED);
 		assertRefused(fx, player, "nowhere", OwnershipChange.NOT_OWNED);
-		assertThat(fx.restart().ownedSkins(player.getUUID()).owns("crown_test") && fx.skins.ownedSkins(player.getUUID()).owns("broken"),
-				"a refused extract deleted a skin");
+		assertThat(fx.restart().ownedSkins(player.getUUID()).owns("crown_test") && fx.skins.ownedSkins(player.getUUID()).owns("broken")
+				&& fx.skins.ownedSkins(player.getUUID()).owns("kept"), "a refused extract deleted a skin");
 
 		// Removed, the skin whose item is lost can be extracted.
 		assertThat(fx.skins.remove(player.nameAndId(), "crown_test") == OwnershipChange.DONE, "the remove was refused");

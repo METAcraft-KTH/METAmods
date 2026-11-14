@@ -556,7 +556,7 @@ public final class Skins {
 	 * Extract: turns a skin the player owns back into its Skin Token. Their record of the skin is
 	 * deleted and their file written, and only then is one token handed to them ({@link Hand}), so a
 	 * failed save keeps the skin and gives nothing. Refused, changing nothing, if they don't own it,
-	 * it's Dormant, it's on an item in this world (working or Away: the Owner removes it first), or
+	 * it's Dormant, its definition says {@code extractable: false}, it's on an item in this world (working or Away: the Owner removes it first), or
 	 * their file is damaged or can't be saved. A skin applied in another world can be extracted; its
 	 * item there is plain for good. Telling the player is the caller's job.
 	 */
@@ -577,6 +577,7 @@ public final class Skins {
 		if (owned == null) return Optional.of(OwnershipChange.NOT_OWNED);
 		Entry skin = skins.get(skinId);
 		if (skin == null || skin.dormantReason().isPresent()) return Optional.of(OwnershipChange.DORMANT_SKIN);
+		if (skin.loaded().filter(SkinFolder.Loaded::extractable).isEmpty()) return Optional.of(OwnershipChange.NOT_EXTRACTABLE);
 		if (appliedHere(skinId, owned).isPresent()) return Optional.of(OwnershipChange.STILL_APPLIED);
 		return Optional.empty();
 	}
@@ -962,7 +963,8 @@ public final class Skins {
 	 * A Skinned Item other than leather shows its colour only while it's working with a Dyeable Hat's
 	 * Look: in every other case (Away, stale, Dormant, no longer fitting, no longer dyeable) its copy
 	 * loses {@code dyed_color} and vanilla's "Dyed" line (Polymer's lore copy of it). Leather shows its
-	 * dye, as vanilla does. The glint is left alone, and so is a name the player gave the item.
+	 * dye, as vanilla does. A working item never glints, even enchanted; Away and the rest keep their glint.
+	 * A name the player gave the item is left alone.
 	 */
 	public ItemStack clientView(ItemStack stack, ItemStack client, @Nullable UUID with) {
 		Optional<LiveSkin> live = liveSkin(stack);
@@ -985,6 +987,8 @@ public final class Skins {
 		}
 		// item_name, not custom_name: a name the player gave the item still wins, and an anvil doesn't take the skin's name for a rename.
 		client.set(DataComponents.ITEM_NAME, skin.title());
+		// The glint would wash over the Look, so a working skin never glints, enchanted or not.
+		client.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, false);
 		List<Component> lines = new ArrayList<>(client.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines());
 		lines.add(skin.release().line());
 		lines.addAll(PerkLines.of(skin.perks()));

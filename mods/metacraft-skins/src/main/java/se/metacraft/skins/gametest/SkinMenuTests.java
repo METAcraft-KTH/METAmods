@@ -392,6 +392,27 @@ public final class SkinMenuTests {
 	 * opens its Extract screen, whose Cancel and Extract both come back to "Your Skins", where the
 	 * extracted skin is a "???" again.
 	 */
+	/** A skin marked {@code extractable: false} is listed for Extract but says it can't be, and clicking it does nothing. */
+	@GameTest
+	public void anUnextractableSkinSaysSoAndCantBePicked(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().skin("kept", "sword")
+				.file("kept", "skin.json5", "{ name: \"Kept\", kind: \"sword\", extractable: false, look: { model: \"kept.json\" } }");
+		fx.reload();
+		SkinFixtures.Listening player = SkinFixtures.join(helper);
+		try {
+			player.getInventory().clearContent();
+			fx.skins.grant(player.nameAndId(), "kept");
+			SkinMenu.open(player, fx.skins);
+			click(player, EXTRACT);
+			assertThat(name(player, 0).equals("Kept") && lore(player, 0).getLast().equals("This skin can't be extracted"), "Kept says " + lore(player, 0));
+			click(player, 0);
+			assertThat(title(player).equals("Extract: choose a skin") && fx.skins.ownedSkins(player.getUUID()).owns("kept"), "clicking Kept opened " + title(player));
+		} finally {
+			helper.getLevel().getServer().getPlayerList().remove(player);
+		}
+		helper.succeed();
+	}
+
 	@GameTest
 	public void theExtractButtonPicksASkinThenConfirms(GameTestHelper helper) {
 		SkinFixtures fx = SkinFixtures.create().skin("crown_test", "helmet", "Crown", null).skin("candy_sword_test", "sword", "Candy Sword", null)

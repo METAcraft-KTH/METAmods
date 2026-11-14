@@ -181,8 +181,11 @@ public final class SkinMenu {
 			if (extractable == OwnershipChange.DONE) {
 				icon.addLoreLine(Component.literal("Click to extract").withStyle(ChatFormatting.YELLOW)).setCallback(() -> confirmExtract(player, skins, id, fromPage, page));
 			} else {
-				icon.addLoreLine(Component.literal(extractable == OwnershipChange.STILL_APPLIED ? "Remove it from its item first" : "Can't be extracted right now")
-						.withStyle(ChatFormatting.RED));
+				icon.addLoreLine(Component.literal(switch (extractable) {
+					case STILL_APPLIED -> "Remove it from its item first";
+					case NOT_EXTRACTABLE -> "This skin can't be extracted";
+					default -> "Can't be extracted right now";
+				}).withStyle(ChatFormatting.RED));
 			}
 			gui.setSlot(i, icon.build());
 		}

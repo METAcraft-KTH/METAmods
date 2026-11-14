@@ -291,7 +291,7 @@ public final class ViewTests {
 		assertLine(block.get(3), "Owned by " + name, ChatFormatting.GRAY);
 		assertThat(lore.subList(0, lore.size() - 4).stream().anyMatch(l -> l.getString().contains("Sharpness")), "vanilla's lines don't come first: " + text(lore));
 		assertThat(client.getHoverName().getString().equals("Old Faithful"), "the item's name became " + client.getHoverName().getString());
-		assertThat(Boolean.TRUE.equals(client.get(DataComponents.ENCHANTMENT_GLINT_OVERRIDE)) || client.hasFoil(), "the enchanted item lost its glint");
+		assertThat(Boolean.FALSE.equals(client.get(DataComponents.ENCHANTMENT_GLINT_OVERRIDE)) && !client.hasFoil(), "the enchanted skinned item glints");
 
 		ItemStack axe = view(helper, fx, owner.getInventory().getItem(1), viewer, owner.getUUID());
 		List<Component> axeLore = lore(axe);

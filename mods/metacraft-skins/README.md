@@ -82,7 +82,7 @@ Each fits every Material of its Kind. The two test skins are Dyeable Hats, and s
 Tint faces: `cat_ears`, `cowboy_hat`, `fishing_hat`, `flight_helmet`, `headphones_gaming`, `knight_helmet`,
 `mobster_hat`, `pirate_hat`, `plunderers_bandana`, `safari_hat`, `shades_cool`, `spartan`, `sun_hat_bow`,
 `sun_visor`, `traffic_cone_roadworks`, `trucker_hat` and `witch_hat`. Their Tint faces are painted near
-white, so each has a starting `color`, taken from its name's gradient (the traffic cone's is orange). After that
+white, so each has a starting `color` (the traffic cone's is orange). After that
 first start the folder is yours: delete a skin's folder and it stays gone. The Skin Token's own model and texture ship in the jar and go into the pack on their own.
 
 The mod also ships two Skin Boxes, the jar's `lootboxes/classic.json5` (the Classic Hats Box, every MCC hat) and
@@ -123,6 +123,7 @@ Drop the export in as it is, then run `/itemskins reload`. The mod cleans it up 
 	kind: "pickaxe",                    // the Kind it fits, below
 	released: "2026/10/31",             // optional: shown as "Released: 2026/10/31"
 	obtainable: false,                  // optional: "Obtainable" (default) or "Unobtainable"
+	extractable: false,                 // optional: false keeps Owners from Extracting it into a token
 	// materials: ["diamond", "netherite"],   // optional: only these Materials of the Kind
 	look: { model: "emerald_pick.json" },
 	description: "Mined from a creeper's dream.",   // optional: one gray line
@@ -140,6 +141,7 @@ Drop the export in as it is, then run `/itemskins reload`. The mod cleans it up 
 | `description` | optional, one line |
 | `released` | optional: the date the skin came out, written `"2026/10/31"` (year/month/day) |
 | `obtainable` | optional: `true` (the default) or `false`, whether players can still get the skin |
+| `extractable` | optional: `true` (the default) or `false`, whether an Owner can Extract the skin back into its Skin Token |
 | `perks` | optional; leave it out for a Look-only skin |
 
 Any other field rejects the skin. The files `look` names must be `.json` files in the skin's folder.
@@ -156,11 +158,12 @@ without its codes. A name must have some text besides its codes.
 to right: the first colour on the first letter, the last on the last. List them the other way round to
 run right to left. With `mirror: true` they run to the middle and back, so the first colour is on both
 ends and the last in the middle. A name with a gradient keeps its formats (`&lCowboy Hat` is bold) but
-may not have colour codes, since the gradient colours every letter. Every shipped skin has one:
+may not have colour codes, since the gradient colours every letter. Every shipped skin has one, except
+the Classic Hats Box's hats, whose names are in their rarity's colour (below):
 
 ```json5
-	name: "&lCowboy Hat",
-	gradient: { colors: ["#8B5A2B", "#F0C27B"], mirror: true },   // leather brown to tan and back
+	name: "&lSanta Hat",
+	gradient: { colors: ["#D62828", "#FFFFFF"], mirror: true },   // red to white and back
 ```
 
 **Release.** Skinned Items and the menus show `released` and `obtainable` as one line,
@@ -214,7 +217,8 @@ iron-only sword skin shows on an iron sword, a leather-only hat on a leather hel
   are the spear's own.
 - **Everything else** (the mace too) uses one model everywhere.
 
-The item's own name (an anvil rename too) and its enchantment glint are never touched.
+The item's own name (an anvil rename too) is never touched. A working Skinned Item never glints, even
+enchanted, so the glint doesn't wash over the Look; Away, it glints as usual.
 
 **Dyeable Hats.** A helmet skin can follow the helmet's dye. In Blockbench, tick "Tint" on the faces
 that should take the colour (the felt of a hat, say, but not its band), then set
@@ -473,7 +477,9 @@ Skin Box: <id>" and can't be opened, and `givebox` refuses it; nothing is delete
 it back) and run `/itemskins reload`, and every copy comes back. A made-up id behaves the same.
 
 **The Classic Hats Box and the Winter Skin Box** ship with the mod. The Classic Hats Box sorts its hats into three
-rarities, by weight: common 10, uncommon 5 (half as likely) and rare 2 (a fifth as likely). Every
+rarities, by weight: common 10, uncommon 5 (half as likely) and rare 2 (a fifth as likely). Each hat's
+name is bold in its rarity's colour, with no gradient: common white (`&f&l`), uncommon green (`&a&l`) and rare
+blue (`&9&l`); a legendary would be gold (`&6&l`). Every
 Winter skin has weight 1, all equally likely. They're put in `boxes/` the first time the server starts without that folder, and
 never again: a deleted box stays deleted. If you deleted some of its skins, those entries are left out with a warning.
 
@@ -597,7 +603,8 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
   the player owns back into its Skin Token: they pick one of their skins, then a confirm screen shows
   the token; nothing changes until they press Extract, and Cancel or Extract goes back to the Skin
   Menu. A skin on an item in this world, working or Away, says "Remove it from its item first" and
-  can't be picked. A skin applied in another world can be extracted, and its item there is plain for
+  can't be picked, and so does a skin whose definition says `extractable: false`, with "This skin can't be
+  extracted". A skin applied in another world can be extracted, and its item there is plain for
   good. Unobtainable and granted skins extract like any other. The token goes into their inventory,
   or drops at their feet for them alone if it's full. Whoever Claims it later gets a fresh claim date.
   There is no extract command.

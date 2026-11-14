@@ -392,14 +392,16 @@ public final class SkinDefinitionTests {
 	}
 
 	@GameTest
-	public void aBadNameReleaseOrObtainableIsRejected(GameTestHelper helper) {
-		SkinFixtures fx = withHealthyNeighbour().lookOnly("date", "sword").lookOnly("yes", "sword").lookOnly("codes", "sword")
+	public void aBadNameReleaseObtainableOrExtractableIsRejected(GameTestHelper helper) {
+		SkinFixtures fx = withHealthyNeighbour().lookOnly("date", "sword").lookOnly("yes", "sword").lookOnly("codes", "sword").lookOnly("never", "sword")
+				.file("never", "skin.json5", "{ name: \"Never\", kind: \"sword\", extractable: \"no\", look: { model: \"never.json\" } }")
 				.file("date", "skin.json5", "{ name: \"Date\", kind: \"sword\", released: \"2026-10-31\", look: { model: \"date.json\" } }")
 				.file("yes", "skin.json5", "{ name: \"Yes\", kind: \"sword\", obtainable: \"yes\", look: { model: \"yes.json\" } }")
 				.file("codes", "skin.json5", "{ name: \"&6&l\", kind: \"sword\", look: { model: \"codes.json\" } }");
 		ReloadReport report = fx.reload();
 		assertRejected(report, "date", "skin.json5", "\"released\" must be a date");
 		assertRejected(report, "yes", "skin.json5", "\"obtainable\" must be true or false");
+		assertRejected(report, "never", "skin.json5", "\"extractable\" must be true or false");
 		assertRejected(report, "codes", "skin.json5", "besides its formatting codes");
 		helper.succeed();
 	}
