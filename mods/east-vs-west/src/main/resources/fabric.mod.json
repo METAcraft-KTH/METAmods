@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"id": "east-vs-west",
+	"version": "${version}",
+	"name": "East vs West vs Rest",
+	"description": "An item collection event between three teams: players register items with a collector villager, stored in MySQL for the website.",
+	"authors": [
+		"Oscar Eriksson"
+	],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"se.metacraft.east_vs_west.EastVsWest"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=25",
+		"fabric-api": "*",
+		"metacraft-lib": "*",
+		"metacraft-config": "*",
+		"polymer-core": "*",
+		"polymer-virtual-entity": "*",
+		"polymer-resource-pack": "*"
+	}
+}

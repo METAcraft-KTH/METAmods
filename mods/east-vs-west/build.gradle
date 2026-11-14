@@ -1,0 +1,20 @@
+// East vs West vs Rest: an item collection event between three teams. See README.md in this module.
+version = project.east_vs_west_version
+
+addPolymerDependency()
+addConfigDependency()
+
+dependencies {
+	// The hats are item displays riding the player, and the ender chest lid is a model in the resource pack.
+	implementation("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+	implementation("eu.pb4:polymer-resource-pack:${project.polymer_version}")
+	implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+
+	// The event's MySQL store, bundled jar-in-jar: a small connection pool and the JDBC driver. The driver is
+	// MariaDB Connector/J, which talks to MySQL as well and is the one ovvar already bundles (same version, so
+	// Fabric loads one copy).
+	implementation(include("com.zaxxer:HikariCP:${project.hikari_version}"))
+	implementation(include("org.mariadb.jdbc:mariadb-java-client:${project.mariadb_client_version}"))
+	// Tests only: the SQL runs against an in-memory H2 in MySQL mode; not shipped.
+	testRuntimeOnly("com.h2database:h2:2.5.250")
+}
