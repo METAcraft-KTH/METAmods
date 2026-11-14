@@ -1,6 +1,7 @@
 package se.metacraft.moredyes.datagen;
 
 import com.google.common.hash.Hashing;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -617,6 +618,8 @@ public final class GeneratedAssets implements DataProvider {
 		SHARED_ITEM_MODELS.forEach((name, model) -> json(assets.resolve("models/item/" + name + ".json"), model));
 		SHARED_ITEM_DEFS.forEach((name, model) -> json(assets.resolve("items/" + name + ".json"), itemDef(model)));
 
+		generateColouredBrush();
+
 		Map<String, String> lang = new TreeMap<>();
 		Map<String, List<String>> blockTags = new LinkedHashMap<>();
 		Map<String, List<String>> itemTags = new LinkedHashMap<>();
@@ -727,6 +730,31 @@ public final class GeneratedAssets implements DataProvider {
 		lang.forEach(langJson::addProperty);
 		json(assets.resolve("lang/en_us.json"), langJson);
 		return CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new));
+	}
+
+	/** Vanilla's brush models with the bristles as a second layer; the hand-drawn mask is textures/item/canvas_brush_tip.png. */
+	private void generateColouredBrush() {
+		for (String name : List.of("brush", "brush_brushing_0", "brush_brushing_1", "brush_brushing_2")) {
+			json(assets.resolve("models/item/canvas_" + name + ".json"),
+					obj("parent", "minecraft:item/" + name, "textures", obj("layer1", MOD + ":item/canvas_brush_tip")));
+		}
+		json(assets.resolve("items/canvas_brush.json"), tintedBrush(Vanilla.json("assets/minecraft/items/brush.json")));
+	}
+
+	private static JsonElement tintedBrush(JsonElement e) {
+		if (e.isJsonArray()) {
+			JsonArray out = new JsonArray();
+			e.getAsJsonArray().forEach(x -> out.add(tintedBrush(x)));
+			return out;
+		}
+		if (!e.isJsonObject()) return e;
+		JsonObject out = new JsonObject();
+		e.getAsJsonObject().entrySet().forEach(entry -> out.add(entry.getKey(), tintedBrush(entry.getValue())));
+		if (out.has("type") && out.get("type").getAsString().equals("minecraft:model")) {
+			out.addProperty("model", out.get("model").getAsString().replace("minecraft:item/brush", MOD + ":item/canvas_brush"));
+			out.add("tints", arr(obj("type", "minecraft:constant", "value", -1), obj("type", "minecraft:dye", "default", -1)));
+		}
+		return out;
 	}
 
 	private void json(Path path, JsonElement element) {

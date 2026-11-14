@@ -20,6 +20,7 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import se.metacraft.moredyes.armor.AnimatedArmor;
 import se.metacraft.moredyes.armor.PackClock;
+import se.metacraft.moredyes.brush.BrushColour;
 import se.metacraft.moredyes.color.Animation;
 import se.metacraft.moredyes.color.ModColor;
 import se.metacraft.moredyes.color.ModColors;
@@ -423,6 +424,236 @@ public final class MoreDyesGameTests {
 					net.minecraft.world.level.material.MapColor.Brightness.NORMAL), "the colour " + color.name() + " paints");
 		}
 
+		/** A player, a canvas hung in front of them, and the colours the brush tests use. */
+		static final class Rig {
+			final GameTestHelper helper;
+			final net.minecraft.server.level.ServerPlayer player;
+			final eu.pb4.polydecorations.entity.CanvasEntity canvas;
+
+			Rig(GameTestHelper helper) {
+				this.helper = helper;
+				this.player = helper.makeMockServerPlayerInLevel();
+				this.canvas = eu.pb4.polydecorations.entity.CanvasEntity.create(helper.getLevel(), net.minecraft.core.Direction.NORTH,
+						helper.absolutePos(new BlockPos(2, 3, 2)), 0);
+			}
+
+			static eu.pb4.mapcanvas.api.core.CanvasColor map(net.minecraft.world.item.DyeColor dye) {
+				return eu.pb4.mapcanvas.api.core.CanvasColor.from(dye.getMapColor(), net.minecraft.world.level.material.MapColor.Brightness.NORMAL);
+			}
+
+			static ItemStack brush(int rgb) {
+				ItemStack brush = new ItemStack(Items.BRUSH);
+				brush.set(DataComponents.DYED_COLOR, new DyedItemColor(rgb));
+				return brush;
+			}
+
+			/** What is held: the main hand, then the offhand. */
+			void hold(ItemStack main, ItemStack off) {
+				player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, main);
+				player.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND, off);
+			}
+
+			/** Right-clicks the middle of a pixel. */
+			void click(int x, int y) {
+				Canvas.click(canvas, player, eu.pb4.mapcanvas.api.utils.VirtualDisplay.ClickType.RIGHT, x * 8 + 4, y * 8 + 4);
+			}
+
+			void paint(int x, int y, eu.pb4.mapcanvas.api.core.CanvasColor color) {
+				canvasPixels(canvas).set(x, y, color);
+			}
+
+			byte raw(int x, int y) {
+				return canvasPixels(canvas).getRaw(x, y);
+			}
+
+			void assertPixel(int x, int y, eu.pb4.mapcanvas.api.core.CanvasColor color, String what) {
+				helper.assertValueEqual(raw(x, y), color.getRenderColor(), what);
+			}
+
+			/** The 3x3 round {@code (x, y)} is all {@code color}. */
+			void assertSquare(int x, int y, eu.pb4.mapcanvas.api.core.CanvasColor color, String what) {
+				for (int dy = -1; dy <= 1; dy++) {
+					for (int dx = -1; dx <= 1; dx++) {
+						assertPixel(x + dx, y + dy, color, what);
+					}
+				}
+			}
+
+			void assertBlank(int x, int y, String what) {
+				helper.assertValueEqual(raw(x, y), (byte) 0, what);
+			}
+
+			void assertRgb(ItemStack brush, eu.pb4.mapcanvas.api.core.CanvasColor color, String what) {
+				helper.assertValueEqual(BrushColour.rgb(brush), color.getRgbColor() & 0xFFFFFF, what);
+			}
+		}
+
+		/** One brush in the main hand: it samples a pixel's exact shade, paints it back one pixel, and samples again when sneaking. */
+		static void mainHandBrush(GameTestHelper helper, ModColor dyeColor) {
+			var rig = new Rig(helper);
+			var player = rig.player;
+			var expected = eu.pb4.mapcanvas.api.core.CanvasColor.from(dyeColor.mapColor(), net.minecraft.world.level.material.MapColor.Brightness.NORMAL);
+			var red = Rig.map(net.minecraft.world.item.DyeColor.RED);
+			// paint pixel (0,0) with our dye, then take its colour with a blank brush and an empty offhand
+			rig.hold(new ItemStack(ModContent.dye(dyeColor)), ItemStack.EMPTY);
+			rig.click(0, 0);
+			rig.assertPixel(0, 0, expected, "pixel the dye painted");
+			var brush = new ItemStack(Items.BRUSH);
+			rig.hold(brush, ItemStack.EMPTY);
+			rig.click(0, 0);
+			helper.assertTrue(BrushColour.isColoured(brush), "the brush took no colour");
+			rig.assertRgb(brush, expected, "the sampled colour");
+			// the coloured brush paints exactly that, one pixel
+			rig.click(5, 5);
+			rig.assertPixel(5, 5, expected, "pixel the brush painted");
+			rig.assertBlank(6, 5, "a neighbour of the brush's pixel");
+			// nothing the canvas uses in the offhand, or a plain brush, leaves it the same tool
+			rig.hold(brush, new ItemStack(Items.STICK));
+			rig.click(3, 10);
+			rig.assertPixel(3, 10, expected, "pixel painted with a stick in the offhand");
+			rig.assertBlank(4, 10, "a neighbour with a stick in the offhand");
+			rig.hold(brush, new ItemStack(Items.BRUSH));
+			rig.click(8, 2);
+			rig.assertPixel(8, 2, expected, "pixel painted with a plain brush in the offhand");
+			rig.assertBlank(9, 2, "a neighbour with a plain brush in the offhand");
+			// sneaking takes another colour
+			rig.hold(brush, ItemStack.EMPTY);
+			rig.paint(12, 12, red);
+			player.setShiftKeyDown(true);
+			rig.click(12, 12);
+			rig.assertRgb(brush, red, "the colour after sampling again");
+			rig.canvas.discard();
+		}
+
+		/** A brush in the main hand is the 3x3 tool of the offhand's dye or coloured brush, whatever the main brush holds. */
+		static void offhandTools(GameTestHelper helper) {
+			var rig = new Rig(helper);
+			var red = Rig.map(net.minecraft.world.item.DyeColor.RED);
+			var shade = Rig.brush(0x123456);
+			var shadeColor = eu.pb4.polydecorations.entity.CanvasEntity.getColor(shade).orElseThrow();
+			// a dye: the brush keeps its colour
+			var coloured = Rig.brush(0x654321);
+			rig.hold(coloured, new ItemStack(Items.DYE.red()));
+			rig.click(12, 12);
+			rig.assertSquare(12, 12, red, "3x3 pixel of an offhand dye");
+			helper.assertValueEqual(BrushColour.rgb(coloured), 0x654321, "the brush's colour after the 3x3 use");
+			// a plain brush in the main hand does it too
+			var plain = new ItemStack(Items.BRUSH);
+			rig.hold(plain, new ItemStack(Items.DYE.red()));
+			rig.click(12, 3);
+			rig.assertSquare(12, 3, red, "3x3 pixel of an offhand dye under a plain brush");
+			// a coloured brush: its shade, under a plain or a coloured brush
+			rig.hold(plain, shade);
+			rig.click(3, 8);
+			rig.assertSquare(3, 8, shadeColor, "3x3 pixel of an offhand brush under a plain one");
+			rig.hold(coloured, shade);
+			rig.click(8, 8);
+			rig.assertSquare(8, 8, shadeColor, "3x3 pixel of an offhand brush under a coloured one");
+			helper.assertFalse(BrushColour.isColoured(plain), "the plain brush took a colour while painting 3x3");
+			helper.assertValueEqual(BrushColour.rgb(shade), 0x123456, "the offhand brush's colour");
+			helper.assertValueEqual(BrushColour.rgb(coloured), 0x654321, "the main brush's colour");
+			rig.canvas.discard();
+		}
+
+		/** A brush in each hand: the offhand one is coloured, with the average of the 3x3, and the main one is left alone. */
+		static void bothHands(GameTestHelper helper) {
+			var rig = new Rig(helper);
+			var player = rig.player;
+			var red = Rig.map(net.minecraft.world.item.DyeColor.RED);
+			var blue = Rig.map(net.minecraft.world.item.DyeColor.BLUE);
+			// two plain brushes: a plain click colours the offhand one, never the main one
+			var main = new ItemStack(Items.BRUSH);
+			var off = new ItemStack(Items.BRUSH);
+			rig.hold(main, off);
+			rig.click(5, 5);
+			helper.assertFalse(BrushColour.isColoured(main), "a plain click with two plain brushes coloured the main one");
+			helper.assertTrue(BrushColour.isColoured(off), "a plain click with two plain brushes did not colour the offhand one");
+			// the offhand brush takes the canvas colour nearest the average of the 3x3 around the pixel
+			for (int dy = -1; dy <= 1; dy++) {
+				for (int dx = -1; dx <= 1; dx++) {
+					rig.paint(6 + dx, 13 + dy, dx < 0 ? red : blue);
+				}
+			}
+			var mixer = new ItemStack(Items.BRUSH);
+			rig.hold(main, mixer);
+			rig.click(6, 13);
+			int mixed = BrushColour.rgb(mixer);
+			helper.assertTrue(mixed != (red.getRgbColor() & 0xFFFFFF) && mixed != (blue.getRgbColor() & 0xFFFFFF), "the average of two colours was one of them: " + hex(mixed));
+			helper.assertValueEqual(eu.pb4.mapcanvas.api.utils.CanvasUtils.findClosestColor(mixed).getRgbColor() & 0xFFFFFF, mixed, "the averaged colour is on the canvas palette");
+			// sneaking re-samples onto the offhand one, with a coloured brush in either hand
+			var coloured = Rig.brush(0x654321);
+			var spare = Rig.brush(0x123456);
+			for (int dy = -1; dy <= 1; dy++) {
+				for (int dx = -1; dx <= 1; dx++) {
+					rig.paint(10 + dx, 3 + dy, red);
+				}
+			}
+			rig.hold(coloured, spare);
+			player.setShiftKeyDown(true);
+			rig.click(10, 3);
+			rig.assertRgb(spare, red, "the offhand brush after sneaking");
+			helper.assertValueEqual(BrushColour.rgb(coloured), 0x654321, "the main brush after sneaking");
+			// a dye in the offhand makes the brush its tool, so sneaking does not sample
+			var plain = new ItemStack(Items.BRUSH);
+			rig.hold(plain, new ItemStack(Items.DYE.red()));
+			rig.click(10, 3);
+			helper.assertFalse(BrushColour.isColoured(plain), "sneaking with a dye in the offhand sampled");
+			rig.canvas.discard();
+		}
+
+		/** A waxed canvas can be sampled but not painted, and a pixel cut out of one has no colour to take. */
+		static void waxedAndCutCanvases(GameTestHelper helper) {
+			var rig = new Rig(helper);
+			var red = Rig.map(net.minecraft.world.item.DyeColor.RED);
+			rig.paint(9, 6, red);
+			var brush = new ItemStack(Items.BRUSH);
+			rig.hold(brush, ItemStack.EMPTY);
+			setCanvasFlag(rig.canvas, "waxed", true);
+			rig.click(9, 6);
+			rig.assertRgb(brush, red, "the colour sampled off a waxed canvas");
+			rig.click(1, 14);
+			rig.assertBlank(1, 14, "pixel painted on a waxed canvas");
+			// sampling where it was cut out clears the brush, like sneaking on the air
+			setCanvasFlag(rig.canvas, "cut", true);
+			rig.paint(14, 14, eu.pb4.mapcanvas.api.core.CanvasColor.CLEAR_FORCE);
+			rig.player.setShiftKeyDown(true);
+			rig.click(14, 14);
+			helper.assertFalse(BrushColour.isColoured(brush), "sampling a cut-out pixel left the colour on the brush");
+			rig.canvas.discard();
+		}
+
+		private static void setCanvasFlag(eu.pb4.polydecorations.entity.CanvasEntity canvas, String name, boolean value) {
+			try {
+				var f = eu.pb4.polydecorations.entity.CanvasEntity.class.getDeclaredField(name);
+				f.setAccessible(true);
+				f.setBoolean(canvas, value);
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		}
+
+		private static void click(eu.pb4.polydecorations.entity.CanvasEntity canvas, net.minecraft.server.level.ServerPlayer player,
+				eu.pb4.mapcanvas.api.utils.VirtualDisplay.ClickType type, int x, int y) {
+			try {
+				var m = eu.pb4.polydecorations.entity.CanvasEntity.class.getDeclaredMethod("onUsed", net.minecraft.server.level.ServerPlayer.class,
+						eu.pb4.mapcanvas.api.utils.VirtualDisplay.ClickType.class, int.class, int.class);
+				m.setAccessible(true);
+				m.invoke(canvas, player, type, x, y);
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		}
+
+		private static eu.pb4.mapcanvas.api.core.DrawableCanvas canvasPixels(eu.pb4.polydecorations.entity.CanvasEntity canvas) {
+			try {
+				var f = eu.pb4.polydecorations.entity.CanvasEntity.class.getDeclaredField("selfCanvas");
+				f.setAccessible(true);
+				return (eu.pb4.mapcanvas.api.core.DrawableCanvas) f.get(canvas);
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		}
+
 		/** An animated dye paints a random colour from its keyframes' map colours every time. */
 		static void paintsRandomKeyframes(GameTestHelper helper, ModColor color) {
 			var allowed = color.animation().orElseThrow().mapColors().stream()
@@ -435,6 +666,80 @@ public final class MoreDyesGameTests {
 			}
 			helper.assertTrue(seen.size() >= 5, "only " + seen.size() + " distinct colours in 200 pixels");
 		}
+	}
+
+	@GameTest
+	public void brushSamplesAndPaints(GameTestHelper helper) {
+		if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("polydecorations")) {
+			Canvas.mainHandBrush(helper, first());
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void brushIsThe3x3ToolOfTheOffhand(GameTestHelper helper) {
+		if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("polydecorations")) {
+			Canvas.offhandTools(helper);
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void brushesInBothHands(GameTestHelper helper) {
+		if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("polydecorations")) {
+			Canvas.bothHands(helper);
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void brushOnWaxedAndCutCanvases(GameTestHelper helper) {
+		if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("polydecorations")) {
+			Canvas.waxedAndCutCanvases(helper);
+		}
+		helper.succeed();
+	}
+
+	/** A vanilla client is sent a coloured brush with our tinted model and its colour; a plain brush stays vanilla's. */
+	@GameTest
+	public void colouredBrushIsSentTinted(GameTestHelper helper) {
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		ItemStack brush = new ItemStack(Items.BRUSH);
+		ItemStack plain = PolymerItemUtils.getPolymerItemStack(brush, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+		helper.assertFalse(BrushColour.MODEL.equals(plain.get(DataComponents.ITEM_MODEL)), "a plain brush got our model");
+		brush.set(DataComponents.DYED_COLOR, new DyedItemColor(0x123456));
+		ItemStack client = PolymerItemUtils.getPolymerItemStack(brush, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
+		helper.assertValueEqual(client.get(DataComponents.ITEM_MODEL), BrushColour.MODEL, "model of a coloured brush");
+		helper.assertValueEqual(client.get(DataComponents.DYED_COLOR).rgb() & 0xFFFFFF, 0x123456, "colour sent");
+		helper.assertTrue(client.is(Items.BRUSH), "the client's item is " + client);
+		helper.succeed();
+	}
+
+	/** Sneaking with a coloured brush, used on anything but a canvas, clears its colour; standing does not. */
+	@GameTest
+	public void sneakingClearsABrushColour(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		ItemStack brush = new ItemStack(Items.BRUSH);
+		brush.set(DataComponents.DYED_COLOR, new DyedItemColor(0x123456));
+		player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, brush);
+		var use = net.fabricmc.fabric.api.event.player.UseItemCallback.EVENT.invoker();
+		helper.assertTrue(use.interact(player, helper.getLevel(), net.minecraft.world.InteractionHand.MAIN_HAND) == net.minecraft.world.InteractionResult.PASS,
+				"standing use was taken");
+		helper.assertTrue(BrushColour.isColoured(brush), "standing use cleared the colour");
+		player.setShiftKeyDown(true);
+		helper.assertTrue(use.interact(player, helper.getLevel(), net.minecraft.world.InteractionHand.MAIN_HAND) == net.minecraft.world.InteractionResult.SUCCESS_SERVER,
+				"sneaking use was not taken");
+		helper.assertFalse(brush.has(DataComponents.DYED_COLOR), "the colour is still there");
+		helper.assertTrue(use.interact(player, helper.getLevel(), net.minecraft.world.InteractionHand.MAIN_HAND) == net.minecraft.world.InteractionResult.PASS,
+				"a blank brush's sneaking use was taken");
+		// a brush in the offhand clears the same way
+		ItemStack off = new ItemStack(Items.BRUSH);
+		off.set(DataComponents.DYED_COLOR, new DyedItemColor(0x654321));
+		player.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND, off);
+		helper.assertTrue(use.interact(player, helper.getLevel(), net.minecraft.world.InteractionHand.OFF_HAND) == net.minecraft.world.InteractionResult.SUCCESS_SERVER,
+				"sneaking use of the offhand brush was not taken");
+		helper.assertFalse(off.has(DataComponents.DYED_COLOR), "the offhand brush kept its colour");
+		helper.succeed();
 	}
 
 	/** A happy ghast takes our harness, and wears it as our equipment asset. */
