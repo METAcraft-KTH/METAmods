@@ -1,0 +1,9 @@
+{
+	name: "&f&lMuseum Showdown: 2026",
+	released: "2026/11/16",
+	obtainable: false,
+	kind: "helmet",
+	extractable: false,
+	look: { model: "chest_lid_hat.json" },
+	description: "Awarded to those who took part in the\nMuseum Showdown: 2026\n\nA collection built\none discovery at the time.",
+}

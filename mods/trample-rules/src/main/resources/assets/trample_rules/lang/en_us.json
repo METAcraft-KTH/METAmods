@@ -1,0 +1,6 @@
+{
+	"gamerule.trample_rules.player_crop_trample": "Player crop trampling",
+	"gamerule.trample_rules.player_crop_trample.description": "Whether players jumping onto or falling on farmland turn it into dirt.",
+	"gamerule.trample_rules.mob_trample": "Mob farmland trampling",
+	"gamerule.trample_rules.mob_trample.description": "Whether mobs falling onto farmland turn it into dirt. Only affects trampling, not other mob griefing."
+}

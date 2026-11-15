@@ -1,7 +1,7 @@
 {
 	name: "&lJingle Bell Mace",
 	gradient: { colors: ["#FFD700", "#C41E3A"], mirror: true },
-	released: "2026/11/09",
+	released: "2026/12/01",
 	obtainable: false,
 	kind: "mace",
 	look: { model: "jingle_bell_mace.json" },

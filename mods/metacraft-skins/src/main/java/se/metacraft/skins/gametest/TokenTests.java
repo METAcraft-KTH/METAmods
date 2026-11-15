@@ -74,7 +74,7 @@ public final class TokenTests {
 	@GameTest
 	public void eachViewerReadsTheTokenForThem(GameTestHelper helper) {
 		SkinFixtures fx = SkinFixtures.create().perky("crown_test", "helmet", "Crown", "Fit for a king.", PerkTests.HEARTS_WORN)
-				.skin("plain", "sword", "Plain Blade", null).skin("broken", "sword")
+				.skin("plain", "sword", "Plain Blade", null).skin("two_lines", "sword", "Two Lines", "&6Line one.\\nLine two.").skin("broken", "sword")
 				.perky("green_pick", "pickaxe", "Green Pick", null, """
 						[ { trigger: "held", effects: [ { type: "potion", effect: "minecraft:haste", level: 1 } ] },
 						{ trigger: "block_break", chance: 0.1, effects: [ { type: "particle", particle: { type: "minecraft:happy_villager" } },
@@ -98,14 +98,15 @@ public final class TokenTests {
 				"the skin's part of the name isn't its own: " + tokenName);
 		assertThat(!Boolean.TRUE.equals(crown.get(DataComponents.ENCHANTMENT_GLINT_OVERRIDE)), "a token glints");
 		List<Component> lore = lore(crown);
-		assertThat(text(lore).equals(List.of("Fits any helmet", "While worn: +2 max hearts", "Fit for a king.", "", "Right-click to claim")),
+		assertThat(text(lore).equals(List.of("Fit for a king.", "", "Fits any helmet", "While worn: +2 max hearts", "", "Right-click to claim")),
 				"the token's lore: " + text(lore));
-		assertLine(lore.get(0), "Fits any helmet", ChatFormatting.GRAY);
-		assertLine(lore.get(1), "While worn: +2 max hearts", ChatFormatting.BLUE);
-		assertLine(lore.get(4), "Right-click to claim", ChatFormatting.GRAY);
+		assertLine(lore.get(0), "Fit for a king.", ChatFormatting.GRAY);
+		assertLine(lore.get(2), "Fits any helmet", ChatFormatting.GRAY);
+		assertLine(lore.get(3), "While worn: +2 max hearts", ChatFormatting.BLUE);
+		assertLine(lore.get(5), "Right-click to claim", ChatFormatting.GRAY);
 
 		List<String> owned = text(lore(view(helper, fx, SkinToken.of("crown_test", 1), owner)));
-		assertThat(owned.equals(List.of("Fits any helmet", "While worn: +2 max hearts", "Fit for a king.", "", "✔ You already own this skin — trade it away")),
+		assertThat(owned.equals(List.of("Fit for a king.", "", "Fits any helmet", "While worn: +2 max hearts", "", "✔ You already own this skin — trade it away")),
 				"the Owner reads " + owned);
 		List<String> pick = text(lore(view(helper, fx, SkinToken.of("green_pick", 1), owner)));
 		assertThat(pick.equals(List.of("Fits any pickaxe", "While held: Haste I", "On block break (10%): particles and a sound", "", "Right-click to claim")),
@@ -115,6 +116,13 @@ public final class TokenTests {
 				"Right-click to claim")), "the blade's token reads " + blade);
 		List<String> plain = text(lore(view(helper, fx, SkinToken.of("plain", 1), owner)));
 		assertThat(plain.equals(List.of("Fits any sword", "", "Right-click to claim")), "a token with no description: " + plain);
+		List<String> twoLines = text(lore(view(helper, fx, SkinToken.of("two_lines", 1), owner)));
+		assertThat(twoLines.equals(List.of("Line one.", "Line two.", "", "Fits any sword", "", "Right-click to claim")), "a two-line description reads " + twoLines);
+		// "&6" colours its line gold; the next line starts gray again.
+		List<Component> twoLinesLore = lore(view(helper, fx, SkinToken.of("two_lines", 1), owner));
+		assertThat(Objects.equals(twoLinesLore.get(0).getSiblings().getFirst().getStyle().getColor(), TextColor.fromLegacyFormat(ChatFormatting.GOLD)),
+				"\"&6Line one.\" isn't gold: " + twoLinesLore.get(0));
+		assertLine(twoLinesLore.get(1), "Line two.", ChatFormatting.GRAY);
 
 		for (String id : List.of("broken", "nowhere")) {
 			ItemStack unknown = view(helper, fx, SkinToken.of(id, 1), owner);

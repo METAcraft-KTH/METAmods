@@ -107,6 +107,7 @@ public final class Feedback {
 				case NOT_OWNED, UNKNOWN_SKIN, DORMANT_SKIN -> "You can't " + verb + " " + skin + " right now, so " + unchanged + ".";
 				case NOT_APPLIED -> skin + " is on no item.";
 				case STILL_APPLIED -> skin + " is on an item. Remove it from its item first, then extract it.";
+				case NOT_EXTRACTABLE -> skin + " can't be extracted into a token.";
 				case NO_TOKEN -> "That token isn't in your inventory any more.";
 				case ITEM_AWAY -> skin + " is on an item you don't have with you. Bring it back first; " + unchanged + ".";
 				case DAMAGED_FILE -> "Your skins file is damaged, so " + unchanged + ". Ask an admin to fix it.";
@@ -121,7 +122,7 @@ public final class Feedback {
 				case DORMANT_SKIN -> skin + " is Dormant: " + dormantReason.orElse("its definition didn't load") + ".";
 				case DAMAGED_FILE -> player + "'s skins file is damaged and is never overwritten; fix it first. /itemskins info " + player + " says what's wrong.";
 				case SAVE_FAILED -> "Couldn't save " + player + "'s skins file, so nothing changed. The server log says why.";
-				case DONE, NO_TOKEN, STILL_APPLIED, ITEM_AWAY -> throw new IllegalArgumentException("not an admin's refusal: " + result);
+				case DONE, NO_TOKEN, STILL_APPLIED, NOT_EXTRACTABLE, ITEM_AWAY -> throw new IllegalArgumentException("not an admin's refusal: " + result);
 			};
 		};
 	}

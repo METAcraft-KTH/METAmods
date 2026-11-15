@@ -1,7 +1,7 @@
 {
 	name: "&lCandy Sword",
 	gradient: { colors: ["#FF69B4", "#FFFFFF"], mirror: true },
-	released: "2026/11/09",
+	released: "2026/12/01",
 	obtainable: false,
 	kind: "sword",
 	look: { model: "candy_sword.json" },

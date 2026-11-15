@@ -33,11 +33,10 @@ public final class BoxFileTests {
 		ReloadReport report = fx.reload();
 		assertThat(Set.copyOf(report.boxes().loaded()).equals(Set.of("classic", "winter")) && report.boxes().rejections().isEmpty()
 				&& report.boxes().warnings().isEmpty(), "the shipped boxes against the shipped skins: " + report.boxes());
-		// Every MCC hat in the Classic Hats Box, by rarity: common 10, uncommon 5, rare 2.
-		List<String> common = List.of("fishing_hat", "headphones_gaming", "leaf_crown", "mobster_hat", "plunderers_bandana", "safari_hat",
-				"sensei", "sun_hat_bow", "sun_visor", "trucker_hat");
+		// The MCC hats in the Classic Hats Box (all but fishing_hat, leaf_crown, sun_visor and spartan), by rarity: common 10, uncommon 5, rare 2.
+		List<String> common = List.of("headphones_gaming", "mobster_hat", "plunderers_bandana", "safari_hat", "sensei", "sun_hat_bow", "trucker_hat");
 		List<String> uncommon = List.of("banana_hat_peeled", "cowboy_hat", "flight_helmet", "hard_hat", "pirate_hat", "witch_hat");
-		List<String> rare = List.of("cat_ears", "knight_helmet", "propeller_hat", "shades_cool", "spartan", "traffic_cone_roadworks");
+		List<String> rare = List.of("cat_ears", "knight_helmet", "propeller_hat", "shades_cool", "traffic_cone_roadworks");
 		long total = common.size() * 10L + uncommon.size() * 5L + rare.size() * 2L;
 		List<String> classic = new ArrayList<>();
 		for (String hat : common) classic.add(hat + " " + BoxSummary.chance(10, total));
