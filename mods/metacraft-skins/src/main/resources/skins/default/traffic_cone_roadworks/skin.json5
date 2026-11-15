@@ -1,6 +1,5 @@
 {
-	name: "&lRoadworks Traffic Cone",
-	gradient: { colors: ["#FF6F00", "#FFFFFF"], mirror: true },
+	name: "&9&lRoadworks Traffic Cone",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

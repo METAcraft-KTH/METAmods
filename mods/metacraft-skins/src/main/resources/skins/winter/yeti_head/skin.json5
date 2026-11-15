@@ -1,7 +1,7 @@
 {
 	name: "&lYeti Head",
 	gradient: { colors: ["#E8F4FF", "#7FA7C9"], mirror: true },
-	released: "2026/11/09",
+	released: "2026/12/01",
 	obtainable: false,
 	kind: "helmet",
 	look: { model: "yeti_head.json" },

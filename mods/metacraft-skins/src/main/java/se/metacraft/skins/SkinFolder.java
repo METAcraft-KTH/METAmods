@@ -57,10 +57,10 @@ public final class SkinFolder {
 	/**
 	 * A skin that loaded: what later tickets need of its definition, and its files in the pack by
 	 * path. {@code materials} is the Materials it's limited to, in vanilla order; empty if it fits every one.
-	 * {@code dyeable}: it's a Dyeable Hat. {@code name} is the name without its formatting codes, {@code title} the name with them.
+	 * {@code dyeable}: it's a Dyeable Hat. {@code extractable}: its Owner may Extract it. {@code name} is the name without its formatting codes, {@code title} the name with them.
 	 */
 	record Loaded(String id, String name, Component title, Kind kind, Optional<List<Material>> materials, boolean dyeable, Optional<String> description,
-				Release release, List<Perk> perks, Map<String, byte[]> files) {
+				Release release, boolean extractable, List<Perk> perks, Map<String, byte[]> files) {
 		Fit fit() {
 			return new Fit(kind, materials);
 		}
@@ -112,7 +112,7 @@ public final class SkinFolder {
 		}
 		files.put("assets/" + NAMESPACE + "/items/" + id + ".json", itemDefinition(kind, modelIds, definition.look().color()).getBytes(StandardCharsets.UTF_8));
 		return new Loaded(id, SkinName.plain(definition.name()), SkinName.styled(definition.name(), definition.gradient()), kind, definition.materials(), dyeable,
-				definition.description(), definition.release(), definition.perks(), files);
+				definition.description(), definition.release(), definition.extractable(), definition.perks(), files);
 	}
 
 	/**

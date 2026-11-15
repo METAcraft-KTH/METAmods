@@ -3,7 +3,6 @@ package se.metacraft.skins.ui;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.SimpleGui;
 import se.metacraft.skins.ApplyResult;
-import se.metacraft.skins.BoxSummary;
 import se.metacraft.skins.Candidate;
 import se.metacraft.skins.Fit;
 import se.metacraft.skins.OwnedSkin;
@@ -42,7 +41,7 @@ import java.util.Optional;
  * stays visible but locked on all of them.
  * <ul>
  *   <li><b>"Your Skins"</b> (6 rows): rows 1–5 every skin on the server that loaded, 45 a page, in
- *       the menus' {@linkplain #order order} (by Skin Box). The player's own are shown with their Look,
+ *       the menus' {@linkplain #ORDER order} (by release date). The player's own are shown with their Look,
  *       glinting while applied; the rest are a dye named "???" that does nothing when clicked, light
  *       grey ("Not owned yet") or, for an unobtainable skin, grey ("Unobtainable"). Row 6 holds the page
  *       arrows (only with more than one page), the "How skins work" book, which sums skins up in
@@ -87,23 +86,12 @@ public final class SkinMenu {
 		yourSkins(player, skins, 0);
 	}
 
-	/** Within a box: by {@code released}, oldest first, then by name and id; skins without a date last. */
-	private static final Comparator<SkinSummary> BY_RELEASE = Comparator.comparing((SkinSummary s) -> s.release().flatMap(Release::released).orElse(LocalDate.MAX))
-			.thenComparing(SkinSummary::displayName).thenComparing(SkinSummary::id);
-
 	/**
-	 * The one order the menus list skins in: by the Skin Box they're in, boxes in id order (so the
-	 * Classic Hats Box's skins, then the Winter Skin Box's), a skin in two boxes going with the first;
-	 * then the skins in no box. Within each, {@link #BY_RELEASE}.
+	 * The one order the menus list skins in: by {@code released}, oldest first, whatever Skin Box a skin is
+	 * in and whether or not it's obtainable; then by name and id. Skins without a date come last.
 	 */
-	static Comparator<SkinSummary> order(Skins skins) {
-		Map<String, Integer> box = new HashMap<>();
-		List<BoxSummary> boxes = skins.boxes();
-		for (int i = 0; i < boxes.size(); i++) {
-			for (BoxSummary.Entry entry : boxes.get(i).entries()) box.putIfAbsent(entry.skin(), i);
-		}
-		return Comparator.comparingInt((SkinSummary s) -> box.getOrDefault(s.id(), Integer.MAX_VALUE)).thenComparing(BY_RELEASE);
-	}
+	static final Comparator<SkinSummary> ORDER = Comparator.comparing((SkinSummary s) -> s.release().flatMap(Release::released).orElse(LocalDate.MAX))
+			.thenComparing(SkinSummary::displayName).thenComparing(SkinSummary::id);
 
 	/** One loaded skin as "Your Skins" lists it, with the player's ownership of it if they own it. */
 	private record Listed(SkinSummary skin, Fit fit, Optional<OwnedSkin> owned) {
@@ -117,12 +105,12 @@ public final class SkinMenu {
 		}
 	}
 
-	/** Every loaded skin in the menus' {@linkplain #order order}; owned ones carry their ownership. A damaged file lists nothing. */
+	/** Every loaded skin in the menus' {@linkplain #ORDER order}; owned ones carry their ownership. A damaged file lists nothing. */
 	private static List<Listed> listed(Skins skins, PlayerSkins owned) {
 		if (owned.damage().isPresent()) return List.of();
 		Map<String, OwnedSkin> byId = new HashMap<>();
 		for (OwnedSkin skin : owned.skins()) if (skin.state() != OwnedSkin.State.DORMANT) byId.put(skin.id(), skin);
-		return skins.allSkins().stream().filter(s -> !s.dormant() && s.fit().isPresent()).sorted(order(skins))
+		return skins.allSkins().stream().filter(s -> !s.dormant() && s.fit().isPresent()).sorted(ORDER)
 				.map(s -> new Listed(s, s.fit().get(), Optional.ofNullable(byId.get(s.id())))).toList();
 	}
 
@@ -181,8 +169,11 @@ public final class SkinMenu {
 			if (extractable == OwnershipChange.DONE) {
 				icon.addLoreLine(Component.literal("Click to extract").withStyle(ChatFormatting.YELLOW)).setCallback(() -> confirmExtract(player, skins, id, fromPage, page));
 			} else {
-				icon.addLoreLine(Component.literal(extractable == OwnershipChange.STILL_APPLIED ? "Remove it from its item first" : "Can't be extracted right now")
-						.withStyle(ChatFormatting.RED));
+				icon.addLoreLine(Component.literal(switch (extractable) {
+					case STILL_APPLIED -> "Remove it from its item first";
+					case NOT_EXTRACTABLE -> "This skin can't be extracted";
+					default -> "Can't be extracted right now";
+				}).withStyle(ChatFormatting.RED));
 			}
 			gui.setSlot(i, icon.build());
 		}
@@ -257,7 +248,7 @@ public final class SkinMenu {
 
 	private static void allSkins(ServerPlayer player, Skins skins, int requestedPage) {
 		List<SkinSummary> all = new ArrayList<>(skins.allSkins());
-		all.sort(Comparator.comparing((SkinSummary s) -> s.dormant() || s.kind().isEmpty()).thenComparing(order(skins)));
+		all.sort(Comparator.comparing((SkinSummary s) -> s.dormant() || s.kind().isEmpty()).thenComparing(ORDER));
 		int pages = Math.max(1, (all.size() + PER_PAGE - 1) / PER_PAGE);
 		int page = Math.clamp(requestedPage, 0, pages - 1);
 
@@ -434,12 +425,12 @@ public final class SkinMenu {
 				.hideDefaultTooltip();
 	}
 
-	/** The lines under a skin's name wherever menus show its Look: what it fits (with the dye hint), its release, Perks and description. */
+	/** The lines under a skin's name wherever menus show its Look: its description, what it fits (with the dye hint), its release and Perks. */
 	static List<Component> lookLines(SkinSummary skin, Fit fit) {
-		List<Component> lines = new ArrayList<>(fit.lore(skin.dyeable()));
+		List<Component> lines = new ArrayList<>(Skins.descriptionLines(skin.description()));
+		lines.addAll(fit.lore(skin.dyeable()));
 		skin.release().ifPresent(r -> lines.add(r.line()));
 		lines.addAll(PerkLines.of(skin.perks()));
-		skin.description().ifPresent(d -> lines.add(Component.literal(d).withStyle(ChatFormatting.GRAY)));
 		return lines;
 	}
 

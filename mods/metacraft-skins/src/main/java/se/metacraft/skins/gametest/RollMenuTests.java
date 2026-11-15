@@ -245,7 +245,7 @@ public final class RollMenuTests {
 
 				assertThat(name(player, CENTRE).equals(name) && Boolean.TRUE.equals(slot(player, CENTRE).get(DataComponents.ENCHANTMENT_GLINT_OVERRIDE)),
 						"the centre: " + name(player, CENTRE) + " " + slot(player, CENTRE));
-				List<String> full = result.equals("a") ? List.of("75% chance", "Fits any sword", "Obtainable", "First.") : List.of("25% chance", "Fits any helmet", "Obtainable", "Second.");
+				List<String> full = result.equals("a") ? List.of("75% chance", "First.", "", "Fits any sword", "Obtainable") : List.of("25% chance", "Second.", "", "Fits any helmet", "Obtainable");
 				assertThat(lore(player, CENTRE).equals(full), "the result's tooltip: " + lore(player, CENTRE));
 				for (int slot = REEL; slot < REEL + 9; slot++) if (slot != CENTRE) assertPreviewSkin(player, slot);
 				assertThat(slot(player, TOP).is(Items.STAINED_GLASS_PANE.lime()) && name(player, TOP).equals("▼ " + name)

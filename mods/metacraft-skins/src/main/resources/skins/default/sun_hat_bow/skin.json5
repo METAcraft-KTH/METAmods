@@ -1,6 +1,5 @@
 {
-	name: "&lSun Hat",
-	gradient: { colors: ["#F5DEB3", "#FF69B4"], mirror: true },
+	name: "&f&lSun Hat",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

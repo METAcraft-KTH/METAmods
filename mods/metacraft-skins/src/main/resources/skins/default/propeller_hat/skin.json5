@@ -1,6 +1,5 @@
 {
-	name: "&lPropeller Hat",
-	gradient: { colors: ["#E53935", "#FDD835", "#1E88E5"] },
+	name: "&9&lPropeller Hat",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",
