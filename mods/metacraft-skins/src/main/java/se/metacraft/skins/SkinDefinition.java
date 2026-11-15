@@ -35,12 +35,12 @@ import static se.metacraft.skins.DefinitionCodecs.withError;
 /**
  * A skin's {@code skin.json5}: its name (as written, formatting codes and all: {@link SkinName}) and
  * the {@link SkinName.Gradient} that may colour it, Kind, the Materials it's limited to (in vanilla order; empty if it fits every one), description,
- * {@link Release}, Perks and Look. {@link #CODEC} reads the Kind first
+ * {@link Release}, whether it can be Extracted, Perks and Look. {@link #CODEC} reads the Kind first
  * and lets it pick the codec for the rest, which checks everything that depends on the Kind as it
  * reads. Its errors are the reasons a skin is rejected, in words for an admin.
  */
-record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind kind, Optional<List<Material>> materials, Optional<String> description, Release release, List<Perk> perks,
-						Look look) {
+record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind kind, Optional<List<Material>> materials, Optional<String> description, Release release, boolean extractable,
+						List<Perk> perks, Look look) {
 	/**
 	 * The Look: the model file of each slot ({@code model}, or a spear's {@code icon} and
 	 * {@code in_hand}, in that order), and whether it's a Dyeable Hat.
@@ -63,12 +63,14 @@ record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind ki
 				optionalRawField("description", topText("description")).forGetter(SkinDefinition::description),
 				optionalRawField("released", RELEASED).forGetter(d -> d.release().released()),
 				optionalRawField("obtainable", OBTAINABLE).forGetter(d -> Optional.of(d.release().obtainable())),
+				// Only a skin that can't be Extracted writes it.
+				optionalRawField("extractable", EXTRACTABLE).forGetter(d -> d.extractable() ? Optional.<Boolean>empty() : Optional.of(false)),
 				// A Look-only skin simply leaves "perks" out.
 				optionalRawField("perks", PerkCodecs.perks(kind)).xmap(p -> p.orElse(List.of()), p -> p.isEmpty() ? Optional.<List<Perk>>empty() : Optional.of(p))
 						.forGetter(SkinDefinition::perks),
 				rawField("look", look(kind), lookShape(kind) + ", and look is missing or not an object").forGetter(SkinDefinition::look)
-		).apply(i, (name, gradient, materials, description, released, obtainable, perks, look) ->
-				new SkinDefinition(name, gradient, kind, materials, description, new Release(released, obtainable.orElse(true)), perks, look)))
+		).apply(i, (name, gradient, materials, description, released, obtainable, extractable, perks, look) ->
+				new SkinDefinition(name, gradient, kind, materials, description, new Release(released, obtainable.orElse(true)), extractable.orElse(true), perks, look)))
 				.validate(d -> nameFitsGradient(d, d.name(), d.gradient())), "kind");
 	}
 
@@ -81,6 +83,8 @@ record SkinDefinition(String name, Optional<SkinName.Gradient> gradient, Kind ki
 		}
 	}, Release.DATE::format);
 	private static final Codec<Boolean> OBTAINABLE = withError(Codec.BOOL, "field \"obtainable\" must be true or false");
+	/** {@code extractable}: {@code false} keeps an Owner from Extracting the skin back into a token. */
+	private static final Codec<Boolean> EXTRACTABLE = withError(Codec.BOOL, "field \"extractable\" must be true or false");
 
 	/**
 	 * {@code materials}: one or more of the Materials the Kind comes in, each once, returned in

@@ -1,7 +1,7 @@
 {
 	name: "&lLucia Crown",
 	gradient: { colors: ["#FFF4C2", "#FFC93C"], mirror: true },
-	released: "2026/11/09",
+	released: "2026/12/01",
 	obtainable: false,
 	kind: "helmet",
 	look: { model: "lucia_crown.json" },

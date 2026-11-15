@@ -50,7 +50,7 @@ public final class ClaimMenuTests {
 							"cancel pane " + slot + ": " + item + " " + name(player, slot) + " " + lore(player, slot));
 				} else if (slot == SKIN) {
 					assertThat("skins:crown_test".equals(String.valueOf(item.get(DataComponents.ITEM_MODEL))) && name(player, slot).equals("Crown"), "the skin in the centre: " + item);
-					assertThat(lore(player, slot).equals(List.of("Fits any helmet", "Obtainable", "While worn: +2 max hearts", "Fit for a king.", "Claim to own this skin")),
+					assertThat(lore(player, slot).equals(List.of("Fit for a king.", "", "Fits any helmet", "Obtainable", "While worn: +2 max hearts", "Claim to own this skin")),
 							"the skin's tooltip: " + lore(player, slot));
 				} else {
 					assertThat(item.is(Items.STAINED_GLASS_PANE.black()), "slot " + slot + " isn't filler: " + item);
