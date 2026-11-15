@@ -1,6 +1,5 @@
 {
-	name: "&lSafari Hat",
-	gradient: { colors: ["#C2A878", "#6B8E23"], mirror: true },
+	name: "&f&lSafari Hat",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

@@ -1,7 +1,7 @@
 {
 	name: "&lSnowed In",
 	gradient: { colors: ["#FFFFFF", "#9ED8F5"], mirror: true },
-	released: "2026/11/09",
+	released: "2026/12/01",
 	obtainable: false,
 	kind: "helmet",
 	look: { model: "snowed_in.json" },

@@ -134,7 +134,7 @@ public record AlternativesEditor<T>(
 		for (int i = 0; i < values.size(); i++) {
 			var name = Component.literal(
 				codecName(values.get(i).type().element().codecName()) + ": "
-			).append(CodecDialog.getGUIFriendlyName(values.get(i).value()));
+			).append(CodecDialog.getGUIFriendlyName(values.get(i).value(), values.get(i).type(), player.registryAccess()));
 			buttons.add(new ActionButton(
 				new CommonButtonData(
 					i == currentCodec ? ValueEditor.highlight(name) : name,
