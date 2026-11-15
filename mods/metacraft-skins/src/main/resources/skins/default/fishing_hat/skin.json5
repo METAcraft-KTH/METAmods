@@ -1,7 +1,6 @@
 {
 	name: "&f&lFishing Hat",
-	released: "2026/11/09",
-	obtainable: true,
+	obtainable: false,
 	kind: "helmet",
 	look: { model: "fishing_hat.json", dyeable: true, color: "#4F7942" },
 }

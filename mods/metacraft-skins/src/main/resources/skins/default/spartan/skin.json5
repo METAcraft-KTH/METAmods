@@ -1,7 +1,6 @@
 {
 	name: "&9&lSpartan Helmet",
-	released: "2026/11/09",
-	obtainable: true,
+	obtainable: false,
 	kind: "helmet",
 	look: { model: "spartan.json", dyeable: true, color: "#B22222" },
 }

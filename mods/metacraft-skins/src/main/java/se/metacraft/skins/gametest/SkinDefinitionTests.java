@@ -56,13 +56,17 @@ public final class SkinDefinitionTests {
 				Map.entry("lucia_crown", Kind.HELMET), Map.entry("nutcracker_shako", Kind.HELMET), Map.entry("penguin_hat", Kind.HELMET),
 				Map.entry("polar_bear_hat", Kind.HELMET), Map.entry("reindeer_antlers", Kind.HELMET), Map.entry("santa_hat", Kind.HELMET),
 				Map.entry("snow_globe", Kind.HELMET), Map.entry("snowed_in", Kind.HELMET), Map.entry("trapper_hat", Kind.HELMET),
-				Map.entry("yeti_head", Kind.HELMET));
+				Map.entry("yeti_head", Kind.HELMET),
+				// Museum Showdown: 2026.
+				Map.entry("collector_chest_1", Kind.HELMET), Map.entry("collector_chest_2", Kind.HELMET), Map.entry("collector_chest_3", Kind.HELMET),
+				Map.entry("collector_chest_4", Kind.HELMET), Map.entry("collector_chest_5", Kind.HELMET), Map.entry("chest_lid_hat", Kind.HELMET));
 		Set<String> dyeable = Set.of("testblockhat", "test_cap", "cat_ears", "cowboy_hat", "fishing_hat", "flight_helmet", "headphones_gaming",
 				"knight_helmet", "mobster_hat", "pirate_hat", "plunderers_bandana", "safari_hat", "shades_cool", "spartan", "sun_hat_bow", "sun_visor",
 				"traffic_cone_roadworks", "trucker_hat", "witch_hat");
-		Set<String> unobtainable = Set.of("testblockhat", "test_cap", "candy_cane_pickaxe", "candy_sword", "icicle_blade", "jingle_bell_mace", "christmas_tree_hat", "frozen_head",
+		Set<String> unobtainable = Set.of("testblockhat", "test_cap", "fishing_hat", "leaf_crown", "sun_visor", "spartan", "candy_cane_pickaxe", "candy_sword", "icicle_blade", "jingle_bell_mace", "christmas_tree_hat", "frozen_head",
 				"gift_box_head", "gingerbread_head", "hot_cocoa_mug", "lucia_crown", "nutcracker_shako", "penguin_hat", "polar_bear_hat", "reindeer_antlers",
-				"santa_hat", "snow_globe", "snowed_in", "trapper_hat", "yeti_head");
+				"santa_hat", "snow_globe", "snowed_in", "trapper_hat", "yeti_head",
+				"collector_chest_1", "collector_chest_2", "collector_chest_3", "collector_chest_4", "collector_chest_5", "chest_lid_hat");
 		SkinFixtures fx = SkinFixtures.create();
 		Path folder = fx.skins.skinsFolder();
 		assertThat(DefaultSkins.installIfMissing(folder), "the shipped skins weren't put in " + folder);

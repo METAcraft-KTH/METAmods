@@ -600,9 +600,9 @@ public final class Skins {
 		}
 		SkinFolder.Loaded loaded = skin.loaded().get();
 		boolean owned = viewer != null && ownership.read(viewer) instanceof DataResult.Success(var record, _) && record.skins().containsKey(id);
-		List<Component> lines = new ArrayList<>(loaded.fit().lore(loaded.dyeable()));
+		List<Component> lines = new ArrayList<>(descriptionLines(loaded.description()));
+		lines.addAll(loaded.fit().lore(loaded.dyeable()));
 		lines.addAll(PerkLines.of(inEffect(loaded.perks())));
-		loaded.description().ifPresent(d -> lines.add(plain(d, ChatFormatting.GRAY)));
 		lines.add(Component.empty());
 		lines.add(plain(owned ? "✔ You already own this skin — trade it away" : "Right-click to claim", ChatFormatting.GRAY));
 		// Siblings of an empty root, so the skin's name doesn't take on the prefix's bold and gold.
@@ -674,7 +674,7 @@ public final class Skins {
 			return client;
 		}
 		List<Component> lines = new ArrayList<>();
-		summary.description().ifPresent(d -> lines.add(plain(d, ChatFormatting.GRAY)));
+		summary.description().ifPresent(d -> d.lines().forEach(line -> lines.add(plain(line, ChatFormatting.GRAY))));
 		lines.add(Component.empty());
 		// Siblings of an empty root throughout, so no part takes on another's colour or bold.
 		lines.add(Component.empty().append(Component.literal("Random Loot").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.WHITE).withBold(true)))
@@ -989,10 +989,10 @@ public final class Skins {
 		client.set(DataComponents.ITEM_NAME, skin.title());
 		// The glint would wash over the Look, so a working skin never glints, enchanted or not.
 		client.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, false);
-		List<Component> lines = new ArrayList<>(client.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines());
+		List<Component> lines = new ArrayList<>(descriptionLines(skin.description()));
+		lines.addAll(client.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines());
 		lines.add(skin.release().line());
 		lines.addAll(PerkLines.of(skin.perks()));
-		skin.description().ifPresent(d -> lines.add(plain(d, ChatFormatting.GRAY)));
 		lines.add(plain("Owned by " + skin.ownerName(), ChatFormatting.GRAY));
 		client.set(DataComponents.LORE, new ItemLore(lines));
 		return client;
@@ -1093,6 +1093,19 @@ public final class Skins {
 	/** A player left: every held and worn Perk this keeps up on them ends. Server thread only. */
 	public synchronized void left(ServerPlayer player) {
 		lasting.end(player);
+	}
+
+	/**
+	 * A skin's description as the top of its lore, right under the name: one line per line of it ({@code \n} in
+	 * skin.json5 breaks them), gray unless its formatting codes say otherwise, then a blank line to set it off from the
+	 * rest. Nothing for a skin without one.
+	 */
+	public static List<Component> descriptionLines(Optional<String> description) {
+		if (description.isEmpty()) return List.of();
+		List<Component> lines = new ArrayList<>();
+		description.get().lines().forEach(line -> lines.add(SkinName.lore(line, ChatFormatting.GRAY)));
+		lines.add(Component.empty());
+		return lines;
 	}
 
 	private static Component plain(String text, ChatFormatting colour) {

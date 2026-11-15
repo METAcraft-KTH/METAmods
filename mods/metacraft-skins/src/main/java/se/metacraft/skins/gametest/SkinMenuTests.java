@@ -60,7 +60,7 @@ public final class SkinMenuTests {
 			// Neither has a date, so by name; the Dormant skin isn't listed.
 			assertThat(name(player, 0).equals("Candy Sword") && name(player, 1).equals("Crown") && slot(player, 2).isEmpty(),
 					"listed " + name(player, 0) + ", " + name(player, 1) + ", " + name(player, 2));
-			assertThat(lore(player, 0).equals(List.of("Fits any sword", "Obtainable", "On kill: heals 2 hearts", "Sweet.", "Unapplied", "Click to apply or remove")),
+			assertThat(lore(player, 0).equals(List.of("Sweet.", "", "Fits any sword", "Obtainable", "On kill: heals 2 hearts", "Unapplied", "Click to apply or remove")),
 					"the skin's tooltip: " + lore(player, 0));
 			assertThat("skins:candy_sword_test".equals(String.valueOf(slot(player, 0).get(DataComponents.ITEM_MODEL))), "the icon isn't the Look");
 			assertThat(!slot(player, PREVIOUS_PAGE).is(Items.ARROW) && !slot(player, NEXT_PAGE).is(Items.ARROW), "page arrows with one page");
@@ -334,25 +334,29 @@ public final class SkinMenuTests {
 	}
 
 	/**
-	 * Skins are listed by the Skin Box they're in, boxes in id order (a skin in two boxes goes with the
-	 * first), then the skins in no box; by name within each. "All Skins" lists them the same way.
+	 * Skins are listed by release date alone, oldest first, whatever Skin Box they're in (or none) and
+	 * whether or not they're obtainable; undated skins last. "All Skins" lists them the same way.
 	 */
 	@GameTest
-	public void skinsAreListedByTheirSkinBox(GameTestHelper helper) {
-		SkinFixtures fx = SkinFixtures.create().skin("a_loose", "helmet", "Aardvark Hat", null).skin("z_classic", "helmet", "Zebra Hat", null)
-				.skin("m_classic", "helmet", "Moose Hat", null).skin("b_winter", "helmet", "Bear Hat", null).skin("both", "helmet", "Yak Hat", null)
-				.box("classic.json5", "{ name: \"Classic\", skins: [ { skin: \"z_classic\", weight: 1 }, { skin: \"m_classic\", weight: 9 } ] }")
-				.box("winter.json5", "{ name: \"Winter\", skins: [ { skin: \"b_winter\", weight: 1 }, { skin: \"both\", weight: 1 } ] }")
-				.box("another.json5", "{ name: \"Another\", skins: [ { skin: \"both\", weight: 1 } ] }");
+	public void skinsAreListedByReleaseWhateverTheirSkinBox(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().skin("undated", "helmet", "Aardvark Hat", null)
+				.skin("winter_test", "helmet").file("winter_test", "skin.json5", "{ name: \"Bear Hat\", kind: \"helmet\", released: \"2026/12/01\","
+						+ " look: { model: \"winter_test.json\" } }")
+				.skin("event_test", "helmet").file("event_test", "skin.json5", "{ name: \"Zebra Hat\", kind: \"helmet\", released: \"2026/11/16\","
+						+ " obtainable: false, look: { model: \"event_test.json\" } }")
+				.skin("classic_test", "helmet").file("classic_test", "skin.json5", "{ name: \"Yak Hat\", kind: \"helmet\", released: \"2026/11/09\","
+						+ " look: { model: \"classic_test.json\" } }")
+				.box("classic.json5", "{ name: \"Classic\", skins: [ { skin: \"classic_test\", weight: 1 } ] }")
+				.box("winter.json5", "{ name: \"Winter\", skins: [ { skin: \"winter_test\", weight: 1 } ] }");
 		fx.reload();
 		ServerPlayer player = helper.makeMockServerPlayerInLevel();
-		for (String skin : List.of("a_loose", "z_classic", "m_classic", "b_winter", "both")) fx.skins.grant(player.nameAndId(), skin);
-		List<String> expected = List.of("Yak Hat", "Moose Hat", "Zebra Hat", "Bear Hat", "Aardvark Hat");
+		for (String skin : List.of("undated", "winter_test", "event_test", "classic_test")) fx.skins.grant(player.nameAndId(), skin);
+		List<String> expected = List.of("Yak Hat", "Zebra Hat", "Bear Hat", "Aardvark Hat");
 		SkinMenu.open(player, fx.skins);
-		List<String> listed = java.util.stream.IntStream.range(0, 5).mapToObj(i -> name(player, i)).toList();
+		List<String> listed = java.util.stream.IntStream.range(0, 4).mapToObj(i -> name(player, i)).toList();
 		assertThat(listed.equals(expected), "Your Skins lists " + listed);
 		SkinMenu.openAll(player, fx.skins);
-		List<String> all = java.util.stream.IntStream.range(0, 5).mapToObj(i -> name(player, i)).toList();
+		List<String> all = java.util.stream.IntStream.range(0, 4).mapToObj(i -> name(player, i)).toList();
 		assertThat(all.equals(expected), "All Skins lists " + all);
 		helper.succeed();
 	}
@@ -540,7 +544,7 @@ public final class SkinMenuTests {
 			assertThat(title(player).equals("All Skins") && rows(player) == 6, "the menu is " + title(player) + " with " + rows(player) + " rows");
 			assertThat(name(player, 0).equals("Crown") && name(player, 1).equals("Candy Sword") && name(player, 2).equals("hat") && slot(player, 3).isEmpty(),
 					"listed " + name(player, 0) + ", " + name(player, 1) + ", " + name(player, 2));
-			assertThat(lore(player, 1).equals(List.of("Fits any sword", "Obtainable", "Sweet.")), "the sword's tooltip: " + lore(player, 1));
+			assertThat(lore(player, 1).equals(List.of("Sweet.", "", "Fits any sword", "Obtainable")), "the sword's tooltip: " + lore(player, 1));
 			assertThat(lore(player, 0).equals(List.of("Fits any helmet", "Released: 2026/10/31 - Unobtainable")), "the crown's tooltip: " + lore(player, 0));
 			assertThat(slot(player, 0).getHoverName().getSiblings().getFirst().getStyle().isBold(), "the crown's name isn't bold");
 			assertThat("skins:crown_test".equals(String.valueOf(slot(player, 0).get(DataComponents.ITEM_MODEL))), "the crown's icon isn't the Look");

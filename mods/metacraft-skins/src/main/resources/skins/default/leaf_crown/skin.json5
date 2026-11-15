@@ -1,7 +1,6 @@
 {
 	name: "&f&lLeaf Crown",
-	released: "2026/11/09",
-	obtainable: true,
+	obtainable: false,
 	kind: "helmet",
 	look: { model: "leaf_crown.json" },
 }

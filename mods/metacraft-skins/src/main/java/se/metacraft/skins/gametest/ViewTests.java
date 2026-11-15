@@ -283,13 +283,15 @@ public final class ViewTests {
 
 		ItemStack client = view(helper, fx, owner.getInventory().getItem(0), viewer, owner.getUUID());
 		List<Component> lore = lore(client);
-		assertThat(lore.size() > 4, "vanilla's lines (the enchantment, the attack damage) are missing: " + text(lore));
-		List<Component> block = lore.subList(lore.size() - 4, lore.size());
+		assertThat(lore.size() > 5, "vanilla's lines (the enchantment, the attack damage) are missing: " + text(lore));
+		// The description right under the name, set off by a blank line; then vanilla's lines; then the skin's own.
+		assertLine(lore.get(0), "Sweet, and sharp.", ChatFormatting.GRAY);
+		assertThat(lore.get(1).getString().isEmpty(), "no blank line after the description: " + text(lore));
+		List<Component> block = lore.subList(lore.size() - 3, lore.size());
 		assertRelease(block.get(0), "Obtainable", ChatFormatting.GREEN);
 		assertLine(block.get(1), "While held: Speed II and +10% Attack Damage", ChatFormatting.BLUE);
-		assertLine(block.get(2), "Sweet, and sharp.", ChatFormatting.GRAY);
-		assertLine(block.get(3), "Owned by " + name, ChatFormatting.GRAY);
-		assertThat(lore.subList(0, lore.size() - 4).stream().anyMatch(l -> l.getString().contains("Sharpness")), "vanilla's lines don't come first: " + text(lore));
+		assertLine(block.get(2), "Owned by " + name, ChatFormatting.GRAY);
+		assertThat(lore.subList(2, lore.size() - 3).stream().anyMatch(l -> l.getString().contains("Sharpness")), "vanilla's lines aren't between the description and the skin's lines: " + text(lore));
 		assertThat(client.getHoverName().getString().equals("Old Faithful"), "the item's name became " + client.getHoverName().getString());
 		assertThat(Boolean.FALSE.equals(client.get(DataComponents.ENCHANTMENT_GLINT_OVERRIDE)) && !client.hasFoil(), "the enchanted skinned item glints");
 

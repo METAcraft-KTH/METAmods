@@ -205,7 +205,7 @@ public final class ExtractTests {
 				} else if (slot == TOKEN) {
 					assertThat(SkinToken.MODEL.equals(item.get(DataComponents.ITEM_MODEL)) && name(player, slot).equals("Skin Token: Crown"), "the token in the centre: " + item
 							+ " named " + name(player, slot));
-					assertThat(lore(player, slot).equals(List.of("Fits any helmet", "While worn: +2 max hearts", "Fit for a king.", "", "Extract to trade this skin as a token")),
+					assertThat(lore(player, slot).equals(List.of("Fit for a king.", "", "Fits any helmet", "While worn: +2 max hearts", "", "Extract to trade this skin as a token")),
 							"the token's tooltip: " + lore(player, slot));
 				} else {
 					assertThat(item.is(Items.STAINED_GLASS_PANE.black()), "slot " + slot + " isn't filler: " + item);
