@@ -1,6 +1,5 @@
 {
-	name: "&lGaming Headphones",
-	gradient: { colors: ["#00E5FF", "#B026FF"] },
+	name: "&f&lGaming Headphones",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

@@ -1,6 +1,5 @@
 {
-	name: "&lCool Shades",
-	gradient: { colors: ["#1A1A1A", "#00BFFF"], mirror: true },
+	name: "&9&lCool Shades",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

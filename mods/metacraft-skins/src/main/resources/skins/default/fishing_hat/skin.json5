@@ -1,8 +1,6 @@
 {
-	name: "&lFishing Hat",
-	gradient: { colors: ["#4F7942", "#C2B280"], mirror: true },
-	released: "2026/11/09",
-	obtainable: true,
+	name: "&f&lFishing Hat",
+	obtainable: false,
 	kind: "helmet",
 	look: { model: "fishing_hat.json", dyeable: true, color: "#4F7942" },
 }
