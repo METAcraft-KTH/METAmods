@@ -1,8 +1,8 @@
 {
 	"schemaVersion": 1,
-	"id": "east-vs-west",
+	"id": "museum-collection",
 	"version": "${version}",
-	"name": "East vs West vs Rest",
+	"name": "Museum Collection Competition",
 	"description": "An item collection event between three teams: players register items with a collector villager, stored in MySQL for the website.",
 	"authors": [
 		"Oscar Eriksson"
@@ -16,7 +16,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"se.metacraft.east_vs_west.EastVsWest"
+			"se.metacraft.museum_collection.MuseumCollection"
 		]
 	},
 	"depends": {
@@ -25,9 +25,9 @@
 		"java": ">=25",
 		"fabric-api": "*",
 		"metacraft-lib": "*",
-		"metacraft-config": "*",
-		"polymer-core": "*",
-		"polymer-virtual-entity": "*",
-		"polymer-resource-pack": "*"
+		"metacraft-config": "*"
+	},
+	"suggests": {
+		"metacraft-skins": "*"
 	}
 }

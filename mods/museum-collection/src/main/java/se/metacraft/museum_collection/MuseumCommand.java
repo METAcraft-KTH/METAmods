@@ -1,4 +1,4 @@
-package se.metacraft.east_vs_west;
+package se.metacraft.museum_collection;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -21,13 +21,13 @@ import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
 /**
- * {@code /evw}: the teams' scores and your own. {@code /evw top}: the best players. The leaderboard proper is
+ * {@code /museum}: the teams' scores and your own. {@code /museum top}: the best players. The leaderboard proper is
  * on the website; these read the copy of the standings the server refreshes every few seconds.
- * {@code /evw join}: the team selection dialog, for a player on no team yet.
+ * {@code /museum join}: the team selection dialog, for a player on no team yet.
  *
- * <p>{@code /evw admin ...} (game masters, or the {@code east-vs-west:admin} permission):
+ * <p>{@code /museum admin ...} (game masters, or the {@code museum-collection:admin} permission):
  * <ul>
- *   <li>{@code team set <players> <east|west|rest>}: puts players on a team, online or not; what they have
+ *   <li>{@code team set <players> <east|west|south>}: puts players on a team, online or not; what they have
  *       registered moves with them. {@code team get <player>} shows a player's team and item count.</li>
  *   <li>{@code collector spawn}: a collector villager where you stand. {@code collector tag|untag <villager>}:
  *       makes an existing villager a collector, or an ordinary villager again.</li>
@@ -35,13 +35,13 @@ import static net.minecraft.commands.Commands.literal;
  *   <li>{@code refresh}: reads the standings from the database now.</li>
  * </ul>
  */
-public final class EvwCommand {
+public final class MuseumCommand {
 
 	private static final SimpleCommandExceptionType NOT_RUNNING = new SimpleCommandExceptionType(Component.literal(
-			"The event isn't running: set enabled in config/" + EastVsWest.MODID + ".json5 and /reload"));
+			"The event isn't running: set enabled in config/" + MuseumCollection.MODID + ".json5 and /reload"));
 	private static final SimpleCommandExceptionType NOT_A_VILLAGER = new SimpleCommandExceptionType(Component.literal("That isn't a villager"));
 
-	private EvwCommand() {}
+	private MuseumCommand() {}
 
 	static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> register(dispatcher));
@@ -53,13 +53,13 @@ public final class EvwCommand {
 			teamSet.then(literal(team.id()).executes(ctx -> setTeam(ctx, team)));
 		}
 		dispatcher.register(
-				literal("evw").executes(ctx -> status(ctx.getSource()))
+				literal("museum").executes(ctx -> status(ctx.getSource()))
 						.then(literal("top").executes(ctx -> top(ctx.getSource())))
 						.then(literal("join").executes(ctx -> join(ctx.getSource())))
-						.then(literal("admin").requires(PermissionPredicates.require(EastVsWest.getID("admin"), PermissionLevel.GAMEMASTERS))
+						.then(literal("admin").requires(PermissionPredicates.require(MuseumCollection.getID("admin"), PermissionLevel.GAMEMASTERS))
 								.then(literal("team")
 										.then(literal("set").then(teamSet))
-										.then(literal("get").then(argument("player", GameProfileArgument.gameProfile()).executes(EvwCommand::getTeam))))
+										.then(literal("get").then(argument("player", GameProfileArgument.gameProfile()).executes(MuseumCommand::getTeam))))
 								.then(literal("collector")
 										.then(literal("spawn").executes(ctx -> spawnCollector(ctx.getSource())))
 										.then(literal("tag").then(argument("villager", EntityArgument.entity()).executes(ctx -> tagCollector(ctx, true))))
@@ -71,7 +71,7 @@ public final class EvwCommand {
 	}
 
 	private static EventService running() throws CommandSyntaxException {
-		var service = EastVsWest.service();
+		var service = MuseumCollection.service();
 		if (service == null || !service.isRunning()) {
 			throw NOT_RUNNING.create();
 		}
@@ -80,9 +80,9 @@ public final class EvwCommand {
 
 	private static int status(CommandSourceStack source) throws CommandSyntaxException {
 		var service = running();
-		var config = EvwConfig.get();
+		var config = MuseumConfig.get();
 		var standings = service.standings();
-		MutableComponent message = Component.literal("East vs West vs Rest").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+		MutableComponent message = Component.literal("Museum Collection Competition").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
 		for (var team : Team.values()) {
 			message.append(Component.literal("\n  ").withStyle(style -> style.withBold(false).withColor(ChatFormatting.WHITE)).append(team.displayName())
 					.append(": " + standings.score(team) + " unique items"));
@@ -92,16 +92,12 @@ public final class EvwCommand {
 		if (state != null) {
 			MutableComponent own = Component.literal("\n").withStyle(style -> style.withBold(false).withColor(ChatFormatting.GRAY));
 			if (state.team() == null) {
-				own.append("You aren't on a team yet: /evw join, or right-click a collector.");
+				own.append("You aren't on a team yet: /museum join, or right-click a collector.");
 			} else {
-				own.append("You are on ").append(state.team().displayName()).append(" with " + state.items() + " items. ");
+				own.append("You are on ").append(state.team().displayName()).append(" with " + state.items() + " items.");
 				int missing = config.participationThreshold() - state.items();
-				if (service.isLegendary(player.getUUID())) {
-					own.append("You wear the " + config.legendary().hat().name() + ".");
-				} else if (missing > 0) {
-					own.append(missing + " more for the " + config.team(state.team()).hat().name() + " hat.");
-				} else {
-					own.append("You wear the " + config.team(state.team()).hat().name() + " hat.");
+				if (missing > 0) {
+					own.append(" " + missing + " more for the participation reward.");
 				}
 			}
 			message.append(own);
@@ -150,7 +146,7 @@ public final class EvwCommand {
 		for (NameAndId profile : profiles) {
 			service.setTeam(profile.id(), profile.name(), team, (items, error) -> {
 				if (error != null) {
-					EastVsWest.LOGGER.warn("Could not put {} on team {}: {}", profile.name(), team.id(), error.toString());
+					MuseumCollection.LOGGER.warn("Could not put {} on team {}: {}", profile.name(), team.id(), error.toString());
 					source.sendFailure(Component.literal("Could not put " + profile.name() + " on a team: the event database can't be reached"));
 				} else {
 					source.sendSuccess(() -> Component.literal(profile.name() + " is on team ").append(team.displayName())
@@ -168,7 +164,7 @@ public final class EvwCommand {
 		for (NameAndId profile : profiles) {
 			service.lookUp(profile.id(), profile.name(), (info, error) -> {
 				if (error != null) {
-					EastVsWest.LOGGER.warn("Could not look up {}: {}", profile.name(), error.toString());
+					MuseumCollection.LOGGER.warn("Could not look up {}: {}", profile.name(), error.toString());
 					source.sendFailure(Component.literal("Could not look up " + profile.name() + ": the event database can't be reached"));
 				} else if (info.isEmpty()) {
 					source.sendSuccess(() -> Component.literal(profile.name() + " isn't on a team"), false);
@@ -206,7 +202,7 @@ public final class EvwCommand {
 	}
 
 	private static int setOpen(CommandSourceStack source, boolean open) {
-		EvwConfig.setSubmissionsOpen(open);
+		MuseumConfig.setSubmissionsOpen(open);
 		source.sendSuccess(() -> Component.literal(open ? "Collectors take items again" : "Collectors no longer take items"), true);
 		return 1;
 	}

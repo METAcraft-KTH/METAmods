@@ -1,4 +1,4 @@
-package se.metacraft.east_vs_west;
+package se.metacraft.museum_collection;
 
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.network.chat.Component;
@@ -20,13 +20,13 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class Collector {
 
-	public static final String TAG = "evw_collector";
+	public static final String TAG = "museum_collector";
 
 	private Collector() {}
 
 	static void init() {
 		UseEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
-			var service = EastVsWest.service();
+			var service = MuseumCollection.service();
 			if (level.isClientSide() || !(player instanceof ServerPlayer serverPlayer) || service == null || !service.isRunning() || !isCollector(entity)) {
 				return InteractionResult.PASS;
 			}
@@ -62,7 +62,7 @@ public final class Collector {
 		villager.setSilent(true);
 		villager.setPermanentlyInvulnerable(true);
 		villager.setPersistenceRequired();
-		String name = EvwConfig.get().collectorName();
+		String name = MuseumConfig.get().collectorName();
 		if (!name.isEmpty()) {
 			villager.setCustomName(Component.literal(name));
 			villager.setCustomNameVisible(true);

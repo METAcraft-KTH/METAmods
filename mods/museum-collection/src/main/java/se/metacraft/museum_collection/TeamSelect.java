@@ -1,4 +1,4 @@
-package se.metacraft.east_vs_west;
+package se.metacraft.museum_collection;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
@@ -21,8 +21,8 @@ import java.util.Optional;
 
 /**
  * The team selection dialog: what a player on no team gets instead of registering an item (or with
- * {@code /evw join}). A vanilla dialog with a button per team; a button sends a custom click action back,
- * {@code east-vs-west:join_<team>}, which metacraft-lib's {@link CustomMessageRegistry} hands to
+ * {@code /museum join}). A vanilla dialog with a button per team; a button sends a custom click action back,
+ * {@code museum-collection:join_<team>}, which metacraft-lib's {@link CustomMessageRegistry} hands to
  * {@link EventService#join}. The client only names a team: whether the player may still pick one is decided
  * on the server, against the database.
  */
@@ -31,13 +31,13 @@ final class TeamSelect {
 	private TeamSelect() {}
 
 	private static Identifier action(Team team) {
-		return EastVsWest.getID("join_" + team.id());
+		return MuseumCollection.getID("join_" + team.id());
 	}
 
 	static void init() {
 		for (var team : Team.values()) {
 			Registry.register(CustomMessageRegistry.REGISTRY, action(team), (payload, server, player) -> {
-				var service = EastVsWest.service();
+				var service = MuseumCollection.service();
 				if (service != null && service.isRunning()) {
 					player.getPlayer(server).ifPresent(online -> service.join(online, team));
 				}
@@ -56,7 +56,7 @@ final class TeamSelect {
 		var data = new CommonDialogData(
 				Component.literal("Choose your team"), Optional.empty(), true, false, DialogAction.CLOSE,
 				List.of(new PlainMessage(Component.literal(
-						"East vs West vs Rest: every item you register with the collector counts for your team. You choose once, and the choice is final."
+						"Museum Collection Competition: every item you register with the collector counts for your team. You choose once, and the choice is final."
 				), 250)),
 				List.of()
 		);

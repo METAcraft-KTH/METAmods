@@ -1,9 +1,9 @@
-package se.metacraft.east_vs_west.db;
+package se.metacraft.museum_collection.db;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import se.metacraft.east_vs_west.EastVsWest;
-import se.metacraft.east_vs_west.EvwConfig;
+import se.metacraft.museum_collection.MuseumCollection;
+import se.metacraft.museum_collection.MuseumConfig;
 
 import java.sql.SQLException;
 import java.util.concurrent.CompletableFuture;
@@ -26,16 +26,16 @@ public final class Database {
 		T run(EventRepository repository) throws SQLException;
 	}
 
-	private final EvwConfig.Database config;
+	private final MuseumConfig.Database config;
 	private final HikariDataSource dataSource;
 	private final ExecutorService executor;
 	private final EventRepository repository;
 	private boolean tablesCreated;
 
-	public Database(EvwConfig.Database config) {
+	public Database(MuseumConfig.Database config) {
 		this.config = config;
 		var hikari = new HikariConfig();
-		hikari.setPoolName(EastVsWest.MODID);
+		hikari.setPoolName(MuseumCollection.MODID);
 		// Named, so the driver bundled in this mod's jar is found whatever DriverManager has registered.
 		hikari.setDriverClassName("org.mariadb.jdbc.Driver");
 		hikari.setJdbcUrl(config.jdbcUrl());
@@ -50,13 +50,13 @@ public final class Database {
 		this.repository = new EventRepository(dataSource::getConnection, config.tablePrefix());
 		var threadNumber = new AtomicInteger();
 		this.executor = Executors.newFixedThreadPool(config.poolSize(), task -> {
-			var thread = new Thread(task, EastVsWest.MODID + "-db-" + threadNumber.incrementAndGet());
+			var thread = new Thread(task, MuseumCollection.MODID + "-db-" + threadNumber.incrementAndGet());
 			thread.setDaemon(true);
 			return thread;
 		});
 	}
 
-	public EvwConfig.Database config() {
+	public MuseumConfig.Database config() {
 		return config;
 	}
 
@@ -85,7 +85,7 @@ public final class Database {
 		if (!tablesCreated) {
 			repository.createTables();
 			tablesCreated = true;
-			EastVsWest.LOGGER.info("Event database ready: {}", config);
+			MuseumCollection.LOGGER.info("Event database ready: {}", config);
 		}
 	}
 
@@ -104,7 +104,7 @@ public final class Database {
 		if (wait) {
 			try {
 				if (!executor.awaitTermination(config.connectTimeoutSeconds() + 2L, TimeUnit.SECONDS)) {
-					EastVsWest.LOGGER.warn("Event database queries were still running at shutdown");
+					MuseumCollection.LOGGER.warn("Event database queries were still running at shutdown");
 					dataSource.close();
 				}
 			} catch (InterruptedException e) {

@@ -1,6 +1,5 @@
-package se.metacraft.east_vs_west;
+package se.metacraft.museum_collection;
 
-import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -11,30 +10,28 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * East vs West vs Rest: three teams collect items. A player registers an item by right-clicking a collector
+ * The Museum Collection Competition: three teams collect items. A player registers an item by right-clicking a collector
  * villager with it (the item is kept); each player can register each item once, and a team's score is the
  * number of different items its players have registered. Everything is stored in MySQL, where the website
  * reads it. See README.md in this module.
  */
-public final class EastVsWest implements ModInitializer {
+public final class MuseumCollection implements ModInitializer {
 
-	public static final String MODID = "east-vs-west";
+	public static final String MODID = "museum-collection";
 	public static final Logger LOGGER = LogManager.getLogger(MODID);
 
 	@Nullable
 	private static EventService service;
-	private static final Cosmetics COSMETICS = new Cosmetics();
 
 	@Override
 	public void onInitialize() {
-		EvwConfig.get();
+		MuseumConfig.get();
 		Collector.init();
 		TeamSelect.init();
-		EvwCommand.init();
+		MuseumCommand.init();
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> service = new EventService(server));
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-			COSMETICS.clear();
 			if (service != null) {
 				// The last submissions are written before the server is gone.
 				service.stop(true);
@@ -44,7 +41,6 @@ public final class EastVsWest implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			if (service != null) {
 				service.tick();
-				COSMETICS.tick(server, service);
 			}
 		});
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -53,15 +49,10 @@ public final class EastVsWest implements ModInitializer {
 			}
 		});
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-			COSMETICS.onLeave(handler.getPlayer());
 			if (service != null) {
 				service.onLeave(handler.getPlayer());
 			}
 		});
-
-		// The legendary hat's model (the lid of an ender chest).
-		PolymerResourcePackUtils.addModAssets(MODID);
-		PolymerResourcePackUtils.markAsRequired();
 	}
 
 	/** The event on the running server; null while no server is running. */

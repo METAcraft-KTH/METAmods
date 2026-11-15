@@ -1,4 +1,4 @@
-package se.metacraft.east_vs_west;
+package se.metacraft.museum_collection;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.ChatFormatting;
@@ -9,14 +9,14 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * The three teams. {@link #id} is the one key used everywhere: the config, the commands and the database's
- * {@code team} columns, which the website reads. "South" is only the rest team's flavour text.
+ * {@code team} columns, which the website reads.
  *
  * <p>These are the event's own teams, kept in the database: nobody is put in a vanilla scoreboard team.
  */
 public enum Team implements StringRepresentable {
 	EAST("east", ChatFormatting.RED),
 	WEST("west", ChatFormatting.BLUE),
-	REST("rest", ChatFormatting.GREEN);
+	SOUTH("south", ChatFormatting.GREEN);
 
 	public static final Codec<Team> CODEC = StringRepresentable.fromEnum(Team::values);
 
@@ -38,7 +38,7 @@ public enum Team implements StringRepresentable {
 
 	/** The team's configured name in its colour. */
 	public MutableComponent displayName() {
-		return Component.literal(EvwConfig.get().team(this).displayName()).withStyle(color);
+		return Component.literal(MuseumConfig.get().team(this).displayName()).withStyle(color);
 	}
 
 	@Override

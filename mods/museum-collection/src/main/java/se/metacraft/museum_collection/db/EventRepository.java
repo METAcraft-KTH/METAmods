@@ -1,7 +1,7 @@
-package se.metacraft.east_vs_west.db;
+package se.metacraft.museum_collection.db;
 
 import org.jetbrains.annotations.Nullable;
-import se.metacraft.east_vs_west.Team;
+import se.metacraft.museum_collection.Team;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,9 +12,12 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -22,8 +25,8 @@ import java.util.stream.Collectors;
  * The event's SQL, and nothing else: every method blocks on the database, so they are only ever called from
  * {@link Database}'s threads. Two tables, shared with the website (see {@link #schema}):
  * <ul>
- *   <li>{@code players}: one row per player on a team, with their current name. A player has no row until
- *       they pick a team (or an admin puts them on one);</li>
+ *   <li>{@code players}: one row per player on a team, with their current name and skin. A player has no
+ *       row until they pick a team (or an admin puts them on one);</li>
  *   <li>{@code submissions}: one row per item a player has registered. Its primary key
  *       {@code (player_uuid, item_id)} is what stops a player registering an item twice, whatever two
  *       clicks or two servers do at once; any number of players may hold the same item.</li>
@@ -37,6 +40,8 @@ public final class EventRepository {
 	public static final int MAX_ITEM_ID_LENGTH = 128;
 	/** The longest name the {@code username} column holds: Minecraft's limit. */
 	private static final int MAX_USERNAME_LENGTH = 16;
+	/** The longest skin hash the {@code skin} column holds; textures.minecraft.net's are 64 hex digits at most. */
+	public static final int MAX_SKIN_LENGTH = 64;
 
 	@FunctionalInterface
 	public interface ConnectionSource {
@@ -96,6 +101,7 @@ public final class EventRepository {
 						+ "  uuid CHAR(36) NOT NULL,\n"
 						+ "  username VARCHAR(16) NOT NULL,\n"
 						+ "  team ENUM(" + teams + ") NOT NULL,\n"
+						+ "  skin VARCHAR(" + MAX_SKIN_LENGTH + ") NULL,\n"
 						+ "  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n"
 						+ "  PRIMARY KEY (uuid),\n"
 						+ "  KEY idx_" + players + "_team (team)\n"
@@ -122,12 +128,15 @@ public final class EventRepository {
 	}
 
 	/**
-	 * A player's team and item count, or empty for one on no team. Their stored name is brought up to date,
-	 * which is how a renamed player reaches the website.
+	 * A player's team and item count, or empty for one on no team. Their stored name and skin are brought up
+	 * to date, which is how a renamed or reskinned player reaches the website.
+	 *
+	 * @param skin the hash of their skin on textures.minecraft.net (see {@code Skins}); null when unknown,
+	 *             which keeps the stored one
 	 */
-	public Optional<PlayerInfo> loadPlayer(UUID uuid, String username) throws SQLException {
+	public Optional<PlayerInfo> loadPlayer(UUID uuid, String username, @Nullable String skin) throws SQLException {
 		try (Connection connection = connections.get()) {
-			Team team = teamOf(connection, uuid, username);
+			Team team = teamOf(connection, uuid, username, skin, false);
 			if (team == null) {
 				return Optional.empty();
 			}
@@ -137,41 +146,54 @@ public final class EventRepository {
 
 	/**
 	 * Registers an item for a player, for their current team. The insert either adds the one row the primary
-	 * key allows or fails on it, so two submissions racing each other end as one {@link Outcome#REGISTERED}
+	 * key allows or skips it, so two submissions racing each other end as one {@link Outcome#REGISTERED}
 	 * and one {@link Outcome#ALREADY_SUBMITTED}.
 	 */
-	public SubmitResult submit(UUID uuid, String username, String itemId) throws SQLException {
+	public SubmitResult submit(UUID uuid, String username, @Nullable String skin, String itemId) throws SQLException {
 		if (itemId.length() > MAX_ITEM_ID_LENGTH) {
 			throw new SQLException("item id longer than " + MAX_ITEM_ID_LENGTH + " characters: " + itemId);
 		}
 		try (Connection connection = connections.get()) {
-			Team team = teamOf(connection, uuid, username);
-			if (team == null) {
-				return new SubmitResult(Outcome.NO_TEAM, null, false, 0, 0);
-			}
-			boolean teamHadIt;
-			try (PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM " + submissions + " WHERE team = ? AND item_id = ? LIMIT 1")) {
-				statement.setString(1, team.id());
-				statement.setString(2, itemId);
-				try (ResultSet rows = statement.executeQuery()) {
-					teamHadIt = rows.next();
-				}
-			}
-			Outcome outcome = Outcome.REGISTERED;
-			try (PreparedStatement statement = connection.prepareStatement("INSERT INTO " + submissions + " (player_uuid, item_id, team) VALUES (?, ?, ?)")) {
-				statement.setString(1, uuid.toString());
-				statement.setString(2, itemId);
-				statement.setString(3, team.id());
-				statement.executeUpdate();
+			// One transaction holding the player's row: their submissions run one after the other, so each sees
+			// the count the one before it left, and the participation threshold is met by exactly one of them.
+			connection.setAutoCommit(false);
+			try {
+				var result = submit(connection, uuid, username, skin, itemId);
+				connection.commit();
+				return result;
 			} catch (SQLException e) {
-				if (!isDuplicateKey(e)) {
-					throw e;
-				}
-				outcome = Outcome.ALREADY_SUBMITTED;
+				connection.rollback();
+				throw e;
+			} finally {
+				connection.setAutoCommit(true);
 			}
-			return new SubmitResult(outcome, team, outcome == Outcome.REGISTERED && !teamHadIt,
-					countPlayerItems(connection, uuid), countTeamItems(connection, team));
 		}
+	}
+
+	private SubmitResult submit(Connection connection, UUID uuid, String username, @Nullable String skin, String itemId) throws SQLException {
+		Team team = teamOf(connection, uuid, username, skin, true);
+		if (team == null) {
+			return new SubmitResult(Outcome.NO_TEAM, null, false, 0, 0);
+		}
+		boolean teamHadIt;
+		try (PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM " + submissions + " WHERE team = ? AND item_id = ? LIMIT 1")) {
+			statement.setString(1, team.id());
+			statement.setString(2, itemId);
+			try (ResultSet rows = statement.executeQuery()) {
+				teamHadIt = rows.next();
+			}
+		}
+		// IGNORE: a duplicate is an ordinary answer here, not an error (which the driver would also log).
+		// The player's row exists (teamOf found it), so the primary key is all it can skip on.
+		Outcome outcome;
+		try (PreparedStatement statement = connection.prepareStatement("INSERT IGNORE INTO " + submissions + " (player_uuid, item_id, team) VALUES (?, ?, ?)")) {
+			statement.setString(1, uuid.toString());
+			statement.setString(2, itemId);
+			statement.setString(3, team.id());
+			outcome = statement.executeUpdate() == 1 ? Outcome.REGISTERED : Outcome.ALREADY_SUBMITTED;
+		}
+		return new SubmitResult(outcome, team, outcome == Outcome.REGISTERED && !teamHadIt,
+				countPlayerItems(connection, uuid), countTeamItems(connection, team));
 	}
 
 	/**
@@ -180,12 +202,13 @@ public final class EventRepository {
 	 *
 	 * @return the team they are on after this, and their items
 	 */
-	public PlayerInfo joinTeam(UUID uuid, String username, Team team) throws SQLException {
+	public PlayerInfo joinTeam(UUID uuid, String username, @Nullable String skin, Team team) throws SQLException {
 		try (Connection connection = connections.get()) {
-			try (PreparedStatement statement = connection.prepareStatement("INSERT INTO " + players + " (uuid, username, team) VALUES (?, ?, ?)")) {
+			try (PreparedStatement statement = connection.prepareStatement("INSERT INTO " + players + " (uuid, username, team, skin) VALUES (?, ?, ?, ?)")) {
 				statement.setString(1, uuid.toString());
 				statement.setString(2, clip(username));
 				statement.setString(3, team.id());
+				statement.setString(4, checkSkin(skin));
 				statement.executeUpdate();
 				return new PlayerInfo(team, 0);
 			} catch (SQLException e) {
@@ -193,7 +216,7 @@ public final class EventRepository {
 					throw e;
 				}
 			}
-			Team current = teamOf(connection, uuid, username);
+			Team current = teamOf(connection, uuid, username, skin, false);
 			if (current == null) {
 				throw new SQLException("player " + uuid + " has a row with an unknown team");
 			}
@@ -205,17 +228,19 @@ public final class EventRepository {
 	 * Puts a player on a team, creating their row or moving them and everything they have submitted, in one
 	 * transaction.
 	 *
+	 * @param skin null when unknown (an offline player), which keeps the stored one
 	 * @return the items the player has submitted
 	 */
-	public int setTeam(UUID uuid, String username, Team team) throws SQLException {
+	public int setTeam(UUID uuid, String username, @Nullable String skin, Team team) throws SQLException {
 		try (Connection connection = connections.get()) {
 			connection.setAutoCommit(false);
 			try {
-				try (PreparedStatement statement = connection.prepareStatement("INSERT INTO " + players + " (uuid, username, team) VALUES (?, ?, ?)"
-						+ " ON DUPLICATE KEY UPDATE username = VALUES(username), team = VALUES(team)")) {
+				try (PreparedStatement statement = connection.prepareStatement("INSERT INTO " + players + " (uuid, username, team, skin) VALUES (?, ?, ?, ?)"
+						+ " ON DUPLICATE KEY UPDATE username = VALUES(username), team = VALUES(team), skin = COALESCE(VALUES(skin), skin)")) {
 					statement.setString(1, uuid.toString());
 					statement.setString(2, clip(username));
 					statement.setString(3, team.id());
+					statement.setString(4, checkSkin(skin));
 					statement.executeUpdate();
 				}
 				try (PreparedStatement statement = connection.prepareStatement("UPDATE " + submissions + " SET team = ? WHERE player_uuid = ? AND team <> ?")) {
@@ -267,13 +292,18 @@ public final class EventRepository {
 		}
 	}
 
-	/** The player's team, or null for one with no row; a name that changed is written back. */
+	/**
+	 * The player's team, or null for one with no row; a name or a (known) skin that changed is written back.
+	 *
+	 * @param lock whether to lock the row until the transaction ends
+	 */
 	@Nullable
-	private Team teamOf(Connection connection, UUID uuid, String username) throws SQLException {
+	private Team teamOf(Connection connection, UUID uuid, String username, @Nullable String skin, boolean lock) throws SQLException {
 		String name = clip(username);
 		String storedName;
+		String storedSkin;
 		Team team;
-		try (PreparedStatement statement = connection.prepareStatement("SELECT team, username FROM " + players + " WHERE uuid = ?")) {
+		try (PreparedStatement statement = connection.prepareStatement("SELECT team, username, skin FROM " + players + " WHERE uuid = ?" + (lock ? " FOR UPDATE" : ""))) {
 			statement.setString(1, uuid.toString());
 			try (ResultSet rows = statement.executeQuery()) {
 				if (!rows.next()) {
@@ -281,16 +311,35 @@ public final class EventRepository {
 				}
 				team = Team.byId(rows.getString(1));
 				storedName = rows.getString(2);
+				storedSkin = rows.getString(3);
 			}
 		}
-		if (team != null && !name.equals(storedName)) {
-			try (PreparedStatement statement = connection.prepareStatement("UPDATE " + players + " SET username = ? WHERE uuid = ?")) {
+		String checked = checkSkin(skin);
+		String newSkin = checked != null ? checked : storedSkin;
+		if (team != null && (!name.equals(storedName) || !Objects.equals(newSkin, storedSkin))) {
+			try (PreparedStatement statement = connection.prepareStatement("UPDATE " + players + " SET username = ?, skin = ? WHERE uuid = ?")) {
 				statement.setString(1, name);
-				statement.setString(2, uuid.toString());
+				statement.setString(2, newSkin);
+				statement.setString(3, uuid.toString());
 				statement.executeUpdate();
 			}
 		}
 		return team;
+	}
+
+	/** The ids of the items a player has submitted. */
+	public Set<String> submittedItems(UUID uuid) throws SQLException {
+		try (Connection connection = connections.get();
+			 PreparedStatement statement = connection.prepareStatement("SELECT item_id FROM " + submissions + " WHERE player_uuid = ?")) {
+			statement.setString(1, uuid.toString());
+			var items = new HashSet<String>();
+			try (ResultSet rows = statement.executeQuery()) {
+				while (rows.next()) {
+					items.add(rows.getString(1));
+				}
+			}
+			return items;
+		}
 	}
 
 	private int countPlayerItems(Connection connection, UUID uuid) throws SQLException {
@@ -314,6 +363,12 @@ public final class EventRepository {
 	/** SQLSTATE class 23 is an integrity constraint violation; here that can only be the primary key. */
 	private static boolean isDuplicateKey(SQLException e) {
 		return e instanceof SQLIntegrityConstraintViolationException || (e.getSQLState() != null && e.getSQLState().startsWith("23"));
+	}
+
+	/** A skin hash ends up in a URL on the website, so only one that looks like one is stored. */
+	@Nullable
+	private static String checkSkin(@Nullable String skin) {
+		return skin != null && skin.length() <= MAX_SKIN_LENGTH && skin.matches("[0-9a-f]+") ? skin : null;
 	}
 
 	private static String clip(String username) {

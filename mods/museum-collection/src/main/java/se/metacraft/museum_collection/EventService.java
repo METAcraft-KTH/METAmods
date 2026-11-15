@@ -1,4 +1,4 @@
-package se.metacraft.east_vs_west;
+package se.metacraft.museum_collection;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -10,12 +10,11 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
-import se.metacraft.east_vs_west.db.Database;
-import se.metacraft.east_vs_west.db.EventRepository;
-import se.metacraft.east_vs_west.db.EventRepository.PlayerInfo;
-import se.metacraft.east_vs_west.db.EventRepository.PlayerScore;
-import se.metacraft.east_vs_west.db.EventRepository.Standings;
-import se.metacraft.east_vs_west.db.EventRepository.SubmitResult;
+import se.metacraft.museum_collection.db.Database;
+import se.metacraft.museum_collection.db.EventRepository;
+import se.metacraft.museum_collection.db.EventRepository.PlayerInfo;
+import se.metacraft.museum_collection.db.EventRepository.Standings;
+import se.metacraft.museum_collection.db.EventRepository.SubmitResult;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,7 +23,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 /**
  * The event on one running server: what it knows about the players online, and every trip to the database.
@@ -34,7 +32,7 @@ import java.util.stream.Collectors;
  */
 public final class EventService {
 
-	/** How many players the leaderboard holds; the legendary hat goes to at most this many. */
+	/** How many players the leaderboard ({@code /museum top}) holds. */
 	public static final int LEADERBOARD_SIZE = 10;
 	/** Ticks after a submission until the standings are read again, so a burst of them is one query. */
 	private static final int REFRESH_AFTER_SUBMISSION_TICKS = 40;
@@ -45,15 +43,18 @@ public final class EventService {
 	private final MinecraftServer server;
 	private final Map<UUID, PlayerState> players = new HashMap<>();
 	private final Map<UUID, Long> lastInteraction = new HashMap<>();
-	private final Set<UUID> submitting = new HashSet<>();
+	/** The items each online player has registered, once read: a repeat is turned away without asking the database. */
+	private final Map<UUID, Set<String>> submitted = new HashMap<>();
+	/** The items on their way to the database, by player: another click on the same one is dropped. */
+	private final Map<UUID, Set<String>> pending = new HashMap<>();
+	/** The players whose team pick is on its way to the database. */
+	private final Set<UUID> joining = new HashSet<>();
 	@Nullable
 	private Database database;
 	/** The settings the last failed start used: not tried again until they change. */
 	@Nullable
-	private EvwConfig.Database failedStart;
+	private MuseumConfig.Database failedStart;
 	private Standings standings = Standings.EMPTY;
-	@Nullable
-	private Set<UUID> legendary;
 	private boolean refreshing;
 	private int nextRefreshTick;
 
@@ -90,7 +91,7 @@ public final class EventService {
 
 	/** Starts, stops or restarts the database to match the config, which a {@code /reload} may have changed. */
 	private void followConfig() {
-		var config = EvwConfig.get();
+		var config = MuseumConfig.get();
 		if (database != null && (!config.enabled() || !database.config().equals(config.database()))) {
 			stop(false);
 		}
@@ -102,12 +103,12 @@ public final class EventService {
 		}
 	}
 
-	private void start(EvwConfig.Database settings) {
+	private void start(MuseumConfig.Database settings) {
 		try {
 			database = new Database(settings);
 		} catch (RuntimeException e) {
 			failedStart = settings;
-			EastVsWest.LOGGER.error("Could not set up the event database ({}); fix the database block of config/{}.json5 and /reload", settings, EastVsWest.MODID, e);
+			MuseumCollection.LOGGER.error("Could not set up the event database ({}); fix the database block of config/{}.json5 and /reload", settings, MuseumCollection.MODID, e);
 			return;
 		}
 		failedStart = null;
@@ -124,9 +125,10 @@ public final class EventService {
 		database.close(wait);
 		database = null;
 		players.clear();
-		submitting.clear();
+		submitted.clear();
+		pending.clear();
+		joining.clear();
 		standings = Standings.EMPTY;
-		legendary = null;
 		refreshing = false;
 	}
 
@@ -156,19 +158,25 @@ public final class EventService {
 		var uuid = player.getUUID();
 		players.remove(uuid);
 		lastInteraction.remove(uuid);
-		submitting.remove(uuid);
+		submitted.remove(uuid);
+		pending.remove(uuid);
+		joining.remove(uuid);
 	}
 
 	private void loadPlayer(ServerPlayer player) {
 		var uuid = player.getUUID();
 		String name = player.nameAndId().name();
-		ask(repository -> repository.loadPlayer(uuid, name), (info, error) -> {
+		String skin = Skins.hash(player);
+		record Loaded(Optional<PlayerInfo> info, Set<String> items) {}
+		ask(repository -> new Loaded(repository.loadPlayer(uuid, name, skin), repository.submittedItems(uuid)), (loaded, error) -> {
 			if (error != null) {
-				EastVsWest.LOGGER.warn("Could not load {}'s event data: {}", name, error.toString());
+				MuseumCollection.LOGGER.warn("Could not load {}'s event data: {}", name, error.toString());
 				return;
 			}
 			if (server.getPlayerList().getPlayer(uuid) != null) {
-				remember(uuid, info);
+				remember(uuid, loaded.info());
+				// Merged: an item registered while this was being read is in neither, or already here.
+				submitted.computeIfAbsent(uuid, u -> new HashSet<>()).addAll(loaded.items());
 			}
 		});
 	}
@@ -178,32 +186,11 @@ public final class EventService {
 		players.put(uuid, state);
 	}
 
-	/** The hat a player has earned, or null: the legendary one for the top players, else their team's. */
-	@Nullable
-	public EvwConfig.Hat hatFor(ServerPlayer player) {
-		if (database == null) {
-			return null;
-		}
-		var config = EvwConfig.get();
-		if (isLegendary(player.getUUID())) {
-			return config.legendary().hat();
-		}
-		var state = players.get(player.getUUID());
-		if (state != null && state.team() != null && state.items() >= config.participationThreshold()) {
-			return config.team(state.team()).hat();
-		}
-		return null;
-	}
-
-	public boolean isLegendary(UUID uuid) {
-		return legendary != null && legendary.contains(uuid) && EvwConfig.get().legendary().enabled();
-	}
-
 	// Submitting
 
 	/** A player right-clicked a collector with their main hand. */
 	void interact(ServerPlayer player) {
-		var config = EvwConfig.get();
+		var config = MuseumConfig.get();
 		var uuid = player.getUUID();
 		long now = System.nanoTime();
 		Long last = lastInteraction.get(uuid);
@@ -226,34 +213,42 @@ public final class EventService {
 			TeamSelect.open(player);
 			return;
 		}
-		// One at a time per player; a second click while the first is on its way is simply dropped.
-		if (!submitting.add(uuid)) {
-			return;
-		}
 		// Only the item's registry id counts: no name, enchantment, damage or any other component.
 		String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 		Component itemName = new ItemStack(stack.getItem()).getItemName();
-		String name = player.nameAndId().name();
-		if (database == null) {
-			submitting.remove(uuid);
+		var known = submitted.get(uuid);
+		if (known != null && known.contains(itemId)) {
+			refuse(player, Component.literal("You have already registered ").append(itemName).append("."));
 			return;
 		}
-		ask(repository -> repository.submit(uuid, name, itemId), (result, error) -> {
-			submitting.remove(uuid);
+		// Different items go to the database side by side; a second click on one already on its way is dropped.
+		if (database == null || !pending.computeIfAbsent(uuid, u -> new HashSet<>()).add(itemId)) {
+			return;
+		}
+		String name = player.nameAndId().name();
+		String skin = Skins.hash(player);
+		ask(repository -> repository.submit(uuid, name, skin, itemId), (result, error) -> {
+			var inFlight = pending.get(uuid);
+			if (inFlight != null) {
+				inFlight.remove(itemId);
+			}
 			var online = server.getPlayerList().getPlayer(uuid);
 			if (error != null) {
-				EastVsWest.LOGGER.warn("Could not register {} for {}: {}", itemId, name, error.toString());
+				MuseumCollection.LOGGER.warn("Could not register {} for {}: {}", itemId, name, error.toString());
 				if (online != null) {
 					refuse(online, Component.literal("The event database can't be reached right now. Try again in a moment."));
 				}
 				return;
 			}
-			submitted(uuid, online, itemName, result);
+			if (online != null && result.outcome() != EventRepository.Outcome.NO_TEAM) {
+				submitted.computeIfAbsent(uuid, u -> new HashSet<>()).add(itemId);
+			}
+			submitted(uuid, name, online, itemName, result);
 		});
 	}
 
-	private void submitted(UUID uuid, @Nullable ServerPlayer player, Component itemName, SubmitResult result) {
-		var config = EvwConfig.get();
+	private void submitted(UUID uuid, String name, @Nullable ServerPlayer player, Component itemName, SubmitResult result) {
+		var config = MuseumConfig.get();
 		if (player != null) {
 			remember(uuid, Optional.ofNullable(result.team()).map(team -> new PlayerInfo(team, result.playerItems())));
 		}
@@ -271,29 +266,54 @@ public final class EventService {
 			}
 			case REGISTERED -> {
 				nextRefreshTick = Math.min(nextRefreshTick, server.getTickCount() + REFRESH_AFTER_SUBMISSION_TICKS);
+				// Each registered item raises the count by one, so it equals the threshold exactly once. Rewarded
+				// even if the player left before the database answered: the command takes offline players.
+				boolean rewarded = result.playerItems() == config.participationThreshold() && reward(name);
 				if (player == null || result.team() == null) {
 					return;
 				}
 				var team = result.team();
+				// On the action bar, not in chat: a player registers dozens of these in a row.
 				var message = Component.literal("Registered ").withStyle(ChatFormatting.GREEN).append(itemName.copy().withStyle(ChatFormatting.WHITE));
 				if (result.firstForTeam()) {
-					message.append(Component.literal(", a new item for ")).append(team.displayName()).append("!");
+					message.append(Component.literal(", new for ")).append(team.displayName()).append("!");
 				} else {
-					message.append(Component.literal(". ")).append(team.displayName()).append(Component.literal(" already had it.").withStyle(ChatFormatting.GRAY));
+					message.append(Component.literal(", ").withStyle(ChatFormatting.GRAY)).append(team.displayName())
+							.append(Component.literal(" already had it").withStyle(ChatFormatting.GRAY));
 				}
-				player.sendSystemMessage(message);
-				player.sendOverlayMessage(Component.literal("You: " + result.playerItems() + " items  |  ").append(team.displayName())
-						.append(Component.literal(": " + result.teamItems() + " unique")));
+				message.append(Component.literal("  |  You: " + result.playerItems() + "  |  ").withStyle(ChatFormatting.GRAY))
+						.append(team.displayName()).append(Component.literal(": " + result.teamItems()).withStyle(ChatFormatting.GRAY));
+				player.sendOverlayMessage(message);
 				play(player, result.firstForTeam() ? SoundEvents.PLAYER_LEVELUP : SoundEvents.EXPERIENCE_ORB_PICKUP, result.firstForTeam() ? 0.6f : 0.8f);
 
-				// Each registered item raises the count by one, so it equals the threshold exactly once.
-				if (result.playerItems() == config.participationThreshold()) {
-					player.sendSystemMessage(Component.literal("You have unlocked your team's hat: ").withStyle(ChatFormatting.GOLD)
-							.append(Component.literal(config.team(team).hat().name()).withStyle(team.color())));
+				if (rewarded) {
+					player.sendSystemMessage(Component.literal("You have registered " + result.playerItems() + " items and earned the participation reward!")
+							.withStyle(ChatFormatting.GOLD));
 					play(player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 0.7f);
 				}
 			}
 		}
+	}
+
+	/**
+	 * Runs {@code participation_reward_command} for a player, as the console, so it shows in the server log.
+	 *
+	 * @return whether a command was run
+	 */
+	private boolean reward(String name) {
+		String command = MuseumConfig.get().participationRewardCommand().strip();
+		if (command.isEmpty()) {
+			return false;
+		}
+		// A name is spliced into a command line, so only a real Minecraft name is.
+		if (!name.matches("[A-Za-z0-9_]{1,16}")) {
+			MuseumCollection.LOGGER.warn("Not rewarding {}: not a name that can go in a command", name);
+			return false;
+		}
+		command = command.replace("{player}", name);
+		MuseumCollection.LOGGER.info("{} reached the participation threshold: running /{}", name, command);
+		server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), command);
+		return true;
 	}
 
 	private static void refuse(ServerPlayer player, Component message) {
@@ -314,14 +334,15 @@ public final class EventService {
 	void join(ServerPlayer player, Team team) {
 		var uuid = player.getUUID();
 		String name = player.nameAndId().name();
-		if (database == null || !submitting.add(uuid)) {
+		if (database == null || !joining.add(uuid)) {
 			return;
 		}
-		ask(repository -> repository.joinTeam(uuid, name, team), (info, error) -> {
-			submitting.remove(uuid);
+		String skin = Skins.hash(player);
+		ask(repository -> repository.joinTeam(uuid, name, skin, team), (info, error) -> {
+			joining.remove(uuid);
 			var online = server.getPlayerList().getPlayer(uuid);
 			if (error != null) {
-				EastVsWest.LOGGER.warn("Could not put {} on team {}: {}", name, team.id(), error.toString());
+				MuseumCollection.LOGGER.warn("Could not put {} on team {}: {}", name, team.id(), error.toString());
 				if (online != null) {
 					refuse(online, Component.literal("The event database can't be reached right now. Try again in a moment."));
 				}
@@ -347,7 +368,10 @@ public final class EventService {
 	 * @param done called on the server thread with the items they have, or with the error
 	 */
 	public void setTeam(UUID uuid, String name, Team team, BiConsumer<Integer, Throwable> done) {
-		ask(repository -> repository.setTeam(uuid, name, team), (items, error) -> {
+		// An offline player's skin isn't known here: null keeps the stored one.
+		var player = server.getPlayerList().getPlayer(uuid);
+		String skin = player == null ? null : Skins.hash(player);
+		ask(repository -> repository.setTeam(uuid, name, skin, team), (items, error) -> {
 			if (error == null) {
 				nextRefreshTick = Math.min(nextRefreshTick, server.getTickCount() + REFRESH_AFTER_SUBMISSION_TICKS);
 				var online = server.getPlayerList().getPlayer(uuid);
@@ -362,7 +386,7 @@ public final class EventService {
 
 	/** Looks a player (online or not) up in the database. */
 	public void lookUp(UUID uuid, String name, BiConsumer<Optional<PlayerInfo>, Throwable> done) {
-		ask(repository -> repository.loadPlayer(uuid, name), done);
+		ask(repository -> repository.loadPlayer(uuid, name, null), done);
 	}
 
 	// Standings
@@ -373,35 +397,17 @@ public final class EventService {
 	}
 
 	private void refreshStandings() {
-		var config = EvwConfig.get();
+		var config = MuseumConfig.get();
 		refreshing = true;
 		nextRefreshTick = server.getTickCount() + config.standingsRefreshSeconds() * 20;
 		ask(repository -> repository.standings(LEADERBOARD_SIZE), (result, error) -> {
 			refreshing = false;
 			if (error != null) {
-				EastVsWest.LOGGER.warn("Could not read the event standings: {}", error.toString());
+				MuseumCollection.LOGGER.warn("Could not read the event standings: {}", error.toString());
 				return;
 			}
 			standings = result;
-			crown(result.top().stream().limit(EvwConfig.get().legendary().topCount()).map(PlayerScore::uuid).collect(Collectors.toUnmodifiableSet()));
 		});
 	}
 
-	/** Sets who is in the top, telling the players online who just got there. Nobody is told on the first read. */
-	private void crown(Set<UUID> top) {
-		var previous = legendary;
-		legendary = top;
-		var config = EvwConfig.get().legendary();
-		if (previous == null || !config.enabled()) {
-			return;
-		}
-		for (UUID uuid : top) {
-			var player = previous.contains(uuid) ? null : server.getPlayerList().getPlayer(uuid);
-			if (player != null) {
-				player.sendSystemMessage(Component.literal("You are among the top " + config.topCount() + " collectors! You wear the ").withStyle(ChatFormatting.LIGHT_PURPLE)
-						.append(Component.literal(config.hat().name()).withStyle(ChatFormatting.DARK_PURPLE)).append("."));
-				play(player, SoundEvents.ENDER_CHEST_OPEN, 0.8f);
-			}
-		}
-	}
 }
