@@ -1,7 +1,7 @@
 {
 	name: "&lChristmas Tree Hat",
 	gradient: { colors: ["#1B7A3A", "#4CC46A", "#FFD54A"] },
-	released: "2026/11/09",
+	released: "2026/12/01",
 	obtainable: false,
 	kind: "helmet",
 	look: { model: "christmas_tree_hat.json" },

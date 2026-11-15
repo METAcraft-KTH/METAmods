@@ -85,10 +85,10 @@ public final class ClaimMenu {
 				.model(Identifier.fromNamespaceAndPath(SkinFolder.NAMESPACE, skin.id()))
 				.setName(skin.styledName())
 				.hideDefaultTooltip();
+		Skins.descriptionLines(skin.description()).forEach(icon::addLoreLine);
 		fit.lore(skin.dyeable()).forEach(icon::addLoreLine);
 		skin.release().ifPresent(r -> icon.addLoreLine(r.line()));
 		PerkLines.of(skin.perks()).forEach(icon::addLoreLine);
-		skin.description().ifPresent(d -> icon.addLoreLine(Component.literal(d).withStyle(ChatFormatting.GRAY)));
 		icon.addLoreLine(owned ? Component.literal("Already yours").withStyle(ChatFormatting.RED)
 				: Component.literal("Claim to own this skin").withStyle(ChatFormatting.YELLOW));
 		return icon.build();

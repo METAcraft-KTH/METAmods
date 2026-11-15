@@ -1,6 +1,5 @@
 {
-	name: "&lWitch Hat",
-	gradient: { colors: ["#7B2FBE", "#3FBF3F"] },
+	name: "&a&lWitch Hat",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",
