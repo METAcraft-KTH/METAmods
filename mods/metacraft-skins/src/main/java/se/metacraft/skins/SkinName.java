@@ -62,7 +62,7 @@ public final class SkinName {
 	/** The name with its codes applied, and coloured by {@code gradient} if there is one. */
 	public static Component styled(String written, Optional<Gradient> gradient) {
 		MutableComponent name = Component.empty().withStyle(BASE);
-		List<Run> runs = runs(written);
+		List<Run> runs = runs(written, BASE);
 		if (gradient.isEmpty()) {
 			runs.forEach(run -> name.append(Component.literal(run.text()).withStyle(run.style())));
 			return name;
@@ -78,6 +78,17 @@ public final class SkinName {
 		return name;
 	}
 
+	/**
+	 * A line of lore with its codes applied: {@code base} before any code and after {@code &r}, never italic. A
+	 * description's lines start gray, so {@code "&6#1 &7collector"} has a gold {@code #1}.
+	 */
+	public static Component lore(String written, ChatFormatting base) {
+		Style start = Style.EMPTY.withItalic(false).withColor(base);
+		MutableComponent line = Component.empty().withStyle(start);
+		runs(written, start).forEach(run -> line.append(Component.literal(run.text()).withStyle(run.style())));
+		return line;
+	}
+
 	/** The name without its codes: what chat messages, menu titles and logs say. */
 	public static String plain(String written) {
 		return styled(written).getString();
@@ -88,10 +99,10 @@ public final class SkinName {
 		return codes(written).stream().anyMatch(code -> FORMATS.indexOf(code) < 0);
 	}
 
-	private static List<Run> runs(String written) {
+	private static List<Run> runs(String written, Style base) {
 		List<Run> runs = new ArrayList<>();
 		StringBuilder run = new StringBuilder();
-		Style style = BASE;
+		Style style = base;
 		for (int i = 0; i < written.length(); i++) {
 			int length = codeLength(written, i);
 			if (length == 0) {
@@ -101,11 +112,11 @@ public final class SkinName {
 			if (!run.isEmpty()) runs.add(new Run(run.toString(), style));
 			run.setLength(0);
 			if (length == 8) {
-				style = BASE.withColor(TextColor.fromRgb(Integer.parseInt(written.substring(i + 2, i + 8), 16)));
+				style = base.withColor(TextColor.fromRgb(Integer.parseInt(written.substring(i + 2, i + 8), 16)));
 			} else {
 				ChatFormatting format = ChatFormatting.getByCode(written.charAt(i + 1));
 				// Vanilla's rules: a colour clears the formats before it. Its reset would clear the base too.
-				style = format == ChatFormatting.RESET ? BASE : style.applyLegacyFormat(format);
+				style = format == ChatFormatting.RESET ? base : style.applyLegacyFormat(format);
 			}
 			i += length - 1;
 		}
