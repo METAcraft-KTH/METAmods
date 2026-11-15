@@ -44,7 +44,7 @@ public record OptionalValueEditor<T>(
 	@Override
 	public Holder<Dialog> createDialog(ServerPlayer player) {
 		List<ActionButton> buttons = new ArrayList<>();
-		var name = CodecDialog.getGUIFriendlyName(value);
+		var name = CodecDialog.getGUIFriendlyName(value, type, player.registryAccess());
 		buttons.add(new ActionButton(
 			new CommonButtonData(
 				present ? ValueEditor.highlight(name) : name,

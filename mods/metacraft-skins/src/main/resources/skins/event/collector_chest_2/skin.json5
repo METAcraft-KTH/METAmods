@@ -1,0 +1,9 @@
+{
+	name: "&6&lMuseum Showdown: 2026",
+	released: "2026/11/16",
+	obtainable: false,
+	kind: "helmet",
+	extractable: false,
+	look: { model: "collector_chest_2.json" },
+	description: "&#D8D8D8&l#2&#D8D8D8 collector of\n&#D8D8D8Museum Showdown: 2026\n\nA remarkable collector who proved\ntheir worth among the finest.",
+}

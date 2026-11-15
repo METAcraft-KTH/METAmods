@@ -15,6 +15,8 @@ public enum OwnershipChange {
 	DORMANT_SKIN,
 	/** Extract: the skin is on an item; the Owner removes it first. */
 	STILL_APPLIED,
+	/** Extract: the skin's definition says {@code extractable: false}. */
+	NOT_EXTRACTABLE,
 	/** Claim: the stack isn't a Skin Token the player carries. */
 	NO_TOKEN,
 	/** Clear tint: the skin is on an item that isn't with its Owner, which would keep the colour. */
