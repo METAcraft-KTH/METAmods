@@ -34,15 +34,15 @@ public record MuseumConfig(
 		public static final Database DEFAULT = new Database("localhost", 3306, "metacraft", "metacraft", "", "MUSEUM_DB_PASSWORD", "museum_", 3, 5);
 
 		public static final Codec<Database> CODEC = RecordCodecBuilder.create(i -> i.group(
-				CommentCodec.comment(Codec.STRING.optionalFieldOf("host", DEFAULT.host), "The MySQL (or MariaDB) server.").forGetter(Database::host),
-				Codec.intRange(1, 65535).optionalFieldOf("port", DEFAULT.port).forGetter(Database::port),
-				CommentCodec.comment(Codec.STRING.optionalFieldOf("database", DEFAULT.database), "The database (schema) holding the event's tables. It must exist; the tables are created.").forGetter(Database::database),
-				Codec.STRING.optionalFieldOf("username", DEFAULT.username).forGetter(Database::username),
-				CommentCodec.comment(Codec.STRING.optionalFieldOf("password", DEFAULT.password), "The user's password, in this file; leave \"\" to use password_env instead.").forGetter(Database::password),
-				CommentCodec.comment(Codec.STRING.optionalFieldOf("password_env", DEFAULT.passwordEnv), "Name of an environment variable holding the password (preferred over this file).").forGetter(Database::passwordEnv),
-				CommentCodec.comment(Codec.STRING.validate(Database::validatePrefix).optionalFieldOf("table_prefix", DEFAULT.tablePrefix), "Put before the table names: \"museum_\" gives museum_players and museum_submissions. Letters, digits and _ only.").forGetter(Database::tablePrefix),
-				CommentCodec.comment(Codec.intRange(1, 16).optionalFieldOf("pool_size", DEFAULT.poolSize), "Connections kept to the database, and threads running queries on them. Never the server thread.").forGetter(Database::poolSize),
-				CommentCodec.comment(Codec.intRange(1, 60).optionalFieldOf("connect_timeout_seconds", DEFAULT.connectTimeoutSeconds), "How long a query waits for a connection before it fails and the player is told to try again.").forGetter(Database::connectTimeoutSeconds)
+				CommentCodec.comment(Codec.STRING.fieldOf("host"), "The MySQL (or MariaDB) server.").forGetter(Database::host),
+				Codec.intRange(1, 65535).fieldOf("port").forGetter(Database::port),
+				CommentCodec.comment(Codec.STRING.fieldOf("database"), "The database (schema) holding the event's tables. It must exist; the tables are created.").forGetter(Database::database),
+				Codec.STRING.fieldOf("username").forGetter(Database::username),
+				CommentCodec.comment(Codec.STRING.fieldOf("password"), "The user's password, in this file; leave \"\" to use password_env instead.").forGetter(Database::password),
+				CommentCodec.comment(Codec.STRING.fieldOf("password_env"), "Name of an environment variable holding the password (preferred over this file).").forGetter(Database::passwordEnv),
+				CommentCodec.comment(Codec.STRING.validate(Database::validatePrefix).fieldOf("table_prefix"), "Put before the table names: \"museum_\" gives museum_players and museum_submissions. Letters, digits and _ only.").forGetter(Database::tablePrefix),
+				CommentCodec.comment(Codec.intRange(1, 16).fieldOf("pool_size"), "Connections kept to the database, and threads running queries on them. Never the server thread.").forGetter(Database::poolSize),
+				CommentCodec.comment(Codec.intRange(1, 60).fieldOf("connect_timeout_seconds"), "How long a query waits for a connection before it fails and the player is told to try again.").forGetter(Database::connectTimeoutSeconds)
 		).apply(i, Database::new));
 
 		private static DataResult<String> validatePrefix(String prefix) {
@@ -82,26 +82,26 @@ public record MuseumConfig(
 	public static final String DEFAULT_REWARD_COMMAND = "itemskins grant {player} chest_lid_hat";
 
 	public static final MapCodec<MuseumConfig> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
-			CommentCodec.comment(Codec.BOOL.optionalFieldOf("enabled", false),
+			CommentCodec.comment(Codec.BOOL.fieldOf("enabled"),
 					"Turns the event on. While false the module connects to nothing and collector villagers are ordinary villagers."
 			).forGetter(MuseumConfig::enabled),
-			CommentCodec.comment(Codec.BOOL.optionalFieldOf("submissions_open", true),
+			CommentCodec.comment(Codec.BOOL.fieldOf("submissions_open"),
 					"Whether the collector takes items. false keeps the scores and commands but refuses new items (/museum admin open|close)."
 			).forGetter(MuseumConfig::submissionsOpen),
-			CommentCodec.comment(Database.CODEC.optionalFieldOf("database", Database.DEFAULT), "The MySQL database shared with the website.").forGetter(MuseumConfig::database),
-			CommentCodec.comment(Codec.unboundedMap(Team.CODEC, TeamSettings.CODEC).optionalFieldOf("teams", defaultTeams()),
+			CommentCodec.comment(Database.CODEC.fieldOf("database"), "The MySQL database shared with the website.").forGetter(MuseumConfig::database),
+			CommentCodec.comment(Codec.unboundedMap(Team.CODEC, TeamSettings.CODEC).fieldOf("teams"),
 					"The teams' names, by team: east, west and south. The keys are fixed; they are what the database stores."
 			).forGetter(MuseumConfig::teams),
-			CommentCodec.comment(ExtraCodecs.POSITIVE_INT.optionalFieldOf("participation_threshold", 10),
+			CommentCodec.comment(ExtraCodecs.POSITIVE_INT.fieldOf("participation_threshold"),
 					"Items a player must have registered to earn the participation reward."
 			).forGetter(MuseumConfig::participationThreshold),
-			CommentCodec.comment(Codec.STRING.optionalFieldOf("participation_reward_command", DEFAULT_REWARD_COMMAND),
+			CommentCodec.comment(Codec.STRING.fieldOf("participation_reward_command"),
 					"The command the server runs (as the console) when a player registers their participation_threshold-th item;",
 					"{player} is replaced by their name. \"\" for none. Every other reward is handed out by hand."
 			).forGetter(MuseumConfig::participationRewardCommand),
-			CommentCodec.comment(Codec.STRING.optionalFieldOf("collector_name", "Item Collector"), "The name over a villager spawned with /museum admin collector spawn; \"\" for none.").forGetter(MuseumConfig::collectorName),
-			CommentCodec.comment(Codec.intRange(0, 10_000).optionalFieldOf("interaction_cooldown_ms", 0), "Milliseconds a player must wait between two clicks on a collector; 0 for none. A repeat of an item already registered is answered without the database either way.").forGetter(MuseumConfig::interactionCooldownMs),
-			CommentCodec.comment(Codec.intRange(5, 3600).optionalFieldOf("standings_refresh_seconds", 30), "How often the team scores and the leaderboard (/museum, /museum top) are read from the database.").forGetter(MuseumConfig::standingsRefreshSeconds)
+			CommentCodec.comment(Codec.STRING.fieldOf("collector_name"), "The name over a villager spawned with /museum admin collector spawn; \"\" for none.").forGetter(MuseumConfig::collectorName),
+			CommentCodec.comment(Codec.intRange(0, 10_000).fieldOf("interaction_cooldown_ms"), "Milliseconds a player must wait between two clicks on a collector; 0 for none. A repeat of an item already registered is answered without the database either way.").forGetter(MuseumConfig::interactionCooldownMs),
+			CommentCodec.comment(Codec.intRange(5, 3600).fieldOf("standings_refresh_seconds"), "How often the team scores and the leaderboard (/museum, /museum top) are read from the database.").forGetter(MuseumConfig::standingsRefreshSeconds)
 	).apply(i, MuseumConfig::new));
 
 	// The file holds the database password, so it stays out of the in-game config screen (as kth-auth's does).
