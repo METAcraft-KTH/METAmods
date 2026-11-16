@@ -123,8 +123,34 @@ public class TestHelper {
 				Optional.of(testNamespace + ":" + testsPath), false, 1
 		));
 		server.getRunningThread().join();
-		assert ((TestServerExtension) server).metacraft$testPassed();
+		var tests = (TestServerExtension) server;
+		if (!tests.metacraft$testPassed()) {
+			// thrown, not asserted: the message has to reach the JUnit report whether or not -ea is set
+			throw new AssertionError(describeFailure(
+					tests.metacraft$testsFinished(), tests.metacraft$testCount(), tests.metacraft$failedTests()
+			));
+		}
 	}
+
+	/**
+	 * What a failed {@link #runTestServer} reports: each failed required game test with its message, so the JUnit
+	 * report names them (the server's own log isn't printed in CI).
+	 */
+	public static String describeFailure(boolean finished, int total, List<FailedTest> failed) {
+		if (!finished) {
+			return "The game test server stopped before its tests finished (it crashed, or no tests ran):"
+					+ " see the test's standard output for the server log.";
+		}
+		var message = new StringBuilder(failed.size() + " of " + total + " required game tests failed:");
+		for (var test : failed) {
+			message.append("\n  - ").append(test.id()).append(": ")
+					.append(test.message() == null ? "(no message)" : test.message());
+		}
+		return message.toString();
+	}
+
+	/** A failed game test: its id and what it failed with. */
+	public record FailedTest(String id, String message) {}
 
 	@SafeVarargs
 	public static void init(
@@ -154,6 +180,14 @@ public class TestHelper {
 
 	public interface TestServerExtension {
 		boolean metacraft$testPassed();
+
+		/** Whether every test ran to its end (false after a crash, or when the tests never started). */
+		boolean metacraft$testsFinished();
+
+		int metacraft$testCount();
+
+		/** The required tests that failed. */
+		List<FailedTest> metacraft$failedTests();
 	}
 
 }

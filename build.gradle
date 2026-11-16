@@ -285,6 +285,11 @@ subprojects {
 
     test {
         useJUnitPlatform()
+        // print a failed test's message (TestHelper.runTestServer's names the failed game tests), not only where it threw
+        testLogging {
+            events 'failed'
+            exceptionFormat 'full'
+        }
     }
 }
 
