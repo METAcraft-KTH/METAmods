@@ -70,8 +70,13 @@ public final class MobOvvarTests {
 
 	private static List<ItemStack> garments(EquipmentSlot slot, boolean topCells) {
 		List<ItemStack> garments = new ArrayList<>();
-		for (int seed = 0; seed < SEEDS; seed++) garments.add(MobOvvar.garment(RandomSource.create(seed), slot, topCells));
+		for (int seed = 0; seed < SEEDS; seed++) garments.add(MobOvvar.garment(seeded(seed), slot, topCells));
 		return garments;
+	}
+
+	/** One generator per seed, its seed spread out: the first draws of RandomSource.create(n) over consecutive n are correlated (16 chapters showed as 4). */
+	private static RandomSource seeded(int seed) {
+		return RandomSource.create(seed * 0x9E3779B97F4A7C15L);
 	}
 
 	private static Chapter chapter(ItemStack garment) {
@@ -198,12 +203,12 @@ public final class MobOvvarTests {
 		int worn = 0, dropped = 0;
 		RandomSource stream = RandomSource.create(7);   // one stream for the odds: consecutive seeds' first floats are correlated
 		for (int seed = 0; seed < SEEDS; seed++) {
-			ItemStack garment = MobOvvar.garment(RandomSource.create(seed), seed % 2 == 0 ? EquipmentSlot.LEGS : EquipmentSlot.CHEST, true);
+			ItemStack garment = MobOvvar.garment(seeded(seed), seed % 2 == 0 ? EquipmentSlot.LEGS : EquipmentSlot.CHEST, true);
 			List<String> ids = placements(garment).stream().map(p -> p.patch().id()).sorted().toList();
-			List<String> all = MobOvvar.patchDrops(garment, RandomSource.create(seed), 1f).stream()
+			List<String> all = MobOvvar.patchDrops(garment, seeded(seed), 1f).stream()
 					.map(s -> ((PatchItem) s.getItem()).patch.id()).sorted().toList();
 			helper.assertValueEqual(all, ids, "the drops at chance 1");
-			if (!MobOvvar.patchDrops(garment, RandomSource.create(seed), 0f).isEmpty()) helper.fail("a drop at chance 0");
+			if (!MobOvvar.patchDrops(garment, seeded(seed), 0f).isEmpty()) helper.fail("a drop at chance 0");
 			worn += ids.size();
 			dropped += MobOvvar.patchDrops(garment, stream, 0.5f).size();
 		}
@@ -225,7 +230,7 @@ public final class MobOvvarTests {
 		for (EquipmentSlot slot : List.of(EquipmentSlot.LEGS, EquipmentSlot.CHEST)) {
 			for (int seed = 0; seed < 200; seed++) {
 				for (EquipmentSlot s : EquipmentSlot.values()) mannequin.setItemSlot(s, ItemStack.EMPTY);
-				ItemStack garment = MobOvvar.garment(RandomSource.create(seed), slot, true);
+				ItemStack garment = MobOvvar.garment(seeded(seed), slot, true);
 				wearAndTick(helper, mannequin, garment);
 				List<Placement> all = placements(garment);
 				for (Piece piece : chapter(garment).pieces()) {
@@ -253,7 +258,7 @@ public final class MobOvvarTests {
 		List<Placement> placements = List.of(Placement.parse("leg_front_top_r.batata"), Placement.parse("leg_out_top_l.batatu"), Placement.parse("seat.pung"));
 		Combos.Combo combo = Placement.combo(placements);
 		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
-		Combos.forgetForTest(Piece.BOTTOM, combo);
+		Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, combo);
 		try {
 			ItemStack marked = new ItemStack(ModContent.ovve(Chapter.DATA));
 			Looks.setSewn(marked, SpotPlacements.fromList(placements).getOrThrow());
@@ -263,18 +268,18 @@ public final class MobOvvarTests {
 
 			Looks.look(marked, Piece.BOTTOM, UUID.randomUUID());
 			PolymerItemUtils.getPolymerItemStack(marked, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
-			if (Combos.isKnown(Piece.BOTTOM, combo)) helper.fail("a mob's garment queued a combination");
+			if (Combos.isKnown(Chapter.DATA, Piece.BOTTOM, combo)) helper.fail("a mob's garment queued a combination");
 			// ...nor do the virtual cuffs a mob's bare feet are shown in.
 			ItemStack cuffs = OvveFeet.cuffsFor(marked);
 			if (!MobOvvar.is(cuffs)) helper.fail("the cuffs lack the marker");
 			PolymerItemUtils.getPolymerItemStack(cuffs, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
-			if (Combos.isKnown(Piece.BOTTOM, combo)) helper.fail("a mob's cuffs queued a combination");
+			if (Combos.isKnown(Chapter.DATA, Piece.BOTTOM, combo)) helper.fail("a mob's cuffs queued a combination");
 
 			Looks.look(control, Piece.BOTTOM, UUID.randomUUID());
 			PolymerItemUtils.getPolymerItemStack(control, viewer.connection.getPacketContext(), helper.getLevel().registryAccess());
-			if (!Combos.isKnown(Piece.BOTTOM, combo)) helper.fail("control: an unmarked ovve did not queue the combination");
+			if (!Combos.isKnown(Chapter.DATA, Piece.BOTTOM, combo)) helper.fail("control: an unmarked ovve did not queue the combination");
 		} finally {
-			Combos.forgetForTest(Piece.BOTTOM, combo);
+			Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, combo);
 		}
 		helper.succeed();
 	}

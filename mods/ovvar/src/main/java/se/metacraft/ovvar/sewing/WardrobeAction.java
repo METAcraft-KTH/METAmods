@@ -25,7 +25,9 @@ public enum WardrobeAction {
 	ROTATE_RIGHT("rotate_right", "Turn it right", "The preview, a quarter turn clockwise"),
 	/** And the two that page the pocket: the same two arrows, pointing the same ways, another job. */
 	PAGE_PREVIOUS("rotate_left", "◀ Previous page", "The kinds of patch before these"),
-	PAGE_NEXT("rotate_right", "Next page ▶", "The kinds of patch after these");
+	PAGE_NEXT("rotate_right", "Next page ▶", "The kinds of patch after these"),
+	/** The last of the tab row once there are more chapters than fit: the next few of them. */
+	MORE_OVVAR("rotate_right", "More ovvar ▶", "Your other chapters' ovvar");
 
 	/** The art's name, which two actions may share — so {@code id} is not unique, the constant is. */
 	public final String id;

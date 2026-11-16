@@ -60,6 +60,8 @@ public final class WardrobeArt {
 	private static final Map<Chapter, Character> CHAPTER_CHAR = new LinkedHashMap<>();
 
 	static {
+		// The backgrounds are drawn at 'A'…'Z' in the wardrobe font.
+		if (Chapter.values().length > 26) throw new IllegalStateException(Chapter.values().length + " chapters, but the wardrobe font has 26 background codepoints");
 		char c = 'A';
 		for (Chapter chapter : Chapter.values()) CHAPTER_CHAR.put(chapter, c++);
 	}
@@ -118,17 +120,9 @@ public final class WardrobeArt {
 		}
 	}
 
-	/**
-	 * The chapter's cloth colour: {@code #BD3754} data, {@code #8A57BD} IT, {@code #769BB0} IT
-	 * kisel, {@code #1B1B1B} media dark; the PolymITer variants reuse their base chapter's colour.
-	 */
+	/** The chapter's cloth colour ({@link Chapter#colour}). */
 	public static int colour(Chapter chapter) {
-		return switch (chapter) {
-			case DATA, DATA_POLYMITER -> 0xBD3754;
-			case IT, IT_POLYMITER -> 0x8A57BD;
-			case IT_KISEL -> 0x769BB0;
-			case MEDIA -> 0x1B1B1B;
-		};
+		return chapter.colour;
 	}
 
 	/** Luminance × colour, per channel; a template pixel that is stitching (near-white) is kept white. */

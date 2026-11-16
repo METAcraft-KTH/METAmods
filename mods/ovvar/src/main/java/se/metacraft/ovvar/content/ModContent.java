@@ -2,6 +2,7 @@ package se.metacraft.ovvar.content;
 
 import se.metacraft.ovvar.pack.EquipmentJson;
 import eu.pb4.polymer.core.api.item.PolymerCreativeModeTabUtils;
+import net.fabricmc.fabric.api.event.registry.FabricRegistry;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.content.item.OvveItem;
 import se.metacraft.ovvar.content.item.OvveTopItem;
@@ -60,6 +61,11 @@ public final class ModContent {
 
 	public static Identifier patchId(Patches.Patch patch) {
 		return id("patch_" + patch.id());
+	}
+
+	/** A retired chapter's old item ids (ovve, top, cuffs), each now an alias of its successor's. */
+	public static List<Identifier> retiredItemIds(String retiredChapterId) {
+		return List.of(id(retiredChapterId + "_ovve"), id(retiredChapterId + "_ovve_top"), id(retiredChapterId + "_ovve_feet"));
 	}
 
 	public static OvveItem ovve(Chapter chapter) {
@@ -121,6 +127,12 @@ public final class ModContent {
 			PATCH_ITEMS.put(patch.id(), item);
 			ALL.add(item);
 		}
+		// The retired chapters' items load as their successors' wherever they were saved, components and all.
+		Chapter.RETIRED.forEach((retired, successor) -> {
+			List<Identifier> old = retiredItemIds(retired);
+			List<Identifier> now = List.of(ovveId(successor), topId(successor), feetId(successor));
+			for (int i = 0; i < old.size(); i++) ((FabricRegistry) BuiltInRegistries.ITEM).addAlias(old.get(i), now.get(i));
+		});
 		registerCreativeTab();
 	}
 

@@ -2565,6 +2565,74 @@ public final class WardrobeTests {
 		helper.succeed();
 	}
 
+	// ---- many chapters
+
+	/** Past seven chapters the tab row shows six and a "more" tab that turns to the next six. */
+	@GameTest
+	public void tabRowScrollsPastSevenChapters(GameTestHelper helper) {
+		List<Chapter> tabs = List.of(Chapter.values()).subList(0, 9);
+		WardrobeGui.TabWindow first = WardrobeGui.tabWindow(tabs, tabs.get(0));
+		if (!first.shown().equals(tabs.subList(0, 6)) || first.activeColumn() != 0 || first.more() != tabs.get(6)) {
+			helper.fail("first window: " + first);
+		}
+		WardrobeGui.TabWindow second = WardrobeGui.tabWindow(tabs, tabs.get(7));
+		if (!second.shown().equals(tabs.subList(6, 9)) || second.activeColumn() != 1 || second.more() != tabs.get(0)) {
+			helper.fail("second window: " + second);
+		}
+		List<Chapter> seven = tabs.subList(0, 7);
+		WardrobeGui.TabWindow fits = WardrobeGui.tabWindow(seven, seven.get(6));
+		if (!fits.shown().equals(seven) || fits.activeColumn() != 6 || fits.more() != null) helper.fail("seven tabs: " + fits);
+		helper.succeed();
+	}
+
+	@GameTest(maxTicks = 1200)
+	public void moreTabOpensTheNextWindow(GameTestHelper helper) throws IOException {
+		MinecraftServer server = helper.getLevel().getServer();
+		Path dir = Files.createTempDirectory("ovvar-wardrobes");
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		UUID owner = player.getUUID();
+		List<Chapter> tabs = List.of(Chapter.values()).subList(0, 9);
+		for (Chapter chapter : tabs) {
+			ItemStack ovve = new ItemStack(ModContent.ovve(chapter));
+			OvveItem.setOwner(ovve, owner);
+			player.getInventory().add(ovve);
+		}
+		helper.startSequence()
+				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
+				.thenExecute(() -> guarded(server, () -> {
+					Wardrobes.use(server, new FileBackend(dir));
+					Wardrobes.fetch(owner);
+				}))
+				.thenWaitUntil(() -> assertThat(Wardrobes.loaded(owner), "owner not loaded"))
+				.thenExecute(() -> guarded(server, () -> {
+					WardrobeGui gui = WardrobeGui.forTest(player, tabs.get(0), Angle.FRONT);
+					GuiElement more = gui.getGuiElement(6);
+					if (more == null || !more.getItemStack().getHoverName().getString().equals("More ovvar ▶")) {
+						helper.fail("slot (0,6) is not the more tab: " + (more == null ? null : more.getItemStack().getHoverName().getString()));
+					}
+					more.getGuiCallback().click(6, eu.pb4.sgui.api.ClickType.MOUSE_LEFT, net.minecraft.world.inventory.ContainerInput.PICKUP, gui);
+					WardrobeGui next = gui.reopenedTo();
+					if (next == null) helper.fail("clicking the more tab opened nothing");
+					if (next.angle() != Angle.FRONT) helper.fail("the more tab changed the angle");
+					if (next.getGuiElement(0).getItemStack().getItem() != ModContent.ovve(tabs.get(6))) {
+						helper.fail("the next window does not start at the seventh chapter");
+					}
+					release(server);
+				}))
+				.thenSucceed();
+	}
+
+	/** The fonts hand out codepoints in order and run dry for good: room for more chapters is checked. */
+	@GameTest
+	public void fontsHaveRoomForMoreChapters(GameTestHelper helper) {
+		int wardrobe = WardrobeFont.codepointsLeft(), sewing = se.metacraft.ovvar.sewing.SewingFont.codepointsLeft();
+		Ovvar.LOGGER.info("codepoints left: WardrobeFont {}, SewingFont {}", wardrobe, sewing);
+		int needed = 4 * Angle.values().length * 4;
+		if (wardrobe < needed) helper.fail("WardrobeFont has " + wardrobe + " codepoints left, wanted " + needed);
+		if (sewing < 4) helper.fail("SewingFont has " + sewing + " codepoints left, wanted 4");
+		helper.succeed();
+	}
+
 	/** A throwaway store back (never the run dir's configured one), and the next test may go. */
 	private static void release(MinecraftServer server) {
 		Wardrobes.use(server, idleBackend());
@@ -2937,23 +3005,30 @@ public final class WardrobeTests {
 		helper.startSequence()
 				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
 				.thenExecute(() -> guarded(server, () -> {
+					boolean otherChapter;
+					int again, frack;
 					try {
-						Combos.forgetForTest(Piece.BOTTOM, comboA);   // only this test sews leg_back_mid_l/r and sleeve_back_mid_r/l; the count below must prove something
-						Combos.forgetForTest(Piece.TOP, comboB);
+						Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, comboA);   // only this test sews leg_back_mid_l/r and sleeve_back_mid_r/l; the count below must prove something
+						Combos.forgetForTest(Chapter.IT, Piece.TOP, comboB);
 						Wardrobes.use(server, new FileBackend(dir));
-						List<SpotPlacements> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
+						List<Map.Entry<Chapter, SpotPlacements>> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
 						if (designs.size() != 2) helper.fail("stored designs: " + designs.size());
 						int added = Combos.prebuild(designs);
 						if (added != 2) helper.fail("pre-built " + added + ", expected 2");
-						if (!Combos.isKnown(Piece.BOTTOM, comboA)) helper.fail("A's combination is not known");
-						if (!Combos.isKnown(Piece.TOP, comboB)) helper.fail("B's combination is not known");
-						int again = Combos.prebuild(designs);
-						if (again != 0) helper.fail("a second pre-build added " + again);
+						if (!Combos.isKnown(Chapter.DATA, Piece.BOTTOM, comboA)) helper.fail("A's combination is not known");
+						if (!Combos.isKnown(Chapter.IT, Piece.TOP, comboB)) helper.fail("B's combination is not known");
+						otherChapter = Combos.isKnown(Chapter.IT, Piece.BOTTOM, comboA);
+						again = Combos.prebuild(designs);
+						// A frack has no bottom: a design's bottom half on one is not pre-built.
+						frack = Combos.prebuild(List.of(Map.entry(Chapter.MEDIA, a)));
 					} finally {
-						Combos.forgetForTest(Piece.BOTTOM, comboA);
-						Combos.forgetForTest(Piece.TOP, comboB);
+						Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, comboA);
+						Combos.forgetForTest(Chapter.IT, Piece.TOP, comboB);
 					}
 					release(server);
+					if (again != 0) helper.fail("a second pre-build added " + again);
+					if (otherChapter) helper.fail("A's combination is known for a chapter it was not stored on");
+					if (frack != 0) helper.fail("pre-built " + frack + " bottom combination(s) for a frack");
 				}))
 				.thenSucceed();
 	}
@@ -2966,7 +3041,7 @@ public final class WardrobeTests {
 		helper.startSequence()
 				.thenWaitUntil(() -> assertThat(BUSY.compareAndSet(false, true), "another store test is running"))
 				.thenExecute(() -> guarded(server, () -> {
-					Combos.forgetForTest(Piece.BOTTOM, fixed);   // known stays false: nothing here may add it
+					Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, fixed);   // known stays false: nothing here may add it
 					WardrobeBackend failing = new WardrobeBackend() {
 						@Override public Optional<Wardrobe> load(UUID owner) { return Optional.empty(); }
 						@Override public boolean store(UUID owner, Wardrobe next, long expectedVersion) { return true; }
@@ -2981,13 +3056,13 @@ public final class WardrobeTests {
 					try {
 						for (WardrobeBackend backend : List.of(failing, plain)) {
 							Wardrobes.use(server, backend);
-							List<SpotPlacements> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
+							List<Map.Entry<Chapter, SpotPlacements>> designs = Wardrobes.storedDesigns(Duration.ofSeconds(5));
 							if (!designs.isEmpty()) helper.fail(backend.describe() + " listed " + designs.size());
 							if (Combos.prebuild(designs) != 0) helper.fail("pre-built from nothing");
 						}
-						if (Combos.isKnown(Piece.BOTTOM, fixed)) helper.fail("the known set changed");
+						if (Combos.isKnown(Chapter.DATA, Piece.BOTTOM, fixed)) helper.fail("the known set changed");
 					} finally {
-						Combos.forgetForTest(Piece.BOTTOM, fixed);
+						Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, fixed);
 					}
 					release(server);
 				}))
@@ -3012,23 +3087,23 @@ public final class WardrobeTests {
 
 	private static void checkSewingOrder(GameTestHelper helper) {
 		Placement seat = Placement.parse("leg_front_mid_l.cerise"), leg = Placement.parse("leg_front_mid_r.batatu");
-		Combos.KeyedCombo stored = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "bottom:" + Placement.combo(List.of(seat, leg)).key()).getOrThrow();
-		Combos.forgetForTest(Piece.BOTTOM, stored.combo());   // leg_front_mid_l.cerise + leg_front_mid_r.batatu: only this test sews these cells
+		Combos.KeyedCombo stored = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "data/bottom:" + Placement.combo(List.of(seat, leg)).key()).getOrThrow();
+		Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, stored.combo());   // leg_front_mid_l.cerise + leg_front_mid_r.batatu: only this test sews these cells
 		try {
 			for (List<Placement> order : List.of(List.of(seat, leg), List.of(leg, seat))) {
 				Combos.Combo live = Placement.combo(order);
 				if (!stored.combo().equals(live) || stored.combo().hashCode() != live.hashCode()) helper.fail("not equal in order " + order);
-				if (!stored.equals(new Combos.KeyedCombo(Piece.BOTTOM, live))) helper.fail("keyed combos differ in order " + order);
+				if (!stored.equals(new Combos.KeyedCombo(Chapter.DATA, Piece.BOTTOM, live))) helper.fail("keyed combos differ in order " + order);
 				if (!stored.combo().key().equals(live.key())) helper.fail("keys differ in order " + order);
 			}
 			// An older combos.json line with its placements in any order still loads, to the same combination.
-			Combos.KeyedCombo reversed = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "bottom:" + leg.key() + "-" + seat.key()).getOrThrow();
+			Combos.KeyedCombo reversed = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "data/bottom:" + leg.key() + "-" + seat.key()).getOrThrow();
 			if (!reversed.equals(stored)) helper.fail("an unsorted stored key loads to a different combination");
-			Combos.prebuild(List.of(SpotPlacements.fromList(List.of(leg, seat)).getOrThrow()));
-			boolean both = Combos.isKnown(Piece.BOTTOM, Placement.combo(List.of(seat, leg))) && Combos.isKnown(Piece.BOTTOM, Placement.combo(List.of(leg, seat)));
+			Combos.prebuild(List.of(Map.entry(Chapter.DATA, SpotPlacements.fromList(List.of(leg, seat)).getOrThrow())));
+			boolean both = Combos.isKnown(Chapter.DATA, Piece.BOTTOM, Placement.combo(List.of(seat, leg))) && Combos.isKnown(Chapter.DATA, Piece.BOTTOM, Placement.combo(List.of(leg, seat)));
 			if (!both) helper.fail("a pre-built combination is not known in both orders");
 		} finally {
-			Combos.forgetForTest(Piece.BOTTOM, stored.combo());
+			Combos.forgetForTest(Chapter.DATA, Piece.BOTTOM, stored.combo());
 		}
 	}
 

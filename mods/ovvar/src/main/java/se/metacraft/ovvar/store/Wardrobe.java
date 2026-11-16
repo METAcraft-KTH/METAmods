@@ -2,6 +2,7 @@ package se.metacraft.ovvar.store;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.Placement;
@@ -39,14 +40,33 @@ public record Wardrobe(Map<Chapter, SpotPlacements> designs, Map<String, Integer
 			}),
 			Codec.unboundedMap(Codec.STRING, Codec.intRange(1, Integer.MAX_VALUE)).optionalFieldOf("stash", Map.of()).forGetter(w -> w.stash),
 			Codec.LONG.optionalFieldOf("version", 0L).forGetter(Wardrobe::version)
-	).apply(instance, (designs, stash, version) -> {
+	).apply(instance, Wardrobe::decoded));
+
+	/**
+	 * A stored row as it is now: the current chapters' designs first, then each {@link
+	 * Chapter#RETIRED} chapter's, in order. A retired design becomes its successor's if that has
+	 * none, and otherwise goes to the stash a patch at a time, so no patch is lost or made. An id
+	 * that is neither is dropped, and logged.
+	 */
+	private static Wardrobe decoded(Map<String, List<Placement>> designs, Map<String, Integer> stash, long version) {
 		Map<Chapter, SpotPlacements> out = new TreeMap<>();
 		designs.forEach((id, list) -> {
 			Chapter chapter = Chapter.byId(id);
-			if (chapter != null && !list.isEmpty()) out.put(chapter, SpotPlacements.fromList(list).getOrThrow());
+			if (chapter != null) {
+				if (!list.isEmpty()) out.put(chapter, SpotPlacements.fromList(list).getOrThrow());
+			} else if (!Chapter.RETIRED.containsKey(id)) {
+				Ovvar.LOGGER.warn("[{}] wardrobe: dropped the design for unknown chapter '{}'", Ovvar.MOD_ID, id);
+			}
 		});
-		return new Wardrobe(out, stash, version);
-	}));
+		Map<String, Integer> outStash = new TreeMap<>(stash);
+		Chapter.RETIRED.forEach((id, successor) -> {
+			List<Placement> list = designs.getOrDefault(id, List.of());
+			if (list.isEmpty()) return;
+			if (!out.containsKey(successor)) out.put(successor, SpotPlacements.fromList(list).getOrThrow());
+			else for (Placement p : list) outStash.merge(p.patch().id(), 1, Integer::sum);
+		});
+		return new Wardrobe(out, outStash, version);
+	}
 
 	public Wardrobe {
 		designs = Collections.unmodifiableMap(new TreeMap<>(designs));

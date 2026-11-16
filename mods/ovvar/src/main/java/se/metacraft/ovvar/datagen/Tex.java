@@ -362,11 +362,6 @@ public final class Tex {
 		return new Tex(width, height, out);
 	}
 
-	/** HSB brightness of a colour, 0–1. */
-	public static float brightness(int rgb) {
-		return java.awt.Color.RGBtoHSB(r(rgb), g(rgb), b(rgb), null)[2];
-	}
-
 	/** Every distinct fully opaque colour (ARGB, alpha 255), in first-seen order. */
 	public List<Integer> opaqueColours() {
 		List<Integer> out = new ArrayList<>();

@@ -138,9 +138,7 @@ public final class BlockbenchManifestTests {
 						Patches.artFor(patch, fit).file() + ".png");
 			}
 		}
-		// The PolymITer chapters are reference art due for removal and are left out on purpose.
-		List<Chapter> want = new ArrayList<>();
-		for (Chapter chapter : Chapter.values()) if (!chapter.id.endsWith("_polymiter")) want.add(chapter);
+		List<Chapter> want = List.of(Chapter.values());
 		JsonArray chapters = m.getAsJsonArray("chapters");
 		List<String> got = new ArrayList<>();
 		for (var e : chapters) got.add(e.getAsJsonObject().get("id").getAsString());

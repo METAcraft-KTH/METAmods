@@ -150,6 +150,41 @@ public final class DanseModelsTests {
 		helper.succeed();
 	}
 
+	/**
+	 * Every base crop is stitched into the one 2048×2048 items atlas, patch crops and vanilla items
+	 * alongside. The base crops alone must leave at least three quarters of it free; the pixel
+	 * total is logged so growth is visible as chapters are added.
+	 */
+	@GameTest
+	public void baseCropsFitTheirShareOfTheItemsAtlas(GameTestHelper helper) {
+		if (!danse()) { helper.succeed(); return; }
+		Map<String, byte[]> files = new TreeMap<>();
+		DanseModels.write(files::put);
+		String root = "assets/ovvar/textures/item/danse/";
+		long pixels = 0;
+		int crops = 0;
+		for (var e : files.entrySet()) {
+			String path = e.getKey();
+			if (!path.startsWith(root) || !path.endsWith(".png")) continue;
+			// item/danse/<piece>/<part>/<texture>: a patch's texture is patch/..., everything else is a base crop
+			String[] parts = path.substring(root.length()).split("/", 3);
+			if (parts.length < 3 || parts[2].startsWith("patch/")) continue;
+			try {
+				java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(e.getValue()));
+				pixels += (long) image.getWidth() * image.getHeight();
+				crops++;
+			} catch (java.io.IOException ex) {
+				helper.fail(path + " does not read as a PNG: " + ex.getMessage());
+				return;
+			}
+		}
+		long bound = 2048L * 2048L / 4;
+		System.out.println("[ovvar] Danse base crops: " + crops + " crops, " + pixels + " pixels of " + bound + " allowed");
+		if (crops == 0) { helper.fail("no base crops in the pack"); return; }
+		if (pixels > bound) { helper.fail("base crops take " + pixels + " pixels, over the " + bound + " (a quarter of the items atlas)"); return; }
+		helper.succeed();
+	}
+
 	private static String firstWith(Map<String, String> files, String prefix) {
 		return files.entrySet().stream().filter(e -> e.getKey().startsWith(prefix)).map(Map.Entry::getValue).findFirst().orElse(null);
 	}

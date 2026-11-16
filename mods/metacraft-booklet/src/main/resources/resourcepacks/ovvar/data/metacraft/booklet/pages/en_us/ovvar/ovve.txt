@@ -1,6 +1,6 @@
 ### Section: PageInfo
 title=The ovve
-description=One garment you wear: its pockets, its top, and the Media frack.
+description=One garment you wear: its pockets, its top, and the fracks.
 category=metacraft:ovvar
 icon=ovvar:data_ovve
 order=1
@@ -10,7 +10,11 @@ order=1
 
 Each ovve is a single item that goes in the <bold>legs</bold> slot: drag it in, or shift-click it. Right-clicking does not equip it (see pockets). It protects like leather and never wears out.
 
+Every other chapter has one too: Arkitektur, Bygg, CL, Doktorand, Elektro, Energi och miljö, Fysik, Indek, Kemi, Medicinsk teknik, OPEN, Samhällsbyggnad and TBas. Flyg, Maskin and Bergs share the black <citem 'ovvar:b_frack'>. These can't be crafted.
+
 The <bold>Media frack</bold> is a tailcoat, so it goes in the <bold>chest</bold> slot instead. It is its own top: there is nothing to roll up or down, and patches go only on the coat. Its pockets work like an ovve's.
+
+The B-frack is worn the same way.
 
 Pink-black checker on your arms and legs? Your shaderpack has not been patched for ovves, or was patched before this update: patch the original pack again. Type <bold>/ovvar shaders</bold> to get the patcher.
 

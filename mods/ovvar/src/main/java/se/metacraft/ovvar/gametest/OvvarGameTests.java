@@ -196,48 +196,79 @@ public final class OvvarGameTests {
 	/**
 	 * Every sprite label in every state of every seam measures exactly what the client centres
 	 * without scrolling (the button's width minus its insets) and draws only within 1 px of its
-	 * button: the rules {@link SewingFont} rests on. Also that each dialog encodes.
+	 * button: the rules {@link SewingFont} rests on. Also that each dialog encodes. The full matrix
+	 * runs for the first chapter; a chapter only changes the cloth glyph, which is the same size for
+	 * every chapter, so the others are held to the first one's labels on one seam.
 	 */
 	@GameTest
 	public void sewingLabelsFitTheirButtons(GameTestHelper helper) {
+		Chapter first = Chapter.values()[0];
 		int labels = 0;
-		for (Chapter chapter : Chapter.values()) {
-			for (Patches.Patch patch : Patches.all()) {
-				Spot spot = patch.seat() ? Spot.SEAT : Spot.FRONT_TOP_LEFT;
-				for (int stitches = OvvarConfig.MIN_STITCHES; stitches <= OvvarConfig.MAX_STITCHES; stitches++) {
-					for (int done = 0; done < stitches; done++) {
-						Dialog dialog = SewingGame.dialog(chapter, patch, spot, stitches, done);
-						if (chapter == Chapter.values()[0] && done == 0) {
-							Dialog.DIRECT_CODEC.encodeStart(JsonOps.INSTANCE, dialog)
-									.getOrThrow(message -> new IllegalStateException("dialog does not encode: " + message));
-						}
-						MultiActionDialog multi = (MultiActionDialog) dialog;
-						List<ActionButton> buttons = new ArrayList<>(multi.actions());
-						multi.exitAction().ifPresent(buttons::add);
-						int pulls = 0;
-						for (ActionButton button : buttons) {
-							String where = chapter.id + "/" + patch.id() + " " + done + "/" + stitches;
-							int width = button.button().width();
-							String text = button.button().label().getString();
-							int measured = SewingFont.width(text);
-							if (measured != width - 2 * SewingFont.LABEL_INSET) {
-								helper.fail(where + ": a " + width + " px button's label measures " + measured);
-							}
-							// A cell's glyph covers its button and 1 px around; only the last cell reaches back over the picture.
-							int[] extent = SewingFont.extent(text);
-							if (extent[0] < SewingFont.overlayX(0) || extent[1] > width + 2 * SewingFont.OVERHANG) {
-								helper.fail(where + ": a label draws from " + extent[0] + " to " + extent[1] + " on a " + width + " px button");
-							}
-							if (button.action().isPresent() && buttons.indexOf(button) < multi.actions().size()) pulls++;
-							labels++;
-						}
-						if (pulls != 1) helper.fail(chapter.id + "/" + patch.id() + " " + done + "/" + stitches + ": " + pulls + " needle buttons");
+		for (Patches.Patch patch : Patches.all()) {
+			Spot spot = patch.seat() ? Spot.SEAT : Spot.FRONT_TOP_LEFT;
+			for (int stitches = OvvarConfig.MIN_STITCHES; stitches <= OvvarConfig.MAX_STITCHES; stitches++) {
+				for (int done = 0; done < stitches; done++) {
+					Dialog dialog = SewingGame.dialog(first, patch, spot, stitches, done);
+					if (done == 0) {
+						Dialog.DIRECT_CODEC.encodeStart(JsonOps.INSTANCE, dialog)
+								.getOrThrow(message -> new IllegalStateException("dialog does not encode: " + message));
 					}
+					MultiActionDialog multi = (MultiActionDialog) dialog;
+					List<ActionButton> buttons = buttons(multi);
+					int pulls = 0;
+					for (ActionButton button : buttons) {
+						String where = first.id + "/" + patch.id() + " " + done + "/" + stitches;
+						int width = button.button().width();
+						String text = button.button().label().getString();
+						int measured = SewingFont.width(text);
+						if (measured != width - 2 * SewingFont.LABEL_INSET) {
+							helper.fail(where + ": a " + width + " px button's label measures " + measured);
+						}
+						// A cell's glyph covers its button and 1 px around; only the last cell reaches back over the picture.
+						int[] extent = SewingFont.extent(text);
+						if (extent[0] < SewingFont.overlayX(0) || extent[1] > width + 2 * SewingFont.OVERHANG) {
+							helper.fail(where + ": a label draws from " + extent[0] + " to " + extent[1] + " on a " + width + " px button");
+						}
+						if (button.action().isPresent() && buttons.indexOf(button) < multi.actions().size()) pulls++;
+						labels++;
+					}
+					if (pulls != 1) helper.fail(first.id + "/" + patch.id() + " " + done + "/" + stitches + ": " + pulls + " needle buttons");
 				}
 			}
 		}
 		if (labels == 0) helper.fail("no labels checked");
+
+		Patches.Patch patch = Patches.all().getFirst();
+		Spot spot = patch.seat() ? Spot.SEAT : Spot.FRONT_TOP_LEFT;
+		List<int[]> want = labelSizes(SewingGame.dialog(first, patch, spot, OvvarConfig.MIN_STITCHES, 0));
+		for (Chapter chapter : Chapter.values()) {
+			if (chapter == first) continue;
+			List<int[]> got = labelSizes(SewingGame.dialog(chapter, patch, spot, OvvarConfig.MIN_STITCHES, 0));
+			if (got.size() != want.size()) helper.fail(chapter.id + ": " + got.size() + " buttons, " + first.id + " has " + want.size());
+			for (int i = 0; i < want.size(); i++) {
+				if (!java.util.Arrays.equals(got.get(i), want.get(i))) {
+					helper.fail(chapter.id + ": button " + i + " is " + java.util.Arrays.toString(got.get(i)) + ", " + first.id + "'s is " + java.util.Arrays.toString(want.get(i)));
+				}
+			}
+		}
 		helper.succeed();
+	}
+
+	private static List<ActionButton> buttons(MultiActionDialog multi) {
+		List<ActionButton> buttons = new ArrayList<>(multi.actions());
+		multi.exitAction().ifPresent(buttons::add);
+		return buttons;
+	}
+
+	/** Per button: its width, its label's measured width and drawn extent, and whether it has an action. */
+	private static List<int[]> labelSizes(Dialog dialog) {
+		List<int[]> out = new ArrayList<>();
+		for (ActionButton button : buttons((MultiActionDialog) dialog)) {
+			String text = button.button().label().getString();
+			int[] extent = SewingFont.extent(text);
+			out.add(new int[]{button.button().width(), SewingFont.width(text), extent[0], extent[1], button.action().isPresent() ? 1 : 0});
+		}
+		return out;
 	}
 
 	@GameTest

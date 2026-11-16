@@ -149,8 +149,19 @@ public final class WardrobeGui extends SimpleGui {
 
 	public static WardrobeGui forTest(ServerPlayer player, Chapter chapter, Angle angle, int page) {
 		WardrobeGui gui = new WardrobeGui(player, player.getUUID(), player.getName().getString(), chapter, angle, page);
+		gui.testing = true;
 		gui.build();
 		return gui;
+	}
+
+	/** Set on screens made by {@code forTest}: a click rebuilds the screen without opening it. */
+	private boolean testing;
+	/** The screen the last tab or turn click opened (or, in a test, built). */
+	private @Nullable WardrobeGui reopenedTo;
+
+	/** The screen the last click re-opened on, for game tests. */
+	public @Nullable WardrobeGui reopenedTo() {
+		return reopenedTo;
 	}
 
 	/** The same, for a look at somebody else's wardrobe. */
@@ -276,8 +287,8 @@ public final class WardrobeGui extends SimpleGui {
 	 * everything else the title used to say is drawn as glyphs instead.
 	 */
 	public static String titleText(Chapter chapter) {
-		String full = " " + chapter.name + " " + chapter.garmentWord();
-		// A long chapter name gives up the garment word rather than the counts beside it. Measured
+		String full = " " + chapter.fullName;
+		// A long garment name falls back to the chapter's short name rather than give up the counts beside it. Measured
 		// against counts nobody will reach, so the title does not wobble as the numbers grow.
 		if (!WardrobeFont.statsRow(999, 99, 99, full.length()).isEmpty()) return full;
 		return " " + chapter.name;
@@ -314,9 +325,10 @@ public final class WardrobeGui extends SimpleGui {
 		}
 		Wardrobe wardrobe = Wardrobes.current(owner);
 		List<Chapter> tabs = tabs(wardrobe);
-		setTitle(title(chapter, wardrobe, angle, tabs.indexOf(chapter), own(), page));
+		TabWindow window = tabWindow(tabs, chapter);
+		setTitle(title(chapter, wardrobe, angle, window.activeColumn(), own(), page));
 
-		buildTabs(tabs);
+		buildTabs(window);
 		buildPreview(wardrobe);
 		if (own()) {
 			buildCollection(player, wardrobe);
@@ -340,17 +352,43 @@ public final class WardrobeGui extends SimpleGui {
 		return out;
 	}
 
-	private void buildTabs(List<Chapter> tabs) {
+	/**
+	 * The tabs on show: all of them while they fit, otherwise six at a time with column 6 a "more"
+	 * tab that opens the next six (the last window's wraps round to the first).
+	 *
+	 * @param shown		  the chapters in columns 0..
+	 * @param activeColumn the column of the current chapter, or -1 when it is not on show
+	 * @param more		 the chapter the "more" tab opens on, or null when there is no such tab
+	 */
+	public record TabWindow(List<Chapter> shown, int activeColumn, @Nullable Chapter more) {}
+
+	public static TabWindow tabWindow(List<Chapter> tabs, Chapter current) {
+		int index = tabs.indexOf(current);
+		if (tabs.size() <= TAB_COLS) return new TabWindow(List.copyOf(tabs), index, null);
+		int per = TAB_COLS - 1;
+		int start = index < 0 ? 0 : index / per * per;
+		int end = Math.min(start + per, tabs.size());
+		return new TabWindow(List.copyOf(tabs.subList(start, end)), index < 0 ? -1 : index - start,
+				tabs.get(start + per < tabs.size() ? start + per : 0));
+	}
+
+	private void buildTabs(TabWindow window) {
 		int col = 0;
-		for (Chapter tab : tabs) {
+		for (Chapter tab : window.shown()) {
 			boolean current = tab == chapter;
 			GuiElementBuilder element = GuiElementBuilder.from(new ItemStack(ModContent.ovve(tab)))
-					.setName(Component.literal(tab.name + " " + tab.garmentWord()).withStyle(current ? ChatFormatting.GOLD : ChatFormatting.WHITE))
+					.setName(Component.literal(tab.fullName).withStyle(current ? ChatFormatting.GOLD : ChatFormatting.WHITE))
 					.addLoreLine(Component.literal(current ? "(showing)" : "Click to switch to it").withStyle(current ? ChatFormatting.GOLD : ChatFormatting.GRAY))
 					.glow(current);
 			element.setCallback((index, type, action, gui) -> reopen(tab, angle));
 			setSlot(slot(TAB_ROW, col++), element.build());
-			if (col >= TAB_COLS) break;   // leave the far end to the piece toggle
+		}
+		Chapter more = window.more();
+		if (more != null) {
+			setSlot(slot(TAB_ROW, TAB_COLS - 1), GuiElementBuilder.from(icon(WardrobeAction.MORE_OVVAR, true))
+					.setName(Component.literal(WardrobeAction.MORE_OVVAR.verb).withStyle(ChatFormatting.AQUA))
+					.addLoreLine(Component.literal(WardrobeAction.MORE_OVVAR.does).withStyle(ChatFormatting.GRAY))
+					.setCallback((index, type, action, gui) -> reopen(more, angle)).build());
 		}
 		setSlot(ROTATE_LEFT, rotator(-1, WardrobeAction.ROTATE_LEFT));
 		setSlot(ROTATE_RIGHT, rotator(1, WardrobeAction.ROTATE_RIGHT));
@@ -366,10 +404,11 @@ public final class WardrobeGui extends SimpleGui {
 	}
 
 	private void reopen(Chapter tab, Angle to, int toPage) {
-		if (!isOpen()) return;
+		if (!isOpen() && !testing) return;
 		WardrobeGui next = new WardrobeGui(player, owner, ownerName, tab, to, toPage);
 		next.build();
-		next.open();
+		reopenedTo = next;
+		if (isOpen()) next.open();
 	}
 
 	/**
@@ -599,7 +638,7 @@ public final class WardrobeGui extends SimpleGui {
 		book.addLoreLine(Component.literal("The stash and your ovvar follow you to every server").withStyle(ChatFormatting.DARK_GRAY));
 		for (Map.Entry<Chapter, SpotPlacements> entry : wardrobe.designs().entrySet()) {
 			List<Placement> list = entry.getValue().asPlacementList();
-			book.addLoreLine(Component.literal(entry.getKey().name + " " + entry.getKey().garmentWord() + ": " + list.size() + " patch(es)").withStyle(ChatFormatting.DARK_GRAY));
+			book.addLoreLine(Component.literal(entry.getKey().fullName + ": " + list.size() + " patch(es)").withStyle(ChatFormatting.DARK_GRAY));
 		}
 		return book.build();
 	}

@@ -195,6 +195,26 @@ public final class FrackTests {
 		helper.succeed();
 	}
 
+	/** The B-frack is a second frack: chest slot, top cells only, nothing to roll, and it goes on as the Media one does. */
+	@GameTest
+	public void bFrackIsAFrack(GameTestHelper helper) {
+		Chapter b = Chapter.B_FRACK;
+		if (b.slot != EquipmentSlot.CHEST) helper.fail("the B-frack's slot is " + b.slot);
+		if (!b.pieces().equals(Set.of(Piece.TOP))) helper.fail("the B-frack's pieces are " + b.pieces());
+		if (b.rollable) helper.fail("the B-frack rolls down");
+		if (!b.garmentWord().equals("frack")) helper.fail("the B-frack's garment word is " + b.garmentWord());
+		for (Chapter chapter : List.of(FRACK, b)) {
+			ServerPlayer player = helper.makeMockServerPlayerInLevel();
+			ItemStack frack = new ItemStack(ModContent.ovve(chapter));
+			Equippable equippable = frack.get(DataComponents.EQUIPPABLE);
+			if (equippable == null || equippable.slot() != EquipmentSlot.CHEST) helper.fail(chapter + " equips in " + (equippable == null ? "no slot" : equippable.slot()));
+			if (!player.isEquippableInSlot(frack, EquipmentSlot.CHEST)) helper.fail("the chest slot refused an unowned " + chapter);
+			player.setItemSlot(EquipmentSlot.CHEST, frack);
+			if (player.getItemBySlot(EquipmentSlot.CHEST) != frack) helper.fail(chapter + " did not go into the chest slot");
+		}
+		helper.succeed();
+	}
+
 	private static ArmorStand stand(GameTestHelper helper) {
 		ArmorStand stand = helper.spawn(EntityTypes.ARMOR_STAND, new BlockPos(2, 1, 2));
 		stand.setNoGravity(true);

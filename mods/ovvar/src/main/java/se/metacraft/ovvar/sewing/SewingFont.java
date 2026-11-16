@@ -110,6 +110,11 @@ public final class SewingFont {
 	private static final Map<String, Glyph> GLYPHS = new LinkedHashMap<>();
 	private static char nextChar = '\uE000';
 
+	/** How many preview codepoints are left before the spaces start. */
+	public static int codepointsLeft() {
+		return SPACE_FIRST - nextChar;
+	}
+
 	private static Glyph glyph(String name, int width, int height, int minTop, int maxTop) {
 		Glyph g = new Glyph(name, width, height, minTop, maxTop, nextChar);
 		nextChar += (char) g.variants();

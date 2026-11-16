@@ -103,7 +103,7 @@ public final class JdbcBackend implements WardrobeBackend {
 	@Override
 	public List<Wardrobe> all() throws IOException {
 		try (PreparedStatement statement = prepare("SELECT version, data FROM " + table);
-				ResultSet rows = statement.executeQuery()) {
+			ResultSet rows = statement.executeQuery()) {
 			List<Wardrobe> out = new ArrayList<>();
 			while (rows.next()) {
 				try {

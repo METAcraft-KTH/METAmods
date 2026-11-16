@@ -20,7 +20,6 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 import com.google.gson.JsonParser;
-import com.mojang.serialization.JavaOps;
 import com.mojang.serialization.JsonOps;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
@@ -184,14 +183,14 @@ public final class PatchAcquiringTests {
 
 		try {
 			for (Piece piece : Piece.values()) {
-				Combos.markBuiltForTest(piece, Placement.combo(SpotPlacements.asPlacementList(Looks.sewn(stack, piece))));
+				Combos.markBuiltForTest(Chapter.DATA, piece, Placement.combo(SpotPlacements.asPlacementList(Looks.sewn(stack, piece))));
 			}
 			for (Piece piece : Piece.values()) {
 				helper.assertTrue(Looks.look(stack, piece, null).complete(), piece + " is not complete once the pack holds its combo");
 			}
 		} finally {
 			for (Piece piece : Piece.values()) {
-				Combos.unmarkBuiltForTest(piece, Placement.combo(SpotPlacements.asPlacementList(Looks.sewn(stack, piece))));
+				Combos.unmarkBuiltForTest(Chapter.DATA, piece, Placement.combo(SpotPlacements.asPlacementList(Looks.sewn(stack, piece))));
 			}
 		}
 		helper.succeed();
@@ -221,7 +220,7 @@ public final class PatchAcquiringTests {
 		helper.assertValueEqual(read.count(Patches.get("starkt")), 2, "Starkt in the stash");
 		helper.assertValueEqual(read.stashSize(), 2, "the stash");
 
-		Combos.KeyedCombo combo = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, "bottom:leg_front_top_l.it-seat.rivals").getOrThrow();
+		Combos.KeyedCombo combo = Combos.parseKeys(List.of("bottom:leg_front_top_l.it-seat.rivals")).getFirst();
 		helper.assertValueEqual(combo.piece(), Piece.BOTTOM, "the combo's half");
 		helper.assertValueEqual(Set.copyOf(combo.combo().placements()), Set.of(Placement.parse("seat.rivals"), Placement.parse("leg_front_top_l.it")), "the combo");
 		helper.succeed();

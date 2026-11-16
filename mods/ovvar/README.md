@@ -5,8 +5,11 @@ Minecraft 26.3. Players need nothing but the auto-served resource pack.
 
 ## What it adds
 
-One ovve per chapter — Data (cerise), IT (purple), the older silicon-blue IT — and the Media
-frack. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
+One ovve per chapter. Data (cerise), IT (purple) and the older silicon-blue IT are made as before;
+Arkitektur, Bygg, CL, Doktorand, Elektro, Energi och miljö, Fysik, Indek, Kemi, Medicinsk teknik,
+OPEN, Samhällsbyggnad and TBas are the rest of KTH's chapters, each in its own colour. They have no
+recipe and no loot: new chapters come only from the wandering trader (Punkphöz). There is also the
+Media frack and the B-frack, the black frack Flyg, Maskin and Bergs share. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
 emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. It
 holds twice a bundle through METAcraft's own bundle mod (`metacraft-bundles`, a hard dependency in
 METAmods; without it pockets are vanilla-sized). Right-click is the bundle's (hold to empty); sneak +
@@ -18,7 +21,7 @@ slot) and hides the top until it comes off again. Leather-grade defence, no dura
 look is an equipment asset cut from the skin overlays on metacraft.se/style.
 
 The Media frack is the same item worn as a **chestplate** (`Chapter.slot`): a tailcoat is a top,
-and that is what sets it apart from the ovvar. Its pockets and its patches work as an ovve's, but
+and that is what sets it apart from the ovvar. The B-frack is the same cut without Media's emblem. Its pockets and its patches work as an ovve's, but
 there is no companion top (it is the top), nothing to roll up or down, no legs — only the top's
 cells take a patch, and the coat's tails in the overlay are not drawn — and no cuffs. Wherever
 the code asks what somebody wears it asks `OvveItem.worn`, which looks in whichever slot the
@@ -269,6 +272,10 @@ row 4   [ patch  ][ patch  ][ patch  ][ patch  ][ patch  ] | [prev][prev][prev][
 row 5   [take out][put in][sew][see in 3D][finish][ · ][ · ][help][close]
 ```
 
+The tab row holds seven tabs. Past seven chapters it shows six at a time, with column 6 a "more"
+tab that opens the next six (the last window's wraps round to the first); `WardrobeGui.tabWindow`
+picks the window, and the one holding the open chapter is the one on show.
+
 **The screen explains itself.** Every slot says what it is and, where it cannot be used, why not:
 
 - a tab is the chapter's *ovve*, named "Data ovve", the one on show glinting and its lore reading
@@ -418,9 +425,8 @@ its equipment on) — the guard against a copy of somebody's real, pocket-stuffe
 dupe machine.
 
 **Deviations from the design doc**, for the record:
-- The doc calls for 7 backgrounds; `Chapter` has 6 values (`DATA`, `IT`, `IT_KISEL`, `MEDIA`,
-  `DATA_POLYMITER`, `IT_POLYMITER`), so there are 6 — one per chapter, as the doc's own "one
-  background per chapter" says.
+- The doc calls for 7 backgrounds; `Chapter` has 18 values, so there are 18 — one per chapter, as
+  the doc's own "one background per chapter" says.
 - the doc's two piece toggles are gone altogether: the preview shows the whole garment, both halves
   at once, and the two buttons there now turn it instead. Where a half still has to be named it is
   "trousers", not "feet": the legs and waist are what a wearer sees, and the boots render channel
@@ -555,14 +561,25 @@ read-only and driven by the other player's design.
 
 ## Adding a chapter
 
-Drop the chapter's 64×64 skin overlay (the same file the website uses; pure green = "erase the
-skin here") into `src/main/resources/art/ovvar/`, add a line to `Chapter.java` naming it and,
-optionally, its rolled-down (nercabbad) overlay and a tint colour, then `runDatagen`. The
-armour layers, equipment definitions, icons and names are derived from that. A chapter can
-instead name a ready-made 64×32 leggings texture for its rolled-down state (`nercabbadArmour`);
-it is shifted to the chapter's colour and used as it is. The `*_polymiter` chapters do this with
-PolymITer's hand-drawn ovve (`art/ovvar/polymiter/nercabbad.png`), there to compare the two
-styles in game — `/ovvar give data_polymiter down` next to `/ovvar give data down`.
+The art is made by `tools/chapter_overlays.py` (`python3 mods/ovvar/tools/chapter_overlays.py`) and
+checked in under `src/main/resources/art/ovvar/`: `<id>.png` (top up), `<id>-nercabbad.png` (rolled
+down) and `icon_<id>.png`. Add the chapter to the tool's list with its colour, run it, and commit
+the PNGs. Then add a line to `Chapter.java` with the overlay names, the cloth `colour` (the
+wardrobe background is tinted with it), `fullName` and `svName` (the item's names in English and
+Swedish) and `wandererOnly` (true: no recipe and no loot, the wandering Punkphöz is the only
+survival source), and run `runDatagen`. The armour layers, equipment definitions, icons and names
+are derived from that. There is no `nercabbadArmour` any more. Trims are drawn by the tool into the
+overlay, not applied by `tint`; `tint` is only for IT's silicon blue.
+
+### Retired chapters
+
+A chapter that is removed goes in `Chapter.RETIRED`, from its old id to the chapter it now loads
+as (`data_polymiter` is IT, `it_polymiter` is the silicon-blue IT). Their items (`<id>_ovve`,
+`_ovve_top`, `_ovve_feet`) are registered as aliases of the successor's, and the aliases are kept
+forever: they cost nothing and an item saved anywhere, components and all, must keep loading.
+The wardrobe codec migrates a stored row by the same map, in order. A retired design becomes its
+successor's if the successor has none. If it has one, the retired design's patches go to the stash,
+one each, so none is lost or made.
 
 ## Adding a patch
 
@@ -671,6 +688,13 @@ last loaded; who gets pushed a new pack, and when, is in "Reloads only when aske
 once a client reports a pack loaded (a mixin on the resource-pack response) the equipment of
 every ovve it can see is sent again. Rebuilds are batched: a combination the dye colour can
 still show waits a minute and a half for company; one it cannot is built within two seconds.
+
+Combinations are per chapter: a line of `combos.json` is `chapter/piece:combo`, and a combination
+is built only for the chapter it was sewn on (its bottom twice on an ovve that rolls down, once
+otherwise), so the pack grows with what is sewn, not with the number of chapters. A line from
+before chapters were keyed (`piece:combo`) is read as that combination on each of the chapters
+there were then (Data, IT, Silicon-blue IT, Media) that has the half, so nothing drawn before the
+upgrade is lost; the file is written back in the new form.
 
 The dye colour carries patches without any pack change. Up to three placements per half ride in it
 — six on the legs when the wearer's feet slot carries the second channel (below), four on the top
@@ -955,7 +979,8 @@ PolymITer set's, redrawn with a white logo, which the IT ovve's own overlay now 
 PolymITer's own 16×16 IT sprite as that patch's 16 px art (`it_16x16.png`); the
 Maid dress by Mackan; Data Neko, KTH, Media Neko, Medieteknik, METAcraft and METAcrew by Millia; Pung is a redraw of a shop patch, nobody credited. The ovve garment art is
 original to this mod, cut from the chapter skin
-overlays on metacraft.se/style.
+overlays on metacraft.se/style. The chapters' colours are from the THS Reglemente 2021
+(9.5.11–9.5.22) and the chapters' own stadgar; the B-frack's art is the Media frack's.
 
 `art/ovvar/patches/bakparti.png` — "varning för utsvängande bakparti" — is in the tree but not in
 the catalogue: it is 32×8, and a seat is 16 px wide, so it needs redrawing at 16×8 before it can be

@@ -34,28 +34,58 @@ import java.util.zip.ZipInputStream;
 /** Ovvar's own combination pack (pack/ComboPack), served by metacraft-resource-packs in the test runtime. */
 public final class ComboPackTests {
 
-	/** Patch ids may hold a '-'; a combination's key must still read back as the same combination. */
+	/** Patch ids may hold a '-'; a combination's key must still read back as the same combination, chapter and half. */
 	@GameTest
-	public void comboKeysKeepHyphenatedPatchIds(GameTestHelper helper) {
-		Combos.Combo combo = Placement.combo(marshals(2));
-		var back = Combos.Combo.KEY_CODEC.parse(JavaOps.INSTANCE, combo.key()).result();
-		assertThat(back.isPresent(), "'" + combo.key() + "' does not read back");
-		assertThat(back.get().key().equals(combo.key()), "'" + combo.key() + "' read back as '" + back.get().key() + "'");
+	public void comboKeysReadBack(GameTestHelper helper) {
+		Combos.KeyedCombo key = new Combos.KeyedCombo(Chapter.CL, Piece.TOP, Placement.combo(marshals(2)));
+		var back = Combos.KeyedCombo.KEY_CODEC.parse(JavaOps.INSTANCE, key.key()).result();
+		assertThat(back.isPresent(), "'" + key.key() + "' does not read back");
+		assertThat(back.get().key().equals(key.key()), "'" + key.key() + "' read back as '" + back.get().key() + "'");
 		helper.succeed();
 	}
 
-	/** The pack holds pack.mcmeta and every chapter's definition of the combination, and the same set always hashes the same. */
+	/** A combination is built for its own chapter only: its variants and pack.mcmeta, nothing for the other chapters. */
 	@GameTest
-	public void theCombinationPackHoldsEveryChaptersDefinition(GameTestHelper helper) {
+	public void aCombinationIsBuiltForItsOwnChapterOnly(GameTestHelper helper) {
+		Combos.Combo combo = Placement.combo(List.of(Placement.parse("seat.rivals")));
+		Map<String, String> files = unzip(ComboPack.build(Set.of(new Combos.KeyedCombo(Chapter.IT, Piece.BOTTOM, combo))).zip());
+		Set<String> expected = Set.of("pack.mcmeta", EquipmentJson.packPath(Chapter.IT, Piece.BOTTOM, false, combo),
+				EquipmentJson.packPath(Chapter.IT, Piece.BOTTOM, true, combo));
+		assertThat(files.keySet().equals(expected), "IT's bottom combination built " + files.keySet());
+		Combos.Combo top = Placement.combo(marshals(1));
+		Map<String, String> frack = unzip(ComboPack.build(Set.of(new Combos.KeyedCombo(Chapter.B_FRACK, Piece.TOP, top))).zip());
+		assertThat(frack.size() == 2, "the B-frack's top combination built " + frack.keySet());
+		helper.succeed();
+	}
+
+	/** A combos.json line from before chapters were keyed is every old chapter's that has the half, so nothing drawn is lost. */
+	@GameTest
+	public void legacyComboLinesExpandToTheOldChapters(GameTestHelper helper) {
+		Combos.Combo combo = Placement.combo(List.of(Placement.parse("front_top_left.itk")));
+		String k = combo.key();
+		Set<String> keys = new HashSet<>();
+		for (Combos.KeyedCombo key : Combos.parseKeys(List.of("top:" + k, "bottom:" + k))) keys.add(key.key());
+		Set<String> expected = Set.of("data/top:" + k, "it/top:" + k, "it_kisel/top:" + k, "media/top:" + k,
+				"data/bottom:" + k, "it/bottom:" + k, "it_kisel/bottom:" + k);
+		assertThat(keys.equals(expected), "legacy lines read as " + keys);
+		List<Combos.KeyedCombo> kemi = Combos.parseKeys(List.of("kemi/top:" + k));
+		assertThat(kemi.equals(List.of(new Combos.KeyedCombo(Chapter.KEMI, Piece.TOP, combo))), "a keyed line read as " + kemi);
+		helper.succeed();
+	}
+
+	/** The pack holds pack.mcmeta and its chapter's definition of the combination, and the same set always hashes the same. */
+	@GameTest
+	public void theCombinationPackHoldsItsChaptersDefinition(GameTestHelper helper) {
 		Combos.Combo combo = Placement.combo(marshals(1));
-		Set<Combos.KeyedCombo> combos = Set.of(new Combos.KeyedCombo(Piece.TOP, combo));
-		ComboPack.Version version = ComboPack.build(combos);
-		assertThat(version.sha1().equals(ComboPack.build(combos).sha1()), "the same combinations built twice hash differently");
-		Map<String, String> files = unzip(version.zip());
-		var meta = PackMetadataSection.CLIENT_TYPE.codec().parse(JsonOps.INSTANCE,
-				JsonParser.parseString(files.getOrDefault("pack.mcmeta", "{}")).getAsJsonObject().get(PackMetadataSection.CLIENT_TYPE.name()));
-		assertThat(meta.isSuccess(), "pack.mcmeta does not read as a client pack: " + files.get("pack.mcmeta"));
 		for (Chapter chapter : Chapter.values()) {
+			if (!chapter.pieces().contains(Piece.TOP)) continue;
+			Set<Combos.KeyedCombo> combos = Set.of(new Combos.KeyedCombo(chapter, Piece.TOP, combo));
+			ComboPack.Version version = ComboPack.build(combos);
+			assertThat(version.sha1().equals(ComboPack.build(combos).sha1()), "the same combinations built twice hash differently");
+			Map<String, String> files = unzip(version.zip());
+			var meta = PackMetadataSection.CLIENT_TYPE.codec().parse(JsonOps.INSTANCE,
+					JsonParser.parseString(files.getOrDefault("pack.mcmeta", "{}")).getAsJsonObject().get(PackMetadataSection.CLIENT_TYPE.name()));
+			assertThat(meta.isSuccess(), "pack.mcmeta does not read as a client pack: " + files.get("pack.mcmeta"));
 			String path = EquipmentJson.packPath(chapter, Piece.TOP, false, combo);
 			assertThat(EquipmentJson.json(chapter, Piece.TOP, false, combo.placements()).equals(files.get(path)), "missing or wrong: " + path);
 		}

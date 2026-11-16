@@ -70,8 +70,6 @@ public final class BlockbenchManifest implements DataProvider {
 	}
 
 	private static final int D = Spot.DETAIL, W = 64 * D, H = 32 * D;
-	/** Reference art due for removal: the plugin does not offer them. */
-	private static final String POLYMITER = "_polymiter";
 
 	/** This run's files; made fresh in {@link #run}, which is where the cache to write them through arrives. */
 	private Writes files;
@@ -170,14 +168,13 @@ public final class BlockbenchManifest implements DataProvider {
 	}
 
 	/**
-	 * The chapters the plugin offers, with the layer textures the generator already writes for
-	 * each: the plugin loads those rather than cutting the overlays again, so a chapter whose
-	 * cloth is tinted or hand-drawn (PolymITer's leggings) costs it nothing.
+	 * Every chapter, with the layer textures the generator already writes for each: the plugin
+	 * loads those rather than cutting the overlays again, so a chapter whose cloth is tinted costs
+	 * it nothing.
 	 */
 	private static JsonArray chapters() {
 		JsonArray out = new JsonArray();
 		for (Chapter chapter : Chapter.values()) {
-			if (chapter.id.endsWith(POLYMITER)) continue;
 			JsonObject c = new JsonObject();
 			c.addProperty("id", chapter.id);
 			c.addProperty("name", chapter.name);

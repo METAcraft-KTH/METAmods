@@ -115,6 +115,11 @@ public final class WardrobeFont {
 	/** The static glyphs' codepoints; the previews have {@code \\uE000}… and the spaces {@code \\uE800}…. */
 	private static char next = '\uE100';
 
+	/** How many static codepoints are left before the spaces start. */
+	public static int codepointsLeft() {
+		return SPACE_FIRST - next;
+	}
+
 	/**
 	 * Registers a glyph whose art starts at container y {@code top}.
 	 *

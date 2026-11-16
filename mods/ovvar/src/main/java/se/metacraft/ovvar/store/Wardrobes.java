@@ -2,6 +2,7 @@ package se.metacraft.ovvar.store;
 
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.OvvarConfig;
+import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.SpotPlacements;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -127,19 +128,19 @@ public final class Wardrobes {
 	// ---- reading
 
 	/**
-	 * Every design of every chapter in every stored wardrobe, read on the store's own thread and
+	 * Every design of every chapter in every stored wardrobe, with its chapter, read on the store's own thread and
 	 * waited for up to {@code timeout} (startup only: this blocks the caller). On a timeout, an
 	 * IOException or a backend that cannot list its wardrobes it logs one warning and returns what
 	 * it has, or nothing. Never throws.
 	 */
-	public static List<SpotPlacements> storedDesigns(Duration timeout) {
-		List<SpotPlacements> out = new ArrayList<>();
+	public static List<Map.Entry<Chapter, SpotPlacements>> storedDesigns(Duration timeout) {
+		List<Map.Entry<Chapter, SpotPlacements>> out = new ArrayList<>();
 		try {
 			if (!available()) return out;
 			WardrobeBackend b = backend;
 			Future<List<Wardrobe>> all = executor.submit(b::all);
 			try {
-				for (Wardrobe wardrobe : all.get(timeout.toMillis(), TimeUnit.MILLISECONDS)) out.addAll(wardrobe.designs().values());
+				for (Wardrobe wardrobe : all.get(timeout.toMillis(), TimeUnit.MILLISECONDS)) out.addAll(wardrobe.designs().entrySet());
 			} catch (TimeoutException e) {
 				all.cancel(true);   // only interrupts: a JDBC read that ignores interrupts can still hold the single store thread (the driver's query timeout is the real bound)
 				Ovvar.LOGGER.warn("[ovvar] wardrobes: listing stored designs took over {} s; gave up waiting and interrupted the read, combinations are built as they are sewn", timeout.toSeconds());

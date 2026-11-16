@@ -327,8 +327,9 @@ test('the ported base build equals the committed chapter layer textures', () => 
       checked++;
     }
   }
-  // data (3) + it (3) + media (1: a frack is all top); it_kisel is tinted and skipped.
-  assert.strictEqual(checked, 7, 'walked ' + checked + ' base textures');
+  // 15 ovvar x 3 (data, it and the 13 wanderer-only ones) + media and the B-frack (1 each: a
+  // frack is all top); it_kisel is tinted and skipped.
+  assert.strictEqual(checked, 47, 'walked ' + checked + ' base textures');
 });
 
 test('a chest-slot chapter has no bottom half: blank leg textures, no leg cells, a warning for a leg placement', () => {
