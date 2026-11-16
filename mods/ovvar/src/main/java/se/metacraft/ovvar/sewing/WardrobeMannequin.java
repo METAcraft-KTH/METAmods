@@ -18,10 +18,10 @@ import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * "Show on mannequin" from the wardrobe screen (design doc §2): a mannequin wearing a copy of the
@@ -55,7 +55,8 @@ public final class WardrobeMannequin {
 
 	private record Shown(Mannequin mannequin, long spawnedAt) {}
 
-	private static final Map<UUID, Shown> BY_PLAYER = new HashMap<>();
+	/** Concurrent: ALLOW_DEATH reads it from whichever thread a living entity dies on (the async mod's workers too). */
+	private static final Map<UUID, Shown> BY_PLAYER = new ConcurrentHashMap<>();
 
 	public static void init() {
 		ServerTickEvents.END_SERVER_TICK.register(WardrobeMannequin::tick);

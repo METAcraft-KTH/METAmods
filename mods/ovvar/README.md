@@ -122,8 +122,10 @@ another mod's changes to a chest stay. Which is which is two lists in `PatchLoot
 Punkphöz is a wandering trader with his own stock, and the only survival source of the newer chapters'
 ovvar (`Chapter.wandererStock()`, the chapters marked `wandererOnly`, B-frack included). He sells
 them for emeralds, a few chapters per visit, plus loot patches only (`PatchLoot.LOOT`: never a crafted one, nor Rivals '26,
-TMEIT Marshal, METAcrew or KomMN), plus whatever is in the config's `pool` (by default kultur's ITK, QMISK, TMEIT and Pirkko banner patterns, 4 emeralds each, all four every visit; without
-kultur installed they are left out and logged once per config load). What he offers is picked per visit, and `PunkphozHistory` keeps a chapter
+TMEIT Marshal, METAcrew or KomMN), plus whatever is in the config's `pool` (by default kultur's ITK, QMISK, TMEIT and Pirkko banner patterns, 4 emeralds each; without
+kultur installed they are left out and logged once per config load), and, with Brewery, the Curse of the Spilled Drink's book for 16
+emeralds (one more pool candidate, not a config entry). `pool_picks` is 4, so he has all four patterns every visit, or four of
+the five with Brewery. What he offers is picked per visit, and `PunkphozHistory` keeps a chapter
 he sold lately from coming straight back.
 
 He comes on top of vanilla's wanderers and never replaces one; vanilla's own spawn rate is untouched
@@ -183,7 +185,7 @@ a player's inventory. A player kill (`dropCustomDeathLoot` with `killedByPlayer`
 `MobOvvar.killer`: the one the mob remembers hitting, else whoever dealt the damage) makes each worn
 patch drop as its item with `patch_drop_chance`, independently. Config, in the `mob_ovvar` block of
 `config/ovvar.json` (a file without it takes the defaults): `enabled` (true), `chance` (0.05) and
-`patch_drop_chance` (0.5). `MobOvvar.patchDropChance` is where Magpie (part 5) will raise the drop chance.
+`patch_drop_chance` (0.5). `MobOvvar.patchDropChance` raises it for a killer wearing Magpie (see Enchantments).
 
 Sewing: put the ovve on
 an armour stand, hold a patch, look at the stand — the patch shows washed out on the cell you aim
@@ -241,6 +243,151 @@ traces each patch's outline from its opaque texels into `ovvar/outlines.json` (`
 `Seam` spreads the holes along at runtime. Replace the PNGs and `runDatagen`; the
 `sewingLabelsFitTheirButtons` game test checks every label of every seam still measures what the
 client centres without scrolling.
+
+## Enchantments
+
+Six enchantments only an ovve (or the Media frack) takes. The ovve and frack are in no vanilla
+`enchantable/*` tag (only in the generated `#ovvar:enchantable/ovve`), so no vanilla enchantment can
+apply: not Unbreaking, not Mending, not any Protection. Ovves and fracks have enchantability 15
+(leather's); the companion top, cuffs and patches have none. The definitions are handwritten JSON
+under `src/main/resources/data/ovvar/enchantment`, names in en_us and sv_se come from datagen.
+
+- **Ender Pockets** (I): the pockets are the ender chest of whoever uses them, worn or carried.
+  Clicking an item onto it puts the item in the clicking player's ender chest, right-clicking it with
+  an empty cursor takes a whole stack out, and using it from the hand opens the ender chest screen (it
+  does not empty anything on the floor). With the ovve on the cursor, a click on a stack puts as much
+  of it as fits in the chest, and a right-click on an empty slot puts the selected (or newest) stack
+  there, if the slot takes it. Whatever was in its own pockets when it was enchanted is thrown on the ground,
+  never moved into an ender chest. The client is shown the viewer's ender chest as the bundle's
+  contents, newest slot first: one stand-in per slot, drawn as the item with count 1 and its count in
+  the name ("Cobblestone ×64"), that stacks to 99 and carries no durability or nested contents, so the
+  whole chest weighs at most 27/99 of a vanilla bundle. The vanilla client never sees the pockets full:
+  its bar stays a sliver (4 pixels of 13 for a full chest, never red; no vanilla component hides it
+  while keeping the icons), and in creative, where the client decides inserts itself, it still lets a
+  stack in (a little less than 64 when the chest is nearly full: the rest stays on the cursor). A
+  creative insert goes into the ender chest only if the stand-ins sent back still match the chest; a
+  stand-in a creative client takes out becomes the real stack from its slot when it lands in a slot,
+  and nothing if that slot changed meanwhile. An Ender Pockets ovve inside
+  the preview (in the ender chest, or in a shulker box or bundle there) shows empty pockets. The
+  server's ovve does not change when the chest does, so the slot sync would never resend it: at the end
+  of every tick the ender chest of a player with one in an open menu or on the cursor is compared with
+  last tick's copy, and on a change (or a preview read that tore) those slots are resent and the
+  selection is cleared.
+- **Patchwork Protection** (I): protection that grows with the patches sewn on, linearly up to
+  `patches_for_max` (16), where it is `max_protection` (4.0, Protection IV). Nothing is consumed and
+  the look does not change. It ignores what Protection ignores (`#minecraft:bypasses_invulnerability`).
+- **Magpie** (I-III): better odds of finding patches. A structure chest's patch chance is
+  `PatchLoot.CHANCE + 0.03 x level` for an opener wearing it (III: 0.14); frack or ovve counts the same.
+  Only loot patches (`PatchLoot.LOOT`) are affected; given-only patches never appear from a new source.
+  A mob ovve's patches drop at `patch_drop_chance + 0.10 x level` (capped at 1) when the killer
+  (`MobOvvar.killer`) wears Magpie: 0.5 becomes 0.8 at III. Without Magpie it is `patch_drop_chance`.
+- **Keepsake** (I): a Keepsake ovve anywhere in the inventory stays with you through death, pockets
+  and all. On respawn it goes back to its slot; if that is taken, anywhere in the inventory; if the
+  inventory is full, it drops at your feet. Nothing is deleted.
+- **Keyring** (I): while mining as a survival player, the best tool from the worn garment's pockets
+  comes to the selected slot and the hand's item goes into the pocket the tool came from. Two tools
+  fit in the pockets. A tool is picked if it is correct for drops where the hand is not, or is faster
+  with the same correctness; blocks with zero destroy time, tools under 2% durability (a constant,
+  Edvin's number) and creative, spectator and `blockActionRestricted` players are skipped. The tool
+  swaps back after `swap_back_ticks` (20) with no break action (a player the server still sees digging
+  counts as acting), right after a break that leaves it below the floor, and on leaving. Swap state is
+  in memory only; whenever the slot or pockets no longer look as the swap left them it is forgotten and
+  every item stays where it is. With Ender Pockets on the same ovve (only by `/give`), Ender Pockets
+  wins and Keyring does nothing.
+- **Curse of the Spilled Drink**: every potion drunk comes back as a weaker, shorter second dose. A
+  duration effect's second dose lands `gap_ticks` (100) after the first would have ended, one level
+  lower (minimum 0) and `duration_scale` (0.5) as long; an instant effect's lands `gap_ticks` after
+  drinking at `instant_scale` (0.5). A second dose never weakens or shortens a stronger effect that is
+  still running. Pending doses are a persistent attachment: they survive logout and are lost on death.
+  The cursed ovve also drips (6 `DRIPPING_WATER` particles at leg height) and squelches
+  (`SLIME_SQUISH_SMALL`) about every `drip_interval_ticks` (200). It needs Brewery, like kultur's
+  drinks (see below). With Brewery, Punkphöz may sell its book for 16 emeralds (`SpilledDrink.WANDERER_PRICE`):
+  it is one more candidate among his `pool_picks` (`PunkphozStock.extras`), never without Brewery.
+
+### The numbers
+
+All `slots: ["armor"]`, `effects: {}`. Costs are base/per-level. "table" is
+`minecraft:in_enchanting_table`, "random loot" is `minecraft:on_random_loot`. None is in
+`non_treasure` or `tradeable`, so librarians never sell them.
+
+| id | max | weight | min_cost | max_cost | anvil | exclusive_set | tags |
+|---|---|---|---|---|---|---|---|
+| `ender_pockets` | 1 | 2 | 15/0 | 65/0 | 4 | `#ovvar:exclusive_set/pockets` | table, random loot |
+| `patchwork_protection` | 1 | 5 | 10/0 | 60/0 | 2 | `#minecraft:exclusive_set/armor` | table, random loot |
+| `magpie` | 3 | 5 | 5/10 | 55/10 | 2 | none | table, random loot |
+| `keepsake` | 1 | 1 | 25/0 | 75/0 | 8 | none | table, random loot |
+| `keyring` | 1 | 2 | 15/0 | 65/0 | 4 | `#ovvar:exclusive_set/pockets` | table, random loot |
+| `spilled_drink_curse` | 1 | 1 | 25/0 | 50/0 | 8 | none | `curse`, `treasure`; random loot only with Brewery |
+
+Ender Pockets and Keyring exclude each other; Patchwork Protection is exclusive with every
+Protection (books and commands enforce it, though nothing else can go on an ovve anyway).
+
+Curse and Brewery: the definition always ships, so an item that has the curse keeps it, and it switches
+on by itself when Brewery is added. Its only source tag, `on_random_loot`, lives in the built-in
+datapack `ovvar:brewery_curse`, registered only when Brewery is loaded
+(`FabricLoader.isModLoaded("brewery")`, read once into `OvveEnchantments.BREWERY`). As a backstop
+`OvveEnchantments.enabled` is false for the curse without Brewery, so `offered` refuses it everywhere
+and its behaviour is off.
+
+### Config
+
+`config/ovvar.json`, block `enchantments`:
+
+```json
+"enchantments": {
+  "ender_pockets": { "enabled": true },
+  "patchwork_protection": { "enabled": true, "patches_for_max": 16, "max_protection": 4.0 },
+  "magpie": { "enabled": true, "chest_chance_per_level": 0.03, "mob_ovvar_chance_per_level": 0.10 },
+  "keepsake": { "enabled": true },
+  "keyring": { "enabled": true, "swap_back_ticks": 20 },
+  "spilled_drink_curse": { "enabled": true, "gap_ticks": 100, "duration_scale": 0.5, "instant_scale": 0.5, "drip_interval_ticks": 200 }
+}
+```
+
+Off means not offered, still registered: the hook does nothing (`OvveEnchantments.level` returns 0) and
+the enchanting table, random loot (`enchant_with_levels`, `enchant_randomly`) and any trade stop
+offering it, but the entry stays in the registry, because removing it would make items lose their
+enchantments. A missing registry entry also means level 0, never an exception.
+
+Ender Pockets off: the ovve has ordinary pockets again, so turning it back on throws whatever they
+gathered meanwhile on the ground (the same spill as on enchanting). Magpie's chest bonus is built when
+loot tables load, so a change to its block needs `/reload` or a restart.
+
+### Hooks
+
+By vanilla method or Fabric event:
+
+- Overrides: `BundleItem.overrideStackedOnOther`, `overrideOtherStackedOnMe` and `use` (`OvveItem`, for
+  Ender Pockets), `PolymerItem.getPolymerItemStack` (the preview, the glint), `Item.inventoryTick`
+  (Ender Pockets' spill, Spilled Drink's drips).
+- Mixins (`se.metacraft.ovvar.mixin`): `BundleItem.toggleSelectedItem` (Ender Pockets'
+  selection), `EnchantmentHelper.getDamageProtection` (Patchwork Protection adds to the sum),
+  `EnchantmentHelper.getAvailableEnchantmentResults` (the table skips what is off),
+  `EnchantRandomlyFunction.run` at `Util.getRandomSafe` (the same filter for `enchant_randomly`),
+  `Player.dropEquipment` before `Inventory.dropAll` (Keepsake stashes), `PotionContents.onConsume` at
+  tail (the curse schedules the second dose), `ServerPlayerGameMode.handleBlockBreakAction` at head
+  (Keyring, before vanilla reads the held tool), `ServerPlayerGameMode`'s `isDestroyingBlock` and
+  `hasDelayedDestroy` (accessor: Keyring keeps the tool while the server still sees the player
+  digging), and `PlayerList.remove` at head (Keyring swaps back on leave; Fabric's `DISCONNECT` can fire
+  on the netty thread, so it is not used).
+- Events: `ServerPlayerEvents.AFTER_RESPAWN` (Keepsake restores; `COPY_FROM` fires before the new
+  player is placed, so a full-inventory drop would land at the origin), `PlayerBlockBreakEvents.AFTER`
+  (Keyring checks the floor), `ServerLivingEntityEvents.AFTER_DEATH` (Keyring drops its state, nothing
+  is lost), `ServerTickEvents.END_SERVER_TICK` (Keyring's swap-back timer, Spilled Drink doses,
+  Ender Pockets' preview resend),
+  `LootTableEvents.MODIFY` (Magpie's chest condition, built from vanilla loot conditions on the
+  opener, so no custom condition type), `PolymerItemUtils.ITEM_MODIFICATION_EVENT` (Ender Pockets'
+  fill bar).
+- Server-only markers: `ovvar:garment_glint` on the companion top and cuffs (copied when the ovve is
+  enchanted, so the glint covers the whole garment) and `ovvar:ender_nested` on an Ender Pockets ovve
+  inside a preview (so a preview never contains itself; Polymer encodes nested stacks on the network
+  thread, after `getPolymerItemStack` returns, so a flag alone is not enough).
+
+Mob ovve garments never carry enchantments: none of the six is in `#minecraft:on_mob_spawn_equipment`
+and vanilla's spawn enchanting leaves a real mob garment alone (test `mobSpawnEquipmentNeverEnchantsAnOvve`).
+
+Tests: `EnchantmentTests`, `EnderPocketsTests` and `KeyringTests` (game tests, run plain and with
+`-PovvarBrewery`), and `OvvarEnchantmentClientTests` (screenshot; cloud only).
 
 ## Wardrobes: one look per player, on every server
 

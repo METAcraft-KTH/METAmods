@@ -1,0 +1,21 @@
+### Section: PageInfo
+title=Enchantments
+description=Six enchantments only your ovve takes.
+category=metacraft:ovvar
+icon=minecraft:enchanted_book
+order=5
+### EndSection: PageInfo
+### Header: Only for ovves
+An ovve takes six enchantments of its own, from the enchanting table and from loot books, and nothing else: no Unbreaking, no Mending, no Protection.
+
+<bold>Ender Pockets.</bold> Your pockets become your ender chest. Click an item onto the ovve to put it in the chest, right-click the ovve with an empty cursor to take a stack out, and use it from the hand to open the chest. Whatever was in the pockets when you enchant it is spilled on the ground.
+
+<bold>Patchwork Protection.</bold> The more patches you have sewn on, the better it protects, up to about Protection IV at sixteen patches. Nothing is used up and nothing looks different.
+
+<bold>Magpie</bold> (I to III). Chests in structures are more likely to hold a patch while you wear it, and a mob in an ovve you kill is more likely to drop its patches.
+
+<bold>Keepsake.</bold> The ovve, pockets and all, stays with you when you die.
+
+<bold>Keyring.</bold> Put two tools in the pockets and the right one comes to your hand when you start mining, then goes back a moment after you stop. Not together with Ender Pockets.
+
+<bold>Curse of the Spilled Drink.</bold> Every drink comes back a little later, weaker, and the ovve drips now and then. It turns up in loot books and with Punkphöz, on servers with Brewery.

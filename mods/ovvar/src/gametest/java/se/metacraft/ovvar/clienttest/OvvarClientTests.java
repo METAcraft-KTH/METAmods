@@ -386,7 +386,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 	private static void everyChapterLineup(ClientGameTestContext ctx) {
 		Properties props = new Properties();
 		props.setProperty("online-mode", "false");
-		props.setProperty("server-port", "25601");   // 25598–25600 are the other client tests'
+		props.setProperty("server-port", "25606");   // every ovvar client test has its own port (25598-25602, 25606, 25607)
 		props.setProperty("level-type", "minecraft:flat");
 		props.setProperty("spawn-monsters", "false");
 		props.setProperty("spawn-animals", "false");

@@ -19,6 +19,7 @@
 			"se.metacraft.ovvar.Ovvar"
 		],
 		"fabric-gametest": [
+			"se.metacraft.ovvar.gametest.AsyncTickTests",
 			"se.metacraft.ovvar.gametest.DanseShellParityTests",
 			"se.metacraft.ovvar.gametest.DanseModelsTests",
 			"se.metacraft.ovvar.gametest.DanseLayersTests",
@@ -30,6 +31,9 @@
 			"se.metacraft.ovvar.gametest.BlockbenchManifestTests",
 			"se.metacraft.ovvar.gametest.PatchAcquiringTests",
 			"se.metacraft.ovvar.gametest.ShaderLayoutTests",
+			"se.metacraft.ovvar.gametest.EnchantmentTests",
+			"se.metacraft.ovvar.gametest.EnderPocketsTests",
+			"se.metacraft.ovvar.gametest.KeyringTests",
 			"se.metacraft.ovvar.gametest.ChapterArtTests",
 			"se.metacraft.ovvar.gametest.ChapterTests",
 			"se.metacraft.ovvar.gametest.ChapterMigrationTests",

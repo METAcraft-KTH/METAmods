@@ -9,7 +9,7 @@ order=40
 ### EndSection: PageInfo
 ### Image: metacraft:beside/ovvar/hero An <bold>ovve</bold> is your student overall: one garment, worn in the legs slot, that you sew <bold>patches</bold> onto.<nl2>What you sew on stays yours on every server, and only you can change it.
 
-Four pages, four steps:
+Five pages, five steps:
 ### Category Entries: metacraft:ovvar
 
 Short version: craft or find a patch, put your ovve on an armour stand, hold the patch, look where it should go and

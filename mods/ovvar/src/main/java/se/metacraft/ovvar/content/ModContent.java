@@ -100,7 +100,10 @@ public final class ModContent {
 			requireAsset("equipment/" + Looks.assetPath(chapter, chapter.ownPiece(), false, "") + ".json", ovveId);
 			ArmorType type = chapter.slot == EquipmentSlot.CHEST ? ArmorType.CHESTPLATE : ArmorType.LEGGINGS;
 			OvveItem ovve = Registry.register(BuiltInRegistries.ITEM, ovveId, new OvveItem(Pockets.apply(clothing(chapter, chapter.ownPiece(), type)
-					.component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY))
+					.component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY)
+					// Leather's enchantability, for the six ovve enchantments only (OvveEnchantments): the ovve
+					// joins no vanilla enchantable/* tag. The companion top, the cuffs and patches take none.
+					.enchantable(ArmorMaterials.LEATHER.enchantmentValue()))
 					.setId(ResourceKey.create(Registries.ITEM, ovveId)), chapter, ovveId));
 			OVVAR.put(chapter, ovve);
 			ALL.add(ovve);

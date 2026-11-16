@@ -1,10 +1,12 @@
 package se.metacraft.ovvar.content.item;
 
 import se.metacraft.ovvar.content.Chapter;
+import se.metacraft.ovvar.content.ModComponents;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -57,6 +59,7 @@ public final class OvveFeetItem extends Item implements PolymerItem {
 	public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
 		ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
 		OvveFeet.dress(out, stack, null, context);
+		if (Boolean.TRUE.equals(stack.get(ModComponents.GARMENT_GLINT))) out.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);   // an enchanted ovve's cuffs
 		return out;
 	}
 }

@@ -1,0 +1,10 @@
+{
+	"replace": false,
+	"values": [
+		"ovvar:ender_pockets",
+		"ovvar:patchwork_protection",
+		"ovvar:magpie",
+		"ovvar:keepsake",
+		"ovvar:keyring"
+	]
+}

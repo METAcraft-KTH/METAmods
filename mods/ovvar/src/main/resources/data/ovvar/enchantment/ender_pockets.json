@@ -1,0 +1,23 @@
+{
+	"anvil_cost": 4,
+	"description": {
+		"translate": "enchantment.ovvar.ender_pockets",
+		"fallback": "Ender Pockets"
+	},
+	"effects": {},
+	"exclusive_set": "#ovvar:exclusive_set/pockets",
+	"max_cost": {
+		"base": 65,
+		"per_level_above_first": 0
+	},
+	"max_level": 1,
+	"min_cost": {
+		"base": 15,
+		"per_level_above_first": 0
+	},
+	"slots": [
+		"armor"
+	],
+	"supported_items": "#ovvar:enchantable/ovve",
+	"weight": 2
+}

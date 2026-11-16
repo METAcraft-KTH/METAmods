@@ -3,12 +3,23 @@
 	"package": "se.metacraft.ovvar.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"BreweryDrinkMixin",
+		"BreweryDrinkMixin$PotionEffect",
 		"CompanionCursorMixin",
 		"CustomClickMixin",
+		"EnchantRandomlyFunctionMixin",
+		"EnchantmentHelperMixin",
+		"EnderPocketsCreativeMixin",
+		"EnderPocketsSelectMixin",
 		"ForeignOvveMixin",
+		"KeepsakeDeathMixin",
+		"KeyringBreakActionMixin",
+		"KeyringDiggingAccessor",
+		"KeyringLeaveMixin",
 		"MobOvvarMixin",
 		"PiglinOvvarMixin",
 		"ResourcePackResponseMixin",
+		"SpilledDrinkMixin",
 		"WanderingTraderSpawnerMixin"
 	],
 	"injectors": {

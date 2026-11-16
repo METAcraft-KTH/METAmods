@@ -1,0 +1,22 @@
+{
+	"anvil_cost": 2,
+	"description": {
+		"translate": "enchantment.ovvar.magpie",
+		"fallback": "Magpie"
+	},
+	"effects": {},
+	"max_cost": {
+		"base": 55,
+		"per_level_above_first": 10
+	},
+	"max_level": 3,
+	"min_cost": {
+		"base": 5,
+		"per_level_above_first": 10
+	},
+	"slots": [
+		"armor"
+	],
+	"supported_items": "#ovvar:enchantable/ovve",
+	"weight": 5
+}

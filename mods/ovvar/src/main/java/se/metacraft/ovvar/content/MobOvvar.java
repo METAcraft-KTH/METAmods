@@ -15,6 +15,8 @@ import org.jspecify.annotations.Nullable;
 import se.metacraft.ovvar.MobOvvarConfig;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.OvvarConfig;
+import se.metacraft.ovvar.content.enchantment.EnchantmentsConfig;
+import se.metacraft.ovvar.content.enchantment.Magpie;
 import se.metacraft.ovvar.content.item.OvveItem;
 
 import java.util.ArrayList;
@@ -117,13 +119,20 @@ public final class MobOvvar {
 	}
 
 	/**
-	 * How likely each worn patch is to drop. Magpie (part 5) will raise this for a killer whose ovve has it.
+	 * How likely each worn patch is to drop: {@code patch_drop_chance}, raised by Magpie on the killer's worn ovve or
+	 * frack ({@link Magpie#mobOvvarChance}: plus {@code mob_ovvar_chance_per_level} per level, capped at 1). Without
+	 * a killer, without Magpie, or with Magpie switched off, it is {@code patch_drop_chance} as it is.
 	 *
-	 * @param killer the creditee of the kill (see {@link #killer}); reserved for Magpie (part 5) and
-	 *               unused today; may be null
+	 * @param killer the creditee of the kill (see {@link #killer}); may be null
 	 */
 	public static float patchDropChance(MobOvvarConfig config, @Nullable Entity killer) {
-		return config.patchDropChance();
+		return patchDropChance(config, killer, OvvarConfig.get().enchantments().magpie());
+	}
+
+	/** As {@link #patchDropChance(MobOvvarConfig, Entity)}, with these Magpie numbers. */
+	public static float patchDropChance(MobOvvarConfig config, @Nullable Entity killer, EnchantmentsConfig.Magpie magpie) {
+		int level = Magpie.level(killer);
+		return level == 0 ? config.patchDropChance() : Magpie.mobOvvarChance(config.patchDropChance(), level, magpie);
 	}
 
 	/** The patches this garment wore that drop: each placement independently, one patch item apiece. */

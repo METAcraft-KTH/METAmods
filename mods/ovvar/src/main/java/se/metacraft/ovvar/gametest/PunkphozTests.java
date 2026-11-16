@@ -10,7 +10,9 @@ import de.tomalbrc.bil.core.model.Pose;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
@@ -58,6 +60,9 @@ import se.metacraft.ovvar.content.entity.PunkphozEntities;
 import se.metacraft.ovvar.content.entity.PunkphozHistory;
 import se.metacraft.ovvar.content.entity.PunkphozSpawning;
 import se.metacraft.ovvar.content.entity.PunkphozStock;
+import se.metacraft.ovvar.content.enchantment.EnchantmentsConfig;
+import se.metacraft.ovvar.content.enchantment.OvveEnchantments;
+import se.metacraft.ovvar.content.enchantment.SpilledDrink;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -382,6 +387,55 @@ public final class PunkphozTests {
 			picks.add(id(s.result()));
 		}
 		helper.assertValueEqual(picks.size(), 4, "distinct pool picks");
+		helper.succeed();
+	}
+
+	/** Does any of these offers sell the Curse of the Spilled Drink's book (stored level 1) for 16 emeralds? */
+	private static boolean sellsCurseBook(GameTestHelper helper, List<PunkphozStock.Stocked> stock) {
+		var curse = helper.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(OvveEnchantments.SPILLED_DRINK_CURSE);
+		for (PunkphozStock.Stocked s : stock) {
+			var stored = s.result().get(DataComponents.STORED_ENCHANTMENTS);
+			if (!s.result().is(Items.ENCHANTED_BOOK) || stored == null || stored.getLevel(curse) == 0) continue;
+			helper.assertValueEqual(stored.getLevel(curse), 1, "the curse book's level");
+			helper.assertValueEqual(s.emeralds(), SpilledDrink.WANDERER_PRICE, "the curse book's price");
+			helper.assertValueEqual(s.maxUses(), 1, "the curse book's max uses");
+			return true;
+		}
+		return false;
+	}
+
+	/** How many of 200 seeded visits sell the curse book, with the pool SIX and these extras. */
+	private static int visitsWithCurseBook(GameTestHelper helper, List<PunkphozStock.Stocked> extras) {
+		PunkphozHistory history = new PunkphozHistory();
+		int visits = 0;
+		for (int seed = 0; seed < 200; seed++) {
+			if (sellsCurseBook(helper, PunkphozStock.roll(PunkphozConfig.DEFAULT, SIX, extras, RandomSource.create(seed), history))) visits++;
+		}
+		return visits;
+	}
+
+	/**
+	 * The curse book is one of his pool picks only where Brewery is installed (the very extras his updateTrades uses,
+	 * {@code OvveEnchantments.BREWERY}); without Brewery, or with the curse switched off, never.
+	 */
+	@GameTest
+	public void wandererSellsTheCurseBook(GameTestHelper helper) {
+		var registries = helper.getLevel().registryAccess();
+		var real = PunkphozStock.extras(registries, EnchantmentsConfig.DEFAULT, OvveEnchantments.BREWERY);
+		helper.assertValueEqual(real.size(), OvveEnchantments.BREWERY ? 1 : 0, "extras with Brewery " + (OvveEnchantments.BREWERY ? "installed" : "absent"));
+		int withBook = visitsWithCurseBook(helper, real);
+		if (OvveEnchantments.BREWERY) {
+			// 4 picks from 7 candidates: about 4/7 of visits.
+			helper.assertTrue(withBook > 60 && withBook < 170, "visits selling the curse book with Brewery: " + withBook + " of 200");
+		} else {
+			helper.assertValueEqual(withBook, 0, "visits selling the curse book without Brewery");
+		}
+		var noBrewery = PunkphozStock.extras(registries, EnchantmentsConfig.DEFAULT, false);
+		helper.assertValueEqual(noBrewery.size(), 0, "extras forced without Brewery");
+		helper.assertValueEqual(visitsWithCurseBook(helper, noBrewery), 0, "visits selling the curse book forced without Brewery");
+		EnchantmentsConfig off = new EnchantmentsConfig(EnchantmentsConfig.Toggle.ON, EnchantmentsConfig.Patchwork.DEFAULT, EnchantmentsConfig.Magpie.DEFAULT,
+				EnchantmentsConfig.Toggle.ON, EnchantmentsConfig.Keyring.DEFAULT, new EnchantmentsConfig.SpilledDrink(false, 100, 0.5f, 0.5f, 200));
+		helper.assertValueEqual(PunkphozStock.extras(registries, off, true).size(), 0, "extras with the curse switched off");
 		helper.succeed();
 	}
 

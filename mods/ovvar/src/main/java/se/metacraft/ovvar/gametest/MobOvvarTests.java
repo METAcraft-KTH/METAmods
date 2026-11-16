@@ -290,7 +290,7 @@ public final class MobOvvarTests {
 	private static final DifficultyInstance HARD = new DifficultyInstance(Difficulty.HARD, 10_000_000L, 10_000_000L, 1f);
 
 	/** MOBS fresh mobs of this type, positioned in the test and never added, after a natural finalizeSpawn. */
-	private static List<Mob> spawned(GameTestHelper helper, EntityType<? extends Mob> type, boolean zombie) {
+	static List<Mob> spawned(GameTestHelper helper, EntityType<? extends Mob> type, boolean zombie) {
 		List<Mob> mobs = new ArrayList<>();
 		Vec3 at = helper.absoluteVec(new Vec3(2.5, 1, 2.5));
 		for (int i = 0; i < MOBS; i++) {
@@ -305,7 +305,7 @@ public final class MobOvvarTests {
 	}
 
 	/** Runs the body with this mob ovvar config, holding the lock; the config and the lock come back whatever happens. */
-	private static void withMobOvvar(GameTestHelper helper, MobOvvarConfig config, Runnable body) {
+	static void withMobOvvar(GameTestHelper helper, MobOvvarConfig config, Runnable body) {
 		helper.startSequence()
 				.thenWaitUntil(() -> WardrobeTests.assertThat(WardrobeTests.BUSY.compareAndSet(false, true), "another global-state test is running"))
 				.thenExecute(() -> {
@@ -541,6 +541,31 @@ public final class MobOvvarTests {
 	@GameTest
 	public void playerKillDropsTheWornPatches(GameTestHelper helper) {
 		killAndCheck(helper, 1f, true, WORN);
+	}
+
+	/**
+	 * Magpie on the killer: a player in a Magpie III ovve kills at patch_drop_chance 0.7, which Magpie lifts to 1, so
+	 * every worn patch drops; the same kill by a player in a plain ovve keeps the chance at 0.7.
+	 */
+	@GameTest
+	public void magpieKillerDropsMorePatches(GameTestHelper helper) {
+		withMobOvvar(helper, new MobOvvarConfig(true, 0.05f, 0.7f), () -> {
+			var level = helper.getLevel();
+			var magpie = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(se.metacraft.ovvar.content.enchantment.OvveEnchantments.MAGPIE);
+			ServerPlayer plain = helper.makeMockServerPlayerInLevel();
+			OvveItem.wear(plain, new ItemStack(ModContent.ovve(Chapter.DATA)));
+			helper.assertValueEqual(MobOvvar.patchDropChance(OvvarConfig.get().mobOvvar(), plain), 0.7f, "the chance for a plain-ovve killer");
+			ServerPlayer player = helper.makeMockServerPlayerInLevel();
+			ItemStack ovve = new ItemStack(ModContent.ovve(Chapter.DATA));
+			ovve.enchant(magpie, 3);
+			OvveItem.wear(player, ovve);
+			Zombie zombie = patchedZombie(helper);
+			zombie.hurtServer(level, level.damageSources().playerAttack(player), 1000f);
+			helper.assertTrue(MobOvvar.patchDropChance(OvvarConfig.get().mobOvvar(), player) >= 1f, "Magpie III lifts 0.7 to 1");
+			List<String> ids = itemsAround(helper).stream().map(s -> BuiltInRegistries.ITEM.getKey(s.getItem()).getPath()).filter(id -> id.startsWith("patch_")).sorted().toList();
+			helper.assertValueEqual(new TreeSet<>(ids), new TreeSet<>(WORN), "the patches a Magpie III killer gets");
+			helper.assertValueEqual(ids.size(), WORN.size(), "how many patches dropped");
+		});
 	}
 
 	@GameTest

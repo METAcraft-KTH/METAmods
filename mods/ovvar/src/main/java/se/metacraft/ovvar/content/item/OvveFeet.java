@@ -31,12 +31,11 @@ import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.equipment.Equippable;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The boots render pass as a second dye channel for the legs. The client draws the feet slot
@@ -66,10 +65,14 @@ public final class OvveFeet {
 	public static final String NONE = "none";
 	private static final Set<String> MATERIAL_SET = Set.copyOf(MATERIALS);
 
-	/** What each viewer was last sent for a wearer's empty feet slot (the dye value), so it is re-sent only on change. */
-	private static final Map<UUID, Map<UUID, Integer>> SENT = new HashMap<>();
-	/** Wearers whose virtual cuffs were synced this tick — the rest of SENT is stale and dropped. */
-	private static final Set<UUID> ALIVE = new HashSet<>();
+	/**
+	 * What each viewer was last sent for a wearer's empty feet slot (the dye value), so it is re-sent only on change.
+	 * Concurrent, inner maps too: wearers sync from their own entity tick, which the async mod runs on its
+	 * worker threads, many wearers at once, while the server thread forgets viewers that stop tracking.
+	 */
+	private static final Map<UUID, Map<UUID, Integer>> SENT = new ConcurrentHashMap<>();
+	/** Wearers whose virtual cuffs were synced this tick — the rest of SENT is stale and dropped. Concurrent, as SENT. */
+	private static final Set<UUID> ALIVE = ConcurrentHashMap.newKeySet();
 
 	public static void init() {
 		PolymerItemUtils.ITEM_MODIFICATION_EVENT.register(OvveFeet::wrap);
@@ -134,7 +137,7 @@ public final class OvveFeet {
 		// at the start: re-dressing the invisible player now would undo that.
 		if (DanseHooks.gesturing(wearer)) return;
 		ALIVE.add(wearer.getUUID());
-		Map<UUID, Integer> viewers = SENT.computeIfAbsent(wearer.getUUID(), id -> new HashMap<>());
+		Map<UUID, Integer> viewers = SENT.computeIfAbsent(wearer.getUUID(), id -> new ConcurrentHashMap<>());
 		ItemStack cuffs = null;
 		for (ServerPlayer viewer : PlayerLookup.tracking(wearer)) {
 			if (viewer == wearer) continue;
@@ -181,6 +184,7 @@ public final class OvveFeet {
 		cuffs.set(ModComponents.FEET_CHANNEL, true);
 		if (MobOvvar.is(ovve)) cuffs.set(ModComponents.MOB_OVVE, Unit.INSTANCE);   // a mob's cuffs queue no combo either
 		if (Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) cuffs.set(ModComponents.ON_STAND, true);
+		if (ovve.isEnchanted()) cuffs.set(ModComponents.GARMENT_GLINT, true);   // the whole garment glints
 		return cuffs;
 	}
 

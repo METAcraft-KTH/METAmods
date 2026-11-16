@@ -176,6 +176,7 @@ public final class OvveTop {
 		if (preview != null) top.set(ModComponents.PREVIEW, preview);
 		if (MobOvvar.is(ovve)) top.set(ModComponents.MOB_OVVE, Unit.INSTANCE);   // a mob's top queues no combo either
 		if (Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) top.set(ModComponents.ON_STAND, true);   // its patches are display entities too
+		if (ovve.isEnchanted()) top.set(ModComponents.GARMENT_GLINT, true);   // the whole garment glints
 		return top;
 	}
 

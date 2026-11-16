@@ -78,6 +78,30 @@ public final class ModComponents {
 	public static final DataComponentType<String> FLAT = register("flat",
 			DataComponentType.<String>builder().networkSynchronized(ByteBufCodecs.STRING_UTF8));
 
+	/**
+	 * On the companion top and the virtual cuffs of an enchanted ovve: the whole garment glints, so the
+	 * client stack gets {@code enchantment_glint_override}. Copied from the ovve each time, never saved.
+	 * (A type needs a stream codec to build; Polymer strips it from every stack sent, like {@link #FEET_CHANNEL}.)
+	 */
+	public static final DataComponentType<Boolean> GARMENT_GLINT = register("garment_glint",
+			DataComponentType.<Boolean>builder().networkSynchronized(ByteBufCodecs.BOOL));
+
+	/**
+	 * On an Ender Pockets ovve: which entry of the client's pocket preview (the clicking player's ender chest,
+	 * {@link se.metacraft.ovvar.content.enchantment.EnderPockets#view}) is selected, as the bundle's own
+	 * selection would be. Absent = none. Never saved; Polymer strips it (a type needs a stream codec to build).
+	 */
+	public static final DataComponentType<Integer> ENDER_SELECTED = register("ender_selected",
+			DataComponentType.<Integer>builder().networkSynchronized(ByteBufCodecs.VAR_INT));
+
+	/**
+	 * On a copy of an Ender Pockets ovve inside another's pocket preview (in the ender chest, or deeper, in a
+	 * shulker box or bundle there): its own preview is empty, so a preview never contains itself. Only ever on
+	 * the copies {@link se.metacraft.ovvar.content.enchantment.EnderPockets#view} hands to Polymer, never on a real stack.
+	 */
+	public static final DataComponentType<Unit> ENDER_NESTED = register("ender_nested",
+			DataComponentType.<Unit>builder().networkSynchronized(Unit.STREAM_CODEC));
+
 	/** On a mob's own ovve or frack: never dropped, never a player's, its look never builds a combo. */
 	public static final DataComponentType<Unit> MOB_OVVE = register("mob_ovve",
 			DataComponentType.<Unit>builder().persistent(Unit.CODEC));
@@ -89,6 +113,6 @@ public final class ModComponents {
 	public static void init() {
 		// Registered types land in a synced registry; without this Fabric's registry sync kicks
 		// vanilla clients ("requires Fabric Loader"). Polymer hides them and never sends them.
-		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT, MOB_OVVE);
+		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT, GARMENT_GLINT, ENDER_SELECTED, ENDER_NESTED, MOB_OVVE);
 	}
 }

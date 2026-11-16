@@ -5,7 +5,7 @@ import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
-import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition;
+import se.metacraft.ovvar.content.enchantment.Magpie;
 
 import java.util.List;
 import java.util.Set;
@@ -56,7 +56,7 @@ public final class PatchLoot {
 		if (looted.isEmpty()) return;
 		LootTableEvents.MODIFY.register((key, table, source, registries) -> {
 			if (!inStructureChest(key.identifier())) return;
-			LootPool.Builder pool = LootPool.lootPool().when(LootItemRandomChanceCondition.randomChance(CHANCE));
+			LootPool.Builder pool = LootPool.lootPool().when(Magpie.chestCondition(registries));
 			for (Patches.Patch patch : looted) pool.add(LootItem.lootTableItem(ModContent.patchItem(patch)));
 			table.withPool(pool);
 		});

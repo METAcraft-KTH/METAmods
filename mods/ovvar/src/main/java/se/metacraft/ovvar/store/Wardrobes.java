@@ -14,19 +14,19 @@ import net.minecraft.world.level.storage.LevelResource;
 import java.io.IOException;
 import java.time.Duration;
 import java.nio.file.Path;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
@@ -35,9 +35,10 @@ import java.util.function.UnaryOperator;
 /**
  * The wardrobes this server knows: a cache per owner in front of the {@link WardrobeBackend},
  * filled on join (and on demand for an ovve whose owner is elsewhere), written through with a
- * compare-and-set on every change. All state here belongs to the server thread; the backend is
- * only ever touched from one store thread, and every result comes back through
- * {@code server.execute}. Nothing here decides what a failure means for the player — the callers
+ * compare-and-set on every change. Changes to the cache come back to the server thread through
+ * {@code server.execute}; the backend is only ever touched from one store thread. The maps are
+ * concurrent all the same: an ovve on a mannequin or a mob reads the cache and asks for a load from
+ * its entity tick, which the async mod runs on its worker threads, many entities at once. Nothing here decides what a failure means for the player — the callers
  * do, from the config ({@link DesignStoreConfig}).
  */
 public final class Wardrobes {
@@ -58,15 +59,15 @@ public final class Wardrobes {
 
 	private record Queued(UnaryOperator<Wardrobe> change, String what) {}
 
-	private static MinecraftServer server;
-	private static WardrobeBackend backend;
-	private static ExecutorService executor;
-	private static final Map<UUID, Wardrobe> CACHE = new HashMap<>();
-	private static final Set<UUID> LOADING = new HashSet<>();
-	private static final Map<UUID, Long> FAILED_AT = new HashMap<>();
+	private static volatile MinecraftServer server;
+	private static volatile WardrobeBackend backend;
+	private static volatile ExecutorService executor;
+	private static final Map<UUID, Wardrobe> CACHE = new ConcurrentHashMap<>();
+	private static final Set<UUID> LOADING = ConcurrentHashMap.newKeySet();
+	private static final Map<UUID, Long> FAILED_AT = new ConcurrentHashMap<>();
 	/** Writes accepted while the store was unreachable, per owner in order; flushed by the tick. */
-	private static final Map<UUID, Deque<Queued>> QUEUED = new HashMap<>();
-	private static final Set<UUID> FLUSHING = new HashSet<>();
+	private static final Map<UUID, Deque<Queued>> QUEUED = new ConcurrentHashMap<>();
+	private static final Set<UUID> FLUSHING = ConcurrentHashMap.newKeySet();
 	private static long lastFailureLog;
 
 	public static void init() {
@@ -170,32 +171,41 @@ public final class Wardrobes {
 
 	/** Loads the owner's wardrobe into the cache if not there; no-op while a load is in flight or shortly after one failed. */
 	public static void fetch(UUID owner) {
-		if (!available() || LOADING.contains(owner)) return;
+		WardrobeBackend b = backend;
+		ExecutorService store = executor;
+		if (b == null || store == null || LOADING.contains(owner)) return;
 		Long failed = FAILED_AT.get(owner);
 		if (failed != null && System.currentTimeMillis() - failed < config().retrySeconds() * 1000L) return;
-		LOADING.add(owner);
-		WardrobeBackend b = backend;
+		if (!LOADING.add(owner)) return;   // another thread asked first
 		boolean log = config().logQueries();
-		executor.submit(() -> {
-			try {
-				Wardrobe loaded = b.load(owner).orElse(Wardrobe.NONE);
-				if (log) Ovvar.LOGGER.info("[ovvar] wardrobes: loaded {} v{}", owner, loaded.version());
-				server.execute(() -> {
-					LOADING.remove(owner);
-					FAILED_AT.remove(owner);
-					// Local changes queued while unreachable stay on top of what the store has.
-					Wardrobe w = loaded;
-					for (Queued q : QUEUED.getOrDefault(owner, new ArrayDeque<>())) w = q.change.apply(w).withVersion(w.version());
-					CACHE.put(owner, w);
-				});
-			} catch (IOException | RuntimeException e) {
-				unreachable("loading " + owner, e);
-				server.execute(() -> {
-					LOADING.remove(owner);
-					FAILED_AT.put(owner, System.currentTimeMillis());
-				});
-			}
-		});
+		MinecraftServer s = server;
+		try {
+			store.submit(() -> load(s, b, owner, log));
+		} catch (RejectedExecutionException e) {
+			LOADING.remove(owner);   // the store was swapped meanwhile; whoever asks next asks the new one
+		}
+	}
+
+	/** On the store thread: one owner's wardrobe into the cache (on the server thread). */
+	private static void load(MinecraftServer server, WardrobeBackend b, UUID owner, boolean log) {
+		try {
+			Wardrobe loaded = b.load(owner).orElse(Wardrobe.NONE);
+			if (log) Ovvar.LOGGER.info("[ovvar] wardrobes: loaded {} v{}", owner, loaded.version());
+			server.execute(() -> {
+				LOADING.remove(owner);
+				FAILED_AT.remove(owner);
+				// Local changes queued while unreachable stay on top of what the store has.
+				Wardrobe w = loaded;
+				for (Queued q : QUEUED.getOrDefault(owner, new ConcurrentLinkedDeque<>())) w = q.change.apply(w).withVersion(w.version());
+				CACHE.put(owner, w);
+			});
+		} catch (IOException | RuntimeException e) {
+			unreachable("loading " + owner, e);
+			server.execute(() -> {
+				LOADING.remove(owner);
+				FAILED_AT.put(owner, System.currentTimeMillis());
+			});
+		}
 	}
 
 	/** Forgets and reloads an owner (the reload command, and after a conflict). */
@@ -271,7 +281,7 @@ public final class Wardrobes {
 		Wardrobe next = change.apply(current);
 		if (next == null) return;
 		CACHE.put(owner, next.withVersion(current.version()));
-		QUEUED.computeIfAbsent(owner, k -> new ArrayDeque<>()).add(new Queued(change, what));
+		QUEUED.computeIfAbsent(owner, k -> new ConcurrentLinkedDeque<>()).add(new Queued(change, what));
 		Ovvar.LOGGER.warn("[ovvar] wardrobes: {} for {} queued until the store is back", what, owner);
 	}
 

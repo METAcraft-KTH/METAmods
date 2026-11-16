@@ -7,6 +7,7 @@ import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.PatchLoot;
+import se.metacraft.ovvar.content.enchantment.OvveEnchantments;
 import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.entity.PunkphozEntities;
 import se.metacraft.ovvar.content.item.OvveFeet;
@@ -46,6 +47,7 @@ public class Ovvar implements ModInitializer {
 		ModContent.register();
 		PunkphozEntities.init();
 		PatchLoot.init();
+		OvveEnchantments.init();
 		MobOvvar.init();
 		OvveTop.init();
 		OvveFeet.init();

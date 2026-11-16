@@ -18,6 +18,7 @@ import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.Level;
 import se.metacraft.ovvar.OvvarConfig;
 import se.metacraft.ovvar.PunkphozConfig;
+import se.metacraft.ovvar.content.enchantment.OvveEnchantments;
 
 import java.util.Optional;
 
@@ -88,7 +89,8 @@ public class Punkphoz extends WanderingTrader implements AnimatedEntity {
 	protected void updateTrades(ServerLevel level) {
 		PunkphozHistory history = PunkphozHistory.get(level.getServer());
 		MerchantOffers offers = getOffers();
-		for (PunkphozStock.Stocked stocked : PunkphozStock.roll(OvvarConfig.get().punkphoz(), PunkphozConfig.poolOnOffer(), random, history)) {
+		for (PunkphozStock.Stocked stocked : PunkphozStock.roll(OvvarConfig.get().punkphoz(), PunkphozConfig.poolOnOffer(),
+				PunkphozStock.extras(level.registryAccess(), OvvarConfig.get().enchantments(), OvveEnchantments.BREWERY), random, history)) {
 			offers.add(new MerchantOffer(new ItemCost(Items.EMERALD, stocked.emeralds()), Optional.empty(), stocked.result(), 0,
 					stocked.maxUses(), 1, 0.05f));
 		}

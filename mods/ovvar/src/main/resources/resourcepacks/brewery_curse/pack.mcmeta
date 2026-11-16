@@ -1,0 +1,13 @@
+{
+	"pack": {
+		"description": "Ovvar: the Curse of the Spilled Drink in random loot (with Brewery)",
+		"min_format": [
+			121,
+			0
+		],
+		"max_format": [
+			121,
+			0
+		]
+	}
+}

@@ -7,6 +7,8 @@ import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.store.DesignStoreConfig;
 import se.metacraft.ovvar.store.Wardrobe;
 import se.metacraft.ovvar.store.Wardrobes;
+import se.metacraft.ovvar.content.enchantment.EnderPockets;
+import se.metacraft.ovvar.content.enchantment.SpilledDrink;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.ModComponents;
@@ -29,7 +31,10 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ClickAction;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.BundleItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -184,6 +189,8 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
 		if (!player.isShiftKeyDown()) {
+			// Ender Pockets: the ender chest screen, never emptying it (and never the swap below).
+			if (EnderPockets.has(stack)) return EnderPockets.open(stack, player);
 			var bundleContents = stack.get(DataComponents.BUNDLE_CONTENTS);
 			if (bundleContents == null || bundleContents.isEmpty()) {
 				Equippable equippable = stack.get(DataComponents.EQUIPPABLE);
@@ -219,6 +226,8 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 	/** Worn (player or armour stand): keep the companion top and the cuffs in step every tick — an ovve's; a frack has neither. */
 	@Override
 	public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
+		// Whatever was in the pockets when they became Ender Pockets goes on the ground, whoever holds it.
+		EnderPockets.spill(stack, entity);
 		if (entity instanceof ServerPlayer player) {
 			// A mob's garment never reaches a player; one that somehow did is gone.
 			if (MobOvvar.is(stack)) {
@@ -237,6 +246,7 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 				return;
 			}
 			Looks.claimIfNeeded(player, stack);
+			if (slot == chapter.slot) SpilledDrink.tickWorn(player, stack);
 		} else {
 			refresh(stack);   // on a stand or a mannequin: follow the owner's design (loaded on demand)
 			UUID owner = owner(stack);
@@ -278,7 +288,7 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 		}
 		StringBuilder hint = new StringBuilder();
 		if (chapter.rollable) hint.append("Sneak + use: zip ").append(up ? "down" : "up").append(" · ");
-		hint.append("Use: empty pockets");
+		hint.append(EnderPockets.has(stack) ? "Use: open ender chest" : "Use: empty pockets");
 		tooltip.add(Component.literal(hint.toString()).withStyle(ChatFormatting.DARK_GRAY));
 		if (sewn.isEmpty()) {
 			// Kept as its own short line rather than folded into the hint above: with no patches the
@@ -380,10 +390,37 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 
 	@Override
 	public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
-		ItemStack out = PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
+		ItemStack out = EnderPockets.has(stack)
+				? EnderPockets.clientStack(stack, context, () -> basePolymerItemStack(stack, flag, context, lookup))
+				: basePolymerItemStack(stack, flag, context, lookup);
 		// An ovve's item is its bottom half, rolled down when the top is; a frack's is its top.
 		Piece piece = chapter.ownPiece();
 		OvveTop.dress(out, stack.get(DataComponents.EQUIPPABLE), stack, chapter, piece, piece == Piece.BOTTOM && !topUp(stack), context, lookup);
 		return out;
+	}
+
+	/** A client stack coming back (a creative slot): Polymer restores the server's ovve; Ender Pockets takes the client's edit to the ender chest. */
+	@Override
+	public ItemStack getDecodedItemStack(ItemStack client, ItemStack decoded, PacketContext context, HolderLookup.Provider lookup) {
+		if (EnderPockets.has(decoded)) EnderPockets.creativeEdit(client, context);
+		return decoded;
+	}
+
+	private ItemStack basePolymerItemStack(ItemStack stack, TooltipFlag flag, PacketContext context, HolderLookup.Provider lookup) {
+		return PolymerItem.super.getPolymerItemStack(stack, flag, context, lookup);
+	}
+
+	// ---- pockets: with Ender Pockets they are the clicking player's ender chest
+
+	@Override
+	public boolean overrideStackedOnOther(ItemStack stack, Slot slot, ClickAction action, Player player) {
+		if (EnderPockets.has(stack)) return EnderPockets.stackedOnOther(stack, slot, action, player);
+		return super.overrideStackedOnOther(stack, slot, action, player);
+	}
+
+	@Override
+	public boolean overrideOtherStackedOnMe(ItemStack stack, ItemStack other, Slot slot, ClickAction action, Player player, SlotAccess carried) {
+		if (EnderPockets.has(stack)) return EnderPockets.otherStackedOnMe(stack, other, slot, action, player, carried);
+		return super.overrideOtherStackedOnMe(stack, other, slot, action, player, carried);
 	}
 }

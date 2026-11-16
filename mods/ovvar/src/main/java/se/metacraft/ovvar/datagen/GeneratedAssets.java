@@ -16,6 +16,7 @@ import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
 import se.metacraft.ovvar.content.Spot;
+import se.metacraft.ovvar.content.enchantment.OvveEnchantments;
 import se.metacraft.ovvar.pack.EquipmentJson;
 import se.metacraft.ovvar.pack.Trims;
 import se.metacraft.ovvar.sewing.Outline;
@@ -403,6 +404,17 @@ public final class GeneratedAssets implements DataProvider {
 		// Punkphöz is his name in both languages.
 		lang.put("entity." + MOD + ".punkphoz", "Punkphöz");
 		swedish.put("entity." + MOD + ".punkphoz", "Punkphöz");
+
+		// The six ovve enchantments: their names in both languages, and the item tag they all support,
+		// every chapter's ovve or frack (so a new chapter takes them without touching the definitions).
+		OvveEnchantments.NAMES.forEach((enchantment, names) -> {
+			String langKey = "enchantment." + MOD + "." + enchantment.identifier().getPath();
+			lang.put(langKey, names.en());
+			swedish.put(langKey, names.sv());
+		});
+		JsonArray ovvar = new JsonArray();
+		for (Chapter chapter : Chapter.values()) ovvar.add(ModContent.ovveId(chapter).toString());
+		files.json(data.resolve("tags/item/enchantable/ovve.json"), obj("replace", false, "values", ovvar));
 
 		JsonObject langJson = new JsonObject();
 		lang.forEach(langJson::addProperty);

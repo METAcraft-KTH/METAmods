@@ -154,9 +154,10 @@ public final class Combos {
 	public static boolean isBuilt(Chapter chapter, Piece piece, Combo combo, @Nullable UUID player) {
 		if (combo.isEmpty()) return true;
 		KeyedCombo key = key(chapter, piece, combo);
-		Set<KeyedCombo> current = BUILT.getOrDefault(generation, Set.of());
+		int now = generation;   // read once: a build may finish on the server thread meanwhile
+		Set<KeyedCombo> current = BUILT.getOrDefault(now, Set.of());
 		if (player == null) return current.contains(key);
-		return BUILT.getOrDefault(LOADED.getOrDefault(player, generation), current).contains(key);
+		return BUILT.getOrDefault(LOADED.getOrDefault(player, now), current).contains(key);
 	}
 
 	/** Was this combination ever queued or built (requested, or loaded from combos.json)? */
@@ -292,8 +293,11 @@ public final class Combos {
 
 	/** A build finished (server thread): a new generation; players who asked for its combinations get it. */
 	private static void built(Set<KeyedCombo> combos) {
-		generation++;
-		BUILT.put(generation, combos);
+		// The pack's contents first, then the generation that names them: a reader off the server thread
+		// (an entity ticked by the async mod, a packet being encoded) never sees a generation with no pack.
+		int next = generation + 1;
+		BUILT.put(next, combos);
+		generation = next;
 		generating = false;
 		int online = Integer.MAX_VALUE;
 		for (int g : LOADED.values()) online = Math.min(online, g);
