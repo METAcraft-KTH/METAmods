@@ -3,6 +3,7 @@ package se.metacraft.kultur;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import se.metacraft.kultur.catalogue.Catalogue;
 import se.metacraft.kultur.content.ModContent;
+import se.metacraft.kultur.content.PatternLoot;
 import se.metacraft.kultur.drinks.KulturDrinks;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ public class Kultur implements ModInitializer {
 	public void onInitialize() {
 		catalogue = Catalogue.load();
 		ModContent.register(catalogue);
+		PatternLoot.init(catalogue);
 		KulturDrinks.register();
 		PolymerResourcePackUtils.addModAssets(MOD_ID);
 		PolymerResourcePackUtils.markAsRequired();

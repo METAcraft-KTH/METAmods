@@ -25,12 +25,16 @@ import java.util.Set;
 public record Catalogue(List<Chapter> chapters) {
 	private static final java.util.regex.Pattern ID = java.util.regex.Pattern.compile("[a-z0-9_]+");
 
-	/** A banner pattern; {@code item} means the loom wants a pattern item for it (the vanilla globe / flower mechanic). */
-	public record Pattern(String id, String name, boolean item) {
+	/**
+	 * A banner pattern; {@code item} means the loom wants a pattern item for it (the vanilla globe / flower mechanic).
+	 * {@code loot} puts that item in structure chests (no pattern has it for now); it needs {@code item}.
+	 */
+	public record Pattern(String id, String name, boolean item, boolean loot) {
 		public static final Codec<Pattern> CODEC = RecordCodecBuilder.create(i -> i.group(
 				Codec.STRING.fieldOf("id").forGetter(Pattern::id),
 				Codec.STRING.fieldOf("name").forGetter(Pattern::name),
-				Codec.BOOL.optionalFieldOf("item", false).forGetter(Pattern::item)
+				Codec.BOOL.optionalFieldOf("item", false).forGetter(Pattern::item),
+				Codec.BOOL.optionalFieldOf("loot", false).forGetter(Pattern::loot)
 		).apply(i, Pattern::new));
 
 		/** The pattern item's registry path, when {@link #item}. */
@@ -88,6 +92,7 @@ public record Catalogue(List<Chapter> chapters) {
 				id(p.id, "pattern in chapter " + chapter.id);
 				if (!patternIds.add(p.id)) throw new IllegalStateException("kultur.json: pattern id '" + p.id + "' twice");
 				if (p.name.isBlank()) throw new IllegalStateException("kultur.json: pattern '" + p.id + "' has a blank name");
+				if (p.loot && !p.item) throw new IllegalStateException("kultur.json: pattern '" + p.id + "' has loot but no item");
 			}
 			for (Painting q : chapter.paintings) {
 				id(q.id, "painting in chapter " + chapter.id);

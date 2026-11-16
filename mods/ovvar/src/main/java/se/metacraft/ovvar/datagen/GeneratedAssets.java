@@ -390,8 +390,8 @@ public final class GeneratedAssets implements DataProvider {
 
 		sewingFont(chapterColours, arts);
 
-		// The translated lines: the garment names above, the tooltip's shaders hint (OvveItem.SHADERS_HINT) and
-		// /ovvar shaders. Everything else is English only, and the client falls back to en_us for every key sv_se lacks.
+		// The translated lines: the garment names above, the tooltip's shaders hint (OvveItem.SHADERS_HINT),
+		// /ovvar shaders and Punkphöz's name. Everything else is English only, and the client falls back to en_us for every key sv_se lacks.
 		lang.put(OvveItem.SHADERS_HINT, OvveItem.SHADERS_HINT_EN);
 		lang.put(ModCommands.SHADERS_INTRO, ModCommands.SHADERS_INTRO_EN);
 		lang.put(ModCommands.SHADERS_LINK, ModCommands.SHADERS_LINK_EN);
@@ -400,6 +400,9 @@ public final class GeneratedAssets implements DataProvider {
 		swedish.put(ModCommands.SHADERS_LINK, "Patcha ditt shaderpack");
 		swedish.put(ModCommands.SHADERS_STEPS, "Släpp in ditt pack, ladda ner +ovvar-kopian, lägg den i din shaderpacks-mapp och välj den i Iris.");
 		swedish.put(OvveItem.SHADERS_HINT, "Rosa-svart rutmönster på ben och armar? Patcha packet igen: /ovvar shaders");
+		// Punkphöz is his name in both languages.
+		lang.put("entity." + MOD + ".punkphoz", "Punkphöz");
+		swedish.put("entity." + MOD + ".punkphoz", "Punkphöz");
 
 		JsonObject langJson = new JsonObject();
 		lang.forEach(langJson::addProperty);

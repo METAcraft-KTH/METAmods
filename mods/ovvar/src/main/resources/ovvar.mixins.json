@@ -8,7 +8,8 @@
 		"ForeignOvveMixin",
 		"MobOvvarMixin",
 		"PiglinOvvarMixin",
-		"ResourcePackResponseMixin"
+		"ResourcePackResponseMixin",
+		"WanderingTraderSpawnerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

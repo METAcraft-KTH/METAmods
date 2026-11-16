@@ -23,8 +23,9 @@ import java.util.function.UnaryOperator;
  * @param stash		  this server's role, and the rules for taking patches out of the stash ({@link StashConfig})
  * @param shaders	    where players patch their shaderpack ({@link ShadersConfig})
  * @param mobOvvar	   mobs that spawn in an ovve or a frack and drop its patches ({@link MobOvvarConfig})
+ * @param punkphoz	   the wandering trader Punkphöz ({@link PunkphozConfig})
  */
-public record OvvarConfig(boolean sewingMinigame, int stitches, DesignStoreConfig designs, StashConfig stash, ShadersConfig shaders, MobOvvarConfig mobOvvar) {
+public record OvvarConfig(boolean sewingMinigame, int stitches, DesignStoreConfig designs, StashConfig stash, ShadersConfig shaders, MobOvvarConfig mobOvvar, PunkphozConfig punkphoz) {
 	public static final int MIN_STITCHES = 1, MAX_STITCHES = 16;
 
 
@@ -34,11 +35,12 @@ public record OvvarConfig(boolean sewingMinigame, int stitches, DesignStoreConfi
 			ConfigFields.field(DesignStoreConfig.CODEC.codec(), "designs", DesignStoreConfig.DEFAULT, "Where every player's wardrobe (their sewn patches per chapter and their stash of unsewn patches)", "is kept. All servers should point at the same store.").forGetter(OvvarConfig::designs),
 			ConfigFields.field(StashConfig.CODEC.codec(), "stash", StashConfig.DEFAULT, "What this server is, and the rules for patches here. Patches live in a player's stash (shared by", "all servers), on their ovve, or as items in the world.").forGetter(OvvarConfig::stash),
 			ConfigFields.field(ShadersConfig.CODEC.codec(), "shaders", ShadersConfig.DEFAULT, "Players with a shaderpack: where they patch it so ovvar draw right.").forGetter(OvvarConfig::shaders),
-			ConfigFields.field(MobOvvarConfig.CODEC.codec(), "mob_ovvar", MobOvvarConfig.DEFAULT, "Mob ovvar: mobs that spawn in an ovve or a frack and drop its patches.").forGetter(OvvarConfig::mobOvvar)
+			ConfigFields.field(MobOvvarConfig.CODEC.codec(), "mob_ovvar", MobOvvarConfig.DEFAULT, "Mob ovvar: mobs that spawn in an ovve or a frack and drop its patches.").forGetter(OvvarConfig::mobOvvar),
+			ConfigFields.field(PunkphozConfig.CODEC.codec(), "punkphoz", PunkphozConfig.DEFAULT, "Punkphoz: a wandering trader with his own stock, on top of the vanilla wanderers.").forGetter(OvvarConfig::punkphoz)
 	).apply(instance, OvvarConfig::new));
 
 	private static final ConfigContainer<OvvarConfig> CONTAINER = ConfigContainer.Builder.create(
-			CODEC, () -> new OvvarConfig(true, 6, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT, ShadersConfig.DEFAULT, MobOvvarConfig.DEFAULT)
+			CODEC, () -> new OvvarConfig(true, 6, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT, ShadersConfig.DEFAULT, MobOvvarConfig.DEFAULT, PunkphozConfig.DEFAULT)
 	).build(Ovvar.MOD_ID);
 
 
@@ -47,22 +49,22 @@ public record OvvarConfig(boolean sewingMinigame, int stitches, DesignStoreConfi
 	}
 
 	public OvvarConfig minigame(boolean on, int stitches) {
-		return new OvvarConfig(on, stitches > 0 ? stitches : stitches(), designs, stash, shaders, mobOvvar);
+		return new OvvarConfig(on, stitches > 0 ? stitches : stitches(), designs, stash, shaders, mobOvvar, punkphoz);
 	}
 
 	/** The same config with other store settings (a test, a command). */
 	public OvvarConfig designs(DesignStoreConfig designs) {
-		return new OvvarConfig(sewingMinigame, stitches, designs, stash, shaders, mobOvvar);
+		return new OvvarConfig(sewingMinigame, stitches, designs, stash, shaders, mobOvvar, punkphoz);
 	}
 
 	/** The same config with other shaderpack settings (a test). */
 	public OvvarConfig shaders(ShadersConfig shaders) {
-		return new OvvarConfig(sewingMinigame, stitches, designs, stash, shaders, mobOvvar);
+		return new OvvarConfig(sewingMinigame, stitches, designs, stash, shaders, mobOvvar, punkphoz);
 	}
 
 	/** The same config with other mob ovvar settings (a test, a command). */
 	public OvvarConfig mobOvvar(MobOvvarConfig mobOvvar) {
-		return new OvvarConfig(sewingMinigame, stitches, designs, stash, shaders, mobOvvar);
+		return new OvvarConfig(sewingMinigame, stitches, designs, stash, shaders, mobOvvar, punkphoz);
 	}
 
 	/** Re-reads {@code config/ovvar.json}. */

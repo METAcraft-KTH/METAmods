@@ -10,7 +10,7 @@ order=1
 
 Each ovve is a single item that goes in the <bold>legs</bold> slot: drag it in, or shift-click it. Right-clicking does not equip it (see pockets). It protects like leather and never wears out.
 
-Every other chapter has one too: Arkitektur, Bygg, CL, Doktorand, Elektro, Energi och miljö, Fysik, Indek, Kemi, Medicinsk teknik, OPEN, Samhällsbyggnad and TBas. Flyg, Maskin and Bergs share the black <citem 'ovvar:b_frack'>. These can't be crafted.
+Every other chapter has one too: Arkitektur, Bygg, CL, Doktorand, Elektro, Energi och miljö, Fysik, Indek, Kemi, Medicinsk teknik, OPEN, Samhällsbyggnad and TBas. Flyg, Maskin and Bergs share the black <citem 'ovvar:b_frack'>. These can't be crafted: they come from Punkphöz, the wandering trader.
 
 The <bold>Media frack</bold> is a tailcoat, so it goes in the <bold>chest</bold> slot instead. It is its own top: there is nothing to roll up or down, and patches go only on the coat. Its pockets work like an ovve's.
 
@@ -26,3 +26,6 @@ The ovve is also a bundle. Click items onto it to fill it, in your inventory or 
 
 ### Header: Whose ovve it is
 An ovve becomes the property of the first player to pick it up. Somebody else's ovve will not go on you and nobody but you can sew on yours — so an ovve can be traded, but the design on it is its owner's. See <pagelink 'metacraft:ovvar/wardrobe'><u>Wardrobe</u></pagelink>.
+
+### Header: Punkphöz
+The chapters' newer ovvar come from Punkphöz alone, a wandering trader who turns up now and then alongside the usual ones. He also sells patches and banner patterns, for emeralds.

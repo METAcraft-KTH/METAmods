@@ -20,6 +20,7 @@
 		],
 		"fabric-gametest": [
 			"se.metacraft.kultur.gametest.KulturGameTests",
+			"se.metacraft.kultur.gametest.KulturLoomPacketTests",
 			"se.metacraft.kultur.gametest.KulturDrinkTests",
 			"se.metacraft.kultur.gametest.KulturVanillaDrinkTests"
 		],

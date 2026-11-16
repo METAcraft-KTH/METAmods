@@ -5,11 +5,12 @@ Minecraft 26.3. Players need nothing but the auto-served resource pack.
 
 ## What it adds
 
-One ovve per chapter. Data (cerise), IT (purple) and the older silicon-blue IT are made as before;
-Arkitektur, Bygg, CL, Doktorand, Elektro, Energi och miljö, Fysik, Indek, Kemi, Medicinsk teknik,
-OPEN, Samhällsbyggnad and TBas are the rest of KTH's chapters, each in its own colour. They have no
-recipe and no loot: new chapters come only from the wandering trader (Punkphöz). There is also the
-Media frack and the B-frack, the black frack Flyg, Maskin and Bergs share. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
+One ovve per chapter. No ovve has a recipe or a chest drop. Data (cerise), IT (purple), the older
+silicon-blue IT and the Media frack are only ever given: by a gamemaster (`/ovvar give`, see below)
+or from the Ovvar creative tab. The rest of KTH's chapters, each in its own colour, come only from
+the wandering trader Punkphöz (below): Arkitektur, Bygg, CL, Doktorand, Elektro, Energi och miljö, Fysik,
+Indek, Kemi, Medicinsk teknik, OPEN, Samhällsbyggnad and TBas, and the B-frack, the black
+frack Flyg, Maskin and Bergs share. An ovve is a single item worn in the legs slot with pockets: it is a bundle, filled and
 emptied with the usual bundle clicks — also while worn, by clicking items onto the legs slot. It
 holds twice a bundle through METAcraft's own bundle mod (`metacraft-bundles`, a hard dependency in
 METAmods; without it pockets are vanilla-sized). Right-click is the bundle's (hold to empty); sneak +
@@ -104,7 +105,7 @@ so each of the three paths that draw a seat has to mirror its half back — the 
 is pre-flipped, the shader flips the fragment, and the paper doll flips the part. Both player
 paths are pinned to the art itself by `seatHalvesSitOnTheLegTheArtWasDrawnFor`, never to the cut.
 
-**Getting patches.** The chapters' own patches are crafted (`data/ovvar/recipe`): a dye with string
+**Getting patches.** Punkphöz, the wandering trader (below), sells loot patches for emeralds. The chapters' own patches are crafted (`data/ovvar/recipe`): a dye with string
 on its four sides makes IT (Laserviolet), Data (Cerise), Medieteknik (RGB) or ITK (lime), and IT with
 a bottle of experience makes IN. Laserviolet, Cerise and RGB are More Dyes' (`moredyes`), so those
 three recipes load only beside it (`fabric:load_conditions`). METAcraft Rivals '26 (the Rivals
@@ -115,6 +116,55 @@ Structory's when it is installed, each get a pool with a 5 % chance of one patch
 them. It is added to the tables as they load, not shipped as copies of them, so a datapack's or
 another mod's changes to a chest stay. Which is which is two lists in `PatchLoot`,
 `LOOT` and `NON_LOOT` (crafted or given); a new patch goes in one of them, or the server won't start.
+
+## The wandering Punkphöz
+
+Punkphöz is a wandering trader with his own stock, and the only survival source of the newer chapters'
+ovvar (`Chapter.wandererStock()`, the chapters marked `wandererOnly`, B-frack included). He sells
+them for emeralds, a few chapters per visit, plus loot patches only (`PatchLoot.LOOT`: never a crafted one, nor Rivals '26,
+TMEIT Marshal, METAcrew or KomMN), plus whatever is in the config's `pool` (by default kultur's ITK, QMISK, TMEIT and Pirkko banner patterns, 4 emeralds each, all four every visit; without
+kultur installed they are left out and logged once per config load). What he offers is picked per visit, and `PunkphozHistory` keeps a chapter
+he sold lately from coming straight back.
+
+He comes on top of vanilla's wanderers and never replaces one; vanilla's own spawn rate is untouched
+(`WanderingTraderSpawnerMixin`). On a cycle where vanilla's roll fails, he gets
+`ceil(players / players_per_roll)` rolls, so a busy server sees him more, and no more than
+`max_loaded` Punkphöz are loaded at once. His own spawn skips vanilla's 1-in-10 gate; his odds are set so
+`share` is his share of all wanderer visits.
+
+His model, `src/main/resources/model/ovvar/punkphoz.bbmodel` (Blockbench, played by BIL), is the vanilla villager rig in
+Dante's look. The rig is the CEM Template Loader's `wandering_trader` template (its `villager` model), nested the way
+`VillagerModel.createBodyModel()` nests it (head > hat, nose; body > jacket; arms; legs), with no hat rim (a wandering trader
+paints none). The texture and the beanie, antenna and trouser cuff are Dante's, from the traders' IT trader
+(`mods/traders/.../it_trader.bbmodel`, left as it is); his UVs fit the rig's boxes unchanged. So do his arms: unlike a
+villager's, which cross in front, his hands are behind his back, the traders' arm boxes on a pivot at (0, 21.05, -0.05) tipped
+-47° about x. The one thing that differs from the traders' model is that the nose, beanie and antenna are under the head, so
+they turn with it. No animation moves the arms (`handsStayBehindHisBack`).
+
+He moves as a vanilla villager does (`VillagerModel.setupAnim`), from the server (`PunkphozAnimations`). BIL turns the `head`
+bone and everything under it with his look, but re-poses a model only while one of its animations plays, so `idle` (the rest
+pose) always plays under the others. `walk` swings the legs, `±cos(walkAnimationPos * 0.6662) * 0.7 * walkAnimationSpeed`:
+baked as 10 speed bands of a 20-frame stride, and every tick the frame for his walk speed and position is picked, so swing and
+stride follow his movement; under walk speed 0.05 he stands still. `shake` is the unhappy "no", head down 0.4 rad and rolling
+`0.3 * sin(0.45 * ticks)`: asked to trade while sold out (no offers, or all out of stock) he says no
+(`WANDERING_TRADER_NO`) and shakes for 40 ticks, as a villager without offers does (vanilla's wandering trader never shakes);
+its loop is 56 ticks, four periods of the roll, so a shake kept going by more asks doesn't jump.
+His look stays level while he shakes, as vanilla's shake replaces the look's pitch. BIL plays one animation at a time, so the
+shake stills his legs.
+
+Config, in the `punkphoz` block of `config/ovvar.json` (a file without it takes the defaults):
+
+- `enabled` (true): whether he turns up at all.
+- `share` (0.25, 0 to 0.5): his share of all wanderer visits.
+- `chapter_ovves` (3): how many chapters' ovvar are on offer per visit.
+- `ovve_price` (24): emeralds for one ovve.
+- `patches` (2): how many loot patches are on offer per visit.
+- `patch_price` (6): emeralds for one patch.
+- `pool_picks` (4): how many things from `pool` are on offer per visit.
+- `players_per_roll` (5): how many players online count as one more roll of his visit.
+- `max_loaded` (3): how many Punkphöz can be loaded at once.
+- `pool` (kultur's ITK, QMISK, TMEIT and Pirkko banner patterns, 4 emeralds, 1 each, 1 use): the extra things he sells, each `item` (registry id), `price` (emeralds, 1-64),
+  `count` (1-64, default 1) and `max_uses` (default 1). An item that isn't registered is left out and logged.
 
 **Mob ovvar.** A zombie, skeleton, piglin or the like that vanilla would spawn in leggings or a
 chestplate now and then wears a patched ovve (legs) or frack (chest) instead. Two methods are hooked:
@@ -547,7 +597,7 @@ the stitching minigame played through with the clicks its dialog sends (stale cl
 sewn on the last pull, nothing sewn after cutting the thread). `FrackTests` holds the Media frack
 to its chest slot: equipped there with its top asset, no companion or cuffs items, `OvveItem.worn`
 finding it (and an ovve in the legs), only top cells sewable, a foreign one evicted from the chest,
-a stand click left to vanilla's swap, and the seam sewing onto it. `WardrobeTests` runs the store
+a stand click left to vanilla's swap, and the seam sewing onto it. `PunkphozTests` holds the wandering trader: his model and its walk and shake, his stock, his spawn odds and his config. `WardrobeTests` runs the store
 (both backends, the compare-and-set cache, one patch in one place) and the ownership rules: a
 foreign ovve is refused by the equip checks and evicted by the tick, a stranger's sew and unpick
 change neither the store nor the ovve, the owner's own still work, `rebind` and `allow` still do
@@ -981,6 +1031,9 @@ Maid dress by Mackan; Data Neko, KTH, Media Neko, Medieteknik, METAcraft and MET
 original to this mod, cut from the chapter skin
 overlays on metacraft.se/style. The chapters' colours are from the THS Reglemente 2021
 (9.5.11–9.5.22) and the chapters' own stadgar; the B-frack's art is the Media frack's.
+
+Punkphöz: Dante's look (texture, beanie, antenna) from the traders' IT trader in `mods/traders` by ripsquid; the rig from
+Ewan Howell's CEM Template Loader (Blockbench plugin, `wandering_trader` template), after Mojang's villager model.
 
 `art/ovvar/patches/bakparti.png` — "varning för utsvängande bakparti" — is in the tree but not in
 the catalogue: it is 32×8, and a seat is 16 px wide, so it needs redrawing at 16×8 before it can be

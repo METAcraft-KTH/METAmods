@@ -1,19 +1,19 @@
 ### Section: PageInfo
 title=Banner Patterns
-description=The chapters' banner and shield patterns (ITK, QMISK, TMEIT and Pirkko) and IT's painting.
+description=Every chapter's banner and shield pattern, IT's clubs' (ITK, QMISK, TMEIT and Pirkko) and IT's painting.
 category=metacraft:student_culture
 icon=minecraft:loom
 order=20
 ### EndSection: PageInfo
 ### Image: metacraft:beside/kultur/banners The chapters' own patterns go on banners the way vanilla's do: in a <citem 'minecraft:loom'>, in any dye colour, Cerise, Laserviolet and RGB included. Craft the banner onto a shield and the shield shows it too.
 
-### Header: In any loom
-<bold>ITK</bold>, <bold>QMISK</bold> and <bold>TMEIT</bold> need no pattern item. Put a banner and a dye in any loom and pick them from the list.
+### Header: Chapter patterns
+Every chapter has a pattern of its own, its logo, and it needs no pattern item. Put a banner and a dye in any loom and pick your chapter from the list.
 
-### Header: Pirkko
-The <bold>Pirkko</bold> pattern needs its pattern item, the <citem 'kultur:pirkko_banner_pattern'>, in the loom, like the flower or creeper pattern. The item is not used up. It can't be found in survival yet.
+### Header: The IT clubs and Pirkko
+<bold>ITK</bold>, <bold>QMISK</bold>, <bold>TMEIT</bold> and <bold>Pirkko</bold> each need their pattern item in the loom, like the flower or creeper pattern: the <citem 'kultur:itk_banner_pattern'>, <citem 'kultur:qmisk_banner_pattern'>, <citem 'kultur:tmeit_banner_pattern'> or <citem 'kultur:pirkko_banner_pattern'>. The item is not used up. They are in no chest; Punkphöz, a wandering trader who turns up now and then, sells them.
 
 ### Header: The painting
 Hang a <citem 'minecraft:painting'> on a wall with room for one 3 wide and 4 high and you may get IT's own: <bold>The Guardian of Kistan</bold>, by Emelie Stark.<nl>
 
-<gray>All of these are IT's. Data and Media have none yet.</gray>
+<gray>The first four and the painting are IT's. Each chapter's own pattern is its logo.</gray>

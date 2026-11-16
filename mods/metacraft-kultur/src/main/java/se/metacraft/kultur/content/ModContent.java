@@ -1,6 +1,7 @@
 package se.metacraft.kultur.content;
 
 import eu.pb4.polymer.core.api.item.PolymerCreativeModeTabUtils;
+import net.fabricmc.fabric.api.event.registry.FabricRegistry;
 import se.metacraft.kultur.Kultur;
 import se.metacraft.kultur.catalogue.Catalogue;
 import net.minecraft.core.Registry;
@@ -49,6 +50,16 @@ public final class ModContent {
 			PatternItem item = Registry.register(BuiltInRegistries.ITEM, itemId, new PatternItem(props, itemId));
 			ITEMS.put(p.id(), item);
 		}
+		// The chapter logos had pattern items until 2026-11 (Edvin Private has some); now that the logos
+		// are free in the loom, an old one loads as paper instead of vanishing. Bygg was called
+		// Ingenjör before that, so its oldest items do the same.
+		Identifier paper = BuiltInRegistries.ITEM.getKey(Items.PAPER);
+		List<String> old = new ArrayList<>(List.of("ingenjor"));
+		for (Catalogue.Chapter chapter : catalogue.chapters()) old.add(chapter.id());
+		for (String id : old) {
+			if (ITEMS.containsKey(id)) continue;
+			((FabricRegistry) BuiltInRegistries.ITEM).addAlias(Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, id + "_banner_pattern"), paper);
+		}
 		if (!ITEMS.isEmpty()) registerCreativeTab();
 	}
 
@@ -67,7 +78,7 @@ public final class ModContent {
 	}
 
 	/**
-	 * A creative tab, since a pattern item is found in no other way until a loot table gives one out.
+	 * A creative tab, since a pattern item is otherwise only bought from Punkphöz (ovvar), or found in a chest when it is flagged loot.
 	 */
 	private static void registerCreativeTab() {
 		Item icon = ITEMS.isEmpty() ? Items.FLOWER_BANNER_PATTERN : ITEMS.values().iterator().next();

@@ -8,12 +8,17 @@ comes from); the ovvar and patches from there live in `mods/ovvar`.
 
 ## What is here, and what is not
 
-IT's content: ITK, QMISK and TMEIT banner patterns free in any loom, the Pirkko pattern behind a
-pattern item ("gated", below — `kultur:pirkko_banner_pattern`, from creative or `/give` for now),
-Emelie Stark's painting "The Guardian of Kistan" (3×4), and PolymITer's four drinks (below). Data
-and Media have their places in the catalogue and nothing in them yet — that is what this file is for.
+Every chapter has a banner pattern of its own, its logo, free in any loom (no pattern item; Edvin,
+2026-11). Their banner and shield art is Edvin's, hand-drawn. The logos had pattern items for a few
+days in 2026-11; an old one (and `kultur:ingenjor_banner_pattern`, Bygg was called Ingenjör) now
+loads as paper. Produktion has a pattern but no ovve.
 
-Not here yet, on purpose: loot tables for the pattern items, any Data or Media art.
+IT's content besides its logo: the ITK, QMISK and TMEIT banner patterns and the Pirkko pattern, all
+four behind a pattern item ("gated", below — `kultur:itk_banner_pattern` and so on), sold by Punkphöz
+by default and never in chests; Emelie Stark's painting "The Guardian of Kistan" (3×4), and
+PolymITer's four drinks (below). The clubs' item icons are their shield art on Pirkko's scroll,
+from `tools/chapter_item_icons.py`. Data and Media have their logo pattern, as every chapter does,
+and nothing else yet.
 
 With `moredyes` on the same server every pattern here also comes in Cerise and Laserviolet: its dyes
 work in the vanilla loom; nothing in this module knows about that. A Cerise Pirkko needs the Pirkko
@@ -125,13 +130,29 @@ effect, damage type, pack files, tick handler or mixin (`DrinksMixinPlugin`, the
    scaled to half size onto the shield, which is fine for bold logos and poor for thin text.
 4. Add a line to `src/main/resources/kultur.json` under your chapter:
    `{ "id": "<id>", "name": "<Name>" }`. Add `"item": true` to make it need a pattern item in the
-   loom, and then also draw a 16×16 icon at `.../item/<id>.png`.
+   loom, and then also draw a 16×16 icon at `.../item/<id>.png`. Add `"loot": true` (it needs `item`)
+   to put the pattern item in structure chests; that is all `loot` does, and no pattern has it for now
+   (the gated patterns are Punkphöz's alone). What the wandering trader
+   Punkphöz sells is ovvar's config (`pool` in `config/ovvar.json`), whose default is a fixed list of
+   ids in `PunkphozConfig.kulturPatterns()`: add yours there too if he should sell it (ovvar's
+   `defaultPoolMatchesKultur` game test, under `-PwithKultur`, checks that it is exactly the patterns with an item). A server that already
+   has a `config/ovvar.json` keeps its own `pool`, so add the id to its file as well.
 5. `./gradlew runDatagen` from the repo root, then commit your art and your `kultur.json` line.
    `src/main/generated` is a build artefact, not something to commit — everyone regenerates it
    locally, and the build refuses to package until `runDatagen` has run.
 
+AI-drawn art: files starting with `_` (`_<id>.png`) are AI-drawn drafts and are used as the art for `<id>`.
+To replace one, save your drawing as `<id>.png` beside it and delete the `_` file (if both exist, the
+plain file wins and datagen says it ignores the `_` one).
+
+Placeholder art: every chapter's logo ships as a placeholder, a white frame with pixel (0,0) set to
+opaque magenta (`#FF00FF`). Datagen clears everything outside the banner face, so the marker never
+shows on a banner, only on the placeholder icon. Draw over the whole PNG, marker included. Run the unit
+tests with `-PkulturRelease` and `noPlaceholderArt` fails, listing every file still marked.
+
 Names: the lang file is generated from `name` — "Light Blue ITK" and so on for all sixteen dyes,
-and "<Name> Banner Pattern" for the item.
+and "<Name> Banner Pattern" for the item. `sv_se.json` is generated too: "<Name> (<färg>)" for the layers
+and "Fanmönster: <Name>" for the item.
 
 ## Adding a painting
 
@@ -158,6 +179,7 @@ folder `art/kultur/<chapter>/`.
   server game tests (`KulturGameTests`): every catalogue entry in its registry and tag, gated
   patterns behind their item, every asset in the jar, the pack's Inebriated. The dev runtime has
   Brewery, so this also runs `KulturDrinkTests`; `KulturVanillaDrinkTests` passes at once.
+  `KulturLoomPacketTests` writes the loom's result with every pattern item as the packet a client gets.
 - The same with `-PkulturNoBrewery` — the dev runtime without Brewery, so `KulturVanillaDrinkTests`
   runs (no recipe makes a drink, the meter, every step, the blackout, sobering) and `KulturDrinkTests` passes at
   once. Run both.
@@ -165,7 +187,12 @@ folder `art/kultur/<chapter>/`.
   screenshots a banner, a shield and the painting, and the drinks, into
   `build/run/clientGameTest/screenshots/`. With `-PkulturNoBrewery` it screenshots Kultur's own
   bottles (`drinks_vanilla_bottles.png`) and the inventory at 55 alcohol, Inebriated IV with weakness
-  and slowness (`drinks_vanilla_inebriated.png`). Look at them; that is the test.
+  and slowness (`drinks_vanilla_inebriated.png`). Look at them; that is the test. It also checks
+  the loom on both the server's menu and the client's own list (banner and dye in, every kultur
+  pattern), with black dye and with More Dyes' Cerise: More Dyes is on the client-test runtime
+  (needs `:mods:moredyes:runDatagen` first); `-PkulturNoMoredyes` leaves it out.
+  The client shares the server's JVM, so `SameJvmRegistriesMixin` keeps it from binding the shared
+  item components to its own registries (the loom result could not be sent otherwise).
 - `./gradlew :mods:metacraft-kultur:runServer` — a dev server with the pack auto-hosted; join with a
   vanilla client, `/give @s minecraft:loom`, `/give @s kultur:pirkko_banner_pattern`.
 

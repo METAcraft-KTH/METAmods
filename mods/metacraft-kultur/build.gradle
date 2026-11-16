@@ -7,7 +7,7 @@ version = project.kultur_version
 setupRunDatagen("metacraft-kultur")
 // Client screenshot test: a real client joins an in-process dedicated server and screenshots a banner,
 // a shield, a painting and the drinks. Source set src/gametest, task runClientGameTest (needs a display);
-// -PkulturNoBrewery for the drinks Kultur brews itself.
+// -PkulturNoBrewery for the drinks Kultur brews itself, -PkulturNoMoredyes for the loom without More Dyes.
 fabricApi {
 	configureTests {
 		createSourceSet = true
@@ -32,6 +32,11 @@ dependencies {
 	}
 	gametestCompileOnly("maven.modrinth:brewery:${project.brewery_version}")
 	runtimeOnly("eu.pb4:polymer-virtual-entity:${project.polymer_version}")
+	// Prod runs More Dyes, whose dyes go in the loom: the client test checks the loom with a Cerise dye too.
+	// Client-test runtime only, never a dependency; -PkulturNoMoredyes leaves it out.
+	if (!project.hasProperty('kulturNoMoredyes')) {
+		gametestRuntimeOnly project(":mods:moredyes")
+	}
 }
 
 processResources {
@@ -42,4 +47,9 @@ processResources {
 			throw new GradleException("Kultur: generated assets missing — run './gradlew runDatagen' first.")
 		}
 	}
+}
+
+// -PkulturRelease turns on the release-only test that fails while any placeholder art (pixel (0,0) magenta) remains.
+test {
+	systemProperty 'kultur.release', project.hasProperty('kulturRelease')
 }

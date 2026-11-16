@@ -26,6 +26,12 @@ import net.minecraft.tags.BannerPatternTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.PaintingVariantTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.decoration.painting.PaintingVariant;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BannerPattern;
@@ -45,6 +51,27 @@ import java.util.Map;
  * {@code JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:metacraft-kultur:runServer}.
  */
 public final class KulturGameTests {
+	/**
+	 * The chapter logos' old pattern items (and Ingenjör's, Bygg's old name) load as paper now that the
+	 * logos are free in the loom; the clubs' and Pirkko's items stay themselves.
+	 */
+	@GameTest
+	public void oldChapterPatternItemsArePaper(GameTestHelper helper) {
+		List<String> wrong = new ArrayList<>();
+		List<String> old = new ArrayList<>(List.of("ingenjor"));
+		for (Catalogue.Chapter chapter : Kultur.catalogue().chapters()) old.add(chapter.id());
+		for (String id : old) {
+			var item = BuiltInRegistries.ITEM.getValue(Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, id + "_banner_pattern"));
+			if (item != net.minecraft.world.item.Items.PAPER) wrong.add(id + " -> " + item);
+		}
+		for (String id : List.of("itk", "qmisk", "tmeit", "pirkko")) {
+			var item = BuiltInRegistries.ITEM.getValue(Identifier.fromNamespaceAndPath(Kultur.NAMESPACE, id + "_banner_pattern"));
+			if (item == null || item != ModContent.patternItem(id)) wrong.add(id + " is not its pattern item: " + item);
+		}
+		helper.assertTrue(wrong.isEmpty(), "old pattern items: " + wrong);
+		helper.succeed();
+	}
+
 	@GameTest
 	public void everyPatternIsRegisteredAndTagged(GameTestHelper helper) {
 		Registry<BannerPattern> registry = helper.getLevel().registryAccess().lookupOrThrow(Registries.BANNER_PATTERN);
@@ -228,6 +255,51 @@ public final class KulturGameTests {
 			helper.fail("building the pack failed: " + e);
 			return null;
 		}
+	}
+
+	/** Rolls a loot table {@code rolls} times and counts the kultur pattern items it hands out, by pattern id. */
+	private static Map<String, Integer> rollPatterns(GameTestHelper helper, net.minecraft.resources.ResourceKey<LootTable> key, int rolls) {
+		LootTable table = helper.getLevel().getServer().reloadableRegistries().getLootTable(key);
+		LootParams params = new LootParams.Builder(helper.getLevel())
+				.withParameter(LootContextParams.ORIGIN, helper.absoluteVec(new Vec3(1, 1, 1)))
+				.create(LootContextParamSets.CHEST);
+		Map<String, Integer> found = new HashMap<>();
+		for (int i = 0; i < rolls; i++) {
+			table.getRandomItems(params).forEach(stack -> {
+				if (!(stack.getItem() instanceof PatternItem item)) return;
+				for (Map.Entry<String, PatternItem> e : ModContent.items().entrySet()) {
+					if (e.getValue() == item) found.merge(e.getKey(), 1, Integer::sum);
+				}
+			});
+		}
+		return found;
+	}
+
+	/**
+	 * Only loot-flagged patterns turn up in structure chests. None is flagged for now (the gated
+	 * patterns are Punkphöz's alone), so a dungeon chest must hold none; with some flagged, ~2% do.
+	 */
+	@GameTest
+	public void structureChestsHoldOnlyLootPatterns(GameTestHelper helper) {
+		Map<String, Integer> found = rollPatterns(helper, BuiltInLootTables.SIMPLE_DUNGEON, 4000);
+		int total = found.values().stream().mapToInt(Integer::intValue).sum();
+		Kultur.LOGGER.info("[kultur-test] 4000 dungeon rolls held {} pattern item(s): {}", total, found);
+		boolean anyLoot = Kultur.catalogue().patterns().stream().anyMatch(o -> o.value().loot());
+		if (anyLoot) helper.assertTrue(total >= 40, "4000 dungeon chests held only " + total + " pattern items: " + found);
+		else helper.assertTrue(total == 0, "no pattern is loot, yet 4000 dungeon chests held " + found);
+		for (String id : found.keySet()) {
+			boolean loot = Kultur.catalogue().patterns().stream().anyMatch(o -> o.value().id().equals(id) && o.value().loot());
+			helper.assertTrue(loot, "a dungeon chest held " + id + ", which is not loot");
+		}
+		helper.assertFalse(found.containsKey("pirkko"), "a dungeon chest held the pirkko pattern");
+		helper.succeed();
+	}
+
+	@GameTest
+	public void bonusChestHoldsNone(GameTestHelper helper) {
+		Map<String, Integer> found = rollPatterns(helper, BuiltInLootTables.SPAWN_BONUS_CHEST, 2000);
+		helper.assertTrue(found.isEmpty(), "the bonus chest held " + found);
+		helper.succeed();
 	}
 
 	private static JsonObject lang(Map<String, byte[]> pack, String language) {

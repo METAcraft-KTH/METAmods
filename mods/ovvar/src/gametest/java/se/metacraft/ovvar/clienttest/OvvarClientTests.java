@@ -38,6 +38,15 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+import net.minecraft.client.gui.screens.inventory.MerchantScreen;
+import net.minecraft.world.entity.animal.equine.TraderLlama;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.MerchantMenu;
+import net.minecraft.network.protocol.game.ServerboundSelectTradePacket;
+import se.metacraft.ovvar.OvvarConfig;
+import se.metacraft.ovvar.PunkphozConfig;
+import se.metacraft.ovvar.content.entity.Punkphoz;
+import se.metacraft.ovvar.content.entity.PunkphozEntities;
 
 /**
  * What a vanilla client sees of an ovve. A dedicated server runs in-process with ovvar; the test
@@ -210,6 +219,130 @@ public final class OvvarClientTests implements FabricClientGameTest {
 			}
 		}
 		everyChapterLineup(ctx);
+		punkphozShows(ctx);
+	}
+
+	// ---- Punkphöz
+
+	/**
+	 * What a vanilla client sees of Punkphöz: his model shows (the villager rig in Dante's look, drawn by Polymer), his head shakes
+	 * when he is unhappy, a right-click opens a trade screen with the configured number of offers, the first offer can be bought,
+	 * and he is still fine, and the client still connected, after being hurt once with a trader llama leashed to him. Compile-checked; runs in the cloud.
+	 */
+	private static void punkphozShows(ClientGameTestContext ctx) {
+		Properties props = new Properties();
+		props.setProperty("online-mode", "false");
+		props.setProperty("server-port", "25602");
+		props.setProperty("level-type", "minecraft:flat");
+		props.setProperty("spawn-monsters", "false");
+		props.setProperty("spawn-animals", "false");
+		props.setProperty("difficulty", "peaceful");
+		PunkphozConfig config = OvvarConfig.get().punkphoz();
+		// the pool is empty in this runtime, so no pool picks; kultur is not loaded, so no banner patterns
+		int offers = config.chapterOvves() + config.patches();
+		try (TestDedicatedServerContext server = ctx.worldBuilder().createServer(props)) {
+			try (TestDedicatedServerConnection conn = server.connect()) {
+				ClientTestSupport.acceptResourcePack(ctx);
+				conn.waitForChunksRender();
+				server.runCommand("gamerule advance_time false");
+				server.runCommand("time set noon");
+				server.runCommand("tp Tester 0.5 -60 0.5 0 0");
+				ctx.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(20);
+				BufferedImage empty = read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_empty").withSize(1920, 1080)));
+
+				server.runCommand("summon ovvar:punkphoz 0.5 -60 3.5 {NoAI:1b,Rotation:[180f,0f]}");
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(40);
+				BufferedImage first = read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_front").withSize(1920, 1080)));
+				int shown = differingInCrop(empty, first);
+				System.out.println("[ovvar-clienttest] punkphoz changed pixels=" + shown);
+				if (shown < 4000) throw new AssertionError("Punkphoz's model doesn't show: only " + shown + " pixels differ from the empty view");
+
+				// the villager's unhappy shake: his head drops and rolls, so the head crop changes; then let it run out
+				server.runOnServer(mc -> mc.getPlayerList().getPlayers().getFirst().level()
+						.getEntities(PunkphozEntities.PUNKPHOZ, p -> true).getFirst().setUnhappyCounter(Punkphoz.UNHAPPY_TICKS));
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(10);
+				BufferedImage shaking = read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_shake").withSize(1920, 1080)));
+				int shook = differingInHeadCrop(first, shaking);
+				System.out.println("[ovvar-clienttest] punkphoz shake changed head pixels=" + shook);
+				if (shook < 800) throw new AssertionError("Punkphoz's head doesn't shake: only " + shook + " head pixels changed");
+				ctx.waitTicks(Punkphoz.UNHAPPY_TICKS + 10);
+				// and back at rest once it has run out (the idle under it re-poses him)
+				int rested = differingInHeadCrop(first, read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_after_shake").withSize(1920, 1080))));
+				System.out.println("[ovvar-clienttest] punkphoz head pixels changed after the shake=" + rested);
+				if (rested * 2 > shook) throw new AssertionError("Punkphoz's head didn't come back to rest: " + rested + " head pixels still differ (" + shook + " while shaking)");
+
+				// right-click him the way a player does, through the use key
+				ctx.getInput().pressKey(options -> options.keyUse);
+				ctx.waitFor(client -> client.gui.screen() instanceof MerchantScreen, 100);
+				ctx.waitTicks(10);
+				int count = ctx.computeOnClient(client -> client.player.containerMenu instanceof MerchantMenu menu ? menu.getOffers().size() : -1);
+				System.out.println("[ovvar-clienttest] punkphoz offers=" + count);
+				if (count != offers) throw new AssertionError("Punkphoz shows " + count + " offers, not " + offers);
+
+				// buy the first offer with the emeralds the server gives
+				server.runCommand("give Tester minecraft:emerald 24");
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(5);
+				ctx.runOnClient(client -> {
+					client.getConnection().send(new ServerboundSelectTradePacket(0));
+					client.gameMode.handleContainerInput(client.player.containerMenu.containerId, 2, 0, ContainerInput.QUICK_MOVE, client.player);
+				});
+				ctx.waitTicks(10);
+				ctx.runOnClient(client -> client.player.closeContainer());
+				ctx.waitTicks(5);
+
+				// hurt once (no damage) with a trader llama leashed to him
+				server.runOnServer(mc -> {
+					ServerLevel level = mc.getPlayerList().getPlayers().getFirst().level();
+					Punkphoz punkphoz = level.getEntities(PunkphozEntities.PUNKPHOZ, p -> true).getFirst();
+					punkphoz.hurtServer(level, level.damageSources().generic(), 0f);
+					TraderLlama llama = new TraderLlama(EntityTypes.TRADER_LLAMA, level);
+					llama.setPos(4.5, -60, 3.5); // four blocks to the side: well outside the centre crop the model is measured in
+					level.addFreshEntity(llama);
+					llama.setLeashedTo(punkphoz, true);
+				});
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(40);
+				if (!ctx.computeOnClient(client -> client.getConnection() != null && client.level != null)) throw new AssertionError("the client lost its connection");
+				BufferedImage second = read(ctx.takeScreenshot(TestScreenshotOptions.of("punkphoz_after_hurt").withSize(1920, 1080)));
+				int after = differingInCrop(empty, second);
+				System.out.println("[ovvar-clienttest] punkphoz changed pixels after hurt and leash=" + after);
+				if (after < 4000) throw new AssertionError("Punkphoz is gone or unseen after being hurt: only " + after + " pixels differ from the empty view");
+			}
+		}
+	}
+
+	/**
+	 * How many pixels differ in a centre crop around Punkphöz (as the traders' client test measures its trader: 260 px wide, chest to
+	 * knees, in the middle of the view; the 4000-pixel threshold is the same as there). The leashed llama stands four blocks to the
+	 * side, about a thousand pixels from the middle, so it can't count towards the crop.
+	 */
+	private static int differingInCrop(BufferedImage a, BufferedImage b) {
+		int x = a.getWidth() / 2 - 130, y = a.getHeight() * 4 / 10, w = 260, h = a.getHeight() * 3 / 10;
+		return differing(a.getSubimage(x, y, w, h), b.getSubimage(x, y, w, h));
+	}
+
+	/** How many pixels differ around Punkphöz's head (3 blocks off at eye height: the band just above the middle of the view). */
+	private static int differingInHeadCrop(BufferedImage a, BufferedImage b) {
+		int x = a.getWidth() / 2 - 130, y = a.getHeight() * 3 / 10, w = 260, h = a.getHeight() / 4;
+		return differing(a.getSubimage(x, y, w, h), b.getSubimage(x, y, w, h));
+	}
+
+	/** How many pixels of the two same-sized images differ noticeably. */
+	private static int differing(BufferedImage a, BufferedImage b) {
+		int n = 0;
+		for (int y = 0; y < a.getHeight(); y++) {
+			for (int x = 0; x < a.getWidth(); x++) {
+				int p = a.getRGB(x, y), q = b.getRGB(x, y);
+				int diff = Math.abs((p >> 16 & 255) - (q >> 16 & 255)) + Math.abs((p >> 8 & 255) - (q >> 8 & 255)) + Math.abs((p & 255) - (q & 255));
+				if (diff > 40) n++;
+			}
+		}
+		return n;
 	}
 
 	// ---- every chapter's ovve, in a row

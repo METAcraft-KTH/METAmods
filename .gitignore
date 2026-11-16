@@ -54,3 +54,6 @@ replay_*.log
 /skin/
 /GLOSSARY.md
 mods/ovvar/tools/shaderpatcher/web/dist/
+
+# Python bytecode from tools/ scripts
+__pycache__/

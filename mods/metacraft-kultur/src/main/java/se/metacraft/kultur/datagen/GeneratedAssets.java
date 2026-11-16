@@ -42,6 +42,10 @@ public final class GeneratedAssets implements DataProvider {
 			{"light_gray", "Light Gray"}, {"cyan", "Cyan"}, {"purple", "Purple"}, {"blue", "Blue"},
 			{"brown", "Brown"}, {"green", "Green"}, {"red", "Red"}, {"black", "Black"}};
 
+	/** The same dyes' names in Swedish, for the layer line "<Name> (<färg>)". */
+	static final String[] DYES_SV = {"vit", "orange", "magenta", "ljusblå", "gul", "limegrön", "rosa", "grå",
+			"ljusgrå", "turkos", "lila", "blå", "brun", "grön", "röd", "svart"};
+
 	private final Path assets, data, minecraftData;
 	private Writes files;
 
@@ -62,6 +66,8 @@ public final class GeneratedAssets implements DataProvider {
 		Catalogue catalogue = Catalogue.load();
 		Map<String, String> lang = new LinkedHashMap<>();
 		lang.put("itemGroup." + MOD, "Kultur");
+		Map<String, String> sv = new LinkedHashMap<>();
+		sv.put("itemGroup." + MOD, "Kultur");
 		List<String> free = new ArrayList<>(), placeable = new ArrayList<>(), loomItems = new ArrayList<>();
 
 		for (Catalogue.Owned<Catalogue.Pattern> owned : catalogue.patterns()) {
@@ -71,6 +77,9 @@ public final class GeneratedAssets implements DataProvider {
 			files.json(data.resolve("banner_pattern/" + p.id() + ".json"),
 					obj("asset_id", id, "translation_key", "block." + MOD + ".banner." + p.id()));
 			for (String[] dye : DYES) lang.put("block." + MOD + ".banner." + p.id() + "." + dye[0], dye[1] + " " + p.name());
+			for (int d = 0; d < DYES.length; d++) {
+				sv.put("block." + MOD + ".banner." + p.id() + "." + DYES[d][0], p.name() + " (" + DYES_SV[d] + ")");
+			}
 
 			BufferedImage banner = art(chapter, "banner", p.id(), true);
 			files.png(assets.resolve("textures/entity/banner/" + p.id() + ".png"),
@@ -94,6 +103,7 @@ public final class GeneratedAssets implements DataProvider {
 				files.json(assets.resolve("items/" + item + ".json"),
 						obj("model", obj("type", "minecraft:model", "model", MOD + ":item/" + item)));
 				lang.put("item." + MOD + "." + item, p.name() + " Banner Pattern");
+				sv.put("item." + MOD + "." + item, "Fanmönster: " + p.name());
 				// The loom's pattern slot takes an item only if it is in this tag AND carries the component.
 				loomItems.add(MOD + ":" + item);
 			} else {
@@ -111,6 +121,8 @@ public final class GeneratedAssets implements DataProvider {
 					"author", obj("translate", "painting." + MOD + "." + q.id() + ".author")));
 			lang.put("painting." + MOD + "." + q.id() + ".title", q.title());
 			lang.put("painting." + MOD + "." + q.id() + ".author", q.author());
+			sv.put("painting." + MOD + "." + q.id() + ".title", q.title());
+			sv.put("painting." + MOD + "." + q.id() + ".author", q.author());
 			BufferedImage png = art(chapter, "painting", q.id(), true);
 			if (png.getWidth() != 16 * q.width() || png.getHeight() != 16 * q.height()) {
 				throw new IllegalStateException("art/kultur/" + chapter + "/painting/" + q.id() + ".png is " + png.getWidth() + "×" + png.getHeight()
@@ -141,6 +153,9 @@ public final class GeneratedAssets implements DataProvider {
 		JsonObject langJson = new JsonObject();
 		lang.forEach(langJson::addProperty);
 		files.json(assets.resolve("lang/en_us.json"), langJson);
+		JsonObject svJson = new JsonObject();
+		sv.forEach(svJson::addProperty);
+		files.json(assets.resolve("lang/sv_se.json"), svJson);
 		return files.allOf();
 	}
 
@@ -148,18 +163,20 @@ public final class GeneratedAssets implements DataProvider {
 		return obj("replace", false, "values", strings(values));
 	}
 
-	/** A PNG from {@code art/kultur/<chapter>/<kind>/<id>.png}; null when absent and not required. */
+	/** A PNG from {@code art/kultur/<chapter>/<kind>/<id>.png} (or {@code _<id>.png}, see {@link ArtFiles}); null when absent and not required. */
 	private static BufferedImage art(String chapter, String kind, String id, boolean required) {
-		String resource = "/art/kultur/" + chapter + "/" + kind + "/" + id + ".png";
-		try (InputStream in = GeneratedAssets.class.getResourceAsStream(resource)) {
-			if (in == null) {
-				if (required) throw new IllegalStateException("missing art: src/main/resources" + resource);
-				return null;
-			}
+		String dir = "/art/kultur/" + chapter + "/" + kind + "/";
+		String file = ArtFiles.fileFor(id, name -> GeneratedAssets.class.getResource(dir + name) != null,
+				msg -> System.out.println("kultur art " + chapter + "/" + kind + "/" + msg));
+		if (file == null) {
+			if (required) throw new IllegalStateException("missing art: src/main/resources" + dir + id + ".png");
+			return null;
+		}
+		try (InputStream in = GeneratedAssets.class.getResourceAsStream(dir + file)) {
 			try {
 				return Masks.read(in);
 			} catch (UncheckedIOException e) {
-				throw new IllegalStateException("art/kultur/" + chapter + "/" + kind + "/" + id + ".png: not a PNG");
+				throw new IllegalStateException("art/kultur/" + chapter + "/" + kind + "/" + file + ": not a PNG");
 			}
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);

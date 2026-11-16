@@ -8,6 +8,7 @@ import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.PatchLoot;
 import se.metacraft.ovvar.content.Patches;
+import se.metacraft.ovvar.content.entity.PunkphozEntities;
 import se.metacraft.ovvar.content.item.OvveFeet;
 import se.metacraft.ovvar.content.item.OvveTop;
 import se.metacraft.ovvar.pack.Combos;
@@ -43,6 +44,7 @@ public class Ovvar implements ModInitializer {
 	public void onInitialize() {
 		OvvarConfig.get();
 		ModContent.register();
+		PunkphozEntities.init();
 		PatchLoot.init();
 		MobOvvar.init();
 		OvveTop.init();
@@ -58,6 +60,8 @@ public class Ovvar implements ModInitializer {
 			int added = Combos.prebuild(Wardrobes.storedDesigns(Duration.ofSeconds(20)));
 			LOGGER.info("[ovvar] pre-built {} stored design combination(s)", added);
 		});
+		// Every mod's items are registered by now, so a pool item from a missing mod is logged at startup.
+		ServerLifecycleEvents.SERVER_STARTED.register(s -> PunkphozConfig.poolOnOffer());
 		StashSession.init();
 		WardrobeMannequin.init();
 		ModCommands.init();
