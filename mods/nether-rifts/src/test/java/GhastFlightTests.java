@@ -115,20 +115,20 @@ public class GhastFlightTests {
 			drumming.setNoAi(true);
 			silent.setNoAi(true);
 			var under = ctx.spawn(EntityTypes.PIGLIN, new BlockPos(4, 1, 4));
-			var underSilent = ctx.spawn(EntityTypes.PIGLIN, new BlockPos(20, 1, 4));
 			under.setNoAi(true);
-			underSilent.setNoAi(true);
-			// the beat goes by the world's drum clock, so the silent ghast's drummer may beat before he's killed: what he
-			// gave by then goes with him
+			// The silent ghast is watched by its own crew, whom only its own slam buffs. A piglin under it wouldn't do: the
+			// tests of a batch share the level, and a ghast that floats over from the next one buffs every piglin in its reach.
+			// The beat goes by the world's drum clock, so the silent ghast's drummer may beat before he's killed: what he
+			// gave by then goes with him.
 			ctx.runAtTickTime(3, () -> {
 				silent.hitbox(Crew.DRUMMER).kill(ctx.getLevel());
-				underSilent.removeAllEffects();
+				silent.hitbox(Crew.SPEAR).removeAllEffects();
 			});
 			// a whole drum cycle and then some
 			ctx.runAtTickTime(110, () -> {
 				ctx.assertTrue(under.hasEffect(MobEffects.STRENGTH) && under.hasEffect(MobEffects.SPEED), "the piglin under the drumming ghast has no War Beat");
 				ctx.assertTrue(drumming.hitbox(Crew.SPEAR).hasEffect(MobEffects.STRENGTH), "the crew have no War Beat");
-				ctx.assertFalse(underSilent.hasEffect(MobEffects.STRENGTH), "a ghast without its drummer gave War Beat");
+				ctx.assertFalse(silent.hitbox(Crew.SPEAR).hasEffect(MobEffects.STRENGTH), "a ghast without its drummer gave War Beat");
 				StageTests.remove(ctx, player);
 				ctx.killAllEntities();
 				ctx.succeed();

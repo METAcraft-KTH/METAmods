@@ -20,6 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import se.metacraft.lib.util.helper.TestHelper;
 
 import java.net.Proxy;
+import java.util.List;
 import java.util.Optional;
 
 @Mixin(GameTestServer.class)
@@ -52,6 +53,28 @@ public abstract class GameTestServerMixin extends MinecraftServer implements Tes
 	@Override
 	public boolean metacraft$testPassed() {
 		return testTracker != null && testTracker.isDone() && !testTracker.hasFailedRequired();
+	}
+
+	@Override
+	public boolean metacraft$testsFinished() {
+		return testTracker != null && testTracker.isDone();
+	}
+
+	@Override
+	public int metacraft$testCount() {
+		return testTracker == null ? 0 : testTracker.getTotalCount();
+	}
+
+	@Override
+	public List<TestHelper.FailedTest> metacraft$failedTests() {
+		if (testTracker == null) {
+			return List.of();
+		}
+		return testTracker.getFailedRequired().stream()
+				.map(test -> new TestHelper.FailedTest(
+						test.id().toString(), test.getError() == null ? null : test.getError().getMessage()
+				))
+				.toList();
 	}
 
 }
