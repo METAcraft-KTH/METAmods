@@ -236,6 +236,9 @@ public class GhastCrewTests {
 			var charged = new AtomicBoolean();
 			var unarmedCharged = new AtomicBoolean();
 			ctx.onEachTick(() -> {
+				// The armed ghast's first volley comes some 120 ticks in (the tell, the regroup, the cooldown), and till then
+				// both decks' bolts and the other ghast's bombs land on the player: dead, there is no one to charge at.
+				player.setHealth(player.getMaxHealth());
 				if (!armed.isNoAi()) {
 					armed.setTarget(player);
 				}
