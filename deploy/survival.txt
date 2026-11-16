@@ -73,7 +73,6 @@ external lithostitched https://cdn.modrinth.com/data/XaDC71GB/versions/pZgI6b2t/
 
 external amplified_nether https://cdn.modrinth.com/data/wXiGiyGX/versions/IYaFP7y8/Amplified_Nether_26.3_v1.3.0%2B26.3.jar sha256:0d35127fcd4efa5f3030ac3a5fe0b7f238c00d6b7b567f5c99e09c3c357afd37
 external adaptiveview https://cdn.modrinth.com/data/xZvyOrQr/versions/3QGoy50k/adaptiveview-2.4.4%2B26.2.jar sha256:62365e6b741a59c2dd0d58a58de05e33187ffc7ef38f6395bf6e94e1d5c460a2
-external styledchat https://cdn.modrinth.com/data/doqSKB0e/versions/HQ91YnMY/styled-chat-2.14.0%2B26.3.jar sha256:34721ffb8c54c9bb44d5e62139065f58cc0b81825d7b833b594b7790ee281c8c
 external puzzleslib https://cdn.modrinth.com/data/QAGBst4M/versions/vbwu116x/puzzleslib-v26.3.16-mc26.3.x%2Bfabric.jar sha256:ab95b755fa186c3683d86b7961f7f8b69685f83f588f36c444a47ebaea937b4b
 external forgeconfigapiport https://cdn.modrinth.com/data/ohNO6lps/versions/JpKvrr9J/ForgeConfigAPIPort-v26.3.1-mc26.3.x-Fabric.jar sha256:95cc2bd7a943f910a54baf2f65acde301dcfb3d8aeff2c989c04c416d5a4a1cd
 external debugify https://cdn.modrinth.com/data/QwxR6Gcd/versions/FMaS2nZn/debugify-26.3.0.0.jar sha256:88c86804997207a6438782fe4d42467cc797bec7de6e6a051cf8e2026a828f63
