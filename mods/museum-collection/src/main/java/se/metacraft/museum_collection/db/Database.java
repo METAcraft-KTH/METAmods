@@ -95,21 +95,27 @@ public final class Database {
 	 * @param wait whether to block (a few seconds at most) until they have: for a server that is stopping
 	 */
 	public void close(boolean wait) {
-		try {
-			executor.execute(dataSource::close);
-		} catch (RejectedExecutionException ignored) {
-			// already closed
-		}
+		// The pool closes only once every query thread is done: closing it from one of them would fail the
+		// queries the other threads are still running or have yet to take.
 		executor.shutdown();
 		if (wait) {
-			try {
-				if (!executor.awaitTermination(config.connectTimeoutSeconds() + 2L, TimeUnit.SECONDS)) {
-					MuseumCollection.LOGGER.warn("Event database queries were still running at shutdown");
-					dataSource.close();
-				}
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
+			closeWhenDone();
+		} else {
+			var closer = new Thread(this::closeWhenDone, MuseumCollection.MODID + "-db-close");
+			closer.setDaemon(true);
+			closer.start();
+		}
+	}
+
+	private void closeWhenDone() {
+		try {
+			if (!executor.awaitTermination(config.connectTimeoutSeconds() + 2L, TimeUnit.SECONDS)) {
+				MuseumCollection.LOGGER.warn("Event database queries were still running when the database was closed");
 			}
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		} finally {
+			dataSource.close();
 		}
 	}
 }
