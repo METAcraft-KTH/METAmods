@@ -330,7 +330,7 @@ public final class EventRepository {
 	/** The ids of the items a player has submitted. */
 	public Set<String> submittedItems(UUID uuid) throws SQLException {
 		try (Connection connection = connections.get();
-			 PreparedStatement statement = connection.prepareStatement("SELECT item_id FROM " + submissions + " WHERE player_uuid = ?")) {
+				PreparedStatement statement = connection.prepareStatement("SELECT item_id FROM " + submissions + " WHERE player_uuid = ?")) {
 			statement.setString(1, uuid.toString());
 			var items = new HashSet<String>();
 			try (ResultSet rows = statement.executeQuery()) {
