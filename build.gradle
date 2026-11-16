@@ -55,7 +55,7 @@ subprojects {
                     return
                 }
                 // Client-only launcher mod; never part of the server bundle.
-                if (it.name == "ovvar-shaderpatch") {
+                if (it.name == "ovvar-client") {
                     return
                 }
                 implementation(project(path: "${it.path}"))

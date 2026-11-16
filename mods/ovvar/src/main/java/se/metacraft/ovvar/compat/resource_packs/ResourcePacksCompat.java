@@ -2,6 +2,7 @@ package se.metacraft.ovvar.compat.resource_packs;
 
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import se.metacraft.ovvar.pack.ComboPack;
+import se.metacraft.ovvar.pack.Combos;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import se.metacraft.resource_packs.EarlyPackPacketsCallback;
 import se.metacraft.resource_packs.ResourcePackConfig;
@@ -20,6 +21,8 @@ public final class ResourcePacksCompat {
 	public static void init() {
 		ServePackCallback.EVENT.register((path, verified) -> ComboPack.serve(path));
 		EarlyPackPacketsCallback.EVENT.register((server, profile, packets) -> {
+			// A client with ovvar-client builds the combinations itself (Combos#drawsCombos): it gets none of this pack.
+			if (Combos.drawsCombos(profile.id())) return;
 			ComboPack.Version version = ComboPack.current();
 			if (version != null) packets.accept(push(version));
 		});

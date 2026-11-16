@@ -25,24 +25,14 @@ import java.util.Properties;
 /**
  * Under an Iris shaderpack: an unpatched pack draws the magenta/black checker that fills the original
  * right-limb box of a garment texture (the ovvar shader reads the copy beside it), a pack patched by
- * OvvarShaderPatcher does not. Runs only with {@code -Dovvar.iris.expect=checker|art} (see the README,
+ * the shader patcher (the ovvar-client jar) does not. Runs only with {@code -Dovvar.iris.expect=checker|art} (see the README,
  * "Client test under a shaderpack"); otherwise it does nothing and the vanilla client run is unchanged.
+ *
+ * <p>The verdict is {@link ShotMeasures#leg} over the right leg (pinned on real BSL frames by ShotMeasuresTest): the
+ * checker is a two-colour pattern of violet-family texels (#FF00FF, or BSL's graded violet) and dark ones; the art is
+ * Data cloth with no violet at all.
  */
 public final class OvvarShaderpackClientTests implements FabricClientGameTest {
-	/** #FF00FF, the Spot.CHECKER_A colour. */
-	private static final int MAGENTA_R = 255, MAGENTA_G = 0, MAGENTA_B = 255;
-	private static final int TOLERANCE = 40;
-	private static final double CHECKER_SHARE = 0.30;
-	private static final double GARMENT_SHARE = 0.50;
-	/**
-	 * The Data ovve cloth's dominant texel, rgb(189,55,84): hue about 345 degrees, apart from skin (20-35) and
-	 * from the checker's magenta (300). A bare skin leg, or a leg showing the checker, has too few such pixels.
-	 */
-	private static final float DATA_CLOTH_HUE = java.awt.Color.RGBtoHSB(189, 55, 84, null)[0];
-	private static final float HUE_RANGE = 25f / 360f;
-	private static final float MIN_SATURATION = 0.3f;
-	private static final double CLOTH_SHARE = 0.30;
-
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
 		String expect = System.getProperty("ovvar.iris.expect");
@@ -86,58 +76,19 @@ public final class OvvarShaderpackClientTests implements FabricClientGameTest {
 				ctx.runOnClient(client -> assertIrisLoadedPack());
 				Path shot = ctx.takeScreenshot(TestScreenshotOptions.of("ovvar_iris_leg_" + expect).withSize(1920, 1080));
 				BufferedImage img = read(shot);
-				// The mannequin faces the camera, so its right leg is on the screen's left of centre: the
-				// 4-model-pixel-wide column ending at the middle, in the lower part of the subject box
-				// (the box is calibrated in OvvarClientTests: ~19 screen px per model pixel).
-				OvvarClientTests.Region box = OvvarClientTests.Region.subjectBox(img);
-				int cx = img.getWidth() / 2;
-				int x0 = cx - 66, x1 = cx - 8, y0 = box.y1() - 85, y1 = box.y1() - 10;
-				int near = 0, total = 0;
-				for (int y = y0; y < y1; y++) {
-					for (int x = x0; x < x1; x++) {
-						int p = img.getRGB(x, y);
-						total++;
-						if (Math.abs(((p >> 16) & 255) - MAGENTA_R) <= TOLERANCE
-								&& Math.abs(((p >> 8) & 255) - MAGENTA_G) <= TOLERANCE
-								&& Math.abs((p & 255) - MAGENTA_B) <= TOLERANCE) near++;
-					}
+				// The mannequin faces the camera, so its right leg is on the screen's left of centre. The crop
+				// must be mostly garment, or "art" would pass on a crop that missed the leg (or an ovve that never drew).
+				ShotMeasures.Leg leg = ShotMeasures.leg(img, ShotMeasures.rightLeg(img.getWidth(), img.getHeight()),
+						ShotMeasures.legBackgroundDx(img.getHeight()));
+				System.out.println("[ovvar-clienttest] iris " + expect + ": right leg " + leg);
+				if (!leg.onGarment()) {
+					throw new AssertionError("the right-leg crop is not on the garment: " + leg);
 				}
-				// Positive control: the crop must be mostly garment, or "art" passes on a crop that missed the leg
-				// (or a garment that never drew). Garment = differs from the background beside the subject, same row.
-				int garment = 0;
-				for (int y = y0; y < y1; y++) {
-					for (int x = x0; x < x1; x++) {
-						int p = img.getRGB(x, y), q = img.getRGB(x + 300, y);   // 300 px right: well clear of the arm (centre +150)
-						if (Math.abs(((p >> 16) & 255) - ((q >> 16) & 255)) > TOLERANCE
-								|| Math.abs(((p >> 8) & 255) - ((q >> 8) & 255)) > TOLERANCE
-								|| Math.abs((p & 255) - (q & 255)) > TOLERANCE) garment++;
-					}
+				if (expect.equals("checker") && !leg.showsChecker()) {
+					throw new AssertionError("expected the unpatched pack's violet/dark checker on the right leg: " + leg);
 				}
-				System.out.println("[ovvar-clienttest] iris " + expect + ": " + garment + "/" + total + " crop pixels differ from the background");
-				if (garment < total * GARMENT_SHARE) {
-					throw new AssertionError("the right-leg crop is not on the garment: only " + garment + "/" + total + " pixels differ from the background");
-				}
-				int cloth = 0;
-				float[] hsb = new float[3];
-				for (int y = y0; y < y1; y++) {
-					for (int x = x0; x < x1; x++) {
-						int p = img.getRGB(x, y);
-						java.awt.Color.RGBtoHSB((p >> 16) & 255, (p >> 8) & 255, p & 255, hsb);
-						float dh = Math.abs(hsb[0] - DATA_CLOTH_HUE);
-						if (hsb[1] >= MIN_SATURATION && Math.min(dh, 1f - dh) <= HUE_RANGE) cloth++;
-					}
-				}
-				System.out.println("[ovvar-clienttest] iris " + expect + ": " + cloth + "/" + total + " crop pixels are Data cloth coloured");
-				if (expect.equals("art") && cloth < total * CLOTH_SHARE) {
-					throw new AssertionError("the right-leg crop does not show the Data ovve's cloth: only " + cloth + "/" + total + " cerise pixels (a bare leg or an ovve that never drew)");
-				}
-				double share = near / (double) total;
-				System.out.println("[ovvar-clienttest] iris " + expect + ": " + near + "/" + total + " right-leg pixels near #FF00FF (" + share + ")");
-				if (expect.equals("checker") && share < CHECKER_SHARE) {
-					throw new AssertionError("expected the unpatched pack's checker on the right leg: only " + near + "/" + total + " pixels near #FF00FF");
-				}
-				if (expect.equals("art") && near > 0) {
-					throw new AssertionError("expected no checker on the right leg of a patched pack: " + near + "/" + total + " pixels near #FF00FF");
+				if (expect.equals("art") && !leg.showsArt()) {
+					throw new AssertionError("expected the Data cloth and no checker on the right leg of a patched pack: " + leg);
 				}
 			}
 		}

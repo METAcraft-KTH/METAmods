@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import se.metacraft.ovvar.Ovvar;
+import se.metacraft.ovvar.combo.ComboAssets;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
@@ -15,6 +16,7 @@ import net.minecraft.world.item.equipment.EquipmentAsset;
 import net.minecraft.world.item.equipment.EquipmentAssets;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.item.OvveFeet;
+import se.metacraft.ovvar.content.item.OvveTop;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,25 +25,24 @@ import java.util.List;
  * The equipment definition of one half with a set of placements: the chapter's base texture,
  * one static texture per placement, then the dyeable preview layer. Datagen writes the empty
  * combination for every chapter; {@link Combos} writes the rest into the pack at runtime. The
- * texture names here are what datagen generates — keep the two in step.
+ * texture names here are what datagen generates — keep the two in step. The names and the JSON
+ * itself come from {@link ComboAssets}, which the ovvar-client mod compiles too, so a client that
+ * builds a combination from its name builds these very bytes.
  */
 public final class EquipmentJson {
 	private EquipmentJson() {}
 
 	public static String baseTexture(Chapter chapter, Piece piece, boolean nercabbad) {
-		return Ovvar.MOD_ID + ":" + chapter.id + "/" + piece.id + (nercabbad ? "_nercabbad" : "");
+		return ComboAssets.baseTexture(chapter.id, piece.id, nercabbad);
 	}
 
 	/** Texture names (without namespace and layer folder) a placement is drawn with: one, or two for the seat. */
 	public static List<String> textures(Placement placement) {
-		if (placement.spot() == Spot.SEAT) {
-			return List.of("patch/seat/" + placement.patch().id() + "_r", "patch/seat/" + placement.patch().id() + "_l");
-		}
-		return List.of("patch/" + placement.spot().id() + "/" + placement.patch().id());
+		return ComboAssets.textures(placement.spot().id(), placement.patch().id());
 	}
 
 	public static String previewTexture(Piece piece) {
-		return "patch/preview_" + piece.id;
+		return ComboAssets.previewTexture(piece.id);
 	}
 
 	/** The legs' preview texture for the boots pass (the outer model: its own layer texel). */
@@ -56,9 +57,33 @@ public final class EquipmentJson {
 	 *  preview, then the chestplate's own humanoid layer on top. A vanilla chestplate's arms and neck
 	 *  are largely transparent, so the sleeves and collar of the ovve show through underneath. */
 	public static ResourceKey<EquipmentAsset> chestAsset(Chapter chapter, String material) {
-		return ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "chest/" + chapter.id + "/" + material));
+		return chestAsset(chapter, material, new Combos.Combo(List.of()));
 	}
 
+	/**
+	 * The same wrap with the top's combination drawn too ({@link ComboAssets#chestPath}); the plain wrap for
+	 * none. A client with ovvar-client builds these from the name; the combination pack holds them for the
+	 * {@link OvveTop#PACK_MATERIALS} somebody wore over that combination ({@link Combos#requestChest}).
+	 */
+	public static ResourceKey<EquipmentAsset> chestAsset(Chapter chapter, String material, Combos.Combo combo) {
+		return ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, ComboAssets.chestPath(chapter.id, material, combo.key())));
+	}
+
+	/**
+	 * A wrap's definition with these top placements, as the combination pack holds it: {@link ComboAssets#chestJson},
+	 * the bytes ovvar-client builds from the name. With none it is {@link #chestJson(Chapter, String)}'s (a game
+	 * test holds the two together).
+	 */
+	public static String chestJson(Chapter chapter, String material, List<Placement> placements) {
+		return ComboAssets.chestJson(material, layerTextures(chapter, Piece.TOP, false, placements));
+	}
+
+	/** The pack path of a wrap with a combination. */
+	public static String chestPackPath(Chapter chapter, String material, Combos.Combo combo) {
+		return "assets/" + Ovvar.MOD_ID + "/equipment/" + ComboAssets.chestPath(chapter.id, material, combo.key()) + ".json";
+	}
+
+	/** The plain wrap's definition, which datagen puts in the Polymer pack: the top's cloth, its instant patches in the dye. */
 	public static String chestJson(Chapter chapter, String material) {
 		JsonArray layers = new JsonArray();
 		layers.add(layer(baseTexture(chapter, Piece.TOP, false), false));       // the ovve top fabric, underneath
@@ -105,21 +130,11 @@ public final class EquipmentJson {
 	}
 
 	public static String json(Chapter chapter, Piece piece, boolean nercabbad, List<Placement> placements) {
-		JsonArray layers = new JsonArray();
-		for (String texture : layerTextures(chapter, piece, nercabbad, placements)) layers.add(layer(texture, false));
-		layers.add(layer(Ovvar.MOD_ID + ":" + previewTexture(piece), true));
-		JsonObject byType = new JsonObject();
-		byType.add(piece.layer, layers);
-		JsonObject root = new JsonObject();
-		root.add("layers", byType);
-		return new GsonBuilder().setPrettyPrinting().create().toJson(root);
+		return ComboAssets.json(piece.layer, layerTextures(chapter, piece, nercabbad, placements), Ovvar.MOD_ID + ":" + previewTexture(piece));
 	}
 
 	private static JsonObject layer(String texture, boolean dyeable) {
-		JsonObject o = new JsonObject();
-		o.addProperty("texture", texture);
-		if (dyeable) o.add("dyeable", new JsonObject());
-		return o;
+		return ComboAssets.layer(texture, dyeable);
 	}
 
 	/** The pack path of a combination's definition. */

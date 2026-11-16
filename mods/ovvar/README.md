@@ -691,7 +691,8 @@ pure white, so the stitching reads the same on every chapter.
 
 `config/ovvar.json` → `shaders` (players with a shaderpack):
 
-    patcher_url              the page /ovvar shaders links to (default "https://metacraft.se/ovvar/shaders"; blank = the default)
+    patcher_url              the page /ovvar shaders links to (default "https://metacraft.se/ovvar/shaders"; blank = the default),
+                             where players patch a shaderpack or download ovvar-client.jar
 
 Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `shaders` and
 `designs.jdbc` blocks carry their own `_help` object (rewritten every save, so edits to it do not
@@ -714,7 +715,7 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar reload                              (any player) the latest resource pack, now
     /ovvar guide                               (any player) the guidebook, "How to ovvar"
-    /ovvar shaders                             (any player) a link to the web shaderpack patcher (config: shaders.patcher_url)
+    /ovvar shaders                             (any player) a link to the web shaderpack patcher and ovvar-client.jar (config: shaders.patcher_url)
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
@@ -754,7 +755,9 @@ its highlight, the empty-state notices, the four angles and that every visible c
 its own on the one angle that draws it, that a placement is drawn by that glyph on the angle that
 shows it and by nothing on the angles that do not, the rotation buttons, the title's length and the stats readout's place, what each mode
 does to the action row (and that a refused action wears the dimmed model), and that `/ovvar look` is
-read-only and driven by the other player's design.
+read-only and driven by the other player's design. `ComboAssetsParityTests` and `ClientHandshakeTests` hold
+the ovvar-client mod's side ("The ovvar-client mod" below): the client's name-only build is byte for byte the
+pack's, and a player who handshook gets no combination pack and whole combinations while others do not.
 
 ## Adding a chapter
 
@@ -1071,6 +1074,56 @@ exactly as above. Each build is kept under its SHA-1 and the last three stay dow
 player pushed one still gets it if a newer build lands before their download starts. Without the
 mod, everything goes into the Polymer pack as before.
 
+### The ovvar-client mod: no combination pack at all
+
+A player with the optional client mod (`mods/ovvar-client`, `ovvar-client.jar`) never needs the combination
+pack: an equipment asset's name spells out the whole combination, every texture it stacks is already in the
+Polymer pack, and the mod builds any `ovvar:<chapter>/<piece>[_nercabbad]/<combo>` asset its packs lack from the
+name (a mixin on `EquipmentAssetManager.get`). The names and the JSON come from `src/combo`
+(`se.metacraft.ovvar.combo.ComboAssets`, plain Java and Gson), which this mod and the client mod both compile
+(the client's copy moved to `se.metacraft.ovvarclient.combo` by its build, so with both mods on one classpath each
+runs its own), so the two cannot build a definition differently; `ComboAssetsParityTests` checks the client's name-only build
+against `ComboPack`'s bytes, and the cell table it carries against `Spot`.
+
+The handshake: the client registers a configuration-phase receiver on `ovvar:draws_combos/v<protocol>`
+(nothing is sent on it). Fabric holds configuration back until it has the client's channels, so on
+`ServerConfigurationConnectionEvents.CONFIGURE`, before the join packs are chosen, `Combos` knows. Such a
+player then gets no `ComboPack` among their join packs, is sent whole combinations (`Looks.look`: the full
+combo as the asset, no dye bits, no trim, nothing owed), is never claimed for or pushed a pack, and
+`/ovvar reload` tells them there is nothing to reload. What they sew or see is still queued for the pack (at
+once when they sew it), so a vanilla player joining later gets it as if the sewer had been vanilla too. A mob's garment stays on the dye for them, as for
+everybody.
+
+**Under a real chestplate.** A chestplate worn over a top-up ovve is sent re-pointed at a wrap, the ovve top under
+the armour, so its sleeves and collar show through (`OvveTop.dressChest`). The plain wrap, `chest/<chapter>/<material>`
+in the Polymer pack, draws the instant patches in the dye. The wrap with every patch is
+`chest/<chapter>/<material>/<combo>` (`ComboAssets.chestPath`/`chestJson`: the top's cloth and patches, its preview,
+the chestplate's own layer on top). A player with ovvar-client is sent it for every material (`OvveTop.MATERIALS`:
+chainmail, copper, diamond, gold, iron, netherite) and builds it from the name; a name it cannot read falls back to
+the plain wrap. A vanilla player is sent it for diamond, iron and netherite (`OvveTop.PACK_MATERIALS`) once the
+pack they have holds it, and the plain wrap until then; other materials always get the plain wrap. Those three are
+built on demand into the combination pack, like the combinations: a (combination, material) pair is queued
+(`Combos.requestChest`, lazily, saved in `combos.json` as `chapter/chest/material:combo`) only when somebody is seen
+wearing that chestplate over that top. It is never claimed and never causes a push, not even to the wearer (a loading
+screen after an inventory change mid-fight); players get it with their next join pack, or with a push somebody's own
+sewing or `/ovvar reload` brings (a pack load re-sends wrapped chestplates in view too). A viewer whose loaded pack
+the server no longer knows, or a packet with no viewer, gets the plain wrap: a name their pack lacks would be an
+invisible chestplate. `combos.json` chest lines for any other material are dropped. There is no startup pre-build for them. One file per pair, ~0.65 KB zipped
+(`ChestWrapTests` holds a top under all three to 2.4 KB). A mob's ovve keeps the plain wrap for everybody. The
+chestplate's own trim is untouched.
+
+The protocol is `ComboAssets.PROTOCOL`, in the channel's name: a server and a client on different protocols
+never handshake, and that client is pushed the pack as before. So is a vanilla client, a client whose hook
+did not load (its mixin config is not required; no hook, no handshake), and a client without Fabric API. The
+client builds nothing while the base garment is not loaded (no Polymer pack: the textures would be missing). Bump
+the protocol whenever a name could mean something else or build different JSON; `ComboAssetsTest` in the
+client mod pins a hash of the cell table and recipe to catch that, and reads `src/combo/goldens.json`, which
+the game tests compare to the pack (`-PupdateComboGoldens` rewrites it).
+
+What a modded player still gets: the Polymer pack on join (its loading screen stays, it holds every texture),
+and, without metacraft-resource-packs, the combinations are in that Polymer pack anyway, so what goes away
+there are the pushes mid-play. With metacraft-resource-packs the combination pack is skipped on join too.
+
 ## Square pixels
 
 The armour model draws a texel wider than it is tall: the box is inflated (1 on the chest
@@ -1116,11 +1169,13 @@ computed exactly once and every path reads that one bool, so no two of them can 
 which arm a fragment is on (`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL
 does not run in the game tests). Clients whose core shaders are replaced (Iris, OptiFine) see the
 overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users patch their pack on a web page (`shaders.patcher_url`, default
-https://metacraft.se/ovvar/shaders; `/ovvar shaders` links to it) or, as a fallback, with
-`OvvarShaderPatcher.jar` (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
-`assets/ovvar/shaderpatcher/` and still served by Polymer's autohost on the game port at
-`/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`, but no longer linked from
-the page: the website links its own copy): double-clicked, it opens a file chooser (starting in `.minecraft/shaderpacks`; zips and folders,
+https://metacraft.se/ovvar/shaders; `/ovvar shaders` links to it) or with `ovvar-client.jar`, the one
+optional client jar (`mods/ovvar-client`, which replaced both `OvvarShaderPatcher.jar` and the
+`ovvar-shaderpatch` mod). In the mods folder it patches the instance's packs at every start (see "The
+ovvar-client mod" below). Its Main-Class is the patcher from `tools/shaderpatcher` (compiled for Java 11+),
+shipped inside the resource pack at `assets/ovvar/shaderpatcher/ovvar-client.jar` and still served by Polymer's
+autohost on the game port at `/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-client.jar`, though the
+page links the website's own copy. Double-clicked, it opens a file chooser (starting in `.minecraft/shaderpacks`; zips and folders,
 several at once, Cancel does nothing) and writes a
 `+ovvar` copy of each pick with `ovvar.glsl` spliced into the pack's
 own entity program (the texture-coordinate and vertex-colour varyings are shadowed, so the pack's
@@ -1147,18 +1202,19 @@ In the cloud (environment `Minecraft`):
 
 ```
 curl -L -o bsl.zip <BSL download URL from Modrinth>
-./gradlew :mods:ovvar:patcherJar
-java -jar mods/ovvar/build/libs/OvvarShaderPatcher.jar bsl.zip                 # writes bsl+ovvar.zip next to it
+./gradlew :mods:ovvar-client:jar
+java -jar mods/ovvar-client/build/libs/ovvar-client-*.jar bsl.zip              # writes bsl+ovvar.zip next to it
 ./gradlew :mods:ovvar:runClientGameTest                                        # vanilla, unchanged
 ./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=checker
 ./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl+ovvar.zip -Povvar.iris.expect=art
 ```
 
-Without hand patching, through the launcher mod (`mods/ovvar-shaderpatch`, which patches the instance's shaderpacks at
-`preLaunch`): hand it the ORIGINAL pack, and the run expects Iris to be on the `+ovvar` copy it wrote:
+Without hand patching, through the client mod (`mods/ovvar-client`, which patches the instance's shaderpacks at
+`preLaunch`): hand it the ORIGINAL pack, and the run expects Iris to be on the `+ovvar` copy it wrote
+(`-PshaderpatchMod` is the old name of `-PovvarClientMod` and still works):
 
 ```
-./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=art -PshaderpatchMod
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=art -PovvarClientMod
 ```
 
 Iris's log then names `bsl+ovvar.zip`, and `unpatchedPackShowsChecker` passes with `art`.
@@ -1168,6 +1224,27 @@ against vanilla rendering), so only this test runs. It also requires at least ha
 background, so `art` cannot pass on a crop that missed the leg.
 
 Screenshots: `build/run/clientGameTest/screenshots/ovvar_iris_leg_*.png`.
+
+### Chapter text colours on nametags (`-PtextColours`)
+
+`NametagColoursClientTests` runs only with `-PtextColours`. The build copies the test copy of the
+chapter-text-colors resource pack (`tools/shaderpatcher/test-packs/chapter-text-colors`) into
+`build/run/clientGameTest/resourcepacks/`, and the test selects it itself. Then it summons a nametag in dark purple
+and in dark blue in front of a white wall. Each one must draw much closer to its chapter colour drawn literally
+(`#E83D84` cerise, `#CC99FF` laserviolet) than to its stock colour one step off (`#AB00AB`, `#0000AB`, which no
+patch touches). The test compares the tags with each other rather than with fixed RGB because a shaderpack lights
+and tone-maps text: under BSL, a correctly recoloured tag is pale and tinted towards the sky. It runs before
+`OvvarShaderpackClientTests`, so a failing leg check there does not hide it. The other way round, a failure here
+stops the run, so `OvvarShaderpackClientTests`, `OvvarEnchantmentClientTests` and `MobOvvarClientTests` don't run
+(this only happens under `-PtextColours`). The client writes the selection to the run dir's `options.txt`. Every
+`runClientGameTest` first deletes the copied pack, so a killed run cannot leave the pack switched on.
+
+```
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -PovvarClientMod -PtextColours   # the patched shaderpack
+./gradlew :mods:ovvar:runClientGameTest -PtextColours                                        # control: the resource pack alone
+```
+
+Screenshots: `build/run/clientGameTest/screenshots/text_colours_*.png`. The log lines `[ovvar-clienttest] text colours:` give each glyph colour.
 
 ## Credits
 

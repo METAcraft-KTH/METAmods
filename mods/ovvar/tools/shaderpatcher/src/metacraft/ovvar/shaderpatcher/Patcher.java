@@ -42,12 +42,15 @@ import java.util.zip.ZipOutputStream;
  * </ul>
  * It does the same for metacraft-shaders' rifts (rift_common/void_rift/nether_rift.glsl, bundled
  * too): see {@link PackPatch}. Rifts also drop out of the pack's shadow pass, and
- * shaders.properties gains four custom uniforms. Nothing else in the pack is touched; originals
- * are kept. Textures that are not Ovvar's or a rift's are sampled exactly as before.
+ * shaders.properties gains four custom uniforms. The program Iris draws world text with gets
+ * the chapter text colours (chapter_text_colors.glsl): dark purple and dark blue nametags draw as the
+ * chapter-text-colors resource pack draws them without a shaderpack. Nothing else in the pack is
+ * touched; originals are kept. Textures that are not Ovvar's or a rift's are sampled exactly as before.
  *
  * Double-click: a file chooser (opening in the Minecraft shaderpacks folder) asks which packs, then a summary shows.
  * This is the fallback for the web patcher at https://metacraft.se/ovvar/shaders.
- * Command line: {@code java -jar OvvarShaderPatcher.jar [pack.zip|folder ...] [--dry-run]}.
+ * Command line: {@code java -jar ovvar-client.jar [pack.zip|folder ...] [--dry-run]} (the same jar is the
+ * optional ovvar client mod, mods/ovvar-client; this class is its Main-Class).
  */
 public final class Patcher {
 	private static final String SUFFIX = "+ovvar";
@@ -84,7 +87,7 @@ public final class Patcher {
 		Patcher patcher = new Patcher(dryRun);
 		if (packs.isEmpty()) {
 			if (chooser == null) {
-				System.out.println("Usage: java -jar OvvarShaderPatcher.jar [pack.zip|folder ...] [--dry-run]");
+				System.out.println("Usage: java -jar ovvar-client.jar [pack.zip|folder ...] [--dry-run]");
 				System.out.println("Or patch your pack on the web: https://metacraft.se/ovvar/shaders");
 				return 0;
 			}

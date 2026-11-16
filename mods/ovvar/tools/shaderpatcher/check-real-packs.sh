@@ -2,7 +2,7 @@
 # Checks that the patcher still does to real shaderpacks what the old one did.
 #   check-real-packs.sh <dir-of-zips> [old-ref]
 # Builds the old patcher from old-ref (default upstream/dev) into a temp dir, takes the new one from
-# the patcherJar task, runs both over every zip in the directory (on copies, the packs are not
+# the ovvar-client mod's jar (which is the patcher too), runs both over every zip in the directory (on copies, the packs are not
 # touched) and diffs the outputs, ignoring ovvar-patch.properties. Packs are never committed.
 set -euo pipefail
 packs=${1:?usage: check-real-packs.sh <dir-of-zips> [old-ref]}
@@ -23,8 +23,8 @@ printf 'Main-Class: metacraft.ovvar.shaderpatcher.Patcher\n' > "$work/old/manife
 jar cfm "$work/old.jar" "$work/old/manifest" -C "$work/old/classes" .
 
 # the new one
-(cd "$root" && ./gradlew --offline -q :mods:ovvar:patcherJar)
-new="$root/mods/ovvar/build/libs/OvvarShaderPatcher.jar"
+(cd "$root" && ./gradlew --offline -q :mods:ovvar-client:jar)
+new=$(ls "$root"/mods/ovvar-client/build/libs/ovvar-client-*.jar | grep -v sources | head -1)
 
 status=0
 for zip in "$packs"/*.zip; do

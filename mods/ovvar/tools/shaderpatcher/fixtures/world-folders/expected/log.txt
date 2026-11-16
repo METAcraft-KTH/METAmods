@@ -4,3 +4,6 @@
   shaders/world0/gbuffers_entities.fsh + shaders/world0/gbuffers_entities.vsh: rifts drawn through texture2D(texture), marker from gl_Color, position from gl_Vertex.xyz
   shaders/world1/gbuffers_entities.fsh + shaders/world1/gbuffers_entities.vsh: 'texcoord' and 'glcolor' shadowed, art via texture2D(texture), colour from gl_Color
   shaders/world1/gbuffers_entities.fsh + shaders/world1/gbuffers_entities.vsh: rifts drawn through texture2D(texture), marker from gl_Color, position from gl_Vertex.xyz
+  shaders/world-1/gbuffers_entities.vsh: chapter text colours (shaders/world-1/gbuffers_entities): gl_Color wrapped
+  shaders/world0/gbuffers_entities.vsh: chapter text colours (shaders/world0/gbuffers_entities): gl_Color wrapped
+  shaders/world1/gbuffers_entities.vsh: chapter text colours (shaders/world1/gbuffers_entities): gl_Color wrapped

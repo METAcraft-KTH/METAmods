@@ -1,6 +1,7 @@
 package se.metacraft.ovvar.content;
 
 import se.metacraft.ovvar.Ovvar;
+import se.metacraft.ovvar.combo.ComboAssets;
 import se.metacraft.ovvar.pack.Combos;
 import se.metacraft.ovvar.pack.Trims;
 import se.metacraft.ovvar.content.item.OvveFeetItem;
@@ -155,6 +156,12 @@ public final class Looks {
 		return null;
 	}
 
+	/** Everything sewn on a half as one combination; none on an armour stand, where the patches are display entities. */
+	public static Combos.Combo sewnCombo(ItemStack stack, Piece piece) {
+		if (Boolean.TRUE.equals(stack.get(ModComponents.ON_STAND))) return Placement.combo(List.of());
+		return Placement.combo(SpotPlacements.asPlacementList(sewn(stack, piece)));
+	}
+
 	/** @param player who the packet is for (their pack may be older than the current one), or null */
 	public static Look look(ItemStack stack, Piece piece, UUID player) {
 		return look(stack, piece, player, true);
@@ -173,15 +180,23 @@ public final class Looks {
 		// Combinations are built per chapter; something that is not a garment has none built, and asks for none.
 		Chapter chapter = chapterOf(stack);
 
+		// A viewer with ovvar-client builds any combination from its asset name: the whole of it, no
+		// dye bits, nothing to claim (Combos#drawsCombos). A mob's garment stays on the dye for them
+		// too, the one way it is drawn for everybody.
+		boolean drawsAll = Combos.drawsCombos(player) && !MobOvvar.is(stack);
 		// The longest prefix (in sewing order) the pack already has; the rest rides in the dye bits
 		// if it fits there (few enough, designs the channel can name), else the pack must catch up.
 		int baked = core.size();
-		while (baked > 0 && (chapter == null || !Combos.isBuilt(chapter, piece, Placement.combo(core.subList(0, baked)), player))) baked--;
+		while (baked > 0 && (chapter == null || !(drawsAll || Combos.isBuilt(chapter, piece, Placement.combo(core.subList(0, baked)), player)))) baked--;
 		List<Placement> rest = new ArrayList<>(core.subList(baked, core.size()));
 		boolean feet = piece == Piece.BOTTOM && feetChannel(stack);
 		int room = INSTANT * (feet ? 2 : 1);
 		boolean urgent = rest.size() > room + (piece == Piece.TOP ? 1 : 0) || rest.stream().filter(p -> !instant(p)).count() > (piece == Piece.TOP ? 1 : 0);
 		if (requestCombo && chapter != null && baked < core.size() && !MobOvvar.is(stack)) Combos.request(chapter, piece, Placement.combo(core), urgent);
+		// Seen by a client that draws it anyway: still queued (lazily) for everyone else's pack.
+		if (drawsAll && requestCombo && chapter != null && !core.isEmpty() && !Combos.isBuilt(chapter, piece, Placement.combo(core), null)) {
+			Combos.request(chapter, piece, Placement.combo(core), false);
+		}
 		List<Placement> shown = new ArrayList<>();
 		for (int i = rest.size() - 1; i >= 0 && shown.size() < room; i--) if (instant(rest.get(i))) shown.add(rest.get(i));
 		// What the dye cannot take, the top's trim can, one placement, any design: the newest left over.
@@ -256,7 +271,7 @@ public final class Looks {
 	}
 
 	public static String assetPath(Chapter chapter, Piece piece, boolean nercabbad, String combo) {
-		return chapter.id + "/" + piece.id + (nercabbad ? "_nercabbad" : "") + (combo.isEmpty() ? "" : "/" + combo);
+		return ComboAssets.assetPath(chapter.id, piece.id, nercabbad, combo);
 	}
 
 	// ---- the dye bits

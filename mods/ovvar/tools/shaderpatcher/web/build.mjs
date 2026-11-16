@@ -1,4 +1,4 @@
-// Writes dist/resources.generated.ts: the four GLSL files as strings, and the stamp.
+// Writes dist/resources.generated.ts: the five GLSL files as strings, and the stamp.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { loadResources } from './resources.mjs';
@@ -16,6 +16,7 @@ export const resources: Resources = {
 	riftCommon: ${JSON.stringify(res.riftCommon)},
 	voidRift: ${JSON.stringify(res.voidRift)},
 	netherRift: ${JSON.stringify(res.netherRift)},
+	textColors: ${JSON.stringify(res.textColors)},
 	stamp: STAMP,
 };
 `;

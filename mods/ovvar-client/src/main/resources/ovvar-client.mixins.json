@@ -1,0 +1,11 @@
+{
+	"required": false,
+	"package": "se.metacraft.ovvarclient.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"EquipmentAssetManagerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

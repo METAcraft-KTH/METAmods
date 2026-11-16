@@ -21,6 +21,8 @@ import se.metacraft.ovvar.content.Chapter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import se.metacraft.ovvar.pack.ComboPack;
+import se.metacraft.ovvar.pack.Combos;
 import se.metacraft.ovvar.pack.ShaderPatcher;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.level.ServerLevel;
@@ -55,7 +57,8 @@ import se.metacraft.ovvar.content.entity.PunkphozEntities;
  * patches' colours leave, and by two frames of the still scene being identical.
  *
  * Run: {@code ./gradlew :mods:ovvar:runClientGameTest} (opens a window). Screenshots land in
- * {@code build/run/clientGameTest/screenshots}.
+ * {@code build/run/clientGameTest/screenshots}. With {@code -PovvarClientMod} the client has the
+ * ovvar-client mod: no combination pack is pushed, and the same patches must show (built client-side).
  */
 public final class OvvarClientTests implements FabricClientGameTest {
 	/** Four patches on the front of the top: more than the dye colours carry, so the rest must come from the pack or the post pass. */
@@ -114,8 +117,20 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				// the mannequins' equipment has gone out and so queued their combos.
 				conn.waitForClientboundPackets();
 				ctx.waitTicks(20);
-				ClientTestSupport.reloadPackAndWait(ctx, () -> server.runCommand("execute as Tester run ovvar reload"),
-						"the pack with the ovve's and the frack's combos");
+				if (FabricLoader.getInstance().isModLoaded("ovvar-client")) {
+					// -PovvarClientMod: this client draws the combos itself. The server saw the handshake, never
+					// sends it the combination pack, and the same screenshots below must still find every patch.
+					boolean draws = server.computeOnServer(s -> Combos.drawsCombos(s.getPlayerList().getPlayerByName("Tester").getUUID()));
+					if (!draws) throw new AssertionError("the server did not see the ovvar-client handshake");
+					server.runCommand("execute as Tester run ovvar reload");
+					ctx.waitTicks(100);
+					if (ServerPackActivity.ids().contains(ComboPack.ID)) throw new AssertionError("a client with ovvar-client was sent the combination pack");
+					System.out.println("[ovvar-clienttest] ovvar-client: no combination pack; server packs pushed: " + ServerPackActivity.ids());
+				} else {
+					ClientTestSupport.reloadPackAndWait(ctx, () -> server.runCommand("execute as Tester run ovvar reload"),
+							"the pack with the ovve's and the frack's combos");
+					if (ComboPack.ACTIVE && !ServerPackActivity.ids().contains(ComboPack.ID)) throw new AssertionError("a vanilla client got no combination pack");
+				}
 				server.runCommand("tp Tester 0.5 -60 0.5 0 0");   // look south (+Z, yaw 0) straight at the mannequin
 				ctx.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
 				conn.waitForClientboundPackets();
@@ -130,9 +145,22 @@ public final class OvvarClientTests implements FabricClientGameTest {
 					System.out.println("[ovvar-clienttest] server legs: " + legs + " " + legs.getComponentsPatch());
 				});
 
-				Path first = ctx.takeScreenshot(TestScreenshotOptions.of("front_four_patches").withSize(1920, 1080));
-				ctx.waitTicks(5);
-				Path second = ctx.takeScreenshot(TestScreenshotOptions.of("front_four_patches_again").withSize(1920, 1080));
+				// The two frames below must differ only by what the garment's drawing does between frames. A
+				// mannequin's arms sway by age (HumanoidModel's idle bob), and how far they move in five ticks
+				// depends only on where in that sine the run's timing lands: the modded client's run (fixed
+				// waits instead of a pack reload) landed on a steep part: 901 changed pixels against the vanilla
+				// run's 477, every one of them on the arms (the arms swung ~4 px inward against ~2 px outward).
+				// So the sway is held for these two frames; anything the garment's drawing changes still counts.
+				Path first, second;
+				StillArms.hold(true);
+				try {
+					ctx.waitTicks(1);
+					first = ctx.takeScreenshot(TestScreenshotOptions.of("front_four_patches").withSize(1920, 1080));
+					ctx.waitTicks(5);
+					second = ctx.takeScreenshot(TestScreenshotOptions.of("front_four_patches_again").withSize(1920, 1080));
+				} finally {
+					StillArms.hold(false);
+				}
 
 				BufferedImage a = read(first), b = read(second);
 				Region box = Region.subjectBox(a);
@@ -143,8 +171,8 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				assertPresent(a, box, "itk (green)", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
 				assertPresent(a, box, "it (lilac rim)", (r, g, bl) -> bl > 150 && bl > r + 25 && r > g + 20, 20);
 				// The garment surface must be steady between two frames: the prototype's tag crawl changed
-				// interior pixels by large amounts every frame, which this catches. A few silhouette pixels
-				// shift by sub-pixel model interpolation (small deltas); those are tolerated.
+				// interior pixels by large amounts every frame, which this catches. The arms' sway is held
+				// (above); a few silhouette pixels may still shift sub-pixel, and 1% is tolerated.
 				int flicker = flickering(a, b, box, 24);
 				int budget = (box.x1() - box.x0()) * (box.y1() - box.y0()) / 100;   // 1% for residual edge motion
 				if (flicker > budget) throw new AssertionError(flicker + " pixel(s) over the mannequin flickered by more than a step between two still frames (budget " + budget + ")");
@@ -166,7 +194,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				String url = server.computeOnServer(s -> ShaderPatcher.url(s.getPlayerList().getPlayerByName("Tester"))
 						.orElseThrow(() -> new AssertionError("the server hosts no shader patcher")));
 				System.out.println("[ovvar-clienttest] shader patcher at " + url);
-				if (!url.endsWith("/ovvar-shader-patcher.jar")) throw new AssertionError("a browser would not save a .jar from " + url);
+				if (!url.endsWith("/ovvar-client.jar")) throw new AssertionError("a browser would not save a .jar from " + url);
 				byte[] served = download(url);
 				byte[] bundled = bundledPatcher();
 				if (!Arrays.equals(served, bundled)) throw new AssertionError(url + " served " + served.length + " bytes, not the " + bundled.length + "-byte patcher");
@@ -386,7 +414,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 	private static void everyChapterLineup(ClientGameTestContext ctx) {
 		Properties props = new Properties();
 		props.setProperty("online-mode", "false");
-		props.setProperty("server-port", "25606");   // every ovvar client test has its own port (25598-25602, 25606, 25607)
+		props.setProperty("server-port", "25606");   // every ovvar client test has its own port (25597-25602, 25606, 25607)
 		props.setProperty("level-type", "minecraft:flat");
 		props.setProperty("spawn-monsters", "false");
 		props.setProperty("spawn-animals", "false");

@@ -1,0 +1,64 @@
+// Ovvar Client: the one optional client-side jar for ovvar. Dropped in the mods folder it is a client-only
+// Fabric mod that (1) patches the instance's shaderpacks at preLaunch so ovvar and the rift shaders render
+// under Iris, and (2) builds ovvar's patch-combination equipment assets itself, so an ovvar server never
+// pushes it the combination pack. Double-clicked (java -jar) it is the standalone shader patcher that
+// OvvarShaderPatcher.jar used to be. No Polymer, no Fabric API dependency in fabric.mod.json (the root build
+// puts Fabric API on every module's compile classpath). Never on a server: it is on no deploy list and
+// initDist in the root build.gradle skips it. See README.md.
+version = project.ovvar_client_version
+
+// ovvar's combination names and JSON (mods/ovvar/src/combo), the very source the server builds its pack from,
+// moved into this mod's own package (se.metacraft.ovvarclient.combo) on the way in: with ovvar on the same
+// classpath (singleplayer, the dev client tests) each jar then runs its own copy, never the other's.
+def relocateCombo = tasks.register('relocateCombo', Sync) {
+	from('../ovvar/src/combo/java/se/metacraft/ovvar/combo')
+	into layout.buildDirectory.dir('generated/combo/se/metacraft/ovvarclient/combo')
+	filter { String line -> line.replace('package se.metacraft.ovvar.combo;', 'package se.metacraft.ovvarclient.combo;') }
+}
+
+sourceSets {
+	// The shader patcher core (mods/ovvar/tools/shaderpatcher/src), compiled for Java 11 so the jar still
+	// runs with `java -jar` on an old system Java; dependency-free, the jar's Main-Class.
+	patcher {
+		java.srcDir '../ovvar/tools/shaderpatcher/src'
+	}
+	main {
+		java.srcDir(files(layout.buildDirectory.dir('generated/combo')).builtBy(relocateCombo))
+		compileClasspath += patcher.output
+		runtimeClasspath += patcher.output
+	}
+	test {
+		compileClasspath += patcher.output
+		runtimeClasspath += patcher.output
+	}
+}
+tasks.withType(JavaCompile).configureEach {
+	if (it.name == 'compilePatcherJava') it.options.release = 11
+}
+
+// The GLSL the patcher splices in, bundled at the jar's root the way mods/ovvar's patcherResources had it
+// (same set, same paths), and the patcher's README.txt for whoever opens the jar.
+tasks.named('processResources') {
+	from(project(':mods:ovvar').file('src/main/resources/assets/ovvar/shaders/include/ovvar.glsl'))
+	from(project(':mods:ovvar').file('tools/shaderpatcher/chapter_text_colors.glsl'))
+	from(project(':mods:metacraft-shaders').file('src/main/resources/assets/metacraft/shaders/include')) {
+		include 'rift_common.glsl', 'void_rift.glsl', 'nether_rift.glsl'
+	}
+	from(project(':mods:ovvar').file('tools/shaderpatcher/README.txt'))
+}
+
+// One jar, two uses: Fabric reads fabric.mod.json, `java -jar` reads Main-Class. The patcher touches nothing
+// outside itself and the JDK, so it runs with this jar alone on the classpath (StandaloneJarTest).
+jar {
+	from sourceSets.patcher.output
+	manifest { attributes 'Main-Class': 'metacraft.ovvar.shaderpatcher.Patcher' }
+}
+
+// StandaloneJarTest runs the built jar with java -jar.
+tasks.named('test') {
+	dependsOn tasks.named('jar')
+	def jarFile = tasks.named('jar').flatMap { it.archiveFile }
+	doFirst {
+		systemProperty 'ovvarClient.jar', jarFile.get().asFile.absolutePath
+	}
+}

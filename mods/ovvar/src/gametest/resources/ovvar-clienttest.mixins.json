@@ -6,7 +6,8 @@
 	"client": [
 		"PolymerHelloMixin",
 		"ServerPackAutoAcceptMixin",
-		"ServerPackAppliedMixin"
+		"ServerPackAppliedMixin",
+		"ArmSwayMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

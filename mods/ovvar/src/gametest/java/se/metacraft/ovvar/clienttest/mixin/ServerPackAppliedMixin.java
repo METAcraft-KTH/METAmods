@@ -15,7 +15,7 @@ import java.util.UUID;
 public abstract class ServerPackAppliedMixin {
 	@Inject(method = "pushPack", at = @At("HEAD"))
 	private void ovvar$pushed(UUID id, URL url, String hash, CallbackInfo ci) {
-		ServerPackActivity.pushed(hash);
+		ServerPackActivity.pushed(id, hash);
 	}
 
 	@Inject(method = "startReload", at = @At("HEAD"))

@@ -1,5 +1,8 @@
 package se.metacraft.ovvar.clienttest;
 
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -15,10 +18,17 @@ public final class ServerPackActivity {
 	private static final AtomicLong PUSHED = new AtomicLong();
 	private static volatile long reloading, applied;
 	private static volatile String lastHash = "";
+	private static final Set<UUID> IDS = ConcurrentHashMap.newKeySet();
 
-	public static void pushed(String hash) {
+	public static void pushed(UUID id, String hash) {
 		lastHash = hash == null ? "" : hash;
+		if (id != null) IDS.add(id);
 		PUSHED.incrementAndGet();
+	}
+
+	/** Every pack id the server has pushed so far (the Polymer pack's, ovvar's combination pack's, ...). */
+	public static Set<UUID> ids() {
+		return Set.copyOf(IDS);
 	}
 
 	public static void reloadStarted() {

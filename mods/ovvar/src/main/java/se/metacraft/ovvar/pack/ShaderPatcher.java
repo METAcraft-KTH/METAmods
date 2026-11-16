@@ -24,7 +24,7 @@ import java.util.Optional;
  * browsers to cache for a year.
  */
 public final class ShaderPatcher {
-	public static final String RESOURCE = "assets/ovvar/shaderpatcher/OvvarShaderPatcher.jar";
+	public static final String RESOURCE = "assets/ovvar/shaderpatcher/ovvar-client.jar";
 	private static @Nullable Identifier hosted;
 
 	private ShaderPatcher() {}
@@ -38,7 +38,7 @@ public final class ShaderPatcher {
 		}
 		try {
 			String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(Files.readAllBytes(jar)), 0, 4);
-			hosted = Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "shaderpatcher/" + hash + "/ovvar-shader-patcher.jar");
+			hosted = Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "shaderpatcher/" + hash + "/ovvar-client.jar");
 			AutoHostUtils.registerHostedFile(hosted, jar);
 		} catch (IOException | NoSuchAlgorithmException e) {
 			Ovvar.LOGGER.warn("[{}] could not host the shader patcher", Ovvar.MOD_ID, e);

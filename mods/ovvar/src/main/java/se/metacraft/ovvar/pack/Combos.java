@@ -10,19 +10,25 @@ import eu.pb4.polymer.autohost.api.ResourcePackDataProvider;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import eu.pb4.polymer.resourcepack.impl.PolymerResourcePackMod;
 import se.metacraft.ovvar.Ovvar;
+import se.metacraft.ovvar.combo.ComboAssets;
 import se.metacraft.ovvar.compat.danse.DanseHooks;
 import se.metacraft.ovvar.compat.resource_packs.ResourcePacksCompat;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.item.OvveItem;
 import se.metacraft.ovvar.content.item.OvveTopItem;
+import se.metacraft.ovvar.content.item.OvveTop;
+import se.metacraft.ovvar.content.ModComponents;
 import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
 import se.metacraft.ovvar.content.SpotPlacements;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.resources.Identifier;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket;
 import net.minecraft.server.MinecraftServer;
@@ -48,6 +54,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 /**
  * The combinations of patches the resource pack knows how to draw. Every combination ever
@@ -66,6 +73,11 @@ import java.util.function.BiConsumer;
  * With metacraft-resource-packs installed the combinations go into a small pack of their own
  * ({@link ComboPack}) instead of the Polymer pack, so sewing leaves the big pack (and every
  * client's cached copy of it) alone. Generations, claims and pushes work the same either way.
+ *
+ * A player with the ovvar-client mod builds every combination's asset on their own client
+ * ({@link #drawsCombos}, learnt from a handshake before their join packs go out): they are sent
+ * whole combinations, never the combination pack, and never a push for it. Everyone else, and
+ * anyone whose client is on another {@link ComboAssets#PROTOCOL}, gets exactly the above.
  */
 public final class Combos {
 	private Combos() {}
@@ -101,6 +113,10 @@ public final class Combos {
 	private static final Map<KeyedCombo, Set<UUID>> CLAIMED_BY = new ConcurrentHashMap<>();
 	/** Who asked to reload while a build was pending: they get the pack once it is built. */
 	private static final Set<UUID> RELOADING = ConcurrentHashMap.newKeySet();
+	/** Whose client draws every combination itself (ovvar-client on this protocol): no combination pack, ever. */
+	private static final Set<UUID> DRAWS_COMBOS = ConcurrentHashMap.newKeySet();
+	/** The ovvar-client handshake: a client that can receive on it builds combinations itself. Nothing is sent on it. */
+	public static final Identifier DRAWS_COMBOS_CHANNEL = Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, ComboAssets.CHANNEL_PATH);
 
 	public static void init() {
 		ServerLifecycleEvents.SERVER_STARTING.register(s -> {
@@ -130,9 +146,29 @@ public final class Combos {
 			Set<KeyedCombo> snapshot = building;
 			server.execute(() -> built(snapshot));
 		});
+		// Fabric has the client's channels by now (it holds configuration back until they arrive), and the
+		// join packs are only chosen after this, in addOptionalTasks. In doubt, no handshake: the pack goes out.
+		ServerConfigurationConnectionEvents.CONFIGURE.register((handler, s) -> {
+			UUID id = handler.getOwner().id();
+			boolean draws;
+			try {
+				draws = handshake(channel -> ServerConfigurationNetworking.canSend(handler, channel));
+			} catch (RuntimeException e) {
+				Ovvar.LOGGER.warn("[ovvar] could not read {}'s channels; sending them the combination pack", handler.getOwner().name(), e);
+				draws = false;
+			}
+			if (draws) {
+				DRAWS_COMBOS.add(id);
+				Ovvar.LOGGER.info("[ovvar] {} draws patch combinations on their client (ovvar-client): no combination pack for them", handler.getOwner().name());
+			} else {
+				DRAWS_COMBOS.remove(id);
+			}
+		});
+		ServerConfigurationConnectionEvents.DISCONNECT.register((handler, s) -> DRAWS_COMBOS.remove(handler.getOwner().id()));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, s) -> {
-			// The pack they got while connecting is the current one.
+			// The pack they got while connecting is the current one (a client that draws combinations got none).
 			UUID id = handler.player.getUUID();
+			if (DRAWS_COMBOS.contains(id)) return;
 			PUSHED.put(id, generation);
 			LOADED.put(id, generation);
 		});
@@ -143,6 +179,7 @@ public final class Combos {
 			NEEDS_PUSH.remove(id);
 			LAST_PUSH.remove(id);
 			RELOADING.remove(id);
+			DRAWS_COMBOS.remove(id);
 			for (Set<UUID> claimers : CLAIMED_BY.values()) claimers.remove(id);
 		});
 		ServerTickEvents.END_SERVER_TICK.register(Combos::tick);
@@ -150,19 +187,52 @@ public final class Combos {
 
 	// ---- what a player can draw
 
+	/** Does this client handshake, given which channels it can receive on? Only on this server's own protocol. */
+	public static boolean handshake(Predicate<Identifier> canReceive) {
+		return canReceive.test(DRAWS_COMBOS_CHANNEL);
+	}
+
+	/** Does this player's client build every combination's asset itself (ovvar-client)? Any thread; false for null. */
+	public static boolean drawsCombos(@Nullable UUID player) {
+		return player != null && DRAWS_COMBOS.contains(player);
+	}
+
+	/** Tests only: is this player waiting on a build to be pushed it, or owed a push? */
+	public static boolean claimedByForTest(UUID player) {
+		if (NEEDS_PUSH.contains(player)) return true;
+		for (Set<UUID> claimers : CLAIMED_BY.values()) if (claimers.contains(player)) return true;
+		return false;
+	}
+
+	/** Tests only: a (fake) player as if they had, or had not, handshaken. */
+	public static void setDrawsCombosForTest(UUID player, boolean draws) {
+		if (draws) DRAWS_COMBOS.add(player);
+		else DRAWS_COMBOS.remove(player);
+	}
+
 	/** Does the pack a player has hold this combination? {@code player} null: the current pack. */
 	public static boolean isBuilt(Chapter chapter, Piece piece, Combo combo, @Nullable UUID player) {
-		if (combo.isEmpty()) return true;
-		KeyedCombo key = key(chapter, piece, combo);
+		return isBuilt(key(chapter, piece, combo), player);
+	}
+
+	/** Does the pack a player has hold this key (a combination or a chest composite)? {@code player} null: the current pack. */
+	public static boolean isBuilt(KeyedCombo key, @Nullable UUID player) {
+		if (key.combo().isEmpty()) return true;
 		int now = generation;   // read once: a build may finish on the server thread meanwhile
 		Set<KeyedCombo> current = BUILT.getOrDefault(now, Set.of());
 		if (player == null) return current.contains(key);
-		return BUILT.getOrDefault(LOADED.getOrDefault(player, now), current).contains(key);
+		// A chest composite drawn from a pack the player may not have is an invisible chestplate, not a garment
+		// missing its patches: for one, a generation the server no longer holds counts as holding nothing.
+		return BUILT.getOrDefault(LOADED.getOrDefault(player, now), key.isChest() ? Set.of() : current).contains(key);
 	}
 
 	/** Was this combination ever queued or built (requested, or loaded from combos.json)? */
 	public static boolean isKnown(Chapter chapter, Piece piece, Combo combo) {
-		return KNOWN.contains(key(chapter, piece, combo));
+		return isKnown(key(chapter, piece, combo));
+	}
+
+	public static boolean isKnown(KeyedCombo key) {
+		return KNOWN.contains(key);
 	}
 
 	/**
@@ -187,21 +257,48 @@ public final class Combos {
 
 	/** Tests only: the current generation's pack holds this combination, as a startup build would leave it. */
 	public static void markBuiltForTest(Chapter chapter, Piece piece, Combo combo) {
+		markBuiltForTest(key(chapter, piece, combo));
+	}
+
+	public static void markBuiltForTest(KeyedCombo key) {
 		BUILT.compute(generation, (g, built) -> {
 			Set<KeyedCombo> next = built == null ? new HashSet<>() : new HashSet<>(built);
-			next.add(key(chapter, piece, combo));
+			next.add(key);
 			return Set.copyOf(next);
 		});
 	}
 
 	/** Tests only: drops a combination from the known set (and has it saved without it), so a test leaves nothing behind. */
 	public static void forgetForTest(Chapter chapter, Piece piece, Combo combo) {
-		if (KNOWN.remove(key(chapter, piece, combo))) dirty.set(true);
+		forgetForTest(key(chapter, piece, combo));
+	}
+
+	public static void forgetForTest(KeyedCombo key) {
+		if (KNOWN.remove(key)) dirty.set(true);
+	}
+
+	/** Tests only: when this player was last pushed a pack (ms), 0 if never. */
+	public static long lastPushForTest(UUID player) {
+		return LAST_PUSH.getOrDefault(player, 0L);
+	}
+
+	/** Tests only: the pack generation a player has loaded, as if confirmed; null forgets it. */
+	public static void setLoadedForTest(UUID player, @Nullable Integer loaded) {
+		if (loaded == null) LOADED.remove(player);
+		else LOADED.put(player, loaded);
+	}
+
+	/** Tests only: whatever is queued is built at the next tick, not after its lazy wait. */
+	public static void hurryForTest() {
+		deadline.accumulateAndGet(now(), Math::min);
 	}
 
 	/** Tests only: undoes {@link #markBuiltForTest} in every generation still held, so nothing test-only stays behind. */
 	public static void unmarkBuiltForTest(Chapter chapter, Piece piece, Combo combo) {
-		KeyedCombo key = key(chapter, piece, combo);
+		unmarkBuiltForTest(key(chapter, piece, combo));
+	}
+
+	public static void unmarkBuiltForTest(KeyedCombo key) {
 		BUILT.replaceAll((g, built) -> {
 			if (!built.contains(key)) return built;
 			Set<KeyedCombo> next = new HashSet<>(built);
@@ -212,7 +309,21 @@ public final class Combos {
 
 	/** Ask for a combination; safe from any thread (item packets are encoded off the server thread). */
 	public static void request(Chapter chapter, Piece piece, Combo combo, boolean urgent) {
-		KeyedCombo key = key(chapter, piece, combo);
+		request(key(chapter, piece, combo), urgent);
+	}
+
+	/**
+	 * Ask for the top's combination under a chestplate (a material the pack holds wraps for): lazily, and
+	 * never claimed, so it reaches players only with a pack they get anyway (on join, or a push somebody's
+	 * own sewing or {@code /ovvar reload} caused). Putting armour on must never bring up a loading screen.
+	 * Any thread.
+	 */
+	public static void requestChest(Chapter chapter, String material, Combo combo) {
+		if (combo.isEmpty()) return;
+		request(KeyedCombo.chest(chapter, material, combo), false);
+	}
+
+	private static void request(KeyedCombo key, boolean urgent) {
 		if (BUILT.getOrDefault(generation, Set.of()).contains(key)) return;
 		if (KNOWN.add(key)) dirty.set(true);
 		if (generating && building.contains(key)) return;   // the build under way has it
@@ -226,6 +337,12 @@ public final class Combos {
 	 */
 	public static void claim(ServerPlayer player, Chapter chapter, Piece piece, Combo combo) {
 		KeyedCombo key = key(chapter, piece, combo);
+		if (drawsCombos(player.getUUID())) {
+			// Their client draws it already: no claim, no push. Still built at once, so whoever joins next
+			// without the mod has it in their pack, as if the sewer had been a vanilla client.
+			request(chapter, piece, combo, true);
+			return;
+		}
 		if (BUILT.getOrDefault(generation, Set.of()).contains(key)) {
 			if (LOADED.getOrDefault(player.getUUID(), 0) < generation) NEEDS_PUSH.add(player.getUUID());
 			return;
@@ -240,6 +357,7 @@ public final class Combos {
 	 */
 	public static String reload(ServerPlayer player) {
 		UUID id = player.getUUID();
+		if (drawsCombos(id)) return "Your client draws every patch combination itself (ovvar-client): there is no pack to reload";
 		boolean pending = generating || !BUILT.getOrDefault(generation, Set.of()).containsAll(KNOWN);
 		if (pending) {
 			RELOADING.add(id);
@@ -321,7 +439,7 @@ public final class Combos {
 		if (NEEDS_PUSH.isEmpty()) return;
 		for (UUID id : List.copyOf(NEEDS_PUSH)) {
 			ServerPlayer player = s.getPlayerList().getPlayer(id);
-			if (player == null || PUSHED.getOrDefault(id, 0) >= generation) {
+			if (player == null || drawsCombos(id) || PUSHED.getOrDefault(id, 0) >= generation) {
 				NEEDS_PUSH.remove(id);
 				continue;
 			}
@@ -371,7 +489,7 @@ public final class Combos {
 			List<Pair<EquipmentSlot, ItemStack>> slots = new ArrayList<>();
 			for (EquipmentSlot slot : EquipmentSlot.values()) {
 				ItemStack stack = entity.getItemBySlot(slot);
-				if (stack.getItem() instanceof OvveItem || stack.getItem() instanceof OvveTopItem) slots.add(Pair.of(slot, stack));
+				if (resentOnPackLoad(stack)) slots.add(Pair.of(slot, stack));
 			}
 			if (slots.isEmpty()) continue;
 			player.connection.send(new ClientboundSetEquipmentPacket(entity.getId(), slots));
@@ -380,6 +498,11 @@ public final class Combos {
 		player.containerMenu.sendAllDataToRemote();
 		player.inventoryMenu.sendAllDataToRemote();
 		Ovvar.LOGGER.debug("[ovvar] {} loaded pack generation {}; re-sent {} wearer(s)", player.getName().getString(), LOADED.get(id), sent);
+	}
+
+	/** Is this stack one of ours to send again when a pack loads: an ovve, its top, a wrapped chestplate. */
+	public static boolean resentOnPackLoad(ItemStack stack) {
+		return stack.getItem() instanceof OvveItem || stack.getItem() instanceof OvveTopItem || stack.has(ModComponents.WRAPPED_TOP);
 	}
 
 	/**
@@ -395,7 +518,7 @@ public final class Combos {
 		List<Pair<EquipmentSlot, ItemStack>> slots = new ArrayList<>();
 		for (EquipmentSlot slot : EquipmentSlot.values()) {
 			ItemStack stack = wearer.getItemBySlot(slot);
-			if (stack.getItem() instanceof OvveItem || stack.getItem() instanceof OvveTopItem) slots.add(Pair.of(slot, stack));
+			if (resentOnPackLoad(stack)) slots.add(Pair.of(slot, stack));
 		}
 		if (slots.isEmpty()) return;
 		for (ServerPlayer viewer : PlayerLookup.tracking(wearer)) {
@@ -403,8 +526,21 @@ public final class Combos {
 		}
 	}
 
-	/** The equipment definitions of one combination (each rolled-down variant of its chapter) as pack path and JSON; how many. */
+	/** The pack path of a key's file; for a garment's half, its unrolled variant's. */
+	public static String packPath(KeyedCombo key) {
+		if (key.isChest()) return EquipmentJson.chestPackPath(key.chapter(), key.chest(), key.combo());
+		return EquipmentJson.packPath(key.chapter(), key.piece(), false, key.combo());
+	}
+
+	/**
+	 * The equipment definitions of one combination (each rolled-down variant of its chapter) as pack path and
+	 * JSON, or of one chest composite (a single file); how many.
+	 */
 	static int files(KeyedCombo key, BiConsumer<String, String> out) {
+		if (key.isChest()) {
+			out.accept(packPath(key), EquipmentJson.chestJson(key.chapter(), key.chest(), key.combo().placements()));
+			return 1;
+		}
 		int files = 0;
 		Chapter chapter = key.chapter();
 		for (boolean[] v : EquipmentJson.variants(chapter, key.piece())) {
@@ -502,18 +638,9 @@ public final class Combos {
 			return String.join("-", placements.stream().sorted().map(Placement::key).toList());
 		}
 
-		/**
-		 * A key split back into its {@code spot.patch} keys. Patch ids may hold a '-' themselves
-		 * (tmeit-marshal) but never a '.', and spot ids neither, so a piece without a '.' is the
-		 * rest of the patch id before it.
-		 */
+		/** A key split back into its {@code spot.patch} keys ({@link ComboAssets#placementKeys}, shared with ovvar-client). */
 		static List<String> placementKeys(String key) {
-			List<String> out = new ArrayList<>();
-			for (String part : key.split("-")) {
-				if (!out.isEmpty() && part.indexOf('.') < 0) out.set(out.size() - 1, out.getLast() + "-" + part);
-				else out.add(part);
-			}
-			return out;
+			return ComboAssets.placementKeys(key);
 		}
 
 		public boolean isEmpty() {
@@ -521,8 +648,28 @@ public final class Combos {
 		}
 	}
 
-	/** One combination on one half of one chapter's garment; its key is {@code chapter/piece:combo}. */
-	public record KeyedCombo(Chapter chapter, Piece piece, Combo combo) implements Comparable<KeyedCombo> {
+	/**
+	 * One combination on one half of one chapter's garment; its key is {@code chapter/piece:combo}. Or, with
+	 * {@code chest} a chestplate material ({@link se.metacraft.ovvar.content.item.OvveTop#PACK_MATERIALS}), the
+	 * top's combination under that chestplate, {@code chapter/chest/material:combo}: the wrap with every patch
+	 * ({@link EquipmentJson#chestAsset(Chapter, String, Combo)}). {@code chest} is empty for a garment's half.
+	 */
+	public record KeyedCombo(Chapter chapter, Piece piece, Combo combo, String chest) implements Comparable<KeyedCombo> {
+
+		public KeyedCombo(Chapter chapter, Piece piece, Combo combo) {
+			this(chapter, piece, combo, "");
+		}
+
+		/** The top's combination under a chestplate of this material. */
+		public static KeyedCombo chest(Chapter chapter, String material, Combo combo) {
+			return new KeyedCombo(chapter, Piece.TOP, combo, material);
+		}
+
+		public boolean isChest() {
+			return !chest.isEmpty();
+		}
+
+		private static final String CHEST_PREFIX = ComboAssets.CHEST + "/";
 
 		public static final Codec<KeyedCombo> KEY_CODEC = Codec.STRING.comapFlatMap(
 				key -> {
@@ -535,7 +682,13 @@ public final class Combos {
 					if (chapter == null) {
 						return DataResult.error(() -> "unknown chapter in combo key " + key);
 					}
-					return Piece.CODEC.parse(JavaOps.INSTANCE, key.substring(slash+1, colon)).flatMap(
+					String middle = key.substring(slash + 1, colon);
+					if (middle.startsWith(CHEST_PREFIX)) {
+						String material = middle.substring(CHEST_PREFIX.length());
+						if (!OvveTop.PACK_MATERIALS.contains(material)) return DataResult.error(() -> "not a chestplate material the pack wraps, in combo key " + key);
+						return Combo.KEY_CODEC.parse(JavaOps.INSTANCE, key.substring(colon + 1)).map(combo -> chest(chapter, material, combo));
+					}
+					return Piece.CODEC.parse(JavaOps.INSTANCE, middle).flatMap(
 							piece -> Combo.KEY_CODEC.parse(JavaOps.INSTANCE, key.substring(colon+1)).map(
 									combo -> new KeyedCombo(chapter, piece, combo)
 							)
@@ -545,7 +698,7 @@ public final class Combos {
 		);
 
 		public String key() {
-			return chapter.id + "/" + piece.id + ":" + combo.key();
+			return chapter.id + "/" + (isChest() ? CHEST_PREFIX + chest : piece.id) + ":" + combo.key();
 		}
 
 		@Override

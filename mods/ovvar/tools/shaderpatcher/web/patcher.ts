@@ -6,11 +6,15 @@
 // String.split drops trailing empty strings (harmless here: names are trimmed and compared non-empty).
 
 export type Status = 'PATCHED' | 'NOT_A_SHADERPACK' | 'NOTHING_PATCHED' | 'PATCHED_COPY';
-export interface Resources { ovvar: string; riftCommon: string; voidRift: string; netherRift: string; stamp: string }
+export interface Resources { ovvar: string; riftCommon: string; voidRift: string; netherRift: string; textColors: string; stamp: string }
 
 const STAMP_FILE = 'ovvar-patch.properties';
 const TAG = 'ovvar_uv';
 const RIFT_TAG = 'metacraft_rift_sample';
+const TEXT_TAG = 'metacraft_text_tint';
+// The program Iris draws world text (nametags) with, then its fallbacks: see TEXT_PROGRAMS in PackPatch.java.
+const TEXT_PROGRAMS = ['gbuffers_entities_translucent', 'gbuffers_entities', 'gbuffers_textured_lit', 'gbuffers_textured', 'gbuffers_basic'];
+const COMMENT = /\/\/[^\n]*|\/\*[\s\S]*?\*\//g;
 
 const RIFT_UNIFORMS: string[][] = [
 	['metacraftRiftTime', 'uniform.float.metacraftRiftTime = frameTimeCounter'],
@@ -33,6 +37,8 @@ const INCLUDE = new RegExp(`${LS}${S}*#${S}*include${S}+"([^"]+)"`, 'g');
 const VERSION = new RegExp(`${LS}${S}*#${S}*version${S}+(\\d+)`, 'g');
 const SAMPLER_DECL = new RegExp(`uniform${S}+sampler2D${S}+([^;]*)\\b(${ALBEDO})\\b`, 'g');
 const MAIN = new RegExp(`${LS}${S}*void${S}+main${S}*\\(${S}*\\)${S}*\\{`, 'g');
+const WORLD_FOLDER = /^shaders\/world-?\d+\/$/;
+const DIMENSION_FOLDER = new RegExp(`${LS}${S}*dimension\\.([^ \\t\\n\\x0B\\f\\r=:/]+)${S}*[=:]`, 'g');
 const VARYING = new RegExp(
 	`${LS}[ \\t]*((?:(?:flat|smooth|noperspective|centroid|invariant)${S}+)*)(in|out|varying)${S}+(vec[234])${S}+([\\w \\t\\n\\x0B\\f\\r,]+?)${S}*;`, 'g');
 
@@ -82,11 +88,13 @@ class PackPatch {
 	log: string[] = [];
 	private GLSL: string;
 	private RIFT_GLSL: string;
+	private TEXT_COLORS_GLSL: string;
 	private stamp: string;
 
 	constructor(res: Resources) {
 		this.GLSL = res.ovvar;
 		this.RIFT_GLSL = res.riftCommon + res.voidRift + res.netherRift;
+		this.TEXT_COLORS_GLSL = res.textColors;
 		this.stamp = res.stamp;
 	}
 
@@ -103,6 +111,8 @@ class PackPatch {
 			}
 		}
 		const files: Files = new Map(input);
+		// First, so the ovvar and rift code added below still reads the raw colour (see PackPatch.java).
+		const textLog = this.patchTextColors(files);
 		const done = new Set<string>();
 		let patched = 0;
 		let rifts = false;
@@ -165,6 +175,7 @@ class PackPatch {
 			this.say('  nothing patched');
 			return { status: 'NOTHING_PATCHED', files: input };
 		}
+		this.log.push(...textLog);
 		files.set(STAMP_FILE, bytes('stamp=' + this.stamp + '\n'));
 		return { status: 'PATCHED', files };
 	}
@@ -230,7 +241,7 @@ class PackPatch {
 			return null;
 		}
 
-		const helper = '\n// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in OvvarShaderPatcher.jar\n'
+		const helper = '\n// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in ovvar-client.jar\n'
 			+ uv.direction + ' vec4 ovvar_color;\n'
 			+ uv.direction + ' vec3 ovvar_pos;\n'
 			+ uv.direction + ' vec3 ovvar_normal;\n'
@@ -417,6 +428,68 @@ class PackPatch {
 		return unified ? [vertOut, vertOut] : [fragOut, vertOut];
 	}
 
+	/** Chapter text colours on world nametags: see patchTextColors in PackPatch.java. */
+	private patchTextColors(files: Files): string[] {
+		const out: string[] = [];
+		const dirSet = new Set<string>(['shaders/']);
+		for (const path of files.keys()) {
+			const dir = path.substring(0, path.lastIndexOf('/') + 1);
+			if (WORLD_FOLDER.test(dir)) dirSet.add(dir);
+		}
+		if (files.has('shaders/dimension.properties')) {
+			for (const m of findAll(DIMENSION_FOLDER, text(files, 'shaders/dimension.properties'))) dirSet.add('shaders/' + m.g[1] + '/');
+		}
+		const dirs = [...dirSet].sort();
+		const programs = new Map<string, string[]>();
+		const unifiedOf = new Map<string, boolean>();
+		for (const dir of dirs) {
+			const name = TEXT_PROGRAMS.find((c) => files.has(dir + c + '.fsh'));
+			if (name === undefined) continue;
+			if (!files.has(dir + name + '.vsh')) {
+				out.push('  ' + dir + name + '.fsh: chapter text colours: no .vsh, Iris draws it with its own vertex stage; skipped');
+				continue;
+			}
+			const prog = this.program(files, dir + name + '.vsh');
+			if (!programs.has(prog)) programs.set(prog, []);
+			programs.get(prog)!.push(dir + name);
+			if (!unifiedOf.has(prog)) unifiedOf.set(prog, prog === this.program(files, dir + name + '.fsh'));
+		}
+		for (const [prog, labels] of programs) {
+			const t = text(files, prog);
+			const unified = unifiedOf.get(prog)!;
+			const where = '  ' + prog + ': chapter text colours (' + labels.join(', ') + ')';
+			if (unified && (find(FRAGMENT_MARKER, t) === null || find(VERTEX_MARKER, t) === null)) {
+				out.push(where + ': one file for both stages, but no #ifdef FSH/VSH-style stage markers found; skipped');
+				continue;
+			}
+			const vr = unified ? region(t, VERTEX_MARKER, FRAGMENT_MARKER) : [0, t.length];
+			const vert = t.substring(vr[0], vr[1]);
+			if (vert.includes(TEXT_TAG)) continue;
+			const main = find(MAIN, vert);
+			if (!main) {
+				out.push(where + ': no void main(); skipped');
+				continue;
+			}
+			const code = vert.replace(COMMENT, ' ');
+			const input = code.includes('vaColor') || code.includes('vaPosition') ? 'vaColor' : 'gl_Color';
+			const codeMain = find(MAIN, code);
+			if (!codeMain || !reads(files, prog, code.substring(codeMain.start), new RegExp('\\b' + input + '\\b'), new Set(), 0)) {
+				out.push(where + ': main() never reads ' + input + '; skipped');
+				continue;
+			}
+			const helper = "\n// --- Metacraft chapter text colours (metacraft.se): nametags in the chapters' colours, as the\n"
+				+ '// chapter-text-colors resource pack draws them without a shaderpack\n' + this.TEXT_COLORS_GLSL
+				+ 'vec4 metacraft_text_' + input + '() { return ' + TEXT_TAG + '(' + input + '); }\n'
+				+ '// --- end chapter text colours\n\n';
+			const newVert = vert.substring(0, main.start) + helper + vert.substring(main.start, main.end)
+				+ '\n#define ' + input + ' metacraft_text_' + input + '()' + vert.substring(main.end)
+				+ (unified ? '\n#undef ' + input + '\n' : '');
+			files.set(prog, bytes(t.substring(0, vr[0]) + newVert + t.substring(vr[1])));
+			out.push(where + ': ' + input + ' wrapped');
+		}
+		return out;
+	}
+
 	private patchRiftShadows(files: Files): void {
 		const done = new Set<string>();
 		for (const path of [...files.keys()]) {
@@ -499,6 +572,19 @@ function albedoSampler(files: Files, path: string, t: string, seen: Set<string>,
 		if (found !== null) return found;
 	}
 	return null;
+}
+
+/** Whether the text, or a file it includes (to a depth of 4), matches outside comments. */
+function reads(files: Files, path: string, t: string, input: RegExp, seen: Set<string>, depth: number): boolean {
+	const code = t.replace(COMMENT, ' ');
+	if (input.test(code)) return true;
+	if (depth > 4 || seen.has(path)) return false;
+	seen.add(path);
+	for (const inc of findAll(INCLUDE, code)) {
+		const resolved = resolveInclude(path, inc.g[1]);
+		if (files.has(resolved) && reads(files, resolved, text(files, resolved), input, seen, depth + 1)) return true;
+	}
+	return false;
 }
 
 function region(t: string, own: RegExp, other: RegExp): number[] {

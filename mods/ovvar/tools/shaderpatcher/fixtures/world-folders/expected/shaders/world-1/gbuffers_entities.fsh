@@ -13,7 +13,7 @@ vec4 ovvar_raw_glcolor() { return glcolor; }
 #define glcolor ovvar_shadow_glcolor
 
 
-// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in OvvarShaderPatcher.jar
+// --- Ovvar (metacraft.se): patches on student overalls; see README.txt in ovvar-client.jar
 varying vec4 ovvar_color;
 varying vec3 ovvar_pos;
 varying vec3 ovvar_normal;

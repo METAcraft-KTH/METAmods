@@ -1,0 +1,39 @@
+{
+	"schemaVersion": 1,
+	"id": "ovvar-client",
+	"version": "${version}",
+	"name": "Ovvar Client",
+	"description": "Optional client mod for METAcraft's ovvar (student overalls): patches the instance's shaderpacks at startup so ovvar and the rift shaders render under Iris, and draws ovvar's patch combinations itself so the server needs to send no pack for them. Double-click the jar to patch a shaderpack once without installing it. Client only.",
+	"authors": [
+		"Froosty11"
+	],
+	"contributors": [],
+	"contact": {
+		"sources": "${git_repo}",
+		"homepage": "${website}",
+		"issues": "${issues}"
+	},
+	"license": "Apache-2.0",
+	"environment": "client",
+	"entrypoints": {
+		"preLaunch": [
+			"se.metacraft.ovvarclient.PreLaunch"
+		],
+		"client": [
+			"se.metacraft.ovvarclient.OvvarClient"
+		]
+	},
+	"mixins": [
+		"ovvar-client.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}"
+	},
+	"breaks": {
+		"ovvar-shaderpatch": "*"
+	},
+	"recommends": {
+		"fabric-api": "*"
+	}
+}

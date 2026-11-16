@@ -296,11 +296,13 @@ public final class ModCommands {
 	public static final String SHADERS_STEPS = "chat." + Ovvar.MOD_ID + ".shaders.steps";
 	public static final String SHADERS_INTRO_EN = "Playing with a shaderpack? It needs a one-time patch, or ovvar show a pink-black checker. Patched it before this update? Patch the original pack again.";
 	public static final String SHADERS_LINK_EN = "Patch your shaderpack";
-	public static final String SHADERS_STEPS_EN = "Drop your pack in, download the +ovvar copy, put it in your shaderpacks folder and pick it in Iris.";
+	public static final String SHADERS_STEPS_EN = "Drop your pack in, download the +ovvar copy, put it in your shaderpacks folder and pick it in Iris. Or get ovvar-client.jar there: put it in your mods folder, or double-click it to patch a pack once.";
 
 	/**
 	 * A shaderpack replaces the shaders that draw an ovve's patches and the rifts; players patch their
-	 * pack on a web page (the config's {@code shaders.patcher_url}). Three lines: why, the link, how.
+	 * pack on a web page (the config's {@code shaders.patcher_url}), which also offers ovvar-client.jar
+	 * (mods/ovvar-client: a client mod that patches at every start, and a double-clickable patcher).
+	 * Three lines: why, the link, how.
 	 */
 	private static int shaders(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		CommandSourceStack source = ctx.getSource();

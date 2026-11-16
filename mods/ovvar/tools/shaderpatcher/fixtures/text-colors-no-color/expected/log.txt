@@ -1,0 +1,5 @@
+  shaders/gbuffers_entities.fsh + shaders/gbuffers_entities.vsh: 'texcoord' and 'glcolor' shadowed, art via texture2D(texture), colour from gl_Color
+  shaders/gbuffers_entities.fsh + shaders/gbuffers_entities.vsh: rifts drawn through texture2D(texture), marker from gl_Color, position from gl_Vertex.xyz
+  shaders/gbuffers_entities_translucent.fsh + shaders/gbuffers_entities_translucent.vsh: 'texcoord' and 'glcolor' shadowed, art via texture2D(texture), colour from gl_Color
+  shaders/gbuffers_entities_translucent.fsh + shaders/gbuffers_entities_translucent.vsh: rifts drawn through texture2D(texture), marker from gl_Color, position from gl_Vertex.xyz
+  shaders/gbuffers_entities_translucent.vsh: chapter text colours (shaders/gbuffers_entities_translucent): main() never reads gl_Color; skipped

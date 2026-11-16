@@ -1,0 +1,13 @@
+{
+	"pack": {
+		"description": "chapter-text-colors (test copy): dark purple text in cerise, dark blue in laserviolet",
+		"min_format": [
+			97,
+			1
+		],
+		"max_format": [
+			97,
+			1
+		]
+	}
+}

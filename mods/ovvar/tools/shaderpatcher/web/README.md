@@ -13,7 +13,7 @@ Log lines are the core's, without a pack name (the Java CLI prefixes `<name>: `)
 
 ## Vendoring
 
-1. `node build.mjs` writes `dist/resources.generated.ts` (the four GLSL files inlined, plus `STAMP`). `dist/` is gitignored.
+1. `node build.mjs` writes `dist/resources.generated.ts` (the five GLSL files inlined, plus `STAMP`). `dist/` is gitignored.
 2. Copy `patcher.ts` and `dist/resources.generated.ts` into the website, side by side (the generated file imports
    the `Resources` type from `../patcher.ts`; adjust that path to wherever `patcher.ts` lands).
 3. Rebuild and re-copy whenever the GLSL changes: the stamp changes with it.

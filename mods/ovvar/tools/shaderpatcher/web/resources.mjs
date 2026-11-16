@@ -1,4 +1,4 @@
-// Reads the four GLSL files the patcher splices in and computes the stamp the way PackPatch.stamp() does.
+// Reads the five GLSL files the patcher splices in and computes the stamp the way PackPatch.stamp() does.
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,7 @@ const FILES = [
 	['riftCommon', 'mods/metacraft-shaders/src/main/resources/assets/metacraft/shaders/include/rift_common.glsl'],
 	['voidRift', 'mods/metacraft-shaders/src/main/resources/assets/metacraft/shaders/include/void_rift.glsl'],
 	['netherRift', 'mods/metacraft-shaders/src/main/resources/assets/metacraft/shaders/include/nether_rift.glsl'],
+	['textColors', 'mods/ovvar/tools/shaderpatcher/chapter_text_colors.glsl'],
 ];
 
 export function loadResources() {

@@ -399,7 +399,7 @@ public final class GeneratedAssets implements DataProvider {
 		lang.put(ModCommands.SHADERS_STEPS, ModCommands.SHADERS_STEPS_EN);
 		swedish.put(ModCommands.SHADERS_INTRO, "Spelar du med shaderpack? Det behöver en engångspatch, annars visar ovvar ett rosa-svart rutmönster. Patchade du före den här uppdateringen? Patcha originalpacket igen.");
 		swedish.put(ModCommands.SHADERS_LINK, "Patcha ditt shaderpack");
-		swedish.put(ModCommands.SHADERS_STEPS, "Släpp in ditt pack, ladda ner +ovvar-kopian, lägg den i din shaderpacks-mapp och välj den i Iris.");
+		swedish.put(ModCommands.SHADERS_STEPS, "Släpp in ditt pack, ladda ner +ovvar-kopian, lägg den i din shaderpacks-mapp och välj den i Iris. Eller hämta ovvar-client.jar där: lägg den i din mods-mapp, eller dubbelklicka på den för att patcha ett pack en gång.");
 		swedish.put(OvveItem.SHADERS_HINT, "Rosa-svart rutmönster på ben och armar? Patcha packet igen: /ovvar shaders");
 		// Punkphöz is his name in both languages.
 		lang.put("entity." + MOD + ".punkphoz", "Punkphöz");
