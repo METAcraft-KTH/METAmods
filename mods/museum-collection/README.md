@@ -47,7 +47,7 @@ instead: one button per team. The choice is made once; after it only an admin mo
 
 Admins are game masters, or whoever has the `museum-collection:admin` permission.
 
-A collector is a villager with the scoreboard tag `museum_collector` (`/tag` works on it too). Its trade screen
+A collector is a villager with the scoreboard tag `metacraft.museum_collector` (`/tag` works on it too). Its trade screen
 never opens. A spawned one has no AI, makes no sound, can't be hurt and doesn't despawn; remove it with
 `/kill`. Other villagers are untouched.
 

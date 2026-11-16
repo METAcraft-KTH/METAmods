@@ -20,7 +20,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class Collector {
 
-	public static final String TAG = "museum_collector";
+	public static final String TAG = "metacraft.museum_collector";
 
 	private Collector() {}
 
