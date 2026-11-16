@@ -3,6 +3,7 @@ package se.metacraft.moredyes;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import se.metacraft.moredyes.armor.AnimatedArmor;
 import se.metacraft.moredyes.banner.BannerPatterns;
+import se.metacraft.moredyes.brush.BrushColour;
 import se.metacraft.moredyes.color.ModColors;
 import se.metacraft.moredyes.content.ModContent;
 import se.metacraft.moredyes.pet.Collars;
@@ -37,6 +38,7 @@ public class MoreDyes implements ModInitializer {
 		Cushions.init();
 		ModCommands.init();
 		BannerPatterns.init();
+		BrushColour.init();
 
 		PolymerResourcePackUtils.addModAssets(MOD_ID);
 		PolymerResourcePackUtils.markAsRequired();

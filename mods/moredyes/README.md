@@ -117,6 +117,18 @@ that cannot serve even the chosen look still stops the server.
   decorates a shield. A cauldron washes patterns off down to the colour but not the
   colour itself (`CauldronInteractionsMixin`), as with a banner's own colour. To copy one, the blank
   is a plain *white* banner: vanilla only copies onto a banner with no layers.
+- Keeping a canvas shade (`brush/BrushColour`, `CanvasEntityMixin`; needs PolyDecorations): an RGB dye paints a
+  random one of its colours on a canvas each time, so a brush can keep one. Right-click a canvas pixel with a plain
+  vanilla brush and it copies that pixel's exact shade. A coloured brush
+  paints that shade back, one pixel at a time; sneak-click a pixel to copy another, or sneak-click anything that
+  is not a canvas to clear it. A coloured brush in the offhand, under a brush in the main hand, paints 3x3, like a
+  dye there does. With a brush in each hand, a click copies onto the offhand one, as the nearest canvas colour to
+  the average of the 3x3 around the pixel. Copying works on a waxed canvas too, as it changes nothing. Only the
+  canvas's palette (the map's 64 colours at four brightnesses) can be copied. The colour is the brush's
+  `dyed_color`, which vanilla ignores on a brush; a vanilla client is sent a coloured brush with
+  `moredyes:canvas_brush` as its item model (`BrushColour.MODEL`), vanilla's with the bristles as a second layer
+  tinted by it like dyed leather (the hand-drawn mask is `textures/item/canvas_brush_tip.png`; datagen writes the
+  models and item definition). Nothing else is sent.
 - Dyes come from flowers: a sniffer digs up a Cerose, a Laser Violet or an RGBouquet beside vanilla's
   torchflower seeds (`ModFlower`; colors.json's `flower` names it), and each crafts into its dye.
 
@@ -190,6 +202,7 @@ metacraft.moredyes.content.item     ColoredBlockItem, ModDyeItem, ModBundleItem,
 metacraft.moredyes.sheep            SheepColors (attachment + events), SheepOverlay, SheepWoolRig
 metacraft.moredyes.banner           BannerPatterns (derive + tint, coloured banners, the loom's layer cap
                                     and client view)
+metacraft.moredyes.brush            BrushColour (a vanilla brush holding a sampled canvas shade)
 metacraft.moredyes.mixin            Sheep shear/colour/breeding, Mob death loot, RegistryLoadTask
 ```
 

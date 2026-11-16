@@ -19,6 +19,9 @@ Right-click the hanging canvas with:
 ### Body:
 Hold a <citem 'minecraft:brush'> in your main hand and the dye or tool in your off hand to paint a 3×3 area at once. At a canvas's edge the brush carries on onto the canvas next to it, if that one hangs the same way. Hit a canvas to take it down; the picture stays on the item.
 
+### Header: Keeping a shade
+Right-click a canvas with a <citem 'minecraft:brush'> to copy a pixel's exact colour onto it, handy for the random colours of RGB dye. The coloured brush paints that shade back. Sneak and right-click a pixel to pick another one, or sneak and right-click anything else to wipe the colour. A coloured brush in your off hand paints 3×3 with it.
+
 ### Header: Finishing touches
 Craft the canvas together with:
 - <citem 'minecraft:honeycomb'> to <bold>wax</bold> it, so nobody can paint on it any more;
