@@ -1722,7 +1722,7 @@ OVVAR.panel.exportToRepo = function () {
       form: {
         written: {type: 'info', text: files.join('\n')},
         paste: {type: 'info', text: lines.length
-          ? 'Add to the ALL list in Patches.java, last (a design’s instant code is its position):\n\n' + lines.join('\n')
+          ? 'Add a line anywhere in Patches.ALL and put the id in PatchLoot.LOOT or NON_LOOT; droppable (LOOT) patches get the instant slots automatically.\n\n' + lines.join('\n')
           : 'No new catalogue entries — only art was redrawn.'},
         next: {type: 'info', text: 'Then, in the checkout: re-run ./gradlew :mods:ovvar:runDatagen, '
           + 'and commit the new art under mods/ovvar/src/main/resources/art/ovvar/patches/ together '

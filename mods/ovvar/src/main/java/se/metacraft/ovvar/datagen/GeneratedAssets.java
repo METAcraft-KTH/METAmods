@@ -278,7 +278,7 @@ public final class GeneratedAssets implements DataProvider {
 		boolean[][] taken = new boolean[LIBRARY_W][LIBRARY_H];
 		List<Patches.Art> catalogue = new ArrayList<>();
 		for (Patches.Patch patch : Patches.all()) {
-			if (Patches.code(patch) > Looks.INSTANT_DESIGNS) continue;   // never in the dye colour: no library entry
+			if (!Looks.instant(patch)) continue;   // never in the dye colour: no library entry (the spare codes stay empty)
 			for (Patches.Fit fit : Patches.Fit.values()) {
 				Patches.Art variant = Patches.artFor(patch, fit);
 				if (!catalogue.contains(variant)) catalogue.add(variant);
@@ -305,7 +305,7 @@ public final class GeneratedAssets implements DataProvider {
 			require(Patches.Fit.values().length * FIT_SLOTS <= TABLE_SIZE, "the design tables hold " + TABLE_SIZE / FIT_SLOTS + " fits, not " + Patches.Fit.values().length);
 			Tex tex = Tex.blank(W, H).with(MARKER_KIND_X, MARKER_Y, rgb(KIND_PREVIEW, cells.size(), Looks.INSTANT_DESIGNS));
 			for (Patches.Patch patch : Patches.all()) {
-				if (Patches.code(patch) > Looks.INSTANT_DESIGNS) continue;
+				if (!Looks.instant(patch)) continue;   // no row: a spare code's stays empty
 				int design = Patches.code(patch) - 1;
 				for (Patches.Fit fit : Patches.Fit.values()) {
 					Patches.Art variant = Patches.artFor(patch, fit);

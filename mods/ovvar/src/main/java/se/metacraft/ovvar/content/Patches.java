@@ -6,9 +6,11 @@ import com.mojang.serialization.JavaOps;
 import org.jspecify.annotations.Nullable;
 import se.metacraft.ovvar.Ovvar;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -18,10 +20,11 @@ import java.util.stream.Collectors;
  * is two cells wide and goes across the seat only, where it may be taller than the cells
  * ({@link #SEAT_HEIGHT_MAX}) and hang onto the cloth below and above them. Adding a patch is one
  * line here plus its PNG at
- * {@code art/ovvar/patches/<id>.png}, then {@code runDatagen}. The first
- * {@value Looks#INSTANT_DESIGNS} cell-sized ones can ride in the dye colour (sewn ones show at once);
- * bigger ones and later ones always go through the pack. Items store patches by id, so the order
- * is otherwise free.
+ * {@code art/ovvar/patches/<id>.png}, its id in {@link PatchLoot#LOOT} or {@link PatchLoot#NON_LOOT},
+ * then {@code runDatagen}. The line can go anywhere: items, wardrobes and combos store patches by
+ * id, and the design codes the dye colour carries are derived ({@link #byCode}): the droppable
+ * patches first, so every one of them shows the moment it is sewn, then the rest, which go through
+ * the pack.
  *
  * <p><b>Per-size art.</b> A patch may ship more than one PNG: the default above, plus any number of
  * {@code <id>_<w>x<h>.png} beside it — art drawn again at a size that suits a particular place,
@@ -268,8 +271,8 @@ public final class Patches {
 			Patch.seat("rivals", "METAcraft Rivals '26"),   // across the seat
 			new Patch("it", "IT", 12, 12).by("Cactooz"),
 			new Patch("data", "Data", 12, 12),
-			// Hugo/Cactooz's set, and Mackan's maid dress. New entries go last: a design's instant code
-			// is its position here, so inserting one in the middle would repaint everything already sewn.
+			// Hugo/Cactooz's set, and Mackan's maid dress. The order here is the catalogue's (creative
+			// tab, stash, /ovvar give all); the dye colour's design codes are derived from it ({@link #byCode}).
 			new Patch("spiken", "Spiken", 12, 12).by("Cactooz"),
 			new Patch("slaggan", "Släggan", 12, 12).by("Cactooz"),   // the file is slaggan.png: a resource id is [a-z0-9_.-]
 			new Patch("ticket_to_my_heart", "Ticket to my heart", 12, 12).by("Måns"),   // his 12×12 redraw replaced Cactooz's 9×6
@@ -277,7 +280,7 @@ public final class Patches {
 			// Taller than the seat's own row: a texel of the rails hangs onto the cloth below it.
 			Patch.seat("pung", "Pung", 16, 10),
 			// The set Ainrave drew. The display names are placeholders; the ids are not, since a stored
-			// design names its patches by id. New entries go last, for the reason given above.
+			// design names its patches by id.
 			new Patch("in", "IN", 12, 12).by("Ainrave"),
 			new Patch("in_gold", "IN (gold)", 16, 16).by("Ainrave"),   // drawn only at 16x16: the 12 is scaled from it
 			new Patch("nyckeln0x0", "Nyckeln 0x0", 12, 12).by("Ainrave"),
@@ -286,18 +289,18 @@ public final class Patches {
 			new Patch("kommn", "KomMN", 12, 8).by("Ainrave"),   // drawn 12x8 on a 12x12 canvas; also 16x10
 			// Måns's set, each drawn at 12 and 16 so nothing is generated for them; Spiken, Släggan and the
 			// ticket got their 16 in the same batch. Display names are placeholders until somebody says
-			// otherwise; the ids are not. New entries go last, for the reason given above.
+			// otherwise; the ids are not.
 			new Patch("jgs", "JGS", 12, 12),
 			new Patch("tmeit", "TMEIT", 12, 12),
 			new Patch("tmeit-marshal", "TMEIT Marshal", 12, 12),   // a resource id is [a-z0-9_.-], so the hyphen stays
-			// Ainrave's Data pack (ain-data-patch-pack), drawn at 12. New entries go last, for the reason given above.
+			// Ainrave's Data pack (ain-data-patch-pack), drawn at 12.
 			new Patch("batata", "Batata", 12, 12).by("Ainrave"),
 			new Patch("batato", "Batato", 12, 12).by("Ainrave"),
 			new Patch("batatu", "Batatu", 12, 12).by("Ainrave"),
 			new Patch("cerise", "Cerise", 12, 12).by("Ainrave"),
 			new Patch("playboy-pikachu", "Playboy Pikachu", 12, 12).by("Ainrave"),
 			new Patch("starkt", "Starkt", 12, 12).by("Ainrave"),
-			// Millia's set, each drawn at 12 and 16. Display names are placeholders; the ids are not. New entries go last.
+			// Millia's set, each drawn at 12 and 16. Display names are placeholders; the ids are not.
 			new Patch("data_neko", "Data Neko", 12, 12).by("Millia"),
 			new Patch("kth", "KTH", 12, 12).by("Millia"),
 			new Patch("media_neko", "Media Neko", 12, 12).by("Millia"),
@@ -305,6 +308,8 @@ public final class Patches {
 			new Patch("metacraft", "METAcraft", 12, 12).by("Millia"),
 			new Patch("metacrew", "METAcrew", 12, 12).by("Millia")
 	);
+
+	private static final List<Patch> BY_CODE = designOrder(ALL, PatchLoot.LOOT);
 
 	private static final Map<String, Patch> BY_ID = ALL.stream()
 			.collect(Collectors.toMap(Patch::id, p -> p, (a, b) -> { throw new IllegalStateException("duplicate patch id " + a.id()); }, LinkedHashMap::new));
@@ -327,9 +332,31 @@ public final class Patches {
 		return ALL;
 	}
 
-	/** index + 1, what the preview bits carry. */
+	/**
+	 * The order design codes are given in: the patches in {@code loot}, in {@code all}'s order, then
+	 * the rest, in {@code all}'s order. Codes 1..{@value Looks#INSTANT_DESIGNS} are the ones the dye
+	 * colour can carry, so this is what puts every droppable patch there ({@link PatchLoot#check}
+	 * makes sure they fit) and lets a new loot patch take a spare code wherever its line is.
+	 */
+	public static List<Patch> designOrder(List<Patch> all, Set<String> loot) {
+		List<Patch> out = new ArrayList<>(all.size());
+		for (Patch patch : all) if (loot.contains(patch.id())) out.add(patch);
+		for (Patch patch : all) if (!loot.contains(patch.id())) out.add(patch);
+		return List.copyOf(out);
+	}
+
+	/** The catalogue in design-code order: {@link #designOrder} of it and {@link PatchLoot#LOOT}. */
+	public static List<Patch> byCode() {
+		return BY_CODE;
+	}
+
+	/**
+	 * 1 + the index in {@link #byCode}, what the preview bits carry. Never stored (the dye colour is
+	 * worked out per packet, and the pack's tables come from the same build), so re-deriving it
+	 * repaints nothing already sewn.
+	 */
 	public static int code(Patch patch) {
-		return ALL.indexOf(patch) + 1;
+		return BY_CODE.indexOf(patch) + 1;
 	}
 
 	/** Never null: an id that is not in the catalogue is a bug (a removed entry, a typo in a command), not a state. */

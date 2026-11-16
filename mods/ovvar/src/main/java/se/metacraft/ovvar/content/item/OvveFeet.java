@@ -6,6 +6,7 @@ import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import se.metacraft.ovvar.compat.danse.DanseHooks;
 import se.metacraft.ovvar.pack.EquipmentJson;
 import se.metacraft.ovvar.content.Looks;
+import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.ModComponents;
 import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.Piece;
@@ -21,6 +22,7 @@ import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Unit;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -168,7 +170,8 @@ public final class OvveFeet {
 		ALIVE.clear();
 	}
 
-	private static ItemStack cuffsFor(ItemStack ovve) {
+	/** The virtual cuffs standing in for an empty feet slot under this ovve: its patches, and a mob's marker. */
+	public static ItemStack cuffsFor(ItemStack ovve) {
 		OvveItem item = (OvveItem) ovve.getItem();
 		ItemStack cuffs = new ItemStack(ModContent.feet(item.chapter));
 		SpotPlacements patches = ovve.get(ModComponents.PATCHES);
@@ -176,6 +179,7 @@ public final class OvveFeet {
 		Placement preview = ovve.get(ModComponents.PREVIEW);
 		if (preview != null) cuffs.set(ModComponents.PREVIEW, preview);
 		cuffs.set(ModComponents.FEET_CHANNEL, true);
+		if (MobOvvar.is(ovve)) cuffs.set(ModComponents.MOB_OVVE, Unit.INSTANCE);   // a mob's cuffs queue no combo either
 		if (Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) cuffs.set(ModComponents.ON_STAND, true);
 		return cuffs;
 	}

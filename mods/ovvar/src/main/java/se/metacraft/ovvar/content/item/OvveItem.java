@@ -3,6 +3,7 @@ package se.metacraft.ovvar.content.item;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.OvvarConfig;
+import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.store.DesignStoreConfig;
 import se.metacraft.ovvar.store.Wardrobe;
 import se.metacraft.ovvar.store.Wardrobes;
@@ -219,6 +220,12 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 	@Override
 	public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
 		if (entity instanceof ServerPlayer player) {
+			// A mob's garment never reaches a player; one that somehow did is gone.
+			if (MobOvvar.is(stack)) {
+				Ovvar.LOGGER.debug("[ovvar] removed a mob's garment from {}", player.getGameProfile().name());
+				stack.setCount(0);
+				return;
+			}
 			// Off a stand and into a player's hands: the armour draws the patches again, and if
 			// this player's pack cannot show them all, this is the one reload a sewing session ends in.
 			if (stack.has(ModComponents.ON_STAND)) stack.remove(ModComponents.ON_STAND);

@@ -6,6 +6,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 
+import se.metacraft.ovvar.Ovvar;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -85,6 +87,24 @@ public final class FileBackend implements WardrobeBackend {
 					out.add(UUID.fromString(name.substring(0, name.length() - ".json".length())));
 				} catch (IllegalArgumentException ignored) {
 					// not a wardrobe
+				}
+			}
+		}
+		return out;
+	}
+
+	@Override
+	public List<Wardrobe> all() throws IOException {
+		if (!Files.isDirectory(dir)) return List.of();
+		List<Wardrobe> out = new ArrayList<>();
+		try (Stream<Path> files = Files.list(dir)) {
+			for (Path path : (Iterable<Path>) files::iterator) {
+				if (!path.getFileName().toString().endsWith(".json")) continue;
+				try {
+					Wardrobe wardrobe = read(path);
+					if (wardrobe != null) out.add(wardrobe);
+				} catch (IOException e) {
+					Ovvar.LOGGER.warn("[ovvar] wardrobes: skipping unreadable {}: {}", path, e.getMessage());
 				}
 			}
 		}

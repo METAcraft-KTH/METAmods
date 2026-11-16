@@ -29,7 +29,8 @@
 			"se.metacraft.ovvar.gametest.WardrobeTests",
 			"se.metacraft.ovvar.gametest.BlockbenchManifestTests",
 			"se.metacraft.ovvar.gametest.PatchAcquiringTests",
-			"se.metacraft.ovvar.gametest.ShaderLayoutTests"
+			"se.metacraft.ovvar.gametest.ShaderLayoutTests",
+			"se.metacraft.ovvar.gametest.MobOvvarTests"
 		],
 		"fabric-datagen": [
 			"se.metacraft.ovvar.datagen.OvvarDataGenerator"

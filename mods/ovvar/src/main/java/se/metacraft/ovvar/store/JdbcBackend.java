@@ -12,6 +12,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -92,6 +94,25 @@ public final class JdbcBackend implements WardrobeBackend {
 				if (!rows.next()) return Optional.empty();
 				return Optional.of(decode(rows.getString(2)).withVersion(rows.getLong(1)));
 			}
+		} catch (SQLException e) {
+			closeQuietly();
+			throw new IOException("wardrobe store: " + e.getMessage(), e);
+		}
+	}
+
+	@Override
+	public List<Wardrobe> all() throws IOException {
+		try (PreparedStatement statement = prepare("SELECT version, data FROM " + table);
+				ResultSet rows = statement.executeQuery()) {
+			List<Wardrobe> out = new ArrayList<>();
+			while (rows.next()) {
+				try {
+					out.add(decode(rows.getString(2)).withVersion(rows.getLong(1)));
+				} catch (IOException e) {
+					Ovvar.LOGGER.warn("[ovvar] wardrobes: skipping an undecodable row: {}", e.getMessage());
+				}
+			}
+			return out;
 		} catch (SQLException e) {
 			closeQuietly();
 			throw new IOException("wardrobe store: " + e.getMessage(), e);

@@ -2,6 +2,7 @@ package se.metacraft.ovvar.store;
 
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.OvvarConfig;
+import se.metacraft.ovvar.content.SpotPlacements;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -10,6 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -23,6 +25,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
@@ -120,6 +125,33 @@ public final class Wardrobes {
 	}
 
 	// ---- reading
+
+	/**
+	 * Every design of every chapter in every stored wardrobe, read on the store's own thread and
+	 * waited for up to {@code timeout} (startup only: this blocks the caller). On a timeout, an
+	 * IOException or a backend that cannot list its wardrobes it logs one warning and returns what
+	 * it has, or nothing. Never throws.
+	 */
+	public static List<SpotPlacements> storedDesigns(Duration timeout) {
+		List<SpotPlacements> out = new ArrayList<>();
+		try {
+			if (!available()) return out;
+			WardrobeBackend b = backend;
+			Future<List<Wardrobe>> all = executor.submit(b::all);
+			try {
+				for (Wardrobe wardrobe : all.get(timeout.toMillis(), TimeUnit.MILLISECONDS)) out.addAll(wardrobe.designs().values());
+			} catch (TimeoutException e) {
+				all.cancel(true);   // only interrupts: a JDBC read that ignores interrupts can still hold the single store thread (the driver's query timeout is the real bound)
+				Ovvar.LOGGER.warn("[ovvar] wardrobes: listing stored designs took over {} s; gave up waiting and interrupted the read, combinations are built as they are sewn", timeout.toSeconds());
+			}
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			Ovvar.LOGGER.warn("[ovvar] wardrobes: interrupted while listing stored designs");
+		} catch (Exception e) {
+			Ovvar.LOGGER.warn("[ovvar] wardrobes: could not list stored designs ({}); combinations are built as they are sewn", String.valueOf(e.getCause() != null ? e.getCause() : e));
+		}
+		return out;
+	}
 
 	public static boolean loaded(UUID owner) {
 		return CACHE.containsKey(owner);

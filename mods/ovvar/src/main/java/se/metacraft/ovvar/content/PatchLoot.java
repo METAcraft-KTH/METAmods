@@ -16,6 +16,11 @@ import java.util.Set;
  * it has to be put in one of them. Loot may turn up, one at a time, in a vanilla structure's chest
  * or a Structory one; the rest are crafted ({@code data/ovvar/recipe}) or only ever given.
  *
+ * <p>Loot is also what the dye colour names: a droppable patch can turn up on anyone, so it must
+ * show the moment it is sewn, without a pack reload. {@link Patches#byCode} gives {@link #LOOT}
+ * the first design codes, and {@link #check} fails startup and datagen if it ever outgrows the
+ * {@value Looks#INSTANT_DESIGNS} the dye colour has room for.
+ *
  * <p>Added to the tables as they load rather than shipped as copies of them, so a datapack or
  * another mod that changes a chest's loot keeps its change, and Structory's tables only get a pool
  * when Structory is there to load them.
@@ -23,7 +28,8 @@ import java.util.Set;
 public final class PatchLoot {
 	private PatchLoot() {}
 
-	/** The patches structure chests hold. */
+	// Moving a patch out of LOOT later makes it vanish from persistent mobs garments: they never request combos.
+	/** The patches structure chests hold, and the instant ones (see the class comment). */
 	public static final Set<String> LOOT = Set.of(
 			"spiken", "slaggan", "ticket_to_my_heart", "maid", "pung",
 			"in_gold", "nyckeln0x0", "nyckeln0x1", "nyckeln0x2",
@@ -56,8 +62,11 @@ public final class PatchLoot {
 		});
 	}
 
-	/** Every patch in exactly one of the two sets, and no id in them that isn't a patch. A startup check, not a gameplay one. */
-	static void check() {
+	/**
+	 * Every patch in exactly one of the two sets, no id in them that isn't a patch, and room in the
+	 * dye colour for every loot patch. A startup and datagen check, not a gameplay one.
+	 */
+	public static void check() {
 		for (Patches.Patch patch : Patches.all()) {
 			boolean loot = LOOT.contains(patch.id()), nonLoot = NON_LOOT.contains(patch.id());
 			if (loot == nonLoot) {
@@ -67,6 +76,15 @@ public final class PatchLoot {
 		}
 		for (String id : Sets.union(LOOT, NON_LOOT)) {
 			if (!Patches.exists(id)) throw new IllegalStateException("[ovvar] PatchLoot names '" + id + "', which is not a patch");
+		}
+		checkInstantRoom(LOOT.size());
+	}
+
+	/** {@code lootCount} loot patches must all fit among the dye colour's instant designs. */
+	public static void checkInstantRoom(int lootCount) {
+		if (lootCount > Looks.INSTANT_DESIGNS) {
+			throw new IllegalStateException("[ovvar] PatchLoot.LOOT has " + lootCount + " patches but the dye colour has room for "
+					+ Looks.INSTANT_DESIGNS + " instant designs: every droppable patch must show at once. Free a slot (fewer top cells) or move a patch to NON_LOOT.");
 		}
 	}
 

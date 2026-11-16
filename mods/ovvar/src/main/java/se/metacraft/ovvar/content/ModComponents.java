@@ -10,6 +10,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Unit;
 import se.metacraft.ovvar.sewing.StandDisplays;
 import se.metacraft.ovvar.sewing.StashSession;
 
@@ -77,6 +78,10 @@ public final class ModComponents {
 	public static final DataComponentType<String> FLAT = register("flat",
 			DataComponentType.<String>builder().networkSynchronized(ByteBufCodecs.STRING_UTF8));
 
+	/** On a mob's own ovve or frack: never dropped, never a player's, its look never builds a combo. */
+	public static final DataComponentType<Unit> MOB_OVVE = register("mob_ovve",
+			DataComponentType.<Unit>builder().persistent(Unit.CODEC));
+
 	private static <T> DataComponentType<T> register(String name, DataComponentType.Builder<T> builder) {
 		return Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, name), builder.build());
 	}
@@ -84,6 +89,6 @@ public final class ModComponents {
 	public static void init() {
 		// Registered types land in a synced registry; without this Fabric's registry sync kicks
 		// vanilla clients ("requires Fabric Loader"). Polymer hides them and never sends them.
-		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT);
+		PolymerComponent.registerDataComponent(PATCHES, PREVIEW, TOP_UP, FEET_CHANNEL, WRAPPED, WRAPPED_TOP, ON_STAND, OWNER, SESSION, FLAT, MOB_OVVE);
 	}
 }

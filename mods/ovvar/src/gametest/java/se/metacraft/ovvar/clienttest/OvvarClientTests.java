@@ -98,7 +98,13 @@ public final class OvvarClientTests implements FabricClientGameTest {
 					OvveItem.wear(f, frack);
 					level.addFreshEntity(f);
 				});
-				acceptResourcePack(ctx);   // the current system may push a rebuilt pack for the fourth patch
+				// ITK and IT are not loot, so not instant: on the ovve and the frack they show only once the
+				// pack holds the combos. Tester asks for it himself (a mannequin never claims a push), after
+				// the mannequins' equipment has gone out and so queued their combos.
+				conn.waitForClientboundPackets();
+				ctx.waitTicks(20);
+				ClientTestSupport.reloadPackAndWait(ctx, () -> server.runCommand("execute as Tester run ovvar reload"),
+						"the pack with the ovve's and the frack's combos");
 				server.runCommand("tp Tester 0.5 -60 0.5 0 0");   // look south (+Z, yaw 0) straight at the mannequin
 				ctx.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
 				conn.waitForClientboundPackets();
@@ -159,21 +165,22 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				// Instant patches: sewn after the client loaded its pack and on mannequins, which never
 				// claim a pack push, so whatever these show rides in the dye colour. Each ovve is worn
 				// twice, one facing the camera and one turned away (east of the scene above, 6 blocks
-				// apart). A: ITK on the chest (its 12x12), Data on a back-top cell, Cerise (design 22) on
-				// the left sleeve; Rivals on the seat and IT on the left leg. B: ITK on the big back cell
-				// (its 16x16) with Playboy Pikachu (design 23) on a back-top cell over it, and Starkt
-				// (design 24, past what the dye colour names; a sleeve, so no trim either) on the left
-				// sleeve, where it must not show until the pack has it.
+				// apart). Only loot patches are instant, so the probes are loot ones. A: Nyckeln 0x0
+				// (design 7, its 12x12) on the chest, JGS (10) on a back-top cell, Cerise (15) on the left
+				// sleeve; Pung (5) on the seat and TMEIT (11) on the left leg. B: Nyckeln 0x0 on the big back
+				// cell (its 16x16) with Playboy Pikachu (16) on a back-top cell over it, and METAcrew
+				// (given, past what the dye colour names; a sleeve, so no trim either) on the left sleeve,
+				// where it must not show until the pack has it.
 				List<Placement> sewnA = List.of(
-						new Placement(Spot.FRONT_TOP_LEFT, Patches.get("itk")),
-						new Placement(Spot.BACK_TOP_RIGHT, Patches.get("data")),
+						new Placement(Spot.FRONT_TOP_LEFT, Patches.get("nyckeln0x0")),
+						new Placement(Spot.BACK_TOP_RIGHT, Patches.get("jgs")),
 						new Placement(Spot.SLEEVE_FRONT_TOP_L, Patches.get("cerise")),
-						new Placement(Spot.SEAT, Patches.get("rivals")),
-						new Placement(Spot.LEG_FRONT_TOP_L, Patches.get("it")));
+						new Placement(Spot.SEAT, Patches.get("pung")),
+						new Placement(Spot.LEG_FRONT_TOP_L, Patches.get("tmeit")));
 				List<Placement> sewnB = List.of(
-						new Placement(Spot.BACK_BIG, Patches.get("itk")),
+						new Placement(Spot.BACK_BIG, Patches.get("nyckeln0x0")),
 						new Placement(Spot.BACK_TOP_LEFT, Patches.get("playboy-pikachu")),
-						new Placement(Spot.SLEEVE_FRONT_TOP_L, Patches.get("starkt")));
+						new Placement(Spot.SLEEVE_FRONT_TOP_L, Patches.get("metacrew")));
 				server.runOnServer(mc -> {
 					ServerLevel level = mc.getPlayerList().getPlayers().getFirst().level();
 					instantMannequin(level, 6.5, 180, sewnA);
@@ -190,11 +197,11 @@ public final class OvvarClientTests implements FabricClientGameTest {
 					}
 				}));
 				BufferedImage aFront = instantShot(ctx, server, conn, "instant_a_front", "tp Tester 6.5 -60 0.5 0 0");
-				assertPresent(aFront, Region.subjectBox(aFront), "itk (green) on the instant chest", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
+				assertPresent(aFront, Region.subjectBox(aFront), "nyckeln0x0 (green) on the instant chest", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
 				instantShot(ctx, server, conn, "instant_a_back", "tp Tester 12.5 -60 0.5 0 0");
 				instantShot(ctx, server, conn, "instant_b_front", "tp Tester 18.5 -60 0.5 0 0");
 				BufferedImage bBack = instantShot(ctx, server, conn, "instant_b_back", "tp Tester 24.5 -60 0.5 0 0");
-				assertPresent(bBack, Region.subjectBox(bBack), "itk (green) on the instant big back cell", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
+				assertPresent(bBack, Region.subjectBox(bBack), "nyckeln0x0 (green) on the instant big back cell", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
 				// From straight above A: the arms' top faces carry no cell, so they show plain cloth.
 				server.runCommand("gamemode spectator Tester");
 				instantShot(ctx, server, conn, "instant_a_above", "tp Tester 6.5 -57.2 3.5 0 90");

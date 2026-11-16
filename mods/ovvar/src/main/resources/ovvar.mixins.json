@@ -6,6 +6,8 @@
 		"CompanionCursorMixin",
 		"CustomClickMixin",
 		"ForeignOvveMixin",
+		"MobOvvarMixin",
+		"PiglinOvvarMixin",
 		"ResourcePackResponseMixin"
 	],
 	"injectors": {

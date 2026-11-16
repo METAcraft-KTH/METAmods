@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Unit;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -20,6 +21,7 @@ import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import se.metacraft.ovvar.pack.Trims;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
+import se.metacraft.ovvar.content.MobOvvar;
 import se.metacraft.ovvar.content.ModComponents;
 import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.Piece;
@@ -172,6 +174,7 @@ public final class OvveTop {
 		if (patches != null) top.set(ModComponents.PATCHES, patches);
 		Placement preview = ovve.get(ModComponents.PREVIEW);
 		if (preview != null) top.set(ModComponents.PREVIEW, preview);
+		if (MobOvvar.is(ovve)) top.set(ModComponents.MOB_OVVE, Unit.INSTANCE);   // a mob's top queues no combo either
 		if (Boolean.TRUE.equals(ovve.get(ModComponents.ON_STAND))) top.set(ModComponents.ON_STAND, true);   // its patches are display entities too
 		return top;
 	}

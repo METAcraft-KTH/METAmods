@@ -17,6 +17,26 @@ final class ClientTestSupport {
 	}
 
 	/**
+	 * Runs {@code ask} (something the player does to be sent a newer pack, such as
+	 * {@code /ovvar reload}) and waits until a pack the server pushed after it has been applied: a
+	 * client reload that started after that push has succeeded (ServerPackActivity, counted by
+	 * ServerPackAppliedMixin). Then the usual {@link #acceptResourcePack} settle. Fails with a clear
+	 * message if no new pack is applied within two minutes.
+	 */
+	static void reloadPackAndWait(ClientGameTestContext ctx, Runnable ask, String what) {
+		long before = ServerPackActivity.pushes();   // atomic: readable from the test thread
+		ask.run();
+		try {
+			ctx.waitFor(client -> ServerPackActivity.pushes() > before && ServerPackActivity.applied() > before, 20 * 120);
+		} catch (RuntimeException e) {
+			throw new AssertionError(what + ": no new server pack was applied within 120 s (pushes " + before + " -> "
+					+ ServerPackActivity.pushes() + ", applied up to " + ServerPackActivity.applied() + ")", e);
+		}
+		System.out.println("[ovvar-clienttest] " + what + ": applied server pack " + ServerPackActivity.lastHash());
+		acceptResourcePack(ctx);
+	}
+
+	/**
 	 * The unpatched-shaderpack checker is #FF00FF and black. Vanilla must never show it: in the box
 	 * (clamped to the image) at most 0.2% of the pixels may be within 40 per channel of magenta.
 	 */

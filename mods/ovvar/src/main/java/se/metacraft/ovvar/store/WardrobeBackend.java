@@ -1,6 +1,7 @@
 package se.metacraft.ovvar.store;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,6 +21,11 @@ public interface WardrobeBackend {
 	 * @return false if the store held a different version, in which case nothing was written
 	 */
 	boolean store(UUID owner, Wardrobe next, long expectedVersion) throws IOException;
+
+	/** Every stored wardrobe, for the startup pre-build. Backends that cannot list theirs leave this. */
+	default List<Wardrobe> all() throws IOException {
+		throw new UnsupportedOperationException(describe() + " cannot list its wardrobes");
+	}
 
 	/** For the status command. */
 	String describe();
