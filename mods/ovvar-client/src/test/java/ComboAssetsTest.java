@@ -59,11 +59,17 @@ public class ComboAssetsTest {
 	@Test
 	void everyGoldenCombinationBuildsByteForByteFromItsName() throws IOException {
 		Map<String, JsonElement> goldens = goldens();
-		Set<String> chapters = new HashSet<>();
+		Set<String> chapters = new HashSet<>(), chestChapters = new HashSet<>(), materials = new HashSet<>();
 		boolean frack = false, rolled = false, seat = false, overlap = false;
 		for (Map.Entry<String, JsonElement> golden : goldens.entrySet()) {
 			String path = assetPath(golden.getKey());
 			assertEquals(Optional.of(golden.getValue().getAsString()), ComboAssets.jsonFor(path), path);
+			if (path.startsWith(ComboAssets.CHEST + "/")) {
+				String[] parts = path.split("/");
+				chestChapters.add(parts[1]);
+				materials.add(parts[2]);
+				continue;
+			}
 			chapters.add(path.substring(0, path.indexOf('/')));
 			frack |= path.startsWith("media/") || path.startsWith("b/");
 			rolled |= path.contains("_nercabbad/");
@@ -72,6 +78,22 @@ public class ComboAssetsTest {
 		}
 		assertTrue(chapters.size() >= 18, "the goldens cover only " + chapters);
 		assertTrue(frack && rolled && seat && overlap, "the goldens miss a case: frack " + frack + ", rolled " + rolled + ", seat " + seat + ", overlap " + overlap);
+		// the chestplate wrap with patches: every material the server composites, on every chapter with a top
+		assertEquals(Set.of("chainmail", "copper", "diamond", "gold", "iron", "netherite"), materials, "the goldens' chestplate wraps");
+		assertTrue(chestChapters.size() >= 17, "the goldens' chestplate wraps cover only " + chestChapters);
+	}
+
+	/** A chestplate wrap with patches: the top's cloth and patches and its preview, then the chestplate on top. */
+	@Test
+	void aChestplateWrapWithPatchesIsTheTopsCombinationUnderTheArmour() {
+		String json = ComboAssets.jsonFor("chest/data/iron/back_top_left.tmeit-marshal-back_big.kth").orElseThrow();
+		List<String> textures = new java.util.ArrayList<>();
+		for (JsonElement layer : JsonParser.parseString(json).getAsJsonObject().getAsJsonObject("layers").getAsJsonArray("humanoid")) {
+			textures.add(layer.getAsJsonObject().get("texture").getAsString() + (layer.getAsJsonObject().has("dyeable") ? " (dyed)" : ""));
+		}
+		assertEquals(List.of("ovvar:data/top", "ovvar:patch/back_big/kth", "ovvar:patch/back_top_left/tmeit-marshal", "ovvar:patch/preview_top (dyed)", "minecraft:iron"), textures);
+		assertEquals("chest/data/iron/back_big.kth", ComboAssets.chestPath("data", "iron", "back_big.kth"));
+		assertEquals("chest/data/iron", ComboAssets.chestPath("data", "iron", ""));
 	}
 
 	/** And the definition parses into what the client draws: one layer per texture, the preview dyeable. */
@@ -90,7 +112,9 @@ public class ComboAssetsTest {
 	void namesThatAreNotCombinationsBuildNothing() {
 		for (String path : List.of("data/top", "feet/iron", "chest/data/iron", "data/top/", "data/top_nercabbad/front_top_left.itk",
 				"data/bottom/front_top_left.itk", "data/top/front_top_left", "data/top/front_top_left.", "data/top/.itk",
-				"data/top/no_such_cell.itk", "/top/front_top_left.itk", "data/top/front_top_left.itk/x", "data/sleeve/front_top_left.itk")) {
+				"data/top/no_such_cell.itk", "/top/front_top_left.itk", "data/top/front_top_left.itk/x", "data/sleeve/front_top_left.itk",
+				"chest/data/iron/leg_out_top_r.itk", "chest/data/iron/", "chest//iron/front_top_left.itk", "chest/data//front_top_left.itk",
+				"chest/data/iron/front_top_left.itk/x", "chest/data/iron/no_such_cell.itk", "chests/data/iron/front_top_left.itk", "data/chest/iron/front_top_left.itk")) {
 			assertEquals(Optional.empty(), ComboAssets.jsonFor(path), path);
 		}
 	}
@@ -106,6 +130,18 @@ public class ComboAssetsTest {
 		EquipmentClientInfo built = ClientCombos.buildOrFallBack(key("data/top/front_top_left.itk"), loaded);
 		assertNotSame(garment, built);
 		assertNotSame(EquipmentAssetManager.MISSING, built);
+	}
+
+	/** A chestplate wrap the client cannot read falls back to the wrap without patches (what a vanilla client is sent). */
+	@Test
+	void anUnreadableChestplateWrapFallsBackToTheWrapWithoutPatches() {
+		EquipmentClientInfo wrap = EquipmentClientInfo.builder().build();
+		Map<ResourceKey<EquipmentAsset>, EquipmentClientInfo> loaded = Map.of(key("chest/data/iron"), wrap);
+		assertSame(wrap, ClientCombos.buildOrFallBack(key("chest/data/iron/no_such_cell.itk"), loaded));
+		assertSame(wrap, ClientCombos.buildOrFallBack(key("chest/data/iron/leg_out_top_r.itk"), loaded));
+		assertEquals(ClientCombos.build("chest/data/iron/front_top_left.itk").orElseThrow(), ClientCombos.buildOrFallBack(key("chest/data/iron/front_top_left.itk"), loaded));
+		assertSame(EquipmentAssetManager.MISSING, ClientCombos.buildOrFallBack(key("chest/data/iron/front_top_left.itk"), Map.of()));
+		assertSame(EquipmentAssetManager.MISSING, ClientCombos.buildOrFallBack(key("chest/data/gold/front_top_left.itk"), loaded));
 	}
 
 	/** Without the server's Polymer pack (the garment is not loaded) nothing is built: the textures would be missing. */
@@ -132,6 +168,21 @@ public class ComboAssetsTest {
 		assertSame(built, manager.get(key("data/top/front_top_left.itk")));
 		assertSame(EquipmentAssetManager.MISSING, manager.get(ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath("minecraft", "data/top/front_top_left.itk"))));
 		assertSame(EquipmentAssetManager.MISSING, manager.get(key("feet")));
+	}
+
+	/** The mixin builds a chestplate wrap with patches too, once the wrap without them (the Polymer pack's) is loaded. */
+	@Test
+	void theAssetManagerBuildsChestplateWrapsWithPatches() throws ReflectiveOperationException {
+		EquipmentAssetManager manager = new EquipmentAssetManager();
+		Method apply = EquipmentAssetManager.class.getDeclaredMethod("apply", Map.class, ResourceManager.class, ProfilerFiller.class);
+		apply.setAccessible(true);
+		apply.invoke(manager, Map.of(Identifier.fromNamespaceAndPath("ovvar", "chest/data/copper"), EquipmentClientInfo.builder().build()), null, InactiveProfiler.INSTANCE);
+		String path = "chest/data/copper/front_top_left.itk-sleeve_out_top_l.metacraft";
+		EquipmentClientInfo built = manager.get(key(path));
+		assertEquals(ClientCombos.build(path).orElseThrow(), built);
+		assertEquals(5, built.getLayers(EquipmentClientInfo.LayerType.HUMANOID).size(), "cloth, two patches, preview, chestplate: " + built);
+		assertSame(built, manager.get(key(path)));
+		assertSame(EquipmentAssetManager.MISSING, manager.get(key("chest/data/iron/front_top_left.itk")));
 	}
 
 	/**
@@ -181,10 +232,11 @@ public class ComboAssetsTest {
 			}
 			all.append(ComboAssets.jsonFor(ComboAssets.assetPath("x", piece, false, combo.toString())).orElseThrow());
 			if (piece.equals("bottom")) all.append(ComboAssets.jsonFor(ComboAssets.assetPath("x", piece, true, combo.toString())).orElseThrow());
+			else all.append(ComboAssets.jsonFor(ComboAssets.chestPath("x", "m", combo.toString())).orElseThrow());
 		}
 		String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(all.toString().getBytes(StandardCharsets.UTF_8)));
-		assertEquals(1, ComboAssets.PROTOCOL);
-		assertEquals("fcd61991145ead6c1078e16a5c1c22dd21893a4d", hash, "the combination recipe changed: bump ComboAssets.PROTOCOL and pin the new hash");
-		assertEquals("draws_combos/v1", ComboAssets.CHANNEL_PATH);
+		assertEquals(2, ComboAssets.PROTOCOL);
+		assertEquals("0b2d4e730066c1c746ab4f0095ef85e8780747df", hash, "the combination recipe changed: bump ComboAssets.PROTOCOL and pin the new hash");
+		assertEquals("draws_combos/v2", ComboAssets.CHANNEL_PATH);
 	}
 }

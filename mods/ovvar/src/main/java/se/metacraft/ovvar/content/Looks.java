@@ -156,6 +156,12 @@ public final class Looks {
 		return null;
 	}
 
+	/** Everything sewn on a half as one combination; none on an armour stand, where the patches are display entities. */
+	public static Combos.Combo sewnCombo(ItemStack stack, Piece piece) {
+		if (Boolean.TRUE.equals(stack.get(ModComponents.ON_STAND))) return Placement.combo(List.of());
+		return Placement.combo(SpotPlacements.asPlacementList(sewn(stack, piece)));
+	}
+
 	/** @param player who the packet is for (their pack may be older than the current one), or null */
 	public static Look look(ItemStack stack, Piece piece, UUID player) {
 		return look(stack, piece, player, true);

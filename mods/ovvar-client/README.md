@@ -20,7 +20,8 @@ Nothing here can fail startup: every error is logged (`[ovvar-client]`) and swal
 the asset's name (`ClientCombos`, a mixin on `EquipmentAssetManager.get`, only for `ovvar:` assets no pack holds),
 with the code the server builds its combination pack with (`mods/ovvar/src/combo`, compiled into both jars; this
 build moves its copy to `se.metacraft.ovvarclient.combo`), and only while the base garment from the server's Polymer
-pack is loaded. It declares `breaks: ovvar-shaderpatch`, the mod it replaced. It
+pack is loaded. That includes the top under a chestplate with every patch, `chest/<chapter>/<material>/<combo>`,
+for every chestplate material the server wraps (falling back to the plain wrap for a name it cannot read). It declares `breaks: ovvar-shaderpatch`, the mod it replaced. It
 tells the server with a handshake: a configuration-phase receiver on `ovvar:draws_combos/v<protocol>`
 (`Handshake`, nothing is ever sent on it). The server then skips the combination pack for this player, on join
 and mid-play, and sends whole combinations. The Polymer pack still comes from the server. On a server without

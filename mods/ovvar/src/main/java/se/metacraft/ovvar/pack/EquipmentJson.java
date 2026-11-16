@@ -16,6 +16,7 @@ import net.minecraft.world.item.equipment.EquipmentAsset;
 import net.minecraft.world.item.equipment.EquipmentAssets;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.item.OvveFeet;
+import se.metacraft.ovvar.content.item.OvveTop;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,9 +57,33 @@ public final class EquipmentJson {
 	 *  preview, then the chestplate's own humanoid layer on top. A vanilla chestplate's arms and neck
 	 *  are largely transparent, so the sleeves and collar of the ovve show through underneath. */
 	public static ResourceKey<EquipmentAsset> chestAsset(Chapter chapter, String material) {
-		return ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, "chest/" + chapter.id + "/" + material));
+		return chestAsset(chapter, material, new Combos.Combo(List.of()));
 	}
 
+	/**
+	 * The same wrap with the top's combination drawn too ({@link ComboAssets#chestPath}); the plain wrap for
+	 * none. A client with ovvar-client builds these from the name; the combination pack holds them for the
+	 * {@link OvveTop#PACK_MATERIALS} somebody wore over that combination ({@link Combos#requestChest}).
+	 */
+	public static ResourceKey<EquipmentAsset> chestAsset(Chapter chapter, String material, Combos.Combo combo) {
+		return ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath(Ovvar.MOD_ID, ComboAssets.chestPath(chapter.id, material, combo.key())));
+	}
+
+	/**
+	 * A wrap's definition with these top placements, as the combination pack holds it: {@link ComboAssets#chestJson},
+	 * the bytes ovvar-client builds from the name. With none it is {@link #chestJson(Chapter, String)}'s (a game
+	 * test holds the two together).
+	 */
+	public static String chestJson(Chapter chapter, String material, List<Placement> placements) {
+		return ComboAssets.chestJson(material, layerTextures(chapter, Piece.TOP, false, placements));
+	}
+
+	/** The pack path of a wrap with a combination. */
+	public static String chestPackPath(Chapter chapter, String material, Combos.Combo combo) {
+		return "assets/" + Ovvar.MOD_ID + "/equipment/" + ComboAssets.chestPath(chapter.id, material, combo.key()) + ".json";
+	}
+
+	/** The plain wrap's definition, which datagen puts in the Polymer pack: the top's cloth, its instant patches in the dye. */
 	public static String chestJson(Chapter chapter, String material) {
 		JsonArray layers = new JsonArray();
 		layers.add(layer(baseTexture(chapter, Piece.TOP, false), false));       // the ovve top fabric, underneath

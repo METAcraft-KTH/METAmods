@@ -2,6 +2,7 @@ package se.metacraft.ovvar.content.item;
 
 import com.mojang.authlib.GameProfile;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
+import se.metacraft.ovvar.pack.Combos;
 import se.metacraft.ovvar.pack.EquipmentJson;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
@@ -49,6 +50,12 @@ public final class OvveTop {
 	/** Vanilla chestplate materials we composite the ovve top under; metals only, as leather's dye is its own colour. */
 	public static final List<String> MATERIALS = OvveFeet.MATERIALS;
 	private static final Set<String> MATERIAL_SET = Set.copyOf(MATERIALS);
+	/**
+	 * The materials whose wrap with every patch the combination pack holds for vanilla clients, built on demand
+	 * ({@link Combos#requestChest}); the rest show the instant patches only there. Nobody wears the others much,
+	 * and each is a file per combination. ovvar-client builds the wrap with every patch for all {@link #MATERIALS}.
+	 */
+	public static final List<String> PACK_MATERIALS = List.of("diamond", "iron", "netherite");
 
 	public static void init() {
 		// Chestplates marked as worn over an ovve, on their way to a client: shown carrying the top underneath.
@@ -143,23 +150,35 @@ public final class OvveTop {
 		return null;
 	}
 
-	/** The client's chestplate re-pointed at the composite asset (ovve top under the chestplate) with the top's dye. */
+	/**
+	 * The client's chestplate re-pointed at the composite asset (ovve top under the chestplate). With every
+	 * patch of the top ({@link EquipmentJson#chestAsset(Chapter, String, Combos.Combo)}) when the viewer can draw
+	 * it: always with ovvar-client, which builds it from the name; for a vanilla client once the pack it has
+	 * holds it, which only happens for the {@link #PACK_MATERIALS}. Otherwise, and for a mob's ovve (drawn from
+	 * the dye for everybody), the plain wrap with the instant patches in the dye, as before.
+	 */
 	private static void dressChest(ItemStack client, ItemStack ovve, Chapter chapter, String material, PacketContext context) {
 		GameProfile profile = context == null ? null : context.get(PacketContext.GAME_PROFILE);
-		// dye only: the wrap draws the instant patches, never the pack combo, so don't queue a build for it.
-		Looks.Look look = Looks.look(ovve, Piece.TOP, profile == null ? null : profile.id(), false);
+		UUID viewer = profile == null ? null : profile.id();
 		Equippable base = client.get(DataComponents.EQUIPPABLE);
 		if (base == null) return;
+		Combos.Combo whole = MobOvvar.is(ovve) ? Placement.combo(List.of()) : Looks.sewnCombo(ovve, Piece.TOP);
+		boolean pack = PACK_MATERIALS.contains(material);
+		// Worn over this combination: queued for the pack (lazily, never claimed: no push for putting armour on).
+		if (pack) Combos.requestChest(chapter, material, whole);
+		boolean all = !whole.isEmpty() && (Combos.drawsCombos(viewer) || (pack && Combos.isBuilt(Combos.KeyedCombo.chest(chapter, material, whole), viewer)));
+		// dye only on the plain wrap: it draws the instant patches, never the pack combo, so don't queue a build for it.
+		int dye = all ? 0 : Looks.look(ovve, Piece.TOP, viewer, false).dye();
 		client.set(DataComponents.EQUIPPABLE, Equippable.builder(EquipmentSlot.CHEST)
 				.setEquipSound(base.equipSound())
-				.setAsset(EquipmentJson.chestAsset(chapter, material))
+				.setAsset(all ? EquipmentJson.chestAsset(chapter, material, whole) : EquipmentJson.chestAsset(chapter, material))
 				.setDamageOnHurt(base.damageOnHurt())
 				.setSwappable(base.swappable())
 				.setDispensable(base.dispensable())
 				.build());
 		TooltipDisplay display = client.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
-		if (look.dye() != 0) {
-			client.set(DataComponents.DYED_COLOR, new DyedItemColor(look.dye()));
+		if (dye != 0) {
+			client.set(DataComponents.DYED_COLOR, new DyedItemColor(dye));
 			display = display.withHidden(DataComponents.DYED_COLOR, true);
 		} else {
 			client.remove(DataComponents.DYED_COLOR);

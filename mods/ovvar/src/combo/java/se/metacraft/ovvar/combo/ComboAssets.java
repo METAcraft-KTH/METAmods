@@ -33,7 +33,7 @@ public final class ComboAssets {
 	 * The asset grammar and recipe version. Bump it, and the fingerprint in ComboAssetsTest, whenever a
 	 * name could mean something else or build different JSON (a cell added, a texture renamed).
 	 */
-	public static final int PROTOCOL = 1;
+	public static final int PROTOCOL = 2;
 	/**
 	 * The client's handshake: it registers a configuration-phase receiver on this channel (nothing is ever
 	 * sent on it), and Fabric tells the server which channels a client can receive before the join packs go
@@ -42,6 +42,8 @@ public final class ComboAssets {
 	public static final String CHANNEL_PATH = "draws_combos/v" + PROTOCOL;
 	public static final String NERCABBAD = "_nercabbad";
 	public static final String SEAT = "seat";
+	/** The first folder of a chestplate wrap's asset: {@code chest/<chapter>/<material>[/<combo>]}. */
+	public static final String CHEST = "chest";
 
 	/** The two halves: id to the equipment JSON's layer key (ovvar's {@code Piece}). */
 	public static final Map<String, String> PIECE_LAYERS;
@@ -85,6 +87,16 @@ public final class ComboAssets {
 	/** An asset's path: {@code <chapter>/<piece>[_nercabbad][/<combo>]}. */
 	public static String assetPath(String chapter, String piece, boolean nercabbad, String combo) {
 		return chapter + "/" + piece + (nercabbad ? NERCABBAD : "") + (combo.isEmpty() ? "" : "/" + combo);
+	}
+
+	/**
+	 * A chestplate wrap's path: {@code chest/<chapter>/<material>}, the ovve top under a vanilla chestplate
+	 * (in the Polymer pack, drawing the instant patches only), or with the top's combination,
+	 * {@code chest/<chapter>/<material>/<combo>}: the same wrap with every patch, which ovvar-client builds from
+	 * the name and the combination pack holds for some materials.
+	 */
+	public static String chestPath(String chapter, String material, String combo) {
+		return CHEST + "/" + chapter + "/" + material + (combo.isEmpty() ? "" : "/" + combo);
 	}
 
 	/** The chapter's cloth for a half, namespaced. */
@@ -135,6 +147,23 @@ public final class ComboAssets {
 		return new GsonBuilder().setPrettyPrinting().create().toJson(root);
 	}
 
+	/**
+	 * A chestplate wrap's definition: the top's opaque layers bottom first (namespaced: the cloth, then its
+	 * patches), the top's dyeable preview, then the vanilla chestplate's own humanoid layer over them all.
+	 * A chestplate's arms and neck are largely transparent, so the sleeves and collar show through.
+	 */
+	public static String chestJson(String material, List<String> opaqueTextures) {
+		JsonArray layers = new JsonArray();
+		for (String texture : opaqueTextures) layers.add(layer(texture, false));
+		layers.add(layer(NAMESPACE + ":" + previewTexture("top"), true));
+		layers.add(layer("minecraft:" + material, false));
+		JsonObject byType = new JsonObject();
+		byType.add(PIECE_LAYERS.get("top"), layers);
+		JsonObject root = new JsonObject();
+		root.add("layers", byType);
+		return new GsonBuilder().setPrettyPrinting().create().toJson(root);
+	}
+
 	public static JsonObject layer(String texture, boolean dyeable) {
 		JsonObject o = new JsonObject();
 		o.addProperty("texture", texture);
@@ -145,21 +174,31 @@ public final class ComboAssets {
 	/**
 	 * The definition of an {@code ovvar:} combination asset from its path alone, as the server's pack
 	 * holds it: {@code <chapter>/<piece>[_nercabbad]/<combo>}, the combo the canonical (sorted) key the
-	 * server names assets with. Empty for any other path (the base garments, the chestplate wrap and the
-	 * cuffs are in the Polymer pack) or one this build cannot read: an unknown cell, a cell on the other
-	 * half, a roll-down on the top. The chapter is taken as given; the server only names real ones.
+	 * server names assets with; or a chestplate wrap with the top's combination,
+	 * {@code chest/<chapter>/<material>/<combo>}. Empty for any other path (the base garments, the wrap
+	 * without patches and the cuffs are in the Polymer pack) or one this build cannot read: an unknown
+	 * cell, a cell on the other half, a roll-down on the top. The chapter and material are taken as given;
+	 * the server only names real ones.
 	 */
 	public static Optional<String> jsonFor(String path) {
 		String[] parts = path.split("/", -1);
-		if (parts.length != 3 || parts[0].isEmpty() || parts[2].isEmpty()) return Optional.empty();
-		String chapter = parts[0];
+		for (String part : parts) if (part.isEmpty()) return Optional.empty();
+		if (parts.length == 4 && parts[0].equals(CHEST)) {
+			return opaqueTextures(parts[1], "top", false, parts[3]).map(textures -> chestJson(parts[2], textures));
+		}
+		if (parts.length != 3) return Optional.empty();
 		boolean nercabbad = parts[1].endsWith(NERCABBAD);
 		String piece = nercabbad ? parts[1].substring(0, parts[1].length() - NERCABBAD.length()) : parts[1];
 		String layerKey = PIECE_LAYERS.get(piece);
 		if (layerKey == null || (nercabbad && !piece.equals("bottom"))) return Optional.empty();
+		return opaqueTextures(parts[0], piece, nercabbad, parts[2]).map(textures -> json(layerKey, textures, NAMESPACE + ":" + previewTexture(piece)));
+	}
+
+	/** A half's opaque layers from a combination's key, namespaced and bottom first; empty if a placement does not read. */
+	private static Optional<List<String>> opaqueTextures(String chapter, String piece, boolean nercabbad, String combo) {
 		List<String> cells = new ArrayList<>();
 		List<String> patches = new ArrayList<>();
-		for (String key : placementKeys(parts[2])) {
+		for (String key : placementKeys(combo)) {
 			int dot = key.indexOf('.');
 			if (dot <= 0 || dot == key.length() - 1) return Optional.empty();
 			String cell = key.substring(0, dot);
@@ -175,6 +214,6 @@ public final class ComboAssets {
 		List<String> textures = new ArrayList<>();
 		textures.add(baseTexture(chapter, piece, nercabbad));
 		for (int i : order) for (String t : textures(cells.get(i), patches.get(i))) textures.add(NAMESPACE + ":" + t);
-		return Optional.of(json(layerKey, textures, NAMESPACE + ":" + previewTexture(piece)));
+		return Optional.of(textures);
 	}
 }

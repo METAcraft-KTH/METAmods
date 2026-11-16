@@ -1092,8 +1092,23 @@ player then gets no `ComboPack` among their join packs, is sent whole combinatio
 combo as the asset, no dye bits, no trim, nothing owed), is never claimed for or pushed a pack, and
 `/ovvar reload` tells them there is nothing to reload. What they sew or see is still queued for the pack (at
 once when they sew it), so a vanilla player joining later gets it as if the sewer had been vanilla too. A mob's garment stays on the dye for them, as for
-everybody. The chestplate wrap is unchanged (with the whole combination on the legs and top it carries no dye,
-the same as for a vanilla client whose pack holds the combination).
+everybody.
+
+**Under a real chestplate.** A chestplate worn over a top-up ovve is sent re-pointed at a wrap, the ovve top under
+the armour, so its sleeves and collar show through (`OvveTop.dressChest`). The plain wrap, `chest/<chapter>/<material>`
+in the Polymer pack, draws the instant patches in the dye. The wrap with every patch is
+`chest/<chapter>/<material>/<combo>` (`ComboAssets.chestPath`/`chestJson`: the top's cloth and patches, its preview,
+the chestplate's own layer on top). A player with ovvar-client is sent it for every material (`OvveTop.MATERIALS`:
+chainmail, copper, diamond, gold, iron, netherite) and builds it from the name; a name it cannot read falls back to
+the plain wrap. A vanilla player is sent it for diamond, iron and netherite (`OvveTop.PACK_MATERIALS`) once the
+pack they have holds it, and the plain wrap until then; other materials always get the plain wrap. Those three are
+built on demand into the combination pack, like the combinations: a (combination, material) pair is queued
+(`Combos.requestChest`, lazily, saved in `combos.json` as `chapter/chest/material:combo`) only when somebody is seen
+wearing that chestplate over that top. It is never claimed and never causes a push, not even to the wearer (a loading
+screen after an inventory change mid-fight); players get it with their next join pack, or with a push somebody's own
+sewing or `/ovvar reload` brings. There is no startup pre-build for them. One file per pair, ~0.65 KB zipped
+(`ChestWrapTests` holds a top under all three to 2.4 KB). A mob's ovve keeps the plain wrap for everybody. The
+chestplate's own trim is untouched.
 
 The protocol is `ComboAssets.PROTOCOL`, in the channel's name: a server and a client on different protocols
 never handshake, and that client is pushed the pack as before. So is a vanilla client, a client whose hook

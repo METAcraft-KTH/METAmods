@@ -28,6 +28,7 @@
 			"se.metacraft.ovvar.gametest.ComboPackTests",
 			"se.metacraft.ovvar.gametest.ComboAssetsParityTests",
 			"se.metacraft.ovvar.gametest.ClientHandshakeTests",
+			"se.metacraft.ovvar.gametest.ChestWrapTests",
 			"se.metacraft.ovvar.gametest.FrackTests",
 			"se.metacraft.ovvar.gametest.WardrobeTests",
 			"se.metacraft.ovvar.gametest.BlockbenchManifestTests",

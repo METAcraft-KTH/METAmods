@@ -16,6 +16,7 @@ import java.util.Optional;
 
 /**
  * The ovvar patch combinations this client draws itself: every {@code ovvar:<chapter>/<piece>/<combo>}
+ * (and {@code ovvar:chest/<chapter>/<material>/<combo>}, the top under a chestplate with every patch)
  * equipment asset its packs lack is built from the name ({@link ComboAssets#jsonFor}, the code the server
  * builds its combination pack with), so an ovvar server that saw the handshake ({@link OvvarClient}) never
  * pushes this client that pack. The textures the definitions name are all in the server's Polymer pack.
@@ -42,9 +43,10 @@ public final class ClientCombos {
 	}
 
 	/**
-	 * What to draw for an {@code ovvar:} asset the packs do not hold: the combination built from its name or,
-	 * for a name this build cannot read (which a server on the same protocol never sends), the garment one
-	 * level up without its patches rather than nothing. Only while that garment is loaded: without the
+	 * What to draw for an {@code ovvar:} asset the packs do not hold: the combination (or chestplate wrap with
+	 * the top's combination, {@code chest/<chapter>/<material>/<combo>}) built from its name or, for a name this
+	 * build cannot read (which a server on the same protocol never sends), the garment or wrap one level up
+	 * without its patches rather than nothing. Only while that garment is loaded: without the
 	 * server's Polymer pack none of the textures exist, and the asset stays missing, as on vanilla. Anything
 	 * that is not a combination's name ({@code feet/...}, a base garment) is left missing too. Never throws:
 	 * this runs while rendering.
@@ -52,7 +54,9 @@ public final class ClientCombos {
 	public static EquipmentClientInfo buildOrFallBack(ResourceKey<EquipmentAsset> id, Map<ResourceKey<EquipmentAsset>, EquipmentClientInfo> loaded) {
 		String path = id.identifier().getPath();
 		int slash = path.lastIndexOf('/');
-		if (path.split("/", -1).length != 3) return EquipmentAssetManager.MISSING;
+		String[] parts = path.split("/", -1);
+		boolean chest = parts.length == 4 && parts[0].equals(ComboAssets.CHEST);
+		if (parts.length != 3 && !chest) return EquipmentAssetManager.MISSING;
 		EquipmentClientInfo garment = loaded.get(ResourceKey.create(EquipmentAssets.ROOT_ID, id.identifier().withPath(path.substring(0, slash))));
 		if (garment == null) return EquipmentAssetManager.MISSING;
 		try {

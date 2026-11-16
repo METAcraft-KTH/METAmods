@@ -210,8 +210,12 @@ public final class Combos {
 
 	/** Does the pack a player has hold this combination? {@code player} null: the current pack. */
 	public static boolean isBuilt(Chapter chapter, Piece piece, Combo combo, @Nullable UUID player) {
-		if (combo.isEmpty()) return true;
-		KeyedCombo key = key(chapter, piece, combo);
+		return isBuilt(key(chapter, piece, combo), player);
+	}
+
+	/** Does the pack a player has hold this key (a combination or a chest composite)? {@code player} null: the current pack. */
+	public static boolean isBuilt(KeyedCombo key, @Nullable UUID player) {
+		if (key.combo().isEmpty()) return true;
 		int now = generation;   // read once: a build may finish on the server thread meanwhile
 		Set<KeyedCombo> current = BUILT.getOrDefault(now, Set.of());
 		if (player == null) return current.contains(key);
@@ -220,7 +224,11 @@ public final class Combos {
 
 	/** Was this combination ever queued or built (requested, or loaded from combos.json)? */
 	public static boolean isKnown(Chapter chapter, Piece piece, Combo combo) {
-		return KNOWN.contains(key(chapter, piece, combo));
+		return isKnown(key(chapter, piece, combo));
+	}
+
+	public static boolean isKnown(KeyedCombo key) {
+		return KNOWN.contains(key);
 	}
 
 	/**
@@ -245,21 +253,42 @@ public final class Combos {
 
 	/** Tests only: the current generation's pack holds this combination, as a startup build would leave it. */
 	public static void markBuiltForTest(Chapter chapter, Piece piece, Combo combo) {
+		markBuiltForTest(key(chapter, piece, combo));
+	}
+
+	public static void markBuiltForTest(KeyedCombo key) {
 		BUILT.compute(generation, (g, built) -> {
 			Set<KeyedCombo> next = built == null ? new HashSet<>() : new HashSet<>(built);
-			next.add(key(chapter, piece, combo));
+			next.add(key);
 			return Set.copyOf(next);
 		});
 	}
 
 	/** Tests only: drops a combination from the known set (and has it saved without it), so a test leaves nothing behind. */
 	public static void forgetForTest(Chapter chapter, Piece piece, Combo combo) {
-		if (KNOWN.remove(key(chapter, piece, combo))) dirty.set(true);
+		forgetForTest(key(chapter, piece, combo));
+	}
+
+	public static void forgetForTest(KeyedCombo key) {
+		if (KNOWN.remove(key)) dirty.set(true);
+	}
+
+	/** Tests only: when this player was last pushed a pack (ms), 0 if never. */
+	public static long lastPushForTest(UUID player) {
+		return LAST_PUSH.getOrDefault(player, 0L);
+	}
+
+	/** Tests only: whatever is queued is built at the next tick, not after its lazy wait. */
+	public static void hurryForTest() {
+		deadline.accumulateAndGet(now(), Math::min);
 	}
 
 	/** Tests only: undoes {@link #markBuiltForTest} in every generation still held, so nothing test-only stays behind. */
 	public static void unmarkBuiltForTest(Chapter chapter, Piece piece, Combo combo) {
-		KeyedCombo key = key(chapter, piece, combo);
+		unmarkBuiltForTest(key(chapter, piece, combo));
+	}
+
+	public static void unmarkBuiltForTest(KeyedCombo key) {
 		BUILT.replaceAll((g, built) -> {
 			if (!built.contains(key)) return built;
 			Set<KeyedCombo> next = new HashSet<>(built);
@@ -270,7 +299,21 @@ public final class Combos {
 
 	/** Ask for a combination; safe from any thread (item packets are encoded off the server thread). */
 	public static void request(Chapter chapter, Piece piece, Combo combo, boolean urgent) {
-		KeyedCombo key = key(chapter, piece, combo);
+		request(key(chapter, piece, combo), urgent);
+	}
+
+	/**
+	 * Ask for the top's combination under a chestplate (a material the pack holds wraps for): lazily, and
+	 * never claimed, so it reaches players only with a pack they get anyway (on join, or a push somebody's
+	 * own sewing or {@code /ovvar reload} caused). Putting armour on must never bring up a loading screen.
+	 * Any thread.
+	 */
+	public static void requestChest(Chapter chapter, String material, Combo combo) {
+		if (combo.isEmpty()) return;
+		request(KeyedCombo.chest(chapter, material, combo), false);
+	}
+
+	private static void request(KeyedCombo key, boolean urgent) {
 		if (BUILT.getOrDefault(generation, Set.of()).contains(key)) return;
 		if (KNOWN.add(key)) dirty.set(true);
 		if (generating && building.contains(key)) return;   // the build under way has it
@@ -468,8 +511,21 @@ public final class Combos {
 		}
 	}
 
-	/** The equipment definitions of one combination (each rolled-down variant of its chapter) as pack path and JSON; how many. */
+	/** The pack path of a key's file; for a garment's half, its unrolled variant's. */
+	public static String packPath(KeyedCombo key) {
+		if (key.isChest()) return EquipmentJson.chestPackPath(key.chapter(), key.chest(), key.combo());
+		return EquipmentJson.packPath(key.chapter(), key.piece(), false, key.combo());
+	}
+
+	/**
+	 * The equipment definitions of one combination (each rolled-down variant of its chapter) as pack path and
+	 * JSON, or of one chest composite (a single file); how many.
+	 */
 	static int files(KeyedCombo key, BiConsumer<String, String> out) {
+		if (key.isChest()) {
+			out.accept(packPath(key), EquipmentJson.chestJson(key.chapter(), key.chest(), key.combo().placements()));
+			return 1;
+		}
 		int files = 0;
 		Chapter chapter = key.chapter();
 		for (boolean[] v : EquipmentJson.variants(chapter, key.piece())) {
@@ -577,8 +633,28 @@ public final class Combos {
 		}
 	}
 
-	/** One combination on one half of one chapter's garment; its key is {@code chapter/piece:combo}. */
-	public record KeyedCombo(Chapter chapter, Piece piece, Combo combo) implements Comparable<KeyedCombo> {
+	/**
+	 * One combination on one half of one chapter's garment; its key is {@code chapter/piece:combo}. Or, with
+	 * {@code chest} a chestplate material ({@link se.metacraft.ovvar.content.item.OvveTop#PACK_MATERIALS}), the
+	 * top's combination under that chestplate, {@code chapter/chest/material:combo}: the wrap with every patch
+	 * ({@link EquipmentJson#chestAsset(Chapter, String, Combo)}). {@code chest} is empty for a garment's half.
+	 */
+	public record KeyedCombo(Chapter chapter, Piece piece, Combo combo, String chest) implements Comparable<KeyedCombo> {
+
+		public KeyedCombo(Chapter chapter, Piece piece, Combo combo) {
+			this(chapter, piece, combo, "");
+		}
+
+		/** The top's combination under a chestplate of this material. */
+		public static KeyedCombo chest(Chapter chapter, String material, Combo combo) {
+			return new KeyedCombo(chapter, Piece.TOP, combo, material);
+		}
+
+		public boolean isChest() {
+			return !chest.isEmpty();
+		}
+
+		private static final String CHEST_PREFIX = ComboAssets.CHEST + "/";
 
 		public static final Codec<KeyedCombo> KEY_CODEC = Codec.STRING.comapFlatMap(
 				key -> {
@@ -591,7 +667,13 @@ public final class Combos {
 					if (chapter == null) {
 						return DataResult.error(() -> "unknown chapter in combo key " + key);
 					}
-					return Piece.CODEC.parse(JavaOps.INSTANCE, key.substring(slash+1, colon)).flatMap(
+					String middle = key.substring(slash + 1, colon);
+					if (middle.startsWith(CHEST_PREFIX)) {
+						String material = middle.substring(CHEST_PREFIX.length());
+						if (material.isEmpty() || material.indexOf('/') >= 0) return DataResult.error(() -> "bad chestplate material in combo key " + key);
+						return Combo.KEY_CODEC.parse(JavaOps.INSTANCE, key.substring(colon + 1)).map(combo -> chest(chapter, material, combo));
+					}
+					return Piece.CODEC.parse(JavaOps.INSTANCE, middle).flatMap(
 							piece -> Combo.KEY_CODEC.parse(JavaOps.INSTANCE, key.substring(colon+1)).map(
 									combo -> new KeyedCombo(chapter, piece, combo)
 							)
@@ -601,7 +683,7 @@ public final class Combos {
 		);
 
 		public String key() {
-			return chapter.id + "/" + piece.id + ":" + combo.key();
+			return chapter.id + "/" + (isChest() ? CHEST_PREFIX + chest : piece.id) + ":" + combo.key();
 		}
 
 		@Override
