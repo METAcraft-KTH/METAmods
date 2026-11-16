@@ -37,7 +37,9 @@ generated/
 # fabric j-unit
 
 mods/**/config/
+mods/**/polymer/
 !**/src/**/config/
+!**/src/**/polymer/
 crash-reports/
 .fabric/
 
