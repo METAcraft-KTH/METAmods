@@ -7,7 +7,10 @@
 // marker texel at (W−1, H/2−1): magenta, alpha 2/255. The texel left of it says what it is (R):
 //   0  a base garment texture. The model draws the left arm and leg as mirror images off the right
 //	  limb's strips; on those fragments the shader samples one strip up, where the left-side art
-//	  lives.
+//	  lives. The right limb's art is copied into the head rows too, at (OVVAR_RIGHT_COPY_X, box
+//	  y − 16), and the right limb's fragments sample that; the limb boxes themselves hold a
+//	  magenta/black checker under the cloth, so a shader that is not this one (an unpatched
+//	  shaderpack) shows the arms and legs as a missing texture.
 //   1  a placement texture: one patch drawn on one cell, for one side (G: 0 body, 1 right limb,
 //	  2 left limb) on one face of its strip (B: 0..3). Fragments of the other limb read the
 //	  blank texel.
@@ -57,6 +60,9 @@ const float OVVAR_TABLE_COLUMNS = 4.0;
 const float OVVAR_FIT_SLOTS = 32.0;
 const float OVVAR_FIT_OVER = 0.0;
 const float OVVAR_FIT_FILLED = 1.0;
+// The skin texel column of a base garment's right-limb copy (Spot.RIGHT_COPY_X), one strip up from
+// the limb boxes like the left limb's: what the right limbs are drawn from, the boxes being the checker.
+const float OVVAR_RIGHT_COPY_X = 16.0;
 const vec2 OVVAR_MARKER = vec2(OVVAR_TEX.x - 1.0, OVVAR_TEX.y * 0.5 - 1.0);
 const vec2 OVVAR_BLANK = (OVVAR_MARKER + vec2(0.5, -0.5)) / OVVAR_TEX;
 
@@ -278,14 +284,18 @@ vec2 ovvar_uv(vec2 uv) {
 
 	if (kind.r < 0.5) {
 		// Base garment: per-face centred, the margin filled by the face's edge column (and row);
-		// the mirrored limb reads the strip above.
+		// a limb reads one strip up — the mirrored limb its own art right above the box, the other
+		// the right limb's copy at OVVAR_RIGHT_COPY_X (the box itself is the checker).
 		float aEdge = t.x;
 		bool margin = false;
 		if (sides) {
 			ovvar_squeezed(t.x, inflate, aEdge, margin);
 			ay = clamp(ay, OVVAR_SIDE_ROW * OVVAR_D + 0.5, 32.0 * OVVAR_D - 0.5);
 		}
-		return vec2(aEdge, ay) / OVVAR_TEX - vec2(0.0, mirrored ? 0.5 : 0.0);
+		float stripBase = t.x < 16.0 * OVVAR_D ? 0.0 : 40.0 * OVVAR_D;
+		vec2 shift = limb ? (mirrored ? vec2(0.0, -0.5) : vec2((OVVAR_RIGHT_COPY_X * OVVAR_D - stripBase) / OVVAR_TEX.x, -0.5))
+			: vec2(0.0);
+		return vec2(aEdge, ay) / OVVAR_TEX + shift;
 	}
 	if (!inFace) return OVVAR_BLANK;
 

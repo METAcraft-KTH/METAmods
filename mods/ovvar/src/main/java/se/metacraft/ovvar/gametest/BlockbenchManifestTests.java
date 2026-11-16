@@ -190,6 +190,10 @@ public final class BlockbenchManifestTests {
 		check(wrong, "manifest", "faceRow", m.get("faceRow").getAsInt(), Spot.FACE_ROW);
 		check(wrong, "manifest", "faceRows", m.get("faceRows").getAsInt(), Spot.FACE_ROWS);
 		check(wrong, "manifest", "mirrorShift", m.get("mirrorShift").getAsInt(), Spot.MIRROR_SHIFT);
+		check(wrong, "manifest", "rightCopyX", m.get("rightCopyX").getAsInt(), Spot.RIGHT_COPY_X);
+		check(wrong, "manifest", "checkerA", m.get("checkerA").getAsLong(), Integer.toUnsignedLong(Spot.CHECKER_A));
+		check(wrong, "manifest", "checkerB", m.get("checkerB").getAsLong(), Integer.toUnsignedLong(Spot.CHECKER_B));
+		check(wrong, "manifest", "checkerSquare", m.get("checkerSquare").getAsInt(), Spot.CHECKER_SQUARE);
 		check(wrong, "manifest", "cellSize", m.get("cellSize").getAsInt(), Spot.SIZE);
 		check(wrong, "manifest", "bigCell", m.get("bigCell").getAsInt(), Spot.BIG);
 		check(wrong, "manifest", "px", m.get("px").getAsInt(), Spot.PX);

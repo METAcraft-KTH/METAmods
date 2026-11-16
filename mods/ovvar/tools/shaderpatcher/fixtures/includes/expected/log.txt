@@ -1,0 +1,2 @@
+  shaders/lib/entity_fragment.glsl + shaders/lib/entity_vertex.glsl: 'texcoord' and 'glcolor' shadowed, art via texture(gtexture), colour from gl_Color
+  shaders/lib/entity_fragment.glsl + shaders/lib/entity_vertex.glsl: rifts drawn through texture(gtexture), marker from gl_Color, position from gl_Vertex.xyz

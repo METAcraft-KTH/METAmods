@@ -68,19 +68,82 @@ sourceSets {
 	patcher {
 		java.srcDir 'tools/shaderpatcher/src'
 	}
+	// The fixtures check (tools/shaderpatcher/fixtures), plain main, no test framework.
+	patcherTest {
+		java.srcDir 'tools/shaderpatcher/test'
+		compileClasspath += sourceSets.patcher.output
+		runtimeClasspath += sourceSets.patcher.output
+	}
 }
 tasks.withType(JavaCompile).configureEach {
-	if (it.name == 'compilePatcherJava') it.options.release = 11
+	if (it.name == 'compilePatcherJava' || it.name == 'compilePatcherTestJava') it.options.release = 11
 }
-tasks.register('patcherJar', Jar) {
-	from sourceSets.patcher.output
-	from('tools/shaderpatcher/README.txt')
-	// The very shader code the vanilla override uses, so patched packs and vanilla never drift apart.
+// The shader code the patcher splices in, read by the patcher as resources: the very code the vanilla
+// override uses (so patched packs and vanilla never drift apart) and metacraft-shaders' rifts, the code
+// its item shader includes. The jar and the fixtures see the same files.
+def patcherResources = tasks.register('patcherResources', Sync) {
+	into layout.buildDirectory.dir('patcher-resources')
 	from('src/main/resources/assets/ovvar/shaders/include/ovvar.glsl')
-	// and metacraft-shaders' rifts, the code its item shader includes
 	from(project(':mods:metacraft-shaders').file('src/main/resources/assets/metacraft/shaders/include')) {
 		include 'rift_common.glsl', 'void_rift.glsl', 'nether_rift.glsl'
 	}
+}
+tasks.register('patcherFixtures', JavaExec) {
+	group = 'verification'
+	description = 'Runs the shader patcher over the shared fixtures (-PupdateGoldens rewrites the expected output).'
+	classpath = sourceSets.patcherTest.output + sourceSets.patcher.output + files(patcherResources)
+	mainClass = 'metacraft.ovvar.shaderpatcher.Fixtures'
+	workingDir = projectDir
+	args = ['tools/shaderpatcher/fixtures'] + (project.hasProperty('updateGoldens') ? ['--update'] : [])
+}
+// The TypeScript port (tools/shaderpatcher/web) runs the same fixtures, so the two patchers can't drift apart
+// unnoticed. Needs node on the PATH; without it the task logs and skips.
+def nodeExe = System.getenv('PATH')?.split(File.pathSeparator as String)?.collectMany { [new File(it, 'node'), new File(it, 'node.exe')] }?.find { it.isFile() && it.canExecute() }
+// node runs .ts natively (type stripping, no flag) from 22.18.0 on 22.x and from 23.6.0 on 23+; older: skip, never fail.
+def nodeRunsTs = { File exe ->
+	try {
+		def proc = new ProcessBuilder(exe.toString(), '--version').redirectErrorStream(true).start()
+		def text = proc.inputStream.text.trim()
+		proc.waitFor()
+		def m = text =~ /^v(\d+)\.(\d+)\.(\d+)/
+		if (!m.find()) return false
+		int major = m.group(1) as int, minor = m.group(2) as int
+		major >= 24 || (major == 23 && minor >= 6) || (major == 22 && minor >= 18)
+	} catch (Exception e) {
+		false
+	}
+}
+tasks.register('patcherFixturesTs', Exec) {
+	group = 'verification'
+	description = 'Runs the TypeScript shader patcher over the shared fixtures (needs node on the PATH).'
+	workingDir = projectDir
+	commandLine((nodeExe ?: 'node').toString(), '--test', 'tools/shaderpatcher/web/patcher.test.ts')
+	onlyIf {
+		if (nodeExe == null) {
+			logger.lifecycle('patcherFixturesTs: node is not on the PATH, skipping the TypeScript patcher fixtures')
+			return false
+		}
+		if (!nodeRunsTs(nodeExe)) {
+			logger.lifecycle('patcherFixturesTs: node is too old to run .ts (needs 22.18+ or 23.6+), skipping the TypeScript patcher fixtures')
+			return false
+		}
+		true
+	}
+}
+tasks.register('patcherRunTest', JavaExec) {
+	group = 'verification'
+	description = 'Runs Patcher.run through its chooser seam: cancel, a pick, and no-GUI usage.'
+	classpath = sourceSets.patcherTest.output + sourceSets.patcher.output + files(patcherResources)
+	mainClass = 'metacraft.ovvar.shaderpatcher.PatcherRunTest'
+	workingDir = projectDir
+	args = ['tools/shaderpatcher/fixtures']
+}
+tasks.named('patcherFixtures') { finalizedBy 'patcherFixturesTs', 'patcherRunTest' }
+tasks.named('check') { dependsOn 'patcherFixtures' }
+tasks.register('patcherJar', Jar) {
+	from sourceSets.patcher.output
+	from('tools/shaderpatcher/README.txt')
+	from(patcherResources)
 	archiveFileName = 'OvvarShaderPatcher.jar'
 	manifest { attributes 'Main-Class': 'metacraft.ovvar.shaderpatcher.Patcher' }
 }
@@ -105,6 +168,47 @@ tasks.register('wardrobeSheet', JavaExec) {
 	classpath = sourceSets.main.runtimeClasspath
 	mainClass = 'metacraft.ovvar.pack.WardrobeSheet'
 	args = [project.findProperty('sheet') ?: '/tmp/wardrobe_v3_sheet.png', project.findProperty('chapter') ?: 'data', project.findProperty('sheetState') ?: 'sewn']
+}
+
+// The same client tests under a shaderpack: -Piris=<shaderpack .zip> adds Iris and Sodium to the test client
+// and turns that pack on (ported from nether-rifts). With -Povvar.iris.expect=checker|art the client run also
+// does unpatchedPackShowsChecker (an unpatched pack shows the magenta/black checker on the right limbs, a pack
+// patched by OvvarShaderPatcher.jar does not). Gradle -D flags do not reach the forked game JVM, so both
+// properties are turned into jvmArgs here. A missing pack file fails the run before the client starts.
+if (project.hasProperty('iris')) {
+	def pack = file(project.property('iris'))
+	dependencies {
+		gametestRuntimeOnly("maven.modrinth:iris:1.11.7+26.3-fabric")
+		gametestRuntimeOnly("maven.modrinth:sodium:mc26.3-0.9.3-alpha.1-fabric")
+	}
+	tasks.named('runClientGameTest') {
+		def runDir = file('build/run/clientGameTest')
+		// With -PshaderpatchMod the launcher mod switches Iris to the patched copy, which is the pack to expect.
+		def expectedPack = project.hasProperty('shaderpatchMod') ? pack.name.replaceAll(/\.zip$/, '') + '+ovvar.zip' : pack.name
+		jvmArgs "-Dovvar.iris.pack=${expectedPack}"
+		doFirst {
+			if (!pack.isFile()) throw new GradleException("Ovvar: -Piris=${pack} is not a file")
+			delete fileTree("$runDir/shaderpacks")
+			project.copy { from pack; into "$runDir/shaderpacks" }
+			file("$runDir/config").mkdirs()
+			file("$runDir/config/iris.properties").text = "enableShaders=true\nshaderPack=${pack.name}\n"
+		}
+	}
+}
+// -PshaderpatchMod additionally puts the ovvar-shaderpatch launcher mod (mods/ovvar-shaderpatch) on the client
+// test's runtime: with the ORIGINAL pack in -Piris, it must write <pack>+ovvar.zip and switch iris.properties
+// to it at preLaunch, so the run needs no hand patching (cloud only, see README "Client test under a shaderpack").
+if (project.hasProperty('shaderpatchMod')) {
+	if (!project.hasProperty('iris')) throw new GradleException('Ovvar: -PshaderpatchMod needs -Piris=<shaderpack .zip>')
+	dependencies {
+		gametestRuntimeOnly project(path: ':mods:ovvar-shaderpatch')
+	}
+}
+if (project.hasProperty('ovvar.iris.expect')) {
+	if (!project.hasProperty('iris')) throw new GradleException('Ovvar: -Povvar.iris.expect needs -Piris=<shaderpack .zip>')
+	tasks.matching { it.name == 'runClientGameTest' }.configureEach {
+		jvmArgs "-Dovvar.iris.expect=${project.property('ovvar.iris.expect')}"
+	}
 }
 
 processResources {

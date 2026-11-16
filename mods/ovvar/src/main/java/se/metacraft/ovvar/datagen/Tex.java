@@ -89,9 +89,15 @@ public final class Tex {
 		}
 	}
 
-	public byte[] png() {
+	/** This as an ARGB image. */
+	public BufferedImage image() {
 		BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 		img.setRGB(0, 0, width, height, argb, 0, width);
+		return img;
+	}
+
+	public byte[] png() {
+		BufferedImage img = image();
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try {
 			ImageIO.write(img, "png", out);

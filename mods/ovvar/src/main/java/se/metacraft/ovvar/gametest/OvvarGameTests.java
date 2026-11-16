@@ -306,14 +306,81 @@ public final class OvvarGameTests {
 	}
 
 	/**
-	 * However many patches an ovve carries, its tooltip stays no taller than an item with five
-	 * enchantments: the status line, at most {@link OvveItem#PATCH_LIST_LINES} lines of patches,
-	 * and one hint line. This sews every catalogue patch on (several times over, where a cell
-	 * exists to put a repeat on — the seat has only the one cell, so its patch gets it once) and
-	 * reads the tooltip {@code OvveItem} itself would send a client.
+	 * {@code /ovvar shaders} sends three lines, the second a link to the configured patcher page
+	 * (and the hover shows it); change the config and the link follows. Runs in one tick on the
+	 * server thread, so nothing else sees the changed config; it is put back in a finally.
 	 */
 	@GameTest
-	public void aFullyPatchedOvvesTooltipIsStillFiveLinesOrLess(GameTestHelper helper) {
+	public void shadersCommandLinksThePage(GameTestHelper helper) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		net.minecraft.server.MinecraftServer server = helper.getLevel().getServer();
+		se.metacraft.ovvar.ShadersConfig before = OvvarConfig.get().shaders();
+		try {
+			String firstUrl = shadersLink(helper, server, player, before.patcherUrlOrDefault());
+			if (firstUrl == null) return;
+			String other = "https://example.org/x";
+			OvvarConfig.modify(config -> config.shaders(new se.metacraft.ovvar.ShadersConfig(other)));
+			shadersLink(helper, server, player, other);
+			OvvarConfig.modify(config -> config.shaders(new se.metacraft.ovvar.ShadersConfig("  ")));
+			shadersLink(helper, server, player, se.metacraft.ovvar.ShadersConfig.DEFAULT_PATCHER_URL);
+		} finally {
+			OvvarConfig.modify(config -> config.shaders(before));
+		}
+		helper.succeed();
+	}
+
+	/** Runs the command, checks its three lines and the link on the second; returns the link or null after failing. */
+	private static String shadersLink(GameTestHelper helper, net.minecraft.server.MinecraftServer server, ServerPlayer player, String expected) {
+		List<Component> lines = new ArrayList<>();
+		// The command writes to the player's own connection (the mock's embedded channel): read the chat packets off it.
+		io.netty.channel.embedded.EmbeddedChannel channel;
+		try {
+			var field = net.minecraft.network.Connection.class.getDeclaredField("channel");
+			field.setAccessible(true);
+			var connection = net.minecraft.server.network.ServerCommonPacketListenerImpl.class.getDeclaredField("connection");
+			connection.setAccessible(true);
+			channel = (io.netty.channel.embedded.EmbeddedChannel) field.get(connection.get(player.connection));
+		} catch (ReflectiveOperationException | ClassCastException | NullPointerException e) {
+			helper.fail("can't reach the mock player's channel: " + e);
+			return null;
+		}
+		channel.outboundMessages().clear();
+		try {
+			int ran = server.getCommands().getDispatcher().execute("ovvar shaders", player.createCommandSourceStack());
+			if (ran != 1) { helper.fail("/ovvar shaders returned " + ran); return null; }
+		} catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+			helper.fail("/ovvar shaders did not run: " + e.getMessage());
+			return null;
+		}
+		channel.runPendingTasks();
+		Object sent;
+		while ((sent = channel.readOutbound()) != null) {
+			if (sent instanceof net.minecraft.network.protocol.game.ClientboundSystemChatPacket chat) lines.add(chat.content());
+		}
+		if (lines.size() != 3) { helper.fail("/ovvar shaders sent " + lines.size() + " lines, wanted 3: " + lines); return null; }
+		var click = lines.get(1).getStyle().getClickEvent();
+		if (!(click instanceof net.minecraft.network.chat.ClickEvent.OpenUrl open) || !open.uri().toString().equals(expected)) {
+			helper.fail("second line should open " + expected + ", has " + click);
+			return null;
+		}
+		if (!(lines.get(1).getStyle().getHoverEvent() instanceof net.minecraft.network.chat.HoverEvent.ShowText hover)
+				|| !hover.value().getString().equals(expected)) {
+			helper.fail("second line's hover should show " + expected);
+			return null;
+		}
+		return expected;
+	}
+
+	/**
+	 * However many patches an ovve carries, its tooltip stays six lines or fewer under the name: the
+	 * status line, at most {@link OvveItem#PATCH_LIST_LINES} lines of patches, one hint line and the
+	 * shaders line ({@link OvveItem#SHADERS_HINT}; unpatched shaderpacks draw the limbs as a
+	 * checker). This sews every catalogue patch on (several times over, where a cell exists to put a
+	 * repeat on — the seat has only the one cell, so its patch gets it once) and reads the tooltip
+	 * {@code OvveItem} itself would send a client.
+	 */
+	@GameTest
+	public void aFullyPatchedOvvesTooltipIsStillSixLinesOrLess(GameTestHelper helper) {
 		List<Patches.Patch> catalogue = Patches.all();
 		List<Placement> placements = new ArrayList<>();
 		int next = 0;
@@ -334,7 +401,7 @@ public final class OvvarGameTests {
 		Looks.setSewn(ovve, SpotPlacements.fromList(placements).getOrThrow());
 		List<Component> tooltip = new ArrayList<>();
 		((OvveItem) ovve.getItem()).modifyClientTooltip(tooltip, ovve, null);
-		int max = 1 + OvveItem.PATCH_LIST_LINES + 1;   // status + patch list + hint, no "no patches" line
+		int max = 1 + OvveItem.PATCH_LIST_LINES + 1 + 1;   // status + patch list + hint + shaders line, no "no patches" line
 		if (tooltip.size() > max) {
 			helper.fail("a fully-patched ovve's tooltip is " + tooltip.size() + " lines, wanted at most " + max + ": " + tooltip);
 		}

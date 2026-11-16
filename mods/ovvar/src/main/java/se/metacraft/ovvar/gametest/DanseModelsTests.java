@@ -113,6 +113,43 @@ public final class DanseModelsTests {
 		helper.succeed();
 	}
 
+	/**
+	 * A base layer's right-limb box is the checker an unpatched shaderpack shows; the cloth is its
+	 * copy in the head rows (Spot.RIGHT_COPY_X). The shells are item-atlas crops with no marker, so
+	 * the shader never redirects them: every base crop, right limbs included, must carry the cloth.
+	 */
+	@GameTest
+	public void rightLimbCropsHaveNoChecker(GameTestHelper helper) {
+		if (!danse()) { helper.succeed(); return; }
+		Map<String, byte[]> files = new TreeMap<>();
+		DanseModels.write(files::put);
+		List<String> checkered = new ArrayList<>();
+		int crops = 0;
+		for (var e : files.entrySet()) {
+			String path = e.getKey();
+			if (!path.startsWith("assets/ovvar/textures/item/danse/") || !path.endsWith(".png")) continue;
+			// item/danse/<piece>/<part>/<texture>: a base crop's texture is <chapter>/<layer>, a patch's patch/...
+			String[] parts = path.substring("assets/ovvar/textures/item/danse/".length()).split("/", 3);
+			if (parts.length < 3 || parts[2].startsWith("patch/")) continue;
+			crops++;
+			try {
+				java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(e.getValue()));
+				scan:
+				for (int y = 0; y < image.getHeight(); y++) {
+					for (int x = 0; x < image.getWidth(); x++) {
+						if (image.getRGB(x, y) == Spot.CHECKER_A) { checkered.add(path); break scan; }
+					}
+				}
+			} catch (java.io.IOException ex) {
+				helper.fail(path + " does not read as a PNG: " + ex.getMessage());
+				return;
+			}
+		}
+		if (crops == 0) { helper.fail("no base crops in the pack"); return; }
+		if (!checkered.isEmpty()) { helper.fail(checkered.size() + " base crop(s) show the checker: " + checkered); return; }
+		helper.succeed();
+	}
+
 	private static String firstWith(Map<String, String> files, String prefix) {
 		return files.entrySet().stream().filter(e -> e.getKey().startsWith(prefix)).map(Map.Entry::getValue).findFirst().orElse(null);
 	}

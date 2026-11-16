@@ -53,3 +53,4 @@ replay_*.log
 /.scratch/
 /skin/
 /GLOSSARY.md
+mods/ovvar/tools/shaderpatcher/web/dist/

@@ -170,6 +170,19 @@ public enum Spot implements StringRepresentable {
 	}
 	/** How far up the mirror strip sits from the limb boxes. */
 	public static final int MIRROR_SHIFT = 16;
+	/**
+	 * The skin texel column of the right limb's copy, a base garment's right-limb box copied
+	 * unchanged into the head rows (row {@link #MIRROR_SHIFT} up, like the mirror strip), at
+	 * (16, 0) in the top and the bottom layer alike. Our shader draws the right limbs from it; the
+	 * box itself is {@link #CHECKER_A}/{@link #CHECKER_B} wherever the copy has cloth, so a shader
+	 * that is not ours (an unpatched shaderpack) shows the limbs as a missing texture.
+	 * ovvar.glsl's {@code OVVAR_RIGHT_COPY_X} is held to it by a game test.
+	 */
+	public static final int RIGHT_COPY_X = 16;
+	/** The two checker colours under the right-limb copy's cloth: magenta and black, opaque. */
+	public static final int CHECKER_A = 0xFFFF00FF, CHECKER_B = 0xFF000000;
+	/** The checker's square, in skin texels: A where (x + y) / square is even, B where it is odd. */
+	public static final int CHECKER_SQUARE = 1;
 
 	public final Piece piece;
 	public final Side side;

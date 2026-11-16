@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerCon
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.client.CameraType;
-import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.core.component.DataComponents;
 import se.metacraft.ovvar.content.ModComponents;
 import net.minecraft.world.entity.decoration.Mannequin;
@@ -53,6 +52,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
+		if (ClientTestSupport.skipUnderShaderpack("OvvarClientTests")) return;
 		Properties props = new Properties();
 		props.setProperty("online-mode", "false");
 		props.setProperty("server-port", "25599");   // the two comparison servers hold 25565 and 25566
@@ -122,6 +122,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 				// ITK's green (86,214,46 and 120,232,80) and IT's purple ground (120,60,170) cannot come
 				// from the cerise garment: their presence proves those patches drew. (Nyckeln and Data read
 				// closer to the garment and make poorer probes.)
+				ClientTestSupport.assertNoChecker(a, box.x0(), box.y0(), box.x1(), box.y1(), "mannequin");
 				assertPresent(a, box, "itk (green)", (r, g, bl) -> g > 100 && g > r + 60 && bl < 140, 20);
 				assertPresent(a, box, "it (lilac rim)", (r, g, bl) -> bl > 150 && bl > r + 25 && r > g + 20, 20);
 				// The garment surface must be steady between two frames: the prototype's tag crawl changed
@@ -243,9 +244,7 @@ public final class OvvarClientTests implements FabricClientGameTest {
 
 	/** The pack is accepted unasked (ServerPackAutoAcceptMixin); wait for it to download and apply. */
 	private static void acceptResourcePack(ClientGameTestContext ctx) {
-		ctx.waitTicks(20);
-		ctx.waitFor(client -> client.gui.overlay() == null && !(client.gui.screen() instanceof ConfirmScreen), 20 * 90);
-		ctx.waitTicks(20);
+		ClientTestSupport.acceptResourcePack(ctx);
 	}
 
 	interface Rgb { boolean test(int r, int g, int b); }

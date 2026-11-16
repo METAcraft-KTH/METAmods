@@ -3,7 +3,7 @@
 // plugin: nothing of ours lands on window, and onunload has nothing global to clean up.
 var OVVAR = {};
 
-OVVAR.VERSION = 3;
+OVVAR.VERSION = 4;
 
 // ---- PNG, by hand
 //
@@ -231,6 +231,9 @@ OVVAR.loadManifest = function (io, checkout) {
   }
   // Version 1 wrote one resolution: art and texture were the same size, so its art scales by 1.
   if (m.artDetail === undefined) { m.artDetail = m.detail; m.artScale = 1; m.artPx = m.px; }
+  // Version 4 moved the right limb's art to a copy in the head rows (rightCopyX) and left the box
+  // a checker for unpatched shaderpacks; before that the box was the art, and nothing moves.
+  m.hasRightCopy = m.rightCopyX !== undefined;
   m.checkout = checkout;
   m.cellById = {};
   for (var c = 0; c < m.cells.length; c++) m.cellById[m.cells[c].id] = m.cells[c];

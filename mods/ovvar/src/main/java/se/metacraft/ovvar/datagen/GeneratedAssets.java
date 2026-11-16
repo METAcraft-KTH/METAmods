@@ -3,11 +3,13 @@ package se.metacraft.ovvar.datagen;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import se.metacraft.ovvar.ModCommands;
 import se.metacraft.ovvar.Ovvar;
 import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.ModContent;
 import se.metacraft.ovvar.content.item.OvveFeet;
+import se.metacraft.ovvar.content.item.OvveItem;
 import se.metacraft.ovvar.content.item.PatchItem;
 import se.metacraft.ovvar.content.PatchPieces;
 import se.metacraft.ovvar.content.Patches;
@@ -346,11 +348,8 @@ public final class GeneratedAssets implements DataProvider {
 			int colour = overlay.dominant();
 			chapterColours.put(chapter, colour);
 
-			// The top: body and sleeves, on the chest slot's layer.
-			Tex top = Tex.blank(64, 32).blit(overlay, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1])
-					.blit(overlay, RIGHT_ARM[0], RIGHT_ARM[1], RIGHT_ARM[2], RIGHT_ARM[3], RIGHT_ARM[0], RIGHT_ARM[1]);
-			require(!top.isEmpty(), chapter.overlay + ".png has an empty body or arm box");
-			layer(chapter, Piece.TOP, "top", withLeft(top, RIGHT_ARM, overlay, LEFT_ARM).scale(D));
+			// The base layers: the top, and for an ovve the bottom (and rolled down, the nercabbad).
+			for (BaseLayer base : baseLayers(chapter)) layer(chapter, base.piece(), base.name(), base.drawn());
 			equipment(chapter, Piece.TOP, false);
 
 			// The chest wrap: the top under a real chestplate of each metal material. The chestplate's
@@ -370,33 +369,8 @@ public final class GeneratedAssets implements DataProvider {
 			// is left out — a chest item cannot draw there), no companion top, no cuffs.
 			if (!chapter.pieces().contains(Piece.BOTTOM)) continue;
 
-			// The bottom: legs and waistband, on the legs slot's layer; under the top when it's up.
-			Tex bottom = Tex.blank(64, 32).blit(overlay, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
-					.blit(overlay, WAIST[0], WAIST[1], WAIST[2], WAIST[3], WAIST[0], WAIST[1]);
-			require(!bottom.isEmpty(), chapter.overlay + ".png has an empty leg box");
-			layer(chapter, Piece.BOTTOM, "bottom", withLeft(bottom, RIGHT_LEG, overlay, LEFT_LEG).scale(D));
 			equipment(chapter, Piece.BOTTOM, false);
-
-			if (chapter.rollable) {
-				// Rolled down: legs plus the top hanging at the waist, all on the legs slot's layer.
-				Tex nercabbad;
-				if (chapter.nercabbadArmour != null) {
-					// A leggings texture drawn as such (PolymITer's), shifted to the chapter's colour — hue
-					// and saturation from the website overlay's main colour, its own shading scaled to
-					// that colour's brightness. No left-limb art, so the left leg mirrors the right.
-					Tex armour = art(chapter.nercabbadArmour);
-					require(armour.width == 64 && armour.height == 32, chapter.nercabbadArmour + ".png is not a 64×32 armour texture");
-					armour = armour.tinted(colour).brightened(Tex.brightness(colour) / Tex.brightness(armour.dominant()));
-					nercabbad = withLeft(armour, RIGHT_LEG, Tex.blank(64, 64), LEFT_LEG);
-				} else {
-					Tex rolled = overlay(chapter.nercabbadOverlay, chapter);
-					Tex cut = Tex.blank(64, 32).blit(rolled, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
-							.blit(rolled, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1]);
-					nercabbad = withLeft(cut, RIGHT_LEG, rolled, LEFT_LEG);
-				}
-				layer(chapter, Piece.BOTTOM, "bottom_nercabbad", nercabbad.scale(D));
-				equipment(chapter, Piece.BOTTOM, true);
-			}
+			if (chapter.rollable) equipment(chapter, Piece.BOTTOM, true);
 
 			String topItem = ModContent.topId(chapter).getPath();
 			item(topItem, Tex.blank(16, 16).blit(tinted, 0, 0, 16, 8, 0, 0));
@@ -409,9 +383,24 @@ public final class GeneratedAssets implements DataProvider {
 
 		sewingFont(chapterColours, arts);
 
+		// The translated lines: the tooltip's shaders hint (OvveItem.SHADERS_HINT) and /ovvar shaders. Everything
+		// else is English only, and the client falls back to en_us for every key sv_se lacks.
+		lang.put(OvveItem.SHADERS_HINT, OvveItem.SHADERS_HINT_EN);
+		Map<String, String> swedish = new LinkedHashMap<>();
+		lang.put(ModCommands.SHADERS_INTRO, ModCommands.SHADERS_INTRO_EN);
+		lang.put(ModCommands.SHADERS_LINK, ModCommands.SHADERS_LINK_EN);
+		lang.put(ModCommands.SHADERS_STEPS, ModCommands.SHADERS_STEPS_EN);
+		swedish.put(ModCommands.SHADERS_INTRO, "Spelar du med shaderpack? Det behöver en engångspatch, annars visar ovvar ett rosa-svart rutmönster. Patchade du före den här uppdateringen? Patcha originalpacket igen.");
+		swedish.put(ModCommands.SHADERS_LINK, "Patcha ditt shaderpack");
+		swedish.put(ModCommands.SHADERS_STEPS, "Släpp in ditt pack, ladda ner +ovvar-kopian, lägg den i din shaderpacks-mapp och välj den i Iris.");
+		swedish.put(OvveItem.SHADERS_HINT, "Rosa-svart rutmönster på ben och armar? Patcha packet igen: /ovvar shaders");
+
 		JsonObject langJson = new JsonObject();
 		lang.forEach(langJson::addProperty);
 		files.json(assets.resolve("lang/en_us.json"), langJson);
+		JsonObject swedishJson = new JsonObject();
+		swedish.forEach(swedishJson::addProperty);
+		files.json(assets.resolve("lang/sv_se.json"), swedishJson);
 		return files.allOf();
 	}
 
@@ -711,6 +700,103 @@ public final class GeneratedAssets implements DataProvider {
 		}
 		throw new IllegalStateException("[" + MOD + " datagen] the preview library is full: no room for " + id + " (" + w + "×" + h + " texels)");
 	}
+	/**
+	 * One base garment layer as it is cut from the chapter's art, before its limb copies: the
+	 * 64×32 cut, the right-limb box it owns, and the skin and box its left-limb art comes from.
+	 * Public so a game test can redo the left copy on its own and hold the written layer to it.
+	 */
+	public record BaseLayer(Piece piece, String name, Tex cut, int[] box, Tex skin, int[] leftBox) {
+		/** The layer as written, less the marker texels: both limb copies and the checker, at {@link Spot#DETAIL}. */
+		public Tex drawn() {
+			return withLimbCopies(cut, box, skin, leftBox).scale(D);
+		}
+
+		/** The left copy alone ({@link #withLeft}), at {@link Spot#DETAIL}: what the layer was before the right copy. */
+		public Tex leftOnly() {
+			return withLeft(cut, box, skin, leftBox).scale(D);
+		}
+	}
+
+	/** A chapter's base layers: the top, and for an ovve the bottom and (if it rolls down) the nercabbad. */
+	public static List<BaseLayer> baseLayers(Chapter chapter) {
+		Tex overlay = overlay(chapter.overlay, chapter);
+		List<BaseLayer> out = new ArrayList<>();
+		// The top: body and sleeves, on the chest slot's layer.
+		Tex top = Tex.blank(64, 32).blit(overlay, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1])
+				.blit(overlay, RIGHT_ARM[0], RIGHT_ARM[1], RIGHT_ARM[2], RIGHT_ARM[3], RIGHT_ARM[0], RIGHT_ARM[1]);
+		require(!top.isEmpty(), chapter.overlay + ".png has an empty body or arm box");
+		out.add(new BaseLayer(Piece.TOP, "top", top, RIGHT_ARM, overlay, LEFT_ARM));
+		// A frack is all top: no legs layer (what the overlay paints on the legs, the coat's tails,
+		// is left out — a chest item cannot draw there).
+		if (!chapter.pieces().contains(Piece.BOTTOM)) return out;
+
+		// The bottom: legs and waistband, on the legs slot's layer; under the top when it's up.
+		Tex bottom = Tex.blank(64, 32).blit(overlay, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
+				.blit(overlay, WAIST[0], WAIST[1], WAIST[2], WAIST[3], WAIST[0], WAIST[1]);
+		require(!bottom.isEmpty(), chapter.overlay + ".png has an empty leg box");
+		out.add(new BaseLayer(Piece.BOTTOM, "bottom", bottom, RIGHT_LEG, overlay, LEFT_LEG));
+
+		if (!chapter.rollable) return out;
+		// Rolled down: legs plus the top hanging at the waist, all on the legs slot's layer.
+		if (chapter.nercabbadArmour != null) {
+			// A leggings texture drawn as such (PolymITer's), shifted to the chapter's colour — hue
+			// and saturation from the website overlay's main colour, its own shading scaled to
+			// that colour's brightness. No left-limb art, so the left leg mirrors the right.
+			int colour = overlay.dominant();
+			Tex armour = art(chapter.nercabbadArmour);
+			require(armour.width == 64 && armour.height == 32, chapter.nercabbadArmour + ".png is not a 64×32 armour texture");
+			armour = armour.tinted(colour).brightened(Tex.brightness(colour) / Tex.brightness(armour.dominant()));
+			out.add(new BaseLayer(Piece.BOTTOM, "bottom_nercabbad", armour, RIGHT_LEG, Tex.blank(64, 64), LEFT_LEG));
+		} else {
+			Tex rolled = overlay(chapter.nercabbadOverlay, chapter);
+			Tex cut = Tex.blank(64, 32).blit(rolled, RIGHT_LEG[0], RIGHT_LEG[1], RIGHT_LEG[2], RIGHT_LEG[3], RIGHT_LEG[0], RIGHT_LEG[1])
+					.blit(rolled, BODY[0], BODY[1], BODY[2], BODY[3], BODY[0], BODY[1]);
+			out.add(new BaseLayer(Piece.BOTTOM, "bottom_nercabbad", cut, RIGHT_LEG, rolled, LEFT_LEG));
+		}
+		return out;
+	}
+
+	/**
+	 * Both limb copies, and the checker in the box: the left limb's mirror strip as {@link #withLeft}
+	 * makes it, then the right-limb box copied unchanged to ({@link Spot#RIGHT_COPY_X}, box y −
+	 * {@link Spot#MIRROR_SHIFT}) — columns 16–31 of the head rows, which the armour layout leaves
+	 * unused (the top and the bottom each own one limb, so each has the one copy) — and then every
+	 * texel of the box that the copy has cloth on turned into a {@link Spot#CHECKER_A}/{@link
+	 * Spot#CHECKER_B} checker. Our shader draws both limbs from their copies, so this is the look
+	 * of a shader that is not ours: a missing texture on the arms and legs, which says "patch your
+	 * shaderpack" (/ovvar shaders) better than plain mirrored sleeves ever did.
+	 */
+	private static Tex withLimbCopies(Tex tex, int[] box, Tex skin, int[] leftBox) {
+		Tex out = withLeft(tex, box, skin, leftBox);
+		int x = box[0], y = box[1], w = box[2], h = box[3];
+		int cx = Spot.RIGHT_COPY_X, cy = y - Spot.MIRROR_SHIFT;
+		require(out.crop(cx, cy, w, h).isEmpty(), "something is already drawn where the right-limb copy goes ("
+				+ cx + ", " + cy + ", " + w + "×" + h + ")");
+		out = out.blit(out, x, y, w, h, cx, cy);
+		for (int ty = y; ty < y + h; ty++) {
+			for (int tx = x; tx < x + w; tx++) {
+				boolean cloth = Tex.a(out.get(cx + tx - x, cy + ty - y)) > 0;
+				boolean even = (tx / Spot.CHECKER_SQUARE + ty / Spot.CHECKER_SQUARE) % 2 == 0;
+				out = out.with(tx, ty, cloth ? (even ? Spot.CHECKER_A : Spot.CHECKER_B) : 0);
+			}
+		}
+		return out;
+	}
+
+	/**
+	 * A written base layer (at any detail) with its right-limb copy put back on the box: the
+	 * garment as our shader draws it. For every reader that is not that shader and cuts the right
+	 * limb out of the layer itself — the paper doll, Danse's stand-ins — since the box is the
+	 * checker. Only cloth is copied and the box is transparent wherever the copy is, so this gives
+	 * back the box exactly. The piece says which limb the layer owns: the top the arm, the bottom
+	 * (rolled down or not) the leg.
+	 */
+	public static Tex rightLimbRestored(Tex layer, Piece piece) {
+		int[] box = piece == Piece.TOP ? RIGHT_ARM : RIGHT_LEG;
+		int s = layer.width / 64;
+		return layer.blit(layer, Spot.RIGHT_COPY_X * s, (box[1] - Spot.MIRROR_SHIFT) * s, box[2] * s, box[3] * s, box[0] * s, box[1] * s);
+	}
+
 	/**
 	 * The left limb's art one strip up from the right limb's box, with every face mirrored in
 	 * place: the model draws the left limb as a mirror image off the right strips, and the shader

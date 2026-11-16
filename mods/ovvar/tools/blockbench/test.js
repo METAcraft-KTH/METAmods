@@ -537,6 +537,30 @@ test('a BODY placement reaches both textures and a limb one only its own', () =>
   assert.strictEqual(changed(base.B, sleeve.B), 0, 'the right sleeve patch reached B');
 });
 
+test('texture A draws the right limb from its copy, not the checker in the box', () => {
+  const ctx = context();
+  const m = ctx.m;
+  const t = OVVAR.tex;
+  const D = m.detail;
+  for (const [piece, box] of [['top', m.skinBoxes.rightArm], ['bottom', m.skinBoxes.rightLeg]]) {
+    const base = ctx.base('data', piece, false);
+    const {A} = OVVAR.compose.composePiece(ctx, piece, {chapter: 'data', nercabbad: false, placements: []});
+    const cy = box[1] - m.mirrorShift;
+    let cloth = 0;
+    for (let y = 0; y < box[3] * D; y++) {
+      for (let x = 0; x < box[2] * D; x++) {
+        const copy = t.get(base, m.rightCopyX * D + x, cy * D + y);
+        assert.strictEqual(t.get(A, box[0] * D + x, box[1] * D + y), copy, piece + ' A box texel (' + x + ',' + y + ') is not the copy');
+        if (t.a(copy) > 0) {
+          cloth++;
+          assert.notStrictEqual(t.get(base, box[0] * D + x, box[1] * D + y), copy, piece + ': the box under cloth is not the checker');
+        }
+      }
+    }
+    assert.ok(cloth > 0, piece + ': the right-limb copy is empty');
+  }
+});
+
 test('a cell is composed through the squeeze, not laid on flat', () => {
   const ctx = context();
   const m = ctx.m;
@@ -546,12 +570,14 @@ test('a cell is composed through the squeeze, not laid on flat', () => {
   // A cell (the back) bends round the box's corners, so its art is baked through placedWrapped.
   const cell = m.cellById.back_big;
   const drawn = OVVAR.compose.placementArt(ctx, cell, patch, cell.side);
-  const want = t.blit(ctx.base('data', 'top', false), OVVAR.compose.placedWrapped(m, cell, drawn.art, drawn.x), 0, 0, W, H, 0, 0);
+  // A is the cloth with the right sleeve's copy put back on the box (the box itself is the checker).
+  const cloth = OVVAR.compose.rightCopy(m, 'top', ctx.base('data', 'top', false));
+  const want = t.blit(cloth, OVVAR.compose.placedWrapped(m, cell, drawn.art, drawn.x), 0, 0, W, H, 0, 0);
   const got = OVVAR.compose.composePiece(ctx, 'top',
     {chapter: 'data', nercabbad: false, placements: [{cell: 'back_big', patch: 'itk'}]}).A;
   assert.deepStrictEqual(t.diff(want, got, []), [], 'back_big');
   // ... and laying it on flat would have given a different picture, so this pins the choice.
   const flat = OVVAR.compose.placed(m, cell, drawn.art, drawn.x);
-  assert.ok(t.diff(t.blit(ctx.base('data', 'top', false), flat, 0, 0, W, H, 0, 0), got, []).length > 0,
+  assert.ok(t.diff(t.blit(cloth, flat, 0, 0, W, H, 0, 0), got, []).length > 0,
     'back_big: flat and squeezed agree, so this test proves nothing');
 });

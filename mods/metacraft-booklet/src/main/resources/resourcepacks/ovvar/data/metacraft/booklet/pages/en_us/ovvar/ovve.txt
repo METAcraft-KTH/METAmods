@@ -12,6 +12,8 @@ Each ovve is a single item that goes in the <bold>legs</bold> slot: drag it in, 
 
 The <bold>Media frack</bold> is a tailcoat, so it goes in the <bold>chest</bold> slot instead. It is its own top: there is nothing to roll up or down, and patches go only on the coat. Its pockets work like an ovve's.
 
+Pink-black checker on your arms and legs? Your shaderpack has not been patched for ovves, or was patched before this update: patch the original pack again. Type <bold>/ovvar shaders</bold> to get the patcher.
+
 ### Header: The top
 Sneak and right-click the ovve to roll its top <bold>up</bold> or <bold>down</bold>. With the top up and nothing in your chest slot the sleeves show; a chestplate goes on over it as usual and hides the top until it comes off again. The top is not a separate item — it comes and goes with the ovve.
 

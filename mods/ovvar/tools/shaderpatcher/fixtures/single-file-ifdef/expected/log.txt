@@ -1,0 +1,2 @@
+  shaders/program/gbuffers_entities.glsl: 'texCoord' and 'glColor' shadowed, art via texture(gtexture), colour from gl_Color
+  shaders/program/gbuffers_entities.glsl: rifts drawn through texture(gtexture), marker from gl_Color, position from gl_Vertex.xyz

@@ -10,7 +10,6 @@ import se.metacraft.ovvar.content.*;
 import se.metacraft.ovvar.content.item.OvveItem;
 import se.metacraft.ovvar.guide.Guide;
 import se.metacraft.ovvar.pack.Combos;
-import se.metacraft.ovvar.pack.ShaderPatcher;
 import se.metacraft.ovvar.sewing.*;
 import se.metacraft.ovvar.store.Stash;
 import se.metacraft.ovvar.store.Wardrobe;
@@ -284,25 +283,31 @@ public final class ModCommands {
 		return 1;
 	}
 
+	/** The chat lines of {@code /ovvar shaders}: translation keys, with the English as the client's fallback. */
+	public static final String SHADERS_INTRO = "chat." + Ovvar.MOD_ID + ".shaders.intro";
+	public static final String SHADERS_LINK = "chat." + Ovvar.MOD_ID + ".shaders.link";
+	public static final String SHADERS_STEPS = "chat." + Ovvar.MOD_ID + ".shaders.steps";
+	public static final String SHADERS_INTRO_EN = "Playing with a shaderpack? It needs a one-time patch, or ovvar show a pink-black checker. Patched it before this update? Patch the original pack again.";
+	public static final String SHADERS_LINK_EN = "Patch your shaderpack";
+	public static final String SHADERS_STEPS_EN = "Drop your pack in, download the +ovvar copy, put it in your shaderpacks folder and pick it in Iris.";
+
 	/**
-	 * A shaderpack replaces the shaders that draw an ovve's patches and the rifts; the patcher puts
-	 * them back into the pack. The link is the server's own (autohost); a server that hosts nothing
-	 * says where the jar is in the resource pack the client already downloaded.
+	 * A shaderpack replaces the shaders that draw an ovve's patches and the rifts; players patch their
+	 * pack on a web page (the config's {@code shaders.patcher_url}). Three lines: why, the link, how.
 	 */
 	private static int shaders(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-		ServerPlayer player = ctx.getSource().getPlayerOrException();
-		MutableComponent fetch = ShaderPatcher.url(player).<MutableComponent>map(url -> Component.literal("1. ")
-						.append(Component.literal("Download the shader patcher").withStyle(style -> style
-								.withColor(ChatFormatting.GREEN).withUnderlined(true)
-								.withClickEvent(new ClickEvent.OpenUrl(URI.create(url)))
-								.withHoverEvent(new HoverEvent.ShowText(Component.literal(url))))))
-				.orElseGet(() -> Component.literal("1. It's in this server's resource pack: in .minecraft/downloads, open the newest"
-						+ " folder, copy the file in it, name the copy pack.zip, and take " + ShaderPatcher.RESOURCE + " out of it."));
-		player.sendSystemMessage(Component.literal("Playing with a shaderpack (Iris or OptiFine)? It replaces the shaders that draw"
-				+ " patches on ovvar and the rifts. Patch your pack once:").withStyle(ChatFormatting.GOLD));
-		player.sendSystemMessage(fetch);
-		player.sendSystemMessage(Component.literal("2. Double-click it (needs Java). It writes a \"+ovvar\" copy of every pack in your shaderpacks folder."));
-		player.sendSystemMessage(Component.literal("3. Pick the \"+ovvar\" copy in Iris. Run it again when you add or update a pack."));
+		CommandSourceStack source = ctx.getSource();
+		source.getPlayerOrException();
+		String url = OvvarConfig.get().shaders().patcherUrlOrDefault();
+		MutableComponent link = Component.translatableWithFallback(SHADERS_LINK, SHADERS_LINK_EN).withStyle(ChatFormatting.GREEN, ChatFormatting.UNDERLINE);
+		try {
+			link.withStyle(style -> style.withClickEvent(new ClickEvent.OpenUrl(URI.create(url))).withHoverEvent(new HoverEvent.ShowText(Component.literal(url))));
+		} catch (IllegalArgumentException e) {
+			Ovvar.LOGGER.warn("[ovvar] shaders.patcher_url \"{}\" is not a URL: {}", url, e.getMessage());
+		}
+		source.sendSystemMessage(Component.translatableWithFallback(SHADERS_INTRO, SHADERS_INTRO_EN).withStyle(ChatFormatting.GOLD));
+		source.sendSystemMessage(link);
+		source.sendSystemMessage(Component.translatableWithFallback(SHADERS_STEPS, SHADERS_STEPS_EN).withStyle(ChatFormatting.GRAY));
 		return 1;
 	}
 

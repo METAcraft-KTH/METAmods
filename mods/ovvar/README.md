@@ -466,7 +466,11 @@ pure white, so the stitching reads the same on every chapter.
     session_seconds          idle time before a session ends (default 300)
     explain_in_chat          the stash explanation when a patch is earned (default true)
 
-Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash` and
+`config/ovvar.json` → `shaders` (players with a shaderpack):
+
+    patcher_url              the page /ovvar shaders links to (default "https://metacraft.se/ovvar/shaders"; blank = the default)
+
+Since JSON has no comments, `config/ovvar.json` and each of its `designs`, `stash`, `shaders` and
 `designs.jdbc` blocks carry their own `_help` object (rewritten every save, so edits to it do not
 stick) with a `_about` line and one entry per key, the same text as above; open the file itself if
 you would rather read the help there than here. Every block is always written, even one that is
@@ -486,7 +490,7 @@ The file backend is fine for one server or a shared mount; a network of servers 
     /ovvar stitch <cell.patch>                 open the stitching dialog on the nearest ovve stand, no aiming needed
     /ovvar reload                              (any player) the latest resource pack, now
     /ovvar guide                               (any player) the guidebook, "How to ovvar"
-    /ovvar shaders                             (any player) a link to the shaderpack patcher, and how to use it
+    /ovvar shaders                             (any player) a link to the web shaderpack patcher (config: shaders.patcher_url)
     /ovvar patch give <targets> <patch> [n]    a patch into the stash of every selected player, with the flourish
     /ovvar stash                               (any player) the stash menu; stash done ends a session; stash deposit banks held patches
     /ovvar store status                        the wardrobe store: backend, cache, queued writes, this server's role, sessions
@@ -506,8 +510,8 @@ The file backend is fine for one server or a shared mount; a network of servers 
 `./gradlew :mods:ovvar:runServer` runs a dev server (set `online-mode=false` and turn on Polymer's
 pack host to join it with a plain vanilla client). Give yourself an
 ovve with `/ovvar give data all` or from the Ovvar creative tab. The
-game tests: `JAVA_TOOL_OPTIONS="-Dfabric-api.gametest=true" ./gradlew :mods:ovvar:runServer`,
-with `-PrunDir=<dir>` when a dev server already holds `./run`'s world lock — (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
+game tests: `./gradlew :mods:ovvar:runGameTest` (its own world under `build/run/gameTest`, so a dev
+server holding `./run` doesn't get in the way) — (`OvvarGameTests`): every cell aimed at on stands at rest, posed and turned, and the
 sneak far-face rule, checked against `StandAim.cell`, the independent cell → point mapping; that an
 empty-handed click on a stand's chest takes the whole ovve off
 with its patches and leaves no companion top, while a click on a leg is still left to vanilla's own
@@ -835,6 +839,16 @@ fragments from the handedness of the texture mapping: on a base texture it sampl
 one strip up, where datagen puts the mirrored left-side art; a placement texture is marked with
 its side and hidden on the other limb; the preview slots carry the side in their cell.
 
+The right limbs read a copy too. Datagen copies the right arm's and the right leg's box unchanged
+to skin texel (16, 0) in the head rows of the top and the bottom layer (`Spot.RIGHT_COPY_X`, the
+same row as the mirror strip; columns 16–31 are otherwise unused, and datagen `require`s them
+empty), and fills the box itself with a magenta/black checker (`Spot.CHECKER_A`/`CHECKER_B`, one
+skin texel square) wherever the copy has cloth. Our shader draws both limbs from their copies
+(`OVVAR_RIGHT_COPY_X`, pinned by `ShaderLayoutTests`), so vanilla clients and patched shaderpacks
+see exactly what they always did; any other shader samples the box and shows the limbs as a
+missing texture, which is the cue to run `/ovvar shaders` (the tooltip and the guidebook say so).
+The paper doll and the Blockbench plugin put the copy back on the box before they draw.
+
 `OVVAR_MIRROR_SENSE` is the calibration, and it holds for a box's top and bottom faces as well as its
 sides: v runs *across* the box there, from the back edge to the front, instead of down it, but u
 runs the wearer's right to left the way the front face's does (the edge the two share demands it),
@@ -842,13 +856,15 @@ so the handedness comes out the same; the derivation is written out in `ovvar.gl
 lets the base garment draw the left arm's top face from the mirror strip as well. `mirrored` is
 computed exactly once and every path reads that one bool, so no two of them can disagree about
 which arm a fragment is on (`everyPathTellsTheArmsApartTheSameWay` pins that structure, since GLSL
-does not run in the game tests). Clients whose core shaders are replaced (Iris, OptiFine) see the plain
-mirrored overalls without patches — nothing breaks. Shaderpack users run `OvvarShaderPatcher.jar`
-(built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
-`assets/ovvar/shaderpatcher/`; `/ovvar shaders` gives a player a download link, served by Polymer's
-autohost on the game port at `/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`,
-or, where autohost serves nothing, the way into the downloaded pack): double-clicked, it writes a
-`+ovvar` copy of every pack in `.minecraft/shaderpacks` with `ovvar.glsl` spliced into the pack's
+does not run in the game tests). Clients whose core shaders are replaced (Iris, OptiFine) see the
+overalls without patches and with checkered arms and legs (above) until the pack is patched. Shaderpack users patch their pack on a web page (`shaders.patcher_url`, default
+https://metacraft.se/ovvar/shaders; `/ovvar shaders` links to it) or, as a fallback, with
+`OvvarShaderPatcher.jar` (built from `tools/shaderpatcher`, Java 11+, shipped inside the resource pack at
+`assets/ovvar/shaderpatcher/` and still served by Polymer's autohost on the game port at
+`/eu.pb4.polymer.autohost/ovvar/shaderpatcher/<hash>/ovvar-shader-patcher.jar`, but no longer linked from
+the page: the website links its own copy): double-clicked, it opens a file chooser (starting in `.minecraft/shaderpacks`; zips and folders,
+several at once, Cancel does nothing) and writes a
+`+ovvar` copy of each pick with `ovvar.glsl` spliced into the pack's
 own entity program (the texture-coordinate and vertex-colour varyings are shadowed, so the pack's
 code needs no changes). Patched cleanly: BSL, Bliss, Complementary Reimagined and Unbound,
 MakeUp Ultra Fast, Solas, Photon, Super Duper Vanilla. The same run patches in metacraft-core's
@@ -861,6 +877,39 @@ Iris 1.11.7). Super Duper Vanilla samples inside a shared include, so its rifts 
 sprite; so do MakeUp Ultra Fast's, though its program is patched. Photon and Solas don't start on macOS
 (OpenGL 4.1), so they are unchecked. Check a pack in game with
 `./gradlew :mods:nether-rifts:runClientGameTest -Piris=<patched pack.zip>`.
+
+### Client test under a shaderpack (unpatched pack shows the checker)
+
+`OvvarShaderpackClientTests` does nothing unless `-Povvar.iris.expect=checker|art` is given (and then
+`-Piris=<pack.zip>` is required). It stands a Data ovve on a mannequin with nothing sewn, waits 100 ticks and
+crops the right leg's front face: `checker` wants at least 30% of its pixels within 40 per channel of #FF00FF
+(an unpatched pack draws the checker that fills the original right-limb box), `art` wants none. It first asserts
+through Iris's API that a pack is in use and is the one named by `-Piris`; Iris falls back silently otherwise.
+In the cloud (environment `Minecraft`):
+
+```
+curl -L -o bsl.zip <BSL download URL from Modrinth>
+./gradlew :mods:ovvar:patcherJar
+java -jar mods/ovvar/build/libs/OvvarShaderPatcher.jar bsl.zip                 # writes bsl+ovvar.zip next to it
+./gradlew :mods:ovvar:runClientGameTest                                        # vanilla, unchanged
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=checker
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl+ovvar.zip -Povvar.iris.expect=art
+```
+
+Without hand patching, through the launcher mod (`mods/ovvar-shaderpatch`, which patches the instance's shaderpacks at
+`preLaunch`): hand it the ORIGINAL pack, and the run expects Iris to be on the `+ovvar` copy it wrote:
+
+```
+./gradlew :mods:ovvar:runClientGameTest -Piris=$PWD/bsl.zip -Povvar.iris.expect=art -PshaderpatchMod
+```
+
+Iris's log then names `bsl+ovvar.zip`, and `unpatchedPackShowsChecker` passes with `art`.
+
+With `-Piris` set, `OvvarClientTests` and `OvvarDanseClientTests` skip themselves (their screenshots are judged
+against vanilla rendering), so only this test runs. It also requires at least half of the cropped leg to differ from the
+background, so `art` cannot pass on a crop that missed the leg.
+
+Screenshots: `build/run/clientGameTest/screenshots/ovvar_iris_leg_*.png`.
 
 ## Credits
 

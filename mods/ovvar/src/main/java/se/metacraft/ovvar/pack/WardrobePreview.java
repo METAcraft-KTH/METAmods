@@ -6,6 +6,7 @@ import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
 import se.metacraft.ovvar.content.Spot;
+import se.metacraft.ovvar.datagen.GeneratedAssets;
 import se.metacraft.ovvar.datagen.Tex;
 import se.metacraft.ovvar.pack.WardrobeFont.Glyph;
 import net.minecraft.network.chat.Component;
@@ -576,11 +577,12 @@ public final class WardrobePreview {
 		String key = "cloth/" + chapter.id;
 		Tex cached = CACHE.get(key);
 		if (cached != null) return cached;
-		// Not computeIfAbsent: reading the two halves puts them in this same map.
-		Tex top = read(Piece.TOP, EquipmentJson.baseTexture(chapter, Piece.TOP, false));
+		// Not computeIfAbsent: reading the two halves puts them in this same map. Each with its right
+		// limb's copy put back on the box, which holds the checker for unpatched shaderpacks.
+		Tex top = GeneratedAssets.rightLimbRestored(read(Piece.TOP, EquipmentJson.baseTexture(chapter, Piece.TOP, false)), Piece.TOP);
 		// A frack has no trousers: nothing under the top.
 		Tex bottom = chapter.pieces().contains(Piece.BOTTOM)
-				? read(Piece.BOTTOM, EquipmentJson.baseTexture(chapter, Piece.BOTTOM, false))
+				? GeneratedAssets.rightLimbRestored(read(Piece.BOTTOM, EquipmentJson.baseTexture(chapter, Piece.BOTTOM, false)), Piece.BOTTOM)
 				: Tex.blank(top.width, top.height);
 		Tex cloth = bottom.composite(top);
 		CACHE.put(key, cloth);

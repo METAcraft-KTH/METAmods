@@ -12,6 +12,8 @@ import se.metacraft.ovvar.content.Patches;
 import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
 import se.metacraft.ovvar.content.Spot;
+import se.metacraft.ovvar.datagen.GeneratedAssets;
+import se.metacraft.ovvar.datagen.Tex;
 import se.metacraft.ovvar.pack.EquipmentJson;
 import net.minecraft.resources.Identifier;
 
@@ -44,7 +46,8 @@ import java.util.function.BiConsumer;
  * atlas already looks. Full layer sheets would stitch hundreds of mostly transparent 256×128
  * sprites into every player's atlas; the crops are a sixth of that, and a crop with nothing on it
  * is left out along with its model. Left limbs take the base cloth's asymmetric art from the mirror
- * strip ({@link Spot#MIRROR_SHIFT} texels up), where datagen keeps it for the shader; patch textures
+ * strip ({@link Spot#MIRROR_SHIFT} texels up), where datagen keeps it for the shader, and right limbs
+ * their box with the right-limb copy put back on it (the box itself is the checker); patch textures
  * for left cells already sit pre-mirrored on the right limb's rectangle, which the shell reads mirrored.
  */
 public final class DanseModels {
@@ -97,7 +100,7 @@ public final class DanseModels {
 			for (boolean[] variant : EquipmentJson.variants(chapter, piece)) {
 				String key = baseKey(chapter, piece, variant[0]);
 				String model = prefix + "base/" + key;
-				if (shell(piece, part, key, model, isLeft(part) ? -Spot.MIRROR_SHIFT : 0, 0f, out)) {
+				if (shell(piece, part, key, true, model, isLeft(part) ? -Spot.MIRROR_SHIFT : 0, 0f, out)) {
 					baseCases.add(when(key, model));
 				}
 			}
@@ -113,7 +116,7 @@ public final class DanseModels {
 				if (!patch.fits(spot)) continue;
 				String texture = textureFor(new Placement(spot, patch), part);
 				String model = prefix + spot.id() + "/" + patch.id();
-				if (shell(piece, part, texture, model, 0, 0.01f * (1 + spot.layer()), out)) {
+				if (shell(piece, part, texture, false, model, 0, 0.01f * (1 + spot.layer()), out)) {
 					cases.add(when(patch.id(), model));
 				}
 			}
@@ -131,12 +134,15 @@ public final class DanseModels {
 	/**
 	 * One shell: the layer texture cropped to the part's rectangle, written next to its model. False,
 	 * and nothing written, when datagen made no such texture (a retired patch, say) or the crop is
-	 * empty (nothing of this layer on this part).
+	 * empty (nothing of this layer on this part). A base layer's right-limb box is the checker an
+	 * unpatched shaderpack shows, and a shell has no marker for our shader to redirect, so a base
+	 * layer is cut from its restored form ({@link GeneratedAssets#rightLimbRestored}).
 	 */
-	private static boolean shell(Piece piece, BodyPart part, String texture, String model, int vShift, float inflate,
+	private static boolean shell(Piece piece, BodyPart part, String texture, boolean base, String model, int vShift, float inflate,
 			BiConsumer<String, byte[]> out) {
-		BufferedImage layer = layer(piece, texture);
-		if (layer == null) return false;
+		Tex read = layer(piece, texture);
+		if (read == null) return false;
+		BufferedImage layer = (base ? GeneratedAssets.rightLimbRestored(read, piece) : read).image();
 		int[] region = BodyLayerModels.region(part, vShift);
 		int scale = layer.getWidth() / 64;
 		BufferedImage crop = layer.getSubimage(region[0] * scale, region[1] * scale, region[2] * scale, region[3] * scale);
@@ -150,10 +156,10 @@ public final class DanseModels {
 	}
 
 	/** A layer texture datagen made, off our own classpath, or null. */
-	private static @Nullable BufferedImage layer(Piece piece, String texture) {
+	private static @Nullable Tex layer(Piece piece, String texture) {
 		String path = "/assets/" + Ovvar.MOD_ID + "/textures/entity/equipment/" + piece.layer + "/" + texture + ".png";
 		try (InputStream in = DanseModels.class.getResourceAsStream(path)) {
-			return in == null ? null : ImageIO.read(in);
+			return in == null ? null : Tex.read(in);
 		} catch (IOException e) {
 			throw new UncheckedIOException("cannot read " + path, e);
 		}

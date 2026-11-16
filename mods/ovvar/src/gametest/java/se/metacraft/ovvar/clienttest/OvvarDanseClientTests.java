@@ -123,6 +123,7 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
+		if (ClientTestSupport.skipUnderShaderpack("OvvarDanseClientTests")) return;
 		if (!FabricLoader.getInstance().isModLoaded("danse")) return;
 		if (!danseCanGestureHere()) {
 			System.out.println("[ovvar-danse-clienttest] skipped: Danse's server-side mixins are not applied in a "
@@ -210,6 +211,7 @@ public final class OvvarDanseClientTests implements FabricClientGameTest {
 				// the 12×12 art it is a one-pixel diagonal, which the old compat's downsample to Danse's
 				// one-square-per-texel grid averaged away. Body layers draw the ovve's own texture, so it
 				// must be there now — that is the resolution fix, in one assertion.
+				ClientTestSupport.assertNoChecker(gesturing, box.x0(), box.y0(), box.x1(), box.y1(), "stand-in");
 				assertPresent(gesturing, box, "itk (green) on the stand-in",
 						(r, g, b) -> g > 100 && g > r + 60 && b < 140, 20);
 				assertPresent(gesturing, box, "data (yellow) on the stand-in",

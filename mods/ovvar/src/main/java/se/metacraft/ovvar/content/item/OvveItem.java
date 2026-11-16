@@ -254,8 +254,8 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 	public static final int PATCH_LIST_WIDTH = 40;
 	/**
 	 * The most lines the patch list may take. With the status line above it and the hint line
-	 * below, that keeps the whole tooltip to 5 lines under the name — no taller than an item with
-	 * five enchantments, however many patches are sewn on.
+	 * below, that keeps the tooltip to 5 lines under the name — no taller than an item with five
+	 * enchantments, however many patches are sewn on — plus the shaders line ({@link #SHADERS_HINT}).
 	 */
 	public static final int PATCH_LIST_LINES = 3;
 
@@ -278,7 +278,16 @@ public final class OvveItem extends BundleItem implements PolymerItem {
 			// list above is empty, so the tooltip is still only 3 lines tall.
 			tooltip.add(Component.literal("Sew patches on at an armour stand").withStyle(ChatFormatting.DARK_GRAY));
 		}
+		tooltip.add(Component.translatableWithFallback(SHADERS_HINT, SHADERS_HINT_EN).withStyle(ChatFormatting.GRAY));
 	}
+
+	/**
+	 * The tooltip's last line, in the client's own language (datagen writes en_us and sv_se): an
+	 * unpatched shaderpack draws an ovve's arms and legs as a pink-black checker
+	 * (GeneratedAssets.withLimbCopies), and this says what to do about it.
+	 */
+	public static final String SHADERS_HINT = "tooltip." + Ovvar.MOD_ID + ".shaders";
+	public static final String SHADERS_HINT_EN = "Pink-black checker on your limbs? Patch the pack again: /ovvar shaders";
 
 	private static String countLabel(int count) {
 		if (count == 0) return "no patches yet";

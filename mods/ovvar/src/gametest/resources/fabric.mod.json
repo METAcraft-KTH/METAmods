@@ -9,7 +9,8 @@
 	"entrypoints": {
 		"fabric-client-gametest": [
 			"se.metacraft.ovvar.clienttest.OvvarDanseClientTests",
-			"se.metacraft.ovvar.clienttest.OvvarClientTests"
+			"se.metacraft.ovvar.clienttest.OvvarClientTests",
+			"se.metacraft.ovvar.clienttest.OvvarShaderpackClientTests"
 		]
 	},
 	"mixins": [

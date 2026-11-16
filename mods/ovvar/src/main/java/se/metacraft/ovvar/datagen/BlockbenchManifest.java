@@ -43,7 +43,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class BlockbenchManifest implements DataProvider {
 	/** Bumped when the schema changes in a way an older plugin could not read; the plugin refuses a newer one. */
-	public static final int VERSION = 3;
+	public static final int VERSION = 4;
 	/** Under {@code src/main/generated}, beside {@code ovvar/outlines.json}; on the classpath at runtime. */
 	public static final String DIR = Ovvar.MOD_ID + "/blockbench/";
 	public static final String RESOURCE = "/" + DIR + "manifest.json";
@@ -105,6 +105,12 @@ public final class BlockbenchManifest implements DataProvider {
 		m.addProperty("faceRow", Spot.FACE_ROW);
 		m.addProperty("faceRows", Spot.FACE_ROWS);
 		m.addProperty("mirrorShift", Spot.MIRROR_SHIFT);
+		// Version 4: a base layer's right-limb box is the checker an unpatched shaderpack shows, and
+		// the right limb's own art is its copy at (rightCopyX, box y − mirrorShift). Colours unsigned ARGB.
+		m.addProperty("rightCopyX", Spot.RIGHT_COPY_X);
+		m.addProperty("checkerA", Integer.toUnsignedLong(Spot.CHECKER_A));
+		m.addProperty("checkerB", Integer.toUnsignedLong(Spot.CHECKER_B));
+		m.addProperty("checkerSquare", Spot.CHECKER_SQUARE);
 		m.addProperty("cellSize", Spot.SIZE);
 		m.addProperty("bigCell", Spot.BIG);
 		m.addProperty("px", Spot.PX);

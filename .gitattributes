@@ -1,0 +1,3 @@
+mods/ovvar/tools/shaderpatcher/fixtures/** -text
+mods/ovvar/src/main/resources/assets/ovvar/shaders/include/*.glsl text eol=lf
+mods/metacraft-shaders/src/main/resources/assets/metacraft/shaders/include/*.glsl text eol=lf

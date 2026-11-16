@@ -21,8 +21,9 @@ import java.util.function.UnaryOperator;
  *					   takes proportionally more ({@link Seam#stitchesFor})
  * @param designs	    where the players' wardrobes live and what sewing does without it ({@link DesignStoreConfig})
  * @param stash		  this server's role, and the rules for taking patches out of the stash ({@link StashConfig})
+ * @param shaders	    where players patch their shaderpack ({@link ShadersConfig})
  */
-public record OvvarConfig(boolean sewingMinigame, int stitches, DesignStoreConfig designs, StashConfig stash) {
+public record OvvarConfig(boolean sewingMinigame, int stitches, DesignStoreConfig designs, StashConfig stash, ShadersConfig shaders) {
 	public static final int MIN_STITCHES = 1, MAX_STITCHES = 16;
 
 
@@ -30,11 +31,12 @@ public record OvvarConfig(boolean sewingMinigame, int stitches, DesignStoreConfi
 			ConfigFields.required(Codec.BOOL.fieldOf("sewing_minigame"), "true: sewing a patch on a stand opens the stitching dialog and takes a few pulls. false: one", "click sews.").forGetter(OvvarConfig::sewingMinigame),
 			ConfigFields.required(Codec.intRange(MIN_STITCHES, MAX_STITCHES).fieldOf("stitches"), "How many pulls a cell-sized patch takes in the minigame (1-16); bigger patches take", "proportionally more.").forGetter(OvvarConfig::stitches),
 			ConfigFields.field(DesignStoreConfig.CODEC.codec(), "designs", DesignStoreConfig.DEFAULT, "Where every player's wardrobe (their sewn patches per chapter and their stash of unsewn patches)", "is kept. All servers should point at the same store.").forGetter(OvvarConfig::designs),
-			ConfigFields.field(StashConfig.CODEC.codec(), "stash", StashConfig.DEFAULT, "What this server is, and the rules for patches here. Patches live in a player's stash (shared by", "all servers), on their ovve, or as items in the world.").forGetter(OvvarConfig::stash)
+			ConfigFields.field(StashConfig.CODEC.codec(), "stash", StashConfig.DEFAULT, "What this server is, and the rules for patches here. Patches live in a player's stash (shared by", "all servers), on their ovve, or as items in the world.").forGetter(OvvarConfig::stash),
+			ConfigFields.field(ShadersConfig.CODEC.codec(), "shaders", ShadersConfig.DEFAULT, "Players with a shaderpack: where they patch it so ovvar draw right.").forGetter(OvvarConfig::shaders)
 	).apply(instance, OvvarConfig::new));
 
 	private static final ConfigContainer<OvvarConfig> CONTAINER = ConfigContainer.Builder.create(
-			CODEC, () -> new OvvarConfig(true, 6, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT)
+			CODEC, () -> new OvvarConfig(true, 6, DesignStoreConfig.DEFAULT, StashConfig.DEFAULT, ShadersConfig.DEFAULT)
 	).build(Ovvar.MOD_ID);
 
 
@@ -43,12 +45,17 @@ public record OvvarConfig(boolean sewingMinigame, int stitches, DesignStoreConfi
 	}
 
 	public OvvarConfig minigame(boolean on, int stitches) {
-		return new OvvarConfig(on, stitches > 0 ? stitches : stitches(), designs, stash);
+		return new OvvarConfig(on, stitches > 0 ? stitches : stitches(), designs, stash, shaders);
 	}
 
 	/** The same config with other store settings (a test, a command). */
 	public OvvarConfig designs(DesignStoreConfig designs) {
-		return new OvvarConfig(sewingMinigame, stitches, designs, stash);
+		return new OvvarConfig(sewingMinigame, stitches, designs, stash, shaders);
+	}
+
+	/** The same config with other shaderpack settings (a test). */
+	public OvvarConfig shaders(ShadersConfig shaders) {
+		return new OvvarConfig(sewingMinigame, stitches, designs, stash, shaders);
 	}
 
 	/** Re-reads {@code config/ovvar.json}. */
