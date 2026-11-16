@@ -81,7 +81,7 @@ public final class ChestWrapTests {
 		Combos.Combo whole = Placement.combo(SEWN);
 		Combos.KeyedCombo key = Combos.KeyedCombo.chest(Chapter.DATA, "iron", whole);
 		try {
-			assertThat(!Combos.isKnown(key), "the sample is already known; pick another");
+			forget(Chapter.DATA, whole);   // a run that failed halfway may have left it in combos.json
 			ItemStack before = wear(helper, wearer, Chapter.DATA, "iron", SEWN, viewer);
 			assertThat(asset(before).equals(EquipmentJson.chestAsset(Chapter.DATA, "iron")), "before the build a vanilla viewer was sent " + asset(before));
 			ItemStack ovve = wearer.getItemBySlot(EquipmentSlot.LEGS);
@@ -101,6 +101,44 @@ public final class ChestWrapTests {
 		helper.succeed();
 	}
 
+	/**
+	 * A vanilla viewer whose loaded pack is not one the server still knows (or a packet with no viewer at all) is
+	 * never sent a wrap with patches, even when the current pack holds it: their pack may lack it, and a missing
+	 * asset is an invisible chestplate. The plain wrap is in the Polymer pack, always there.
+	 */
+	@GameTest
+	public void aViewerWhosePackIsUnknownGetsThePlainWrap(GameTestHelper helper) {
+		ServerPlayer wearer = helper.makeMockServerPlayerInLevel();
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+		Combos.Combo whole = Placement.combo(SEWN);
+		Combos.KeyedCombo key = Combos.KeyedCombo.chest(Chapter.FYSIK, "diamond", whole);
+		Combos.markBuiltForTest(key);
+		try {
+			Combos.setLoadedForTest(viewer.getUUID(), -1);
+			ItemStack client = wear(helper, wearer, Chapter.FYSIK, "diamond", SEWN, viewer);
+			assertThat(asset(client).equals(EquipmentJson.chestAsset(Chapter.FYSIK, "diamond")), "a viewer on an unknown pack was sent " + asset(client));
+			assertThat(client.has(DataComponents.DYED_COLOR), "the plain wrap lost its dye");
+			ItemStack anonymous = PolymerItemUtils.getPolymerItemStack(wearer.getItemBySlot(EquipmentSlot.CHEST), context(viewer, false), helper.getLevel().registryAccess());
+			assertThat(asset(anonymous).equals(EquipmentJson.chestAsset(Chapter.FYSIK, "diamond")), "a packet with no viewer was sent " + asset(anonymous));
+		} finally {
+			Combos.setLoadedForTest(viewer.getUUID(), null);
+			Combos.unmarkBuiltForTest(key);
+			forget(Chapter.FYSIK, whole);
+		}
+		helper.succeed();
+	}
+
+	/** When a pack loads, a wrapped chestplate is among what is sent again, so the wrap with every patch shows at once. */
+	@GameTest
+	public void aWrappedChestplateIsResentWhenAPackLoads(GameTestHelper helper) {
+		ItemStack chest = new ItemStack(net.minecraft.world.item.Items.IRON_CHESTPLATE);
+		assertThat(!Combos.resentOnPackLoad(chest), "a plain chestplate is re-sent");
+		chest.set(ModComponents.WRAPPED_TOP, UUID.randomUUID());
+		assertThat(Combos.resentOnPackLoad(chest), "a wrapped chestplate is not re-sent");
+		assertThat(Combos.resentOnPackLoad(new ItemStack(ModContent.ovve(Chapter.DATA))), "an ovve is not re-sent");
+		helper.succeed();
+	}
+
 	/** Only diamond, iron and netherite go into the pack; the other materials are what they were for a vanilla viewer. */
 	@GameTest
 	public void onlyDiamondIronAndNetheriteAreQueuedForThePack(GameTestHelper helper) {
@@ -108,6 +146,7 @@ public final class ChestWrapTests {
 		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
 		Combos.Combo whole = Placement.combo(SEWN);
 		assertThat(OvveTop.PACK_MATERIALS.equals(List.of("diamond", "iron", "netherite")), "the pack's materials are " + OvveTop.PACK_MATERIALS);
+		forget(Chapter.IT, whole);
 		try {
 			for (String material : OvveTop.MATERIALS) {
 				ItemStack client = wear(helper, wearer, Chapter.IT, material, SEWN, viewer);
@@ -152,7 +191,8 @@ public final class ChestWrapTests {
 		Map<UUID, Long> pushes = new HashMap<>();
 		helper.startSequence()
 				.thenExecute(() -> {
-					assertThat(!Combos.isKnown(key), "the sample is already known; pick another");
+					forget(Chapter.KEMI, whole);   // a run that failed halfway may have left it in combos.json
+					assertThat(!Combos.isBuilt(key, null), "the sample is already in the pack; pick another");
 					for (ServerPlayer p : List.of(wearer, viewer)) pushes.put(p.getUUID(), Combos.lastPushForTest(p.getUUID()));
 					wear(helper, wearer, Chapter.KEMI, "netherite", SEWN, viewer);
 					wear(helper, wearer, Chapter.KEMI, "netherite", SEWN, wearer);
@@ -189,8 +229,9 @@ public final class ChestWrapTests {
 		int alone = ComboPack.build(Set.of(top)).zip().length;
 		java.util.Set<Combos.KeyedCombo> withChests = new java.util.HashSet<>(Set.of(top));
 		for (String material : OvveTop.PACK_MATERIALS) withChests.add(Combos.KeyedCombo.chest(Chapter.DATA, material, whole));
-		Map<String, String> files = ComboAssetsParityTests.unzip(ComboPack.build(withChests).zip());
-		int added = ComboPack.build(withChests).zip().length - alone;
+		byte[] zip = ComboPack.build(withChests).zip();
+		Map<String, String> files = ComboAssetsParityTests.unzip(zip);
+		int added = zip.length - alone;
 		assertThat(files.size() == 2 + OvveTop.PACK_MATERIALS.size(), "a top under three chestplates built " + files.keySet());
 		assertThat(added <= 2_400, "three chest composites added " + added + " bytes to the pack; the budget is 2400");
 		helper.succeed();
@@ -208,6 +249,8 @@ public final class ChestWrapTests {
 		assertThat(path.equals("assets/ovvar/equipment/" + ComboAssets.chestPath("cl", "diamond", key.combo().key()) + ".json"), "the pack path is " + path);
 		assertThat(ComboAssets.jsonFor(ComboAssets.chestPath("cl", "diamond", key.combo().key())).orElseThrow().equals(files.get(path)), "the pack's chest composite is not the shared code's");
 		assertThat(Combos.parseKeys(List.of("cl/chest/:" + key.combo().key(), "cl/chest/diamond/x:" + key.combo().key())).isEmpty(), "a broken chest line read");
+		// a material the pack does not wrap (one dropped from PACK_MATERIALS later, or never in it) is not built forever
+		assertThat(Combos.parseKeys(List.of("cl/chest/gold:" + key.combo().key(), "cl/chest/Iron:" + key.combo().key())).isEmpty(), "a chest line for a material the pack does not wrap read");
 		helper.succeed();
 	}
 
@@ -229,14 +272,14 @@ public final class ChestWrapTests {
 		wearer.setItemSlot(EquipmentSlot.CHEST, chest);
 		MinecraftServer server = helper.getLevel().getServer();
 		assertThat(server.getPlayerList().getPlayer(wearer.getUUID()) == wearer, "the wearer is not in the player list");
-		return PolymerItemUtils.getPolymerItemStack(wearer.getItemBySlot(EquipmentSlot.CHEST), context(viewer), helper.getLevel().registryAccess());
+		return PolymerItemUtils.getPolymerItemStack(wearer.getItemBySlot(EquipmentSlot.CHEST), context(viewer, true), helper.getLevel().registryAccess());
 	}
 
 	/**
 	 * The viewer's packet context as a real connection has it: a mock player's lacks the server, which the wrap
-	 * needs to find the wearer. The rest is the mock connection's own.
+	 * needs to find the wearer. The rest is the mock connection's own. {@code profile} false: no viewer's profile.
 	 */
-	private static PacketContext context(ServerPlayer viewer) {
+	private static PacketContext context(ServerPlayer viewer, boolean profile) {
 		PacketContext own = viewer.connection.getPacketContext();
 		MinecraftServer server = viewer.level().getServer();
 		return new PacketContext() {
@@ -244,7 +287,7 @@ public final class ChestWrapTests {
 			@SuppressWarnings("unchecked")
 			public <T> T get(ReadKey<T> key) {
 				if (key == SERVER_INSTANCE) return (T) server;
-				if (key == GAME_PROFILE) return (T) viewer.getGameProfile();
+				if (key == GAME_PROFILE) return profile ? (T) viewer.getGameProfile() : null;
 				if (key == REGISTRY_ACCESS) return (T) server.registryAccess();
 				return own.get(key);
 			}

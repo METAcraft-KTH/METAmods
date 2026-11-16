@@ -1106,7 +1106,9 @@ built on demand into the combination pack, like the combinations: a (combination
 (`Combos.requestChest`, lazily, saved in `combos.json` as `chapter/chest/material:combo`) only when somebody is seen
 wearing that chestplate over that top. It is never claimed and never causes a push, not even to the wearer (a loading
 screen after an inventory change mid-fight); players get it with their next join pack, or with a push somebody's own
-sewing or `/ovvar reload` brings. There is no startup pre-build for them. One file per pair, ~0.65 KB zipped
+sewing or `/ovvar reload` brings (a pack load re-sends wrapped chestplates in view too). A viewer whose loaded pack
+the server no longer knows, or a packet with no viewer, gets the plain wrap: a name their pack lacks would be an
+invisible chestplate. `combos.json` chest lines for any other material are dropped. There is no startup pre-build for them. One file per pair, ~0.65 KB zipped
 (`ChestWrapTests` holds a top under all three to 2.4 KB). A mob's ovve keeps the plain wrap for everybody. The
 chestplate's own trim is untouched.
 

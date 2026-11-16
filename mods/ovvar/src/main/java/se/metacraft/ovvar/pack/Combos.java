@@ -17,6 +17,8 @@ import se.metacraft.ovvar.content.Chapter;
 import se.metacraft.ovvar.content.Looks;
 import se.metacraft.ovvar.content.item.OvveItem;
 import se.metacraft.ovvar.content.item.OvveTopItem;
+import se.metacraft.ovvar.content.item.OvveTop;
+import se.metacraft.ovvar.content.ModComponents;
 import se.metacraft.ovvar.content.Piece;
 import se.metacraft.ovvar.content.Placement;
 import se.metacraft.ovvar.content.SpotPlacements;
@@ -219,7 +221,9 @@ public final class Combos {
 		int now = generation;   // read once: a build may finish on the server thread meanwhile
 		Set<KeyedCombo> current = BUILT.getOrDefault(now, Set.of());
 		if (player == null) return current.contains(key);
-		return BUILT.getOrDefault(LOADED.getOrDefault(player, now), current).contains(key);
+		// A chest composite drawn from a pack the player may not have is an invisible chestplate, not a garment
+		// missing its patches: for one, a generation the server no longer holds counts as holding nothing.
+		return BUILT.getOrDefault(LOADED.getOrDefault(player, now), key.isChest() ? Set.of() : current).contains(key);
 	}
 
 	/** Was this combination ever queued or built (requested, or loaded from combos.json)? */
@@ -276,6 +280,12 @@ public final class Combos {
 	/** Tests only: when this player was last pushed a pack (ms), 0 if never. */
 	public static long lastPushForTest(UUID player) {
 		return LAST_PUSH.getOrDefault(player, 0L);
+	}
+
+	/** Tests only: the pack generation a player has loaded, as if confirmed; null forgets it. */
+	public static void setLoadedForTest(UUID player, @Nullable Integer loaded) {
+		if (loaded == null) LOADED.remove(player);
+		else LOADED.put(player, loaded);
 	}
 
 	/** Tests only: whatever is queued is built at the next tick, not after its lazy wait. */
@@ -479,7 +489,7 @@ public final class Combos {
 			List<Pair<EquipmentSlot, ItemStack>> slots = new ArrayList<>();
 			for (EquipmentSlot slot : EquipmentSlot.values()) {
 				ItemStack stack = entity.getItemBySlot(slot);
-				if (stack.getItem() instanceof OvveItem || stack.getItem() instanceof OvveTopItem) slots.add(Pair.of(slot, stack));
+				if (resentOnPackLoad(stack)) slots.add(Pair.of(slot, stack));
 			}
 			if (slots.isEmpty()) continue;
 			player.connection.send(new ClientboundSetEquipmentPacket(entity.getId(), slots));
@@ -488,6 +498,11 @@ public final class Combos {
 		player.containerMenu.sendAllDataToRemote();
 		player.inventoryMenu.sendAllDataToRemote();
 		Ovvar.LOGGER.debug("[ovvar] {} loaded pack generation {}; re-sent {} wearer(s)", player.getName().getString(), LOADED.get(id), sent);
+	}
+
+	/** Is this stack one of ours to send again when a pack loads: an ovve, its top, a wrapped chestplate. */
+	public static boolean resentOnPackLoad(ItemStack stack) {
+		return stack.getItem() instanceof OvveItem || stack.getItem() instanceof OvveTopItem || stack.has(ModComponents.WRAPPED_TOP);
 	}
 
 	/**
@@ -503,7 +518,7 @@ public final class Combos {
 		List<Pair<EquipmentSlot, ItemStack>> slots = new ArrayList<>();
 		for (EquipmentSlot slot : EquipmentSlot.values()) {
 			ItemStack stack = wearer.getItemBySlot(slot);
-			if (stack.getItem() instanceof OvveItem || stack.getItem() instanceof OvveTopItem) slots.add(Pair.of(slot, stack));
+			if (resentOnPackLoad(stack)) slots.add(Pair.of(slot, stack));
 		}
 		if (slots.isEmpty()) return;
 		for (ServerPlayer viewer : PlayerLookup.tracking(wearer)) {
@@ -670,7 +685,7 @@ public final class Combos {
 					String middle = key.substring(slash + 1, colon);
 					if (middle.startsWith(CHEST_PREFIX)) {
 						String material = middle.substring(CHEST_PREFIX.length());
-						if (material.isEmpty() || material.indexOf('/') >= 0) return DataResult.error(() -> "bad chestplate material in combo key " + key);
+						if (!OvveTop.PACK_MATERIALS.contains(material)) return DataResult.error(() -> "not a chestplate material the pack wraps, in combo key " + key);
 						return Combo.KEY_CODEC.parse(JavaOps.INSTANCE, key.substring(colon + 1)).map(combo -> chest(chapter, material, combo));
 					}
 					return Piece.CODEC.parse(JavaOps.INSTANCE, middle).flatMap(

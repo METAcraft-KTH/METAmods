@@ -166,7 +166,9 @@ public final class OvveTop {
 		boolean pack = PACK_MATERIALS.contains(material);
 		// Worn over this combination: queued for the pack (lazily, never claimed: no push for putting armour on).
 		if (pack) Combos.requestChest(chapter, material, whole);
-		boolean all = !whole.isEmpty() && (Combos.drawsCombos(viewer) || (pack && Combos.isBuilt(Combos.KeyedCombo.chest(chapter, material, whole), viewer)));
+		// A vanilla viewer only on a pack known to hold it (no viewer: no idea which pack, so the plain wrap).
+		boolean all = !whole.isEmpty() && (Combos.drawsCombos(viewer)
+				|| (pack && viewer != null && Combos.isBuilt(Combos.KeyedCombo.chest(chapter, material, whole), viewer)));
 		// dye only on the plain wrap: it draws the instant patches, never the pack combo, so don't queue a build for it.
 		int dye = all ? 0 : Looks.look(ovve, Piece.TOP, viewer, false).dye();
 		client.set(DataComponents.EQUIPPABLE, Equippable.builder(EquipmentSlot.CHEST)
