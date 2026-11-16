@@ -40,6 +40,7 @@ metacraft-qol
 metacraft-skins
 pirkko
 traders
+trample-rules
 museum-collection
 
 #outside metamods
