@@ -12,7 +12,7 @@ Welcome to METAcraft            booklet:index (the welcome pack replaces Booklet
   Student Culture Features      metacraft:student_culture
     Chapter Drinks              metacraft:brewing (Cooking, Distilling, Barrels, Drinking, Drinks, IT's drinks)
     Banner Patterns             metacraft:banner_patterns
-    (Pirkkos, order 30)         kept free for Ripsquid's pirkko mod, see below
+    Pirkkos                     metacraft:pirkko (the cave mob, its colours and heads)
     Ovvar                       metacraft:ovvar (The ovve, Patches, Sewing, Wardrobe and stash)
     Colors                      metacraft:moredyes
   Vanilla+ Features             metacraft:vanilla_plus
@@ -23,6 +23,11 @@ Welcome to METAcraft            booklet:index (the welcome pack replaces Booklet
     New Decor                   metacraft:decorating (Canvas, Mailboxes, Rope, Sign posts, Lanterns and leads, Hammer and trowel)
     Player Shops                metacraft:trading
     Gestures                    metacraft:gestures
+    Anvils                      metacraft:anvils
+    Pets                        metacraft:pets
+    Item Skins                  metacraft:skins
+    Portable Jukebox            metacraft:portable_jukebox
+    Graves                      metacraft:graves
   Nether Changes                metacraft:nether
     New Mobs                    metacraft:nether/mobs (Chained Ghast, Piglin Drummer, Piglin Grenadier)
     Unstable Portals            metacraft:rifts (Lighting a rift, Stabilising)
@@ -51,19 +56,25 @@ none of them has no such section.
 | hook | on with | what it adds |
 | --- | --- | --- |
 | `welcome` | always | "Welcome to METAcraft", in place of Booklet's index "The Encyclopedia": what METAcraft is about, then the sections |
-| `student_culture` | ovvar, brewery, metacraft-kultur or moredyes | the Student Culture Features section page |
+| `student_culture` | ovvar, brewery, metacraft-kultur, pirkko or moredyes | the Student Culture Features section page |
 | `ovvar` | ovvar | "Ovvar": the ovve, patches, sewing, wardrobe and stash |
 | `brewing` | brewery | "Chapter Drinks": Brewery's own book, rewritten (its recipe is switched off here): cooking, distilling, barrels, drinking, Brewery's drinks |
 | `brewing_kultur` | metacraft-kultur and brewery | "IT's drinks": kultur's drinks, under Chapter Drinks |
 | `kultur` | metacraft-kultur | "Banner Patterns": ITK, QMISK, TMEIT, Pirkko behind its pattern item, and the painting |
 | `moredyes` | moredyes | "Colors": Cerise, Laserviolet and RGB |
-| `vanilla_plus` | metacraft-qol, polydecorations, metacraft-player-trading, danse or polydex | the Vanilla+ Features section page |
+| `pirkko` | pirkko | "Pirkkos": the cave mob, its 18 colours and its heads |
+| `vanilla_plus` | metacraft-qol, polydecorations, metacraft-player-trading, danse, polydex, metacraft-repair-fix, better-pets, metacraft-skins, portable-jukebox or universal-graves | the Vanilla+ Features section page |
 | `qol` | metacraft-qol | "Void Anchor", "Silencing mobs" (the echo fork), "Concrete Crafting" (the concrete cauldron), and the End Changes section page |
 | `decorating` | polydecorations | "New Decor": canvas, mailboxes, rope, sign posts, lanterns and leads, hammer and trowel |
 | `polydecorations_s6` | polydecorations | turns off every PolyDecorations recipe except those of the things above |
 | `recipes` | polydex | "Recipes": looking recipes up with Patbox's [Polydex](https://modrinth.com/mod/polydex), and its hover bar |
 | `trading` | metacraft-player-trading | "Player Shops": the shop on a barrel |
 | `gestures` | danse | "Gestures": `/gesture` (our Danse fork) |
+| `anvils` | metacraft-repair-fix | "Anvils": no Too Expensive, cheap renaming, netherite repairs |
+| `pets` | better-pets | "Pets": trusted players, no friendly fire, pets follow through teleports, parrot breeding |
+| `skins` | metacraft-skins | "Item Skins": tokens, Skin Boxes, mob hats, `/itemskins` |
+| `jukebox` | portable-jukebox | "Portable Jukebox": the Piglin Drummer's drop |
+| `graves` | universal-graves | "Graves": Patbox's Universal Graves as the server configures it (no grave for lava or void deaths) |
 | `rifts` | nether-rifts | the Nether Changes section page and everything in it: New Mobs, Unstable Portals, Piglin Raid, Amplified Nether |
 
 Amplified Nether describes a datapack that is not built or deployed yet (an amplified nether, more
@@ -76,10 +87,8 @@ section's category with an `order=`, and its mod id in that section's `Hook.anyO
 [USAGE.md](https://github.com/Patbox/booklet/blob/master/USAGE.md) for the page format. Two gotchas: `-`
 lines are lists and numbered lines are not, and `<anything>` in angle brackets is parsed as a tag.
 
-**Pirkkos** is the spot left for Ripsquid's pirkko mod (not in this repo yet): its chapter is a pack of
-its own with its main page in `category=metacraft:student_culture` and `order=30` (between Banner
-Patterns and Ovvar), a `Hook` for its mod id, and that mod id added to the `student_culture`
-`Hook.anyOf`. The Pirkko *banner pattern* is kultur's and is on Banner Patterns.
+**Pirkkos** is Ripsquid's pirkko mod: its page is in `category=metacraft:student_culture` with `order=30`
+(between Banner Patterns and Ovvar). The Pirkko *banner pattern* is kultur's and is on Banner Patterns.
 
 ## Page images, beside the text
 

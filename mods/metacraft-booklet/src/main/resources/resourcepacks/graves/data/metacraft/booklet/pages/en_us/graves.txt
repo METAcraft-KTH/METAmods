@@ -1,0 +1,13 @@
+### Section: PageInfo
+title=Graves
+external_title=Graves
+description=When you die, your things wait for you in a grave.
+category=metacraft:vanilla_plus
+icon=minecraft:skeleton_skull
+order=110
+### EndSection: PageInfo
+### Header: Where you died
+When you die, your items and experience go into a <bold>grave</bold> where you fell instead of spilling on the ground. Go back and open it to get them back.
+
+### Header: Lava and the void
+Die in lava or fall into the void and there is no grave: what you carried is gone. In the End a void anchor can save you from the fall.

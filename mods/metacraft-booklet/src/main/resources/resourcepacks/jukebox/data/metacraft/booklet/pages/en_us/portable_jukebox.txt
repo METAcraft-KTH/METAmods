@@ -1,0 +1,15 @@
+### Section: PageInfo
+title=Portable Jukebox
+external_title=Portable Jukebox
+description=A jukebox you carry. Piglin Drummers drop it.
+category=metacraft:vanilla_plus
+icon=minecraft:jukebox
+order=100
+### EndSection: PageInfo
+### Header: Music on the go
+Right-click the Portable Jukebox to open it: one slot for a music disc, and Play and Stop. It keeps playing while you carry it.
+
+Place it and it stays a small block that plays on. A redstone signal starts it, and a comparator reads it.
+
+### Header: Getting one
+It can't be crafted. A <bold>Piglin Drummer</bold>, from the nether and its rifts, drops one now and then, more often with Looting, sometimes with a disc already in it.

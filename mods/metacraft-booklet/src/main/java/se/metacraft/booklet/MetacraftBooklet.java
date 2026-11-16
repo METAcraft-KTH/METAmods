@@ -93,10 +93,8 @@ public final class MetacraftBooklet implements ModInitializer {
 			// "Welcome to METAcraft": replaces Booklet's index, so /guide opens on it
 			Hook.always("welcome"),
 
-			// Student Culture Features (order: Chapter Drinks 10, Banner Patterns 20, Ovvar 40, Colors 50).
-			// 30 is kept for Pirkkos, Ripsquid's pirkko mod: its chapter goes in a pack of its own with
-			// category=metacraft:student_culture and order=30, a Hook here, and its mod id in this anyOf.
-			Hook.anyOf("student_culture", "ovvar", "brewery", "metacraft-kultur", "moredyes"),
+			// Student Culture Features (order: Chapter Drinks 10, Banner Patterns 20, Pirkkos 30, Ovvar 40, Colors 50)
+			Hook.anyOf("student_culture", "ovvar", "brewery", "metacraft-kultur", "pirkko", "moredyes"),
 			new Hook("ovvar", "ovvar", false),
 			// Brewery's own book, rewritten as a chapter (its recipe is switched off here); the
 			// recipe pages are written by tools/brewing_recipes.py.
@@ -104,10 +102,14 @@ public final class MetacraftBooklet implements ModInitializer {
 			new Hook(List.of("metacraft-kultur", "brewery"), "brewing_kultur", false),
 			new Hook("metacraft-kultur", "kultur", false),
 			new Hook("moredyes", "moredyes", false),
+			// Ripsquid's cave mob and its heads
+			new Hook("pirkko", "pirkko", false),
 
 			// Vanilla+ Features
-			// (order: Recipes 5, Void Anchor 10, Silencing mobs 20, Concrete Crafting 30, New Decor 40, Player Shops 50, Gestures 60)
-			Hook.anyOf("vanilla_plus", "metacraft-qol", "polydecorations", "metacraft-player-trading", "danse", "polydex"),
+			// (order: Recipes 5, Void Anchor 10, Silencing mobs 20, Concrete Crafting 30, New Decor 40, Player Shops 50,
+			// Gestures 60, Anvils 70, Pets 80, Item Skins 90, Portable Jukebox 100, Graves 110)
+			Hook.anyOf("vanilla_plus", "metacraft-qol", "polydecorations", "metacraft-player-trading", "danse", "polydex",
+					"metacraft-repair-fix", "better-pets", "metacraft-skins", "portable-jukebox", "universal-graves"),
 			// also End Changes: the void anchor, in both sections
 			new Hook("metacraft-qol", "qol", false),
 			new Hook("polydecorations", "decorating", false),
@@ -117,6 +119,12 @@ public final class MetacraftBooklet implements ModInitializer {
 			new Hook("polydex", "recipes", false),
 			// danse: our fork's /gesture
 			new Hook("danse", "gestures", false),
+			new Hook("metacraft-repair-fix", "anvils", false),
+			new Hook("better-pets", "pets", false),
+			new Hook("metacraft-skins", "skins", false),
+			new Hook("portable-jukebox", "jukebox", false),
+			// Patbox's Universal Graves, with the server's config: no grave for lava or void deaths
+			new Hook("universal-graves", "graves", false),
 
 			// Nether Changes
 			new Hook("nether-rifts", "rifts", false));

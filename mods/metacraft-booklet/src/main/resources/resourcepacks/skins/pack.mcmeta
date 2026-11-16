@@ -1,0 +1,13 @@
+{
+  "pack": {
+    "description": "METAcraft Booklet: Item Skins (with metacraft-skins)",
+    "min_format": [
+      121,
+      0
+    ],
+    "max_format": [
+      121,
+      0
+    ]
+  }
+}

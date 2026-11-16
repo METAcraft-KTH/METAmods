@@ -1,0 +1,26 @@
+### Section: PageInfo
+title=Item Skins
+external_title=Item Skins
+description=Hats and looks for your tools and armour: claim a skin, then put it on with /itemskins.
+category=metacraft:vanilla_plus
+icon=minecraft:leather_helmet
+order=90
+### EndSection: PageInfo
+### Header: Getting one
+A skin comes as a <bold>Skin Token</bold>. Right-click the token and confirm to claim it: the skin is yours and the token is used up.
+
+Tokens come out of <bold>Skin Boxes</bold>. Hold a box in your main hand and right-click to see what it holds and the chances; press Roll to open it and get one token. You can trade both boxes and tokens.
+
+<bold>Mob hats.</bold> Now and then a zombie, skeleton or creeper spawns wearing a hat. The hat itself doesn't drop, but the mob drops a <bold>Classic Hats Box</bold>.
+
+### Header: /itemskins
+<yellow>/itemskins</yellow> opens the Skin Menu: every skin on the server, yours in colour and the rest as grey "???". Put a skin on any item of the right kind you carry, a sword, a pickaxe, a helmet and so on. A skin is on one item at a time.
+
+A skin only shows while the item is with you. Lend it and it looks plain.
+
+Don't want a skin any more? <bold>Extract</bold> it in the Skin Menu and it turns back into a token, to trade or give away.
+
+### Header: Hats
+Many hats can be dyed like leather armour, in the crafting grid. A cauldron washes the dye off.
+
+<gray>The Skin Menu has a "How skins work" book with the rest.</gray>
