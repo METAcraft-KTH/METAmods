@@ -7,9 +7,7 @@ import se.metacraft.lib.util.helper.TextHelper;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class CheckMods implements ModInitializer {
 
@@ -19,6 +17,8 @@ public class CheckMods implements ModInitializer {
 	private static final Map<String, String> PROJECT_TO_MOD_ID = Map.of(
 			"dist", "metacraft"
 	);
+
+	private static final Set<String> PROJECT_TO_IGNORE = Set.of("ovvar-client");
 
 	@Override
 	public void onInitialize() {
@@ -46,6 +46,7 @@ public class CheckMods implements ModInitializer {
 						}
 						var path = line.substring(start+1, end);
 						var name = path.substring(path.lastIndexOf(":")+1);
+						if (PROJECT_TO_IGNORE.contains(name)) return;
 						modsThatMustBePresent.add(PROJECT_TO_MOD_ID.getOrDefault(name, name));
 					}
 					if (line.contains("*/")) {
