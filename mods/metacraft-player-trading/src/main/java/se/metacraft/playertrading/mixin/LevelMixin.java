@@ -7,7 +7,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.metacraft.playertrading.block.blocks.BaseShopBlock;
-import se.metacraft.playertrading.block.entities.ShopBlockEntity;
 
 @Mixin(Level.class)
 public class LevelMixin {

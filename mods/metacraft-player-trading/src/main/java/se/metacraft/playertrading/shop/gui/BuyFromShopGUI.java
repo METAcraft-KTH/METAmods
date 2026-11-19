@@ -44,6 +44,12 @@ public class BuyFromShopGUI extends MerchantGui implements ShopBlockEntity.Updat
 		return shop.getShop().map(shop -> shouldAcceptTrade(shop.shopType(), getOfferIndex(offer))).orElse(false);
 	}
 
+	@Override
+	public MerchantOffer getSelectedTrade() {
+		shop.triggerUpdate();
+		return super.getSelectedTrade();
+	}
+
 	public boolean shouldAcceptTrade(ShopType shopType, int slot) {
 		return shop.getRemainingUses(slot) > 0 && shop.isTradeAllowed(player, slot);
 	}
