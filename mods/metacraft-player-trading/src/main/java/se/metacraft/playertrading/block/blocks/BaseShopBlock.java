@@ -15,7 +15,9 @@ import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.HopperBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jspecify.annotations.NonNull;
@@ -92,6 +94,16 @@ public abstract class BaseShopBlock extends BaseEntityBlock implements PolymerHe
 
 	public static boolean validShopContainer(LevelReader level, BlockPos pos) {
 		return level.getBlockState(pos).is(Blocks.BARREL);
+	}
+
+	public static void updateShopStash(Level level, BlockPos pos) {
+		ShopBlockEntity.getConnectedTo(level, pos).ifPresent(ShopBlockEntity::triggerUpdate);
+		if (level.getBlockEntity(pos) instanceof HopperBlockEntity hopper) {
+			ShopBlockEntity.getConnectedTo(level, pos.above()).ifPresent(ShopBlockEntity::triggerUpdate);
+			ShopBlockEntity.getConnectedTo(
+					level, pos.relative(hopper.getBlockState().getValue(HopperBlock.FACING))
+			).ifPresent(ShopBlockEntity::triggerUpdate);
+		}
 	}
 
 	@Override

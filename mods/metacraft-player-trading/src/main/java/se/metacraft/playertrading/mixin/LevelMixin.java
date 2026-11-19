@@ -14,10 +14,7 @@ public class LevelMixin {
 
 	@Inject(method = "blockEntityChanged", at = @At("HEAD"))
 	private void onBlockChanged(BlockPos pos, CallbackInfo ci) {
-		var level = (Level) (Object) this;
-		if (BaseShopBlock.validShopContainer(level, pos)) {
-			ShopBlockEntity.getConnectedTo(level, pos).ifPresent(ShopBlockEntity::triggerUpdate);
-		}
+		BaseShopBlock.updateShopStash((Level) (Object) this, pos);
 	}
 
 }
