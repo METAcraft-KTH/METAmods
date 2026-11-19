@@ -24,7 +24,8 @@
 			"se.metacraft.playertrading.DataGen"
 		],
 		"fabric-gametest": [
-			"se.metacraft.playertrading.gametest.DataFixerTest"
+			"se.metacraft.playertrading.gametest.DataFixerTest",
+			"se.metacraft.playertrading.gametest.ShopSameTickDupeTest"
 		]
 	},
 	"mixins": [

@@ -99,11 +99,19 @@ public class BuyFromShopGUI extends MerchantGui implements ShopBlockEntity.Updat
 					shop.getShop().ifPresent(shop -> {
 						onAcceptTrade(shop.shopType(), slot, Stream.of(toStoreA, toStoreB).filter(i -> !i.isEmpty()).toList());
 					});
+					if (!stillInStock()) setToOutOfStock();
+					shop.triggerUpdate();
 					return true;
 				} else {
 					return false;
 				}
 
+			}
+
+			private boolean stillInStock() {
+				return shop.getShop().filter(
+					s -> slot < s.offers().size() && s.offers().get(slot).equals(offer)
+				).isPresent() && shop.isTradeAllowed(player, slot) && shop.getRemainingUses(slot) > 0;
 			}
 		};
 	}
