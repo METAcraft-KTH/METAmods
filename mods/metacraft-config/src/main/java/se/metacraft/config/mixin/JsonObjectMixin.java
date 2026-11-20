@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import se.metacraft.config.extensions.JanksonObjectExtension;
+import se.metacraft.config.util.BuilderWriter;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -57,7 +58,13 @@ public class JsonObjectMixin implements JanksonObjectExtension {
 			for (int i = 0; i < effectiveDepth+1; i++) {
 				w.append("\t");
 			}
-			CommentSerializer.print(w, comment, -1, grammar);
+			var builderWriter = new BuilderWriter();
+			CommentSerializer.print(builderWriter, comment, effectiveDepth, grammar);
+			var result = builderWriter.result();
+			while (result.endsWith("\t")) {
+				result = result.substring(0, result.length()-1);
+			}
+			w.append(result);
 		}
 	}
 }
