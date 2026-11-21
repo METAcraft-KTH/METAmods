@@ -1,0 +1,21 @@
+### Section: PageInfo
+title=Pets
+external_title=Pets
+description=Share your pets with friends, keep them safe from your own sword, and take them with you.
+category=metacraft:vanilla_plus
+icon=minecraft:bone
+order=80
+### EndSection: PageInfo
+### Header: Trusted players
+<bold>Sneak and right-click</bold> a pet you tamed to choose who else may look after it, from the players within 16 blocks. Trusted players can make it sit and stand, and it never attacks them.
+
+A pet follows whoever right-clicked it last, you or a trusted player.
+
+### Header: Safe from friends
+You and your trusted players can't hurt your pet, arrows included.
+
+### Header: It comes along
+A pet that is following you, and anything on your lead, comes with you when you teleport or go through a portal, the End's exit portal too. Pets that are sitting stay where they are.
+
+### Header: Parrots
+Parrots can be bred with seeds. A baby takes one parent's colour, and belongs to its parent's owner. Seeds also heal a tame parrot.

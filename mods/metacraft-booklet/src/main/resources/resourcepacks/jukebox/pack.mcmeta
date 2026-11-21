@@ -1,0 +1,13 @@
+{
+  "pack": {
+    "description": "METAcraft Booklet: Portable Jukebox (with portable-jukebox)",
+    "min_format": [
+      121,
+      0
+    ],
+    "max_format": [
+      121,
+      0
+    ]
+  }
+}

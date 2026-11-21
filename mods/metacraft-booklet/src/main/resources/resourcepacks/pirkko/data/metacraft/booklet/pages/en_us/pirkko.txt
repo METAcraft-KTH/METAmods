@@ -1,0 +1,22 @@
+### Section: PageInfo
+title=Pirkkos
+external_title=Pirkkos
+description=Small cave mobs in every colour. Each one you kill drops its head.
+category=metacraft:student_culture
+icon=pirkko:pirkko_cerise
+order=30
+### EndSection: PageInfo
+### Header: In the caves
+A <bold>Pirkko</bold> is a small mob that lives in dark caves below sea level, in the Overworld, in groups of one to three. Not in the deep dark or under mushroom fields.
+
+It has 2 hearts. It chases players within 24 blocks and bites for half a heart, however hard the difficulty. On Peaceful it still turns up, but only wanders.
+
+A Pirkko that nobody has named, leashed or seated wanders off after ten minutes and leaves nothing.
+
+### Header: Colours
+Every Pirkko has one of 18 colours: the 16 dyes, <bold>Cerise</bold> and <bold>Laserviolet</bold>. The colour follows how warm the land above the cave is: frozen places mostly give Cerise and blues, deserts and badlands mostly Laserviolet, red and orange. One in ten is any colour at all.
+
+### Header: Heads
+Kill one and it drops exactly one <citem 'pirkko:pirkko_cerise'> head in its colour; Looting gives no more. Place it on a floor or a wall like a mob head, or in an item frame to show the whole Pirkko. Collect them all.
+
+<gray>There is a Pirkko banner pattern too: see Banner Patterns.</gray>

@@ -1,0 +1,20 @@
+### Section: PageInfo
+title=Anvils
+external_title=Anvils
+description=No more "Too Expensive!", cheap renaming and better netherite repairs.
+category=metacraft:vanilla_plus
+icon=minecraft:anvil
+order=70
+### EndSection: PageInfo
+### Header: Never too expensive
+An anvil never says "Too Expensive!": a job that would cost 40 levels or more costs 39.
+
+### Header: Only enchanting adds up
+In vanilla every trip to the anvil makes the next one dearer. Here only adding enchantments does. Repairing and renaming never make an item cost more later.
+
+### Header: Cheap renaming
+Renaming alone costs about one level, however many times the item has been to an anvil.
+
+### Header: Repairs
+- One <citem 'minecraft:netherite_ingot'> repairs netherite gear fully, and so do four <citem 'minecraft:netherite_scrap'>.
+- A bow can have both Mending and Infinity.
