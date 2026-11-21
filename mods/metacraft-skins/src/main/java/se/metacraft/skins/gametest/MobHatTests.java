@@ -44,7 +44,7 @@ public final class MobHatTests {
 	/** Hats in the box, and a sword that isn't one. */
 	private static SkinFixtures classicBox() {
 		return SkinFixtures.create().skin("pumpkin_hat", "helmet", "Pumpkin Hat", null).skin("top_hat", "helmet", "Top Hat", null).skin("cleaver", "sword")
-				.box(MobHats.HATS_FROM + ".json5", "{ name: \"Hats\", skins: [ { skin: \"pumpkin_hat\", weight: 10 }, { skin: \"top_hat\", weight: 1 },"
+				.box(MobHats.CLASSIC + ".json5", "{ name: \"Hats\", skins: [ { skin: \"pumpkin_hat\", weight: 10 }, { skin: \"top_hat\", weight: 1 },"
 						+ " { skin: \"cleaver\", weight: 5 }, { skin: \"nowhere\", weight: 1 } ] }");
 	}
 
@@ -199,15 +199,50 @@ public final class MobHatTests {
 		try {
 			Zombie hatted = helper.spawnWithNoFreeWill(EntityTypes.ZOMBIE, new BlockPos(1, 2, 1));
 			MobHats.putOnHat(fx.skins, hatted);
-			assertDrops(helper, hatted, List.of(MobHats.DROPS), "a zombie with a hat");
+			assertDrops(helper, hatted, List.of(MobHats.CLASSIC), "a zombie with a hat");
 
 			Zombie baby = helper.spawnWithNoFreeWill(EntityTypes.ZOMBIE, new BlockPos(1, 2, 1));
 			baby.setBaby(true);
 			MobHats.putOnHat(fx.skins, baby);
-			assertDrops(helper, baby, List.of(MobHats.DROPS), "a baby zombie with a hat");
+			assertDrops(helper, baby, List.of(MobHats.CLASSIC), "a baby zombie with a hat");
 
 			Zombie bare = helper.spawnWithNoFreeWill(EntityTypes.ZOMBIE, new BlockPos(1, 2, 1));
 			assertDrops(helper, bare, List.of(), "a zombie with no hat");
+		} finally {
+			MetacraftSkins.use(previous);
+		}
+		helper.succeed();
+	}
+
+	/** In a cold biome a zombie, skeleton, stray or creeper takes a Winter hat; any other mob, or anywhere not cold, a Classic one. */
+	@GameTest
+	public void coldBiomeMobsTakeAWinterHat(GameTestHelper helper) {
+		for (var type : List.of(EntityTypes.ZOMBIE, EntityTypes.SKELETON, EntityTypes.STRAY, EntityTypes.CREEPER)) {
+			assertThat(MobHats.boxFor(type, true).equals(MobHats.WINTER), type + " in the cold: " + MobHats.boxFor(type, true));
+			assertThat(MobHats.boxFor(type, false).equals(MobHats.CLASSIC), type + " not in the cold: " + MobHats.boxFor(type, false));
+		}
+		for (var type : List.of(EntityTypes.HUSK, EntityTypes.ZOMBIE_VILLAGER, EntityTypes.BOGGED, EntityTypes.PARCHED)) {
+			assertThat(MobHats.boxFor(type, true).equals(MobHats.CLASSIC), type + " in the cold: " + MobHats.boxFor(type, true));
+		}
+		helper.succeed();
+	}
+
+	/** A mob in a Winter hat wears one of the Winter box's hats and drops a Winter box; a hat that remembers no box, a Classic one. */
+	@GameTest
+	public void aWinterHatDropsTheWinterBox(GameTestHelper helper) {
+		SkinFixtures fx = classicBox().skin("santa_hat", "helmet", "Santa Hat", null)
+				.box(MobHats.WINTER + ".json5", "{ name: \"Winter\", skins: [ { skin: \"santa_hat\", weight: 10 }, { skin: \"cleaver\", weight: 5 } ] }");
+		fx.reload();
+		Skins previous = MetacraftSkins.use(fx.skins);
+		try {
+			Zombie winter = helper.spawnWithNoFreeWill(EntityTypes.ZOMBIE, new BlockPos(1, 2, 1));
+			assertThat(MobHats.putOnHat(fx.skins, winter, MobHats.WINTER), "no Winter hat was put on");
+			assertThat(MobHat.skinOf(winter.getItemBySlot(EquipmentSlot.HEAD)).equals(Optional.of("santa_hat")), "the zombie wears " + winter.getItemBySlot(EquipmentSlot.HEAD));
+			assertDrops(helper, winter, List.of(MobHats.WINTER), "a zombie in a Winter hat");
+
+			Zombie old = helper.spawnWithNoFreeWill(EntityTypes.ZOMBIE, new BlockPos(1, 2, 1));
+			old.setItemSlot(EquipmentSlot.HEAD, MobHat.of("top_hat"));
+			assertDrops(helper, old, List.of(MobHats.CLASSIC), "a zombie in a hat that remembers no box");
 		} finally {
 			MetacraftSkins.use(previous);
 		}

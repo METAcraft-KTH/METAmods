@@ -42,8 +42,8 @@ import java.util.Optional;
  * <ul>
  *   <li><b>"Your Skins"</b> (6 rows): rows 1–5 every skin on the server that loaded, 45 a page, in
  *       the menus' {@linkplain #ORDER order} (by release date). The player's own are shown with their Look,
- *       glinting while applied; the rest are a dye named "???" that does nothing when clicked, light
- *       grey ("Not owned yet") or, for an unobtainable skin, grey ("Unobtainable"). Row 6 holds the page
+ *       glinting while applied; the rest do nothing when clicked: an obtainable one greyed out behind a
+ *       pane of grey glass ("Not owned yet"), an unobtainable one a grey dye named "???" ("Unobtainable"). Row 6 holds the page
  *       arrows (only with more than one page), the "How skins work" book, which sums skins up in
  *       its tooltip, and the Extract button.</li>
  *   <li><b>"Apply: &lt;skin&gt;"</b> (4 rows), opened by clicking a skin: Back, a preview, Clear tint
@@ -126,7 +126,7 @@ public final class SkinMenu {
 		for (int i = 0; i < shown.size(); i++) {
 			Listed skin = shown.get(i);
 			if (skin.owned().isEmpty()) {
-				gui.setSlot(i, notOwned(skin.skin()));
+				gui.setSlot(i, notOwned(skin.skin(), skin.fit()));
 				continue;
 			}
 			gui.setSlot(i, icon(skin).addLoreLine(Component.literal("Click to apply or remove").withStyle(ChatFormatting.DARK_GRAY))
@@ -223,7 +223,7 @@ public final class SkinMenu {
 		List<Listed> shown = listed.subList(page * PER_PAGE, Math.min(listed.size(), (page + 1) * PER_PAGE));
 		for (int i = 0; i < shown.size(); i++) {
 			Listed skin = shown.get(i);
-			gui.setSlot(i, skin.owned().isEmpty() ? notOwned(skin.skin()) : icon(skin).build());
+			gui.setSlot(i, skin.owned().isEmpty() ? notOwned(skin.skin(), skin.fit()) : icon(skin).build());
 		}
 		if (owned.damage().isPresent()) {
 			gui.setSlot(MIDDLE, new GuiElementBuilder(Items.BARRIER).setName(Component.literal(whose.name() + "'s skins can't be shown").withStyle(ChatFormatting.RED))
@@ -276,14 +276,18 @@ public final class SkinMenu {
 	}
 
 	/**
-	 * A skin the player doesn't own, in "Your Skins", named "???", giving nothing else away: a light
-	 * grey dye, "Not owned yet"; or, for an unobtainable one, a grey dye, "Unobtainable".
+	 * A skin the player doesn't own, in "Your Skins": an obtainable one with its Look greyed out behind
+	 * a pane of grey glass ({@link SkinFolder#LOCKED}), named and described as when owned, then "Not owned
+	 * yet"; an unobtainable one as a grey dye named "???", giving nothing else away, "Unobtainable".
 	 */
-	private static eu.pb4.sgui.api.elements.GuiElement notOwned(SkinSummary skin) {
-		boolean obtainable = skin.release().map(Release::obtainable).orElse(true);
-		return new GuiElementBuilder(obtainable ? Items.DYE.lightGray() : Items.DYE.gray()).setName(Component.literal("???").withStyle(ChatFormatting.BOLD))
-				.addLoreLine(obtainable ? Component.literal("Not owned yet").withStyle(ChatFormatting.GRAY) : Component.literal("Unobtainable").withStyle(ChatFormatting.RED))
-				.hideDefaultTooltip().build();
+	private static eu.pb4.sgui.api.elements.GuiElement notOwned(SkinSummary skin, Fit fit) {
+		if (skin.release().map(Release::obtainable).orElse(true)) {
+			GuiElementBuilder icon = lookOnly(skin, fit).model(Identifier.fromNamespaceAndPath(SkinFolder.NAMESPACE, SkinFolder.LOCKED + "/" + skin.id()));
+			lookLines(skin, fit).forEach(icon::addLoreLine);
+			return icon.addLoreLine(Component.literal("Not owned yet").withStyle(ChatFormatting.GRAY)).build();
+		}
+		return new GuiElementBuilder(Items.DYE.gray()).setName(Component.literal("???").withStyle(ChatFormatting.BOLD))
+				.addLoreLine(Component.literal("Unobtainable").withStyle(ChatFormatting.RED)).hideDefaultTooltip().build();
 	}
 
 	/** A Dormant skin in "All Skins": it has no Look to show, so a barrier with its id and why it didn't load. */

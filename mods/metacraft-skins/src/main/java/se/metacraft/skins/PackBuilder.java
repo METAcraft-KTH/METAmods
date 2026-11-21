@@ -8,6 +8,7 @@ import se.metacraft.skins.item.SkinToken;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.metadata.pack.PackMetadataSection;
 import net.minecraft.util.InclusiveRange;
@@ -38,6 +39,24 @@ final class PackBuilder {
 
 	/** The earliest time a zip entry can hold; no clock, and no time zone, gets into the bytes. */
 	private static final LocalDateTime ENTRY_TIME = LocalDateTime.of(1980, 1, 1, 0, 0);
+	/**
+	 * {@link SkinFolder#LOCKED_OVERLAY}: one see-through square of grey stained glass, as big as the slot,
+	 * facing the viewer at the very front of the model space (z 28 of up to 32), so a Look in its
+	 * usual 0–16 box is always behind it; unshaded and lit from the front, as a flat item is.
+	 */
+	private static final String LOCKED_OVERLAY_MODEL = """
+			{
+				"gui_light": "front",
+				"textures": {
+					"glass": { "sprite": "minecraft:block/gray_stained_glass", "force_translucent": true },
+					"particle": "minecraft:block/gray_stained_glass"
+				},
+				"elements": [
+					{ "from": [0, 0, 28], "to": [16, 16, 28], "shade": false,
+						"faces": { "south": { "uv": [0, 0, 16, 16], "texture": "#glass" } } }
+				]
+			}
+			""";
 
 	/**
 	 * The files every build carries: the shared Skin Token's, from the jar's {@code skin-token/}, and
@@ -97,6 +116,9 @@ final class PackBuilder {
 		// The box's model names skins:item/skin_box.
 		files.put("assets/" + SkinBox.BOX_MODEL.getNamespace() + "/models/" + SkinBox.BOX_MODEL.getPath() + ".json", bundled("skin-box/skin_box.json"));
 		files.put("assets/" + SkinBox.BOX_MODEL.getNamespace() + "/textures/item/skin_box.png", bundled("skin-box/skin_box.png"));
+		// The Locked Look's pane: vanilla's grey stained glass, flat across the whole slot, in front of any Look.
+		Identifier overlay = Identifier.parse(SkinFolder.LOCKED_OVERLAY);
+		files.put("assets/" + overlay.getNamespace() + "/models/" + overlay.getPath() + ".json", LOCKED_OVERLAY_MODEL.getBytes(StandardCharsets.UTF_8));
 		return files;
 	}
 

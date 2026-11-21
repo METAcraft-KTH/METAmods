@@ -6,8 +6,9 @@ need nothing but the resource pack the server sends them.
 An admin hands out **Skin Tokens**. A player right-clicks one and confirms, which **Claims** the skin:
 they become its **Owner**, and the token is used up. `/itemskins` opens the **Skin Menu**, where they put the
 skin on any item of its **Kind** they carry, which makes it a **Skinned Item**. The Skin Menu lists every
-skin on the server, oldest release first: theirs with its Look, the rest as a grey dye named **???** until
-they own it (a darker grey one saying "Unobtainable" for a skin players can't get any more). A skin has a **Look** (a
+skin on the server, oldest release first: theirs with its Look, the rest greyed out behind a pane of grey
+glass until they own it (and a skin players can't get any more as a grey dye named **???** saying
+"Unobtainable"). A skin has a **Look** (a
 Blockbench model sent in the skins resource pack) and may have **Perks**, small effects for its Owner
 while they hold or wear the item. A skin works only while its item is with its Owner; anywhere else the
 item is **Away**, drawn plain. Each skin is on one item at a time: applying it elsewhere makes the old
@@ -698,7 +699,7 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
 - **`revokeall`** takes every skin a player owns away, Dormant ones too, in one save, as `revoke` does
   for one: an online player's own items are tidied at once, and they get one message with the count.
 - **`/itemskins <player>`** opens that player's Skin Menu for you, as they'd see it, online or not:
-  their skins with Look, tint and whether they're applied, the rest as **???**, in the same order. It's
+  their skins with Look, tint and whether they're applied, the rest greyed out or as **???** as in their own menu, in the same order. It's
   for looking at only: nothing can be clicked, there's no Extract button, and their items aren't tidied.
   A player head where the book is says whose skins they are and how many they own. A subcommand's name
   always wins, so a player named `list` can't be looked at this way.

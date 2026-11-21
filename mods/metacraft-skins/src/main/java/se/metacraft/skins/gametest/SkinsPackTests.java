@@ -42,6 +42,28 @@ public final class SkinsPackTests {
 		helper.succeed();
 	}
 
+	/**
+	 * Every skin also gets a Locked Look, {@code skins:locked/<id>}: its own item model with the grey
+	 * glass pane drawn over it, the pane's texture forced see-through and in front of the Look's 0–16 box.
+	 */
+	@GameTest
+	public void everySkinHasALockedLookBehindGreyGlass(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().lookOnly("candy_cane_test", "sword");
+		fx.reload();
+		Map<String, byte[]> files = unzip(fx.pack().zip());
+		JsonObject locked = json(files, "assets/skins/items/locked/candy_cane_test.json").getAsJsonObject("model");
+		assertThat(locked.get("type").getAsString().equals("minecraft:composite"), "not a composite: " + locked);
+		var layers = locked.getAsJsonArray("models");
+		assertThat(layers.size() == 2 && layers.get(0).equals(json(files, "assets/skins/items/candy_cane_test.json").get("model"))
+				&& layers.get(1).getAsJsonObject().get("model").getAsString().equals("skins:locked_overlay"), "the layers: " + layers);
+		JsonObject overlay = json(files, "assets/skins/models/locked_overlay.json");
+		JsonObject glass = overlay.getAsJsonObject("textures").getAsJsonObject("glass");
+		assertThat(glass.get("sprite").getAsString().equals("minecraft:block/gray_stained_glass") && glass.get("force_translucent").getAsBoolean(), "the glass: " + glass);
+		var from = overlay.getAsJsonArray("elements").get(0).getAsJsonObject().getAsJsonArray("from");
+		assertThat(from.get(2).getAsDouble() > 16, "the pane isn't in front of the Look: " + from);
+		helper.succeed();
+	}
+
 	/** Bare Blockbench names and foreign namespaces alike end up as skins:item/<id>/<file name>. */
 	@GameTest
 	public void textureReferencesAreRewrittenToTheSkinsFolder(GameTestHelper helper) {

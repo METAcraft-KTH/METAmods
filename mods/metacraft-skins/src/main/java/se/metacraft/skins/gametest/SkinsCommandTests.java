@@ -411,7 +411,7 @@ public final class SkinsCommandTests {
 			List<String> unknown = suggestions(server, "itemskins revoke nobody_by_that_name ");
 			assertThat(unknown.isEmpty(), "revoke suggests " + unknown + " for a name it doesn't know");
 
-			// Another player's menu: theirs to look at, one owned skin and one "???".
+			// Another player's menu: theirs to look at, one owned skin and one greyed out.
 			fx.skins.revoke(new NameAndId(offlineId, offline), "candy_cane_test");
 			server.getCommands().performPrefixedCommand(admin.createCommandSourceStack(), "itemskins " + offline);
 			assertThat(!SkinMenuTests.title(admin).startsWith(offline), "a player without the view permission opened " + SkinMenuTests.title(admin));
@@ -419,7 +419,9 @@ public final class SkinsCommandTests {
 			assertThat(SkinMenuTests.title(admin).equals(offline + "'s Skins"), "the admin's view opened " + SkinMenuTests.title(admin));
 			List<String> shown = List.of(admin.containerMenu.getSlot(0).getItem().getHoverName().getString(),
 					admin.containerMenu.getSlot(1).getItem().getHoverName().getString());
-			assertThat(shown.contains("???") && shown.contains("crown_test skin"), "the view shows " + shown);
+			List<String> models = List.of(String.valueOf(admin.containerMenu.getSlot(0).getItem().get(DataComponents.ITEM_MODEL)),
+					String.valueOf(admin.containerMenu.getSlot(1).getItem().get(DataComponents.ITEM_MODEL)));
+			assertThat(models.contains("skins:locked/candy_cane_test") && shown.contains("crown_test skin"), "the view shows " + shown + " " + models);
 			SkinMenuTests.click(admin, 0);
 			SkinMenuTests.click(admin, 1);
 			assertThat(SkinMenuTests.title(admin).equals(offline + "'s Skins"), "clicking a skin in the view opened " + SkinMenuTests.title(admin));
