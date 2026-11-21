@@ -17,6 +17,8 @@ import se.metacraft.skins.MobHats;
 import se.metacraft.skins.Skins;
 import se.metacraft.skins.item.MobHat;
 
+import java.time.Instant;
+
 /**
  * As a mob spawns, it may put on a hat ({@link MobHats#spawned}). A zombie's and a skeleton's
  * own {@code finalizeSpawn} call this one first and only then fill their empty armour slots, so a
@@ -29,7 +31,7 @@ public abstract class MobMixin {
 	private void putOnHat(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData data,
 			CallbackInfoReturnable<SpawnGroupData> cir) {
 		Skins skins = MetacraftSkins.skins();
-		if (skins != null) MobHats.spawned(skins, (Mob) (Object) this, difficulty);
+		if (skins != null) MobHats.spawned(skins, (Mob) (Object) this, Instant.now());
 	}
 
 	@Inject(method = "canReplaceCurrentItem", at = @At("HEAD"), cancellable = true)

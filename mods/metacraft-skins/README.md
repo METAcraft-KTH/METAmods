@@ -73,13 +73,15 @@ skins folder, so a skin id may only be in one group:
   `headphones_gaming`, `knight_helmet`, `leaf_crown`, `mobster_hat`, `pirate_hat`, `plunderers_bandana`,
   `propeller_hat`, `safari_hat`, `sensei`, `shades_cool`, `spartan`, `sun_hat_bow`, `sun_visor`,
   `traffic_cone_roadworks`, `trucker_hat` and `witch_hat` (`fishing_hat`, `leaf_crown`, `spartan` and
-  `sun_visor` are Unobtainable, and in no box);
-- `winter`, Winter Wonderland, all Unobtainable: the helmets `christmas_tree_hat`, `frozen_head`, `gift_box_head`,
+  `sun_visor` are Unobtainable, and in no box), and the helmets `double_vision_hat` (Duplication Magic)
+  and `glitch_beetle_hat` (Bug Finder), Unobtainable, undated, in no box and not extractable;
+- `winter`, Winter Wonderland, all Obtainable, in the Winter Skin Box: the helmets `christmas_tree_hat`, `frozen_head`, `gift_box_head`,
   `gingerbread_head`, `hot_cocoa_mug`, `lucia_crown`, `nutcracker_shako`, `penguin_hat`, `polar_bear_hat`,
   `reindeer_antlers`, `santa_hat`, `snow_globe`, `snowed_in`, `trapper_hat` and `yeti_head`,
   `candy_cane_pickaxe` (a pickaxe), `candy_sword` and `icicle_blade` (swords), and `jingle_bell_mace` (a mace);
 - `event`, event prizes, all Unobtainable, in no Skin Box and none extractable: Museum Showdown: 2026's helmets
-  `collector_chest_1` to `collector_chest_5` (legendary, for places 1 to 5) and `chest_lid_hat` (common, for taking part).
+  `collector_chest_1` to `collector_chest_5` (legendary, for places 1 to 5) and `chest_lid_hat` (common, for taking part), and the
+  legendary helmet `ender_chest_lid_hat` (Ender Chest Lid, released 2026/11/16), with ender chest particles around the head while walking.
 
 Each fits every Material of its Kind. The two test skins are Dyeable Hats, and so are the MCC hats with
 Tint faces: `cat_ears`, `cowboy_hat`, `fishing_hat`, `flight_helmet`, `headphones_gaming`, `knight_helmet`,
@@ -96,7 +98,7 @@ the first time the server starts without that folder. After that the folder is y
 
 A skin is a folder, `config/metacraft-skins/skins/<skin-id>/`. **The folder name is the skin's id, for
 good** (see [Dormant skins and permanent ids](#dormant-skins-and-permanent-ids)). It may only hold `a-z`,
-`0-9`, `_`, `-` and `.`.
+`0-9`, `_`, `-` and `.`, and may not be `box` (the pack keeps Skin Box looks there).
 
 ```
 config/metacraft-skins/skins/emerald_pick/
@@ -123,6 +125,7 @@ Drop the export in as it is, then run `/itemskins reload`. The mod cleans it up 
 {
 	name: "&lEmerald Pick",             // shown on tokens, menus and items; formatting codes allowed
 	gradient: { colors: ["#1E8449", "#7DFFB0"], mirror: true },   // optional: colours the name
+	// rarity: "rare",                  // optional, instead of a gradient: colours the name by tier
 	kind: "pickaxe",                    // the Kind it fits, below
 	released: "2026/10/31",             // optional: shown as "Released: 2026/10/31"
 	obtainable: false,                  // optional: "Obtainable" (default) or "Unobtainable"
@@ -138,6 +141,7 @@ Drop the export in as it is, then run `/itemskins reload`. The mod cleans it up 
 | --- | --- |
 | `name` | required; may use Minecraft's formatting codes, below |
 | `gradient` | optional: `{ colors: ["#RRGGBB", ...], mirror: true }` colours the name, below; `mirror` is optional |
+| `rarity` | optional: `common`, `uncommon`, `rare` or `legendary`; colours the name bold by tier, below. Not with `gradient` or colour codes |
 | `kind` | required: `sword`, `axe`, `pickaxe`, `shovel`, `hoe`, `mace`, `spear`, `helmet`, `chestplate`, `leggings`, `boots` or `elytra` |
 | `materials` | optional: a list of one or more of the Kind's Materials, below; leave it out to fit every Material |
 | `look` | required: `{ model: "<file>.json" }`, except a spear, which takes `{ icon: "<file>.json", in_hand: "<file>.json" }`. A helmet may add `dyeable: true` to be a Dyeable Hat, below (`false` is the same as leaving it out), and a Dyeable Hat may add `color: "#RRGGBB"`, its colour until it's dyed |
@@ -161,12 +165,23 @@ without its codes. A name must have some text besides its codes.
 to right: the first colour on the first letter, the last on the last. List them the other way round to
 run right to left. With `mirror: true` they run to the middle and back, so the first colour is on both
 ends and the last in the middle. A name with a gradient keeps its formats (`&lCowboy Hat` is bold) but
-may not have colour codes, since the gradient colours every letter. Every shipped skin has one, except
-the Classic Hats Box's hats, whose names are in their rarity's colour (below):
+may not have colour codes, since the gradient colours every letter. No shipped skin uses one: they all
+have a `rarity` instead. A gradient looks like this:
 
 ```json5
 	name: "&lSanta Hat",
 	gradient: { colors: ["#D62828", "#FFFFFF"], mirror: true },   // red to white and back
+```
+
+**Rarity.** `rarity` colours the name bold in its tier's colour: `common` white, `uncommon` green,
+`rare` blue and `legendary` gold (the same as writing `&f&l`, `&a&l`, `&9&l` or `&6&l` before the name).
+It does nothing else: a Skin Box's chances are still its own weights. The name keeps any other formats
+(`&o` italic) but may not have colour codes, and a skin with a `rarity` may not have a `gradient`.
+The colours are set in the mod (`Rarity`), so changing a tier's colour changes every skin of it.
+
+```json5
+	name: "Bug Finder",
+	rarity: "legendary",
 ```
 
 **Release.** Skinned Items and the menus show `released` and `obtainable` as one line,
@@ -345,8 +360,22 @@ Haste I). Any field not listed for its type rejects the skin.
 | `fire` | `duration` (seconds) | sets the target alight. Hit and hurt |
 | `knockback` | `strength` (default 0.5), `lift` (default 0) | pushes the target away. Hit and hurt |
 | `heal` | `amount` (health points) | heals the holder |
-| `particle` | `particle` (vanilla particle options), `count` (default 1), `interval` (ticks, default 20), `target` | `interval` for lasting auras only. `target`: `self` while lasting, `other` on hit, kill and block break, either when hurt |
+| `particle` | `particle` (vanilla particle options), `count` (default 1), `interval` (ticks, default 20), `speed` (default 0), `at`, `while_moving`, `target` | `interval`, `at` and `while_moving` for lasting auras only. `speed` gives each particle a random motion, as `/particle`'s speed does. `at`: `body` (default) or `head`, below. `while_moving: true` plays it only while the holder walks. `target`: `self` while lasting, `other` on hit, kill and block break, either when hurt |
 | `sound` | `sound` (id; may be a resource pack's), `volume` (default 1), `pitch` (default 1), `interval` (ticks, default 100), `target` | `interval` for lasting sounds only. `target` as for `particle` |
+
+**Head auras.** `at: "head"` plays the aura around the top of the holder's head instead of their body.
+Other players see it all round the head. The holder sees their own copy **just behind their head**, by
+where they face, with no particle moving forward: in first person it stays behind the camera, so it
+never gets in their view (only looking almost straight up shows it), and in third person they see it
+at the back of the head. The Ender Chest Lid's ender chest particles while walking:
+
+```json5
+{ trigger: "worn", effects: [
+	{ type: "particle", particle: { type: "minecraft:portal" }, at: "head", while_moving: true, count: 3, interval: 2, speed: 0.4 } ] }
+```
+
+"Moving" is more than 0.03 blocks sideways in a tick: walking, sprinting, sneaking along, swimming,
+riding or flying all count; jumping or falling straight down doesn't.
 
 Where a type allows only one target, `target` defaults to it (`fire` and `knockback` are always
 `other`, `heal` and `attribute` always `self`, and `particle` and `sound` are `other` on hit, kill and
@@ -374,7 +403,7 @@ effect "minecraft:hast"`.
 - There are no set bonuses and no caps: strengths are the admin's call.
 
 **Perk lines.** Tokens, the Skin Menu and Skinned Items list each Perk in blue, written from its
-definition: "While held: Haste I", "While worn: +2 max hearts and a particle aura", "On hit (25%, 5s
+definition: "While held: Haste I", "While worn: +2 max hearts and a particle aura" ("a particle aura while moving" with `while_moving`), "On hit (25%, 5s
 cooldown): Slowness I on the target for 3s", "On kill: heals 2 hearts". Set `tooltip` to word it yourself.
 
 ### Worked examples
@@ -434,6 +463,7 @@ is the box's id, for good**: it's stored in every box item, like a skin id. It m
 	name: "&lWinter Skin Box",
 	gradient: { colors: ["#E8FBFF", "#5AB4E6"], mirror: true },
 	description: "Only while the snow lasts.",   // optional
+	look: { model: "lootbox_winter.json" },      // optional
 	skins: [
 		{ skin: "santa_hat", weight: 20 },
 		{ skin: "penguin_hat", weight: 20 },
@@ -447,10 +477,24 @@ is the box's id, for good**: it's stored in every box item, like a skin id. It m
 | `name` | Required. The same rules as a skin's `name`: `&` codes, and some text besides them. |
 | `gradient` | Optional. The same as a skin's `{ colors: [...], mirror: true }`; it forbids colour codes in the name. |
 | `description` | Optional. One gray line in the box's tooltip. |
-| `ominous` | No longer used: every box looks the same. Still read (`true` or `false`), so older files load. |
+| `look` | Optional. The box's own model: `{ model: "<file>.json" }`, a Blockbench export in the box's folder (below). Without it, the box uses the shared Skin Box model. |
+| `ominous` | No longer used. Still read (`true` or `false`), so older files load. |
 | `skins` | Required. At least one `{ skin: "<skin id>", weight: <n> }`. |
 
 There's no `released` or `obtainable`: a retired box is one you stop giving out.
+
+**A box's own look.** Put the model and its textures in a folder named after the box, next to its file:
+
+```
+config/metacraft-skins/boxes/winter.json5
+config/metacraft-skins/boxes/winter/lootbox_winter.json
+config/metacraft-skins/boxes/winter/lootbox_winter.png
+```
+
+The model is cleaned up the way a skin's is: each texture is matched to a `.png` in the folder by file
+name (`.png.mcmeta` files come along), and a missing particle texture is filled in. In the pack it sits at
+`skins:item/box/<box-id>/`, which is why no skin may have the id `box`. Adding, changing or removing a
+look changes the pack, as a skin's Look does.
 
 **Weights and chances.** A weight is a whole number from 1 to 1,000,000. A skin's chance is its weight
 divided by the total weight of the box's usable skins (below), so weights that add up to 100 are the
@@ -464,14 +508,15 @@ A box is **rejected** (Dormant, while the others load as usual) for: broken json
 inside an entry too; a missing `name` or `skins`, an empty `skins` list, or an entry without `skin` or
 `weight`; a weight that isn't a whole number from 1 to 1,000,000; the same skin listed twice; an
 `ominous` that isn't `true` or `false`; a name that's only formatting codes, or a `gradient` error (in
-the same words as for skins); a file name an id can't hold. Each rejection is logged with its file,
+the same words as for skins); a file name an id can't hold; a `look` whose model isn't in the box's
+folder, or whose textures aren't (in the same words as for skins). Each rejection is logged with its file,
 shown to whoever ran `/itemskins reload`, and listed by console `/itemskins list`.
 
 A skin the box lists that's **unknown or Dormant** only warns: it's left out of the draw, the tooltip and
 the reel, and the other skins' chances grow. That's worked out against the skins of the same reload. A
 box whose skins are all left out still loads and opens, but can't be rolled.
 
-Files in `boxes/` that don't end in `.json5`, and folders, are ignored with a warning. Names starting
+Files in `boxes/` that don't end in `.json5`, and folders not named after a box file, are ignored with a warning. Names starting
 with `.` are skipped quietly.
 
 **Dormant boxes** follow the skins' rule (see [Dormant skins and permanent ids](#dormant-skins-and-permanent-ids)):
@@ -479,20 +524,21 @@ a box whose file is missing or fails to load is Dormant. Its items stay where th
 Skin Box: <id>" and can't be opened, and `givebox` refuses it; nothing is deleted. Fix the file (or put
 it back) and run `/itemskins reload`, and every copy comes back. A made-up id behaves the same.
 
-**The Classic Hats Box and the Winter Skin Box** ship with the mod. The Classic Hats Box sorts its hats into three
-rarities, by weight: common 10, uncommon 5 (half as likely) and rare 2 (a fifth as likely). Each hat's
-name is bold in its rarity's colour, with no gradient: common white (`&f&l`), uncommon green (`&a&l`) and rare
-blue (`&9&l`); a legendary would be gold (`&6&l`). Every
-Winter skin has weight 1, all equally likely. They're put in `boxes/` the first time the server starts without that folder, and
+**The Classic Hats Box and the Winter Skin Box** ship with the mod; the Winter one has its own look
+(`boxes/winter/`), the Classic one the shared model. Both sort their skins into three rarities, by
+weight: common 10, uncommon 5 (half as likely) and rare 2 (a fifth as likely). Each skin has the
+matching `rarity` (see [skin.json5](#skinjson5)), which colours its name; the weights are written in the
+box file. They're put in `boxes/` the first time the server starts without that folder, and
 never again: a deleted box stays deleted. If you deleted some of its skins, those entries are left out with a warning.
 
 ### The item
 
 The item is `metacraft-skins:skin_box`, with the box's id in its `metacraft-skins:box` component. To
-clients it's a vault, marked as a box by the custom model data string `metacraft-skins:skin_box`,
-named in the box's colours and followed by "(Right-Click)" in gray. The skins pack overrides
-vanilla's `minecraft:items/vault.json` to draw a marked vault with the box's own model (from the jar's
-`skin-box/`), and every other vault as a vault; a player without the pack sees a vault. Its tooltip has the description, a blank line, "**Random Loot** (1 item)",
+clients it's a vault, marked as a box by the custom model data string `metacraft-skins:skin_box`
+(`metacraft-skins:skin_box/<box-id>` for a box with its own look), named in the box's colours and
+followed by "(Right-Click)" in gray. The skins pack overrides vanilla's `minecraft:items/vault.json` to
+draw a marked vault with the shared box model (from the jar's `skin-box/`) or the box's own look, and
+every other vault as a vault; a player without the pack sees a vault. Its tooltip has the description, a blank line, "**Random Loot** (1 item)",
 then a line per usable skin, highest chance first: "* 1x" in white and the skin's name in its colours
 ("* 1x Santa Hat"). A box with no usable skins says "Every skin in this box is unavailable." instead.
 The chances themselves are shown in the Roll menu. Boxes don't stack: each is an item of its own. They can be traded and dropped
@@ -543,7 +589,7 @@ packs never pushes a resource pack by surprise. `/itemskins reload`:
 The pack is built the same way every time, so the same skins give the same SHA-1. Only Looks are in
 it: **editing a skin's name, description or Perks changes every token and Skinned Item at once, and
 doesn't change the pack**, so nobody downloads anything, and nor does editing its `materials`.
-Skin Boxes never change the pack either: the box's model is always in it.
+Skin Boxes change it only through a box's own `look`: the shared box model is always in it.
 Adding, removing or changing a model or texture does, and so does turning `dyeable` on or off. So you
 choose when players see a loading screen: batch Look changes into one reload.
 
@@ -566,15 +612,21 @@ vanilla `/reload` doesn't.
 	// Off turns every Perk off; Looks keep working.
 	"perks-enabled": true,
 	// The chance, in percent (0 to 100), that a zombie, husk, zombie villager, skeleton, stray, bogged, parched or creeper
-	// spawns wearing a Classic hat, at local difficulty 0. It falls in a straight line to none at local difficulty 6.75.
-	"mob-hat-chance": 0.2
+	// spawns wearing a Classic hat. Where a hat-wearing mob died in the last 1 to 6 hours (that chunk and the 8 around it) it's 99% less.
+	"mob-hat-chance": 5
 }
 ```
 
 `mob-hat-chance` can also be set in game, with `/itemskins spawnchance <percent>`: it takes at once for
 mobs spawning from then on, and is written to this file, so it stays after a restart. Writing the file
 this way rewrites the whole file from the settings in use. A `mob-hat-chance` outside 0 to 100 in the
-file is logged (by metacraft-lib) and the default, 0.2%, applies.
+file is logged (by metacraft-lib) and the default, 5%, applies.
+
+**Hat cooldowns.** When a hat-wearing mob dies, however it dies, the 3x3 chunks centred on the chunk it
+died in go on cooldown for a random 1 to 6 hours of real time (picked once per death, to the second). A
+mob spawning in a chunk on cooldown is 99% less likely to wear a hat (5% becomes 0.05%). A chunk already
+on cooldown keeps whichever end is later; cooldowns don't stack further. Each dimension has its own.
+Cooldowns are kept in memory only: a restart clears them.
 
 **Quote the keys.** They contain `-`, which json5 doesn't allow in a bare key: `{ perks-enabled: false }`
 is a syntax error. The error is logged (by metacraft-lib) and the settings stay as they were.
@@ -651,7 +703,7 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
   A player head where the book is says whose skins they are and how many they own. A subcommand's name
   always wins, so a player named `list` can't be looked at this way.
 - **`spawnchance`** alone shows the Mob Hat chance: the percent a zombie, skeleton or creeper (and their kin)
-  spawning at local difficulty 0 wears a Classic hat. With a percent from 0 to 100
+  spawning outside a [hat cooldown](#settings) wears a Classic hat. With a percent from 0 to 100
   (`/itemskins spawnchance 0.5`), it sets it: mobs spawning from then on use it, with no reload or
   restart, and it's saved as `mob-hat-chance` in [Settings](#settings). 0 turns Mob Hats off.
 - `info`, `grant`, `grantall`, `revoke`, `revokeall` and `/itemskins <player>` take offline players by name, looked up as `/whitelist` does: the server's

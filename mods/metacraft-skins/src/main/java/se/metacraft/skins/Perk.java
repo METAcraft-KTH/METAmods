@@ -134,11 +134,32 @@ public record Perk(Trigger trigger, List<Effect> effects, double chance, double 
 	}
 
 	/**
-	 * Particles ({@code count} of them). Lasting: an aura around the holder every
-	 * {@code intervalTicks}. On an event: once ({@code intervalTicks} 0), at the target, victim or
-	 * block (when hurt, at the wearer or the attacker).
+	 * Particles ({@code count} of them, each given a random motion of up to about {@code speed}). Lasting: an
+	 * aura every {@code intervalTicks}, around the holder's body or the top of their head ({@code place});
+	 * with {@code whileMoving}, only while they walk. On an event: once ({@code intervalTicks} 0), at the
+	 * target, victim or block (when hurt, at the wearer or the attacker).
 	 */
-	public record Particle(ParticleOptions particle, int count, int intervalTicks, Target target) implements Effect {}
+	public record Particle(ParticleOptions particle, int count, int intervalTicks, Target target, double speed, Place place,
+			boolean whileMoving) implements Effect {}
+
+	/**
+	 * Where a lasting particle aura plays. {@link #HEAD}'s particles are sent to everyone but the
+	 * holder, so they never get in the holder's own view.
+	 */
+	public enum Place {
+		BODY("body"), HEAD("head");
+
+		private final String id;
+
+		Place(String id) {
+			this.id = id;
+		}
+
+		/** As written in {@code skin.json5}. */
+		public String id() {
+			return id;
+		}
+	}
 
 	/** A sound. Lasting: now and then, every {@code intervalTicks}. On an event: once ({@code intervalTicks} 0). */
 	public record Sound(Holder<SoundEvent> sound, float volume, float pitch, int intervalTicks, Target target) implements Effect {}

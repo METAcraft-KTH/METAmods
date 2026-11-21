@@ -1,8 +1,8 @@
 {
-	name: "&lChristmas Tree Hat",
-	gradient: { colors: ["#1B7A3A", "#4CC46A", "#FFD54A"] },
+	name: "Christmas Tree Hat",
+	rarity: "uncommon",
 	released: "2026/12/01",
-	obtainable: false,
+	obtainable: true,
 	kind: "helmet",
 	look: { model: "christmas_tree_hat.json" },
 }

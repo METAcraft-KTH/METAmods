@@ -44,15 +44,27 @@ final class PackBuilder {
 	 * the Skin Box's, from {@code skin-box/} (each model sits outside {@code models/item/} and each
 	 * texture right in {@code textures/item/}), with vanilla's vault item definition overridden to draw
 	 * a vault marked as a box ({@link SkinBox#LOOK}) with the box's model and any other vault as the
-	 * vault. At paths no skin's can take (a skin's are always under its own id), and always there, so no
-	 * box file ever changes the pack.
+	 * vault ({@link #vault}). At paths no skin's can take (a skin's are always under its own id), and always there.
 	 */
 	private static final Map<String, byte[]> FIXED_FILES = fixedFiles();
 
-	static SkinsPack build(Collection<SkinFolder.Loaded> skins) {
+	/**
+	 * The pack of these skins and these Skin Boxes: each box with a look of its own adds its model and
+	 * textures, and a case to the vault's item definition for a vault marked as that box
+	 * ({@link SkinBox#look}). A box without one changes nothing.
+	 */
+	static SkinsPack build(Collection<SkinFolder.Loaded> skins, Collection<BoxFile.Loaded> boxes) {
 		Map<String, byte[]> files = new TreeMap<>(FIXED_FILES);
 		files.put("pack.mcmeta", mcmeta().getBytes(StandardCharsets.UTF_8));
 		for (SkinFolder.Loaded skin : skins) files.putAll(skin.files());
+		Map<String, String> looks = new TreeMap<>();
+		for (BoxFile.Loaded box : boxes) {
+			box.look().ifPresent(model -> {
+				files.putAll(box.files());
+				looks.put(SkinBox.look(box.id()), model);
+			});
+		}
+		files.put("assets/minecraft/items/vault.json", vault(looks).getBytes(StandardCharsets.UTF_8));
 
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
@@ -85,11 +97,24 @@ final class PackBuilder {
 		// The box's model names skins:item/skin_box.
 		files.put("assets/" + SkinBox.BOX_MODEL.getNamespace() + "/models/" + SkinBox.BOX_MODEL.getPath() + ".json", bundled("skin-box/skin_box.json"));
 		files.put("assets/" + SkinBox.BOX_MODEL.getNamespace() + "/textures/item/skin_box.png", bundled("skin-box/skin_box.png"));
-		String vault = "{ \"model\": { \"type\": \"minecraft:select\", \"property\": \"minecraft:custom_model_data\", \"index\": 0,"
-				+ " \"cases\": [ { \"when\": \"" + SkinBox.LOOK + "\", \"model\": { \"type\": \"minecraft:model\", \"model\": \"" + SkinBox.BOX_MODEL + "\" } } ],"
-				+ " \"fallback\": { \"type\": \"minecraft:model\", \"model\": \"minecraft:block/vault\" } } }";
-		files.put("assets/minecraft/items/vault.json", vault.getBytes(StandardCharsets.UTF_8));
 		return files;
+	}
+
+	/**
+	 * Vanilla's vault item definition, overridden: a vault marked {@link SkinBox#LOOK} is drawn with the
+	 * shared box model, one marked as a box with its own look ({@code looks}: marker to model id) with
+	 * that model, and any other vault as the vault.
+	 */
+	private static String vault(Map<String, String> looks) {
+		StringBuilder cases = new StringBuilder(vaultCase(SkinBox.LOOK, SkinBox.BOX_MODEL.toString()));
+		looks.forEach((when, model) -> cases.append(", ").append(vaultCase(when, model)));
+		return "{ \"model\": { \"type\": \"minecraft:select\", \"property\": \"minecraft:custom_model_data\", \"index\": 0,"
+				+ " \"cases\": [ " + cases + " ],"
+				+ " \"fallback\": { \"type\": \"minecraft:model\", \"model\": \"minecraft:block/vault\" } } }";
+	}
+
+	private static String vaultCase(String when, String model) {
+		return "{ \"when\": \"" + when + "\", \"model\": { \"type\": \"minecraft:model\", \"model\": \"" + model + "\" } }";
 	}
 
 	private static byte[] bundled(String path) {

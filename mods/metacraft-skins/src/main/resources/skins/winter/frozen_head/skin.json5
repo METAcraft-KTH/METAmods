@@ -1,8 +1,8 @@
 {
-	name: "&lFrozen Head",
-	gradient: { colors: ["#BFEFFF", "#5AB4E6"], mirror: true },
+	name: "Frozen Head",
+	rarity: "common",
 	released: "2026/12/01",
-	obtainable: false,
+	obtainable: true,
 	kind: "helmet",
 	look: { model: "frozen_head.json" },
 }

@@ -6,9 +6,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.Difficulty;
-import net.minecraft.world.DifficultyInstance;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
@@ -17,7 +17,9 @@ import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.equipment.Equippable;
+import net.minecraft.world.level.Level;
 import se.metacraft.skins.MetacraftSkins;
+import se.metacraft.skins.MobHatCooldowns;
 import se.metacraft.skins.MobHats;
 import se.metacraft.skins.Skins;
 import se.metacraft.skins.SkinsSettings;
@@ -25,6 +27,9 @@ import se.metacraft.skins.item.MobHat;
 import se.metacraft.skins.item.SkinBox;
 
 import java.nio.file.Files;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -32,8 +37,8 @@ import java.util.Set;
 import static se.metacraft.skins.gametest.SkinFixtures.assertThat;
 
 /**
- * Mob Hats ({@link MobHats}): the chance by local difficulty, the {@code mob-hat-chance} setting
- * behind it, which hats a mob can wear, what a hat-wearing mob drops, and what clients are sent of the hat.
+ * Mob Hats ({@link MobHats}): the chance, the {@code mob-hat-chance} setting behind it, the
+ * cooldown a hat-wearing mob's death starts around it, which hats a mob can wear, what a hat-wearing mob drops, and what clients are sent of the hat.
  */
 public final class MobHatTests {
 	/** Hats in the box, and a sword that isn't one. */
@@ -43,52 +48,117 @@ public final class MobHatTests {
 						+ " { skin: \"cleaver\", weight: 5 }, { skin: \"nowhere\", weight: 1 } ] }");
 	}
 
-	/** The base percent at local difficulty 0, half that halfway, none at 6.75 or above. */
+	/** The base percent, 99% less on cooldown. */
 	@GameTest
-	public void theChanceFallsInAStraightLineWithLocalDifficulty(GameTestHelper helper) {
-		assertThat(MobHats.chance(0.2, 0) == 0.002, "at 0: " + MobHats.chance(0.2, 0));
-		assertThat(Math.abs(MobHats.chance(0.2, 3.375f) - 0.001) < 1e-9, "at 3.375: " + MobHats.chance(0.2, 3.375f));
-		assertThat(Math.abs(MobHats.chance(0.2, 1.5f) - 0.002 * (1 - 1.5 / 6.75)) < 1e-9, "at 1.5: " + MobHats.chance(0.2, 1.5f));
-		assertThat(MobHats.chance(0.2, 6.75f) == 0 && MobHats.chance(0.2, 7) == 0, "at the top: " + MobHats.chance(0.2, 6.75f) + ", " + MobHats.chance(0.2, 7));
-		assertThat(MobHats.chance(100, 0) == 1 && MobHats.chance(0, 0) == 0, "at 100% and 0%: " + MobHats.chance(100, 0) + ", " + MobHats.chance(0, 0));
+	public void theChanceIsCutOnCooldown(GameTestHelper helper) {
+		assertThat(MobHats.chance(5, false) == 0.05, "5% off cooldown: " + MobHats.chance(5, false));
+		assertThat(Math.abs(MobHats.chance(5, true) - 0.0005) < 1e-12, "5% on cooldown: " + MobHats.chance(5, true));
+		assertThat(Math.abs(MobHats.chance(100, true) - 0.01) < 1e-12 && MobHats.chance(100, false) == 1, "100%: " + MobHats.chance(100, true));
+		assertThat(MobHats.chance(0, false) == 0 && MobHats.chance(0, true) == 0, "0%");
+		helper.succeed();
+	}
+
+	/** A cooldown lasts 1 to 6 hours, both ends possible in principle, and differs from death to death. */
+	@GameTest
+	public void aCooldownLastsOneToSixHours(GameTestHelper helper) {
+		RandomSource random = RandomSource.create(42);
+		Set<Duration> seen = new HashSet<>();
+		for (int i = 0; i < 1000; i++) {
+			Duration length = MobHats.cooldownLength(random);
+			assertThat(length.compareTo(Duration.ofHours(1)) >= 0 && length.compareTo(Duration.ofHours(6)) <= 0, "a cooldown of " + length);
+			seen.add(length);
+		}
+		assertThat(seen.size() > 900, "only " + seen.size() + " lengths in 1000");
 		helper.succeed();
 	}
 
 	/**
-	 * {@code mob-hat-chance} is 0.2% by default. Setting it takes at once, keeps the other settings,
+	 * A cooldown covers the 3x3 chunks centred on the one the death was in, in that dimension only,
+	 * until it ends; a later death nearby moves a chunk's end later, never earlier.
+	 */
+	@GameTest
+	public void aCooldownCoversTheChunksAround(GameTestHelper helper) {
+		ResourceKey<Level> overworld = Level.OVERWORLD;
+		MobHatCooldowns cooldowns = new MobHatCooldowns();
+		Instant t0 = Instant.parse("2026-01-01T00:00:00Z");
+		// Block (20, -5) is in chunk (1, -1): chunks 0 to 2 by -2 to 0, blocks x 0 to 47, z -32 to 15.
+		cooldowns.start(overworld, 20, -5, Duration.ofHours(2), t0);
+		for (int[] in : new int[][] { { 20, -5 }, { 0, -32 }, { 47, 15 }, { 0, 15 }, { 47, -32 } }) {
+			assertThat(cooldowns.onCooldown(overworld, in[0], in[1], t0), "not on cooldown at " + in[0] + ", " + in[1]);
+		}
+		for (int[] out : new int[][] { { -1, -5 }, { 48, -5 }, { 20, 16 }, { 20, -33 } }) {
+			assertThat(!cooldowns.onCooldown(overworld, out[0], out[1], t0), "on cooldown at " + out[0] + ", " + out[1]);
+		}
+		assertThat(!cooldowns.onCooldown(Level.NETHER, 20, -5, t0), "on cooldown in the Nether");
+		assertThat(cooldowns.onCooldown(overworld, 20, -5, t0.plus(Duration.ofMinutes(119))), "ended before 2 hours");
+		assertThat(!cooldowns.onCooldown(overworld, 20, -5, t0.plus(Duration.ofHours(2))), "still on after 2 hours");
+
+		// A shorter one later doesn't cut a longer one short; a longer one from a neighbour chunk does extend it.
+		cooldowns.start(overworld, 20, -5, Duration.ofHours(1), t0.plus(Duration.ofMinutes(10)));
+		assertThat(cooldowns.onCooldown(overworld, 20, -5, t0.plus(Duration.ofMinutes(119))), "a shorter cooldown cut it short");
+		cooldowns.start(overworld, 40, -5, Duration.ofHours(5), t0);
+		assertThat(cooldowns.onCooldown(overworld, 20, -5, t0.plus(Duration.ofHours(4))), "a neighbour's cooldown didn't reach it");
+		assertThat(!cooldowns.onCooldown(overworld, 0, -5, t0.plus(Duration.ofHours(4))), "a neighbour's cooldown reached two chunks over");
+		helper.succeed();
+	}
+
+	/** A hat-wearing mob's death starts a 1 to 6 hour cooldown where it died; a bare mob's doesn't. */
+	@GameTest
+	public void aHatWearingMobsDeathStartsACooldown(GameTestHelper helper) {
+		SkinFixtures fx = classicBox();
+		fx.reload();
+		Instant t0 = Instant.parse("2026-01-01T00:00:00Z");
+		var dimension = helper.getLevel().dimension();
+		Zombie bare = helper.spawnWithNoFreeWill(EntityTypes.ZOMBIE, new BlockPos(1, 2, 1));
+		MobHats.died(fx.skins, bare, helper.getLevel(), t0);
+		assertThat(!fx.skins.mobHatCooldowns().onCooldown(dimension, bare.getBlockX(), bare.getBlockZ(), t0), "a bare zombie started a cooldown");
+
+		Zombie hatted = helper.spawnWithNoFreeWill(EntityTypes.ZOMBIE, new BlockPos(1, 2, 1));
+		MobHats.putOnHat(fx.skins, hatted);
+		MobHats.died(fx.skins, hatted, helper.getLevel(), t0);
+		int x = hatted.getBlockX(), z = hatted.getBlockZ();
+		assertThat(fx.skins.mobHatCooldowns().onCooldown(dimension, x, z, t0.plus(Duration.ofMinutes(59))), "no cooldown within the hour");
+		assertThat(fx.skins.mobHatCooldowns().onCooldown(dimension, x + 16, z - 16, t0), "no cooldown in the corner chunk");
+		assertThat(!fx.skins.mobHatCooldowns().onCooldown(dimension, x, z, t0.plus(Duration.ofHours(6))), "still on cooldown after 6 hours");
+		helper.getLevel().getEntitiesOfClass(ItemEntity.class, hatted.getBoundingBox().inflate(3)).forEach(ItemEntity::discard);
+		helper.succeed();
+	}
+
+	/**
+	 * {@code mob-hat-chance} is 5% by default. Setting it takes at once, keeps the other settings,
 	 * and is written to the file, so a reload reads it back; a value outside 0 to 100 in the file is
-	 * logged and the default, 0.2%, applies.
+	 * logged and the default, 5%, applies.
 	 */
 	@GameTest
 	public void theChanceIsASettingThatSaves(GameTestHelper helper) throws Exception {
 		SkinFixtures fx = classicBox().settings("{ \"perks-enabled\": false }");
 		fx.reload();
-		assertThat(fx.skins.settings().mobHatChance() == SkinsSettings.MOB_HAT_CHANCE && SkinsSettings.MOB_HAT_CHANCE == 0.2,
+		assertThat(fx.skins.settings().mobHatChance() == SkinsSettings.MOB_HAT_CHANCE && SkinsSettings.MOB_HAT_CHANCE == 5,
 				"the default: " + fx.skins.settings());
-		double before = fx.skins.setMobHatChance(5);
-		assertThat(before == 0.2 && fx.skins.settings().mobHatChance() == 5 && !fx.skins.settings().perksEnabled(), "after setting 5%: " + fx.skins.settings());
+		double before = fx.skins.setMobHatChance(1.5);
+		assertThat(before == 5 && fx.skins.settings().mobHatChance() == 1.5 && !fx.skins.settings().perksEnabled(), "after setting 1.5%: " + fx.skins.settings());
 		String file = Files.readString(fx.skins.settingsFile());
-		assertThat(file.contains("mob-hat-chance") && file.contains("5"), "the file: " + file);
+		assertThat(file.contains("mob-hat-chance") && file.contains("1.5"), "the file: " + file);
 		fx.reload();
-		assertThat(fx.skins.settings().mobHatChance() == 5 && !fx.skins.settings().perksEnabled(), "after a reload: " + fx.skins.settings());
+		assertThat(fx.skins.settings().mobHatChance() == 1.5 && !fx.skins.settings().perksEnabled(), "after a reload: " + fx.skins.settings());
 		fx.settings("{ \"mob-hat-chance\": 150 }").reload();
 		assertThat(fx.skins.settings().mobHatChance() == SkinsSettings.MOB_HAT_CHANCE, "after 150% in the file: " + fx.skins.settings());
 		helper.succeed();
 	}
 
-	/** A spawning mob puts on a hat by the setting as it is now: always at 100%, never at 0% (local difficulty 0). */
+	/** A spawning mob puts on a hat by the setting as it is now: always at 100%, never at 0% (off cooldown). */
 	@GameTest
 	public void aSpawningMobUsesTheChanceSetNow(GameTestHelper helper) {
 		SkinFixtures fx = classicBox();
 		fx.reload();
-		DifficultyInstance peaceful = new DifficultyInstance(Difficulty.PEACEFUL, 0, 0, 0);
+		Instant now = Instant.now();
 		Zombie zombie = helper.spawnWithNoFreeWill(EntityTypes.ZOMBIE, new BlockPos(1, 2, 1));
 		zombie.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
 		fx.skins.setMobHatChance(0);
-		MobHats.spawned(fx.skins, zombie, peaceful);
+		MobHats.spawned(fx.skins, zombie, now);
 		assertThat(!MobHats.wearsHat(zombie), "a hat at 0%");
 		fx.skins.setMobHatChance(100);
-		MobHats.spawned(fx.skins, zombie, peaceful);
+		MobHats.spawned(fx.skins, zombie, now);
 		assertThat(MobHats.wearsHat(zombie), "no hat at 100%");
 		helper.succeed();
 	}

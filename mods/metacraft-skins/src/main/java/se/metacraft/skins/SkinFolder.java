@@ -46,6 +46,8 @@ public final class SkinFolder {
 	static final String DEFINITION = "skin.json5";
 	/** The namespace of every skin's pack files and item model ({@code skins:<id>}). */
 	public static final String NAMESPACE = "skins";
+	/** Where Skin Box looks go in the pack, beside the skins' own folders: no skin may take this id. */
+	static final String BOX_LOOKS = "box";
 
 	private static final Jankson JANKSON = Jankson.builder().build();
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
@@ -90,6 +92,7 @@ public final class SkinFolder {
 		if (!PATH_SEGMENT.matcher(id).matches()) {
 			throw new Rejected(folder, "the folder name is the skin id and may only hold a-z, 0-9, _, - and .");
 		}
+		if (id.equals(BOX_LOOKS)) throw new Rejected(folder, "\"" + BOX_LOOKS + "\" can't be a skin id: the pack keeps Skin Box looks there");
 		if (!Files.isRegularFile(definitionFile)) throw new Rejected(definitionFile, "the folder has no " + DEFINITION);
 
 		JsonObject json;
@@ -111,7 +114,7 @@ public final class SkinFolder {
 			modelIds.put(slot.getKey(), model(folder, id, kind, slot.getKey(), slot.getValue(), dyeable, definitionFile, files, modelIds, warnings));
 		}
 		files.put("assets/" + NAMESPACE + "/items/" + id + ".json", itemDefinition(kind, modelIds, definition.look().color()).getBytes(StandardCharsets.UTF_8));
-		return new Loaded(id, SkinName.plain(definition.name()), SkinName.styled(definition.name(), definition.gradient()), kind, definition.materials(), dyeable,
+		return new Loaded(id, SkinName.plain(definition.writtenName()), SkinName.styled(definition.writtenName(), definition.gradient()), kind, definition.materials(), dyeable,
 				definition.description(), definition.release(), definition.extractable(), definition.perks(), files);
 	}
 
@@ -127,37 +130,8 @@ public final class SkinFolder {
 		}
 		Path modelFile = folder.resolve(fileName);
 		if (!Files.isRegularFile(modelFile)) throw new Rejected(definitionFile, "model file \"" + fileName + "\" (look." + slot + ") is not in the skin folder");
-		com.google.gson.JsonObject model;
-		try {
-			model = JsonParser.parseString(Files.readString(modelFile, StandardCharsets.UTF_8)).getAsJsonObject();
-		} catch (IOException | JsonParseException | IllegalStateException e) {
-			throw new Rejected(modelFile, "not a model: " + e.getMessage());
-		}
-
-		if (model.has("textures")) {
-			if (!model.get("textures").isJsonObject()) throw new Rejected(modelFile, "\"textures\" is not an object");
-			com.google.gson.JsonObject textures = model.getAsJsonObject("textures");
-			String first = null;
-			for (String key : List.copyOf(textures.keySet())) {
-				var value = textures.get(key);
-				// 26.1+ also allows { sprite, force_translucent }; the sprite is what gets rewritten.
-				com.google.gson.JsonObject holder = textures;
-				String field = key;
-				if (value.isJsonObject() && value.getAsJsonObject().has("sprite")) {
-					holder = value.getAsJsonObject();
-					field = "sprite";
-					value = holder.get("sprite");
-				}
-				if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
-					throw new Rejected(modelFile, "texture \"" + key + "\" is neither a name nor { sprite }");
-				}
-				String ref = value.getAsString();
-				String rewritten = ref.startsWith("#") ? ref : texture(folder, id, key, ref, modelFile, files);
-				holder.addProperty(field, rewritten);
-				if (first == null) first = rewritten;
-			}
-			if (!textures.has("particle") && first != null) textures.addProperty("particle", first);
-		}
+		com.google.gson.JsonObject model = readModel(modelFile);
+		rewriteTextures(folder, id, model, modelFile, files);
 
 		if (!model.has("parent")) warnAboutDisplay(id, kind, slot, model, modelFile, warnings);
 		boolean tinted = !tintFaces(model).isEmpty();
@@ -173,6 +147,63 @@ public final class SkinFolder {
 		files.put("assets/" + NAMESPACE + "/models/item/" + id + "/" + fileName, GSON.toJson(model).getBytes(StandardCharsets.UTF_8));
 		if (dyeable) modelIds.put("dyed", dyedModel(folder, id, fileName, model, modelFile, files));
 		return NAMESPACE + ":item/" + id + "/" + base;
+	}
+
+	private static com.google.gson.JsonObject readModel(Path modelFile) throws Rejected {
+		try {
+			return JsonParser.parseString(Files.readString(modelFile, StandardCharsets.UTF_8)).getAsJsonObject();
+		} catch (IOException | JsonParseException | IllegalStateException e) {
+			throw new Rejected(modelFile, "not a model: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Rewrites each texture the model names to its .png in {@code folder}, copied into {@code files}
+	 * under {@code skins:item/<id>/}, and fills in a missing particle texture with the first.
+	 */
+	private static void rewriteTextures(Path folder, String id, com.google.gson.JsonObject model, Path modelFile, Map<String, byte[]> files) throws Rejected {
+		if (!model.has("textures")) return;
+		if (!model.get("textures").isJsonObject()) throw new Rejected(modelFile, "\"textures\" is not an object");
+		com.google.gson.JsonObject textures = model.getAsJsonObject("textures");
+		String first = null;
+		for (String key : List.copyOf(textures.keySet())) {
+			var value = textures.get(key);
+			// 26.1+ also allows { sprite, force_translucent }; the sprite is what gets rewritten.
+			com.google.gson.JsonObject holder = textures;
+			String field = key;
+			if (value.isJsonObject() && value.getAsJsonObject().has("sprite")) {
+				holder = value.getAsJsonObject();
+				field = "sprite";
+				value = holder.get("sprite");
+			}
+			if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+				throw new Rejected(modelFile, "texture \"" + key + "\" is neither a name nor { sprite }");
+			}
+			String ref = value.getAsString();
+			String rewritten = ref.startsWith("#") ? ref : texture(folder, id, key, ref, modelFile, files);
+			holder.addProperty(field, rewritten);
+			if (first == null) first = rewritten;
+		}
+		if (!textures.has("particle") && first != null) textures.addProperty("particle", first);
+	}
+
+	/**
+	 * A Skin Box's own look ({@link BoxFile}): model {@code fileName} in the box's folder,
+	 * {@code boxes/<boxId>/}, cleaned up as a skin's is, its textures under
+	 * {@code skins:item/box/<boxId>/}. Adds them to {@code files}; returns the model id,
+	 * {@code skins:item/box/<boxId>/<model>}. {@link #BOX_LOOKS} is why no skin can take those paths.
+	 */
+	static String boxLook(Path folder, String boxId, String fileName, Path boxFile, Map<String, byte[]> files) throws Rejected {
+		if (!fileName.endsWith(".json") || !PATH_SEGMENT.matcher(fileName).matches()) {
+			throw new Rejected(boxFile, "look.model must name a .json file in boxes/" + boxId + "/ (a-z, 0-9, _, - and .), not \"" + fileName + "\"");
+		}
+		Path modelFile = folder.resolve(fileName);
+		if (!Files.isRegularFile(modelFile)) throw new Rejected(boxFile, "model file \"" + fileName + "\" (look.model) is not in boxes/" + boxId + "/");
+		String id = BOX_LOOKS + "/" + boxId;
+		com.google.gson.JsonObject model = readModel(modelFile);
+		rewriteTextures(folder, id, model, modelFile, files);
+		files.put("assets/" + NAMESPACE + "/models/item/" + id + "/" + fileName, GSON.toJson(model).getBytes(StandardCharsets.UTF_8));
+		return NAMESPACE + ":item/" + id + "/" + fileName.substring(0, fileName.length() - ".json".length());
 	}
 
 	/** The faces of the model's own elements that are marked Tint: a {@code tintindex} of 0 or more. A parent's don't count. */

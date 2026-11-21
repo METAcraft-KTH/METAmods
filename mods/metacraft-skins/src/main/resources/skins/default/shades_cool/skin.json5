@@ -1,5 +1,6 @@
 {
-	name: "&9&lCool Shades",
+	name: "Cool Shades",
+	rarity: "rare",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

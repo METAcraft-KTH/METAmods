@@ -74,7 +74,7 @@ import java.util.stream.Collectors;
  *       at only;</li>
  *   <li>{@code givebox <targets> <box> [count]} ({@code metacraft-skins:givebox}, gamemasters): Skin Boxes for online players,
  *       1 to 64 of them, as {@code give} hands out tokens; box ids tab-complete, loaded boxes only;</li>
- *   <li>{@code spawnchance [percent]} ({@code metacraft-skins:spawnchance}, admins): shows the Mob Hat chance at local difficulty 0,
+ *   <li>{@code spawnchance [percent]} ({@code metacraft-skins:spawnchance}, admins): shows the Mob Hat chance outside a cooldown,
  *       or sets it (0 to 100) at once and saves it as {@code mob-hat-chance} in the settings file. No reload or restart needed.</li>
  * </ul>
  * Extract has no command: players use the Extract button in the Skin Menu.
@@ -288,15 +288,16 @@ public final class SkinsCommands {
 
 	private static int spawnChance(CommandContext<CommandSourceStack> ctx, Skins skins) {
 		double percent = skins.settings().mobHatChance();
-		ctx.getSource().sendSuccess(() -> Component.literal("Mob Hat chance: " + PERCENT.format(percent) + "% at local difficulty 0, falling to none at "
-				+ PERCENT.format(MobHats.NO_HATS_AT) + ". Set it with /itemskins spawnchance <percent>."), false);
+		ctx.getSource().sendSuccess(() -> Component.literal("Mob Hat chance: " + PERCENT.format(percent) + "%, "
+				+ PERCENT.format(MobHats.COOLDOWN_CUT * 100) + "% less near where a hat-wearing mob died in the last "
+				+ MobHats.COOLDOWN_MIN.toHours() + " to " + MobHats.COOLDOWN_MAX.toHours() + " hours. Set it with /itemskins spawnchance <percent>."), false);
 		return 1;
 	}
 
 	private static int setSpawnChance(CommandContext<CommandSourceStack> ctx, Skins skins, double percent) {
 		double before = skins.setMobHatChance(percent);
 		ctx.getSource().sendSuccess(() -> Component.literal("Mob Hat chance set to " + PERCENT.format(percent) + "% (was " + PERCENT.format(before)
-				+ "%) at local difficulty 0, for mobs spawning from now on. Saved in " + skins.settingsFile().getFileName() + "."), true);
+				+ "%) for mobs spawning from now on. Saved in " + skins.settingsFile().getFileName() + "."), true);
 		return 1;
 	}
 

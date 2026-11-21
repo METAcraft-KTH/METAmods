@@ -1,0 +1,8 @@
+{
+	name: "Duplication Magic",
+	rarity: "legendary",
+	obtainable: false,
+	kind: "helmet",
+	extractable: false,
+	look: { model: "double_vision_hat.json" },
+}

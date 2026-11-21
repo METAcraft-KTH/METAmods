@@ -108,6 +108,8 @@ public final class Skins {
 	private final LastingPerks lasting = new LastingPerks();
 	/** Fires hit, kill, block break and hurt Perks, and keeps each player's cooldowns. */
 	private final EventPerks events = new EventPerks();
+	/** Where Mob Hats are on cooldown after a hat-wearing mob died. */
+	private final MobHatCooldowns mobHatCooldowns = new MobHatCooldowns();
 
 	private record Entry(String id, Optional<SkinFolder.Loaded> loaded, Optional<Kind> kind, Optional<String> dormantReason) {}
 
@@ -145,10 +147,10 @@ public final class Skins {
 	// ---- actions
 
 	/**
-	 * Re-reads every skin folder and the settings file, then rebuilds the pack, then re-reads every
-	 * Skin Box file against the skins just read. A broken skin or box is set aside as Dormant with its
-	 * reason and never stops the others; each rejection and warning is logged with its file. Boxes
-	 * never change the pack. Pushing a changed pack to players, and sending them their items again
+	 * Re-reads every skin folder and the settings file, then every Skin Box file against the skins
+	 * just read, then rebuilds the pack. A broken skin or box is set aside as Dormant with its
+	 * reason and never stops the others; each rejection and warning is logged with its file. A box
+	 * changes the pack only through a look of its own. Pushing a changed pack to players, and sending them their items again
 	 * after a reload that {@linkplain ReloadReport#lookTakenAway() took a Look away}, is the caller's job.
 	 */
 	public synchronized ReloadReport reload() {
@@ -186,7 +188,8 @@ public final class Skins {
 			else MetacraftSkins.LOGGER.info("[{}] skin {}: {}: {}", MetacraftSkins.MOD_ID, w.skinId(), w.file(), w.message());
 		}
 
-		SkinsPack pack = PackBuilder.build(next.values().stream().flatMap(e -> e.loaded().stream()).toList());
+		BoxesRead boxesRead = readBoxes(next);
+		SkinsPack pack = PackBuilder.build(next.values().stream().flatMap(e -> e.loaded().stream()).toList(), boxesRead.loaded());
 		boolean changed;
 		synchronized (builds) {
 			SkinsPack previous = builds.peekFirst();
@@ -200,24 +203,32 @@ public final class Skins {
 		dropKindChangedApplications();
 		MetacraftSkins.LOGGER.info("[{}] {} skin(s) loaded, {} Dormant; pack {}{}", MetacraftSkins.MOD_ID, loaded.size(), rejections.size(),
 				pack.sha1(), changed ? " (changed)" : "");
-		ReloadReport.Boxes boxReport = reloadBoxes(next);
-		return new ReloadReport(List.copyOf(loaded), List.copyOf(rejections), List.copyOf(warnings), pack.sha1(), changed, lookTakenAway, boxReport);
+		boxes = boxesRead.boxes();
+		MetacraftSkins.LOGGER.info("[{}] {} Skin Box(es) loaded, {} Dormant", MetacraftSkins.MOD_ID, boxesRead.report().loaded().size(),
+				boxesRead.report().rejections().size());
+		return new ReloadReport(List.copyOf(loaded), List.copyOf(rejections), List.copyOf(warnings), pack.sha1(), changed, lookTakenAway, boxesRead.report());
 	}
 
+	/** What {@link #readBoxes} read: every box by id, the ones that loaded (with their looks' files), and the report. */
+	private record BoxesRead(Map<String, BoxSummary> boxes, List<BoxFile.Loaded> loaded, ReloadReport.Boxes report) {}
+
 	/**
-	 * Reads every file in {@code boxes/}: each {@code <id>.json5} is a box, loaded or Dormant; any other
-	 * file and any folder is ignored with a warning, and a name starting with {@code .} is skipped.
+	 * Reads every file in {@code boxes/}: each {@code <id>.json5} is a box, loaded or Dormant; a folder
+	 * named for a box file holds that box's look; any other file and any other folder is ignored with a
+	 * warning, and a name starting with {@code .} is skipped.
 	 * A skin a box lists that isn't loaded in {@code skinsNow} (unknown or Dormant) is left out with a
 	 * warning, and the other skins' chances grow.
 	 */
-	private ReloadReport.Boxes reloadBoxes(Map<String, Entry> skinsNow) {
+	private BoxesRead readBoxes(Map<String, Entry> skinsNow) {
 		Map<String, BoxSummary> next = new TreeMap<>();
+		List<BoxFile.Loaded> read = new ArrayList<>();
 		List<String> loaded = new ArrayList<>();
 		List<ReloadReport.BoxRejection> rejections = new ArrayList<>();
 		List<ReloadReport.BoxWarning> warnings = new ArrayList<>();
 		for (Path file : boxFiles()) {
 			String name = file.getFileName().toString();
 			if (Files.isDirectory(file)) {
+				if (Files.isRegularFile(file.resolveSibling(name + BoxFile.SUFFIX))) continue;   // the box's look
 				warnings.add(new ReloadReport.BoxWarning(file, "boxes/" + name + "/ is a folder, ignored"));
 				continue;
 			}
@@ -229,6 +240,7 @@ public final class Skins {
 			try {
 				BoxFile.Loaded box = BoxFile.load(file);
 				next.put(id, loadedBox(box, file, skinsNow, warnings));
+				read.add(box);
 				loaded.add(id);
 			} catch (SkinFolder.Rejected e) {
 				next.put(id, dormantBox(id, e.getMessage()));
@@ -242,9 +254,7 @@ public final class Skins {
 		}
 		for (var r : rejections) MetacraftSkins.LOGGER.warn("[{}] Skin Box {} is Dormant: {}: {}", MetacraftSkins.MOD_ID, r.boxId(), r.file(), r.reason());
 		for (var w : warnings) MetacraftSkins.LOGGER.warn("[{}] Skin Boxes: {} ({})", MetacraftSkins.MOD_ID, w.message(), w.file());
-		boxes = next;
-		MetacraftSkins.LOGGER.info("[{}] {} Skin Box(es) loaded, {} Dormant", MetacraftSkins.MOD_ID, loaded.size(), rejections.size());
-		return new ReloadReport.Boxes(List.copyOf(loaded), List.copyOf(rejections), List.copyOf(warnings));
+		return new BoxesRead(next, List.copyOf(read), new ReloadReport.Boxes(List.copyOf(loaded), List.copyOf(rejections), List.copyOf(warnings)));
 	}
 
 	/** A box that loaded, its skins sorted into the usable ones (with their chances, highest first) and the ones left out. */
@@ -266,11 +276,11 @@ public final class Skins {
 				.sorted(Comparator.comparingInt(BoxFile.Entry::weight).reversed())   // a stable sort: ties stay in file order
 				.map(e -> new BoxSummary.Entry(e.skin(), e.weight(), BoxSummary.chance(e.weight(), total))).toList();
 		return new BoxSummary(box.id(), Optional.of(box.name()), Optional.of(box.title()), box.description(), entries, List.copyOf(leftOut),
-				Optional.empty());
+				Optional.empty(), box.look().isPresent());
 	}
 
 	private static BoxSummary dormantBox(String id, String reason) {
-		return new BoxSummary(id, Optional.empty(), Optional.empty(), Optional.empty(), List.of(), List.of(), Optional.of(reason));
+		return new BoxSummary(id, Optional.empty(), Optional.empty(), Optional.empty(), List.of(), List.of(), Optional.of(reason), false);
 	}
 
 	/** Everything in {@code boxes/} but names starting with {@code .}, sorted. */
@@ -657,7 +667,7 @@ public final class Skins {
 
 	/**
 	 * What a viewer is sent of a Skin Box: Polymer's client copy ({@code client}, a vault marked as a
-	 * box by {@link SkinBox#drawnAsBox}) with no glint, named in the box's colours followed by
+	 * box by {@link SkinBox#drawnAsBox}, as this box if it has a look of its own) with no glint, named in the box's colours followed by
 	 * " (Right-Click)" in gray, with the lore: its description (gray), a blank line, "Random
 	 * Loot" (white, bold) and " (1 item)" (gray), then one line per usable skin, highest chance first
 	 * ("* 1x " in white, then the skin's name in its colours), or "Every skin in this box is
@@ -668,6 +678,7 @@ public final class Skins {
 		String id = SkinBox.boxOf(box).orElse("");
 		BoxSummary summary = boxes.get(id);
 		client.remove(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
+		if (summary != null) SkinBox.drawnAsBox(client, summary);
 		if (summary == null || summary.dormant()) {
 			client.set(DataComponents.ITEM_NAME, plain("Unknown Skin Box: " + id, ChatFormatting.GRAY));
 			client.set(DataComponents.LORE, new ItemLore(List.of(plain("It isn't on this server.", ChatFormatting.DARK_GRAY))));
@@ -1190,6 +1201,11 @@ public final class Skins {
 		double before = settings().mobHatChance();
 		settings.modify(s -> s.withMobHatChance(percent));
 		return before;
+	}
+
+	/** Where Mob Hats are on cooldown ({@link MobHats#died}); in memory only. */
+	public MobHatCooldowns mobHatCooldowns() {
+		return mobHatCooldowns;
 	}
 
 	/** The settings file, {@code config/metacraft-skins.json5}. */

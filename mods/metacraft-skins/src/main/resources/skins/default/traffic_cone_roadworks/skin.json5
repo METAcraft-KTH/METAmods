@@ -1,5 +1,6 @@
 {
-	name: "&9&lRoadworks Traffic Cone",
+	name: "Roadworks Traffic Cone",
+	rarity: "rare",
 	released: "2026/11/09",
 	obtainable: true,
 	kind: "helmet",

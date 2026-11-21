@@ -13,13 +13,13 @@ import java.nio.file.Path;
  * The server-wide settings, {@code config/metacraft-skins.json5} (metacraft-config). Re-read by
  * {@code /itemskins reload} only, never by vanilla {@code /reload}. {@code perks-enabled} off empties every
  * skin's Perks (and their tooltip lines) at once; {@code perks-affect-players} is for event Perks'
- * target effects; {@code mob-hat-chance} is {@link MobHats}' chance at local difficulty 0, in percent,
+ * target effects; {@code mob-hat-chance} is {@link MobHats}' chance outside a cooldown, in percent,
  * which {@code /itemskins spawnchance} also sets (and saves). Keys with a hyphen must be quoted in the file
  * (Jankson), or the file doesn't parse and the settings before stay.
  */
 public record SkinsSettings(boolean perksAffectPlayers, boolean perksEnabled, double mobHatChance) {
-	/** The default {@code mob-hat-chance}: 0.2%. */
-	public static final double MOB_HAT_CHANCE = 0.2;
+	/** The default {@code mob-hat-chance}: 5%. */
+	public static final double MOB_HAT_CHANCE = 5;
 	public static final SkinsSettings DEFAULTS = new SkinsSettings(true, true, MOB_HAT_CHANCE);
 
 	/** A chance in percent, 0 to 100. */
@@ -38,8 +38,8 @@ public record SkinsSettings(boolean perksAffectPlayers, boolean perksEnabled, do
 			CommentCodec.comment(
 					PERCENT.optionalFieldOf("mob-hat-chance", MOB_HAT_CHANCE),
 					"The chance, in percent (0 to 100), that a zombie, husk, zombie villager, skeleton, stray, bogged, parched or creeper spawns wearing "
-							+ "a Classic hat, at local difficulty 0. "
-							+ "It falls in a straight line to none at local difficulty 6.75. /itemskins spawnchance sets it too."
+							+ "a Classic hat. Where a hat-wearing mob died in the last 1 to 6 hours (that chunk and the 8 around it) it's 99% less. "
+							+ "/itemskins spawnchance sets it too."
 			).forGetter(SkinsSettings::mobHatChance)
 	).apply(instance, SkinsSettings::new));
 

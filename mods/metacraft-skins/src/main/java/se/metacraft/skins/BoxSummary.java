@@ -15,10 +15,11 @@ import java.util.Optional;
  * loads), and, for a Dormant box, why it didn't load.
  * {@code entries} are its usable skins (loaded on the server when the box was read), highest chance
  * first, ties in file order; {@code leftOut} the ids of the skins it lists that are unknown or
- * Dormant, in file order.
+ * Dormant, in file order. {@code ownLook}: the box has a look of its own in the pack; without, it's drawn
+ * with the shared Skin Box model.
  */
 public record BoxSummary(String id, Optional<String> name, Optional<Component> title, Optional<String> description,
-		List<Entry> entries, List<String> leftOut, Optional<String> dormantReason) {
+		List<Entry> entries, List<String> leftOut, Optional<String> dormantReason, boolean ownLook) {
 
 	/** A usable skin of the box, its weight and its chance worded for players ({@link #chance(long, long)}). */
 	public record Entry(String skin, int weight, String chance) {}

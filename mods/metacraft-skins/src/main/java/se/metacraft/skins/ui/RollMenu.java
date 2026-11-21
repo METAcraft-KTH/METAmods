@@ -107,7 +107,7 @@ public final class RollMenu {
 				previewShown.add(reelSkin(skin, chances.get(skin)));
 				setSlot(REEL + i, previewShown.getLast());
 			}
-			setSlot(BOTTOM, GuiElementBuilder.from(SkinBox.drawnAsBox(new ItemStack(Items.VAULT))).setName(Component.literal("Roll").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
+			setSlot(BOTTOM, GuiElementBuilder.from(SkinBox.drawnAsBox(new ItemStack(Items.VAULT), box)).setName(Component.literal("Roll").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
 					.addLoreLine(Component.literal("Uses up the box").withStyle(ChatFormatting.GRAY)).setCallback(this::roll).build());
 		}
 

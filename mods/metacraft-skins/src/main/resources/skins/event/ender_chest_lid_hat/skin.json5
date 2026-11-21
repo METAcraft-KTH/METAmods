@@ -1,0 +1,14 @@
+{
+	name: "Ender Chest Lid",
+	rarity: "legendary",
+	released: "2026/11/16",
+	obtainable: false,
+	kind: "helmet",
+	extractable: false,
+	look: { model: "ender_chest_lid_hat.json" },
+	perks: [
+		// Ender chest particles around the top of the head while walking; the wearer sees theirs behind the head, out of their view.
+		{ trigger: "worn", effects: [
+			{ type: "particle", particle: { type: "minecraft:portal" }, at: "head", while_moving: true, count: 3, interval: 2, speed: 0.4 } ] },
+	],
+}

@@ -29,7 +29,7 @@ public final class BoxFileTests {
 		SkinFixtures fx = SkinFixtures.create();
 		Path folder = fx.skins.boxesFolder();
 		assertThat(DefaultSkins.installIfMissing(fx.skins.skinsFolder()) && DefaultSkins.installBoxesIfMissing(folder), "the shipped skins and boxes weren't put in");
-		assertThat(files(folder).equals(List.of("classic.json5", "winter.json5")), "the boxes folder holds " + files(folder));
+		assertThat(files(folder).equals(List.of("classic.json5", "winter", "winter.json5")), "the boxes folder holds " + files(folder));
 		ReloadReport report = fx.reload();
 		assertThat(Set.copyOf(report.boxes().loaded()).equals(Set.of("classic", "winter")) && report.boxes().rejections().isEmpty()
 				&& report.boxes().warnings().isEmpty(), "the shipped boxes against the shipped skins: " + report.boxes());
@@ -44,19 +44,31 @@ public final class BoxFileTests {
 		for (String hat : rare) classic.add(hat + " " + BoxSummary.chance(2, total));
 		BoxSummary classicBox = fx.skins.box("classic").orElseThrow();
 		assertThat(classicBox.name().equals(Optional.of("Classic Hats Box")) && chances(classicBox).equals(classic), "the Classic Hats Box: " + chances(classicBox));
-		// Every Winter Wonderland skin in the Winter box, each as likely as the next.
-		List<String> winter = List.of("candy_cane_pickaxe", "candy_sword", "christmas_tree_hat", "frozen_head", "gift_box_head",
-				"gingerbread_head", "hot_cocoa_mug", "icicle_blade", "jingle_bell_mace", "lucia_crown", "nutcracker_shako",
-				"penguin_hat", "polar_bear_hat", "reindeer_antlers", "santa_hat", "snow_globe", "snowed_in", "trapper_hat",
-				"yeti_head");
+		// Every Winter Wonderland skin in the Winter box, by rarity, with the Classic Hats Box's weights.
+		List<String> winterCommon = List.of("frozen_head", "gift_box_head", "gingerbread_head", "hot_cocoa_mug", "nutcracker_shako", "santa_hat",
+				"snow_globe", "trapper_hat");
+		List<String> winterUncommon = List.of("christmas_tree_hat", "lucia_crown", "penguin_hat", "polar_bear_hat", "reindeer_antlers", "snowed_in");
+		List<String> winterRare = List.of("candy_cane_pickaxe", "candy_sword", "icicle_blade", "jingle_bell_mace", "yeti_head");
+		long winterTotal = winterCommon.size() * 10L + winterUncommon.size() * 5L + winterRare.size() * 2L;
+		List<String> winter = new ArrayList<>();
+		for (String skin : winterCommon) winter.add(skin + " " + BoxSummary.chance(10, winterTotal));
+		for (String skin : winterUncommon) winter.add(skin + " " + BoxSummary.chance(5, winterTotal));
+		for (String skin : winterRare) winter.add(skin + " " + BoxSummary.chance(2, winterTotal));
 		BoxSummary winterBox = fx.skins.box("winter").orElseThrow();
-		String chance = BoxSummary.chance(1, winter.size());
-		assertThat(winterBox.name().equals(Optional.of("Winter Skin Box")) && chances(winterBox).equals(winter.stream().map(skin -> skin + " " + chance).toList()),
-				"the Winter box: " + chances(winterBox));
+		assertThat(winterBox.name().equals(Optional.of("Winter Skin Box")) && chances(winterBox).equals(winter), "the Winter box: " + chances(winterBox));
+		// Each shipped Winter skin's name is in its rarity's colour: rare blue.
+		assertThat(fx.skins.skin("yeti_head").orElseThrow().styledName().getSiblings().getFirst().getStyle().getColor()
+				.equals(net.minecraft.network.chat.TextColor.fromLegacyFormat(net.minecraft.ChatFormatting.BLUE)), "the Yeti Head's name isn't rare blue");
+		// The Winter box has its own look; the Classic one is drawn with the shared model.
+		assertThat(winterBox.ownLook() && !classicBox.ownLook(), "the looks: winter " + winterBox.ownLook() + ", classic " + classicBox.ownLook());
+		assertThat(SkinFixtures.unzip(fx.pack().zip()).containsKey("assets/skins/models/item/box/winter/lootbox_winter.json"), "the pack has no Winter box model");
 
 		try {
 			Files.delete(folder.resolve("classic.json5"));
 			Files.delete(folder.resolve("winter.json5"));
+			try (var look = Files.walk(folder.resolve("winter"))) {
+				for (Path file : look.sorted(java.util.Comparator.reverseOrder()).toList()) Files.delete(file);
+			}
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}

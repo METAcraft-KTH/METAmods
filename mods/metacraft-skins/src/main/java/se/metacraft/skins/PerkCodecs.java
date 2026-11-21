@@ -195,19 +195,38 @@ final class PerkCodecs {
 		).apply(i, (target, amount) -> new Perk.Heal(amount)));
 	}
 
-	private record ParticleSpec(ParticleOptions particle, Optional<Long> count, Optional<Long> interval, Perk.Target target) {}
+	private record ParticleSpec(ParticleOptions particle, Optional<Long> count, Optional<Long> interval, Perk.Target target, Optional<Double> speed,
+			Optional<Perk.Place> at, Optional<Boolean> whileMoving) {}
+
+	private static final String PLACES = Arrays.stream(Perk.Place.values()).map(Perk.Place::id).collect(Collectors.joining(" or "));
+	private static final Codec<Perk.Place> PLACE = mapError(Codec.STRING, e -> "must be " + PLACES).comapFlatMap(
+			id -> Arrays.stream(Perk.Place.values()).filter(p -> p.id().equals(id)).findFirst().map(DataResult::success)
+					.orElseGet(() -> DataResult.error(() -> "must be " + PLACES + ", not \"" + id + "\"")),
+			Perk.Place::id);
 
 	private static MapCodec<Perk.Particle> particle(Perk.Trigger trigger) {
 		return RecordCodecBuilder.<ParticleSpec>mapCodec(i -> i.group(
 				rawField("particle", PARTICLE, NOT_PARTICLE).forGetter(ParticleSpec::particle),
 				optionalField("count", WHOLE.validate(c -> c >= 1 ? DataResult.success(c) : DataResult.error(() -> "must be 1 or more"))).forGetter(ParticleSpec::count),
 				optionalField("interval", INTERVAL).forGetter(ParticleSpec::interval),
-				target(trigger, "particle", sideTargets(trigger)).forGetter(ParticleSpec::target)
+				target(trigger, "particle", sideTargets(trigger)).forGetter(ParticleSpec::target),
+				optionalField("speed", NUMBER.validate(v -> v >= 0 ? DataResult.success(v) : DataResult.error(() -> "must be 0 or more"))).forGetter(ParticleSpec::speed),
+				optionalField("at", PLACE).forGetter(ParticleSpec::at),
+				optionalField("while_moving", mapError(Codec.BOOL, e -> "must be true or false")).forGetter(ParticleSpec::whileMoving)
 		).apply(i, ParticleSpec::new)).flatXmap(
-				spec -> interval(trigger, spec.interval(), AURA_INTERVAL).map(interval ->
-						new Perk.Particle(spec.particle(), (int) Math.min(spec.count().orElse(1L), Integer.MAX_VALUE), interval, spec.target())),
+				spec -> {
+					if (!trigger.lasting() && (spec.at().isPresent() || spec.whileMoving().isPresent())) {
+						return DataResult.error(() -> "at and while_moving are for held and worn Perks only");
+					}
+					return interval(trigger, spec.interval(), AURA_INTERVAL).map(interval ->
+							new Perk.Particle(spec.particle(), (int) Math.min(spec.count().orElse(1L), Integer.MAX_VALUE), interval, spec.target(),
+									spec.speed().orElse(0.0), spec.at().orElse(Perk.Place.BODY), spec.whileMoving().orElse(false)));
+				},
 				particle -> DataResult.success(new ParticleSpec(particle.particle(), Optional.of((long) particle.count()),
-						trigger.lasting() ? Optional.of((long) particle.intervalTicks()) : Optional.empty(), particle.target())));
+						trigger.lasting() ? Optional.of((long) particle.intervalTicks()) : Optional.empty(), particle.target(),
+						particle.speed() == 0 ? Optional.empty() : Optional.of(particle.speed()),
+						trigger.lasting() ? Optional.of(particle.place()) : Optional.empty(),
+						trigger.lasting() ? Optional.of(particle.whileMoving()) : Optional.empty())));
 	}
 
 	private record SoundSpec(Holder<SoundEvent> sound, Optional<Double> volume, Optional<Double> pitch, Optional<Long> interval, Perk.Target target) {}

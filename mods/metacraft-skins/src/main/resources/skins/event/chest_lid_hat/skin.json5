@@ -1,5 +1,6 @@
 {
-	name: "&f&lMuseum Showdown: 2026",
+	name: "Museum Showdown: 2026",
+	rarity: "common",
 	released: "2026/11/16",
 	obtainable: false,
 	kind: "helmet",

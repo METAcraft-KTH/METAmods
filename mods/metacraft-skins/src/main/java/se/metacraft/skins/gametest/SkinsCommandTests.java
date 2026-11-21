@@ -13,6 +13,7 @@ import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
 import se.metacraft.skins.Skins;
 import se.metacraft.skins.SkinsPack;
+import se.metacraft.skins.SkinsSettings;
 import se.metacraft.skins.compat.resource_packs.ResourcePacksCompat;
 import se.metacraft.skins.pack.PackDelivery;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -574,20 +575,21 @@ public final class SkinsCommandTests {
 
 	/**
 	 * {@code /itemskins spawnchance} shows the Mob Hat chance, and with a percent sets it at once and
-	 * saves it; it's for admins only, and a percent outside 0 to 100 is refused. Set back to 0.2% after.
+	 * saves it; it's for admins only, and a percent outside 0 to 100 is refused. Set back to 5% after.
 	 */
 	private static void spawnChance(MinecraftServer server, SkinFixtures fx) {
 		List<String> shown = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance");
-		assertThat(shown.equals(List.of("Mob Hat chance: 0.2% at local difficulty 0, falling to none at 6.75. Set it with /itemskins spawnchance <percent>.")),
+		assertThat(shown.equals(List.of("Mob Hat chance: 5%, 99% less near where a hat-wearing mob died in the last 1 to 6 hours."
+				+ " Set it with /itemskins spawnchance <percent>.")),
 				"spawnchance showed " + shown);
 		List<String> set = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance 1.5");
-		assertThat(set.equals(List.of("Mob Hat chance set to 1.5% (was 0.2%) at local difficulty 0, for mobs spawning from now on. Saved in metacraft-skins.json5."))
+		assertThat(set.equals(List.of("Mob Hat chance set to 1.5% (was 5%) for mobs spawning from now on. Saved in metacraft-skins.json5."))
 				&& fx.skins.settings().mobHatChance() == 1.5, "spawnchance 1.5 answered " + set + ", the setting " + fx.skins.settings());
 		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance 101");
 		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance -1");
 		run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins spawnchance 50");
 		assertThat(fx.skins.settings().mobHatChance() == 1.5, "a refused spawnchance set it to " + fx.skins.settings().mobHatChance());
-		fx.skins.setMobHatChance(0.2);
+		fx.skins.setMobHatChance(SkinsSettings.MOB_HAT_CHANCE);
 	}
 
 	/**

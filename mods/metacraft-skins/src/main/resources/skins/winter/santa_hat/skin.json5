@@ -1,8 +1,8 @@
 {
-	name: "&lSanta Hat",
-	gradient: { colors: ["#D62828", "#FFFFFF"], mirror: true },
+	name: "Santa Hat",
+	rarity: "common",
 	released: "2026/12/01",
-	obtainable: false,
+	obtainable: true,
 	kind: "helmet",
 	look: { model: "santa_hat.json" },
 }
