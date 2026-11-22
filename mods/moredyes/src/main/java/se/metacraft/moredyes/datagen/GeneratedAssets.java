@@ -535,6 +535,10 @@ public final class GeneratedAssets implements DataProvider {
 					"pattern", arr("###"), "key", obj("#", m.apply(mat)),
 					"result", obj("id", m.apply(mat + "_slab"), "count", 6)));
 		}
+		r.put(cid + "_concrete_stairs_from_concrete_stonecutting", obj("type", "minecraft:stonecutting",
+				"ingredient", m.apply("concrete"), "result", obj("id", m.apply("concrete_stairs"), "count", 1)));
+		r.put(cid + "_concrete_slab_from_concrete_stonecutting", obj("type", "minecraft:stonecutting",
+				"ingredient", m.apply("concrete"), "result", obj("id", m.apply("concrete_slab"), "count", 2)));
 		return r;
 	}
 

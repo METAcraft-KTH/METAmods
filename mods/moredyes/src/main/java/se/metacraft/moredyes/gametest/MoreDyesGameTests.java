@@ -59,6 +59,7 @@ import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.component.FireworkExplosion;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.IronBarsBlock;
 import net.minecraft.core.registries.Registries;
@@ -361,6 +362,20 @@ public final class MoreDyesGameTests {
 			helper.assertItemEntityCountIs(block(Family.WOOL_SLAB).asItem(), slab, 2.0, 2);
 			helper.assertItemEntityCountIs(block(Family.BED).asItem(), head, 3.0, 1);
 		});
+	}
+
+	/** Our concrete cuts into its own stairs and slabs only. */
+	@GameTest
+	public void concreteStonecutting(GameTestHelper helper) {
+		ItemStack concrete = new ItemStack(block(Family.CONCRETE));
+		SingleRecipeInput input = new SingleRecipeInput(concrete);
+		var results = helper.getLevel().recipeAccess().getSynchronizedStonecutterRecipes().selectByInput(concrete).entries().stream()
+				.flatMap(entry -> entry.recipe().recipe().stream())
+				.map(holder -> holder.value().assemble(input)).toList();
+		helper.assertValueEqual(results.size(), 2, "stonecutter results: " + results);
+		helper.assertTrue(results.stream().anyMatch(s -> s.is(block(Family.CONCRETE_STAIRS).asItem()) && s.getCount() == 1), "no concrete stairs cut: " + results);
+		helper.assertTrue(results.stream().anyMatch(s -> s.is(block(Family.CONCRETE_SLAB).asItem()) && s.getCount() == 2), "no concrete slabs cut: " + results);
+		helper.succeed();
 	}
 
 	/** Four candles in one block drop four candles (the loot table's set_count, in 26.3's shape). */
