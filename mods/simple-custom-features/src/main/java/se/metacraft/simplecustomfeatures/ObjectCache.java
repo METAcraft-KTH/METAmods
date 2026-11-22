@@ -39,7 +39,7 @@ public class ObjectCache {
 		if (cache == null || cache.server != server) {
 			cache = JsonHelper.load(
 					getPath(server), CODEC, server.registryAccess()
-			).orElse(new ObjectCache());
+			).resultOrPartial(Features.LOGGER::error).orElse(new ObjectCache());
 			cache.setServer(server);
 		}
 		return cache;

@@ -84,7 +84,7 @@ public class Verifier {
 	private void load() throws IOException {
 		var banned = getBannedFile();
 		if (Files.exists(banned)) {
-			JsonHelper.load(banned, BANNED_DATA_CODEC).ifPresent(bannedEmails -> {
+			JsonHelper.load(banned, BANNED_DATA_CODEC).resultOrPartial(KTHAuth.LOGGER::error).ifPresent(bannedEmails -> {
 				for (var email : bannedEmails) {
 					this.bannedEmails.put(email.email(), email);
 				}

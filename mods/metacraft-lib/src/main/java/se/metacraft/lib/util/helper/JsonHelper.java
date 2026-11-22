@@ -7,19 +7,19 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.internal.Streams;
 import com.google.gson.stream.JsonWriter;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import se.metacraft.lib.METAcraftLib;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.util.Optional;
 import java.util.function.UnaryOperator;
 import net.minecraft.core.HolderLookup;
 
 public class JsonHelper {
 
-	public static <T> Optional<T> load(Path configPath, Codec<T> codec) {
+	public static <T> DataResult<T> load(Path configPath, Codec<T> codec) {
 		return load(configPath, codec, ops -> ops);
 	}
 
@@ -27,7 +27,7 @@ public class JsonHelper {
 		save(configPath, codec, object, ops -> ops);
 	}
 
-	public static <T> Optional<T> load(Path configPath, Codec<T> codec, HolderLookup.Provider lookup) {
+	public static <T> DataResult<T> load(Path configPath, Codec<T> codec, HolderLookup.Provider lookup) {
 		return load(configPath, codec, lookup::createSerializationContext);
 	}
 
@@ -35,38 +35,42 @@ public class JsonHelper {
 		save(configPath, codec, object, lookup::createSerializationContext);
 	}
 
-	public static <T> Optional<T> load(Path configPath, Codec<T> codec, UnaryOperator<DynamicOps<JsonElement>> opsFixer) {
+	public static <T> DataResult<T> load(Path configPath, Codec<T> codec, UnaryOperator<DynamicOps<JsonElement>> opsFixer) {
 		File file = configPath.toFile();
-		if (!file.exists()) return Optional.empty();
+		if (!file.exists()) return DataResult.error(() -> "File does not exist");
 		try (var reader = new BufferedReader(new FileReader(file))) { //The BufferedReader is to boost performance.
 			JsonElement element = JsonParser.parseReader(reader);
-			return codec.parse(opsFixer.apply(JsonOps.INSTANCE), element).resultOrPartial(METAcraftLib.LOGGER::error);
+			return codec.parse(opsFixer.apply(JsonOps.INSTANCE), element);
 		} catch (JsonSyntaxException e) {
-			METAcraftLib.LOGGER.error("Syntax error when parsing \"" + configPath + "\": " + e.getMessage());
+			return DataResult.error(() -> "Syntax error when parsing \"" + configPath + "\": " + e.getMessage());
 		} catch (JsonIOException | IOException e) {
-			METAcraftLib.LOGGER.error(e);
+			return DataResult.error(e::getMessage);
 		}
-		return Optional.empty();
 	}
 
-	public static <T> void save(Path configPath, Codec<T> codec, T object, UnaryOperator<DynamicOps<JsonElement>> opsFixer) {
-		codec.encodeStart(opsFixer.apply(JsonOps.INSTANCE), object).resultOrPartial(METAcraftLib.LOGGER::error).ifPresent(data -> {
-			File file = configPath.toFile();
-			if (!file.exists()) {
-				try {
-					file.createNewFile();
-				} catch (IOException err) {
-					err.printStackTrace();
-				}
-			}
-			//The BufferedWriter is to boost performance.
-			try (var writer = new JsonWriter(new BufferedWriter(new FileWriter(file)))) {
-				writer.setIndent("\t");
-				Streams.write(data, writer);
-			} catch (IOException error) {
-				error.printStackTrace();
-			}
-		});
+	public static <T> void saveUnsafely(
+		Path configPath, Codec<T> codec, T object, UnaryOperator<DynamicOps<JsonElement>> opsFixer
+	) throws IOException {
+		var data = codec.encodeStart(opsFixer.apply(JsonOps.INSTANCE), object).getOrThrow(IOException::new);
+		File file = configPath.toFile();
+		if (!file.exists()) {
+			file.createNewFile();
+		}
+		//The BufferedWriter is to boost performance.
+		try (var writer = new JsonWriter(new BufferedWriter(new FileWriter(file)))) {
+			writer.setIndent("\t");
+			Streams.write(data, writer);
+		}
+	}
+
+	public static <T> void save(
+		Path configPath, Codec<T> codec, T object, UnaryOperator<DynamicOps<JsonElement>> opsFixer
+	) {
+		try {
+			saveUnsafely(configPath, codec, object, opsFixer);
+		} catch (IOException err) {
+			METAcraftLib.LOGGER.error(err.getMessage(), err);
+		}
 	}
 
 }

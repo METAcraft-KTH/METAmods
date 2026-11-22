@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.util.Unit;
+import se.metacraft.config.METAConfig;
 import se.metacraft.lib.METAcraftLib;
 import se.metacraft.config.extensions.ModificationAware;
 import se.metacraft.config.util.helper.JanksonHelper;
@@ -78,7 +79,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 	}
 
 	protected Optional<T> loadFromFile() {
-		return JanksonHelper.load(configPath, codec);
+		return JanksonHelper.load(configPath, codec).resultOrPartial(METAConfig.LOGGER::error);
 	}
 
 	@Override
@@ -211,7 +212,7 @@ public class BasicConfigContainer<T> implements ConfigContainer<T> {
 
 		@Override
 		protected Optional<T> loadFromFile() {
-			return JsonHelper.load(configPath, codec, lookupSupplier.get());
+			return JsonHelper.load(configPath, codec, lookupSupplier.get()).resultOrPartial(METAConfig.LOGGER::error);
 		}
 
 		@Override

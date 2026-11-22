@@ -5,6 +5,7 @@ import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
+import se.metacraft.config.METAConfig;
 import se.metacraft.lib.util.helper.JsonHelper;
 import se.metacraft.config.container.MultiFileConfigContainer;
 import se.metacraft.config.container.ReloadCause;
@@ -45,7 +46,7 @@ public class BasicMultiFileConfigContainer<T> implements MultiFileConfigContaine
 	}
 
 	protected Optional<T> loadFromFile(Path path) {
-		return JsonHelper.load(path, codec);
+		return JsonHelper.load(path, codec).resultOrPartial(METAConfig.LOGGER::error);
 	}
 
 	protected String getFileExtension() {

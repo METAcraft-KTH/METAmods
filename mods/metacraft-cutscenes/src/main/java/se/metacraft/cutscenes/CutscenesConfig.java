@@ -46,7 +46,7 @@ public class CutscenesConfig {
 		var files = dir.listFiles((file, name) -> name.endsWith(".json"));
 		if (files != null) {
 			for (var f : files) {
-				JsonHelper.load(f.toPath(), codec, server.registryAccess()).ifPresent(
+				JsonHelper.load(f.toPath(), codec, server.registryAccess()).resultOrPartial(Cutscenes.LOGGER::error).ifPresent(
 						cutscene -> cutscenes.put(f.getName().substring(0, f.getName().length()-5), cutscene)
 				);
 			}
