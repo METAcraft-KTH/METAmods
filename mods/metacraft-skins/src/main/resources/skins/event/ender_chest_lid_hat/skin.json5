@@ -1,5 +1,5 @@
 {
-	name: "Ender Chest Lid",
+	name: "Museum Showdown: 2026",
 	rarity: "legendary",
 	released: "2026/11/16",
 	obtainable: false,
@@ -11,4 +11,5 @@
 		{ trigger: "worn", effects: [
 			{ type: "particle", particle: { type: "minecraft:portal" }, at: "head", while_moving: true, count: 3, interval: 2, speed: 0.4 } ] },
 	],
+	description: "Awarded to the winning team in the\nMuseum Showdown: 2026\n\nA collection built\none discovery at the time.",
 }
