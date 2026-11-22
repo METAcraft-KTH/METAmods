@@ -1,5 +1,6 @@
 package se.metacraft.moredyes;
 
+import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import se.metacraft.moredyes.armor.AnimatedArmor;
 import se.metacraft.moredyes.banner.BannerPatterns;
@@ -31,6 +32,8 @@ public class MoreDyes implements ModInitializer {
 		ModColors.load();
 		ModContent.register();
 		ModRecipes.init();
+		// the client can't tell our items apart in the stonecutter
+		PolymerItemUtils.enableStonecutterFix();
 		AnimatedArmor.init();
 		SheepColors.init();
 		Collars.init();
