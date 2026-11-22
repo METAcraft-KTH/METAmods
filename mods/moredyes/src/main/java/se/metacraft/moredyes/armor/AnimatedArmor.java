@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import eu.pb4.polymer.common.api.PolymerCommonUtils;
+import eu.pb4.polymer.core.api.entity.PolymerEntityUtils;
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
 import eu.pb4.polymer.core.api.other.PolymerComponent;
 import se.metacraft.moredyes.MoreDyes;
@@ -126,9 +127,7 @@ public final class AnimatedArmor {
 				WEARERS.remove(wearer);
 				continue;
 			}
-			List<Pair<EquipmentSlot, ItemStack>> worn = new ArrayList<>();
-			for (EquipmentSlot slot : slots) worn.add(Pair.of(slot, wearer.getItemBySlot(slot).copy()));
-			level.getChunkSource().sendToTrackingPlayers(wearer, new ClientboundSetEquipmentPacket(wearer.getId(), worn));
+			level.getChunkSource().sendToTrackingPlayers(wearer, equipmentPacket(wearer, slots));
 			if (wearer instanceof ServerPlayer player) {
 				var menu = player.inventoryMenu;
 				for (int i = InventoryMenu.ARMOR_SLOT_START; i < InventoryMenu.ARMOR_SLOT_END; i++) {
@@ -139,6 +138,16 @@ public final class AnimatedArmor {
 				}
 			}
 		}
+	}
+
+	/**
+	 * What the refresh sends everyone who sees {@code wearer}: the armour in {@code slots}, tagged
+	 * with the wearer so per-viewer rewrites (item skins) know whose armour this is.
+	 */
+	public static ClientboundSetEquipmentPacket equipmentPacket(LivingEntity wearer, List<EquipmentSlot> slots) {
+		List<Pair<EquipmentSlot, ItemStack>> worn = new ArrayList<>();
+		for (EquipmentSlot slot : slots) worn.add(Pair.of(slot, wearer.getItemBySlot(slot).copy()));
+		return PolymerEntityUtils.setEntityContext(new ClientboundSetEquipmentPacket(wearer.getId(), worn), wearer);
 	}
 
 	/**
