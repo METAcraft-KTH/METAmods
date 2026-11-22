@@ -1,6 +1,7 @@
 package se.metacraft.skins.gametest;
 
 import eu.pb4.polymer.core.api.item.PolymerItemUtils;
+import se.metacraft.moredyes.armor.AnimatedArmor;
 import se.metacraft.skins.DrawingCheck;
 import se.metacraft.skins.ItemLocation;
 import se.metacraft.skins.MetacraftSkins;
@@ -227,6 +228,47 @@ public final class DyeingTests {
 		// moredyes' animated colour: never RGB's static one, since every frame it moves through has a 0x33 channel.
 		DyedItemColor animated = working.get(DataComponents.DYED_COLOR);
 		assertThat(animated != null && animated.rgb() != 0xFF4040 && hasDyedLine(working), "its Owner's RGB hat is sent as " + working.getComponents());
+		helper.succeed();
+	}
+
+	/**
+	 * moredyes re-sends a worn RGB helmet to everyone who sees its wearer so the colour keeps moving.
+	 * That packet must name its wearer, or the drawing check takes the helmet for nobody's and the
+	 * other players see it unskinned as soon as the colour changes.
+	 */
+	@GameTest
+	public void otherPlayersSeeAWornRgbHatSkinnedInMoredyesRefresh(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().dyeableHat("cowboy_hat_test");
+		fx.reload();
+		ServerPlayer owner = ApplyTests.carrying(helper, new ItemStack(Items.DIAMOND_HELMET));
+		fx.skins.grant(owner.nameAndId(), "cowboy_hat_test");
+		assertThat(fx.skins.apply(owner, "cowboy_hat_test", ItemLocation.hotbar(0)).applied(), "the hat wasn't applied");
+		owner.setItemSlot(EquipmentSlot.HEAD, crafted(helper, fx, owner.getInventory().getItem(0), moredyes("rgb_dye")).orElseThrow());
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+
+		var refresh = AnimatedArmor.equipmentPacket(owner, List.of(EquipmentSlot.HEAD));
+		ItemStack worn = refresh.getSlots().getFirst().getSecond();
+		ItemStack seen = sent(helper, fx, viewer, refresh, worn);
+		assertThat("skins:cowboy_hat_test".equals(String.valueOf(seen.get(DataComponents.ITEM_MODEL))), "another player sees " + seen.get(DataComponents.ITEM_MODEL));
+		DyedItemColor animated = seen.get(DataComponents.DYED_COLOR);
+		assertThat(animated != null && animated.rgb() != 0xFF4040, "another player sees the colour " + animated);
+		helper.succeed();
+	}
+
+	/** The same refresh for plain RGB leather, no skin: other players still get the animated colour, and no skin's model. */
+	@GameTest
+	public void otherPlayersSeeAWornRgbLeatherHelmetAnimatedInMoredyesRefresh(GameTestHelper helper) {
+		SkinFixtures fx = SkinFixtures.create().dyeableHat("cowboy_hat_test");
+		fx.reload();
+		ServerPlayer owner = helper.makeMockServerPlayerInLevel();
+		owner.setItemSlot(EquipmentSlot.HEAD, crafted(helper, fx, new ItemStack(Items.LEATHER_HELMET), moredyes("rgb_dye")).orElseThrow());
+		ServerPlayer viewer = helper.makeMockServerPlayerInLevel();
+
+		var refresh = AnimatedArmor.equipmentPacket(owner, List.of(EquipmentSlot.HEAD));
+		ItemStack seen = sent(helper, fx, viewer, refresh, refresh.getSlots().getFirst().getSecond());
+		DyedItemColor animated = seen.get(DataComponents.DYED_COLOR);
+		assertThat(animated != null && animated.rgb() != 0xFF4040, "another player sees the colour " + animated);
+		assertThat(!String.valueOf(seen.get(DataComponents.ITEM_MODEL)).startsWith("skins:"), "a skin on plain leather: " + seen.get(DataComponents.ITEM_MODEL));
 		helper.succeed();
 	}
 
