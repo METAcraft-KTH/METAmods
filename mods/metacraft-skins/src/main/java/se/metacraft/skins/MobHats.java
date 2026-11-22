@@ -24,14 +24,16 @@ import java.util.Set;
  * Mob Hats: now and then one of {@link #MOBS} spawns wearing a random hat from a Skin Box, and when
  * it dies it drops that box, never the hat. The box is {@link #CLASSIC}, except for one of
  * {@link #WINTER_MOBS} spawning in a {@link #COLD} biome: that one wears a {@link #WINTER} hat and drops
- * a Winter box (or, while the Winter box has no usable hats, a Classic one as anywhere else). The chance is
- * the {@code mob-hat-chance} setting ({@link SkinsSettings}, set in game with {@code /itemskins spawnchance}).
- * When a hat-wearing mob dies, the 3x3 chunks centred on the one it died in go on cooldown for a
+ * a Winter box (or, while the Winter box is Dormant, a Classic one as anywhere else). Each box has its own
+ * chance, in the {@code mob-hat-chances} setting ({@link SkinsSettings}, set in game with
+ * {@code /itemskins spawnchance <box> <percent>}).
+ * When a mob spawns wearing a hat, the 3x3 chunks centred on the one it spawned in go on cooldown for a
  * random {@link #COOLDOWN_MIN} to {@link #COOLDOWN_MAX} of real time ({@link MobHatCooldowns}): there the
- * chance is cut by {@link #COOLDOWN_CUT}. Every spawn counts, spawners and farms included. A hat is for good: the mob never swaps it for an item it picks
+ * chance is cut by {@link #COOLDOWN_CUT}. If that mob despawns, the cooldown it started ends; if it dies,
+ * however, the cooldown runs its course. Every spawn counts, spawners and farms included. A hat is for good: the mob never swaps it for an item it picks
  * up, and like any helmet it keeps a zombie or skeleton from burning in daylight. Change who and which
  * boxes with the constants below. The mod's
- * mixins on {@code Mob.finalizeSpawn}, {@code Mob.canReplaceCurrentItem} and
+ * mixins on {@code Mob.finalizeSpawn}, {@code Mob.checkDespawn}, {@code Mob.canReplaceCurrentItem} and
  * {@code LivingEntity.dropAllDeathLoot} call in here or check {@link #wearsHat}.
  */
 public final class MobHats {
@@ -48,9 +50,11 @@ public final class MobHats {
 	public static final String CLASSIC = "classic";
 	/** The Skin Box the hats come from, and a mob drops, for {@link #WINTER_MOBS} in a {@link #COLD} biome. */
 	public static final String WINTER = "winter";
+	/** Every Skin Box a mob can take its hat from, each with its own chance in {@code mob-hat-chances}. */
+	public static final List<String> BOXES = List.of(CLASSIC, WINTER);
 	/** How much less likely a hat is in a chunk on cooldown: 99% less. */
 	public static final double COOLDOWN_CUT = 0.99;
-	/** The shortest and longest a cooldown lasts; each death picks a length in between, to the second. */
+	/** The shortest and longest a cooldown lasts; each hat-wearing spawn picks a length in between, to the second. */
 	public static final Duration COOLDOWN_MIN = Duration.ofHours(1), COOLDOWN_MAX = Duration.ofHours(6);
 
 	private MobHats() {}
@@ -70,16 +74,29 @@ public final class MobHats {
 
 	/**
 	 * A mob has spawned (any way: naturally, from a spawner or egg, by command): one of {@link #MOBS}
-	 * puts on a hat by {@link #chance}, from the {@code mob-hat-chance} setting as it is now and
-	 * whether its chunk is on cooldown at {@code now}; from the box {@link #boxFor} the biome it's in,
-	 * or the Classic box while that one has no hats.
+	 * would wear a hat from the box {@link #boxFor} the biome it's in, or from the Classic box while that
+	 * one is Dormant or missing. It puts one on by {@link #chance}, from that box's chance in the
+	 * {@code mob-hat-chances} setting as it is now and whether its chunk is on cooldown at {@code now}.
+	 * One that does puts the chunks around it that aren't on cooldown yet on cooldown for
+	 * {@link #cooldownLength}, as their owner.
 	 */
 	public static void spawned(Skins skins, Mob mob, Instant now) {
 		if (!MOBS.contains(mob.getType())) return;
-		boolean cooldown = skins.mobHatCooldowns().onCooldown(mob.level().dimension(), mob.getBlockX(), mob.getBlockZ(), now);
-		if (mob.getRandom().nextDouble() >= chance(skins.settings().mobHatChance(), cooldown)) return;
-		boolean cold = mob.level().getBiome(mob.blockPosition()).is(COLD);
-		if (!putOnHat(skins, mob, boxFor(mob.getType(), cold))) putOnHat(skins, mob, CLASSIC);
+		String box = boxFor(mob.getType(), mob.level().getBiome(mob.blockPosition()).is(COLD));
+		if (skins.box(box).filter(it -> !it.dormant()).isEmpty()) box = CLASSIC;
+		var dimension = mob.level().dimension();
+		boolean cooldown = skins.mobHatCooldowns().onCooldown(dimension, mob.getBlockX(), mob.getBlockZ(), now);
+		if (mob.getRandom().nextDouble() >= chance(skins.settings().mobHatChance(box), cooldown)) return;
+		if (!putOnHat(skins, mob, box) && !putOnHat(skins, mob, CLASSIC)) return;
+		skins.mobHatCooldowns().start(dimension, mob.getBlockX(), mob.getBlockZ(), mob.getUUID(), cooldownLength(mob.getRandom()), now);
+	}
+
+	/**
+	 * A mob has despawned (gone too far from every player, or the world went Peaceful), not died: the
+	 * cooldown its spawn started ends, if it started one. Its death leaves the cooldown alone.
+	 */
+	public static void despawned(Skins skins, Mob mob) {
+		if (wearsHat(mob)) skins.mobHatCooldowns().end(mob.getUUID());
 	}
 
 	/** A cooldown's length: {@link #COOLDOWN_MIN} to {@link #COOLDOWN_MAX}, each second as likely. */
@@ -125,14 +142,13 @@ public final class MobHats {
 	}
 
 	/**
-	 * An entity is dying, before its loot drops: one wearing a hat, however it died, puts the 3x3
-	 * chunks around it on cooldown for {@link #cooldownLength} from {@code now}, and drops one box,
+	 * An entity is dying, before its loot drops: one wearing a hat, however it died, drops one box,
 	 * the one its hat came from ({@link #CLASSIC} for a hat from before hats remembered), a baby too,
-	 * unless the {@code mobDrops} game rule is off or the box is unknown or Dormant.
+	 * unless the {@code mobDrops} game rule is off or the box is unknown or Dormant. Its cooldown, if it
+	 * started one, runs on.
 	 */
-	public static void died(Skins skins, LivingEntity entity, ServerLevel level, Instant now) {
+	public static void died(Skins skins, LivingEntity entity, ServerLevel level) {
 		if (!wearsHat(entity)) return;
-		skins.mobHatCooldowns().start(level.dimension(), entity.getBlockX(), entity.getBlockZ(), cooldownLength(entity.getRandom()), now);
 		if (!Boolean.TRUE.equals(level.getGameRules().get(GameRules.MOB_DROPS))) return;
 		String drops = MobHat.boxOf(entity.getItemBySlot(EquipmentSlot.HEAD)).orElse(CLASSIC);
 		if (skins.box(drops).filter(box -> !box.dormant()).isEmpty()) return;

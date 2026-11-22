@@ -1194,16 +1194,17 @@ public final class Skins {
 	}
 
 	/**
-	 * Sets {@code mob-hat-chance} (percent, 0 to 100) and writes the settings file, keeping the other
-	 * settings as they are now. Mobs spawning from now on use it; no reload needed. Returns the chance before.
+	 * Sets {@code box}'s chance in {@code mob-hat-chances} (percent, 0 to 100) and writes the settings file,
+	 * keeping the other settings as they are now. Mobs spawning from now on use it; no reload needed.
+	 * Returns the chance before.
 	 */
-	public double setMobHatChance(double percent) {
-		double before = settings().mobHatChance();
-		settings.modify(s -> s.withMobHatChance(percent));
+	public double setMobHatChance(String box, double percent) {
+		double before = settings().mobHatChance(box);
+		settings.modify(s -> s.withMobHatChance(box, percent));
 		return before;
 	}
 
-	/** Where Mob Hats are on cooldown ({@link MobHats#died}); in memory only. */
+	/** Where Mob Hats are on cooldown ({@link MobHats#spawned}, {@link MobHats#despawned}); in memory only. */
 	public MobHatCooldowns mobHatCooldowns() {
 		return mobHatCooldowns;
 	}

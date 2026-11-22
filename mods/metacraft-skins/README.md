@@ -612,22 +612,30 @@ vanilla `/reload` doesn't.
 	"perks-affect-players": true,
 	// Off turns every Perk off; Looks keep working.
 	"perks-enabled": true,
-	// The chance, in percent (0 to 100), that a zombie, husk, zombie villager, skeleton, stray, bogged, parched or creeper
-	// spawns wearing a Classic hat. Where a hat-wearing mob died in the last 1 to 6 hours (that chunk and the 8 around it) it's 99% less.
-	"mob-hat-chance": 5
+	// For each Skin Box, the chance in percent (0 to 100) that a mob that would wear one of its hats spawns wearing one.
+	// classic: a zombie, husk, zombie villager, skeleton, stray, bogged, parched or creeper; winter: a zombie,
+	// skeleton, stray or creeper in a cold biome. A box left out gets 5%. ...
+	"mob-hat-chances": { "classic": 5, "winter": 5 }
 }
 ```
 
-`mob-hat-chance` can also be set in game, with `/itemskins spawnchance <percent>`: it takes at once for
-mobs spawning from then on, and is written to this file, so it stays after a restart. Writing the file
-this way rewrites the whole file from the settings in use. A `mob-hat-chance` outside 0 to 100 in the
-file is logged (by metacraft-lib) and the default, 5%, applies.
+Each box mobs wear hats from has its own chance. A mob first works out which box it would wear a hat
+from (Winter for a zombie, skeleton, stray or creeper in a cold biome, while the Winter box isn't
+Dormant; Classic otherwise), then rolls that box's chance. So `"winter": 0` means no hats on cold-biome
+mobs at all; they don't fall back to Classic. A chance can also be set in game, with
+`/itemskins spawnchance <box> <percent>`: it takes at once for mobs spawning from then on, and is
+written to this file, so it stays after a restart. Writing the file this way rewrites the whole file
+from the settings in use. A chance outside 0 to 100 in the file is logged (by metacraft-lib) and the
+defaults, 5% each, apply. The older single `mob-hat-chance` key is no longer read.
 
-**Hat cooldowns.** When a hat-wearing mob dies, however it dies, the 3x3 chunks centred on the chunk it
-died in go on cooldown for a random 1 to 6 hours of real time (picked once per death, to the second). A
-mob spawning in a chunk on cooldown is 99% less likely to wear a hat (5% becomes 0.05%). A chunk already
-on cooldown keeps whichever end is later; cooldowns don't stack further. Each dimension has its own.
-Cooldowns are kept in memory only: a restart clears them.
+**Hat cooldowns.** When a mob spawns wearing a hat, the 3x3 chunks centred on the chunk it spawned in
+go on cooldown for a random 1 to 6 hours of real time (picked once per spawn, to the second). A mob
+spawning in a chunk on cooldown is 99% less likely to wear a hat (5% becomes 0.05%). The cooldown
+belongs to that mob: if it despawns (too far from every player, or the world goes Peaceful), its chunks
+come off cooldown; if it dies, however it dies, they stay on. Cooldowns don't stack: a chunk already on
+cooldown keeps its end and its owner, and a new hat mob nearby only takes the chunks that are free. The
+cooldown is shared by every box. Each dimension has its own. Cooldowns are kept in memory only: a
+restart clears them.
 
 **Quote the keys.** They contain `-`, which json5 doesn't allow in a bare key: `{ perks-enabled: false }`
 is a syntax error. The error is logged (by metacraft-lib) and the settings stay as they were.
@@ -650,7 +658,7 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
 | `/itemskins revokeall <player>` | `metacraft-skins:revoke` | admins |
 | `/itemskins <player>` | `metacraft-skins:view` | admins |
 | `/itemskins reload` | `metacraft-skins:reload` | admins |
-| `/itemskins spawnchance [percent]` | `metacraft-skins:spawnchance` | admins |
+| `/itemskins spawnchance [<box> <percent>]` | `metacraft-skins:spawnchance` | admins |
 
 - **`/itemskins`** opens the player's Skin Menu. It lists skins by release date, oldest first, whatever
   Skin Box they're in and whether or not they're obtainable; then by name, with undated skins last. A skin the player doesn't own is a light grey dye, "Not owned
@@ -703,10 +711,13 @@ vanilla level to fall back on when no permissions mod is installed. Skin ids and
   for looking at only: nothing can be clicked, there's no Extract button, and their items aren't tidied.
   A player head where the book is says whose skins they are and how many they own. A subcommand's name
   always wins, so a player named `list` can't be looked at this way.
-- **`spawnchance`** alone shows the Mob Hat chance: the percent a zombie, skeleton or creeper (and their kin)
-  spawning outside a [hat cooldown](#settings) wears a Classic hat. With a percent from 0 to 100
-  (`/itemskins spawnchance 0.5`), it sets it: mobs spawning from then on use it, with no reload or
-  restart, and it's saved as `mob-hat-chance` in [Settings](#settings). 0 turns Mob Hats off.
+- **`spawnchance`** alone shows a table, to you alone, of each box mobs wear hats from (Classic, Winter)
+  and its Mob Hat chance outside a [hat cooldown](#settings), each in its box's colours. Any other Skin
+  Box is listed grey, as one no mob wears. Click a row to get `/itemskins spawnchance <box> ` in the chat
+  box. With a box and a percent from 0 to 100 (`/itemskins spawnchance winter 0.5`), it sets that box's
+  chance: mobs spawning from then on use it, with no reload or restart, and it's saved in
+  `mob-hat-chances` in [Settings](#settings). Other admins see a one-line note of the change; you see
+  the table again. 0 turns that box's Mob Hats off.
 - `info`, `grant`, `grantall`, `revoke`, `revokeall` and `/itemskins <player>` take offline players by name, looked up as `/whitelist` does: the server's
   user cache first, then (in online mode) Mojang.
 - There is no force-remove: only the Owner takes a skin off an item. Use `revoke` to take the skin away.

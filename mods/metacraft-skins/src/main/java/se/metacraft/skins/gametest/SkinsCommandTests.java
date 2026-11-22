@@ -6,8 +6,10 @@ import com.mojang.util.UndashedUuid;
 import eu.pb4.polymer.core.api.entity.PolymerEntityUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import se.metacraft.skins.BoxSummary;
 import se.metacraft.skins.ItemLocation;
 import se.metacraft.skins.MetacraftSkins;
+import se.metacraft.skins.MobHats;
 import se.metacraft.skins.SkinMarker;
 import se.metacraft.skins.item.SkinBox;
 import se.metacraft.skins.item.SkinToken;
@@ -576,22 +578,31 @@ public final class SkinsCommandTests {
 	}
 
 	/**
-	 * {@code /itemskins spawnchance} shows the Mob Hat chance, and with a percent sets it at once and
-	 * saves it; it's for admins only, and a percent outside 0 to 100 is refused. Set back to 5% after.
+	 * {@code /itemskins spawnchance} shows a table of each box mobs wear hats from and its chance (and
+	 * any other box as one no mob wears), to the admin alone. With a box and a percent it sets that box's
+	 * chance at once, leaving the other box's, saves it, and shows the table again; it's for admins only,
+	 * and a percent outside 0 to 100 or a box no mob wears is refused. Set back to 5% after.
 	 */
 	private static void spawnChance(MinecraftServer server, SkinFixtures fx) {
+		String footer = "99% less for 1 to 6 hours around where a mob spawned wearing a hat, unless it despawns."
+				+ " Click a box, or /itemskins spawnchance <box> <percent>.";
 		List<String> shown = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance");
-		assertThat(shown.equals(List.of("Mob Hat chance: 5%, 99% less near where a hat-wearing mob died in the last 1 to 6 hours."
-				+ " Set it with /itemskins spawnchance <percent>.")),
-				"spawnchance showed " + shown);
-		List<String> set = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance 1.5");
-		assertThat(set.equals(List.of("Mob Hat chance set to 1.5% (was 5%) for mobs spawning from now on. Saved in metacraft-skins.json5."))
-				&& fx.skins.settings().mobHatChance() == 1.5, "spawnchance 1.5 answered " + set + ", the setting " + fx.skins.settings());
-		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance 101");
-		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance -1");
-		run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins spawnchance 50");
-		assertThat(fx.skins.settings().mobHatChance() == 1.5, "a refused spawnchance set it to " + fx.skins.settings().mobHatChance());
-		fx.skins.setMobHatChance(SkinsSettings.MOB_HAT_CHANCE);
+		List<String> table = shown.size() == 1 ? List.of(shown.getFirst().split("\n")) : List.of();
+		assertThat(table.size() >= 4 && table.getFirst().equals("Mob Hat chances") && table.get(1).startsWith("  ") && table.get(1).contains("  5%")
+				&& table.get(2).contains("  5%") && table.getLast().equals(footer), "spawnchance showed " + shown);
+		List<String> set = run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance winter 1.5");
+		String winter = fx.skins.box(MobHats.WINTER).map(BoxSummary::displayName).orElse(MobHats.WINTER);
+		assertThat(set.size() == 2 && set.getFirst().equals(winter + " Mob Hat chance set to 1.5% (was 5%) for mobs spawning from now on."
+				+ " Saved in metacraft-skins.json5.") && set.get(1).contains("  1.5%") && set.get(1).contains("  5%")
+				&& fx.skins.settings().mobHatChance(MobHats.WINTER) == 1.5 && fx.skins.settings().mobHatChance(MobHats.CLASSIC) == 5,
+				"spawnchance winter 1.5 answered " + set + ", the setting " + fx.skins.settings());
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance winter 101");
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance winter -1");
+		run(server, LevelBasedPermissionSet.ADMIN, "itemskins spawnchance treats 50");
+		run(server, LevelBasedPermissionSet.GAMEMASTER, "itemskins spawnchance winter 50");
+		assertThat(fx.skins.settings().mobHatChance(MobHats.WINTER) == 1.5 && fx.skins.settings().mobHatChances().keySet().equals(Set.copyOf(MobHats.BOXES)),
+				"a refused spawnchance changed the chances to " + fx.skins.settings().mobHatChances());
+		fx.skins.setMobHatChance(MobHats.WINTER, SkinsSettings.MOB_HAT_CHANCE);
 	}
 
 	/**
