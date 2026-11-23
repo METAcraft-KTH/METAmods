@@ -46,15 +46,15 @@ public record SkinsSettings(boolean perksAffectPlayers, boolean perksEnabled, So
 
 	public static final MapCodec<SkinsSettings> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			CommentCodec.comment(
-					Codec.BOOL.optionalFieldOf("perks-affect-players", true),
+					Codec.BOOL.fieldOf("perks-affect-players"),
 					"Whether Perks that hit a target (on hit, on kill, when hurt) affect players too. Off: mobs only."
 			).forGetter(SkinsSettings::perksAffectPlayers),
 			CommentCodec.comment(
-					Codec.BOOL.optionalFieldOf("perks-enabled", true),
+					Codec.BOOL.fieldOf("perks-enabled"),
 					"Off turns every Perk off; Looks keep working."
 			).forGetter(SkinsSettings::perksEnabled),
 			CommentCodec.comment(
-					Codec.unboundedMap(Codec.STRING, PERCENT).optionalFieldOf("mob-hat-chances", (Map<String, Double>) MOB_HAT_CHANCES)
+					Codec.unboundedMap(Codec.STRING, PERCENT).fieldOf("mob-hat-chances")
 							.xmap(SkinsSettings::sorted, m -> m),
 					"For each Skin Box, the chance in percent (0 to 100) that a mob that would wear one of its hats spawns wearing one. "
 							+ "classic: a zombie, husk, zombie villager, skeleton, stray, bogged, parched or creeper; winter: a zombie, "
